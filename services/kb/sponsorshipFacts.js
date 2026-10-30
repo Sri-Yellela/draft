@@ -6,16 +6,33 @@
 // (services/kb/lcaLayer.js reconcileCompanyLca + lcaMatch + the owner's lca_company_resolutions). Nothing here matches
 // a name. A company the layer could not resolve safely (`presentable` false) gets NO line — not a zero.
 // The year said is the latest COMPLETE fiscal year the corpus covers (a partial year's count would read as a drop).
-// ⚠ Not yet: the median wage (the ingest keeps no wages), the USCIS H-1B Employer Data Hub, E-Verify participation —
-// public files still to be imported; until then nothing is said about them.
+// ⭐ The line gains, each only when present and each with ITS OWN source and date (`parts`):
+//   "· median $162k"   the annualised median offered wage on that fiscal year's certified LCAs (services/kb/lcaWages.js),
+//                      said only over ≥ WAGE_MIN_CASES cases — same source and date as the filing count
+//   "· 1,204 H-1B approvals FY2022 (USCIS)"   the USCIS H-1B Employer Data Hub, joined through the SAME LCA match
+//                      (lcaLayer.js aggregateHubForEntities); the year is the latest one a hub file covers COMPLETELY
+//                      (its file date after that fiscal year's 30 September), dated by that file
+// ⛔ E-VERIFY IS NOT BUILT (EVERIFY below): e-verify.gov publishes only a search tool, no downloadable list, and the
+// search page is not scraped. Nothing is said about E-Verify.
 //
 // P2 · "What changed": a short, dated list of rule changes that affect students and workers. ⛔ Each line is a FACT with
 // an OFFICIAL source link (a .gov host or a federal court's docket) — addWhatChanged refuses anything else. No advice,
 // no opinion, and the list always carries NOT_LEGAL_ADVICE.
 
-import { getCompanyLca } from "./lcaLayer.js";
+import { getCompanyLca, getUscisHubCoverage } from "./lcaLayer.js";
+import { formatWageK } from "./lcaWages.js";
+import { HUB_SOURCE_NAME, HUB_PAGE_URL } from "./uscisHub.js";
 
 export const LCA_SOURCE_NAME = "U.S. Department of Labor, OFLC LCA disclosure data";
+// A median over one or two cases is one person's wage, not a pattern.
+export const WAGE_MIN_CASES = 3;
+/** ⛔ E-Verify participation: verified 2026-10-30 that no bulk source exists — so it is not built and never said. */
+export const EVERIFY = Object.freeze({
+  built: false,
+  checked: "2026-10-30",
+  source: "https://www.e-verify.gov/about-e-verify/e-verify-data/participating-employers",
+  reason: "E-Verify publishes a search tool only (updated daily), no downloadable participating-employer list; the search page is not scraped.",
+});
 export const NOT_LEGAL_ADVICE = "Not legal advice — confirm with your DSO or an immigration attorney.";
 
 const fyOf = (period) => { const m = /^FY(\d{4})Q([1-4])$/.exec(String(period || "")); return m ? { year: Number(m[1]), q: Number(m[2]) } : null; };
@@ -28,8 +45,24 @@ export function latestCompleteYear(latestCorpusPeriod) {
 }
 
 /**
+ * The latest fiscal year a hub file covers completely: its file date falls after that year's 30 September. A file dated
+ * mid-year (the archive's FY2023, dated 2023-05-31) is a partial year, and its count would read as a drop.
+ * @returns {{ fiscalYear, fileDate, sourceUrl } | null}
+ */
+export function latestCompleteHubYear(coverage) {
+  let best = null;
+  for (const f of coverage || []) {
+    for (const fy of f.fiscalYears || []) {
+      if (!f.fileDate || f.fileDate <= `${fy}-09-30`) continue;
+      if (!best || fy > best.fiscalYear || (fy === best.fiscalYear && f.fileDate > best.fileDate)) best = { fiscalYear: fy, fileDate: f.fileDate, sourceUrl: f.sourceUrl };
+    }
+  }
+  return best;
+}
+
+/**
  * One company's sponsorship fact, or null.
- * @returns {{ text, filings, fiscalYear, source: { name, url, through } } | null}
+ * @returns {{ text, filings, fiscalYear, source: { name, url, through }, parts: [{ kind, text, source }], wage?, uscis? } | null}
  */
 export function sponsorshipFactFor(db, company) {
   if (!company) return null;
@@ -44,11 +77,25 @@ export function sponsorshipFactFor(db, company) {
   } catch { url = null; }
   const p = fyOf(lca.latestCorpusPeriod);
   const through = `FY${p.year} Q${p.q}`;
-  return {
-    text: filings > 0 ? `Filed ${filings.toLocaleString("en-US")} certified LCA${filings === 1 ? "" : "s"} in FY${year}` : `No certified LCAs found in FY${year}`,
-    filings, fiscalYear: year,
-    source: { name: LCA_SOURCE_NAME, url, through },
-  };
+  const source = { name: LCA_SOURCE_NAME, url, through };
+  const lead = filings > 0 ? `Filed ${filings.toLocaleString("en-US")} certified LCA${filings === 1 ? "" : "s"} in FY${year}` : `No certified LCAs found in FY${year}`;
+  const parts = [{ kind: "lca", text: lead, source }];
+  const out = { filings, fiscalYear: year, source };
+  // The median wage — the same fiscal year and the same files as the count.
+  const w = lca.wageByFiscalYear?.[String(year)];
+  if (filings > 0 && w && Number(w.cases) >= WAGE_MIN_CASES && Number.isFinite(w.median)) {
+    out.wage = { medianUsd: w.median, cases: w.cases, fiscalYear: year };
+    parts.push({ kind: "wage", text: `median ${formatWageK(w.median)}`, source });
+  }
+  // USCIS approvals — the latest year a hub file covers completely, dated by that file.
+  const hubYear = latestCompleteHubYear(getUscisHubCoverage(db));
+  const h = hubYear ? lca.uscisByFiscalYear?.[String(hubYear.fiscalYear)] : null;
+  if (h && Number(h.approvals) > 0) {
+    out.uscis = { approvals: h.approvals, denials: h.denials ?? 0, fiscalYear: hubYear.fiscalYear };
+    parts.push({ kind: "uscis", text: `${Number(h.approvals).toLocaleString("en-US")} H-1B approval${h.approvals === 1 ? "" : "s"} FY${hubYear.fiscalYear} (USCIS)`,
+      source: { name: HUB_SOURCE_NAME, url: hubYear.sourceUrl || HUB_PAGE_URL, asOf: hubYear.fileDate } });
+  }
+  return { text: parts.map(x => x.text).join(" · "), ...out, parts };
 }
 
 /** A board page's rows → Map(company → fact), one read per company. */
