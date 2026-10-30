@@ -98,17 +98,18 @@ test("D88 P1: the apply caps — the same env variables and fallbacks", () => {
   }
 });
 
-test("⛔ D88 P1: full auto stays LOCKED unless proven AND the kill switch is off — and no override reaches it", () => {
+// D100 (owner 10-30): the proof constant is removed — the kill switch is the one global lock (a control).
+test("⛔ D88 P1 → D100: automatic sending is LOCKED only by the kill switch — and no override reaches it", () => {
   const d = db();
-  const mode = (proven, env = {}) => r(d, "auto_apply_mode", { env, ctx: { fullAutoProven: proven } });
-  assert.deepEqual([mode(false).value, mode(false).source], ["locked", "global"]);
+  const mode = (env = {}) => r(d, "auto_apply_mode", { env });
+  assert.equal(mode().value, "unlocked");
   setSetting(d, FULL_AUTO_KEY, true);
-  assert.equal(mode(true).value, "locked", "the kill switch");
+  assert.deepEqual([mode().value, mode().source], ["locked", "global"], "the kill switch");
   setSetting(d, FULL_AUTO_KEY, false);
-  assert.equal(mode(true).value, "unlocked");
+  assert.equal(mode().value, "unlocked");
   assert.equal(FEATURES.auto_apply_mode.hard, true, "a hard feature skips the override layer");
   const src = fs.readFileSync("routes/apply.js", "utf8");
-  assert.match(src, /\nconst FULL_AUTO_PROVEN = false;\r?\n/, "still false in the code");
+  assert.doesNotMatch(src, /const FULL_AUTO_PROVEN/, "D100: removed from the code");
 });
 
 test("D88 P1: the order holds — global beats override beats plan beats system; a ceiling holds an override only", () => {

@@ -58,10 +58,12 @@ test("⛔ the AUTO segment has no handler, is disabled while locked, and SAYS wh
   assert.match(bar, /aria-pressed="true" data-mode="semi"/);
 });
 
-test("the server's lock is a constant gated on proof, with the kill switch reported beside it", () => {
-  assert.match(route, /const FULL_AUTO_PROVEN = false;/);
-  assert.match(route, /message: "Auto has never run unattended against a real employer\.", killSwitch/);
-  assert.match(route, /mode: \{ current: "semi", auto: autoModeState\(\) \}/);
+// D100 (owner 10-30): the proof constant is removed; the mode is the user's (default SEMI) and the kill switch is
+// the one lock left, reported beside it.
+test("the bar's mode is the user's own, and AUTO is locked only by the operator's kill switch", () => {
+  assert.doesNotMatch(route, /const FULL_AUTO_PROVEN/);
+  assert.match(route, /message: "Automatic sending is paused by the operator\.", killSwitch/);
+  assert.match(route, /mode: \{ current: userApplyMode\(userId\), auto: autoModeState\(\) \}/);
 });
 
 // ── 2. THE THREE CAPS ────────────────────────────────────────────────────────────────────────

@@ -4712,4 +4712,14 @@ export const MIGRATIONS = [
         ALTER TABLE users ADD COLUMN extension_intent TEXT;
       `,
     },
+    {
+      // ⭐ D100 (owner 10-30, gates lifted): FULL AUTO is a per-user MODE, not a server constant. `send_mode` is
+      // 'semi' | 'auto'; NULL reads as 'semi' (the default). `submitted_by` records whose submit it was — 'user' (they
+      // approved these values) or 'auto' (their standing instruction) — on the run-job that sent it (D36 amended).
+      id: "169_send_mode_submitted_by",
+      sql: `
+        ALTER TABLE users ADD COLUMN send_mode TEXT;
+        ALTER TABLE apply_run_jobs ADD COLUMN submitted_by TEXT;
+      `,
+    },
   ];

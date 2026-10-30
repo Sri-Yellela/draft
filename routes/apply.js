@@ -202,17 +202,17 @@ export function tmpPdfPath(kind, userId, jobId, now = Date.now()) {
 }
 
 /**
- * ⛔ AUTO IS LOCKED, AND THE LOCK IS THE SERVER'S. Full-auto has never run unattended against a
- * real employer; D22 gates opening it on AF5 AND a supervised full-auto run, and that is an owner
- * decision, not a code path. When it is made, this is the one line that changes.
+ * ⭐ D100 (owner 10-30, GATES LIFTED): FULL AUTO IS THE USER'S MODE. The server constant that locked it
+ * (`FULL_AUTO_PROVEN = false`, D22 / D36) is removed — a RECORDED DELIBERATE REVERSAL (D100,
+ * CORRECTIONS_REGISTER.md). `users.send_mode` (migration 169) is 'semi' | 'auto'; NULL is 'semi', the default.
  *
- * D36: it is READ in three places — the run bar (autoModeState), admission (startRun refuses
- * approvalMode 'auto' with 403 full_auto_locked) and processing (processRunJob holds an 'auto' row
- * as full_auto_locked before anything opens). ⛔ It is a literal on purpose: no env var, no
- * app_settings row and no admin route can flip it, so a deployment cannot be talked into sending
- * unattended. test/d36ApplyPaths.test.js pins all of that.
+ * It is READ in the same three places the lock was — the run bar (autoModeState), admission (startRun
+ * refuses approvalMode 'auto' with 403 full_auto_not_chosen unless the user chose FULL AUTO) and
+ * processing (processRunJob holds an 'auto' row the same way, so a row written any other way cannot
+ * send for a user who did not choose it). What stays: the operator's kill switch and the user's own
+ * Stop everything are controls, not gates, and both still stop it.
  */
-const FULL_AUTO_PROVEN = false;
+export const APPLY_MODES = Object.freeze(["semi", "auto"]);
 
 /** D36: what a deferred preview says about the résumé it has not written yet. */
 export const DEFERRED_RESUME_SENTENCE =
@@ -1492,13 +1492,14 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // Re-checked per job, not just at admission: a run can cross the daily cap mid-flight, and
       // the kill switch can be flipped while a run is in progress. Both HOLD the job with a
       // reasonCode — visible in /api/apply/review — rather than dropping it silently.
-      // D36: the same lock as startRun's, at the door that cannot be walked around — boot recovery,
+      // D36 → D100: the same rule as startRun's, at the door that cannot be walked around — boot recovery,
       // the line and any hand-written row all arrive here. NULL approval_mode reads as 'auto' above.
-      if (mode === "auto" && approvalMode === "auto" && !FULL_AUTO_PROVEN) {
-        logEvent(runId, runJobId, userId, jobId, "full_auto_locked",
-          "Held: this run would have sent without your review, and that is switched off. Nothing was opened or sent.");
-        setJobStatus("held_review", "full_auto_locked",
-          "Sending without review is switched off until Auto has been proven attended. Nothing was opened or sent.");
+      // Sending without review is the user's FULL AUTO mode; a user in SEMI is held, nothing opened.
+      if (mode === "auto" && approvalMode === "auto" && userApplyMode(userId) !== "auto") {
+        logEvent(runId, runJobId, userId, jobId, "full_auto_not_chosen",
+          "Held: this run would have sent without your review, and your mode is SEMI. Nothing was opened or sent.");
+        setJobStatus("held_review", "full_auto_not_chosen",
+          "Sending without review needs FULL AUTO, and your mode is SEMI. Nothing was opened or sent.");
         db.prepare(`UPDATE apply_runs SET held_count=held_count+1 WHERE id=?`).run(runId);
         return;
       }
@@ -2058,6 +2059,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         } catch (e) {
           console.warn(`[applyRoutes] application record job=${jobId}: ${e.message}`);
         }
+        // D100 / D36 amended: whose submit it was. 'approved' = the user approved these values; 'auto' = their
+        // FULL AUTO standing instruction (processRunJob held it above unless they chose that mode).
+        db.prepare(`UPDATE apply_run_jobs SET submitted_by=? WHERE id=?`)
+          .run(approvalMode === "approved" ? "user" : "auto", runJobId);
       } else if (cancelled) {
         // Counted as neither held nor failed. The run's three counters are what the run chip
         // reports, and a cancelled job is not work waiting on the user (held) nor work that broke
@@ -2281,17 +2286,17 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       });
     }
 
-    // ⛔ D36 · FULL AUTO RUNS ATTENDED ONLY. FULL_AUTO_PROVEN shaped only the run bar: the bar showed
-    // AUTO locked while this function still admitted `approvalMode:'auto'` from POST /api/apply/runs
-    // and from POST /api/apply/answers ("answer-and-send in one step") and the run then SUBMITTED to
-    // the employer with nobody having seen it. The lock is now enforced where a run is admitted, and
-    // again where it is processed (processRunJob), so a row written any other way cannot send either.
+    // ⛔ D36 → D100 · SENDING WITHOUT REVIEW IS THE USER'S CHOICE, ENFORCED WHERE A RUN IS ADMITTED.
+    // D36 found the run bar's lock was only a picture: this function admitted `approvalMode:'auto'` from
+    // POST /api/apply/runs and POST /api/apply/answers and the run SUBMITTED with nobody having seen it.
+    // D100 replaced the server-wide lock with the user's mode; the enforcement stays here and in
+    // processRunJob, so a user in SEMI cannot be sent for by any caller.
     // 'approved' is not this: a human approved exactly those answers.
-    if (resolvedMode === "auto" && resolvedApproval === "auto" && !FULL_AUTO_PROVEN) {
+    if (resolvedMode === "auto" && resolvedApproval === "auto" && userApplyMode(userId) !== "auto") {
       return respond(403, {
-        error: "full_auto_locked",
-        message: "Sending without your review is switched off: Auto has never run unattended against a real " +
-          "employer. Draft it without approvalMode and it will wait for your approval.",
+        error: "full_auto_not_chosen",
+        message: "Sending without your review needs FULL AUTO, and your mode is SEMI. Switch it in Draft House, " +
+          "or draft it without approvalMode and it will wait for your approval.",
       });
     }
 
@@ -2807,20 +2812,22 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   // user's Stop everything. One read, so the bar never assembles itself from three endpoints that
   // could each be a poll apart.
 
+  /** D100: the user's mode — 'auto' only when they chose FULL AUTO; NULL, unknown or a failed read is 'semi'. */
+  function userApplyMode(userId) {
+    try {
+      const r = db.prepare("SELECT send_mode FROM users WHERE id = ?").get(userId);
+      return r?.send_mode === "auto" ? "auto" : "semi";
+    } catch { return "semi"; }
+  }
+
   /**
-   * ⛔ AUTO IS LOCKED, AND THE LOCK IS THE SERVER'S — see FULL_AUTO_PROVEN at the top of this file.
-   * The client renders AUTO selectable only when this says `locked: false`, and never decides it
-   * for itself. The kill switch is reported beside it, because "proven" is not "allowed right now".
+   * D100: AUTO is selectable unless the operator's kill switch is on — the one lock left, a control.
+   * The client renders AUTO selectable only when this says `locked: false`, and never decides it for itself.
    */
   function autoModeState() {
     const killSwitch = fullAutoDisabled();
-    // ⭐ D88 P1: the lock is the resolver's auto_apply_mode — GLOBAL only (FULL_AUTO_PROVEN, the kill switch);
-    // no override can lift it. The reasons below are the same two, in the same order.
-    const mode = resolveEntitlement(db, null, "auto_apply_mode", { ctx: { fullAutoProven: FULL_AUTO_PROVEN } }).value;
-    if (mode === "locked" && !FULL_AUTO_PROVEN) {
-      return { locked: true, reason: "never_run_unattended",
-               message: "Auto has never run unattended against a real employer.", killSwitch };
-    }
+    // ⭐ D88 P1: the lock is the resolver's auto_apply_mode — GLOBAL only (the kill switch); no override can lift it.
+    const mode = resolveEntitlement(db, null, "auto_apply_mode").value;
     if (mode === "locked") {
       return { locked: true, reason: "kill_switch",
                message: "Automatic sending is paused by the operator.", killSwitch };
@@ -2837,9 +2844,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const held = userHeld(db, userId);
     const since = userHoldSince(db, userId);
     return {
-      // Every Draft previews and waits for the user's approval; that is SEMI. It is the only mode a
-      // user can be in while AUTO is locked, so it is stated rather than stored.
-      mode: { current: "semi", auto: autoModeState() },
+      // D100: the user's own mode (default SEMI). A Draft from the board, the deck or the extension still
+      // previews and waits in either mode; FULL AUTO is what the scheduler's runs (D102 P4) send under.
+      mode: { current: userApplyMode(userId), auto: autoModeState() },
       // The pipeline's own order, queue ≥ approval ≥ submission (docs/am2-approval-cap.md §4).
       windowHours: 24,
       caps: [
@@ -2852,6 +2859,25 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   }
 
   app.get("/api/apply/run-bar", requireAuth, (req, res) => {
+    res.json(runBar(req.user.id));
+  });
+
+  /**
+   * D100 / D102 P2: the run bar's SEMI / FULL AUTO switch. No lock — the user's choice, default SEMI.
+   * Choosing FULL AUTO while the operator's kill switch is on is refused (409) rather than stored, so the
+   * bar never shows a mode that cannot run; SEMI can always be chosen.
+   */
+  app.post("/api/apply/mode", requireAuth, (req, res) => {
+    const { mode } = req.body || {};
+    if (!APPLY_MODES.includes(mode)) {
+      return res.status(400).json({ error: "bad_mode", message: 'POST {"mode": "semi"} or {"mode": "auto"}.' });
+    }
+    if (mode === "auto" && autoModeState().locked) {
+      return res.status(409).json({ error: "full_auto_disabled",
+        message: "Automatic sending is paused by the operator, so FULL AUTO cannot be chosen right now." });
+    }
+    db.prepare("UPDATE users SET send_mode = ? WHERE id = ?").run(mode, req.user.id);
+    console.warn(`[apply] user ${req.user.id} mode → ${mode}`);
     res.json(runBar(req.user.id));
   });
 

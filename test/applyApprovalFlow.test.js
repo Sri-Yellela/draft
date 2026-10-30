@@ -106,14 +106,14 @@ test("an auto run previews by default — full-auto is now opt-in", async () => 
 });
 
 // D36 (10-05): this used to pin that approvalMode:'auto' opted back into full-auto — an unattended
-// submit to a real employer while the run bar said AUTO was locked. FULL_AUTO_PROVEN now gates it at
-// admission; the opt-out returns only when the owner flips that constant (test/d36ApplyPaths.test.js).
-test("approvalMode:'auto' is refused while full auto is unproven — 403, nothing queued", async () => {
+// submit to a real employer while the run bar said AUTO was locked. D36 gated it at admission; D100
+// (10-30) made the gate the USER'S mode (default SEMI) instead of a server constant (test/d36ApplyPaths.test.js).
+test("approvalMode:'auto' is refused for a user in SEMI (the default) — 403, nothing queued", async () => {
   const t = setup();
   try {
     const r = await t.post("/api/apply/runs", { jobIds: ["gh1"], mode: "auto", approvalMode: "auto" });
     assert.equal(r.status, 403);
-    assert.equal((await r.json()).error, "full_auto_locked");
+    assert.equal((await r.json()).error, "full_auto_not_chosen");
   } finally { t.close(); }
 });
 

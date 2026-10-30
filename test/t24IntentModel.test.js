@@ -416,7 +416,7 @@ test("⭐ T24 · server: Draft before any fill queues exactly ONE drafted applic
     assert.equal(f.count("SELECT approval_mode FROM apply_runs"), "required", "⛔ it waits for review — the board's Draft");
     assert.equal(r.body.slots.used, 2, "a Draft and a generation: two of the ten");
     assert.equal(r.body.applyMode, "semi");
-    assert.equal(r.body.autoLocked, true, "full auto stays locked");
+    assert.equal(r.body.autoLocked, false, "D100: AUTO is the user's to choose (no proof lock); this Draft still waits");
     assert.match(r.body.resume.id, /^erg_/);
     const again = await f.call("POST", "/api/extension/draft", { boundJobId: JOB, trigger: "click" });
     assert.equal(again.status, 200);
@@ -477,8 +477,8 @@ test("⛔ T24 · server: full auto is still refused — the extension's surface 
     assert.equal(r.status, 400);
     assert.equal(r.body.error, "approval_mode_forbidden_for_surface");
     const plain = await f.call("POST", "/api/apply/runs", { jobIds: [JOB2], mode: "auto", approvalMode: "auto" });
-    assert.equal(plain.status, 403, "FULL_AUTO_PROVEN = false — the lock is the server's");
-    assert.equal(plain.body.error, "full_auto_locked");
+    assert.equal(plain.status, 403, "D100: a user in SEMI (the default) — the check is the server's");
+    assert.equal(plain.body.error, "full_auto_not_chosen");
     const src = read("routes/extensionDraft.js");
     assert.doesNotMatch(src.replace(/^\s*\/\/.*$/gm, ""), /approvalMode/, "the extension's Draft never names one");
     assert.match(read("routes/apply.js"), /const draftForExtension = \(user, jobId\) =>\n\s+startRun\(user\.id, normalisePlanTier\(user\?\.planTier\), \[String\(jobId\)\], \{ mode: "auto" \}\);/);
@@ -515,7 +515,8 @@ test("T24 · migration 168 is additive and byte-identical in both runners; no ne
   assert.equal(block(raw("server.js")), block(raw("scripts/migrations.js")));
   assert.match(block(raw("scripts/migrations.js")), /ALTER TABLE users ADD COLUMN extension_intent TEXT;/);
   assert.doesNotMatch(block(raw("server.js")), /\bDROP\b|DELETE FROM|UPDATE \w+ SET/i);
-  assert.equal(MIGRATIONS.at(-1).id, id, "the next number after the highest");
+  const ids = MIGRATIONS.map(m => m.id);
+  assert.equal(ids[ids.indexOf(id) - 1], "167_extension_resume_cause", "the next number after the highest at the time");
   for (const f of ["extension/intent.js", "extension/intentModel.js", "extension/intentSettings.js", "extension/options-intent.js"]) {
     assert.doesNotMatch(read(f).replace(/^\s*\/\/.*$/gm, ""), /chrome\.storage|localStorage/, `${f} keeps nothing in the browser`);
   }
