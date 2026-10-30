@@ -80,7 +80,11 @@ test("D54 · drafting a second role at a company SHOWS THE NOTICE — never sile
   // The board asks, and goes on if the user says yes — the confirm is the whole gate.
   const panel = read("client/src/panels/JobsPanel.jsx");
   const decide = panel.slice(at(panel, "const decideJob = useCallback("), at(panel, "const undoLastDecision = useCallback("));
-  assert.match(decide, /const notice = companyNoticeFor\(job\);\n\s+if \(notice && !window\.confirm\(notice\)\) return;/);
+  // A105 finding 12 (10-30) on purpose: D54's notice is the toast's line with "Draft anyway" — never a modal confirm.
+  assert.match(decide, /const notice = companyOk \? null : companyNoticeFor\(job\);\n\s+if \(notice\) \{ setDecisionToast\(\{ jobId, company: job\.company, decision, notice, job, at: Date\.now\(\) \}\); return; \}/);
+  assert.doesNotMatch(decide, /window\.confirm/);
+  assert.match(panel, /onConfirmNotice=\{\(t\) => decideJob\(t\.job, t\.decision, \{ companyOk: true \}\)\}/);
+  assert.match(read("client/src/components/DecisionToast.jsx"), />Draft anyway</);
   assert.match(read("client/src/components/JobDetailPanel.jsx"), /data-company-notice=""/, "the panel says it before the click");
 });
 

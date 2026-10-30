@@ -3334,7 +3334,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setSelectedJob(prev => (prev && prev.jobId === jobId ? { ...prev, ...flags } : prev));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const decideJob = useCallback(async (job, decision) => {
+  const decideJob = useCallback(async (job, decision, { companyOk = false } = {}) => {
     const jobId = job?.jobId || job?.id;
     if (!jobId) return;
     const prior = { starred: !!job.starred, disliked: !!job.disliked };
@@ -3342,10 +3342,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (decision === DECISIONS.SAVED && prior.starred) return;
     if (decision === DECISIONS.PASSED && prior.disliked) return;
     if (decision === DECISIONS.DRAFTED && (isJobDrafted(jobId) || draftingIds.has(jobId))) return;
-    // D54: warn at the second role — the user decides; nothing is refused here.
+    // D54: warn at the second role — the user decides; nothing is refused here. A105 finding 12: the notice is the
+    // toast's line with "Draft anyway" (D54 asked for a NON-blocking notice; the browser's confirm dialog was a modal block).
     if (decision === DECISIONS.DRAFTED) {
-      const notice = companyNoticeFor(job);
-      if (notice && !window.confirm(notice)) return;
+      const notice = companyOk ? null : companyNoticeFor(job);
+      if (notice) { setDecisionToast({ jobId, company: job.company, decision, notice, job, at: Date.now() }); return; }
       // ⛔ D59 (owner, 10-07 (38): "only in panel"): the posting's stated citizenship / clearance is said
       // in the posting panel's line beside Draft — never a confirm at the click.
     }
@@ -3535,7 +3536,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   return (
     <div style={{ flex:1, minHeight:0, minWidth:0, display:"flex", flexDirection:"column", overflow:"hidden", background:"transparent" }}>
       {/* A53: the deck's toast and its Undo — one component, both surfaces. */}
-      <DecisionToast toast={decisionToast} onUndo={undoLastDecision} bottom={24} />
+      <DecisionToast toast={decisionToast} onUndo={undoLastDecision} bottom={24}
+        onConfirmNotice={(t) => decideJob(t.job, t.decision, { companyOk: true })} />
       {/* TRANSPARENT, not theme.bg (09-30). theme.bg is --bg-page, which is mapped to SURFACE — the
           GLASS — so the whole board sat under a 58% cream sheet, the cards were glass on glass, and
           the leather never reached them. The page is the substrate; only the cards are glass. */}
