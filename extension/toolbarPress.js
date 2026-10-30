@@ -48,8 +48,11 @@ export function relayFor({ identity = null, ctx = null, auto = null } = {}) {
       actions: [{ id: 'fill', label: 'Fill this page', icon: 'fill', primary: true }] });
   }
   if (ctx.notice) out.push({ id: 'draft-notice', kind: 'toast', icon: 'info', text: String(ctx.notice), ms: 6000 });
-  // automatic reading — offered only where it would work, and only until it is set up (or put off)
-  if (auto?.here && !auto.here.on && auto.here.host && !auto.frameAsk) {
+  // automatic reading — offered only where it would work, and only until it is set up (or put off).
+  // ⭐ D112: while the ONE global-read ask is due, the press opens its window instead (toolbarPress → deps.ask) — no
+  // per-site offer beside it; with global read on there is nothing to set up anywhere.
+  if (auto?.globalAsk || auto?.global) { /* the window asks, or nothing is needed */ }
+  else if (auto?.here && !auto.here.on && auto.here.host && !auto.frameAsk) {
     out.push({ id: 'draft-auto', kind: 'toast', icon: 'read', ms: 8000, text: `Read ${auto.here.host}'s application pages for you automatically?`,
       actions: [{ id: 'always-here', label: `Set up reading ${auto.here.host} automatically — opens Settings`, word: 'Set up' }] });
   } else if (auto?.frameAsk?.name && auto.here?.host) {
@@ -65,13 +68,13 @@ export function relayFor({ identity = null, ctx = null, auto = null } = {}) {
 
 /**
  * What a FILL has to say that only a popup can carry — said only when it is so:
- *   a form inside a frame draft may not read yet → "Allow draft on Greenhouse" [Allow] (owner 10-23: the settings page)
+ *   a form inside a frame draft may not read yet → "Allow draft on Greenhouse" [Allow] (⭐ D112 b2: the ONE global-read ask's window)
  *   a form draft does not recognise → that sentence [Report] (it replaces the status line's own news of it)
  */
 export function fillRelay(result) {
   if (result?.reason === 'frame_needs_permission' && result.site?.name) {
     return [{ id: 'draft-relay', kind: 'question', icon: 'need', tone: 'need', text: result.message || `Allow draft on ${result.site.name} to fill this form.`,
-      actions: [{ id: 'allow-site', label: `Allow draft on ${result.site.name} — opens Settings`, word: 'Allow', primary: true }] }];
+      actions: [{ id: 'allow-site', label: `Allow draft on ${result.site.name} — a small window asks`, word: 'Allow', primary: true }] }];
   }
   // D36·6: a fill that worked but whose review panel did not open — the one place the person learns the answers were not
   // laid out for checking (the retired popup stayed open for it); said on the page, and it stays until it is read
@@ -141,5 +144,7 @@ export async function toolbarPress(tab, deps) {
   const auto = identity?.authenticated && deps.auto ? await deps.auto(tab).catch(() => null) : null;
   const specs = relayFor({ identity, ctx, auto });
   if (specs.length) await deps.relay(tab, specs).catch(() => null);
-  return { ok: true, did: 'opened', said: specs.length };
+  // ⭐ D112 b2: the ONE ask — a small window over this posting, opened by this press while it is due (never answered)
+  const asked = auto?.globalAsk && deps.ask ? await deps.ask(tab).catch(() => null) : null;
+  return { ok: true, did: 'opened', said: specs.length, ...(asked?.opened ? { asked: true } : {}) };
 }

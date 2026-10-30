@@ -96,7 +96,7 @@ export function readFailurePopup(id) {
   const text = `${id.message || "draft couldn't read this page."} (${code})`;
   const details = { id: 'details', label: 'Details — open Settings at Developer details', icon: 'info' };
   const base = { id: 'rm-draft-read', kind: 'question', icon: 'need', tone: 'need', text, data: { code } };
-  if (code === 'no_access') return { ...base, actions: [{ id: 'allow-site', label: 'Allow on this site — opens Settings', word: 'Allow', primary: true }, details] };
+  if (code === 'no_access') return { ...base, actions: [{ id: 'allow-site', label: 'Allow on this site — a small window asks', word: 'Allow', primary: true }, details] };
   if (code === 'signed_out') return { ...base, icon: 'info', tone: '', actions: [{ id: 'sign-in', label: 'Sign in to draft', word: 'Sign in', primary: true }] };
   if (code === 'not_on_board') return { ...base, icon: 'info', tone: '', text: `${id.message} (${code})`,
     actions: [{ id: 'capture', label: 'Capture it — add it to your board', word: 'Capture', primary: true },

@@ -81,7 +81,8 @@ test("T31 ④ the service worker: the press is chrome.action.onClicked; DOCK_ACT
   assert.match(act, /act\(sender\.tab\)/, "it acts on the tab the click came from — never the active one");
   const acts = BG.slice(at(BG, "const DOCK_ACTS = Object.freeze({"), at(BG, "chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {\n  if (msg?.type !== 'DOCK_ACT')"));
   for (const a of ["capture", "draft", "fill", "'sign-in'", "'allow-site'", "report", "'report-send'"]) assert.match(acts, new RegExp(`\\n  ${a}: async`), `no ${a}`);
-  assert.match(acts, /'allow-site': async \(\) => \{ await chrome\.tabs\.create\(\{ url: chrome\.runtime\.getURL\('options\.html#permissions'\) \}\);/, "a permission is asked on the settings page");
+  // ⭐ D112 b2: a permission is asked in the ONE global-read ask's window (replacing the 10-23 Settings-tab trip)
+  assert.match(acts, /'allow-site': async \(tab\) => \{\s+const r = await openGlobalAsk\(tab, \{ force: true \}\);/, "a permission is asked in the ask window");
   assert.doesNotMatch(acts, /permissions\.request/, "⛔ never from a page");
   const tp = BG.slice(at(BG, "if (msg?.type !== 'TOOLBAR_PRESS') return false;"));
   assert.match(tp.slice(0, 400), /if \(sender\?\.id !== chrome\.runtime\.id \|\| !String\(sender\?\.url \|\| ''\)\.startsWith\(chrome\.runtime\.getURL\(''\)\)\) \{ sendResponse\(\{ ok: false \}\); return true; \}/);

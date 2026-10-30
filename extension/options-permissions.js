@@ -10,7 +10,7 @@
 //     writer); a chosen site goes as "Remove" does (AUTO_READ_REMOVE_SITE); any other grant is removed here
 //   · the two sections stay true to each other: Chrome's own onAdded / onRemoved redraw this list and the
 //     automatic-reading table above it (options-auto.js)
-import { SITES, DISPLAY_ORDER, siteById, originPattern, ANY_SITE_PATTERN } from './autoRead.js';
+import { SITES, DISPLAY_ORDER, siteById, originPattern, ANY_SITE_PATTERN, GLOBAL_ORIGINS } from './autoRead.js';
 import { autoSection } from './options-auto.js';
 
 /** A preset site's switch turned on: ⛔ the request is the first chrome call, synchronous, inside the gesture. */
@@ -20,6 +20,21 @@ export function onAllow(api, siteId) {
   return (async () => {
     if (!site) return { ok: false, error: 'bad_site' };
     try { return { ok: !!(await asked) }; } catch { return { ok: false }; }
+  })();
+}
+
+/**
+ * ⭐ D112 · "Job postings on any site" turned on: ⛔ the request for the broad pattern (GLOBAL_ORIGINS) is the first chrome call, synchronous,
+ * inside the gesture; Chrome's grant is then recorded by the worker (AUTO_READ_GLOBAL — one writer).
+ */
+export function onAllowGlobal(api) {
+  const asked = api.permissions.request({ origins: [...GLOBAL_ORIGINS] });
+  return (async () => {
+    let ok = false;
+    try { ok = !!(await asked); } catch { ok = false; }
+    if (!ok) return { ok: false };
+    const r = await Promise.resolve(api.runtime.sendMessage({ type: 'AUTO_READ_GLOBAL' })).catch(() => null);
+    return { ok: !!r?.ok };
   })();
 }
 
@@ -33,7 +48,8 @@ export function mount(doc, api) {
   const required = new Set(manifest.host_permissions || []);
   const preset = new Set(SITES.flatMap(s => s.origins));
 
-  const row = (name, checked, onChange, { note = '', id = '' } = {}) => {
+  const globalBox = $('perm-global');   // ⭐ D112: the ONE lever's own place, above the per-site rows
+  const row = (name, checked, onChange, { note = '', id = '', into = body } = {}) => {
     const r = doc.createElement('div');
     r.className = 'perm-row';
     const lab = doc.createElement('label');
@@ -50,7 +66,7 @@ export function mount(doc, api) {
     r.append(lab);
     if (note) { const n = doc.createElement('span'); n.className = 'hint'; n.textContent = note; r.append(n); }
     box.addEventListener('change', () => onChange(box));
-    body.append(r);
+    into.append(r);
     return box;
   };
   const done = (text) => { if (say) { say.textContent = text; setTimeout(() => { if (say.textContent === text) say.textContent = ''; }, 5000); } };
@@ -60,6 +76,19 @@ export function mount(doc, api) {
     let all = [];
     try { all = (await api.permissions.getAll())?.origins || []; } catch { all = []; }
     body.textContent = '';
+    // ⭐ D112: the ONE lever first — job postings on any site (global read), in its own place above the per-site rows
+    if (globalBox) globalBox.textContent = '';
+    if (globalBox) row('Job postings on any site', !!state.globalGranted && !!state.settings?.global, (box) => {
+      if (box.checked) {
+        const asked = onAllowGlobal(api);                                // ⛔ first: inside the gesture
+        void asked.then((r) => { done(r.ok ? 'draft reads job postings on any site now.' : 'Chrome did not allow it — nothing changed.'); return refresh(); }).catch(() => null);
+        return;
+      }
+      void Promise.resolve(api.runtime.sendMessage({ type: 'AUTO_READ_GLOBAL_OFF' })).catch(() => null).then((r) => {
+        done(r?.ok ? 'draft no longer reads job postings by itself.' : 'Could not turn it off — try again.');
+        return refresh();
+      }).catch(() => null);
+    }, { id: 'global', note: 'A page that is not a job posting sends nothing.', into: globalBox });
     for (const id of DISPLAY_ORDER) {
       const site = siteById(id);
       row(site.name, !!state.granted?.[id], (box) => {

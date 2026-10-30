@@ -87,7 +87,7 @@ const hereFor = async (url, { jobId = null, noted = null } = {}) => {
 
 // ── 1 · the manifest ────────────────────────────────────────────────────────────────────────────────────────────────
 
-test("⛔ manifest: https://*/* ONLY in optional_host_permissions — nothing new in host_permissions or permissions, and the pattern is never itself requested", () => {
+test("⛔ manifest: https://*/* ONLY in optional_host_permissions — nothing new in host_permissions or permissions; ⭐ D112: requested whole ONLY by the one global-read ask and its Settings switch", () => {
   assert.deepEqual(manifest.optional_host_permissions, [...MANIFEST_OPTIONAL_HOSTS]);
   assert.equal(manifest.optional_host_permissions.at(-1), ANY_SITE_PATTERN);
   assert.equal(manifest.optional_host_permissions.filter(o => o === ANY_SITE_PATTERN).length, 1);
@@ -112,6 +112,10 @@ test("⛔ manifest: https://*/* ONLY in optional_host_permissions — nothing ne
     const src = read(`extension/${f}`);
     assert.doesNotMatch(src, /permissions\.request\([^)]*(ANY_SITE_PATTERN|MANIFEST_OPTIONAL_HOSTS|\*:\/\/|https:\/\/\*\/\*)/, f);
   }
+  // ⭐⭐ D112 (owner 10-30, T35 = A): T12's "the pattern itself is never requested" is REVERSED, deliberately — the broad
+  // pattern is requested whole (GLOBAL_ORIGINS) in exactly two clicks: the ask window's Allow and Settings' global switch
+  const global = files.filter(f => /permissions\.request\(\{ origins: \[\.\.\.GLOBAL_ORIGINS\] \}\)/.test(read(`extension/${f}`))).sort();
+  assert.deepEqual(global, ["global-ask.js", "options-permissions.js"]);
   // the rationale and the listing say so
   const why = read("extension/MANIFEST_RATIONALE.md");
   assert.match(why, /`https:\/\/\*\/\*`/);
