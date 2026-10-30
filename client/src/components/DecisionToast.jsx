@@ -13,6 +13,7 @@ import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
 import { DECISION_AFTER, DECISION_VERB, lineAfter } from "../lib/jobDecisions.js";
+import { DRAFT_IT, SKIP } from "../lib/draftSelected.js";
 
 const kbd = { fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 5, border: `1px solid ${C.BORDER_STRONG}`,
               color: C.INK_MUTED, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", lineHeight: "16px" };
@@ -23,7 +24,7 @@ const kbd = { fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 5
  * @param onUndo  reverses it (lib/jobDecisions.js undoDecision)
  * @param undoKey the key bound to Undo on this surface, shown beside the label (the deck binds U)
  */
-export default function DecisionToast({ toast, onUndo, undoKey = null, bottom = 96, onConfirmNotice = null }) {
+export default function DecisionToast({ toast, onUndo, undoKey = null, bottom = 96, onConfirmNotice = null, onAnswerNotice = null }) {
   return (
     <AnimatePresence>
       {toast && (
@@ -40,13 +41,24 @@ export default function DecisionToast({ toast, onUndo, undoKey = null, bottom = 
           {toast.notice && (
             <>
               <span data-company-notice-toast="">{toast.notice.replace(/\s*Draft this one too\?$/, "")}</span>
-              {onConfirmNotice && (
+              {/* D112 a1: one notice per duplicate in "Draft selected" — each answered Draft it / Skip; it waits. */}
+              {toast.batch && onAnswerNotice ? (
+                <>
+                  {toast.of > 1 && <span data-batch-notice-count="" style={{ color: C.INK_MUTED, fontSize: 12 }}>{toast.index} of {toast.of}</span>}
+                  <button type="button" data-batch-draft-it="" onClick={() => onAnswerNotice(DRAFT_IT)} style={{ background: "transparent", border: "none",
+                    color: C.ACCENT_INK, fontWeight: 800, cursor: "pointer" }}>Draft it</button>
+                  <button type="button" data-batch-skip="" onClick={() => onAnswerNotice(SKIP)} style={{ background: "transparent", border: "none",
+                    color: C.INK_MUTED, fontWeight: 800, cursor: "pointer" }}>Skip</button>
+                </>
+              ) : onConfirmNotice && (
                 <button type="button" onClick={() => onConfirmNotice(toast)} style={{ background: "transparent", border: "none",
                   color: C.ACCENT_INK, fontWeight: 800, cursor: "pointer" }}>Draft anyway</button>
               )}
             </>
           )}
-          {!toast.notice && <>
+          {/* D112 a1: the end of a "Draft selected" — one line; no Undo (each is in Draft House, removable there). */}
+          {!toast.notice && toast.summary && <span data-draft-selected-summary="">{toast.summary}</span>}
+          {!toast.notice && !toast.summary && <>
           {toast.error ? (
             <span data-decision-refused=""><strong>Not {DECISION_VERB[toast.decision]?.toLowerCase()}</strong>
               {toast.company ? ` ${toast.company}` : ""} — {toast.error}</span>
