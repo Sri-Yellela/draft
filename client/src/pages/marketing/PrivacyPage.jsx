@@ -102,7 +102,26 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // before the extension ships it). (2) The last capture's result is no longer stored (nothing reads it any more).
 // (3) The popup's places — the account and Disconnect, automatic reading's one-time offer, "Always read here", the Copy
 // sheet, Report this form — are named where they are now: the settings page and draft's panel on the page.
-const EFFECTIVE_DATE = 'October 25, 2026';
+// October 31, 2026 (owner, 10-30 — D112 item 3, from docs/privacy/PENDING_D100_D103.md): FIVE NEW THINGS, all MATERIAL
+// (draft starts keeping or sending new kinds of data), each only after the user turns it on. (1) D100 · Applying for You —
+// the apply worker (SEMI default / FULL AUTO), sealed portal sessions only the separate apply service can open, portal
+// accounts created with the user's own email, the opt-in terms box, and what the worker never does. (2) D103 · the
+// Application Inbox — a forwarding address, the message's sender / subject / time / text (20,000 characters, no
+// attachments), rule-sorted, no model; ⭐ inbox mail deleted after 180 DAYS (owner: "6 months"; services/inbox.js
+// INBOX_RETENTION_DEFAULT_DAYS, swept at boot and daily from server.js). The opted-in portal verification-code read.
+// (3) D112 item 2 · Connecting Gmail — Google OAuth gmail.readonly, only messages matching applicant-tracking senders and
+// the user's applications' companies, text only, no attachments, the same path as a forwarded message; disconnect revokes
+// the token. Google's Limited Use affirmation, in the example wording of Google's Workspace API User Data and Developer
+// Policy (verified 10-30 against developers.google.com/workspace/workspace-api-user-data-developer-policy, last updated
+// 2026-09-03). Google becomes a recipient again, so the fonts paragraph's "we send Google nothing" is narrowed to fonts.
+// (4) D101 · the profile in sections and Application defaults. (5) D112 item 4 (T35 = A) · global read — asked ONCE, an
+// optional permission for every site; a page that is not a posting sends nothing (not its address, not a hash); an
+// irrelevant posting is discarded unstored; never LinkedIn / Indeed / Glassdoor. The "it never asks for every site"
+// sentence is retracted with it. ⛔ The advance-notice commitment is NOT triggered in practice: there are no registered
+// users yet (owner, 10-30: "we have no users yet today so we can finalise before we push") — so the owner chose no notice
+// period, and the effective date is the date of the push that applies this text. ⚠ If that push is not 2026-10-31, move
+// this date to the push day. From the first registered user on, a change of this shape needs the notice, not just a date.
+const EFFECTIVE_DATE = 'October 31, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 export function PrivacyPage() {
@@ -178,7 +197,8 @@ export function PrivacyPage() {
           <H3>Browser Extension</H3>
           <P>
             <Strong>The extension reads nothing until you invoke it</Strong> — unless you switch on
-            automatic reading for a site yourself (below). Out of the box it holds no permission for
+            automatic reading yourself (below): for a list of job sites, for one careers site at a time, or,
+            if you allow it once, for job postings on any site. Out of the box it holds no permission for
             any job site, runs no code on any page automatically, and cannot see what you are
             browsing. When you press its keyboard shortcut or open it from the toolbar, and
             only then, it reads the one tab you are looking at — and its access to that tab ends
@@ -267,8 +287,8 @@ export function PrivacyPage() {
             <LI>
               It does <Strong>not</Strong> read your messages, connections, or profile feed on any
               site. It reads a page only when you invoke it on that page, and only that one tab —
-              so the question is not which sites it is allowed to read, but which single page you
-              chose to point it at.
+              or, once you have switched automatic reading on, a job posting or application page
+              you open yourself, as described below.
             </LI>
             <LI>
               It does <Strong>not</Strong> collect lists of jobs. It reads the one posting you are
@@ -390,8 +410,9 @@ export function PrivacyPage() {
             careers site, the settings page's <Strong>Always read</Strong> switch for that site (draft's panel offers it there) does the same for that one
             site: it asks Chrome for that site — and, when its application form is another job site's
             frame, that job site — and nothing else. <Strong>Nothing is on until you agree</Strong>, after
-            the extension has shown you what it does. It never asks for every site, and never for
-            LinkedIn, Indeed or Glassdoor. In the settings there are four separate switches per site:
+            the extension has shown you what it does. These two never ask for every site — only the
+            separate choice below does — and nothing ever reads LinkedIn, Indeed or Glassdoor. In the
+            settings there are four separate switches per site:
           </P>
           <UL>
             <LI>
@@ -424,6 +445,41 @@ export function PrivacyPage() {
             </LI>
           </UL>
 
+          {/* ⭐ D112 item 4 (owner 10-30, T35 = A) — global read: the optional any-site (https, every host) permission, asked once (b2:
+              a small window that closes itself). The listing and PRIVACY_RECONCILIATION.md change with it. */}
+          <H3>Reading Job Postings on Any Site (optional, asked once)</H3>
+          <P>
+            The extension can also offer, <Strong>once</Strong>, to read job postings on any site — not only
+            the job sites above — so that draft's panel appears on a posting by itself, with no click. It
+            shows you what it does in a small window over the posting (<Strong>Allow</Strong> or{' '}
+            <Strong>Not now</Strong>); only Allow raises Chrome's own prompt, for the optional permission to
+            read pages on any site, and either answer closes the window. Not now asks Chrome nothing. Once
+            you allow it:
+          </P>
+          <UL>
+            <LI>
+              On each page you open, the extension checks <Strong>in your browser</Strong> whether the page
+              is a job posting. <Strong>A page that is not a posting sends nothing</Strong> — not the page,
+              not its address, not a hash of it — and nothing about it is kept, in your browser or by us.
+              The extension does not record where you go.
+            </LI>
+            <LI>
+              On a posting, its text and address are sent to us and checked against your board, as Capture
+              does above. <Strong>An irrelevant posting is discarded and not stored</Strong> — not the
+              posting, not its address, not a record that it was sent. A posting that fits is shown to you
+              in draft's panel.
+            </LI>
+            <LI>
+              It <Strong>never</Strong> reads LinkedIn, Indeed or Glassdoor, and what it reads in your
+              browser is used for your own account only — it is never added to a board other people see.
+            </LI>
+            <LI>
+              Fill still never submits an application, and the per-site switches above still apply. The
+              same one button switches everything off and gives the permission back; you can also remove it
+              in Chrome's own extension settings.
+            </LI>
+          </UL>
+
           <H3>Filling an Application</H3>
           <P>
             Some employers require an account, or a CAPTCHA, before they will accept an
@@ -453,9 +509,10 @@ export function PrivacyPage() {
               submit button.
             </LI>
             <LI>
-              It does <Strong>not</Strong> sign you in, create an account for you, or attempt a
+              The extension does <Strong>not</Strong> sign you in, create an account for you, or attempt a
               CAPTCHA, and it never reads or stores any employer's password, session cookie or
-              verification code.
+              verification code. (draft's separate apply service can do some of those for you, only if you
+              turn them on — see Applying for You, below.)
             </LI>
             <LI>
               The prepared answers are held only while you are working on that application: in
@@ -519,6 +576,125 @@ export function PrivacyPage() {
             the page, and then <Strong>Send</Strong>, we receive that site's host name (for example
             jobs.example.com — never the rest of the page address) and the form's field labels,
             never your answers; the report is linked to your account and deleted after 30 days.
+          </P>
+
+          {/* ⭐ D100 (owner 10-30) — the apply worker: services/applyWorker.js, the sealed portals (routes/portals),
+              the separate apply service. Text from docs/privacy/PENDING_D100_D103.md §1. */}
+          <H3>Applying for You (the apply service)</H3>
+          <P>
+            If you choose to, draft can fill in and send applications for you on employer portals,
+            including ones that require you to be signed in. You choose the mode: <Strong>SEMI</Strong> (the
+            default — draft fills the application and waits for you to approve the answers it will send) or{' '}
+            <Strong>FULL AUTO</Strong> (draft sends applications that match the filters, times and daily limit
+            you set, without asking each time). Every application records whether you approved it or your
+            FULL AUTO setting sent it.
+          </P>
+          <UL>
+            <LI>
+              <Strong>Signed-in portal sessions.</Strong> To apply on a portal that requires sign-in, you can
+              connect it. Your app seals the portal's session (its cookies) with a key that only our separate
+              apply service holds; <Strong>draft's own servers store it only in that sealed form and cannot read
+              it</Strong>. The apply service opens it only while it is applying for you. When you remove a
+              portal, the key is destroyed, and every stored copy becomes unreadable.
+            </LI>
+            <LI>
+              <Strong>Portal accounts draft creates for you.</Strong> If you agree for a portal, draft can create
+              an account there for you, using <Strong>your own email address</Strong> and a password our apply
+              service generates. The password is sealed the same way — draft's servers never see it. The account
+              is yours: you can sign in to it with the portal's own "forgot password". Removing it in draft
+              destroys our copy of the key; the account at the portal stays yours.
+            </LI>
+            <LI>
+              <Strong>Agreeing to a portal's terms for you.</Strong> Only if you switch it on in Auto settings,
+              draft ticks a portal's terms of service, privacy policy or data-processing consent box when an
+              application or a sign-up requires it — never a signature, a statement that your answers are true,
+              or a box that signs you up for marketing. Off (the default), the application waits for you to tick
+              it yourself.
+            </LI>
+            <LI>
+              <Strong>What the apply service will not do:</Strong> it never answers a CAPTCHA or other human
+              check, and never guesses an eligibility answer (work authorisation, sponsorship, citizenship,
+              clearance, criminal history) — those stop the application and wait for you. It never stores a
+              screenshot of a page you are signed in to; it keeps the list of fields and the values it filled,
+              with the application.
+            </LI>
+          </UL>
+
+          {/* ⭐ D103 (owner 10-30) — services/inbox.js, routes/inbox.js; 180 days = INBOX_RETENTION_DEFAULT_DAYS (D112 item 3). */}
+          <H3>Your Application Inbox</H3>
+          <P>
+            If you turn it on, draft gives you a private forwarding address (…@in.jobsviadraft.com). You add a
+            filter in your own email that forwards replies from job application systems to it;{' '}
+            <Strong>employers keep writing to your real address</Strong>. (Or you can connect Gmail instead —
+            below.) For each message we keep the sender, the subject, the time it arrived and its text (up to
+            20,000 characters; formatting removed; <Strong>attachments are never stored</Strong>), sort it into a
+            category (applied, interview, assessment, offer, rejection and so on) by fixed rules —{' '}
+            <Strong>no AI model reads your mail</Strong> — and link it to the application it is about. An
+            interview or offer email updates that application's status. You can re-file, detach or delete a
+            message. Revoking your address stops new mail at once.
+          </P>
+          <P>
+            <Strong>Inbox messages are deleted 180 days (6 months) after they arrive</Strong>, or sooner if you
+            delete them or your account.
+          </P>
+          <P>
+            <Strong>Verification codes.</Strong> If you allow it for a specific portal, our apply service may
+            read a verification code that portal emails you, within 10 minutes of asking for it, to finish an
+            application or an account it is creating for you. Each such read is logged and shown to you.
+          </P>
+
+          {/* ⭐ D112 item 2 (owner 10-30) — the Gmail connection: OAuth gmail.readonly; callback /api/gmail/callback;
+              the refresh token encrypted at rest; each matched message takes ingestMessage's path (D103 P1–P5). */}
+          <H3>Connecting Gmail (optional)</H3>
+          <P>
+            Instead of forwarding, you can connect your Gmail account with Google's own sign-in. draft asks
+            Google for one permission, <Strong>read-only access to Gmail</Strong> (the gmail.readonly scope), and
+            uses it narrowly:
+          </P>
+          <UL>
+            <LI>
+              draft searches your mailbox <Strong>only for messages from applicant-tracking systems and from the
+              companies of your own applications</Strong> — a search built from that list of senders and those
+              companies — and reads only the messages that match. It never reads, lists or keeps the rest of your
+              mailbox.
+            </LI>
+            <LI>
+              Each matched message is handled exactly as a forwarded one above: the sender, subject, time and{' '}
+              <Strong>text only</Strong> (up to 20,000 characters), <Strong>never an attachment</Strong>, sorted by
+              rules with no AI model, linked to the application, and deleted after 180 days.
+            </LI>
+            <LI>
+              draft cannot send, delete, label or change anything in your Gmail. The access token Google gives us
+              is stored encrypted.
+            </LI>
+            <LI>
+              <Strong>Disconnect</Strong> (in draft's settings) revokes draft's access with Google and stops
+              intake at once. You can also remove draft's access from your Google Account's security settings.
+            </LI>
+          </UL>
+          <P>
+            <Strong>Google's Limited Use requirements.</Strong> The use of information received from Google
+            Workspace scopes will adhere to the{' '}
+            <a href="https://developers.google.com/terms/api-services-user-data-policy"
+              style={{ color: "var(--color-primary-text)" }}>Google User Data Policy</a>, including the{' '}
+            <a href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes"
+              style={{ color: "var(--color-primary-text)" }}>Limited Use requirements</a>. In plain terms: we use
+            Gmail data only to provide the inbox features described here; we do not transfer it to anyone except
+            as needed to provide them, for security, to comply with the law, or as part of a merger or sale with
+            your prior consent; we do not sell it, use it for advertising, or use it to decide credit-worthiness
+            or lending; no person at draft reads it unless you ask us to, for security, to comply with the law,
+            or in aggregated and anonymised form for running the service; and it is never used to train an AI
+            model.
+          </P>
+
+          {/* ⭐ D101 (owner 10-30) — services/structuredProfile.js. */}
+          <H3>Your Profile and Application Defaults</H3>
+          <P>
+            Your profile is kept in sections (summary, experience, education, skills, links), filled from your
+            résumé when you first open it; editing it never changes the résumé file you uploaded.{' '}
+            <Strong>Application defaults</Strong> hold the answers you set for common questions (work
+            authorisation, sponsorship, relocation, start date, voluntary self-identification); an answer you
+            have not set is left blank and draft asks you, rather than assuming one.
           </P>
 
           <H3>Usage Data</H3>
@@ -621,6 +797,15 @@ export function PrivacyPage() {
             restore it. After 7 days its prepared answers, handoff and screenshot are deleted. You can
             delete one sooner with Delete now. An application you have sent is never cleared.
           </P>
+          {/* ⭐ D100 / D103 / D112 — PENDING_D100_D103.md §3, with the owner's 180 days. */}
+          <P>
+            A sealed portal session or portal-account password is kept until you remove it (or the session
+            expires at the portal); removing it destroys the key, and it is deleted with your account. The fields
+            an application filled are kept with the application. Inbox messages, forwarded or read from Gmail,
+            are deleted 180 days after they arrive; the log of verification-code reads (which message, which
+            portal, when) is kept with your account. Disconnecting Gmail deletes draft's Google token. All of it
+            is deleted with your account.
+          </P>
         </PolicySection>
 
         {/* Third-Party Services */}
@@ -692,7 +877,25 @@ export function PrivacyPage() {
             <LI>
               <Strong>Resend</Strong> — sends our account emails (the password-reset link, the new-address
               code and service notices above). It receives your email address and that message, and tells us
-              when an address bounces or reports a message as spam, so that we stop sending to it.
+              when an address bounces or reports a message as spam, so that we stop sending to it. If you turn on
+              the Application Inbox, Resend also receives the mail forwarded to your inbox address and passes it
+              to us.
+            </LI>
+            {/* ⭐ D100 — the apply worker's service (its own Railway project; holds the session keys, no database credentials). */}
+            <LI>
+              <Strong>Our apply service</Strong> (only if you use Applying for You) — a separate service we run,
+              on Railway in its own project. It holds the keys to your sealed portal sessions and opens them only
+              while it applies for you; it holds no database credentials.
+            </LI>
+            <LI>
+              <Strong>Employer portals you apply to</Strong> — receive what an application sends them (your
+              answers and résumé), as they would if you applied by hand.
+            </LI>
+            {/* ⭐ D112 item 2 — Google OAuth for gmail.readonly. */}
+            <LI>
+              <Strong>Google (Gmail)</Strong> (optional, only if you connect Gmail) — Google signs you in and
+              gives draft read-only access to your Gmail; draft sends Google only the search for the matching
+              messages described under Connecting Gmail, and its requests for those messages.
             </LI>
             <LI>
               <Strong>Cloudflare Email Routing</Strong> — receives mail you send to {CONTACT_EMAIL} or{" "}
@@ -726,7 +929,8 @@ export function PrivacyPage() {
             page. That meant Google received your IP address and browser user-agent every time you
             visited, including on this page, and this policy did not tell you so. The fonts are now
             part of the site itself: nothing is requested from fonts.googleapis.com or
-            fonts.gstatic.com, and we send Google nothing at all any more. It is named here
+            fonts.gstatic.com, and no page you visit sends Google anything for fonts (Google is reached
+            only if you connect Gmail, above). It is named here
             because it was a real recipient until that
             date, and because a reader who checks what this page loads should find it accounted for.
           </P>
