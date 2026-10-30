@@ -10,6 +10,7 @@
 // (the server builds the rows with it; this file applies the view). ⛔ NO STATUS BAR: the chips
 // carry the counts. D1's depth tokens and hover rail throughout (ApplicationHistory.css).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, authHeaders } from "../lib/api.js";
 import {
   HISTORY_CHIPS, HISTORY_SORTS, REPLY_ASK, applyHistoryView, oldestUnanswered,
@@ -225,6 +226,7 @@ function Funnel({ rows }) {
 }
 
 export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) {
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -532,6 +534,12 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse }) 
                         </li>
                       ))}
                     </ol>
+
+                    {/* D102 P5 · the application's own page — checklist, résumé, every value sent, the posting, its emails. */}
+                    {row.recordId != null && (
+                      <p className="ah__ask"><a className="ah__btn" href={`/app/job/${row.recordId}`} data-open-job-page=""
+                        onClick={(e) => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); navigate(`/app/job/${row.recordId}`); } }}>Open this application</a></p>
+                    )}
 
                     {/* D51: a Draft waits in Draft House — that is where it is acted on, not recorded here. */}
                     {row.status === "in_play" && row.origin === "drafted" && (

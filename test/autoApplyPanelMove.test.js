@@ -106,7 +106,8 @@ test("the tab exists, routes, and is not bounced back to the board", () => {
   // the tab row, so a tab added tomorrow routes without anyone remembering either line.
   assert.match(app, /const NAVIGABLE_TABS = useMemo\(/);
   assert.match(app, /if \(NAVIGABLE_TABS\.has\(tab\)\) \{/);
-  assert.match(app, /if \(routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS\.has\(routeKey\)\) \{/);
+  // D102 P5 (10-30) on purpose: /app/job/:id (one application's page) is the one path the guard lets through besides the tabs.
+  assert.match(app, /if \(!jobRoute && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS\.has\(routeKey\)\) \{/);
   assert.ok(!/\["database","plans","profile","job-profiles","integrations","recruiter"\]/.test(app),
     "a hardcoded tab list is back — it is silent when wrong in both directions");
 });
