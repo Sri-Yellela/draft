@@ -2,11 +2,13 @@
 //
 // GET /api/pipeline?surface=draft_house|table   the surface's rows + every tab's count
 // GET /api/pipeline/job/:applicationId          one job's detail panel (the same for every entry point)
+// GET /api/pipeline/callback-rates              D111: the user's own reply / interview counts, split (services/callbackRates.js)
 // GET /api/apply/auto-settings                  the user's FULL AUTO standing instruction (D102 P4)
 // PUT /api/apply/auto-settings                  replace it — validated whole, nothing half-stored
 // services/pipelineWorkspace.js and shared/autoSettings.js hold the rules; these routes only expose them.
 import { listPipeline, jobDetail } from "../services/pipelineWorkspace.js";
 import { normaliseAutoSettings, readAutoSettings } from "../shared/autoSettings.js";
+import { callbackRates, gatherCallbackApps } from "../services/callbackRates.js";
 
 const SURFACES = ["draft_house", "table"];
 
@@ -34,6 +36,11 @@ export default function pipelineRoutes(app, db, requireAuth) {
     const detail = rec ? jobDetail(db, req.user.id, rec.id) : null;
     if (!detail) return res.status(404).json({ error: "not_found" });
     res.json(detail);
+  });
+
+  // ⭐ D111 · what is working: counts only ("6 of 20"), never a bare percentage; nothing shown below the minimum.
+  app.get("/api/pipeline/callback-rates", requireAuth, (req, res) => {
+    res.json(callbackRates(gatherCallbackApps(db, req.user.id)));
   });
 
   const settingsOf = (userId) => readAutoSettings(db.prepare("SELECT auto_settings FROM users WHERE id = ?").get(userId)?.auto_settings);

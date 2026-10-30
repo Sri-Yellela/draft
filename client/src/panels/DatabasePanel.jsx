@@ -724,6 +724,9 @@ export function DatabasePanel({ user }) {
       {/* ── Inbox (D103) — replies from job sites, forwarded by the user, filed by rule. ── */}
       {activeSheet === "inbox" && <ApplicationInbox theme={theme}/>}
 
+      {/* ── D111 · what is working: ONE card above History — counts, never a bare percentage; nothing below the minimum. ── */}
+      {activeSheet === "history" && <CallbackRatesCard theme={theme}/>}
+
       {/* ── History (D15) — The Table's own view. ⛔ No summary strip: its chips carry the counts. ── */}
       {activeSheet === "history" && (
         <div data-table-split="" style={{ flex: 1, minHeight: 0, display: "grid", gap: 16,
@@ -1154,5 +1157,46 @@ function TableEmptyState({ sheet, hasFilter, theme }) {
       body={hasFilter ? "Try clearing the search or date filter."
         : sheet === "applications" ? "When you export a PDF for a job, it's automatically logged here."
         : "Generate resumes from Full House — they appear here with ATS scores."} />
+  );
+}
+
+/**
+ * ⭐ D111 · WHAT IS WORKING — the user's own callback rates, from GET /api/pipeline/callback-rates (services/callbackRates.js
+ * computes everything; this only draws it). ⛔ Not shown below the server's minimum count. ⛔ Every figure is "k of n" as
+ * the server wrote it — no percentage is computed or drawn here.
+ */
+function CallbackRatesCard({ theme }) {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    let live = true;
+    api("/api/pipeline/callback-rates").then(d => { if (live) setData(d); }).catch(() => { if (live) setData(null); });
+    return () => { live = false; };
+  }, []);
+  if (!data?.shown || !data.headline) return null;
+  const { headline, splits = [], notSplit = [], minCount } = data;
+  return (
+    <section data-callback-rates="" aria-label="What is working" style={{ flexShrink: 0, margin: "12px 16px 0",
+      padding: "12px 14px", background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 6 }}>
+      <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 4 }}>What is working</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>{headline.text}</div>
+      <div data-callback-counts="" style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>{headline.detail}</div>
+      <details style={{ marginTop: 8 }}>
+        <summary style={{ fontSize: 12, color: theme.textMuted, cursor: "pointer" }}>By résumé, role, posting and timing</summary>
+        {splits.map(s => (
+          <div key={s.key} style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: theme.text }}>{s.title}</div>
+            {s.groups.map(g => (
+              <div key={g.key} style={{ fontSize: 12, color: g.enough ? theme.text : theme.textMuted, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ minWidth: 0, flex: "1 1 180px" }}>{g.label}</span>
+                <span>{g.replies} replied · {g.interviews} interviewed{g.enough ? "" : ` · fewer than ${minCount}, not compared`}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+        {notSplit.map(n => (
+          <div key={n.key} style={{ fontSize: 11, color: theme.textMuted, marginTop: 8 }}>{n.title}: {n.reason}</div>
+        ))}
+      </details>
+    </section>
   );
 }
