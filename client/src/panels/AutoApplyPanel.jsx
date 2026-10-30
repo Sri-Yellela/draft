@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api.js";
 import { companyRows, matchCompany } from "../../../shared/companyIdentity.js";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +23,7 @@ import { markStyle } from "../styles/mark.js";
 import { TYPE } from "../styles/type.js";
 import WaitingLine from "../components/WaitingLine.jsx";
 import DraftRunBar from "../components/DraftRunBar.jsx";
+import AutoSettingsDrawer from "../components/AutoSettingsDrawer.jsx";
 import StoppedItem from "../components/StoppedItem.jsx";
 import { buildStoppedItems, splitAnswers, filterItems, SEARCH_FROM, packetLife } from "../lib/draftHouseExceptions.js";
 import { useViewport } from "../hooks/useViewport.js";
@@ -84,7 +85,7 @@ export function AutoApplyPanel() {
     applyLine = { waiting: [], held: null }, lineMsg, lineBusyId, setLineTool, moveInLine, removeFromLine,
     draftTool,
     // D25: the run bar.
-    runBar = null, setStopEverything, holdBusy = false, holdMsg = "",
+    runBar = null, setStopEverything, setApplyMode, holdBusy = false, holdMsg = "",
     applyRunDetailOpen, setApplyRunDetailOpen,
     applyRunDetail, setApplyRunDetail,
     applyReviewScope, setApplyReviewScope,
@@ -143,6 +144,10 @@ export function AutoApplyPanel() {
     heldApplications, brokeApplications, companyLabel,
   });
   const [search, setSearch] = useState("");
+  // D102 P4: the Auto settings drawer, opened from the run bar; focus returns to the button that opened it.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsOpener = useRef(null);
+  const fullAuto = runBar?.mode?.current === "auto";
   const listedItems = filterItems(stoppedItems, search);
   const [openKey, setOpenKey] = useState(null);
   // ⭐ D54 · a stopped card's fold names the company's OTHER applications — The Table's rows, grouped by
@@ -548,13 +553,18 @@ export function AutoApplyPanel() {
           Draft House
         </h2>
         <p style={{ ...TYPE.LEAD, margin: "10px 0 0" }}>
-          Applications are filled and held for your approval. Nothing is submitted until you approve
-          it. Draft jobs from the Daily Deck or Full House.
+          {fullAuto
+            ? "FULL AUTO: applications that match your Auto settings are sent without asking each time. Anything draft cannot answer waits here for you."
+            : "Applications are filled and held for your approval. Nothing is submitted until you approve it."}{" "}
+          Draft jobs from the Daily Deck or Full House.
         </p>
       </div>
 
       {/* ── D25: THE RUN BAR — mode, the three caps, ⏸ Stop everything. ── */}
-      <DraftRunBar runBar={runBar} onStop={setStopEverything} busy={holdBusy} message={holdMsg} />
+      <DraftRunBar runBar={runBar} onStop={setStopEverything} busy={holdBusy} message={holdMsg}
+        onMode={setApplyMode} onOpenSettings={(el) => { settingsOpener.current = el; setSettingsOpen(true); }} />
+      <AutoSettingsDrawer open={settingsOpen}
+        onClose={() => { setSettingsOpen(false); settingsOpener.current?.focus?.(); }} />
 
       {/* Empty is a real state and is said plainly, rather than the tab rendering blank. */}
       {nothingYet && (

@@ -60,6 +60,7 @@ import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
 import { atsScorePair } from "../../../shared/resumeScores.js";
 import { openPosting } from "../lib/openPosting.js";
+import { rememberBoardFilters } from "../lib/boardFilterMemory.js";
 
 // The three extension-bridge stubs that stood here (getLinkedInExtensionInstallUrl,
 // isLinkedInExtensionInstalled, sendExtensionRequest) are gone with cleanup 5.3. They returned
@@ -2436,6 +2437,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         const hit = viewCacheGet(viewCacheRef.current, key);
         if (hit) { setJobs(hit.jobs); setTotalJobs(hit.total); setTotalPages(hit.totalPages); setAnsweredKey(key); }
       }
+      if (!mergeMode) rememberBoardFilters(qs); // D102 P4: Auto settings' "Start from my board filters"
       let d;
       try {
         d = await api(`/api/jobs?${qs}`);
