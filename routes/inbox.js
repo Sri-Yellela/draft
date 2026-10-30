@@ -12,10 +12,12 @@
 //   POST /api/inbox/:id/category       { category } — re-file in one press (the correction is counted per rule)
 //   POST /api/inbox/:id/attach         { applicationId } — "Attach to an application"
 //   PUT  /api/inbox/code-optins/:portal { on } — D103 P5: the apply worker may read this portal's codes
+//   DELETE /api/inbox/:id · DELETE /api/inbox   one message, or all of them (D103 P1 — deletion in Settings)
 import express from "express";
 import { verifySvixSignature } from "../services/emailSuppression.js";
 import {
   ingestMessage, addressFor, revokeAddress, listMessages, refile, attach, setCodeOptIn, gmailFilterXml, CATEGORIES, INBOX_DOMAIN,
+  deleteMessages,
 } from "../services/inbox.js";
 
 /**
@@ -90,6 +92,12 @@ export default function inboxRoutes(app, db, requireAuth) {
     const r = attach(db, req.user.id, req.params.id, req.body?.applicationId);
     return r ? res.json(r) : res.status(404).json({ error: "not_found" });
   });
+  app.delete("/api/inbox/:id", requireAuth, (req, res) => {
+    if (!/^d+$/.test(String(req.params.id))) return res.status(400).json({ error: "bad_id" });
+    const n = deleteMessages(db, req.user.id, req.params.id);
+    return n ? res.json({ deleted: n }) : res.status(404).json({ error: "not_found" });
+  });
+  app.delete("/api/inbox", requireAuth, (req, res) => res.json({ deleted: deleteMessages(db, req.user.id, null) }));
   app.put("/api/inbox/code-optins/:portal", requireAuth, (req, res) => {
     if (typeof req.body?.on !== "boolean") return res.status(400).json({ error: "on must be true or false" });
     try { res.json({ portals: setCodeOptIn(db, req.user.id, req.params.portal, req.body.on) }); } catch (e) { fail(res, e); }

@@ -396,3 +396,28 @@ export function withApplicationDefaults(db, userId, payload) {
     field_map: fm, handler_map: hm, dropdown_map: dm,
   };
 }
+
+// ── D101 P2 · which Application default a QUESTION is — for saving a Needs-you answer back ──────────
+// Conservative: only questions that name ONE key unambiguously. "Now or in the future" sponsorship names two tenses in
+// one answer and is NOT mapped (the tri-state needs both); citizenship is free text and is not mapped from a Yes / No.
+const QUESTION_KEYS = [
+  [/\bauthori[sz]ed to work\b/i, "authorised_to_work", "yesno"],
+  [/\b(?:currently|now)\b[^?]*\brequire\b[^?]*\bsponsor/i, "sponsorship_now", "yesno", /\bfuture\b/i],
+  [/\brelocat/i, "relocate", "yesno"],
+  [/\b(?:earliest )?start date\b|\bavailable to start\b/i, "start_date", "text"],
+  [/\bgender\b/i, "gender", "text"],
+  [/\brace\b|\bethnicit/i, "ethnicity", "text"],
+  [/\bveteran\b/i, "veteran", "text"],
+  [/\bdisabilit/i, "disability", "text"],
+];
+export function defaultKeyForQuestion(question, answer) {
+  const q = String(question || "");
+  for (const [re, key, kind, unless] of QUESTION_KEYS) {
+    if (!re.test(q) || (unless && unless.test(q))) continue;
+    if (kind === "text") return { key, value: String(answer ?? "").trim() || null };
+    const a = String(answer ?? "").trim().toLowerCase();
+    const v = /^(yes|y|true)\b/.test(a) ? "yes" : /^(no|n|false)\b/.test(a) ? "no" : null;
+    return v ? { key, value: v } : null;
+  }
+  return null;
+}

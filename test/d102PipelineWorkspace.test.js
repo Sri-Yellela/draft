@@ -220,3 +220,13 @@ test("D102 · the scheduler leaves alone: SEMI users, a held user, the kill swit
   await tick();
   assert.deepEqual(s.calls, [["b::1", "b::2"]], "b::0 was already drafted");
 });
+
+test("D102 P4 · Auto settings' job profile is the one the run reads — and only one of the user's own", async () => {
+  const fs = await import("node:fs");
+  const src = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
+  assert.match(src, /boardProfileId: Number\.isInteger\(settings\.profileId\) \? settings\.profileId : undefined/);
+  assert.match(src, /SELECT \* FROM domain_profiles WHERE id = \? AND user_id = \?"\)\.get\(req\.boardProfileId, req\.user\.id\)/);
+  assert.match(src, /const sessionActiveProfile = namedProfile \|\| getOrRepairActiveProfile\(req\.user\.id\);/);
+  const sched = fs.readFileSync("services/autoScheduler.js", "utf8");
+  assert.match(sched, /fetchBoard\(u\.id, settings\.filters, settings\)/);
+});
