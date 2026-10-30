@@ -66,3 +66,17 @@ test("D112 · the reconciliation carries the rows, and names the new recipients"
   }
   assert.match(recon, /180 days/);
 });
+
+test("D112 item 8 · Notifications: optional and per event, encrypted to the browser, no company or value, email by choice, off deletes", () => {
+  assert.match(prose, /Notifications /);
+  assert.match(prose, /Browser push notifications are optional and chosen per event/);
+  assert.match(prose, /in Account → Notifications/);
+  assert.match(prose, /encrypted end to end to your browser/);
+  assert.match(prose, /browser maker's push service \(Google, Mozilla, Microsoft or Apple\), which can see only that a message was sent/);
+  assert.match(prose, /A notification never names a company or shows a value/);
+  assert.match(prose, /Email copies are sent only for the events you turn email on for/);
+  assert.match(prose, /Turning push off, or your browser unsubscribing, deletes that browser's subscription/);
+  assert.match(src, /<Strong>Your browser's push service<\/Strong> \(only if you turn on push notifications\)/, "named as a recipient");
+  assert.match(recon, /\| \*\*Notifications — Web Push\*\* \(D112 item 8\)/);
+  assert.match(recon, /\| \*\*Your browser's push service\*\* \|/);
+});

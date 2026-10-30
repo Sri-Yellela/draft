@@ -121,6 +121,12 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // users yet (owner, 10-30: "we have no users yet today so we can finalise before we push") — so the owner chose no notice
 // period, and the effective date is the date of the push that applies this text. ⚠ If that push is not 2026-10-31, move
 // this date to the push day. From the first registered user on, a change of this shape needs the notice, not just a date.
+// October 31, 2026 (the same date, D112 item 8 — Web Push, merged 10-30 before the push): a Notifications paragraph and the
+// browsers' push services as a recipient. Optional and per event (Account → Notifications); the push address and keys
+// the browser gives are kept; each message is encrypted to the browser (RFC 8291) and the push service sees only that
+// one was sent; no message names a company or shows a value (services/notify.js eventText); email only for the events
+// the user turns it on for; turning push off or the browser unsubscribing deletes the subscription. The date does not
+// move — this text ships in the same push as the rest of the October 31 changes.
 const EFFECTIVE_DATE = 'October 31, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
@@ -687,6 +693,22 @@ export function PrivacyPage() {
             model.
           </P>
 
+          {/* ⭐ D112 item 8 (owner 10-30) — Web Push (services/webPush.js: VAPID + RFC 8291 on node:crypto, no vendor),
+              services/notify.js (per-event switches, the words of each message), client/public/sw.js; push_subscriptions
+              (migration 183). Email copies go through Resend, already named under Third-Party Services. */}
+          <H3>Notifications</H3>
+          <P>
+            Updates always appear in the bell inside draft. <Strong>Browser push notifications are optional and
+            chosen per event</Strong>: you switch them on, for each kind of update, in Account → Notifications. When
+            you turn push on, your browser gives draft a push address and encryption keys, which we keep with your
+            account. Each push message is <Strong>encrypted end to end to your browser</Strong> and carried by your
+            browser maker's push service (Google, Mozilla, Microsoft or Apple), which can see only that a message
+            was sent, not what it says. <Strong>A notification never names a company or shows a value</Strong> — it
+            says only what kind of thing happened (for example, "A job is ready for your approval"). Email copies
+            are sent only for the events you turn email on for. Turning push off, or your browser unsubscribing,
+            deletes that browser's subscription.
+          </P>
+
           {/* ⭐ D101 (owner 10-30) — services/structuredProfile.js. */}
           <H3>Your Profile and Application Defaults</H3>
           <P>
@@ -896,6 +918,12 @@ export function PrivacyPage() {
               <Strong>Google (Gmail)</Strong> (optional, only if you connect Gmail) — Google signs you in and
               gives draft read-only access to your Gmail; draft sends Google only the search for the matching
               messages described under Connecting Gmail, and its requests for those messages.
+            </LI>
+            {/* ⭐ D112 item 8 — the browsers' own push services (services/webPush.js PUSH_HOSTS). */}
+            <LI>
+              <Strong>Your browser's push service</Strong> (only if you turn on push notifications) — Google, Mozilla,
+              Microsoft or Apple, depending on your browser, delivers each push message. The message is encrypted to
+              your browser, so the push service sees only that a message was sent.
             </LI>
             <LI>
               <Strong>Cloudflare Email Routing</Strong> — receives mail you send to {CONTACT_EMAIL} or{" "}
