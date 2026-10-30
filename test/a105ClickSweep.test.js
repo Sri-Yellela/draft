@@ -72,3 +72,14 @@ test("A105 (7) · History marks every unanswered application 'Still nothing' in 
   assert.match(h, /Mark all \$\{unanswered\.length\} as still nothing/);
   assert.match(h, /window\.confirm\(`Mark \$\{unanswered\.length\} applications/);
 });
+
+// A105 finding 9 — sandbox edits could be lost (manual Save only) and the KB findings' Accept did nothing.
+test("A105 (9) · the sandbox saves itself after an edit, guards a closing tab, and Accept applies a suggestion's fix", () => {
+  const sb = fs.readFileSync("client/src/panels/SandboxPanel.jsx", "utf8");
+  assert.match(sb, /const AUTOSAVE_MS = 3000;/);
+  assert.match(sb, /autoSaveTimer\.current = setTimeout\(\(\) => saveRef\.current\?\.\(\), AUTOSAVE_MS\);/);
+  assert.match(sb, /window\.addEventListener\("beforeunload", warn\)/);
+  assert.match(sb, /const from = f\?\.diff\?\.from, to = f\?\.diff\?\.to;/);
+  assert.match(sb, /t\.nodeValue = t\.nodeValue\.split\(from\)\.join\(to\)/, "the fix replaces the text on the page");
+  assert.match(sb, /applyFinding\(f\) \? "accepted" : "not found in the résumé"/, "an Accept that changed nothing says so");
+});

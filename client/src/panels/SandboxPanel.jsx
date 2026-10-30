@@ -22,6 +22,8 @@ import DocToolbar from "../components/DocToolbar.jsx";
 const RESUME_PAGE_WIDTH  = 794;  // A4 at 96dpi
 const RESUME_PAGE_HEIGHT = 1123; // A4 at 96dpi
 const RESUME_PAGE_GAP    = 12;
+// A105 finding 9: how long after the last edit the sandbox saves itself.
+const AUTOSAVE_MS = 3000;
 // Below this panel width, scaling an A4 page to fit stops producing readable text (794 * 700/794
 // is already 0.88, and the fall-off is linear from there), so the reflowed view becomes the default.
 const PAGE_VIEW_MIN_WIDTH = 700;
@@ -68,10 +70,9 @@ export default function SandboxPanel({
   const [saveMsg,     setSaveMsg]     = useState("");
   const [selectedTool, setSelectedTool] = useState(entry?.activeTool || entry?.tool || "generate");
   const [pageCount, setPageCount] = useState(1);
-  // Company KB failsafe gate (Task 9.6) — local-only accept/reject/acknowledge state per
-  // finding index. Purely a display decision; no persistence endpoint in this task (accepting
-  // a suggest_fix does not rewrite the resume text — that's a natural follow-up, not silently
-  // added here).
+  // Company KB failsafe gate (Task 9.6) — accept/reject/acknowledge state per finding index. ⭐ A105 finding 9:
+  // accepting a suggest_fix now APPLIES its diff to the résumé (applyFinding, below) and the edit autosaves; reject
+  // and acknowledge dismiss the row. The decisions themselves are not stored.
   const [findingDecisions, setFindingDecisions] = useState({});
   const variants = entry?.variants || null;
   const variantKeys = variants ? Object.keys(variants) : [];
@@ -90,6 +91,10 @@ export default function SandboxPanel({
   const frameCleanupRef = useRef([]);
   // A106: the page that holds the selection — the toolbar's selection commands act there.
   const activeFrameRef = useRef(0);
+  // A105 finding 9: an edit saves itself AUTOSAVE_MS after the last keystroke (through the same Save), so closing the
+  // panel never loses it. The timer is the only state; Save itself is unchanged.
+  const autoSaveTimer = useRef(null);
+  const saveRef = useRef(null);
   const currentHtmlRef = useRef(activeEntry?.html || "");
   const syncingFramesRef = useRef(false);
 
@@ -174,6 +179,26 @@ export default function SandboxPanel({
     setTimeout(() => setSaveMsg(""), 2500);
   };
 
+  saveRef.current = save;
+  useEffect(() => () => clearTimeout(autoSaveTimer.current), [entry?.html]);
+
+  // A105 finding 9: a KB "suggestion" carries its exact fix (diff.from → diff.to, services/kb/failsafe.js); Accept
+  // APPLIES it on every page — before, Accept / Reject only changed a label and the résumé kept the imprecise name.
+  const applyFinding = (f) => {
+    const from = f?.diff?.from, to = f?.diff?.to;
+    if (!from || to == null) return 0;
+    let n = 0;
+    for (const doc of frameRefs.current.map(fr => fr?.contentDocument).filter(d => d?.body)) {
+      const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+      for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+        if (t.nodeValue.includes(from)) { t.nodeValue = t.nodeValue.split(from).join(to); n++; }
+      }
+    }
+    const doc = frameRefs.current[0]?.contentDocument;
+    if (n && doc) doc.dispatchEvent(new Event("input"));
+    return n;
+  };
+
   const downloadHtml = () => {
     const html = getCurrentHtml();
     const a = document.createElement("a");
@@ -236,6 +261,10 @@ export default function SandboxPanel({
     const handleInput = () => {
       if (syncingFramesRef.current) return;
       setDirty(true);
+      if (onSave) {
+        clearTimeout(autoSaveTimer.current);
+        autoSaveTimer.current = setTimeout(() => saveRef.current?.(), AUTOSAVE_MS);
+      }
       currentHtmlRef.current = doc.documentElement.outerHTML;
       syncOtherFrames(frame, doc);
       syncPageCount();
@@ -450,7 +479,8 @@ export default function SandboxPanel({
                     </span>
                     {!decision && !isFlag && (
                       <>
-                        <button style={btnStyle()} onClick={() => setFindingDecisions(p => ({ ...p, [i]: "accepted" }))}>
+                        <button style={btnStyle()} title={f.diff ? `Replace "${f.diff.from}" with "${f.diff.to}"` : undefined}
+                          onClick={() => setFindingDecisions(p => ({ ...p, [i]: applyFinding(f) ? "accepted" : "not found in the résumé" }))}>
                           Accept
                         </button>
                         <button style={btnStyle()} onClick={() => setFindingDecisions(p => ({ ...p, [i]: "rejected" }))}>
