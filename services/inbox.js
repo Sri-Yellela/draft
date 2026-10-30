@@ -89,14 +89,7 @@ const baseDomain = (d) => String(d || "").split(".").slice(-2).join(".");
  * recent submit within 180 days. Two applications to one company and no title in the mail → the most recent.
  */
 export function matchApplication(db, userId, { fromAddr = "", fromDomain = "", subject = "", body = "" }, nowSec = now()) {
-  const rows = db.prepare(`SELECT ar.id, ar.job_id, COALESCE(ar.submitted_at, ar.updated_at) AS at,
-      COALESCE(ja.company, rj.posting_company, sj.company) AS company, COALESCE(ja.role, rj.posting_title, sj.title) AS title,
-      ja.company_domain AS domain
-    FROM application_records ar
-    LEFT JOIN job_applications ja ON ja.user_id = ar.user_id AND ja.job_id = ar.job_id
-    LEFT JOIN apply_run_jobs rj ON rj.id = (SELECT id FROM apply_run_jobs WHERE user_id = ar.user_id AND job_id = ar.job_id ORDER BY id DESC LIMIT 1)
-    LEFT JOIN scraped_jobs sj ON sj.job_id = ar.job_id
-    WHERE ar.user_id = ? AND ar.state != 'withdrawn' AND COALESCE(ar.submitted_at, ar.updated_at) >= ?`).all(userId, nowSec - 180 * 86400);
+  const rows = applicationCompanies(db, userId, nowSec);
   const text = `${fromAddr} ${subject} ${body.slice(0, 4000)}`.toLowerCase();
   const fromCompanyDomain = ATS_SENDERS.test(fromDomain) || ASSESS_SENDERS.test(fromDomain) ? null : baseDomain(fromDomain);
   const scored = rows.map(r => {
@@ -110,6 +103,21 @@ export function matchApplication(db, userId, { fromAddr = "", fromDomain = "", s
     return { ...r, score };
   }).filter(r => r.score >= 2).sort((a, b) => b.score - a.score || b.at - a.at);
   return scored[0]?.id ?? null;
+}
+
+/**
+ * The user's applications within 180 days — id, company, title, the company's domain where known. ONE reader: the
+ * matching above and the Gmail connection's search query (D112 — the companies it may read mail about) use it alike.
+ */
+export function applicationCompanies(db, userId, nowSec = now()) {
+  return db.prepare(`SELECT ar.id, ar.job_id, COALESCE(ar.submitted_at, ar.updated_at) AS at,
+      COALESCE(ja.company, rj.posting_company, sj.company) AS company, COALESCE(ja.role, rj.posting_title, sj.title) AS title,
+      ja.company_domain AS domain
+    FROM application_records ar
+    LEFT JOIN job_applications ja ON ja.user_id = ar.user_id AND ja.job_id = ar.job_id
+    LEFT JOIN apply_run_jobs rj ON rj.id = (SELECT id FROM apply_run_jobs WHERE user_id = ar.user_id AND job_id = ar.job_id ORDER BY id DESC LIMIT 1)
+    LEFT JOIN scraped_jobs sj ON sj.job_id = ar.job_id
+    WHERE ar.user_id = ? AND ar.state != 'withdrawn' AND COALESCE(ar.submitted_at, ar.updated_at) >= ?`).all(userId, nowSec - 180 * 86400);
 }
 
 /** P3: a matched Interview or Offer moves the row on The Table (the D102 ladder reads job_applications.response_outcome). */
@@ -140,17 +148,27 @@ export function ingestMessage(db, { providerId = null, to = [], from = "", subje
   const addr = db.prepare(`SELECT * FROM inbox_addresses WHERE token = ?`).get(token);
   if (!addr) return { stored: false, reason: "unknown_address" };
   if (addr.revoked_at) return { stored: false, reason: "address_revoked" };
+  return ingestForUser(db, { userId: addr.user_id, addressId: addr.id, source: "forward", providerId, from, subject, text, html, receivedAt });
+}
+
+/**
+ * ⭐ THE ONE PATH every message takes once its owner is known — a forwarded copy (ingestMessage, above) and a message
+ * read through a Gmail connection (D112, services/gmail.js) alike: text only (HTML stripped), capped at BODY_CAP, never
+ * an attachment (none is ever passed in), filed by the same RULES, matched to the same applications, a Verification's
+ * code read the same way (so D103 P5's opted-portal read works on either). `source` records which door it came by.
+ */
+export function ingestForUser(db, { userId, addressId = null, source = "forward", providerId = null, from = "", subject = "", text = null, html = null, receivedAt = null }) {
   const body = bodyText({ text, html });
   const fromDomain = domainOf(from);
   const { category, rule } = categorise({ subject, body, fromDomain });
   const at = Number.isInteger(receivedAt) ? receivedAt : now();
-  const applicationId = matchApplication(db, addr.user_id, { fromAddr: from, fromDomain, subject, body }, at);
+  const applicationId = matchApplication(db, userId, { fromAddr: from, fromDomain, subject, body }, at);
   const ins = db.prepare(`INSERT OR IGNORE INTO inbox_messages (user_id, address_id, provider_id, from_addr, from_domain, subject, body_text,
-      received_at, category, category_source, rule, code, application_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'rule', ?, ?, ?)`)
-    .run(addr.user_id, addr.id, providerId, String(from).slice(0, 300), fromDomain, String(subject).slice(0, 500), body, at, category, rule,
-      category === "verification" ? codeOf({ subject, body }) : null, applicationId);
+      received_at, category, category_source, rule, code, application_id, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'rule', ?, ?, ?, ?)`)
+    .run(userId, addressId, providerId, String(from).slice(0, 300), fromDomain, String(subject).slice(0, 500), body, at, category, rule,
+      category === "verification" ? codeOf({ subject, body }) : null, applicationId, source === "gmail" ? "gmail" : "forward");
   if (!ins.changes) return { stored: false, reason: "duplicate" };
-  const advanced = applicationId ? advanceOutcome(db, addr.user_id, applicationId, category, at) : false;
+  const advanced = applicationId ? advanceOutcome(db, userId, applicationId, category, at) : false;
   return { stored: true, id: Number(ins.lastInsertRowid), category, applicationId, advanced };
 }
 
@@ -161,7 +179,7 @@ export function listMessages(db, userId, { category = null, applicationId = null
   if (category) { where.push("category = ?"); args.push(category); }
   if (applicationId) { where.push("application_id = ?"); args.push(Number(applicationId)); }
   return db.prepare(`SELECT id, from_addr AS "from", subject, received_at AS receivedAt, category, category_source AS categorySource,
-      code, application_id AS applicationId, substr(body_text, 1, 280) AS preview
+      code, application_id AS applicationId, substr(body_text, 1, 280) AS preview, source
     FROM inbox_messages WHERE ${where.join(" AND ")} ORDER BY received_at DESC, id DESC LIMIT ?`).all(...args, Math.min(500, limit));
 }
 
@@ -221,9 +239,17 @@ export function codeForWorker(db, { userId, portalFamily, originHost, sinceSec, 
 // ── the Gmail filter the user imports ─────────────────────────────────────────────────────────
 
 /** An importable Gmail filter (Settings → Filters → Import): mail from the ATS senders is forwarded to the address. */
+// ⭐ The applicant-tracking (and assessment) senders, by domain — ONE list: the forwarding filter below and the Gmail
+// connection's search query (D112, services/gmail.js gmailQueryFor) are both built from it.
+export const ATS_SENDER_DOMAINS = Object.freeze(["greenhouse.io", "greenhouse-mail.io", "lever.co", "ashbyhq.com", "myworkday.com",
+  "myworkdayjobs.com", "smartrecruiters.com", "icims.com", "jobvite.com", "workablemail.com", "applicantemails.com", "bamboohr.com",
+  "hackerrank.com", "codesignal.com", "amazon.jobs"]);
+
+/** True when a sender's domain is an applicant-tracking or assessment system's (the rules' own patterns). */
+export const isAtsSenderDomain = (domain) => ATS_SENDERS.test(String(domain || "")) || ASSESS_SENDERS.test(String(domain || ""));
+
 export function gmailFilterXml(address) {
-  const from = ["greenhouse.io", "greenhouse-mail.io", "lever.co", "ashbyhq.com", "myworkday.com", "myworkdayjobs.com", "smartrecruiters.com",
-    "icims.com", "jobvite.com", "workablemail.com", "applicantemails.com", "bamboohr.com", "hackerrank.com", "codesignal.com", "amazon.jobs"];
+  const from = ATS_SENDER_DOMAINS;
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xmlns:apps="http://schemas.google.com/apps/2006">
