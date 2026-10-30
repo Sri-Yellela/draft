@@ -26,6 +26,7 @@ import { applyPendingMigrations } from "./scripts/applyMigrations.js";
 import applyRoutes, { capturedAtsAtApply } from "./routes/apply.js";
 import applicationRecordRoutes from "./routes/applicationRecords.js";
 import pipelineRoutes from "./routes/pipeline.js";
+import profileSectionRoutes from "./routes/profileSections.js";
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
 import { runAutoTick } from "./services/autoScheduler.js";
@@ -5244,6 +5245,72 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
         CREATE INDEX IF NOT EXISTS idx_portal_accounts_user ON portal_accounts(user_id, removed_at);
         ALTER TABLE apply_remote_runs ADD COLUMN account_id INTEGER;
+      `,
+    },
+    {
+      // ⭐ D101 P1 / P2 (owner 10-30) · THE PROFILE IN SECTIONS, AND APPLICATION DEFAULTS. One PERSON profile shared by all
+      // of a user's job profiles, filled from the base résumé's parse (D65) on first open and offered — never applied
+      // silently — after a new upload. ⛔ Editing it never rewrites the uploaded base résumé (the document stays the
+      // document). `application_defaults` holds ONLY what the user SET (or answered in Needs you, D96): a row that is
+      // absent is "not set", never a default pretending to be an answer (D72: every user read requires_sponsorship = 0).
+      id: "173_structured_profile",
+      sql: `
+        CREATE TABLE IF NOT EXISTS profile_sections (
+          user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          summary TEXT,
+          imported_basis TEXT,
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS profile_experience (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          company TEXT NOT NULL,
+          title TEXT,
+          location TEXT,
+          start_ym TEXT,
+          end_ym TEXT,
+          is_current INTEGER NOT NULL DEFAULT 0,
+          bullets_json TEXT NOT NULL DEFAULT '[]',
+          position INTEGER NOT NULL DEFAULT 0,
+          source TEXT NOT NULL DEFAULT 'user'
+        );
+        CREATE TABLE IF NOT EXISTS profile_education (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          school TEXT NOT NULL,
+          degree TEXT,
+          field TEXT,
+          start_ym TEXT,
+          end_ym TEXT,
+          position INTEGER NOT NULL DEFAULT 0,
+          source TEXT NOT NULL DEFAULT 'user'
+        );
+        CREATE TABLE IF NOT EXISTS profile_skills (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          category TEXT,
+          position INTEGER NOT NULL DEFAULT 0,
+          source TEXT NOT NULL DEFAULT 'user'
+        );
+        CREATE TABLE IF NOT EXISTS profile_links (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          kind TEXT NOT NULL,
+          url TEXT NOT NULL,
+          position INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE TABLE IF NOT EXISTS application_defaults (
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          key TEXT NOT NULL,
+          value TEXT NOT NULL,
+          source TEXT NOT NULL,
+          set_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_profile_experience_user ON profile_experience(user_id, position);
+        CREATE INDEX IF NOT EXISTS idx_profile_education_user ON profile_education(user_id, position);
+        CREATE INDEX IF NOT EXISTS idx_profile_skills_user ON profile_skills(user_id, position);
       `,
     },
   ];
@@ -11937,6 +12004,8 @@ setInterval(async () => {
 applicationRecordRoutes(app, db, requireAuth, { capturedAtsAtApply });
 // D102: the pipeline workspace — one row per job, one detail panel (services/pipelineWorkspace.js).
 pipelineRoutes(app, db, requireAuth);
+// D101: the profile in sections and Application defaults (services/structuredProfile.js).
+profileSectionRoutes(app, db, requireAuth);
 // D100 P2: the user's portals (sealed sessions, ciphertext only) and approving a remote Ready-to-approve run.
 portalRoutes(app, db, requireAuth);
 // D16: the résumé an application sent, expanded from its compressed copy (HTML; the browser prints it).
