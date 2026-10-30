@@ -21,6 +21,8 @@ test("D10/D18: the bar reads Daily Deck · Full House · Draft House · The Tabl
     ["console", "Full House"],
     ["auto-apply", "Draft House"],   // D18 amended D10's "Draft"
     ["database", "The Table"],
+    // ⭐ D105 P4 (changed on purpose): D102's navigation gains one place — the Atlas — after the card family.
+    ["atlas", "Atlas"],
   ]);
 });
 

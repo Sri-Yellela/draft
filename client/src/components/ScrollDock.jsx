@@ -115,6 +115,8 @@ function MarketingToolsDock({ variant }) {
     { label: "How It Works", to: "/how-it-works" },
     // D12: the extension is how a job from anywhere reaches the board, so the nav says where it is.
     { label: "Extension",    to: "/extension" },
+    // ⭐ D105 P4: the Atlas is public — the signed-out nav reaches it too.
+    { label: "Atlas",        to: "/atlas" },
     ...(monetisationEnabled ? [{ label: "Pricing", to: "/pricing" }] : []),
     { label: "About",        to: "/about" },
   ];
