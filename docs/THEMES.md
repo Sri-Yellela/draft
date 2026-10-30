@@ -1,6 +1,6 @@
 # Themes — how colour works in draft, and how to add a theme in five steps
 
-**D91.** A theme is **data, one file**. `client/src/themes/index.js` is the **only** place a theme is chosen. No component knows which theme is live: every colour reaches the screen through one object, `C`, which the registry resolves **once, at load**. Spec: `docs/THEME_MODULE.md`. Audit: `docs/THEME_AUDIT.md`. Sketch: `docs/themes-contrast.html`.
+**D91.** A theme is **data, one file**. `client/src/themes/index.js` is the **only** place a theme is chosen. No component knows which theme is live: every colour reaches the screen through one object, `C`, which the registry resolves **once, at load**. Spec: `docs/THEME_MODULE.md`. Audit: `docs/THEME_AUDIT.md`. Sketch: `docs/sketches/themes-contrast.html`.
 
 ---
 

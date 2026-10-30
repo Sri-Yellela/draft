@@ -1,7 +1,7 @@
 # D91 — Contrast Light / Contrast Dark, and a modular theme system
 
 **Owner, 10-10:** *"Two plain themes — high-contrast black and white, invertible like dark and light, with the same depth and glass effects — only the colour coding changes; they can keep the Draft orange accent and the green and red markers. For the entire site. A separate module so applying new themes, and working with UI/UX, is modular and plug and play."*
-**The sketch is the specification:** `docs/themes-contrast.html` *(path corrected 10-11 — sketches live in `docs/`)* (four themes, four views, a computed contrast table). ⛔ **Build to the file, not to this prose.**
+**The sketch is the specification:** `docs/sketches/themes-contrast.html` *(path corrected 10-11, and again 10-30: sketches live in `docs/sketches/`)* (four themes, four views, a computed contrast table). ⛔ **Build to the file, not to this prose.**
 
 ---
 

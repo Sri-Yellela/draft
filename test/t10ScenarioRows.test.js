@@ -1,6 +1,6 @@
 // T10 · the upload gate's scenario matrix (docs/EXTENSION_SCENARIOS.md).
 //
-// The WORKLOG defines rows (1)–(42): T10 · THE UPLOAD GATE (1–30), "T10 additions — scenario rows" (31–37) and
+// The WORKLOG defines rows (1)–(46): T10 · THE UPLOAD GATE (1–30), "T10 additions — scenario rows" (31–37) and
 // "T10 additions — more scenario rows" (38–42). The matrix must carry every one of them EXACTLY once — a row that goes
 // missing is a scenario nobody is checking, and a duplicated number is two rows that will drift apart.
 //
@@ -9,7 +9,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const ROWS = 42;
+// (43)–(46): the 10-19 field report's rows (T31–T34), added to the matrix 10-30 (WORKLOG G3).
+const ROWS = 46;
 const doc = fs.readFileSync("docs/EXTENSION_SCENARIOS.md", "utf8").replace(/\r\n/g, "\n");
 
 /** The matrix rows: a table line whose first cell is a bare number. */
@@ -22,7 +23,7 @@ function matrixRows(text) {
   return out;
 }
 
-test("T10: every scenario row 1–42 appears in the matrix exactly once, and no other number does", () => {
+test("T10: every scenario row 1–46 appears in the matrix exactly once, and no other number does", () => {
   const rows = matrixRows(doc);
   const seen = new Map();
   for (const r of rows) seen.set(r.n, (seen.get(r.n) || 0) + 1);
