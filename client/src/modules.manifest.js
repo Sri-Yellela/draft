@@ -141,6 +141,7 @@ export const SHARED = Object.freeze({
   "components/AutoSettingsDrawer.jsx":  { what: "Draft House's Auto settings drawer — FULL AUTO's filters, cap, times, terms (D102 P4)", module: "draftHouse" },
   "components/DraftHouse.css":          { what: "Draft House's look", owner: "panels/AutoApplyPanel.jsx" },
   "components/ApplicationHistory.jsx":  { what: "The Table's history view (D15)", module: "theTable" },
+  "components/ProfileSections.jsx":    { what: "Profile in sections + Application defaults — what the fill reads for eligibility and self-ID (D101)" },
   "components/ApplicationInbox.jsx":    { what: "The Table's Inbox — forwarded replies from job sites, filed by rule (D103)", module: "theTable" },
   "components/ApplicationHistory.css":  { what: "its look", owner: "components/ApplicationHistory.jsx" },
   "components/PendingApplications.jsx": { what: "The Table's pending list", module: "theTable" },

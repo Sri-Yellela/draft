@@ -95,13 +95,19 @@ test("a non-EEO field holding the decline text is not treated as a decline", () 
   assert.equal(isEeoField({ label: "Self-ID", handler_type: "disability" }), true);
 });
 
-test("the Profile panel offers the decline as its OWN option in all four EEO selects, and blank says 'Not set'", () => {
-  const src = fs.readFileSync("client/src/panels/ProfilePanel.jsx", "utf8").replace(/\r\n/g, "\n");
-  const eeo = src.slice(at(src, "Voluntary Self-Identification (EEO)"), at(src, "Application Extras"));
-  assert.ok(eeo.length > 100, "EEO section found");
-  assert.equal((eeo.match(/<option value=\{EEO_DECLINE\}>\{EEO_DECLINE\}<\/option>/g) || []).length, EEO_FIELDS.length);
-  assert.equal((eeo.match(/<option value="">\{EEO_UNSET_LABEL\}<\/option>/g) || []).length, EEO_FIELDS.length);
-  assert.doesNotMatch(eeo, /<option value="">Prefer not to say<\/option>/,
-    "blank must not be labelled as a decline — the fill leaves it for the candidate");
-  for (const col of EEO_FIELDS) assert.match(eeo, new RegExp(`set\\("${col}"`), col);
+// D101 (10-30) moved the four self-ID answers from Profile's EEO selects (user_profile columns the fill stopped
+// reading after the first import) to Application defaults — this test followed them on purpose.
+test("Application defaults offer the decline as its OWN choice for all four self-ID answers, and blank says 'Not set'", () => {
+  const src = fs.readFileSync("client/src/components/ProfileSections.jsx", "utf8").replace(/\r\n/g, "\n");
+  const panel = fs.readFileSync("client/src/panels/ProfilePanel.jsx", "utf8");
+  assert.match(panel, /<ProfileSections theme=\{theme\}\/>/);
+  assert.doesNotMatch(panel, /Voluntary Self-Identification \(EEO\)/, "one place sets these answers, not two");
+  // The four self-ID keys each get the decline first, then the usual words.
+  for (const key of ["gender", "ethnicity", "veteran", "disability"]) assert.match(src, new RegExp(`\\b${key}: \\[`), key);
+  assert.match(src, /SELF_ID\[item\.key\] \? \[EEO_DECLINE, \.\.\.SELF_ID\[item\.key\]\]/);
+  assert.match(src, /const NOT_SET = "Not set — I'll answer on each form";/);
+  assert.match(src, /<option value="">\{NOT_SET\}<\/option>/);
+  assert.match(src, /onSet\(item\.key, e\.target\.value === "" \? null : e\.target\.value\)/, "blank CLEARS the default — never stored as an answer");
+  assert.doesNotMatch(src, /Prefer not to say/, "blank must not be labelled as a decline — the fill leaves it for the candidate");
+  assert.equal(EEO_FIELDS.length, 4);
 });

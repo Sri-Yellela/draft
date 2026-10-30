@@ -9,13 +9,10 @@ import {
   PROFILE_SUGGESTIONS_UPDATED_EVENT,
 } from "../lib/profileSuggestions.js";
 import { prefillFromResumeText, prefillDiff } from "../../../shared/resumePrefill.js";
-import { EEO_DECLINE } from "../../../shared/savedAnswers.js";
+import ProfileSections from "../components/ProfileSections.jsx";
 
-// D55 (f): blank and "Choose not to disclose" are two different statements. Blank is NOT SET — the
-// form's EEO step is left for you. The decline is your answer, and the fill picks the form's own
-// decline option. The old blank option read "Prefer not to say", which said the opposite of what the
-// fill did with it.
-const EEO_UNSET_LABEL = "Not set — I'll answer on each form";
+// D55 (f) / D101: the EEO answers ("Not set" vs "Choose not to disclose") live in Application defaults —
+// components/ProfileSections.jsx.
 
 // A33: the labels the prefill review shows. Only PREFILL_FIELDS can appear — eligibility and EEO
 // answers are attestations and are never proposed (shared/resumePrefill.js NEVER_PREFILL).
@@ -934,8 +931,11 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
           </PRow>
         </PSec>
 
-        {/* ── Work Auth ── */}
-        <PSec title="Work Authorization" theme={theme}>
+        {/* ── D101 · Work authorisation, sponsorship, clearance and voluntary self-ID are APPLICATION DEFAULTS now
+            (components/ProfileSections.jsx) — the one place the fill reads them (withApplicationDefaults). The old
+            Work Authorization and EEO selects here wrote user_profile columns that the fill no longer reads after the
+            first import, so an edit there was silently ignored (A105 finding 1). Visa type is not a default and stays. ── */}
+        <PSec title="Visa status" theme={theme}>
           <PRow label="Visa / Immigration Status" theme={theme}>
             <select style={selStyle} value={form.visa_type}
               onChange={e => set("visa_type", e.target.value)}>
@@ -945,109 +945,9 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
               <option>TN Visa</option><option>O-1</option><option>Other</option>
             </select>
           </PRow>
-          <PRow label="Work Authorization" theme={theme}>
-            <select style={selStyle} value={form.work_auth}
-              onChange={e => set("work_auth", e.target.value)}>
-              <option value="">Select…</option>
-              <option>Authorized to work in the US without sponsorship</option>
-              <option>Will require sponsorship now or in the future</option>
-            </select>
-          </PRow>
-          {/* Three situations, not a checkbox. Employers ask this in two tenses — "do you require
-              sponsorship" and "do you NOW OR IN THE FUTURE require sponsorship" — and for anyone on
-              a time-limited status the honest answers differ. A single box cannot hold both, and
-              answering the future question from it submitted a false attestation at full
-              confidence. Left unset the run holds and asks rather than guessing. */}
-          <PRow label="Visa Sponsorship" theme={theme}>
-            <select style={selStyle} value={form.sponsorship_need || ""}
-              onChange={e => set("sponsorship_need", e.target.value)}>
-              <option value="">Select…</option>
-              <option value="none">Never — I am a citizen or permanent resident</option>
-              <option value="future">Not now, but later — time-limited status (F-1/OPT, CPT, J-1)</option>
-              <option value="now">Yes, now — I need sponsorship to start</option>
-            </select>
-          </PRow>
-          {form.sponsorship_need === "future" && (
-            <div style={{ fontSize:12, color:theme.textDim, marginBottom:10, lineHeight:1.5 }}>
-              "Do you now or in the future require sponsorship?" will be answered <strong>Yes</strong>;
-              "do you <em>currently</em> require sponsorship?" will be answered <strong>No</strong>.
-              Both are true.
-            </div>
-          )}
-          <label style={{ display:"flex", alignItems:"center", gap:8,
-                          marginBottom:10, cursor:"pointer",
-                          fontSize:13, color:theme.text }}>
-            <input type="checkbox" checked={!!form.has_clearance}
-              onChange={e => set("has_clearance", e.target.checked)}
-              style={{ accentColor:theme.accent, width:16, height:16 }}/>
-            Active security clearance
-          </label>
-          {form.has_clearance && (
-            <PRow label="Clearance Level" theme={theme}>
-              <select style={selStyle} value={form.clearance_level}
-                onChange={e => set("clearance_level", e.target.value)}>
-                <option value="">Select…</option>
-                <option>Public Trust</option><option>Secret</option>
-                <option>Top Secret</option><option>TS/SCI</option>
-                <option>TS/SCI + Poly</option>
-              </select>
-            </PRow>
-          )}
         </PSec>
 
-        {/* ── EEO ── */}
-        <PSec title="Voluntary Self-Identification (EEO)" theme={theme}>
-          <p style={{ fontSize:12, color:theme.textMuted, lineHeight:1.6, marginBottom:14 }}>
-            These fields are voluntary and used solely for EEO reporting autofill.
-            They do not affect your resume or job search.
-          </p>
-          <p data-eeo-decline-note="" style={{ fontSize:12, color:theme.textMuted, lineHeight:1.6, marginBottom:14 }}>
-            <strong>{EEO_DECLINE}</strong> is an answer: the form's own decline option is picked for you
-            ("Decline to self-identify", "I don't wish to answer"). <strong>Not set</strong> leaves the
-            question on the form for you — nothing is ever chosen by default.
-          </p>
-          <PRow label="Gender" theme={theme}>
-            <select style={selStyle} value={form.gender}
-              onChange={e => set("gender", e.target.value)}>
-              <option value="">{EEO_UNSET_LABEL}</option>
-              <option value={EEO_DECLINE}>{EEO_DECLINE}</option>
-              <option>Male</option><option>Female</option>
-              <option>Non-binary / third gender</option>
-            </select>
-          </PRow>
-          <PRow label="Race / Ethnicity" theme={theme}>
-            <select style={selStyle} value={form.ethnicity}
-              onChange={e => set("ethnicity", e.target.value)}>
-              <option value="">{EEO_UNSET_LABEL}</option>
-              <option value={EEO_DECLINE}>{EEO_DECLINE}</option>
-              <option>Hispanic or Latino</option>
-              <option>White (not Hispanic or Latino)</option>
-              <option>Black or African American</option>
-              <option>Asian</option>
-              <option>Native Hawaiian or Other Pacific Islander</option>
-              <option>American Indian or Alaska Native</option>
-              <option>Two or more races</option>
-            </select>
-          </PRow>
-          <PRow label="Veteran Status" theme={theme}>
-            <select style={selStyle} value={form.veteran_status}
-              onChange={e => set("veteran_status", e.target.value)}>
-              <option value="">{EEO_UNSET_LABEL}</option>
-              <option value={EEO_DECLINE}>{EEO_DECLINE}</option>
-              <option>I am a protected veteran</option>
-              <option>I am not a protected veteran</option>
-            </select>
-          </PRow>
-          <PRow label="Disability Status" theme={theme}>
-            <select style={selStyle} value={form.disability_status}
-              onChange={e => set("disability_status", e.target.value)}>
-              <option value="">{EEO_UNSET_LABEL}</option>
-              <option value={EEO_DECLINE}>{EEO_DECLINE}</option>
-              <option>Yes, I have a disability</option>
-              <option>No, I do not have a disability</option>
-            </select>
-          </PRow>
-        </PSec>
+        <ProfileSections theme={theme}/>
 
         {/* ── Application Extras ── */}
         <PSec title="Application Extras" theme={theme}>
