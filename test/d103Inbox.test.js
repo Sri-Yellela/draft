@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 import crypto from "node:crypto";
 import express from "express";
 import Database from "better-sqlite3";
@@ -232,7 +233,7 @@ test("D103 UI · The Table's Inbox — gated on intake, asks before making an ad
   assert.match(panel, /\["inbox","Inbox"\]/);
   assert.match(panel, /activeSheet === "inbox" && <ApplicationInbox theme=\{theme\}\/>/);
   assert.match(ui, /!data\.intake \?/, "no address is offered while mail cannot arrive");
-  const load = ui.slice(ui.indexOf("const load = useCallback"), ui.indexOf("useEffect(() => { load(); }"));
+  const load = ui.slice(at(ui, "const load = useCallback"), at(ui, "useEffect(() => { load(); }"));
   assert.doesNotMatch(load, /\/api\/inbox\/address/, "loading the tab must not make an address");
   assert.match(ui, /api\(`\/api\/inbox\/\$\{m\.id\}\/category`, \{ method: "POST"/);
   assert.match(ui, /api\(`\/api\/inbox\/\$\{m\.id\}`, \{ method: "DELETE" \}\)/);
