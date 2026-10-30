@@ -182,7 +182,9 @@ export function unlinkProvider(db, userId, provider) {
 }
 
 // ── export ─────────────────────────────────────────────────────────────────────────────────────
-const SECRET_COLUMNS = new Set(["password_hash", "apify_token", "secret_enc", "iv", "auth_tag", "token_hash", "code_hash", "cookies_enc"]);
+const SECRET_COLUMNS = new Set(["password_hash", "apify_token", "secret_enc", "iv", "auth_tag", "token_hash", "code_hash", "cookies_enc",
+  // D112 item 8 (183): a browser's push endpoint is a capability URL and its two keys encrypt to it — never exported.
+  "endpoint", "key_p256dh", "key_auth"]);
 // Tables whose rows are the user's own data, exported whole (minus secret columns). Log-like tables
 // (usage, scrape, cache events) are summarised, not dumped.
 const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes", "base_resume", "resumes", "resume_versions",
@@ -190,7 +192,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   "simple_apply_profiles", "profile_simple_apply_profiles", "dock_preferences", "daily_drafts", "user_integrations",
   "form_reports", "apply_origin_sightings", "saved_answers", "answer_history",
   // D112: the Gmail connection — the address, when, how many read; its sealed token is a secret column and never exported.
-  "gmail_connections"];
+  "gmail_connections",
+  // D112 item 8 (183): the notification switches, and which browsers get pushes (their endpoint and keys scrubbed above).
+  "notification_prefs", "push_subscriptions"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -280,6 +284,8 @@ export const MERGE_PLAN = Object.freeze({
   // D112 (181): a merged person is one person — their Gmail connection keeps reading, for INTO; INTO's own connection
   // wins on a clash (one row per user), and FROM's then goes with FROM.
   gmail_connections: "keepInto",
+  // D112 item 8 (183): the merged person's browsers keep getting pushes, now for INTO; INTO's own switch for an event wins.
+  push_subscriptions: "move", notification_prefs: "keepInto",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

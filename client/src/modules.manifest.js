@@ -82,6 +82,7 @@ export const SHARED = Object.freeze({
   "components/TopBar.css":              { what: "the top bar's tab row — ghost tabs | one track (D92/D93)", owner: "components/TopBar.jsx", alsoBy: ["components/CustomisePreview.jsx"] },
   "components/SectionHeading.jsx":      { what: "THE section heading (A93: was inside AutoApplyPanel's file)" },
   "components/SettingsSection.jsx":     { what: "THE settings card — Account and Integrations (A93)" },
+  "components/NotificationSettings.jsx": { what: "Account's Notifications card — push to this browser and email, a switch per event per channel (D112 item 8)" },
   "components/StatCard.jsx":            { what: "THE stat card — admin and the DB inspector (A93)" },
   "components/IngestFunnel.jsx":        { what: "a source's last crawl as a funnel (10-14) — the glance's Ingestion card and the inspector's Pipeline Health", module: "admin" },
   "components/EmptyState.jsx":          { what: "THE empty state — the board and The Table (A93)" },
