@@ -13,6 +13,8 @@ import { BRAND } from '../../../shared/brand.js';
 // that page still offered "Pricing". A link is a claim that the destination exists.
 const publicLinks = (monetisationEnabled) => [
   { to: '/products', label: 'Products' },
+  // ⭐ D105 P4: the Atlas is public (no sign-in) — a place on the public nav.
+  { to: '/atlas',    label: 'Atlas'    },
   ...(monetisationEnabled ? [{ to: '/pricing', label: 'Pricing' }] : []),
   { to: '/about',    label: 'About'    },
   { to: '/blog',     label: 'Blog'     },

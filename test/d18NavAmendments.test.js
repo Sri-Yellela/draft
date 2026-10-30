@@ -21,9 +21,11 @@ const decorator = () => app.slice(at(app, "function AppTopBar("), at(app, "retur
 
 test("D18: the AUTO APPLY tab reads Draft House — four two-word labels, ids unchanged", () => {
   const labels = [...tabsBlock().matchAll(/\{ id: "([^"]+)",\s*label: "([^"]+)" \}/g)].map(m => m[2]);
-  assert.deepEqual(labels, ["Daily Deck", "Full House", "Draft House", "The Table"]);
-  // Every label is two words, so TabLabel sets each on two lines — the same format across the row.
-  for (const l of labels) assert.equal(l.split(" ").length, 2, `"${l}" is not a two-word label`);
+  // ⭐ D105 P4 (changed on purpose): the Atlas joins the row after the card family (D102's navigation gains one place).
+  assert.deepEqual(labels, ["Daily Deck", "Full House", "Draft House", "The Table", "Atlas"]);
+  // Every card-family label is two words, so TabLabel sets each on two lines — the same format across the family.
+  // Atlas is a place outside the family and its one word sits on one line (TabLabel leaves a one-word label alone).
+  for (const l of labels.filter(l => l !== "Atlas")) assert.equal(l.split(" ").length, 2, `"${l}" is not a two-word label`);
   assert.match(tabsBlock(), /\{ id: "auto-apply",\s*label: "Draft House" \}/);
 });
 

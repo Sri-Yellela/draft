@@ -13,6 +13,7 @@ import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
 import { EnrichmentTab } from "./adminEnrichment.jsx";
 import { EmailHealthTab } from "./adminEmail.jsx";
 import { AdminsTab } from "./adminAdmins.jsx";
+import { AtlasTab } from "./adminAtlas.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
@@ -719,6 +720,9 @@ export function AdminPanel() {
           <a href="/admin/db" className="rm-btn rm-btn-ghost rm-btn-sm">Open the database inspector →</a>
         </div>
       )}
+
+      {/* D105 P4: the Atlas's nodes — every page starts a draft; publishing here is what makes /atlas/<slug> public. */}
+      {at("data", "atlas") && <AtlasTab/>}
 
       {/* System — is it set up right? */}
       {at("system", "switches") && <><KillSwitchSection theme={theme}/><PluginTab theme={theme}/></>}
