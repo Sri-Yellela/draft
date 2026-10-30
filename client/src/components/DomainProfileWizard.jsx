@@ -7,6 +7,9 @@
 //   onComplete(profile) — called after profile saved to API
 //   onDismiss()         — if provided, shows an X button; if null, wizard is blocking
 //   bannerText          — optional string shown at top (for existing user re-engagement)
+//   refine              — D112 e2: "Refine your job profile" — edit mode on a profile made from a résumé, every step
+//                         pre-filled from what was read; the save marks it refined (PUT { refined: true }) and the
+//                         prompt (components/RefineJobProfile.jsx) is gone
 
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../lib/api.js";
@@ -103,6 +106,7 @@ export default function DomainProfileWizard({
   initialDomainKey = null,
   mode = "create",
   initialProfile = null,
+  refine = false,
 }) {
   const { theme } = useTheme();
   const isEditMode = mode === "edit" && !!initialProfile?.id;
@@ -259,6 +263,7 @@ export default function DomainProfileWizard({
             : [...keywords],
           selected_verbs:    [...verbs],
           selected_tools:    [...tools],
+          ...(isEditMode && refine ? { refined: true } : {}),
         }),
       });
       onComplete(profile);
@@ -327,7 +332,7 @@ export default function DomainProfileWizard({
           <div>
             <div style={{ fontWeight: 400, fontSize: 26, color: theme.text,
                           fontFamily: "var(--font-display)"}}>
-              {isEditMode ? "Edit Job Search Profile" : "Create Your Job Search Profile"}
+              {isEditMode && refine ? "Refine your job profile" : isEditMode ? "Edit Job Search Profile" : "Create Your Job Search Profile"}
             </div>
             {bannerText && (
               <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4, maxWidth: 480 }}>

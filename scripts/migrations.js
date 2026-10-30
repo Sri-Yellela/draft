@@ -5053,4 +5053,49 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D112 d2 + e2 (owner 10-30 night). d2 · THE EDUCATION SECTION IS THE SOURCE OF THE DEGREE: the old Education
+      // block's values (user_profile.highest_degree / field_of_study / university / graduation_year) move into the
+      // section (profile_education) — NOT when an entry for the same school is already there (its empty degree / field are
+      // filled instead), so nothing is listed twice. What cannot be a section entry is kept as the per-profile override
+      // (user_profile.education_override, JSON): a degree with no school (only when the section is empty), and a graduation
+      // year still to come (D101's date rule refuses a future end date on an entry). The forms and eligibility read the
+      // derived value or that override (services/structuredProfile.js educationOf) — never the old columns again.
+      // e2 · a job profile made from a résumé (A104) carries made_from_resume = 1 and shows "Refine your job profile"
+      // until the wizard has been opened and SAVED for it (refined_at). Profiles made before this are not marked.
+      id: "179_education_source",
+      sql: `
+        ALTER TABLE user_profile ADD COLUMN education_override TEXT;
+        ALTER TABLE domain_profiles ADD COLUMN made_from_resume INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE domain_profiles ADD COLUMN refined_at INTEGER;
+        UPDATE profile_education SET
+          degree = COALESCE(NULLIF(TRIM(COALESCE(degree, '')), ''), (SELECT NULLIF(TRIM(COALESCE(up.highest_degree, '')), '') FROM user_profile up WHERE up.user_id = profile_education.user_id)),
+          field = COALESCE(NULLIF(TRIM(COALESCE(field, '')), ''), (SELECT NULLIF(TRIM(COALESCE(up.field_of_study, '')), '') FROM user_profile up WHERE up.user_id = profile_education.user_id))
+          WHERE EXISTS (SELECT 1 FROM user_profile up WHERE up.user_id = profile_education.user_id
+            AND TRIM(COALESCE(up.university, '')) != '' AND LOWER(TRIM(up.university)) = LOWER(TRIM(profile_education.school)));
+        INSERT INTO profile_education (user_id, school, degree, field, start_ym, end_ym, position, source)
+          SELECT up.user_id, TRIM(up.university),
+            NULLIF(TRIM(COALESCE(up.highest_degree, '')), ''),
+            NULLIF(TRIM(COALESCE(up.field_of_study, '')), ''),
+            NULL,
+            CASE WHEN CAST(up.graduation_year AS INTEGER) BETWEEN 1900 AND CAST(strftime('%Y', 'now') AS INTEGER)
+              THEN printf('%04d-01', CAST(up.graduation_year AS INTEGER)) END,
+            COALESCE((SELECT MAX(pe.position) + 1 FROM profile_education pe WHERE pe.user_id = up.user_id), 0),
+            'profile'
+          FROM user_profile up
+          WHERE TRIM(COALESCE(up.university, '')) != ''
+            AND NOT EXISTS (SELECT 1 FROM profile_education pe WHERE pe.user_id = up.user_id
+              AND LOWER(TRIM(pe.school)) = LOWER(TRIM(up.university)));
+        UPDATE user_profile SET education_override = json_object(
+            'degree', NULLIF(TRIM(COALESCE(highest_degree, '')), ''),
+            'field', NULLIF(TRIM(COALESCE(field_of_study, '')), ''),
+            'year', CASE WHEN CAST(graduation_year AS INTEGER) BETWEEN 1900 AND 2100 THEN CAST(graduation_year AS INTEGER) END)
+          WHERE education_override IS NULL AND TRIM(COALESCE(university, '')) = ''
+            AND (TRIM(COALESCE(highest_degree, '')) != '' OR TRIM(COALESCE(field_of_study, '')) != '')
+            AND NOT EXISTS (SELECT 1 FROM profile_education pe WHERE pe.user_id = user_profile.user_id);
+        UPDATE user_profile SET education_override = json_object('year', CAST(graduation_year AS INTEGER))
+          WHERE education_override IS NULL AND TRIM(COALESCE(university, '')) != ''
+            AND CAST(graduation_year AS INTEGER) > CAST(strftime('%Y', 'now') AS INTEGER) AND CAST(graduation_year AS INTEGER) <= 2100;
+      `,
+    },
   ];
