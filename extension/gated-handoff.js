@@ -107,13 +107,15 @@ function probeFormShape() {
   // below dropped it along with every real button. It is let back in by that attribute alone; a
   // plain button (Save and Continue, Submit, Add) carries no aria-haspopup=listbox and stays out.
   const controls = [...scope.querySelectorAll(
-    'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"], button[aria-haspopup="listbox"]'
+    'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"], button[aria-haspopup="listbox"], [role="radio"], [role="checkbox"], [role="switch"]'
   )].filter(
-    el => (el.getAttribute('aria-haspopup') === 'listbox' ||
+    el => (el.getAttribute('aria-haspopup') === 'listbox' || /^(radio|checkbox|switch)$/.test(el.getAttribute('role') || '') ||
       !['hidden', 'submit', 'button', 'image', 'reset', 'password'].includes((el.type || '').toLowerCase())) &&
       !/^cc-|one-time-code|-password$/i.test(el.getAttribute('autocomplete') || '') &&
       !(el.tagName === 'INPUT' && !['radio', 'checkbox', 'file'].includes((el.type || '').toLowerCase()) &&
-        el.getAttribute('aria-hidden') === 'true' && el.getAttribute('tabindex') === '-1')
+        el.getAttribute('aria-hidden') === 'true' && el.getAttribute('tabindex') === '-1') &&
+      !(el.tagName !== 'INPUT' && /^(radio|checkbox|switch)$/.test(el.getAttribute('role') || '') &&
+        !!el.querySelector('input[type="radio"], input[type="checkbox"]'))
   );
   // ⭐ LIVE MARKUP (measured 10-15, docs/LIVE_FORM_MEASUREMENT.md): the last clause drops a picker's BACKING input — the
   // value-holder a widget keeps beside the box the candidate uses: react-select's `<input required tabindex="-1"
@@ -192,6 +194,7 @@ function probeFormShape() {
     if (lb) return ['labelledby', lb];
     const al = tied(el.getAttribute('aria-label'));
     if (al) return ['aria', al];
+    if (ariaKind(el)) { const own = tied(textOf(el)); if (own) return ['own', own]; }
     const wl = el.closest('label');
     if (wl) {
       const lead = [...wl.querySelectorAll(TEXTISH)].find(t => precedes(t, el) && usable(textOf(t)));
@@ -209,6 +212,12 @@ function probeFormShape() {
     return [null, ''];
   };
   const labelFor = (el) => labelSourceOf(el)[1];
+  // ⭐ A99 (owner 10-30): an ARIA radio / checkbox / switch with no native input — Workable's and many custom forms' Yes /
+  // No — is a field: a radio, or a checkbox (a switch is one). Its own words name it ("Yes"); its group asks the question.
+  function ariaKind(el) {
+    if (el.tagName === 'INPUT' || !/^(radio|checkbox|switch)$/.test(el.getAttribute('role') || '')) return null;
+    return el.getAttribute('role') === 'radio' ? 'radio' : 'checkbox';
+  }
   // The raw attributes of a field nothing named — for T6's developer view, so the classifier improves from real pages.
   // ⛔ Attributes and the nearest words only; never a value.
   const rawOf = (el) => {
@@ -244,6 +253,10 @@ function probeFormShape() {
   const hasPassword = [...scope.querySelectorAll('input[type="password"]')].some(visibleEl);
   // D96 §7: whether a control HOLDS something — emptiness only, never the value (as findMissingRequired reads it).
   const holdsSomething = (el) => {
+    const ak = ariaKind(el);
+    if (ak === 'radio') return el.getAttribute('aria-checked') === 'true' ||
+      !!el.closest('[role="radiogroup"]')?.querySelector('[role="radio"][aria-checked="true"]');
+    if (ak) return el.getAttribute('aria-checked') === 'true';
     const t = (el.type || '').toLowerCase();
     if (t === 'radio') return !!(el.name && scope.querySelector(`input[type="radio"][name="${CSS.escape(el.name)}"]:checked`));
     if (t === 'checkbox') return el.checked === true;
@@ -297,7 +310,7 @@ function probeFormShape() {
       index,
       name: el.name || null,
       id: el.id || null,
-      type: (el.type || el.tagName).toLowerCase(),
+      type: ariaKind(el) || (el.type || el.tagName).toLowerCase(),
       label: labelFor(el).slice(0, 200),
       // ⭐ T18: where the label came from (null → nothing named it), the autocomplete token, and — only for a field
       // nothing named — its raw attributes (rawOf; T6's Show details reads them).
@@ -308,14 +321,14 @@ function probeFormShape() {
       required: el.required === true || el.getAttribute('aria-required') === 'true' ||
         /[*✱]\s*$/.test(labelFor(el)) ||   // Lever marks a required question ✱
         // D96 §5: a radio / checkbox GROUP says it is required on the group itself (Workday: the fieldset).
-        (['radio', 'checkbox'].includes((el.type || '').toLowerCase()) &&
+        (['radio', 'checkbox'].includes(ariaKind(el) || (el.type || '').toLowerCase()) &&
           el.closest('fieldset, [role="radiogroup"], [role="group"]')?.getAttribute('aria-required') === 'true') ||
         !!(el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"] abbr[title="required" i]`)),
       options: el.tagName === 'SELECT'
         ? [...el.options].map(o => ({ value: o.value, text: (o.text || '').trim() })) : null,
       // D55 (f): a radio's label is its OPTION ("No"); the QUESTION is its group's legend or
       // aria-labelledby. Saved answers and worked-here are matched on the question, so it is read here.
-      group: el.type === 'radio' ? (() => {
+      group: (ariaKind(el) || el.type) === 'radio' ? (() => {
         const g = el.closest('fieldset, [role="radiogroup"]');
         if (!g) return null;
         const lid = (g.getAttribute('aria-labelledby') || '').split(/\s+/)[0];
@@ -359,16 +372,21 @@ async function applyPlan(plan, resume, opts) {
   // ⛔ MUST STAY BYTE-IDENTICAL TO probeFormShape'S. See the note there — the plan addresses
   // controls by position, so the two enumerations have to agree.
   const controls = [...scope.querySelectorAll(
-    'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"], button[aria-haspopup="listbox"]'
+    'input, select, textarea, [role="combobox"], [contenteditable=""], [contenteditable="true"], button[aria-haspopup="listbox"], [role="radio"], [role="checkbox"], [role="switch"]'
   )].filter(
-    el => (el.getAttribute('aria-haspopup') === 'listbox' ||
+    el => (el.getAttribute('aria-haspopup') === 'listbox' || /^(radio|checkbox|switch)$/.test(el.getAttribute('role') || '') ||
       !['hidden', 'submit', 'button', 'image', 'reset', 'password'].includes((el.type || '').toLowerCase())) &&
       !/^cc-|one-time-code|-password$/i.test(el.getAttribute('autocomplete') || '') &&
       !(el.tagName === 'INPUT' && !['radio', 'checkbox', 'file'].includes((el.type || '').toLowerCase()) &&
-        el.getAttribute('aria-hidden') === 'true' && el.getAttribute('tabindex') === '-1')
+        el.getAttribute('aria-hidden') === 'true' && el.getAttribute('tabindex') === '-1') &&
+      !(el.tagName !== 'INPUT' && /^(radio|checkbox|switch)$/.test(el.getAttribute('role') || '') &&
+        !!el.querySelector('input[type="radio"], input[type="checkbox"]'))
   );
 
   const isEditable = (el) => el.isContentEditable === true;
+  // ⭐ A99: an ARIA radio / checkbox / switch (no native input) — probeFormShape's ariaKind, the same rule.
+  const ariaKind = (el) => (el.tagName === 'INPUT' || !/^(radio|checkbox|switch)$/.test(el.getAttribute('role') || '')) ? null
+    : el.getAttribute('role') === 'radio' ? 'radio' : 'checkbox';
   // D55 (a): a TYPEAHEAD is an <input> announcing a popup list — its options do not exist until a
   // query has been typed. Checked BEFORE isCombo, which it would otherwise match.
   // A READ-ONLY combobox input is a dropdown dressed as a text box (nothing can be typed into it): it is opened and
@@ -570,7 +588,11 @@ async function applyPlan(plan, resume, opts) {
   const shownNear = (el) => {
     const box = el.closest('[data-automation-id^="formField"], [role="group"], fieldset')
       || el.parentElement?.parentElement || el.parentElement;
-    return String(box?.textContent || '').replace(String(el.value || ''), '').toLowerCase();
+    if (!box) return '';
+    // ⭐ A99: an options list still open in the field's box is NOT a pick — its words were counting as "shown".
+    const copy = box.cloneNode(true);
+    copy.querySelectorAll('[role="listbox"], [role="option"]').forEach(n => n.remove());
+    return String(copy.textContent || '').replace(String(el.value || ''), '').toLowerCase();
   };
 
   // ── A PICKER WITHOUT ITS ARIA (owner, 10-19) ───────────────────────────────────────────────────────────────────
@@ -698,6 +720,23 @@ async function applyPlan(plan, resume, opts) {
     return !!x && !!y && (x.includes(y) || y.includes(x) || x.split(' ')[0] === y.split(' ')[0]);
   };
 
+  // ⭐ A99: a value → "YYYY-MM-DD" (date) or "YYYY-MM" (month), or null. US month-first for a slashed date.
+  const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  const isoDateFor = (raw, type) => {
+    const t = raw.trim();
+    const pad = (n) => String(n).padStart(2, '0');
+    let y = null, m = null, d = null, mm;
+    if ((mm = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/.exec(t))) [y, m, d] = [+mm[1], +mm[2], mm[3] ? +mm[3] : null];
+    else if ((mm = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(t))) [m, d, y] = [+mm[1], +mm[2], +mm[3]];
+    else if ((mm = /^(\d{1,2})[/.-](\d{4})$/.exec(t))) [m, y] = [+mm[1], +mm[2]];
+    else if ((mm = /^([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})$/.exec(t))) [m, d, y] = [MONTHS.indexOf(mm[1].slice(0, 3).toLowerCase()) + 1, +mm[2], +mm[3]];
+    else if ((mm = /^([A-Za-z]{3,9})\.?\s+(\d{4})$/.exec(t))) [m, y] = [MONTHS.indexOf(mm[1].slice(0, 3).toLowerCase()) + 1, +mm[2]];
+    if (!y || !m || m < 1 || m > 12 || y < 1900 || y > 2100) return null;
+    if (type === 'month') return `${y}-${pad(m)}`;
+    if (!d || d < 1 || d > new Date(y, m, 0).getDate()) return null;
+    return `${y}-${pad(m)}-${pad(d)}`;
+  };
+
   const filled = [], skipped = [], pending = [];
 
   // D55 (d): on a wizard step the extension may come back to — after the candidate answered a stop,
@@ -706,6 +745,7 @@ async function applyPlan(plan, resume, opts) {
   // this: a correction is meant to overwrite.)
   const keepExisting = opts?.keepExisting === true;
   const holds = (el) => {
+    if (ariaKind(el)) return el.getAttribute('aria-checked') === 'true';
     if (el.type === 'checkbox' || el.type === 'radio') return el.checked === true;
     if (isTypeahead(el)) {
       const box = el.closest('[data-automation-id^="formField"], [role="group"], fieldset') || el.parentElement;
@@ -751,13 +791,20 @@ async function applyPlan(plan, resume, opts) {
     }
     if (keepExisting && holds(el)) { skipped.push({ field: step.label, reason: 'kept_existing' }); return; }
     try {
-      if (el.type === 'checkbox' || el.type === 'radio') {
+      if (ariaKind(el)) {
+        // ⭐ A99: no property to set — the widget changes only on its OWN click, and only aria-checked says it did.
+        // A radio is never "un-picked" by a click (that picks it); a want of false on a radio is left as it is.
         const want = step.value === 'true' || step.value === true;
-        if (el.checked !== want) {
-          el.checked = want;
-          el.dispatchEvent(new Event('input',  { bubbles: true }));
-          el.dispatchEvent(new Event('change', { bubbles: true }));
-        }
+        const on = el.getAttribute('aria-checked') === 'true';
+        if (on !== want && !(ariaKind(el) === 'radio' && !want)) el.click();
+        pending.push({ step, el, kind: 'aria-toggle', want });
+      } else if (el.type === 'checkbox' || el.type === 'radio') {
+        const want = step.value === 'true' || step.value === true;
+        // ⭐ A99 (owner 10-30): THROUGH THE PAGE'S OWN CLICK. `el.checked = want` showed a tick while React's state — fed
+        // by the click it listens to, and blind to a property it already tracks — stayed empty, and the read-back of
+        // `checked` agreed with the tick. A real click toggles the box AND runs the page's handlers; a page that refuses
+        // it (preventDefault) leaves the box as it was, and the read-back below says so.
+        if (el.checked !== want && !(el.type === 'radio' && !want)) el.click();
         pending.push({ step, el, kind: 'toggle', want });
       } else if (el.tagName === 'SELECT' && el.multiple) {
         // One answer may carry several values; a multi-select is the only control where "the
@@ -807,6 +854,13 @@ async function applyPlan(plan, resume, opts) {
         el.dispatchEvent(new Event('input',  { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
         pending.push({ step, el, kind: 'editable', want: String(step.value) });
+      } else if (el.tagName === 'INPUT' && ['date', 'month'].includes((el.type || '').toLowerCase())) {
+        // ⭐ A99: a date / month input takes ONLY an ISO value; anything else is dropped silently and the box stays empty.
+        // The profile's "11/02/2026", "Nov 2, 2026", "May 2021" are converted; something that is not a date is not typed.
+        const iso = isoDateFor(String(step.value ?? ''), el.type.toLowerCase());
+        if (!iso) { skipped.push({ field: step.label, name: step.name, reason: 'not_a_date', wanted: String(step.value ?? '').slice(0, 80) }); return; }
+        nativeSetter(el, iso);
+        pending.push({ step, el, kind: 'value', want: iso });
       } else if (el.tagName === 'INPUT' && el.readOnly) {
         // A read-only box takes no typing: it is a dropdown or a date picker with no ARIA to drive. Typing a value in
         // through the setter would show text the widget never chose.
@@ -976,6 +1030,7 @@ async function applyPlan(plan, resume, opts) {
     let ok = false, got = '';
     try {
       if (kind === 'toggle')        { ok = el.checked === want; got = String(el.checked); }
+      else if (kind === 'aria-toggle') { const on = el.getAttribute('aria-checked') === 'true'; ok = on === want; got = String(on); }
       else if (kind === 'multi')    { const sel = [...el.selectedOptions].map(o => o.value);
                                       ok = want.every(w => sel.includes(w)); got = sel.join(','); }
       else if (kind === 'editable') { got = (el.textContent || '').trim(); ok = same(got, want); }
@@ -2680,5 +2735,8 @@ export async function applyOverlayEdit({ tabId, frameId = 0, field, value }) {
 // For the real-Chrome tests only (test/j4PanelBrowser.test.js): the page-side functions as the fill serialises them.
 export const __probeSource = probeFormShape.toString();
 export const __applyPlanSource = applyPlan.toString();
+// A99's tests run the probe and the required-field sweep in a real page, as the extension injects them.
+export const __probeFormShapeSource = probeFormShape.toString();
+export const __findMissingRequiredSource = findMissingRequired.toString();
 export const __advanceWizardSource = advanceWizard.toString();
 export const NEVER_FILL_SOURCE = NEVER_FILL_RE.source;

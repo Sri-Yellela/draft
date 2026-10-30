@@ -63,13 +63,22 @@ export function findMissingRequired() {
   const isRequired = (el) => el.required === true || el.getAttribute('aria-required') === 'true'
     || group(el)?.getAttribute('aria-required') === 'true' || starred(labelEl(el));
   const box = (el) => el.closest('[data-automation-id^="formField"], [role="group"], fieldset') || el.parentElement;
+  // ⭐ A99 (owner 10-30): an ARIA radio / checkbox / switch with no native input is a field too.
+  const ariaKind = (el) => (el.tagName === 'INPUT' || !/^(radio|checkbox|switch)$/.test(el.getAttribute('role') || '')) ? null
+    : el.getAttribute('role') === 'radio' ? 'radio' : 'checkbox';
   const isEmpty = (el) => {
+    const ak = ariaKind(el);
+    if (ak === 'radio') return !group(el)?.querySelector('[role="radio"][aria-checked="true"]') && el.getAttribute('aria-checked') !== 'true';
+    if (ak) return el.getAttribute('aria-checked') !== 'true';
     const type = String(el.type || '').toLowerCase();
     if (type === 'radio') return !root.querySelector(`input[type="radio"][name="${CSS.escape(el.name)}"]:checked`);
     if (type === 'checkbox') return !el.checked;
     if (type === 'file') return !(el.files && el.files.length) && !box(el)?.querySelector('[data-automation-id="file-upload-successful"]');
     if (el.tagName === 'INPUT' && (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list')) {
-      return !box(el)?.querySelector('[data-automation-id="selectedItem"], [role="listitem"]') && !String(el.value || '').trim();
+      // ⭐ A99: a typeahead holds an answer only when a PICK shows — a chip, a selected item, a single-value label — or
+      // its text stands with no list open. Text typed while its options list is still open was never picked.
+      if (box(el)?.querySelector('[data-automation-id="selectedItem"], [role="listitem"], [class*="single-value"], [class*="singleValue"]')) return false;
+      return el.getAttribute('aria-expanded') === 'true' || !String(el.value || '').trim();
     }
     if (el.tagName !== 'INPUT' && el.tagName !== 'SELECT' && el.tagName !== 'TEXTAREA' &&
         (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-haspopup') === 'listbox')) {
@@ -81,13 +90,15 @@ export function findMissingRequired() {
   };
   const seen = new Set();
   const out = [];
-  for (const el of root.querySelectorAll('input, select, textarea, [role="combobox"], button[aria-haspopup="listbox"], [contenteditable="true"]')) {
-    const type = String(el.type || '').toLowerCase();
+  for (const el of root.querySelectorAll('input, select, textarea, [role="combobox"], button[aria-haspopup="listbox"], [contenteditable="true"], [role="radio"], [role="checkbox"], [role="switch"]')) {
+    const type = ariaKind(el) || String(el.type || '').toLowerCase();
     if (ours(el) || ['hidden', 'submit', 'image', 'reset'].includes(type)) continue;
-    if (el.tagName === 'BUTTON' && el.getAttribute('aria-haspopup') !== 'listbox') continue;
+    if (el.tagName === 'BUTTON' && el.getAttribute('aria-haspopup') !== 'listbox' && !ariaKind(el)) continue;
+    // A wrapper around a real radio / checkbox (Workable) is not a second field — the input is the field.
+    if (ariaKind(el) && el.querySelector('input[type="radio"], input[type="checkbox"]')) continue;
     if (el.disabled || el.closest('[hidden], [aria-hidden="true"]')) continue;
     if (!isRequired(el) || !isEmpty(el)) continue;
-    const key = type === 'radio' ? `radio:${el.name}` : el;
+    const key = type === 'radio' ? (ariaKind(el) ? group(el) || el : `radio:${el.name}`) : el;
     if (seen.has(key)) continue;
     seen.add(key);
     const raw = type === 'radio' ? textOf(group(el)?.querySelector('legend')) || idsText(group(el)?.getAttribute('aria-labelledby'))

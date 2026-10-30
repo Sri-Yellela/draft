@@ -165,3 +165,28 @@ test("D101 · no base résumé: the profile opens empty — nothing is invented"
   assert.deepEqual([p.sections.experience, p.sections.education, p.sections.skills], [[], [], []]);
   assert.equal(p.sections.summary, null);
 });
+
+test("D101 · experience logos: a past employer not on the board is looked up in the background; a found one is linked next read", async () => {
+  const db = freshDb();
+  const looked = [];
+  const app = express();
+  app.use(express.json());
+  app.use((req, _r, n) => { req.user = { id: 1 }; n(); });
+  profileSectionRoutes(app, db, (_q, _r, n) => n(), { resolveLogo: async (d, { company }) => {
+    looked.push(company);
+    d.prepare("INSERT OR REPLACE INTO company_logos (company_key, company, status, mime, bytes, checked_at) VALUES (?,?,'ok','image/png',x'89504E47',unixepoch())")
+      .run(company.toLowerCase(), company);
+  } });
+  const server = app.listen(0);
+  const get = () => fetch(`http://127.0.0.1:${server.address().port}/api/profile/sections`).then(r => r.json());
+  try {
+    const first = await get();
+    assert.ok(first.sections.experience.every(e => e.logo === null && e.initial), "the first read never waits on a lookup");
+    await new Promise(r => setTimeout(r, 50));
+    assert.deepEqual(looked.sort(), ["Contoso", "Northwind"]);
+    const second = await get();
+    assert.ok(second.sections.experience.every(e => /^\/api\/company-logo\//.test(e.logo)), "linked once found");
+    await new Promise(r => setTimeout(r, 50));
+    assert.equal(looked.length, 2, "a company with a logo is not looked up again");
+  } finally { server.close(); }
+});
