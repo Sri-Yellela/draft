@@ -99,6 +99,23 @@ export function extractJobPayload() {
 
   // The fallback that makes an unknown site work. Prefers the largest plausible content block over
   // document.body, because body on a careers page is mostly chrome — nav, cookie banner, footer.
+  // ⭐ T34: a careers page built from web components keeps its words in OPEN shadow roots, where innerText from the light
+  // DOM never reaches. The longest shadow root's text is read when the light DOM holds nothing like a posting.
+  function shadowText() {
+    let best = '';
+    const walk = (root, depth) => {
+      if (depth > 6) return;
+      for (const el of root.querySelectorAll('*')) {
+        if (!el.shadowRoot) continue;
+        const t = [...el.shadowRoot.children].map(c => c.innerText || c.textContent || '').join('\n').trim();
+        if (t.length > best.length) best = t;
+        walk(el.shadowRoot, depth + 1);
+      }
+    };
+    try { walk(document, 0); } catch (_) {}
+    return best;
+  }
+
   function genericDescription() {
     const candidates = [
       ...document.querySelectorAll('main, article, [role="main"], [class*="description"], [id*="description"], [class*="job"], [id*="content"]'),
@@ -110,10 +127,20 @@ export function extractJobPayload() {
       if (len > 200 && len < 40000 && (!best || len > best.len)) best = { el, len };
     }
     if (best) return best.el.innerText.trim().slice(0, 12000);
-    return (document.body?.innerText || '').trim().slice(0, 12000);
+    const body = (document.body?.innerText || '').trim();
+    const shadow = body.length < 200 ? shadowText() : '';
+    return (shadow.length > body.length ? shadow : body).slice(0, 12000);
+  }
+
+  // ⭐ T34 · "CAPTURE SELECTION": on a page nothing else can read, the person selects the job's text and presses — their
+  // own choice of what the job says outranks every guess about where it is.
+  function selectedText() {
+    try { return String(window.getSelection?.() || '').trim(); } catch (_) { return ''; }
   }
 
   function extractJobText() {
+    const sel = selectedText();
+    if (sel.length > 200) return sel.slice(0, 12000);
     const posting = extractJsonLdJobPosting();
     const ld = posting?.description ? stripHtml(posting.description).slice(0, 12000) : '';
     // ⭐ T31 (10-19 report): a JobPosting whose description is an SEO stub — Railway's careers pages publish
@@ -268,10 +295,12 @@ export function extractJobPayload() {
     let title = ld?.title?.trim() || '';
     let company = (typeof ldOrg === 'string' ? ldOrg : ldOrg?.name)?.trim() || '';
 
+    // ⭐ T34: Open Graph — many careers pages state the role and the employer there and nowhere else machine-readable.
+    const og = (p) => document.querySelector(`meta[property="og:${p}"]`)?.content?.trim() || '';
     if (!title) {
       // "Title at Company - Site", the shape almost every ATS uses for <title>. The site suffix
       // list is a convenience: an unmatched suffix costs a slightly noisier title, not a failure.
-      const clean = document.title
+      const clean = (document.title || og('title'))
         // Greenhouse titles every posting "Job Application for <role>", which would otherwise be
         // stored as the job title verbatim. Measured on real job-boards.greenhouse.io pages.
         .replace(/^\s*Job Application for\s+/i, '')
@@ -282,6 +311,8 @@ export function extractJobPayload() {
       if (!company) company = parts[1]?.trim() || '';
     }
     if (!title) title = firstText(['h1']);
+    // the page's own selection: its first line is the title when nothing else named the role
+    if (!title) { const sel = selectedText(); if (sel.length > 200) title = sel.split('\n')[0].trim().slice(0, 140); }
 
     if (location.hostname.includes('myworkdayjobs.com')) {
       // ⭐ (owner 10-12) Workday's own job header names the role on the posting AND on the application's stages,
@@ -290,6 +321,7 @@ export function extractJobPayload() {
       if (header && !ld?.title) title = header;
       company = workdayCompany(company);
     }
+    if (!company) company = og('site_name');
     if (!company) company = companyFromEmployerHost();
 
     // "<role> - Databricks". Once the company is known it can be taken off the end of the title,
