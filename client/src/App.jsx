@@ -340,7 +340,8 @@ function AppDashboard({ authUser, setAuthUser }) {
   const routeKey = location.pathname.replace(/^\/app\/?/, "") || "";
   // /app lands on TODAY (UI step 3d): the daily deck. The board keeps /app/jobs as "All jobs".
   // D102 P5 · /app/job/:applicationId — one application's page (JobWorkspacePanel), opened from Draft House and The Table.
-  const jobRoute = /^job\/(\d+)$/.exec(routeKey);
+  const jobRoute = /^job\/(\d+)$/.exec(routeKey) || /^job\/for\/(.+)$/.exec(routeKey);
+  const jobByJobId = !!jobRoute && routeKey.startsWith("job/for/");
   const activeTab = jobRoute ? "job"
     : routeKey === CONSOLE_ROUTE || LEGACY_CONSOLE_ROUTES.has(routeKey)
     ? "console" : routeKey === "" ? "today" : routeKey;
@@ -596,7 +597,7 @@ function AppDashboard({ authUser, setAuthUser }) {
             )}
             {activeTab === "today"        && <DeckView canUseAPlusResume={canUseAPlusResumeHere}/>}
             {activeTab === "auto-apply"   && <AutoApplyPanel/>}
-            {activeTab === "job" && jobRoute && <JobWorkspacePanel applicationId={jobRoute[1]}/>}
+            {activeTab === "job" && jobRoute && <JobWorkspacePanel {...(jobByJobId ? { jobId: decodeURIComponent(jobRoute[1]) } : { applicationId: jobRoute[1] })}/>}
             {activeTab === "database"     && <DatabasePanel user={authUser}/>}
             {activeTab === "integrations" && <IntegrationsPanel/>}
             {activeTab === "account"      && <AccountPanel onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/>}

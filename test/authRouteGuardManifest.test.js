@@ -345,6 +345,7 @@ const AUTHENTICATED = new Set([
   // D102: the pipeline workspace's rows and one job's detail; P4 the FULL AUTO standing instruction.
   "GET /api/pipeline",
   "GET /api/pipeline/job/:applicationId",
+  "GET /api/pipeline/job-for/:jobId",   // D102 P5: the same detail found by the job — the caller's own record only
   "GET /api/apply/auto-settings",
   "PUT /api/apply/auto-settings",
   // D100 P2: the user's portals — sealed sessions (ciphertext only), connect, remove, and approving a remote run.

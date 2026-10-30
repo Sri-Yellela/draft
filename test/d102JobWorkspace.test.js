@@ -10,13 +10,15 @@ const page = fs.readFileSync("client/src/panels/JobWorkspacePanel.jsx", "utf8");
 const history = fs.readFileSync("client/src/components/ApplicationHistory.jsx", "utf8");
 
 test("D102 P5 · /app/job/:id is a route of its own — not bounced to the board by the tab guard", () => {
-  assert.ok(app.includes(String.raw`const jobRoute = /^job\/(\d+)$/.exec(routeKey);`), "the job route is matched by its numeric id");
+  assert.ok(app.includes(String.raw`const jobRoute = /^job\/(\d+)$/.exec(routeKey) || /^job\/for\/(.+)$/.exec(routeKey);`),
+    "the page is reached by the record id (The Table) or the job id (Draft House)");
   assert.match(app, /if \(!jobRoute && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS\.has\(routeKey\)\)/);
-  assert.match(app, /\{activeTab === "job" && jobRoute && <JobWorkspacePanel applicationId=\{jobRoute\[1\]\}\/>\}/);
+  assert.match(app, /\{activeTab === "job" && jobRoute && <JobWorkspacePanel \{\.\.\.\(jobByJobId \? \{ jobId: decodeURIComponent\(jobRoute\[1\]\) \} : \{ applicationId: jobRoute\[1\] \}\)\}\/>\}/);
 });
 
 test("D102 P5 · the page reads the one detail route and shows the five tabs; Needs-you first; Approve is a click", () => {
-  assert.match(page, /api\(`\/api\/pipeline\/job\/\$\{encodeURIComponent\(applicationId\)\}`\)/);
+  assert.match(page, /: `\/api\/pipeline\/job\/\$\{encodeURIComponent\(applicationId\)\}`;/);
+  assert.match(page, /try \{ setD\(await api\(path\)\); \}/);
   for (const t of ["Checklist", "Résumé", "Form", "Job", "Emails"]) assert.match(page, new RegExp(`"${t}"\]`), t);
   assert.match(page, /const needs = fields\.filter\(f => f\.skipped \|\| f\.value == null \|\| f\.value === ""\);/);
   assert.match(page, /onClick=\{\(\) => decidePending\(\[d\.runJobId\], true\)\}/, "D36·5: only a click sends");
@@ -27,4 +29,10 @@ test("D102 P5 · the page reads the one detail route and shows the five tabs; Ne
 test("D102 P5 · The Table's History opens a row's page by its record id", () => {
   assert.match(history, /href=\{`\/app\/job\/\$\{row\.recordId\}`\}/);
   assert.match(history, /navigate\(`\/app\/job\/\$\{row\.recordId\}`\)/);
+});
+
+test("D102 P5 · Draft House's stopped item opens the same page by its job id", () => {
+  const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
+  assert.match(panel, /href=\{`\/app\/job\/for\/\$\{encodeURIComponent\(item\.jobId\)\}`\}/);
+  assert.match(page, /`\/api\/pipeline\/job-for\/\$\{encodeURIComponent\(jobId\)\}`/);
 });
