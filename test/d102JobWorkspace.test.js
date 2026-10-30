@@ -36,3 +36,13 @@ test("D102 P5 · Draft House's stopped item opens the same page by its job id", 
   assert.match(panel, /href=\{`\/app\/job\/for\/\$\{encodeURIComponent\(item\.jobId\)\}`\}/);
   assert.match(page, /`\/api\/pipeline\/job-for\/\$\{encodeURIComponent\(jobId\)\}`/);
 });
+
+test("D102 P5 · list and detail: on a wide screen Draft House opens an application beside its list", () => {
+  const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
+  const manifest = fs.readFileSync("client/src/modules.manifest.js", "utf8");
+  assert.match(panel, /const sideDetail = viewportWidth >= 1280;/);
+  assert.match(panel, /if \(sideDetail\) setSideJob\(item\.jobId\); else navigate\(/, "narrower, it still goes to the page");
+  assert.match(panel, /\{sideJob && sideDetail \? \(\s*<aside data-draft-detail=""/);
+  assert.match(panel, /<JobWorkspacePanel jobId=\{sideJob\} embedded \/>/);
+  assert.match(manifest, /from: "panels\/AutoApplyPanel\.jsx", to: "panels\/JobWorkspacePanel\.jsx"/, "a declared composition (A93)");
+});

@@ -22,7 +22,7 @@ const STATUS_COLOUR = { needs_you: C.WARNING, ready_to_approve: C.INFO, submitte
   offer: C.SUCCESS, rejected: C.DANGER, failed: C.DANGER };
 const when = (sec) => (sec ? new Date(sec * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "");
 
-export function JobWorkspacePanel({ applicationId = null, jobId = null }) {
+export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded = false }) {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { decidePending, pendingBusy = false, pendingMsg = "", artifactUrl } = useAutoApply() || {};
@@ -54,9 +54,9 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null }) {
   const open = (d.form?.openQuestions || []).map(q => q?.question ?? q?.label ?? String(q));
 
   return (
-    <div data-job-workspace={d.id} style={{ flex: 1, overflowY: "auto", padding: "16px 20px 32px", display: "flex", flexDirection: "column", gap: 14, maxWidth: 980, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+    <div data-job-workspace={d.id} style={{ flex: 1, overflowY: "auto", padding: embedded ? 0 : "16px 20px 32px", display: "flex", flexDirection: "column", gap: 14, maxWidth: 980, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
       <header style={{ display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={back} aria-label="Back">←</button>
+        {!embedded && <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={back} aria-label="Back">←</button>}
         <div style={{ flex: 1, minWidth: 220 }}>
           <div style={{ fontSize: 20, fontWeight: 800, color: theme.text }}>{d.title || "Untitled role"}</div>
           <div style={muted}>{d.company || "Unknown company"}{d.job?.location ? ` · ${d.job.location}` : ""}{d.updatedAt ? ` · updated ${when(d.updatedAt)}` : ""}</div>

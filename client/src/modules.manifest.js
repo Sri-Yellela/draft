@@ -222,6 +222,7 @@ export const COMPOSITIONS = Object.freeze([
   { from: "consoles/PlanConsoles.jsx", to: "panels/JobsPanel.jsx", why: "each plan console renders the board" },
   { from: "panels/JobsPanel.jsx", to: "panels/SandboxPanel.jsx", why: "the board's panel dock mounts the PDF panel beside the posting" },
   { from: "panels/JobsPanel.jsx", to: "panels/AtsReportPanel.jsx", why: "the board's panel dock mounts the ATS card beside the posting" },
+  { from: "panels/AutoApplyPanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen Draft House shows an opened application beside its list" },
 ]);
 
 // ── CROSS_PRODUCT: ONE component, outside client/src, drawn by the web app AND the extension (T9, owner 10-14: "the

@@ -13,7 +13,8 @@ const split = panel.slice(at(panel, '<div data-draft-split=""'), at(panel, "{/* 
 
 test("D14: 75 / 25 from 1080px, one column below it", () => {
   assert.match(panel, /const splitSideBySide = viewportWidth >= 1080;/);
-  assert.match(split, /gridTemplateColumns: splitSideBySide \? "minmax\(0, 3fr\) minmax\(0, 1fr\)" : "minmax\(0, 1fr\)"/);
+  // D102 P5 (10-30) on purpose: an application opened beside the list (≥ 1280px) takes the right column; otherwise D14's split.
+  assert.match(split, /gridTemplateColumns: sideJob && sideDetail \? "minmax\(0, 1fr\) minmax\(0, 1\.3fr\)"\s+: splitSideBySide \? "minmax\(0, 3fr\) minmax\(0, 1fr\)" : "minmax\(0, 1fr\)"/);
 });
 
 test("D14: Stopped comes first in the DOM (so it stacks first), and holds the exceptions", () => {
