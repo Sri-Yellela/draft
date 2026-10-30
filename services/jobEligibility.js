@@ -27,3 +27,15 @@ export function eligibilityForJob(db, userId, jobId, inputs = null) {
   const { defaults, degrees } = inputs || userEligibilityInputs(db, userId);
   return { ...eligibilityOf(req, defaults, degrees), requirements: req };
 }
+
+/** True when the user has set anything a posting's requirement could contradict — otherwise nothing is computed. */
+export function hasEligibilityInputs({ defaults = {}, degrees = [] } = {}) {
+  return ["citizenship", "clearance", "sponsorship_now", "sponsorship_later"].some(k => defaults[k] != null) || degrees.length > 0;
+}
+
+/** One board row (scraped_jobs columns) → its eligibility for these inputs; the requirements read from its own text. */
+export function eligibilityForRow(row, inputs) {
+  const text = row?.description_full ?? row?.description;
+  if (!text) return { status: "eligible", reasons: [], missing: [] };
+  return eligibilityOf(postingRequirements(normalizePosting(text)), inputs.defaults, inputs.degrees);
+}

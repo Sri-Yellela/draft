@@ -29,6 +29,7 @@ import pipelineRoutes from "./routes/pipeline.js";
 import inboxRoutes, { createInboundHookRouter } from "./routes/inbox.js";
 import profileSectionRoutes from "./routes/profileSections.js";
 import { withApplicationDefaults } from "./services/structuredProfile.js";
+import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow } from "./services/jobEligibility.js";
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
 import { runAutoTick } from "./services/autoScheduler.js";
@@ -9630,6 +9631,16 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         for (const r of db.prepare(`SELECT job_id, ats_score, ats_report, html AS resume_html, apply_mode FROM resumes
             WHERE user_id = ? AND job_id IN (${ids.map(() => "?").join(",")})`).all(req.user.id, ...ids)) resumeBy.set(r.job_id, r);
       }
+      // ⭐ D104 P1 · the board MARKS a posting whose stated requirements contradict what THIS user set ("U.S. citizens only",
+      // "no visa sponsorship") and DEMOTES it within the page — never hides it: the user can still open it and apply by
+      // hand. Computed only when the user has set something a requirement could contradict. ⚠ Within the page: the
+      // query's order across pages is unchanged (a cross-page demotion needs the requirement in the ORDER BY — open).
+      const eligInputs = (() => { try { return userEligibilityInputs(db, req.user.id); } catch { return { defaults: {}, degrees: [] }; } })();
+      const ineligible = new Map();
+      if (hasEligibilityInputs(eligInputs)) {
+        for (const j of rows) { const e = eligibilityForRow(j, eligInputs); if (e.status === "ineligible") ineligible.set(j.job_id, e.reasons); }
+      }
+      const pageRows = ineligible.size ? [...rows.filter(j => !ineligible.has(j.job_id)), ...rows.filter(j => ineligible.has(j.job_id))] : rows;
       const responseBody = {
         success:    true,
         // ⛔ A52 · A STORED SCORE IS SHOWN ONLY WHILE IT IS STILL ABOUT THIS POSTING AND THIS BASIS.
@@ -9637,8 +9648,9 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         // predated the posting's enrichment. presentedScore nulls a stale score — null is "no
         // opinion", which the card renders as nothing — and the precompute this board load schedules
         // replaces it. The ORDER may still use it until then; the verdict is never shown.
-        jobs:       rows.map(j => ({ ...mapJobRow({ ...j, matchScore: presentedScore(j, { basisHash: boardBasisHash }) }),
+        jobs:       pageRows.map(j => ({ ...mapJobRow({ ...j, matchScore: presentedScore(j, { basisHash: boardBasisHash }) }),
                                      scrapedAt: j.scraped_at,
+                                     ...(ineligible.has(j.job_id) ? { eligibility: { status: "ineligible", reasons: ineligible.get(j.job_id) } } : {}),
                                      // D40 · the + view's one extra line: "captured <date> · from <host>".
                                      ...(importedTab ? { captured: captureMeta(capturedBy.get(j.job_id)) } : {}),
                                      ...(pendingTab && resumeBy.has(j.job_id) ? (({ job_id, ...r }) => r)(resumeBy.get(j.job_id)) : {}) })),
