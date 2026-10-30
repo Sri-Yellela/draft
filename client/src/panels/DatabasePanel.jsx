@@ -280,10 +280,10 @@ export function DatabasePanel({ user }) {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { activeProfileId, setActiveProfileId } = useJobBoard() || {};
-  // A63: the board's Pending tag links here with ?sheet=pending. D15: otherwise The Table opens on
-  // the application history.
+  // A63: the board's Pending tag links here with ?sheet=pending; D112: the Gmail connect returns with ?sheet=inbox.
+  // D15: otherwise The Table opens on the application history.
   const [activeSheet,  setActiveSheet]  = useState(() => {
-    try { return new URLSearchParams(window.location.search).get("sheet") === "pending" ? "pending" : "history"; }
+    try { const s = new URLSearchParams(window.location.search).get("sheet"); return s === "inbox" ? "inbox" : s === "pending" ? "pending" : "history"; }
     catch { return "history"; }
   });
   const [apps,         setApps]         = useState([]);

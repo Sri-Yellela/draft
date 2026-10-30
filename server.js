@@ -28,6 +28,8 @@ import applicationRecordRoutes from "./routes/applicationRecords.js";
 import pipelineRoutes from "./routes/pipeline.js";
 import inboxRoutes, { createInboundHookRouter } from "./routes/inbox.js";
 import { sweepInbox } from "./services/inbox.js";
+import gmailRoutes from "./routes/gmail.js";
+import { createGoogleGmailClient, startGmailPoll, disconnect as disconnectGmail } from "./services/gmail.js";
 import profileSectionRoutes from "./routes/profileSections.js";
 import { withApplicationDefaults } from "./services/structuredProfile.js";
 import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow, ineligibleOrderKey } from "./services/jobEligibility.js";
@@ -5553,6 +5555,33 @@ console.log(`[boot] database ready: ${DB_PATH}`);
             AND CAST(graduation_year AS INTEGER) > CAST(strftime('%Y', 'now') AS INTEGER) AND CAST(graduation_year AS INTEGER) <= 2100;
       `,
     },
+    {
+      // ⭐ D112 item 2 (owner 10-30) · THE GMAIL CONNECTION — beside D103's forwarding; the user picks either. Google OAuth
+      // with gmail.readonly ONLY; draft reads only the messages a search query built from the applicant-tracking senders and
+      // the user's applications' companies returns (services/gmail.js gmailQueryFor), never the rest of the mailbox, and each
+      // goes through D103's one path (services/inbox.js ingestForUser). One row per user. The refresh token is SEALED with
+      // the app's secret box (secret_enc / iv / auth_tag — the names the export's scrub drops), never stored plain.
+      // `watermark` is the newest internalDate (seconds) read — the next poll's `after:`. Disconnect revokes the token at
+      // Google and deletes the row. `inbox_messages.source` records which door a message came by ('forward' | 'gmail').
+      id: "181_gmail_connection",
+      sql: `
+        CREATE TABLE IF NOT EXISTS gmail_connections (
+          user_id        INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          google_email   TEXT,
+          scope          TEXT NOT NULL,
+          secret_enc     TEXT NOT NULL,
+          iv             TEXT NOT NULL,
+          auth_tag       TEXT NOT NULL,
+          status         TEXT NOT NULL DEFAULT 'connected',
+          watermark      INTEGER,
+          last_polled_at INTEGER,
+          last_error     TEXT,
+          messages_read  INTEGER NOT NULL DEFAULT 0,
+          connected_at   INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        ALTER TABLE inbox_messages ADD COLUMN source TEXT NOT NULL DEFAULT 'forward';
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -9014,6 +9043,8 @@ app.use(createSavedAnswersRouter({ db, requireAuth, buildAutofillPayload }));
 
 app.use(createAccountManagementRouter({
   db,
+  // D112: deleting the account revokes its Gmail grant at Google first (the row itself cascades with the user).
+  beforeDelete: (userId) => disconnectGmail(db, { box: SECRET_BOX, client: GMAIL_CLIENT, userId }),
   requireAuth,
   store: SStore,
   dataDir: DATA_DIR,
@@ -12328,6 +12359,12 @@ applicationRecordRoutes(app, db, requireAuth, { capturedAtsAtApply });
 pipelineRoutes(app, db, requireAuth);
 // D103: the inbox — the forwarding address, the messages, re-filing, the worker's code opt-ins (services/inbox.js).
 inboxRoutes(app, db, requireAuth);
+// ⭐ D112 item 2: the Gmail connection beside the forwarding (services/gmail.js) — gmail.readonly, the ATS senders and the
+// user's applications' companies only, each message through the inbox's one path. Offered only when the owner has set
+// GOOGLE_GMAIL_CLIENT_ID / GOOGLE_GMAIL_CLIENT_SECRET; polled every 15 minutes for connected users.
+const GMAIL_CLIENT = createGoogleGmailClient();
+gmailRoutes(app, db, requireAuth, { box: SECRET_BOX, client: GMAIL_CLIENT, originFor: (req) => APP_BASE_ORIGIN || `${req.protocol}://${req.get("host")}` });
+startGmailPoll(db, { box: SECRET_BOX, client: GMAIL_CLIENT });
 // D103 P1 → ⭐ D112 item 3: the inbox's retention sweep — 180 days unless INBOX_RETENTION_DAYS overrides it ("0" = no
 // sweep; services/inbox.js inboxRetentionDays). The privacy policy promises 6 months. Once a minute after boot (a deploy
 // restarts the process more often than daily, so a daily-only timer could never fire), then daily.

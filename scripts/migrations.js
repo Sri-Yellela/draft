@@ -5098,4 +5098,31 @@ export const MIGRATIONS = [
             AND CAST(graduation_year AS INTEGER) > CAST(strftime('%Y', 'now') AS INTEGER) AND CAST(graduation_year AS INTEGER) <= 2100;
       `,
     },
+    {
+      // ⭐ D112 item 2 (owner 10-30) · THE GMAIL CONNECTION — beside D103's forwarding; the user picks either. Google OAuth
+      // with gmail.readonly ONLY; draft reads only the messages a search query built from the applicant-tracking senders and
+      // the user's applications' companies returns (services/gmail.js gmailQueryFor), never the rest of the mailbox, and each
+      // goes through D103's one path (services/inbox.js ingestForUser). One row per user. The refresh token is SEALED with
+      // the app's secret box (secret_enc / iv / auth_tag — the names the export's scrub drops), never stored plain.
+      // `watermark` is the newest internalDate (seconds) read — the next poll's `after:`. Disconnect revokes the token at
+      // Google and deletes the row. `inbox_messages.source` records which door a message came by ('forward' | 'gmail').
+      id: "181_gmail_connection",
+      sql: `
+        CREATE TABLE IF NOT EXISTS gmail_connections (
+          user_id        INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          google_email   TEXT,
+          scope          TEXT NOT NULL,
+          secret_enc     TEXT NOT NULL,
+          iv             TEXT NOT NULL,
+          auth_tag       TEXT NOT NULL,
+          status         TEXT NOT NULL DEFAULT 'connected',
+          watermark      INTEGER,
+          last_polled_at INTEGER,
+          last_error     TEXT,
+          messages_read  INTEGER NOT NULL DEFAULT 0,
+          connected_at   INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        ALTER TABLE inbox_messages ADD COLUMN source TEXT NOT NULL DEFAULT 'forward';
+      `,
+    },
   ];
