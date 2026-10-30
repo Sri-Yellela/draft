@@ -126,6 +126,8 @@ export const PROVENANCE = {
   // never read off a stored yes/no. See the sponsorship tense section below.
   SPONSORSHIP_DERIVED:       'sponsorship_derived',
   SPONSORSHIP_ASSUMED_FUTURE:'sponsorship_assumed_future',
+  // ⭐ 10-30: a terms / privacy box ticked because the USER switched on Auto settings' agreeToTerms.
+  USER_CONSENT_SETTING:      'user_consent_setting',
 };
 
 export const CONFIDENCE_BY_PROVENANCE = {
@@ -151,6 +153,8 @@ export const CONFIDENCE_BY_PROVENANCE = {
   // Deliberately BELOW AUTO_SUBMIT_MIN_CONFIDENCE: reading an employer's intent about someone's
   // immigration status is exactly the judgement a human should confirm, so full-auto holds on it.
   sponsorship_assumed_future: 0.75,
+  // the user's own standing instruction, not a guess
+  user_consent_setting:       1.0,
 };
 
 // Below this, an answer may not be auto-submitted in mode:'full' (requirement 5).
@@ -1239,6 +1243,10 @@ export async function discoverFields(pageOrFrame, provider, derivedLabelMap = nu
   }
 }
 
+// ⭐ 10-30: the boxes a user's `agreeToTerms` may tick, and what it never may (a signature, an attestation of truth).
+const TERMS_BOX_RE = /\b(?:terms|conditions|privacy|consent|i\s+(?:agree|accept)|acknowledg\w*|data\s+(?:protection|processing)|gdpr|ccpa)\b/i;
+const NOT_TERMS_RE = /signature|e-?sign|sign(?:ed)?\s+(?:here|below)|certif|attest|declare|true\s+and\s+(?:correct|complete)|accurate/i;
+
 // D55 (f): the controls through which a candidate can be OPTED IN. A free-text box labelled "Mobile
 // phone (we may text you updates)" is a phone field, not a consent, so text types are not guarded.
 const OPT_IN_CONTROL_TYPES = new Set(['checkbox', 'toggle', 'radio', 'select', 'multi_select']);
@@ -1435,6 +1443,16 @@ export function buildAnswers(fields, profilePayload) {
         refusals.push(SPONSORSHIP_NEEDS.has(String(sponsorshipNeed ?? ''))
           ? 'sponsorship:undetermined_question_sense'
           : 'sponsorship:unknown_sponsorship_need');
+      }
+    }
+
+    // ⭐ 10-30 (owner): "let the users decide" — a portal's TERMS / PRIVACY / CONSENT box is ticked ONLY when the user
+    // switched it on (Auto settings `agreeToTerms`, carried as `agree_to_terms`). Only a checkbox; never a signature, an
+    // attestation ("I certify my answers are true") or a marketing opt-in. Off (the default) → it stays the person's, Needs you.
+    if (value === null && profilePayload?.agree_to_terms === true && (field.type === 'checkbox' || field.type === 'toggle')) {
+      const words = `${label || ''} ${field.name || ''}`;
+      if (TERMS_BOX_RE.test(words) && !NOT_TERMS_RE.test(words) && !isOptInQuestion(words)) {
+        value = 'true'; provenance = PROVENANCE.USER_CONSENT_SETTING; matched_on = 'auto_settings:agreeToTerms';
       }
     }
 

@@ -16,6 +16,7 @@
 import { payloadResumeParse, parseBasis } from "./payloadResume.js";
 import { buildPacketEntries, parseDateRange } from "./applyGatePacket.js";
 import { companyKey, logoPath, RETRY_NONE_DAYS } from "./jobs/companyLogoStore.js";
+import { readAutoSettings } from "../shared/autoSettings.js";
 
 // ── Application defaults: the groups, the keys, what each accepts ─────────────────────────────
 const YES_NO = ["yes", "no"];
@@ -386,8 +387,12 @@ export function withApplicationDefaults(db, userId, payload) {
     hm[handler] = v;
   }
   dm.gender = d.gender ? [d.gender] : [];
+  // ⭐ 10-30: the user's own standing instruction to tick a portal's terms box (Auto settings) — buildAnswers reads it.
+  let agree = false;
+  try { agree = readAutoSettings(db.prepare("SELECT auto_settings FROM users WHERE id = ?").pluck().get(userId)).agreeToTerms === true; } catch { agree = false; }
   return {
     ...payload,
+    agree_to_terms: agree,
     sponsorship_need: need,
     requires_sponsorship: need === "now" || need === "future",
     has_clearance: has === "Yes",

@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 </head>
 <body>
-<!-- D102 P5 · the pipeline workspace sketch (43q, 10-30). Published for the owner as an Artifact; this copy is the
-     repository's. Open it in a browser. Synthetic employers and answers throughout. -->
+<!-- D102 P5 · the pipeline workspace sketch (43q, 10-30). ✅ APPROVED by the owner 10-30. Published for him as an
+     Artifact; this copy is the repository's. Synthetic employers and answers throughout. -->
 <title>Pipeline Workspace</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -314,7 +314,7 @@ button, input, select { font: inherit; color: inherit; }
   const PRE = new Set(HOUSE_TABS);
 
   const S = { place: "house", tab: "needs_you", sel: 1, ptab: "checklist", mode: "semi", drawer: false, view: "apps",
-    cap: 10, times: ["09:00", "17:30"], perCo: false, perCoN: 2, pause: true, held: false };
+    cap: 10, times: ["09:00", "17:30"], perCo: false, perCoN: 2, pause: true, held: false, terms: false };
   const $ = (s) => document.querySelector(s);
   const app = $("#app");
   const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -485,7 +485,9 @@ button, input, select { font: inherit; color: inherit; }
         <div class="set"><div class="sw"><span class="lab">Pause a company after an interview or offer</span><button class="toggle" role="switch" aria-checked="${S.pause}" id="pause" aria-label="Pause after interview"></button></div>
           <span class="hint">For 60 days, read from your inbox.</span></div>
         <div class="set"><label for="prof">Job profile</label><select id="prof"><option>Backend Engineer (active)</option><option>Data Engineer</option></select></div>
-        <div class="set"><span class="lab">Never sent automatically</span><span class="hint">Postings your Application defaults rule out (U.S. citizens only, no sponsorship), a terms box, a human check, an eligibility question you have not answered — each waits in Needs you.</span></div>
+        <div class="set"><div class="sw"><span class="lab">Agree to a portal's terms for me</span><button class="toggle" role="switch" aria-checked="${S.terms}" id="terms" aria-label="Agree to terms for me"></button></div>
+          <span class="hint">${S.terms ? "draft ticks a terms, privacy or data-processing box when an application needs it. Never a signature or a statement that your answers are true." : "Off — a terms box waits for you in Needs you."}</span></div>
+        <div class="set"><span class="lab">Never sent automatically</span><span class="hint">Postings your Application defaults rule out (U.S. citizens only, no sponsorship), a human check, an eligibility question you have not answered${S.terms ? "" : ", a terms box"} — each waits in Needs you.</span></div>
       </div>
       <div class="df"><button class="btn ghost" data-close>Cancel</button><button class="btn primary" data-close>Save</button></div></aside>`;
     root.querySelector(".drawer").dataset.skin = app.dataset.skin;
@@ -514,6 +516,7 @@ button, input, select { font: inherit; color: inherit; }
     if (t.id === "hold") { S.held = !S.held; bar(); return; }
     if (t.id === "perco") { S.perCo = !S.perCo; drawer(); return; }
     if (t.id === "pause") { S.pause = !S.pause; drawer(); return; }
+    if (t.id === "terms") { S.terms = !S.terms; drawer(); return; }
     if (t.dataset.rm) { S.times.splice(Number(t.dataset.rm), 1); if (!S.times.length) S.times.push("09:00"); drawer(); return; }
     if (t.id === "addtime") { S.times.push(["12:00", "20:00", "07:00"].find(x => !S.times.includes(x))); drawer(); return; }
   });

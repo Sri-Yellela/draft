@@ -118,7 +118,8 @@ test("D104 · d104AtsUnchanged — eligibility is a separate line; nothing in it
 });
 
 test("D104 · d104NoModelSource + d104EveryValueHasSource — every value the engine may SEND has a source; none is a model", () => {
-  assert.deepEqual([...ANSWER_SOURCES].sort(), ["posting", "profile", "saved_answer", "user_now"]);
+  // 10-30: + user_setting — a terms box the user's own Auto settings let draft tick (test/termsOptIn.test.js). Still no model.
+  assert.deepEqual([...ANSWER_SOURCES].sort(), ["posting", "profile", "saved_answer", "user_now", "user_setting"]);
   assert.ok(!ANSWER_SOURCES.includes("model"));
   for (const p of Object.values(PROVENANCE)) {
     const sendable = (CONFIDENCE_BY_PROVENANCE[p] ?? 0) >= AUTO_SUBMIT_MIN_CONFIDENCE;
