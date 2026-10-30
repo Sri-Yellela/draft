@@ -15,6 +15,16 @@
 //   verified   it verified (below). ONLY NOW is job_applications written — with the ATS score that
 //              was true at apply (AK1) — and the job moves to the Submitted list (Applications).
 //   withdrawn  "I did not apply". Re-opening the posting later makes it pending again.
+//   not_applied  ⭐ D112 c2: a PENDING row nobody acted on for PENDING_MOVE_DAYS (14) MOVES here — the
+//              system's inference from silence, never a deletion. The Table lists it under Not applied
+//              with Restore (back to pending, its 14 days restarting); re-opening the posting does the same.
+//
+// ⭐ D112 c2 · WHY not_applied IS ITS OWN STATE, NOT 'withdrawn'. Withdrawn is the user's own word
+// ("I did not apply"); not_applied is draft's guess from 14 quiet days. The Table says which it is
+// ("You said you did not apply" vs "Moved after 14 days"), and the inbox matcher keeps matching a moved
+// row (services/inbox.js reads state != 'withdrawn'): an employer's email about a posting the user
+// applied to but never recorded must still find its row — silence is not a statement. Everywhere a
+// row LEAVES Pending (the /d membership, Draft House's pipeline list) both states leave alike.
 //
 // ⭐ WHAT "VERIFIED" MEANS, stated so the UI can say it:
 //   1. a statement — when they submitted and how (the method), and
@@ -43,7 +53,11 @@ export function normaliseCompanyForMatch(s) {
     .replace(/[^a-z0-9]+/g, "");
 }
 
-export const RECORD_STATES = Object.freeze(["pending", "recorded", "verified", "withdrawn"]);
+export const RECORD_STATES = Object.freeze(["pending", "recorded", "verified", "withdrawn", "not_applied"]);
+/** D112 c2 · a PENDING row nobody acted on moves to Not applied after this many days. A constant for now. */
+export const PENDING_MOVE_DAYS = 14;
+/** The states The Table's Not applied list shows, each with Restore. */
+export const NOT_APPLIED_STATES = Object.freeze(["not_applied", "withdrawn"]);
 // ⛔ D51: 'drafted' is the Draft CLICK itself (POST /api/apply/runs) — written in the same transaction as
 // the run-job, so /d, Draft House and The Table read one fact. 'draft' stays the gated handoff's (the
 // candidate is on the employer's form). Only a 'drafted' record is released when its Draft is undone.
@@ -167,7 +181,8 @@ export function readRecord(db, userId, jobId) {
 
 /**
  * Tag a job PENDING. A no-op for a job already submitted or already pending/recorded/verified; a
- * withdrawn one becomes pending again (the user is back at the posting).
+ * withdrawn or moved (not_applied) one becomes pending again (the user is back at the posting), and
+ * updated_at — the D112 c2 clock — restarts its 14 days.
  */
 export function markPending(db, userId, jobId, origin) {
   if (!jobId) throw Object.assign(new Error("jobId required"), { status: 400, code: "job_required" });
@@ -178,7 +193,7 @@ export function markPending(db, userId, jobId, origin) {
     VALUES (?, ?, 'pending', ?)
     ON CONFLICT(user_id, job_id) DO UPDATE SET
       state = 'pending', origin = excluded.origin, withdrawn_at = NULL, updated_at = unixepoch()
-    WHERE application_records.state = 'withdrawn'
+    WHERE application_records.state IN ('withdrawn', 'not_applied')
        -- D51: a stronger signal replaces the Draft click's own origin (a gated handoff released, the
        -- posting opened), so undoing the Draft no longer releases a record the user acted on since.
        OR (application_records.state = 'pending' AND application_records.origin = 'drafted'
@@ -329,7 +344,57 @@ export function withdrawMany(db, userId, jobIds) {
   return db.transaction(() => ids.reduce((n, id) => n + stmt.run(userId, id).changes, 0))();
 }
 
-export function publicRecord(r) {
+// ── D112 c2 · PENDING MOVES TO "NOT APPLIED" AFTER 14 DAYS — NEVER DELETED ─────────────────────────
+//
+// The clock is updated_at while the row is PENDING: it is set when the row becomes pending (created,
+// re-opened from withdrawn / not_applied, Restored, or a Draft's own origin replaced by a real signal)
+// and nothing else touches a pending row. Only a plain PENDING row moves:
+//   · never a RECORDED one — it carries the user's own evidence of a submission (A105's bulk rule);
+//   · never one Draft House owns — origin 'draft' / 'drafted', or any LIVE attempt for the job
+//     (the same predicate releaseDraftRecord reads), so a Draft waiting for approval is not hidden.
+// The move is an UPDATE of state, nothing else: the record, its D16 résumé copy and the posting it
+// pins (D43 — application_records is one of userReferencedSql's references, whatever its state) stay.
+// It runs ON READ for the reader (the Pending list, The Table, /d) and in server.js's 6-hourly sweep.
+const DAY_SEC = 86400;
+function liveAttemptClause(db, alias = "application_records") {
+  const base = `SELECT 1 FROM apply_run_jobs lr WHERE lr.user_id = ${alias}.user_id AND lr.job_id = ${alias}.job_id
+    AND lr.status NOT IN ('cancelled', 'superseded')`;
+  try { db.prepare("SELECT hidden_at FROM apply_run_jobs LIMIT 0"); return `NOT EXISTS (${base} AND lr.hidden_at IS NULL)`; }
+  catch {
+    try { db.prepare("SELECT status FROM apply_run_jobs LIMIT 0"); return `NOT EXISTS (${base})`; }   // pre-hidden_at schema
+    catch { return "1"; }                                                                          // no apply_run_jobs
+  }
+}
+/** SQL true when the record (alias) is one the 14-day move applies to. */
+const movableSql = (db, alias = "application_records") =>
+  `${alias}.state = 'pending' AND ${alias}.origin NOT IN ('draft', 'drafted') AND ${liveAttemptClause(db, alias)}`;
+
+/** Move every pending row past its 14 days to not_applied — for one user, or all (the sweep). Returns how many. */
+export function movePendingExpired(db, { userId = null, now = nowSec(), days = PENDING_MOVE_DAYS } = {}) {
+  const cutoff = now - days * DAY_SEC;
+  const who = userId == null ? "" : " AND user_id = ?";
+  const args = userId == null ? [now, cutoff] : [now, cutoff, userId];
+  return db.prepare(`UPDATE application_records SET state = 'not_applied', updated_at = ?
+    WHERE updated_at <= ? AND ${movableSql(db)}${who}`).run(...args).changes;
+}
+
+/**
+ * Restore: a Not applied row (moved, or one the user withdrew) goes back to PENDING, its 14 days
+ * restarting now. Returns the changed count (0 = not in the Not applied list).
+ */
+export function restoreNotApplied(db, userId, jobId, { now = nowSec() } = {}) {
+  return db.prepare(`UPDATE application_records SET state = 'pending', withdrawn_at = NULL, updated_at = ?
+    WHERE user_id = ? AND job_id = ? AND state IN (${NOT_APPLIED_STATES.map(() => "?").join(",")})`)
+    .run(now, userId, String(jobId), ...NOT_APPLIED_STATES).changes;
+}
+
+/** D112 c2 · whole days until a movable pending row moves (0 = moves on the next read); null if it never moves. */
+export function movesInDays(movesAt, now = nowSec()) {
+  if (movesAt == null) return null;
+  return Math.max(0, Math.ceil((Number(movesAt) - now) / DAY_SEC));
+}
+
+export function publicRecord(r, { now = nowSec() } = {}) {
   if (!r) return null;
   let verification = null;
   try { verification = r.verification_json ? JSON.parse(r.verification_json) : null; } catch {}
@@ -343,19 +408,39 @@ export function publicRecord(r) {
     reference: r.reference ?? null, evidenceText: r.evidence_text ?? null, evidenceUrl: r.evidence_url ?? null,
     verifiedAt: r.verified_at ? r.verified_at * 1000 : null,
     checks: verification?.checks ?? null,
+    // D112 c2: "Moves in n days" on a movable pending row; when a Not applied row left Pending.
+    movesInDays: movesInDays(r.moves_at, now),
+    leftPendingAt: r.state === "not_applied" ? (r.updated_at ? r.updated_at * 1000 : null)
+      : r.state === "withdrawn" && r.withdrawn_at ? r.withdrawn_at * 1000 : null,
   };
 }
 
-/** The Pending table (pending + recorded) and the recently verified, newest first. */
-export function listRecords(db, userId) {
+/**
+ * The Pending table (pending + recorded), the recently verified, and (D112 c2) the Not applied list,
+ * newest first. A row past its 14 days moves first — the reader never sees one overdue.
+ * ⛔ D43: the title / company come from the posting OR the Draft's snapshot, so a moved row whose posting
+ * has since gone still names its job.
+ */
+export function listRecords(db, userId, { now = nowSec() } = {}) {
+  movePendingExpired(db, { userId, now });
+  const movable = movableSql(db, "ar");
   const q = (states, limit) => db.prepare(`
-    SELECT ar.*, sj.title, sj.company, sj.apply_url, sj.url
+    SELECT ar.*, COALESCE(sj.title, rj.posting_title) AS title, COALESCE(sj.company, rj.posting_company) AS company,
+           COALESCE(sj.apply_url, rj.posting_url) AS apply_url, sj.url,
+           CASE WHEN ${movable} THEN ar.updated_at + ${PENDING_MOVE_DAYS * DAY_SEC} END AS moves_at
     FROM application_records ar
     LEFT JOIN scraped_jobs sj ON sj.job_id = ar.job_id
+    LEFT JOIN (SELECT job_id, MAX(posting_title) AS posting_title, MAX(posting_company) AS posting_company,
+                      MAX(posting_url) AS posting_url
+               FROM apply_run_jobs WHERE user_id = ? AND posting_company IS NOT NULL GROUP BY job_id) rj
+           ON rj.job_id = ar.job_id
     WHERE ar.user_id = ? AND ar.state IN (${states.map(() => "?").join(",")})
     ORDER BY ar.updated_at DESC, ar.id DESC LIMIT ${limit}
-  `).all(userId, ...states).map(publicRecord);
-  return { pending: q(["pending", "recorded"], 200), verified: q(["verified"], 50) };
+  `).all(userId, userId, ...states).map(r => publicRecord(r, { now }));
+  return {
+    pending: q(["pending", "recorded"], 200), verified: q(["verified"], 50),
+    notApplied: q([...NOT_APPLIED_STATES], 200), moveDays: PENDING_MOVE_DAYS,
+  };
 }
 
 // ── D15 · The Table — every application, pending and sent ──────────────────────────────────────
@@ -365,6 +450,7 @@ export function listRecords(db, userId) {
 // the descriptions. Each read is guarded: a fixture without a table must not lose the history.
 export function listHistory(db, userId, { q = "", now = nowSec(), limit = 500 } = {}) {
   const all = (sql, ...args) => { try { return db.prepare(sql).all(...args); } catch { return []; } };
+  try { movePendingExpired(db, { userId, now }); } catch { /* a fixture without the table: nothing to move */ }
   const records = all("SELECT * FROM application_records WHERE user_id = ? ORDER BY updated_at DESC LIMIT ?", userId, limit);
   const applications = all("SELECT * FROM job_applications WHERE user_id = ? ORDER BY applied_at DESC LIMIT ?", userId, limit);
   const resumes = all("SELECT job_id, created_at FROM resumes WHERE user_id = ?", userId);
