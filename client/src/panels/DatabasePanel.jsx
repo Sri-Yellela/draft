@@ -7,7 +7,7 @@ import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import JobCard      from "../components/JobCard.jsx";
-import PendingApplications from "../components/PendingApplications.jsx";
+import PendingApplications, { NotAppliedList } from "../components/PendingApplications.jsx";
 import ApplicationHistory from "../components/ApplicationHistory.jsx";
 import ApplicationInbox from "../components/ApplicationInbox.jsx";
 import { JobWorkspacePanel } from "./JobWorkspacePanel.jsx";
@@ -311,7 +311,7 @@ export function DatabasePanel({ user }) {
   const [genLoading,   setGenLoading]   = useState({});
 
   // ── Pending tab state (A63: application records, pending until a submission verifies) ──
-  const [pendingData,  setPendingData]  = useState({ pending: [], verified: [], methods: [], verifyRule: null });
+  const [pendingData,  setPendingData]  = useState({ pending: [], verified: [], notApplied: [], moveDays: 14, methods: [], verifyRule: null });
   const [pendingBusy,  setPendingBusy]  = useState(null);
   const [pendingMsgs,  setPendingMsgs]  = useState({});
   const [pendingFocus, setPendingFocus] = useState(null); // A105 finding 3: the job History sent here
@@ -364,7 +364,7 @@ export function DatabasePanel({ user }) {
     try {
       const d = await api("/api/applications/pending");
       setPendingData({ pending: d?.pending || [], verified: d?.verified || [], methods: d?.methods || [],
-                       verifyRule: d?.verifyRule || null });
+                       notApplied: d?.notApplied || [], moveDays: d?.moveDays ?? 14, verifyRule: d?.verifyRule || null });
     } catch {}
   }, []);
 
@@ -391,6 +391,16 @@ export function DatabasePanel({ user }) {
     } catch (e) {
       setPendingMsgs(m => ({ ...m, [jobId]: { text: e.message || "Could not change it." } }));
     } finally { setPendingBusy(null); }
+  }, [loadPending]);
+
+  // D112 c2: Restore — a Not applied row goes back to Pending, its 14 days restarting.
+  const restoreNotApplied = useCallback(async (jobId) => {
+    setPendingBusy(jobId);
+    try {
+      await api(`/api/applications/not-applied/${encodeURIComponent(jobId)}/restore`, { method: "POST" });
+    } catch (e) { alert(e.message || "Could not restore it."); }
+    finally { setPendingBusy(null); }
+    await loadPending();
   }, [loadPending]);
 
   // A105 finding 2: "I did not apply" for many at once (only PENDING rows; recorded ones keep their evidence).
@@ -617,7 +627,7 @@ export function DatabasePanel({ user }) {
 
   // D15: "History" is The Table's own view — every application, pending and sent, with its timeline
   // and the "Did they reply?" capture. The spreadsheet stays as the editable sheet behind it.
-  const SHEETS = [["history","History"],["applications","Spreadsheet"],["resumes","Resumes"],["saved","Saved Jobs"],["pending","Pending Apply"],["inbox","Inbox"]];
+  const SHEETS = [["history","History"],["applications","Spreadsheet"],["resumes","Resumes"],["saved","Saved Jobs"],["pending","Pending Apply"],["not_applied","Not applied"],["inbox","Inbox"]];
   const isTableSheet = activeSheet === "applications" || activeSheet === "resumes";
 
   return (
@@ -642,7 +652,8 @@ export function DatabasePanel({ user }) {
           id, label: lbl,
           count: id === "applications" ? apps.length
             : id === "resumes" ? resumes.length
-            : id === "pending" ? pendingData.pending.length : null,
+            : id === "pending" ? pendingData.pending.length
+            : id === "not_applied" ? pendingData.notApplied.length : null,
         }))}
         right={
           <div style={{ display:"flex", alignItems:"center", gap:8, paddingRight:4 }}>
@@ -702,6 +713,12 @@ export function DatabasePanel({ user }) {
       {activeSheet === "pending" && (
         <PendingApplications data={pendingData} theme={theme} busyId={pendingBusy} messages={pendingMsgs}
           onRecord={recordPending} onWithdraw={withdrawPending} onWithdrawMany={withdrawManyPending} focusJobId={pendingFocus} />
+      )}
+
+      {/* ── Not applied (D112 c2) — moved after 14 days, or withdrawn; each with Restore. Never deleted. ── */}
+      {activeSheet === "not_applied" && (
+        <NotAppliedList rows={pendingData.notApplied} theme={theme} busyId={pendingBusy} moveDays={pendingData.moveDays}
+          onRestore={restoreNotApplied} />
       )}
 
       {/* ── Inbox (D103) — replies from job sites, forwarded by the user, filed by rule. ── */}

@@ -54,7 +54,7 @@ import { createExtensionDraftRouter } from "./routes/extensionDraft.js";
 import { purgeSolvedTickets } from "./services/tickets.js";
 import { storeGeneratedResume, refundGeneration, ResumeStoreError, STORE_FAILED_SENTENCE, listGeneratedResumes,
          deleteGeneratedResume, sweepExpiredResumes, resumeRetentionDays } from "./services/generatedResumes.js";
-import { markPending } from "./services/applicationRecords.js";
+import { markPending, movePendingExpired } from "./services/applicationRecords.js";
 import { purgeSweep } from "./services/draftBin.js";
 import { createAccountRouter } from "./routes/account.js";
 import { loadSecretKey, createSecretBox, saveIntegrationSecret } from "./services/secretBox.js";
@@ -5917,6 +5917,17 @@ function runDraftBinPurge(trigger) {
 }
 setTimeout(() => runDraftBinPurge("boot"), 60_000).unref?.();
 setInterval(() => runDraftBinPurge("interval"), 6 * 3600_000).unref?.();
+// ⭐ D112 c2 · a PENDING row nobody acted on for 14 days MOVES to Not applied — an UPDATE of its state, never
+// a delete (services/applicationRecords.js movePendingExpired). Every read of Pending, The Table and /d moves
+// the reader's own rows first, so this sweep only keeps rows nobody is looking at honest.
+function runPendingMoveSweep(trigger) {
+  try {
+    const n = movePendingExpired(db);
+    if (n) console.log(`[pending-move] ${trigger}: moved ${n} pending row(s) past 14 days to Not applied`);
+  } catch (e) { console.warn(`[pending-move] ${trigger}: ${e.message}`); }
+}
+setTimeout(() => runPendingMoveSweep("boot"), 60_000).unref?.();
+setInterval(() => runPendingMoveSweep("interval"), 6 * 3600_000).unref?.();
 // D55 decision E: a form report is kept 30 days, then deleted — here as well as on every new report.
 function runFormReportPurge(trigger) {
   try {
@@ -9652,6 +9663,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // now apply to it exactly as to ALL (it used to be /api/jobs/pending, a query of its own).
       const pendingTab = pending === '1';
       const pendingSql = pendingTab ? `AND ${pendingMembershipSql(ownUid)}` : '';
+      if (pendingTab) { try { movePendingExpired(db, { userId: ownUid }); } catch { /* D112 c2: the sweep catches up */ } }
       const importedSql = importedTab
         ? `AND EXISTS (SELECT 1 FROM job_captures jc WHERE jc.job_id = sj.job_id AND jc.user_id = ${ownUid})` : '';
       const roleSql = (savedTab || boardSearch || functionChosen) ? '' : `AND (
@@ -10800,7 +10812,7 @@ const pendingMembershipSql = (uid) => `((uj.resume_generated = 1
          OR EXISTS (SELECT 1 FROM application_records ar WHERE ar.user_id = ${uid} AND ar.job_id = sj.job_id
                       AND ar.state IN ('pending', 'recorded')))
       AND NOT EXISTS (SELECT 1 FROM application_records ar WHERE ar.user_id = ${uid} AND ar.job_id = sj.job_id
-                        AND ar.state IN ('withdrawn', 'verified'))
+                        AND ar.state IN ('withdrawn', 'not_applied', 'verified'))
       AND (uj.applied IS NULL OR uj.applied = 0)`;
 
 app.get("/api/jobs/pending", requireAuth, (req, res) => {
@@ -10810,6 +10822,7 @@ app.get("/api/jobs/pending", requireAuth, (req, res) => {
 // D35 · the Pending view's rows, and their COUNT for the board's view segment (GET /api/jobs/facets'
 // `views.pending`). One query for both, so the /d count and the /d list cannot disagree.
 function pendingJobsQuery(userId, { count = false } = {}) {
+  try { movePendingExpired(db, { userId }); } catch { /* D112 c2: a row past 14 days leaves /d on read; the sweep catches up */ }
   const activeProfile = getOrRepairActiveProfile(userId);
   if (!activeProfile) return count ? 0 : [];
   // ⛔ D41(a): /d is the jobs the user DRAFTED — their own act, like ★. It used to INNER JOIN the role
