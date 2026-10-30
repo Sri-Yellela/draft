@@ -14,6 +14,7 @@
 import { ladderStatus, surfaceOf, tabCounts, LADDER_LABELS } from "../shared/applicationStatus.js";
 import { sourceOf, ANSWER_SOURCES } from "../shared/answerSource.js";
 import { listMessages } from "./inbox.js";
+import { prepSummary } from "./interviewPrep.js";
 
 const parse = (s, fallback) => { if (s == null) return fallback; try { return JSON.parse(s); } catch { return fallback; } };
 
@@ -132,5 +133,7 @@ export function jobDetail(db, userId, applicationId) {
       description: r.posting?.description ?? null,
     },
     emails,
+    // D110 P1: an Interview or Assessment (D103's category, or the ladder) turns on the Prep tab and its countdown.
+    prep: (() => { try { return prepSummary(db, userId, rec.id, { status: r.status, emails }); } catch { return { active: false }; } })(),
   };
 }
