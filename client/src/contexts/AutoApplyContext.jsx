@@ -586,6 +586,25 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       setHoldBusy(false);
     }
   }, [loadApplyRuns]);
+  /**
+   * D100 · SEMI or FULL AUTO — the user's own choice, stored by the SERVER (POST /api/apply/mode). The bar shows
+   * the server's answer; a 409 (the operator's kill switch) leaves the mode as it was and says why.
+   */
+  const setApplyMode = useCallback(async (mode) => {
+    setHoldBusy(true);
+    setHoldMsg("");
+    try {
+      const r = await api("/api/apply/mode", { method: "POST", body: JSON.stringify({ mode }) });
+      setRunBar(r);
+      setHoldMsg(mode === "auto"
+        ? "FULL AUTO. draft sends what matches your Auto settings without asking each time."
+        : "SEMI. Every application waits for your approval.");
+    } catch (e) {
+      setHoldMsg(e.message || "Could not change the mode — nothing changed.");
+    } finally {
+      setHoldBusy(false);
+    }
+  }, []);
 
   // The resume and screenshot are served as files, so they cannot carry the auth header api() adds.
   // authContextQuery is the query-param form of the same token, which requireAuth also honours
@@ -744,7 +763,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       applyPrereqMissing,
       applyLine, lineMsg, lineBusyId, setLineTool, moveInLine, removeFromLine,
       // D25: the run bar — mode, caps, Stop everything.
-      runBar, loadRunBar, setStopEverything, holdBusy, holdMsg,
+      runBar, loadRunBar, setStopEverything, setApplyMode, holdBusy, holdMsg,
       // ── The board's own view of the pipeline ────────────────────────────────────────────────
       // The board and the pipeline were separate worlds: a card gave no hint that you had already
       // applied to it, queued it, or that it was stuck waiting on you. This is the join, done here

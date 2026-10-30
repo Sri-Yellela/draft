@@ -44,18 +44,36 @@ test("⛔ AUTO is locked unless the server answers locked:false — nothing else
   assert.deepEqual(autoToggle({ mode: { auto: { locked: false } } }), { selectable: true, reason: null });
 });
 
-test("⛔ the AUTO segment has no handler, is disabled while locked, and SAYS why in text", () => {
+// D100 (owner 10-30) changed this on purpose: FULL AUTO is the user's to choose, so the segment has a handler — but
+// ONLY while the server says selectable; locked, the handler is not attached at all.
+test("⛔ the FULL AUTO segment's handler exists only when selectable, it is disabled while locked, and SAYS why in text", () => {
   const auto = bar.slice(at(bar, 'data-mode="auto"'), at(bar, "</button>", at(bar, 'data-mode="auto"')));
-  assert.doesNotMatch(auto, /onClick/, "the locked segment can send something");
-  assert.match(auto, /disabled=\{!mode\.selectable\}/);
+  assert.match(auto, /onClick=\{mode\.selectable \? \(\) => current !== "auto" && onMode\?\.\("auto"\) : undefined\}/);
+  assert.match(auto, /disabled=\{!mode\.selectable \|\| busy\}/);
   assert.match(auto, /aria-disabled=\{!mode\.selectable\}/);
   assert.match(bar, /const mode = autoToggle\(runBar\);/);
   // The reason is a visible paragraph, not a tooltip a phone cannot show.
   assert.match(bar, /<p className="dh-mode__why" id="dh-auto-why" data-auto-locked-reason="">\{mode\.reason\}<\/p>/);
   // Nothing in the client writes a lock state of its own (an object literal, not prose about one).
   for (const src of [bar, panel, ctx]) assert.doesNotMatch(src, /locked:\s*false\s*[,}]/);
-  // SEMI is the mode every Draft is in today, and it is the pressed one.
-  assert.match(bar, /aria-pressed="true" data-mode="semi"/);
+  // The pressed segment is the SERVER's mode — and never FULL AUTO while it is locked.
+  assert.match(bar, /const current = runBar\?\.mode\?\.current === "auto" && mode\.selectable \? "auto" : "semi";/);
+  assert.match(bar, /aria-pressed=\{current === "semi"\} data-mode="semi"/);
+  // The mode reaches the SERVER; the bar shows its answer.
+  const setMode = ctx.slice(at(ctx, "const setApplyMode = useCallback"), at(ctx, "}, []);", at(ctx, "const setApplyMode")));
+  assert.match(setMode, /api\("\/api\/apply\/mode", \{ method: "POST", body: JSON\.stringify\(\{ mode \}\) \}\)/);
+  assert.match(setMode, /setRunBar\(r\)/);
+});
+
+// D102 P4: ⚙ Auto settings opens the drawer; its terms switch is off unless the user turns it on.
+test("⚙ Auto settings: the drawer reads and writes the server's settings, terms opt-in included", () => {
+  const drawer = read("client/src/components/AutoSettingsDrawer.jsx");
+  assert.match(panel, /<AutoSettingsDrawer open=\{settingsOpen\}/);
+  assert.match(bar, /data-auto-settings-open=""/);
+  assert.match(drawer, /api\("\/api\/apply\/auto-settings"\)/);
+  assert.match(drawer, /api\("\/api\/apply\/auto-settings", \{ method: "PUT", body: JSON\.stringify\(\{ settings: s \}\) \}\)/);
+  assert.match(drawer, /checked=\{!!s\.agreeToTerms\}[^>]*data-agree-to-terms=""/);
+  assert.match(drawer, /a human check \(a CAPTCHA\)/, "the drawer says a human check is never sent automatically");
 });
 
 // D100 (owner 10-30): the proof constant is removed; the mode is the user's (default SEMI) and the kill switch is
@@ -79,7 +97,7 @@ test("the bar shows the three caps the server sends, with how much of each is us
   // The bar is read, never assembled: one endpoint, loaded with the feeds and re-read when they move.
   assert.match(ctx, /setRunBar\(await api\("\/api\/apply\/run-bar"\)\)/);
   assert.match(ctx, /useEffect\(\(\) => \{ if \(user\) loadRunBar\(\); \}, \[user, applyRuns, loadRunBar\]\);/);
-  assert.match(panel, /<DraftRunBar runBar=\{runBar\} onStop=\{setStopEverything\} busy=\{holdBusy\} message=\{holdMsg\} \/>/);
+  assert.match(panel, /<DraftRunBar runBar=\{runBar\} onStop=\{setStopEverything\} busy=\{holdBusy\} message=\{holdMsg\}\s+onMode=\{setApplyMode\}/);
 });
 
 // ── 3. ⏸ STOP EVERYTHING REACHES THE SERVER, AND SAYS WHAT IT DOES NOT DO ────────────────────
@@ -194,8 +212,8 @@ test("PanelControls is reused, not forked — and the Database panel keeps all t
     assert.doesNotMatch(src, /function (PanelSubTabs|PanelSearch|DateFilterButton)\b/, "a control was forked");
   }
   // And the state is the context's: the bar and the hold live in AutoApplyContext, not a new store.
-  assert.match(ctx, /runBar, loadRunBar, setStopEverything, holdBusy, holdMsg,/);
-  assert.match(panel, /runBar = null, setStopEverything, holdBusy = false, holdMsg = "",/);
+  assert.match(ctx, /runBar, loadRunBar, setStopEverything, setApplyMode, holdBusy, holdMsg,/);
+  assert.match(panel, /runBar = null, setStopEverything, setApplyMode, holdBusy = false, holdMsg = "",/);
   assert.doesNotMatch(panel, /createContext|useReducer/);
 });
 
