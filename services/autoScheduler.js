@@ -14,6 +14,7 @@ import { readAutoSettings, PAUSE_DAYS, COMPANY_WINDOW_DAYS } from "../shared/aut
 import { companyNameKey } from "../shared/companyIdentity.js";
 import { userHeld } from "./applyUserHold.js";
 import { fullAutoDisabled } from "./appSettings.js";
+import { eligibilityForJob, userEligibilityInputs } from "./jobEligibility.js";
 
 const DAY = 86400;
 const MAX_JOBS_PER_RUN = 25; // POST /api/apply/runs' own limit
@@ -58,13 +59,15 @@ export function startedToday(createdAts, nowSec, timeZone) {
  * @param ctx { remaining, drafted:Set<jobId>, companyCounts:Map<key,n>, pausedCompanies:Set<key>, settings }
  * @returns { take: jobId[], skipped: [{ jobId, reason }] }
  */
-export function pickJobs(candidates, { remaining, drafted, companyCounts, pausedCompanies, settings }) {
+export function pickJobs(candidates, { remaining, drafted, companyCounts, pausedCompanies, settings, isIneligible = null }) {
   const take = [];
   const skipped = [];
   const counts = new Map(companyCounts);
   for (const c of candidates) {
     if (take.length >= Math.min(remaining, MAX_JOBS_PER_RUN)) { skipped.push({ jobId: c.jobId, reason: "daily_cap" }); continue; }
     if (drafted.has(String(c.jobId))) { skipped.push({ jobId: c.jobId, reason: "already_drafted" }); continue; }
+    // ⛔ D104 P1: a posting whose stated requirements contradict what the user SET is never queued by FULL AUTO.
+    if (isIneligible?.(c.jobId)) { skipped.push({ jobId: c.jobId, reason: "ineligible" }); continue; }
     const key = companyNameKey(c.company || "");
     if (key && settings.pauseCompanyAfterReply && pausedCompanies.has(key)) { skipped.push({ jobId: c.jobId, reason: "company_paused" }); continue; }
     if (key && settings.perCompanyLimit30d != null && (counts.get(key) || 0) >= settings.perCompanyLimit30d) {
@@ -110,7 +113,9 @@ export function userContext(db, userId, nowSec, settings) {
       AND COALESCE(outcome_at, applied_at, 0) >= ?`).pluck().all(userId, nowSec - PAUSE_DAYS * DAY)
     .map(c => companyNameKey(c || "")).filter(Boolean));
   const used = startedToday(autoStartsSince(db, userId, nowSec - 2 * DAY), nowSec, settings.timeZone);
-  return { drafted, companyCounts, pausedCompanies, used, remaining: Math.max(0, settings.dailyCap - used) };
+  const inputs = userEligibilityInputs(db, userId);
+  const isIneligible = (jobId) => eligibilityForJob(db, userId, jobId, inputs).status === "ineligible";
+  return { drafted, companyCounts, pausedCompanies, used, remaining: Math.max(0, settings.dailyCap - used), isIneligible };
 }
 
 /**

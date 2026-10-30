@@ -216,10 +216,13 @@ test("⛔ D59 · citizen_only and us_person stay DISTINCT", () => {
 });
 
 test("D59 · clearance level, status and polygraph — label first, then prose; a level is never guessed", () => {
-  assert.deepEqual(reqOf(RTX_HTML), { citizenship: "citizen_only", clearance: "secret", clearanceStatus: "active_required", polygraph: false });
-  assert.deepEqual(reqOf(LOCKHEED_TEXT), { citizenship: "none_stated", clearance: "ts_sci", clearanceStatus: "active_required", polygraph: true });
+  assert.deepEqual(reqOf(RTX_HTML), { citizenship: "citizen_only", clearance: "secret", clearanceStatus: "active_required", polygraph: false,
+    sponsorship: "none_stated", degree: null }); // D104 P1 added the two fields (10-30)
+  assert.deepEqual(reqOf(LOCKHEED_TEXT), { citizenship: "none_stated", clearance: "ts_sci", clearanceStatus: "active_required", polygraph: true,
+    sponsorship: "none_stated", degree: null }); // D104 P1 added the two fields (10-30)
   // "CLEARANCE TYPE: Polygraph" — a clearance is required, its level is NOT stated: "unspecified", not Top Secret.
-  assert.deepEqual(reqOf(NORTHROP_TEXT), { citizenship: "none_stated", clearance: "unspecified", clearanceStatus: "active_required", polygraph: true });
+  assert.deepEqual(reqOf(NORTHROP_TEXT), { citizenship: "none_stated", clearance: "unspecified", clearanceStatus: "active_required", polygraph: true,
+    sponsorship: "none_stated", degree: null }); // D104 P1 added the two fields (10-30)
   assert.equal(reqOf("Must be able to obtain a Secret clearance; interim not available.").clearanceStatus, "ability_to_obtain");
   assert.equal(reqOf("Our secret sauce is the team.").clearance, "none", "a bare 'secret' is not a clearance");
   assert.equal(reqOf("No security clearance required.").clearance, "none");

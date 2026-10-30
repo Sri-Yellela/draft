@@ -12,6 +12,7 @@
 //   scraped_jobs         the posting, while it exists (D43: a row never depends on it — snapshots win)
 // and the status is shared/applicationStatus.js's ladder, the one module both surfaces read.
 import { ladderStatus, surfaceOf, tabCounts, LADDER_LABELS } from "../shared/applicationStatus.js";
+import { sourceOf, ANSWER_SOURCES } from "../shared/answerSource.js";
 
 const parse = (s, fallback) => { if (s == null) return fallback; try { return JSON.parse(s); } catch { return fallback; } };
 
@@ -111,10 +112,12 @@ export function jobDetail(db, userId, applicationId) {
       baseAtsScore: r.rj?.base_ats_score ?? null,
     },
     form: {
-      // Every field and value as the run recorded it; D104 P2 adds each value's `source`.
+      // Every field and value as the run recorded it, with D104 P2's `source` (shown on hover in the Form tab).
+      // A worker report already carries a source; a local run's provenance is mapped by the same rule.
       fields: (Array.isArray(answers) ? answers : []).map(a => ({
-        name: a?.name ?? a?.field_id ?? null, type: a?.type ?? null, value: a?.value ?? null,
+        name: a?.label ?? a?.name ?? a?.field_id ?? null, type: a?.type ?? null, value: a?.value ?? null,
         skipped: !!a?.skipped, provenance: a?.provenance ?? null,
+        source: ANSWER_SOURCES.includes(a?.provenance) ? a.provenance : sourceOf(a?.provenance),
       })),
       openQuestions: parse(r.rj?.open_questions_json, []),
       approvable: r.status === "ready_to_approve",
