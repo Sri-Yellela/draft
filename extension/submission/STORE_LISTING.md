@@ -1,4 +1,16 @@
-# Chrome Web Store listing — draft v1.5.2
+# Chrome Web Store listing — draft v1.6.0
+
+> **v1.6.0 (2026-10-30, D112 — NOT yet uploaded; released on the owner's word).** The manifest is 1.6.0 since D112
+> item 4 (global read, `d43550f` — its listing changes are that commit's). ⭐⭐ **D112 item 7 adds ONE optional API
+> permission, `cookies`** — *"Let draft apply here while you're away"*: on a signed-in amazon.jobs page the dock offers
+> the line; a small window's Allow asks Chrome for `cookies` and that portal's three hosts; the extension verifies the
+> apply worker's key against the identity built into it, reads only that portal's cookies, seals them on the device and
+> uploads the sealed copy (draft cannot read it); Disconnect deletes it and the key. ⛔ **At the upload that carries it,
+> re-paste: the `cookies` justification, the `https://*/*` justification, Privacy practices → Authentication information
+> (becomes COLLECTED), the reviewer notes — paste-ready text in `docs/privacy/PENDING_D100_D103.md` §7 — together with
+> the privacy policy's change in the same push.** The sections below still describe the extension WITHOUT it; while
+> `PINNED_WORKER_IDENTITY` (extension/applyAway.js) is empty the feature is inert and they stay true.
+
 
 > **The toolbar popup is retired (2026-10-25, T31, owner decision — NOT yet uploaded).** ⛔ **Re-paste at the next
 > upload: `activeTab`, `storage` (now NINE values — it said Ten values before T31), the optional host permissions,
