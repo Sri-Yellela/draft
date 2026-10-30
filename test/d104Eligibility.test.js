@@ -163,3 +163,13 @@ test("D104 · d104BoardMarksIneligible — a row is marked for THIS user, demote
   assert.match(block, /eligibility: \{ status: "ineligible", reasons: ineligible\.get\(j\.job_id\) \}/);
   assert.doesNotMatch(block.slice(0, block.indexOf("const responseBody")), /rows\s*=\s*rows\.filter|rows\.splice/, "the page's rows (and so its cursor) are not changed");
 });
+
+// D104 · the board card draws the server's verdict — a mark (D60), only for "ineligible", with the reasons.
+test("the board card marks an ineligible posting with its reasons, and nothing else", () => {
+  const card = fs.readFileSync(new URL("../client/src/components/JobCard.jsx", import.meta.url), "utf8");
+  const fn = card.slice(card.indexOf("function EligibilityMark"), card.indexOf("// ── Closed pill"));
+  assert.match(fn, /if \(eligibility\?\.status !== "ineligible"\) return null;/, "unknown or absent must render nothing");
+  assert.match(fn, /style=\{markStyle\(C\.DANGER\)\}/);
+  assert.match(fn, /Not eligible/);
+  assert.match(card, /<EligibilityMark eligibility=\{job\.eligibility\}\/>/);
+});
