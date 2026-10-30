@@ -5203,4 +5203,51 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_profile_evidence_user ON profile_evidence(user_id, target, target_key);
       `,
     },
+    {
+      // ⭐ D108 P1 · sponsorship facts: the median wage, and the USCIS H-1B Employer Data Hub (owner 10-30).
+      // WAGES — the LCA disclosure file's WAGE_RATE_OF_PAY_FROM / WAGE_UNIT_OF_PAY, annualised (Hour × 2080, Week × 52,
+      // Bi-Weekly × 26, Month × 12) over CERTIFIED cases, kept per (employer, FEIN, period) as a histogram of $1k buckets
+      // (services/kb/lcaWages.js) so a company's median over several entities and quarters is exact, not a median of
+      // medians. company_lca_sponsorship.wage_by_fiscal_year_json is the roll-up, written by reconcileCompanyLca.
+      // USCIS HUB — uscis_hub_employer_years holds the hub's rows summed per (employer key, tax-ID last four, fiscal
+      // year); uscis_hub_source_files is the ledger (source URL, the file's own date). ⛔ ONE LCA MATCHER: the hub's
+      // employers reach a company ONLY through the entities the LCA resolution already matched (lcaLayer.js) — the
+      // same companyMatchKey, joined, never a second name matcher. company_lca_sponsorship.uscis_by_fiscal_year_json is
+      // that roll-up. Additive only.
+      id: "187_sponsorship_facts",
+      sql: `
+        ALTER TABLE lca_employer_periods ADD COLUMN wage_cases INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE lca_employer_periods ADD COLUMN wage_hist_json TEXT;
+        ALTER TABLE company_lca_sponsorship ADD COLUMN wage_by_fiscal_year_json TEXT;
+        ALTER TABLE company_lca_sponsorship ADD COLUMN uscis_by_fiscal_year_json TEXT;
+        CREATE TABLE IF NOT EXISTS uscis_hub_employer_years (
+          employer_key         TEXT    NOT NULL,
+          tax_id4              TEXT    NOT NULL,
+          fiscal_year          INTEGER NOT NULL,
+          employer_name        TEXT    NOT NULL,
+          state                TEXT,
+          approvals            INTEGER NOT NULL DEFAULT 0,
+          denials              INTEGER NOT NULL DEFAULT 0,
+          initial_approvals    INTEGER,
+          initial_denials      INTEGER,
+          continuing_approvals INTEGER,
+          continuing_denials   INTEGER,
+          categories_json      TEXT,
+          file_name            TEXT    NOT NULL,
+          PRIMARY KEY (employer_key, tax_id4, fiscal_year)
+        );
+        CREATE INDEX IF NOT EXISTS idx_uscis_hub_employer_years_key ON uscis_hub_employer_years(employer_key);
+        CREATE TABLE IF NOT EXISTS uscis_hub_source_files (
+          file_name     TEXT    NOT NULL PRIMARY KEY,
+          fiscal_years  TEXT    NOT NULL,
+          source_url    TEXT,
+          file_date     TEXT,
+          layout        TEXT,
+          data_rows     INTEGER NOT NULL DEFAULT 0,
+          employer_rows INTEGER NOT NULL DEFAULT 0,
+          byte_size     INTEGER,
+          ingested_at   INTEGER NOT NULL
+        );
+      `,
+    },
   ];

@@ -154,6 +154,26 @@ export function AtlasNodeView({ base, node, from, onWalk }) {
         )}
       </section>
 
+      {node.kind === "role" && node.sponsors?.length > 0 && (
+        <section className="atl__section" data-atlas-sponsors="" aria-labelledby="atl-sponsors">
+          <h2 className="atl__h2" id="atl-sponsors">Sponsors who hire this role</h2>
+          <ul className="atl__links">
+            {node.sponsors.map(s => (
+              <li key={s.company}>
+                <b>{s.company}</b> · {s.text} · {s.postings} open posting{s.postings === 1 ? "" : "s"}
+              </li>
+            ))}
+          </ul>
+          <p className="atl__quiet">
+            Companies with open postings for this role and certified LCAs on record ·{" "}
+            {node.sponsors[0].source?.url
+              ? <a href={node.sponsors[0].source.url} target="_blank" rel="noopener noreferrer">{node.sponsors[0].source.name}</a>
+              : node.sponsors[0].source?.name}
+            {node.sponsors[0].source?.through ? `, through ${node.sponsors[0].source.through}` : ""}. A record of filings, not a promise about any posting.
+          </p>
+        </section>
+      )}
+
       {groups.length > 0 && (
         <section className="atl__section" data-atlas-related="" aria-labelledby="atl-related">
           <h2 className="atl__h2" id="atl-related">Related</h2>

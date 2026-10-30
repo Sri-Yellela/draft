@@ -33,6 +33,12 @@ import {
   HIGH_CONFIDENCE,
 } from './lcaMatch.js';
 import { loadConfirmedResolutions } from './lcaResolution.js';
+import { mergeHistogram, histogramMedian } from './lcaWages.js';
+
+/** Whether a table has a column — so a DB before migration 187 still reconciles (with no wages / hub facts). */
+function hasColumn(db, table, column) {
+  try { return db.prepare(`PRAGMA table_info(${table})`).all().some(c => c.name === column); } catch { return false; }
+}
 
 // Four quarters. One year of silence halves the weight of the evidence — chosen to match the
 // annual rhythm of the H-1B cap rather than picked for feel: an employer that files only in the
@@ -176,11 +182,13 @@ function dedupeEntitiesByName(entities) {
  * record layout's own reporting-period line and from the decision-date ranges, NOT assumed. Taking
  * the newest file as a year-to-date total would undercount every sponsor by ~4x.
  */
-function aggregateEntityPeriods(db, entities, spanByPeriod = {}) {
+function aggregateEntityPeriods(db, entities, spanByPeriod = {}, { withWages = false } = {}) {
   const totals = {
     certified: 0, denied: 0, withdrawn: 0, positions: 0,
     byPeriod: {}, byFiscalYear: {}, titles: new Map(),
     latestPeriod: null, latestFilingAt: null, periodsWithFilings: 0,
+    // D108 · fiscal year → Map(bucket $k → certified cases) — the median is taken once, over the merged histogram.
+    wageHistByFiscalYear: new Map(),
   };
   if (!entities.length) return totals;
 
@@ -193,6 +201,7 @@ function aggregateEntityPeriods(db, entities, spanByPeriod = {}) {
   const args = pairs.flatMap(p => [p.key, p.fein]);
   const rows = db.prepare(
     `SELECT fiscal_period, certified, denied, withdrawn, positions, top_titles_json, last_decision
+            ${withWages ? ', wage_hist_json' : ''}
        FROM lca_employer_periods WHERE ${where}`
   ).all(...args);
 
@@ -221,6 +230,10 @@ function aggregateEntityPeriods(db, entities, spanByPeriod = {}) {
     for (const [title, n] of Object.entries(parseJson(r.top_titles_json, {}) || {})) {
       totals.titles.set(title, (totals.titles.get(title) || 0) + n);
     }
+    if (fy && r.wage_hist_json) {
+      if (!totals.wageHistByFiscalYear.has(fy.year)) totals.wageHistByFiscalYear.set(fy.year, new Map());
+      mergeHistogram(totals.wageHistByFiscalYear.get(fy.year), r.wage_hist_json);
+    }
   }
   // QUARTERS with filings, weighted by each period's span — so it is comparable with
   // periods_covered, which also counts quarters. Counting period ROWS instead put Stripe at "18 of
@@ -230,6 +243,78 @@ function aggregateEntityPeriods(db, entities, spanByPeriod = {}) {
   totals.periodsWithFilings = [...quartersWithFilings]
     .reduce((n, p) => n + (spanByPeriod[p] || 1), 0);
   return totals;
+}
+
+/** fiscal year → Map → { "2025": { median, cases } } — the stored, display-ready roll-up. */
+function wageByFiscalYear(totals) {
+  const out = {};
+  for (const [fy, hist] of totals.wageHistByFiscalYear) {
+    const m = histogramMedian(hist);
+    if (m) out[fy] = m;
+  }
+  return out;
+}
+
+const digits4 = (fein) => {
+  const d = String(fein || '').replace(/\D/g, '');
+  return d.length >= 4 ? d.slice(-4) : null;
+};
+
+/**
+ * ⭐ D108 · the USCIS H-1B Employer Data Hub's approvals and denials for the entities the LCA resolution ALREADY matched.
+ *
+ * ⛔ ONE LCA MATCHER. This is a JOIN, not a match: a hub row counts for a company only when its employer key — the same
+ * companyMatchKey the LCA ingest wrote — is one of the matched entities' keys. Nothing here decides that a name is a
+ * company; matchCompanyToEntities (and a reviewer's lca_company_resolutions) did, for the LCA corpus, before this ran.
+ *
+ * The hub publishes the LAST FOUR digits of the petitioner's tax ID, and the FY2024+ LCA files carry the full FEIN. Where
+ * a matched key has entities with a FEIN, only hub rows whose last four agree are counted — STRICTER, never looser: two
+ * unrelated "Apex Technologies" that share a key are told apart when the data can tell them apart. A key whose entities
+ * carry no FEIN (pre-FY2024 files only) takes every hub row under the key, as the LCA roll-up does.
+ *
+ * @returns {{ [fiscalYear]: { approvals, denials, initialApprovals, initialDenials, continuingApprovals, continuingDenials } }}
+ */
+function aggregateHubForEntities(db, entities) {
+  const out = {};
+  if (!entities.length) return out;
+  const taxByKey = new Map();
+  for (const e of entities) {
+    for (const k of new Set([e.legalKey, e.storedKey].filter(Boolean))) {
+      if (!taxByKey.has(k)) taxByKey.set(k, new Set());
+      const t = digits4(e.fein);
+      if (t) taxByKey.get(k).add(t);
+    }
+  }
+  const keys = [...taxByKey.keys()];
+  if (!keys.length) return out;
+  let rows = [];
+  try {
+    rows = db.prepare(`SELECT employer_key, tax_id4, fiscal_year, approvals, denials, initial_approvals, initial_denials,
+        continuing_approvals, continuing_denials FROM uscis_hub_employer_years
+        WHERE employer_key IN (${keys.map(() => '?').join(',')})`).all(...keys);
+  } catch { return out; } // before migration 187
+  const add = (a, b) => (b == null ? a : (a ?? 0) + b);
+  for (const r of rows) {
+    const allowed = taxByKey.get(r.employer_key);
+    if (allowed && allowed.size && !allowed.has(String(r.tax_id4))) continue;
+    const y = (out[r.fiscal_year] ||= { approvals: 0, denials: 0, initialApprovals: null, initialDenials: null,
+      continuingApprovals: null, continuingDenials: null });
+    y.approvals += r.approvals || 0;
+    y.denials += r.denials || 0;
+    y.initialApprovals = add(y.initialApprovals, r.initial_approvals);
+    y.initialDenials = add(y.initialDenials, r.initial_denials);
+    y.continuingApprovals = add(y.continuingApprovals, r.continuing_approvals);
+    y.continuingDenials = add(y.continuingDenials, r.continuing_denials);
+  }
+  return out;
+}
+
+/** The hub files imported: [{ fileName, fiscalYears:number[], sourceUrl, fileDate }], newest file date first. */
+function getUscisHubCoverage(db) {
+  try {
+    return db.prepare(`SELECT file_name, fiscal_years, source_url, file_date FROM uscis_hub_source_files ORDER BY file_date DESC, file_name DESC`)
+      .all().map(r => ({ fileName: r.file_name, fiscalYears: parseJson(r.fiscal_years, []), sourceUrl: r.source_url, fileDate: r.file_date }));
+  } catch { return []; }
 }
 
 /**
@@ -281,6 +366,12 @@ function reconcileCompanyLca(db, opts = {}) {
       periods_covered = @periods_covered, periods_with_filings = @periods_with_filings,
       provenance_json = @provenance_json, last_seen = @now
   `);
+  // D108 · migration 187's roll-ups, written by the same pass so they can never disagree with the match above.
+  const has187 = hasColumn(db, 'company_lca_sponsorship', 'wage_by_fiscal_year_json');
+  const withWages = has187 && hasColumn(db, 'lca_employer_periods', 'wage_hist_json');
+  const upsertFacts = has187
+    ? db.prepare(`UPDATE company_lca_sponsorship SET wage_by_fiscal_year_json = ?, uscis_by_fiscal_year_json = ? WHERE company = ?`)
+    : null;
 
   // G2 — human-CONFIRMED identity resolutions only. Proposals never reach the matcher; see
   // services/kb/lcaResolution.js for why a wrong row here is a false attestation about a third
@@ -292,7 +383,7 @@ function reconcileCompanyLca(db, opts = {}) {
     for (const company of companies) {
       const m = matchCompanyToEntities(company, index, resolutions.get(company) || null);
       const totals = m.status === 'matched'
-        ? aggregateEntityPeriods(db, m.entities, coverage.spanByPeriod)
+        ? aggregateEntityPeriods(db, m.entities, coverage.spanByPeriod, { withWages })
         : aggregateEntityPeriods(db, [], coverage.spanByPeriod);
       const topTitles = [...totals.titles.entries()]
         .sort((a, b) => b[1] - a[1]).slice(0, MAX_TOP_TITLES)
@@ -328,6 +419,14 @@ function reconcileCompanyLca(db, opts = {}) {
         provenance_json: provenance,
         now,
       });
+      if (upsertFacts) {
+        const wages = wageByFiscalYear(totals);
+        const hub = m.status === 'matched' ? aggregateHubForEntities(db, m.entities) : {};
+        upsertFacts.run(Object.keys(wages).length ? JSON.stringify(wages) : null,
+          Object.keys(hub).length ? JSON.stringify(hub) : null, company);
+        if (Object.keys(hub).length) summary.withUscis = (summary.withUscis || 0) + 1;
+        if (Object.keys(wages).length) summary.withWages = (summary.withWages || 0) + 1;
+      }
       summary.companies++;
       summary[m.status]++;
       if (m.tier) summary.tiers[m.tier] = (summary.tiers[m.tier] || 0) + 1;
@@ -373,6 +472,10 @@ function mapLcaRow(row, coverage) {
     byPeriod: parseJson(row.by_period_json, {}),
     byFiscalYear: parseJson(row.by_fiscal_year_json, {}),
     topTitles: parseJson(row.top_titles_json, []),
+    // D108 · { "2025": { median, cases } } — the annualised median offered wage on certified LCAs, per fiscal year.
+    wageByFiscalYear: parseJson(row.wage_by_fiscal_year_json, {}) || {},
+    // D108 · { "2023": { approvals, denials, … } } — the USCIS H-1B Employer Data Hub, joined through this match.
+    uscisByFiscalYear: parseJson(row.uscis_by_fiscal_year_json, {}) || {},
     latestPeriod: row.latest_period,
     latestFilingAt: row.latest_filing_at,
     periodsCovered: row.periods_covered,
@@ -424,6 +527,8 @@ export {
   formatFiscalPeriod,
   periodDisplayLabel,
   getCorpusCoverage,
+  getUscisHubCoverage,
+  aggregateHubForEntities,
   knownCompanies,
   reconcileCompanyLca,
   mapLcaRow,

@@ -60,6 +60,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { companyMatchKey, parseDbaNames } from "../services/kb/lcaMatch.js";
+import { annualiseWage, addToHistogram, histogramToJson } from "../services/kb/lcaWages.js";
 import {
   reconcileCompanyLca, knownCompanies, getCorpusCoverage,
   formatFiscalPeriod, periodOrdinal,
@@ -98,7 +99,11 @@ const COLUMNS = [
 // What is genuinely lost is the entity list: a merged pre-FY2024 row can name only one of them.
 // Measured at 1.0% of keys spanning more than one FEIN in the quarters that have FEINs, nearly all
 // of those being real subsidiaries, so this buys nothing worth a second identity scheme.
-const OPTIONAL_COLUMNS = ["EMPLOYER_FEIN"];
+// ⭐ D108 · the offered wage and its unit (record layout FY2026 Q1: WAGE_RATE_OF_PAY_FROM — "Wage paid to nonimmigrant
+// workers at the First Worksite Location"; WAGE_UNIT_OF_PAY — "Hour", "Week", "Bi-Weekly", "Month", "Year"). Optional:
+// a file without them still ingests its counts, and simply carries no wage histogram. PREVAILING_WAGE is a different
+// claim (the floor the law sets, not what the employer offers) and is not read.
+const OPTIONAL_COLUMNS = ["EMPLOYER_FEIN", "WAGE_RATE_OF_PAY_FROM", "WAGE_UNIT_OF_PAY"];
 const DEFAULT_QUARTERS = 5;
 // Job titles are stored only for employers with at least this many certified cases in the quarter.
 // A titles blob on all ~18k employers per quarter is most of the disk this table costs, and a
@@ -192,7 +197,7 @@ async function download(year, quarter) {
  * Streams one quarterly file into per-(employer, FEIN) aggregates. Returns the aggregates plus the
  * counts lca_source_files records, so the phantom-blank-row ratio stays observable.
  */
-async function parseQuarter(file) {
+export async function parseQuarter(file) {
   const wb = new ExcelJS.stream.xlsx.WorkbookReader(file, {
     sharedStrings: "cache", worksheets: "emit", entries: "emit",
   });
@@ -235,6 +240,7 @@ async function parseQuarter(file) {
           state: cellText(v[idx.EMPLOYER_STATE]),
           dba: new Set(), certified: 0, denied: 0, withdrawn: 0, positions: 0,
           titles: new Map(), last_decision: null,
+          wages: new Map(), // D108 · $1k bucket → certified cases (services/kb/lcaWages.js)
         };
         employers.set(id, e);
       }
@@ -251,7 +257,13 @@ async function parseQuarter(file) {
       // 'Certified - Withdrawn' counts as certified: OFLC DID issue the certification, and the
       // employer withdrawing the application afterwards does not unmake the evidence that they
       // filed one. Kept in `withdrawn` only when it never got certified at all.
-      if (/^Certified/i.test(status)) e.certified++;
+      if (/^Certified/i.test(status)) {
+        e.certified++;
+        // D108 · the median wage is over CERTIFIED cases only — the same set the filing count says.
+        if (idx.WAGE_RATE_OF_PAY_FROM != null && idx.WAGE_UNIT_OF_PAY != null) {
+          addToHistogram(e.wages, annualiseWage(v[idx.WAGE_RATE_OF_PAY_FROM], cellText(v[idx.WAGE_UNIT_OF_PAY])));
+        }
+      }
       else if (/^Denied/i.test(status)) e.denied++;
       else if (/^Withdrawn/i.test(status)) e.withdrawn++;
 
@@ -326,9 +338,14 @@ function planWindow(db, { period, minDate, maxDate }) {
  * `supersedes` names periods whose window this file fully contains — their rows go in the same
  * transaction, so the store is never briefly double-counted.
  */
-function writeQuarter(db, { period, year, quarter, fileName, byteSize, parsed, supersedes = [] }) {
+export function writeQuarter(db, { period, year, quarter, fileName, byteSize, parsed, supersedes = [] }) {
   const now = Math.floor(Date.now() / 1000);
   const del = db.prepare(`DELETE FROM lca_employer_periods WHERE fiscal_period = ?`);
+  // D108 · migration 187's wage columns, written beside the counts in the same row and the same transaction.
+  const hasWages = db.prepare(`PRAGMA table_info(lca_employer_periods)`).all().some(c => c.name === "wage_hist_json");
+  const setWages = hasWages
+    ? db.prepare(`UPDATE lca_employer_periods SET wage_cases = ?, wage_hist_json = ? WHERE employer_key = ? AND fein = ? AND fiscal_period = ?`)
+    : null;
   const ins = db.prepare(`
     INSERT INTO lca_employer_periods (
       employer_key, fein, fiscal_period, employer_name, dba_keys_json, state,
@@ -382,6 +399,10 @@ function writeQuarter(db, { period, year, quarter, fileName, byteSize, parsed, s
         top_titles_json: titles ? JSON.stringify(titles) : null,
         last_decision: e.last_decision,
       });
+      if (setWages && e.wages?.size) {
+        const cases = [...e.wages.values()].reduce((a, b) => a + b, 0);
+        setWages.run(cases, histogramToJson(e.wages), e.employer_key, e.fein, period);
+      }
     }
     insFile.run({
       file_name: fileName, fiscal_period: period, fiscal_year: year, fiscal_quarter: quarter,
@@ -467,4 +488,7 @@ async function main() {
   log(`corpus: ${coverage.periodsCovered} quarter(s), newest ${coverage.latestPeriod}`);
 }
 
-main().catch(e => { console.error("[lca] FAILED:", e.message); process.exit(1); });
+// Run only as a script, so tests can import parseQuarter / writeQuarter without starting an ingest.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch(e => { console.error("[lca] FAILED:", e.message); process.exit(1); });
+}

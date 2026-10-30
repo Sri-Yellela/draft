@@ -198,12 +198,15 @@ function NewPill() {
 // The server decides (GET /api/jobs `eligibility`, only when the user set an answer a requirement could
 // contradict) and moves the card to the end of its page; the card says so, with the reasons. Never hidden,
 // never a guess: absent `eligibility` renders nothing, and "unknown" is never sent as a mark.
-function EligibilityMark({ eligibility }) {
+// ⭐ D108 P3 · when the reason is sponsorship, the employer's public filings are added to the title as INFORMATION —
+// the verdict is the server's and is unchanged by them.
+function EligibilityMark({ eligibility, sponsorship }) {
   if (eligibility?.status !== "ineligible") return null;
   const reasons = Array.isArray(eligibility.reasons) ? eligibility.reasons.filter(Boolean) : [];
+  const filings = sponsorship?.text && reasons.includes("no visa sponsorship") ? ` The employer's public filings: ${sponsorship.text}.` : "";
   return (
     <span data-eligibility="ineligible" style={markStyle(C.DANGER)}
-          title={reasons.length ? `The posting says: ${reasons.join(" · ")}. From your Application defaults.` : "From your Application defaults."}>
+          title={(reasons.length ? `The posting says: ${reasons.join(" · ")}. From your Application defaults.` : "From your Application defaults.") + filings}>
       Not eligible{reasons.length ? ` · ${reasons[0]}` : ""}
     </span>
   );
@@ -678,7 +681,7 @@ export default function JobCard({
                   the closed state is the one that changes what they can do about it. */}
               {job.isActive !== false && isNewJob(job.discoveredAt) && <NewPill/>}
               <VisaBadge isH1bSponsor={job.isH1bSponsor} requiresWorkAuth={job.requiresWorkAuth}/>
-              <EligibilityMark eligibility={job.eligibility}/>
+              <EligibilityMark eligibility={job.eligibility} sponsorship={job.sponsorshipFact}/>
               <LivenessMark liveness={job.liveness}/>
               <LevelMark levelRead={job.levelRead}/>
               {/* THE BOARD AND THE PIPELINE STOP BEING SEPARATE WORLDS. A card gave no hint that
