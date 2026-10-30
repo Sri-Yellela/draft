@@ -235,6 +235,8 @@ export function deleteAccount(db, userId) {
 // to the user (or to user+thing) — INTO's row wins on a clash, FROM's fills what INTO lacks.
 // "fill": one row per user, INTO's non-empty columns kept, its empty ones filled from FROM.
 // "drop": FROM's rows are credentials or caches that must not survive (tokens, codes, sessions).
+// "ifIntoEmpty": a person's LIST (their experience, schools …) — FROM's rows move only when INTO has none; two
+// résumés' lists are never interleaved into one.
 export const MERGE_PLAN = Object.freeze({
   apply_gate_packets: "move", apply_job_logs: "move", apply_run_jobs: "move", apply_runs: "move",
   cache_events: "move", domain_profile_requests: "move", notifications: "move",
@@ -264,6 +266,15 @@ export const MERGE_PLAN = Object.freeze({
   // D98 (165–166): an on-page generation is a request log and goes (its résumé is a resume_versions row, which moves);
   // the PDF the person attached is their file and moves (its generation link is cleared with the request).
   extension_resume_generations: "drop", resume_pdf_artifacts: "move",
+  // D100 (171–172): a sealed portal session and a portal-account credential are CREDENTIALS — they go with FROM (the
+  // worker's keys for them become unreachable); the apply worker's run history moves.
+  portal_sessions: "drop", portal_accounts: "drop", apply_remote_runs: "move",
+  // D101 (173): the profile in sections — INTO's summary and its set defaults win; FROM's lists fill an empty INTO.
+  profile_sections: "keepInto", application_defaults: "keepInto",
+  profile_experience: "ifIntoEmpty", profile_education: "ifIntoEmpty", profile_skills: "ifIntoEmpty", profile_links: "ifIntoEmpty",
+  // D103 (174): the person's forwarding address keeps working (its mail now files under INTO), their mail and the
+  // code-read log move; INTO's per-portal code consent wins on a clash.
+  inbox_addresses: "move", inbox_messages: "move", inbox_code_uses: "move", inbox_code_optins: "keepInto",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });
@@ -308,6 +319,10 @@ export function mergeAccounts(db, intoId, fromId, { now = Math.floor(Date.now() 
       if (!before) continue;
       if (how === "move") db.prepare(`UPDATE ${t} SET user_id = ? WHERE user_id = ?`).run(intoId, fromId);
       else if (how === "keepInto") db.prepare(`UPDATE OR IGNORE ${t} SET user_id = ? WHERE user_id = ?`).run(intoId, fromId);
+      else if (how === "ifIntoEmpty") {
+        if (!db.prepare(`SELECT 1 FROM ${t} WHERE user_id = ?`).get(intoId)) db.prepare(`UPDATE ${t} SET user_id = ? WHERE user_id = ?`).run(intoId, fromId);
+        else db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).run(fromId);
+      }
       else if (how === "userJobs") {
         // A job both accounts touched: keep INTO's row, but carry FROM's star/apply/pass onto it.
         db.prepare(`UPDATE user_jobs SET starred = MAX(starred, COALESCE((SELECT f.starred FROM user_jobs f WHERE f.user_id = ? AND f.job_id = user_jobs.job_id), 0)),
