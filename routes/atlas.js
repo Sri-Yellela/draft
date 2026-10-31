@@ -17,11 +17,15 @@
 // ⭐ D116 · YOUR MAP (public router — signed out is the fallback answer, never a 401):
 //   GET  /api/atlas/me[?all=<section>]    signed in with profile skills → haveSkills · nextLevel · adjacent · branches ·
 //                                         learnNext (each ≤ 12 + its total; ?all= one section uncapped, "see all");
-//                                         signed out / no skills → search · Learn · exploreByRole + the upload line
+//                                         signed out / no skills → search · Learn · exploreByRole + the upload line;
+//                                         ⭐ D116 M1 · + `tree`: the whole map in one answer (services/atlas/atlasTree.js)
+// ⭐ D116 M7 · the same tree on a role page and a family page (public; signed in, the reader's own have / rings):
+//   GET  /api/atlas/tree/role/:slug       centre = the role, its top skills, distance = the share of its postings
+//   GET  /api/atlas/tree/family/:key      centre = the family (ml · systems · infra · data · backend)
 // ⭐ D105 P6 · the curator's editor (admin; requireAdmin is mounted in front of this router in server.js):
 //   POST   /api/admin/atlas/nodes                 { kind, name, definition?, wikiTitle? }   add a node (a draft)
 //   GET    /api/admin/atlas/node/:slug            the editor's view — every edge, every resource (dead ones marked)
-//   PATCH  /api/admin/atlas/node/:slug            { definition?, wikiTitle? }
+//   PATCH  /api/admin/atlas/node/:slug            { definition?, wikiTitle?, family? }   (family: D116 M1, "" = none)
 //   POST   /api/admin/atlas/merge                 { winner, loser } — edges + resources move; the loser's term becomes a
 //                                                  CONFIRMED alias in skill_synonyms (addAlias), the loser is deleted
 //   POST   /api/admin/atlas/node/:slug/edges      { to, type }   (typed — never alias_of)
@@ -66,6 +70,7 @@ import { computeAtlasStats } from "../services/atlas/atlasStats.js";
 import { readiness, READINESS_COLUMNS, runAtlasAutoPipeline, autoPublish, askWikipediaAgain } from "../services/atlas/atlasPublish.js";
 import { sponsorsForRole } from "../services/atlas/atlasSponsors.js";
 import { computeYourMap, SECTIONS } from "../services/atlas/atlasMe.js";
+import { roleTree, familyTree } from "../services/atlas/atlasTree.js";
 import { roleBoard } from "../services/atlas/atlasRolePage.js";
 import { atlasPostingsChanged, liveCached, LIVE_CACHE_MS } from "../services/atlas/atlasLive.js";
 
@@ -126,6 +131,18 @@ export function createAtlasRouter(db) {
     res.set("Cache-Control", "private, no-store");
     res.json(computeYourMap(db, req.user?.id ?? null, { all }));
   });
+  // ⭐ D116 M7 · the tree on a role / family page. Signed out it is the same for everyone (kept like the page); signed in
+  // it carries the reader's own have / rings, so it is private and never cached shared.
+  const treeRoute = (kind, compute) => (req, res) => {
+    const uid = req.user?.id ?? null;
+    const key = String(req.params.key).slice(0, 120);
+    const t = uid != null ? compute(db, key, uid) : liveCached(db, `tree:${kind}:${key}`, () => compute(db, key, null));
+    if (!t) return res.status(404).json({ error: "not_found" });
+    res.set("Cache-Control", uid != null ? "private, no-store" : `public, max-age=${LIVE_CACHE_MS / 1000}`);
+    res.json(t);
+  };
+  router.get("/tree/role/:key", treeRoute("role", roleTree));
+  router.get("/tree/family/:key", treeRoute("family", familyTree));
   router.post("/link-event", (req, res) => res.status(countLinkEvent(db, String(req.body?.event ?? "")) ? 204 : 400).end());
   router.get("/node/:slug", (req, res) => {
     // ⭐ D118 P1: the page's board data is live; the public part is kept at most LIVE_CACHE_MS and never past a change.
@@ -195,7 +212,8 @@ export function createAtlasAdminRouter(db, { fetchImpl = globalThis.fetch, linkP
   });
   router.patch("/node/:slug", (req, res) => editing(res, () => {
     const b = req.body || {};
-    updateNode(db, req.params.slug, { definition: b.definition, wikiTitle: b.wikiTitle });
+    // ⭐ D116 M1: `family` too — set or cleared by the curator, it sticks (family_by).
+    updateNode(db, req.params.slug, { definition: b.definition, wikiTitle: b.wikiTitle, family: b.family }, curator(req));
     res.json({ ok: true, node: readNodeForEditor(db, req.params.slug) });
   }));
   router.post("/merge", (req, res) => editing(res, () => {

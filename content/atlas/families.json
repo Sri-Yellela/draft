@@ -1,0 +1,42 @@
+{
+  "about": "D116 M1 · the Atlas families, seeded ONCE per node (a node with family_by set is never re-seeded; Admin → Atlas changes it). Drafted by the agent for the owner's review, 10-31. A slug missing from the Atlas is skipped. Five families; web and mobile application work sits under Backend until a family of its own is added.",
+  "families": {
+    "ml": [
+      "machine-learning", "deep-learning", "pytorch", "tensorflow", "scikit-learn", "computer-vision", "nlp", "opencv", "mlflow",
+      "model-deployment", "feature-engineering", "predictive-modelling", "reinforcement-learning", "transformer", "embedding",
+      "training-and-inference", "rlhf", "prompt-engineering", "interpretability", "multimodal-model", "neural-network",
+      "large-language-model-llm", "rag-retrieval-augmented-generation", "vector-database", "quantization", "kv-cache",
+      "overfitting", "hallucination", "cuda", "gpu", "information-retrieval"
+    ],
+    "systems": [
+      "operating-systems", "c", "c-plus-plus", "rust", "embedded-c", "embedded-c-plus-plus", "embedded-software", "firmware",
+      "firmware-development", "rtos", "freertos", "zephyr", "linux-kernel", "kernel-development", "kernel-drivers", "device-drivers",
+      "bootloaders", "bsp", "board-bring-up", "soc-bring-up", "pcie", "pcie-debugging", "i2c", "i2c-protocol", "spi", "spi-protocol",
+      "uart", "can", "jtag", "jtag-debugging", "peripherals", "registers-and-memory", "memory-management", "concurrency",
+      "multithreading", "synchronization", "real-time-systems", "runtime-systems", "systems-performance", "performance-profiling",
+      "performance-tuning", "performance-optimisation", "latency-optimisation", "perf", "gdb", "lldb", "valgrind", "llvm", "gcc",
+      "compiler-engineering", "compilers-and-tools", "compiler", "ebpf", "silicon-validation", "post-silicon-validation",
+      "hardware-software-co-debug", "low-level-diagnostics", "debug-tooling", "trace32", "t32", "t32-debugging", "lauterbach",
+      "lauterbach-trace32-debugging", "openocd", "oscilloscope", "logic-analyzer", "fpga", "asic", "secure-boot", "scheduler",
+      "interrupt", "kernel-module", "microcontroller", "gpio", "opengl", "vulkan", "graphics-and-imaging", "audio-video-systems", "ffmpeg"
+    ],
+    "infra": [
+      "aws", "azure", "gcp", "cloud-infrastructure", "kubernetes", "docker", "terraform", "ci-cd", "linux", "windows", "networking",
+      "observability", "reliability", "incident-response", "prometheus", "grafana", "git", "wireshark", "security-engineering",
+      "security-and-cryptography", "serverless", "cdn", "dns", "load-balancer", "zero-trust", "systemd", "load-testing"
+    ],
+    "data": [
+      "sql", "data-pipelines", "etl", "airflow", "spark", "kafka", "dbt", "snowflake", "databricks", "bigquery", "postgresql", "redis",
+      "nosql", "data-warehousing", "database-internals", "data-mining", "data-visualisation", "business-intelligence", "tableau",
+      "looker", "pandas", "jupyter", "r", "statistical-modelling", "hypothesis-testing", "a-b-testing", "experimentation", "b-tree",
+      "sql-and-relational-databases"
+    ],
+    "backend": [
+      "python", "java", "go", "kotlin", "net", "typescript", "javascript", "node-js", "react", "swift", "xcode", "android-development",
+      "android-studio", "api", "rest-apis", "microservices", "distributed-systems", "system-design", "scalability",
+      "multi-tier-systems", "web-applications", "ui-implementation", "object-oriented", "code-review", "test-automation", "unit-test",
+      "playwright", "selenium", "rate-limiting", "payments-platforms", "internationalization", "technical-leadership", "agile",
+      "advanced-algorithms", "webassembly"
+    ]
+  }
+}

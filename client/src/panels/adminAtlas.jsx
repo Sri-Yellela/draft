@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import DepthButton from "../components/DepthButton.jsx";
+import { FAMILIES } from "../../../shared/atlasFamilies.js";
 import { Panel, Mark, row, quiet, sub, callout, field, useConfirm } from "./adminKit.jsx";
 // ⭐ D118 P2 · Import content — the Learn content replaced from the owner's tracker, no deploy (adminLearnImport.jsx).
 import { AtlasImportContent } from "./adminLearnImport.jsx";
@@ -317,12 +318,13 @@ function AtlasNodeEditor({ slug, say }) {
   const [n, setN] = useState(null);
   const [definition, setDefinition] = useState("");
   const [wikiTitle, setWikiTitle] = useState("");
+  const [family, setFamily] = useState("");   // ⭐ D116 M1: "" = none (not drawn on the tree)
   const [edge, setEdge] = useState({ to: "", type: "requires" });
   const [res, setRes] = useState(blankResource);
   const [editing, setEditing] = useState(null);   // { id, ...fields }
   const [busy, setBusy] = useState(false);
   const load = useCallback(() => api(`/api/admin/atlas/node/${enc(slug)}`).then(d => {
-    setN(d); setDefinition(d.definition || ""); setWikiTitle(d.wikiTitle || "");
+    setN(d); setDefinition(d.definition || ""); setWikiTitle(d.wikiTitle || ""); setFamily(d.family || "");
   }).catch(e => say({ ok: false, text: e.message })), [slug, say]);
   useEffect(() => { load(); }, [load]);
   const run = async (fn, okText) => {
@@ -345,8 +347,14 @@ function AtlasNodeEditor({ slug, say }) {
         <label style={label}>Wikipedia article title (its summary is shown as Wikipedia's, refreshed weekly; empty = none)
           <input value={wikiTitle} onChange={e => setWikiTitle(e.target.value)} style={field} placeholder="e.g. Kubernetes" data-atlas-wiki-title="" />
         </label>
+        <label style={label}>Family on Your map's tree (D116 — set once; the seed never overrides your choice{n.familyBy ? `, set by ${n.familyBy}` : ""})
+          <select value={family} onChange={e => setFamily(e.target.value)} style={field} data-atlas-family="">
+            <option value="">None — not drawn on the tree</option>
+            {FAMILIES.map(f => <option key={f.key} value={f.key}>{f.name}</option>)}
+          </select>
+        </label>
         <div><DepthButton size="compact" primary disabled={busy} data-atlas-save=""
-          onClick={() => run(() => send(`/api/admin/atlas/node/${enc(slug)}`, { definition, wikiTitle }, "PATCH"), `${n.name} saved.`)}>Save</DepthButton></div>
+          onClick={() => run(() => send(`/api/admin/atlas/node/${enc(slug)}`, { definition, wikiTitle, ...(family !== (n.family || "") ? { family } : {}) }, "PATCH"), `${n.name} saved.`)}>Save</DepthButton></div>
         {n.aliases?.length > 0 && <span style={quiet}>Aliases (skill_synonyms, confirmed): {n.aliases.join(", ")}</span>}
       </div>
 

@@ -104,6 +104,7 @@ import { seedAtlasFromRegistry } from "./services/atlas/atlasSeed.js";
 import { importLearnConcepts, publishLearnConcepts } from "./services/atlas/atlasLearnImport.js";
 import { learnContent } from "./services/learn/learnContent.js";
 import { importLearnPatterns } from "./services/learn/learnLinks.js";
+import { seedAtlasFamilies } from "./services/atlas/atlasFamilies.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { liveVersion, atlasPostingsChanged } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
@@ -6071,6 +6072,19 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE job_applications ADD COLUMN rejection_reasons TEXT;
       `,
     },
+    {
+      // ⭐ D116 M1 · THE TREE'S FAMILIES (owner 10-31): `family` is a STORED field on atlas_nodes — ML · Systems · Infra ·
+      // Data · Backend (shared/atlasFamilies.js; more may be added there, so no CHECK: SQLite cannot widen one, see 194).
+      // Assigned ONCE per node: the boot seed (content/atlas/families.json, reviewed by the owner) fills only a node whose
+      // `family_by` is NULL, and a curator's choice in Admin → Atlas — set or cleared — writes `family_by` and sticks.
+      // A node with no family is not drawn on the tree; it stays in search and on its page. After 200 (the Draft House leftovers).
+      id: "201_atlas_node_family",
+      sql: `
+        ALTER TABLE atlas_nodes ADD COLUMN family TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN family_by TEXT;
+        CREATE INDEX IF NOT EXISTS idx_atlas_nodes_family ON atlas_nodes(family);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -9557,6 +9571,12 @@ try {
   const p = importLearnPatterns(db, learnContent(db));
   if (p.created.length || p.promoted.length || p.resources) console.log(`[atlas] learn: ${p.created.length} pattern(s) added, ${p.promoted.length} promoted from concepts, ${p.resources} practice link(s), ${p.edges} edge(s)`);
 } catch (e) { console.warn("[atlas] learn import:", e.message); }
+// ⭐ D116 M1: each node's family, seeded ONCE from content/atlas/families.json (the owner reviews it); a node a curator
+// set or cleared in Admin → Atlas is never touched again (family_by). Idempotent.
+try {
+  const f = seedAtlasFamilies(db);
+  if (f.assigned) console.log(`[atlas] families: ${f.assigned} node(s) assigned from content/atlas/families.json`);
+} catch (e) { console.warn("[atlas] families:", e.message); }
 // ⭐ D118 P1: the live counts need a baseline — one full pass. A database that has none (the first boot with migration
 // 199) gets it shortly after boot, not on the request path; until then the queue waits and pages read the last nightly.
 try {
