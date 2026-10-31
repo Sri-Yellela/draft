@@ -177,22 +177,24 @@ test("AD1 requirement 5 -> D25: the actionable work is not behind any tab — it
   // tabs: the actionable work — portals, questions, approvals, prerequisites, holds — is the
   // Stopped column, always rendered, and nothing gates it on a selection.
   assert.doesNotMatch(panel, /historyGroup/);
-  const stopped = panel.slice(at(panel, '<section data-draft-stopped=""'), at(panel, '<aside data-draft-queued=""'));
-  assert.match(stopped, /Review all \{needsYouCount\} →/);
-  assert.match(stopped, /<StoppedItem /);
+  // D113 UI: the work is the tree's bubbles and the side column, always rendered; Review all sits in
+  // the side's Ready for your review block.
+  const side = panel.slice(at(panel, "const sideExtra = {"), at(panel, "running: (applyLine.waiting"));
+  assert.match(side, /Review all \{needsYouCount\} →/);
+  assert.match(panel, /<DraftHouseTree view=\{view\}/);
   for (const feed of ["prereqMissing: applyPrereqMissing", "gatePortals: applyGatePortals",
                       "questions: applyQuestions", "pending: applyPending", "heldApplications, brokeApplications"]) {
     assert.ok(panel.includes(feed), `${feed} no longer reaches the Stopped column`);
   }
-  assert.match(panel.slice(at(panel, '<aside data-draft-queued=""')), /applyInFlight\.map\(job =>/);
+  assert.match(panel, /inFlight: applyInFlight/);
 });
 
 test("D25: the standing work reads the cross-run feeds — there is no date picker to hide it behind", () => {
   assert.doesNotMatch(panel, /<DateFilterButton|<PanelSubTabs/);
-  const stopped = panel.slice(at(panel, '<section data-draft-stopped=""'), at(panel, '<aside data-draft-queued=""'));
+  const tree = panel.slice(at(panel, "const nodes = buildNodes({"), at(panel, "const tree = buildTree("));
   assert.ok(!/\bhistory\.jobs\b|\blistedJobs\b|\blistedByCompany\b/.test(panel),
     "the panel reads the dated listing — it would empty out until a date is picked");
-  assert.ok(stopped.length > 0);
+  assert.match(tree, /pending: applyPending, heldApplications, gatedJobs: applyGatedJobs, inFlight: applyInFlight, line: applyLine/);
 });
 
 // ── Requirement 6: everything AC1–AC4 delivered is still here ────────────────────────────────

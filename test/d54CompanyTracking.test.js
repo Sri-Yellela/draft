@@ -139,5 +139,6 @@ test("D54 · The Table has List | By company, and a stopped card names the compa
   assert.match(table, /companyRows\(view\.rows\)\.map\(g =>/, "the same rows the List shows, grouped");
   const house = read("client/src/panels/AutoApplyPanel.jsx");
   assert.match(house, /return `Also at \$\{g\.name \|\| companyLabel\(row\.company\)\}: `/);
-  assert.ok((house.match(/\{othersLine\(/g) || []).length >= 3, "approval, held and broke folds");
+  // D113 UI: ONE branch serves every state, so the line is written once, in its "The job" leaf.
+  assert.ok((house.match(/\{othersLine\(row\)\}/g) || []).length >= 1, "every job's branch names the others");
 });

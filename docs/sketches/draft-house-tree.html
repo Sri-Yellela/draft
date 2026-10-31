@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft — Draft House as a growing tree</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+  --bg:#F6F5F2; --surface:#FFFFFF; --well:#EFEDE8; --ink:#1B1A18; --muted:#5F5B54;
+  --line:#D8D4CC; --grid:#E6E2DA; --brand:#FD4600; --on-brand:#000; --sel:#FFF3EC;
+  --s-pick:#8A857C; --s-work:#2F6FB3; --s-need:#FD4600; --s-sent:#1E7A43; --s-reply:#7A3FC1; --s-fail:#9A3B3B; --s-review:#B7791F;
+  --shadow:0 6px 14px rgba(40,30,20,.20),0 2px 4px rgba(40,30,20,.14);
+  --shadow-up:0 11px 22px rgba(40,30,20,.24),0 3px 6px rgba(40,30,20,.16);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]):not([data-theme="contrast-light"]):not([data-theme="contrast-dark"]){
+    color-scheme:dark;
+    --bg:#1C1D1F; --surface:#25272A; --well:#2E3034; --ink:#ECEAE6; --muted:#ABA69D; --line:#3C3F44; --grid:#2E3034; --sel:#3A2A22;
+    --s-pick:#A8A398; --s-work:#6FA8E8; --s-need:#FF6A2E; --s-sent:#62C98A; --s-reply:#B48CF0; --s-fail:#E08A8A; --s-review:#E8B14F;
+    --shadow:0 6px 14px rgba(0,0,0,.55),0 2px 4px rgba(0,0,0,.4); --shadow-up:0 11px 24px rgba(0,0,0,.6),0 3px 6px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#1C1D1F; --surface:#25272A; --well:#2E3034; --ink:#ECEAE6; --muted:#ABA69D; --line:#3C3F44; --grid:#2E3034; --sel:#3A2A22;
+  --s-pick:#A8A398; --s-work:#6FA8E8; --s-need:#FF6A2E; --s-sent:#62C98A; --s-reply:#B48CF0; --s-fail:#E08A8A; --s-review:#E8B14F;
+  --shadow:0 6px 14px rgba(0,0,0,.55),0 2px 4px rgba(0,0,0,.4); --shadow-up:0 11px 24px rgba(0,0,0,.6),0 3px 6px rgba(0,0,0,.45);
+}
+:root[data-theme="contrast-light"]{
+  color-scheme:light;
+  --bg:#FFF; --surface:#FFF; --well:#F0F0F0; --ink:#000; --muted:#1F1F1F; --line:#000; --grid:#BBB; --sel:#FFE3D6;
+  --s-pick:#555; --s-work:#0A3D7A; --s-need:#B33000; --s-sent:#0B4A22; --s-reply:#4B1D8F; --s-fail:#7A1010; --s-review:#6B4500;
+  --shadow:0 0 0 2px #000; --shadow-up:0 0 0 3px #000;
+}
+:root[data-theme="contrast-dark"]{
+  color-scheme:dark;
+  --bg:#000; --surface:#000; --well:#141414; --ink:#FFF; --muted:#E6E6E6; --line:#FFF; --grid:#555; --sel:#3A1A0C;
+  --s-pick:#CCC; --s-work:#8EC5FF; --s-need:#FF8A50; --s-sent:#8DF0AE; --s-reply:#D2B8FF; --s-fail:#FFAAAA; --s-review:#FFD27A;
+  --shadow:0 0 0 2px #FFF; --shadow-up:0 0 0 3px #FFF;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.wrap{max-width:1260px;margin:0 auto;padding:16px 20px 30px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.seg{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;flex-wrap:wrap}
+.seg button{all:unset;cursor:pointer;padding:6px 11px;font-size:13px;color:var(--muted);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.mark{display:flex;align-items:center;gap:8px;font-weight:700;font-size:17px}
+.slash{display:inline-block;width:8px;height:20px;background:var(--brand);transform:skewX(-20deg)}
+
+.app{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.ahead{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+.ahead h1{font-size:20px;margin:0}
+.ahead p{margin:0;color:var(--muted);font-size:14px}
+.ahead p b{color:var(--ink)}
+.ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.mode{display:flex;border:1px solid var(--ink);border-radius:4px;overflow:hidden}
+.mode button{all:unset;cursor:pointer;padding:6px 11px;font-size:13px}
+.mode button[aria-pressed="true"]{background:var(--ink);color:var(--surface);font-weight:600}
+.tb{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:4px;height:32px;padding:0 11px;font-weight:600;font-size:13px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 340px;height:640px}
+@media (max-width:900px){.main{grid-template-columns:1fr;height:auto}.side{order:-1;border-left:0!important;border-bottom:1px solid var(--line);max-height:none}.tree{max-height:640px}}
+.tree{overflow:auto;padding:4px 0 40px}
+.side{border-left:1px solid var(--line);overflow:auto;background:var(--bg)}
+
+/* filter strip over the tree */
+.filters{position:sticky;top:0;z-index:6;background:var(--surface);display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 16px;border-bottom:1px solid var(--grid)}
+.chip{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:4px;padding:4px 9px;font-size:12.5px;color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);font-weight:600}
+.chip i{font-style:normal;display:inline-block;width:9px;height:9px;border-radius:3px;border:2px solid var(--c);margin-right:5px;vertical-align:-1px}
+.srch{margin-left:auto;border:1px solid var(--line);background:var(--well);color:var(--ink);border-radius:4px;padding:5px 9px;font:inherit;font-size:13px;width:190px}
+.zoom{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--muted)}
+.zoom button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:4px;width:26px;height:26px;font-weight:700}
+
+/* spine */
+.day{position:sticky;top:47px;z-index:5;background:var(--surface);padding:5px 16px;font-size:12.5px;font-weight:700;border-bottom:1px solid var(--grid)}
+.run{display:grid;grid-template-columns:62px 24px 1fr;align-items:start;padding:10px 16px 10px 0;position:relative}
+.trunk{position:relative}
+.trunk::before{content:"";position:absolute;left:73px;top:0;bottom:0;border-left:2px solid var(--line);z-index:0}
+.rt{text-align:right;font-size:12.5px;color:var(--muted);padding-right:10px;padding-top:9px}
+.rn{all:unset;cursor:pointer;width:14px;height:14px;border-radius:4px;background:var(--ink);margin:12px 0 0 5px;position:relative;z-index:1}
+.rn.future{background:var(--surface);border:2px dashed var(--muted);cursor:default}
+.rn.open{outline:3px solid var(--sel);outline-offset:2px}
+.rb{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding-left:8px}
+.rmeta{font-size:12.5px;color:var(--muted);width:100%;margin-top:-2px}
+.rmeta button{all:unset;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.nowline{display:grid;grid-template-columns:62px 24px 1fr;padding:2px 16px 2px 0;align-items:center;position:relative}
+.nowline::after{content:"";position:absolute;left:62px;right:16px;top:50%;border-top:2px solid var(--brand)}
+.nowline span{font-size:11.5px;font-weight:700;color:var(--brand);text-align:right;padding-right:10px;background:var(--surface);position:relative;z-index:1}
+
+/* THE BUBBLE STANDARD */
+.bub{position:relative;flex:none;width:44px;height:44px;border-radius:12px;border:0;padding:0;cursor:pointer;display:grid;place-items:center;font-weight:800;font-size:16px;color:#fff;
+  background:linear-gradient(155deg,rgba(255,255,255,.34),rgba(255,255,255,0) 46%),var(--c);
+  box-shadow:var(--shadow),inset 0 -3px 5px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .12s ease,box-shadow .12s ease}
+.bub:hover,.bub.sel{transform:translateY(-2px);box-shadow:var(--shadow-up),inset 0 -3px 5px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.35);z-index:3}
+.bub .ring{position:absolute;inset:-5px;border-radius:16px;border:3px solid var(--sc);pointer-events:none}
+.bub.sel .ring{inset:-6px;border-width:4px}
+.bub.sm{width:28px;height:28px;border-radius:8px;font-size:12px}
+.bub.sm .ring{inset:-4px;border-radius:11px;border-width:2px}
+.bub.pulse .ring{animation:pl 1.8s ease-in-out infinite}
+@keyframes pl{50%{inset:-8px;opacity:.55}}
+.bub.dim{opacity:.28}
+@media (prefers-reduced-motion:reduce){.bub{transition:none}.bub.pulse .ring{animation:none}}
+.bwrap{display:flex;flex-direction:column;align-items:center;gap:6px;width:58px}
+.bname{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62px}
+
+/* the growing branches */
+.branch{position:relative;margin:2px 16px 10px 74px;padding:2px 0 4px 18px;border-left:2px solid var(--bc,var(--line))}
+.node{position:relative;margin:8px 0}
+.node::before{content:"";position:absolute;left:-18px;top:16px;width:14px;border-top:2px solid var(--bc,var(--line))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.card.lead{border:1.5px solid var(--bc)}
+.ch{display:flex;gap:10px;align-items:center}
+.ch h3{margin:0;font-size:15px;line-height:1.25}
+.ch .co{color:var(--muted);font-size:12.5px}
+.ch .x{margin-left:auto;cursor:pointer;border:0;background:transparent;color:var(--muted);font-size:20px;line-height:1}
+.say{margin:8px 0 0;font-size:15px;line-height:1.4}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.btn{cursor:pointer;border:1px solid var(--ink);background:transparent;border-radius:4px;padding:6px 11px;font-weight:600;font-size:13px}
+.btn.p{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.btn.q{border-color:var(--line)}
+.leafbtn{all:unset;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-size:13.5px}
+.leafbtn:hover{border-color:var(--ink)}
+.leafbtn b{font-weight:600}
+.leafbtn .s{color:var(--muted);font-size:12.5px}
+.leafbtn .tw{color:var(--muted);transition:transform .12s}
+.leafbtn[aria-expanded="true"] .tw{transform:rotate(90deg)}
+.deep{margin:6px 0 2px 18px;padding-left:14px;border-left:2px dashed var(--line);font-size:13.5px}
+.deep .r{display:grid;grid-template-columns:1fr auto;gap:10px;padding:5px 0;border-bottom:1px solid var(--well)}
+.deep .r:last-child{border-bottom:0}
+.deep .r .s{color:var(--muted);font-size:12.5px}
+.flag{color:var(--s-review);font-weight:600;font-size:12px}
+.own{color:var(--s-reply);font-weight:600;font-size:12px}
+.shot{height:120px;border:1px solid var(--line);border-radius:4px;background:repeating-linear-gradient(180deg,var(--well) 0 10px,var(--surface) 10px 22px);margin:6px 0}
+.why{margin:4px 0}
+.why .r{display:flex;gap:10px;align-items:center;padding:4px 0;font-size:13.5px}
+.why .r b{min-width:28px;text-align:right}
+
+/* side column */
+.sblk{padding:14px 16px;border-bottom:1px solid var(--line)}
+.sblk h2{margin:0 0 8px;font-size:14px;display:flex;justify-content:space-between;align-items:baseline}
+.sblk h2 span{color:var(--muted);font-weight:500;font-size:12.5px}
+.si{display:flex;gap:10px;align-items:center;padding:7px 0;cursor:pointer;border-bottom:1px solid var(--grid)}
+.si:last-child{border-bottom:0}
+.si .t{font-size:13.5px;font-weight:600;line-height:1.3}
+.si .s{font-size:12.5px;color:var(--muted);line-height:1.35}
+.warnline{border:1.5px solid var(--s-need);border-radius:6px;padding:10px 12px;background:var(--surface);font-size:13.5px}
+.warnline b{display:block}
+.small{font-size:12.5px;color:var(--muted)}
+.tidy{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+
+/* drawer & map */
+.drawer{position:absolute;inset:0 0 0 auto;width:min(380px,100%);background:var(--surface);border-left:1px solid var(--line);box-shadow:-10px 0 24px rgba(0,0,0,.12);z-index:40;padding:16px 18px;overflow:auto}
+.drawer h3{margin:0 0 10px;font-size:16px;display:flex;justify-content:space-between}
+.drawer h4{margin:14px 0 4px;font-size:13px;color:var(--muted)}
+.set{display:grid;grid-template-columns:1fr auto;gap:10px;padding:8px 0;border-bottom:1px solid var(--grid);font-size:14px}
+.rel{position:relative}
+.map{margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px 18px}
+.map h2{margin:0 0 4px;font-size:17px}
+.map table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+.map th,.map td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--grid);vertical-align:top}
+.map th{font-size:12.5px;color:var(--muted);font-weight:600}
+.tw-wrap{overflow-x:auto}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:10px}
+.legend span::before{content:"";display:inline-block;width:11px;height:11px;border-radius:3px;border:2.5px solid var(--c);margin-right:6px;vertical-align:-2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <span class="mark"><span class="slash" aria-hidden="true"></span>draft</span>
+    <div class="seg" role="group" aria-label="Theme">
+      <button data-t="light">Paper Light</button>
+      <button data-t="dark">Charcoal Dark</button>
+      <button data-t="contrast-light">Contrast Light</button>
+      <button data-t="contrast-dark">Contrast Dark</button>
+    </div>
+  </div>
+
+  <div class="app rel" id="app">
+    <div class="ahead">
+      <div><h1>Draft House</h1><p id="sentence"></p></div>
+      <div class="ctl">
+        <div class="mode" role="group" aria-label="Mode"><button data-mode="ask">Ask me first</button><button data-mode="auto">Apply for me</button></div>
+        <button class="tb" id="pause">Pause</button>
+        <button class="tb" id="settings">Settings</button>
+      </div>
+    </div>
+    <div class="main">
+      <div class="tree" id="tree"></div>
+      <aside class="side" id="side" aria-label="What matters now"></aside>
+    </div>
+  </div>
+  <div class="legend">
+    <span style="--c:var(--s-need)">Needs you</span><span style="--c:var(--s-review)">Ready for your review</span><span style="--c:var(--s-pick)">Picked</span>
+    <span style="--c:var(--s-work)">Working on it</span><span style="--c:var(--s-sent)">Sent</span><span style="--c:var(--s-reply)">Replied</span><span style="--c:var(--s-fail)">Stopped</span>
+  </div>
+
+  <section class="map">
+    <h2>Where everything on today's Draft House went</h2>
+    <p class="small" style="margin:0">Every feature in the current page (AutoApplyPanel and its sections), and its home in the tree.</p>
+    <div class="tw-wrap"><table>
+      <thead><tr><th>Today</th><th>In the tree</th></tr></thead>
+      <tbody>
+        <tr><td>Run bar: SEMI / FULL AUTO, caps, Stop everything</td><td>The header: one sentence, the two modes, Pause</td></tr>
+        <tr><td>Auto settings drawer, Portals drawer</td><td>One Settings drawer, two sections</td></tr>
+        <tr><td>Waiting line</td><td>The header sentence</td></tr>
+        <tr><td>Jobs needing review, Review all, Approve &amp; send, Approve all (two presses)</td><td>Side column: Ready for your review, with Review all. Each job's branch: Approve &amp; send</td></tr>
+        <tr><td>Fuzzy-matched answers flagged, your own statements marked</td><td>Branch leaf: Answers, with "read this" and "your statement" flags</td></tr>
+        <tr><td>Picture of the filled form</td><td>Branch leaf: The form as filled</td></tr>
+        <tr><td>Obstacle cards: sign-in, required fields empty, posting removed, answers too old, no confirmation</td><td>A red or orange ring; the branch's one sentence names the obstacle and its next action. Sign-ins also show as a side warning</td></tr>
+        <tr><td>Open &amp; fill, Apply yourself, Run it again, Prepare again</td><td>The branch's next-action buttons</td></tr>
+        <tr><td>Save this answer for next time, Save &amp; retry</td><td>Inside the question's branch</td></tr>
+        <tr><td>Rows grouped by company, queued, in flight</td><td>Bubbles on the runs; filter Running; company name on zoom</td></tr>
+        <tr><td>Generate résumé, résumé PDF, ATS band, What we changed</td><td>Branch leaf: Your résumé for it</td></tr>
+        <tr><td>Every attempt, the fill log</td><td>Branch leaf: What happened (each attempt, why it stopped, its log)</td></tr>
+        <tr><td>Stopped list, Search what stopped, Clear older than 7 / 30 days, Restore, Delete now</td><td>Filter Stopped + the search box; Tidy up at the foot of the side column; Restore and Delete in the stopped job's branch</td></tr>
+        <tr><td>Select mode, Done selecting</td><td>Not needed: Review all covers the one bulk action</td></tr>
+        <tr><td>The job page (Checklist, Résumé, Form, Job, Emails)</td><td>Open the full page from any branch</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var rootEl = document.documentElement;
+  var ST = {
+    need: { n: "Needs you", c: "var(--s-need)" }, review: { n: "Ready for your review", c: "var(--s-review)" },
+    pick: { n: "Picked", c: "var(--s-pick)" }, work: { n: "Working on it", c: "var(--s-work)" },
+    sent: { n: "Sent", c: "var(--s-sent)" }, reply: { n: "Replied", c: "var(--s-reply)" }, fail: { n: "Stopped", c: "var(--s-fail)" }
+  };
+  var FILTERS = [["all", "All"], ["mine", "Needs you"], ["work", "Running"], ["done", "Sent and replies"], ["fail", "Stopped"]];
+  var cos = [["Northwind", "#2B59C3"], ["Halcyon", "#7A2E8E"], ["Quanta", "#1F7A4D"], ["Lumen", "#C2410C"], ["Vireo", "#0E7490"], ["Basalt", "#374151"], ["Kestrel", "#9D174D"], ["Orchard", "#4D7C0F"], ["Tessel", "#5B21B6"], ["Ferro", "#B45309"], ["Juniper", "#0F766E"], ["Cobalt", "#1D4ED8"]];
+  var titles = ["Software Engineer II", "Backend Engineer", "ML Engineer", "Platform Engineer", "Data Engineer", "SWE, New Grad", "Infrastructure Engineer", "Full Stack Engineer"];
+  var runs = [
+    { id: "r0", day: "Today", time: "5 PM", future: true, jobs: [] },
+    { id: "r1", day: "Today", time: "8 AM", seen: 214, skip: [["outside your filters", 21], ["you're not eligible", 9], ["stale or reposted", 6], ["over today's limit", 2]], jobs: [["need", "q"], ["review"], ["pick"], ["work"]] },
+    { id: "r2", day: "Yesterday", time: "5 PM", seen: 168, skip: [["outside your filters", 17], ["you're not eligible", 4], ["stale or reposted", 3]], jobs: [["sent"], ["need", "signin"], ["fail", "removed"]] },
+    { id: "r3", day: "Yesterday", time: "8 AM", seen: 231, skip: [["outside your filters", 25], ["you're not eligible", 7]], jobs: [["reply", "Interview"], ["sent"], ["review"], ["fail", "noconfirm"]] },
+    { id: "r4", day: "Thu 29", time: "5 PM", seen: 150, skip: [["outside your filters", 14], ["stale or reposted", 2]], jobs: [["sent"], ["reply", "Assessment"]] },
+    { id: "r5", day: "Thu 29", time: "8 AM", seen: 205, skip: [["outside your filters", 19], ["you're not eligible", 5]], jobs: [["sent"], ["sent"], ["reply", "Rejected"]] },
+    { id: "r6", day: "Wed 28", time: "5 PM", seen: 177, skip: [["outside your filters", 15]], jobs: [["sent"], ["fail", "empty"]] }
+  ];
+  var all = [], n = 0;
+  runs.forEach(function (r) {
+    r.jobs = r.jobs.map(function (spec) {
+      var co = cos[(n * 5 + 2) % cos.length];
+      var j = { id: "j" + n, s: spec[0], why: spec[1], co: co[0], col: co[1], title: titles[n % titles.length], run: r, ats: ["Strong", "Good", "Strong", "Fair"][n % 4] };
+      n++; all.push(j); return j;
+    });
+  });
+  var S = { mode: "ask", paused: false, filter: "all", q: "", zoom: 1, openJob: null, openRun: null, leaves: {}, drawer: false };
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (m) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]; }); }
+  function inFilter(j) {
+    var f = S.filter;
+    var ok = f === "all" || (f === "mine" && (j.s === "need" || j.s === "review" || j.s === "pick")) || (f === "work" && j.s === "work") || (f === "done" && (j.s === "sent" || j.s === "reply")) || (f === "fail" && j.s === "fail");
+    if (ok && S.q) ok = (j.co + " " + j.title + " " + (story(j).say)).toLowerCase().indexOf(S.q.toLowerCase()) >= 0;
+    return ok;
+  }
+  function bub(j, sm) {
+    var st = ST[j.s];
+    var cls = "bub" + (sm ? " sm" : "") + ((j.s === "need" || j.s === "work" || j.s === "review") ? " pulse" : "") + (S.openJob === j ? " sel" : "") + (!sm && !inFilter(j) ? " dim" : "");
+    return '<button class="' + cls + '" data-j="' + j.id + '" style="--c:' + j.col + ";--sc:" + st.c + '" aria-label="' + esc(j.co + ", " + j.title + ", " + st.n) + '" aria-expanded="' + (S.openJob === j) + '">' + j.co.charAt(0) + '<span class="ring"></span></button>';
+  }
+
+  function story(j) {
+    var A = function (p, q) { return { p: p, q: q || [] }; };
+    if (j.s === "need" && j.why === "q") return { say: "One question it couldn't answer: your earliest start date. Then it sends.", a: A(["Answer"], ["Stop this one"]), ask: true };
+    if (j.s === "need" && j.why === "signin") return { say: "The company's site wants you signed in. Your Workday sign-in expired.", a: A(["Sign in again"], ["Apply yourself"]) };
+    if (j.s === "review") return { say: "Filled and ready. Read it, then send it.", a: A(["Approve & send"], ["Reject"]) };
+    if (j.s === "pick") return { say: "Picked this morning. Nothing is sent until you say so.", a: A(["Apply"], ["Pass"]) };
+    if (j.s === "work") return { say: "Filling the form now, 14 of 22. Nothing needed from you.", a: A([], ["Stop this one"]) };
+    if (j.s === "fail" && j.why === "removed") return { say: "Stopped: the company took the posting down.", a: A([], ["Remove", "Restore"]) };
+    if (j.s === "fail" && j.why === "noconfirm") return { say: "Stopped: it pressed Submit but the page showed no confirmation. Check the picture of the form.", a: A(["Check it"], ["Run it again", "Apply yourself"]) };
+    if (j.s === "fail" && j.why === "empty") return { say: "Stopped: two required fields had no answer it could use.", a: A(["Answer them"], ["Apply yourself"]) };
+    if (j.s === "reply" && j.why === "Interview") return { say: "They want to interview you.", a: A(["Open interview prep"], ["Add the date"]) };
+    if (j.s === "reply" && j.why === "Assessment") return { say: "They sent an online assessment.", a: A(["Open the email"], ["Prep for it"]) };
+    if (j.s === "reply") return { say: "They said no. It's closed.", a: A([], ["Note why"]) };
+    return { say: "Sent " + j.run.day.toLowerCase() + " at " + j.run.time + ". No reply yet.", a: A([], ["I heard back", "Withdraw"]) };
+  }
+
+  function leaf(j, key, label, sub, body) {
+    var k = j.id + ":" + key, open = !!S.leaves[k];
+    return '<div class="node"><button class="leafbtn" data-leaf="' + k + '" aria-expanded="' + open + '"><span><b>' + label + "</b> <span class='s'>" + sub + '</span></span><span class="tw">›</span></button>' + (open ? '<div class="deep">' + body + "</div>" : "") + "</div>";
+  }
+  function jobBranch(j) {
+    var st = ST[j.s], s = story(j);
+    var lead = '<div class="node"><div class="card lead"><div class="ch">' + bub(j, true) + "<div><h3>" + esc(j.title) + '</h3><div class="co">' + esc(j.co) + " · " + st.n + (j.why && j.s === "reply" ? ": " + j.why : "") + '</div></div><button class="x" data-closejob aria-label="Close">×</button></div>' +
+      '<p class="say">' + s.say + "</p>" +
+      (s.ask ? '<div style="margin-top:8px"><input aria-label="Earliest start date" placeholder="e.g. January 5" style="width:100%;border:1px solid var(--line);background:var(--well);color:var(--ink);border-radius:4px;padding:7px 9px;font:inherit"><label class="small" style="display:block;margin-top:6px"><input type="checkbox" checked> Save this answer for next time</label></div>' : "") +
+      '<div class="acts">' + s.a.p.map(function (x) { return '<button class="btn p">' + x + "</button>"; }).join("") + s.a.q.map(function (x) { return '<button class="btn q">' + x + "</button>"; }).join("") + '<button class="btn q">Full page</button></div></div></div>';
+    var hap = '<div class="r"><span>Picked at ' + j.run.time + ': good match, you\'re eligible</span><span class="s">' + j.run.time + "</span></div>";
+    if (j.s !== "pick") hap += '<div class="r"><span>You tapped Apply in the picks email</span><span class="s">+20 min</span></div><div class="r"><span>Attempt 1: form opened, 22 fields</span><span class="s">+27 min</span></div>';
+    if (j.s === "fail") hap += '<div class="r"><span>Attempt 1 stopped: ' + s.say.replace("Stopped: ", "") + '</span><span class="s">+31 min</span></div><div class="r"><span><u>The run\'s log</u></span><span class="s"></span></div>';
+    if (j.s === "sent" || j.s === "reply") hap += '<div class="r"><span>Sent; confirmation email arrived</span><span class="s">+33 min</span></div>';
+    var leaves = "";
+    leaves += leaf(j, "hap", "What happened", j.s === "fail" ? "1 attempt, stopped" : j.s === "pick" ? "picked" : "1 attempt", hap);
+    if (j.s !== "pick") {
+      leaves += leaf(j, "ans", "Answers", j.s === "review" ? "22 filled · 2 to read · 1 is your statement" : "22 filled",
+        '<div class="r"><span>Years of Python</span><span class="s">5, from your profile</span></div>' +
+        '<div class="r"><span>Are you open to relocation? <span class="flag">read this: matched loosely</span></span><span class="s">Yes, saved answer</span></div>' +
+        '<div class="r"><span>I certify the information is true <span class="own">your own statement</span></span><span class="s">left for you</span></div>' +
+        '<div class="r"><span>Why this company?</span><span class="s">saved answer</span></div>');
+      leaves += leaf(j, "form", "The form as filled", "a picture of the page", '<div class="shot" role="img" aria-label="Picture of the filled form"></div><span class="small">Read it before you approve. After sending it is the record of what went out.</span>');
+    }
+    leaves += leaf(j, "res", "Your résumé for it", "ATS " + j.ats + (j.s === "pick" ? " · made after you tap Apply" : " · 4 changes"),
+      j.s === "pick" ? '<div class="r"><span>Not made yet: it is tailored only after you tap Apply.</span><span class="s"></span></div><div class="r"><span><u>Make it now</u></span><span class="s"></span></div>' :
+      '<div class="r"><span>What we changed: 4 bullets reworded, nothing added</span><span class="s"><u>see</u></span></div><div class="r"><span>ATS match: ' + j.ats + '</span><span class="s">against this posting</span></div><div class="r"><span><u>Résumé PDF</u></span><span class="s"></span></div>');
+    leaves += leaf(j, "job", "The job", "posting, pay, why it was picked", '<div class="r"><span>Good match · you\'re eligible · posted yesterday</span><span class="s"></span></div><div class="r"><span><u>The posting</u></span><span class="s">on the company\'s site</span></div>');
+    return '<div class="branch" style="--bc:' + st.c + '">' + lead + leaves + "</div>";
+  }
+  function runBranch(r) {
+    var left = r.skip.reduce(function (a, b) { return a + b[1]; }, 0);
+    return '<div class="branch"><div class="node"><div class="card"><div class="ch"><div><h3>' + r.day + ", " + r.time + '</h3><div class="co">Looked at ' + r.seen + " new postings</div></div><button class=\"x\" data-closerun aria-label=\"Close\">×</button></div>" +
+      '<p class="say">Picked ' + r.jobs.length + ", left out " + left + ".</p><div class='why'>" + r.skip.map(function (s) { return "<div class='r'><b>" + s[1] + "</b><span>left out: " + s[0] + "</span></div>"; }).join("") + "</div>" +
+      '<div class="acts"><button class="btn q">Change filters</button><button class="btn q">See what was left out</button></div></div></div></div>';
+  }
+
+  function renderTree() {
+    var h = '<div class="filters">' + FILTERS.map(function (f) {
+      var c = f[0] === "mine" ? "var(--s-need)" : f[0] === "work" ? "var(--s-work)" : f[0] === "done" ? "var(--s-sent)" : f[0] === "fail" ? "var(--s-fail)" : "var(--ink)";
+      return '<button class="chip" data-f="' + f[0] + '" aria-pressed="' + (S.filter === f[0]) + '"><i style="--c:' + c + '"></i>' + f[1] + "</button>";
+    }).join("") + '<input class="srch" id="q" placeholder="Search, e.g. a company" value="' + esc(S.q) + '" aria-label="Search"><span class="zoom"><button data-z="-" aria-label="Less detail">−</button><button data-z="+" aria-label="More detail">+</button></span></div>';
+    var lastDay = "";
+    h += '<div class="trunk">';
+    runs.forEach(function (r, idx) {
+      if (r.day !== lastDay) { h += '<div class="day">' + r.day + "</div>"; lastDay = r.day; }
+      if (idx === 1) h += '<div class="nowline"><span>Now</span></div>';
+      var shown = r.jobs.filter(inFilter);
+      if (!r.future && S.filter !== "all" && !shown.length) return;
+      var meta = r.future ? "Next look. You'll get one email with the picks." : (S.zoom > 0 ? r.seen + ' looked at · ' + r.jobs.length + ' picked · <button data-r="' + r.id + '">' + (S.openRun === r ? "hide" : "why these") + "</button>" : "");
+      var bs = (S.filter === "all" ? r.jobs : shown).map(function (j) { return S.zoom === 2 ? '<div class="bwrap">' + bub(j) + '<span class="bname">' + esc(j.co) + "</span></div>" : bub(j); }).join("");
+      h += '<div class="run"><div class="rt">' + r.time + '</div><button class="rn' + (r.future ? " future" : "") + (S.openRun === r ? " open" : "") + '" ' + (r.future ? "" : 'data-r="' + r.id + '"') + ' aria-label="Run ' + r.day + " " + r.time + '"></button><div class="rb">' + (meta ? '<span class="rmeta">' + meta + "</span>" : "") + bs + "</div></div>";
+      if (S.openRun === r) h += runBranch(r);
+      if (S.openJob && S.openJob.run === r) h += jobBranch(S.openJob);
+    });
+    h += "</div>";
+    var tree = document.getElementById("tree"), sc = tree.scrollTop;
+    tree.innerHTML = h; tree.scrollTop = sc;
+  }
+
+  function renderSide() {
+    var review = all.filter(function (j) { return j.s === "review"; }), ask = all.filter(function (j) { return j.s === "need" && j.why === "q"; }), pick = all.filter(function (j) { return j.s === "pick"; });
+    var work = all.filter(function (j) { return j.s === "work"; }), rep = all.filter(function (j) { return j.s === "reply" && j.why !== "Rejected"; });
+    function list(arr) { return arr.map(function (j) { return '<div class="si" data-j="' + j.id + '">' + bub(j, true) + '<div><div class="t">' + esc(j.co) + " · " + esc(j.title) + '</div><div class="s">' + story(j).say + "</div></div></div>"; }).join(""); }
+    var h = "";
+    h += '<div class="sblk"><div class="warnline"><b>Your Workday sign-in expired</b>One job is waiting on it. <u>Sign in again</u></div></div>';
+    h += '<div class="sblk"><h2>Needs you <span>' + (ask.length + pick.length) + "</span></h2>" + list(ask.concat(pick)) + "</div>";
+    h += '<div class="sblk"><h2>Ready for your review <span>' + review.length + "</span></h2>" + list(review) + '<div class="acts"><button class="btn p">Review all</button></div><p class="small" style="margin:6px 0 0">Approve all is inside Review all, with one more confirm.</p></div>';
+    h += '<div class="sblk"><h2>Running <span>' + work.length + "</span></h2>" + list(work) + "</div>";
+    h += '<div class="sblk"><h2>Replies <span>' + rep.length + "</span></h2>" + list(rep) + "</div>";
+    h += '<div class="sblk"><h2>Tidy up</h2><span class="small">3 stopped jobs older than 7 days.</span><div class="tidy"><button class="btn q">Clear older than 7 days</button><button class="btn q">Older than 30</button></div></div>';
+    document.getElementById("side").innerHTML = h;
+  }
+
+  function renderHead() {
+    var mb = document.querySelectorAll("[data-mode]"); for (var i = 0; i < mb.length; i++) mb[i].setAttribute("aria-pressed", String(mb[i].getAttribute("data-mode") === S.mode));
+    document.getElementById("sentence").innerHTML = S.paused ? "<b>Paused.</b> Nothing new is picked or sent until you resume." :
+      "<b>On.</b> Next look at 5 PM. 3 of 10 sent today. " + (S.mode === "ask" ? "You tap Apply on each pick." : "Good matches are sent for you.");
+    document.getElementById("pause").textContent = S.paused ? "Resume" : "Pause";
+  }
+  function renderDrawer() {
+    var old = document.getElementById("drawer"); if (old) old.remove();
+    if (!S.drawer) return;
+    var d = document.createElement("div"); d.className = "drawer"; d.id = "drawer"; d.setAttribute("role", "dialog"); d.setAttribute("aria-label", "Settings");
+    d.innerHTML = '<h3>Settings <button class="x" data-closedrawer aria-label="Close" style="border:0;background:transparent;font-size:20px;cursor:pointer;color:var(--muted)">×</button></h3>' +
+      "<h4>When and how much</h4><div class='set'><span>Applications a day, at most</span><b>10</b></div><div class='set'><span>When to look for new jobs</span><b>8 AM, 5 PM</b></div><div class='set'><span>Picks arrive by</span><b>Email, notifications</b></div><div class='set'><span>Show me the form before sending</span><b>Off</b></div>" +
+      "<h4>Which jobs</h4><div class='set'><span>Filters</span><b>My board filters</b></div><div class='set'><span>Per company, last 30 days</span><b>Off</b></div><div class='set'><span>Skip a company after it interviews me</span><b>60 days</b></div><div class='set'><span>Skip stale or reposted jobs</span><b>On</b></div>" +
+      "<h4>Accounts on job sites</h4><div class='set'><span>Amazon Jobs</span><b>Connected</b></div><div class='set'><span>Workday (Datadog)</span><b style='color:var(--s-need)'>Expired</b></div><div class='set'><span>Gmail, for codes and replies</span><b>Connected</b></div><div class='set'><span>Agree to a job site's terms for me</span><b>Off</b></div>";
+    document.getElementById("app").appendChild(d);
+    d.querySelector("[data-closedrawer]").addEventListener("click", function () { S.drawer = false; renderDrawer(); });
+  }
+  function find(id) { for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i]; }
+  function render() { renderHead(); renderTree(); renderSide(); wire(); }
+  function wire() {
+    var root = document.getElementById("app");
+    root.querySelectorAll("[data-j]").forEach(function (b) { b.addEventListener("click", function (e) { e.stopPropagation(); var j = find(this.getAttribute("data-j")); S.openJob = S.openJob === j ? null : j; S.openRun = null; render(); if (S.openJob) setTimeout(function () { var el = document.querySelector(".branch .card.lead"); if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, 0); }); });
+    root.querySelectorAll("[data-r]").forEach(function (b) { b.addEventListener("click", function () { var id = this.getAttribute("data-r"); var r = runs.filter(function (x) { return x.id === id; })[0]; S.openRun = S.openRun === r ? null : r; S.openJob = null; render(); }); });
+    root.querySelectorAll("[data-leaf]").forEach(function (b) { b.addEventListener("click", function () { var k = this.getAttribute("data-leaf"); S.leaves[k] = !S.leaves[k]; render(); }); });
+    root.querySelectorAll("[data-f]").forEach(function (b) { b.addEventListener("click", function () { S.filter = this.getAttribute("data-f"); render(); }); });
+    root.querySelectorAll("[data-z]").forEach(function (b) { b.addEventListener("click", function () { S.zoom = Math.max(0, Math.min(2, S.zoom + (this.getAttribute("data-z") === "+" ? 1 : -1))); render(); }); });
+    var cj = root.querySelector("[data-closejob]"); if (cj) cj.addEventListener("click", function () { S.openJob = null; render(); });
+    var cr = root.querySelector("[data-closerun]"); if (cr) cr.addEventListener("click", function () { S.openRun = null; render(); });
+    var q = document.getElementById("q");
+    if (q) q.addEventListener("input", function () { var pos = this.selectionStart; S.q = this.value; renderTree(); renderSide(); wire(); var nq = document.getElementById("q"); nq.focus(); nq.setSelectionRange(pos, pos); });
+  }
+  document.querySelectorAll("[data-mode]").forEach(function (b) { b.addEventListener("click", function () { S.mode = this.getAttribute("data-mode"); renderHead(); }); });
+  document.getElementById("pause").addEventListener("click", function () { S.paused = !S.paused; renderHead(); });
+  document.getElementById("settings").addEventListener("click", function () { S.drawer = !S.drawer; renderDrawer(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { S.openJob = null; S.openRun = null; S.drawer = false; renderDrawer(); render(); } });
+  function setTheme(t) { rootEl.setAttribute("data-theme", t); document.querySelectorAll("[data-t]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-t") === t)); }); try { localStorage.setItem("draft-house-tree", t); } catch (e) {} }
+  document.querySelectorAll("[data-t]").forEach(function (b) { b.addEventListener("click", function () { setTheme(this.getAttribute("data-t")); }); });
+  var sv = null; try { sv = localStorage.getItem("draft-house-tree"); } catch (e) {}
+  setTheme(sv || "light");
+  render();
+})();
+</script>
+</body>
+</html>

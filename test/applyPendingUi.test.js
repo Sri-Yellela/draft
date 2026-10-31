@@ -210,7 +210,10 @@ test("the pending surface gets its own CTA rather than hiding behind 'need revie
   assert.match(lib, /filled — waiting for your approval/);
   assert.match(lib, /for \(const p of pending\) \{/);
   assert.match(jobsPanel, /pending: applyPending/);
-  assert.match(jobsPanel, /label: "Review", glyph: "☰", primary: true/);
+  // D113 UI: one ring (Ready for your review) per application; its branch leads with Approve & send,
+  // and its Answers leaf reads every answer before it can be pressed.
+  assert.match(jobsPanel, /id: "approve", label: "Approve & send", kind: "primary"/);
+  assert.match(jobsPanel, /onClick=\{\(\) => openApprovalReview\(node\.ref\)\}>Review every answer/);
   assert.match(jobsPanel, /Approve &amp; send/);
 });
 
