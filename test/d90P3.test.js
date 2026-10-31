@@ -14,11 +14,13 @@ const HOUSE = read("client/src/panels/AutoApplyPanel.jsx");
 const TABLE = read("client/src/components/ApplicationHistory.jsx");
 
 test("⛔ D90 P3: Draft House shows what we changed BEFORE Approve & send — in the fold and in the review list", () => {
-  // The fold (the workspace item).
-  const fold = HOUSE.slice(at(HOUSE, "const foldFor = (item) => {"), at(HOUSE, `if (item.kind === "held") {`));
+  // D113 UI: the approval's lead card (its branch) — the line sits in the card, above the actions it renders.
   // (companyLabel: an ATS host must never reach the screen as a company — test/applyCompanyAttribution.test.js.)
-  assert.match(fold, /\{!r\.generationDeferred && <ChangesSummaryLine jobId=\{r\.jobId\} jobLabel=\{companyLabel\(r\.company\)\} \/>\}/);
-  assert.ok(at(fold, "<ChangesSummaryLine") < at(fold, "Approve &amp; send"), "the line comes after Approve & send in the fold");
+  const lead = HOUSE.slice(at(HOUSE, "const renderJobBranch = (node) => {"), at(HOUSE, "const seeLeftOut = async"));
+  assert.match(lead, /\{node\.kind === "approval" && !node\.ref\.generationDeferred && <ChangesSummaryLine jobId=\{node\.ref\.jobId\} jobLabel=\{companyLabel\(node\.ref\.company\)\} \/>\}/);
+  const card = fs.readFileSync("client/src/components/DraftHouseTree.jsx", "utf8").replace(/\r\n/g, "\n");
+  const leadCard = card.slice(at(card, "export function LeadCard("), at(card, "export function Leaf("));
+  assert.ok(at(leadCard, "{children}") < at(leadCard, "actions.map("), "the line comes after Approve & send in the card");
   // The review list.
   const list = HOUSE.slice(at(HOUSE, "{/* D90 P3: what we changed in the résumé, read before Approve & send. */}"));
   assert.match(list, /\{!p\.generationDeferred && <ChangesSummaryLine jobId=\{p\.jobId\} jobLabel=\{companyLabel\(p\.company\)\} \/>\}/);

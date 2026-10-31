@@ -37,12 +37,13 @@ test("D100 · GET /api/portals says whether the apply worker is configured", asy
   assert.deepEqual(on.accounts, []);
 });
 
-test("D100 · the Portals drawer: Remove for each, consent said in full, create offered only with a worker", () => {
-  const ui = fs.readFileSync("client/src/components/PortalsDrawer.jsx", "utf8");
-  const bar = fs.readFileSync("client/src/components/DraftRunBar.jsx", "utf8");
+// D113 UI U8 (owner 10-31) on purpose: the Portals drawer is the ONE Settings drawer's third group, "Accounts on job sites".
+test("D100 · Accounts on job sites (the Settings drawer): Remove for each, consent said in full, create offered only with a worker", () => {
+  const ui = fs.readFileSync("client/src/components/AutoSettingsDrawer.jsx", "utf8");
   const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
-  assert.match(bar, /data-portals-open=""/);
-  assert.match(panel, /<PortalsDrawer open=\{portalsOpen\}/);
+  assert.match(ui, /data-settings-group="accounts"/);
+  assert.match(ui, /<Accounts \/>/);
+  assert.match(panel, /<AutoSettingsDrawer open=\{settingsOpen\}/);
   assert.match(ui, /api\(`\/api\/portals\/\$\{p\.id\}`, \{ method: "DELETE" \}\)/);
   assert.match(ui, /api\(`\/api\/portals\/accounts\/\$\{a\.id\}`, \{ method: "DELETE" \}\)/);
   assert.match(ui, /\{d\.worker \? \(/, "create is offered only when something can do it");

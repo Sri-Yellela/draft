@@ -32,9 +32,10 @@ test("D102 P5 · The Table's History opens a row's page by its record id", () =>
   assert.match(history, /navigate\(`\/app\/job\/\$\{row\.recordId\}`\)/);
 });
 
-test("D102 P5 · Draft House's stopped item opens the same page by its job id", () => {
+// D113 UI: a job's branch carries "Full page" — the same page, by its job id.
+test("D102 P5 · Draft House's job branch opens the same page by its job id", () => {
   const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
-  assert.match(panel, /href=\{`\/app\/job\/for\/\$\{encodeURIComponent\(item\.jobId\)\}`\}/);
+  assert.match(panel, /fullHref=\{node\.jobId != null \? `\/app\/job\/for\/\$\{encodeURIComponent\(node\.jobId\)\}` : undefined\}/);
   assert.match(page, /`\/api\/pipeline\/job-for\/\$\{encodeURIComponent\(jobId\)\}`/);
 });
 
@@ -42,7 +43,7 @@ test("D102 P5 · list and detail: on a wide screen Draft House opens an applicat
   const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
   const manifest = fs.readFileSync("client/src/modules.manifest.js", "utf8");
   assert.match(panel, /const sideDetail = viewportWidth >= 1280;/);
-  assert.match(panel, /if \(sideDetail\) setSideJob\(item\.jobId\); else navigate\(/, "narrower, it still goes to the page");
+  assert.match(panel, /if \(sideDetail\) setSideJob\(String\(jobId\)\); else navigate\(/, "narrower, it still goes to the page");
   assert.match(panel, /\{sideJob && sideDetail \? \(\s*<aside data-draft-detail=""/);
   assert.match(panel, /<JobWorkspacePanel jobId=\{sideJob\} embedded \/>/);
   assert.match(manifest, /from: "panels\/AutoApplyPanel\.jsx", to: "panels\/JobWorkspacePanel\.jsx"/, "a declared composition (A93)");

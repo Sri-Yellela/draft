@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/api.js";
 import { companyRows, matchCompany } from "../../../shared/companyIdentity.js";
 import { useNavigate } from "react-router-dom";
@@ -9,66 +9,61 @@ import {
   groupByApplication, groupByCompany, splitByFault, resolutionPlan, PREREQUISITE_LABELS,
 } from "../lib/applyObstacles.js";
 import {
-  SectionHeading, ApplicationRow, ApplicationObstacleCard, CompanyHeading, AttemptRow,
+  ApplicationRow, ApplicationObstacleCard, CompanyHeading, AttemptRow,
 } from "./AutoApplyPanelSections.jsx";
-// D25: the ONE control this panel still takes from the Database panel's chrome, reused rather than
-// forked — PanelSearch narrows the Stopped column once it is long. PanelSubTabs and DateFilterButton
-// were AD1's outcome tabs and calendar; the workspace model has neither (see the header below), and
-// the Database panel keeps all three (test/d25DraftHouseWorkspace.test.js pins both facts).
-import { PanelSearch } from "../components/ui/PanelControls.jsx";
 import { companyLabel, UNKNOWN_COMPANY } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import { TYPE } from "../styles/type.js";
+// U6 · the tree's search is the shared one (PanelControls), never redrawn.
+import { PanelSearch } from "../components/ui/PanelControls.jsx";
 import WaitingLine from "../components/WaitingLine.jsx";
-import DraftRunBar from "../components/DraftRunBar.jsx";
 import AutoSettingsDrawer from "../components/AutoSettingsDrawer.jsx";
-import PortalsDrawer from "../components/PortalsDrawer.jsx";
+import DraftHouseTree, { Branch, LeadCard, Leaf, RunCard } from "../components/DraftHouseTree.jsx";
+import DraftHouseSide from "../components/DraftHouseSide.jsx";
 import { JobWorkspacePanel } from "./JobWorkspacePanel.jsx";
-import StoppedItem from "../components/StoppedItem.jsx";
-import { buildStoppedItems, splitAnswers, filterItems, SEARCH_FROM, packetLife } from "../lib/draftHouseExceptions.js";
+import { buildStoppedItems, packetLife, autoToggle, STOP_DOES, STOP_DOES_NOT } from "../lib/draftHouseExceptions.js";
+import {
+  buildNodes, buildTree, treeView, sideBlocks, branchStep, createLeafCache, answerRows, inlineAnswerStart, isOwnStatement,
+  leftOutLines, nextRunFromSettings, timeLabel, connectionsFromStopped,
+} from "../lib/draftHouseTree.js";
+import {
+  loadRuns, loadLeftOut, actOnPick, loadAutoSettings, setPicksSwitch, loadTableRows, loadConnections, loadAnswers,
+} from "../lib/draftHouseRuns.js";
+import { jobDetailHref } from "../lib/jobUrl.js";
 import { useViewport } from "../hooks/useViewport.js";
 import { A_PLUS_TOOL } from "../lib/applyTools.js";
 import { ChangesSummaryLine } from "../components/ResumeChangesPanel.jsx";
 import { postingClick } from "../lib/openPosting.js";
 
 // ============================================================
-// AutoApplyPanel — DRAFT HOUSE, the workspace (D14, D18, D25)
+// AutoApplyPanel — DRAFT HOUSE, a tree that grows inline (D113 UI, owner 10-31)
 // ============================================================
 // The tab reads "Draft House" (D18). The file and the /app/auto-apply route keep their old names —
 // renaming them is cost without benefit (docs/BRAND.md) — but nothing on the page is "Auto Apply".
 //
-// THE WORKSPACE MODEL (D25, docs/DRAFT_HOUSE_WORKSPACE.md):
+// THE TREE MODEL (D113 UI U1–U10, docs/sketches/draft-house-tree.html; the WORKLOG row wins):
 //
-//   RUN BAR   the mode (SEMI; AUTO visibly LOCKED unless the server says otherwise), the three caps
-//             with how much of each is used, and ⏸ Stop everything, which reaches the server.
-//   STOPPED   ¾ — the working surface. EXCEPTIONS ONLY: what stopped and needs the user, one item
-//             each, with D1's hover rail and depth. Everything that worked stays quiet: an exact
-//             match is never listed, it is one line inside the fold ("12 of 14 needed no attention").
-//   QUEUED    ¼ — a glance: the line (A59) and what is in flight. Labelled "Queued", never "Running
-//             fine". Side by side from 1080 px; below that it stacks, Stopped FIRST (DOM order).
+//   HEADER  one sentence ("On. Next look at 5 PM. 3 of 10 sent today. You tap Apply on each pick."), the
+//           mode switch Ask me first | Apply for me, Pause / Resume (= Stop everything) and Settings —
+//           ONE drawer with three groups (components/AutoSettingsDrawer.jsx).
+//   TREE    left, scrolls: the next run as a dashed square, a Now line, then each run newest first with
+//           its jobs as CompanyBubbles (the bubble standard). One BRANCH open at a time grows in place:
+//           a run's card (picked, left out by reason) or a job's lead card + four leaves.
+//   SIDE    right, 340 px (on top below 900 px): broken connections, Needs you, Ready for your review +
+//           Review all (Approve all inside it, with its second confirm), Running, Replies, Tidy up.
 //
-// ⛔ NO SENT COLUMN — what went out lives in The Table (D15). ⛔ NO NUMBERED FLOW BOXES.
-//
-// WHAT D25 REMOVED, because the workspace model does not call for it: AD1's COMPLETED / PENDING /
-// ABORTED sub-tabs (COMPLETED was a Sent column), its search-and-calendar control row and the four
-// date empty states, AH6's "most recent activity" day, and AC3's company TILES with the
-// groupByCompany / splitByFault listings under each tab. Terminal outcomes are history, and history
-// is The Table's. AB2's groupByApplication stays — one application is one item however many times it
-// was held — and so does the review modal below, the deep review every item opens.
-//
-// D22, ANTICIPATED AND NOT BUILT: a remote run will be a Queued row with its own phase text, and an
-// expired portal session a Stopped item (lib/draftHouseExceptions.js — one more `kind`, no new list).
+// ⛔ REPLACED: D25's run bar, the separate Stopped list with its search, the tabbed list and select
+// mode (Review all covers its one bulk use). ⛔ NO second status model: every ring
+// is D102's ladder (shared/applicationStatus.js → lib/draftHouseTree.js ringFor). ⛔ NO second
+// exceptions model: buildStoppedItems / groupByApplication / splitByFault / packetLife still decide
+// what is held, broke or blocking. D113's runs and picks come through ONE adapter
+// (lib/draftHouseRuns.js), which falls back to today's attempts grouped by day when its routes 404.
+// The deep review behind every item (the modal below) is unchanged.
 //
 // The state is AutoApplyContext's, so the board and this panel read one pipeline.
 // ============================================================
-
-// D14: the eyebrow over each of the two columns — Stopped and Queued.
-const COLUMN_LABEL = (theme) => ({
-  fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
-  color: theme.textMuted, paddingBottom: 6, borderBottom: `1px solid ${theme.border}`,
-});
 
 export function AutoApplyPanel() {
   const { theme } = useTheme();
@@ -86,7 +81,7 @@ export function AutoApplyPanel() {
     // A59: Drafts waiting in line behind the running one, editable until they start.
     applyLine = { waiting: [], held: null }, lineMsg, lineBusyId, setLineTool, moveInLine, removeFromLine,
     draftTool,
-    // D25: the run bar.
+    // D25's run bar data, read by the header now (mode, caps, hold).
     runBar = null, setStopEverything, setApplyMode, holdBusy = false, holdMsg = "",
     applyRunDetailOpen, setApplyRunDetailOpen,
     applyRunDetail, setApplyRunDetail,
@@ -107,28 +102,23 @@ export function AutoApplyPanel() {
     bin = { items: [], binDays: 7 }, binMsg = "", binBusy = false, clearRunJobs, restoreBinItem, purgeBinItem, countOlderThan,
   } = useAutoApply();
 
+  // Empty is a real state and is said plainly. Every cross-run feed counts: a user whose only
+  // applications are SUBMITTED was once told "Nothing queued" over the top of their own applications.
   const nothingYet =
     !applyMsg && !applyRuns.length &&
     !applyReviewJobs.length && !applyPending.length && !applyQuestions.length &&
-    // The four cross-run feeds count too: a user whose only applications are SUBMITTED used to be
-    // told "Nothing queued" over the top of their own sent applications.
     !applyInFlight.length && !applySubmitted.length && !applyStopped.length &&
     !applyPrereqMissing.length && !(applyLine.waiting || []).length;
 
   // ── AB2: ONE ITEM PER APPLICATION ───────────────────────────────────────────────────────────
-  //
   // The server returns one row per RUN-JOB, so a job held, re-run and held again for a different
-  // reason is three rows. Keying on the obstacle sentence once scattered that one application across
-  // three cards, each reporting "1 APPLICATION". groupByApplication is the rule that makes it one.
-  // The obstacle grouping is NOT gone; it lives where it is true — the portal items below, where one
-  // sign-in releases many (applyObstacles.js has the two-halves rule).
+  // reason is three rows. groupByApplication is the rule that makes it one bubble.
   const heldApplications = groupByApplication(applyReviewJobs);
 
   // ── D25: WHAT BROKE, AND ONLY WHAT BROKE ────────────────────────────────────────────────────
-  // splitByFault keeps held-on-purpose apart from broke — the distinction this line of work exists
-  // to preserve. Only the BROKE half needs the user (retry it, or apply yourself); the held half
-  // is history. A failure whose job has since been drafted again is not listed: the newer attempt
-  // is what that application is doing now.
+  // splitByFault keeps held-on-purpose apart from broke. Only the BROKE half needs the user; the
+  // held half is history. A failure whose job has since been drafted again is not listed: the newer
+  // attempt is what that application is doing now.
   const liveJobIds = new Set([
     ...applyInFlight, ...applyReviewJobs, ...applyGatedJobs, ...applySubmitted, ...applyPending,
     ...(applyLine.waiting || []).flatMap(r => r.jobs || []),
@@ -136,30 +126,45 @@ export function AutoApplyPanel() {
   const brokeApplications = groupByApplication(
     splitByFault(applyStopped).broke.filter(j => !liveJobIds.has(String(j.jobId))));
 
-  // ── D25: THE STOPPED COLUMN, AS DATA ────────────────────────────────────────────────────────
-  // Every exception, in the order the user should meet them: what blocks everything, then what one
-  // action clears for many, then one item per application. lib/draftHouseExceptions.js decides what
-  // is listed and how it reads; this file attaches the actions.
+  // The one exceptions model, read for what blocks EVERYTHING (a missing profile field) and what one
+  // sign-in releases for many (a portal batch) — the side column's first block.
   const stoppedItems = buildStoppedItems({
     prereqMissing: applyPrereqMissing, prereqLabels: PREREQUISITE_LABELS,
     gatePortals: applyGatePortals, questions: applyQuestions, pending: applyPending,
     heldApplications, brokeApplications, companyLabel,
   });
-  const [search, setSearch] = useState("");
-  // D102 P4: the Auto settings drawer, opened from the run bar; focus returns to the button that opened it.
+
+  // ── D113 · the runs, the picks and what the tree needs on the same rhythm (lib/draftHouseRuns.js) ──
+  const [d113, setD113] = useState({ available: false, runs: [], nextRunAt: null });
+  const [settings, setSettings] = useState(null);
+  const [tableRows, setTableRows] = useState([]);
+  const [connections, setConnections] = useState([]);
+  useEffect(() => {
+    let live = true;
+    loadRuns().then(r => live && setD113(r));
+    loadTableRows().then(r => live && setTableRows(r));
+    return () => { live = false; };
+  }, [applyRuns.length, applyPending.length, applySubmitted.length, applyInFlight.length]);
+  useEffect(() => {
+    let live = true;
+    loadConnections().then(c => live && setConnections(c));
+    return () => { live = false; };
+  }, [applyGatePortals.length]);
+
+  // U8 · the ONE Settings drawer; focus returns to the button that opened it. `group` scrolls to one.
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // A105 finding 6: Approve all in the column's header — two deliberate presses (it sends several real applications),
-  // not three behind a modal. The server still leaves ineligible ones in Ready to approve (skippedIneligible).
-  const [confirmSendAll, setConfirmSendAll] = useState(false);
+  const [settingsGroup, setSettingsGroup] = useState(null);
   const settingsOpener = useRef(null);
-  // D100: the Portals drawer — sessions and accounts draft applies with (sketch: the run bar's Portals).
-  const [portalsOpen, setPortalsOpen] = useState(false);
-  // D102 P5: the application open beside the list (wide screens), by job id.
+  useEffect(() => { if (!settingsOpen) loadAutoSettings().then(setSettings); }, [settingsOpen]);
+  const openSettings = (group = null, el = null) => {
+    settingsOpener.current = el || document.activeElement;
+    setSettingsGroup(group); setSettingsOpen(true);
+  };
+
+  // D102 P5: the application open beside the tree (wide screens), by job id — "Full page".
   const [sideJob, setSideJob] = useState(null);
   const fullAuto = runBar?.mode?.current === "auto";
-  const listedItems = filterItems(stoppedItems, search);
-  const [openKey, setOpenKey] = useState(null);
-  // ⭐ D54 · a stopped card's fold names the company's OTHER applications — The Table's rows, grouped by
+  // ⭐ D54 · a job's branch names the company's OTHER applications — The Table's rows, grouped by
   // the one identity (shared/companyIdentity.js). Re-read when the pipeline's feeds change.
   const [companyIndex, setCompanyIndex] = useState(null);
   useEffect(() => {
@@ -178,14 +183,8 @@ export function AutoApplyPanel() {
       others.map(x => `${x.title || "a role"} — ${x.label.toLowerCase()}`).join("; ") + ".";
   };
   const othersLine = (row) => { const t = companyOthers(row); return t ? <p className="dh-fold__quiet" data-company-others="">{t}</p> : null; };
-  // ⭐ D53 · MULTI-SELECT CLEAR. Only items that ARE applications are selectable (an approval, a held or a
-  // broke one); a portal or a question is not one thing to clear.
-  const [selecting, setSelecting] = useState(false);
-  const [selected, setSelected] = useState(() => new Set());
-  const idsOf = (item) => item.kind === "approval" ? [item.ref?.runJobId].filter(Boolean)
-    : (item.kind === "held" || item.kind === "broke") ? (item.ref?.rows || []).map(x => x.id).filter(Boolean) : [];
-  const toggleSelected = (item) => setSelected(prev => { const n = new Set(prev); n.has(item.key) ? n.delete(item.key) : n.add(item.key); return n; });
-  const selectedIds = stoppedItems.filter(i => selected.has(i.key)).flatMap(idsOf);
+  // ⭐ D53 · CLEAR OLDER THAN 7 / 30 DAYS — each confirmed with its count; the bin keeps them 7 days.
+  // ⛔ D113 UI U9: no select mode — Review all covers its one bulk use, and each job clears in its branch.
   const confirmOlder = async (days) => {
     const n = await countOlderThan?.(days);
     if (n === 0) { window.alert(`Nothing unsent is older than ${days} days.`); return; }
@@ -193,30 +192,21 @@ export function AutoApplyPanel() {
   };
   const confirmClear = (count, body) => {
     if (!count) return;
-    if (window.confirm(`Clear ${count}? They stay in the bin for ${bin.binDays} days, then they are purged.`)) {
-      clearRunJobs(body); setSelected(new Set()); setSelecting(false);
-    }
+    if (window.confirm(`Clear ${count}? They stay in the bin for ${bin.binDays} days, then they are purged.`)) clearRunJobs(body);
   };
 
-  // D14: Stopped and Queued sit side by side from ~1080px; below that they stack, Stopped first.
-  const splitSideBySide = viewportWidth >= 1080;
+  // D102 P5: an opened application takes the right column from ~1280px; narrower it opens its own page.
   const sideDetail = viewportWidth >= 1280;
-  const queuedCount = (applyLine.waiting || []).length + applyInFlight.length;
 
   const needsYouCount =
     applyGatePortals.reduce((n, p) => n + (p.count || 0), 0) +
-    // APPLICATIONS, not rows. The old sum counted every held run-job, so one application held three
-    // times added 3 to the number on the tab and in this heading.
+    // APPLICATIONS, not rows: one application held three times is one.
     applyQuestions.length + applyPending.length + heldApplications.length +
     applyPrereqMissing.length;
-  // The column's own count is every item in it, broke ones included; "Review all" stays the review
-  // queue's number, which is what that control opens.
-  const stoppedCount = needsYouCount + brokeApplications.length;
 
   /**
-   * TASK Q — THE BUDGET IS ON THE SCREEN WHERE IT IS SPENT. The run bar carries all three caps; this
-   * says the one thing the bar cannot — how the approval budget compares with what is WAITING.
-   * Stated only when the server sent a cap and there is something to approve.
+   * TASK Q — THE BUDGET IS ON THE SCREEN WHERE IT IS SPENT: how the approval budget compares with what
+   * is WAITING, beside Review all. Stated only when the server sent a cap and there is something to approve.
    */
   const approvalBudgetLine = !approvalCap || applyPending.length === 0 ? null
     : approvalCap.remaining === 0
@@ -391,438 +381,500 @@ export function AutoApplyPanel() {
    */
   const generateResume = (job) => { draftJob?.(job, companyLabel(job.company)); };
 
-  // ── D25: EACH ITEM'S RAIL AND FOLD ──────────────────────────────────────────────────────────
-  const toggle = (item) => {
-    const opening = openKey !== item.key;
-    setOpenKey(opening ? item.key : null);
-    // An approval's fold lists its GUESSES, which only the per-application review read has. Asked
-    // for when the fold opens — the user's action — never at render.
-    if (opening && item.kind === "approval" && pendingDetail?.runJobId !== item.ref.runJobId) {
-      openPendingDetail?.(item.ref.runJobId);
-    }
-  };
+  // ── D113 UI · THE TREE ──────────────────────────────────────────────────────────────────────
+  const [filter, setFilter] = useState("all");
+  const [q, setQ] = useState("");
+  const [zoom, setZoom] = useState(1);
+  const [open, setOpen] = useState(null);
+  const [leaves, setLeaves] = useState(() => new Set());
+  const [pickMsg, setPickMsg] = useState("");
+  const [leftOut, setLeftOut] = useState({});
+  const [, rerender] = useState(0);
+  // U4: a leaf's data is asked for only when the leaf is opened, once (lib/draftHouseTree.js).
+  const answersCache = useRef(null);
+  if (!answersCache.current) answersCache.current = createLeafCache((runJobId) => loadAnswers(runJobId));
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t); }, []);
 
-  const railFor = (item) => {
-    const r = item.ref;
-    switch (item.kind) {
-      case "prerequisite": {
-        const to = PREREQUISITE_LABELS[r]?.to || "profile";
-        return [{ label: "Fix", glyph: "→", primary: true, title: PREREQUISITE_LABELS[r]?.action || "Fix it",
-                  onClick: () => navigate(`/app/${to}`) }];
-      }
-      case "portal": {
-        const captcha = (r.gateReasons || []).includes("captcha_required");
-        return [{ label: captcha ? "Open" : "Sign in", glyph: "↗", primary: true,
-                  title: captcha ? "Open them and apply yourself" : `Sign in to ${r.host} once`,
-                  onClick: () => openPortalReview(r) }];
-      }
-      case "questions":
-        return [{ label: "Answer", glyph: "✎", primary: true, title: item.title,
-                  onClick: () => openFacet("questions", item.title) }];
-      case "approval":
-        return [
-          { label: "Review", glyph: "☰", primary: true, title: "Read every answer before you approve",
-            onClick: () => openApprovalReview(r) },
-          { label: "Reject", glyph: "✕", title: "Reject — nothing is sent", disabled: pendingBusy,
-            onClick: () => decidePending([r.runJobId], false) },
-          // D53: Clear behaves the same in every unsent state — here too.
-          { label: "Clear", glyph: "⌫", title: "Clear — into the bin for 7 days, restorable. Not a Pass.",
-            disabled: binBusy, onClick: () => clearRunJobs({ runJobIds: [r.runJobId] }) },
-        ];
+  const picks = useMemo(() => (d113.runs || []).flatMap(r => r.picks || []), [d113.runs]);
+  const nodes = buildNodes({
+    pending: applyPending, heldApplications, gatedJobs: applyGatedJobs, inFlight: applyInFlight, line: applyLine,
+    brokeApplications, tableRows, picks, questions: applyQuestions, packetFor: handoffPacketFor, companyLabel, now,
+  });
+  const timeZone = settings?.timeZone;
+  const held = !!runBar?.hold?.held;
+  const picksOn = settings?.picks === true;
+  const nextRunAt = held ? null : (d113.nextRunAt || ((fullAuto || picksOn) ? nextRunFromSettings(settings, now) : null));
+  const tree = buildTree({ runs: d113.available ? d113.runs : null, nodes, nextRunAt, timeZone, now });
+  const view = treeView(tree, { filter, q });
+  const blocks = sideBlocks({
+    nodes, connections: [...connectionsFromStopped(stoppedItems), ...connections], binCount: bin.items.length, now,
+  });
+
+  // U4 · one branch open at a time; Escape closes. Opening from the side scrolls the tree to it.
+  const step = (action) => setOpen(o => branchStep(o, action));
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape" && !settingsOpen && !applyRunDetailOpen) setOpen(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [settingsOpen, applyRunDetailOpen]);
+  const openFromSide = (node) => {
+    if (!view.some(v => v.items.some(x => x.node.key === node.key))) { setFilter("all"); setQ(""); }
+    setOpen({ type: "job", key: node.key });
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-draft-tree] [data-key="${CSS.escape(node.key)}"]`);
+      el?.scrollIntoView?.({ block: "center", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    });
+  };
+  // ⛔ An own statement (an attestation, an eligibility answer) is never sent from a value the system seeded.
+  useEffect(() => {
+    const ask = open?.type === "job" ? nodes.find(n => n.key === open.key)?.question : null;
+    if (ask && ask.proposed != null && isOwnStatement(ask, [ask]) && questionDrafts?.[ask.question] === ask.proposed) {
+      setQuestionDrafts(prev => ({ ...prev, [ask.question]: "" }));
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const toggleLeaf = (id) => setLeaves(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  // "Full page" — the application's own page (JobWorkspacePanel): beside the tree on a wide screen.
+  const openFull = (jobId) => {
+    if (jobId == null) return;
+    if (sideDetail) setSideJob(String(jobId)); else navigate(`/app/job/for/${encodeURIComponent(jobId)}`);
+  };
+  const pickAct = async (node, act) => {
+    const r = await actOnPick(node.pickId, act);
+    setPickMsg(r.message);
+    if (r.ok) loadRuns().then(setD113);
+  };
+  const portalFor = (node) => applyGatePortals.find(p => (applyHandoffPackets || []).some(k => k.expectedOrigin === p.origin && String(k.jobId) === String(node.jobId)));
+  const yourself = (row) => row?.applyUrl
+    ? [{ id: "yourself", label: "Apply yourself", href: row.applyUrl, onClick: (e) => postingClick(row, e, { intent: "apply" }) }] : [];
+  const clearIt = (r) => ({ id: "clear", label: "Clear", disabled: appBusy(r),
+    title: "Clear — into the bin for 7 days, restorable, then purged. Not a Pass.", onClick: () => hideApplication(r) });
+
+  /** U5 · the next action per state. Today's obstacle cards became these. */
+  const actionsFor = (node) => {
+    const r = node.ref;
+    switch (node.kind) {
+      case "approval": return [
+        { id: "approve", label: "Approve & send", kind: "primary", disabled: pendingBusy,
+          title: "Approving submits it to the employer and cannot be undone.", onClick: () => decidePending([r.runJobId], true) },
+        { id: "reject", label: "Reject", kind: "danger", disabled: pendingBusy, onClick: () => decidePending([r.runJobId], false) },
+        // D53: Clear behaves the same in every unsent state — here too.
+        { id: "clear", label: "Clear", disabled: binBusy, title: "Clear — into the bin for 7 days, restorable. Not a Pass.",
+          onClick: () => clearRunJobs({ runJobIds: [r.runJobId] }) },
+      ];
       case "held": {
+        const row = r.primary?.row || r;
+        if (node.why === "question") return [
+          { id: "answer", label: answersSaving ? "Saving…" : "Answer", kind: "primary", disabled: answersSaving, onClick: () => submitApplyAnswers(true) },
+          { ...clearIt(r), label: "Stop this one" },
+        ];
+        // D53: one word for one act — a posting that is gone is CLEARED like anything else (Restore is in the bin).
+        if (node.why === "gone") return [clearIt(r)];
+        if (node.why === "empty") return [
+          { id: "answer", label: "Answer them", kind: "primary", onClick: () => openApplicationReview(r) }, ...yourself(row)];
         const packet = handoffPacketFor?.(r.primary?.row) || handoffPacketFor?.(r);
         const resumable = !!packet && !packet.postingGone && !packet.stale && !r.postingGone;
-        // ⭐ D52: a stale (or never-built) packet is ONE click from fresh — a new Draft of the same job,
-        // which prepares the answers again and waits for you. It used to say "Run it again" and offer Open.
+        // ⭐ D52: a stale (or never-built) packet is ONE click from fresh — a new Draft of the same job.
         const life = packetLife(packet);
         // Only a packet that EXISTED and went stale: a hold with no packet (a cap, the pause) is not
         // cleared by drafting again.
         const prepare = !resumable && !r.postingGone && !!packet && life.state === "stale";
-        if (prepare) {
-          return [
-            { label: "Prepare again", glyph: "↻", primary: true,
-              title: `${life.line} A new Draft prepares them now and waits for you — it uses one of your drafts.`,
-              onClick: () => retryJob(r.primary?.row || r) },
-            { label: "Clear", glyph: "✕", title: "Clear — into the bin for 7 days (Cleared, under Queued), then purged. Not a Pass.",
-              disabled: appBusy(r), onClick: () => hideApplication(r) },
-          ];
-        }
+        if (prepare) return [
+          { id: "prepare", label: "Prepare again", kind: "primary",
+            title: `${life.line} A new Draft prepares them now and waits for you — it uses one of your drafts.`,
+            onClick: () => retryJob(r.primary?.row || r) },
+          clearIt(r),
+        ];
         return [
           // THE AC1 DEFECT, STILL FIXED: the non-resumable arm is the SCOPED handler.
-          { label: resumable ? "Fill" : "Open", glyph: "↗", primary: true,
+          { id: "open", label: resumable ? "Open & fill" : "Open", kind: "primary",
             title: resumable
               ? `${life.line} Opens the application in your own browser and fills it with the ${packet.answerCount} answer${packet.answerCount === 1 ? "" : "s"} we already resolved. You review and submit.`
               : "Open this application's review — only this one",
             onClick: resumable ? () => openHandoff(packet, r) : () => openApplicationReview(r) },
-          { label: "Clear", glyph: "✕", title: "Clear — into the bin for 7 days (Cleared, under Queued), then purged. Not a Pass.",
-            disabled: appBusy(r), onClick: () => hideApplication(r) },
+          // AB4 requirement 5, with its guard: only where the résumé is what is actually wrong.
+          ...(r.primary?.resumeBlocked && !r.primary?.row?.resumeAvailable ? [{ id: "resume", label: "Generate résumé", onClick: () => generateResume(row) }] : []),
+          ...yourself(row), clearIt(r),
         ];
       }
+      case "gated": {
+        const portal = portalFor(node);
+        return [{ id: "signin", label: "Sign in again", kind: "primary",
+          onClick: portal ? () => openPortalReview(portal) : () => openApplicationReview({ jobId: r.jobId, rows: [r], company: r.company, title: r.title }) },
+          ...yourself(r)];
+      }
+      case "inflight":
+        return r.abortable === false ? [] : [{ id: "stop", label: "Stop this one", disabled: historyBusyId === r.id, onClick: () => rowAbort(r) }];
+      case "line":
+        return [{ id: "remove", label: "Stop this one", disabled: lineBusyId === r.run.id, onClick: () => removeFromLine(r.run.id) }];
       case "broke": {
         const lead = r.primary || {};
+        const row = lead.row || r;
+        if (node.why === "noconfirm") return [
+          row.screenshotAvailable
+            ? { id: "check", label: "Check it", kind: "primary", href: artifactUrl(row.id, "screenshot") }
+            : { id: "check", label: "Check it", kind: "primary", onClick: () => loadApplyRunDetail(row.runId) },
+          { id: "again", label: "Run it again", onClick: () => retryJob(row) }, ...yourself(row)];
         return [
           lead.retryable
-            ? { label: "Retry", glyph: "↻", primary: true, title: "Draft it again — a new run, and nothing is sent until you approve it",
-                onClick: () => retryJob(lead.row || r) }
-            : { label: "Details", glyph: "☰", primary: true, title: "Every attempt, and why it stopped",
-                onClick: () => loadApplyRunDetail(lead.row?.runId ?? r.runId) },
-          { label: "Clear", glyph: "✕", title: "Clear — into the bin for 7 days (Cleared, under Queued), then purged. Not a Pass.",
-            disabled: appBusy(r), onClick: () => hideApplication(r) },
+            ? { id: "again", label: "Run it again", kind: "primary", title: "Draft it again — a new run, and nothing is sent until you approve it", onClick: () => retryJob(row) }
+            : { id: "log", label: "The run's log", kind: "primary", onClick: () => loadApplyRunDetail(row.runId ?? r.runId) },
+          ...yourself(row), clearIt(r),
         ];
+      }
+      case "pick": return node.ring === "pick" ? [
+        { id: "apply", label: "Apply", kind: "primary", onClick: () => pickAct(node, "apply") },
+        { id: "pass", label: "Pass", onClick: () => pickAct(node, "pass") },
+      ] : [];
+      // Sent and replied: the application's own page holds the prep, the emails and the outcome.
+      case "sent": return [{ id: "heard", label: "I heard back", kind: "primary", onClick: () => openFull(node.jobId) }];
+      case "reply": {
+        const label = { interview: "Open interview prep", assessment: "Prep for it", offer: "Open it", rejected: "Note why" }[node.status] || "Open it";
+        return [{ id: "reply", label, kind: "primary", onClick: () => openFull(node.jobId) }];
       }
       default: return [];
     }
   };
 
-  const foldFor = (item) => {
-    const r = item.ref;
-    if (item.kind === "approval") {
-      const loaded = pendingDetail?.runJobId === r.runJobId && !pendingDetail.loading ? pendingDetail : null;
-      const split = loaded ? splitAnswers(loaded.answers) : null;
-      // Once the answers are read, the fold lists the GUESSES by field and value and counts the rest;
-      // before that it has the server's two numbers, which say the same thing without the fields.
-      const shown = split
-        ? { ...item, fold: {
-            needs: split.attention.map(a => `${a.label || a.name || a.field_id}: ${String(a.value ?? "")} — a guess`),
-            quiet: split.line } }
-        : item;
-      return { shown, extra: (
-        <>
-          {othersLine(r)}
-          {pendingDetail?.runJobId === r.runJobId && pendingDetail.loading && (
-            <p className="dh-fold__quiet">Reading the answers…</p>
-          )}
-          <p className="dh-fold__quiet">
-            {r.generationDeferred
-              ? `No résumé yet — approving writes the tailored one. Base résumé: ${atsBandLabel(r.baseAts?.band ?? null).short}.`
-              : `Résumé: ${atsBandLabel(atsBandFor(r.resume?.atsScore ?? null)).short}.`}
-            {approvalCap ? ` ${approvalCap.remaining} of ${approvalCap.limit} approvals left today.` : ""}
-          </p>
-          {/* D90 P3: the CHANGES, read before Approve & send — nothing to show until the résumé is written. */}
-          {!r.generationDeferred && <ChangesSummaryLine jobId={r.jobId} jobLabel={companyLabel(r.company)} />}
-          <div className="dh-fold__actions">
-            <button type="button" className="dh-btn" onClick={() => openApprovalReview(r)}>Review every answer</button>
-            {r.screenshotAvailable && (
-              <a className="dh-btn" href={artifactUrl(r.runJobId, "screenshot")} target="_blank" rel="noreferrer">
-                What we filled ↗
-              </a>
-            )}
-            <button type="button" className="dh-btn" data-kind="danger" disabled={pendingBusy}
-              onClick={() => decidePending([r.runJobId], false)}>Reject</button>
-            <button type="button" className="dh-btn" data-kind="primary" disabled={pendingBusy}
-              title="Approving submits it to the employer and cannot be undone."
-              onClick={() => decidePending([r.runJobId], true)}>Approve &amp; send</button>
+  /** The run-job a node's leaves read (answers, the picture of the form, the résumé). */
+  const runJobOf = (node) => node.kind === "approval" ? node.ref.runJobId
+    : (node.kind === "held" || node.kind === "broke") ? (node.ref.primary?.row?.id ?? node.ref.rows?.[0]?.id ?? null)
+    : (node.kind === "gated" || node.kind === "inflight") ? node.ref.id : null;
+  const rowsOf = (node) => (node.kind === "held" || node.kind === "broke") ? (node.ref.rows || [])
+    : (node.kind === "gated" || node.kind === "inflight") ? [node.ref] : [];
+  const sentAlready = (node) => node.ring === "sent" || node.ring === "reply";
+
+  const AnswersBody = ({ node }) => {
+    const id = runJobOf(node);
+    const entry = answersCache.current.get(id);
+    useEffect(() => { if (id != null) answersCache.current.open(id, () => rerender(n => n + 1)); }, [id]);
+    if (id == null) return <p className="dh-fold__quiet">No form was filled for this one yet.</p>;
+    if (entry.state !== "ready") return <p className="dh-fold__quiet">{entry.state === "error" ? entry.error : "Reading the answers…"}</p>;
+    const rows = answerRows(entry.data.answers, entry.data.openQuestions);
+    if (!rows.length) return <p className="dh-fold__quiet">No answers recorded.</p>;
+    return (
+      <>
+        {rows.map((a, i) => (
+          <div key={i} className="dht-r" data-answer-row={a.own ? "own" : a.guess ? "guess" : "plain"}>
+            <span>{a.label}{a.guess && <span className="dht-flag"> read this: matched loosely</span>}
+              {a.own && <span className="dht-own"> your own statement</span>}</span>
+            <span className="dht-r__s">{a.shown}</span>
           </div>
-        </>
-      ) };
-    }
-    if (item.kind === "held") {
-      return { shown: item, extra: (
+        ))}
+        {node.kind === "approval" && (
+          <button type="button" className="dh-btn" onClick={() => openApprovalReview(node.ref)}>Review every answer</button>
+        )}
+      </>
+    );
+  };
+
+  const leavesFor = (node) => {
+    const id = runJobOf(node);
+    const row = node.kind === "approval" ? node.ref : (node.ref?.primary?.row || node.ref?.job || node.ref);
+    const rows = rowsOf(node);
+    const out = [];
+    out.push({ id: "happened", label: "What happened",
+      sub: node.kind === "pick" ? "picked" : rows.length ? `${rows.length} attempt${rows.length === 1 ? "" : "s"}${node.ring === "stop" ? ", stopped" : ""}` : "",
+      body: () => (
         <>
-        {othersLine(r.primary?.row || r)}
-        <div className="dh-fold__actions">
-          <button type="button" className="dh-btn" onClick={() => openApplicationReview(r)}>
-            Show {r.rows.length} attempt{r.rows.length === 1 ? "" : "s"}
-          </button>
-          {/* AB4 requirement 5, with its guard: only where the résumé is what is actually wrong. */}
-          {r.primary?.resumeBlocked && !r.primary?.row?.resumeAvailable && (
-            <button type="button" className="dh-btn" onClick={() => generateResume(r.primary.row)}>
-              Generate résumé
-            </button>
+          {node.kind === "pick" && <p className="dh-fold__quiet">Picked {node.line ? `— ${node.line}` : "for you"}. Nothing is sent until you tap Apply.</p>}
+          {node.kind === "approval" && <p className="dh-fold__quiet">Filled and checked. Nothing has been sent.</p>}
+          {sentAlready(node) && <p className="dh-fold__quiet">{node.say}</p>}
+          {/* An in-flight row is progress: its own line, with Stop and the run's detail. */}
+          {node.kind === "inflight" ? (
+            <ApplicationRow job={node.ref} theme={theme} variant="inFlight"
+              artifactUrl={artifactUrl} onOpenRun={loadApplyRunDetail}
+              onAbort={rowAbort} busy={historyBusyId === node.ref.id} />
+          ) : rows.map(rw => (
+            <AttemptRow key={rw.id} job={rw} theme={theme} artifactUrl={artifactUrl} packetFor={handoffPacketFor}
+              onHandoff={openHandoff} onRerun={rerunJob} />
+          ))}
+          {/* A held application's problems, in the review scoped to it (AC1: never the unscoped one). */}
+          {node.kind === "held" && (() => { const r = node.ref; return (
+            <button type="button" className="dh-btn" onClick={() => openApplicationReview(r)}>Open its review</button>
+          ); })()}
+          {(row?.runId != null) && (
+            <button type="button" className="dh-btn" onClick={() => loadApplyRunDetail(row.runId)}>The run's log</button>
           )}
-          {r.primary?.row?.applyUrl && (
-            <a className="dh-btn" href={r.primary.row.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(r.primary.row, e)}>Posting ↗</a>
-          )}
-        </div>
         </>
-      ) };
+      ) });
+    if (node.kind !== "pick" && !sentAlready(node)) {
+      out.push({ id: "answers", label: "Answers",
+        sub: node.kind === "approval" ? `${node.ref.answerCount} filled${node.ref.guessCount ? ` · ${node.ref.guessCount} to read` : ""}` : "every field and value",
+        body: () => <AnswersBody node={node} /> });
+      const shot = node.kind === "approval" ? node.ref.screenshotAvailable : row?.screenshotAvailable;
+      out.push({ id: "form", label: "The form as filled", sub: "a picture of the page",
+        body: () => (
+          <>
+            {shot && id != null
+              ? <a className="dh-btn" href={artifactUrl(id, "screenshot")} target="_blank" rel="noreferrer">What we filled ↗</a>
+              : <p className="dh-fold__quiet">No picture of this one.</p>}
+            <p className="dh-fold__quiet">Read it before you approve. After sending it is the record of what went out.</p>
+          </>
+        ) });
     }
-    if (item.kind === "broke") {
-      const row = r.primary?.row || r;
-      return { shown: item, extra: (
+    out.push({ id: "resume", label: "Your résumé for it",
+      sub: node.kind === "pick" ? "made after you tap Apply" : "",
+      body: () => node.kind === "pick" ? <p className="dh-fold__quiet">Not made yet: it is tailored only after you tap Apply.</p> : (
         <>
-        {othersLine(row)}
-        <div className="dh-fold__actions">
-          <button type="button" className="dh-btn" onClick={() => loadApplyRunDetail(row.runId)}>The run's log</button>
-          {row.applyUrl && (
-            <a className="dh-btn" href={row.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(row, e, { intent: "apply" })}>Apply yourself ↗</a>
+          {node.kind === "approval" && (
+            <p className="dh-fold__quiet">
+              {node.ref.generationDeferred
+                ? `No résumé yet — approving writes the tailored one. Base résumé: ${atsBandLabel(node.ref.baseAts?.band ?? null).short}.`
+                : `Résumé: ${atsBandLabel(atsBandFor(node.ref.resume?.atsScore ?? null)).short}.`}
+              {approvalCap ? ` ${approvalCap.remaining} of ${approvalCap.limit} approvals left today.` : ""}
+            </p>
           )}
-        </div>
+          {/* D90 P3: the CHANGES, read before Approve & send — nothing to show until the résumé is written. */}
+          {node.jobId != null && node.kind !== "approval" && (
+            <ChangesSummaryLine jobId={node.jobId} jobLabel={node.company} />
+          )}
+          {node.kind === "approval" && node.ref.resume?.available && (
+            <a className="dh-btn" href={artifactUrl(node.ref.runJobId, "resume")} target="_blank" rel="noreferrer">Résumé PDF ↗</a>
+          )}
         </>
-      ) };
-    }
-    return { shown: item, extra: null };
+      ) });
+    out.push({ id: "job", label: "The job", sub: "the posting, why it was picked",
+      body: () => (
+        <>
+          {node.line && <p className="dh-fold__quiet">{node.line}</p>}
+          {othersLine(row)}
+          {row?.applyUrl && (
+            <a className="dh-btn" href={row.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(row, e)}>The posting ↗</a>
+          )}
+          {node.jobId != null && <a className="dh-btn" href={jobDetailHref(node.jobId)}>On the board</a>}
+        </>
+      ) });
+    return out;
+  };
+
+  const renderJobBranch = (node) => {
+    const ask = node.question;
+    return (
+      <Branch ring={node.ring} label={`${node.company}, ${node.title}`}>
+        <LeadCard node={node} actions={actionsFor(node)} onClose={() => step({ type: "close" })}
+          onFullPage={node.jobId != null && !sentAlready(node) ? () => openFull(node.jobId) : null}
+          fullHref={node.jobId != null ? `/app/job/for/${encodeURIComponent(node.jobId)}` : undefined}>
+          {/* D90 P3: the CHANGES, read before Approve & send — nothing to show until the résumé is written. */}
+          {node.kind === "approval" && !node.ref.generationDeferred && <ChangesSummaryLine jobId={node.ref.jobId} jobLabel={companyLabel(node.ref.company)} />}
+          {/* U5 · a question is answered INLINE. ⛔ The user's own statement never starts filled. */}
+          {ask && (
+            <div className="dht-ask" data-inline-question="">
+              <input aria-label={ask.question} value={inlineAnswerStart(ask, questionDrafts?.[ask.question])}
+                onChange={(e) => setQuestionDrafts(prev => ({ ...prev, [ask.question]: e.target.value }))} />
+              {/* D55 (f): "Save this answer for next time" — ticked keeps it for every employer. */}
+              <label data-save-for-next-time="">
+                <input type="checkbox" checked={questionRemember[ask.question] !== false}
+                  onChange={(e) => setQuestionRemember?.(prev => ({ ...prev, [ask.question]: e.target.checked }))} />
+                Save this answer for next time
+              </label>
+              {answersMsg && <span className="dh-fold__quiet" role="status">{answersMsg}</span>}
+            </div>
+          )}
+        </LeadCard>
+        {leavesFor(node).map(l => {
+          const lid = `${node.key}:${l.id}`;
+          return (
+            <Leaf key={l.id} id={l.id} label={l.label} sub={l.sub} open={leaves.has(lid)} onToggle={() => toggleLeaf(lid)}>
+              {l.body()}
+            </Leaf>
+          );
+        })}
+      </Branch>
+    );
+  };
+
+  const seeLeftOut = async (run) => {
+    setLeftOut(m => ({ ...m, [run.key]: { state: "loading" } }));
+    try {
+      const d = await loadLeftOut(run.id);
+      setLeftOut(m => ({ ...m, [run.key]: d ? { state: "ready", data: d } : { state: "gone" } }));
+    } catch (e) { setLeftOut(m => ({ ...m, [run.key]: { state: "error", error: e.message } })); }
+  };
+  const renderRunBranch = (run) => {
+    const lo = leftOut[run.key];
+    return (
+      <Branch label={`Run, ${run.day} ${run.time}`}>
+        <RunCard run={run} lines={leftOutLines(run.leftOut)} onClose={() => step({ type: "close" })}
+          onChangeFilters={(e) => openSettings("jobs", e?.currentTarget)} onSeeLeftOut={() => seeLeftOut(run)}>
+          {lo?.state === "loading" && <p className="dh-fold__quiet">Reading what was left out…</p>}
+          {lo?.state === "gone" && <p className="dh-fold__quiet">The list is kept for 14 days; this one is gone.</p>}
+          {lo?.state === "error" && <p className="dh-fold__quiet">{lo.error}</p>}
+          {lo?.state === "ready" && (
+            <div className="dht-deep" data-left-out-list="">
+              {lo.data.jobs.map(j => (
+                <div key={j.jobId} className="dht-r">
+                  <a href={jobDetailHref(j.jobId)}>{[j.company, j.title].filter(Boolean).join(" · ") || "A posting"}</a>
+                  <span className="dht-r__s">{j.reasonLabel || j.reason}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </RunCard>
+      </Branch>
+    );
+  };
+
+  const fixConnection = (c) => {
+    if (c.fix === "prerequisite") navigate(`/app/${PREREQUISITE_LABELS[c.ref]?.to || "profile"}`);
+    else if (c.fix === "portal") openPortalReview(c.ref);
+    else openSettings("accounts");
+  };
+
+  // U1 · the header: one sentence, the two modes, Pause, Settings.
+  const mode = autoToggle(runBar);
+  const sub = (runBar?.caps || []).find(c => c.id === "submission");
+  const sentence = held ? "Paused. Nothing new is picked or sent until you resume."
+    : ["On.", nextRunAt && `Next look at ${timeLabel(nextRunAt, timeZone)}.`,
+       sub && `${sub.used} of ${settings?.dailyCap ?? sub.limit} sent today.`,
+       fullAuto ? "Good matches are sent for you." : picksOn ? "You tap Apply on each pick." : "Nothing is submitted until you approve it."]
+      .filter(Boolean).join(" ");
+  const chooseAsk = async () => {
+    if (fullAuto) await setApplyMode?.("semi");
+    const s = await setPicksSwitch(true);
+    if (s) setSettings(s);
+  };
+
+  const sideExtra = {
+    review: (
+      <div className="dht-acts" data-review-all-block="">
+        {/* THE DELIBERATE "REVIEW ALL" (AB3 requirement 3) — its own control, not what every item's
+            Open does. ⛔ Approve all lives INSIDE it, with its second confirm (the modal below). */}
+        <button onClick={openEverything} type="button" className="dh-btn" data-kind="primary" data-review-all=""
+          title="Every application needing review, in one list.">Review all {needsYouCount} →</button>
+        {approvalBudgetLine && (
+          <p data-approval-budget="" className="dh-fold__quiet" style={{ color: approvalCap.remaining === 0 ? C.DANGER : undefined }}>{approvalBudgetLine}</p>
+        )}
+      </div>
+    ),
+    running: (applyLine.waiting || []).length > 0 && (
+      /* A59 · the line stays editable until a Draft starts: its tool, its place, whether it stays. */
+      <WaitingLine line={applyLine} theme={theme} busyId={lineBusyId} message={lineMsg}
+        canUseAPlus={draftTool === A_PLUS_TOOL}
+        onTool={setLineTool} onMove={moveInLine} onRemove={removeFromLine} />
+    ),
+    tidy: (
+      <>
+        <div className="dht-acts" data-bulk-clear="">
+          <button type="button" className="dh-bulk" disabled={binBusy}
+            title="Every unsent item drafted more than 7 days ago — into the bin, restorable for 7 days"
+            onClick={() => confirmOlder(7)}>Clear older than 7 days</button>
+          <button type="button" className="dh-bulk" disabled={binBusy}
+            title="Every unsent item drafted more than 30 days ago — into the bin, restorable for 7 days"
+            onClick={() => confirmOlder(30)}>Older than 30</button>
+        </div>
+        {/* ⭐ D53 · CLEARED · 7 DAYS — the bin. Restore puts it back exactly as it was (one the clear had
+            stopped comes back as a new Draft); Delete now purges it at once. */}
+        {bin.items.length > 0 && (
+          <details data-draft-bin="" className="dh-bin">
+            <summary>Cleared · {bin.items.length} · {bin.binDays} days</summary>
+            <p className="dh-bin__note">
+              Cleared items stay here for {bin.binDays} days, then their prepared answers, handoff and
+              screenshot are deleted. Clearing is not a Pass — it trains nothing.
+            </p>
+            <ul className="dh-bin__list">
+              {bin.items.map(it => (
+                <li key={it.id} data-bin-item={it.id}>
+                  <span className="dh-bin__what">
+                    <strong>{companyLabel(it.company)}</strong>{it.title ? ` — ${it.title}` : ""}
+                    <span className="dh-bin__when">
+                      {it.purgesInDays <= 0 ? "purges today" : `purges in ${it.purgesInDays} day${it.purgesInDays === 1 ? "" : "s"}`}
+                      {it.stoppedByClear ? " · was stopped — Restore drafts it again" : ""}
+                    </span>
+                  </span>
+                  <button type="button" className="dh-bulk" disabled={binBusy} onClick={() => restoreBinItem(it)}
+                    title={it.stoppedByClear ? "Restore — it was stopped when cleared, so it is drafted again (uses one of your drafts)"
+                                             : "Restore — back exactly where it was"}>Restore</button>
+                  <button type="button" className="dh-bulk" disabled={binBusy}
+                    onClick={() => { if (window.confirm(`Delete ${companyLabel(it.company)} for good? It cannot be restored.`)) purgeBinItem(it); }}
+                    title="Delete now — its prepared answers and screenshot are deleted and it cannot be restored">Delete now</button>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+        {binMsg && <span role="status" data-bin-msg="" className="dh-fold__quiet">{binMsg}</span>}
+      </>
+    ),
   };
 
   return (
-    <div style={{ padding: "24px 20px", maxWidth: 1240, margin: "0 auto",
-                  display: "flex", flexDirection: "column", gap: 14 }}>
-      <div>
-        {/* A53: the deck's type — the display serif for what the page is (styles/type.js). */}
-        <h2 style={TYPE.PAGE_TITLE}>
-          Draft House
-        </h2>
-        <p style={{ ...TYPE.LEAD, margin: "10px 0 0" }}>
-          {fullAuto
-            ? "FULL AUTO: applications that match your Auto settings are sent without asking each time. Anything draft cannot answer waits here for you."
-            : "Applications are filled and held for your approval. Nothing is submitted until you approve it."}{" "}
-          Draft jobs from the Daily Deck or Full House.
-        </p>
-      </div>
-
-      {/* ── D25: THE RUN BAR — mode, the three caps, ⏸ Stop everything. ── */}
-      <DraftRunBar runBar={runBar} onStop={setStopEverything} busy={holdBusy} message={holdMsg}
-        onMode={setApplyMode} onOpenSettings={(el) => { settingsOpener.current = el; setSettingsOpen(true); }}
-        onOpenPortals={(el) => { settingsOpener.current = el; setPortalsOpen(true); }} />
-      <PortalsDrawer open={portalsOpen} onClose={() => { setPortalsOpen(false); settingsOpener.current?.focus?.(); }} />
-      <AutoSettingsDrawer open={settingsOpen}
+    <div className="dh-page">
+      {/* ── U1 · THE HEADER ── */}
+      <header className="dh-head" data-house-header="" data-held={held ? "true" : "false"}>
+        <div className="dh-head__text">
+          {/* A53: the deck's type — the display serif for what the page is (styles/type.js). */}
+          <h2 style={TYPE.PAGE_TITLE}>Draft House</h2>
+          <p className="dh-head__say" data-house-sentence="">{sentence}</p>
+        </div>
+        <div className="dh-head__ctl">
+          <div className="dh-mode" role="group" aria-label="Mode">
+            <button type="button" className="dh-mode__seg" data-mode="ask" aria-pressed={!fullAuto}
+              disabled={holdBusy || !runBar} onClick={chooseAsk}>Ask me first</button>
+            {/* ⛔ FULL AUTO is the operator's to unlock (autoToggle): locked, it has no handler. */}
+            <button type="button" className="dh-mode__seg" data-mode="auto" aria-pressed={fullAuto}
+              data-locked={mode.selectable ? "false" : "true"} disabled={!mode.selectable || holdBusy}
+              aria-describedby={mode.selectable ? undefined : "dh-auto-why"}
+              onClick={mode.selectable ? () => !fullAuto && setApplyMode?.("auto") : undefined}>Apply for me</button>
+          </div>
+          <button type="button" className="dh-btn" data-stop-everything="" data-held={held ? "true" : "false"}
+            disabled={holdBusy || !runBar} title={`${STOP_DOES} ${STOP_DOES_NOT}`} onClick={() => setStopEverything?.(!held)}>
+            {held ? "Resume" : "Pause"}
+          </button>
+          <button type="button" className="dh-btn" data-settings-open="" onClick={(e) => openSettings(null, e.currentTarget)}>Settings</button>
+        </div>
+        {!mode.selectable && <p className="dh-head__why" id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: {mode.reason}</p>}
+        {holdMsg && <p className="dh-head__why" role="status">{holdMsg}</p>}
+      </header>
+      <AutoSettingsDrawer open={settingsOpen} runBar={runBar} group={settingsGroup}
         onClose={() => { setSettingsOpen(false); settingsOpener.current?.focus?.(); }} />
 
-      {/* Empty is a real state and is said plainly, rather than the tab rendering blank. */}
-      {nothingYet && (
-        <div style={{ padding: "28px 20px", border: `1px dashed ${theme.border}`, borderRadius: 8,
-                      color: theme.textMuted, fontSize: 13, textAlign: "center" }}>
-          Nothing drafted yet. Draft a job from Today or the board and it will appear here.
+      {/* What it said BEFORE a run still matters: autofill unavailable is stated here. */}
+      {applyReadiness && !applyReadiness.available && (
+        <span className="dh-note">Autofill is unavailable right now ({applyReadiness.reason}) — drafts wait until it is back.</span>
+      )}
+      {applyMsg && <span className="dh-note" data-tone="accent">{applyMsg}</span>}
+      {historyMsg && <span role="status" className="dh-note" data-tone="accent">{historyMsg}</span>}
+      {pickMsg && <span role="status" className="dh-note" data-tone="accent">{pickMsg}</span>}
+      {pendingMsg && !applyRunDetailOpen && <span role="status" className="dh-note" data-tone="accent">{pendingMsg}</span>}
+      {/* THE QUEUE IS CAPPED, AND A CAPPED QUEUE MUST SAY SO: GET /api/apply/gate-packets returns the
+          newest 100 unconsumed packets; past that every portal count is short. */}
+      {applyGateTruncated && (
+        <span className="dh-note">Showing the {applyHandoffPackets.length} most recent of <strong>{applyGateTotal ?? "many"}</strong> queued handoffs. Clear some of these to see the rest.</span>
+      )}
+      {/* The handoff happens in ANOTHER TAB, so the panel says what to expect there. */}
+      {handoffMsg && (
+        <div className="dh-handoff" data-kind={handoffMsg.kind}>
+          <span>{handoffMsg.text}</span>
+          <button type="button" aria-label="Dismiss" onClick={() => setHandoffMsg(null)}>×</button>
         </div>
       )}
 
-      {/* What it said BEFORE a run still matters: autofill unavailable is stated here, and the
-          employer-account and CAPTCHA tiers are on every board card (TierChip) before you draft. */}
-      {applyReadiness && !applyReadiness.available && (
-        <span style={{ fontSize: 11.5, color: theme.textDim || theme.textMuted }}>
-          Autofill is unavailable right now ({applyReadiness.reason}) — drafts wait until it is back.
-        </span>
-      )}
-      {applyMsg && (
-        <span style={{ fontSize: 11.5, color: theme.accentText }}>{applyMsg}</span>
-      )}
-      {historyMsg && (
-        <span role="status" style={{ fontSize: 11.5, color: theme.accentText }}>{historyMsg}</span>
-      )}
-
-      {/* ── D14: STOPPED AND QUEUED, SIDE BY SIDE, 75 / 25 ──────────────────────────────────────
-          STOPPED is the working surface, so it takes three quarters; QUEUED is a glance, so it takes
-          one. Below ~1080px they stack, Stopped FIRST: that is DOM order, so a screen reader and a
-          phone both meet the work before the queue. D25: always shown — there is no sub-tab above it
-          any more, and an empty column says so rather than disappearing. */}
-      {!nothingYet && (
-      <div data-draft-split="" style={{
-        display: "grid", gap: 20, alignItems: "start",
-        gridTemplateColumns: sideJob && sideDetail ? "minmax(0, 1fr) minmax(0, 1.3fr)"
-          : splitSideBySide ? "minmax(0, 3fr) minmax(0, 1fr)" : "minmax(0, 1fr)",
-      }}>
-        <section data-draft-stopped="" aria-label="Stopped"
-                 style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ ...COLUMN_LABEL(theme), display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ flex: 1 }}>Stopped{stoppedCount > 0 ? ` · ${stoppedCount}` : ""}</span>
-            {/* THE DELIBERATE "REVIEW ALL" (AB3 requirement 3) — its own control, not what every
-                item's Open does. */}
-            {needsYouCount > 0 && (
-              <button onClick={openEverything}
-                title="Every application needing review, in one list."
-                style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "3px 9px",
-                         background: "transparent", color: theme.textMuted, fontWeight: 700,
-                         fontSize: 10.5, cursor: "pointer", letterSpacing: 0, textTransform: "none" }}>
-                Review all {needsYouCount} →
-              </button>
-            )}
-            {applyPending.length > 1 && (confirmSendAll ? (
-              <span data-send-all-confirm="" style={{ display: "inline-flex", gap: 6, alignItems: "center", textTransform: "none", letterSpacing: 0 }}>
-                <span style={{ fontSize: 11, color: C.DANGER, fontWeight: 700 }}>Send all {applyPending.length} to their employers?</span>
-                <button onClick={() => decidePending(applyPending.map(p => p.runJobId), true).finally(() => setConfirmSendAll(false))}
-                  disabled={pendingBusy}
-                  style={{ border: "none", borderRadius: 6, padding: "3px 9px", background: C.DANGER, color: C.SURFACE_SOLID,
-                           fontWeight: 800, fontSize: 10.5, cursor: pendingBusy ? "wait" : "pointer" }}>Yes, send all</button>
-                <button onClick={() => setConfirmSendAll(false)} disabled={pendingBusy}
-                  style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "3px 9px", background: "transparent",
-                           color: theme.textMuted, fontWeight: 700, fontSize: 10.5, cursor: "pointer" }}>Cancel</button>
-              </span>
-            ) : (
-              <button onClick={() => setConfirmSendAll(true)} disabled={pendingBusy} data-send-all=""
-                title="Approve and send every application that is ready — you confirm once more first."
-                style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "3px 9px",
-                         background: "transparent", color: theme.text, fontWeight: 700,
-                         fontSize: 10.5, cursor: "pointer", letterSpacing: 0, textTransform: "none" }}>
-                Approve all {applyPending.length}
-              </button>
-            ))}
-          </div>
-          {stoppedCount === 0 && (
-            <div style={{ fontSize: 12.5, color: theme.textMuted }}>Nothing is stopped — nothing needs you.</div>
-          )}
-          {approvalBudgetLine && (
-            <div data-approval-budget="" style={{ fontSize: 12, color: approvalCap.remaining === 0 ? C.DANGER : theme.textMuted }}>
-              {approvalBudgetLine}
-            </div>
-          )}
-
-          {/* D53: multi-select, and "clear everything older than 7 / 30 days" — each confirmed with its count. */}
-          {stoppedItems.some(i => idsOf(i).length) && (
-            <div data-bulk-clear="" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 11.5 }}>
-              <button type="button" className="dh-bulk" onClick={() => { setSelecting(v => !v); setSelected(new Set()); }}>
-                {selecting ? "Done selecting" : "Select"}
-              </button>
-              {selecting && (
-                <button type="button" className="dh-bulk" data-primary="true" disabled={!selectedIds.length || binBusy}
-                  onClick={() => confirmClear(selectedIds.length, { runJobIds: selectedIds })}>
-                  Clear {selectedIds.length} selected
-                </button>
-              )}
-              <button type="button" className="dh-bulk" disabled={binBusy}
-                title="Every unsent item drafted more than 7 days ago — into the bin, restorable for 7 days"
-                onClick={() => confirmOlder(7)}>Clear older than 7 days</button>
-              <button type="button" className="dh-bulk" disabled={binBusy}
-                title="Every unsent item drafted more than 30 days ago — into the bin, restorable for 7 days"
-                onClick={() => confirmOlder(30)}>Clear older than 30 days</button>
-            </div>
-          )}
-          {binMsg && <span role="status" data-bin-msg="" style={{ fontSize: 11.5, color: theme.accentText }}>{binMsg}</span>}
-
-          {stoppedItems.length >= SEARCH_FROM && (
-            <PanelSearch theme={theme} value={search} onChange={setSearch} width={260}
-              placeholder="Search what stopped…" />
-          )}
-
-          {/* THE QUEUE IS CAPPED, AND A CAPPED QUEUE MUST SAY SO. GET /api/apply/gate-packets
-              returns the newest 100 unconsumed packets; past that the portals below are a SUBSET
-              and every count on them is short. */}
-          {applyGateTruncated && (
-            <div style={{ padding: "8px 12px", borderRadius: 8,
-                          border: `1px solid ${theme.border}`, background: theme.surfaceHigh,
-                          fontSize: 12, color: theme.textMuted }}>
-              Showing the {applyHandoffPackets.length} most recent of{" "}
-              <strong>{applyGateTotal ?? "many"}</strong> queued handoffs. Clear some of these to
-              see the rest.
-            </div>
-          )}
-
-          <div className="dh-list">
-            {listedItems.map(item => {
-              const { shown, extra } = foldFor(item);
-              return (
-                <StoppedItem key={item.key} item={shown} open={openKey === item.key}
-                  onToggle={() => toggle(item)} rail={railFor(item)}
-                  selectable={selecting && idsOf(item).length > 0} selected={selected.has(item.key)}
-                  onSelect={() => toggleSelected(item)}>
-                  {extra}
-                  {/* D102 P5: the application's own page — checklist, résumé, every value, the posting, its emails. */}
-                  {item.jobId && (
-                    <p style={{ margin: "8px 0 0" }}>
-                      <a href={`/app/job/for/${encodeURIComponent(item.jobId)}`} data-open-job-page=""
-                        onClick={(e) => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); if (sideDetail) setSideJob(item.jobId); else navigate(`/app/job/for/${encodeURIComponent(item.jobId)}`); } }}
-                        style={{ fontSize: 12, fontWeight: 700, color: C.ACCENT_INK }}>Open this application →</a>
-                    </p>
-                  )}
-                </StoppedItem>
-              );
-            })}
-            {search.trim() && listedItems.length === 0 && (
-              <div style={{ fontSize: 12.5, color: theme.textMuted }}>Nothing stopped matches “{search.trim()}”.</div>
-            )}
-          </div>
-
-          {pendingMsg && !applyRunDetailOpen && (
-            <span role="status" style={{ fontSize: 11.5, color: theme.accentText }}>{pendingMsg}</span>
-          )}
-
-          {/* The handoff happens in ANOTHER TAB, so the panel has to say what to expect there. A
-              refusal (stale answers, a posting that is gone) is reported in the same place, because
-              the alternative is a click that appears to do nothing. */}
-          {handoffMsg && (
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10,
-                          border: `1px solid ${handoffMsg.kind === "open" ? C.INFO : theme.border}`,
-                          borderLeft: `3px solid ${handoffMsg.kind === "open" ? C.INFO : C.WARNING}`,
-                          borderRadius: 8, padding: "10px 14px", background: theme.surfaceHigh }}>
-              <span style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.6, flex: 1 }}>
-                {handoffMsg.text}
-              </span>
-              <button onClick={() => setHandoffMsg(null)}
-                style={{ border: "none", background: "transparent", color: theme.textDim,
-                         cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 2px" }}>×</button>
-            </div>
-          )}
-        </section>
-        {/* D102 P5 · LIST AND DETAIL on a wide screen: an opened application takes the right column (Queued returns on
-            Close); narrower, "Open this application" goes to its own page. */}
+      {/* ── U3 + U7 · THE TREE AND THE SIDE COLUMN. Below 900 px: one column, the side on top (CSS). ── */}
+      <div className="dh-main" data-draft-split="" data-detail={sideJob && sideDetail ? "true" : undefined}>
+        <DraftHouseTree view={view} filter={filter} zoom={zoom} open={open}
+          onFilter={setFilter} onZoom={setZoom} onOpen={step}
+          search={<PanelSearch theme={theme} value={q} onChange={setQ} width={200} placeholder="Search, e.g. a company" />}
+          renderRunBranch={renderRunBranch} renderJobBranch={renderJobBranch}
+          nextLine={fullAuto ? "Next look. Good matches are sent for you." : "Next look. You'll get one email with the picks."}
+          empty={nothingYet && nodes.length === 0 && (
+            <p className="dht-empty">Nothing drafted yet. Draft jobs from the Daily Deck or Full House.</p>
+          )} />
+        {/* D102 P5 · an opened application takes the side column on a wide screen (the side returns on
+            Close); narrower, "Full page" goes to its own page. */}
         {sideJob && sideDetail ? (
-          <aside data-draft-detail="" aria-label="This application"
-                 style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 8, position: "sticky", top: 8 }}>
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => navigate(`/app/job/for/${encodeURIComponent(sideJob)}`)}>Full page</button>
+          <aside data-draft-detail="" aria-label="This application" className="dh-detail">
+            <div className="dht-acts" style={{ justifyContent: "flex-end" }}>
+              <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => navigate(`/app/job/for/${encodeURIComponent(sideJob)}`)}>Its own page</button>
               <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setSideJob(null)} aria-label="Close">✕ Close</button>
             </div>
             <JobWorkspacePanel jobId={sideJob} embedded />
           </aside>
         ) : (
-        <aside data-draft-queued="" aria-label="Queued"
-               style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={COLUMN_LABEL(theme)}>Queued{queuedCount > 0 ? ` · ${queuedCount}` : ""}</div>
-          {queuedCount === 0 && (
-            <div style={{ fontSize: 12.5, color: theme.textMuted }}>Nothing queued.</div>
-          )}
-          {/* ── WAITING IN LINE (A59) ─────────────────────────────────────────────────────────────
-              Above In flight because it is the one place in this column where the user can still
-              change what will happen: a waiting Draft has not started, so its tool, place and
-              presence are theirs to edit. Once it starts it moves to In flight and only Stop applies. */}
-          <WaitingLine line={applyLine} theme={theme} busyId={lineBusyId} message={lineMsg}
-            canUseAPlus={draftTool === A_PLUS_TOOL}
-            onTool={setLineTool} onMove={moveInLine} onRemove={removeFromLine} />
-
-          {/* ── IN FLIGHT ───────────────────────────────────────────────────────────────────────
-              A queued or running application has no outcome yet, so it reads as progress: small,
-              self-clearing, out of the way. D25: each row carries Stop — until now it was reachable
-              only from AD1's dated listing, which is gone. Whether a row CAN be stopped is the
-              server's `abortable` flag on the inFlight feed, never re-derived here. */}
-          {applyInFlight.length > 0 && (
-            <>
-              <SectionHeading theme={theme} count={applyInFlight.length} note="nothing to do — these clear themselves">
-                In flight
-              </SectionHeading>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {applyInFlight.map(job => (
-                  <ApplicationRow key={job.id} job={job} theme={theme} variant="inFlight"
-                    artifactUrl={artifactUrl} onOpenRun={loadApplyRunDetail}
-                    onAbort={rowAbort} busy={historyBusyId === job.id} />
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* ⭐ D53 · CLEARED · 7 DAYS — the recycle bin, a fold under Queued (not a nav item). Each item
-              says when it purges; Restore puts it back exactly as it was (one the clear had stopped
-              comes back as a new Draft); Delete now purges it at once. */}
-          {bin.items.length > 0 && (
-            <details data-draft-bin="" className="dh-bin">
-              <summary>Cleared · {bin.items.length} · {bin.binDays} days</summary>
-              <p className="dh-bin__note">
-                Cleared items stay here for {bin.binDays} days, then their prepared answers, handoff and
-                screenshot are deleted. Clearing is not a Pass — it trains nothing.
-              </p>
-              <ul className="dh-bin__list">
-                {bin.items.map(it => (
-                  <li key={it.id} data-bin-item={it.id}>
-                    <span className="dh-bin__what">
-                      <strong>{companyLabel(it.company)}</strong>{it.title ? ` — ${it.title}` : ""}
-                      <span className="dh-bin__when">
-                        {it.purgesInDays <= 0 ? "purges today" : `purges in ${it.purgesInDays} day${it.purgesInDays === 1 ? "" : "s"}`}
-                        {it.stoppedByClear ? " · was stopped — Restore drafts it again" : ""}
-                      </span>
-                    </span>
-                    <button type="button" className="dh-bulk" disabled={binBusy} onClick={() => restoreBinItem(it)}
-                      title={it.stoppedByClear ? "Restore — it was stopped when cleared, so it is drafted again (uses one of your drafts)"
-                                               : "Restore — back exactly where it was"}>Restore</button>
-                    <button type="button" className="dh-bulk" disabled={binBusy}
-                      onClick={() => { if (window.confirm(`Delete ${companyLabel(it.company)} for good? It cannot be restored.`)) purgeBinItem(it); }}
-                      title="Delete now — its prepared answers and screenshot are deleted and it cannot be restored">Delete now</button>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-        </aside>
+          <DraftHouseSide blocks={blocks} onOpen={openFromSide} onFix={fixConnection} extra={sideExtra} />
         )}
       </div>
-      )}
 
       {/* ── Apply Runs Review Modal ──────────────────────────────────── */}
       {applyRunDetailOpen && (

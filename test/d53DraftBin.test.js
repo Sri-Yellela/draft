@@ -189,9 +189,12 @@ test("D53 · Draft House: Clear on every item, multi-select, the bin under Queue
   assert.doesNotMatch(panel, /label: "Remove"/, "one word for one act");
   assert.match(panel, /case "approval":[\s\S]{0,600}label: "Clear"[\s\S]{0,200}clearRunJobs\(\{ runJobIds: \[r\.runJobId\] \}\)/, "approvals can be cleared too");
   assert.match(panel, /`Clear \$\{count\}\? They stay in the bin for \$\{bin\.binDays\} days, then they are purged\.`/, "bulk confirms with a count");
-  const queued = panel.slice(at(panel, '<aside data-draft-queued=""'), at(panel, "</aside>", at(panel, '<aside data-draft-queued=""')));
-  assert.match(queued, /<details data-draft-bin="" className="dh-bin">/, "the bin is a fold INSIDE Queued, not a nav item");
-  assert.match(queued, /purges in \$\{it\.purgesInDays\} day/);
+  // D113 UI U7: the bin is a fold inside the side column's Tidy up block (Queued is gone), beside Clear older than…
+  const tidy = panel.slice(at(panel, "    tidy: ("), at(panel, "  return (", at(panel, "    tidy: (")));
+  assert.match(tidy, /<details data-draft-bin="" className="dh-bin">/, "the bin is a fold INSIDE Tidy up, not a nav item");
+  assert.match(tidy, /purges in \$\{it\.purgesInDays\} day/);
+  assert.match(tidy, /onClick=\{\(\) => confirmOlder\(7\)\}/);
+  assert.doesNotMatch(panel, /Done selecting|setSelecting/, "D113 UI U9: no select mode");
   assert.match(read("client/src/pages/marketing/PrivacyPage.jsx"), /stays in its Cleared bin for 7 days/);
   assert.match(read("extension/submission/PRIVACY_RECONCILIATION.md"), /services\/draftBin\.js/);
   // The purge is scheduled — a mechanism, not only a policy.
