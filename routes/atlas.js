@@ -66,6 +66,7 @@ import { computeAtlasStats } from "../services/atlas/atlasStats.js";
 import { readiness, READINESS_COLUMNS, runAtlasAutoPipeline, autoPublish, askWikipediaAgain } from "../services/atlas/atlasPublish.js";
 import { sponsorsForRole } from "../services/atlas/atlasSponsors.js";
 import { computeYourMap, SECTIONS } from "../services/atlas/atlasMe.js";
+import { roleBoard } from "../services/atlas/atlasRolePage.js";
 
 // A signed-in reader's terms — ONE implementation (services/atlas/atlasStore.js profileTerms), also read by D110's
 // interview prep (services/interviewPrep.js skillGaps).
@@ -129,7 +130,9 @@ export function createAtlasRouter(db) {
     const sponsors = node.kind === "role" ? (() => { try { return sponsorsForRole(db, node.slug); } catch { return []; } })() : null;
     // ⭐ D115 P4(b): the step of the owner's learning path that teaches it — "Learn it: Part 3 · Data structures · Step 2".
     const learn = (() => { try { return learnStepForNode(db, { name: node.name, term: db.prepare(`SELECT term FROM atlas_nodes WHERE slug = ?`).pluck().get(node.slug) }); } catch { return null; } })();
-    res.json({ ...node, ...(sponsors?.length ? { sponsors } : {}), ...(learn ? { learn } : {}), ...(userId ? { you: youAgainst(db, userId, node) } : {}) });
+    // ⭐ D105 P12 · a role's page is the board's own data: skills with shares, levels, companies, the next level's rises.
+    const board = node.kind === "role" ? (() => { try { return roleBoard(db, node.slug); } catch { return null; } })() : null;
+    res.json({ ...node, ...(board ? { roleBoard: board } : {}), ...(sponsors?.length ? { sponsors } : {}), ...(learn ? { learn } : {}), ...(userId ? { you: youAgainst(db, userId, node) } : {}) });
   });
   return router;
 }

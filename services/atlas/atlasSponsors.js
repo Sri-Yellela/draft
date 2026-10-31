@@ -12,12 +12,16 @@ import { sponsorshipFactFor } from "../kb/sponsorshipFacts.js";
 
 export const SPONSORS_LIMIT = 8;
 
-/** @returns {Array<{ company, postings, filings, fiscalYear, text, source }>} */
-export function sponsorsForRole(db, slug, { limit = SPONSORS_LIMIT } = {}) {
+/**
+ * ⭐ D105 P12 · the companies with ACTIVE postings whose title names this (published) role — counted once, here: the
+ * role page's "Companies hiring" and the sponsors' list below read the same counts, so they never disagree.
+ * @returns {Map<string, number>} company → open postings (unordered)
+ */
+export function companiesForRole(db, slug) {
   let node;
   try { node = db.prepare(`SELECT id, term FROM atlas_nodes WHERE slug = ? AND kind = 'role' AND status = 'published'`).get(String(slug)); }
-  catch { return []; }
-  if (!node?.term) return [];
+  catch { return new Map(); }
+  if (!node?.term) return new Map();
   const roles = db.prepare(`SELECT id, term FROM atlas_nodes WHERE kind = 'role'`).all().filter(r => r.term)
     .sort((a, b) => b.term.length - a.term.length);
   const first = node.term.split(" ")[0];
@@ -29,8 +33,13 @@ export function sponsorsForRole(db, slug, { limit = SPONSORS_LIMIT } = {}) {
     if (role?.id !== node.id) continue;
     byCompany.set(p.company, (byCompany.get(p.company) || 0) + 1);
   }
+  return byCompany;
+}
+
+/** @returns {Array<{ company, postings, filings, fiscalYear, text, source }>} */
+export function sponsorsForRole(db, slug, { limit = SPONSORS_LIMIT } = {}) {
   const out = [];
-  for (const [company, postings] of byCompany) {
+  for (const [company, postings] of companiesForRole(db, slug)) {
     let f = null;
     try { f = sponsorshipFactFor(db, company); } catch { f = null; }
     if (!f || !(f.filings > 0)) continue;
