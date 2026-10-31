@@ -5609,4 +5609,93 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_atlas_nodes_family ON atlas_nodes(family);
       `,
     },
+    {
+      // ⭐ D117 · LEARN AS A CIRCLE (owner 10-31, approved with C8: "make a progress bar the user may not mark themselves
+      // complete"). The owner's tracker text stays in learn_content, untouched; the circle's own data sits beside it:
+      //   learn_needs        "Before this" per piece (C2) — imported 'drafted' from content/learn/d117-data.json (C9); the
+      //                      owner's review in Admin → Learn makes each 'accepted' or 'rejected'. A re-import never moves a
+      //                      status (INSERT OR IGNORE by (step, need)), so his review is never undone.
+      //   learn_teaches      the concept terms a piece teaches (C2, derived from the concept index) — resolved to Atlas
+      //                      nodes on read, through the one thesaurus, so a new alias or node is picked up without a re-import
+      //   learn_extra_items  D115 P5's games / exercises / practice links, optional, appended to their pieces on read;
+      //                      'pending' until the dead-link checker has seen them, 'held' (listed for the owner) when dead
+      //   learn_routes       guided routes as DATA (C5: a name + its target pieces; '*' = the whole circle), seeded here once
+      //   learn_opened · learn_explanations · learn_builds — C8, progress EARNED, never ticked: an item opened FROM draft,
+      //                      a checkpoint explained in the user's own words (private, never read by a model — D17), a link
+      //                      to what was built. learn_progress (195, the old ticks) is kept as it is and no longer counts.
+      // After 201 (the tree's families).
+      id: "202_learn_circle",
+      sql: `
+        CREATE TABLE IF NOT EXISTS learn_needs (
+          step_id     TEXT NOT NULL,
+          need_id     TEXT NOT NULL,
+          status      TEXT NOT NULL DEFAULT 'drafted' CHECK (status IN ('drafted', 'accepted', 'rejected')),
+          source      TEXT NOT NULL DEFAULT 'import',
+          position    INTEGER NOT NULL DEFAULT 0,
+          reviewed_by TEXT,
+          updated_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (step_id, need_id)
+        );
+        CREATE TABLE IF NOT EXISTS learn_teaches (
+          step_id  TEXT NOT NULL,
+          term     TEXT NOT NULL,
+          position INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (step_id, term)
+        );
+        CREATE TABLE IF NOT EXISTS learn_extra_items (
+          id          TEXT PRIMARY KEY,
+          step_id     TEXT NOT NULL,
+          k           TEXT NOT NULL,
+          t           TEXT NOT NULL,
+          s           TEXT,
+          u           TEXT NOT NULL,
+          o           INTEGER NOT NULL DEFAULT 1,
+          position    INTEGER NOT NULL DEFAULT 0,
+          status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'live', 'held')),
+          checked_at  INTEGER,
+          check_note  TEXT,
+          imported_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS learn_routes (
+          id         TEXT PRIMARY KEY,
+          name       TEXT NOT NULL,
+          targets    TEXT NOT NULL,
+          position   INTEGER NOT NULL DEFAULT 0,
+          updated_by TEXT,
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        INSERT OR IGNORE INTO learn_routes (id, name, targets, position, updated_by) VALUES
+          ('all', 'The whole circle', '*', 0, 'seed:202'),
+          ('k8s', 'Make sense of Kubernetes', '["o4"]', 1, 'seed:202'),
+          ('backend-senior', 'Backend → senior', '["x2","x1","b2","w2","o3","l2"]', 2, 'seed:202'),
+          ('system-design', 'System design interviews', '["x2","x1","b2","d3","g4"]', 3, 'seed:202');
+        CREATE TABLE IF NOT EXISTS learn_opened (
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          item_id TEXT NOT NULL,
+          step_id TEXT NOT NULL,
+          at      INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, item_id)
+        );
+        CREATE TABLE IF NOT EXISTS learn_explanations (
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          checkpoint_id TEXT NOT NULL,
+          step_id       TEXT NOT NULL,
+          body          TEXT NOT NULL,
+          words         INTEGER NOT NULL,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, checkpoint_id)
+        );
+        CREATE TABLE IF NOT EXISTS learn_builds (
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          step_id    TEXT NOT NULL,
+          url        TEXT NOT NULL,
+          kind       TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, step_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_learn_needs_need ON learn_needs(need_id);
+      `,
+    },
   ];

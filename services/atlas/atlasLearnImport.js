@@ -33,14 +33,27 @@ export function publishLearnConcepts(db, { now = Math.floor(Date.now() / 1000) }
   return { published: r.changes };
 }
 
-/** @returns {{ filled: string[], created: string[], kept: string[], skipped: { term, why }[] }} */
-export function importLearnConcepts(db, learn) {
-  const nodes = db.prepare(`SELECT id, slug, name, term, definition, definition_draft FROM atlas_nodes`).all();
+/**
+ * ⭐ THE one resolver of a tracker term to an Atlas node (D115 P4a; D117 C9's "teaches" read it too): the term as
+ * written, then without a trailing "(…)", against each node's name, term and confirmed aliases (skill_synonyms, the one
+ * thesaurus), through the one normaliser — never through the scorer's ambiguous words. @returns (term) => node | null
+ */
+export function learnTermResolver(db) {
+  const nodes = db.prepare(`SELECT id, slug, name, term, kind, status, definition, definition_draft FROM atlas_nodes`).all();
   const byKey = new Map();
   for (const n of nodes) {
     if (AMBIGUOUS_TERMS.has(n.term)) continue;
     for (const k of [n.name, n.term, ...aliasesOf(db, n.term)]) { const key = searchKey(k); if (key && !byKey.has(key)) byKey.set(key, n); }
   }
+  return (term) => {
+    if (!term || AMBIGUOUS_TERMS.has(termOf(term)) || AMBIGUOUS_TERMS.has(termOf(bare(term)))) return null;
+    return byKey.get(searchKey(term)) || byKey.get(searchKey(bare(term))) || null;
+  };
+}
+
+/** @returns {{ filled: string[], created: string[], kept: string[], skipped: { term, why }[] }} */
+export function importLearnConcepts(db, learn) {
+  const resolve = learnTermResolver(db);
   const fill = db.prepare(`UPDATE atlas_nodes SET definition = ?, definition_by = 'owner', updated_at = unixepoch() WHERE id = ?
     AND TRIM(COALESCE(definition, '')) = '' AND definition_draft IS NULL`);
   const out = { filled: [], created: [], kept: [], skipped: [] };
@@ -49,7 +62,7 @@ export function importLearnConcepts(db, learn) {
       const d = String(def ?? "").trim();
       if (!term || !d) continue;
       if (AMBIGUOUS_TERMS.has(termOf(term)) || AMBIGUOUS_TERMS.has(termOf(bare(term)))) { out.skipped.push({ term, why: "an ambiguous word (the scorer's list)" }); continue; }
-      const node = byKey.get(searchKey(term)) || byKey.get(searchKey(bare(term)));
+      const node = resolve(term);
       if (node) {
         if (fill.run(d, node.id).changes) out.filled.push(node.slug); else out.kept.push(node.slug);
         continue;

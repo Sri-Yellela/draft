@@ -31,7 +31,9 @@ const PUBLIC = new Set([
   "GET /api/health",
   // D115: the owner's learning path — public like the Atlas it lives in; links and the owner's words only, no user data.
   "GET /api/learn/",
-  "GET /api/auth/me",                       // reports authenticated:false rather than 401 by design
+  // D117: the circle's links, taught terms, live P5 links and routes — the same public content, no user data.
+  "GET /api/learn/circle",
+  "GET /api/auth/me",                      // reports authenticated:false rather than 401 by design
   "POST /api/auth/login",
   "POST /api/auth/register",
   "POST /api/auth/logout",                  // signing out must work even with a half-dead credential
@@ -96,6 +98,16 @@ const ADMIN = new Set([
   "GET /api/admin/learn/content",
   "POST /api/admin/learn/import/preview",
   "POST /api/admin/learn/import/apply",
+  // D117 C9: the circle's data and Admin → Learn → Before-this review — the owner accepts, edits or rejects the drafted
+  // links every reader's circle and routes use; the P5 link check and the routes. Admin-only.
+  "GET /api/admin/learn/circle",
+  "POST /api/admin/learn/circle/import",
+  "POST /api/admin/learn/circle/needs/:step",
+  "PUT /api/admin/learn/circle/needs/:step",
+  "POST /api/admin/learn/circle/accept-all",
+  "POST /api/admin/learn/circle/links/check",
+  "PUT /api/admin/learn/circle/routes/:id",
+  "DELETE /api/admin/learn/circle/routes/:id",
   // A50 step 3: the daily glance. Read-only, but it reads every user's apply outcomes and spend.
   "GET /api/admin/glance",
   "GET /api/admin/costs",                   // cost visibility (10-09): résumé economics, admin-only

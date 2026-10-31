@@ -100,6 +100,7 @@ import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
 import { createLearnAdminRouter } from "./routes/learnAdmin.js";
 import { seedLearnContentIfEmpty } from "./services/learn/learnImport.js";
+import { seedCircleData, checkExtraItems } from "./services/learn/learnCircle.js";
 import { seedAtlasFromRegistry } from "./services/atlas/atlasSeed.js";
 import { importLearnConcepts, publishLearnConcepts } from "./services/atlas/atlasLearnImport.js";
 import { learnContent } from "./services/learn/learnContent.js";
@@ -6085,6 +6086,95 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_atlas_nodes_family ON atlas_nodes(family);
       `,
     },
+    {
+      // ⭐ D117 · LEARN AS A CIRCLE (owner 10-31, approved with C8: "make a progress bar the user may not mark themselves
+      // complete"). The owner's tracker text stays in learn_content, untouched; the circle's own data sits beside it:
+      //   learn_needs        "Before this" per piece (C2) — imported 'drafted' from content/learn/d117-data.json (C9); the
+      //                      owner's review in Admin → Learn makes each 'accepted' or 'rejected'. A re-import never moves a
+      //                      status (INSERT OR IGNORE by (step, need)), so his review is never undone.
+      //   learn_teaches      the concept terms a piece teaches (C2, derived from the concept index) — resolved to Atlas
+      //                      nodes on read, through the one thesaurus, so a new alias or node is picked up without a re-import
+      //   learn_extra_items  D115 P5's games / exercises / practice links, optional, appended to their pieces on read;
+      //                      'pending' until the dead-link checker has seen them, 'held' (listed for the owner) when dead
+      //   learn_routes       guided routes as DATA (C5: a name + its target pieces; '*' = the whole circle), seeded here once
+      //   learn_opened · learn_explanations · learn_builds — C8, progress EARNED, never ticked: an item opened FROM draft,
+      //                      a checkpoint explained in the user's own words (private, never read by a model — D17), a link
+      //                      to what was built. learn_progress (195, the old ticks) is kept as it is and no longer counts.
+      // After 201 (the tree's families).
+      id: "202_learn_circle",
+      sql: `
+        CREATE TABLE IF NOT EXISTS learn_needs (
+          step_id     TEXT NOT NULL,
+          need_id     TEXT NOT NULL,
+          status      TEXT NOT NULL DEFAULT 'drafted' CHECK (status IN ('drafted', 'accepted', 'rejected')),
+          source      TEXT NOT NULL DEFAULT 'import',
+          position    INTEGER NOT NULL DEFAULT 0,
+          reviewed_by TEXT,
+          updated_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (step_id, need_id)
+        );
+        CREATE TABLE IF NOT EXISTS learn_teaches (
+          step_id  TEXT NOT NULL,
+          term     TEXT NOT NULL,
+          position INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (step_id, term)
+        );
+        CREATE TABLE IF NOT EXISTS learn_extra_items (
+          id          TEXT PRIMARY KEY,
+          step_id     TEXT NOT NULL,
+          k           TEXT NOT NULL,
+          t           TEXT NOT NULL,
+          s           TEXT,
+          u           TEXT NOT NULL,
+          o           INTEGER NOT NULL DEFAULT 1,
+          position    INTEGER NOT NULL DEFAULT 0,
+          status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'live', 'held')),
+          checked_at  INTEGER,
+          check_note  TEXT,
+          imported_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS learn_routes (
+          id         TEXT PRIMARY KEY,
+          name       TEXT NOT NULL,
+          targets    TEXT NOT NULL,
+          position   INTEGER NOT NULL DEFAULT 0,
+          updated_by TEXT,
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        INSERT OR IGNORE INTO learn_routes (id, name, targets, position, updated_by) VALUES
+          ('all', 'The whole circle', '*', 0, 'seed:202'),
+          ('k8s', 'Make sense of Kubernetes', '["o4"]', 1, 'seed:202'),
+          ('backend-senior', 'Backend → senior', '["x2","x1","b2","w2","o3","l2"]', 2, 'seed:202'),
+          ('system-design', 'System design interviews', '["x2","x1","b2","d3","g4"]', 3, 'seed:202');
+        CREATE TABLE IF NOT EXISTS learn_opened (
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          item_id TEXT NOT NULL,
+          step_id TEXT NOT NULL,
+          at      INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, item_id)
+        );
+        CREATE TABLE IF NOT EXISTS learn_explanations (
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          checkpoint_id TEXT NOT NULL,
+          step_id       TEXT NOT NULL,
+          body          TEXT NOT NULL,
+          words         INTEGER NOT NULL,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, checkpoint_id)
+        );
+        CREATE TABLE IF NOT EXISTS learn_builds (
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          step_id    TEXT NOT NULL,
+          url        TEXT NOT NULL,
+          kind       TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, step_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_learn_needs_need ON learn_needs(need_id);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -6822,6 +6912,11 @@ cron.schedule('30 5 * * *', async () => {
     const r = await checkAtlasLinks(db);
     if (!r.busy) console.log(`[Cron] atlas links: ${r.checked} checked, ${r.ok} ok, ${r.failing} failing, ${r.dead} dead (${r.newlyDead.length} new)`);
   } catch (e) { console.error('[Cron] Atlas link check error:', e.message); }
+  // ⭐ D117 C9: D115 P5's links too — a new one waits for its first check, a held one is tried again.
+  try {
+    const r = await checkExtraItems(db);
+    if (r.checked) console.log(`[Cron] learn P5 links: ${r.checked} checked, ${r.live} live, ${r.held.length} held back`);
+  } catch (e) { console.error('[Cron] learn P5 link check error:', e.message); }
   // ⭐ D105 P7/P8 (amended 10-31): Wikipedia titles (exact matches only) + Wikidata items → the official site / docs
   // from Wikidata → Wikipedia summaries (drafts too) → the auto-publish bar again, so tonight's summaries count tonight.
   try {
@@ -9559,6 +9654,18 @@ try {
   if (s.seeded.length) console.log(`[learn] first install: ${s.seeded.join(", ")} imported into the database`);
   for (const k of s.skipped) console.warn(`[learn] ${k.file} NOT imported — ${k.errors.slice(0, 3).map(e => `${e.at} ${e.reason}`).join("; ")}`);
 } catch (e) { console.warn("[learn] content seed:", e.message); }
+// ⭐ D117 C9: the circle's data (content/learn/d117-data.json — "Before this" links as drafts, the terms each piece
+// teaches, D115 P5's links) goes in by its own import, idempotent by id: every boot adds only what is missing and never
+// moves a status the owner reviewed; learn_content (the tracker's text) is not touched. P5's links wait for the
+// dead-link checker before they show (shortly after boot, then daily with the Atlas's links).
+try {
+  const c = seedCircleData(db);
+  if (!c.ok) console.warn(`[learn] circle data NOT imported — ${(c.errors || []).slice(0, 3).map(e => `${e.at} ${e.reason}`).join("; ")}`);
+  else if (!c.missing && (c.needs.added || c.teaches.added || c.p5.added)) console.log(`[learn] circle: ${c.needs.added} "Before this" link(s) (drafted), ${c.teaches.added} taught term(s) (${c.teaches.unresolved.length} unresolved), ${c.p5.added} P5 link(s) waiting for the link check`);
+  if (c.ok && !c.missing && c.p5.pending) {
+    setTimeout(() => { checkExtraItems(db, { include: ["pending"] }).then(r => console.log(`[learn] P5 links: ${r.checked} checked, ${r.live} live, ${r.held.length} held back`)).catch(e => console.warn("[learn] P5 link check:", e.message)); }, 60_000).unref();
+  }
+} catch (e) { console.warn("[learn] circle data:", e.message); }
 // ⭐ D115 P4(a): the owner's tracker's 385 definitions — empty definitions filled, the rest as concept drafts (idempotent).
 try {
   const r = importLearnConcepts(db, learnContent(db));
