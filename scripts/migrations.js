@@ -5390,4 +5390,13 @@ export const MIGRATIONS = [
         UPDATE atlas_resources SET source = 'owner' WHERE source IS NULL;
       `,
     },
+    {
+      // ⭐ BUG 10-31 · atlas_nodes.wiki_match — what the title matcher's last ANSWER for this node was: matched · missing ·
+      // not_in_answer · disambiguation · inexact · not_software · no_item (services/atlas/atlasWikidata.js
+      // WIKI_MATCH_CLASSES). Written with wiki_checked_at; NULL = never answered. Additive only.
+      id: "190_atlas_wiki_match",
+      sql: `
+        ALTER TABLE atlas_nodes ADD COLUMN wiki_match TEXT;
+      `,
+    },
   ];

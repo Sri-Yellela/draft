@@ -68,6 +68,8 @@ export function askWikipediaAgain(db) {
 }
 
 const why = (reasons) => Object.entries(reasons || {}).filter(([k]) => k !== "200").map(([k, n]) => `${k} ×${n}`).join(", ");
+const CLASS_WORDS = { missing: "missing", not_in_answer: "not in the answer", disambiguation: "disambiguation", inexact: "redirect to another name",
+  not_software: "not software", no_item: "no Wikidata item" };
 
 /**
  * ⭐ BUG 10-31 · the ONE result line for a run of the pipeline — the admin button's and the nightly log's. It shows
@@ -92,7 +94,10 @@ export function describeAutoRun(r) {
     if (w.stoppedAt429) errors.push(`Wikipedia summaries stopped at the rate limit`);
   }
   const parts = [
-    `Titles: ${t.due ?? 0} due · ${t.asked ?? 0} asked · ${t.notAsked ?? 0} not askable · ${t.requests ?? 0} request(s) · ${t.failed ?? 0} failed · ${t.matched ?? 0} matched`,
+    `Titles: ${t.due ?? 0} due · ${t.asked ?? 0} asked · ${t.notAsked ?? 0} not askable · ${t.requests ?? 0} request(s) · ${t.failed ?? 0} failed · ${t.matched ?? 0} matched`
+      + ` · ${t.items ?? 0} item(s) · ${t.notSoftware ?? 0} not software`
+      + (Object.entries(t.classes || {}).some(([c, n]) => c !== "matched" && n) ? ` (unmatched: ${Object.entries(t.classes).filter(([c, n]) => c !== "matched" && n).map(([c, n]) => `${n} ${CLASS_WORDS[c] || c}`).join(", ")})` : "")
+      + (why(t.reasons) ? ` · answers ${why(t.reasons)}` : ""),
     `Wikidata: ${d.official ?? 0} official link(s) of ${d.due ?? 0} due`,
     `Summaries: ${w.fetched ?? 0} of ${w.due ?? 0} read`,
     `${n} page(s) published`,
