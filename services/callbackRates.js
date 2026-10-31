@@ -19,10 +19,17 @@
 //   · ⛔ D106's verdict AT THE TIME is NOT a split: the one line is computed live from the posting and nothing records
 //     it when an application is sent (job_applications has no such column). Splitting by today's verdict would
 //     describe the posting now, not the choice the user made — so the split is skipped, and the payload says so.
+//   · ⭐ WHY THEY SAID NO (D113 UI "Note why" feeds D111, owner 10-31): among the user's own REJECTIONS
+//     (response_outcome = 'rejected', the ladder's Rejected — so a withdrawal is never one), a count per quick pick
+//     (shared/applicationResponse.js REJECTION_REASONS), each "k of n rejections", and how many carry no pick. Counts
+//     only: nothing is compared, ranked or inferred, and no pick enters the headline. Shown only at MIN_COUNT
+//     rejections or more — below it the picks leave here as nothing but the number of rejections.
+//     ⛔ D17: the free text (job_applications.rejection_note) is NEVER read here — the reader selects
+//     rejection_reasons by name and never the note, so the note cannot reach this payload, a count, or a model.
 //
 // callbackRates() is PURE (rows in, the card's data out — no database, no clock of its own); gatherCallbackApps()
 // is the one reader that turns the tables into those rows.
-import { responseBucket, RESPONSE_OUTCOME } from "../shared/applicationResponse.js";
+import { responseBucket, RESPONSE_OUTCOME, REJECTION_REASONS } from "../shared/applicationResponse.js";
 import { livenessOf, titleKey } from "./jobs/jobHistory.js";
 
 export const MIN_COUNT = 15;
@@ -119,6 +126,35 @@ export function answerOf(app, { now }) {
   return { counted: replied || bucket === "silent", replied, interviewed: replied && interviewed };
 }
 
+// ── why they said no: the quick picks, counted ───────────────────────────────────────────────
+
+/** A stored pick list → the known keys, once each, in the list's order. Anything else (or bad JSON) is no pick. */
+export function picksOf(v) {
+  let list = v;
+  if (typeof v === "string") { try { list = JSON.parse(v); } catch { return []; } }
+  if (!Array.isArray(list)) return [];
+  return Object.keys(REJECTION_REASONS).filter(k => list.includes(k));
+}
+
+/**
+ * Among the user's rejections, a count per quick pick. Counts only — "k of n rejections" — and nothing at all below
+ * the minimum but how many rejections there are. ⛔ Takes only `responseOutcome` and `rejectionReasons` (the pick
+ * keys); there is no note to read.
+ */
+export function rejectionPicks(apps, { minCount = MIN_COUNT } = {}) {
+  const rejected = (apps ?? []).filter(a => a.responseOutcome === RESPONSE_OUTCOME.REJECTED);
+  const n = rejected.length;
+  const base = { title: "Why they said no", rejections: n, minCount };
+  if (n < minCount) return { shown: false, ...base, picks: [], noPick: null };
+  const lists = rejected.map(a => picksOf(a.rejectionReasons));
+  const picks = Object.entries(REJECTION_REASONS).map(([key, label]) => {
+    const count = lists.filter(l => l.includes(key)).length;
+    return { key, label, count, of: ofText(count, n) };
+  });
+  const none = lists.filter(l => l.length === 0).length;
+  return { shown: true, ...base, picks, noPick: { label: "No pick noted", count: none, of: ofText(none, n) } };
+}
+
 // ── the pure core ────────────────────────────────────────────────────────────────────────────
 
 const ofText = (k, n) => `${k} of ${n}`;
@@ -132,15 +168,17 @@ function ratioText(r) {
 /**
  * The card's data.
  * @param {Array<{ appliedAt, responseOutcome?, furthestStage?, firstResponseAt?, inboxCategories?, version?, role?,
- *   livenessKind?, daysToApply? }>} apps — gatherCallbackApps' rows
- * @returns {{ shown, minCount, counted, replied, interviewed, waiting, headline, splits, notSplit }}
+ *   livenessKind?, daysToApply?, rejectionReasons? }>} apps — gatherCallbackApps' rows (rejectionReasons: the quick-pick keys, never the note)
+ * @returns {{ shown, minCount, counted, replied, interviewed, waiting, headline, splits, notSplit, whyNo }}
  */
 export function callbackRates(apps, { now = Math.floor(Date.now() / 1000), minCount = MIN_COUNT } = {}) {
   const rows = [];
+  const countedApps = [];
   let waiting = 0;
   for (const a of apps ?? []) {
     const ans = answerOf(a, { now });
     if (!ans.counted) { waiting++; continue; }
+    countedApps.push(a);
     rows.push({ ...ans, groups: {
       daysToApply: daysGroup(a.daysToApply),
       version: versionGroup(a.version),
@@ -152,6 +190,7 @@ export function callbackRates(apps, { now = Math.floor(Date.now() / 1000), minCo
   const replied = rows.filter(r => r.replied).length;
   const interviewed = rows.filter(r => r.interviewed).length;
   const base = { minCount, counted, replied, interviewed, waiting, notSplit: NOT_SPLIT,
+    whyNo: rejectionPicks(countedApps, { minCount }),
     total: { replies: ofText(replied, counted), interviews: ofText(interviewed, counted) } };
   if (counted < minCount) return { shown: false, ...base, headline: null, splits: [] };
 
@@ -212,7 +251,9 @@ const safe = (fn, fallback) => { try { return fn(); } catch { return fallback; }
 
 /** The user's sent applications as callbackRates() rows. Read-only; own data only. */
 export function gatherCallbackApps(db, userId) {
-  const apps = db.prepare(`SELECT ja.job_id, ja.role, ja.applied_at, ja.response_outcome, ja.furthest_stage, ja.first_response_at
+  // ⛔ D17: rejection_reasons (the quick picks) by name — never rejection_note, never ja.* (which would carry the note).
+  const apps = db.prepare(`SELECT ja.job_id, ja.role, ja.applied_at, ja.response_outcome, ja.furthest_stage, ja.first_response_at,
+    ja.rejection_reasons
     FROM job_applications ja WHERE ja.user_id = ? AND ja.applied_at IS NOT NULL ORDER BY ja.id`).all(userId);
   if (!apps.length) return [];
 
@@ -263,6 +304,6 @@ export function gatherCallbackApps(db, userId) {
 
     return { appliedAt: a.applied_at, responseOutcome: a.response_outcome, furthestStage: a.furthest_stage,
       firstResponseAt: a.first_response_at, inboxCategories: cats.get(jobId) ?? [], version, role: a.role,
-      livenessKind, daysToApply };
+      livenessKind, daysToApply, rejectionReasons: picksOf(a.rejection_reasons) };
   });
 }
