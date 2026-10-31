@@ -9,6 +9,12 @@
  * The payload is the REAL SHAPE the endpoint returns — taken from a run of the behavioural
  * harness — rather than a hand-written mock of what it might look like.
  *
+ * ⭐ D113 UI (checked 2026-10-31): the attempt row is mounted ALONE, so the tree did not move it — it
+ * is what Draft House's "What happened" leaf renders for each attempt of a held or stopped job
+ * (AutoApplyPanel's leavesFor → <AttemptRow>). Its strings and hooks ("Still yours to answer",
+ * "What was filled", [data-rm-fill-log]) are unchanged; test/d113ui.test.js d113uiHarnessesCurrent
+ * pins them and compiles the harness entry below.
+ *
  * EXCLUDED from the auto-discovered suite, with the other screenshot harnesses.
  *
  * Usage:  node scripts/ah5FillLogShots.mjs

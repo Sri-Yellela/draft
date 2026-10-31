@@ -69,7 +69,6 @@ const EXCLUDED = {
   ah3TermPanelShots:   "screenshots; the ATS panel half of ah3TermQuality, which stays in the suite",
   ah4FindingShots:     "screenshots; the finding-strip half of ah4LocationClaims, which stays in the suite",
   ah5FillLogShots:     "screenshots; the panel half of ah5ReuseAndFillLog, which stays in the suite",
-  ah6RecentRunDefault: "screenshots; drives the real panel in a browser, like abPanelUi which covers the no-history case",
   ae1Diagnose:         "instrument, not a harness",
   an3FamilyWeightRho:  "measurement, not a harness — reports rho for four weight bucketings against the 30 human grades and asserts nothing, so in this board it would be a vacuous pass. It also VACUUMs a 116 MB corpus once per arm, and it reads data/evidence/, which a clean checkout may not carry. Re-run it by hand when the graded set grows: docs/ATS_TERM_WEIGHTS_SCHEDULE.md §6c is the standing answer it produced. test/termWeightEnvelope.test.js is the asserting half and stays in `npm test`",
   ae1LiveVerify:       "points at a REAL EMPLOYER — never automated",
