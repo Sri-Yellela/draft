@@ -29,7 +29,10 @@ export const KIND_ORDER = ["Video", "Playlist", "Article", "Guide", "Book", "Cou
 const reducedMotion = () => {
   try { return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
 };
-const Sq = ({ state }) => <span className={`lrc__st lrc__st--${state}`} aria-hidden="true" />;
+// A state is a DOT (owner 10-31: the squares "look like a checkbox", which C8 forbids): filled = finished, half = started,
+// a ring = not yet. Never pressable, aria-hidden; the row that holds it says the state in its accessible name.
+const Dot = ({ state }) => <span className={`lrc__st lrc__st--${state}`} aria-hidden="true" />;
+const STATE_WORDS = { filled: "finished", half: "started", open: "not started" };
 
 /** C3 · the ring. */
 export function CircleSvg({ pieces, layout, states, sel, route, onSelect }) {
@@ -170,8 +173,9 @@ export function PieceBody({ piece, pieces, states, marks = {}, explanations = {}
     const x = byId.get(id);
     if (!x) return null;
     return (
-      <li key={id}><button type="button" className="lrc__nb" onClick={() => onSelect?.(id)} data-learn-go={id}>
-        <Sq state={circleState(states.get(id))} /><span>{x.t}{extra}</span>
+      <li key={id}><button type="button" className="lrc__nb" onClick={() => onSelect?.(id)} data-learn-go={id}
+        aria-label={`${x.t}, ${STATE_WORDS[circleState(states.get(id))]}${extra ? ", a drafted link" : ""}`}>
+        <Dot state={circleState(states.get(id))} /><span className="lrc__nb-t">{x.t}{extra}</span>
       </button></li>
     );
   };
@@ -195,7 +199,7 @@ export function PieceBody({ piece, pieces, states, marks = {}, explanations = {}
             {(piece.needs || []).length ? (
               <ul className="lrc__nbs">{piece.needs.map(n => nb(n.id, n.status === "drafted" ? <span className="mark mark--dim lrc__draft" data-learn-draft={n.id} title="A drafted link, waiting for review">draft</span> : null))}</ul>
             ) : <p className="atl__quiet">Nothing: you can start here.</p>}
-            {back ? <DepthButton size="compact" className="lrc__goback" onClick={() => onSelect?.(back)} data-learn-goback={back}>Go back to understand: {byId.get(back)?.t}</DepthButton>
+            {back ? <DepthButton size="compact" wrap className="lrc__goback" onClick={() => onSelect?.(back)} data-learn-goback={back}>Go back to understand: {byId.get(back)?.t}</DepthButton>
               : (piece.needs || []).length ? <p className="atl__quiet">Everything it builds on is finished.</p> : null}
           </div>
           <div className="lrc__box lrc__box--after">

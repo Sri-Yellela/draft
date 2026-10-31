@@ -10,10 +10,12 @@ import "./DepthButton.css";
 // Props: children (the label), icon (an inline SVG node), primary, pressed (a decided state — aria-pressed),
 //   disabled, title, onClick, size ("box" — labelled, 42px; "square" — icon only, 48px; "compact" — a
 //   listing row), badge (a small count on a square), caption (shown under a square on touch), tip (a
-//   square's hover tooltip; defaults to the title), className. The click never bubbles to a card.
+//   square's hover tooltip; defaults to the title), wrap (a label that may be long — a piece's title, a sentence: it
+//   wraps inside its column and the box grows with it; owner 10-31: "the buttons i think are fixed and not fluid"),
+//   className. The click never bubbles to a card.
 export default function DepthButton({ children, icon = null, primary = false, pressed = false, disabled = false, title,
-                                      onClick, size = "box", badge = null, caption = null, tip = null, className = "", ...rest }) {
-  const cls = ["dbx", `dbx--${size}`, primary ? "dbx--p" : "", pressed ? "dbx--done" : "", className].filter(Boolean).join(" ");
+                                      onClick, size = "box", badge = null, caption = null, tip = null, wrap = false, className = "", ...rest }) {
+  const cls = ["dbx", `dbx--${size}`, primary ? "dbx--p" : "", pressed ? "dbx--done" : "", wrap && size !== "square" ? "dbx--wrap" : "", className].filter(Boolean).join(" ");
   const square = size === "square";
   return (
     <button type="button" className={cls} title={title} aria-pressed={pressed || undefined} disabled={disabled}

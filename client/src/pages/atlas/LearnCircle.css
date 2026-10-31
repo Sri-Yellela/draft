@@ -63,8 +63,11 @@
 .lrc__prog { display: grid; gap: 4px; font-size: 13px; }
 .lrc__bar { height: 8px; background: var(--c-border); border-radius: 4px; overflow: hidden; }
 .lrc__bar i { display: block; height: 100%; background: var(--c-success); }
-.lrc__twin { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
-@media (max-width: 560px) { .lrc__twin { grid-template-columns: minmax(0, 1fr); } }
+/* The twin boxes split by the PANEL's width, not the window's (owner 10-31: "Go back to understand" overflowed into
+   After this at desktop widths): the piece body is the container; below 560px of it the boxes stack. */
+.lrc__piece-body { container-type: inline-size; }
+.lrc__twin { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; min-width: 0; }
+@container (max-width: 560px) { .lrc__twin { grid-template-columns: minmax(0, 1fr); } }
 .lrc__box { border: 1px solid var(--c-border); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; min-width: 0; }
 .lrc__box-h { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--c-ink); }
 .lrc__box--before .lrc__box-h { color: var(--c-accent-ink); }
@@ -75,10 +78,13 @@
 .lrc__nb { display: flex; gap: 8px; align-items: flex-start; width: 100%; padding: 4px 2px; border: 0; border-radius: 6px; background: none; color: var(--c-ink); font: inherit; font-size: 13.5px; line-height: 1.3; text-align: left; cursor: pointer; }
 .lrc__nb:hover { background: var(--c-hover); }
 .lrc__nb:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
-.lrc__st { flex: none; width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--c-border-strong); margin-top: 1px; box-sizing: border-box; }
+.lrc__nb-t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+/* State dots — perfect circles (D60 allows dots), never a box a user could take for a checkbox (C8). */
+.lrc__st { flex: none; width: 10px; height: 10px; border-radius: 5px; border: 2px solid var(--c-border-strong); margin-top: 4px; box-sizing: border-box; }
 .lrc__st--filled { background: var(--c-success); border-color: var(--c-success); }
 .lrc__st--half { background: linear-gradient(90deg, var(--c-success) 50%, transparent 50%); border-color: var(--c-success); }
-.lrc__draft { margin-left: 6px; }
+/* The draft tag flows inline after the title and wraps with it — never absolute, never over the words. */
+.lrc__nb-t .lrc__draft { display: inline; margin-left: 6px; padding: 1px 5px 1px 4px; line-height: 1.3; vertical-align: baseline; }
 .lrc__goback { justify-self: start; }
 .lrc__items { display: grid; gap: 6px; }
 .lrc__kind-h { margin: 4px 0; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--c-ink-faint); }

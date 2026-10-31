@@ -209,7 +209,7 @@ test("D117 C7 · d117FourThemes — the circle draws in draft's tokens only (Pap
   for (let i = 1; i <= 8; i++) assert.match(css, new RegExp(`\\.lrc__part--${i} \\{ --lrc-c: var\\(--lrc-p${i}\\); \\}`));
   assert.match(css, /\[data-contrast="aaa"\] \.lrc__toast/);
   assert.match(css, /@media \(max-width: 980px\) \{ \.lrc__main \{ grid-template-columns: minmax\(0, 1fr\); \}/, "phone: the piece drops under the circle");
-  assert.match(css, /@media \(max-width: 560px\) \{ \.lrc__twin \{ grid-template-columns: minmax\(0, 1fr\); \} \}/);
+  assert.match(css, /@container \(max-width: 560px\) \{ \.lrc__twin \{ grid-template-columns: minmax\(0, 1fr\); \} \}/, "the twin boxes stack by the PANEL's width (a container query), not the window's");
   assert.match(css, /\.lrc__toast \{\n  position: fixed;[^}]*max-width: calc\(100vw - 32px\)/);
   const { circle } = await loadUi();
   const html = circle(props(await world(), { initialSel: "o4" }));
