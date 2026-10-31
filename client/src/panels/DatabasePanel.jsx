@@ -1173,7 +1173,7 @@ function CallbackRatesCard({ theme }) {
     return () => { live = false; };
   }, []);
   if (!data?.shown || !data.headline) return null;
-  const { headline, splits = [], notSplit = [], minCount } = data;
+  const { headline, splits = [], notSplit = [], minCount, whyNo } = data;
   return (
     <section data-callback-rates="" aria-label="What is working" style={{ flexShrink: 0, margin: "12px 16px 0",
       padding: "12px 14px", background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 6 }}>
@@ -1181,7 +1181,7 @@ function CallbackRatesCard({ theme }) {
       <div style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>{headline.text}</div>
       <div data-callback-counts="" style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>{headline.detail}</div>
       <details style={{ marginTop: 8 }}>
-        <summary style={{ fontSize: 12, color: theme.textMuted, cursor: "pointer" }}>By résumé, role, posting and timing</summary>
+        <summary style={{ fontSize: 12, color: theme.textMuted, cursor: "pointer" }}>By résumé, role, posting and timing{whyNo?.shown ? ", and why they said no" : ""}</summary>
         {splits.map(s => (
           <div key={s.key} style={{ marginTop: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: theme.text }}>{s.title}</div>
@@ -1193,6 +1193,23 @@ function CallbackRatesCard({ theme }) {
             ))}
           </div>
         ))}
+        {/* Note why's quick picks, counted (never the note): "k of n rejections" as the server wrote it; below the
+            minimum the server sends no pick at all and this says so. */}
+        {whyNo?.shown ? (
+          <div data-why-no="" style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: theme.text }}>{whyNo.title}</div>
+            {[...whyNo.picks, whyNo.noPick].map(p => (
+              <div key={p.key || "none"} style={{ fontSize: 12, color: theme.text, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ minWidth: 0, flex: "1 1 180px" }}>{p.label}</span>
+                <span>{p.of} rejections</span>
+              </div>
+            ))}
+          </div>
+        ) : whyNo?.rejections > 0 ? (
+          <div data-why-no="" style={{ fontSize: 11, color: theme.textMuted, marginTop: 8 }}>
+            {whyNo.title}: {whyNo.rejections === 1 ? "1 rejection" : `${whyNo.rejections} rejections`}, fewer than {minCount}, not counted yet.
+          </div>
+        ) : null}
         {notSplit.map(n => (
           <div key={n.key} style={{ fontSize: 11, color: theme.textMuted, marginTop: 8 }}>{n.title}: {n.reason}</div>
         ))}
