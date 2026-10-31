@@ -12,11 +12,11 @@
 // Stopped item with its own `kind`. Each is one more case in buildStoppedItems — never a second list.
 // ============================================================
 
-/** The run bar's own copy for Stop everything. Said plainly in the bar, never only in a tooltip. */
+/** The copy for Stop everything (D113 UI: Pause). Said on the Pause button and in Settings. */
 export const STOP_DOES =
   "Stop everything holds every draft that has not started, and a run in progress starts nothing further.";
 export const STOP_DOES_NOT =
-  "It does not recall applications already sent. One already being filled finishes — stop it in Queued.";
+  "It does not recall applications already sent. One already being filled finishes — stop it under Running.";
 export const HELD_LINE = "Stopped — nothing new starts until you resume.";
 
 /** Shown under the locked AUTO segment until the server says otherwise. */

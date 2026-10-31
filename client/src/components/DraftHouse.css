@@ -1,16 +1,26 @@
-/* D25 · DRAFT HOUSE — the run bar and the Stopped items. D1's depth tokens on every control and its
- * hover rail (revealed on hover AND keyboard focus; always shown where the pointer cannot hover),
- * the same idiom The Table uses (ApplicationHistory.css).
- * Colours are tokens only (--c-*, published from styles/colorTokens.js). */
+/* D113 UI · DRAFT HOUSE — the header, the tree that grows inline and the side column (owner 10-31,
+ * docs/sketches/draft-house-tree.html). D1's depth tokens on every control; colours are tokens only
+ * (--c-*, published from themes/*.js); the bubbles are components/CompanyBubble.css. No pills (D60):
+ * rectangles, marks and depth boxes; the trunk's run squares are squares. */
 
-/* ── THE RUN BAR ───────────────────────────────────────────────────────────────────────────── */
-.dh-bar {
-  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px 22px;
-  padding: 14px 16px; border-radius: 18px; background: var(--c-surface-solid); box-shadow: var(--c-depth-rest);
+.dh-page { padding: 24px 20px; max-width: 1260px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+
+/* ── U1 · THE HEADER — one line: the sentence, the two modes, Pause, Settings ─────────────── */
+.dh-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.dh-head__text { min-width: 0; flex: 1 1 320px; }
+.dh-head__say { margin: 6px 0 0; font-size: 14px; color: var(--c-ink-muted); }
+.dh-head[data-held="true"] .dh-head__say { color: var(--c-ink); font-weight: 700; }
+.dh-head__ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dh-head__why { flex-basis: 100%; margin: 0; font-size: 11.5px; color: var(--c-ink-muted); }
+.dh-note { font-size: 11.5px; color: var(--c-ink-muted); }
+.dh-note[data-tone="accent"] { color: var(--c-accent-ink); }
+.dh-handoff {
+  display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 8px; font-size: 11.5px;
+  background: var(--c-surface-solid); border: 1px solid var(--c-border); border-left: 3px solid var(--c-warning);
 }
-.dh-bar[data-held="true"] { box-shadow: var(--c-depth-hover); outline: 2px solid var(--c-warning); outline-offset: -2px; }
-.dh-bar__group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.dh-bar__label { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--c-ink-faint); }
+.dh-handoff[data-kind="open"] { border-color: var(--c-info); border-left-color: var(--c-info); }
+.dh-handoff span { flex: 1; line-height: 1.6; color: var(--c-ink); }
+.dh-handoff button { border: 0; background: transparent; color: var(--c-ink-faint); cursor: pointer; font-size: 16px; line-height: 1; }
 
 .dh-mode { display: inline-flex; gap: 4px; padding: 3px; border-radius: 12px; background: var(--c-hover); }
 .dh-mode__seg {
@@ -23,83 +33,6 @@
 .dh-mode__seg:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
 .dh-mode__why { margin: 0; font-size: 11.5px; color: var(--c-ink-muted); max-width: 30ch; }
 
-.dh-caps { display: flex; flex-wrap: wrap; gap: 8px; }
-.dh-cap {
-  display: flex; flex-direction: column; gap: 4px; min-width: 104px; padding: 7px 10px; border-radius: 12px;
-  background: var(--c-surface-solid); box-shadow: var(--c-depth-rest);
-}
-.dh-cap__name { font-size: 11px; font-weight: 700; color: var(--c-ink-muted); }
-.dh-cap__n { font-size: 13px; font-weight: 800; color: var(--c-ink); font-variant-numeric: tabular-nums; }
-.dh-cap__meter { height: 4px; border-radius: 2px; background: var(--c-hover); overflow: hidden; }
-.dh-cap__meter span { display: block; height: 100%; background: var(--c-accent); }
-.dh-cap[data-full="true"] .dh-cap__meter span { background: var(--c-danger); }
-
-.dh-stop { flex: 1 1 260px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.dh-stop__btn {
-  align-self: flex-start; border: 0; border-radius: 12px; padding: 9px 16px; font: inherit; font-size: 13px; font-weight: 800;
-  background: var(--c-surface-solid); color: var(--c-danger); cursor: pointer; box-shadow: var(--c-depth-rest);
-  transition: box-shadow .2s ease, transform .2s ease;
-}
-.dh-stop__btn[data-held="true"] { color: var(--c-accent-ink); }
-.dh-stop__btn:hover:not(:disabled), .dh-stop__btn:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); }
-.dh-stop__btn:active { transform: translateY(0); box-shadow: var(--c-depth-press); }
-.dh-stop__btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-.dh-stop__btn:disabled { opacity: .55; cursor: wait; }
-.dh-stop__say { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--c-ink-muted); }
-.dh-stop__held { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--c-warning); }
-.dh-stop__msg { margin: 0; font-size: 11.5px; color: var(--c-accent-ink); }
-
-/* ── THE STOPPED ITEMS ─────────────────────────────────────────────────────────────────────── */
-.dh-list { display: flex; flex-direction: column; gap: 10px; }
-.dh-item {
-  border-radius: 18px; background: var(--c-surface-solid); box-shadow: var(--c-depth-rest);
-  padding: 12px 14px 12px 16px; border-left: 4px solid var(--c-border); transition: box-shadow .2s ease;
-}
-.dh-item[data-tone="danger"]  { border-left-color: var(--c-danger); }
-.dh-item[data-tone="warning"] { border-left-color: var(--c-warning); }
-.dh-item[data-tone="info"]    { border-left-color: var(--c-info); }
-.dh-item:hover, .dh-item:focus-within, .dh-item[data-open="true"] { box-shadow: var(--c-depth-hover); }
-
-.dh-item__head { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.dh-item__main {
-  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  border: 0; background: none; padding: 0; text-align: left; cursor: pointer; color: inherit; font: inherit;
-}
-.dh-item__main:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 4px; border-radius: 6px; }
-.dh-item__title, .dh-item__sub { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dh-item__title { font-size: 14.5px; font-weight: 800; color: var(--c-ink); }
-.dh-item__sub { font-size: 12px; color: var(--c-ink-muted); }
-
-/* THE RAIL — D1's motion: zero width until hover / focus-within. */
-.dh-rail {
-  flex-shrink: 0; display: flex; gap: 8px;
-  max-width: 0; opacity: 0;
-  /* ⛔ T25 — clip-path, never overflow: an overflow clip cut the squares' shadows into a box (JobBubble.css). */
-  clip-path: inset(-10px -20px -28px -20px); visibility: hidden;
-  transition: max-width .42s cubic-bezier(.3,.8,.25,1), opacity .42s cubic-bezier(.3,.8,.25,1), visibility 0s linear .42s;
-}
-.dh-item:hover .dh-rail, .dh-item:focus-within .dh-rail { max-width: 196px; opacity: 1; visibility: visible; transition-delay: 0s; }
-@media (hover: none) { .dh-rail { max-width: 196px; opacity: 1; visibility: visible; } }
-
-.dh-sq {
-  width: 52px; height: 52px; flex-shrink: 0; border-radius: 13px; border: 0;
-  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-  background: var(--c-surface-solid); color: var(--c-ink); font-family: var(--font-body); font-size: 17px;
-  text-decoration: none; cursor: pointer; box-shadow: var(--c-depth-rest);
-  transition: box-shadow .2s ease, transform .2s ease;
-}
-.dh-sq[data-primary="true"] { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); }
-.dh-sq:hover:not(:disabled), .dh-sq:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); }
-.dh-sq:active { transform: translateY(0); box-shadow: var(--c-depth-press); }
-.dh-sq:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-.dh-sq:disabled { opacity: .55; cursor: wait; }
-.dh-sq__cap { font-size: 9px; font-weight: 700; letter-spacing: .06em; }
-
-/* The fold — what needs the user, then ONE line for everything that did not. */
-.dh-fold { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--c-border); display: flex; flex-direction: column; gap: 8px; }
-.dh-fold__needs { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--c-ink); }
-.dh-fold__quiet { margin: 0; font-size: 12px; color: var(--c-ink-faint); }
-.dh-fold__actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .dh-btn {
   border: 0; border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 12.5px; font-weight: 700;
   background: var(--c-surface-solid); color: var(--c-ink); cursor: pointer; box-shadow: var(--c-depth-rest);
@@ -112,26 +45,162 @@
 .dh-btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
 .dh-btn:disabled { opacity: .55; cursor: wait; }
 
-@media (max-width: 640px) {
-  .dh-bar { padding: 12px; }
-  .dh-stop { flex-basis: 100%; }
-  .dh-item__head { flex-wrap: wrap; }
-  .dh-item__main { flex-basis: 100%; }
-  .dh-rail { max-width: none; opacity: 1; margin-left: auto; visibility: visible; }
+.dh-fold__quiet { margin: 0; font-size: 12px; color: var(--c-ink-faint); }
+
+/* ── THE MAIN GRID — the tree, and the side column at 340 px ─────────────────────────────── */
+.dh-main {
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start;
+  border-radius: 8px; background: var(--c-surface-solid); box-shadow: var(--c-depth-rest); overflow: clip;
 }
-@media (prefers-reduced-motion: reduce) {
-  .dh-rail, .dh-sq, .dh-btn, .dh-item, .dh-stop__btn, .dh-mode__seg { transition: none; }
+.dh-main[data-detail="true"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
+.dh-detail { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; position: sticky; top: 8px; }
+/* U10 · narrow: ONE column, the side column on top, branches indent 16 px, the actions wrap. */
+@media (max-width: 899px) {
+  .dh-main, .dh-main[data-detail="true"] { grid-template-columns: minmax(0, 1fr); }
+  .dh-main > .dhs, .dh-main > .dh-detail { order: -1; border-left: 0; border-bottom: 1px solid var(--c-border); }
+  .dht-branch { margin-left: 16px; }
+  .dht-acts { flex-wrap: wrap; }
 }
 
-/* ⭐ D53 · CLEAR, MULTI-SELECT AND THE BIN — depth boxes (D48), tokens only. */
+/* ── U3 · THE TREE ─────────────────────────────────────────────────────────────────────────── */
+.dht { min-width: 0; display: flex; flex-direction: column; }
+.dht-filters {
+  position: sticky; top: 0; z-index: 6; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding: 10px 16px; background: var(--c-surface-solid); border-bottom: 1px solid var(--c-border);
+}
+.dht-chip {
+  border: 1px solid var(--c-border); border-radius: 4px; padding: 4px 9px; background: transparent;
+  font: inherit; font-size: 12.5px; color: var(--c-ink-muted); cursor: pointer;
+}
+.dht-chip[aria-pressed="true"] { border-color: var(--c-ink); color: var(--c-ink); font-weight: 700; }
+.dht-chip:focus-visible, .dht-zoom button:focus-visible, .dht-leaf:focus-visible, .dht-sq:focus-visible,
+.dhs-item:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.dht-search { margin-left: auto; display: flex; max-width: 100%; min-width: 0; }
+.dht-search > div { flex: 0 1 200px !important; min-width: 0; }
+.dht-zoom { display: inline-flex; gap: 4px; }
+.dht-zoom button {
+  width: 26px; height: 26px; border: 1px solid var(--c-border); border-radius: 4px; background: var(--c-surface-solid);
+  color: var(--c-ink); font: inherit; font-weight: 800; cursor: pointer;
+}
+.dht-zoom button:disabled { opacity: .45; cursor: default; }
+
+.dht-trunk { position: relative; padding: 4px 0 24px; }
+.dht-trunk::before { content: ""; position: absolute; left: 73px; top: 0; bottom: 0; border-left: 2px solid var(--c-border); }
+.dht-day {
+  position: sticky; top: 47px; z-index: 5; padding: 5px 16px; font-size: 12.5px; font-weight: 800;
+  background: var(--c-surface-solid); border-bottom: 1px solid var(--c-border);
+}
+.dht-now { position: relative; display: grid; grid-template-columns: 62px 1fr; align-items: center; padding: 2px 16px 2px 0; }
+.dht-now::after { content: ""; position: absolute; left: 62px; right: 16px; top: 50%; border-top: 2px solid var(--c-accent); }
+.dht-now span { position: relative; z-index: 1; padding-right: 10px; text-align: right; font-size: 11.5px; font-weight: 800; color: var(--c-accent-ink); }
+.dht-run { position: relative; display: grid; grid-template-columns: 62px 24px minmax(0, 1fr); align-items: start; padding: 10px 16px 10px 0; }
+.dht-time { padding: 9px 10px 0 0; text-align: right; font-size: 12.5px; color: var(--c-ink-muted); }
+.dht-sq {
+  position: relative; z-index: 1; width: 14px; height: 14px; margin: 12px 0 0 5px; padding: 0; border: 0;
+  border-radius: 4px; background: var(--c-ink); cursor: pointer;
+}
+.dht-sq[data-open="true"] { outline: 3px solid var(--c-accent-quiet); outline-offset: 2px; }
+.dht-sq--next { background: var(--c-surface-solid); border: 2px dashed var(--c-ink-faint); cursor: default; }
+.dht-sq--day { background: var(--c-ink-faint); cursor: default; }
+.dht-body { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding-left: 8px; min-width: 0; }
+.dht-meta { width: 100%; font-size: 12.5px; color: var(--c-ink-muted); }
+.dht-meta button { border: 0; padding: 0; background: none; font: inherit; color: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.dht-named { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; width: 58px; }
+.dht-name { max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--c-ink-muted); }
+.dht-named[data-dim="true"] .dht-name { opacity: .28; }
+.dht-empty { margin: 12px 16px 0 90px; font-size: 13px; color: var(--c-ink-muted); }
+.dht-legend {
+  display: flex; flex-wrap: wrap; gap: 14px; padding: 10px 16px 14px; font-size: 12.5px; color: var(--c-ink-muted);
+  border-top: 1px solid var(--c-border);
+}
+.dht-legend span::before {
+  content: ""; display: inline-block; width: 11px; height: 11px; margin-right: 6px; vertical-align: -2px;
+  border-radius: 3px; border: 2.5px solid var(--dht-ring);
+}
+.dht-legend [data-ring="need"], .dht-branch[data-ring="need"], .dht-card--lead[data-ring="need"] { --dht-ring: var(--c-accent); }
+.dht-legend [data-ring="review"], .dht-branch[data-ring="review"], .dht-card--lead[data-ring="review"] { --dht-ring: var(--c-warning); }
+.dht-legend [data-ring="pick"], .dht-branch[data-ring="pick"], .dht-card--lead[data-ring="pick"] { --dht-ring: var(--c-ink-faint); }
+.dht-legend [data-ring="work"], .dht-branch[data-ring="work"], .dht-card--lead[data-ring="work"] { --dht-ring: var(--c-info); }
+.dht-legend [data-ring="sent"], .dht-branch[data-ring="sent"], .dht-card--lead[data-ring="sent"] { --dht-ring: var(--c-success); }
+.dht-legend [data-ring="reply"], .dht-branch[data-ring="reply"], .dht-card--lead[data-ring="reply"] { --dht-ring: var(--c-violet); }
+.dht-legend [data-ring="stop"], .dht-branch[data-ring="stop"], .dht-card--lead[data-ring="stop"] { --dht-ring: var(--c-danger); }
+
+/* ── U4 · THE BRANCHES — they grow in place, one at a time ─────────────────────────────────── */
+.dht-branch { position: relative; margin: 2px 16px 10px 74px; padding: 2px 0 4px 18px; border-left: 2px solid var(--dht-ring, var(--c-border)); }
+.dht-node { position: relative; margin: 8px 0; }
+.dht-node::before { content: ""; position: absolute; left: -18px; top: 16px; width: 14px; border-top: 2px solid var(--dht-ring, var(--c-border)); }
+.dht-card { padding: 12px 14px; border-radius: 6px; border: 1px solid var(--c-border); background: var(--c-surface-solid); }
+.dht-card--lead { border: 1.5px solid var(--dht-ring, var(--c-border)); }
+.dht-card__head { display: flex; gap: 10px; align-items: center; }
+.dht-card__who { min-width: 0; display: flex; flex-direction: column; }
+.dht-card__who h3 { margin: 0; font-size: 15px; line-height: 1.25; color: var(--c-ink); }
+.dht-card__who span { font-size: 12.5px; color: var(--c-ink-muted); }
+.dht-x { margin-left: auto; border: 0; background: transparent; color: var(--c-ink-muted); font-size: 20px; line-height: 1; cursor: pointer; }
+.dht-say { margin: 8px 0 0; font-size: 15px; line-height: 1.4; color: var(--c-ink); }
+.dht-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+.dht-ask { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; font-size: 12.5px; color: var(--c-ink-muted); }
+.dht-ask input:not([type="checkbox"]) {
+  width: 100%; box-sizing: border-box; padding: 7px 9px; border-radius: 4px; font: inherit;
+  border: 1px solid var(--c-border-control); background: var(--c-surface-input); color: var(--c-ink);
+}
+.dht-ask label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.dht-leaf {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; box-sizing: border-box;
+  padding: 8px 12px; border: 1px solid var(--c-border); border-radius: 6px; background: var(--c-surface-solid);
+  font: inherit; font-size: 13.5px; color: var(--c-ink); text-align: left; cursor: pointer;
+}
+.dht-leaf:hover { border-color: var(--c-ink); }
+.dht-leaf b { font-weight: 700; }
+.dht-leaf__sub { font-size: 12.5px; color: var(--c-ink-muted); }
+.dht-leaf__tw { color: var(--c-ink-muted); transition: transform .12s ease; }
+.dht-leaf[aria-expanded="true"] .dht-leaf__tw { transform: rotate(90deg); }
+.dht-deep { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 2px 18px; padding-left: 14px; border-left: 2px dashed var(--c-border); font-size: 13.5px; }
+.dht-r { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--c-border); }
+.dht-r:last-child { border-bottom: 0; }
+.dht-r__s { font-size: 12.5px; color: var(--c-ink-muted); }
+.dht-flag { font-size: 12px; font-weight: 700; color: var(--c-warning); }
+.dht-own { font-size: 12px; font-weight: 700; color: var(--c-violet); }
+.dht-why div { display: flex; gap: 10px; align-items: center; padding: 4px 0; font-size: 13.5px; }
+.dht-why b { min-width: 28px; text-align: right; }
+
+/* ── U7 · THE SIDE COLUMN ──────────────────────────────────────────────────────────────────── */
+.dhs { min-width: 0; align-self: stretch; border-left: 1px solid var(--c-border); background: var(--c-hover); }
+.dhs-blk { padding: 14px 16px; border-bottom: 1px solid var(--c-border); }
+.dhs-h { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 8px; font-size: 14px; color: var(--c-ink); }
+.dhs-quiet { margin: 0; font-size: 12.5px; color: var(--c-ink-muted); }
+.dhs-warn {
+  display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 6px; font-size: 13.5px;
+  border: 1.5px solid var(--c-accent); background: var(--c-surface-solid); color: var(--c-ink);
+}
+.dhs-warn + .dhs-warn { margin-top: 8px; }
+.dhs-warn span { color: var(--c-ink-muted); font-size: 12.5px; }
+.dhs-link { align-self: flex-start; border: 0; padding: 0; background: none; font: inherit; font-weight: 700; color: var(--c-accent-ink); text-decoration: underline; cursor: pointer; }
+.dhs-item {
+  display: flex; gap: 10px; align-items: center; width: 100%; padding: 7px 0; border: 0; border-bottom: 1px solid var(--c-border);
+  background: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+.dhs-item:last-of-type { border-bottom: 0; }
+.dhs-item__text { min-width: 0; display: flex; flex-direction: column; }
+.dhs-item__t { font-size: 13.5px; font-weight: 700; line-height: 1.3; color: var(--c-ink); }
+.dhs-item__s { font-size: 12.5px; line-height: 1.35; color: var(--c-ink-muted); }
+
+/* ── U8 · SETTINGS — the one drawer's three groups ─────────────────────────────────────────── */
+.dh-group { display: flex; flex-direction: column; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--c-border); }
+.dh-group:last-of-type { border-bottom: 0; }
+.dh-group__h { margin: 0; font-size: 13px; font-weight: 800; color: var(--c-ink-muted); }
+.dh-accounts { display: flex; flex-direction: column; gap: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dh-btn, .dh-mode__seg, .dht-leaf__tw { transition: none; }
+}
+
+/* ⭐ D53 · CLEAR AND THE BIN — depth boxes (D48), tokens only. */
 .dh-bulk { border: 1px solid var(--c-fh-line); border-radius: 9px; padding: 5px 11px; background: var(--c-surface-solid);
            color: var(--c-ink); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; box-shadow: var(--c-depth-rest); }
 .dh-bulk:hover:not(:disabled), .dh-bulk:focus-visible { box-shadow: var(--c-depth-hover); border-color: var(--c-accent-ink); color: var(--c-accent-ink); }
 .dh-bulk:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
 .dh-bulk:disabled { opacity: .6; cursor: default; }
 .dh-bulk[data-primary="true"] { background: var(--c-accent); border-color: var(--c-fh-accent-edge); color: var(--c-fh-on-accent); }
-.dh-item__pick { width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--c-accent); }
-.dh-item[data-selected="true"] { box-shadow: inset 0 0 0 2px var(--c-accent); }
 .dh-bin { border-top: 1px solid var(--c-fh-line); padding-top: 10px; font-size: 12px; }
 .dh-bin > summary { cursor: pointer; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--c-ink-muted); }
 .dh-bin__note { color: var(--c-ink-muted); margin: 8px 0; }
@@ -141,8 +210,7 @@
 .dh-bin__when { display: block; color: var(--c-ink-muted); font-size: 11px; }
 
 /* ⭐ D102 P4 · THE MODE'S SETTINGS — the run bar's ⚙ button and the Auto settings drawer (approved sketch,
- * docs/sketches/pipeline-workspace.html). Depth boxes, tokens only; switches are the platform checkbox. */
-.dh-bar__settings { align-self: flex-start; }
+ * docs/sketches/pipeline-workspace.html), one drawer since D113 UI U8. Depth boxes, tokens only; switches are the platform checkbox. */
 .dh-scrim { position: fixed; inset: 0; background: var(--c-scrim); }
 .dh-drawer {
   position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100vw);

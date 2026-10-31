@@ -386,11 +386,14 @@ test("a Draft that waits says so in the toast, on the deck and the board alike",
   assert.match(fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8"), /runId: r\.runId, line: r\.line/);
 });
 
-test("Auto Apply draws the line from the server, with tool, order and remove, above In flight", () => {
+// D113 UI U7 (owner 10-31) on purpose: the In flight list is gone — a running job is a blue-ringed bubble, and the
+// side column's Running block lists them. The line keeps its controls, inside that Running block.
+test("Draft House draws the line from the server, with tool, order and remove, in the side column's Running block", () => {
   const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
   const line = panel.indexOf("<WaitingLine");
   assert.ok(line > 0, "the panel mounts the line");
-  assert.ok(line < panel.indexOf('count={applyInFlight.length} note="nothing to do'), "above In flight");
+  const running = panel.indexOf("running: (applyLine.waiting || []).length > 0 && (");
+  assert.ok(running > 0 && running < line && line < panel.indexOf("tidy: (", running), "inside Running");
   const comp = fs.readFileSync("client/src/components/WaitingLine.jsx", "utf8");
   for (const s of ["onTool(run.id", "onMove(run.id, -1)", "onMove(run.id, 1)", "onRemove(run.id)", "line.held.message", "run.willDo"]) {
     assert.ok(comp.includes(s), `WaitingLine renders ${s}`);
