@@ -30,7 +30,7 @@ import {
 } from "../lib/draftHouseTree.js";
 import {
   loadRuns, loadLeftOut, actOnPick, makePickResume, loadAutoSettings, setPicksSwitch, loadTableRows, loadConnections, loadAnswers,
-  withdrawApplication, saveNoteWhy, setInterviewDate,
+  confirmWithdrawn, saveNoteWhy, setInterviewDate,
 } from "../lib/draftHouseRuns.js";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import { useViewport } from "../hooks/useViewport.js";
@@ -462,9 +462,11 @@ export function AutoApplyPanel() {
     setRowEdit(r.ok ? { key: node.key, kind: "done", message: r.message } : { ...(rowEdit || { key: node.key }), busy: false, message: r.message });
     if (r.ok) loadTableRows().then(setTableRows);
   };
-  const withdrawRow = async (node) => {
+  // ⛔ Withdraw never claims to withdraw: it opens the company's page (the action's link) and asks for "I withdrew it".
+  const withdrawRow = (node) => setRowEdit({ key: node.key, kind: "withdraw" });
+  const confirmWithdrawnRow = async (node) => {
     setRowEdit({ key: node.key, kind: "withdraw", busy: true });
-    afterRowAct(node, await withdrawApplication(node.applicationId));
+    afterRowAct(node, await confirmWithdrawn(node.applicationId));
   };
   const saveRowEdit = async (node) => {
     const e = rowEdit;
@@ -557,11 +559,13 @@ export function AutoApplyPanel() {
       ] : [];
       // Sent and replied: the application's own page holds the prep, the emails and the outcome.
       // U5: Withdraw, Add the date and Note why act here (on the ladder; nothing is sent to the employer).
-      case "sent": return r.closedByCandidate ? [] : [
+      case "sent": return [
         { id: "heard", label: "I heard back", kind: "primary", onClick: () => openFull(node.jobId) },
-        { id: "withdraw", label: "Withdraw", disabled: rowEdit?.key === node.key && !!rowEdit.busy,
-          title: "Marks it withdrawn in draft. The employer is not told.", onClick: () => withdrawRow(node) },
+        // Opens the company's own page for the application in a new tab (LeadCard renders an href as target=_blank).
+        { id: "withdraw", label: "Withdraw", ...(r.url ? { href: r.url } : {}),
+          title: `Opens ${node.company}'s page. draft cannot withdraw it for you.`, onClick: () => withdrawRow(node) },
       ];
+      case "withdrawn": return [];
       case "reply": {
         if (node.status === "rejected") return [{ id: "note", label: "Note why", kind: "primary",
           onClick: () => setRowEdit({ key: node.key, kind: "note", note: r.note || "" }) }];
@@ -580,7 +584,7 @@ export function AutoApplyPanel() {
     : (node.kind === "gated" || node.kind === "inflight") ? node.ref.id : null;
   const rowsOf = (node) => (node.kind === "held" || node.kind === "broke") ? (node.ref.rows || [])
     : (node.kind === "gated" || node.kind === "inflight") ? [node.ref] : [];
-  const sentAlready = (node) => node.ring === "sent" || node.ring === "reply";
+  const sentAlready = (node) => node.ring === "sent" || node.ring === "reply" || node.kind === "withdrawn";
 
   const AnswersBody = ({ node }) => {
     const id = runJobOf(node);
@@ -727,6 +731,17 @@ export function AutoApplyPanel() {
             </div>
           )}
           {/* U5 · Add the date / Note why, inline in the lead card; a result line after any of the three. */}
+          {/* U5 · Withdraw: the company's page opened in a new tab; the user confirms here once they have withdrawn. */}
+          {rowEdit?.key === node.key && rowEdit.kind === "withdraw" && (
+            <div className="dht-ask" data-row-edit="withdraw">
+              <span>Withdraw it on {node.company}'s site; then confirm here.</span>
+              <div className="dht-acts">
+                <button type="button" className="dh-btn" data-kind="primary" data-action="confirm-withdrawn"
+                  disabled={!!rowEdit.busy} onClick={() => confirmWithdrawnRow(node)}>I withdrew it</button>
+                <button type="button" className="dh-btn" onClick={() => setRowEdit(null)}>Cancel</button>
+              </div>
+            </div>
+          )}
           {rowEdit?.key === node.key && (rowEdit.kind === "date" || rowEdit.kind === "note") && (
             <div className="dht-ask" data-row-edit={rowEdit.kind}>
               {rowEdit.kind === "date" ? (

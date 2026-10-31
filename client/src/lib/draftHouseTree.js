@@ -35,8 +35,14 @@ export const LADDER_RING = Object.freeze({
   ready_to_approve: "review",
   submitted: "sent",
   interview: "reply", assessment: "reply", offer: "reply", rejected: "reply",
+  // D113 UI (owner 10-31): Withdrawn is Stopped's red ring, named "Withdrawn" (ringLabel) — the user ended it.
+  withdrawn: "stop",
   failed: "stop", skipped: "stop",
 });
+/** A status whose ring is shared but whose WORD is its own (the lead card and the bubble's name say it). */
+export const RING_LABEL_FOR_STATUS = Object.freeze({ withdrawn: "Withdrawn" });
+/** The word a node's ring says: its status's own word where it has one, else the ring's. */
+export const ringLabelOf = (node) => RING_LABEL_FOR_STATUS[node?.status] || RINGS[node?.ring]?.label || "";
 export function ringFor(status) {
   return LADDER.includes(status) ? LADDER_RING[status] : null;
 }
@@ -132,15 +138,15 @@ export function buildNodes({
   }
   for (const r of tableRows) {
     const ring = ringFor(r.status);
-    if (ring !== "sent" && ring !== "reply") continue;
+    if (ring !== "sent" && ring !== "reply" && r.status !== "withdrawn") continue;
     const at = ms(r.updatedAt);
     const say = r.status === "interview" ? "They want to interview you."
       : r.status === "assessment" ? "They sent an online assessment."
       : r.status === "offer" ? "They made you an offer."
       : r.status === "rejected" ? "They said no. It's closed."
-      : r.closedByCandidate ? "You withdrew it. It's closed."
+      : r.status === "withdrawn" ? "You withdrew it. It's closed."
       : sentDay(at, now);
-    put({ key: `table-${r.id}`, kind: ring === "sent" ? "sent" : "reply", jobId: r.jobId ?? null, applicationId: r.id,
+    put({ key: `table-${r.id}`, kind: r.status === "withdrawn" ? "withdrawn" : ring === "sent" ? "sent" : "reply", jobId: r.jobId ?? null, applicationId: r.id,
       company: companyLabel(r.company), title: s(r.title), status: r.status, ring, at, ref: r, say });
   }
   for (const p of picks) {
@@ -290,7 +296,8 @@ export const TIDY_DAYS = 7;
  */
 export function sideBlocks({ nodes = [], connections = [], binCount = 0, now = Date.now() } = {}) {
   const ring = (r) => nodes.filter(n => n.ring === r);
-  const old = nodes.filter(n => n.ring === "stop" && n.at && now - n.at > TIDY_DAYS * 86400000);
+  // A withdrawn application wears Stopped's ring but is a record, not a stopped job to clear.
+  const old = nodes.filter(n => n.ring === "stop" && n.kind !== "withdrawn" && n.at && now - n.at > TIDY_DAYS * 86400000);
   const blocks = [
     { id: "connections", items: connections },
     // Questions, sign-ins and holds first, then the picks waiting for Apply.

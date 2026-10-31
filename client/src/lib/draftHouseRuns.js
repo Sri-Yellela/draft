@@ -138,13 +138,16 @@ const rowAct = async (call, path, init, done) => {
   catch (e) { return { ok: false, message: e?.message || "That did not work. Nothing changed." }; }
 };
 export const ROW_ROUTES = Object.freeze({
-  withdraw: (applicationId) => `/api/pipeline/job/${encodeURIComponent(applicationId)}/withdraw`,
+  withdrawn: (applicationId) => `/api/pipeline/applications/${encodeURIComponent(applicationId)}/withdrawn`,
   note: (applicationId) => `/api/pipeline/job/${encodeURIComponent(applicationId)}/note`,
   date: (applicationId) => `/api/interview/prep/${encodeURIComponent(applicationId)}/date`,
 });
-/** "Withdraw" — marked withdrawn in draft. The employer is not told. */
-export function withdrawApplication(applicationId, call = api) {
-  return rowAct(call, ROW_ROUTES.withdraw(applicationId), { method: "POST" }, "Marked withdrawn. draft told no one.");
+/**
+ * "I withdrew it" — the user withdrew on the company's own site; this records it (the ladder's `withdrawn`).
+ * ⛔ draft withdraws nothing itself: the tree's Withdraw only opens the company's page.
+ */
+export function confirmWithdrawn(applicationId, call = api) {
+  return rowAct(call, ROW_ROUTES.withdrawn(applicationId), { method: "POST" }, "Marked withdrawn.");
 }
 /** "Note why" — saved on the application (The Table's Notes). */
 export function saveNoteWhy(applicationId, note, call = api) {

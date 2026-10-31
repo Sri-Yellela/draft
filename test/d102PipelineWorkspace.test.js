@@ -56,7 +56,8 @@ test("D102 · Draft House lists pre-submit rows, The Table post-submit — every
   assert.deepEqual(dh.counts, { needs_you: 1, ready_to_approve: 1, in_flight: 0, queued: 1, failed: 0, skipped: 0 });
   assert.equal(dh.rows.length, 3);
   const tb = listPipeline(db, 1, "table");
-  assert.deepEqual(tb.counts, { all: 1, submitted: 0, interview: 1, assessment: 0, offer: 0, rejected: 0 });
+  // D113 UI (10-31): The Table gains the terminal Withdrawn tab.
+  assert.deepEqual(tb.counts, { all: 1, submitted: 0, interview: 1, assessment: 0, offer: 0, rejected: 0, withdrawn: 0 });
   assert.equal(tb.rows[0].id, sentId);
   assert.equal(tb.rows[0].status, "interview");
 });
