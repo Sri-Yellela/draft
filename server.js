@@ -40,7 +40,7 @@ import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow, ineligi
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
 import { runAutoTick, runPicksFollowUps } from "./services/autoScheduler.js";
-import { configureNotify, runDailySummaries, notifyEvent } from "./services/notify.js";
+import { configureNotify, notifyEvent } from "./services/notify.js";
 import { pickSecret } from "./services/picks.js";
 import picksConfirmRoutes from "./routes/picksConfirm.js";
 import notifyRoutes from "./routes/notify.js";
@@ -12670,9 +12670,7 @@ setInterval(async () => {
     // ⭐ D113: Apply for me's one summary after each run; a question that came back on a tapped pick.
     const followed = await runPicksFollowUps(db, { notify: (userId, event, data) => notifyEvent(userId, event, data), secret: PICKS_SECRET, appUrl: PICKS_APP_URL });
     if (followed.summaries.length || followed.questions.length) console.log(`[picks] summaries: ${followed.summaries.length}, questions: ${followed.questions.length}`);
-    // ⭐ D112 item 8: FULL AUTO's daily summary — once a local day, from 8 pm, only when the day had something in it.
-    const told = await runDailySummaries(db);
-    if (told.length) console.log(`[notify] daily summaries: ${told.length}`);
+    // (the 8 pm daily summary was retired 10-31 by the owner — Apply for me gets runPicksFollowUps' summary after each run)
   } catch (e) { console.error(`[auto] tick failed: ${e.message}`); }
 }, AUTO_TICK_MS).unref();
 // A63: the Pending table (pending -> verified -> submitted) and the day's Draft slots.
