@@ -278,7 +278,8 @@ test("D105 P4 · the top bar gains Atlas; /atlas is public and a signed-in reade
     ["Daily Deck", "Full House", "Draft House", "The Table", "Atlas"]);
   // The tab routes through the ONE tab → path mapping (NAVIGABLE_TABS is derived from appTabs), and the page mounts.
   assert.match(app, /new Set\(\[\.\.\.appTabs\.map\(t => t\.id\)/);
-  assert.match(app, /const atlasRoute = \/\^atlas\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
+  // + D116 M7: /app/atlas/family/:key is a page too.
+  assert.match(app, /const atlasRoute = \/\^atlas\(\?:\\\/family\)\?\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
   assert.match(app, /if \(!jobRoute && !atlasRoute && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS\.has\(routeKey\)\)/, "/app/atlas/<slug> is not bounced");
   assert.match(app, /\{activeTab === "atlas"\s+&& <AtlasPage base="\/app\/atlas"\/>\}/);
   // Public: no gate around it — signed out, the page with the marketing chrome; signed in, the same page in the app.
@@ -304,8 +305,9 @@ test("D105 P4 · Admin → Data → Atlas lists the drafts and publishes them; t
   assert.doesNotMatch(tab, /\bconfirm\(/);
   // A93: the page's parts are one module; the admin tab is the admin console's.
   assert.deepEqual(MODULES.atlas.members.slice().sort(),
-    ["App.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/LearnView.jsx", "pages/atlas/atlasModel.js", "pages/atlas/learnModel.js"]);   // + D115 Learn
-  assert.deepEqual(MODULES.atlas.css, ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css"]);   // + D115 Learn
+    ["App.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/LearnView.jsx", "pages/atlas/atlasModel.js", "pages/atlas/learnModel.js",
+      "pages/atlas/AtlasTree.jsx", "pages/atlas/YourMap.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js"].sort());   // + D115 Learn, + D116 the tree
+  assert.deepEqual(MODULES.atlas.css, ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/AtlasTree.css"]);   // + D115 Learn, + D116 the tree
   assert.ok(MODULES.admin.members.includes("panels/adminAtlas.jsx"));
   for (const f of [...MODULES.atlas.members, ...MODULES.atlas.css]) assert.ok(fs.existsSync(`client/src/${f}`), f);
 });
