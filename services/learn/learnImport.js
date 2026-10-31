@@ -28,6 +28,9 @@ import { importLearnConcepts, publishLearnConcepts } from "../atlas/atlasLearnIm
 import { importLearnPatterns } from "./learnLinks.js";
 import { learnContent, learnContentVersion, LEARN_DIR, LEARN_ID } from "./learnContent.js";
 
+/** D117 C9's data file in content/learn/ — not tracker content (see seedLearnContentIfEmpty). */
+export const CIRCLE_FILE_NAME = "d117-data.json";
+
 // ── the schema ───────────────────────────────────────────────────────────────────────────────
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 const SLUG = /^[a-z0-9-]{1,120}$/;
@@ -306,7 +309,9 @@ export function seedLearnContentIfEmpty(db, { dir = LEARN_DIR, now = Math.floor(
   const rows = db.prepare(`SELECT COUNT(*) FROM learn_content`).pluck().get();
   if (rows > 0) return { seeded: [], skipped: [], kept: rows };
   const out = { seeded: [], skipped: [], kept: 0 };
-  const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith(".json")).sort() : [];
+  // ⭐ D117 C9: d117-data.json is the circle's data (links, terms, P5 items), not a tracker — it goes in by its own
+  // idempotent import (services/learn/learnCircle.js seedCircleData), never as a learn_content row.
+  const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith(".json") && f !== CIRCLE_FILE_NAME).sort() : [];
   const put = db.prepare(`INSERT OR IGNORE INTO learn_content (id, data, version, imported_at, imported_by) VALUES (?, ?, 1, ?, ?)`);
   db.transaction(() => {
     for (const f of files) {

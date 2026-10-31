@@ -9,6 +9,7 @@
 import { Router } from "express";
 import { learnContent } from "../services/learn/learnContent.js";
 import { readProgress, setMark, importMarks } from "../services/learn/learnProgress.js";
+import { circleOf } from "../services/learn/learnCircle.js";
 
 export const LEARN_CACHE = "public, max-age=60";
 
@@ -18,6 +19,13 @@ export function createLearnRouter(db, { requireAuth }) {
     const { source, copy, PARTS, ATLAS, INDEX } = learnContent(db);
     res.set("Cache-Control", LEARN_CACHE);
     res.json({ source, copy, PARTS, ATLAS, INDEX });
+  });
+  // ⭐ D117 · the circle's overlay on the tracker (public, like the tracker): per piece its "Before this" links (with
+  // their status — drafted ones are used and marked "draft" until the owner accepts them), "After this" (computed), the
+  // Atlas nodes it teaches, its live D115 P5 links; and the guided routes as data. The tracker's words stay /api/learn's.
+  router.get("/circle", (_req, res) => {
+    res.set("Cache-Control", LEARN_CACHE);
+    res.json(circleOf(db, learnContent(db)));
   });
   router.get("/progress", requireAuth, (req, res) => res.json({ marks: readProgress(db, req.user.id) }));
   router.put("/progress", requireAuth, (req, res) => {
