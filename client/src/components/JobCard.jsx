@@ -19,7 +19,8 @@ import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
 import { api } from "../lib/api.js";
 import { openPosting } from "../lib/openPosting.js";
-import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
+import { useAtlasSlugs, atlasHref, useAtlasTerms } from "../lib/atlasLinks.js";
+import { AtlasText } from "./AtlasTerm.jsx";
 
 // AH2: a job's title is a LINK to that job's own address.
 //
@@ -365,13 +366,15 @@ function ATSBadge({ score, onClick }) {
 }
 
 // ── Plain description renderer ───────────────────────────────────
-function DescriptionText({ text, theme, truncate = true, maxChars = 1200 }) {
+// ⭐ D114: `jobId` — the posting's published Atlas terms are quiet links (components/AtlasTerm.jsx); the text is unchanged.
+function DescriptionText({ text, theme, truncate = true, maxChars = 1200, jobId = null }) {
+  const terms = useAtlasTerms(text ? jobId : null);
   if (!text) return null;
   const shouldTruncate = truncate && Number.isFinite(maxChars);
   const trimmed = shouldTruncate ? text.slice(0, maxChars) : text;
   return (
     <p style={{ fontSize:11, color:"var(--color-text-muted)", lineHeight:1.7, margin:0, whiteSpace:"pre-wrap" }}>
-      {trimmed}
+      <AtlasText text={trimmed} terms={terms} used={new Set()} />
       {shouldTruncate && text.length > maxChars && <span style={{ color:"var(--color-text-faint)" }}> … (truncated)</span>}
     </p>
   );
@@ -798,7 +801,7 @@ export default function JobCard({
         }}>
           {/* Description */}
           {job.description && (
-            <DescriptionText text={job.description} theme={theme} truncate={false}/>
+            <DescriptionText text={job.description} theme={theme} truncate={false} jobId={job.id}/>
           )}
 
           {/* Skill chips (FE-1) — expanded surface only, never on the collapsed card */}

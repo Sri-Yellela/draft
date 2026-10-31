@@ -25,7 +25,8 @@ const post = (db, id, title, text, { pmin = null, pmax = null, skills = null } =
 test("D105 · d105OneThesaurus — no Atlas alias table; an alias added in the Atlas is a confirmed alias the SCORER reads", () => {
   const db = fixtureDb();
   const tables = db.prepare(`SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name LIKE 'atlas_%'`).all();
-  assert.deepEqual(tables.map(t => t.name).sort(), ["atlas_edges", "atlas_node_stats", "atlas_nodes", "atlas_resources", "atlas_wiki_cache"]);
+  // D114 P5 adds atlas_link_counts (day · event · n) — a count, not an alias table; the check below still holds for it.
+  assert.deepEqual(tables.map(t => t.name).sort(), ["atlas_edges", "atlas_link_counts", "atlas_node_stats", "atlas_nodes", "atlas_resources", "atlas_wiki_cache"]);
   assert.ok(tables.every(t => !/alias/i.test(t.sql)), "aliases live in skill_synonyms only");
   assert.ok(!EDGE_TYPES.includes("alias_of"));
   assert.throws(() => addEdge(db, 1, 2, "alias_of"), /aliases live in skill_synonyms/);

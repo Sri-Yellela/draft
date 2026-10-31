@@ -19,7 +19,7 @@ test("the server and the client know the same preferences — and the legacy rou
   assert.deepEqual([...APPEARANCE_THEMES].sort(), [...THEME_PREFERENCES].sort());
   assert.deepEqual([...LEGACY_THEME_PREFERENCES], ["system", "light", "dark"]);
   // D93 extends the answer ADDITIVELY with the layout options, at their defaults when nothing is stored.
-  const D = { nav: "ghost", sentence: "marked" };
+  const D = { nav: "ghost", sentence: "marked", learning: "quiet" };   // D114 P3 adds learning links, quiet by default
   assert.deepEqual(parseStoredAppearance("contrast-dark;cues"), { theme: "contrast-dark", cues: true, ...D });
   assert.deepEqual(parseStoredAppearance("dark"), { theme: "dark", cues: false, ...D });
   assert.deepEqual(parseStoredAppearance("neon"), { theme: null, cues: false, ...D });

@@ -21,6 +21,8 @@ import { textForRender } from "../../../shared/postingNormalize.js";
 import { requirementPills } from "../../../shared/postingRequirements.js";
 import { applyLine } from "../../../shared/postingLevel.js";
 import { usePairLink } from "../lib/pairLink.js";
+import { useAtlasTerms } from "../lib/atlasLinks.js";
+import { AtlasText } from "./AtlasTerm.jsx";
 import "../styles/inkPair.css";
 import "./PostingPanel.css";
 
@@ -160,10 +162,18 @@ export function PostingDetails({ fields }) {
   );
 }
 
-/** The employer's description, as their own blocks, in their own order. */
-export function PostingBody({ text }) {
+/**
+ * The employer's description, as their own blocks, in their own order.
+ * ⭐ D114: `jobId` — the posting's published Atlas terms become quiet links (components/AtlasTerm.jsx), each at its
+ * first occurrence in the whole posting; the words themselves are unchanged.
+ */
+export function PostingBody({ text, jobId = null }) {
   const link = usePairLink();
   const term = link?.lit || null;
+  const terms = useAtlasTerms(jobId);
+  const used = new Set();   // one posting, top to bottom: a term links once
+  const lit = (s) => <Lit text={s} term={term} />;
+  const words = (s) => <AtlasText text={s} terms={terms} used={used} render={lit} />;
   // ⛔ D59 · RE-CHECKED AT RENDER: a description not yet normalised (or fetched just now) that still
   // carries markup is read through the same normaliser — and is drawn as React TEXT either way, never
   // as injected HTML.
@@ -172,13 +182,13 @@ export function PostingBody({ text }) {
   return (
     <div className="posting__body" data-posting-body>
       {blocks.map((b, i) => {
-        if (b.type === "h") return <h3 key={i} className="posting__h"><Lit text={b.text.replace(/:\s*$/, "")} term={term} /></h3>;
+        if (b.type === "h") return <h3 key={i} className="posting__h">{words(b.text.replace(/:\s*$/, ""))}</h3>;
         if (b.type === "ul") return (
           <ul key={i} className="posting__ul">
-            {b.items.map((it, j) => <li key={j}><Lit text={it} term={term} /></li>)}
+            {b.items.map((it, j) => <li key={j}>{words(it)}</li>)}
           </ul>
         );
-        return <p key={i} className={i === lead ? "posting__p posting__p--lead" : "posting__p"}><Lit text={b.text} term={term} /></p>;
+        return <p key={i} className={i === lead ? "posting__p posting__p--lead" : "posting__p"}>{words(b.text)}</p>;
       })}
     </div>
   );
@@ -194,7 +204,7 @@ export default function PostingPanel({ job, text = job?.description, experience 
   return (
     <article className="posting ink-pair" data-posting-panel>
       <PostingMasthead job={job} experience={experience} showTitle={showTitle} vtTitle={vtTitle} />
-      {body ? <PostingBody text={body} /> : <div className="posting__none">{children}</div>}
+      {body ? <PostingBody text={body} jobId={job.id ?? null} /> : <div className="posting__none">{children}</div>}
     </article>
   );
 }

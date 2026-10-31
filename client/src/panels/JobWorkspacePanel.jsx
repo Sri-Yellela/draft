@@ -16,6 +16,8 @@ import { useTheme } from "../styles/theme.jsx";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
+import { useAtlasTerms } from "../lib/atlasLinks.js";
+import { AtlasText } from "../components/AtlasTerm.jsx";
 
 const TABS = [["checklist", "Checklist"], ["resume", "Résumé"], ["form", "Form"], ["job", "Job"], ["emails", "Emails"]];
 const STEP_COLOUR = { done: C.SUCCESS, current: C.WARNING, waiting: C.INK_FAINT, skipped: C.INK_FAINT };
@@ -45,6 +47,7 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
   const [tab, setTab] = useState("checklist");
+  const atlasTerms = useAtlasTerms(tab === "job" && d?.job?.description ? d.job.postingId : null);   // read when the Job tab opens
 
   const load = async () => {
     setErr("");
@@ -164,7 +167,10 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
       {tab === "job" && (
         <div style={card} data-job-posting="">
           {d.job?.description
-            ? <div style={{ fontSize: 13, color: theme.text, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{d.job.description}</div>
+            ? <div style={{ fontSize: 13, color: theme.text, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                {/* ⭐ D114: the posting's published Atlas terms are quiet links; the text is unchanged. */}
+                <AtlasText text={d.job.description} terms={atlasTerms} used={new Set()} />
+              </div>
             : <p style={{ ...muted, margin: 0 }}>The posting's text is not stored for this one{d.url ? " — open the posting to read it." : "."}</p>}
         </div>
       )}

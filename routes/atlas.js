@@ -10,6 +10,10 @@
 // ⭐ D105 P5 · links in:
 //   GET  /api/atlas/resolve?terms=a,b,c   → { slugs: { term: slug } } — PUBLISHED nodes only, by term or confirmed alias;
 //                                           a term with no published page is absent, so no caller draws a dead link
+// ⭐ D114 · terms in the postings (public):
+//   GET  /api/atlas/terms/:jobId          → { terms: [{ slug, name, kind, forms: [{ text, exactCase }] }] } for ONE posting
+//   GET  /api/atlas/peek/:slug            → the popup: name, kind, meaning (+ fromWikipedia), postings, firstResource, you?
+//   POST /api/atlas/link-event            { event: "open" | "visit" } → 204; a per-day count, nothing else stored
 // ⭐ D105 P6 · the curator's editor (admin; requireAdmin is mounted in front of this router in server.js):
 //   POST   /api/admin/atlas/nodes                 { kind, name, definition?, wikiTitle? }   add a node (a draft)
 //   GET    /api/admin/atlas/node/:slug            the editor's view — every edge, every resource (dead ones marked)
@@ -50,6 +54,7 @@ import { createNode, updateNode, readNodeForEditor, mergeNodes, addTypedEdge, re
 import { checkAtlasLinks } from "../services/atlas/atlasLinkCheck.js";
 import { probeWikipedia, wikiMatchSummary } from "../services/atlas/atlasWikidata.js";
 import { wikiCandidates, pickWikiTitle, redirectPreview, acceptPicks } from "../services/atlas/atlasWikiFind.js";
+import { atlasTermsForPosting, peekNode, countLinkEvent } from "../services/atlas/atlasLinks.js";
 import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts } from "../services/atlas/atlasDefinitions.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
@@ -87,6 +92,23 @@ export function createAtlasRouter(db) {
     res.set("Cache-Control", "public, max-age=300");
     res.json({ slugs: terms.length ? resolveTerms(db, terms) : {} });
   });
+  // ⭐ D114 · Atlas terms in the postings (services/atlas/atlasLinks.js). ONE posting's linkable terms (its text is
+  // matched where it is drawn, shared/atlasLinks.js); the popup's small read, fetched on the first hover only; and an
+  // anonymous count of opens and visits.
+  router.get("/terms/:jobId", (req, res) => {
+    const terms = atlasTermsForPosting(db, String(req.params.jobId).slice(0, 200));
+    if (!terms) return res.status(404).json({ error: "not_found" });
+    res.set("Cache-Control", "public, max-age=300");
+    res.json({ terms });
+  });
+  router.get("/peek/:slug", (req, res) => {
+    const uid = req.user?.id ?? null;
+    const p = peekNode(db, req.params.slug, uid);
+    if (!p) return res.status(404).json({ error: "not_found" });
+    res.set("Cache-Control", `${uid != null ? "private" : "public"}, max-age=3600`);
+    res.json(p);
+  });
+  router.post("/link-event", (req, res) => res.status(countLinkEvent(db, String(req.body?.event ?? "")) ? 204 : 400).end());
   router.get("/node/:slug", (req, res) => {
     const node = readNode(db, req.params.slug, { publishedOnly: true });
     if (!node) return res.status(404).json({ error: "not_found", message: "No published Atlas page by that name." });

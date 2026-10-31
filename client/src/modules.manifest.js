@@ -74,6 +74,8 @@ export const SHARED = Object.freeze({
   "components/JobCard.jsx":             { what: "the legacy expandable job card — the landing feed and The Table (scheduled for removal)" },
   "components/PostingPanel.jsx":        { what: "a posting's body (D32 ink pair) — the posting panel and the deck's expanded card" },
   "components/PostingPanel.css":        { what: "its look", owner: "components/PostingPanel.jsx" },
+  "components/AtlasTerm.jsx":           { what: "D114 · a published Atlas term inside a posting's text — the quiet link and its popup; every posting surface" },
+  "components/AtlasTerm.css":           { what: "its look, and the learning-links layout option's styles", owner: "components/AtlasTerm.jsx" },
   "components/DecisionButtons.jsx":     { what: "Pass · Save · Draft — every card and the posting panel" },
   "components/DecisionToast.jsx":       { what: "the undo toast after a decision — deck and board" },
   "components/ResumeList.jsx":          { what: "THE résumé list (D62) — the ATS panel's History and Settings" },

@@ -24,6 +24,9 @@ export const APPEARANCE_THEMES = Object.freeze([
 export const LAYOUT_OPTION_IDS = Object.freeze({
   nav:      Object.freeze({ attribute: "data-nav",      values: Object.freeze(["ghost", "track"]), default: "ghost" }),
   sentence: Object.freeze({ attribute: "data-sentence", values: Object.freeze(["marked", "calm"]), default: "marked" }),
+  // ⭐ D114 P3 (owner 10-31, "yes to all three") · the Atlas terms in a posting: quiet at rest (the owner's call), or
+  // a faint dotted underline at rest for anyone who wants to see them without pointing (accessibility).
+  learning: Object.freeze({ attribute: "data-learning-links", values: Object.freeze(["quiet", "shown"]), default: "quiet" }),
 });
 export const LAYOUT_KEYS = Object.freeze(Object.keys(LAYOUT_OPTION_IDS));
 /** Every option at its default — what a new account, and every account stored before D93, reads. */

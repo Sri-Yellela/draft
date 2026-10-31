@@ -131,6 +131,8 @@ export function jobDetail(db, userId, applicationId) {
       company: publicRow(r).company, title: publicRow(r).title, url: publicRow(r).url,
       location: r.rj?.posting_location || r.ja?.location || r.posting?.location || null,
       description: r.posting?.description ?? null,
+      // ⭐ D114: the posting's board id, so the Job tab can ask which Atlas terms it links (GET /api/atlas/terms/:jobId).
+      postingId: r.posting ? rec.job_id : null,
     },
     emails,
     // D110 P1: an Interview or Assessment (D103's category, or the ladder) turns on the Prep tab and its countdown.

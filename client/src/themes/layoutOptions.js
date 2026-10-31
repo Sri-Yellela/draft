@@ -36,6 +36,17 @@ export const LAYOUT_OPTIONS = Object.freeze([
         description: "Every changeable word is a box — one height, room around each, no shadow until you point at it." },
     ],
   },
+  {
+    // ⭐ D114 P3 · styled in components/AtlasTerm.css under [data-learning-links="…"].
+    id: "learning", label: "Learning links", attribute: LAYOUT_OPTION_IDS.learning.attribute,
+    description: "Words in a job posting that have a page in the Atlas — point at one to see what it is and where to learn it.",
+    values: [
+      { id: "quiet", label: "Quiet", ...def("learning", "quiet"),
+        description: "The posting reads as the employer wrote it. A dotted line appears only under the word you point at." },
+      { id: "shown", label: "Shown", ...def("learning", "shown"),
+        description: "A faint dotted line under every learning link, all the time — so you can see them without pointing." },
+    ],
+  },
 ].map((o) => Object.freeze({ ...o, values: Object.freeze(o.values.map((v) => Object.freeze(v))) })));
 
 /** The default value of each option, from the registry. */
