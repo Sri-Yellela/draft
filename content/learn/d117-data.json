@@ -1,0 +1,1217 @@
+{
+ "source": "chat assistant 2026-10-31 · for D117 + D115 P5 · import through Admin → Atlas → Import content (D118 P2)",
+ "needs_drafted": {
+  "s1": [],
+  "s1b": [
+   "s1"
+  ],
+  "s2": [
+   "s1"
+  ],
+  "n1": [
+   "s2"
+  ],
+  "c1": [
+   "n1"
+  ],
+  "c2": [
+   "c1",
+   "n1"
+  ],
+  "c3": [
+   "c1"
+  ],
+  "c4": [
+   "c3"
+  ],
+  "c5": [
+   "c1"
+  ],
+  "s3": [
+   "s2",
+   "n1"
+  ],
+  "s3x": [
+   "s3",
+   "c2"
+  ],
+  "e1": [],
+  "wav1": [
+   "e1"
+  ],
+  "s4": [
+   "e1",
+   "wav1"
+  ],
+  "s5": [
+   "s4"
+  ],
+  "f1": [
+   "s4"
+  ],
+  "s6": [
+   "wav1"
+  ],
+  "a1": [
+   "s3",
+   "s2"
+  ],
+  "a3": [
+   "a1",
+   "c2"
+  ],
+  "a2": [
+   "a1",
+   "a3"
+  ],
+  "a4": [
+   "a1",
+   "a2"
+  ],
+  "a5": [
+   "a1",
+   "s5"
+  ],
+  "s7": [
+   "a5",
+   "e1"
+  ],
+  "cd1": [
+   "s3",
+   "a1"
+  ],
+  "cd2": [
+   "cd1",
+   "f1"
+  ],
+  "d0": [],
+  "d1": [
+   "d0",
+   "c3"
+  ],
+  "d2": [
+   "d1",
+   "c2"
+  ],
+  "d3": [
+   "d2"
+  ],
+  "d4": [
+   "d2",
+   "c4"
+  ],
+  "d5": [
+   "d4"
+  ],
+  "g1": [
+   "d1",
+   "d2"
+  ],
+  "g2": [
+   "c4",
+   "g1"
+  ],
+  "g3": [
+   "g2"
+  ],
+  "g4": [
+   "d5",
+   "g3",
+   "d3"
+  ],
+  "g5": [
+   "d1",
+   "d0"
+  ],
+  "o1": [
+   "a1",
+   "c2"
+  ],
+  "o2": [
+   "o1"
+  ],
+  "o3": [
+   "o1"
+  ],
+  "lx1": [
+   "o1",
+   "c5"
+  ],
+  "o4": [
+   "o1",
+   "lx1"
+  ],
+  "w1": [
+   "o1"
+  ],
+  "w2": [
+   "w1"
+  ],
+  "w4": [
+   "w2"
+  ],
+  "sig1": [
+   "wav1",
+   "d0"
+  ],
+  "rf1": [
+   "sig1",
+   "wav1"
+  ],
+  "w3": [
+   "rf1",
+   "w1"
+  ],
+  "gps1": [
+   "rf1"
+  ],
+  "rf2": [
+   "rf1",
+   "sig1"
+  ],
+  "opt1": [
+   "s6",
+   "w1"
+  ],
+  "b1": [
+   "d0"
+  ],
+  "b2": [
+   "b1",
+   "d4",
+   "o2"
+  ],
+  "x1": [
+   "w1",
+   "o3",
+   "b2"
+  ],
+  "x2": [
+   "x1",
+   "w2",
+   "b2"
+  ],
+  "k1": [
+   "d0",
+   "n1"
+  ],
+  "sec1": [
+   "w1",
+   "k1"
+  ],
+  "sec2": [
+   "o1",
+   "sec1"
+  ],
+  "k2": [
+   "w4",
+   "k1"
+  ],
+  "sec3": [
+   "sec1",
+   "k1"
+  ],
+  "hack1": [
+   "sec1",
+   "k2",
+   "lx1"
+  ],
+  "hack2": [
+   "hack1",
+   "sec2"
+  ],
+  "fin1": [
+   "w2"
+  ],
+  "k3": [
+   "k1",
+   "x1"
+  ],
+  "fin2": [
+   "fin1",
+   "b2",
+   "x2"
+  ],
+  "fin3": [
+   "k3"
+  ],
+  "l1": [
+   "c2",
+   "s3x"
+  ],
+  "l2": [
+   "c5",
+   "l1"
+  ],
+  "m1": [
+   "n1",
+   "d0"
+  ],
+  "m2": [
+   "m1",
+   "sig1"
+  ],
+  "m3": [
+   "s8",
+   "a2"
+  ],
+  "em1": [
+   "a1",
+   "c2"
+  ],
+  "em2": [
+   "em1"
+  ],
+  "em3": [
+   "em1",
+   "o3"
+  ],
+  "eml": [
+   "lx1",
+   "em1"
+  ],
+  "em4": [
+   "em2",
+   "sig1"
+  ],
+  "dev1": [
+   "em4"
+  ],
+  "dev2": [
+   "m2",
+   "em2"
+  ],
+  "dev3": [
+   "sig1",
+   "em2"
+  ],
+  "dev4": [
+   "e1"
+  ],
+  "dev5": [
+   "a4",
+   "dev2",
+   "dev4"
+  ],
+  "dev6": [
+   "o1",
+   "dev5"
+  ],
+  "dev7": [
+   "w3",
+   "eml"
+  ],
+  "cnc1": [
+   "em4"
+  ],
+  "ind1": [
+   "em4",
+   "w1"
+  ],
+  "sc1": [
+   "em3",
+   "l2"
+  ],
+  "fl1": [
+   "em4",
+   "sig1"
+  ],
+  "fl2": [
+   "sc1",
+   "fl1"
+  ],
+  "car1": [
+   "em2",
+   "sc1"
+  ],
+  "med1": [
+   "sc1",
+   "em4"
+  ],
+  "med2": [
+   "m2",
+   "sig1"
+  ],
+  "med3": [
+   "sig1",
+   "h2"
+  ],
+  "hack3": [
+   "rf2",
+   "hack1"
+  ],
+  "hw2": [
+   "k1",
+   "a1"
+  ],
+  "s8": [
+   "d0"
+  ],
+  "h1": [
+   "d0"
+  ],
+  "h2": [
+   "d0",
+   "h1"
+  ],
+  "ml1": [
+   "s8",
+   "h2",
+   "c3"
+  ],
+  "s9": [
+   "ml1",
+   "h1"
+  ],
+  "ml2": [
+   "s9",
+   "a2"
+  ],
+  "ml3": [
+   "s9",
+   "h2"
+  ],
+  "s10": [
+   "ml1",
+   "m1"
+  ],
+  "s11": [
+   "s9",
+   "s10",
+   "s8"
+  ],
+  "t1": [
+   "s11",
+   "ml2"
+  ],
+  "z1": [
+   "t1",
+   "a2"
+  ],
+  "z2": [
+   "s11",
+   "b2"
+  ],
+  "z3": [
+   "ml2",
+   "m2"
+  ],
+  "z4": [
+   "s4",
+   "s8"
+  ],
+  "z5": [
+   "t1"
+  ]
+ },
+ "teaches_derived": {
+  "s1": [
+   "Bit",
+   "Boolean logic",
+   "Logic gate"
+  ],
+  "s1b": [
+   "Turing complete",
+   "Turing machine"
+  ],
+  "s2": [
+   "ALU"
+  ],
+  "n1": [
+   "Binary and hexadecimal",
+   "Byte",
+   "Floating point",
+   "Integer overflow",
+   "Two’s complement",
+   "Unicode and UTF-8"
+  ],
+  "c1": [],
+  "c2": [
+   "Memory leak",
+   "Pointer",
+   "Segmentation fault",
+   "Stack and heap memory"
+  ],
+  "c3": [
+   "Library and framework"
+  ],
+  "c4": [
+   "Recursion"
+  ],
+  "c5": [
+   "Git",
+   "Open source",
+   "Shell, terminal and command line"
+  ],
+  "s3": [
+   "Assembly language",
+   "Machine code"
+  ],
+  "s3x": [],
+  "e1": [
+   "Voltage, current and resistance"
+  ],
+  "wav1": [
+   "Electromagnetic spectrum",
+   "Electromagnetic wave",
+   "Frequency and wavelength"
+  ],
+  "s4": [
+   "MOSFET",
+   "Semiconductor and doping",
+   "Transistor"
+  ],
+  "s5": [
+   "Flash memory and SSD",
+   "RAM, DRAM and SRAM"
+  ],
+  "f1": [
+   "EUV lithography",
+   "Foundry, fab and TSMC",
+   "Moore’s law",
+   "Process node (3nm, 5nm)"
+  ],
+  "s6": [
+   "Fiber optics"
+  ],
+  "a1": [
+   "Branch prediction",
+   "Clock speed (GHz)",
+   "CPU core",
+   "Instruction set: x86, ARM, RISC-V",
+   "Pipelining",
+   "Spectre and Meltdown"
+  ],
+  "a3": [
+   "Cache coherence",
+   "Cache line",
+   "CPU cache",
+   "L1, L2 and L3 cache",
+   "NUMA"
+  ],
+  "a2": [
+   "CUDA",
+   "GPU"
+  ],
+  "a4": [
+   "Apple Silicon (M-series)",
+   "Chiplet",
+   "NPU and TPU",
+   "Performance and efficiency cores",
+   "System on a chip (SoC)"
+  ],
+  "a5": [
+   "BIOS and UEFI",
+   "Bootloader",
+   "Chipset",
+   "DDR memory",
+   "Motherboard",
+   "NVMe",
+   "PCB (printed circuit board)",
+   "PCIe",
+   "Voltage regulator (VRM)"
+  ],
+  "s7": [
+   "Firmware",
+   "Microcontroller",
+   "RFID and NFC"
+  ],
+  "cd1": [
+   "FPGA",
+   "Verilog and VHDL"
+  ],
+  "cd2": [
+   "ASIC",
+   "EDA tools",
+   "Tapeout"
+  ],
+  "d0": [],
+  "d1": [
+   "Big-O notation"
+  ],
+  "d2": [
+   "Array",
+   "Linked list",
+   "Stack and queue"
+  ],
+  "d3": [
+   "Bloom filter",
+   "Hash function",
+   "Hash table"
+  ],
+  "d4": [
+   "Binary search tree",
+   "Heap and priority queue",
+   "Trie"
+  ],
+  "d5": [
+   "BFS and DFS",
+   "Dijkstra’s algorithm",
+   "Graph"
+  ],
+  "g1": [
+   "Binary search",
+   "Sorting algorithms"
+  ],
+  "g2": [
+   "Backtracking",
+   "Divide and conquer"
+  ],
+  "g3": [
+   "Dynamic programming",
+   "Greedy algorithm"
+  ],
+  "g4": [
+   "LRU cache"
+  ],
+  "g5": [
+   "Halting problem",
+   "Heuristic",
+   "NP-complete",
+   "P vs. NP"
+  ],
+  "o1": [
+   "Operating system and kernel",
+   "Process and thread",
+   "Scheduler",
+   "System call",
+   "Virtual memory"
+  ],
+  "o2": [
+   "File system"
+  ],
+  "o3": [
+   "Async and await",
+   "Deadlock",
+   "Mutex and lock",
+   "Race condition"
+  ],
+  "lx1": [
+   "Device driver",
+   "Kernel module",
+   "Linux",
+   "Linux distribution",
+   "Package manager",
+   "systemd"
+  ],
+  "o4": [
+   "Cloud computing (AWS, Azure, Google Cloud)",
+   "Container and Docker",
+   "Kubernetes",
+   "Serverless",
+   "Virtual machine and hypervisor"
+  ],
+  "w1": [
+   "Bandwidth and latency",
+   "IP address",
+   "Packet switching",
+   "Router and switch",
+   "TCP and UDP"
+  ],
+  "w2": [
+   "CDN",
+   "DNS",
+   "HTTP and HTTPS",
+   "TLS and SSL"
+  ],
+  "w4": [
+   "API",
+   "Cookie",
+   "DOM",
+   "Front end and back end",
+   "JavaScript",
+   "REST and JSON"
+  ],
+  "sig1": [
+   "Filter (signals)",
+   "Fourier transform",
+   "Sampling rate and Nyquist"
+  ],
+  "rf1": [
+   "AM and FM",
+   "Carrier wave",
+   "QAM",
+   "Shannon limit"
+  ],
+  "w3": [
+   "5G",
+   "Bluetooth Low Energy",
+   "Cell tower and handover",
+   "Frequency hopping",
+   "OFDM",
+   "Wi-Fi and Bluetooth"
+  ],
+  "gps1": [
+   "A-GPS",
+   "GNSS",
+   "GPS",
+   "LoRa",
+   "Marine VHF and AIS",
+   "RTK positioning",
+   "Satellite internet (Starlink)",
+   "Satellite messenger"
+  ],
+  "rf2": [
+   "Amateur (ham) radio",
+   "Antenna",
+   "Decibel (dB)",
+   "Millimeter wave",
+   "MIMO and beamforming",
+   "Software-defined radio (SDR)"
+  ],
+  "opt1": [
+   "Coherent optics",
+   "Li-Fi",
+   "Optical amplifier",
+   "Submarine cable",
+   "Wavelength division multiplexing (WDM)"
+  ],
+  "b1": [
+   "NoSQL",
+   "SQL and relational databases"
+  ],
+  "b2": [
+   "B-tree",
+   "Database index",
+   "Transaction and ACID"
+  ],
+  "x1": [
+   "CAP theorem",
+   "Consensus: Raft and Paxos",
+   "Eventual consistency",
+   "MapReduce",
+   "Replication and sharding"
+  ],
+  "x2": [
+   "Caching and Redis",
+   "Load balancer",
+   "Message queue and Kafka",
+   "Microservices",
+   "Rate limiting"
+  ],
+  "k1": [
+   "Cryptographic hash (SHA-256)",
+   "Digital signature",
+   "End-to-end encryption",
+   "Public-key cryptography (RSA, elliptic curves)",
+   "Symmetric and asymmetric encryption"
+  ],
+  "sec1": [
+   "DDoS attack",
+   "Firewall and VPN",
+   "NAT",
+   "Proxy server",
+   "Stateful firewall",
+   "Wireshark",
+   "Zero trust"
+  ],
+  "sec2": [
+   "Botnet",
+   "MITRE ATT&CK",
+   "Phishing",
+   "Ransomware",
+   "Rootkit",
+   "Social engineering",
+   "Supply chain attack",
+   "Virus, worm and trojan",
+   "Zero-day"
+  ],
+  "k2": [
+   "Buffer overflow",
+   "Password hashing and salt",
+   "SQL injection and XSS",
+   "Two-factor authentication"
+  ],
+  "sec3": [
+   "Dark web and deep web",
+   "Metadata",
+   "Tor and onion routing"
+  ],
+  "hack1": [
+   "Bug bounty",
+   "Capture the Flag (CTF)",
+   "Nmap",
+   "Penetration testing",
+   "Privilege escalation"
+  ],
+  "hack2": [
+   "Digital forensics",
+   "Incident response",
+   "Intrusion detection (IDS and IPS)",
+   "Security operations center",
+   "SIEM"
+  ],
+  "fin1": [
+   "ACH and SEPA",
+   "Authorization, clearing and settlement",
+   "Card networks (Visa, Mastercard)",
+   "Double-entry bookkeeping",
+   "EMV chip card",
+   "Instant payments (UPI, Pix, FedNow)",
+   "Ledger",
+   "Mainframe and COBOL",
+   "Payment tokenization",
+   "SWIFT"
+  ],
+  "k3": [
+   "Blockchain",
+   "Crypto wallet and private key",
+   "Proof of work and proof of stake"
+  ],
+  "fin2": [
+   "High-frequency trading",
+   "Idempotency key",
+   "KYC and AML",
+   "Open banking",
+   "Order book and matching engine",
+   "PCI DSS"
+  ],
+  "fin3": [
+   "CBDC",
+   "DeFi",
+   "Ethereum",
+   "Gas fee",
+   "Smart contract",
+   "Stablecoin"
+  ],
+  "l1": [
+   "Compiler",
+   "Garbage collection",
+   "Interpreter",
+   "JIT compilation",
+   "Static and dynamic typing",
+   "WebAssembly"
+  ],
+  "l2": [
+   "Technical debt",
+   "Unit test"
+  ],
+  "m1": [
+   "Entropy (information)",
+   "Huffman coding",
+   "Lossless and lossy compression"
+  ],
+  "m2": [
+   "Codec (H.264, AV1, MP3)"
+  ],
+  "m3": [
+   "Rasterization and ray tracing",
+   "Shader"
+  ],
+  "em1": [
+   "ADC and DAC",
+   "Datasheet",
+   "ESP32",
+   "GPIO",
+   "Interrupt",
+   "PWM"
+  ],
+  "em2": [
+   "CAN bus",
+   "Internet of Things (IoT)",
+   "UART, I2C and SPI"
+  ],
+  "em3": [
+   "Hard and soft real time",
+   "Priority inversion",
+   "RTOS"
+  ],
+  "eml": [
+   "Device tree",
+   "Embedded Linux (Buildroot, Yocto)",
+   "OpenWrt",
+   "U-Boot"
+  ],
+  "em4": [
+   "PID controller",
+   "ROS (Robot Operating System)",
+   "Stepper motor and servo"
+  ],
+  "dev1": [
+   "Brushless (BLDC) and inverter motors",
+   "Relay and triac",
+   "Safety interlock",
+   "State machine",
+   "Thermistor"
+  ],
+  "dev2": [
+   "Bayer filter",
+   "Capacitive touchscreen",
+   "E-ink",
+   "Image sensor",
+   "Image signal processor (ISP)",
+   "LCD",
+   "OLED",
+   "Refresh rate"
+  ],
+  "dev3": [
+   "Active noise cancellation",
+   "Class-D amplifier",
+   "Speaker driver and voice coil"
+  ],
+  "dev4": [
+   "Battery management system (BMS)",
+   "Lithium-ion battery",
+   "PMIC",
+   "Qi wireless charging",
+   "USB Power Delivery"
+  ],
+  "dev5": [
+   "Accelerometer and gyroscope",
+   "Baseband processor",
+   "Haptics",
+   "MEMS"
+  ],
+  "dev6": [
+   "App sandbox",
+   "iOS and Android",
+   "Secure boot",
+   "Secure Enclave and secure element"
+  ],
+  "dev7": [
+   "Mirai",
+   "MQTT",
+   "Zigbee, Thread and Matter"
+  ],
+  "cnc1": [
+   "CAD and CAM",
+   "CNC",
+   "G-code"
+  ],
+  "ind1": [
+   "Ladder logic",
+   "PLC",
+   "SCADA",
+   "Stuxnet"
+  ],
+  "sc1": [
+   "Fail-safe and redundancy",
+   "Watchdog timer"
+  ],
+  "fl1": [
+   "Autopilot",
+   "Flight controller",
+   "IMU",
+   "Kalman filter",
+   "MAVLink",
+   "Sensor fusion"
+  ],
+  "fl2": [
+   "ADS-B",
+   "ARINC 429",
+   "Fly-by-wire"
+  ],
+  "car1": [
+   "ADAS",
+   "AUTOSAR",
+   "ECU",
+   "Lidar",
+   "OBD-II",
+   "Over-the-air update"
+  ],
+  "med1": [
+   "FDA 510(k)",
+   "IEC 62304",
+   "Software as a Medical Device (SaMD)",
+   "Therac-25"
+  ],
+  "med2": [
+   "CT scan",
+   "DICOM",
+   "MRI"
+  ],
+  "med3": [
+   "ECG",
+   "HL7 FHIR",
+   "Pulse oximeter"
+  ],
+  "hack3": [
+   "Firmware extraction",
+   "JTAG and UART debug ports"
+  ],
+  "hw2": [
+   "Side-channel attack",
+   "TPM",
+   "Trusted execution environment"
+  ],
+  "s8": [
+   "Vector and matrix"
+  ],
+  "h1": [
+   "Derivative and gradient"
+  ],
+  "h2": [
+   "Bayes’ theorem"
+  ],
+  "ml1": [
+   "Machine learning",
+   "Overfitting",
+   "Supervised and unsupervised learning"
+  ],
+  "s9": [
+   "Backpropagation",
+   "Gradient descent",
+   "Neural network",
+   "Parameters and weights"
+  ],
+  "ml2": [
+   "Convolutional neural network (CNN)",
+   "Training and inference"
+  ],
+  "ml3": [
+   "Reinforcement learning"
+  ],
+  "s10": [
+   "Embedding",
+   "RNN and LSTM"
+  ],
+  "s11": [
+   "Attention",
+   "Transformer"
+  ],
+  "t1": [
+   "Context window",
+   "Hallucination",
+   "Large language model (LLM)",
+   "Pretraining and fine-tuning",
+   "Prompt engineering",
+   "RLHF",
+   "Temperature and sampling",
+   "Token and tokenizer"
+  ],
+  "z1": [
+   "KV cache",
+   "Mixture of experts",
+   "Quantization"
+  ],
+  "z2": [
+   "AI agent and tool use",
+   "MCP (Model Context Protocol)",
+   "RAG (retrieval-augmented generation)",
+   "Vector database"
+  ],
+  "z3": [
+   "Diffusion model",
+   "Multimodal model"
+  ],
+  "z4": [
+   "Post-quantum cryptography",
+   "Qubit, superposition and entanglement",
+   "Shor’s algorithm"
+  ],
+  "z5": [
+   "AI alignment",
+   "Interpretability"
+  ]
+ },
+ "p5_items": [
+  {
+   "step": "s2",
+   "k": "Game",
+   "t": "NandGame",
+   "s": "Build a computer from NAND gates, one puzzle at a time",
+   "u": "https://nandgame.com",
+   "o": 1
+  },
+  {
+   "step": "c1",
+   "k": "Exercise",
+   "t": "Exercism",
+   "s": "Free exercises with human mentors, in 70+ languages",
+   "u": "https://exercism.org",
+   "o": 1
+  },
+  {
+   "step": "c4",
+   "k": "Exercise",
+   "t": "Codewars",
+   "s": "Ranked coding challenges (kata) that grow with you",
+   "u": "https://www.codewars.com",
+   "o": 1
+  },
+  {
+   "step": "c5",
+   "k": "Game",
+   "t": "Oh My Git!",
+   "s": "A card game that teaches how Git really works",
+   "u": "https://ohmygit.org",
+   "o": 1
+  },
+  {
+   "step": "c5",
+   "k": "Game",
+   "t": "Vim Adventures",
+   "s": "Learn Vim's keys by playing a game",
+   "u": "https://vim-adventures.com",
+   "o": 1
+  },
+  {
+   "step": "s3",
+   "k": "Game",
+   "t": "Turing Complete",
+   "s": "A game where you design a working CPU from logic gates",
+   "u": "https://turingcomplete.game",
+   "o": 1
+  },
+  {
+   "step": "s3x",
+   "k": "Game",
+   "t": "Human Resource Machine",
+   "s": "Puzzles that are assembly programs in disguise",
+   "u": "https://tomorrowcorporation.com/humanresourcemachine",
+   "o": 1
+  },
+  {
+   "step": "d0",
+   "k": "Exercise",
+   "t": "Project Euler",
+   "s": "Maths-and-code problems, each a small proof",
+   "u": "https://projecteuler.net",
+   "o": 1
+  },
+  {
+   "step": "d2",
+   "k": "Practice",
+   "t": "GeeksforGeeks: data structures",
+   "s": "Explanations and practice problems for each structure",
+   "u": "https://www.geeksforgeeks.org/data-structures/",
+   "o": 1
+  },
+  {
+   "step": "g1",
+   "k": "Game",
+   "t": "Elevator Saga",
+   "s": "Program elevators in JavaScript; efficiency is the score",
+   "u": "https://play.elevatorsaga.com",
+   "o": 1
+  },
+  {
+   "step": "g1",
+   "k": "Practice",
+   "t": "GeeksforGeeks: algorithms",
+   "s": "Sorting, searching, greedy and DP, with problems",
+   "u": "https://www.geeksforgeeks.org/fundamentals-of-algorithms/",
+   "o": 1
+  },
+  {
+   "step": "g4",
+   "k": "Exercise",
+   "t": "Advent of Code",
+   "s": "A daily puzzle every December; the archive is open all year",
+   "u": "https://adventofcode.com",
+   "o": 1
+  },
+  {
+   "step": "g5",
+   "k": "Game",
+   "t": "Regex Crossword",
+   "s": "Crosswords whose clues are regular expressions",
+   "u": "https://regexcrossword.com",
+   "o": 1
+  },
+  {
+   "step": "o1",
+   "k": "Practice",
+   "t": "GeeksforGeeks: operating systems",
+   "s": "Scheduling, memory and deadlocks, interview-style",
+   "u": "https://www.geeksforgeeks.org/operating-systems/",
+   "o": 1
+  },
+  {
+   "step": "o3",
+   "k": "Game",
+   "t": "The Deadlock Empire",
+   "s": "Break bad concurrent code to see why locks matter",
+   "u": "https://deadlockempire.github.io",
+   "o": 1
+  },
+  {
+   "step": "w1",
+   "k": "Practice",
+   "t": "GeeksforGeeks: computer networks",
+   "s": "Layers, protocols and routing, interview-style",
+   "u": "https://www.geeksforgeeks.org/computer-network-tutorials/",
+   "o": 1
+  },
+  {
+   "step": "w4",
+   "k": "Game",
+   "t": "Flexbox Froggy",
+   "s": "Learn CSS Flexbox by guiding frogs",
+   "u": "https://flexboxfroggy.com",
+   "o": 1
+  },
+  {
+   "step": "w4",
+   "k": "Game",
+   "t": "Grid Garden",
+   "s": "Learn CSS Grid by watering a garden",
+   "u": "https://cssgridgarden.com",
+   "o": 1
+  },
+  {
+   "step": "w4",
+   "k": "Game",
+   "t": "CSS Diner",
+   "s": "Learn CSS selectors on a dinner table",
+   "u": "https://flukeout.github.io",
+   "o": 1
+  },
+  {
+   "step": "w4",
+   "k": "Game",
+   "t": "Untrusted",
+   "s": "Hack the JavaScript of the game itself to escape",
+   "u": "https://alexnisnevich.github.io/untrusted/",
+   "o": 1
+  },
+  {
+   "step": "w4",
+   "k": "Exercise",
+   "t": "Frontend Mentor",
+   "s": "Build real designs to a spec, then compare",
+   "u": "https://www.frontendmentor.io",
+   "o": 1
+  },
+  {
+   "step": "b1",
+   "k": "Game",
+   "t": "SQL Murder Mystery",
+   "s": "Solve a crime by writing SQL queries",
+   "u": "https://mystery.knightlab.com",
+   "o": 1
+  },
+  {
+   "step": "b2",
+   "k": "Practice",
+   "t": "GeeksforGeeks: DBMS",
+   "s": "Indexes, transactions and normal forms, interview-style",
+   "u": "https://www.geeksforgeeks.org/dbms/",
+   "o": 1
+  },
+  {
+   "step": "k1",
+   "k": "Exercise",
+   "t": "Cryptopals",
+   "s": "Break real cryptography by building the attacks",
+   "u": "https://cryptopals.com",
+   "o": 1
+  },
+  {
+   "step": "em1",
+   "k": "Game",
+   "t": "TIS-100",
+   "s": "Program tiny parallel processors in assembly",
+   "u": "https://www.zachtronics.com/tis-100/",
+   "o": 1
+  },
+  {
+   "step": "ml1",
+   "k": "Exercise",
+   "t": "Kaggle Learn",
+   "s": "Short hands-on notebooks: pandas, ML, deep learning",
+   "u": "https://www.kaggle.com/learn",
+   "o": 1
+  }
+ ]
+}
