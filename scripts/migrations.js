@@ -5433,4 +5433,48 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D115 P4 · two new kinds of Atlas node: 'concept' (the owner's tracker's 385 terms that are no existing node)
+      // and 'pattern' (its 28 LeetCode patterns). SQLite cannot widen a CHECK in place, so atlas_nodes is REBUILT —
+      // every column and row carried over with the same ids. ⛔ foreignKeys: "off" (scripts/applyMigrations.js): with
+      // foreign keys on, the DROP cascades — rehearsed 10-31, it deleted every edge, stat, summary and resource.
+      // The runner checks every reference inside the transaction and restores foreign keys after.
+      id: "194_atlas_concept_pattern_kinds",
+      foreignKeys: "off",
+      sql: `
+        CREATE TABLE atlas_nodes_new (
+          id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+          slug                TEXT NOT NULL UNIQUE,
+          kind                TEXT NOT NULL CHECK (kind IN ('role', 'skill', 'tool', 'stack', 'concept', 'pattern')),
+          name                TEXT NOT NULL,
+          term                TEXT NOT NULL,
+          definition          TEXT,
+          status              TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
+          source              TEXT NOT NULL,
+          wiki_title          TEXT,
+          created_at          INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at          INTEGER NOT NULL DEFAULT (unixepoch()),
+          published_at        INTEGER,
+          published_by        TEXT,
+          unpublished_by      TEXT,
+          unpublished_at      INTEGER,
+          wiki_title_by       TEXT,
+          wiki_checked_at     INTEGER,
+          wikidata_id         TEXT,
+          wikidata_checked_at INTEGER,
+          wiki_match          TEXT,
+          definition_draft    TEXT,
+          definition_by       TEXT
+        );
+        INSERT INTO atlas_nodes_new (id, slug, kind, name, term, definition, status, source, wiki_title, created_at, updated_at,
+          published_at, published_by, unpublished_by, unpublished_at, wiki_title_by, wiki_checked_at, wikidata_id,
+          wikidata_checked_at, wiki_match, definition_draft, definition_by)
+        SELECT id, slug, kind, name, term, definition, status, source, wiki_title, created_at, updated_at,
+          published_at, published_by, unpublished_by, unpublished_at, wiki_title_by, wiki_checked_at, wikidata_id,
+          wikidata_checked_at, wiki_match, definition_draft, definition_by FROM atlas_nodes;
+        DROP TABLE atlas_nodes;
+        ALTER TABLE atlas_nodes_new RENAME TO atlas_nodes;
+        CREATE INDEX IF NOT EXISTS idx_atlas_nodes_term ON atlas_nodes(term);
+      `,
+    },
   ];

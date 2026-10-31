@@ -15,7 +15,9 @@ import { normaliseAtsTerm } from "../localAtsScorer.js";
 import { recordSynonymProposals, confirmSynonym } from "../kb/skillSynonyms.js";
 import { searchKey, matchCandidate } from "../../shared/atlasSearchNormalize.js";
 
-export const KINDS = Object.freeze(["role", "skill", "tool", "stack"]);
+// ⭐ D115 (migration 194): 'concept' — a term from the owner's tracker that is no role, skill or tool on the board
+// ("Logic gate", "Byte"); 'pattern' — one of its 28 LeetCode patterns.
+export const KINDS = Object.freeze(["role", "skill", "tool", "stack", "concept", "pattern"]);
 export const EDGE_TYPES = Object.freeze(["requires", "part_of", "used_with", "alternative_to", "leads_to"]);
 export const EDGE_SOURCES = Object.freeze(["owner", "registry", "wikidata", "onet", "board"]);
 

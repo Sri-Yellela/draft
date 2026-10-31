@@ -98,6 +98,8 @@ import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js
 // ⭐ D105: the Atlas — roles, skills, tools, linked; seeded as drafts from the scorer's own registry, stats from the board.
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { seedAtlasFromRegistry } from "./services/atlas/atlasSeed.js";
+import { importLearnConcepts } from "./services/atlas/atlasLearnImport.js";
+import { learnContent } from "./services/learn/learnContent.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
 import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
@@ -5901,6 +5903,50 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D115 P4 · two new kinds of Atlas node: 'concept' (the owner's tracker's 385 terms that are no existing node)
+      // and 'pattern' (its 28 LeetCode patterns). SQLite cannot widen a CHECK in place, so atlas_nodes is REBUILT —
+      // every column and row carried over with the same ids. ⛔ foreignKeys: "off" (scripts/applyMigrations.js): with
+      // foreign keys on, the DROP cascades — rehearsed 10-31, it deleted every edge, stat, summary and resource.
+      // The runner checks every reference inside the transaction and restores foreign keys after.
+      id: "194_atlas_concept_pattern_kinds",
+      foreignKeys: "off",
+      sql: `
+        CREATE TABLE atlas_nodes_new (
+          id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+          slug                TEXT NOT NULL UNIQUE,
+          kind                TEXT NOT NULL CHECK (kind IN ('role', 'skill', 'tool', 'stack', 'concept', 'pattern')),
+          name                TEXT NOT NULL,
+          term                TEXT NOT NULL,
+          definition          TEXT,
+          status              TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
+          source              TEXT NOT NULL,
+          wiki_title          TEXT,
+          created_at          INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at          INTEGER NOT NULL DEFAULT (unixepoch()),
+          published_at        INTEGER,
+          published_by        TEXT,
+          unpublished_by      TEXT,
+          unpublished_at      INTEGER,
+          wiki_title_by       TEXT,
+          wiki_checked_at     INTEGER,
+          wikidata_id         TEXT,
+          wikidata_checked_at INTEGER,
+          wiki_match          TEXT,
+          definition_draft    TEXT,
+          definition_by       TEXT
+        );
+        INSERT INTO atlas_nodes_new (id, slug, kind, name, term, definition, status, source, wiki_title, created_at, updated_at,
+          published_at, published_by, unpublished_by, unpublished_at, wiki_title_by, wiki_checked_at, wikidata_id,
+          wikidata_checked_at, wiki_match, definition_draft, definition_by)
+        SELECT id, slug, kind, name, term, definition, status, source, wiki_title, created_at, updated_at,
+          published_at, published_by, unpublished_by, unpublished_at, wiki_title_by, wiki_checked_at, wikidata_id,
+          wikidata_checked_at, wiki_match, definition_draft, definition_by FROM atlas_nodes;
+        DROP TABLE atlas_nodes;
+        ALTER TABLE atlas_nodes_new RENAME TO atlas_nodes;
+        CREATE INDEX IF NOT EXISTS idx_atlas_nodes_term ON atlas_nodes(term);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -5921,6 +5967,8 @@ console.log(`[boot] database ready: ${DB_PATH}`);
   const DATA_MIGRATIONS = [
     { id: "162_no_admin_in_users", changes: "SELECT 1 FROM users WHERE is_admin = 1 LIMIT 1" },
     { id: "163_delete_former_admin_row", changes: "SELECT 1 FROM users WHERE status = 'suspended' AND suspended_reason LIKE 'Former admin row (D95)%' LIMIT 1" },
+    // ⭐ D115: 194 REBUILDS atlas_nodes (a CHECK widened) — rehearsed safe, and backed up first all the same.
+    { id: "194_atlas_concept_pattern_kinds", changes: "SELECT 1 FROM atlas_nodes LIMIT 1" },
   ];
   const heldBack = new Set();
   const isPending = (id) => { try { return !db.prepare("SELECT 1 FROM schema_migrations WHERE id = ?").get(id); } catch { return true; } };
@@ -9357,6 +9405,12 @@ app.use("/api/admin/what-changed", requireAdmin, createWhatChangedAdminRouter(db
 // Seeded at boot (idempotent: a second run adds nothing, and never touches a curator's node) — every node a DRAFT.
 try { const s = seedAtlasFromRegistry(db); if (s.nodes || s.edges) console.log(`[atlas] seeded ${s.nodes} draft node(s), ${s.edges} edge(s)`); }
 catch (e) { console.warn("[atlas] seed:", e.message); }
+// ⭐ D115 P4(a): the owner's tracker's 385 definitions — empty definitions filled, the rest as concept drafts (idempotent).
+try {
+  const r = importLearnConcepts(db, learnContent());
+  if (r.filled.length || r.created.length) console.log(`[atlas] learn: ${r.filled.length} definition(s) filled, ${r.created.length} concept(s) added`);
+  if (r.skipped.length) console.log(`[atlas] learn: left out ${r.skipped.map(s => `${s.term} (${s.why})`).join("; ")}`);
+} catch (e) { console.warn("[atlas] learn import:", e.message); }
 
 app.use(createAccountRouter({
   db,

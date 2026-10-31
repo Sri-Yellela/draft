@@ -69,8 +69,27 @@ export function applyPendingMigrations(db, migrations, { onSkip, onApplied, hold
   // is why test/migrationsAreTransactional.test.js also asserts that no migration contains any.
   const applyOne = db.transaction((migration) => {
     db.exec(migration.sql);
+    // A rebuild with foreign keys off must leave every reference whole — checked INSIDE the transaction, so a broken
+    // one rolls the whole migration back.
+    if (migration.foreignKeys === "off") {
+      const broken = db.pragma("foreign_key_check");
+      if (broken.length) throw new Error(`foreign key check failed after the rebuild: ${broken.length} row(s), first in ${broken[0].table}`);
+    }
     db.prepare("INSERT INTO schema_migrations (id) VALUES (?)").run(migration.id);
   });
+  // ⭐ D115 (194): REBUILDING A TABLE OTHERS REFERENCE. SQLite cannot widen a CHECK in place, and with foreign keys ON
+  // the rebuild's DROP cascades: rehearsed 10-31 on atlas_nodes, it kept the 212 nodes and DELETED all 1,930 edges,
+  // their stats, summaries and resources — while foreign_key_check and integrity_check both passed. SQLite's own
+  // procedure (https://www.sqlite.org/lang_altertable.html#otheralter) turns foreign keys OFF around the transaction
+  // (the pragma is a no-op inside one), which a migration asks for with `foreignKeys: "off"`. They are restored after,
+  // whatever happens.
+  const applyWith = (migration) => {
+    if (migration.foreignKeys !== "off") return applyOne(migration);
+    const was = db.pragma("foreign_keys", { simple: true });
+    db.pragma("foreign_keys = OFF");
+    try { return applyOne(migration); }
+    finally { db.pragma(`foreign_keys = ${was ? "ON" : "OFF"}`); }
+  };
 
   let count = 0;
   for (const migration of migrations) {
@@ -82,7 +101,7 @@ export function applyPendingMigrations(db, migrations, { onSkip, onApplied, hold
     // next run applies it.
     if (hold?.has?.(migration.id)) continue;
     try {
-      applyOne(migration);
+      applyWith(migration);
     } catch (e) {
       e.migrationId = migration.id;
       e.message = `${migration.id}: ${e.message}`;
