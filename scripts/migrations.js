@@ -5698,4 +5698,31 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_learn_needs_need ON learn_needs(need_id);
       `,
     },
+    {
+      // ⭐ D121 P2 · H-1B SPONSORSHIP SIGNALS — the title level. The DOL OFLC LCA disclosure file's certified cases,
+      // per employer × fiscal period × TITLE FAMILY (shared/lcaTitleKey.js: the job title with its level words removed,
+      // so "Senior Software Engineer II" and "Software Engineer" are one family), written by scripts/ingestLca.mjs in the
+      // SAME transaction as lca_employer_periods (a re-import of a period deletes and re-inserts both):
+      //   certified       certified cases for that family
+      //   wage_cases · wage_hist_json   the offered wage (WAGE_RATE_OF_PAY_FROM, annualised — services/kb/lcaWages.js),
+      //                   $1k-bucket histogram, so a median over many entities and quarters is exact to the bucket
+      //   level_json      the prevailing-wage level the case was filed at (PW_WAGE_LEVEL: I · II · III · IV) → count
+      // Only employers with certified cases, only the top families per employer (the ingest's cap). Public data; no
+      // person's name, contact or wage is stored — counts and buckets only. After 202 (the circle).
+      id: "203_lca_employer_titles",
+      sql: `
+        CREATE TABLE IF NOT EXISTS lca_employer_titles (
+          employer_key   TEXT    NOT NULL,
+          fein           TEXT    NOT NULL,
+          fiscal_period  TEXT    NOT NULL,
+          title_key      TEXT    NOT NULL,
+          certified      INTEGER NOT NULL DEFAULT 0,
+          wage_cases     INTEGER NOT NULL DEFAULT 0,
+          wage_hist_json TEXT,
+          level_json     TEXT,
+          PRIMARY KEY (employer_key, fein, fiscal_period, title_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_lca_employer_titles_period ON lca_employer_titles(fiscal_period);
+      `,
+    },
   ];
