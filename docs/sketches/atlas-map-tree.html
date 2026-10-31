@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft — Your map, the tree</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+  --bg:#F6F5F2; --surface:#FFFFFF; --well:#EFEDE8; --ink:#1B1A18; --muted:#5F5B54;
+  --line:#D8D4CC; --grid:#ECE8E1; --accent:#FD4600; --on-accent:#000;
+  --have:#1E9E55; --next:#FD4600; --adj:#2F7FE0; --off:#C9C3B8; --offtext:#8A847A; --branch:#CFC8BC;
+  --ml:#E8434F; --sys:#6E55E8; --inf:#0FA88C; --dat:#E09A00; --be:#2A78E4;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]):not([data-theme="contrast-light"]):not([data-theme="contrast-dark"]){
+    color-scheme:dark; --bg:#1C1D1F; --surface:#25272A; --well:#2E3034; --ink:#ECEAE6; --muted:#ABA69D; --line:#3C3F44; --grid:#2E3034;
+    --have:#62C98A; --next:#FF6A2E; --adj:#6FA8E8; --off:#55524D; --offtext:#8F8A82; --branch:#4A4D52;
+  }
+}
+:root[data-theme="dark"]{ color-scheme:dark; --bg:#1C1D1F; --surface:#25272A; --well:#2E3034; --ink:#ECEAE6; --muted:#ABA69D; --line:#3C3F44; --grid:#2E3034; --have:#62C98A; --next:#FF6A2E; --adj:#6FA8E8; --off:#55524D; --offtext:#8F8A82; --branch:#4A4D52; }
+:root[data-theme="contrast-light"]{ color-scheme:light; --bg:#FFF; --surface:#FFF; --well:#F0F0F0; --ink:#000; --muted:#1F1F1F; --line:#000; --grid:#BBB; --have:#0B6B32; --next:#C23500; --adj:#0A4FA8; --off:#BDBDBD; --offtext:#333; --branch:#777; }
+:root[data-theme="contrast-dark"]{ color-scheme:dark; --bg:#000; --surface:#000; --well:#141414; --ink:#FFF; --muted:#E6E6E6; --line:#FFF; --grid:#666; --have:#8DF0AE; --next:#FF8A50; --adj:#8EC5FF; --off:#5A5A5A; --offtext:#CCC; --branch:#888; }
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1260px;margin:0 auto;padding:16px 20px 40px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.mark{display:flex;align-items:center;gap:8px;font-weight:800;font-style:italic;font-size:18px}
+.slash{display:inline-block;width:8px;height:20px;background:var(--accent);transform:skewX(-20deg)}
+.seg{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;flex-wrap:wrap}
+.seg button{all:unset;cursor:pointer;padding:6px 11px;font-size:13px;color:var(--muted);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.app{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ahead{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+.ahead h1{font:800 italic 22px/1.15 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0}
+.ahead p{margin:2px 0 0;color:var(--muted)}
+.ahead p b{color:var(--ink)}
+.waypts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.wp{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:4px 10px;font-size:13px;font-weight:650}
+.wp:hover{border-color:var(--ink)}
+.wp.go{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:800}
+.wp.stop{border-color:var(--ink);font-weight:800}
+.wp.sep{all:unset;width:1px;height:20px;background:var(--line);margin:0 4px}
+.top{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+@media (max-width:940px){.top{grid-template-columns:1fr}.side{border-left:0!important;border-top:1px solid var(--line)}}
+.stage{position:relative;height:600px;touch-action:none;user-select:none;cursor:grab}
+.stage.drag{cursor:grabbing}
+.stage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.zoom{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;gap:4px;z-index:3}
+.zoom button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:8px;width:34px;height:34px;font-weight:800}
+.hint{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--muted);background:var(--surface);padding:2px 6px;border-radius:4px;z-index:3}
+.side{border-left:1px solid var(--line);padding:16px 18px;display:flex;flex-direction:column;gap:12px;max-height:600px;overflow:auto}
+.side .k{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.side h2{margin:0;font:800 italic 20px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif}
+.fact{border-top:1px solid var(--grid);padding-top:10px}
+.fact h4{margin:0 0 3px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+.fact p{margin:0;font-size:14.5px;line-height:1.45}
+.slope{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:6px}
+.slope .tr{flex:1;height:8px;background:var(--well);border-radius:3px;position:relative}
+.slope .tr i{position:absolute;top:0;bottom:0;background:var(--next);border-radius:3px}
+.slope .tr u{position:absolute;top:-3px;width:3px;height:14px;background:var(--muted)}
+.btn{cursor:pointer;border:1px solid var(--ink);background:transparent;border-radius:8px;padding:7px 12px;font:800 italic 13px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif}
+.btn.p{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.q{border-color:var(--line)}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.back{all:unset;cursor:pointer;font-size:13px;font-weight:700;color:var(--muted)}
+.back:hover{color:var(--ink);text-decoration:underline}
+.flist{display:flex;flex-direction:column;gap:6px}
+.frow{all:unset;cursor:pointer;display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.frow:hover,.frow:focus-visible{border-color:var(--ink)}
+.fsq{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px;background:linear-gradient(155deg,rgba(255,255,255,.35),rgba(255,255,255,0) 50%),var(--fc);box-shadow:0 0 0 3px var(--surface),0 0 0 5.5px var(--rc)}
+.fn{display:block;font-weight:700;font-size:14px}
+.fs{display:block;font-size:12.5px;color:var(--muted)}
+/* svg */
+.br{fill:none;stroke:var(--branch);stroke-width:2.2;stroke-linecap:round;transition:opacity .2s,stroke .2s}
+.br.trunk{stroke-width:5}
+.br.hot{stroke:var(--accent);stroke-width:3.6;opacity:1}
+.br.dim{opacity:.18}
+.lk{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:5 5;opacity:.9}
+.band{fill:none;stroke:var(--grid);stroke-width:1.2;stroke-dasharray:3 6}
+.bandl{fill:var(--muted);font:700 11px system-ui,-apple-system,sans-serif;letter-spacing:.05em}
+.nd{cursor:pointer;transition:opacity .2s}
+.nd.dim{opacity:.22}
+.nd .r{transition:stroke-width .12s}
+.nd:hover .r,.nd.sel .r{stroke-width:4.5}
+.nm{font:700 12.5px system-ui,-apple-system,sans-serif;fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:4px}
+.nm.off{fill:var(--offtext)}
+.sub{font:600 10.5px system-ui,-apple-system,sans-serif;fill:var(--muted);paint-order:stroke;stroke:var(--surface);stroke-width:4px}
+.famt{cursor:pointer}
+@media (prefers-reduced-motion:no-preference){.famt .pls{animation:pu 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}@keyframes pu{50%{transform:scale(1.07)}}}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:10px 18px;border-top:1px solid var(--line)}
+.legend .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px}
+/* sections */
+.sec{padding:14px 18px;border-top:1px solid var(--grid)}
+.sec h2{margin:0;font-size:16px;display:flex;align-items:center;gap:8px}
+.sec h2 i{display:inline-block;width:12px;height:12px;border-radius:4px;border:3px solid var(--c)}
+.sec p.why{margin:2px 0 10px;color:var(--muted);font-size:13.5px}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.chip{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:8px 12px 8px 8px;background:var(--surface);min-width:210px;max-width:320px;flex:1 1 210px}
+.chip:hover{border-color:var(--ink)}
+.chip .t{font-weight:700;font-size:14px;line-height:1.25}
+.chip .s{font-size:12.5px;color:var(--muted);line-height:1.3}
+.bar2{height:6px;border-radius:3px;background:var(--well);overflow:hidden;margin-top:5px}
+.bar2 i{display:block;height:100%;background:var(--c)}
+.note{font-size:12.5px;color:var(--muted);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <span class="mark"><span class="slash" aria-hidden="true"></span>draft</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="seg" role="group" aria-label="Page" id="pages"></div>
+      <div class="seg" role="group" aria-label="Theme">
+        <button data-t="light">Paper Light</button><button data-t="dark">Charcoal Dark</button>
+        <button data-t="contrast-light">Contrast Light</button><button data-t="contrast-dark">Contrast Dark</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="ahead"><div><h1 id="h1"></h1><p id="hsub"></p></div></div>
+    <div class="waypts" id="waypts"></div>
+    <div class="top">
+      <div class="stage" id="stage" tabindex="0" aria-label="The tree. Drag to move, scroll or pinch to zoom.">
+        <svg id="svg" role="img" aria-label="Your skills as a tree"></svg>
+        <div class="zoom"><button id="zi" aria-label="Zoom in">+</button><button id="zo" aria-label="Zoom out">−</button><button id="zf" aria-label="Show everything">⤢</button></div>
+        <span class="hint">Drag to move · scroll or pinch to zoom</span>
+      </div>
+      <aside class="side" id="side"></aside>
+    </div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--ml)"></span>Coloured: you have it (in its family's colour)</span>
+      <span><span class="sw" style="background:var(--off)"></span>Grey: you don't yet</span>
+      <span><span class="sw" style="background:transparent;border:2.5px solid var(--next)"></span>Orange ring: rises toward senior</span>
+      <span><span class="sw" style="background:transparent;border:2.5px solid var(--adj)"></span>Blue ring: other skills near you</span>
+      <span>Size: postings · Distance from the centre: how close</span>
+    </div>
+    <div id="sections"></div>
+  </div>
+  <p class="note">The tree carries every metric approved for the map (D116's contract). Numbers are illustrative; in the build they are live from the board (D118) and your Profile. No model.</p>
+</div>
+
+<script>
+(function () {
+  var rootEl = document.documentElement;
+  var FAMS = ["ML", "Systems", "Infra", "Data", "Backend"];
+  var FAMCOL = { ML: "var(--ml)", Systems: "var(--sys)", Infra: "var(--inf)", Data: "var(--dat)", Backend: "var(--be)" };
+  var HAVE = ["Python", "PyTorch", "TensorFlow", "SQL", "AWS", "Docker", "Kubernetes", "Linux", "Git", "REST APIs"];
+  var SK = {
+    "System design": { d: 1100, near: 72, mid: 22, sen: 61, g: "Systems", w: ["Kubernetes", "REST APIs", "SQL"] },
+    "Distributed systems": { d: 640, near: 66, mid: 14, sen: 33, g: "Systems", w: ["Kubernetes", "AWS"] },
+    "gRPC": { d: 220, near: 45, mid: 4, sen: 8, g: "Systems", w: ["REST APIs"] },
+    "Model serving": { d: 380, near: 81, mid: 12, sen: 35, g: "ML", w: ["PyTorch", "Docker", "Kubernetes"] },
+    "MLOps": { d: 520, near: 77, mid: 18, sen: 44, g: "ML", w: ["Docker", "Kubernetes", "AWS"] },
+    "MLflow": { d: 260, near: 79, mid: 14, sen: 28, g: "ML", w: ["Python", "Docker"] },
+    "Distributed training": { d: 210, near: 64, mid: 9, sen: 38, g: "ML", w: ["PyTorch", "Kubernetes"] },
+    "Ray": { d: 120, near: 70, mid: 5, sen: 15, g: "ML", w: ["PyTorch", "Python"] },
+    "CUDA": { d: 300, near: 47, mid: 10, sen: 24, g: "ML", w: ["PyTorch"] },
+    "JAX": { d: 90, near: 50, mid: 3, sen: 9, g: "ML", w: ["Python"] },
+    "Terraform": { d: 480, near: 66, mid: 8, sen: 19, g: "Infra", w: ["AWS", "Kubernetes"] },
+    "CI/CD": { d: 700, near: 68, mid: 20, sen: 31, g: "Infra", w: ["Git", "Docker"] },
+    "Prometheus": { d: 280, near: 57, mid: 6, sen: 12, g: "Infra", w: ["Kubernetes", "Linux"] },
+    "Spark": { d: 640, near: 58, mid: 21, sen: 40, g: "Data", w: ["Python", "SQL"] },
+    "Kafka": { d: 590, near: 61, mid: 15, sen: 27, g: "Data", w: ["Kubernetes", "Python"] },
+    "Airflow": { d: 330, near: 55, mid: 10, sen: 14, g: "Data", w: ["Python", "SQL"] },
+    "dbt": { d: 240, near: 40, mid: 3, sen: 5, g: "Data", w: ["SQL"] },
+    "Redis": { d: 410, near: 52, mid: 9, sen: 16, g: "Backend", w: ["REST APIs", "Python"] },
+    "Go": { d: 520, near: 44, mid: 6, sen: 9, g: "Backend", w: ["Docker", "Kubernetes"] },
+    "Python": { d: 940, mid: 88, sen: 90, g: "ML", have: 1 }, "PyTorch": { d: 412, mid: 70, sen: 74, g: "ML", have: 1 }, "TensorFlow": { d: 260, mid: 25, sen: 20, g: "ML", have: 1 },
+    "SQL": { d: 880, mid: 40, sen: 38, g: "Data", have: 1 }, "AWS": { d: 760, mid: 45, sen: 52, g: "Infra", have: 1 }, "Docker": { d: 530, mid: 50, sen: 55, g: "Infra", have: 1 },
+    "Kubernetes": { d: 411, mid: 30, sen: 48, g: "Infra", have: 1 }, "Linux": { d: 350, mid: 30, sen: 33, g: "Infra", have: 1 }, "Git": { d: 300, mid: 33, sen: 34, g: "Infra", have: 1 },
+    "REST APIs": { d: 610, mid: 35, sen: 37, g: "Backend", have: 1 }
+  };
+  var AIM = ["Python", "PyTorch", "System design", "Model serving", "MLOps", "Distributed training", "Kubernetes", "Docker", "AWS", "SQL", "Spark", "MLflow", "CUDA", "TensorFlow", "Ray"];
+  var STEP = { "System design": "System design: how big apps are built", "Model serving": "Running models: inference and efficiency", "MLOps": "Virtual machines, containers and the cloud", "Distributed training": "Distributed systems", "Distributed systems": "Distributed systems", "Spark": "Inside a database", "Kafka": "Distributed systems", "Terraform": "Virtual machines, containers and the cloud", "Go": "How code becomes a running program", "Redis": "Hashing and hash tables", "CUDA": "Running models: inference and efficiency" };
+  var ROLE = { name: "Data Engineer", postings: 388, share: { "SQL": 86, "Python": 81, "Spark": 64, "Airflow": 52, "AWS": 49, "Kafka": 41, "dbt": 38, "Docker": 30, "Terraform": 22, "Kubernetes": 21, "CI/CD": 20, "Git": 18, "System design": 17, "Linux": 15, "Redis": 9 } };
+  var FAMPAGE = { name: "Infra", share: { "AWS": 64, "Docker": 58, "Kubernetes": 55, "CI/CD": 47, "Terraform": 41, "Linux": 33, "Git": 29, "Prometheus": 22 } };
+  function has(n) { return HAVE.indexOf(n) >= 0; }
+  function rise(n) { return SK[n].sen - SK[n].mid; }
+  function rises(n) { return !has(n) && rise(n) >= 10; }
+  function ringV(n) { return has(n) ? "var(--have)" : rises(n) ? "var(--next)" : "var(--adj)"; }
+  function route() { return AIM.filter(function (n) { return !has(n); }).sort(function (a, b) { return SK[b].near - SK[a].near; }); }
+  function famList(f) { return Object.keys(SK).filter(function (n) { return SK[n].g === f; }).sort(function (a, b) { if (has(a) !== has(b)) return has(a) ? -1 : 1; return has(a) ? SK[b].d - SK[a].d : SK[b].near - SK[a].near; }); }
+  var bestNext = Object.keys(SK).filter(function (n) { return !has(n); }).sort(function (a, b) { return (SK[b].near * Math.log(SK[b].d)) - (SK[a].near * Math.log(SK[a].d)); })[0];
+
+  /* ---------- the tree, built for any centre (you · a role · a family) ---------- */
+  var PAGE = "you", P = {}, PARENT = {}, NODES = [], CENTRE = "You", SECT = {};
+  var BANDS = { you: [[128, "YOURS"], [215, "VERY CLOSE · 75 %+"], [290, "CLOSE · 60–75 %"], [365, "A STRETCH · UNDER 60 %"]], role: [[150, "IN 3 OF 4 POSTINGS"], [250, "HALF"], [340, "1 IN 4 OR FEWER"]], family: [[150, "CORE · 50 %+"], [250, "COMMON"], [330, "SPECIALIST"]] };
+  function radiusFor(n) {
+    if (PAGE === "you") { if (has(n)) return 120; return 160 + (100 - SK[n].near) * 3.4; }
+    var sh = PAGE === "role" ? ROLE.share[n] : FAMPAGE.share[n]; return 120 + (100 - sh) * 2.6;
+  }
+  function buildTree() {
+    P = {}; PARENT = {}; SECT = {};
+    NODES = PAGE === "you" ? Object.keys(SK) : Object.keys(PAGE === "role" ? ROLE.share : FAMPAGE.share);
+    var fams = PAGE === "family" ? ["Infra"] : FAMS;
+    var span = PAGE === "family" ? Math.PI * 2 : (Math.PI * 2 / fams.length);
+    fams.forEach(function (f, i) {
+      var mid = -Math.PI / 2 + i * span, lo = mid - span * 0.39, hi = mid + span * 0.39;
+      if (PAGE === "family") { lo = -Math.PI; hi = Math.PI * 0.95; }
+      SECT[f] = { mid: mid, lo: lo, hi: hi, trunk: [62 * Math.cos(mid), 62 * Math.sin(mid)] };
+      var mine = NODES.filter(function (n) { return SK[n].g === f; }).sort(function (a, b) { return radiusFor(a) - radiusFor(b) || SK[b].d - SK[a].d; });
+      // spread the family's nodes across its sector, ordered so a skill sits near its parent
+      var haves = mine.filter(has), others = mine.filter(function (n) { return !has(n); });
+      var order = [];
+      haves.forEach(function (h) { order.push(h); others.filter(function (o) { return (SK[o].w || []).indexOf(h) >= 0 && order.indexOf(o) < 0 && parentOf(o, f) === h; }).forEach(function (o) { order.push(o); }); });
+      others.forEach(function (o) { if (order.indexOf(o) < 0) order.push(o); });
+      order.forEach(function (n, j) {
+        var t = order.length === 1 ? 0.5 : j / (order.length - 1), a = lo + (hi - lo) * t, r = radiusFor(n);
+        if (has(n) && PAGE === "you" && haves.length > 3) r = (haves.indexOf(n) % 2) ? 150 : 108;   // two rings when you have many
+        P[n] = [r * Math.cos(a), r * Math.sin(a), a];
+        PARENT[n] = parentOf(n, f);
+      });
+    });
+  }
+  function parentOf(n, f) {
+    if (has(n) || PAGE !== "you") return "trunk:" + f;
+    var ws = (SK[n].w || []).filter(function (h) { return SK[h].g === f; }).sort(function (a, b) { return SK[b].d - SK[a].d; });
+    return ws.length ? ws[0] : "trunk:" + f;
+  }
+  function ptOf(id) { if (id === "You") return [0, 0]; if (id.indexOf("trunk:") === 0) return SECT[id.slice(6)].trunk; return P[id]; }
+  function size(n) { return Math.max(15, Math.min(32, Math.sqrt(SK[n].d) * .95)); }
+
+  /* ---------- draw ---------- */
+  var NS = "http://www.w3.org/2000/svg", svg = document.getElementById("svg");
+  function el(t, a, p) { var e = document.createElementNS(NS, t); for (var k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
+  function curve(a, b) { var mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, r = Math.hypot(mx, my) || 1; var k = 0.12; return "M" + a[0] + " " + a[1] + " Q" + (mx + mx / r * Math.hypot(b[0] - a[0], b[1] - a[1]) * k) + " " + (my + my / r * Math.hypot(b[0] - a[0], b[1] - a[1]) * k) + " " + b[0] + " " + b[1]; }
+  var EDGES = [], G = {};
+  function draw() {
+    svg.innerHTML = ""; EDGES = []; G = {};
+    var gB = el("g", {}, svg), gE = el("g", {}, svg), gL = el("g", {}, svg), gN = el("g", {}, svg), gT = el("g", {}, svg);
+    BANDS[PAGE].forEach(function (b) { el("circle", { cx: 0, cy: 0, r: b[0], "class": "band" }, gB); var t = el("text", { x: 6, y: -b[0] - 6, "class": "bandl" }, gB); t.textContent = b[1]; });
+    Object.keys(SECT).forEach(function (f) { var p = el("path", { d: "M0 0 L" + SECT[f].trunk[0] + " " + SECT[f].trunk[1], "class": "br trunk", style: "stroke:" + FAMCOL[f] + ";opacity:.75" }, gE); EDGES.push({ a: "You", b: "trunk:" + f, el: p }); });
+    NODES.forEach(function (n) { var a = ptOf(PARENT[n]), b = P[n]; var p = el("path", { d: curve(a, b), "class": "br" }, gE); EDGES.push({ a: PARENT[n], b: n, el: p }); });
+    G.links = gL;
+    NODES.forEach(function (n) {
+      var p = P[n], w = size(n), on = has(n), g = el("g", { "class": "nd", tabindex: "0", role: "button", "aria-label": n + (on ? ", you have it" : ", you don't yet") }, gN);
+      el("rect", { "class": "r", x: p[0] - w / 2 - 4, y: p[1] - w / 2 - 4, width: w + 8, height: w + 8, rx: w * .36, fill: "var(--surface)", stroke: ringV(n), "stroke-width": 3 }, g);
+      el("rect", { x: p[0] - w / 2, y: p[1] - w / 2, width: w, height: w, rx: w * .3, fill: on ? FAMCOL[SK[n].g] : "var(--off)" }, g);
+      el("rect", { x: p[0] - w / 2, y: p[1] - w / 2, width: w, height: w * .45, rx: w * .3, fill: "rgba(255,255,255,.22)" }, g);
+      var right = Math.cos(p[2]) >= -0.15, lx = p[0] + (right ? w / 2 + 9 : -w / 2 - 9);
+      var t = el("text", { x: lx, y: p[1] + 1, "class": "nm" + (on ? "" : " off"), "text-anchor": right ? "start" : "end" }, g); t.textContent = n;
+      var sub = PAGE === "you" ? (on ? SK[n].d + " postings" : SK[n].near + "% close · " + SK[n].d) : (PAGE === "role" ? ROLE.share[n] : FAMPAGE.share[n]) + "% of postings";
+      var s = el("text", { x: lx, y: p[1] + 14, "class": "sub", "text-anchor": right ? "start" : "end" }, g); s.textContent = sub;
+      g.addEventListener("click", function (e) { if (moved) return; e.stopPropagation(); choose(n, true); });
+      g.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(n, true); } });
+      G[n] = g;
+    });
+    Object.keys(SECT).forEach(function (f) {
+      var m = SECT[f].mid, R = (PAGE === "you" ? 420 : 395), x = R * Math.cos(m), y = R * Math.sin(m);
+      if (PAGE === "family") { x = 0; y = -380; }
+      var l = famList(f).filter(function (n) { return NODES.indexOf(n) >= 0; }), mine = l.filter(has).length;
+      var label = f.toUpperCase() + " · you have " + mine + " of " + l.length, w = label.length * 7.2 + 22;
+      var g = el("g", { "class": "famt", role: "button", tabindex: "0", "aria-label": f + " family" }, gT), pl = el("g", { "class": "pls" }, g);
+      el("rect", { x: x - w / 2, y: y - 14, width: w, height: 28, rx: 9, fill: FAMCOL[f] }, pl);
+      var t = el("text", { x: x, y: y + 4.5, "text-anchor": "middle", style: "font:800 12px system-ui;fill:#fff;letter-spacing:.04em" }, pl); t.textContent = label;
+      g.addEventListener("click", function (e) { e.stopPropagation(); goFamily(f); });
+      g.addEventListener("keydown", function (e) { if (e.key === "Enter") goFamily(f); });
+    });
+    var c = el("g", { "class": "nd", tabindex: "0", role: "button", "aria-label": CENTRE }, gN);
+    el("rect", { x: -38, y: -38, width: 76, height: 76, rx: 22, fill: PAGE === "you" ? "var(--ink)" : PAGE === "role" ? "var(--accent)" : "var(--inf)" }, c);
+    var ct = el("text", { x: 0, y: PAGE === "you" ? 6 : 0, "text-anchor": "middle", style: "font:800 " + (PAGE === "you" ? 16 : 12.5) + "px system-ui;fill:" + (PAGE === "role" ? "#000" : "var(--surface)") }, c);
+    if (PAGE === "you") ct.textContent = "You"; else { ct.textContent = CENTRE.split(" ")[0]; var c2 = el("text", { x: 0, y: 15, "text-anchor": "middle", style: "font:800 12.5px system-ui;fill:" + (PAGE === "role" ? "#000" : "var(--surface)") }, c); c2.textContent = CENTRE.split(" ").slice(1).join(" "); }
+    c.addEventListener("click", function () { choose(null); fly(fit()); });
+    applySelection();
+  }
+
+  /* ---------- selection: the path back to the centre ---------- */
+  var sel = null, focusFam = null, lastFam = null, special = null;
+  function pathOf(n) { var p = [n], cur = n; while (cur && cur !== "You") { cur = cur.indexOf("trunk:") === 0 ? "You" : PARENT[cur]; p.push(cur); } return p; }
+  function applySelection() {
+    var lit = {};
+    if (sel) pathOf(sel).forEach(function (x) { lit[x] = 1; });
+    var famOn = focusFam;
+    EDGES.forEach(function (e) {
+      var hot = sel && lit[e.a] && lit[e.b];
+      var dim = (sel && !hot) || (famOn && !(e.b === "trunk:" + famOn || (SK[e.b] && SK[e.b].g === famOn))) || (special === "risers" && !(SK[e.b] && rises(e.b)));
+      e.el.setAttribute("class", e.el.getAttribute("class").replace(/ hot| dim/g, "") + (hot ? " hot" : dim ? " dim" : ""));
+    });
+    NODES.forEach(function (n) {
+      var on = !sel || lit[n] || (PAGE === "you" && sel && (SK[sel].w || []).indexOf(n) >= 0);
+      if (famOn && SK[n].g !== famOn) on = false;
+      if (special === "risers") on = rises(n);
+      if (special === "have") on = has(n);
+      G[n].setAttribute("class", "nd" + (n === sel ? " sel" : "") + (on ? "" : " dim"));
+    });
+    G.links.innerHTML = "";
+    if (sel && PAGE === "you" && !has(sel)) (SK[sel].w || []).forEach(function (h) { if (PARENT[sel] === h) return; el("path", { d: curve(P[h], P[sel]), "class": "lk" }, G.links); });
+    renderSide();
+  }
+  function choose(n, flyTo) { sel = n; special = null; if (n) { focusFam = null; } applySelection(); if (n && flyTo) fly(around(P[n], 1.9)); }
+  function goFamily(f) { stopTour(); sel = null; special = null; focusFam = f; lastFam = f; applySelection(); var s = SECT[f]; fly(PAGE === "family" ? fit() : around([280 * Math.cos(s.mid), 280 * Math.sin(s.mid)], 1.45)); }
+
+  /* ---------- camera ---------- */
+  var WORLD = 470, V = { x: -WORLD, y: -WORLD, w: WORLD * 2, h: WORLD * 2 };
+  var stage = document.getElementById("stage");
+  function apply() { svg.setAttribute("viewBox", V.x + " " + V.y + " " + V.w + " " + V.h); }
+  function aspect() { var r = stage.getBoundingClientRect(); return r.width / Math.max(1, r.height); }
+  function fit() { var a = aspect(), h = WORLD * 2, w = h * a; if (w < WORLD * 2) { w = WORLD * 2; h = w / a; } return { x: -w / 2, y: -h / 2, w: w, h: h }; }
+  function around(p, z) { var a = aspect(), h = WORLD * 2 / z, w = h * a; return { x: p[0] - w / 2, y: p[1] - h / 2, w: w, h: h }; }
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches, anim = null;
+  function fly(T, ms) {
+    if (anim) cancelAnimationFrame(anim);
+    if (reduce) { V = T; apply(); return; }
+    var S0 = { x: V.x, y: V.y, w: V.w, h: V.h }, t0 = performance.now(), D = ms || 700;
+    function e(t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+    (function step(now) { var t = Math.min(1, (now - t0) / D), k = e(t); V = { x: S0.x + (T.x - S0.x) * k, y: S0.y + (T.y - S0.y) * k, w: S0.w + (T.w - S0.w) * k, h: S0.h + (T.h - S0.h) * k }; apply(); if (t < 1) anim = requestAnimationFrame(step); })(t0);
+  }
+  function zoomAt(px, py, f) { var r = stage.getBoundingClientRect(), wx = V.x + px / r.width * V.w, wy = V.y + py / r.height * V.h, nw = Math.max(WORLD * .45, Math.min(WORLD * 3, V.w / f)), nh = nw * V.h / V.w; V = { x: wx - px / r.width * nw, y: wy - py / r.height * nh, w: nw, h: nh }; apply(); }
+  var ptrs = {}, last = null, moved = false, pinch0 = null;
+  stage.addEventListener("wheel", function (e) { e.preventDefault(); var r = stage.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * .0015)); }, { passive: false });
+  stage.addEventListener("pointerdown", function (e) { if (anim) cancelAnimationFrame(anim); ptrs[e.pointerId] = { x: e.clientX, y: e.clientY }; moved = false; var ids = Object.keys(ptrs); if (ids.length === 1) last = { x: e.clientX, y: e.clientY }; if (ids.length === 2) { var a = ptrs[ids[0]], b = ptrs[ids[1]]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); } });
+  window.addEventListener("pointermove", function (e) {
+    if (!ptrs[e.pointerId]) return; ptrs[e.pointerId] = { x: e.clientX, y: e.clientY }; var ids = Object.keys(ptrs), r = stage.getBoundingClientRect();
+    if (ids.length === 2 && pinch0) { var a = ptrs[ids[0]], b = ptrs[ids[1]], d = Math.hypot(a.x - b.x, a.y - b.y); zoomAt((a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, d / pinch0); pinch0 = d; moved = true; return; }
+    if (last) { var dx = e.clientX - last.x, dy = e.clientY - last.y; if (Math.abs(dx) + Math.abs(dy) > 3 || moved) { moved = true; stage.classList.add("drag"); V.x -= dx / r.width * V.w; V.y -= dy / r.height * V.h; last = { x: e.clientX, y: e.clientY }; apply(); } }
+  });
+  function up(e) { delete ptrs[e.pointerId]; if (Object.keys(ptrs).length < 2) pinch0 = null; if (!Object.keys(ptrs).length) { last = null; stage.classList.remove("drag"); setTimeout(function () { moved = false; }, 0); } }
+  window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
+  document.getElementById("zi").addEventListener("click", function () { var r = stage.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1.4); });
+  document.getElementById("zo").addEventListener("click", function () { var r = stage.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1 / 1.4); });
+  document.getElementById("zf").addEventListener("click", function () { home(); });
+  stage.addEventListener("keydown", function (e) { if (e.key === "Escape") home(); });
+  window.addEventListener("resize", function () { V = fit(); apply(); });
+  function home() { stopTour(); sel = null; focusFam = null; special = null; applySelection(); fly(fit()); }
+
+  /* ---------- travel: waypoints and Fly my route ---------- */
+  var touring = null;
+  function tour() { stopTour(); var r = route(), i = 0; renderWaypoints(true); (function next() { if (i >= r.length) { stopTour(); return; } var n = r[i++]; choose(n, true); touring = setTimeout(next, reduce ? 1700 : 2300); })(); }
+  function stopTour() { if (touring) clearTimeout(touring); touring = null; renderWaypoints(false); }
+  function renderWaypoints(on) {
+    var w = document.getElementById("waypts"); w.innerHTML = "";
+    var items = PAGE === "you" ? [["You", home], ["Your skills", function () { sel = null; focusFam = null; special = "have"; applySelection(); fly(around([0, 0], 2)); }], ["Next up: " + bestNext, function () { choose(bestNext, true); }], ["Toward senior", function () { sel = null; focusFam = null; special = "risers"; applySelection(); fly(fit()); }]] : [["Everything", home]];
+    items.forEach(function (it) { var b = document.createElement("button"); b.className = "wp"; b.textContent = it[0]; b.addEventListener("click", function () { stopTour(); it[1](); }); w.appendChild(b); });
+    if (PAGE !== "family") { var s1 = document.createElement("span"); s1.className = "wp sep"; w.appendChild(s1); FAMS.forEach(function (f) { var b = document.createElement("button"); b.className = "wp"; b.textContent = f; b.style.boxShadow = "inset 0 -3px 0 " + FAMCOL[f]; b.addEventListener("click", function () { goFamily(f); }); w.appendChild(b); }); }
+    if (PAGE === "you") { var s2 = document.createElement("span"); s2.className = "wp sep"; w.appendChild(s2); var g = document.createElement("button"); g.className = "wp " + (on ? "stop" : "go"); g.textContent = on ? "Stop" : "Fly my route to senior ▸"; g.addEventListener("click", function () { if (touring) stopTour(); else tour(); }); w.appendChild(g); }
+  }
+
+  /* ---------- side panel ---------- */
+  function renderSide() {
+    var s = document.getElementById("side");
+    if (special === "risers") { var r = NODES.filter(rises).sort(function (a, b) { return rise(b) - rise(a); }); s.innerHTML = '<div class="k" style="color:var(--next)">Toward senior</div><h2>What seniority adds for ML Engineers</h2>' + r.map(function (n) { return '<div class="fact"><p><b>' + n + "</b>: " + SK[n].mid + "% of mid → " + SK[n].sen + "% of senior (+" + rise(n) + ")</p></div>"; }).join(""); return; }
+    if (special === "have") { s.innerHTML = '<div class="k" style="color:var(--have)">Your skills</div><h2>From your résumé</h2>' + list(HAVE.slice().sort(function (a, b) { return SK[b].d - SK[a].d; })); wireList(s); return; }
+    if (!sel && focusFam) {
+      var l = famList(focusFam).filter(function (n) { return NODES.indexOf(n) >= 0; });
+      s.innerHTML = '<div class="k" style="color:' + FAMCOL[focusFam] + '">Family</div><h2>' + focusFam + '</h2><p style="margin:0;color:var(--muted);font-size:14px">You have <b style="color:var(--ink)">' + l.filter(has).length + " of " + l.length + "</b>. Yours first, then closest to furthest.</p>" + list(l); wireList(s); return;
+    }
+    if (!sel) {
+      s.innerHTML = PAGE === "you" ? '<div class="k" style="color:var(--muted)">Reading the tree</div><h2>Your skills, branching out</h2><div class="fact"><p>Each family is a branch from you. <b>Coloured</b> squares are skills you have; <b>grey</b> ones you don\'t yet. The further out a square sits, the further it is from what you know. Size is how many postings ask for it; an orange ring means it rises toward senior.</p></div><div class="fact"><p>Press a skill to light its branch back to you, or a family to list it here. <b>Fly my route</b> travels the steps in order.</p></div>'
+        : PAGE === "role" ? '<div class="k" style="color:var(--muted)">Role · ' + ROLE.postings + ' open postings</div><h2>Data Engineer</h2><div class="fact"><h4>You cover</h4><p><b>' + NODES.filter(has).length + " of " + NODES.length + "</b> of what it asks for most. Missing, most asked first: " + NODES.filter(function (n) { return !has(n); }).sort(function (a, b) { return ROLE.share[b] - ROLE.share[a]; }).slice(0, 4).map(function (n) { return "<b>" + n + "</b> " + ROLE.share[n] + "%"; }).join(", ") + '.</p></div><div class="fact"><p>Closer to the centre = asked for in more of this role\'s postings. Coloured = you have it.</p></div>'
+        : '<div class="k" style="color:var(--muted)">Family</div><h2>Infra</h2><div class="fact"><p>Closer to the centre = asked for in more postings that ask for any Infra skill. Coloured = you have it.</p></div>';
+      return;
+    }
+    var n = sel, k = SK[n], back = lastFam && k.g === lastFam ? '<button class="back" id="bk">← Back to the ' + lastFam + " list</button>" : "";
+    if (PAGE !== "you") { var sh = PAGE === "role" ? ROLE.share[n] : FAMPAGE.share[n]; s.innerHTML = back + '<div class="k" style="color:' + ringV(n) + '">' + (has(n) ? "You have" : "You don't yet") + " · " + k.g + "</div><h2>" + n + '</h2><div class="fact"><h4>' + (PAGE === "role" ? "In this role's postings" : "In this family's postings") + "</h4><p><b>" + sh + "%</b> of them ask for it · " + k.d + " postings across the board.</p></div>" + (k.near ? '<div class="fact"><h4>Postings, and how close</h4><p>' + n + " is asked for in <b>" + k.d + "</b> open postings, and <b>" + k.near + "%</b> of those also ask for two or more skills you have.</p></div>" : ""); wireBack(s); return; }
+    if (has(n)) { s.innerHTML = back + '<div class="k" style="color:var(--have)">You have · ' + k.g + "</div><h2>" + n + '</h2><div class="fact"><h4>Postings</h4><p>Asked for in <b>' + k.d + '</b> open postings.</p></div><div class="fact"><h4>It opens toward</h4><p>' + Object.keys(SK).filter(function (x) { return (SK[x].w || []).indexOf(n) >= 0; }).join(", ") + "</p></div>"; wireBack(s); return; }
+    var r = route(), i = r.indexOf(n), d = rise(n);
+    s.innerHTML = back + '<div class="k" style="color:' + ringV(n) + '">' + (rises(n) ? "Rises toward senior" : "A skill near you") + " · " + k.g + "</div><h2>" + n + "</h2>" +
+      '<div class="fact"><h4>Postings, and how close</h4><p>' + n + " is asked for in <b>" + k.d + "</b> open postings, and <b>" + k.near + "%</b> of those also ask for two or more skills you have (" + k.w.join(", ") + ").</p></div>" +
+      '<div class="fact"><h4>Mid → senior, ML Engineer</h4><p>' + k.mid + "% of mid ML postings, " + k.sen + "% of senior (" + (d >= 0 ? "+" : "") + d + " points)." + (d >= 10 ? " One of the things seniority adds." : "") + '</p><div class="slope"><span>mid</span><span class="tr"><i style="left:' + k.mid + "%;width:" + Math.max(1, d) + '%"></i><u style="left:' + k.mid + '%"></u></span><span>senior</span></div></div>' +
+      '<div class="fact"><h4>Your route to senior ML Engineer</h4><p>' + (i >= 0 ? "Step <b>" + (i + 1) + " of " + r.length + "</b>. It's " + k.near + "% close to what you know, so it comes " + (i < 3 ? "early" : i < 6 ? "mid-way" : "later") + "." : "Not on this route; it belongs to other roles.") + "</p></div>" +
+      '<div class="acts"><button class="btn p">' + (STEP[n] ? "Enter the course: " + STEP[n] : "Its page") + '</button><button class="btn q">Jobs that ask for it</button></div>';
+    wireBack(s);
+  }
+  function list(l) { return '<div class="flist">' + l.map(function (n) { var k = SK[n]; return '<button class="frow" data-n="' + n + '"><span class="fsq" style="--fc:' + (has(n) ? FAMCOL[k.g] : "var(--off)") + ";--rc:" + ringV(n) + '">' + n.charAt(0) + '</span><span><span class="fn">' + n + '</span><span class="fs">' + (has(n) ? "You have it · " + k.d + " postings" : (PAGE === "you" ? k.near + "% close · " : (PAGE === "role" ? ROLE.share[n] : FAMPAGE.share[n]) + "% of postings · ") + k.d + " postings" + (rises(n) ? " · +" + rise(n) + " toward senior" : "")) + "</span></span></button>"; }).join("") + "</div>"; }
+  function wireList(s) { s.querySelectorAll(".frow").forEach(function (b) { var n = b.getAttribute("data-n"); b.addEventListener("click", function () { choose(n, true); }); b.addEventListener("mouseenter", function () { if (G[n]) G[n].setAttribute("class", G[n].getAttribute("class") + " sel"); }); b.addEventListener("mouseleave", function () { if (G[n]) G[n].setAttribute("class", G[n].getAttribute("class").replace(/ sel/g, "")); }); }); }
+  function wireBack(s) { var b = s.querySelector("#bk"); if (b) b.addEventListener("click", function () { goFamily(lastFam); }); }
+
+  /* ---------- the five sections below (kept as approved) ---------- */
+  function sq(n) { var k = SK[n]; return '<span class="fsq" style="--fc:' + (has(n) ? FAMCOL[k.g] : "var(--off)") + ";--rc:" + ringV(n) + '">' + n.charAt(0) + "</span>"; }
+  function sections() {
+    if (PAGE !== "you") return "";
+    var next = Object.keys(SK).filter(rises).sort(function (a, b) { return rise(b) - rise(a); }).slice(0, 5);
+    var adj = Object.keys(SK).filter(function (n) { return !has(n) && !rises(n); }).sort(function (a, b) { return SK[b].d - SK[a].d; }).slice(0, 6);
+    var BR = [["MLOps Engineer", 11, 15, "Terraform, Airflow, MLflow"], ["Data Engineer", 9, 15, "Spark, Airflow, dbt"], ["Backend Engineer", 8, 15, "Go, Kafka, Redis"], ["Research Engineer", 6, 15, "JAX, CUDA, Triton"]];
+    var LN = ["System design: how big apps are built", "Running models: inference and efficiency", "Distributed systems", "Virtual machines, containers and the cloud"];
+    return '<div class="sec"><h2><i style="--c:var(--next)"></i>To reach senior ML Engineer</h2><p class="why">Skills whose share of postings rises most from mid to senior for your role.</p><div class="row">' + next.map(function (n) { return '<button class="chip" data-n="' + n + '">' + sq(n) + '<span style="flex:1"><div class="t">' + n + '</div><div class="s">' + SK[n].mid + "% at mid → " + SK[n].sen + '% at senior</div><div class="bar2" style="--c:var(--next)"><i style="width:' + SK[n].sen + '%"></i></div></span></button>'; }).join("") + "</div></div>" +
+      '<div class="sec"><h2><i style="--c:var(--adj)"></i>Adjacent</h2><p class="why">Asked for alongside what you already have.</p><div class="row">' + adj.map(function (n) { return '<button class="chip" data-n="' + n + '">' + sq(n) + '<span><div class="t">' + n + '</div><div class="s">with ' + SK[n].w.join(" and ") + " · " + SK[n].d + " postings</div></span></button>"; }).join("") + "</div></div>" +
+      '<div class="sec"><h2><i style="--c:var(--sys)"></i>Branches</h2><p class="why">Other roles you already mostly cover.</p><div class="row">' + BR.map(function (b) { return '<a class="chip" href="#" data-role="1" style="text-decoration:none;color:inherit"><span class="fsq" style="--fc:var(--sys);--rc:var(--sys)">' + b[0].charAt(0) + '</span><span style="flex:1"><div class="t">' + b[0] + '</div><div class="s">' + b[1] + " of " + b[2] + " · missing " + b[3] + '</div><div class="bar2" style="--c:var(--sys)"><i style="width:' + Math.round(100 * b[1] / b[2]) + '%"></i></div></span></a>'; }).join("") + "</div></div>" +
+      '<div class="sec"><h2><i style="--c:var(--dat)"></i>Learn next</h2><p class="why">Course steps that close your biggest gaps. Start at any of them.</p><div class="row">' + LN.map(function (t) { return '<a class="chip" href="#" style="text-decoration:none;color:inherit"><span class="fsq" style="--fc:var(--dat);--rc:var(--dat)">▸</span><span><div class="t">' + t + '</div><div class="s">Enter the course here</div></span></a>'; }).join("") + "</div></div>" +
+      '<div class="sec"><h2><i style="--c:var(--have)"></i>You have</h2><p class="why">From your résumé, with how many open postings ask for each.</p><div class="row">' + HAVE.slice().sort(function (a, b) { return SK[b].d - SK[a].d; }).map(function (n) { return '<button class="chip" data-n="' + n + '">' + sq(n) + '<span><div class="t">' + n + '</div><div class="s">' + SK[n].d + " postings</div></span></button>"; }).join("") + "</div></div>";
+  }
+  function renderSections() {
+    var box = document.getElementById("sections"); box.innerHTML = sections();
+    box.querySelectorAll("[data-n]").forEach(function (b) { b.addEventListener("click", function () { choose(b.getAttribute("data-n"), true); document.getElementById("stage").scrollIntoView({ behavior: "smooth", block: "nearest" }); }); });
+    box.querySelectorAll("[data-role]").forEach(function (a) { a.addEventListener("click", function (e) { e.preventDefault(); setPage("role"); }); });
+    box.querySelectorAll('a[href="#"]').forEach(function (a) { a.addEventListener("click", function (e) { e.preventDefault(); }); });
+  }
+
+  /* ---------- pages ---------- */
+  var PAGES = { you: "Your map", role: "On a role page (Data Engineer)", family: "On a family page (Infra)" };
+  function setPage(p) {
+    PAGE = p; CENTRE = p === "you" ? "You" : p === "role" ? "Data Engineer" : "Infra"; sel = null; focusFam = null; special = null; lastFam = null; stopTour();
+    document.querySelectorAll("[data-p]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-p") === p)); });
+    document.getElementById("h1").textContent = p === "you" ? "Your map" : p === "role" ? "Data Engineer" : "Infra";
+    document.getElementById("hsub").innerHTML = p === "you" ? "From your résumé: <b>ML Engineer, mid level</b>, " + HAVE.length + " skills. Aim: <b>senior</b>." : p === "role" ? "<b>" + ROLE.postings + "</b> open postings. The tree shows what this role is made of; coloured squares are yours." : "The family's skills; coloured squares are yours.";
+    buildTree(); draw(); renderWaypoints(false); renderSections(); V = fit(); apply();
+  }
+  var pg = document.getElementById("pages");
+  Object.keys(PAGES).forEach(function (k) { var b = document.createElement("button"); b.textContent = PAGES[k]; b.setAttribute("data-p", k); b.addEventListener("click", function () { setPage(k); }); pg.appendChild(b); });
+  function setTheme(t) { rootEl.setAttribute("data-theme", t); document.querySelectorAll("[data-t]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-t") === t)); }); try { localStorage.setItem("atlas-map-tree", t); } catch (e) {} }
+  document.querySelectorAll("[data-t]").forEach(function (b) { b.addEventListener("click", function () { setTheme(this.getAttribute("data-t")); }); });
+  var sv = null; try { sv = localStorage.getItem("atlas-map-tree"); } catch (e) {}
+  setTheme(sv || "light");
+  setPage("you");
+})();
+</script>
+</body>
+</html>
