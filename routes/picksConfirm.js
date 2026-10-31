@@ -28,6 +28,7 @@ import { userHeld } from "../services/applyUserHold.js";
 import { fullAutoDisabled } from "../services/appSettings.js";
 import { artifactCurrency } from "../services/resumeCurrency.js";
 import { draftSlots, slotsExhausted, recordGenerationSlot } from "../services/draftSlots.js";
+import { baseResumeOnlyState } from "../services/baseResumeOnly.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const now = () => Math.floor(Date.now() / 1000);
@@ -72,7 +73,12 @@ export function passPick(db, userId, pickId, nowSec = now()) {
  * not tagged Pending. It is the apply path's own generation (deps.generateResume = server.js generateResumeForApply), so
  * the run after Apply reuses this résumé while it is current instead of writing another.
  * A63: a NEW résumé costs one of the day's Draft slots — refused at zero, debited only when one was written; a current
- * résumé already there costs nothing and is never refused.
+ * résumé already there costs nothing and is never refused. The generation itself checks the plan's résumé limit
+ * (checkLimit), as every generation does.
+ * D66: a user on "send my base résumé" has no tailoring to make (the run sends the base résumé, no model call) → 409.
+ * REUSE (owner 10-31: "a later Apply reuses that résumé"): it is stored as the 'generate' tool's artifact for the job,
+ * the tool a pick's run uses (startAutoRun sets none → run.tool_type 'generate'), and generateResumeForApply's first
+ * step returns a CURRENT artifact (artifactCurrency) without a model call.
  */
 export async function makePickResume(db, { generateResume } = {}, userId, pickId) {
   const pick = db.prepare(`SELECT * FROM picks WHERE id = ? AND user_id = ?`).get(pickId, userId);
@@ -81,6 +87,9 @@ export async function makePickResume(db, { generateResume } = {}, userId, pickId
     return { ok: false, status: 409, error: "not_offered", message: "This one is no longer a pick waiting for you, so its résumé is made in its run." };
   }
   if (typeof generateResume !== "function") return { ok: false, status: 503, error: "unavailable", message: "Résumés cannot be made on this server right now." };
+  if (baseResumeOnlyState(db, userId).on) {
+    return { ok: false, status: 409, error: "base_resume_only", message: "You send your base résumé with every application, so there is nothing to tailor." };
+  }
   if (!artifactCurrency(db, { userId, jobId: pick.job_id }).current) {
     const slots = draftSlots(db, userId);
     if (slots.remaining <= 0) return { ok: false, status: 429, ...slotsExhausted(slots) };
