@@ -163,6 +163,7 @@ test("D115 · migration 194 rebuilds atlas_nodes with the two kinds and KEEPS ev
 // ── P2–P4 ────────────────────────────────────────────────────────────────────────────────────────────
 import express from "express";
 import { createLearnRouter } from "../routes/learn.js";
+import { setMark } from "../services/learn/learnProgress.js";
 import { createAtlasRouter } from "../routes/atlas.js";
 import { importLearnPatterns, learnStepForNode } from "../services/learn/learnLinks.js";
 import { publishLearnConcepts, LEARN_PUBLISHER } from "../services/atlas/atlasLearnImport.js";
@@ -187,18 +188,15 @@ test("D115 P3 · d115ProgressServerWhenSignedIn — marks follow the account: se
   const s = await serve(db, { id: 7 });
   try {
     assert.equal((await s.call("GET", "/api/learn/")).json.INDEX.length, 385, "the content is public");
-    assert.deepEqual((await s.call("PUT", "/api/learn/progress", { id: "s1-code", on: true })).json, { ok: true });
-    assert.equal((await s.call("PUT", "/api/learn/progress", { id: "s1#c0", on: true })).status, 200);
-    assert.equal((await s.call("PUT", "/api/learn/progress", { id: "no-such-item", on: true })).status, 404);
-    assert.equal((await s.call("PUT", "/api/learn/progress", { id: "s1-code" })).status, 400);
+    // ⭐ D117 C8 (changed on purpose): progress is EARNED, never ticked — the tick endpoints answer 410. The ticks a learner
+    // made before C8 stay stored, follow the account and read back; they no longer count (test/d117Earned.test.js).
+    assert.ok(setMark(db, 7, "s1-code", true) && setMark(db, 7, "s1#c0", true));
+    assert.equal(setMark(db, 7, "no-such-item", true), false, "unknown ids refused");
+    assert.equal((await s.call("PUT", "/api/learn/progress", { id: "s2-x", on: true })).status, 410);
+    assert.equal((await s.call("POST", "/api/learn/progress/import", { marks: [{ id: "s2#c0", at: 5 }] })).status, 410);
     const marks = (await s.call("GET", "/api/learn/progress")).json.marks;
-    assert.deepEqual(marks.map(m => [m.id, m.state]).sort(), [["s1#c0", "explained"], ["s1-code", "done"]]);
-    // The browser's marks on sign-in: added where the account has none, the account's own date wins, junk dropped.
-    const imp = await s.call("POST", "/api/learn/progress/import", { marks: [{ id: "s1-code", at: 1 }, { id: "s2#c0", at: 5 }, { id: "bogus", at: 5 }] });
-    assert.deepEqual([imp.json.added, imp.json.ignored], [1, 1]);
-    assert.notEqual(db.prepare(`SELECT at FROM learn_progress WHERE mark_id = 's1-code'`).pluck().get(), 1, "the account's mark kept its date");
-    await s.call("PUT", "/api/learn/progress", { id: "s1-code", on: false });
-    assert.equal(db.prepare(`SELECT COUNT(*) FROM learn_progress WHERE mark_id = 's1-code'`).pluck().get(), 0);
+    assert.deepEqual(marks.map(m => [m.id, m.state]).sort(), [["s1#c0", "explained"], ["s1-code", "done"]], "the old ticks are kept");
+    assert.equal(db.prepare(`SELECT COUNT(*) FROM learn_progress WHERE mark_id = 's2#c0'`).pluck().get(), 0, "no browser ticks imported");
   } finally { await s.close(); }
   const anon = await serve(db, null);
   try { assert.equal((await anon.call("GET", "/api/learn/progress")).status, 401, "signed out: no account progress"); } finally { await anon.close(); }

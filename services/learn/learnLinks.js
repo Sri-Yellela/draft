@@ -38,6 +38,11 @@ export function learnStepForNode(db, node, learn = learnContent(db)) {
   return null;
 }
 
+/** A step by its id, in the same shape — { stepId, part, phase, step, title, label } — or null. */
+export function learnStepInfo(learn, stepId) {
+  return indexes(learn).steps.get(stepId) || null;
+}
+
 /** The learn page's address for a step — the Atlas base is the caller's (/atlas or /app/atlas). */
 export const learnStepPath = (stepId) => `/learn#step-${encodeURIComponent(stepId)}`;
 
