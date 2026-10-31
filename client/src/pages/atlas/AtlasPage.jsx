@@ -20,6 +20,7 @@ import DepthButton from "../../components/DepthButton.jsx";
 import { BRAND } from "../../../../shared/brand.js";
 import AtlasGraph from "./AtlasGraph.jsx";
 import LearnView from "./LearnView.jsx";
+import YourMap, { RoleMap, FamilyMap } from "./YourMap.jsx";
 import {
   KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
   WIKI_LICENCE, YOU_LABEL, YOU_MARK, LEVEL_READ_LABEL, shareText, stepTitle, stepEmptyLine, roleBoardParts,
@@ -241,6 +242,9 @@ export function AtlasNodeView({ base, node, from, onWalk }) {
         {node.fewOpenPostings && <p className="atl__quiet" data-atlas-few="">{FEW_POSTINGS_LINE}</p>}
       </section>
 
+      {/* ⭐ D116 M7 · the same tree as Your map, centred on the role (its top skills; distance = the share asking). */}
+      {node.kind === "role" && <RoleMap base={base} slug={node.slug} />}
+
       {rb && roleBoardParts(rb).nextLevel && <RoleNextLevel base={base} steps={rb.nextLevel} />}
 
       {node.kind === "role" && node.sponsors?.length > 0 && (
@@ -311,7 +315,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
 
   useEffect(() => {
     let live = true;
-    if (!slug || slug === "learn") { setPage({ status: "idle", node: null }); return undefined; }
+    if (!slug || slug === "learn" || slug.startsWith("family/")) { setPage({ status: "idle", node: null }); return undefined; }
     setPage({ status: "loading", node: null });
     loadNode(slug).then(n => live && setPage({ status: n ? "done" : "missing", node: n }))
       .catch(e => live && setPage({ status: "error", node: null, error: e.message }));
@@ -325,12 +329,18 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
 
   // ⭐ D115: /atlas/learn is the owner's learning path, not a node (the slug "learn" is reserved for it).
   const learning = slug === "learn";
+  // ⭐ D116 M7: /atlas/family/<key> is a family's page (a node slug never holds a "/").
+  const familyKey = slug && slug.startsWith("family/") ? slug.slice("family/".length) : null;
+  const wide = !slug || !!familyKey;
   const body = (
-    <main className="atl" data-atlas-page={learning ? "learn" : slug ? "node" : "search"}>
+    <main className={`atl${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : familyKey ? "family" : slug ? "node" : "search"}>
       {!slug && <AtlasSearch base={base} q={q} />}
       {!slug && <p className="atl__quiet" data-atlas-learn-link=""><Link to={`${base}/learn`} className="atl__link">Learn — From silicon to software</Link>: a path from a flashlight signal to today's machines, step by step.</p>}
+      {/* ⭐ D116 · the home: Your map (signed in, from the résumé) or the signed-out home (Explore by role). */}
+      {!slug && !q && <YourMap base={base} />}
       {learning && <LearnView signedIn={base.startsWith("/app")} />}
-      {slug && !learning && (
+      {familyKey && <FamilyMap base={base} familyKey={familyKey} />}
+      {slug && !learning && !familyKey && (
         <>
           <SearchBox base={base} />
           {page.status === "loading" && <p className="atl__quiet" role="status">Opening…</p>}

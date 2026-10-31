@@ -1,0 +1,143 @@
+/* ⭐ D116 · THE TREE — every colour a theme token (var(--c-*)), so Paper Light, Charcoal Dark and both Contrast themes
+   paint it with no literal (d116TreeFourThemes). No capsules (D60): the squares are rounded squares, the tags and boxes
+   radius ≤ 10, the actions depth boxes. Phone width: the side panel drops under the map, every row wraps.
+   M10: grey = --c-off, branches = --c-branch (named here, from the theme's own tokens); the family colours are the
+   theme's categorical tones. Contrast themes: no tint (no gloss), solid outlines. Reduced motion: no pulse, no unlock. */
+.atree, .atree-map {
+  --c-off: var(--c-border-strong);
+  --c-branch: var(--c-border-strong);
+  --atree-ml: var(--c-danger);
+  --atree-systems: var(--c-violet);
+  --atree-infra: var(--c-teal);
+  --atree-data: var(--c-warning);
+  --atree-backend: var(--c-info);
+}
+.atree-map { min-width: 0; }
+.atree {
+  background: var(--c-surface-solid); border: 1px solid var(--c-border); border-radius: 14px; overflow: hidden;
+  color: var(--c-ink); min-width: 0;
+}
+.atree__waypts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--c-border); }
+.atree__wp--ml { box-shadow: inset 0 -3px 0 var(--atree-ml); }
+.atree__wp--systems { box-shadow: inset 0 -3px 0 var(--atree-systems); }
+.atree__wp--infra { box-shadow: inset 0 -3px 0 var(--atree-infra); }
+.atree__wp--data { box-shadow: inset 0 -3px 0 var(--atree-data); }
+.atree__wp--backend { box-shadow: inset 0 -3px 0 var(--atree-backend); }
+
+.atree__top { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); min-width: 0; }
+@media (max-width: 940px) { .atree__top { grid-template-columns: minmax(0, 1fr); } .atree__side { border-left: 0; border-top: 1px solid var(--c-border); max-height: none; } }
+.atree__stage { position: relative; height: 600px; touch-action: none; user-select: none; cursor: grab; min-width: 0; }
+@media (max-width: 600px) { .atree__stage { height: 440px; } }
+.atree__stage:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: -2px; }
+.atree__stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.atree__zoom { position: absolute; right: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 1; }
+.atree__hint { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: var(--c-ink-muted); background: var(--c-surface-solid); padding: 2px 6px; border-radius: 4px; }
+.atree__side { border-left: 1px solid var(--c-border); padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; max-height: 600px; overflow: auto; min-width: 0; }
+.atree__k { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: var(--c-ink-muted); }
+.atree__k--have { color: var(--c-success); }
+.atree__k--rises { color: var(--c-accent-ink); }
+.atree__k--other { color: var(--c-info); }
+.atree__h2 { margin: 0; font: 800 italic 20px/1.2 'Poppins', var(--font-body); color: var(--c-ink); }
+.atree__quiet { margin: 0; font-size: 13px; color: var(--c-ink-muted); }
+.atree__fact { border-top: 1px solid var(--c-border); padding-top: 10px; }
+.atree__fact h4 { margin: 0 0 3px; font-size: 12px; color: var(--c-ink-muted); text-transform: uppercase; letter-spacing: .02em; }
+.atree__fact p { margin: 0; font-size: 14.5px; line-height: 1.45; }
+.atree__slope { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 6px; }
+.atree__track { flex: 1; height: 8px; background: var(--c-surface-2); border-radius: 3px; position: relative; }
+.atree__track i { position: absolute; top: 0; bottom: 0; background: var(--c-accent); border-radius: 3px; }
+.atree__track u { position: absolute; top: -3px; width: 3px; height: 14px; background: var(--c-ink-muted); }
+.atree__acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.atree__btn { display: inline-flex; align-items: center; padding: 7px 12px; border: 1px solid var(--c-border-strong); background: var(--c-surface-solid);
+  color: var(--c-ink); font: 800 italic 13px/1.2 'Poppins', var(--font-body); text-decoration: none; border-radius: 8px; }
+.atree__btn--p { background: var(--c-accent); border-color: var(--c-accent); color: var(--c-on-accent); }
+.atree__link { color: var(--c-accent-ink); text-decoration: underline; }
+.atree__inline { all: unset; cursor: pointer; color: var(--c-accent-ink); text-decoration: underline; }
+.atree__inline:focus-visible { outline: 2px solid var(--c-accent-ink); }
+.atree__back { all: unset; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--c-ink-muted); }
+.atree__back:hover, .atree__back:focus-visible { color: var(--c-ink); text-decoration: underline; }
+.atree__flist { display: flex; flex-direction: column; gap: 6px; }
+.atree__frow { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; align-items: center; text-align: left; cursor: pointer;
+  border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); padding: 7px 10px; border-radius: 8px; font: inherit; }
+.atree__fsq { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-weight: 800; font-size: 13px; color: var(--c-surface-solid);
+  box-shadow: 0 0 0 3px var(--c-surface-solid), 0 0 0 5.5px var(--c-border); }
+.atree__fsq--have { box-shadow: 0 0 0 3px var(--c-surface-solid), 0 0 0 5.5px var(--c-success); }
+.atree__fsq--rises { box-shadow: 0 0 0 3px var(--c-surface-solid), 0 0 0 5.5px var(--c-accent); }
+.atree__fsq--other { box-shadow: 0 0 0 3px var(--c-surface-solid), 0 0 0 5.5px var(--c-info); }
+.atree__fn { display: block; font-weight: 700; font-size: 14px; }
+.atree__fs { display: block; font-size: 12.5px; color: var(--c-ink-muted); }
+
+/* the drawing */
+.atree__band { fill: none; stroke: var(--c-border); stroke-width: 1.2; stroke-dasharray: 3 6; }
+.atree__bandl { fill: var(--c-ink-muted); font: 700 11px var(--font-body); letter-spacing: .05em; }
+.atree__br { fill: none; stroke: var(--c-branch); stroke-width: 2.2; stroke-linecap: round; transition: opacity .2s, stroke .2s; }
+.atree__br--trunk { stroke-width: 5; opacity: .75; }
+.atree__br--ml { stroke: var(--atree-ml); }
+.atree__br--systems { stroke: var(--atree-systems); }
+.atree__br--infra { stroke: var(--atree-infra); }
+.atree__br--data { stroke: var(--atree-data); }
+.atree__br--backend { stroke: var(--atree-backend); }
+.atree__br--hot { stroke: var(--c-accent); stroke-width: 3.6; opacity: 1; }
+.atree__br--dim { opacity: .18; }
+.atree__lk { fill: none; stroke: var(--c-accent); stroke-width: 2; stroke-dasharray: 5 5; opacity: .9; }
+.atree__nd { cursor: pointer; transition: opacity .2s; outline: none; }
+.atree__nd--dim { opacity: .22; }
+.atree__ring { fill: var(--c-surface-solid); stroke-width: 3; transition: stroke-width .12s; }
+.atree__ring--have { stroke: var(--c-success); }
+.atree__ring--rises { stroke: var(--c-accent); }
+.atree__ring--other { stroke: var(--c-info); }
+.atree__nd:hover .atree__ring, .atree__nd--sel .atree__ring, .atree__nd:focus-visible .atree__ring { stroke-width: 4.5; }
+.atree__nd:focus-visible .atree__nm { text-decoration: underline; }
+.atree__sq--ml { fill: var(--atree-ml); background: var(--atree-ml); }
+.atree__sq--systems { fill: var(--atree-systems); background: var(--atree-systems); }
+.atree__sq--infra { fill: var(--atree-infra); background: var(--atree-infra); }
+.atree__sq--data { fill: var(--atree-data); background: var(--atree-data); }
+.atree__sq--backend { fill: var(--atree-backend); background: var(--atree-backend); }
+.atree__sq--off { fill: var(--c-off); background: var(--c-off); }
+.atree__gloss { fill: var(--c-surface-solid); opacity: .22; pointer-events: none; }
+.atree__nm { font: 700 12.5px var(--font-body); fill: var(--c-ink); paint-order: stroke; stroke: var(--c-surface-solid); stroke-width: 4px; }
+.atree__nm--off { fill: var(--c-ink-muted); }
+.atree__sub { font: 600 10.5px var(--font-body); fill: var(--c-ink-muted); paint-order: stroke; stroke: var(--c-surface-solid); stroke-width: 4px; }
+.atree__centre { cursor: pointer; outline: none; }
+.atree__csq--you { fill: var(--c-ink); }
+.atree__csq--role { fill: var(--c-accent); }
+.atree__centre:focus-visible .atree__csq--you, .atree__centre:focus-visible .atree__csq--role { stroke: var(--c-accent-ink); stroke-width: 3; }
+.atree__ct { font: 800 16px var(--font-body); fill: var(--c-surface-solid); }
+.atree__ct--role { fill: var(--c-on-accent); }
+.atree__ct--small { font-size: 12.5px; }
+.atree__tag { cursor: pointer; outline: none; }
+.atree__tag:focus-visible rect { stroke: var(--c-ink); stroke-width: 2; }
+.atree__tagt { font: 800 12px var(--font-body); fill: var(--c-surface-solid); letter-spacing: .04em; }
+@media (prefers-reduced-motion: no-preference) {
+  .atree:not(.atree--still) .atree__pulse { animation: atree-pulse 2.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  .atree:not(.atree--still) .atree__nd--unlock .atree__sq { animation: atree-fill .9s ease-out 1; }
+  .atree:not(.atree--still) .atree__nd--unlock .atree__ring { animation: atree-close .9s ease-out 1; }
+}
+@keyframes atree-pulse { 50% { transform: scale(1.07); } }
+@keyframes atree-fill { from { fill: var(--c-off); } }
+@keyframes atree-close { from { stroke-dasharray: 0 100; } }
+
+/* Contrast themes: no tint, solid outlines. */
+[data-contrast="aaa"] .atree__gloss { display: none; }
+[data-contrast="aaa"] .atree__sq--off { stroke: var(--c-ink); stroke-width: 1.5; }
+[data-contrast="aaa"] .atree__br--dim, [data-contrast="aaa"] .atree__nd--dim { opacity: .45; }
+[data-contrast="aaa"] .atree__band { stroke: var(--c-border-strong); }
+
+.atree__legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--c-ink-muted); padding: 10px 18px; border-top: 1px solid var(--c-border); }
+.atree__sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
+.atree__sw--rises { border: 2.5px solid var(--c-accent); }
+.atree__sw--other { border: 2.5px solid var(--c-info); }
+
+/* ⭐ M6 · below the map: the five sections, each chip opening the same node on the tree */
+.atree-sec { padding: 14px 18px; border-top: 1px solid var(--c-border); }
+.atree-sec h2 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; color: var(--c-ink); }
+.atree-sec__why { margin: 2px 0 10px; color: var(--c-ink-muted); font-size: 13.5px; }
+.atree-sec__row { display: flex; gap: 12px; flex-wrap: wrap; }
+.atree-chip { display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer; border: 1px solid var(--c-border); border-radius: 10px;
+  padding: 8px 12px 8px 8px; background: var(--c-surface-solid); color: var(--c-ink); min-width: 0; flex: 1 1 210px; max-width: 320px;
+  font: inherit; text-decoration: none; box-sizing: border-box; }
+@media (max-width: 480px) { .atree-chip { max-width: none; } }
+.atree-chip__t { display: block; font-weight: 700; font-size: 14px; line-height: 1.25; }
+.atree-chip__s { display: block; font-size: 12.5px; color: var(--c-ink-muted); line-height: 1.3; }
+.atree-chip__bar { display: block; height: 6px; border-radius: 3px; background: var(--c-surface-2); overflow: hidden; margin-top: 5px; }
+.atree-chip__bar i { display: block; height: 100%; background: var(--c-accent); }
+.atree-chip__bar--branch i { background: var(--atree-systems); }

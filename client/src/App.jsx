@@ -345,7 +345,8 @@ function AppDashboard({ authUser, setAuthUser }) {
   const jobRoute = /^job\/(\d+)$/.exec(routeKey) || /^job\/for\/(.+)$/.exec(routeKey);
   const jobByJobId = !!jobRoute && routeKey.startsWith("job/for/");
   // ⭐ D105 P4 · /app/atlas and /app/atlas/:slug — the Atlas inside the app (the public mount is /atlas).
-  const atlasRoute = /^atlas(?:\/[^/]+)?$/.test(routeKey);
+  // ⭐ D116 M7: and /app/atlas/family/:key, a family's page.
+  const atlasRoute = /^atlas(?:\/family)?(?:\/[^/]+)?$/.test(routeKey);
   const activeTab = jobRoute ? "job" : atlasRoute ? "atlas"
     : routeKey === CONSOLE_ROUTE || LEGACY_CONSOLE_ROUTES.has(routeKey)
     ? "console" : routeKey === "" ? "today" : routeKey;

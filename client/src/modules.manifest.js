@@ -51,8 +51,11 @@ export const MODULES = Object.freeze({
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnSandbox.js","pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.
-  atlas: { why: "the Atlas pages (D105) — search, one node's page, its neighbourhood graph; Learn, the owner's path (D115)", css: ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css"],
-    members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js"] },
+  // ⭐ D116 · the tree (Your map, a role's and a family's map): AtlasTree.jsx draws it, atlasTreeLayout.js lays it out
+  // (M2), atlasTreeModel.js its words and choices; YourMap.jsx is the home and the role / family page wrappers.
+  atlas: { why: "the Atlas pages (D105) — search, one node's page, its neighbourhood graph; Learn, the owner's path (D115); Your map, the tree (D116)", css: ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/AtlasTree.css"],
+    members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js",
+      "pages/atlas/AtlasTree.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js", "pages/atlas/YourMap.jsx"] },
 });
 
 // ── SHARED: every file under components/, styles/, lib/, hooks/, contexts/, themes/, consoles/.
