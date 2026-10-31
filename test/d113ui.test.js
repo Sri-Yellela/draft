@@ -26,6 +26,8 @@ import pipelineRoutes from "../routes/pipeline.js";
 import interviewRoutes from "../routes/interview.js";
 import { ROW_ACTIONS, jobDetail, listPipeline } from "../services/pipelineWorkspace.js";
 import { zonedEpoch } from "../services/interviewPrep.js";
+import { artifactCurrency } from "../services/resumeCurrency.js";
+import applyRoutes from "../routes/apply.js";
 import { REJECTION_REASONS, REJECTION_NOTE_MAX } from "../shared/applicationResponse.js";
 import express from "express";
 import Database from "better-sqlite3";
@@ -455,7 +457,7 @@ function offerPick(db, { userId = 1, jobId = "p-1", state = "offered" } = {}) {
     .run(userId, run, jobId, state, slot + 86400).lastInsertRowid);
 }
 
-test("d113uiMakeItNow — a pick's résumé is made on the press, before Apply: the pick stays a pick, nothing starts or sends, one draft spent", async () => {
+test("d113uiMakeItNowTailorsOnceAndReuses — made on the press (the pick stays a pick, one draft), shown with What we changed, and a later Apply reuses it", async () => {
   const db = leftoverDb();
   const id = offerPick(db);
   const generated = [];
@@ -502,8 +504,39 @@ test("d113uiMakeItNow — a pick's résumé is made on the press, before Apply: 
     assert.equal(out.body.error, "draft_slots_exhausted");
     assert.equal(generated.length, n, "refused before generating");
   } finally { t.server.close(); }
-  // The UI: the leaf's Make it now is the adapter's call, only for a pick still waiting; the server is wired to the apply path's generation.
+  db.prepare("DELETE FROM draft_slot_uses WHERE job_id = 'x'").run();   // the slots filled above, to test the refusal
+  // TAILORS ONCE, AND A LATER APPLY REUSES IT. The résumé is the 'generate' tool's CURRENT artifact for the job…
+  assert.equal(artifactCurrency(db, { userId: 1, jobId: "p-1", tool: "generate" }).current, true);
+  // …the tool a pick's run uses: the tap on Apply starts a run (the real apply routes; the user's Pause holds it in line)
+  // whose tool is 'generate'…
+  db.prepare("INSERT INTO scraped_jobs (job_id,title,company,url,apply_url,search_query,_hash,description) VALUES ('p-1','Backend Engineer','Northwind','https://x.test/p-1','https://x.test/p-1','t','hp1','Build services.')").run();
+  db.prepare("INSERT INTO user_profile (user_id,first_name,last_name,email) VALUES (1,'Dana','Example','dana@example.test')").run();
+  db.prepare("INSERT INTO domain_profiles (id,user_id,profile_name,role_family,domain,is_active) VALUES (10,1,'SWE','engineering','software',1)").run();
+  db.prepare("INSERT INTO profile_base_resumes (profile_id,user_id,name,content,updated_at) VALUES (10,1,'r.txt','synthetic resume text',0)").run();
+  db.prepare("INSERT INTO app_settings (key, value) VALUES ('apply_user_hold:1', '1')").run();
+  const modelCalls = [];
+  const line = applyRoutes(express(), db, (_q, _r, n) => n(), () => ({ field_map: {}, handler_map: {}, custom_answers: {} }),
+    async (u, j, tool) => { modelCalls.push([j, tool]); return {}; }, async () => null, async () => ({}), () => null);
+  db.prepare("UPDATE picks SET expires_at = ? WHERE id = ?").run(Math.floor(Date.now() / 1000) + 86400, id);
+  const t2 = await mountOn((app, auth) => picksConfirmRoutes(app, db, auth, { secret: "s", env: {}, generateResume, startPickRun: line.startPickRun }));
+  try { const ap = await t2.call(`/api/picks/${id}/apply`); assert.equal(ap.status, 202, JSON.stringify(ap.body)); } finally { t2.server.close(); }
+  assert.equal(db.prepare("SELECT r.tool_type FROM apply_runs r JOIN apply_run_jobs rj ON rj.run_id = r.id WHERE rj.job_id = 'p-1'").pluck().get(), "generate");
+  assert.match(read("routes/apply.js"), /const toolType = run\.tool_type \|\| "generate";[\s\S]{0,12000}generateResumeForApply\(userId, jobId, toolType\)/, "the run asks for that tool's résumé");
+  // …and the apply path's generation returns a CURRENT artifact as is, with no model call (server.js generateResumeForApply).
+  const gen = read("server.js").slice(at(read("server.js"), "function generateResumeForApply(userId, jobId, toolType) {"), at(read("server.js"), "// 2. In-flight Promise"));
+  assert.match(gen, /const currency = artifactCurrency\(db, \{ userId, jobId, tool \}\);\n  if \(currency\.current\) \{\n    return Promise\.resolve\(\{[\s\S]*fromCache: true,/);
+  assert.equal(generated.length, 2, "Make it now generated once (the second press reused); the tap generated nothing");
+  // D66: a user who sends the base résumé has nothing to tailor — refused before any generation.
+  db.prepare("UPDATE users SET base_resume_only = 1 WHERE id = 1").run();
+  const t3 = await mountOn((app, auth) => picksConfirmRoutes(app, db, auth, { secret: "s", env: {}, generateResume }));
+  try { assert.equal((await t3.call(`/api/picks/${offerPick(db, { jobId: "p-9" })}/resume`)).body.error, "base_resume_only"); } finally { t3.server.close(); }
+  assert.equal(generated.length, 2);
+  // The UI: the leaf's Make it now is the adapter's call, only for a pick still waiting; once made it shows the result —
+  // the band and What we changed (D90 P3's ChangesSummaryLine); the server is wired to the apply path's generation.
   const leaf = panel.slice(at(panel, 'const made = node.kind === "pick"'), at(panel, 'out.push({ id: "job", label: "The job"'));
+  assert.match(leaf, /Made\{made\.atsScore != null \? `\. Résumé: \$\{atsBandLabel\(atsBandFor\(made\.atsScore\)\)\.short\}` : ""\}\. Nothing was sent\./);
+  assert.match(leaf, /\{pickReady && node\.jobId != null && <ChangesSummaryLine jobId=\{node\.jobId\} jobLabel=\{node\.company\} \/>\}/);
+  assert.match(read("client/src/components/ResumeChangesPanel.jsx"), /data-what-we-changed="">What we changed ↗<\/button>/);
   assert.match(leaf, /!pickReady && node\.ring === "pick" && \(\s*<button[^>]*data-action="make-now"[\s\S]{0,200}onClick=\{\(\) => makeNow\(node\)\}/);
   assert.match(leaf, /node\.ref\?\.resumeReady === true \|\| made\.ok === true/);
   assert.match(panel, /const r = await makePickResume\(node\.pickId\);/);

@@ -1,7 +1,8 @@
 # Draft House — the tree, mapped against the code (D113 UI)
 
 Rewritten 2026-10-31 for the tree as built (D113 UI U1–U10, `6c3a5f2`, pushed in 43t; the leftovers — Make it now,
-Withdraw / Add the date / Note why — after it). The decision is the WORKLOG's **D113 UI — DECIDED** row; the sketch
+Withdraw / Add the date / Note why — after it, to the owner's own definition: the WORKLOG block "THE DRAFT HOUSE TREE'S
+LEFTOVERS, DEFINED", 10-31). The decision is the WORKLOG's **D113 UI — DECIDED** row; the sketch
 is `docs/sketches/draft-house-tree.html`; **where the two differ, the row wins.** This file replaces the D25 write-up
 of the run bar and its two columns; §6 says what of D25 is still in force.
 
@@ -92,10 +93,13 @@ Seven rings, colour **tokens** only (`client/src/styles/rings.js`), seven distin
 | rejected | **Note why** |
 
 **Make it now** — `POST /api/picks/:id/resume` (`routes/picksConfirm.js` `makePickResume`): the tailored résumé for an
-offered pick, on the user's press, through the apply path's own generation (`generateResumeForApply`), so the run after
-Apply reuses it while it is current. The pick stays a pick; no run starts; nothing is filled or sent; the job is not
-tagged Pending. A new résumé costs one of the day's Draft slots (A63), refused at zero; a current one is free. Each pick
-on `GET /api/picks/runs` carries `resumeReady`.
+offered pick, on the user's press — the one exception to "tailoring only after Apply", because the user asked — through
+the normal generation path (`generateResumeForApply`: the plan's résumé limit applies), plus one of the day's Draft
+slots (A63), refused at zero; a current résumé is free. The pick stays a pick; no run starts; nothing is filled or
+sent; the job is not tagged Pending. A user on "send my base résumé" (D66) has nothing to tailor → 409. The leaf then
+shows the result — *"Made. Résumé: <band>. Nothing was sent."* and **What we changed** (D90 P3). **A later Apply reuses
+it:** it is the `generate` tool's artifact for the job, the tool a pick's run uses, and `generateResumeForApply` returns
+a current artifact without a model call. Each pick on `GET /api/picks/runs` carries `resumeReady`.
 
 **Withdraw / Add the date / Note why** — on the ladder status the row reads now (`services/pipelineWorkspace.js`
 `ROW_ACTIONS`). ⛔ **None of them tells the employer anything**; they record the user's own word in draft.
@@ -160,9 +164,10 @@ Delete now live in a stopped job's branch and in Tidy up.
 ## 7 · Verification
 
 - `test/d113ui.test.js` — the named D113 UI tests (`d113uiOneBranchOpen`, `d113uiRingFromLadder`, … `d113uiNarrow`) and
-  the leftovers (`d113uiMakeItNow`, `d113uiWithdrawRecordsOnly`, `d113uiAddTheDate`, `d113uiNoteWhy`,
-  `d113uiWorkspaceDocCurrent`). The components are rendered with esbuild + react-dom/server; the routes run on an
-  in-memory database built by the real migrations.
+  the leftovers as the owner defined them (`d113uiMakeItNowTailorsOnceAndReuses`, `d113uiWithdrawNeverClaimsToWithdraw`,
+  `d113uiWithdrawnStatus`, `d113uiAddDateStartsPrep`, `d113uiNoteWhySaved`, `d113uiWorkspaceDocCurrent`,
+  `d113uiHarnessesCurrent`) and `test/d111ExcludesWithdrawn.test.js`. The components are rendered with esbuild +
+  react-dom/server; the routes run on an in-memory database built by the real migrations.
 - `test/d113Picks.test.js` — the server loop (P1–P4, P6). `test/d25DraftHouseWorkspace.test.js` — the header's
   Pause / mode / caps and the exceptions model's order.
 - The owner's walk on production is the acceptance: one bubble of each ring, one run's *why these*, Review all,
