@@ -18,7 +18,12 @@ import {
   RINGS, RING_ORDER, LADDER_RING, ringFor, FILTERS, buildNodes, buildTree, treeView, sideBlocks, SIDE_ORDER,
   branchStep, createLeafCache, answerRows, inlineAnswerStart, leftOutLines, nextRunFromSettings, matchesSearch,
 } from "../client/src/lib/draftHouseTree.js";
-import { loadRuns, loadLeftOut, actOnPick, D113_ROUTES } from "../client/src/lib/draftHouseRuns.js";
+import { loadRuns, loadLeftOut, actOnPick, makePickResume, D113_ROUTES } from "../client/src/lib/draftHouseRuns.js";
+import express from "express";
+import Database from "better-sqlite3";
+import { MIGRATIONS } from "../scripts/migrations.js";
+import picksConfirmRoutes from "../routes/picksConfirm.js";
+import { draftSlots } from "../services/draftSlots.js";
 import { at } from "../test-support/sourceAnchors.js";
 
 const read = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
@@ -413,4 +418,90 @@ test("D14 (kept): a section heading wraps rather than breaking its title in a na
   const h = read("client/src/components/SectionHeading.jsx");
   assert.match(h, /flexWrap: "wrap"/);
   assert.match(h, /whiteSpace: "nowrap"/);
+});
+
+// ── the leftovers (43t ⚠): Make it now · Withdraw · Add the date · Note why ──────────────────────
+// Server routes on an in-memory database built by the real migrations; synthetic users and postings only.
+function leftoverDb() {
+  const db = new Database(":memory:");
+  for (const m of MIGRATIONS) db.exec(m.sql);
+  db.prepare("INSERT INTO users (id,username,password_hash,plan_tier) VALUES (1,'dana','x','PRO'), (2,'eli','x','PRO')").run();
+  return db;
+}
+async function mountOn(mountFn) {
+  const app = express();
+  app.use(express.json());
+  mountFn(app, (req, _res, next) => { req.user = { id: 1, planTier: "PRO" }; next(); });
+  const server = app.listen(0);
+  await new Promise(r => server.once("listening", r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const call = (p, method = "POST", body) => fetch(base + p, { method, headers: { "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined })
+    .then(async r => ({ status: r.status, body: await r.json().catch(() => null) }));
+  return { server, call };
+}
+let slotSeq = 0;
+function offerPick(db, { userId = 1, jobId = "p-1", state = "offered" } = {}) {
+  const slot = 1793000000 + (slotSeq += 3600);
+  const run = db.prepare("INSERT INTO picks_runs (user_id, slot_at, mode, expires_at) VALUES (?, ?, 'ask', ?)").run(userId, slot, slot + 86400).lastInsertRowid;
+  return Number(db.prepare("INSERT INTO picks (user_id, run_id, job_id, rank, title, company, state, expires_at) VALUES (?, ?, ?, 1, 'Backend Engineer', 'Northwind', ?, ?)")
+    .run(userId, run, jobId, state, slot + 86400).lastInsertRowid);
+}
+
+test("d113uiMakeItNow — a pick's résumé is made on the press, before Apply: the pick stays a pick, nothing starts or sends, one draft spent", async () => {
+  const db = leftoverDb();
+  const id = offerPick(db);
+  const generated = [];
+  // The apply path's own generation (server.js generateResumeForApply); here it writes the résumé row the way that one does.
+  const generateResume = async (userId, jobId, tool) => {
+    generated.push([userId, jobId, tool]);
+    // Like the real one: a current résumé is reused (fromCache), not written again.
+    if (db.prepare("SELECT 1 FROM resumes WHERE user_id = ? AND job_id = ?").get(userId, jobId)) return { html: "<p>r</p>", atsScore: 81, resumeId: 1, fromCache: true };
+    db.prepare("INSERT INTO resumes (user_id, job_id, company, role, apply_mode, html, ats_score) VALUES (?, ?, 'Northwind', 'Backend Engineer', 'TAILORED', '<p>r</p>', 81)")
+      .run(userId, jobId);
+    return { html: "<p>r</p>", atsScore: 81, resumeId: 1, fromCache: false };
+  };
+  const slotsBefore = draftSlots(db, 1).used;
+  const t = await mountOn((app, auth) => picksConfirmRoutes(app, db, auth, { secret: "s", env: {}, generateResume,
+    startPickRun: () => { throw new Error("Make it now must never start a run"); } }));
+  try {
+    const r = await t.call(`/api/picks/${id}/resume`);
+    assert.equal(r.status, 200);
+    assert.equal(r.body.resumeReady, true);
+    assert.equal(r.body.pick.state, "offered", "the pick stays a pick, waiting for Apply");
+    assert.deepEqual(generated, [[1, "p-1", "generate"]]);
+    assert.equal(draftSlots(db, 1).used, slotsBefore + 1, "a NEW résumé costs one draft (A63)");
+    assert.equal(db.prepare("SELECT COUNT(*) FROM apply_runs").pluck().get(), 0, "no run, nothing sent");
+    assert.equal(db.prepare("SELECT COUNT(*) FROM application_records").pluck().get(), 0, "not tagged Pending");
+    // The run list says it is made, so the leaf reads "made" after a reload.
+    const runs = await t.call("/api/picks/runs", "GET");
+    assert.equal(runs.body.runs.find(x => x.picks[0]?.id === id).picks[0].resumeReady, true);
+    // Pressed again with the résumé current: free.
+    assert.equal((await t.call(`/api/picks/${id}/resume`)).status, 200);
+    assert.equal(draftSlots(db, 1).used, slotsBefore + 1, "a current résumé costs nothing");
+    // A pick already passed (or applied) is not made here (its run makes it); another user's pick is a 404.
+    const passed = offerPick(db, { jobId: "p-2", state: "passed" });
+    assert.equal((await t.call(`/api/picks/${passed}/resume`)).status, 409);
+    const theirs = offerPick(db, { userId: 2, jobId: "p-3" });
+    assert.equal((await t.call(`/api/picks/${theirs}/resume`)).status, 404);
+    // No drafts left: refused before any model call, with the sentence every surface shows.
+    const fresh = offerPick(db, { jobId: "p-4" });
+    const { limit, used } = draftSlots(db, 1);
+    const ins = db.prepare("INSERT INTO draft_slot_uses (user_id, kind, job_id) VALUES (1, 'generate', 'x')");
+    for (let i = used; i < limit; i++) ins.run();
+    const n = generated.length;
+    const out = await t.call(`/api/picks/${fresh}/resume`);
+    assert.equal(out.status, 429);
+    assert.equal(out.body.error, "draft_slots_exhausted");
+    assert.equal(generated.length, n, "refused before generating");
+  } finally { t.server.close(); }
+  // The UI: the leaf's Make it now is the adapter's call, only for a pick still waiting; the server is wired to the apply path's generation.
+  const leaf = panel.slice(at(panel, 'const made = node.kind === "pick"'), at(panel, 'out.push({ id: "job", label: "The job"'));
+  assert.match(leaf, /!pickReady && node\.ring === "pick" && \(\s*<button[^>]*data-action="make-now"[\s\S]{0,200}onClick=\{\(\) => makeNow\(node\)\}/);
+  assert.match(leaf, /node\.ref\?\.resumeReady === true \|\| made\.ok === true/);
+  assert.match(panel, /const r = await makePickResume\(node\.pickId\);/);
+  assert.equal(D113_ROUTES.resume(61), "/api/picks/61/resume");
+  const calls = [];
+  assert.equal((await makePickResume(61, async (p, o) => { calls.push([p, o.method]); return { message: "Made. Nothing was sent.", atsScore: 81 }; })).ok, true);
+  assert.deepEqual(calls, [["/api/picks/61/resume", "POST"]]);
+  assert.match(read("server.js"), /picksConfirmRoutes\(app, db, requireAuth, \{[^}]*generateResume: generateResumeForApply \}\);/);
 });

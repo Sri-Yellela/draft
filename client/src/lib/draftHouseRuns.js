@@ -15,6 +15,8 @@
 //   GET  /api/picks/runs/:id/left-out      → leftOutFor: { run, kept, jobs: [{ jobId, reason, reasonLabel, title, company }] }
 //   POST /api/picks/:id/apply              → the app's own Apply (the email's link is /p/confirm/<token>)
 //   POST /api/picks/:id/pass               → Pass
+//   POST /api/picks/:id/resume             → "Make it now": the pick's tailored résumé before Apply; nothing is sent
+//            (each pick in a run carries resumeReady: a current tailored résumé exists)
 //   Auto settings (existing PUT /api/apply/auto-settings) carry D113's two switches:
 //            picks: boolean                  "Ask me first" sends one picks message per run
 //            showFormBeforeSending: boolean  off: a tap on Apply sends
@@ -27,6 +29,7 @@ export const D113_ROUTES = Object.freeze({
   runs: "/api/picks/runs",
   leftOut: (runId) => `/api/picks/runs/${encodeURIComponent(runId)}/left-out`,
   pick: (pickId, act) => `/api/picks/${encodeURIComponent(pickId)}/${act}`,
+  resume: (pickId) => `/api/picks/${encodeURIComponent(pickId)}/resume`,
 });
 
 const missing = (e) => e && (e.status === 404 || e.status === 405 || e.status === 501);
@@ -67,6 +70,19 @@ export async function actOnPick(pickId, act, call = api) {
   } catch (e) {
     if (missing(e)) return { ok: false, message: "Use the Apply or Pass link in your picks email for now." };
     return { ok: false, message: e?.message || "That did not work. Nothing changed." };
+  }
+}
+
+/**
+ * U4 · "Make it now" — the pick's tailored résumé, made now instead of after Apply. Nothing is sent and the pick stays a
+ * pick. `{ ok, message, atsScore }`; a refusal (no drafts left, the posting gone) says why in the server's words.
+ */
+export async function makePickResume(pickId, call = api) {
+  try {
+    const d = await call(D113_ROUTES.resume(pickId), { method: "POST" });
+    return { ok: true, message: d?.message || "Made. Nothing was sent.", atsScore: d?.atsScore ?? null };
+  } catch (e) {
+    return { ok: false, message: e?.message || "The résumé was not made. Nothing changed." };
   }
 }
 

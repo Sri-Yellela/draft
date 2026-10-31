@@ -406,6 +406,16 @@ const AUTHENTICATED = new Set([
   "POST /api/interview/debriefs",
   "DELETE /api/interview/debriefs/:id",
   "GET /api/interview/questions",
+  // D113: the picks API for the Draft House tree — the caller's own picks and runs only (routes/picksConfirm.js; the
+  // signed-out confirm page is /p/confirm/<token>, outside /api). U4 "Make it now": the caller's own offered pick's résumé.
+  "GET /api/picks/state",
+  "POST /api/picks/mode",
+  "GET /api/picks/runs",
+  "GET /api/picks/runs/:id/left-out",
+  "POST /api/picks/:id/apply",
+  "POST /api/picks/:id/pass",
+  "POST /api/picks/:id/resume",
+  "POST /api/picks/runs/:id/apply-all",
   "GET /api/apply/review",
   "GET /api/apply/run-jobs/:runJobId/review",
   // AH5: the fill log — what this run put in the form and what it did not. On demand, so it is
@@ -514,6 +524,7 @@ function collect() {
     ...directRoutes(fs.readFileSync("routes/profileSections.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/inbox.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/interview.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/picksConfirm.js", "utf8")),
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),

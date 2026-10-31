@@ -12865,7 +12865,8 @@ profileSectionRoutes(app, db, requireAuth);
 // D109 P3: the public proof page /p/<handle> — OFF by default, nothing private, links supplied by the candidate.
 proofPageRoutes(app, db);
 // ⭐ D113 P3: the picks confirm page /p/confirm/<token> (a GET never acts; the POST does, once) and the picks API.
-picksConfirmRoutes(app, db, requireAuth, { secret: PICKS_SECRET, startPickRun: applyLine.startPickRun, saveAnswers: applyLine.saveAnswers });
+picksConfirmRoutes(app, db, requireAuth, { secret: PICKS_SECRET, startPickRun: applyLine.startPickRun, saveAnswers: applyLine.saveAnswers,
+  generateResume: generateResumeForApply });
 // D100 P2: the user's portals (sealed sessions, ciphertext only) and approving a remote Ready-to-approve run.
 portalRoutes(app, db, requireAuth);
 // D16: the résumé an application sent, expanded from its compressed copy (HTML; the browser prints it).
