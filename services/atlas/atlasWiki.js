@@ -1,7 +1,10 @@
 // services/atlas/atlasWiki.js — ⭐ D105 · Wikipedia's summary for a node, cached WEEKLY in atlas_wiki_cache.
 //
-// Only for PUBLISHED nodes whose curator set `wiki_title` (Admin → Data → Atlas) — never guessed from the name, so a
-// page about Go the language never shows Go the game. The text is shown as WIKIPEDIA'S, in its own block with its
+// For nodes with a `wiki_title` — set by the curator (Admin → Data → Atlas) or, ⭐ amended 10-31, by the nightly
+// matcher only where the node's own name is an exact, non-disambiguation article (atlasWikidata.js matchWikiTitles;
+// the scorer's ambiguous words — Go, Rust, Swift… — are never matched, so a page about Go the language never shows Go
+// the game). ⭐ Amended 10-31: DRAFTS are read too (published first) — a matched summary is half of the auto-publish
+// bar (atlasPublish.js), so a draft must be able to have one; a public read still shows published pages only. The text is shown as WIKIPEDIA'S, in its own block with its
 // licence line and link (atlasStore.readNode → WIKI_LICENCE; d105WikiAttributed) — never blended into `definition`.
 //
 // The source, verified 2026-10-30:
@@ -18,7 +21,9 @@
 export const WIKI_UA = "draft-atlas/1.0 (https://jobsviadraft.com/atlas; https://jobsviadraft.com/contact)";
 export const WIKI_SUMMARY_BASE = "https://en.wikipedia.org/api/rest_v1/page/summary/";
 export const WIKI_MAX_AGE_SEC = 7 * 24 * 3600;
-export const WIKI_DEFAULTS = Object.freeze({ cap: 40, pauseMs: 1000, timeoutMs: 10_000 });
+// cap 100 (was 40): drafts are read too since 10-31; 100 one-at-a-time requests a second apart is ~60/min, well
+// under the 200/min a compliant User-Agent is allowed.
+export const WIKI_DEFAULTS = Object.freeze({ cap: 100, pauseMs: 1000, timeoutMs: 10_000 });
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const httpsOrNull = (u) => { try { const x = new URL(String(u)); return x.protocol === "https:" ? x.href : null; } catch { return null; } };
@@ -42,16 +47,16 @@ export function parseSummary(json, title) {
 }
 
 /**
- * Refresh the summaries that are missing or older than a week, for published nodes with a wiki_title.
+ * Refresh the summaries that are missing or older than a week, for nodes with a wiki_title (published first).
  * @returns {{ due, fetched, skipped, failed, stoppedAt429: boolean }}
  */
 export async function refreshWikiSummaries(db, { fetchImpl = globalThis.fetch, cap = WIKI_DEFAULTS.cap, pauseMs = WIKI_DEFAULTS.pauseMs,
   timeoutMs = WIKI_DEFAULTS.timeoutMs, now = () => Math.floor(Date.now() / 1000), pause = sleep } = {}) {
   const t = now();
   const due = db.prepare(`SELECT n.id, n.wiki_title FROM atlas_nodes n LEFT JOIN atlas_wiki_cache w ON w.node_id = n.id
-    WHERE n.status = 'published' AND n.wiki_title IS NOT NULL AND TRIM(n.wiki_title) != ''
+    WHERE n.wiki_title IS NOT NULL AND TRIM(n.wiki_title) != ''
       AND (w.node_id IS NULL OR w.fetched_at < ?)
-    ORDER BY COALESCE(w.fetched_at, 0), n.id LIMIT ?`).all(t - WIKI_MAX_AGE_SEC, Math.max(0, Math.min(Number(cap) || 0, 500)));
+    ORDER BY (n.status = 'published') DESC, COALESCE(w.fetched_at, 0), n.id LIMIT ?`).all(t - WIKI_MAX_AGE_SEC, Math.max(0, Math.min(Number(cap) || 0, 500)));
   const save = db.prepare(`INSERT INTO atlas_wiki_cache (node_id, title, extract, thumbnail_url, page_url, fetched_at) VALUES (?,?,?,?,?,?)
     ON CONFLICT(node_id) DO UPDATE SET title = excluded.title, extract = excluded.extract, thumbnail_url = excluded.thumbnail_url,
       page_url = excluded.page_url, fetched_at = excluded.fetched_at`);

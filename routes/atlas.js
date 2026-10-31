@@ -21,7 +21,12 @@
 //   POST   /api/admin/atlas/node/:slug/resources  { url (https), title, level, format, hours, cost }
 //   PATCH  /api/admin/atlas/resources/:id         DELETE /api/admin/atlas/resources/:id
 //   POST   /api/admin/atlas/links/check           the dead-link checker now (it also runs daily)
-//   POST   /api/admin/atlas/wiki/refresh          Wikipedia summaries now, for published nodes with a wiki title (weekly cache)
+//   POST   /api/admin/atlas/wiki/refresh          Wikipedia summaries now, for nodes with a wiki title (weekly cache)
+// ⭐ D105 P7–P9 (amended 10-31) · the Atlas publishes itself:
+//   GET    /api/admin/atlas                       each row also carries `readiness` — why a draft is not published yet
+//                                                  (postings n of 5, no Wikipedia summary or definition, unpublished by …)
+//   POST   /api/admin/atlas/auto/run              titles + Wikidata items → Wikidata resources → Wikipedia → the bar, now
+//                                                  (it also runs nightly after the stats)
 //
 // ⛔ `you` is computed only for a signed-in reader and only from THEIR profile's skills (D101 profile_skills) — never
 // stored, never shown to anyone else (d105YouOnlyWhenSignedIn).
@@ -32,6 +37,7 @@ import { createNode, updateNode, readNodeForEditor, mergeNodes, addTypedEdge, re
 import { checkAtlasLinks } from "../services/atlas/atlasLinkCheck.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
+import { readiness, READINESS_COLUMNS, runAtlasAutoPipeline, autoPublish } from "../services/atlas/atlasPublish.js";
 import { sponsorsForRole } from "../services/atlas/atlasSponsors.js";
 
 // A signed-in reader's terms — ONE implementation (services/atlas/atlasStore.js profileTerms), also read by D110's
@@ -92,14 +98,23 @@ export function createAtlasAdminRouter(db, { fetchImpl = globalThis.fetch, linkP
   const router = Router();
   router.get("/", (req, res) => {
     const status = req.query.status === "published" ? "published" : req.query.status === "draft" ? "draft" : null;
-    const rows = db.prepare(`SELECT n.slug, n.kind, n.name, n.status, n.source, COALESCE(s.postings, 0) AS postings
+    const rows = db.prepare(`SELECT n.slug, n.kind, n.name, n.status, n.source, ${READINESS_COLUMNS}
       FROM atlas_nodes n LEFT JOIN atlas_node_stats s ON s.node_id = n.id
       ${status ? "WHERE n.status = ?" : ""} ORDER BY postings DESC, n.name LIMIT 1000`).all(...(status ? [status] : []));
-    res.json({ nodes: rows });
+    res.json({ nodes: rows.map(r => ({ slug: r.slug, kind: r.kind, name: r.name, status: r.status, source: r.source, postings: r.postings,
+      publishedBy: r.published_by || null, wikiTitle: r.wiki_title || null, wikidataId: r.wikidata_id || null, readiness: readiness(r) })) });
   });
   router.post("/stats", (_req, res) => {
     const t = Date.now();
-    res.json({ ok: true, ...computeAtlasStats(db), ms: Date.now() - t });
+    const stats = computeAtlasStats(db);
+    res.json({ ok: true, ...stats, autoPublished: autoPublish(db).published, ms: Date.now() - t });
+  });
+  router.post("/auto/run", async (_req, res) => {
+    const t = Date.now();
+    try {
+      const r = await runAtlasAutoPipeline(db, { fetchImpl, ...(wikiPauseMs != null ? { pauseMs: wikiPauseMs, wikiPauseMs } : {}) });
+      res.json({ ok: true, ...r, ms: Date.now() - t });
+    } catch (e) { res.status(500).json({ error: "auto_run_failed", message: e.message }); }
   });
   // ── D105 P6 · the editor ──
   router.post("/nodes", (req, res) => editing(res, () => {
