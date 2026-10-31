@@ -648,3 +648,46 @@ test("d113uiWorkspaceDocCurrent — docs/DRAFT_HOUSE_WORKSPACE.md describes the 
   // The leftovers are described, and nothing in it promises to tell the employer.
   for (const w of ["Make it now", "POST /api/picks/:id/resume", "Withdraw", "Add the date", "Note why", "None of them tells the employer anything"]) assert.ok(doc.includes(w), w);
 });
+
+test("d113uiHarnessesCurrent — the real-browser harnesses drive the tree's own hooks, not D25 / AD1's removed chrome", async () => {
+  // ah6RecentRunDefault drove AD1's calendar default (removed by D25): deleted, and nothing still names it.
+  assert.ok(!fs.existsSync("scripts/ah6RecentRunDefault.mjs"));
+  for (const f of ["scripts/verifyHarnesses.mjs", "scripts/harnessBaseline.json"]) assert.doesNotMatch(read(f), /ah6RecentRunDefault/, f);
+  const client = ["client/src/panels/AutoApplyPanel.jsx", "client/src/components/DraftHouseTree.jsx", "client/src/components/DraftHouseSide.jsx",
+    "client/src/components/CompanyBubble.jsx", "client/src/panels/AutoApplyPanelSections.jsx"].map(read).join("\n");
+  const ab = read("scripts/abPanelUi.mjs");
+  const am2 = read("scripts/am2ApprovalCapUi.mjs");
+  const ah5 = read("scripts/ah5FillLogShots.mjs");
+  // Every data-* hook the harnesses select on is rendered by the client.
+  for (const src of [ab, am2]) {
+    for (const [, hook] of src.matchAll(/\[(data-[a-z-]+)(?:[=\]])/g)) {
+      if (hook.startsWith("data-rm-")) continue; // the review modal's and the calendar's own hooks (unchanged)
+      assert.ok(client.includes(hook), `${hook} is not rendered by the client`);
+    }
+  }
+  for (const hook of ["data-draft-tree", "data-company-bubble", "data-vt-title", "data-lead-card", "data-action", "data-leaf=", "data-leaf-body",
+    "data-review-all", "data-connection", "data-side-block", "data-side-item", "data-approval-budget"]) assert.ok(client.includes(hook), hook);
+  assert.match(panel, />Open its review<\/button>/, "abPanelUi opens the scoped review from the What happened leaf");
+  assert.match(read("client/src/lib/draftHouseExceptions.js"), /key: `portal-\$\{p\.origin\}`/, "the side's portal row key abPanelUi clicks");
+  // Neither waits on the removed chrome.
+  for (const [name, src] of [["abPanelUi", ab], ["am2ApprovalCapUi", am2]]) {
+    assert.doesNotMatch(src, /AUTO APPLY|data-rm-subtabs|waiting for your approval|selectTab\(|openDay\(|data-rm-card="company"/, name);
+  }
+  // am2's sentences are approvalBudgetLine's.
+  for (const s of ["of today's approvals", "stay here until the limit resets", "approvals left today", "fewer than the"]) {
+    assert.ok(panel.includes(s), s);
+  }
+  // abPanelUi's pass floor cannot exceed the checks it has.
+  const floor = JSON.parse(read("scripts/harnessBaseline.json")).abPanelUi.pass;
+  assert.ok(floor <= (ab.match(/^\s*check\(/gm) || []).length && floor >= 25, `floor ${floor}`);
+  // ah5 mounts AttemptRow alone: its strings and hook are still the row's, and its harness entry still compiles.
+  for (const s of ["Still yours to answer", "What was filled", "data-rm-fill-log"]) assert.ok(read("client/src/panels/AutoApplyPanelSections.jsx").includes(s), s);
+  const entry = ah5.slice(at(ah5, "const JSX = `") + "const JSX = `".length, at(ah5, "`;\n\nfunction startVite"));
+  const esbuild = requireClient("esbuild");
+  const built = await esbuild.build({
+    stdin: { contents: entry, resolveDir: path.join(CLIENT, "src"), loader: "jsx" },
+    bundle: true, write: false, format: "esm", platform: "browser", jsx: "automatic",
+    loader: { ".css": "empty", ".js": "jsx", ".svg": "empty", ".png": "empty", ".woff2": "empty" }, logLevel: "silent",
+  });
+  assert.equal(built.errors.length, 0);
+});

@@ -12,7 +12,12 @@
  * one outcome the requirement names.
  *
  * So this drives the REAL App, the REAL AutoApplyContext and the REAL AutoApplyPanel in a real
- * Chrome, three times, and reads the rendered text back. Same approach and same vite-with-stubbed-
+ * Chrome, once per state, and reads the rendered text back.
+ *
+ * ⭐ D113 UI (brought up to date 2026-10-31): Draft House is a tree with a side column. The approval
+ * card is gone; the approvals are the side column's "Ready for your review" block (one row each,
+ * [data-side-block="review"] [data-side-item]) and the budget is the line under its Review all
+ * ([data-approval-budget]) — the same sentences (AutoApplyPanel's approvalBudgetLine). Same approach and same vite-with-stubbed-
  * /api mechanism as scripts/abPanelUi.mjs; see that file for why the API is stubbed rather than a
  * real server (the server's DB path is not configurable, and seeding a developer's working database
  * to take a screenshot is not a reasonable trade). What is under test here is what the panel does
@@ -86,6 +91,12 @@ const FIXTURES = {
   ],
   '/api/applications': [],
   '/api/resumes': [],
+  // D113: the tree's own reads, with their real "nothing yet" shapes.
+  '/api/picks/runs': { runs: [], state: { mode: 'off', nextRunAt: null } },
+  '/api/pipeline': { surface: 'table', rows: [], counts: {} },
+  '/api/portals': { portals: [] },
+  '/api/gmail/status': { available: false },
+  '/api/apply/auto-settings': { settings: null },
 };
 const FALLBACK = { ok: true, jobs: [], items: [], results: [], data: [], count: 0, total: 0 };
 
@@ -162,7 +173,7 @@ async function main() {
       // thing, because each scenario must start from a mount that has never seen another fixture.
       await page.goto(`${vite.url}/app/auto-apply`, { waitUntil: 'networkidle2', timeout: 60000 });
       await page.waitForFunction(
-        () => /waiting for your approval/i.test(document.body.innerText),
+        () => document.querySelectorAll('[data-side-block="review"] [data-side-item]').length > 0,
         { timeout: 30000 }
       ).catch(async () => {
         const t = await page.evaluate(() => document.body.innerText.slice(0, 600));
@@ -171,18 +182,22 @@ async function main() {
       await sleep(600);
 
       const text = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
+      const side = await page.evaluate(() => ({
+        rows: document.querySelectorAll('[data-side-block="review"] [data-side-item]').length,
+        reviewAll: !!document.querySelector('[data-side-block="review"] [data-review-all]'),
+        budget: document.querySelector('[data-approval-budget]')?.innerText.replace(/\s+/g, ' ') ?? null,
+      }));
       await page.screenshot({ path: path.join(OUT_DIR, `${s.key}.png`), fullPage: true });
 
-      // The card itself must be there in every scenario, or every check below would be vacuous.
-      check(`${s.key}: the approval card renders`,
-        new RegExp(`${s.waiting} applications? waiting for your approval`, 'i').test(text));
+      // The block itself must be there in every scenario, or every check below would be vacuous.
+      check(`${s.key}: Ready for your review lists every approval, one row each`, side.rows === s.waiting,
+        `${side.rows} rows for ${s.waiting} waiting`);
+      check(`${s.key}: with Review all, where Approve all lives`, side.reviewAll);
 
       if (!s.cap) {
         check(`${s.key}: no invented limit`, !/of undefined/i.test(text) && !/NaN/.test(text),
           'an older server must leave the panel silent about a budget it was not told');
-        check(`${s.key}: the original sentence survives`,
-          /approving submits it to the employer and cannot be undone/i.test(text));
-        check(`${s.key}: and it says nothing about approvals left`, !/approvals left today/i.test(text));
+        check(`${s.key}: and it says nothing about approvals left`, side.budget == null && !/approvals left today/i.test(text));
         continue;
       }
 

@@ -9,9 +9,9 @@ import { at } from "../test-support/sourceAnchors.js";
 /**
  * TASK AH6 — the Auto Apply panel opens on the day something last happened.
  *
- * The real-browser proof is scripts/ah6RecentRunDefault.mjs. These cover the endpoint's arithmetic
- * (which is a timezone question, and therefore the part most likely to be quietly wrong) and pin
- * the panel shapes.
+ * The real-browser proof was scripts/ah6RecentRunDefault.mjs, deleted 2026-10-31: the calendar it
+ * drove was removed by D25 and Draft House is the D113 tree. These cover the endpoint's arithmetic
+ * (which is a timezone question, and therefore the part most likely to be quietly wrong).
  *
  * THE REPORT SAID the date filter lands on today and shows an empty board. It does not land on
  * today — it lands on NO DATE and asks you to pick one, which is AD1's deliberate inversion. AD1
@@ -140,12 +140,11 @@ test("the listing endpoint still refuses to default — only the panel has a def
 
 
 
-test("abPanelUi stubs the latest-date endpoint explicitly, so its resting state is the real one", () => {
-  // Before this it fell through to a fallback body with no `date` key, so AD1's resting-state
-  // checks would have passed if the panel had stopped asking, or if the endpoint had broken.
+test("abPanelUi records every dated-history request Draft House makes and requires there be none", () => {
+  // Changed ON PURPOSE 2026-10-31 (D113 UI): the harness used to stub /api/apply/history/latest for
+  // AD1's resting state. That calendar is gone (D25) and the tree asks for no dated history, so the
+  // harness now records any /api/apply/history* request and fails on one.
   const harness = fs.readFileSync("scripts/abPanelUi.mjs", "utf8");
-  assert.match(harness, /url\.pathname === '\/api\/apply\/history\/latest'/);
-  assert.match(harness, /JSON\.stringify\(\{ date: null \}\)/);
-  // And the AD1 network check now names LISTINGS rather than every history path.
-  assert.match(harness, /p\.startsWith\('\/api\/apply\/history\?'\)/);
+  assert.match(harness, /if \(url\.pathname\.startsWith\('\/api\/apply\/history'\)\) historyRequests\.push\(url\.pathname \+ url\.search\);/);
+  assert.match(harness, /check\('and it asks for NO dated history — the calendar it fed is gone \(D25\)',\s*historyRequests\.length === 0/);
 });
