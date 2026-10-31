@@ -4,7 +4,9 @@
 // Synthetic applications only.
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import Database from "better-sqlite3";
+import { at } from "../test-support/sourceAnchors.js";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import { callbackRates, rejectionPicks, picksOf, gatherCallbackApps } from "../services/callbackRates.js";
 import { REJECTION_REASONS } from "../shared/applicationResponse.js";
@@ -57,6 +59,20 @@ test("d111CountsRejectionPicks — a withdrawal is never a rejection; an unknown
   assert.deepEqual(picksOf(null), []);
   // The pure counter alone: only `rejected` rows.
   assert.equal(rejectionPicks([...many(15, rej(["level"])), ...many(9, { responseOutcome: "withdrawn", rejectionReasons: ["level"] })]).rejections, 15);
+});
+
+test("d111CountsRejectionPicks — the card on The Table draws the server's 'k of n' per pick in D111's own place, nothing of its own", () => {
+  const src = fs.readFileSync("client/src/panels/DatabasePanel.jsx", "utf8").replace(/\r\n/g, "\n");
+  const card = src.slice(at(src, "function CallbackRatesCard("), at(src, "\n}\n", at(src, "function CallbackRatesCard(")));
+  const block = card.slice(at(card, "{whyNo?.shown ? ("), at(card, "{notSplit.map("));
+  assert.ok(at(card, "{splits.map(") < at(card, "{whyNo?.shown ? ("), "inside the card's details, after the splits");
+  assert.match(block, /\[\.\.\.whyNo\.picks, whyNo\.noPick\]\.map\(p => \(/);
+  assert.match(block, /<span>\{p\.of\} rejections<\/span>/, "the server's own 'k of n'");
+  assert.match(block, /fewer than \{minCount\}, not counted yet\./, "below the minimum it says so, with no pick");
+  for (const bad of ["%", "toFixed", "* 100", "Math.round", "/ whyNo", "/ p.", "sort(", "rejection_note", ".note"]) {
+    assert.ok(!block.includes(bad), `the card must not compute or read: ${bad}`);
+  }
+  assert.doesNotMatch(block, /999px|rounded-full|borderRadius:\s*"50%"/, "D60: no pills");
 });
 
 test("d111CountsRejectionPicks — from the tables: the user's own rejections' picks, through the one reader", () => {
