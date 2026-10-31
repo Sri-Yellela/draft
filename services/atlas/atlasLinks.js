@@ -10,7 +10,7 @@
 //   · the posting has the scorer's own skill list (scraped_jobs.skills_json): the node must be ON that list. So "go to
 //     market" never links Go and "react to incidents" never links React (d114OnlyPostingsOwnSkills).
 //   · the posting has no list (measured 10-31 on the local board: 801 of 2,616 postings have one, so a strict list-only
-//     rule would leave two thirds of the board with no links): the Atlas's OWN counting rule (atlasStats.js) — the
+//     rule would leave two thirds of the board with no links): the Atlas's OWN counting rule (postingMatcher.js) — the
 //     words in the text, the scorer's ambiguous words (Go, Rust, Spark…) never — the same postings the popup's "asked
 //     for in N open postings" counts. A single-word name with a capital ("React", "Kubernetes") then links only in its
 //     own case, so a lowercase verb never does.
@@ -20,44 +20,33 @@
 // when a node is published, unpublished or renamed, or an alias is confirmed (the version key below).
 // ⛔ Only PUBLISHED nodes: a draft is never linked (d114OnlyPublishedNodes), and unpublishing removes its links at once.
 
-import { normaliseAtsTerm } from "../localAtsScorer.js";
-import { AMBIGUOUS_TERMS } from "./atlasStats.js";
+// ⭐ BUG 10-31 (boilerplate counts as skills): WHICH nodes a posting links is decided by THE ONE MATCHER
+// (postingMatcher.js, in its listOnly mode) — the same text the board counts: without the company's boilerplate, from
+// the requirements when the posting has them, short concepts in their exact case, no concept inside a common phrase.
+import { AMBIGUOUS_TERMS, POSTING_MATCH, postingMatcher } from "./postingMatcher.js";
 import { aliasesOf, readNode, profileTerms } from "./atlasStore.js";
 import { spellings } from "../../shared/atlasSearchNormalize.js";
 import { learnStepForNode } from "../learn/learnLinks.js";
 
-const MAX_GRAM = 4;
-const TEXT_CHARS = 30000;
 export const PEEK_MEANING_CHARS = 240;
 export const LINK_EVENTS = Object.freeze(["open", "visit"]);
-
-function gramsOf(text) {
-  const words = normaliseAtsTerm(String(text ?? "").slice(0, TEXT_CHARS)).split(" ").filter(Boolean);
-  const set = new Set();
-  for (let i = 0; i < words.length; i++) {
-    let g = "";
-    for (let k = 0; k < MAX_GRAM && i + k < words.length; k++) { g = k ? `${g} ${words[i + k]}` : words[i]; set.add(g); }
-  }
-  return set;
-}
-function skillKeysOf(json) {
-  try {
-    const arr = JSON.parse(json || "[]");
-    return new Set((Array.isArray(arr) ? arr : []).map(e => normaliseAtsTerm(typeof e === "string" ? e : e?.skill)).filter(Boolean));
-  } catch { return new Set(); }
-}
 
 /** How a node's words are matched in the drawn text. Exported for the tests. */
 export function formsOf(node, aliases = []) {
   const ambiguous = AMBIGUOUS_TERMS.has(node.term);
   const name = String(node.name ?? "").trim();
   const single = !/\s/.test(name);
+  // ⭐ BUG 10-31 (3): a concept shorter than 5 characters links only in its exact casing ("CDN", "CDNs"), as the
+  // matcher counts it (postingMatcher.js) — every spelling exact, its plural too, and no short lowercase alias.
+  const shortConcept = node.kind === "concept" && name.length > 0 && name.length < POSTING_MATCH.SHORT_CONCEPT_CHARS;
   const exact = ambiguous || name.length <= 2 || (single && /[A-Z]/.test(name));
   // The name and its separator spellings (the one normaliser: "Node.js" = "Nodejs" = "Node js"; "CI/CD" = "CICD").
-  const out = spellings(name).map(text => ({ text, exactCase: exact && text === name }));
+  const out = spellings(name).map(text => ({ text, exactCase: shortConcept || (exact && text === name) }));
+  if (shortConcept && /^[A-Za-z0-9]+$/.test(name)) out.push({ text: `${name}s`, exactCase: true });
   for (const a of [node.term, ...aliases]) {
     const t = String(a ?? "").trim();
     if (!t || t.length <= 2 || AMBIGUOUS_TERMS.has(t)) continue;   // a lowercase alias has no case to match: short or ambiguous ones are left out
+    if (shortConcept && t.length < POSTING_MATCH.SHORT_CONCEPT_CHARS) continue;
     if (out.some(f => f.text.toLowerCase() === t.toLowerCase())) continue;
     out.push({ text: t, exactCase: false });
   }
@@ -68,35 +57,29 @@ let cache = { key: null, nodes: [] };
 function linkableNodes(db) {
   const key = db.prepare(`SELECT COUNT(*) || ':' || COALESCE(MAX(updated_at), 0) || ':' || COALESCE(MAX(published_at), 0) FROM atlas_nodes WHERE status = 'published'`).pluck().get()
     + ":" + db.prepare(`SELECT COUNT(*) FROM skill_synonyms WHERE status = 'confirmed' AND relation = 'alias'`).pluck().get();
-  if (cache.key === key && cache.db === db) return cache.nodes;
-  const nodes = db.prepare(`SELECT slug, kind, name, term FROM atlas_nodes WHERE status = 'published' ORDER BY id`).all()
-    .map(n => { const aliases = aliasesOf(db, n.term); return { ...n, terms: [n.term, ...aliases], forms: formsOf(n, aliases) }; });
-  cache = { key, db, nodes };
-  return nodes;
+  if (cache.key === key && cache.db === db) return cache;
+  const nodes = db.prepare(`SELECT id, slug, kind, name, term FROM atlas_nodes WHERE status = 'published' ORDER BY id`).all()
+    .map(n => ({ ...n, forms: formsOf(n, aliasesOf(db, n.term)) }));
+  const byId = new Map(nodes.map(n => [n.id, n]));
+  cache = { key, db, nodes, byId, match: postingMatcher(db, nodes, { listOnly: true, rolesAsTerms: true }) };
+  return cache;
 }
 
 /**
  * The linkable Atlas nodes of ONE posting.
- * @param job { title?, description, skills_json? }
+ * @param job { title?, company?, description, skills_json? } — `company` lets its boilerplate be left out
  * @returns {{ slug, name, kind, forms: { text, exactCase }[] }[]}
  */
 export function atlasTermsFor(db, job) {
   if (!job) return [];
-  const grams = gramsOf(`${job.title ?? ""} . ${job.description ?? ""}`);
-  const named = skillKeysOf(job.skills_json);
-  const out = [];
-  for (const n of linkableNodes(db)) {
-    const inText = n.terms.filter(t => grams.has(t));
-    if (!inText.length) continue;
-    const ok = named.size ? inText.some(t => named.has(t)) : inText.some(t => !AMBIGUOUS_TERMS.has(t));
-    if (ok) out.push({ slug: n.slug, name: n.name, kind: n.kind, forms: n.forms });
-  }
-  return out;
+  const { byId, match } = linkableNodes(db);
+  return match.askedBy({ title: job.title, company: job.company, text: job.description, skills_json: job.skills_json })
+    .map(id => byId.get(id)).map(n => ({ slug: n.slug, name: n.name, kind: n.kind, forms: n.forms }));
 }
 
 /** The posting by its board id → its linkable terms (null when there is no such posting). */
 export function atlasTermsForPosting(db, jobId) {
-  const job = db.prepare(`SELECT title, COALESCE(description_text, description) AS description, skills_json FROM scraped_jobs WHERE job_id = ?`).get(String(jobId));
+  const job = db.prepare(`SELECT title, company, COALESCE(description_text, description) AS description, skills_json FROM scraped_jobs WHERE job_id = ?`).get(String(jobId));
   return job ? atlasTermsFor(db, job) : null;
 }
 
