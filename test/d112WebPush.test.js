@@ -10,7 +10,7 @@ import {
 } from "../services/webPush.js";
 import {
   NOTIFY_EVENTS, eventText, readPrefs, setPref, saveSubscription, pushToUser, configureNotify, notifyEvent, channelsOffered,
-  notifyRunJobOutcome, runDailySummaries,
+  notifyRunJobOutcome,
 } from "../services/notify.js";
 import notifyRoutes from "../routes/notify.js";
 import { at } from "../test-support/sourceAnchors.js";
@@ -273,8 +273,9 @@ test("D112 · D100 P4 — no event's words ever carry a company or a value", () 
       assert.ok(!/Northwind|Backend Engineer/.test(`${t.title} ${t.body}`), `${ev}: ${t.body}`);
     }
   }
-  assert.equal(eventText("auto_daily_summary", { sent: 1, waiting: 0 }).body, "Today draft sent 1 application.");
-  assert.equal(eventText("auto_daily_summary", { sent: 3, waiting: 2 }).body, "Today draft sent 3 applications. 2 are waiting for you.");
+  // The per-run summary replaced the retired 8 pm one (10-31): counts only, never a company.
+  assert.equal(eventText("picks_summary", { sent: 1, waiting: 0 }).body, "This run sent 1 application.");
+  assert.equal(eventText("picks_summary", { sent: 3, waiting: 2 }).body, "This run sent 3 applications. 2 need you.");
   // Unconfigured, the dispatcher does nothing — the services that call it behave as before.
   return notifyEvent(1, "needs_you", {}, { config: null }).then(r => assert.equal(r.skipped, "unconfigured"));
 });
@@ -297,15 +298,11 @@ test("D112 · the events fire from the pipeline — a run's held / sent job, the
     await notifyRunJobOutcome(db, 4, { config });
     assert.deepEqual(types(), [{ type: "needs_you", message: "A job is ready for your approval." }, { type: "apply_complete", message: "An application was sent." }]);
 
-    // FULL AUTO's summary: once per local day, from 8 pm, only for an auto user with a day to tell.
-    db.prepare("UPDATE users SET send_mode='auto', auto_settings=? WHERE id=1").run(JSON.stringify({ timeZone: "UTC" }));
-    const day = Date.UTC(2026, 9, 30) / 1000;
-    db.prepare("UPDATE apply_run_jobs SET finished_at=? WHERE id=2").run(day + 10 * 3600);
-    assert.deepEqual(await runDailySummaries(db, { nowSec: day + 19 * 3600, config }), [], "before 8 pm");
-    const told = await runDailySummaries(db, { nowSec: day + 20 * 3600 + 60, config });
-    assert.deepEqual(told.map(t => [t.userId, t.sent, t.waiting]), [[1, 1, 2]]);
-    assert.equal(types().at(-1).message, "Today draft sent 1 application. 2 are waiting for you.");
-    assert.deepEqual(await runDailySummaries(db, { nowSec: day + 22 * 3600, config }), [], "once a day");
+    // ⛔ 10-31 (owner): the 8 pm daily summary is retired — Apply for me gets picks_summary after every run instead.
+    const notify = await import("../services/notify.js");
+    assert.equal(notify.runDailySummaries, undefined, "no daily summary run");
+    assert.equal(notify.NOTIFY_EVENTS.auto_daily_summary, undefined, "no daily summary switch in Settings");
+    assert.ok(notify.NOTIFY_EVENTS.picks_summary, "the per-run summary stays");
   } finally { configureNotify({}); }
 
   // The hooks are in the pipeline's own places (source pins, carved with at()).
@@ -318,7 +315,9 @@ test("D112 · the events fire from the pipeline — a run's held / sent job, the
   assert.match(report.slice(at(report, 'if (report.outcome === "stopped")')), /notifyEvent\(row\.user_id, "needs_you", \{\}\)/);
   const server = fs.readFileSync(new URL("../server.js", import.meta.url), "utf8");
   assert.ok(at(server, "configureNotify({ db, emitToUser") < at(server, "applyLine.recoverInterruptedRuns();"), "configured before a recovered run can finish");
-  assert.match(server.slice(at(server, "const ran = await runAutoTick("), at(server, "}, AUTO_TICK_MS)")), /await runDailySummaries\(db\)/);
+  const tick = server.slice(at(server, "const ran = await runAutoTick("), at(server, "}, AUTO_TICK_MS)"));
+  assert.doesNotMatch(tick, /runDailySummaries/, "the tick no longer sends an 8 pm summary");
+  assert.match(tick, /runPicksFollowUps\(db, /, "Apply for me's per-run summary is sent from the tick");
 });
 
 test("D112 · the inbox's Interview / Offer notifies — through the same notifications row, without the company", async () => {

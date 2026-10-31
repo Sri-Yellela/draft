@@ -8,7 +8,7 @@
 //   needs_you           a stopped application waiting for the person — Needs you, or Ready to approve (D100 P4)
 //   inbox_reply         D103's inbox filed an Interview or an Offer against one of their applications
 //   apply_complete      an application was sent (the type the bell already has an icon for)
-//   auto_daily_summary  FULL AUTO's day: how many were sent, how many wait
+//   (auto_daily_summary — the 8 pm summary — retired 10-31: picks_summary covers Apply for me after every run)
 //   ⭐ D113 (services/picks.js):
 //   picks               "Ask me first": ONE message per run time with the run's picks and their Apply / Pass links
 //   picks_summary       "Apply for me": ONE summary after each run ("Sent 4; 1 question")
@@ -25,7 +25,6 @@
 // carries a Topic so an offline phone gets one message, not a stack.
 import { sendPush, vapidConfig, endpointAllowed } from "./webPush.js";
 import { sendEmail, emailConfigured } from "./emailService.js";
-import { readAutoSettings } from "../shared/autoSettings.js";
 
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -36,8 +35,8 @@ export const NOTIFY_EVENTS = Object.freeze({
     url: "/app/database?sheet=inbox", defaults: { push: true, email: false }, throttle: 0 },
   apply_complete: { label: "Application sent", what: "An application was sent to an employer.",
     url: "/app/database", defaults: { push: false, email: false }, throttle: 15 * 60 },
-  auto_daily_summary: { label: "FULL AUTO daily summary", what: "Once a day while FULL AUTO is on: how many were sent and how many wait for you.",
-    url: "/app/auto-apply", defaults: { push: true, email: false }, throttle: 0 },
+  // ⛔ auto_daily_summary (the 8 pm "FULL AUTO today") was RETIRED 10-31 by the owner — Apply for me (send_mode 'auto', the only
+  // users it went to) already gets picks_summary after every run. Its past rows keep their stored text in the bell.
   // ⭐ D113 P2: the picks arrive by email AND push by default (owner: "one email + one Web Push per run"); one per run is
   // enforced by the run's own claim (services/picks.js deliverRun), so no throttle here.
   picks: { label: "Picks for you", what: "At your run times in Ask me first: the jobs picked for you, each with Apply and Pass.",
@@ -48,7 +47,6 @@ export const NOTIFY_EVENTS = Object.freeze({
     url: "/app/auto-apply", defaults: { push: true, email: true }, throttle: 0 },
 });
 export const CHANNELS = Object.freeze(["push", "email"]);
-export const SUMMARY_MINUTES = 20 * 60; // 8 pm in the person's own time zone (Auto settings)
 
 /** The words of each event — the in-app line, the push and the email say the same. No company, no value (D100 P4). */
 export function eventText(event, data = {}) {
@@ -63,9 +61,6 @@ export function eventText(event, data = {}) {
         : { title: "An interview", body: "A reply from an employer was filed as an interview." };
     case "apply_complete":
       return { title: "Application sent", body: "An application was sent." };
-    case "auto_daily_summary":
-      return { title: "FULL AUTO today", body: `Today draft sent ${s("sent", "application", "applications")}.`
-        + (n("waiting") ? ` ${s("waiting", "is", "are")} waiting for you.` : "") };
     case "picks":
       return { title: "New picks", body: `${s("count", "new pick is", "new picks are")} ready. Apply or pass from the message.` };
     case "picks_summary":
@@ -274,30 +269,3 @@ export function notifyRunJobOutcome(db, runJobId, { config = CONFIG } = {}) {
   return null;
 }
 
-/**
- * FULL AUTO's daily summary — once per person per local day, at or after SUMMARY_MINUTES in their Auto settings' time zone,
- * and only when the day had something in it. Called from the FULL AUTO tick (server.js, every 5 minutes).
- */
-export async function runDailySummaries(db, { nowSec = now(), config = CONFIG } = {}) {
-  if (!config) return [];
-  // Loaded here, not at the top: the inbox and the worker import this file, and need not load the scheduler's graph.
-  const { localClock } = await import("./autoScheduler.js");
-  const out = [];
-  const users = db.prepare(`SELECT id, auto_settings FROM users WHERE send_mode = 'auto'`).all();
-  for (const u of users) {
-    try {
-      const settings = readAutoSettings(u.auto_settings);
-      const clock = localClock(nowSec, settings.timeZone);
-      if (clock.minutes < SUMMARY_MINUTES) continue;
-      const done = db.prepare(`SELECT payload FROM notifications WHERE user_id = ? AND type = 'auto_daily_summary' AND created_at >= ?`)
-        .pluck().all(u.id, nowSec - 2 * 86400).some(p => { try { return JSON.parse(p || "{}").date === clock.date; } catch { return false; } });
-      if (done) continue;
-      const dayStart = nowSec - clock.minutes * 60 - (nowSec % 60);
-      const sent = db.prepare(`SELECT COUNT(*) FROM apply_run_jobs WHERE user_id = ? AND status = 'submitted' AND finished_at >= ?`).pluck().get(u.id, dayStart);
-      const waiting = db.prepare(`SELECT COUNT(*) FROM apply_run_jobs WHERE user_id = ? AND status IN ('held_review', 'held_gate')`).pluck().get(u.id);
-      if (!sent && !waiting) continue;
-      out.push({ userId: u.id, sent, waiting, result: await notifyEvent(u.id, "auto_daily_summary", { sent, waiting, date: clock.date }, { config }) });
-    } catch (e) { config.log?.warn?.(`[notify] summary user=${u.id}: ${e.message}`); }
-  }
-  return out;
-}
