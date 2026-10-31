@@ -14,6 +14,10 @@
 //   GET  /api/atlas/terms/:jobId          → { terms: [{ slug, name, kind, forms: [{ text, exactCase }] }] } for ONE posting
 //   GET  /api/atlas/peek/:slug            → the popup: name, kind, meaning (+ fromWikipedia), postings, firstResource, you?
 //   POST /api/atlas/link-event            { event: "open" | "visit" } → 204; a per-day count, nothing else stored
+// ⭐ D116 · YOUR MAP (public router — signed out is the fallback answer, never a 401):
+//   GET  /api/atlas/me[?all=<section>]    signed in with profile skills → haveSkills · nextLevel · adjacent · branches ·
+//                                         learnNext (each ≤ 12 + its total; ?all= one section uncapped, "see all");
+//                                         signed out / no skills → search · Learn · exploreByRole + the upload line
 // ⭐ D105 P6 · the curator's editor (admin; requireAdmin is mounted in front of this router in server.js):
 //   POST   /api/admin/atlas/nodes                 { kind, name, definition?, wikiTitle? }   add a node (a draft)
 //   GET    /api/admin/atlas/node/:slug            the editor's view — every edge, every resource (dead ones marked)
@@ -61,6 +65,7 @@ import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
 import { readiness, READINESS_COLUMNS, runAtlasAutoPipeline, autoPublish, askWikipediaAgain } from "../services/atlas/atlasPublish.js";
 import { sponsorsForRole } from "../services/atlas/atlasSponsors.js";
+import { computeYourMap, SECTIONS } from "../services/atlas/atlasMe.js";
 
 // A signed-in reader's terms — ONE implementation (services/atlas/atlasStore.js profileTerms), also read by D110's
 // interview prep (services/interviewPrep.js skillGaps).
@@ -108,6 +113,12 @@ export function createAtlasRouter(db) {
     if (!p) return res.status(404).json({ error: "not_found" });
     res.set("Cache-Control", `${uid != null ? "private" : "public"}, max-age=3600`);
     res.json(p);
+  });
+  // ⭐ D116 · computed from THIS reader's profile only (req.user, when signed in) — never stored, never cached shared.
+  router.get("/me", (req, res) => {
+    const all = SECTIONS.includes(req.query.all) ? req.query.all : null;
+    res.set("Cache-Control", "private, no-store");
+    res.json(computeYourMap(db, req.user?.id ?? null, { all }));
   });
   router.post("/link-event", (req, res) => res.status(countLinkEvent(db, String(req.body?.event ?? "")) ? 204 : 400).end());
   router.get("/node/:slug", (req, res) => {
