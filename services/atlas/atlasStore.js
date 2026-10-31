@@ -14,6 +14,7 @@
 import { normaliseAtsTerm } from "../localAtsScorer.js";
 import { recordSynonymProposals, confirmSynonym } from "../kb/skillSynonyms.js";
 import { searchKey, matchCandidate } from "../../shared/atlasSearchNormalize.js";
+import { profileFromResume } from "../structuredProfile.js";
 
 // ⭐ D115 (migration 194): 'concept' — a term from the owner's tracker that is no role, skill or tool on the board
 // ("Logic gate", "Byte"); 'pattern' — one of its 28 LeetCode patterns.
@@ -79,13 +80,31 @@ export function addAlias(db, nodeId, alias, reviewedBy = "owner") {
 /**
  * A person's terms: their profile's skills (D101 profile_skills) and each one's confirmed aliases. Read by the Atlas's
  * `you` (routes/atlas.js) and by D110's interview prep (services/interviewPrep.js) — one reader, never stored.
+ * ⚠ BUG D120 P1 (owner 10-31: "it currently shows Upload a résumé … but my resume already exists"): profile_skills is
+ * filled from the résumé's parse only when the Profile is first OPENED (structuredProfile.js), so a user who uploaded a
+ * résumé and never opened the Profile had no terms and was asked to upload one. When the Profile has no skills, the
+ * base résumé's parsed skills (D65, the same reading the packets use) stand in — `haveTerms` says which it was.
  */
-export function profileTerms(db, userId) {
+export function haveTerms(db, userId) {
   let names = [];
   try { names = db.prepare(`SELECT name FROM profile_skills WHERE user_id = ?`).pluck().all(userId); } catch { names = []; }
+  let source = names.length ? "profile" : null;
+  if (!names.length) {
+    try { names = (profileFromResume(db, userId)?.skills || []).map(s => s.name).filter(Boolean); } catch { names = []; }
+    if (names.length) source = "resume";
+  }
   const terms = new Set();
   for (const n of names) { const t = termOf(n); if (t) { terms.add(t); for (const a of aliasesOf(db, t)) terms.add(a); } }
-  return terms;
+  return { terms, source: terms.size ? source : null, hasResume: source === "resume" || hasAnyResume(db, userId) };
+}
+export function profileTerms(db, userId) { return haveTerms(db, userId).terms; }
+
+/** Whether the user has any résumé on file — a base on any job profile, the account's base, or a generated one. */
+export function hasAnyResume(db, userId) {
+  const q = (sql) => { try { return !!db.prepare(sql).get(userId); } catch { return false; } };
+  return q(`SELECT 1 FROM profile_base_resumes WHERE user_id = ? AND TRIM(COALESCE(content, '')) != '' LIMIT 1`)
+    || q(`SELECT 1 FROM base_resume WHERE user_id = ? AND TRIM(COALESCE(content, '')) != '' LIMIT 1`)
+    || q(`SELECT 1 FROM resumes WHERE user_id = ? LIMIT 1`);
 }
 
 const visible = (published) => (published ? "AND n.status = 'published'" : "");
