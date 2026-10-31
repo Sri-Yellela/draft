@@ -357,6 +357,9 @@ const AUTHENTICATED = new Set([
   "GET /api/pipeline/job/:applicationId",
   "GET /api/pipeline/job-for/:jobId",   // D102 P5: the same detail found by the job — the caller's own record only
   "GET /api/pipeline/callback-rates",   // D111: the caller's own reply / interview counts only
+  // D113 UI U5: Withdraw / Note why on the caller's own sent row — recorded in draft, nothing sent to the employer.
+  "POST /api/pipeline/job/:applicationId/withdraw",
+  "PUT /api/pipeline/job/:applicationId/note",
   "GET /api/apply/auto-settings",
   "PUT /api/apply/auto-settings",
   // D100 P2: the user's portals — sealed sessions (ciphertext only), connect, remove, and approving a remote run.
