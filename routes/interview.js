@@ -1,7 +1,8 @@
 // ── D110 · INTERVIEW MODE's routes — every one the signed-in user's own (services/interviewPrep.js holds the rules) ──
 //
 // GET    /api/interview/prep/:applicationId                 the Prep tab: countdown, skills (Atlas links), rounds, stories, debriefs
-// PUT    /api/interview/prep/:applicationId/date            { date: "YYYY-MM-DD" | null, time: "HH:MM" | null } — the user's date
+// PUT    /api/interview/prep/:applicationId/date            { date: "YYYY-MM-DD" | null, time: "HH:MM" | null, timeZone? } — the user's
+//                                                            date (D113 UI "Add the date": the zone, and interview_at, kept with it)
 // GET    /api/interview/prep/:applicationId/connector-data  P4: exactly the data the connector's tool would hand the user's Claude
 // GET    /api/interview/stories                             the story bank
 // POST   /api/interview/stories                             add one
@@ -42,7 +43,8 @@ export default function interviewRoutes(app, db, requireAuth) {
 
   app.put("/api/interview/prep/:applicationId/date", requireAuth, (req, res) => {
     if (!ID.test(req.params.applicationId)) return badId(res);
-    send(res, () => setPrepDate(db, req.user.id, req.params.applicationId, { date: req.body?.date ?? null, time: req.body?.time ?? null }));
+    send(res, () => setPrepDate(db, req.user.id, req.params.applicationId,
+      { date: req.body?.date ?? null, time: req.body?.time ?? null, timeZone: req.body?.timeZone ?? null }));
   });
 
   app.get("/api/interview/prep/:applicationId/connector-data", requireAuth, (req, res) => {

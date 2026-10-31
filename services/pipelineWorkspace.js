@@ -14,7 +14,7 @@
 import { ladderStatus, surfaceOf, tabCounts, LADDER_LABELS } from "../shared/applicationStatus.js";
 import { sourceOf, ANSWER_SOURCES } from "../shared/answerSource.js";
 import { listMessages } from "./inbox.js";
-import { prepSummary } from "./interviewPrep.js";
+import { prepSummary, userDateFor } from "./interviewPrep.js";
 import { mergeResponse, RESPONSE_OUTCOME } from "../shared/applicationResponse.js";
 
 const parse = (s, fallback) => { if (s == null) return fallback; try { return JSON.parse(s); } catch { return fallback; } };
@@ -40,10 +40,12 @@ function rowFor(db, rec) {
   const { status, closedByCandidate } = ladderStatus({
     runJobStatus: rj?.status ?? null, reasonCode: rj?.reason_code ?? null, sent, outcome: ja?.response_outcome ?? null,
   });
-  return { rec, rj, ja, posting, status, closedByCandidate };
+  // D113 UI "Add the date": the user's own interview / assessment date (D110's interview_prep — the one store).
+  const when = ["interview", "assessment"].includes(status) ? userDateFor(db, rec.user_id, rec.id) : null;
+  return { rec, rj, ja, posting, status, closedByCandidate, when };
 }
 
-function publicRow({ rec, rj, ja, posting, status, closedByCandidate }) {
+function publicRow({ rec, rj, ja, posting, status, closedByCandidate, when = null }) {
   return {
     id: rec.id,
     jobId: rec.job_id,
@@ -58,6 +60,8 @@ function publicRow({ rec, rj, ja, posting, status, closedByCandidate }) {
     reasonCode: rj?.reason_code ?? null,
     // D113 UI U5 "Note why": the application's own notes (job_applications.notes, The Table's Notes column).
     note: ja?.notes ?? null,
+    // { ymd, time, timeZone, at } — the row's "Interview Tue 4 Nov, 2 PM" (an interview or an assessment only).
+    interview: when,
     updatedAt: Math.max(rec.updated_at || 0, rj?.finished_at || 0, rj?.created_at || 0, ja?.outcome_at || 0) || null,
   };
 }
@@ -95,7 +99,7 @@ export function listPipeline(db, userId, surface) {
 export const ROW_ACTIONS = Object.freeze({
   withdrawn: Object.freeze(["submitted", "interview", "assessment", "offer"]),
   note: Object.freeze(["rejected"]),
-  date: Object.freeze(["interview"]),
+  date: Object.freeze(["interview", "assessment"]),
 });
 export const NOTE_MAX = 2000;
 

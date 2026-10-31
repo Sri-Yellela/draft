@@ -153,9 +153,10 @@ export function confirmWithdrawn(applicationId, call = api) {
 export function saveNoteWhy(applicationId, note, call = api) {
   return rowAct(call, ROW_ROUTES.note(applicationId), { method: "PUT", body: JSON.stringify({ note }) }, "Saved.");
 }
-/** "Add the date" — the interview's date (and time), D110's countdown on the job's Prep tab. */
-export function setInterviewDate(applicationId, date, time = null, call = api) {
-  return rowAct(call, ROW_ROUTES.date(applicationId), { method: "PUT", body: JSON.stringify({ date, time: time || null }) }, "Date saved.");
+/** "Add the date" — an interview's or an assessment's date (optional time, time zone): D110's countdown and Prep tab. */
+export function setInterviewDate(applicationId, date, time = null, timeZone = null, call = api) {
+  return rowAct(call, ROW_ROUTES.date(applicationId),
+    { method: "PUT", body: JSON.stringify({ date, time: time || null, timeZone: timeZone || null }) }, "Date saved.");
 }
 
 /** The Answers leaf's data: every field and value, and the open questions (existing review read). */

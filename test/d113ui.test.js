@@ -17,13 +17,15 @@ import { THEME_LIST } from "../client/src/themes/index.js";
 import {
   RINGS, RING_ORDER, LADDER_RING, ringFor, FILTERS, buildNodes, buildTree, treeView, sideBlocks, SIDE_ORDER,
   branchStep, createLeafCache, answerRows, inlineAnswerStart, leftOutLines, nextRunFromSettings, matchesSearch, ringLabelOf,
+  interviewLine, timeZoneOptions,
 } from "../client/src/lib/draftHouseTree.js";
 import {
   loadRuns, loadLeftOut, actOnPick, makePickResume, D113_ROUTES, confirmWithdrawn, saveNoteWhy, setInterviewDate, ROW_ROUTES,
 } from "../client/src/lib/draftHouseRuns.js";
 import pipelineRoutes from "../routes/pipeline.js";
 import interviewRoutes from "../routes/interview.js";
-import { ROW_ACTIONS } from "../services/pipelineWorkspace.js";
+import { ROW_ACTIONS, jobDetail, listPipeline } from "../services/pipelineWorkspace.js";
+import { zonedEpoch } from "../services/interviewPrep.js";
 import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
@@ -596,30 +598,56 @@ test("d113uiWithdrawnStatus — \"I withdrew it\" sets the ladder's terminal wit
   assert.deepEqual(calls, [["/api/pipeline/applications/9/withdrawn", "POST"]]);
 });
 
-test("d113uiAddTheDate — an interview's Add the date saves the date on D110's countdown, inline; only on an interview", async () => {
+test("d113uiAddDateStartsPrep — Add the date (interview or assessment): date, time, zone → interview_at; D110's countdown and Prep tab; on the row; editable", async () => {
   const db = leftoverDb();
   const id = sentApp(db, { outcome: "interview" });
   const t = await mountOn((app, auth) => interviewRoutes(app, db, auth));
+  const base = `http://127.0.0.1:${t.server.address().port}`;
+  const via = (p, o) => fetch(base + p, { ...o, headers: { "content-type": "application/json" } })
+    .then(async r => { const b = await r.json(); if (!r.ok) throw Object.assign(new Error(b.message || b.error), { status: r.status }); return b; });
   try {
-    // The adapter's call, against D110's real route.
-    const base = `http://127.0.0.1:${t.server.address().port}`;
-    const via = (p, o) => fetch(base + p, { ...o, headers: { "content-type": "application/json" } })
-      .then(async r => { const b = await r.json(); if (!r.ok) throw Object.assign(new Error(b.message || b.error), { status: r.status }); return b; });
-    assert.equal((await setInterviewDate(id, "2026-11-12", "14:30", via)).ok, true);
-    assert.deepEqual(db.prepare("SELECT date_ymd, time_hm FROM interview_prep WHERE user_id = 1 AND application_id = ?").get(id), { date_ymd: "2026-11-12", time_hm: "14:30" });
-    const bad = await setInterviewDate(id, "2026-02-30", null, via);
+    // The adapter's call against D110's real route: 2 PM in New York on 4 Nov 2026 (EST, after the clocks change) = 19:00 UTC.
+    assert.equal((await setInterviewDate(id, "2026-11-04", "14:00", "America/New_York", via)).ok, true);
+    const row = db.prepare("SELECT date_ymd, time_hm, time_zone, interview_at FROM interview_prep WHERE user_id = 1 AND application_id = ?").get(id);
+    assert.deepEqual(row, { date_ymd: "2026-11-04", time_hm: "14:00", time_zone: "America/New_York", interview_at: Date.UTC(2026, 10, 4, 19, 0) / 1000 });
+    // ONE store: D110's Prep tab and countdown read the same row.
+    const prep = jobDetail(db, 1, id).prep;
+    assert.equal(prep.active, true, "the Prep tab is on");
+    assert.equal(prep.date.source, "you");
+    assert.equal(prep.date.ymd, "2026-11-04");
+    assert.equal(prep.date.at, row.interview_at);
+    assert.equal(typeof prep.daysLeft, "number", "the countdown runs");
+    // On the row, and the line the tree shows.
+    const tr = listPipeline(db, 1, "table").rows.find(r => r.id === id);
+    assert.deepEqual(tr.interview, { ymd: "2026-11-04", time: "14:00", timeZone: "America/New_York", at: row.interview_at });
+    const nodes = buildNodes({ now: NOW, companyLabel: label, tableRows: [{ ...tr, updatedAt: NOW / 1000 }] });
+    assert.equal(nodes[0].say, "Interview Wed 4 Nov, 2 PM");
+    // Editable: a second save replaces it; an assessment takes a date too; a bad zone is refused.
+    assert.equal((await setInterviewDate(id, "2026-11-05", null, "Europe/London", via)).ok, true);
+    assert.equal(listPipeline(db, 1, "table").rows.find(r => r.id === id).interview.at, Date.UTC(2026, 10, 5, 0, 0) / 1000);
+    const as = sentApp(db, { jobId: "gh::9", outcome: "assessment" });
+    assert.equal((await setInterviewDate(as, "2026-11-06", "09:30", "UTC", via)).ok, true);
+    assert.equal(interviewLine("assessment", listPipeline(db, 1, "table").rows.find(r => r.id === as).interview), "Assessment Fri 6 Nov, 9:30 AM");
+    assert.equal(jobDetail(db, 1, as).prep.active, true);
+    const bad = await setInterviewDate(id, "2026-11-05", null, "Mars/Olympus", via);
     assert.equal(bad.ok, false);
-    assert.match(bad.message, /YYYY-MM-DD/);
+    assert.match(bad.message, /time zone/);
   } finally { t.server.close(); }
-  assert.equal(ROW_ROUTES.date(5), "/api/interview/prep/5/date");
-  assert.deepEqual(ROW_ACTIONS.date, ["interview"]);
+  assert.deepEqual(ROW_ACTIONS.date, ["interview", "assessment"]);
+  // The lead card: Add the date on an interview AND an assessment, "Change the date" once set, opened with the saved
+  // date, time and zone; the editor has a date, an optional time and a zone; Save needs a date.
   const reply = leadActions("reply", "default: return [];");
-  assert.match(reply, /\.\.\.\(node\.status === "interview" \? \[\{ id: "date", label: "Add the date",\s*onClick: \(\) => setRowEdit\(\{ key: node\.key, kind: "date", date: "", time: "" \}\) \}\] : \[\]\)/);
-  assert.doesNotMatch(reply, /"Note why"[^\n]*openFull/, "no longer an 'open the job' link");
-  const editor = panel.slice(at(panel, "U5 · Add the date / Note why, inline"), at(panel, "</LeadCard>\n        {leavesFor(node)"));
+  assert.match(reply, /\.\.\.\(\(node\.status === "interview" \|\| node\.status === "assessment"\) \? \[\{ id: "date", label: r\.interview \? "Change the date" : "Add the date",/);
+  assert.match(reply, /date: r\.interview\?\.ymd \|\| "", time: r\.interview\?\.time \|\| "",\s*timeZone: r\.interview\?\.timeZone \|\| viewerTimeZone\(\)/);
+  const editor = panel.slice(at(panel, 'rowEdit.kind === "date" || rowEdit.kind === "note") && ('), at(panel, "</LeadCard>\n        {leavesFor(node)"));
   assert.match(editor, /<input type="date" aria-label="Interview date"/);
+  assert.match(editor, /<input type="time" aria-label="Interview time \(optional\)"/);
+  assert.match(editor, /<select aria-label="Time zone" value=\{rowEdit\.timeZone\}/);
   assert.match(editor, /disabled=\{!!rowEdit\.busy \|\| \(rowEdit\.kind === "date" && !rowEdit\.date\)\}/);
-  assert.match(panel, /\? await setInterviewDate\(node\.applicationId, e\.date, e\.time\)/);
+  assert.match(panel, /\? await setInterviewDate\(node\.applicationId, e\.date, e\.time, e\.timeZone\)/);
+  assert.ok(timeZoneOptions("America/New_York").includes("America/New_York"));
+  // A time just after the clocks go forward lands in the new offset (3:30 AM EDT on 8 Mar 2026 = 07:30 UTC).
+  assert.equal(zonedEpoch("2026-03-08", "03:30", "America/New_York"), Date.UTC(2026, 2, 8, 7, 30) / 1000);
 });
 
 test("d113uiNoteWhy — a rejection's Note why saves the user's note on the application; only on a rejection; nothing sent", async () => {

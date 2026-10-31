@@ -141,8 +141,8 @@ export function prepSummary(db, userId, applicationId, { status = null, emails =
   const kind = triggers[0]?.category || status;
   let date = null;
   try {
-    const row = db.prepare(`SELECT date_ymd, time_hm FROM interview_prep WHERE user_id = ? AND application_id = ?`).get(userId, Number(applicationId));
-    if (row?.date_ymd) date = { ymd: row.date_ymd, time: row.time_hm ?? null, source: "you" };
+    const mine = userDateFor(db, userId, applicationId);
+    if (mine) date = { ...mine, source: "you" };
   } catch { /* before migration 186 */ }
   if (!date) {
     const bodies = bodiesOf(db, userId, triggers.map(t => t.id));
@@ -156,8 +156,36 @@ export function prepSummary(db, userId, applicationId, { status = null, emails =
     date, daysLeft: date ? daysUntil(date.ymd, nowSec) : null };
 }
 
-/** The user enters (or clears) the date. */
-export function setPrepDate(db, userId, applicationId, { date = null, time = null } = {}) {
+/** Is this an IANA time zone this runtime knows ("America/New_York")? */
+export function isTimeZone(tz) {
+  if (typeof tz !== "string" || !tz || tz.length > 64) return false;
+  try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; }
+}
+
+/**
+ * ⭐ D113 UI "Add the date": a wall-clock date and time IN a time zone → epoch seconds (interview_at). No time → the
+ * start of that day there. Two passes of the zone's offset, so a date beside a daylight-saving change lands right.
+ */
+export function zonedEpoch(ymd, hm, tz) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const [hh, mm] = (hm || "00:00").split(":").map(Number);
+  const wall = Date.UTC(y, m - 1, d, hh, mm);
+  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit",
+    day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const offset = (t) => {
+    const p = Object.fromEntries(fmt.formatToParts(new Date(t)).map(x => [x.type, x.value]));
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - t;
+  };
+  let t = wall - offset(wall);
+  t = wall - offset(t);
+  return Math.floor(t / 1000);
+}
+
+/**
+ * The user enters (or clears) the date — D110's one store of it. D113 UI adds the time zone (default UTC) and keeps
+ * interview_at, that moment as epoch seconds, beside the wall-clock date and time the countdown reads.
+ */
+export function setPrepDate(db, userId, applicationId, { date = null, time = null, timeZone = null } = {}) {
   if (!ownRecord(db, userId, applicationId)) return null;
   if (date == null || date === "") {
     db.prepare(`DELETE FROM interview_prep WHERE user_id = ? AND application_id = ?`).run(userId, Number(applicationId));
@@ -167,10 +195,23 @@ export function setPrepDate(db, userId, applicationId, { date = null, time = nul
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd) || ymdOf(new Date(`${ymd}T00:00:00Z`)) !== ymd) throw err(400, "bad_date", "A date is YYYY-MM-DD.");
   const hm = time == null || time === "" ? null : String(time);
   if (hm != null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(hm)) throw err(400, "bad_time", "A time is HH:MM, 24-hour.");
-  db.prepare(`INSERT INTO interview_prep (user_id, application_id, date_ymd, time_hm) VALUES (?, ?, ?, ?)
-    ON CONFLICT(user_id, application_id) DO UPDATE SET date_ymd = excluded.date_ymd, time_hm = excluded.time_hm, updated_at = unixepoch()`)
-    .run(userId, Number(applicationId), ymd, hm);
-  return { date: { ymd, time: hm, source: "you" } };
+  const tz = timeZone == null || timeZone === "" ? "UTC" : String(timeZone);
+  if (!isTimeZone(tz)) throw err(400, "bad_time_zone", "A time zone is a name like America/New_York.");
+  const at = zonedEpoch(ymd, hm, tz);
+  db.prepare(`INSERT INTO interview_prep (user_id, application_id, date_ymd, time_hm, time_zone, interview_at) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_id, application_id) DO UPDATE SET date_ymd = excluded.date_ymd, time_hm = excluded.time_hm,
+      time_zone = excluded.time_zone, interview_at = excluded.interview_at, updated_at = unixepoch()`)
+    .run(userId, Number(applicationId), ymd, hm, tz, at);
+  return { date: { ymd, time: hm, timeZone: tz, at, source: "you" } };
+}
+
+/** The user's own date for an application (interview_prep), as the tree's row shows it. Null when none is set. */
+export function userDateFor(db, userId, applicationId) {
+  try {
+    const row = db.prepare(`SELECT date_ymd, time_hm, time_zone, interview_at FROM interview_prep WHERE user_id = ? AND application_id = ?`)
+      .get(userId, Number(applicationId));
+    return row?.date_ymd ? { ymd: row.date_ymd, time: row.time_hm ?? null, timeZone: row.time_zone ?? null, at: row.interview_at ?? null } : null;
+  } catch { return null; }   // before migration 186 / 200
 }
 
 // ── P2 · the skills against the profile ──────────────────────────────────────────────────────
