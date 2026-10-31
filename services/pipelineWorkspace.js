@@ -15,6 +15,7 @@ import { ladderStatus, surfaceOf, tabCounts, LADDER_LABELS } from "../shared/app
 import { sourceOf, ANSWER_SOURCES } from "../shared/answerSource.js";
 import { listMessages } from "./inbox.js";
 import { prepSummary } from "./interviewPrep.js";
+import { mergeResponse, RESPONSE_OUTCOME } from "../shared/applicationResponse.js";
 
 const parse = (s, fallback) => { if (s == null) return fallback; try { return JSON.parse(s); } catch { return fallback; } };
 
@@ -55,6 +56,8 @@ function publicRow({ rec, rj, ja, posting, status, closedByCandidate }) {
     title: rj?.posting_title || ja?.role || posting?.title || null,
     url: rj?.posting_url || ja?.job_url || posting?.apply_url || posting?.url || null,
     reasonCode: rj?.reason_code ?? null,
+    // D113 UI U5 "Note why": the application's own notes (job_applications.notes, The Table's Notes column).
+    note: ja?.notes ?? null,
     updatedAt: Math.max(rec.updated_at || 0, rj?.finished_at || 0, rj?.created_at || 0, ja?.outcome_at || 0) || null,
   };
 }
@@ -74,6 +77,58 @@ export function listPipeline(db, userId, surface) {
   }
   const mine = rows.filter(r => r.surface === surface);
   return { surface, rows: mine, counts: tabCounts(rows.map(r => r.status), surface) };
+}
+
+// ── D113 UI U5 · THE ACTIONS ON A SENT ROW — on the ladder, recorded in draft only ──────────────────────
+//
+// The tree's sentences and actions per state (WORKLOG D113 U5): sent, no reply → I heard back / **Withdraw** · interview →
+// Open interview prep / **Add the date** · rejected → **Note why**. Each acts on the ladder status the row reads NOW
+// (shared/applicationStatus.js, derived — nothing here writes a ladder value):
+//   withdraw  `submitted` only, not already withdrawn → job_applications.response_outcome = 'withdrawn' through
+//             mergeResponse (the AK1 rules every outcome write follows). The ladder then reads Submitted with
+//             closedByCandidate (D102: "No reply / withdrawn stay Submitted").
+//   note      `rejected` only → job_applications.notes (The Table's Notes column), at most NOTE_MAX characters.
+//   date      `interview` → the user's interview date — D110's own route (PUT /api/interview/prep/:id/date), not here.
+// ⛔ NOTHING IS SENT TO THE EMPLOYER. Withdraw records the user's own word in draft; it does not contact the company,
+// the portal or the inbox — the user withdraws with the employer themselves.
+export const ROW_ACTIONS = Object.freeze({
+  withdraw: Object.freeze(["submitted"]),
+  note: Object.freeze(["rejected"]),
+  date: Object.freeze(["interview"]),
+});
+export const NOTE_MAX = 2000;
+
+const refuse = (status, code, message) => Object.assign(new Error(message), { status, code });
+
+function ownRow(db, userId, applicationId) {
+  const rec = db.prepare(`SELECT * FROM application_records WHERE id = ? AND user_id = ?`).get(Number(applicationId), userId);
+  return rec ? rowFor(db, rec) : null;
+}
+
+/** "Withdraw" — the user ended it. Null when the row is not this user's. Throws {status, code} when the ladder refuses. */
+export function withdrawApplication(db, userId, applicationId, { now = Math.floor(Date.now() / 1000) } = {}) {
+  const r = ownRow(db, userId, applicationId);
+  if (!r) return null;
+  if (!ROW_ACTIONS.withdraw.includes(r.status) || r.closedByCandidate) {
+    throw refuse(409, "not_withdrawable", "Only a sent application with no reply can be withdrawn here.");
+  }
+  if (!r.ja) throw refuse(409, "not_verified", "This submission is not verified yet, so there is nothing to withdraw.");
+  const m = mergeResponse(r.ja, { outcome: RESPONSE_OUTCOME.WITHDRAWN, source: "manual" }, { now });
+  db.prepare(`UPDATE job_applications SET response_outcome = ?, furthest_stage = ?, first_response_at = ?, outcome_at = ?, outcome_source = ?
+    WHERE id = ? AND user_id = ?`).run(m.response_outcome, m.furthest_stage, m.first_response_at, m.outcome_at, m.outcome_source, r.ja.id, userId);
+  return publicRow(ownRow(db, userId, applicationId));
+}
+
+/** "Note why" — the user's note on a rejection. Empty clears it. Null when the row is not this user's. */
+export function noteWhy(db, userId, applicationId, note) {
+  const r = ownRow(db, userId, applicationId);
+  if (!r) return null;
+  if (!ROW_ACTIONS.note.includes(r.status) || !r.ja) throw refuse(409, "not_rejected", "A note why is for an application they said no to.");
+  if (note != null && typeof note !== "string") throw refuse(400, "bad_note", "A note is text.");
+  const text = String(note ?? "").trim();
+  if (text.length > NOTE_MAX) throw refuse(400, "too_long", `A note is at most ${NOTE_MAX} characters.`);
+  db.prepare(`UPDATE job_applications SET notes = ? WHERE id = ? AND user_id = ?`).run(text || null, r.ja.id, userId);
+  return publicRow(ownRow(db, userId, applicationId));
 }
 
 /** The checklist's steps in order, each `done` | `current` | `waiting` | `skipped`. */

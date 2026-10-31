@@ -129,6 +129,32 @@ export async function loadConnections(call = api) {
   return out;
 }
 
+/**
+ * U5 · the actions on a sent row (services/pipelineWorkspace.js ROW_ACTIONS; D110's date route). Each records the user's
+ * own word in draft — ⛔ none sends anything to the employer. `{ ok, message }`.
+ */
+const rowAct = async (call, path, init, done) => {
+  try { await call(path, init); return { ok: true, message: done }; }
+  catch (e) { return { ok: false, message: e?.message || "That did not work. Nothing changed." }; }
+};
+export const ROW_ROUTES = Object.freeze({
+  withdraw: (applicationId) => `/api/pipeline/job/${encodeURIComponent(applicationId)}/withdraw`,
+  note: (applicationId) => `/api/pipeline/job/${encodeURIComponent(applicationId)}/note`,
+  date: (applicationId) => `/api/interview/prep/${encodeURIComponent(applicationId)}/date`,
+});
+/** "Withdraw" — marked withdrawn in draft. The employer is not told. */
+export function withdrawApplication(applicationId, call = api) {
+  return rowAct(call, ROW_ROUTES.withdraw(applicationId), { method: "POST" }, "Marked withdrawn. draft told no one.");
+}
+/** "Note why" — saved on the application (The Table's Notes). */
+export function saveNoteWhy(applicationId, note, call = api) {
+  return rowAct(call, ROW_ROUTES.note(applicationId), { method: "PUT", body: JSON.stringify({ note }) }, "Saved.");
+}
+/** "Add the date" — the interview's date (and time), D110's countdown on the job's Prep tab. */
+export function setInterviewDate(applicationId, date, time = null, call = api) {
+  return rowAct(call, ROW_ROUTES.date(applicationId), { method: "PUT", body: JSON.stringify({ date, time: time || null }) }, "Date saved.");
+}
+
 /** The Answers leaf's data: every field and value, and the open questions (existing review read). */
 export async function loadAnswers(runJobId, call = api) {
   const d = await call(`/api/apply/run-jobs/${encodeURIComponent(runJobId)}/review`);

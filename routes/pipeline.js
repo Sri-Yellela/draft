@@ -3,10 +3,13 @@
 // GET /api/pipeline?surface=draft_house|table   the surface's rows + every tab's count
 // GET /api/pipeline/job/:applicationId          one job's detail panel (the same for every entry point)
 // GET /api/pipeline/callback-rates              D111: the user's own reply / interview counts, split (services/callbackRates.js)
+// POST /api/pipeline/job/:applicationId/withdraw   D113 UI U5: the user withdrew a sent, unanswered one — recorded in draft
+//                                                  only, nothing sent to the employer (pipelineWorkspace.js ROW_ACTIONS)
+// PUT  /api/pipeline/job/:applicationId/note       D113 UI U5: { note } — why they said no, on a rejected one
 // GET /api/apply/auto-settings                  the user's FULL AUTO standing instruction (D102 P4)
 // PUT /api/apply/auto-settings                  replace it — validated whole, nothing half-stored
 // services/pipelineWorkspace.js and shared/autoSettings.js hold the rules; these routes only expose them.
-import { listPipeline, jobDetail } from "../services/pipelineWorkspace.js";
+import { listPipeline, jobDetail, withdrawApplication, noteWhy } from "../services/pipelineWorkspace.js";
 import { normaliseAutoSettings, readAutoSettings } from "../shared/autoSettings.js";
 import { callbackRates, gatherCallbackApps } from "../services/callbackRates.js";
 
@@ -37,6 +40,23 @@ export default function pipelineRoutes(app, db, requireAuth) {
     if (!detail) return res.status(404).json({ error: "not_found" });
     res.json(detail);
   });
+
+  // ⭐ D113 UI U5 · the actions on a sent row, on the ladder. Another user's id reads the same as a missing one.
+  const act = (req, res, fn) => {
+    if (!/^\d+$/.test(String(req.params.applicationId))) return res.status(400).json({ error: "bad_application_id" });
+    try {
+      const row = fn();
+      if (!row) return res.status(404).json({ error: "not_found" });
+      res.json({ ok: true, row });
+    } catch (e) {
+      if (e?.status) return res.status(e.status).json({ error: e.code, message: e.message });
+      throw e;
+    }
+  };
+  app.post("/api/pipeline/job/:applicationId/withdraw", requireAuth, (req, res) =>
+    act(req, res, () => withdrawApplication(db, req.user.id, req.params.applicationId)));
+  app.put("/api/pipeline/job/:applicationId/note", requireAuth, (req, res) =>
+    act(req, res, () => noteWhy(db, req.user.id, req.params.applicationId, req.body?.note ?? null)));
 
   // ⭐ D111 · what is working: counts only ("6 of 20"), never a bare percentage; nothing shown below the minimum.
   app.get("/api/pipeline/callback-rates", requireAuth, (req, res) => {

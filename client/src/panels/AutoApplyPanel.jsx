@@ -30,6 +30,7 @@ import {
 } from "../lib/draftHouseTree.js";
 import {
   loadRuns, loadLeftOut, actOnPick, makePickResume, loadAutoSettings, setPicksSwitch, loadTableRows, loadConnections, loadAnswers,
+  withdrawApplication, saveNoteWhy, setInterviewDate,
 } from "../lib/draftHouseRuns.js";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import { useViewport } from "../hooks/useViewport.js";
@@ -390,6 +391,8 @@ export function AutoApplyPanel() {
   const [pickMsg, setPickMsg] = useState("");
   // U4 · "Make it now", per pick: { busy } while it is made, then { ok, message, atsScore }.
   const [madeNow, setMadeNow] = useState({});
+  // U5 · a sent row's own action in its lead card: { key, kind: "date" | "note", date, time, note, busy, message }.
+  const [rowEdit, setRowEdit] = useState(null);
   const [leftOut, setLeftOut] = useState({});
   const [, rerender] = useState(0);
   // U4: a leaf's data is asked for only when the leaf is opened, once (lib/draftHouseTree.js).
@@ -453,6 +456,22 @@ export function AutoApplyPanel() {
     const r = await makePickResume(node.pickId);
     setMadeNow(m => ({ ...m, [node.pickId]: { ok: r.ok, message: r.message, atsScore: r.atsScore } }));
     if (r.ok) loadRuns().then(setD113);
+  };
+  // U5 · Withdraw / Add the date / Note why — each recorded in draft only; ⛔ nothing goes to the employer.
+  const afterRowAct = (node, r) => {
+    setRowEdit(r.ok ? { key: node.key, kind: "done", message: r.message } : { ...(rowEdit || { key: node.key }), busy: false, message: r.message });
+    if (r.ok) loadTableRows().then(setTableRows);
+  };
+  const withdrawRow = async (node) => {
+    setRowEdit({ key: node.key, kind: "withdraw", busy: true });
+    afterRowAct(node, await withdrawApplication(node.applicationId));
+  };
+  const saveRowEdit = async (node) => {
+    const e = rowEdit;
+    setRowEdit({ ...e, busy: true });
+    afterRowAct(node, e.kind === "date"
+      ? await setInterviewDate(node.applicationId, e.date, e.time)
+      : await saveNoteWhy(node.applicationId, e.note));
   };
   const portalFor = (node) => applyGatePortals.find(p => (applyHandoffPackets || []).some(k => k.expectedOrigin === p.origin && String(k.jobId) === String(node.jobId)));
   const yourself = (row) => row?.applyUrl
@@ -537,10 +556,19 @@ export function AutoApplyPanel() {
         { id: "pass", label: "Pass", onClick: () => pickAct(node, "pass") },
       ] : [];
       // Sent and replied: the application's own page holds the prep, the emails and the outcome.
-      case "sent": return [{ id: "heard", label: "I heard back", kind: "primary", onClick: () => openFull(node.jobId) }];
+      // U5: Withdraw, Add the date and Note why act here (on the ladder; nothing is sent to the employer).
+      case "sent": return r.closedByCandidate ? [] : [
+        { id: "heard", label: "I heard back", kind: "primary", onClick: () => openFull(node.jobId) },
+        { id: "withdraw", label: "Withdraw", disabled: rowEdit?.key === node.key && !!rowEdit.busy,
+          title: "Marks it withdrawn in draft. The employer is not told.", onClick: () => withdrawRow(node) },
+      ];
       case "reply": {
-        const label = { interview: "Open interview prep", assessment: "Prep for it", offer: "Open it", rejected: "Note why" }[node.status] || "Open it";
-        return [{ id: "reply", label, kind: "primary", onClick: () => openFull(node.jobId) }];
+        if (node.status === "rejected") return [{ id: "note", label: "Note why", kind: "primary",
+          onClick: () => setRowEdit({ key: node.key, kind: "note", note: r.note || "" }) }];
+        const label = { interview: "Open interview prep", assessment: "Prep for it", offer: "Open it" }[node.status] || "Open it";
+        return [{ id: "reply", label, kind: "primary", onClick: () => openFull(node.jobId) },
+          ...(node.status === "interview" ? [{ id: "date", label: "Add the date",
+            onClick: () => setRowEdit({ key: node.key, kind: "date", date: "", time: "" }) }] : [])];
       }
       default: return [];
     }
@@ -698,6 +726,28 @@ export function AutoApplyPanel() {
               {answersMsg && <span className="dh-fold__quiet" role="status">{answersMsg}</span>}
             </div>
           )}
+          {/* U5 · Add the date / Note why, inline in the lead card; a result line after any of the three. */}
+          {rowEdit?.key === node.key && (rowEdit.kind === "date" || rowEdit.kind === "note") && (
+            <div className="dht-ask" data-row-edit={rowEdit.kind}>
+              {rowEdit.kind === "date" ? (
+                <>
+                  <input type="date" aria-label="Interview date" value={rowEdit.date}
+                    onChange={(e) => setRowEdit({ ...rowEdit, date: e.target.value })} />
+                  <input type="time" aria-label="Interview time (optional)" value={rowEdit.time}
+                    onChange={(e) => setRowEdit({ ...rowEdit, time: e.target.value })} />
+                </>
+              ) : (
+                <textarea aria-label="Why they said no" rows={3} maxLength={2000} value={rowEdit.note}
+                  onChange={(e) => setRowEdit({ ...rowEdit, note: e.target.value })} />
+              )}
+              <div className="dht-acts">
+                <button type="button" className="dh-btn" data-kind="primary" data-action="save-row-edit"
+                  disabled={!!rowEdit.busy || (rowEdit.kind === "date" && !rowEdit.date)} onClick={() => saveRowEdit(node)}>Save</button>
+                <button type="button" className="dh-btn" onClick={() => setRowEdit(null)}>Cancel</button>
+              </div>
+            </div>
+          )}
+          {rowEdit?.key === node.key && rowEdit.message && <span className="dh-fold__quiet" role="status">{rowEdit.message}</span>}
         </LeadCard>
         {leavesFor(node).map(l => {
           const lid = `${node.key}:${l.id}`;

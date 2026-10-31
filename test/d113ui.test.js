@@ -18,7 +18,12 @@ import {
   RINGS, RING_ORDER, LADDER_RING, ringFor, FILTERS, buildNodes, buildTree, treeView, sideBlocks, SIDE_ORDER,
   branchStep, createLeafCache, answerRows, inlineAnswerStart, leftOutLines, nextRunFromSettings, matchesSearch,
 } from "../client/src/lib/draftHouseTree.js";
-import { loadRuns, loadLeftOut, actOnPick, makePickResume, D113_ROUTES } from "../client/src/lib/draftHouseRuns.js";
+import {
+  loadRuns, loadLeftOut, actOnPick, makePickResume, D113_ROUTES, withdrawApplication, saveNoteWhy, setInterviewDate, ROW_ROUTES,
+} from "../client/src/lib/draftHouseRuns.js";
+import pipelineRoutes from "../routes/pipeline.js";
+import interviewRoutes from "../routes/interview.js";
+import { ROW_ACTIONS } from "../services/pipelineWorkspace.js";
 import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
@@ -504,4 +509,107 @@ test("d113uiMakeItNow — a pick's résumé is made on the press, before Apply: 
   assert.equal((await makePickResume(61, async (p, o) => { calls.push([p, o.method]); return { message: "Made. Nothing was sent.", atsScore: 81 }; })).ok, true);
   assert.deepEqual(calls, [["/api/picks/61/resume", "POST"]]);
   assert.match(read("server.js"), /picksConfirmRoutes\(app, db, requireAuth, \{[^}]*generateResume: generateResumeForApply \}\);/);
+});
+
+/** A sent application on the ladder: a verified record + its job_applications row with `outcome`. Returns the record id. */
+function sentApp(db, { userId = 1, jobId = "gh::1", outcome = null, verified = true, notes = null } = {}) {
+  db.prepare("INSERT INTO application_records (user_id, job_id, state, origin) VALUES (?, ?, ?, 'draft')").run(userId, jobId, verified ? "verified" : "recorded");
+  if (verified) {
+    db.prepare("INSERT INTO job_applications (user_id, job_id, company, role, response_outcome, notes, applied_at) VALUES (?, ?, 'Northwind', 'Backend Engineer', ?, ?, 1793000000)")
+      .run(userId, jobId, outcome, notes);
+  }
+  return db.prepare("SELECT id FROM application_records WHERE user_id = ? AND job_id = ?").pluck().get(userId, jobId);
+}
+const leadActions = (node, ids) => panel.slice(at(panel, `case "${node}":`), at(panel, ids));
+
+test("d113uiWithdrawRecordsOnly — Withdraw is on a sent, unanswered row only; it records 'withdrawn' on the ladder and sends nothing", async () => {
+  const db = leftoverDb();
+  const id = sentApp(db);
+  const t = await mountOn((app, auth) => pipelineRoutes(app, db, auth));
+  try {
+    const r = await t.call(`/api/pipeline/job/${id}/withdraw`);
+    assert.equal(r.status, 200);
+    assert.equal(r.body.row.status, "submitted", "D102: a withdrawn one stays Submitted on the ladder…");
+    assert.equal(r.body.row.closedByCandidate, true, "…closed by the candidate");
+    const ja = db.prepare("SELECT * FROM job_applications WHERE user_id = 1 AND job_id = 'gh::1'").get();
+    assert.equal(ja.response_outcome, "withdrawn");
+    assert.equal(ja.outcome_source, "manual");
+    assert.equal(ja.first_response_at, null, "a withdrawal is not a reply from the employer");
+    // Once only; not on a reply; not on someone else's; not on a recorded-but-unverified one (nothing to record it on).
+    assert.equal((await t.call(`/api/pipeline/job/${id}/withdraw`)).status, 409);
+    assert.equal((await t.call(`/api/pipeline/job/${sentApp(db, { jobId: "gh::2", outcome: "interview" })}/withdraw`)).status, 409);
+    assert.equal((await t.call(`/api/pipeline/job/${sentApp(db, { userId: 2, jobId: "gh::3" })}/withdraw`)).status, 404);
+    const unverified = await t.call(`/api/pipeline/job/${sentApp(db, { jobId: "gh::4", verified: false })}/withdraw`);
+    assert.equal(unverified.status, 409);
+    assert.equal(unverified.body.error, "not_verified");
+    assert.equal((await t.call("/api/pipeline/job/x/withdraw")).status, 400);
+  } finally { t.server.close(); }
+  assert.deepEqual(ROW_ACTIONS.withdraw, ["submitted"]);
+  // ⛔ Nothing reaches the employer: the service and the route touch only the database (no mail, no portal, no worker).
+  for (const src of [code(read("services/pipelineWorkspace.js")), code(read("routes/pipeline.js"))]) {
+    assert.doesNotMatch(src, /fetch\(|sendEmail|notify|resend|applyWorker|portal/i);
+  }
+  // The tree: Withdraw beside I heard back on a sent row, gone once withdrawn, which reads "You withdrew it."
+  const sent = leadActions("sent", 'case "reply":');
+  assert.match(sent, /return r\.closedByCandidate \? \[\] : \[/);
+  assert.match(sent, /\{ id: "withdraw", label: "Withdraw",[\s\S]{0,200}onClick: \(\) => withdrawRow\(node\) \}/);
+  assert.match(panel, /afterRowAct\(node, await withdrawApplication\(node\.applicationId\)\);/);
+  const nodes = buildNodes({ now: NOW, companyLabel: label, tableRows: [{ id: 9, jobId: "w", status: "submitted", closedByCandidate: true, company: "Northwind", title: "SWE", updatedAt: NOW / 1000 }] });
+  assert.equal(nodes[0].say, "You withdrew it. It's closed.");
+  const calls = [];
+  assert.equal((await withdrawApplication(9, async (p, o) => { calls.push([p, o.method]); return {}; })).ok, true);
+  assert.deepEqual(calls, [["/api/pipeline/job/9/withdraw", "POST"]]);
+});
+
+test("d113uiAddTheDate — an interview's Add the date saves the date on D110's countdown, inline; only on an interview", async () => {
+  const db = leftoverDb();
+  const id = sentApp(db, { outcome: "interview" });
+  const t = await mountOn((app, auth) => interviewRoutes(app, db, auth));
+  try {
+    // The adapter's call, against D110's real route.
+    const base = `http://127.0.0.1:${t.server.address().port}`;
+    const via = (p, o) => fetch(base + p, { ...o, headers: { "content-type": "application/json" } })
+      .then(async r => { const b = await r.json(); if (!r.ok) throw Object.assign(new Error(b.message || b.error), { status: r.status }); return b; });
+    assert.equal((await setInterviewDate(id, "2026-11-12", "14:30", via)).ok, true);
+    assert.deepEqual(db.prepare("SELECT date_ymd, time_hm FROM interview_prep WHERE user_id = 1 AND application_id = ?").get(id), { date_ymd: "2026-11-12", time_hm: "14:30" });
+    const bad = await setInterviewDate(id, "2026-02-30", null, via);
+    assert.equal(bad.ok, false);
+    assert.match(bad.message, /YYYY-MM-DD/);
+  } finally { t.server.close(); }
+  assert.equal(ROW_ROUTES.date(5), "/api/interview/prep/5/date");
+  assert.deepEqual(ROW_ACTIONS.date, ["interview"]);
+  const reply = leadActions("reply", "default: return [];");
+  assert.match(reply, /\.\.\.\(node\.status === "interview" \? \[\{ id: "date", label: "Add the date",\s*onClick: \(\) => setRowEdit\(\{ key: node\.key, kind: "date", date: "", time: "" \}\) \}\] : \[\]\)/);
+  assert.doesNotMatch(reply, /"Note why"[^\n]*openFull/, "no longer an 'open the job' link");
+  const editor = panel.slice(at(panel, "U5 · Add the date / Note why, inline"), at(panel, "</LeadCard>\n        {leavesFor(node)"));
+  assert.match(editor, /<input type="date" aria-label="Interview date"/);
+  assert.match(editor, /disabled=\{!!rowEdit\.busy \|\| \(rowEdit\.kind === "date" && !rowEdit\.date\)\}/);
+  assert.match(panel, /\? await setInterviewDate\(node\.applicationId, e\.date, e\.time\)/);
+});
+
+test("d113uiNoteWhy — a rejection's Note why saves the user's note on the application; only on a rejection; nothing sent", async () => {
+  const db = leftoverDb();
+  const id = sentApp(db, { outcome: "rejected", notes: "old" });
+  const t = await mountOn((app, auth) => pipelineRoutes(app, db, auth));
+  try {
+    const r = await t.call(`/api/pipeline/job/${id}/note`, "PUT", { note: "  They wanted more Go experience.  " });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.row.note, "They wanted more Go experience.");
+    assert.equal(db.prepare("SELECT notes FROM job_applications WHERE user_id = 1 AND job_id = 'gh::1'").pluck().get(), "They wanted more Go experience.");
+    assert.equal(db.prepare("SELECT response_outcome FROM job_applications WHERE user_id = 1 AND job_id = 'gh::1'").pluck().get(), "rejected", "the outcome is untouched");
+    // The tree's rows carry the note, so the editor opens with it.
+    const rows = await t.call("/api/pipeline?surface=table", "GET");
+    assert.equal(rows.body.rows.find(x => x.id === id).note, "They wanted more Go experience.");
+    assert.equal((await t.call(`/api/pipeline/job/${id}/note`, "PUT", { note: "x".repeat(2001) })).status, 400);
+    assert.equal((await t.call(`/api/pipeline/job/${id}/note`, "PUT", { note: "" })).body.row.note, null, "empty clears");
+    assert.equal((await t.call(`/api/pipeline/job/${sentApp(db, { jobId: "gh::2" })}/note`, "PUT", { note: "n" })).status, 409, "not on a sent, unanswered one");
+    assert.equal((await t.call(`/api/pipeline/job/${sentApp(db, { userId: 2, jobId: "gh::3", outcome: "rejected" })}/note`, "PUT", { note: "n" })).status, 404);
+  } finally { t.server.close(); }
+  assert.deepEqual(ROW_ACTIONS.note, ["rejected"]);
+  const reply = leadActions("reply", "default: return [];");
+  assert.match(reply, /if \(node\.status === "rejected"\) return \[\{ id: "note", label: "Note why", kind: "primary",\s*onClick: \(\) => setRowEdit\(\{ key: node\.key, kind: "note", note: r\.note \|\| "" \}\) \}\];/);
+  assert.match(panel, /: await saveNoteWhy\(node\.applicationId, e\.note\)\);/);
+  const calls = [];
+  await saveNoteWhy(4, "n", async (p, o) => { calls.push([p, o.method, o.body]); return {}; });
+  assert.deepEqual(calls, [["/api/pipeline/job/4/note", "PUT", '{"note":"n"}']]);
 });

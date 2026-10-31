@@ -138,6 +138,7 @@ export function buildNodes({
       : r.status === "assessment" ? "They sent an online assessment."
       : r.status === "offer" ? "They made you an offer."
       : r.status === "rejected" ? "They said no. It's closed."
+      : r.closedByCandidate ? "You withdrew it. It's closed."
       : sentDay(at, now);
     put({ key: `table-${r.id}`, kind: ring === "sent" ? "sent" : "reply", jobId: r.jobId ?? null, applicationId: r.id,
       company: companyLabel(r.company), title: s(r.title), status: r.status, ring, at, ref: r, say });
