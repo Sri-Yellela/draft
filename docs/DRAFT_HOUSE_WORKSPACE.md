@@ -112,8 +112,12 @@ on `GET /api/picks/runs` carries `resumeReady`.
   the ONE store of it: migration 200 adds `time_zone` and `interview_at` (that moment as epoch seconds) beside the date
   and time, so D110's countdown and Prep tab read the same row the tree does. The row carries it (`interview`) and
   says it — *"Interview Wed 4 Nov, 2 PM"* — and the action becomes **Change the date**, opened with what was saved.
-- **Note why** — `PUT /api/pipeline/job/:applicationId/note`, `rejected` only: `job_applications.notes` (The Table's
-  Notes column), ≤ 2000 characters. Inline in the lead card, opened with the current note.
+- **Note why** — `PUT /api/pipeline/job/:applicationId/note` `{ note, reasons }`, `rejected` only, the row's owner only:
+  a short private note (≤ 500 characters) and optional quick picks — *Not a fit · Level · Location · Visa / eligibility
+  · No reason given* (`shared/applicationResponse.js` `REJECTION_REASONS`) — in their own fields
+  (`job_applications.rejection_note` / `rejection_reasons`, migration 200; The Table's Notes column is left alone).
+  D111 may later count by the picks only; the note is never read by a model (D17). Inline in the lead card, opened
+  with what was saved.
 
 **Full page** opens the application's own page (`JobWorkspacePanel`, `/app/job/for/<jobId>`): beside the tree on a wide
 screen, the page itself below that.
