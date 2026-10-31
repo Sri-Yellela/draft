@@ -56,6 +56,53 @@ export const READINESS_COLUMNS = `COALESCE(s.postings, 0) AS postings, ${HAS_DEF
   n.unpublished_by, n.published_by, n.wiki_title, n.wikidata_id`;
 
 /**
+ * ⭐ BUG 10-31 · "Ask again": an unmatched node is skipped for 30 days after an answer said "no such article" — the
+ * curator's button clears that, so a run made while Wikipedia was refusing (or before a fix) is not a month lost.
+ * Only nodes with no title that no person touched; a curator's title or a cleared title is never re-asked by name.
+ * @returns {{ cleared: number }}
+ */
+export function askWikipediaAgain(db) {
+  const r = db.prepare(`UPDATE atlas_nodes SET wiki_checked_at = NULL
+    WHERE wiki_checked_at IS NOT NULL AND wiki_title IS NULL AND wiki_title_by IS NULL`).run();
+  return { cleared: r.changes };
+}
+
+const why = (reasons) => Object.entries(reasons || {}).filter(([k]) => k !== "200").map(([k, n]) => `${k} ×${n}`).join(", ");
+
+/**
+ * ⭐ BUG 10-31 · the ONE result line for a run of the pipeline — the admin button's and the nightly log's. It shows
+ * each step's own counters, and a step that failed or threw is an ERROR in the line, never a quiet "0 matched":
+ * the owner's screenshot read "0 Wikipedia title(s) matched …" and named no cause.
+ * @returns {{ ok: boolean, line: string }}
+ */
+export function describeAutoRun(r) {
+  const errors = [];
+  const t = r.titles || {}, d = r.wikidata || {}, w = r.wikipedia || {};
+  const n = r.autoPublish?.published?.length ?? 0;
+  if (t.error) errors.push(`Titles step crashed: ${t.error}`);
+  else {
+    if (t.failed) errors.push(`Wikipedia unreachable: ${t.failed} of ${t.requests} title request(s) failed (${why(t.reasons)})`);
+    if (t.stopped) errors.push(`Wikipedia asked us to slow down (${why(t.reasons)}) — stopped; the rest next run`);
+  }
+  if (d.error) errors.push(`Wikidata step crashed: ${d.error}`);
+  else if (d.failed) errors.push(`Wikidata unreachable: ${d.failed} of ${d.requests} request(s) failed (${why(d.reasons)})`);
+  if (w.error) errors.push(`Summaries step crashed: ${w.error}`);
+  else {
+    if (w.failed) errors.push(`Wikipedia summaries: ${w.failed} of ${w.due} failed (${why(w.reasons)})`);
+    if (w.stoppedAt429) errors.push(`Wikipedia summaries stopped at the rate limit`);
+  }
+  const parts = [
+    `Titles: ${t.due ?? 0} due · ${t.asked ?? 0} asked · ${t.notAsked ?? 0} not askable · ${t.requests ?? 0} request(s) · ${t.failed ?? 0} failed · ${t.matched ?? 0} matched`,
+    `Wikidata: ${d.official ?? 0} official link(s) of ${d.due ?? 0} due`,
+    `Summaries: ${w.fetched ?? 0} of ${w.due ?? 0} read`,
+    `${n} page(s) published`,
+  ];
+  if (!errors.length && (t.due ?? 0) === 0 && (w.due ?? 0) === 0 && n === 0)
+    parts.push(`nothing was due — every unmatched node was asked in the last 30 days; "Ask Wikipedia again" clears that`);
+  return { ok: errors.length === 0, line: [...errors, parts.join(" · ")].join(" — ") };
+}
+
+/**
  * The network half of the nightly run, then the bar: Wikipedia titles + Wikidata items → Wikidata resources →
  * Wikipedia summaries → autoPublish. Each step is polite and capped (its own module); a step that fails does not
  * stop the bar, which then reads what is already cached.
@@ -67,5 +114,6 @@ export async function runAtlasAutoPipeline(db, opts = {}) {
   await step("wikidata", () => wikidataResources(db, opts));
   await step("wikipedia", () => refreshWikiSummaries(db, { ...opts, ...(opts.wikiPauseMs != null ? { pauseMs: opts.wikiPauseMs } : {}) }));
   out.autoPublish = autoPublish(db, opts);
+  Object.assign(out, describeAutoRun(out));
   return out;
 }

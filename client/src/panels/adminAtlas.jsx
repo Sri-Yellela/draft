@@ -269,7 +269,11 @@ export function AtlasTab() {
   };
   const refreshWiki = async () => {
     setBusy("wiki"); setSaid(null);
-    try { const r = await api("/api/admin/atlas/wiki/refresh", { method: "POST" }); setSaid({ ok: true, text: `Wikipedia: ${r.fetched} of ${r.due} due summaries read${r.stoppedAt429 ? " — stopped at Wikipedia's rate limit; the rest tomorrow" : ""}.` }); }
+    try {
+      const r = await api("/api/admin/atlas/wiki/refresh", { method: "POST" });
+      const why = Object.entries(r.reasons || {}).map(([k, n]) => `${k} ×${n}`).join(", ");
+      setSaid({ ok: !r.failed, text: `Wikipedia: ${r.fetched} of ${r.due} due summaries read${r.failed ? ` — ${r.failed} failed (${why})` : ""}${r.stoppedAt429 ? " — stopped at Wikipedia's rate limit; the rest tomorrow" : ""}.` });
+    }
     catch (e) { setSaid({ ok: false, text: e.message }); }
     finally { setBusy(null); }
   };
@@ -278,10 +282,17 @@ export function AtlasTab() {
     setBusy("auto"); setSaid(null);
     try {
       const r = await api("/api/admin/atlas/auto/run", { method: "POST" });
-      const n = r.autoPublish?.published?.length ?? 0;
-      setSaid({ ok: true, text: `Auto-publish: ${r.titles?.matched ?? 0} Wikipedia title(s) matched, ${r.wikidata?.official ?? 0} official link(s) from Wikidata, ${r.wikipedia?.fetched ?? 0} summaries read, ${n} page(s) published.` });
+      // ⭐ BUG 10-31: the server's describeAutoRun line — each step's counters, and a failure named as an error.
+      setSaid({ ok: !!r.ok, text: `Auto-publish: ${r.line}` });
       load();
     } catch (e) { setSaid({ ok: false, text: e.message }); }
+    finally { setBusy(null); }
+  };
+
+  const askAgain = async () => {
+    setBusy("ask"); setSaid(null);
+    try { const r = await api("/api/admin/atlas/wiki/ask-again", { method: "POST" }); setSaid({ ok: true, text: `${r.cleared} unmatched node(s) will be asked again on the next run — press Run auto-publish now.` }); }
+    catch (e) { setSaid({ ok: false, text: e.message }); }
     finally { setBusy(null); }
   };
 
@@ -305,6 +316,7 @@ export function AtlasTab() {
         <DepthButton size="compact" disabled={busy === "links"} onClick={checkLinks} data-atlas-check-links="">Check links now</DepthButton>
         <DepthButton size="compact" disabled={busy === "wiki"} onClick={refreshWiki} data-atlas-refresh-wiki="">Refresh Wikipedia</DepthButton>
         <DepthButton size="compact" disabled={busy === "auto"} onClick={runAuto} data-atlas-run-auto="">Run auto-publish now</DepthButton>
+        <DepthButton size="compact" disabled={busy === "ask"} onClick={askAgain} data-atlas-ask-again="">Ask Wikipedia again</DepthButton>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10, marginBottom: 12 }}>
         <AtlasAddNode say={setSaid} onAdded={(node) => { load(); setOpen(node.slug); }} />
