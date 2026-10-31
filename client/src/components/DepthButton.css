@@ -25,6 +25,11 @@
 .dbx--compact { height: 30px; padding: 0 11px; font-size: 11.5px; border-radius: 9px; }
 .dbx--square { width: 48px; height: 48px; padding: 0; }
 .dbx--square.dbx--p { font-size: 17px; letter-spacing: -.05em; }
+/* The wrapping variant (`wrap`): a long label wraps inside its column and the box grows with its text — the height
+   becomes a minimum, never a fixed size (fixed heights stay for icon-only squares). */
+.dbx--wrap { white-space: normal; height: auto; max-width: 100%; flex-shrink: 1; min-width: 0; box-sizing: border-box; text-align: left; justify-content: flex-start; line-height: 1.25; overflow-wrap: anywhere; }
+.dbx--wrap.dbx--box { min-height: 42px; padding-block: 9px; }
+.dbx--wrap.dbx--compact { min-height: 30px; padding-block: 6px; }
 
 .dbx__badge {
   position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; border-radius: 6px; padding: 0 4px;
