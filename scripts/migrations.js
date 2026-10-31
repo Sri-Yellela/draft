@@ -5596,4 +5596,17 @@ export const MIGRATIONS = [
         ALTER TABLE job_applications ADD COLUMN rejection_reasons TEXT;
       `,
     },
+    {
+      // ⭐ D116 M1 · THE TREE'S FAMILIES (owner 10-31): `family` is a STORED field on atlas_nodes — ML · Systems · Infra ·
+      // Data · Backend (shared/atlasFamilies.js; more may be added there, so no CHECK: SQLite cannot widen one, see 194).
+      // Assigned ONCE per node: the boot seed (content/atlas/families.json, reviewed by the owner) fills only a node whose
+      // `family_by` is NULL, and a curator's choice in Admin → Atlas — set or cleared — writes `family_by` and sticks.
+      // A node with no family is not drawn on the tree; it stays in search and on its page. After 200 (the Draft House leftovers).
+      id: "201_atlas_node_family",
+      sql: `
+        ALTER TABLE atlas_nodes ADD COLUMN family TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN family_by TEXT;
+        CREATE INDEX IF NOT EXISTS idx_atlas_nodes_family ON atlas_nodes(family);
+      `,
+    },
   ];

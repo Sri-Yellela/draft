@@ -321,6 +321,23 @@ export function liveRoleLevels(db) {
   return counts;
 }
 
+const readingsMemo = new WeakMap();   // db → { version, rows }
+/**
+ * ⭐ D116 M1 · every active posting's reading as it stands in the live rows — { asked: [node id], roleId, level } — for
+ * the tree's closeness ("57 % of those also ask for two or more skills you have") and the family page's shares. The
+ * readings the counts were moved by, so the two always agree. Read once per version of the store; null with no baseline.
+ */
+export function liveReadings(db) {
+  const version = liveVersion(db);
+  if (version == null) return null;
+  const m = readingsMemo.get(db);
+  if (m && m.version === version) return m.rows;
+  const rows = db.prepare(`SELECT role_id, level, asked FROM atlas_posting_match`).raw().all()
+    .map(([roleId, level, asked]) => ({ roleId, level, asked: ids(asked) }));
+  readingsMemo.set(db, { version, rows });
+  return rows;
+}
+
 /** A posting's stored D114 links (every node id, published or not), or null when it has none current. */
 export function liveLinksOf(db, postingId) {
   let row;

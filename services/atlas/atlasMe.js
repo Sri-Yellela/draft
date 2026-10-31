@@ -27,6 +27,7 @@ import { learnStepForNode, learnStepPath } from "../learn/learnLinks.js";
 import { learnContent, stepsOf } from "../learn/learnContent.js";
 import { readProgress } from "../learn/learnProgress.js";
 import { stepState } from "../../shared/learnStepState.js";
+import { yourTree, nodeLearnStates } from "./atlasTree.js";
 
 /** ⭐ D116 · EVERY threshold of YOUR MAP — tuned here, from real use, and nowhere else (d116ThresholdsOneFile). */
 export const YOUR_MAP = Object.freeze({
@@ -50,6 +51,27 @@ export const YOUR_MAP = Object.freeze({
   SEE_ALL_MAX: 500,
   /** the signed-out "Explore by role": how many top skills each role shows */
   EXPLORE_ROLE_SKILLS: 6,
+  // ── ⭐ D116 M1 · THE TREE (atlasTree.js reads these; the drawing's own geometry is the client's, M2) ──
+  /** closeness: a posting is "close" to the user when it also asks for at least this many of their skills */
+  CLOSE_MIN_MINE: 2,
+  /** at most this many nodes per family on the tree (highest postings × closeness); the rest in the family's list */
+  TREE_PER_FAMILY: 12,
+  /** the route to the aim: measured over the aim role's top this-many skills (its senior postings when measured) */
+  ROUTE_SKILLS: 15,
+  /** the route's words: steps up to this one come "early" … */
+  ROUTE_EARLY_STEPS: 3,
+  /** …up to this one "mid-way", after it "later" */
+  ROUTE_MIDWAY_STEPS: 6,
+  /** the facts name this many of the user's skills a node is asked with ("(Kubernetes, Docker and AWS)") */
+  ASKED_WITH_NAMES: 3,
+  /** "It opens toward: …" names this many */
+  OPENS_TOWARD_NAMES: 6,
+  /** a role page's tree: the role's top this-many skills (M7) */
+  ROLE_TREE_SKILLS: 15,
+  /** "You cover 6 of 15; missing Spark 64 %, …" names this many missing skills */
+  ROLE_TREE_MISSING_NAMES: 4,
+  /** a family page's tree: at most this many of the family's skills drawn (by postings); the rest in its list */
+  FAMILY_TREE_MAX: 24,
 });
 
 // The user's level → the band their next level is measured against. D116: "entry/early → mid, mid → senior" — entry
@@ -107,8 +129,44 @@ function inBand(r, band) {
   return out;
 }
 
+// ⭐ D116 M1 · the tree's mid → senior facts: "22 % of mid ML postings, 61 % of senior (+39 points)", and the orange
+// ring (rises toward senior: the senior share minus the mid share ≥ NEXT_LEVEL_RISE_POINTS — the same rule as nextLevel).
+const MID_BAND = LEVEL_BANDS.findIndex(b => b.label === "mid");
+const SENIOR_BAND = LEVEL_BANDS.findIndex(b => b.label === "senior");
+export const AIM_LEVEL = LEVEL_BANDS[SENIOR_BAND].label;
+
+/**
+ * One role's mid → senior reading, or null when either level has fewer than NEXT_LEVEL_MIN_POSTINGS postings read (M9:
+ * the line is not shown). @returns {null | (nodeId) => { mid, senior, rise, rises }}
+ */
+export function midSeniorFor(rollup, roleId) {
+  const r = rollup.roles.get(roleId);
+  const m = inBand(r, MID_BAND), s = inBand(r, SENIOR_BAND);
+  if (m.postings < YOUR_MAP.NEXT_LEVEL_MIN_POSTINGS || s.postings < YOUR_MAP.NEXT_LEVEL_MIN_POSTINGS) return null;
+  return (id) => {
+    const cm = m.skill.get(id) || 0, cs = s.skill.get(id) || 0;
+    const mid = pct(cm / m.postings), senior = pct(cs / s.postings);
+    // In whole numbers, as levelRises: no float rounding decides the ring.
+    const rises = 100 * (cs * m.postings - cm * s.postings) >= YOUR_MAP.NEXT_LEVEL_RISE_POINTS * m.postings * s.postings;
+    return { mid, senior, rise: senior - mid, rises };
+  };
+}
+
+/** The aim role's skill counts: its senior postings when that level is measured, else all its postings. */
+export function aimSkillCounts(rollup, roleId) {
+  const r = rollup.roles.get(roleId);
+  const s = inBand(r, SENIOR_BAND);
+  return s.postings >= YOUR_MAP.NEXT_LEVEL_MIN_POSTINGS ? s.skill : (r?.skill ?? new Map());
+}
+
+/** The user's level band's label ("early-career" · "mid" · "senior"), or null with no level read. */
+export function userBandLabel(db, userId) {
+  const b = bandOfRank(userLevelFor(db, userId));
+  return b < 0 ? null : LEVEL_BANDS[b].label;
+}
+
 export function atlasIndex(db) {
-  const nodes = db.prepare(`SELECT n.id, n.slug, n.kind, n.name, n.term, n.status, COALESCE(s.postings, 0) AS postings, s.top_skills_json
+  const nodes = db.prepare(`SELECT n.id, n.slug, n.kind, n.name, n.term, n.status, n.family, COALESCE(s.postings, 0) AS postings, s.top_skills_json
     FROM atlas_nodes n LEFT JOIN atlas_node_stats s ON s.node_id = n.id`).all();
   const byId = new Map(nodes.map(n => [n.id, n]));
   const published = (id) => byId.get(id)?.status === "published";
@@ -301,9 +359,15 @@ export function computeYourMap(db, userId, { all = null } = {}) {
   const terms = profileTerms(db, userId);
   if (!terms.size) return { signedIn: true, map: false, reason: "no_profile_skills", ...explore(db, idx) };
   const have = idx.nodes.filter(n => n.kind !== "role" && n.status === "published" && terms.has(n.term));
-  const haveIds = new Set(have.map(n => n.id));
+  const profileIds = new Set(have.map(n => n.id));
   const rollup = boardCounts(db, idx.nodes);
   const targets = targetRoleIds(db, userId, postingMatcher(db, idx.nodes.filter(n => n.kind === "role" && n.status === "published")));
+  // ⭐ D116 M8 · the course unlocks the tree: a node whose teaching step is complete is LEARNED, and the sections, the
+  // route and Next up recompute as if the user had it. ⛔ It is not on the Profile (nor the résumé) — `have` stays the
+  // Profile's, and closeness counts only the Profile's skills (the board does not know what someone learned).
+  const learning = nodeLearnStates(db, userId, idx);
+  const learnedIds = new Set([...learning].filter(([id, l]) => l.state.complete && !profileIds.has(id)).map(([id]) => id));
+  const haveIds = new Set([...profileIds, ...learnedIds]);
   const ctx = { idx, rollup, have, haveIds, targets };
   const haveSkills = haveSection(have, all === "haveSkills");
   const nextLevel = nextLevelSection(db, userId, ctx, all === "nextLevel");
@@ -316,10 +380,13 @@ export function computeYourMap(db, userId, { all = null } = {}) {
     ...branches.items.flatMap(b => b.missing.map(m => ({ slug: m.slug, name: m.name, from: "branches" }))),
   ];
   const learnNext = learnNextSection(db, userId, { idx, gaps }, all === "learnNext");
+  // ⭐ D116 M1 · the tree: one response draws the whole map (the client only lays it out, M2).
+  const tree = yourTree(db, userId, { idx, rollup, profileIds, learnedIds, learning, targets });
   return {
     signedIn: true, map: true,
     targetRoles: targets.map(id => nodeOut(idx.byId.get(id))),
     board: { postings: rollup.postings, levelRead: rollup.levelRead },
+    tree,
     haveSkills, nextLevel, adjacent, branches, learnNext,
     ...(have.length ? {} : { reason: "no_skills_on_the_atlas", ...explore(db, idx) }),
   };

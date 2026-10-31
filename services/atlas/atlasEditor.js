@@ -9,6 +9,7 @@
 // reader should be handed.
 
 import { upsertNode, addEdge, addAlias, aliasesOf, KINDS, EDGE_TYPES, termOf, RESOURCE_ORDER_SQL } from "./atlasStore.js";
+import { FAMILY_KEYS, isFamily } from "../../shared/atlasFamilies.js";
 
 export const RESOURCE_LEVELS = Object.freeze(["beginner", "intermediate", "advanced"]);
 export const RESOURCE_FORMATS = Object.freeze(["course", "docs", "book", "video", "tutorial", "article", "practice"]);
@@ -37,8 +38,12 @@ export function createNode(db, { kind, name, definition = null, wikiTitle = null
 const cleanText = (v) => { const s = String(v ?? "").trim().slice(0, 4000); return s || null; };
 const cleanWikiTitle = (v) => { const s = String(v ?? "").trim().replace(/\s+/g, "_").slice(0, 200); return s || null; };
 
-/** Edit a node's definition (draft's own words) and the Wikipedia title its summary is read from. */
-export function updateNode(db, slug, { definition, wikiTitle } = {}) {
+/**
+ * Edit a node's definition (draft's own words), the Wikipedia title its summary is read from, and — ⭐ D116 M1 — its
+ * family (one of shared/atlasFamilies.js, or "" / null for none). The curator's family, set or cleared, sticks: family_by
+ * names them, and the boot seed (atlasFamilies.js) only fills a node whose family_by is NULL.
+ */
+export function updateNode(db, slug, { definition, wikiTitle, family } = {}, by = "owner") {
   const n = nodeBySlug(db, slug);
   if (!n) bad("not_found");
   const sets = [], args = [];
@@ -60,6 +65,11 @@ export function updateNode(db, slug, { definition, wikiTitle } = {}) {
       sets.push("wikidata_id = NULL", "wiki_checked_at = NULL", "wikidata_checked_at = NULL");
     }
   }
+  if (family !== undefined) {
+    const f = family == null || family === "" ? null : String(family);
+    if (f != null && !isFamily(f)) bad("bad_family", `a family is one of ${FAMILY_KEYS.join(", ")}, or none`);
+    sets.push("family = ?", "family_by = ?"); args.push(f, String(by || "owner"));
+  }
   if (!sets.length) return false;
   db.prepare(`UPDATE atlas_nodes SET ${sets.join(", ")}, updated_at = unixepoch() WHERE id = ?`).run(...args, n.id);
   return true;
@@ -77,7 +87,7 @@ export function readNodeForEditor(db, slug) {
   const resources = db.prepare(`SELECT id, url, title, level, format, hours, cost, checked_at AS checkedAt, check_status AS checkStatus, source
     FROM atlas_resources WHERE node_id = ? ORDER BY ${RESOURCE_ORDER_SQL}`).all(n.id);
   return { slug: n.slug, kind: n.kind, name: n.name, status: n.status, source: n.source, definition: n.definition,
-    wikiTitle: n.wiki_title, wikiTitleBy: n.wiki_title_by, wikidataId: n.wikidata_id,
+    wikiTitle: n.wiki_title, wikiTitleBy: n.wiki_title_by, wikidataId: n.wikidata_id, family: n.family ?? null, familyBy: n.family_by ?? null,
     publishedBy: n.published_by, unpublishedBy: n.unpublished_by, aliases: aliasesOf(db, n.term), edges, resources };
 }
 
