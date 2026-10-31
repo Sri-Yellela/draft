@@ -16,6 +16,7 @@
 // The policy is one row (board_policy, migration 146) — changed from Admin with no redeploy.
 
 import { toActor } from "../actor.js";
+import { atlasPostingsChanged } from "../atlas/atlasLive.js";
 
 export const DEFAULT_LIMIT_DAYS = 120;
 const DAY = 86400;
@@ -130,5 +131,6 @@ export function retireRows(db, rows, reason, now = Math.floor(Date.now() / 1000)
       s.retire.run(r.job_id);
       s.reject.run({ job_id: r.job_id, title: r.title || "", company: r.company || "", source: r.source || "", reason, rejected_at: now });
     }
+    atlasPostingsChanged(db);   // ⭐ D118 P1: the retired postings leave the Atlas counts in this transaction
   })();
 }

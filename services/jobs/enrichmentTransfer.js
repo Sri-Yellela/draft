@@ -77,6 +77,7 @@ import {
   openBatch, closeBatch, captureBefore, recordBatchRow, columnChanges, batchProvenanceAvailable, optionalTracked,
 } from './enrichmentBatches.js';
 import { notifyEnrichmentApplied } from './enrichJob.js';
+import { atlasPostingsChanged } from '../atlas/atlasLive.js';
 
 /** Posting fields that describe the SOURCE. Exported for context; never writable on import. */
 export const SOURCE_FIELDS = [
@@ -494,6 +495,7 @@ export function applyImport(db, jsonlText, {
       }
       written++;
     }
+    atlasPostingsChanged(db);   // ⭐ D118 P1: a posting's new skills list moves its Atlas reading in this transaction
   })();
 
   if (batchId != null) {

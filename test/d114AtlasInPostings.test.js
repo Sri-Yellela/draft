@@ -230,18 +230,19 @@ test("D114 · d114WikipediaAttributed — with no definition the meaning is Wiki
 test("D114 · d114PeekLazy — the popup is read on the first hover / focus only, once per term; nothing is preloaded for the posting", async () => {
   const lib = read("client/src/lib/atlasLinks.js");
   const peek = lib.slice(at(lib, "export function peekAtlas"), at(lib, "export function atlasLinkEvent"));
-  assert.match(peek, /if \(!peekCache\.has\(slug\)\)/);
+  // ⭐ D118 P1 (changed on purpose): once per term per MINUTE — the count moves with the board.
+  assert.match(peek, /if \(!hit \|\| now - hit\.at >= PEEK_KEEP_MS\)/);
   const src = read("client/src/components/AtlasTerm.jsx");
   assert.ok(at(src, "peekAtlas(slug)") > at(src, "function Popup("), "only the open Popup reads it");
   assert.ok(at(src, "peekAtlas(slug)") < at(src, "export function AtlasTerm("));
   assert.doesNotMatch(src.slice(at(src, "export function AtlasText")), /peekAtlas/, "the text never asks");
-  // The peek itself: public and cached for an hour signed out, private when it says something about the reader.
+  // The peek itself: public and cached for a minute signed out (D118 P1; was an hour), private when it says something about the reader.
   const db = fixtureDb();
   const k = publish(db, "tool", "Kubernetes");
   const s = await api(db);
   try {
     const r = await s.get(`/api/atlas/peek/${k}`);
-    assert.equal(r.headers.get("cache-control"), "public, max-age=3600");
+    assert.equal(r.headers.get("cache-control"), "public, max-age=60");
     // learnStep (D115 P4(d)): Kubernetes is taught by a step of the owner's path.
     assert.deepEqual(Object.keys(await r.json()).sort(), ["firstResource", "fromWikipedia", "kind", "learnStep", "meaning", "name", "postings", "slug", "wikipediaUrl"]);
     // P5: a count, nothing else.

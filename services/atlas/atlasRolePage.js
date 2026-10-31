@@ -10,9 +10,11 @@
 //   nextLevel   D116's "to reach the next level" for THIS role, every step (early-career → mid, mid → senior), by the
 //               same rule YOUR MAP uses (atlasMe.js levelRises) — not the reader's profile, so nothing is skipped
 // A definition, when one exists, is shown above it by the page; nothing here writes text. ⛔ No model (D17).
-// ⛔ ONE MATCHER, ONE ROLLUP: the per-role counts are atlasMe.js boardCounts (the nightly pass's, kept in memory).
+// ⛔ ONE MATCHER, ONE ROLLUP: the per-role counts are atlasMe.js boardCounts (the live rows, D118 P1 — the nightly
+// pass's, moved by every posting ingested, changed or closed since).
 
 import { atlasIndex, boardCounts, levelRises, LEVEL_BANDS } from "./atlasMe.js";
+import { atlasPostingsChanged } from "./atlasLive.js";
 import { companiesForRole } from "./atlasSponsors.js";
 import { LEVELS_READ } from "../../shared/postingLevel.js";
 
@@ -28,6 +30,7 @@ const nodeOut = (n) => ({ slug: n.slug, kind: n.kind, name: n.name });
  *   unread }, pay, companies: { total, items: [{ company, postings }] }, nextLevel: [{ from, to, postings, reason?, items }] }}
  */
 export function roleBoard(db, slug) {
+  atlasPostingsChanged(db);   // ⭐ D118 P1: the live rows, with any posting written a moment ago
   const idx = atlasIndex(db);
   const role = idx.nodes.find(n => n.slug === String(slug));
   if (!role || role.kind !== "role" || role.status !== "published") return null;

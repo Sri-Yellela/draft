@@ -15,6 +15,7 @@ import {
   reconcileFingerprint, upsertCanonicalJob, fingerprintJob, gateOutOfMarket, previewFingerprint, SOURCE_LABELS,
 } from "./aggregator.js";
 import crypto from "node:crypto";
+import { atlasPostingsChanged } from "../atlas/atlasLive.js";
 import { classifyJob } from "./classifyJob.js";
 import { usEligibility, officeLocations } from "./usLocation.js";
 
@@ -68,6 +69,7 @@ export function ingestJob(db, { job, origin, userId = null, batchId = null, matc
     // is held off the SHARED board (demoted, logged in rejected_jobs) exactly as a crawled one is;
     // the caller still attaches it to the user and must say why it is not on the board.
     if (gate) outOfMarket = gateOutOfMarket(db, canonical, jobId, now);
+    atlasPostingsChanged(db);   // ⭐ D118 P1: the Atlas counts move with the posting
   } else {
     jobId = dedup.intoJobId;
     action = "attached";

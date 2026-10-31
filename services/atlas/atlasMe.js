@@ -14,11 +14,12 @@
 // ⛔ ONE MATCHER: a posting asks for a node by postingMatcher.js (re-exported by atlasStats.js) — the rule "asked for
 // in N" is counted by, without the company's boilerplate and from the requirements when the posting has them.
 // ⛔ Only PUBLISHED nodes appear in an answer. ⛔ Every threshold is in YOUR_MAP below, and only there.
-// The board half (per role × level × skill counts) is counted by the nightly stats pass in the same pass that counts
-// "asked for in N", and kept in memory (keyed on atlas_node_stats.computed_at); after a restart one pass of its own
-// counts it. The user half is computed on every read, so a profile change shows at once. Nothing is stored.
+// The board half (per role × level × skill counts) is the LIVE rows (⭐ D118 P1, atlasLive.js atlas_role_level_stats):
+// written by the nightly pass and moved by every posting ingested, changed or closed in between. Before the first full
+// pass one pass of its own counts it. The user half is computed on every read, so a profile change shows at once.
 
-import { postingMatcher, roleLevelsOfBoard, roleLevelsOfStats } from "./atlasStats.js";
+import { postingMatcher, roleLevelsOfBoard } from "./atlasStats.js";
+import { liveRoleLevels, atlasPostingsChanged } from "./atlasLive.js";
 import { profileTerms, KINDS } from "./atlasStore.js";
 import { userLevelFor } from "../picks.js";
 import { LEVELS_READ } from "../../shared/postingLevel.js";
@@ -76,14 +77,17 @@ let lazy = { db: null, key: null, counts: null };
 
 /**
  * The board half: per role, its postings and the postings asking for each node, in all and per level read
- * (atlasStats.js roleLevelCounts, through the ONE matcher). The nightly stats pass leaves them in memory; after a
- * restart, or on a board the pass has not seen, one pass of its own computes them, kept until the next stats pass.
+ * (atlasStats.js roleLevelCounts, through the ONE matcher). ⭐ D118 P1: the live rows (the queue drained first, so a
+ * posting written a moment ago is in them); before the first full pass, one pass of its own, kept until the next one.
  * @param opts { reuse: false — always count again (a test compares the two) }
  */
 export function boardCounts(db, nodes, { reuse = true } = {}) {
+  if (reuse) {
+    atlasPostingsChanged(db);
+    const live = liveRoleLevels(db);
+    if (live) return live;
+  }
   const computedAt = db.prepare(`SELECT MAX(computed_at) FROM atlas_node_stats`).pluck().get() ?? null;
-  const fromStats = reuse && computedAt != null ? roleLevelsOfStats(db, computedAt) : null;
-  if (fromStats) return fromStats;
   const key = `${computedAt}:${nodes.length}`;
   if (reuse && lazy.db === db && lazy.key === key) return lazy.counts;
   const counts = roleLevelsOfBoard(db, nodes);
@@ -291,6 +295,7 @@ function learnNextSection(db, userId, { idx, gaps }, all) {
  * @param opts { all: one of SECTIONS — that section is returned uncapped ("see all", up to SEE_ALL_MAX) }
  */
 export function computeYourMap(db, userId, { all = null } = {}) {
+  atlasPostingsChanged(db);   // ⭐ D118 P1: a posting written a moment ago is counted before anything is read
   const idx = atlasIndex(db);
   if (userId == null) return { signedIn: false, map: false, ...explore(db, idx) };
   const terms = profileTerms(db, userId);

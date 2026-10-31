@@ -33,6 +33,7 @@
 // empty, out of the candidate set forever.
 
 import { ENRICHMENT_COLUMNS } from './enrichmentSelection.js';
+import { atlasPostingsChanged } from '../atlas/atlasLive.js';
 
 /** The columns a revert has to restore: everything enrichment writes, plus its two stamps. */
 export const BATCH_TRACKED_COLUMNS = [...ENRICHMENT_COLUMNS, 'enriched_at', 'content_hash'];
@@ -227,6 +228,7 @@ export function revertBatch(db, batchId) {
     }
     db.prepare('UPDATE enrichment_batches SET reverted_at = ? WHERE id = ?')
       .run(Math.floor(Date.now() / 1000), batchId);
+    atlasPostingsChanged(db);   // ⭐ D118 P1: the restored skills lists move the Atlas readings in this transaction
   })();
   return { ok: true, restored, missing, rowsRecorded: rows.length };
 }

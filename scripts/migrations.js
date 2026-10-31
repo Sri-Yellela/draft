@@ -5524,4 +5524,61 @@ export const MIGRATIONS = [
         CREATE TRIGGER IF NOT EXISTS skill_synonyms_changed_del AFTER DELETE ON skill_synonyms BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
       `,
     },
+    {
+      // ⭐ D118 P1 · COUNTS MOVE WITH THE BOARD (services/atlas/atlasLive.js). The Atlas's counts are adjusted when a
+      // posting is ingested, changed or closed, not only by the nightly recount:
+      //   atlas_posting_match   each ACTIVE posting's reading by the one matcher — the nodes it is counted for, the nodes
+      //                         it links (D114, published or not; a read keeps the published ones), its role, level and
+      //                         company, its sentence hashes (the company's boilerplate counts) and the vocabulary key.
+      //                         What a posting ADDED is what its close SUBTRACTS — never re-guessed.
+      //   atlas_role_level_stats per role: its postings and the postings asking for each node, in all (level '') and per
+      //                         level read; node_id 0 = the role's own postings (D116 YOUR MAP, D105 P12 role pages)
+      //   atlas_live_state      the store's version (caches key on it), the baseline, the board's totals, the last drift
+      //   atlas_posting_dirty   postings written since the last pass. ⛔ Filled by TRIGGERS on scraped_jobs, so no write
+      //                         path can be missed — a crawl, an update, a close, an expiry, a delete, a script.
+      // ⚠ A rebuild of scraped_jobs drops these triggers — re-create them in that migration.
+      // ⛔ The triggers insert only when absent (WHERE NOT EXISTS), never INSERT OR IGNORE: the writing statement's own
+      // conflict clause overrides a trigger body's, so the crawl's upsert (ON CONFLICT DO UPDATE) turned IGNORE into ABORT.
+      id: "199_atlas_live_counts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS atlas_posting_match (
+          posting_id  INTEGER PRIMARY KEY,
+          company_key TEXT NOT NULL DEFAULT '',
+          role_id     INTEGER,
+          level       TEXT,
+          asked       TEXT NOT NULL DEFAULT '',
+          linked      TEXT NOT NULL DEFAULT '',
+          sentences   TEXT NOT NULL DEFAULT '',
+          vocab       TEXT NOT NULL,
+          matched_at  INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_atlas_posting_match_company ON atlas_posting_match(company_key);
+        CREATE TABLE IF NOT EXISTS atlas_role_level_stats (
+          role_id  INTEGER NOT NULL,
+          level    TEXT NOT NULL,
+          node_id  INTEGER NOT NULL,
+          postings INTEGER NOT NULL,
+          PRIMARY KEY (role_id, level, node_id)
+        );
+        CREATE TABLE IF NOT EXISTS atlas_live_state (
+          k TEXT PRIMARY KEY,
+          v TEXT
+        );
+        CREATE TABLE IF NOT EXISTS atlas_posting_dirty (
+          posting_id INTEGER PRIMARY KEY
+        );
+        CREATE TRIGGER IF NOT EXISTS atlas_posting_ins AFTER INSERT ON scraped_jobs
+          WHEN NEW.is_active = 1 AND NEW.duplicate_of IS NULL
+          BEGIN INSERT INTO atlas_posting_dirty (posting_id) SELECT NEW.id WHERE NOT EXISTS (SELECT 1 FROM atlas_posting_dirty WHERE posting_id = NEW.id); END;
+        CREATE TRIGGER IF NOT EXISTS atlas_posting_upd AFTER UPDATE OF is_active, duplicate_of, title, company, description, description_text, skills_json, level_read ON scraped_jobs
+          WHEN ((OLD.is_active = 1 AND OLD.duplicate_of IS NULL) OR (NEW.is_active = 1 AND NEW.duplicate_of IS NULL))
+            AND (OLD.is_active IS NOT NEW.is_active OR OLD.duplicate_of IS NOT NEW.duplicate_of OR OLD.title IS NOT NEW.title
+              OR OLD.company IS NOT NEW.company OR OLD.description IS NOT NEW.description OR OLD.description_text IS NOT NEW.description_text
+              OR OLD.skills_json IS NOT NEW.skills_json OR OLD.level_read IS NOT NEW.level_read)
+          BEGIN INSERT INTO atlas_posting_dirty (posting_id) SELECT NEW.id WHERE NOT EXISTS (SELECT 1 FROM atlas_posting_dirty WHERE posting_id = NEW.id); END;
+        CREATE TRIGGER IF NOT EXISTS atlas_posting_del AFTER DELETE ON scraped_jobs
+          WHEN OLD.is_active = 1 AND OLD.duplicate_of IS NULL
+          BEGIN INSERT INTO atlas_posting_dirty (posting_id) SELECT OLD.id WHERE NOT EXISTS (SELECT 1 FROM atlas_posting_dirty WHERE posting_id = OLD.id); END;
+      `,
+    },
   ];

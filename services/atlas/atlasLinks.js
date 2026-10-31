@@ -27,6 +27,7 @@ import { AMBIGUOUS_TERMS, POSTING_MATCH, postingMatcher } from "./postingMatcher
 import { aliasesOf, readNode, profileTerms, atlasChangeCount } from "./atlasStore.js";
 import { spellings } from "../../shared/atlasSearchNormalize.js";
 import { learnStepForNode } from "../learn/learnLinks.js";
+import { atlasPostingsChanged, liveLinksOf } from "./atlasLive.js";
 
 export const PEEK_MEANING_CHARS = 240;
 export const LINK_EVENTS = Object.freeze(["open", "visit"]);
@@ -73,15 +74,26 @@ function linkableNodes(db) {
  */
 export function atlasTermsFor(db, job) {
   if (!job) return [];
+  atlasPostingsChanged(db);   // ⭐ D118 P1: the company's boilerplate counts are the board's as of now
   const { byId, match } = linkableNodes(db);
   return match.askedBy({ title: job.title, company: job.company, text: job.description, skills_json: job.skills_json })
     .map(id => byId.get(id)).map(n => ({ slug: n.slug, name: n.name, kind: n.kind, forms: n.forms }));
 }
 
-/** The posting by its board id → its linkable terms (null when there is no such posting). */
+/**
+ * The posting by its board id → its linkable terms (null when there is no such posting).
+ * ⭐ D118 P1: an active posting's links are WRITTEN when it is ingested or changed (atlasLive.js, the same reading that
+ * counts it) and read here — the published ones, so publishing or unpublishing still shows at once. A posting with no
+ * current reading (closed, or read before the nodes or aliases last changed) is matched now, as before.
+ */
 export function atlasTermsForPosting(db, jobId) {
-  const job = db.prepare(`SELECT title, company, COALESCE(description_text, description) AS description, skills_json FROM scraped_jobs WHERE job_id = ?`).get(String(jobId));
-  return job ? atlasTermsFor(db, job) : null;
+  atlasPostingsChanged(db);
+  const job = db.prepare(`SELECT id, title, company, COALESCE(description_text, description) AS description, skills_json FROM scraped_jobs WHERE job_id = ?`).get(String(jobId));
+  if (!job) return null;
+  const stored = liveLinksOf(db, job.id);
+  if (!stored) return atlasTermsFor(db, job);
+  const { byId } = linkableNodes(db);
+  return stored.map(id => byId.get(id)).filter(Boolean).map(n => ({ slug: n.slug, name: n.name, kind: n.kind, forms: n.forms }));
 }
 
 const firstSentence = (s) => {
@@ -96,6 +108,7 @@ const firstSentence = (s) => {
  * it is on the reader's profile (D101). Published nodes only.
  */
 export function peekNode(db, slug, userId = null) {
+  atlasPostingsChanged(db);   // ⭐ D118 P1: "asked for in N" counts a posting written a moment ago
   const n = readNode(db, slug);
   if (!n) return null;
   const own = String(n.definition ?? "").trim();

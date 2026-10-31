@@ -27,6 +27,7 @@ import workablePlugin  from './sources/workable.js';
 import recruiteePlugin from './sources/recruitee.js';
 import { SOURCES as SOURCES_DIMENSION, labelMap } from '../../shared/jobFilterOptions.js';
 import { userReferencedSql } from './userReferences.js';
+import { atlasPostingsChanged } from '../atlas/atlasLive.js';
 // import theMuse   from './sources/themusejobs.js';  // add when ready
 // import usaJobs   from './sources/usajobs.js';      // add when ready
 // import indeed    from './sources/indeed.js';        // add when approved
@@ -1072,6 +1073,8 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
           cached++;
         }
 
+        // ⭐ D118 P1: every posting this crawl added, changed or retired moves the Atlas counts — in this transaction.
+        atlasPostingsChanged(db);
         return { cached, unchanged, ejected, dropped, rescued, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut, retiredReseen, noId };
       })();
 
@@ -1089,6 +1092,8 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
       if (prevWatermark !== null) {
         byStale = markStale.run(source.name, prevWatermark, now - RETIRE_AFTER_UNSEEN_SECONDS);
       }
+      // ⭐ D118 P1: the expired and stale postings leave the Atlas counts now.
+      if (byDate.changes || byStale.changes) atlasPostingsChanged(db);
 
       // Advance watermark only after a successful fetch + upsert.
       upsertSyncState.run(source.name, now, now);
