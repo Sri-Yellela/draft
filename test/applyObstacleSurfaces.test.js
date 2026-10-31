@@ -40,24 +40,26 @@ const applyRoute = read("routes/apply.js");
 
 // ── The four surfaces ────────────────────────────────────────────────────────────────────────
 
-test("the panel is organised around EXCEPTIONS: Stopped, with Queued as a glance (AB4 -> AD1 -> D25)", () => {
+test("the panel is organised as D113 UI's tree + side column — no sub-tabs, held-on-purpose never 'failed' (AB4 -> AD1 -> D25 -> D113 UI)", () => {
   // Was ["Needs you", "In flight", "Submitted", "Stopped"], then AB4's three SECTIONS, then AD1's
   // COMPLETED / PENDING / ABORTED sub-tabs over a dated listing. D25 (the workspace model) RE-PINS
   // it: the panel shows what STOPPED and needs the user, and what is QUEUED, side by side (D14).
   // ⛔ COMPLETED was a Sent column — that is The Table's (D15) — and terminal outcomes are history.
   assert.doesNotMatch(panel, /<PanelSubTabs/, "AD1's outcome sub-tabs are back");
   assert.doesNotMatch(panel, /OUTCOME\.COMPLETED/, "a Sent listing is back in Draft House");
-  assert.match(panel, /<section data-draft-stopped=""/);
-  assert.match(panel, /<aside data-draft-queued=""/);
-  assert.match(panel, /Stopped\{stoppedCount > 0 \? ` · \$\{stoppedCount\}` : ""\}/);
+  // D113 UI (owner 10-31) RE-PINS it: a vertical tree of runs whose jobs are bubbles, and a side column
+  // for what matters now. Stopped is a ring and a filter, never a column of its own.
+  assert.match(panel, /<DraftHouseTree view=\{view\}/);
+  assert.match(panel, /<DraftHouseSide blocks=\{blocks\}/);
   // "Stopped" here is the D14 COLUMN of exceptions, never a SectionHeading that flattens
   // held-on-purpose into failed — only the BROKE half of splitByFault reaches it.
   assert.ok(!/SectionHeading[^>]*>\s*Stopped\s*</.test(panel),
     "the Stopped heading is back — it collapses held-on-purpose into failed");
   assert.match(panel, /splitByFault\(applyStopped\)\.broke/);
-  // IN FLIGHT is NOT an outcome; it is progress, and it still has to exist.
-  assert.match(panel, /SectionHeading[^>]*>\s*In flight\s*</);
-  assert.match(panel, /count=\{applyInFlight\.length\}/);
+  // IN FLIGHT is NOT an outcome; it is progress, and it still has to exist: a Working on it bubble
+  // (inFlight reaches the tree) with its own row and Stop in the branch.
+  assert.match(panel, /inFlight: applyInFlight/);
+  assert.match(panel, /variant="inFlight"/);
 });
 
 test("PROBLEMS keeps 'we protected you' distinguishable from 'this failed'", () => {
@@ -261,7 +263,8 @@ test("the portal gate is ONE action with a count, not N rows", () => {
   // A CAPTCHA portal is NOT offered a sign-in — it is named as the user's own job.
   assert.match(items[1].title, /behind an identity check/);
   assert.equal(items[1].tone, "danger");
-  assert.match(panel, /\(r\.gateReasons \|\| \[\]\)\.includes\("captcha_required"\)/);
+  // D113 UI: the portal item is the side column's first block, its fix named for what it is.
+  assert.match(fs.readFileSync("client/src/lib/draftHouseTree.js", "utf8"), /\(i\.ref\?\.gateReasons \|\| \[\]\)\.includes\("captcha_required"\) \? "Open them" : "Sign in"/);
 });
 
 test("the grouping has TWO halves, and each is used where it is true (AB2)", () => {
@@ -519,7 +522,8 @@ test("every capability of the old strip survived the reorganisation", () => {
     // D25 REMOVED AD1's dated navigation and outcome tabs: Draft House shows what needs the user
     // now, and the dated record of what happened is The Table's (D15). What remains here is the
     // control over what is still live.
-    ["the run bar",             /<DraftRunBar runBar=\{runBar\} onStop=\{setStopEverything\}/],
+    // D113 UI: the run bar became the header — the mode, Pause (= Stop everything), Settings.
+    ["the run bar",             /onClick=\{\(\) => setStopEverything\?\.\(!held\)\}/],
     ["stop, on in flight",      /onAbort=\{rowAbort\}/],
     ["soft delete",             /const hideApplication = \(app\) =>/],
     ["per-run detail",          /onOpenRun=\{loadApplyRunDetail\}/],

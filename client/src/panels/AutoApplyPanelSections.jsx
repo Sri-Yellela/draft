@@ -24,9 +24,9 @@ import { postingClick } from "../lib/openPosting.js";
 // draw it); re-exported here so this module's callers keep their import.
 export { SectionHeading } from "../components/SectionHeading.jsx";
 
-// D25: ObstacleCard (one obstacle, one action, a count) is gone with the cards it drew. Draft House's
-// Stopped column renders each exception as a StoppedItem (components/StoppedItem.jsx), built from
-// lib/draftHouseExceptions.js — the portal item still says how many one sign-in releases.
+// D25: ObstacleCard (one obstacle, one action, a count) is gone with the cards it drew. D113 UI (10-31):
+// Draft House is a tree of bubbles (components/DraftHouseTree.jsx); a job's branch uses AttemptRow and
+// ApplicationRow below, and the portal item (lib/draftHouseExceptions.js) is the side column's first block.
 
 /**
  * The COMPANY tier of AB4's hierarchy: outcome -> company -> application.

@@ -193,7 +193,7 @@ test("T24 · the board's apply vs view intent is carried by the bridge — one w
   void handOffToExtension("gh-24", { win, nonce: "n", timeoutMs: 5, intent: "view" });
   void handOffToExtension("gh-24", { win, nonce: "n", timeoutMs: 5 });
   assert.deepEqual(posted.map(p => p.intent ?? null), ["apply", null, null]);
-  assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /postingClick\(row, e, \{ intent: "apply" \}\)\}>Apply yourself/);
+  assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /label: "Apply yourself", href: row\.applyUrl, onClick: \(e\) => postingClick\(row, e, \{ intent: "apply" \}\)/);
 });
 
 const REAL_FETCH = globalThis.fetch;

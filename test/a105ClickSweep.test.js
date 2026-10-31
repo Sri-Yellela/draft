@@ -57,12 +57,15 @@ test("A105 (2) · Pending has a search, a tick per pending row, 'I did not apply
   assert.match(db, /api\("\/api\/applications\/pending\/withdraw", \{ method: "POST", body: JSON\.stringify\(\{ jobIds \}\) \}\)/);
 });
 
-// A105 finding 6 — Approve all was Review all → scroll → Approve all → Yes, inside a modal.
-test("A105 (6) · Approve all sits in Draft House's Stopped header: two presses, the same server call", () => {
+// A105 finding 6 — Approve all was Review all → scroll → Approve all → Yes, inside a modal. 43s moved it to the Stopped
+// header (two presses). ⛔ D113 UI U7 (owner 10-31) moved it BACK inside Review all, with its existing second confirm:
+// the side column's Ready for your review block carries Review all only (test/d113uiApproveAllInsideReviewAll).
+test("A105 (6) → D113 UI U7 · Approve all lives inside Review all now: two presses there, none in the page's chrome", () => {
   const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
-  assert.match(panel, /\{applyPending\.length > 1 && \(confirmSendAll \? \(/, "only when there are two or more");
-  assert.match(panel, /onClick=\{\(\) => decidePending\(applyPending\.map\(p => p\.runJobId\), true\)\.finally\(\(\) => setConfirmSendAll\(false\)\)\}/);
-  assert.match(panel, /Send all \{applyPending\.length\} to their employers\?/, "the second press says what it does");
+  assert.doesNotMatch(panel, /confirmSendAll/, "the header Approve all is gone");
+  assert.match(panel, /\{scopedPending\.length > 1 && \(\s*confirmApproveAll \? \(/, "inside the review, only when there are two or more");
+  assert.match(panel, /onClick=\{\(\) => decidePending\(scopedPending\.map\(p => p\.runJobId\), true\)\}/);
+  assert.match(panel, /Send all \{scopedPending\.length\} to their employers\?/, "the second press says what it does");
 });
 
 // A105 finding 7 — replies were recorded one row at a time, and the nudge walked the oldest only.

@@ -34,7 +34,8 @@ test("T25 ① the rail clips with clip-path, never overflow, and paints no fill,
 
 // The sweep (T25: "every other group of buttons on a card or a row"): Draft House's items and The Table's rows
 // carry the same rail — the same 2px-room overflow clip, measured 10-22 — and take the same fix.
-for (const [file, sel, parent] of [["client/src/components/DraftHouse.css", ".dh-rail", ".dh-item"], ["client/src/components/ApplicationHistory.css", ".ah__rail", ".ah__row"]]) {
+// D113 UI removed Draft House's hover rail (.dh-rail on .dh-item): a job's actions are its branch's buttons now.
+for (const [file, sel, parent] of [["client/src/components/ApplicationHistory.css", ".ah__rail", ".ah__row"]]) {
   test(`T25 ①b the sweep: ${sel} (${file.split("/").pop()}) clips with clip-path, never overflow`, () => {
     const c = read(file), i = at(c, `${sel} {`, 0, sel), r = c.slice(i, at(c, "}", i, `${sel} end`));
     assert.doesNotMatch(r, /overflow\s*:\s*(hidden|clip|auto|scroll)/);
