@@ -16,17 +16,19 @@
 // ⭐ M8 · THE COURSE UNLOCKS THE TREE — the seam D117 fills: a node names the course step that teaches it
 // (learnStepForNode: today D115's tracker, through its concept index — one step per node), and its state is read from
 // the user's marks by THE one rule (shared/learnStepState.js): learned = every required item done and every checkpoint
-// explained; learning = some done ("3 of 5 in its step"). When D117's pieces name the nodes they teach, only
-// `stepsTeaching` below changes. ⛔ learned never reaches the Profile or the résumé by itself; closeness counts only the
+// explained; learning = some done ("3 of 5 in its step"). ⭐ D117 filled the seam: `stepsTeaching` reads the pieces'
+// own taught terms (learn_teaches), and the rule is C8's — progress EARNED (opened from draft, explained in writing,
+// the build linked), never ticked (services/learn/learnEarned.js). ⛔ learned never reaches the Profile or the résumé by itself; closeness counts only the
 // Profile's skills.
 
 import { YOUR_MAP, AIM_LEVEL, atlasIndex, boardCounts, midSeniorFor, aimSkillCounts, userBandLabel } from "./atlasMe.js";
 import { liveReadings, atlasPostingsChanged } from "./atlasLive.js";
 import { postingMatcher, ACTIVE_POSTINGS_WHERE, POSTING_TEXT_SQL, levelReadColumn } from "./atlasStats.js";
 import { profileTerms } from "./atlasStore.js";
-import { learnStepForNode, learnStepPath } from "../learn/learnLinks.js";
+import { learnStepForNode, learnStepPath, learnStepInfo } from "../learn/learnLinks.js";
+import { stepsTeachingNodeId } from "../learn/learnCircle.js";
 import { learnContent, stepsOf } from "../learn/learnContent.js";
-import { readProgress } from "../learn/learnProgress.js";
+import { earnedMarks } from "../learn/learnEarned.js";
 import { stepState } from "../../shared/learnStepState.js";
 import { FAMILIES, isFamily, familyName } from "../../shared/atlasFamilies.js";
 
@@ -78,12 +80,17 @@ export function closenessCounts(readings, mineIds) {
 // ── M8 · the course ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * ⭐ M8's seam: the course step(s) that teach a node. Today one — D115 P4b's step pointer (the tracker's concept index
- * and patterns). D117's pieces will name their nodes; this is the one place that reads them.
+ * ⭐ M8's seam, filled by ⭐ D117: the pieces that teach a node — the pieces whose stored terms (learn_teaches, C9's
+ * teaches_derived) resolve to it through the one resolver, then D115 P4b's step pointer (the tracker's concept index and
+ * patterns) where no piece names it. This is the one place the tree reads them.
  */
 export function stepsTeaching(db, node, learn) {
-  const s = learnStepForNode(db, { name: node.name, term: node.term }, learn);
-  return s ? [s] : [];
+  const out = node.id != null ? stepsTeachingNodeId(db, node.id).map(id => learnStepInfo(learn, id)).filter(Boolean) : [];
+  if (!out.length) {
+    const s = learnStepForNode(db, { name: node.name, term: node.term }, learn);
+    if (s) out.push(s);
+  }
+  return out;
 }
 
 /**
@@ -95,7 +102,8 @@ export function nodeLearnStates(db, userId, idx = atlasIndex(db)) {
   let learn;
   try { learn = learnContent(db); } catch { return out; }
   const stepById = new Map(stepsOf(learn).map(s => [s.id, s]));
-  const marks = userId == null ? {} : Object.fromEntries(readProgress(db, userId).map(m => [m.id, m.at]));
+  // ⭐ D117 C8 / D116 M8: learned uses THE earned rule — opened from draft, explained in writing, the build linked.
+  const marks = earnedMarks(db, userId);
   for (const n of idx.nodes) {
     if (n.kind === "role" || n.status !== "published") continue;
     const steps = stepsTeaching(db, n, learn).filter(s => stepById.has(s.stepId));

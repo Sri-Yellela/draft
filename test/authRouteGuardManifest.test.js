@@ -135,6 +135,10 @@ const ADMIN = new Set([
 const AUTHENTICATED = new Set([
   // D115 P3: a learner's own progress marks.
   "GET /api/learn/progress", "PUT /api/learn/progress", "POST /api/learn/progress/import",
+  // D117 C8: earned progress — the learner's own record (their explanations are theirs alone), an item opened from
+  // draft, a checkpoint explained, a build linked; C5: the route from the user's own map.
+  "GET /api/learn/earned", "POST /api/learn/opened", "PUT /api/learn/explained", "PUT /api/learn/built",
+  "GET /api/learn/circle/my-route",
   "GET /api/auth/extension-token",
   "POST /api/auth/revoke-extension-token",
   // AJ1 6b. Exchanges a session-bound login token for a sessionLess one, so it needs the same

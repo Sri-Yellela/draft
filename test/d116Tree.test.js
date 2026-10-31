@@ -12,7 +12,10 @@ import { computeYourMap, YOUR_MAP } from "../services/atlas/atlasMe.js";
 import { roleTree, familyTree, closenessCounts, NO_AIM } from "../services/atlas/atlasTree.js";
 import { seedAtlasFamilies, readFamilyMapping } from "../services/atlas/atlasFamilies.js";
 import { updateNode, readNodeForEditor, AtlasEditError } from "../services/atlas/atlasEditor.js";
+import { recordOpened, saveExplanation, saveBuild } from "../services/learn/learnEarned.js";
 import { setMark } from "../services/learn/learnProgress.js";
+import { seedCircleData } from "../services/learn/learnCircle.js";
+import { mapRouteFor } from "../services/learn/learnMapRoute.js";
 import { FAMILY_KEYS } from "../shared/atlasFamilies.js";
 import { createAtlasRouter } from "../routes/atlas.js";
 
@@ -293,7 +296,15 @@ function course() {
   person(db, 7, { skills: ["Docker"], years: 3, titles: ["Backend Engineer"] });
   return db;
 }
-const completeO4 = (db, uid) => { for (const id of ["o4-vm", "o4-docker", "o4-k8s", "o4#c0", "o4#c1", "o4#c2"]) assert.ok(setMark(db, uid, id, true), id); };
+// ⭐ D117 C8 (changed on purpose): a step is finished by what the learner DID — its three links opened from draft, its three
+// checkpoints explained in 25+ words of their own, and (o4 has a required Build) the link to what they built. No ticks.
+const OWN = "A container packages an application with its libraries so it runs the same anywhere, and the orchestrator schedules many of them across machines, restarts failures and spreads load for me.";
+const openO4 = (db, uid, ids) => { for (const id of ids) assert.ok(recordOpened(db, uid, id).ok, id); };
+const explainO4 = (db, uid, ns) => { for (const n of ns) assert.ok(saveExplanation(db, uid, `o4#c${n}`, OWN).ok, n); };
+const completeO4 = (db, uid) => {
+  openO4(db, uid, ["o4-vm", "o4-docker", "o4-k8s"]); explainO4(db, uid, [0, 1, 2]);
+  assert.ok(saveBuild(db, uid, "o4", { url: "https://github.com/example-learner/k8s-lab" }).ok);
+};
 
 test("D116 M8 · d116UnlockOnStepComplete — every required item done and every checkpoint explained → the node is LEARNED: coloured, counted in its family", () => {
   const db = course();
@@ -307,11 +318,11 @@ test("D116 M8 · d116UnlockOnStepComplete — every required item done and every
   assert.equal(k.facts.addToProfile, "Add Kubernetes to my Profile");
 });
 
-test("D116 M8 · d116LearningShowsProgressArc — some of the step done → learning, '3 of 5 in its step'", () => {
+test("D116 M8 · d116LearningShowsProgressArc — some of the step done → learning, '3 of 7 in its step' (D117 C8: 3 opened + 3 explained + the build)", () => {
   const db = course();
-  for (const id of ["o4-vm", "o4-docker", "o4#c0"]) setMark(db, 7, id, true);
+  openO4(db, 7, ["o4-vm", "o4-docker"]); explainO4(db, 7, [0]);
   const k = bySlug(treeOf(db, 7)).get("kubernetes");
-  assert.deepEqual([k.state, k.progress, k.facts.progress], ["learning", { done: 3, total: 6 }, "3 of 6 in its step"]);
+  assert.deepEqual([k.state, k.progress, k.facts.progress], ["learning", { done: 3, total: 7 }, "3 of 7 in its step"]);
 });
 
 test("D116 M8 · d116LearnedNotOnResumeUntilAdded — learned never writes the Profile; closeness keeps counting only Profile skills", () => {
@@ -337,6 +348,36 @@ test("D116 M8 · d116UnlockRecomputesRoute — a learned node leaves the route, 
   assert.ok(!m1.nextLevel.items.some(i => i.slug === "kubernetes"));
   assert.ok(!m1.adjacent.items.some(i => i.slug === "kubernetes"));
   assert.equal(m1.tree.route.length, m0.tree.route.length - 1);
+});
+
+test("D117 C8 · d116UnlockUsesC8 — M8's learned is C8's FINISHED: old ticks unlock nothing; opened + explained without the build is 'learning'; the build link finishes it and the finishing write names what it unlocked", () => {
+  const db = course();
+  seedCircleData(db);   // the pieces' own taught terms (C9): o4 teaches Kubernetes
+  // D115's ticks on every o4 item and checkpoint — kept, and they count for nothing.
+  for (const id of ["o4-vm", "o4-docker", "o4-k8s", "o4#c0", "o4#c1", "o4#c2"]) assert.ok(setMark(db, 7, id, true), id);
+  let k = bySlug(treeOf(db, 7)).get("kubernetes");
+  assert.deepEqual([k.state, k.learned, k.courseStep.stepId], ["not_yet", false, "o4"]);
+  openO4(db, 7, ["o4-vm", "o4-docker", "o4-k8s"]); explainO4(db, 7, [0, 1, 2]);
+  k = bySlug(treeOf(db, 7)).get("kubernetes");
+  assert.deepEqual([k.state, k.learned, k.progress], ["learning", false, { done: 6, total: 7 }], "o4 asks for a build: not finished without it");
+  const r = saveBuild(db, 7, "o4", { url: "https://github.com/example-learner/k8s-lab" });
+  assert.deepEqual([r.finished, r.state.bar], [true, 100]);
+  assert.ok(r.unlocked.some(u => u.slug === "kubernetes" && u.name === "Kubernetes"), "the finishing write names the nodes it unlocked (the toast's words)");
+  k = bySlug(treeOf(db, 7)).get("kubernetes");
+  assert.deepEqual([k.state, k.learned, k.have], ["learned", true, false]);
+  assert.equal(saveBuild(db, 7, "o4", { url: "https://github.com/example-learner/k8s-lab-2" }).finished, false, "unlocked once, not on every write");
+});
+
+test("D117 C5 · 'From your map' — the user's own route: Your map's route skills → the pieces that teach them (the M8 seam), named for the aim", () => {
+  const db = course();
+  seedCircleData(db);
+  const route = treeOf(db, 7).route;
+  assert.ok(route.includes("kubernetes"));
+  const r = mapRouteFor(db, 7);
+  assert.equal(r.name, "From your map: senior Backend Engineer");
+  assert.ok(r.targets.includes("o4") && r.skills.includes("Kubernetes"));
+  db.prepare("INSERT INTO users (id,username,password_hash) VALUES (9,'synthetic9','x')").run();
+  assert.deepEqual([mapRouteFor(db, 9).name, mapRouteFor(db, 9).targets], [null, []], "no map → no route");
 });
 
 test("D116 · d116TreeNoModel + one matcher — atlasTree.js reads no model and builds no matcher of its own", () => {

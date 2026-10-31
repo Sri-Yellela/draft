@@ -25,7 +25,7 @@ import { userLevelFor } from "../picks.js";
 import { LEVELS_READ } from "../../shared/postingLevel.js";
 import { learnStepForNode, learnStepPath } from "../learn/learnLinks.js";
 import { learnContent, stepsOf } from "../learn/learnContent.js";
-import { readProgress } from "../learn/learnProgress.js";
+import { earnedMarks } from "../learn/learnEarned.js";
 import { stepState } from "../../shared/learnStepState.js";
 import { yourTree, nodeLearnStates } from "./atlasTree.js";
 
@@ -332,7 +332,7 @@ function branchesSection(db, { idx, rollup, haveIds, targets }, all) {
 function learnNextSection(db, userId, { idx, gaps }, all) {
   const learn = learnContent(db);
   const stepById = new Map(stepsOf(learn).map(s => [s.id, s]));
-  const marks = Object.fromEntries(readProgress(db, userId).map(m => [m.id, m.at]));
+  const marks = earnedMarks(db, userId);   // ⭐ D117 C8: earned, never ticked
   const bySteps = new Map();
   for (const g of gaps) {
     const n = idx.nodes.find(x => x.slug === g.slug);

@@ -221,8 +221,10 @@ test("D118 P2 · d118ImportKeepsProgress — marks keyed on ids survive an impor
     assert.deepEqual(p.json.progress, { marks: 4, learners: 1, stillPlaced: 2, onRemovedIds: 2 });
     assert.equal((await s.call("POST", "/api/admin/learn/import/apply", { content: e.content, base: p.json.base })).status, 200);
     assert.deepEqual(readProgress(db, 7), before, "every mark — and its date — survives the import");
-    assert.equal((await s.call("PUT", "/api/learn/progress", { id: "s1-new", on: true })).status, 200, "the new item takes a mark at once (no restart)");
-    assert.equal((await s.call("PUT", "/api/learn/progress", { id: removedItem, on: true })).status, 404, "a removed id takes no NEW mark");
+    // ⭐ D117 C8 (changed on purpose): progress is EARNED — the new item counts when it is opened from draft, at once.
+    assert.equal((await s.call("POST", "/api/learn/opened", { id: "s1-new" })).status, 200, "the new item takes an opening at once (no restart)");
+    assert.equal((await s.call("POST", "/api/learn/opened", { id: removedItem })).status, 404, "a removed id takes no NEW opening");
+    assert.equal(setMark(db, 7, "s1-new", true), true, "the old tick store knows the new id too (kept, never counted)");
     assert.equal((await s.call("GET", "/api/learn/progress")).json.marks.length, 5);
     // The removed item comes back → its old mark (and date) counts again.
     const back = await s.call("POST", "/api/admin/learn/import/preview", { content: clone() });
