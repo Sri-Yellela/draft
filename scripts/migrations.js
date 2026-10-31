@@ -5492,4 +5492,36 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D118 P2 · the Learn content IN THE DATABASE — the owner's tracker (PARTS · ATLAS · INDEX · its copy) as one
+      // validated JSON document per source. Production reads this, never the file: Admin → Atlas → Import content
+      // replaces it (validated, diffed by id, applied on Apply), and content/learn/*.json seeds it ONLY while the table
+      // is empty (a first install) — never over newer database content. `version` moves on every apply.
+      // ⭐ D118 P2 (b) · atlas_changes: ONE counter, moved by triggers on every write to atlas_nodes and skill_synonyms,
+      // so the in-memory Atlas indexes (the search, the posting links) rebuild on the next read after ANY change. Their
+      // old key (count · newest updated_at · published count) missed two curator edits in the same second — measured:
+      // publish B then unpublish A within a second left A in the public search. ⚠ A table rebuild (194's kind) drops
+      // these triggers with the table: re-create them after it.
+      id: "198_learn_content",
+      sql: `
+        CREATE TABLE IF NOT EXISTS learn_content (
+          id          TEXT PRIMARY KEY,
+          data        TEXT NOT NULL,
+          version     INTEGER NOT NULL DEFAULT 1,
+          imported_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          imported_by TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS atlas_changes (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          n  INTEGER NOT NULL DEFAULT 0
+        );
+        INSERT OR IGNORE INTO atlas_changes (id, n) VALUES (1, 0);
+        CREATE TRIGGER IF NOT EXISTS atlas_nodes_changed_ins AFTER INSERT ON atlas_nodes BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+        CREATE TRIGGER IF NOT EXISTS atlas_nodes_changed_upd AFTER UPDATE ON atlas_nodes BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+        CREATE TRIGGER IF NOT EXISTS atlas_nodes_changed_del AFTER DELETE ON atlas_nodes BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+        CREATE TRIGGER IF NOT EXISTS skill_synonyms_changed_ins AFTER INSERT ON skill_synonyms BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+        CREATE TRIGGER IF NOT EXISTS skill_synonyms_changed_upd AFTER UPDATE ON skill_synonyms BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+        CREATE TRIGGER IF NOT EXISTS skill_synonyms_changed_del AFTER DELETE ON skill_synonyms BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+      `,
+    },
   ];

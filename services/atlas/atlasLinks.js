@@ -24,7 +24,7 @@
 // (postingMatcher.js, in its listOnly mode) — the same text the board counts: without the company's boilerplate, from
 // the requirements when the posting has them, short concepts in their exact case, no concept inside a common phrase.
 import { AMBIGUOUS_TERMS, POSTING_MATCH, postingMatcher } from "./postingMatcher.js";
-import { aliasesOf, readNode, profileTerms } from "./atlasStore.js";
+import { aliasesOf, readNode, profileTerms, atlasChangeCount } from "./atlasStore.js";
 import { spellings } from "../../shared/atlasSearchNormalize.js";
 import { learnStepForNode } from "../learn/learnLinks.js";
 
@@ -56,7 +56,8 @@ export function formsOf(node, aliases = []) {
 let cache = { key: null, nodes: [] };
 function linkableNodes(db) {
   const key = db.prepare(`SELECT COUNT(*) || ':' || COALESCE(MAX(updated_at), 0) || ':' || COALESCE(MAX(published_at), 0) FROM atlas_nodes WHERE status = 'published'`).pluck().get()
-    + ":" + db.prepare(`SELECT COUNT(*) FROM skill_synonyms WHERE status = 'confirmed' AND relation = 'alias'`).pluck().get();
+    + ":" + db.prepare(`SELECT COUNT(*) FROM skill_synonyms WHERE status = 'confirmed' AND relation = 'alias'`).pluck().get()
+    + ":" + atlasChangeCount(db);   // ⭐ D118 P2 (b): any atlas write, even two in one second
   if (cache.key === key && cache.db === db) return cache;
   const nodes = db.prepare(`SELECT id, slug, kind, name, term FROM atlas_nodes WHERE status = 'published' ORDER BY id`).all()
     .map(n => ({ ...n, forms: formsOf(n, aliasesOf(db, n.term)) }));

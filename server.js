@@ -98,6 +98,8 @@ import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js
 // ⭐ D105: the Atlas — roles, skills, tools, linked; seeded as drafts from the scorer's own registry, stats from the board.
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
+import { createLearnAdminRouter } from "./routes/learnAdmin.js";
+import { seedLearnContentIfEmpty } from "./services/learn/learnImport.js";
 import { seedAtlasFromRegistry } from "./services/atlas/atlasSeed.js";
 import { importLearnConcepts, publishLearnConcepts } from "./services/atlas/atlasLearnImport.js";
 import { learnContent } from "./services/learn/learnContent.js";
@@ -5964,6 +5966,38 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D118 P2 · the Learn content IN THE DATABASE — the owner's tracker (PARTS · ATLAS · INDEX · its copy) as one
+      // validated JSON document per source. Production reads this, never the file: Admin → Atlas → Import content
+      // replaces it (validated, diffed by id, applied on Apply), and content/learn/*.json seeds it ONLY while the table
+      // is empty (a first install) — never over newer database content. `version` moves on every apply.
+      // ⭐ D118 P2 (b) · atlas_changes: ONE counter, moved by triggers on every write to atlas_nodes and skill_synonyms,
+      // so the in-memory Atlas indexes (the search, the posting links) rebuild on the next read after ANY change. Their
+      // old key (count · newest updated_at · published count) missed two curator edits in the same second — measured:
+      // publish B then unpublish A within a second left A in the public search. ⚠ A table rebuild (194's kind) drops
+      // these triggers with the table: re-create them after it.
+      id: "198_learn_content",
+      sql: `
+        CREATE TABLE IF NOT EXISTS learn_content (
+          id          TEXT PRIMARY KEY,
+          data        TEXT NOT NULL,
+          version     INTEGER NOT NULL DEFAULT 1,
+          imported_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          imported_by TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS atlas_changes (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          n  INTEGER NOT NULL DEFAULT 0
+        );
+        INSERT OR IGNORE INTO atlas_changes (id, n) VALUES (1, 0);
+        CREATE TRIGGER IF NOT EXISTS atlas_nodes_changed_ins AFTER INSERT ON atlas_nodes BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+        CREATE TRIGGER IF NOT EXISTS atlas_nodes_changed_upd AFTER UPDATE ON atlas_nodes BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+        CREATE TRIGGER IF NOT EXISTS atlas_nodes_changed_del AFTER DELETE ON atlas_nodes BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+        CREATE TRIGGER IF NOT EXISTS skill_synonyms_changed_ins AFTER INSERT ON skill_synonyms BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+        CREATE TRIGGER IF NOT EXISTS skill_synonyms_changed_upd AFTER UPDATE ON skill_synonyms BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+        CREATE TRIGGER IF NOT EXISTS skill_synonyms_changed_del AFTER DELETE ON skill_synonyms BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -9417,22 +9451,31 @@ app.use("/api/admin/job-tags", requireAdmin, createJobTagsRouter(db, requireAdmi
 app.use("/api/atlas", createAtlasRouter(db));
 app.use("/api/learn", createLearnRouter(db, { requireAuth }));   // ⭐ D115 · Learn (public content; progress signed in)
 app.use("/api/admin/atlas", requireAdmin, createAtlasAdminRouter(db));
+// ⭐ D118 P2 · Admin → Atlas → Import content: the extracted JSON validated, diffed by id, applied on Apply — no deploy.
+app.use("/api/admin/learn", requireAdmin, createLearnAdminRouter(db));
 // ⭐ D108 P2 · "What changed": facts with official source links only; public to read, the curator's to write.
 app.use("/api/what-changed", createWhatChangedRouter(db));
 app.use("/api/admin/what-changed", requireAdmin, createWhatChangedAdminRouter(db));
 // Seeded at boot (idempotent: a second run adds nothing, and never touches a curator's node) — every node a DRAFT.
 try { const s = seedAtlasFromRegistry(db); if (s.nodes || s.edges) console.log(`[atlas] seeded ${s.nodes} draft node(s), ${s.edges} edge(s)`); }
 catch (e) { console.warn("[atlas] seed:", e.message); }
+// ⭐ D118 P2 (c): the Learn content lives in the DATABASE (learn_content). content/learn/*.json goes in ONLY on an empty
+// table — a first install — and never over newer database content (Admin → Atlas → Import content replaces it).
+try {
+  const s = seedLearnContentIfEmpty(db);
+  if (s.seeded.length) console.log(`[learn] first install: ${s.seeded.join(", ")} imported into the database`);
+  for (const k of s.skipped) console.warn(`[learn] ${k.file} NOT imported — ${k.errors.slice(0, 3).map(e => `${e.at} ${e.reason}`).join("; ")}`);
+} catch (e) { console.warn("[learn] content seed:", e.message); }
 // ⭐ D115 P4(a): the owner's tracker's 385 definitions — empty definitions filled, the rest as concept drafts (idempotent).
 try {
-  const r = importLearnConcepts(db, learnContent());
+  const r = importLearnConcepts(db, learnContent(db));
   if (r.filled.length || r.created.length) console.log(`[atlas] learn: ${r.filled.length} definition(s) filled, ${r.created.length} concept(s) added`);
   if (r.skipped.length) console.log(`[atlas] learn: left out ${r.skipped.map(s => `${s.term} (${s.why})`).join("; ")}`);
   // Owner 10-31: the tracker's concepts are published as learning pages (a person's un-publish sticks).
   const pub = publishLearnConcepts(db);
   if (pub.published) console.log(`[atlas] learn: ${pub.published} concept page(s) published (owner, 10-31)`);
   // ⭐ D115 P4(c): the 28 LeetCode patterns as pattern nodes, their problems as Practice resources (idempotent).
-  const p = importLearnPatterns(db, learnContent());
+  const p = importLearnPatterns(db, learnContent(db));
   if (p.created.length || p.promoted.length || p.resources) console.log(`[atlas] learn: ${p.created.length} pattern(s) added, ${p.promoted.length} promoted from concepts, ${p.resources} practice link(s), ${p.edges} edge(s)`);
 } catch (e) { console.warn("[atlas] learn import:", e.message); }
 

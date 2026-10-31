@@ -3,6 +3,8 @@
 //   a CHECKPOINT explained  mark_id = "<step id>#c<place>"   ("s1#c0") — the tracker's checkpoints carry no id of their
 //                       own, so their place in the step is theirs; the extractor's re-run prints any id that moved
 // Only marks the content knows are accepted (an unknown id is refused, so a stale browser cannot store junk).
+// ⭐ D118 P2: "the content" is the database's (learnContent(db)) — an import is known at once. An import never deletes
+// a mark: one on an id the new content dropped stays stored and counts again if the id returns.
 import { learnContent, stepsOf } from "./learnContent.js";
 import { checkpointId } from "../../shared/learnStepState.js";
 export { checkpointId };   // the one rule (shared/learnStepState.js)
@@ -28,7 +30,7 @@ export function readProgress(db, userId) {
 
 /** Set or clear one mark. @returns {boolean} false for an id the content does not know */
 export function setMark(db, userId, id, on, { now = Math.floor(Date.now() / 1000), learn } = {}) {
-  const state = knownMarks(learn).get(String(id));
+  const state = knownMarks(learn ?? learnContent(db)).get(String(id));
   if (!state) return false;
   if (on) db.prepare(`INSERT INTO learn_progress (user_id, mark_id, state, at) VALUES (?,?,?,?)
     ON CONFLICT(user_id, mark_id) DO UPDATE SET state = excluded.state, at = excluded.at`).run(userId, String(id), state, now);
@@ -41,7 +43,7 @@ export function setMark(db, userId, id, on, { now = Math.floor(Date.now() / 1000
  * (and its date) wins. Unknown ids are dropped. @returns {{ added: number, ignored: number }}
  */
 export function importMarks(db, userId, marks, { learn } = {}) {
-  const map = knownMarks(learn);
+  const map = knownMarks(learn ?? learnContent(db));
   const list = Array.isArray(marks) ? marks.slice(0, 2000) : [];
   const put = db.prepare(`INSERT OR IGNORE INTO learn_progress (user_id, mark_id, state, at) VALUES (?,?,?,?)`);
   let added = 0, ignored = 0;

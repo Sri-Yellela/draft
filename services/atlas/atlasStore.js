@@ -93,10 +93,20 @@ const visible = (published) => (published ? "AND n.status = 'published'" : "");
 // ⭐ BUG 10-31 (owner: "the search is not normalised") · the index the search reads: every node with its confirmed
 // aliases, rebuilt when a node or an alias changes (the version key). Matching is shared/atlasSearchNormalize.js —
 // the ONE normaliser the Atlas search, the Learn concept search (D115) and D114's matcher use.
+/**
+ * ⭐ D118 P2 (b) · the Atlas's change counter (migration 198: triggers on atlas_nodes and skill_synonyms) — part of every
+ * in-memory index's key, so a curator's publish / unpublish / edit is read on the NEXT request, even two in one second
+ * (the old key — count · newest updated_at · published count — measured stale for "publish B, unpublish A" in a second).
+ * -1 on a database without the counter (the old key parts still apply there).
+ */
+export function atlasChangeCount(db) {
+  try { return db.prepare(`SELECT n FROM atlas_changes WHERE id = 1`).pluck().get() ?? -1; } catch { return -1; }
+}
+
 let searchIndex = { db: null, key: null, rows: [] };
 function indexFor(db) {
   const key = db.prepare(`SELECT COUNT(*) || ':' || COALESCE(MAX(updated_at), 0) || ':' || SUM(status = 'published') FROM atlas_nodes`).pluck().get()
-    + ":" + db.prepare(`SELECT COUNT(*) FROM skill_synonyms WHERE status = 'confirmed'`).pluck().get();
+    + ":" + db.prepare(`SELECT COUNT(*) FROM skill_synonyms WHERE status = 'confirmed'`).pluck().get() + ":" + atlasChangeCount(db);
   if (searchIndex.db === db && searchIndex.key === key) return searchIndex.rows;
   const rows = db.prepare(`SELECT slug, kind, name, term, definition, status FROM atlas_nodes`).all()
     .map(n => ({ ...n, aliases: aliasesOf(db, n.term) }));

@@ -91,6 +91,11 @@ const ADMIN = new Set([
   // The board's fit precompute, run on purpose (dry-run by default). Admin-only: it scores every
   // user's active profile, which is an operator's decision, not a candidate's.
   "POST /api/admin/board-fit/precompute",
+  // D118 P2: Admin → Atlas → Import content — the owner replaces the Learn content (validated JSON, diffed, applied on
+  // Apply). Admin-only: it changes what every reader of /atlas/learn sees.
+  "GET /api/admin/learn/content",
+  "POST /api/admin/learn/import/preview",
+  "POST /api/admin/learn/import/apply",
   // A50 step 3: the daily glance. Read-only, but it reads every user's apply outcomes and spend.
   "GET /api/admin/glance",
   "GET /api/admin/costs",                   // cost visibility (10-09): résumé economics, admin-only
@@ -522,6 +527,9 @@ function collect() {
       .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/company-kb") })),
     // D115: mounted at /api/learn with NO mount guard — each progress route carries requireAuth itself.
     ...routerRoutes(fs.readFileSync("routes/learn.js", "utf8"), "/api/learn"),
+    // D118 P2: mounted at /api/admin/learn behind requireAdmin — the mount's guard is every route's.
+    ...routerRoutes(fs.readFileSync("routes/learnAdmin.js", "utf8"), "/api/admin/learn")
+      .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/admin/learn") })),
   ];
   return routes.map(r => ({ ...r, guard: named(r.guard) }));
 }

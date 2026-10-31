@@ -101,7 +101,7 @@ test("D115 P4a · d115IndexFillsEmptyDefinitionsOnly — an empty definition is 
   // The real file: all 385 handled, none twice.
   const real = importLearnConcepts(fixtureDb(), LEARN);
   assert.equal(real.filled.length + real.created.length + real.kept.length + real.skipped.length, 385);
-  assert.match(read("server.js"), /const r = importLearnConcepts\(db, learnContent\(\)\);/, "at boot, after the registry seed");
+  assert.match(read("server.js"), /const r = importLearnConcepts\(db, learnContent\(db\)\);/, "at boot, after the registry seed — from the DATABASE's content (D118 P2)");
 });
 
 test("D115 P4a · a CONCEPT is never published by the board's count (measured false friends); it is published by hand", () => {
@@ -268,7 +268,7 @@ test("D115 P4c · d115PatternNodes — the 28 patterns are pattern nodes with Le
   const arrays = db.prepare(`SELECT m.name FROM atlas_edges e JOIN atlas_nodes n ON n.id = e.from_id JOIN atlas_nodes m ON m.id = e.to_id WHERE n.slug = 'arrays-and-hashing'`).pluck().all();
   assert.ok(arrays.includes("Array"), arrays.join(", "));
   assert.deepEqual(importLearnPatterns(db, LEARN), { created: [], promoted: [], resources: 0, edges: 0 }, "idempotent");
-  assert.match(read("server.js"), /const p = importLearnPatterns\(db, learnContent\(\)\);/);
+  assert.match(read("server.js"), /const p = importLearnPatterns\(db, learnContent\(db\)\);/);
 });
 
 test("D115 · the 373 concepts are published as learning pages (owner 10-31) — a person's un-publish sticks", () => {
