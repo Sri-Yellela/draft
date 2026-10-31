@@ -613,3 +613,38 @@ test("d113uiNoteWhy — a rejection's Note why saves the user's note on the appl
   await saveNoteWhy(4, "n", async (p, o) => { calls.push([p, o.method, o.body]); return {}; });
   assert.deepEqual(calls, [["/api/pipeline/job/4/note", "PUT", '{"note":"n"}']]);
 });
+
+test("d113uiWorkspaceDocCurrent — docs/DRAFT_HOUSE_WORKSPACE.md describes the tree as built, not D25's run bar", () => {
+  const doc = read("docs/DRAFT_HOUSE_WORKSPACE.md");
+  assert.match(doc.split("\n")[0], /^# Draft House — the tree, mapped against the code \(D113 UI\)$/);
+  // Every file it names exists (a bare components/ · lib/ · styles/ · panels/ path is the client's).
+  const paths = [...doc.matchAll(/`((?:client\/src\/|components\/|lib\/|styles\/|panels\/|services\/|routes\/|shared\/|test\/|docs\/)[\w./-]+\.(?:jsx?|mjs|css|md|html))`/g)].map(m => m[1]);
+  assert.ok(paths.length >= 15, `only ${paths.length} paths named`);
+  const REMOVED = new Set(["DraftRunBar.jsx", "StoppedItem.jsx", "PortalsDrawer.jsx"]);
+  for (const p of paths) {
+    const f = /^(components|lib|styles|panels)\//.test(p) ? `client/src/${p}` : p;
+    if (REMOVED.has(path.basename(p))) continue;
+    assert.ok(fs.existsSync(f), `the doc names ${p}, which does not exist`);
+  }
+  // The removed pieces are named only as removed (U9), never as the current page.
+  const removedPara = doc.slice(at(doc, "**Removed (U9):**"), at(doc, "## 7 · Verification"));
+  for (const gone of ["DraftRunBar", "StoppedItem", "PortalsDrawer", "run bar"]) {
+    const n = (s) => (s.match(new RegExp(`\\b${gone}\\b`, "g")) || []).length;
+    const allowed = gone === "run bar" ? n(doc.slice(0, at(doc, "## 0 ·"))) + n(doc.slice(at(doc, "## 6 ·"))) : n(removedPara);
+    assert.equal(n(doc), allowed, `${gone} appears outside the Removed paragraph (the run bar: outside the intro and §6)`);
+  }
+  // Every route it names is mounted, and the side column's order is sideBlocks' order.
+  const sources = ["server.js", "routes/apply.js", "routes/pipeline.js", "routes/picksConfirm.js", "routes/interview.js"].map(read).join("\n");
+  const routes = [...doc.matchAll(/`(GET|POST|PUT) (\/api\/[^`\s]+)`/g)];
+  assert.ok(routes.length >= 6);
+  for (const [, m, p] of routes) assert.match(sources, new RegExp(`app\\.${m.toLowerCase()}\\("${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`), `${m} ${p}`);
+  const side = doc.slice(at(doc, "## 5 · The side column"), at(doc, "**Settings** — one drawer"));
+  const order = [...side.matchAll(/^\d\. \*\*([^*]+)\*\*/gm)].map(m => m[1]);
+  assert.deepEqual(order, ["Broken connections", "Needs you", "Ready for your review", "Running", "Replies", "Tidy up"]);
+  assert.equal(SIDE_ORDER.length, order.length);
+  // The rings table: seven, in RING_ORDER, with their tokens.
+  const rows = [...doc.matchAll(/^\| (Needs you|Ready for your review|Picked|Working on it|Sent|Replied|Stopped) \| (\w+) \|/gm)];
+  assert.deepEqual(rows.map(r => [r[1], r[2]]), RING_ORDER.map(k => [RINGS[k].label, RINGS[k].token]));
+  // The leftovers are described, and nothing in it promises to tell the employer.
+  for (const w of ["Make it now", "POST /api/picks/:id/resume", "Withdraw", "Add the date", "Note why", "None of them tells the employer anything"]) assert.ok(doc.includes(w), w);
+});

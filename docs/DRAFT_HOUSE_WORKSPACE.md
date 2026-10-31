@@ -1,128 +1,156 @@
-# Draft House — the workspace model, mapped against the code (D25)
+# Draft House — the tree, mapped against the code (D113 UI)
 
-Written 2026-10-04 on branch `d25-draft-house-workspace`, from `main` `217d140`. Every line number in
-§1 and §2 is from that commit, before D25 changed anything; §3 says what D25 added.
+Rewritten 2026-10-31 for the tree as built (D113 UI U1–U10, `6c3a5f2`, pushed in 43t; the leftovers — Make it now,
+Withdraw / Add the date / Note why — after it). The decision is the WORKLOG's **D113 UI — DECIDED** row; the sketch
+is `docs/sketches/draft-house-tree.html`; **where the two differ, the row wins.** This file replaces the D25 write-up
+of the run bar and its two columns; §6 says what of D25 is still in force.
 
-## 0 · The premise, corrected
+## 0 · One page, three parts
 
-The D25 row says "Draft House has not shipped". That is wrong for **D14** and **D18**: the tab reads
-**Draft House** (`client/src/App.jsx:337`) and `client/src/panels/AutoApplyPanel.jsx:651-867` renders
-**Stopped │ Queued** side by side from 1080 px (`data-draft-stopped`, `data-draft-queued`), stacking
-Stopped-first below it. Both were built *inside* `AutoApplyPanel.jsx`, whose header comment
-(`:38-57`) was still the W5/AD1-era "the strip that used to sit between the search bar and the
-postings … MOVED here whole" — which is what the row read.
+The tab reads **Draft House** (D18); the file is still `client/src/panels/AutoApplyPanel.jsx` and the route
+`/app/auto-apply` (renaming them is cost without benefit — `docs/BRAND.md`). The state is `AutoApplyContext`'s, so the
+board and this page read one pipeline.
 
-What *was* true: the AD1 chrome still filled the panel, and none of the workspace model existed.
-
-## 1 · What the panel rendered at `217d140`, item by item
-
-| # | Piece | Where | Workspace model says |
-|---|---|---|---|
-| 1 | Title "Draft House" + lead line | `AutoApplyPanel.jsx:456-465` | keep |
-| 2 | "Nothing drafted yet" empty state | `:468-473` | keep |
-| 3 | Autofill-unavailable line, `applyMsg` line | `:480-487` | keep |
-| 4 | **`PanelSubTabs`** — COMPLETED / PENDING / ABORTED, date-scoped counts | `:512-533` | ⛔ remove — COMPLETED is a **Sent** column (D15 owns Sent) |
-| 5 | The tab's one-line note (`data-rm-tab-note`) | `:543-547` | remove with 4 |
-| 6 | Control row: **`PanelSearch`** + **`DateFilterButton`** + "Counts are for …" | `:555-591` | remove — the calendar was AD1's *primary navigation*; the workspace's primary surface is the exceptions |
-| 7 | "Showing <day> — your most recent activity" (AH6) | `:598-614` | remove with 6 |
-| 8 | "Waiting on you right now — not filtered by the date above" | `:643-649` | remove — there is no date above any more |
-| 9 | **D14 split** — Stopped (3fr) │ Queued (1fr), only on the PENDING sub-tab | `:657-868` | keep the split; show it always |
-| 9a | Stopped: "Needs review" heading, "Review all N →" | `:675-690` | keep "Review all" (AB3's deliberate unscoped entry) |
-| 9b | Stopped: `PrerequisiteCards` | `:698-700` | becomes stopped items |
-| 9c | Stopped: portal batches (`ObstacleCard` per origin), truncation notice | `:711-741` | becomes stopped items; keep the truncation notice |
-| 9d | Stopped: three question cards (confirm / attest / other) | `:744-785` | becomes stopped items |
-| 9e | Stopped: approvals card with the approval-cap sentence | `:788-812` | becomes one stopped item **per application**; the cap moves to the run bar |
-| 9f | Stopped: handoff message | `:817-829` | keep |
-| 9g | Queued: `WaitingLine` (A59) | `:849-851` | keep — "Queued" is a glance |
-| 9h | Queued: In flight (`ApplicationRow variant="inFlight"`) | `:853-865` | keep; give it Stop (`abortRunJob`), which until now was only reachable from the dated listing |
-| 10 | Date empty states (`no-date`, `empty-date`, `empty-tab`/`no-match`) | `:890-921` | remove with 6 |
-| 11 | PENDING listing: `TileGrid` of `CompanyTile`s, `groupByApplication` → `groupByCompany`, `CompanyApplicationRow` | `:930-996` | ⛔ remove — company tiles; held applications become stopped items, one per application (AB2's `groupByApplication` stays: it is a correctness rule, not chrome) |
-| 12 | COMPLETED listing: `CompanyTile`s of `ApplicationRow variant="submitted"` | `:1005-1026` | ⛔ remove — that is **Sent**, The Table's (D15) |
-| 13 | ABORTED listing: `splitByFault` → broke / held-on-purpose tiles | `:1035-1112` | remove — terminal, nothing waits on the user; history is The Table's |
-| 14 | The review modal (approvals, questions, portal batches, company → application → problems with `resolutionPlan`, attempts, logs) | `:1115-1680` | keep — it is the deep review behind every stopped item, not column chrome |
-
-Also: `AutoApplyContext.jsx:449-467` fetched `GET /api/apply/history/latest` (and then a dated
-listing) once per sign-in to pre-pick the day for item 6. With 6 gone that is two requests for
-nothing.
-
-## 2 · The workspace model's pieces — what the server already had
-
-| Piece | Server support at `217d140` | Where |
+| Part | What it is | Where |
 |---|---|---|
-| **Mode** (SEMI / AUTO) | ⚠ Per RUN only, no per-user setting. Every Draft from the deck or board is `mode:"auto"` with no `approvalMode`, which **previews and parks for approval** — i.e. what the user experiences as SEMI. Unattended sending needs `approvalMode:"auto"`, which the deck and board are forbidden to send. Nothing anywhere records that full-auto has ever been proven. | `routes/apply.js:1808-1822` (mode/approval resolution), `:2084-2087` (surface refusal), `client/src/lib/jobDecisions.js:78` |
-| Cap 1 — **queue** (previews opened / 24 h) | ✅ enforced, usage counted, reported only in a run's 202 body | `APPLY_DAILY_QUEUE_CAP=40` `:404`, `queuedLast24h` `:566`, refusal `:1938-1949` |
-| Cap 2 — **approval** (model spend / 24 h) | ✅ enforced; usage on `GET /api/apply/pending` and the 202 body | `APPLY_DAILY_APPROVAL_CAP=30` `:424`, `approvedLast24h` `:591`, refusal `:1960-1976` |
-| Cap 3 — **submission** (sent / 24 h) | ✅ enforced at admission and re-checked per job; usage only in the 202 body | `APPLY_DAILY_CAP=25` `:371`, `submittedLast24h` `:527`, `:1160-1167`, `:1982-1991` |
-| A single read of all three for a page | ❌ none | — |
-| **Kill switch** state | ✅ global, admin-only. Read per request (`services/appSettings.js:53`), enforced at admission (`routes/apply.js:1843`), per job before any browser opens (`:1151-1157`) and on the line (`lineHeldBy`, `:647-650`). Admin write path `server.js:6997-7027`. A user can see it only as the line's `held` sentence (`:2294-2297`). | |
-| **User "Stop everything"** | ❌ none. Abort exists per run-job (`POST /api/apply/run-jobs/:id/abort`, `:2926`) and the line's remove per waiting run (`:2363`), but nothing user-scoped stops what has not started. | — |
+| **Header** (U1) | one sentence (*"On. Next look at 5 PM. 3 of 10 sent today. You tap Apply on each pick."* / *"… Good matches are sent for you."* / *"Paused. Nothing new is picked or sent until you resume."*), the mode switch **Ask me first \| Apply for me**, **Pause / Resume**, **Settings** | `AutoApplyPanel.jsx` |
+| **Tree** (U3, U4) | left, scrolls: the next run, a Now line, each run newest first with its jobs as bubbles; one branch open at a time grows in place | `components/DraftHouseTree.jsx` |
+| **Side column** (U7) | right, 340 px; on top below 900 px: what matters now | `components/DraftHouseSide.jsx` |
+| **Settings** (U8) | ONE drawer, three groups | `components/AutoSettingsDrawer.jsx` |
 
-## 3 · What D25 added
+The rules are pure and live in `client/src/lib/draftHouseTree.js` (`buildNodes`, `buildTree`, `treeView`, `sideBlocks`,
+`branchStep`, `createLeafCache`, `answerRows`, `inlineAnswerStart`, `leftOutLines`, `nextRunFromSettings`); the components
+take every piece of state as a prop. Styles: `components/DraftHouse.css`.
 
-**Server** (`routes/apply.js` + `services/applyUserHold.js`; no migration, no `server.js` change):
+## 1 · No second model
 
-- **A per-user hold.** Stored in `app_settings` as `apply_user_hold:<userId>`, the same table and the
-  same read-at-request-time rule as the kill switch, so no migration. Checked by the same three
-  doors the kill switch already guards for the *line*:
-  - `lineHeldBy(run)` returns `"user_hold"` first, so `dispatchLine` — the ticker, a finishing run,
-    boot recovery's last step — starts nothing for a held user;
-  - `startRun` admits a held user's new Draft as **waiting** rather than starting it (every other
-    admission check still runs at the moment of the Draft);
-  - `processRun` checks the hold **before it marks the run running and before each next job is
-    launched**; a held run goes back to the head of the line with its unstarted jobs still queued.
-    This is the check that covers boot recovery and any race with the two above. A run parked here
-    does not re-dispatch the line on its way out, so the two checks can never ping-pong a run
-    between `waiting` and `queued` (an injected-violation check found that loop — see §6).
-- **`abortable` on the inFlight feed** (`GET /api/apply/runs`), the same expression the dated history
-  uses, so Draft House's In flight rows carry Stop without the client deciding what can be stopped.
-- **`GET /api/apply/run-bar`** — the mode (current `"semi"`; AUTO `locked:true` with the reason, and
-  the kill-switch state alongside), the three caps with `used / limit / remaining`, and the hold.
-  ⛔ AUTO's lock is a server constant: it opens only when the server says so (D22 gates that on AF5
-  and a supervised full-auto run). The client never unlocks it.
-- **`POST /api/apply/hold`** `{ held: true|false }` — set or release; releasing dispatches the line.
+- **Status:** every ring is D102's ladder, `shared/applicationStatus.js` (derived from `apply_run_jobs` and
+  `job_applications.response_outcome`; nothing stores a ladder value). `ringFor` maps each ladder status to exactly one
+  ring; **Picked** is a D113 pick, not a ladder status.
+- **Exceptions:** what is held, broke or blocking is still `client/src/lib/draftHouseExceptions.js`
+  (`buildStoppedItems`, `filterItems`, `packetLife`) and `client/src/lib/applyObstacles.js` (`groupByApplication`,
+  `splitByFault`). The tree shows them; it does not decide them.
+- **D113 data:** ONE adapter, `client/src/lib/draftHouseRuns.js` — runs, picks, left-out, Apply / Pass / Make it now,
+  and the existing routes the tree reads on the same rhythm (The Table's rows, the portals and Gmail, a run-job's answers,
+  a sent row's actions). Every D113 call degrades on a 404: no runs → today's attempts grouped by day, the next-run square
+  from Auto settings' run times.
 
-**What Stop does and does not do** (the bar says the same): nothing new starts — waiting drafts stay
-in line, a run in progress starts no further application; an application already being filled
-finishes (Stop on that row in Queued cancels it); ⛔ **it does not recall anything already sent.**
+## 2 · The bubble and the rings (U2)
 
-**Client:** the run bar (`client/src/components/DraftRunBar.jsx`), the Stopped column rebuilt as
-exception items with D1's rail and depth (`client/src/components/StoppedItem.jsx`, built from
-`client/src/lib/draftHouseExceptions.js`), the fold's one line for exact matches, and items 4-8 and
-10-13 above removed. `AutoApplyContext` and `PanelControls` are reused, not forked (PanelSearch
-narrows Stopped once it has six or more items; the Database panel still renders all three controls).
+`components/CompanyBubble.jsx` is the **bubble standard** (product-wide): a rounded SQUARE in the draft logo's shape
+(radius 27 % of the side — never a circle, never a pill, D60), the company mark inside through `CompanyLogo`, a raised
+look, and ONE status ring of the same shape. Contrast themes swap the shadow for a solid outline.
 
-Stopped lists, in order: missing prerequisites · portal sign-ins (one per portal, with its count) ·
-question groups (guesses / attestations / blanks) · one item per application waiting for approval ·
-one per held application · one per application that **broke** (the broke half of `splitByFault`;
-held-on-purpose is history, not an exception). An approval's fold lists only the guessed answers
-and says "12 of 14 needed no attention"; Approve & send is in the fold, after the reading, never on
-the rail.
+Seven rings, colour **tokens** only (`client/src/styles/rings.js`), seven distinct colours in all four themes:
 
-Removed from `AutoApplyPanelSections.jsx` with nothing left rendering them: `ObstacleCard`,
-`PrerequisiteCards`, `CompanyTile`, `CompanyApplicationRow`. AH6's mount-time
-`/api/apply/history/latest` bootstrap was removed from the context (it fed only the calendar); the
-endpoint and `loadHistory` remain.
+| Ring | Token | Pulses | Ladder |
+|---|---|---|---|
+| Needs you | ACCENT | ✓ | `needs_you` |
+| Ready for your review | WARNING | ✓ | `ready_to_approve` |
+| Picked | INK_FAINT | | a D113 pick waiting for Apply |
+| Working on it | INFO | ✓ | `queued`, `in_flight` |
+| Sent | SUCCESS | | `submitted` (a withdrawn one too, closed by the candidate) |
+| Replied | VIOLET | | `interview`, `assessment`, `offer`, `rejected` |
+| Stopped | DANGER | | `failed`, `skipped` |
 
-## 4 · Anticipated, not built (D22)
+`prefers-reduced-motion` stops the pulse. A legend sits under the tree.
 
-A remote run will be a Queued row with its own phase text; an expired portal session will be a
-Stopped item whose fold says when the portal signs the user out. `draftHouseExceptions.js` keys
-items by `kind`, so each is one more kind — no second list.
+## 3 · The tree (U3, U4, U6)
 
-## 5 · RecruiterPanel (D5 follow-up)
+- **Runs.** The next run is a dashed square (*"Next look. You'll get one email with the picks."*); each stored run
+  (`picks_runs`, D113 P1) shows its time, its square on the trunk and a meta line (*"214 looked at · 4 picked · why
+  these"*). Detail − / +: bubbles only · bubbles + the meta line (default) · bubbles + company names. Day headings are
+  sticky.
+- **One branch open at a time** (`branchStep`; opening another closes the first; Escape closes).
+  - **A run** → its card: picked, left out, the counts **by reason** (outside your filters · not eligible · stale or
+    reposted · over today's limit · company · level) + **Change filters** (Settings at *Which jobs*) · **See what was
+    left out** (`GET /api/picks/runs/:id/left-out`, kept 14 days).
+  - **A job** → a **lead card** (bubble, title, company, ring) with ONE sentence and the next action, then the leaves,
+    each loaded only when opened (`createLeafCache`): **What happened** (attempts, the run's log, the scoped review) ·
+    **Answers** (a loose match flagged *read this*; the user's own statements — attestation, eligibility — marked and
+    never shown or seeded as filled) · **The form as filled** (the picture) · **Your résumé for it** · **The job**.
+- **Filters + search** (sticky): **All · Needs you · Running · Sent and replies · Stopped** and a search box (company,
+  title, the reason). In All a miss is dimmed; in any other filter a run with no match is hidden.
 
-**Reachable — not removed.** `/app/recruiter` is in `ROUTE_ONLY_TABS` (`App.jsx:360`) and two in-app
-links lead to it: `JobCard.jsx:855` (logged-in cards; the Database panel renders JobCard,
-`DatabasePanel.jsx:1053`) and `CompanyViewModal.jsx:77` (opened from `JobBubble.jsx:125`, i.e. every
-Full House card, and from `JobDetailPanel.jsx:403`). Whether those links go is O53.
+## 4 · The sentences and actions per state (U5)
 
-## 6 · Verification
+| State | Actions in the lead card |
+|---|---|
+| a question | the question inline + *Save this answer for next time* · **Answer** / **Stop this one** |
+| sign-in expired | **Sign in again** / Apply yourself |
+| ready | **Approve & send** / Reject / Clear (D90 P3's changes above them) |
+| picked | **Apply** / **Pass**; the résumé leaf: *"made after you tap Apply"* + **Make it now** |
+| working | *"Filling the form now…"* + **Stop this one** |
+| required fields empty | **Answer them** / Apply yourself |
+| no confirmation after submit | **Check it** / Run it again / Apply yourself |
+| answers too old | **Prepare again** (D52) / Clear |
+| posting removed | **Clear** (Restore is in the bin, under Tidy up) |
+| sent, no reply | **I heard back** (the job's page) / **Withdraw** |
+| interview | **Open interview prep** / **Add the date** |
+| assessment · offer | **Prep for it** · **Open it** (the job's page) |
+| rejected | **Note why** |
 
-- Tests: `test/d25UserHold.test.js` (the hold, end to end against the real routes and migration 120),
-  `test/d25DraftHouseWorkspace.test.js` (the bar, the fold, no Sent column, D1 rail, reuse, the
-  Recruiter finding). Tests that pinned AD1 / AC3 / AH6 chrome were re-pinned or deleted on purpose;
-  each file says which.
-- Screenshots (real server, throwaway database, synthetic user): `draft-screenshots/d25/` — SEMI,
-  AUTO locked, a stopped item open, the fold, Stop everything held; 1280 and 390 px.
-- ⚠ `scripts/abPanelUi.mjs` (the AD1/AC3 real-browser harness) still drives the sub-tabs and tiles
-  D25 removed; it is not part of `npm test` and was not rewritten here.
+**Make it now** — `POST /api/picks/:id/resume` (`routes/picksConfirm.js` `makePickResume`): the tailored résumé for an
+offered pick, on the user's press, through the apply path's own generation (`generateResumeForApply`), so the run after
+Apply reuses it while it is current. The pick stays a pick; no run starts; nothing is filled or sent; the job is not
+tagged Pending. A new résumé costs one of the day's Draft slots (A63), refused at zero; a current one is free. Each pick
+on `GET /api/picks/runs` carries `resumeReady`.
+
+**Withdraw / Add the date / Note why** — on the ladder status the row reads now (`services/pipelineWorkspace.js`
+`ROW_ACTIONS`). ⛔ **None of them tells the employer anything**; they record the user's own word in draft.
+- **Withdraw** — `POST /api/pipeline/job/:applicationId/withdraw`, `submitted` only: `job_applications.response_outcome`
+  becomes `withdrawn` through `mergeResponse`; the ladder reads Submitted, closed by the candidate (*"You withdrew it.
+  It's closed."*). A recorded but not yet verified submission has no record to write → 409.
+- **Add the date** — `interview` only: D110's `PUT /api/interview/prep/:applicationId/date` (date, optional time), the
+  Prep tab's countdown. Inline in the lead card.
+- **Note why** — `PUT /api/pipeline/job/:applicationId/note`, `rejected` only: `job_applications.notes` (The Table's
+  Notes column), ≤ 2000 characters. Inline in the lead card, opened with the current note.
+
+**Full page** opens the application's own page (`JobWorkspacePanel`, `/app/job/for/<jobId>`): beside the tree on a wide
+screen, the page itself below that.
+
+## 5 · The side column (U7) and Settings (U8)
+
+`sideBlocks` builds, in this order, each block hidden when empty **except Needs you** (*"Nothing. It's all running."*):
+
+1. **Broken connections** — an expired portal sign-in, Gmail disconnected, missing prerequisites, a portal batch.
+2. **Needs you** — questions and picks.
+3. **Ready for your review** + **Review all** (the deep review modal; **Approve all lives inside it**, with its second
+   confirm).
+4. **Running** — in flight and the A59 line (move, tool, remove).
+5. **Replies** — rejections excluded.
+6. **Tidy up** — *"3 stopped jobs older than 7 days"* + Clear older than 7 / 30 days; the D53 bin (Restore / Delete now).
+
+A side row opens the same branch in the tree and scrolls to it.
+
+**Settings** — one drawer (`AutoSettingsDrawer`), three groups: *When and how much* (daily cap, run times, picks arrive
+by, **Show me the form before sending**, what Pause does) · *Which jobs* (board filters, per-company limit, skip after an
+interview, **Skip stale or reposted jobs** = D107 P3) · *Accounts on job sites* (D100's portals and accounts with
+Remove, Gmail, **Agree to a job site's terms for me**). The old Portals drawer merged into it.
+
+**Narrow (U10, below 900 px):** one column, the side column on top, branches indent 16 px, actions wrap; the tree keeps
+its order.
+
+## 6 · What of D25 is still in force
+
+- **Pause / Resume = D25's per-user hold.** `POST /api/apply/hold` (`services/applyUserHold.js`): nothing new starts —
+  waiting drafts stay in line, a run in progress starts no further application; an application already being filled
+  finishes (Stop this one cancels it); ⛔ **it does not recall anything already sent.** Covered by
+  `test/d25UserHold.test.js`.
+- **`GET /api/apply/run-bar`** still feeds the header (mode, the three caps, the hold); the bar itself is gone.
+- **`abortable`** on the in-flight feed gives a working row its Stop.
+
+**Removed (U9):** `DraftRunBar.jsx`, `StoppedItem.jsx` (and its hover rail), `PortalsDrawer.jsx`, the separate Stopped list
+and its search, the tabbed list, and select mode (*Done selecting* — Review all covers its one bulk use). Restore and
+Delete now live in a stopped job's branch and in Tidy up.
+
+## 7 · Verification
+
+- `test/d113ui.test.js` — the named D113 UI tests (`d113uiOneBranchOpen`, `d113uiRingFromLadder`, … `d113uiNarrow`) and
+  the leftovers (`d113uiMakeItNow`, `d113uiWithdrawRecordsOnly`, `d113uiAddTheDate`, `d113uiNoteWhy`,
+  `d113uiWorkspaceDocCurrent`). The components are rendered with esbuild + react-dom/server; the routes run on an
+  in-memory database built by the real migrations.
+- `test/d113Picks.test.js` — the server loop (P1–P4, P6). `test/d25DraftHouseWorkspace.test.js` — the header's
+  Pause / mode / caps and the exceptions model's order.
+- The owner's walk on production is the acceptance: one bubble of each ring, one run's *why these*, Review all,
+  Settings, each filter.
