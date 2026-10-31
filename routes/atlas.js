@@ -26,7 +26,8 @@
 //   GET    /api/admin/atlas                       each row also carries `readiness` — why a draft is not published yet
 //                                                  (postings n of 5, no Wikipedia summary or definition, unpublished by …)
 //   POST   /api/admin/atlas/auto/run              titles + Wikidata items → Wikidata resources → Wikipedia → the bar, now
-//                                                  (it also runs nightly after the stats)
+//                                                  (it also runs nightly after the stats); `line` names any failure (BUG 10-31)
+//   POST   /api/admin/atlas/wiki/ask-again        clear the 30-day "no article" mark on unmatched nodes → { cleared }
 //
 // ⛔ `you` is computed only for a signed-in reader and only from THEIR profile's skills (D101 profile_skills) — never
 // stored, never shown to anyone else (d105YouOnlyWhenSignedIn).
@@ -37,7 +38,7 @@ import { createNode, updateNode, readNodeForEditor, mergeNodes, addTypedEdge, re
 import { checkAtlasLinks } from "../services/atlas/atlasLinkCheck.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
-import { readiness, READINESS_COLUMNS, runAtlasAutoPipeline, autoPublish } from "../services/atlas/atlasPublish.js";
+import { readiness, READINESS_COLUMNS, runAtlasAutoPipeline, autoPublish, askWikipediaAgain } from "../services/atlas/atlasPublish.js";
 import { sponsorsForRole } from "../services/atlas/atlasSponsors.js";
 
 // A signed-in reader's terms — ONE implementation (services/atlas/atlasStore.js profileTerms), also read by D110's
@@ -167,6 +168,7 @@ export function createAtlasAdminRouter(db, { fetchImpl = globalThis.fetch, linkP
       res.json({ ok: true, ...r, ms: Date.now() - t });
     } catch (e) { res.status(500).json({ error: "wiki_refresh_failed", message: e.message }); }
   });
+  router.post("/wiki/ask-again", (_req, res) => res.json({ ok: true, ...askWikipediaAgain(db) }));
   router.post("/:slug/status", (req, res) => {
     const status = req.body?.status;
     if (!["published", "draft"].includes(status)) return res.status(400).json({ error: "bad_status" });

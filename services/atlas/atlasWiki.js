@@ -48,10 +48,11 @@ export function parseSummary(json, title) {
 
 /**
  * Refresh the summaries that are missing or older than a week, for nodes with a wiki_title (published first).
- * @returns {{ due, fetched, skipped, failed, stoppedAt429: boolean }}
+ * @returns {{ due, fetched, skipped, failed, stoppedAt429: boolean, reasons: Record<string, number> }}
+ *   reasons — each failed request's answer ("403", "network: …") and how many times; a failure is never "nothing to read"
  */
 export async function refreshWikiSummaries(db, { fetchImpl = globalThis.fetch, cap = WIKI_DEFAULTS.cap, pauseMs = WIKI_DEFAULTS.pauseMs,
-  timeoutMs = WIKI_DEFAULTS.timeoutMs, now = () => Math.floor(Date.now() / 1000), pause = sleep } = {}) {
+  timeoutMs = WIKI_DEFAULTS.timeoutMs, now = () => Math.floor(Date.now() / 1000), pause = sleep, log = console.log } = {}) {
   const t = now();
   const due = db.prepare(`SELECT n.id, n.wiki_title FROM atlas_nodes n LEFT JOIN atlas_wiki_cache w ON w.node_id = n.id
     WHERE n.wiki_title IS NOT NULL AND TRIM(n.wiki_title) != ''
@@ -60,7 +61,8 @@ export async function refreshWikiSummaries(db, { fetchImpl = globalThis.fetch, c
   const save = db.prepare(`INSERT INTO atlas_wiki_cache (node_id, title, extract, thumbnail_url, page_url, fetched_at) VALUES (?,?,?,?,?,?)
     ON CONFLICT(node_id) DO UPDATE SET title = excluded.title, extract = excluded.extract, thumbnail_url = excluded.thumbnail_url,
       page_url = excluded.page_url, fetched_at = excluded.fetched_at`);
-  const out = { due: due.length, fetched: 0, skipped: 0, failed: 0, stoppedAt429: false };
+  const out = { due: due.length, fetched: 0, skipped: 0, failed: 0, stoppedAt429: false, reasons: {} };
+  const fail = (why) => { out.failed++; out.reasons[why] = (out.reasons[why] || 0) + 1; };
   for (let i = 0; i < due.length; i++) {
     const n = due[i];
     if (i > 0 && pauseMs > 0) await pause(pauseMs);
@@ -68,14 +70,15 @@ export async function refreshWikiSummaries(db, { fetchImpl = globalThis.fetch, c
     try {
       res = await fetchImpl(summaryUrl(n.wiki_title), { redirect: "follow", signal: AbortSignal.timeout(timeoutMs),
         headers: { "user-agent": WIKI_UA, accept: "application/json" } });
-    } catch { out.failed++; continue; }
+    } catch (e) { fail(`network: ${e?.name === "TimeoutError" ? "timeout" : (e?.cause?.code || e?.message || "error")}`); continue; }
     if (res.status === 429) { out.stoppedAt429 = true; break; }   // their limit: stop the run; tomorrow's picks up
-    if (!res.ok) { out.failed++; continue; }
+    if (!res.ok) { fail(String(res.status)); continue; }
     let parsed = null;
     try { parsed = parseSummary(await res.json(), n.wiki_title); } catch { parsed = null; }
     if (!parsed) { out.skipped++; continue; }
     save.run(n.id, parsed.title, parsed.extract, parsed.thumbnailUrl, parsed.pageUrl, now());
     out.fetched++;
   }
+  if (out.failed) { try { log(`[atlas] wikipedia summaries: ${out.fetched} read, ${out.failed} failed ${JSON.stringify(out.reasons)} ua="${WIKI_UA}"`); } catch { /* never stops the run */ } }
   return out;
 }

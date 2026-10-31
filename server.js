@@ -6591,8 +6591,7 @@ cron.schedule('30 5 * * *', async () => {
   // from Wikidata → Wikipedia summaries (drafts too) → the auto-publish bar again, so tonight's summaries count tonight.
   try {
     const r = await runAtlasAutoPipeline(db);
-    const w = r.wikipedia || {};
-    console.log(`[Cron] atlas auto: ${r.titles?.matched ?? 0} title(s) matched, ${r.wikidata?.official ?? 0} official link(s), ${w.fetched ?? 0} of ${w.due ?? 0} summaries${w.stoppedAt429 ? ' (stopped at 429)' : ''}, ${r.autoPublish.published.length} published`);
+    (r.ok ? console.log : console.error)(`[Cron] atlas auto: ${r.line}`);   // describeAutoRun — a failure is named, never "0 matched"
   } catch (e) { console.error('[Cron] Atlas auto-publish run error:', e.message); }
 }, { timezone: 'America/New_York' });
 

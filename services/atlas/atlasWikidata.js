@@ -61,14 +61,30 @@ const toTitle = (t) => String(t ?? "").trim().replace(/_/g, " ");
 const toStored = (t) => String(t ?? "").trim().replace(/\s+/g, "_").slice(0, 200);
 const httpsOnly = (u) => { try { const x = new URL(String(u)); return x.protocol === "https:" && x.hostname && !x.username ? x.href.slice(0, 2000) : null; } catch { return null; } };
 
-async function getJson(fetchImpl, url, timeoutMs) {
-  const res = await fetchImpl(url, { redirect: "follow", signal: AbortSignal.timeout(timeoutMs),
-    headers: { "user-agent": WIKI_UA, accept: "application/json" } });
-  if (res.status === 429) return { limited: true };
-  if (!res.ok) return { failed: true };
-  const json = await res.json();
-  if (json?.error?.code === "maxlag") return { limited: true };   // their servers are busy: stop; tomorrow picks up
-  return { json };
+// ⭐ BUG 10-31 (production matched 0, local 54): every answer that is not a usable page list is a FAILURE with a
+// reason — an HTTP status, "network", or the API's own error code — and is never stamped checked. Before, an Action-API
+// `error` other than maxlag came back as `{ json }`, resolved to "no page" and hid its whole batch for 30 days.
+async function getJson(fetchImpl, url, timeoutMs, expect) {
+  let res;
+  try {
+    res = await fetchImpl(url, { redirect: "follow", signal: AbortSignal.timeout(timeoutMs),
+      headers: { "user-agent": WIKI_UA, accept: "application/json" } });
+  } catch (e) { return { failed: true, reason: `network: ${e?.name === "TimeoutError" ? "timeout" : (e?.cause?.code || e?.message || "error")}` }; }
+  if (res.status === 429) return { limited: true, reason: "429" };
+  if (!res.ok) return { failed: true, reason: String(res.status) };
+  let json;
+  try { json = await res.json(); } catch { return { failed: true, reason: `${res.status} not JSON` }; }
+  if (json?.error?.code === "maxlag") return { limited: true, reason: "maxlag" };   // their servers are busy: stop; tomorrow picks up
+  if (json?.error) return { failed: true, reason: `api error: ${String(json.error.code || "unknown").slice(0, 60)}` };
+  if (!json || typeof json !== "object" || !json[expect]) return { failed: true, reason: `${res.status} without ${expect}` };
+  return { json, reason: String(res.status) };
+}
+
+/** One line per Wikimedia request — the status and the User-Agent sent, never a body. */
+function note(log, out, step, n, r, count) {
+  const why = r.reason || "?";
+  out.reasons[why] = (out.reasons[why] || 0) + 1;
+  try { log(`[atlas] ${step} request ${n}: ${why} (${count} asked) ua="${WIKI_UA}"`); } catch { /* a log never stops the run */ }
 }
 
 /** May the nightly matcher try this node's own name as a title? */
@@ -107,22 +123,24 @@ export function resolveQueryTitle(json, asked) {
 
 /**
  * Step 1 — Wikipedia titles (auto, exact only; a tool's only when Wikidata says it is software) and Wikidata items, batched.
- * @returns {{ due, asked, matched, items, notSoftware, requests, failed, stopped: boolean }}
+ * @returns {{ due, asked, notAsked, matched, items, notSoftware, requests, failed, stopped: boolean, reasons: Record<string, number> }}
+ *   reasons — each request's answer ("200", "403", "network: …", "api error: …", "maxlag") and how many times
  */
 export async function matchWikiTitles(db, { fetchImpl = globalThis.fetch, batch = WIKIDATA_DEFAULTS.batch, maxRequests = WIKIDATA_DEFAULTS.maxRequests,
-  pauseMs = WIKIDATA_DEFAULTS.pauseMs, timeoutMs = WIKIDATA_DEFAULTS.timeoutMs, now = () => Math.floor(Date.now() / 1000), pause = sleep } = {}) {
+  pauseMs = WIKIDATA_DEFAULTS.pauseMs, timeoutMs = WIKIDATA_DEFAULTS.timeoutMs, now = () => Math.floor(Date.now() / 1000), pause = sleep,
+  log = console.log } = {}) {
   const t0 = now();
   const rows = db.prepare(`SELECT id, kind, name, term, wiki_title, wiki_title_by FROM atlas_nodes
     WHERE (wiki_checked_at IS NULL OR wiki_checked_at < ?)
       AND ((wiki_title IS NULL AND wiki_title_by IS NULL) OR (wiki_title IS NOT NULL AND TRIM(wiki_title) != '' AND wikidata_id IS NULL))
     ORDER BY COALESCE(wiki_checked_at, 0), id`).all(t0 - RECHECK_SEC);
-  const out = { due: rows.length, asked: 0, matched: 0, items: 0, requests: 0, failed: 0, stopped: false };
+  const out = { due: rows.length, asked: 0, notAsked: 0, matched: 0, items: 0, requests: 0, failed: 0, stopped: false, reasons: {} };
   const checked = db.prepare(`UPDATE atlas_nodes SET wiki_checked_at = ? WHERE id = ?`);
   const asks = [];
   for (const r of rows) {
     if (r.wiki_title) asks.push({ ...r, ask: toTitle(r.wiki_title), auto: false });
     else if (matchableName(r)) asks.push({ ...r, ask: toTitle(r.name), auto: true });
-    else checked.run(t0, r.id);   // never tried by name: an ambiguous word or a stack
+    else out.notAsked++;   // never tried by name (an ambiguous word, a stack, a too-short term) — and never stamped: only an answer stamps
   }
   const setAuto = db.prepare(`UPDATE atlas_nodes SET wiki_title = ?, wiki_title_by = 'auto', wikidata_id = ?, wiki_checked_at = ?, updated_at = unixepoch()
     WHERE id = ? AND wiki_title IS NULL AND wiki_title_by IS NULL`);
@@ -134,9 +152,10 @@ export async function matchWikiTitles(db, { fetchImpl = globalThis.fetch, batch 
     if (out.requests > 0 && pauseMs > 0) await pause(pauseMs);
     out.requests++;
     let r;
-    try { r = await getJson(fetchImpl, actionQueryUrl([...new Set(group.map(g => g.ask))]), timeoutMs); } catch { r = { failed: true }; }
+    try { r = await getJson(fetchImpl, actionQueryUrl([...new Set(group.map(g => g.ask))]), timeoutMs, "query"); } catch (e) { r = { failed: true, reason: `error: ${e.message}` }; }
+    note(log, out, "titles", out.requests, r, group.length);
     if (r.limited) { out.stopped = true; break; }
-    if (r.failed) { out.failed++; continue; }
+    if (r.failed) { out.failed++; continue; }   // unmarked: asked again next run
     const t = now();
     db.transaction(() => {
       for (const g of group) {
@@ -157,9 +176,10 @@ export async function matchWikiTitles(db, { fetchImpl = globalThis.fetch, batch 
     if (out.requests > 0 && pauseMs > 0) await pause(pauseMs);
     out.requests++;
     let r;
-    try { r = await getJson(fetchImpl, entitiesUrl([...new Set(group.map(g => g.hit.item))]), timeoutMs); } catch { r = { failed: true }; }
+    try { r = await getJson(fetchImpl, entitiesUrl([...new Set(group.map(g => g.hit.item))]), timeoutMs, "entities"); } catch (e) { r = { failed: true, reason: `error: ${e.message}` }; }
+    note(log, out, "software check", out.requests, r, group.length);
     if (r.limited) { out.stopped = true; break; }
-    if (r.failed || !r.json?.entities) { out.failed++; continue; }   // unmarked: asked again tomorrow
+    if (r.failed) { out.failed++; continue; }   // unmarked: asked again tomorrow
     const t = now();
     db.transaction(() => {
       for (const g of group) {
@@ -190,13 +210,14 @@ export function entitiesUrl(ids, { maxlag = WIKIDATA_DEFAULTS.maxlag } = {}) {
 
 /**
  * Step 2 — the official site, the documentation and the Wikipedia article for TOOL nodes with a Wikidata item.
- * @returns {{ due, read, official, docs, articles, requests, failed, stopped: boolean }}
+ * @returns {{ due, read, official, docs, articles, requests, failed, stopped: boolean, reasons: Record<string, number> }}
  */
 export async function wikidataResources(db, { fetchImpl = globalThis.fetch, batch = WIKIDATA_DEFAULTS.batch, maxRequests = WIKIDATA_DEFAULTS.maxRequests,
-  pauseMs = WIKIDATA_DEFAULTS.pauseMs, timeoutMs = WIKIDATA_DEFAULTS.timeoutMs, now = () => Math.floor(Date.now() / 1000), pause = sleep } = {}) {
+  pauseMs = WIKIDATA_DEFAULTS.pauseMs, timeoutMs = WIKIDATA_DEFAULTS.timeoutMs, now = () => Math.floor(Date.now() / 1000), pause = sleep,
+  log = console.log } = {}) {
   const rows = db.prepare(`SELECT id, name, wikidata_id, wiki_title FROM atlas_nodes
     WHERE kind = 'tool' AND wikidata_id IS NOT NULL AND wikidata_checked_at IS NULL ORDER BY id`).all();
-  const out = { due: rows.length, read: 0, official: 0, docs: 0, articles: 0, requests: 0, failed: 0, stopped: false };
+  const out = { due: rows.length, read: 0, official: 0, docs: 0, articles: 0, requests: 0, failed: 0, stopped: false, reasons: {} };
   const put = db.prepare(`INSERT OR IGNORE INTO atlas_resources (node_id, url, title, format, cost, added_by, source) VALUES (?,?,?,?,?,?,?)`);
   const done = db.prepare(`UPDATE atlas_nodes SET wikidata_checked_at = ? WHERE id = ?`);
   const size = Math.max(1, Math.min(Number(batch) || 50, 50));
@@ -205,9 +226,10 @@ export async function wikidataResources(db, { fetchImpl = globalThis.fetch, batc
     if (out.requests > 0 && pauseMs > 0) await pause(pauseMs);
     out.requests++;
     let r;
-    try { r = await getJson(fetchImpl, entitiesUrl([...new Set(group.map(g => g.wikidata_id))]), timeoutMs); } catch { r = { failed: true }; }
+    try { r = await getJson(fetchImpl, entitiesUrl([...new Set(group.map(g => g.wikidata_id))]), timeoutMs, "entities"); } catch (e) { r = { failed: true, reason: `error: ${e.message}` }; }
+    note(log, out, "wikidata", out.requests, r, group.length);
     if (r.limited) { out.stopped = true; break; }
-    if (r.failed || !r.json?.entities) { out.failed++; continue; }
+    if (r.failed) { out.failed++; continue; }
     const t = now();
     db.transaction(() => {
       for (const g of group) {

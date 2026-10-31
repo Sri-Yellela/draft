@@ -243,7 +243,7 @@ test("D105 · Wikipedia's summary — nodes with a wiki title (published first, 
       thumbnail: { source: "https://upload.wikimedia.test/k.png" }, content_urls: { desktop: { page: "https://en.wikipedia.org/wiki/Kubernetes" } } });
   };
   const r = await refreshWikiSummaries(db, { fetchImpl, pauseMs: 0, now: () => now });
-  assert.deepEqual(r, { due: 2, fetched: 2, skipped: 0, failed: 0, stoppedAt429: false });
+  assert.deepEqual(r, { due: 2, fetched: 2, skipped: 0, failed: 0, stoppedAt429: false, reasons: {} });   // reasons: BUG 10-31
   assert.deepEqual(asked.map(a => a.url), ["https://en.wikipedia.org/api/rest_v1/page/summary/Kubernetes",
     "https://en.wikipedia.org/api/rest_v1/page/summary/Helm_(package_manager)"], "published first; go (no title) never asked");
   assert.equal(readNode(db, "helm"), null, "a draft's cached summary is still not public");
