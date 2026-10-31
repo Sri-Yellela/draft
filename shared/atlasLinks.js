@@ -8,6 +8,9 @@
 //   · a form marked exactCase matches only in its own case ("React" — never the verb "react")
 //   · the FIRST occurrence of each node in the whole posting only — `used` is carried across the posting's blocks
 // ⛔ The text is never changed: the segments, joined, are the input exactly (d114TextUnchanged).
+// ⭐ BUG 10-31: case and accents fold through the ONE normaliser (shared/atlasSearchNormalize.js foldChars — the same
+// module as the Atlas search); the server adds each name's separator spellings (spellings: "Node.js" / "Nodejs").
+import { foldChars } from "./atlasSearchNormalize.js";
 
 const WORD = /[A-Za-z0-9+#]/;
 const isWordAt = (s, i) => i >= 0 && i < s.length && WORD.test(s[i]);
@@ -22,7 +25,7 @@ function boundaryOk(text, start, end) {
 
 /** The earliest whole-word occurrence of `form` at or after nothing it overlaps; -1 when none. */
 function find(text, lower, form, taken) {
-  const needle = form.exactCase ? form.text : form.text.toLowerCase();
+  const needle = form.exactCase ? form.text : foldChars(form.text);
   const hay = form.exactCase ? text : lower;
   if (!needle) return -1;
   for (let i = hay.indexOf(needle); i !== -1; i = hay.indexOf(needle, i + 1)) {
@@ -41,7 +44,7 @@ function find(text, lower, form, taken) {
 export function linkSegments(text, terms, used = new Set()) {
   const s = String(text ?? "");
   if (!s || !Array.isArray(terms) || !terms.length) return [{ text: s }];
-  const lower = s.toLowerCase();
+  const lower = foldChars(s);   // case + accents folded, one char for one char — the one normaliser's fold
   const longest = (t) => Math.max(0, ...(t.forms || []).map(f => String(f.text || "").length));
   const order = terms.filter(t => t?.slug && !used.has(t.slug)).sort((a, b) => longest(b) - longest(a));
   const spans = [];

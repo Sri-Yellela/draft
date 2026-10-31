@@ -68,7 +68,9 @@ function AtlasSearch({ base, q }) {
           <ul className="atl__results" data-atlas-results="">
             {state.results.map(r => (
               <li key={r.slug}><Link to={`${base}/${encodeURIComponent(r.slug)}`} className="atl__link">{r.name}</Link>
-                {" "}<span className="mark mark--dim">{KIND_LABEL[r.kind] || r.kind}</span></li>
+                {" "}<span className="mark mark--dim">{KIND_LABEL[r.kind] || r.kind}</span>
+                {/* BUG 10-31: why it matched — "k8s → Kubernetes", a typo, "in its definition" */}
+                {r.why && <span className="atl__quiet" data-atlas-why=""> · {r.why}</span>}</li>
             ))}
           </ul>
         ))}
