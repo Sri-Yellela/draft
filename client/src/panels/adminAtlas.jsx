@@ -44,6 +44,47 @@ function readinessLine(r) {
   return `not published yet: ${rd.missing.join(" · ")}`;
 }
 
+// ⭐ BUG 10-31 · what Wikipedia's last answer was for each node, counted (GET /api/admin/atlas/wiki/classes), with the
+// nodes under each — the list the owner picks titles from — and "Show a real answer" (GET …/wiki/probe): one
+// Wikipedia + Wikidata answer exactly as this server receives it, to copy into the chat.
+const MATCH_WORDS = [["matched", "Matched"], ["missing", "No such article"], ["not_in_answer", "Not in the answer"],
+  ["disambiguation", "Disambiguation page"], ["inexact", "Redirects to another name"], ["not_software", "Not software (tool)"], ["no_item", "No Wikidata item"]];
+function AtlasWikiAnswers({ reloadKey, say }) {
+  const [sum, setSum] = useState(null);
+  const [probe, setProbe] = useState(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { api("/api/admin/atlas/wiki/classes").then(setSum).catch(() => setSum(null)); }, [reloadKey]);
+  const runProbe = async () => {
+    setBusy(true); setProbe(null);
+    try { setProbe(await api("/api/admin/atlas/wiki/probe")); } catch (e) { say({ ok: false, text: e.message }); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div data-atlas-wiki-answers="" style={{ ...sub, marginBottom: 12 }}>
+      <div style={{ ...row, justifyContent: "space-between" }}>
+        <b style={{ fontSize: 13, color: C.INK }}>Wikipedia's last answer, per node</b>
+        <DepthButton size="compact" disabled={busy} onClick={runProbe} data-atlas-probe="">Show a real answer</DepthButton>
+      </div>
+      {!sum ? <p style={quiet}>No answers yet.</p> : (
+        <div style={{ display: "grid", gap: 4, marginTop: 6 }}>
+          {MATCH_WORDS.map(([c, l]) => (
+            <details key={c} data-atlas-class={c}>
+              <summary style={{ fontSize: 12, color: C.INK, cursor: "pointer" }}>{l}: <b>{sum.counts?.[c] ?? 0}</b></summary>
+              <p style={{ ...quiet, overflowWrap: "anywhere" }}>{(sum.nodes?.[c] || []).map(n => `${n.name} (${n.kind})`).join(" · ") || "—"}</p>
+            </details>
+          ))}
+          <span style={quiet}>{sum.neverAnswered} node(s) never answered.</span>
+        </div>
+      )}
+      {probe && (
+        <pre data-atlas-probe-out="" style={{ fontSize: 11, maxHeight: 320, overflow: "auto", whiteSpace: "pre-wrap", overflowWrap: "anywhere", color: C.INK }}>
+          {JSON.stringify(probe, null, 1)}
+        </pre>
+      )}
+    </div>
+  );
+}
+
 /** Add a node by hand — a DRAFT until it is published. */
 function AtlasAddNode({ onAdded, say }) {
   const [kind, setKind] = useState("skill");
@@ -322,6 +363,7 @@ export function AtlasTab() {
         <AtlasAddNode say={setSaid} onAdded={(node) => { load(); setOpen(node.slug); }} />
         <AtlasMerge say={setSaid} onMerged={(r) => { setRows(rs => (rs || []).filter(x => x.slug !== r.loser)); setOpen(o => (o === r.loser ? r.winner : o)); }} />
       </div>
+      <AtlasWikiAnswers reloadKey={said} say={setSaid} />
       {said && <div role="status" style={{ ...callout(said.ok ? C.SUCCESS : C.DANGER), marginBottom: 10 }}>{said.text}</div>}
       {err && <div style={{ ...callout(C.DANGER), marginBottom: 10 }}>{err}</div>}
       {!rows ? <p style={quiet}>Loading…</p> : shown.length === 0 ? <p style={quiet}>No node matches.</p> : (

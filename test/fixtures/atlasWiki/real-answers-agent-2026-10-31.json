@@ -1,0 +1,2379 @@
+{
+ "recordedAt": "2026-10-31T04:50:46.316Z",
+ "from": "the agent's machine, not production",
+ "titles": [
+  "Machine learning",
+  "Kubernetes",
+  "PostgreSQL",
+  "Scalability",
+  "Python"
+ ],
+ "query": {
+  "batchcomplete": true,
+  "query": {
+   "pages": [
+    {
+     "pageid": 23824,
+     "ns": 0,
+     "title": "PostgreSQL",
+     "pageprops": {
+      "wikibase_item": "Q192490"
+     }
+    },
+    {
+     "pageid": 185529,
+     "ns": 0,
+     "title": "Scalability",
+     "pageprops": {
+      "wikibase_item": "Q727490"
+     }
+    },
+    {
+     "pageid": 233488,
+     "ns": 0,
+     "title": "Machine learning",
+     "pageprops": {
+      "wikibase_item": "Q2539"
+     }
+    },
+    {
+     "pageid": 43291963,
+     "ns": 0,
+     "title": "Kubernetes",
+     "pageprops": {
+      "wikibase_item": "Q22661306"
+     }
+    },
+    {
+     "pageid": 46332325,
+     "ns": 0,
+     "title": "Python",
+     "pageprops": {
+      "disambiguation": "",
+      "wikibase_item": "Q747452"
+     }
+    }
+   ]
+  }
+ },
+ "entities": {
+  "entities": {
+   "Q192490": {
+    "type": "item",
+    "id": "Q192490",
+    "claims": {
+     "P1324": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P1324",
+        "hash": "36b166c6539190acc198279e3b2f743bc6558693",
+        "datavalue": {
+         "value": "https://git.postgresql.org/gitweb/?p=postgresql.git",
+         "type": "string"
+        },
+        "datatype": "url"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P8423": [
+         {
+          "snaktype": "value",
+          "property": "P8423",
+          "hash": "ce121f772d88712a3b496a80650ebcbc56afe6b9",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 186055,
+            "id": "Q186055"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ],
+        "P10627": [
+         {
+          "snaktype": "value",
+          "property": "P10627",
+          "hash": "769d574b0a8e71645962db5e7aa3ac480e4fbd1c",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 97460957,
+            "id": "Q97460957"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P8423",
+        "P10627"
+       ],
+       "id": "Q192490$d86444f3-4008-33a0-6a20-616d5c808a7b",
+       "rank": "preferred",
+       "references": [
+        {
+         "hash": "fef5a231c68c8ebba8dc442db461e2d6b41b7d54",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "3f7f07869eb80461e7282fbae29ad84bf22475b1",
+            "datavalue": {
+             "value": "http://www.postgresql.org/download/",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ],
+          "P813": [
+           {
+            "snaktype": "value",
+            "property": "P813",
+            "hash": "941ed84379d436b7392acdead1aed1caa0e78884",
+            "datavalue": {
+             "value": {
+              "time": "+2020-08-29T00:00:00Z",
+              "timezone": 0,
+              "before": 0,
+              "after": 0,
+              "precision": 11,
+              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+             },
+             "type": "time"
+            },
+            "datatype": "time"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854",
+          "P813"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P1324",
+        "hash": "448e26c6b744769cc5738e67ce2989d2602ee97e",
+        "datavalue": {
+         "value": "git://git.postgresql.org/git/postgresql.git",
+         "type": "string"
+        },
+        "datatype": "url"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P8423": [
+         {
+          "snaktype": "value",
+          "property": "P8423",
+          "hash": "ce121f772d88712a3b496a80650ebcbc56afe6b9",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 186055,
+            "id": "Q186055"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ],
+        "P10627": [
+         {
+          "snaktype": "novalue",
+          "property": "P10627",
+          "hash": "5327e878422f90319ca0df84870a63f19cab2cba",
+          "datatype": "wikibase-item"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P8423",
+        "P10627"
+       ],
+       "id": "Q192490$0992436a-4a67-499f-8983-ffdec9f54aff",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "a42f9f20b520707c60aae4415624fa64b7aabafa",
+         "snaks": {
+          "P248": [
+           {
+            "snaktype": "value",
+            "property": "P248",
+            "hash": "4b312fc099547ef33df4235bc1291c0a04c5eb79",
+            "datavalue": {
+             "value": {
+              "entity-type": "item",
+              "numeric-id": 124688,
+              "id": "Q124688"
+             },
+             "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+           }
+          ],
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "0dcc32685efc0d2a5db10b47d4cdfc14a71d4e04",
+            "datavalue": {
+             "value": "https://www.openhub.net/p/postgres/enlistments",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ],
+          "P1476": [
+           {
+            "snaktype": "value",
+            "property": "P1476",
+            "hash": "bfc5c001caf945d0a0be20c4482440173befe30e",
+            "datavalue": {
+             "value": {
+              "text": "The postgres Open Source Project on Open Hub: Code Locations Page",
+              "language": "en"
+             },
+             "type": "monolingualtext"
+            },
+            "datatype": "monolingualtext"
+           }
+          ],
+          "P813": [
+           {
+            "snaktype": "value",
+            "property": "P813",
+            "hash": "2370df6ebb8abb16ce20777dcc4292f4de36f588",
+            "datavalue": {
+             "value": {
+              "time": "+2018-10-19T00:00:00Z",
+              "timezone": 0,
+              "before": 0,
+              "after": 0,
+              "precision": 11,
+              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+             },
+             "type": "time"
+            },
+            "datatype": "time"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P248",
+          "P854",
+          "P1476",
+          "P813"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P1324",
+        "hash": "7b26bf096b574dd39291c2a72ef774255b136028",
+        "datavalue": {
+         "value": "https://github.com/postgres/postgres",
+         "type": "string"
+        },
+        "datatype": "url"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P8423": [
+         {
+          "snaktype": "value",
+          "property": "P8423",
+          "hash": "ce121f772d88712a3b496a80650ebcbc56afe6b9",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 186055,
+            "id": "Q186055"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ],
+        "P10627": [
+         {
+          "snaktype": "value",
+          "property": "P10627",
+          "hash": "5e1fad984a9cf0e6be2c68760182ee59832c285a",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 364,
+            "id": "Q364"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ],
+        "P1552": [
+         {
+          "snaktype": "value",
+          "property": "P1552",
+          "hash": "e51d2db329759c501a8cfed63df676703de3eb44",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 1938536,
+            "id": "Q1938536"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P8423",
+        "P10627",
+        "P1552"
+       ],
+       "id": "Q192490$8F34C35B-7D8C-4C23-93AC-04173E553D76",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "772ec8e2289a58add936d530ed0600d3f3facd09",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "497a81068cfa7e62923c6bd934664cb3b912204d",
+            "datavalue": {
+             "value": "https://github.com/postgres/postgres",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ],
+          "P813": [
+           {
+            "snaktype": "value",
+            "property": "P813",
+            "hash": "a1dacd7187e236c143c2162a635f5752c4ac81ba",
+            "datavalue": {
+             "value": {
+              "time": "+2025-07-06T00:00:00Z",
+              "timezone": 0,
+              "before": 0,
+              "after": 0,
+              "precision": 11,
+              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+             },
+             "type": "time"
+            },
+            "datatype": "time"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854",
+          "P813"
+         ]
+        }
+       ]
+      }
+     ],
+     "P348": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P348",
+        "hash": "73ba6884f9ae25221a27877b27b704d5feb3781e",
+        "datavalue": {
+         "value": "9.3.5",
+         "type": "string"
+        },
+        "datatype": "string"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P577": [
+         {
+          "snaktype": "value",
+          "property": "P577",
+          "hash": "c5f63db1d1a15525777c4b193e5d0b5c145d09e2",
+          "datavalue": {
+           "value": {
+            "time": "+2014-07-24T00:00:00Z",
+            "timezone": 0,
+            "before": 0,
+            "after": 0,
+            "precision": 11,
+            "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+           },
+           "type": "time"
+          },
+          "datatype": "time"
+         }
+        ],
+        "P4945": [
+         {
+          "snaktype": "value",
+          "property": "P4945",
+          "hash": "a04b42c563fd698aa2634a1bb9aa3f734ba20dfb",
+          "datavalue": {
+           "value": "http://ftp.postgresql.org/pub/source/v9.3.5/",
+           "type": "string"
+          },
+          "datatype": "url"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P577",
+        "P4945"
+       ],
+       "id": "Q192490$39ce7d74-4e95-ead6-8893-199b51aa8ddb",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "db2a1516cab487f78c1885a0040fea1198038f2c",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "45cf16fc955676b1a7b95a482740c60a74650447",
+            "datavalue": {
+             "value": "http://www.postgresql.org/about/news/1534/",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P348",
+        "hash": "54d9cf08d2af9dfbe3ed9636c491147e63ff7db9",
+        "datavalue": {
+         "value": "9.2.9",
+         "type": "string"
+        },
+        "datatype": "string"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P577": [
+         {
+          "snaktype": "value",
+          "property": "P577",
+          "hash": "c5f63db1d1a15525777c4b193e5d0b5c145d09e2",
+          "datavalue": {
+           "value": {
+            "time": "+2014-07-24T00:00:00Z",
+            "timezone": 0,
+            "before": 0,
+            "after": 0,
+            "precision": 11,
+            "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+           },
+           "type": "time"
+          },
+          "datatype": "time"
+         }
+        ],
+        "P4945": [
+         {
+          "snaktype": "value",
+          "property": "P4945",
+          "hash": "6f9e985907092dbd22b0af508fc057b6f60a4d27",
+          "datavalue": {
+           "value": "http://ftp.postgresql.org/pub/source/v9.2.9/",
+           "type": "string"
+          },
+          "datatype": "url"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P577",
+        "P4945"
+       ],
+       "id": "Q192490$e8572f99-4484-6652-23bf-14a712e1fbcc",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "db2a1516cab487f78c1885a0040fea1198038f2c",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "45cf16fc955676b1a7b95a482740c60a74650447",
+            "datavalue": {
+             "value": "http://www.postgresql.org/about/news/1534/",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P348",
+        "hash": "e2a30910eb0089795820207ebbe7d8fb090d0c96",
+        "datavalue": {
+         "value": "9.1.14",
+         "type": "string"
+        },
+        "datatype": "string"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P577": [
+         {
+          "snaktype": "value",
+          "property": "P577",
+          "hash": "c5f63db1d1a15525777c4b193e5d0b5c145d09e2",
+          "datavalue": {
+           "value": {
+            "time": "+2014-07-24T00:00:00Z",
+            "timezone": 0,
+            "before": 0,
+            "after": 0,
+            "precision": 11,
+            "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+           },
+           "type": "time"
+          },
+          "datatype": "time"
+         }
+        ],
+        "P4945": [
+         {
+          "snaktype": "value",
+          "property": "P4945",
+          "hash": "d53e6551c65318b59eff5c5a24f41b80e194b737",
+          "datavalue": {
+           "value": "http://ftp.postgresql.org/pub/source/v9.1.14/",
+           "type": "string"
+          },
+          "datatype": "url"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P577",
+        "P4945"
+       ],
+       "id": "Q192490$e86809c6-4f7b-430f-a107-2f9843f110bd",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "db2a1516cab487f78c1885a0040fea1198038f2c",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "45cf16fc955676b1a7b95a482740c60a74650447",
+            "datavalue": {
+             "value": "http://www.postgresql.org/about/news/1534/",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      }
+     ],
+     "P856": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P856",
+        "hash": "31975f7b49c8d0b4d2215adbf2cd22a358b590ae",
+        "datavalue": {
+         "value": "https://www.postgresql.org",
+         "type": "string"
+        },
+        "datatype": "url"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P407": [
+         {
+          "snaktype": "value",
+          "property": "P407",
+          "hash": "daf1c4fcb58181b02dff9cc89deb084004ddae4b",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 1860,
+            "id": "Q1860"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P407"
+       ],
+       "id": "Q192490$A5ED9230-536A-4951-ADB3-BAC8D1EDEE16",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "d5847b9b6032aa8b13dae3c2dfd9ed5d114d21b3",
+         "snaks": {
+          "P143": [
+           {
+            "snaktype": "value",
+            "property": "P143",
+            "hash": "5a343e7e758a4282a01316d3e959b6e653b767fc",
+            "datavalue": {
+             "value": {
+              "entity-type": "item",
+              "numeric-id": 11920,
+              "id": "Q11920"
+             },
+             "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P143"
+         ]
+        }
+       ]
+      }
+     ],
+     "P277": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P277",
+        "hash": "fefd7ed753ee081bef23d69ca1e5d8462ff60cbb",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 15777,
+          "id": "Q15777"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q192490$D8CC905C-7C88-4849-8C68-C1200474D3AC",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "8b5ceb78e414a69013c6d990a6a198170f68feab",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "497a81068cfa7e62923c6bd934664cb3b912204d",
+            "datavalue": {
+             "value": "https://github.com/postgres/postgres",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        },
+        {
+         "hash": "8808647bd5cdeb98ca1fab9c437991101c7ee885",
+         "snaks": {
+          "P248": [
+           {
+            "snaktype": "value",
+            "property": "P248",
+            "hash": "4b312fc099547ef33df4235bc1291c0a04c5eb79",
+            "datavalue": {
+             "value": {
+              "entity-type": "item",
+              "numeric-id": 124688,
+              "id": "Q124688"
+             },
+             "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+           }
+          ],
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "3965890b0a9c21731cf6c32672bd807522b7ed01",
+            "datavalue": {
+             "value": "https://www.openhub.net/p/postgres/analyses/latest/languages_summary",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ],
+          "P1476": [
+           {
+            "snaktype": "value",
+            "property": "P1476",
+            "hash": "562b856401ea418955d524355aa3fa8496d117e0",
+            "datavalue": {
+             "value": {
+              "text": "The postgres Open Source Project on Open Hub: Languages Page",
+              "language": "en"
+             },
+             "type": "monolingualtext"
+            },
+            "datatype": "monolingualtext"
+           }
+          ],
+          "P813": [
+           {
+            "snaktype": "value",
+            "property": "P813",
+            "hash": "2370df6ebb8abb16ce20777dcc4292f4de36f588",
+            "datavalue": {
+             "value": {
+              "time": "+2018-10-19T00:00:00Z",
+              "timezone": 0,
+              "before": 0,
+              "after": 0,
+              "precision": 11,
+              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+             },
+             "type": "time"
+            },
+            "datatype": "time"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P248",
+          "P854",
+          "P1476",
+          "P813"
+         ]
+        },
+        {
+         "hash": "aa2634c0376dd5ea32893ad5f27712be0cac8301",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "8dfcde0a196ae0bbcd201d6b28c6621feed87dd7",
+            "datavalue": {
+             "value": "https://github.com/EvanLi/Github-Ranking/blob/master/Data/github-ranking-2025-07-06.csv",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ],
+          "P577": [
+           {
+            "snaktype": "value",
+            "property": "P577",
+            "hash": "d6a3d4037c7c32bdff8b5f26bb4c2fdf65c0cf9d",
+            "datavalue": {
+             "value": {
+              "time": "+2025-07-06T00:00:00Z",
+              "timezone": 0,
+              "before": 0,
+              "after": 0,
+              "precision": 11,
+              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+             },
+             "type": "time"
+            },
+            "datatype": "time"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854",
+          "P577"
+         ]
+        }
+       ]
+      }
+     ],
+     "P31": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P31",
+        "hash": "dc511ede5f5a275eb88297d5c5dded1e0c2b13b0",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 3932296,
+          "id": "Q3932296"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q192490$41d747cd-4fa3-87aa-0be1-c6015db224f5",
+       "rank": "normal"
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P31",
+        "hash": "be4e547c355558b1c5cd35f9a033b85b6bd5a8aa",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 114901705,
+          "id": "Q114901705"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q192490$93ff4486-42c3-c838-8574-18ea22ddbc23",
+       "rank": "normal"
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P31",
+        "hash": "80151d72feae178bc698c542c7d25a7496a146c5",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 341,
+          "id": "Q341"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q192490$c010ff54-4e15-792f-5efd-ac423eb95134",
+       "rank": "normal"
+      }
+     ],
+     "P306": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P306",
+        "hash": "70532a51e69a80b9747ca95f4b1f5226ccc9edbf",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 34236,
+          "id": "Q34236"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q192490$93b96c94-4594-cd0a-8fad-a4b899c7a354",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "bd7b02b9d29a6604116ea6432fd8ec9e05588941",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "a45f2161490d4695b24369bfbf06606a45bb5318",
+            "datavalue": {
+             "value": "https://www.postgresql.org/download/",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P306",
+        "hash": "5327f3658242e1589c21a4dc5b79001758ea3ee3",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 34215,
+          "id": "Q34215"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q192490$4c11f77f-4aa8-bb9b-8aa0-a685407813cf",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "bd7b02b9d29a6604116ea6432fd8ec9e05588941",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "a45f2161490d4695b24369bfbf06606a45bb5318",
+            "datavalue": {
+             "value": "https://www.postgresql.org/download/",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P306",
+        "hash": "01b345a882853b4326b5d884c140d3fffb0ac0ae",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 388,
+          "id": "Q388"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q192490$e0135469-4ead-5922-27f3-a0f7322889f5",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "bd7b02b9d29a6604116ea6432fd8ec9e05588941",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "a45f2161490d4695b24369bfbf06606a45bb5318",
+            "datavalue": {
+             "value": "https://www.postgresql.org/download/",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      }
+     ],
+     "P178": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P178",
+        "hash": "9c79347d1278d134839f73ed2cb23154a3adb4bd",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 65807102,
+          "id": "Q65807102"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q192490$d4799578-466c-2ebe-371f-e3458be9311f",
+       "rank": "normal"
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P178",
+        "hash": "c5756ff96da4dd8dd48721ba177003806a98d77a",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 122909316,
+          "id": "Q122909316"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q192490$74e6eff2-4be7-5c3f-6b75-e16cee8a0d56",
+       "rank": "normal"
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P178",
+        "hash": "059f7b09a7be8b9f092fa85ef9e6612ad1968aaf",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 7816527,
+          "id": "Q7816527"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q192490$09caf710-4b7a-dad2-c053-f4ab7a15efb6",
+       "rank": "normal"
+      }
+     ]
+    },
+    "sitelinks": {
+     "enwiki": {
+      "site": "enwiki",
+      "title": "PostgreSQL",
+      "badges": []
+     }
+    }
+   },
+   "Q727490": {
+    "type": "item",
+    "id": "Q727490",
+    "claims": {
+     "P31": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P31",
+        "hash": "21e3911a57630bd3351011ee7b0f8732fd987495",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 1207505,
+          "id": "Q1207505"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q727490$bc5ae2b3-44f8-600a-eba0-74a7b8b13481",
+       "rank": "normal"
+      }
+     ]
+    },
+    "sitelinks": {
+     "enwiki": {
+      "site": "enwiki",
+      "title": "Scalability",
+      "badges": []
+     }
+    }
+   },
+   "Q2539": {
+    "type": "item",
+    "id": "Q2539",
+    "claims": {
+     "P178": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P178",
+        "hash": "01bbd1e62aa3912d4df5238ef2ea29fbd994c399",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 710266,
+          "id": "Q710266"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q2539$4118a4cf-4071-ccba-8a96-7a6217589302",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "c2dbd856229cf019edc60c5f4c5032a2ff8bf18c",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "a7ea556ea3b7e035732faed6f45a582e9cd97529",
+            "datavalue": {
+             "value": "https://www.doc.ic.ac.uk/~jce317/history-machine-learning.html#:~:text=1952%20saw%20the%20first%20computer,network%20in%201958%2C%20called%20Perceptron.",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ],
+          "P813": [
+           {
+            "snaktype": "value",
+            "property": "P813",
+            "hash": "dc98618d0df7996627b67856bd5c9c71beab2490",
+            "datavalue": {
+             "value": {
+              "time": "+2020-07-10T00:00:00Z",
+              "timezone": 0,
+              "before": 0,
+              "after": 0,
+              "precision": 11,
+              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+             },
+             "type": "time"
+            },
+            "datatype": "time"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854",
+          "P813"
+         ]
+        }
+       ]
+      }
+     ],
+     "P31": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P31",
+        "hash": "76550899ff04a58a96afed514ab1cf22e8908771",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 11862829,
+          "id": "Q11862829"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q2539$7207b143-425d-e4a4-4551-85436453dc8d",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "5b1161f7f9c904e1ab6fddde0d9a02cc4d42010a",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "fff613db0594278259f9e7d0e9efa008ed7e716d",
+            "datavalue": {
+             "value": "https://intellipaat.com/blog/what-is-machine-learning/",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P31",
+        "hash": "d436def3effb86b9dfb1ff24f201d36580e98f44",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 374814,
+          "id": "Q374814"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P2241": [
+         {
+          "snaktype": "value",
+          "property": "P2241",
+          "hash": "0a0859296c9e1e44cf0f298f4e848211d4ce28f0",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 110646418,
+            "id": "Q110646418"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P2241"
+       ],
+       "id": "Q2539$9847b25a-4081-05bc-7932-bc7b4aa5d91a",
+       "rank": "deprecated",
+       "references": [
+        {
+         "hash": "f4e9b40b5caea5cdcf9ce9d521dc9a12c545825a",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "fb731bc7dca674c52ac2820a410b2263d01e9d5e",
+            "datavalue": {
+             "value": "https://kanger.dev/stack/machine-learning-bootcamps-courses",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P31",
+        "hash": "aaab963dd4cd1158512c825064ea5ecd83119f6f",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 43015,
+          "id": "Q43015"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P2241": [
+         {
+          "snaktype": "value",
+          "property": "P2241",
+          "hash": "0a0859296c9e1e44cf0f298f4e848211d4ce28f0",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 110646418,
+            "id": "Q110646418"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P2241"
+       ],
+       "id": "Q2539$56142806-48f9-44f2-9636-e00743281692",
+       "rank": "deprecated",
+       "references": [
+        {
+         "hash": "e112a3e3516fd5438e608e2ac803981ac856bac2",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "b3957fc1e42289be8cad07ab9e3ae8c7179f387f",
+            "datavalue": {
+             "value": "https://kanger.dev/stack/machine-learning-for-finance",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "sitelinks": {
+     "enwiki": {
+      "site": "enwiki",
+      "title": "Machine learning",
+      "badges": []
+     }
+    }
+   },
+   "Q22661306": {
+    "type": "item",
+    "id": "Q22661306",
+    "claims": {
+     "P178": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P178",
+        "hash": "cca79c443381fd6b57b081b3513371f5a7b5c132",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 95,
+          "id": "Q95"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q22661306$7ce89ca1-4e23-0c39-d6a7-ba17e4ffbc2c",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "7e56f7cc0153b70815de359391db7d17546d25a1",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "3fd3ecd47291ef890c7b3ce5721b7251ae51a616",
+            "datavalue": {
+             "value": "http://kubernetes.io/",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P178",
+        "hash": "5260fbda017a97b9ebb1c6969452ed5b16737aae",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 50866964,
+          "id": "Q50866964"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q22661306$f58de564-4de7-7688-27b6-c7dd85cf507b",
+       "rank": "normal"
+      }
+     ],
+     "P277": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P277",
+        "hash": "59a2be362e0f864aabe5b183e689b1643265695b",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 37227,
+          "id": "Q37227"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q22661306$20fd5645-4a89-6dc5-cf81-95b6083f17db",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "10cd6ace1ab33f85025efaa8843e40801815cc0c",
+         "snaks": {
+          "P4656": [
+           {
+            "snaktype": "value",
+            "property": "P4656",
+            "hash": "cca687206e900bab9a166b87bf1785eb40ea0770",
+            "datavalue": {
+             "value": "https://en.wikipedia.org/wiki/Kubernetes",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P4656"
+         ]
+        },
+        {
+         "hash": "4cb084a9bff9e84fcb81cd8f0f1db921018150e7",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "9b48d8c2da72f800b0b9be2ac647b9df0a8d3122",
+            "datavalue": {
+             "value": "https://github.com/kubernetes/kubernetes/search?l=go",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        },
+        {
+         "hash": "30f3d8d76eb398c24dd99c436d88d78c6abeab68",
+         "snaks": {
+          "P248": [
+           {
+            "snaktype": "value",
+            "property": "P248",
+            "hash": "4b312fc099547ef33df4235bc1291c0a04c5eb79",
+            "datavalue": {
+             "value": {
+              "entity-type": "item",
+              "numeric-id": 124688,
+              "id": "Q124688"
+             },
+             "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+           }
+          ],
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "0a3e586c34d8e1807a3125e4bb9e6781808ed3f2",
+            "datavalue": {
+             "value": "https://www.openhub.net/p/kubernetes/analyses/latest/languages_summary",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ],
+          "P1476": [
+           {
+            "snaktype": "value",
+            "property": "P1476",
+            "hash": "017e80487550ce3942a0f5cdaa3a51f80fcfe138",
+            "datavalue": {
+             "value": {
+              "text": "The kubernetes Open Source Project on Open Hub: Languages Page",
+              "language": "en"
+             },
+             "type": "monolingualtext"
+            },
+            "datatype": "monolingualtext"
+           }
+          ],
+          "P813": [
+           {
+            "snaktype": "value",
+            "property": "P813",
+            "hash": "2370df6ebb8abb16ce20777dcc4292f4de36f588",
+            "datavalue": {
+             "value": {
+              "time": "+2018-10-19T00:00:00Z",
+              "timezone": 0,
+              "before": 0,
+              "after": 0,
+              "precision": 11,
+              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+             },
+             "type": "time"
+            },
+            "datatype": "time"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P248",
+          "P854",
+          "P1476",
+          "P813"
+         ]
+        },
+        {
+         "hash": "aa2634c0376dd5ea32893ad5f27712be0cac8301",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "8dfcde0a196ae0bbcd201d6b28c6621feed87dd7",
+            "datavalue": {
+             "value": "https://github.com/EvanLi/Github-Ranking/blob/master/Data/github-ranking-2025-07-06.csv",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ],
+          "P577": [
+           {
+            "snaktype": "value",
+            "property": "P577",
+            "hash": "d6a3d4037c7c32bdff8b5f26bb4c2fdf65c0cf9d",
+            "datavalue": {
+             "value": {
+              "time": "+2025-07-06T00:00:00Z",
+              "timezone": 0,
+              "before": 0,
+              "after": 0,
+              "precision": 11,
+              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+             },
+             "type": "time"
+            },
+            "datatype": "time"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854",
+          "P577"
+         ]
+        }
+       ]
+      }
+     ],
+     "P306": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P306",
+        "hash": "01b345a882853b4326b5d884c140d3fffb0ac0ae",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 388,
+          "id": "Q388"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q22661306$bf88cc3c-4287-02f2-b987-58a6588be81f",
+       "rank": "normal"
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P306",
+        "hash": "372b598ec10a56c64b0db84314aeca97e8818e67",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 1406,
+          "id": "Q1406"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q22661306$e029d0b7-4b23-dd45-0061-2583aff930de",
+       "rank": "normal"
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P306",
+        "hash": "6f8d90e64f36074872798095d66b8bdfe139bca0",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 14116,
+          "id": "Q14116"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q22661306$6d4d699e-42d4-7a8b-c22f-a617c0ad2c7b",
+       "rank": "normal"
+      }
+     ],
+     "P1324": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P1324",
+        "hash": "f9183563d2d380175b7955c0a26a30ac1a7ecbb4",
+        "datavalue": {
+         "value": "https://github.com/kubernetes/kubernetes",
+         "type": "string"
+        },
+        "datatype": "url"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P8423": [
+         {
+          "snaktype": "value",
+          "property": "P8423",
+          "hash": "ce121f772d88712a3b496a80650ebcbc56afe6b9",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 186055,
+            "id": "Q186055"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ],
+        "P10627": [
+         {
+          "snaktype": "value",
+          "property": "P10627",
+          "hash": "5e1fad984a9cf0e6be2c68760182ee59832c285a",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 364,
+            "id": "Q364"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P8423",
+        "P10627"
+       ],
+       "id": "Q22661306$50f1234b-42fc-6307-071d-b71530bcf27a",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "f4e1d7be15f514871e54da8d5d4ce3063cb98cf0",
+         "snaks": {
+          "P813": [
+           {
+            "snaktype": "value",
+            "property": "P813",
+            "hash": "89a2a040193b3a1563275e56f1558648111fa1b1",
+            "datavalue": {
+             "value": {
+              "time": "+2016-10-06T00:00:00Z",
+              "timezone": 0,
+              "before": 0,
+              "after": 0,
+              "precision": 11,
+              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+             },
+             "type": "time"
+            },
+            "datatype": "time"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P813"
+         ]
+        },
+        {
+         "hash": "a9ed4974113a07ce627783b7790c5501c0c8cecb",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "50aa847432a99a049e68804219f4727cd5cef9a6",
+            "datavalue": {
+             "value": "https://github.com/kubernetes/kubernetes",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ],
+          "P813": [
+           {
+            "snaktype": "value",
+            "property": "P813",
+            "hash": "a1dacd7187e236c143c2162a635f5752c4ac81ba",
+            "datavalue": {
+             "value": {
+              "time": "+2025-07-06T00:00:00Z",
+              "timezone": 0,
+              "before": 0,
+              "after": 0,
+              "precision": 11,
+              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+             },
+             "type": "time"
+            },
+            "datatype": "time"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854",
+          "P813"
+         ]
+        }
+       ]
+      }
+     ],
+     "P856": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P856",
+        "hash": "45569992a03b6121d4add512c3151d0b7d8a5e9c",
+        "datavalue": {
+         "value": "https://kubernetes.io",
+         "type": "string"
+        },
+        "datatype": "url"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P407": [
+         {
+          "snaktype": "value",
+          "property": "P407",
+          "hash": "daf1c4fcb58181b02dff9cc89deb084004ddae4b",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 1860,
+            "id": "Q1860"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P407"
+       ],
+       "id": "Q22661306$d6300461-41ad-dfae-fbb1-1e76e23815cd",
+       "rank": "preferred",
+       "references": [
+        {
+         "hash": "26df2fa61233f91934eccbb219bb6a7487dbcbed",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "8ae622d6bbc1f3f40ba137d6381bf481be6a2528",
+            "datavalue": {
+             "value": "https://api.github.com/repos/kubernetes/kubernetes",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ],
+          "P813": [
+           {
+            "snaktype": "value",
+            "property": "P813",
+            "hash": "a19571137c8725608662fbc1e95f21fc03c4b318",
+            "datavalue": {
+             "value": {
+              "time": "+2018-09-27T00:00:00Z",
+              "timezone": 0,
+              "before": 0,
+              "after": 0,
+              "precision": 11,
+              "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+             },
+             "type": "time"
+            },
+            "datatype": "time"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854",
+          "P813"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P856",
+        "hash": "7bb696d43fb23b50cf164aaaa7a2a40a2112ab2e",
+        "datavalue": {
+         "value": "https://k8s.io",
+         "type": "string"
+        },
+        "datatype": "url"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P407": [
+         {
+          "snaktype": "value",
+          "property": "P407",
+          "hash": "daf1c4fcb58181b02dff9cc89deb084004ddae4b",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 1860,
+            "id": "Q1860"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P407"
+       ],
+       "id": "Q22661306$28e6656c-4e2e-0869-19f0-19c744e00e53",
+       "rank": "normal"
+      }
+     ],
+     "P348": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P348",
+        "hash": "0a5d05cbefa8e9142cf0322892221369949bab72",
+        "datavalue": {
+         "value": "1.4.12",
+         "type": "string"
+        },
+        "datatype": "string"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P577": [
+         {
+          "snaktype": "value",
+          "property": "P577",
+          "hash": "22bf0b9c25c666fa85ada36113e2ae40bcd270a2",
+          "datavalue": {
+           "value": {
+            "time": "+2017-04-20T00:00:00Z",
+            "timezone": 0,
+            "before": 0,
+            "after": 0,
+            "precision": 11,
+            "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+           },
+           "type": "time"
+          },
+          "datatype": "time"
+         }
+        ],
+        "P548": [
+         {
+          "snaktype": "value",
+          "property": "P548",
+          "hash": "e006ea8d2fa441433e0fa85bc4132b806e0fabee",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 2804309,
+            "id": "Q2804309"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P577",
+        "P548"
+       ],
+       "id": "Q22661306$a92dfd2d-4933-714f-0e5e-b053d1effc7a",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "4e710e69937bc14ed2d98ac6b4b0dfd6c4effec2",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "b6fa7262d2e753c32453ab92b23b2097bc24862e",
+            "datavalue": {
+             "value": "https://github.com/kubernetes/kubernetes/releases/tag/v1.4.12",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P348",
+        "hash": "41f3925ce9534e25ef14907bb440d728bf9cec65",
+        "datavalue": {
+         "value": "1.5.7",
+         "type": "string"
+        },
+        "datatype": "string"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P577": [
+         {
+          "snaktype": "value",
+          "property": "P577",
+          "hash": "e934993d438b3d1ec10b72a3194e0135abee32c9",
+          "datavalue": {
+           "value": {
+            "time": "+2017-04-27T00:00:00Z",
+            "timezone": 0,
+            "before": 0,
+            "after": 0,
+            "precision": 11,
+            "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+           },
+           "type": "time"
+          },
+          "datatype": "time"
+         }
+        ],
+        "P548": [
+         {
+          "snaktype": "value",
+          "property": "P548",
+          "hash": "e006ea8d2fa441433e0fa85bc4132b806e0fabee",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 2804309,
+            "id": "Q2804309"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P577",
+        "P548"
+       ],
+       "id": "Q22661306$be3c1aa7-4bf4-3150-bb63-eaa8bf6ff955",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "9ee9823ca3a64b0f5f7f464b739e85da76c82728",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "36a6e66f64cf6c014b50cb8970bdcebd706ca804",
+            "datavalue": {
+             "value": "https://github.com/kubernetes/kubernetes/releases/tag/v1.5.7",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P348",
+        "hash": "129cf8a8058fde54866e74c0ba60bd14d4afc6ae",
+        "datavalue": {
+         "value": "1.6.7",
+         "type": "string"
+        },
+        "datatype": "string"
+       },
+       "type": "statement",
+       "qualifiers": {
+        "P577": [
+         {
+          "snaktype": "value",
+          "property": "P577",
+          "hash": "0139d7f59c4de8aac3a7aea287262e7af91960e2",
+          "datavalue": {
+           "value": {
+            "time": "+2017-07-05T00:00:00Z",
+            "timezone": 0,
+            "before": 0,
+            "after": 0,
+            "precision": 11,
+            "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+           },
+           "type": "time"
+          },
+          "datatype": "time"
+         }
+        ],
+        "P548": [
+         {
+          "snaktype": "value",
+          "property": "P548",
+          "hash": "e006ea8d2fa441433e0fa85bc4132b806e0fabee",
+          "datavalue": {
+           "value": {
+            "entity-type": "item",
+            "numeric-id": 2804309,
+            "id": "Q2804309"
+           },
+           "type": "wikibase-entityid"
+          },
+          "datatype": "wikibase-item"
+         }
+        ]
+       },
+       "qualifiers-order": [
+        "P577",
+        "P548"
+       ],
+       "id": "Q22661306$7c720f74-4246-5644-b798-2acb64057de3",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "77fed5f3fb88a0393e7ae53700473054777d9b0b",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "d228ad3d42a8ccee9636c9f9d2bbbde418fe3165",
+            "datavalue": {
+             "value": "https://github.com/kubernetes/kubernetes/releases/tag/v1.6.7",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      }
+     ],
+     "P31": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P31",
+        "hash": "83ee26917a9a1edef9cd4bd2699d5d045ead663a",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 506883,
+          "id": "Q506883"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q22661306$d5119aad-4903-4101-631f-ac0309d5f947",
+       "rank": "normal"
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P31",
+        "hash": "d436def3effb86b9dfb1ff24f201d36580e98f44",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 374814,
+          "id": "Q374814"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q22661306$81af28bb-4f2b-0d7e-4d3a-fdecff17ea7f",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "d9e8ea61a28192b09a23c8609f20683d3eccf6e0",
+         "snaks": {
+          "P854": [
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "e8f967ec8e7b1c1ac4906afff29f95f50d7a3d13",
+            "datavalue": {
+             "value": "https://kanger.dev/certification/kcna-kubernetes-and-cloud-native-associate",
+             "type": "string"
+            },
+            "datatype": "url"
+           },
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "8b5ef7a070532bb067d8c2ec7cae62370d5f78cb",
+            "datavalue": {
+             "value": "https://kanger.dev/certification/ckad-certified-kubernetes-application-developer",
+             "type": "string"
+            },
+            "datatype": "url"
+           },
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "8c7670a5077dbdc5680e12829681b77c03f40b82",
+            "datavalue": {
+             "value": "https://kanger.dev/certification/cka-certified-kubernetes-administrator",
+             "type": "string"
+            },
+            "datatype": "url"
+           },
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "ff1a7cc9ff16a9a14513b3206e38347e4424a0ae",
+            "datavalue": {
+             "value": "https://kanger.dev/certification/kcsa-kubernetes-and-cloud-native-security-associate",
+             "type": "string"
+            },
+            "datatype": "url"
+           },
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "b81096d093b85d5532be64185a8cf2fb0d652572",
+            "datavalue": {
+             "value": "https://kanger.dev/certification/cks-certified-kubernetes-security-specialist",
+             "type": "string"
+            },
+            "datatype": "url"
+           },
+           {
+            "snaktype": "value",
+            "property": "P854",
+            "hash": "05ed45f20ec78e165814b04e09b9bcf7b1e11a28",
+            "datavalue": {
+             "value": "https://kanger.dev/article/kubernetes-certification-path",
+             "type": "string"
+            },
+            "datatype": "url"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P854"
+         ]
+        }
+       ]
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P31",
+        "hash": "70ea3040feb62ac3357de8659f63a0aff3d1bdd7",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 118218718,
+          "id": "Q118218718"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q22661306$85a99759-459a-6116-918a-2e428e92c33c",
+       "rank": "normal"
+      }
+     ],
+     "P2078": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P2078",
+        "hash": "ebb8641f2966fcb474e1d972b0b055b9e8838e79",
+        "datavalue": {
+         "value": "https://kubernetes.io/docs/",
+         "type": "string"
+        },
+        "datatype": "url"
+       },
+       "type": "statement",
+       "id": "Q22661306$57243a26-490a-50fd-4315-a3f6ef4862f3",
+       "rank": "normal"
+      },
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P2078",
+        "hash": "e525fc4bb1afc46b74efde26ed156606d3019e82",
+        "datavalue": {
+         "value": "https://kubernetes.io/docs/home/",
+         "type": "string"
+        },
+        "datatype": "url"
+       },
+       "type": "statement",
+       "id": "Q22661306$94ac3936-4dab-e65d-b9c7-529ebbf89249",
+       "rank": "normal"
+      }
+     ]
+    },
+    "sitelinks": {
+     "enwiki": {
+      "site": "enwiki",
+      "title": "Kubernetes",
+      "badges": []
+     }
+    }
+   },
+   "Q747452": {
+    "type": "item",
+    "id": "Q747452",
+    "claims": {
+     "P31": [
+      {
+       "mainsnak": {
+        "snaktype": "value",
+        "property": "P31",
+        "hash": "0ebb78ffecd3415a2dbc8db900881ff784fead2a",
+        "datavalue": {
+         "value": {
+          "entity-type": "item",
+          "numeric-id": 4167410,
+          "id": "Q4167410"
+         },
+         "type": "wikibase-entityid"
+        },
+        "datatype": "wikibase-item"
+       },
+       "type": "statement",
+       "id": "Q747452$6C7BA105-3239-43BA-A8A5-8B89A0C1EE1B",
+       "rank": "normal",
+       "references": [
+        {
+         "hash": "fa278ebfc458360e5aed63d5058cca83c46134f1",
+         "snaks": {
+          "P143": [
+           {
+            "snaktype": "value",
+            "property": "P143",
+            "hash": "e4f6d9441d0600513c4533c672b5ab472dc73694",
+            "datavalue": {
+             "value": {
+              "entity-type": "item",
+              "numeric-id": 328,
+              "id": "Q328"
+             },
+             "type": "wikibase-entityid"
+            },
+            "datatype": "wikibase-item"
+           }
+          ]
+         },
+         "snaks-order": [
+          "P143"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "sitelinks": {
+     "enwiki": {
+      "site": "enwiki",
+      "title": "Python",
+      "badges": []
+     }
+    }
+   }
+  },
+  "success": 1
+ }
+}

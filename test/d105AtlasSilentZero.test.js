@@ -114,7 +114,7 @@ test("D105 BUG 10-31 · d105ResultLineShowsCounters — the admin button and the
   const ok = describeAutoRun({ titles: { due: 169, asked: 161, notAsked: 8, requests: 6, failed: 0, matched: 41, reasons: { 200: 6 } },
     wikidata: { due: 20, official: 18 }, wikipedia: { due: 41, fetched: 41, failed: 0 }, autoPublish: { published: ["a", "b"] } });
   assert.equal(ok.ok, true);
-  assert.equal(ok.line, "Titles: 169 due · 161 asked · 8 not askable · 6 request(s) · 0 failed · 41 matched · Wikidata: 18 official link(s) of 20 due · Summaries: 41 of 41 read · 2 page(s) published");
+  assert.equal(ok.line, "Titles: 169 due · 161 asked · 8 not askable · 6 request(s) · 0 failed · 41 matched · 0 item(s) · 0 not software · Wikidata: 18 official link(s) of 20 due · Summaries: 41 of 41 read · 2 page(s) published");
   // Nothing due at all says why, and points at the button.
   const idle = describeAutoRun({ titles: { due: 0, asked: 0, requests: 0, failed: 0, matched: 0 }, wikidata: { due: 0 }, wikipedia: { due: 0, fetched: 0 }, autoPublish: { published: [] } });
   assert.match(idle.line, /nothing was due — every unmatched node was asked in the last 30 days; "Ask Wikipedia again" clears that$/);

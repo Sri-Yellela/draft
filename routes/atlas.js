@@ -28,6 +28,8 @@
 //   POST   /api/admin/atlas/auto/run              titles + Wikidata items → Wikidata resources → Wikipedia → the bar, now
 //                                                  (it also runs nightly after the stats); `line` names any failure (BUG 10-31)
 //   POST   /api/admin/atlas/wiki/ask-again        clear the 30-day "no article" mark on unmatched nodes → { cleared }
+//   GET    /api/admin/atlas/wiki/classes          the matcher's last answer per node, counted by class, with the nodes
+//   GET    /api/admin/atlas/wiki/probe            ONE real Wikipedia + Wikidata answer as this server receives it (read-only)
 //
 // ⛔ `you` is computed only for a signed-in reader and only from THEIR profile's skills (D101 profile_skills) — never
 // stored, never shown to anyone else (d105YouOnlyWhenSignedIn).
@@ -36,6 +38,7 @@ import { searchNodes, readNode, setStatus, addAlias, resolveTerms, RESOLVE_MAX_T
 import { createNode, updateNode, readNodeForEditor, mergeNodes, addTypedEdge, removeEdge, addResource, updateResource, removeResource,
   AtlasEditError } from "../services/atlas/atlasEditor.js";
 import { checkAtlasLinks } from "../services/atlas/atlasLinkCheck.js";
+import { probeWikipedia, wikiMatchSummary } from "../services/atlas/atlasWikidata.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
 import { readiness, READINESS_COLUMNS, runAtlasAutoPipeline, autoPublish, askWikipediaAgain } from "../services/atlas/atlasPublish.js";
@@ -169,6 +172,10 @@ export function createAtlasAdminRouter(db, { fetchImpl = globalThis.fetch, linkP
     } catch (e) { res.status(500).json({ error: "wiki_refresh_failed", message: e.message }); }
   });
   router.post("/wiki/ask-again", (_req, res) => res.json({ ok: true, ...askWikipediaAgain(db) }));
+  router.get("/wiki/classes", (_req, res) => res.json(wikiMatchSummary(db)));
+  router.get("/wiki/probe", async (_req, res) => {
+    try { res.json(await probeWikipedia({ fetchImpl })); } catch (e) { res.status(500).json({ error: "probe_failed", message: e.message }); }
+  });
   router.post("/:slug/status", (req, res) => {
     const status = req.body?.status;
     if (!["published", "draft"].includes(status)) return res.status(400).json({ error: "bad_status" });
