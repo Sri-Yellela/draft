@@ -99,6 +99,15 @@ export function levelDisagreement(title, read) {
 /** A user's level from their profile — the ranks above, or null. */
 export function userLevelRank(level) { return level in RANK ? RANK[level] : null; }
 
+/** ⭐ D113 P1: the rank a number of years of experience reads as — the same scale readLevel puts a posting's ask on. */
+export function yearsLevelRank(years) {
+  const n = Number(years);
+  return Number.isFinite(n) && n >= 0 ? RANK[yearsLevel(n)] : null;
+}
+
+/** The rank of a level the read stored (entry | early | mid | senior), or null. */
+export function levelRank(level) { return typeof level === "string" && level in RANK ? RANK[level] : null; }
+
 /**
  * ⭐ D106 P2 · the one line. Inputs are what the card already has: the match score (as shown), D104's eligibility,
  * D107's liveness, and the stored level read with its disagreement. Never reads more than it is given.

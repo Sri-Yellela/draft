@@ -16,6 +16,7 @@
 import { fullAutoDisabled } from "./appSettings.js";
 import { userHeld } from "./applyUserHold.js";
 import { notifyEvent } from "./notify.js";
+import { pickAuthorisesSend } from "./picks.js";
 
 export const LEASE_SECONDS = 15 * 60;
 export const MAX_ATTEMPTS = 3;
@@ -222,7 +223,9 @@ export function leaseRemoteRun(db, { workerId = "worker", env = process.env, now
     if (unattended) {
       if (killed) continue;
       const mode = db.prepare(`SELECT send_mode FROM users WHERE id = ?`).pluck().get(row.user_id);
-      if (mode !== "auto") { finishRemote(db, row, "stopped", "full_auto_not_chosen"); continue; }
+      // ⭐ D113: or the user tapped Apply on THIS job in a picks message — that tap is their send (services/picks.js).
+      const tapped = () => pickAuthorisesSend(db, row.user_id, db.prepare(`SELECT job_id FROM apply_run_jobs WHERE id = ?`).pluck().get(row.run_job_id), nowSec);
+      if (mode !== "auto" && !tapped()) { finishRemote(db, row, "stopped", "full_auto_not_chosen"); continue; }
     }
     if (row.attempts >= MAX_ATTEMPTS) { finishRemote(db, row, "failed", "attempts_exhausted"); continue; }
     const session = row.session_id ? db.prepare(`SELECT * FROM portal_sessions WHERE id = ?`).get(row.session_id) : null;
@@ -324,7 +327,9 @@ export function acceptReport(db, report, { workerId = "worker", hooks = {} } = {
         return { ok: true, state: "stopped", warning: "reported values differ from the approved ones" };
       }
     }
-    const submittedBy = row.approved_values_json ? "user" : "auto";
+    // ⭐ D113: a tap on Apply in a picks message (a SEMI user's own send for this job) is the user's submit, as approval is.
+    const submittedBy = row.approved_values_json ? "user"
+      : (db.prepare(`SELECT send_mode FROM users WHERE id = ?`).pluck().get(row.user_id) !== "auto" && pickAuthorisesSend(db, row.user_id, row.job_id)) ? "user" : "auto";
     db.prepare(`UPDATE apply_remote_runs SET state = 'submitted', field_list_json = ?, lease_until = NULL, outcome = 'submitted',
       updated_at = unixepoch() WHERE id = ?`).run(JSON.stringify(fields || []), row.id);
     db.prepare(`UPDATE apply_run_jobs SET status = 'submitted', reason_code = NULL, submitted_by = ?, submit_verified = ?,
