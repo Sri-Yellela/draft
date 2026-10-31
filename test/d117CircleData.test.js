@@ -77,6 +77,8 @@ test("D117 C9 · d117ImportIdempotent — the file goes in once by id: 108 piece
   // At boot: after the tracker's content seed and the D115 imports; the content seed never reads this file as a tracker.
   const server = read("server.js");
   assert.ok(at(server, "const s = seedLearnContentIfEmpty(db);") < at(server, "const c = seedCircleData(db);"));
+  assert.ok(at(server, "const p = importLearnPatterns(db, learnContent(db));") < at(server, "const c = seedCircleData(db);"),
+    "after the D115 imports: the import's unresolved count is measured against the concepts they add (a boot on a copy reported 374 of 385 unresolved before)");
   const fresh = fixtureDb();
   assert.deepEqual(seedLearnContentIfEmpty(fresh, { now: 1 }).seeded, ["silicon-to-software.json"], "d117-data.json is not a tracker document");
   assert.match(read("scripts/migrations.js"), /id: "202_learn_circle",/);

@@ -9654,18 +9654,6 @@ try {
   if (s.seeded.length) console.log(`[learn] first install: ${s.seeded.join(", ")} imported into the database`);
   for (const k of s.skipped) console.warn(`[learn] ${k.file} NOT imported — ${k.errors.slice(0, 3).map(e => `${e.at} ${e.reason}`).join("; ")}`);
 } catch (e) { console.warn("[learn] content seed:", e.message); }
-// ⭐ D117 C9: the circle's data (content/learn/d117-data.json — "Before this" links as drafts, the terms each piece
-// teaches, D115 P5's links) goes in by its own import, idempotent by id: every boot adds only what is missing and never
-// moves a status the owner reviewed; learn_content (the tracker's text) is not touched. P5's links wait for the
-// dead-link checker before they show (shortly after boot, then daily with the Atlas's links).
-try {
-  const c = seedCircleData(db);
-  if (!c.ok) console.warn(`[learn] circle data NOT imported — ${(c.errors || []).slice(0, 3).map(e => `${e.at} ${e.reason}`).join("; ")}`);
-  else if (!c.missing && (c.needs.added || c.teaches.added || c.p5.added)) console.log(`[learn] circle: ${c.needs.added} "Before this" link(s) (drafted), ${c.teaches.added} taught term(s) (${c.teaches.unresolved.length} unresolved), ${c.p5.added} P5 link(s) waiting for the link check`);
-  if (c.ok && !c.missing && c.p5.pending) {
-    setTimeout(() => { checkExtraItems(db, { include: ["pending"] }).then(r => console.log(`[learn] P5 links: ${r.checked} checked, ${r.live} live, ${r.held.length} held back`)).catch(e => console.warn("[learn] P5 link check:", e.message)); }, 60_000).unref();
-  }
-} catch (e) { console.warn("[learn] circle data:", e.message); }
 // ⭐ D115 P4(a): the owner's tracker's 385 definitions — empty definitions filled, the rest as concept drafts (idempotent).
 try {
   const r = importLearnConcepts(db, learnContent(db));
@@ -9678,6 +9666,18 @@ try {
   const p = importLearnPatterns(db, learnContent(db));
   if (p.created.length || p.promoted.length || p.resources) console.log(`[atlas] learn: ${p.created.length} pattern(s) added, ${p.promoted.length} promoted from concepts, ${p.resources} practice link(s), ${p.edges} edge(s)`);
 } catch (e) { console.warn("[atlas] learn import:", e.message); }
+// ⭐ D117 C9 (after the D115 imports, so the taught terms resolve against the concepts they add): the circle's data (content/learn/d117-data.json — "Before this" links as drafts, the terms each piece
+// teaches, D115 P5's links) goes in by its own import, idempotent by id: every boot adds only what is missing and never
+// moves a status the owner reviewed; learn_content (the tracker's text) is not touched. P5's links wait for the
+// dead-link checker before they show (shortly after boot, then daily with the Atlas's links).
+try {
+  const c = seedCircleData(db);
+  if (!c.ok) console.warn(`[learn] circle data NOT imported — ${(c.errors || []).slice(0, 3).map(e => `${e.at} ${e.reason}`).join("; ")}`);
+  else if (!c.missing && (c.needs.added || c.teaches.added || c.p5.added)) console.log(`[learn] circle: ${c.needs.added} "Before this" link(s) (drafted), ${c.teaches.added} taught term(s) (${c.teaches.unresolved.length} unresolved), ${c.p5.added} P5 link(s) waiting for the link check`);
+  if (c.ok && !c.missing && c.p5.pending) {
+    setTimeout(() => { checkExtraItems(db, { include: ["pending"] }).then(r => console.log(`[learn] P5 links: ${r.checked} checked, ${r.live} live, ${r.held.length} held back`)).catch(e => console.warn("[learn] P5 link check:", e.message)); }, 60_000).unref();
+  }
+} catch (e) { console.warn("[learn] circle data:", e.message); }
 // ⭐ D116 M1: each node's family, seeded ONCE from content/atlas/families.json (the owner reviews it); a node a curator
 // set or cleared in Admin → Atlas is never touched again (family_by). Idempotent.
 try {
