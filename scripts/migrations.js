@@ -5409,4 +5409,15 @@ export const MIGRATIONS = [
             AND (wiki_title_by = 'auto' OR wikidata_id IS NOT NULL);
       `,
     },
+    {
+      // ⭐ D105 P11 · drafted definitions, reviewed by the owner (services/atlas/atlasDefinitions.js). A definition pasted
+      // back from a chat waits in definition_draft (definition_by = 'drafted') — never in `definition`, which is what
+      // the public page shows and the publish bar counts; accepting moves it there with definition_by = 'owner'.
+      id: "192_atlas_definition_draft",
+      sql: `
+        ALTER TABLE atlas_nodes ADD COLUMN definition_draft TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN definition_by TEXT;
+        UPDATE atlas_nodes SET definition_by = 'owner' WHERE TRIM(COALESCE(definition, '')) != '';
+      `,
+    },
   ];

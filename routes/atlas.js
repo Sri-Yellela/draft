@@ -35,6 +35,11 @@
 //   POST   /api/admin/atlas/node/:slug/wiki-pick         { title, wikidataId }  → the title + Wikidata ID, by this curator
 //   GET    /api/admin/atlas/wiki/redirects               every redirect node with its target (the group preview)
 //   POST   /api/admin/atlas/wiki/redirects/accept        { picks: [{ slug, title, wikidataId }] }  all or nothing
+// ⭐ D105 P11 · drafted definitions (services/atlas/atlasDefinitions.js):
+//   GET    /api/admin/atlas/definitions/export           up to 30 nodes without one + the instructions, as copyable text
+//   POST   /api/admin/atlas/definitions/import           { text } — the chat's JSON answer; all or nothing; lands as drafts
+//   GET    /api/admin/atlas/definitions/drafts           the review list
+//   POST   /api/admin/atlas/definitions/:slug/accept     { definition? } (edited) · …/:slug/reject · …/accept-all { slugs }
 //
 // ⛔ `you` is computed only for a signed-in reader and only from THEIR profile's skills (D101 profile_skills) — never
 // stored, never shown to anyone else (d105YouOnlyWhenSignedIn).
@@ -45,6 +50,7 @@ import { createNode, updateNode, readNodeForEditor, mergeNodes, addTypedEdge, re
 import { checkAtlasLinks } from "../services/atlas/atlasLinkCheck.js";
 import { probeWikipedia, wikiMatchSummary } from "../services/atlas/atlasWikidata.js";
 import { wikiCandidates, pickWikiTitle, redirectPreview, acceptPicks } from "../services/atlas/atlasWikiFind.js";
+import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts } from "../services/atlas/atlasDefinitions.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
 import { readiness, READINESS_COLUMNS, runAtlasAutoPipeline, autoPublish, askWikipediaAgain } from "../services/atlas/atlasPublish.js";
@@ -189,6 +195,19 @@ export function createAtlasAdminRouter(db, { fetchImpl = globalThis.fetch, linkP
     if (!node) return res.status(404).json({ error: "not_found" });
     return wikiAsk(res, () => wikiCandidates(fetchImpl, node));
   });
+  // ── D105 P11 · drafted definitions, reviewed (no model call from draft — the owner pastes to and from a chat) ──
+  router.get("/definitions/export", (_req, res) => res.json(exportForDrafting(db)));
+  router.post("/definitions/import", (req, res) => {
+    const r = importDrafted(db, req.body?.text ?? req.body?.definitions ?? req.body);
+    res.status(r.ok ? 200 : 400).json(r);
+  });
+  router.get("/definitions/drafts", (_req, res) => res.json({ drafts: draftedDefinitions(db) }));
+  router.post("/definitions/accept-all", (req, res) => res.json({ ok: true, ...acceptAllDrafts(db, req.body?.slugs, curator(req)) }));
+  router.post("/definitions/:slug/accept", (req, res) => {
+    const r = acceptDraft(db, req.params.slug, { definition: req.body?.definition }, curator(req));
+    return r ? res.json({ ok: true, ...r }) : res.status(404).json({ error: "no_draft" });
+  });
+  router.post("/definitions/:slug/reject", (req, res) => res.status(rejectDraft(db, req.params.slug) ? 200 : 404).json({ ok: true }));
   router.post("/node/:slug/wiki-pick", (req, res) => editing(res, () =>
     res.json({ ok: true, node: pickWikiTitle(db, req.params.slug, { title: req.body?.title, wikidataId: req.body?.wikidataId }, curator(req)) })));
   router.get("/wiki/probe", async (_req, res) => {
