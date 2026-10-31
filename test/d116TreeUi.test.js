@@ -173,6 +173,9 @@ test("D116 M2 · d116TreeDeterministic — the same data always draws the same t
   // The angular order: each of yours followed by its children, then the trunk's children.
   assert.deepEqual(a.order.filter(s => ["docker", "kubernetes", "terraform", "prometheus"].includes(s)), ["docker", "kubernetes", "terraform", "prometheus"]);
   assert.ok(!a.pos.has("airflow"), "a node not on the tree is not drawn");
+  // Terraform hanging off Docker sits right after Docker, before Kubernetes — not in plain list order.
+  const t2 = you(); t2.nodes.find(n => n.slug === "terraform").parent = "docker";
+  assert.deepEqual(layoutTree(t2).order.filter(s => ["docker", "kubernetes", "terraform", "prometheus"].includes(s)), ["docker", "terraform", "kubernetes", "prometheus"]);
 });
 
 test("D116 M4 · d116TreePathBackToYou — a chosen skill lights its branch back to the centre and dashes to its other asked-with skills; the rest dims", () => {
