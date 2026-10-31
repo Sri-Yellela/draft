@@ -216,3 +216,25 @@ test("D117 C7 · d117FourThemes — the circle draws in draft's tokens only (Pap
   assert.match(html, /<rect class="lrc__sq"[^>]* rx="3.2"/, "the pieces are rounded squares");
   assert.doesNotMatch(html, /style="[^"]*(#[0-9a-f]{3,8}|rgb)/i, "no inline colour");
 });
+
+test("D115 P5 · the 26 games / exercises / practice links (riding on D117 C9): after the link check each shows on its piece as an OPTIONAL item of its kind, marked new; Exercise and Game sit after the tracker's kinds; opening one is an extra, never toward finishing", async () => {
+  const { circle } = await loadUi();
+  const db = await world();
+  const w4 = props(db).pieces.find(p => p.id === "w4");
+  const p5 = w4.items.filter(i => i.p5);
+  assert.deepEqual(p5.map(i => i.k).sort(), ["Exercise", "Game", "Game", "Game", "Game"]);
+  const html = circle(props(db, { initialSel: "w4" }));
+  for (const it of p5) {
+    const li = between(html, `data-learn-item="${it.id}"`, "</li>");
+    assert.ok(li.includes(`href="${it.u}"`), it.id);
+    assert.match(li, /optional/);
+    assert.match(li, new RegExp(`data-learn-p5="${it.id}">new<`));
+  }
+  const kinds = [...html.matchAll(/<h4 class="lrc__kind-h">([^<]+)<\/h4>/g)].map(m => m[1]);
+  assert.ok(kinds.indexOf("Game") > kinds.indexOf("Exercise") && kinds.indexOf("Exercise") > kinds.indexOf("Build"), kinds.join(","));
+  const before = stepState(w4, earnedMarks(db, 7));
+  recordOpened(db, 7, p5[0].id);
+  const after = stepState(w4, earnedMarks(db, 7));
+  assert.deepEqual([after.bar, after.extras], [before.bar, before.extras + 1]);
+  assert.ok(after.extrasTotal >= 5);
+});

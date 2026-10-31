@@ -25,7 +25,7 @@ import {
 } from "./learnModel.js";
 import "./LearnCircle.css";
 
-export const KIND_ORDER = ["Video", "Playlist", "Article", "Guide", "Book", "Course", "Build", "Project", "Sandbox", "Lab", "Practice", "Atlas"];
+export const KIND_ORDER = ["Video", "Playlist", "Article", "Guide", "Book", "Course", "Build", "Project", "Sandbox", "Lab", "Practice", "Exercise", "Game", "Atlas"];
 const reducedMotion = () => {
   try { return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
 };
@@ -214,6 +214,7 @@ export function PieceBody({ piece, pieces, states, marks = {}, explanations = {}
                 <li key={it.id} className="lrc__item" data-learn-item={it.id}>
                   {it.u ? <a className="atl__link" href={it.u} target="_blank" rel="noopener noreferrer" data-learn-open={it.id} onClick={() => onOpen?.(it, piece)}>{it.t}</a> : <b>{it.t}</b>}
                   {it.o ? <span className="mark mark--dim lrc__tag">optional</span> : null}
+                  {it.p5 ? <span className="mark mark--accent lrc__tag" data-learn-p5={it.id}>new</span> : null}
                   {marks[it.id] ? <span className="mark mark--ok lrc__tag" data-learn-opened={it.id}>opened</span> : null}
                   {it.s && <span className="lrc__src">{it.s}</span>}
                   {it.n && <span className="lrc__note">{it.n}</span>}
