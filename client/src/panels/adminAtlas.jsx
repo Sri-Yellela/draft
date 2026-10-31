@@ -118,6 +118,72 @@ function AtlasRedirectGroup({ say, onPicked }) {
   );
 }
 
+// ⭐ D105 P11 · DRAFT DEFINITIONS — the Admin → Enrichment pattern: copy the export into a Claude chat, paste its JSON
+// answer back; each lands as a DRAFT (never public, never counted by the bar) for Accept · Edit · Reject, or Accept all
+// after reading. draft makes no model call (D17).
+function AtlasDraftDefinitions({ say, onChanged }) {
+  const [out, setOut] = useState(null);
+  const [answer, setAnswer] = useState("");
+  const [errors, setErrors] = useState(null);
+  const [drafts, setDrafts] = useState(null);
+  const [edits, setEdits] = useState({});
+  const [busy, setBusy] = useState(false);
+  const loadDrafts = useCallback(() => api("/api/admin/atlas/definitions/drafts").then(r => setDrafts(r.drafts)).catch(() => setDrafts([])), []);
+  useEffect(() => { loadDrafts(); }, [loadDrafts]);
+  const act = async (fn) => { setBusy(true); try { await fn(); } catch (e) { say({ ok: false, text: e.message }); } finally { setBusy(false); } };
+  const exportNow = () => act(async () => setOut(await api("/api/admin/atlas/definitions/export")));
+  const copy = () => { try { navigator.clipboard?.writeText(out.text); say({ ok: true, text: `Copied ${out.nodes.length} item(s) — paste them into a Claude chat.` }); } catch { /* select it by hand */ } };
+  const importNow = () => act(async () => {
+    setErrors(null);
+    let r;
+    try { r = await send("/api/admin/atlas/definitions/import", { text: answer }); }
+    catch (e) { if (e.status === 400) { setErrors(e.payload?.errors || [{ slug: null, reason: "refused" }]); return; } throw e; }
+    say({ ok: true, text: `${r.drafted} definition(s) drafted — read them below, then accept.` }); setAnswer(""); setOut(null); loadDrafts();
+  });
+  const accept = (d) => act(async () => {
+    const r = await send(`/api/admin/atlas/definitions/${enc(d.slug)}/accept`, edits[d.slug] != null ? { definition: edits[d.slug] } : {});
+    say({ ok: true, text: `${d.name}: accepted${r.published?.length ? ` — published ${r.published.join(", ")}` : ""}.` }); loadDrafts(); onChanged();
+  });
+  const reject = (d) => act(async () => { await send(`/api/admin/atlas/definitions/${enc(d.slug)}/reject`); loadDrafts(); });
+  const acceptAll = () => act(async () => {
+    const r = await send("/api/admin/atlas/definitions/accept-all", { slugs: drafts.filter(d => edits[d.slug] == null).map(d => d.slug) });
+    say({ ok: true, text: `${r.accepted} accepted as written${r.published.length ? ` — published ${r.published.length}` : ""}. Edited ones wait for their own Accept.` }); loadDrafts(); onChanged();
+  });
+  return (
+    <div data-atlas-definitions="" style={{ ...sub, marginBottom: 12, display: "grid", gap: 8 }}>
+      <div style={{ ...row, justifyContent: "space-between" }}>
+        <b style={{ fontSize: 13, color: C.INK }}>Draft definitions</b>
+        <DepthButton size="compact" disabled={busy} onClick={exportNow} data-atlas-def-export="">Draft definitions</DepthButton>
+      </div>
+      {out && (
+        <div style={{ display: "grid", gap: 6 }}>
+          <span style={quiet}>1. Copy this into a Claude chat. 2. Paste its JSON answer below. Nothing is public until you accept it.</span>
+          <textarea readOnly value={out.text} rows={6} style={{ ...field, fontFamily: "monospace", fontSize: 11 }} aria-label="Items to define" />
+          <div style={row}><DepthButton size="compact" onClick={copy} data-atlas-def-copy="">Copy</DepthButton></div>
+          <textarea value={answer} onChange={e => setAnswer(e.target.value)} rows={5} placeholder='{ "definitions": [ … ] }' style={{ ...field, fontFamily: "monospace", fontSize: 11 }} aria-label="The chat's answer" />
+          <div style={row}><DepthButton size="compact" primary disabled={busy || !answer.trim()} onClick={importNow} data-atlas-def-import="">Import as drafts</DepthButton></div>
+          {errors && <div style={callout(C.DANGER)}>Refused — nothing was saved: {errors.map(e => `${e.slug || "file"}: ${e.reason}`).join(" · ")}</div>}
+        </div>
+      )}
+      {drafts?.length > 0 && (
+        <div data-atlas-def-review="" style={{ display: "grid", gap: 6 }}>
+          {drafts.map(d => (
+            <div key={d.slug} style={{ display: "grid", gap: 4 }}>
+              <span style={{ fontSize: 12, color: C.INK }}><b>{d.name}</b> <span style={quiet}>{d.kind} · {d.postings} posting(s) · drafted</span></span>
+              <textarea value={edits[d.slug] ?? d.draft} onChange={e => setEdits(x => ({ ...x, [d.slug]: e.target.value }))} rows={2} style={{ ...field, fontSize: 12 }} aria-label={`Definition of ${d.name}`} />
+              <div style={row}>
+                <DepthButton size="compact" primary disabled={busy} onClick={() => accept(d)} data-atlas-def-accept={d.slug}>Accept</DepthButton>
+                <DepthButton size="compact" disabled={busy} onClick={() => reject(d)} data-atlas-def-reject={d.slug}>Reject</DepthButton>
+              </div>
+            </div>
+          ))}
+          <div style={row}><DepthButton size="compact" disabled={busy} onClick={acceptAll} data-atlas-def-accept-all="">Accept all as written</DepthButton></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AtlasWikiAnswers({ reloadKey, say }) {
   const [sum, setSum] = useState(null);
   const [probe, setProbe] = useState(null);
@@ -441,6 +507,7 @@ export function AtlasTab() {
         <AtlasMerge say={setSaid} onMerged={(r) => { setRows(rs => (rs || []).filter(x => x.slug !== r.loser)); setOpen(o => (o === r.loser ? r.winner : o)); }} />
       </div>
       <AtlasWikiAnswers reloadKey={said} say={setSaid} />
+      <AtlasDraftDefinitions say={setSaid} onChanged={load} />
       {said && <div role="status" style={{ ...callout(said.ok ? C.SUCCESS : C.DANGER), marginBottom: 10 }}>{said.text}</div>}
       {err && <div style={{ ...callout(C.DANGER), marginBottom: 10 }}>{err}</div>}
       {!rows ? <p style={quiet}>Loading…</p> : shown.length === 0 ? <p style={quiet}>No node matches.</p> : (

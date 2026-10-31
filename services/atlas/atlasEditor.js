@@ -42,7 +42,11 @@ export function updateNode(db, slug, { definition, wikiTitle } = {}) {
   const n = nodeBySlug(db, slug);
   if (!n) bad("not_found");
   const sets = [], args = [];
-  if (definition !== undefined) { sets.push("definition = ?"); args.push(cleanText(definition)); }
+  if (definition !== undefined) {
+    // ⭐ P11: a definition the curator types is theirs (a drafted one waits in definition_draft until accepted).
+    const d = cleanText(definition);
+    sets.push("definition = ?", "definition_by = ?"); args.push(d, d ? "owner" : null);
+  }
   if (wikiTitle !== undefined) {
     const t = cleanWikiTitle(wikiTitle);
     // ⭐ P8 (amended 10-31): the curator's title — set OR cleared — is theirs from now on: the nightly matcher never
