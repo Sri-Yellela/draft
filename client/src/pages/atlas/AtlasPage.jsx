@@ -9,6 +9,8 @@
 // with "computed from N active postings on <date>") · Related (typed link lists + the first-ring graph) · Resources
 // (free first; level · format · hours · cost · last checked; links out) · From Wikipedia (its OWN block, its licence
 // line and links — never merged into the definition) · "You: have / partial / missing" only when the API sent `you`.
+// ⭐ D105 P12: a ROLE's page is the board's own data (`roleBoard`): skills with shares, levels, pay, companies hiring,
+// then "To reach the next level"; its definition shows on top when one exists, and no "not written yet" line otherwise.
 // Every colour is a theme token (AtlasPage.css); no pills — marks and depth boxes (D60).
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -20,7 +22,7 @@ import AtlasGraph from "./AtlasGraph.jsx";
 import LearnView from "./LearnView.jsx";
 import {
   KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
-  WIKI_LICENCE, YOU_LABEL, YOU_MARK,
+  WIKI_LICENCE, YOU_LABEL, YOU_MARK, LEVEL_READ_LABEL, shareText, stepTitle, stepEmptyLine, roleBoardParts,
 } from "./atlasModel.js";
 import "./AtlasPage.css";
 
@@ -108,6 +110,81 @@ export function WikipediaBlock({ wiki }) {
   );
 }
 
+/**
+ * ⭐ D105 P12 · a ROLE's "On the board" — the board's own data, which is the page when no one has written a definition:
+ * the skills its postings ask for with their shares, its postings by real level (D106), pay, and the companies hiring.
+ */
+function RoleBoard({ base, rb, payText }) {
+  const parts = roleBoardParts(rb);
+  const href = (slug) => `${base}/${encodeURIComponent(slug)}`;
+  return (
+    <div className="atl__cols" data-atlas-role-board="">
+      {parts.skills && (
+        <div data-role-skills="">
+          <h3 className="atl__h3">Skills its postings ask for</h3>
+          <ul className="atl__links">
+            {rb.topSkills.map(s => (
+              <li key={s.slug}><Link to={href(s.slug)} className="atl__link">{s.name}</Link>
+                <span className="atl__count" data-share={s.share}> · {shareText(s.share)}</span></li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {parts.levels && (
+        <div data-role-levels="">
+          <h3 className="atl__h3">Levels the postings ask for</h3>
+          <ul className="atl__links">
+            {rb.levels.read.filter(l => l.postings > 0).map(l => (
+              <li key={l.level} data-level={l.level}>{LEVEL_READ_LABEL[l.level] || l.level}
+                <span className="atl__count"> · {l.postings} posting{l.postings === 1 ? "" : "s"} · {l.share} %</span></li>
+            ))}
+          </ul>
+          {rb.levels.unread > 0 && <p className="atl__quiet">{rb.levels.unread} more say nothing that reads as a level.</p>}
+        </div>
+      )}
+      {parts.pay && payText && (
+        <div data-role-pay=""><h3 className="atl__h3">Pay range</h3>
+          <p className="atl__pay" data-atlas-pay="">{payText}<br /><span className="atl__quiet">from {rb.pay.n} posting{rb.pay.n === 1 ? "" : "s"} that state pay</span></p></div>
+      )}
+      {parts.companies && (
+        <div data-role-companies="">
+          <h3 className="atl__h3">Companies hiring</h3>
+          <ul className="atl__links">
+            {rb.companies.items.map(c => <li key={c.company}>{c.company}<span className="atl__count"> · {c.postings}</span></li>)}
+          </ul>
+          {rb.companies.total > rb.companies.items.length && <p className="atl__quiet">and {rb.companies.total - rb.companies.items.length} more</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** ⭐ D105 P12 · D116's "to reach the next level" for this role — every step, measured from the board, not opinion. */
+function RoleNextLevel({ base, steps }) {
+  const href = (slug) => `${base}/${encodeURIComponent(slug)}`;
+  return (
+    <section className="atl__section" data-atlas-next-level="" aria-labelledby="atl-next">
+      <h2 className="atl__h2" id="atl-next">To reach the next level</h2>
+      <div className="atl__cols">
+        {steps.map(step => (
+          <div key={`${step.from}-${step.to}`} data-next-step={`${step.from}-${step.to}`}>
+            <h3 className="atl__h3">{stepTitle(step)}</h3>
+            {step.items.length === 0 ? <p className="atl__quiet">{stepEmptyLine(step)}</p> : (
+              <ul className="atl__links">
+                {step.items.map(i => (
+                  <li key={i.slug}><Link to={href(i.slug)} className="atl__link">{i.name}</Link>
+                    <div className="atl__quiet">{i.line}</div></li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="atl__quiet">Skills whose share of this role's postings rises from one level to the next, read from the postings' own asks.</p>
+    </section>
+  );
+}
+
 /** /atlas/:slug — one page. */
 export function AtlasNodeView({ base, node, from, onWalk }) {
   const stats = node.onTheBoard;
@@ -115,6 +192,8 @@ export function AtlasNodeView({ base, node, from, onWalk }) {
   const resources = orderedResources(node.resources || []);
   const pay = payLine(stats?.pay);
   const href = (slug) => `${base}/${encodeURIComponent(slug)}`;
+  // ⭐ D105 P12: a role's page is the board's own data; its definition, when one exists, stays on top.
+  const rb = node.kind === "role" ? node.roleBoard || null : null;
   return (
     <article className="atl__node" data-atlas-node={node.slug}>
       <header className="atl__head">
@@ -136,27 +215,33 @@ export function AtlasNodeView({ base, node, from, onWalk }) {
         )}
       </header>
 
-      <section className="atl__section" data-atlas-definition="">
-        {node.definition
-          ? <p className="atl__def">{node.definition}</p>
-          : <p className="atl__quiet">{BRAND}'s own definition has not been written yet.</p>}
-      </section>
+      {(node.definition || !rb) && (
+        <section className="atl__section" data-atlas-definition="">
+          {node.definition
+            ? <p className="atl__def">{node.definition}</p>
+            : <p className="atl__quiet">{BRAND}'s own definition has not been written yet.</p>}
+        </section>
+      )}
 
       <section className="atl__section" data-atlas-board="" aria-labelledby="atl-board">
         <h2 className="atl__h2" id="atl-board">On the board</h2>
         {!stats ? <p className="atl__quiet">Not computed yet — the numbers come from the board's active postings after the nightly crawl.</p> : (
           <>
             <p className="atl__big"><b>{stats.postings}</b> open posting{stats.postings === 1 ? "" : "s"} {node.kind === "role" ? "for this role" : "ask for it"}</p>
-            <div className="atl__cols">
-              {stats.topSkills?.length > 0 && <div><h3 className="atl__h3">Seen with it most</h3><LinkList base={base} items={stats.topSkills} /></div>}
-              {stats.topRoles?.length > 0 && <div><h3 className="atl__h3">Roles that ask for it</h3><LinkList base={base} items={stats.topRoles} /></div>}
-              {pay && <div><h3 className="atl__h3">Pay range</h3><p className="atl__pay" data-atlas-pay="">{pay}<br /><span className="atl__quiet">from {stats.pay.n} posting{stats.pay.n === 1 ? "" : "s"} that state pay</span></p></div>}
-            </div>
+            {rb ? <RoleBoard base={base} rb={rb} payText={payLine(rb.pay)} /> : (
+              <div className="atl__cols">
+                {stats.topSkills?.length > 0 && <div><h3 className="atl__h3">Seen with it most</h3><LinkList base={base} items={stats.topSkills} /></div>}
+                {stats.topRoles?.length > 0 && <div><h3 className="atl__h3">Roles that ask for it</h3><LinkList base={base} items={stats.topRoles} /></div>}
+                {pay && <div><h3 className="atl__h3">Pay range</h3><p className="atl__pay" data-atlas-pay="">{pay}<br /><span className="atl__quiet">from {stats.pay.n} posting{stats.pay.n === 1 ? "" : "s"} that state pay</span></p></div>}
+              </div>
+            )}
             <p className="atl__quiet" data-atlas-computed="">{computedLine(stats)}</p>
           </>
         )}
         {node.fewOpenPostings && <p className="atl__quiet" data-atlas-few="">{FEW_POSTINGS_LINE}</p>}
       </section>
+
+      {rb && roleBoardParts(rb).nextLevel && <RoleNextLevel base={base} steps={rb.nextLevel} />}
 
       {node.kind === "role" && node.sponsors?.length > 0 && (
         <section className="atl__section" data-atlas-sponsors="" aria-labelledby="atl-sponsors">

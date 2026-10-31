@@ -146,3 +146,37 @@ export const WIKI_LICENCE = Object.freeze({ line: "From Wikipedia, CC BY-SA 4.0"
 
 export const YOU_LABEL = Object.freeze({ have: "You: have", partial: "You: partial", missing: "You: missing" });
 export const YOU_MARK = Object.freeze({ have: "mark--ok", partial: "mark--warn", missing: "mark--no" });
+
+// ⭐ D105 P12 · A ROLE PAGE IS THE BOARD'S OWN DATA (GET /api/atlas/node/:slug → roleBoard, services/atlas/atlasRolePage.js):
+// top skills with their shares, levels (D106's real level), pay, companies hiring, and D116's "to reach the next level".
+export const LEVEL_READ_LABEL = Object.freeze({ entry: "Entry", early: "Early career", mid: "Mid", senior: "Senior" });
+
+/** "61 % of postings" — a share the server computed, never re-derived here. */
+export const shareText = (share) => `${Math.round(Number(share) || 0)} % of postings`;
+
+/** "Early-career → mid" — one step of the next-level list. */
+export function stepTitle(step) {
+  const from = String(step?.from ?? ""), to = String(step?.to ?? "");
+  return `${from.charAt(0).toUpperCase()}${from.slice(1)} → ${to}`;
+}
+
+/** Why a step lists nothing: too few postings read at one of its two levels, or no skill rose enough. */
+export function stepEmptyLine(step) {
+  if (step?.reason === "too_few_postings") {
+    const p = step.postings || {};
+    return `Not enough postings read at both levels to measure yet (${p.from ?? 0} ${step.from} · ${p.to ?? 0} ${step.to}).`;
+  }
+  return `No skill is asked for clearly more often at ${step?.to} than at ${step?.from}.`;
+}
+
+/** Which board sections a role page has data for — a section with nothing in it is not drawn. */
+export function roleBoardParts(rb) {
+  if (!rb) return { skills: false, levels: false, pay: false, companies: false, nextLevel: false };
+  return {
+    skills: (rb.topSkills?.length ?? 0) > 0,
+    levels: (rb.levels?.read ?? []).some(l => l.postings > 0),
+    pay: !!rb.pay?.n,
+    companies: (rb.companies?.items?.length ?? 0) > 0,
+    nextLevel: Array.isArray(rb.nextLevel) && rb.nextLevel.length > 0,
+  };
+}
