@@ -20,6 +20,7 @@
 import crypto from "node:crypto";
 import { companyNameKey } from "../shared/companyIdentity.js";
 import { applyLine, levelRank, userLevelRank, yearsLevelRank } from "../shared/postingLevel.js";
+import { artifactCurrency } from "./resumeCurrency.js";
 
 const DAY = 86400;
 const now = () => Math.floor(Date.now() / 1000);
@@ -383,7 +384,9 @@ export function publicRun(db, run, { withPicks = true } = {}) {
     id: run.id, slotAt: run.slot_at, mode: run.mode, seen: run.seen, picked: run.picked, leftOut, leftOutTotal,
     expiresAt: run.expires_at, deliveredAt: run.delivery_claimed_at, summarySentAt: run.summary_sent_at,
     delivery: parse(run.delivery_json, null), createdAt: run.created_at,
-    ...(withPicks ? { picks: db.prepare(`SELECT * FROM picks WHERE run_id = ? ORDER BY rank`).all(run.id).map(publicPick) } : {}),
+    // resumeReady: "Your résumé for it" says made / not made — a current tailored résumé exists (Make it now, or a run).
+    ...(withPicks ? { picks: db.prepare(`SELECT * FROM picks WHERE run_id = ? ORDER BY rank`).all(run.id)
+      .map(p => ({ ...publicPick(p), resumeReady: artifactCurrency(db, { userId: run.user_id, jobId: p.job_id }).current })) } : {}),
   };
 }
 

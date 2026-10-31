@@ -16,6 +16,8 @@
 //   GET  /api/picks/runs?limit&before      runs newest first, each with its counts by reason and its picks
 //   GET  /api/picks/runs/:id/left-out      the postings a run left out (kept 14 days), with the reason
 //   POST /api/picks/:id/apply · /pass      the same actions as the confirm page, signed in
+//   POST /api/picks/:id/resume             D113 UI U4 "Make it now": the pick's tailored résumé, made on the user's press
+//                                          — before Apply, never a send (makePickResume below)
 //   POST /api/picks/runs/:id/apply-all
 import express from "express";
 import { readPickToken, signPickToken, publicRun, publicPick, listRuns, leftOutFor, claimRun, questionsForPick,
@@ -24,6 +26,8 @@ import { readAutoSettings } from "../shared/autoSettings.js";
 import { lastSlotAt, localClock } from "../services/autoScheduler.js";
 import { userHeld } from "../services/applyUserHold.js";
 import { fullAutoDisabled } from "../services/appSettings.js";
+import { artifactCurrency } from "../services/resumeCurrency.js";
+import { draftSlots, slotsExhausted, recordGenerationSlot } from "../services/draftSlots.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const now = () => Math.floor(Date.now() / 1000);
@@ -59,6 +63,39 @@ export function passPick(db, userId, pickId, nowSec = now()) {
   const ok = db.prepare(`UPDATE picks SET state = 'passed', token_used_at = ?, acted_at = ? WHERE id = ? AND user_id = ? AND state = 'offered'
     AND token_used_at IS NULL`).run(nowSec, nowSec, pickId, userId).changes === 1;
   return ok ? { ok: true, status: 200 } : { ok: false, status: 409, error: "already_done" };
+}
+
+/**
+ * ⭐ D113 UI U4 · "MAKE IT NOW" — the tailored résumé for ONE offered pick, on the user's press, before Apply.
+ * Tailoring otherwise waits for Apply (D113 P4: the model cost is spent on jobs the user wants); this press IS the user
+ * wanting it. It only makes the résumé: the pick stays offered, no run starts, nothing is filled or sent, and the job is
+ * not tagged Pending. It is the apply path's own generation (deps.generateResume = server.js generateResumeForApply), so
+ * the run after Apply reuses this résumé while it is current instead of writing another.
+ * A63: a NEW résumé costs one of the day's Draft slots — refused at zero, debited only when one was written; a current
+ * résumé already there costs nothing and is never refused.
+ */
+export async function makePickResume(db, { generateResume } = {}, userId, pickId) {
+  const pick = db.prepare(`SELECT * FROM picks WHERE id = ? AND user_id = ?`).get(pickId, userId);
+  if (!pick) return { ok: false, status: 404, error: "not_found" };
+  if (pick.state !== "offered") {
+    return { ok: false, status: 409, error: "not_offered", message: "This one is no longer a pick waiting for you, so its résumé is made in its run." };
+  }
+  if (typeof generateResume !== "function") return { ok: false, status: 503, error: "unavailable", message: "Résumés cannot be made on this server right now." };
+  if (!artifactCurrency(db, { userId, jobId: pick.job_id }).current) {
+    const slots = draftSlots(db, userId);
+    if (slots.remaining <= 0) return { ok: false, status: 429, ...slotsExhausted(slots) };
+  }
+  let r;
+  try { r = await generateResume(userId, pick.job_id, "generate"); } catch (e) { r = { error: e?.message || "generation failed" }; }
+  if (!r || r.error) {
+    const status = r?.limitReached ? 429 : r?.error === "job_not_found" ? 410 : 502;
+    return { ok: false, status, error: r?.errorCode || (status === 410 ? "posting_gone" : "generation_failed"),
+      message: status === 410 ? "The posting is gone, so there is nothing to tailor it to." : (r?.error || "The résumé was not made. Try again.") };
+  }
+  // fromCache true = a current résumé was reused (free); undefined = joined a generation another press already paid for.
+  if (r.fromCache === false) recordGenerationSlot(db, userId, pick.job_id);
+  return { ok: true, status: 200, resumeReady: true, fromCache: r.fromCache === true, atsScore: r.atsScore ?? null, draftSlots: draftSlots(db, userId),
+    message: "Made. Nothing was sent." };
 }
 
 export function applyAll(db, deps, userId, runId, nowSec = now()) {
@@ -201,7 +238,7 @@ ${opts.length ? `<select id="${name}" name="${name}"><option value=""></option>$
 // ── mount ────────────────────────────────────────────────────────────────────────────────────
 
 /**
- * @param deps { secret (pickSecret(SESSION_SECRET)), startPickRun, saveAnswers, startAutoRun? , env? }
+ * @param deps { secret (pickSecret(SESSION_SECRET)), startPickRun, saveAnswers, generateResume (Make it now), startAutoRun? , env? }
  */
 export default function picksConfirmRoutes(app, db, requireAuth, deps) {
   const form = express.urlencoded({ extended: false, limit: "32kb" });
@@ -318,6 +355,13 @@ export default function picksConfirmRoutes(app, db, requireAuth, deps) {
     const id = Number(req.params.id);
     if (!db.prepare(`SELECT 1 FROM picks WHERE id = ? AND user_id = ?`).get(id, req.user.id)) return res.status(404).json({ error: "not_found" });
     apiReply(res, passPick(db, req.user.id, id), req.user.id, id);
+  });
+
+  app.post("/api/picks/:id/resume", requireAuth, async (req, res) => {
+    const id = Number(req.params.id);
+    const out = await makePickResume(db, deps, req.user.id, id);
+    if (out.status === 404) return res.status(404).json({ error: "not_found" });
+    apiReply(res, out, req.user.id, id);
   });
 
   app.post("/api/picks/runs/:id/apply-all", requireAuth, (req, res) => {

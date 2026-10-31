@@ -29,7 +29,7 @@ import {
   leftOutLines, nextRunFromSettings, timeLabel, connectionsFromStopped,
 } from "../lib/draftHouseTree.js";
 import {
-  loadRuns, loadLeftOut, actOnPick, loadAutoSettings, setPicksSwitch, loadTableRows, loadConnections, loadAnswers,
+  loadRuns, loadLeftOut, actOnPick, makePickResume, loadAutoSettings, setPicksSwitch, loadTableRows, loadConnections, loadAnswers,
 } from "../lib/draftHouseRuns.js";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import { useViewport } from "../hooks/useViewport.js";
@@ -388,6 +388,8 @@ export function AutoApplyPanel() {
   const [open, setOpen] = useState(null);
   const [leaves, setLeaves] = useState(() => new Set());
   const [pickMsg, setPickMsg] = useState("");
+  // U4 · "Make it now", per pick: { busy } while it is made, then { ok, message, atsScore }.
+  const [madeNow, setMadeNow] = useState({});
   const [leftOut, setLeftOut] = useState({});
   const [, rerender] = useState(0);
   // U4: a leaf's data is asked for only when the leaf is opened, once (lib/draftHouseTree.js).
@@ -443,6 +445,13 @@ export function AutoApplyPanel() {
   const pickAct = async (node, act) => {
     const r = await actOnPick(node.pickId, act);
     setPickMsg(r.message);
+    if (r.ok) loadRuns().then(setD113);
+  };
+  // U4 · "Make it now": the pick's tailored résumé before Apply. The pick stays a pick; nothing is sent.
+  const makeNow = async (node) => {
+    setMadeNow(m => ({ ...m, [node.pickId]: { busy: true } }));
+    const r = await makePickResume(node.pickId);
+    setMadeNow(m => ({ ...m, [node.pickId]: { ok: r.ok, message: r.message, atsScore: r.atsScore } }));
     if (r.ok) loadRuns().then(setD113);
   };
   const portalFor = (node) => applyGatePortals.find(p => (applyHandoffPackets || []).some(k => k.expectedOrigin === p.origin && String(k.jobId) === String(node.jobId)));
@@ -614,9 +623,26 @@ export function AutoApplyPanel() {
           </>
         ) });
     }
+    const made = node.kind === "pick" ? (madeNow[node.pickId] || {}) : {};
+    const pickReady = node.kind === "pick" && (node.ref?.resumeReady === true || made.ok === true);
     out.push({ id: "resume", label: "Your résumé for it",
-      sub: node.kind === "pick" ? "made after you tap Apply" : "",
-      body: () => node.kind === "pick" ? <p className="dh-fold__quiet">Not made yet: it is tailored only after you tap Apply.</p> : (
+      sub: node.kind === "pick" ? (pickReady ? "made" : "made after you tap Apply") : "",
+      body: () => node.kind === "pick" ? (
+        <>
+          {pickReady
+            ? <p className="dh-fold__quiet">Made{made.atsScore != null ? `. Résumé: ${atsBandLabel(atsBandFor(made.atsScore)).short}` : ""}. Nothing was sent.</p>
+            : <p className="dh-fold__quiet">Not made yet: it is tailored only after you tap Apply.</p>}
+          {pickReady && node.jobId != null && <ChangesSummaryLine jobId={node.jobId} jobLabel={node.company} />}
+          {/* U4: Make it now — only for a pick still waiting for Apply (after Apply the run makes it). */}
+          {!pickReady && node.ring === "pick" && (
+            <button type="button" className="dh-btn" data-action="make-now" disabled={!!made.busy}
+              title="Tailors it now. Uses one of your drafts. Nothing is sent." onClick={() => makeNow(node)}>
+              {made.busy ? "Making it…" : "Make it now"}
+            </button>
+          )}
+          {made.message && !made.ok && <p className="dh-fold__quiet" role="status">{made.message}</p>}
+        </>
+      ) : (
         <>
           {node.kind === "approval" && (
             <p className="dh-fold__quiet">

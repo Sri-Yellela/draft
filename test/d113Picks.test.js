@@ -529,7 +529,8 @@ test("D113 · wired: the tick passes notify / the secret / the app URL; the conf
   assert.match(server, /const PICKS_SECRET = pickSecret\(SESSION_SECRET\);/);
   assert.match(server, /runAutoTick\(db, \{ fetchBoard: autoFetchBoard, startAutoRun: applyLine\.startAutoRun,\n\s+notify: /);
   assert.match(server, /runPicksFollowUps\(db, /);
-  assert.match(server, /picksConfirmRoutes\(app, db, requireAuth, \{ secret: PICKS_SECRET, startPickRun: applyLine\.startPickRun, saveAnswers: applyLine\.saveAnswers \}\);/);
+  // D113 UI U4 (Make it now) adds the apply path's own generation to the deps.
+  assert.match(server, /picksConfirmRoutes\(app, db, requireAuth, \{ secret: PICKS_SECRET, startPickRun: applyLine\.startPickRun, saveAnswers: applyLine\.saveAnswers,\n\s+generateResume: generateResumeForApply \}\);/);
   assert.match(server, /score: Number\.isFinite\(j\.matchScore\) \? j\.matchScore : null/);
   const mig = MIGRATIONS.map(m => m.id);
   // 43t: 189_atlas_publish was merged beside it — 188 is present and the list stays ascending.
