@@ -22,7 +22,7 @@
 //
 // callbackRates() is PURE (rows in, the card's data out — no database, no clock of its own); gatherCallbackApps()
 // is the one reader that turns the tables into those rows.
-import { responseBucket } from "../shared/applicationResponse.js";
+import { responseBucket, RESPONSE_OUTCOME } from "../shared/applicationResponse.js";
 import { livenessOf, titleKey } from "./jobs/jobHistory.js";
 
 export const MIN_COUNT = 15;
@@ -106,6 +106,9 @@ export function versionGroup(version) {
  * withdrawal with no reply): it is then in no denominator at all.
  */
 export function answerOf(app, { now }) {
+  // ⭐ D113 UI (owner 10-31): a WITHDRAWN application is neither a reply nor silence — the user ended it — so it is in
+  // no count at all, whatever was heard before. (An earlier interview stays visible on The Table; it is not a rate here.)
+  if (app.responseOutcome === RESPONSE_OUTCOME.WITHDRAWN) return { counted: false, replied: false, interviewed: false };
   const cats = app.inboxCategories ?? [];
   const inboxReply = cats.some(c => REPLY_CATEGORIES.includes(c));
   const bucket = responseBucket({ response_outcome: app.responseOutcome ?? null, first_response_at: app.firstResponseAt ?? null,

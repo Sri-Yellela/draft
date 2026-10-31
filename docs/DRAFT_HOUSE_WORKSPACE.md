@@ -49,9 +49,9 @@ Seven rings, colour **tokens** only (`client/src/styles/rings.js`), seven distin
 | Ready for your review | WARNING | ✓ | `ready_to_approve` |
 | Picked | INK_FAINT | | a D113 pick waiting for Apply |
 | Working on it | INFO | ✓ | `queued`, `in_flight` |
-| Sent | SUCCESS | | `submitted` (a withdrawn one too, closed by the candidate) |
+| Sent | SUCCESS | | `submitted` |
 | Replied | VIOLET | | `interview`, `assessment`, `offer`, `rejected` |
-| Stopped | DANGER | | `failed`, `skipped` |
+| Stopped | DANGER | | `failed`, `skipped`; and `withdrawn`, whose ring says **Withdrawn** |
 
 `prefers-reduced-motion` stops the pulse. A legend sits under the tree.
 
@@ -98,9 +98,14 @@ on `GET /api/picks/runs` carries `resumeReady`.
 
 **Withdraw / Add the date / Note why** — on the ladder status the row reads now (`services/pipelineWorkspace.js`
 `ROW_ACTIONS`). ⛔ **None of them tells the employer anything**; they record the user's own word in draft.
-- **Withdraw** — `POST /api/pipeline/job/:applicationId/withdraw`, `submitted` only: `job_applications.response_outcome`
-  becomes `withdrawn` through `mergeResponse`; the ladder reads Submitted, closed by the candidate (*"You withdrew it.
-  It's closed."*). A recorded but not yet verified submission has no record to write → 409.
+- **Withdraw** — ⛔ draft cannot withdraw an application on most employers' systems and never pretends to. The button
+  opens the company's own page for the application in a new tab and shows *"Withdraw it on <company>'s site; then
+  confirm here"* with **I withdrew it**. Only that confirmation calls `POST /api/pipeline/applications/:applicationId/withdrawn`
+  (the row's owner only; any sent status but a rejection; once): `job_applications.response_outcome` becomes `withdrawn`
+  through `mergeResponse`, and the ladder reads its terminal **`withdrawn`** — on The Table (its own tab; History reads
+  "Withdrawn"), Stopped's red ring named *Withdrawn* in the tree (*"You withdrew it. It's closed."*), never in Tidy up,
+  and in no count of D111's rates (neither a reply nor silence). A recorded but not yet verified submission has no record
+  to write → 409.
 - **Add the date** — `interview` only: D110's `PUT /api/interview/prep/:applicationId/date` (date, optional time), the
   Prep tab's countdown. Inline in the lead card.
 - **Note why** — `PUT /api/pipeline/job/:applicationId/note`, `rejected` only: `job_applications.notes` (The Table's

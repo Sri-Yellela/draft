@@ -4,7 +4,8 @@
 // ladder (D102, owner 10-30):
 //
 //   queued → in_flight → needs_you | ready_to_approve → submitted → interview | assessment | offer | rejected
-//   plus failed and skipped, from any pre-submit state.
+//   plus failed and skipped, from any pre-submit state; and withdrawn (D113 UI, owner 10-31), terminal, from any sent
+//   state: the USER said "I withdrew it" after withdrawing on the company's own site — draft never withdraws anything.
 //
 // ⛔ THIS IS NOT A THIRD STORED VOCABULARY. Two already exist and stay exactly as they are:
 //   our pipeline   apply_run_jobs.status + reason_code   (shared/applyOutcomeGroups.js lists every value)
@@ -19,13 +20,13 @@ import { RESPONSE_OUTCOME } from "./applicationResponse.js";
 
 export const LADDER = Object.freeze([
   "queued", "in_flight", "needs_you", "ready_to_approve",
-  "submitted", "interview", "assessment", "offer", "rejected",
+  "submitted", "interview", "assessment", "offer", "rejected", "withdrawn",
   "failed", "skipped",
 ]);
 
 export const LADDER_LABELS = Object.freeze({
   queued: "Queued", in_flight: "In flight", needs_you: "Needs you", ready_to_approve: "Ready to approve",
-  submitted: "Submitted", interview: "Interview", assessment: "Assessment", offer: "Offer", rejected: "Rejected",
+  submitted: "Submitted", interview: "Interview", assessment: "Assessment", offer: "Offer", rejected: "Rejected", withdrawn: "Withdrawn",
   failed: "Failed", skipped: "Skipped",
 });
 
@@ -34,7 +35,7 @@ export const DRAFT_HOUSE_TABS = Object.freeze(["needs_you", "ready_to_approve", 
 export const DRAFT_HOUSE_DEFAULT_TAB = "needs_you";
 
 /** The Table's tabs. `all` is every post-submit row; the rest are ladder statuses. */
-export const TABLE_TABS = Object.freeze(["all", "submitted", "interview", "assessment", "offer", "rejected"]);
+export const TABLE_TABS = Object.freeze(["all", "submitted", "interview", "assessment", "offer", "rejected", "withdrawn"]);
 export const TABLE_DEFAULT_TAB = "all";
 
 const PRE_SUBMIT = new Set(["queued", "in_flight", "needs_you", "ready_to_approve", "failed", "skipped"]);
@@ -58,8 +59,8 @@ const RUN_JOB = Object.freeze({
 
 // job_applications.outcome → the ladder, after it was sent. A recruiter SCREEN is the first
 // conversation, so it sits on Interview; `assessment` is D103's category (HackerRank, a take-home) and
-// is accepted here before the stored vocabulary has it. No reply / withdrawn stay Submitted —
-// `closedByCandidate` says the second.
+// is accepted here before the stored vocabulary has it. No reply stays Submitted. WITHDRAWN (the user's "I withdrew
+// it") is its own terminal status since D113 UI, whatever the employer had said before; `closedByCandidate` stays.
 const OUTCOME = Object.freeze({
   [RESPONSE_OUTCOME.SCREEN]: "interview",
   [RESPONSE_OUTCOME.INTERVIEW]: "interview",
@@ -77,7 +78,7 @@ const OUTCOME = Object.freeze({
 export function ladderStatus({ runJobStatus = null, reasonCode = null, sent = false, outcome = null } = {}) {
   const closedByCandidate = outcome === RESPONSE_OUTCOME.WITHDRAWN;
   if (sent || runJobStatus === "submitted") {
-    return { status: OUTCOME[outcome] || "submitted", closedByCandidate };
+    return { status: closedByCandidate ? "withdrawn" : (OUTCOME[outcome] || "submitted"), closedByCandidate };
   }
   if (runJobStatus === "held_review") {
     return { status: reasonCode === "awaiting_approval" ? "ready_to_approve" : "needs_you", closedByCandidate };

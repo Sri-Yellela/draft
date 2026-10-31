@@ -12,14 +12,14 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
-import { LADDER } from "../shared/applicationStatus.js";
+import { LADDER, ladderStatus, surfaceOf, TABLE_TABS } from "../shared/applicationStatus.js";
 import { THEME_LIST } from "../client/src/themes/index.js";
 import {
   RINGS, RING_ORDER, LADDER_RING, ringFor, FILTERS, buildNodes, buildTree, treeView, sideBlocks, SIDE_ORDER,
-  branchStep, createLeafCache, answerRows, inlineAnswerStart, leftOutLines, nextRunFromSettings, matchesSearch,
+  branchStep, createLeafCache, answerRows, inlineAnswerStart, leftOutLines, nextRunFromSettings, matchesSearch, ringLabelOf,
 } from "../client/src/lib/draftHouseTree.js";
 import {
-  loadRuns, loadLeftOut, actOnPick, makePickResume, D113_ROUTES, withdrawApplication, saveNoteWhy, setInterviewDate, ROW_ROUTES,
+  loadRuns, loadLeftOut, actOnPick, makePickResume, D113_ROUTES, confirmWithdrawn, saveNoteWhy, setInterviewDate, ROW_ROUTES,
 } from "../client/src/lib/draftHouseRuns.js";
 import pipelineRoutes from "../routes/pipeline.js";
 import interviewRoutes from "../routes/interview.js";
@@ -522,43 +522,78 @@ function sentApp(db, { userId = 1, jobId = "gh::1", outcome = null, verified = t
 }
 const leadActions = (node, ids) => panel.slice(at(panel, `case "${node}":`), at(panel, ids));
 
-test("d113uiWithdrawRecordsOnly — Withdraw is on a sent, unanswered row only; it records 'withdrawn' on the ladder and sends nothing", async () => {
+test("d113uiWithdrawNeverClaimsToWithdraw — Withdraw opens the company's page and asks; only \"I withdrew it\" records anything", async () => {
+  // The lead card: Withdraw is a LINK to the company's own page (LeadCard renders an href as target=_blank) whose press
+  // only opens the confirm line; it calls no route. Its title says draft cannot do it.
+  const sent = leadActions("sent", 'case "withdrawn":');
+  assert.match(sent, /\{ id: "withdraw", label: "Withdraw", \.\.\.\(r\.url \? \{ href: r\.url \} : \{\}\),\s*title: `Opens \$\{node\.company\}'s page\. draft cannot withdraw it for you\.`, onClick: \(\) => withdrawRow\(node\) \}/);
+  assert.match(panel, /const withdrawRow = \(node\) => setRowEdit\(\{ key: node\.key, kind: "withdraw" \}\);/, "pressing Withdraw calls nothing");
+  assert.match(treeSrc, /a\.href \? \(\s*<a [^>]*href=\{a\.href\} target="_blank" rel="noreferrer"/, "an href action opens a new tab");
+  const confirm = panel.slice(at(panel, 'rowEdit.kind === "withdraw" && ('), at(panel, 'rowEdit.kind === "date" || rowEdit.kind === "note") && ('));
+  assert.match(confirm, /<span>Withdraw it on \{node\.company\}'s site; then confirm here\.<\/span>/);
+  assert.match(confirm, /data-action="confirm-withdrawn"[\s\S]{0,120}onClick=\{\(\) => confirmWithdrawnRow\(node\)\}>I withdrew it<\/button>/);
+  assert.match(panel, /afterRowAct\(node, await confirmWithdrawn\(node\.applicationId\)\);/, "only the confirmation calls the route");
+  assert.equal(count(code(panel), "confirmWithdrawn("), 1);
+  // Rendered: the lead card's Withdraw is an <a target="_blank"> to the company's page, never a button that posts.
+  const { html, LeadCard } = await loadUi();
+  const node = { key: "table-9", kind: "sent", company: "Northwind", title: "SWE", ring: "sent", say: "Sent today." };
+  const out = html(LeadCard, { node, actions: [{ id: "withdraw", label: "Withdraw", href: "https://northwind.example/apply/9", title: "Opens Northwind's page." }] });
+  assert.match(out, /<a class="dh-btn" href="https:\/\/northwind\.example\/apply\/9" target="_blank" rel="noreferrer"[^>]*>Withdraw<\/a>/);
+  // The server: nothing in the route or the service reaches the employer — no mail, no portal, no worker, no fetch.
+  for (const src of [code(read("services/pipelineWorkspace.js")), code(read("routes/pipeline.js"))]) {
+    assert.doesNotMatch(src, /fetch\(|sendEmail|notify|resend|applyWorker|portal/i);
+  }
+  // No copy says it was withdrawn before the user confirms.
+  assert.doesNotMatch(code(panel).slice(0, at(code(panel), 'case "withdrawn":')), /Withdrawn\.|was withdrawn|We withdrew|draft withdrew/i);
+});
+
+test("d113uiWithdrawnStatus — \"I withdrew it\" sets the ladder's terminal withdrawn: owner only, on The Table, Stopped's red named Withdrawn", async () => {
+  // The ladder: a new terminal status, on The Table, with its own tab.
+  assert.ok(LADDER.includes("withdrawn"));
+  assert.equal(ladderStatus({ sent: true, outcome: "withdrawn" }).status, "withdrawn");
+  assert.equal(ladderStatus({ sent: true, outcome: "withdrawn" }).closedByCandidate, true);
+  assert.equal(surfaceOf("withdrawn"), "table");
+  assert.ok(TABLE_TABS.includes("withdrawn"));
+  // The route: the owner of the row only; any sent status but a rejection; never twice; not unverified.
   const db = leftoverDb();
   const id = sentApp(db);
   const t = await mountOn((app, auth) => pipelineRoutes(app, db, auth));
   try {
-    const r = await t.call(`/api/pipeline/job/${id}/withdraw`);
+    const r = await t.call(`/api/pipeline/applications/${id}/withdrawn`);
     assert.equal(r.status, 200);
-    assert.equal(r.body.row.status, "submitted", "D102: a withdrawn one stays Submitted on the ladder…");
-    assert.equal(r.body.row.closedByCandidate, true, "…closed by the candidate");
+    assert.equal(r.body.row.status, "withdrawn");
+    assert.equal(r.body.row.statusLabel, "Withdrawn");
+    assert.equal(r.body.row.surface, "table");
     const ja = db.prepare("SELECT * FROM job_applications WHERE user_id = 1 AND job_id = 'gh::1'").get();
     assert.equal(ja.response_outcome, "withdrawn");
-    assert.equal(ja.outcome_source, "manual");
     assert.equal(ja.first_response_at, null, "a withdrawal is not a reply from the employer");
-    // Once only; not on a reply; not on someone else's; not on a recorded-but-unverified one (nothing to record it on).
-    assert.equal((await t.call(`/api/pipeline/job/${id}/withdraw`)).status, 409);
-    assert.equal((await t.call(`/api/pipeline/job/${sentApp(db, { jobId: "gh::2", outcome: "interview" })}/withdraw`)).status, 409);
-    assert.equal((await t.call(`/api/pipeline/job/${sentApp(db, { userId: 2, jobId: "gh::3" })}/withdraw`)).status, 404);
-    const unverified = await t.call(`/api/pipeline/job/${sentApp(db, { jobId: "gh::4", verified: false })}/withdraw`);
-    assert.equal(unverified.status, 409);
-    assert.equal(unverified.body.error, "not_verified");
-    assert.equal((await t.call("/api/pipeline/job/x/withdraw")).status, 400);
+    const table = await t.call("/api/pipeline?surface=table", "GET");
+    assert.equal(table.body.rows.find(x => x.id === id).status, "withdrawn", "shown on The Table");
+    assert.equal(table.body.counts.withdrawn, 1);
+    assert.equal((await t.call(`/api/pipeline/applications/${id}/withdrawn`)).status, 409, "never twice");
+    assert.equal((await t.call(`/api/pipeline/applications/${sentApp(db, { jobId: "gh::2", outcome: "interview" })}/withdrawn`)).status, 200, "after an interview too");
+    assert.equal((await t.call(`/api/pipeline/applications/${sentApp(db, { jobId: "gh::5", outcome: "rejected" })}/withdrawn`)).status, 409, "not after a no");
+    assert.equal((await t.call(`/api/pipeline/applications/${sentApp(db, { userId: 2, jobId: "gh::3" })}/withdrawn`)).status, 404, "another user's row");
+    assert.equal((await t.call(`/api/pipeline/applications/${sentApp(db, { jobId: "gh::4", verified: false })}/withdrawn`)).body.error, "not_verified");
+    assert.equal((await t.call("/api/pipeline/applications/x/withdrawn")).status, 400);
   } finally { t.server.close(); }
-  assert.deepEqual(ROW_ACTIONS.withdraw, ["submitted"]);
-  // ⛔ Nothing reaches the employer: the service and the route touch only the database (no mail, no portal, no worker).
-  for (const src of [code(read("services/pipelineWorkspace.js")), code(read("routes/pipeline.js"))]) {
-    assert.doesNotMatch(src, /fetch\(|sendEmail|notify|resend|applyWorker|portal/i);
-  }
-  // The tree: Withdraw beside I heard back on a sent row, gone once withdrawn, which reads "You withdrew it."
-  const sent = leadActions("sent", 'case "reply":');
-  assert.match(sent, /return r\.closedByCandidate \? \[\] : \[/);
-  assert.match(sent, /\{ id: "withdraw", label: "Withdraw",[\s\S]{0,200}onClick: \(\) => withdrawRow\(node\) \}/);
-  assert.match(panel, /afterRowAct\(node, await withdrawApplication\(node\.applicationId\)\);/);
-  const nodes = buildNodes({ now: NOW, companyLabel: label, tableRows: [{ id: 9, jobId: "w", status: "submitted", closedByCandidate: true, company: "Northwind", title: "SWE", updatedAt: NOW / 1000 }] });
+  // The Table's History already reads the outcome as "Withdrawn" (shared/applicationHistory.js).
+  assert.match(read("shared/applicationHistory.js"), /outcome === RESPONSE_OUTCOME\.WITHDRAWN\) return \{ status: "closed", label: RESPONSE_LABELS\.withdrawn\.label/);
+  // The tree: Stopped's red ring, the word Withdrawn, no actions, not in Tidy up.
+  assert.equal(ringFor("withdrawn"), "stop");
+  const nodes = buildNodes({ now: NOW, companyLabel: label, tableRows: [{ id: 9, jobId: "w", status: "withdrawn", closedByCandidate: true, company: "Northwind", title: "SWE", updatedAt: (NOW - 30 * 86400000) / 1000 }] });
+  assert.equal(nodes.length, 1);
+  assert.equal(nodes[0].ring, "stop");
+  assert.equal(nodes[0].kind, "withdrawn");
+  assert.equal(ringLabelOf(nodes[0]), "Withdrawn");
   assert.equal(nodes[0].say, "You withdrew it. It's closed.");
+  assert.equal(sideBlocks({ nodes, now: NOW }).find(b => b.id === "tidy"), undefined, "a withdrawn record is not a stopped job to clear");
+  const { html, LeadCard } = await loadUi();
+  assert.match(html(LeadCard, { node: nodes[0], actions: [] }), /Northwind · Withdrawn/);
+  assert.match(panel, /case "withdrawn": return \[\];/);
   const calls = [];
-  assert.equal((await withdrawApplication(9, async (p, o) => { calls.push([p, o.method]); return {}; })).ok, true);
-  assert.deepEqual(calls, [["/api/pipeline/job/9/withdraw", "POST"]]);
+  assert.equal((await confirmWithdrawn(9, async (p, o) => { calls.push([p, o.method]); return {}; })).ok, true);
+  assert.deepEqual(calls, [["/api/pipeline/applications/9/withdrawn", "POST"]]);
 });
 
 test("d113uiAddTheDate — an interview's Add the date saves the date on D110's countdown, inline; only on an interview", async () => {

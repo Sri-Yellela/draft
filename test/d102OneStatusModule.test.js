@@ -13,8 +13,9 @@ const RUN_JOB_STATUSES = ["queued", "waiting", "running", "submitted", "held_rev
   "dismissed", "superseded", "cancelled"];
 
 test("D102 · the ladder is the owner's, in order, and every status has a label", () => {
+  // D113 UI (owner 10-31): `withdrawn`, terminal, after the employer's outcomes — the user's "I withdrew it".
   assert.deepEqual(LADDER, ["queued", "in_flight", "needs_you", "ready_to_approve", "submitted",
-    "interview", "assessment", "offer", "rejected", "failed", "skipped"]);
+    "interview", "assessment", "offer", "rejected", "withdrawn", "failed", "skipped"]);
   for (const s of LADDER) assert.ok(LADDER_LABELS[s], s);
 });
 
@@ -53,7 +54,8 @@ test("D102 · after submit the employer's outcome moves the row; every stored ou
   assert.equal(ladderStatus({ sent: true, outcome: "rejected" }).status, "rejected");
   for (const o of RESPONSE_OUTCOMES) assert.equal(surfaceOf(ladderStatus({ sent: true, outcome: o }).status), "table", o);
   const w = ladderStatus({ sent: true, outcome: "withdrawn" });
-  assert.deepEqual(w, { status: "submitted", closedByCandidate: true });
+  // Changed on purpose (D113 UI, 10-31): withdrawn is its own terminal status now, not Submitted.
+  assert.deepEqual(w, { status: "withdrawn", closedByCandidate: true });
 });
 
 test("D102 · tab counts carry every tab, zero included, and partition the rows", () => {
@@ -61,5 +63,5 @@ test("D102 · tab counts carry every tab, zero included, and partition the rows"
   assert.deepEqual(tabCounts(rows, "draft_house"),
     { needs_you: 2, ready_to_approve: 0, in_flight: 0, queued: 1, failed: 0, skipped: 0 });
   assert.deepEqual(tabCounts(rows, "table"),
-    { all: 2, submitted: 1, interview: 0, assessment: 0, offer: 1, rejected: 0 });
+    { all: 2, submitted: 1, interview: 0, assessment: 0, offer: 1, rejected: 0, withdrawn: 0 });
 });

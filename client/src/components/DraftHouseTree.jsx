@@ -1,6 +1,6 @@
 import "./DraftHouse.css";
 import CompanyBubble from "./CompanyBubble.jsx";
-import { FILTERS } from "../lib/draftHouseTree.js";
+import { FILTERS, ringLabelOf } from "../lib/draftHouseTree.js";
 import { RINGS } from "../styles/rings.js";
 
 // ============================================================
@@ -58,7 +58,7 @@ export default function DraftHouseTree({ view = [], filter = "all", zoom = 1, op
                     const sel = open?.type === "job" && open.key === node.key;
                     const bubble = (
                       <CompanyBubble key={node.key} company={node.company} ring={node.ring} dim={dim} selected={sel}
-                        dataKey={node.key} expanded={sel} vtTitle={node.jobId} label={`${node.company}, ${node.title || "a job"}, ${RINGS[node.ring]?.label || ""}`}
+                        dataKey={node.key} expanded={sel} vtTitle={node.jobId} label={`${node.company}, ${node.title || "a job"}, ${ringLabelOf(node)}`}
                         onClick={() => onOpen?.({ type: "job", key: node.key })} />
                     );
                     return zoom === 2 ? (
@@ -88,7 +88,7 @@ export function Branch({ ring = null, children, label }) {
 
 /** U4 (b) · the lead card: bubble, title, company and state; ONE sentence; the next action. */
 export function LeadCard({ node, actions = [], onFullPage, fullHref, onClose, children }) {
-  const r = RINGS[node.ring];
+  const ringWord = ringLabelOf(node);
   return (
     <div className="dht-node">
       <div className="dht-card dht-card--lead" data-lead-card="" data-ring={node.ring}>
@@ -96,7 +96,7 @@ export function LeadCard({ node, actions = [], onFullPage, fullHref, onClose, ch
           <CompanyBubble company={node.company} ring={node.ring} size="sm" />
           <div className="dht-card__who">
             <h3>{node.title || "A job"}</h3>
-            <span>{node.company} · {r?.label}{node.kind === "reply" && node.status ? `: ${node.status[0].toUpperCase()}${node.status.slice(1)}` : ""}</span>
+            <span>{node.company} · {ringWord}{node.kind === "reply" && node.status ? `: ${node.status[0].toUpperCase()}${node.status.slice(1)}` : ""}</span>
           </div>
           <button type="button" className="dht-x" aria-label="Close" onClick={onClose}>×</button>
         </div>

@@ -81,18 +81,19 @@ export function listPipeline(db, userId, surface) {
 
 // ── D113 UI U5 · THE ACTIONS ON A SENT ROW — on the ladder, recorded in draft only ──────────────────────
 //
-// The tree's sentences and actions per state (WORKLOG D113 U5): sent, no reply → I heard back / **Withdraw** · interview →
-// Open interview prep / **Add the date** · rejected → **Note why**. Each acts on the ladder status the row reads NOW
-// (shared/applicationStatus.js, derived — nothing here writes a ladder value):
-//   withdraw  `submitted` only, not already withdrawn → job_applications.response_outcome = 'withdrawn' through
-//             mergeResponse (the AK1 rules every outcome write follows). The ladder then reads Submitted with
-//             closedByCandidate (D102: "No reply / withdrawn stay Submitted").
-//   note      `rejected` only → job_applications.notes (The Table's Notes column), at most NOTE_MAX characters.
-//   date      `interview` → the user's interview date — D110's own route (PUT /api/interview/prep/:id/date), not here.
-// ⛔ NOTHING IS SENT TO THE EMPLOYER. Withdraw records the user's own word in draft; it does not contact the company,
-// the portal or the inbox — the user withdraws with the employer themselves.
+// The tree's sentences and actions per state (WORKLOG D113 U5, defined by the owner 10-31 "THE DRAFT HOUSE TREE'S
+// LEFTOVERS"): sent, no reply → I heard back / **Withdraw** · interview / assessment → **Add the date** · rejected →
+// **Note why**. Each acts on the ladder status the row reads NOW (shared/applicationStatus.js, derived):
+//   withdrawn  ⛔ draft CANNOT withdraw an application on most employers' systems and never pretends to: the tree's
+//              Withdraw opens the company's own page ("Withdraw it on <company>'s site; then confirm here"). Only the
+//              user's "I withdrew it" lands here → job_applications.response_outcome = 'withdrawn' through mergeResponse
+//              (the AK1 rules every outcome write follows) → the ladder's terminal `withdrawn`. Any sent status but a
+//              rejection; never twice.
+//   note       `rejected` only (below).
+//   date       `interview` / `assessment` → D110's own route (PUT /api/interview/prep/:id/date), not here.
+// ⛔ NOTHING IS SENT TO THE EMPLOYER from any of them; each records the user's own word in draft.
 export const ROW_ACTIONS = Object.freeze({
-  withdraw: Object.freeze(["submitted"]),
+  withdrawn: Object.freeze(["submitted", "interview", "assessment", "offer"]),
   note: Object.freeze(["rejected"]),
   date: Object.freeze(["interview"]),
 });
@@ -105,14 +106,17 @@ function ownRow(db, userId, applicationId) {
   return rec ? rowFor(db, rec) : null;
 }
 
-/** "Withdraw" — the user ended it. Null when the row is not this user's. Throws {status, code} when the ladder refuses. */
-export function withdrawApplication(db, userId, applicationId, { now = Math.floor(Date.now() / 1000) } = {}) {
+/**
+ * "I withdrew it" — the user withdrew on the company's site and says so. Null when the row is not this user's. Throws
+ * {status, code} when the ladder refuses. Records only; contacts no one.
+ */
+export function markWithdrawn(db, userId, applicationId, { now = Math.floor(Date.now() / 1000) } = {}) {
   const r = ownRow(db, userId, applicationId);
   if (!r) return null;
-  if (!ROW_ACTIONS.withdraw.includes(r.status) || r.closedByCandidate) {
-    throw refuse(409, "not_withdrawable", "Only a sent application with no reply can be withdrawn here.");
+  if (!ROW_ACTIONS.withdrawn.includes(r.status)) {
+    throw refuse(409, "not_withdrawable", r.status === "withdrawn" ? "It is already marked withdrawn." : "Only a sent application can be marked withdrawn.");
   }
-  if (!r.ja) throw refuse(409, "not_verified", "This submission is not verified yet, so there is nothing to withdraw.");
+  if (!r.ja) throw refuse(409, "not_verified", "This submission is not verified yet, so there is nothing to mark.");
   const m = mergeResponse(r.ja, { outcome: RESPONSE_OUTCOME.WITHDRAWN, source: "manual" }, { now });
   db.prepare(`UPDATE job_applications SET response_outcome = ?, furthest_stage = ?, first_response_at = ?, outcome_at = ?, outcome_source = ?
     WHERE id = ? AND user_id = ?`).run(m.response_outcome, m.furthest_stage, m.first_response_at, m.outcome_at, m.outcome_source, r.ja.id, userId);
@@ -137,7 +141,7 @@ function checklist({ rec, rj, posting, status }, confirmed = false) {
   const filled = Array.isArray(answers) ? answers.filter(a => a && a.value != null && !a.skipped).length : 0;
   const total = Number.isFinite(rj?.fields_discovered) ? rj.fields_discovered : (Array.isArray(answers) ? answers.length : 0);
   const open = parse(rj?.open_questions_json, []);
-  const sent = ["submitted", "interview", "assessment", "offer", "rejected"].includes(status);
+  const sent = ["submitted", "interview", "assessment", "offer", "rejected", "withdrawn"].includes(status);
   const state = (done, current) => (done ? "done" : current ? "current" : "waiting");
   return [
     { step: "posting_read", label: "Posting read", state: state(!!(posting || rj?.posting_title), false) },
