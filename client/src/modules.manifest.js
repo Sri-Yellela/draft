@@ -185,7 +185,6 @@ export const SHARED = Object.freeze({
   "lib/bubbleColumns.js":               { what: "the card rows' columns" },
   "lib/deckState.js":                   { what: "the deck's reducer" },
   "lib/deckOrder.js":                   { what: "the deck's order (dealt | ATS match) — the deck's control and Customise read one store (D93)" },
-  "lib/draftSelected.js":              { what: "the board's \"Draft selected\" sequence — one D54 notice per duplicate, one Draft at a time (D112 a1)" },
   "lib/draftHouseExceptions.js":        { what: "Draft House's exceptions" },
   "lib/docFormat.js":                  { what: "the sandbox's editing commands — the one place execCommand is used; the template's CSS variables for document-wide changes (A106)" },
   "lib/parseResumeFile.js":            { what: "THE résumé file → text reader (PDF via /api/parse-pdf, Word via mammoth) — Job profiles and A104" },
