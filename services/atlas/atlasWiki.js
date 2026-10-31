@@ -56,7 +56,7 @@ export async function refreshWikiSummaries(db, { fetchImpl = globalThis.fetch, c
   const t = now();
   const due = db.prepare(`SELECT n.id, n.wiki_title FROM atlas_nodes n LEFT JOIN atlas_wiki_cache w ON w.node_id = n.id
     WHERE n.wiki_title IS NOT NULL AND TRIM(n.wiki_title) != ''
-      AND (w.node_id IS NULL OR w.fetched_at < ?)
+      AND (w.node_id IS NULL OR w.fetched_at < ? OR TRIM(COALESCE(w.extract, '')) = '')   -- an empty extract is never a cache hit (BUG 10-31)
     ORDER BY (n.status = 'published') DESC, COALESCE(w.fetched_at, 0), n.id LIMIT ?`).all(t - WIKI_MAX_AGE_SEC, Math.max(0, Math.min(Number(cap) || 0, 500)));
   const save = db.prepare(`INSERT INTO atlas_wiki_cache (node_id, title, extract, thumbnail_url, page_url, fetched_at) VALUES (?,?,?,?,?,?)
     ON CONFLICT(node_id) DO UPDATE SET title = excluded.title, extract = excluded.extract, thumbnail_url = excluded.thumbnail_url,

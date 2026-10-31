@@ -5867,6 +5867,16 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         ALTER TABLE atlas_nodes ADD COLUMN wiki_match TEXT;
       `,
     },
+    {
+      // ⭐ BUG 10-31 · the nodes the matcher set a title on BEFORE 190 carry no class, so Admin → Atlas counted them as
+      // "never answered" (production: 62). An auto title, or a title with its Wikidata item, is a match.
+      id: "191_atlas_wiki_match_backfill",
+      sql: `
+        UPDATE atlas_nodes SET wiki_match = 'matched'
+          WHERE wiki_match IS NULL AND wiki_title IS NOT NULL AND TRIM(wiki_title) != ''
+            AND (wiki_title_by = 'auto' OR wikidata_id IS NOT NULL);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
