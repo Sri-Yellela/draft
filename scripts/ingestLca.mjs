@@ -61,6 +61,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { companyMatchKey, parseDbaNames } from "../services/kb/lcaMatch.js";
 import { annualiseWage, addToHistogram, histogramToJson } from "../services/kb/lcaWages.js";
+import { lcaTitleKey } from "../shared/lcaTitleKey.js";
 import {
   reconcileCompanyLca, knownCompanies, getCorpusCoverage,
   formatFiscalPeriod, periodOrdinal,
@@ -103,7 +104,11 @@ const COLUMNS = [
 // workers at the First Worksite Location"; WAGE_UNIT_OF_PAY — "Hour", "Week", "Bi-Weekly", "Month", "Year"). Optional:
 // a file without them still ingests its counts, and simply carries no wage histogram. PREVAILING_WAGE is a different
 // claim (the floor the law sets, not what the employer offers) and is not read.
-const OPTIONAL_COLUMNS = ["EMPLOYER_FEIN", "WAGE_RATE_OF_PAY_FROM", "WAGE_UNIT_OF_PAY"];
+// ⭐ D121 P2 · PW_WAGE_LEVEL — the prevailing-wage level (I–IV) the case was filed at; optional like the wage. Read only
+// to count certified cases per level for a title family (lca_employer_titles, migration 203).
+const OPTIONAL_COLUMNS = ["EMPLOYER_FEIN", "WAGE_RATE_OF_PAY_FROM", "WAGE_UNIT_OF_PAY", "PW_WAGE_LEVEL"];
+// ⭐ D121 P2 · the title families kept per employer per period (by certified cases) — the long tail is one-off titles.
+const MAX_TITLE_FAMILIES_PER_EMPLOYER = 25;
 const DEFAULT_QUARTERS = 5;
 // Job titles are stored only for employers with at least this many certified cases in the quarter.
 // A titles blob on all ~18k employers per quarter is most of the disk this table costs, and a
@@ -135,6 +140,13 @@ const log = (...a) => console.log("[lca]", ...a);
  * JOB_TITLE — the same cell shape in EMPLOYER_NAME would normalise to the key "object object" and
  * silently merge unrelated employers.
  */
+/** D121 · PW_WAGE_LEVEL as filed ("II", "Level II", "2") → "I" … "IV", or null (blank, "N/A"). */
+export function pwLevel(text) {
+  const m = /^(?:level\s*)?(iv|iii|ii|i|[1-4])$/i.exec(String(text ?? "").trim());
+  if (!m) return null;
+  return { "1": "I", "2": "II", "3": "III", "4": "IV" }[m[1]] || m[1].toUpperCase();
+}
+
 function cellText(v) {
   if (v == null) return null;
   if (typeof v === "string") return v.trim() || null;
@@ -241,6 +253,7 @@ export async function parseQuarter(file) {
           dba: new Set(), certified: 0, denied: 0, withdrawn: 0, positions: 0,
           titles: new Map(), last_decision: null,
           wages: new Map(), // D108 · $1k bucket → certified cases (services/kb/lcaWages.js)
+          families: new Map(), // D121 · title family → { certified, wages, levels } over CERTIFIED cases
         };
         employers.set(id, e);
       }
@@ -260,8 +273,18 @@ export async function parseQuarter(file) {
       if (/^Certified/i.test(status)) {
         e.certified++;
         // D108 · the median wage is over CERTIFIED cases only — the same set the filing count says.
-        if (idx.WAGE_RATE_OF_PAY_FROM != null && idx.WAGE_UNIT_OF_PAY != null) {
-          addToHistogram(e.wages, annualiseWage(v[idx.WAGE_RATE_OF_PAY_FROM], cellText(v[idx.WAGE_UNIT_OF_PAY])));
+        const annual = idx.WAGE_RATE_OF_PAY_FROM != null && idx.WAGE_UNIT_OF_PAY != null
+          ? annualiseWage(v[idx.WAGE_RATE_OF_PAY_FROM], cellText(v[idx.WAGE_UNIT_OF_PAY])) : null;
+        addToHistogram(e.wages, annual);
+        // D121 · the same certified case, counted for its title family: the wage and the prevailing-wage level.
+        const fam = lcaTitleKey(cellText(v[idx.JOB_TITLE]));
+        if (fam) {
+          let f = e.families.get(fam);
+          if (!f) { f = { certified: 0, wages: new Map(), levels: {} }; e.families.set(fam, f); }
+          f.certified++;
+          addToHistogram(f.wages, annual);
+          const lvl = idx.PW_WAGE_LEVEL == null ? null : pwLevel(cellText(v[idx.PW_WAGE_LEVEL]));
+          if (lvl) f.levels[lvl] = (f.levels[lvl] || 0) + 1;
         }
       }
       else if (/^Denied/i.test(status)) e.denied++;
@@ -346,6 +369,13 @@ export function writeQuarter(db, { period, year, quarter, fileName, byteSize, pa
   const setWages = hasWages
     ? db.prepare(`UPDATE lca_employer_periods SET wage_cases = ?, wage_hist_json = ? WHERE employer_key = ? AND fein = ? AND fiscal_period = ?`)
     : null;
+  // D121 · migration 203's title families, deleted and re-inserted with the period in the same transaction.
+  const hasFamilies = db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'lca_employer_titles'`).get();
+  const delFam = hasFamilies ? db.prepare(`DELETE FROM lca_employer_titles WHERE fiscal_period = ?`) : null;
+  const insFam = hasFamilies ? db.prepare(`INSERT INTO lca_employer_titles
+      (employer_key, fein, fiscal_period, title_key, certified, wage_cases, wage_hist_json, level_json) VALUES (?,?,?,?,?,?,?,?)
+      ON CONFLICT(employer_key, fein, fiscal_period, title_key) DO UPDATE SET certified = excluded.certified,
+        wage_cases = excluded.wage_cases, wage_hist_json = excluded.wage_hist_json, level_json = excluded.level_json`) : null;
   const ins = db.prepare(`
     INSERT INTO lca_employer_periods (
       employer_key, fein, fiscal_period, employer_name, dba_keys_json, state,
@@ -383,8 +413,9 @@ export function writeQuarter(db, { period, year, quarter, fileName, byteSize, pa
   const run = db.transaction(() => {
     // Superseded periods go in the SAME transaction as the replacement, so the store is never
     // momentarily holding both a cumulative file and the quarters it contains.
-    for (const stale of supersedes) { del.run(stale); delLedger.run(stale); }
+    for (const stale of supersedes) { del.run(stale); delLedger.run(stale); delFam?.run(stale); }
     del.run(period);
+    delFam?.run(period);
     for (const e of rows) {
       const titles = e.certified >= TITLES_MIN_CERTIFIED
         ? Object.fromEntries([...e.titles.entries()]
@@ -402,6 +433,14 @@ export function writeQuarter(db, { period, year, quarter, fileName, byteSize, pa
       if (setWages && e.wages?.size) {
         const cases = [...e.wages.values()].reduce((a, b) => a + b, 0);
         setWages.run(cases, histogramToJson(e.wages), e.employer_key, e.fein, period);
+      }
+      if (insFam && e.families?.size) {
+        const top = [...e.families.entries()].sort((a, b) => b[1].certified - a[1].certified).slice(0, MAX_TITLE_FAMILIES_PER_EMPLOYER);
+        for (const [key, f] of top) {
+          const cases = [...f.wages.values()].reduce((a, b) => a + b, 0);
+          insFam.run(e.employer_key, e.fein, period, key, f.certified, cases, histogramToJson(f.wages),
+            Object.keys(f.levels).length ? JSON.stringify(f.levels) : null);
+        }
       }
     }
     insFile.run({

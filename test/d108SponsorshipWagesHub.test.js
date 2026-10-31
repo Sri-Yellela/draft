@@ -95,7 +95,8 @@ test("D108 · the LCA ingest keeps per-employer wage histograms from a (syntheti
   reconcileCompanyLca(db, { companies: ["Zentrix Labs"] });
   assert.deepEqual(getCompanyLca(db, "Zentrix Labs").wageByFiscalYear, { 2025: { median: 162000, cases: 3 } });
   const src = read("scripts/ingestLca.mjs");
-  assert.match(src, /OPTIONAL_COLUMNS = \["EMPLOYER_FEIN", "WAGE_RATE_OF_PAY_FROM", "WAGE_UNIT_OF_PAY"\]/);
+  // D121 added PW_WAGE_LEVEL (the title families' prevailing-wage level) — optional, like the wage.
+  assert.match(src, /OPTIONAL_COLUMNS = \["EMPLOYER_FEIN", "WAGE_RATE_OF_PAY_FROM", "WAGE_UNIT_OF_PAY", "PW_WAGE_LEVEL"\]/);
   assert.doesNotMatch(src.replace(/^\s*\/\/.*$/gm, ""), /PREVAILING_WAGE/, "the prevailing wage is a different claim — not read");
 });
 
