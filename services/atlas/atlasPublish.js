@@ -27,7 +27,7 @@ export function autoPublish(db, { now = () => Math.floor(Date.now() / 1000), min
   const t = now();
   return db.transaction(() => {
     const due = db.prepare(`SELECT n.id, n.slug FROM atlas_nodes n JOIN atlas_node_stats s ON s.node_id = n.id
-      WHERE n.status = 'draft' AND n.unpublished_by IS NULL AND s.postings >= ?
+      WHERE n.status = 'draft' AND n.unpublished_by IS NULL AND s.postings >= ? AND n.kind != 'concept'
         AND (${HAS_DEFINITION} OR ${HAS_WIKI})
       ORDER BY s.postings DESC, n.name`).all(min);
     const put = db.prepare(`UPDATE atlas_nodes SET status = 'published', published_at = ?, published_by = ?, updated_at = ?
@@ -46,14 +46,19 @@ export function readiness(row, min = AUTO_PUBLISH_MIN_POSTINGS) {
   const postings = Number(row.postings) || 0;
   const hasWiki = !!row.has_wiki, hasDefinition = !!row.has_definition;
   const missing = [];
-  if (postings < min) missing.push(`postings ${postings} of ${min}`);
+  // ⭐ D115: a CONCEPT (the owner's tracker's vocabulary) is never published by the board's count — measured 10-31 on
+  // the local board, the four most-counted were all false: "CDN" was a policy URL on an employer's CDN host (564 postings),
+  // "Interpretability" a company's about-us paragraph (432), "Attention" "attention to detail", "TPM" a Technical
+  // Program Manager. It is published by hand.
+  if (row.kind === "concept") missing.push("a concept — published by hand (the board's word count is not its demand)");
+  else if (postings < min) missing.push(`postings ${postings} of ${min}`);
   if (!hasWiki && !hasDefinition) missing.push("no Wikipedia summary or definition");
   return { ready: missing.length === 0, postings, need: min, hasWiki, hasDefinition, heldBy: row.unpublished_by || null, missing };
 }
 
 /** The columns `readiness` reads, for a SELECT over atlas_nodes n LEFT JOIN atlas_node_stats s. */
 export const READINESS_COLUMNS = `COALESCE(s.postings, 0) AS postings, ${HAS_DEFINITION} AS has_definition, ${HAS_WIKI} AS has_wiki,
-  n.unpublished_by, n.published_by, n.wiki_title, n.wikidata_id`;
+  n.unpublished_by, n.published_by, n.wiki_title, n.wikidata_id, n.kind`;
 
 /**
  * ⭐ BUG 10-31 · "Ask again": an unmatched node is skipped for 30 days after an answer said "no such article" — the

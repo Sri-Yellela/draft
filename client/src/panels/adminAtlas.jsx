@@ -20,8 +20,8 @@ import { C } from "../styles/colorTokens.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, Mark, row, quiet, sub, callout, field, useConfirm } from "./adminKit.jsx";
 
-const KINDS = [["", "All kinds"], ["role", "Roles"], ["skill", "Skills"], ["tool", "Tools"], ["stack", "Stacks"]];
-const NODE_KINDS = ["role", "skill", "tool", "stack"];
+const KINDS = [["", "All kinds"], ["role", "Roles"], ["skill", "Skills"], ["tool", "Tools"], ["stack", "Stacks"], ["concept", "Concepts"], ["pattern", "Patterns"]];
+const NODE_KINDS = ["role", "skill", "tool", "stack", "concept", "pattern"];
 const EDGE_TYPES = [["requires", "requires"], ["part_of", "part of"], ["used_with", "used with"], ["alternative_to", "alternative to"], ["leads_to", "leads to"]];
 const LEVELS = ["", "beginner", "intermediate", "advanced"];
 const FORMATS = ["", "course", "docs", "book", "video", "tutorial", "article", "practice"];

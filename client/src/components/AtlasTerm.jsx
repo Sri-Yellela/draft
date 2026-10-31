@@ -22,7 +22,7 @@ const CLOSE_DELAY_MS = 150;
 const WIDTH = 280, GUTTER = 12;
 let closeOpen = null;   // the one open popup's close — opening another closes it
 
-const KIND = { tool: "tool", skill: "skill", role: "role", stack: "stack" };
+const KIND = { tool: "tool", skill: "skill", role: "role", stack: "stack", concept: "concept", pattern: "pattern" };
 
 function place(el) {
   const r = el.getBoundingClientRect();

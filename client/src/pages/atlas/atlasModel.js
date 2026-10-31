@@ -7,7 +7,7 @@
 // you? }. Public reads see PUBLISHED pages only; `you` arrives only for a signed-in reader (d105YouOnlyWhenSignedIn).
 import { api } from "../../lib/api.js";
 
-export const KIND_LABEL = Object.freeze({ role: "Role", skill: "Skill or concept", tool: "Tool or tech", stack: "Stack" });
+export const KIND_LABEL = Object.freeze({ role: "Role", skill: "Skill", tool: "Tool or tech", stack: "Stack", concept: "Concept", pattern: "Pattern" });   // concept · pattern: D115
 
 // The typed edges, read from THIS page's side. `dir` is the API's: "out" — this node is the edge's from; "in" — its to.
 // A symmetric type (used_with, alternative_to) reads the same both ways.
