@@ -110,7 +110,7 @@ export function FamilyMap({ base, familyKey }) {
         <h1 className="atl__title">{t.centre.name}</h1>
         <p className="atl__lede">{t.centre.postings} open postings ask for at least one {t.centre.name} skill. The tree shows what the family is made of{t.signedIn ? "; coloured squares are yours" : ""}.</p>
       </header>
-      <AtlasTree tree={t} base={base} />
+      {t.nodes.length ? <AtlasTree tree={t} base={base} /> : <p className="atl__quiet" data-atlas-family-empty="">No published skill in this family is asked for by an open posting yet.</p>}
     </article>
   );
 }
