@@ -38,7 +38,8 @@ test("D100 · a submit records submitted_by — 'user' for an approved run, 'aut
   const src = read("routes/apply.js");
   const at = anchor(src, "if (submitted) {\n        logEvent(runId, runJobId, userId, jobId, \"submitted\"");
   const block = src.slice(at, anchor(src, "} else if (cancelled) {", at));
-  assert.match(block, /UPDATE apply_run_jobs SET submitted_by=\? WHERE id=\?`\)\n\s*\.run\(approvalMode === "approved" \? "user" : "auto", runJobId\)/);
+  // ⭐ D113 (changed on purpose): a SEMI user's tap on Apply in a picks message is THEIR submit too — 'user', not 'auto'.
+  assert.match(block, /UPDATE apply_run_jobs SET submitted_by=\? WHERE id=\?`\)\n\s*\.run\(approvalMode === "approved" \|\| \(userApplyMode\(userId\) !== "auto" && pickAuthorisesSend\(db, userId, jobId\)\) \? "user" : "auto", runJobId\)/);
   // An 'auto' submit can only be reached by a user whose mode is FULL AUTO: processRunJob holds it before this.
   const hold = anchor(src, 'mode === "auto" && approvalMode === "auto" && userApplyMode(userId) !== "auto"');
   assert.ok(hold < at, "the SEMI hold sits before the submit");

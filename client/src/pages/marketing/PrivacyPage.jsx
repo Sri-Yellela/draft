@@ -127,6 +127,15 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // one was sent; no message names a company or shows a value (services/notify.js eventText); email only for the events
 // the user turns it on for; turning push off or the browser unsubscribing deletes the subscription. The date does not
 // move — this text ships in the same push as the rest of the October 31 changes.
+// D113 (owner 10-31 — remote auto-apply, services/picks.js, routes/picksConfirm.js): Applying for You gains the PICKS —
+// at the user's run times draft picks jobs and, in Ask me first, sends ONE picks message per run (an email that names
+// each job and company, with Apply / Pass links, and a push that does not); a tap on Apply, then Confirm, SENDS that
+// application (unless "Show me the form before sending" is on); a link never acts on its own; links expire at the next run
+// time and work once; Apply for me sends without asking and mails one summary per run; a question it cannot answer comes
+// back by message. The Notifications paragraph's "a notification never names a company" now carves out the picks email.
+// ⚠ MATERIAL (a new kind of message, and a tap that sends). EFFECTIVE_DATE is NOT moved here: the convention is "the date
+// of the push that applies it", and this lane does not push. ⛔ The push that ships D113 must set EFFECTIVE_DATE to that
+// day — and, if any user is registered by then, give the advance notice this policy commits to before it takes effect.
 const EFFECTIVE_DATE = 'October 31, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
@@ -626,6 +635,29 @@ export function PrivacyPage() {
             </LI>
           </UL>
 
+          {/* ⭐ D113 (owner 10-31) — the picks: services/picks.js (the run, the one line, the tap's send authority),
+              services/autoScheduler.js (the run times), routes/picksConfirm.js (the confirm page), services/notify.js
+              (the picks / picks_summary / pick_question messages). Tables picks_runs, picks, picks_left_out (migration 188). */}
+          <H3>Picks by Message (optional)</H3>
+          <P>
+            If you turn on <Strong>Ask me first</Strong>, then at each of your run times draft looks at the new
+            postings on your board, leaves out the ones outside your filters, the ones a requirement you set rules
+            you out of, the ones that look stale or reposted, and the ones over your daily limit, and{' '}
+            <Strong>sends you one picks message per run</Strong>: an email to your own address that names each picked
+            job and its company with a one-line reason, and a push notification that says only how many picks are
+            ready. Each pick has an Apply link and a Pass link. <Strong>Opening a link never does anything by
+            itself</Strong> — it shows the job and one Confirm button. <Strong>A tap on Apply, then Confirm, sends
+            the application</Strong> to the employer, the same as if you had approved it in draft, unless you turn
+            on "Show me the form before sending", in which case draft fills it and waits for your review. Your
+            résumé for the job is written only after you tap Apply. Links are signed, work once and expire at your
+            next run time; anyone who has the email can use its links, so treat it like your other account email.
+            If the application stops on a question only you can answer, draft sends you a message with that
+            question and a link to answer it. With <Strong>Apply for me</Strong> (FULL AUTO), the picks are sent
+            without asking and you get one summary after each run. For each run we keep what it looked at, what it
+            picked and how many it left out for each reason; the list of left-out postings is deleted after 14
+            days.
+          </P>
+
           {/* ⭐ D103 (owner 10-30) — services/inbox.js, routes/inbox.js; 180 days = INBOX_RETENTION_DEFAULT_DAYS (D112 item 3). */}
           <H3>Your Application Inbox</H3>
           <P>
@@ -705,7 +737,8 @@ export function PrivacyPage() {
             browser maker's push service (Google, Mozilla, Microsoft or Apple), which can see only that a message
             was sent, not what it says. <Strong>A notification never names a company or shows a value</Strong> — it
             says only what kind of thing happened (for example, "A job is ready for your approval"). Email copies
-            are sent only for the events you turn email on for. Turning push off, or your browser unsubscribing,
+            are sent only for the events you turn email on for; the picks email (Picks by Message, above) is the one
+            message that names jobs and companies, because it goes to your own inbox and you act from it. Turning push off, or your browser unsubscribing,
             deletes that browser's subscription.
           </P>
 

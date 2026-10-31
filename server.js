@@ -39,8 +39,10 @@ import proofPageRoutes from "./routes/proofPage.js";
 import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow, ineligibleOrderKey } from "./services/jobEligibility.js";
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
-import { runAutoTick } from "./services/autoScheduler.js";
-import { configureNotify, runDailySummaries } from "./services/notify.js";
+import { runAutoTick, runPicksFollowUps } from "./services/autoScheduler.js";
+import { configureNotify, runDailySummaries, notifyEvent } from "./services/notify.js";
+import { pickSecret } from "./services/picks.js";
+import picksConfirmRoutes from "./routes/picksConfirm.js";
 import notifyRoutes from "./routes/notify.js";
 import generatedResumeRoutes from "./routes/generatedResumes.js";
 import applicationArtifactRoutes from "./routes/applicationArtifacts.js";
@@ -5770,6 +5772,68 @@ console.log(`[boot] database ready: ${DB_PATH}`);
           byte_size     INTEGER,
           ingested_at   INTEGER NOT NULL
         );
+      `,
+    },
+    {
+      // ⭐ D113 P1 (owner 10-31) · REMOTE AUTO-APPLY — the picks loop on top of the FULL AUTO scheduler (services/picks.js,
+      // services/autoScheduler.js). picks_runs: ONE row per (user, run time) — UNIQUE, so a crash or a second tick never
+      // creates a run twice — with what the run looked at (seen), what it picked, the left-out counts BY REASON (JSON), when
+      // its picks expire (the next run time), and the claim stamps that make the message / the start / the summary at most
+      // once. picks: one row per picked job (rank, the D106 one line, its state offered | applied | passed | expired | auto,
+      // whether the form is shown before sending, the single-use stamp of its confirm link). picks_left_out: the job ids
+      // a run left out and why, kept 14 days (swept by the tick). Additive only.
+      id: "188_picks",
+      sql: `
+        CREATE TABLE IF NOT EXISTS picks_runs (
+          id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id             INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          slot_at             INTEGER NOT NULL,
+          mode                TEXT    NOT NULL,
+          seen                INTEGER NOT NULL DEFAULT 0,
+          picked              INTEGER NOT NULL DEFAULT 0,
+          left_out_json       TEXT    NOT NULL DEFAULT '{}',
+          expires_at          INTEGER NOT NULL,
+          delivery_claimed_at INTEGER,
+          delivery_json       TEXT,
+          all_used_at         INTEGER,
+          summary_sent_at     INTEGER,
+          apply_run_id        INTEGER,
+          created_at          INTEGER NOT NULL DEFAULT (unixepoch()),
+          UNIQUE (user_id, slot_at)
+        );
+        CREATE TABLE IF NOT EXISTS picks (
+          id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id              INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          run_id               INTEGER NOT NULL REFERENCES picks_runs(id) ON DELETE CASCADE,
+          job_id               TEXT    NOT NULL,
+          rank                 INTEGER NOT NULL,
+          title                TEXT,
+          company              TEXT,
+          line                 TEXT,
+          score                REAL,
+          state                TEXT    NOT NULL DEFAULT 'offered',
+          review               INTEGER NOT NULL DEFAULT 0,
+          token_used_at        INTEGER,
+          acted_at             INTEGER,
+          apply_status         INTEGER,
+          apply_error          TEXT,
+          question_sent_at     INTEGER,
+          question_answered_at INTEGER,
+          expires_at           INTEGER NOT NULL,
+          created_at           INTEGER NOT NULL DEFAULT (unixepoch()),
+          UNIQUE (run_id, job_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_picks_user_job ON picks(user_id, job_id);
+        CREATE INDEX IF NOT EXISTS idx_picks_user_state ON picks(user_id, state);
+        CREATE TABLE IF NOT EXISTS picks_left_out (
+          run_id     INTEGER NOT NULL REFERENCES picks_runs(id) ON DELETE CASCADE,
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id     TEXT    NOT NULL,
+          reason     TEXT    NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (run_id, job_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_picks_left_out_created ON picks_left_out(created_at);
       `,
     },
     {
@@ -12587,15 +12651,25 @@ const autoFetchBoard = async (userId, filters, settings = {}) => {
   const { status, body } = await boardPageResponse({ query: { pageSize: "50", ...filters }, user: { id: userId },
     boardProfileId: Number.isInteger(settings.profileId) ? settings.profileId : undefined });
   if (status !== 200) throw new Error(body?.error || `board ${status}`);
+  // ⭐ D113 P1: the title, the ATS match (picks are ranked by it) and the D106 level read travel with each candidate.
   return (body.jobs || []).map(j => {
     const t = j.postedAt ? Date.parse(j.postedAt) : NaN;
-    return { jobId: j.id, company: j.company, postedAt: Number.isFinite(t) ? Math.floor(t / 1000) : null };
+    return { jobId: j.id, company: j.company, title: j.title ?? null, score: Number.isFinite(j.matchScore) ? j.matchScore : null,
+      levelRead: j.levelRead ?? null, postedAt: Number.isFinite(t) ? Math.floor(t / 1000) : null };
   });
 };
+// ⭐ D113: the picks links' key (derived from SESSION_SECRET, never stored) and where the links point.
+const PICKS_SECRET = pickSecret(SESSION_SECRET);
+const PICKS_APP_URL = APP_BASE_ORIGIN || `http://localhost:${PORT}`;
 setInterval(async () => {
   try {
-    const ran = await runAutoTick(db, { fetchBoard: autoFetchBoard, startAutoRun: applyLine.startAutoRun });
-    for (const r of ran) if (r.started || r.error || r.skipped === "board_failed") console.log(`[auto] ${JSON.stringify(r)}`);
+    // ⭐ D113: the same tick builds the picks runs — Ask me first (one picks message) and Apply for me (straight to the run).
+    const ran = await runAutoTick(db, { fetchBoard: autoFetchBoard, startAutoRun: applyLine.startAutoRun,
+      notify: (userId, event, data) => notifyEvent(userId, event, data), secret: PICKS_SECRET, appUrl: PICKS_APP_URL });
+    for (const r of ran) if (r.started || r.picked || r.error || r.skipped === "board_failed") console.log(`[auto] ${JSON.stringify(r)}`);
+    // ⭐ D113: Apply for me's one summary after each run; a question that came back on a tapped pick.
+    const followed = await runPicksFollowUps(db, { notify: (userId, event, data) => notifyEvent(userId, event, data), secret: PICKS_SECRET, appUrl: PICKS_APP_URL });
+    if (followed.summaries.length || followed.questions.length) console.log(`[picks] summaries: ${followed.summaries.length}, questions: ${followed.questions.length}`);
     // ⭐ D112 item 8: FULL AUTO's daily summary — once a local day, from 8 pm, only when the day had something in it.
     const told = await runDailySummaries(db);
     if (told.length) console.log(`[notify] daily summaries: ${told.length}`);
@@ -12629,6 +12703,8 @@ setInterval(sweepInboxNow, 24 * 3600 * 1000).unref();
 profileSectionRoutes(app, db, requireAuth);
 // D109 P3: the public proof page /p/<handle> — OFF by default, nothing private, links supplied by the candidate.
 proofPageRoutes(app, db);
+// ⭐ D113 P3: the picks confirm page /p/confirm/<token> (a GET never acts; the POST does, once) and the picks API.
+picksConfirmRoutes(app, db, requireAuth, { secret: PICKS_SECRET, startPickRun: applyLine.startPickRun, saveAnswers: applyLine.saveAnswers });
 // D100 P2: the user's portals (sealed sessions, ciphertext only) and approving a remote Ready-to-approve run.
 portalRoutes(app, db, requireAuth);
 // D16: the résumé an application sent, expanded from its compressed copy (HTML; the browser prints it).

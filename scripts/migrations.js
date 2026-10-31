@@ -5307,6 +5307,68 @@ export const MIGRATIONS = [
       `,
     },
     {
+      // ⭐ D113 P1 (owner 10-31) · REMOTE AUTO-APPLY — the picks loop on top of the FULL AUTO scheduler (services/picks.js,
+      // services/autoScheduler.js). picks_runs: ONE row per (user, run time) — UNIQUE, so a crash or a second tick never
+      // creates a run twice — with what the run looked at (seen), what it picked, the left-out counts BY REASON (JSON), when
+      // its picks expire (the next run time), and the claim stamps that make the message / the start / the summary at most
+      // once. picks: one row per picked job (rank, the D106 one line, its state offered | applied | passed | expired | auto,
+      // whether the form is shown before sending, the single-use stamp of its confirm link). picks_left_out: the job ids
+      // a run left out and why, kept 14 days (swept by the tick). Additive only.
+      id: "188_picks",
+      sql: `
+        CREATE TABLE IF NOT EXISTS picks_runs (
+          id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id             INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          slot_at             INTEGER NOT NULL,
+          mode                TEXT    NOT NULL,
+          seen                INTEGER NOT NULL DEFAULT 0,
+          picked              INTEGER NOT NULL DEFAULT 0,
+          left_out_json       TEXT    NOT NULL DEFAULT '{}',
+          expires_at          INTEGER NOT NULL,
+          delivery_claimed_at INTEGER,
+          delivery_json       TEXT,
+          all_used_at         INTEGER,
+          summary_sent_at     INTEGER,
+          apply_run_id        INTEGER,
+          created_at          INTEGER NOT NULL DEFAULT (unixepoch()),
+          UNIQUE (user_id, slot_at)
+        );
+        CREATE TABLE IF NOT EXISTS picks (
+          id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id              INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          run_id               INTEGER NOT NULL REFERENCES picks_runs(id) ON DELETE CASCADE,
+          job_id               TEXT    NOT NULL,
+          rank                 INTEGER NOT NULL,
+          title                TEXT,
+          company              TEXT,
+          line                 TEXT,
+          score                REAL,
+          state                TEXT    NOT NULL DEFAULT 'offered',
+          review               INTEGER NOT NULL DEFAULT 0,
+          token_used_at        INTEGER,
+          acted_at             INTEGER,
+          apply_status         INTEGER,
+          apply_error          TEXT,
+          question_sent_at     INTEGER,
+          question_answered_at INTEGER,
+          expires_at           INTEGER NOT NULL,
+          created_at           INTEGER NOT NULL DEFAULT (unixepoch()),
+          UNIQUE (run_id, job_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_picks_user_job ON picks(user_id, job_id);
+        CREATE INDEX IF NOT EXISTS idx_picks_user_state ON picks(user_id, state);
+        CREATE TABLE IF NOT EXISTS picks_left_out (
+          run_id     INTEGER NOT NULL REFERENCES picks_runs(id) ON DELETE CASCADE,
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id     TEXT    NOT NULL,
+          reason     TEXT    NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (run_id, job_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_picks_left_out_created ON picks_left_out(created_at);
+      `,
+    },
+    {
       // ⭐ D105 P7–P9 (amended 10-31) · THE ATLAS PUBLISHES ITSELF. Additive only.
       // atlas_nodes.unpublished_by / unpublished_at — a PERSON's un-publish, recorded so the nightly auto-publish never
       // re-publishes that node (services/atlas/atlasPublish.js; the person publishing again clears it).
