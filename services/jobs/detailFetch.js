@@ -82,6 +82,7 @@ import { profileTitleSql } from '../profileTitleFilter.js';
 // (full-time | part-time | contract | internship) with the soft-null pattern. Writing "FULL_TIME"
 // straight in would produce a value no filter matches — present, wrong, and invisible.
 import { normalizeEmploymentType } from './schema.js';
+import { atlasPostingsChanged } from '../atlas/atlasLive.js';
 
 // A real browser UA. Workday's public page is served to crawlers differently without one, and
 // Phase 1 probed it with this shape — so this is the string the measurements were taken under.
@@ -708,6 +709,7 @@ export function persistDetailOutcome(db, jobId, outcome, nowEpoch = Math.floor(D
       employment_type: normalizeEmploymentType(outcome.employmentType) || null,
       now: nowEpoch,
     });
+    atlasPostingsChanged(db);   // ⭐ D118 P1: the fetched description is read for the Atlas now (a savepoint inside the caller's transaction)
     return true;
   }
 

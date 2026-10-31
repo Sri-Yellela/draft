@@ -29,6 +29,8 @@ export const RETIRED_AS_DUPLICATE = 'duplicate';
 // user_jobs, which is MERGED, because two disagreeing decision rows for one posting is the bug.
 const MOVABLE_TABLES = ['job_applications', 'resumes', 'resume_versions', 'user_job_views', 'ats_only_reports'];
 
+import { atlasPostingsChanged } from '../atlas/atlasLive.js';
+
 const presentCache = new WeakMap();
 function presentTables(db) {
   let set = presentCache.get(db);
@@ -124,6 +126,7 @@ export function retireDuplicate(db, { fromJobId, toJobId, reason = RETIRED_AS_DU
         WHERE job_id = ?
       `).run(toJobId, reason, now, fromJobId);
       retired = true;
+      atlasPostingsChanged(db);   // ⭐ D118 P1: a retired duplicate leaves the Atlas counts in this transaction
     }
     const moved = moveUserState(db, fromJobId, toJobId);
     if ((retired || moved) && presentTables(db).has('job_dedup_log')) {
@@ -197,6 +200,7 @@ export function restoreRetiredDuplicate(db, jobId, { now = Math.floor(Date.now()
       UPDATE scraped_jobs SET is_active = 1, duplicate_of = NULL, retired_reason = NULL, retired_at = NULL
       WHERE job_id = ?
     `).run(jobId);
+    atlasPostingsChanged(db);   // ⭐ D118 P1: a restored posting is counted again in this transaction
     // Record the decision even when nothing had moved, so keptApart() sees it.
     if (!logs.length) {
       db.prepare(`

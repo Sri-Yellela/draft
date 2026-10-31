@@ -19,6 +19,7 @@ import crypto from "node:crypto";
 import { ingestJob, previewIngest } from "../services/jobs/jobGateway.js";
 import { SOURCE_LABELS } from "../services/jobs/aggregator.js";
 import { detectKnownAtsMatch } from "../services/jobs/importJob.js";
+import { atlasPostingsChanged } from "../services/atlas/atlasLive.js";
 
 const EXPORT_COLUMNS = [
   "job_id", "title", "company", "location", "url", "apply_url", "source", "description", "posted_at",
@@ -162,6 +163,7 @@ export function createJobDataRouter(db, requireAdmin) {
                                  WHERE job_id = ? AND is_active = 1`);
       for (const j of targets) retire.run(now, j);
       db.prepare("UPDATE job_import_batches SET reverted_at = ?, reverted_rows = ? WHERE id = ?").run(now, targets.length, id);
+      atlasPostingsChanged(db);   // ⭐ D118 P1: the reverted postings leave the Atlas counts in this transaction
     })();
     res.json({ reverted: true, batchId: id, retired: targets.length });
   });

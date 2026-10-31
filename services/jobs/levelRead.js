@@ -7,6 +7,7 @@
 // read time (levelOfRow).
 import crypto from "node:crypto";
 import { readLevel, levelDisagreement } from "../../shared/postingLevel.js";
+import { atlasPostingsChanged } from "../atlas/atlasLive.js";
 
 export const LEVEL_READER_VERSION = 1;
 
@@ -31,6 +32,7 @@ export function readStaleLevels(db, { limit = 1000 } = {}) {
       write.run(l.level, JSON.stringify({ reasons: l.reasons, years: l.years }), basis, r.job_id);
       read++;
     }
+    atlasPostingsChanged(db);   // ⭐ D118 P1: a posting whose level changed moves between the per-level counts here
   })();
   return { scanned: rows.length, read };
 }

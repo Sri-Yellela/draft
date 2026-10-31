@@ -1,7 +1,8 @@
 // services/atlas/atlasStats.js — ⭐ D105 P3 · "On the board": every Atlas number COMPUTED from active postings, nightly.
 //
-// ⛔ Never typed by hand (d105BoardStatsComputed): atlas_node_stats is rewritten whole by this rollup and nothing else
-// writes it. Per node:
+// ⛔ Never typed by hand (d105BoardStatsComputed): atlas_node_stats is rewritten whole by this rollup, and between two
+// rollups its counts move only by the posting that changed (⭐ D118 P1, atlasLive.js — the same matcher, per ingest;
+// this pass is then the reconciliation and returns the drift it corrected). Per node:
 //   skill / tool  postings that ask for it (its term, or a confirmed alias, as words in the posting's text) · the
 //                 skills and tools that appear with it most · the roles that ask for it · the pay range where
 //                 postings state one
@@ -12,11 +13,12 @@
 // state one.
 // ⭐ P9 (amended 10-31): the same pass rebuilds the 'board' edges (boardEdgesFrom, below) — nothing else writes them.
 
-import { postingMatcher, AMBIGUOUS_TERMS, ACTIVE_POSTINGS_WHERE, POSTING_TEXT_SQL } from "./postingMatcher.js";
+import { postingMatcher, AMBIGUOUS_TERMS, ACTIVE_POSTINGS_WHERE, POSTING_TEXT_SQL, companyKey, companyCacheMoved } from "./postingMatcher.js";
+import { syncAtlasPostings, liveSnapshot, liveMatcher, driftBetween, snapshotOf, writeLiveBaseline, levelReadColumn } from "./atlasLive.js";
 
 // The one matcher and the board's postings live in postingMatcher.js; re-exported here for the modules that read them
 // from the stats (atlasMe.js, atlasLinks.js, atlasLearnImport.js, atlasWikidata.js).
-export { postingMatcher, AMBIGUOUS_TERMS, ACTIVE_POSTINGS_WHERE, POSTING_TEXT_SQL };
+export { postingMatcher, AMBIGUOUS_TERMS, ACTIVE_POSTINGS_WHERE, POSTING_TEXT_SQL, levelReadColumn };
 
 // A posting's pay below this is not an annual salary (an hourly figure, or a placeholder "1") — not counted.
 const PAY_FLOOR_USD = 15000;
@@ -82,10 +84,6 @@ export function writeBoardEdges(db, edges) {
   return written;
 }
 
-/** The posting's real level (D106 scraped_jobs.level_read) as a column — NULL on a database from before migration 176. */
-export const levelReadColumn = (db) =>
-  (db.prepare(`PRAGMA table_info(scraped_jobs)`).all().some(c => c.name === "level_read") ? "level_read" : "NULL AS level_read");
-
 /**
  * ⭐ D116 · per ROLE: its postings and the postings asking for each node — in all, and per level read (entry | early |
  * mid | senior; a posting with no read counts in all only). YOUR MAP's "to reach the next level" is read from these.
@@ -126,32 +124,35 @@ export function roleLevelsOfBoard(db, nodes) {
   return rl.result();
 }
 
-// The last stats pass's per-role counts, kept in memory — the nightly pass already matched every posting, so YOUR MAP
-// does not match them all again. Keyed on the database and the pass's computed_at.
-let lastRoleLevels = null;
-/** @returns the counts of the stats pass that wrote computed_at = `computedAt` on this database, or null */
-export function roleLevelsOfStats(db, computedAt) {
-  return lastRoleLevels && lastRoleLevels.db === db && lastRoleLevels.computedAt === computedAt ? lastRoleLevels.counts : null;
-}
-
-/** @returns {{ postings: number, nodes: number, boardEdges: number }} */
+/**
+ * The full pass: every active posting read by the one matcher, every count rewritten — the nightly reconciliation of
+ * D118 P1's live rows (atlasLive.js). The queue is drained first, so a change made before the pass is not drift; then the
+ * live rows are compared with the recount and the difference is returned (and logged by the caller) as `drift`.
+ * @returns {{ postings: number, nodes: number, boardEdges: number, drift: { drift, rowsOff, vocabChanged } | null }}
+ */
 export function computeAtlasStats(db, { now = Math.floor(Date.now() / 1000), boardEdges = true } = {}) {
-  const nodes = db.prepare(`SELECT id, slug, kind, name, term FROM atlas_nodes`).all();
-  if (!nodes.length) return { postings: 0, nodes: 0, boardEdges: 0 };
+  const nodes = db.prepare(`SELECT id, slug, kind, name, term FROM atlas_nodes ORDER BY id`).all();
+  if (!nodes.length) return { postings: 0, nodes: 0, boardEdges: 0, drift: null };
   const byId = new Map(nodes.map(n => [n.id, n]));
-  const match = postingMatcher(db, nodes, { bulk: true });
+  try { syncAtlasPostings(db, { now }); } catch (e) { console.warn(`[atlas stats] the live queue could not be drained first: ${e.message}`); }
+  let drained = [];
+  try { drained = db.prepare(`SELECT posting_id FROM atlas_posting_dirty`).pluck().all(); } catch { drained = []; }
+  const before = liveSnapshot(db);
+  const vocab = liveMatcher(db).key;
+  const match = postingMatcher(db, nodes, { bulk: true, live: true });
   const agg = new Map(nodes.map(n => [n.id, { postings: 0, withSkill: new Map(), withRole: new Map(), pay: [] }]));
   const bump = (m, k) => m.set(k, (m.get(k) || 0) + 1);
   let postings = 0;
   const rl = roleLevelCounts();
-  for (const p of db.prepare(`SELECT ${POSTING_TEXT_SQL}, ${levelReadColumn(db)},
+  const rows = [];
+  for (const p of db.prepare(`SELECT id, ${POSTING_TEXT_SQL}, ${levelReadColumn(db)},
       COALESCE(salary_min_usd, pay_text_min_usd) AS pmin, COALESCE(salary_max_usd, pay_text_max_usd) AS pmax
       FROM scraped_jobs WHERE ${ACTIVE_POSTINGS_WHERE}`).iterate()) {
     postings++;
-    const asked = match.askedBy(p);
-    const roleId = match.roleOf(p.title);
+    const { asked, linked, roleId } = match.read(p);
     const role = roleId != null ? { id: roleId } : null;
     rl.add(roleId, asked, p.level_read);
+    rows.push({ id: p.id, ck: companyKey(p.company), roleId, level: p.level_read || null, asked, linked, hashes: match.bulkHashes.get(p.id) || [] });
     const ok = (v) => Number.isFinite(v) && v >= PAY_FLOOR_USD;
     const pay = ok(p.pmin) && ok(p.pmax) ? Math.round((p.pmin + p.pmax) / 2) : ok(p.pmin) ? p.pmin : ok(p.pmax) ? p.pmax : null;
     for (const id of asked) {
@@ -179,7 +180,12 @@ export function computeAtlasStats(db, { now = Math.floor(Date.now() / 1000), boa
         a.pay.length, now);
     }
   })();
-  lastRoleLevels = { db, computedAt: now, counts: rl.result() };
+  const roleLevels = rl.result();
+  const drift = driftBetween(before, snapshotOf(new Map([...agg].map(([id, a]) => [id, a.postings])), roleLevels, vocab));
+  let version = null;
+  try { version = writeLiveBaseline(db, { rows, roleLevels, vocab, now, drained, drift }); }
+  catch (e) { console.warn(`[atlas stats] the live store was not written (migration 199?): ${e.message}`); }
+  if (version != null) companyCacheMoved(db, version);
   const written = boardEdges ? writeBoardEdges(db, boardEdgesFrom(agg, (id) => byId.get(id)?.kind)) : 0;
-  return { postings, nodes: nodes.length, boardEdges: written };
+  return { postings, nodes: nodes.length, boardEdges: written, drift };
 }

@@ -67,6 +67,7 @@ import { readiness, READINESS_COLUMNS, runAtlasAutoPipeline, autoPublish, askWik
 import { sponsorsForRole } from "../services/atlas/atlasSponsors.js";
 import { computeYourMap, SECTIONS } from "../services/atlas/atlasMe.js";
 import { roleBoard } from "../services/atlas/atlasRolePage.js";
+import { atlasPostingsChanged, liveCached, LIVE_CACHE_MS } from "../services/atlas/atlasLive.js";
 
 // A signed-in reader's terms — ONE implementation (services/atlas/atlasStore.js profileTerms), also read by D110's
 // interview prep (services/interviewPrep.js skillGaps).
@@ -108,11 +109,15 @@ export function createAtlasRouter(db) {
     res.set("Cache-Control", "public, max-age=300");
     res.json({ terms });
   });
+  // ⭐ D118 P1: the popup's count is live — kept (here and in the browser) at most LIVE_CACHE_MS, and never past a
+  // change of the counts or the Atlas (the old one-hour cache is gone).
   router.get("/peek/:slug", (req, res) => {
     const uid = req.user?.id ?? null;
-    const p = peekNode(db, req.params.slug, uid);
+    atlasPostingsChanged(db);
+    const slug = String(req.params.slug);
+    const p = uid != null ? peekNode(db, slug, uid) : liveCached(db, `peek:${slug}`, () => peekNode(db, slug, null));
     if (!p) return res.status(404).json({ error: "not_found" });
-    res.set("Cache-Control", `${uid != null ? "private" : "public"}, max-age=3600`);
+    res.set("Cache-Control", `${uid != null ? "private" : "public"}, max-age=${LIVE_CACHE_MS / 1000}`);
     res.json(p);
   });
   // ⭐ D116 · computed from THIS reader's profile only (req.user, when signed in) — never stored, never cached shared.
@@ -123,16 +128,23 @@ export function createAtlasRouter(db) {
   });
   router.post("/link-event", (req, res) => res.status(countLinkEvent(db, String(req.body?.event ?? "")) ? 204 : 400).end());
   router.get("/node/:slug", (req, res) => {
-    const node = readNode(db, req.params.slug, { publishedOnly: true });
-    if (!node) return res.status(404).json({ error: "not_found", message: "No published Atlas page by that name." });
+    // ⭐ D118 P1: the page's board data is live; the public part is kept at most LIVE_CACHE_MS and never past a change.
+    atlasPostingsChanged(db);
+    const slug = String(req.params.slug);
+    const page = liveCached(db, `node:${slug}`, () => {
+      const node = readNode(db, slug, { publishedOnly: true });
+      if (!node) return null;
+      // ⭐ D108 P3 · "Sponsors who hire this role" — computed from active postings + the companies' public LCA facts.
+      const sponsors = node.kind === "role" ? (() => { try { return sponsorsForRole(db, node.slug); } catch { return []; } })() : null;
+      // ⭐ D115 P4(b): the step of the owner's learning path that teaches it — "Learn it: Part 3 · Data structures · Step 2".
+      const learn = (() => { try { return learnStepForNode(db, { name: node.name, term: db.prepare(`SELECT term FROM atlas_nodes WHERE slug = ?`).pluck().get(node.slug) }); } catch { return null; } })();
+      // ⭐ D105 P12 · a role's page is the board's own data: skills with shares, levels, companies, the next level's rises.
+      const board = node.kind === "role" ? (() => { try { return roleBoard(db, node.slug); } catch { return null; } })() : null;
+      return { node, extra: { ...(board ? { roleBoard: board } : {}), ...(sponsors?.length ? { sponsors } : {}), ...(learn ? { learn } : {}) } };
+    });
+    if (!page) return res.status(404).json({ error: "not_found", message: "No published Atlas page by that name." });
     const userId = req.user?.id ?? null;
-    // ⭐ D108 P3 · "Sponsors who hire this role" — computed from active postings + the companies' public LCA facts.
-    const sponsors = node.kind === "role" ? (() => { try { return sponsorsForRole(db, node.slug); } catch { return []; } })() : null;
-    // ⭐ D115 P4(b): the step of the owner's learning path that teaches it — "Learn it: Part 3 · Data structures · Step 2".
-    const learn = (() => { try { return learnStepForNode(db, { name: node.name, term: db.prepare(`SELECT term FROM atlas_nodes WHERE slug = ?`).pluck().get(node.slug) }); } catch { return null; } })();
-    // ⭐ D105 P12 · a role's page is the board's own data: skills with shares, levels, companies, the next level's rises.
-    const board = node.kind === "role" ? (() => { try { return roleBoard(db, node.slug); } catch { return null; } })() : null;
-    res.json({ ...node, ...(board ? { roleBoard: board } : {}), ...(sponsors?.length ? { sponsors } : {}), ...(learn ? { learn } : {}), ...(userId ? { you: youAgainst(db, userId, node) } : {}) });
+    res.json({ ...page.node, ...page.extra, ...(userId ? { you: youAgainst(db, userId, page.node) } : {}) });
   });
   return router;
 }

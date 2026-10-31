@@ -28,6 +28,7 @@ import { normalizePosting, NORMALIZER_VERSION } from "../../shared/postingNormal
 import { postingRequirements } from "../../shared/postingRequirements.js";
 import { parseSalaryText } from "./salaryText.js";
 import { payFromText, annualisedUsd, payLocationLabel } from "./payFromText.js";
+import { atlasPostingsChanged } from "../atlas/atlasLive.js";
 
 export const BASIS_PREFIX = `v${NORMALIZER_VERSION}:`;
 // The SQL function the stale query uses — the same descriptionBasis, so SQL and JS cannot disagree.
@@ -101,7 +102,7 @@ export function refreshDescriptionText(db, jobId) {
   const row = db.prepare(`SELECT job_id, description${fullCol(db)} FROM scraped_jobs WHERE job_id = ?`).get(jobId);
   if (!row) return null;
   const cols = deriveDescriptionColumns(row.description, row.description_full ?? null);
-  db.prepare(WRITE_SQL).run({ ...cols, job_id: row.job_id });
+  db.transaction(() => { db.prepare(WRITE_SQL).run({ ...cols, job_id: row.job_id }); atlasPostingsChanged(db); })();   // ⭐ D118 P1
   return cols;
 }
 
@@ -137,7 +138,8 @@ export function backfillDescriptionText(db, { dryRun = true, ceiling = DESCRIPTI
     return { ...summary, refused: true };
   }
   const write = db.prepare(WRITE_SQL);
-  db.transaction(() => { for (const d of derived) write.run(d); })();
+  // ⭐ D118 P1: a posting's text changed → its Atlas reading and counts move in this transaction.
+  db.transaction(() => { for (const d of derived) write.run(d); atlasPostingsChanged(db); })();
   log?.({ kind: "description_text_backfill", written: derived.length, changedText: summary.changedText });
   return { ...summary, written: derived.length };
 }

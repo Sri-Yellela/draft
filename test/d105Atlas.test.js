@@ -27,7 +27,9 @@ test("D105 · d105OneThesaurus — no Atlas alias table; an alias added in the A
   const tables = db.prepare(`SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name LIKE 'atlas_%'`).all();
   // D114 P5 adds atlas_link_counts (day · event · n) — a count, not an alias table; the check below still holds for it.
   // D118 P2 (b) adds atlas_changes (one change counter the in-memory indexes key on) — not an alias table either.
-  assert.deepEqual(tables.map(t => t.name).sort(), ["atlas_changes", "atlas_edges", "atlas_link_counts", "atlas_node_stats", "atlas_nodes", "atlas_resources", "atlas_wiki_cache"]);
+  // D118 P1 adds the live counts' four (each posting's reading, per role × level counts, the store's state, the queue).
+  assert.deepEqual(tables.map(t => t.name).sort(), ["atlas_changes", "atlas_edges", "atlas_link_counts", "atlas_live_state", "atlas_node_stats", "atlas_nodes",
+    "atlas_posting_dirty", "atlas_posting_match", "atlas_resources", "atlas_role_level_stats", "atlas_wiki_cache"]);
   assert.ok(tables.every(t => !/alias/i.test(t.sql)), "aliases live in skill_synonyms only");
   assert.ok(!EDGE_TYPES.includes("alias_of"));
   assert.throws(() => addEdge(db, 1, 2, "alias_of"), /aliases live in skill_synonyms/);
@@ -82,7 +84,8 @@ test("D105 · d105BoardStatsComputed — postings, co-skills, roles and pay come
   post(db, "3", "Data Analyst", "SQL and Python dashboards; we write Go.", { skills: JSON.stringify(["Go", "SQL"]) });
   db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,url,search_query,_hash,description,is_active) VALUES ('4','Backend Engineer','Co','u','t','h4','Python',0)`).run();
   // ⭐ P9 (10-31): the pass also reports the board edges it wrote — none here (no pair is asked together 3 times).
-  assert.deepEqual(computeAtlasStats(db, { now: 1000 }), { postings: 3, nodes: 4, boardEdges: 0 });
+  // ⭐ D118 P1: and the drift it corrected in the live counts — null on the first pass (no live baseline before it).
+  assert.deepEqual(computeAtlasStats(db, { now: 1000 }), { postings: 3, nodes: 4, boardEdges: 0, drift: null });
   const stat = (slug) => readNode(db, slug, { publishedOnly: false }).onTheBoard;
   assert.equal(stat("python").postings, 3);
   assert.equal(stat("kubernetes").postings, 2, "the alias counts");

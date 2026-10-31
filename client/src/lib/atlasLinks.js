@@ -85,13 +85,16 @@ export function useAtlasTerms(jobId) {
   return terms;
 }
 
-export function peekAtlas(slug) {
-  if (!peekCache.has(slug)) {
+// ⭐ D118 P1: the popup's count moves with the board — a read is kept at most a minute (the server's cap), not the page's life.
+export const PEEK_KEEP_MS = 60_000;
+export function peekAtlas(slug, now = Date.now()) {
+  const hit = peekCache.get(slug);
+  if (!hit || now - hit.at >= PEEK_KEEP_MS) {
     const p = api(`/api/atlas/peek/${encodeURIComponent(slug)}`);
     p.catch(() => peekCache.delete(slug));   // a failed read is asked again on the next hover
-    peekCache.set(slug, p);
+    peekCache.set(slug, { at: now, p });
   }
-  return peekCache.get(slug);
+  return peekCache.get(slug).p;
 }
 
 export function atlasLinkEvent(event) {
