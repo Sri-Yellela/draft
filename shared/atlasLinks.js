@@ -10,7 +10,10 @@
 // ⛔ The text is never changed: the segments, joined, are the input exactly (d114TextUnchanged).
 // ⭐ BUG 10-31: case and accents fold through the ONE normaliser (shared/atlasSearchNormalize.js foldChars — the same
 // module as the Atlas search); the server adds each name's separator spellings (spellings: "Node.js" / "Nodejs").
+// ⭐ BUG 10-31: a CONCEPT never links inside a common phrase ("Attention" in "attention to detail") — the one list,
+// shared/atlasCommonPhrases.js, the same the server's matcher counts by.
 import { foldChars } from "./atlasSearchNormalize.js";
+import { commonPhraseSpans } from "./atlasCommonPhrases.js";
 
 const WORD = /[A-Za-z0-9+#]/;
 const isWordAt = (s, i) => i >= 0 && i < s.length && WORD.test(s[i]);
@@ -37,7 +40,7 @@ function find(text, lower, form, taken) {
 
 /**
  * @param text  the text as drawn
- * @param terms [{ slug, forms: [{ text, exactCase }] }] — from GET /api/atlas/terms/:jobId
+ * @param terms [{ slug, kind?, forms: [{ text, exactCase }] }] — from GET /api/atlas/terms/:jobId
  * @param used  a Set of slugs already linked earlier in this posting (mutated: the ones linked here are added)
  * @returns [{ text, slug? }] — joined, exactly `text`
  */
@@ -48,10 +51,12 @@ export function linkSegments(text, terms, used = new Set()) {
   const longest = (t) => Math.max(0, ...(t.forms || []).map(f => String(f.text || "").length));
   const order = terms.filter(t => t?.slug && !used.has(t.slug)).sort((a, b) => longest(b) - longest(a));
   const spans = [];
+  let phrases = null;
   for (const t of order) {
     let best = null;
     for (const f of [...(t.forms || [])].sort((a, b) => String(b.text).length - String(a.text).length)) {
-      const at = find(s, lower, { text: String(f.text || ""), exactCase: !!f.exactCase }, spans);
+      const taken = t.kind === "concept" ? spans.concat(phrases ??= commonPhraseSpans(s)) : spans;
+      const at = find(s, lower, { text: String(f.text || ""), exactCase: !!f.exactCase }, taken);
       if (at !== -1 && (best === null || at < best[0])) best = [at, at + String(f.text).length];
     }
     if (best) { spans.push([best[0], best[1], t.slug]); used.add(t.slug); }

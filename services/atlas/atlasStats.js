@@ -6,44 +6,21 @@
 //                 skills and tools that appear with it most · the roles that ask for it · the pay range where
 //                 postings state one
 //   role          postings whose title names the role · the skills those postings ask for most · the pay range
-// Matching is the scorer's own normalisation (normaliseAtsTerm) over 1–4-word runs of the text, so "REST APIs" in a
-// posting is "rest api" here exactly as it is for the score. Pay is the posting's annual USD midpoint (the provider's
-// figure, else the one read from its text — D71), only for postings that state one.
+// Matching is THE ONE MATCHER (postingMatcher.js — the scorer's own normalisation over 1–4-word runs of the text, read
+// without the company's boilerplate, and from the requirements when the posting has them; BUG 10-31). Pay is the
+// posting's annual USD midpoint (the provider's figure, else the one read from its text — D71), only for postings that
+// state one.
 // ⭐ P9 (amended 10-31): the same pass rebuilds the 'board' edges (boardEdgesFrom, below) — nothing else writes them.
 
-import { normaliseAtsTerm } from "../localAtsScorer.js";
-import { aliasesOf } from "./atlasStore.js";
+import { postingMatcher, AMBIGUOUS_TERMS, ACTIVE_POSTINGS_WHERE, POSTING_TEXT_SQL } from "./postingMatcher.js";
 
-const MAX_GRAM = 4;
+// The one matcher and the board's postings live in postingMatcher.js; re-exported here for the modules that read them
+// from the stats (atlasMe.js, atlasLinks.js, atlasLearnImport.js, atlasWikidata.js).
+export { postingMatcher, AMBIGUOUS_TERMS, ACTIVE_POSTINGS_WHERE, POSTING_TEXT_SQL };
+
 // A posting's pay below this is not an annual salary (an hourly figure, or a placeholder "1") — not counted.
 const PAY_FLOOR_USD = 15000;
-// ⛔ The scorer's rule for words that are also English (packages/ats-scorer/src/scorer.js AMBIGUOUS_SKILL_WORDS — not
-// exported by the package, so mirrored here; "can" added: the embedded registry's CAN bus): such a term counts for a
-// posting only when the posting's own skills list names it. "Trust the reader, not the substring."
-export const AMBIGUOUS_TERMS = new Set([
-  "go", "r", "c", "swift", "rust", "dart", "ruby", "scratch", "processing", "spring", "struts",
-  "unity", "shell", "bash", "spark", "hive", "pig", "storm", "kafka", "flink", "beam", "arrow", "can",
-]);
-
-function skillKeysOf(json) {
-  try {
-    const arr = JSON.parse(json || "[]");
-    return new Set((Array.isArray(arr) ? arr : []).map(e => normaliseAtsTerm(typeof e === "string" ? e : e?.skill)).filter(Boolean));
-  } catch { return new Set(); }
-}
 const TOP = 8;
-const TEXT_CHARS = 30000;
-
-function gramsOf(text, maxGram = MAX_GRAM) {
-  const words = normaliseAtsTerm(String(text ?? "").slice(0, TEXT_CHARS)).split(" ").filter(Boolean);
-  const set = new Set();
-  for (let i = 0; i < words.length; i++) {
-    let g = "";
-    for (let k = 0; k < maxGram && i + k < words.length; k++) { g = k ? `${g} ${words[i + k]}` : words[i]; set.add(g); }
-  }
-  return set;
-}
-
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2); };
 const topOf = (counts, names, n = TOP) => [...counts.entries()].sort((a, b) => b[1] - a[1] || String(names.get(a[0])).localeCompare(String(names.get(b[0]))))
   .slice(0, n).map(([id, c]) => ({ slug: names.get(id).slug, name: names.get(id).name, postings: c }));
@@ -105,39 +82,6 @@ export function writeBoardEdges(db, edges) {
   return written;
 }
 
-// ⭐ D116 · the board's postings and HOW A POSTING ASKS FOR A NODE — defined once, read by this rollup and by YOUR MAP
-// (services/atlas/atlasMe.js), so the two never disagree about what "asked for in N postings" means.
-export const ACTIVE_POSTINGS_WHERE = "is_active = 1 AND duplicate_of IS NULL";
-export const POSTING_TEXT_SQL = "title, COALESCE(description_text, description) AS text, skills_json";
-
-/**
- * The matcher for these nodes: a posting's TITLE names a role (longest role first, so "Senior Backend Engineer" is
- * not also "Engineer"); its title + text ask for a skill / tool / … when the node's term or a confirmed alias is a
- * 1–4-word run of the text — an ambiguous word only when the posting's own skills list names it.
- * @param nodes [{ id, kind, term }]
- * @returns {{ roleOf(title) → id | null, askedBy(posting { title, text, skills_json }) → id[] }}
- */
-export function postingMatcher(db, nodes) {
-  // Each asked-for node's terms: its own and its confirmed aliases (the one thesaurus).
-  const asks = nodes.filter(n => n.kind !== "role").map(n => ({ id: n.id, terms: [n.term, ...aliasesOf(db, n.term)] }));
-  const roles = nodes.filter(n => n.kind === "role").map(n => ({ id: n.id, term: n.term })).sort((a, b) => b.term.length - a.term.length);
-  // The runs only need to be as long as the longest term.
-  const words = (t) => t.split(" ").length;
-  const maxGram = Math.min(MAX_GRAM, Math.max(1, ...asks.flatMap(a => a.terms.map(words))));
-  return {
-    roleOf(title) {
-      const tk = ` ${normaliseAtsTerm(title ?? "")} `;
-      return roles.find(r => tk.includes(` ${r.term} `))?.id ?? null;
-    },
-    askedBy(p) {
-      const grams = gramsOf(`${p.title ?? ""} . ${p.text ?? ""}`, maxGram);
-      let named = null;
-      const counts = (t) => grams.has(t) && (!AMBIGUOUS_TERMS.has(t) || (named ??= skillKeysOf(p.skills_json)).has(t));
-      return asks.filter(a => a.terms.some(counts)).map(a => a.id);
-    },
-  };
-}
-
 /** The posting's real level (D106 scraped_jobs.level_read) as a column — NULL on a database from before migration 176. */
 export const levelReadColumn = (db) =>
   (db.prepare(`PRAGMA table_info(scraped_jobs)`).all().some(c => c.name === "level_read") ? "level_read" : "NULL AS level_read");
@@ -173,7 +117,7 @@ export function roleLevelCounts() {
 
 /** The same counts in their own pass over the active postings, through the one matcher (YOUR MAP after a restart). */
 export function roleLevelsOfBoard(db, nodes) {
-  const match = postingMatcher(db, nodes);
+  const match = postingMatcher(db, nodes, { bulk: true });
   const rl = roleLevelCounts();
   for (const p of db.prepare(`SELECT ${POSTING_TEXT_SQL}, ${levelReadColumn(db)} FROM scraped_jobs WHERE ${ACTIVE_POSTINGS_WHERE}`).iterate()) {
     const roleId = match.roleOf(p.title);
@@ -195,7 +139,7 @@ export function computeAtlasStats(db, { now = Math.floor(Date.now() / 1000), boa
   const nodes = db.prepare(`SELECT id, slug, kind, name, term FROM atlas_nodes`).all();
   if (!nodes.length) return { postings: 0, nodes: 0, boardEdges: 0 };
   const byId = new Map(nodes.map(n => [n.id, n]));
-  const match = postingMatcher(db, nodes);
+  const match = postingMatcher(db, nodes, { bulk: true });
   const agg = new Map(nodes.map(n => [n.id, { postings: 0, withSkill: new Map(), withRole: new Map(), pay: [] }]));
   const bump = (m, k) => m.set(k, (m.get(k) || 0) + 1);
   let postings = 0;

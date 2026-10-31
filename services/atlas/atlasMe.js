@@ -11,7 +11,8 @@
 // Signed out, or no profile skills: search + Learn + "Explore by role" (the board's biggest roles with their top skills)
 // and the line "Upload a résumé and this page becomes your map." — never an empty page.
 //
-// ⛔ ONE MATCHER: a posting asks for a node by atlasStats.js postingMatcher — the rule "asked for in N" is counted by.
+// ⛔ ONE MATCHER: a posting asks for a node by postingMatcher.js (re-exported by atlasStats.js) — the rule "asked for
+// in N" is counted by, without the company's boilerplate and from the requirements when the posting has them.
 // ⛔ Only PUBLISHED nodes appear in an answer. ⛔ Every threshold is in YOUR_MAP below, and only there.
 // The board half (per role × level × skill counts) is counted by the nightly stats pass in the same pass that counts
 // "asked for in N", and kept in memory (keyed on atlas_node_stats.computed_at); after a restart one pass of its own
