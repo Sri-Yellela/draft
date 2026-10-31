@@ -20,7 +20,7 @@
 
 import { postingMatcher, roleLevelsOfBoard } from "./atlasStats.js";
 import { liveRoleLevels, atlasPostingsChanged } from "./atlasLive.js";
-import { profileTerms, KINDS } from "./atlasStore.js";
+import { haveTerms, KINDS } from "./atlasStore.js";
 import { userLevelFor } from "../picks.js";
 import { LEVELS_READ } from "../../shared/postingLevel.js";
 import { learnStepForNode, learnStepPath } from "../learn/learnLinks.js";
@@ -86,6 +86,10 @@ const bandOfRank = (rank) => (rank == null ? -1 : bandOfLevel(LEVELS_READ[rank])
 
 export const SECTIONS = Object.freeze(["haveSkills", "nextLevel", "adjacent", "branches", "learnNext"]);
 export const UPLOAD_PROMPT = "Upload a résumé and this page becomes your map.";
+/** D120 P1 · a résumé is on file but no skill could be read from it (nor is one on the Profile): never "upload one". */
+export const NO_SKILLS_READ = "Your résumé is on file, but no skills could be read from it. Add your skills on your Profile and this page becomes your map.";
+/** D120 P1 · the map is drawn from the résumé's parse because the Profile has no skills yet. */
+export const CONFIRM_ON_PROFILE = "Confirm these on your Profile";
 const SEARCH_HINT = Object.freeze({ hint: "Search a skill, tool or role — try “k8s” or “Backend Engineer”.", api: "/api/atlas/search?q=" });
 const LEARN_POINTER = Object.freeze({ path: "/learn", label: "Learn", line: "The owner's learning path — from silicon to software, step by step." });
 
@@ -356,8 +360,12 @@ export function computeYourMap(db, userId, { all = null } = {}) {
   atlasPostingsChanged(db);   // ⭐ D118 P1: a posting written a moment ago is counted before anything is read
   const idx = atlasIndex(db);
   if (userId == null) return { signedIn: false, map: false, ...explore(db, idx) };
-  const terms = profileTerms(db, userId);
-  if (!terms.size) return { signedIn: true, map: false, reason: "no_profile_skills", ...explore(db, idx) };
+  // ⚠ D120 P1: the Profile's skills, else the base résumé's parsed skills; the upload line only with no résumé at all.
+  const { terms, source: skillsFrom, hasResume } = haveTerms(db, userId);
+  if (!terms.size) {
+    return hasResume ? { signedIn: true, map: false, reason: "no_skills_read", ...explore(db, idx), prompt: NO_SKILLS_READ }
+      : { signedIn: true, map: false, reason: "no_profile_skills", ...explore(db, idx) };
+  }
   const have = idx.nodes.filter(n => n.kind !== "role" && n.status === "published" && terms.has(n.term));
   const profileIds = new Set(have.map(n => n.id));
   const rollup = boardCounts(db, idx.nodes);
@@ -383,7 +391,8 @@ export function computeYourMap(db, userId, { all = null } = {}) {
   // ⭐ D116 M1 · the tree: one response draws the whole map (the client only lays it out, M2).
   const tree = yourTree(db, userId, { idx, rollup, profileIds, learnedIds, learning, targets });
   return {
-    signedIn: true, map: true,
+    signedIn: true, map: true, skillsFrom,
+    ...(skillsFrom === "resume" ? { nudge: CONFIRM_ON_PROFILE } : {}),
     targetRoles: targets.map(id => nodeOut(idx.byId.get(id))),
     board: { postings: rollup.postings, levelRead: rollup.levelRead },
     tree,

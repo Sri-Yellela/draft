@@ -132,6 +132,7 @@ export default function YourMap({ base }) {
       <header className="atl__head">
         <h2 className="atl__title">Your map</h2>
         <p className="atl__lede" data-map-header="">{headerLine(me.tree)}</p>
+        {me.nudge && <p className="atl__quiet" data-map-nudge="">Drawn from your résumé's skills. <Link to="/app/profile" className="atl__link">{me.nudge}</Link>.</p>}
       </header>
       <AtlasTree tree={me.tree} base={base} request={request} />
       <Sections me={me} base={base} onOpen={open} />
