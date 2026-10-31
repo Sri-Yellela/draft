@@ -97,9 +97,11 @@ import { runHiringSignalsRollup } from "./services/jobs/hiringSignals.js";
 import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js";
 // ⭐ D105: the Atlas — roles, skills, tools, linked; seeded as drafts from the scorer's own registry, stats from the board.
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
+import { createLearnRouter } from "./routes/learn.js";
 import { seedAtlasFromRegistry } from "./services/atlas/atlasSeed.js";
-import { importLearnConcepts } from "./services/atlas/atlasLearnImport.js";
+import { importLearnConcepts, publishLearnConcepts } from "./services/atlas/atlasLearnImport.js";
 import { learnContent } from "./services/learn/learnContent.js";
+import { importLearnPatterns } from "./services/learn/learnLinks.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
 import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
@@ -5947,6 +5949,21 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_atlas_nodes_term ON atlas_nodes(term);
       `,
     },
+    {
+      // ⭐ D115 P3 · a learner's progress on the owner's tracker, so it follows them across devices: an ITEM done
+      // (mark_id = the item's id, "s1-code") or a CHECKPOINT explained ("s1#c0" — the step and the checkpoint's place),
+      // with the date. Signed out, the same marks live in the browser and are offered to the account on sign-in.
+      id: "195_learn_progress",
+      sql: `
+        CREATE TABLE IF NOT EXISTS learn_progress (
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          mark_id TEXT NOT NULL,
+          state   TEXT NOT NULL CHECK (state IN ('done', 'explained')),
+          at      INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, mark_id)
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -9398,6 +9415,7 @@ cron.schedule("30 3 * * *", () => {
 app.use("/api/admin/job-tags", requireAdmin, createJobTagsRouter(db, requireAdmin));
 // ⭐ D105 · the Atlas: pages are PUBLIC (published nodes only, no sign-in); the curator's list and publish are admin.
 app.use("/api/atlas", createAtlasRouter(db));
+app.use("/api/learn", createLearnRouter(db, { requireAuth }));   // ⭐ D115 · Learn (public content; progress signed in)
 app.use("/api/admin/atlas", requireAdmin, createAtlasAdminRouter(db));
 // ⭐ D108 P2 · "What changed": facts with official source links only; public to read, the curator's to write.
 app.use("/api/what-changed", createWhatChangedRouter(db));
@@ -9410,6 +9428,12 @@ try {
   const r = importLearnConcepts(db, learnContent());
   if (r.filled.length || r.created.length) console.log(`[atlas] learn: ${r.filled.length} definition(s) filled, ${r.created.length} concept(s) added`);
   if (r.skipped.length) console.log(`[atlas] learn: left out ${r.skipped.map(s => `${s.term} (${s.why})`).join("; ")}`);
+  // Owner 10-31: the tracker's concepts are published as learning pages (a person's un-publish sticks).
+  const pub = publishLearnConcepts(db);
+  if (pub.published) console.log(`[atlas] learn: ${pub.published} concept page(s) published (owner, 10-31)`);
+  // ⭐ D115 P4(c): the 28 LeetCode patterns as pattern nodes, their problems as Practice resources (idempotent).
+  const p = importLearnPatterns(db, learnContent());
+  if (p.created.length || p.promoted.length || p.resources) console.log(`[atlas] learn: ${p.created.length} pattern(s) added, ${p.promoted.length} promoted from concepts, ${p.resources} practice link(s), ${p.edges} edge(s)`);
 } catch (e) { console.warn("[atlas] learn import:", e.message); }
 
 app.use(createAccountRouter({

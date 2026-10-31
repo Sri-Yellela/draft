@@ -206,7 +206,8 @@ test("D114 · d114TapOpensNotNavigates — a tap opens the popup and does not fo
   const click = src.slice(at(src, "onClick={(e) => {"), at(src, "{children}"));
   assert.match(click, /if \(lastPointer\.current === "touch"\) \{ e\.preventDefault\(\); if \(pos\) close\(\); else open\(\); return; \}/);
   assert.match(src, /onPointerDown=\{\(e\) => \{ lastPointer\.current = e\.pointerType \|\| "mouse"; \}\}/);
-  assert.match(src, /<a className="atl-term__learn" href=\{atlasHref\(slug\)\} onClick=\{\(\) => atlasLinkEvent\("visit"\)\} data-atlas-pop-learn="">/);
+  // D115 P4(d): to the step that teaches it when the owner's path has one, else the term's page.
+  assert.match(src, /<a className="atl-term__learn" href=\{p\.learnStep \? `\$\{atlasHref\("learn"\)\}#step-\$\{encodeURIComponent\(p\.learnStep\.stepId\)\}` : atlasHref\(slug\)\}\n\s+onClick=\{\(\) => atlasLinkEvent\("visit"\)\} data-atlas-pop-learn=""/);
   assert.match(src, /Learn it in the Atlas →/);
 });
 
@@ -241,7 +242,8 @@ test("D114 · d114PeekLazy — the popup is read on the first hover / focus only
   try {
     const r = await s.get(`/api/atlas/peek/${k}`);
     assert.equal(r.headers.get("cache-control"), "public, max-age=3600");
-    assert.deepEqual(Object.keys(await r.json()).sort(), ["firstResource", "fromWikipedia", "kind", "meaning", "name", "postings", "slug", "wikipediaUrl"]);
+    // learnStep (D115 P4(d)): Kubernetes is taught by a step of the owner's path.
+    assert.deepEqual(Object.keys(await r.json()).sort(), ["firstResource", "fromWikipedia", "kind", "learnStep", "meaning", "name", "postings", "slug", "wikipediaUrl"]);
     // P5: a count, nothing else.
     assert.equal((await s.post("/api/atlas/link-event", { event: "open" })).status, 204);
     assert.equal((await s.post("/api/atlas/link-event", { event: "kubernetes" })).status, 400);

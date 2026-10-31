@@ -29,6 +29,8 @@ const SERVER = fs.readFileSync("server.js", "utf8");
 // SHOULD be able to call it.
 const PUBLIC = new Set([
   "GET /api/health",
+  // D115: the owner's learning path — public like the Atlas it lives in; links and the owner's words only, no user data.
+  "GET /api/learn/",
   "GET /api/auth/me",                       // reports authenticated:false rather than 401 by design
   "POST /api/auth/login",
   "POST /api/auth/register",
@@ -114,6 +116,8 @@ const ADMIN = new Set([
 
 // ── AUTHENTICATED: requires a signed-in session, any role ────────────────────────────────────
 const AUTHENTICATED = new Set([
+  // D115 P3: a learner's own progress marks.
+  "GET /api/learn/progress", "PUT /api/learn/progress", "POST /api/learn/progress/import",
   "GET /api/auth/extension-token",
   "POST /api/auth/revoke-extension-token",
   // AJ1 6b. Exchanges a session-bound login token for a sessionLess one, so it needs the same
@@ -516,6 +520,8 @@ function collect() {
       .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/import") })),
     ...routerRoutes(fs.readFileSync("routes/companyKb.js", "utf8"), "/api/company-kb")
       .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/company-kb") })),
+    // D115: mounted at /api/learn with NO mount guard — each progress route carries requireAuth itself.
+    ...routerRoutes(fs.readFileSync("routes/learn.js", "utf8"), "/api/learn"),
   ];
   return routes.map(r => ({ ...r, guard: named(r.guard) }));
 }

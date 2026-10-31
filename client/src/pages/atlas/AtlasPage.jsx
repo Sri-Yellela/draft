@@ -17,6 +17,7 @@ import { Footer } from "../../components/Footer.jsx";
 import DepthButton from "../../components/DepthButton.jsx";
 import { BRAND } from "../../../../shared/brand.js";
 import AtlasGraph from "./AtlasGraph.jsx";
+import LearnView from "./LearnView.jsx";
 import {
   KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
   WIKI_LICENCE, YOU_LABEL, YOU_MARK,
@@ -189,10 +190,17 @@ export function AtlasNodeView({ base, node, from, onWalk }) {
         </section>
       )}
 
-      {resources.length > 0 && (
+      {(resources.length > 0 || node.learn) && (
         <section className="atl__section" data-atlas-resources="" aria-labelledby="atl-res">
           <h2 className="atl__h2" id="atl-res">Resources</h2>
           <ul className="atl__res">
+            {/* ⭐ D115 P4(b): the step of the owner's learning path that teaches it — first, above Wikidata's links. */}
+            {node.learn && (
+              <li data-atlas-learn={node.learn.stepId}>
+                <Link to={`${base}/learn#step-${encodeURIComponent(node.learn.stepId)}`} className="atl__link atl__res-learn">Learn it: {node.learn.label}</Link>
+                <div className="atl__quiet">{node.learn.title} · From silicon to software</div>
+              </li>
+            )}
             {resources.map(r => (
               <li key={r.url} data-resource-cost={r.cost || ""}>
                 <a href={r.url} target="_blank" rel="noopener noreferrer" className="atl__link">{r.title}</a>
@@ -218,7 +226,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
 
   useEffect(() => {
     let live = true;
-    if (!slug) { setPage({ status: "idle", node: null }); return undefined; }
+    if (!slug || slug === "learn") { setPage({ status: "idle", node: null }); return undefined; }
     setPage({ status: "loading", node: null });
     loadNode(slug).then(n => live && setPage({ status: n ? "done" : "missing", node: n }))
       .catch(e => live && setPage({ status: "error", node: null, error: e.message }));
@@ -226,14 +234,18 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   }, [slug]);
 
   useEffect(() => {
-    const name = page.node?.name;
+    const name = slug === "learn" ? "Learn" : page.node?.name;
     document.title = name ? `${name} · Atlas · ${BRAND}` : `Atlas · ${BRAND}`;
-  }, [page.node]);
+  }, [page.node, slug]);
 
+  // ⭐ D115: /atlas/learn is the owner's learning path, not a node (the slug "learn" is reserved for it).
+  const learning = slug === "learn";
   const body = (
-    <main className="atl" data-atlas-page={slug ? "node" : "search"}>
+    <main className="atl" data-atlas-page={learning ? "learn" : slug ? "node" : "search"}>
       {!slug && <AtlasSearch base={base} q={q} />}
-      {slug && (
+      {!slug && <p className="atl__quiet" data-atlas-learn-link=""><Link to={`${base}/learn`} className="atl__link">Learn — From silicon to software</Link>: a path from a flashlight signal to today's machines, step by step.</p>}
+      {learning && <LearnView signedIn={base.startsWith("/app")} />}
+      {slug && !learning && (
         <>
           <SearchBox base={base} />
           {page.status === "loading" && <p className="atl__quiet" role="status">Opening…</p>}

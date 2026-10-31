@@ -1,0 +1,50 @@
+/* ⭐ D115 P2–P3 · Learn inside the Atlas. Draft's tokens only (four themes); the step grid's squares are the bubble
+   standard's shape (D113 UI: a rounded square, one ring) — not the tracker's own palette or fonts. No capsules (D60). */
+.lrn { display: grid; gap: 4px; }
+.lrn__grid { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 12px 0 4px; }
+.lrn__grid-num { font-size: 11px; font-weight: 700; color: var(--c-ink-faint); min-width: 14px; text-align: right; margin-left: 6px; }
+.lrn__cell {
+  width: 16px; height: 16px; padding: 0; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--c-border); background: var(--c-surface-solid);
+}
+.lrn__cell.is-started { background: linear-gradient(135deg, var(--c-accent) 50%, var(--c-surface-solid) 50%); border-color: var(--c-accent); }
+.lrn__cell.is-done { background: var(--c-accent); border-color: var(--c-accent); }
+.lrn__cell.is-adv { border-style: dashed; }
+.lrn__cell.is-next { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
+.lrn__cell:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+
+.lrn__next { margin: 0; display: grid; gap: 2px; }
+.lrn__jump { background: none; border: 0; padding: 0; color: var(--c-accent-ink); font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; text-align: left; }
+.lrn__jump:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.lrn__note { display: block; font-size: 12.5px; color: var(--c-ink-muted); line-height: 1.5; }
+
+.lrn__tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 10px; border-bottom: 1px solid var(--c-border); }
+.lrn__tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 4px; color: var(--c-ink-muted); font: 600 14px var(--font-body); cursor: pointer; }
+.lrn__tab.is-on { color: var(--c-ink); border-bottom-color: var(--c-accent); }
+.lrn__tab:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+
+.lrn__intro { margin: 0 0 12px; max-width: 70ch; font-size: 14px; line-height: 1.6; color: var(--c-ink-muted); }
+.lrn__toolbar { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin: 0 0 14px; font-size: 13px; color: var(--c-ink); }
+.lrn__switch { display: inline-flex; gap: 6px; align-items: center; }
+.lrn__part { margin: 18px 0 0; }
+.lrn__phase { margin: 10px 0 0; }
+.lrn__phase-h { margin: 0 0 6px; font: 700 15px/1.3 var(--font-body); color: var(--c-ink); display: flex; gap: 6px; align-items: baseline; }
+.lrn__steps, .lrn__items, .lrn__patterns, .lrn__terms { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.lrn__step { border: 1px solid var(--c-border); border-radius: 8px; background: var(--c-surface-solid); padding: 8px 10px; }
+.lrn__step.is-advanced { border-style: dashed; }
+.lrn__step summary { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; cursor: pointer; }
+.lrn__step-num { font-size: 12px; font-weight: 700; color: var(--c-ink-faint); display: inline-flex; gap: 6px; align-items: center; }
+.lrn__step-t { font-weight: 600; color: var(--c-ink); }
+.lrn__goal { margin: 8px 0; color: var(--c-ink); font-size: 14px; line-height: 1.5; }
+.lrn__kind { margin: 8px 0 0; }
+.lrn__kind-h { margin: 0 0 4px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--c-ink-faint); }
+.lrn__item { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; font-size: 13.5px; line-height: 1.5; }
+.lrn__check { padding-top: 2px; }
+.lrn__opt { margin-left: 6px; }
+.lrn__pattern { border: 1px solid var(--c-border); border-radius: 8px; background: var(--c-surface-solid); padding: 10px 12px; font-size: 13.5px; line-height: 1.55; }
+.lrn__pattern p { margin: 4px 0; }
+.lrn__where { margin: 0 0 4px 18px; padding: 0; }
+.lrn__search { box-sizing: border-box; width: 100%; max-width: 480px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); font: inherit; }
+.lrn__terms li { font-size: 13.5px; line-height: 1.5; }
+.lrn__foot { margin: 24px 0 0; border-top: 1px solid var(--c-border); padding-top: 10px; }
+.atl__res-learn { font-weight: 600; }

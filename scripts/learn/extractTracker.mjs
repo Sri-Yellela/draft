@@ -58,9 +58,28 @@ export function idsOf({ PARTS, ATLAS }) {
   return ids;
 }
 
+/**
+ * The page's own words around the data (D115 P2: "the tracker's intro text is kept") — the title, the lede, the
+ * legend, each view's intro and the footer's note about links. Text only, the owner's words verbatim (tags dropped,
+ * entities decoded).
+ */
+export function extractCopy(html) {
+  const text = (s) => String(s ?? "").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, " ").trim();
+  const grab = (re) => { const m = html.match(re); if (!m) throw new Error(`the tracker's copy moved: ${re}`); return text(m[1]); };
+  const intro = (panel) => grab(new RegExp(`id="panel-${panel}"[\\s\\S]*?<p class="intro">([\\s\\S]*?)</p>`));
+  return {
+    title: grab(/<h1>([\s\S]*?)<\/h1>/).replace(/(silicon)(to)/, "$1 $2"),
+    lede: grab(/<p class="lede">([\s\S]*?)<\/p>/),
+    legend: grab(/<p class="legend">([\s\S]*?)<\/p>/),
+    intros: { path: intro("path"), patterns: intro("atlas"), concepts: intro("index") },
+    linksNote: grab(/<p id="status">[\s\S]*?<\/p>\s*<p>([\s\S]*?)<\/p>/),
+  };
+}
+
 export function buildLearnFile(html, { sourceName = path.basename(TRACKER_HTML), at = new Date().toISOString().slice(0, 10) } = {}) {
   const data = extractTracker(html);
-  return { source: { file: sourceName, extracted: at, counts: countsOf(data) }, ...data };
+  return { source: { file: sourceName, extracted: at, counts: countsOf(data) }, copy: extractCopy(html), ...data };
 }
 
 if (import.meta.url === `file://${process.argv[1].replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1:")}` || process.argv[1]?.endsWith("extractTracker.mjs")) {

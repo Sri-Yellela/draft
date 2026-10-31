@@ -5477,4 +5477,19 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_atlas_nodes_term ON atlas_nodes(term);
       `,
     },
+    {
+      // ⭐ D115 P3 · a learner's progress on the owner's tracker, so it follows them across devices: an ITEM done
+      // (mark_id = the item's id, "s1-code") or a CHECKPOINT explained ("s1#c0" — the step and the checkpoint's place),
+      // with the date. Signed out, the same marks live in the browser and are offered to the account on sign-in.
+      id: "195_learn_progress",
+      sql: `
+        CREATE TABLE IF NOT EXISTS learn_progress (
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          mark_id TEXT NOT NULL,
+          state   TEXT NOT NULL CHECK (state IN ('done', 'explained')),
+          at      INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, mark_id)
+        );
+      `,
+    },
   ];
