@@ -7,8 +7,8 @@
 // JSON, reads as "no D113 data" — the tree then shows today's attempts grouped by day and puts the
 // next-run square from Auto settings' run times (lib/draftHouseTree.js nextRunFromSettings).
 //
-// ASSUMED (to be aligned at merge — the server lane names the reads, not yet the routes):
-//   GET  /api/picks/runs?limit=N           → { runs: [publicRun], nextRunAt?: ms|sec }
+// ALIGNED at merge (43t) with the shipped routes (routes/picksConfirm.js):
+//   GET  /api/picks/runs?limit=N           → { runs: [publicRun], state: { nextRunAt, mode, … } } (GET /api/picks/state's shape)
 //            publicRun = { id, slotAt, mode: "ask"|"apply", seen, picked, leftOut: { reason: n }, leftOutTotal,
 //                          expiresAt, picks: [publicPick] }
 //            publicPick = { id, runId, jobId, rank, title, company, line, score, state, review, actedAt, expiresAt }
@@ -40,7 +40,8 @@ export async function loadRuns({ limit = 20 } = {}, call = api) {
   try {
     const d = await call(`${D113_ROUTES.runs}?limit=${Number(limit) || 20}`);
     if (!d || !Array.isArray(d.runs)) return { available: false, runs: [], nextRunAt: null };
-    return { available: true, runs: d.runs, nextRunAt: asMs(d.nextRunAt) };
+    // The server sends the next run inside `state` (GET /api/picks/state's shape); a top-level one is read too.
+    return { available: true, runs: d.runs, nextRunAt: asMs(d.state?.nextRunAt ?? d.nextRunAt) };
   } catch (e) {
     return { available: false, runs: [], nextRunAt: null, error: missing(e) ? null : (e?.message || null) };
   }
