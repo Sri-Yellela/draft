@@ -55,6 +55,7 @@ import { checkAtlasLinks } from "../services/atlas/atlasLinkCheck.js";
 import { probeWikipedia, wikiMatchSummary } from "../services/atlas/atlasWikidata.js";
 import { wikiCandidates, pickWikiTitle, redirectPreview, acceptPicks } from "../services/atlas/atlasWikiFind.js";
 import { atlasTermsForPosting, peekNode, countLinkEvent } from "../services/atlas/atlasLinks.js";
+import { learnStepForNode } from "../services/learn/learnLinks.js";
 import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts } from "../services/atlas/atlasDefinitions.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
@@ -115,7 +116,9 @@ export function createAtlasRouter(db) {
     const userId = req.user?.id ?? null;
     // ⭐ D108 P3 · "Sponsors who hire this role" — computed from active postings + the companies' public LCA facts.
     const sponsors = node.kind === "role" ? (() => { try { return sponsorsForRole(db, node.slug); } catch { return []; } })() : null;
-    res.json({ ...node, ...(sponsors?.length ? { sponsors } : {}), ...(userId ? { you: youAgainst(db, userId, node) } : {}) });
+    // ⭐ D115 P4(b): the step of the owner's learning path that teaches it — "Learn it: Part 3 · Data structures · Step 2".
+    const learn = (() => { try { return learnStepForNode(db, { name: node.name, term: db.prepare(`SELECT term FROM atlas_nodes WHERE slug = ?`).pluck().get(node.slug) }); } catch { return null; } })();
+    res.json({ ...node, ...(sponsors?.length ? { sponsors } : {}), ...(learn ? { learn } : {}), ...(userId ? { you: youAgainst(db, userId, node) } : {}) });
   });
   return router;
 }

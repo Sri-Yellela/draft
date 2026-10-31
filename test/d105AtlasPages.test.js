@@ -304,8 +304,8 @@ test("D105 P4 · Admin → Data → Atlas lists the drafts and publishes them; t
   assert.doesNotMatch(tab, /\bconfirm\(/);
   // A93: the page's parts are one module; the admin tab is the admin console's.
   assert.deepEqual(MODULES.atlas.members.slice().sort(),
-    ["App.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/atlasModel.js"]);
-  assert.deepEqual(MODULES.atlas.css, ["pages/atlas/AtlasPage.css"]);
+    ["App.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/LearnView.jsx", "pages/atlas/atlasModel.js", "pages/atlas/learnModel.js"]);   // + D115 Learn
+  assert.deepEqual(MODULES.atlas.css, ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css"]);   // + D115 Learn
   assert.ok(MODULES.admin.members.includes("panels/adminAtlas.jsx"));
   for (const f of [...MODULES.atlas.members, ...MODULES.atlas.css]) assert.ok(fs.existsSync(`client/src/${f}`), f);
 });

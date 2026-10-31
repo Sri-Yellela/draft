@@ -24,6 +24,7 @@ import { normaliseAtsTerm } from "../localAtsScorer.js";
 import { AMBIGUOUS_TERMS } from "./atlasStats.js";
 import { aliasesOf, readNode, profileTerms } from "./atlasStore.js";
 import { spellings } from "../../shared/atlasSearchNormalize.js";
+import { learnStepForNode } from "../learn/learnLinks.js";
 
 const MAX_GRAM = 4;
 const TEXT_CHARS = 30000;
@@ -124,6 +125,11 @@ export function peekNode(db, slug, userId = null) {
     postings: n.onTheBoard?.postings ?? 0,
     firstResource: first ? { title: first.title, url: first.url, format: first.format || null } : null,
   };
+  // ⭐ D115 P4(d): "Learn it in the Atlas" goes to the step that teaches it, when the owner's path has one.
+  try {
+    const st = learnStepForNode(db, { name: n.name, term: db.prepare(`SELECT term FROM atlas_nodes WHERE slug = ?`).pluck().get(n.slug) });
+    if (st) out.learnStep = { stepId: st.stepId, label: st.label };
+  } catch { /* the page link stays */ }
   if (userId != null) {
     const term = db.prepare(`SELECT term FROM atlas_nodes WHERE slug = ?`).pluck().get(n.slug);
     const mine = profileTerms(db, userId);

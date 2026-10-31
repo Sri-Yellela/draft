@@ -12,6 +12,7 @@ import { importLearnConcepts } from "../services/atlas/atlasLearnImport.js";
 import { upsertNode, setStatus } from "../services/atlas/atlasStore.js";
 import { updateNode } from "../services/atlas/atlasEditor.js";
 import { autoPublish, readiness, READINESS_COLUMNS } from "../services/atlas/atlasPublish.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8");
 const HTML = read(TRACKER_HTML);
@@ -157,4 +158,136 @@ test("D115 · migration 194 rebuilds atlas_nodes with the two kinds and KEEPS ev
   assert.equal(rb.pragma("foreign_keys", { simple: true }), 1);
   // Backed up first in production.
   assert.match(read("server.js"), /\{ id: "194_atlas_concept_pattern_kinds", changes: "SELECT 1 FROM atlas_nodes LIMIT 1" \}/);
+});
+
+// ── P2–P4 ────────────────────────────────────────────────────────────────────────────────────────────
+import express from "express";
+import { createLearnRouter } from "../routes/learn.js";
+import { createAtlasRouter } from "../routes/atlas.js";
+import { importLearnPatterns, learnStepForNode } from "../services/learn/learnLinks.js";
+import { publishLearnConcepts, LEARN_PUBLISHER } from "../services/atlas/atlasLearnImport.js";
+import { stepState, nextStep, flatSteps, readLocal, writeLocal, localAsImport, LOCAL_KEY, searchConcepts } from "../client/src/pages/atlas/learnModel.js";
+
+async function serve(db, user = null) {
+  const app = express();
+  app.use(express.json());
+  const requireAuth = (req, res, next) => (user ? (req.user = user, next()) : res.status(401).json({ error: "unauthorized" }));
+  app.use("/api/learn", createLearnRouter(db, { requireAuth }));
+  app.use("/api/atlas", createAtlasRouter(db));
+  const srv = app.listen(0);
+  await new Promise(r => srv.once("listening", r));
+  const base = `http://127.0.0.1:${srv.address().port}`;
+  const call = async (method, p, body) => { const r = await fetch(base + p, { method, headers: { "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined }); return { status: r.status, json: await r.json().catch(() => null) }; };
+  return { call, close: () => new Promise(r => srv.close(r)) };
+}
+const usersDb = () => { const db = fixtureDb(); db.prepare(`INSERT INTO users (id, username, password_hash) VALUES (7, 'learner@example.test', 'x')`).run(); return db; };
+
+test("D115 P3 · d115ProgressServerWhenSignedIn — marks follow the account: set, read back, cleared; unknown ids refused; the browser's are offered once", async () => {
+  const db = usersDb();
+  const s = await serve(db, { id: 7 });
+  try {
+    assert.equal((await s.call("GET", "/api/learn/")).json.INDEX.length, 385, "the content is public");
+    assert.deepEqual((await s.call("PUT", "/api/learn/progress", { id: "s1-code", on: true })).json, { ok: true });
+    assert.equal((await s.call("PUT", "/api/learn/progress", { id: "s1#c0", on: true })).status, 200);
+    assert.equal((await s.call("PUT", "/api/learn/progress", { id: "no-such-item", on: true })).status, 404);
+    assert.equal((await s.call("PUT", "/api/learn/progress", { id: "s1-code" })).status, 400);
+    const marks = (await s.call("GET", "/api/learn/progress")).json.marks;
+    assert.deepEqual(marks.map(m => [m.id, m.state]).sort(), [["s1#c0", "explained"], ["s1-code", "done"]]);
+    // The browser's marks on sign-in: added where the account has none, the account's own date wins, junk dropped.
+    const imp = await s.call("POST", "/api/learn/progress/import", { marks: [{ id: "s1-code", at: 1 }, { id: "s2#c0", at: 5 }, { id: "bogus", at: 5 }] });
+    assert.deepEqual([imp.json.added, imp.json.ignored], [1, 1]);
+    assert.notEqual(db.prepare(`SELECT at FROM learn_progress WHERE mark_id = 's1-code'`).pluck().get(), 1, "the account's mark kept its date");
+    await s.call("PUT", "/api/learn/progress", { id: "s1-code", on: false });
+    assert.equal(db.prepare(`SELECT COUNT(*) FROM learn_progress WHERE mark_id = 's1-code'`).pluck().get(), 0);
+  } finally { await s.close(); }
+  const anon = await serve(db, null);
+  try { assert.equal((await anon.call("GET", "/api/learn/progress")).status, 401, "signed out: no account progress"); } finally { await anon.close(); }
+  assert.match(read("services/accountService.js"), /learn_progress: "keepInto",/, "a merged account keeps its progress");
+});
+
+test("D115 P3 · d115LocalWhenSignedOut — the browser keeps the marks (guarded: blocked storage reads as none), and they become an import on sign-in", () => {
+  const store = new Map();
+  const storage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: (k) => store.delete(k) };
+  assert.deepEqual(readLocal(storage), {});
+  assert.equal(writeLocal({ "s1-code": 100, "s1#c0": 200 }, storage), true);
+  assert.deepEqual(JSON.parse(store.get(LOCAL_KEY)), { "s1-code": 100, "s1#c0": 200 });
+  assert.deepEqual(localAsImport(readLocal(storage)), [{ id: "s1-code", at: 100 }, { id: "s1#c0", at: 200 }]);
+  const blocked = { getItem: () => { throw new Error("SecurityError"); }, setItem: () => { throw new Error("QuotaExceeded"); } };
+  assert.deepEqual(readLocal(blocked), {});
+  assert.equal(writeLocal({ a: 1 }, blocked), false);
+  store.set(LOCAL_KEY, "not json"); assert.deepEqual(readLocal(storage), {});
+  // The rules the grid and Up next read.
+  const steps = flatSteps(LEARN);
+  const s1 = steps[0];
+  const all = Object.fromEntries([...s1.items.filter(i => !i.o).map(i => [i.id, 1]), ...s1.c.map((_, i) => [`s1#c${i}`, 1])]);
+  assert.equal(stepState(s1, all).complete, true);
+  assert.equal(stepState(s1, { [s1.items[0].id]: 1 }).started, true);
+  assert.equal(nextStep(steps, all).id, steps[1].id);
+  const firstAdv = steps.find(s => s.lv === "a");
+  assert.notEqual(nextStep(steps.filter(s => s.n >= firstAdv.n), {}, { basicsOnly: true }).lv, "a", "Basics first skips advanced steps");
+  const view = read("client/src/pages/atlas/LearnView.jsx");
+  assert.match(view, /if \(signedIn\) api\("\/api\/learn\/progress", \{ method: "PUT"/);
+  assert.match(view, /else if \(!writeLocal\(next\)\) setSaved\("unsaved"\);/);
+  assert.match(view, /await api\("\/api\/learn\/progress\/import", \{ method: "POST", body: JSON\.stringify\(\{ marks: localAsImport\(local\) \}\) \}\); clearLocal\(\);/);
+  assert.match(read("client/src/pages/atlas/AtlasPage.jsx"), /\{learning && <LearnView signedIn=\{base\.startsWith\("\/app"\)\} \/>\}/);
+  // The Concepts view's search is the one normaliser.
+  assert.equal(searchConcepts(LEARN.INDEX, "logic gates")[0].term, "Logic gate");
+});
+
+test("D115 P4b · d115StepLinkOnNode — a node the path teaches carries 'Learn it: Part … · … · Step n', first in its Resources", async () => {
+  const db = fixtureDb();
+  upsertNode(db, { kind: "tool", name: "Kubernetes", source: "registry" });
+  setStatus(db, "kubernetes", "published");
+  const st = learnStepForNode(db, { name: "Kubernetes", term: "kubernetes" });
+  assert.match(st.label, /^Part \d · .+ · Step \d+$/);
+  assert.equal(LEARN.INDEX.find(t => t.term === "Kubernetes").st, st.stepId, "the step the owner's index names");
+  const s = await serve(db);
+  try {
+    const node = (await s.call("GET", "/api/atlas/node/kubernetes")).json;
+    assert.deepEqual(node.learn, st);
+    assert.equal((await s.call("GET", "/api/atlas/peek/kubernetes")).json.learnStep.stepId, st.stepId, "D114's popup goes to the step");
+  } finally { await s.close(); }
+  const page = read("client/src/pages/atlas/AtlasPage.jsx");
+  const res = page.slice(at(page, '<h2 className="atl__h2" id="atl-res">Resources</h2>'));
+  assert.ok(res.indexOf("node.learn &&") < res.indexOf("resources.map(r =>"), "above Wikidata's links");
+  assert.match(res, /Learn it: \{node\.learn\.label\}/);
+  assert.equal(learnStepForNode(db, { name: "Zzqx", term: "zzqx" }), null);
+});
+
+test("D115 P4c · d115PatternNodes — the 28 patterns are pattern nodes with LeetCode practice links; concepts of the same name are promoted, not duplicated", () => {
+  const db = fixtureDb();
+  importLearnConcepts(db, LEARN);
+  const r = importLearnPatterns(db, LEARN);
+  assert.equal(r.created.length + r.promoted.length, 28);
+  assert.deepEqual(r.promoted.sort(), ["backtracking", "binary-search", "divide-and-conquer", "dynamic-programming"]);
+  assert.equal(db.prepare(`SELECT COUNT(*) FROM atlas_nodes WHERE kind = 'pattern'`).pluck().get(), 28);
+  const res = db.prepare(`SELECT r.url, r.format, r.cost, r.source FROM atlas_resources r JOIN atlas_nodes n ON n.id = r.node_id WHERE n.kind = 'pattern'`).all();
+  assert.equal(res.length, LEARN.ATLAS.reduce((n, p) => n + (p.pr || []).length, 0));
+  assert.ok(res.every(x => /^https:\/\/leetcode\.com\/problems\/[a-z0-9-]+\/$/.test(x.url) && x.format === "practice" && x.cost === "free" && x.source === "learn"));
+  assert.ok(r.edges > 0);
+  const arrays = db.prepare(`SELECT m.name FROM atlas_edges e JOIN atlas_nodes n ON n.id = e.from_id JOIN atlas_nodes m ON m.id = e.to_id WHERE n.slug = 'arrays-and-hashing'`).pluck().all();
+  assert.ok(arrays.includes("Array"), arrays.join(", "));
+  assert.deepEqual(importLearnPatterns(db, LEARN), { created: [], promoted: [], resources: 0, edges: 0 }, "idempotent");
+  assert.match(read("server.js"), /const p = importLearnPatterns\(db, learnContent\(\)\);/);
+});
+
+test("D115 · the 373 concepts are published as learning pages (owner 10-31) — a person's un-publish sticks", () => {
+  const db = fixtureDb();
+  importLearnConcepts(db, LEARN);
+  setStatus(db, "logic-gate", "published"); setStatus(db, "logic-gate", "draft", "curator@example.test");   // a person unpublished it
+  const r = publishLearnConcepts(db, { now: 1_900_000_000 });
+  const concepts = db.prepare(`SELECT COUNT(*) FROM atlas_nodes WHERE kind = 'concept'`).pluck().get();
+  assert.equal(r.published, concepts - 1, "every concept less the one a person unpublished");
+  assert.equal(db.prepare(`SELECT status FROM atlas_nodes WHERE slug = 'logic-gate'`).pluck().get(), "draft");
+  assert.deepEqual(db.prepare(`SELECT DISTINCT published_by FROM atlas_nodes WHERE kind = 'concept' AND status = 'published'`).pluck().all(), [LEARN_PUBLISHER]);
+  assert.equal(publishLearnConcepts(db).published, 0, "idempotent");
+  assert.match(read("server.js"), /const pub = publishLearnConcepts\(db\);/);
+});
+
+test("D115 · d115FourThemes — Learn draws in draft's tokens only; its squares are rounded squares, never capsules", () => {
+  const css = read("client/src/pages/atlas/LearnView.css").replace(/\r\n/g, "\n");
+  assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i, "no colour literal");
+  assert.doesNotMatch(css, /999px|border-radius:\s*50%/, "no capsule, no circle on a square");
+  assert.match(css, /\.lrn__cell \{\n  width: 16px; height: 16px; padding: 0; border-radius: 4px;/);
+  for (const tok of ["--c-accent", "--c-border", "--c-surface-solid", "--c-ink"]) assert.ok(css.includes(`var(${tok})`), tok);
 });

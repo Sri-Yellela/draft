@@ -60,7 +60,9 @@ function Popup({ slug, name, pos, onEnter, onLeave, id }) {
           </p>}
           <p className="atl-term__quiet">Asked for in {p.postings} open posting{p.postings === 1 ? "" : "s"}</p>
           {p.you && <p className="atl-term__quiet" data-atlas-pop-you={p.you}>{p.you === "have" ? "You: on your profile" : "Not on your profile yet"}</p>}
-          <a className="atl-term__learn" href={atlasHref(slug)} onClick={() => atlasLinkEvent("visit")} data-atlas-pop-learn="">
+          {/* D115 P4(d): to the step of the owner's learning path that teaches it, when there is one; else its page. */}
+          <a className="atl-term__learn" href={p.learnStep ? `${atlasHref("learn")}#step-${encodeURIComponent(p.learnStep.stepId)}` : atlasHref(slug)}
+            onClick={() => atlasLinkEvent("visit")} data-atlas-pop-learn="" title={p.learnStep ? p.learnStep.label : undefined}>
             <Bookmark /> Learn it in the Atlas →
           </a>
           {p.firstResource && <a className="atl-term__res" href={p.firstResource.url} target="_blank" rel="noopener noreferrer">

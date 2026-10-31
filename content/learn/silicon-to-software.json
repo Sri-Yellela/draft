@@ -29,6 +29,17 @@
    }
   }
  },
+ "copy": {
+  "title": "From silicon to software",
+  "lede": "A path from a flashlight signal to the phones, machines, networks, money and AI systems of today, covering every layer in between. Each square below is one step. Light them all and there’s very little in modern technology you won’t be able to explain.",
+  "legend": "Numbers are phases. Gold squares are finished, half-gold are started, the ringed one is next, and dashed ones are advanced steps.",
+  "intros": {
+   "path": "Every step works the same way. Watch or read the resources, build the small thing if there is one, then answer the checkpoint out loud as if teaching a friend. If you can’t, go back before moving on: ticks mean you finished something, checkpoints mean you understood it. Big topics are split into Basics and Advanced steps. Turn on “Basics first” to take a lighter pass through everything, then come back for depth. The full path is several years of part-time study, and that’s normal. If you prefer hands-on work, Part 7, on devices, vehicles and medical systems, can start once you’ve finished Part 4.",
+   "patterns": "LeetCode’s thousands of problems are built on a couple of dozen patterns. Each one below explains the idea, why it’s worth knowing, where it runs in real software, and how to recognize it in a problem statement. You don’t need to solve a problem to understand what it’s asking and why it matters. Practice links open on LeetCode.",
+   "concepts": "Heard a term in the news, at work or in a video, or wondering how some device works? Search here to see what it means and which steps teach it."
+  },
+  "linksNote": "Video links open a YouTube search, because exact titles change and channels reorganize. Books open a library search so you can find a copy. Courses and articles link to their home pages."
+ },
  "PARTS": [
   {
    "t": "Part 1: Foundations",

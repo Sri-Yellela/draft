@@ -302,6 +302,8 @@ export const MERGE_PLAN = Object.freeze({
   // FROM's (with its picks and left-out ids, by cascade) goes with FROM. A moved pick's old links stop working — they are
   // bound to the merged-away user, and they expire at the next run anyway.
   picks_runs: "keepInto", picks: "move", picks_left_out: "move",
+  // D115 P3 (195): learning progress, one row per (user, mark) — INTO's mark wins on a clash, FROM's fill the rest.
+  learn_progress: "keepInto",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

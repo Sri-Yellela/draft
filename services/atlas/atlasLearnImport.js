@@ -18,6 +18,21 @@ import { searchKey } from "../../shared/atlasSearchNormalize.js";
 export const LEARN_SOURCE = "learn";
 const bare = (t) => String(t).replace(/\s*\([^)]*\)\s*$/, "").trim();
 
+export const LEARN_PUBLISHER = "learn:owner-10-31";
+
+/**
+ * ⭐ Owner 10-31: "publish as learning pages for the 373". Every concept from the tracker is published — not by the
+ * board's count (atlasPublish.js keeps concepts out of the bar: their word counts were measured false), but as a
+ * learning page by the owner's word. A concept a person unpublished stays unpublished. Idempotent.
+ * @returns {{ published: number }}
+ */
+export function publishLearnConcepts(db, { now = Math.floor(Date.now() / 1000) } = {}) {
+  const r = db.prepare(`UPDATE atlas_nodes SET status = 'published', published_at = ?, published_by = ?, updated_at = ?
+    WHERE kind = 'concept' AND source = '${LEARN_SOURCE}' AND status = 'draft' AND unpublished_by IS NULL
+      AND TRIM(COALESCE(definition, '')) != ''`).run(now, LEARN_PUBLISHER, now);
+  return { published: r.changes };
+}
+
 /** @returns {{ filled: string[], created: string[], kept: string[], skipped: { term, why }[] }} */
 export function importLearnConcepts(db, learn) {
   const nodes = db.prepare(`SELECT id, slug, name, term, definition, definition_draft FROM atlas_nodes`).all();
