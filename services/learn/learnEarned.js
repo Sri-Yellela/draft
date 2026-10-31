@@ -13,17 +13,13 @@
 // D115's old ticks (learn_progress) stay stored as they were — never deleted, never counted (`ticked` says how many).
 import { learnContent, stepsOf } from "./learnContent.js";
 import { extraItemsByStep, teachesByStep } from "./learnCircle.js";
-import { stepState, checkpointId, buildId, buildRequired } from "../../shared/learnStepState.js";
+import { stepState, checkpointId, buildId, buildRequired, wordCount, EXPLAIN_MIN_WORDS, OWN_WORDS } from "../../shared/learnStepState.js";
 import { checkEvidence } from "../proofLinks.js";
 
-export const EXPLAIN_MIN_WORDS = 25;
+export { wordCount, EXPLAIN_MIN_WORDS, OWN_WORDS };   // the one rule, shared with the page (shared/learnStepState.js)
 export const EXPLAIN_MAX_CHARS = 6000;
-export const PASTE_MAX_WORDS = 24;   // a paste of 25 words or more is refused
-export const OWN_WORDS = "Put it in your own words.";
+export const PASTE_MAX_WORDS = EXPLAIN_MIN_WORDS - 1;   // a paste of 25 words or more is refused
 export const BUILD_KINDS_ACCEPTED = Object.freeze(["repository", "demo"]);
-
-/** Words, as a person counts them: runs of letters or digits. */
-export const wordCount = (text) => (String(text ?? "").match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []).length;
 
 /** Every piece with its live P5 items appended (the tracker's own items untouched). */
 export function piecesOf(db, learn = learnContent(db)) {

@@ -62,3 +62,9 @@ export function stepState(step, marks = {}) {
   return { bar, opened, toOpen: open.length, explained, checkpoints: cps.length, build, built, extras, extrasTotal: optional.length,
     done, total, complete, started: done > 0 };
 }
+
+/** C8 (2): an explanation counts at this many words of the user's own; a paste of this many is refused. */
+export const EXPLAIN_MIN_WORDS = 25;
+export const OWN_WORDS = "Put it in your own words.";
+/** Words, as a person counts them: runs of letters or digits ("it's", "two-step" are one word each). */
+export const wordCount = (text) => (String(text ?? "").match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []).length;
