@@ -532,5 +532,7 @@ test("D113 · wired: the tick passes notify / the secret / the app URL; the conf
   assert.match(server, /picksConfirmRoutes\(app, db, requireAuth, \{ secret: PICKS_SECRET, startPickRun: applyLine\.startPickRun, saveAnswers: applyLine\.saveAnswers \}\);/);
   assert.match(server, /score: Number\.isFinite\(j\.matchScore\) \? j\.matchScore : null/);
   const mig = MIGRATIONS.map(m => m.id);
-  assert.equal(mig[mig.length - 1], "188_picks");
+  // 43t: 189_atlas_publish was merged beside it — 188 is present and the list stays ascending.
+  assert.ok(mig.includes("188_picks"), "migration 188 is in the list");
+  assert.ok(mig.indexOf("188_picks") < mig.indexOf("189_atlas_publish"), "188 runs before 189");
 });
