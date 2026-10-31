@@ -103,6 +103,20 @@ export const STAGE_RANK = Object.freeze({
 });
 
 /**
+ * ⭐ D113 UI "Note why" (owner 10-31) · the quick picks a user may tick on a rejection, beside a short private note.
+ * Stored as these keys (job_applications.rejection_reasons, a JSON list); D111 may later count BY THESE ONLY — the
+ * free text (job_applications.rejection_note, ≤ REJECTION_NOTE_MAX) is never read by a model (D17) and never counted.
+ */
+export const REJECTION_REASONS = Object.freeze({
+  not_a_fit: "Not a fit",
+  level: "Level",
+  location: "Location",
+  visa_eligibility: "Visa / eligibility",
+  no_reason_given: "No reason given",
+});
+export const REJECTION_NOTE_MAX = 500;
+
+/**
  * Human labels. Kept beside the vocabulary so a UI cannot invent its own wording for a stored value.
  * `tone` names the MEANING (neutral · danger · warning · info · success); the client paints it from its theme
  * tokens (D91 P2). It used to be raw Tailwind hex (its amber ≈ 2.7:1 on the cream), outside every token and pair.

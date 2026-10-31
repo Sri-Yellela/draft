@@ -13,6 +13,7 @@ import {
 } from "./AutoApplyPanelSections.jsx";
 import { companyLabel, UNKNOWN_COMPANY } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
+import { REJECTION_REASONS, REJECTION_NOTE_MAX } from "../../../shared/applicationResponse.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import { TYPE } from "../styles/type.js";
@@ -473,7 +474,7 @@ export function AutoApplyPanel() {
     setRowEdit({ ...e, busy: true });
     afterRowAct(node, e.kind === "date"
       ? await setInterviewDate(node.applicationId, e.date, e.time, e.timeZone)
-      : await saveNoteWhy(node.applicationId, e.note));
+      : await saveNoteWhy(node.applicationId, e.note, e.reasons));
   };
   const portalFor = (node) => applyGatePortals.find(p => (applyHandoffPackets || []).some(k => k.expectedOrigin === p.origin && String(k.jobId) === String(node.jobId)));
   const yourself = (row) => row?.applyUrl
@@ -568,7 +569,7 @@ export function AutoApplyPanel() {
       case "withdrawn": return [];
       case "reply": {
         if (node.status === "rejected") return [{ id: "note", label: "Note why", kind: "primary",
-          onClick: () => setRowEdit({ key: node.key, kind: "note", note: r.note || "" }) }];
+          onClick: () => setRowEdit({ key: node.key, kind: "note", note: r.rejection?.note || "", reasons: r.rejection?.reasons || [] }) }];
         const label = { interview: "Open interview prep", assessment: "Prep for it", offer: "Open it" }[node.status] || "Open it";
         // Add the date — an interview or an assessment; editable (opened with the date already saved).
         return [{ id: "reply", label, kind: "primary", onClick: () => openFull(node.jobId) },
@@ -758,8 +759,19 @@ export function AutoApplyPanel() {
                   </select>
                 </>
               ) : (
-                <textarea aria-label="Why they said no" rows={3} maxLength={2000} value={rowEdit.note}
-                  onChange={(e) => setRowEdit({ ...rowEdit, note: e.target.value })} />
+                <>
+                  {/* Quick picks (what D111 may later count) + a short private note — never read by a model. */}
+                  {Object.entries(REJECTION_REASONS).map(([k, l]) => (
+                    <label key={k} data-reason={k}>
+                      <input type="checkbox" checked={rowEdit.reasons.includes(k)}
+                        onChange={(e) => setRowEdit({ ...rowEdit, reasons: e.target.checked ? [...rowEdit.reasons, k] : rowEdit.reasons.filter(x => x !== k) })} />
+                      {l}
+                    </label>
+                  ))}
+                  <textarea aria-label="Why they said no" rows={3} maxLength={REJECTION_NOTE_MAX} value={rowEdit.note}
+                    onChange={(e) => setRowEdit({ ...rowEdit, note: e.target.value })} />
+                  <span>{rowEdit.note.length} / {REJECTION_NOTE_MAX}. Private: only you see it.</span>
+                </>
               )}
               <div className="dht-acts">
                 <button type="button" className="dh-btn" data-kind="primary" data-action="save-row-edit"

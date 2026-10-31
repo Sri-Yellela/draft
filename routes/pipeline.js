@@ -6,7 +6,8 @@
 // POST /api/pipeline/applications/:applicationId/withdrawn   D113 UI U5: "I withdrew it" — the user withdrew on the
 //                                                  company's own site; recorded in draft only, nothing sent anywhere
 //                                                  (pipelineWorkspace.js ROW_ACTIONS); the ladder's terminal `withdrawn`
-// PUT  /api/pipeline/job/:applicationId/note       D113 UI U5: { note } — why they said no, on a rejected one
+// PUT  /api/pipeline/job/:applicationId/note       D113 UI U5: { note, reasons } — why they said no, on a rejected one:
+//                                                  a private note (≤ 500) + quick picks (REJECTION_REASONS)
 // GET /api/apply/auto-settings                  the user's FULL AUTO standing instruction (D102 P4)
 // PUT /api/apply/auto-settings                  replace it — validated whole, nothing half-stored
 // services/pipelineWorkspace.js and shared/autoSettings.js hold the rules; these routes only expose them.
@@ -57,7 +58,7 @@ export default function pipelineRoutes(app, db, requireAuth) {
   app.post("/api/pipeline/applications/:applicationId/withdrawn", requireAuth, (req, res) =>
     act(req, res, () => markWithdrawn(db, req.user.id, req.params.applicationId)));
   app.put("/api/pipeline/job/:applicationId/note", requireAuth, (req, res) =>
-    act(req, res, () => noteWhy(db, req.user.id, req.params.applicationId, req.body?.note ?? null)));
+    act(req, res, () => noteWhy(db, req.user.id, req.params.applicationId, { note: req.body?.note ?? null, reasons: req.body?.reasons ?? [] })));
 
   // ⭐ D111 · what is working: counts only ("6 of 20"), never a bare percentage; nothing shown below the minimum.
   app.get("/api/pipeline/callback-rates", requireAuth, (req, res) => {

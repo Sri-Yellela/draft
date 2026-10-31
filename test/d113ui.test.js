@@ -26,6 +26,7 @@ import pipelineRoutes from "../routes/pipeline.js";
 import interviewRoutes from "../routes/interview.js";
 import { ROW_ACTIONS, jobDetail, listPipeline } from "../services/pipelineWorkspace.js";
 import { zonedEpoch } from "../services/interviewPrep.js";
+import { REJECTION_REASONS, REJECTION_NOTE_MAX } from "../shared/applicationResponse.js";
 import express from "express";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
@@ -650,31 +651,47 @@ test("d113uiAddDateStartsPrep — Add the date (interview or assessment): date, 
   assert.equal(zonedEpoch("2026-03-08", "03:30", "America/New_York"), Date.UTC(2026, 2, 8, 7, 30) / 1000);
 });
 
-test("d113uiNoteWhy — a rejection's Note why saves the user's note on the application; only on a rejection; nothing sent", async () => {
+test("d113uiNoteWhySaved — a rejection's Note why: a private note ≤ 500 + quick picks, saved on the application, never read by a model", async () => {
   const db = leftoverDb();
-  const id = sentApp(db, { outcome: "rejected", notes: "old" });
+  const id = sentApp(db, { outcome: "rejected", notes: "my own Table note" });
   const t = await mountOn((app, auth) => pipelineRoutes(app, db, auth));
   try {
-    const r = await t.call(`/api/pipeline/job/${id}/note`, "PUT", { note: "  They wanted more Go experience.  " });
+    const r = await t.call(`/api/pipeline/job/${id}/note`, "PUT", { note: "  They wanted more Go experience.  ", reasons: ["level", "not_a_fit", "level"] });
     assert.equal(r.status, 200);
-    assert.equal(r.body.row.note, "They wanted more Go experience.");
-    assert.equal(db.prepare("SELECT notes FROM job_applications WHERE user_id = 1 AND job_id = 'gh::1'").pluck().get(), "They wanted more Go experience.");
-    assert.equal(db.prepare("SELECT response_outcome FROM job_applications WHERE user_id = 1 AND job_id = 'gh::1'").pluck().get(), "rejected", "the outcome is untouched");
-    // The tree's rows carry the note, so the editor opens with it.
-    const rows = await t.call("/api/pipeline?surface=table", "GET");
-    assert.equal(rows.body.rows.find(x => x.id === id).note, "They wanted more Go experience.");
-    assert.equal((await t.call(`/api/pipeline/job/${id}/note`, "PUT", { note: "x".repeat(2001) })).status, 400);
-    assert.equal((await t.call(`/api/pipeline/job/${id}/note`, "PUT", { note: "" })).body.row.note, null, "empty clears");
+    assert.deepEqual(r.body.row.rejection, { note: "They wanted more Go experience.", reasons: ["not_a_fit", "level"] }, "trimmed; picks deduped, in the list's order");
+    const ja = db.prepare("SELECT notes, rejection_note, rejection_reasons, response_outcome FROM job_applications WHERE user_id = 1 AND job_id = 'gh::1'").get();
+    assert.deepEqual(ja, { notes: "my own Table note", rejection_note: "They wanted more Go experience.", rejection_reasons: '["not_a_fit","level"]', response_outcome: "rejected" },
+      "its own fields: The Table's Notes and the outcome untouched");
+    // The rows carry it, so the editor opens with it.
+    assert.deepEqual((await t.call("/api/pipeline?surface=table", "GET")).body.rows.find(x => x.id === id).rejection, r.body.row.rejection);
+    // A pick alone is a note; ≤ 500; only the five picks; empty clears; only on a rejection; only the owner's row.
+    assert.deepEqual((await t.call(`/api/pipeline/job/${id}/note`, "PUT", { reasons: ["no_reason_given"] })).body.row.rejection, { note: null, reasons: ["no_reason_given"] });
+    assert.equal((await t.call(`/api/pipeline/job/${id}/note`, "PUT", { note: "x".repeat(500) })).status, 200);
+    assert.equal((await t.call(`/api/pipeline/job/${id}/note`, "PUT", { note: "x".repeat(501) })).status, 400);
+    assert.equal((await t.call(`/api/pipeline/job/${id}/note`, "PUT", { reasons: ["salary"] })).body.error, "bad_reasons");
+    assert.equal((await t.call(`/api/pipeline/job/${id}/note`, "PUT", { note: "", reasons: [] })).body.row.rejection, null, "empty clears");
     assert.equal((await t.call(`/api/pipeline/job/${sentApp(db, { jobId: "gh::2" })}/note`, "PUT", { note: "n" })).status, 409, "not on a sent, unanswered one");
-    assert.equal((await t.call(`/api/pipeline/job/${sentApp(db, { userId: 2, jobId: "gh::3", outcome: "rejected" })}/note`, "PUT", { note: "n" })).status, 404);
+    assert.equal((await t.call(`/api/pipeline/job/${sentApp(db, { userId: 2, jobId: "gh::3", outcome: "rejected" })}/note`, "PUT", { note: "n" })).status, 404, "private: another user's row");
   } finally { t.server.close(); }
+  assert.deepEqual(Object.keys(REJECTION_REASONS), ["not_a_fit", "level", "location", "visa_eligibility", "no_reason_given"]);
+  assert.deepEqual(Object.values(REJECTION_REASONS), ["Not a fit", "Level", "Location", "Visa / eligibility", "No reason given"]);
+  assert.equal(REJECTION_NOTE_MAX, 500);
   assert.deepEqual(ROW_ACTIONS.note, ["rejected"]);
+  // ⛔ D17: nothing that stores or serves the note reaches a model.
+  for (const f of ["services/pipelineWorkspace.js", "routes/pipeline.js", "shared/applicationResponse.js"]) {
+    assert.doesNotMatch(code(read(f)), /anthropic|callModel|toolsService|messages\.create|coreGenerateResume/i, f);
+  }
+  // The lead card: Note why opens with the saved note and picks; the editor offers the five picks and a 500-character note.
   const reply = leadActions("reply", "default: return [];");
-  assert.match(reply, /if \(node\.status === "rejected"\) return \[\{ id: "note", label: "Note why", kind: "primary",\s*onClick: \(\) => setRowEdit\(\{ key: node\.key, kind: "note", note: r\.note \|\| "" \}\) \}\];/);
-  assert.match(panel, /: await saveNoteWhy\(node\.applicationId, e\.note\)\);/);
+  assert.match(reply, /onClick: \(\) => setRowEdit\(\{ key: node\.key, kind: "note", note: r\.rejection\?\.note \|\| "", reasons: r\.rejection\?\.reasons \|\| \[\] \}\) \}\];/);
+  const editor = panel.slice(at(panel, 'rowEdit.kind === "date" || rowEdit.kind === "note") && ('), at(panel, "</LeadCard>\n        {leavesFor(node)"));
+  assert.match(editor, /Object\.entries\(REJECTION_REASONS\)\.map\(\(\[k, l\]\) => \(\s*<label key=\{k\} data-reason=\{k\}>/);
+  assert.match(editor, /<textarea aria-label="Why they said no" rows=\{3\} maxLength=\{REJECTION_NOTE_MAX\}/);
+  assert.match(editor, /Private: only you see it\./);
+  assert.match(panel, /: await saveNoteWhy\(node\.applicationId, e\.note, e\.reasons\)\);/);
   const calls = [];
-  await saveNoteWhy(4, "n", async (p, o) => { calls.push([p, o.method, o.body]); return {}; });
-  assert.deepEqual(calls, [["/api/pipeline/job/4/note", "PUT", '{"note":"n"}']]);
+  await saveNoteWhy(4, "n", ["level"], async (p, o) => { calls.push([p, o.method, o.body]); return {}; });
+  assert.deepEqual(calls, [["/api/pipeline/job/4/note", "PUT", '{"note":"n","reasons":["level"]}']]);
 });
 
 test("d113uiWorkspaceDocCurrent — docs/DRAFT_HOUSE_WORKSPACE.md describes the tree as built, not D25's run bar", () => {

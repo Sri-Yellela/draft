@@ -15,7 +15,7 @@ import { ladderStatus, surfaceOf, tabCounts, LADDER_LABELS } from "../shared/app
 import { sourceOf, ANSWER_SOURCES } from "../shared/answerSource.js";
 import { listMessages } from "./inbox.js";
 import { prepSummary, userDateFor } from "./interviewPrep.js";
-import { mergeResponse, RESPONSE_OUTCOME } from "../shared/applicationResponse.js";
+import { mergeResponse, RESPONSE_OUTCOME, REJECTION_REASONS, REJECTION_NOTE_MAX } from "../shared/applicationResponse.js";
 
 const parse = (s, fallback) => { if (s == null) return fallback; try { return JSON.parse(s); } catch { return fallback; } };
 
@@ -58,8 +58,8 @@ function publicRow({ rec, rj, ja, posting, status, closedByCandidate, when = nul
     title: rj?.posting_title || ja?.role || posting?.title || null,
     url: rj?.posting_url || ja?.job_url || posting?.apply_url || posting?.url || null,
     reasonCode: rj?.reason_code ?? null,
-    // D113 UI U5 "Note why": the application's own notes (job_applications.notes, The Table's Notes column).
-    note: ja?.notes ?? null,
+    // D113 UI U5 "Note why": the user's own, private — the note and the quick picks (migration 200's two columns).
+    rejection: rejectionOf(ja),
     // { ymd, time, timeZone, at } — the row's "Interview Tue 4 Nov, 2 PM" (an interview or an assessment only).
     interview: when,
     updatedAt: Math.max(rec.updated_at || 0, rj?.finished_at || 0, rj?.created_at || 0, ja?.outcome_at || 0) || null,
@@ -93,7 +93,9 @@ export function listPipeline(db, userId, surface) {
 //              user's "I withdrew it" lands here → job_applications.response_outcome = 'withdrawn' through mergeResponse
 //              (the AK1 rules every outcome write follows) → the ladder's terminal `withdrawn`. Any sent status but a
 //              rejection; never twice.
-//   note       `rejected` only (below).
+//   note       `rejected` only → job_applications.rejection_note (≤ 500, the user's words; never read by a model, D17)
+//              and rejection_reasons (the quick picks, shared/applicationResponse.js REJECTION_REASONS — what D111 may
+//              later count, by pick only). Private: the owner's row only. The Table's Notes column is left alone.
 //   date       `interview` / `assessment` → D110's own route (PUT /api/interview/prep/:id/date), not here.
 // ⛔ NOTHING IS SENT TO THE EMPLOYER from any of them; each records the user's own word in draft.
 export const ROW_ACTIONS = Object.freeze({
@@ -101,7 +103,15 @@ export const ROW_ACTIONS = Object.freeze({
   note: Object.freeze(["rejected"]),
   date: Object.freeze(["interview", "assessment"]),
 });
-export const NOTE_MAX = 2000;
+export const NOTE_MAX = REJECTION_NOTE_MAX;
+
+const parseReasons = (s) => { try { const a = JSON.parse(s ?? "null"); return Array.isArray(a) ? a.filter(k => k in REJECTION_REASONS) : []; } catch { return []; } };
+/** A rejection's note and quick picks as the row carries them; null when nothing is noted. */
+function rejectionOf(ja) {
+  const note = ja?.rejection_note ?? null;
+  const reasons = parseReasons(ja?.rejection_reasons);
+  return note || reasons.length ? { note, reasons } : null;
+}
 
 const refuse = (status, code, message) => Object.assign(new Error(message), { status, code });
 
@@ -127,15 +137,24 @@ export function markWithdrawn(db, userId, applicationId, { now = Math.floor(Date
   return publicRow(ownRow(db, userId, applicationId));
 }
 
-/** "Note why" — the user's note on a rejection. Empty clears it. Null when the row is not this user's. */
-export function noteWhy(db, userId, applicationId, note) {
+/**
+ * "Note why" — the user's private note on a rejection (≤ 500 characters) and any quick picks. Both empty clears it.
+ * Null when the row is not this user's. Refused: not a rejection, a note too long, a pick that is not one of the five.
+ */
+export function noteWhy(db, userId, applicationId, { note = null, reasons = [] } = {}) {
   const r = ownRow(db, userId, applicationId);
   if (!r) return null;
   if (!ROW_ACTIONS.note.includes(r.status) || !r.ja) throw refuse(409, "not_rejected", "A note why is for an application they said no to.");
   if (note != null && typeof note !== "string") throw refuse(400, "bad_note", "A note is text.");
   const text = String(note ?? "").trim();
   if (text.length > NOTE_MAX) throw refuse(400, "too_long", `A note is at most ${NOTE_MAX} characters.`);
-  db.prepare(`UPDATE job_applications SET notes = ? WHERE id = ? AND user_id = ?`).run(text || null, r.ja.id, userId);
+  if (reasons != null && !Array.isArray(reasons)) throw refuse(400, "bad_reasons", "The quick picks are a list.");
+  const picks = [...new Set(reasons || [])];
+  const unknown = picks.filter(k => !(k in REJECTION_REASONS));
+  if (unknown.length) throw refuse(400, "bad_reasons", `Not a quick pick: ${unknown.join(", ").slice(0, 80)}.`);
+  const ordered = Object.keys(REJECTION_REASONS).filter(k => picks.includes(k));
+  db.prepare(`UPDATE job_applications SET rejection_note = ?, rejection_reasons = ? WHERE id = ? AND user_id = ?`)
+    .run(text || null, ordered.length ? JSON.stringify(ordered) : null, r.ja.id, userId);
   return publicRow(ownRow(db, userId, applicationId));
 }
 

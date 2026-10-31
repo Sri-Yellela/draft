@@ -149,9 +149,9 @@ export const ROW_ROUTES = Object.freeze({
 export function confirmWithdrawn(applicationId, call = api) {
   return rowAct(call, ROW_ROUTES.withdrawn(applicationId), { method: "POST" }, "Marked withdrawn.");
 }
-/** "Note why" — saved on the application (The Table's Notes). */
-export function saveNoteWhy(applicationId, note, call = api) {
-  return rowAct(call, ROW_ROUTES.note(applicationId), { method: "PUT", body: JSON.stringify({ note }) }, "Saved.");
+/** "Note why" — a private note (≤ 500) and quick picks (shared REJECTION_REASONS' keys), saved on the application. */
+export function saveNoteWhy(applicationId, note, reasons = [], call = api) {
+  return rowAct(call, ROW_ROUTES.note(applicationId), { method: "PUT", body: JSON.stringify({ note, reasons }) }, "Saved. Only you see it.");
 }
 /** "Add the date" — an interview's or an assessment's date (optional time, time zone): D110's countdown and Prep tab. */
 export function setInterviewDate(applicationId, date, time = null, timeZone = null, call = api) {
