@@ -167,7 +167,7 @@ import { setMark } from "../services/learn/learnProgress.js";
 import { createAtlasRouter } from "../routes/atlas.js";
 import { importLearnPatterns, learnStepForNode } from "../services/learn/learnLinks.js";
 import { publishLearnConcepts, LEARN_PUBLISHER } from "../services/atlas/atlasLearnImport.js";
-import { stepState, nextStep, flatSteps, readLocal, writeLocal, localAsImport, LOCAL_KEY, searchConcepts } from "../client/src/pages/atlas/learnModel.js";
+import { stepState, nextStep, flatSteps, searchConcepts } from "../client/src/pages/atlas/learnModel.js";
 
 async function serve(db, user = null) {
   const app = express();
@@ -203,17 +203,11 @@ test("D115 P3 · d115ProgressServerWhenSignedIn — marks follow the account: se
   assert.match(read("services/accountService.js"), /learn_progress: "keepInto",/, "a merged account keeps its progress");
 });
 
-test("D115 P3 · d115LocalWhenSignedOut — the browser keeps the marks (guarded: blocked storage reads as none), and they become an import on sign-in", () => {
-  const store = new Map();
-  const storage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: (k) => store.delete(k) };
-  assert.deepEqual(readLocal(storage), {});
-  assert.equal(writeLocal({ "s1-code": 100, "s1#c0": 200 }, storage), true);
-  assert.deepEqual(JSON.parse(store.get(LOCAL_KEY)), { "s1-code": 100, "s1#c0": 200 });
-  assert.deepEqual(localAsImport(readLocal(storage)), [{ id: "s1-code", at: 100 }, { id: "s1#c0", at: 200 }]);
-  const blocked = { getItem: () => { throw new Error("SecurityError"); }, setItem: () => { throw new Error("QuotaExceeded"); } };
-  assert.deepEqual(readLocal(blocked), {});
-  assert.equal(writeLocal({ a: 1 }, blocked), false);
-  store.set(LOCAL_KEY, "not json"); assert.deepEqual(readLocal(storage), {});
+test("D115 P3 · d115LocalWhenSignedOut — ⭐ D117 C8 (changed on purpose): signed out, NOTHING is recorded — no browser ticks kept or offered on sign-in; the grid and Up next read the earned rule", () => {
+  const view = read("client/src/pages/atlas/LearnView.jsx");
+  assert.doesNotMatch(view, /localStorage|writeLocal|readLocal|\/api\/learn\/progress/, "no browser ticks, no tick endpoint");
+  assert.doesNotMatch(read("client/src/pages/atlas/learnModel.js"), /localStorage\.setItem|LOCAL_KEY/);
+  assert.match(view, /if \(!signedIn \|\| !it\?\.u\) return;/, "signed out, an opening is not recorded");
   // The rules the grid and Up next read.
   const steps = flatSteps(LEARN);
   const s1 = steps[0];
@@ -223,10 +217,6 @@ test("D115 P3 · d115LocalWhenSignedOut — the browser keeps the marks (guarded
   assert.equal(nextStep(steps, all).id, steps[1].id);
   const firstAdv = steps.find(s => s.lv === "a");
   assert.notEqual(nextStep(steps.filter(s => s.n >= firstAdv.n), {}, { basicsOnly: true }).lv, "a", "Basics first skips advanced steps");
-  const view = read("client/src/pages/atlas/LearnView.jsx");
-  assert.match(view, /if \(signedIn\) api\("\/api\/learn\/progress", \{ method: "PUT"/);
-  assert.match(view, /else if \(!writeLocal\(next\)\) setSaved\("unsaved"\);/);
-  assert.match(view, /await api\("\/api\/learn\/progress\/import", \{ method: "POST", body: JSON\.stringify\(\{ marks: localAsImport\(local\) \}\) \}\); clearLocal\(\);/);
   assert.match(read("client/src/pages/atlas/AtlasPage.jsx"), /\{learning && <LearnView signedIn=\{base\.startsWith\("\/app"\)\} \/>\}/);
   // The Concepts view's search is the one normaliser.
   assert.equal(searchConcepts(LEARN.INDEX, "logic gates")[0].term, "Logic gate");

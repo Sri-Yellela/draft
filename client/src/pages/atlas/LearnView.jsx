@@ -1,51 +1,70 @@
-// client/src/pages/atlas/LearnView.jsx — ⭐ D115 P2–P3 · LEARN, the owner's "From silicon to software" tracker, as is.
+// client/src/pages/atlas/LearnView.jsx — ⭐ D115 P2–P3 · LEARN, the owner's "From silicon to software" tracker, and
+// ⭐ D117 · LEARN AS A CIRCLE.
 //
-// /atlas/learn (and /app/atlas/learn). Three views, the tracker's own: Learning path (parts → phases → steps: the goal,
-// the items by kind with optional ones marked, the checkpoints — "answer out loud as if teaching a friend"),
-// LeetCode pattern atlas, Concept index (searched through the ONE normaliser). The tracker's controls: Up next, Hide
-// finished items, Basics first (its lv 'a' steps hidden), Open all steps. Its words are verbatim (GET /api/learn).
-// PROGRESS (P3): signed in → the account (GET / PUT /api/learn/progress, so it follows the person); signed out → this
-// browser (try/catch-guarded), offered to the account on sign-in. The step grid is draft's: rounded squares in the
-// bubble standard's shape (D113 UI), draft's tokens and four themes — not the tracker's palette or fonts.
+// /atlas/learn (and /app/atlas/learn). Four views: ⭐ The circle (D117 — the default: the 108 pieces on one ring, guided
+// routes, the piece panel; LearnCircle.jsx), and the tracker's own three — Learning path (Step 1 → 108, one way round the
+// circle, never removed: parts → phases → steps, each step's body the same piece panel), LeetCode pattern atlas,
+// Concept index (searched through the ONE normaliser). Its words are verbatim (GET /api/learn); the circle's overlay is
+// GET /api/learn/circle.
+// ⭐ D117 C6 · ENTRY FROM ANYWHERE: an Atlas page's "Learn it", D114's popup, Your map's "Enter the course here", the
+// concept index — all land on #step-<id>, and THAT PIECE opens in the circle (never the start of the path).
+// ⭐ D117 C8 · PROGRESS IS EARNED, NOT TICKED: signed in, opening an item's link from here records it (POST
+// /api/learn/opened), a checkpoint takes the user's own explanation, a build its link; the bar fills from that. There
+// is no checkbox and no "done" button. Signed out, nothing is recorded (D115's browser ticks are no longer kept).
 // ⛔ Links only: every resource opens at its source.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { api } from "../../lib/api.js";
-import { flatSteps, phaseNumbers, stepState, nextStep, coreCounts, searchConcepts, checkpointId, readLocal, writeLocal, clearLocal,
-  localAsImport } from "./learnModel.js";
+import { flatSteps, phaseNumbers, stepState, nextStep, coreCounts, searchConcepts, piecesOf, unlockLine, entryFromHash, circleState } from "./learnModel.js";
+import LearnCircle, { PieceBody } from "./LearnCircle.jsx";
 import "./LearnView.css";
 
-const KIND_ORDER = ["Video", "Playlist", "Article", "Book", "Course", "Guide", "Sandbox", "Practice", "Lab", "Build", "Project", "Atlas"];
-const TABS = [["path", "Learning path"], ["patterns", "LeetCode pattern atlas"], ["concepts", "Concept index"]];
+const TABS = [["circle", "The circle"], ["path", "Learning path"], ["patterns", "LeetCode pattern atlas"], ["concepts", "Concept index"]];
+const NONE = Object.freeze({ marks: {}, explanations: {}, builds: {}, ticked: 0 });
+const fail = (e) => ({ ok: false, message: e?.payload?.message || e?.message || "Could not save it just now." });
 
-/** The learner's marks: the account's when signed in (the browser's are offered to it once), else the browser's. */
-function useMarks(signedIn) {
-  const [marks, setMarks] = useState(() => (signedIn ? {} : readLocal()));
+/** The learner's EARNED record (signed in) and the three things they can do — open, explain, build. */
+function useEarned(signedIn) {
+  const [earned, setEarned] = useState(NONE);
+  const [notice, setNotice] = useState("");
   const [saved, setSaved] = useState(signedIn ? "account" : "browser");
   useEffect(() => {
-    if (!signedIn) { setMarks(readLocal()); setSaved("browser"); return undefined; }
+    if (!signedIn) { setEarned(NONE); setSaved("browser"); return undefined; }
     let live = true;
-    (async () => {
-      const local = readLocal();
-      if (Object.keys(local).length) {
-        try { await api("/api/learn/progress/import", { method: "POST", body: JSON.stringify({ marks: localAsImport(local) }) }); clearLocal(); } catch { /* kept for next time */ }
-      }
-      try { const r = await api("/api/learn/progress"); if (live) setMarks(Object.fromEntries((r.marks || []).map(m => [m.id, m.at]))); setSaved("account"); }
-      catch { if (live) setSaved("unsaved"); }
-    })();
+    api("/api/learn/earned").then(r => { if (live) { setEarned({ ...NONE, ...r }); setSaved("account"); } }).catch(() => live && setSaved("unsaved"));
     return () => { live = false; };
   }, [signedIn]);
-  const toggle = useCallback((id) => {
-    setMarks(cur => {
-      const on = !cur[id];
-      const next = { ...cur };
-      if (on) next[id] = Math.floor(Date.now() / 1000); else delete next[id];
-      if (signedIn) api("/api/learn/progress", { method: "PUT", body: JSON.stringify({ id, on }) }).catch(() => setSaved("unsaved"));
-      else if (!writeLocal(next)) setSaved("unsaved");
-      return next;
-    });
-  }, [signedIn]);
-  return { marks, toggle, saved };
+  const told = useCallback((r) => {
+    if (!r?.finished) return;
+    setNotice(unlockLine(r.unlocked));
+    setTimeout(() => setNotice(""), 4500);
+  }, []);
+  const mark = useCallback((id) => setEarned(e => ({ ...e, marks: { ...e.marks, [id]: e.marks[id] || Math.floor(Date.now() / 1000) } })), []);
+  // The link's own click is what counts — the page sends it as the link opens (the other site is never tracked).
+  const onOpen = useCallback((it) => {
+    if (!signedIn || !it?.u) return;
+    api("/api/learn/opened", { method: "POST", body: JSON.stringify({ id: it.id }), keepalive: true })
+      .then(r => { mark(it.id); told(r); }).catch(() => setSaved("unsaved"));
+  }, [signedIn, mark, told]);
+  const onExplain = useCallback(async (id, text, pasted) => {
+    try {
+      const r = await api("/api/learn/explained", { method: "PUT", body: JSON.stringify({ id, text, pasted }) });
+      const now = Math.floor(Date.now() / 1000);
+      setEarned(e => ({ ...e, marks: { ...e.marks, [id]: now }, explanations: { ...e.explanations, [id]: { text, words: r.words, at: e.explanations[id]?.at || now, updated: now } } }));
+      told(r);
+      return r;
+    } catch (e) { return fail(e); }
+  }, [told]);
+  const onBuild = useCallback(async (step, url, kind) => {
+    try {
+      const r = await api("/api/learn/built", { method: "PUT", body: JSON.stringify({ step, url, kind }) });
+      const now = Math.floor(Date.now() / 1000);
+      setEarned(e => ({ ...e, marks: { ...e.marks, [`${step}#build`]: now }, builds: { ...e.builds, [step]: { url, kind, at: now, updated: now } } }));
+      told(r);
+      return r;
+    } catch (e) { return fail(e); }
+  }, [told]);
+  return { earned, notice, saved, onOpen, onExplain, onBuild };
 }
 
 function StepGrid({ steps, marks, next, phaseNo, onJump }) {
@@ -56,64 +75,29 @@ function StepGrid({ steps, marks, next, phaseNo, onJump }) {
         const st = stepState(s, marks);
         const label = phaseNo.get(s.phaseId);
         const head = s.phaseId !== lastPhase ? (lastPhase = s.phaseId, <span key={`h-${s.phaseId}`} className="lrn__grid-num" aria-hidden="true">{label}</span>) : null;
-        const cls = ["lrn__cell", st.complete ? "is-done" : st.started ? "is-started" : "", next?.id === s.id ? "is-next" : "", s.lv === "a" ? "is-adv" : ""].filter(Boolean).join(" ");
+        const cs = circleState(st);
+        const cls = ["lrn__cell", cs === "filled" ? "is-done" : cs === "half" ? "is-started" : "", next?.id === s.id ? "is-next" : "", s.lv === "a" ? "is-adv" : ""].filter(Boolean).join(" ");
         return [head, <button key={s.id} type="button" className={cls} onClick={() => onJump(s.id)} data-learn-cell={s.id}
-          aria-label={`Step ${s.n}: ${s.t}${st.complete ? ", finished" : st.started ? ", started" : ""}${s.lv === "a" ? ", advanced" : ""}`} />];
+          aria-label={`Step ${s.n}: ${s.t}${cs === "filled" ? ", finished" : cs === "half" ? ", started" : ""}${s.lv === "a" ? ", advanced" : ""}`} />];
       })}
     </nav>
   );
 }
 
-function Item({ it, on, toggle }) {
-  return (
-    <li className="lrn__item" data-learn-item={it.id}>
-      <label className="lrn__check">
-        <input type="checkbox" checked={!!on} onChange={() => toggle(it.id)} aria-label={`Done: ${it.t}`} />
-      </label>
-      <span>
-        {it.u ? <a className="atl__link" href={it.u} target="_blank" rel="noopener noreferrer">{it.t}</a> : <b>{it.t}</b>}
-        {it.s && <span className="atl__quiet"> · {it.s}</span>}
-        {it.o ? <span className="mark mark--dim lrn__opt">optional</span> : null}
-        {it.n && <span className="lrn__note">{it.n}</span>}
-      </span>
-    </li>
-  );
-}
-
-function LearnStep({ s, marks, toggle, open, setOpen }) {
-  const st = stepState(s, marks);
-  const kinds = [...new Set((s.items || []).map(it => it.k))].sort((a, b) => (KIND_ORDER.indexOf(a) + 99) % 99 - (KIND_ORDER.indexOf(b) + 99) % 99);
+function LearnStep({ s, pieces, states, earned, signedIn, actions, open, setOpen, onJump }) {
+  const st = states.get(s.id);
   return (
     <li id={`step-${s.id}`} className={`lrn__step${s.lv === "a" ? " is-advanced" : ""}`} data-learn-step={s.id}>
       <details open={open} onToggle={(e) => setOpen(s.id, e.currentTarget.open)}>
         <summary>
           <span className="lrn__step-num">Step {s.n}{s.lv && <span className={`mark ${s.lv === "a" ? "mark--warn" : "mark--dim"}`}>{s.lv === "a" ? "Advanced" : "Basics"}</span>}</span>
           <span className="lrn__step-t">{s.t}</span>
-          <span className="atl__quiet">{st.done} of {st.total}</span>
+          <span className="atl__quiet">{st.bar} %</span>
         </summary>
         {s.g && <p className="lrn__goal">{s.g}</p>}
-        {kinds.map(k => (
-          <div key={k} className="lrn__kind">
-            <h4 className="lrn__kind-h">{k}</h4>
-            <ul className="lrn__items">{(s.items || []).filter(it => it.k === k).map(it => <Item key={it.id} it={it} on={marks[it.id]} toggle={toggle} />)}</ul>
-          </div>
-        ))}
-        {(s.c || []).length > 0 && (
-          <div className="lrn__kind">
-            <h4 className="lrn__kind-h">Checkpoints — answer out loud as if teaching a friend</h4>
-            <ul className="lrn__items">
-              {s.c.map((c, i) => {
-                const id = checkpointId(s.id, i);
-                return (
-                  <li key={id} className="lrn__item" data-learn-checkpoint={id}>
-                    <label className="lrn__check"><input type="checkbox" checked={!!marks[id]} onChange={() => toggle(id)} aria-label={`Explained: ${c}`} /></label>
-                    <span>{c}{marks[id] ? <span className="atl__quiet"> · explained {new Date(marks[id] * 1000).toLocaleDateString()}</span> : null}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
+        {open && <PieceBody compact piece={s} pieces={pieces} states={states} marks={earned.marks} explanations={earned.explanations} builds={earned.builds}
+          signedIn={signedIn} onSelect={onJump} {...actions} />}
+        <button type="button" className="lrn__jump" onClick={() => onJump(s.id)}>Open it on the circle</button>
       </details>
     </li>
   );
@@ -122,34 +106,43 @@ function LearnStep({ s, marks, toggle, open, setOpen }) {
 export default function LearnView({ signedIn = false }) {
   const location = useLocation();
   const [learn, setLearn] = useState(null);
+  const [circle, setCircle] = useState(null);
+  const [myRoute, setMyRoute] = useState(null);
   const [err, setErr] = useState("");
-  const [tab, setTab] = useState("path");
+  const [entry, setEntry] = useState(() => entryFromHash(location.hash));
+  const [tab, setTab] = useState("circle");
   const [hideDone, setHideDone] = useState(false);
   const [basicsOnly, setBasicsOnly] = useState(false);
   const [openIds, setOpenIds] = useState(() => new Set());
   const [q, setQ] = useState("");
-  const { marks, toggle, saved } = useMarks(signedIn);
+  const { earned, notice, saved, onOpen, onExplain, onBuild } = useEarned(signedIn);
 
-  useEffect(() => { let live = true; api("/api/learn").then(d => live && setLearn(d)).catch(e => live && setErr(e.message)); return () => { live = false; }; }, []);
+  useEffect(() => {
+    let live = true;
+    Promise.all([api("/api/learn"), api("/api/learn/circle").catch(() => ({ pieces: {}, routes: [] }))])
+      .then(([l, c]) => { if (live) { setLearn(l); setCircle(c); } }).catch(e => live && setErr(e.message));
+    return () => { live = false; };
+  }, []);
   const steps = useMemo(() => flatSteps(learn), [learn]);
+  const pieces = useMemo(() => (learn ? piecesOf(learn, circle) : []), [learn, circle]);
+  const states = useMemo(() => new Map(pieces.map(p => [p.id, stepState(p, earned.marks)])), [pieces, earned.marks]);
   const phaseNo = useMemo(() => phaseNumbers(learn), [learn]);
-  const next = nextStep(steps, marks, { basicsOnly });
-  const core = coreCounts(steps, marks);
+  const next = nextStep(pieces, earned.marks, { basicsOnly });
+  const core = coreCounts(pieces, earned.marks);
   const setOpen = useCallback((id, open) => setOpenIds(cur => { const n = new Set(cur); if (open) n.add(id); else n.delete(id); return n; }), []);
-  const jump = useCallback((id) => {
-    setTab("path"); setOpen(id, true);
-    setTimeout(() => document.getElementById(`step-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
-  }, [setOpen]);
-  // An Atlas page's "Learn it: Part 3 · … · Step 2" (and D114's popup) lands on #step-<id>, opened.
-  useEffect(() => { const m = location.hash.match(/^#step-(.+)$/); if (m && steps.length) jump(decodeURIComponent(m[1])); }, [location.hash, steps.length, jump]);
+  // ⭐ C6: every jump — the grid, Up next, a pattern's or a term's step, an entry from elsewhere — opens THAT piece.
+  const jump = useCallback((id) => { setEntry(id); setTab("circle"); }, []);
+  useEffect(() => { const id = entryFromHash(location.hash); if (id) jump(id); }, [location.hash, jump]);
+  const wantMyRoute = useCallback(() => { api("/api/learn/circle/my-route").then(setMyRoute).catch(() => setMyRoute({ name: null, targets: [] })); }, []);
 
   if (err) return <p className="atl__quiet" role="alert">Learn could not be loaded: {err}</p>;
   if (!learn) return <p className="atl__quiet" role="status">Opening Learn…</p>;
   const c = learn.copy || {};
   const allOpen = steps.length > 0 && steps.every(s => openIds.has(s.id));
-  const shown = (s) => !(basicsOnly && s.lv === "a") && !(hideDone && stepState(s, marks).complete);
+  const shown = (s) => !(basicsOnly && s.lv === "a") && !(hideDone && states.get(s.id)?.complete);
   const concepts = searchConcepts(learn.INDEX, q);
   const stepById = new Map(steps.map(s => [s.id, s]));
+  const actions = { onOpen, onExplain, onBuild };
 
   return (
     <div className="lrn" data-learn="">
@@ -157,21 +150,8 @@ export default function LearnView({ signedIn = false }) {
         <p className="atl__kicker">Learn · in the Atlas</p>
         <h1 className="atl__title">{c.title}</h1>
         <p className="atl__lede">{c.lede}</p>
+        <p className="atl__lede"><b>{pieces.length} pieces</b> on one circle. Start anywhere. Go back to understand, go forward to grow, or go all the way round.</p>
       </header>
-      <StepGrid steps={steps.filter(s => !(basicsOnly && s.lv === "a"))} marks={marks} next={next} phaseNo={phaseNo} onJump={jump} />
-      <p className="atl__quiet" data-learn-legend="">Numbers are phases. A filled square is a finished step, a half-filled one is started, the ringed one is next, and dashed ones are advanced steps.</p>
-      <p className="atl__quiet" aria-live="polite">{core.done} of {core.total} core resources done.</p>
-
-      <section className="atl__section" aria-labelledby="lrn-next">
-        <h2 className="atl__h2" id="lrn-next">Up next</h2>
-        {next ? (
-          <p className="lrn__next" data-learn-next={next.id}>
-            <button type="button" className="lrn__jump" onClick={() => jump(next.id)}>Step {next.n}: {next.t}</button>
-            <span className="atl__quiet"> · Part {next.partIndex} · {next.phase}</span>
-            {next.g && <span className="lrn__note">{next.g}</span>}
-          </p>
-        ) : <p className="atl__quiet">Every step is finished.{basicsOnly ? " Turn off “Basics first” for the advanced steps." : ""}</p>}
-      </section>
 
       <div className="lrn__tabs" role="tablist" aria-label="Views">
         {TABS.map(([id, label]) => (
@@ -179,8 +159,24 @@ export default function LearnView({ signedIn = false }) {
         ))}
       </div>
 
+      {tab === "circle" && (
+        <section role="tabpanel" aria-label="The circle" data-learn-panel="circle">
+          <LearnCircle key={entry || "start"} learn={learn} pieces={pieces} circle={circle} earned={earned} signedIn={signedIn} initialSel={entry || next?.id}
+            myRoute={myRoute} notice={notice} onWantMyRoute={wantMyRoute} {...actions} />
+        </section>
+      )}
+
       {tab === "path" && (
         <section role="tabpanel" aria-label="Learning path" data-learn-panel="path">
+          <StepGrid steps={pieces.filter(s => !(basicsOnly && s.lv === "a"))} marks={earned.marks} next={next} phaseNo={phaseNo} onJump={jump} />
+          <p className="atl__quiet" data-learn-legend="">Numbers are phases. A filled square is a finished step, a half-filled one is started, the ringed one is next, and dashed ones are advanced steps.</p>
+          <p className="atl__quiet" aria-live="polite">{core.done} of {core.total} core resources opened.</p>
+          {next ? (
+            <p className="lrn__next" data-learn-next={next.id}>
+              <b>Up next:</b> <button type="button" className="lrn__jump" onClick={() => jump(next.id)}>Step {next.n}: {next.t}</button>
+              <span className="atl__quiet"> · Part {next.partIndex} · {next.phase}</span>
+            </p>
+          ) : <p className="atl__quiet">Every step is finished.{basicsOnly ? " Turn off “Basics first” for the advanced steps." : ""}</p>}
           <p className="lrn__intro">{c.intros?.path}</p>
           <div className="lrn__toolbar">
             <label className="lrn__switch"><input type="checkbox" checked={hideDone} onChange={e => setHideDone(e.target.checked)} data-learn-hide-done="" /> Hide finished items</label>
@@ -191,12 +187,13 @@ export default function LearnView({ signedIn = false }) {
             <div key={pi} className="lrn__part">
               <h2 className="atl__h2">{part.t}</h2>
               {(part.phases || []).map(ph => {
-                const list = steps.filter(s => s.phaseId === ph.id && shown(s));
+                const list = pieces.filter(s => s.phaseId === ph.id && shown(s));
                 if (!list.length) return null;
                 return (
                   <div key={ph.id} className="lrn__phase">
                     <h3 className="lrn__phase-h"><span className="lrn__grid-num">{phaseNo.get(ph.id)}</span> {ph.t}</h3>
-                    <ol className="lrn__steps">{list.map(s => <LearnStep key={s.id} s={s} marks={marks} toggle={toggle} open={openIds.has(s.id)} setOpen={setOpen} />)}</ol>
+                    <ol className="lrn__steps">{list.map(s => <LearnStep key={s.id} s={s} pieces={pieces} states={states} earned={earned} signedIn={signedIn}
+                      actions={actions} open={openIds.has(s.id)} setOpen={setOpen} onJump={jump} />)}</ol>
                   </div>
                 );
               })}
@@ -243,7 +240,9 @@ export default function LearnView({ signedIn = false }) {
       )}
 
       <footer className="lrn__foot">
-        <p className="atl__quiet" data-learn-saved={saved}>{saved === "account" ? "Progress is saved to your account." : saved === "browser" ? "Progress is saved in this browser — sign in and it moves to your account." : "Progress could not be saved just now."}</p>
+        <p className="atl__quiet" data-learn-saved={saved}>{saved === "account"
+          ? `Progress is earned and saved to your account: what you open from here, explain in your own words and link as built.${earned.ticked ? ` The ${earned.ticked} item${earned.ticked === 1 ? "" : "s"} you ticked before are kept, and no longer count.` : ""}`
+          : saved === "browser" ? "Sign in and draft records what you open, explain and build — progress is earned, never ticked." : "Progress could not be saved just now."}</p>
         {c.linksNote && <p className="atl__quiet">{c.linksNote}</p>}
       </footer>
     </div>
