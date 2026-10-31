@@ -102,7 +102,7 @@ function inBand(r, band) {
   return out;
 }
 
-function atlasIndex(db) {
+export function atlasIndex(db) {
   const nodes = db.prepare(`SELECT n.id, n.slug, n.kind, n.name, n.term, n.status, COALESCE(s.postings, 0) AS postings, s.top_skills_json
     FROM atlas_nodes n LEFT JOIN atlas_node_stats s ON s.node_id = n.id`).all();
   const byId = new Map(nodes.map(n => [n.id, n]));
@@ -160,6 +160,37 @@ function haveSection(have, all) {
   return { total: items.length, groups };
 }
 
+/**
+ * ⭐ D116 "to reach the next level", for ONE role and one step (band `cur` → `cur + 1`): the published skills whose share
+ * of the role's postings rises by ≥ NEXT_LEVEL_RISE_POINTS, where each band has ≥ NEXT_LEVEL_MIN_POSTINGS read. Read by
+ * YOUR MAP (skipping the user's own skills) and by the role page (D105 P12, every step, skipping nothing) — one rule.
+ * @returns {{ said: { slug, kind, name, from, to, postings: { from, to }, reason? }, items: Array<{ …, _rise }> }}
+ *   items ranked by the rise; `_rise` is the unrounded rise, for the caller's own merge / sort (strip before sending)
+ */
+export function levelRises(idx, rollup, roleId, cur, { skip = new Set() } = {}) {
+  const next = cur + 1;
+  const role = idx.byId.get(roleId);
+  const r = rollup.roles.get(roleId);
+  const bCur = inBand(r, cur), bNext = inBand(r, next);
+  const nCur = bCur.postings, nNext = bNext.postings;
+  const said = { ...nodeOut(role), from: LEVEL_BANDS[cur].label, to: LEVEL_BANDS[next].label, postings: { from: nCur, to: nNext } };
+  if (nCur < YOUR_MAP.NEXT_LEVEL_MIN_POSTINGS || nNext < YOUR_MAP.NEXT_LEVEL_MIN_POSTINGS) return { said: { ...said, reason: "too_few_postings" }, items: [] };
+  const items = [];
+  for (const id of new Set([...bCur.skill.keys(), ...bNext.skill.keys()])) {
+    const n = idx.byId.get(id);
+    if (!n || n.kind === "role" || !idx.published(id) || skip.has(id)) continue;
+    const cFrom = bCur.skill.get(id) || 0, cTo = bNext.skill.get(id) || 0;
+    // The rise in whole numbers: (cTo/nNext − cFrom/nCur) × 100 ≥ points ⇔ 100·(cTo·nCur − cFrom·nNext) ≥ points·nCur·nNext.
+    if (100 * (cTo * nCur - cFrom * nNext) < YOUR_MAP.NEXT_LEVEL_RISE_POINTS * nCur * nNext) continue;
+    const sFrom = cFrom / nCur, sTo = cTo / nNext, rise = (sTo - sFrom) * 100;
+    items.push({ ...nodeOut(n), postings: n.postings, role: nodeOut(role), rise: Math.round(rise),
+      from: { level: LEVEL_BANDS[cur].label, share: pct(sFrom) }, to: { level: LEVEL_BANDS[next].label, share: pct(sTo) },
+      line: `In ${pct(sTo)} % of ${LEVEL_BANDS[next].label} ${role.name} postings vs ${pct(sFrom)} % of ${LEVEL_BANDS[cur].label}`, _rise: rise });
+  }
+  items.sort((a, b) => b._rise - a._rise || b.postings - a.postings || a.name.localeCompare(b.name));
+  return { said, items };
+}
+
 function nextLevelSection(db, userId, { idx, rollup, haveIds, targets }, all) {
   const out = { total: 0, items: [], roles: [] };
   if (!targets.length) return { ...out, reason: "no_target_role" };
@@ -170,26 +201,11 @@ function nextLevelSection(db, userId, { idx, rollup, haveIds, targets }, all) {
   if (next >= LEVEL_BANDS.length) return { ...out, reason: "top_level", level: LEVEL_BANDS[cur].label };
   const best = new Map();
   for (const roleId of targets) {
-    const role = idx.byId.get(roleId);
-    const r = rollup.roles.get(roleId);
-    const bCur = inBand(r, cur), bNext = inBand(r, next);
-    const nCur = bCur.postings, nNext = bNext.postings;
-    const said = { ...nodeOut(role), from: LEVEL_BANDS[cur].label, to: LEVEL_BANDS[next].label, postings: { from: nCur, to: nNext } };
-    if (nCur < YOUR_MAP.NEXT_LEVEL_MIN_POSTINGS || nNext < YOUR_MAP.NEXT_LEVEL_MIN_POSTINGS) { out.roles.push({ ...said, reason: "too_few_postings" }); continue; }
+    const { said, items } = levelRises(idx, rollup, roleId, cur, { skip: haveIds });
     out.roles.push(said);
-    const ids = new Set([...bCur.skill.keys(), ...bNext.skill.keys()]);
-    for (const id of ids) {
-      const n = idx.byId.get(id);
-      if (!n || n.kind === "role" || !idx.published(id) || haveIds.has(id)) continue;
-      const cFrom = bCur.skill.get(id) || 0, cTo = bNext.skill.get(id) || 0;
-      // The rise in whole numbers: (cTo/nNext − cFrom/nCur) × 100 ≥ points ⇔ 100·(cTo·nCur − cFrom·nNext) ≥ points·nCur·nNext.
-      if (100 * (cTo * nCur - cFrom * nNext) < YOUR_MAP.NEXT_LEVEL_RISE_POINTS * nCur * nNext) continue;
-      const sFrom = cFrom / nCur, sTo = cTo / nNext, rise = (sTo - sFrom) * 100;
-      const item = { ...nodeOut(n), postings: n.postings, role: nodeOut(role), rise: Math.round(rise),
-        from: { level: LEVEL_BANDS[cur].label, share: pct(sFrom) }, to: { level: LEVEL_BANDS[next].label, share: pct(sTo) },
-        line: `In ${pct(sTo)} % of ${LEVEL_BANDS[next].label} ${role.name} postings vs ${pct(sFrom)} % of ${LEVEL_BANDS[cur].label}`, _rise: rise };
-      const had = best.get(id);
-      if (!had || had._rise < rise) best.set(id, item);
+    for (const item of items) {
+      const had = best.get(item.slug);
+      if (!had || had._rise < item._rise) best.set(item.slug, item);
     }
   }
   const items = [...best.values()].sort((a, b) => b._rise - a._rise || b.postings - a.postings || a.name.localeCompare(b.name)).map(({ _rise, ...i }) => i);

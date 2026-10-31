@@ -4,6 +4,9 @@
 // by one was the wrong design. The bar, re-checked nightly after the board stats (server.js):
 //   (a) ≥ AUTO_PUBLISH_MIN_POSTINGS (5) active postings ask for it   — atlas_node_stats.postings, computed (P3)
 //   (b) AND either a matched Wikipedia summary (atlas_wiki_cache, a non-empty extract) or a definition (draft's words)
+//       — ⭐ D105 P12 (owner 10-31): EXCEPT A ROLE, which needs (a) only. Role names rarely have an exact Wikipedia
+//       article, so the Wikipedia bar was the wrong bar for roles; a role's page is the board's own data
+//       (atlasRolePage.js), with its definition on top when one exists. Every other kind keeps (a) AND (b).
 // A node that meets it is published with published_by = AUTO_PUBLISHER. ⛔ Auto-publish only ever PUBLISHES: a page
 // whose count later falls under the bar stays published and shows "few open postings" (readNode.fewOpenPostings).
 // ⛔ THE OWNER'S UN-PUBLISH WINS: a node a person unpublished carries unpublished_by (atlasStore.setStatus) and is
@@ -18,6 +21,9 @@ export { AUTO_PUBLISH_MIN_POSTINGS, AUTO_PUBLISHER };
 
 const HAS_DEFINITION = `TRIM(COALESCE(n.definition, '')) != ''`;
 const HAS_WIKI = `EXISTS (SELECT 1 FROM atlas_wiki_cache w WHERE w.node_id = n.id AND TRIM(COALESCE(w.extract, '')) != '')`;
+/** ⭐ D105 P12: the kinds whose page is the board's own data — published on the postings bar alone. */
+export const BOARD_DATA_KINDS = Object.freeze(["role"]);
+const ON_BOARD_DATA = `n.kind IN (${BOARD_DATA_KINDS.map(k => `'${k}'`).join(", ")})`;
 
 /**
  * Publish every draft that meets the bar and that no person unpublished.
@@ -28,7 +34,7 @@ export function autoPublish(db, { now = () => Math.floor(Date.now() / 1000), min
   return db.transaction(() => {
     const due = db.prepare(`SELECT n.id, n.slug FROM atlas_nodes n JOIN atlas_node_stats s ON s.node_id = n.id
       WHERE n.status = 'draft' AND n.unpublished_by IS NULL AND s.postings >= ? AND n.kind != 'concept'
-        AND (${HAS_DEFINITION} OR ${HAS_WIKI})
+        AND (${ON_BOARD_DATA} OR ${HAS_DEFINITION} OR ${HAS_WIKI})
       ORDER BY s.postings DESC, n.name`).all(min);
     const put = db.prepare(`UPDATE atlas_nodes SET status = 'published', published_at = ?, published_by = ?, updated_at = ?
       WHERE id = ? AND status = 'draft' AND unpublished_by IS NULL`);
@@ -52,7 +58,8 @@ export function readiness(row, min = AUTO_PUBLISH_MIN_POSTINGS) {
   // Program Manager. It is published by hand.
   if (row.kind === "concept") missing.push("a concept — published by hand (the board's word count is not its demand)");
   else if (postings < min) missing.push(`postings ${postings} of ${min}`);
-  if (!hasWiki && !hasDefinition) missing.push("no Wikipedia summary or definition");
+  // ⭐ D105 P12: a role's page is the board's own data — it needs no summary or definition.
+  if (!hasWiki && !hasDefinition && !BOARD_DATA_KINDS.includes(row.kind)) missing.push("no Wikipedia summary or definition");
   return { ready: missing.length === 0, postings, need: min, hasWiki, hasDefinition, heldBy: row.unpublished_by || null, missing };
 }
 
