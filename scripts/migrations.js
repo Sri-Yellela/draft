@@ -5420,4 +5420,17 @@ export const MIGRATIONS = [
         UPDATE atlas_nodes SET definition_by = 'owner' WHERE TRIM(COALESCE(definition, '')) != '';
       `,
     },
+    {
+      // ⭐ D114 P5 · how often a posting's Atlas link is used: popup opens and Atlas visits, per day. A COUNT only — no
+      // user, no term, no posting (services/atlas/atlasLinks.js countLinkEvent).
+      id: "193_atlas_link_counts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS atlas_link_counts (
+          day   TEXT NOT NULL,
+          event TEXT NOT NULL CHECK (event IN ('open', 'visit')),
+          n     INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (day, event)
+        );
+      `,
+    },
   ];

@@ -57,3 +57,46 @@ function fromCache(sig) {
 
 /** Test seam: forget the page's cache. */
 export function _resetAtlasCache() { cache.clear(); inflight.clear(); }
+
+// ⭐ D114 · ATLAS TERMS IN THE POSTINGS — the same links, inside a posting's text (components/AtlasTerm.jsx):
+//   useAtlasTerms(jobId) — ONE posting's linkable terms (GET /api/atlas/terms/:jobId), once per posting per page load
+//   peekAtlas(slug)      — the popup's read (GET /api/atlas/peek/:slug), on the FIRST hover / focus only, never preloaded
+//   atlasLinkEvent(e)    — "open" | "visit", a count with nothing else in it (P5)
+const termsCache = new Map();   // jobId → Promise<terms[]>
+const peekCache = new Map();    // slug → Promise<peek>
+
+export function loadAtlasTerms(jobId) {
+  const key = String(jobId);
+  if (!termsCache.has(key)) {
+    termsCache.set(key, api(`/api/atlas/terms/${encodeURIComponent(key)}`).then(r => (Array.isArray(r?.terms) ? r.terms : [])).catch(() => []));
+  }
+  return termsCache.get(key);
+}
+
+/** [] until the answer arrives (the text is drawn at once, the links join it), and for a posting with none. */
+export function useAtlasTerms(jobId) {
+  const [terms, setTerms] = useState([]);
+  useEffect(() => {
+    if (jobId == null || jobId === "") { setTerms([]); return undefined; }
+    let live = true;
+    loadAtlasTerms(jobId).then(t => { if (live) setTerms(t); });
+    return () => { live = false; };
+  }, [jobId]);
+  return terms;
+}
+
+export function peekAtlas(slug) {
+  if (!peekCache.has(slug)) {
+    const p = api(`/api/atlas/peek/${encodeURIComponent(slug)}`);
+    p.catch(() => peekCache.delete(slug));   // a failed read is asked again on the next hover
+    peekCache.set(slug, p);
+  }
+  return peekCache.get(slug);
+}
+
+export function atlasLinkEvent(event) {
+  try {
+    // Through api() like every client call (the tab's auth context); keepalive so a visit's count survives the navigation.
+    api("/api/atlas/link-event", { method: "POST", keepalive: true, body: JSON.stringify({ event }) }).catch(() => {});
+  } catch { /* a count never gets in the way */ }
+}

@@ -39,17 +39,20 @@ test("D93 · the registry is complete: the ids are shared/'s, exactly one defaul
     }
   }
   assert.deepEqual(layoutDefaults(), LAYOUT_DEFAULTS);
-  assert.deepEqual(LAYOUT_DEFAULTS, { nav: "ghost", sentence: "marked" }, "the recommendations are the defaults (D92)");
+  assert.deepEqual(LAYOUT_DEFAULTS, { nav: "ghost", sentence: "marked", learning: "quiet" }, "the recommendations are the defaults (D92)");
 });
 
 test("D93 · the stored value: flags only off the default, every pre-D93 value reads as the defaults, junk refused", () => {
-  assert.equal(formatStoredAppearance({ theme: "system", cues: false, nav: "ghost", sentence: "marked" }), "system");
-  assert.equal(formatStoredAppearance({ theme: "contrast-dark", cues: true, nav: "track", sentence: "calm" }), "contrast-dark;cues;nav=track;sentence=calm");
-  assert.deepEqual(parseStoredAppearance("contrast-dark;cues;nav=track;sentence=calm"), { theme: "contrast-dark", cues: true, nav: "track", sentence: "calm" });
-  assert.deepEqual(parseStoredAppearance("light;cues"), { theme: "light", cues: true, nav: "ghost", sentence: "marked" });
-  assert.deepEqual(parseStoredAppearance(null), { theme: null, cues: false, nav: "ghost", sentence: "marked" });
-  assert.deepEqual(parseStoredAppearance("dark;nav=boxed;sentence=boxes"), { theme: "dark", cues: false, nav: "ghost", sentence: "marked" }, "an unknown stored value reads as the default");
+  assert.equal(formatStoredAppearance({ theme: "system", cues: false, nav: "ghost", sentence: "marked", learning: "quiet" }), "system");
+  assert.equal(formatStoredAppearance({ theme: "contrast-dark", cues: true, nav: "track", sentence: "calm", learning: "quiet" }), "contrast-dark;cues;nav=track;sentence=calm");
+  assert.deepEqual(parseStoredAppearance("contrast-dark;cues;nav=track;sentence=calm"), { theme: "contrast-dark", cues: true, nav: "track", sentence: "calm", learning: "quiet" });
+  assert.deepEqual(parseStoredAppearance("light;cues"), { theme: "light", cues: true, nav: "ghost", sentence: "marked", learning: "quiet" });
+  assert.deepEqual(parseStoredAppearance(null), { theme: null, cues: false, nav: "ghost", sentence: "marked", learning: "quiet" });
+  assert.deepEqual(parseStoredAppearance("dark;nav=boxed;sentence=boxes"), { theme: "dark", cues: false, nav: "ghost", sentence: "marked", learning: "quiet" }, "an unknown stored value reads as the default");
   assert.equal(formatStoredAppearance({ theme: "dark", nav: "boxed" }), null, "an unknown value is never stored");
+  // ⭐ D114 P3: the third option, learning links — stored only when shown, read back.
+  assert.equal(formatStoredAppearance({ theme: "system", learning: "shown" }), "system;learning=shown");
+  assert.equal(parseStoredAppearance("system;learning=shown").learning, "shown");
 });
 
 async function server() {
@@ -74,24 +77,24 @@ test("D93 · the server: refuses an unknown value · round-trips · a second dev
   const s = await server();
   try {
     // A new account: the defaults.
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance", null, 2)).json, { theme: null, cues: false, nav: "ghost", sentence: "marked" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance", null, 2)).json, { theme: null, cues: false, nav: "ghost", sentence: "marked", learning: "quiet" });
     // Unknown values are refused, and nothing is stored.
     assert.equal((await s.call("PUT", "/api/settings/appearance", { theme: "system", nav: "boxed" })).status, 400);
     assert.equal((await s.call("PUT", "/api/settings/appearance", { theme: "system", sentence: "boxes" })).status, 400);
     assert.equal(s.db.prepare("SELECT theme_preference FROM users WHERE id=1").get().theme_preference, null);
     // Set → read back (a second device is just another GET for the same account).
-    const put = await s.call("PUT", "/api/settings/appearance", { theme: "contrast-dark", cues: true, nav: "track", sentence: "calm" });
+    const put = await s.call("PUT", "/api/settings/appearance", { theme: "contrast-dark", cues: true, nav: "track", sentence: "calm", learning: "quiet" });
     assert.equal(put.status, 200);
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "contrast-dark", cues: true, nav: "track", sentence: "calm" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "contrast-dark", cues: true, nav: "track", sentence: "calm", learning: "quiet" });
     // A layout-only PUT (the Customise page) keeps the theme and cues.
-    await s.call("PUT", "/api/settings/appearance", { sentence: "marked" });
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "contrast-dark", cues: true, nav: "track", sentence: "marked" });
+    await s.call("PUT", "/api/settings/appearance", { sentence: "marked", learning: "quiet" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "contrast-dark", cues: true, nav: "track", sentence: "marked", learning: "quiet" });
     // An older client's PUT ({ theme, cues } only) keeps the layout.
     await s.call("PUT", "/api/settings/appearance", { theme: "paper-light", cues: false });
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "paper-light", cues: false, nav: "track", sentence: "marked" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "paper-light", cues: false, nav: "track", sentence: "marked", learning: "quiet" });
     // …and so does the pre-D91 theme route.
     assert.equal((await s.call("PUT", "/api/settings/theme", { preference: "dark" })).status, 200);
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "dark", cues: false, nav: "track", sentence: "marked" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "dark", cues: false, nav: "track", sentence: "marked", learning: "quiet" });
     assert.deepEqual((await s.call("GET", "/api/settings/theme")).json, { preference: "dark" });
     // The other account is untouched.
     assert.equal(s.db.prepare("SELECT theme_preference FROM users WHERE id=2").get().theme_preference, null);
@@ -106,20 +109,20 @@ test("D93 · the device: a layout applies LIVE (no reload); the account's layout
     store.set("draft-theme", "contrast-dark;cues;no-offer");
     REG.setLayout({ nav: "track" }, { doc });
     assert.equal(store.get("draft-theme"), "contrast-dark;cues;no-offer;nav=track", "the other flags survive");
-    assert.deepEqual(attrs, { "data-nav": "track", "data-sentence": "marked" });
+    assert.deepEqual(attrs, { "data-nav": "track", "data-sentence": "marked", "data-learning-links": "quiet" });
     // apply:false (the Customise page) stores but leaves <html> alone.
     const before = { ...attrs };
-    REG.setLayout({ sentence: "calm" }, { apply: false, doc });
+    REG.setLayout({ sentence: "calm", learning: "quiet" }, { apply: false, doc });
     assert.deepEqual(attrs, before, "the page changed while the preview was being chosen");
-    assert.deepEqual(REG.layout(), { nav: "track", sentence: "calm" });
+    assert.deepEqual(REG.layout(), { nav: "track", sentence: "calm", learning: "quiet" });
     // A theme change keeps the layout.
     REG.setAppearance({ pref: "paper-light", cues: false }, { reload() {} });
-    assert.deepEqual(REG.layout(), { nav: "track", sentence: "calm" });
+    assert.deepEqual(REG.layout(), { nav: "track", sentence: "calm", learning: "quiet" });
     // The account's appearance, differing only in layout: adopted, NO reload.
     let reloads = 0;
-    assert.equal(REG.adoptAccountTheme({ theme: "paper-light", cues: false, nav: "ghost", sentence: "marked" }, { reload: () => reloads++ }), false);
+    assert.equal(REG.adoptAccountTheme({ theme: "paper-light", cues: false, nav: "ghost", sentence: "marked", learning: "quiet" }, { reload: () => reloads++ }), false);
     assert.equal(reloads, 0);
-    assert.deepEqual(REG.layout(), { nav: "ghost", sentence: "marked" });
+    assert.deepEqual(REG.layout(), { nav: "ghost", sentence: "marked", learning: "quiet" });
   } finally { delete globalThis.localStorage; }
 });
 
