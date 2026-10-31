@@ -9,6 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
+import { at } from "../test-support/sourceAnchors.js";
 import {
   layoutTree, baseRadius, squareSize, tooClose, pathBack, pathEdges, fitView, viewFor, flight, bandsFor, GEOM,
 } from "../client/src/pages/atlas/atlasTreeLayout.js";
@@ -304,8 +305,8 @@ test("D116 M10 · d116TreeKeyboard — every node a real button, Tab walks a fam
 test("D116 M10 · d116TreeReducedMotion — reduced motion: flights jump, no pulse, no unlock animation", () => {
   assert.deepEqual(flight(true), { jump: true, ms: 0 });
   const css = read("client/src/pages/atlas/AtlasTree.css");
-  const motion = css.slice(css.indexOf("@media (prefers-reduced-motion: no-preference)"));
-  const block = motion.slice(0, motion.indexOf("\n}\n") + 2);
+  const motion = css.slice(at(css, "@media (prefers-reduced-motion: no-preference)"));
+  const block = motion.slice(0, at(motion, "\n}\n") + 2);
   assert.match(block, /atree__pulse \{ animation: atree-pulse/);
   assert.match(block, /atree__nd--unlock .atree__sq \{ animation: atree-fill/);
   // No animation is declared outside that block (the keyframes themselves aside).
