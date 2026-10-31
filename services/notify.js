@@ -9,9 +9,15 @@
 //   inbox_reply         D103's inbox filed an Interview or an Offer against one of their applications
 //   apply_complete      an application was sent (the type the bell already has an icon for)
 //   auto_daily_summary  FULL AUTO's day: how many were sent, how many wait
+//   ⭐ D113 (services/picks.js):
+//   picks               "Ask me first": ONE message per run time with the run's picks and their Apply / Pass links
+//   picks_summary       "Apply for me": ONE summary after each run ("Sent 4; 1 question")
+//   pick_question       a job the person applied to stopped on a question only they can answer, with a link to answer it
 //
 // ⛔ D100 P4: the text NEVER names a company or carries a value — "A job is ready for your approval". A lock screen is
-// read by whoever holds the phone. Counts and the ladder's own words only.
+// read by whoever holds the phone. Counts and the ladder's own words only. That is the in-app line and the PUSH.
+// ⭐ D113: the EMAIL of the three picks events (eventEmail) may name the job and the company — it goes to the person's own
+// inbox, and a picks message that cannot say which job it offers cannot be acted on. The push stays count-only.
 // ⛔ Unconfigured (no configureNotify — every test that does not ask for it), notifyEvent does nothing at all, so the
 // services that call it behave exactly as before.
 // ⛔ A burst is ONE ping: the in-app row is always written, but push / email for the same event go out at most once per
@@ -32,6 +38,14 @@ export const NOTIFY_EVENTS = Object.freeze({
     url: "/app/database", defaults: { push: false, email: false }, throttle: 15 * 60 },
   auto_daily_summary: { label: "FULL AUTO daily summary", what: "Once a day while FULL AUTO is on: how many were sent and how many wait for you.",
     url: "/app/auto-apply", defaults: { push: true, email: false }, throttle: 0 },
+  // ⭐ D113 P2: the picks arrive by email AND push by default (owner: "one email + one Web Push per run"); one per run is
+  // enforced by the run's own claim (services/picks.js deliverRun), so no throttle here.
+  picks: { label: "Picks for you", what: "At your run times in Ask me first: the jobs picked for you, each with Apply and Pass.",
+    url: "/app/auto-apply", defaults: { push: true, email: true }, throttle: 0 },
+  picks_summary: { label: "Apply for me summary", what: "After each run in Apply for me: how many were sent and how many need you.",
+    url: "/app/auto-apply", defaults: { push: true, email: true }, throttle: 0 },
+  pick_question: { label: "A question on a job you applied to", what: "A job you tapped Apply on stopped on a question only you can answer.",
+    url: "/app/auto-apply", defaults: { push: true, email: true }, throttle: 0 },
 });
 export const CHANNELS = Object.freeze(["push", "email"]);
 export const SUMMARY_MINUTES = 20 * 60; // 8 pm in the person's own time zone (Auto settings)
@@ -52,9 +66,51 @@ export function eventText(event, data = {}) {
     case "auto_daily_summary":
       return { title: "FULL AUTO today", body: `Today draft sent ${s("sent", "application", "applications")}.`
         + (n("waiting") ? ` ${s("waiting", "is", "are")} waiting for you.` : "") };
+    case "picks":
+      return { title: "New picks", body: `${s("count", "new pick is", "new picks are")} ready. Apply or pass from the message.` };
+    case "picks_summary":
+      return { title: "Apply for me", body: `This run sent ${s("sent", "application", "applications")}.`
+        + (n("waiting") ? ` ${s("waiting", "needs", "need")} you.` : "") };
+    case "pick_question":
+      return { title: "A question for you", body: "A job you applied to has a question only you can answer." };
     default:
       return { title: "draft", body: "Something changed in draft." };
   }
+}
+
+const listOf = (items) => items.map(String).filter(Boolean);
+
+/**
+ * ⭐ D113 · the EMAIL of the picks events — the job and the company named (the person's own inbox), each with its link.
+ * null for every other event (they mail the in-app line). Plain text, as the rest of draft's service mail.
+ */
+export function eventEmail(event, data = {}, appUrl = "") {
+  const foot = ["", "You chose to get this by email. Change it in draft → Account → Notifications."];
+  if (event === "picks") {
+    const items = Array.isArray(data.items) ? data.items.slice(0, 25) : [];
+    if (!items.length) return null;
+    const lines = [`${items.length === 1 ? "One job was" : `${items.length} jobs were`} picked for you.`,
+      "A tap on Apply, then Confirm, sends the application. Pass removes it.", ""];
+    items.forEach((it, i) => {
+      lines.push(`${i + 1}. ${it.title}${it.company ? ` — ${it.company}` : ""}`);
+      if (it.line) lines.push(`   ${it.line}`);
+      lines.push(`   Apply: ${it.apply}`, `   Pass: ${it.pass}`, "");
+    });
+    if (data.applyAll) lines.push(`Apply to all ${items.length}: ${data.applyAll}`, "");
+    lines.push("These links work until your next run time.");
+    return { subject: `draft · ${items.length === 1 ? "1 new pick" : `${items.length} new picks`}`, text: [...lines, ...foot].join("\n") };
+  }
+  if (event === "pick_question") {
+    const qs = listOf(Array.isArray(data.questions) ? data.questions : []);
+    return { subject: "draft · a question on a job you applied to",
+      text: [`${data.title || "A job you applied to"}${data.company ? ` — ${data.company}` : ""} stopped on ${qs.length === 1 ? "a question" : `${qs.length} questions`} only you can answer:`,
+        "", ...qs.map(q => `- ${q}`), "", `Answer here: ${data.answer}`, "", "Nothing was sent. It continues once you answer.", ...foot].join("\n") };
+  }
+  if (event === "picks_summary") {
+    const t = eventText(event, data);
+    return { subject: "draft · Apply for me", text: [t.body, "", `Open draft: ${appUrl}/app/auto-apply`, ...foot].join("\n") };
+  }
+  return null;
 }
 
 // ── preferences ──────────────────────────────────────────────────────────────────────────────
@@ -187,8 +243,9 @@ async function dispatch(userId, event, data, config) {
     const to = db.prepare(`SELECT email FROM user_profile WHERE user_id = ?`).pluck().get(userId);
     if (to) {
       try {
-        out.email = await sendEmail({ db, to, fetchImpl, env, subject: `draft · ${text.title}`,
-          text: [text.body, "", `Open draft: ${appUrl}${def.url}`, "",
+        const mail = eventEmail(event, data, appUrl);
+        out.email = await sendEmail({ db, to, fetchImpl, env, subject: mail?.subject || `draft · ${text.title}`,
+          text: mail?.text || [text.body, "", `Open draft: ${appUrl}${def.url}`, "",
             "You chose to get this by email. Change it in draft → Account → Notifications."].join("\n") });
       } catch (e) { log?.warn?.(`[notify] email ${event}: ${e.message}`); out.email = { ok: false }; }
     }

@@ -98,6 +98,23 @@ push). The policy must not go live without them — or, if either slips, its par
 (*A policy claim with no code → narrow the claim*). The store listing (`STORE_LISTING.md`) and the dashboard's Privacy
 practices change with the global-read release, not with this commit.
 
+## ⭐ D113 · PICKS BY MESSAGE — a tap sends the application (owner, 10-31)
+
+Server-side only (no extension permission changes). ⚠ **MATERIAL** — a new kind of message and a tap that sends: the push
+that ships D113 sets `EFFECTIVE_DATE` to its own day (this lane did not move it) and, if any user is registered by then,
+gives the advance notice the policy commits to first.
+
+| What | Code | Policy paragraph | Kept | Recipient |
+|---|---|---|---|---|
+| **Picks runs** — at the user's run times (Auto settings): new postings → filters → D104 eligibility (only what the user set) → D107 liveness → D106 level (only when the profile's level is known) → per-company limit + interview pause → ranked by the ATS match → cut to the daily cap; per run the postings seen, picked, and left-out counts by reason | `services/autoScheduler.js` `runAutoTick()`; `services/picks.js` `choosePicks()`, `storeRun()`, `sweepLeftOut()`; tests `d113Picks` | *Applying for You* — *Picks by Message (optional)* | `picks_runs` + `picks` (migration 188) with the account (cascade on deletion; exported); the left-out job ids **14 days** (`picks_left_out`, swept every tick) | — (our own server) |
+| **The picks message** — "Ask me first": ONE email (names each job and company, the one line, Apply / Pass links) + ONE push (a count only) per run; "Apply for me": one summary per run | `services/picks.js` `deliverRun()` (claims the run before sending — never twice), `runPickSummaries()`; `services/notify.js` `eventText()` (push: no company) and `eventEmail()` (email: named) | *Picks by Message* and *Notifications* ("the picks email … is the one message that names jobs and companies") | the in-app row in `notifications` (the count line, no company, no link) | **Resend** (the email); **Your browser's push service** (ciphertext only) |
+| **The confirm link** — a GET never acts (shows the job and ONE Confirm, a POST); signed (HMAC, a key derived from `SESSION_SECRET`), bound to (user, pick), single use, expires at the next run; works signed out and shows only that pick; noindex, no cache, no referrer | `routes/picksConfirm.js`; `services/picks.js` `signPickToken()`, `readPickToken()`, `pickSecret()` | *Picks by Message* — "Opening a link never does anything by itself"; "Links are signed, work once and expire at your next run time" | the tap's time and state on the pick | — |
+| **A tap sends** — Apply + Confirm starts the run that tailors the résumé and sends (unless "Show me the form before sending"); the tap is the send authority for that job only | `services/picks.js` `pickAuthorisesSend()`, read by `routes/apply.js` `startRun()` / `processRunJob()` and `services/applyWorker.js` `leaseRemoteRun()`; `submitted_by = 'user'` | *Picks by Message* — "A tap on Apply, then Confirm, sends the application"; "Your résumé for the job is written only after you tap Apply" | the application as any other (*Applying for You*) | **Employer portals you apply to** |
+| **A question comes back** — a tapped job that stops on a question only the user can answer: one message with the question and an answer link (same confirm pattern, 3 days) | `services/picks.js` `runPickQuestions()`; `routes/picksConfirm.js` (answer form → `routes/apply.js` `saveAnswers()`, the `/api/apply/answers` path) | *Picks by Message* — "draft sends you a message with that question and a link to answer it" | the answers in the saved answers, as `/api/apply/answers` | **Resend** (the email names the job; the push does not) |
+
+⛔ **SMS (D113 P5) is NOT built** and is not in the policy — it needs carrier registration first (A2P 10DLC or toll-free
+verification); its paragraph (opt-in wording, STOP / HELP, the phone number kept) comes with it.
+
 ## Permissions
 
 | Manifest permission | Code that requires it | Policy paragraph | Dashboard justification |

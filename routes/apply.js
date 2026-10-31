@@ -1,5 +1,7 @@
 import os from "os";
 import crypto from "node:crypto";
+// ⭐ D113: a tap on Apply in a picks message is the user's own send for THAT job (services/picks.js pickAuthorisesSend).
+import { pickAuthorisesSend } from "../services/picks.js";
 import path from "path";
 import { resolveEntitlement } from "../services/entitlementResolver.js";
 import { fileURLToPath } from "url";
@@ -1527,7 +1529,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // D36 → D100: the same rule as startRun's, at the door that cannot be walked around — boot recovery,
       // the line and any hand-written row all arrive here. NULL approval_mode reads as 'auto' above.
       // Sending without review is the user's FULL AUTO mode; a user in SEMI is held, nothing opened.
-      if (mode === "auto" && approvalMode === "auto" && userApplyMode(userId) !== "auto") {
+      // ⭐ D113: …unless the user tapped Apply on THIS job in a picks message — that tap is their send (services/picks.js).
+      if (mode === "auto" && approvalMode === "auto" && userApplyMode(userId) !== "auto" && !pickAuthorisesSend(db, userId, jobId)) {
         logEvent(runId, runJobId, userId, jobId, "full_auto_not_chosen",
           "Held: this run would have sent without your review, and your mode is SEMI. Nothing was opened or sent.");
         setJobStatus("held_review", "full_auto_not_chosen",
@@ -2108,8 +2111,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         }
         // D100 / D36 amended: whose submit it was. 'approved' = the user approved these values; 'auto' = their
         // FULL AUTO standing instruction (processRunJob held it above unless they chose that mode).
+        // ⭐ D113: a tap on Apply in a picks message is the user's submit too ('user'), not the standing instruction.
         db.prepare(`UPDATE apply_run_jobs SET submitted_by=? WHERE id=?`)
-          .run(approvalMode === "approved" ? "user" : "auto", runJobId);
+          .run(approvalMode === "approved" || (userApplyMode(userId) !== "auto" && pickAuthorisesSend(db, userId, jobId)) ? "user" : "auto", runJobId);
       } else if (cancelled) {
         // Counted as neither held nor failed. The run's three counters are what the run chip
         // reports, and a cancelled job is not work waiting on the user (held) nor work that broke
@@ -2342,7 +2346,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // D100 replaced the server-wide lock with the user's mode; the enforcement stays here and in
     // processRunJob, so a user in SEMI cannot be sent for by any caller.
     // 'approved' is not this: a human approved exactly those answers.
-    if (resolvedMode === "auto" && resolvedApproval === "auto" && userApplyMode(userId) !== "auto") {
+    // ⭐ D113: a tap on Apply in a picks message is the user's send for exactly the jobs tapped — every job must carry it.
+    if (resolvedMode === "auto" && resolvedApproval === "auto" && userApplyMode(userId) !== "auto"
+        && !(jobIds.length && jobIds.every(id => pickAuthorisesSend(db, userId, id)))) {
       return respond(403, {
         error: "full_auto_not_chosen",
         message: "Sending without your review needs FULL AUTO, and your mode is SEMI. Switch it in Draft House, " +
@@ -4996,8 +5002,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * Answers are merged into user_profile.custom_answers keyed by the EXACT question text captured
    * from the form, which is what makes them usable for eligibility fields on the next pass.
    */
-  app.post("/api/apply/answers", requireAuth, (req, res) =>
-    withIdempotency("/api/apply/answers", req, res, (out) => {
+  // ⭐ D113 P4: the route's body is answersCore, so a question that came back by message and is answered on the confirm
+  // page (routes/picksConfirm.js) takes exactly this path — saveAnswers below. Behaviour of the route is unchanged.
+  function answersCore(req, out) {
+    {
       // The retry goes through startRun, so it inherits the approval default too: answering the
       // questions unblocks the job, it does not authorise the submission. Pass approvalMode:'auto'
       // to answer-and-send in one step.
@@ -5175,7 +5183,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       }
 
       out.json(body);
-    }));
+    }
+  }
+  app.post("/api/apply/answers", requireAuth, (req, res) =>
+    withIdempotency("/api/apply/answers", req, res, (out) => answersCore(req, out)));
 
   app.post("/api/apply/close/:jobId", requireAuth, (req, res) => {
     db.prepare(`
@@ -5240,10 +5251,22 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const artifact = db.prepare("SELECT html FROM resumes WHERE id=? AND user_id=?").get(resumeArtifactId, userId);
     return artifact?.html ? htmlToPdf(artifact.html) : null;
   };
-  const startAutoRun = (userId, jobIds) => {
+  // ⭐ D113: `review` = Auto settings' "Show me the form before sending" — the run previews and stops at Ready for your review.
+  const startAutoRun = (userId, jobIds, { review = false } = {}) => {
     const planTier = db.prepare("SELECT plan_tier FROM users WHERE id = ?").get(userId)?.plan_tier;
-    return startRun(userId, normalisePlanTier(planTier), jobIds.map(String), { mode: "auto", approvalMode: "auto" });
+    return startRun(userId, normalisePlanTier(planTier), jobIds.map(String), review ? { mode: "auto" } : { mode: "auto", approvalMode: "auto" });
+  };
+  // ⭐ D113 P4 · after the tap: the confirm page's Apply. The tap (a picks row, state 'applied') is the send authority;
+  // with "Show me the form before sending" on the run previews instead (the default Draft path, stops at review).
+  // Tailoring happens inside this run (processRunJob) — never before the tap.
+  const startPickRun = (userId, jobIds, { review = false } = {}) => startAutoRun(userId, jobIds, { review });
+  // ⭐ D113 P4 · answering a question that came back: the same path as POST /api/apply/answers (answersCore).
+  const saveAnswers = (userId, planTier, body) => {
+    let sent = { code: 500, body: { error: "no_response" } };
+    const out = { status(code) { this._code = code; return this; }, json(b) { sent = { code: this._code || 200, body: b }; return this; } };
+    answersCore({ user: { id: userId, planTier }, body }, out);
+    return { status: sent.code, body: sent.body };
   };
   return { recoverInterruptedRuns, startLineTicker, dispatchAllLines, prepareManualPacket, resumeForApply: generateResumeForApply,
-           draftForExtension, draftStateOf, runBar, startAutoRun, workerPayload, workerResumePdf };
+           draftForExtension, draftStateOf, runBar, startAutoRun, startPickRun, saveAnswers, workerPayload, workerResumePdf };
 }

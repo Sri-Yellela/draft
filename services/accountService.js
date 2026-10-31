@@ -198,7 +198,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D109 (184): the Profile's projects, the evidence links the person supplied, and their proof page setting.
   "profile_projects", "profile_evidence", "proof_pages",
   // D110 (186): interview mode — the dates the user typed, their story bank, their debriefs and their own question bank.
-  "interview_prep", "interview_stories", "interview_debriefs", "interview_questions"];
+  "interview_prep", "interview_stories", "interview_debriefs", "interview_questions",
+  // D113 (188): the picks runs (what each run looked at, picked and left out, by reason) and the picks themselves.
+  "picks_runs", "picks", "picks_left_out"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -296,6 +298,10 @@ export const MERGE_PLAN = Object.freeze({
   // D110 (186): a merged person keeps their stories, debriefs and question bank; INTO's typed date for an application wins,
   // and a story seeded from the same bullet in both accounts is kept once (INTO's).
   interview_prep: "keepInto", interview_stories: "keepInto", interview_debriefs: "move", interview_questions: "move",
+  // D113 (188): a merged person keeps their picks history; one run per (user, run time), so INTO's run wins on a clash and
+  // FROM's (with its picks and left-out ids, by cascade) goes with FROM. A moved pick's old links stop working — they are
+  // bound to the merged-away user, and they expire at the next run anyway.
+  picks_runs: "keepInto", picks: "move", picks_left_out: "move",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

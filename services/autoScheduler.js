@@ -7,6 +7,10 @@
 // same admission every Draft goes through (the kill switch, Draft slots, the line). Nothing here
 // opens a browser or submits; processRunJob does, and it re-checks the mode and the kill switch.
 //
+// ⭐ D113 (owner 10-31): the same tick now also serves "Ask me first" (SEMI + Auto settings `picks`), and every run is a
+// PICKS RUN (services/picks.js): ranked by the ATS match, stored once per (user, run time) with the left-out counts by
+// reason, then delivered once — a picks message for Ask me first, startAutoRun for Apply for me (FULL AUTO).
+//
 // The decisions are pure functions so a test can drive them with a clock; runAutoTick wires them to
 // the database and takes the board and startRun as arguments (server.js passes boardPageResponse and
 // routes/apply.js's startAutoRun).
@@ -16,6 +20,8 @@ import { userHeld } from "./applyUserHold.js";
 import { fullAutoDisabled } from "./appSettings.js";
 import { eligibilityForJob, userEligibilityInputs } from "./jobEligibility.js";
 import { livenessFor, isStale } from "./jobs/jobHistory.js";
+import { choosePicks, storeRun, deliverRun, nextSlotAfter, lineForCandidate, pickedJobsSince, everPicked, userLevelFor,
+  expireOffers, sweepLeftOut, runPickSummaries, runPickQuestions } from "./picks.js";
 
 const DAY = 86400;
 const MAX_JOBS_PER_RUN = 25; // POST /api/apply/runs' own limit
@@ -86,9 +92,9 @@ export function pickJobs(candidates, { remaining, drafted, companyCounts, paused
 
 function autoStartsSince(db, userId, sinceSec) {
   return db.prepare(`
-    SELECT rj.created_at FROM apply_run_jobs rj JOIN apply_runs r ON r.id = rj.run_id
+    SELECT rj.job_id, rj.created_at FROM apply_run_jobs rj JOIN apply_runs r ON r.id = rj.run_id
     WHERE rj.user_id = ? AND r.approval_mode = 'auto' AND rj.created_at >= ?
-      AND rj.status NOT IN ('cancelled', 'superseded')`).pluck().all(userId, sinceSec);
+      AND rj.status NOT IN ('cancelled', 'superseded')`).all(userId, sinceSec);
 }
 
 function companyOf(db, userId, jobId) {
@@ -115,41 +121,106 @@ export function userContext(db, userId, nowSec, settings) {
     WHERE user_id = ? AND response_outcome IN ('interview', 'offer', 'assessment')
       AND COALESCE(outcome_at, applied_at, 0) >= ?`).pluck().all(userId, nowSec - PAUSE_DAYS * DAY)
     .map(c => companyNameKey(c || "")).filter(Boolean));
-  const used = startedToday(autoStartsSince(db, userId, nowSec - 2 * DAY), nowSec, settings.timeZone);
+  // ⭐ D113: the day's slots are the jobs FULL AUTO started today AND today's picks (offered, tapped or expired unanswered) —
+  // one job counted once (a pick sent for the user is also an auto start). A Pass gives its slot back.
+  const today = localClock(nowSec, settings.timeZone).date;
+  const usedJobs = new Set();
+  for (const r of [...autoStartsSince(db, userId, nowSec - 2 * DAY), ...pickedJobsSince(db, userId, nowSec - 2 * DAY)]) {
+    if (localClock(r.created_at, settings.timeZone).date === today) usedJobs.add(String(r.job_id));
+  }
+  const used = usedJobs.size;
+  // A job already picked for the user (passed included) is never offered again.
+  for (const j of everPicked(db, userId)) drafted.add(j);
   const inputs = userEligibilityInputs(db, userId);
-  const isIneligible = (jobId) => eligibilityForJob(db, userId, jobId, inputs).status === "ineligible";
-  const isStalePosting = (jobId) => isStale(livenessFor(db, jobId, { now: nowSec }), settings);
-  return { drafted, companyCounts, pausedCompanies, used, remaining: Math.max(0, settings.dailyCap - used), isIneligible, isStalePosting };
+  const eligibilityOf = (jobId) => eligibilityForJob(db, userId, jobId, inputs);
+  const isIneligible = (jobId) => eligibilityOf(jobId).status === "ineligible";
+  const livenessOf = (jobId) => livenessFor(db, jobId, { now: nowSec });
+  const isStalePosting = (jobId) => isStale(livenessOf(jobId), settings);
+  return { drafted, companyCounts, pausedCompanies, used, remaining: Math.max(0, settings.dailyCap - used), isIneligible, isStalePosting,
+    eligibilityOf, livenessOf, userLevel: userLevelFor(db, userId) };
+}
+
+/** The user's D113 mode: 'apply' (FULL AUTO, "Apply for me"), 'ask' (SEMI with picks on, "Ask me first") or null. */
+export function picksMode(sendMode, settings) {
+  if (sendMode === "auto") return "apply";
+  return settings.picks === true ? "ask" : null;
 }
 
 /**
- * One pass over every FULL AUTO user. Returns what it did per user, for the log and the tests.
- * @param deps { nowSec, fetchBoard(userId, filters) → [{ jobId, company }], startAutoRun(userId, jobIds) → { status, body } }
+ * One pass over every FULL AUTO user and every "Ask me first" user. Returns what it did per user, for the log and the tests.
+ *
+ * ⭐ D113 P1: each due user gets ONE picks run for the run time — new postings since the last run → the filters (the
+ * board's own query) → D104 eligibility → D107 liveness → D106 level → per-company limit + interview pause → ranked by
+ * the ATS match → cut to what the daily cap leaves → `picks` rows. Stored per run: postings seen, picked, the left-out
+ * counts by reason and the left-out ids (14 days). Then delivered ONCE (services/picks.js deliverRun): the picks message
+ * ("Ask me first") or the run's start ("Apply for me").
+ * @param deps { nowSec, fetchBoard(userId, filters, settings) → [{ jobId, company, title?, score?, levelRead?, postedAt? }],
+ *               startAutoRun(userId, jobIds, { review }) → { status, body }, notify?(userId, event, data), secret?, appUrl? }
  */
-export async function runAutoTick(db, { nowSec = Math.floor(Date.now() / 1000), fetchBoard, startAutoRun, env = process.env }) {
+export async function runAutoTick(db, { nowSec = Math.floor(Date.now() / 1000), fetchBoard, startAutoRun, env = process.env,
+  notify = null, secret = null, appUrl = "" }) {
   const out = [];
   if (fullAutoDisabled(db, env)) return [{ skipped: "kill_switch" }];
-  const users = db.prepare(`SELECT id, auto_settings, auto_last_run_at FROM users WHERE send_mode = 'auto'`).all();
+  expireOffers(db, nowSec);
+  sweepLeftOut(db, nowSec);
+  const users = db.prepare(`SELECT id, auto_settings, auto_last_run_at, send_mode FROM users
+    WHERE send_mode = 'auto' OR auto_settings LIKE '%"picks":true%'`).all();
   for (const u of users) {
     const settings = readAutoSettings(u.auto_settings);
+    const mode = picksMode(u.send_mode, settings);
+    if (!mode) continue;
     let savedAt = null;
     try { savedAt = JSON.parse(u.auto_settings || "{}").savedAt ?? null; } catch { savedAt = null; }
+    const deps = { notify, startAutoRun, secret, appUrl, settings };
+    // A run stored but never delivered (a crash between the two) is delivered now — once (deliverRun claims it).
+    try {
+      const pending = db.prepare(`SELECT * FROM picks_runs WHERE user_id = ? AND delivery_claimed_at IS NULL AND expires_at > ?`).all(u.id, nowSec);
+      for (const run of pending) out.push({ userId: u.id, runId: run.id, resumed: true, ...(await deliverRun(db, run, deps, nowSec)) });
+    } catch { /* no picks tables in this schema */ }
     if (!runDue(nowSec, settings, { lastRunAt: u.auto_last_run_at, savedAt })) { out.push({ userId: u.id, skipped: "not_due" }); continue; }
     if (userHeld(db, u.id)) { out.push({ userId: u.id, skipped: "held" }); continue; }
     // The slot is spent whatever happens next, so a failing board does not retry every tick.
     db.prepare(`UPDATE users SET auto_last_run_at = ? WHERE id = ?`).run(nowSec, u.id);
+    const slotAt = lastSlotAt(nowSec, settings);
     const ctx = userContext(db, u.id, nowSec, settings);
-    if (ctx.remaining <= 0) { out.push({ userId: u.id, skipped: "daily_cap", used: ctx.used }); continue; }
     let candidates;
     try { candidates = await fetchBoard(u.id, settings.filters, settings); }
     catch (e) { out.push({ userId: u.id, skipped: "board_failed", error: e.message }); continue; }
     // "Each run takes jobs posted since the last" — a job with a known posting time older than the last run is skipped.
-    const fresh = u.auto_last_run_at == null ? candidates
-      : candidates.filter(c => !(Number.isFinite(c.postedAt) && c.postedAt < u.auto_last_run_at));
-    const { take, skipped } = pickJobs(fresh, { ...ctx, settings });
-    if (!take.length) { out.push({ userId: u.id, skipped: "nothing_new", skippedJobs: skipped.length }); continue; }
-    const r = startAutoRun(u.id, take);
-    out.push({ userId: u.id, started: take.length, status: r?.status ?? null, error: r?.body?.error ?? null, skippedJobs: skipped.length });
+    const isNew = (c) => u.auto_last_run_at == null || !(Number.isFinite(c.postedAt) && c.postedAt < u.auto_last_run_at);
+    const fresh = candidates.filter(isNew);
+    // Outside your filters: the new postings the board WITHOUT the Auto filters has that the filtered board does not.
+    let outsideFilters = 0;
+    if (Object.keys(settings.filters || {}).length) {
+      try {
+        const inFilter = new Set(candidates.map(c => String(c.jobId)));
+        outsideFilters = (await fetchBoard(u.id, {}, settings)).filter(c => isNew(c) && !inFilter.has(String(c.jobId))).length;
+      } catch { outsideFilters = 0; }
+    }
+    const { take, leftOut } = choosePicks(fresh, { ...ctx, settings });
+    const skippedJobs = leftOut.length;
+    let stored;
+    try {
+      stored = storeRun(db, { userId: u.id, slotAt, mode, expiresAt: nextSlotAfter(slotAt, settings, localClock), seen: fresh.length + outsideFilters,
+        take, leftOut, outsideFilters, nowSec, review: settings.showFormBeforeSending === true,
+        lineFor: (c) => lineForCandidate(c, { eligibility: ctx.eligibilityOf(c.jobId), liveness: ctx.livenessOf(c.jobId) }) });
+    } catch (e) { out.push({ userId: u.id, skipped: "store_failed", error: e.message }); continue; }
+    if (!stored.created) { out.push({ userId: u.id, runId: stored.run.id, skipped: "run_exists" }); continue; }
+    const r = await deliverRun(db, stored.run, deps, nowSec);
+    if (!take.length) {
+      out.push(ctx.remaining <= 0 ? { userId: u.id, runId: stored.run.id, skipped: "daily_cap", used: ctx.used }
+        : { userId: u.id, runId: stored.run.id, skipped: "nothing_new", skippedJobs });
+      continue;
+    }
+    if (mode === "apply") out.push({ userId: u.id, runId: stored.run.id, mode, started: r.started ?? 0, status: r.status ?? null, error: r.error ?? null, skippedJobs });
+    else out.push({ userId: u.id, runId: stored.run.id, mode, picked: take.length, messaged: !!r.messaged, skippedJobs });
   }
   return out;
+}
+
+/** ⭐ D113: after the runs — Apply for me's one summary after each run, and the questions that came back. */
+export async function runPicksFollowUps(db, { nowSec = Math.floor(Date.now() / 1000), notify = null, secret = null, appUrl = "" } = {}) {
+  const summaries = await runPickSummaries(db, { notify, nowSec });
+  const questions = secret ? await runPickQuestions(db, { notify, secret, appUrl, nowSec }) : [];
+  return { summaries, questions };
 }
