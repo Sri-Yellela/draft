@@ -122,3 +122,35 @@ test("D105 BUG 10-31 · d105ProbeReadsRealAnswer — the probe returns the raw a
   assert.doesNotMatch(read("services/atlas/atlasWikidata.js").slice(at(read("services/atlas/atlasWikidata.js"), "export async function probeWikipedia"),
     at(read("services/atlas/atlasWikidata.js"), "export function wikiMatchSummary")), /db\.|prepare\(/, "read-only: no database");
 });
+
+test("D105 BUG 10-31 · d105EmptyExtractIsDue — a cache row with an empty extract is read again on the next pass, not held for a week", async () => {
+  const { refreshWikiSummaries } = await import("../services/atlas/atlasWiki.js");
+  const db = fixtureDb();
+  upsertNode(db, { kind: "tool", name: "Kubernetes", source: "registry" });
+  upsertNode(db, { kind: "tool", name: "Terraform", source: "registry" });
+  db.prepare(`UPDATE atlas_nodes SET wiki_title = name`).run();
+  const t = 1_900_000_000;
+  db.prepare(`INSERT INTO atlas_wiki_cache (node_id, title, extract, page_url, fetched_at) VALUES (1, 'Kubernetes', '  ', 'https://en.wikipedia.org/wiki/Kubernetes', ?)`).run(t - 60);
+  db.prepare(`INSERT INTO atlas_wiki_cache (node_id, title, extract, page_url, fetched_at) VALUES (2, 'Terraform', 'IaC.', 'https://en.wikipedia.org/wiki/Terraform', ?)`).run(t - 60);
+  const asked = [];
+  const r = await refreshWikiSummaries(db, { now: () => t, pauseMs: 0, log: () => {},
+    fetchImpl: async (url) => { asked.push(url); return resp(200, { type: "standard", title: "Kubernetes", extract: "An orchestrator." }); } });
+  assert.deepEqual([r.due, r.fetched], [1, 1], "only the empty one; the fresh full one waits its week");
+  assert.ok(asked[0].endsWith("/Kubernetes"));
+  assert.equal(db.prepare(`SELECT extract FROM atlas_wiki_cache WHERE node_id = 1`).pluck().get(), "An orchestrator.");
+});
+
+test("D105 BUG 10-31 · d105BackfillMatchedClass — 191 marks the titles matched before 190 as 'matched'; a curator's title without an item is left", () => {
+  const db = new Database(":memory:");
+  const upTo = MIGRATIONS.findIndex(m => m.id === "191_atlas_wiki_match_backfill");
+  assert.ok(upTo > 0 && MIGRATIONS[upTo - 1].id === "190_atlas_wiki_match", "191 runs right after 190");
+  for (const m of MIGRATIONS.slice(0, upTo)) db.exec(m.sql);
+  for (const n of ["Kubernetes", "Scalability", "Owner Pick", "Untouched"]) upsertNode(db, { kind: "skill", name: n, source: "registry" });
+  db.prepare(`UPDATE atlas_nodes SET wiki_title = 'Kubernetes', wiki_title_by = 'auto', wikidata_id = 'Q22661306' WHERE slug = 'kubernetes'`).run();
+  db.prepare(`UPDATE atlas_nodes SET wiki_title = 'Scalability', wiki_title_by = 'auto' WHERE slug = 'scalability'`).run();
+  db.prepare(`UPDATE atlas_nodes SET wiki_title = 'Something', wiki_title_by = 'owner' WHERE slug = 'owner-pick'`).run();
+  db.exec(MIGRATIONS[upTo].sql);
+  const cls = Object.fromEntries(db.prepare(`SELECT slug, wiki_match FROM atlas_nodes`).all().map(r => [r.slug, r.wiki_match]));
+  assert.deepEqual(cls, { kubernetes: "matched", scalability: "matched", "owner-pick": null, untouched: null });
+  assert.equal(wikiMatchSummary(db).counts.matched, 2);
+});
