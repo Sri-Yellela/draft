@@ -49,11 +49,82 @@ function readinessLine(r) {
 // Wikipedia + Wikidata answer exactly as this server receives it, to copy into the chat.
 const MATCH_WORDS = [["matched", "Matched"], ["missing", "No such article"], ["not_in_answer", "Not in the answer"],
   ["disambiguation", "Disambiguation page"], ["inexact", "Redirects to another name"], ["not_software", "Not software (tool)"], ["no_item", "No Wikidata item"]];
+// ⭐ D105 P10 · FIND ON WIKIPEDIA — per unmatched node, the candidates its class calls for (GET …/node/:slug/wiki-candidates),
+// each with Wikipedia's first sentence; one press stores the title and the Wikidata ID (POST …/wiki-pick). A tool that
+// is "not software" on Wikidata gets "Use it anyway"; a node with no article points at a definition (P11).
+function AtlasWikiFind({ node, say, onPicked }) {
+  const [found, setFound] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const find = async () => {
+    setBusy(true);
+    try { setFound(await api(`/api/admin/atlas/node/${enc(node.slug)}/wiki-candidates`)); } catch (e) { say({ ok: false, text: e.message }); }
+    finally { setBusy(false); }
+  };
+  const pick = async (c) => {
+    setBusy(true);
+    try {
+      await send(`/api/admin/atlas/node/${enc(node.slug)}/wiki-pick`, { title: c.title, wikidataId: c.item });
+      say({ ok: true, text: `${node.name} → “${c.title}”. Its summary is read on the next run (or Refresh Wikipedia).` });
+      onPicked();
+    } catch (e) { say({ ok: false, text: e.message }); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div data-atlas-find={node.slug} style={{ fontSize: 12, color: C.INK }}>
+      <span>{node.name} <span style={quiet}>({node.kind})</span></span>{" "}
+      {!found && <DepthButton size="compact" disabled={busy} onClick={find} data-atlas-find-open={node.slug}>Find on Wikipedia</DepthButton>}
+      {found && (
+        <div style={{ display: "grid", gap: 4, margin: "4px 0 8px 12px" }}>
+          {found.candidates.map(c => (
+            <div key={c.title} style={{ ...row, alignItems: "flex-start" }}>
+              <DepthButton size="compact" disabled={busy} onClick={() => pick(c)} data-atlas-pick={c.title}>{c.useAnyway ? "Use it anyway" : "Use this"}</DepthButton>
+              <span style={{ flex: "1 1 220px", overflowWrap: "anywhere" }}><b>{c.title}</b>{c.extract ? ` — ${c.extract}` : ""} <span style={quiet}>From Wikipedia</span></span>
+            </div>
+          ))}
+          {found.writeDefinition && <span style={quiet}>No article fits? Write a definition — Edit, or Draft definitions.</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Redirects alone may be accepted as a group, after reading the preview (GET …/wiki/redirects → POST …/accept).
+function AtlasRedirectGroup({ say, onPicked }) {
+  const [list, setList] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const preview = async () => {
+    setBusy(true);
+    try { setList((await api("/api/admin/atlas/wiki/redirects")).redirects); } catch (e) { say({ ok: false, text: e.message }); }
+    finally { setBusy(false); }
+  };
+  const ready = (list || []).filter(r => r.title);
+  const acceptAll = async () => {
+    setBusy(true);
+    try {
+      const r = await send("/api/admin/atlas/wiki/redirects/accept", { picks: ready.map(x => ({ slug: x.slug, title: x.title, wikidataId: x.item })) });
+      say({ ok: true, text: `${r.picked.length} redirect(s) accepted — summaries on the next run.` }); setList(null); onPicked();
+    } catch (e) { say({ ok: false, text: e.message }); }
+    finally { setBusy(false); }
+  };
+  if (!list) return <DepthButton size="compact" disabled={busy} onClick={preview} data-atlas-redirect-preview="">Preview every redirect</DepthButton>;
+  return (
+    <div data-atlas-redirect-list="" style={{ display: "grid", gap: 3, fontSize: 12, color: C.INK }}>
+      {list.map(r => <span key={r.slug} style={{ overflowWrap: "anywhere" }}>{r.name} → {r.title ? <b>{r.title}</b> : <span style={quiet}>no target</span>}{r.extract ? ` — ${r.extract}` : ""}</span>)}
+      <div style={row}>
+        <DepthButton size="compact" primary disabled={busy || !ready.length} onClick={acceptAll} data-atlas-redirect-accept="">Accept all {ready.length}</DepthButton>
+        <DepthButton size="compact" disabled={busy} onClick={() => setList(null)}>Close</DepthButton>
+      </div>
+    </div>
+  );
+}
+
 function AtlasWikiAnswers({ reloadKey, say }) {
   const [sum, setSum] = useState(null);
   const [probe, setProbe] = useState(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { api("/api/admin/atlas/wiki/classes").then(setSum).catch(() => setSum(null)); }, [reloadKey]);
+  const [again, setAgain] = useState(0);
+  useEffect(() => { api("/api/admin/atlas/wiki/classes").then(setSum).catch(() => setSum(null)); }, [reloadKey, again]);
+  const picked = () => setAgain(n => n + 1);
   const runProbe = async () => {
     setBusy(true); setProbe(null);
     try { setProbe(await api("/api/admin/atlas/wiki/probe")); } catch (e) { say({ ok: false, text: e.message }); }
@@ -70,7 +141,13 @@ function AtlasWikiAnswers({ reloadKey, say }) {
           {MATCH_WORDS.map(([c, l]) => (
             <details key={c} data-atlas-class={c}>
               <summary style={{ fontSize: 12, color: C.INK, cursor: "pointer" }}>{l}: <b>{sum.counts?.[c] ?? 0}</b></summary>
-              <p style={{ ...quiet, overflowWrap: "anywhere" }}>{(sum.nodes?.[c] || []).map(n => `${n.name} (${n.kind})`).join(" · ") || "—"}</p>
+              {c === "matched" ? <p style={{ ...quiet, overflowWrap: "anywhere" }}>{(sum.nodes?.[c] || []).map(n => `${n.name} (${n.kind})`).join(" · ") || "—"}</p> : (
+                <div style={{ display: "grid", gap: 4, margin: "4px 0 6px" }}>
+                  {c === "inexact" && (sum.counts?.[c] ?? 0) > 0 && <AtlasRedirectGroup say={say} onPicked={picked} />}
+                  {(sum.nodes?.[c] || []).map(n => <AtlasWikiFind key={n.slug} node={n} say={say} onPicked={picked} />)}
+                  {!(sum.nodes?.[c] || []).length && <span style={quiet}>—</span>}
+                </div>
+              )}
             </details>
           ))}
           <span style={quiet}>{sum.neverAnswered} node(s) never answered.</span>
