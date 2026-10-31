@@ -23,6 +23,7 @@
 import { normaliseAtsTerm } from "../localAtsScorer.js";
 import { AMBIGUOUS_TERMS } from "./atlasStats.js";
 import { aliasesOf, readNode, profileTerms } from "./atlasStore.js";
+import { spellings } from "../../shared/atlasSearchNormalize.js";
 
 const MAX_GRAM = 4;
 const TEXT_CHARS = 30000;
@@ -50,7 +51,9 @@ export function formsOf(node, aliases = []) {
   const ambiguous = AMBIGUOUS_TERMS.has(node.term);
   const name = String(node.name ?? "").trim();
   const single = !/\s/.test(name);
-  const out = [{ text: name, exactCase: ambiguous || name.length <= 2 || (single && /[A-Z]/.test(name)) }];
+  const exact = ambiguous || name.length <= 2 || (single && /[A-Z]/.test(name));
+  // The name and its separator spellings (the one normaliser: "Node.js" = "Nodejs" = "Node js"; "CI/CD" = "CICD").
+  const out = spellings(name).map(text => ({ text, exactCase: exact && text === name }));
   for (const a of [node.term, ...aliases]) {
     const t = String(a ?? "").trim();
     if (!t || t.length <= 2 || AMBIGUOUS_TERMS.has(t)) continue;   // a lowercase alias has no case to match: short or ambiguous ones are left out

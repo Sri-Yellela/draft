@@ -113,8 +113,12 @@ test("D105 P4 · d105AliasSearch (client) — 'k8s' in the search box lands on K
     assert.equal(r.go, "kubernetes");
     assert.equal(r.via, "alias", "resolved through skill_synonyms — the one thesaurus");
     assert.equal((await resolveSearch("Kubernetes")).via, "name");
+    // BUG 10-31 (the normalised search): a prefix counts from 2 characters, so one letter lists nothing…
+    assert.deepEqual((await resolveSearch("e")).results, []);
+    assert.equal((await resolveSearch("kube")).go, "kubernetes", "…and a prefix with one answer is a place to go");
     // A partial word with several answers is a LIST, not a jump.
-    const many = await resolveSearch("e");
+    const many = await resolveSearch("he", async () => ({ results: [{ slug: "helm", kind: "tool", name: "Helm", via: "prefix" },
+      { slug: "heroku", kind: "tool", name: "Heroku", via: "prefix" }] }));
     assert.ok(many.results.length > 1);
     assert.equal(many.go, null);
     assert.deepEqual(await resolveSearch("   "), { q: "", results: [], go: null, via: null }, "an empty box asks nothing");

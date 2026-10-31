@@ -13,6 +13,7 @@
 
 import { normaliseAtsTerm } from "../localAtsScorer.js";
 import { recordSynonymProposals, confirmSynonym } from "../kb/skillSynonyms.js";
+import { searchKey, matchCandidate } from "../../shared/atlasSearchNormalize.js";
 
 export const KINDS = Object.freeze(["role", "skill", "tool", "stack"]);
 export const EDGE_TYPES = Object.freeze(["requires", "part_of", "used_with", "alternative_to", "leads_to"]);
@@ -87,25 +88,35 @@ export function profileTerms(db, userId) {
 
 const visible = (published) => (published ? "AND n.status = 'published'" : "");
 
+// ⭐ BUG 10-31 (owner: "the search is not normalised") · the index the search reads: every node with its confirmed
+// aliases, rebuilt when a node or an alias changes (the version key). Matching is shared/atlasSearchNormalize.js —
+// the ONE normaliser the Atlas search, the Learn concept search (D115) and D114's matcher use.
+let searchIndex = { db: null, key: null, rows: [] };
+function indexFor(db) {
+  const key = db.prepare(`SELECT COUNT(*) || ':' || COALESCE(MAX(updated_at), 0) || ':' || SUM(status = 'published') FROM atlas_nodes`).pluck().get()
+    + ":" + db.prepare(`SELECT COUNT(*) FROM skill_synonyms WHERE status = 'confirmed'`).pluck().get();
+  if (searchIndex.db === db && searchIndex.key === key) return searchIndex.rows;
+  const rows = db.prepare(`SELECT slug, kind, name, term, definition, status FROM atlas_nodes`).all()
+    .map(n => ({ ...n, aliases: aliasesOf(db, n.term) }));
+  searchIndex = { db, key, rows };
+  return rows;
+}
+
 /**
- * Search by name or alias: "k8s" lands on Kubernetes. Exact term first, then alias, then prefix / contains.
- * @returns [{ slug, kind, name, via }]
+ * Search by name, alias, prefix, typo or definition: "k8s" → Kubernetes, "nodejs" → Node.js, "kuberntes" → Kubernetes.
+ * Ranked exact name → alias → prefix → typo → a match in a definition; each result says why it matched.
+ * @returns [{ slug, kind, name, via, why }]   via: name | alias | prefix | typo | definition
  */
 export function searchNodes(db, q, { publishedOnly = true, limit = 20 } = {}) {
-  const t = termOf(q);
-  if (!t) return [];
-  const out = new Map();
-  const add = (rows, via) => { for (const r of rows) if (!out.has(r.slug)) out.set(r.slug, { slug: r.slug, kind: r.kind, name: r.name, via }); };
-  add(db.prepare(`SELECT slug, kind, name FROM atlas_nodes n WHERE n.term = ? ${visible(publishedOnly)}`).all(t), "name");
-  const aliasTerms = aliasesOf(db, t);
-  if (aliasTerms.length) {
-    add(db.prepare(`SELECT slug, kind, name FROM atlas_nodes n WHERE n.term IN (${aliasTerms.map(() => "?").join(",")}) ${visible(publishedOnly)}`)
-      .all(...aliasTerms), "alias");
+  if (!searchKey(q)) return [];
+  const hits = [];
+  for (const n of indexFor(db)) {
+    if (publishedOnly && n.status !== "published") continue;
+    const m = matchCandidate(q, n);
+    if (m) hits.push({ slug: n.slug, kind: n.kind, name: n.name, via: m.via, why: m.why, rank: m.rank });
   }
-  const like = `%${t.replace(/[%_]/g, "")}%`;
-  add(db.prepare(`SELECT slug, kind, name FROM atlas_nodes n WHERE n.term LIKE ? ${visible(publishedOnly)}
-    ORDER BY CASE WHEN n.term LIKE ? THEN 0 ELSE 1 END, LENGTH(n.name) LIMIT ?`).all(like, `${t}%`, limit), "match");
-  return [...out.values()].slice(0, limit);
+  hits.sort((a, b) => a.rank - b.rank || a.name.length - b.name.length || a.name.localeCompare(b.name));
+  return hits.slice(0, limit).map(({ rank, ...h }) => h);
 }
 
 /** One node's page data, or null (unknown, or a draft on a public read). */
