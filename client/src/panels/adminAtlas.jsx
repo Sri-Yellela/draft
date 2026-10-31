@@ -19,6 +19,8 @@ import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, Mark, row, quiet, sub, callout, field, useConfirm } from "./adminKit.jsx";
+// ⭐ D118 P2 · Import content — the Learn content replaced from the owner's tracker, no deploy (adminLearnImport.jsx).
+import { AtlasImportContent } from "./adminLearnImport.jsx";
 
 const KINDS = [["", "All kinds"], ["role", "Roles"], ["skill", "Skills"], ["tool", "Tools"], ["stack", "Stacks"], ["concept", "Concepts"], ["pattern", "Patterns"]];
 const NODE_KINDS = ["role", "skill", "tool", "stack", "concept", "pattern"];
@@ -508,6 +510,7 @@ export function AtlasTab() {
       </div>
       <AtlasWikiAnswers reloadKey={said} say={setSaid} />
       <AtlasDraftDefinitions say={setSaid} onChanged={load} />
+      <AtlasImportContent say={(s) => { setSaid(s); if (s.ok) load(); }} />
       {said && <div role="status" style={{ ...callout(said.ok ? C.SUCCESS : C.DANGER), marginBottom: 10 }}>{said.text}</div>}
       {err && <div style={{ ...callout(C.DANGER), marginBottom: 10 }}>{err}</div>}
       {!rows ? <p style={quiet}>Loading…</p> : shown.length === 0 ? <p style={quiet}>No node matches.</p> : (

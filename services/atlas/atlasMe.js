@@ -268,7 +268,7 @@ function branchesSection(db, { idx, rollup, haveIds, targets }, all) {
 }
 
 function learnNextSection(db, userId, { idx, gaps }, all) {
-  const learn = learnContent();
+  const learn = learnContent(db);
   const stepById = new Map(stepsOf(learn).map(s => [s.id, s]));
   const marks = Object.fromEntries(readProgress(db, userId).map(m => [m.id, m.at]));
   const bySteps = new Map();

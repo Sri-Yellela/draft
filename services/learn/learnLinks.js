@@ -30,7 +30,7 @@ function indexes(learn) {
 }
 
 /** The step that teaches this node, or null. @param node { slug, name, term } */
-export function learnStepForNode(db, node, learn = learnContent()) {
+export function learnStepForNode(db, node, learn = learnContent(db)) {
   if (!node) return null;
   const { steps, byKey } = indexes(learn);
   const keys = [node.name, node.term, ...(node.term ? aliasesOf(db, node.term) : [])].map(searchKey).filter(Boolean);
@@ -42,7 +42,7 @@ export function learnStepForNode(db, node, learn = learnContent()) {
 export const learnStepPath = (stepId) => `/learn#step-${encodeURIComponent(stepId)}`;
 
 /** @returns {{ created: string[], promoted: string[], resources: number, edges: number }} — idempotent */
-export function importLearnPatterns(db, learn = learnContent()) {
+export function importLearnPatterns(db, learn = learnContent(db)) {
   const out = { created: [], promoted: [], resources: 0, edges: 0 };
   const targets = db.prepare(`SELECT id, name FROM atlas_nodes WHERE kind IN ('concept', 'skill') AND LENGTH(name) >= 4`).all()
     .map(n => ({ id: n.id, words: searchWords(n.name).join(" ") })).filter(n => n.words);
