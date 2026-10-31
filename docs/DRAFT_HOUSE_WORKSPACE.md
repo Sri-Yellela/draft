@@ -86,8 +86,9 @@ Seven rings, colour **tokens** only (`client/src/styles/rings.js`), seven distin
 | answers too old | **Prepare again** (D52) / Clear |
 | posting removed | **Clear** (Restore is in the bin, under Tidy up) |
 | sent, no reply | **I heard back** (the job's page) / **Withdraw** |
-| interview | **Open interview prep** / **Add the date** |
-| assessment · offer | **Prep for it** · **Open it** (the job's page) |
+| interview | **Open interview prep** / **Add the date** (then **Change the date**) |
+| assessment | **Prep for it** / **Add the date** (then **Change the date**) |
+| offer | **Open it** (the job's page) |
 | rejected | **Note why** |
 
 **Make it now** — `POST /api/picks/:id/resume` (`routes/picksConfirm.js` `makePickResume`): the tailored résumé for an
@@ -106,8 +107,11 @@ on `GET /api/picks/runs` carries `resumeReady`.
   "Withdrawn"), Stopped's red ring named *Withdrawn* in the tree (*"You withdrew it. It's closed."*), never in Tidy up,
   and in no count of D111's rates (neither a reply nor silence). A recorded but not yet verified submission has no record
   to write → 409.
-- **Add the date** — `interview` only: D110's `PUT /api/interview/prep/:applicationId/date` (date, optional time), the
-  Prep tab's countdown. Inline in the lead card.
+- **Add the date** — `interview` and `assessment`: a date, an optional time and a time zone (the viewer's by default),
+  inline in the lead card, through D110's `PUT /api/interview/prep/:applicationId/date`. D110's `interview_prep` stays
+  the ONE store of it: migration 200 adds `time_zone` and `interview_at` (that moment as epoch seconds) beside the date
+  and time, so D110's countdown and Prep tab read the same row the tree does. The row carries it (`interview`) and
+  says it — *"Interview Wed 4 Nov, 2 PM"* — and the action becomes **Change the date**, opened with what was saved.
 - **Note why** — `PUT /api/pipeline/job/:applicationId/note`, `rejected` only: `job_applications.notes` (The Table's
   Notes column), ≤ 2000 characters. Inline in the lead card, opened with the current note.
 

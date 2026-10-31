@@ -140,7 +140,9 @@ export function buildNodes({
     const ring = ringFor(r.status);
     if (ring !== "sent" && ring !== "reply" && r.status !== "withdrawn") continue;
     const at = ms(r.updatedAt);
-    const say = r.status === "interview" ? "They want to interview you."
+    const when = (r.status === "interview" || r.status === "assessment") ? interviewLine(r.status, r.interview) : null;
+    const say = when ? when
+      : r.status === "interview" ? "They want to interview you."
       : r.status === "assessment" ? "They sent an online assessment."
       : r.status === "offer" ? "They made you an offer."
       : r.status === "rejected" ? "They said no. It's closed."
@@ -160,6 +162,35 @@ export function buildNodes({
         : failed ? "Stopped: it could not start." : "You tapped Apply. Starting soon." });
   }
   return [...byJob.values()];
+}
+
+/**
+ * U5 "Add the date" · the row's line: "Interview Tue 4 Nov, 2 PM" / "Assessment Wed 5 Nov". The date and time are the
+ * ones the user typed, in the zone they picked (stored beside them, with interview_at). Null without a date.
+ */
+export function interviewLine(status, when) {
+  if (!when?.ymd || !/^\d{4}-\d{2}-\d{2}$/.test(when.ymd)) return null;
+  const [y, m, d] = when.ymd.split("-").map(Number);
+  const day = new Date(Date.UTC(y, m - 1, d));
+  const wd = day.toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });
+  const mon = day.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
+  let time = "";
+  if (when.time && /^\d{2}:\d{2}$/.test(when.time)) {
+    const [hh, mm] = when.time.split(":").map(Number);
+    time = `, ${hh % 12 || 12}${mm ? `:${String(mm).padStart(2, "0")}` : ""} ${hh < 12 ? "AM" : "PM"}`;
+  }
+  return `${status === "assessment" ? "Assessment" : "Interview"} ${wd} ${d} ${mon}${time}`;
+}
+
+/** The viewer's own time zone — Add the date's default. */
+export function viewerTimeZone() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { return "UTC"; }
+}
+/** The zones Add the date offers: every one this browser knows, with the current one always present. */
+export function timeZoneOptions(current) {
+  let all = [];
+  try { all = Intl.supportedValuesOf?.("timeZone") || []; } catch { all = []; }
+  return [...new Set([current || viewerTimeZone(), "UTC", ...all].filter(Boolean))];
 }
 
 // ── days, times and the next run ─────────────────────────────────────────────────────────────

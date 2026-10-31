@@ -5581,4 +5581,19 @@ export const MIGRATIONS = [
           BEGIN INSERT INTO atlas_posting_dirty (posting_id) SELECT OLD.id WHERE NOT EXISTS (SELECT 1 FROM atlas_posting_dirty WHERE posting_id = OLD.id); END;
       `,
     },
+    {
+      // ⭐ D113 UI · the Draft House tree's leftovers, as the owner defined them 10-31 (WORKLOG). No new table.
+      // interview_prep (D110's ONE store of the user's interview date) gains the time zone the user picked and
+      // interview_at — that date and time in that zone as epoch seconds — so "Add the date" (an interview or an
+      // assessment) is one source of truth: D110's countdown and Prep tab read the same row the tree's line does.
+      // job_applications gains Note why's two private fields: rejection_note (≤ 500 characters, the user's words, never
+      // read by a model — D17) and rejection_reasons (a JSON list of the quick picks, what D111 may later count).
+      id: "200_draft_house_leftovers",
+      sql: `
+        ALTER TABLE interview_prep ADD COLUMN time_zone TEXT;
+        ALTER TABLE interview_prep ADD COLUMN interview_at INTEGER;
+        ALTER TABLE job_applications ADD COLUMN rejection_note TEXT;
+        ALTER TABLE job_applications ADD COLUMN rejection_reasons TEXT;
+      `,
+    },
   ];

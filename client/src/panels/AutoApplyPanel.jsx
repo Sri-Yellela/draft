@@ -26,7 +26,7 @@ import { JobWorkspacePanel } from "./JobWorkspacePanel.jsx";
 import { buildStoppedItems, packetLife, autoToggle, STOP_DOES, STOP_DOES_NOT } from "../lib/draftHouseExceptions.js";
 import {
   buildNodes, buildTree, treeView, sideBlocks, branchStep, createLeafCache, answerRows, inlineAnswerStart, isOwnStatement,
-  leftOutLines, nextRunFromSettings, timeLabel, connectionsFromStopped,
+  leftOutLines, nextRunFromSettings, timeLabel, connectionsFromStopped, viewerTimeZone, timeZoneOptions,
 } from "../lib/draftHouseTree.js";
 import {
   loadRuns, loadLeftOut, actOnPick, makePickResume, loadAutoSettings, setPicksSwitch, loadTableRows, loadConnections, loadAnswers,
@@ -472,7 +472,7 @@ export function AutoApplyPanel() {
     const e = rowEdit;
     setRowEdit({ ...e, busy: true });
     afterRowAct(node, e.kind === "date"
-      ? await setInterviewDate(node.applicationId, e.date, e.time)
+      ? await setInterviewDate(node.applicationId, e.date, e.time, e.timeZone)
       : await saveNoteWhy(node.applicationId, e.note));
   };
   const portalFor = (node) => applyGatePortals.find(p => (applyHandoffPackets || []).some(k => k.expectedOrigin === p.origin && String(k.jobId) === String(node.jobId)));
@@ -570,9 +570,11 @@ export function AutoApplyPanel() {
         if (node.status === "rejected") return [{ id: "note", label: "Note why", kind: "primary",
           onClick: () => setRowEdit({ key: node.key, kind: "note", note: r.note || "" }) }];
         const label = { interview: "Open interview prep", assessment: "Prep for it", offer: "Open it" }[node.status] || "Open it";
+        // Add the date — an interview or an assessment; editable (opened with the date already saved).
         return [{ id: "reply", label, kind: "primary", onClick: () => openFull(node.jobId) },
-          ...(node.status === "interview" ? [{ id: "date", label: "Add the date",
-            onClick: () => setRowEdit({ key: node.key, kind: "date", date: "", time: "" }) }] : [])];
+          ...((node.status === "interview" || node.status === "assessment") ? [{ id: "date", label: r.interview ? "Change the date" : "Add the date",
+            onClick: () => setRowEdit({ key: node.key, kind: "date", date: r.interview?.ymd || "", time: r.interview?.time || "",
+              timeZone: r.interview?.timeZone || viewerTimeZone() }) }] : [])];
       }
       default: return [];
     }
@@ -750,6 +752,10 @@ export function AutoApplyPanel() {
                     onChange={(e) => setRowEdit({ ...rowEdit, date: e.target.value })} />
                   <input type="time" aria-label="Interview time (optional)" value={rowEdit.time}
                     onChange={(e) => setRowEdit({ ...rowEdit, time: e.target.value })} />
+                  <select aria-label="Time zone" value={rowEdit.timeZone}
+                    onChange={(e) => setRowEdit({ ...rowEdit, timeZone: e.target.value })}>
+                    {timeZoneOptions(rowEdit.timeZone).map(z => <option key={z} value={z}>{z}</option>)}
+                  </select>
                 </>
               ) : (
                 <textarea aria-label="Why they said no" rows={3} maxLength={2000} value={rowEdit.note}
