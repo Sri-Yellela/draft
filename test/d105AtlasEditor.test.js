@@ -224,13 +224,15 @@ test("D105 · d105SitemapPublishedOnly — /atlas and the PUBLISHED pages are in
   assert.match(read("services/atlas/atlasSitemap.js"), /WHERE status = 'published'/);
 });
 
-test("D105 · Wikipedia's summary — published nodes with a wiki title only, weekly, a User-Agent with a contact, stops at 429", async () => {
+// ⭐ Amended 10-31 (D105 P7): drafts with a wiki title are read too — a matched summary is half of the auto-publish
+// bar — published ones first; a node with no title is still never guessed here (the exact-title matcher is atlasWikidata.js).
+test("D105 · Wikipedia's summary — nodes with a wiki title (published first, drafts too), weekly, a User-Agent with a contact, stops at 429", async () => {
   const db = fixtureDb();
   const k = upsertNode(db, { kind: "tool", name: "Kubernetes" }).id;
   upsertNode(db, { kind: "tool", name: "Helm" });
   upsertNode(db, { kind: "tool", name: "Go" });
   db.prepare(`UPDATE atlas_nodes SET wiki_title = 'Kubernetes' WHERE slug = 'kubernetes'`).run();
-  db.prepare(`UPDATE atlas_nodes SET wiki_title = 'Helm_(package_manager)' WHERE slug = 'helm'`).run();   // stays a draft
+  db.prepare(`UPDATE atlas_nodes SET wiki_title = 'Helm_(package_manager)' WHERE slug = 'helm'`).run();   // a draft: read after the published one
   setStatus(db, "kubernetes", "published");
   setStatus(db, "go", "published");                                                                   // no wiki title: never guessed
   const asked = [];
@@ -241,8 +243,10 @@ test("D105 · Wikipedia's summary — published nodes with a wiki title only, we
       thumbnail: { source: "https://upload.wikimedia.test/k.png" }, content_urls: { desktop: { page: "https://en.wikipedia.org/wiki/Kubernetes" } } });
   };
   const r = await refreshWikiSummaries(db, { fetchImpl, pauseMs: 0, now: () => now });
-  assert.deepEqual(r, { due: 1, fetched: 1, skipped: 0, failed: 0, stoppedAt429: false });
-  assert.deepEqual(asked.map(a => a.url), ["https://en.wikipedia.org/api/rest_v1/page/summary/Kubernetes"]);
+  assert.deepEqual(r, { due: 2, fetched: 2, skipped: 0, failed: 0, stoppedAt429: false });
+  assert.deepEqual(asked.map(a => a.url), ["https://en.wikipedia.org/api/rest_v1/page/summary/Kubernetes",
+    "https://en.wikipedia.org/api/rest_v1/page/summary/Helm_(package_manager)"], "published first; go (no title) never asked");
+  assert.equal(readNode(db, "helm"), null, "a draft's cached summary is still not public");
   assert.ok(asked.every(a => a.ua === WIKI_UA && /draft/.test(a.ua) && /https:\/\//.test(a.ua)), "names the client and a contact");
   const page = readNode(db, "kubernetes");
   assert.equal(page.wikipedia.extract, "Kubernetes is an open-source container orchestration system.");

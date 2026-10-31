@@ -4,6 +4,7 @@
 // the owner's domain lists: suggested titles, keywords, tools). For the computer-science domains only (the board's
 // scope, D78 B): each suggested title → a ROLE, each keyword → a SKILL, each tool → a TOOL, and role → `requires` →
 // each of its domain's keywords and tools (source 'registry'). Everything lands as DRAFT; a person publishes.
+// ⭐ Amended 10-31: drafts that meet the bar publish themselves nightly (atlasPublish.js) — the seed itself publishes nothing.
 // Idempotent: a second run adds nothing, and never touches a node or edge a curator already has.
 //
 // ⚠ Not here yet: Wikidata (CC0) edges and O*NET (US DoL, attribution) role → skill lists. Both are network sources

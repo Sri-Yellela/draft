@@ -18,7 +18,7 @@ import DepthButton from "../../components/DepthButton.jsx";
 import { BRAND } from "../../../../shared/brand.js";
 import AtlasGraph from "./AtlasGraph.jsx";
 import {
-  KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta,
+  KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
   WIKI_LICENCE, YOU_LABEL, YOU_MARK,
 } from "./atlasModel.js";
 import "./AtlasPage.css";
@@ -152,6 +152,7 @@ export function AtlasNodeView({ base, node, from, onWalk }) {
             <p className="atl__quiet" data-atlas-computed="">{computedLine(stats)}</p>
           </>
         )}
+        {node.fewOpenPostings && <p className="atl__quiet" data-atlas-few="">{FEW_POSTINGS_LINE}</p>}
       </section>
 
       {node.kind === "role" && node.sponsors?.length > 0 && (

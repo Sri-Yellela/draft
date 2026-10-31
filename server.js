@@ -99,7 +99,7 @@ import { seedAtlasFromRegistry } from "./services/atlas/atlasSeed.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
 import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
-import { refreshWikiSummaries } from "./services/atlas/atlasWiki.js";
+import { autoPublish, runAtlasAutoPipeline } from "./services/atlas/atlasPublish.js";
 // ⭐ D108: a company's sponsorship fact (the existing LCA match, with its source and date) and the dated "What changed".
 import { sponsorshipFactsForRows } from "./services/kb/sponsorshipFacts.js";
 import { createWhatChangedRouter, createWhatChangedAdminRouter } from "./routes/whatChanged.js";
@@ -5772,6 +5772,28 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D105 P7–P9 (amended 10-31) · THE ATLAS PUBLISHES ITSELF. Additive only.
+      // atlas_nodes.unpublished_by / unpublished_at — a PERSON's un-publish, recorded so the nightly auto-publish never
+      // re-publishes that node (services/atlas/atlasPublish.js; the person publishing again clears it).
+      // atlas_nodes.wiki_title_by — 'auto' (the nightly matcher: an exact, non-disambiguation article title) or 'owner'
+      // (the curator set or cleared it; the matcher never overwrites it). wiki_checked_at — the matcher's last try.
+      // atlas_nodes.wikidata_id (Q…, from the article's pageprops) and wikidata_checked_at — read once per item.
+      // atlas_resources.source — 'wikidata' (P856 official website, P2078 user manual), 'wikipedia' (the article),
+      // 'owner' (the curator's); the page lists them in that order (atlasStore.RESOURCE_ORDER_SQL).
+      id: "189_atlas_publish",
+      sql: `
+        ALTER TABLE atlas_nodes ADD COLUMN unpublished_by TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN unpublished_at INTEGER;
+        ALTER TABLE atlas_nodes ADD COLUMN wiki_title_by TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN wiki_checked_at INTEGER;
+        ALTER TABLE atlas_nodes ADD COLUMN wikidata_id TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN wikidata_checked_at INTEGER;
+        ALTER TABLE atlas_resources ADD COLUMN source TEXT;
+        UPDATE atlas_nodes SET wiki_title_by = 'owner' WHERE wiki_title IS NOT NULL;
+        UPDATE atlas_resources SET source = 'owner' WHERE source IS NULL;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -6480,9 +6502,13 @@ cron.schedule("0 4 * * *", async () => {
     console.error('[Cron] Job history rollup error:', e.message);
   }
   // ⭐ D105 P3: the Atlas's "On the board" — every number computed from today's active postings, never typed.
+  // ⭐ P9 (amended 10-31): the same pass rebuilds the 'board' edges; ⭐ P7: then the auto-publish bar is re-checked
+  // (≥ 5 postings + a Wikipedia summary or a definition; a person's un-publish wins — services/atlas/atlasPublish.js).
   try {
     const a = computeAtlasStats(db);
-    console.log(`[Cron] atlas stats: ${a.nodes} node(s) over ${a.postings} posting(s)`);
+    console.log(`[Cron] atlas stats: ${a.nodes} node(s) over ${a.postings} posting(s), ${a.boardEdges} board edge(s)`);
+    const p = autoPublish(db);
+    if (p.published.length) console.log(`[Cron] atlas auto-publish: ${p.published.length} page(s) published`);
   } catch(e) {
     console.error('[Cron] Atlas stats error:', e.message);
   }
@@ -6490,17 +6516,20 @@ cron.schedule("0 4 * * *", async () => {
 console.log('[Cron] Daily ATS cache refresh scheduled: 04:00 ET');
 
 // ⭐ D105 P6 · the Atlas's dead-link checker (two consecutive failures → dead, hidden from the page) and the weekly
-// Wikipedia summaries (published nodes with a curator-set wiki_title only). Polite: one request at a time, a pause,
+// Wikipedia summaries (nodes with a wiki_title — the curator's or an exact match; drafts too since 10-31). Polite: one request at a time, a pause,
 // a User-Agent naming draft, a per-run cap. The curator's buttons in Admin → Data → Atlas run the same code now.
 cron.schedule('30 5 * * *', async () => {
   try {
     const r = await checkAtlasLinks(db);
     if (!r.busy) console.log(`[Cron] atlas links: ${r.checked} checked, ${r.ok} ok, ${r.failing} failing, ${r.dead} dead (${r.newlyDead.length} new)`);
   } catch (e) { console.error('[Cron] Atlas link check error:', e.message); }
+  // ⭐ D105 P7/P8 (amended 10-31): Wikipedia titles (exact matches only) + Wikidata items → the official site / docs
+  // from Wikidata → Wikipedia summaries (drafts too) → the auto-publish bar again, so tonight's summaries count tonight.
   try {
-    const w = await refreshWikiSummaries(db);
-    if (w.due) console.log(`[Cron] atlas wikipedia: ${w.fetched} of ${w.due} refreshed${w.stoppedAt429 ? ' (stopped at 429)' : ''}`);
-  } catch (e) { console.error('[Cron] Atlas Wikipedia refresh error:', e.message); }
+    const r = await runAtlasAutoPipeline(db);
+    const w = r.wikipedia || {};
+    console.log(`[Cron] atlas auto: ${r.titles?.matched ?? 0} title(s) matched, ${r.wikidata?.official ?? 0} official link(s), ${w.fetched ?? 0} of ${w.due ?? 0} summaries${w.stoppedAt429 ? ' (stopped at 429)' : ''}, ${r.autoPublish.published.length} published`);
+  } catch (e) { console.error('[Cron] Atlas auto-publish run error:', e.message); }
 }, { timezone: 'America/New_York' });
 
 cron.schedule("0 2 * * *", () => {
