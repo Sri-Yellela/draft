@@ -8,7 +8,7 @@
 // ⛔ A resource's address is https only: the page links out to it, and a plain-http or javascript: link is not one a
 // reader should be handed.
 
-import { upsertNode, addEdge, addAlias, aliasesOf, KINDS, EDGE_TYPES, termOf } from "./atlasStore.js";
+import { upsertNode, addEdge, addAlias, aliasesOf, KINDS, EDGE_TYPES, termOf, RESOURCE_ORDER_SQL } from "./atlasStore.js";
 
 export const RESOURCE_LEVELS = Object.freeze(["beginner", "intermediate", "advanced"]);
 export const RESOURCE_FORMATS = Object.freeze(["course", "docs", "book", "video", "tutorial", "article", "practice"]);
@@ -30,7 +30,7 @@ export function createNode(db, { kind, name, definition = null, wikiTitle = null
   if (!nm) bad("bad_name", "a node needs a name");
   const { id, created } = upsertNode(db, { kind, name: nm, source: "owner", definition: cleanText(definition), status: "draft" });
   if (!created) bad("exists", "a node by that name already exists");
-  if (wikiTitle) db.prepare(`UPDATE atlas_nodes SET wiki_title = ? WHERE id = ?`).run(cleanWikiTitle(wikiTitle), id);
+  if (wikiTitle) db.prepare(`UPDATE atlas_nodes SET wiki_title = ?, wiki_title_by = 'owner' WHERE id = ?`).run(cleanWikiTitle(wikiTitle), id);
   return db.prepare(`SELECT slug, kind, name, status FROM atlas_nodes WHERE id = ?`).get(id);
 }
 
@@ -45,9 +45,16 @@ export function updateNode(db, slug, { definition, wikiTitle } = {}) {
   if (definition !== undefined) { sets.push("definition = ?"); args.push(cleanText(definition)); }
   if (wikiTitle !== undefined) {
     const t = cleanWikiTitle(wikiTitle);
-    sets.push("wiki_title = ?"); args.push(t);
+    // ⭐ P8 (amended 10-31): the curator's title — set OR cleared — is theirs from now on: the nightly matcher never
+    // overwrites a title whose wiki_title_by is 'owner' (atlasWikidata.js), so clearing a wrong match keeps it clear.
+    sets.push("wiki_title = ?", "wiki_title_by = 'owner'"); args.push(t);
     // A new title means the cached summary is someone else's page — drop it; the weekly refresh reads the new one.
-    if (t !== n.wiki_title) db.prepare(`DELETE FROM atlas_wiki_cache WHERE node_id = ?`).run(n.id);
+    // The Wikidata item (and the resources read from it) belonged to the old title too: dropped, read again.
+    if (t !== n.wiki_title) {
+      db.prepare(`DELETE FROM atlas_wiki_cache WHERE node_id = ?`).run(n.id);
+      db.prepare(`DELETE FROM atlas_resources WHERE node_id = ? AND source IN ('wikidata', 'wikipedia')`).run(n.id);
+      sets.push("wikidata_id = NULL", "wiki_checked_at = NULL", "wikidata_checked_at = NULL");
+    }
   }
   if (!sets.length) return false;
   db.prepare(`UPDATE atlas_nodes SET ${sets.join(", ")}, updated_at = unixepoch() WHERE id = ?`).run(...args, n.id);
@@ -63,10 +70,11 @@ export function readNodeForEditor(db, slug) {
     UNION ALL
     SELECT e.type, 'in' AS dir, m.slug, m.name, m.kind, m.status, e.source FROM atlas_edges e JOIN atlas_nodes m ON m.id = e.from_id WHERE e.to_id = ?
     ORDER BY type, name`).all(n.id, n.id);
-  const resources = db.prepare(`SELECT id, url, title, level, format, hours, cost, checked_at AS checkedAt, check_status AS checkStatus
-    FROM atlas_resources WHERE node_id = ? ORDER BY id`).all(n.id);
+  const resources = db.prepare(`SELECT id, url, title, level, format, hours, cost, checked_at AS checkedAt, check_status AS checkStatus, source
+    FROM atlas_resources WHERE node_id = ? ORDER BY ${RESOURCE_ORDER_SQL}`).all(n.id);
   return { slug: n.slug, kind: n.kind, name: n.name, status: n.status, source: n.source, definition: n.definition,
-    wikiTitle: n.wiki_title, aliases: aliasesOf(db, n.term), edges, resources };
+    wikiTitle: n.wiki_title, wikiTitleBy: n.wiki_title_by, wikidataId: n.wikidata_id,
+    publishedBy: n.published_by, unpublishedBy: n.unpublished_by, aliases: aliasesOf(db, n.term), edges, resources };
 }
 
 // ── edges ───────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -126,8 +134,8 @@ export function addResource(db, slug, input, by = "owner") {
   const n = nodeBySlug(db, slug);
   if (!n) bad("not_found");
   const r = cleanResource(input || {});
-  const info = db.prepare(`INSERT OR IGNORE INTO atlas_resources (node_id, url, title, level, format, hours, cost, added_by)
-    VALUES (?,?,?,?,?,?,?,?)`).run(n.id, r.url, r.title, r.level, r.format, r.hours, r.cost, String(by).slice(0, 120));
+  const info = db.prepare(`INSERT OR IGNORE INTO atlas_resources (node_id, url, title, level, format, hours, cost, added_by, source)
+    VALUES (?,?,?,?,?,?,?,?,'owner')`).run(n.id, r.url, r.title, r.level, r.format, r.hours, r.cost, String(by).slice(0, 120));
   if (!info.changes) bad("exists", "this page already lists that address");
   return Number(info.lastInsertRowid);
 }

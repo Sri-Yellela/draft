@@ -116,10 +116,16 @@ export function computedLine(stats) {
   return `computed from ${n} active posting${n === 1 ? "" : "s"}${day ? ` on ${day}` : ""}`;
 }
 
-/** Resources, free first (the server orders them so too — kept here so the page cannot reorder them by accident). */
+// ⭐ D105 P8 (amended 10-31): Wikidata's official site and docs first, then the Wikipedia article, then the curated ones.
+const SOURCE_RANK = { wikidata: 0, wikipedia: 1 };
+const rankOf = (r) => SOURCE_RANK[r?.source] ?? 2;
+/** Resources: Wikidata's, Wikipedia's, then free first (the server orders them so too — kept here so the page cannot reorder them by accident). */
 export function orderedResources(list = []) {
-  return list.map((r, i) => [r, i]).sort(([a, i], [b, j]) => ((b.cost === "free") - (a.cost === "free")) || i - j).map(([r]) => r);
+  return list.map((r, i) => [r, i]).sort(([a, i], [b, j]) => (rankOf(a) - rankOf(b)) || ((b.cost === "free") - (a.cost === "free")) || i - j).map(([r]) => r);
 }
+
+/** ⭐ D105 P7: the line a published page shows when its board count fell under the auto-publish bar. */
+export const FEW_POSTINGS_LINE = "Few open postings right now — this page stays up; the numbers above are today's.";
 
 /** level · format · hours · cost · last checked — the parts a resource has, in that order. */
 export function resourceMeta(r) {
@@ -128,6 +134,7 @@ export function resourceMeta(r) {
   if (r.format) parts.push(r.format);
   if (r.hours != null && r.hours !== "") parts.push(`${r.hours} h`);
   if (r.cost) parts.push(r.cost === "free" ? "Free" : r.cost);
+  if (r.source === "wikidata") parts.push("from Wikidata");
   parts.push(r.checkedAt ? `checked ${formatDay(r.checkedAt)}` : "not checked yet");
   return parts;
 }

@@ -5306,4 +5306,26 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D105 P7–P9 (amended 10-31) · THE ATLAS PUBLISHES ITSELF. Additive only.
+      // atlas_nodes.unpublished_by / unpublished_at — a PERSON's un-publish, recorded so the nightly auto-publish never
+      // re-publishes that node (services/atlas/atlasPublish.js; the person publishing again clears it).
+      // atlas_nodes.wiki_title_by — 'auto' (the nightly matcher: an exact, non-disambiguation article title) or 'owner'
+      // (the curator set or cleared it; the matcher never overwrites it). wiki_checked_at — the matcher's last try.
+      // atlas_nodes.wikidata_id (Q…, from the article's pageprops) and wikidata_checked_at — read once per item.
+      // atlas_resources.source — 'wikidata' (P856 official website, P2078 user manual), 'wikipedia' (the article),
+      // 'owner' (the curator's); the page lists them in that order (atlasStore.RESOURCE_ORDER_SQL).
+      id: "189_atlas_publish",
+      sql: `
+        ALTER TABLE atlas_nodes ADD COLUMN unpublished_by TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN unpublished_at INTEGER;
+        ALTER TABLE atlas_nodes ADD COLUMN wiki_title_by TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN wiki_checked_at INTEGER;
+        ALTER TABLE atlas_nodes ADD COLUMN wikidata_id TEXT;
+        ALTER TABLE atlas_nodes ADD COLUMN wikidata_checked_at INTEGER;
+        ALTER TABLE atlas_resources ADD COLUMN source TEXT;
+        UPDATE atlas_nodes SET wiki_title_by = 'owner' WHERE wiki_title IS NOT NULL;
+        UPDATE atlas_resources SET source = 'owner' WHERE source IS NULL;
+      `,
+    },
   ];
