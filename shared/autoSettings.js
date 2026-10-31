@@ -27,6 +27,13 @@ export const AUTO_DEFAULTS = Object.freeze({
   // ⭐ D107 P3: FULL AUTO and Approve all leave out a posting that looks like it is never filled — shown, never hidden.
   staleReposts: 3,
   staleOpenDays: 90,
+  // ⭐ D113 (owner 10-31) · "Ask me first": in SEMI, the run times send the user ONE picks message per run (email + Web
+  // Push) and a tap on Apply sends that one application. OFF by default — a SEMI user who never turned it on gets no
+  // picks. In FULL AUTO ("Apply for me") the picks go straight to the run and this switch is not read.
+  picks: false,
+  // ⭐ D113 answer (1) · "Show me the form before sending" — OFF by default: a tap on Apply (or Apply for me) SENDS.
+  // On, the run fills the form and stops at Ready for your review, as a Draft from the board does.
+  showFormBeforeSending: false,
 });
 export const CAP_MIN = 1;
 export const CAP_MAX = 150;
@@ -104,6 +111,14 @@ export function normaliseAutoSettings(input = {}) {
     if (!(n === null || (Number.isInteger(n) && n >= 14 && n <= 365)))
       return fail("bad_stale_open_days", "Skip long-open postings: off, or 14 to 365 days.");
     v.staleOpenDays = n;
+  }
+  if ("picks" in input) {
+    if (typeof input.picks !== "boolean") return fail("bad_picks", "Picks by message are on or off.");
+    v.picks = input.picks;
+  }
+  if ("showFormBeforeSending" in input) {
+    if (typeof input.showFormBeforeSending !== "boolean") return fail("bad_show_form", "Show me the form before sending is on or off.");
+    v.showFormBeforeSending = input.showFormBeforeSending;
   }
   if ("profileId" in input) {
     if (!(input.profileId === null || Number.isInteger(input.profileId))) return fail("bad_profile", "The job profile is an id, or none for the active one.");
