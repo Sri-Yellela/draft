@@ -8,6 +8,8 @@
 // normalisation (normaliseAtsTerm).
 //
 // ⛔ Public reads see PUBLISHED nodes only; a draft is the curator's. Nothing here calls a model (D17).
+// ⭐ Amended 10-31: a node is published by a person OR by the nightly auto-publish bar (atlasPublish.js); a person's
+// un-publish is recorded and sticks.
 
 import { normaliseAtsTerm } from "../localAtsScorer.js";
 import { recordSynonymProposals, confirmSynonym } from "../kb/skillSynonyms.js";
@@ -121,8 +123,10 @@ export function readNode(db, slug, { publishedOnly = true } = {}) {
     if (s) stats = { postings: s.postings, topSkills: JSON.parse(s.top_skills_json), topRoles: JSON.parse(s.top_roles_json),
       pay: s.pay_n ? { minUsd: s.pay_min_usd, medianUsd: s.pay_median_usd, maxUsd: s.pay_max_usd, n: s.pay_n } : null, computedAt: s.computed_at };
   } catch { stats = null; }
-  const resources = db.prepare(`SELECT url, title, level, format, hours, cost, checked_at AS checkedAt, check_status AS checkStatus
-    FROM atlas_resources WHERE node_id = ? AND COALESCE(check_status, 'ok') != 'dead' ORDER BY (cost = 'free') DESC, id`).all(n.id);
+  // ⭐ P8 (amended 10-31): the official site and docs from Wikidata first, the Wikipedia article second, then the
+  // curated ones, free first (RESOURCE_ORDER_SQL — the editor's list and the page agree).
+  const resources = db.prepare(`SELECT url, title, level, format, hours, cost, checked_at AS checkedAt, check_status AS checkStatus, source
+    FROM atlas_resources WHERE node_id = ? AND COALESCE(check_status, 'ok') != 'dead' ORDER BY ${RESOURCE_ORDER_SQL}`).all(n.id);
   const wiki = db.prepare(`SELECT title, extract, thumbnail_url AS thumbnailUrl, page_url AS pageUrl, fetched_at AS fetchedAt
     FROM atlas_wiki_cache WHERE node_id = ?`).get(n.id) || null;
   return {
@@ -130,12 +134,22 @@ export function readNode(db, slug, { publishedOnly = true } = {}) {
     aliases: aliasesOf(db, n.term),
     definition: n.definition,
     onTheBoard: stats,
+    // ⭐ P7: a published page whose board count fell under the bar STAYS published and says so (never unpublished).
+    fewOpenPostings: n.status === "published" && (stats?.postings ?? 0) < AUTO_PUBLISH_MIN_POSTINGS,
     related,
     resources,
     // ⛔ Wikipedia's text is shown as Wikipedia's: its own block, its licence and its link (d105WikiAttributed).
     wikipedia: wiki ? { ...wiki, licence: WIKI_LICENCE } : null,
   };
 }
+
+/** ⭐ D105 P7 (amended 10-31) · the board half of the auto-publish bar (services/atlas/atlasPublish.js). */
+export const AUTO_PUBLISH_MIN_POSTINGS = 5;
+/** Who auto-publish records in published_by — never a curator's name. */
+export const AUTO_PUBLISHER = "atlas-auto";
+
+/** Wikidata's resources (official site, docs) first, then the Wikipedia article, then the curated ones, free first. */
+export const RESOURCE_ORDER_SQL = `CASE source WHEN 'wikidata' THEN 0 WHEN 'wikipedia' THEN 1 ELSE 2 END, (cost = 'free') DESC, id`;
 
 export const WIKI_LICENCE = Object.freeze({
   line: "From Wikipedia, CC BY-SA 4.0",
@@ -166,10 +180,18 @@ export function resolveTerms(db, terms) {
   return out;
 }
 
-/** The curator publishes (or unpublishes) a node. */
+/**
+ * The curator publishes (or unpublishes) a node. ⭐ P7 (amended 10-31): an UNPUBLISH is recorded (unpublished_by,
+ * unpublished_at) and auto-publish never re-publishes such a node — the owner's un-publish wins
+ * (d105OwnerUnpublishSticks). The curator publishing it again clears the mark.
+ */
 export function setStatus(db, slug, status, by = "owner") {
   if (!["draft", "published"].includes(status)) throw new Error("atlas: status is draft or published");
+  const who = String(by || "owner").slice(0, 120);
   return db.prepare(`UPDATE atlas_nodes SET status = ?, published_at = CASE WHEN ? = 'published' THEN unixepoch() ELSE NULL END,
-    published_by = CASE WHEN ? = 'published' THEN ? ELSE NULL END, updated_at = unixepoch() WHERE slug = ?`)
-    .run(status, status, status, by, String(slug)).changes > 0;
+    published_by = CASE WHEN ? = 'published' THEN ? ELSE NULL END,
+    unpublished_by = CASE WHEN ? = 'draft' THEN ? ELSE NULL END,
+    unpublished_at = CASE WHEN ? = 'draft' THEN unixepoch() ELSE NULL END,
+    updated_at = unixepoch() WHERE slug = ?`)
+    .run(status, status, status, who, status, who, status, String(slug)).changes > 0;
 }

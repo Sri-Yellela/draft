@@ -79,7 +79,8 @@ test("D105 · d105BoardStatsComputed — postings, co-skills, roles and pay come
   post(db, "2", "Senior Backend Engineer", "Python services on Kubernetes.", { pmin: 1, pmax: 1 });
   post(db, "3", "Data Analyst", "SQL and Python dashboards; we write Go.", { skills: JSON.stringify(["Go", "SQL"]) });
   db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,url,search_query,_hash,description,is_active) VALUES ('4','Backend Engineer','Co','u','t','h4','Python',0)`).run();
-  assert.deepEqual(computeAtlasStats(db, { now: 1000 }), { postings: 3, nodes: 4 });
+  // ⭐ P9 (10-31): the pass also reports the board edges it wrote — none here (no pair is asked together 3 times).
+  assert.deepEqual(computeAtlasStats(db, { now: 1000 }), { postings: 3, nodes: 4, boardEdges: 0 });
   const stat = (slug) => readNode(db, slug, { publishedOnly: false }).onTheBoard;
   assert.equal(stat("python").postings, 3);
   assert.equal(stat("kubernetes").postings, 2, "the alias counts");

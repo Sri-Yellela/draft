@@ -10,6 +10,10 @@
 // model), Merge two (the loser's edges and resources move; its term becomes a CONFIRMED alias in skill_synonyms, the one
 // thesaurus), and per node: the definition and Wikipedia title, typed edges (never alias_of), resources (https only,
 // title, level, format, hours, cost), "Check links now" (the daily dead-link checker) and "Refresh Wikipedia".
+// ⭐ D105 P7 (amended 10-31) · THE ATLAS PUBLISHES ITSELF: a draft is published nightly once ≥ 5 active postings ask for
+// it AND it has a Wikipedia summary or a definition. Each draft row says why it is not published yet (readinessLine:
+// "postings 2 of 5 · no Wikipedia summary or definition"), a node a person unpublished says so and stays a draft, and
+// "Run auto-publish now" runs the nightly titles → Wikidata → Wikipedia → bar pass (POST /api/admin/atlas/auto/run).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
@@ -26,6 +30,19 @@ const STATUS_TONE = { ok: C.SUCCESS, failing: C.WARNING, dead: C.DANGER };
 const enc = encodeURIComponent;
 const send = (path, body, method = "POST") => api(path, { method, body: JSON.stringify(body || {}) });
 const label = { display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: C.INK_MUTED };
+
+/** Why a row is (not) published — from the server's readiness (services/atlas/atlasPublish.js readiness). */
+function readinessLine(r) {
+  const rd = r?.readiness;
+  if (!rd) return null;
+  if (r.status === "published") {
+    const auto = r.publishedBy === "atlas-auto" ? "published automatically" : r.publishedBy ? `published by ${r.publishedBy}` : "published";
+    return rd.postings < rd.need ? `${auto} · few open postings (${rd.postings} of ${rd.need}) — stays published` : auto;
+  }
+  if (rd.heldBy) return `unpublished by ${rd.heldBy} — auto-publish leaves it a draft until someone publishes it`;
+  if (rd.ready) return "meets the bar — published at the next nightly check (or Run auto-publish now)";
+  return `not published yet: ${rd.missing.join(" · ")}`;
+}
 
 /** Add a node by hand — a DRAFT until it is published. */
 function AtlasAddNode({ onAdded, say }) {
@@ -229,7 +246,9 @@ export function AtlasTab() {
     try {
       await api(`/api/admin/atlas/${encodeURIComponent(r.slug)}/status`, { method: "POST", body: JSON.stringify({ status: next }) });
       setSaid({ ok: true, text: `${r.name} is now ${next === "published" ? "PUBLISHED — anyone can open /atlas/" + r.slug : "a draft again — the public page is gone"}.` });
-      setRows(rs => (rs || []).map(x => x.slug === r.slug ? { ...x, status: next } : x).filter(x => !status || x.status === status));
+      // An unpublish by a person is recorded (it sticks); publishing again clears it — mirrored here until the next load.
+      setRows(rs => (rs || []).map(x => x.slug === r.slug ? { ...x, status: next, publishedBy: next === "published" ? "you" : null,
+        readiness: x.readiness ? { ...x.readiness, heldBy: next === "draft" ? "you" : null } : x.readiness } : x).filter(x => !status || x.status === status));
     } catch (e) { setSaid({ ok: false, text: e.message }); }
     finally { setBusy(null); }
   };
@@ -255,10 +274,21 @@ export function AtlasTab() {
     finally { setBusy(null); }
   };
 
+  const runAuto = async () => {
+    setBusy("auto"); setSaid(null);
+    try {
+      const r = await api("/api/admin/atlas/auto/run", { method: "POST" });
+      const n = r.autoPublish?.published?.length ?? 0;
+      setSaid({ ok: true, text: `Auto-publish: ${r.titles?.matched ?? 0} Wikipedia title(s) matched, ${r.wikidata?.official ?? 0} official link(s) from Wikidata, ${r.wikipedia?.fetched ?? 0} summaries read, ${n} page(s) published.` });
+      load();
+    } catch (e) { setSaid({ ok: false, text: e.message }); }
+    finally { setBusy(null); }
+  };
+
   const counts = rows ? { total: rows.length, roles: rows.filter(r => r.kind === "role").length } : null;
   return (
     <Panel data-admin-atlas="" title="Atlas"
-      purpose="The Atlas's pages. Every page starts as a draft and nobody outside sees it until it is published here — start with the roles the board has most postings for, then their top skills."
+      purpose="The Atlas's pages. A draft publishes itself nightly once 5 active postings ask for it and it has a Wikipedia summary or a definition; each draft says what it is missing. Unpublishing here sticks — auto-publish never brings it back."
       code="D105 P4 + P6 · GET /api/admin/atlas · POST …/:slug/status · …/stats · …/nodes · …/merge · …/node/:slug (edges, resources) · …/resources/:id · …/links/check · …/wiki/refresh · public reads are published-only"
       numbers={counts ? [[counts.total, status ? `${status} nodes` : "nodes"], [counts.roles, "of them roles"]] : []}>
       <div style={{ ...row, marginBottom: 12 }}>
@@ -274,6 +304,7 @@ export function AtlasTab() {
         <DepthButton size="compact" disabled={busy === "stats"} onClick={recompute} data-atlas-recompute="">Recompute On the board</DepthButton>
         <DepthButton size="compact" disabled={busy === "links"} onClick={checkLinks} data-atlas-check-links="">Check links now</DepthButton>
         <DepthButton size="compact" disabled={busy === "wiki"} onClick={refreshWiki} data-atlas-refresh-wiki="">Refresh Wikipedia</DepthButton>
+        <DepthButton size="compact" disabled={busy === "auto"} onClick={runAuto} data-atlas-run-auto="">Run auto-publish now</DepthButton>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10, marginBottom: 12 }}>
         <AtlasAddNode say={setSaid} onAdded={(node) => { load(); setOpen(node.slug); }} />
@@ -287,6 +318,7 @@ export function AtlasTab() {
             <div key={r.slug} data-atlas-row={r.slug} style={{ ...sub, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               <span style={{ flex: "1 1 200px", fontSize: 13, color: C.INK, overflowWrap: "anywhere" }}>
                 <b>{r.name}</b> <span style={quiet}>{r.kind} · {r.postings} posting{r.postings === 1 ? "" : "s"} · {r.source}</span>
+                {readinessLine(r) && <span style={{ ...quiet, display: "block" }} data-atlas-readiness={r.readiness?.ready ? "ready" : "not-ready"}>{readinessLine(r)}</span>}
               </span>
               <Mark tone={r.status === "published" ? C.SUCCESS : C.INK_MUTED}>{r.status}</Mark>
               {r.status === "published" && <a href={`/atlas/${encodeURIComponent(r.slug)}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: C.ACCENT_INK }}>Open page</a>}
