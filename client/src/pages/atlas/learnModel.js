@@ -1,9 +1,11 @@
 // client/src/pages/atlas/learnModel.js — ⭐ D115 P2–P3 · the Learn view's pure half: steps, a step's state, what is
 // next, and the browser's progress when signed out. No React here, so the rules are testable as plain functions.
 import { matchCandidate } from "../../../../shared/atlasSearchNormalize.js";
+// A step's progress is the shared rule (D116: YOUR MAP reads the same one on the server).
+import { stepState, checkpointId } from "../../../../shared/learnStepState.js";
+export { stepState, checkpointId };
 
 export const LOCAL_KEY = "draft-learn-progress";   // signed out: { [markId]: at } in this browser
-export const checkpointId = (stepId, i) => `${stepId}#c${i}`;
 
 /** Every step in order, with its part, phase and numbers — the tracker's own "Step 1 … 108". */
 export function flatSteps(learn) {
@@ -19,19 +21,6 @@ export function phaseNumbers(learn) {
   const m = new Map(); let n = 0;
   for (const part of learn?.PARTS || []) for (const ph of part.phases || []) m.set(ph.id, ++n);
   return m;
-}
-
-/**
- * A step's progress: its REQUIRED items (not optional) done and its checkpoints explained.
- * @returns {{ done, total, complete: boolean, started: boolean }}
- */
-export function stepState(step, marks) {
-  const req = (step.items || []).filter(it => !it.o).map(it => it.id);
-  const cps = (step.c || []).map((_, i) => checkpointId(step.id, i));
-  const all = [...req, ...cps];
-  const done = all.filter(id => marks[id]).length;
-  const anyOptional = (step.items || []).some(it => it.o && marks[it.id]);
-  return { done, total: all.length, complete: all.length > 0 && done === all.length, started: done > 0 || anyOptional };
 }
 
 /** Up next: the first step not complete — skipping advanced steps when "Basics first" is on. */

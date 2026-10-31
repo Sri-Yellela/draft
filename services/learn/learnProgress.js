@@ -4,9 +4,10 @@
 //                       own, so their place in the step is theirs; the extractor's re-run prints any id that moved
 // Only marks the content knows are accepted (an unknown id is refused, so a stale browser cannot store junk).
 import { learnContent, stepsOf } from "./learnContent.js";
+import { checkpointId } from "../../shared/learnStepState.js";
+export { checkpointId };   // the one rule (shared/learnStepState.js)
 
 export const MARK_STATES = Object.freeze(["done", "explained"]);
-export const checkpointId = (stepId, i) => `${stepId}#c${i}`;
 
 let known = null;
 /** Every mark id the content has → the state it takes ("done" for an item, "explained" for a checkpoint). */
