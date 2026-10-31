@@ -387,6 +387,8 @@ test("D113 UI · the adapter falls back when the runs route 404s, and the next r
   assert.deepEqual(await loadRuns({}, notFound), { available: false, runs: [], nextRunAt: null, error: null });
   assert.deepEqual(await loadRuns({}, async () => ({})), { available: false, runs: [], nextRunAt: null }, "a page, not a runs list");
   assert.equal((await loadRuns({}, async () => ({ runs: [RUN], nextRunAt: 1793000000 }))).nextRunAt, 1793000000000);
+  // The shipped route (routes/picksConfirm.js) sends the next run inside `state`.
+  assert.equal((await loadRuns({}, async () => ({ runs: [RUN], state: { nextRunAt: 1793000000 } }))).nextRunAt, 1793000000000);
   assert.equal(await loadLeftOut(7, notFound), null);
   assert.match((await actOnPick(61, "apply", notFound)).message, /picks email/);
   // No runs → the tree groups today's attempts by DAY, and the next-run square is from the run times.
