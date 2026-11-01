@@ -758,6 +758,13 @@ export function PrivacyPage() {
             for security and debugging. We do not use third-party analytics services that
             track you across the web.
           </P>
+          <P>
+            During the trial, draft records, with your account, which steps of the guided tour you reached and how long each
+            took, which features you tried (by name), any errors you met, your device type (phone or laptop), and your survey
+            answers. We use them only to see where the tour helps or loses people. Nothing you type is recorded in these steps;
+            the survey's email field is optional and is used only for a follow-up call you asked for. They are kept with your
+            account for 90 days.
+          </P>
         </PolicySection>
 
         {/* How We Use Your Data */}

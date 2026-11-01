@@ -84,6 +84,10 @@ const ADMIN = new Set([
   // D124: Admin → Trial — counts only, and the survey answers without emails (routes/trial.js).
   "GET /api/admin/trial",
   "GET /api/admin/trial/export",
+  // D129: usable analytics — admin only.
+  "GET /api/admin/trial/analytics",
+  "GET /api/admin/trial/crosscut",
+  "GET /api/admin/trial/export.csv",
   "POST /api/admin/trial/access",
   // AF residual. The full-auto kill switch, reachable without a SQL console. Admin-only and
   // deliberately not user-facing: it stops applications going out to real employers for EVERY

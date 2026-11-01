@@ -219,7 +219,8 @@ test("d124SurveyValidated + d124AdminTrialCountsOnly: unknown keys and bad value
   assert.equal(SURVEY.at(-2).key, "thoughts", "it ends in the tester's own words (then the optional follow-up email)");
   assert.equal(SURVEY.find(q => q.key === "improvement").type, "select", "the suggested improvements are a dropdown");
   startTrial(db, 1); pickResume(db, 1, "A");
-  saveSurvey(db, 1, { would_use: "maybe", useful: 5, frustrations: ["no_replies"], followup_email: "tester@example.com", thoughts: "Nice." });
+  // D129 (11-01, changed on purpose): the overall "useful" became a 1–5 rating per section.
+  saveSurvey(db, 1, { would_use: "maybe", rate_picks: 5, frustrations: ["no_replies"], followup_email: "tester@example.com", thoughts: "Nice." });
   saveFeedback(db, 1, { body: "The board took a while", screen: "/app" });
   assert.throws(() => saveFeedback(db, 1, { body: "  " }), /Write a line/);
   const c = adminTrialCounts(db);
@@ -227,7 +228,7 @@ test("d124SurveyValidated + d124AdminTrialCountsOnly: unknown keys and bad value
   assert.equal(c.picked.A, 1);
   assert.deepEqual(c.survey.wouldUse, { maybe: 1 });
   assert.equal(c.survey.thoughts, 1);
-  assert.equal(c.usefulAverage, 5);
+  assert.equal(c.sectionUseful.picks, 5);
   assert.equal(c.followupEmails, 1);
   assert.ok(!JSON.stringify(c).includes("tester@example.com"), "counts only");
   assert.ok(!JSON.stringify(c).includes("Nice."), "the thoughts are counted here, read in the export");
