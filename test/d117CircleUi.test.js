@@ -83,10 +83,10 @@ test("D117 C7 · d117CircleStatesFilled — every piece on the ring follows its 
   assert.deepEqual([state("s1"), state("s1b"), state("s2"), state("o4")], ["filled", "half", "open", "open"]);
   assert.equal((html.match(/data-learn-piece="/g) || []).length, 108);
   assert.equal((html.match(/data-learn-part="/g) || []).length, 8);
-  const tick = (id) => between(html, `data-learn-piece="${id}"`, "</g>");
-  assert.match(tick("s1"), /class="lrc__fill"[^>]*width="10"/);
-  assert.match(tick("s1b"), /class="lrc__fill"[^>]*width="5"/);
-  assert.match(tick("s2"), /class="lrc__fill"[^>]*width="0"/);
+  // ⚠ CHANGED ON PURPOSE (D117 C10 + C12): the ring of squares became ONE deck of portrait cards round the wheel; a
+  // card's BACK shows its state — filled · half · outlined — the same three the squares drew.
+  const card = (id) => (new RegExp(`class="lwh__card lwh__card--(\\w+) lrc__part--\\d+[^"]*"[^>]*data-learn-piece="${id}"`).exec(html) || [])[1];
+  assert.deepEqual([card("s1"), card("s1b"), card("s2")], ["filled", "half", "open"]);
   assert.match(html, /<b>1<\/b> finished · <b>1<\/b> started · 106 to go/);
   assert.equal(circleState({ complete: false, started: false }), "open");
   // The layout: Step 1 at the top, every piece once, the parts in order.
@@ -215,7 +215,12 @@ test("D117 C7 · d117FourThemes — the circle draws in draft's tokens only (Pap
   assert.match(css, /\.lrc__toast \{\n  position: fixed;[^}]*max-width: calc\(100vw - 32px\)/);
   const { circle } = await loadUi();
   const html = circle(props(await world(), { initialSel: "o4" }));
-  assert.match(html, /<rect class="lrc__sq"[^>]* rx="3.2"/, "the pieces are rounded squares");
+  // ⚠ CHANGED ON PURPOSE (C10 + C12): the pieces are rounded portrait CARDS (never capsules), in the wheel's own sheet.
+  const wheelCss = read("client/src/pages/atlas/LearnWheel.css");
+  assert.match(wheelCss, /\.lwh__card \{ position: absolute; width: 300px; height: 390px; left: -150px; border-radius: 26px;/, "rounded portrait cards");
+  assert.doesNotMatch(wheelCss, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i, "no colour literal in the wheel");
+  assert.doesNotMatch(wheelCss, /999px|border-radius:\s*50%/, "no capsule in the wheel");
+  assert.match(html, /data-learn-wheel=""/);
   assert.doesNotMatch(html, /style="[^"]*(#[0-9a-f]{3,8}|rgb)/i, "no inline colour");
 });
 
@@ -239,4 +244,44 @@ test("D115 P5 · the 26 games / exercises / practice links (riding on D117 C9): 
   const after = stepState(w4, earnedMarks(db, 7));
   assert.deepEqual([after.bar, after.extras], [before.bar, before.extras + 1]);
   assert.ok(after.extrasTotal >= 5);
+});
+
+// ── D117 C12 (owner 10-31, final): no watch face; the scroll wheel turns over a card and zooms elsewhere; the deck uses the stage ──
+test("D117 C12 · d117NoWatchFace · d117PlainLineOnlyZoomedIn — no face, ticks, hands or centre button; one plain line, seen only zoomed in", async () => {
+  const { circle } = await loadUi();
+  const html = circle(props(await world(), { initialSel: "o4" }));
+  const jsx = read("client/src/pages/atlas/LearnWheel.jsx");
+  assert.doesNotMatch(html, /class="[^"]*(clock|hand|hub|tick|crown)[^"]*"/i, "no watch face, no crown");
+  assert.match(html, /class="lwh__line" aria-hidden="true"/, "the one plain line");
+  assert.match(jsx, /lineRef\.current\.style\.opacity = \(e \* 0\.7\)\.toFixed\(2\)/, "its opacity follows the zoom: 0 zoomed out");
+  assert.doesNotMatch(html, />(Back|Forward|Zoom out|Previous card|Next card)</, "no nav buttons on the wheel");
+});
+
+test("D117 C12 · d117ScrollOverCardTurns · d117ScrollElsewhereZooms · d117ZoomSettles — the wheel's two jobs, by where it is", () => {
+  const jsx = read("client/src/pages/atlas/LearnWheel.jsx");
+  const wheel = jsx.slice(at(jsx, "const onWheel = (ev) => {"), at(jsx, 'el.addEventListener("wheel", onWheel, { passive: false });'));
+  assert.match(wheel, /if \(!\(ev\.target\?\.closest && ev\.target\.closest\("\.lwh__card"\)\)\) \{/, "off a card: zoom");
+  assert.match(wheel, /a\.zt = Math\.max\(0, Math\.min\(1, a\.zt - ev\.deltaY \* 0\.0025\)\)/);
+  assert.match(wheel, /a\.snap = setTimeout\(\(\) => \{ a\.zt = a\.zt > 0\.5 \? 1 : 0; kick\(\); \}, 240\);/, "settles to the nearer end");
+  assert.match(wheel, /while \(Math\.abs\(a\.wacc\) >= 60\) \{ const k = a\.wacc > 0 \? 1 : -1; a\.wacc -= k \* 60; turnRef\.current\(k\); \}/, "over a card: one card a notch");
+  assert.match(jsx, /\{ passive: false \}/, "non-passive, so the page does not scroll under it");
+});
+
+test("D117 C12 · d117FrontCardUsesStage · d117ZoomToRightOfArc — the front card ≥ 60 % of the stage at 1280 × 800; zoomed in it sits at 3 o'clock", async () => {
+  const { WHEEL, frontCardHeight, frameAt, wheelSlots } = await import("../client/src/pages/atlas/learnWheel.js");
+  // 1280 × 800: the stage is min(84vh, 880) = 672 tall and ≈ 690 wide beside the panel (1.35fr : 1fr of ≈ 1200).
+  const W = 690, H = 672;
+  assert.ok(frontCardHeight(W, H) / H >= 0.6, `front card ${frontCardHeight(W, H)} of ${H}`);
+  assert.equal(WHEEL.FRONT_MAX, 1.4);
+  const pieces = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, partIndex: 1 + Math.floor(i / 4) }));
+  const slots = wheelSlots(pieces);
+  const fr = frameAt({ W, H, e: 1, f: 5, pieces, slots });
+  const front = fr.cards.find(c => c.id === "p5");
+  assert.ok(Math.abs(((fr.wheel.rot + front.ang) % 360 + 360) % 360 - 90) < 0.5, "the front card's spoke points at 3 o'clock");
+  assert.equal(front.op, 1);
+  const out = frameAt({ W, H, e: 0, f: 5, pieces, slots });
+  assert.equal(out.wheel.rot, 0, "zoomed out the wheel is upright");
+  assert.ok(out.cards.every(c => c.op === 1 && c.blur === 0), "zoomed out every card is plain");
+  const css = read("client/src/pages/atlas/LearnWheel.css");
+  assert.match(css, /\.lwh \{\n  position: relative; height: min\(84vh, 880px\); min-height: 640px;/, "the stage uses the space");
 });
