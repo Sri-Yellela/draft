@@ -213,30 +213,31 @@ test("d124AnalyticsCountsOnly: pages (ids stripped) and active minutes, for tria
 
 test("d124SurveyValidated + d124AdminTrialCountsOnly: unknown keys and bad values dropped; the admin sees counts, the export has no emails", () => {
   const db = freshDb();
-  assert.deepEqual(cleanSurvey({ would_use: "definitely", useful: 9, frustrations: ["no_replies", "tailoring", "fake_or_stale"], hack: "x",
-                                 followup_email: "not an email", thoughts: "  faster please  ", improvement: "mobile_app", target_role: "astronaut" }),
-                   { frustrations: ["no_replies", "tailoring"], improvement: "mobile_app", thoughts: "faster please" });
-  assert.equal(SURVEY.at(-2).key, "thoughts", "it ends in the tester's own words (then the optional follow-up email)");
-  assert.equal(SURVEY.find(q => q.key === "improvement").type, "select", "the suggested improvements are a dropdown");
+  // D129 / the owner's sketch (11-01, changed on purpose): the survey is the sketch's 18 questions, answers in their words.
+  assert.deepEqual(cleanSurvey({ interested: "definitely", rate_matches: 9, frustration: "Rewriting my résumé for every job", hack: "x",
+                                 referral_email: "not an email", must_have: "  faster please  " }),
+                   { frustration: "Rewriting my résumé for every job", must_have: "faster please" });
+  assert.equal(SURVEY.at(-1).key, "referral_email", "it ends on the optional friend's email, after their own words");
+  assert.equal(SURVEY.at(-2).type, "text", "the last question is in their own words");
   startTrial(db, 1); pickResume(db, 1, "A");
   // D129 (11-01, changed on purpose): the overall "useful" became a 1–5 rating per section.
-  saveSurvey(db, 1, { would_use: "maybe", rate_picks: 5, frustrations: ["no_replies"], followup_email: "tester@example.com", thoughts: "Nice." });
+  saveSurvey(db, 1, { interested: "Maybe", rate_matches: 5, frustration: "Applying and hearing nothing back", referral_email: "friend@example.com", must_have: "Nice." });
   saveFeedback(db, 1, { body: "The board took a while", screen: "/app" });
   assert.throws(() => saveFeedback(db, 1, { body: "  " }), /Write a line/);
   const c = adminTrialCounts(db);
   assert.deepEqual(c.funnel, { started: 1, pickedResume: 1, draft1Sent: 0, draft2Sent: 0, surveySubmitted: 1 });
   assert.equal(c.picked.A, 1);
-  assert.deepEqual(c.survey.wouldUse, { maybe: 1 });
-  assert.equal(c.survey.thoughts, 1);
-  assert.equal(c.sectionUseful.picks, 5);
-  assert.equal(c.followupEmails, 1);
-  assert.ok(!JSON.stringify(c).includes("tester@example.com"), "counts only");
+  assert.deepEqual(c.survey.interested, { Maybe: 1 });
+  assert.equal(c.mustHave, 1);
+  assert.equal(c.stars.rate_matches, 5);
+  assert.equal(c.referrals, 1);
+  assert.ok(!JSON.stringify(c).includes("friend@example.com"), "counts only");
   assert.ok(!JSON.stringify(c).includes("Nice."), "the thoughts are counted here, read in the export");
   const ex = surveyExport(db);
   assert.equal(ex.length, 1);
-  assert.equal(ex[0].followup_email, undefined, "the export carries no emails");
+  assert.equal(ex[0].referral_email, undefined, "the export carries no emails");
   assert.equal(ex[0].resume, "A");
-  assert.equal(ex[0].thoughts, "Nice.");
+  assert.equal(ex[0].must_have, "Nice.");
 });
 
 test("d124NoExtensionNeeded + d124MobileFlow: /try and the gate are web pages; the samples are fictional and say so", () => {

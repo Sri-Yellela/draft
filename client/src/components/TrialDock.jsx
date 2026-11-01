@@ -12,29 +12,9 @@ import { Navigate, useLocation } from "react-router-dom";
 import { api } from "../lib/api.js";
 import DepthButton from "./DepthButton.jsx";
 import { Z } from "../styles/zLayers.js";
-import { TOUR_STEPS } from "../../../shared/trialTour.js";
 import GuidedTour from "./GuidedTour.jsx";
 
 const POLL_MS = 45_000;
-const LABELS = {
-  now: "Now", within_6_months: "Within 6 months", no: "No", yes: "Yes", maybe: "Maybe",
-  software: "Software engineering", ml_ai: "ML / AI", data: "Data", frontend_mobile: "Frontend / mobile", infra_devops: "Infra / DevOps / SRE",
-  security: "Security", product_other: "Product or other",
-  student_new_grad: "Student / new grad", "1_3": "1–3 years", "4_7": "4–7 years", "8_plus": "8+ years",
-  no_replies: "No replies", too_many_forms: "Too many forms", not_eligible: "Jobs I'm not eligible for",
-  fake_or_stale: "Fake or stale postings", tailoring: "Tailoring résumés", what_to_learn: "Knowing what to learn", other: "Other",
-  matched_board: "The matched job board", tailored_resume: "The tailored résumé", filled_and_sent: "Filled and sent for me",
-  sponsorship_info: "Sponsorship info", atlas_learning: "Atlas and Learn", inbox: "The Inbox",
-  nothing: "Nothing", under_10: "Under $10", "10_20": "$10–20", over_20: "Over $20",
-  more_jobs: "More companies and jobs", better_matching: "Better job matching", faster_tailoring: "Faster tailoring",
-  more_sites: "Apply on more job sites", interview_prep: "Interview prep", salary_insights: "Salary and offer insights",
-  referrals: "Referrals and networking", mobile_app: "A mobile app", browser_extension: "A browser extension",
-  // D129: the field (D127's categories), the sections rated, and the tour's steps (for "what was confusing").
-  computing: "Software, data or IT", engineering: "Engineering", management: "Management", business: "Business or finance",
-  science: "Science or research", legal: "Legal", arts_media: "Design, media or communications", sales: "Sales", marketing: "Marketing",
-  picks: "The picks", filters: "The filters", draft_house: "Draft House / auto-apply", map: "Your map", learn: "Learn", table: "The Table",
-  ...Object.fromEntries(TOUR_STEPS.map(s => [s.id, s.title])),
-};
 const box = { boxSizing: "border-box", background: "var(--color-surface)", color: "var(--color-text)", border: "1px solid var(--color-border)", borderRadius: 6 };
 const page = { boxSizing: "border-box", width: "min(680px, calc(100% - 32px))", margin: "40px auto 64px", color: "var(--color-text)" };
 
@@ -52,69 +32,132 @@ function Sheet({ title, onClose, children }) {
   );
 }
 
-function Choice({ q, value, onChange }) {
-  if (q.type === "select") {
-    return (
-      <select value={value || ""} onChange={(e) => onChange(e.target.value)} style={{ ...box, width: "100%", padding: 8, font: "inherit" }}>
-        <option value="">Pick one…</option>
-        {q.options.map(o => <option key={o} value={o}>{LABELS[o] || o}</option>)}
-      </select>
-    );
-  }
-  const many = q.type === "many";
-  const options = q.type === "scale" ? Array.from({ length: q.max - q.min + 1 }, (_, i) => String(q.min + i)) : q.options;
-  const on = (o) => many ? (value || []).includes(o) : String(value ?? "") === o;
-  const toggle = (o) => {
-    if (!many) return onChange(q.type === "scale" ? Number(o) : o);
-    const cur = value || [];
-    onChange(cur.includes(o) ? cur.filter(x => x !== o) : [...cur, o].slice(-q.max));
-  };
+// ⭐ THE SURVEY IS THE OWNER'S SKETCH (docs/sketches/draft — quick feedback.html): a plain form — a header with a
+// progress line, three sections, a card per question, native dropdowns, four 5-star ratings in plain words ("what would
+// make this 5 stars?" opens only below 5), follow-ups only when they apply, the required ones asked for before sending.
+const STAR_WORDS = ["", "Not useful", "Slightly useful", "Useful", "Very useful", "Exactly what I need"];
+const card = { boxSizing: "border-box", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 12,
+  padding: "18px 20px", marginBottom: 12 };
+const field = { boxSizing: "border-box", width: "100%", font: "inherit", color: "var(--color-text)", background: "var(--color-surface-offset)",
+  border: "1px solid var(--color-border)", borderRadius: 8, padding: "11px 12px" };
+const hint = { display: "block", color: "var(--color-text-muted)", fontSize: 14.5, margin: "0 0 12px", lineHeight: 1.5 };
+
+function Stars({ q, value, onChange }) {
+  const [hover, setHover] = useState(0);
+  const shown = hover || value || 0;
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-      {options.map(o => <DepthButton key={o} wrap pressed={on(o)} onClick={() => toggle(o)}>{LABELS[o] || o}</DepthButton>)}
+    <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }} role="radiogroup" aria-label={`Rate ${q.q.toLowerCase()}`}>
+      {[1, 2, 3, 4, 5].map(n => (
+        <button key={n} type="button" role="radio" aria-checked={value === n} aria-label={`${n} star${n > 1 ? "s" : ""}, ${STAR_WORDS[n]}`}
+          data-star={n} onClick={() => onChange(n)} onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
+          style={{ all: "unset", cursor: "pointer", fontSize: 34, lineHeight: 1, color: n <= shown ? "var(--color-warning)" : "var(--color-border)" }}>★</button>
+      ))}
+      <span style={{ marginLeft: 10, fontSize: 14, color: "var(--color-text-muted)", minWidth: 120 }}>{STAR_WORDS[shown] || ""}</span>
     </div>
   );
 }
 
-/** The survey, as the whole page — the trial's ending. Every question optional; the last word is the tester's own. */
+function Question({ q, answers, set, missing }) {
+  const v = answers[q.key];
+  const f = q.follow;
+  const followOpen = f && v != null && v !== "" && (f.when ? f.when.includes(v) : v < f.below);
+  const id = `sq-${q.key}`;
+  return (
+    <div style={{ ...card, ...(missing ? { borderColor: "var(--color-primary)" } : {}) }} data-survey-q={q.key}>
+      <label htmlFor={q.type === "stars" ? undefined : id} style={{ display: "block", fontWeight: 700, fontSize: 17, marginBottom: 4 }}>
+        {q.q}{q.required ? <span aria-hidden="true" style={{ color: "var(--color-primary)" }}> *</span> : null}
+      </label>
+      {q.hint && <span style={hint}>{q.hint}</span>}
+      {q.type === "select" && (
+        <select id={id} value={v || ""} onChange={(e) => set(q.key, e.target.value)} style={field} required={!!q.required}>
+          <option value="">Choose one</option>
+          {q.options.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+      )}
+      {q.type === "stars" && <Stars q={q} value={v} onChange={(n) => set(q.key, n)}/>}
+      {q.type === "text" && (
+        <textarea id={id} rows={3} maxLength={q.max} placeholder={q.placeholder || ""} value={v || ""}
+          onChange={(e) => set(q.key, e.target.value)} style={{ ...field, minHeight: 78, resize: "vertical" }}/>
+      )}
+      {q.type === "email" && (
+        <input id={id} type="email" maxLength={q.max} placeholder={q.placeholder || ""} value={v || ""}
+          onChange={(e) => set(q.key, e.target.value)} style={field}/>
+      )}
+      {followOpen && (
+        <input type="text" maxLength={300} placeholder={f.placeholder} aria-label={f.placeholder} value={answers[f.key] || ""}
+          onChange={(e) => set(f.key, e.target.value)} style={{ ...field, marginTop: 12 }} data-survey-follow={f.key}/>
+      )}
+      {missing && <span role="alert" style={{ display: "block", marginTop: 8, fontSize: 13, color: "var(--color-primary)" }}>Please answer this one.</span>}
+    </div>
+  );
+}
+
+/** The survey, as the whole page — the trial's ending. */
 function SurveyPage({ survey, onDone, fieldGuess = null }) {
   const [answers, setAnswers] = useState(() => (fieldGuess ? { field: fieldGuess } : {}));
   const [err, setErr] = useState("");
-  const set = (k, v) => setAnswers(a => ({ ...a, [k]: v }));
+  const [missing, setMissing] = useState([]);
+  const [sent, setSent] = useState(false);
+  const set = (k, v) => { setAnswers(a => ({ ...a, [k]: v })); setMissing(m => m.filter(x => x !== k)); };
+  const counted = survey.filter(q => q.type === "select" || q.type === "stars");
+  const done = counted.filter(q => answers[q.key] != null && answers[q.key] !== "").length;
   const send = async () => {
-    try { await api("/api/trial/survey", { method: "POST", body: JSON.stringify(answers) }); onDone(); }
+    const gaps = survey.filter(q => q.required && (answers[q.key] == null || answers[q.key] === "")).map(q => q.key);
+    if (gaps.length) {
+      setMissing(gaps);
+      document.querySelector(`[data-survey-q="${gaps[0]}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+    try { await api("/api/trial/survey", { method: "POST", body: JSON.stringify(answers) }); setSent(true); window.scrollTo(0, 0); }
     catch (e) { setErr(e.message); }
   };
   const skip = async () => { await api("/api/trial/survey/dismiss", { method: "POST" }).catch(() => {}); onDone(); };
-  return (
-    <div style={page} data-trial-survey="">
-      <h1 style={{ fontSize: 28, margin: "0 0 8px" }}>That was your trial. Two minutes, then you're done.</h1>
-      <p style={{ color: "var(--color-text-muted)", marginTop: 0 }}>
-        Your answers shape what we build next. Every question is optional. We keep them with your account for 90 days and never
-        share your email. <a href="/privacy" target="_blank" rel="noopener">Privacy</a>
-      </p>
-      {survey.map(q => (
-        <div key={q.key} style={{ margin: "18px 0" }}>
-          <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>{q.q}</label>
-          {q.type === "text"
-            ? <textarea rows={q.key === "thoughts" ? 4 : 2} maxLength={q.max} value={answers[q.key] || ""} onChange={(e) => set(q.key, e.target.value)}
-                style={{ ...box, width: "100%", padding: 8, font: "inherit" }}/>
-            : q.type === "email"
-              ? <input type="email" maxLength={q.max} value={answers[q.key] || ""} onChange={(e) => set(q.key, e.target.value)}
-                  style={{ ...box, width: "100%", padding: 8, font: "inherit" }}/>
-              : <Choice q={q} value={answers[q.key]} onChange={(v) => set(q.key, v)}/>}
+  if (sent) {
+    return (
+      <div style={page} data-trial-survey="sent">
+        <div style={{ ...card, textAlign: "center", padding: 22 }}>
+          <h2 style={{ margin: "0 0 6px" }}>Thank you</h2>
+          <p style={{ margin: "0 0 14px", color: "var(--color-text-muted)" }}>That genuinely helps. You can keep using draft with your own résumé any time.</p>
+          <DepthButton primary onClick={onDone}>Continue</DepthButton>
         </div>
-      ))}
+      </div>
+    );
+  }
+  let section = null;
+  return (
+    <div style={{ ...page, maxWidth: 680, fontSize: 16, lineHeight: 1.55 }} data-trial-survey="">
+      <div style={{ ...card, borderTop: "8px solid var(--color-primary)", padding: "20px 22px", marginBottom: 14 }}>
+        <h1 style={{ margin: "0 0 6px", fontSize: 26 }}>Thanks for trying draft</h1>
+        <p style={{ margin: 0, color: "var(--color-text-muted)" }}>About two minutes. Your honest answers decide what we build next. Nothing here is shared with employers.</p>
+        <div style={{ height: 6, background: "var(--color-border)", borderRadius: 3, marginTop: 14, overflow: "hidden" }} aria-hidden="true">
+          <i data-survey-progress={done} style={{ display: "block", height: "100%", width: `${counted.length ? Math.round(100 * done / counted.length) : 0}%`,
+            background: "var(--color-primary)", transition: "width .25s" }}/>
+        </div>
+      </div>
+      {survey.map(q => {
+        const head = q.section && q.section !== section ? (section = q.section) : null;
+        return (
+          <div key={q.key}>
+            {head && <div style={{ margin: "22px 4px 8px", fontSize: 13, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase",
+              color: "var(--color-text-muted)" }}>{head}</div>}
+            <Question q={q} answers={answers} set={set} missing={missing.includes(q.key)}/>
+          </div>
+        );
+      })}
       {err && <p role="alert" style={{ color: "var(--color-warning)" }}>{err}</p>}
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
-        <DepthButton onClick={skip}>Skip</DepthButton>
-        <DepthButton primary onClick={send}>Send my answers</DepthButton>
+      {missing.length > 0 && <p role="alert" style={{ color: "var(--color-primary)" }}>A few questions marked * still need an answer.</p>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
+        <DepthButton primary onClick={send} data-survey-send="">Send my answers</DepthButton>
+        <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0 }}>
+          We save your answers with your trial account to improve draft. We never share them with employers.{" "}
+          <a href="/privacy" target="_blank" rel="noopener">Privacy</a> · <button type="button" onClick={skip}
+            style={{ all: "unset", cursor: "pointer", textDecoration: "underline" }}>Skip the survey</button>
+        </p>
       </div>
     </div>
   );
 }
 
-/** The coming-soon page: where the trial ends, for good. */
 function ComingSoon({ answered }) {
   return (
     <div style={page} data-trial-coming-soon="">

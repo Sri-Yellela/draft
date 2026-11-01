@@ -168,8 +168,8 @@ export function trialState(db, userId, { draftsUsed = null } = {}) {
     drafts: TRIAL_DRAFTS, draftsUsed, sent, locked, surveyDone, surveySkipped: !!u.trial_survey_dismissed_at,
     // Locked and not yet answered or skipped: the survey is the whole page.
     surveyDue: locked && !surveyDone && !u.trial_survey_dismissed_at,
-    // D129: the survey's "Your field", prefilled from the résumé (editable).
-    fieldGuess: activeCategory(db, userId),
+    // The survey's "What field are you in?", prefilled from the résumé (editable) — the sketch's own words.
+    fieldGuess: FIELD_FOR_CATEGORY[activeCategory(db, userId)] || null,
   };
 }
 
@@ -261,45 +261,100 @@ export function recordEvent(db, userId, { event, detail } = {}) {
 // ── the survey: who they are, what they want, what they thought — ending in their own words ───
 export const IMPROVEMENTS = Object.freeze(["more_jobs", "better_matching", "faster_tailoring", "more_sites", "interview_prep",
   "salary_insights", "referrals", "mobile_app", "browser_extension", "other"]);
-// D129 (owner 11-01): "the survey is the most important part". ≤ 2 minutes; one tap each except the texts; every
-// question skippable. Per-section usefulness, the ONE section used first, and the confusing step(s) are the new core.
-const SECTION_LABEL = { picks: "The picks", filters: "The filters", draft_house: "Draft House / auto-apply", map: "Your map",
-  learn: "Learn", table: "The Table" };
+// ⭐ THE SURVEY IS THE OWNER'S SKETCH (docs/sketches/draft — quick feedback.html, 11-01), question for question: a plain
+// form — dropdowns, four 5-star ratings of what they tried (in plain words, never an internal page name), "what would
+// make this 5 stars?" only below 5, a few follow-ups only when they apply. Required where the sketch marks it.
+// Each answer is stored as the option's own words. The section a rating belongs to is named for the analytics.
+const STARS = ["Not useful", "Slightly useful", "Useful", "Very useful", "Exactly what I need"];
+export const SURVEY_FIELDS = Object.freeze(["Software and computing", "Data, ML and AI", "Mechanical or manufacturing engineering",
+  "Electrical or electronics engineering", "Civil, structural or environmental engineering", "Other engineering",
+  "Business, finance or consulting", "Product or project management", "Marketing or sales", "Design or media",
+  "Science or research", "Something else"]);
 export const SURVEY = Object.freeze([
-  { key: "searching", q: "Are you job-searching now?", type: "one", options: ["now", "within_6_months", "no"] },
-  { key: "field", q: "Your field", type: "one", prefill: "category",
-    options: ["computing", "engineering", "management", "business", "science", "legal", "arts_media", "sales", "marketing", "other"] },
-  { key: "sent_last_month", q: "Applications you sent last month", type: "one", options: ["0", "1-10", "11-50", "50+"] },
-  { key: "frustrations", q: "Your biggest frustration with job hunting (up to 2)", type: "many", max: 2,
-    options: ["no_replies", "too_many_forms", "not_eligible", "fake_or_stale", "tailoring", "what_to_learn", "other"] },
-  ...TOUR_SECTIONS.map(sec => ({ key: `rate_${sec}`, q: `How useful: ${SECTION_LABEL[sec]}`, type: "scale", min: 1, max: 5, section: sec })),
-  { key: "use_first", q: "Which ONE would you use first?", type: "one", options: [...TOUR_SECTIONS] },
-  { key: "confusing_steps", q: "Was anything confusing? (choose the step)", type: "many", max: 3, options: [...TOUR_STEP_IDS] },
-  { key: "confusing_text", q: "What was confusing about it?", type: "text", max: 500 },
-  { key: "would_use", q: "Would you use draft for your real search?", type: "one", options: ["yes", "maybe", "no"] },
-  { key: "what_would_stop", q: "What would stop you from using it?", type: "text", max: 500 },
-  { key: "would_pay", q: "What would you pay a month for it?", type: "one", options: ["nothing", "under_10", "10_20", "over_20"] },
-  { key: "improvement", q: "The improvement you would want first", type: "select", options: IMPROVEMENTS },
-  { key: "thoughts", q: "Any other thoughts or feedback?", type: "text", max: 1500 },
-  { key: "followup_email", q: "Email, if you are happy to do a 10-minute follow-up call (optional)", type: "email", max: 200 },
+  { key: "search_stage", section: "Your job search today", required: true, type: "select",
+    q: "Where are you with job hunting right now?",
+    options: ["Actively applying", "Starting to look in the next few months", "Employed, but open to the right offer",
+      "Student, looking for an internship or first job", "Not looking right now"] },
+  { key: "field", required: true, type: "select", prefill: "category", q: "What field are you in?",
+    hint: "We guessed from the résumé you picked. Change it if it's wrong.", options: [...SURVEY_FIELDS] },
+  { key: "time_per_app", required: true, type: "select",
+    q: "How long does it take you to find a job and send out a good application?",
+    hint: "From finding the posting to pressing submit, for one application you're happy with.",
+    options: ["Under 15 minutes", "15 to 30 minutes", "30 minutes to 1 hour", "1 to 2 hours", "More than 2 hours"] },
+  { key: "apps_per_week", type: "select", q: "How many applications do you send out when you're job searching?",
+    options: ["1 to 5 a week", "6 to 15 a week", "16 to 30 a week", "More than 30 a week", "I haven't started yet"] },
+  { key: "find_tool", type: "select", q: "What do you mainly use to find and apply for jobs today?",
+    options: ["LinkedIn or Indeed", "Company career pages, one by one", "Recruiters or referrals", "University or school career portal",
+      "An AI or auto-apply tool", "Something else"],
+    follow: { key: "find_tool_other", when: ["Something else", "An AI or auto-apply tool"], placeholder: "Which one?" } },
+  { key: "paid_before", type: "select", q: "Have you ever paid for anything to help your job search?",
+    hint: "For example a résumé writer, LinkedIn Premium, a course, or an application tool.",
+    options: ["No, never", "Yes, under $20 in total", "Yes, $20 to $100", "Yes, more than $100"] },
+  { key: "frustration", required: true, type: "select", q: "What's the most frustrating part of job hunting for you?",
+    options: ["Applying and hearing nothing back", "Filling out the same application forms again and again",
+      "Rewriting my résumé for every job", "Finding jobs I'm actually eligible for (visa, level, location)",
+      "Not knowing which postings are real or still open", "Not knowing which skills to learn next", "Something else"],
+    follow: { key: "frustration_other", when: ["Something else"], placeholder: "Tell us in a few words" } },
+  { key: "rate_matches", section: "What you just tried", type: "stars", area: "picks", q: "Your job matches",
+    hint: "The 10 jobs we picked for your résumé, best match first, with why each one fits.",
+    follow: { key: "rate_matches_why", below: 5, placeholder: "What would make this 5 stars?" } },
+  { key: "rate_applying", type: "stars", area: "draft_house", q: "Applying for you",
+    hint: "draft tailoring the résumé to each job and filling out the application while you watched.",
+    follow: { key: "rate_applying_why", below: 5, placeholder: "What would make this 5 stars?" } },
+  { key: "rate_map", type: "stars", area: "map", q: "Your skills map",
+    hint: "The map of the skills you have, the ones close to you, and what to learn next to move up.",
+    follow: { key: "rate_map_why", below: 5, placeholder: "What would make this 5 stars?" } },
+  { key: "rate_tracker", type: "stars", area: "table", q: "Your application tracker",
+    hint: "The page that lists every job you applied to, with replies and interview invites as they come in.",
+    follow: { key: "rate_tracker_why", below: 5, placeholder: "What would make this 5 stars?" } },
+  { key: "compared", section: "Your verdict", required: true, type: "select", q: "Compared with how you apply today, draft would be…",
+    options: ["Much better", "Somewhat better", "About the same", "Worse"] },
+  { key: "trust_auto", type: "select", q: "Would you let draft send applications for you?",
+    hint: "draft only ever answers from your own résumé and never ticks agreements for you.",
+    options: ["Yes, I'd let it send on its own", "Yes, after I've checked the first few", "Only if I approve every one", "No, I'd rather apply myself"] },
+  { key: "most_helpful", type: "select", q: "Which part would help your job search most?",
+    options: ["The job matches", "Applying for me", "The skills map", "The application tracker", "None of these"] },
+  { key: "interested", required: true, type: "select", q: "Would you be interested in using draft for your job search?",
+    options: ["Yes, as soon as I can", "Yes, when I start looking", "Maybe", "No"],
+    follow: { key: "interested_why", when: ["Maybe", "No"], placeholder: "What would change your mind?" } },
+  { key: "fair_price", type: "select", q: "What would feel fair to pay for draft each month?",
+    hint: "Think of the time each application takes you today: finding jobs that fit, checking you're eligible and the posting is still open, researching the company, rewriting your résumé for it, and filling out the form. draft does all of that for you, for as many jobs as you want.",
+    options: ["I'd only use it if it were free", "Under $10 a month", "$10 to $20 a month", "$20 to $40 a month", "More than $40 a month"] },
+  { key: "must_have", type: "text", max: 1500, q: "What's one thing that would make draft a must-have for you?",
+    placeholder: "Anything: a feature, a fix, a worry" },
+  { key: "referral_email", type: "email", max: 200, q: "Know someone job hunting who should try this?",
+    hint: "Optional. We'll send them one invite, from you, and nothing else.", placeholder: "their email" },
 ]);
+export const STAR_LABELS = Object.freeze(STARS);
+/** The ratings, by the tour's section they rate (for the analytics). */
+export const RATED = Object.freeze(SURVEY.filter(q => q.type === "stars").map(q => ({ key: q.key, area: q.area, label: q.q })));
+/** The prefill: the résumé's D127 category → the sketch's field. */
+export const FIELD_FOR_CATEGORY = Object.freeze({ computing: "Software and computing", engineering: "Other engineering",
+  business: "Business, finance or consulting", management: "Product or project management", marketing: "Marketing or sales",
+  sales: "Marketing or sales", arts_media: "Design or media", science: "Science or research" });
 
 /** Validated answers; unknown keys and out-of-range values are dropped, never stored. Every question is optional. */
 export function cleanSurvey(input = {}) {
   const out = {};
+  const text = (v, max) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
   for (const s of SURVEY) {
     const v = input[s.key];
     if (v == null || v === "") continue;
-    if ((s.type === "one" || s.type === "select") && s.options.includes(v)) out[s.key] = v;
-    if (s.type === "many" && Array.isArray(v)) {
-      const picked = [...new Set(v.filter(x => s.options.includes(x)))].slice(0, s.max);
-      if (picked.length) out[s.key] = picked;
-    }
-    if (s.type === "scale") { const n = Number(v); if (Number.isInteger(n) && n >= s.min && n <= s.max) out[s.key] = n; }
-    if (s.type === "text" && typeof v === "string" && v.trim()) out[s.key] = v.trim().slice(0, s.max);
+    if (s.type === "select" && s.options.includes(v)) out[s.key] = v;
+    if (s.type === "stars") { const n = Number(v); if (Number.isInteger(n) && n >= 1 && n <= 5) out[s.key] = n; }
+    if (s.type === "text" && text(v, s.max)) out[s.key] = text(v, s.max);
     if (s.type === "email" && typeof v === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())) out[s.key] = v.trim().slice(0, s.max);
+    // A follow-up is kept only when it applies: the chosen option asks for it, or the rating is below its bar.
+    const f = s.follow;
+    if (f && out[s.key] != null && text(input[f.key], 300)
+        && (f.when ? f.when.includes(out[s.key]) : out[s.key] < f.below)) out[f.key] = text(input[f.key], 300);
   }
   return out;
+}
+
+/** The questions the sketch marks required that are missing from cleaned answers (the page asks for them; [] = complete). */
+export function missingRequired(answers = {}) {
+  return SURVEY.filter(q => q.required && answers[q.key] == null).map(q => q.key);
 }
 
 export function saveSurvey(db, userId, input) {
@@ -404,19 +459,18 @@ export function adminTrialCounts(db) {
   }
   return {
     funnel, picked,
-    survey: { searching: tally("searching"), field: tally("field"), sentLastMonth: tally("sent_last_month"),
-      frustrations: tally("frustrations"), useFirst: tally("use_first"), confusingSteps: tally("confusing_steps"),
-      wouldUse: tally("would_use"), wouldPay: tally("would_pay"), improvement: tally("improvement"),
-      thoughts: surveys.filter(a => a.thoughts).length },
-    // D129: per-section usefulness, each an average of the 1–5 answers given (null when nobody rated it).
-    sectionUseful: Object.fromEntries(TOUR_SECTIONS.map(sec => [sec, avg(surveys.map(a => a[`rate_${sec}`]).filter(Number.isFinite))])),
+    survey: Object.fromEntries(SURVEY.filter(q => q.type === "select").map(q => [q.key, tally(q.key)])),
+    questions: Object.fromEntries(SURVEY.map(q => [q.key, q.q])),
+    mustHave: surveys.filter(a => a.must_have).length,
+    // The four ratings: the average of the stars given (null when nobody rated it).
+    stars: Object.fromEntries(RATED.map(r => [r.key, avg(surveys.map(a => a[r.key]).filter(Number.isFinite))])),
     usage: { pages, testersActive: minutes.length, medianActiveMinutes: minutes.length ? minutes[Math.floor(minutes.length / 2)] : null },
     interests: { roleFamilies, topTitles: Object.fromEntries(Object.entries(titles).sort((a, b) => b[1] - a[1]).slice(0, 10)) },
     locked: one(`SELECT COUNT(*) n FROM users WHERE trial_at IS NOT NULL AND (trial_finished_at IS NOT NULL OR id IN
       (SELECT user_id FROM apply_run_jobs WHERE status = 'submitted' GROUP BY user_id HAVING COUNT(*) >= ${SURVEY_AFTER_SENT}))`),
     practiceSubmissions: one("SELECT COUNT(*) n FROM practice_submissions"),
     feedback: one("SELECT COUNT(*) n FROM trial_feedback"),
-    followupEmails: surveys.filter(a => a.followup_email).length,
+    referrals: surveys.filter(a => a.referral_email).length,
     access: listAccess(db),
   };
 }
@@ -499,16 +553,17 @@ export function trialAnalytics(db, { filter = null, categoryOf } = {}) {
     distribution[q.key] = t;
   }
   const texts = {};
-  for (const key of ["what_would_stop", "confusing_text", "thoughts"]) {
-    texts[key] = answered.filter(s => s.answers[key]).map(s => ({ text: s.answers[key], steps: s.answers.confusing_steps || [],
-      sample: s.sample, field: s.field }));
+  for (const key of ["must_have", "interested_why", "frustration_other", "find_tool_other", ...RATED.map(r => `${r.key}_why`)]) {
+    texts[key] = answered.filter(s => s.answers[key]).map(s => ({ text: s.answers[key], sample: s.sample, field: s.field }));
   }
   return {
     testers: sessions.length, finished: sessions.filter(s => s.finished).length,
     medianTotalMs: median(sessions.filter(s => s.finished).map(s => s.totalMs)),
     funnel, dropOff, interactions, errors, distribution,
-    sectionUseful: Object.fromEntries(TOUR_SECTIONS.map(sec => [sec, avg(answered.map(s => s.answers[`rate_${sec}`]).filter(Number.isFinite))])),
+    stars: Object.fromEntries(RATED.map(r => [r.key, avg(answered.map(s => s.answers[r.key]).filter(Number.isFinite))])),
     texts,
+    questions: Object.fromEntries(SURVEY.flatMap(q => [[q.key, q.q], ...(q.follow ? [[q.follow.key, `${q.q} — ${q.follow.placeholder}`]] : [])])),
+    cuttable: SURVEY.filter(q => q.type === "select" || q.type === "stars").map(q => q.key),
     dimensions: Object.fromEntries(CROSS_CUTS.map(d => [d, [...new Set(sessions.map(s => s[d]).filter(v => v != null))]])),
   };
 }
@@ -521,21 +576,22 @@ export function crossCut(db, { key, by, categoryOf } = {}) {
   for (const s of tourSessions(db, { categoryOf })) {
     if (!s.answers || s.answers[key] == null) continue;
     const g = String(s[by] ?? "unknown");
-    if (q.type === "scale") (out[g] ??= []).push(s.answers[key]);
+    if (q.type === "stars") (out[g] ??= []).push(s.answers[key]);
     else for (const v of [].concat(s.answers[key])) { (out[g] ??= {}); out[g][v] = (out[g][v] || 0) + 1; }
   }
-  if (q.type === "scale") for (const g of Object.keys(out)) out[g] = { average: avg(out[g]), n: out[g].length };
+  if (q.type === "stars") for (const g of Object.keys(out)) out[g] = { average: avg(out[g]), n: out[g].length };
   return out;
 }
 
 /** CSV, one row per tester: the tour, the drafts, every survey answer. Emails only when asked AND the tester gave one. */
 export function analyticsCsv(db, { includeEmails = false, categoryOf } = {}) {
+  const qs = SURVEY.filter(q => includeEmails || q.type !== "email").flatMap(q => (q.follow ? [q.key, q.follow.key] : [q.key]));
   const cols = ["sample", "field", "device", "speed", "last_step", "finished", "total_seconds", "drafts_sent",
-    ...TOUR_STEP_IDS.map(id => `s_${id}_seconds`), ...SURVEY.filter(q => includeEmails || q.type !== "email").map(q => q.key)];
+    ...TOUR_STEP_IDS.map(id => `s_${id}_seconds`), ...qs];
   const cell = (v) => { const t = Array.isArray(v) ? v.join("; ") : v == null ? "" : String(v); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
   const rows = tourSessions(db, { categoryOf }).map(s => [s.sample, s.field, s.device, s.speed, s.lastStep, s.finished ? 1 : 0,
     Math.round(s.totalMs / 1000), s.drafts, ...TOUR_STEP_IDS.map(id => (s.steps[id]?.ms != null ? Math.round(s.steps[id].ms / 1000) : "")),
-    ...SURVEY.filter(q => includeEmails || q.type !== "email").map(q => s.answers?.[q.key])].map(cell).join(","));
+    ...qs.map(k => s.answers?.[k])].map(cell).join(","));
   return [cols.join(","), ...rows].join("\n") + "\n";
 }
 
@@ -543,6 +599,6 @@ export function analyticsCsv(db, { includeEmails = false, categoryOf } = {}) {
 export function surveyExport(db) {
   try {
     return db.prepare("SELECT s.answers, s.created_at, u.trial_resume FROM trial_surveys s JOIN users u ON u.id = s.user_id WHERE u.trial_at IS NOT NULL ORDER BY s.created_at")
-      .all().map(r => { const a = JSON.parse(r.answers); delete a.followup_email; return { resume: r.trial_resume, at: r.created_at, ...a }; });
+      .all().map(r => { const a = JSON.parse(r.answers); delete a.followup_email; delete a.referral_email; return { resume: r.trial_resume, at: r.created_at, ...a }; });
   } catch { return []; }
 }
