@@ -125,12 +125,28 @@ function ComingSoon({ answered }) {
         </span>
       </div>
       <p style={{ color: "var(--color-text-muted)" }}>Questions or ideas in the meantime? Write to support@jobsviadraft.com.</p>
+      <DepthButton onClick={() => api("/api/auth/logout", { method: "POST" }).catch(() => {}).finally(() => { window.location.href = "/"; })}>Sign out</DepthButton>
     </div>
   );
 }
 
+/** True below 600 px — the dock folds to one short row there, so it never covers a phone's content (the 11-01 walk). */
+function useNarrow() {
+  const q = "(max-width: 600px)";
+  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.matchMedia?.(q).matches);
+  useEffect(() => {
+    const m = window.matchMedia?.(q);
+    if (!m) return undefined;
+    const on = () => setNarrow(m.matches);
+    m.addEventListener?.("change", on);
+    return () => m.removeEventListener?.("change", on);
+  }, []);
+  return !!narrow;
+}
+
 function Dock({ state, onFinish }) {
   const { pathname } = useLocation();
+  const narrow = useNarrow();
   const [open, setOpen] = useState(null);   // "feedback" | "broke" | "finish" | null
   const [note, setNote] = useState("");
   const [said, setSaid] = useState("");
@@ -143,15 +159,16 @@ function Dock({ state, onFinish }) {
   return (
     <>
       <div data-trial-dock="" style={{ position: "fixed", left: 16, bottom: 16, zIndex: Z.TOAST - 1, display: "flex", flexDirection: "column", gap: 8, maxWidth: "calc(100vw - 32px)" }}>
-        <div role="note" style={{ ...box, padding: "8px 12px", fontSize: 13, borderLeft: "3px solid var(--color-primary)", maxWidth: 360 }}>
+        <div role="note" style={{ ...box, padding: narrow ? "4px 8px" : "8px 12px", fontSize: narrow ? 12 : 13, borderLeft: "3px solid var(--color-primary)", maxWidth: 360 }}>
           Trial: {left == null ? `${state.drafts} Drafts` : `${left} of ${state.drafts} Drafts left`}.
-          {state.sample ? ` Sample ${state.sample} is a fictional person; its Drafts go to draft's practice form, never to the employer.` : ""}
+          {state.sample ? (narrow ? ` Sample ${state.sample}: fictional, sends to the practice form.`
+            : ` Sample ${state.sample} is a fictional person; its Drafts go to draft's practice form, never to the employer.`) : ""}
         </div>
         {said && <div role="status" style={{ ...box, padding: "8px 12px", fontSize: 13, maxWidth: 360 }}>{said}</div>}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <DepthButton wrap onClick={() => { setSaid(""); setOpen("feedback"); }}>Feedback</DepthButton>
-          <DepthButton wrap onClick={() => { setSaid(""); setOpen("broke"); }}>Something broke?</DepthButton>
-          <DepthButton wrap onClick={() => setOpen("finish")}>Finish the trial</DepthButton>
+        <div style={{ display: "flex", gap: narrow ? 6 : 8, flexWrap: narrow ? "nowrap" : "wrap" }}>
+          <DepthButton wrap size={narrow ? "compact" : "box"} onClick={() => { setSaid(""); setOpen("feedback"); }}>Feedback</DepthButton>
+          <DepthButton wrap size={narrow ? "compact" : "box"} onClick={() => { setSaid(""); setOpen("broke"); }}>{narrow ? "Broke?" : "Something broke?"}</DepthButton>
+          <DepthButton wrap size={narrow ? "compact" : "box"} onClick={() => setOpen("finish")}>{narrow ? "Finish" : "Finish the trial"}</DepthButton>
         </div>
       </div>
       {(open === "feedback" || open === "broke") && (
