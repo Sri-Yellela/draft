@@ -26,6 +26,7 @@ export const ADMIN_GROUPS = Object.freeze([
   { id: "data", label: "Data", question: "What is stored?", sections: [
     ["jobdata", "Job data in and out"], // #8 — the one place for postings in and out
     ["scoring", "Board-fit scoring"],   // #7
+    ["calibrate", "ATS calibration"],   // D125 — the owner's hand-checked gold set: terms, verbs, scores; the gate's baseline
     ["database", "Database"],           // #20–#26 — the inspector's own page
     ["atlas", "Atlas"],                 // D105 P4 — the Atlas's drafts, published here so the public pages exist
   ] },

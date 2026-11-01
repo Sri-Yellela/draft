@@ -5889,4 +5889,64 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D125 (owner 11-01): the owner calibrates the ATS by hand (services/atsCalibration.js, Admin → ATS calibration).
+      // A set is FROZEN per version — each posting's text, the sentences the board counts and draft's reading at the time —
+      // so every later scorer change is measured on the same pairs. Résumés: the admin's own (copied in), the trial's
+      // samples, any he uploads. Reviews hold his marks; suggestions from the optional assist stay apart until he accepts
+      // them. Fixes are queued for the agent; baselines feed the regression gate (scripts/d125GoldGate.mjs). After 210.
+      id: "211_ats_gold",
+      sql: `
+        CREATE TABLE IF NOT EXISTS ats_gold_items (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          version       INTEGER NOT NULL,
+          job_id        TEXT NOT NULL,
+          category      TEXT,
+          discipline    TEXT,
+          level         TEXT,
+          title         TEXT,
+          company       TEXT,
+          posting_text  TEXT NOT NULL,
+          counted_json  TEXT NOT NULL DEFAULT '[]',
+          reading_json  TEXT NOT NULL,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          UNIQUE (version, job_id)
+        );
+        CREATE TABLE IF NOT EXISTS ats_gold_resumes (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          label         TEXT NOT NULL,
+          source        TEXT NOT NULL,
+          resume_text   TEXT NOT NULL,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS ats_gold_reviews (
+          item_id          INTEGER PRIMARY KEY REFERENCES ats_gold_items(id) ON DELETE CASCADE,
+          marks_json       TEXT NOT NULL DEFAULT '{}',
+          added_json       TEXT NOT NULL DEFAULT '{}',
+          tiers_json       TEXT NOT NULL DEFAULT '{}',
+          scores_json      TEXT NOT NULL DEFAULT '{}',
+          suggestions_json TEXT,
+          done             INTEGER NOT NULL DEFAULT 0,
+          reviewed_by      INTEGER,
+          updated_at       INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS ats_gold_fixes (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          kind        TEXT NOT NULL,
+          term        TEXT NOT NULL,
+          why         TEXT,
+          status      TEXT NOT NULL DEFAULT 'queued',
+          queued_by   INTEGER,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          UNIQUE (kind, term)
+        );
+        CREATE TABLE IF NOT EXISTS ats_gold_baselines (
+          id           INTEGER PRIMARY KEY AUTOINCREMENT,
+          version      INTEGER NOT NULL,
+          metrics_json TEXT NOT NULL,
+          recorded_by  INTEGER,
+          created_at   INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];
