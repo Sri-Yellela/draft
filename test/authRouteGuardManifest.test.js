@@ -726,6 +726,9 @@ test("every authenticated route taking an id from the request derives the owner 
     // A77: a company logo by company key — company_logos has no user column, nothing to scope.
     "server.js: GET /api/company-logo/:key",
     "server.js: GET /api/resumes/:jobId/pdf",
+    // D128 P1: the public page per posting (not /api) — scraped_jobs is the global pool with no user column, a shown
+    // category only, and the page is the same signed in or out (services/jobs/publicJobPage.js). Nothing to scope.
+    "server.js: GET /jobs/:slug",
   ]);
   const real = offenders.filter(o => !REVIEWED.has(o)).sort();
   assert.deepEqual(real, [],

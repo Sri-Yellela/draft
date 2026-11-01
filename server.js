@@ -116,6 +116,7 @@ import { seedAtlasFamilies } from "./services/atlas/atlasFamilies.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { liveVersion, atlasPostingsChanged } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
+import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes } from "./services/jobs/publicJobPage.js";
 import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
 import { autoPublish, runAtlasAutoPipeline } from "./services/atlas/atlasPublish.js";
 // ⭐ D108: a company's sponsorship fact (the existing LCA match, with its source and date) and the dated "What changed".
@@ -8904,6 +8905,21 @@ function xmlEscape(value) {
   }[ch]));
 }
 
+// ⭐ D128 P1 · every OPEN public posting (a shown category, not a duplicate); a closed one leaves the same day.
+app.get("/sitemap-jobs.xml", (req, res) => {
+  res.type("application/xml").send(sitemapXml(appBaseUrl(req), jobsSitemapRoutes(db)));
+});
+
+// ⭐ D128 P1 · a public, server-rendered page per posting (services/jobs/publicJobPage.js): no sign-in, the
+// employer credited and linked, JobPosting JSON-LD while open; closed → says so, noindex, no structured data.
+app.get("/jobs/:slug", (req, res) => {
+  let found = null;
+  try { found = publicJobFor(db, req.params.slug); } catch { found = null; }
+  if (found?.kind === "redirect") return res.redirect(301, found.path);
+  const page = found ? renderPublicJobPage(db, found.row, { base: appBaseUrl(req), open: found.open }) : renderMissingJobPage();
+  res.set("Cache-Control", "public, max-age=600").status(page.status).type("html").send(page.html);
+});
+
 app.get("/sitemap.xml", (req, res) => {
   const base = appBaseUrl(req);
   const routes = [
@@ -8916,7 +8932,12 @@ app.get("/sitemap.xml", (req, res) => {
     // ⭐ D105: /atlas and every PUBLISHED Atlas page — never a draft (d105SitemapPublishedOnly).
     ...atlasSitemapRoutes(db),
   ];
-  const body = `<?xml version="1.0" encoding="UTF-8"?>
+  res.type("application/xml").send(sitemapXml(base, routes));
+});
+
+// One urlset writer for /sitemap.xml and /sitemap-jobs.xml (D128 P1).
+function sitemapXml(base, routes) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${routes.map(route => `  <url>
     <loc>${xmlEscape(`${base}${route.path === "/" ? "" : route.path}`)}</loc>
@@ -8925,19 +8946,20 @@ ${route.lastmod ? `    <lastmod>${xmlEscape(route.lastmod)}</lastmod>
     <priority>${route.priority}</priority>
   </url>`).join("\n")}
 </urlset>`;
-  res.type("application/xml").send(body);
-});
+}
 
 app.get("/robots.txt", (req, res) => {
   const base = appBaseUrl(req);
   res.type("text/plain").send([
     "User-agent: *",
     "Disallow: /api/",
-    "Disallow: /jobs",
     "Disallow: /profile",
     "Allow: /",
     "Allow: /login",
+    // ⭐ D128 P1: /jobs/ was disallowed — the public posting pages live there now.
+    "Allow: /jobs/",
     `Sitemap: ${base}/sitemap.xml`,
+    `Sitemap: ${base}/sitemap-jobs.xml`,
     "",
   ].join("\n"));
 });
