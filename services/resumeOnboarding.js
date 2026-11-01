@@ -107,7 +107,8 @@ export function fillEmptyProfileFields(db, userId, text) {
  * The one server step: résumé text → the first job profile (active), its base résumé, the person profile's sections,
  * stated defaults and empty contact fields. Refused (409) when the user already has a job profile — a second one is
  * the wizard's, and an existing base résumé is replaced only by the profile's own upload.
- * @param deps { registry, saveBaseResume(profileId, content, name), readProfile(db, userId), onProfileWrite?(id) }
+ * @param deps { registry, saveBaseResume(profileId, content, name), readProfile(db, userId), onProfileWrite?(id),
+ *               sampleRoleFamily?(text) — D123 P6e (R10): a trial sample's own family wins over the inference }
  */
 export function startFromResume(db, userId, { content, name }, deps) {
   const text = String(content || "");
@@ -116,6 +117,8 @@ export function startFromResume(db, userId, { content, name }, deps) {
     throw Object.assign(new Error("You already have a job profile — upload a résumé to it from Job profiles."), { status: 409, code: "has_profile" });
   }
   const inferred = inferProfileFromResume(text, deps.registry);
+  const sampleFamily = deps.sampleRoleFamily?.(text);
+  if (sampleFamily) inferred.roleFamily = sampleFamily;
   const id = db.transaction(() => {
     const r = db.prepare(`INSERT INTO domain_profiles (user_id, profile_name, role_family, domain, seniority,
         target_titles, selected_keywords, selected_verbs, selected_tools, is_active) VALUES (?,?,?,?,?,?,?,?,?,1)`)

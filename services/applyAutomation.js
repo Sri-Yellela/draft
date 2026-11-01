@@ -2600,8 +2600,11 @@ async function uploadIntoContext(page, resumePath, coverLetterPath, resumeUpload
     for (const slot of slots) {
       const input = inputs[slot.idx];
       if (!input) continue;
-      if (slot.isCover && !coverUploaded && coverLetterPath && fs.existsSync(coverLetterPath)) {
-        await uploadToFileInput(input, coverLetterPath);
+      // A function is the on-demand cover letter (D123 P6e, R9): written now, because this form asks for one.
+      const clPath = slot.isCover && !coverUploaded && coverLetterPath
+        ? (typeof coverLetterPath === "function" ? await coverLetterPath() : coverLetterPath) : null;
+      if (clPath && fs.existsSync(clPath)) {
+        await uploadToFileInput(input, clPath);
         coverUploaded = true;
       } else if (slot.isResume && !resumeUploaded && resumePath && fs.existsSync(resumePath)) {
         await uploadToFileInput(input, resumePath);
@@ -2672,6 +2675,9 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
     resumePathPromise        = null,
     coverLetterPath          = null,
     coverLetterPathPromise   = null,
+    // D123 P6e (R9): () => Promise<string|null>, called only when the form shows a cover-letter upload, so a form
+    // without one never pays for a cover letter. Memoised by the caller (routes/apply.js coverLetterOnDemand).
+    coverLetterOnDemand      = null,
     // AL2 — THE DOCUMENTS ARE NOT MISSING, THEY ARE NOT WRITTEN YET.
     //
     // With generation deferred to approval, a preview reaches the form with no resume and no cover
@@ -2905,6 +2911,13 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
           new Promise(r => setTimeout(() => r(null), 90_000)),
         ]);
       } catch { effectiveCoverLetterPath = null; }
+    }
+    if (!effectiveCoverLetterPath && typeof coverLetterOnDemand === "function") {
+      // Passed down as a function; uploadIntoContext resolves it at the first cover slot it finds.
+      effectiveCoverLetterPath = () => Promise.race([
+        coverLetterOnDemand(),
+        new Promise(r => setTimeout(() => r(null), 90_000)),
+      ]).catch(() => null);
     }
 
     await handleTypedFileUploads(page, effectiveResumePath, effectiveCoverLetterPath);
