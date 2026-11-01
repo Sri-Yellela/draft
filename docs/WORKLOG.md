@@ -66,7 +66,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 2. **Glance at `docs/OBJECT_MAP.md` and `docs/UI_PRIMITIVES.md`** — D122 P2 waits on it.
 3. **After the deploy, re-run the LCA ingest on production** (`node scripts/ingestLca.mjs`, about 2 GB of downloads) so D121's title families fill. ⚠ The volume had ≈ 3.9 GB free on 10-08 (not re-measured), so **P4's quarterly schedule is NOT built** — scheduling a 2 GB job on that disk is your call.
 
-**Agent next:** D119 → D121's Draft House chip. (D120 P2 is done: `9cd8e7c`.)
+**Agent next:** (1) **the full suite, batches 2–8**, on a quiet machine (Chrome closed) · (2) D119's leftovers: the tile in D114's popup, and Your map's Learn next. Everything else in the five items is done or waits on you. ⛔ **Also yours:** whether to add an image library (sharp) for D119's ≤ 480 px WebP pictures.
 
 ### ▶ NEXT SESSION STARTS HERE — 43v ended 10-31 ≈ 23:30Z at a clean point (owner: *"continue in single lane and stop after current task at a clean point"*)
 
@@ -1411,8 +1411,11 @@ One lane at a time, the owner's FIVE ITEMS order. **All LOCAL — nothing pushed
 | `42809a9` | `atsReportOneImplementation` was **red on main since D116** ("You cover" in the Atlas tree). The guard is narrowed to the ATS header's shape |
 | `7ac7b67` | **A107** — `rejection_note` is redacted from every admin read |
 | `9cd8e7c` | **D120 P2, the Atlas home.** The direction line first, then the tree, Your course (D117's CircleSvg reused, the route as the ink stroke, "Continue:") and the five sections. A side column holds search, Explore by role, the families and recent pages. Signed out: search · the full circle · Explore by role. `d120Home.test.js` (5 tests) |
+| `21986f1` · `8576258` · `8e064a6` | **D119, thumbnails.** One resolver: a watch URL's own thumbnail, Open Library covers, a page's og:image. Pictures are stored, not hot-linked (migration **204** `resource_thumbs`, `GET /api/thumbs/:hash`) and refreshed monthly in the 05:30 job; robots.txt, a 5 s timeout and a 2 MB cap are honoured. One tile, `ResourceTile`, is used on Learn's items and the Atlas's resources. Admin → Atlas → Learn has **Pin a video** and **Hide**. Measured: all **115 of 115** of the tracker's YouTube links are SEARCH links, so no video has a picture until one is pinned. ⚠ Pictures are NOT resized to WebP: there is no image library, and adding one (sharp) is the owner's call |
+| `678e56c` | **D121, the Draft House chip.** The opened branch's card reads `GET /api/jobs/:jobId/sponsorship` (the ONE signal + the viewer's own `needed`) |
+| `(next)` | `authRouteGuardManifest`: the new route classified AUTHENTICATED. The full-suite run caught it |
 
-**Tests run (related files, sequential batches; not the full suite):** 1096 across 112 files → 1093 / 3. Two were the guard above (fixed); T25 passes alone (4 / 4). vite build OK. Boot smoke on a fresh data dir: `latestApplied 203_lca_employer_titles`.
+**⚠ The full suite (546 files, 8 sequential batches) was STOPPED by Claude Code for low memory** — not a test failure. Batch 1 passed 619 / 619. Batch 2 got as far as one real red, the route manifest (fixed). **Batches 2–8 have not been measured since** — the next session runs them. **Tests run earlier (related files only):** 1096 across 112 files → 1093 / 3. Two were the guard above (fixed); T25 passes alone (4 / 4). vite build OK. Boot smoke on a fresh data dir: `latestApplied 203_lca_employer_titles`.
 
 **Source check, D121 P1:** the official USCIS H-1B Employer Data Hub page (uscis.gov/tools/reports-and-studies/h-1b-employer-data-hub, read 10-31) lists data **FY2009 – FY2026**. That contradicts the spec's "files stopped after FY2023". The importer takes whatever complete year a file covers, labelled by its year.
 
