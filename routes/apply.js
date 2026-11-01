@@ -68,6 +68,7 @@ const monetisationEnabled = () => monetisationEnabledFromEnv(process.env);
 // TASK AC4: the three outcome groups of the dated history. In shared/ because the panel renders
 // the same partition — a copy on each side is how "COMPLETED" comes to mean two things.
 import { OUTCOME, OUTCOME_STATUSES, outcomeGroupFor } from "../shared/applyOutcomeGroups.js";
+import { trialSendUrl, practiceBaseUrl, practiceSecret } from "../services/trial.js";
 // AK1: the OTHER outcome axis — what the employer did, not what our pipeline did. The two are
 // deliberately separate vocabularies; see the header of shared/applicationResponse.js.
 import {
@@ -1485,8 +1486,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const job = db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(String(jobId));
       if (!job) { setJobStatus("failed", "job_not_found", "Job not found in DB"); return; }
 
-      const jobUrl = job.apply_url || job.url;
+      // ⛔ D124 · THE SAFETY RULE: a sample résumé (a fictional person) never reaches a real employer — its run fills draft's
+      // practice form for this posting instead (services/trial.js). Keyed on the active résumé, not on the account's trial flag.
+      const practiceUrl = trialSendUrl(db, { userId, jobId: String(jobId), baseUrl: practiceBaseUrl(), secret: practiceSecret() });
+      const jobUrl = practiceUrl || job.apply_url || job.url;
       if (!jobUrl) { setJobStatus("failed", "no_job_url", "Job has no apply URL"); return; }
+      if (practiceUrl) logEvent(runId, runJobId, userId, jobId, "practice_form", "A sample résumé: this Draft goes to draft's practice form, never to the employer.");
 
       /**
        * Park a handoff for a hold that RETURNS EARLY, before the browser ever runs (AB1).

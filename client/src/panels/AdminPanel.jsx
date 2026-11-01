@@ -14,6 +14,7 @@ import { EnrichmentTab } from "./adminEnrichment.jsx";
 import { EmailHealthTab } from "./adminEmail.jsx";
 import { AdminsTab } from "./adminAdmins.jsx";
 import { AtlasTab } from "./adminAtlas.jsx";
+import { TrialTab } from "./adminTrial.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
@@ -707,6 +708,8 @@ export function AdminPanel() {
       {/* D88 P3: the support queue; a ticket links to the person's page. */}
       {at("people", "support") && <SupportQueue theme={theme} onOpenPerson={openPerson}/>}
       {at("people", "messages") && <ContactMessagesSection theme={theme}/>}
+      {/* D124: the trial — counts only, the survey's answers exported without emails. */}
+      {at("people", "trial") && <TrialTab/>}
 
       {/* Data — what is stored? */}
       {at("data", "jobdata") && <JobDataSection theme={theme}/>}

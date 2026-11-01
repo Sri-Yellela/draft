@@ -1,0 +1,101 @@
+// ⭐ D124 · THE TRIAL's routes (services/trial.js has the rules). Mounted as trialRoutes(app, db, deps), so
+// test/authRouteGuardManifest.test.js enumerates every /api route here with its guard.
+//
+//   POST /api/trial/start            the signed-in account becomes a trial account (after /try's sign-up)
+//   POST /api/trial/resume           { choice: "A" | "B" | "own" } — a sample's text comes back for the normal
+//                                    /api/domain-profiles/from-resume onboarding, so the board is read from it as for anyone
+//   GET  /api/trial/state            { trial, hasProfile, sample, drafts, draftsUsed, sent, locked, surveyDue, survey } — and
+//                                    starts the trial's clock on a trial account's first load (THE TRIAL IS THE MAIN FRAME)
+//   POST /api/trial/finish           "Finish the trial": the site locks into the survey now
+//   POST /api/trial/event            { event: "page" | "active_minute", detail } — the trial's analytics (names, counts)
+//   POST /api/admin/trial/access     { who: id | username | email, access: "full" | "trial" | "default" } — exclusive access
+//   POST /api/trial/survey           the answers (every question optional; validated, unknown keys dropped)
+//   POST /api/trial/survey/dismiss   the survey skipped at the end (the coming-soon page follows)
+//   POST /api/trial/feedback         { body, screen } — "Something broke? / Feedback"
+//   GET  /api/admin/trial            Admin → Trial: counts only
+//   GET  /api/admin/trial/export     the survey answers WITHOUT emails, as JSON
+//   GET  /try/practice/:jobId        draft's practice form for one posting (a signed ?u=&t= names the account)
+//   POST /try/practice/:jobId        its submission: counted, and a confirmation goes into the tester's Inbox
+import { startTrial, pickResume, trialState, saveSurvey, dismissSurvey, finishTrial, saveFeedback, recordEvent, setAccess,
+         adminTrialCounts, surveyExport, SURVEY, verifyPracticeToken, renderPracticeForm, renderPracticeThanks,
+         recordPracticeSubmission } from "../services/trial.js";
+import { draftSlots } from "../services/draftSlots.js";
+
+export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret, upload, deliver = null }) {
+  const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "error", message: e.message });
+
+  app.post("/api/trial/start", requireAuth, (req, res) => {
+    try { res.json(startTrial(db, req.user.id)); } catch (e) { fail(res, e); }
+  });
+
+  app.post("/api/trial/resume", requireAuth, (req, res) => {
+    try { res.json(pickResume(db, req.user.id, req.body?.choice)); } catch (e) { fail(res, e); }
+  });
+
+  const state = (userId) => {
+    startTrial(db, userId);
+    let used = null;
+    try { used = draftSlots(db, userId).drafts; } catch { /* a fixture without the apply tables */ }
+    return trialState(db, userId, { draftsUsed: used });
+  };
+
+  app.get("/api/trial/state", requireAuth, (req, res) => {
+    try { res.json({ ...state(req.user.id), survey: SURVEY }); } catch (e) { fail(res, e); }
+  });
+
+  app.post("/api/trial/finish", requireAuth, (req, res) => {
+    try { finishTrial(db, req.user.id); res.json({ ...state(req.user.id), survey: SURVEY }); } catch (e) { fail(res, e); }
+  });
+
+  app.post("/api/trial/event", requireAuth, (req, res) => {
+    try { res.json({ recorded: recordEvent(db, req.user.id, req.body || {}) }); } catch (e) { fail(res, e); }
+  });
+
+  app.post("/api/trial/survey", requireAuth, (req, res) => {
+    try { res.json({ ok: true, answers: saveSurvey(db, req.user.id, req.body || {}) }); } catch (e) { fail(res, e); }
+  });
+
+  app.post("/api/trial/survey/dismiss", requireAuth, (req, res) => {
+    try { dismissSurvey(db, req.user.id); res.json({ ok: true }); } catch (e) { fail(res, e); }
+  });
+
+  app.post("/api/trial/feedback", requireAuth, (req, res) => {
+    try { saveFeedback(db, req.user.id, req.body || {}); res.json({ ok: true }); } catch (e) { fail(res, e); }
+  });
+
+  app.get("/api/admin/trial", requireAdmin, (_req, res) => {
+    try { res.json(adminTrialCounts(db)); } catch (e) { fail(res, e); }
+  });
+
+  app.post("/api/admin/trial/access", requireAdmin, (req, res) => {
+    try { res.json(setAccess(db, { who: req.body?.who, access: req.body?.access, by: req.admin?.email || req.admin?.username || "admin" })); }
+    catch (e) { fail(res, e); }
+  });
+
+  app.get("/api/admin/trial/export", requireAdmin, (_req, res) => {
+    try { res.json({ answers: surveyExport(db) }); } catch (e) { fail(res, e); }
+  });
+
+  // ── the practice form — posted by draft's own server-side browser, which has no user session ──
+  const jobFor = (jobId) => { try { return db.prepare("SELECT job_id, title, company, url, apply_url FROM scraped_jobs WHERE job_id = ?").get(String(jobId)); } catch { return null; } };
+  const html = (res, status, body) => res.status(status).type("html").set("Cache-Control", "no-store").send(body);
+
+  app.get("/try/practice/:jobId", (req, res) => {
+    const userId = verifyPracticeToken({ secret, jobId: req.params.jobId, u: req.query.u, t: req.query.t });
+    const job = jobFor(req.params.jobId);
+    if (!userId || !job) return html(res, 404, "<!doctype html><title>Not found</title><p>This practice form link is not valid.</p>");
+    const action = `/try/practice/${encodeURIComponent(req.params.jobId)}?u=${encodeURIComponent(req.query.u)}&t=${encodeURIComponent(req.query.t)}`;
+    html(res, 200, renderPracticeForm({ job, action }));
+  });
+
+  app.post("/try/practice/:jobId", upload.any(), (req, res) => {
+    const userId = verifyPracticeToken({ secret, jobId: req.params.jobId, u: req.query.u, t: req.query.t });
+    const job = jobFor(req.params.jobId);
+    if (!userId || !job) return html(res, 404, "<!doctype html><title>Not found</title><p>This practice form link is not valid.</p>");
+    const fields = Object.values(req.body?.job_application || {}).filter(v => String(v ?? "").trim()).length
+      || Object.keys(req.body || {}).filter(k => k.startsWith("job_application[") && String(req.body[k] ?? "").trim()).length;
+    const resumeAttached = (req.files || []).some(f => /resume/i.test(f.fieldname) && f.size > 0);
+    recordPracticeSubmission(db, { userId, job, fieldsFilled: fields, resumeAttached, deliver });
+    html(res, 200, renderPracticeThanks({ job }));
+  });
+}

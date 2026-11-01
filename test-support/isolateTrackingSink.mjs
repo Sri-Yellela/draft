@@ -12,6 +12,10 @@
 import os from "node:os";
 import path from "node:path";
 
+// ⭐ D124: the trial is the main frame for every account made after migration 205 — which is every account a test
+// fixture makes. The suite predates it, so the preload turns it off; test/d124Trial.test.js turns it back on.
+if (!process.env.DRAFT_TRIAL) process.env.DRAFT_TRIAL = "off";
+
 if (!process.env.USAGE_FAILURE_SINK_PATH) {
   process.env.USAGE_FAILURE_SINK_PATH = path.join(os.tmpdir(), `draft-test-sink-${process.pid}.jsonl`);
 }

@@ -3,6 +3,8 @@
 "use strict";
 
 const URL_ATS_MAP = [
+  // ⭐ D124: draft's own practice form (services/trial.js) is a Greenhouse-shaped application.
+  { pattern: "/try/practice/",     platform: "greenhouse" },
   { pattern: "greenhouse.io",      platform: "greenhouse" },
   { pattern: "boards.greenhouse",  platform: "greenhouse" },
   { pattern: "jobs.lever.co",      platform: "lever" },

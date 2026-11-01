@@ -5759,4 +5759,64 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D124 · THE TRIAL (owner 11-01, twice amended): THE TRIAL IS THE MAIN FRAME — every account made from now on is a
+      // trial account unless an admin grants it full access; 2 Drafts, then the whole site locks and ends in the survey and
+      // a coming-soon page. A sample résumé sends to draft's practice form, the tester's own sends for real.
+      //   users.full_access     NULL = by age (an account made before trial_since keeps full access) · 1 = granted · 0 = trial
+      //   users.full_access_at / full_access_by   when and by which admin it was last set
+      //   users.trial_at        when the account was first seen in the trial; users.trial_resume 'A' | 'B' | 'own'
+      //   users.trial_survey_dismissed_at   the survey was skipped at the end · users.trial_finished_at "Finish the trial"
+      //   trial_config          trial_since = when this migration ran (no existing row is changed)
+      //   trial_events          the trial's analytics: pages visited and active minutes — names and counts, no content
+      //   trial_surveys         the survey's answers, one row per account (answers JSON: the D124 questions)
+      //   trial_feedback        "Something broke? / Feedback": a short text and the screen it came from
+      //   practice_submissions  a send that reached draft's practice form — counts only, never the form's values
+      // After 204 (the resource thumbnails).
+      id: "205_trial",
+      sql: `
+        ALTER TABLE users ADD COLUMN trial_at INTEGER;
+        ALTER TABLE users ADD COLUMN trial_resume TEXT;
+        ALTER TABLE users ADD COLUMN trial_survey_dismissed_at INTEGER;
+        ALTER TABLE users ADD COLUMN trial_finished_at INTEGER;
+        ALTER TABLE users ADD COLUMN full_access INTEGER;
+        ALTER TABLE users ADD COLUMN full_access_at INTEGER;
+        ALTER TABLE users ADD COLUMN full_access_by TEXT;
+        CREATE TABLE IF NOT EXISTS trial_config (
+          key   TEXT PRIMARY KEY,
+          value INTEGER NOT NULL
+        );
+        INSERT OR IGNORE INTO trial_config (key, value) VALUES ('trial_since', unixepoch());
+        CREATE TABLE IF NOT EXISTS trial_events (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id    INTEGER NOT NULL,
+          event      TEXT NOT NULL,
+          detail     TEXT,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_trial_events_user ON trial_events(user_id, event);
+        CREATE TABLE IF NOT EXISTS trial_surveys (
+          user_id    INTEGER PRIMARY KEY,
+          answers    TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS trial_feedback (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id    INTEGER NOT NULL,
+          screen     TEXT,
+          body       TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_trial_feedback_user ON trial_feedback(user_id);
+        CREATE TABLE IF NOT EXISTS practice_submissions (
+          id              INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id         INTEGER,
+          job_id          TEXT NOT NULL,
+          fields_filled   INTEGER NOT NULL DEFAULT 0,
+          resume_attached INTEGER NOT NULL DEFAULT 0,
+          created_at      INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_practice_submissions_user ON practice_submissions(user_id);
+      `,
+    },
   ];

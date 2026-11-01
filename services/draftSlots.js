@@ -21,6 +21,7 @@
 // approvedLast24h, submittedLast24h) — and the copy says "in the last 24 hours", not "today".
 import { DECK_SIZE } from "./dailyDraft.js";
 import { resolveEntitlement } from "./entitlementResolver.js";
+import { isTrial, TRIAL_DRAFTS, TRIAL_GENERATIONS } from "./trial.js";
 
 export function draftSlotLimit(env = process.env) {
   const n = Number(env?.DAILY_DRAFT_SLOTS);
@@ -72,6 +73,14 @@ function oldestUse(db, userId, since) {
  * exhausted Draft button can say "resets in 3h" instead of only "no". Null when nothing is used.
  */
 export function draftSlots(db, userId, { now = Math.floor(Date.now() / 1000), env = process.env } = {}) {
+  // ⭐ D124 · THE TRIAL (the main frame for every new account): 2 Drafts and 4 résumé generations IN ALL, not per day — the
+  // trial then locks into the survey. Both refused at zero by every caller that already reads `remaining`.
+  if (isTrial(db, userId)) {
+    const drafts = draftsUsed(db, userId, 0);
+    const generations = generationsUsed(db, userId, 0);
+    const remaining = Math.max(0, Math.min(TRIAL_DRAFTS - drafts, TRIAL_GENERATIONS - generations));
+    return { limit: TRIAL_DRAFTS, used: drafts, remaining, drafts, generations, windowHours: null, nextFreeAt: null, trial: true };
+  }
   const since = now - WINDOW_SECONDS;
   const drafts = draftsUsed(db, userId, since);
   const generations = generationsUsed(db, userId, since);
@@ -86,6 +95,10 @@ export function draftSlots(db, userId, { now = Math.floor(Date.now() / 1000), en
 
 /** The refusal every surface shows, so the deck, the board and Generate say the same thing. */
 export function slotsExhausted(slots, requested = 1) {
+  if (slots?.trial) {
+    return { error: "draft_slots_exhausted", slots,
+      message: `The trial includes ${slots.limit} Drafts, and you have used ${slots.drafts}. Thank you for trying draft.` };
+  }
   return {
     error: "draft_slots_exhausted",
     message: `You have used ${slots.used} of your ${slots.limit} drafts in the last 24 hours ` +

@@ -65,6 +65,8 @@ import { ConnectorDocsPage } from "./pages/marketing/ConnectorDocsPage.jsx";
 // ⭐ D105 P4: the Atlas — public at /atlas, and inside the app at /app/atlas under the top bar's Atlas tab.
 import AtlasPage       from "./pages/atlas/AtlasPage.jsx";
 import { Toaster }         from "./components/ui/toaster.jsx";
+import TryPage, { hasTrialIntent } from "./pages/TryPage.jsx";
+import TrialGate       from "./components/TrialDock.jsx";
 import { oauthNext }       from "./lib/oauthNext.js";
 
 const CONSOLE_ROUTE = "jobs";
@@ -88,6 +90,8 @@ function UserRouteGate({ authStatus, authUser, children }) {
   if (authStatus === "unknown") return null;
   if (authStatus !== "authenticated" || !authUser) return <Navigate to="/login" replace/>;
   if (authUser.isAdmin) return <Navigate to="/admin" replace/>;
+  // ⭐ D124: signed up (or in, with Google) from /try — back to /try to start the trial and pick a résumé.
+  if (hasTrialIntent()) return <Navigate to="/try" replace/>;
   return children;
 }
 
@@ -114,6 +118,8 @@ function PublicLoginRoute({ authStatus, authUser, children, admin = false, admin
     // A tab arriving at the OTHER kind's sign-in page signs that account in here and leaves the first tab
     // alone — so it is shown the form, and told plainly whose session this browser already has.
     if (admin) return authUser.isAdmin ? <Navigate to="/admin" replace/> : <><SignedInElsewhere user={authUser} admin/>{children}</>;
+    // ⭐ D124: signed in from /try — back there to start the trial and pick a résumé.
+    if (!authUser.isAdmin && hasTrialIntent()) return <Navigate to="/try" replace/>;
     return authUser.isAdmin ? <><SignedInElsewhere user={authUser}/>{children}</> : <Navigate to="/app" replace/>;
   }
   return children;
@@ -796,6 +802,9 @@ function AppRouter() {
 
         {/* New public pages with NavBar */}
         <Route path="/products" element={<>{navBar}<ProductsPage/></>}/>
+        {/* ⭐ D124 · the trial's one link: signed out, Start → sign-up; signed in, pick a résumé. */}
+        <Route path="/try" element={authStatus === "unknown" ? null
+          : <>{navBar}<TryPage authUser={authStatus === "authenticated" && authUser && !authUser.isAdmin ? authUser : null}/></>}/>
         <Route path="/blog"     element={<>{navBar}<BlogPage/></>}/>
 
         {/* Admin login — redirect if already authenticated */}
@@ -851,7 +860,8 @@ function AppRouter() {
         {/* User app — redirect admin to /admin */}
         <Route path="/app/*" element={
           <UserRouteGate authStatus={authStatus} authUser={authUser}>
-            <AppDashboard authUser={authUser} setAuthUser={setAuthUser}/>
+            {/* ⭐ D124: THE TRIAL IS THE MAIN FRAME — a trial account gets the app with its dock, then the survey and coming soon. */}
+            <TrialGate><AppDashboard authUser={authUser} setAuthUser={setAuthUser}/></TrialGate>
           </UserRouteGate>
         }/>
 

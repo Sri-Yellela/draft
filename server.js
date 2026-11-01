@@ -99,6 +99,9 @@ import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
 import { createThumbsRouter, createThumbsAdminRouter, resourceItems } from "./routes/thumbs.js";
+import trialRoutes from "./routes/trial.js";
+import { isTrial as isTrialAccount } from "./services/trial.js";
+import { ingestForUser } from "./services/inbox.js";
 import { refreshThumbs } from "./services/thumbs/resourceThumbs.js";
 import { createLearnAdminRouter } from "./routes/learnAdmin.js";
 import { seedLearnContentIfEmpty } from "./services/learn/learnImport.js";
@@ -6241,6 +6244,66 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D124 · THE TRIAL (owner 11-01, twice amended): THE TRIAL IS THE MAIN FRAME — every account made from now on is a
+      // trial account unless an admin grants it full access; 2 Drafts, then the whole site locks and ends in the survey and
+      // a coming-soon page. A sample résumé sends to draft's practice form, the tester's own sends for real.
+      //   users.full_access     NULL = by age (an account made before trial_since keeps full access) · 1 = granted · 0 = trial
+      //   users.full_access_at / full_access_by   when and by which admin it was last set
+      //   users.trial_at        when the account was first seen in the trial; users.trial_resume 'A' | 'B' | 'own'
+      //   users.trial_survey_dismissed_at   the survey was skipped at the end · users.trial_finished_at "Finish the trial"
+      //   trial_config          trial_since = when this migration ran (no existing row is changed)
+      //   trial_events          the trial's analytics: pages visited and active minutes — names and counts, no content
+      //   trial_surveys         the survey's answers, one row per account (answers JSON: the D124 questions)
+      //   trial_feedback        "Something broke? / Feedback": a short text and the screen it came from
+      //   practice_submissions  a send that reached draft's practice form — counts only, never the form's values
+      // After 204 (the resource thumbnails).
+      id: "205_trial",
+      sql: `
+        ALTER TABLE users ADD COLUMN trial_at INTEGER;
+        ALTER TABLE users ADD COLUMN trial_resume TEXT;
+        ALTER TABLE users ADD COLUMN trial_survey_dismissed_at INTEGER;
+        ALTER TABLE users ADD COLUMN trial_finished_at INTEGER;
+        ALTER TABLE users ADD COLUMN full_access INTEGER;
+        ALTER TABLE users ADD COLUMN full_access_at INTEGER;
+        ALTER TABLE users ADD COLUMN full_access_by TEXT;
+        CREATE TABLE IF NOT EXISTS trial_config (
+          key   TEXT PRIMARY KEY,
+          value INTEGER NOT NULL
+        );
+        INSERT OR IGNORE INTO trial_config (key, value) VALUES ('trial_since', unixepoch());
+        CREATE TABLE IF NOT EXISTS trial_events (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id    INTEGER NOT NULL,
+          event      TEXT NOT NULL,
+          detail     TEXT,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_trial_events_user ON trial_events(user_id, event);
+        CREATE TABLE IF NOT EXISTS trial_surveys (
+          user_id    INTEGER PRIMARY KEY,
+          answers    TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS trial_feedback (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id    INTEGER NOT NULL,
+          screen     TEXT,
+          body       TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_trial_feedback_user ON trial_feedback(user_id);
+        CREATE TABLE IF NOT EXISTS practice_submissions (
+          id              INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id         INTEGER,
+          job_id          TEXT NOT NULL,
+          fields_filled   INTEGER NOT NULL DEFAULT 0,
+          resume_attached INTEGER NOT NULL DEFAULT 0,
+          created_at      INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_practice_submissions_user ON practice_submissions(user_id);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -9712,6 +9775,11 @@ app.use("/api/atlas", createAtlasRouter(db));
 app.use("/api/learn", createLearnRouter(db, { requireAuth }));
 // ⭐ D119 · thumbnails: stored pictures for Learn's resources (public), and the admin's Pin a video / Hide / refresh.
 app.use("/api/thumbs", createThumbsRouter(db));
+// ⭐ D124 · the trial: /api/trial/* (the account's own), Admin → Trial's counts, and draft's practice form (/try/practice/:jobId),
+// which a sample résumé's Drafts send to instead of a real employer (routes/apply.js asks services/trial.js trialSendUrl).
+trialRoutes(app, db, { requireAuth, requireAdmin, secret: SESSION_SECRET,
+  upload: multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 4, fields: 60 } }),
+  deliver: (m) => ingestForUser(db, m) });
 app.use("/api/admin/thumbs", requireAdmin, createThumbsAdminRouter(db));   // ⭐ D115 · Learn (public content; progress signed in)
 app.use("/api/admin/atlas", requireAdmin, createAtlasAdminRouter(db));
 // ⭐ D118 P2 · Admin → Atlas → Import content: the extracted JSON validated, diffed by id, applied on Apply — no deploy.
@@ -12094,7 +12162,7 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   // ⭐ D123 P2 · THE LEAN CALL: Haiku edits bullets and skills from keywords draft computes here (the full posting text,
   // draft's scorer, the KB's placements at the candidate's own employers); the posting's text is not sent. Off unless
   // DRAFT_TAILORING=lean (services/leanTailoring.js). Any failure to build the keywords falls back to the full call.
-  const tailoring = promptMode === "GENERATE" ? tailoringFor({ env: process.env }) : "full";
+  const tailoring = promptMode === "GENERATE" ? tailoringFor({ env: process.env, isTrial: isTrialAccount(db, userId) }) : "full";
   let leanKeywords = null;
   if (tailoring === "lean") {
     try {
@@ -12180,8 +12248,7 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
     // Spend the tools service reports on a failed request is still spend — meter it, then rethrow.
     // A94: a claim-guard refusal is a BILLED call that succeeded, so its row says success = 1; the
     // request's code is what tells it apart from a delivered résumé.
-    recordToolsServiceUsage(db, e?.usage, { userId, eventSubtype, jobId: String(jobId), company: job.company, renamePurpose: LEAN_LEDGER_RENAME,
-      requestError: e?.code, retryReason });
+    recordToolsServiceUsage(db, e?.usage, { userId, eventSubtype, jobId: String(jobId), company: job.company, renamePurpose: LEAN_LEDGER_RENAME, requestError: e?.code, retryReason });
     throw e;
   }
   const domainModuleKey = generated.domainModuleKey;

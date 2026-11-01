@@ -307,6 +307,7 @@ export const MERGE_PLAN = Object.freeze({
   // D117 C8 (202): earned progress — one row per (user, item / checkpoint / piece); INTO's own wins on a clash (its first
   // opening, its own words, its build link), FROM's fill the rest.
   learn_opened: "keepInto", learn_explanations: "keepInto", learn_builds: "keepInto",
+  trial_surveys: "keepInto", trial_feedback: "move", practice_submissions: "move", trial_events: "move",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });
