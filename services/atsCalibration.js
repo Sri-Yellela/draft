@@ -77,7 +77,7 @@ export function readingOf(job, reports) {
 export function ensureResumes(db) {
   const have = new Set(db.prepare("SELECT source FROM ats_gold_resumes").pluck().all());
   const add = db.prepare("INSERT INTO ats_gold_resumes (label, source, resume_text) VALUES (?, ?, ?)");
-  for (const s of Object.values(samples())) if (!have.has(`sample:${s.id}`)) add.run(`Sample ${s.id} · ${s.label}`, `sample:${s.id}`, s.resumeText);
+  for (const s of Object.values(samples())) if (!have.has(`sample:${s.id}`)) add.run(s.label, `sample:${s.id}`, s.resumeText);   // its label already says "Sample A · …"
   return listResumes(db);
 }
 
