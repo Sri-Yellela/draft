@@ -11,6 +11,8 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { profileCategory } from "./jobs/professionalScope.js";
+import { TOUR_STEPS, TOUR_STEP_IDS, TOUR_INTERACTIONS, TOUR_SECTIONS, TOUR_PHASES, TOUR_DEVICES, TOUR_SPEEDS } from "../shared/trialTour.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // D124 amended (owner 11-01): six samples by category — A software, B ML / data, C mechanical, D electrical,
@@ -166,7 +168,17 @@ export function trialState(db, userId, { draftsUsed = null } = {}) {
     drafts: TRIAL_DRAFTS, draftsUsed, sent, locked, surveyDone, surveySkipped: !!u.trial_survey_dismissed_at,
     // Locked and not yet answered or skipped: the survey is the whole page.
     surveyDue: locked && !surveyDone && !u.trial_survey_dismissed_at,
+    // D129: the survey's "Your field", prefilled from the résumé (editable).
+    fieldGuess: activeCategory(db, userId),
   };
+}
+
+/** The active job profile's category (D127), or null. */
+export function activeCategory(db, userId) {
+  try {
+    const p = db.prepare("SELECT role_family, target_titles, profile_name FROM domain_profiles WHERE user_id = ? AND is_active = 1").get(userId);
+    return p ? profileCategory(p) : null;
+  } catch { return null; }
 }
 
 export function dismissSurvey(db, userId) {
@@ -206,15 +218,42 @@ export function listAccess(db) {
 }
 
 // ── the trial's analytics: names and counts, never content ────────────────────────────────────
-export const TRIAL_EVENTS = Object.freeze(["page", "active_minute"]);
+// D129: the guided tour's events — "tour" (a step reached / completed / abandoned, with the ms spent, the device and the
+// speed), "interaction" (a feature tried, by name) and "error" (a code seen on a step). Each detail is validated against
+// shared/trialTour.js and stored as compact JSON; nothing typed by the user is ever stored here.
+export const TRIAL_EVENTS = Object.freeze(["page", "active_minute", "tour", "interaction", "error"]);
 const EVENTS_PER_DAY = 600;
+const pick = (v, list, dflt = null) => (list.includes(v) ? v : dflt);
+
+/** The stored detail for an event, or undefined when the event is malformed (refused). */
+export function eventDetail(event, detail) {
+  if (event === "page") return String(detail ?? "").split("?")[0].replace(/\/for\/[^/]+/, "/for/:id").replace(/\/\d+(?=\/|$)/g, "/:id").slice(0, 80) || "/";
+  if (event === "active_minute") return null;
+  const d = detail && typeof detail === "object" ? detail : {};
+  if (event === "tour") {
+    const step = pick(d.step, TOUR_STEP_IDS), phase = pick(d.phase, TOUR_PHASES);
+    if (!step || !phase) return undefined;
+    const ms = Number.isFinite(Number(d.ms)) ? Math.max(0, Math.min(Math.round(Number(d.ms)), 3_600_000)) : null;
+    return JSON.stringify({ step, phase, ms, device: pick(d.device, TOUR_DEVICES), speed: pick(d.speed, TOUR_SPEEDS, "normal") });
+  }
+  if (event === "interaction") {
+    const name = pick(d.name ?? detail, TOUR_INTERACTIONS);
+    return name ? JSON.stringify({ name, step: pick(d.step, TOUR_STEP_IDS) }) : undefined;
+  }
+  if (event === "error") {
+    const code = String(d.code ?? "").replace(/[^a-z0-9_:.-]/gi, "").slice(0, 60);
+    return code ? JSON.stringify({ code, step: pick(d.step, TOUR_STEP_IDS) }) : undefined;
+  }
+  return undefined;
+}
+
 /** One event from the client. A page is a path with ids stripped (/app/job/123 → /app/job/:id); anything else is refused. */
 export function recordEvent(db, userId, { event, detail } = {}) {
   if (!TRIAL_EVENTS.includes(event) || !isTrial(db, userId)) return false;
   const today = db.prepare("SELECT COUNT(*) n FROM trial_events WHERE user_id = ? AND created_at >= ?").get(userId, now() - 86400).n;
   if (today >= EVENTS_PER_DAY) return false;
-  let d = null;
-  if (event === "page") d = String(detail ?? "").split("?")[0].replace(/\/for\/[^/]+/, "/for/:id").replace(/\/\d+(?=\/|$)/g, "/:id").slice(0, 80) || "/";
+  const d = eventDetail(event, detail);
+  if (d === undefined) return false;
   db.prepare("INSERT INTO trial_events (user_id, event, detail) VALUES (?, ?, ?)").run(userId, event, d);
   return true;
 }
@@ -222,21 +261,25 @@ export function recordEvent(db, userId, { event, detail } = {}) {
 // ── the survey: who they are, what they want, what they thought — ending in their own words ───
 export const IMPROVEMENTS = Object.freeze(["more_jobs", "better_matching", "faster_tailoring", "more_sites", "interview_prep",
   "salary_insights", "referrals", "mobile_app", "browser_extension", "other"]);
+// D129 (owner 11-01): "the survey is the most important part". ≤ 2 minutes; one tap each except the texts; every
+// question skippable. Per-section usefulness, the ONE section used first, and the confusing step(s) are the new core.
+const SECTION_LABEL = { picks: "The picks", filters: "The filters", draft_house: "Draft House / auto-apply", map: "Your map",
+  learn: "Learn", table: "The Table" };
 export const SURVEY = Object.freeze([
   { key: "searching", q: "Are you job-searching now?", type: "one", options: ["now", "within_6_months", "no"] },
-  { key: "target_role", q: "What kind of role are you after?", type: "one",
-    options: ["software", "ml_ai", "data", "frontend_mobile", "infra_devops", "security", "product_other"] },
-  { key: "experience", q: "Your experience", type: "one", options: ["student_new_grad", "1_3", "4_7", "8_plus"] },
+  { key: "field", q: "Your field", type: "one", prefill: "category",
+    options: ["computing", "engineering", "management", "business", "science", "legal", "arts_media", "sales", "marketing", "other"] },
   { key: "sent_last_month", q: "Applications you sent last month", type: "one", options: ["0", "1-10", "11-50", "50+"] },
   { key: "frustrations", q: "Your biggest frustration with job hunting (up to 2)", type: "many", max: 2,
     options: ["no_replies", "too_many_forms", "not_eligible", "fake_or_stale", "tailoring", "what_to_learn", "other"] },
-  { key: "most_useful", q: "What was most useful today?", type: "one",
-    options: ["matched_board", "tailored_resume", "filled_and_sent", "sponsorship_info", "atlas_learning", "inbox"] },
-  { key: "useful", q: "How useful was draft overall?", type: "scale", min: 1, max: 5 },
-  { key: "would_use", q: "Would you use it for a real search?", type: "one", options: ["yes", "maybe", "no"] },
+  ...TOUR_SECTIONS.map(sec => ({ key: `rate_${sec}`, q: `How useful: ${SECTION_LABEL[sec]}`, type: "scale", min: 1, max: 5, section: sec })),
+  { key: "use_first", q: "Which ONE would you use first?", type: "one", options: [...TOUR_SECTIONS] },
+  { key: "confusing_steps", q: "Was anything confusing? (choose the step)", type: "many", max: 3, options: [...TOUR_STEP_IDS] },
+  { key: "confusing_text", q: "What was confusing about it?", type: "text", max: 500 },
+  { key: "would_use", q: "Would you use draft for your real search?", type: "one", options: ["yes", "maybe", "no"] },
+  { key: "what_would_stop", q: "What would stop you from using it?", type: "text", max: 500 },
   { key: "would_pay", q: "What would you pay a month for it?", type: "one", options: ["nothing", "under_10", "10_20", "over_20"] },
   { key: "improvement", q: "The improvement you would want first", type: "select", options: IMPROVEMENTS },
-  { key: "what_would_stop", q: "What would stop you from using it?", type: "text", max: 500 },
   { key: "thoughts", q: "Any other thoughts or feedback?", type: "text", max: 1500 },
   { key: "followup_email", q: "Email, if you are happy to do a 10-minute follow-up call (optional)", type: "email", max: 200 },
 ]);
@@ -346,8 +389,7 @@ export function adminTrialCounts(db) {
     AND user_id IN (${T}) GROUP BY user_id HAVING COUNT(*) >= ?)`, k);
   const surveys = all(`SELECT answers FROM trial_surveys WHERE user_id IN (${T})`).map(r => JSON.parse(r.answers));
   const tally = (key) => { const t = {}; for (const a of surveys) for (const v of [].concat(a[key] ?? [])) t[v] = (t[v] || 0) + 1; return t; };
-  const useful = surveys.map(a => a.useful).filter(Number.isFinite);
-  const funnel = { started, pickedResume: picked.A + picked.B + picked.own,
+  const funnel = { started, pickedResume: Object.values(picked).reduce((a, b) => a + b, 0),
     draft1Sent: sentAtLeast(1), draft2Sent: sentAtLeast(2), surveySubmitted: surveys.length };
   // Usage: how many testers opened each page; active minutes per tester (median); the roles they came for.
   const pages = Object.fromEntries(all(`SELECT detail, COUNT(DISTINCT user_id) n FROM trial_events WHERE event = 'page' AND user_id IN (${T})
@@ -362,11 +404,12 @@ export function adminTrialCounts(db) {
   }
   return {
     funnel, picked,
-    survey: { searching: tally("searching"), targetRole: tally("target_role"), experience: tally("experience"),
-      sentLastMonth: tally("sent_last_month"), frustrations: tally("frustrations"), mostUseful: tally("most_useful"),
+    survey: { searching: tally("searching"), field: tally("field"), sentLastMonth: tally("sent_last_month"),
+      frustrations: tally("frustrations"), useFirst: tally("use_first"), confusingSteps: tally("confusing_steps"),
       wouldUse: tally("would_use"), wouldPay: tally("would_pay"), improvement: tally("improvement"),
       thoughts: surveys.filter(a => a.thoughts).length },
-    usefulAverage: useful.length ? Math.round(useful.reduce((a, b) => a + b, 0) / useful.length * 100) / 100 : null,
+    // D129: per-section usefulness, each an average of the 1–5 answers given (null when nobody rated it).
+    sectionUseful: Object.fromEntries(TOUR_SECTIONS.map(sec => [sec, avg(surveys.map(a => a[`rate_${sec}`]).filter(Number.isFinite))])),
     usage: { pages, testersActive: minutes.length, medianActiveMinutes: minutes.length ? minutes[Math.floor(minutes.length / 2)] : null },
     interests: { roleFamilies, topTitles: Object.fromEntries(Object.entries(titles).sort((a, b) => b[1] - a[1]).slice(0, 10)) },
     locked: one(`SELECT COUNT(*) n FROM users WHERE trial_at IS NOT NULL AND (trial_finished_at IS NOT NULL OR id IN
@@ -376,6 +419,124 @@ export function adminTrialCounts(db) {
     followupEmails: surveys.filter(a => a.followup_email).length,
     access: listAccess(db),
   };
+}
+
+const avg = (xs) => (xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length * 100) / 100 : null);
+const median = (xs) => { if (!xs.length) return null; const v = [...xs].sort((a, b) => a - b); return v[Math.floor(v.length / 2)]; };
+
+/**
+ * Each trial account's tour, read from its events: per step the first reached / completed time and the ms spent, the
+ * device and speed it ran at, the sample, the field (the active profile's category), the drafts sent, the survey.
+ */
+export function tourSessions(db, { categoryOf = (u) => (u.role_family ? profileCategory(u) : null) } = {}) {
+  const all = (sql, ...a) => { try { return db.prepare(sql).all(...a); } catch { return []; } };
+  const users = all(`SELECT u.id, u.trial_resume, s.answers, d.role_family, d.target_titles, d.profile_name
+    FROM users u LEFT JOIN trial_surveys s ON s.user_id = u.id
+    LEFT JOIN domain_profiles d ON d.user_id = u.id AND d.is_active = 1 WHERE u.trial_at IS NOT NULL`);
+  const sent = Object.fromEntries(all(`SELECT user_id, COUNT(*) n FROM apply_run_jobs WHERE status = 'submitted' GROUP BY user_id`)
+    .map(r => [r.user_id, r.n]));
+  const ev = new Map();
+  for (const r of all(`SELECT user_id, event, detail, created_at FROM trial_events WHERE event IN ('tour','interaction','error') ORDER BY id`)) {
+    if (!ev.has(r.user_id)) ev.set(r.user_id, []);
+    try { ev.get(r.user_id).push({ event: r.event, at: r.created_at, ...JSON.parse(r.detail || "{}") }); } catch { /* unreadable */ }
+  }
+  return users.map(u => {
+    const steps = {}, interactions = {}, errors = [];
+    let device = null, speed = "normal";
+    for (const e of ev.get(u.id) || []) {
+      if (e.event === "tour") {
+        const st = (steps[e.step] ??= {});
+        if (e.phase === "reached" && st.reached == null) st.reached = e.at;
+        if (e.phase === "completed") { st.completed = e.at; if (e.ms != null) st.ms = (st.ms || 0) + e.ms; }
+        if (e.phase === "abandoned") st.abandoned = e.at;
+        device = e.device || device; speed = e.speed || speed;
+      }
+      if (e.event === "interaction") interactions[e.name] = (interactions[e.name] || 0) + 1;
+      if (e.event === "error") errors.push({ code: e.code, step: e.step });
+    }
+    const reached = TOUR_STEP_IDS.filter(id => steps[id]?.reached != null);
+    let answers = null;
+    try { answers = u.answers ? JSON.parse(u.answers) : null; } catch { /* unreadable */ }
+    const field = answers?.field || categoryOf(u) || null;
+    const drafts = sent[u.id] || 0;
+    return { userId: u.id, sample: u.trial_resume || null, field, device, speed, steps, reached,
+      lastStep: reached[reached.length - 1] || null, finished: steps.survey?.completed != null,
+      totalMs: TOUR_STEP_IDS.reduce((t, id) => t + (steps[id]?.ms || 0), 0), interactions, errors, drafts,
+      draftsOk: drafts >= 2 ? "both" : drafts === 1 ? "one" : "none", answers };
+  });
+}
+
+/** D129's dimensions for a cross-cut. */
+export const CROSS_CUTS = Object.freeze(["sample", "field", "device", "speed", "draftsOk"]);
+
+/**
+ * D129 · USABLE ANALYTICS (Admin → Trial; counts, never content beyond the free-text answers themselves):
+ * the funnel per step (reached · completed · abandoned · median ms), drop-off points, interactions, errors by step,
+ * the survey's distributions, per-section usefulness, and any survey answer cut by sample / field / device / speed /
+ * drafts sent. `filter` narrows every number to one value of one dimension ({ by: "device", value: "phone" }).
+ */
+export function trialAnalytics(db, { filter = null, categoryOf } = {}) {
+  let sessions = tourSessions(db, { categoryOf });
+  if (filter && CROSS_CUTS.includes(filter.by)) sessions = sessions.filter(s => String(s[filter.by]) === String(filter.value));
+  const funnel = TOUR_STEPS.map(({ id, title }) => {
+    const here = sessions.filter(s => s.steps[id]?.reached != null);
+    const done = here.filter(s => s.steps[id]?.completed != null);
+    return { step: id, title, reached: here.length, completed: done.length,
+      abandoned: here.filter(s => s.lastStep === id && !s.finished).length,
+      medianMs: median(done.map(s => s.steps[id].ms).filter(Number.isFinite)) };
+  });
+  const dropOff = {};
+  for (const s of sessions) if (!s.finished && s.lastStep) dropOff[s.lastStep] = (dropOff[s.lastStep] || 0) + 1;
+  const interactions = Object.fromEntries(TOUR_INTERACTIONS.map(n => [n, sessions.filter(s => s.interactions[n]).length]));
+  const errors = {};
+  for (const s of sessions) for (const e of s.errors) { const k = `${e.step || "-"} · ${e.code}`; errors[k] = (errors[k] || 0) + 1; }
+  const answered = sessions.filter(s => s.answers);
+  const distribution = {};
+  for (const q of SURVEY) {
+    if (q.type === "text" || q.type === "email") continue;
+    const t = {};
+    for (const s of answered) for (const v of [].concat(s.answers[q.key] ?? [])) t[v] = (t[v] || 0) + 1;
+    distribution[q.key] = t;
+  }
+  const texts = {};
+  for (const key of ["what_would_stop", "confusing_text", "thoughts"]) {
+    texts[key] = answered.filter(s => s.answers[key]).map(s => ({ text: s.answers[key], steps: s.answers.confusing_steps || [],
+      sample: s.sample, field: s.field }));
+  }
+  return {
+    testers: sessions.length, finished: sessions.filter(s => s.finished).length,
+    medianTotalMs: median(sessions.filter(s => s.finished).map(s => s.totalMs)),
+    funnel, dropOff, interactions, errors, distribution,
+    sectionUseful: Object.fromEntries(TOUR_SECTIONS.map(sec => [sec, avg(answered.map(s => s.answers[`rate_${sec}`]).filter(Number.isFinite))])),
+    texts,
+    dimensions: Object.fromEntries(CROSS_CUTS.map(d => [d, [...new Set(sessions.map(s => s[d]).filter(v => v != null))]])),
+  };
+}
+
+/** One survey answer (or a section rating) cut by a dimension: { [dimValue]: { [answer]: count } } or averages for a scale. */
+export function crossCut(db, { key, by, categoryOf } = {}) {
+  const q = SURVEY.find(x => x.key === key);
+  if (!q || !CROSS_CUTS.includes(by)) return null;
+  const out = {};
+  for (const s of tourSessions(db, { categoryOf })) {
+    if (!s.answers || s.answers[key] == null) continue;
+    const g = String(s[by] ?? "unknown");
+    if (q.type === "scale") (out[g] ??= []).push(s.answers[key]);
+    else for (const v of [].concat(s.answers[key])) { (out[g] ??= {}); out[g][v] = (out[g][v] || 0) + 1; }
+  }
+  if (q.type === "scale") for (const g of Object.keys(out)) out[g] = { average: avg(out[g]), n: out[g].length };
+  return out;
+}
+
+/** CSV, one row per tester: the tour, the drafts, every survey answer. Emails only when asked AND the tester gave one. */
+export function analyticsCsv(db, { includeEmails = false, categoryOf } = {}) {
+  const cols = ["sample", "field", "device", "speed", "last_step", "finished", "total_seconds", "drafts_sent",
+    ...TOUR_STEP_IDS.map(id => `s_${id}_seconds`), ...SURVEY.filter(q => includeEmails || q.type !== "email").map(q => q.key)];
+  const cell = (v) => { const t = Array.isArray(v) ? v.join("; ") : v == null ? "" : String(v); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const rows = tourSessions(db, { categoryOf }).map(s => [s.sample, s.field, s.device, s.speed, s.lastStep, s.finished ? 1 : 0,
+    Math.round(s.totalMs / 1000), s.drafts, ...TOUR_STEP_IDS.map(id => (s.steps[id]?.ms != null ? Math.round(s.steps[id].ms / 1000) : "")),
+    ...SURVEY.filter(q => includeEmails || q.type !== "email").map(q => s.answers?.[q.key])].map(cell).join(","));
+  return [cols.join(","), ...rows].join("\n") + "\n";
 }
 
 /** The survey answers for export, WITHOUT emails (D124: "an export of the survey answers without emails"). */

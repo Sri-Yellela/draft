@@ -12,6 +12,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { api } from "../lib/api.js";
 import DepthButton from "./DepthButton.jsx";
 import { Z } from "../styles/zLayers.js";
+import { TOUR_STEPS } from "../../../shared/trialTour.js";
 
 const POLL_MS = 45_000;
 const LABELS = {
@@ -27,6 +28,11 @@ const LABELS = {
   more_jobs: "More companies and jobs", better_matching: "Better job matching", faster_tailoring: "Faster tailoring",
   more_sites: "Apply on more job sites", interview_prep: "Interview prep", salary_insights: "Salary and offer insights",
   referrals: "Referrals and networking", mobile_app: "A mobile app", browser_extension: "A browser extension",
+  // D129: the field (D127's categories), the sections rated, and the tour's steps (for "what was confusing").
+  computing: "Software, data or IT", engineering: "Engineering", management: "Management", business: "Business or finance",
+  science: "Science or research", legal: "Legal", arts_media: "Design, media or communications", sales: "Sales", marketing: "Marketing",
+  picks: "The picks", filters: "The filters", draft_house: "Draft House / auto-apply", map: "Your map", learn: "Learn", table: "The Table",
+  ...Object.fromEntries(TOUR_STEPS.map(s => [s.id, s.title])),
 };
 const box = { boxSizing: "border-box", background: "var(--color-surface)", color: "var(--color-text)", border: "1px solid var(--color-border)", borderRadius: 6 };
 const page = { boxSizing: "border-box", width: "min(680px, calc(100% - 32px))", margin: "40px auto 64px", color: "var(--color-text)" };
@@ -70,8 +76,8 @@ function Choice({ q, value, onChange }) {
 }
 
 /** The survey, as the whole page — the trial's ending. Every question optional; the last word is the tester's own. */
-function SurveyPage({ survey, onDone }) {
-  const [answers, setAnswers] = useState({});
+function SurveyPage({ survey, onDone, fieldGuess = null }) {
+  const [answers, setAnswers] = useState(() => (fieldGuess ? { field: fieldGuess } : {}));
   const [err, setErr] = useState("");
   const set = (k, v) => setAnswers(a => ({ ...a, [k]: v }));
   const send = async () => {
@@ -225,7 +231,7 @@ export default function TrialGate({ children }) {
   if (!state.hasProfile) return <Navigate to="/try" replace/>;
   if (state.locked) {
     return state.surveyDue && !ended
-      ? <SurveyPage survey={state.survey || []} onDone={() => { setEnded(true); load(); }}/>
+      ? <SurveyPage survey={state.survey || []} fieldGuess={state.fieldGuess || null} onDone={() => { setEnded(true); load(); }}/>
       : <ComingSoon answered={state.surveyDone}/>;
   }
   return (

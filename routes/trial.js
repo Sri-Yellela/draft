@@ -16,10 +16,13 @@
 //   POST /api/trial/feedback         { body, screen } — "Something broke? / Feedback"
 //   GET  /api/admin/trial            Admin → Trial: counts only
 //   GET  /api/admin/trial/export     the survey answers WITHOUT emails, as JSON
+//   GET  /api/admin/trial/analytics  D129: the funnel (step times), drop-offs, interactions, errors, the survey; ?by=&value= narrows
+//   GET  /api/admin/trial/crosscut   D129: one survey answer by sample | field | device | speed | draftsOk (?key=&by=)
+//   GET  /api/admin/trial/export.csv D129: one row per tester; emails only with ?emails=1 and only those who gave one
 //   GET  /try/practice/:jobId        draft's practice form for one posting (a signed ?u=&t= names the account)
 //   POST /try/practice/:jobId        its submission: counted, and a confirmation goes into the tester's Inbox
 import { startTrial, pickResume, trialState, saveSurvey, dismissSurvey, finishTrial, saveFeedback, recordEvent, setAccess,
-         adminTrialCounts, surveyExport, SURVEY, verifyPracticeToken, renderPracticeForm, renderPracticeThanks,
+         adminTrialCounts, surveyExport, SURVEY, trialAnalytics, crossCut, analyticsCsv, verifyPracticeToken, renderPracticeForm, renderPracticeThanks,
          recordPracticeSubmission } from "../services/trial.js";
 import { draftSlots } from "../services/draftSlots.js";
 import { offeredSamples, samplePicks, ownPicks } from "../services/trialPicks.js";
@@ -95,6 +98,26 @@ export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret
   app.post("/api/admin/trial/access", requireAdmin, (req, res) => {
     try { res.json(setAccess(db, { who: req.body?.who, access: req.body?.access, by: req.admin?.email || req.admin?.username || "admin" })); }
     catch (e) { fail(res, e); }
+  });
+
+  app.get("/api/admin/trial/analytics", requireAdmin, (req, res) => {
+    try {
+      const filter = req.query.by ? { by: String(req.query.by), value: String(req.query.value ?? "") } : null;
+      res.json(trialAnalytics(db, { filter }));
+    } catch (e) { fail(res, e); }
+  });
+
+  app.get("/api/admin/trial/crosscut", requireAdmin, (req, res) => {
+    const out = crossCut(db, { key: String(req.query.key || ""), by: String(req.query.by || "") });
+    if (!out) return res.status(400).json({ error: "bad_crosscut", message: "key must be a survey question and by one of sample, field, device, speed, draftsOk." });
+    res.json({ key: req.query.key, by: req.query.by, cut: out });
+  });
+
+  app.get("/api/admin/trial/export.csv", requireAdmin, (req, res) => {
+    try {
+      res.set("Content-Type", "text/csv; charset=utf-8").set("Content-Disposition", 'attachment; filename="draft-trial.csv"')
+        .send(analyticsCsv(db, { includeEmails: req.query.emails === "1" }));
+    } catch (e) { fail(res, e); }
   });
 
   app.get("/api/admin/trial/export", requireAdmin, (_req, res) => {
