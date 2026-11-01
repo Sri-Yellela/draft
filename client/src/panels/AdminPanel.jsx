@@ -15,6 +15,7 @@ import { EmailHealthTab } from "./adminEmail.jsx";
 import { AdminsTab } from "./adminAdmins.jsx";
 import { AtlasTab } from "./adminAtlas.jsx";
 import { TrialTab } from "./adminTrial.jsx";
+import { CalibrateTab } from "./adminCalibrate.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
@@ -714,6 +715,8 @@ export function AdminPanel() {
       {/* Data — what is stored? */}
       {at("data", "jobdata") && <JobDataSection theme={theme}/>}
       {at("data", "scoring") && <BoardFitSection theme={theme}/>}
+      {/* D125: the owner calibrates the ATS by hand — the gold set the scorer is held to. */}
+      {at("data", "calibrate") && <CalibrateTab/>}
       {at("data", "database") && (
         <div className="rm-card" data-admin-database="" style={{ maxWidth:640 }}>
           <div style={{ fontWeight:700, fontSize:14, color:theme.text, marginBottom:8 }}>The database, read-only</div>

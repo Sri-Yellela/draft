@@ -87,6 +87,11 @@ const PUBLIC = new Set([
 const ADMIN = new Set([
   // D124: Admin → Trial — counts only, and the survey answers without emails (routes/trial.js).
   "GET /api/admin/trial",
+  // D125: Admin → ATS calibration (routes/atsCalibration.js).
+  "GET /api/admin/ats-calibration", "POST /api/admin/ats-calibration/build", "POST /api/admin/ats-calibration/resume",
+  "GET /api/admin/ats-calibration/item/:id", "PUT /api/admin/ats-calibration/item/:id", "POST /api/admin/ats-calibration/assist",
+  "POST /api/admin/ats-calibration/assist/import", "GET /api/admin/ats-calibration/results", "POST /api/admin/ats-calibration/fix",
+  "POST /api/admin/ats-calibration/baseline",
   "GET /api/admin/trial/export",
   // D129: usable analytics — admin only.
   "GET /api/admin/trial/analytics",
@@ -577,6 +582,7 @@ function collect() {
     ...directRoutes(fs.readFileSync("routes/interview.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/picksConfirm.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/trial.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/atsCalibration.js", "utf8")),
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),
