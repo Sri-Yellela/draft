@@ -242,3 +242,15 @@ test("D121 · the chip and the block draw the server's signal: a mark, quiet for
   assert.match(html, /What changed/);
   assert.doesNotMatch(html + ui.chip({ signal: often }), /will sponsor|rounded-full|999px/);
 });
+
+test("D121 P3 · Draft House's opened branch draws the ONE signal's chip, read from GET /api/jobs/:jobId/sponsorship (with the viewer's own 'needed')", () => {
+  const server = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
+  const i = server.indexOf('app.get("/api/jobs/:jobId/sponsorship", requireAuth');
+  assert.ok(i > 0);
+  const route = server.slice(i, server.indexOf("\n});", i));
+  assert.match(route, /sponsorshipSignal\(db, row\.company, \{ title: row\.title, posting: row \}\)/, "the one module");
+  assert.match(route, /needed = d\.sponsorship_now === "yes" \|\| d\.sponsorship_later === "yes"/);
+  const tree = fs.readFileSync("client/src/components/DraftHouseTree.jsx", "utf8");
+  assert.match(tree, /api\(`\/api\/jobs\/\$\{encodeURIComponent\(jobId\)\}\/sponsorship`\)/);
+  assert.match(tree, /<SponsorshipChip signal=\{sponsorship\} needed=\{!!sponsorship\.needed\} \/>/);
+});
