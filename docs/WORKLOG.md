@@ -1469,6 +1469,8 @@ Reconciled against `git log` (draft, resume-master, draft-android, draft-ios) on
 
 ### 2026-11-01 (43y) · "/loop to complete the whole work log, skip the ones you need me for" — the NEXT SESSION order, agent items only · local, NOT pushed
 
+⭐ **PUSHED on the owner's "push it" (11-01 ≈ 15:00Z) and MEASURED LIVE:** draft `fdf224e..81d5120` (8 commits) — `/api/version` started 15:01:24Z, **`latestApplied 207_posting_category`**; the tools service `0cc24ec..6639bdc` LIVE; `/try` 200. ⚠ One related-file batch (≈ 105 files) was not re-run after its last change (stopped by low memory); every other set green. **Owner, next:** Admin → Ops → Categories after the next crawl, and the spot-check.
+
 **Measured first (11-01 ≈ 08:05Z):** production draft `fdf224e` LIVE (`/api/version` started 07:53:09Z, `latestApplied 206_scrub_apify_tokens`) — 43x's last push is live; at 07:52Z it still read `d0961b3` (the deploy was building). `/try` 200. The tools service `0cc24ec` LIVE (unchanged).
 
 #### D123 P6e + P6f — the prompt fixes, the owner's bullet craft, the stricter guard
