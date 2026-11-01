@@ -66,7 +66,7 @@ test("d129PickTwoThenLiveRun + d129EndsOnTable: Next waits for 2 Drafts, then th
   assert.match(tour, /if \(step\.finish\) \{ send\("tour", \{ step: "survey", phase: "reached", ms: 0, device, speed \}\); setDone\(true\); await onFinish\?\.\(\); return; \}/, "the last step locks the site into the survey");
   const dock = read("client/src/components/TrialDock.jsx");
   assert.match(dock, /<GuidedTour state=\{state\} onFinish=\{finish\} onActive=\{setTouring\}\/>/);
-  assert.match(dock, /\{!touring && <Dock state=\{state\} onFinish=\{finish\}\/>\}/, "the dock steps aside while the tour is on screen");
+  assert.match(dock, /\{!touring && <Dock state=\{state\} onFinish=\{\(\) => finish\(\)\.then\(\(\) => setSurveyOpen\(true\)\)\}\/>\}/, "the dock steps aside while the tour is on screen");
 });
 
 test("d129: each step's time and the faster / skip choices reach the analytics; a missing element is reported, not hidden", () => {

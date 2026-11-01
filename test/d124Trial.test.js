@@ -192,7 +192,8 @@ test("d124LockAfterSecondDraft: the 2nd sent Draft (or Finish the trial) locks t
   assert.equal(trialState(db, 5).locked, true, "Finish the trial locks with no Draft sent");
   const gate = lf("client/src/components/TrialDock.jsx");
   // Owner 11-01 (changed on purpose): explore mode sits before the survey / coming-soon choice.
-  assert.match(gate, /if \(state\.locked\) \{[\s\S]{0,500}return state\.surveyDue && !ended\s*\? <SurveyPage/);
+  // owner 11-01: locked with the survey due → the app stays and a pop-up offers the survey; its button opens it
+  assert.match(gate, /if \(state\.locked\) \{[\s\S]{0,900}if \(surveyOpen\) return <SurveyPage[\s\S]{0,900}<SurveyInvite onOpen=\{\(\) => setSurveyOpen\(true\)\}\/>/);
   assert.match(gate, /The full version is coming soon/);
 });
 
