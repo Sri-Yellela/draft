@@ -9,6 +9,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import ExcelJS from "exceljs";
 import { MIGRATIONS } from "../scripts/migrations.js";
+import { at } from "../test-support/sourceAnchors.js";
 import { reconcileCompanyLca } from "../services/kb/lcaLayer.js";
 import { parseQuarter, writeQuarter, pwLevel } from "../scripts/ingestLca.mjs";
 import { lcaTitleKey } from "../shared/lcaTitleKey.js";
@@ -245,9 +246,8 @@ test("D121 · the chip and the block draw the server's signal: a mark, quiet for
 
 test("D121 P3 · Draft House's opened branch draws the ONE signal's chip, read from GET /api/jobs/:jobId/sponsorship (with the viewer's own 'needed')", () => {
   const server = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
-  const i = server.indexOf('app.get("/api/jobs/:jobId/sponsorship", requireAuth');
-  assert.ok(i > 0);
-  const route = server.slice(i, server.indexOf("\n});", i));
+  const i = at(server, 'app.get("/api/jobs/:jobId/sponsorship", requireAuth');
+  const route = server.slice(i, at(server, "\n});", i));
   assert.match(route, /sponsorshipSignal\(db, row\.company, \{ title: row\.title, posting: row \}\)/, "the one module");
   assert.match(route, /needed = d\.sponsorship_now === "yes" \|\| d\.sponsorship_later === "yes"/);
   const tree = fs.readFileSync("client/src/components/DraftHouseTree.jsx", "utf8");

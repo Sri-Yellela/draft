@@ -81,6 +81,10 @@ const PUBLIC = new Set([
 
 // ── ADMIN: requires an admin session ─────────────────────────────────────────────────────────
 const ADMIN = new Set([
+  // D124: Admin → Trial — counts only, and the survey answers without emails (routes/trial.js).
+  "GET /api/admin/trial",
+  "GET /api/admin/trial/export",
+  "POST /api/admin/trial/access",
   // AF residual. The full-auto kill switch, reachable without a SQL console. Admin-only and
   // deliberately not user-facing: it stops applications going out to real employers for EVERY
   // user, not for the caller.
@@ -133,6 +137,16 @@ const ADMIN = new Set([
 
 // ── AUTHENTICATED: requires a signed-in session, any role ────────────────────────────────────
 const AUTHENTICATED = new Set([
+  // D124: the trial — the caller's own account, flag, survey and feedback (routes/trial.js). The practice form is
+  // /try/practice/:jobId, outside /api, behind an HMAC naming one (account, posting).
+  "POST /api/trial/start",
+  "POST /api/trial/resume",
+  "GET /api/trial/state",
+  "POST /api/trial/survey",
+  "POST /api/trial/survey/dismiss",
+  "POST /api/trial/feedback",
+  "POST /api/trial/finish",
+  "POST /api/trial/event",
   // D115 P3: a learner's own progress marks.
   "GET /api/learn/progress", "PUT /api/learn/progress", "POST /api/learn/progress/import",
   // D117 C8: earned progress — the learner's own record (their explanations are theirs alone), an item opened from
@@ -545,6 +559,7 @@ function collect() {
     ...directRoutes(fs.readFileSync("routes/inbox.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/interview.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/picksConfirm.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/trial.js", "utf8")),
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.
     ...routerRoutes(fs.readFileSync("routes/account.js", "utf8"), ""),

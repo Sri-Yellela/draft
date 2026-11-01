@@ -21,6 +21,7 @@ export const ADMIN_GROUPS = Object.freeze([
     ["users", "Users"],                 // #15a + #17
     ["support", "Support"],             // D88 P3 — tickets
     ["messages", "Messages"],           // #19 — was under every tab
+    ["trial", "Trial"],                 // D124 — the /try weekend: counts only, the survey without emails
   ] },
   { id: "data", label: "Data", question: "What is stored?", sections: [
     ["jobdata", "Job data in and out"], // #8 — the one place for postings in and out
