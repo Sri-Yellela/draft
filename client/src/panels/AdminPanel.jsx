@@ -15,6 +15,7 @@ import { EmailHealthTab } from "./adminEmail.jsx";
 import { AdminsTab } from "./adminAdmins.jsx";
 import { AtlasTab } from "./adminAtlas.jsx";
 import { TrialTab } from "./adminTrial.jsx";
+import { TestersTab } from "./adminTesters.jsx";
 import { CalibrateTab } from "./adminCalibrate.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
@@ -709,8 +710,14 @@ export function AdminPanel() {
       {/* D88 P3: the support queue; a ticket links to the person's page. */}
       {at("people", "support") && <SupportQueue theme={theme} onOpenPerson={openPerson}/>}
       {at("people", "messages") && <ContactMessagesSection theme={theme}/>}
-      {/* D124: the trial — counts only, the survey's answers exported without emails. */}
-      {at("people", "trial") && <TrialTab/>}
+      {/* D131: Testers — the readable page on top; D124's tables, exports and exclusive access folded beneath it. */}
+      {at("people", "trial") && <>
+        <TestersTab/>
+        <details data-admin-trial-details="" style={{ marginTop: 28 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 700, marginBottom: 12 }}>Details, the older tables, exports and exclusive access</summary>
+          <TrialTab/>
+        </details>
+      </>}
 
       {/* Data — what is stored? */}
       {at("data", "jobdata") && <JobDataSection theme={theme}/>}

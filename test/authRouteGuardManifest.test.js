@@ -87,6 +87,8 @@ const PUBLIC = new Set([
 const ADMIN = new Set([
   // D124: Admin → Trial — counts only, and the survey answers without emails (routes/trial.js).
   "GET /api/admin/trial",
+  "GET /api/admin/testers",              // D131: the readable testers page (read-only)
+  "GET /api/admin/testers/export.csv",   // D131: the responses, no names, no emails
   // D125: Admin → ATS calibration (routes/atsCalibration.js).
   "GET /api/admin/ats-calibration", "POST /api/admin/ats-calibration/build", "POST /api/admin/ats-calibration/resume",
   "GET /api/admin/ats-calibration/item/:id", "PUT /api/admin/ats-calibration/item/:id", "POST /api/admin/ats-calibration/assist",
