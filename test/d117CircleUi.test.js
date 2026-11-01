@@ -175,7 +175,9 @@ test("D117 C8 · d117NoSelfCompleteControl — no checkbox, no 'done' / 'I expla
   const src = ["pages/atlas/LearnCircle.jsx", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js"].map(f => read(`client/src/${f}`).replace(/^\s*\/\/.*$/gm, "")).join("\n");
   assert.doesNotMatch(src, /\/api\/learn\/progress|type="checkbox"[^/]*data-learn-item|I explained it/);
   // The page's half of d117OpenedOnlyFromDraftClick: the item's own link click is what records the opening.
-  assert.match(read("client/src/pages/atlas/LearnCircle.jsx"), /<a className="atl__link" href=\{it\.u\} target="_blank" rel="noopener noreferrer" data-learn-open=\{it\.id\} onClick=\{\(\) => onOpen\?\.\(it, piece\)\}>/);
+  // D119: the item is a ResourceTile — the whole tile is the link, and its press records the opening.
+  assert.match(read("client/src/pages/atlas/LearnCircle.jsx"), /<ResourceTile item=\{it\} thumb=\{thumbs\[it\.u\] \|\| null\} opened=\{!!marks\[it\.id\]\} onOpen=\{\(\) => onOpen\?\.\(it, piece\)\}/);
+  assert.match(read("client/src/components/ResourceTile.jsx"), /<a className="rt" href=\{item\.u\} target="_blank" rel="noopener noreferrer" data-resource-tile=\{item\.id \|\| ""\} data-learn-open=\{item\.id\}\s+onClick=\{\(\) => onOpen\?\.\(item\)\}>/);
   assert.match(read("client/src/pages/atlas/LearnView.jsx"), /api\("\/api\/learn\/opened", \{ method: "POST", body: JSON\.stringify\(\{ id: it\.id \}\), keepalive: true \}\)/);
   // The page's half of d117ExplainedNeedsOwnWords: a paste of 25+ words never lands.
   assert.deepEqual(pasteVerdict(OWN), { words: 30, refused: true, message: OWN_WORDS });

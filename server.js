@@ -98,6 +98,8 @@ import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js
 // ⭐ D105: the Atlas — roles, skills, tools, linked; seeded as drafts from the scorer's own registry, stats from the board.
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
+import { createThumbsRouter, createThumbsAdminRouter, learnItems } from "./routes/thumbs.js";
+import { refreshThumbs } from "./services/thumbs/resourceThumbs.js";
 import { createLearnAdminRouter } from "./routes/learnAdmin.js";
 import { seedLearnContentIfEmpty } from "./services/learn/learnImport.js";
 import { seedCircleData, checkExtraItems } from "./services/learn/learnCircle.js";
@@ -6204,6 +6206,40 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_lca_employer_titles_period ON lca_employer_titles(fiscal_period);
       `,
     },
+    {
+      // ⭐ D119 · THUMBNAILS — every resource shows what it is before it is opened (owner 10-31). One row per resource URL
+      // (url_hash = sha256 of the URL, hex), written by services/thumbs/resourceThumbs.js and read by GET /api/thumbs:
+      //   kind        what the picture is: youtube (a watch URL's own thumbnail) · youtube_search (no single video, so no
+      //               picture is invented) · book (Open Library's cover for the title + author) · site (the page's own
+      //               og:image / twitter:image) · none (a fallback tile)
+      //   bytes / content_type   the picture as FETCHED ONCE and stored (≤ 2 MB, sniffed by its first bytes — never
+      //               hot-linked); null when there is none
+      //   title · attribution    YouTube oEmbed's title and channel; "Cover: Open Library"; the site's host
+      //   pinned_url  Admin → Learn "Pin a video": a watch URL an admin chose for a search link → the real thumbnail
+      //   hidden_at / hidden_by  Admin's one-press takedown; a hidden picture is never served (the tile falls back)
+      //   status      ok · none · failed — a failed fetch keeps the fallback tile and is tried again on the next refresh
+      // After 203 (the LCA title families).
+      id: "204_resource_thumbs",
+      sql: `
+        CREATE TABLE IF NOT EXISTS resource_thumbs (
+          url_hash     TEXT PRIMARY KEY,
+          url          TEXT NOT NULL,
+          kind         TEXT NOT NULL CHECK (kind IN ('youtube', 'youtube_search', 'book', 'site', 'none')),
+          status       TEXT NOT NULL DEFAULT 'none' CHECK (status IN ('ok', 'none', 'failed')),
+          bytes        BLOB,
+          content_type TEXT,
+          title        TEXT,
+          attribution  TEXT,
+          note         TEXT,
+          pinned_url   TEXT,
+          pinned_by    TEXT,
+          hidden_at    INTEGER,
+          hidden_by    TEXT,
+          fetched_at   INTEGER,
+          updated_at   INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -6946,6 +6982,11 @@ cron.schedule('30 5 * * *', async () => {
     const r = await checkExtraItems(db);
     if (r.checked) console.log(`[Cron] learn P5 links: ${r.checked} checked, ${r.live} live, ${r.held.length} held back`);
   } catch (e) { console.error('[Cron] learn P5 link check error:', e.message); }
+  // ⭐ D119 P2: the thumbnails, with the dead-link check — each picture refreshed monthly, a capped, polite run a night.
+  try {
+    const r = await refreshThumbs(db, learnItems(db));
+    if (r.checked) console.log(`[Cron] thumbnails: ${r.checked} checked, ${r.ok || 0} stored, ${r.failed || 0} failed, ${r.none || 0} none`);
+  } catch (e) { console.error('[Cron] thumbnails error:', e.message); }
   // ⭐ D105 P7/P8 (amended 10-31): Wikipedia titles (exact matches only) + Wikidata items → the official site / docs
   // from Wikidata → Wikipedia summaries (drafts too) → the auto-publish bar again, so tonight's summaries count tonight.
   try {
@@ -9667,7 +9708,10 @@ cron.schedule("30 3 * * *", () => {
 app.use("/api/admin/job-tags", requireAdmin, createJobTagsRouter(db, requireAdmin));
 // ⭐ D105 · the Atlas: pages are PUBLIC (published nodes only, no sign-in); the curator's list and publish are admin.
 app.use("/api/atlas", createAtlasRouter(db));
-app.use("/api/learn", createLearnRouter(db, { requireAuth }));   // ⭐ D115 · Learn (public content; progress signed in)
+app.use("/api/learn", createLearnRouter(db, { requireAuth }));
+// ⭐ D119 · thumbnails: stored pictures for Learn's resources (public), and the admin's Pin a video / Hide / refresh.
+app.use("/api/thumbs", createThumbsRouter(db));
+app.use("/api/admin/thumbs", requireAdmin, createThumbsAdminRouter(db));   // ⭐ D115 · Learn (public content; progress signed in)
 app.use("/api/admin/atlas", requireAdmin, createAtlasAdminRouter(db));
 // ⭐ D118 P2 · Admin → Atlas → Import content: the extracted JSON validated, diffed by id, applied on Apply — no deploy.
 app.use("/api/admin/learn", requireAdmin, createLearnAdminRouter(db));
