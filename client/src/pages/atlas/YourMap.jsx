@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import AtlasTree from "./AtlasTree.jsx";
 import { headerLine } from "./atlasTreeModel.js";
+import YourCourse from "./YourCourse.jsx";
 
 /** The five sections' chips, in M6's order. Pure: the page's test reads it. */
 export function mapSections(me) {
@@ -54,22 +55,77 @@ function Sections({ me, base, onOpen }) {
   ));
 }
 
-/** The signed-out (or no résumé) home: Explore by role, and the one line that says what a résumé would do. */
-export function ExploreHome({ me, base }) {
-  const roles = me.exploreByRole?.items || [];
+/** ⭐ D120 P2 · the side column's Explore by role — the board's biggest roles, each opening its role page. */
+export function ExploreByRole({ roles = [], base }) {
+  if (!roles.length) return null;
   return (
     <section className="atl__section" data-atlas-explore="" aria-labelledby="atl-explore">
-      <p className="atl__lede" data-atlas-upload="">{me.prompt}</p>
-      {roles.length > 0 && (<>
-        <h2 className="atl__h2" id="atl-explore">Explore by role</h2>
-        <ul className="atl__links">
-          {roles.map(r => (
-            <li key={r.slug}><Link to={`${base}/${encodeURIComponent(r.slug)}`} className="atl__link">{r.name}</Link>
-              <span className="atl__count"> · {r.postings} postings{r.topSkills.length ? ` · ${r.topSkills.map(s => s.name).join(", ")}` : ""}</span></li>
-          ))}
-        </ul>
-      </>)}
+      <h2 className="atl__h2" id="atl-explore">Explore by role</h2>
+      <ul className="atl__links">
+        {roles.map(r => (
+          <li key={r.slug}><Link to={`${base}/${encodeURIComponent(r.slug)}`} className="atl__link">{r.name}</Link>
+            <span className="atl__count"> · {r.postings} postings{r.topSkills.length ? ` · ${r.topSkills.map(s => s.name).join(", ")}` : ""}</span></li>
+        ))}
+      </ul>
     </section>
+  );
+}
+
+/** ⭐ D120 P2 · the five families, each with what the reader has of it, opening the family's page. */
+function Families({ families = [], base }) {
+  if (!families.length) return null;
+  return (
+    <section className="atl__section" data-atlas-home-families="" aria-labelledby="atl-families">
+      <h2 className="atl__h2" id="atl-families">The families</h2>
+      <ul className="atl__links">
+        {families.map(f => (
+          <li key={f.key}><Link to={`${base}/family/${encodeURIComponent(f.key)}`} className="atl__link">{f.name}</Link>
+            <span className="atl__count"> · you have {f.haveCount + (f.learnedCount || 0)} of {f.total}</span></li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** ⭐ D120 P2 · the pages published most recently. */
+function Recent({ items = [], base }) {
+  if (!items.length) return null;
+  return (
+    <section className="atl__section" data-atlas-home-recent="" aria-labelledby="atl-recent">
+      <h2 className="atl__h2" id="atl-recent">Recently published</h2>
+      <ul className="atl__links">
+        {items.map(n => <li key={n.slug}><Link to={`${base}/${encodeURIComponent(n.slug)}`} className="atl__link">{n.name}</Link></li>)}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * ⭐ D120 P2 · the ONE line of direction, first on the home — "Next up: Model serving · 81 % close · start with Running
+ * models (Part 8)" — from the tree's own Next up (M5) and its course step. Pure: the page's test reads it.
+ */
+export function directionLine(tree) {
+  const n = (tree?.nodes || []).find(x => x.slug === tree?.nextUp);
+  if (!n) return null;
+  const part = n.courseStep?.label ? n.courseStep.label.split(" · ")[0] : null;
+  const start = n.courseStep ? ` · start with ${n.courseStep.title}${part ? ` (${part})` : ""}` : "";
+  return { slug: n.slug, stepId: n.courseStep?.stepId || null, text: `Next up: ${n.name} · ${n.closeness ?? 0} % close${start}` };
+}
+
+/** The signed-out (or no résumé) home — never an empty page: search, Learn (the full circle), Explore by role. */
+export function ExploreHome({ me, base, search = null, signedIn = false, course = null }) {
+  return (
+    <div className="atl-home" data-atlas-home="explore">
+      <div className="atl-home__main">
+        <p className="atl__lede" data-atlas-upload="">{me.prompt}</p>
+        {course || <YourCourse base={base} signedIn={signedIn} />}
+      </div>
+      <aside className="atl-home__side" data-atlas-home-side="">
+        {search}
+        <ExploreByRole roles={me.exploreByRole?.items} base={base} />
+        <Recent items={me.recent} base={base} />
+      </aside>
+    </div>
   );
 }
 
@@ -115,7 +171,7 @@ export function FamilyMap({ base, familyKey }) {
   );
 }
 
-export default function YourMap({ base }) {
+export default function YourMap({ base, search = null }) {
   const [me, setMe] = useState(null);
   const [request, setRequest] = useState(null);
   const top = useRef(null);
@@ -125,17 +181,43 @@ export default function YourMap({ base }) {
     return () => { live = false; };
   }, []);
   if (!me) return null;
-  if (!me.map || !me.tree) return <ExploreHome me={me} base={base} />;
-  const open = (slug) => { setRequest(r => ({ slug, n: (r?.n || 0) + 1 })); top.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" }); };
+  return <AtlasHome me={me} base={base} search={search} request={request} setRequest={setRequest} top={top} />;
+}
+
+/** ⭐ D120 P2 · the home drawn from GET /api/atlas/me's answer — pure apart from the open-on-tree request (tests render it). */
+export function AtlasHome({ me, base, search = null, request = null, setRequest = () => {}, top = null, course = null }) {
+  if (!me.map || !me.tree) return <ExploreHome me={me} base={base} search={search} signedIn={!!me.signedIn} course={course} />;
+  const open = (slug) => { setRequest(r => ({ slug, n: (r?.n || 0) + 1 })); top?.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" }); };
+  const dir = directionLine(me.tree);
   return (
-    <div className="atree-map" data-your-map="" ref={top}>
-      <header className="atl__head">
-        <h2 className="atl__title">Your map</h2>
-        <p className="atl__lede" data-map-header="">{headerLine(me.tree)}</p>
-        {me.nudge && <p className="atl__quiet" data-map-nudge="">Drawn from your résumé's skills. <Link to="/app/profile" className="atl__link">{me.nudge}</Link>.</p>}
-      </header>
-      <AtlasTree tree={me.tree} base={base} request={request} />
-      <Sections me={me} base={base} onOpen={open} />
+    <div className="atl-home" data-atlas-home="you">
+      <div className="atl-home__main">
+        {/* ⭐ D120 P2: one line of direction first, then the map, the course, the five sections. */}
+        {dir && (
+          <p className="atl-home__dir" data-atlas-direction={dir.slug}>
+            <span>{dir.text}</span>
+            {dir.stepId
+              ? <Link className="dbx-depth atl-home__go" to={`${base}/learn#step-${encodeURIComponent(dir.stepId)}`} data-atlas-direction-open="">Open the piece</Link>
+              : <button type="button" className="dbx-depth atl-home__go" onClick={() => open(dir.slug)} data-atlas-direction-open="">Show it on the map</button>}
+          </p>
+        )}
+        <div className="atree-map" data-your-map="" ref={top}>
+          <header className="atl__head">
+            <h2 className="atl__title">Your map</h2>
+            <p className="atl__lede" data-map-header="">{headerLine(me.tree)}</p>
+            {me.nudge && <p className="atl__quiet" data-map-nudge="">Drawn from your résumé's skills. <Link to="/app/profile" className="atl__link">{me.nudge}</Link>.</p>}
+          </header>
+          <AtlasTree tree={me.tree} base={base} request={request} />
+        </div>
+        {course || <YourCourse base={base} signedIn />}
+        <Sections me={me} base={base} onOpen={open} />
+      </div>
+      <aside className="atl-home__side" data-atlas-home-side="">
+        {search}
+        <ExploreByRole roles={me.exploreByRole?.items} base={base} />
+        <Families families={me.tree.families} base={base} />
+        <Recent items={me.recent} base={base} />
+      </aside>
     </div>
   );
 }

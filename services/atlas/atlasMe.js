@@ -72,6 +72,8 @@ export const YOUR_MAP = Object.freeze({
   ROLE_TREE_MISSING_NAMES: 4,
   /** a family page's tree: at most this many of the family's skills drawn (by postings); the rest in its list */
   FAMILY_TREE_MAX: 24,
+  /** ⭐ D120 P2 · the home's side column: how many recently published pages it lists */
+  RECENT_PUBLISHED: 8,
 });
 
 // The user's level → the band their next level is measured against. D116: "entry/early → mid, mid → senior" — entry
@@ -196,7 +198,15 @@ export function exploreByRole(db, idx = atlasIndex(db)) {
 }
 
 function explore(db, idx) {
-  return { prompt: UPLOAD_PROMPT, search: SEARCH_HINT, learn: LEARN_POINTER, exploreByRole: exploreByRole(db, idx) };
+  return { prompt: UPLOAD_PROMPT, search: SEARCH_HINT, learn: LEARN_POINTER, exploreByRole: exploreByRole(db, idx), recent: recentlyPublished(db) };
+}
+
+/** ⭐ D120 P2 · the home's side column: the pages published most recently (published_at, the curator's or auto-publish). */
+export function recentlyPublished(db, limit = YOUR_MAP.RECENT_PUBLISHED) {
+  try {
+    return db.prepare(`SELECT slug, name, kind FROM atlas_nodes WHERE status = 'published' AND published_at IS NOT NULL
+      ORDER BY published_at DESC, name LIMIT ?`).all(limit);
+  } catch { return []; }
 }
 
 // ── the user half ──────────────────────────────────────────────────────────────────────────────
@@ -397,6 +407,8 @@ export function computeYourMap(db, userId, { all = null } = {}) {
     board: { postings: rollup.postings, levelRead: rollup.levelRead },
     tree,
     haveSkills, nextLevel, adjacent, branches, learnNext,
+    // ⭐ D120 P2 · the home's side column (signed in): Explore by role and the recently published pages, beside the map
+    exploreByRole: exploreByRole(db, idx), recent: recentlyPublished(db),
     ...(have.length ? {} : { reason: "no_skills_on_the_atlas", ...explore(db, idx) }),
   };
 }
