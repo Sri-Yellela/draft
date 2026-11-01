@@ -73,6 +73,7 @@ import { computeYourMap, SECTIONS } from "../services/atlas/atlasMe.js";
 import { roleTree, familyTree } from "../services/atlas/atlasTree.js";
 import { roleBoard } from "../services/atlas/atlasRolePage.js";
 import { atlasPostingsChanged, liveCached, LIVE_CACHE_MS } from "../services/atlas/atlasLive.js";
+import { thumbIndex } from "../services/thumbs/resourceThumbs.js";
 
 // A signed-in reader's terms — ONE implementation (services/atlas/atlasStore.js profileTerms), also read by D110's
 // interview prep (services/interviewPrep.js skillGaps).
@@ -161,7 +162,10 @@ export function createAtlasRouter(db) {
     });
     if (!page) return res.status(404).json({ error: "not_found", message: "No published Atlas page by that name." });
     const userId = req.user?.id ?? null;
-    res.json({ ...page.node, ...page.extra, ...(userId ? { you: youAgainst(db, userId, page.node) } : {}) });
+    // ⭐ D119: each resource's stored picture (read now, outside the page cache — a pin or a takedown shows at once).
+    const thumbs = (() => { try { return thumbIndex(db, (page.node.resources || []).map(r => r.url)); } catch { return {}; } })();
+    const resources = (page.node.resources || []).map(r => ({ ...r, thumb: thumbs[r.url] || null }));
+    res.json({ ...page.node, resources, ...page.extra, ...(userId ? { you: youAgainst(db, userId, page.node) } : {}) });
   });
   return router;
 }
