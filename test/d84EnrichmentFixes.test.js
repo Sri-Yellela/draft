@@ -371,7 +371,8 @@ test("F8: the backlog and the export leave out what the enforced policy will ret
   insert(db, { id: "old", description: "Build APIs in Python." });
   db.prepare("UPDATE scraped_jobs SET posted_at = '2026-01-01T00:00:00Z' WHERE job_id = 'old'").run();
   insert(db, { id: "sales", description: "Sell our product to enterprises." });
-  db.prepare("UPDATE scraped_jobs SET title = 'Account Executive' WHERE job_id = 'sales'").run();
+  // D126 + D127 (11-01, changed on purpose): an account executive is IN now (sales); a support engineer is held.
+  db.prepare("UPDATE scraped_jobs SET title = 'Support Engineer' WHERE job_id = 'sales'").run();
   db.prepare("UPDATE scraped_jobs SET discovered_at = discovered_at + 100 WHERE job_id = 'scored'").run();
   db.prepare("INSERT INTO users (id, username, password_hash) VALUES (1, 'u', 'x')").run();
   db.prepare("INSERT INTO ats_only_reports (user_id, job_id, ats_report, ats_score) VALUES (1, 'scored', '{}', 80)").run();

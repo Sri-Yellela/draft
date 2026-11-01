@@ -5830,4 +5830,19 @@ export const MIGRATIONS = [
         UPDATE users SET apify_token = NULL WHERE apify_token IS NOT NULL;
       `,
     },
+    {
+      // ⭐ D126 + D127 · EVERY POSTING IN ONE CATEGORY (owner 11-01): the CS-only gate lifted to all professional roles,
+      // and nothing shown from an unknown category. services/jobs/professionalScope.js decides; the crawl's gate and a
+      // boot backfill write it here (board_category: sj.category is an older, unwritten column). NULL = not classified yet (shown, like CC1b's soft null); 'held' = never
+      // shown on any board (the red-flag rule); category_reason says why. After 206.
+      id: "207_posting_category",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN board_category TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN soc TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN discipline TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN category_confidence REAL;
+        ALTER TABLE scraped_jobs ADD COLUMN category_reason TEXT;
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_board_category ON scraped_jobs(board_category);
+      `,
+    },
   ];

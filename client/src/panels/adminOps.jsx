@@ -326,8 +326,50 @@ export function BoardPolicySection({ theme }) {
           </div>
         </div>
       )}
+      <BoardCategories theme={theme} sub={sub}/>
       <Btn theme={theme} onClick={load}>Re-read</Btn>
     </Panel>
+  );
+}
+
+// ⛔ D127 P2 · every shown posting in ONE category; the held ones never shown. GET /api/admin/board-categories: the
+// counts, the held reasons, and a random sample of up to 20 per category to spot-check — "Wrong category" is the one
+// press that logs it (POST …/report → the audit log).
+function BoardCategories({ theme, sub }) {
+  const [c, setC] = useState(null);
+  const [err, setErr] = useState(null);
+  const [open, setOpen] = useState(null);
+  const [reported, setReported] = useState({});
+  const load = useCallback(() => { api("/api/admin/board-categories").then(setC).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  const report = async (jobId) => {
+    try { await api("/api/admin/board-categories/report", { method: "POST", body: JSON.stringify({ jobId }) }); setReported(r => ({ ...r, [jobId]: true })); }
+    catch (e) { setErr(e.message); }
+  };
+  if (!c) return <Err msg={err}/>;
+  const list = (o) => Object.entries(o).map(([k, n]) => `${k} ${num(n)}`).join(" · ") || "—";
+  return (
+    <div style={sub} data-board-categories="">
+      <h3 style={{ ...h2, fontSize: 15, margin: "0 0 6px" }}>Categories — every professional role, nothing from an unknown one</h3>
+      <Err msg={err}/>
+      <KV theme={theme} rows={[
+        ["on the board", list(c.byCategory)],
+        ["engineering by discipline", list(c.byDiscipline)],
+        ["held, never shown", `${num(c.held.total)} — ${list(c.held.byReason)}`],
+        ["wrong-category reports", `${c.reports.length}`],
+      ]}/>
+      <div style={{ ...row, marginTop: 8, flexWrap: "wrap" }}>
+        {Object.keys(c.sample).map(k => <Btn key={k} theme={theme} primary={open === k} onClick={() => setOpen(open === k ? null : k)}>Spot-check {k}</Btn>)}
+      </div>
+      {open && (
+        <Table theme={theme} empty="No postings in this category." rows={c.sample[open] || []} cols={[
+          { key: "title", label: "Posting" }, { key: "company", label: "Company" },
+          { key: "reason", label: "Why", render: j => j.reason + (j.discipline ? ` · ${j.discipline}` : "") },
+          { key: "job_id", label: "", render: j => (reported[j.job_id] ? "Reported"
+            : <Btn theme={theme} onClick={() => report(j.job_id)}>Wrong category</Btn>) },
+        ]}/>
+      )}
+    </div>
   );
 }
 

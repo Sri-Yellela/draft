@@ -78,7 +78,10 @@ function insert(db, id, title, roleKey) {
 }
 const active = (db, id) => db.prepare("SELECT is_active FROM scraped_jobs WHERE job_id = ?").pluck().get(id);
 const reason = (db, id) => db.prepare("SELECT reason FROM rejected_jobs WHERE job_id = ?").pluck().get(id);
-const PM = { title: "Product Manager, Pricing", company: "Acme", source: "greenhouse" };
+// D126 + D127 (11-01, changed on purpose): the gate's rule is now every professional category (professionalScope), so a
+// product manager is IN (management) and a recruiter IN (business). These tests pin the gate's MECHANICS, so their
+// out-of-scope posting is now one the rule holds: support engineering (held:it_support) and an executive assistant.
+const PM = { title: "Support Engineer, Tier 2", company: "Acme", source: "greenhouse" };
 
 test("⛔ D78 B: the gate only COUNTS until scope_enforce is on — it starts off", () => {
   const db = db0();
@@ -111,7 +114,7 @@ test("⛔ D78 B: the sweep — dry by default, judges the STORED family, keeps a
   for (let i = 0; i < 10; i++) insert(db, `swe${i}`, "Software Engineer", "engineering");
   insert(db, "pm", PM.title, "pm");
   insert(db, "applied", PM.title, "pm");
-  insert(db, "starred", "Senior Recruiter", "hr");
+  insert(db, "starred", "Executive Assistant", "hr");
   insert(db, "stored", "Platform Engineer", "sales");          // the stored family decides, not a re-read of the title
   db.prepare("INSERT INTO user_jobs (user_id, job_id, applied) VALUES (1, 'applied', 1)").run();
   db.prepare("INSERT INTO user_jobs (user_id, job_id, starred) VALUES (1, 'starred', 1)").run();

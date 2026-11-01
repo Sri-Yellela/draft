@@ -290,6 +290,9 @@ const AUTHENTICATED = new Set([
   "PUT /api/admin/board-policy",
   "POST /api/admin/board-policy/sweep",
   "POST /api/admin/board-policy/scope-sweep",
+  // D127 P2: the categories measured, the spot-check sample, and "Wrong category" — admin only.
+  "GET /api/admin/board-categories",
+  "POST /api/admin/board-categories/report",
   // D55 decision E: "Report this form" — host + field labels, stored against the reporter's own
   // account (deleted with it, rate-limited per user). Signed in only: an anonymous report has no one
   // to rate-limit and no account for its rows to be deleted with.

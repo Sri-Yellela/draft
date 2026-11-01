@@ -9,7 +9,7 @@
 // ⭐ ORDER: rows WITHOUT a fit score first — they are the ones enrichment unlocks — then the newest.
 import { readPolicy, ageOf } from "./boardAge.js";
 import { storedFamily } from "./boardScope.js";
-import { csScopeOf } from "./csScope.js";
+import { categoryOf } from "./professionalScope.js";
 
 /** Split candidates into the ones to enrich and the ones the enforced policy will retire. */
 export function excludeRetiring(db, candidates, { now = Math.floor(Date.now() / 1000), policy = readPolicy(db) } = {}) {
@@ -17,7 +17,7 @@ export function excludeRetiring(db, candidates, { now = Math.floor(Date.now() / 
   for (const r of candidates) {
     if (policy.age_enforce && ageOf({ posted_at: r.posted_at, first_seen: r.discovered_at ?? r.scraped_at },
         { now, limitDays: policy.age_limit_days }).tooOld) { retiring.aged++; continue; }
-    if (policy.scope_enforce && !csScopeOf({ title: r.title, roleKey: storedFamily(db, r) }).inScope) { retiring.outOfScope++; continue; }
+    if (policy.scope_enforce && !categoryOf({ title: r.title, roleKey: storedFamily(db, r) }).inScope) { retiring.outOfScope++; continue; }
     keep.push(r);
   }
   return { keep, retiring };

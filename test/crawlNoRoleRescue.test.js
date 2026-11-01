@@ -58,7 +58,9 @@ const RESCUED = [
   posting(3, "Research Manager, Interpretability"),
   posting(4, "SWE Fellow"),
 ];
-const CLAIMS = posting(5, "Complex Claims Manager");
+// D126 + D127 (11-01): was "Complex Claims Manager", which every professional category now places (management);
+// a clerk is held (office and administrative support), so it is still a no-family posting the rule refuses.
+const CLAIMS = posting(5, "Claims Clerk");
 const BACKEND = posting(6, "Backend Software Engineer");
 
 test("the premise: the classifier places none of these titles (roleKey null, white collar)", () => {
@@ -88,11 +90,11 @@ test("DEFECT C: a no-family posting with no CS signal is NOT written and is reco
   assert.equal(NO_ROLE_REASON, "no_role");
   const db = freshDb();
   const run = await crawlAt(db, 0, [...RESCUED, CLAIMS, BACKEND]);
-  assert.equal(row(db, CLAIMS.id), undefined, "Complex Claims Manager is never written");
+  assert.equal(row(db, CLAIMS.id), undefined, "Claims Clerk is never written");
   assert.deepEqual(roles(db, CLAIMS.id), []);
   const rec = db.prepare("SELECT * FROM rejected_jobs WHERE job_id = ?").get(CLAIMS.id);
   assert.equal(rec.reason, "no_role");
-  assert.equal(rec.title, "Complex Claims Manager");
+  assert.equal(rec.title, "Claims Clerk");
   assert.equal(rec.company, "Synthco");
   assert.equal(rec.source, "greenhouse");
   assert.equal(rec.rejected_at, T0);
