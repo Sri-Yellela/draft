@@ -191,7 +191,8 @@ test("d124LockAfterSecondDraft: the 2nd sent Draft (or Finish the trial) locks t
   finishTrial(db, 5);
   assert.equal(trialState(db, 5).locked, true, "Finish the trial locks with no Draft sent");
   const gate = lf("client/src/components/TrialDock.jsx");
-  assert.match(gate, /if \(state\.locked\) \{\s*return state\.surveyDue && !ended\s*\? <SurveyPage/);
+  // Owner 11-01 (changed on purpose): explore mode sits before the survey / coming-soon choice.
+  assert.match(gate, /if \(state\.locked\) \{[\s\S]{0,500}return state\.surveyDue && !ended\s*\? <SurveyPage/);
   assert.match(gate, /The full version is coming soon/);
 });
 
@@ -247,7 +248,8 @@ test("d124NoExtensionNeeded + d124MobileFlow: /try and the gate are web pages; t
   const tryPage = lf("client/src/pages/TryPage.jsx");
   assert.ok(!/extension/i.test(tryPage), "nothing in /try asks for the extension");
   assert.match(tryPage, /repeat\(auto-fit, minmax\(220px, 1fr\)\)/, "the cards reflow to one column on a phone");
-  assert.match(tryPage, /width: "min\(760px, calc\(100% - 32px\)\)"/, "a 16 px gutter at phone width");
+  // Owner 11-01 (changed on purpose: the text was cut off): one column, at most 680 px, a 16 px gutter, wrapping text.
+  assert.match(tryPage, /maxWidth: "min\(680px, 100%\)", margin: "88px auto 48px", paddingInline: 16,/, "a 16 px gutter at phone width");
   for (const s of Object.values(samples())) {
     assert.match(s.fictional, /fictional person/);
     assert.match(s.candidate.email, /@example\.com$/);

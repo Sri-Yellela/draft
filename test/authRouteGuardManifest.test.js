@@ -155,6 +155,9 @@ const AUTHENTICATED = new Set([
   // D124 amended: the samples offered today (10 good picks each) and the account's picks.
   "GET /api/trial/samples",
   "GET /api/trial/picks",
+  // The trial's demonstration: its data, and its end (the picks recorded as sent by demonstration).
+  "GET /api/trial/demo",
+  "POST /api/trial/demo/complete",
   "POST /api/trial/resume",
   "GET /api/trial/state",
   "POST /api/trial/survey",

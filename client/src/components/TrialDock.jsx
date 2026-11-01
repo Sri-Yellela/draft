@@ -14,6 +14,12 @@ import DepthButton from "./DepthButton.jsx";
 import { Z } from "../styles/zLayers.js";
 import GuidedTour from "./GuidedTour.jsx";
 import SurveyForm, { surveyPage, surveyCard } from "./SurveyForm.jsx";
+import ExploreLock from "./ExploreLock.jsx";
+
+// Owner 11-01: after the survey, "Explore draft" (the site, view-only) or "We'll let you know" — kept per trial account.
+const exploreKey = (state) => `draft.explore.${state?.startedAt ?? "x"}`;
+const readExplore = (state) => { try { return localStorage.getItem(exploreKey(state)) === "1"; } catch { return false; } };
+const writeExplore = (state) => { try { localStorage.setItem(exploreKey(state), "1"); } catch { /* blocked: this visit only */ } };
 
 const POLL_MS = 45_000;
 const box = { boxSizing: "border-box", background: "var(--color-surface)", color: "var(--color-text)", border: "1px solid var(--color-border)", borderRadius: 6 };
@@ -34,7 +40,7 @@ function Sheet({ title, onClose, children }) {
 }
 
 /** The survey, as the whole page — the trial's ending. The ONE form (SurveyForm), with the trial's questions. */
-function SurveyPage({ survey, onDone, fieldGuess = null }) {
+function SurveyPage({ survey, onDone, onExplore, fieldGuess = null }) {
   const [sent, setSent] = useState(false);
   const skip = async () => { await api("/api/trial/survey/dismiss", { method: "POST" }).catch(() => {}); onDone(); };
   if (sent) {
@@ -43,7 +49,10 @@ function SurveyPage({ survey, onDone, fieldGuess = null }) {
         <div style={{ ...surveyCard, textAlign: "center", padding: 22 }}>
           <h2 style={{ margin: "0 0 6px" }}>Thank you</h2>
           <p style={{ margin: "0 0 14px", color: "var(--color-text-muted)" }}>That genuinely helps. You can keep using draft with your own résumé any time.</p>
-          <DepthButton primary onClick={onDone}>Continue</DepthButton>
+          <span style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+            <DepthButton primary onClick={onExplore} data-trial-explore="">Explore draft</DepthButton>
+            <DepthButton onClick={onDone} data-trial-notify="">We'll let you know when it's ready</DepthButton>
+          </span>
         </div>
       </div>
     );
@@ -53,7 +62,9 @@ function SurveyPage({ survey, onDone, fieldGuess = null }) {
       <SurveyForm questions={survey} initial={fieldGuess ? { field: fieldGuess } : {}}
         title="Thanks for trying draft"
         intro="About two minutes. Your honest answers decide what we build next. Nothing here is shared with employers."
-        onSubmit={async (answers) => { await api("/api/trial/survey", { method: "POST", body: JSON.stringify(answers) }); setSent(true); window.scrollTo(0, 0); }}
+        onSubmit={async (answers) => { await api("/api/trial/survey", { method: "POST", body: JSON.stringify(answers) });
+          api("/api/trial/event", { method: "POST", body: JSON.stringify({ event: "tour", detail: { step: "survey", phase: "completed", ms: 0 } }) }).catch(() => {});
+          setSent(true); window.scrollTo(0, 0); }}
         footer={<>We save your answers with your trial account to improve draft. We never share them with employers.{" "}
           <a href="/privacy" target="_blank" rel="noopener">Privacy</a> · <button type="button" onClick={skip}
             style={{ all: "unset", cursor: "pointer", textDecoration: "underline" }}>Skip the survey</button></>}/>
@@ -61,7 +72,7 @@ function SurveyPage({ survey, onDone, fieldGuess = null }) {
   );
 }
 
-function ComingSoon({ answered }) {
+function ComingSoon({ answered, onExplore }) {
   return (
     <div style={page} data-trial-coming-soon="">
       <h1 style={{ fontSize: 32, lineHeight: 1.2, margin: "0 0 12px" }}>{answered ? "Thank you. That helps more than you know." : "Thank you for trying draft."}</h1>
@@ -78,7 +89,10 @@ function ComingSoon({ answered }) {
         </span>
       </div>
       <p style={{ color: "var(--color-text-muted)" }}>Questions or ideas in the meantime? Write to support@jobsviadraft.com.</p>
-      <DepthButton onClick={() => api("/api/auth/logout", { method: "POST" }).catch(() => {}).finally(() => { window.location.href = "/"; })}>Sign out</DepthButton>
+      <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <DepthButton primary onClick={onExplore} data-trial-explore="">Explore draft</DepthButton>
+        <DepthButton onClick={() => api("/api/auth/logout", { method: "POST" }).catch(() => {}).finally(() => { window.location.href = "/"; })}>Sign out</DepthButton>
+      </span>
     </div>
   );
 }
@@ -152,7 +166,8 @@ export default function TrialGate({ children }) {
   const { pathname } = useLocation();
   const [state, setState] = useState(undefined);   // undefined = loading; { trial: false } = the app as is
   const [ended, setEnded] = useState(false);       // the survey was answered or skipped on this page
-  const [touring, setTouring] = useState(false);   // D129: the guided tour is on screen, so the dock steps aside
+  const [touring, setTouring] = useState(false);
+  const [exploring, setExploring] = useState(false);   // D129: the guided tour is on screen, so the dock steps aside
   const load = useCallback(() => api("/api/trial/state").then(setState).catch(() => setState(s => s ?? { trial: false })), []);
   useEffect(() => { load(); const t = setInterval(load, POLL_MS); return () => clearInterval(t); }, [load]);
 
@@ -178,9 +193,12 @@ export default function TrialGate({ children }) {
   if (!state.trial) return children;
   if (!state.hasProfile) return <Navigate to="/try" replace/>;
   if (state.locked) {
+    const explore = () => { writeExplore(state); setExploring(true); setEnded(true); };
+    // EXPLORE: the real app, view-only — every acting press opens "Coming soon" (ExploreLock).
+    if ((exploring || readExplore(state)) && !(state.surveyDue && !ended)) return <>{children}<ExploreLock email={state.email}/></>;
     return state.surveyDue && !ended
-      ? <SurveyPage survey={state.survey || []} fieldGuess={state.fieldGuess || null} onDone={() => { setEnded(true); load(); }}/>
-      : <ComingSoon answered={state.surveyDone}/>;
+      ? <SurveyPage survey={state.survey || []} fieldGuess={state.fieldGuess || null} onExplore={explore} onDone={() => { setEnded(true); load(); }}/>
+      : <ComingSoon answered={state.surveyDone} onExplore={explore}/>;
   }
   const finish = () => api("/api/trial/finish", { method: "POST" }).then(setState).catch(() => {});
   return (

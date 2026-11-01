@@ -15,7 +15,9 @@ export function hasTrialIntent() {
   try { return localStorage.getItem(TRIAL_INTENT_KEY) === "1"; } catch { return false; }
 }
 
-const wrap = { boxSizing: "border-box", width: "min(760px, calc(100% - 32px))", margin: "48px auto", color: "var(--color-text)" };
+// Owner 11-01 (bug: the text was cut off on the right): one column, no fixed width, a 16 px gutter, text that wraps.
+const wrap = { boxSizing: "border-box", width: "100%", maxWidth: "min(680px, 100%)", margin: "88px auto 48px", paddingInline: 16,   // clear of the fixed nav
+  color: "var(--color-text)", overflowWrap: "anywhere" };
 const card = { boxSizing: "border-box", padding: 16, borderRadius: 6, border: "1px solid var(--color-border)",
   background: "var(--color-surface)", display: "flex", flexDirection: "column", gap: 10, minWidth: 0 };
 const mark = { alignSelf: "flex-start", fontSize: 12, padding: "2px 8px", borderRadius: 6, borderLeft: "3px solid var(--color-primary)",
@@ -52,12 +54,11 @@ export default function TryPage({ authUser }) {
   if (!authUser) {
     return (
       <div style={wrap}>
-        <h1 style={{ fontSize: 32, lineHeight: 1.2, margin: "0 0 12px" }}>Try draft: the board, tailored résumés, and applications sent for you</h1>
-        <p style={{ fontSize: 17, margin: "0 0 8px" }}>Takes about 4 minutes, then a short survey.</p>
+        <h1 style={{ fontSize: "clamp(30px, 6vw, 48px)", lineHeight: 1.15, margin: "0 0 12px", overflowWrap: "anywhere" }} data-try-heading="">See how draft finds, tailors and applies</h1>
+        <p style={{ fontSize: 17, margin: "0 0 8px" }}>About 8 minutes, then a short survey.</p>
         <p style={{ color: "var(--color-text-muted)", margin: "0 0 20px" }}>
-          Sign up, pick a sample résumé (or use your own), and use the whole site: the jobs matched to that résumé, résumés
-          tailored to each one, and 2 Drafts filled and sent for you. Drafts made from a sample go to draft's practice form,
-          never to a real employer.
+          Pick a sample résumé, look through the jobs we match to it, choose 2, and watch draft tailor the résumé and fill out
+          each application. It's a demonstration: nothing is sent to an employer.
         </p>
         <DepthButton primary onClick={() => { setTrialIntent(true); navigate("/register?trial=1"); }}>Start</DepthButton>
         <p style={{ marginTop: 16, fontSize: 14 }}>
@@ -105,13 +106,7 @@ export default function TryPage({ authUser }) {
             <DepthButton wrap primary disabled={!!busy} onClick={() => choose(c.id)}>{busy === c.id ? "Setting up…" : `Use ${c.title}`}</DepthButton>
           </div>
         ))}
-        <div style={card} data-trial-choice="own">
-          <span style={mark}>Your own</span>
-          <strong style={{ fontSize: 18 }}>Use my own résumé</strong>
-          <span>Upload a PDF or Word file on the next screen.</span>
-          <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>Drafts go to the real employer, each one only after you approve it.</span>
-          <DepthButton wrap disabled={!!busy} onClick={() => choose("own")}>{busy === "own" ? "Opening…" : "Use my own résumé"}</DepthButton>
-        </div>
+        {/* ⭐ Owner 11-01: "omit own resumes entirely for the tour" — the trial is a complete demonstration on a sample. */}
       </div>
       {error && <p role="alert" style={{ marginTop: 16, color: "var(--color-warning)" }}>{error}</p>}
     </div>

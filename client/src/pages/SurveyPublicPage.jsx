@@ -6,7 +6,17 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SurveyForm, { surveyPage, surveyCard } from "../components/SurveyForm.jsx";
 import DepthButton from "../components/DepthButton.jsx";
+import { StampLogo } from "../components/StampLogo.jsx";
 import { api } from "../lib/api.js";
+
+// Owner 11-01: the site header with the /draft wordmark above the form (linking home; no app navigation — no account).
+function SurveyHeader() {
+  return (
+    <header data-survey-header="" style={{ boxSizing: "border-box", width: "min(680px, calc(100% - 32px))", margin: "16px auto 0" }}>
+      <a href="/" aria-label="draft — home" style={{ display: "inline-block" }}><StampLogo progress={0}/></a>
+    </header>
+  );
+}
 
 export default function SurveyPublicPage() {
   const navigate = useNavigate();
@@ -18,6 +28,8 @@ export default function SurveyPublicPage() {
   }, []);
   if (sent) {
     return (
+      <>
+      <SurveyHeader/>
       <div style={surveyPage} data-survey-public="sent">
         <div style={{ ...surveyCard, textAlign: "center", padding: 22 }}>
           <h2 style={{ margin: "0 0 6px" }}>Thanks!</h2>
@@ -25,12 +37,14 @@ export default function SurveyPublicPage() {
           <DepthButton primary onClick={() => navigate("/try")} data-survey-try="">Try draft</DepthButton>
         </div>
       </div>
+      </>
     );
   }
   if (err) return <div style={surveyPage}><p role="alert">{err}</p></div>;
   if (!questions) return <div style={surveyPage} aria-busy="true"/>;
   return (
     <div data-survey-public="">
+      <SurveyHeader/>
       <SurveyForm questions={questions} honeypot
         title="Help us build a better way to job hunt"
         intro="About two minutes. Your answers shape what we build. Nothing here is shared with employers."

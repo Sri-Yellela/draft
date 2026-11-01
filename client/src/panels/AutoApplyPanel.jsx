@@ -191,6 +191,13 @@ export function AutoApplyPanel() {
   //   "draft:tour-settings" { open } — the Auto settings drawer opened for the step, and on close the settings PUT BACK
   //   exactly as they were when it opened ("set up in the step, then reset"), only if the tester changed something.
   const [tourExample, setTourExample] = useState(() => typeof window !== "undefined" && !!window.draftTourExample);
+  // The trial's demonstration moves its two picks' rings on the real tree as the replay runs ({ jobId: ring }).
+  const [demoRings, setDemoRings] = useState({});
+  useEffect(() => {
+    const on = (e) => setDemoRings(e.detail || {});
+    window.addEventListener("draft:trial-demo-rings", on);
+    return () => window.removeEventListener("draft:trial-demo-rings", on);
+  }, []);
   const tourSnapshot = useRef(null);
   useEffect(() => {
     const onExample = (e) => setTourExample(!!e.detail?.on);
@@ -467,7 +474,10 @@ export function AutoApplyPanel() {
   const treeShown = treeView(tree, { filter, q });
   // D129 (3): the tour's example shows only while the tester's own tree is empty — a real tree is never covered.
   const showExample = tourExample && nothingYetForExample(nodes);
-  const view = showExample ? EXAMPLE_VIEW : treeShown;
+  const demoView = Object.keys(demoRings).length
+    ? treeShown.map(v => ({ ...v, items: v.items.map(x => (demoRings[x.node.jobId] ? { ...x, node: { ...x.node, ring: demoRings[x.node.jobId] } } : x)) }))
+    : treeShown;
+  const view = showExample ? EXAMPLE_VIEW : demoView;
   const blocks = sideBlocks({
     nodes, connections: [...connectionsFromStopped(stoppedItems), ...connections], binCount: bin.items.length, now,
   });
@@ -1018,6 +1028,8 @@ export function AutoApplyPanel() {
 
       {/* ── U3 + U7 · THE TREE AND THE SIDE COLUMN. Below 900 px: one column, the side on top (CSS). ── */}
       <div className="dh-main" data-draft-split="" data-detail={sideJob && sideDetail ? "true" : undefined}>
+        {/* The trial's demonstration renders here (the guided tour portals it in); empty for everyone else. */}
+        <div id="trial-demo-slot"/>
         <DraftHouseTree view={view} filter={filter} zoom={zoom} open={open}
           onFilter={setFilter} onZoom={setZoom} onOpen={step}
           search={<PanelSearch theme={theme} value={q} onChange={setQ} width={200} placeholder="Search, e.g. a company" />}

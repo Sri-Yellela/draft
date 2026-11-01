@@ -12,14 +12,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { profileCategory } from "./jobs/professionalScope.js";
-import { TOUR_STEPS, TOUR_STEP_IDS, TOUR_INTERACTIONS, TOUR_SECTIONS, TOUR_PHASES, TOUR_DEVICES, TOUR_SPEEDS } from "../shared/trialTour.js";
+import { TOUR_STEPS, TOUR_STEP_IDS, TOUR_INTERACTIONS, TOUR_SECTIONS, TOUR_PHASES, TOUR_DEVICES, TOUR_SPEEDS, LOCKED_FEATURES } from "../shared/trialTour.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // D124 amended (owner 11-01): six samples by category — A software, B ML / data, C mechanical, D electrical,
 // E business / financial analyst, F project / operations manager. Each is OFFERED only on a day its category has 10
 // good picks (services/trialPicks.js offeredSamples).
 export const SAMPLE_IDS = Object.freeze(["A", "B", "C", "D", "E", "F"]);
-export const RESUME_CHOICES = Object.freeze([...SAMPLE_IDS, "own"]);
+// Owner 11-01: "omit own resumes entirely for the tour" — the trial is a demonstration on a sample, so "own" is not a choice.
+export const RESUME_CHOICES = Object.freeze([...SAMPLE_IDS]);
 /** The survey pops up once, after this many sent Drafts. */
 export const SURVEY_AFTER_SENT = 2;
 
@@ -136,7 +137,7 @@ export function startTrial(db, userId) {
 
 /** The résumé the tester picked. For a sample, returns its text, which the client sends to /api/domain-profiles/from-resume. */
 export function pickResume(db, userId, choice) {
-  if (!RESUME_CHOICES.includes(choice)) throw Object.assign(new Error("Pick one of the sample résumés or your own."), { status: 400, code: "bad_choice" });
+  if (!RESUME_CHOICES.includes(choice)) throw Object.assign(new Error("Pick one of the sample résumés."), { status: 400, code: "bad_choice" });
   startTrial(db, userId);
   db.prepare("UPDATE users SET trial_resume = ? WHERE id = ?").run(choice, userId);
   if (choice === "own") return { choice };
@@ -168,6 +169,8 @@ export function trialState(db, userId, { draftsUsed = null } = {}) {
     drafts: TRIAL_DRAFTS, draftsUsed, sent, locked, surveyDone, surveySkipped: !!u.trial_survey_dismissed_at,
     // Locked and not yet answered or skipped: the survey is the whole page.
     surveyDue: locked && !surveyDone && !u.trial_survey_dismissed_at,
+    // The "Coming soon" pop-up in explore mode names the email they signed up with (owner 11-01).
+    email: (() => { try { return db.prepare("SELECT email FROM user_profile WHERE user_id = ?").pluck().get(userId) || null; } catch { return null; } })(),
     // The survey's "What field are you in?", prefilled from the résumé (editable) — the sketch's own words.
     fieldGuess: FIELD_FOR_CATEGORY[activeCategory(db, userId)] || null,
   };
@@ -221,7 +224,7 @@ export function listAccess(db) {
 // D129: the guided tour's events — "tour" (a step reached / completed / abandoned, with the ms spent, the device and the
 // speed), "interaction" (a feature tried, by name) and "error" (a code seen on a step). Each detail is validated against
 // shared/trialTour.js and stored as compact JSON; nothing typed by the user is ever stored here.
-export const TRIAL_EVENTS = Object.freeze(["page", "active_minute", "tour", "interaction", "error"]);
+export const TRIAL_EVENTS = Object.freeze(["page", "active_minute", "tour", "interaction", "error", "locked"]);
 const EVENTS_PER_DAY = 600;
 const pick = (v, list, dflt = null) => (list.includes(v) ? v : dflt);
 
@@ -239,6 +242,10 @@ export function eventDetail(event, detail) {
   if (event === "interaction") {
     const name = pick(d.name ?? detail, TOUR_INTERACTIONS);
     return name ? JSON.stringify({ name, step: pick(d.step, TOUR_STEP_IDS) }) : undefined;
+  }
+  if (event === "locked") {
+    const feature = pick(d.feature ?? detail, LOCKED_FEATURES);
+    return feature ? JSON.stringify({ feature, page: String(d.page ?? "").split("?")[0].replace(/\/\d+(?=\/|$)/g, "/:id").slice(0, 60) || null }) : undefined;
   }
   if (event === "error") {
     const code = String(d.code ?? "").replace(/[^a-z0-9_:.-]/gi, "").slice(0, 60);
@@ -630,12 +637,12 @@ export function tourSessions(db, { categoryOf = (u) => (u.role_family ? profileC
   const sent = Object.fromEntries(all(`SELECT user_id, COUNT(*) n FROM apply_run_jobs WHERE status = 'submitted' GROUP BY user_id`)
     .map(r => [r.user_id, r.n]));
   const ev = new Map();
-  for (const r of all(`SELECT user_id, event, detail, created_at FROM trial_events WHERE event IN ('tour','interaction','error') ORDER BY id`)) {
+  for (const r of all(`SELECT user_id, event, detail, created_at FROM trial_events WHERE event IN ('tour','interaction','error','locked') ORDER BY id`)) {
     if (!ev.has(r.user_id)) ev.set(r.user_id, []);
     try { ev.get(r.user_id).push({ event: r.event, at: r.created_at, ...JSON.parse(r.detail || "{}") }); } catch { /* unreadable */ }
   }
   return users.map(u => {
-    const steps = {}, interactions = {}, errors = [];
+    const steps = {}, interactions = {}, errors = [], locked = {};
     let device = null, speed = "normal";
     for (const e of ev.get(u.id) || []) {
       if (e.event === "tour") {
@@ -647,6 +654,7 @@ export function tourSessions(db, { categoryOf = (u) => (u.role_family ? profileC
       }
       if (e.event === "interaction") interactions[e.name] = (interactions[e.name] || 0) + 1;
       if (e.event === "error") errors.push({ code: e.code, step: e.step });
+      if (e.event === "locked") locked[e.feature] = (locked[e.feature] || 0) + 1;
     }
     const reached = TOUR_STEP_IDS.filter(id => steps[id]?.reached != null);
     let answers = null;
@@ -655,7 +663,7 @@ export function tourSessions(db, { categoryOf = (u) => (u.role_family ? profileC
     const drafts = sent[u.id] || 0;
     return { userId: u.id, sample: u.trial_resume || null, field, device, speed, steps, reached,
       lastStep: reached[reached.length - 1] || null, finished: steps.survey?.completed != null,
-      totalMs: TOUR_STEP_IDS.reduce((t, id) => t + (steps[id]?.ms || 0), 0), interactions, errors, drafts,
+      totalMs: TOUR_STEP_IDS.reduce((t, id) => t + (steps[id]?.ms || 0), 0), interactions, errors, locked, drafts,
       draftsOk: drafts >= 2 ? "both" : drafts === 1 ? "one" : "none", answers };
   });
 }
@@ -682,6 +690,9 @@ export function trialAnalytics(db, { filter = null, categoryOf } = {}) {
   const dropOff = {};
   for (const s of sessions) if (!s.finished && s.lastStep) dropOff[s.lastStep] = (dropOff[s.lastStep] || 0) + 1;
   const interactions = Object.fromEntries(TOUR_INTERACTIONS.map(n => [n, sessions.filter(s => s.interactions[n]).length]));
+  // Explore mode: which locked features they pressed — testers who pressed each, most-wanted first.
+  const lockedPresses = (LOCKED_FEATURES.map(f => [f, sessions.filter(s => s.locked[f]).length]).filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1]));
   const errors = {};
   for (const s of sessions) for (const e of s.errors) { const k = `${e.step || "-"} · ${e.code}`; errors[k] = (errors[k] || 0) + 1; }
   const answered = sessions.filter(s => s.answers);
@@ -699,7 +710,7 @@ export function trialAnalytics(db, { filter = null, categoryOf } = {}) {
   return {
     testers: sessions.length, finished: sessions.filter(s => s.finished).length,
     medianTotalMs: median(sessions.filter(s => s.finished).map(s => s.totalMs)),
-    funnel, dropOff, interactions, errors, distribution,
+    funnel, dropOff, interactions, lockedPresses, errors, distribution,
     stars: Object.fromEntries(RATED.map(r => [r.key, avg(answered.map(s => s.answers[r.key]).filter(Number.isFinite))])),
     texts,
     questions: Object.fromEntries(SURVEY.flatMap(q => [[q.key, q.q], ...(q.follow ? [[q.follow.key, `${q.q} — ${q.follow.placeholder}`]] : [])])),
