@@ -13938,7 +13938,18 @@ app.get("/.well-known/security.txt", (_req, res) => res.type("text/plain").send(
 // This is the client's ONLY source for the flag. It is not baked into the bundle at build time,
 // because a client built with one value and served by a server holding the other is exactly the
 // two-sources-of-truth failure shared/monetisation.js forbids.
-app.get("/api/config", (_req, res) => res.json({ monetisationEnabled: monetisationEnabled() }));
+// ⭐ D133 · whether Settings → Appearance offers the Studio theme to users — off until the owner turns it on in
+// Admin → System → Appearance. Public like the rest of /api/config: one boolean about the product, nothing user-scoped.
+const STUDIO_FOR_USERS_KEY = "studio_for_users";
+const studioForUsers = () => { try { return getSetting(db, STUDIO_FOR_USERS_KEY) === "1"; } catch { return false; } };
+app.get("/api/config", (_req, res) => res.json({ monetisationEnabled: monetisationEnabled(), studioForUsers: studioForUsers() }));
+app.get("/api/admin/appearance", requireAdmin, (_req, res) => res.json({ studioForUsers: studioForUsers() }));
+app.post("/api/admin/appearance", requireAdmin, (req, res) => {
+  const on = req.body?.studioForUsers === true;
+  try { if (on) setSetting(db, STUDIO_FOR_USERS_KEY, "1"); else clearSetting(db, STUDIO_FOR_USERS_KEY); }
+  catch (e) { return res.status(500).json({ error: "error", message: e.message }); }
+  res.json({ studioForUsers: studioForUsers() });
+});
 
 // ── AH-1: WHAT IS ACTUALLY RUNNING ─────────────────────────────────────────────
 //

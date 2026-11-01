@@ -14,9 +14,14 @@ import paperLight from "./paper-light.js";
 import charcoalDark from "./charcoal-dark.js";
 import contrastLight from "./contrast-light.js";
 import contrastDark from "./contrast-dark.js";
+import studioLight from "./studio-light.js";
+import studioDark from "./studio-dark.js";
 import { LAYOUT_OPTION_IDS, LAYOUT_KEYS, LAYOUT_DEFAULTS, parseLayoutFlags, formatLayoutFlags } from "../../../shared/appearance.js";
 
-export const THEME_LIST = Object.freeze([paperLight, charcoalDark, contrastLight, contrastDark]);
+export const THEME_LIST = Object.freeze([paperLight, charcoalDark, contrastLight, contrastDark, studioLight, studioDark]);
+// ⭐ D133 · Studio is offered to users only when the owner turns it on (Admin → System → Appearance); the admin can
+// always choose it, per surface. A user who already chose it keeps it.
+export const STUDIO_IDS = Object.freeze([studioLight.id, studioDark.id]);
 export const THEMES = Object.freeze(Object.fromEntries(THEME_LIST.map((t) => [t.id, t])));
 export const DEFAULT_THEME_ID = paperLight.id;
 
@@ -30,21 +35,43 @@ export const THEME_STORAGE_KEY = "draft-theme";
 const PAIRS = Object.freeze({
   system:   { light: paperLight.id,    dark: charcoalDark.id },
   contrast: { light: contrastLight.id, dark: contrastDark.id },
+  studio:   { light: studioLight.id,   dark: studioDark.id },
 });
 const LEGACY = Object.freeze({ light: paperLight.id, dark: charcoalDark.id });
-export const THEME_PREFERENCES = Object.freeze(["system", "light", "dark", "contrast", ...THEME_LIST.map((t) => t.id)]);
+export const THEME_PREFERENCES = Object.freeze(["system", "light", "dark", "contrast", "studio", ...THEME_LIST.map((t) => t.id)]);
+
+// ⭐ D133 · PER SURFACE. The admin can give the Admin pages their own look ("admin=<pref>" in the same stored value — no
+// new storage key, §5); every other page is "the app" and uses the ordinary preference. Resolved once at load, like
+// the palette, from the path the page loaded on.
+const SURFACE_FLAG = "admin=";
+export const surfaceOf = (pathname = typeof location !== "undefined" ? location.pathname : "/") =>
+  (/^\/admin(\/|$)/.test(String(pathname)) ? "admin" : "app");
 
 const store = () => (typeof localStorage !== "undefined" ? localStorage : null);
 function readRaw(storage = store()) { try { return storage?.getItem(THEME_STORAGE_KEY) || ""; } catch { return ""; } }
 function parseRaw(raw) {
   const [pref, ...flags] = String(raw || "").split(";");
+  const admin = flags.find((f) => f.startsWith(SURFACE_FLAG))?.slice(SURFACE_FLAG.length) || null;
   return { pref: THEME_PREFERENCES.includes(pref) ? pref : "system", cues: flags.includes("cues"), noOffer: flags.includes("no-offer"),
-           layout: parseLayoutFlags(flags) };
+           layout: parseLayoutFlags(flags), admin: THEME_PREFERENCES.includes(admin) ? admin : null };
 }
-const formatRaw = ({ pref, cues, noOffer, layout }) =>
-  [pref, cues ? "cues" : null, noOffer ? "no-offer" : null, ...formatLayoutFlags(layout)].filter(Boolean).join(";");
+const formatRaw = ({ pref, cues, noOffer, layout, admin }) =>
+  [pref, cues ? "cues" : null, noOffer ? "no-offer" : null, ...formatLayoutFlags(layout), admin ? `${SURFACE_FLAG}${admin}` : null].filter(Boolean).join(";");
 
 export function themePreference(storage = store()) { return parseRaw(readRaw(storage)).pref; }
+/** D133: the preference for a SURFACE — the Admin pages' own choice when one is set, else the ordinary preference. */
+export function surfacePreference(surface = surfaceOf(), storage = store()) {
+  const a = parseRaw(readRaw(storage));
+  return surface === "admin" && a.admin ? a.admin : a.pref;
+}
+/** D133: the Admin pages' own choice (a preference), or null when they follow the app. */
+export function adminSurfaceTheme(storage = store()) { return parseRaw(readRaw(storage)).admin; }
+/** D133: set (or clear, with null) the Admin pages' own look on this device. Reloads, like every palette change. */
+export function setAdminSurfaceTheme(pref, { reload = () => location.reload() } = {}) {
+  const cur = parseRaw(readRaw());
+  try { store()?.setItem(THEME_STORAGE_KEY, formatRaw({ ...cur, admin: THEME_PREFERENCES.includes(pref) ? pref : null })); } catch {}
+  if (typeof location !== "undefined") reload();
+}
 /** { pref, cues } as stored on this device. */
 export function appearance(storage = store()) { const a = parseRaw(readRaw(storage)); return { pref: a.pref, cues: a.cues }; }
 /** D93: { nav, sentence } as stored on this device — every option filled, defaults where nothing is stored. */
@@ -56,7 +83,7 @@ const osDark = (matchMedia) => {
 };
 const defaultMM = () => (typeof window !== "undefined" ? window.matchMedia : null);
 /** The THEME a preference resolves to. */
-export function resolve(pref = themePreference(), matchMedia = defaultMM()) {
+export function resolve(pref = surfacePreference(), matchMedia = defaultMM()) {   // D133: the preference for the surface this page is
   if (THEMES[pref]) return THEMES[pref];
   if (LEGACY[pref]) return THEMES[LEGACY[pref]];
   const pair = PAIRS[pref] || PAIRS.system;
@@ -65,11 +92,11 @@ export function resolve(pref = themePreference(), matchMedia = defaultMM()) {
 /** The SCHEME a preference resolves to — "light" or "dark" (the name older callers know). */
 export function resolveTheme(pref = themePreference(), matchMedia = defaultMM()) { return resolve(pref, matchMedia).scheme; }
 /** The pair preference a theme belongs to ("follow my system" from a chosen card). */
-export function pairPreference(theme) { return theme.contrast === "aaa" ? "contrast" : "system"; }
+export function pairPreference(theme) { return STUDIO_IDS.includes(theme.id) ? "studio" : theme.contrast === "aaa" ? "contrast" : "system"; }
 
 export function setAppearance({ pref, cues }, { reload = () => location.reload() } = {}) {
   const cur = parseRaw(readRaw());
-  try { store()?.setItem(THEME_STORAGE_KEY, formatRaw({ pref, cues: !!cues, noOffer: cur.noOffer, layout: cur.layout })); } catch {}
+  try { store()?.setItem(THEME_STORAGE_KEY, formatRaw({ pref, cues: !!cues, noOffer: cur.noOffer, layout: cur.layout, admin: cur.admin })); } catch {}
   if (typeof location !== "undefined") reload();
 }
 /**
@@ -112,7 +139,7 @@ export function adoptAccountTheme(account, { reload = () => location.reload() } 
     : cur.layout;
   if (LAYOUT_KEYS.some((k) => nextLayout[k] !== cur.layout[k])) setLayout(nextLayout);
   if (next.pref === cur.pref && next.cues === cur.cues) return false;
-  try { store()?.setItem(THEME_STORAGE_KEY, formatRaw({ ...next, noOffer: cur.noOffer, layout: nextLayout })); } catch { return false; }
+  try { store()?.setItem(THEME_STORAGE_KEY, formatRaw({ ...next, noOffer: cur.noOffer, layout: nextLayout, admin: cur.admin })); } catch { return false; }
   if (resolve(next.pref).id === ACTIVE_THEME.id && next.cues === CUES) return false;
   reload();
   return true;
@@ -183,7 +210,7 @@ export function prePaintScript() {
   // layout never flashes the default first.
   const L = Object.fromEntries(LAYOUT_KEYS.map((k) => [k, [LAYOUT_OPTION_IDS[k].attribute, LAYOUT_OPTION_IDS[k].values, LAYOUT_OPTION_IDS[k].default]]));
   return `(function(){try{var T=${JSON.stringify(themes)},A=${JSON.stringify(alias)},L=${JSON.stringify(L)},r="";try{r=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)})||""}catch(e){}` +
-    `var f=r.split(";"),p=f[0],id=T[p]?p:null;if(!id){var a=A[p]||A.system;id=typeof a==="string"?a:a[window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?1:0]}` +
+    `var f=r.split(";"),p=f[0],P=(typeof location!=="undefined"&&location.pathname)||"";if(P.indexOf("/admin")===0&&(P.length===6||P.charAt(6)==="/")){for(var j=1;j<f.length;j++){if(f[j].indexOf("admin=")===0&&(T[f[j].slice(6)]||A[f[j].slice(6)]))p=f[j].slice(6)}}var id=T[p]?p:null;if(!id){var a=A[p]||A.system;id=typeof a==="string"?a:a[window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?1:0]}` +
     `var t=T[id],d=document.documentElement;d.setAttribute("data-theme",id);d.setAttribute("data-contrast",t[0]);if(f.indexOf("cues")>0)d.setAttribute("data-cues","shape");` +
     `d.style.setProperty("color-scheme",t[1]);d.style.setProperty("--c-canvas",t[2]);` +
     `for(var k in L){var v=L[k][2];for(var i=1;i<f.length;i++){var kv=f[i].split("=");if(kv[0]===k&&L[k][1].indexOf(kv[1])>-1)v=kv[1]}d.setAttribute(L[k][0],v)}}catch(e){}})();`;

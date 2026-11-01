@@ -12,6 +12,8 @@ if (!/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(BASE)) { console.error("R
 const DB = arg("--db", null);
 if (!DB) { console.error("--db <path> is required"); process.exit(2); }
 const OUT = "docs/tour-shots";
+// D133: --admin-theme studio-light | studio-dark | studio … shows the Admin pages in that look (the ;admin= flag).
+const ADMIN_THEME = arg("--admin-theme", null);
 fs.mkdirSync(OUT, { recursive: true });
 let failed = 0;
 const check = (name, ok, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : `  — ${detail}`}`); if (!ok) failed++; };
@@ -61,6 +63,7 @@ try {
     page.on("pageerror", e => errors.push(e.message));
     await page.setViewport({ width: w, height: h });
     await page.setCookie({ name: ADMIN_COOKIE, value: token, url: BASE });
+    if (ADMIN_THEME) await page.evaluateOnNewDocument((t) => { try { localStorage.setItem("draft-theme", `system;admin=${t}`); } catch {} }, ADMIN_THEME);
     await page.goto(`${BASE}/admin?g=people&s=trial`, { waitUntil: "networkidle2" });
     const ok = await page.waitForSelector("[data-admin-testers] [data-testers-headline='people']", { timeout: 20000 }).then(() => true).catch(() => false);
     check(`${name}: the Testers page renders`, ok, errors.join(" | "));
@@ -82,7 +85,11 @@ try {
     check(`${name}: the small-number banner (16 answers < 20)`, /Only \d+ answers so far/.test(m.banner), m.banner);
     check(`${name}: quotes listed`, m.quotes >= 3, String(m.quotes));
     check(`${name}: no page errors`, errors.length === 0, errors.join(" | "));
-    await page.screenshot({ path: `${OUT}/d131-testers-${name}.png`, fullPage: true });
+    if (ADMIN_THEME) {
+      const theme = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+      check(`${name}: the Admin pages wear ${ADMIN_THEME}`, theme === ADMIN_THEME || (ADMIN_THEME === "studio" && /^studio-/.test(theme)), String(theme));
+    }
+    await page.screenshot({ path: `${OUT}/d131-testers-${name}${ADMIN_THEME ? `-${ADMIN_THEME}` : ""}.png`, fullPage: !ADMIN_THEME });
   }
 } finally {
   await b.close();

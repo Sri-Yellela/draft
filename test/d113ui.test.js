@@ -366,7 +366,8 @@ test("d113uiReducedMotionNoPulse — needs you, review and working pulse; reduce
 });
 
 test("d113uiFourThemes — every ring is a token in all four themes, seven distinct colours; contrast themes outline", async () => {
-  assert.equal(THEME_LIST.length, 4);
+  // D133 added the Studio pair: every registered theme (at least the four D113 was drawn in) must hold the rule below.
+  assert.ok(THEME_LIST.length >= 4);
   for (const t of THEME_LIST) {
     const vals = RING_ORDER.map(r => t.tokens[RINGS[r].token]);
     for (const [i, v] of vals.entries()) assert.match(String(v), /^#[0-9a-fA-F]{6}$/, `${t.id} ${RING_ORDER[i]}`);

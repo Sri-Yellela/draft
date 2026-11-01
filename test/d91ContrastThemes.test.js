@@ -34,7 +34,8 @@ const THIRD_PARTY = /^(PROVIDER_|ON_PROVIDER$)/;
 
 test("both contrast themes are registered, AAA, and the light/dark pair of one another", () => {
   assert.ok(CL && CD, "a contrast theme is missing from the registry");
-  assert.equal(THEME_LIST.length, 4);
+  // D133 added the Studio pair (AA): the registry is no longer exactly four themes, but there are exactly two AAA ones.
+  assert.equal(THEME_LIST.filter(t => t.contrast === "aaa").length, 2);
   assert.deepEqual([CL.scheme, CL.contrast, CD.scheme, CD.contrast], ["light", "aaa", "dark", "aaa"]);
   assert.equal(CL.label, "Contrast Light");
   assert.equal(CD.label, "Contrast Dark");
