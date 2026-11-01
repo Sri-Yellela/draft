@@ -193,9 +193,9 @@ export function recordToolsServiceUsage(db, usage, { userId, eventSubtype = null
         : (typeof requestError === "string" && requestError ? `request failed: ${requestError}` : null),
         retryLedgerText(retryReason)].filter(Boolean).join("; ") || null,
       jobId, company, domainModule,
-      atsScoreBefore: u.purpose === idFor ? atsScoreBefore : null,
+      atsScoreBefore: u.purpose === idFor || purpose === idFor ? atsScoreBefore : null,
     });
-    if (id === null && u.purpose === idFor) id = eventId;
+    if (id === null && (u.purpose === idFor || purpose === idFor)) id = eventId;
   }
   return id;
 }
