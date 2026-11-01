@@ -19,10 +19,14 @@
 //   GET  /api/admin/trial/analytics  D129: the funnel (step times), drop-offs, interactions, errors, the survey; ?by=&value= narrows
 //   GET  /api/admin/trial/crosscut   D129: one survey answer by sample | field | device | speed | draftsOk (?key=&by=)
 //   GET  /api/admin/trial/export.csv D129: one row per tester; emails only with ?emails=1 and only those who gave one
+//   GET  /api/survey/form            D130: the standalone survey's questions — PUBLIC (no account; jobsviadraft.com/survey)
+//   POST /api/survey                 D130: a standalone response — PUBLIC, honeypot + ≤ 5 an hour per address, one per email
+//   GET  /api/admin/survey/export.csv D130: the standalone responses; name and email only with ?contact=1
 //   GET  /try/practice/:jobId        draft's practice form for one posting (a signed ?u=&t= names the account)
 //   POST /try/practice/:jobId        its submission: counted, and a confirmation goes into the tester's Inbox
 import { startTrial, pickResume, trialState, saveSurvey, dismissSurvey, finishTrial, saveFeedback, recordEvent, setAccess,
-         adminTrialCounts, surveyExport, SURVEY, trialAnalytics, crossCut, analyticsCsv, verifyPracticeToken, renderPracticeForm, renderPracticeThanks,
+         adminTrialCounts, surveyExport, SURVEY, trialAnalytics, crossCut, analyticsCsv, STANDALONE_SURVEY, saveStandaloneSurvey,
+         standaloneCsv, surveySources, verifyPracticeToken, renderPracticeForm, renderPracticeThanks,
          recordPracticeSubmission } from "../services/trial.js";
 import { draftSlots } from "../services/draftSlots.js";
 import { offeredSamples, samplePicks, ownPicks } from "../services/trialPicks.js";
@@ -117,6 +121,22 @@ export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret
     try {
       res.set("Content-Type", "text/csv; charset=utf-8").set("Content-Disposition", 'attachment; filename="draft-trial.csv"')
         .send(analyticsCsv(db, { includeEmails: req.query.emails === "1" }));
+    } catch (e) { fail(res, e); }
+  });
+
+  // ⭐ D130 · the standalone survey — public by design: it is for people with no account.
+  app.get("/api/survey/form", (_req, res) => res.json({ survey: STANDALONE_SURVEY }));
+  app.post("/api/survey", (req, res) => {
+    try { res.json(saveStandaloneSurvey(db, req.body || {}, { ip: req.ip })); }
+    catch (e) { res.status(e.status || 500).json({ error: e.code || "error", message: e.message, ...(e.missing ? { missing: e.missing } : {}) }); }
+  });
+  app.get("/api/admin/survey/sources", requireAdmin, (_req, res) => {
+    try { res.json(surveySources(db)); } catch (e) { fail(res, e); }
+  });
+  app.get("/api/admin/survey/export.csv", requireAdmin, (req, res) => {
+    try {
+      res.set("Content-Type", "text/csv; charset=utf-8").set("Content-Disposition", 'attachment; filename="draft-survey-standalone.csv"')
+        .send(standaloneCsv(db, { includeContact: req.query.contact === "1" }));
     } catch (e) { fail(res, e); }
   });
 

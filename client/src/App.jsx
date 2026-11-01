@@ -66,6 +66,7 @@ import { ConnectorDocsPage } from "./pages/marketing/ConnectorDocsPage.jsx";
 import AtlasPage       from "./pages/atlas/AtlasPage.jsx";
 import { Toaster }         from "./components/ui/toaster.jsx";
 import TryPage, { hasTrialIntent } from "./pages/TryPage.jsx";
+import SurveyPublicPage from "./pages/SurveyPublicPage.jsx";
 import TrialGate       from "./components/TrialDock.jsx";
 import { oauthNext }       from "./lib/oauthNext.js";
 
@@ -790,6 +791,8 @@ function AppRouter() {
         <Route path="/contact"      element={<ContactPage/>}/>
         <Route path="/faq"          element={<FAQPage/>}/>
         <Route path="/privacy"      element={<PrivacyPage/>}/>
+        {/* D130: the standalone survey — public, no sign-in, no account, straight to the form. */}
+        <Route path="/survey"       element={<SurveyPublicPage/>}/>
         <Route path="/terms"        element={<TermsPage/>}/>
         <Route path="/docs/claude"  element={<ConnectorDocsPage/>}/>
         {/* ⭐ D105 P4 · THE ATLAS — PUBLIC, no sign-in (d105PublicNoAuth): anyone, and search engines, read published

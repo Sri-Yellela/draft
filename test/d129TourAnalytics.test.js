@@ -131,9 +131,11 @@ test("d129: the survey page is the sketch — field prefilled in its words, nati
   assert.ok(SURVEY.find(q => q.key === "field").options.includes(trialState(db, 1).fieldGuess));
   const dock = read("client/src/components/TrialDock.jsx");
   assert.match(dock, /fieldGuess=\{state\.fieldGuess \|\| null\}/);
-  assert.match(dock, /<select id=\{id\} value=\{v \|\| ""\}/, "a native dropdown");
-  assert.match(dock, /role="radiogroup" aria-label=\{`Rate \$\{q\.q\.toLowerCase\(\)\}`\}/, "the stars");
-  assert.match(dock, /const followOpen = f && v != null && v !== "" && \(f\.when \? f\.when\.includes\(v\) : v < f\.below\);/);
-  assert.match(dock, /const gaps = survey\.filter\(q => q\.required && \(answers\[q\.key\] == null \|\| answers\[q\.key\] === ""\)\)/);
   assert.match(dock, /Thanks for trying draft/);
+  // D130: the form itself is the ONE SurveyForm, shared with /survey.
+  const form = read("client/src/components/SurveyForm.jsx");
+  assert.match(form, /<select id=\{id\} value=\{v \|\| ""\}/, "a native dropdown");
+  assert.match(form, /role="radiogroup" aria-label=\{`Rate: \$\{q\.q\}`\}/, "the stars");
+  assert.match(form, /const followOpen = f && v != null && v !== "" && \(f\.when \? f\.when\.includes\(v\) : v < f\.below\);/);
+  assert.match(form, /const gaps = questions\.filter\(q => q\.required && /);
 });
