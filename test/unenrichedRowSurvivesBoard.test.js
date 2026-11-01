@@ -45,8 +45,11 @@ function db0() {
     -- evidence about must be NOT ESTABLISHED, never demoted and never dropped.
     CREATE TABLE company_lca_sponsorship (
       company TEXT PRIMARY KEY, match_status TEXT NOT NULL,
-      match_confidence REAL NOT NULL DEFAULT 0, certified_total INTEGER NOT NULL DEFAULT 0
+      match_confidence REAL NOT NULL DEFAULT 0, certified_total INTEGER NOT NULL DEFAULT 0,
+      by_fiscal_year_json TEXT
     );
+    -- D121: the sponsorship signal reads the latest complete fiscal year from the ingest ledger.
+    CREATE TABLE lca_source_files (file_name TEXT PRIMARY KEY, fiscal_period TEXT);
   `);
   return db;
 }

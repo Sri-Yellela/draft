@@ -112,11 +112,15 @@ export function levelRank(level) { return typeof level === "string" && level in 
  * ⭐ D106 P2 · the one line. Inputs are what the card already has: the match score (as shown), D104's eligibility,
  * D107's liveness, and the stored level read with its disagreement. Never reads more than it is given.
  */
-export function applyLine({ score = null, eligibility = null, liveness = null, level = null } = {}) {
+export function applyLine({ score = null, eligibility = null, liveness = null, level = null, sponsorship = null } = {}) {
   if (eligibility?.status === "ineligible") {
     const r = Array.isArray(eligibility.reasons) && eligibility.reasons[0];
     return { verdict: "skip", text: `Skip: ${r || "a stated requirement rules you out"}.` };
   }
+  // ⭐ D121 · for a user who needs sponsorship, the ONE signal joins the line: the posting's "no" is a skip; the
+  // company's record a clause ("· sponsors often"). Unknown says nothing — it is not a no.
+  const needs = !!sponsorship?.needed;
+  if (needs && sponsorship.level === "says_no") return { verdict: "skip", text: "Skip: says no sponsorship." };
   const parts = [];
   const band = atsBandFor(Number.isFinite(score) ? score : null);
   if (band === ATS_BAND.STRONG) parts.push("Good match");
@@ -129,6 +133,8 @@ export function applyLine({ score = null, eligibility = null, liveness = null, l
     else if (liveness.kind === "open_long") parts.push(`open ${liveness.openDays} days`);
     else if (liveness.reposts === 0) parts.push(liveness.openDays <= 1 ? "posted in the last day, first time" : `posted ${liveness.openDays} days ago, first time`);
   }
+  const SPONSOR_CLAUSE = { often: "sponsors often", sometimes: "sponsors sometimes", no_record: "no sponsorship record" };
+  if (needs && SPONSOR_CLAUSE[sponsorship.level]) parts.push(SPONSOR_CLAUSE[sponsorship.level]);
   if (!parts.length) return null;
   const staleish = liveness && (liveness.kind === "reposted" && liveness.reposts >= 3);
   const verdict = band === ATS_BAND.WEAK || staleish ? "doubtful" : band === ATS_BAND.STRONG ? "apply" : "maybe";

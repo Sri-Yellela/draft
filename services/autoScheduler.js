@@ -20,6 +20,7 @@ import { userHeld } from "./applyUserHold.js";
 import { fullAutoDisabled } from "./appSettings.js";
 import { eligibilityForJob, userEligibilityInputs } from "./jobEligibility.js";
 import { livenessFor, isStale } from "./jobs/jobHistory.js";
+import { sponsorshipSignal } from "./kb/sponsorshipSignal.js";
 import { choosePicks, storeRun, deliverRun, nextSlotAfter, lineForCandidate, pickedJobsSince, everPicked, userLevelFor,
   expireOffers, sweepLeftOut, runPickSummaries, runPickQuestions } from "./picks.js";
 
@@ -136,8 +137,17 @@ export function userContext(db, userId, nowSec, settings) {
   const isIneligible = (jobId) => eligibilityOf(jobId).status === "ineligible";
   const livenessOf = (jobId) => livenessFor(db, jobId, { now: nowSec });
   const isStalePosting = (jobId) => isStale(livenessOf(jobId), settings);
+  // ⭐ D121 P3 · the ONE sponsorship signal per candidate; it ranks only for a user whose Application defaults say they
+  // need sponsorship (and the opt-in switch filters for anyone who turned it on).
+  const needsSponsorship = inputs.defaults?.sponsorship_now === "yes" || inputs.defaults?.sponsorship_later === "yes";
+  const sponsorshipOf = (jobId) => {
+    try {
+      const row = db.prepare(`SELECT job_id, company, title, description, description_full FROM scraped_jobs WHERE job_id = ?`).get(String(jobId));
+      return row ? sponsorshipSignal(db, row.company, { title: row.title, posting: row }) : null;
+    } catch { return null; }
+  };
   return { drafted, companyCounts, pausedCompanies, used, remaining: Math.max(0, settings.dailyCap - used), isIneligible, isStalePosting,
-    eligibilityOf, livenessOf, userLevel: userLevelFor(db, userId) };
+    eligibilityOf, livenessOf, userLevel: userLevelFor(db, userId), needsSponsorship, sponsorshipOf };
 }
 
 /** The user's D113 mode: 'apply' (FULL AUTO, "Apply for me"), 'ask' (SEMI with picks on, "Ask me first") or null. */
@@ -203,7 +213,9 @@ export async function runAutoTick(db, { nowSec = Math.floor(Date.now() / 1000), 
     try {
       stored = storeRun(db, { userId: u.id, slotAt, mode, expiresAt: nextSlotAfter(slotAt, settings, localClock), seen: fresh.length + outsideFilters,
         take, leftOut, outsideFilters, nowSec, review: settings.showFormBeforeSending === true,
-        lineFor: (c) => lineForCandidate(c, { eligibility: ctx.eligibilityOf(c.jobId), liveness: ctx.livenessOf(c.jobId) }) });
+        // D121: "why this pick" says the sponsorship signal for a user who needs sponsorship
+        lineFor: (c) => lineForCandidate(c, { eligibility: ctx.eligibilityOf(c.jobId), liveness: ctx.livenessOf(c.jobId),
+          sponsorship: ctx.needsSponsorship ? { ...(ctx.sponsorshipOf(c.jobId) || {}), needed: true } : null }) });
     } catch (e) { out.push({ userId: u.id, skipped: "store_failed", error: e.message }); continue; }
     if (!stored.created) { out.push({ userId: u.id, runId: stored.run.id, skipped: "run_exists" }); continue; }
     const r = await deliverRun(db, stored.run, deps, nowSec);

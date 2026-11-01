@@ -23,6 +23,7 @@ import { applyLine } from "../../../shared/postingLevel.js";
 import { usePairLink } from "../lib/pairLink.js";
 import { useAtlasTerms } from "../lib/atlasLinks.js";
 import { AtlasText } from "./AtlasTerm.jsx";
+import { SponsorshipBlock } from "./SponsorshipSignal.jsx";
 import "../styles/inkPair.css";
 import "./PostingPanel.css";
 
@@ -61,7 +62,8 @@ export function PostingMasthead({ job, experience = null, showTitle = true, vtTi
       <PostingLiveness liveness={job.liveness} />
       <PostingLevel levelRead={job.levelRead} />
       <PostingApplyLine job={job} />
-      <PostingSponsorship fact={job.sponsorshipFact} />
+      {/* ⭐ D121: the ONE signal's block when the server sent it; D108's filings line otherwise (an older response). */}
+      {job.sponsorship ? <SponsorshipBlock signal={job.sponsorship} /> : <PostingSponsorship fact={job.sponsorshipFact} />}
     </header>
   );
 }
@@ -109,7 +111,7 @@ export function PostingLevel({ levelRead }) {
 /** ⭐ D106 P2 · the one "should I apply" sentence — information, never a block; the ATS number is unchanged. */
 export function PostingApplyLine({ job }) {
   const score = Number.isFinite(job?.matchScore) ? job.matchScore : Number.isFinite(job?.baseAtsScore) ? job.baseAtsScore : null;
-  const line = applyLine({ score, eligibility: job?.eligibility, liveness: job?.liveness, level: job?.levelRead });
+  const line = applyLine({ score, eligibility: job?.eligibility, liveness: job?.liveness, level: job?.levelRead, sponsorship: job?.sponsorship });
   if (!line) return null;
   return (
     <p className="posting__details" data-apply-line={line.verdict}>

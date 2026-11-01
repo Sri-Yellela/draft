@@ -9,6 +9,7 @@
 
 import { normaliseAtsTerm } from "../localAtsScorer.js";
 import { sponsorshipFactFor } from "../kb/sponsorshipFacts.js";
+import { sponsorshipSignal, LABELS, PICK_RANK } from "../kb/sponsorshipSignal.js";
 
 export const SPONSORS_LIMIT = 8;
 
@@ -36,14 +37,27 @@ export function companiesForRole(db, slug) {
   return byCompany;
 }
 
-/** @returns {Array<{ company, postings, filings, fiscalYear, text, source }>} */
+/**
+ * ⭐ D121 P3 · "Companies hiring Data Engineers that sponsor often": each entry carries the ONE signal's level and label
+ * (often before sometimes) and, when the ingest has it, the role's own title-family line.
+ * @returns {Array<{ company, postings, filings, fiscalYear, text, source, level, label, titleLine }>}
+ */
 export function sponsorsForRole(db, slug, { limit = SPONSORS_LIMIT } = {}) {
   const out = [];
+  let roleName = null;
+  try { roleName = db.prepare(`SELECT name FROM atlas_nodes WHERE slug = ?`).pluck().get(String(slug)); } catch { roleName = null; }
   for (const [company, postings] of companiesForRole(db, slug)) {
     let f = null;
     try { f = sponsorshipFactFor(db, company); } catch { f = null; }
     if (!f || !(f.filings > 0)) continue;
-    out.push({ company, postings, filings: f.filings, fiscalYear: f.fiscalYear, text: f.text, source: f.source });
+    let s = null;
+    try { s = sponsorshipSignal(db, company, { title: roleName }); } catch { s = null; }
+    out.push({ company, postings, filings: f.filings, fiscalYear: f.fiscalYear, text: f.text, source: f.source,
+      level: s?.companyLevel || "sometimes", label: s ? LABELS[s.companyLevel] : null,
+      titleLine: s?.facts.find(x => x.kind === "title")?.text || null,
+      // the chip's input — the company's level (a role page has no posting, so never "says no")
+      signal: s ? { level: s.companyLevel, label: LABELS[s.companyLevel], line: s.line, notice: s.notice } : null });
   }
-  return out.sort((a, b) => b.filings - a.filings || b.postings - a.postings || a.company.localeCompare(b.company)).slice(0, limit);
+  const rank = (l) => PICK_RANK[l] ?? PICK_RANK.unknown;
+  return out.sort((a, b) => rank(a.level) - rank(b.level) || b.filings - a.filings || b.postings - a.postings || a.company.localeCompare(b.company)).slice(0, limit);
 }

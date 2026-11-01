@@ -25,6 +25,7 @@ import {
   KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
   WIKI_LICENCE, YOU_LABEL, YOU_MARK, LEVEL_READ_LABEL, shareText, stepTitle, stepEmptyLine, roleBoardParts,
 } from "./atlasModel.js";
+import { SponsorshipChip } from "../../components/SponsorshipSignal.jsx";
 import "./AtlasPage.css";
 
 function SearchBox({ base, initial = "" }) {
@@ -249,11 +250,12 @@ export function AtlasNodeView({ base, node, from, onWalk }) {
 
       {node.kind === "role" && node.sponsors?.length > 0 && (
         <section className="atl__section" data-atlas-sponsors="" aria-labelledby="atl-sponsors">
-          <h2 className="atl__h2" id="atl-sponsors">Sponsors who hire this role</h2>
+          <h2 className="atl__h2" id="atl-sponsors">Companies hiring {node.name} that sponsor</h2>
           <ul className="atl__links">
             {node.sponsors.map(s => (
-              <li key={s.company}>
-                <b>{s.company}</b> · {s.text} · {s.postings} open posting{s.postings === 1 ? "" : "s"}
+              <li key={s.company} data-atlas-sponsor-level={s.level || undefined}>
+                <b>{s.company}</b>{s.signal ? <> <SponsorshipChip signal={s.signal} needed /></> : null}
+                {" "}· {s.titleLine || s.text} · {s.postings} open posting{s.postings === 1 ? "" : "s"}
               </li>
             ))}
           </ul>

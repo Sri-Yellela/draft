@@ -236,7 +236,7 @@ function LevelMark({ levelRead }) {
 // ── D106 P2 · ONE LINE: should I apply — the match, eligibility, liveness and level in one sentence. Information only:
 // it may say skip, it never blocks, and the ATS number beside it is the same number (shared/postingLevel.js applyLine).
 function ApplyLineNote({ job, score }) {
-  const line = applyLine({ score, eligibility: job?.eligibility, liveness: job?.liveness, level: job?.levelRead });
+  const line = applyLine({ score, eligibility: job?.eligibility, liveness: job?.liveness, level: job?.levelRead, sponsorship: job?.sponsorship });
   if (!line) return null;
   return <p data-apply-line={line.verdict} style={{ margin:"4px 0 0", fontSize:11, color:"var(--color-text-muted)" }}>{line.text}</p>;
 }

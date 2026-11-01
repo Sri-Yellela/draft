@@ -1,0 +1,9 @@
+/* ⭐ D121 · the sponsorship chip and block (SponsorshipSignal.jsx) — theme tokens only, no capsule (D60), every row wraps. */
+.spn-chip { max-width: 100%; white-space: normal; }
+.spn-block { display: grid; gap: 4px; min-width: 0; font-size: 13.5px; color: var(--c-ink); }
+.spn-head { margin: 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.spn-k { font-weight: 700; }
+.spn-list { margin: 0; padding-left: 18px; display: grid; gap: 2px; overflow-wrap: anywhere; }
+.spn-quiet { margin: 0; font-size: 12.5px; color: var(--c-ink-muted); overflow-wrap: anywhere; }
+.spn-changed summary { cursor: pointer; font-size: 12.5px; color: var(--c-accent-ink); }
+.spn-changed[open] summary { margin-bottom: 4px; }

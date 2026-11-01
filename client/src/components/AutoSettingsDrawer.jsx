@@ -171,6 +171,19 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
                 <span className="dh-set__hint">{Object.keys(s.filters || {}).length ? `Now: ${filterLine(s.filters)}`
                   : boardLine ? `Your board: ${boardLine}` : "Open the board and filter it first — its filters start here."}</span>
               </div>
+              {/* ⭐ D121 P3: off by default. On, picks keep only companies whose public LCA record says they sponsor. */}
+              {"onlySponsorRecord" in s && (
+                <div className="dh-set" data-only-sponsor-setting="">
+                  <label className="dh-sw">
+                    <input type="checkbox" role="switch" checked={!!s.onlySponsorRecord} aria-checked={!!s.onlySponsorRecord}
+                      onChange={() => set({ onlySponsorRecord: !s.onlySponsorRecord })} />
+                    <span className="dh-set__lab">Only companies with a sponsorship record</span>
+                  </label>
+                  <span className="dh-set__hint">{s.onlySponsorRecord
+                    ? "Picks keep only companies that filed certified LCAs in the latest complete fiscal year or the one before. A record of filings, not a promise."
+                    : "Off — every company can be picked. If you need sponsorship, companies with a record come first."}</span>
+                </div>
+              )}
 
               <div className="dh-set">
                 <label className="dh-sw">

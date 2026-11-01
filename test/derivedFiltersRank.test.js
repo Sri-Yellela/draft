@@ -47,8 +47,11 @@ function db0() {
     -- guarantee below (no bucket loses a row) has to hold for exactly that case.
     CREATE TABLE company_lca_sponsorship (
       company TEXT PRIMARY KEY, match_status TEXT NOT NULL,
-      match_confidence REAL NOT NULL DEFAULT 0, certified_total INTEGER NOT NULL DEFAULT 0
+      match_confidence REAL NOT NULL DEFAULT 0, certified_total INTEGER NOT NULL DEFAULT 0,
+      by_fiscal_year_json TEXT
     );
+    -- D121: the signal reads the latest complete fiscal year from the ingest ledger.
+    CREATE TABLE lca_source_files (file_name TEXT PRIMARY KEY, fiscal_period TEXT);
   `);
   const add = db.prepare(
     `INSERT INTO scraped_jobs (job_id,title,company,source,experience_level,scraped_at,is_active)

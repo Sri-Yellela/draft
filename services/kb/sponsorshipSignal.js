@@ -116,7 +116,9 @@ export function sponsorshipSignal(db, company, { title = null, posting = null } 
     fiscalYear = fact.fiscalYear;
     const earlier = [];
     for (let y = fiscalYear - 1; y > fiscalYear - SIGNAL.NO_RECORD_YEARS; y--) earlier.push(Number(lca.byFiscalYear?.[String(y)] ?? 0));
-    level = fact.filings >= SIGNAL.OFTEN_MIN ? "often" : fact.filings > 0 ? "sometimes" : earlier.some(n => n > 0) ? "sometimes" : "no_record";
+    // "No record" pushes a posting down, so it takes the higher confidence (signalSql's noRecord floor); below it, unknown.
+    const sure = Number(lca.matchConfidence) >= SIGNAL_MIN_CONFIDENCE.noRecord;
+    level = fact.filings >= SIGNAL.OFTEN_MIN ? "often" : fact.filings > 0 ? "sometimes" : earlier.some(n => n > 0) ? "sometimes" : sure ? "no_record" : "unknown";
     // The filing count and its median wage are one fact (same files, same year); USCIS is its own, with its own year.
     const same = fact.parts.filter(p => p.kind !== "uscis");
     facts.push({ kind: "lca", text: same.map(p => p.text).join(" · "), fiscalYear, source: fact.source });
@@ -157,6 +159,25 @@ export function sponsorshipSignalsForRows(db, rows) {
     out.set(r.job_id ?? r.jobId ?? r.id, s);
   }
   return out;
+}
+
+// ── D121 P3 · the board filter reads THIS rule, as SQL ─────────────────────────────────────────────
+// The company half of the signal, said in SQL so the board's WHERE / ORDER BY (services/jobs/jobQuery.js) and this
+// module cannot disagree: the latest COMPLETE fiscal year from the ingest ledger (FY2026Q1 → 2025; a Q4 period → its own
+// year), the company's certified count that year and the year before from by_fiscal_year_json. The confidence floors
+// are lcaMatch.js's (presentable 0.60 to say "filed"; 0.80 to say "no record" — pushing a row down costs the user a job).
+// ⚠ The posting's own words are not SQL: a "says no" row is demoted within the page by the board route.
+const LATEST_FY_SQL = `(SELECT CAST(substr(MAX(fiscal_period), 3, 4) AS INTEGER) - (CASE substr(MAX(fiscal_period), 8, 1) WHEN '4' THEN 0 ELSE 1 END) FROM lca_source_files)`;
+const fySql = (offset) => `COALESCE(json_extract(cl.by_fiscal_year_json, '$."' || (${LATEST_FY_SQL} - ${offset}) || '"'), 0)`;
+export const SIGNAL_MIN_CONFIDENCE = Object.freeze({ filed: 0.60, noRecord: 0.80 });
+/** @returns {{ filed: string, noRecord: string }} EXISTS(...) fragments over `alias`.company */
+export function signalSql(alias = "sj") {
+  const years = Array.from({ length: SIGNAL.NO_RECORD_YEARS }, (_, i) => i);
+  const base = `FROM company_lca_sponsorship cl WHERE cl.company = ${alias}.company AND cl.match_status = 'matched'`;
+  return {
+    filed: `EXISTS (SELECT 1 ${base} AND cl.match_confidence >= ${SIGNAL_MIN_CONFIDENCE.filed} AND (${years.map(y => `${fySql(y)} > 0`).join(" OR ")}))`,
+    noRecord: `EXISTS (SELECT 1 ${base} AND cl.match_confidence >= ${SIGNAL_MIN_CONFIDENCE.noRecord} AND ${years.map(y => `${fySql(y)} = 0`).join(" AND ")})`,
+  };
 }
 
 /** D121 P3 · picks: sponsors first for a user who needs sponsorship (a sort key; lower is earlier). */
