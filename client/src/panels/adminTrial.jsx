@@ -30,12 +30,24 @@ const CUTS = ["sample", "field", "device", "speed", "draftsOk"];
 // every shared question side by side (trial · standalone · combined), each source's own questions, and the standalone
 // export (contact details only with the box ticked). GET /api/admin/survey/sources, /api/admin/survey/export.csv.
 const pct = (x) => (x == null ? "—" : `${x}%`);
+// Owner 11-01: "the trial analytics … only updating on admin sign in" — each panel fetched once, on mount. Testers are
+// live now, so every panel here re-reads every 30 s while the tab is visible, and at once when it comes back into view.
+const LIVE_MS = 30_000;
+function useLive(load) {
+  useEffect(() => {
+    load();
+    const tick = () => { if (typeof document === "undefined" || document.visibilityState === "visible") load(); };
+    const id = setInterval(tick, LIVE_MS);
+    document.addEventListener("visibilitychange", tick);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", tick); };
+  }, [load]);
+}
 function SurveySources() {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
   const [contact, setContact] = useState(false);
   const load = useCallback(() => api("/api/admin/survey/sources").then(setD).catch((e) => setErr(e.message)), []);
-  useEffect(() => { load(); }, [load]);
+  useLive(load);
   if (err) return <Panel title="Both surveys" purpose={err}/>;
   if (!d) return <Panel title="Both surveys" purpose="Loading…"/>;
   const y = d.yc;
@@ -94,7 +106,7 @@ function TourAnalytics() {
   const [err, setErr] = useState(null);
   const [cut, setCut] = useState({ key: "would_use", by: "sample", out: null });
   const load = useCallback(() => api("/api/admin/trial/analytics").then(setA).catch((e) => setErr(e.message)), []);
-  useEffect(() => { load(); }, [load]);
+  useLive(load);
   const runCut = async (next) => {
     const c = { ...cut, ...next };
     try { const r = await api(`/api/admin/trial/crosscut?key=${encodeURIComponent(c.key)}&by=${encodeURIComponent(c.by)}`); setCut({ ...c, out: r.cut }); }
@@ -178,7 +190,7 @@ export function TrialTab() {
   const [who, setWho] = useState("");
   const [said, setSaid] = useState("");
   const load = useCallback(() => api("/api/admin/trial").then(setT).catch((e) => setErr(e.message)), []);
-  useEffect(() => { load(); }, [load]);
+  useLive(load);
 
   const access = async (target, level) => {
     try {
