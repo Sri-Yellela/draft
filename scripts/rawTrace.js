@@ -10,7 +10,7 @@
 
 import {
   normaliseRole,
-  buildApifyQueriesFromProfile,
+  buildProfileTitleVariants,
   isTitleRelevantToProfile,
 } from "../services/searchQueryBuilder.js";
 
@@ -101,9 +101,9 @@ dump("INPUT  → raw role string", stage1_input);
 dump("OUTPUT → normalised role", stage1_output);
 
 // ════════════════════════════════════════════════════════════
-// STAGE 2 — buildApifyQueriesFromProfile
+// STAGE 2 — buildProfileTitleVariants
 // ════════════════════════════════════════════════════════════
-console.log("\n\n====== STAGE 2: buildApifyQueriesFromProfile ======");
+console.log("\n\n====== STAGE 2: buildProfileTitleVariants ======");
 
 const stage2_input = {
   profile_name:   s.profile.profile_name,
@@ -112,7 +112,7 @@ const stage2_input = {
   domain:         s.profile.domain,
   role_family:    s.profile.role_family,
 };
-const stage2_output = buildApifyQueriesFromProfile(s.profile);
+const stage2_output = buildProfileTitleVariants(s.profile);
 
 dump("INPUT  → active domain profile object", stage2_input);
 dump("OUTPUT → jobTitles[] array (sent to Apify)", stage2_output);

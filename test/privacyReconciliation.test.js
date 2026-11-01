@@ -284,7 +284,9 @@ test("the manifest's privacy_policy_url is the page this repo actually serves", 
 
 test("third parties named in the policy are ones the code actually uses", () => {
   // A false sharing disclosure is the mirror-image failure of an undisclosed one.
-  const named = ["Railway", "Anthropic", "SerpApi", "Apify", "Adzuna", "DuckDuckGo"];
+  // A108 (11-01): Apify was scrapped — no code path, no dependency, no stored token — so the policy no longer names it.
+  const named = ["Railway", "Anthropic", "SerpApi", "Adzuna", "DuckDuckGo"];
+  assert.ok(!/\bApify\b/.test(policyText), "Apify is gone (A108): the policy must not name a processor draft does not use");
   for (const n of named) {
     assert.ok(policyText.includes(n), `expected the policy to name ${n}`);
   }
@@ -310,8 +312,8 @@ test("third parties named in the policy are ones the code actually uses", () => 
   assert.ok(!/s2\/favicons/.test(stripped),
     "the Google favicon fallback sent browsing to an undisclosed third party whenever the " +
     "disclosed one failed — which, once its DNS went, was every single call");
-  assert.match(fs.readFileSync("package.json", "utf8"), /apify-client/,
-    "Apify is disclosed as a third party; the client library should be a real dependency");
+  assert.doesNotMatch(fs.readFileSync("package.json", "utf8"), /apify-client/,
+    "A108: the Apify client is not a dependency any more");
 });
 
 test("THE RECONCILIATION'S THIRD-PARTY TABLE MATCHES THE SET THE POLICY NAMES", () => {

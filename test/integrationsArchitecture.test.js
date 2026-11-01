@@ -25,7 +25,8 @@ test("integrations backend centralizes connector status and storage", () => {
   assert.match(server, /CREATE TABLE IF NOT EXISTS user_integrations/);
   assert.match(server, /createAccountRouter/);
   assert.match(accountRoute, /router\.get\("\/api\/integrations\/status"/);
-  assert.match(accountRoute, /router\.patch\("\/api\/integrations\/apify-token"/);
+  // A108 (11-01): the Apify token routes are deleted with Apify — none may come back.
+  assert.doesNotMatch(accountRoute, /apify/i, "Apify was scrapped (A108): no token route, no flag");
   assert.match(accountRoute, /router\.post\("\/api\/integrations\/:provider"/);
   assert.match(readiness, /getAutomationReadiness/);
   assert.match(readiness, /gmail/);

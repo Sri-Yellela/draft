@@ -1284,7 +1284,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [emptyReason, setEmptyReason] = useState(null);
 
   // UI state
-  const [scraping,    setScraping]    = useState(false);  // Apify live scrape
+  const [scraping,    setScraping]    = useState(false);  // a live refresh is running
   const [bgLoading,   setBgLoading]   = useState(false);  // background DB fetch
   // ⛔ D45 · LOADING IS NOT EMPTY. `requestedKey` is the view the board last ASKED for, `answeredKey`
   // the one it has an answer for (from the network or the per-view cache). Until they match the
@@ -2917,7 +2917,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           pollIntervalRef.current = null;
           setScraping(false);
           setPollStatus("error");
-          setScrapeError("Could not fetch new jobs - check Apify in Integrations.");
+          setScrapeError("Could not fetch new jobs. Try again in a minute.");
         }
       }
     }, POLL_INTERVAL_MS);

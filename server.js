@@ -145,7 +145,7 @@ import { classifyGenerationError } from "./shared/failureAttribution.js";
 import { checkLimit } from "./services/limitEnforcer.js";
 import { DATA_CLASS } from "./services/modelCall.js";
 import { qualificationKeyCount } from "./services/qualificationResolver.js";
-// buildApifyQueriesFromProfile and buildProfileSearchTerms dropped from this import in cleanup
+// buildProfileTitleVariants (was buildProfileTitleVariants) and buildProfileSearchTerms dropped from this import in cleanup
 // 5.1: both were imported here and never called. The functions themselves are KEPT — unlike
 // 5.7's module they still have real callers, in scripts/tracePipeline.js, scripts/rawTrace.js and
 // scripts/conditionTests.js (all three verified to still run) plus their own unit tests. Dead in
@@ -292,8 +292,7 @@ console.log("[boot] server module loaded");
 // ── Config ────────────────────────────────────────────────────
 const PORT           = process.env.PORT           || 3001;
 const ANTHROPIC_KEY  = process.env.ANTHROPIC_KEY  || "";
-// NOTE: There is NO server-level APIFY_TOKEN.
-// Each user stores their own token in the DB (users.apify_token).
+// ⭐ A108 (owner 11-01): Apify is gone — no route, no client, no stored token (migration 206 cleared users.apify_token).
 // The cron job borrows the most recently active user's token.
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const SESSION_SECRET = process.env.SESSION_SECRET || (IS_PRODUCTION ? "" : "dev-session-secret-change-me");
@@ -6304,6 +6303,17 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_practice_submissions_user ON practice_submissions(user_id);
       `,
     },
+    {
+      // ⭐ A108 · APIFY, SCRAPPED (owner 11-01): "scrap the entire apify module and pathways". No route writes or reads a
+      // token any more; the ones people once pasted are third-party credentials draft should not keep. A DATA migration
+      // (it changes rows): backed up first, like 162 / 163 / 194 (server.js DATA_MIGRATIONS). The column stays — dropping
+      // it on the volume buys nothing and nothing reads it.
+      // After 205 (the trial).
+      id: "206_scrub_apify_tokens",
+      sql: `
+        UPDATE users SET apify_token = NULL WHERE apify_token IS NOT NULL;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -6326,6 +6336,8 @@ console.log(`[boot] database ready: ${DB_PATH}`);
     { id: "163_delete_former_admin_row", changes: "SELECT 1 FROM users WHERE status = 'suspended' AND suspended_reason LIKE 'Former admin row (D95)%' LIMIT 1" },
     // ⭐ D115: 194 REBUILDS atlas_nodes (a CHECK widened) — rehearsed safe, and backed up first all the same.
     { id: "194_atlas_concept_pattern_kinds", changes: "SELECT 1 FROM atlas_nodes LIMIT 1" },
+    // ⭐ A108: 206 clears the Apify tokens people once pasted — backed up first when there is one to clear.
+    { id: "206_scrub_apify_tokens", changes: "SELECT 1 FROM users WHERE apify_token IS NOT NULL LIMIT 1" },
   ];
   const heldBack = new Set();
   const isPending = (id) => { try { return !db.prepare("SELECT 1 FROM schema_migrations WHERE id = ?").get(id); } catch { return true; } };
@@ -8808,7 +8820,7 @@ app.post("/api/auth/login", (req, res, next) => {
 });
 
 app.post("/api/auth/register", (req, res) => {
-  const { username, password, profile={}, apifyToken } = req.body;
+  const { username, password, profile={} } = req.body;
   if (!username||!password) return res.status(400).json({ error:"username and password required" });
   const passwordError = validatePassword(password);
   if (passwordError)       return res.status(400).json({ error:passwordError });
@@ -8853,7 +8865,6 @@ app.post("/api/auth/register", (req, res) => {
         profile.requires_sponsorship?1:0, profile.has_clearance?1:0,
         profile.clearance_level||null, profile.visa_type||null, profile.work_auth||null
       );
-    db.prepare("UPDATE users SET apify_token=? WHERE id=?").run(apifyToken||null, newUser.id);
     // ⭐ D73 §B 2: product news only when the sign-up box was TICKED (it starts unticked) — never inferred,
     // never bundled with the terms; recorded with when and where.
     if (req.body?.marketingOptIn === true) setMarketingConsent(db, newUser.id, true, "signup");

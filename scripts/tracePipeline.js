@@ -24,7 +24,7 @@
 
 import {
   normaliseRole,
-  buildApifyQueriesFromProfile,
+  buildProfileTitleVariants,
   buildProfileSearchTerms,
   isTitleRelevantToProfile,
   isTitleRelevant,
@@ -366,7 +366,7 @@ verdict(true, "Role input cleaned and alias-mapped to canonical form");
 // ════════════════════════════════════════════════════════════
 // STAGE 2 · Profile-driven title variant building
 // ════════════════════════════════════════════════════════════
-sectionHeader("2", "Profile-Driven Title Variants  (searchQueryBuilder.js → buildApifyQueriesFromProfile)");
+sectionHeader("2", "Profile-Driven Title Variants  (searchQueryBuilder.js → buildProfileTitleVariants)");
 
 const profileInput = {
   profile_name: scenario.profile.profile_name,
@@ -375,7 +375,7 @@ const profileInput = {
   domain: scenario.profile.domain,
 };
 
-const titleVariants = buildApifyQueriesFromProfile(scenario.profile);
+const titleVariants = buildProfileTitleVariants(scenario.profile);
 
 inputBlock(profileInput, "PROFILE INPUT");
 outputBlock(titleVariants, "TITLE VARIANTS SENT TO APIFY");
@@ -399,7 +399,7 @@ const apifyPayload = {
 
 inputBlock(apifyPayload, "FULL PAYLOAD SENT TO APIFY");
 console.log(`\n  ${label("Notes:")}`);
-console.log(`  ${C.dim}│${C.reset}  ${key("jobTitles")}     comes from buildApifyQueriesFromProfile() — profile drives the search`);
+console.log(`  ${C.dim}│${C.reset}  ${key("jobTitles")}     comes from buildProfileTitleVariants() — profile drives the search`);
 console.log(`  ${C.dim}│${C.reset}  ${key("workplaceType")} always all three — UI board filter is applied after, not before`);
 console.log(`  ${C.dim}│${C.reset}  ${key("postedLimit")}   "24h" = last 24 hours (default). "1w" / "1m" when UI sets ageFilter`);
 console.log(`  ${C.dim}│${C.reset}  ${key("maxItems")}      300 cap; firmware domain gets 75 (smaller niche)`);

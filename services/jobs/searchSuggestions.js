@@ -16,7 +16,7 @@
 // Depends on: services/searchQueryBuilder.js (normaliseRole — the project's existing
 // normalisation, reused rather than reimplemented).
 //
-// NOT wired to buildApifyQueriesFromProfile, deliberately: that is scraping-era and off-limits.
+// NOT wired to buildProfileTitleVariants, deliberately: that is scraping-era and off-limits.
 // The only thing borrowed from that module is normaliseRole, which is a pure string function.
 // ============================================================
 
