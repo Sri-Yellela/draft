@@ -114,6 +114,7 @@ import { autoPublish, runAtlasAutoPipeline } from "./services/atlas/atlasPublish
 // ⭐ D108: a company's sponsorship fact (the existing LCA match, with its source and date) and the dated "What changed".
 import { sponsorshipFactsForRows } from "./services/kb/sponsorshipFacts.js";
 import { sponsorshipSignalsForRows } from "./services/kb/sponsorshipSignal.js";
+import { redactRows } from "./services/adminSafety.js";
 import { createWhatChangedRouter, createWhatChangedAdminRouter } from "./routes/whatChanged.js";
 // trackScrape dropped from this import in cleanup 5.8 — it was imported here and never called.
 // Every model call goes through callModel, which records usage on one path — see
@@ -9446,7 +9447,8 @@ app.delete("/api/admin/full-auto", requireAdmin, (req, res) => {
 });
 
 app.get("/api/admin/users/:id/applications", requireAdmin, (req, res) => {
-  res.json(db.prepare("SELECT * FROM job_applications WHERE user_id=? ORDER BY applied_at DESC").all(parseInt(req.params.id)));
+  // ⛔ A107: a whole row carries Note why's private text — redacted like every raw row an admin reads (adminSafety.js).
+  res.json(redactRows(db.prepare("SELECT * FROM job_applications WHERE user_id=? ORDER BY applied_at DESC").all(parseInt(req.params.id))));
 });
 // (quota reset routes removed — no refresh cap)
 
