@@ -261,6 +261,15 @@ function publicApplication(row) {
   };
 }
 
+/**
+ * D123 P6e (R9): a memoised, on-demand cover letter. autoApply calls it only when the form shows a cover-letter upload,
+ * so a form without one costs no model call; a second cover slot (another frame, the next step) reuses the first answer.
+ */
+export function coverLetterOnDemand(make) {
+  let pending = null;
+  return () => (pending ??= Promise.resolve().then(make).catch(() => null));
+}
+
 export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,
                                     scoreBaseResumeForApply, { applyOriginFamilies = APPLY_ORIGIN_FAMILIES } = {}) {
   // D55 (f) · every payload this module builds — for a run's resolver AND for a packet — carries the
@@ -1674,8 +1683,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           parkEarlyHandoff("ats_below_threshold");
           return;
         }
-        // Cover letter generation runs in parallel with PDF conversion
-        const clPromise = generateCoverLetterForApply(userId, jobId).then(async (cl) => {
+        // D123 P6e (R9): the cover letter is written only when the form has a cover-letter upload — a paid Haiku
+        // call per job for nothing otherwise. autoApply calls it at the first cover slot it finds (once, memoised).
+        const clOnDemand = coverLetterOnDemand(() => generateCoverLetterForApply(userId, jobId).then(async (cl) => {
           if (!cl?.html) {
             logEvent(runId, runJobId, userId, jobId, "cover_letter_unavailable", cl?.error || "no cover letter");
             return null;
@@ -1687,18 +1697,17 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
             coverLetterTmpPath = tmpPath;
             return tmpPath;
           } catch { return null; }
-        }).catch(() => null);
+        }).catch(() => null));
         const pdfBuf = await htmlToPdf(artifact.html);
         resumeTmpPath = tmpPdfPath("resume", userId, jobId);
         writeFileSync(resumeTmpPath, pdfBuf);
-        const clPath = await clPromise;
         logEvent(runId, runJobId, userId, jobId, "site_visit_started", "Opening application page in browser");
         result = await autoApply(jobUrl, autofillPayload, {
           derivedLabelMaps,
           mode: applyMode,
           jobId,
           resumePath: resumeTmpPath,
-          coverLetterPath: clPath,
+          coverLetterOnDemand: clOnDemand,
           approvedAnswers,
           onCorrections: recordCorrections,
           submitBlocker,
@@ -1740,7 +1749,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
             return null;
           }
         });
-        const coverLetterPathPromise = generateCoverLetterForApply(userId, jobId).then(async (cl) => {
+        // D123 P6e (R9): only when the form asks for one (see CASE A).
+        const coverLetterOnDemandCaseB = coverLetterOnDemand(() => generateCoverLetterForApply(userId, jobId).then(async (cl) => {
           if (!cl?.html) {
             logEvent(runId, runJobId, userId, jobId, "cover_letter_unavailable", cl?.error || "no cover letter");
             return null;
@@ -1752,17 +1762,17 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
             coverLetterTmpPath = tmpPath;
             return tmpPath;
           } catch { return null; }
-        }).catch(() => null);
+        }).catch(() => null));
         logEvent(runId, runJobId, userId, jobId, "site_visit_started", "Opening application page for review");
         const browserPromise = autoApply(jobUrl, autofillPayload, {
           derivedLabelMaps,
           mode: "semi",
           jobId,
           resumePathPromise: genPromise,
-          coverLetterPathPromise,
+          coverLetterOnDemand: coverLetterOnDemandCaseB,
           onCorrections: recordCorrections,
         });
-        const [,, applySettled] = await Promise.allSettled([genPromise, coverLetterPathPromise, browserPromise]);
+        const [, applySettled] = await Promise.allSettled([genPromise, browserPromise]);
         result = applySettled.status === "fulfilled" ? applySettled.value : { status: "awaiting_user", fieldsFilled: 0 };
         db.prepare(`UPDATE apply_run_jobs SET status='held_review', reason_code='manual_review', finished_at=unixepoch() WHERE id=?`).run(runJobId);
 
@@ -1927,7 +1937,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
             return null;
           }
         });
-        const coverLetterPathPromiseCaseC = generateCoverLetterForApply(userId, jobId).then(async (cl) => {
+        // D123 P6e (R9): only when the form asks for one (see CASE A).
+        const coverLetterOnDemandCaseC = coverLetterOnDemand(() => generateCoverLetterForApply(userId, jobId).then(async (cl) => {
           if (!cl?.html) {
             logEvent(runId, runJobId, userId, jobId, "cover_letter_unavailable", cl?.error || "no cover letter");
             return null;
@@ -1939,18 +1950,18 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
             coverLetterTmpPath = tmpPath;
             return tmpPath;
           } catch { return null; }
-        }).catch(() => null);
+        }).catch(() => null));
         logEvent(runId, runJobId, userId, jobId, "site_visit_started", "Opening application page in browser");
         const applyPromise = autoApply(jobUrl, autofillPayload, {
           derivedLabelMaps,
           mode: applyMode,
           jobId,
           resumePathPromise,
-          coverLetterPathPromise: coverLetterPathPromiseCaseC,
+          coverLetterOnDemand: coverLetterOnDemandCaseC,
           approvedAnswers,
           submitBlocker,
         });
-        const [,, applySettled] = await Promise.allSettled([resumePathPromise, coverLetterPathPromiseCaseC, applyPromise]);
+        const [, applySettled] = await Promise.allSettled([resumePathPromise, applyPromise]);
         result = applySettled.status === "fulfilled" ? applySettled.value : { status: "error", fieldsFilled: 0 };
       }
 

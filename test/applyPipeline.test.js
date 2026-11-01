@@ -254,13 +254,14 @@ test("job detail panel: Apply is the company-name link — no Apply button, no M
   assert.doesNotMatch(detailPanel, /handleAutoApply/, "the click-to-applied handler is gone");
 });
 
-test("worker generates cover letter in parallel and passes coverLetterPath to autoApply", () => {
+test("worker passes an on-demand cover letter to autoApply (D123 P6e R9: written only when the form asks)", () => {
   // generateCoverLetterForApply must exist in server.js and be wired into applyRoutes
   assert.match(server, /async function generateCoverLetterForApply/);
   assert.match(server, /generateCoverLetterForApply\(userId, jobId\)/);
-  // Routes must pass coverLetterPath (CASE A) and coverLetterPathPromise (CASE B/C) to autoApply
-  assert.match(applyRoute, /coverLetterPath/);
-  assert.match(applyRoute, /coverLetterPathPromise/);
+  // Changed on purpose 11-01 (D123 P6e, R9): every case passes coverLetterOnDemand, resolved at the first cover slot,
+  // instead of a path / promise started before the form was seen. test/d123P6eDraftSide.test.js has the behaviour.
+  assert.match(applyRoute, /coverLetterOnDemand: (clOnDemand|coverLetterOnDemandCaseB|coverLetterOnDemandCaseC)/);
+  assert.doesNotMatch(applyRoute, /coverLetterPathPromise/);
   assert.match(applyRoute, /cover_letter_unavailable/);
   // Cover letter temp file must be cleaned up alongside resume temp file
   assert.match(applyRoute, /coverLetterTmpPath/);

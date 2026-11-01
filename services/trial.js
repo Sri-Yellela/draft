@@ -24,7 +24,7 @@ export function samples() {
   if (!_samples) {
     _samples = Object.fromEntries(SAMPLE_IDS.map(id => {
       const j = JSON.parse(fs.readFileSync(path.join(ROOT, "content/trial", `sample-${id.toLowerCase()}.json`), "utf8"));
-      return [id, { id, label: j.label, fictional: j.fictional, candidate: j.candidate, resumeText: j.resumeText }];
+      return [id, { id, label: j.label, fictional: j.fictional, candidate: j.candidate, resumeText: j.resumeText, roleFamily: j.roleFamily || null }];
     }));
   }
   return _samples;
@@ -41,6 +41,12 @@ export function sampleIdForText(text) {
     if (t.startsWith(head) || t.includes(squash(s.candidate.email))) return s.id;
   }
   return null;
+}
+
+/** D123 P6e (R10): a sample's own role family, so its job profile names it and the tools service never classifies. */
+export function sampleRoleFamily(text) {
+  const id = sampleIdForText(text);
+  return id ? samples()[id].roleFamily : null;
 }
 
 /** The sample the user's ACTIVE base résumé is, or null — the safety rule's one question. */
