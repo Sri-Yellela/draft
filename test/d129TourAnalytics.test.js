@@ -4,7 +4,7 @@ import fs from "node:fs";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import { recordEvent, eventDetail, trialAnalytics, crossCut, analyticsCsv, saveSurvey, cleanSurvey, SURVEY, startTrial,
-         trialState } from "../services/trial.js";
+         trialState, RATED, STAR_LABELS, missingRequired } from "../services/trial.js";
 import { TOUR_STEPS, TOUR_STEP_IDS, TOUR_SECTIONS, DECK_SCROLL_MS, TOUR_TARGET_MS } from "../shared/trialTour.js";
 
 // ⭐ D129 (owner 11-01): the guided tour's analytics — the funnel with step times, drop-offs, interactions, errors, the
@@ -64,21 +64,32 @@ test("d129FunnelStepTimes: each step's reached / completed / abandoned and its m
   assert.equal(trialAnalytics(db, { filter: { by: "device", value: "phone" } }).testers, 1);
 });
 
-test("d129SurveyPerSectionRatings: each section rated 1–5, the ONE used first, the confusing step; out-of-range answers dropped", () => {
-  for (const sec of TOUR_SECTIONS) assert.ok(SURVEY.some(q => q.key === `rate_${sec}` && q.type === "scale" && q.min === 1 && q.max === 5), sec);
-  assert.deepEqual(SURVEY.find(q => q.key === "use_first").options, [...TOUR_SECTIONS]);
-  assert.deepEqual(SURVEY.find(q => q.key === "confusing_steps").options, TOUR_STEP_IDS);
-  assert.equal(SURVEY.find(q => q.key === "field").prefill, "category");
-  assert.deepEqual(cleanSurvey({ rate_picks: 5, rate_learn: 9, use_first: "picks", confusing_steps: ["filters", "made_up"], field: "engineering" }),
-    { field: "engineering", rate_picks: 5, use_first: "picks", confusing_steps: ["filters"] });
+test("the survey is the owner's sketch: 18 questions in three sections, dropdowns, four star ratings, plain words", () => {
+  const sketch = fs.readFileSync("docs/sketches/draft — quick feedback.html", "utf8");
+  for (const q of SURVEY) assert.ok(sketch.includes(q.q.replace(/'/g, "'")), `"${q.q}" is the sketch's own question`);
+  for (const q of SURVEY.filter(q => q.type === "select")) for (const o of q.options) assert.ok(sketch.includes(o.replace(/&/g, "&amp;")) || sketch.includes(o), `${q.key}: "${o}"`);
+  assert.equal(SURVEY.length, 18);
+  assert.deepEqual(SURVEY.filter(q => q.section).map(q => q.section), ["Your job search today", "What you just tried", "Your verdict"]);
+  assert.deepEqual(RATED.map(r => r.key), ["rate_matches", "rate_applying", "rate_map", "rate_tracker"]);
+  assert.deepEqual(SURVEY.filter(q => q.required).map(q => q.key), ["search_stage", "field", "time_per_app", "frustration", "compared", "interested"]);
+  for (const q of SURVEY) assert.doesNotMatch(`${q.q} ${q.hint || ""}`, /The Table|Draft House|Atlas|Full House/, "plain words, never an internal page name");
+  assert.deepEqual(STAR_LABELS, ["Not useful", "Slightly useful", "Useful", "Very useful", "Exactly what I need"]);
+});
+
+test("d129SurveyPerSectionRatings: stars 1–5; 'what would make this 5 stars?' kept only below 5; follow-ups only when they apply", () => {
+  assert.deepEqual(cleanSurvey({ rate_matches: 4, rate_matches_why: "more jobs", rate_map: 5, rate_map_why: "dropped", rate_tracker: 9,
+    interested: "Maybe", interested_why: "price", find_tool: "LinkedIn or Indeed", find_tool_other: "dropped", search_stage: "astronaut" }),
+    { rate_matches: 4, rate_matches_why: "more jobs", rate_map: 5, interested: "Maybe", interested_why: "price", find_tool: "LinkedIn or Indeed" });
+  assert.deepEqual(missingRequired({ search_stage: "Actively applying" }), ["field", "time_per_app", "frustration", "compared", "interested"]);
   const db = db0(2);
-  saveSurvey(db, 1, { rate_picks: 5, rate_map: 3, use_first: "picks", would_use: "yes" });
-  saveSurvey(db, 2, { rate_picks: 3, use_first: "draft_house", would_use: "maybe" });
+  saveSurvey(db, 1, { rate_matches: 5, rate_map: 3, most_helpful: "The job matches", interested: "Yes, as soon as I can" });
+  saveSurvey(db, 2, { rate_matches: 3, most_helpful: "Applying for me", interested: "Maybe" });
   const a = trialAnalytics(db);
-  assert.equal(a.sectionUseful.picks, 4);
-  assert.equal(a.sectionUseful.map, 3);
-  assert.equal(a.sectionUseful.learn, null, "nobody rated it");
-  assert.deepEqual(a.distribution.use_first, { picks: 1, draft_house: 1 });
+  assert.equal(a.stars.rate_matches, 4);
+  assert.equal(a.stars.rate_map, 3);
+  assert.equal(a.stars.rate_tracker, null, "nobody rated it");
+  assert.deepEqual(a.distribution.most_helpful, { "The job matches": 1, "Applying for me": 1 });
+  assert.equal(a.questions.rate_matches, "Your job matches", "the admin reads each question in its own words");
 });
 
 test("d129AnalyticsCrossCuts: any answer by sample, field, device, speed or whether the drafts succeeded", () => {
@@ -88,37 +99,41 @@ test("d129AnalyticsCrossCuts: any answer by sample, field, device, speed or whet
   tour(db, 1, "deck", "reached", 0, "phone", "faster");
   tour(db, 2, "deck", "reached", 0, "laptop");
   tour(db, 3, "deck", "reached", 0, "laptop");
-  saveSurvey(db, 1, { would_use: "yes", rate_picks: 5, field: "computing" });
-  saveSurvey(db, 2, { would_use: "no", rate_picks: 2, field: "computing" });
-  saveSurvey(db, 3, { would_use: "yes", rate_picks: 4, field: "engineering" });
-  assert.deepEqual(crossCut(db, { key: "would_use", by: "sample" }), { A: { yes: 1, no: 1 }, C: { yes: 1 } });
-  assert.deepEqual(crossCut(db, { key: "rate_picks", by: "device" }), { phone: { average: 5, n: 1 }, laptop: { average: 3, n: 2 } });
-  assert.deepEqual(crossCut(db, { key: "would_use", by: "speed" }), { faster: { yes: 1 }, normal: { no: 1, yes: 1 } });
-  assert.deepEqual(crossCut(db, { key: "would_use", by: "draftsOk" }), { none: { yes: 2, no: 1 } });
-  assert.equal(crossCut(db, { key: "would_use", by: "email" }), null, "only the five dimensions");
+  saveSurvey(db, 1, { interested: "Yes, as soon as I can", rate_matches: 5, field: "Software and computing" });
+  saveSurvey(db, 2, { interested: "No", rate_matches: 2, field: "Software and computing" });
+  saveSurvey(db, 3, { interested: "Yes, as soon as I can", rate_matches: 4, field: "Mechanical or manufacturing engineering" });
+  assert.deepEqual(crossCut(db, { key: "interested", by: "sample" }), { A: { "Yes, as soon as I can": 1, No: 1 }, C: { "Yes, as soon as I can": 1 } });
+  assert.deepEqual(crossCut(db, { key: "rate_matches", by: "device" }), { phone: { average: 5, n: 1 }, laptop: { average: 3, n: 2 } });
+  assert.deepEqual(crossCut(db, { key: "interested", by: "speed" }), { faster: { "Yes, as soon as I can": 1 }, normal: { No: 1, "Yes, as soon as I can": 1 } });
+  assert.deepEqual(crossCut(db, { key: "interested", by: "draftsOk" }), { none: { "Yes, as soon as I can": 2, No: 1 } });
+  assert.equal(crossCut(db, { key: "interested", by: "email" }), null, "only the five dimensions");
 });
 
-test("d129ExportNoEmailsByDefault: the CSV carries every tester's tour and answers; emails only when asked and given", () => {
+test("d129ExportNoEmailsByDefault: the CSV carries every tester's tour and answers; the referral email only when asked", () => {
   const db = db0(2);
   tour(db, 1, "deck", "reached", 0); tour(db, 1, "deck", "completed", 7_000);
-  saveSurvey(db, 1, { would_use: "yes", followup_email: "tester1@example.com", thoughts: 'Liked it, "a lot", truly' });
+  saveSurvey(db, 1, { interested: "Yes, as soon as I can", referral_email: "friend@example.com", must_have: 'Faster, "a lot", truly' });
   const csv = analyticsCsv(db);
-  assert.doesNotMatch(csv, /tester1@example\.com/);
-  assert.doesNotMatch(csv.split("\n")[0], /followup_email/);
-  assert.match(csv, /"Liked it, ""a lot"", truly"/, "quoted per RFC 4180");
+  assert.doesNotMatch(csv, /friend@example\.com/);
+  assert.doesNotMatch(csv.split("\n")[0], /referral_email/);
+  assert.match(csv, /"Faster, ""a lot"", truly"/, "quoted per RFC 4180");
   assert.equal(csv.trim().split("\n").length, 3, "a header and one row per tester");
-  assert.match(analyticsCsv(db, { includeEmails: true }), /tester1@example\.com/);
+  assert.match(analyticsCsv(db, { includeEmails: true }), /friend@example\.com/);
   const routes = read("routes/trial.js");
   assert.match(routes, /analyticsCsv\(db, \{ includeEmails: req\.query\.emails === "1" \}\)/);
 });
 
-test("d129: the survey's field is prefilled from the résumé's category, and the client labels every new option", () => {
+test("d129: the survey page is the sketch — field prefilled in its words, native dropdowns, stars, the required ones asked for", () => {
   const db = db0(1);
   db.prepare(`INSERT INTO domain_profiles (user_id, profile_name, role_family, domain, target_titles, is_active)
     VALUES (1, 'p', 'engineering', 'manufacturing', '["Mechanical Engineer"]', 1)`).run();
-  assert.equal(trialState(db, 1).fieldGuess, "engineering");
+  assert.equal(trialState(db, 1).fieldGuess, "Other engineering");
+  assert.ok(SURVEY.find(q => q.key === "field").options.includes(trialState(db, 1).fieldGuess));
   const dock = read("client/src/components/TrialDock.jsx");
   assert.match(dock, /fieldGuess=\{state\.fieldGuess \|\| null\}/);
-  assert.match(dock, /\.\.\.Object\.fromEntries\(TOUR_STEPS\.map\(s => \[s\.id, s\.title\]\)\)/);
-  for (const s of TOUR_SECTIONS) assert.match(dock, new RegExp(`\\b${s}: "`), s);
+  assert.match(dock, /<select id=\{id\} value=\{v \|\| ""\}/, "a native dropdown");
+  assert.match(dock, /role="radiogroup" aria-label=\{`Rate \$\{q\.q\.toLowerCase\(\)\}`\}/, "the stars");
+  assert.match(dock, /const followOpen = f && v != null && v !== "" && \(f\.when \? f\.when\.includes\(v\) : v < f\.below\);/);
+  assert.match(dock, /const gaps = survey\.filter\(q => q\.required && \(answers\[q\.key\] == null \|\| answers\[q\.key\] === ""\)\)/);
+  assert.match(dock, /Thanks for trying draft/);
 });

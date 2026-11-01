@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, row, quiet, sub, field } from "./adminKit.jsx";
-import { TOUR_STEPS, TOUR_SECTIONS } from "../../../shared/trialTour.js";
+import { TOUR_STEPS } from "../../../shared/trialTour.js";
 
 const LABELS = {
   yes: "yes", maybe: "maybe", no: "no", now: "now", within_6_months: "within 6 months",
@@ -24,7 +24,6 @@ const LABELS = {
   ...Object.fromEntries(TOUR_STEPS.map(x => [x.id, x.title])),
 };
 const secs = (ms) => (ms == null ? "—" : `${Math.round(ms / 1000)} s`);
-const SURVEY_KEYS = ["would_use", "would_pay", "use_first", "searching", "frustrations", ...TOUR_SECTIONS.map(x => `rate_${x}`)];
 const CUTS = ["sample", "field", "device", "speed", "draftsOk"];
 
 // ⭐ D129 · THE TOUR'S ANALYTICS — the funnel with each step's median time, where people leave, what they tried, the
@@ -64,14 +63,14 @@ function TourAnalytics() {
         <Tally title="Features tried (testers)" counts={a.interactions}/>
         <Tally title="Errors (step · code)" counts={a.errors}/>
         <div style={sub}>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>Usefulness by section (1–5)</div>
-          {TOUR_SECTIONS.map(x => <div key={x}>{LABELS[x]}: <b>{a.sectionUseful[x] ?? "—"}</b></div>)}
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Stars, on average (1–5)</div>
+          {Object.entries(a.stars).map(([k, v]) => <div key={k}>{a.questions[k] || k}: <b>{v ?? "—"}</b>{v != null ? " ★" : ""}</div>)}
         </div>
       </div>
       <h3 style={{ margin: "16px 0 8px" }}>Cut an answer</h3>
       <div style={row}>
         <select aria-label="Survey question" value={cut.key} onChange={(e) => runCut({ key: e.target.value })} style={field}>
-          {SURVEY_KEYS.map(k => <option key={k} value={k}>{k}</option>)}
+          {a.cuttable.map(k => <option key={k} value={k}>{a.questions[k] || k}</option>)}
         </select>
         <span>by</span>
         <select aria-label="Cut by" value={cut.by} onChange={(e) => runCut({ by: e.target.value })} style={field}>
@@ -85,10 +84,10 @@ function TourAnalytics() {
             : <Tally key={g} title={LABELS[g] || g} counts={v}/>)) : <span style={quiet}>No answers yet.</span>}
       </div>
       <h3 style={{ margin: "16px 0 8px" }}>In their words</h3>
-      {["confusing_text", "what_would_stop", "thoughts"].map(k => (
+      {Object.keys(a.texts).map(k => (
         <details key={k} style={{ marginBottom: 6 }}>
-          <summary>{k.replace(/_/g, " ")} ({a.texts[k]?.length || 0})</summary>
-          {(a.texts[k] || []).map((x, i) => <p key={i} style={{ margin: "6px 0" }}>{x.text} <span style={quiet}>· {x.sample || "own"}{x.field ? ` · ${x.field}` : ""}{x.steps?.length ? ` · ${x.steps.join(", ")}` : ""}</span></p>)}
+          <summary>{a.questions[k] || k} ({a.texts[k]?.length || 0})</summary>
+          {(a.texts[k] || []).map((x, i) => <p key={i} style={{ margin: "6px 0" }}>{x.text} <span style={quiet}>· {x.sample || "own"}{x.field ? ` · ${x.field}` : ""}</span></p>)}
         </details>
       ))}
       <div style={{ ...row, marginTop: 12 }}>
@@ -145,23 +144,12 @@ export function TrialTab() {
         numbers={[[f.started, "started"], [f.pickedResume, "picked a résumé"], [f.draft1Sent, "Draft 1 sent"], [f.draft2Sent, "Draft 2 sent"],
                   [f.surveySubmitted, "survey answered", true]]}>
         <p style={quiet}>Picked: {Object.entries(t.picked).map(([k, n]) => `${k === "own" ? "own résumé" : `sample ${k}`} ${n}`).join(" · ")} · finished (locked) {t.locked} ·
-          practice-form sends {t.practiceSubmissions} · feedback notes {t.feedback} · thoughts written {s.thoughts} · follow-up emails left {t.followupEmails}</p>
+          practice-form sends {t.practiceSubmissions} · feedback notes {t.feedback} · "must-have" answers {t.mustHave} · friends suggested {t.referrals}</p>
         <h3 style={{ margin: "16px 0 8px" }}>What they came for</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
-          <Tally title="Field (survey)" counts={s.field}/>
+          {Object.entries(s).map(([k, counts]) => <Tally key={k} title={t.questions[k] || k} counts={counts}/>)}
           <Tally title="Role family (their profile)" counts={t.interests.roleFamilies}/>
           <Tally title="Top target titles" counts={t.interests.topTitles}/>
-          <Tally title="Job-searching" counts={s.searching}/>
-          <Tally title="Applications last month" counts={s.sentLastMonth}/>
-        </div>
-        <h3 style={{ margin: "16px 0 8px" }}>What they thought</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
-          <Tally title="Would use it for real" counts={s.wouldUse}/>
-          <Tally title="Would pay a month" counts={s.wouldPay}/>
-          <Tally title="Would use first" counts={s.useFirst}/>
-          <Tally title="Confusing steps" counts={s.confusingSteps}/>
-          <Tally title="Improvement wanted first" counts={s.improvement}/>
-          <Tally title="Biggest frustrations" counts={s.frustrations}/>
         </div>
         <h3 style={{ margin: "16px 0 8px" }}>What they used</h3>
         <p style={quiet}>Testers active {t.usage.testersActive} · median active minutes {t.usage.medianActiveMinutes ?? "—"}</p>

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft — quick feedback</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+  --bg:#F2F0EB; --surface:#FFFFFF; --ink:#1B1A18; --muted:#5F5B54; --line:#D3CEC4; --field:#F7F5F1; --accent:#FD4600; --star:#F5A400; --ok:#1E7A43;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){color-scheme:dark;--bg:#121213;--surface:#1E1F21;--ink:#ECEAE6;--muted:#A8A39B;--line:#3A3C40;--field:#26282B;--star:#FFB400;--ok:#62C98A}
+}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#121213;--surface:#1E1F21;--ink:#ECEAE6;--muted:#A8A39B;--line:#3A3C40;--field:#26282B;--star:#FFB400;--ok:#62C98A}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:680px;margin:0 auto;padding:20px 16px 60px}
+.head{background:var(--surface);border:1px solid var(--line);border-top:8px solid var(--accent);border-radius:12px;padding:20px 22px;margin-bottom:14px}
+.head h1{margin:0 0 6px;font-size:26px;letter-spacing:-.01em}
+.head p{margin:0;color:var(--muted)}
+.prog{height:6px;background:var(--line);border-radius:3px;margin-top:14px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.sec{margin:22px 4px 8px;font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:12px}
+.q label.t,.q .t{display:block;font-weight:700;font-size:17px;margin-bottom:4px}
+.q .h{display:block;color:var(--muted);font-size:14.5px;margin-bottom:12px}
+select,textarea,input[type=email],input[type=text]{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:11px 12px}
+select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 12px) 50%;background-size:6px 6px;background-repeat:no-repeat;padding-right:36px}
+textarea{min-height:78px;resize:vertical}
+.stars{display:flex;gap:6px;align-items:center}
+.stars button{all:unset;cursor:pointer;font-size:34px;line-height:1;color:var(--line);transition:transform .1s}
+.stars button.on{color:var(--star)}
+.stars button:hover{transform:scale(1.12)}
+.stars button:focus-visible{outline:2px solid var(--accent);border-radius:4px}
+.slab{margin-left:10px;font-size:14px;color:var(--muted);min-width:120px}
+.follow{margin-top:12px;display:none}
+.follow.on{display:block}
+.radio{display:flex;flex-direction:column;gap:8px}
+.radio label{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--field)}
+.radio input{accent-color:var(--accent);width:18px;height:18px}
+.radio label:has(input:checked){border-color:var(--accent)}
+.note{font-size:13px;color:var(--muted);margin-top:8px}
+.submit{all:unset;cursor:pointer;display:block;text-align:center;background:var(--accent);color:#000;font-weight:800;border-radius:10px;padding:14px;margin-top:16px}
+.done{display:none;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;text-align:center}
+.done.on{display:block}
+.mark{display:flex;align-items:center;gap:8px;font-weight:800;font-style:italic;font-size:18px;margin-bottom:10px}
+.slash{display:inline-block;width:8px;height:20px;background:var(--accent);transform:skewX(-20deg)}
+.why{margin-top:28px;background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:14px 16px;font-size:14px;color:var(--muted)}
+.why b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mark"><span class="slash"></span>draft</div>
+  <form id="f" class="formbox" onsubmit="return false">
+    <div class="head">
+      <h1>Thanks for trying draft</h1>
+      <p>About two minutes. Your honest answers decide what we build next. Nothing here is shared with employers.</p>
+      <div class="prog"><i id="bar"></i></div>
+    </div>
+
+    <div class="sec">Your job search today</div>
+    <div class="q"><label class="t" for="q1">Where are you with job hunting right now?</label>
+      <select id="q1" data-q data-req>
+        <option value="">Choose one</option><option>Actively applying</option><option>Starting to look in the next few months</option><option>Employed, but open to the right offer</option><option>Student, looking for an internship or first job</option><option>Not looking right now</option>
+      </select></div>
+    <div class="q"><label class="t" for="q2">What field are you in?</label><span class="h">We guessed from the résumé you picked. Change it if it's wrong.</span>
+      <select id="q2" data-q data-req>
+        <option>Software and computing</option><option>Data, ML and AI</option><option>Mechanical or manufacturing engineering</option><option>Electrical or electronics engineering</option><option>Civil, structural or environmental engineering</option><option>Other engineering</option><option>Business, finance or consulting</option><option>Product or project management</option><option>Marketing or sales</option><option>Design or media</option><option>Science or research</option><option>Something else</option>
+      </select></div>
+    <div class="q"><label class="t" for="q3">How long does it take you to find a job and send out a good application?</label><span class="h">From finding the posting to pressing submit, for one application you're happy with.</span>
+      <select id="q3" data-q data-req><option value="">Choose one</option><option>Under 15 minutes</option><option>15 to 30 minutes</option><option>30 minutes to 1 hour</option><option>1 to 2 hours</option><option>More than 2 hours</option></select></div>
+    <div class="q"><label class="t" for="q4">How many applications do you send out when you're job searching?</label>
+      <select id="q4" data-q><option value="">Choose one</option><option>1 to 5 a week</option><option>6 to 15 a week</option><option>16 to 30 a week</option><option>More than 30 a week</option><option>I haven't started yet</option></select></div>
+    <div class="q"><label class="t" for="q5">What do you mainly use to find and apply for jobs today?</label>
+      <select id="q5" data-q><option value="">Choose one</option><option>LinkedIn or Indeed</option><option>Company career pages, one by one</option><option>Recruiters or referrals</option><option>University or school career portal</option><option>An AI or auto-apply tool</option><option>Something else</option></select>
+      <div class="follow" id="q5o"><input type="text" placeholder="Which one?" aria-label="Which tool"></div></div>
+    <div class="q"><label class="t" for="q6">Have you ever paid for anything to help your job search?</label><span class="h">For example a résumé writer, LinkedIn Premium, a course, or an application tool.</span>
+      <select id="q6" data-q><option value="">Choose one</option><option>No, never</option><option>Yes, under $20 in total</option><option>Yes, $20 to $100</option><option>Yes, more than $100</option></select></div>
+    <div class="q"><label class="t" for="q7">What's the most frustrating part of job hunting for you?</label>
+      <select id="q7" data-q data-req>
+        <option value="">Choose one</option><option>Applying and hearing nothing back</option><option>Filling out the same application forms again and again</option><option>Rewriting my résumé for every job</option><option>Finding jobs I'm actually eligible for (visa, level, location)</option><option>Not knowing which postings are real or still open</option><option>Not knowing which skills to learn next</option><option>Something else</option>
+      </select>
+      <div class="follow" id="q7o"><input type="text" placeholder="Tell us in a few words" aria-label="Something else"></div></div>
+
+    <div class="sec">What you just tried</div>
+    <div class="q" data-star="q8"><span class="t">Your job matches</span><span class="h">The 10 jobs we picked for your résumé, best match first, with why each one fits.</span><div class="stars" role="radiogroup" aria-label="Rate your job matches"></div><div class="follow"><input type="text" placeholder="What would make this 5 stars?" aria-label="What would make it 5 stars"></div></div>
+    <div class="q" data-star="q9"><span class="t">Applying for you</span><span class="h">draft tailoring the résumé to each job and filling out the application while you watched.</span><div class="stars" role="radiogroup" aria-label="Rate applying for you"></div><div class="follow"><input type="text" placeholder="What would make this 5 stars?" aria-label="What would make it 5 stars"></div></div>
+    <div class="q" data-star="q10"><span class="t">Your skills map</span><span class="h">The map of the skills you have, the ones close to you, and what to learn next to move up.</span><div class="stars" role="radiogroup" aria-label="Rate your skills map"></div><div class="follow"><input type="text" placeholder="What would make this 5 stars?" aria-label="What would make it 5 stars"></div></div>
+    <div class="q" data-star="q11"><span class="t">Your application tracker</span><span class="h">The page that lists every job you applied to, with replies and interview invites as they come in.</span><div class="stars" role="radiogroup" aria-label="Rate your application tracker"></div><div class="follow"><input type="text" placeholder="What would make this 5 stars?" aria-label="What would make it 5 stars"></div></div>
+
+    <div class="sec">Your verdict</div>
+    <div class="q"><label class="t" for="q12">Compared with how you apply today, draft would be…</label>
+      <select id="q12" data-q data-req><option value="">Choose one</option><option>Much better</option><option>Somewhat better</option><option>About the same</option><option>Worse</option></select></div>
+    <div class="q"><label class="t" for="q13">Would you let draft send applications for you?</label><span class="h">draft only ever answers from your own résumé and never ticks agreements for you.</span>
+      <select id="q13" data-q><option value="">Choose one</option><option>Yes, I'd let it send on its own</option><option>Yes, after I've checked the first few</option><option>Only if I approve every one</option><option>No, I'd rather apply myself</option></select></div>
+    <div class="q"><label class="t" for="q14">Which part would help your job search most?</label>
+      <select id="q14" data-q><option value="">Choose one</option><option>The job matches</option><option>Applying for me</option><option>The skills map</option><option>The application tracker</option><option>None of these</option></select></div>
+    <div class="q"><label class="t" for="q15">Would you be interested in using draft for your job search?</label>
+      <select id="q15" data-q data-req><option value="">Choose one</option><option>Yes, as soon as I can</option><option>Yes, when I start looking</option><option>Maybe</option><option>No</option></select>
+      <div class="follow" id="q15o"><input type="text" placeholder="What would change your mind?" aria-label="What would change your mind"></div></div>
+    <div class="q"><label class="t" for="q16">What would feel fair to pay for draft each month?</label><span class="h">Think of the time each application takes you today: finding jobs that fit, checking you're eligible and the posting is still open, researching the company, rewriting your résumé for it, and filling out the form. draft does all of that for you, for as many jobs as you want.</span>
+      <select id="q16" data-q><option value="">Choose one</option><option>I'd only use it if it were free</option><option>Under $10 a month</option><option>$10 to $20 a month</option><option>$20 to $40 a month</option><option>More than $40 a month</option></select></div>
+    <div class="q"><label class="t" for="q17">What's one thing that would make draft a must-have for you?</label>
+      <textarea id="q17" placeholder="Anything: a feature, a fix, a worry"></textarea></div>
+    <div class="q"><label class="t" for="q18">Know someone job hunting who should try this?</label><span class="h">Optional. We'll send them one invite, from you, and nothing else.</span>
+      <input type="email" id="q18" placeholder="their email"></div>
+
+    <span class="submit" role="button" tabindex="0" id="send">Send my answers</span>
+    <p class="note">We save your answers with your trial account to improve draft. We never share them with employers.</p>
+  </form>
+  <div class="done" id="done"><h2 style="margin:0 0 6px">Thank you</h2><p style="margin:0;color:var(--muted)">That genuinely helps. You can keep using draft with your own résumé any time.</p></div>
+
+  <div class="why"><b>Sketch notes (not shown to testers).</b> What each block gives the YC application: <b>the problem's size</b> (hours a week, applications a month, money already spent), <b>what they use today</b> (the competition), <b>whether draft beats it</b> ("compared with how you apply today"), <b>trust in auto-apply</b>, <b>interest</b> and <b>what they'd pay</b>, plus friends invited. The stars tell us which part to improve; "what would make it 5 stars" opens only below 5. Every feature is described in plain words, never by its internal name.</div>
+</div>
+<script>
+(function () {
+  var LAB = ["", "Not useful", "Slightly useful", "Useful", "Very useful", "Exactly what I need"];
+  document.querySelectorAll("[data-star]").forEach(function (q) {
+    var box = q.querySelector(".stars"), fol = q.querySelector(".follow"), val = 0, lab = document.createElement("span"); lab.className = "slab";
+    for (var i = 1; i <= 5; i++) (function (n) { var b = document.createElement("button"); b.type = "button"; b.textContent = "★"; b.setAttribute("role", "radio"); b.setAttribute("aria-label", n + " star" + (n > 1 ? "s" : "") + ", " + LAB[n]); b.addEventListener("click", function () { val = n; paint(); });
+      b.addEventListener("mouseenter", function () { paint(n); }); b.addEventListener("mouseleave", function () { paint(); }); box.appendChild(b); })(i);
+    box.appendChild(lab);
+    function paint(h) { var v = h || val; box.querySelectorAll("button").forEach(function (b, i) { b.classList.toggle("on", i < v); b.setAttribute("aria-checked", String(i + 1 === val)); }); lab.textContent = v ? LAB[v] : ""; fol.classList.toggle("on", val > 0 && val < 5); q.dataset.v = val; prog(); }
+  });
+  [["q5", "q5o", ["Something else", "An AI or auto-apply tool"]], ["q7", "q7o", ["Something else"]], ["q15", "q15o", ["Maybe", "No"]]].forEach(function (r) { var el = document.getElementById(r[0]); el.addEventListener("change", function () { document.getElementById(r[1]).classList.toggle("on", r[2].indexOf(el.value) >= 0); }); });
+  function prog() {
+    var sels = Array.prototype.slice.call(document.querySelectorAll("select[data-q]")), stars = document.querySelectorAll("[data-star]"), total = sels.length + stars.length, done = 0;
+    sels.forEach(function (e) { if (e.value) done++; });
+    stars.forEach(function (q) { if (+q.dataset.v) done++; });
+    document.getElementById("bar").style.width = Math.round(100 * done / total) + "%";
+  }
+  document.querySelectorAll("select,input,textarea").forEach(function (e) { e.addEventListener("change", prog); });
+  prog();
+  document.getElementById("send").addEventListener("click", function () { document.getElementById("f").style.display = "none"; document.getElementById("done").classList.add("on"); window.scrollTo(0, 0); });
+})();
+</script>
+</body>
+</html>
