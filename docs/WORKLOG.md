@@ -66,7 +66,7 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
 2. **Glance at `docs/OBJECT_MAP.md` and `docs/UI_PRIMITIVES.md`** — D122 P2 waits on it.
 3. **After the deploy, re-run the LCA ingest on production** (`node scripts/ingestLca.mjs`, about 2 GB of downloads) so D121's title families fill. ⚠ The volume had ≈ 3.9 GB free on 10-08 (not re-measured), so **P4's quarterly schedule is NOT built** — scheduling a 2 GB job on that disk is your call.
 
-**Agent next:** D120 P2 → D119 → D121's Draft House chip.
+**Agent next:** D119 → D121's Draft House chip. (D120 P2 is done: `9cd8e7c`.)
 
 ### ▶ NEXT SESSION STARTS HERE — 43v ended 10-31 ≈ 23:30Z at a clean point (owner: *"continue in single lane and stop after current task at a clean point"*)
 
@@ -1410,6 +1410,7 @@ One lane at a time, the owner's FIVE ITEMS order. **All LOCAL — nothing pushed
 | `19f8f2d` | **D121 P3, the surfaces.** The card chip and the job-page block (`SponsorshipSignal.jsx`), D106's line, the board filter (`signalSql`, the same rule as SQL), picks (sponsors first for a needer, `onlySponsorRecord` switch), Atlas role pages |
 | `42809a9` | `atsReportOneImplementation` was **red on main since D116** ("You cover" in the Atlas tree). The guard is narrowed to the ATS header's shape |
 | `7ac7b67` | **A107** — `rejection_note` is redacted from every admin read |
+| `9cd8e7c` | **D120 P2, the Atlas home.** The direction line first, then the tree, Your course (D117's CircleSvg reused, the route as the ink stroke, "Continue:") and the five sections. A side column holds search, Explore by role, the families and recent pages. Signed out: search · the full circle · Explore by role. `d120Home.test.js` (5 tests) |
 
 **Tests run (related files, sequential batches; not the full suite):** 1096 across 112 files → 1093 / 3. Two were the guard above (fixed); T25 passes alone (4 / 4). vite build OK. Boot smoke on a fresh data dir: `latestApplied 203_lca_employer_titles`.
 
@@ -1417,7 +1418,7 @@ One lane at a time, the owner's FIVE ITEMS order. **All LOCAL — nothing pushed
 
 **Skipped — the owner's:** D122 P2–P3 (they come after his glance at the two audit docs) · measuring D120 P1 on his account · the Amazon test (on hold) · reviewing families / "Before this" links.
 
-**Left for the agent:** D121 remainder (the chip on Draft House's branches; P4's quarterly re-ingest, see below) · D120 P2 (the Atlas home page) · D119 (thumbnails) · D115 P5's held list (needs production's dead-link check).
+**Left for the agent:** D121 remainder (the chip on Draft House's branches; P4's quarterly re-ingest, see below) · D119 (thumbnails) · D115 P5's held list (needs production's dead-link check).
 
 ### 2026-10-31 (43v) · "pick up the worklog using parallel agents" → "merge and push as you go"
 
