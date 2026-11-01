@@ -29,7 +29,7 @@ import {
   FILTER_DIMENSIONS, EXPERIENCE_LEVELS, DOMAINS, WORK_MODELS, EMPLOYMENT_TYPES,
   SOURCES, AUTOMATION_TIERS, SORTS, POSTING_AGE, VISITED, BOARD_STATUS, FIT_BANDS, JOB_FUNCTIONS, PLACES,
   values, allValues, dbOnlyValues, valueSet, labelFor, labelMap, isValid, invalidEntries,
-  ageDays, ageDaysMap, EXPERIENCE_LEVEL_ORDER,
+  ageDays, ageDaysMap, EXPERIENCE_LEVEL_ORDER, COMPANY_SPONSORSHIP,
 } from "../shared/jobFilterOptions.js";
 import { at } from "../test-support/sourceAnchors.js";
 import { SECTORS } from "../shared/companySectors.js";
@@ -43,7 +43,7 @@ test("every dimension is registered, and every registered dimension is well form
   // below AND unvalidated by the server, which is the worst of both.
   const exported = { EXPERIENCE_LEVELS, DOMAINS, WORK_MODELS, EMPLOYMENT_TYPES, SOURCES,
                      AUTOMATION_TIERS, SORTS, POSTING_AGE, VISITED, BOARD_STATUS, FIT_BANDS,
-                     JOB_FUNCTIONS, PLACES, SECTORS };
+                     JOB_FUNCTIONS, PLACES, SECTORS, COMPANY_SPONSORSHIP };
   const registered = new Set(Object.values(FILTER_DIMENSIONS));
   for (const [name, dim] of Object.entries(exported)) {
     assert.ok(registered.has(dim), `${name} is exported but not in FILTER_DIMENSIONS`);

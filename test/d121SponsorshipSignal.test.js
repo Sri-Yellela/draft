@@ -185,6 +185,8 @@ test("D121 · d121FilterReadsSignal — the board's company-sponsors filter and 
   };
   // explicit: only the signal's "no record" leaves; unknown stays (never a no)
   assert.deepEqual(ids({ company_sponsorship: true }, {}).sort(), ["n", "o", "t", "z"]);
+  // ⭐ A109: the sentence's clause — ONLY employers the signal says filed (unknown and no record both leave)
+  assert.deepEqual(ids({ company_sponsorship: "filed" }, {}).sort(), ["o", "t", "z"], "often + sometimes (Oldco filed the year before)");
   // derived: "filed" (often / sometimes) first, unknown middle, no record last — the signal's levels
   const ranked = ids({ company_sponsorship: true }, { derivedKeys: ["company_sponsorship"] });
   const level = (id) => sponsorshipSignal(db, { z: "Zentrix Labs", t: "Tinyco", o: "Oldco", q: "Quietco", n: "Nobody Matches Inc" }[id]).level;
@@ -244,13 +246,33 @@ test("D121 · the chip and the block draw the server's signal: a mark, quiet for
   assert.doesNotMatch(html + ui.chip({ signal: often }), /will sponsor|rounded-full|999px/);
 });
 
-test("D121 P3 · Draft House's opened branch draws the ONE signal's chip, read from GET /api/jobs/:jobId/sponsorship (with the viewer's own 'needed')", () => {
+// ⚠ CHANGED ON PURPOSE (A109, owner 11-01: "the sponsorship info doesnt need a label on each post, only on the expanded job
+// desc panel. and add as a filter"): the route stays (the one signal for one posting); the chip left Draft House and the cards.
+test("D121 P3 → A109 · the one-posting route stays; NO chip on the cards or in Draft House — the posting panel's block only", () => {
   const server = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
   const i = at(server, 'app.get("/api/jobs/:jobId/sponsorship", requireAuth');
   const route = server.slice(i, at(server, "\n});", i));
   assert.match(route, /sponsorshipSignal\(db, row\.company, \{ title: row\.title, posting: row \}\)/, "the one module");
   assert.match(route, /needed = d\.sponsorship_now === "yes" \|\| d\.sponsorship_later === "yes"/);
-  const tree = fs.readFileSync("client/src/components/DraftHouseTree.jsx", "utf8");
-  assert.match(tree, /api\(`\/api\/jobs\/\$\{encodeURIComponent\(jobId\)\}\/sponsorship`\)/);
-  assert.match(tree, /<SponsorshipChip signal=\{sponsorship\} needed=\{!!sponsorship\.needed\} \/>/);
+  for (const f of ["client/src/components/DraftHouseTree.jsx", "client/src/components/JobBubble.jsx"]) {
+    assert.doesNotMatch(fs.readFileSync(f, "utf8"), /SponsorshipChip/, `${f}: no sponsorship label on each post (A109)`);
+  }
+  assert.match(fs.readFileSync("client/src/components/PostingPanel.jsx", "utf8"), /<SponsorshipBlock/, "the expanded posting panel keeps the block");
+});
+
+test("A109 · sponsorship is a board FILTER (the sentence's optional clause, counted by the facets) and not a label on each post", async () => {
+  const { sentenceText, SENTENCE_CLAUSES, panelWord } = await import("../shared/filterSentence.js");
+  const { facetClauses } = await import("../services/jobs/boardFacets.js");
+  const { COMPANY_SPONSORSHIP, isValid } = await import("../shared/jobFilterOptions.js");
+  const clause = SENTENCE_CLAUSES.find(c => c.key === "sponsorship");
+  assert.ok(clause && !clause.permanent, "optional: appended only when set");
+  assert.equal(sentenceText({ company_sponsorship: "filed" }),
+    "discovering all roles at all career levels and all workstyles in the United States, at employers with H-1B filings.");
+  assert.equal(sentenceText({}), "discovering all roles at all career levels and all workstyles in the United States.", "unset: not in the sentence");
+  assert.equal(panelWord(clause, "filed"), "employers with H-1B filings");
+  assert.ok(isValid(COMPANY_SPONSORSHIP, "filed") && isValid(COMPANY_SPONSORSHIP, "1"), "the older value still accepted");
+  assert.ok(!isValid(COMPANY_SPONSORSHIP, "yes"));
+  const f = facetClauses({ nowSec: 1 }).find(c => c.key === "sponsorship");
+  assert.deepEqual(f.remove, ["company_sponsorship"]);
+  assert.match(f.options[0].count.sql, /company_lca_sponsorship/, "counted with the signal's own SQL");
 });
