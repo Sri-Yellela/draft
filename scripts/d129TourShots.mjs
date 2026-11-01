@@ -60,6 +60,17 @@ try {
     const page = await ctx.newPage();
     await page.setViewport({ width: w, height: h, ...(w < 600 ? { isMobile: true, hasTouch: true } : {}) });
     await page.evaluateOnNewDocument((p) => { try { localStorage.setItem("draft-theme", p); } catch {} }, pref);
+    // step 1's flicker (owner 11-01): the deck is dealt ONCE, and the spotlight never blinks off while it is dealt
+    await page.evaluateOnNewDocument(() => {
+      window.__sweeps = 0; window.__blinks = 0; let was = false;
+      window.addEventListener("draft:deck-sweep", () => { window.__sweeps++; });
+      setInterval(() => {   // while step 1 is up: each time its spotlight goes from shown to gone
+        if (!document.querySelector('[data-guided-tour="deck"]')) { was = false; return; }
+        const on = !!document.querySelector("[data-tour-spotlight]");
+        if (was && !on) window.__blinks++;
+        was = on;
+      }, 50);
+    });
     await page.goto(`${BASE}/try`, { waitUntil: "networkidle2" });
     const user = `shot${Date.now().toString(36)}`;
     const ok = await page.evaluate(async (u) => {
@@ -93,6 +104,11 @@ try {
         check(where, `${tag}: the spotlight is a cut-out`, /rgba\(0, 0, 0, 0\)|transparent/.test(String(s.fill)), String(s.fill));
       }
       check(where, `${tag}: the popover is off the navigation`, (s?.overNav ?? 0) === 0, s?.side || "");
+      if (id === "deck") {
+        const { sweeps, blinks } = await page.evaluate(() => ({ sweeps: window.__sweeps, blinks: window.__blinks }));
+        check(where, `${tag}: the deck is dealt once`, sweeps === 1, `${sweeps} deals`);
+        check(where, `${tag}: the spotlight does not blink`, blinks === 0, `${blinks} blinks while the deck was dealt`);
+      }
       if (id === "deck_match") check(where, `${tag}: the match shows a number`, /\d+%/.test(s?.score || ""), s?.score || "no score");
       if (id === "pick_two") check(where, `${tag}: "Drafted N of 2"`, /Drafted \d of 2/.test(s?.drafted || ""), s?.drafted || "none");
       if (id === "survey") break;
@@ -139,9 +155,14 @@ try {
       if (id === "table") {
         const table = await page.evaluate(() => document.querySelector("[data-table-split]")?.innerText || "");
         check(where, `${tag}: The Table shows the two as Sent`, /Sent ·/.test(table) && !/Drafted — in Draft House/.test(table), table.slice(0, 160).replace(/\s+/g, " "));
-        const survey = await page.waitForSelector("[data-trial-survey]", { timeout: 60000 }).then(() => true).catch(() => false);
-        check(where, `${tag}: The Table, then the survey opens by itself`, survey);
-        if (survey) await page.screenshot({ path: path.join(OUT, `${where}-${String(n + 2).padStart(2, "0")}-survey.jpg`), type: "jpeg", quality: 70 });
+        // owner 11-01: not straight into the survey — a pop-up with its button, which they press
+        const invite = await page.waitForSelector("[data-survey-invite-open]", { timeout: 60000 }).then(() => true).catch(() => false);
+        check(where, `${tag}: The Table, then a pop-up offers the survey`, invite);
+        check(where, `${tag}: the survey is not opened by itself`, !(await page.$("[data-trial-survey]")));
+        if (invite) { await page.screenshot({ path: path.join(OUT, `${where}-${String(n + 2).padStart(2, "0")}-survey-invite.jpg`), type: "jpeg", quality: 70 }); await page.click("[data-survey-invite-open]"); }
+        const survey = await page.waitForSelector("[data-trial-survey]", { timeout: 15000 }).then(() => true).catch(() => false);
+        check(where, `${tag}: the button opens the survey`, survey);
+        if (survey) await page.screenshot({ path: path.join(OUT, `${where}-${String(n + 3).padStart(2, "0")}-survey.jpg`), type: "jpeg", quality: 70 });
         if (survey) {
           // Answer the required questions, send, choose Explore, press Draft: the locked pop-up names their email.
           await page.evaluate(() => {

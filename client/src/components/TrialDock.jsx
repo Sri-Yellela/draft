@@ -162,12 +162,29 @@ function Dock({ state, onFinish }) {
   );
 }
 
+/** The survey, offered in a pop-up over the app: one button opens it. */
+function SurveyInvite({ onOpen }) {
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Tell us what you think" data-survey-invite=""
+      style={{ position: "fixed", inset: 0, zIndex: Z.TOAST, display: "grid", placeItems: "center", padding: 16,
+               background: "color-mix(in srgb, var(--c-ink) 35%, transparent)" }}>
+      <div style={{ boxSizing: "border-box", width: "min(440px, 100%)", padding: 20, borderRadius: 12, background: "var(--c-surface-solid)",
+                    color: "var(--c-ink)", border: "1px solid var(--c-border)" }}>
+        <h2 style={{ margin: "0 0 8px", fontSize: 20 }}>That's draft, end to end</h2>
+        <p style={{ margin: "0 0 16px" }}>You've seen it find, tailor and apply. Tell us what you think — it takes about two minutes.</p>
+        <DepthButton primary onClick={onOpen} data-survey-invite-open="">Take the survey</DepthButton>
+      </div>
+    </div>
+  );
+}
+
 export default function TrialGate({ children }) {
   const { pathname } = useLocation();
   const [state, setState] = useState(undefined);   // undefined = loading; { trial: false } = the app as is
   const [ended, setEnded] = useState(false);       // the survey was answered or skipped on this page
   const [touring, setTouring] = useState(false);
-  const [exploring, setExploring] = useState(false);   // D129: the guided tour is on screen, so the dock steps aside
+  const [exploring, setExploring] = useState(false);
+  const [surveyOpen, setSurveyOpen] = useState(false);   // owner 11-01: the survey opens when they press its button, not by itself   // D129: the guided tour is on screen, so the dock steps aside
   const load = useCallback(() => api("/api/trial/state").then(setState).catch(() => setState(s => s ?? { trial: false })), []);
   useEffect(() => { load(); const t = setInterval(load, POLL_MS); return () => clearInterval(t); }, [load]);
 
@@ -195,10 +212,20 @@ export default function TrialGate({ children }) {
   if (state.locked) {
     const explore = () => { writeExplore(state); setExploring(true); setEnded(true); };
     // EXPLORE: the real app, view-only — every acting press opens "Coming soon" (ExploreLock).
-    if ((exploring || readExplore(state)) && !(state.surveyDue && !ended)) return <>{children}<ExploreLock email={state.email}/></>;
-    return state.surveyDue && !ended
-      ? <SurveyPage survey={state.survey || []} fieldGuess={state.fieldGuess || null} onExplore={explore} onDone={() => { setEnded(true); load(); }}/>
-      : <ComingSoon answered={state.surveyDone} onExplore={explore}/>;
+    const due = state.surveyDue && !ended;
+    if ((exploring || readExplore(state)) && !due) return <>{children}<ExploreLock email={state.email}/></>;
+    if (!due) return <ComingSoon answered={state.surveyDone} onExplore={explore}/>;
+    if (surveyOpen) return <SurveyPage survey={state.survey || []} fieldGuess={state.fieldGuess || null} onExplore={explore} onDone={() => { setEnded(true); load(); }}/>;
+    // The survey is due: the app stays, the tour finishes its last step (The Table) if it is on screen, then a pop-up
+    // offers the survey — owner 11-01: "dont take them right to it, give a pop up of the survey button for them to click".
+    // (GuidedTour keeps its place in the tree, so the step on screen is not restarted.)
+    return (
+      <>
+        {children}
+        {touring ? <GuidedTour state={state} onFinish={() => {}} onActive={setTouring}/> : null}
+        {!touring && <SurveyInvite onOpen={() => setSurveyOpen(true)}/>}
+      </>
+    );
   }
   const finish = () => api("/api/trial/finish", { method: "POST" }).then(setState).catch(() => {});
   return (
@@ -206,7 +233,8 @@ export default function TrialGate({ children }) {
       {children}
       {/* D129: the guided tour runs on the real pages until it reaches the survey (or the tester skips it). */}
       <GuidedTour state={state} onFinish={finish} onActive={setTouring}/>
-      {!touring && <Dock state={state} onFinish={finish}/>}
+      {/* its own button says "take the survey", so it opens the survey itself */}
+      {!touring && <Dock state={state} onFinish={() => finish().then(() => setSurveyOpen(true))}/>}
     </>
   );
 }

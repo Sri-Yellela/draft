@@ -130,7 +130,9 @@ export default function GuidedTour({ state, onFinish, onActive }) {
 
   useEffect(() => { write(state, { i, speed, done }); }, [i, speed, done]);   // eslint-disable-line react-hooks/exhaustive-deps
   // The trial dock steps aside while the tour is on screen (on a phone the two overlapped).
-  useEffect(() => { onActive?.(!done && !state?.locked); return () => onActive?.(false); }, [done, state?.locked]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // Once the trial locks (the 2 sent) only the last step, The Table, may still be on screen — then the survey's pop-up.
+  const live = !done && !(state?.locked && !step?.finish);
+  useEffect(() => { onActive?.(live); return () => onActive?.(false); }, [live]);   // eslint-disable-line react-hooks/exhaustive-deps   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const r = () => setPhone(isPhone()); window.addEventListener("resize", r); return () => window.removeEventListener("resize", r); }, []);
   // The résumé was picked on /try: the tour's first step is already done when the tour starts.
   useEffect(() => { if (!saved.i && !saved.done) { send("tour", { step: "pick_resume", phase: "completed", ms: 0, device, speed }); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -185,6 +187,9 @@ export default function GuidedTour({ state, onFinish, onActive }) {
       // otherwise never reads the same twice, and its spotlight never shows.
       const top = Math.max(r.top, 0), bottom = Math.min(r.bottom, window.innerHeight);
       const now = { top, left: r.left, width: r.width, height: Math.max(0, bottom - top) };
+      // Step 1, the deck being dealt: it moves the whole time, so it is FOLLOWED, never hidden until still — as before
+      // 11-01's rebuild (owner: "step 1 of the tour is flickering like crazy … this step was fine in the previous version").
+      if (step.sweep) { setRect(prev => (same(prev, now) ? prev : now)); return; }
       still = same(now, last) ? still + 1 : 0;      // stable = three equal reads in a row
       if (still >= 2) { stable = true; setRect(prev => (same(prev, now) ? prev : now)); }
       else if (stable && still === 0) setRect(null); // it started moving again: hide until it settles
@@ -208,10 +213,13 @@ export default function GuidedTour({ state, onFinish, onActive }) {
   useEffect(() => { if (popRef.current) setPopH(popRef.current.offsetHeight); });
 
   // D129 (1): deal the deck once it is on the page — a card every 0.5 s (quicker when Faster), to the top.
+  // ONCE per visit to the step: a spotlight that blinked re-dealt the deck from the start every time (the flicker).
+  const swept = useRef(-1);
   useEffect(() => {
-    if (done || !step?.sweep || !rect) return undefined;
-    const t = setTimeout(() => window.dispatchEvent(new CustomEvent("draft:deck-sweep",
-      { detail: { every: speed === "faster" ? DECK_SCROLL_MS / 2 : DECK_SCROLL_MS } })), 300);
+    if (!step?.sweep) { swept.current = -1; return undefined; }   // Back to step 1 later deals it again
+    if (done || !rect || swept.current === i) return undefined;
+    const t = setTimeout(() => { swept.current = i; window.dispatchEvent(new CustomEvent("draft:deck-sweep",
+      { detail: { every: speed === "faster" ? DECK_SCROLL_MS / 2 : DECK_SCROLL_MS } })); }, 300);
     return () => clearTimeout(t);
   }, [i, done, !!rect]);   // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -267,7 +275,7 @@ export default function GuidedTour({ state, onFinish, onActive }) {
     send("interaction", { name: nextSpeed === "faster" ? "faster_on" : "faster_off", step: step.id });
   };
 
-  if (done || !step || state?.locked) return null;
+  if (!live || !step) return null;
   const caption = captionFor(step, { speed, field: state?.fieldGuess });
   const waiting = step.target && !rect;
   const place = placePopover({ rect, h: popH, vw: view.vw, vh: view.vh, navBottom: view.nav, phone });

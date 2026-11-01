@@ -93,3 +93,12 @@ test("tourWaitingPopoverNeverCatchesPresses + a tall target measured on screen o
   assert.ok(tour.includes('opacity: waiting ? 0 : 1, pointerEvents: waiting ? "none" : "auto",'));
   assert.ok(tour.includes("const top = Math.max(r.top, 0), bottom = Math.min(r.bottom, window.innerHeight);"));
 });
+
+test("step 1 follows the dealt deck (no flicker) and deals once; the survey is offered in a pop-up, opened by its button (owner 11-01)", () => {
+  const tour = fs.readFileSync("client/src/components/GuidedTour.jsx", "utf8");
+  assert.ok(tour.includes("if (step.sweep) { setRect(prev => (same(prev, now) ? prev : now)); return; }"), "step 1 is followed, never hidden while it moves");
+  assert.ok(tour.includes("if (done || !rect || swept.current === i) return undefined;"), "the deck is dealt once per visit");
+  const dock = fs.readFileSync("client/src/components/TrialDock.jsx", "utf8");
+  assert.ok(dock.includes('<DepthButton primary onClick={onOpen} data-survey-invite-open="">Take the survey</DepthButton>'));
+  assert.ok(dock.includes("if (surveyOpen) return <SurveyPage"), "the survey only once its button is pressed");
+});
