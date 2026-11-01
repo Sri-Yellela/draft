@@ -462,8 +462,8 @@ export function standaloneCsv(db, { includeContact = false } = {}) {
 /** The questions both surveys ask, by key (D129's 1–7, interest, pay, trust). */
 export const SHARED_KEYS = Object.freeze(["search_stage", "field", "time_per_app", "apps_per_week", "find_tool", "paid_before",
   "frustration", "trust_auto", "interested", "fair_price"]);
-const MID_MINUTES = { "Under 15 minutes": 10, "15 to 30 minutes": 22.5, "30 minutes to 1 hour": 45, "1 to 2 hours": 90, "More than 2 hours": 150 };
-const MID_PER_WEEK = { "1 to 5 a week": 3, "6 to 15 a week": 10.5, "16 to 30 a week": 23, "More than 30 a week": 40 };
+export const MID_MINUTES = { "Under 15 minutes": 10, "15 to 30 minutes": 22.5, "30 minutes to 1 hour": 45, "1 to 2 hours": 90, "More than 2 hours": 150 };
+export const MID_PER_WEEK = { "1 to 5 a week": 3, "6 to 15 a week": 10.5, "16 to 30 a week": 23, "More than 30 a week": 40 };
 const share = (n, d) => (d ? Math.round(1000 * n / d) / 10 : null);
 
 /** Both surveys' answers: [{ source: "trial" | "standalone", answers, sample, field }]. */

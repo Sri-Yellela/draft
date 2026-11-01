@@ -15,7 +15,9 @@ export default function AdminLayout({ user, onLogout, children }) {
         height:56, background:"var(--c-surface-solid)",
         borderBottom:`3px solid ${theme.accent}`,
         display:"flex", alignItems:"center",
-        padding:"0 24px", gap:16, flexShrink:0,
+        // D131 (11-01): on a phone the email + Sign Out ran 87 px past the screen on every admin page — the gutter
+        // narrows and the "Logged in as" line shrinks with an ellipsis instead.
+        padding:"0 clamp(12px, 3vw, 24px)", gap:"clamp(8px, 2vw, 16px)", flexShrink:0,
         position:"sticky", top:0, zIndex:100,
       }}>
         <StampLogo size="sm" />
@@ -25,7 +27,7 @@ export default function AdminLayout({ user, onLogout, children }) {
           Admin Panel
         </span>
         <div style={{ flex:1 }}/>
-        <span style={{ fontSize:12, color:theme.textMuted }}>
+        <span style={{ fontSize:12, color:theme.textMuted, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
           Logged in as{" "}
           <strong style={{ color:theme.text }}>{user?.username}</strong>
         </span>

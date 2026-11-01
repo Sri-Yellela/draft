@@ -28,6 +28,7 @@ import { startTrial, pickResume, trialState, saveSurvey, dismissSurvey, finishTr
          adminTrialCounts, surveyExport, SURVEY, trialAnalytics, crossCut, analyticsCsv, STANDALONE_SURVEY, saveStandaloneSurvey,
          standaloneCsv, surveySources, verifyPracticeToken, renderPracticeForm, renderPracticeThanks,
          recordPracticeSubmission, saveTrialName } from "../services/trial.js";
+import { testersReport, testersCsv } from "../services/testersReport.js";
 import { draftSlots } from "../services/draftSlots.js";
 import { offeredSamples, samplePicks, ownPicks } from "../services/trialPicks.js";
 import { demoState, completeDemo } from "../services/trialDemo.js";
@@ -108,6 +109,18 @@ export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret
 
   app.post("/api/trial/feedback", requireAuth, (req, res) => {
     try { saveFeedback(db, req.user.id, req.body || {}); res.json({ ok: true }); } catch (e) { fail(res, e); }
+  });
+
+  // ⭐ D131 · Admin → Testers: one readable page over the trial + both surveys (services/testersReport.js). Read-only.
+  const testersOpts = (q) => ({ period: String(q.period || "invites"), source: String(q.source || "all"), exclude: q.exclude !== "0" });
+  app.get("/api/admin/testers", requireAdmin, (req, res) => {
+    try { res.json(testersReport(db, testersOpts(req.query))); } catch (e) { fail(res, e); }
+  });
+  app.get("/api/admin/testers/export.csv", requireAdmin, (req, res) => {
+    try {
+      res.set("Content-Type", "text/csv; charset=utf-8").set("Content-Disposition", 'attachment; filename="draft-testers.csv"')
+        .send(testersCsv(db, testersOpts(req.query)));
+    } catch (e) { fail(res, e); }
   });
 
   app.get("/api/admin/trial", requireAdmin, (_req, res) => {

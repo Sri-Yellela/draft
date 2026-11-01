@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft admin — testers (sketch)</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark;
+  --bg:#121213;--surface:#1C1D1F;--well:#26282B;--ink:#ECEAE6;--muted:#A8A39B;--line:#34363A;--accent:#FD4600;--ok:#62C98A;--warn:#E8B14F;--bar:#6FA8E8}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){color-scheme:light;--bg:#F2F0EB;--surface:#FFF;--well:#EFEDE8;--ink:#1B1A18;--muted:#5F5B54;--line:#D8D4CC;--ok:#1E7A43;--warn:#9A6400;--bar:#2F7FE0}}
+:root[data-theme="light"]{color-scheme:light;--bg:#F2F0EB;--surface:#FFF;--well:#EFEDE8;--ink:#1B1A18;--muted:#5F5B54;--line:#D8D4CC;--ok:#1E7A43;--warn:#9A6400;--bar:#2F7FE0}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 20px 50px}
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:6px}
+h1{margin:0;font-size:26px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:2px 0 14px}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl select,.ctl button{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:7px 10px;cursor:pointer}
+.ctl label{display:flex;gap:6px;align-items:center;font-size:13.5px;color:var(--muted)}
+.warnbar{border:1px solid var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent);border-radius:10px;padding:10px 14px;margin:6px 0 16px;font-size:14px}
+.warnbar b{color:var(--warn)}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:26px 0 10px}
+.grid{display:grid;gap:12px}
+.g4{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.g2{grid-template-columns:repeat(auto-fill,minmax(420px,1fr))}
+@media (max-width:520px){.g2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;min-width:0}
+.big{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
+.big small{font-size:15px;font-weight:600;color:var(--muted);margin-left:4px}
+.lbl{font-weight:700;margin:4px 0 2px}
+.what{font-size:13px;color:var(--muted)}
+.mini{height:8px;border-radius:4px;background:var(--well);overflow:hidden;margin-top:10px}
+.mini i{display:block;height:100%;background:var(--ok)}
+.copy{margin-top:10px;font-size:12.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
+.copy q{color:var(--ink)}
+.cardh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:10px}
+.cardh b{font-size:15.5px}
+.cardh span{font-size:12.5px;color:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:7px}
+.br{display:grid;grid-template-columns:minmax(120px,1.4fr) 2fr 52px;gap:10px;align-items:center;font-size:13.5px}
+.br .t{min-width:0;overflow-wrap:anywhere}
+.br .track{height:12px;background:var(--well);border-radius:6px;overflow:hidden}
+.br .track i{display:block;height:100%;background:var(--bar);border-radius:6px}
+.br .n{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.br.top .track i{background:var(--accent)}
+.funnel{display:flex;flex-direction:column;gap:8px}
+.fs{display:grid;grid-template-columns:150px 1fr 110px;gap:10px;align-items:center;font-size:14px}
+.fs .track{height:26px;background:var(--well);border-radius:7px;overflow:hidden}
+.fs .track i{display:flex;align-items:center;height:100%;background:var(--ok);color:#000;font-weight:800;font-size:12.5px;padding-left:8px;border-radius:7px;white-space:nowrap}
+.fs .drop{font-size:12.5px;color:var(--warn)}
+.stars{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;font-size:14px}
+.stars .s{color:#F5A400;letter-spacing:2px}
+.stars .s em{color:var(--muted);font-style:normal;letter-spacing:0;margin-left:6px;font-size:12.5px}
+.quotes{display:flex;flex-direction:column;gap:8px}
+.qt{border-left:3px solid var(--accent);background:var(--well);border-radius:0 9px 9px 0;padding:8px 12px;font-size:14px}
+.qt small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+.qsearch{width:100%;border:1px solid var(--line);background:var(--well);border-radius:9px;padding:8px 10px;margin-bottom:10px;color:var(--ink)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);border-radius:8px;padding:3px 9px;font-size:13px}
+.note{font-size:12.5px;color:var(--muted);margin-top:24px;border-top:1px dashed var(--line);padding-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div><h1>Testers</h1></div>
+    <div class="ctl">
+      <select aria-label="When"><option>Since the invites (Nov 1)</option><option>Last 24 hours</option><option>All time</option></select>
+      <select id="src" aria-label="Who"><option value="all">Both surveys</option><option value="trial">Tried the app</option><option value="sa">Survey only</option></select>
+      <label><input type="checkbox" checked> Leave out my own and test accounts</label>
+      <button>Copy the YC numbers</button><button>Export (no emails)</button>
+    </div></div>
+  <p class="sub">Everyone who tried draft or answered the survey. Read top to bottom: the headline, who they are, the problem, what they thought, and their own words.</p>
+  <div class="warnbar" id="warn"></div>
+
+  <h2>The headline</h2>
+  <div class="grid g4" id="head"></div>
+
+  <h2>How far people got in the trial</h2>
+  <div class="grid g2">
+    <div class="card"><div class="cardh"><b>From sign-up to survey</b><span id="fun-n"></span></div><div class="funnel" id="funnel"></div></div>
+    <div class="card"><div class="cardh"><b>What they explored after</b><span>pages opened · locked buttons pressed</span></div><div class="bars" id="explore"></div><div class="copy">The locked buttons people pressed most are what they want first.</div></div>
+  </div>
+
+  <h2>Who answered</h2>
+  <div class="grid g2" id="who"></div>
+
+  <h2>The problem, in their numbers</h2>
+  <div class="grid g2" id="problem"></div>
+
+  <h2>What they thought</h2>
+  <div class="grid g2" id="thought"></div>
+
+  <h2>In their own words</h2>
+  <div class="card"><input class="qsearch" placeholder="Search what people wrote…" aria-label="Search answers"><div class="quotes" id="quotes"></div></div>
+
+  <p class="note">Sketch with illustrative numbers for 34 people, to show how the page reads once answers come in. Rules for the build: every number shows its count ("21 of 34"); a percentage appears only once a question has 20 or more answers; the owner's own walks and test accounts are left out by default; each "Copy" line is a sentence that can go straight into the application.</p>
+</div>
+<script>
+(function () {
+  var D = {
+    trial: { started: 22, picked: 21, d1: 19, d2: 17, survey: 15, minutes: 7.5 },
+    nTrial: 15, nSa: 19,
+    stage: [["Actively applying", 14], ["Student, looking for an internship or first job", 9], ["Starting to look in the next few months", 6], ["Employed, open to offers", 4], ["Not looking", 1]],
+    field: [["Software and computing", 11], ["Data, ML and AI", 5], ["Mechanical engineering", 5], ["Electrical engineering", 4], ["Business, finance or consulting", 5], ["Product or project management", 3], ["Something else", 1]],
+    timeApp: [["Under 15 min", 3], ["15 to 30 min", 11], ["30 to 60 min", 12], ["1 to 2 hours", 6], ["More than 2 hours", 2]],
+    perWeek: [["1 to 5", 8], ["6 to 15", 15], ["16 to 30", 7], ["More than 30", 2], ["Not started", 2]],
+    tools: [["LinkedIn or Indeed", 19], ["Company career pages", 8], ["Recruiters or referrals", 3], ["School career portal", 2], ["An AI or auto-apply tool", 2]],
+    paid: [["Never", 15], ["Under $20 in total", 10], ["$20 to $100", 7], ["More than $100", 2]],
+    frus: [["Applying and hearing nothing back", 13], ["Filling out the same forms again and again", 8], ["Finding jobs I'm eligible for", 6], ["Rewriting my résumé for every job", 4], ["Not knowing which postings are real", 2], ["Knowing what to learn next", 1]],
+    better: [["Much better", 9], ["Somewhat better", 4], ["About the same", 2], ["Worse", 0]],
+    trust: [["Yes, on its own", 5], ["After I've checked the first few", 17], ["Only if I approve every one", 9], ["No, I'd apply myself", 3]],
+    interest: [["Yes, as soon as I can", 12], ["Yes, when I start looking", 10], ["Maybe", 9], ["No", 3]],
+    pay: [["Only if it were free", 7], ["Under $10 a month", 10], ["$10 to $20 a month", 12], ["$20 to $40 a month", 4], ["More than $40", 1]],
+    most: [["Applying for me", 15], ["The job matches", 9], ["The application tracker", 6], ["The skills map", 3], ["None of these", 1]],
+    stars: [["Your job matches", 4.4, 15], ["Applying for you", 4.6, 15], ["Your skills map", 3.9, 15], ["Your application tracker", 4.1, 15], ["The idea (survey only)", 4.5, 19]],
+    explore: [["Turned the deck", 11], ["Opened Your map", 9], ["Opened Learn", 6], ["Pressed: Upload my résumé (locked)", 8], ["Pressed: Draft a job (locked)", 7], ["Pressed: Apply for me (locked)", 5]],
+    quotes: [["If it actually applies to Workday sites I'd pay for it tomorrow.", "Tried the app · software · 5★ applying"], ["Show me which companies sponsor before I waste an application.", "Survey only · electrical · student"], ["The matches were good but I want to upload my own résumé.", "Tried the app · mechanical · 4★ matches"], ["Make the skills map tell me which course gets me hired fastest.", "Tried the app · data · 3★ map"]]
+  };
+  var N = D.nTrial + D.nSa;
+  function sum(a) { return a.reduce(function (s, x) { return s + x[1]; }, 0); }
+  function pick(a, names) { return a.filter(function (x) { return names.indexOf(x[0]) >= 0; }).reduce(function (s, x) { return s + x[1]; }, 0); }
+  function share(k, n) { return n >= 20 ? Math.round(100 * k / n) + "%" : k + " of " + n; }
+  function bars(a, total, topN) { var mx = Math.max.apply(0, a.map(function (x) { return x[1]; })) || 1; return a.map(function (x, i) { return '<div class="br' + (i < (topN || 0) ? " top" : "") + '"><span class="t">' + x[0] + '</span><span class="track"><i style="width:' + (100 * x[1] / mx) + '%"></i></span><span class="n">' + x[1] + "</span></div>"; }).join(""); }
+  function card(title, sub, body, copy) { return '<div class="card"><div class="cardh"><b>' + title + "</b><span>" + sub + "</span></div>" + body + (copy ? '<div class="copy">For the application: <q>' + copy + "</q></div>" : "") + "</div>"; }
+
+  document.getElementById("warn").innerHTML = N < 20 ? "<b>Only " + N + " answers so far.</b> Numbers show counts until a question has 20 answers; read them as early signals, not results." : "<b>" + N + " people</b> since the invites: " + D.nTrial + " tried the app, " + D.nSa + " answered the survey only.";
+
+  // headline: hours per week from time per application x applications per week (medians)
+  var hours = 3.9;
+  var paidK = pick(D.paid, ["Under $20 in total", "$20 to $100", "More than $100"]), paidN = sum(D.paid);
+  var betterK = pick(D.better, ["Much better", "Somewhat better"]), betterN = sum(D.better);
+  var intK = pick(D.interest, ["Yes, as soon as I can", "Yes, when I start looking"]), intN = sum(D.interest);
+  var trustK = pick(D.trust, ["Yes, on its own", "After I've checked the first few"]), trustN = sum(D.trust);
+  var payK = pick(D.pay, ["$10 to $20 a month", "$20 to $40 a month", "More than $40"]), payN = sum(D.pay);
+  var H = [
+    ["People", N + "<small>" + D.nTrial + " tried · " + D.nSa + " survey</small>", "since the invites", 1, N + " people tried draft or answered our survey in the first days."],
+    ["Hours a week applying", hours + "<small>median</small>", "time per good application × applications a week", 1, "Job seekers we asked spend about " + hours + " hours a week on applications."],
+    ["Already pay for job-search help", share(paidK, paidN), "résumé writers, LinkedIn Premium, tools", paidK / paidN, share(paidK, paidN) + " have already paid for job-search help."],
+    ["Say draft beats how they apply now", share(betterK, betterN), "much or somewhat better · tried the app", betterK / betterN, share(betterK, betterN) + " of those who tried it said it beats how they apply today."],
+    ["Interested in using it", share(intK, intN), "as soon as they can, or when they start looking", intK / intN, share(intK, intN) + " want to use it for their job search."],
+    ["Would let draft send for them", share(trustK, trustN), "on its own, or after checking the first few", trustK / trustN, share(trustK, trustN) + " would let draft send applications for them."],
+    ["Would pay $10 or more a month", share(payK, payN), "after reading what draft does", payK / payN, share(payK, payN) + " said $10 a month or more feels fair."],
+    ["Biggest frustration", D.frus[0][0], D.frus[0][1] + " of " + sum(D.frus) + " chose it first", D.frus[0][1] / sum(D.frus), "The top frustration: “" + D.frus[0][0].toLowerCase() + ".”"]
+  ];
+  document.getElementById("head").innerHTML = H.map(function (h) { return '<div class="card"><div class="big">' + h[1] + '</div><div class="lbl">' + h[0] + '</div><div class="what">' + h[2] + '</div><div class="mini"><i style="width:' + Math.round(100 * h[3]) + '%"></i></div><div class="copy">For the application: <q>' + h[4] + "</q></div></div>"; }).join("");
+
+  var F = D.trial, steps = [["Signed up", F.started], ["Picked a résumé", F.picked], ["Drafted the 1st job", F.d1], ["Drafted the 2nd job", F.d2], ["Answered the survey", F.survey]];
+  document.getElementById("fun-n").textContent = "median " + F.minutes + " min from sign-up to survey";
+  document.getElementById("funnel").innerHTML = steps.map(function (s, i) { var lost = i ? steps[i - 1][1] - s[1] : 0; return '<div class="fs"><span>' + s[0] + '</span><span class="track"><i style="width:' + (100 * s[1] / F.started) + '%">' + s[1] + '</i></span><span class="drop">' + (lost ? "−" + lost + " left here" : "") + "</span></div>"; }).join("");
+  document.getElementById("explore").innerHTML = bars(D.explore, null, 0);
+
+  document.getElementById("who").innerHTML =
+    card("Where they are", sum(D.stage) + " answers", '<div class="bars">' + bars(D.stage) + "</div>") +
+    card("Their field", sum(D.field) + " answers", '<div class="bars">' + bars(D.field) + "</div>");
+  document.getElementById("problem").innerHTML =
+    card("Time to find a job and send a good application", sum(D.timeApp) + " answers", '<div class="bars">' + bars(D.timeApp) + "</div>") +
+    card("Applications a week while searching", sum(D.perWeek) + " answers", '<div class="bars">' + bars(D.perWeek) + "</div>") +
+    card("What's most frustrating", sum(D.frus) + " answers", '<div class="bars">' + bars(D.frus, null, 1) + "</div>") +
+    card("What they use today", sum(D.tools) + " answers", '<div class="bars">' + bars(D.tools) + "</div>", "Most use LinkedIn or Indeed today; a few already use an AI or auto-apply tool.") +
+    card("Ever paid for job-search help", sum(D.paid) + " answers", '<div class="bars">' + bars(D.paid) + "</div>");
+  document.getElementById("thought").innerHTML =
+    card("Stars per part", "average · answers", '<div class="stars">' + D.stars.map(function (s) { var full = Math.round(s[1]); return "<span>" + s[0] + '</span><span class="s">' + "★★★★★".slice(0, full) + '<span style="color:var(--line)">' + "★★★★★".slice(0, 5 - full) + "</span><em>" + s[1].toFixed(1) + " · " + s[2] + "</em></span>"; }).join("") + "</div>") +
+    card("Compared with how they apply today", sum(D.better) + " tried the app", '<div class="bars">' + bars(D.better, null, 1) + "</div>") +
+    card("Would let draft send for them", sum(D.trust) + " answers", '<div class="bars">' + bars(D.trust, null, 1) + "</div>") +
+    card("Interested in using it", sum(D.interest) + " answers", '<div class="bars">' + bars(D.interest, null, 2) + "</div>") +
+    card("What feels fair to pay a month", sum(D.pay) + " answers", '<div class="bars">' + bars(D.pay) + "</div>") +
+    card("The part that would help most", sum(D.most) + " answers", '<div class="bars">' + bars(D.most, null, 1) + "</div>");
+  document.getElementById("quotes").innerHTML = D.quotes.map(function (q) { return '<div class="qt">“' + q[0] + "”<small>" + q[1] + "</small></div>"; }).join("");
+})();
+</script>
+</body>
+</html>
