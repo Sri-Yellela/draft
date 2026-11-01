@@ -59,7 +59,7 @@ export const MODULES = Object.freeze({
     members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js", "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/YourCourse.jsx",
       "pages/atlas/AtlasTree.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js", "pages/atlas/YourMap.jsx"] },
   trial: { why: "D124 · the trial — /try and the in-app dock (Feedback / survey, Something broke?)",
-    members: ["App.jsx", "pages/TryPage.jsx", "components/TrialDock.jsx"] },
+    members: ["App.jsx", "pages/TryPage.jsx", "components/TrialDock.jsx", "components/GuidedTour.jsx"] },
 });
 
 // ── SHARED: every file under components/, styles/, lib/, hooks/, contexts/, themes/, consoles/.
@@ -109,6 +109,7 @@ export const SHARED = Object.freeze({
   "components/ProfileSelectorDropdown.jsx": { what: "the active-profile picker — top bar and board" },
   "components/ExtensionPrompt.jsx":     { what: "the get-the-extension prompt — app, extension page, board" },
   "components/TrialDock.jsx":           { what: "D124 · TrialGate: the trial as the main frame — the dock, the survey page, coming soon, the analytics events", module: "trial" },
+  "components/GuidedTour.jsx":          { what: "D129 · the guided tour: coach-marks on the real pages, Back · Next, Faster, the required actions, each step's time", module: "trial" },
   "components/ScrollDock.jsx":          { what: "the marketing and tools pages' dock" },
   "components/PolicyProse.jsx":         { what: "the public documents' prose parts — the privacy policy and the connector docs (/docs/claude)" },
   "components/Footer.jsx":              { what: "the site footer" },

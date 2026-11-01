@@ -13,6 +13,7 @@ import { api } from "../lib/api.js";
 import DepthButton from "./DepthButton.jsx";
 import { Z } from "../styles/zLayers.js";
 import { TOUR_STEPS } from "../../../shared/trialTour.js";
+import GuidedTour from "./GuidedTour.jsx";
 
 const POLL_MS = 45_000;
 const LABELS = {
@@ -205,6 +206,7 @@ export default function TrialGate({ children }) {
   const { pathname } = useLocation();
   const [state, setState] = useState(undefined);   // undefined = loading; { trial: false } = the app as is
   const [ended, setEnded] = useState(false);       // the survey was answered or skipped on this page
+  const [touring, setTouring] = useState(false);   // D129: the guided tour is on screen, so the dock steps aside
   const load = useCallback(() => api("/api/trial/state").then(setState).catch(() => setState(s => s ?? { trial: false })), []);
   useEffect(() => { load(); const t = setInterval(load, POLL_MS); return () => clearInterval(t); }, [load]);
 
@@ -234,10 +236,13 @@ export default function TrialGate({ children }) {
       ? <SurveyPage survey={state.survey || []} fieldGuess={state.fieldGuess || null} onDone={() => { setEnded(true); load(); }}/>
       : <ComingSoon answered={state.surveyDone}/>;
   }
+  const finish = () => api("/api/trial/finish", { method: "POST" }).then(setState).catch(() => {});
   return (
     <>
       {children}
-      <Dock state={state} onFinish={() => api("/api/trial/finish", { method: "POST" }).then(setState).catch(() => {})}/>
+      {/* D129: the guided tour runs on the real pages until it reaches the survey (or the tester skips it). */}
+      <GuidedTour state={state} onFinish={finish} onActive={setTouring}/>
+      {!touring && <Dock state={state} onFinish={finish}/>}
     </>
   );
 }
