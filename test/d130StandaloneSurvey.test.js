@@ -5,6 +5,7 @@ import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import { STANDALONE_SURVEY, SURVEY, saveStandaloneSurvey, standaloneCsv, surveySources, clearSurveyRateLimit, saveSurvey, startTrial,
          SHARED_KEYS, STANDALONE_PER_HOUR } from "../services/trial.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 // ⭐ D130 (owner 11-01): jobsviadraft.com/survey — the same form, no sign-in, no account; name and email; questions about
 // the idea; one response per email; both sources side by side in Admin → Trial. Synthetic people only.
@@ -117,7 +118,7 @@ test("d130ThankYouLinksTry: the thank-you offers the trial in about 8 minutes", 
 });
 
 test("d130 migration 209: standalone_surveys, byte-identical in both runners, one row per email", () => {
-  const block = (s) => s.slice(s.indexOf('id: "209_standalone_surveys"'), s.indexOf("`,", s.indexOf('id: "209_standalone_surveys"')));
+  const block = (s) => s.slice(at(s, 'id: "209_standalone_surveys"'), at(s, "`,", at(s, 'id: "209_standalone_surveys"')));
   const a = block(fs.readFileSync("server.js", "utf8")), b = block(fs.readFileSync("scripts/migrations.js", "utf8"));
   assert.ok(a.includes("email_key  TEXT NOT NULL UNIQUE"));
   assert.equal(a, b);

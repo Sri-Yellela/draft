@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { placePopover, cutoutPanels, overlaps, MIN_W } from "../client/src/lib/tourGeometry.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 // ⚠⚠ THE OWNER'S BUG REPORT, 11-01 ("nothing there, no score … obscured and not at the right place"): the tour's
 // spotlight was a filled box, the popover covered its target and the navigation, the Settings drawer covered the
@@ -71,7 +72,7 @@ test("tourMatchShowsNumber: the match step lights the match row, and a trial acc
 test("tourSettingsOwnStep: the modes alone, then Settings as its own step lighting the drawer", () => {
   assert.match(tour, /id: "modes", route: "\/app\/auto-apply", target: "\.dh-mode", example: true,\n\s+text: "Ask me first sends nothing until you approve it\. Apply for me sends good matches on its own\."/);
   assert.match(tour, /id: "auto_settings", route: "\/app\/auto-apply", target: "\[data-auto-settings\]", example: true, settings: true,/);
-  assert.doesNotMatch(tour.slice(tour.indexOf('id: "modes"'), tour.indexOf('id: "auto_settings"')), /settings: true/, "no drawer over the modes");
+  assert.doesNotMatch(tour.slice(at(tour, 'id: "modes"'), at(tour, 'id: "auto_settings"')), /settings: true/, "no drawer over the modes");
 });
 
 test("tourYourTurnWholeDeckLit + tourDraftedCounter: the whole deck lit, and a live Drafted N of 2", () => {
