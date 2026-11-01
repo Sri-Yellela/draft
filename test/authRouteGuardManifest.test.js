@@ -140,6 +140,9 @@ const AUTHENTICATED = new Set([
   // D124: the trial — the caller's own account, flag, survey and feedback (routes/trial.js). The practice form is
   // /try/practice/:jobId, outside /api, behind an HMAC naming one (account, posting).
   "POST /api/trial/start",
+  // D124 amended: the samples offered today (10 good picks each) and the account's picks.
+  "GET /api/trial/samples",
+  "GET /api/trial/picks",
   "POST /api/trial/resume",
   "GET /api/trial/state",
   "POST /api/trial/survey",

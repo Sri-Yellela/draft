@@ -1,0 +1,19 @@
+{
+  "id": "E",
+  "label": "Sample E · business / financial analyst",
+  "fictional": "Sample — a fictional person. Every name, school, employer detail and contact below is invented for draft's trial; it describes no real person.",
+  "candidate": {
+    "fullName": "Hannah Okoro-Whitfield",
+    "email": "hannah.okorowhitfield@example.com",
+    "phone": "(555) 010-6604",
+    "location": "Charlotte, NC",
+    "linkedinUrl": "https://www.linkedin.com/in/example-hannah-okoro-whitfield",
+    "yearsOfExperience": 3
+  },
+  "seniority": "mid",
+  "roleFamily": "finance",
+  "category": "business",
+  "targetTitle": "Financial Analyst",
+  "domain": "finance",
+  "resumeText": "Hannah Okoro-Whitfield\nCharlotte, NC | hannah.okorowhitfield@example.com | (555) 010-6604 | linkedin.com/in/example-hannah-okoro-whitfield\n\nEXPERIENCE\nFinancial Analyst, Larkmoor Outdoor Retail, Charlotte, NC | Aug 2023 - Present\n- Own the monthly forecast for a $180M retail division, building driver-based models in Excel and Anaplan\n- Built Power BI dashboards for store and category margin that 40 managers use each week\n- Ran variance analysis for month-end close, explaining budget-to-actual gaps to the CFO's staff\n- Modelled the payback of 3 store remodels; the plan the team chose returned its cost in 22 months\n\nBusiness Analyst, Tanbridge Logistics, Raleigh, NC | Jun 2022 - Jul 2023\n- Gathered requirements from operations and finance for a new freight-billing system and wrote 60 user stories\n- Wrote SQL queries against the billing warehouse to find $410K of under-billed accessorial charges\n- Mapped the as-is and to-be invoicing process in Visio and trained 25 users at go-live\n\nEDUCATION\nB.S. in Finance, minor in Information Systems, Carolina Piedmont University | 2022\n\nSKILLS\nAnalysis: financial modelling, forecasting, variance analysis, budgeting, unit economics\nTools: Excel (advanced), Power BI, Tableau, SQL, Anaplan, NetSuite, Visio\nPractice: requirements gathering, user stories, process mapping, stakeholder presentations\n"
+}

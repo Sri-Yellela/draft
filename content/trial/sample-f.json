@@ -1,0 +1,19 @@
+{
+  "id": "F",
+  "label": "Sample F · project / operations manager",
+  "fictional": "Sample — a fictional person. Every name, school, employer detail and contact below is invented for draft's trial; it describes no real person.",
+  "candidate": {
+    "fullName": "Tomas Ferreira-Lund",
+    "email": "tomas.ferreiralund@example.com",
+    "phone": "(555) 010-7742",
+    "location": "Minneapolis, MN",
+    "linkedinUrl": "https://www.linkedin.com/in/example-tomas-ferreira-lund",
+    "yearsOfExperience": 7
+  },
+  "seniority": "senior",
+  "roleFamily": "pm",
+  "category": "management",
+  "targetTitle": "Project Manager",
+  "domain": "operations",
+  "resumeText": "Tomas Ferreira-Lund\nMinneapolis, MN | tomas.ferreiralund@example.com | (555) 010-7742 | linkedin.com/in/example-tomas-ferreira-lund\n\nEXPERIENCE\nSenior Project Manager, Kestrelline Medical Devices, Minneapolis, MN | Feb 2021 - Present\n- Run a portfolio of 5 product-transfer projects worth $12M a year, from kickoff to production release\n- Brought a catheter line transfer in 2 weeks ahead of a 14-month plan by re-sequencing validation with quality and suppliers\n- Set up a stage-gate review and a RAID log the operations leadership team now uses for every project\n- Manage budgets, schedules (MS Project, Smartsheet) and a cross-functional team of 18 across engineering, quality and supply chain\n\nOperations Manager, Northfold Packaging, St. Paul, MN | Jun 2018 - Jan 2021\n- Managed 2 shifts and 46 people on 3 packaging lines, raising OEE from 61% to 74% with daily tier meetings and SMED changeovers\n- Led a Lean Six Sigma Green Belt project that cut scrap by 22%\n- Built the plant's weekly KPI pack for safety, quality, delivery and cost\n\nEDUCATION\nB.S. in Industrial Engineering, Northern Lakes University | 2018\nCertifications: PMP; Lean Six Sigma Green Belt\n\nSKILLS\nProject management: stage-gate, scheduling, budgeting, risk management, RAID logs, change control\nTools: MS Project, Smartsheet, Jira, Excel, Power BI, SAP\nOperations: Lean, Six Sigma, OEE, SMED, S&OP, vendor management\n"
+}

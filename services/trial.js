@@ -13,18 +13,22 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-export const SAMPLE_IDS = Object.freeze(["A", "B"]);
-export const RESUME_CHOICES = Object.freeze(["A", "B", "own"]);
+// D124 amended (owner 11-01): six samples by category — A software, B ML / data, C mechanical, D electrical,
+// E business / financial analyst, F project / operations manager. Each is OFFERED only on a day its category has 10
+// good picks (services/trialPicks.js offeredSamples).
+export const SAMPLE_IDS = Object.freeze(["A", "B", "C", "D", "E", "F"]);
+export const RESUME_CHOICES = Object.freeze([...SAMPLE_IDS, "own"]);
 /** The survey pops up once, after this many sent Drafts. */
 export const SURVEY_AFTER_SENT = 2;
 
 let _samples = null;
-/** The two fictional résumés (content/trial/sample-*.json). */
+/** The fictional résumés (content/trial/sample-*.json). */
 export function samples() {
   if (!_samples) {
     _samples = Object.fromEntries(SAMPLE_IDS.map(id => {
       const j = JSON.parse(fs.readFileSync(path.join(ROOT, "content/trial", `sample-${id.toLowerCase()}.json`), "utf8"));
-      return [id, { id, label: j.label, fictional: j.fictional, candidate: j.candidate, resumeText: j.resumeText, roleFamily: j.roleFamily || null }];
+      return [id, { id, label: j.label, fictional: j.fictional, candidate: j.candidate, resumeText: j.resumeText, roleFamily: j.roleFamily || null,
+        category: j.category || null, seniority: j.seniority || "mid", targetTitle: j.targetTitle || null }];
     }));
   }
   return _samples;
@@ -130,7 +134,7 @@ export function startTrial(db, userId) {
 
 /** The résumé the tester picked. For a sample, returns its text, which the client sends to /api/domain-profiles/from-resume. */
 export function pickResume(db, userId, choice) {
-  if (!RESUME_CHOICES.includes(choice)) throw Object.assign(new Error("Pick sample A, sample B or your own résumé."), { status: 400, code: "bad_choice" });
+  if (!RESUME_CHOICES.includes(choice)) throw Object.assign(new Error("Pick one of the sample résumés or your own."), { status: 400, code: "bad_choice" });
   startTrial(db, userId);
   db.prepare("UPDATE users SET trial_resume = ? WHERE id = ?").run(choice, userId);
   if (choice === "own") return { choice };

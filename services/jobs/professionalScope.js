@@ -17,7 +17,8 @@
 // Bump CATEGORY_SCOPE_VERSION when a rule changes.
 import { csScopeOf } from './csScope.js';
 
-export const CATEGORY_SCOPE_VERSION = 1;
+// 2 (11-01, the picks spot-check): influencer / campaign -> marketing, relationship manager -> sales, administrative business partner held.
+export const CATEGORY_SCOPE_VERSION = 2;
 export const CATEGORY_CONFIDENCE_FLOOR = 0.75;
 
 /** The board's categories, with their SOC major group. Marketing spans 11 / 13 / 27 and is its own category. */
@@ -48,7 +49,7 @@ const HELD = [
   { reason: 'held:education',
     re: /\b(?:teachers?|teaching|tutors?|instructors?|professors?|lecturers?|educators?|faculty|curriculum|school)\b/i },
   { reason: 'held:office_admin',
-    re: /\b(?:administrative\s+(?:assistant|coordinator|specialist)|executive\s+assistant|receptionist|office\s+(?:manager|assistant|coordinator|administrator)|data\s+entry|clerk|secretary|front\s+desk|mailroom)\b/i },
+    re: /\b(?:administrative\s+(?:assistant|coordinator|specialist|business\s+partner)|executive\s+assistant|receptionist|office\s+(?:manager|assistant|coordinator|administrator)|data\s+entry|clerk|secretary|front\s+desk|mailroom)\b/i },
   { reason: 'held:community_service',
     re: /\b(?:social\s+worker|case\s+manager|counsell?or|community\s+health|chaplain|youth\s+(?:worker|coordinator))\b/i },
   { reason: 'held:non_professional',
@@ -96,9 +97,9 @@ const TITLE_RULES = [
   { category: 'legal', soc: '23-1011',
     re: /\b(?:lawyer|attorney|counsel|paralegal|legal\s+(?:assistant|analyst|specialist|operations|counsel)|contracts?\s+(?:manager|specialist|administrator)|general\s+counsel)\b/i },
   { category: 'sales', soc: '41-4011',
-    re: /\b(?:account\s+(?:executive|manager|director)|sales|SDR|BDR|business\s+development|partnerships?\s+(?:manager|lead|director)|customer\s+success)\b/i },
+    re: /\b(?:account\s+(?:executive|manager|director)|sales|SDR|BDR|business\s+development|partnerships?\s+(?:manager|lead|director)|customer\s+success|relationship\s+manager)\b/i },
   { category: 'marketing', soc: '11-2021',
-    re: /\b(?:marketing|marketer|growth\s+market\w*|SEO|SEM|demand\s+gen(?:eration)?|brand\s+(?:manager|strategist|marketing)|lifecycle\s+market\w*|social\s+media)\b/i },
+    re: /\b(?:marketing|marketer|growth\s+market\w*|SEO|SEM|demand\s+gen(?:eration)?|brand\s+(?:manager|strategist|marketing)|lifecycle\s+market\w*|social\s+media|influencer|campaign\s+(?:manager|lead|strategist))\b/i },
   { category: 'arts_media', soc: '27-1024',
     re: /\b(?:designer|design\s+(?:lead|manager|director)|UX|UI|user\s+experience|user\s+research(?:er)?|writer|editor|copywriter|content\s+(?:designer|strategist|producer|creator)|communications\s+(?:manager|specialist|lead|director|associate)|public\s+relations|PR\s+(?:manager|specialist|lead)|journalist|producer|videographer|video\s+editor|photographer|illustrator|animator|art\s+director|creative\s+director)\b/i },
   { category: 'science', soc: '19-1029',

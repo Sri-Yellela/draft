@@ -21,15 +21,28 @@ const card = { boxSizing: "border-box", padding: 16, borderRadius: 6, border: "1
 const mark = { alignSelf: "flex-start", fontSize: 12, padding: "2px 8px", borderRadius: 6, borderLeft: "3px solid var(--color-primary)",
   background: "var(--color-surface-offset)", color: "var(--color-text-muted)" };
 
+// D124 amended (owner 11-01): six samples by category. The server says which are OFFERED today — a sample whose category
+// has fewer than 10 good picks is hidden, never padded with another category's jobs (GET /api/trial/samples).
 const CHOICES = [
   { id: "A", title: "Sample A", line: "A new-grad software engineer: one internship, a TA role, two projects." },
   { id: "B", title: "Sample B", line: "A mid-level ML / data engineer: four years across two employers." },
+  { id: "C", title: "Sample C", line: "A mid-level mechanical engineer: five years in thermal and automotive design." },
+  { id: "D", title: "Sample D", line: "An early-career electrical engineer: power electronics and a utility internship." },
+  { id: "E", title: "Sample E", line: "A business / financial analyst: three years in forecasting and requirements." },
+  { id: "F", title: "Sample F", line: "A project / operations manager: seven years in medical devices and packaging." },
 ];
 
 export default function TryPage({ authUser }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
+  const [offered, setOffered] = useState(null);
+
+  useEffect(() => {
+    if (!authUser) return;
+    api("/api/trial/samples").then(r => setOffered(new Set(r.samples.filter(x => x.offered).map(x => x.id))))
+      .catch(() => setOffered(new Set(["A", "B"])));
+  }, [authUser]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -83,7 +96,7 @@ export default function TryPage({ authUser }) {
         The board, the matches and the tailored résumés all come from the résumé you pick. You can switch later in Job profiles.
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
-        {CHOICES.map(c => (
+        {CHOICES.filter(c => offered?.has(c.id)).map(c => (
           <div key={c.id} style={card} data-trial-choice={c.id}>
             <span style={mark}>Sample, a fictional person</span>
             <strong style={{ fontSize: 18 }}>{c.title}</strong>

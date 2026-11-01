@@ -1,0 +1,19 @@
+{
+  "id": "D",
+  "label": "Sample D · early-career electrical engineer",
+  "fictional": "Sample — a fictional person. Every name, school, employer detail and contact below is invented for draft's trial; it describes no real person.",
+  "candidate": {
+    "fullName": "Marcus Adebayo",
+    "email": "marcus.adebayo@example.com",
+    "phone": "(555) 010-5527",
+    "location": "Phoenix, AZ",
+    "linkedinUrl": "https://www.linkedin.com/in/example-marcus-adebayo",
+    "yearsOfExperience": 1
+  },
+  "seniority": "junior",
+  "roleFamily": "engineering",
+  "category": "engineering",
+  "targetTitle": "Electrical Engineer",
+  "domain": "energy",
+  "resumeText": "Marcus Adebayo\nPhoenix, AZ | marcus.adebayo@example.com | (555) 010-5527 | linkedin.com/in/example-marcus-adebayo\n\nEXPERIENCE\nElectrical Engineer I, Sunmesa Power Electronics, Phoenix, AZ | Jul 2025 - Present\n- Designed the gate-drive and protection circuit for a 10 kW solar string inverter board in Altium Designer\n- Ran SPICE simulations (LTspice) of the DC-DC boost stage and matched bench efficiency to within 0.6%\n- Brought up 12 prototype boards, debugging layout and firmware issues with an oscilloscope and logic analyser\n- Wrote test procedures for UL 1741 pre-compliance and ran the thermal soak tests\n\nElectrical Engineering Intern, Brightwater Utilities, Tempe, AZ | May 2024 - Aug 2024\n- Updated single-line diagrams and protective-relay settings for 4 distribution substations in AutoCAD Electrical\n- Built a load-flow model of a 12.47 kV feeder in ETAP to size a capacitor bank\n\nEDUCATION\nB.S. in Electrical Engineering, Desert Ridge State University | May 2025\nCoursework: Circuits, Signals and Systems, Power Electronics, Electric Machines, Power Systems, Embedded Systems\n\nPROJECTS\nBattery management system (senior design)\n- Designed a 4-cell lithium-ion BMS with cell balancing on an STM32 microcontroller; the team placed 2nd of 18 at the design expo\n\nSKILLS\nDesign: Altium Designer, LTspice, AutoCAD Electrical, ETAP, MATLAB / Simulink\nLab: oscilloscope, power analyser, thermal chamber, soldering and rework\nEmbedded: C, STM32, I2C, SPI, CAN\nStandards: NEC, UL 1741, IEEE 1547\n"
+}

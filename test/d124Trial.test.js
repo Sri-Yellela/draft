@@ -15,6 +15,7 @@ import trialRoutes from "../routes/trial.js";
 import { samples, sampleIdForText, activeSampleId, trialSendUrl, practiceUrlFor, verifyPracticeToken, startTrial, pickResume,
          trialState, saveSurvey, cleanSurvey, saveFeedback, adminTrialCounts, surveyExport, isTrial, SURVEY_AFTER_SENT,
          dismissSurvey, finishTrial, setAccess, recordEvent, TRIAL_DRAFTS, SURVEY } from "../services/trial.js";
+import { clearPicksCache } from "../services/trialPicks.js";
 import { draftSlots, slotsExhausted } from "../services/draftSlots.js";
 import { detectPlatformFromUrl } from "../services/platformDetector.js";
 import { tailoringFor } from "../services/leanTailoring.js";
@@ -121,6 +122,14 @@ test("d124TrialFlagged + the résumé pick: the first load starts the trial's cl
     assert.ok(first);
     await call("/api/trial/start", {});
     assert.equal(db.prepare("SELECT trial_at FROM users WHERE id = 1").get().trial_at, first);
+    // D124 amended (11-01, changed on purpose): a sample is offered only with 10 good picks in its category today.
+    const refused = await call("/api/trial/resume", { choice: "B" });
+    assert.deepEqual([refused.status, refused.body.error], [409, "sample_not_offered"], "an empty board offers no sample");
+    const ins = db.prepare(`INSERT INTO scraped_jobs (job_id, search_query, _hash, title, company, url, source, is_active, discovered_at,
+      description, board_category, bucket_seniority) VALUES (?, 't', ?, 'Machine Learning Engineer', 'Co', ?, 'greenhouse', 1, unixepoch(), ?, 'computing', 'mid')`);
+    for (let i = 0; i < 12; i++) ins.run(`ml${i}`, `h${i}`, `https://example.com/ml${i}`,
+      "We are hiring a Machine Learning Engineer. Build models in Python with PyTorch and scikit-learn; Airflow, Spark, Kubernetes, AWS, SQL, MLflow.");
+    clearPicksCache();  // the short answer above is cached for an hour; the board just changed
     const picked = await call("/api/trial/resume", { choice: "B" });
     assert.equal(picked.body.sample.id, "B");
     assert.match(picked.body.sample.fictional, /fictional person/);
