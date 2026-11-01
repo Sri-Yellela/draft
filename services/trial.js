@@ -164,7 +164,7 @@ export function trialState(db, userId, { draftsUsed = null } = {}) {
   const sent = sentCount(db, userId);
   const locked = sent >= SURVEY_AFTER_SENT || !!u.trial_finished_at;
   return {
-    trial: true, resume: u.trial_resume || null, sample: activeSampleId(db, userId), hasProfile: hasProfile(db, userId),
+    trial: true, startedAt: u.trial_at || null, resume: u.trial_resume || null, sample: activeSampleId(db, userId), hasProfile: hasProfile(db, userId),
     drafts: TRIAL_DRAFTS, draftsUsed, sent, locked, surveyDone, surveySkipped: !!u.trial_survey_dismissed_at,
     // Locked and not yet answered or skipped: the survey is the whole page.
     surveyDue: locked && !surveyDone && !u.trial_survey_dismissed_at,

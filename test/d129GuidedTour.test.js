@@ -82,3 +82,20 @@ test("d129: the Learn step is honest for a field with no course; the phone gets 
   assert.match(tour, /\? \{ left: 8, right: 8, bottom: 8 \}/);
   assert.doesNotMatch(tour, /borderRadius: (999|"50%")/);
 });
+
+test("d129ExampleStateLabelled + d129AutoSettingsResetAfterStep: Draft House's example, labelled, only on an empty tree; Auto settings put back", () => {
+  const house = read("client/src/panels/AutoApplyPanel.jsx");
+  assert.match(house, /const showExample = tourExample && nothingYetForExample\(nodes\);/, "a real tree is never covered");
+  assert.match(house, /<strong>Example\.<\/strong> This is what Draft House looks like/);
+  assert.match(house, /if \(String\(action\?\.key \?\? ""\)\.startsWith\("example-"\)\) return;/, "nothing in the example opens or acts");
+  assert.match(house, /useState\(\(\) => typeof window !== "undefined" && !!window\.draftTourExample\)/, "read on mount: the page mounts after the step's event");
+  // set in the step, then reset: snapshot on open; on close, PUT the snapshot back only if something changed
+  assert.match(house, /tourSnapshot\.current = \(await api\("\/api\/apply\/auto-settings"\)\)\.settings \?\? null;/);
+  assert.match(house, /if \(strip\(now\) !== strip\(before\)\) await api\("\/api\/apply\/auto-settings", \{ method: "PUT", body: JSON\.stringify\(\{ settings: before \}\) \}\);/);
+  assert.match(tour, /if \(step\.settings\) \{ const t = setTimeout\(\(\) => fire\("draft:tour-settings", \{ open: true \}\), 400\); return \(\) => \{ clearTimeout\(t\); fire\("draft:tour-settings", \{ open: false \}\);/);
+});
+
+test("d129: tour progress is kept per trial account, so a second test account in one browser gets its own tour", () => {
+  assert.match(tour, /const keyFor = \(state\) => `\$\{TOUR_KEY\}\.\$\{state\?\.startedAt \?\? "x"\}`;/);
+  assert.match(read("services/trial.js"), /trial: true, startedAt: u\.trial_at \|\| null,/);
+});

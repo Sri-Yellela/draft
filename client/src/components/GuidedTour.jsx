@@ -34,8 +34,8 @@ export const TOUR_SCRIPT = Object.freeze([
     text: "Draft House is where every application lives while draft works on it: Needs you, Ready for review, Working, Sent, Replied. Open a branch to see what happened, the answers given, the form as filled and what changed in the résumé.",
     short: "Every application, by stage. Open a branch for the details." },
   { id: "auto_settings", route: "/app/auto-apply", target: ".dh-mode",
-    text: "Two modes. Ask me first sends nothing until you approve it. Apply for me sends on its own, within your Auto settings: a daily limit, run times and which jobs. The trial stays on Ask me first.",
-    short: "Ask me first, or Apply for me within your limits." },
+    text: "Two modes. Ask me first sends nothing until you approve it. Apply for me sends on its own, within these Auto settings: a daily limit, run times and which jobs. Try one if you like; we put them back when you press Next.",
+    short: "Ask me first, or Apply for me within these settings. Try one; we put them back.", settings: true },
   { id: "atlas_map", route: "/app/atlas", target: "[data-your-map]",
     text: "Your map, built from the résumé: coloured skills are the ones it shows, grey ones are the next step up. Open a family to see what each skill is worth on today's postings.",
     short: "What the résumé shows, and what's next." },
@@ -59,8 +59,10 @@ export const TOUR_SCRIPT = Object.freeze([
     short: "Last: two minutes of questions." },
 ]);
 
-export const readTourProgress = () => { try { return JSON.parse(localStorage.getItem(TOUR_KEY) || "null") || {}; } catch { return {}; } };
-const write = (v) => { try { localStorage.setItem(TOUR_KEY, JSON.stringify(v)); } catch { /* storage blocked: the tour still runs */ } };
+// Keyed by the trial account's start, so a second test account in the same browser gets its own tour.
+const keyFor = (state) => `${TOUR_KEY}.${state?.startedAt ?? "x"}`;
+export const readTourProgress = (state) => { try { return JSON.parse(localStorage.getItem(keyFor(state)) || "null") || {}; } catch { return {}; } };
+const write = (state, v) => { try { localStorage.setItem(keyFor(state), JSON.stringify(v)); } catch { /* storage blocked: the tour still runs */ } };
 const reducedMotion = () => { try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } };
 const isPhone = () => (typeof window !== "undefined" && window.innerWidth < 600);
 const send = (event, detail) => api("/api/trial/event", { method: "POST", body: JSON.stringify({ event, detail }) }).catch(() => {});
@@ -75,7 +77,7 @@ export function captionFor(step, { speed = "normal", field = null } = {}) {
 export default function GuidedTour({ state, onFinish, onActive }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const saved = useMemo(readTourProgress, []);
+  const saved = useMemo(() => readTourProgress(state), []);   // eslint-disable-line react-hooks/exhaustive-deps
   const [i, setI] = useState(Number.isInteger(saved.i) ? Math.min(saved.i, TOUR_SCRIPT.length - 1) : 0);
   const [speed, setSpeed] = useState(saved.speed === "faster" ? "faster" : "normal");
   const [done, setDone] = useState(!!saved.done);
@@ -87,7 +89,7 @@ export default function GuidedTour({ state, onFinish, onActive }) {
   const device = phone ? "phone" : "laptop";
   const tour = useCallback((s, phase, ms) => send("tour", { step: s, phase, ms, device, speed }), [device, speed]);
 
-  useEffect(() => { write({ i, speed, done }); }, [i, speed, done]);
+  useEffect(() => { write(state, { i, speed, done }); }, [i, speed, done]);   // eslint-disable-line react-hooks/exhaustive-deps
   // The trial dock steps aside while the tour is on screen (on a phone the two overlapped).
   useEffect(() => { onActive?.(!done && !state?.locked); return () => onActive?.(false); }, [done, state?.locked]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const r = () => setPhone(isPhone()); window.addEventListener("resize", r); return () => window.removeEventListener("resize", r); }, []);
@@ -101,6 +103,18 @@ export default function GuidedTour({ state, onFinish, onActive }) {
     setMet(!step.require);
     tour(step.id, "reached", 0);
     if (step.route && pathname !== step.route) navigate(step.route);
+  }, [i, done]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  // D129 (3): Draft House shows its labelled EXAMPLE on that step; the modes step opens Auto settings and, on leaving,
+  // Draft House puts them back as they were. Both are asked by window event and undone when the step ends.
+  useEffect(() => {
+    if (done || !step) return undefined;
+    // The page may mount AFTER the event (the step navigates to it), so the example is also left as a flag it reads on mount.
+    const fire = (name, detail) => { if (name === "draft:house-example") window.draftTourExample = !!detail.on; window.dispatchEvent(new CustomEvent(name, { detail })); };
+    const example = step.id === "draft_house" || step.id === "auto_settings";
+    if (example) fire("draft:house-example", { on: true });
+    if (step.settings) { const t = setTimeout(() => fire("draft:tour-settings", { open: true }), 400); return () => { clearTimeout(t); fire("draft:tour-settings", { open: false }); if (example) fire("draft:house-example", { on: false }); }; }
+    return () => { if (example) fire("draft:house-example", { on: false }); };
   }, [i, done]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // The spotlight follows its element (it may render late, move with the page or be missing).
