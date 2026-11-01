@@ -115,7 +115,7 @@ import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
 import { autoPublish, runAtlasAutoPipeline } from "./services/atlas/atlasPublish.js";
 // ⭐ D108: a company's sponsorship fact (the existing LCA match, with its source and date) and the dated "What changed".
 import { sponsorshipFactsForRows } from "./services/kb/sponsorshipFacts.js";
-import { sponsorshipSignalsForRows } from "./services/kb/sponsorshipSignal.js";
+import { sponsorshipSignalsForRows, sponsorshipSignal } from "./services/kb/sponsorshipSignal.js";
 import { redactRows } from "./services/adminSafety.js";
 import { createWhatChangedRouter, createWhatChangedAdminRouter } from "./routes/whatChanged.js";
 // trackScrape dropped from this import in cleanup 5.8 — it was imported here and never called.
@@ -11541,6 +11541,18 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
 //
 // `by-id` rather than /api/jobs/:id so it cannot be confused with the interaction routes that
 // already own that shape (/api/jobs/:id/starred, /:id/visited, /:id/keywords).
+// ⭐ D121 P3 · one posting's sponsorship signal — for a surface that lists jobs from many sources (Draft House's branches,
+// the application page): the ONE module's answer, with the viewer's own "needed" (their Application defaults) for prominence.
+app.get("/api/jobs/:jobId/sponsorship", requireAuth, (req, res) => {
+  const row = db.prepare("SELECT job_id, company, title, description, description_full FROM scraped_jobs WHERE job_id = ?").get(String(req.params.jobId));
+  if (!row) return res.status(404).json({ error: "not_found" });
+  const d = (() => { try { return userEligibilityInputs(db, req.user.id).defaults || {}; } catch { return {}; } })();
+  const needed = d.sponsorship_now === "yes" || d.sponsorship_later === "yes";
+  let signal = null;
+  try { signal = sponsorshipSignal(db, row.company, { title: row.title, posting: row }); } catch { signal = null; }
+  res.set("Cache-Control", "private, max-age=300");
+  res.json({ sponsorship: signal ? { ...signal, needed } : null });
+});
 app.get("/api/jobs/by-id/:jobId", requireAuth, (req, res) => {
   const userId  = req.user.id;
   const jobId   = String(req.params.jobId || "");

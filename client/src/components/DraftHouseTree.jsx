@@ -1,5 +1,8 @@
 import "./DraftHouse.css";
+import { useEffect, useState } from "react";
 import CompanyBubble from "./CompanyBubble.jsx";
+import { SponsorshipChip } from "./SponsorshipSignal.jsx";
+import { api } from "../lib/api.js";
 import { FILTERS, ringLabelOf } from "../lib/draftHouseTree.js";
 import { RINGS } from "../styles/rings.js";
 
@@ -87,8 +90,21 @@ export function Branch({ ring = null, children, label }) {
 }
 
 /** U4 (b) · the lead card: bubble, title, company and state; ONE sentence; the next action. */
+/** ⭐ D121 P3 · the opened branch's sponsorship chip — the ONE signal for its posting, asked for when the branch opens. */
+function useSponsorship(jobId) {
+  const [s, setS] = useState(null);
+  useEffect(() => {
+    if (!jobId) return undefined;
+    let live = true;
+    api(`/api/jobs/${encodeURIComponent(jobId)}/sponsorship`).then(r => live && setS(r?.sponsorship || null)).catch(() => {});
+    return () => { live = false; };
+  }, [jobId]);
+  return s;
+}
+
 export function LeadCard({ node, actions = [], onFullPage, fullHref, onClose, children }) {
   const ringWord = ringLabelOf(node);
+  const sponsorship = useSponsorship(node.jobId ?? node.ref?.jobId ?? null);
   return (
     <div className="dht-node">
       <div className="dht-card dht-card--lead" data-lead-card="" data-ring={node.ring}>
@@ -101,6 +117,7 @@ export function LeadCard({ node, actions = [], onFullPage, fullHref, onClose, ch
           <button type="button" className="dht-x" aria-label="Close" onClick={onClose}>×</button>
         </div>
         <p className="dht-say" data-say="">{node.say}</p>
+        {sponsorship && <p className="dht-say" data-lead-sponsorship=""><SponsorshipChip signal={sponsorship} needed={!!sponsorship.needed} /></p>}
         {children}
         <div className="dht-acts">
           {actions.map(a => a.href ? (
