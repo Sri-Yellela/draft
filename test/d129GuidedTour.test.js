@@ -3,13 +3,14 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { TOUR_STEP_IDS, DECK_SCROLL_MS } from "../shared/trialTour.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 // ⭐ D129 part 2 · the GuidedTour on the REAL pages. The component is JSX, so these read its source and the pages it
 // lights; the behaviour is walked in a real Chrome by scripts/d129TourWalk.mjs. Changing a step here is a product change.
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const tour = read("client/src/components/GuidedTour.jsx");
-const script = tour.slice(tour.indexOf("export const TOUR_SCRIPT"), tour.indexOf("]);", tour.indexOf("export const TOUR_SCRIPT")));
+const script = tour.slice(at(tour, "export const TOUR_SCRIPT"), at(tour, "]);", at(tour, "export const TOUR_SCRIPT")));
 const steps = [...script.matchAll(/\{ id: "([a-z_]+)", route: (null|"[^"]+")(?:, target: "([^"]+)")?/g)].map(m => ({ id: m[1], route: m[2], target: m[3] }));
 
 function clientSource() {

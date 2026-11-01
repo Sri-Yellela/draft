@@ -6,6 +6,7 @@ import { MIGRATIONS } from "../scripts/migrations.js";
 import { categoryOf, profileCategory, categoryReport, CATEGORIES, CATEGORY_CONFIDENCE_FLOOR } from "../services/jobs/professionalScope.js";
 import { scopeGate, backfillCategories, HELD_CATEGORY } from "../services/jobs/boardScope.js";
 import { readPolicy, setPolicy } from "../services/jobs/boardAge.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 // ⛔ D126 + D127 (owner 11-01): every professional role, each in ONE category; nothing shown from an unknown one.
 // A recorded reversal of D78 B. Titles are real-shaped (several from the local board's spot-check, 11-01); no person.
@@ -175,7 +176,7 @@ test("d127HeldNeverShown: the gate holds a held posting (enforced: never written
 
 test("d127 migration 207: the category columns, byte-identical in both migration paths, and a boot backfill", () => {
   const server = fs.readFileSync("server.js", "utf8"), mig = fs.readFileSync("scripts/migrations.js", "utf8");
-  const block = (s) => s.slice(s.indexOf('id: "207_posting_category"'), s.indexOf("`,", s.indexOf('id: "207_posting_category"')));
+  const block = (s) => s.slice(at(s, 'id: "207_posting_category"'), at(s, "`,", at(s, 'id: "207_posting_category"')));
   assert.ok(block(server).includes("ADD COLUMN board_category TEXT"));
   assert.equal(block(server), block(mig));
   assert.match(read("server.js"), /const cat = backfillCategories\(db\);/);
@@ -198,7 +199,7 @@ test("d78ReversalRegistered: CORRECTIONS_REGISTER records D78 B reversed by D126
 
 test("d127SpotCheckLogged: Admin reads the counts, the held reasons and 20 per category; 'Wrong category' writes the audit log", () => {
   const server = read("server.js");
-  const route = server.slice(server.indexOf('app.get("/api/admin/board-categories"'), server.indexOf('// D78 A: the daily sweep'));
+  const route = server.slice(at(server, 'app.get("/api/admin/board-categories"'), at(server, '// D78 A: the daily sweep'));
   assert.match(route, /requireAdmin/);
   assert.match(route, /board_category = \?\s+ORDER BY random\(\) LIMIT 20/);
   assert.match(route, /app\.post\("\/api\/admin\/board-categories\/report", requireAdmin/);

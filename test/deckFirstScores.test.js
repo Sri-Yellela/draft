@@ -4,6 +4,7 @@ import fs from "node:fs";
 import Database from "better-sqlite3";
 import { createBoardFitPrecompute } from "../services/jobs/boardFitPrecompute.js";
 import { MIGRATIONS } from "../scripts/migrations.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 // 43y FIX (the owner's trial walk, 11-01: a new account's deck said "no jobs or picks"). Three causes, measured on a copy
 // of the board: (1) the deal read lca_employer_periods by employer_name with no index — 2.5 s a row, the server frozen
@@ -55,7 +56,7 @@ test("the deck says SCORING, not empty, while a new profile's scores land — an
 });
 
 test("migration 208 indexes lca_employer_periods.employer_name, byte-identical in both runners", () => {
-  const block = (s) => s.slice(s.indexOf('id: "208_lca_employer_name_index"'), s.indexOf("`,", s.indexOf('id: "208_lca_employer_name_index"')));
+  const block = (s) => s.slice(at(s, 'id: "208_lca_employer_name_index"'), at(s, "`,", at(s, 'id: "208_lca_employer_name_index"')));
   const a = block(fs.readFileSync("server.js", "utf8")), b = block(fs.readFileSync("scripts/migrations.js", "utf8"));
   assert.ok(a.includes("ON lca_employer_periods(employer_name)"));
   assert.equal(a, b);
