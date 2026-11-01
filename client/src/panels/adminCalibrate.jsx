@@ -21,6 +21,8 @@ const send = (path, method, body) => api(`${BASE}${path}`, { method, body: JSON.
 const f3 = (x) => (x == null ? "—" : x.toFixed(2));
 const toggle = (on, tone = C.ACCENT_INK) => ({ border: `1px solid ${on ? tone : C.BORDER}`, background: on ? `color-mix(in srgb, ${tone} 14%, transparent)` : "transparent",
   color: C.INK, borderRadius: 6, padding: "3px 8px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" });
+// punctuation, bullets and case set aside, so "- Design, build…" is the counted " - Design, build…"
+const norm = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const FEEL = [["too_low", "too low"], ["right", "right"], ["too_high", "too high"]];
 
 // ── one posting ─────────────────────────────────────────────────────────────────────────────────
@@ -103,6 +105,7 @@ function Posting({ id, onOpen, onBack }) {
   const r = rev;
   const mark = (kind) => (term, m) => save({ ...r, marks: { ...r.marks, [kind]: { ...r.marks[kind], [term]: r.marks[kind][term] === m ? undefined : m } } });
   const counted = v.counted || [];
+  const countedKeys = counted.map(norm).filter(Boolean);
   const lines = String(v.text || "").split("\n");
   const accept = (k, t) => {
     if (k === "wrong") return mark("skills")(t, "wrong");
@@ -125,10 +128,11 @@ function Posting({ id, onOpen, onBack }) {
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 14 }}>
-        <Panel title={`${v.title}`} purpose={`${v.company} · ${v.category || "—"}${v.discipline ? ` · ${v.discipline}` : ""} · level ${v.level || "unread"}. Faded lines are the company's boilerplate — the board does not count them.`}>
+        <Panel title={`${v.title}`} purpose={`${v.company} · ${v.category || "—"}${v.discipline ? ` · ${v.discipline}` : ""} · level ${v.level || "unread"}. Faded lines are what the board does not count: sections such as About us and About the role, and the company's boilerplate.`}>
           <div style={{ maxHeight: 640, overflowY: "auto", fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }} data-cal-text="">
             {lines.map((l, k) => {
-              const live = !l.trim() || !counted.length || counted.some(s => s && (l.includes(s) || s.includes(l.trim())));
+              const lk = norm(l);
+              const live = !lk || !counted.length || countedKeys.some(s => s.includes(lk) || lk.includes(s));
               return <div key={k} style={{ color: live ? C.INK : C.INK_FAINT }}>{l || " "}</div>;
             })}
           </div>
