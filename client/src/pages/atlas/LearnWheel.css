@@ -1,0 +1,60 @@
+/* ⭐ D117 C10 + C12 · THE DECK ROUND THE WHEEL — draft's tokens only (four themes), no capsule (D60: the cards are rounded
+   rectangles, the state a mark), the part colour from LearnCircle.css's .lrc__part--N (--lrc-c). The stage uses the space
+   (C12: ≈ 84 % of the viewport tall, ≥ 640 px). Motion is the frame loop's (it jumps under reduced motion); CSS only fades. */
+.lwh {
+  position: relative; height: min(84vh, 880px); min-height: 640px; overflow: hidden; touch-action: pan-y; user-select: none;
+  outline: none; border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 58%, color-mix(in srgb, var(--c-accent) 9%, transparent), transparent 62%);
+}
+.lwh:focus-visible { box-shadow: inset 0 0 0 2px var(--c-accent-ink); }
+.lwh__chords { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.lwh__wheel { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform; }
+.lwh__spoke { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform; }
+.lwh__line { position: absolute; left: -1px; top: -520px; width: 2px; height: 520px; background: var(--c-ink-muted); transform-origin: 50% 100%; pointer-events: none; opacity: 0; }
+
+.lwh__card { position: absolute; width: 300px; height: 390px; left: -150px; border-radius: 26px; cursor: pointer; }
+.lwh__back {
+  position: absolute; inset: 0; border-radius: 26px; overflow: hidden; border: 1px solid var(--c-border);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--lrc-c) 88%, var(--c-ink)) 0%, color-mix(in srgb, var(--lrc-c) 70%, var(--c-ink)) 100%);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--c-ink) 28%, transparent);
+}
+.lwh__card--open .lwh__back { background: var(--c-surface-solid); border: 2px solid var(--lrc-c); }
+.lwh__card--half .lwh__back { background: linear-gradient(90deg, var(--lrc-c) 0 50%, var(--c-surface-solid) 50% 100%); border: 2px solid var(--lrc-c); }
+.lwh__num { position: absolute; right: 20px; bottom: 16px; font: 400 46px/1 var(--font-display, var(--font-body)); color: color-mix(in srgb, var(--c-surface-solid) 80%, transparent); }
+.lwh__card--open .lwh__num, .lwh__card--half .lwh__num { color: var(--lrc-c); }
+.lwh__rno { position: absolute; left: 18px; bottom: 18px; min-width: 34px; height: 34px; border-radius: 10px; background: var(--c-accent); color: var(--c-on-accent); font: 800 15px/34px var(--font-body); text-align: center; padding: 0 6px; }
+.lwh__card:focus-visible { outline: 3px solid var(--c-accent-ink); outline-offset: 3px; }
+
+/* the front card: the board card's landscape face, turned upright at 3 o'clock */
+.lwh__card.is-front .lwh__back { opacity: 0; }
+.lwh__face { position: absolute; inset: 0; }
+.lwh__land {
+  position: absolute; width: 390px; height: 300px; left: -45px; top: 45px; transform: rotate(-90deg); box-sizing: border-box;
+  border-radius: 26px; overflow: hidden; border: 1px solid var(--c-border); color: var(--c-ink); background: var(--c-surface-solid);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--c-ink) 35%, transparent); padding: 20px 24px; display: flex; flex-direction: column; gap: 9px;
+}
+.lwh__fhead { display: flex; gap: 12px; align-items: center; }
+.lwh__ficon { width: 48px; height: 48px; border-radius: 14px; background: var(--lrc-c); color: var(--c-surface-solid); display: grid; place-items: center; font: 400 24px/1 var(--font-display, var(--font-body)); flex: none; }
+.lwh__fhead b { display: block; font-size: 14px; }
+.lwh__fhead span { font-size: 12.5px; color: var(--c-ink-muted); }
+.lwh__ftitle { font: 400 30px/1.05 var(--font-display, var(--font-body)); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lwh__fchips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 12.5px; }
+.lwh__chipst--filled { --mark-c: var(--c-success); }
+.lwh__fbar { height: 7px; border-radius: 4px; background: var(--c-surface-offset); overflow: hidden; margin-top: auto; }
+.lwh__fbar i { display: block; height: 100%; background: var(--c-success); }
+.lwh__fmeta { display: flex; justify-content: space-between; font-size: 12px; color: var(--c-ink-muted); }
+.lwh__fmeta span:last-child { color: var(--c-accent-ink); font-weight: 700; }
+
+/* zoomed out only: the part names and the chords */
+.lwh__labels { position: absolute; inset: 0; pointer-events: none; }
+.lwh__plab { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; text-align: center; white-space: nowrap; }
+.lwh__pbtn { all: unset; cursor: zoom-in; color: var(--lrc-c); font: 800 11px/1.2 var(--font-body); letter-spacing: .06em; }
+.lwh__pbtn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.lwh__plab small { display: block; font: 600 11px/1.2 var(--font-body); color: var(--c-ink-muted); }
+.lwh.is-zoomed .lwh__plab { opacity: 0; pointer-events: none; }
+.lwh.is-zoomed .lwh__chords { opacity: 0; }
+.lwh__hint { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 12px; color: var(--c-ink-muted); pointer-events: none; padding: 0 16px; }
+@media (prefers-reduced-motion: no-preference) {
+  .lwh__plab, .lwh__chords { transition: opacity .3s; }
+}
+@media (max-width: 640px) { .lwh { min-height: 520px; height: 70vh; } }

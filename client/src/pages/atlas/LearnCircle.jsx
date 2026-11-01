@@ -20,6 +20,7 @@
 import { useMemo, useState } from "react";
 import DepthButton from "../../components/DepthButton.jsx";
 import ResourceTile, { ResourceGrid, useLearnThumbs } from "../../components/ResourceTile.jsx";
+import LearnWheel from "./LearnWheel.jsx";
 import {
   stepState, checkpointId, circleState, circleLayout, pointAt, chordPath, routePath, arcPath, GEO, needsMap, goBackTo, routeStart, routeClosure,
   routesFor, pieceForConcept, whereLine, pieceOf, barLine, pasteVerdict, wordCount, EXPLAIN_MIN_WORDS,
@@ -261,7 +262,6 @@ export default function LearnCircle({ learn, pieces, circle, earned, signedIn = 
   onOpen, onExplain, onBuild, onWantMyRoute }) {
   const marks = earned?.marks || {};
   const states = useMemo(() => new Map(pieces.map(p => [p.id, stepState(p, marks)])), [pieces, marks]);
-  const layout = useMemo(() => circleLayout(pieces), [pieces]);
   const routes = useMemo(() => routesFor(circle, pieces, myRoute), [circle, pieces, myRoute]);
   const [sel, setSel] = useState(() => (initialSel && pieces.some(p => p.id === initialSel) ? initialSel : pieces[0]?.id));
   const [routeId, setRouteId] = useState(null);
@@ -306,8 +306,10 @@ export default function LearnCircle({ learn, pieces, circle, earned, signedIn = 
         {qSay && <span className="atl__quiet" role="status">{qSay}</span>}
       </div>
       <div className="lrc__main">
+        {/* ⭐ D117 C10 + C12: the deck round the wheel (LearnWheel); the compact ring (CircleSvg) stays for Your course (D120). */}
         <div className="lrc__stage">
-          <CircleSvg pieces={pieces} layout={layout} states={states} sel={piece.id} route={route} onSelect={setSel} />
+          <LearnWheel pieces={pieces} states={states} sel={piece.id} route={route} reduced={reduced} onSelect={setSel}
+            onOpenPiece={() => { try { document.querySelector("[data-learn-selected]")?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "nearest" }); } catch { /* no DOM */ } }} />
         </div>
         <section className="lrc__piece" aria-label={`Piece: ${piece.t}`} data-learn-selected={piece.id}>
           {route && ri >= 0 && (
