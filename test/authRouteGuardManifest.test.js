@@ -166,6 +166,7 @@ const AUTHENTICATED = new Set([
   "POST /api/trial/resume",
   "GET /api/trial/state",
   "POST /api/trial/survey",
+  "POST /api/trial/name",          // owner 11-01: the tester's own name when sign-up gave none (sample résumés carry fictional ones)
   "POST /api/trial/survey/dismiss",
   "POST /api/trial/feedback",
   "POST /api/trial/finish",
