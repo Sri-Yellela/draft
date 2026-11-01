@@ -12,9 +12,8 @@ report. Counts, lengths and rule names only: no résumé or posting text appears
 D124's two fictional samples, `content/trial/sample-a.json` and `sample-b.json`) × 10 real postings (5 software, 5 ML /
 data, entry to mid, 9 companies) from the local board copy = **30 requests**.
 
-⚠ **Not measured here (pending, in order):** (1) **production's ledger**: the tools service's `model_usage` and draft's
-`usage_events`. That is what explains the 13¢. It needs `railway login` on this machine and was not available this run.
-(2) **The live runs.** The harness's live mode stays off until the prompt is fixed (the owner's order). ⚠ When it runs,
+✅ **Production's ledgers were read later the same session** (section (a), "Production, measured"). ⚠ **Pending:**
+**the live runs.** The harness's live mode stays off until the prompt is fixed (the owner's order). ⚠ When it runs,
 the local key needs `ANTHROPIC_WORKSPACE_ID` in `.env`: Anthropic refuses it as *"not scoped to a workspace"*.
 
 ---
@@ -57,16 +56,33 @@ write 1.25×, read 0.1×):
 | **total, Sonnet, as sent** | **4.99¢** | 4.80¢ | 4.48¢ |
 | same request on Haiku 4.5 (no other change) | 2.49¢ | 2.40¢ | 2.24¢ |
 
-**⚠ This model gives ≈ 5¢, not the 13¢ the owner sees.** The gap has to come from one or more of the following, and
-production's ledger decides which (the first query once Railway is logged in):
-(1) **longer outputs** in production (the cap allows 8,192 t, which is 8.2¢ of output alone);
-(2) **more than one call per résumé**: regenerations, the SDK's second attempt (`attempts = 2`), the classifier;
-(3) **the apply path's cover letter** on every job;
-(4) **A+**, the admin's silent swap (`A_PLUS` overlay 3,244 ch, plus the `resume_enhance` Sonnet call, `max_tokens 8000`);
-(5) **paid calls that delivered nothing**: refusals and failures, which the Console bills and a per-résumé count does not
-see.
-The query: `model_usage` grouped by route × purpose × model, with mean in / out / cache / attempts, cost, and the count of
-`success = 0`. Then draft's `usage_events` for `resume_generate` by `error_text` (refused / retry).
+**⚠ This model gives ≈ 5¢, not the 13¢ the owner sees.**
+
+### Production, measured 11-01 (43x, `railway ssh`, read-only, counts only)
+
+**The tools service's `model_usage`** (the ledger exists since A97, 10-14): **3 generate calls in total.**
+
+| day | in | out | cache write | cost | |
+|---|---|---|---|---|---|
+| 10-15 | 10,490 | 3,432 | 0 | **5.53¢** | delivered |
+| 10-15 | 0 | 0 | 0 | 0 | failed: the unscoped key (T19) |
+| 10-31 | 4,097 | 4,046 | **7,897** | **6.84¢** | delivered; ⚠ **the static prefix was cache-WRITTEN** (1.25×) and never read |
+
+**Draft's `usage_events`, `resume_generate` since 09-01:** 10 calls for 7 (person, job) pairs, **4 failed, 1 refused by
+the claim guard**, $0.386 in all. That is 3.9¢ a call, **≈ 6.4¢ per successful call**, and **7.7¢ per delivered
+résumé** once the paid refusal is spread over the five deliveries. Calls per pair: 1 × 5 pairs, 2 × 1, 3 × 1.
+
+**So, measured:** a successful call costs **5.5–6.8¢**. Its total input is 10.5–12.0k tokens, more than this audit's static
+model because production's runtime inputs are larger. Its output is **3.4–4.0k tokens**: output alone is 3.4–4.0¢, the
+biggest line, as modelled. **Neither ledger shows 13¢ for one résumé.** The nearest real case is **a résumé that took
+two paid calls (≈ 6.8¢ × 2 ≈ 13.7¢)**, which is the shape of the 2- and 3-call pairs above (a refusal or failure, then
+a retry). ⚠ If the 13¢ was read from the Anthropic Console, it may include spend no ledger here sees (another key, local
+scripts). Before D17 deleted it, **`enrich_job` was the real spender: $6.79 over 2,952 Haiku calls in September**.
+
+**Finding P-1 — the cache is written on a one-shot call.** The 10-31 generation wrote 7,897 tokens to the cache, at
+1.25× (+0.4¢), and nothing read them. Draft sends `cache: false` only from the interactive web Generate
+(D70 Phase 3). The extension and apply paths leave it unset, so caching stays on. After R5 shrinks the static block
+this hardly matters, but until then each one-shot pays the surcharge.
 
 **Output is the biggest line: ≈ 63 % of the price**, and most of it is not résumé content (see (c) items 1 and 2).
 
@@ -82,7 +98,8 @@ The query: `model_usage` grouped by route × purpose × model, with mean in / ou
 - **⚠ The posting is cut at 5,000 characters:** in the local board copy, **1,208 of 2,616 descriptions are exactly 5,000
   characters long**. `description_full` (D84 F3) exists but is empty locally, and generation sends `job.description`,
   never `description_full`. When a posting is longer, its requirements section, which usually comes last, never reaches
-  the model or the scorer. ⚠ Check whether production fills `description_full`.
+  the model or the scorer. **Production (11-01): of 3,850 active postings, 1,848 are cut at 5,000 characters, and 1,246
+  of those have a longer `description_full` that generation does not read.**
 
 **From the code and earlier measurements (not re-measured):**
 - **Right:** one call, no loops; thinking off; output capped; the claim guard runs on every document and a refusal
@@ -148,7 +165,8 @@ Line numbers are in `resume-master/prompts/`.
     résumés' employers is in it. Its rule *"Only assign a tool to a company if it appears in that company's entry"* is
     undefined for every other employer. **Draft's KB already has the data-derived version of this:**
     `company_technographics` (company × skill × weight × posting_count, from real postings). Locally it covers 10
-    companies, 8,690 rows, and 2 names in the owner's résumé match a KB company. ⚠ Production's coverage is not read.
+    companies, 8,690 rows, and 2 names in the owner's résumé match a KB company. **Production (11-01): 63 companies,
+    19,248 rows, 61 of them with ≥ 10 postings of evidence.**
 13. **L2:64–85**, the keyword *classes* and a 35-verb pool, describe what the model already knows (≈ 1,500 ch). The
     candidate's own verbs and the JD's verbs are the ones that score.
 
