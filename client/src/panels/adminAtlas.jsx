@@ -23,7 +23,7 @@ import { Panel, Mark, row, quiet, sub, callout, field, useConfirm } from "./admi
 // ⭐ D118 P2 · Import content — the Learn content replaced from the owner's tracker, no deploy (adminLearnImport.jsx).
 import { AtlasImportContent } from "./adminLearnImport.jsx";
 // ⭐ D117 C9 · Learn → Before-this review — the drafted links accepted, edited or rejected; P5's held links; the routes.
-import { LearnBeforeThisReview } from "./adminLearnCircle.jsx";
+import { LearnBeforeThisReview, LearnThumbnails } from "./adminLearnCircle.jsx";
 
 const KINDS = [["", "All kinds"], ["role", "Roles"], ["skill", "Skills"], ["tool", "Tools"], ["stack", "Stacks"], ["concept", "Concepts"], ["pattern", "Patterns"]];
 const NODE_KINDS = ["role", "skill", "tool", "stack", "concept", "pattern"];
@@ -522,6 +522,7 @@ export function AtlasTab() {
       <AtlasDraftDefinitions say={setSaid} onChanged={load} />
       <AtlasImportContent say={(s) => { setSaid(s); if (s.ok) load(); }} />
       <LearnBeforeThisReview />
+      <LearnThumbnails />
       {said && <div role="status" style={{ ...callout(said.ok ? C.SUCCESS : C.DANGER), marginBottom: 10 }}>{said.text}</div>}
       {err && <div style={{ ...callout(C.DANGER), marginBottom: 10 }}>{err}</div>}
       {!rows ? <p style={quiet}>Loading…</p> : shown.length === 0 ? <p style={quiet}>No node matches.</p> : (

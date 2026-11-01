@@ -206,3 +206,11 @@ test("D119 · d119FallbackTile · d119TileRecordsOpened · d119OneTileComponent 
   assert.match(learn, /<ResourceTile item=\{it\}/);
   assert.doesNotMatch(learn, /<img\b/);
 });
+
+test("D119 · Admin → Atlas → Learn: the thumbnails panel — the counts, Pin a video per search link, Hide / Show again per stored picture", () => {
+  const src = read("client/src/panels/adminLearnCircle.jsx");
+  assert.match(src, /export function LearnThumbnails\(\)/);
+  assert.match(src, /act\("\/api\/admin\/thumbs\/pin", "POST", \{ url: r\.u, watchUrl: watch\.trim\(\) \}\)/);
+  assert.match(src, /act\("\/api\/admin\/thumbs\/hide", "POST", \{ url: r\.u, hidden: !r\.thumb\.hidden \}\)/);
+  assert.match(read("client/src/panels/adminAtlas.jsx"), /<LearnThumbnails \/>/);
+});

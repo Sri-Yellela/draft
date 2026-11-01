@@ -104,3 +104,56 @@ export function LearnBeforeThisReview() {
     </div>
   );
 }
+
+// ⭐ D119 · Learn's thumbnails — the counts by where a picture comes from, every YouTube SEARCH link with "Pin a video"
+// (paste a watch URL → the real thumbnail), and a Hide on every stored picture (the takedown path). Refresh runs the
+// nightly pass now. GET /api/admin/thumbs/learn · POST …/pin { url, watchUrl } · POST …/hide { url, hidden } · POST …/refresh
+function PinRow({ r, act, busy }) {
+  const [watch, setWatch] = useState("");
+  return (
+    <div style={row} data-thumb-pin={r.id || r.u}>
+      <span style={{ flex: "1 1 260px", fontSize: 13, color: C.INK }}>{r.t} <span style={quiet}>{r.thumb?.note || "search link"}</span></span>
+      <input style={{ ...field, flex: "1 1 240px" }} placeholder="https://www.youtube.com/watch?v=…" value={watch} onChange={e => setWatch(e.target.value)} aria-label={`A watch link for ${r.t}`} />
+      <DepthButton size="compact" disabled={busy || !watch.trim()} onClick={() => act("/api/admin/thumbs/pin", "POST", { url: r.u, watchUrl: watch.trim() })}>Pin a video</DepthButton>
+    </div>
+  );
+}
+
+export function LearnThumbnails() {
+  const [data, setData] = useState(null);
+  const [say, setSay] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(() => api("/api/admin/thumbs/learn").then(setData).catch(e => setSay({ ok: false, text: e.message })), []);
+  useEffect(() => { load(); }, [load]);
+  const act = async (path, method, body) => {
+    setBusy(true);
+    try { const r = await api(path, { method, body: body ? JSON.stringify(body) : undefined }); setSay({ ok: r?.ok !== false, text: r?.message || "Saved." }); await load(); }
+    catch (e) { setSay({ ok: false, text: e.payload?.message || e.message }); }
+    finally { setBusy(false); }
+  };
+  if (!data) return <div style={panel}><h3 style={h2}>Learn · thumbnails</h3><p style={quiet}>{say?.text || "Loading…"}</p></div>;
+  const c = data.counts;
+  const search = data.rows.filter(r => r.plan === "youtube_search" && !r.thumb?.src);
+  const stored = data.rows.filter(r => r.thumb?.src || r.thumb?.hidden);
+  return (
+    <div style={panel} data-learn-thumbs="">
+      <h3 style={h2}>Learn · thumbnails</h3>
+      <p style={what}>Every resource shows a picture of what it is — stored here, never hot-linked. {c.youtubeSearch} YouTube search links (no single video, so no picture until you pin one) · {c.youtubeWatch} watch links · {c.book} books (Open Library covers) · {c.site} sites (their share image) · {c.stored} pictures stored · {c.hidden} hidden.</p>
+      <div style={row}><DepthButton size="compact" disabled={busy} onClick={() => act("/api/admin/thumbs/refresh", "POST")}>Refresh now</DepthButton></div>
+      {say && <p role="status" style={{ ...quiet, color: say.ok ? C.SUCCESS : C.DANGER }}>{say.text}</p>}
+      <h4 style={{ margin: "14px 0 6px", color: C.INK }}>Pin a video ({search.length} search links)</h4>
+      <div style={{ display: "grid", gap: 4, maxHeight: 360, overflow: "auto" }}>
+        {search.map(r => <PinRow key={r.u} r={r} act={act} busy={busy} />)}
+      </div>
+      <h4 style={{ margin: "14px 0 6px", color: C.INK }}>Stored pictures ({stored.length})</h4>
+      <div style={{ display: "grid", gap: 4, maxHeight: 360, overflow: "auto" }}>
+        {stored.map(r => (
+          <div key={r.u} style={row} data-thumb-stored={r.id || r.u}>
+            <span style={{ flex: "1 1 260px", fontSize: 13, color: C.INK }}>{r.t} <span style={quiet}>{r.thumb.attribution || r.plan}{r.thumb.hidden ? " · hidden" : ""}</span></span>
+            <DepthButton size="compact" disabled={busy} onClick={() => act("/api/admin/thumbs/hide", "POST", { url: r.u, hidden: !r.thumb.hidden })}>{r.thumb.hidden ? "Show again" : "Hide"}</DepthButton>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
