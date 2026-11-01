@@ -28,6 +28,7 @@ import { aliasesOf, readNode, profileTerms, atlasChangeCount } from "./atlasStor
 import { spellings } from "../../shared/atlasSearchNormalize.js";
 import { learnStepForNode } from "../learn/learnLinks.js";
 import { atlasPostingsChanged, liveLinksOf } from "./atlasLive.js";
+import { thumbIndex } from "../thumbs/resourceThumbs.js";
 
 export const PEEK_MEANING_CHARS = 240;
 export const LINK_EVENTS = Object.freeze(["open", "visit"]);
@@ -122,6 +123,11 @@ export function peekNode(db, slug, userId = null) {
     postings: n.onTheBoard?.postings ?? 0,
     firstResource: first ? { title: first.title, url: first.url, format: first.format || null } : null,
   };
+  // ⭐ D119 (43w's leftover): the popup's first resource carries its stored picture, as the node page's resources do —
+  // read outside any cache so a pin or a takedown shows at once. No picture → the tile says what it is, in type.
+  if (out.firstResource) {
+    try { out.firstResource.thumb = thumbIndex(db, [first.url])[first.url] || null; } catch { out.firstResource.thumb = null; }
+  }
   // ⭐ D115 P4(d): "Learn it in the Atlas" goes to the step that teaches it, when the owner's path has one.
   try {
     const st = learnStepForNode(db, { name: n.name, term: db.prepare(`SELECT term FROM atlas_nodes WHERE slug = ?`).pluck().get(n.slug) });

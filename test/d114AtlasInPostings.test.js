@@ -278,3 +278,21 @@ test("D114 · d114FourThemes — the popup is drawn only in theme tokens, so all
   assert.match(src, /const left = Math\.max\(GUTTER, Math\.min\(r\.left, vw - width - GUTTER\)\);/);
   assert.match(src, /createPortal\(/, "drawn at the page's top, so no card's overflow can cut it");
 });
+
+test("D119 (43w's leftover) · the popup's first resource is the ONE tile, with its stored picture", async () => {
+  const { urlHash } = await import("../services/thumbs/resourceThumbs.js");
+  const db = fixtureDb();
+  const k = publish(db, "tool", "Kubernetes");
+  const id = db.prepare(`SELECT id FROM atlas_nodes WHERE slug = ?`).pluck().get(k);
+  const url = "https://www.youtube.com/watch?v=abc123xyz00";
+  db.prepare(`INSERT INTO atlas_resources (node_id, url, title, level, format, hours, cost, checked_at) VALUES (?,?,?,?,?,?,?,?)`)
+    .run(id, url, "Kubernetes in 100 seconds", "beginner", "video", 1, "free", 1);
+  assert.equal(peekNode(db, k).firstResource.thumb, null, "no picture stored yet: the tile says what it is, in type");
+  db.prepare(`INSERT INTO resource_thumbs (url_hash, url, kind, status, bytes, content_type, title) VALUES (?, ?, 'youtube', 'ok', ?, 'image/jpeg', 'K8s')`)
+    .run(urlHash(url), url, Buffer.from([0xff, 0xd8, 0xff]));
+  const t = peekNode(db, k).firstResource.thumb;
+  assert.ok(t && t.kind === "youtube", JSON.stringify(t));
+  const src = read("client/src/components/AtlasTerm.jsx");
+  assert.match(src, /import ResourceTile from "\.\/ResourceTile\.jsx";/);
+  assert.match(src, /thumb=\{p\.firstResource\.thumb \|\| null\}/);
+});

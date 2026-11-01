@@ -43,5 +43,5 @@
 .atl-term__src a { color: inherit; }
 .atl-term__learn { color: var(--c-accent-ink); font-weight: 600; text-decoration: none; display: inline-flex; gap: 5px; align-items: center; }
 .atl-term__learn:hover, .atl-term__learn:focus-visible { text-decoration: underline; }
-.atl-term__res { color: var(--c-ink-muted); font-size: 11px; }
+.atl-term__res { margin-top: 10px; max-width: 260px; }   /* D119: holds the one ResourceTile */
 .atl-term__glyph { flex: none; }
