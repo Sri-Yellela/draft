@@ -88,7 +88,7 @@
 .lrc__goback { justify-self: start; }
 .lrc__items { display: grid; gap: 6px; }
 .lrc__kind-h { margin: 4px 0; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--c-ink-faint); }
-.lrc__item { padding: 5px 0; border-bottom: 1px solid var(--c-border); font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.lrc__item { display: grid; gap: 4px; align-content: start; min-width: 0; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }   /* D119: a tile's cell */
 .lrc__tag { margin-left: 6px; }
 .lrc__src { display: block; font-size: 12.5px; color: var(--c-ink-muted); }
 .lrc__note { display: block; font-size: 12.5px; color: var(--c-ink-muted); line-height: 1.5; }

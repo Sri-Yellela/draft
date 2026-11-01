@@ -5725,4 +5725,38 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_lca_employer_titles_period ON lca_employer_titles(fiscal_period);
       `,
     },
+    {
+      // ⭐ D119 · THUMBNAILS — every resource shows what it is before it is opened (owner 10-31). One row per resource URL
+      // (url_hash = sha256 of the URL, hex), written by services/thumbs/resourceThumbs.js and read by GET /api/thumbs:
+      //   kind        what the picture is: youtube (a watch URL's own thumbnail) · youtube_search (no single video, so no
+      //               picture is invented) · book (Open Library's cover for the title + author) · site (the page's own
+      //               og:image / twitter:image) · none (a fallback tile)
+      //   bytes / content_type   the picture as FETCHED ONCE and stored (≤ 2 MB, sniffed by its first bytes — never
+      //               hot-linked); null when there is none
+      //   title · attribution    YouTube oEmbed's title and channel; "Cover: Open Library"; the site's host
+      //   pinned_url  Admin → Learn "Pin a video": a watch URL an admin chose for a search link → the real thumbnail
+      //   hidden_at / hidden_by  Admin's one-press takedown; a hidden picture is never served (the tile falls back)
+      //   status      ok · none · failed — a failed fetch keeps the fallback tile and is tried again on the next refresh
+      // After 203 (the LCA title families).
+      id: "204_resource_thumbs",
+      sql: `
+        CREATE TABLE IF NOT EXISTS resource_thumbs (
+          url_hash     TEXT PRIMARY KEY,
+          url          TEXT NOT NULL,
+          kind         TEXT NOT NULL CHECK (kind IN ('youtube', 'youtube_search', 'book', 'site', 'none')),
+          status       TEXT NOT NULL DEFAULT 'none' CHECK (status IN ('ok', 'none', 'failed')),
+          bytes        BLOB,
+          content_type TEXT,
+          title        TEXT,
+          attribution  TEXT,
+          note         TEXT,
+          pinned_url   TEXT,
+          pinned_by    TEXT,
+          hidden_at    INTEGER,
+          hidden_by    TEXT,
+          fetched_at   INTEGER,
+          updated_at   INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];

@@ -19,6 +19,7 @@
 // ⛔ C8: no checkbox, no "done" button, no "I explained it" — nothing a user can press says "complete".
 import { useMemo, useState } from "react";
 import DepthButton from "../../components/DepthButton.jsx";
+import ResourceTile, { ResourceGrid, useLearnThumbs } from "../../components/ResourceTile.jsx";
 import {
   stepState, checkpointId, circleState, circleLayout, pointAt, chordPath, routePath, arcPath, GEO, needsMap, goBackTo, routeStart, routeClosure,
   routesFor, pieceForConcept, whereLine, pieceOf, barLine, pasteVerdict, wordCount, EXPLAIN_MIN_WORDS,
@@ -163,6 +164,7 @@ function BuildLink({ piece, saved, signedIn, onBuild }) {
 /** C4 · the piece — readable alone. */
 export function PieceBody({ piece, pieces, states, marks = {}, explanations = {}, builds = {}, signedIn = false, onSelect, onOpen, onExplain, onBuild, compact = false }) {
   const byId = new Map(pieces.map(p => [p.id, p]));
+  const thumbs = useLearnThumbs();
   const st = states.get(piece.id);
   const finished = (id) => !!states.get(id)?.complete;
   const back = goBackTo(needsMap(pieces), pieces.map(p => p.id), piece.id, finished);
@@ -213,18 +215,17 @@ export function PieceBody({ piece, pieces, states, marks = {}, explanations = {}
         {kinds.map(k => (
           <div key={k} className="lrc__kind">
             <h4 className="lrc__kind-h">{k}</h4>
-            <ul className="lrc__list">
+            {/* ⭐ D119: each item is a ResourceTile — its stored picture (or what it is, in type), the whole tile the link;
+                the tile's press is what records the opening (D117 C8: "opened", never "done"). */}
+            <ResourceGrid>
               {groups.get(k).map(it => (
                 <li key={it.id} className="lrc__item" data-learn-item={it.id}>
-                  {it.u ? <a className="atl__link" href={it.u} target="_blank" rel="noopener noreferrer" data-learn-open={it.id} onClick={() => onOpen?.(it, piece)}>{it.t}</a> : <b>{it.t}</b>}
-                  {it.o ? <span className="mark mark--dim lrc__tag">optional</span> : null}
-                  {it.p5 ? <span className="mark mark--accent lrc__tag" data-learn-p5={it.id}>new</span> : null}
-                  {marks[it.id] ? <span className="mark mark--ok lrc__tag" data-learn-opened={it.id}>opened</span> : null}
-                  {it.s && <span className="lrc__src">{it.s}</span>}
+                  <ResourceTile item={it} thumb={thumbs[it.u] || null} opened={!!marks[it.id]} onOpen={() => onOpen?.(it, piece)}
+                    extra={it.p5 ? <span className="mark mark--accent" data-learn-p5={it.id}>new</span> : null} />
                   {it.n && <span className="lrc__note">{it.n}</span>}
                 </li>
               ))}
-            </ul>
+            </ResourceGrid>
           </div>
         ))}
       </div>
