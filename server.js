@@ -7693,6 +7693,17 @@ function requestCookieMap(req) {
   );
 }
 
+// ⛔ Owner 11-01: "user last active … says 50s ago, i tested it 40 min ago". Last active is "the person did something",
+// not "a request arrived": a tab left open polls /api/trial/state every minute, and opening the ADMIN page in the same
+// browser sends the tester's cookie with /api/auth/me. Those reads keep the credential alive (expiry still slides) but
+// never move last_seen_at or the session registry. Measured on production 21:24–22:28Z: one open tab, 60+ polls.
+const BACKGROUND_READS = new Set(["/api/trial/state", "/api/auth/me", "/api/sync/events", "/api/config", "/api/version"]);
+function isBackgroundRead(req) {
+  if (req.method !== "GET") return false;
+  const p = String(req.path || req.originalUrl || "").split("?")[0];
+  return BACKGROUND_READS.has(p) || p.startsWith("/api/admin/");
+}
+
 function bindAuthContext(req, _res, next) {
   const token = getRequestAuthContextToken(req);
   if (!token) return next();
@@ -7741,10 +7752,12 @@ function bindAuthContext(req, _res, next) {
     // be a worse bug than the one this fixes.
     const slidTo = Math.min(now + AUTH_CONTEXT_IDLE_SECONDS,
                             (row.created_at || now) + AUTH_CONTEXT_ABSOLUTE_SECONDS);
+    const background = isBackgroundRead(req);   // a poll keeps the token alive but is not activity (owner 11-01)
     if (slidTo > row.expires_at) {
-      db.prepare("UPDATE auth_contexts SET last_seen_at=?, expires_at=? WHERE token_hash=?")
+      if (background) db.prepare("UPDATE auth_contexts SET expires_at=? WHERE token_hash=?").run(slidTo, authContextHash(token));
+      else db.prepare("UPDATE auth_contexts SET last_seen_at=?, expires_at=? WHERE token_hash=?")
         .run(now, slidTo, authContextHash(token));
-    } else {
+    } else if (!background) {
       db.prepare("UPDATE auth_contexts SET last_seen_at=? WHERE token_hash=?").run(now, authContextHash(token));
     }
   } catch(e) {
@@ -8873,7 +8886,7 @@ app.use((req, res, next) => {
     });
   };
   const uid = req.session?.passport?.user;
-  if (uid && req.sessionID && Date.now() - (sessionSeen.get(req.sessionID) || 0) > 5 * 60 * 1000) {
+  if (uid && req.sessionID && !isBackgroundRead(req) && Date.now() - (sessionSeen.get(req.sessionID) || 0) > 5 * 60 * 1000) {
     sessionSeen.set(req.sessionID, Date.now());
     if (sessionSeen.size > 5000) sessionSeen.clear();
     try { recordSession(db, { sid: req.sessionID, userId: uid, userAgent: req.get("user-agent"), ipHint: ipHint(req) }); } catch {}
