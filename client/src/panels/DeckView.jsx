@@ -32,7 +32,7 @@ import StartFromResume from "../components/StartFromResume.jsx";
 import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
-import { bandMarkStyle } from "../styles/mark.js";
+import { bandMarkStyle, markStyle } from "../styles/mark.js";
 import { ATS_BAND, atsBandLabel } from "../../../shared/atsBands.js";
 import { salaryLabel } from "../../../shared/postingFacts.js";
 import { DECK_SCROLL_MS } from "../../../shared/trialTour.js";
@@ -162,7 +162,8 @@ const inertIf = (hidden) => (hidden ? { inert: "", "aria-hidden": true } : null)
 
 // The card's ONE line of ATS: the band, how many of the posting's skills the résumé shows (term counts,
 // never a score), and the way in to the full report.
-function AtsSignal({ band, why = {}, onOpen, cta }) {
+// 11-01: a TRIAL account's card carries its score (server.js /api/draft/today) — shown as "86% match" before the counts.
+function AtsSignal({ band, why = {}, onOpen, cta, score = null }) {
   const meta = atsBandLabel(band);
   const matched = Number(why.matchedTotal) || 0;
   const total = matched + (Number.isFinite(why.missingTotal) ? why.missingTotal : (why.missing?.length || 0));
@@ -171,8 +172,40 @@ function AtsSignal({ band, why = {}, onOpen, cta }) {
       style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "2px 0", background: "transparent",
                border: "none", cursor: "pointer", textAlign: "left", fontSize: 13.5, color: C.INK_MUTED }}>
       <span style={{ ...bandMarkStyle(band), fontSize: 12.5 }}>{meta.label}</span>
-      {total > 0 && <span>{matched} of {total} matched</span>}
+      {Number.isFinite(score) && <span data-deck-score={score} style={{ fontWeight: 700, color: C.INK }}>{Math.round(score)}% match</span>}
+      {total > 0 && <span>{matched} of {total} skills</span>}
       {cta && <span style={{ color: C.ACCENT_INK, fontWeight: 700 }}>{cta}</span>}
+    </button>
+  );
+}
+
+// ⭐ THE TRIAL'S MATCH (owner 11-01: "we also need to show the ats matching to help them choose"): a trial account's card
+// carries its own stored score (server.js) — the SAME reading the board uses, never a separate trial number — shown as
+// a number in a ring, "N of M skills", the top 4 matched skills (green marks) and the top 2 missing (grey).
+function TrialMatch({ score, why = {}, onOpen, cta }) {
+  const matched = Number(why.matchedTotal) || 0;
+  const total = matched + (Number.isFinite(why.missingTotal) ? why.missingTotal : (why.missing?.length || 0));
+  const pct = Math.max(0, Math.min(100, Math.round(score)));
+  return (
+    <button type="button" data-deck-signal data-trial-match onClick={onOpen} aria-controls="deck-ats"
+      style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", padding: "2px 0", background: "transparent",
+               border: "none", cursor: "pointer", textAlign: "left", color: C.INK }}>
+      <span data-deck-score={pct} aria-label={`${pct}% match`}
+        style={{ width: 60, height: 60, borderRadius: "50%", flex: "none", display: "grid", placeItems: "center",
+                 background: `conic-gradient(${C.SUCCESS} ${pct}%, ${C.BORDER} 0)` }}>
+        <span style={{ width: 46, height: 46, borderRadius: "50%", background: "var(--color-surface)", display: "grid", placeItems: "center",
+                       fontWeight: 800, fontSize: 15 }}>{pct}%</span>
+      </span>
+      <span style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+        <span style={{ fontSize: 13.5 }}>
+          {total > 0 && <><b style={{ color: C.SUCCESS }}>{matched} of {total}</b> skills · </>}
+          {cta && <span style={{ color: C.ACCENT_INK, fontWeight: 700 }}>{cta}</span>}
+        </span>
+        <span style={{ display: "flex", gap: 5, flexWrap: "wrap" }} data-trial-chips="">
+          {(why.matched || []).slice(0, 4).map(t => <span key={`m-${t}`} data-chip="matched" style={{ ...markStyle(C.SUCCESS), fontSize: 12 }}>{t}</span>)}
+          {(why.missing || []).slice(0, 2).map(t => <span key={`x-${t}`} data-chip="missing" style={{ ...markStyle(C.INK_MUTED), fontSize: 12 }}>{t}</span>)}
+        </span>
+      </span>
     </button>
   );
 }
@@ -364,7 +397,9 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
           the card — grid-row 1fr → 0fr on the expansion's clock, so it and the posting are one motion. */}
       <div data-deck-signal-row style={{ display: "grid", gridTemplateRows: signalShown ? "1fr" : "0fr", transition: `grid-template-rows ${ON_THE_CLOCK}` }}>
         <div style={{ minHeight: 0, overflow: "hidden" }} {...inertIf(!signalShown)}>
-          <AtsSignal band={band} why={why} onOpen={isFront ? onSignal : undefined} cta={twoPanel ? "open the report" : "tap for the report"} />
+          {Number.isFinite(card.score)
+            ? <TrialMatch score={card.score} why={why} onOpen={isFront ? onSignal : undefined} cta={twoPanel ? "open the report" : "tap for the report"} />
+            : <AtsSignal band={band} why={why} onOpen={isFront ? onSignal : undefined} cta={twoPanel ? "open the report" : "tap for the report"} />}
         </div>
       </div>
 
@@ -655,6 +690,8 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const current = s.cards[s.index];
   const order = useMemo(() => fanOrder(s), [s]);
   const tally = counts(s);
+  // A trial account's cards carry their score (server.js): the deck reads "Best match first · Drafted N of 2".
+  const trialDeck = (s.cards || []).some(c => Number.isFinite(c.score));
   const tool = canUseAPlusResume ? A_PLUS_TOOL : GENERATE_TOOL;
   const canPrev = stepTarget(s, -1) != null;
   const canNext = stepTarget(s, 1) != null;
@@ -719,7 +756,10 @@ export default function DeckView({ canUseAPlusResume = true }) {
       }, Number(e.detail?.every) || DECK_SCROLL_MS);
     };
     window.addEventListener("draft:deck-sweep", onSweep);
-    return () => { window.removeEventListener("draft:deck-sweep", onSweep); clearInterval(timer); };
+    // D129 (the facts step): the tour opens the top card so its facts can be lit, and closes it after.
+    const onExpand = (e) => setExpanded(!!e.detail?.open);
+    window.addEventListener("draft:deck-expand", onExpand);
+    return () => { window.removeEventListener("draft:deck-sweep", onSweep); window.removeEventListener("draft:deck-expand", onExpand); clearInterval(timer); };
   }, [reduced]);
 
   const undo = useCallback(async () => {
@@ -871,7 +911,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
               <motion.span ref={counterRef} key={tally.drafted} initial={{ scale: 1.35 }} animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 420, damping: 18 }}
                 style={{ ...glass({ radius: 10 }), padding: "6px 12px", fontSize: 13, fontWeight: 800, color: C.INK, display: "inline-block" }}>
-                Drafted {tally.drafted}
+                {trialDeck ? `Best match first · Drafted ${tally.drafted} of 2` : `Drafted ${tally.drafted}`}
               </motion.span>
             </div>
           )}

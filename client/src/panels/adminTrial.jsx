@@ -122,6 +122,7 @@ function TourAnalytics() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginTop: 12 }}>
         <Tally title="Where people left" counts={a.dropOff}/>
         <Tally title="Features tried (testers)" counts={a.interactions}/>
+        <Tally title="Explore: locked features pressed (testers) — what they want first" counts={Object.fromEntries(a.lockedPresses || [])}/>
         <Tally title="Errors (step · code)" counts={a.errors}/>
         <div style={sub}>
           <div style={{ fontWeight: 700, marginBottom: 6 }}>Stars, on average (1–5)</div>

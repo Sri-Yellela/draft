@@ -30,6 +30,7 @@ import { startTrial, pickResume, trialState, saveSurvey, dismissSurvey, finishTr
          recordPracticeSubmission } from "../services/trial.js";
 import { draftSlots } from "../services/draftSlots.js";
 import { offeredSamples, samplePicks, ownPicks } from "../services/trialPicks.js";
+import { demoState, completeDemo } from "../services/trialDemo.js";
 
 export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret, upload, deliver = null }) {
   const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "error", message: e.message });
@@ -51,6 +52,15 @@ export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret
       if (choice && choice !== "own") return res.json({ sample: choice, picks: await samplePicks(db, choice) });
       res.json({ sample: null, ...(await ownPicks(db, req.user.id)) });
     } catch (e) { fail(res, e); }
+  });
+
+  // ⭐ The trial's demonstration (owner 11-01): the replay's data for this account's 2 drafted picks (the real tailoring,
+  // made once per sample × posting), and its end — the picks recorded as sent by demonstration, confirmations in the Inbox.
+  app.get("/api/trial/demo", requireAuth, (req, res) => {
+    try { res.json(demoState(db, req.user.id)); } catch (e) { fail(res, e); }
+  });
+  app.post("/api/trial/demo/complete", requireAuth, (req, res) => {
+    try { res.json({ ...completeDemo(db, req.user.id, { deliver }), state: trialState(db, req.user.id) }); } catch (e) { fail(res, e); }
   });
 
   app.post("/api/trial/resume", requireAuth, async (req, res) => {

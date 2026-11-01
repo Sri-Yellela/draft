@@ -19,9 +19,10 @@ function clientSource() {
   return out.join("\n");
 }
 
-test("d129TourRunsOnRealPages: the path after the résumé, in the shared order, 11 steps; every light is an element a real page renders", () => {
-  assert.deepEqual(steps.map(s => s.id), TOUR_STEP_IDS.filter(id => id !== "pick_resume"));
-  assert.equal(steps.length, 11, '"Step N of 11"');
+test("d129TourRunsOnRealPages: the path after the résumé, in the shared order, 14 steps (the owner's bug report split the card and the modes); every light is an element a real page renders", () => {
+  assert.deepEqual(steps.map(s => s.id), TOUR_STEP_IDS.filter(id => id !== "pick_resume" && id !== "survey"), "the survey follows the tour, it is not a step");
+  // Owner 11-01: the survey is no tour step — The Table moves on to it by itself (the demonstration's end).
+  assert.equal(steps.length, 13, '"Step N of 13"');
   const src = clientSource();
   for (const s of steps.filter(s => s.target)) {
     const t = s.target;
@@ -56,12 +57,13 @@ test("d129ReducedMotionStepsOnNext: reduced motion jumps the deck to the top and
 
 test("d129PickTwoThenLiveRun + d129EndsOnTable: Next waits for 2 Drafts, then the live run, The Table, and the survey", () => {
   const ids = steps.map(s => s.id);
-  assert.deepEqual(ids.slice(-4), ["pick_two", "live_run", "table", "survey"]);
+  assert.deepEqual(ids.slice(-3), ["pick_two", "live_run", "table"]);
   assert.match(script, /id: "pick_two"[\s\S]*?require: \{ kind: "drafts", count: 2/);
-  assert.match(tour, /\(st\.draftsUsed \?\? 0\) >= r\.count \|\| \(st\.sent \?\? 0\) >= r\.count/);
+  assert.match(tour, /const n = Math\.max\(st\.draftsUsed \?\? 0, st\.sent \?\? 0\);[\s\S]{0,80}if \(n >= r\.count\)/);
   assert.match(tour, /disabled=\{!met\}/, "Next is locked until the action is done");
-  assert.match(script, /id: "survey", route: null, finish: true/);
-  assert.match(tour, /if \(step\.finish\) \{ setDone\(true\); await onFinish\?\.\(\); return; \}/, "the last Next locks the site into the survey");
+  // Owner 11-01 (changed on purpose): The Table is the last step and moves on to the survey by itself.
+  assert.match(script, /id: "table", route: "\/app\/database", target: "\[data-table-split\]", noNext: true, autoAfter: 5000, finish: true,/);
+  assert.match(tour, /if \(step\.finish\) \{ send\("tour", \{ step: "survey", phase: "reached", ms: 0, device, speed \}\); setDone\(true\); await onFinish\?\.\(\); return; \}/, "the last step locks the site into the survey");
   const dock = read("client/src/components/TrialDock.jsx");
   assert.match(dock, /<GuidedTour state=\{state\} onFinish=\{finish\} onActive=\{setTouring\}\/>/);
   assert.match(dock, /\{!touring && <Dock state=\{state\} onFinish=\{finish\}\/>\}/, "the dock steps aside while the tour is on screen");
@@ -79,7 +81,7 @@ test("d129: each step's time and the faster / skip choices reach the analytics; 
 test("d129: the Learn step is honest for a field with no course; the phone gets a bottom sheet; no pills", () => {
   assert.match(script, /textOtherField: "Learn holds the computing course for now; a course for your field is coming\./);
   assert.match(tour, /const other = step\.textOtherField && field && field !== "computing";/);
-  assert.match(tour, /\? \{ left: 8, right: 8, bottom: 8 \}/);
+  assert.match(read("client/src/lib/tourGeometry.js"), /\{ side: "bottom-sheet", top: bottomTop, left: MARGIN, width \}/, "the phone: a sheet");
   assert.doesNotMatch(tour, /borderRadius: (999|"50%")/);
 });
 
@@ -92,7 +94,8 @@ test("d129ExampleStateLabelled + d129AutoSettingsResetAfterStep: Draft House's e
   // set in the step, then reset: snapshot on open; on close, PUT the snapshot back only if something changed
   assert.match(house, /tourSnapshot\.current = \(await api\("\/api\/apply\/auto-settings"\)\)\.settings \?\? null;/);
   assert.match(house, /if \(strip\(now\) !== strip\(before\)\) await api\("\/api\/apply\/auto-settings", \{ method: "PUT", body: JSON\.stringify\(\{ settings: before \}\) \}\);/);
-  assert.match(tour, /if \(step\.settings\) \{ const t = setTimeout\(\(\) => fire\("draft:tour-settings", \{ open: true \}\), 400\); return \(\) => \{ clearTimeout\(t\); fire\("draft:tour-settings", \{ open: false \}\);/);
+  assert.match(tour, /if \(step\.settings\) t\.push\(setTimeout\(\(\) => fire\("draft:tour-settings", \{ open: true \}\), 400\)\);/);
+  assert.match(tour, /if \(step\.settings\) fire\("draft:tour-settings", \{ open: false \}\);/);
 });
 
 test("d129: tour progress is kept per trial account, so a second test account in one browser gets its own tour", () => {

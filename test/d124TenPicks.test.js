@@ -32,7 +32,8 @@ const FIN = (n) => Array.from({ length: n }, (_, i) => ({ cat: "business", title
 
 test("d124: six samples by category, each fictional, each naming its category and seniority", async () => {
   assert.deepEqual([...SAMPLE_IDS], ["A", "B", "C", "D", "E", "F"]);
-  assert.deepEqual([...RESUME_CHOICES], ["A", "B", "C", "D", "E", "F", "own"]);
+  // Owner 11-01 (changed on purpose): "omit own resumes entirely for the tour" — samples only.
+  assert.deepEqual([...RESUME_CHOICES], ["A", "B", "C", "D", "E", "F"]);
   const want = { A: "computing", B: "computing", C: "engineering", D: "engineering", E: "business", F: "management" };
   for (const id of SAMPLE_IDS) {
     const s = samples()[id];

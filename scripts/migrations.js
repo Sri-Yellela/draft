@@ -5873,4 +5873,20 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ THE TRIAL'S DEMONSTRATION (owner 11-01): a sample's tailored résumé for a posting — simulated, no model (the
+      // sample re-arranged for the posting's terms) — made once and replayed for every later tester on that sample
+      // (services/trialDemo.js). No person's data: the sample is a fictional person. After 209.
+      id: "210_trial_demo_tailoring",
+      sql: `
+        CREATE TABLE IF NOT EXISTS trial_demo_tailoring (
+          sample_id    TEXT NOT NULL,
+          job_id       TEXT NOT NULL,
+          changes_json TEXT NOT NULL,
+          ats_after    INTEGER,
+          created_at   INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (sample_id, job_id)
+        );
+      `,
+    },
   ];

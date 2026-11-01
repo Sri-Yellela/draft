@@ -6358,6 +6358,22 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ THE TRIAL'S DEMONSTRATION (owner 11-01): a sample's tailored résumé for a posting — simulated, no model (the
+      // sample re-arranged for the posting's terms) — made once and replayed for every later tester on that sample
+      // (services/trialDemo.js). No person's data: the sample is a fictional person. After 209.
+      id: "210_trial_demo_tailoring",
+      sql: `
+        CREATE TABLE IF NOT EXISTS trial_demo_tailoring (
+          sample_id    TEXT NOT NULL,
+          job_id       TEXT NOT NULL,
+          changes_json TEXT NOT NULL,
+          ats_after    INTEGER,
+          created_at   INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (sample_id, job_id)
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -11061,6 +11077,9 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
       const scoredSoFar = db.prepare("SELECT COUNT(*) FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ?").pluck().get(req.user.id, profile.id);
       if (scoredSoFar < 30) { scheduleBoardFit(req.user.id, "deck", profile); return res.json({ ...deck, reason: "scoring" }); }
     }
+    // ⭐ 11-01 (the owner's tour bug report): "the trial cards show the number, not only Strong match". A75 kept the score
+    // off the client; for a TRIAL account each card now carries its own stored score, so the tour's match step shows it.
+    if (isTrialAccount(db, req.user.id)) deck.cards = deck.cards.map(c => ({ ...c, score: scoreFor(c.job.id) }));
     res.json(deck);
   } catch (e) {
     console.error("[GET /api/draft/today]", e.message);
