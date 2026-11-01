@@ -336,10 +336,12 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   const wide = !slug || !!familyKey;
   const body = (
     <main className={`atl${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : familyKey ? "family" : slug ? "node" : "search"}>
-      {!slug && <AtlasSearch base={base} q={q} />}
-      {!slug && <p className="atl__quiet" data-atlas-learn-link=""><Link to={`${base}/learn`} className="atl__link">Learn — From silicon to software</Link>: a path from a flashlight signal to today's machines, step by step.</p>}
-      {/* ⭐ D116 · the home: Your map (signed in, from the résumé) or the signed-out home (Explore by role). */}
-      {!slug && !q && <YourMap base={base} />}
+      {/* ⭐ D120 P2 · THE HOME IS YOUR MAP (owner 10-31: "very text rich with no direction"): signed in, the direction
+          line, the tree, the course and the five sections, with search, Explore by role, the families and the recent pages
+          in a side column; signed out (or no résumé), search · Learn (the full circle) · Explore by role. A query is the
+          search page as before. */}
+      {!slug && q && <AtlasSearch base={base} q={q} />}
+      {!slug && !q && <YourMap base={base} search={<section className="atl__section" data-atlas-home-search=""><h2 className="atl__h2">Search the Atlas</h2><SearchBox base={base} /></section>} />}
       {learning && <LearnView signedIn={base.startsWith("/app")} />}
       {familyKey && <FamilyMap base={base} familyKey={familyKey} />}
       {slug && !learning && !familyKey && (
