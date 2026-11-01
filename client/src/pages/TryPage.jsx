@@ -39,6 +39,10 @@ export default function TryPage({ authUser }) {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
   const [offered, setOffered] = useState(null);
+  // Owner 11-01: the samples carry fictional names, so a sign-up that gave none of the tester's own (a GitHub handle, an
+  // email) is asked for it once, before the samples.
+  const [needsName, setNeedsName] = useState(false);
+  const [name, setName] = useState({ first_name: "", last_name: "" });
 
   useEffect(() => {
     if (!authUser) return;
@@ -48,7 +52,7 @@ export default function TryPage({ authUser }) {
 
   useEffect(() => {
     if (!authUser) return;
-    api("/api/trial/start", { method: "POST" }).then(() => setTrialIntent(false)).catch(() => {});
+    api("/api/trial/start", { method: "POST" }).then((st) => { setTrialIntent(false); setNeedsName(!!st?.needsName); }).catch(() => {});
   }, [authUser]);
 
   if (!authUser) {
@@ -88,6 +92,41 @@ export default function TryPage({ authUser }) {
       setError(e.message || "That did not work. Try again.");
       setBusy(null);
     }
+  }
+
+  async function saveName(e) {
+    e.preventDefault();
+    setBusy("name"); setError("");
+    try {
+      await api("/api/trial/name", { method: "POST", body: JSON.stringify(name) });
+      setNeedsName(false);
+    } catch (err) {
+      setError(err.message || "That did not work. Try again.");
+    }
+    setBusy(null);
+  }
+
+  if (needsName) {
+    const field = { boxSizing: "border-box", width: "100%", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--color-border)",
+      background: "var(--color-surface)", color: "var(--color-text)", font: "inherit" };
+    return (
+      <div style={wrap}>
+        <h1 style={{ fontSize: 28, margin: "0 0 8px" }}>What's your name?</h1>
+        <p style={{ color: "var(--color-text-muted)", margin: "0 0 20px" }}>
+          The résumés you'll try are fictional people, so we ask for yours once. It stays with your account.
+        </p>
+        <form onSubmit={saveName} style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360 }} data-trial-name="">
+          <input style={field} placeholder="First name" autoComplete="given-name" value={name.first_name} autoFocus
+            onChange={e => setName(n => ({ ...n, first_name: e.target.value }))}/>
+          <input style={field} placeholder="Last name" autoComplete="family-name" value={name.last_name}
+            onChange={e => setName(n => ({ ...n, last_name: e.target.value }))}/>
+          <DepthButton primary type="submit" disabled={!!busy || !name.first_name.trim() || !name.last_name.trim()}>
+            {busy === "name" ? "Saving…" : "Continue"}
+          </DepthButton>
+        </form>
+        {error && <p role="alert" style={{ marginTop: 16, color: "var(--color-warning)" }}>{error}</p>}
+      </div>
+    );
   }
 
   return (

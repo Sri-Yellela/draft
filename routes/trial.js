@@ -27,7 +27,7 @@
 import { startTrial, pickResume, trialState, saveSurvey, dismissSurvey, finishTrial, saveFeedback, recordEvent, setAccess,
          adminTrialCounts, surveyExport, SURVEY, trialAnalytics, crossCut, analyticsCsv, STANDALONE_SURVEY, saveStandaloneSurvey,
          standaloneCsv, surveySources, verifyPracticeToken, renderPracticeForm, renderPracticeThanks,
-         recordPracticeSubmission } from "../services/trial.js";
+         recordPracticeSubmission, saveTrialName } from "../services/trial.js";
 import { draftSlots } from "../services/draftSlots.js";
 import { offeredSamples, samplePicks, ownPicks } from "../services/trialPicks.js";
 import { demoState, completeDemo } from "../services/trialDemo.js";
@@ -39,6 +39,11 @@ export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret
 
   app.post("/api/trial/start", requireAuth, (req, res) => {
     try { res.json(startTrial(db, req.user.id)); } catch (e) { fail(res, e); }
+  });
+
+  // Owner 11-01: the testers use sample résumés, so the account's own name is collected — asked when sign-up gave none.
+  app.post("/api/trial/name", requireAuth, (req, res) => {
+    try { res.json(saveTrialName(db, req.user.id, req.body || {})); } catch (e) { fail(res, e); }
   });
 
   app.get("/api/trial/samples", requireAuth, async (_req, res) => {

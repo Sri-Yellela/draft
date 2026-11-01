@@ -171,9 +171,33 @@ export function trialState(db, userId, { draftsUsed = null } = {}) {
     surveyDue: locked && !surveyDone && !u.trial_survey_dismissed_at,
     // The "Coming soon" pop-up in explore mode names the email they signed up with (owner 11-01).
     email: (() => { try { return db.prepare("SELECT email FROM user_profile WHERE user_id = ?").pluck().get(userId) || null; } catch { return null; } })(),
+    // No real name on the account (a GitHub handle, an email): /try asks for it before the samples (owner 11-01).
+    needsName: needsName(db, userId),
     // The survey's "What field are you in?", prefilled from the résumé (editable) — the sketch's own words.
     fieldGuess: FIELD_FOR_CATEGORY[activeCategory(db, userId)] || null,
   };
+}
+
+// ── the tester's name (owner 11-01: "we are supplying sample resumes so we need to collect names of signed up people") ──
+// A sample résumé carries a fictional person's name, so the account's own name is the only record of who tried it. The
+// email sign-up already requires first + last; Google and LinkedIn give a name; GitHub may give only a handle (stored as
+// the first name, no last) and any provider may give only an email. Those accounts are asked once, before the samples.
+const NAME_MAX = 80;
+export function needsName(db, userId) {
+  let p = null;
+  try { p = db.prepare("SELECT first_name, last_name FROM user_profile WHERE user_id = ?").get(userId); } catch { p = null; }
+  const first = String(p?.first_name || "").trim(), last = String(p?.last_name || "").trim();
+  return !first || !last || first.includes("@");
+}
+export function saveTrialName(db, userId, { first_name, last_name } = {}) {
+  const first = String(first_name ?? "").trim().replace(/\s+/g, " "), last = String(last_name ?? "").trim().replace(/\s+/g, " ");
+  if (!first || !last || first.length > NAME_MAX || last.length > NAME_MAX || /[@<>]/.test(first + last)) {
+    throw Object.assign(new Error("Enter your first and last name."), { status: 400, code: "bad_name" });
+  }
+  const full = `${first} ${last}`;
+  const up = db.prepare("UPDATE user_profile SET first_name = ?, last_name = ?, full_name = ? WHERE user_id = ?").run(first, last, full, userId);
+  if (!up.changes) db.prepare("INSERT INTO user_profile (user_id, first_name, last_name, full_name) VALUES (?, ?, ?, ?)").run(userId, first, last, full);
+  return { ok: true, needsName: false };
 }
 
 /** The active job profile's category (D127), or null. */
@@ -737,10 +761,18 @@ export function crossCut(db, { key, by, categoryOf } = {}) {
 /** CSV, one row per tester: the tour, the drafts, every survey answer. Emails only when asked AND the tester gave one. */
 export function analyticsCsv(db, { includeEmails = false, categoryOf } = {}) {
   const qs = SURVEY.filter(q => includeEmails || q.type !== "email").flatMap(q => (q.follow ? [q.key, q.follow.key] : [q.key]));
-  const cols = ["sample", "field", "device", "speed", "last_step", "finished", "total_seconds", "drafts_sent",
+  // Owner 11-01: who signed up — the account's name and sign-up email — behind the same contact toggle as the emails.
+  const contact = new Map();
+  if (includeEmails) {
+    try {
+      for (const r of db.prepare(`SELECT u.id, TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '')) name, p.email
+        FROM users u LEFT JOIN user_profile p ON p.user_id = u.id WHERE u.trial_at IS NOT NULL`).all()) contact.set(r.id, [r.name || "", r.email || ""]);
+    } catch { /* no profile table */ }
+  }
+  const cols = [...(includeEmails ? ["name", "account_email"] : []), "sample", "field", "device", "speed", "last_step", "finished", "total_seconds", "drafts_sent",
     ...TOUR_STEP_IDS.map(id => `s_${id}_seconds`), ...qs];
   const cell = (v) => { const t = Array.isArray(v) ? v.join("; ") : v == null ? "" : String(v); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
-  const rows = tourSessions(db, { categoryOf }).map(s => [s.sample, s.field, s.device, s.speed, s.lastStep, s.finished ? 1 : 0,
+  const rows = tourSessions(db, { categoryOf }).map(s => [...(includeEmails ? contact.get(s.userId) || ["", ""] : []), s.sample, s.field, s.device, s.speed, s.lastStep, s.finished ? 1 : 0,
     Math.round(s.totalMs / 1000), s.drafts, ...TOUR_STEP_IDS.map(id => (s.steps[id]?.ms != null ? Math.round(s.steps[id].ms / 1000) : "")),
     ...qs.map(k => s.answers?.[k])].map(cell).join(","));
   return [cols.join(","), ...rows].join("\n") + "\n";
