@@ -35,6 +35,7 @@ import { glass } from "../styles/glass.js";
 import { bandMarkStyle } from "../styles/mark.js";
 import { ATS_BAND, atsBandLabel } from "../../../shared/atsBands.js";
 import { salaryLabel } from "../../../shared/postingFacts.js";
+import { DECK_SCROLL_MS } from "../../../shared/trialTour.js";
 import { ATSPanel } from "../components/ATSPanel.jsx";
 import { AtsBandCard, fromDeckReport } from "../components/AtsReport.jsx";
 import PostingPanel from "../components/PostingPanel.jsx";
@@ -618,10 +619,20 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const twoPanel = twoPanelFor(vw);
   const size = twoPanel ? { width: twoPanelColumn(vw), height: CARD.horizontal.height } : cardSize(orientation, vw);
 
+  const scoringTries = useRef(0);
   const fetchDeck = useCallback(async () => {
-    setLoad({ status: "loading", error: null });
+    setLoad(l => (l.status === "scoring" ? l : { status: "loading", error: null }));
     try {
       const deck = await api(`/api/draft/today?date=${encodeURIComponent(localDate())}&order=${deckOrder}`);
+      // 43y: a new résumé's matches are still being scored — say so and ask again (every 4 s, up to 3 minutes),
+      // rather than showing an empty deck the tester takes for "no jobs".
+      if (deck.reason === "scoring" && scoringTries.current < 45) {
+        scoringTries.current += 1;
+        setLoad({ status: "scoring", error: null });
+        setTimeout(() => fetchDeck(), 4000);
+        return;
+      }
+      scoringTries.current = 0;
       dispatch({ type: "__replace", state: initialDeck(deck) });
       setDeckProfileId(deck.profileId ?? null);
       // ⛔ The deal plays on the day's FIRST open only — the server says whether this request dealt.
@@ -687,6 +698,29 @@ export default function DeckView({ canUseAPlusResume = true }) {
     dispatch({ type: "step", dir });
     return true;
   }, []);
+
+  // ⭐ D129 (1) · THE TOUR'S SWEEP: the dealt cards shown from the back to the front, one every DECK_SCROLL_MS (or the
+  // tour's quicker `every` when it runs Faster), ending on the best match at the top (index 0); reduced motion jumps
+  // straight there. The tour asks with a window event and hears "draft:deck-swept" back — the deck owns its state.
+  useEffect(() => {
+    let timer = null;
+    const done = () => window.dispatchEvent(new CustomEvent("draft:deck-swept"));
+    const onSweep = (e) => {
+      clearInterval(timer);
+      const n = stateRef.current?.cards?.length || 0;
+      setExpanded(false);
+      if (n <= 1 || reduced) { dispatch({ type: "goto", index: 0 }); done(); return; }
+      let i = n - 1;
+      dispatch({ type: "goto", index: i });
+      timer = setInterval(() => {
+        i -= 1;
+        dispatch({ type: "goto", index: Math.max(i, 0) });
+        if (i <= 0) { clearInterval(timer); done(); }
+      }, Number(e.detail?.every) || DECK_SCROLL_MS);
+    };
+    window.addEventListener("draft:deck-sweep", onSweep);
+    return () => { window.removeEventListener("draft:deck-sweep", onSweep); clearInterval(timer); };
+  }, [reduced]);
 
   const undo = useCallback(async () => {
     const t = toast;
@@ -843,9 +877,12 @@ export default function DeckView({ canUseAPlusResume = true }) {
           )}
         </header>
 
-        {load.status === "loading" && (
-          <div style={{ ...glass({ radius: 28 }), padding: 40, minHeight: 340, display: "grid", placeItems: "center", color: C.INK_MUTED }}>
-            Dealing today's draft…
+        {(load.status === "loading" || load.status === "scoring") && (
+          <div style={{ ...glass({ radius: 28 }), padding: 40, minHeight: 340, display: "grid", placeItems: "center", color: C.INK_MUTED, textAlign: "center" }}
+            data-deck-scoring={load.status === "scoring" ? "" : undefined}>
+            {load.status === "scoring"
+              ? "Reading today's postings against this résumé. Your best matches will be here in a few seconds…"
+              : "Dealing today's draft…"}
           </div>
         )}
 

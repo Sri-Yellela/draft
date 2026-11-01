@@ -5845,4 +5845,14 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_scraped_jobs_board_category ON scraped_jobs(board_category);
       `,
     },
+    {
+      // ⭐ 43y FIX (11-01): D121's sponsorship signal reads lca_employer_periods BY EMPLOYER NAME for every board row
+      // (sponsorshipSignal.titleFacts), and nothing indexed employer_name — a 2.5 s scan of 481,588 rows per row, 50 rows
+      // a page: the daily deck's deal blocked the whole server for minutes on a new account (the owner's trial walk,
+      // 11-01: "no jobs or picks"). Measured on a copy: 2,562 ms -> 0 ms a lookup; the index builds in 0.5 s. After 207.
+      id: "208_lca_employer_name_index",
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_lca_employer_periods_name ON lca_employer_periods(employer_name);
+      `,
+    },
   ];

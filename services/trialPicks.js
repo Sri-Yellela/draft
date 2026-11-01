@@ -13,7 +13,10 @@ import { samples, SAMPLE_IDS } from "./trial.js";
 import { categoryOf, profileCategory } from "./jobs/professionalScope.js";
 
 export const PICKS_PER_SAMPLE = 10;
-export const SCORE_CAP = 250;
+export const SCORE_CAP = 120;
+/** Score this many postings, then give the event loop back (43y fix: the scoring blocked the whole server for 27 s). */
+export const YIELD_EVERY = 8;
+const breathe = () => new Promise(r => setImmediate(r));
 
 /** The posting levels a résumé at this seniority may be shown (the posting's level_read, else its title bucket). */
 export const LEVEL_FIT = Object.freeze({
@@ -67,6 +70,7 @@ export function skillOverlap(skills, text) {
 }
 
 const cache = new Map();
+const inflight = new Map();
 const today = (now) => new Date(now).toISOString().slice(0, 10);
 
 function candidates(db, category, seniority) {
@@ -85,7 +89,20 @@ function candidates(db, category, seniority) {
  * A posting whose own title the category rule does not place in `category` is skipped — the stored column is the
  * fast filter, the rule is the guard (D127: no cross-category pick, ever).
  */
-export function picksFor(db, { category, seniority = "mid", resumeText, discipline = null, limit = PICKS_PER_SAMPLE, now = Date.now(), cacheKey = null }) {
+/**
+ * ASYNC, and it yields every YIELD_EVERY postings: scoring is ≈ 7 ms a posting and must never hold the server (43y fix,
+ * 11-01 — the synchronous version blocked every request for 27 s on the first /try). One computation per key is shared by
+ * every caller that arrives while it runs.
+ */
+export async function picksFor(db, opts) {
+  const key = opts.cacheKey && `${opts.cacheKey}:${today(opts.now ?? Date.now())}`;
+  if (key && inflight.has(key)) return inflight.get(key);
+  const run = picksNow(db, opts).finally(() => key && inflight.delete(key));
+  if (key) inflight.set(key, run);
+  return run;
+}
+
+async function picksNow(db, { category, seniority = "mid", resumeText, discipline = null, limit = PICKS_PER_SAMPLE, now = Date.now(), cacheKey = null }) {
   if (!category || !resumeText) return [];
   // Per day: picks are recomputed once a day (warmed at boot), not on every crawl's change of the board's size.
   const key = cacheKey && `${cacheKey}:${today(now)}`;
@@ -95,7 +112,9 @@ export function picksFor(db, { category, seniority = "mid", resumeText, discipli
   if (hit && (hit.out.length >= limit || now - hit.at < 3600_000)) return hit.out;
   const scored = [];
   const skills = resumeSkills(resumeText);
+  let n = 0;
   for (const j of candidates(db, category, seniority)) {
+    if (++n % YIELD_EVERY === 0) await breathe();
     const v = categoryOf({ title: j.title });
     if (v.category !== category) continue;
     if (near && !near.has(v.discipline)) continue;
@@ -116,7 +135,7 @@ export function picksFor(db, { category, seniority = "mid", resumeText, discipli
 }
 
 /** One sample's picks (from its own category, level and résumé). */
-export function samplePicks(db, id, opts = {}) {
+export async function samplePicks(db, id, opts = {}) {
   const s = samples()[id];
   if (!s) return [];
   const discipline = categoryOf({ title: s.targetTitle || "", roleKey: s.roleFamily }).discipline;
@@ -124,16 +143,18 @@ export function samplePicks(db, id, opts = {}) {
 }
 
 /** Every sample with whether it is offered today: offered only with ≥ PICKS_PER_SAMPLE picks. */
-export function offeredSamples(db, opts = {}) {
-  return SAMPLE_IDS.map(id => {
+export async function offeredSamples(db, opts = {}) {
+  const out = [];
+  for (const id of SAMPLE_IDS) {
     const s = samples()[id];
-    const picks = samplePicks(db, id, opts).length;
-    return { id, label: s.label, category: s.category, picks, offered: picks >= PICKS_PER_SAMPLE };
-  });
+    const picks = (await samplePicks(db, id, opts)).length;
+    out.push({ id, label: s.label, category: s.category, picks, offered: picks >= PICKS_PER_SAMPLE });
+  }
+  return out;
 }
 
 /** "Use my own résumé": picks from the active profile's category, or the honest reason there are none. */
-export function ownPicks(db, userId, opts = {}) {
+export async function ownPicks(db, userId, opts = {}) {
   const p = db.prepare(`SELECT d.id, d.role_family, d.target_titles, d.profile_name, d.seniority, b.content FROM domain_profiles d
     LEFT JOIN profile_base_resumes b ON b.profile_id = d.id AND b.user_id = d.user_id
     WHERE d.user_id = ? AND d.is_active = 1`).get(userId);
@@ -144,9 +165,9 @@ export function ownPicks(db, userId, opts = {}) {
   if (!category) return { picks: [], reason: "field_not_live", category: null };
   const seniority = ["senior", "lead", "manager", "staff", "principal"].includes(p.seniority) ? "senior"
     : ["junior", "entry", "intern"].includes(p.seniority) ? "junior" : "mid";
-  const picks = picksFor(db, { category, seniority, discipline, resumeText: String(p.content).replace(/<[^>]+>/g, " "), cacheKey: `own:${userId}:${p.id}`, ...opts });
+  const picks = await picksFor(db, { category, seniority, discipline, resumeText: String(p.content).replace(/<[^>]+>/g, " "), cacheKey: `own:${userId}:${p.id}`, ...opts });
   return picks.length >= PICKS_PER_SAMPLE ? { picks, category } : { picks: [], category, reason: "field_not_live" };
 }
 
 /** Test seam: forget the day's cache. */
-export function clearPicksCache() { cache.clear(); }
+export function clearPicksCache() { cache.clear(); inflight.clear(); }

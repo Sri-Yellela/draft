@@ -6330,6 +6330,16 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_scraped_jobs_board_category ON scraped_jobs(board_category);
       `,
     },
+    {
+      // ⭐ 43y FIX (11-01): D121's sponsorship signal reads lca_employer_periods BY EMPLOYER NAME for every board row
+      // (sponsorshipSignal.titleFacts), and nothing indexed employer_name — a 2.5 s scan of 481,588 rows per row, 50 rows
+      // a page: the daily deck's deal blocked the whole server for minutes on a new account (the owner's trial walk,
+      // 11-01: "no jobs or picks"). Measured on a copy: 2,562 ms -> 0 ms a lookup; the index builds in 0.5 s. After 207.
+      id: "208_lca_employer_name_index",
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_lca_employer_periods_name ON lca_employer_periods(employer_name);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -8565,6 +8575,12 @@ function boardFit() {
   if (!_boardFit) {
     _boardFit = createBoardFitPrecompute({
       db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: storeAtsReportForProfile,
+      // 43y: a new profile's first scores — its own category (D127), newest first — written within seconds.
+      primeFor: (_userId, profile) => {
+        const cat = profileCategory(profile || {});
+        return db.prepare(`SELECT job_id FROM scraped_jobs WHERE is_active = 1 AND (? IS NULL OR board_category = ?)
+          ORDER BY COALESCE(posted_at, discovered_at) DESC LIMIT 120`).pluck().all(cat, cat);
+      },
     });
   }
   return _boardFit;
@@ -11019,7 +11035,15 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
     const scoreStmt = db.prepare(
       "SELECT ats_score FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?");
     const scoreFor = (jobId) => scoreStmt.get(req.user.id, profile.id, jobId)?.ats_score ?? null;
-    res.json(await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor }));
+    const deck = await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor });
+    // 43y (the owner's trial walk, 11-01: "no jobs or picks" on a new account): an empty deal for a profile whose
+    // scores have not landed yet is not "empty" — it is SCORING. The pass is (re)asked for, the client says so and asks
+    // again; the deal is not frozen (an empty one never is), so the next request deals from the first scores.
+    if (!deck.size) {
+      const scoredSoFar = db.prepare("SELECT COUNT(*) FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ?").pluck().get(req.user.id, profile.id);
+      if (scoredSoFar < 30) { scheduleBoardFit(req.user.id, "deck", profile); return res.json({ ...deck, reason: "scoring" }); }
+    }
+    res.json(deck);
   } catch (e) {
     console.error("[GET /api/draft/today]", e.message);
     res.status(500).json({ error: "The deck could not be dealt. Try again." });
