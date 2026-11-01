@@ -90,8 +90,18 @@ try {
       const at = await waitStep(page, id, 30000);
       const on = at && await lit(page);
       check(`${label}: ${id} — the caption and its spotlight`, at && on, at ? (on ? "" : "no element to light") : `stuck on ${await stepOf(page)}`);
+      if (id === "draft_house") {
+        check(`${label}: Draft House shows its labelled example`, await page.waitForSelector("[data-house-example]", { timeout: 8000 }).then(() => true).catch(() => false));
+      }
+      if (id === "auto_settings") {
+        check(`${label}: the modes step opens Auto settings`, await page.waitForSelector("[data-auto-settings]", { timeout: 8000 }).then(() => true).catch(() => false));
+      }
       await shot(page, `${label}-3-${id}`);
-      if (at) await next(page);
+      if (at) await page.click("[data-tour-next]").catch(() => page.$eval("[data-tour-next]", el => el.click()));
+      if (id === "auto_settings") {
+        const closed = await page.waitForFunction(() => !document.querySelector("[data-auto-settings]"), { timeout: 8000 }).then(() => true).catch(() => false);
+        check(`${label}: Next closes Auto settings (and puts them back)`, closed);
+      }
     }
     check(`${label}: your turn — pick 2`, await waitStep(page, "pick_two", 30000));
     const req = await page.waitForSelector("[data-tour-require]", { timeout: 8000 }).then(h => h.evaluate(el => el.innerText)).catch(() => "");

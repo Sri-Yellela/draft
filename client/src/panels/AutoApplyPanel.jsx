@@ -67,6 +67,29 @@ import { postingClick } from "../lib/openPosting.js";
 // The state is AutoApplyContext's, so the board and this panel read one pipeline.
 // ============================================================
 
+// ⭐ D129 (3) · DRAFT HOUSE'S EXAMPLE, for the guided tour: two runs and the five rings, LABELLED "Example" — so a new
+// tester sees what the tree becomes. Invented companies; nothing in it opens or acts.
+const EX = (key, company, title, ring) => ({ key: `example-${key}`, company, title, ring, jobId: null });
+const EXAMPLE_VIEW = [
+  { run: { key: "example-run-2", day: "Example", time: "9:00", real: false, nodes: [1, 2, 3] },
+    items: [{ node: EX("a", "Northwind Robotics", "Software Engineer", "review"), dim: false },
+            { node: EX("b", "Harbor Health", "Backend Engineer", "need"), dim: false },
+            { node: EX("c", "Bluefin Analytics", "Data Engineer", "work"), dim: false }] },
+  { run: { key: "example-run-1", day: "Example", time: "Yesterday", real: false, nodes: [1, 2] },
+    items: [{ node: EX("d", "Cedar Logistics", "Platform Engineer", "sent"), dim: false },
+            { node: EX("e", "Lumen Payments", "Software Engineer II", "reply"), dim: false }] },
+];
+const nothingYetForExample = (nodes) => !nodes || nodes.length === 0;
+function ExampleNote() {
+  return (
+    <p className="dht-empty" data-house-example="">
+      <strong>Example.</strong> This is what Draft House looks like once you send a few: each company is a tile, its ring says
+      where the application is (Needs you, Ready for your review, Working on it, Sent, Replied), and opening one shows what happened,
+      the answers given, the form as filled and what changed in the résumé.
+    </p>
+  );
+}
+
 export function AutoApplyPanel() {
   const { theme } = useTheme();
   const { w: viewportWidth } = useViewport();
@@ -162,6 +185,35 @@ export function AutoApplyPanel() {
     settingsOpener.current = el || document.activeElement;
     setSettingsGroup(group); setSettingsOpen(true);
   };
+
+  // ⭐ D129 (3) · THE GUIDED TOUR's two asks of Draft House, by window event (the page owns its state):
+  //   "draft:house-example" { on } — an EXAMPLE tree, labelled, while the tester's own is empty (nothing opens from it);
+  //   "draft:tour-settings" { open } — the Auto settings drawer opened for the step, and on close the settings PUT BACK
+  //   exactly as they were when it opened ("set up in the step, then reset"), only if the tester changed something.
+  const [tourExample, setTourExample] = useState(() => typeof window !== "undefined" && !!window.draftTourExample);
+  const tourSnapshot = useRef(null);
+  useEffect(() => {
+    const onExample = (e) => setTourExample(!!e.detail?.on);
+    const onSettings = async (e) => {
+      if (e.detail?.open) {
+        try { tourSnapshot.current = (await api("/api/apply/auto-settings")).settings ?? null; } catch { tourSnapshot.current = null; }
+        openSettings("when", null);
+        return;
+      }
+      setSettingsOpen(false);
+      const before = tourSnapshot.current;
+      tourSnapshot.current = null;
+      if (!before) return;
+      try {
+        const now = (await api("/api/apply/auto-settings")).settings ?? null;
+        const strip = (x) => JSON.stringify({ ...(x || {}), savedAt: undefined });
+        if (strip(now) !== strip(before)) await api("/api/apply/auto-settings", { method: "PUT", body: JSON.stringify({ settings: before }) });
+      } catch { /* the tester's own change stands; nothing is half-restored */ }
+    };
+    window.addEventListener("draft:house-example", onExample);
+    window.addEventListener("draft:tour-settings", onSettings);
+    return () => { window.removeEventListener("draft:house-example", onExample); window.removeEventListener("draft:tour-settings", onSettings); };
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // D102 P5: the application open beside the tree (wide screens), by job id — "Full page".
   const [sideJob, setSideJob] = useState(null);
@@ -412,13 +464,17 @@ export function AutoApplyPanel() {
   const picksOn = settings?.picks === true;
   const nextRunAt = held ? null : (d113.nextRunAt || ((fullAuto || picksOn) ? nextRunFromSettings(settings, now) : null));
   const tree = buildTree({ runs: d113.available ? d113.runs : null, nodes, nextRunAt, timeZone, now });
-  const view = treeView(tree, { filter, q });
+  const treeShown = treeView(tree, { filter, q });
+  // D129 (3): the tour's example shows only while the tester's own tree is empty — a real tree is never covered.
+  const showExample = tourExample && nothingYetForExample(nodes);
+  const view = showExample ? EXAMPLE_VIEW : treeShown;
   const blocks = sideBlocks({
     nodes, connections: [...connectionsFromStopped(stoppedItems), ...connections], binCount: bin.items.length, now,
   });
 
   // U4 · one branch open at a time; Escape closes. Opening from the side scrolls the tree to it.
-  const step = (action) => setOpen(o => branchStep(o, action));
+  // The tour's example opens nothing (its keys are "example-…").
+  const step = (action) => { if (String(action?.key ?? "").startsWith("example-")) return; setOpen(o => branchStep(o, action)); };
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape" && !settingsOpen && !applyRunDetailOpen) setOpen(null); };
     window.addEventListener("keydown", onKey);
@@ -967,7 +1023,7 @@ export function AutoApplyPanel() {
           search={<PanelSearch theme={theme} value={q} onChange={setQ} width={200} placeholder="Search, e.g. a company" />}
           renderRunBranch={renderRunBranch} renderJobBranch={renderJobBranch}
           nextLine={fullAuto ? "Next look. Good matches are sent for you." : "Next look. You'll get one email with the picks."}
-          empty={nothingYet && nodes.length === 0 && (
+          empty={showExample ? <ExampleNote/> : nothingYet && nodes.length === 0 && (
             <p className="dht-empty">Nothing drafted yet. Draft jobs from the Daily Deck or Full House.</p>
           )} />
         {/* D102 P5 · an opened application takes the side column on a wide screen (the side returns on
