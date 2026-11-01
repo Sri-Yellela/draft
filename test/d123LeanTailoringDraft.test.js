@@ -72,7 +72,7 @@ test("d123LeanRequestOnTheWire: no posting text, the keywords and placements, op
   assert.deepEqual(validate(JSON.parse(JSON.stringify(body)), schemas.GenerateRequest, schemas, { strict: true }), []);
   const full = generateRequest({ profile: {}, job, baseResumeText: RESUME, mode: "GENERATE" });
   assert.equal(full.options.tailoring, undefined, "the full request is unchanged");
-  assert.equal(full.job.description, "SECRET cut text");
+  assert.equal(full.job.description, job.description_full, "the full request sends the crawl's FULL text (D123)");
   const aPlus = generateRequest({ profile: {}, job, baseResumeText: RESUME, mode: "A_PLUS", tailoring: "lean", keywords });
   assert.equal(aPlus.options.tailoring, undefined, "lean is GENERATE only");
   assert.ok(schemas.GenerateRequest.properties.options.properties.tailoring, "the vendored contract declares it");
@@ -91,4 +91,19 @@ test("d123LeanLedger: the lean call is recorded as resume_generate (the allowanc
   assert.deepEqual(rows.map(r => r.purpose), ["resume_generate", "resume_tailor_repair"]);
   assert.equal(id, rows[0].id, "the id the after-score is written to");
   assert.equal(rows[0].ats_score_before, 41);
+});
+
+test("d123FullCallReadsFullText: the FULL call sends description_full while it fits the tools service's cap, else the stored text", async () => {
+  const { FULL_TEXT_CAP } = await import("../services/toolsServiceRequests.js");
+  assert.equal(FULL_TEXT_CAP, schemas.Job.properties.description.maxLength, "held equal to the vendored contract's cap");
+  const sent = (job) => generateRequest({ profile: {}, job: { title: "T", ...job }, baseResumeText: RESUME, mode: "GENERATE" }).job.description;
+  assert.equal(sent({ description: "cut", description_full: "the whole posting" }), "the whole posting");
+  assert.equal(sent({ description: "cut", description_full: "x".repeat(FULL_TEXT_CAP + 1) }), "cut");
+  assert.equal(sent({ description: "only" }), "only");
+});
+
+test("d123P1NoCacheWriteForOneDraft: the apply path caches only a burst — a single Draft sends cache:false", () => {
+  const server = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
+  assert.match(server, /const applyBurst = \(\(\) => \{ try \{ return db\.prepare\("SELECT COUNT\(\*\) n FROM apply_run_jobs WHERE user_id = \? AND status IN \('queued','running'\)"\)\.get\(userId\)\.n > 1; \}/);
+  assert.match(server, /coreGenerateResume\(\{ userId, jobId: String\(jobId\), job: jobRow, tool, cache: applyBurst \? undefined : false \}\)/);
 });

@@ -50,13 +50,16 @@ test("D70 P3 (a): a one-shot caller's cache:false goes on the wire once accepted
   if (!RESUME_MASTER_ACCEPTS_CACHE_OPTION) assert.equal("cache" in today.options, false);
 });
 
-test("D70 P3 (a): the interactive route asks for cache:false, the apply worker does not, and the kernel forwards it", () => {
+// ⚠ CHANGED ON PURPOSE (D123 P-1, 11-01): the apply worker kept the cache unconditionally ("bursts"), and production's 10-31
+// call — a single Draft — WROTE 7,897 cache tokens that nothing read. It now caches only a REAL burst (other Drafts queued or
+// running for the account) and sends cache:false for a single Draft; test/d123LeanTailoringDraft.test.js pins the rule.
+test("D70 P3 (a): the interactive route asks for cache:false, the apply worker caches only a burst, and the kernel forwards it", () => {
   const route = SERVER.slice(at(SERVER, 'app.post("/api/generate"'), at(SERVER, 'app.post("/api/generate"') + 12000);
   assert.match(route, /coreGenerateResume\(\{[^}]*\bcache: false\b[^}]*\}\)/, "the interactive /api/generate is a one-shot");
   const apply = fnBody("generateResumeForApply");
   const call = /coreGenerateResume\(\{[^}]*\}\)/.exec(apply)?.[0];
   assert.ok(call, "generateResumeForApply calls coreGenerateResume");
-  assert.doesNotMatch(call, /cache/, "the apply worker (bursts) keeps the default — caching is where AL6 measured it paying");
+  assert.match(call, /cache: applyBurst \? undefined : false/, "a burst keeps the default (where AL6 measured caching paying); one Draft does not");
   const kernel = fnBody("coreGenerateResume");
   assert.match(kernel, /async function coreGenerateResume\(\{[^}]*cache = undefined[^}]*\}\)/);
   assert.match(kernel, /toolsGenerateRequest\(\{[\s\S]{0,300}?\bcache,/, "the caller's choice reaches the request builder");

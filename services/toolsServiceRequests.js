@@ -36,8 +36,15 @@ export function jobProfileFromDomainProfile(dp) {
 }
 
 export function jobForResumeMaster(job = {}) {
-  return { title: job.title, company: job.company, category: job.category, description: job.description, stack: job.stack ?? null };
+  // ⭐ D123 (the audit): the crawl's FULL text when it kept one — 1,246 of 3,850 active postings were cut at 5,000 characters,
+  // usually through the requirements. A request over the tools service's cap would be refused, so the full text is used
+  // only while it fits the cap (INPUT_LIMITS.jobDescription there, 50,000 characters); else the stored description.
+  const full = typeof job.description_full === "string" && job.description_full.trim() && job.description_full.length <= FULL_TEXT_CAP
+    ? job.description_full : null;
+  return { title: job.title, company: job.company, category: job.category, description: full ?? job.description, stack: job.stack ?? null };
 }
+/** The tools service's job.description cap (its src/generation/inputLimits.js) — held equal by test/d123LeanTailoringDraft. */
+export const FULL_TEXT_CAP = 50000;
 
 /** D123 P2: the job as a LEAN request carries it — no posting text, the computed keywords instead. */
 export function leanJobForResumeMaster(job = {}, keywords) {

@@ -12569,7 +12569,11 @@ function generateResumeForApply(userId, jobId, toolType) {
   }
 
   console.log(`[generateResumeForApply] starting background generation for user=${userId} job=${jobId} tool=${tool}`);
-  const p = coreGenerateResume({ userId, jobId: String(jobId), job: jobRow, tool })
+  // ⭐ D123 P-1 (the audit): the prompt cache pays only when a LATER call reads it within 5 minutes. A Draft is a burst only
+  // when the account has other Drafts queued or running behind it; a single Draft is a one-shot and sends cache:false — the
+  // 10-31 production call WROTE 7,897 cache tokens at 1.25x that nothing read.
+  const applyBurst = (() => { try { return db.prepare("SELECT COUNT(*) n FROM apply_run_jobs WHERE user_id = ? AND status IN ('queued','running')").get(userId).n > 1; } catch { return true; } })();
+  const p = coreGenerateResume({ userId, jobId: String(jobId), job: jobRow, tool, cache: applyBurst ? undefined : false })
     .then(r => ({ html: r.html, atsScore: r.atsScore, resumeId: r.resumeId, fromCache: false }))
     // Keep the upstream failure STRUCTURED. This used to be `{ error: e.message }`, which threw
     // away the HTTP status, the API error type and the request_id — so a 404 on a retired model
