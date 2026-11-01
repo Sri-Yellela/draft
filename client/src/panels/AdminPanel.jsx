@@ -16,6 +16,7 @@ import { AdminsTab } from "./adminAdmins.jsx";
 import { AtlasTab } from "./adminAtlas.jsx";
 import { TrialTab } from "./adminTrial.jsx";
 import { TestersTab } from "./adminTesters.jsx";
+import { AppearanceTab } from "./adminAppearance.jsx";
 import { CalibrateTab } from "./adminCalibrate.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
@@ -862,6 +863,15 @@ export function AdminPanel() {
                 initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
                 exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
                 <AdminsTab/>
+              </motion.div>
+            )}
+
+            {/* ⭐ D133: Appearance — the Studio theme per surface (the Admin pages' look; offered to users or not). */}
+            {at("system", "appearance") && (
+              <motion.div key="appearance"
+                initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
+                exit={{ opacity:0, y:-6 }} transition={{ duration:0.18 }}>
+                <AppearanceTab/>
               </motion.div>
             )}
           </AnimatePresence>

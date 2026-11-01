@@ -115,7 +115,8 @@ export async function renderExtensionTokens() {
     const lacking = names.filter((n) => !(n in t.tokens));
     if (lacking.length) throw new Error(`themes/${t.id}.js lacks ${lacking.join(", ")}`);
   }
-  const constOf = { "paper-light": "C_LIGHT", "charcoal-dark": "C_DARK", "contrast-light": "C_CONTRAST_LIGHT", "contrast-dark": "C_CONTRAST_DARK" };
+  const constOf = { "paper-light": "C_LIGHT", "charcoal-dark": "C_DARK", "contrast-light": "C_CONTRAST_LIGHT", "contrast-dark": "C_CONTRAST_DARK",
+    "studio-light": "C_STUDIO_LIGHT", "studio-dark": "C_STUDIO_DARK" };
   const unknown = THEME_LIST.map((t) => t.id).filter((id) => !constOf[id]);
   if (unknown.length) throw new Error(`a theme the extension does not carry yet: ${unknown.join(", ")} — add it to constOf`);
   const js =
@@ -128,6 +129,9 @@ export async function renderExtensionTokens() {
     `// ⭐ T17: the registry's Contrast pair (client/src/themes/contrast-*.js), for the dock and its views.\n` +
     `export const C_CONTRAST_LIGHT = ${obj(byId["contrast-light"].tokens)};\n\n` +
     `export const C_CONTRAST_DARK = ${obj(byId["contrast-dark"].tokens)};\n\n` +
+    `// ⭐ D133: the registry's Studio pair (client/src/themes/studio-*.js), so an account on Studio sees it in the dock too.\n` +
+    `export const C_STUDIO_LIGHT = ${obj(byId["studio-light"].tokens)};\n\n` +
+    `export const C_STUDIO_DARK = ${obj(byId["studio-dark"].tokens)};\n\n` +
     `/** Every theme of the registry, by id: its scheme and its palette. */\n` +
     `export const EXT_THEMES = Object.freeze({\n` +
     THEME_LIST.map((t) => `  ${JSON.stringify(t.id)}: Object.freeze({ scheme: ${JSON.stringify(t.scheme)}, tokens: ${constOf[t.id]} }),`).join("\n") +

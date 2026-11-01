@@ -85,7 +85,8 @@ test("the client has exactly one reader of the lever and it is served, not built
 
   const server = fs.readFileSync("server.js", "utf8");
   // Public on purpose: the pages carrying the commercial copy render logged out.
-  assert.match(server, /app\.get\("\/api\/config", \(_req, res\) => res\.json\(\{ monetisationEnabled: monetisationEnabled\(\) \}\)\)/);
+  // D133 added a second public boolean (studioForUsers); the lever is still read from the server, never built in.
+  assert.match(server, /app\.get\("\/api\/config", \(_req, res\) => res\.json\(\{ monetisationEnabled: monetisationEnabled\(\), studioForUsers: studioForUsers\(\) \}\)\)/);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
