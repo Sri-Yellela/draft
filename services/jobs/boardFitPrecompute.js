@@ -200,6 +200,10 @@ const yieldToEventLoop = () => new Promise(resolve => setImmediate(resolve));
  */
 export function createBoardFitPrecompute({
   db, basisFor, scoreJob, store,
+  // ⭐ 43y (11-01): (userId, profile) -> job ids to score FIRST for a profile with no scores at all (its own category,
+  // newest first). Without it a new tester's deck waited for the whole board — measured 320 s for 2,411 postings.
+  primeFor = null,
+  primeSize = 60,
   log = console,
   batchSize = 50,
   sliceMs = 40,
@@ -289,8 +293,38 @@ export function createBoardFitPrecompute({
     let failed = 0, gone = 0, yields = 0, longestSliceMs = 0;
     const errors = [];
     const results = [];
-    for (let i = 0; i < p.jobIds.length; i += batchSize) {
-      const ids = p.jobIds.slice(i, i + batchSize);
+    const writeChunk = db.transaction((items) => {
+      for (const it of items) {
+        store({ userId, profileId: profile.id, jobId: it.jobId, report: it.report, basisHash: basis.basisHash, jobHash: it.jobHash });
+      }
+    });
+
+    // ⭐ 43y · THE FIRST SCORES FOR A NEW PROFILE, NOW. A profile with NOTHING scored has an empty deck until this pass
+    // ends (writes come after the whole pass, below — for a board someone is paging). With nothing scored there is no
+    // ranked board to disturb, so the prime set (its own category, newest first) is scored and WRITTEN at once; the
+    // deal can then deal from it within seconds, and the rest of the pass carries on as before.
+    let primed = new Set();
+    if (primeFor && p.fresh === 0 && p.jobIds.length > primeSize) {
+      let want = [];
+      try { want = (primeFor(userId, profile) || []).filter(id => p.jobIds.includes(id)).slice(0, primeSize); } catch { want = []; }
+      if (want.length) {
+        const jobs = db.prepare(`SELECT * FROM scraped_jobs WHERE is_active = 1 AND job_id IN (${want.map(() => "?").join(",")})`).all(...want);
+        const first = [];
+        let sliceStart = now();
+        for (const job of jobs) {
+          try { first.push({ jobId: job.job_id, report: scoreJob(job, basis.runtimeBasis), jobHash: atsJobInputHash(job) }); }
+          catch (e) { failed++; if (errors.length < 5) errors.push(`${job.job_id}: ${e.message}`); }
+          if (now() - sliceStart >= sliceMs) { yields++; await yieldToEventLoop(); sliceStart = now(); }
+        }
+        try { writeChunk(first); primed = new Set(first.map(x => x.jobId)); }
+        catch (e) { if (errors.length < 5) errors.push(`prime commit: ${e.message}`); }
+        emit("log", { ...base, status: "primed", primed: primed.size, ms: Math.round(now() - started) });
+      }
+    }
+    const todoIds = primed.size ? p.jobIds.filter(id => !primed.has(id)) : p.jobIds;
+
+    for (let i = 0; i < todoIds.length; i += batchSize) {
+      const ids = todoIds.slice(i, i + batchSize);
       // The panel reads `SELECT * FROM scraped_jobs` for the job it scores; so does this, so the
       // scorer sees the same columns on both paths. Re-checks is_active: a row retired between the
       // plan and this batch is skipped, not scored.
@@ -332,12 +366,7 @@ export function createBoardFitPrecompute({
     // each hold to a fraction of that, and they are written back to back, so the window in which
     // the board is partly updated is a few event-loop turns — any cursor issued inside it is refused
     // by the epoch like any other. Memory is bounded by the board: ~850 bytes of report per posting.
-    let scored = 0, commitMs = 0, commits = 0, longestCommitMs = 0;
-    const writeChunk = db.transaction((items) => {
-      for (const it of items) {
-        store({ userId, profileId: profile.id, jobId: it.jobId, report: it.report, basisHash: basis.basisHash, jobHash: it.jobHash });
-      }
-    });
+    let scored = primed.size, commitMs = 0, commits = 0, longestCommitMs = 0;
     for (let i = 0; i < results.length; i += commitChunk) {
       const chunk = results.slice(i, i + commitChunk);
       const commitStart = now();

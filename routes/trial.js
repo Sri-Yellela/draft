@@ -30,30 +30,30 @@ import { offeredSamples, samplePicks, ownPicks } from "../services/trialPicks.js
 export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret, upload, deliver = null }) {
   const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "error", message: e.message });
   // D124 amended: the day's picks are scored once (≈ 7 ms a posting, six samples) — warmed here, off the request path.
-  setTimeout(() => { try { offeredSamples(db); } catch { /* the first request computes it */ } }, 20_000).unref?.();
+  setTimeout(() => { offeredSamples(db).catch(() => { /* the first request computes it */ }); }, 20_000).unref?.();
 
   app.post("/api/trial/start", requireAuth, (req, res) => {
     try { res.json(startTrial(db, req.user.id)); } catch (e) { fail(res, e); }
   });
 
-  app.get("/api/trial/samples", requireAuth, (_req, res) => {
-    try { res.json({ samples: offeredSamples(db).map(({ id, label, category, offered }) => ({ id, label, category, offered })) }); }
+  app.get("/api/trial/samples", requireAuth, async (_req, res) => {
+    try { res.json({ samples: (await offeredSamples(db)).map(({ id, label, category, offered }) => ({ id, label, category, offered })) }); }
     catch (e) { fail(res, e); }
   });
 
-  app.get("/api/trial/picks", requireAuth, (req, res) => {
+  app.get("/api/trial/picks", requireAuth, async (req, res) => {
     try {
       const choice = db.prepare("SELECT trial_resume FROM users WHERE id = ?").pluck().get(req.user.id);
-      if (choice && choice !== "own") return res.json({ sample: choice, picks: samplePicks(db, choice) });
-      res.json({ sample: null, ...ownPicks(db, req.user.id) });
+      if (choice && choice !== "own") return res.json({ sample: choice, picks: await samplePicks(db, choice) });
+      res.json({ sample: null, ...(await ownPicks(db, req.user.id)) });
     } catch (e) { fail(res, e); }
   });
 
-  app.post("/api/trial/resume", requireAuth, (req, res) => {
+  app.post("/api/trial/resume", requireAuth, async (req, res) => {
     try {
       const choice = req.body?.choice;
       // D124 amended: a sample whose category has fewer than 10 good picks today is hidden — and refused if asked for.
-      if (choice !== "own" && offeredSamples(db).some(x => x.id === choice && !x.offered)) {
+      if (choice !== "own" && (await offeredSamples(db)).some(x => x.id === choice && !x.offered)) {
         return res.status(409).json({ error: "sample_not_offered", message: "That sample is not available today. Pick another, or use your own résumé." });
       }
       res.json(pickResume(db, req.user.id, choice));
