@@ -1,0 +1,19 @@
+{
+  "id": "C",
+  "label": "Sample C · mid-level mechanical engineer",
+  "fictional": "Sample — a fictional person. Every name, school, employer detail and contact below is invented for draft's trial; it describes no real person.",
+  "candidate": {
+    "fullName": "Priya Lindqvist",
+    "email": "priya.lindqvist@example.com",
+    "phone": "(555) 010-3318",
+    "location": "Dayton, OH",
+    "linkedinUrl": "https://www.linkedin.com/in/example-priya-lindqvist",
+    "yearsOfExperience": 5
+  },
+  "seniority": "mid",
+  "roleFamily": "engineering",
+  "category": "engineering",
+  "targetTitle": "Mechanical Engineer",
+  "domain": "manufacturing",
+  "resumeText": "Priya Lindqvist\nDayton, OH | priya.lindqvist@example.com | (555) 010-3318 | linkedin.com/in/example-priya-lindqvist\n\nEXPERIENCE\nMechanical Engineer II, Corvane Thermal Systems, Dayton, OH | Apr 2022 - Present\n- Designed a brazed aluminium heat exchanger for a 40 kW commercial chiller in SolidWorks, cutting part count from 31 to 19 and unit cost by 14%\n- Ran thermal and structural FEA in ANSYS on 6 new enclosures, catching a bracket resonance at 118 Hz before the first prototype build\n- Wrote GD&T drawings and tolerance stack-ups for 45 machined and sheet-metal parts released through PLM\n- Led DFMEA reviews with manufacturing and quality for two product launches, closing 23 high-risk items before tooling\n- Supported a supplier move to a second casting vendor, writing the first-article inspection plan and PPAP checklist\n\nMechanical Design Engineer, Pellridge Automotive Components, Toledo, OH | Jun 2020 - Mar 2022\n- Designed injection-moulded HVAC duct components in Creo for three vehicle programs\n- Ran DOE on a seal-compression test rig, reducing a field leak rate from 1.8% to 0.4%\n- Built a Python script that pulls test-stand data into Excel reports, saving the lab about 6 hours a week\n\nEDUCATION\nB.S. in Mechanical Engineering, Ohio Valley Polytechnic | 2020\nCoursework: Thermodynamics, Heat Transfer, Machine Design, Fluid Mechanics, Finite Element Analysis, Controls\n\nSKILLS\nCAD and analysis: SolidWorks, Creo, ANSYS Mechanical, ANSYS Fluent, MATLAB\nDesign practice: GD&T, tolerance stack-up, DFMEA, DFM, DOE, root cause analysis, 8D\nManufacturing: injection moulding, sheet metal, CNC machining, brazing, PPAP, first-article inspection\nTools: PLM (Windchill), Python, Excel, Minitab\n"
+}

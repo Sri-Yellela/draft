@@ -2,7 +2,9 @@
 // test/authRouteGuardManifest.test.js enumerates every /api route here with its guard.
 //
 //   POST /api/trial/start            the signed-in account becomes a trial account (after /try's sign-up)
-//   POST /api/trial/resume           { choice: "A" | "B" | "own" } — a sample's text comes back for the normal
+//   GET  /api/trial/samples          D124 amended: the six samples, each OFFERED only with 10 good picks in its category today
+//   GET  /api/trial/picks            the account's 10 picks: its sample's, or its own résumé's category's (or why there are none)
+//   POST /api/trial/resume           { choice: "A"…"F" | "own" } — a hidden sample is refused — a sample's text comes back for the normal
 //                                    /api/domain-profiles/from-resume onboarding, so the board is read from it as for anyone
 //   GET  /api/trial/state            { trial, hasProfile, sample, drafts, draftsUsed, sent, locked, surveyDue, survey } — and
 //                                    starts the trial's clock on a trial account's first load (THE TRIAL IS THE MAIN FRAME)
@@ -20,16 +22,39 @@ import { startTrial, pickResume, trialState, saveSurvey, dismissSurvey, finishTr
          adminTrialCounts, surveyExport, SURVEY, verifyPracticeToken, renderPracticeForm, renderPracticeThanks,
          recordPracticeSubmission } from "../services/trial.js";
 import { draftSlots } from "../services/draftSlots.js";
+import { offeredSamples, samplePicks, ownPicks } from "../services/trialPicks.js";
 
 export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret, upload, deliver = null }) {
   const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "error", message: e.message });
+  // D124 amended: the day's picks are scored once (≈ 7 ms a posting, six samples) — warmed here, off the request path.
+  setTimeout(() => { try { offeredSamples(db); } catch { /* the first request computes it */ } }, 20_000).unref?.();
 
   app.post("/api/trial/start", requireAuth, (req, res) => {
     try { res.json(startTrial(db, req.user.id)); } catch (e) { fail(res, e); }
   });
 
+  app.get("/api/trial/samples", requireAuth, (_req, res) => {
+    try { res.json({ samples: offeredSamples(db).map(({ id, label, category, offered }) => ({ id, label, category, offered })) }); }
+    catch (e) { fail(res, e); }
+  });
+
+  app.get("/api/trial/picks", requireAuth, (req, res) => {
+    try {
+      const choice = db.prepare("SELECT trial_resume FROM users WHERE id = ?").pluck().get(req.user.id);
+      if (choice && choice !== "own") return res.json({ sample: choice, picks: samplePicks(db, choice) });
+      res.json({ sample: null, ...ownPicks(db, req.user.id) });
+    } catch (e) { fail(res, e); }
+  });
+
   app.post("/api/trial/resume", requireAuth, (req, res) => {
-    try { res.json(pickResume(db, req.user.id, req.body?.choice)); } catch (e) { fail(res, e); }
+    try {
+      const choice = req.body?.choice;
+      // D124 amended: a sample whose category has fewer than 10 good picks today is hidden — and refused if asked for.
+      if (choice !== "own" && offeredSamples(db).some(x => x.id === choice && !x.offered)) {
+        return res.status(409).json({ error: "sample_not_offered", message: "That sample is not available today. Pick another, or use your own résumé." });
+      }
+      res.json(pickResume(db, req.user.id, choice));
+    } catch (e) { fail(res, e); }
   });
 
   const state = (userId) => {
