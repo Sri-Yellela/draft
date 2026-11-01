@@ -917,15 +917,6 @@ export function PrivacyPage() {
               sent to SerpApi's servers; no personal data is included in search queries.
             </LI>
             <LI>
-              <Strong>Apify</Strong> (optional, and off unless you connect it) — a job-scraping
-              service you may link with your own Apify token from your account settings. It is
-              <Strong>not</Strong> used by ordinary job search. It is reached only when an
-              administrator runs a manual refresh for an account that has connected a token, and
-              what is sent is the job titles, locations and filters for that refresh. Your resume,
-              your profile and any captured job data are never sent. If you have not connected a
-              token, nothing is ever sent to them.
-            </LI>
-            <LI>
               <Strong>Adzuna</Strong> — job listings via their official publisher API. Your search
               terms and filters are sent to Adzuna when you search; no personal data is included.
             </LI>

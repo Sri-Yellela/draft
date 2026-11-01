@@ -187,7 +187,7 @@ test("server imports launchBrowser and probeBrowserAvailability from browserLaun
 test("integrations status endpoint includes browser availability in response", () => {
   assert.match(server, /probeBrowserAvailability/);
   assert.match(server, /createAccountRouter/);
-  const statusRoute = account.slice(at(account, '"/api/integrations/status"'), at(account, '"/api/integrations/apify-token"'));
+  const statusRoute = account.slice(at(account, '"/api/integrations/status"'), at(account, '"/api/integrations/:provider"'));
   assert.match(statusRoute, /browser:/);
   assert.match(statusRoute, /available/);
   assert.match(statusRoute, /reasonCode/);

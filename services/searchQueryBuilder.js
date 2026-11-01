@@ -3,15 +3,15 @@
 // ============================================================
 // What this file does:
 //   Replaces ROLE_ALIASES + normaliseSearchQuery() + isTitleRelevant()
-//   from server.js. Builds Apify search queries from role, classifier
-//   result, and qualification resolver result.
+//   from server.js. Builds search queries (role titles and their variants) from
+//   role, classifier result, and qualification resolver result.
 //
 // What to change here if intent changes:
 //   - TO EXPAND ROLE COVERAGE: add entries to registry/ROLE_ALIAS_MAP.json.
 //     Do not add aliases directly in this file.
 //   - QUERY PRIORITY: canonical role first, then variants, then qual
 //     templates, then classifier suggestions. To change priority,
-//     reorder the merge array in buildApifyQueries().
+//     reorder the merge array in buildRoleQueries().
 //   - TITLE RELEVANCE: roleKeywords is derived from ROLE_ALIAS_MAP canonical
 //     titles. To add new role families, add entries to ROLE_ALIAS_MAP.json.
 //
@@ -128,10 +128,10 @@ export function normaliseRole(rawInput) {
   return trimmed.replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// Build a deduplicated list of Apify search query strings.
+// Build a deduplicated list of search query strings.
 // QUERY PRIORITY: canonical role first, then variants, then qual templates,
 // then classifier suggestions. To change priority order, reorder the array below.
-export function buildApifyQueries(canonicalRole, classifierResult, qualTemplates) {
+export function buildRoleQueries(canonicalRole, classifierResult, qualTemplates) {
   const queries = new Set();
 
   // 1. Canonical role (highest priority)
@@ -164,7 +164,7 @@ export function buildApifyQueries(canonicalRole, classifierResult, qualTemplates
 
 // ── Profile-driven query builder ─────────────────────────────
 // QUERY BUILDING: driven by domain profile target_titles and seniority.
-// Returns up to 10 Apify jobTitles (array, not query strings).
+// Returns up to 10 job titles (array, not query strings).
 // To change max queries edit the break condition below.
 // To change seniority prefix words edit SENIORITY_PREFIX below.
 const SENIORITY_PREFIX = {
@@ -174,7 +174,7 @@ const SENIORITY_PREFIX = {
   executive: ["Director", "Head of", "VP", "Principal"],
 };
 
-export function buildApifyQueriesFromProfile(activeProfile) {
+export function buildProfileTitleVariants(activeProfile) {
   if (!activeProfile) return [];
   const titles = [];
   try { titles.push(...JSON.parse(activeProfile.target_titles || "[]")); } catch {}
@@ -210,7 +210,7 @@ export function buildApifyQueriesFromProfile(activeProfile) {
 }
 
 export function buildProfileSearchTerms(activeProfile, storedSearchTerms = []) {
-  const titles = buildApifyQueriesFromProfile(activeProfile);
+  const titles = buildProfileTitleVariants(activeProfile);
   const map = getAliasMap();
   const domain = activeProfile?.domain || null;
   const titleLike = new Set(titles);

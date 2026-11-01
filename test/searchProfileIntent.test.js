@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 // Was "search pipeline remains active-profile driven on the server". Every one of its six
-// assertions described the removed Apify scrape route — buildApifyQueriesFromProfile(activeProfile),
+// assertions described the removed Apify scrape route — buildProfileTitleVariants(activeProfile),
 // scrapeJobs(query, token, scrapeParams, ...), roleTitleSql("sj.title", roleKey). The route is
 // gone: /api/scrape now answers HTTP 410 "External scraping has been removed. Job search now
 // uses /api/jobs." So this could never pass again, and it was one of the failures keeping the

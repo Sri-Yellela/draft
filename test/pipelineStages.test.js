@@ -24,7 +24,7 @@ import { classifyLocation } from "../services/jobs/usLocation.js";
 
 import {
   normaliseRole,
-  buildApifyQueriesFromProfile,
+  buildProfileTitleVariants,
   buildProfileSearchTerms,
   isTitleRelevant,
   isTitleRelevantToProfile,
@@ -86,71 +86,71 @@ test("Stage 1 · normaliseRole: strips extra whitespace", () => {
 // What it does: expands target_titles × seniority → up to 10 variants
 // ───────────────────────────────────────────────────────────────
 
-test("Stage 2 · buildApifyQueriesFromProfile: returns empty array when no profile", () => {
-  assert.deepEqual(buildApifyQueriesFromProfile(null), []);
-  assert.deepEqual(buildApifyQueriesFromProfile(undefined), []);
+test("Stage 2 · buildProfileTitleVariants: returns empty array when no profile", () => {
+  assert.deepEqual(buildProfileTitleVariants(null), []);
+  assert.deepEqual(buildProfileTitleVariants(undefined), []);
 });
 
-test("Stage 2 · buildApifyQueriesFromProfile: falls back to profile_name when no target_titles", () => {
+test("Stage 2 · buildProfileTitleVariants: falls back to profile_name when no target_titles", () => {
   const profile = { profile_name: "Software Engineer", target_titles: "[]", seniority: "mid" };
-  const result = buildApifyQueriesFromProfile(profile);
+  const result = buildProfileTitleVariants(profile);
   assert.ok(result.length > 0, "should fall back to profile_name");
   assert.ok(result.includes("Software Engineer"), "profile_name must appear in output");
 });
 
-test("Stage 2 · buildApifyQueriesFromProfile: senior prefix applied correctly", () => {
+test("Stage 2 · buildProfileTitleVariants: senior prefix applied correctly", () => {
   const profile = {
     profile_name: "SWE",
     target_titles: JSON.stringify(["Software Engineer"]),
     seniority: "senior",
   };
-  const result = buildApifyQueriesFromProfile(profile);
+  const result = buildProfileTitleVariants(profile);
   assert.ok(result.some(t => t.toLowerCase().includes("senior")), "senior prefix should appear");
 });
 
-test("Stage 2 · buildApifyQueriesFromProfile: junior prefix applied correctly", () => {
+test("Stage 2 · buildProfileTitleVariants: junior prefix applied correctly", () => {
   const profile = {
     profile_name: "SWE",
     target_titles: JSON.stringify(["Software Engineer"]),
     seniority: "junior",
   };
-  const result = buildApifyQueriesFromProfile(profile);
+  const result = buildProfileTitleVariants(profile);
   assert.ok(
     result.some(t => /junior|associate|entry/i.test(t)),
     "junior prefix (Junior / Associate / Entry Level) should appear"
   );
 });
 
-test("Stage 2 · buildApifyQueriesFromProfile: caps at 10 variants", () => {
+test("Stage 2 · buildProfileTitleVariants: caps at 10 variants", () => {
   const manyTitles = ["Role A","Role B","Role C","Role D","Role E","Role F"];
   const profile = {
     profile_name: "Test",
     target_titles: JSON.stringify(manyTitles),
     seniority: "senior",
   };
-  const result = buildApifyQueriesFromProfile(profile);
+  const result = buildProfileTitleVariants(profile);
   assert.ok(result.length <= 10, `should cap at 10 variants, got ${result.length}`);
 });
 
-test("Stage 2 · buildApifyQueriesFromProfile: firmware domain gets hardcoded firmware titles", () => {
+test("Stage 2 · buildProfileTitleVariants: firmware domain gets hardcoded firmware titles", () => {
   const profile = {
     profile_name: "Firmware Engineer",
     target_titles: JSON.stringify(["Firmware Engineer"]),
     seniority: "mid",
     domain: "engineering_embedded_firmware",
   };
-  const result = buildApifyQueriesFromProfile(profile);
+  const result = buildProfileTitleVariants(profile);
   assert.ok(result.some(t => /firmware/i.test(t)), "should include firmware titles");
   assert.ok(result.some(t => /embedded/i.test(t)), "should include embedded titles");
 });
 
-test("Stage 2 · buildApifyQueriesFromProfile: no duplicates in output", () => {
+test("Stage 2 · buildProfileTitleVariants: no duplicates in output", () => {
   const profile = {
     profile_name: "Data Scientist",
     target_titles: JSON.stringify(["Data Scientist", "Data Scientist"]),
     seniority: "mid",
   };
-  const result = buildApifyQueriesFromProfile(profile);
+  const result = buildProfileTitleVariants(profile);
   const unique = new Set(result);
   assert.equal(result.length, unique.size, "output must not contain duplicates");
 });

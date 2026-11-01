@@ -5819,4 +5819,15 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_practice_submissions_user ON practice_submissions(user_id);
       `,
     },
+    {
+      // ⭐ A108 · APIFY, SCRAPPED (owner 11-01): "scrap the entire apify module and pathways". No route writes or reads a
+      // token any more; the ones people once pasted are third-party credentials draft should not keep. A DATA migration
+      // (it changes rows): backed up first, like 162 / 163 / 194 (server.js DATA_MIGRATIONS). The column stays — dropping
+      // it on the volume buys nothing and nothing reads it.
+      // After 205 (the trial).
+      id: "206_scrub_apify_tokens",
+      sql: `
+        UPDATE users SET apify_token = NULL WHERE apify_token IS NOT NULL;
+      `,
+    },
   ];

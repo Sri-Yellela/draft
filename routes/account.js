@@ -119,17 +119,6 @@ export function createAccountRouter({
     });
   });
 
-  router.patch("/api/settings/apify-token", requireAuth, (req, res) => {
-    const token = (req.body.token || "").trim() || null;
-    db.prepare("UPDATE users SET apify_token=? WHERE id=?").run(token, req.user.id);
-    res.json({ ok: true });
-  });
-
-  router.delete("/api/settings/apify-token", requireAuth, (req, res) => {
-    db.prepare("UPDATE users SET apify_token=NULL WHERE id=?").run(req.user.id);
-    res.json({ ok: true });
-  });
-
   // The light/dark preference, with the account (follow-up 18, 09-30). Web-only, so it is not on the
   // published PublicUser (a mobile contract change for a setting mobile does not have).
   // D91: the column holds the full appearance (shared/appearance.js); this older pair of routes answers in
@@ -205,7 +194,7 @@ export function createAccountRouter({
   });
 
   router.get("/api/settings", requireAuth, (req, res) => {
-    const u = db.prepare("SELECT apply_mode,plan_tier,apify_token FROM users WHERE id=?").get(req.user.id);
+    const u = db.prepare("SELECT apply_mode,plan_tier FROM users WHERE id=?").get(req.user.id);
     const planTier = normalisePlanTier(u?.plan_tier);
     res.json({
       applyMode: u?.apply_mode,
@@ -215,7 +204,6 @@ export function createAccountRouter({
         canUseGenerate: canUseGenerate(planTier),
         canUseAPlusResume: canUseAPlusResume(planTier),
       },
-      hasApifyToken: !!u?.apify_token,
     });
   });
 
@@ -231,17 +219,6 @@ export function createAccountRouter({
         requiredFor: ["apply_automation", "pdf_export"],
       },
     });
-  });
-
-  router.patch("/api/integrations/apify-token", requireAuth, (req, res) => {
-    const token = (req.body.token || "").trim() || null;
-    db.prepare("UPDATE users SET apify_token=? WHERE id=?").run(token, req.user.id);
-    res.json({ ok: true, apify: getAutomationReadiness(db, req.user.id).apify, oauth: oauthReadiness(req) });
-  });
-
-  router.delete("/api/integrations/apify-token", requireAuth, (req, res) => {
-    db.prepare("UPDATE users SET apify_token=NULL WHERE id=?").run(req.user.id);
-    res.json({ ok: true, apify: getAutomationReadiness(db, req.user.id).apify, oauth: oauthReadiness(req) });
   });
 
   router.post("/api/integrations/:provider", requireAuth, (req, res) => {

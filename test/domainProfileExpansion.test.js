@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { normaliseRole, buildApifyQueries, buildApifyQueriesFromProfile, buildProfileSearchTerms, isTitleRelevantToProfile } from "../services/searchQueryBuilder.js";
+import { normaliseRole, buildRoleQueries, buildProfileTitleVariants, buildProfileSearchTerms, isTitleRelevantToProfile } from "../services/searchQueryBuilder.js";
 
 const registry = JSON.parse(fs.readFileSync("registry/DOMAIN_METADATA_REGISTRY.json", "utf8"));
 const aliases = JSON.parse(fs.readFileSync("registry/ROLE_ALIAS_MAP.json", "utf8"));
@@ -49,7 +49,7 @@ test("role aliases cover low-level and debug-oriented engineering searches", () 
   assert.equal(aliases["pcie"].domain, "engineering_embedded_firmware");
   assert.equal(aliases["performance engineer"].domain, "engineering_systems_low_level");
 
-  const firmwareQueries = buildApifyQueries("Firmware Engineer");
+  const firmwareQueries = buildRoleQueries("Firmware Engineer");
   assert.ok(firmwareQueries.includes("Embedded Software Engineer"));
   assert.ok(firmwareQueries.includes("Firmware Developer"));
 });
@@ -69,7 +69,7 @@ test("firmware profile search terms stay title-like and precise", () => {
       "Post-Silicon Validation Engineer",
     ]),
   };
-  const profileQueries = buildApifyQueriesFromProfile(profile);
+  const profileQueries = buildProfileTitleVariants(profile);
   assert.ok(profileQueries.includes("Firmware Engineer"));
   assert.ok(profileQueries.includes("Embedded Software Engineer"));
   assert.ok(profileQueries.length <= 6);

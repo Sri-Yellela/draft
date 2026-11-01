@@ -101,7 +101,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
   // Login form
   const [login,   setLoginF]  = useState({ username:"", password:"" });
   // Registration step 1 — only in React state, never sent until step 2 completes
-  const [step1,   setStep1]   = useState({ username:"", password:"", confirmPassword:"", apify_token:"" });
+  const [step1,   setStep1]   = useState({ username:"", password:"", confirmPassword:"" });
   // Registration step 2
   const [step2,   setStep2]   = useState({ first_name:"", middle_name:"", last_name:"", name_suffix:"", email:"", phone:"" });
   // ⭐ D73 §B 2: product news by email — a separate, OPTIONAL box that starts UNTICKED; never tied to the terms.
@@ -182,8 +182,6 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
     if (!step1.username.trim() || !step1.password) return setError("Username and password are required");
     if (step1.password.length < 8) return setError("Password must be at least 8 characters");
     if (step1.password !== step1.confirmPassword) return setError("Passwords do not match");
-    if (step1.apify_token && !step1.apify_token.startsWith("apify_api_"))
-      return setError("Apify token should start with apify_api_");
     setRegStep(2);
   };
 
@@ -193,7 +191,6 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
       const d = await api("/api/auth/register", { method:"POST", body:JSON.stringify({
         username: step1.username.trim(),
         password: step1.password,
-        apifyToken: step1.apify_token.trim() || undefined,
         profile: {
           first_name:  step2.first_name.trim(),
           middle_name: step2.middle_name.trim() || undefined,
@@ -374,17 +371,6 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
             onChange={e=>setS1("password",e.target.value)}/>
           <input style={inputStyle} placeholder="Confirm password" type="password" value={step1.confirmPassword}
             onChange={e=>setS1("confirmPassword",e.target.value)}/>
-          <div style={{ fontSize:11, color:theme.textMuted, lineHeight:1.6,
-                        padding:"10px 12px", background:theme.surfaceHigh,
-                        borderRadius:10, border:`1px solid ${theme.border}` }}>
-            <strong>Apify token</strong> powers job search.{" "}
-            Get a free token at{" "}
-            <a href="https://apify.com" target="_blank" rel="noreferrer"
-              style={{ color:theme.accentText, fontWeight:700 }}>apify.com</a>
-            {" "}→ Settings → Integrations. You can add it later too.
-          </div>
-          <input style={inputStyle} placeholder="Apify token (optional, starts with apify_api_…)"
-            value={step1.apify_token} onChange={e=>setS1("apify_token",e.target.value)}/>
           {error && <div style={{ color:theme.danger, fontSize:12 }}>{error}</div>}
           <button className="dbx-depth" type="submit"
             style={{ width:"100%", padding:"12px 0", border:"none",

@@ -9,7 +9,7 @@ const server = fs.readFileSync("server.js", "utf8");
 // deduped". Both described the retired external-scraping path:
 //
 //   - the first sliced the /api/scrape route and asserted Apify request params
-//     (buildApifyQueriesFromProfile, maxItems, postedLimit, employmentTypes). That route is now
+//     (buildProfileTitleVariants, maxItems, postedLimit, employmentTypes). That route is now
 //     a 410 tombstone, so the slice was empty and the very first assertion could not pass.
 //   - the second asserted a dedup mechanism that has been partly dismantled: scrapeStateKey
 //     still exists, but `inFlightScrape` and `deduped:true` are both gone from server.js.

@@ -163,11 +163,11 @@ test("baseTitle strips trailing specialisation but never a leading qualifier's m
 });
 
 test("the scraping-era query builder is not wired into this path", () => {
-  // buildApifyQueriesFromProfile is explicitly off-limits. Only normaliseRole — a pure string
+  // buildProfileTitleVariants is explicitly off-limits. Only normaliseRole — a pure string
   // function — is borrowed from that module.
   const src = fs.readFileSync("services/jobs/searchSuggestions.js", "utf8");
-  assert.ok(!/buildApifyQueriesFromProfile/.test(src.replace(/\/\/.*$/gm, "")),
-    "buildApifyQueriesFromProfile is wired into the suggestion path");
+  assert.ok(!/buildProfileTitleVariants/.test(src.replace(/\/\/.*$/gm, "")),
+    "buildProfileTitleVariants is wired into the suggestion path");
   assert.match(src, /import \{ normaliseRole \} from "\.\.\/searchQueryBuilder\.js"/);
 });
 

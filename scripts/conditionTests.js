@@ -9,7 +9,7 @@
 
 import {
   normaliseRole,
-  buildApifyQueriesFromProfile,
+  buildProfileTitleVariants,
   isTitleRelevantToProfile,
 } from "../services/searchQueryBuilder.js";
 
@@ -51,7 +51,7 @@ function check(value, expected, note) {
 
 test("1-TitleVariants", "mid seniority → includes plain + Mid-Level prefix", () => {
   const profile = { target_titles: JSON.stringify(["Data Scientist"]), seniority: "mid", domain: "data" };
-  const out = buildApifyQueriesFromProfile(profile);
+  const out = buildProfileTitleVariants(profile);
   return { input: profile, output: out,
     expected: ["Data Scientist", "Mid-Level Data Scientist"],
     ...check(out, ["Data Scientist", "Mid-Level Data Scientist"], "mid seniority should produce exactly these 2 variants") };
@@ -59,7 +59,7 @@ test("1-TitleVariants", "mid seniority → includes plain + Mid-Level prefix", (
 
 test("1-TitleVariants", "senior seniority → Senior/Lead/Staff prefixes", () => {
   const profile = { target_titles: JSON.stringify(["Data Scientist"]), seniority: "senior", domain: "data" };
-  const out = buildApifyQueriesFromProfile(profile);
+  const out = buildProfileTitleVariants(profile);
   return { input: profile, output: out,
     expected: ["Senior Data Scientist", "Lead Data Scientist", "Staff Data Scientist"],
     ...check(out, ["Senior Data Scientist", "Lead Data Scientist", "Staff Data Scientist"]) };
@@ -67,7 +67,7 @@ test("1-TitleVariants", "senior seniority → Senior/Lead/Staff prefixes", () =>
 
 test("1-TitleVariants", "junior seniority → Junior/Associate/Entry Level prefixes", () => {
   const profile = { target_titles: JSON.stringify(["Data Scientist"]), seniority: "junior", domain: "data" };
-  const out = buildApifyQueriesFromProfile(profile);
+  const out = buildProfileTitleVariants(profile);
   return { input: profile, output: out,
     expected: ["Junior Data Scientist", "Associate Data Scientist", "Entry Level Data Scientist"],
     ...check(out, ["Junior Data Scientist", "Associate Data Scientist", "Entry Level Data Scientist"]) };
@@ -76,7 +76,7 @@ test("1-TitleVariants", "junior seniority → Junior/Associate/Entry Level prefi
 test("1-TitleVariants", "empty target_titles → fallback should not crash", () => {
   const profile = { target_titles: JSON.stringify([]), seniority: "mid", domain: "data" };
   let out;
-  try { out = buildApifyQueriesFromProfile(profile); } catch(e) { out = `THREW: ${e.message}`; }
+  try { out = buildProfileTitleVariants(profile); } catch(e) { out = `THREW: ${e.message}`; }
   const pass = Array.isArray(out);
   return { input: profile, output: out, expected: "(any array, even empty — must not throw)",
     pass, note: pass ? "ok" : "CRASH or non-array returned for empty target_titles" };
@@ -84,7 +84,7 @@ test("1-TitleVariants", "empty target_titles → fallback should not crash", () 
 
 test("1-TitleVariants", "3 titles × mid = 6 variants, capped at 10", () => {
   const profile = { target_titles: JSON.stringify(["Data Scientist","ML Engineer","Analytics Engineer"]), seniority: "mid", domain: "data" };
-  const out = buildApifyQueriesFromProfile(profile);
+  const out = buildProfileTitleVariants(profile);
   return { input: profile, output: out, expected: "6 variants (3 × 2 prefixes)",
     pass: out.length === 6, note: `got ${out.length} variants` };
 });
