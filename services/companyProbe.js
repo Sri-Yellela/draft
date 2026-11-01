@@ -10,7 +10,8 @@ import { ATS_FETCHERS, validateBoard } from "./companyList.js";
 import { usEligibility, officeLocations } from "./jobs/usLocation.js";
 import { ageOf, DEFAULT_LIMIT_DAYS } from "./jobs/boardAge.js";
 import { classifyJob } from "./jobs/classifyJob.js";
-import { csScopeOf } from "./jobs/csScope.js";
+// D126 + D127: "cs" in this funnel now means IN THE BOARD'S SCOPE — any professional category (professionalScope).
+import { categoryOf } from "./jobs/professionalScope.js";
 
 /**
  * @returns validateBoard's result, plus { fetched, us, fresh, classified, cs, csOpen, cs30, pct30, pct120,
@@ -29,7 +30,7 @@ export async function probeBoard({ atsType, slug, company = "" }, { fetchers = A
     funnel.us++;
     const age = ageOf({ posted_at: j.posted_at }, { now, limitDays: DEFAULT_LIMIT_DAYS });
     const verdict = classifyJob(j.title || "", j.description || "", j.company || "");
-    const cs = verdict.collar !== "blue" && verdict.roleKey !== null && csScopeOf({ title: j.title, roleKey: verdict.roleKey }).inScope;
+    const cs = verdict.collar !== "blue" && verdict.roleKey !== null && categoryOf({ title: j.title, roleKey: verdict.roleKey }).inScope;
     if (cs) { csAges.push(age.days); if (j.salary_min_usd != null || j.salary_min != null) csSalary++; }
     if (age.tooOld) continue;
     funnel.fresh++;

@@ -10,11 +10,57 @@
 //     touch would re-activate it — and by the sweep. ⛔ An APPLIED posting is kept, always.
 //   · The sweep is dry by default, retires and never deletes; the reason column is the undo. ⛔ No share
 //     limit (removed on the owner's word 10-08, as for the age sweep).
-import { csScopeOf, CS_SCOPE_VERSION } from './csScope.js';
+//
+// ⛔ D126 + D127 (owner 11-01): the rule is now professionalScope.categoryOf — every professional category, the held
+// groups and anything without a title signal HELD (the red-flag rule). Computing is csScope's rule, unchanged. A held
+// posting is refused exactly as an out-of-scope one was (enforced) or stored as category 'held' (report-only), and
+// every kept posting carries its category, which the board matches against the profile's own.
+import { categoryOf, CATEGORY_SCOPE_VERSION } from './professionalScope.js';
 import { classifyJob } from './classifyJob.js';
 import { readPolicy, boardStmts, retireRows } from './boardAge.js';
 
 export const SCOPE_REASON = 'out_of_scope';
+export const HELD_CATEGORY = 'held';
+
+const CATEGORY_WRITE = new WeakMap();
+/**
+ * Store a verdict's category on the posting (migration 207). A held verdict stores 'held' and its reason, so no board
+ * shows it. A no-op on a database without the columns (an older test schema).
+ */
+export function writeCategory(db, jobId, v) {
+  let s = CATEGORY_WRITE.get(db);
+  if (s === undefined) {
+    try {
+      s = db.prepare(`UPDATE scraped_jobs SET board_category = @category, soc = @soc, discipline = @discipline,
+        category_confidence = @confidence, category_reason = @reason WHERE job_id = @jobId`);
+    } catch { s = null; }
+    CATEGORY_WRITE.set(db, s);
+  }
+  if (!s) return;
+  s.run({ jobId, category: v.inScope ? v.category : HELD_CATEGORY, soc: v.soc, discipline: v.discipline,
+          confidence: v.confidence, reason: v.reason });
+}
+
+/**
+ * Classify every ACTIVE posting with no category yet (the rows from before 207, and any a crawl wrote without one).
+ * Pure regex over titles: a few thousand rows take milliseconds. Run at boot. Returns the counts.
+ */
+export function backfillCategories(db, { limit = 100000 } = {}) {
+  let rows;
+  try {
+    rows = db.prepare(`SELECT job_id, title, description, company FROM scraped_jobs
+                       WHERE is_active = 1 AND board_category IS NULL LIMIT ?`).all(limit);
+  } catch { return { classified: 0, held: 0, skipped: 'no category column' }; }
+  let held = 0;
+  db.transaction(() => {
+    for (const r of rows) {
+      const v = categoryOf({ title: r.title, roleKey: storedFamily(db, r) });
+      if (!v.inScope) held++;
+      writeCategory(db, r.job_id, v);
+    }
+  })();
+  return { classified: rows.length, held, version: CATEGORY_SCOPE_VERSION };
+}
 
 const ROLE = new WeakMap();
 // The classifier's own row first (source_profile_id NULL) — a profile-scrape row only when there is no other.
@@ -42,8 +88,9 @@ export function storedFamily(db, { job_id, title, description, company }) {
  * @returns {"keep" | "would_drop" | "rejected_new" | "scoped_out"} — the caller `continue`s on the last two.
  */
 export function scopeGate(db, job, jobId, { exists, roleKey, now, policy = readPolicy(db) }) {
-  if (csScopeOf({ title: job.title, roleKey }).inScope) return 'keep';
-  if (!policy.scope_enforce) return 'would_drop';               // report-only until the owner's go
+  const v = categoryOf({ title: job.title, roleKey });
+  if (v.inScope) { if (exists) writeCategory(db, jobId, v); return 'keep'; }
+  if (!policy.scope_enforce) { if (exists) writeCategory(db, jobId, v); return 'would_drop'; }  // report-only: stored 'held'
   const s = boardStmts(db);
   const row = { job_id: jobId, title: job.title || '', company: job.company || '', source: job.source || '', rejected_at: now };
   if (!exists) { s.reject.run({ ...row, reason: SCOPE_REASON }); return 'rejected_new'; }
@@ -67,7 +114,7 @@ export function sweepScope(db, { dryRun = true, now = Math.floor(Date.now() / 10
   const byReason = {}, byFamily = {}, byCompany = {};
   for (const r of rows) {
     const roleKey = storedFamily(db, r);
-    const v = csScopeOf({ title: r.title, roleKey });
+    const v = categoryOf({ title: r.title, roleKey });
     if (v.inScope) continue;
     if (r.applied) { appliedKept++; continue; }
     out.push(r);
@@ -78,11 +125,11 @@ export function sweepScope(db, { dryRun = true, now = Math.floor(Date.now() / 10
     byCompany[co] = (byCompany[co] || 0) + 1;
   }
   const share = active ? +(out.length / active).toFixed(3) : 0;
-  const base = { dryRun, enforced: !!policy.scope_enforce, version: CS_SCOPE_VERSION, active, candidates: out.length, appliedKept,
+  const base = { dryRun, enforced: !!policy.scope_enforce, version: CATEGORY_SCOPE_VERSION, active, candidates: out.length, appliedKept,
                  retired: 0, share,
                  byReason, byFamily, byCompany: Object.entries(byCompany).sort((a, b) => b[1] - a[1]).slice(0, 25) };
   if (dryRun || !out.length) return base;
   retireRows(db, out, SCOPE_REASON, now);
-  log?.({ kind: 'scope_sweep', retired: out.length, active, share, version: CS_SCOPE_VERSION });
+  log?.({ kind: 'scope_sweep', retired: out.length, active, share, version: CATEGORY_SCOPE_VERSION });
   return { ...base, retired: out.length };
 }

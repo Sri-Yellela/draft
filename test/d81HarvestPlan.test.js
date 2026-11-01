@@ -63,7 +63,8 @@ test("⛔ D81: a new pair is validated by the D80 probe, and the export carries 
   const recent = new Date(Date.now() - 10 * 86400000).toISOString();
   const fetchers = { greenhouse: async () => [
     { title: "Senior Backend Engineer", location: "Austin, TX", description: "Build APIs in Go.", url: "https://x/1", company: "Acme", posted_at: recent },
-    { title: "Account Executive", location: "Austin, TX", description: "Sell.", url: "https://x/2", company: "Acme", posted_at: recent },
+    // D126 + D127 (11-01, changed on purpose): an account executive is in scope now (sales); a support engineer is held.
+    { title: "Support Engineer", location: "Austin, TX", description: "Answer tickets.", url: "https://x/2", company: "Acme", posted_at: recent },
   ] };
   const results = { jobs_results: [{ apply_options: [{ link: "https://boards.greenhouse.io/acmeco/jobs/123" }] }] };
   await runSweep(db, id, { search: async () => results, validate: probeValidate, fetchers });

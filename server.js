@@ -79,7 +79,8 @@ import { createSlugHarvestRouter } from "./routes/slugHarvest.js";
 import { createCrawlerWorkerRouter, createCrawlerAdminRouter } from "./routes/crawler.js";
 import { runSchedule as runCrawlerSchedule } from "./services/crawlerQueue.js";
 import { readPolicy as readBoardPolicy, setPolicy as setBoardPolicy, sweepAged } from "./services/jobs/boardAge.js";
-import { sweepScope } from "./services/jobs/boardScope.js";
+import { sweepScope, backfillCategories } from "./services/jobs/boardScope.js";
+import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
 import { runHnDiscovery, runCandidateProbe } from "./services/companyCandidates.js";
@@ -6314,6 +6315,21 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         UPDATE users SET apify_token = NULL WHERE apify_token IS NOT NULL;
       `,
     },
+    {
+      // ⭐ D126 + D127 · EVERY POSTING IN ONE CATEGORY (owner 11-01): the CS-only gate lifted to all professional roles,
+      // and nothing shown from an unknown category. services/jobs/professionalScope.js decides; the crawl's gate and a
+      // boot backfill write it here (board_category: sj.category is an older, unwritten column). NULL = not classified yet (shown, like CC1b's soft null); 'held' = never
+      // shown on any board (the red-flag rule); category_reason says why. After 206.
+      id: "207_posting_category",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN board_category TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN soc TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN discipline TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN category_confidence REAL;
+        ALTER TABLE scraped_jobs ADD COLUMN category_reason TEXT;
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_board_category ON scraped_jobs(board_category);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -6367,6 +6383,13 @@ console.log(`[boot] database ready: ${DB_PATH}`);
     process.exit(1);
   }
   console.log(`[boot] migrations complete (${migrationCount} applied)`);
+
+// D126 + D127: every active posting gets its category (migration 207) — the rows from before it, and any a crawl wrote
+// without one. NULL-only, so a no-op after the first boot; pure regex over titles, milliseconds.
+try {
+  const cat = backfillCategories(db);
+  if (cat.classified) console.log(`[boot] posting categories: ${cat.classified} classified, ${cat.held} held`);
+} catch (e) { console.warn("[boot] posting categories:", e.message); }
 
 // Populate migration 078's automation_tier for rows written before it existed. This is here
 // rather than inside the migration because the derivation is JavaScript
@@ -9732,6 +9755,39 @@ app.post("/api/admin/board-policy/scope-sweep", requireAdmin, (req, res) => {
     log: (e) => writeAudit(db, { actor: actorOf(req), action: "board_scope_sweep", target: "scraped_jobs", before: { active: e.active }, after: e }) });
   res.json({ applied: true, ...out });
 });
+// ⛔ D127 P2 · THE CATEGORIES, MEASURED: postings by category and discipline on the active board, the held count and
+// reasons (stored 'held' rows, and the refusals the enforced gate recorded, re-read for their reason), and a fresh
+// random sample of up to 20 shown postings per category for the spot-check. A wrong category is one press to report:
+// POST …/report writes the audit log (action board_category_report) — the spot-check log the leak rate is read from.
+app.get("/api/admin/board-categories", requireAdmin, (_req, res) => {
+  const all = (sql, ...a) => { try { return db.prepare(sql).all(...a); } catch { return []; } };
+  const byCategory = Object.fromEntries(all(`SELECT COALESCE(board_category, '(not yet)') k, COUNT(*) n FROM scraped_jobs
+    WHERE is_active = 1 GROUP BY k ORDER BY n DESC`).map(r => [r.k, r.n]));
+  const byDiscipline = Object.fromEntries(all(`SELECT discipline k, COUNT(*) n FROM scraped_jobs WHERE is_active = 1
+    AND board_category = 'engineering' GROUP BY k ORDER BY n DESC`).map(r => [r.k || "(none)", r.n]));
+  const heldRows = [
+    ...all(`SELECT job_id, title, company, category_reason reason, 'stored' via FROM scraped_jobs WHERE is_active = 1 AND board_category = 'held'`),
+    ...all(`SELECT job_id, title, company, NULL reason, 'refused' via FROM rejected_jobs WHERE reason = 'out_of_scope'
+      ORDER BY rejected_at DESC LIMIT 2000`),
+  ].map(r => ({ ...r, reason: r.reason || categoryOfPosting({ title: r.title, roleKey: null }).reason }));
+  const heldByReason = {};
+  for (const r of heldRows) heldByReason[r.reason] = (heldByReason[r.reason] || 0) + 1;
+  const sample = Object.fromEntries(Object.keys(byCategory).filter(k => /^[a-z_]+$/.test(k) && k !== "held").map(k => [k,
+    all(`SELECT job_id, title, company, discipline, category_reason reason FROM scraped_jobs WHERE is_active = 1 AND board_category = ?
+      ORDER BY random() LIMIT 20`, k)]));
+  const reports = all(`SELECT at, before_json, after_json FROM admin_audit_log WHERE action = 'board_category_report' ORDER BY id DESC LIMIT 50`);
+  res.json({ byCategory, byDiscipline, held: { total: heldRows.length, byReason: heldByReason, recent: heldRows.slice(0, 50) },
+             sample, reports });
+});
+app.post("/api/admin/board-categories/report", requireAdmin, (req, res) => {
+  const jobId = String(req.body?.jobId || "").slice(0, 200);
+  const row = jobId && db.prepare("SELECT job_id, title, board_category, category_reason FROM scraped_jobs WHERE job_id = ?").get(jobId);
+  if (!row) return res.status(404).json({ error: "no such posting" });
+  writeAudit(db, { actor: actorOf(req), action: "board_category_report", target: "scraped_jobs",
+    before: { jobId: row.job_id, title: row.title, category: row.board_category, reason: row.category_reason },
+    after: { wrong: true, note: String(req.body?.note || "").slice(0, 300) } });
+  res.json({ ok: true });
+});
 // D78 A: the daily sweep — 03:30 UTC, after the 03:00 cleanup, and ONLY once the owner switched age_enforce on.
 // Retire, never delete; applied postings kept. No share ceiling (owner, 10-08).
 // ⛔ D80 E: the weekly hiring-heat line — Mondays 05:00 UTC (container time; BEFORE that day's crawl, which is
@@ -10583,9 +10639,17 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
             OR NOT EXISTS (SELECT 1 FROM job_role_map m WHERE m.job_id = sj.job_id)
             OR ${ownRowsSql}
           )`;
+      // ⛔ D126 + D127 · THE CATEGORY, SOFT-NULL LIKE THE ROLE ABOVE. A 'held' posting is never shown on any board (the
+      // red-flag rule); a posting in another category is an explicit mismatch, excluded unless the user asked (a search,
+      // a chosen function lift it, as they lift the role); NULL is "not classified yet" and shows until the boot backfill
+      // fills it. The category comes from professionalScope's closed set (checked against /^[a-z_]+$/ before inlining).
+      const boardCategory = (savedTab || boardSearch || functionChosen) ? null : profileCategory(sessionActiveProfile || {});
+      const categorySql = savedTab ? '' : `AND (sj.board_category IS NULL OR (sj.board_category <> 'held'${
+        boardCategory && /^[a-z_]+$/.test(boardCategory) ? ` AND sj.board_category = '${boardCategory}'` : ''}) OR ${ownRowsSql})`;
       const whereClauseFor = (rich) => `
         WHERE ${(savedTab || importedTab) ? '1 = 1' : 'sj.is_active = 1'}
           ${roleSql}
+          ${categorySql}
           ${keyFilter}
           ${locFilter}
           AND ${titleFilter.sql}

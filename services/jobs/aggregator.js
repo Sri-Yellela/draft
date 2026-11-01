@@ -9,8 +9,8 @@ import { recordPipelineRun } from './pipelineRunLog.js';
 import { usEligibility, officeLocations } from './usLocation.js';
 import { retireDuplicate, keptApart } from './dedupRetire.js';
 import { ageGate, readPolicy } from './boardAge.js';
-import { scopeGate, storedFamily } from './boardScope.js';
-import { csScopeOf } from './csScope.js';
+import { scopeGate, storedFamily, writeCategory } from './boardScope.js';
+import { categoryOf } from './professionalScope.js';
 
 // ─── REGISTER SOURCES HERE ───────────────────────────────────────────────────
 // To add a new source: import it and add to SOURCES array.
@@ -1027,7 +1027,8 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
           // Not in scope → dropped, and recorded (NO_ROLE_REASON) so the refusals can be broken down.
           let matchedBy = 'ats_cache';
           if (verdict.roleKey === null) {
-            if (csScopeOf({ title: job.title, roleKey: null }).inScope) {
+            // D126 + D127: any professional category rescues it now, not only a CS title (professionalScope).
+            if (categoryOf({ title: job.title, roleKey: null }).inScope) {
               verdict.roleKey = ROLE_KEY_FALLBACK;
               matchedBy = 'ats_cache_cs_rescue';
               rescued++;
@@ -1070,6 +1071,8 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
             sourceLabel: '',
             matchedBy,
           });
+          // D126 + D127: the posting's category (the existing-row path writes it in scopeGate).
+          writeCategory(db, jobId, categoryOf({ title: job.title, roleKey: verdict.roleKey }));
           cached++;
         }
 
