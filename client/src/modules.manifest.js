@@ -109,6 +109,7 @@ export const SHARED = Object.freeze({
   "components/ProfileSelectorDropdown.jsx": { what: "the active-profile picker — top bar and board" },
   "components/ExtensionPrompt.jsx":     { what: "the get-the-extension prompt — app, extension page, board" },
   "components/TrialDock.jsx":           { what: "D124 · TrialGate: the trial as the main frame — the dock, the survey page, coming soon, the analytics events", module: "trial" },
+  "components/SurveyForm.jsx":          { what: "D129 v2 + D130 · THE ONE survey form: dropdowns, labelled stars, follow-ups, required, progress; the trial's ending and /survey" },
   "components/GuidedTour.jsx":          { what: "D129 · the guided tour: coach-marks on the real pages, Back · Next, Faster, the required actions, each step's time", module: "trial" },
   "components/ScrollDock.jsx":          { what: "the marketing and tools pages' dock" },
   "components/PolicyProse.jsx":         { what: "the public documents' prose parts — the privacy policy and the connector docs (/docs/claude)" },

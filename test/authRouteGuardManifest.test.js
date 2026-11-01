@@ -62,6 +62,10 @@ const PUBLIC = new Set([
   // postings with no user column, the query is capped at 20 rows a page, and the page it feeds is
   // reachable without an account. Nothing user-scoped is in scope for it to leak.
   "GET /api/jobs/generic",
+  // D130: the standalone survey is for people with NO account (jobsviadraft.com/survey). The form is public; a response
+  // is guarded by a honeypot, ≤ 5 an hour per address and one response per email (services/trial.js saveStandaloneSurvey).
+  "GET /api/survey/form",
+  "POST /api/survey",
   // A77: a company's stored LOGO, by company key. company_logos has no user column — a logo is a fact
   // about an employer, and the anonymous landing feed shows logos too. Image bytes only (raster, nosniff,
   // CSP default-src 'none').
@@ -88,6 +92,10 @@ const ADMIN = new Set([
   "GET /api/admin/trial/analytics",
   "GET /api/admin/trial/crosscut",
   "GET /api/admin/trial/export.csv",
+  // D130: the standalone responses; contact details only with ?contact=1.
+  "GET /api/admin/survey/export.csv",
+  // D130: both surveys side by side and combined, and the YC numbers.
+  "GET /api/admin/survey/sources",
   "POST /api/admin/trial/access",
   // AF residual. The full-auto kill switch, reachable without a SQL console. Admin-only and
   // deliberately not user-facing: it stops applications going out to real employers for EVERY

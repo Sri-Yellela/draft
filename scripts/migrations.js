@@ -5855,4 +5855,22 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_lca_employer_periods_name ON lca_employer_periods(employer_name);
       `,
     },
+    {
+      // ⭐ D130 (owner 11-01) · THE STANDALONE SURVEY — jobsviadraft.com/survey, no account: a response's name and email
+      // are its only identity, one response per email (email_key, lower-cased; a second submission updates the first).
+      // Beside trial_surveys (keyed by the account), not in it: that table's key is the user, and these have none.
+      // After 208.
+      id: "209_standalone_surveys",
+      sql: `
+        CREATE TABLE IF NOT EXISTS standalone_surveys (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          name       TEXT NOT NULL,
+          email      TEXT NOT NULL,
+          email_key  TEXT NOT NULL UNIQUE,
+          answers    TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];

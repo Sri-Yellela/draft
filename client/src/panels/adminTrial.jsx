@@ -26,6 +26,67 @@ const LABELS = {
 const secs = (ms) => (ms == null ? "—" : `${Math.round(ms / 1000)} s`);
 const CUTS = ["sample", "field", "device", "speed", "draftsOk"];
 
+// ⭐ D130 · BOTH SURVEYS — the trial's and the standalone page's (/survey): THE YC NUMBERS over everyone who answered,
+// every shared question side by side (trial · standalone · combined), each source's own questions, and the standalone
+// export (contact details only with the box ticked). GET /api/admin/survey/sources, /api/admin/survey/export.csv.
+const pct = (x) => (x == null ? "—" : `${x}%`);
+function SurveySources() {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState(null);
+  const [contact, setContact] = useState(false);
+  const load = useCallback(() => api("/api/admin/survey/sources").then(setD).catch((e) => setErr(e.message)), []);
+  useEffect(() => { load(); }, [load]);
+  if (err) return <Panel title="Both surveys" purpose={err}/>;
+  if (!d) return <Panel title="Both surveys" purpose="Loading…"/>;
+  const y = d.yc;
+  const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 };
+  return (
+    <Panel data-admin-surveys="" title="Both surveys"
+      purpose="The trial's survey and the standalone one at /survey (no account). The numbers that matter for the application first, then every shared question split by source and combined."
+      code="GET /api/admin/survey/sources · /api/admin/survey/export.csv (?contact=1 adds name and email)"
+      numbers={[[d.responses.trial, "trial answers"], [d.responses.standalone, "standalone answers"], [d.responses.combined, "in all", true]]}>
+      <h3 style={{ margin: "8px 0" }}>The numbers</h3>
+      <div style={grid} data-survey-yc="">
+        <div style={sub}><b>{y.hoursPerWeek.median ?? "—"} h</b> a week spent applying (median; average {y.hoursPerWeek.average ?? "—"}, n {y.hoursPerWeek.n})</div>
+        <div style={sub}><b>{pct(y.paidForHelp.percent)}</b> have paid for job-search help (n {y.paidForHelp.n})</div>
+        <div style={sub}><b>{pct(y.betterThanToday.percent)}</b> say draft is much or somewhat better than today (trial, n {y.betterThanToday.n})</div>
+        <div style={sub}><b>{pct(y.interested.percent)}</b> interested: as soon as they can or when they start looking (n {y.interested.n})</div>
+        <div style={sub}><b>{y.friendsSuggested}</b> friends suggested</div>
+        <div style={sub}>Stars, on average: {Object.entries(y.stars).map(([k, v]) => `${k.replace(/^rate_|_/g, " ").trim()} ${v ?? "—"}`).join(" · ")}</div>
+      </div>
+      <div style={{ ...grid, marginTop: 10 }}>
+        <Tally title="What they use today" counts={y.useToday}/>
+        <Tally title="Would let a tool send for them" counts={y.trustAutoApply}/>
+        <Tally title="What would feel fair to pay" counts={y.pay}/>
+        <Tally title="Paid for help, how much" counts={y.paidForHelp.how}/>
+        <Tally title="Most frustrating, ranked" counts={Object.fromEntries(y.frustrationRanking)}/>
+      </div>
+      <h3 style={{ margin: "16px 0 8px" }}>Shared questions: trial · standalone · combined</h3>
+      {Object.entries(d.shared).map(([k, v]) => (
+        <details key={k} style={{ marginBottom: 6 }} data-survey-shared={k}>
+          <summary>{v.question}</summary>
+          <div style={{ ...grid, marginTop: 6 }}>
+            <Tally title="Trial" counts={v.trial}/><Tally title="Standalone" counts={v.standalone}/><Tally title="Combined" counts={v.combined}/>
+          </div>
+        </details>
+      ))}
+      <h3 style={{ margin: "16px 0 8px" }}>Asked in one survey only</h3>
+      <div style={grid}>
+        {[...Object.entries(d.trialOnly).map(([k, v]) => [k, v, "Trial"]), ...Object.entries(d.standaloneOnly).map(([k, v]) => [k, v, "Standalone"])].map(([k, v, src]) => (
+          <Tally key={k} title={`${src}: ${v.question}${v.average != null ? ` (average ${v.average} ★)` : ""}`} counts={v.counts}/>
+        ))}
+      </div>
+      <div style={{ ...row, marginTop: 12 }}>
+        <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <input type="checkbox" checked={contact} onChange={(e) => setContact(e.target.checked)} data-survey-contact=""/> Include name and email
+        </label>
+        <DepthButton onClick={() => { window.location.href = `/api/admin/survey/export.csv${contact ? "?contact=1" : ""}`; }}>Download the standalone answers (CSV)</DepthButton>
+        <DepthButton onClick={load}>Refresh</DepthButton>
+      </div>
+    </Panel>
+  );
+}
+
 // ⭐ D129 · THE TOUR'S ANALYTICS — the funnel with each step's median time, where people leave, what they tried, the
 // errors they met, each section's usefulness, any answer cut by sample / field / device / speed / drafts, and the CSV.
 function TourAnalytics() {
@@ -160,6 +221,7 @@ export function TrialTab() {
         </div>
       </Panel>
 
+      <SurveySources/>
       <TourAnalytics/>
 
       <Panel data-admin-trial-access="" title="Exclusive access"
