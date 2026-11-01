@@ -29,6 +29,11 @@ export const REDACTED = "[redacted]";
 const SECRET_COLUMNS = new Set([
   "password_hash", "otp_hash", "token_hash", "code_hash", "cookies_enc", "secret_enc",
   "apify_token", "session_sid", "sid", "session_id",
+  // ⛔ A107 (43v → 43w): Note why's free text is promised "Private: only you see it" (migration 200) — the user's own
+  // words about a rejection. Not a secret of the system, but it leaves no admin read: the Table Browser, the raw query,
+  // the job inspector's ja.* rows and GET /api/admin/users/:id/applications all redact it here. The quick picks
+  // (rejection_reasons) stay — D111 counts them, and they say nothing in the user's own words.
+  "rejection_note",
 ]);
 // …and a pattern for the ones a future migration adds. Anchored so token COUNTS (`input_tokens`,
 // `monthly_token_budget`) and diagnostic hashes (`basis_hash`) are not caught.

@@ -84,7 +84,8 @@ function reachable(start) {
 
 test("d111NeverReadsRejectionNote — no model call site can reach the note", () => {
   // (a) Who names the note in code: only the store / serve path and the migration that added it.
-  const NAMERS = new Set(["server.js", "services/pipelineWorkspace.js"]);
+  // A107 (43w): services/adminSafety.js names it to WITHHOLD it from every admin read (a redacted column) — never to read it.
+  const NAMERS = new Set(["server.js", "services/pipelineWorkspace.js", "services/adminSafety.js"]);
   const namers = productionFiles().filter(f => /rejection_note/.test(code(read(f))));
   assert.deepEqual(namers.filter(f => !NAMERS.has(f)), [], "a new reader of the note — D17 and D111 say none");
   // server.js names it only inside migration 200 (the ALTER TABLE), nowhere a request is served.
