@@ -46,7 +46,10 @@ const SECTION_FIELDS = [
 const READS_SECTION = new RegExp(`\\.(${SECTION_FIELDS.join("|")})\\b`);
 // D31 (10-04): the simple card's three section headings are a report's headings too.
 // D32 (10-05): and the ink pair's — "Already yours", and the header's "You cover … things this posting asks for".
-const HEADINGS = /Skills Matched|Skills Missing|Competencies Missing|Verbs Missing|Generic Language|Experience Fit|Profile Facts Missing|"fit band"|"no judgement"|You could claim|Already on your r[eé]sum[eé]|Already yours|You cover|things this posting asks for|Generic — not a gap/;
+const HEADINGS = /Skills Matched|Skills Missing|Competencies Missing|Verbs Missing|Generic Language|Experience Fit|Profile Facts Missing|"fit band"|"no judgement"|You could claim|Already on your r[eé]sum[eé]|Already yours|You cover \$?\{[^}]*\} of|things this posting asks for|Generic — not a gap/;
+// ⚠ 10-31 (43w): "You cover" ALONE is the Atlas tree's role coverage (D116: "You cover 6 of 15 of this role's top skills"
+// — a fact about a ROLE, read from the server's line), not a posting's report; the ATS header is "You cover ${matched} of
+// the ${total} things this posting asks for", so the guard matches that shape — an interpolated count, then "of".
 
 /** Every file, other than the one, that draws or reads an ATS report. Pure, so violations can be injected. */
 export function secondReports(sources) {
@@ -116,6 +119,8 @@ test("the guard goes red on a second report (injected)", () => {
   assert.equal(injected("extension/resumePanel.js",
     "\nconst lines = ats.report.tier1_missing.join(', ');\n").length, 1, "the panel reads a section itself");
   assert.equal(injected("extension/popup.js", "\nbox.textContent = 'You could claim';\n").length, 1, "the popup prints a heading");
+  assert.equal(injected("client/src/components/JobCard.jsx", "\nconst c = <p>You cover {m} of the {n} skills</p>;\n").length, 1, "the ink pair's header copied into a card");
+  assert.equal(injected("client/src/components/JobCard.jsx", "\nconst c = `You cover ${m} of ${n}`;\n").length, 1, "…or as a template");
   // A mention in a comment is not an implementation.
   assert.equal(injected("client/src/components/JobCard.jsx", "\n// see tier1_matched in AtsReport.jsx\n").length, 0);
 });
