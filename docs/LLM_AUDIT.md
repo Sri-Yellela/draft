@@ -238,3 +238,28 @@ What that means for P2, in the terms of this audit:
   *"missing — add it to your profile if it is true"*.
 - ⚠ **For the two samples, the KB has nothing to give**: their employers are fictional, so their lift comes from evidenced
   terms only. The sample résumés already carry a broad, realistic stack for that reason.
+
+---
+
+## P2 · BUILT (11-01, 43x): the lean call — static measure, no model called
+
+**Tools service `35c37f3` (contract 1.7.0, local):** `options.tailoring: "lean"`. Code parses the base résumé
+(`buildStructuredResume`). Haiku sees only the keywords and the bullets (with ids) and the skills rows, and returns
+JSON of changes. `checkLeanChanges` refuses a new number, a skill nobody supports, a KB term at the wrong employer, or
+an over-long bullet. One Sonnet repair carries the exact messages; what is still refused is reverted. Then
+`renderStructuredResume` and the contractual claim guard. **Draft:** `services/leanTailoring.js`, the full posting text
+(`description_full`), the keywords, and the KB placements at the candidate's own employers (≥ 3 postings). Off unless
+`DRAFT_TAILORING=lean`; trial accounts (D124) default to lean.
+
+**The same 30 requests, rendered as the lean call would send them:**
+
+| | system | user message | input ≈ tokens | was (full) | KB placements (10 postings) |
+|---|---|---|---|---|---|
+| owner | 2,063 ch | 4,835 ch (4,638–5,062) | **≈ 2,200** | ≈ 9,200 | 19 |
+| sample A | 2,063 ch | 2,009 ch | **≈ 1,300** | ≈ 8,280 | 0 (fictional employers) |
+| sample B | 2,063 ch | 1,962 ch | **≈ 1,300** | ≈ 6,660 | 0 |
+
+Tokens are at 3.10 chars/token (the Sonnet 5 calibration; Haiku 4.5's tokenizer gives fewer, so this is the upper
+bound). **Expected price on Haiku 4.5:** input ≈ 0.13–0.22¢, plus output (JSON edits, estimated 400–800 t)
+≈ 0.2–0.4¢, so **≈ 0.35–0.6¢ per résumé**. A repair adds ≈ 1¢ (Sonnet). ⚠ Output tokens and quality are estimates
+until the live runs (`scripts/d123LlmAudit.mjs`).

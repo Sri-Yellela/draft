@@ -131,6 +131,7 @@ import { recordAtsOutcome } from "./services/usageTracker.js";
 // A4 — generation, the A+ rewrite and PDF parsing belong to the résumé tools service; draft calls it as a client.
 import { createToolsServiceClient, recordToolsServiceUsage, httpErrorFor, ToolsServiceError, isFundingFailure } from "./services/toolsService.js";
 import { generateRequest as toolsGenerateRequest } from "./services/toolsServiceRequests.js";
+import { tailoringFor, leanJobKeywords, fullPostingText, LEAN_LEDGER_RENAME } from "./services/leanTailoring.js";
 import { retryReasonFor } from "./services/generationRetry.js";
 import { generationCostSummary } from "./services/generationCost.js";
 import { drainInto as drainTrackingFailureSink } from "./services/trackingFailureSink.js";
@@ -12090,9 +12091,35 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   // off the SUMMARY rules are absent from the assembled prompt, so no summary is generated to
   // strip. Both tools route through here, so A+ and Generate honour it identically.
   const includeSummary = activeDomainProfile?.include_summary === 1;
+  // ⭐ D123 P2 · THE LEAN CALL: Haiku edits bullets and skills from keywords draft computes here (the full posting text,
+  // draft's scorer, the KB's placements at the candidate's own employers); the posting's text is not sent. Off unless
+  // DRAFT_TAILORING=lean (services/leanTailoring.js). Any failure to build the keywords falls back to the full call.
+  const tailoring = promptMode === "GENERATE" ? tailoringFor({ env: process.env }) : "full";
+  let leanKeywords = null;
+  if (tailoring === "lean") {
+    try {
+      const kwProfile = getOrRepairActiveProfile(userId);
+      const report = scoreAtsLocally({
+        job: { ...job, description: fullPostingText(job) },
+        runtimeBasis: buildRuntimeAtsBasis({
+          resumeText: authoritativeResumeText,
+          signalProfile: kwProfile ? loadOrCreateSimpleApplyProfile(db, { userId, profileId: kwProfile.id }) : null,
+          domainProfile: kwProfile,
+          claims: atsClaims(kwProfile),
+        }),
+        termWeights: atsTermWeightsForJob(job),
+        synonyms: atsSynonyms(),
+      });
+      leanKeywords = leanJobKeywords(db, { job, report, claims: profileClaims, resumeText: authoritativeResumeText, synonyms: atsSynonyms() });
+    } catch (e) {
+      console.warn("[generate] lean keywords failed, using the full call:", e.message);
+      leanKeywords = null;
+    }
+  }
   const generateBody = toolsGenerateRequest({
     profile, job, baseResumeText: authoritativeResumeText, mode: promptMode, employers,
     domainProfile: activeDomainProfile, claims: profileClaims, includeSummary, cache,
+    tailoring: leanKeywords ? "lean" : "full", keywords: leanKeywords,
     // D109 P2: which Profile bullets carry evidence — on the wire once the tools service declares it.
     evidence: evidenceForRequest(db, userId),
   });
@@ -12153,13 +12180,14 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
     // Spend the tools service reports on a failed request is still spend — meter it, then rethrow.
     // A94: a claim-guard refusal is a BILLED call that succeeded, so its row says success = 1; the
     // request's code is what tells it apart from a delivered résumé.
-    recordToolsServiceUsage(db, e?.usage, { userId, eventSubtype, jobId: String(jobId), company: job.company, requestError: e?.code, retryReason });
+    recordToolsServiceUsage(db, e?.usage, { userId, eventSubtype, jobId: String(jobId), company: job.company, renamePurpose: LEAN_LEDGER_RENAME,
+      requestError: e?.code, retryReason });
     throw e;
   }
   const domainModuleKey = generated.domainModuleKey;
   usageEventId = recordToolsServiceUsage(db, generated.usage, {
     userId, eventSubtype, jobId: String(jobId), company: job.company, domainModule: domainModuleKey,
-    atsScoreBefore, idFor: "resume_generate", retryReason,
+    atsScoreBefore, idFor: "resume_generate", retryReason, renamePurpose: LEAN_LEDGER_RENAME,
   });
   const formattedHtml = generated.html;
   console.log(

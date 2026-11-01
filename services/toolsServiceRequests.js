@@ -39,6 +39,11 @@ export function jobForResumeMaster(job = {}) {
   return { title: job.title, company: job.company, category: job.category, description: job.description, stack: job.stack ?? null };
 }
 
+/** D123 P2: the job as a LEAN request carries it — no posting text, the computed keywords instead. */
+export function leanJobForResumeMaster(job = {}, keywords) {
+  return { title: job.title, company: job.company, category: job.category, stack: job.stack ?? null, keywords };
+}
+
 /**
  * ⭐ D70 Phase 3 · THE PROMPT CACHE IS A PER-CALLER CHOICE — bursts on, one-shots off.
  *
@@ -78,6 +83,14 @@ export const RESUME_MASTER_ACCEPTS_CACHE_OPTION = true;
 export const RESUME_MASTER_ACCEPTS_EVIDENCE = false;
 
 /**
+ * ⭐ D123 P2 · THE LEAN TAILORING CALL goes on the wire only once the vendored contract declares it (1.7.0:
+ * GenerateRequest.options.tailoring, job.keywords.placements) — the same rule as `cache` above. In a lean request the
+ * posting's text is NOT sent at all: job carries title, company, category, stack and the keywords draft computed
+ * (services/leanTailoring.js), and the tools service never reads anything else of the posting in that mode.
+ */
+export const RESUME_MASTER_ACCEPTS_LEAN = true;
+
+/**
  * The generate request coreGenerateResume sends. With an active job profile the caller supplies the
  * role family and domain, and Resume Master resolves the domain module exactly as draft's
  * qualificationResolver did for that path; without one, Resume Master classifies.
@@ -86,8 +99,11 @@ export const RESUME_MASTER_ACCEPTS_EVIDENCE = false;
  * byte-for-byte what it was, so a batch caller is unchanged.
  */
 export function generateRequest({ profile, job, baseResumeText, mode, employers = [], domainProfile = null,
-                                  claims = null, includeSummary = false, cache = undefined, evidence = null },
-                                { cacheOptionAccepted = RESUME_MASTER_ACCEPTS_CACHE_OPTION, evidenceAccepted = RESUME_MASTER_ACCEPTS_EVIDENCE } = {}) {
+                                  claims = null, includeSummary = false, cache = undefined, evidence = null,
+                                  tailoring = "full", keywords = null },
+                                { cacheOptionAccepted = RESUME_MASTER_ACCEPTS_CACHE_OPTION, evidenceAccepted = RESUME_MASTER_ACCEPTS_EVIDENCE,
+                                  leanAccepted = RESUME_MASTER_ACCEPTS_LEAN } = {}) {
+  const lean = tailoring === "lean" && leanAccepted === true && keywords != null && mode === "GENERATE";
   return {
     mode,
     // With a profile, draft NEVER classified: a missing role_family resolved straight to "general".
@@ -98,9 +114,10 @@ export function generateRequest({ profile, job, baseResumeText, mode, employers 
     profile: jobProfileFromDomainProfile(domainProfile),
     claims: claims && (claims.skills?.length || claims.actionVerbs?.length) ? { skills: claims.skills || [], actionVerbs: claims.actionVerbs || [] } : null,
     employers: employers || [],
-    job: jobForResumeMaster(job),
+    job: lean ? leanJobForResumeMaster(job, keywords) : jobForResumeMaster(job),
     baseResumeText,
-    options: { includeSummary: includeSummary === true, ...(cache === false && cacheOptionAccepted === true ? { cache: false } : {}) },
+    options: { includeSummary: includeSummary === true, ...(cache === false && cacheOptionAccepted === true ? { cache: false } : {}),
+               ...(lean ? { tailoring: "lean" } : {}) },
     // D109 P2: withheld until the contract declares it (RESUME_MASTER_ACCEPTS_EVIDENCE, above).
     ...(evidenceAccepted === true && evidence?.roles?.length ? { evidence } : {}),
   };

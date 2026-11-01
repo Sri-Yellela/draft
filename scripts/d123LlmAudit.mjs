@@ -12,7 +12,7 @@
 //
 // Usage:
 //   node scripts/d123LlmAudit.mjs --out <file.json> [--resumes owner,A,B] [--jobs id,id,…] [--mode GENERATE|A_PLUS]
-//        [--static] [--cache on|off] [--owner-user 15] [--rm ../resume-master] [--db data/resume_master.db] [--keep-html <dir>]
+//        [--static] [--tailoring full|lean] [--cache on|off] [--owner-user 15] [--rm ../resume-master] [--db data/resume_master.db] [--keep-html <dir>]
 import path from "node:path";
 import fs from "node:fs";
 import { pathToFileURL, fileURLToPath } from "node:url";
@@ -25,6 +25,7 @@ import { withPostingText } from "../services/jobs/descriptionText.js";
 import { loadTermWeights } from "../services/atsTermWeights.js";
 import { roleFamilyForTitle } from "../services/searchQueryBuilder.js";
 import { loadConfirmedSynonyms } from "../services/kb/skillSynonyms.js";
+import { leanJobKeywords, fullPostingText } from "../services/leanTailoring.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 dotenv.config({ path: path.join(ROOT, ".env"), quiet: true });
@@ -67,7 +68,8 @@ if (!STATIC && !client) { console.error("no ANTHROPIC_KEY in .env"); process.exi
 const db = new Database(path.resolve(ROOT, opt.db || "data/resume_master.db"), { readonly: true, fileMustExist: true });
 const synonyms = (() => { try { return loadConfirmedSynonyms(db); } catch { return null; } })();
 const mode = opt.mode || "GENERATE";
-const cache = opt.cache === "on" ? undefined : false; // the interactive Generate sends cache:false (D70 Phase 3)
+const cache = opt.cache === "on" ? undefined : false;
+const tailoring = opt.tailoring === "lean" ? "lean" : "full"; // D123 P2: lean = the Haiku JSON-edits call // the interactive Generate sends cache:false (D70 Phase 3)
 
 // ── the résumés ───────────────────────────────────────────────────────────────────────────────
 function ownerResume(userId) {
@@ -136,8 +138,16 @@ const keep = opt["keep-html"] ? path.resolve(opt["keep-html"]) : null;
 if (keep) fs.mkdirSync(keep, { recursive: true });
 for (const r of resumes) {
   for (const job of jobs) {
+    let keywords = null;
+    if (tailoring === "lean") {
+      const family = roleFamilyForTitle(job.normalized_title || job.title || "");
+      const tw = loadTermWeights(db, family);
+      const report = scoreAtsLocally({ job: { ...job, description: fullPostingText(job) }, resumeText: r.text, domainProfile: r.dp,
+                                       termWeights: tw?.weights?.size ? tw.weights : null, synonyms });
+      keywords = leanJobKeywords(db, { job, report, claims: r.claims, resumeText: r.text, synonyms });
+    }
     const body = generateRequest({ profile: r.profile, job, baseResumeText: r.text, mode, employers: [], domainProfile: r.dp,
-                                   claims: r.claims, includeSummary: r.dp?.include_summary === 1, cache });
+                                   claims: r.claims, includeSummary: r.dp?.include_summary === 1, cache, tailoring, keywords });
     const p = parts(body, r.dp?.include_summary === 1);
     const before = ats(job, r.text, r.dp);
     if (STATIC) {
@@ -148,12 +158,14 @@ for (const r of resumes) {
       continue;
     }
     const t0 = Date.now();
-    const row = { resume: r.key, job: job.job_id, company: job.company, title: job.title, mode, cache: cache !== false,
+    const row = { resume: r.key, job: job.job_id, company: job.company, title: job.title, mode, tailoring, cache: cache !== false,
+                  placements: keywords?.placements?.length ?? null,
                   module: p.moduleKey, promptChars: p.chars, atsBefore: before.score, atsWeighted: before.weighted };
     try {
       const g = await generateResume(client, body);
       row.ok = true;
       row.usage = g.usage;
+      row.tailoringResult = g.tailoring || null;
       const text = htmlToText(g.html);
       const bb = baseBullets(r.text), hb = htmlBullets(g.html);
       const kept = hb.filter(b => bb.includes(b)).length;
