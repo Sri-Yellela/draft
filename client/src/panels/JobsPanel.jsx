@@ -319,7 +319,7 @@ function defaultFilterSnapshot() {
     experienceLevels: [],
     skillsInclude: [],
     sponsorFriendly: false,
-    companySponsors: false,
+    companySponsors: "",
     // D59: "hide roles that require clearance or citizenship" — default off, so the querystring is unchanged.
     hideEligibility: false,
     // D106: "Truly entry level" — the text asks entry / early, not just the title. Default off.
@@ -846,18 +846,18 @@ function FiltersPanel({
             filter cannot confirm that a company sponsors, and a label promising that would be the
             exact overclaim the company view's copy is written to avoid. */}
         <div>
-          <button type="button" onClick={() => setCompanySponsors(!companySponsors)}
+          <button type="button" onClick={() => setCompanySponsors(companySponsors === "1" ? "" : "1")}
             style={{
               display:"flex", alignItems:"center", gap:8, width:"100%",
               padding:"8px 10px", borderRadius:4, cursor:"pointer",
-              border:`1px solid ${companySponsors ? theme.accent : theme.border}`,
-              background: companySponsors ? theme.accentMuted : "transparent",
-              color: companySponsors ? theme.accentText : theme.text,
+              border:`1px solid ${companySponsors === "1" ? theme.accent : theme.border}`,
+              background: companySponsors === "1" ? theme.accentMuted : "transparent",
+              color: companySponsors === "1" ? theme.accentText : theme.text,
             }}>
             <span style={{
               width:16, height:16, borderRadius:3, flexShrink:0,
-              border:`1px solid ${companySponsors ? theme.accent : theme.border}`,
-              background: companySponsors ? theme.accent : "transparent",
+              border:`1px solid ${companySponsors === "1" ? theme.accent : theme.border}`,
+              background: companySponsors === "1" ? theme.accent : "transparent",
             }}/>
             <span style={{ fontSize:12, fontWeight:600 }}>Hide employers with no H-1B filings</span>
           </button>
@@ -1660,7 +1660,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [sponsorFriendly,setSponsorFriendly]= useState(false);
   // X3: the COMPANY-level H-1B filter, separate from the posting-level toggle above because it is
   // a different claim from a different source. Default off — see the drawer copy for what it does.
-  const [companySponsors,setCompanySponsors]= useState(false);
+  // ⭐ A109: a VALUE, not a tickbox — "" · "filed" (the sentence's sponsorship clause) · "1" (the drawer's older opt-in).
+  const [companySponsors,setCompanySponsors]= useState("");
   const [hideEligibility, setHideEligibility] = useState(false);
   const [trulyEntry, setTrulyEntry] = useState(false);
   // Provider + automation-tier include/exclude. Default [] on all four — buildParams emits nothing
@@ -1800,7 +1801,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setExperienceLevels(Array.isArray(next.experienceLevels) ? next.experienceLevels : []);
     setSkillsInclude(Array.isArray(next.skillsInclude) ? next.skillsInclude : []);
     setSponsorFriendly(!!next.sponsorFriendly);
-    setCompanySponsors(!!next.companySponsors);
+    setCompanySponsors(next.companySponsors === true ? "1" : typeof next.companySponsors === "string" ? next.companySponsors : "");
     setHideEligibility(!!next.hideEligibility);
     setTrulyEntry(!!next.trulyEntry);
     setSourcesInclude(Array.isArray(next.sourcesInclude) ? next.sourcesInclude : []);
@@ -2264,7 +2265,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // X3: company-level H-1B evidence, and the narrowest filter on the board — it removes only
     // companies whose employer name we matched with high confidence and that filed nothing in the
     // quarters of DOL data we hold. Unmatched and ambiguous companies survive it by construction.
-    if (companySponsors)         p.set("company_sponsorship", "1");
+    if (companySponsors)         p.set("company_sponsorship", companySponsors);
     if (hideEligibility)         p.set("hide_eligibility_required", "1");
     if (trulyEntry)              p.set("truly_entry", "1");
     // "Show everything in my role" — turns off the profile-derived defaults for this request only
@@ -2359,6 +2360,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     where:    [workModels,       setWorkModels],
     posted:   [ageFilter,        setAgeFilter],
     fit:      [fitBands,         setFitBands],
+    // ⭐ A109: the sponsorship clause writes the same value the drawer did (company_sponsorship).
+    sponsorship: [companySponsors, (v) => setCompanySponsors(Array.isArray(v) ? (v[0] || "") : (v || ""))],
   };
   const clauseCount = countActiveClauses(Object.fromEntries(
     SENTENCE_CLAUSES.map(c => [c.dim.param, clauseState[c.key]?.[0]])));
@@ -2990,7 +2993,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setExperienceLevels(p.get("experience_levels") ? p.get("experience_levels").split(",") : []);
     setSkillsInclude(p.get("skills_include") ? p.get("skills_include").split(",") : []);
     setSponsorFriendly(p.get("sponsorship_friendly") === "1");
-    setCompanySponsors(p.get("company_sponsorship") === "1");
+    setCompanySponsors(p.get("company_sponsorship") || "");
     setHideEligibility(p.get("hide_eligibility_required") === "1");
     setTrulyEntry(p.get("truly_entry") === "1");
     // A saved search stores buildParams' raw querystring, so a param buildParams emits but this

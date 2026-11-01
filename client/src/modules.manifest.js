@@ -90,7 +90,7 @@ export const SHARED = Object.freeze({
   // ── controls and surfaces ──
   "components/ResourceTile.jsx":       { what: "D119 · THE resource tile — a stored thumbnail (or what it is, in type), the kind mark, the whole tile the link" },
   "components/ResourceTile.css":       { what: "its look and the wrapping grid", owner: "components/ResourceTile.jsx" },
-  "components/SponsorshipSignal.jsx":   { what: "D121 · the ONE sponsorship chip (board cards, Draft House) and block (the job page), drawn from the server's signal" },
+  "components/SponsorshipSignal.jsx":   { what: "D121 · the ONE sponsorship block (the expanded posting panel) and chip (the Atlas role page's sponsors; A109 took it off each post), drawn from the server's signal" },
   "components/SponsorshipSignal.css":   { what: "their look", owner: "components/SponsorshipSignal.jsx" },
   "components/DepthButton.jsx":         { what: "THE depth box (D1/D48)" },
   "components/DepthButton.css":         { what: "the depth box, the .dbx-depth skin and the .mark (D60) — loaded app-wide by main.jsx", owner: "components/DepthButton.jsx", alsoBy: ["main.jsx"] },

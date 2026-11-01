@@ -809,10 +809,12 @@ function buildJobFilters(params = {}, opts = {}) {
         params: [],
       };
     } else {
-      // The opt-in filter, and the narrowest one that could be called a filter: it removes only
+      // ⭐ A109: the sentence's "at employers with H-1B filings" — ONLY employers the signal says filed (hard).
+      if (String(params.company_sponsorship) === 'filed') clauses.push(`(${lcaHasFilings})`);
+      // The older opt-in (`1`), the narrowest one that could be called a filter: it removes only
       // companies we are confident we identified and that filed nothing in the window searched.
       // Unmatched and ambiguous companies survive it, by construction.
-      clauses.push(`NOT ${lcaNoFilings}`);
+      else clauses.push(`NOT ${lcaNoFilings}`);
     }
   }
 

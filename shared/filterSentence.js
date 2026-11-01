@@ -10,7 +10,7 @@
  * Every value is a DB / param value per jobFilterOptions.js's rules; labels are derived, never
  * hardcoded at a call site.
  */
-import { EXPERIENCE_LEVELS, WORK_MODELS, POSTING_AGE } from "./jobFilterOptions.js";
+import { EXPERIENCE_LEVELS, WORK_MODELS, POSTING_AGE, COMPANY_SPONSORSHIP } from "./jobFilterOptions.js";
 // D30 · the two open-set dimensions, over the D29 tag layer.
 import { JOB_FUNCTIONS, PLACES } from "./jobTagVocabulary.js";
 import { ATS_BAND, ATS_BAND_LABELS } from "./atsBands.js";
@@ -71,6 +71,8 @@ export const SENTENCE_CLAUSES = Object.freeze([
   { key: "where",    dim: WORK_MODELS,       label: "Workplace", permanent: true,  any: "all", panelAny: "any workplace", noun: ["workstyle", "workstyles"] },
   { key: "posted",   dim: POSTING_AGE,       label: "Posted",    permanent: false, any: "any time", panelAny: "any time" },
   { key: "fit",      dim: FIT_BANDS,         label: "Fit",       permanent: false, any: "any fit", panelAny: "any fit" },
+  // ⭐ A109 (owner 11-01): sponsorship as a filter — optional, appended only when set, like posted and fit.
+  { key: "sponsorship", dim: COMPANY_SPONSORSHIP, label: "Sponsorship", permanent: false, any: "any employer", panelAny: "any employer" },
 ]);
 /** D37 · the verb, lower-case like the wordmark. */
 export const SENTENCE_VERB = Object.freeze({ showing: "discovering", nothing: "nothing matches" });
@@ -85,6 +87,7 @@ export const SENTENCE_WORDS = Object.freeze({
   posted: { "1d": "posted today", "2d": "posted in the last 2 days", "3d": "posted in the last 3 days",
             "1w": "posted this week", "1m": "posted this month", visit: "new since your last visit" },
   fit: { [ATS_BAND.STRONG]: "strong", [ATS_BAND.MODERATE]: "moderate", [ATS_BAND.WEAK]: "weak" },
+  sponsorship: { filed: "at employers with H-1B filings", 1: "hiding employers with no H-1B record" },
 });
 
 // D35 · THE WORDS AN OPTION READS AS IN ITS PANEL (header.html: "entry", "remote", "on-site", "the Bay
@@ -94,6 +97,7 @@ export const SENTENCE_WORDS = Object.freeze({
 export const PANEL_WORDS = Object.freeze({
   where: { remote: "remote", hybrid: "hybrid", onsite: "on-site" },
   posted: { "1d": "today", "2d": "the last 2 days", "3d": "the last 3 days", "1w": "this week", "1m": "this month", visit: "since your last visit" },
+  sponsorship: { filed: "employers with H-1B filings" },
 });
 
 /** What one option reads as in its panel (D35). */
@@ -106,6 +110,7 @@ export function panelWord(clause, value) {
     case "where":    return PANEL_WORDS.where[value] ?? value;
     case "posted":   return PANEL_WORDS.posted[value] ?? value;
     case "fit":      return SENTENCE_WORDS.fit[value] ?? value;
+    case "sponsorship": return PANEL_WORDS.sponsorship[value] ?? o?.label ?? value;
     default:         return o?.label ?? value;
   }
 }
@@ -166,6 +171,9 @@ export function slotText(clause, params = {}, { defaultDomain = null } = {}) {
       text = `${or(chosen.map(v => SENTENCE_WORDS.fit[v] ?? v))} fit${chosen.length === 1 ? "s only" : "s"}`;
       break;
     }
+    case "sponsorship":
+      text = !active ? clause.any : (SENTENCE_WORDS.sponsorship[chosen[0]] ?? chosen[0]);
+      break;
     default:
       text = active ? or(chosen) : clause.any;
   }
@@ -178,9 +186,9 @@ export function slotText(clause, params = {}, { defaultDomain = null } = {}) {
  * reader can see which one to loosen (D30) — "this board has emptied four times".
  */
 // D37 · the sentence's own order — domain, level, workplace, location — then the optional two.
-export const SENTENCE_ORDER = Object.freeze(["domain", "level", "where", "location", "posted", "fit"]);
+export const SENTENCE_ORDER = Object.freeze(["domain", "level", "where", "location", "posted", "fit", "sponsorship"]);
 // The words BEFORE each slot (after the verb), and after it — its noun, from slotNoun.
-const LEAD = Object.freeze({ domain: " ", level: " at ", where: " and ", location: " in ", posted: ", ", fit: ", " });
+const LEAD = Object.freeze({ domain: " ", level: " at ", where: " and ", location: " in ", posted: ", ", fit: ", ", sponsorship: ", " });
 
 export function sentenceParts(params = {}, { defaultDomain = null, nothingMatches = false } = {}) {
   const byKey = Object.fromEntries(SENTENCE_CLAUSES.map(c => [c.key, c]));

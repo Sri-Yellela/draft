@@ -352,8 +352,25 @@ export const FIT_BANDS = {
   dbOnly: [],
 };
 
+// ── A109 · Sponsorship — the employer's H-1B record, D121's ONE signal (services/kb/sponsorshipSignal.js signalSql) ──
+// Owner 11-01: "the sponsorship info doesnt need a label on each post, only on the expanded job desc panel. and add as a
+// filter". `filed`: employers with certified H-1B LCAs in the latest complete fiscal year or the one before (the signal's
+// "often" / "sometimes"). Hard: an employer we could not match is NOT shown under it (it may sponsor; we cannot say so).
+// ⛔ Wording: "filed", never "sponsors you" — an LCA shows the company sponsored someone, not that it will sponsor this role.
+export const COMPANY_SPONSORSHIP = {
+  param: "company_sponsorship",
+  multi: false,
+  options: [{ value: "filed", label: "Employers with H-1B filings" }],
+  dbOnly: [
+    { value: "1", label: "Hide employers with no H-1B record", why:
+      "X3 / D121's older value (the retired filter drawer): removes only employers matched with confidence that filed " +
+      "nothing. Still accepted so a saved board or an old link keeps working; the sentence offers `filed`." },
+  ],
+};
+
 export const FILTER_DIMENSIONS = {
   experienceLevel: EXPERIENCE_LEVELS,
+  companySponsorship: COMPANY_SPONSORSHIP,
   fitBand:         FIT_BANDS,
   domain:          DOMAINS,
   workModel:       WORK_MODELS,

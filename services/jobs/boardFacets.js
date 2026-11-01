@@ -27,7 +27,8 @@
  * aggregation (`SUM(CASE WHEN <option> THEN 1 END)` per option) over that clause's base set — so
  * five statements whatever the option count, never one per option.
  */
-import { EXPERIENCE_LEVELS, WORK_MODELS, POSTING_AGE, FIT_BANDS, labelFor } from "../../shared/jobFilterOptions.js";
+import { EXPERIENCE_LEVELS, WORK_MODELS, POSTING_AGE, FIT_BANDS, COMPANY_SPONSORSHIP, labelFor } from "../../shared/jobFilterOptions.js";
+import { signalSql } from "../kb/sponsorshipSignal.js";
 import { FIRST_SEEN_SQL, FIRST_VISIT_SEC } from "../boardVisit.js";
 import { buildJobFilters, postedSinceSql } from "./jobQuery.js";
 import { fitBandsSql, FIT_SCORE_SQL } from "./jobCursor.js";
@@ -118,6 +119,16 @@ export function facetClauses({ nowSec, visitSinceSec = null }) {
         const p = (ctx) => ({ sql: fitBandsSql([o.value], { scoreSql: ctx?.fitScoreSql ?? FIT_SCORE_SQL }), params: [] });
         // ⛔ HARD: an unscored row is in no band, so known === count (filterSentence.js says so).
         return { value: o.value, label: labelFor(FIT_BANDS, o.value), count: p, known: p };
+      }),
+    },
+    // ⭐ A109 · SPONSORSHIP — counted with the board query's own SQL (D121's ONE signal, signalSql): employers with
+    // certified H-1B filings. HARD (known === count): an employer we could not match is in no option.
+    {
+      key: "sponsorship",
+      remove: [COMPANY_SPONSORSHIP.param],
+      options: COMPANY_SPONSORSHIP.options.map(o => {
+        const p = { sql: `(${signalSql("sj").filed})`, params: [] };
+        return { value: o.value, label: o.label, count: p, known: p };
       }),
     },
   ];
