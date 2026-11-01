@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { linkSegments } from "../../../shared/atlasLinks.js";
 import { peekAtlas, atlasLinkEvent, atlasHref } from "../lib/atlasLinks.js";
+import ResourceTile from "./ResourceTile.jsx";
 import "./AtlasTerm.css";
 
 export const OPEN_DELAY_MS = 300;
@@ -65,9 +66,14 @@ function Popup({ slug, name, pos, onEnter, onLeave, id }) {
             onClick={() => atlasLinkEvent("visit")} data-atlas-pop-learn="" title={p.learnStep ? p.learnStep.label : undefined}>
             <Bookmark /> Learn it in the Atlas →
           </a>
-          {p.firstResource && <a className="atl-term__res" href={p.firstResource.url} target="_blank" rel="noopener noreferrer">
-            {p.firstResource.format === "docs" ? "Official docs" : p.firstResource.title}
-          </a>}
+          {/* ⭐ D119: the first resource as the ONE tile, with its stored picture (or what it is, in type). */}
+          {p.firstResource && (
+            <div className="atl-term__res" data-atlas-pop-resource="">
+              <ResourceTile item={{ id: null, k: p.firstResource.format ? p.firstResource.format.charAt(0).toUpperCase() + p.firstResource.format.slice(1) : "Article",
+                u: p.firstResource.url, t: p.firstResource.format === "docs" ? "Official docs" : p.firstResource.title, s: "" }}
+                thumb={p.firstResource.thumb || null}/>
+            </div>
+          )}
         </>
       )}
     </div>,
