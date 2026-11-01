@@ -98,7 +98,7 @@ import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js
 // ⭐ D105: the Atlas — roles, skills, tools, linked; seeded as drafts from the scorer's own registry, stats from the board.
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
-import { createThumbsRouter, createThumbsAdminRouter, learnItems } from "./routes/thumbs.js";
+import { createThumbsRouter, createThumbsAdminRouter, resourceItems } from "./routes/thumbs.js";
 import { refreshThumbs } from "./services/thumbs/resourceThumbs.js";
 import { createLearnAdminRouter } from "./routes/learnAdmin.js";
 import { seedLearnContentIfEmpty } from "./services/learn/learnImport.js";
@@ -6984,7 +6984,7 @@ cron.schedule('30 5 * * *', async () => {
   } catch (e) { console.error('[Cron] learn P5 link check error:', e.message); }
   // ⭐ D119 P2: the thumbnails, with the dead-link check — each picture refreshed monthly, a capped, polite run a night.
   try {
-    const r = await refreshThumbs(db, learnItems(db));
+    const r = await refreshThumbs(db, resourceItems(db));
     if (r.checked) console.log(`[Cron] thumbnails: ${r.checked} checked, ${r.ok || 0} stored, ${r.failed || 0} failed, ${r.none || 0} none`);
   } catch (e) { console.error('[Cron] thumbnails error:', e.message); }
   // ⭐ D105 P7/P8 (amended 10-31): Wikipedia titles (exact matches only) + Wikidata items → the official site / docs

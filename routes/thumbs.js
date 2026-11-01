@@ -25,6 +25,17 @@ export function learnItems(db) {
   return out;
 }
 
+/** ⭐ D119 · every resource a page lists: Learn's items and the Atlas's resources (not the dead ones) — what the refresh fetches. */
+export function resourceItems(db) {
+  const out = learnItems(db);
+  try {
+    for (const r of db.prepare(`SELECT url, title, format FROM atlas_resources WHERE COALESCE(check_status, 'ok') != 'dead'`).all()) {
+      out.push({ id: null, k: r.format ? r.format.charAt(0).toUpperCase() + r.format.slice(1) : "Article", u: r.url, t: r.title, s: "" });
+    }
+  } catch { /* before the Atlas */ }
+  return out;
+}
+
 export function createThumbsRouter(db) {
   const router = Router();
   router.get("/learn", (_req, res) => {
@@ -63,6 +74,6 @@ export function createThumbsAdminRouter(db, { fetchImpl = globalThis.fetch } = {
     const { url, hidden = true } = req.body || {};
     res.json(hideThumb(db, String(url || ""), { hidden: hidden !== false, by: who(req) }));
   });
-  router.post("/refresh", async (_req, res) => res.json(await refreshThumbs(db, learnItems(db), { fetchImpl })));
+  router.post("/refresh", async (_req, res) => res.json(await refreshThumbs(db, resourceItems(db), { fetchImpl })));
   return router;
 }

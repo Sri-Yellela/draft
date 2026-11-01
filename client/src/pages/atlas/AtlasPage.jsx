@@ -26,6 +26,7 @@ import {
   WIKI_LICENCE, YOU_LABEL, YOU_MARK, LEVEL_READ_LABEL, shareText, stepTitle, stepEmptyLine, roleBoardParts,
 } from "./atlasModel.js";
 import { SponsorshipChip } from "../../components/SponsorshipSignal.jsx";
+import ResourceTile, { ResourceGrid } from "../../components/ResourceTile.jsx";
 import "./AtlasPage.css";
 
 function SearchBox({ base, initial = "" }) {
@@ -292,14 +293,18 @@ export function AtlasNodeView({ base, node, from, onWalk }) {
                 <div className="atl__quiet">{node.learn.title} · From silicon to software</div>
               </li>
             )}
-            {resources.map(r => (
-              <li key={r.url} data-resource-cost={r.cost || ""}>
-                <a href={r.url} target="_blank" rel="noopener noreferrer" className="atl__link">{r.title}</a>
-                {r.cost === "free" && <> <span className="mark mark--ok">Free</span></>}
-                <div className="atl__quiet">{resourceMeta(r).join(" · ")}</div>
-              </li>
-            ))}
           </ul>
+          {/* ⭐ D119: the resources as tiles — the one ResourceTile, each with its stored picture (or what it is, in type). */}
+          {resources.length > 0 && (
+            <ResourceGrid>
+              {resources.map(r => (
+                <li key={r.url} data-resource-cost={r.cost || ""}>
+                  <ResourceTile item={{ id: null, k: r.format ? r.format.charAt(0).toUpperCase() + r.format.slice(1) : "Article", u: r.url, t: r.title, s: resourceMeta(r).join(" · ") }}
+                    thumb={r.thumb || null} extra={r.cost === "free" ? <span className="mark mark--ok">Free</span> : null} />
+                </li>
+              ))}
+            </ResourceGrid>
+          )}
         </section>
       )}
 

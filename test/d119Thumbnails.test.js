@@ -170,7 +170,7 @@ test("D119 · d119NeverInDocuments — no résumé, PDF or cover-letter path rea
   const prod = [...fs.readdirSync("services", { recursive: true }).map(String).map(f => `services/${f.replace(/\\/g, "/")}`),
     ...fs.readdirSync("routes").map(f => `routes/${f}`), "server.js"].filter(f => /\.(m?js)$/.test(f) && fs.statSync(f).isFile());
   const importers = prod.filter(f => /resourceThumbs\.js|routes\/thumbs\.js/.test(read(f)) && !f.endsWith("resourceThumbs.js"));
-  assert.deepEqual(importers.sort(), ["routes/thumbs.js", "server.js"].sort(), "only the thumbnails' own route and the mount");
+  assert.deepEqual(importers.sort(), ["routes/atlas.js", "routes/thumbs.js", "server.js"].sort(), "only the thumbnails' own route, the Atlas page's resources and the mount");
   const client = fs.readdirSync("client/src", { recursive: true }).map(String).map(f => `client/src/${f.replace(/\\/g, "/")}`).filter(f => /\.jsx?$/.test(f));
   const tileUsers = client.filter(f => /ResourceTile\.jsx/.test(read(f)) && !f.endsWith("ResourceTile.jsx"));
   for (const f of tileUsers) assert.doesNotMatch(f, /resume|Resume|pdf|Pdf|Cover|Sandbox|DocToolbar/, f);
