@@ -34,6 +34,9 @@ export const AUTO_DEFAULTS = Object.freeze({
   // ⭐ D113 answer (1) · "Show me the form before sending" — OFF by default: a tap on Apply (or Apply for me) SENDS.
   // On, the run fills the form and stops at Ready for your review, as a Draft from the board does.
   showFormBeforeSending: false,
+  // ⭐ D121 P3 · "Only companies with a sponsorship record" — OFF by default. On, picks leave out a posting whose signal is
+  // not "Sponsors often / sometimes" (an unknown employer is left out too — the switch asks for a RECORD).
+  onlySponsorRecord: false,
 });
 export const CAP_MIN = 1;
 export const CAP_MAX = 150;
@@ -115,6 +118,10 @@ export function normaliseAutoSettings(input = {}) {
   if ("picks" in input) {
     if (typeof input.picks !== "boolean") return fail("bad_picks", "Picks by message are on or off.");
     v.picks = input.picks;
+  }
+  if ("onlySponsorRecord" in input) {
+    if (typeof input.onlySponsorRecord !== "boolean") return fail("bad_only_sponsor_record", "Only companies with a sponsorship record is on or off.");
+    v.onlySponsorRecord = input.onlySponsorRecord;
   }
   if ("showFormBeforeSending" in input) {
     if (typeof input.showFormBeforeSending !== "boolean") return fail("bad_show_form", "Show me the form before sending is on or off.");

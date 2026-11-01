@@ -270,7 +270,9 @@ test("nothing in X3 reads or writes scraped_jobs.is_h1b_sponsor", () => {
   // And the company-level rank/filter block builds its SQL from company_lca_sponsorship only.
   const block = JOBQUERY_SRC.slice(at(JOBQUERY_SRC, "Company-level H-1B evidence"),
                                    at(JOBQUERY_SRC, "Provider (source) include/exclude"));
-  assert.match(block, /company_lca_sponsorship/);
+  // D121: the block reads the ONE signal's SQL (sponsorshipSignal.js signalSql), which reads company_lca_sponsorship.
+  assert.ok(block.includes("signalSql('sj')"), "the company block reads the signal's SQL");
+  assert.match(fs.readFileSync("services/kb/sponsorshipSignal.js", "utf8"), /FROM company_lca_sponsorship cl/);
   const code = block.split("\n").filter(l => !l.trim().startsWith("//")).join("\n");
   assert.ok(!/is_h1b_sponsor|requires_work_auth/.test(code),
     "the company-level block must not reference the posting columns in its SQL");
@@ -355,7 +357,7 @@ test("a 0.60 match can rank UP but can never push anything DOWN", () => {
   assert.equal(before["j-mercury"], UNKNOWN, "and so is a non-distinctive brand name");
 
   // Strip Notion's filings. 0.60 is below the 0.80 demote bar, so it falls to UNKNOWN, not MISS.
-  db.prepare(`UPDATE company_lca_sponsorship SET certified_total = 0 WHERE company = 'Notion'`).run();
+  db.prepare(`UPDATE company_lca_sponsorship SET certified_total = 0, by_fiscal_year_json = '{}' WHERE company = 'Notion'`).run();
   assert.equal(rankOf()["j-notion"], UNKNOWN,
     "a 0.60 match with zero filings must not be demoted — pushing a row down takes 0.80");
   assert.notEqual(rankOf()["j-notion"], MISS);
@@ -363,7 +365,7 @@ test("a 0.60 match can rank UP but can never push anything DOWN", () => {
   assert.ok(run(db, { company_sponsorship: true }, { derivedKeys: [] }).includes("j-notion"));
 
   // Whereas Stripe at 0.95 with zero filings IS a miss — the one state that demotes.
-  db.prepare(`UPDATE company_lca_sponsorship SET certified_total = 0 WHERE company = 'Stripe'`).run();
+  db.prepare(`UPDATE company_lca_sponsorship SET certified_total = 0, by_fiscal_year_json = '{}' WHERE company = 'Stripe'`).run();
   assert.equal(rankOf()["j-stripe"], MISS);
 });
 
@@ -373,7 +375,7 @@ test("explicit: the filter excludes ONLY a high-confidence zero, and nothing els
   assert.equal(before.length, 6, "with nothing scoring a confident zero, the filter removes nothing");
 
   // Make Stripe a confident non-filer: resolved at 0.95, five quarters searched, zero found.
-  db.prepare(`UPDATE company_lca_sponsorship SET certified_total = 0 WHERE company = 'Stripe'`).run();
+  db.prepare(`UPDATE company_lca_sponsorship SET certified_total = 0, by_fiscal_year_json = '{}' WHERE company = 'Stripe'`).run();
   const after = run(db, { company_sponsorship: true }, { derivedKeys: [] });
   assert.ok(!after.includes("j-stripe"), "a 0.95 match with zero filings is what the user ticked to hide");
   for (const id of ["j-apex", "j-linear", "j-nobody", "j-mercury", "j-notion"]) {

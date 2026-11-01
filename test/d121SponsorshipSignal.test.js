@@ -163,3 +163,82 @@ test("D121 · d121NotLegalAdviceLine — every signal carries the not-legal-advi
   assert.equal(NOT_LEGAL_ADVICE, "Not legal advice — confirm with the employer, your DSO or an immigration attorney.");
   for (const c of ["Zentrix Labs", "Quietco", "Nobody Matches Inc"]) assert.equal(sponsorshipSignal(db, c).notice, NOT_LEGAL_ADVICE);
 });
+
+// ═══ P3 · the surfaces read the ONE signal ════════════════════════════════════════════════════════════════════════
+
+import { buildJobFilters } from "../services/jobs/jobQuery.js";
+import { choosePicks } from "../services/picks.js";
+import { AUTO_DEFAULTS, normaliseAutoSettings } from "../shared/autoSettings.js";
+import { applyLine } from "../shared/postingLevel.js";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+
+test("D121 · d121FilterReadsSignal — the board's company-sponsors filter and rank are the signal's rule, row for row", async () => {
+  const db = await ingested();
+  const add = db.prepare(`INSERT INTO scraped_jobs (job_id,title,company,url,search_query,_hash,description,is_active) VALUES (?,?,?,?,?,?,?,1)`);
+  for (const [id, c] of [["z", "Zentrix Labs"], ["t", "Tinyco"], ["o", "Oldco"], ["q", "Quietco"], ["n", "Nobody Matches Inc"]]) add.run(id, "Engineer", c, `https://x.test/${id}`, "t", `h${id}`, "We build things.");
+  const ids = (params, opts) => {
+    const f = buildJobFilters(params, opts);
+    const order = f.rank.sql ? `ORDER BY ${f.rank.sql}, sj.job_id` : "ORDER BY sj.job_id";
+    return db.prepare(`SELECT sj.job_id FROM scraped_jobs sj WHERE sj.is_active = 1 ${f.sql} ${order}`).all(...f.params, ...(f.rank.sql ? f.rank.params : [])).map(r => r.job_id);
+  };
+  // explicit: only the signal's "no record" leaves; unknown stays (never a no)
+  assert.deepEqual(ids({ company_sponsorship: true }, {}).sort(), ["n", "o", "t", "z"]);
+  // derived: "filed" (often / sometimes) first, unknown middle, no record last — the signal's levels
+  const ranked = ids({ company_sponsorship: true }, { derivedKeys: ["company_sponsorship"] });
+  const level = (id) => sponsorshipSignal(db, { z: "Zentrix Labs", t: "Tinyco", o: "Oldco", q: "Quietco", n: "Nobody Matches Inc" }[id]).level;
+  const band = (l) => (l === "often" || l === "sometimes" ? 0 : l === "unknown" ? 1 : 2);
+  for (let i = 1; i < ranked.length; i++) assert.ok(band(level(ranked[i - 1])) <= band(level(ranked[i])), ranked.join(","));
+  assert.equal(ranked[ranked.length - 1], "q");
+});
+
+test("D121 · d121PicksRankSponsorsForNeeders — sponsors first for a user who needs sponsorship; 'says no' never picked; the switch keeps only a record", () => {
+  const lv = { a: "unknown", b: "often", c: "no_record", d: "sometimes", e: "says_no" };
+  const board = Object.keys(lv).map((k, i) => ({ jobId: k, company: `Co ${k}`, score: 90 - i }));
+  const sponsorshipOf = (id) => ({ level: lv[id] });
+  const ctx = { remaining: 10, settings: AUTO_DEFAULTS, sponsorshipOf };
+  assert.deepEqual(choosePicks(board, { ...ctx, needsSponsorship: true }).take.map(c => c.jobId), ["b", "d", "a", "c"]);
+  assert.deepEqual(choosePicks(board, { ...ctx, needsSponsorship: true }).leftOut, [{ jobId: "e", reason: "sponsorship" }]);
+  // not a needer: the ATS order, nothing left out for sponsorship
+  assert.deepEqual(choosePicks(board, { ...ctx, needsSponsorship: false }).take.map(c => c.jobId), ["a", "b", "c", "d", "e"]);
+  // the switch (off by default) asks for a RECORD — unknown leaves too
+  assert.equal(AUTO_DEFAULTS.onlySponsorRecord, false);
+  const only = choosePicks(board, { ...ctx, settings: { ...AUTO_DEFAULTS, onlySponsorRecord: true } });
+  assert.deepEqual(only.take.map(c => c.jobId), ["b", "d"]);
+  assert.equal(normaliseAutoSettings({ onlySponsorRecord: "yes" }).ok, false);
+  assert.equal(normaliseAutoSettings({ onlySponsorRecord: true }).value.onlySponsorRecord, true);
+});
+
+test("D121 · D106's one line: a needer reads '· sponsors often' or 'Skip: says no sponsorship'; others and unknown read nothing new", () => {
+  assert.equal(applyLine({ score: 85, sponsorship: { level: "often", needed: true } }).text, "Good match · sponsors often.");
+  assert.deepEqual(applyLine({ score: 85, sponsorship: { level: "says_no", needed: true } }), { verdict: "skip", text: "Skip: says no sponsorship." });
+  assert.equal(applyLine({ score: 85, sponsorship: { level: "often", needed: false } }).text, "Good match.");
+  assert.equal(applyLine({ score: 85, sponsorship: { level: "unknown", needed: true } }).text, "Good match.");
+});
+
+test("D121 · the chip and the block draw the server's signal: a mark, quiet for a non-needer, dashed for unknown, the not-legal-advice line", async () => {
+  const CLIENT = path.resolve("client");
+  const esbuild = createRequire(path.join(CLIENT, "package.json"))("esbuild");
+  const abs = JSON.stringify(path.join(CLIENT, "src", "components/SponsorshipSignal.jsx").split(path.sep).join("/"));
+  const out = await esbuild.build({ stdin: { contents: `import { createElement as h } from "react"; import { renderToStaticMarkup } from "react-dom/server.browser";
+      import { SponsorshipChip, SponsorshipBlock } from ${abs};
+      export const chip = (p) => renderToStaticMarkup(h(SponsorshipChip, p)); export const block = (p) => renderToStaticMarkup(h(SponsorshipBlock, p));`,
+    resolveDir: CLIENT, loader: "jsx" }, bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
+    loader: { ".css": "empty", ".js": "jsx" }, logLevel: "silent", define: { "process.env.NODE_ENV": '"production"' } });
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "d121-ui-")), file = path.join(dir, "ui.mjs");
+  fs.writeFileSync(file, out.outputFiles[0].text);
+  const ui = await import(pathToFileURL(file).href);
+  fs.rmSync(dir, { recursive: true, force: true });
+  const db = await ingested();
+  const often = sponsorshipSignal(db, "Zentrix Labs", { title: "Software Engineer" });
+  assert.match(ui.chip({ signal: often, needed: true }), /class="mark mark--ok spn-chip"[^>]*data-sponsorship="often"[^>]*>Sponsors often</);
+  assert.match(ui.chip({ signal: often, needed: false }), /class="mark mark--dim spn-chip"/, "quiet for a user who does not need sponsorship");
+  assert.match(ui.chip({ signal: sponsorshipSignal(db, "Nobody Matches Inc"), needed: true }), /mark--unknown[^>]*>Sponsorship unknown</);
+  const saysNo = sponsorshipSignal(db, "Zentrix Labs", { posting: { description: "We cannot sponsor visas." } });
+  assert.match(ui.chip({ signal: saysNo, needed: false }), /mark--no/, "'says no' keeps its colour for everyone");
+  const html = ui.block({ signal: often });
+  assert.match(html, /5 certified LCAs for Software Engineer titles in FY2025/);
+  assert.match(html, /Not legal advice — confirm with the employer, your DSO or an immigration attorney\./);
+  assert.match(html, /What changed/);
+  assert.doesNotMatch(html + ui.chip({ signal: often }), /will sponsor|rounded-full|999px/);
+});

@@ -113,6 +113,7 @@ import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
 import { autoPublish, runAtlasAutoPipeline } from "./services/atlas/atlasPublish.js";
 // ⭐ D108: a company's sponsorship fact (the existing LCA match, with its source and date) and the dated "What changed".
 import { sponsorshipFactsForRows } from "./services/kb/sponsorshipFacts.js";
+import { sponsorshipSignalsForRows } from "./services/kb/sponsorshipSignal.js";
 import { createWhatChangedRouter, createWhatChangedAdminRouter } from "./routes/whatChanged.js";
 // trackScrape dropped from this import in cleanup 5.8 — it was imported here and never called.
 // Every model call goes through callModel, which records usage on one path — see
@@ -10613,11 +10614,19 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       if (hasEligibilityInputs(eligInputs)) {
         for (const j of rows) { const e = eligibilityForRow(j, eligInputs); if (e.status === "ineligible") ineligible.set(j.job_id, e.reasons); }
       }
+      // ⭐ D121 P3 · the ONE sponsorship signal per posting. With the "company sponsors" filter on, a posting whose OWN words
+      // say it won't sponsor is demoted to the end of the page (its text is not SQL; the company half is in the query).
+      const signals = (() => { try { return sponsorshipSignalsForRows(db, rows); } catch { return new Map(); } })();
+      if (req.query.company_sponsorship) for (const j of rows) if (signals.get(j.job_id)?.level === "says_no" && !ineligible.has(j.job_id)) ineligible.set(j.job_id, null);
       const pageRows = ineligible.size ? [...rows.filter(j => !ineligible.has(j.job_id)), ...rows.filter(j => ineligible.has(j.job_id))] : rows;
       // ⭐ D107 P2 · is this posting alive — "Reposted 4 times since June" · "Open 94 days" · "New — first seen yesterday".
       const liveness = (() => { try { return livenessForRows(db, pageRows); } catch { return new Map(); } })();
       // ⭐ D108 P1 · "Filed 290 certified LCAs in FY2025" — the company's public filings, with the source and its date.
       const sponsorship = (() => { try { return sponsorshipFactsForRows(db, pageRows); } catch { return new Map(); } })();
+      // ⭐ D121 · the ONE sponsorship signal per posting (company · title family · the posting's own words) — the card's
+      // chip and the job page's block draw it; `sponsorshipNeeded` (the user's own Application defaults) only sets how
+      // prominent the chip is.
+      const sponsorshipNeeded = boardEligInputs?.defaults?.sponsorship_now === "yes" || boardEligInputs?.defaults?.sponsorship_later === "yes";
       const responseBody = {
         success:    true,
         // ⛔ A52 · A STORED SCORE IS SHOWN ONLY WHILE IT IS STILL ABOUT THIS POSTING AND THIS BASIS.
@@ -10627,16 +10636,19 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         // replaces it. The ORDER may still use it until then; the verdict is never shown.
         jobs:       pageRows.map(j => ({ ...mapJobRow({ ...j, matchScore: presentedScore(j, { basisHash: boardBasisHash }) }),
                                      scrapedAt: j.scraped_at,
-                                     ...(ineligible.has(j.job_id) ? { eligibility: { status: "ineligible", reasons: ineligible.get(j.job_id) } } : {}),
+                                     ...(ineligible.get(j.job_id) ? { eligibility: { status: "ineligible", reasons: ineligible.get(j.job_id) } } : {}),
                                      ...(liveness.has(String(j.job_id)) ? { liveness: liveness.get(String(j.job_id)) } : {}),
                                      ...(levelOfRow(j) ? { levelRead: levelOfRow(j) } : {}),
                                      ...(sponsorship.get(j.company) ? { sponsorshipFact: sponsorship.get(j.company) } : {}),
+                                     ...(signals.get(j.job_id) ? { sponsorship: { ...signals.get(j.job_id), needed: sponsorshipNeeded } } : {}),
                                      // D40 · the + view's one extra line: "captured <date> · from <host>".
                                      ...(importedTab ? { captured: captureMeta(capturedBy.get(j.job_id)) } : {}),
                                      ...(pendingTab && resumeBy.has(j.job_id) ? (({ job_id, ...r }) => r)(resumeBy.get(j.job_id)) : {}) })),
         total,
         // A73 · present only when a user-set filter kept rows it could not judge; they sort last.
         ...(unclassified ? { unclassified } : {}),
+        // D121 · whether this user said they need sponsorship — how prominent each card's sponsorship chip is.
+        sponsorshipNeeded,
         page:       pg,
         pageSize:   ps,
         totalPages,

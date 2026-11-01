@@ -86,6 +86,8 @@ export const SHARED = Object.freeze({
   "components/ResumeList.jsx":          { what: "THE résumé list (D62) — the ATS panel's History and Settings" },
   "components/ResumeList.css":          { what: "its look — the list's classes only (A93)", owner: "components/ResumeList.jsx" },
   // ── controls and surfaces ──
+  "components/SponsorshipSignal.jsx":   { what: "D121 · the ONE sponsorship chip (board cards, Draft House) and block (the job page), drawn from the server's signal" },
+  "components/SponsorshipSignal.css":   { what: "their look", owner: "components/SponsorshipSignal.jsx" },
   "components/DepthButton.jsx":         { what: "THE depth box (D1/D48)" },
   "components/DepthButton.css":         { what: "the depth box, the .dbx-depth skin and the .mark (D60) — loaded app-wide by main.jsx", owner: "components/DepthButton.jsx", alsoBy: ["main.jsx"] },
   "components/DockPortal.jsx":          { what: "the portalled dropdown surface" },

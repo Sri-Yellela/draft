@@ -423,6 +423,7 @@ export function inlineAnswerStart(q, draft = "") {
 export const LEFT_OUT_LABELS = Object.freeze({
   outside_filters: "outside your filters", ineligible: "not eligible", stale: "stale or reposted",
   daily_cap: "over today's limit", company: "company limit or paused", level: "above your level",
+  sponsorship: "no sponsorship record",   // D121: the sponsorship switch, or a posting that says it won't sponsor
 });
 export function leftOutLines(leftOut = {}) {
   return Object.entries(leftOut || {})

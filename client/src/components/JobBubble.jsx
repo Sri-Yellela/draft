@@ -19,6 +19,7 @@ import CompanyLogo from "./CompanyLogo.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyLink from "./CompanyLink.jsx";
+import { SponsorshipChip } from "./SponsorshipSignal.jsx";
 import { atsBandFor, atsBandLabel, ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "../../../shared/atsBands.js";
 import { salaryLabel } from "../../../shared/postingFacts.js";
 import { columnsFor } from "../lib/bubbleColumns.js";
@@ -91,6 +92,8 @@ export default function JobBubble({ job, score = null, selected = false, saved =
           {job.title}
         </a>
         {meta.length > 0 && <div className="jb__meta">{meta.join("  ·  ")}</div>}
+        {/* ⭐ D121: the sponsorship chip — the server's one signal; prominent for a user who needs sponsorship. */}
+        {job.sponsorship && <div className="jb__meta" data-card-sponsorship=""><SponsorshipChip signal={job.sponsorship} needed={!!job.sponsorship.needed} /></div>}
         {/* D40: on the + view, the one line that differs from ALL — when and from where it was captured. */}
         {job.captured && <div className="jb__meta" data-captured="">{capturedLine(job.captured)}</div>}
         {/* ⭐ D57: a résumé generated for this job is stored — said on the card, so it is never "found nowhere". */}

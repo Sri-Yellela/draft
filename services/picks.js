@@ -21,6 +21,7 @@ import crypto from "node:crypto";
 import { companyNameKey } from "../shared/companyIdentity.js";
 import { applyLine, levelRank, userLevelRank, yearsLevelRank } from "../shared/postingLevel.js";
 import { artifactCurrency } from "./resumeCurrency.js";
+import { PICK_RANK } from "./kb/sponsorshipSignal.js";
 
 const DAY = 86400;
 const now = () => Math.floor(Date.now() / 1000);
@@ -39,6 +40,8 @@ export const LEFT_OUT_REASONS = Object.freeze({
   daily_cap: "Over today's limit",
   company: "Company limit or paused",
   level: "Above your level",
+  // ⭐ D121 P3 · the user's "Only companies with a sponsorship record" switch, or a posting that says it won't sponsor
+  sponsorship: "No sponsorship record",
 });
 export const PICK_STATES = Object.freeze(["offered", "applied", "passed", "expired", "auto", "start_failed"]);
 
@@ -78,19 +81,32 @@ export function levelOutOfReach(userRank, candidate) {
  * @returns { take: candidate[], leftOut: [{ jobId, reason }] }
  */
 export function choosePicks(candidates, { remaining, drafted = new Set(), companyCounts = new Map(), pausedCompanies = new Set(), settings,
-  isIneligible = null, isStalePosting = null, userLevel = null }) {
+  isIneligible = null, isStalePosting = null, userLevel = null, needsSponsorship = false, sponsorshipOf = null }) {
   const leftOut = [];
   const pool = [];
+  // ⭐ D121 P3 · the ONE signal (services/kb/sponsorshipSignal.js), read once per candidate, only when it can matter.
+  const wantsSignal = !!sponsorshipOf && (needsSponsorship || settings?.onlySponsorRecord === true);
+  const signal = new Map();
   for (const c of candidates) {
     const id = String(c.jobId);
     if (drafted.has(id)) { leftOut.push({ jobId: id, reason: "already_seen" }); continue; }
     if (isIneligible?.(c.jobId)) { leftOut.push({ jobId: id, reason: "ineligible" }); continue; }
     if (isStalePosting?.(c.jobId)) { leftOut.push({ jobId: id, reason: "stale" }); continue; }
     if (levelOutOfReach(userLevel, c)) { leftOut.push({ jobId: id, reason: "level" }); continue; }
+    if (wantsSignal) {
+      const s = sponsorshipOf(c.jobId);
+      signal.set(id, s?.level || "unknown");
+      // a needer never gets a posting that says it won't sponsor (D104 already, when the words are caught there)
+      if (needsSponsorship && s?.level === "says_no") { leftOut.push({ jobId: id, reason: "sponsorship" }); continue; }
+      if (settings?.onlySponsorRecord === true && !["often", "sometimes"].includes(s?.level)) { leftOut.push({ jobId: id, reason: "sponsorship" }); continue; }
+    }
     pool.push(c);
   }
   const score = (c) => (Number.isFinite(c.score) ? c.score : -1);
-  const ranked = pool.map((c, i) => ({ c, i })).sort((a, b) => score(b.c) - score(a.c) || a.i - b.i).map(x => x.c);
+  // For a user who needs sponsorship, sponsors rank first (often → sometimes → unknown → no record), then the ATS match.
+  const sponsorRank = (c) => (needsSponsorship && wantsSignal ? PICK_RANK[signal.get(String(c.jobId))] ?? PICK_RANK.unknown : 0);
+  const ranked = pool.map((c, i) => ({ c, i }))
+    .sort((a, b) => sponsorRank(a.c) - sponsorRank(b.c) || score(b.c) - score(a.c) || a.i - b.i).map(x => x.c);
   const take = [];
   const counts = new Map(companyCounts);
   const room = Math.max(0, Math.min(remaining, MAX_PICKS_PER_RUN));
@@ -156,8 +172,8 @@ export function storeRun(db, { userId, slotAt, mode, expiresAt, seen, take, left
 }
 
 /** The one line (D106 P2) for a candidate, from what the scheduler already read. */
-export function lineForCandidate(c, { eligibility = null, liveness = null } = {}) {
-  try { return applyLine({ score: Number.isFinite(c.score) ? c.score : null, eligibility, liveness, level: c.levelRead ?? null }); }
+export function lineForCandidate(c, { eligibility = null, liveness = null, sponsorship = null } = {}) {
+  try { return applyLine({ score: Number.isFinite(c.score) ? c.score : null, eligibility, liveness, level: c.levelRead ?? null, sponsorship }); }
   catch { return null; }
 }
 

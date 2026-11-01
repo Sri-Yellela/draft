@@ -15,6 +15,7 @@ import { LEVEL_SQL, WORKPLACE_SQL, EMPLOYMENT_SQL, FUNCTION_SQL, placesFilterSql
 import { resolvePlaceText } from '../../shared/jobTagVocabulary.js';
 import { sectorSql, validSectors } from '../../shared/companySectors.js';
 import { BASIS_FN } from './descriptionText.js';
+import { signalSql } from '../kb/sponsorshipSignal.js';
 
 /**
  * SQL WHERE-clause + facet builder for the /api/jobs board query.
@@ -794,13 +795,11 @@ function buildJobFilters(params = {}, opts = {}) {
   // Note certified_total = 0 at high confidence is a real, usable finding — we searched N quarters
   // of DOL data under a name we are sure of and found nothing — which is why it is the ONLY state
   // the explicit filter excludes on.
-  const LCA_RANK_MIN = 0.60, LCA_DEMOTE_MIN = 0.80;
-  const lcaHasFilings = `EXISTS (SELECT 1 FROM company_lca_sponsorship cl
-      WHERE cl.company = sj.company AND cl.match_status = 'matched'
-        AND cl.match_confidence >= ${LCA_RANK_MIN} AND cl.certified_total > 0)`;
-  const lcaNoFilings = `EXISTS (SELECT 1 FROM company_lca_sponsorship cl
-      WHERE cl.company = sj.company AND cl.match_status = 'matched'
-        AND cl.match_confidence >= ${LCA_DEMOTE_MIN} AND cl.certified_total = 0)`;
+  // ⭐ D121 P3 · the filter READS THE SIGNAL (services/kb/sponsorshipSignal.js signalSql): "filed" = certified LCAs in the
+  // latest complete fiscal year or the one before, at the presentable floor (0.60); "no record" = none in those years at
+  // the demote floor (0.80). The asymmetry above is the signal's own; the window is now the signal's years, not every
+  // quarter ingested, so the board and the card's chip say the same thing about one company.
+  const { filed: lcaHasFilings, noRecord: lcaNoFilings } = signalSql('sj');
   if (params.company_sponsorship) {
     if (isDerived('company_sponsorship')) {
       ranks.company_sponsorship = {

@@ -156,7 +156,8 @@ test("D104 · d104BoardMarksIneligible — a row is marked for THIS user, demote
   assert.equal(eligibilityForRow({ description: null }, inputs).status, "eligible");
   const src = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
   const begin = at(src, "const ineligible = new Map();", 0, "server.js — the board computes it");
-  const block = src.slice(begin, begin + 2500);
+  // through the page's row map (D121 added the sponsorship signal and its demotion between them)
+  const block = src.slice(begin, at(src, "total,", at(src, "jobs:       pageRows.map(", begin, "the row map"), "the row map's end"));
   assert.match(block, /if \(hasEligibilityInputs\(eligInputs\)\)/);
   assert.match(block, /const pageRows = ineligible\.size \? \[\.\.\.rows\.filter\(j => !ineligible\.has\(j\.job_id\)\), \.\.\.rows\.filter\(j => ineligible\.has\(j\.job_id\)\)\] : rows;/);
   assert.match(block, /jobs:\s+pageRows\.map\(/);
