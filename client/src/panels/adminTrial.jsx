@@ -1,7 +1,8 @@
 // ⭐ D124 · ADMIN → PEOPLE → TRIAL — THE TRIAL IS THE MAIN FRAME (owner 11-01): every account made since migration 205 is a
 // trial account unless granted EXCLUSIVE (full) access here. This page is the trial's honest numbers, counts only — the
 // funnel, what testers used and how long, what they came for, what the survey said — the access list, and the export of
-// the survey's answers WITHOUT emails. No person's content is shown; usernames appear only in the access list.
+// the survey's answers WITHOUT emails. ⛔ 44b (owner 11-02) REVERSES the rest for one panel: People & questions shows each
+// tester's name, email and what they wrote, so their questions can be answered (services/testerContacts.js).
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import DepthButton from "../components/DepthButton.jsx";
@@ -167,6 +168,7 @@ function TourAnalytics() {
       <div style={{ ...row, marginTop: 12 }}>
         <DepthButton onClick={load}>Refresh</DepthButton>
         <DepthButton onClick={() => { window.location.href = "/api/admin/trial/export.csv"; }}>Download CSV (no emails)</DepthButton>
+        <DepthButton onClick={() => { window.location.href = "/api/admin/trial/export.csv?emails=1"; }}>Download CSV with names and emails</DepthButton>
       </div>
     </Panel>
   );
@@ -183,6 +185,55 @@ function Tally({ title, counts }) {
 }
 
 const when = (s) => (s ? new Date(s * 1000).toLocaleString() : "");
+
+// ── 44b · PEOPLE & QUESTIONS — who each tester is and what they asked (owner 11-02: "a feedback loop … people asking
+// questions too"). Name, email, where they are, every dock message and written survey answer; the CSV is the same rows.
+const STATUS_TONE = { "survey due": true, "in the trial": false, "survey answered": false, "signed up": false };
+function PeopleAndQuestions() {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState(null);
+  const [q, setQ] = useState("");
+  const [onlyAsked, setOnlyAsked] = useState(false);
+  const load = useCallback(() => api("/api/admin/trial/people").then(setD).catch((e) => setErr(e.message)), []);
+  useLive(load);
+  if (err) return <Panel title="People & questions" purpose={err}/>;
+  if (!d) return <Panel title="People & questions" purpose="Loading…"/>;
+  const needle = q.trim().toLowerCase();
+  const shown = d.people.filter(p => (!onlyAsked || p.feedback.length || p.written.length)
+    && (!needle || [p.name, p.email, ...p.feedback.map(f => f.body), ...p.written.map(w => w.answer)].join(" ").toLowerCase().includes(needle)));
+  return (
+    <Panel data-admin-trial-people="" title="People & questions"
+      purpose="Each tester and survey respondent by name and email, where they are, and everything they wrote to us — so a question can be answered. Accounts tagged test or internal, and admins, are left out."
+      code="GET /api/admin/trial/people · /api/admin/trial/people.csv (services/testerContacts.js)"
+      numbers={[[d.people.length, "people"], [d.messages, "messages from the dock", d.messages > 0],
+                [d.people.filter(p => p.status === "survey due").length, "survey due"], [d.excluded, "left out (test / admin)"]]}>
+      <div style={row}>
+        <input aria-label="Search names, emails and messages" placeholder="Search names, emails, messages" value={q} onChange={(e) => setQ(e.target.value)} style={{ ...field, minWidth: 240 }}/>
+        <label style={{ ...row, gap: 6 }}><input type="checkbox" checked={onlyAsked} onChange={(e) => setOnlyAsked(e.target.checked)}/> Only people who wrote something</label>
+        <DepthButton onClick={() => { window.location.href = "/api/admin/trial/people.csv"; }}>Download (CSV, with names and emails)</DepthButton>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        {shown.length ? shown.map((p, i) => (
+          <div key={`${p.source}-${p.userId ?? p.email}-${i}`} data-trial-person="" style={{ padding: "10px 0", borderTop: "1px solid var(--color-border)" }}>
+            <div style={{ ...row, justifyContent: "space-between" }}>
+              <span><b>{p.name || "(no name)"}</b>{" "}
+                {p.email ? <a href={`mailto:${p.email}`}>{p.email}</a> : <span style={quiet}>(no email)</span>}</span>
+              <span style={quiet}>{p.source} · <span style={STATUS_TONE[p.status] ? { fontWeight: 700 } : undefined}>{p.status}</span>
+                {p.draftsSent != null ? ` · ${p.draftsSent} sent` : ""}{p.sample ? ` · ${p.sample === "own" ? "own résumé" : `sample ${p.sample}`}` : ""}
+                {p.lastActiveAt ? ` · active ${when(p.lastActiveAt)}` : p.surveyAt ? ` · answered ${when(p.surveyAt)}` : ""}</span>
+            </div>
+            {p.feedback.map((f, k) => (
+              <p key={`f${k}`} style={{ margin: "6px 0 0" }}><span style={quiet}>{when(f.at)}{f.screen ? ` · ${f.screen}` : ""} —</span> {f.body}</p>
+            ))}
+            {p.written.map((w) => (
+              <p key={w.key} style={{ margin: "6px 0 0" }}><span style={quiet}>{w.question} —</span> {w.answer}</p>
+            ))}
+          </div>
+        )) : <span style={quiet}>{d.people.length ? "Nobody matches." : "Nobody yet."}</span>}
+      </div>
+    </Panel>
+  );
+}
 
 export function TrialTab() {
   const [t, setT] = useState(null);
@@ -234,6 +285,7 @@ export function TrialTab() {
         </div>
       </Panel>
 
+      <PeopleAndQuestions/>
       <SurveySources/>
       <TourAnalytics/>
 

@@ -24,11 +24,12 @@
 //   GET  /api/admin/survey/export.csv D130: the standalone responses; name and email only with ?contact=1
 //   GET  /try/practice/:jobId        draft's practice form for one posting (a signed ?u=&t= names the account)
 //   POST /try/practice/:jobId        its submission: counted, and a confirmation goes into the tester's Inbox
-import { startTrial, pickResume, trialState, saveSurvey, dismissSurvey, finishTrial, saveFeedback, recordEvent, setAccess,
+import { startTrial, pickResume, trialState, saveSurvey, finishTrial, saveFeedback, recordEvent, setAccess,
          adminTrialCounts, surveyExport, SURVEY, trialAnalytics, crossCut, analyticsCsv, STANDALONE_SURVEY, saveStandaloneSurvey,
          standaloneCsv, surveySources, verifyPracticeToken, renderPracticeForm, renderPracticeThanks,
          recordPracticeSubmission, saveTrialName } from "../services/trial.js";
 import { testersReport, testersCsv } from "../services/testersReport.js";
+import { testerContacts, testerContactsCsv } from "../services/testerContacts.js";
 import { draftSlots } from "../services/draftSlots.js";
 import { offeredSamples, samplePicks, ownPicks } from "../services/trialPicks.js";
 import { demoState, completeDemo } from "../services/trialDemo.js";
@@ -103,8 +104,10 @@ export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret
     try { res.json({ ok: true, answers: saveSurvey(db, req.user.id, req.body || {}) }); } catch (e) { fail(res, e); }
   });
 
-  app.post("/api/trial/survey/dismiss", requireAuth, (req, res) => {
-    try { dismissSurvey(db, req.user.id); res.json({ ok: true }); } catch (e) { fail(res, e); }
+  // 44b (owner 11-02): "they should not be able to break this sequence before the survey" — the survey can no longer be
+  // skipped. The route stays (older pages still call it) and refuses; nothing is recorded, so the survey stays due.
+  app.post("/api/trial/survey/dismiss", requireAuth, (_req, res) => {
+    res.status(410).json({ error: "survey_required", message: "The survey comes before the rest of draft opens." });
   });
 
   app.post("/api/trial/feedback", requireAuth, (req, res) => {
@@ -120,6 +123,17 @@ export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret
     try {
       res.set("Content-Type", "text/csv; charset=utf-8").set("Content-Disposition", 'attachment; filename="draft-testers.csv"')
         .send(testersCsv(db, testersOpts(req.query)));
+    } catch (e) { fail(res, e); }
+  });
+
+  // 44b · People & questions: names, emails and what each person wrote (services/testerContacts.js). Admin only.
+  app.get("/api/admin/trial/people", requireAdmin, (req, res) => {
+    try { res.json(testerContacts(db, { exclude: req.query.exclude !== "0" })); } catch (e) { fail(res, e); }
+  });
+  app.get("/api/admin/trial/people.csv", requireAdmin, (req, res) => {
+    try {
+      res.set("Content-Type", "text/csv; charset=utf-8").set("Content-Disposition", 'attachment; filename="draft-testers-contacts.csv"')
+        .send(testerContactsCsv(db, { exclude: req.query.exclude !== "0" }));
     } catch (e) { fail(res, e); }
   });
 

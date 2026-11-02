@@ -108,7 +108,7 @@ export function captionFor(step, { speed = "normal", field = null } = {}) {
   return other ? step.textOtherField : step.text;
 }
 
-export default function GuidedTour({ state, onFinish, onActive }) {
+export default function GuidedTour({ state, onFinish, onActive, onSkipToSurvey }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const saved = useMemo(() => readTourProgress(state), []);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -268,7 +268,11 @@ export default function GuidedTour({ state, onFinish, onActive }) {
     setI(n => Math.min(n + 1, TOUR_SCRIPT.length - 1));
   };
   const back = () => setI(n => Math.max(0, n - 1));
-  const skip = () => { tour(step.id, "abandoned", Date.now() - startedAt.current); setDone(true); };
+  // 44b (owner 11-02): "remove the skip option entirely; skip should take them to the survey before they can explore the
+  // site". Leaving the tour ENDS the trial into the survey — it never leaves a tester in the open app with no guide.
+  const skip = () => { tour(step.id, "abandoned", Date.now() - startedAt.current); setDone(true); onSkipToSurvey?.(); };
+  // A tour left by the old Skip (its progress says done, the trial is still open): the same road, the survey.
+  useEffect(() => { if (saved.done && !state?.locked) onSkipToSurvey?.(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const toggleSpeed = () => {
     const nextSpeed = speed === "faster" ? "normal" : "faster";
     setSpeed(nextSpeed);
@@ -313,7 +317,7 @@ export default function GuidedTour({ state, onFinish, onActive }) {
         )}
         {step.require && !met && <p role="status" style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600 }} data-tour-require="">{step.require.label}</p>}
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between", flexWrap: "wrap", alignItems: "center" }}>
-          <DepthButton onClick={skip} data-tour-skip="">Skip the tour</DepthButton>
+          <DepthButton onClick={skip} data-tour-skip="">Skip to the survey</DepthButton>
           <span style={{ display: "flex", gap: 8 }}>
             {i > 0 && <DepthButton onClick={back} data-tour-back="">Back</DepthButton>}
             {!step.noNext && <DepthButton primary disabled={!met} onClick={next} data-tour-next="">Next</DepthButton>}

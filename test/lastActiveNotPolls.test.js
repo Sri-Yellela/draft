@@ -26,6 +26,6 @@ test("adminTrialRefreshesLive: every Admin → Trial panel re-reads on a timer w
   const src = fs.readFileSync("client/src/panels/adminTrial.jsx", "utf8");
   assert.match(src, /const LIVE_MS = 30_000;/);
   assert.match(src, /document\.visibilityState === "visible"/);
-  assert.equal((src.match(/useLive\(load\);/g) || []).length, 3);
+  assert.equal((src.match(/useLive\(load\);/g) || []).length, 4, "the three panels + 44b People & questions");
   assert.doesNotMatch(src, /useEffect\(\(\) => \{ load\(\); \}, \[load\]\);/);
 });

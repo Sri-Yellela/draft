@@ -139,6 +139,7 @@ import { createToolsServiceClient, recordToolsServiceUsage, httpErrorFor, ToolsS
 import { generateRequest as toolsGenerateRequest } from "./services/toolsServiceRequests.js";
 import { tailoringFor, tailoringState, leanJobKeywords, payloadJobKeywords, fullPostingText, LEAN_LEDGER_RENAME, TAILORINGS, TAILORING_KEY,
          MODEL_CHOICES, MODEL_LABELS, MODEL_DEFAULT_KEY, MODELS_OFFERED_KEY, modelSettings, modelFor, userModelChoice } from "./services/leanTailoring.js";
+import { cleanLinkPath } from "./services/linkPunctuation.js";
 import { ensureGists, latestGists, validateGists, saveEditedGists, readCoursework, saveCoursework } from "./services/resumeGists.js";
 import { retryReasonFor } from "./services/generationRetry.js";
 import { generationCostSummary } from "./services/generationCost.js";
@@ -8933,6 +8934,15 @@ app.use(byomRouters.sessionRouter);
 app.use(emailRouters.appRouter);
 
 const CLIENT_DIST = path.join(__dirname,"client","dist");
+// 44b: "(jobsviadraft.com/try):" in a message opened `/try):` on a tester's phone and drew the app's 404. A page path
+// with trailing punctuation goes to the clean path (services/linkPunctuation.js).
+app.use((req, res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+  const clean = cleanLinkPath(req.path);
+  if (!clean) return next();
+  const q = req.originalUrl.indexOf("?");
+  res.redirect(301, clean + (q >= 0 ? req.originalUrl.slice(q) : ""));
+});
 app.use(express.static(CLIENT_DIST));
 
 function xmlEscape(value) {
