@@ -157,10 +157,13 @@ export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret
   app.get("/api/admin/testers", requireAdmin, (req, res) => {
     try { res.json(testersReport(db, testersOpts(req.query))); } catch (e) { fail(res, e); }
   });
+  // Owner 11-02: ?contact=1 adds each person's name and email; without it the file has neither.
   app.get("/api/admin/testers/export.csv", requireAdmin, (req, res) => {
     try {
-      res.set("Content-Type", "text/csv; charset=utf-8").set("Content-Disposition", 'attachment; filename="draft-testers.csv"')
-        .send(testersCsv(db, testersOpts(req.query)));
+      const contact = req.query.contact === "1";
+      res.set("Content-Type", "text/csv; charset=utf-8")
+        .set("Content-Disposition", `attachment; filename="draft-testers${contact ? "-with-contacts" : ""}.csv"`)
+        .send(testersCsv(db, { ...testersOpts(req.query), contact }));
     } catch (e) { fail(res, e); }
   });
 

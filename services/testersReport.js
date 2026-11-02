@@ -4,10 +4,17 @@
 // Read-only over what D124 / D129 / D130 already store — no new collection. Every figure carries its count; a
 // percentage is shown only once that question has ≥ 20 answers (P2, the small-number rule). The owner's own walks and
 // test accounts are left out by default (P1): an admin row, an account tagged `internal` or `test` in People, and a
-// standalone answer whose email is one of those accounts' or an admin's. No names anywhere; no emails in the export.
+// standalone answer whose email is one of those accounts' or an admin's. No names on the page; the export carries names
+// and emails only when asked (?contact=1, owner 11-02).
 
 import { SURVEY, STANDALONE_SURVEY, RATED, MID_MINUTES, MID_PER_WEEK } from "./trial.js";
 import { HIDDEN_TAGS } from "./userAdmin.js";
+import { TOUR_STEPS } from "../shared/trialTour.js";
+
+/** Owner 11-02: a tester whose last trial event is this recent is "still going", not one who left. */
+export const STILL_GOING_SECONDS = 30 * 60;
+const STEP_TITLE = Object.fromEntries(TOUR_STEPS.map(s => [s.id, s.title]));
+const STEP_ORDER = Object.fromEntries(TOUR_STEPS.map((s, i) => [s.id, i]));
 
 export const SMALL_N = 20;
 // "Since the invites (Nov 1)": midnight 2026-11-01, US Eastern (the owner's invites went out that day).
@@ -76,7 +83,11 @@ export function testersReport(db, { period = "invites", source = "all", exclude 
   const cohortAll = all(`SELECT id, created_at, trial_at, trial_resume FROM users WHERE trial_at IS NOT NULL AND trial_at >= ?`, since);
   const cohort = cohortAll.filter(u => !ex.ids.has(u.id));
   const ids = new Set(cohort.map(u => u.id));
-  const drafted = new Map(all(`SELECT user_id, COUNT(DISTINCT job_id) n FROM apply_run_jobs GROUP BY user_id`).map(r => [r.user_id, r.n]));
+  // The trial's own Draft count (services/draftSlots.js draftsUsed): a cancelled row, or one superseded by an answers
+  // retry, is not a Draft — counting them made "Drafted" read higher than the testers saw.
+  const drafted = new Map(all(`SELECT rj.user_id, COUNT(DISTINCT rj.job_id) n FROM apply_run_jobs rj JOIN apply_runs r ON r.id = rj.run_id
+    WHERE COALESCE(r.approval_mode, '') != 'approved' AND rj.status <> 'cancelled' AND NOT (rj.status = 'superseded' AND rj.approved_at IS NULL)
+    GROUP BY rj.user_id`).map(r => [r.user_id, r.n]));
   const surveysByUser = new Map(all(`SELECT user_id, answers, created_at FROM trial_surveys`).filter(r => ids.has(r.user_id)).map(r => [r.user_id, r]));
 
   const parse = (s) => { try { return JSON.parse(s || "{}") || {}; } catch { return {}; } };
@@ -124,13 +135,43 @@ export function testersReport(db, { period = "invites", source = "all", exclude 
 
   // ── P4 · how far people got (the trial) ──
   const surveyed = cohort.filter(u => surveysByUser.has(u.id));
-  const steps = [
-    ["Signed up", cohort.length],
-    ["Picked a résumé", cohort.filter(u => u.trial_resume).length],
-    ["Drafted the 1st job", cohort.filter(u => (drafted.get(u.id) || 0) >= 1).length],
-    ["Drafted the 2nd job", cohort.filter(u => (drafted.get(u.id) || 0) >= 2).length],
-    ["Answered the survey", surveyed.length],
-  ].map(([label, n], i, a) => ({ label, n, left: i ? Math.max(0, a[i - 1][1] - n) : 0 }));
+  // ⭐ Owner 11-02 ("−18 left here … we need to understand how they left, or if they're stuck"): each drop-off is the
+  // PEOPLE who reached the step before and not this one, broken down — still going (an event in the last 30 min), the
+  // furthest tour step each reached, and how many met an error. A bare count said nothing about why.
+  const activity = all(`SELECT user_id, event, detail, created_at FROM trial_events`).filter(e => ids.has(e.user_id));
+  const lastAt = new Map(), furthest = new Map(), errored = new Set();
+  for (const e of activity) {
+    lastAt.set(e.user_id, Math.max(lastAt.get(e.user_id) || 0, e.created_at || 0));
+    if (e.event === "error") errored.add(e.user_id);
+    if (e.event !== "tour") continue;
+    let step = null; try { step = JSON.parse(e.detail || "{}").step; } catch { step = null; }
+    if (step in STEP_ORDER && STEP_ORDER[step] >= (STEP_ORDER[furthest.get(e.user_id)] ?? -1)) furthest.set(e.user_id, step);
+  }
+  const whyLeft = (users) => {
+    const going = new Set(users.filter(u => now - (lastAt.get(u.id) || u.trial_at || 0) < STILL_GOING_SECONDS).map(u => u.id));
+    const at = new Map();
+    for (const u of users) {
+      if (going.has(u.id)) continue;
+      const id = furthest.get(u.id);
+      const label = id ? `stopped at “${STEP_TITLE[id]}”` : lastAt.has(u.id) ? "stopped before the tour began" : "nothing recorded after signing up";
+      at.set(label, (at.get(label) || 0) + 1);
+    }
+    return { stillGoing: going.size, errored: users.filter(u => errored.has(u.id)).length,
+      stoppedAt: [...at].map(([label, n]) => ({ label, n })).sort((a, b) => b.n - a.n || a.label.localeCompare(b.label)) };
+  };
+  const reached = [
+    ["Signed up", () => true],
+    ["Picked a résumé", u => !!u.trial_resume],
+    ["Drafted the 1st job", u => (drafted.get(u.id) || 0) >= 1],
+    ["Drafted the 2nd job", u => (drafted.get(u.id) || 0) >= 2],
+    ["Answered the survey", u => surveysByUser.has(u.id)],
+  ];
+  const steps = reached.map(([label, has], i) => {
+    const n = cohort.filter(has).length;
+    if (!i) return { label, n, left: 0, why: null };
+    const leavers = cohort.filter(u => reached[i - 1][1](u) && !has(u));
+    return { label, n, left: leavers.length, why: leavers.length ? whyLeft(leavers) : null };
+  });
   const minutes = surveyed.map(u => (surveysByUser.get(u.id).created_at - (u.created_at || u.trial_at)) / 60).filter(m => m >= 0);
   const evs = all(`SELECT user_id, event, detail FROM trial_events WHERE event IN ('page', 'locked') AND created_at >= ?`, since).filter(e => ids.has(e.user_id));
   const pageUsers = new Map(), locked = new Map();
@@ -191,14 +232,18 @@ export function testersReport(db, { period = "invites", source = "all", exclude 
   };
 }
 
-/** The responses as CSV — NO names, NO emails (the referral email and the standalone contact are left out). */
+/**
+ * The responses as CSV — by default NO names, NO emails (the referral email and the standalone contact are left out).
+ * Owner 11-02: `contact: true` adds each person's name and email as the first two columns (admin-only download).
+ */
 export function testersCsv(db, opts = {}) {
   const r = testersReportRows(db, opts);
   const keys = [...new Set([...SURVEY, ...STANDALONE_SURVEY].filter(q => q.type !== "email" && q.key !== "name")
     .flatMap(q => (q.follow ? [q.key, q.follow.key] : [q.key])))];
   const cell = (v) => { const t = v == null ? "" : String(v); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
-  return [["source", "answered_at", ...keys].join(","),
-    ...r.map(x => [x.source, new Date(x.at * 1000).toISOString(), ...keys.map(k => x.answers[k])].map(cell).join(","))].join("\n") + "\n";
+  const who = (x) => (opts.contact ? [x.name, x.email] : []);
+  return [[...(opts.contact ? ["name", "email"] : []), "source", "answered_at", ...keys].join(","),
+    ...r.map(x => [...who(x), x.source, new Date(x.at * 1000).toISOString(), ...keys.map(k => x.answers[k])].map(cell).join(","))].join("\n") + "\n";
 }
 
 function testersReportRows(db, { period = "invites", source = "all", exclude = true, now = Math.floor(Date.now() / 1000) } = {}) {
@@ -206,10 +251,13 @@ function testersReportRows(db, { period = "invites", source = "all", exclude = t
   const ex = exclude ? excludedSets(db) : { ids: new Set(), emails: new Set() };
   const parse = (s) => { try { return JSON.parse(s || "{}") || {}; } catch { return {}; } };
   const all = (sql, ...a) => { try { return db.prepare(sql).all(...a); } catch { return []; } };
-  const trial = source === "standalone" ? [] : all(`SELECT s.user_id, s.answers, s.created_at FROM trial_surveys s JOIN users u ON u.id = s.user_id
+  const trial = source === "standalone" ? [] : all(`SELECT s.user_id, s.answers, s.created_at,
+      TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '')) AS name, p.email
+    FROM trial_surveys s JOIN users u ON u.id = s.user_id LEFT JOIN user_profile p ON p.user_id = u.id
     WHERE u.trial_at IS NOT NULL AND u.trial_at >= ?`, since).filter(r => !ex.ids.has(r.user_id))
-    .map(r => ({ source: "trial", at: r.created_at, answers: parse(r.answers) }));
-  const sa = source === "trial" ? [] : all(`SELECT email, answers, created_at FROM standalone_surveys WHERE created_at >= ?`, since)
-    .filter(r => !ex.emails.has(String(r.email || "").toLowerCase())).map(r => ({ source: "standalone", at: r.created_at, answers: parse(r.answers) }));
+    .map(r => ({ source: "trial", at: r.created_at, answers: parse(r.answers), name: r.name || "", email: r.email || "" }));
+  const sa = source === "trial" ? [] : all(`SELECT name, email, answers, created_at FROM standalone_surveys WHERE created_at >= ?`, since)
+    .filter(r => !ex.emails.has(String(r.email || "").toLowerCase()))
+    .map(r => ({ source: "standalone", at: r.created_at, answers: parse(r.answers), name: r.name || "", email: r.email || "" }));
   return [...trial, ...sa].sort((a, b) => a.at - b.at);
 }
