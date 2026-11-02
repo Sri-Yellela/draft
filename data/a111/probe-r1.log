@@ -1,0 +1,478 @@
+1/477 workday:1|wellsfargo|WellsFargoJobs error target=- held=- 
+2/477 workday:12|capitalone|Capital_One live target=6 held=1 {"business":2,"computing":45,"sales":2,"arts_media":1,"management":1}
+3/477 workday:1|usbank|US_Bank_Careers live target=38 held=2 {"computing":2,"management":7,"business":15,"sales":16}
+4/477 workday:5|pnc|External live target=13 held=0 {"business":4,"computing":3,"sales":7,"arts_media":1,"management":1}
+5/477 workday:1|truist|Careers live target=10 held=0 {"business":8,"arts_media":2,"computing":5}
+6/477 workday:1|statestreet|Global live target=22 held=0 {"computing":2,"management":15,"business":6,"science":1}
+7/477 workday:1|bnymellon|BNY_Careers error target=- held=- 
+8/477 workday:5|bnymellon|BNY_Careers error target=- held=- 
+9/477 workday:1|ntrs|northerntrust live target=39 held=3 {"business":21,"computing":15,"management":8,"sales":7,"arts_media":1,"legal":1,"marketing":1,"engineering":1}
+10/477 workday:1|fmr|FidelityCareers live target=86 held=3 {"business":65,"management":13,"computing":41,"arts_media":2,"engineering":2,"sales":6}
+11/477 workday:5|troweprice|TRowePrice live target=50 held=6 {"legal":7,"business":34,"computing":20,"management":5,"marketing":3,"sales":1}
+12/477 workday:1|blackrock|BlackRock_Professional live target=27 held=2 {"computing":22,"management":15,"business":5,"arts_media":1,"sales":3,"legal":1,"marketing":2}
+13/477 workday:1|schwab|External error target=- held=- 
+14/477 workday:1|nasdaq|Global_External_Site live target=10 held=0 {"business":5,"sales":3,"computing":12,"management":2}
+15/477 workday:1|mastercard|CorporateCareers live target=35 held=2 {"business":8,"management":18,"computing":51,"marketing":4,"legal":3,"sales":2}
+16/477 workday:5|synchronyfinancial|careers live target=0 held=0 {}
+17/477 workday:5|ally|Ally_Careers error target=- held=- 
+18/477 workday:5|citi|2 live target=22 held=1 {"computing":18,"management":13,"business":7,"sales":2}
+19/477 workday:5|citizensbank|CitizensExternal error target=- held=- 
+20/477 workday:1|keybank|External_Career_Site error target=- held=- 
+21/477 workday:5|fifththird|53careers live target=22 held=2 {"business":8,"sales":13,"management":1}
+22/477 workday:5|regions|Regions_Careers live target=37 held=1 {"management":4,"marketing":2,"sales":11,"business":18,"legal":2}
+23/477 workday:5|mtb|MTB live target=43 held=10 {"management":5,"computing":30,"arts_media":1,"business":23,"sales":13,"marketing":1}
+24/477 workday:5|huntington|HNBcareers error target=- held=- 
+25/477 workday:1|raymondjames|RaymondJamesCareers live target=0 held=0 {}
+26/477 workday:5|ameriprise|Ameriprise live target=20 held=3 {"computing":7,"management":7,"business":12,"sales":1}
+27/477 workday:5|franklintempleton|Primary-External-1 empty target=- held=- 
+28/477 workday:1|invesco|IVZ live target=29 held=7 {"business":14,"management":12,"computing":6,"marketing":1,"sales":1,"legal":1}
+29/477 workday:5|principal|Principal error target=- held=- 
+30/477 workday:1|voya|VoyaJobs error target=- held=- 
+31/477 workday:5|equitable|External error target=- held=- 
+32/477 workday:5|spgi|SPGI_Careers live target=29 held=1 {"management":8,"computing":20,"sales":8,"business":10,"marketing":3}
+33/477 workday:5|moodys|moodys error target=- held=- 
+34/477 workday:1|msci|External error target=- held=- 
+35/477 workday:1|ice|ICE error target=- held=- 
+36/477 workday:1|cmegroup|cme_careers live target=13 held=2 {"business":9,"computing":6,"management":4}
+37/477 workday:5|broadridge|Careers live target=25 held=4 {"sales":3,"management":14,"marketing":1,"business":7,"computing":7}
+38/477 workday:5|fis|SearchJobs live target=21 held=3 {"business":12,"computing":18,"management":4,"engineering":3,"legal":3,"sales":2}
+39/477 workday:5|fiserv|EXT live target=94 held=9 {"legal":2,"sales":75,"computing":27,"management":11,"engineering":2,"marketing":1,"business":5}
+40/477 workday:1|tsys|TSYS live target=35 held=4 {"sales":24,"business":6,"computing":5,"management":5}
+41/477 workday:5|discover|Discover error target=- held=- 
+42/477 smartrecruiters:Visa empty target=- held=- 
+43/477 greenhouse:point72 live target=15 held=6 {"science":1,"computing":9,"business":13,"legal":1}
+44/477 greenhouse:schonfeld live target=5 held=0 {"computing":7,"legal":1,"business":4}
+45/477 greenhouse:schonfeldstrategicadvisors dead target=- held=- 
+46/477 greenhouse:jumptrading live target=4 held=2 {"computing":17,"business":3,"management":1,"engineering":1}
+47/477 greenhouse:imc live target=5 held=5 {"computing":9,"business":3,"legal":2}
+48/477 greenhouse:akunacapital live target=3 held=0 {"business":3,"computing":5}
+49/477 greenhouse:wehrtyou live target=12 held=6 {"computing":9,"management":2,"business":10,"engineering":4}
+50/477 greenhouse:arcesium dead target=- held=- 
+51/477 greenhouse:addepar1 live target=11 held=6 {"business":2,"computing":13,"sales":3,"marketing":1,"management":5}
+52/477 greenhouse:addepar dead target=- held=- 
+53/477 greenhouse:betterment live target=11 held=0 {"marketing":1,"sales":1,"business":3,"arts_media":1,"management":5,"computing":7}
+54/477 greenhouse:robinhood live target=39 held=3 {"computing":48,"management":16,"legal":2,"business":12,"arts_media":6,"sales":1,"marketing":2,"engineering":1}
+55/477 greenhouse:chime live target=24 held=1 {"legal":2,"marketing":6,"computing":30,"management":9,"business":5,"arts_media":2}
+56/477 greenhouse:sofi live target=23 held=1 {"business":9,"arts_media":3,"marketing":3,"management":5,"legal":3,"computing":15}
+57/477 greenhouse:affirm live target=39 held=5 {"business":6,"management":23,"legal":1,"sales":4,"marketing":5,"computing":77}
+58/477 greenhouse:marqeta dead target=- held=- 
+59/477 greenhouse:carta live target=19 held=1 {"sales":7,"legal":3,"marketing":4,"business":3,"management":2,"computing":5}
+60/477 greenhouse:toast live target=159 held=3 {"legal":2,"sales":145,"arts_media":1,"business":4,"computing":20,"management":7}
+61/477 greenhouse:coinbase live target=38 held=5 {"business":10,"computing":65,"management":14,"legal":2,"sales":3,"arts_media":6,"marketing":3}
+62/477 greenhouse:wealthsimple dead target=- held=- 
+63/477 greenhouse:brex live target=109 held=2 {"sales":29,"business":18,"marketing":21,"computing":35,"management":25,"legal":6,"arts_media":10}
+64/477 greenhouse:gusto live target=24 held=0 {"business":5,"marketing":3,"management":10,"sales":4,"legal":1,"computing":21,"arts_media":1}
+65/477 greenhouse:biltrewards dead target=- held=- 
+66/477 greenhouse:blackstone dead target=- held=- 
+67/477 greenhouse:generalatlantic live target=1 held=0 {"management":1}
+68/477 greenhouse:apollo empty target=- held=- 
+69/477 greenhouse:bridgewater89 live target=4 held=1 {"arts_media":1,"computing":1,"business":3}
+70/477 greenhouse:bridgewater dead target=- held=- 
+71/477 greenhouse:twosigma dead target=- held=- 
+72/477 greenhouse:tradeweb dead target=- held=- 
+73/477 ashby:ramp live target=73 held=10 {"sales":24,"business":24,"marketing":3,"management":17,"arts_media":3,"computing":17,"legal":2}
+74/477 ashby:mercury empty target=- held=- 
+75/477 lever:plaid dead target=- held=- 
+76/477 greenhouse:plaid dead target=- held=- 
+77/477 greenhouse:lemonade dead target=- held=- 
+78/477 greenhouse:oscar live target=47 held=20 {"computing":18,"business":16,"management":25,"marketing":2,"arts_media":4}
+79/477 greenhouse:rootinc dead target=- held=- 
+80/477 greenhouse:root dead target=- held=- 
+81/477 greenhouse:hippo dead target=- held=- 
+82/477 greenhouse:hippoinsurance dead target=- held=- 
+83/477 greenhouse:clearcover dead target=- held=- 
+84/477 greenhouse:kininsurance dead target=- held=- 
+85/477 greenhouse:ethoslife live target=9 held=1 {"management":3,"sales":2,"computing":4,"business":2,"arts_media":2}
+86/477 greenhouse:ethos live target=0 held=0 {}
+87/477 greenhouse:policygenius dead target=- held=- 
+88/477 greenhouse:nextinsurance dead target=- held=- 
+89/477 greenhouse:coalition live target=13 held=0 {"legal":1,"business":6,"management":4,"sales":2,"computing":19}
+90/477 greenhouse:newfront dead target=- held=- 
+91/477 greenhouse:vouch dead target=- held=- 
+92/477 workday:5|travelers|External live target=11 held=1 {"legal":7,"sales":4,"computing":1}
+93/477 workday:1|nationwide|Nationwide_Career live target=0 held=0 {}
+94/477 workday:5|allstate|allstate_careers live target=34 held=7 {"management":13,"business":8,"computing":19,"engineering":1,"sales":3,"marketing":2,"legal":8}
+95/477 workday:5|libertymutual|LMI error target=- held=- 
+96/477 workday:5|thehartford|Careers_External live target=35 held=1 {"business":22,"legal":6,"management":3,"computing":6,"marketing":1,"sales":3}
+97/477 workday:1|chubb|Chubb_External_Careers error target=- held=- 
+98/477 workday:5|metlife|MetLifeCareers error target=- held=- 
+99/477 workday:5|prudential|prudential error target=- held=- 
+100/477 workday:5|aflac|External error target=- held=- 
+101/477 workday:1|mmc|MMC live target=6 held=0 {"business":5,"management":1,"computing":3}
+102/477 workday:5|aon|AonCareers error target=- held=- 
+103/477 workday:1|wtw|WTWCareers error target=- held=- 
+104/477 workday:1|unum|External live target=1 held=6 {"business":1}
+105/477 workday:1|lfg|LFG_Careers error target=- held=- 
+106/477 workday:3|pwc|Global_Experienced_Careers live target=0 held=0 {}
+107/477 workday:5|kpmg|KPMG_US error target=- held=- 
+108/477 workday:103|accenture|AccentureCareers live target=0 held=0 {}
+109/477 workday:1|bah|BAH_Jobs live target=41 held=44 {"computing":93,"management":6,"engineering":9,"business":31,"arts_media":4}
+110/477 workday:1|guidehouse|External live target=52 held=11 {"business":37,"computing":28,"management":12,"science":2,"arts_media":1}
+111/477 workday:5|fticonsulting|FTI_Careers error target=- held=- 
+112/477 workday:1|huronconsultinggroup|huroncareers error target=- held=- 
+113/477 workday:5|gartner|EXT live target=47 held=0 {"sales":27,"management":15,"business":4,"arts_media":1,"computing":3}
+114/477 workday:5|icf|ICF_Careers dead target=- held=- 
+115/477 workday:5|cbre|CBRE_Careers error target=- held=- 
+116/477 workday:1|jll|jllcareers live target=12 held=9 {"engineering":1,"computing":3,"business":2,"management":10}
+117/477 workday:1|cushmanwakefield|External error target=- held=- 
+118/477 greenhouse:westmonroe dead target=- held=- 
+119/477 greenhouse:westmonroepartners dead target=- held=- 
+120/477 greenhouse:slalom dead target=- held=- 
+121/477 greenhouse:analysisgroup dead target=- held=- 
+122/477 greenhouse:cornerstoneresearch dead target=- held=- 
+123/477 greenhouse:crai dead target=- held=- 
+124/477 greenhouse:lek dead target=- held=- 
+125/477 greenhouse:lekconsulting dead target=- held=- 
+126/477 greenhouse:simonkucher dead target=- held=- 
+127/477 greenhouse:alvarezmarsal dead target=- held=- 
+128/477 greenhouse:kearney dead target=- held=- 
+129/477 greenhouse:oliverwyman dead target=- held=- 
+130/477 greenhouse:clearviewhealthcarepartners live target=4 held=0 {"business":4}
+131/477 greenhouse:putnamassociates dead target=- held=- 
+132/477 greenhouse:capco live target=16 held=1 {"computing":10,"business":12,"management":4}
+133/477 greenhouse:protiviti dead target=- held=- 
+134/477 workday:1|nike|nke live target=27 held=3 {"arts_media":12,"science":3,"management":8,"business":3,"computing":11,"legal":1}
+135/477 workday:5|target|targetcareers live target=22 held=5 {"business":4,"management":12,"arts_media":4,"computing":4,"sales":1,"marketing":1}
+136/477 workday:5|walmart|WalmartExternal error target=- held=- 
+137/477 workday:1|gapinc|GAPINC live target=25 held=0 {"arts_media":18,"business":3,"computing":3,"marketing":2,"management":2}
+138/477 workday:1|coke|coca-cola-careers error target=- held=- 
+139/477 workday:1|heinz|KraftHeinz_Careers live target=49 held=1 {"science":10,"management":11,"business":11,"sales":10,"computing":1,"marketing":5,"legal":2,"engineering":1}
+140/477 workday:5|generalmills|General_Mills_Careers error target=- held=- 
+141/477 workday:1|elcompanies|External error target=- held=- 
+142/477 workday:5|mattel|Mattel error target=- held=- 
+143/477 workday:5|hasbro|Hasbro_Careers error target=- held=- 
+144/477 workday:1|kohls|kohlscareers error target=- held=- 
+145/477 workday:5|bestbuy|BestBuy error target=- held=- 
+146/477 workday:3|lululemon|lululemon error target=- held=- 
+147/477 workday:5|vfc|vfc_careers live target=28 held=1 {"sales":16,"business":5,"arts_media":4,"computing":1,"management":3}
+148/477 workday:1|ralphlauren|ralphlaurencareers error target=- held=- 
+149/477 workday:1|tapestry|External error target=- held=- 
+150/477 workday:1|pvh|PVH_Careers live target=2 held=3 {"arts_media":1,"marketing":1}
+151/477 workday:5|levistrauss|External error target=- held=- 
+152/477 workday:5|hershey|hershey error target=- held=- 
+153/477 workday:3|mdlz|External live target=4 held=0 {"marketing":1,"engineering":1,"sales":2,"management":1}
+154/477 workday:5|clorox|Clorox error target=- held=- 
+155/477 workday:1|kimberlyclark|GLOBAL live target=10 held=1 {"business":1,"marketing":2,"engineering":13,"science":3,"sales":1,"management":3,"computing":1}
+156/477 workday:5|colgate|Colgate error target=- held=- 
+157/477 workday:1|kdp|KDP error target=- held=- 
+158/477 workday:1|cbrands|CBI_External_Careers error target=- held=- 
+159/477 workday:5|williamssonoma|WSI error target=- held=- 
+160/477 workday:5|chewy|Chewy dead target=- held=- 
+161/477 workday:5|ulta|ulta error target=- held=- 
+162/477 smartrecruiters:McDonaldsCorporation live target=0 held=0 {}
+163/477 smartrecruiters:Sephora empty target=- held=- 
+164/477 smartrecruiters:IKEA empty target=- held=- 
+165/477 smartrecruiters:Skechers empty target=- held=- 
+166/477 greenhouse:warbyparker dead target=- held=- 
+167/477 greenhouse:allbirds dead target=- held=- 
+168/477 greenhouse:glossier live target=1 held=0 {"arts_media":1}
+169/477 greenhouse:skims dead target=- held=- 
+170/477 greenhouse:awaytravel dead target=- held=- 
+171/477 greenhouse:away dead target=- held=- 
+172/477 greenhouse:harrys live target=5 held=0 {"business":2,"marketing":1,"management":1,"engineering":1,"legal":1}
+173/477 greenhouse:sweetgreen live target=3 held=2 {"marketing":1,"management":2}
+174/477 greenhouse:bombas live target=3 held=0 {"arts_media":2,"management":1}
+175/477 greenhouse:figs dead target=- held=- 
+176/477 greenhouse:wearfigs dead target=- held=- 
+177/477 greenhouse:faire live target=10 held=2 {"sales":1,"computing":18,"marketing":5,"management":3,"legal":1}
+178/477 greenhouse:etsy dead target=- held=- 
+179/477 greenhouse:instacart live target=31 held=4 {"sales":5,"legal":3,"management":14,"marketing":2,"business":3,"computing":13,"arts_media":4}
+180/477 greenhouse:renttherunway live target=7 held=0 {"management":3,"marketing":2,"business":2,"engineering":1,"computing":1}
+181/477 greenhouse:thredup dead target=- held=- 
+182/477 greenhouse:therealreal dead target=- held=- 
+183/477 greenhouse:stitchfix live target=4 held=1 {"management":3,"business":1}
+184/477 greenhouse:olaplex dead target=- held=- 
+185/477 greenhouse:brooklinen dead target=- held=- 
+186/477 greenhouse:parachutehome live target=0 held=0 {}
+187/477 greenhouse:rhode dead target=- held=- 
+188/477 greenhouse:liquiddeath live target=0 held=0 {}
+189/477 greenhouse:athleticbrewing dead target=- held=- 
+190/477 greenhouse:olipop live target=0 held=0 {}
+191/477 greenhouse:chobani dead target=- held=- 
+192/477 greenhouse:oatly dead target=- held=- 
+193/477 greenhouse:huel dead target=- held=- 
+194/477 greenhouse:himshers dead target=- held=- 
+195/477 ashby:hims-and-hers live target=25 held=23 {"management":9,"science":2,"business":7,"computing":18,"engineering":5,"marketing":4,"arts_media":2,"legal":1}
+196/477 greenhouse:peloton live target=4 held=2 {"engineering":4,"management":2,"computing":3,"business":2}
+197/477 greenhouse:squarespace live target=8 held=0 {"management":5,"marketing":1,"business":2,"computing":5}
+198/477 greenhouse:wayfair dead target=- held=- 
+199/477 greenhouse:gopuff dead target=- held=- 
+200/477 greenhouse:poshmark empty target=- held=- 
+201/477 greenhouse:mejuri live target=1 held=0 {"arts_media":1}
+202/477 greenhouse:quince live target=9 held=1 {"sales":1,"marketing":1,"computing":11,"arts_media":3,"management":3,"business":1}
+203/477 ashby:quince dead target=- held=- 
+204/477 greenhouse:vuori empty target=- held=- 
+205/477 greenhouse:aritzia dead target=- held=- 
+206/477 greenhouse:kendrascott dead target=- held=- 
+207/477 greenhouse:thenewyorktimes live target=29 held=2 {"business":9,"arts_media":4,"computing":9,"management":10,"marketing":6}
+208/477 greenhouse:nytimes dead target=- held=- 
+209/477 greenhouse:voxmedia live target=6 held=1 {"business":3,"arts_media":2,"computing":1,"marketing":1}
+210/477 greenhouse:buzzfeed dead target=- held=- 
+211/477 greenhouse:axios live target=5 held=0 {"sales":5}
+212/477 greenhouse:theatlantic dead target=- held=- 
+213/477 greenhouse:bustledigitalgroup dead target=- held=- 
+214/477 greenhouse:bdg dead target=- held=- 
+215/477 greenhouse:politico dead target=- held=- 
+216/477 greenhouse:insider live target=0 held=0 {}
+217/477 greenhouse:businessinsider dead target=- held=- 
+218/477 greenhouse:dotdashmeredith dead target=- held=- 
+219/477 greenhouse:vicemedia dead target=- held=- 
+220/477 greenhouse:vice dead target=- held=- 
+221/477 greenhouse:theathletic dead target=- held=- 
+222/477 greenhouse:roku live target=20 held=2 {"sales":1,"legal":4,"arts_media":1,"marketing":1,"management":13,"computing":20}
+223/477 greenhouse:pinterest live target=38 held=2 {"marketing":5,"sales":9,"arts_media":4,"computing":48,"management":15,"legal":3,"science":2}
+224/477 greenhouse:reddit live target=27 held=0 {"computing":61,"legal":1,"sales":5,"business":5,"management":14,"arts_media":2}
+225/477 greenhouse:discord live target=7 held=0 {"computing":24,"management":3,"legal":1,"arts_media":2,"business":1}
+226/477 greenhouse:twitch live target=25 held=3 {"computing":20,"management":20,"sales":2,"arts_media":3}
+227/477 greenhouse:spotify dead target=- held=- 
+228/477 greenhouse:a24films dead target=- held=- 
+229/477 greenhouse:a24 live target=1 held=0 {"business":1}
+230/477 greenhouse:condenast dead target=- held=- 
+231/477 greenhouse:hearst live target=81 held=5 {"computing":8,"sales":46,"arts_media":6,"management":13,"marketing":10,"business":6,"engineering":1}
+232/477 greenhouse:bloombergmedia dead target=- held=- 
+233/477 greenhouse:washingtonpost dead target=- held=- 
+234/477 greenhouse:penskemedia dead target=- held=- 
+235/477 greenhouse:crunchyroll live target=16 held=1 {"business":5,"management":8,"computing":10,"marketing":2,"legal":1}
+236/477 greenhouse:audible dead target=- held=- 
+237/477 greenhouse:siriusxm dead target=- held=- 
+238/477 greenhouse:genius empty target=- held=- 
+239/477 greenhouse:substack dead target=- held=- 
+240/477 ashby:substack live target=7 held=0 {"business":2,"computing":4,"sales":1,"management":2,"arts_media":2}
+241/477 greenhouse:medium live target=1 held=0 {"computing":1,"arts_media":1}
+242/477 greenhouse:patreon dead target=- held=- 
+243/477 greenhouse:morningbrew dead target=- held=- 
+244/477 greenhouse:theinformation dead target=- held=- 
+245/477 greenhouse:semafor live target=2 held=0 {"business":1,"arts_media":1}
+246/477 ashby:puck dead target=- held=- 
+247/477 greenhouse:cameo live target=0 held=0 {}
+248/477 greenhouse:wondery dead target=- held=- 
+249/477 greenhouse:fanatics dead target=- held=- 
+250/477 greenhouse:draftkings dead target=- held=- 
+251/477 greenhouse:livenation dead target=- held=- 
+252/477 greenhouse:eventbrite dead target=- held=- 
+253/477 greenhouse:ea dead target=- held=- 
+254/477 greenhouse:riotgames live target=12 held=1 {"marketing":1,"computing":36,"management":8,"arts_media":1,"business":2,"engineering":1}
+255/477 greenhouse:epicgames live target=13 held=2 {"computing":47,"management":9,"arts_media":4}
+256/477 greenhouse:niantic dead target=- held=- 
+257/477 lever:netflix dead target=- held=- 
+258/477 workday:1|wmg|WMGUS live target=11 held=0 {"business":7,"management":2,"computing":1,"sales":1,"marketing":1}
+259/477 workday:5|paramount|ParamountCareers error target=- held=- 
+260/477 workday:1|sonymusic|SonyMusic error target=- held=- 
+261/477 workday:5|warnerbros|global live target=8 held=6 {"computing":23,"arts_media":5,"engineering":3,"business":2,"management":1}
+262/477 workday:1|fox|Domestic live target=47 held=8 {"business":7,"management":16,"computing":5,"sales":17,"arts_media":2,"engineering":2,"marketing":4,"legal":1}
+263/477 workday:1|iheartmedia|External error target=- held=- 
+264/477 workday:1|umusic|UMGUS error target=- held=- 
+265/477 workday:5|nielsenenterprise|External error target=- held=- 
+266/477 workday:5|disney|disneycareer live target=16 held=4 {"computing":30,"business":7,"arts_media":2,"legal":1,"management":4,"marketing":2,"engineering":1}
+267/477 workday:5|adobe|external_experienced error target=- held=- 
+268/477 greenhouse:wiedenkennedy dead target=- held=- 
+269/477 greenhouse:rga live target=2 held=0 {"arts_media":1,"management":1}
+270/477 greenhouse:hugeinc live target=6 held=1 {"arts_media":3,"management":2,"business":1}
+271/477 greenhouse:huge dead target=- held=- 
+272/477 greenhouse:vaynermedia live target=2 held=0 {"business":2}
+273/477 greenhouse:mother dead target=- held=- 
+274/477 greenhouse:codeandtheory live target=11 held=6 {"sales":4,"management":4,"arts_media":3,"computing":1}
+275/477 greenhouse:mischief dead target=- held=- 
+276/477 greenhouse:dayoneagency dead target=- held=- 
+277/477 greenhouse:edelman dead target=- held=- 
+278/477 greenhouse:ketchum dead target=- held=- 
+279/477 greenhouse:webershandwick live target=0 held=0 {}
+280/477 greenhouse:brunswickgroup live target=4 held=0 {"sales":1,"business":2,"computing":1,"science":1}
+281/477 greenhouse:moversshakers live target=7 held=0 {"sales":1,"management":1,"marketing":4,"business":1}
+282/477 greenhouse:jellyfish dead target=- held=- 
+283/477 greenhouse:tinuiti dead target=- held=- 
+284/477 greenhouse:powerdigitalmarketing live target=86 held=0 {"business":48,"sales":36,"computing":7,"management":2}
+285/477 greenhouse:wpromote dead target=- held=- 
+286/477 greenhouse:razorfish dead target=- held=- 
+287/477 greenhouse:ogilvy live target=5 held=0 {"sales":1,"arts_media":3,"marketing":1}
+288/477 workday:5|omnicom|Omnicom error target=- held=- 
+289/477 workday:1|ipg|IPG error target=- held=- 
+290/477 workday:3|wpp|wppcareers dead target=- held=- 
+291/477 workday:3|publicis|External error target=- held=- 
+292/477 greenhouse:ironcladhq dead target=- held=- 
+293/477 greenhouse:ironclad dead target=- held=- 
+294/477 ashby:harvey live target=102 held=9 {"computing":43,"sales":28,"business":20,"management":33,"marketing":8,"arts_media":7,"legal":6}
+295/477 ashby:evenup dead target=- held=- 
+296/477 greenhouse:everlaw live target=12 held=1 {"sales":7,"management":2,"computing":2,"marketing":2,"business":1}
+297/477 greenhouse:clio dead target=- held=- 
+298/477 lever:clio dead target=- held=- 
+299/477 greenhouse:legalzoom dead target=- held=- 
+300/477 greenhouse:rocketlawyer live target=1 held=0 {"management":1}
+301/477 greenhouse:axiomlaw dead target=- held=- 
+302/477 greenhouse:axiom live target=6 held=0 {"sales":5,"management":1}
+303/477 greenhouse:unitedlex dead target=- held=- 
+304/477 ashby:spellbook dead target=- held=- 
+305/477 greenhouse:csdisco dead target=- held=- 
+306/477 greenhouse:disco live target=16 held=1 {"sales":10,"management":5,"computing":2,"business":1}
+307/477 greenhouse:litify live target=5 held=5 {"sales":2,"marketing":1,"business":1,"management":1,"computing":1}
+308/477 greenhouse:filevine dead target=- held=- 
+309/477 greenhouse:hebbia dead target=- held=- 
+310/477 ashby:hebbia dead target=- held=- 
+311/477 workday:5|thomsonreuters|External_Career_Site live target=0 held=0 {}
+312/477 workday:3|relx|relx error target=- held=- 
+313/477 workday:3|wk|External live target=33 held=2 {"sales":18,"management":9,"marketing":2,"computing":3,"arts_media":3,"business":1}
+314/477 workday:5|epiq|Epiq error target=- held=- 
+315/477 workday:1|consilio|Consilio error target=- held=- 
+316/477 greenhouse:recursionpharmaceuticals live target=1 held=0 {"computing":3,"science":1}
+317/477 greenhouse:recursion dead target=- held=- 
+318/477 greenhouse:insitro dead target=- held=- 
+319/477 greenhouse:ginkgobioworks live target=4 held=0 {"science":2,"legal":1,"engineering":1,"management":1,"computing":1}
+320/477 greenhouse:ginkgo dead target=- held=- 
+321/477 greenhouse:tempus dead target=- held=- 
+322/477 greenhouse:grailbio dead target=- held=- 
+323/477 greenhouse:grail dead target=- held=- 
+324/477 greenhouse:10xgenomics dead target=- held=- 
+325/477 greenhouse:benchling dead target=- held=- 
+326/477 greenhouse:generatebiomedicines live target=11 held=1 {"legal":2,"science":8,"management":1,"computing":1}
+327/477 greenhouse:beamtherapeutics live target=8 held=0 {"management":3,"engineering":2,"business":4,"legal":1}
+328/477 greenhouse:denalitherapeutics dead target=- held=- 
+329/477 greenhouse:intelliatherapeutics dead target=- held=- 
+330/477 greenhouse:sanabiotechnology dead target=- held=- 
+331/477 greenhouse:lyell dead target=- held=- 
+332/477 greenhouse:lyellimmunopharma live target=3 held=0 {"management":3}
+333/477 greenhouse:arcusbio dead target=- held=- 
+334/477 greenhouse:arcusbiosciences dead target=- held=- 
+335/477 greenhouse:alector dead target=- held=- 
+336/477 greenhouse:twistbioscience live target=13 held=0 {"sales":3,"science":4,"marketing":1,"business":2,"management":3,"engineering":1}
+337/477 greenhouse:natera live target=32 held=8 {"management":6,"business":3,"computing":10,"science":20,"marketing":1,"sales":2}
+338/477 greenhouse:guardanthealth dead target=- held=- 
+339/477 greenhouse:exactsciences dead target=- held=- 
+340/477 greenhouse:freenome live target=6 held=1 {"engineering":2,"science":5,"management":1,"computing":1}
+341/477 greenhouse:cariboubiosciences dead target=- held=- 
+342/477 greenhouse:vervetherapeutics dead target=- held=- 
+343/477 greenhouse:relaytherapeutics live target=3 held=0 {"management":3}
+344/477 greenhouse:arsenalbio dead target=- held=- 
+345/477 greenhouse:altoslabs live target=5 held=1 {"legal":2,"science":3}
+346/477 greenhouse:calicolabs live target=3 held=0 {"science":3,"computing":1}
+347/477 greenhouse:neumora empty target=- held=- 
+348/477 greenhouse:xaira dead target=- held=- 
+349/477 greenhouse:xairatherapeutics live target=16 held=0 {"computing":3,"management":3,"science":11,"business":1,"engineering":1,"sales":1}
+350/477 greenhouse:isomorphiclabs live target=7 held=0 {"business":1,"science":4,"legal":2,"computing":1}
+351/477 greenhouse:inceptive live target=0 held=0 {}
+352/477 greenhouse:eikontherapeutics live target=9 held=0 {"management":3,"engineering":1,"science":6,"computing":1}
+353/477 greenhouse:dynotherapeutics live target=0 held=0 {"computing":1}
+354/477 greenhouse:kriyatherapeutics dead target=- held=- 
+355/477 greenhouse:mammothbiosciences dead target=- held=- 
+356/477 greenhouse:scribetherapeutics dead target=- held=- 
+357/477 greenhouse:vir dead target=- held=- 
+358/477 greenhouse:virbiotechnology dead target=- held=- 
+359/477 greenhouse:seer empty target=- held=- 
+360/477 greenhouse:seerbio dead target=- held=- 
+361/477 greenhouse:abcellera live target=0 held=0 {}
+362/477 greenhouse:zymeworks dead target=- held=- 
+363/477 greenhouse:absci dead target=- held=- 
+364/477 greenhouse:synthego dead target=- held=- 
+365/477 greenhouse:pivotbio live target=4 held=0 {"business":3,"sales":1}
+366/477 greenhouse:inscripta dead target=- held=- 
+367/477 greenhouse:resilience live target=1 held=0 {"business":1}
+368/477 greenhouse:modernatx dead target=- held=- 
+369/477 ashby:arcinstitute dead target=- held=- 
+370/477 ashby:czbiohub dead target=- held=- 
+371/477 ashby:asimov live target=6 held=0 {"science":6}
+372/477 ashby:newlimit dead target=- held=- 
+373/477 lever:ginkgobioworks dead target=- held=- 
+374/477 workday:1|modernatx|M_tx live target=0 held=0 {}
+375/477 workday:5|illumina|illumina-careers error target=- held=- 
+376/477 workday:5|vrtx|Vertex_Careers error target=- held=- 
+377/477 workday:1|regeneron|Careers live target=3 held=0 {"management":3}
+378/477 workday:1|gilead|gileadcareers live target=35 held=1 {"management":9,"science":21,"engineering":4,"computing":8,"sales":4,"legal":1}
+379/477 workday:5|biogen|external_career_site error target=- held=- 
+380/477 workday:1|amgen|Careers live target=116 held=3 {"sales":108,"management":4,"engineering":7,"science":1,"marketing":2,"business":1}
+381/477 workday:1|pfizer|PfizerCareers live target=7 held=1 {"engineering":7,"business":2,"computing":2,"science":5}
+382/477 workday:5|bristolmyerssquibb|BMS error target=- held=- 
+383/477 workday:5|jj|JJ live target=17 held=7 {"legal":1,"management":10,"sales":4,"engineering":2,"computing":2,"marketing":1,"business":1}
+384/477 workday:5|msd|SearchJobs live target=19 held=4 {"computing":6,"science":13,"management":1,"business":5,"engineering":1}
+385/477 workday:5|thermofisher|ThermoFisherCareers live target=33 held=4 {"science":15,"sales":7,"engineering":6,"computing":4,"management":6,"business":5}
+386/477 workday:1|agilent|Agilent_Careers error target=- held=- 
+387/477 workday:1|danaher|DanaherJobs live target=11 held=11 {"management":4,"engineering":2,"science":5,"business":2,"computing":4}
+388/477 workday:5|lilly|LLY error target=- held=- 
+389/477 workday:3|novartis|Novartis_Careers live target=10 held=0 {"science":7,"legal":1,"computing":2,"management":1,"sales":1}
+390/477 workday:3|astrazeneca|Careers live target=15 held=3 {"computing":7,"engineering":3,"science":4,"marketing":2,"management":8,"sales":1}
+391/477 workday:5|gsk|GSKCareers live target=10 held=0 {"management":5,"science":4,"business":1,"computing":1}
+392/477 workday:3|takeda|External error target=- held=- 
+393/477 workday:5|bio-rad|Bio-Rad_Careers error target=- held=- 
+394/477 workday:5|crl|CRL error target=- held=- 
+395/477 workday:1|iqvia|IQVIA live target=14 held=3 {"science":4,"sales":2,"management":3,"business":5,"computing":1}
+396/477 workday:1|labcorp|External live target=5 held=1 {"science":4,"management":1}
+397/477 workday:5|zoetis|zoetis live target=6 held=4 {"sales":5,"computing":2,"science":1}
+398/477 smartrecruiters:Sanofi empty target=- held=- 
+399/477 smartrecruiters:NovoNordisk empty target=- held=- 
+400/477 greenhouse:flexport live target=27 held=7 {"sales":16,"business":2,"management":5,"computing":4,"arts_media":1,"marketing":3}
+401/477 greenhouse:project44 live target=4 held=0 {"sales":4,"computing":3}
+402/477 greenhouse:shipbob dead target=- held=- 
+403/477 ashby:stord dead target=- held=- 
+404/477 greenhouse:fourkites live target=5 held=0 {"management":1,"sales":2,"computing":1,"marketing":2}
+405/477 greenhouse:samsara live target=107 held=6 {"sales":67,"arts_media":6,"computing":50,"engineering":1,"business":21,"management":10,"marketing":2,"legal":1}
+406/477 greenhouse:gomotive live target=37 held=6 {"sales":10,"management":13,"arts_media":2,"marketing":7,"computing":14,"business":4,"legal":1}
+407/477 greenhouse:motive live target=2 held=0 {"sales":2}
+408/477 greenhouse:uberfreight live target=17 held=1 {"sales":9,"business":7,"computing":1,"management":1}
+409/477 greenhouse:loadsmart dead target=- held=- 
+410/477 greenhouse:arcadia dead target=- held=- 
+411/477 greenhouse:arcadiacareers dead target=- held=- 
+412/477 greenhouse:aurorasolar dead target=- held=- 
+413/477 greenhouse:sunrun dead target=- held=- 
+414/477 greenhouse:watershedclimate dead target=- held=- 
+415/477 ashby:watershed live target=9 held=2 {"computing":4,"sales":5,"management":3,"arts_media":1}
+416/477 workday:1|fedex|FXE-External dead target=- held=- 
+417/477 workday:5|chrobinson|CHRobinson live target=40 held=0 {"computing":15,"business":12,"sales":28}
+418/477 workday:1|xpo|XPO error target=- held=- 
+419/477 workday:1|expeditors|Expeditors error target=- held=- 
+420/477 workday:5|nexteraenergy|NEE error target=- held=- 
+421/477 workday:1|exelon|Exelon error target=- held=- 
+422/477 workday:5|constellation|ConstellationCareers error target=- held=- 
+423/477 workday:3|shell|ShellCareers live target=0 held=6 {"engineering":2}
+424/477 workday:5|exxonmobil|ExxonMobil error target=- held=- 
+425/477 workday:1|conocophillips|ConocoPhillips dead target=- held=- 
+426/477 greenhouse:datadog live target=73 held=19 {"business":17,"sales":19,"management":27,"computing":13,"marketing":5,"legal":1,"arts_media":4}
+427/477 greenhouse:cloudflare live target=76 held=52 {"computing":45,"business":8,"sales":45,"management":18,"legal":2,"engineering":2,"marketing":3}
+428/477 greenhouse:mongodb live target=43 held=5 {"computing":22,"sales":15,"management":19,"marketing":3,"business":3,"legal":2,"arts_media":1}
+429/477 greenhouse:okta live target=65 held=8 {"sales":33,"legal":1,"marketing":4,"management":13,"computing":34,"arts_media":4,"business":10}
+430/477 greenhouse:twilio live target=25 held=7 {"sales":9,"management":10,"computing":12,"science":1,"marketing":2,"business":2,"arts_media":1}
+431/477 greenhouse:elastic live target=44 held=17 {"sales":26,"computing":51,"management":14,"marketing":1,"business":3}
+432/477 greenhouse:gitlab live target=48 held=23 {"management":20,"computing":31,"business":5,"sales":18,"marketing":4,"legal":1}
+433/477 greenhouse:asana live target=19 held=2 {"business":4,"legal":2,"sales":8,"computing":9,"management":5}
+434/477 greenhouse:airtable live target=0 held=0 {}
+435/477 greenhouse:hubspot dead target=- held=- 
+436/477 greenhouse:hubspotjobs live target=3 held=0 {"legal":1,"sales":2}
+437/477 greenhouse:braze live target=126 held=25 {"sales":82,"computing":53,"business":15,"legal":1,"marketing":20,"management":8,"engineering":2}
+438/477 greenhouse:klaviyo live target=41 held=20 {"sales":17,"management":9,"computing":27,"engineering":2,"business":8,"marketing":7}
+439/477 greenhouse:gongio live target=22 held=2 {"computing":1,"sales":14,"marketing":3,"business":3,"legal":1,"management":1}
+440/477 greenhouse:amplitude dead target=- held=- 
+441/477 greenhouse:mixpanel live target=15 held=6 {"sales":3,"marketing":2,"management":6,"computing":4,"business":4}
+442/477 greenhouse:intercom live target=9 held=8 {"marketing":1,"computing":3,"business":4,"sales":4}
+443/477 greenhouse:webflow empty target=- held=- 
+444/477 greenhouse:calendly live target=4 held=0 {"computing":3,"marketing":1,"management":3}
+445/477 greenhouse:pagerduty live target=21 held=4 {"sales":8,"arts_media":1,"computing":4,"management":6,"business":6}
+446/477 greenhouse:dropbox live target=5 held=2 {"sales":3,"marketing":2,"computing":4}
+447/477 greenhouse:lyft live target=34 held=1 {"computing":25,"legal":10,"management":14,"sales":3,"marketing":2,"business":5}
+448/477 greenhouse:databricks live target=60 held=81 {"computing":71,"sales":31,"management":10,"marketing":4,"legal":7,"engineering":1,"business":7,"arts_media":1}
+449/477 greenhouse:procoretechnologies dead target=- held=- 
+450/477 greenhouse:procore dead target=- held=- 
+451/477 greenhouse:zscaler live target=50 held=25 {"sales":29,"computing":33,"business":5,"management":9,"marketing":4,"engineering":1,"science":2,"arts_media":1}
+452/477 greenhouse:highspot dead target=- held=- 
+453/477 greenhouse:seismic dead target=- held=- 
+454/477 greenhouse:6sense live target=8 held=0 {"sales":5,"management":2,"computing":6,"arts_media":1}
+455/477 greenhouse:zoominfo live target=24 held=2 {"sales":9,"business":2,"management":12,"computing":17,"legal":1}
+456/477 greenhouse:outreach dead target=- held=- 
+457/477 lever:outreach live target=7 held=0 {"sales":3,"management":2,"business":2}
+458/477 lever:attentive dead target=- held=- 
+459/477 greenhouse:attentive live target=8 held=1 {"computing":11,"sales":4,"legal":1,"management":2,"business":1}
+460/477 greenhouse:lattice live target=3 held=0 {"computing":3,"management":3}
+461/477 greenhouse:vanta dead target=- held=- 
+462/477 ashby:vanta live target=20 held=0 {"computing":15,"sales":10,"management":6,"arts_media":4}
+463/477 greenhouse:deel dead target=- held=- 
+464/477 ashby:deel empty target=- held=- 
+465/477 greenhouse:mondaycom dead target=- held=- 
+466/477 greenhouse:canva dead target=- held=- 
+467/477 lever:canva dead target=- held=- 
+468/477 greenhouse:grammarly dead target=- held=- 
+469/477 greenhouse:miro dead target=- held=- 
+470/477 greenhouse:realtimeboardglobal live target=7 held=0 {"sales":6,"marketing":1}
+471/477 greenhouse:zendesk dead target=- held=- 
+472/477 greenhouse:doordashusa live target=42 held=9 {"sales":15,"business":8,"management":6,"marketing":3,"computing":69,"legal":4,"arts_media":6,"engineering":14}
+473/477 smartrecruiters:ServiceNow live target=49 held=7 {"computing":136,"management":25,"sales":6,"business":9,"marketing":1,"arts_media":7,"legal":1}
+474/477 smartrecruiters:Square empty target=- held=- 
+475/477 smartrecruiters:Wix empty target=- held=- 
+476/477 smartrecruiters:Equinox live target=13 held=0 {"arts_media":3,"management":3,"sales":4,"computing":1,"marketing":2,"business":1}
+477/477 smartrecruiters:AveryDennison live target=17 held=6 {"management":4,"engineering":8,"business":6,"marketing":1,"sales":4,"legal":2,"computing":3}
+done: 477 rows in data/a111/probe-r1.json
