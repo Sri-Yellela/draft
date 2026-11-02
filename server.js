@@ -86,6 +86,7 @@ import { heatReport } from "./services/companyHeat.js";
 import { runHnDiscovery, runCandidateProbe } from "./services/companyCandidates.js";
 import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHook.js";
 import { readGauge, projectTranche, trancheGate, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "./services/diskGauge.js";
+import { checkDiskAlert, CHECK_EVERY_MS as DISK_ALERT_EVERY_MS } from "./services/diskAlert.js";
 import { createJobTagsRouter } from "./routes/jobTags.js";
 import { createDomainProfilesRouter } from "./routes/domainProfiles.js";
 import { createImportJobRouter } from "./routes/importJob.js";
@@ -9968,6 +9969,12 @@ app.get("/api/admin/disk", requireAdmin, (_req, res) => {
     res.json({ ...gauge, amberAt: DISK_AMBER_AT, redAt: DISK_RED_AT, tranche25: projectTranche(db, gauge, { companies: 25 }) });
   } catch (e) { res.status(500).json({ error: "disk_unreadable", detail: e.message }); }
 });
+// Owner 11-02 (the volume filled and sign-ups failed): past 80% the owner is EMAILED and the log says so — the banner
+// above only shows on an open Admin page. Checked every 10 minutes (services/diskAlert.js).
+setInterval(() => {
+  checkDiskAlert(db, DATA_DIR, { send: sendEmail, to: process.env.ADMIN_OWNER_EMAIL })
+    .catch(e => console.error("[disk-alert] check failed:", e.message));
+}, DISK_ALERT_EVERY_MS).unref();
 // D75: the crawler's queue, deny-list and tally (the owner's controls).
 app.use("/api/admin/crawler", requireAdmin, createCrawlerAdminRouter(db, requireAdmin));
 // D75 STEP 0b: the crawler's schedule (Admin → Crawler) — once a day at the owner's HH:MM UTC draft ENQUEUES up to N
