@@ -1,0 +1,2096 @@
+[
+ {
+  "company": "Toast",
+  "ats_type": "greenhouse",
+  "ats_slug": "toast",
+  "in_scope": 179,
+  "in_category": 159,
+  "by_category": {
+   "business": 4,
+   "management": 7,
+   "sales": 145,
+   "legal": 2,
+   "arts_media": 1
+  },
+  "held": 3
+ },
+ {
+  "company": "Braze",
+  "ats_type": "greenhouse",
+  "ats_slug": "braze",
+  "in_scope": 181,
+  "in_category": 126,
+  "by_category": {
+   "business": 15,
+   "management": 8,
+   "marketing": 20,
+   "sales": 82,
+   "legal": 1
+  },
+  "held": 25
+ },
+ {
+  "company": "Amgen",
+  "ats_type": "workday",
+  "ats_slug": "1|amgen|Careers",
+  "in_scope": 123,
+  "in_category": 116,
+  "by_category": {
+   "business": 1,
+   "management": 4,
+   "marketing": 2,
+   "sales": 108,
+   "science": 1
+  },
+  "held": 3
+ },
+ {
+  "company": "Brex",
+  "ats_type": "greenhouse",
+  "ats_slug": "brex",
+  "in_scope": 144,
+  "in_category": 109,
+  "by_category": {
+   "business": 18,
+   "management": 25,
+   "marketing": 21,
+   "sales": 29,
+   "legal": 6,
+   "arts_media": 10
+  },
+  "held": 2
+ },
+ {
+  "company": "Samsara",
+  "ats_type": "greenhouse",
+  "ats_slug": "samsara",
+  "in_scope": 158,
+  "in_category": 107,
+  "by_category": {
+   "business": 21,
+   "management": 10,
+   "marketing": 2,
+   "sales": 67,
+   "legal": 1,
+   "arts_media": 6
+  },
+  "held": 6
+ },
+ {
+  "company": "Harvey",
+  "ats_type": "ashby",
+  "ats_slug": "harvey",
+  "in_scope": 145,
+  "in_category": 102,
+  "by_category": {
+   "business": 20,
+   "management": 33,
+   "marketing": 8,
+   "sales": 28,
+   "legal": 6,
+   "arts_media": 7
+  },
+  "held": 9
+ },
+ {
+  "company": "Fiserv",
+  "ats_type": "workday",
+  "ats_slug": "5|fiserv|EXT",
+  "in_scope": 123,
+  "in_category": 94,
+  "by_category": {
+   "business": 5,
+   "management": 11,
+   "marketing": 1,
+   "sales": 75,
+   "legal": 2
+  },
+  "held": 9
+ },
+ {
+  "company": "Fidelity Investments",
+  "ats_type": "workday",
+  "ats_slug": "1|fmr|FidelityCareers",
+  "in_scope": 129,
+  "in_category": 86,
+  "by_category": {
+   "business": 65,
+   "management": 13,
+   "sales": 6,
+   "arts_media": 2
+  },
+  "held": 3
+ },
+ {
+  "company": "Power Digital",
+  "ats_type": "greenhouse",
+  "ats_slug": "powerdigitalmarketing",
+  "in_scope": 93,
+  "in_category": 86,
+  "by_category": {
+   "business": 48,
+   "management": 2,
+   "sales": 36
+  },
+  "held": 0
+ },
+ {
+  "company": "Hearst",
+  "ats_type": "greenhouse",
+  "ats_slug": "hearst",
+  "in_scope": 90,
+  "in_category": 81,
+  "by_category": {
+   "business": 6,
+   "management": 13,
+   "marketing": 10,
+   "sales": 46,
+   "arts_media": 6
+  },
+  "held": 5
+ },
+ {
+  "company": "Cloudflare",
+  "ats_type": "greenhouse",
+  "ats_slug": "cloudflare",
+  "in_scope": 123,
+  "in_category": 76,
+  "by_category": {
+   "business": 8,
+   "management": 18,
+   "marketing": 3,
+   "sales": 45,
+   "legal": 2
+  },
+  "held": 52
+ },
+ {
+  "company": "Ramp",
+  "ats_type": "ashby",
+  "ats_slug": "ramp",
+  "in_scope": 90,
+  "in_category": 73,
+  "by_category": {
+   "business": 24,
+   "management": 17,
+   "marketing": 3,
+   "sales": 24,
+   "legal": 2,
+   "arts_media": 3
+  },
+  "held": 10
+ },
+ {
+  "company": "Datadog",
+  "ats_type": "greenhouse",
+  "ats_slug": "datadog",
+  "in_scope": 86,
+  "in_category": 73,
+  "by_category": {
+   "business": 17,
+   "management": 27,
+   "marketing": 5,
+   "sales": 19,
+   "legal": 1,
+   "arts_media": 4
+  },
+  "held": 19
+ },
+ {
+  "company": "Okta",
+  "ats_type": "greenhouse",
+  "ats_slug": "okta",
+  "in_scope": 99,
+  "in_category": 65,
+  "by_category": {
+   "business": 10,
+   "management": 13,
+   "marketing": 4,
+   "sales": 33,
+   "legal": 1,
+   "arts_media": 4
+  },
+  "held": 8
+ },
+ {
+  "company": "Databricks",
+  "ats_type": "greenhouse",
+  "ats_slug": "databricks",
+  "in_scope": 132,
+  "in_category": 60,
+  "by_category": {
+   "business": 7,
+   "management": 10,
+   "marketing": 4,
+   "sales": 31,
+   "legal": 7,
+   "arts_media": 1
+  },
+  "held": 81
+ },
+ {
+  "company": "Guidehouse",
+  "ats_type": "workday",
+  "ats_slug": "1|guidehouse|External",
+  "in_scope": 80,
+  "in_category": 52,
+  "by_category": {
+   "business": 37,
+   "management": 12,
+   "arts_media": 1,
+   "science": 2
+  },
+  "held": 11
+ },
+ {
+  "company": "T. Rowe Price",
+  "ats_type": "workday",
+  "ats_slug": "5|troweprice|TRowePrice",
+  "in_scope": 70,
+  "in_category": 50,
+  "by_category": {
+   "business": 34,
+   "management": 5,
+   "marketing": 3,
+   "sales": 1,
+   "legal": 7
+  },
+  "held": 6
+ },
+ {
+  "company": "Zscaler",
+  "ats_type": "greenhouse",
+  "ats_slug": "zscaler",
+  "in_scope": 84,
+  "in_category": 50,
+  "by_category": {
+   "business": 5,
+   "management": 9,
+   "marketing": 4,
+   "sales": 29,
+   "arts_media": 1,
+   "science": 2
+  },
+  "held": 25
+ },
+ {
+  "company": "Kraft Heinz",
+  "ats_type": "workday",
+  "ats_slug": "1|heinz|KraftHeinz_Careers",
+  "in_scope": 51,
+  "in_category": 49,
+  "by_category": {
+   "business": 11,
+   "management": 11,
+   "marketing": 5,
+   "sales": 10,
+   "legal": 2,
+   "science": 10
+  },
+  "held": 1
+ },
+ {
+  "company": "ServiceNow",
+  "ats_type": "smartrecruiters",
+  "ats_slug": "ServiceNow",
+  "in_scope": 185,
+  "in_category": 49,
+  "by_category": {
+   "business": 9,
+   "management": 25,
+   "marketing": 1,
+   "sales": 6,
+   "legal": 1,
+   "arts_media": 7
+  },
+  "held": 7
+ },
+ {
+  "company": "GitLab",
+  "ats_type": "greenhouse",
+  "ats_slug": "gitlab",
+  "in_scope": 79,
+  "in_category": 48,
+  "by_category": {
+   "business": 5,
+   "management": 20,
+   "marketing": 4,
+   "sales": 18,
+   "legal": 1
+  },
+  "held": 23
+ },
+ {
+  "company": "Oscar Health",
+  "ats_type": "greenhouse",
+  "ats_slug": "oscar",
+  "in_scope": 65,
+  "in_category": 47,
+  "by_category": {
+   "business": 16,
+   "management": 25,
+   "marketing": 2,
+   "arts_media": 4
+  },
+  "held": 20
+ },
+ {
+  "company": "Gartner",
+  "ats_type": "workday",
+  "ats_slug": "5|gartner|EXT",
+  "in_scope": 50,
+  "in_category": 47,
+  "by_category": {
+   "business": 4,
+   "management": 15,
+   "sales": 27,
+   "arts_media": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "Fox",
+  "ats_type": "workday",
+  "ats_slug": "1|fox|Domestic",
+  "in_scope": 54,
+  "in_category": 47,
+  "by_category": {
+   "business": 7,
+   "management": 16,
+   "marketing": 4,
+   "sales": 17,
+   "legal": 1,
+   "arts_media": 2
+  },
+  "held": 8
+ },
+ {
+  "company": "Elastic",
+  "ats_type": "greenhouse",
+  "ats_slug": "elastic",
+  "in_scope": 95,
+  "in_category": 44,
+  "by_category": {
+   "business": 3,
+   "management": 14,
+   "marketing": 1,
+   "sales": 26
+  },
+  "held": 17
+ },
+ {
+  "company": "M&T Bank",
+  "ats_type": "workday",
+  "ats_slug": "5|mtb|MTB",
+  "in_scope": 73,
+  "in_category": 43,
+  "by_category": {
+   "business": 23,
+   "management": 5,
+   "marketing": 1,
+   "sales": 13,
+   "arts_media": 1
+  },
+  "held": 10
+ },
+ {
+  "company": "MongoDB",
+  "ats_type": "greenhouse",
+  "ats_slug": "mongodb",
+  "in_scope": 65,
+  "in_category": 43,
+  "by_category": {
+   "business": 3,
+   "management": 19,
+   "marketing": 3,
+   "sales": 15,
+   "legal": 2,
+   "arts_media": 1
+  },
+  "held": 5
+ },
+ {
+  "company": "DoorDash",
+  "ats_type": "greenhouse",
+  "ats_slug": "doordashusa",
+  "in_scope": 125,
+  "in_category": 42,
+  "by_category": {
+   "business": 8,
+   "management": 6,
+   "marketing": 3,
+   "sales": 15,
+   "legal": 4,
+   "arts_media": 6
+  },
+  "held": 9
+ },
+ {
+  "company": "Booz Allen",
+  "ats_type": "workday",
+  "ats_slug": "1|bah|BAH_Jobs",
+  "in_scope": 143,
+  "in_category": 41,
+  "by_category": {
+   "business": 31,
+   "management": 6,
+   "arts_media": 4
+  },
+  "held": 44
+ },
+ {
+  "company": "Klaviyo",
+  "ats_type": "greenhouse",
+  "ats_slug": "klaviyo",
+  "in_scope": 70,
+  "in_category": 41,
+  "by_category": {
+   "business": 8,
+   "management": 9,
+   "marketing": 7,
+   "sales": 17
+  },
+  "held": 20
+ },
+ {
+  "company": "C.H. Robinson",
+  "ats_type": "workday",
+  "ats_slug": "5|chrobinson|CHRobinson",
+  "in_scope": 55,
+  "in_category": 40,
+  "by_category": {
+   "business": 12,
+   "sales": 28
+  },
+  "held": 0
+ },
+ {
+  "company": "Northern Trust",
+  "ats_type": "workday",
+  "ats_slug": "1|ntrs|northerntrust",
+  "in_scope": 55,
+  "in_category": 39,
+  "by_category": {
+   "business": 21,
+   "management": 8,
+   "marketing": 1,
+   "sales": 7,
+   "legal": 1,
+   "arts_media": 1
+  },
+  "held": 3
+ },
+ {
+  "company": "Robinhood",
+  "ats_type": "greenhouse",
+  "ats_slug": "robinhood",
+  "in_scope": 88,
+  "in_category": 39,
+  "by_category": {
+   "business": 12,
+   "management": 16,
+   "marketing": 2,
+   "sales": 1,
+   "legal": 2,
+   "arts_media": 6
+  },
+  "held": 3
+ },
+ {
+  "company": "Affirm",
+  "ats_type": "greenhouse",
+  "ats_slug": "affirm",
+  "in_scope": 116,
+  "in_category": 39,
+  "by_category": {
+   "business": 6,
+   "management": 23,
+   "marketing": 5,
+   "sales": 4,
+   "legal": 1
+  },
+  "held": 5
+ },
+ {
+  "company": "U.S. Bank",
+  "ats_type": "workday",
+  "ats_slug": "1|usbank|US_Bank_Careers",
+  "in_scope": 40,
+  "in_category": 38,
+  "by_category": {
+   "business": 15,
+   "management": 7,
+   "sales": 16
+  },
+  "held": 2
+ },
+ {
+  "company": "Coinbase",
+  "ats_type": "greenhouse",
+  "ats_slug": "coinbase",
+  "in_scope": 103,
+  "in_category": 38,
+  "by_category": {
+   "business": 10,
+   "management": 14,
+   "marketing": 3,
+   "sales": 3,
+   "legal": 2,
+   "arts_media": 6
+  },
+  "held": 5
+ },
+ {
+  "company": "Pinterest",
+  "ats_type": "greenhouse",
+  "ats_slug": "pinterest",
+  "in_scope": 86,
+  "in_category": 38,
+  "by_category": {
+   "management": 15,
+   "marketing": 5,
+   "sales": 9,
+   "legal": 3,
+   "arts_media": 4,
+   "science": 2
+  },
+  "held": 2
+ },
+ {
+  "company": "Regions",
+  "ats_type": "workday",
+  "ats_slug": "5|regions|Regions_Careers",
+  "in_scope": 37,
+  "in_category": 37,
+  "by_category": {
+   "business": 18,
+   "management": 4,
+   "marketing": 2,
+   "sales": 11,
+   "legal": 2
+  },
+  "held": 1
+ },
+ {
+  "company": "Motive",
+  "ats_type": "greenhouse",
+  "ats_slug": "gomotive",
+  "in_scope": 51,
+  "in_category": 37,
+  "by_category": {
+   "business": 4,
+   "management": 13,
+   "marketing": 7,
+   "sales": 10,
+   "legal": 1,
+   "arts_media": 2
+  },
+  "held": 6
+ },
+ {
+  "company": "Mastercard",
+  "ats_type": "workday",
+  "ats_slug": "1|mastercard|CorporateCareers",
+  "in_scope": 86,
+  "in_category": 35,
+  "by_category": {
+   "business": 8,
+   "management": 18,
+   "marketing": 4,
+   "sales": 2,
+   "legal": 3
+  },
+  "held": 2
+ },
+ {
+  "company": "Global Payments",
+  "ats_type": "workday",
+  "ats_slug": "1|tsys|TSYS",
+  "in_scope": 40,
+  "in_category": 35,
+  "by_category": {
+   "business": 6,
+   "management": 5,
+   "sales": 24
+  },
+  "held": 4
+ },
+ {
+  "company": "The Hartford",
+  "ats_type": "workday",
+  "ats_slug": "5|thehartford|Careers_External",
+  "in_scope": 41,
+  "in_category": 35,
+  "by_category": {
+   "business": 22,
+   "management": 3,
+   "marketing": 1,
+   "sales": 3,
+   "legal": 6
+  },
+  "held": 1
+ },
+ {
+  "company": "Gilead",
+  "ats_type": "workday",
+  "ats_slug": "1|gilead|gileadcareers",
+  "in_scope": 47,
+  "in_category": 35,
+  "by_category": {
+   "management": 9,
+   "sales": 4,
+   "legal": 1,
+   "science": 21
+  },
+  "held": 1
+ },
+ {
+  "company": "Allstate",
+  "ats_type": "workday",
+  "ats_slug": "5|allstate|allstate_careers",
+  "in_scope": 54,
+  "in_category": 34,
+  "by_category": {
+   "business": 8,
+   "management": 13,
+   "marketing": 2,
+   "sales": 3,
+   "legal": 8
+  },
+  "held": 7
+ },
+ {
+  "company": "Lyft",
+  "ats_type": "greenhouse",
+  "ats_slug": "lyft",
+  "in_scope": 59,
+  "in_category": 34,
+  "by_category": {
+   "business": 5,
+   "management": 14,
+   "marketing": 2,
+   "sales": 3,
+   "legal": 10
+  },
+  "held": 1
+ },
+ {
+  "company": "Wolters Kluwer",
+  "ats_type": "workday",
+  "ats_slug": "3|wk|External",
+  "in_scope": 36,
+  "in_category": 33,
+  "by_category": {
+   "business": 1,
+   "management": 9,
+   "marketing": 2,
+   "sales": 18,
+   "arts_media": 3
+  },
+  "held": 2
+ },
+ {
+  "company": "Thermo Fisher",
+  "ats_type": "workday",
+  "ats_slug": "5|thermofisher|ThermoFisherCareers",
+  "in_scope": 43,
+  "in_category": 33,
+  "by_category": {
+   "business": 5,
+   "management": 6,
+   "sales": 7,
+   "science": 15
+  },
+  "held": 4
+ },
+ {
+  "company": "Natera",
+  "ats_type": "greenhouse",
+  "ats_slug": "natera",
+  "in_scope": 42,
+  "in_category": 32,
+  "by_category": {
+   "business": 3,
+   "management": 6,
+   "marketing": 1,
+   "sales": 2,
+   "science": 20
+  },
+  "held": 8,
+  "note": "its 'science' includes Clinical Laboratory Scientist (lab, healthcare-adjacent): the owner's call"
+ },
+ {
+  "company": "Instacart",
+  "ats_type": "greenhouse",
+  "ats_slug": "instacart",
+  "in_scope": 44,
+  "in_category": 31,
+  "by_category": {
+   "business": 3,
+   "management": 14,
+   "marketing": 2,
+   "sales": 5,
+   "legal": 3,
+   "arts_media": 4
+  },
+  "held": 4
+ },
+ {
+  "company": "Invesco",
+  "ats_type": "workday",
+  "ats_slug": "1|invesco|IVZ",
+  "in_scope": 35,
+  "in_category": 29,
+  "by_category": {
+   "business": 14,
+   "management": 12,
+   "marketing": 1,
+   "sales": 1,
+   "legal": 1
+  },
+  "held": 7
+ },
+ {
+  "company": "S&P Global",
+  "ats_type": "workday",
+  "ats_slug": "5|spgi|SPGI_Careers",
+  "in_scope": 49,
+  "in_category": 29,
+  "by_category": {
+   "business": 10,
+   "management": 8,
+   "marketing": 3,
+   "sales": 8
+  },
+  "held": 1
+ },
+ {
+  "company": "The New York Times",
+  "ats_type": "greenhouse",
+  "ats_slug": "thenewyorktimes",
+  "in_scope": 38,
+  "in_category": 29,
+  "by_category": {
+   "business": 9,
+   "management": 10,
+   "marketing": 6,
+   "arts_media": 4
+  },
+  "held": 2
+ },
+ {
+  "company": "BlackRock",
+  "ats_type": "workday",
+  "ats_slug": "1|blackrock|BlackRock_Professional",
+  "in_scope": 49,
+  "in_category": 27,
+  "by_category": {
+   "business": 5,
+   "management": 15,
+   "marketing": 2,
+   "sales": 3,
+   "legal": 1,
+   "arts_media": 1
+  },
+  "held": 2
+ },
+ {
+  "company": "Nike",
+  "ats_type": "workday",
+  "ats_slug": "1|nike|nke",
+  "in_scope": 38,
+  "in_category": 27,
+  "by_category": {
+   "business": 3,
+   "management": 8,
+   "legal": 1,
+   "arts_media": 12,
+   "science": 3
+  },
+  "held": 3
+ },
+ {
+  "company": "Reddit",
+  "ats_type": "greenhouse",
+  "ats_slug": "reddit",
+  "in_scope": 88,
+  "in_category": 27,
+  "by_category": {
+   "business": 5,
+   "management": 14,
+   "sales": 5,
+   "legal": 1,
+   "arts_media": 2
+  },
+  "held": 0
+ },
+ {
+  "company": "Flexport",
+  "ats_type": "greenhouse",
+  "ats_slug": "flexport",
+  "in_scope": 31,
+  "in_category": 27,
+  "by_category": {
+   "business": 2,
+   "management": 5,
+   "marketing": 3,
+   "sales": 16,
+   "arts_media": 1
+  },
+  "held": 7
+ },
+ {
+  "company": "Broadridge",
+  "ats_type": "workday",
+  "ats_slug": "5|broadridge|Careers",
+  "in_scope": 32,
+  "in_category": 25,
+  "by_category": {
+   "business": 7,
+   "management": 14,
+   "marketing": 1,
+   "sales": 3
+  },
+  "held": 4
+ },
+ {
+  "company": "Gap Inc.",
+  "ats_type": "workday",
+  "ats_slug": "1|gapinc|GAPINC",
+  "in_scope": 28,
+  "in_category": 25,
+  "by_category": {
+   "business": 3,
+   "management": 2,
+   "marketing": 2,
+   "arts_media": 18
+  },
+  "held": 0
+ },
+ {
+  "company": "Hims & Hers",
+  "ats_type": "ashby",
+  "ats_slug": "hims-and-hers",
+  "in_scope": 48,
+  "in_category": 25,
+  "by_category": {
+   "business": 7,
+   "management": 9,
+   "marketing": 4,
+   "legal": 1,
+   "arts_media": 2,
+   "science": 2
+  },
+  "held": 23
+ },
+ {
+  "company": "Twitch",
+  "ats_type": "greenhouse",
+  "ats_slug": "twitch",
+  "in_scope": 45,
+  "in_category": 25,
+  "by_category": {
+   "management": 20,
+   "sales": 2,
+   "arts_media": 3
+  },
+  "held": 3
+ },
+ {
+  "company": "Twilio",
+  "ats_type": "greenhouse",
+  "ats_slug": "twilio",
+  "in_scope": 37,
+  "in_category": 25,
+  "by_category": {
+   "business": 2,
+   "management": 10,
+   "marketing": 2,
+   "sales": 9,
+   "arts_media": 1,
+   "science": 1
+  },
+  "held": 7
+ },
+ {
+  "company": "Chime",
+  "ats_type": "greenhouse",
+  "ats_slug": "chime",
+  "in_scope": 54,
+  "in_category": 24,
+  "by_category": {
+   "business": 5,
+   "management": 9,
+   "marketing": 6,
+   "legal": 2,
+   "arts_media": 2
+  },
+  "held": 1
+ },
+ {
+  "company": "Gusto",
+  "ats_type": "greenhouse",
+  "ats_slug": "gusto",
+  "in_scope": 45,
+  "in_category": 24,
+  "by_category": {
+   "business": 5,
+   "management": 10,
+   "marketing": 3,
+   "sales": 4,
+   "legal": 1,
+   "arts_media": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "ZoomInfo",
+  "ats_type": "greenhouse",
+  "ats_slug": "zoominfo",
+  "in_scope": 41,
+  "in_category": 24,
+  "by_category": {
+   "business": 2,
+   "management": 12,
+   "sales": 9,
+   "legal": 1
+  },
+  "held": 2
+ },
+ {
+  "company": "SoFi",
+  "ats_type": "greenhouse",
+  "ats_slug": "sofi",
+  "in_scope": 38,
+  "in_category": 23,
+  "by_category": {
+   "business": 9,
+   "management": 5,
+   "marketing": 3,
+   "legal": 3,
+   "arts_media": 3
+  },
+  "held": 1
+ },
+ {
+  "company": "State Street",
+  "ats_type": "workday",
+  "ats_slug": "1|statestreet|Global",
+  "in_scope": 24,
+  "in_category": 22,
+  "by_category": {
+   "business": 6,
+   "management": 15,
+   "science": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "Citi",
+  "ats_type": "workday",
+  "ats_slug": "5|citi|2",
+  "in_scope": 40,
+  "in_category": 22,
+  "by_category": {
+   "business": 7,
+   "management": 13,
+   "sales": 2
+  },
+  "held": 1
+ },
+ {
+  "company": "Fifth Third",
+  "ats_type": "workday",
+  "ats_slug": "5|fifththird|53careers",
+  "in_scope": 22,
+  "in_category": 22,
+  "by_category": {
+   "business": 8,
+   "management": 1,
+   "sales": 13
+  },
+  "held": 2
+ },
+ {
+  "company": "Target",
+  "ats_type": "workday",
+  "ats_slug": "5|target|targetcareers",
+  "in_scope": 26,
+  "in_category": 22,
+  "by_category": {
+   "business": 4,
+   "management": 12,
+   "marketing": 1,
+   "sales": 1,
+   "arts_media": 4
+  },
+  "held": 5
+ },
+ {
+  "company": "Gong",
+  "ats_type": "greenhouse",
+  "ats_slug": "gongio",
+  "in_scope": 23,
+  "in_category": 22,
+  "by_category": {
+   "business": 3,
+   "management": 1,
+   "marketing": 3,
+   "sales": 14,
+   "legal": 1
+  },
+  "held": 2
+ },
+ {
+  "company": "FIS",
+  "ats_type": "workday",
+  "ats_slug": "5|fis|SearchJobs",
+  "in_scope": 42,
+  "in_category": 21,
+  "by_category": {
+   "business": 12,
+   "management": 4,
+   "sales": 2,
+   "legal": 3
+  },
+  "held": 3
+ },
+ {
+  "company": "PagerDuty",
+  "ats_type": "greenhouse",
+  "ats_slug": "pagerduty",
+  "in_scope": 25,
+  "in_category": 21,
+  "by_category": {
+   "business": 6,
+   "management": 6,
+   "sales": 8,
+   "arts_media": 1
+  },
+  "held": 4
+ },
+ {
+  "company": "Ameriprise",
+  "ats_type": "workday",
+  "ats_slug": "5|ameriprise|Ameriprise",
+  "in_scope": 27,
+  "in_category": 20,
+  "by_category": {
+   "business": 12,
+   "management": 7,
+   "sales": 1
+  },
+  "held": 3
+ },
+ {
+  "company": "Roku",
+  "ats_type": "greenhouse",
+  "ats_slug": "roku",
+  "in_scope": 40,
+  "in_category": 20,
+  "by_category": {
+   "management": 13,
+   "marketing": 1,
+   "sales": 1,
+   "legal": 4,
+   "arts_media": 1
+  },
+  "held": 2
+ },
+ {
+  "company": "Vanta",
+  "ats_type": "ashby",
+  "ats_slug": "vanta",
+  "in_scope": 35,
+  "in_category": 20,
+  "by_category": {
+   "management": 6,
+   "sales": 10,
+   "arts_media": 4
+  },
+  "held": 0
+ },
+ {
+  "company": "Carta",
+  "ats_type": "greenhouse",
+  "ats_slug": "carta",
+  "in_scope": 24,
+  "in_category": 19,
+  "by_category": {
+   "business": 3,
+   "management": 2,
+   "marketing": 4,
+   "sales": 7,
+   "legal": 3
+  },
+  "held": 1
+ },
+ {
+  "company": "Merck",
+  "ats_type": "workday",
+  "ats_slug": "5|msd|SearchJobs",
+  "in_scope": 26,
+  "in_category": 19,
+  "by_category": {
+   "business": 5,
+   "management": 1,
+   "science": 13
+  },
+  "held": 4
+ },
+ {
+  "company": "Asana",
+  "ats_type": "greenhouse",
+  "ats_slug": "asana",
+  "in_scope": 28,
+  "in_category": 19,
+  "by_category": {
+   "business": 4,
+   "management": 5,
+   "sales": 8,
+   "legal": 2
+  },
+  "held": 2
+ },
+ {
+  "company": "Johnson & Johnson",
+  "ats_type": "workday",
+  "ats_slug": "5|jj|JJ",
+  "in_scope": 21,
+  "in_category": 17,
+  "by_category": {
+   "business": 1,
+   "management": 10,
+   "marketing": 1,
+   "sales": 4,
+   "legal": 1
+  },
+  "held": 7
+ },
+ {
+  "company": "Uber Freight",
+  "ats_type": "greenhouse",
+  "ats_slug": "uberfreight",
+  "in_scope": 18,
+  "in_category": 17,
+  "by_category": {
+   "business": 7,
+   "management": 1,
+   "sales": 9
+  },
+  "held": 1
+ },
+ {
+  "company": "Avery Dennison",
+  "ats_type": "smartrecruiters",
+  "ats_slug": "AveryDennison",
+  "in_scope": 28,
+  "in_category": 17,
+  "by_category": {
+   "business": 6,
+   "management": 4,
+   "marketing": 1,
+   "sales": 4,
+   "legal": 2
+  },
+  "held": 6
+ },
+ {
+  "company": "Capco",
+  "ats_type": "greenhouse",
+  "ats_slug": "capco",
+  "in_scope": 26,
+  "in_category": 16,
+  "by_category": {
+   "business": 12,
+   "management": 4
+  },
+  "held": 1
+ },
+ {
+  "company": "Crunchyroll",
+  "ats_type": "greenhouse",
+  "ats_slug": "crunchyroll",
+  "in_scope": 26,
+  "in_category": 16,
+  "by_category": {
+   "business": 5,
+   "management": 8,
+   "marketing": 2,
+   "legal": 1
+  },
+  "held": 1
+ },
+ {
+  "company": "Disney",
+  "ats_type": "workday",
+  "ats_slug": "5|disney|disneycareer",
+  "in_scope": 47,
+  "in_category": 16,
+  "by_category": {
+   "business": 7,
+   "management": 4,
+   "marketing": 2,
+   "legal": 1,
+   "arts_media": 2
+  },
+  "held": 4
+ },
+ {
+  "company": "CS Disco",
+  "ats_type": "greenhouse",
+  "ats_slug": "disco",
+  "in_scope": 18,
+  "in_category": 16,
+  "by_category": {
+   "business": 1,
+   "management": 5,
+   "sales": 10
+  },
+  "held": 1
+ },
+ {
+  "company": "Xaira",
+  "ats_type": "greenhouse",
+  "ats_slug": "xairatherapeutics",
+  "in_scope": 20,
+  "in_category": 16,
+  "by_category": {
+   "business": 1,
+   "management": 3,
+   "sales": 1,
+   "science": 11
+  },
+  "held": 0
+ },
+ {
+  "company": "Point72",
+  "ats_type": "greenhouse",
+  "ats_slug": "point72",
+  "in_scope": 24,
+  "in_category": 15,
+  "by_category": {
+   "business": 13,
+   "legal": 1,
+   "science": 1
+  },
+  "held": 6
+ },
+ {
+  "company": "AstraZeneca",
+  "ats_type": "workday",
+  "ats_slug": "3|astrazeneca|Careers",
+  "in_scope": 25,
+  "in_category": 15,
+  "by_category": {
+   "management": 8,
+   "marketing": 2,
+   "sales": 1,
+   "science": 4
+  },
+  "held": 3
+ },
+ {
+  "company": "Mixpanel",
+  "ats_type": "greenhouse",
+  "ats_slug": "mixpanel",
+  "in_scope": 19,
+  "in_category": 15,
+  "by_category": {
+   "business": 4,
+   "management": 6,
+   "marketing": 2,
+   "sales": 3
+  },
+  "held": 6
+ },
+ {
+  "company": "IQVIA",
+  "ats_type": "workday",
+  "ats_slug": "1|iqvia|IQVIA",
+  "in_scope": 15,
+  "in_category": 14,
+  "by_category": {
+   "business": 5,
+   "management": 3,
+   "sales": 2,
+   "science": 4
+  },
+  "held": 3
+ },
+ {
+  "company": "PNC",
+  "ats_type": "workday",
+  "ats_slug": "5|pnc|External",
+  "in_scope": 16,
+  "in_category": 13,
+  "by_category": {
+   "business": 4,
+   "management": 1,
+   "sales": 7,
+   "arts_media": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "CME Group",
+  "ats_type": "workday",
+  "ats_slug": "1|cmegroup|cme_careers",
+  "in_scope": 19,
+  "in_category": 13,
+  "by_category": {
+   "business": 9,
+   "management": 4
+  },
+  "held": 2
+ },
+ {
+  "company": "Coalition",
+  "ats_type": "greenhouse",
+  "ats_slug": "coalition",
+  "in_scope": 32,
+  "in_category": 13,
+  "by_category": {
+   "business": 6,
+   "management": 4,
+   "sales": 2,
+   "legal": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "Epic Games",
+  "ats_type": "greenhouse",
+  "ats_slug": "epicgames",
+  "in_scope": 60,
+  "in_category": 13,
+  "by_category": {
+   "management": 9,
+   "arts_media": 4
+  },
+  "held": 2
+ },
+ {
+  "company": "Twist Bioscience",
+  "ats_type": "greenhouse",
+  "ats_slug": "twistbioscience",
+  "in_scope": 14,
+  "in_category": 13,
+  "by_category": {
+   "business": 2,
+   "management": 3,
+   "marketing": 1,
+   "sales": 3,
+   "science": 4
+  },
+  "held": 0
+ },
+ {
+  "company": "Equinox",
+  "ats_type": "smartrecruiters",
+  "ats_slug": "Equinox",
+  "in_scope": 14,
+  "in_category": 13,
+  "by_category": {
+   "business": 1,
+   "management": 3,
+   "marketing": 2,
+   "sales": 4,
+   "arts_media": 3
+  },
+  "held": 0,
+  "note": "fitness clubs: check that its 'sales' are not club membership-desk roles"
+ },
+ {
+  "company": "Hudson River Trading",
+  "ats_type": "greenhouse",
+  "ats_slug": "wehrtyou",
+  "in_scope": 25,
+  "in_category": 12,
+  "by_category": {
+   "business": 10,
+   "management": 2
+  },
+  "held": 6
+ },
+ {
+  "company": "JLL",
+  "ats_type": "workday",
+  "ats_slug": "1|jll|jllcareers",
+  "in_scope": 16,
+  "in_category": 12,
+  "by_category": {
+   "business": 2,
+   "management": 10
+  },
+  "held": 9
+ },
+ {
+  "company": "Riot Games",
+  "ats_type": "greenhouse",
+  "ats_slug": "riotgames",
+  "in_scope": 49,
+  "in_category": 12,
+  "by_category": {
+   "business": 2,
+   "management": 8,
+   "marketing": 1,
+   "arts_media": 1
+  },
+  "held": 1
+ },
+ {
+  "company": "Everlaw",
+  "ats_type": "greenhouse",
+  "ats_slug": "everlaw",
+  "in_scope": 14,
+  "in_category": 12,
+  "by_category": {
+   "business": 1,
+   "management": 2,
+   "marketing": 2,
+   "sales": 7
+  },
+  "held": 1
+ },
+ {
+  "company": "Addepar",
+  "ats_type": "greenhouse",
+  "ats_slug": "addepar1",
+  "in_scope": 24,
+  "in_category": 11,
+  "by_category": {
+   "business": 2,
+   "management": 5,
+   "marketing": 1,
+   "sales": 3
+  },
+  "held": 6
+ },
+ {
+  "company": "Betterment",
+  "ats_type": "greenhouse",
+  "ats_slug": "betterment",
+  "in_scope": 18,
+  "in_category": 11,
+  "by_category": {
+   "business": 3,
+   "management": 5,
+   "marketing": 1,
+   "sales": 1,
+   "arts_media": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "Travelers",
+  "ats_type": "workday",
+  "ats_slug": "5|travelers|External",
+  "in_scope": 12,
+  "in_category": 11,
+  "by_category": {
+   "sales": 4,
+   "legal": 7
+  },
+  "held": 1
+ },
+ {
+  "company": "Warner Music",
+  "ats_type": "workday",
+  "ats_slug": "1|wmg|WMGUS",
+  "in_scope": 12,
+  "in_category": 11,
+  "by_category": {
+   "business": 7,
+   "management": 2,
+   "marketing": 1,
+   "sales": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "Code and Theory",
+  "ats_type": "greenhouse",
+  "ats_slug": "codeandtheory",
+  "in_scope": 12,
+  "in_category": 11,
+  "by_category": {
+   "management": 4,
+   "sales": 4,
+   "arts_media": 3
+  },
+  "held": 6
+ },
+ {
+  "company": "Generate Biomedicines",
+  "ats_type": "greenhouse",
+  "ats_slug": "generatebiomedicines",
+  "in_scope": 12,
+  "in_category": 11,
+  "by_category": {
+   "management": 1,
+   "legal": 2,
+   "science": 8
+  },
+  "held": 1
+ },
+ {
+  "company": "Danaher",
+  "ats_type": "workday",
+  "ats_slug": "1|danaher|DanaherJobs",
+  "in_scope": 17,
+  "in_category": 11,
+  "by_category": {
+   "business": 2,
+   "management": 4,
+   "science": 5
+  },
+  "held": 11
+ },
+ {
+  "company": "Truist",
+  "ats_type": "workday",
+  "ats_slug": "1|truist|Careers",
+  "in_scope": 15,
+  "in_category": 10,
+  "by_category": {
+   "business": 8,
+   "arts_media": 2
+  },
+  "held": 0
+ },
+ {
+  "company": "Nasdaq",
+  "ats_type": "workday",
+  "ats_slug": "1|nasdaq|Global_External_Site",
+  "in_scope": 22,
+  "in_category": 10,
+  "by_category": {
+   "business": 5,
+   "management": 2,
+   "sales": 3
+  },
+  "held": 0
+ },
+ {
+  "company": "Kimberly-Clark",
+  "ats_type": "workday",
+  "ats_slug": "1|kimberlyclark|GLOBAL",
+  "in_scope": 24,
+  "in_category": 10,
+  "by_category": {
+   "business": 1,
+   "management": 3,
+   "marketing": 2,
+   "sales": 1,
+   "science": 3
+  },
+  "held": 1
+ },
+ {
+  "company": "Faire",
+  "ats_type": "greenhouse",
+  "ats_slug": "faire",
+  "in_scope": 28,
+  "in_category": 10,
+  "by_category": {
+   "management": 3,
+   "marketing": 5,
+   "sales": 1,
+   "legal": 1
+  },
+  "held": 2
+ },
+ {
+  "company": "Novartis",
+  "ats_type": "workday",
+  "ats_slug": "3|novartis|Novartis_Careers",
+  "in_scope": 12,
+  "in_category": 10,
+  "by_category": {
+   "management": 1,
+   "sales": 1,
+   "legal": 1,
+   "science": 7
+  },
+  "held": 0
+ },
+ {
+  "company": "GSK",
+  "ats_type": "workday",
+  "ats_slug": "5|gsk|GSKCareers",
+  "in_scope": 11,
+  "in_category": 10,
+  "by_category": {
+   "business": 1,
+   "management": 5,
+   "science": 4
+  },
+  "held": 0
+ },
+ {
+  "company": "Ethos",
+  "ats_type": "greenhouse",
+  "ats_slug": "ethoslife",
+  "in_scope": 13,
+  "in_category": 9,
+  "by_category": {
+   "business": 2,
+   "management": 3,
+   "sales": 2,
+   "arts_media": 2
+  },
+  "held": 1
+ },
+ {
+  "company": "Quince",
+  "ats_type": "greenhouse",
+  "ats_slug": "quince",
+  "in_scope": 20,
+  "in_category": 9,
+  "by_category": {
+   "business": 1,
+   "management": 3,
+   "marketing": 1,
+   "sales": 1,
+   "arts_media": 3
+  },
+  "held": 1
+ },
+ {
+  "company": "Eikon Therapeutics",
+  "ats_type": "greenhouse",
+  "ats_slug": "eikontherapeutics",
+  "in_scope": 11,
+  "in_category": 9,
+  "by_category": {
+   "management": 3,
+   "science": 6
+  },
+  "held": 0
+ },
+ {
+  "company": "Watershed",
+  "ats_type": "ashby",
+  "ats_slug": "watershed",
+  "in_scope": 13,
+  "in_category": 9,
+  "by_category": {
+   "management": 3,
+   "sales": 5,
+   "arts_media": 1
+  },
+  "held": 2
+ },
+ {
+  "company": "Intercom",
+  "ats_type": "greenhouse",
+  "ats_slug": "intercom",
+  "in_scope": 12,
+  "in_category": 9,
+  "by_category": {
+   "business": 4,
+   "marketing": 1,
+   "sales": 4
+  },
+  "held": 8
+ },
+ {
+  "company": "Squarespace",
+  "ats_type": "greenhouse",
+  "ats_slug": "squarespace",
+  "in_scope": 13,
+  "in_category": 8,
+  "by_category": {
+   "business": 2,
+   "management": 5,
+   "marketing": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "Warner Bros. Discovery",
+  "ats_type": "workday",
+  "ats_slug": "5|warnerbros|global",
+  "in_scope": 34,
+  "in_category": 8,
+  "by_category": {
+   "business": 2,
+   "management": 1,
+   "arts_media": 5
+  },
+  "held": 6
+ },
+ {
+  "company": "Beam Therapeutics",
+  "ats_type": "greenhouse",
+  "ats_slug": "beamtherapeutics",
+  "in_scope": 10,
+  "in_category": 8,
+  "by_category": {
+   "business": 4,
+   "management": 3,
+   "legal": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "6sense",
+  "ats_type": "greenhouse",
+  "ats_slug": "6sense",
+  "in_scope": 14,
+  "in_category": 8,
+  "by_category": {
+   "management": 2,
+   "sales": 5,
+   "arts_media": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "Attentive",
+  "ats_type": "greenhouse",
+  "ats_slug": "attentive",
+  "in_scope": 19,
+  "in_category": 8,
+  "by_category": {
+   "business": 1,
+   "management": 2,
+   "sales": 4,
+   "legal": 1
+  },
+  "held": 1
+ },
+ {
+  "company": "Rent the Runway",
+  "ats_type": "greenhouse",
+  "ats_slug": "renttherunway",
+  "in_scope": 9,
+  "in_category": 7,
+  "by_category": {
+   "business": 2,
+   "management": 3,
+   "marketing": 2
+  },
+  "held": 0
+ },
+ {
+  "company": "Discord",
+  "ats_type": "greenhouse",
+  "ats_slug": "discord",
+  "in_scope": 31,
+  "in_category": 7,
+  "by_category": {
+   "business": 1,
+   "management": 3,
+   "legal": 1,
+   "arts_media": 2
+  },
+  "held": 0
+ },
+ {
+  "company": "Substack",
+  "ats_type": "ashby",
+  "ats_slug": "substack",
+  "in_scope": 11,
+  "in_category": 7,
+  "by_category": {
+   "business": 2,
+   "management": 2,
+   "sales": 1,
+   "arts_media": 2
+  },
+  "held": 0
+ },
+ {
+  "company": "Movers+Shakers",
+  "ats_type": "greenhouse",
+  "ats_slug": "moversshakers",
+  "in_scope": 7,
+  "in_category": 7,
+  "by_category": {
+   "business": 1,
+   "management": 1,
+   "marketing": 4,
+   "sales": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "Isomorphic Labs",
+  "ats_type": "greenhouse",
+  "ats_slug": "isomorphiclabs",
+  "in_scope": 8,
+  "in_category": 7,
+  "by_category": {
+   "business": 1,
+   "legal": 2,
+   "science": 4
+  },
+  "held": 0
+ },
+ {
+  "company": "Pfizer",
+  "ats_type": "workday",
+  "ats_slug": "1|pfizer|PfizerCareers",
+  "in_scope": 16,
+  "in_category": 7,
+  "by_category": {
+   "business": 2,
+   "science": 5
+  },
+  "held": 1
+ },
+ {
+  "company": "Outreach",
+  "ats_type": "lever",
+  "ats_slug": "outreach",
+  "in_scope": 7,
+  "in_category": 7,
+  "by_category": {
+   "business": 2,
+   "management": 2,
+   "sales": 3
+  },
+  "held": 0
+ },
+ {
+  "company": "Miro",
+  "ats_type": "greenhouse",
+  "ats_slug": "realtimeboardglobal",
+  "in_scope": 7,
+  "in_category": 7,
+  "by_category": {
+   "marketing": 1,
+   "sales": 6
+  },
+  "held": 0
+ },
+ {
+  "company": "Capital One",
+  "ats_type": "workday",
+  "ats_slug": "12|capitalone|Capital_One",
+  "in_scope": 51,
+  "in_category": 6,
+  "by_category": {
+   "business": 2,
+   "management": 1,
+   "sales": 2,
+   "arts_media": 1
+  },
+  "held": 1,
+  "note": "only 27% of the board is US and most in-scope roles are computing; 6 in-category"
+ },
+ {
+  "company": "Marsh McLennan",
+  "ats_type": "workday",
+  "ats_slug": "1|mmc|MMC",
+  "in_scope": 9,
+  "in_category": 6,
+  "by_category": {
+   "business": 5,
+   "management": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "Vox Media",
+  "ats_type": "greenhouse",
+  "ats_slug": "voxmedia",
+  "in_scope": 7,
+  "in_category": 6,
+  "by_category": {
+   "business": 3,
+   "marketing": 1,
+   "arts_media": 2
+  },
+  "held": 1
+ },
+ {
+  "company": "Huge",
+  "ats_type": "greenhouse",
+  "ats_slug": "hugeinc",
+  "in_scope": 6,
+  "in_category": 6,
+  "by_category": {
+   "business": 1,
+   "management": 2,
+   "arts_media": 3
+  },
+  "held": 1
+ },
+ {
+  "company": "Axiom",
+  "ats_type": "greenhouse",
+  "ats_slug": "axiom",
+  "in_scope": 6,
+  "in_category": 6,
+  "by_category": {
+   "management": 1,
+   "sales": 5
+  },
+  "held": 0
+ },
+ {
+  "company": "Freenome",
+  "ats_type": "greenhouse",
+  "ats_slug": "freenome",
+  "in_scope": 9,
+  "in_category": 6,
+  "by_category": {
+   "management": 1,
+   "science": 5
+  },
+  "held": 1,
+  "note": "science = Clinical Laboratory Scientist I/II: healthcare-adjacent"
+ },
+ {
+  "company": "Asimov",
+  "ats_type": "ashby",
+  "ats_slug": "asimov",
+  "in_scope": 6,
+  "in_category": 6,
+  "by_category": {
+   "science": 6
+  },
+  "held": 0
+ },
+ {
+  "company": "Zoetis",
+  "ats_type": "workday",
+  "ats_slug": "5|zoetis|zoetis",
+  "in_scope": 8,
+  "in_category": 6,
+  "by_category": {
+   "sales": 5,
+   "science": 1
+  },
+  "held": 4
+ },
+ {
+  "company": "Schonfeld",
+  "ats_type": "greenhouse",
+  "ats_slug": "schonfeld",
+  "in_scope": 12,
+  "in_category": 5,
+  "by_category": {
+   "business": 4,
+   "legal": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "IMC Trading",
+  "ats_type": "greenhouse",
+  "ats_slug": "imc",
+  "in_scope": 14,
+  "in_category": 5,
+  "by_category": {
+   "business": 3,
+   "legal": 2
+  },
+  "held": 5
+ },
+ {
+  "company": "Harry's",
+  "ats_type": "greenhouse",
+  "ats_slug": "harrys",
+  "in_scope": 6,
+  "in_category": 5,
+  "by_category": {
+   "business": 2,
+   "management": 1,
+   "marketing": 1,
+   "legal": 1
+  },
+  "held": 0
+ },
+ {
+  "company": "Axios",
+  "ats_type": "greenhouse",
+  "ats_slug": "axios",
+  "in_scope": 5,
+  "in_category": 5,
+  "by_category": {
+   "sales": 5
+  },
+  "held": 0
+ },
+ {
+  "company": "Ogilvy",
+  "ats_type": "greenhouse",
+  "ats_slug": "ogilvy",
+  "in_scope": 5,
+  "in_category": 5,
+  "by_category": {
+   "marketing": 1,
+   "sales": 1,
+   "arts_media": 3
+  },
+  "held": 0
+ },
+ {
+  "company": "Litify",
+  "ats_type": "greenhouse",
+  "ats_slug": "litify",
+  "in_scope": 6,
+  "in_category": 5,
+  "by_category": {
+   "business": 1,
+   "management": 1,
+   "marketing": 1,
+   "sales": 2
+  },
+  "held": 5
+ },
+ {
+  "company": "Altos Labs",
+  "ats_type": "greenhouse",
+  "ats_slug": "altoslabs",
+  "in_scope": 5,
+  "in_category": 5,
+  "by_category": {
+   "legal": 2,
+   "science": 3
+  },
+  "held": 1
+ },
+ {
+  "company": "Labcorp",
+  "ats_type": "workday",
+  "ats_slug": "1|labcorp|External",
+  "in_scope": 5,
+  "in_category": 5,
+  "by_category": {
+   "management": 1,
+   "science": 4
+  },
+  "held": 1,
+  "note": "mostly clinical lab scientists (toxicology, histology): healthcare-adjacent science"
+ },
+ {
+  "company": "FourKites",
+  "ats_type": "greenhouse",
+  "ats_slug": "fourkites",
+  "in_scope": 6,
+  "in_category": 5,
+  "by_category": {
+   "management": 1,
+   "marketing": 2,
+   "sales": 2
+  },
+  "held": 0
+ },
+ {
+  "company": "Dropbox",
+  "ats_type": "greenhouse",
+  "ats_slug": "dropbox",
+  "in_scope": 9,
+  "in_category": 5,
+  "by_category": {
+   "marketing": 2,
+   "sales": 3
+  },
+  "held": 2
+ }
+]

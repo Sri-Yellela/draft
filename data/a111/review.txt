@@ -1,0 +1,483 @@
+D80 review · 149 approved · 477 probed · admit ≥ 1 in-scope ≤ 120d
+   company                       board                           recent  open  ≤30d  ≤120d  median  US    reason
+✓  ServiceNow                    smartrecruiters:servicenow      185     191   54%   97%    26d     32%   ok
+✓  Braze                         greenhouse:braze                181     196   30%   92%    58d     74%   ok
+✓  Toast                         greenhouse:toast                179     232   36%   77%    52d     78%   ok
+✓  Samsara                       greenhouse:samsara              158     205   40%   77%    38d     81%   ok
+✓  Harvey                        ashby:harvey                    145     190   35%   76%    53d     66%   ok
+✓  Brex                          greenhouse:brex                 144     216   16%   67%    79d     94%   ok
+✓  Booz Allen                    workday:1|bah|bah_jobs          143     143   100%  100%   2d      80%   ok
+✓  Databricks                    greenhouse:databricks           132     322   14%   41%    178d    54%   ok
+✓  Fidelity Investments          workday:1|fmr|fidelitycareers   129     129   100%  100%   8d      75%   ok
+✓  DoorDash                      greenhouse:doordashusa          125     162   36%   77%    47d     100%  ok
+✓  Amgen                         workday:1|amgen|careers         123     123   100%  100%   1d      63%   ok
+✓  Fiserv                        workday:5|fiserv|ext            123     123   100%  100%   5d      65%   ok
+✓  Cloudflare                    greenhouse:cloudflare           123     154   31%   80%    45d     54%   ok
+✓  Affirm                        greenhouse:affirm               116     128   46%   91%    32d     68%   ok
+✓  Coinbase                      greenhouse:coinbase             103     125   32%   82%    54d     70%   ok
+✓  Okta                          greenhouse:okta                 99      120   40%   83%    37d     45%   ok
+✓  Elastic                       greenhouse:elastic              95      107   36%   89%    41d     37%   ok
+✓  Power Digital                 greenhouse:powerdigitalmarketi  93      135   16%   69%    83d     70%   ok
+✓  Hearst                        greenhouse:hearst               90      90    100%  100%   6d      95%   ok
+✓  Ramp                          ashby:ramp                      90      129   26%   70%    59d     88%   ok
+✓  Robinhood                     greenhouse:robinhood            88      106   39%   83%    43d     90%   ok
+✓  Reddit                        greenhouse:reddit               88      126   26%   70%    62d     88%   ok
+✓  Datadog                       greenhouse:datadog              86      144   29%   60%    73d     53%   ok
+✓  Pinterest                     greenhouse:pinterest            86      104   45%   83%    31d     74%   ok
+✓  Mastercard                    workday:1|mastercard|corporate  86      86    100%  100%   4d      42%   ok
+✓  Zscaler                       greenhouse:zscaler              84      97    40%   87%    38d     43%   ok
+✓  Guidehouse                    workday:1|guidehouse|external   80      80    100%  100%   10d     53%   ok
+✓  GitLab                        greenhouse:gitlab               79      84    46%   94%    33d     50%   ok
+✓  M&T Bank                      workday:5|mtb|mtb               73      73    100%  100%   8d      95%   ok
+✓  T. Rowe Price                 workday:5|troweprice|trowepric  70      70    100%  100%   29d     77%   ok
+✓  Klaviyo                       greenhouse:klaviyo              70      92    36%   76%    48d     83%   ok
+✓  Oscar Health                  greenhouse:oscar                65      88    34%   74%    46d     100%  ok
+✓  MongoDB                       greenhouse:mongodb              65      92    33%   71%    60d     34%   ok
+✓  Epic Games                    greenhouse:epicgames            60      86    26%   70%    47d     86%   ok
+✓  Lyft                          greenhouse:lyft                 59      65    37%   91%    44d     53%   ok
+✓  C.H. Robinson                 workday:5|chrobinson|chrobinso  55      55    100%  100%   8d      47%   ok
+✓  Northern Trust                workday:1|ntrs|northerntrust    55      55    100%  100%   11d     44%   ok
+✓  Fox                           workday:1|fox|domestic          54      54    100%  100%   18d     93%   ok
+✓  Allstate                      workday:5|allstate|allstate_ca  54      54    100%  100%   15d     45%   ok
+✓  Chime                         greenhouse:chime                54      61    41%   89%    41d     100%  ok
+✓  Kraft Heinz                   workday:1|heinz|kraftheinz_car  51      51    100%  100%   19d     42%   ok
+✓  Motive                        greenhouse:gomotive             51      61    38%   84%    51d     56%   ok
+✓  Capital One                   workday:12|capitalone|capital_  51      51    100%  100%   3d      27%   ok
+✓  Gartner                       workday:5|gartner|ext           50      50    100%  100%   9d      23%   ok
+✓  S&P Global                    workday:5|spgi|spgi_careers     49      49    100%  100%   5d      31%   ok
+✓  BlackRock                     workday:1|blackrock|blackrock_  49      49    100%  100%   22d     45%   ok
+✓  Riot Games                    greenhouse:riotgames            49      63    29%   78%    47d     43%   ok
+✓  Hims & Hers                   ashby:hims-and-hers             48      51    39%   94%    38d     88%   ok
+✓  Gilead                        workday:1|gilead|gileadcareers  47      47    100%  100%   19d     58%   ok
+✓  Disney                        workday:5|disney|disneycareer   47      47    100%  100%   22d     28%   ok
+✓  Twitch                        greenhouse:twitch               45      46    41%   98%    37d     95%   ok
+✓  Gusto                         greenhouse:gusto                45      65    26%   69%    53d     100%  ok
+✓  Instacart                     greenhouse:instacart            44      54    43%   81%    37d     89%   ok
+✓  Thermo Fisher                 workday:5|thermofisher|thermof  43      43    100%  100%   2d      36%   ok
+✓  Natera                        greenhouse:natera               42      52    31%   81%    45d     100%  ok
+✓  FIS                           workday:5|fis|searchjobs        42      42    100%  100%   5d      26%   ok
+✓  The Hartford                  workday:5|thehartford|careers_  41      41    100%  100%   29d     32%   ok
+✓  ZoomInfo                      greenhouse:zoominfo             41      59    32%   69%    73d     75%   ok
+✓  U.S. Bank                     workday:1|usbank|us_bank_caree  40      40    100%  100%   2d      68%   ok
+✓  Global Payments               workday:1|tsys|tsys             40      40    100%  100%   4d      21%   ok
+✓  Citi                          workday:5|citi|2                40      40    100%  100%   1d      35%   ok
+✓  Roku                          greenhouse:roku                 40      51    43%   78%    40d     68%   ok
+✓  The New York Times            greenhouse:thenewyorktimes      38      45    47%   84%    34d     96%   ok
+✓  Nike                          workday:1|nike|nke              38      38    100%  100%   8d      25%   ok
+✓  SoFi                          greenhouse:sofi                 38      40    58%   95%    19d     95%   ok
+✓  Regions                       workday:5|regions|regions_care  37      37    100%  100%   5d      83%   ok
+✓  Twilio                        greenhouse:twilio               37      40    48%   93%    33d     44%   ok
+✓  Wolters Kluwer                workday:3|wk|external           36      36    100%  100%   18d     20%   ok
+✓  Invesco                       workday:1|invesco|ivz           35      35    100%  100%   25d     35%   ok
+✓  Vanta                         ashby:vanta                     35      40    30%   88%    44d     57%   ok
+✓  Warner Bros. Discovery        workday:5|warnerbros|global     34      34    100%  100%   10d     23%   ok
+✓  Broadridge                    workday:5|broadridge|careers    32      32    100%  100%   26d     41%   ok
+✓  Coalition                     greenhouse:coalition            32      32    50%   100%   33d     80%   ok
+✓  Flexport                      greenhouse:flexport             31      46    20%   67%    100d    43%   ok
+✓  Discord                       greenhouse:discord              31      37    11%   84%    59d     98%   ok
+✗  VF Corp                       workday:5|vfc|vfc_careers       29      29    100%  100%   4d      55%   not_approved
+✓  Gap Inc.                      workday:1|gapinc|gapinc         28      28    100%  100%   29d     28%   ok
+✓  Asana                         greenhouse:asana                28      34    44%   82%    37d     45%   ok
+✓  Avery Dennison                smartrecruiters:averydennison   28      28    71%   100%   21d     28%   ok
+✓  Faire                         greenhouse:faire                28      40    13%   70%    51d     87%   ok
+✓  Ameriprise                    workday:5|ameriprise|ameripris  27      27    100%  100%   10d     56%   ok
+✓  Target                        workday:5|target|targetcareers  26      26    100%  100%   1d      96%   ok
+✓  Merck                         workday:5|msd|searchjobs        26      26    100%  100%   2d      22%   ok
+✓  Capco                         greenhouse:capco                26      26    38%   100%   41d     5%    ok
+✓  Crunchyroll                   greenhouse:crunchyroll          26      28    36%   93%    38d     57%   ok
+✓  PagerDuty                     greenhouse:pagerduty            25      29    34%   86%    39d     87%   ok
+✓  AstraZeneca                   workday:3|astrazeneca|careers   25      25    100%  100%   3d      31%   ok
+✓  Hudson River Trading          greenhouse:wehrtyou             25      45    13%   56%    111d    79%   ok
+✓  State Street                  workday:1|statestreet|global    24      24    100%  100%   3d      27%   ok
+✓  Carta                         greenhouse:carta                24      28    39%   86%    46d     57%   ok
+✓  Point72                       greenhouse:point72              24      68    16%   35%    359d    53%   ok
+✓  Addepar                       greenhouse:addepar1             24      33    24%   73%    54d     40%   ok
+✓  Kimberly-Clark                workday:1|kimberlyclark|global  24      24    100%  100%   22d     45%   ok
+✓  Gong                          greenhouse:gongio               23      39    26%   59%    51d     62%   ok
+✓  Fifth Third                   workday:5|fifththird|53careers  22      22    100%  100%   2d      82%   ok
+✓  Nasdaq                        workday:1|nasdaq|global_extern  22      22    100%  100%   29d     18%   ok
+✗  Jump Trading                  greenhouse:jumptrading          22      25    8%    88%    116d    32%   not_approved
+✓  Johnson & Johnson             workday:5|jj|jj                 21      21    100%  100%   2d      22%   ok
+✓  Xaira                         greenhouse:xairatherapeutics    20      27    26%   74%    66d     100%  ok
+✓  Quince                        greenhouse:quince               20      34    6%    59%    104d    54%   ok
+✓  Mixpanel                      greenhouse:mixpanel             19      20    40%   95%    34d     60%   ok
+✓  CME Group                     workday:1|cmegroup|cme_careers  19      19    100%  100%   19d     56%   ok
+✓  Attentive                     greenhouse:attentive            19      26    35%   73%    44d     94%   ok
+✓  Uber Freight                  greenhouse:uberfreight          18      19    53%   95%    27d     68%   ok
+✓  CS Disco                      greenhouse:disco                18      19    47%   95%    31d     74%   ok
+✓  Betterment                    greenhouse:betterment           18      19    26%   95%    39d     100%  ok
+✓  Danaher                       workday:1|danaher|danaherjobs   17      17    100%  100%   16d     31%   ok
+✓  PNC                           workday:5|pnc|external          16      16    100%  100%   4d      25%   ok
+✓  JLL                           workday:1|jll|jllcareers        16      16    100%  100%   1d      26%   ok
+✓  Pfizer                        workday:1|pfizer|pfizercareers  16      16    100%  100%   8d      21%   ok
+✓  IQVIA                         workday:1|iqvia|iqvia           15      15    100%  100%   2d      15%   ok
+✓  Truist                        workday:1|truist|careers        15      15    100%  100%   3d      70%   ok
+✓  Twist Bioscience              greenhouse:twistbioscience      14      16    56%   88%    30d     84%   ok
+✓  Equinox                       smartrecruiters:equinox         14      14    86%   100%   18d     96%   ok
+✓  Everlaw                       greenhouse:everlaw              14      30    17%   47%    124d    100%  ok
+✓  6sense                        greenhouse:6sense               14      17    59%   82%    18d     71%   ok
+✓  IMC Trading                   greenhouse:imc                  14      31    10%   45%    123d    37%   ok
+✓  Ethos                         greenhouse:ethoslife            13      18    28%   72%    88d     43%   ok
+✓  Watershed                     ashby:watershed                 13      14    43%   93%    48d     56%   ok
+✓  Squarespace                   greenhouse:squarespace          13      15    13%   87%    47d     78%   ok
+✓  Travelers                     workday:5|travelers|external    12      12    100%  100%   5d      12%   ok
+✓  Warner Music                  workday:1|wmg|wmgus             12      12    100%  100%   29d     88%   ok
+✓  Code and Theory               greenhouse:codeandtheory        12      16    13%   75%    88d     86%   ok
+✓  Generate Biomedicines         greenhouse:generatebiomedicine  12      12    58%   100%   17d     100%  ok
+✓  Novartis                      workday:3|novartis|novartis_ca  12      12    100%  100%   5d      9%    ok
+✓  Intercom                      greenhouse:intercom             12      19    32%   63%    66d     32%   ok
+✓  Schonfeld                     greenhouse:schonfeld            12      20    20%   60%    65d     53%   ok
+✓  GSK                           workday:5|gsk|gskcareers        11      11    100%  100%   1d      11%   ok
+✓  Eikon Therapeutics            greenhouse:eikontherapeutics    11      12    33%   92%    66d     100%  ok
+✓  Substack                      ashby:substack                  11      11    45%   100%   31d     94%   ok
+✗  Peloton                       greenhouse:peloton              11      15    27%   73%    53d     69%   not_approved
+✓  Beam Therapeutics             greenhouse:beamtherapeutics     10      11    27%   91%    37d     93%   ok
+✓  Rent the Runway               greenhouse:renttherunway        9       9     22%   100%   61d     96%   ok
+✓  Marsh McLennan                workday:1|mmc|mmc               9       9     100%  100%   9d      6%    ok
+✓  Freenome                      greenhouse:freenome             9       10    70%   90%    20d     62%   ok
+✓  Dropbox                       greenhouse:dropbox              9       9     78%   100%   20d     58%   ok
+✓  Isomorphic Labs               greenhouse:isomorphiclabs       8       8     25%   100%   65d     44%   ok
+✓  Zoetis                        workday:5|zoetis|zoetis         8       8     100%  100%   4d      23%   ok
+✗  Akuna Capital                 greenhouse:akunacapital         8       16    13%   50%    138d    72%   not_approved
+✓  Movers+Shakers                greenhouse:moversshakers        7       10    10%   70%    53d     100%  ok
+✓  Outreach                      lever:outreach                  7       10    10%   70%    95d     63%   ok
+✓  Miro                          greenhouse:realtimeboardglobal  7       7     14%   100%   75d     47%   ok
+✓  Vox Media                     greenhouse:voxmedia             7       7     57%   100%   24d     100%  ok
+✗  project44                     greenhouse:project44            7       7     14%   100%   74d     31%   not_approved
+✗  Calendly                      greenhouse:calendly             7       7     43%   100%   34d     100%  not_approved
+✓  Huge                          greenhouse:hugeinc              6       6     67%   100%   30d     48%   ok
+✓  Axiom                         greenhouse:axiom                6       6     50%   100%   107d    69%   ok
+✓  Asimov                        ashby:asimov                    6       7     57%   86%    26d     100%  ok
+✓  Harry's                       greenhouse:harrys               6       6     67%   100%   26d     100%  ok
+✓  Litify                        greenhouse:litify               6       6     17%   100%   44d     100%  ok
+✓  FourKites                     greenhouse:fourkites            6       7     57%   86%    17d     53%   ok
+✗  Ginkgo Bioworks               greenhouse:ginkgobioworks       6       11    0%    55%    103d    100%  not_approved
+✗  Lattice                       greenhouse:lattice              6       6     67%   100%   26d     88%   not_approved
+✓  Axios                         greenhouse:axios                5       5     20%   100%   67d     62%   ok
+✓  Ogilvy                        greenhouse:ogilvy               5       7     0%    71%    71d     17%   ok
+✓  Altos Labs                    greenhouse:altoslabs            5       7     43%   71%    53d     83%   ok
+✓  Labcorp                       workday:1|labcorp|external      5       5     100%  100%   2d      25%   ok
+✗  Bridgewater                   greenhouse:bridgewater89        5       5     80%   100%   23d     95%   not_approved
+✗  Mondelez                      workday:3|mdlz|external         5       5     100%  100%   29d     20%   not_approved
+✗  Brunswick Group               greenhouse:brunswickgroup       5       7     29%   71%    41d     49%   not_approved
+✗  Clearview Healthcare Partner  greenhouse:clearviewhealthcare  4       6     17%   67%    111d    52%   not_approved
+✗  Stitch Fix                    greenhouse:stitchfix            4       5     40%   80%    48d     100%  not_approved
+✗  Pivot Bio                     greenhouse:pivotbio             4       4     25%   100%   39d     100%  not_approved
+✗  Calico                        greenhouse:calicolabs           4       10    20%   40%    170d    100%  not_approved
+✗  Recursion                     greenhouse:recursionpharmaceut  4       4     75%   100%   26d     100%  not_approved
+✗  Sweetgreen                    greenhouse:sweetgreen           3       4     0%    75%    80d     100%  not_approved
+✗  Bombas                        greenhouse:bombas               3       3     0%    100%   52d     100%  not_approved
+✗  Lyell                         greenhouse:lyellimmunopharma    3       3     0%    100%   67d     100%  not_approved
+✗  Relay Therapeutics            greenhouse:relaytherapeutics    3       3     67%   100%   25d     100%  not_approved
+✗  Regeneron                     workday:1|regeneron|careers     3       3     100%  100%   8d      4%    not_approved
+✗  HubSpot                       greenhouse:hubspotjobs          3       9     22%   33%    125d    13%   not_approved
+✗  PVH                           workday:1|pvh|pvh_careers       2       2     100%  100%   4d      40%   not_approved
+✗  Semafor                       greenhouse:semafor              2       3     0%    67%    97d     84%   not_approved
+✗  R/GA                          greenhouse:rga                  2       2     50%   100%   38d     33%   not_approved
+✗  VaynerMedia                   greenhouse:vaynermedia          2       4     25%   50%    136d    42%   not_approved
+✗  Motive                        greenhouse:motive               2       4     25%   50%    158d    100%  not_approved
+✗  Medium                        greenhouse:medium               2       2     50%   100%   40d     100%  not_approved
+✗  Shell                         workday:3|shell|shellcareers    2       2     100%  100%   3d      11%   not_approved
+✗  General Atlantic              greenhouse:generalatlantic      1       1     100%  100%   9d      36%   not_approved
+✗  Unum                          workday:1|unum|external         1       1     100%  100%   9d      26%   not_approved
+✗  Glossier                      greenhouse:glossier             1       2     0%    50%    199d    90%   not_approved
+✗  Mejuri                        greenhouse:mejuri               1       1     0%    100%   31d     70%   not_approved
+✗  A24                           greenhouse:a24                  1       1     0%    100%   41d     43%   not_approved
+✗  Rocket Lawyer                 greenhouse:rocketlawyer         1       3     0%    33%    165d    100%  not_approved
+✗  Resilience                    greenhouse:resilience           1       1     0%    100%   54d     67%   not_approved
+✗  Dyno Therapeutics             greenhouse:dynotherapeutics     1       1     0%    100%   75d     100%  not_approved
+✗  Synchrony                     workday:5|synchronyfinancial|c  0       0     —     —      —       13%   not_approved
+✗  Raymond James                 workday:1|raymondjames|raymond  0       0     —     —      —       0%    not_approved
+✗  Ethos                         greenhouse:ethos                0       0     —     —      —       0%    not_approved
+✗  Nationwide                    workday:1|nationwide|nationwid  0       0     —     —      —       0%    not_approved
+✗  PwC                           workday:3|pwc|global_experienc  0       0     —     —      —       0%    not_approved
+✗  Accenture                     workday:103|accenture|accentur  0       0     —     —      —       0%    not_approved
+✗  McDonald's                    smartrecruiters:mcdonaldscorpo  0       0     —     —      —       0%    not_approved
+✗  Parachute                     greenhouse:parachutehome        0       0     —     —      —       100%  not_approved
+✗  Liquid Death                  greenhouse:liquiddeath          0       0     —     —      —       100%  not_approved
+✗  Olipop                        greenhouse:olipop               0       0     —     —      —       8%    not_approved
+✗  Business Insider              greenhouse:insider              0       0     —     —      —       83%   not_approved
+✗  Cameo                         greenhouse:cameo                0       1     0%    0%     150d    100%  not_approved
+✗  Weber Shandwick               greenhouse:webershandwick       0       0     —     —      —       0%    not_approved
+✗  Thomson Reuters               workday:5|thomsonreuters|exter  0       0     —     —      —       0%    not_approved
+✗  Inceptive                     greenhouse:inceptive            0       0     —     —      —       88%   not_approved
+✗  Abcellera                     greenhouse:abcellera            0       0     —     —      —       8%    not_approved
+✗  Moderna                       workday:1|modernatx|m_tx        0       0     —     —      —       0%    not_approved
+✗  Airtable                      greenhouse:airtable             0       4     0%    0%     257d    100%  not_approved
+✗  Wells Fargo                   workday:1|wellsfargo|wellsfarg  0       0     —     —      —       —     not_approved
+✗  BNY                           workday:1|bnymellon|bny_career  0       0     —     —      —       —     not_approved
+✗  BNY                           workday:5|bnymellon|bny_career  0       0     —     —      —       —     not_approved
+✗  Charles Schwab                workday:1|schwab|external       0       0     —     —      —       —     not_approved
+✗  Ally                          workday:5|ally|ally_careers     0       0     —     —      —       —     not_approved
+✗  Citizens                      workday:5|citizensbank|citizen  0       0     —     —      —       —     not_approved
+✗  KeyBank                       workday:1|keybank|external_car  0       0     —     —      —       —     not_approved
+✗  Huntington                    workday:5|huntington|hnbcareer  0       0     —     —      —       —     not_approved
+✗  Franklin Templeton            workday:5|franklintempleton|pr  0       0     —     —      —       —     not_approved
+✗  Principal Financial           workday:5|principal|principal   0       0     —     —      —       —     not_approved
+✗  Voya                          workday:1|voya|voyajobs         0       0     —     —      —       —     not_approved
+✗  Equitable                     workday:5|equitable|external    0       0     —     —      —       —     not_approved
+✗  Moody's                       workday:5|moodys|moodys         0       0     —     —      —       —     not_approved
+✗  MSCI                          workday:1|msci|external         0       0     —     —      —       —     not_approved
+✗  Intercontinental Exchange     workday:1|ice|ice               0       0     —     —      —       —     not_approved
+✗  Discover                      workday:5|discover|discover     0       0     —     —      —       —     not_approved
+✗  Visa                          smartrecruiters:visa            0       0     —     —      —       —     not_approved
+✗  Schonfeld                     greenhouse:schonfeldstrategica  0       0     —     —      —       —     not_approved
+✗  Arcesium                      greenhouse:arcesium             0       0     —     —      —       —     not_approved
+✗  Addepar                       greenhouse:addepar              0       0     —     —      —       —     not_approved
+✗  Marqeta                       greenhouse:marqeta              0       0     —     —      —       —     not_approved
+✗  Wealthsimple                  greenhouse:wealthsimple         0       0     —     —      —       —     not_approved
+✗  Bilt Rewards                  greenhouse:biltrewards          0       0     —     —      —       —     not_approved
+✗  Blackstone                    greenhouse:blackstone           0       0     —     —      —       —     not_approved
+✗  Apollo                        greenhouse:apollo               0       0     —     —      —       —     not_approved
+✗  Bridgewater                   greenhouse:bridgewater          0       0     —     —      —       —     not_approved
+✗  Two Sigma                     greenhouse:twosigma             0       0     —     —      —       —     not_approved
+✗  Tradeweb                      greenhouse:tradeweb             0       0     —     —      —       —     not_approved
+✗  Mercury                       ashby:mercury                   0       0     —     —      —       —     not_approved
+✗  Plaid                         lever:plaid                     0       0     —     —      —       —     not_approved
+✗  Plaid                         greenhouse:plaid                0       0     —     —      —       —     not_approved
+✗  Lemonade                      greenhouse:lemonade             0       0     —     —      —       —     not_approved
+✗  Root Insurance                greenhouse:rootinc              0       0     —     —      —       —     not_approved
+✗  Root Insurance                greenhouse:root                 0       0     —     —      —       —     not_approved
+✗  Hippo                         greenhouse:hippo                0       0     —     —      —       —     not_approved
+✗  Hippo                         greenhouse:hippoinsurance       0       0     —     —      —       —     not_approved
+✗  Clearcover                    greenhouse:clearcover           0       0     —     —      —       —     not_approved
+✗  Kin Insurance                 greenhouse:kininsurance         0       0     —     —      —       —     not_approved
+✗  Policygenius                  greenhouse:policygenius         0       0     —     —      —       —     not_approved
+✗  Next Insurance                greenhouse:nextinsurance        0       0     —     —      —       —     not_approved
+✗  Newfront                      greenhouse:newfront             0       0     —     —      —       —     not_approved
+✗  Vouch                         greenhouse:vouch                0       0     —     —      —       —     not_approved
+✗  Liberty Mutual                workday:5|libertymutual|lmi     0       0     —     —      —       —     not_approved
+✗  Chubb                         workday:1|chubb|chubb_external  0       0     —     —      —       —     not_approved
+✗  MetLife                       workday:5|metlife|metlifecaree  0       0     —     —      —       —     not_approved
+✗  Prudential                    workday:5|prudential|prudentia  0       0     —     —      —       —     not_approved
+✗  Aflac                         workday:5|aflac|external        0       0     —     —      —       —     not_approved
+✗  Aon                           workday:5|aon|aoncareers        0       0     —     —      —       —     not_approved
+✗  WTW                           workday:1|wtw|wtwcareers        0       0     —     —      —       —     not_approved
+✗  Lincoln Financial             workday:1|lfg|lfg_careers       0       0     —     —      —       —     not_approved
+✗  KPMG                          workday:5|kpmg|kpmg_us          0       0     —     —      —       —     not_approved
+✗  FTI Consulting                workday:5|fticonsulting|fti_ca  0       0     —     —      —       —     not_approved
+✗  Huron                         workday:1|huronconsultinggroup  0       0     —     —      —       —     not_approved
+✗  ICF                           workday:5|icf|icf_careers       0       0     —     —      —       —     not_approved
+✗  CBRE                          workday:5|cbre|cbre_careers     0       0     —     —      —       —     not_approved
+✗  Cushman & Wakefield           workday:1|cushmanwakefield|ext  0       0     —     —      —       —     not_approved
+✗  West Monroe                   greenhouse:westmonroe           0       0     —     —      —       —     not_approved
+✗  West Monroe                   greenhouse:westmonroepartners   0       0     —     —      —       —     not_approved
+✗  Slalom                        greenhouse:slalom               0       0     —     —      —       —     not_approved
+✗  Analysis Group                greenhouse:analysisgroup        0       0     —     —      —       —     not_approved
+✗  Cornerstone Research          greenhouse:cornerstoneresearch  0       0     —     —      —       —     not_approved
+✗  Charles River Associates      greenhouse:crai                 0       0     —     —      —       —     not_approved
+✗  L.E.K. Consulting             greenhouse:lek                  0       0     —     —      —       —     not_approved
+✗  L.E.K. Consulting             greenhouse:lekconsulting        0       0     —     —      —       —     not_approved
+✗  Simon-Kucher                  greenhouse:simonkucher          0       0     —     —      —       —     not_approved
+✗  Alvarez & Marsal              greenhouse:alvarezmarsal        0       0     —     —      —       —     not_approved
+✗  Kearney                       greenhouse:kearney              0       0     —     —      —       —     not_approved
+✗  Oliver Wyman                  greenhouse:oliverwyman          0       0     —     —      —       —     not_approved
+✗  Putnam Associates             greenhouse:putnamassociates     0       0     —     —      —       —     not_approved
+✗  Protiviti                     greenhouse:protiviti            0       0     —     —      —       —     not_approved
+✗  Walmart                       workday:5|walmart|walmartexter  0       0     —     —      —       —     not_approved
+✗  Coca-Cola                     workday:1|coke|coca-cola-caree  0       0     —     —      —       —     not_approved
+✗  General Mills                 workday:5|generalmills|general  0       0     —     —      —       —     not_approved
+✗  Estée Lauder                  workday:1|elcompanies|external  0       0     —     —      —       —     not_approved
+✗  Mattel                        workday:5|mattel|mattel         0       0     —     —      —       —     not_approved
+✗  Hasbro                        workday:5|hasbro|hasbro_career  0       0     —     —      —       —     not_approved
+✗  Kohl's                        workday:1|kohls|kohlscareers    0       0     —     —      —       —     not_approved
+✗  Best Buy                      workday:5|bestbuy|bestbuy       0       0     —     —      —       —     not_approved
+✗  Lululemon                     workday:3|lululemon|lululemon   0       0     —     —      —       —     not_approved
+✗  Ralph Lauren                  workday:1|ralphlauren|ralphlau  0       0     —     —      —       —     not_approved
+✗  Tapestry                      workday:1|tapestry|external     0       0     —     —      —       —     not_approved
+✗  Levi Strauss                  workday:5|levistrauss|external  0       0     —     —      —       —     not_approved
+✗  Hershey                       workday:5|hershey|hershey       0       0     —     —      —       —     not_approved
+✗  Clorox                        workday:5|clorox|clorox         0       0     —     —      —       —     not_approved
+✗  Colgate-Palmolive             workday:5|colgate|colgate       0       0     —     —      —       —     not_approved
+✗  Keurig Dr Pepper              workday:1|kdp|kdp               0       0     —     —      —       —     not_approved
+✗  Constellation Brands          workday:1|cbrands|cbi_external  0       0     —     —      —       —     not_approved
+✗  Williams-Sonoma               workday:5|williamssonoma|wsi    0       0     —     —      —       —     not_approved
+✗  Chewy                         workday:5|chewy|chewy           0       0     —     —      —       —     not_approved
+✗  Ulta Beauty                   workday:5|ulta|ulta             0       0     —     —      —       —     not_approved
+✗  Sephora                       smartrecruiters:sephora         0       0     —     —      —       —     not_approved
+✗  IKEA                          smartrecruiters:ikea            0       0     —     —      —       —     not_approved
+✗  Skechers                      smartrecruiters:skechers        0       0     —     —      —       —     not_approved
+✗  Warby Parker                  greenhouse:warbyparker          0       0     —     —      —       —     not_approved
+✗  Allbirds                      greenhouse:allbirds             0       0     —     —      —       —     not_approved
+✗  SKIMS                         greenhouse:skims                0       0     —     —      —       —     not_approved
+✗  Away                          greenhouse:awaytravel           0       0     —     —      —       —     not_approved
+✗  Away                          greenhouse:away                 0       0     —     —      —       —     not_approved
+✗  FIGS                          greenhouse:figs                 0       0     —     —      —       —     not_approved
+✗  FIGS                          greenhouse:wearfigs             0       0     —     —      —       —     not_approved
+✗  Etsy                          greenhouse:etsy                 0       0     —     —      —       —     not_approved
+✗  ThredUp                       greenhouse:thredup              0       0     —     —      —       —     not_approved
+✗  The RealReal                  greenhouse:therealreal          0       0     —     —      —       —     not_approved
+✗  Olaplex                       greenhouse:olaplex              0       0     —     —      —       —     not_approved
+✗  Brooklinen                    greenhouse:brooklinen           0       0     —     —      —       —     not_approved
+✗  Rhode                         greenhouse:rhode                0       0     —     —      —       —     not_approved
+✗  Athletic Brewing              greenhouse:athleticbrewing      0       0     —     —      —       —     not_approved
+✗  Chobani                       greenhouse:chobani              0       0     —     —      —       —     not_approved
+✗  Oatly                         greenhouse:oatly                0       0     —     —      —       —     not_approved
+✗  Huel                          greenhouse:huel                 0       0     —     —      —       —     not_approved
+✗  Hims & Hers                   greenhouse:himshers             0       0     —     —      —       —     not_approved
+✗  Wayfair                       greenhouse:wayfair              0       0     —     —      —       —     not_approved
+✗  Gopuff                        greenhouse:gopuff               0       0     —     —      —       —     not_approved
+✗  Poshmark                      greenhouse:poshmark             0       0     —     —      —       —     not_approved
+✗  Quince                        ashby:quince                    0       0     —     —      —       —     not_approved
+✗  Vuori                         greenhouse:vuori                0       0     —     —      —       —     not_approved
+✗  Aritzia                       greenhouse:aritzia              0       0     —     —      —       —     not_approved
+✗  Kendra Scott                  greenhouse:kendrascott          0       0     —     —      —       —     not_approved
+✗  The New York Times            greenhouse:nytimes              0       0     —     —      —       —     not_approved
+✗  BuzzFeed                      greenhouse:buzzfeed             0       0     —     —      —       —     not_approved
+✗  The Atlantic                  greenhouse:theatlantic          0       0     —     —      —       —     not_approved
+✗  Bustle Digital Group          greenhouse:bustledigitalgroup   0       0     —     —      —       —     not_approved
+✗  Bustle Digital Group          greenhouse:bdg                  0       0     —     —      —       —     not_approved
+✗  Politico                      greenhouse:politico             0       0     —     —      —       —     not_approved
+✗  Business Insider              greenhouse:businessinsider      0       0     —     —      —       —     not_approved
+✗  Dotdash Meredith              greenhouse:dotdashmeredith      0       0     —     —      —       —     not_approved
+✗  Vice Media                    greenhouse:vicemedia            0       0     —     —      —       —     not_approved
+✗  Vice Media                    greenhouse:vice                 0       0     —     —      —       —     not_approved
+✗  The Athletic                  greenhouse:theathletic          0       0     —     —      —       —     not_approved
+✗  Spotify                       greenhouse:spotify              0       0     —     —      —       —     not_approved
+✗  A24                           greenhouse:a24films             0       0     —     —      —       —     not_approved
+✗  Condé Nast                    greenhouse:condenast            0       0     —     —      —       —     not_approved
+✗  Bloomberg Media               greenhouse:bloombergmedia       0       0     —     —      —       —     not_approved
+✗  The Washington Post           greenhouse:washingtonpost       0       0     —     —      —       —     not_approved
+✗  Penske Media                  greenhouse:penskemedia          0       0     —     —      —       —     not_approved
+✗  Audible                       greenhouse:audible              0       0     —     —      —       —     not_approved
+✗  SiriusXM                      greenhouse:siriusxm             0       0     —     —      —       —     not_approved
+✗  Genius                        greenhouse:genius               0       0     —     —      —       —     not_approved
+✗  Substack                      greenhouse:substack             0       0     —     —      —       —     not_approved
+✗  Patreon                       greenhouse:patreon              0       0     —     —      —       —     not_approved
+✗  Morning Brew                  greenhouse:morningbrew          0       0     —     —      —       —     not_approved
+✗  The Information               greenhouse:theinformation       0       0     —     —      —       —     not_approved
+✗  Puck                          ashby:puck                      0       0     —     —      —       —     not_approved
+✗  Wondery                       greenhouse:wondery              0       0     —     —      —       —     not_approved
+✗  Fanatics                      greenhouse:fanatics             0       0     —     —      —       —     not_approved
+✗  DraftKings                    greenhouse:draftkings           0       0     —     —      —       —     not_approved
+✗  Live Nation                   greenhouse:livenation           0       0     —     —      —       —     not_approved
+✗  Eventbrite                    greenhouse:eventbrite           0       0     —     —      —       —     not_approved
+✗  Electronic Arts               greenhouse:ea                   0       0     —     —      —       —     not_approved
+✗  Niantic                       greenhouse:niantic              0       0     —     —      —       —     not_approved
+✗  Netflix                       lever:netflix                   0       0     —     —      —       —     not_approved
+✗  Paramount                     workday:5|paramount|paramountc  0       0     —     —      —       —     not_approved
+✗  Sony Music                    workday:1|sonymusic|sonymusic   0       0     —     —      —       —     not_approved
+✗  iHeartMedia                   workday:1|iheartmedia|external  0       0     —     —      —       —     not_approved
+✗  Universal Music               workday:1|umusic|umgus          0       0     —     —      —       —     not_approved
+✗  Nielsen                       workday:5|nielsenenterprise|ex  0       0     —     —      —       —     not_approved
+✗  Adobe                         workday:5|adobe|external_exper  0       0     —     —      —       —     not_approved
+✗  Wieden+Kennedy                greenhouse:wiedenkennedy        0       0     —     —      —       —     not_approved
+✗  Huge                          greenhouse:huge                 0       0     —     —      —       —     not_approved
+✗  Mother                        greenhouse:mother               0       0     —     —      —       —     not_approved
+✗  Mischief                      greenhouse:mischief             0       0     —     —      —       —     not_approved
+✗  Day One Agency                greenhouse:dayoneagency         0       0     —     —      —       —     not_approved
+✗  Edelman                       greenhouse:edelman              0       0     —     —      —       —     not_approved
+✗  Ketchum                       greenhouse:ketchum              0       0     —     —      —       —     not_approved
+✗  Jellyfish                     greenhouse:jellyfish            0       0     —     —      —       —     not_approved
+✗  Tinuiti                       greenhouse:tinuiti              0       0     —     —      —       —     not_approved
+✗  Wpromote                      greenhouse:wpromote             0       0     —     —      —       —     not_approved
+✗  Razorfish                     greenhouse:razorfish            0       0     —     —      —       —     not_approved
+✗  Omnicom                       workday:5|omnicom|omnicom       0       0     —     —      —       —     not_approved
+✗  Interpublic                   workday:1|ipg|ipg               0       0     —     —      —       —     not_approved
+✗  WPP                           workday:3|wpp|wppcareers        0       0     —     —      —       —     not_approved
+✗  Publicis                      workday:3|publicis|external     0       0     —     —      —       —     not_approved
+✗  Ironclad                      greenhouse:ironcladhq           0       0     —     —      —       —     not_approved
+✗  Ironclad                      greenhouse:ironclad             0       0     —     —      —       —     not_approved
+✗  EvenUp                        ashby:evenup                    0       0     —     —      —       —     not_approved
+✗  Clio                          greenhouse:clio                 0       0     —     —      —       —     not_approved
+✗  Clio                          lever:clio                      0       0     —     —      —       —     not_approved
+✗  LegalZoom                     greenhouse:legalzoom            0       0     —     —      —       —     not_approved
+✗  Axiom                         greenhouse:axiomlaw             0       0     —     —      —       —     not_approved
+✗  UnitedLex                     greenhouse:unitedlex            0       0     —     —      —       —     not_approved
+✗  Spellbook                     ashby:spellbook                 0       0     —     —      —       —     not_approved
+✗  CS Disco                      greenhouse:csdisco              0       0     —     —      —       —     not_approved
+✗  Filevine                      greenhouse:filevine             0       0     —     —      —       —     not_approved
+✗  Hebbia                        greenhouse:hebbia               0       0     —     —      —       —     not_approved
+✗  Hebbia                        ashby:hebbia                    0       0     —     —      —       —     not_approved
+✗  RELX / LexisNexis             workday:3|relx|relx             0       0     —     —      —       —     not_approved
+✗  Epiq                          workday:5|epiq|epiq             0       0     —     —      —       —     not_approved
+✗  Consilio                      workday:1|consilio|consilio     0       0     —     —      —       —     not_approved
+✗  Recursion                     greenhouse:recursion            0       0     —     —      —       —     not_approved
+✗  insitro                       greenhouse:insitro              0       0     —     —      —       —     not_approved
+✗  Ginkgo Bioworks               greenhouse:ginkgo               0       0     —     —      —       —     not_approved
+✗  Tempus                        greenhouse:tempus               0       0     —     —      —       —     not_approved
+✗  GRAIL                         greenhouse:grailbio             0       0     —     —      —       —     not_approved
+✗  GRAIL                         greenhouse:grail                0       0     —     —      —       —     not_approved
+✗  10x Genomics                  greenhouse:10xgenomics          0       0     —     —      —       —     not_approved
+✗  Benchling                     greenhouse:benchling            0       0     —     —      —       —     not_approved
+✗  Denali                        greenhouse:denalitherapeutics   0       0     —     —      —       —     not_approved
+✗  Intellia                      greenhouse:intelliatherapeutic  0       0     —     —      —       —     not_approved
+✗  Sana Biotechnology            greenhouse:sanabiotechnology    0       0     —     —      —       —     not_approved
+✗  Lyell                         greenhouse:lyell                0       0     —     —      —       —     not_approved
+✗  Arcus Biosciences             greenhouse:arcusbio             0       0     —     —      —       —     not_approved
+✗  Arcus Biosciences             greenhouse:arcusbiosciences     0       0     —     —      —       —     not_approved
+✗  Alector                       greenhouse:alector              0       0     —     —      —       —     not_approved
+✗  Guardant Health               greenhouse:guardanthealth       0       0     —     —      —       —     not_approved
+✗  Exact Sciences                greenhouse:exactsciences        0       0     —     —      —       —     not_approved
+✗  Caribou Biosciences           greenhouse:cariboubiosciences   0       0     —     —      —       —     not_approved
+✗  Verve Therapeutics            greenhouse:vervetherapeutics    0       0     —     —      —       —     not_approved
+✗  Arsenal Bio                   greenhouse:arsenalbio           0       0     —     —      —       —     not_approved
+✗  Neumora                       greenhouse:neumora              0       0     —     —      —       —     not_approved
+✗  Xaira                         greenhouse:xaira                0       0     —     —      —       —     not_approved
+✗  Kriya                         greenhouse:kriyatherapeutics    0       0     —     —      —       —     not_approved
+✗  Mammoth Biosciences           greenhouse:mammothbiosciences   0       0     —     —      —       —     not_approved
+✗  Scribe Therapeutics           greenhouse:scribetherapeutics   0       0     —     —      —       —     not_approved
+✗  Vir Biotechnology             greenhouse:vir                  0       0     —     —      —       —     not_approved
+✗  Vir Biotechnology             greenhouse:virbiotechnology     0       0     —     —      —       —     not_approved
+✗  Seer                          greenhouse:seer                 0       0     —     —      —       —     not_approved
+✗  Seer                          greenhouse:seerbio              0       0     —     —      —       —     not_approved
+✗  Zymeworks                     greenhouse:zymeworks            0       0     —     —      —       —     not_approved
+✗  Absci                         greenhouse:absci                0       0     —     —      —       —     not_approved
+✗  Synthego                      greenhouse:synthego             0       0     —     —      —       —     not_approved
+✗  Inscripta                     greenhouse:inscripta            0       0     —     —      —       —     not_approved
+✗  Moderna                       greenhouse:modernatx            0       0     —     —      —       —     not_approved
+✗  Arc Institute                 ashby:arcinstitute              0       0     —     —      —       —     not_approved
+✗  Chan Zuckerberg Biohub        ashby:czbiohub                  0       0     —     —      —       —     not_approved
+✗  NewLimit                      ashby:newlimit                  0       0     —     —      —       —     not_approved
+✗  Ginkgo Bioworks               lever:ginkgobioworks            0       0     —     —      —       —     not_approved
+✗  Illumina                      workday:5|illumina|illumina-ca  0       0     —     —      —       —     not_approved
+✗  Vertex                        workday:5|vrtx|vertex_careers   0       0     —     —      —       —     not_approved
+✗  Biogen                        workday:5|biogen|external_care  0       0     —     —      —       —     not_approved
+✗  Bristol Myers Squibb          workday:5|bristolmyerssquibb|b  0       0     —     —      —       —     not_approved
+✗  Agilent                       workday:1|agilent|agilent_care  0       0     —     —      —       —     not_approved
+✗  Eli Lilly                     workday:5|lilly|lly             0       0     —     —      —       —     not_approved
+✗  Takeda                        workday:3|takeda|external       0       0     —     —      —       —     not_approved
+✗  Bio-Rad                       workday:5|bio-rad|bio-rad_care  0       0     —     —      —       —     not_approved
+✗  Charles River Labs            workday:5|crl|crl               0       0     —     —      —       —     not_approved
+✗  Sanofi                        smartrecruiters:sanofi          0       0     —     —      —       —     not_approved
+✗  Novo Nordisk                  smartrecruiters:novonordisk     0       0     —     —      —       —     not_approved
+✗  ShipBob                       greenhouse:shipbob              0       0     —     —      —       —     not_approved
+✗  Stord                         ashby:stord                     0       0     —     —      —       —     not_approved
+✗  Loadsmart                     greenhouse:loadsmart            0       0     —     —      —       —     not_approved
+✗  Arcadia                       greenhouse:arcadia              0       0     —     —      —       —     not_approved
+✗  Arcadia                       greenhouse:arcadiacareers       0       0     —     —      —       —     not_approved
+✗  Aurora Solar                  greenhouse:aurorasolar          0       0     —     —      —       —     not_approved
+✗  Sunrun                        greenhouse:sunrun               0       0     —     —      —       —     not_approved
+✗  Watershed                     greenhouse:watershedclimate     0       0     —     —      —       —     not_approved
+✗  FedEx                         workday:1|fedex|fxe-external    0       0     —     —      —       —     not_approved
+✗  XPO                           workday:1|xpo|xpo               0       0     —     —      —       —     not_approved
+✗  Expeditors                    workday:1|expeditors|expeditor  0       0     —     —      —       —     not_approved
+✗  NextEra Energy                workday:5|nexteraenergy|nee     0       0     —     —      —       —     not_approved
+✗  Exelon                        workday:1|exelon|exelon         0       0     —     —      —       —     not_approved
+✗  Constellation Energy          workday:5|constellation|conste  0       0     —     —      —       —     not_approved
+✗  ExxonMobil                    workday:5|exxonmobil|exxonmobi  0       0     —     —      —       —     not_approved
+✗  ConocoPhillips                workday:1|conocophillips|conoc  0       0     —     —      —       —     not_approved
+✗  HubSpot                       greenhouse:hubspot              0       0     —     —      —       —     not_approved
+✗  Amplitude                     greenhouse:amplitude            0       0     —     —      —       —     not_approved
+✗  Webflow                       greenhouse:webflow              0       0     —     —      —       —     not_approved
+✗  Procore                       greenhouse:procoretechnologies  0       0     —     —      —       —     not_approved
+✗  Procore                       greenhouse:procore              0       0     —     —      —       —     not_approved
+✗  Highspot                      greenhouse:highspot             0       0     —     —      —       —     not_approved
+✗  Seismic                       greenhouse:seismic              0       0     —     —      —       —     not_approved
+✗  Outreach                      greenhouse:outreach             0       0     —     —      —       —     not_approved
+✗  Attentive                     lever:attentive                 0       0     —     —      —       —     not_approved
+✗  Vanta                         greenhouse:vanta                0       0     —     —      —       —     not_approved
+✗  Deel                          greenhouse:deel                 0       0     —     —      —       —     not_approved
+✗  Deel                          ashby:deel                      0       0     —     —      —       —     not_approved
+✗  Monday.com                    greenhouse:mondaycom            0       0     —     —      —       —     not_approved
+✗  Canva                         greenhouse:canva                0       0     —     —      —       —     not_approved
+✗  Canva                         lever:canva                     0       0     —     —      —       —     not_approved
+✗  Grammarly                     greenhouse:grammarly            0       0     —     —      —       —     not_approved
+✗  Miro                          greenhouse:miro                 0       0     —     —      —       —     not_approved
+✗  Zendesk                       greenhouse:zendesk              0       0     —     —      —       —     not_approved
+✗  Square                        smartrecruiters:square          0       0     —     —      —       —     not_approved
+✗  Wix                           smartrecruiters:wix             0       0     —     —      —       —     not_approved
+
+ADMIT 149 (6580 in-scope postings ≤ 120d) · REFUSE 328 {"not_approved":328}
+
+wrote data/a111/tranche-a111.mjs — 149 companies, 0 evidence back-fills
