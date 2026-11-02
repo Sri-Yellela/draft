@@ -1,0 +1,210 @@
+﻿{
+ "descriptionText": {
+  "due": 0,
+  "written": 0,
+  "refused": false,
+  "requirements": {
+   "citizen_only": 0,
+   "us_person": 0,
+   "clearance": 0,
+   "polygraph": 0
+  }
+ },
+ "withoutDescription": [
+  {
+   "source": "smartrecruiters",
+   "n": 122
+  },
+  {
+   "source": "workday",
+   "n": 680
+  }
+ ],
+ "levelsRead": 0,
+ "categoriesBackfilled": {
+  "classified": 0,
+  "held": 0,
+  "version": 2
+ },
+ "active": {
+  "all": 12514,
+  "byCategory": {
+   "sales": 1831,
+   "marketing": 449,
+   "computing": 3266,
+   "business": 2093,
+   "held": 842,
+   "management": 2959,
+   "arts_media": 517,
+   "science": 204,
+   "engineering": 158,
+   "legal": 195
+  }
+ },
+ "activeA111": {
+  "all": 10461,
+  "byCategory": {
+   "computing": 2360,
+   "legal": 154,
+   "management": 2574,
+   "sales": 1620,
+   "business": 1940,
+   "arts_media": 423,
+   "marketing": 372,
+   "held": 707,
+   "engineering": 118,
+   "science": 193
+  }
+ },
+ "heldByReason": {
+  "held:unknown": 360,
+  "held:pending_engineering_role": 311,
+  "held:low_confidence": 62,
+  "held:it_support": 59,
+  "held:healthcare": 40,
+  "held:office_admin": 4,
+  "held:community_service": 3,
+  "held:education": 2,
+  "held:non_professional": 1
+ },
+ "companiesActive": 166,
+ "samples": [
+  {
+   "id": "A",
+   "label": "Sample A · new-grad software engineer",
+   "category": "computing",
+   "picks": 10,
+   "offered": true
+  },
+  {
+   "id": "B",
+   "label": "Sample B · mid-level ML / data engineer",
+   "category": "computing",
+   "picks": 10,
+   "offered": true
+  },
+  {
+   "id": "C",
+   "label": "Sample C · mid-level mechanical engineer",
+   "category": "engineering",
+   "picks": 7,
+   "offered": false
+  },
+  {
+   "id": "D",
+   "label": "Sample D · early-career electrical engineer",
+   "category": "engineering",
+   "picks": 9,
+   "offered": false
+  },
+  {
+   "id": "E",
+   "label": "Sample E · business / financial analyst",
+   "category": "business",
+   "picks": 10,
+   "offered": true
+  },
+  {
+   "id": "F",
+   "label": "Sample F · project / operations manager",
+   "category": "management",
+   "picks": 10,
+   "offered": true
+  }
+ ],
+ "categoryResumes": {
+  "business": {
+   "activeInCategory": 2093,
+   "goodPicks": 30,
+   "byBasis": {
+    "ats": 30
+   },
+   "tenOrMore": true,
+   "top3": [
+    "Depositor Services Processing & Support Specialist I · Fifth Third",
+    "Senior Specialist, Digital Human Health (DHH) IT FP&A · Merck",
+    "Bank Operations Imaging Specialist · Regions"
+   ]
+  },
+  "management": {
+   "activeInCategory": 2959,
+   "goodPicks": 38,
+   "byBasis": {
+    "ats": 38
+   },
+   "tenOrMore": true,
+   "top3": [
+    "ETF Settlements, Assistant Vice President · State Street",
+    "Alpha Implementations - Technology Delivery Lead, Vice President · State Street",
+    "Field Reimbursement Manager - Seattle, WA · Amgen"
+   ]
+  },
+  "marketing": {
+   "activeInCategory": 449,
+   "goodPicks": 61,
+   "byBasis": {
+    "ats": 57,
+    "skills_overlap": 4
+   },
+   "tenOrMore": true,
+   "top3": [
+    "Lifecycle Marketing Manager, Capital · Stripe",
+    "Education Content Marketing Lead · OpenAI",
+    "Sr. Marketing Associate, B2B · Betterment"
+   ]
+  },
+  "sales": {
+   "activeInCategory": 1831,
+   "goodPicks": 38,
+   "byBasis": {
+    "ats": 38
+   },
+   "tenOrMore": true,
+   "top3": [
+    "Account Executive · Thermo Fisher",
+    "Account Development Specialist, Laboratory Research and Safety Sales (REMOTE) · Thermo Fisher",
+    "Account Executive, Large Enterprise at Gartner · Gartner"
+   ]
+  },
+  "legal": {
+   "activeInCategory": 195,
+   "goodPicks": 59,
+   "byBasis": {
+    "ats": 52,
+    "skills_overlap": 7
+   },
+   "tenOrMore": true,
+   "top3": [
+    "Assistant General Counsel, Legal & Business Affairs - Ad Tech & Media Transactions · Roku",
+    "Paralegal, Compliance · Carta",
+    "Corporate Counsel Lead · FIS"
+   ]
+  },
+  "arts_media": {
+   "activeInCategory": 517,
+   "goodPicks": 28,
+   "byBasis": {
+    "ats": 28
+   },
+   "tenOrMore": true,
+   "top3": [
+    "Senior Product Designer · Vox Media",
+    "Regional Editor, MySA · Hearst",
+    "Interactive Designer (Contract) · SoFi"
+   ]
+  },
+  "science": {
+   "activeInCategory": 204,
+   "goodPicks": 39,
+   "byBasis": {
+    "ats": 39
+   },
+   "tenOrMore": true,
+   "top3": [
+    "Scientist II, Antibody Discovery (Phage Display) · Xaira",
+    "Scientist, Lentiviral Vector Cell Line Development · Asimov",
+    "Sr Research Associate · Natera"
+   ]
+  }
+ }
+}

@@ -1,6 +1,8 @@
 {
  "wrong": {},
  "hold": {
+  "workday:5|target|targetcareers": "measured on the DB copy after the crawl: 65 'business' rows, most 'Target Security Specialist' / 'Seasonal Target Security Specialist - Flow Center' (store security) placed in business by categoryOf's generic specialist / associate rule. Two reached Sample E's picks. Held until the rule holds them",
+  "workday:1|danaher|danaherjobs": "measured on the DB copy after the crawl: 29 'business' rows, mostly 'Production Associate - 2nd Shift' (manufacturing floor) placed in business by the generic associate rule. One reached Sample E's picks. Held until the rule holds them",
   "workday:5|vfc|vfc_careers": "the right employer, but its 'sales' are Vans store leads ('Vans: Sales Lead - Northstar Mall') that categoryOf places in sales: retail would leak. Held until the rule holds store roles"
  },
  "unsure": {

@@ -1,4 +1,4 @@
-D80 review · 149 approved · 477 probed · admit ≥ 1 in-scope ≤ 120d
+D80 review · 147 approved · 477 probed · admit ≥ 1 in-scope ≤ 120d
    company                       board                           recent  open  ≤30d  ≤120d  median  US    reason
 ✓  ServiceNow                    smartrecruiters:servicenow      185     191   54%   97%    26d     32%   ok
 ✓  Braze                         greenhouse:braze                181     196   30%   92%    58d     74%   ok
@@ -81,7 +81,7 @@ D80 review · 149 approved · 477 probed · admit ≥ 1 in-scope ≤ 120d
 ✓  Avery Dennison                smartrecruiters:averydennison   28      28    71%   100%   21d     28%   ok
 ✓  Faire                         greenhouse:faire                28      40    13%   70%    51d     87%   ok
 ✓  Ameriprise                    workday:5|ameriprise|ameripris  27      27    100%  100%   10d     56%   ok
-✓  Target                        workday:5|target|targetcareers  26      26    100%  100%   1d      96%   ok
+✗  Target                        workday:5|target|targetcareers  26      26    100%  100%   1d      96%   not_approved
 ✓  Merck                         workday:5|msd|searchjobs        26      26    100%  100%   2d      22%   ok
 ✓  Capco                         greenhouse:capco                26      26    38%   100%   41d     5%    ok
 ✓  Crunchyroll                   greenhouse:crunchyroll          26      28    36%   93%    38d     57%   ok
@@ -106,7 +106,7 @@ D80 review · 149 approved · 477 probed · admit ≥ 1 in-scope ≤ 120d
 ✓  Uber Freight                  greenhouse:uberfreight          18      19    53%   95%    27d     68%   ok
 ✓  CS Disco                      greenhouse:disco                18      19    47%   95%    31d     74%   ok
 ✓  Betterment                    greenhouse:betterment           18      19    26%   95%    39d     100%  ok
-✓  Danaher                       workday:1|danaher|danaherjobs   17      17    100%  100%   16d     31%   ok
+✗  Danaher                       workday:1|danaher|danaherjobs   17      17    100%  100%   16d     31%   not_approved
 ✓  PNC                           workday:5|pnc|external          16      16    100%  100%   4d      25%   ok
 ✓  JLL                           workday:1|jll|jllcareers        16      16    100%  100%   1d      26%   ok
 ✓  Pfizer                        workday:1|pfizer|pfizercareers  16      16    100%  100%   8d      21%   ok
@@ -478,6 +478,6 @@ D80 review · 149 approved · 477 probed · admit ≥ 1 in-scope ≤ 120d
 ✗  Square                        smartrecruiters:square          0       0     —     —      —       —     not_approved
 ✗  Wix                           smartrecruiters:wix             0       0     —     —      —       —     not_approved
 
-ADMIT 149 (6580 in-scope postings ≤ 120d) · REFUSE 328 {"not_approved":328}
+ADMIT 147 (6537 in-scope postings ≤ 120d) · REFUSE 330 {"not_approved":330}
 
-wrote data/a111/tranche-a111.mjs — 149 companies, 0 evidence back-fills
+wrote data/a111/tranche-a111.mjs — 147 companies, 0 evidence back-fills

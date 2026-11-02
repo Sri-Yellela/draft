@@ -1012,21 +1012,6 @@
   "held": 2
  },
  {
-  "company": "Target",
-  "ats_type": "workday",
-  "ats_slug": "5|target|targetcareers",
-  "in_scope": 26,
-  "in_category": 22,
-  "by_category": {
-   "business": 4,
-   "management": 12,
-   "marketing": 1,
-   "sales": 1,
-   "arts_media": 4
-  },
-  "held": 5
- },
- {
   "company": "Gong",
   "ats_type": "greenhouse",
   "ats_slug": "gongio",
@@ -1533,19 +1518,6 @@
    "science": 8
   },
   "held": 1
- },
- {
-  "company": "Danaher",
-  "ats_type": "workday",
-  "ats_slug": "1|danaher|DanaherJobs",
-  "in_scope": 17,
-  "in_category": 11,
-  "by_category": {
-   "business": 2,
-   "management": 4,
-   "science": 5
-  },
-  "held": 11
  },
  {
   "company": "Truist",
