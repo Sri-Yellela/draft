@@ -82,6 +82,7 @@ export const readTourProgress = (state) => { try { return JSON.parse(localStorag
 const write = (state, v) => { try { localStorage.setItem(keyFor(state), JSON.stringify(v)); } catch { /* storage blocked: the tour still runs */ } };
 const reducedMotion = () => { try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } };
 const isPhone = () => (typeof window !== "undefined" && window.innerWidth < 600);
+const LOST_MS = 4000;   // 44e: how long a step waits for its target before the caption shows anyway
 const send = (event, detail) => api("/api/trial/event", { method: "POST", body: JSON.stringify({ event, detail }) }).catch(() => {});
 const fire = (name, detail) => {
   if (name === "draft:house-example") window.draftTourExample = !!detail.on;   // the page may mount after the event
@@ -121,6 +122,9 @@ export default function GuidedTour({ state, onFinish, onActive, onSkipToSurvey }
   const [phone, setPhone] = useState(isPhone);
   const [view, setView] = useState({ vw: typeof window !== "undefined" ? window.innerWidth : 1280, vh: typeof window !== "undefined" ? window.innerHeight : 800, nav: 0 });
   const [popH, setPopH] = useState(200);
+  // 44e (testers on phones, 11-02): a step whose target never shows (a deck still dealing, a slow page) left the caption
+  // HIDDEN — and with it Next, Back and Skip — so the tester was stuck. After LOST_MS the caption shows anyway, unlit.
+  const [lost, setLost] = useState(false);
   const [slot, setSlot] = useState(null);      // Draft House's #trial-demo-slot, once the page has mounted
   const popRef = useRef(null);
   const startedAt = useRef(Date.now());
@@ -137,12 +141,19 @@ export default function GuidedTour({ state, onFinish, onActive, onSkipToSurvey }
   // The résumé was picked on /try: the tour's first step is already done when the tour starts.
   useEffect(() => { if (!saved.i && !saved.done) { send("tour", { step: "pick_resume", phase: "completed", ms: 0, device, speed }); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (done || !step?.target || rect) return undefined;
+    const t = setTimeout(() => setLost(true), LOST_MS);
+    return () => clearTimeout(t);
+  }, [i, done, !!rect]);   // eslint-disable-line react-hooks/exhaustive-deps
+
   // Entering a step: go to its page, record it.
   useEffect(() => {
     if (done || !step) return;
     startedAt.current = Date.now();
     setMet(!step.require);
     setRect(null);
+    setLost(false);
     tour(step.id, "reached", 0);
     if (step.route && pathname !== step.route) navigate(step.route);
   }, [i, done]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -281,7 +292,7 @@ export default function GuidedTour({ state, onFinish, onActive, onSkipToSurvey }
 
   if (!live || !step) return null;
   const caption = captionFor(step, { speed, field: state?.fieldGuess });
-  const waiting = step.target && !rect;
+  const waiting = step.target && !rect && !lost;
   const place = placePopover({ rect, h: popH, vw: view.vw, vh: view.vh, navBottom: view.nav, phone });
   const dim = "color-mix(in srgb, var(--color-text) 38%, transparent)";
   return (

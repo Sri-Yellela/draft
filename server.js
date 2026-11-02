@@ -11229,11 +11229,12 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
 // existing calls, not new ones: Draft = POST /api/apply/runs with surface:"deck" and NO approvalMode
 // (the route refuses one from that surface); Pass/Save = PATCH /api/jobs/interact.
 app.get("/api/draft/today", requireAuth, async (req, res) => {
-  const date = String(req.query.date || "");
-  if (!validDraftDate(date)) {
-    return res.status(400).json({ error: "invalid_date",
-      message: "Send your local date as ?date=YYYY-MM-DD (within a day of the server's)." });
-  }
+  // ⛔ 44e (testers on iPhone Safari, 11-02): a page built before the fix sent toLocaleDateString("en-CA"), which some
+  // browsers write as "11/2/2026"; the 400 here left their deck — and the tour that starts on it — empty. A date this
+  // route cannot read now deals the SERVER's day (UTC) instead of refusing: the deal is per day, so at worst a person
+  // near midnight sees yesterday's or tomorrow's deal, never nothing.
+  const asked = String(req.query.date || "");
+  const date = validDraftDate(asked) ? asked : new Date().toISOString().slice(0, 10);
   // A75 — "ATS match" as a sort on the daily draft: the deal is frozen, the READ is reordered by the
   // caller's own stored score (services/dailyDraft.js orderByAts). The score is not sent.
   const order = String(req.query.order || "dealt");
