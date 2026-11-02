@@ -22,6 +22,7 @@ const ROWS = [
   { company: "Ubisoft",    ats_type: "smartrecruiters", ats_slug: "Ubisoft2" },
   { company: "Blueground", ats_type: "workable",        ats_slug: "blueground" },
   { company: "Channable",  ats_type: "recruitee",       ats_slug: "channable" },
+  { company: "Synthco",    ats_type: "bamboohr",        ats_slug: "synthco" },   // A112
 ];
 
 test("grouping covers every registered direct-ATS source, not just the original three", () => {
