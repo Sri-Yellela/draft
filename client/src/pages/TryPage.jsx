@@ -79,9 +79,12 @@ function OwnResumeCard({ disabled, busy, onRead }) {
 
 /** The field, in plain words, once read: live → Continue; not live → the honest line, the samples still offered below. */
 function OwnReading({ own, busy, onContinue }) {
+  // the reading sits above the cards: brought into view, so a phone that pressed Read at the bottom sees it
+  const box = useRef(null);
+  useEffect(() => { box.current?.scrollIntoView?.({ block: "start", behavior: "smooth" }); }, [own]);
   if (own.live) {
     return (
-      <div style={{ ...card, marginBottom: 16, borderLeft: "3px solid var(--color-primary)" }} data-own-field={own.field?.category || ""} role="status">
+      <div style={{ ...card, marginBottom: 16, scrollMarginTop: 88, borderLeft: "3px solid var(--color-primary)" }} data-own-field={own.field?.category || ""} role="status" ref={box}>
         <span style={mark}>Your field</span>
         <strong style={{ fontSize: 18 }} data-own-field-words="">{own.field?.words}</strong>
         <span>{own.picks} good picks from your field today, best match first, each with its score and why.</span>
@@ -90,7 +93,7 @@ function OwnReading({ own, busy, onContinue }) {
     );
   }
   return (
-    <div style={{ ...card, marginBottom: 16, borderLeft: "3px solid var(--color-warning)" }} data-own-not-live="" role="status">
+    <div style={{ ...card, marginBottom: 16, scrollMarginTop: 88, borderLeft: "3px solid var(--color-warning)" }} data-own-not-live="" role="status" ref={box}>
       <span style={mark}>Your field</span>
       <strong style={{ fontSize: 18 }}>Your field isn't live yet</strong>
       <span>
