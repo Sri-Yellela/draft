@@ -25,6 +25,7 @@ import workdayPlugin   from './sources/workday.js';
 import smartrecruitersPlugin from './sources/smartrecruiters.js';
 import workablePlugin  from './sources/workable.js';
 import recruiteePlugin from './sources/recruitee.js';
+import bamboohrPlugin  from './sources/bamboohr.js';
 import { SOURCES as SOURCES_DIMENSION, labelMap } from '../../shared/jobFilterOptions.js';
 import { userReferencedSql } from './userReferences.js';
 import { atlasPostingsChanged } from '../atlas/atlasLive.js';
@@ -42,6 +43,7 @@ const SOURCES = [
   smartrecruitersPlugin,
   workablePlugin,
   recruiteePlugin,
+  bamboohrPlugin,
 ];
 // ─────────────────────────────────────────────────────────────────────────────
 
