@@ -9,6 +9,7 @@
 // --skip-configured: [{ ats_type, ats_slug }] already on the crawl list (production's company_ats_list).
 import fs from "node:fs";
 import { probeBoard } from "../services/companyProbe.js";
+import { boardName, prettySlug } from "./a112BoardName.mjs";
 
 const argv = process.argv.slice(2);
 const flag = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
@@ -27,23 +28,6 @@ const todo = files.flatMap((f) => JSON.parse(fs.readFileSync(f, "utf8")))
 const now = Math.floor(Date.now() / 1000);
 let since = 0;
 const save = () => fs.writeFileSync(out, JSON.stringify(done));
-
-/** "acme-labs" → "Acme Labs"; "5|acme|External" → "Acme". */
-export function prettySlug(atsType, slug) {
-  const s = atsType === "workday" ? String(slug).split("|")[1] || slug : String(slug);
-  return s.replace(/[-_.]+/g, " ").replace(/\b(inc|llc|careers|jobs|us|usa)\b/gi, "").trim()
-    .replace(/\s+/g, " ").replace(/\b\w/g, (m) => m.toUpperCase()) || s;
-}
-
-// The configured name is what every job card shows (d80ApplyTranche --names). The board's own name where the ATS
-// publishes one; the slug made readable otherwise.
-async function boardName(atsType, slug) {
-  const get = async (u) => { try { const r = await fetch(u, { signal: AbortSignal.timeout(15000) }); return r.ok ? r.json() : null; } catch { return null; } };
-  if (atsType === "greenhouse") return (await get(`https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(slug)}`))?.name || null;
-  if (atsType === "workable") return (await get(`https://apply.workable.com/api/v1/widget/accounts/${encodeURIComponent(slug)}`))?.name || null;
-  if (atsType === "smartrecruiters") return (await get(`https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(slug)}/postings?limit=1`))?.content?.[0]?.company?.name || null;
-  return null;
-}
 
 async function one(c) {
   try {
