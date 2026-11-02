@@ -123,6 +123,10 @@ const PRUNE_AFTER_MISSED_CRAWLS = 2;
 // that did not see it, and two days of not seeing it. Seconds, like updated_at.
 const RETIRE_AFTER_UNSEEN_SECONDS = 48 * 3600;
 
+// A112: companies fetched (and held in memory) at once per source in cacheJobs. A plugin fetches every company it is
+// handed in parallel, so this is also the crawl's concurrency per ATS.
+export const CRAWL_CHUNK = 50;
+
 // Content hash used to skip re-upserting postings that haven't changed since the last crawl
 // of their OWN source. Unrelated to the cross-source `fingerprint` column/computeFingerprint()
 // below — this one is per-row change detection ("did source X's copy of job Y change"), that
@@ -903,37 +907,8 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
       const prevState    = getSyncState.get(source.name);
       const prevWatermark = prevState?.last_watermark ?? null;
 
-      // Full pull (no incremental primitive for Greenhouse/Lever/Ashby).
-      // Do NOT advance watermark if the fetch throws.
-      let fetchedJobs;
-      try {
-        const result = await source.search({ query: '', _companies: companies, pageSize: 300 });
-        fetchedJobs = result.jobs;
-      } catch (err) {
-        console.error(`[cacheJobs:${source.name}] Fetch failed — watermark NOT advanced: ${err.message}`);
-        recordPipelineRun(db, {
-          runKind: 'source_sync', source: source.name, status: 'failed',
-          startedAt: runStartedAt, errorText: err.message,
-          details: { companies: companies.length },
-        });
-        continue;
-      }
-
-      // Treat 0-job responses as potentially failed (per-company errors are swallowed by the
-      // plugin). Skip prune and watermark advancement to avoid deactivating real jobs on
-      // transient network issues.
-      if (!fetchedJobs.length) {
-        console.log(`[cacheJobs:${source.name}] No jobs returned — skipping prune`);
-        // 'no_results' rather than 'ok': the plugin swallows per-company errors, so an empty
-        // response is indistinguishable here from every company failing. Recorded as its own
-        // status so the monitor can flag it instead of reading it as a healthy zero.
-        recordPipelineRun(db, {
-          runKind: 'source_sync', source: source.name, status: 'no_results',
-          startedAt: runStartedAt, details: { companies: companies.length },
-        });
-        continue;
-      }
-
+      // `now` is fixed BEFORE the first chunk: every row this pass touches gets updated_at = now, and the
+      // watermark below is the same now, so the stale prune reads the pass as one crawl however long it ran.
       const now = Math.floor(Date.now() / 1000);
 
       // Fingerprints from the last crawl — lets us skip the full upsert (and re-classification)
@@ -947,7 +922,7 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
       // ── Upsert in a transaction ───────────────────────────────────────────
       // D78: the board's age policy (board_policy), read once per source pass.
       const agePolicy = readPolicy(db);
-      const { cached, unchanged, ejected, dropped, rescued, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut, retiredReseen, noId } = db.transaction(() => {
+      const upsertBatch = db.transaction((fetchedJobs) => {
         let cached = 0, unchanged = 0, ejected = 0, dropped = 0, merged = 0, outOfMarket = 0;
         let tooOld = 0, agedOut = 0, wouldAgeOut = 0, outOfScope = 0, scopedOut = 0, wouldScopeOut = 0;
         let rescued = 0;   // no role family, but a clear CS title — written under ROLE_KEY_FALLBACK
@@ -1079,7 +1054,52 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
         // ⭐ D118 P1: every posting this crawl added, changed or retired moves the Atlas counts — in this transaction.
         atlasPostingsChanged(db);
         return { cached, unchanged, ejected, dropped, rescued, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut, retiredReseen, noId };
-      })();
+      });
+
+      // Full pull (no incremental primitive for Greenhouse/Lever/Ashby), CRAWL_CHUNK companies at a time (A112): a
+      // plugin fetches its companies all at once, and the whole source's postings were held in memory until one
+      // transaction — fine for 200 companies, not for thousands. Each chunk is fetched, written in its own
+      // transaction, and let go. Do NOT advance the watermark (or prune) if any chunk's fetch throws.
+      const totals = { cached: 0, unchanged: 0, ejected: 0, dropped: 0, rescued: 0, merged: 0, outOfMarket: 0, tooOld: 0,
+        agedOut: 0, wouldAgeOut: 0, outOfScope: 0, scopedOut: 0, wouldScopeOut: 0, retiredReseen: 0, noId: 0 };
+      let fetchedCount = 0, fetchError = null;
+      for (let i = 0; i < companies.length; i += CRAWL_CHUNK) {
+        let batch;
+        try {
+          const result = await source.search({ query: '', _companies: companies.slice(i, i + CRAWL_CHUNK), pageSize: 300 });
+          batch = result.jobs;
+        } catch (err) { fetchError = err; break; }
+        fetchedCount += batch.length;
+        if (!batch.length) continue;
+        const r = upsertBatch(batch);
+        for (const k of Object.keys(totals)) totals[k] += r[k];
+      }
+      if (fetchError) {
+        console.error(`[cacheJobs:${source.name}] Fetch failed — watermark NOT advanced: ${fetchError.message}`);
+        recordPipelineRun(db, {
+          runKind: 'source_sync', source: source.name, status: 'failed',
+          startedAt: runStartedAt, errorText: fetchError.message,
+          details: { companies: companies.length, fetchedBeforeFailure: fetchedCount },
+        });
+        totalCached += totals.cached;
+        continue;
+      }
+
+      // Treat 0-job responses as potentially failed (per-company errors are swallowed by the
+      // plugin). Skip prune and watermark advancement to avoid deactivating real jobs on
+      // transient network issues.
+      if (!fetchedCount) {
+        console.log(`[cacheJobs:${source.name}] No jobs returned — skipping prune`);
+        // 'no_results' rather than 'ok': the plugin swallows per-company errors, so an empty
+        // response is indistinguishable here from every company failing. Recorded as its own
+        // status so the monitor can flag it instead of reading it as a healthy zero.
+        recordPipelineRun(db, {
+          runKind: 'source_sync', source: source.name, status: 'no_results',
+          startedAt: runStartedAt, details: { companies: companies.length },
+        });
+        continue;
+      }
+      const { cached, unchanged, ejected, dropped, rescued, merged, outOfMarket, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut, retiredReseen, noId } = totals;
 
       // ── Expiry pruning (outside the upsert transaction) ───────────────────
 
@@ -1108,11 +1128,11 @@ async function cacheJobs(db, anthropic = null, opts = {}) {
       if (merged  > 0) console.log(`[cacheJobs:${source.name}] Merged ${merged} cross-source duplicates into existing canonical rows`);
       if (outOfMarket > 0) console.log(`[cacheJobs:${source.name}] Held out ${outOfMarket} postings outside the US or with no readable location`);
       if (pruned  > 0) console.log(`[cacheJobs:${source.name}] Pruned ${pruned} jobs inactive (${byDate.changes} expired, ${byStale.changes} stale)`);
-      console.log(`[cacheJobs:${source.name}] Sync complete — ${fetchedJobs.length} fetched, ${cached} new/changed, ${unchanged} unchanged (touch-only), ${merged} merged, ${pruned} pruned (prevWatermark=${prevWatermark})`);
+      console.log(`[cacheJobs:${source.name}] Sync complete — ${fetchedCount} fetched, ${cached} new/changed, ${unchanged} unchanged (touch-only), ${merged} merged, ${pruned} pruned (prevWatermark=${prevWatermark})`);
       recordPipelineRun(db, {
         runKind: 'source_sync', source: source.name, status: 'ok',
         startedAt: runStartedAt,
-        fetched: fetchedJobs.length, written: cached, unchanged, merged, dropped, ejected,
+        fetched: fetchedCount, written: cached, unchanged, merged, dropped, ejected,
         details: { companies: companies.length, pruned, prunedExpired: byDate.changes, prunedStale: byStale.changes, outOfMarket,
                    rescued, tooOld, agedOut, wouldAgeOut, outOfScope, scopedOut, wouldScopeOut, retiredReseen, noId },
       });
