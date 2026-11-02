@@ -210,6 +210,9 @@ export function createBoardFitPrecompute({
   // default view shows the profile's own category (and unclassified rows) only, so only those are precomputed; a
   // posting reached by a search or another function is scored when it is opened, as before.
   scopeFor = null,
+  // Owner 11-02: (userId) -> true for an account that is never precomputed (a trial account reads its sample's
+  // frozen cards). Skipped in schedule and in runAll.
+  skipUser = null,
   log = console,
   batchSize = 50,
   sliceMs = 40,
@@ -413,7 +416,10 @@ export function createBoardFitPrecompute({
    * lands mid-run asks for ONE more pass afterwards (incremental, so it only picks up what changed)
    * instead of starting a second concurrent pass over the same rows.
    */
+  const skipped = (userId) => { try { return !!skipUser?.(userId); } catch { return false; } };
+
   function schedule({ userId, profile, reason = "trigger", force = false }) {
+    if (skipped(userId)) return Promise.resolve({ userId, profileId: profile?.id ?? null, reason, status: "skipped" });
     const key = `${userId}:${profile?.id ?? "none"}`;
     const running = inFlight.get(key);
     if (running) { running.rerun = true; running.force ||= force; return running.promise; }
@@ -435,7 +441,7 @@ export function createBoardFitPrecompute({
     const profiles = db.prepare(`
       SELECT * FROM domain_profiles WHERE is_active = 1 ${userId != null ? "AND user_id = ?" : ""}
       ORDER BY user_id, id
-    `).all(...(userId != null ? [userId] : []));
+    `).all(...(userId != null ? [userId] : [])).filter(p => !skipped(p.user_id));
     const results = [];
     for (const profile of profiles) {
       results.push(dryRun
