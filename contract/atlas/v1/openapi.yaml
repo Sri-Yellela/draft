@@ -1,0 +1,1067 @@
+openapi: 3.1.0
+info:
+  title: Atlas API
+  version: 1.0.0-draft
+  summary: The skill map, the thesaurus, live posting stats and Learn — offered to consumers; draft is the first.
+  description: |
+    D134 P1 — ON PAPER, for the owner's review. Nothing implements this yet.
+    The domain model, the rules and the mapping from today's endpoints are in README.md beside this file.
+
+    Rules every endpoint holds to:
+      * Atlas never reads a consumer's database, and a consumer never reads Atlas's.
+      * Atlas holds no personal data. A person is an opaque `subject` chosen by the consumer.
+        Skill lists sent to compute endpoints are used for that call and not stored.
+      * Within v1, changes are additive only. A breaking change is v2.
+servers:
+  - url: http://atlas.railway.internal/v1
+    description: Railway private network (draft → atlas)
+  - url: https://api.jobsviadraft.com/atlas/v1
+    description: Public host — only when the owner offers Atlas outside (P5)
+
+security:
+  - apiKey: []
+
+tags:
+  - name: read
+    description: Public graph reads (scope `read`)
+  - name: compute
+    description: Computed answers, nothing stored (scope `compute`)
+  - name: events
+    description: Facts in from consumers (scope `events`)
+  - name: learn
+    description: Learn content and subject progress (scope `learn`)
+  - name: admin
+    description: Curation (scope `admin`)
+
+paths:
+  /version:
+    get:
+      tags: [read]
+      operationId: getVersion
+      security: []
+      summary: Contract, build, matcher and snapshot versions
+      responses:
+        "200":
+          description: Versions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Version" }
+
+  # ── read ────────────────────────────────────────────────────────────────────────────────────
+  /nodes:
+    get:
+      tags: [read]
+      operationId: listNodes
+      summary: Page through nodes (the sitemap reads published slugs from here)
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [published], default: published } }
+        - { name: kind, in: query, schema: { $ref: "#/components/schemas/NodeKind" } }
+        - { name: family, in: query, schema: { $ref: "#/components/schemas/Family" } }
+        - { name: fields, in: query, description: "Comma-separated field names to return (e.g. slug,updatedAt)", schema: { type: string } }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        "200":
+          description: A page of nodes
+          headers: { ETag: { $ref: "#/components/headers/ETag" } }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [nodes, hasMore]
+                properties:
+                  nodes: { type: array, items: { $ref: "#/components/schemas/NodeSummary" } }
+                  next: { type: [string, "null"] }
+                  hasMore: { type: boolean }
+        default: { $ref: "#/components/responses/Error" }
+
+  /nodes/{slug}:
+    get:
+      tags: [read]
+      operationId: getNode
+      summary: One published node's page data
+      parameters: [{ $ref: "#/components/parameters/Slug" }]
+      responses:
+        "200":
+          description: The node
+          headers:
+            ETag: { $ref: "#/components/headers/ETag" }
+            Cache-Control: { $ref: "#/components/headers/CacheControl" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Node" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /search:
+    get:
+      tags: [read]
+      operationId: search
+      summary: Search published nodes by name or confirmed alias (normalised — case, accents, punctuation)
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, maxLength: 80 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        "200":
+          description: Hits, best first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [q, results]
+                properties:
+                  q: { type: string }
+                  results: { type: array, items: { $ref: "#/components/schemas/SearchHit" } }
+        default: { $ref: "#/components/responses/Error" }
+
+  /peek/{slug}:
+    get:
+      tags: [read]
+      operationId: peek
+      summary: The popup's small read (D114). p95 ≤ 100 ms from draft.
+      description: Public and cacheable for everyone. A reader's have / missing is added by the consumer (README Q2).
+      parameters: [{ $ref: "#/components/parameters/Slug" }]
+      responses:
+        "200":
+          description: The peek
+          headers: { Cache-Control: { $ref: "#/components/headers/CacheControl" } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Peek" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /graph/{slug}:
+    get:
+      tags: [read]
+      operationId: getGraph
+      summary: The neighbourhood of a node to a depth
+      parameters:
+        - { $ref: "#/components/parameters/Slug" }
+        - { name: depth, in: query, schema: { type: integer, minimum: 1, maximum: 3, default: 1 } }
+        - { name: types, in: query, description: "Comma-separated edge types", schema: { type: string } }
+      responses:
+        "200":
+          description: Nodes and edges
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [root, nodes, edges]
+                properties:
+                  root: { type: string }
+                  nodes: { type: array, items: { $ref: "#/components/schemas/NodeSummary" } }
+                  edges: { type: array, items: { $ref: "#/components/schemas/Edge" } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /families:
+    get:
+      tags: [read]
+      operationId: listFamilies
+      summary: The families (D116 M1 / D127)
+      responses:
+        "200":
+          description: Families
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [families]
+                properties:
+                  families:
+                    type: array
+                    items:
+                      type: object
+                      required: [key, name]
+                      properties:
+                        key: { $ref: "#/components/schemas/Family" }
+                        name: { type: string }
+                        nodes: { type: integer }
+
+  /roles/{slug}:
+    get:
+      tags: [read]
+      operationId: getRole
+      summary: A role page's board data (D105 P12) — skills with shares, levels, companies, the next level's rises
+      parameters: [{ $ref: "#/components/parameters/Slug" }]
+      responses:
+        "200":
+          description: The role's board data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoleBoard" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /trees/roles/{slug}:
+    get:
+      tags: [read]
+      operationId: getRoleTree
+      summary: The public tree on a role page (no subject)
+      parameters: [{ $ref: "#/components/parameters/Slug" }]
+      responses:
+        "200": { description: The tree, content: { application/json: { schema: { $ref: "#/components/schemas/Tree" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /trees/families/{key}:
+    get:
+      tags: [read]
+      operationId: getFamilyTree
+      summary: The public tree on a family page (no subject)
+      parameters:
+        - { name: key, in: path, required: true, schema: { $ref: "#/components/schemas/Family" } }
+      responses:
+        "200": { description: The tree, content: { application/json: { schema: { $ref: "#/components/schemas/Tree" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /thumbs/{urlHash}:
+    get:
+      tags: [read]
+      operationId: getThumb
+      summary: A resource's stored picture (D119)
+      parameters:
+        - { name: urlHash, in: path, required: true, schema: { type: string, pattern: "^[0-9a-f]{64}$" } }
+      responses:
+        "200":
+          description: The image
+          content:
+            image/*: { schema: { type: string, contentMediaType: "image/*" } }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /thesaurus/snapshot:
+    get:
+      tags: [read]
+      operationId: getThesaurusSnapshot
+      summary: The confirmed thesaurus and the node list, versioned — the consumer's local copy
+      parameters:
+        - { name: If-None-Match, in: header, schema: { type: string } }
+      responses:
+        "200":
+          description: The snapshot
+          headers: { ETag: { $ref: "#/components/headers/ETag" } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ThesaurusSnapshot" }
+        "304": { description: Not modified }
+
+  /changes:
+    get:
+      tags: [read]
+      operationId: getChanges
+      summary: The change feed — node, alias, edge, stats and learn changes after a cursor
+      parameters:
+        - { name: since, in: query, required: true, schema: { type: string } }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        "200":
+          description: Changes in order
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [changes, next, hasMore]
+                properties:
+                  changes: { type: array, items: { $ref: "#/components/schemas/Change" } }
+                  next: { type: string }
+                  hasMore: { type: boolean }
+        "410":
+          description: The cursor is older than retention (30 days) — re-take the snapshot
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+
+  # ── compute ─────────────────────────────────────────────────────────────────────────────────
+  /resolve:
+    post:
+      tags: [compute]
+      operationId: resolve
+      summary: Terms → published nodes, aliases, broader terms, sibling candidates. p95 ≤ 100 ms.
+      description: |
+        Replaces draft's direct reads for the job page's links (publicJobPage) and the tailoring's
+        broader terms (leanTailoring.broaderTerms). A term with no published node is absent from `nodes`.
+        `broader` follows part_of / requires only; `siblings` (used_with / alternative_to) are candidates to
+        ASK the person about, never to add (D123 P6c).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [terms]
+              properties:
+                terms: { type: array, maxItems: 200, items: { type: string, maxLength: 80 } }
+                include:
+                  type: array
+                  items: { type: string, enum: [aliases, broader, siblings] }
+      responses:
+        "200":
+          description: Keyed by the caller's own strings, as sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [nodes]
+                properties:
+                  nodes:
+                    type: object
+                    additionalProperties: { $ref: "#/components/schemas/Resolved" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /annotate:
+    post:
+      tags: [compute]
+      operationId: annotate
+      summary: A posting's text → the linkable Atlas terms and their spans (D114). Nothing stored.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 60000 }
+                title: { type: string, maxLength: 300 }
+                skills: { type: array, description: "The consumer's own extracted skills — a node must be on it to link", items: { type: string } }
+      responses:
+        "200":
+          description: Terms and spans
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [terms]
+                properties:
+                  terms:
+                    type: array
+                    items:
+                      type: object
+                      required: [slug, name, forms]
+                      properties:
+                        slug: { type: string }
+                        name: { type: string }
+                        kind: { $ref: "#/components/schemas/NodeKind" }
+                        forms: { type: array, items: { type: string } }
+                        spans:
+                          type: array
+                          items: { type: array, prefixItems: [{ type: integer }, { type: integer }], minItems: 2, maxItems: 2 }
+        default: { $ref: "#/components/responses/Error" }
+
+  /map:
+    post:
+      tags: [compute]
+      operationId: computeMap
+      summary: Your map — the tree, the three facts and the route for a set of skills (D116). Skills are not stored.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [skills]
+              properties:
+                subject: { $ref: "#/components/schemas/Subject" }
+                skills: { type: array, maxItems: 500, items: { type: string, maxLength: 80 } }
+                roles: { type: array, description: "Target role titles; Atlas resolves them to role nodes", items: { type: string, maxLength: 120 } }
+                family: { $ref: "#/components/schemas/Family" }
+                level: { $ref: "#/components/schemas/Level" }
+                aim: { type: string, maxLength: 120 }
+      responses:
+        "200":
+          description: The map (Cache-Control private, no-store)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Map" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /learn/route:
+    post:
+      tags: [compute]
+      operationId: learnRoute
+      summary: Targets → ordered pieces (D117 C5)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targets]
+              properties:
+                targets: { type: array, items: { type: string } }
+                subject: { $ref: "#/components/schemas/Subject" }
+      responses:
+        "200":
+          description: The route
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pieces]
+                properties:
+                  pieces: { type: array, items: { type: string } }
+                  done: { type: array, items: { type: string } }
+
+  # ── events ──────────────────────────────────────────────────────────────────────────────────
+  /events/postings:
+    post:
+      tags: [events]
+      operationId: postPostingEvents
+      summary: Posting added / updated / closed — the consumer's matcher output, never the posting's text
+      parameters:
+        - { name: Idempotency-Key, in: header, schema: { type: string, maxLength: 128 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties:
+                events: { type: array, minItems: 1, maxItems: 500, items: { $ref: "#/components/schemas/PostingEvent" } }
+      responses:
+        "200":
+          description: One result per event, in order
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      required: [postingRef, result]
+                      properties:
+                        postingRef: { type: string }
+                        result: { type: string, enum: [accepted, stale, rejected] }
+                        reason: { type: string }
+        default: { $ref: "#/components/responses/Error" }
+
+  /events/postings/reconcile:
+    post:
+      tags: [events]
+      operationId: reconcilePostings
+      summary: The nightly full list — Atlas closes absent refs, reports differing ones and the drift
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [runId, page, last, postings]
+              properties:
+                runId: { type: string }
+                page: { type: integer, minimum: 0 }
+                last: { type: boolean }
+                snapshotVersion: { type: string }
+                postings:
+                  type: array
+                  maxItems: 5000
+                  items:
+                    type: object
+                    required: [postingRef, digest]
+                    properties:
+                      postingRef: { type: string }
+                      digest: { type: string, description: "sha256 of the event's term fields, as the matcher package defines it" }
+      responses:
+        "200":
+          description: The page's answer; on the last page, the run's totals
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [resend]
+                properties:
+                  resend: { type: array, items: { type: string } }
+                  closed: { type: integer }
+                  drift: { type: integer, description: "Present on the last page: postings whose stored reading differed" }
+
+  /events/links:
+    post:
+      tags: [events]
+      operationId: postLinkEvent
+      summary: An anonymous count of a link opened or visited (D114)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event]
+              properties:
+                event: { type: string, enum: [open, visit] }
+      responses:
+        "204": { description: Counted }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  # ── learn ───────────────────────────────────────────────────────────────────────────────────
+  /learn/content:
+    get:
+      tags: [learn]
+      operationId: getLearnContent
+      summary: The tracker's content (versioned)
+      responses:
+        "200":
+          description: Content
+          headers: { ETag: { $ref: "#/components/headers/ETag" } }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version, content]
+                properties:
+                  version: { type: integer }
+                  content: { type: object, additionalProperties: true }
+
+  /learn/circle:
+    get:
+      tags: [learn]
+      operationId: getLearnCircle
+      summary: The circle — every piece with needs, opens, teaches, items, checkpoints; the routes
+      responses:
+        "200":
+          description: The circle
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pieces, routes]
+                properties:
+                  pieces: { type: array, items: { $ref: "#/components/schemas/Piece" } }
+                  routes: { type: array, items: { $ref: "#/components/schemas/Route" } }
+
+  /learn/pieces/{id}:
+    get:
+      tags: [learn]
+      operationId: getPiece
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: The piece, content: { application/json: { schema: { $ref: "#/components/schemas/Piece" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /subjects/{subject}/progress:
+    put:
+      tags: [learn]
+      operationId: putProgress
+      summary: Record an earned mark (D117 C8 — opened from the consumer, explained, built)
+      description: |
+        See README Q1: in the recommended shape the consumer keeps the person's text and link and sends
+        only the facts (words, evidenceOk). Atlas applies the same thresholds and refuses a mark that
+        does not meet them.
+      parameters: [{ $ref: "#/components/parameters/SubjectPath" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProgressMark" }
+      responses:
+        "200": { description: The subject's new state, content: { application/json: { schema: { $ref: "#/components/schemas/SubjectState" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /subjects/{subject}/state:
+    get:
+      tags: [learn]
+      operationId: getSubjectState
+      summary: The subject's marks, each piece's state and the learned nodes (D116 M8)
+      parameters: [{ $ref: "#/components/parameters/SubjectPath" }]
+      responses:
+        "200": { description: The state, content: { application/json: { schema: { $ref: "#/components/schemas/SubjectState" } } } }
+
+  /subjects/{subject}/route:
+    get:
+      tags: [learn]
+      operationId: getSubjectRoute
+      summary: The subject's route through the circle (today's /circle/my-route)
+      parameters: [{ $ref: "#/components/parameters/SubjectPath" }]
+      responses:
+        "200":
+          description: The route
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pieces]
+                properties:
+                  routeId: { type: string }
+                  pieces: { type: array, items: { type: string } }
+                  next: { type: [string, "null"] }
+
+  /subjects/{subject}/merge:
+    post:
+      tags: [learn]
+      operationId: mergeSubjects
+      summary: Two accounts became one — `from`'s progress moves into this subject (keepInto) and `from` is deleted
+      parameters: [{ $ref: "#/components/parameters/SubjectPath" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [from]
+              properties:
+                from: { $ref: "#/components/schemas/Subject" }
+      responses:
+        "200":
+          description: Merged
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [moved, kept]
+                properties:
+                  moved: { type: integer }
+                  kept: { type: integer }
+
+  /subjects/{subject}:
+    delete:
+      tags: [learn]
+      operationId: deleteSubject
+      summary: Delete everything held for a subject (the consumer's account deletion calls this)
+      parameters: [{ $ref: "#/components/parameters/SubjectPath" }]
+      responses:
+        "204": { description: Deleted (also when nothing was held) }
+
+  # ── admin (bodies pinned in P2 from today's routes/atlas.js, routes/learnAdmin.js, routes/thumbs.js) ──
+  /admin/nodes:
+    get: { tags: [admin], operationId: adminListNodes, summary: "Every node with readiness (today GET /api/admin/atlas/)", responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+    post: { tags: [admin], operationId: adminCreateNode, summary: Create a node (draft), responses: { "201": { $ref: "#/components/responses/AdminOk" }, "409": { $ref: "#/components/responses/Error" } } }
+  /admin/nodes/{slug}:
+    parameters: [{ $ref: "#/components/parameters/Slug" }]
+    get: { tags: [admin], operationId: adminReadNode, summary: The editor's read, responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+    patch: { tags: [admin], operationId: adminUpdateNode, summary: "Edit name, definition, family, kind, wiki title", responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/nodes/{slug}/status:
+    parameters: [{ $ref: "#/components/parameters/Slug" }]
+    post: { tags: [admin], operationId: adminSetStatus, summary: "Publish / unpublish (a person's unpublish is sticky, D105 P7)", responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/nodes/{slug}/aliases:
+    parameters: [{ $ref: "#/components/parameters/Slug" }]
+    post: { tags: [admin], operationId: adminAddAlias, summary: Add a confirmed alias, responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/nodes/{slug}/edges:
+    parameters: [{ $ref: "#/components/parameters/Slug" }]
+    post: { tags: [admin], operationId: adminAddEdge, summary: Add a typed edge, responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+    delete: { tags: [admin], operationId: adminRemoveEdge, summary: Remove an edge, responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/nodes/{slug}/resources:
+    parameters: [{ $ref: "#/components/parameters/Slug" }]
+    post: { tags: [admin], operationId: adminAddResource, summary: Add a resource, responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/resources/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+    patch: { tags: [admin], operationId: adminUpdateResource, summary: Edit a resource, responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+    delete: { tags: [admin], operationId: adminRemoveResource, summary: Remove a resource, responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/merge:
+    post: { tags: [admin], operationId: adminMergeNodes, summary: "Merge two nodes (the loser's term becomes a confirmed alias)", responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/wiki/{action}:
+    parameters: [{ name: action, in: path, required: true, schema: { type: string, enum: [refresh, ask-again, classes, redirects, redirects-accept, probe] } }]
+    post: { tags: [admin], operationId: adminWiki, summary: "Wikipedia / Wikidata matching (D105 P8–P10)", responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/definitions/{action}:
+    parameters: [{ name: action, in: path, required: true, schema: { type: string, enum: [export, import, drafts, accept-all] } }]
+    post: { tags: [admin], operationId: adminDefinitions, summary: "Drafted definitions, reviewed (D105 P11)", responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/jobs/{job}:
+    parameters: [{ name: job, in: path, required: true, schema: { type: string, enum: [stats, auto-publish, auto-pipeline, link-check, thumbs-refresh, learn-links-check] } }]
+    post: { tags: [admin], operationId: adminRunJob, summary: "Run one of Atlas's scheduled jobs now", responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/thesaurus/proposals:
+    get: { tags: [admin], operationId: adminListProposals, summary: The review queue, responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+    post: { tags: [admin], operationId: adminImportProposals, summary: "Import proposals (D17 export → owner → import); never confirmed by import", responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/thesaurus/{term}/{equivalent}:
+    parameters:
+      - { name: term, in: path, required: true, schema: { type: string } }
+      - { name: equivalent, in: path, required: true, schema: { type: string } }
+    post: { tags: [admin], operationId: adminReviewSynonym, summary: "Confirm or reject (the only way a row reaches the snapshot)", responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/learn/{action}:
+    parameters: [{ name: action, in: path, required: true, schema: { type: string, enum: [content, import-preview, import-apply, circle, circle-import, needs, accept-all, routes] } }]
+    post: { tags: [admin], operationId: adminLearn, summary: "Learn content import and the circle's review (D118 P2, D117)", responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+  /admin/thumbs/{action}:
+    parameters: [{ name: action, in: path, required: true, schema: { type: string, enum: [list, pin, hide, refresh] } }]
+    post: { tags: [admin], operationId: adminThumbs, summary: "Pictures: pin, take down, refresh (D119)", responses: { "200": { $ref: "#/components/responses/AdminOk" } } }
+
+components:
+  securitySchemes:
+    apiKey:
+      type: http
+      scheme: bearer
+      bearerFormat: "atl_<key> — one per consumer, with scopes read · compute · events · learn · admin"
+
+  parameters:
+    Slug: { name: slug, in: path, required: true, schema: { type: string, pattern: "^[a-z0-9][a-z0-9-]{0,119}$" } }
+    SubjectPath: { name: subject, in: path, required: true, schema: { $ref: "#/components/schemas/Subject" } }
+    Cursor: { name: cursor, in: query, schema: { type: string } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 100 } }
+
+  headers:
+    ETag: { schema: { type: string } }
+    CacheControl: { schema: { type: string }, description: "public, max-age=60 on public reads; private, no-store on subject reads" }
+    RequestId: { schema: { type: string } }
+
+  responses:
+    Error:
+      description: An error, in the one shape
+      headers: { X-Request-Id: { $ref: "#/components/headers/RequestId" } }
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    NotFound:
+      description: Unknown, or not published
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    BadRequest:
+      description: The request is malformed
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    AdminOk:
+      description: "Admin answer (shape pinned in P2 from today's routes)"
+      content: { application/json: { schema: { type: object, additionalProperties: true } } }
+
+  schemas:
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error: { type: string, description: "not_found · bad_request · scope_required · rate_limited · cursor_expired · …" }
+        message: { type: string }
+        requestId: { type: string }
+        scope: { type: string }
+        details: { type: object, additionalProperties: true }
+
+    Version:
+      type: object
+      required: [api, build, matcherVersion, snapshotVersion]
+      properties:
+        api: { type: string, examples: ["1.0.0"] }
+        build: { type: string }
+        matcherVersion: { type: string }
+        snapshotVersion: { type: string }
+
+    Subject:
+      type: string
+      minLength: 8
+      maxLength: 128
+      pattern: "^[A-Za-z0-9_-]+$"
+      description: "Opaque, chosen by the consumer (draft: an HMAC of its user id under a draft-side key). Never an email, name or raw id."
+
+    NodeKind: { type: string, enum: [role, skill, tool, concept, pattern, stack], x-extensible-enum: true }
+    Family: { type: string, enum: [ml, systems, infra, data, backend], x-extensible-enum: true }
+    Level: { type: string, enum: [entry, early, mid, senior] }
+    EdgeType: { type: string, enum: [requires, part_of, used_with, alternative_to, leads_to], x-extensible-enum: true }
+    EdgeSource: { type: string, enum: [owner, registry, wikidata, onet, board], x-extensible-enum: true }
+
+    NodeSummary:
+      type: object
+      required: [slug, kind, name]
+      properties:
+        slug: { type: string }
+        kind: { $ref: "#/components/schemas/NodeKind" }
+        name: { type: string }
+        family: { type: [string, "null"] }
+        updatedAt: { type: integer, description: unix seconds }
+
+    Node:
+      allOf:
+        - $ref: "#/components/schemas/NodeSummary"
+        - type: object
+          required: [status, aliases, related, resources, fewOpenPostings]
+          properties:
+            status: { type: string, enum: [draft, published] }
+            aliases: { type: array, items: { type: string } }
+            definition: { type: [string, "null"] }
+            definitionBy: { type: [string, "null"], description: "owner · curator · drafted — never a curator's name" }
+            onTheBoard: { oneOf: [{ $ref: "#/components/schemas/NodeStats" }, { type: "null" }] }
+            fewOpenPostings: { type: boolean }
+            related: { type: array, items: { $ref: "#/components/schemas/Related" } }
+            resources: { type: array, items: { $ref: "#/components/schemas/Resource" } }
+            wikipedia: { oneOf: [{ $ref: "#/components/schemas/WikiSummary" }, { type: "null" }] }
+            learn:
+              type: [object, "null"]
+              properties:
+                stepId: { type: string }
+                label: { type: string }
+
+    Related:
+      type: object
+      required: [type, dir, slug, kind, name]
+      properties:
+        type: { $ref: "#/components/schemas/EdgeType" }
+        dir: { type: string, enum: [out, in] }
+        slug: { type: string }
+        kind: { $ref: "#/components/schemas/NodeKind" }
+        name: { type: string }
+
+    Edge:
+      type: object
+      required: [from, to, type]
+      properties:
+        from: { type: string }
+        to: { type: string }
+        type: { $ref: "#/components/schemas/EdgeType" }
+        source: { $ref: "#/components/schemas/EdgeSource" }
+
+    NodeStats:
+      type: object
+      required: [postings, computedAt]
+      properties:
+        postings: { type: integer }
+        topSkills: { type: array, items: { type: object, additionalProperties: true } }
+        topRoles: { type: array, items: { type: object, additionalProperties: true } }
+        pay:
+          type: [object, "null"]
+          properties:
+            minUsd: { type: integer }
+            medianUsd: { type: integer }
+            maxUsd: { type: integer }
+            n: { type: integer }
+        computedAt: { type: integer }
+        stale: { type: boolean, description: "true while postings read with an older snapshot remain" }
+
+    Resource:
+      type: object
+      required: [url, title]
+      properties:
+        url: { type: string, format: uri }
+        title: { type: string }
+        level: { type: [string, "null"] }
+        format: { type: [string, "null"] }
+        hours: { type: [number, "null"] }
+        cost: { type: [string, "null"] }
+        source: { type: [string, "null"] }
+        checkedAt: { type: [integer, "null"] }
+        checkStatus: { type: [string, "null"] }
+        thumb:
+          type: [object, "null"]
+          properties:
+            urlHash: { type: string }
+            kind: { type: string, enum: [youtube, youtube_search, book, site, none] }
+            title: { type: [string, "null"] }
+            attribution: { type: [string, "null"] }
+
+    WikiSummary:
+      type: object
+      required: [title, pageUrl, licence]
+      description: Wikipedia's text, shown as Wikipedia's — never without its licence and link
+      properties:
+        title: { type: string }
+        extract: { type: [string, "null"] }
+        thumbnailUrl: { type: [string, "null"] }
+        pageUrl: { type: string, format: uri }
+        fetchedAt: { type: integer }
+        licence:
+          type: object
+          required: [line, url]
+          properties:
+            line: { type: string, const: "From Wikipedia, CC BY-SA 4.0" }
+            url: { type: string, const: "https://creativecommons.org/licenses/by-sa/4.0/" }
+
+    SearchHit:
+      type: object
+      required: [slug, kind, name, via]
+      properties:
+        slug: { type: string }
+        kind: { $ref: "#/components/schemas/NodeKind" }
+        name: { type: string }
+        via: { type: string, enum: [name, alias, prefix, typo, definition], x-extensible-enum: true }
+        why: { type: [string, "null"] }
+
+    Peek:
+      type: object
+      required: [slug, name, kind, postings, fromWikipedia]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        kind: { $ref: "#/components/schemas/NodeKind" }
+        meaning: { type: [string, "null"] }
+        fromWikipedia: { type: boolean }
+        wikipediaUrl: { type: [string, "null"] }
+        postings: { type: integer }
+        firstResource:
+          type: [object, "null"]
+          properties:
+            title: { type: string }
+            url: { type: string }
+            format: { type: [string, "null"] }
+        learnStep:
+          type: object
+          properties:
+            stepId: { type: string }
+            label: { type: string }
+
+    Resolved:
+      type: object
+      required: [slug]
+      properties:
+        slug: { type: string }
+        aliases: { type: array, items: { type: string } }
+        broader:
+          type: array
+          description: "Nodes this term is part_of / requires — e.g. PyTorch → deep learning"
+          items: { type: object, required: [slug, name], properties: { slug: { type: string }, name: { type: string }, via: { $ref: "#/components/schemas/EdgeType" } } }
+        siblings:
+          type: array
+          description: "used_with / alternative_to — to ASK about, never to add"
+          items: { type: object, required: [slug, name], properties: { slug: { type: string }, name: { type: string }, via: { $ref: "#/components/schemas/EdgeType" } } }
+
+    RoleBoard:
+      type: object
+      required: [slug, postings]
+      properties:
+        slug: { type: string }
+        postings: { type: integer }
+        skills: { type: array, items: { type: object, properties: { slug: { type: string }, name: { type: string }, share: { type: number } } } }
+        levels: { type: array, items: { type: object, properties: { level: { $ref: "#/components/schemas/Level" }, postings: { type: integer } } } }
+        unread: { type: integer, description: Postings with no level read }
+        companies: { type: array, items: { type: object, properties: { companyKey: { type: string }, postings: { type: integer } } } }
+        rises: { type: array, items: { type: object, properties: { slug: { type: string }, name: { type: string }, from: { type: number }, to: { type: number } } } }
+        pay: { $ref: "#/components/schemas/NodeStats/properties/pay" }
+
+    Tree:
+      type: object
+      required: [families]
+      description: D116 M1's tree. In a Map answer each node also carries the subject's ring.
+      properties:
+        root: { type: string }
+        families:
+          type: array
+          items:
+            type: object
+            required: [key, nodes]
+            properties:
+              key: { $ref: "#/components/schemas/Family" }
+              nodes:
+                type: array
+                items:
+                  type: object
+                  required: [slug, name]
+                  properties:
+                    slug: { type: string }
+                    name: { type: string }
+                    share: { type: number }
+                    byLevel: { type: object, additionalProperties: { type: number } }
+                    ring: { type: string, enum: [have, missing, learned] }
+
+    Map:
+      type: object
+      required: [tree, facts]
+      properties:
+        roles: { type: array, items: { type: string, description: role slug } }
+        tree: { $ref: "#/components/schemas/Tree" }
+        facts: { type: array, maxItems: 3, items: { type: object, additionalProperties: true } }
+        route: { type: array, items: { type: string } }
+        computedAt: { type: integer }
+
+    PostingEvent:
+      type: object
+      required: [op, postingRef, at, matcherVersion, snapshotVersion]
+      properties:
+        op: { type: string, enum: [upsert, close] }
+        postingRef: { type: string, maxLength: 128, description: "The consumer's own id for the posting" }
+        companyKey: { type: string, maxLength: 200 }
+        role: { type: [string, "null"], description: "Role node slug, from the matcher" }
+        level: { oneOf: [{ $ref: "#/components/schemas/Level" }, { type: "null" }] }
+        asked: { type: array, items: { type: string }, description: "Node slugs the posting is counted for" }
+        linked: { type: array, items: { type: string }, description: "Node slugs that may be linked in its text" }
+        pay:
+          type: [object, "null"]
+          properties:
+            minUsd: { type: integer }
+            maxUsd: { type: integer }
+        matcherVersion: { type: string }
+        snapshotVersion: { type: string }
+        at: { type: integer, description: "unix ms of the consumer's write; a later at wins" }
+
+    ThesaurusSnapshot:
+      type: object
+      required: [version, generatedAt, terms, nodes]
+      properties:
+        version: { type: string }
+        generatedAt: { type: integer }
+        terms:
+          type: array
+          description: Confirmed rows only, as the scorer's Map<normalisedTerm, string[]>
+          items:
+            type: object
+            required: [term, equivalents]
+            properties:
+              term: { type: string }
+              equivalents: { type: array, items: { type: string } }
+        nodes:
+          type: array
+          items:
+            type: object
+            required: [slug, kind, term, status]
+            properties:
+              slug: { type: string }
+              kind: { $ref: "#/components/schemas/NodeKind" }
+              term: { type: string }
+              status: { type: string, enum: [draft, published] }
+
+    Change:
+      type: object
+      required: [seq, at, entity, op, key]
+      properties:
+        seq: { type: string }
+        at: { type: integer }
+        entity: { type: string, enum: [node, alias, edge, stats, learn], x-extensible-enum: true }
+        op: { type: string, enum: [upsert, delete] }
+        key: { type: string }
+        snapshotVersion: { type: string }
+
+    Piece:
+      type: object
+      required: [id, label]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        needs: { type: array, items: { type: string } }
+        opens: { type: array, items: { type: string } }
+        teaches: { type: array, items: { type: string, description: node slug } }
+        items: { type: array, items: { type: object, additionalProperties: true } }
+        checkpoints: { type: array, items: { type: object, properties: { id: { type: string }, prompt: { type: string } } } }
+
+    Route:
+      type: object
+      required: [id, name, targets]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        targets: { type: array, items: { type: string } }
+
+    ProgressMark:
+      oneOf:
+        - type: object
+          required: [kind, itemId, pieceId]
+          properties:
+            kind: { const: opened }
+            itemId: { type: string }
+            pieceId: { type: string }
+        - type: object
+          required: [kind, checkpointId, pieceId, words]
+          properties:
+            kind: { const: explained }
+            checkpointId: { type: string }
+            pieceId: { type: string }
+            words: { type: integer, minimum: 0, description: "Atlas refuses below EXPLAIN_MIN_WORDS (25)" }
+        - type: object
+          required: [kind, pieceId, buildKind, evidenceOk]
+          properties:
+            kind: { const: built }
+            pieceId: { type: string }
+            buildKind: { type: string }
+            evidenceOk: { type: boolean, description: "The consumer applied D109's evidence rule to the link it keeps" }
+
+    SubjectState:
+      type: object
+      required: [marks, pieces, learned]
+      properties:
+        marks: { type: object, additionalProperties: { type: integer }, description: "mark id → unix seconds" }
+        pieces:
+          type: object
+          description: "piece id → its state, by the ONE rule (shared/learnStepState.js stepState)"
+          additionalProperties:
+            type: object
+            required: [bar, done, total, complete, started]
+            properties:
+              bar: { type: integer, minimum: 0, maximum: 100 }
+              opened: { type: integer }
+              toOpen: { type: integer }
+              explained: { type: integer }
+              checkpoints: { type: integer }
+              built: { type: boolean }
+              done: { type: integer }
+              total: { type: integer }
+              complete: { type: boolean }
+              started: { type: boolean }
+        learned: { type: array, items: { type: string, description: node slug } }
