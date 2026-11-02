@@ -205,7 +205,10 @@ test("a111RoleAgainstResume: opening a pick reads the role against the résumé 
   assert.match(panel, /api\(`\/api\/trial\/role-fit\/\$\{encodeURIComponent\(jobId\)\}`\)/);
   assert.match(panel, /\{a\.line\}/, "the reading's own line");
   assert.match(panel, /a\.found \? "Read from every open posting/, "found:false handled");
-  assert.match(read("services/trialRoleFit.js"), /import \{ roleFitReading \} from "\.\/atlas\/atlasRoleFit\.js";/, "the one-import swap is written down");
+  // the swap made (integration, 44g): the trial reads A111 P3's own reading — no stand-in left
+  const seam = read("services/trialRoleFit.js");
+  assert.match(seam, /import \{ roleFitReading as atlasRoleFitReading \} from "\.\/atlas\/atlasRoleFit\.js";/, "P3's reading is wired");
+  assert.doesNotMatch(seam, /localRoleFitReading/, "the stand-in is gone");
   assert.match(read("client/src/panels/DeckView.jsx"), /\{Number\.isFinite\(card\.score\) && <TrialRoleFit jobId=\{card\.job\.id\}\/>\}/);
 });
 
