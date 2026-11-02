@@ -37,6 +37,7 @@ export const HOSTS = {
   workable: [{ surt: "com,workable,apply)/", slug: first }],
   recruitee: [{ surt: "com,recruitee,", slug: (u) => u.hostname.split(".")[0] }],
   bamboohr: [{ surt: "com,bamboohr,", slug: (u) => (/^[a-z0-9-]+\.bamboohr\.com$/i.test(u.hostname) && !/^(www|api|help|partners|marketplace)\./i.test(u.hostname) ? u.hostname.split(".")[0] : "") }],
+  gem: [{ surt: "com,gem,jobs)/", slug: first }],
   // https://adobe.wd5.myworkdayjobs.com/en-US/external_experienced → "5|adobe|external_experienced"
   workday: [{ surt: "com,myworkdayjobs,", slug: (u) => {
     const m = u.hostname.match(/^([a-z0-9-]+)\.wd(\d+)\.myworkdayjobs\.com$/i);
