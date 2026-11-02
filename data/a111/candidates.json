@@ -1,0 +1,2387 @@
+[
+ {
+  "atsType": "workday",
+  "slug": "1|wellsfargo|WellsFargoJobs",
+  "company": "Wells Fargo"
+ },
+ {
+  "atsType": "workday",
+  "slug": "12|capitalone|Capital_One",
+  "company": "Capital One"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|usbank|US_Bank_Careers",
+  "company": "U.S. Bank"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|pnc|External",
+  "company": "PNC"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|truist|Careers",
+  "company": "Truist"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|statestreet|Global",
+  "company": "State Street"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|bnymellon|BNY_Careers",
+  "company": "BNY"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|bnymellon|BNY_Careers",
+  "company": "BNY"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|ntrs|northerntrust",
+  "company": "Northern Trust"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|fmr|FidelityCareers",
+  "company": "Fidelity Investments"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|troweprice|TRowePrice",
+  "company": "T. Rowe Price"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|blackrock|BlackRock_Professional",
+  "company": "BlackRock"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|schwab|External",
+  "company": "Charles Schwab"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|nasdaq|Global_External_Site",
+  "company": "Nasdaq"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|mastercard|CorporateCareers",
+  "company": "Mastercard"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|synchronyfinancial|careers",
+  "company": "Synchrony"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|ally|Ally_Careers",
+  "company": "Ally"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|citi|2",
+  "company": "Citi"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|citizensbank|CitizensExternal",
+  "company": "Citizens"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|keybank|External_Career_Site",
+  "company": "KeyBank"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|fifththird|53careers",
+  "company": "Fifth Third"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|regions|Regions_Careers",
+  "company": "Regions"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|mtb|MTB",
+  "company": "M&T Bank"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|huntington|HNBcareers",
+  "company": "Huntington"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|raymondjames|RaymondJamesCareers",
+  "company": "Raymond James"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|ameriprise|Ameriprise",
+  "company": "Ameriprise"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|franklintempleton|Primary-External-1",
+  "company": "Franklin Templeton"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|invesco|IVZ",
+  "company": "Invesco"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|principal|Principal",
+  "company": "Principal Financial"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|voya|VoyaJobs",
+  "company": "Voya"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|equitable|External",
+  "company": "Equitable"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|spgi|SPGI_Careers",
+  "company": "S&P Global"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|moodys|moodys",
+  "company": "Moody's"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|msci|External",
+  "company": "MSCI"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|ice|ICE",
+  "company": "Intercontinental Exchange"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|cmegroup|cme_careers",
+  "company": "CME Group"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|broadridge|Careers",
+  "company": "Broadridge"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|fis|SearchJobs",
+  "company": "FIS"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|fiserv|EXT",
+  "company": "Fiserv"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|tsys|TSYS",
+  "company": "Global Payments"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|discover|Discover",
+  "company": "Discover"
+ },
+ {
+  "atsType": "smartrecruiters",
+  "slug": "Visa",
+  "company": "Visa"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "point72",
+  "company": "Point72"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "schonfeld",
+  "company": "Schonfeld"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "schonfeldstrategicadvisors",
+  "company": "Schonfeld"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "jumptrading",
+  "company": "Jump Trading"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "imc",
+  "company": "IMC Trading"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "akunacapital",
+  "company": "Akuna Capital"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "wehrtyou",
+  "company": "Hudson River Trading"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "arcesium",
+  "company": "Arcesium"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "addepar1",
+  "company": "Addepar"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "addepar",
+  "company": "Addepar"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "betterment",
+  "company": "Betterment"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "robinhood",
+  "company": "Robinhood"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "chime",
+  "company": "Chime"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "sofi",
+  "company": "SoFi"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "affirm",
+  "company": "Affirm"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "marqeta",
+  "company": "Marqeta"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "carta",
+  "company": "Carta"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "toast",
+  "company": "Toast"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "coinbase",
+  "company": "Coinbase"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "wealthsimple",
+  "company": "Wealthsimple"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "brex",
+  "company": "Brex"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "gusto",
+  "company": "Gusto"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "biltrewards",
+  "company": "Bilt Rewards"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "blackstone",
+  "company": "Blackstone"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "generalatlantic",
+  "company": "General Atlantic"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "apollo",
+  "company": "Apollo"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "bridgewater89",
+  "company": "Bridgewater"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "bridgewater",
+  "company": "Bridgewater"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "twosigma",
+  "company": "Two Sigma"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "tradeweb",
+  "company": "Tradeweb"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "ramp",
+  "company": "Ramp"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "mercury",
+  "company": "Mercury"
+ },
+ {
+  "atsType": "lever",
+  "slug": "plaid",
+  "company": "Plaid"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "plaid",
+  "company": "Plaid"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "lemonade",
+  "company": "Lemonade"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "oscar",
+  "company": "Oscar Health"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "rootinc",
+  "company": "Root Insurance"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "root",
+  "company": "Root Insurance"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "hippo",
+  "company": "Hippo"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "hippoinsurance",
+  "company": "Hippo"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "clearcover",
+  "company": "Clearcover"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "kininsurance",
+  "company": "Kin Insurance"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "ethoslife",
+  "company": "Ethos"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "ethos",
+  "company": "Ethos"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "policygenius",
+  "company": "Policygenius"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "nextinsurance",
+  "company": "Next Insurance"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "coalition",
+  "company": "Coalition"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "newfront",
+  "company": "Newfront"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "vouch",
+  "company": "Vouch"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|travelers|External",
+  "company": "Travelers"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|nationwide|Nationwide_Career",
+  "company": "Nationwide"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|allstate|allstate_careers",
+  "company": "Allstate"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|libertymutual|LMI",
+  "company": "Liberty Mutual"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|thehartford|Careers_External",
+  "company": "The Hartford"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|chubb|Chubb_External_Careers",
+  "company": "Chubb"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|metlife|MetLifeCareers",
+  "company": "MetLife"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|prudential|prudential",
+  "company": "Prudential"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|aflac|External",
+  "company": "Aflac"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|mmc|MMC",
+  "company": "Marsh McLennan"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|aon|AonCareers",
+  "company": "Aon"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|wtw|WTWCareers",
+  "company": "WTW"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|unum|External",
+  "company": "Unum"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|lfg|LFG_Careers",
+  "company": "Lincoln Financial"
+ },
+ {
+  "atsType": "workday",
+  "slug": "3|pwc|Global_Experienced_Careers",
+  "company": "PwC"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|kpmg|KPMG_US",
+  "company": "KPMG"
+ },
+ {
+  "atsType": "workday",
+  "slug": "103|accenture|AccentureCareers",
+  "company": "Accenture"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|bah|BAH_Jobs",
+  "company": "Booz Allen"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|guidehouse|External",
+  "company": "Guidehouse"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|fticonsulting|FTI_Careers",
+  "company": "FTI Consulting"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|huronconsultinggroup|huroncareers",
+  "company": "Huron"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|gartner|EXT",
+  "company": "Gartner"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|icf|ICF_Careers",
+  "company": "ICF"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|cbre|CBRE_Careers",
+  "company": "CBRE"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|jll|jllcareers",
+  "company": "JLL"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|cushmanwakefield|External",
+  "company": "Cushman & Wakefield"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "westmonroe",
+  "company": "West Monroe"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "westmonroepartners",
+  "company": "West Monroe"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "slalom",
+  "company": "Slalom"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "analysisgroup",
+  "company": "Analysis Group"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "cornerstoneresearch",
+  "company": "Cornerstone Research"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "crai",
+  "company": "Charles River Associates"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "lek",
+  "company": "L.E.K. Consulting"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "lekconsulting",
+  "company": "L.E.K. Consulting"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "simonkucher",
+  "company": "Simon-Kucher"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "alvarezmarsal",
+  "company": "Alvarez & Marsal"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "kearney",
+  "company": "Kearney"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "oliverwyman",
+  "company": "Oliver Wyman"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "clearviewhealthcarepartners",
+  "company": "Clearview Healthcare Partners"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "putnamassociates",
+  "company": "Putnam Associates"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "capco",
+  "company": "Capco"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "protiviti",
+  "company": "Protiviti"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|nike|nke",
+  "company": "Nike"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|target|targetcareers",
+  "company": "Target"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|walmart|WalmartExternal",
+  "company": "Walmart"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|gapinc|GAPINC",
+  "company": "Gap Inc."
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|coke|coca-cola-careers",
+  "company": "Coca-Cola"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|heinz|KraftHeinz_Careers",
+  "company": "Kraft Heinz"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|generalmills|General_Mills_Careers",
+  "company": "General Mills"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|elcompanies|External",
+  "company": "Estée Lauder"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|mattel|Mattel",
+  "company": "Mattel"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|hasbro|Hasbro_Careers",
+  "company": "Hasbro"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|kohls|kohlscareers",
+  "company": "Kohl's"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|bestbuy|BestBuy",
+  "company": "Best Buy"
+ },
+ {
+  "atsType": "workday",
+  "slug": "3|lululemon|lululemon",
+  "company": "Lululemon"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|vfc|vfc_careers",
+  "company": "VF Corp"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|ralphlauren|ralphlaurencareers",
+  "company": "Ralph Lauren"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|tapestry|External",
+  "company": "Tapestry"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|pvh|PVH_Careers",
+  "company": "PVH"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|levistrauss|External",
+  "company": "Levi Strauss"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|hershey|hershey",
+  "company": "Hershey"
+ },
+ {
+  "atsType": "workday",
+  "slug": "3|mdlz|External",
+  "company": "Mondelez"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|clorox|Clorox",
+  "company": "Clorox"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|kimberlyclark|GLOBAL",
+  "company": "Kimberly-Clark"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|colgate|Colgate",
+  "company": "Colgate-Palmolive"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|kdp|KDP",
+  "company": "Keurig Dr Pepper"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|cbrands|CBI_External_Careers",
+  "company": "Constellation Brands"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|williamssonoma|WSI",
+  "company": "Williams-Sonoma"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|chewy|Chewy",
+  "company": "Chewy"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|ulta|ulta",
+  "company": "Ulta Beauty"
+ },
+ {
+  "atsType": "smartrecruiters",
+  "slug": "McDonaldsCorporation",
+  "company": "McDonald's"
+ },
+ {
+  "atsType": "smartrecruiters",
+  "slug": "Sephora",
+  "company": "Sephora"
+ },
+ {
+  "atsType": "smartrecruiters",
+  "slug": "IKEA",
+  "company": "IKEA"
+ },
+ {
+  "atsType": "smartrecruiters",
+  "slug": "Skechers",
+  "company": "Skechers"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "warbyparker",
+  "company": "Warby Parker"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "allbirds",
+  "company": "Allbirds"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "glossier",
+  "company": "Glossier"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "skims",
+  "company": "SKIMS"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "awaytravel",
+  "company": "Away"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "away",
+  "company": "Away"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "harrys",
+  "company": "Harry's"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "sweetgreen",
+  "company": "Sweetgreen"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "bombas",
+  "company": "Bombas"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "figs",
+  "company": "FIGS"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "wearfigs",
+  "company": "FIGS"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "faire",
+  "company": "Faire"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "etsy",
+  "company": "Etsy"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "instacart",
+  "company": "Instacart"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "renttherunway",
+  "company": "Rent the Runway"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "thredup",
+  "company": "ThredUp"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "therealreal",
+  "company": "The RealReal"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "stitchfix",
+  "company": "Stitch Fix"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "olaplex",
+  "company": "Olaplex"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "brooklinen",
+  "company": "Brooklinen"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "parachutehome",
+  "company": "Parachute"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "rhode",
+  "company": "Rhode"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "liquiddeath",
+  "company": "Liquid Death"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "athleticbrewing",
+  "company": "Athletic Brewing"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "olipop",
+  "company": "Olipop"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "chobani",
+  "company": "Chobani"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "oatly",
+  "company": "Oatly"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "huel",
+  "company": "Huel"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "himshers",
+  "company": "Hims & Hers"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "hims-and-hers",
+  "company": "Hims & Hers"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "peloton",
+  "company": "Peloton"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "squarespace",
+  "company": "Squarespace"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "wayfair",
+  "company": "Wayfair"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "gopuff",
+  "company": "Gopuff"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "poshmark",
+  "company": "Poshmark"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "mejuri",
+  "company": "Mejuri"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "quince",
+  "company": "Quince"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "quince",
+  "company": "Quince"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "vuori",
+  "company": "Vuori"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "aritzia",
+  "company": "Aritzia"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "kendrascott",
+  "company": "Kendra Scott"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "thenewyorktimes",
+  "company": "The New York Times"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "nytimes",
+  "company": "The New York Times"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "voxmedia",
+  "company": "Vox Media"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "buzzfeed",
+  "company": "BuzzFeed"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "axios",
+  "company": "Axios"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "theatlantic",
+  "company": "The Atlantic"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "bustledigitalgroup",
+  "company": "Bustle Digital Group"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "bdg",
+  "company": "Bustle Digital Group"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "politico",
+  "company": "Politico"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "insider",
+  "company": "Business Insider"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "businessinsider",
+  "company": "Business Insider"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "dotdashmeredith",
+  "company": "Dotdash Meredith"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "vicemedia",
+  "company": "Vice Media"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "vice",
+  "company": "Vice Media"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "theathletic",
+  "company": "The Athletic"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "roku",
+  "company": "Roku"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "pinterest",
+  "company": "Pinterest"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "reddit",
+  "company": "Reddit"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "discord",
+  "company": "Discord"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "twitch",
+  "company": "Twitch"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "spotify",
+  "company": "Spotify"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "a24films",
+  "company": "A24"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "a24",
+  "company": "A24"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "condenast",
+  "company": "Condé Nast"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "hearst",
+  "company": "Hearst"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "bloombergmedia",
+  "company": "Bloomberg Media"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "washingtonpost",
+  "company": "The Washington Post"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "penskemedia",
+  "company": "Penske Media"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "crunchyroll",
+  "company": "Crunchyroll"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "audible",
+  "company": "Audible"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "siriusxm",
+  "company": "SiriusXM"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "genius",
+  "company": "Genius"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "substack",
+  "company": "Substack"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "substack",
+  "company": "Substack"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "medium",
+  "company": "Medium"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "patreon",
+  "company": "Patreon"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "morningbrew",
+  "company": "Morning Brew"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "theinformation",
+  "company": "The Information"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "semafor",
+  "company": "Semafor"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "puck",
+  "company": "Puck"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "cameo",
+  "company": "Cameo"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "wondery",
+  "company": "Wondery"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "fanatics",
+  "company": "Fanatics"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "draftkings",
+  "company": "DraftKings"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "livenation",
+  "company": "Live Nation"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "eventbrite",
+  "company": "Eventbrite"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "ea",
+  "company": "Electronic Arts"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "riotgames",
+  "company": "Riot Games"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "epicgames",
+  "company": "Epic Games"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "niantic",
+  "company": "Niantic"
+ },
+ {
+  "atsType": "lever",
+  "slug": "netflix",
+  "company": "Netflix"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|wmg|WMGUS",
+  "company": "Warner Music"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|paramount|ParamountCareers",
+  "company": "Paramount"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|sonymusic|SonyMusic",
+  "company": "Sony Music"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|warnerbros|global",
+  "company": "Warner Bros. Discovery"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|fox|Domestic",
+  "company": "Fox"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|iheartmedia|External",
+  "company": "iHeartMedia"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|umusic|UMGUS",
+  "company": "Universal Music"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|nielsenenterprise|External",
+  "company": "Nielsen"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|disney|disneycareer",
+  "company": "Disney"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|adobe|external_experienced",
+  "company": "Adobe"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "wiedenkennedy",
+  "company": "Wieden+Kennedy"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "rga",
+  "company": "R/GA"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "hugeinc",
+  "company": "Huge"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "huge",
+  "company": "Huge"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "vaynermedia",
+  "company": "VaynerMedia"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "mother",
+  "company": "Mother"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "codeandtheory",
+  "company": "Code and Theory"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "mischief",
+  "company": "Mischief"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "dayoneagency",
+  "company": "Day One Agency"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "edelman",
+  "company": "Edelman"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "ketchum",
+  "company": "Ketchum"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "webershandwick",
+  "company": "Weber Shandwick"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "brunswickgroup",
+  "company": "Brunswick Group"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "moversshakers",
+  "company": "Movers+Shakers"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "jellyfish",
+  "company": "Jellyfish"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "tinuiti",
+  "company": "Tinuiti"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "powerdigitalmarketing",
+  "company": "Power Digital"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "wpromote",
+  "company": "Wpromote"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "razorfish",
+  "company": "Razorfish"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "ogilvy",
+  "company": "Ogilvy"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|omnicom|Omnicom",
+  "company": "Omnicom"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|ipg|IPG",
+  "company": "Interpublic"
+ },
+ {
+  "atsType": "workday",
+  "slug": "3|wpp|wppcareers",
+  "company": "WPP"
+ },
+ {
+  "atsType": "workday",
+  "slug": "3|publicis|External",
+  "company": "Publicis"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "ironcladhq",
+  "company": "Ironclad"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "ironclad",
+  "company": "Ironclad"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "harvey",
+  "company": "Harvey"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "evenup",
+  "company": "EvenUp"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "everlaw",
+  "company": "Everlaw"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "clio",
+  "company": "Clio"
+ },
+ {
+  "atsType": "lever",
+  "slug": "clio",
+  "company": "Clio"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "legalzoom",
+  "company": "LegalZoom"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "rocketlawyer",
+  "company": "Rocket Lawyer"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "axiomlaw",
+  "company": "Axiom"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "axiom",
+  "company": "Axiom"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "unitedlex",
+  "company": "UnitedLex"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "spellbook",
+  "company": "Spellbook"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "csdisco",
+  "company": "CS Disco"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "disco",
+  "company": "CS Disco"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "litify",
+  "company": "Litify"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "filevine",
+  "company": "Filevine"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "hebbia",
+  "company": "Hebbia"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "hebbia",
+  "company": "Hebbia"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|thomsonreuters|External_Career_Site",
+  "company": "Thomson Reuters"
+ },
+ {
+  "atsType": "workday",
+  "slug": "3|relx|relx",
+  "company": "RELX / LexisNexis"
+ },
+ {
+  "atsType": "workday",
+  "slug": "3|wk|External",
+  "company": "Wolters Kluwer"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|epiq|Epiq",
+  "company": "Epiq"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|consilio|Consilio",
+  "company": "Consilio"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "recursionpharmaceuticals",
+  "company": "Recursion"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "recursion",
+  "company": "Recursion"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "insitro",
+  "company": "insitro"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "ginkgobioworks",
+  "company": "Ginkgo Bioworks"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "ginkgo",
+  "company": "Ginkgo Bioworks"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "tempus",
+  "company": "Tempus"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "grailbio",
+  "company": "GRAIL"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "grail",
+  "company": "GRAIL"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "10xgenomics",
+  "company": "10x Genomics"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "benchling",
+  "company": "Benchling"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "generatebiomedicines",
+  "company": "Generate Biomedicines"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "beamtherapeutics",
+  "company": "Beam Therapeutics"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "denalitherapeutics",
+  "company": "Denali"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "intelliatherapeutics",
+  "company": "Intellia"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "sanabiotechnology",
+  "company": "Sana Biotechnology"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "lyell",
+  "company": "Lyell"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "lyellimmunopharma",
+  "company": "Lyell"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "arcusbio",
+  "company": "Arcus Biosciences"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "arcusbiosciences",
+  "company": "Arcus Biosciences"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "alector",
+  "company": "Alector"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "twistbioscience",
+  "company": "Twist Bioscience"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "natera",
+  "company": "Natera"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "guardanthealth",
+  "company": "Guardant Health"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "exactsciences",
+  "company": "Exact Sciences"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "freenome",
+  "company": "Freenome"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "cariboubiosciences",
+  "company": "Caribou Biosciences"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "vervetherapeutics",
+  "company": "Verve Therapeutics"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "relaytherapeutics",
+  "company": "Relay Therapeutics"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "arsenalbio",
+  "company": "Arsenal Bio"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "altoslabs",
+  "company": "Altos Labs"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "calicolabs",
+  "company": "Calico"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "neumora",
+  "company": "Neumora"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "xaira",
+  "company": "Xaira"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "xairatherapeutics",
+  "company": "Xaira"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "isomorphiclabs",
+  "company": "Isomorphic Labs"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "inceptive",
+  "company": "Inceptive"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "eikontherapeutics",
+  "company": "Eikon Therapeutics"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "dynotherapeutics",
+  "company": "Dyno Therapeutics"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "kriyatherapeutics",
+  "company": "Kriya"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "mammothbiosciences",
+  "company": "Mammoth Biosciences"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "scribetherapeutics",
+  "company": "Scribe Therapeutics"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "vir",
+  "company": "Vir Biotechnology"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "virbiotechnology",
+  "company": "Vir Biotechnology"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "seer",
+  "company": "Seer"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "seerbio",
+  "company": "Seer"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "abcellera",
+  "company": "Abcellera"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "zymeworks",
+  "company": "Zymeworks"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "absci",
+  "company": "Absci"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "synthego",
+  "company": "Synthego"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "pivotbio",
+  "company": "Pivot Bio"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "inscripta",
+  "company": "Inscripta"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "resilience",
+  "company": "Resilience"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "modernatx",
+  "company": "Moderna"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "arcinstitute",
+  "company": "Arc Institute"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "czbiohub",
+  "company": "Chan Zuckerberg Biohub"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "asimov",
+  "company": "Asimov"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "newlimit",
+  "company": "NewLimit"
+ },
+ {
+  "atsType": "lever",
+  "slug": "ginkgobioworks",
+  "company": "Ginkgo Bioworks"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|modernatx|M_tx",
+  "company": "Moderna"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|illumina|illumina-careers",
+  "company": "Illumina"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|vrtx|Vertex_Careers",
+  "company": "Vertex"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|regeneron|Careers",
+  "company": "Regeneron"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|gilead|gileadcareers",
+  "company": "Gilead"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|biogen|external_career_site",
+  "company": "Biogen"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|amgen|Careers",
+  "company": "Amgen"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|pfizer|PfizerCareers",
+  "company": "Pfizer"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|bristolmyerssquibb|BMS",
+  "company": "Bristol Myers Squibb"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|jj|JJ",
+  "company": "Johnson & Johnson"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|msd|SearchJobs",
+  "company": "Merck"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|thermofisher|ThermoFisherCareers",
+  "company": "Thermo Fisher"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|agilent|Agilent_Careers",
+  "company": "Agilent"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|danaher|DanaherJobs",
+  "company": "Danaher"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|lilly|LLY",
+  "company": "Eli Lilly"
+ },
+ {
+  "atsType": "workday",
+  "slug": "3|novartis|Novartis_Careers",
+  "company": "Novartis"
+ },
+ {
+  "atsType": "workday",
+  "slug": "3|astrazeneca|Careers",
+  "company": "AstraZeneca"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|gsk|GSKCareers",
+  "company": "GSK"
+ },
+ {
+  "atsType": "workday",
+  "slug": "3|takeda|External",
+  "company": "Takeda"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|bio-rad|Bio-Rad_Careers",
+  "company": "Bio-Rad"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|crl|CRL",
+  "company": "Charles River Labs"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|iqvia|IQVIA",
+  "company": "IQVIA"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|labcorp|External",
+  "company": "Labcorp"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|zoetis|zoetis",
+  "company": "Zoetis"
+ },
+ {
+  "atsType": "smartrecruiters",
+  "slug": "Sanofi",
+  "company": "Sanofi"
+ },
+ {
+  "atsType": "smartrecruiters",
+  "slug": "NovoNordisk",
+  "company": "Novo Nordisk"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "flexport",
+  "company": "Flexport"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "project44",
+  "company": "project44"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "shipbob",
+  "company": "ShipBob"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "stord",
+  "company": "Stord"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "fourkites",
+  "company": "FourKites"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "samsara",
+  "company": "Samsara"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "gomotive",
+  "company": "Motive"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "motive",
+  "company": "Motive"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "uberfreight",
+  "company": "Uber Freight"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "loadsmart",
+  "company": "Loadsmart"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "arcadia",
+  "company": "Arcadia"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "arcadiacareers",
+  "company": "Arcadia"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "aurorasolar",
+  "company": "Aurora Solar"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "sunrun",
+  "company": "Sunrun"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "watershedclimate",
+  "company": "Watershed"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "watershed",
+  "company": "Watershed"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|fedex|FXE-External",
+  "company": "FedEx"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|chrobinson|CHRobinson",
+  "company": "C.H. Robinson"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|xpo|XPO",
+  "company": "XPO"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|expeditors|Expeditors",
+  "company": "Expeditors"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|nexteraenergy|NEE",
+  "company": "NextEra Energy"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|exelon|Exelon",
+  "company": "Exelon"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|constellation|ConstellationCareers",
+  "company": "Constellation Energy"
+ },
+ {
+  "atsType": "workday",
+  "slug": "3|shell|ShellCareers",
+  "company": "Shell"
+ },
+ {
+  "atsType": "workday",
+  "slug": "5|exxonmobil|ExxonMobil",
+  "company": "ExxonMobil"
+ },
+ {
+  "atsType": "workday",
+  "slug": "1|conocophillips|ConocoPhillips",
+  "company": "ConocoPhillips"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "datadog",
+  "company": "Datadog"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "cloudflare",
+  "company": "Cloudflare"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "mongodb",
+  "company": "MongoDB"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "okta",
+  "company": "Okta"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "twilio",
+  "company": "Twilio"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "elastic",
+  "company": "Elastic"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "gitlab",
+  "company": "GitLab"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "asana",
+  "company": "Asana"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "airtable",
+  "company": "Airtable"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "hubspot",
+  "company": "HubSpot"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "hubspotjobs",
+  "company": "HubSpot"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "braze",
+  "company": "Braze"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "klaviyo",
+  "company": "Klaviyo"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "gongio",
+  "company": "Gong"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "amplitude",
+  "company": "Amplitude"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "mixpanel",
+  "company": "Mixpanel"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "intercom",
+  "company": "Intercom"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "webflow",
+  "company": "Webflow"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "calendly",
+  "company": "Calendly"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "pagerduty",
+  "company": "PagerDuty"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "dropbox",
+  "company": "Dropbox"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "lyft",
+  "company": "Lyft"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "databricks",
+  "company": "Databricks"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "procoretechnologies",
+  "company": "Procore"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "procore",
+  "company": "Procore"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "zscaler",
+  "company": "Zscaler"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "highspot",
+  "company": "Highspot"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "seismic",
+  "company": "Seismic"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "6sense",
+  "company": "6sense"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "zoominfo",
+  "company": "ZoomInfo"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "outreach",
+  "company": "Outreach"
+ },
+ {
+  "atsType": "lever",
+  "slug": "outreach",
+  "company": "Outreach"
+ },
+ {
+  "atsType": "lever",
+  "slug": "attentive",
+  "company": "Attentive"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "attentive",
+  "company": "Attentive"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "lattice",
+  "company": "Lattice"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "vanta",
+  "company": "Vanta"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "vanta",
+  "company": "Vanta"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "deel",
+  "company": "Deel"
+ },
+ {
+  "atsType": "ashby",
+  "slug": "deel",
+  "company": "Deel"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "mondaycom",
+  "company": "Monday.com"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "canva",
+  "company": "Canva"
+ },
+ {
+  "atsType": "lever",
+  "slug": "canva",
+  "company": "Canva"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "grammarly",
+  "company": "Grammarly"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "miro",
+  "company": "Miro"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "realtimeboardglobal",
+  "company": "Miro"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "zendesk",
+  "company": "Zendesk"
+ },
+ {
+  "atsType": "greenhouse",
+  "slug": "doordashusa",
+  "company": "DoorDash"
+ },
+ {
+  "atsType": "smartrecruiters",
+  "slug": "ServiceNow",
+  "company": "ServiceNow"
+ },
+ {
+  "atsType": "smartrecruiters",
+  "slug": "Square",
+  "company": "Square"
+ },
+ {
+  "atsType": "smartrecruiters",
+  "slug": "Wix",
+  "company": "Wix"
+ },
+ {
+  "atsType": "smartrecruiters",
+  "slug": "Equinox",
+  "company": "Equinox"
+ },
+ {
+  "atsType": "smartrecruiters",
+  "slug": "AveryDennison",
+  "company": "Avery Dennison"
+ }
+]
