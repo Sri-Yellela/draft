@@ -8721,6 +8721,12 @@ function boardFit() {
         return db.prepare(`SELECT job_id FROM scraped_jobs WHERE is_active = 1 AND (? IS NULL OR board_category = ?)
           ORDER BY COALESCE(posted_at, discovered_at) DESC LIMIT 120`).pluck().all(cat, cat);
       },
+      // A112: only the postings the profile's default board shows (its category, /api/jobs's categorySql) are
+      // precomputed — not every active posting (418,711 stored reports for 15 users at 79k postings).
+      scopeFor: (_userId, profile) => {
+        const cat = profileCategory(profile || {});
+        return cat && /^[a-z_]+$/.test(cat) ? cat : null;
+      },
     });
   }
   return _boardFit;
