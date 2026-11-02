@@ -113,6 +113,7 @@ export const SHARED = Object.freeze({
   "lib/tourGeometry.js":                { what: "D129 · the tour's geometry: where the popover fits (never over its target or the nav), the cut-out's panels", module: "trial" },
   "components/TrialDemo.jsx":           { what: "the trial's demonstration: each drafted pick replayed end to end with the real tailoring, labelled; portalled into Draft House", module: "trial" },
   "components/ExploreLock.jsx":         { what: "explore, view-only: every acting press opens Coming soon (with their email), counted by feature", module: "trial" },
+  "components/TrialRoleFit.jsx":        { what: "A111 · one pick against the trial tester's OWN résumé — the role's top skills have / missing, covers N of M, next level, the Atlas role page; the deck's report mounts it" },
   "components/GuidedTour.jsx":          { what: "D129 · the guided tour: coach-marks on the real pages, Back · Next, Faster, the required actions, each step's time", module: "trial" },
   "components/ScrollDock.jsx":          { what: "the marketing and tools pages' dock" },
   "components/PolicyProse.jsx":         { what: "the public documents' prose parts — the privacy policy and the connector docs (/docs/claude)" },

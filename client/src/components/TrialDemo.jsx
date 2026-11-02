@@ -1,7 +1,7 @@
 // ⭐ THE TRIAL'S DEMONSTRATION (owner 11-01): after the 2nd Draft, Draft House replays a complete run for each pick —
 // Reading the job → Tailoring your résumé (the sample résumé and its tailored version SIDE BY SIDE, each tailored line
 // marked — simulated, no model; GET /api/trial/demo) → Filling the application (the practice form, field by field,
-// with the sample's own values) → the consent box, left for the tester (one press) → Sent → Confirmation received.
+// with the sample's own values — A111: or, on the own-résumé pathway, the tester's own résumé and contact lines) → the consent box, left for the tester (one press) → Sent → Confirmation received.
 // Labelled "Demonstration": a replay, nothing reaches an employer. The tour renders this into Draft House's
 // #trial-demo-slot and moves the two tiles' rings ("draft:trial-demo-rings"); onDone records the picks as sent by
 // demonstration (POST /api/trial/demo/complete).
@@ -88,8 +88,9 @@ function Page({ title, lines, terms, tailored }) {
   );
 }
 
-/** The sample résumé and the one tailored for this posting, side by side (stacked on a phone). */
-function Compare({ run }) {
+/** The sample résumé and the one tailored for this posting, side by side (stacked on a phone). A111: on the own-résumé
+ *  pathway it is the tester's OWN résumé (`own`), tailored the same way — nothing added that the résumé does not show. */
+function Compare({ run, own = false }) {
   const t = run?.tailoring;
   const box = useRef(null);
   // it opens below the two runs: brought into view so the tester sees the two résumés
@@ -101,10 +102,10 @@ function Compare({ run }) {
       <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 10 }}>
         <span style={{ borderLeft: "3px solid var(--c-success)", paddingLeft: 6, marginRight: 12 }}>added for this posting</span>
         <span style={{ borderLeft: "3px solid var(--color-primary)", paddingLeft: 6, marginRight: 12 }}>brought forward</span>
-        <b style={{ color: "var(--color-text)" }}>bold</b> = what the posting asks for. Nothing is added that the sample did not do.
+        <b style={{ color: "var(--color-text)" }}>bold</b> = what the posting asks for. Nothing is added that {own ? "your résumé does not already show" : "the sample did not do"}.
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
-        <Page title="Sample résumé" lines={t.before}/>
+        {own ? <Page title="Your résumé" lines={t.before}/> : <Page title="Sample résumé" lines={t.before}/>}
         <Page title="Tailored résumé" lines={t.after} terms={t.terms} tailored/>
       </div>
     </div>
@@ -170,7 +171,7 @@ export default function TrialDemo({ onDone }) {
             active={!!phase[run.jobId]} onConsent={() => consentRef.current[run.jobId]?.()}/>
         ))}
       </div>
-      <Compare run={demo.runs.find(r => r.jobId === shown)}/>
+      <Compare run={demo.runs.find(r => r.jobId === shown)} own={!!demo.own}/>
     </section>
   );
 }

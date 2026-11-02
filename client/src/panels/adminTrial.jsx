@@ -235,6 +235,40 @@ function PeopleAndQuestions() {
   );
 }
 
+// ⭐ A111 · the trial's "Use my own résumé" pathway: its switch (app setting trial_own_resume, OFF by default — the owner
+// turns it on once he has walked it) and the own-résumé testers' fields, live or not (names and counts, never a résumé).
+function OwnResumePathway({ own, onChange }) {
+  const [said, setSaid] = useState("");
+  if (!own) return null;
+  const flip = async (on) => {
+    try { const r = await api("/api/admin/trial/own-resume", { method: "POST", body: JSON.stringify({ on }) }); setSaid(r.on ? "On: /try offers “Use my own résumé”." : "Off: /try offers the samples only."); onChange(); }
+    catch (e) { setSaid(e.message); }
+  };
+  return (
+    <Panel data-admin-trial-own="" title="Use my own résumé"
+      purpose="Off by default. On, /try also offers the tester's own résumé (PDF, Word or pasted): its field is read first and only a field with 10 good picks today goes on; any other field is told honestly that it isn't live yet and offered the samples. Drafts are still a demonstration: the practice form, never the employer."
+      code="POST /api/admin/trial/own-resume { on } · app_settings.trial_own_resume · trial_events own_resume (the field only)"
+      numbers={[[own.on ? "on" : "off", "the switch", own.on], [own.testers, "testers read"], [own.live, "field live"], [own.notLive, "field not live"]]}>
+      <div style={row}>
+        <DepthButton primary={!own.on} onClick={() => flip(!own.on)} data-admin-own-toggle={own.on ? "on" : "off"}>{own.on ? "Turn it off" : "Turn it on"}</DepthButton>
+      </div>
+      {said && <p role="status" style={quiet}>{said}</p>}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginTop: 12 }}>
+        <Tally title="Own-résumé testers by field" counts={own.byField}/>
+      </div>
+      {own.rows?.length > 0 && (
+        <div style={{ marginTop: 12 }} data-admin-own-rows="">
+          {own.rows.slice(0, 20).map(r => (
+            <div key={r.userId} style={{ ...row, padding: "4px 0", borderTop: "1px solid var(--color-border)" }}>
+              <b>{r.field}</b><span>{r.level || ""}</span><span>{r.live ? "live" : `not live (${r.picks} picks)`}</span><span style={quiet}>{when(r.at)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
 export function TrialTab() {
   const [t, setT] = useState(null);
   const [err, setErr] = useState(null);
@@ -285,6 +319,7 @@ export function TrialTab() {
         </div>
       </Panel>
 
+      <OwnResumePathway own={t.ownResume} onChange={load}/>
       <PeopleAndQuestions/>
       <SurveySources/>
       <TourAnalytics/>
