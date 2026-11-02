@@ -54,6 +54,14 @@ const HELD = [
     re: /\b(?:social\s+worker|case\s+manager|counsell?or|community\s+health|chaplain|youth\s+(?:worker|coordinator))\b/i },
   { reason: 'held:non_professional',
     re: /\b(?:cashier|barista|store\s+associate|retail\s+(?:sales\s+)?associate|sales\s+associate)\b/i },
+  // ⭐ A111 P1 (11-02): the crawl across industries found shift, floor, store and branch-counter roles placed in business /
+  // sales / management by the generic coordinator | specialist | associate | manager | sales rules ("Target Security
+  // Specialist", "Production Associate - 2nd Shift", "Vans: Sales Lead - Northstar Mall", "Personal Banker Associate I",
+  // "Kitchen Operations Associate", "Retail Shop Manager on Duty"). Held — D127's red-flag rule.
+  { reason: 'held:non_professional',
+    re: /\b(?:\d(?:st|nd|rd|th)\s+shift|(?:night|day|weekend|overnight|swing)\s+shift|seasonal\s+(?:associate|team\s+member|worker|security|sales|help|employee)|security\s+(?:specialist|officer|guard|associate)|asset\s+protection|loss\s+prevention|production\s+(?:associate|operator|worker|team\s+member)|manufacturing\s+(?:associate|operator)|warehouse\s+(?:associate|worker|operator|lead|supervisor|team\s+member)|fulfil?ment\s+(?:associate|center)|flow\s+center|forklift|material\s+handler|picker|packer|assembler|kitchen\s+(?:operations\s+)?(?:associate|staff|helper|porter|team\s+member|lead\b(?!.*\bproduct))|line\s+cook|locker\s+room|housekeep\w*|janitor\w*|custodian|personal\s+banker|teller|store\s+(?:manager|lead|associate|team\s+(?:member|leader))|shop\s+manager|manager\s+on\s+duty|keyholder|team\s+member|crew\s+(?:member|leader)|stylist|(?:delivery|truck|CDL|bus|van)\s+drivers?|courier)\b/i },
+  // A store's floor: "Vans: Sales Lead - Northstar Mall", "General Manager - Maine Mall", "Sales Lead (Part-Time)".
+  { reason: 'held:non_professional', re: /\bsales\s+lead\b.*\b(?:mall|outlet|store|part[-\s]?time)\b|\bmall\b/i },
 ];
 
 // csScope's refusals that are not a category of their own: held, never re-filed elsewhere.
@@ -121,6 +129,7 @@ const FAMILY_CATEGORY = {
   engineering: 'computing', engineering_embedded_firmware: 'computing', data: 'computing',
   pm: 'management', operations: 'business', finance: 'business', hr: 'business',
   design: 'arts_media', marketing: 'marketing', legal: 'legal', sales: 'sales',
+  science: 'science',   // A111 P2's three science domains (life sciences, lab / QC, economics) carry roleFamily science
 };
 
 const matches = (rule, t) => (rule.test ? rule.test(t) : rule.re.test(t));
