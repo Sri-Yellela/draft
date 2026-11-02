@@ -64,6 +64,7 @@ const PLATFORM_TIER = {
   workable:        "guest",
   bamboohr:        "guest",
   gem:             "guest",
+  rippling:        "guest",
   workday:         "account",
   icims:           "account",
   taleo:           "account",

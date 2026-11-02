@@ -50,3 +50,19 @@ test("A112: a Gem posting — the posting's offices name its place when its own 
   assert.equal(j.posted_at, "2026-10-09T19:17:02.814Z");
   assert.ok(DIRECT_ATS_SOURCES.has("gem") && typeof ATS_FETCHERS.gem === "function");
 });
+
+test("A112: a Rippling posting — text from the detail's two halves, the pay range, the US place from the list", async () => {
+  const { normalizeRipplingJob } = await import("../services/jobs/sources/rippling.js");
+  const item = { id: "u-1", name: "Revenue Operations Analyst", url: "https://ats.rippling.com/ripco/jobs/u-1",
+    locations: [{ name: "Charlotte, NC", countryCode: "US", workplaceType: "ON_SITE" }] };
+  const detail = { name: "Revenue Operations Analyst", description: { company: "<p>About Ripco</p>", role: "<p>Own the pipeline reporting in Salesforce.</p>" },
+    createdOn: "2026-10-08T12:48:49.724000-07:00", employmentType: { id: "Salaried, full-time" },
+    payRangeDetails: [{ currency: "USD", frequency: "YEAR", rangeStart: 70000, rangeEnd: 90000 }] };
+  const j = normalizeRipplingJob("ripco", item, detail, "Ripco");
+  assert.equal(j.source, "rippling");
+  assert.equal(j.location, "Charlotte, NC");
+  assert.match(j.description, /pipeline reporting in Salesforce/);
+  assert.equal(j.salary_min, 70000);
+  assert.equal(j.posted_at, "2026-10-08T12:48:49.724000-07:00");
+  assert.ok(DIRECT_ATS_SOURCES.has("rippling") && typeof ATS_FETCHERS.rippling === "function");
+});

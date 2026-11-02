@@ -24,6 +24,7 @@ const ROWS = [
   { company: "Channable",  ats_type: "recruitee",       ats_slug: "channable" },
   { company: "Synthco",    ats_type: "bamboohr",        ats_slug: "synthco" },   // A112
   { company: "Gemco",      ats_type: "gem",             ats_slug: "gemco" },     // A112
+  { company: "Ripco",      ats_type: "rippling",        ats_slug: "ripco" },     // A112
 ];
 
 test("grouping covers every registered direct-ATS source, not just the original three", () => {
