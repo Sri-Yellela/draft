@@ -11,6 +11,31 @@
   --atree-infra: var(--c-teal);
   --atree-data: var(--c-warning);
   --atree-backend: var(--c-info);
+  /* ⭐ A111 P3 · a family per field of every D127 category (shared/atlasFamilies.js) — the same five categorical tones,
+     different neighbours within a category; a reader's map is drawn from one field, so tones repeat only across fields. */
+  --atree-business_analysis: var(--c-danger);
+  --atree-accounting_audit: var(--c-violet);
+  --atree-fpa: var(--c-teal);
+  --atree-consulting: var(--c-warning);
+  --atree-people: var(--c-info);
+  --atree-project_management: var(--c-danger);
+  --atree-product: var(--c-violet);
+  --atree-operations: var(--c-teal);
+  --atree-marketing_digital: var(--c-danger);
+  --atree-marketing_brand: var(--c-violet);
+  --atree-marketing_content: var(--c-teal);
+  --atree-sales: var(--c-danger);
+  --atree-legal_practice: var(--c-danger);
+  --atree-design: var(--c-danger);
+  --atree-writing_comms: var(--c-violet);
+  --atree-research_science: var(--c-danger);
+  --atree-eng_mechanical: var(--c-danger);
+  --atree-eng_electrical: var(--c-violet);
+  --atree-eng_civil: var(--c-teal);
+  --atree-eng_process: var(--c-warning);
+  --atree-eng_aerospace: var(--c-info);
+  --atree-eng_biomedical: var(--c-danger);
+  --atree-workplace_tools: var(--c-ink-muted);
 }
 .atree-map { min-width: 0; }
 .atree {
@@ -23,6 +48,29 @@
 .atree__wp--infra { box-shadow: inset 0 -3px 0 var(--atree-infra); }
 .atree__wp--data { box-shadow: inset 0 -3px 0 var(--atree-data); }
 .atree__wp--backend { box-shadow: inset 0 -3px 0 var(--atree-backend); }
+.atree__wp--business_analysis { box-shadow: inset 0 -3px 0 var(--atree-business_analysis); }
+.atree__wp--accounting_audit { box-shadow: inset 0 -3px 0 var(--atree-accounting_audit); }
+.atree__wp--fpa { box-shadow: inset 0 -3px 0 var(--atree-fpa); }
+.atree__wp--consulting { box-shadow: inset 0 -3px 0 var(--atree-consulting); }
+.atree__wp--people { box-shadow: inset 0 -3px 0 var(--atree-people); }
+.atree__wp--project_management { box-shadow: inset 0 -3px 0 var(--atree-project_management); }
+.atree__wp--product { box-shadow: inset 0 -3px 0 var(--atree-product); }
+.atree__wp--operations { box-shadow: inset 0 -3px 0 var(--atree-operations); }
+.atree__wp--marketing_digital { box-shadow: inset 0 -3px 0 var(--atree-marketing_digital); }
+.atree__wp--marketing_brand { box-shadow: inset 0 -3px 0 var(--atree-marketing_brand); }
+.atree__wp--marketing_content { box-shadow: inset 0 -3px 0 var(--atree-marketing_content); }
+.atree__wp--sales { box-shadow: inset 0 -3px 0 var(--atree-sales); }
+.atree__wp--legal_practice { box-shadow: inset 0 -3px 0 var(--atree-legal_practice); }
+.atree__wp--design { box-shadow: inset 0 -3px 0 var(--atree-design); }
+.atree__wp--writing_comms { box-shadow: inset 0 -3px 0 var(--atree-writing_comms); }
+.atree__wp--research_science { box-shadow: inset 0 -3px 0 var(--atree-research_science); }
+.atree__wp--eng_mechanical { box-shadow: inset 0 -3px 0 var(--atree-eng_mechanical); }
+.atree__wp--eng_electrical { box-shadow: inset 0 -3px 0 var(--atree-eng_electrical); }
+.atree__wp--eng_civil { box-shadow: inset 0 -3px 0 var(--atree-eng_civil); }
+.atree__wp--eng_process { box-shadow: inset 0 -3px 0 var(--atree-eng_process); }
+.atree__wp--eng_aerospace { box-shadow: inset 0 -3px 0 var(--atree-eng_aerospace); }
+.atree__wp--eng_biomedical { box-shadow: inset 0 -3px 0 var(--atree-eng_biomedical); }
+.atree__wp--workplace_tools { box-shadow: inset 0 -3px 0 var(--atree-workplace_tools); }
 
 .atree__top { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); min-width: 0; }
 @media (max-width: 940px) { .atree__top { grid-template-columns: minmax(0, 1fr); } .atree__side { border-left: 0; border-top: 1px solid var(--c-border); max-height: none; } }
@@ -76,6 +124,29 @@
 .atree__br--infra { stroke: var(--atree-infra); }
 .atree__br--data { stroke: var(--atree-data); }
 .atree__br--backend { stroke: var(--atree-backend); }
+.atree__br--business_analysis { stroke: var(--atree-business_analysis); }
+.atree__br--accounting_audit { stroke: var(--atree-accounting_audit); }
+.atree__br--fpa { stroke: var(--atree-fpa); }
+.atree__br--consulting { stroke: var(--atree-consulting); }
+.atree__br--people { stroke: var(--atree-people); }
+.atree__br--project_management { stroke: var(--atree-project_management); }
+.atree__br--product { stroke: var(--atree-product); }
+.atree__br--operations { stroke: var(--atree-operations); }
+.atree__br--marketing_digital { stroke: var(--atree-marketing_digital); }
+.atree__br--marketing_brand { stroke: var(--atree-marketing_brand); }
+.atree__br--marketing_content { stroke: var(--atree-marketing_content); }
+.atree__br--sales { stroke: var(--atree-sales); }
+.atree__br--legal_practice { stroke: var(--atree-legal_practice); }
+.atree__br--design { stroke: var(--atree-design); }
+.atree__br--writing_comms { stroke: var(--atree-writing_comms); }
+.atree__br--research_science { stroke: var(--atree-research_science); }
+.atree__br--eng_mechanical { stroke: var(--atree-eng_mechanical); }
+.atree__br--eng_electrical { stroke: var(--atree-eng_electrical); }
+.atree__br--eng_civil { stroke: var(--atree-eng_civil); }
+.atree__br--eng_process { stroke: var(--atree-eng_process); }
+.atree__br--eng_aerospace { stroke: var(--atree-eng_aerospace); }
+.atree__br--eng_biomedical { stroke: var(--atree-eng_biomedical); }
+.atree__br--workplace_tools { stroke: var(--atree-workplace_tools); }
 .atree__br--hot { stroke: var(--c-accent); stroke-width: 3.6; opacity: 1; }
 .atree__br--dim { opacity: .18; }
 .atree__lk { fill: none; stroke: var(--c-accent); stroke-width: 2; stroke-dasharray: 5 5; opacity: .9; }
@@ -92,6 +163,29 @@
 .atree__sq--infra { fill: var(--atree-infra); background: var(--atree-infra); }
 .atree__sq--data { fill: var(--atree-data); background: var(--atree-data); }
 .atree__sq--backend { fill: var(--atree-backend); background: var(--atree-backend); }
+.atree__sq--business_analysis { fill: var(--atree-business_analysis); background: var(--atree-business_analysis); }
+.atree__sq--accounting_audit { fill: var(--atree-accounting_audit); background: var(--atree-accounting_audit); }
+.atree__sq--fpa { fill: var(--atree-fpa); background: var(--atree-fpa); }
+.atree__sq--consulting { fill: var(--atree-consulting); background: var(--atree-consulting); }
+.atree__sq--people { fill: var(--atree-people); background: var(--atree-people); }
+.atree__sq--project_management { fill: var(--atree-project_management); background: var(--atree-project_management); }
+.atree__sq--product { fill: var(--atree-product); background: var(--atree-product); }
+.atree__sq--operations { fill: var(--atree-operations); background: var(--atree-operations); }
+.atree__sq--marketing_digital { fill: var(--atree-marketing_digital); background: var(--atree-marketing_digital); }
+.atree__sq--marketing_brand { fill: var(--atree-marketing_brand); background: var(--atree-marketing_brand); }
+.atree__sq--marketing_content { fill: var(--atree-marketing_content); background: var(--atree-marketing_content); }
+.atree__sq--sales { fill: var(--atree-sales); background: var(--atree-sales); }
+.atree__sq--legal_practice { fill: var(--atree-legal_practice); background: var(--atree-legal_practice); }
+.atree__sq--design { fill: var(--atree-design); background: var(--atree-design); }
+.atree__sq--writing_comms { fill: var(--atree-writing_comms); background: var(--atree-writing_comms); }
+.atree__sq--research_science { fill: var(--atree-research_science); background: var(--atree-research_science); }
+.atree__sq--eng_mechanical { fill: var(--atree-eng_mechanical); background: var(--atree-eng_mechanical); }
+.atree__sq--eng_electrical { fill: var(--atree-eng_electrical); background: var(--atree-eng_electrical); }
+.atree__sq--eng_civil { fill: var(--atree-eng_civil); background: var(--atree-eng_civil); }
+.atree__sq--eng_process { fill: var(--atree-eng_process); background: var(--atree-eng_process); }
+.atree__sq--eng_aerospace { fill: var(--atree-eng_aerospace); background: var(--atree-eng_aerospace); }
+.atree__sq--eng_biomedical { fill: var(--atree-eng_biomedical); background: var(--atree-eng_biomedical); }
+.atree__sq--workplace_tools { fill: var(--atree-workplace_tools); background: var(--atree-workplace_tools); }
 .atree__sq--off { fill: var(--c-off); background: var(--c-off); }
 .atree__gloss { fill: var(--c-surface-solid); opacity: .22; pointer-events: none; }
 .atree__nm { font: 700 12.5px var(--font-body); fill: var(--c-ink); paint-order: stroke; stroke: var(--c-surface-solid); stroke-width: 4px; }

@@ -21,7 +21,12 @@
 //                                         ⭐ D116 M1 · + `tree`: the whole map in one answer (services/atlas/atlasTree.js)
 // ⭐ D116 M7 · the same tree on a role page and a family page (public; signed in, the reader's own have / rings):
 //   GET  /api/atlas/tree/role/:slug       centre = the role, its top skills, distance = the share of its postings
-//   GET  /api/atlas/tree/family/:key      centre = the family (ml · systems · infra · data · backend)
+//   GET  /api/atlas/tree/family/:key      centre = the family (shared/atlasFamilies.js — computing's five and, ⭐ A111 P3, a family per field of every D127 category)
+// ⭐ A111 P3 · ONE ROLE AGAINST THE READER'S RÉSUMÉ (public; signed in, the reader's own have / missing — never stored):
+//   GET  /api/atlas/role-fit?role=<slug or title>&job=<job_id>   → services/atlas/atlasRoleFit.js roleFitReading: the role's
+//                                         top 15 from the board, have / missing ("You cover 9 of this role's top 15"), the
+//                                         next level's rising skills, the role page link; another category's skills never
+//                                         (D127). 404 { found: false, reason } for an unknown role.
 // ⭐ D105 P6 · the curator's editor (admin; requireAdmin is mounted in front of this router in server.js):
 //   POST   /api/admin/atlas/nodes                 { kind, name, definition?, wikiTitle? }   add a node (a draft)
 //   GET    /api/admin/atlas/node/:slug            the editor's view — every edge, every resource (dead ones marked)
@@ -72,6 +77,7 @@ import { sponsorsForRole } from "../services/atlas/atlasSponsors.js";
 import { computeYourMap, SECTIONS } from "../services/atlas/atlasMe.js";
 import { roleTree, familyTree } from "../services/atlas/atlasTree.js";
 import { roleBoard } from "../services/atlas/atlasRolePage.js";
+import { roleFitReading } from "../services/atlas/atlasRoleFit.js";
 import { atlasPostingsChanged, liveCached, LIVE_CACHE_MS } from "../services/atlas/atlasLive.js";
 import { thumbIndex } from "../services/thumbs/resourceThumbs.js";
 
@@ -142,6 +148,17 @@ export function createAtlasRouter(db) {
     res.set("Cache-Control", uid != null ? "private, no-store" : `public, max-age=${LIVE_CACHE_MS / 1000}`);
     res.json(t);
   };
+  // ⭐ A111 P3 · the role against the reader's résumé (their Profile's skills, else the parsed résumé). Signed out: the role's
+  // top skills with nothing marked as had. Private either way (it can carry the reader's skills), never cached shared.
+  router.get("/role-fit", (req, res) => {
+    const role = String(req.query.role ?? "").slice(0, 120) || null;
+    const jobId = String(req.query.job ?? "").slice(0, 200) || null;
+    const uid = req.user?.id ?? null;
+    const reading = roleFitReading(db, { role, jobId, userId: uid });
+    res.set("Cache-Control", "private, no-store");
+    if (!reading.found) return res.status(404).json(reading);
+    res.json({ ...reading, signedIn: uid != null });
+  });
   router.get("/tree/role/:key", treeRoute("role", roleTree));
   router.get("/tree/family/:key", treeRoute("family", familyTree));
   router.post("/link-event", (req, res) => res.status(countLinkEvent(db, String(req.body?.event ?? "")) ? 204 : 400).end());

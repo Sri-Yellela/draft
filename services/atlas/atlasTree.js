@@ -31,6 +31,7 @@ import { learnContent, stepsOf } from "../learn/learnContent.js";
 import { earnedMarks } from "../learn/learnEarned.js";
 import { stepState } from "../../shared/learnStepState.js";
 import { FAMILIES, isFamily, familyName } from "../../shared/atlasFamilies.js";
+import { roleCategoryFilter } from "./atlasCategories.js";
 
 export const NO_AIM = Object.freeze({ line: "Set an aim to see what seniority adds", path: "/app/job-profiles", label: "Set an aim" });
 
@@ -272,7 +273,8 @@ export function roleTree(db, slug, userId = null) {
   const postings = r?.postings ?? 0;
   const mine = viewer(db, userId, idx);
   const shares = midSeniorFor(rollup, role.id);
-  const top = [...(r?.skill ?? new Map())].map(([id, c]) => [idx.byId.get(id), c]).filter(([n]) => drawable(n))
+  const keep = roleCategoryFilter(db, role);   // ⭐ A111 P3: the role's own category's skills (D127), as its page
+  const top = [...(r?.skill ?? new Map())].map(([id, c]) => [idx.byId.get(id), c]).filter(([n]) => drawable(n) && keep(n))
     .sort((a, b) => b[1] - a[1] || a[0].name.localeCompare(b[0].name)).slice(0, YOUR_MAP.ROLE_TREE_SKILLS);
   const nodes = top.map(([n, c]) => {
     const have = mine ? mine.has(n.id) : true;

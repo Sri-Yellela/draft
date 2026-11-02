@@ -53,14 +53,16 @@ test("D105 · d105AliasSearch — 'k8s' lands on Kubernetes; drafts are invisibl
   assert.equal(slugOf("CI/CD"), "ci-cd");
 });
 
-test("D105 · d105NoModelSeed — the seed reads the scorer's own registry, CS domains only, all DRAFT; idempotent", () => {
+test("D105 · d105NoModelSeed — the seed reads the scorer's own registry, every categorised domain (A111 P3; was CS only), all DRAFT; idempotent", () => {
   const db = fixtureDb();
   const first = seedAtlasFromRegistry(db);
   assert.ok(first.byKind.role > 20 && first.byKind.skill > 50 && first.byKind.tool > 50, JSON.stringify(first));
   assert.deepEqual(seedAtlasFromRegistry(db), { nodes: 0, edges: 0, byKind: { role: 0, skill: 0, tool: 0 } }, "a second run adds nothing");
   assert.equal(db.prepare(`SELECT COUNT(*) FROM atlas_nodes WHERE status != 'draft'`).pluck().get(), 0, "a person publishes");
   assert.ok(db.prepare(`SELECT 1 FROM atlas_nodes WHERE slug = 'backend-engineer' AND kind = 'role'`).get());
-  assert.equal(db.prepare(`SELECT 1 FROM atlas_nodes WHERE slug = 'recruiting'`).get(), undefined, "not a CS domain");
+  // ⭐ A111 P3 (11-02, changed on purpose): the seed is no longer computing-only (D127) — a held field still stays out.
+  assert.ok(db.prepare(`SELECT 1 FROM atlas_nodes WHERE slug = 'variance-analysis'`).get(), "a business domain is seeded now");
+  assert.equal(db.prepare(`SELECT 1 FROM atlas_nodes WHERE slug = 'patient-care'`).get(), undefined, "healthcare is held (D127)");
   assert.ok(CS_DOMAINS.every(d => d === "data" || d.startsWith("engineering")));
   // A curator's edit survives a re-seed.
   db.prepare(`UPDATE atlas_nodes SET name = 'Backend engineer (curated)' WHERE slug = 'backend-engineer'`).run();
