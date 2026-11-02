@@ -39,6 +39,7 @@ import { DECK_SCROLL_MS } from "../../../shared/trialTour.js";
 import { ATSPanel } from "../components/ATSPanel.jsx";
 import { AtsBandCard, fromDeckReport } from "../components/AtsReport.jsx";
 import PostingPanel from "../components/PostingPanel.jsx";
+import TrialRoleFit from "../components/TrialRoleFit.jsx";
 import { PairLinkProvider } from "../lib/pairLink.js";
 import CompanyLogo from "../components/CompanyLogo.jsx";
 import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
@@ -270,11 +271,19 @@ function DeckAtsReport({ card, profileId, onReport }) {
           This card was dealt before the deck carried the full report. Tomorrow's will; this one's is on the board.
         </p>
         <Link to={jobDetailHref(card.job.id)} onClick={onReport} style={{ color: C.ACCENT_INK, fontWeight: 700, fontSize: 13.5 }}>Full report on the board →</Link>
+        {Number.isFinite(card.score) && <TrialRoleFit jobId={card.job.id}/>}
       </div>
     );
   }
-  return <ATSPanel report={fromDeckReport(r)} band={r.scorable ? card.band : ATS_BAND.NOT_ENOUGH_SIGNAL}
-                   jobId={card.job.id} activeProfileId={profileId} />;
+  // A111 step 4: a trial account's card carries its score — under the report, the role against the tester's own résumé
+  // (TrialRoleFit renders nothing unless the account is on the own-résumé pathway).
+  return (
+    <>
+      <ATSPanel report={fromDeckReport(r)} band={r.scorable ? card.band : ATS_BAND.NOT_ENOUGH_SIGNAL}
+                   jobId={card.job.id} activeProfileId={profileId} />
+      {Number.isFinite(card.score) && <TrialRoleFit jobId={card.job.id}/>}
+    </>
+  );
 }
 
 // A75 · the deck's sort: the dealt order (the board's own — position IS the fit signal) or ATS match. The key and

@@ -106,6 +106,7 @@ const ADMIN = new Set([
   // D130: both surveys side by side and combined, and the YC numbers.
   "GET /api/admin/survey/sources",
   "POST /api/admin/trial/access",
+  "POST /api/admin/trial/own-resume",   // A111: the own-résumé pathway switch (off by default)
   // AF residual. The full-auto kill switch, reachable without a SQL console. Admin-only and
   // deliberately not user-facing: it stops applications going out to real employers for EVERY
   // user, not for the caller.
@@ -169,6 +170,7 @@ const AUTHENTICATED = new Set([
   // D124 amended: the samples offered today (10 good picks each) and the account's picks.
   "GET /api/trial/samples",
   "GET /api/trial/picks",
+  "GET /api/trial/role-fit/:jobId", // A111: one pick against the tester's own résumé (ATS report + Atlas reading)
   // The trial's demonstration: its data, and its end (the picks recorded as sent by demonstration).
   "GET /api/trial/demo",
   "POST /api/trial/demo/complete",

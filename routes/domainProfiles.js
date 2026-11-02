@@ -88,7 +88,8 @@ export const BUILTIN_REGISTRY = {
 // Try to load from the JSON file (preferred — easier to update).
 // Fall back to BUILTIN_REGISTRY if the file can't be read on the deployment host.
 let _registry = null;
-function getRegistry() {
+// A111: exported so the trial's own-résumé reading (routes/trial.js) infers the field from the SAME registry the onboarding uses.
+export function getRegistry() {
   if (_registry) return _registry;
   const candidates = [
     path.join(__dirname, "..", "registry", "DOMAIN_METADATA_REGISTRY.json"),
