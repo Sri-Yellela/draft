@@ -20,10 +20,10 @@ function clientSource() {
   return out.join("\n");
 }
 
-test("d129TourRunsOnRealPages: the path after the résumé, in the shared order, 14 steps (the owner's bug report split the card and the modes); every light is an element a real page renders", () => {
+test("d129TourRunsOnRealPages: the path after the résumé, in the shared order, 12 steps (the owner's bug report split the card and the modes); every light is an element a real page renders", () => {
   assert.deepEqual(steps.map(s => s.id), TOUR_STEP_IDS.filter(id => id !== "pick_resume" && id !== "survey"), "the survey follows the tour, it is not a step");
   // Owner 11-01: the survey is no tour step — The Table moves on to it by itself (the demonstration's end).
-  assert.equal(steps.length, 13, '"Step N of 13"');
+  assert.equal(steps.length, 12, '"Step N of 12" (owner 11-02: the filtering-sentence step is gone)');
   const src = clientSource();
   for (const s of steps.filter(s => s.target)) {
     const t = s.target;

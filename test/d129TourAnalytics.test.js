@@ -27,7 +27,7 @@ const tour = (db, user, step, phase, ms, device = "laptop", speed = "normal") =>
 
 test("d129: the tour's steps run pick a résumé → deck → filters → Draft House → the Atlas → pick 2 → live → The Table → survey", () => {
   // 11-01 (the owner's bug report, changed on purpose): the card is three steps and the modes and Settings two.
-  assert.deepEqual(TOUR_STEP_IDS, ["pick_resume", "deck", "deck_match", "deck_facts", "deck_actions", "filters", "draft_house",
+  assert.deepEqual(TOUR_STEP_IDS, ["pick_resume", "deck", "deck_match", "deck_facts", "deck_actions", "draft_house",
     "modes", "auto_settings", "atlas_map", "atlas_learn", "pick_two", "live_run", "table", "survey"]);
   assert.equal(DECK_SCROLL_MS, 500, "one card every 0.5 s");
   assert.equal(TOUR_TARGET_MS, 8 * 60 * 1000);
@@ -47,20 +47,20 @@ test("d129: events are validated against the tour — a made-up step, phase or i
 
 test("d129FunnelStepTimes: each step's reached / completed / abandoned and its median time; drop-off where people leave", () => {
   const db = db0(3);
-  // tester 1: the whole path; tester 2: leaves at the filters; tester 3: leaves at Draft House
+  // tester 1: the whole path; tester 2: leaves at the facts; tester 3: leaves at Draft House
   for (const id of TOUR_STEP_IDS) { tour(db, 1, id, "reached", 0); tour(db, 1, id, "completed", 10_000); }
   for (const id of ["pick_resume", "deck", "deck_match"]) { tour(db, 2, id, "reached", 0); tour(db, 2, id, "completed", 30_000); }
-  tour(db, 2, "filters", "reached", 0); tour(db, 2, "filters", "abandoned", 5_000);
-  for (const id of ["pick_resume", "deck", "deck_match", "filters"]) { tour(db, 3, id, "reached", 0, "phone"); tour(db, 3, id, "completed", 20_000, "phone"); }
+  tour(db, 2, "deck_facts", "reached", 0); tour(db, 2, "deck_facts", "abandoned", 5_000);
+  for (const id of ["pick_resume", "deck", "deck_match", "deck_facts"]) { tour(db, 3, id, "reached", 0, "phone"); tour(db, 3, id, "completed", 20_000, "phone"); }
   tour(db, 3, "draft_house", "reached", 0, "phone");
   const a = trialAnalytics(db);
   const deck = a.funnel.find(f => f.step === "deck");
   assert.deepEqual([deck.reached, deck.completed, deck.medianMs], [3, 3, 20_000]);
-  const filters = a.funnel.find(f => f.step === "filters");
-  assert.deepEqual([filters.reached, filters.completed, filters.abandoned], [3, 2, 1]);
-  assert.deepEqual(a.dropOff, { filters: 1, draft_house: 1 });
+  const facts = a.funnel.find(f => f.step === "deck_facts");
+  assert.deepEqual([facts.reached, facts.completed, facts.abandoned], [3, 2, 1]);
+  assert.deepEqual(a.dropOff, { deck_facts: 1, draft_house: 1 });
   assert.equal(a.finished, 1);
-  assert.equal(a.medianTotalMs, 150_000, "15 steps × 10 s");
+  assert.equal(a.medianTotalMs, 140_000, "14 steps × 10 s");
   // narrowed to one device
   assert.equal(trialAnalytics(db, { filter: { by: "device", value: "phone" } }).testers, 1);
 });
