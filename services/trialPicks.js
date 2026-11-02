@@ -73,15 +73,41 @@ const cache = new Map();
 const inflight = new Map();
 const today = (now) => new Date(now).toISOString().slice(0, 10);
 
-function candidates(db, category, seniority) {
+/** How many of a category's postings are read (titles only) to choose the SCORE_CAP that are scored. */
+export const TITLE_POOL = 3000;
+const STOP = new Set(["senior", "junior", "lead", "staff", "principal", "associate", "assistant", "i", "ii", "iii", "iv", "sr", "jr", "of", "and", "the", "a", "an", "for", "to", "in", "at"]);
+const titleWords = (t) => String(t || "").toLowerCase().split(/[^a-z0-9&+]+/).filter(w => w.length > 1 && !STOP.has(w));
+
+/**
+ * ⭐ A111 (11-02): which postings are SCORED. Before, the SCORE_CAP most recent in the category — on a board across
+ * industries that was mostly the category's generic catch-alls ("Clinical Field Specialist", "Bank Operations Imaging
+ * Specialist" for a financial analyst). Now the category's postings are ranked by how close the title is to the résumé's
+ * target title(s) — the same occupation code first (categoryOf's soc: Financial Analyst 13-2051, not the 13-1199
+ * catch-all), then the share of the target's words the title has — then by recency, and the top SCORE_CAP are scored.
+ * With no target titles it is the old order.
+ */
+function candidates(db, category, seniority, targets = []) {
   const levels = LEVEL_FIT[seniority] || LEVEL_FIT.mid;
   const marks = levels.map(() => "?").join(",");
-  return db.prepare(`SELECT job_id, title, company, location, description, discipline FROM scraped_jobs
+  // The pool reads titles only; descriptions are read for the SCORE_CAP chosen (3,000 descriptions held the event loop).
+  const rows = db.prepare(`SELECT job_id, title, company, location, ${targets.length ? "NULL AS description" : "description"}, discipline, soc FROM scraped_jobs
     WHERE is_active = 1 AND duplicate_of IS NULL AND board_category = ?
       AND COALESCE(level_read, bucket_seniority, 'mid') IN (${marks})
       AND COALESCE(req_citizenship, '') NOT IN ('citizen_only', 'us_person')
       AND COALESCE(req_clearance, 'none') IN ('none', '')
-    ORDER BY COALESCE(posted_at, discovered_at) DESC LIMIT ?`).all(category, ...levels, SCORE_CAP);
+    ORDER BY COALESCE(posted_at, discovered_at) DESC LIMIT ?`).all(category, ...levels, targets.length ? TITLE_POOL : SCORE_CAP);
+  if (!targets.length) return rows;
+  const socs = new Set(targets.map(t => categoryOf({ title: t }).soc).filter(s => s && !s.endsWith("1199")));
+  const words = targets.map(t => new Set(titleWords(t))).filter(s => s.size);
+  const closeness = (r) => {
+    const w = new Set(titleWords(r.title));
+    const share = Math.max(0, ...words.map(ws => [...ws].filter(x => w.has(x)).length / ws.size));
+    return (socs.has(r.soc) ? 1 : 0) + share;
+  };
+  const chosen = rows.map((r, i) => ({ r, i, c: closeness(r) })).sort((a, b) => b.c - a.c || a.i - b.i).slice(0, SCORE_CAP).map(x => x.r);
+  const text = db.prepare("SELECT description FROM scraped_jobs WHERE job_id = ?").pluck();
+  for (const r of chosen) r.description = text.get(r.job_id);
+  return chosen;
 }
 
 /**
@@ -102,7 +128,7 @@ export async function picksFor(db, opts) {
   return run;
 }
 
-async function picksNow(db, { category, seniority = "mid", resumeText, discipline = null, limit = PICKS_PER_SAMPLE, now = Date.now(), cacheKey = null }) {
+async function picksNow(db, { category, seniority = "mid", resumeText, discipline = null, targets = [], limit = PICKS_PER_SAMPLE, now = Date.now(), cacheKey = null }) {
   if (!category || !resumeText) return [];
   // Per day: picks are recomputed once a day (warmed at boot), not on every crawl's change of the board's size.
   const key = cacheKey && `${cacheKey}:${today(now)}`;
@@ -113,7 +139,7 @@ async function picksNow(db, { category, seniority = "mid", resumeText, disciplin
   const scored = [];
   const skills = resumeSkills(resumeText);
   let n = 0;
-  for (const j of candidates(db, category, seniority)) {
+  for (const j of candidates(db, category, seniority, targets)) {
     if (++n % YIELD_EVERY === 0) await breathe();
     const v = categoryOf({ title: j.title });
     if (v.category !== category) continue;
@@ -139,7 +165,7 @@ export async function samplePicks(db, id, opts = {}) {
   const s = samples()[id];
   if (!s) return [];
   const discipline = categoryOf({ title: s.targetTitle || "", roleKey: s.roleFamily }).discipline;
-  return picksFor(db, { category: s.category, seniority: s.seniority, resumeText: s.resumeText, discipline, cacheKey: `sample:${id}`, ...opts });
+  return picksFor(db, { category: s.category, seniority: s.seniority, resumeText: s.resumeText, discipline, targets: s.targetTitle ? [s.targetTitle] : [], cacheKey: `sample:${id}`, ...opts });
 }
 
 /** Every sample with whether it is offered today: offered only with ≥ PICKS_PER_SAMPLE picks. */
@@ -166,7 +192,7 @@ export async function ownPicks(db, userId, opts = {}) {
   // A111: "executive" (the onboarding's fourth level) reads as senior, as services/trialOwn.js picksSeniority does.
   const seniority = ["senior", "lead", "manager", "staff", "principal", "executive"].includes(p.seniority) ? "senior"
     : ["junior", "entry", "intern"].includes(p.seniority) ? "junior" : "mid";
-  const picks = await picksFor(db, { category, seniority, discipline, resumeText: String(p.content).replace(/<[^>]+>/g, " "), cacheKey: `own:${userId}:${p.id}`, ...opts });
+  const picks = await picksFor(db, { category, seniority, discipline, resumeText: String(p.content).replace(/<[^>]+>/g, " "), targets: titles.filter(t => typeof t === "string").slice(0, 5), cacheKey: `own:${userId}:${p.id}`, ...opts });
   return picks.length >= PICKS_PER_SAMPLE ? { picks, category } : { picks: [], category, reason: "field_not_live" };
 }
 
