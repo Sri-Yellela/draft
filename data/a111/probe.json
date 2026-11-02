@@ -4280,7 +4280,9 @@
    "marketing": [
     "Director, Marketing Strategy Transformation Consultant"
    ]
-  }
+  },
+  "held_for_review": true,
+  "note": "measured on the DB copy after the crawl: 65 'business' rows, most 'Target Security Specialist' / 'Seasonal Target Security Specialist - Flow Center' (store security) placed in business by categoryOf's generic specialist / associate rule. Two reached Sample E's picks. Held until the rule holds them"
  },
  {
   "round": 1,
@@ -6289,7 +6291,9 @@
     "Senior Analyst, Supply Chain",
     "Senior Financial Analyst"
    ]
-  }
+  },
+  "held_for_review": true,
+  "note": "measured on the DB copy after the crawl: 29 'business' rows, mostly 'Production Associate - 2nd Shift' (manufacturing floor) placed in business by the generic associate rule. One reached Sample E's picks. Held until the rule holds them"
  },
  {
   "round": 1,
