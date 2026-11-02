@@ -5,7 +5,11 @@
 //   GET  /api/trial/samples          D124 amended: the six samples, each OFFERED only with 10 good picks in its category today
 //   GET  /api/trial/picks            the account's 10 picks: its sample's, or its own résumé's category's (or why there are none)
 //   POST /api/trial/resume           { choice: "A"…"F" | "own" } — a hidden sample is refused — a sample's text comes back for the normal
-//                                    /api/domain-profiles/from-resume onboarding, so the board is read from it as for anyone
+//                                    /api/domain-profiles/from-resume onboarding, so the board is read from it as for anyone.
+//                                    A111: "own" (+ content, name) only with app setting trial_own_resume on — else 409
+//                                    own_resume_off; a field held / unknown / < 10 picks today → 409 field_not_live, nothing saved
+//   GET  /api/trial/role-fit/:jobId  A111: one pick against the tester's own résumé — the ATS report + the Atlas role reading
+//   POST /api/admin/trial/own-resume A111: { on: boolean } — the own-résumé pathway's switch (Admin → Trial; off by default)
 //   GET  /api/trial/state            { trial, hasProfile, sample, drafts, draftsUsed, sent, locked, surveyDue, survey } — and
 //                                    starts the trial's clock on a trial account's first load (THE TRIAL IS THE MAIN FRAME)
 //   POST /api/trial/finish           "Finish the trial": the site locks into the survey now
@@ -33,6 +37,11 @@ import { testerContacts, testerContactsCsv } from "../services/testerContacts.js
 import { draftSlots } from "../services/draftSlots.js";
 import { offeredSamples, samplePicks, ownPicks } from "../services/trialPicks.js";
 import { demoState, completeDemo } from "../services/trialDemo.js";
+// A111 · the own-résumé pathway, behind app setting trial_own_resume (off by default).
+import { trialOwnResumeOn, setSetting, TRIAL_OWN_RESUME_KEY } from "../services/appSettings.js";
+import { readOwnResume, recordOwnReading, ownResumeFields } from "../services/trialOwn.js";
+import { roleFitFor } from "../services/trialRoleFit.js";
+import { getRegistry } from "./domainProfiles.js";
 
 export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret, upload, deliver = null }) {
   const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "error", message: e.message });
@@ -49,8 +58,18 @@ export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret
   });
 
   app.get("/api/trial/samples", requireAuth, async (_req, res) => {
-    try { res.json({ samples: (await offeredSamples(db)).map(({ id, label, category, offered }) => ({ id, label, category, offered })) }); }
+    try {
+      res.json({ samples: (await offeredSamples(db)).map(({ id, label, category, offered }) => ({ id, label, category, offered })),
+        // A111: /try offers "Use my own résumé" only while the switch is on (off by default).
+        ownResume: trialOwnResumeOn(db) });
+    }
     catch (e) { fail(res, e); }
+  });
+
+  // A111 step 4: one pick, the role against the tester's OWN résumé — the ATS report + the Atlas reading
+  // (services/trialRoleFit.js; its atlasReading is the seam P3's per-role reading replaces). { available: false } otherwise.
+  app.get("/api/trial/role-fit/:jobId", requireAuth, async (req, res) => {
+    try { res.json(await roleFitFor(db, { userId: req.user.id, jobId: req.params.jobId, registry: getRegistry() })); } catch (e) { fail(res, e); }
   });
 
   app.get("/api/trial/picks", requireAuth, async (req, res) => {
@@ -73,6 +92,25 @@ export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret
   app.post("/api/trial/resume", requireAuth, async (req, res) => {
     try {
       const choice = req.body?.choice;
+      // ⭐ A111 · "Use my own résumé" — OFF by default (Admin → Trial). Off: refused, exactly as /try never offers it.
+      if (choice === "own") {
+        if (!trialOwnResumeOn(db)) {
+          return res.status(409).json({ error: "own_resume_off", message: "Using your own résumé is not open in the trial yet. Pick a sample résumé." });
+        }
+        // The field is read BEFORE anything is saved; a field that is held, unknown or short of 10 picks today is told so
+        // honestly and nothing is kept (D127: never another category's picks). Admin → Trial records the field either way.
+        const reading = await readOwnResume(db, req.user.id, { content: req.body?.content, registry: getRegistry() });
+        recordOwnReading(db, req.user.id, reading);
+        if (!reading.live) {
+          const samples = (await offeredSamples(db)).filter(s => s.offered).map(({ id, label, category }) => ({ id, label, category }));
+          return res.status(409).json({ error: "field_not_live", reason: reading.reason, field: reading.field, picks: reading.picks, samples,
+            message: "Your field isn't live in the trial yet. Try a sample résumé instead." });
+        }
+        const picked = pickResume(db, req.user.id, "own", { own: true });
+        // The résumé goes on through the normal onboarding (POST /api/domain-profiles/from-resume), as a sample's does.
+        return res.json({ ...picked, field: reading.field, picks: reading.picks,
+          own: { name: String(req.body?.name || "resume.txt").slice(0, 120), content: String(req.body?.content) } });
+      }
       // D124 amended: a sample whose category has fewer than 10 good picks today is hidden — and refused if asked for.
       if (choice !== "own" && (await offeredSamples(db)).some(x => x.id === choice && !x.offered)) {
         return res.status(409).json({ error: "sample_not_offered", message: "That sample is not available today. Pick another, or use your own résumé." });
@@ -138,7 +176,17 @@ export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret
   });
 
   app.get("/api/admin/trial", requireAdmin, (_req, res) => {
-    try { res.json(adminTrialCounts(db)); } catch (e) { fail(res, e); }
+    // A111: the own-résumé pathway's switch and its testers' fields (names and counts — never a résumé's text).
+    try { res.json({ ...adminTrialCounts(db), ownResume: { on: trialOwnResumeOn(db), ...ownResumeFields(db) } }); } catch (e) { fail(res, e); }
+  });
+
+  // A111 · Admin → Trial's switch for "Use my own résumé" (off by default; the owner's to turn on — O-row 3).
+  app.post("/api/admin/trial/own-resume", requireAdmin, (req, res) => {
+    try {
+      if (typeof req.body?.on !== "boolean") return res.status(400).json({ error: "bad_value", message: "on must be true or false." });
+      setSetting(db, TRIAL_OWN_RESUME_KEY, req.body.on);
+      res.json({ on: trialOwnResumeOn(db) });
+    } catch (e) { fail(res, e); }
   });
 
   app.post("/api/admin/trial/access", requireAdmin, (req, res) => {

@@ -163,7 +163,8 @@ export async function ownPicks(db, userId, opts = {}) {
   const titles = (() => { try { return JSON.parse(p.target_titles || "[]"); } catch { return []; } })();
   const discipline = category === "engineering" ? (titles.map(t => categoryOf({ title: t }).discipline).find(Boolean) || null) : null;
   if (!category) return { picks: [], reason: "field_not_live", category: null };
-  const seniority = ["senior", "lead", "manager", "staff", "principal"].includes(p.seniority) ? "senior"
+  // A111: "executive" (the onboarding's fourth level) reads as senior, as services/trialOwn.js picksSeniority does.
+  const seniority = ["senior", "lead", "manager", "staff", "principal", "executive"].includes(p.seniority) ? "senior"
     : ["junior", "entry", "intern"].includes(p.seniority) ? "junior" : "mid";
   const picks = await picksFor(db, { category, seniority, discipline, resumeText: String(p.content).replace(/<[^>]+>/g, " "), cacheKey: `own:${userId}:${p.id}`, ...opts });
   return picks.length >= PICKS_PER_SAMPLE ? { picks, category } : { picks: [], category, reason: "field_not_live" };

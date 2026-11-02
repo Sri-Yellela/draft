@@ -32,8 +32,15 @@ function db0() {
   return db;
 }
 
-test("trialNoOwnResume: samples only — no 'own' choice anywhere in the trial", () => {
-  assert.doesNotMatch(read("client/src/pages/TryPage.jsx"), /data-trial-choice="own"|Use my own résumé/);
+// Changed on purpose (A111, owner 11-02: "when it works we can add the pathway to the trial"): the owner's 11-01 rule
+// stands BY DEFAULT — the own-résumé card exists now, but /try renders it only while Admin → Trial's switch
+// (trial_own_resume) is on, and the choice list stays samples only (test/a111OwnResume.test.js a111OwnResumeOffByDefault
+// proves the off behaviour over HTTP).
+test("trialNoOwnResume: samples only by default — 'own' only behind the switch", () => {
+  const page = read("client/src/pages/TryPage.jsx");
+  assert.doesNotMatch(page, /data-trial-choice="own"/);
+  assert.match(page, /\{ownOn && <OwnResumeCard /);
+  assert.match(page, /const \[ownOn, setOwnOn\] = useState\(false\);/, "off until the server says on");
   assert.match(read("services/trial.js"), /export const RESUME_CHOICES = Object\.freeze\(\[\.\.\.SAMPLE_IDS\]\);/);
 });
 
