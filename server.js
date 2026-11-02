@@ -490,6 +490,9 @@ const db = new Database(DB_PATH);
 // WAL mode: allows concurrent readers alongside a single writer.
 // Critical for multi-user deployments — prevents SQLITE_BUSY lock errors.
 db.pragma("journal_mode = WAL");
+// A112: a WAL is never shrunk by default — one crawl of 3,916 companies left a 594 MB -wal beside a 1.19 GB database
+// (the volume at 70 %). After each checkpoint the file is now truncated back to 64 MB.
+db.pragma("journal_size_limit = 67108864");
 db.pragma("busy_timeout = 5000");
 // A72 — the search tier function the board's WHERE and ORDER BY call (services/jobs/boardSearch.js).
 registerBoardSearch(db);
