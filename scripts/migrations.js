@@ -5949,4 +5949,29 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D123 P6a / P6d / P6g + the owner's model choice (11-01, contract 1.8.0). users.tailoring_model: the model a
+      // person picked for their tailorings (haiku · sonnet · open), honoured only while Admin → Ops offers it
+      // (services/leanTailoring.js modelFor). resume_gists: the per-employer gists of a base résumé, built ONCE on the
+      // Sonnet tier (POST /v1/resumes/gists) and keyed by the résumé's hash, so a changed résumé gets new ones; `edited`
+      // marks the person's own wording (never overwritten by a rebuild of the same résumé); numberless_json lists the
+      // bullets with no number for the optional "add a real number" prompt (P6g). user_profile.coursework_json: the
+      // person's own courses, for P6d's Relevant Coursework row. After 211.
+      id: "212_tailoring_choice",
+      sql: `
+        ALTER TABLE users ADD COLUMN tailoring_model TEXT;
+        ALTER TABLE user_profile ADD COLUMN coursework_json TEXT;
+        CREATE TABLE IF NOT EXISTS resume_gists (
+          user_id          INTEGER NOT NULL,
+          resume_hash      TEXT NOT NULL,
+          gists_json       TEXT NOT NULL DEFAULT '[]',
+          numberless_json  TEXT NOT NULL DEFAULT '[]',
+          edited           INTEGER NOT NULL DEFAULT 0,
+          cost_usd         REAL,
+          created_at       INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at       INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, resume_hash)
+        );
+      `,
+    },
   ];
