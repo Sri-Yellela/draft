@@ -104,6 +104,7 @@ import { createThumbsRouter, createThumbsAdminRouter, resourceItems } from "./ro
 import trialRoutes from "./routes/trial.js";
 import atsCalibrationRoutes from "./routes/atsCalibration.js";
 import { isTrial as isTrialAccount } from "./services/trial.js";
+import { trialSampleOf, trialDeckResponse, trialBoardResponse } from "./services/trialDeck.js";
 import { ingestForUser } from "./services/inbox.js";
 import { refreshThumbs } from "./services/thumbs/resourceThumbs.js";
 import { createLearnAdminRouter } from "./routes/learnAdmin.js";
@@ -8728,6 +8729,9 @@ function boardFit() {
         const cat = profileCategory(profile || {});
         return cat && /^[a-z_]+$/.test(cat) ? cat : null;
       },
+      // ⛔ Owner 11-02 (the site froze behind ~20 trial profiles' passes over 17,278 postings each): a trial account
+      // is never precomputed — its deck and board are its sample's frozen cards (services/trialDeck.js).
+      skipUser: (userId) => isTrialAccount(db, userId),
     });
   }
   return _boardFit;
@@ -8744,6 +8748,7 @@ const _boardFitBoardTriggerAt = new Map();   // "user:profile" -> ms of the last
 const BOARD_FIT_BOARD_TRIGGER_EVERY_MS = 60_000;
 function scheduleBoardFit(userId, reason, profile = null) {
   if (!boardFitAutomationEnabled() || !userId) return;
+  if (isTrialAccount(db, userId)) return;   // owner 11-02: trial accounts read frozen sample cards, never a precompute
   try {
     const p = profile || getOrRepairActiveProfile(userId);
     if (!p?.id) return;
@@ -10344,6 +10349,10 @@ const boardReply = (status, body) => ({ status, body });
 // the ageFilter cutoff so a facets response's options and its base sets read one clock.
 async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
   try {
+    // ⭐ Owner 11-02: a sample trial account's board is its sample's frozen postings (services/trialDeck.js), nothing
+    // else — no board query, no precompute. (Facets — `measure` — still read the board.)
+    const trialSample = measure ? null : trialSampleOf(db, req.user.id);
+    if (trialSample) return boardReply(200, await trialBoardResponse(db, { sampleId: trialSample }));
     // Validate the enumerated filter vocabularies BEFORE any work — a bad value must not reach the
     // query builder and come back as an empty board. 400 rather than 200-with-nothing: the caller
     // sent something this endpoint does not understand, and saying so is the whole point.
@@ -11269,6 +11278,10 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
     const hasResume = db.prepare(
       "SELECT 1 FROM profile_base_resumes WHERE profile_id = ? AND TRIM(content) != ''").get(profile.id);
     if (!hasResume) return noDeal("no_resume", profile.id);
+    // ⭐ Owner 11-02: a sample trial account is dealt its sample's FROZEN cards (services/trialDeck.js) — no board read,
+    // no precompute. The cards carry their score for the tour's match step.
+    const trialSample = trialSampleOf(db, req.user.id);
+    if (trialSample) return res.json(await trialDeckResponse(db, { userId: req.user.id, profileId: profile.id, sampleId: trialSample, date, order }));
     const fetchBoardPage = async (cursor) => {
       const { status, body } = await boardPageResponse({ ...req, query: { pageSize: "50", ...(cursor ? { cursor } : {}) } });
       return { ok: status === 200 && body?.success !== false, jobs: body?.jobs || [], nextCursor: body?.nextCursor || null, error: body?.error };

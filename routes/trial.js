@@ -35,7 +35,8 @@ import { startTrial, pickResume, trialState, saveSurvey, finishTrial, saveFeedba
 import { testersReport, testersCsv } from "../services/testersReport.js";
 import { testerContacts, testerContactsCsv } from "../services/testerContacts.js";
 import { draftSlots } from "../services/draftSlots.js";
-import { offeredSamples, samplePicks, ownPicks } from "../services/trialPicks.js";
+import { offeredSamples, ownPicks } from "../services/trialPicks.js";
+import { sampleDeck } from "../services/trialDeck.js";
 import { demoState, completeDemo } from "../services/trialDemo.js";
 // A111 · the own-résumé pathway, behind app setting trial_own_resume (off by default).
 import { trialOwnResumeOn, setSetting, TRIAL_OWN_RESUME_KEY } from "../services/appSettings.js";
@@ -75,7 +76,12 @@ export default function trialRoutes(app, db, { requireAuth, requireAdmin, secret
   app.get("/api/trial/picks", requireAuth, async (req, res) => {
     try {
       const choice = db.prepare("SELECT trial_resume FROM users WHERE id = ?").pluck().get(req.user.id);
-      if (choice && choice !== "own") return res.json({ sample: choice, picks: await samplePicks(db, choice) });
+      // Owner 11-02: a sample's picks are its frozen cards (services/trialDeck.js) — the same postings the deck deals.
+      if (choice && choice !== "own") {
+        const frozen = await sampleDeck(db, choice);
+        return res.json({ sample: choice, picks: frozen.map(c => ({ job_id: c.jobId, title: c.job.title, company: c.job.company,
+          location: c.job.location, score: c.score, basis: "ats" })) });
+      }
       res.json({ sample: null, ...(await ownPicks(db, req.user.id)) });
     } catch (e) { fail(res, e); }
   });
