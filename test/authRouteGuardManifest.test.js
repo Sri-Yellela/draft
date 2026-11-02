@@ -112,6 +112,8 @@ const ADMIN = new Set([
   "GET /api/admin/full-auto",
   "PUT /api/admin/full-auto",
   "DELETE /api/admin/full-auto",
+  "GET /api/admin/trial/people",       // 44b: testers by name and email with what they wrote
+  "GET /api/admin/trial/people.csv",
   "GET /api/admin/tailoring",      // D123: the tailoring mode, default model and models offered
   "PUT /api/admin/tailoring",
   "DELETE /api/admin/tailoring",

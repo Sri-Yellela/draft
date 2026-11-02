@@ -42,7 +42,6 @@ function Sheet({ title, onClose, children }) {
 /** The survey, as the whole page — the trial's ending. The ONE form (SurveyForm), with the trial's questions. */
 function SurveyPage({ survey, onDone, onExplore, fieldGuess = null }) {
   const [sent, setSent] = useState(false);
-  const skip = async () => { await api("/api/trial/survey/dismiss", { method: "POST" }).catch(() => {}); onDone(); };
   if (sent) {
     return (
       <div style={surveyPage} data-trial-survey="sent">
@@ -65,9 +64,9 @@ function SurveyPage({ survey, onDone, onExplore, fieldGuess = null }) {
         onSubmit={async (answers) => { await api("/api/trial/survey", { method: "POST", body: JSON.stringify(answers) });
           api("/api/trial/event", { method: "POST", body: JSON.stringify({ event: "tour", detail: { step: "survey", phase: "completed", ms: 0 } }) }).catch(() => {});
           setSent(true); window.scrollTo(0, 0); }}
+        // 44b (owner 11-02): no way past the survey — the site opens (view-only, "coming soon") only after it is sent.
         footer={<>We save your answers with your trial account to improve draft. We never share them with employers.{" "}
-          <a href="/privacy" target="_blank" rel="noopener">Privacy</a> · <button type="button" onClick={skip}
-            style={{ all: "unset", cursor: "pointer", textDecoration: "underline" }}>Skip the survey</button></>}/>
+          <a href="/privacy" target="_blank" rel="noopener">Privacy</a></>}/>
     </div>
   );
 }
@@ -231,8 +230,8 @@ export default function TrialGate({ children }) {
   return (
     <>
       {children}
-      {/* D129: the guided tour runs on the real pages until it reaches the survey (or the tester skips it). */}
-      <GuidedTour state={state} onFinish={finish} onActive={setTouring}/>
+      {/* D129: the guided tour runs on the real pages until it reaches the survey; 44b: leaving it goes to the survey. */}
+      <GuidedTour state={state} onFinish={finish} onActive={setTouring} onSkipToSurvey={() => finish().then(() => setSurveyOpen(true))}/>
       {/* its own button says "take the survey", so it opens the survey itself */}
       {!touring && <Dock state={state} onFinish={() => finish().then(() => setSurveyOpen(true))}/>}
     </>

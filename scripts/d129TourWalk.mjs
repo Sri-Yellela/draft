@@ -109,7 +109,19 @@ try {
     await shot(page, `${label}-4-pick-two`);
     await page.click("[data-tour-skip]");
     const gone = await page.waitForFunction(() => !document.querySelector("[data-guided-tour]"), { timeout: 5000 }).then(() => true).catch(() => false);
-    check(`${label}: Skip ends the tour`, gone);
+    check(`${label}: Skip to the survey ends the tour`, gone);
+    // 44b: leaving the tour ends the trial into the survey, never into the open app.
+    check(`${label}: Skip opens the survey`, await page.waitForSelector("[data-trial-survey]", { timeout: 8000 }).then(() => true).catch(() => false));
+    check(`${label}: no Skip the survey`, !(await page.evaluate(() => /Skip the survey/.test(document.body.innerText))));
+    // 44b: the sequence cannot be broken before the survey — a reload, a typed URL or the old dismiss call all land on it.
+    for (const to of ["/app", "/app/house", "/app/atlas"]) {
+      await page.goto(BASE + to, { waitUntil: "networkidle2" });
+      const onSurvey = await page.waitForSelector("[data-trial-survey], [data-survey-invite]", { timeout: 10000 }).then(() => true).catch(() => false);
+      check(`${label}: ${to} after skipping shows the survey, not the site`, onSurvey);
+    }
+    const dismissed = await page.evaluate(() => fetch("/api/trial/survey/dismiss", { method: "POST", credentials: "include" }).then(r => r.status));
+    // a raw fetch carries no app auth header (401); signed in, the route answers 410 (test/t44bTrialSequence pins it)
+    check(`${label}: the old survey dismiss is refused`, dismissed >= 400, String(dismissed));
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     check(`${label}: no horizontal scroll`, !overflow);
     check(`${label}: no page errors`, !errors.length, errors.slice(0, 3).join(" | "));
