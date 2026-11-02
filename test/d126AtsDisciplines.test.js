@@ -50,5 +50,7 @@ test("d126: eight disciplines, each with titles, practices, verbs and tools — 
 test("d126: the three copies agree — registry/, the scorer package, and the domain picker's fallback; the package is 1.3.0", () => {
   assert.equal(fs.readFileSync("registry/DOMAIN_METADATA_REGISTRY.json", "utf8"), fs.readFileSync("packages/ats-scorer/data/DOMAIN_METADATA_REGISTRY.json", "utf8"));
   for (const d of DISCIPLINES) assert.deepEqual(BUILTIN_REGISTRY[d], REG[d], d);
-  assert.equal(JSON.parse(fs.readFileSync("packages/ats-scorer/package.json", "utf8")).version, "1.3.0");
+  // At least 1.3.0, the release that carried these disciplines (A111 P2 moved it to 1.4.0 and pins that itself).
+  const [maj, min] = JSON.parse(fs.readFileSync("packages/ats-scorer/package.json", "utf8")).version.split(".").map(Number);
+  assert.ok(maj > 1 || (maj === 1 && min >= 3));
 });
