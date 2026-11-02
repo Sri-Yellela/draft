@@ -204,6 +204,12 @@ export function createBoardFitPrecompute({
   // newest first). Without it a new tester's deck waited for the whole board — measured 320 s for 2,411 postings.
   primeFor = null,
   primeSize = 60,
+  // ⭐ A112 (11-02): (userId, profile) -> the board category this profile's board shows, or null for every category.
+  // The crawler boost took the board from 3,734 to 79,184 postings, and this scored EVERY active posting for every
+  // profile — 418,711 stored reports (≈ 500 MB) for 15 users, ≈ 9 min of scoring per profile per crawl. The board's
+  // default view shows the profile's own category (and unclassified rows) only, so only those are precomputed; a
+  // posting reached by a search or another function is scored when it is opened, as before.
+  scopeFor = null,
   log = console,
   batchSize = 50,
   sliceMs = 40,
@@ -223,7 +229,12 @@ export function createBoardFitPrecompute({
   // no hash function — every row whose basis matches is read with its scorer inputs and its stored
   // `job_hash` is compared with atsJobInputHash.
   // D59: a database without migration 137's columns (a hand-built fixture) hashes the stored description.
-  const hasPostingText = db.prepare("PRAGMA table_info(scraped_jobs)").all().some(c => c.name === "description_text");
+  const columns = db.prepare("PRAGMA table_info(scraped_jobs)").all();
+  const hasPostingText = columns.some(c => c.name === "description_text");
+  // A112: the board's own category clause (server.js /api/jobs) — 'held' never, another category not by default.
+  const SCOPE_SQL = columns.some(c => c.name === "board_category")
+    ? " AND (sj.board_category IS NULL OR (sj.board_category <> 'held' AND (? IS NULL OR sj.board_category = ?)))"
+    : "";
   const planStmt = db.prepare(`
     SELECT sj.job_id AS job_id,
            CASE WHEN aor.id IS NULL THEN 'missing'
@@ -234,16 +245,17 @@ export function createBoardFitPrecompute({
     FROM scraped_jobs sj
     LEFT JOIN ats_only_reports aor
       ON aor.job_id = sj.job_id AND aor.user_id = ? AND aor.domain_profile_id IS ?
-    WHERE sj.is_active = 1
+    WHERE sj.is_active = 1${SCOPE_SQL}
     ORDER BY sj.job_id
   `);
-  const activeCountStmt = db.prepare("SELECT COUNT(*) AS n FROM scraped_jobs WHERE is_active = 1");
+  const activeCountStmt = db.prepare(`SELECT COUNT(*) AS n FROM scraped_jobs sj WHERE sj.is_active = 1${SCOPE_SQL}`);
   const inFlight = new Map();   // "user:profile" -> { promise, rerun }
 
   /** What would be scored, without scoring it. */
-  function plan({ userId, profileId, basisHash, force = false }) {
-    const all = planStmt.all(basisHash, force ? 1 : 0, userId, profileId ?? null);
-    const active = activeCountStmt.get().n;
+  function plan({ userId, profileId, basisHash, force = false, category = null }) {
+    const scope = SCOPE_SQL ? [category, category] : [];
+    const all = planStmt.all(basisHash, force ? 1 : 0, userId, profileId ?? null, ...scope);
+    const active = activeCountStmt.get(...scope).n;
     let missing = 0, stale = 0, postingChanged = 0;
     const jobIds = [];
     for (const r of all) {
@@ -278,7 +290,9 @@ export function createBoardFitPrecompute({
       emit("warn", r); return r;
     }
 
-    const p = plan({ userId, profileId: profile.id, basisHash: basis.basisHash, force });
+    let category = null;
+    try { category = scopeFor ? scopeFor(userId, profile) ?? null : null; } catch { category = null; }
+    const p = plan({ userId, profileId: profile.id, basisHash: basis.basisHash, force, category });
     const counts = { active: p.active, fresh: p.fresh, missing: p.missing, stale: p.stale,
                      postingChanged: p.postingChanged, todo: p.jobIds.length };
     if (dryRun) {
