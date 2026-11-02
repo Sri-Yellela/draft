@@ -61,7 +61,9 @@ const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SO
 const TOAST_MS = DECISION_TOAST_MS;
 const WHEEL_STEP = 60;               // accumulated wheel delta for one card
 const WHEEL_SETTLE_MS = 140;         // one trackpad flick is many events; rotate once per flick
-const localDate = () => new Date().toLocaleDateString("en-CA");   // YYYY-MM-DD in the user's zone
+// YYYY-MM-DD in the user's zone, built from its parts. ⛔ 44e: toLocaleDateString("en-CA") is NOT always YYYY-MM-DD — some
+// Safari / Chrome builds answer "11/2/2026", the server refused it (400) and a tester's deck dealt nothing.
+const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 // Development only: lets the geometry be swept from the console while looking (queue 27's reach
 // sweep). Production reads geometryFor (the user's layout, fitted) and nothing else.
 const DEV_FAN = import.meta.env?.DEV ? globalThis.__DECK_FAN__ : null;
@@ -147,7 +149,7 @@ function StepButton({ dir, onClick, disabled }) {
 // posting stays INSIDE the card, growing downward; the one panel beside it is the FULL ATS report.
 // ⛔ The first build (8c38dd2, da73ff9) was three columns — ATS │ card │ posting — and was wrong.
 //
-// COLLAPSED  logo, company, title and ONE signal line ("Strong match · 9 of 12 matched · tap for the
+// COLLAPSED  logo, company, title and ONE signal line ("Strong match · 9 of 12 skills · tap for the
 //            report"). ⛔ No chip rows: the collapsed card is a two-second decision.
 // CLICK      four things on ONE clock (--deck-t / --deck-ease, set once on the deck's root) and NO
 //            stagger: the grid 0fr → 1fr · the arc riding right with the card's column · the signal

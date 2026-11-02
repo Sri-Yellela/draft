@@ -91,3 +91,23 @@ test("t44bAdminWiring: the panel, its routes (admin only) and the names-and-emai
   assert.match(panel, /<PeopleAndQuestions\/>/);
   assert.match(panel, /export\.csv\?emails=1/);
 });
+
+test("t44eDeckDateAnyBrowser: the deck's date is built from its parts, and an unreadable date deals the server's day", () => {
+  const deck = lf("client/src/panels/DeckView.jsx");
+  assert.doesNotMatch(deck, /toLocaleDateString\("en-CA"\)\s*;/, "en-CA is not YYYY-MM-DD in every browser (iPhone Safari 17 sent 400s)");
+  assert.match(deck, /const localDate = \(d = new Date\(\)\) => `\$\{d\.getFullYear\(\)\}-/);
+  const server = lf("server.js");
+  const i = server.indexOf('app.get("/api/draft/today"');
+  assert.ok(i >= 0);
+  const route = server.slice(i, i + 1200);
+  assert.match(route, /const date = validDraftDate\(asked\) \? asked : new Date\(\)\.toISOString\(\)\.slice\(0, 10\);/);
+  assert.doesNotMatch(route, /invalid_date/);
+});
+
+test("t44eTourNeverStrands: a step whose target never shows still shows its caption (Next, Back, Skip) after LOST_MS", () => {
+  const tour = lf("client/src/components/GuidedTour.jsx");
+  assert.match(tour, /const LOST_MS = 4000;/);
+  assert.match(tour, /const waiting = step\.target && !rect && !lost;/);
+  assert.match(tour, /setTimeout\(\(\) => setLost\(true\), LOST_MS\)/);
+  assert.match(tour, /setRect\(null\);\n    setLost\(false\);/, "each step starts by looking for its target again");
+});

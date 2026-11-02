@@ -60,7 +60,9 @@ test("⛔ ONE CLOCK, NO STAGGER: every movement reads --deck-t / --deck-ease, se
 
 test("⭐ the collapsed card is COMPACT: ONE signal line, no chip rows — and on a wide screen it leaves as the report arrives", () => {
   assert.doesNotMatch(deckSrc, /WhyChips|Why it's here|Not on your résumé yet/, "a chip row on the collapsed card");
-  assert.match(deckSrc, /\{matched\} of \{total\} matched/, "the signal line's term counts");
+  // D129 / D124 (1884857, owner 11-01): the counts read "N of M skills" — term counts, never a score.
+  const signal = deckSrc.slice(at(deckSrc, "function AtsSignal", 0, "signal"), at(deckSrc, "function CollapsedScore", 0, "end of signal"));
+  assert.match(signal, /\{matched\} of \{total\} skills/, "the signal line's term counts");
   // D32 re-pin: open, the signal line leaves on EVERY width — beside the report when wide, and on a phone
   // to the collapsed score that heads the posting (the sticky column's phone answer). Closed, it stays.
   assert.match(face, /const signalShown = !open;/);
