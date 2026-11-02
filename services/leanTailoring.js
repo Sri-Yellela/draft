@@ -17,8 +17,13 @@ import { canonicalSkillKey } from "./kb/technographics.js";
 import { buildStructuredResume } from "./resumeFormatter.js";
 import { buildJobKeywords } from "./jobKeywordContext.js";
 import { postingText } from "./jobs/descriptionText.js";
+import { getSetting } from "./appSettings.js";
+import { niceSection } from "./atsCalibration.js";
 
-export const TAILORINGS = Object.freeze(["full", "lean"]);
+// D123 (contract 1.8.0): "payload" (P6a + P6g — the job block and the per-employer gists) and "code" (P6d — no model).
+export const TAILORINGS = Object.freeze(["full", "lean", "payload", "code"]);
+/** The admin's switch (Admin → Ops → Tailoring): an app_settings row that wins over DRAFT_TAILORING, no deploy needed. */
+export const TAILORING_KEY = "tailoring_mode";
 export const PLACEMENT_MIN_POSTINGS = 3;
 export const PLACEMENTS_MAX = 30;
 
@@ -34,10 +39,61 @@ export const LEAN_LEDGER_RENAME = Object.freeze({ resume_tailor: "resume_generat
  * "lean" or "full" for one generation. DRAFT_TAILORING=lean turns it on for everyone; a trial account (D124) is lean
  * by default. Anything else is "full" — the request as it was before D123.
  */
-export function tailoringFor({ env = process.env, isTrial = false } = {}) {
+export function tailoringFor({ db = null, env = process.env, isTrial = false } = {}) {
+  // Owner 11-01: "switch the prompt between lean or the payload from the admin panel" — the admin's row first, for
+  // everyone (trial accounts included); then the deploy's DRAFT_TAILORING; then the trial default.
+  const row = db ? String(getSetting(db, TAILORING_KEY) || "").trim().toLowerCase() : "";
+  if (TAILORINGS.includes(row)) return row;
   const set = String(env.DRAFT_TAILORING || "").trim().toLowerCase();
-  if (set === "lean" || set === "full") return set;
+  if (TAILORINGS.includes(set)) return set;
   return isTrial ? "lean" : "full";
+}
+
+/** For the admin surface: where the mode comes from, so clearing the override is never a guess. */
+export function tailoringState(db, env = process.env) {
+  const override = getSetting(db, TAILORING_KEY);
+  const envRaw = env?.DRAFT_TAILORING ?? null;
+  const known = (v) => TAILORINGS.includes(String(v || "").trim().toLowerCase());
+  return { mode: tailoringFor({ db, env }), trialMode: tailoringFor({ db, env, isTrial: true }),
+           source: known(override) ? "override" : known(envRaw) ? "env" : "default",
+           override, envRaw, modes: [...TAILORINGS] };
+}
+
+// ── the model (owner 11-01: "or the model being used from the users side") ──────────────────────────────────────
+// The tools service serves three per-request choices (contract 1.8.0 options.model). "service" = send none: the tools
+// service's own configuration (RM_TAILOR_PROVIDER / RM_TAILOR_MODEL) decides. The admin sets the default and which
+// choices a person may pick; a person's pick is honoured only while the admin offers it.
+export const MODEL_CHOICES = Object.freeze(["haiku", "sonnet", "open"]);
+export const MODEL_LABELS = Object.freeze({ service: "The service's default", haiku: "Claude Haiku (fastest, cheapest)",
+  sonnet: "Claude Sonnet (stronger, about 3x the cost)", open: "Open model (the configured provider)" });
+export const MODEL_DEFAULT_KEY = "tailoring_model_default";
+export const MODELS_OFFERED_KEY = "tailoring_models_offered";
+export const DEFAULT_OFFERED = Object.freeze(["haiku", "sonnet"]);
+
+/** { default: "service" | choice, offered: [choice] } — the admin's model settings. */
+export function modelSettings(db) {
+  const d = String(getSetting(db, MODEL_DEFAULT_KEY) || "").trim();
+  const raw = getSetting(db, MODELS_OFFERED_KEY);
+  const offered = raw === null ? [...DEFAULT_OFFERED] : String(raw).split(",").map(x => x.trim()).filter(x => MODEL_CHOICES.includes(x));
+  return { default: MODEL_CHOICES.includes(d) ? d : "service", offered };
+}
+
+/** The person's stored pick (users.tailoring_model, migration 212), or null — also on a database before 212. */
+export function userModelChoice(db, userId) {
+  try { return db.prepare("SELECT tailoring_model FROM users WHERE id=?").get(userId)?.tailoring_model || null; }
+  catch { return null; }
+}
+
+/**
+ * The options.model to send for one tailoring, or null (send none). Only lean and payload call a model by choice; a
+ * person's pick wins while the admin offers it, else the admin's default.
+ */
+export function modelFor(db, { userId = null, tailoring = "lean" } = {}) {
+  if (tailoring !== "lean" && tailoring !== "payload") return null;
+  const s = modelSettings(db);
+  const mine = userId ? userModelChoice(db, userId) : null;
+  if (mine && s.offered.includes(mine)) return mine;
+  return s.default === "service" ? null : s.default;
 }
 
 /** The posting as the lean path reads it: the full text when there is one, else the normalised / stored text. */
@@ -113,4 +169,59 @@ export function leanJobKeywords(db, { job, report, claims = null, resumeText, sy
   const keywords = buildJobKeywords({ job, report, claims: claims || {}, postingText: fullPostingText(job) });
   const placements = kbPlacements(db, { resumeText, missing: report?.tier1_missing || [], claimed: report?.claimed_matches || [], synonyms });
   return placements.length ? { ...keywords, placements } : keywords;
+}
+
+// ── D123 P6a · THE PAYLOAD'S JOB BLOCK ─────────────────────────────────────────────────────────────────────────────
+const cap80 = (a, n) => [...new Map(a.filter(Boolean).map(t => String(t).trim()).filter(t => t && t.length <= 80).map(t => [lower(t), t])).values()].slice(0, n);
+const escRe = (t) => String(t).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const countIn = (text, term) => (String(text || "").match(new RegExp(`(?<![\\w+#.])${escRe(term)}(?![\\w+#])`, "gi")) || []).length;
+
+/**
+ * Posting terms the résumé lacks that one of its own skills implies, from the Atlas's part_of / requires edges
+ * (PyTorch part_of deep learning; Postgres requires SQL): [{ term, from }]. Code places them in Skills (P6d); nothing
+ * is implied from a sibling (used_with / alternative_to — P6c asks the person first).
+ */
+export function broaderTerms(db, { resumeText, missing = [] } = {}) {
+  if (!missing.length) return [];
+  let stmt;
+  try {
+    stmt = db.prepare(`SELECT f.name AS from_name, f.term AS from_term FROM atlas_edges e
+      JOIN atlas_nodes f ON f.id = e.from_id JOIN atlas_nodes t ON t.id = e.to_id
+      WHERE e.type IN ('part_of', 'requires') AND (lower(t.term) = lower(?) OR lower(t.name) = lower(?))`);
+  } catch { return []; }
+  const out = [];
+  for (const term of missing) {
+    for (const r of stmt.all(term, term)) {
+      const from = [r.from_name, r.from_term].find(x => x && countIn(resumeText, x) > 0);
+      if (from) { out.push({ term: String(term).slice(0, 80), from: String(from).slice(0, 80) }); break; }
+    }
+    if (out.length >= 30) break;
+  }
+  return out;
+}
+
+/**
+ * job.keywords for a PAYLOAD (or code) request: the lean keywords, plus the job block — must-have and nice-to-have
+ * terms split by where the posting names them (the D125 reading's rule), every verb the posting uses ranked by how often
+ * it does, up to 8 responsibilities — and the broader terms. Missing-and-unclaimed must-haves travel here on purpose:
+ * they are the job block, and the tools service accepts one in a NEW bullet only where the employer's gist covers it.
+ */
+export function payloadJobKeywords(db, { job, report, claims = null, resumeText, synonyms = null }) {
+  const base = leanJobKeywords(db, { job, report, claims, resumeText, synonyms });
+  const text = fullPostingText(job);
+  const nice = niceSection(text);
+  const outside = nice ? text.replace(nice, "") : text;
+  const terms = [...(report?.tier1_matched || []), ...(report?.tier1_missing || [])];
+  const isNice = (t) => !!nice && countIn(nice, t) > 0 && countIn(outside, t) === 0;
+  const verbs = cap80([...(report?.action_verbs_matched || []), ...(report?.action_verbs_missing || [])], 60)
+    .map((v, i) => ({ v, i, n: countIn(text, v) })).sort((a, b) => b.n - a.n || a.i - b.i).map(x => x.v).slice(0, 30);
+  const broader = broaderTerms(db, { resumeText, missing: report?.tier1_missing || [] });
+  return {
+    ...base,
+    verbs,
+    phrases: (base.phrases || []).slice(0, 8),
+    mustHave: cap80(terms.filter(t => !isNice(t)), 40),
+    niceToHave: cap80(terms.filter(isNice), 30),
+    ...(broader.length ? { broader } : {}),
+  };
 }

@@ -112,6 +112,9 @@ const ADMIN = new Set([
   "GET /api/admin/full-auto",
   "PUT /api/admin/full-auto",
   "DELETE /api/admin/full-auto",
+  "GET /api/admin/tailoring",      // D123: the tailoring mode, default model and models offered
+  "PUT /api/admin/tailoring",
+  "DELETE /api/admin/tailoring",
   "GET /api/admin/backups",
   "POST /api/admin/backups",
   "POST /api/admin/backups/restore",
@@ -233,6 +236,11 @@ const AUTHENTICATED = new Set([
   "PUT /api/settings/theme",
   "GET /api/settings/appearance",   // D91 P5: the account's theme + shape cues
   "PUT /api/settings/appearance",
+  "GET /api/settings/tailoring-model",   // D123: the person's model, from what the admin offers
+  "PUT /api/settings/tailoring-model",
+  "GET /api/profile/gists",              // D123 P6a/P6g: their gists and numberless bullets; P6d coursework
+  "PUT /api/profile/gists",
+  "PUT /api/profile/coursework",
   "GET /api/settings/deck-geometry",   // queue 38: the deck's geometry preset / sliders, with the account
   "PUT /api/settings/deck-geometry",
   "GET /api/jobs/facets",

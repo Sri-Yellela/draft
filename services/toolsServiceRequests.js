@@ -98,6 +98,13 @@ export const RESUME_MASTER_ACCEPTS_EVIDENCE = false;
 export const RESUME_MASTER_ACCEPTS_LEAN = true;
 
 /**
+ * ⭐ D123 P6a / P6d / P6g + the owner's model choice (11-01) · contract 1.8.0 declares options.tailoring "payload" and
+ * "code", options.model, gists, coursework and job.keywords.mustHave / niceToHave / broader. Same rule as above: on the
+ * wire only once the vendored contract declares them (test/d123PayloadDraft.test.js holds this equal to it).
+ */
+export const RESUME_MASTER_ACCEPTS_PAYLOAD = true;
+
+/**
  * The generate request coreGenerateResume sends. With an active job profile the caller supplies the
  * role family and domain, and Resume Master resolves the domain module exactly as draft's
  * qualificationResolver did for that path; without one, Resume Master classifies.
@@ -107,10 +114,20 @@ export const RESUME_MASTER_ACCEPTS_LEAN = true;
  */
 export function generateRequest({ profile, job, baseResumeText, mode, employers = [], domainProfile = null,
                                   claims = null, includeSummary = false, cache = undefined, evidence = null,
-                                  tailoring = "full", keywords = null },
+                                  tailoring = "full", keywords = null, model = null, gists = null, coursework = null },
                                 { cacheOptionAccepted = RESUME_MASTER_ACCEPTS_CACHE_OPTION, evidenceAccepted = RESUME_MASTER_ACCEPTS_EVIDENCE,
-                                  leanAccepted = RESUME_MASTER_ACCEPTS_LEAN } = {}) {
-  const lean = tailoring === "lean" && leanAccepted === true && keywords != null && mode === "GENERATE";
+                                  leanAccepted = RESUME_MASTER_ACCEPTS_LEAN, payloadAccepted = RESUME_MASTER_ACCEPTS_PAYLOAD } = {}) {
+  // An editing tailoring needs keywords and mode GENERATE; payload / code need the 1.8.0 contract. Anything else is the
+  // full request, byte for byte — so a refused lean keyword build (server.js) can never send half a request.
+  const editing = keywords != null && mode === "GENERATE" && (
+    (tailoring === "lean" && leanAccepted === true)
+    || ((tailoring === "payload" || tailoring === "code") && payloadAccepted === true));
+  const lean = editing;
+  const kw = !editing ? keywords
+    : tailoring === "lean" ? (({ mustHave, niceToHave, broader, ...rest }) => rest)(keywords) : keywords;
+  const sendModel = editing && payloadAccepted === true && model && tailoring !== "code";
+  const sendGists = editing && tailoring === "payload" && Array.isArray(gists) && gists.length;
+  const sendCourses = editing && tailoring !== "lean" && Array.isArray(coursework) && coursework.length;
   return {
     mode,
     // With a profile, draft NEVER classified: a missing role_family resolved straight to "general".
@@ -121,10 +138,12 @@ export function generateRequest({ profile, job, baseResumeText, mode, employers 
     profile: jobProfileFromDomainProfile(domainProfile),
     claims: claims && (claims.skills?.length || claims.actionVerbs?.length) ? { skills: claims.skills || [], actionVerbs: claims.actionVerbs || [] } : null,
     employers: employers || [],
-    job: lean ? leanJobForResumeMaster(job, keywords) : jobForResumeMaster(job),
+    job: lean ? leanJobForResumeMaster(job, kw) : jobForResumeMaster(job),
     baseResumeText,
+    ...(sendGists ? { gists: gists.slice(0, 12) } : {}),
+    ...(sendCourses ? { coursework: coursework.slice(0, 20) } : {}),
     options: { includeSummary: includeSummary === true, ...(cache === false && cacheOptionAccepted === true ? { cache: false } : {}),
-               ...(lean ? { tailoring: "lean" } : {}) },
+               ...(lean ? { tailoring } : {}), ...(sendModel ? { model } : {}) },
     // D109 P2: withheld until the contract declares it (RESUME_MASTER_ACCEPTS_EVIDENCE, above).
     ...(evidenceAccepted === true && evidence?.roles?.length ? { evidence } : {}),
   };

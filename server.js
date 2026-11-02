@@ -137,7 +137,9 @@ import { recordAtsOutcome } from "./services/usageTracker.js";
 // A4 — generation, the A+ rewrite and PDF parsing belong to the résumé tools service; draft calls it as a client.
 import { createToolsServiceClient, recordToolsServiceUsage, httpErrorFor, ToolsServiceError, isFundingFailure } from "./services/toolsService.js";
 import { generateRequest as toolsGenerateRequest } from "./services/toolsServiceRequests.js";
-import { tailoringFor, leanJobKeywords, fullPostingText, LEAN_LEDGER_RENAME } from "./services/leanTailoring.js";
+import { tailoringFor, tailoringState, leanJobKeywords, payloadJobKeywords, fullPostingText, LEAN_LEDGER_RENAME, TAILORINGS, TAILORING_KEY,
+         MODEL_CHOICES, MODEL_LABELS, MODEL_DEFAULT_KEY, MODELS_OFFERED_KEY, modelSettings, modelFor, userModelChoice } from "./services/leanTailoring.js";
+import { ensureGists, latestGists, validateGists, saveEditedGists, readCoursework, saveCoursework } from "./services/resumeGists.js";
 import { retryReasonFor } from "./services/generationRetry.js";
 import { generationCostSummary } from "./services/generationCost.js";
 import { drainInto as drainTrackingFailureSink } from "./services/trackingFailureSink.js";
@@ -6436,6 +6438,31 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D123 P6a / P6d / P6g + the owner's model choice (11-01, contract 1.8.0). users.tailoring_model: the model a
+      // person picked for their tailorings (haiku · sonnet · open), honoured only while Admin → Ops offers it
+      // (services/leanTailoring.js modelFor). resume_gists: the per-employer gists of a base résumé, built ONCE on the
+      // Sonnet tier (POST /v1/resumes/gists) and keyed by the résumé's hash, so a changed résumé gets new ones; `edited`
+      // marks the person's own wording (never overwritten by a rebuild of the same résumé); numberless_json lists the
+      // bullets with no number for the optional "add a real number" prompt (P6g). user_profile.coursework_json: the
+      // person's own courses, for P6d's Relevant Coursework row. After 211.
+      id: "212_tailoring_choice",
+      sql: `
+        ALTER TABLE users ADD COLUMN tailoring_model TEXT;
+        ALTER TABLE user_profile ADD COLUMN coursework_json TEXT;
+        CREATE TABLE IF NOT EXISTS resume_gists (
+          user_id          INTEGER NOT NULL,
+          resume_hash      TEXT NOT NULL,
+          gists_json       TEXT NOT NULL DEFAULT '[]',
+          numberless_json  TEXT NOT NULL DEFAULT '[]',
+          edited           INTEGER NOT NULL DEFAULT 0,
+          cost_usd         REAL,
+          created_at       INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at       INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, resume_hash)
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -9731,6 +9758,65 @@ app.delete("/api/admin/full-auto", requireAdmin, (req, res) => {
   res.json(state);
 });
 
+// ── D123 (owner 11-01): "switch the prompt between lean or the payload from the admin panel, or the model being used from
+// the users side". Same three states as the kill switch above: PUT pins a value, DELETE inherits the deploy default.
+const tailoringAdminView = () => ({ ...tailoringState(db), models: { ...modelSettings(db), choices: [...MODEL_CHOICES], labels: MODEL_LABELS } });
+app.get("/api/admin/tailoring", requireAdmin, (_req, res) => res.json(tailoringAdminView()));
+app.put("/api/admin/tailoring", requireAdmin, (req, res) => {
+  const { mode, modelDefault, modelsOffered } = req.body || {};
+  if (mode !== undefined && !TAILORINGS.includes(mode)) return res.status(400).json({ error: `mode must be one of ${TAILORINGS.join(", ")}` });
+  if (modelDefault !== undefined && modelDefault !== "service" && !MODEL_CHOICES.includes(modelDefault)) {
+    return res.status(400).json({ error: `modelDefault must be service or one of ${MODEL_CHOICES.join(", ")}` });
+  }
+  if (modelsOffered !== undefined && (!Array.isArray(modelsOffered) || modelsOffered.some(m => !MODEL_CHOICES.includes(m)))) {
+    return res.status(400).json({ error: `modelsOffered must be a list of ${MODEL_CHOICES.join(", ")}` });
+  }
+  if (mode !== undefined) setSetting(db, TAILORING_KEY, mode);
+  if (modelDefault !== undefined) setSetting(db, MODEL_DEFAULT_KEY, modelDefault);
+  if (modelsOffered !== undefined) setSetting(db, MODELS_OFFERED_KEY, [...new Set(modelsOffered)].join(","));
+  const view = tailoringAdminView();
+  console.warn(`[tailoring] mode ${view.mode} (${view.source}), model default ${view.models.default}, offered ${view.models.offered.join(",") || "none"} — set by ${actorRef(req)}`);
+  res.json(view);
+});
+app.delete("/api/admin/tailoring", requireAdmin, (req, res) => {
+  clearSetting(db, TAILORING_KEY);
+  const view = tailoringAdminView();
+  console.warn(`[tailoring] mode override CLEARED by ${actorRef(req)}; now ${view.mode} (${view.source})`);
+  res.json(view);
+});
+
+// The person's side: which model tailors their résumés (only what the admin offers), their gists and their courses.
+app.get("/api/settings/tailoring-model", requireAuth, (req, res) => {
+  const s = modelSettings(db);
+  const mine = userModelChoice(db, req.user.id);
+  res.json({ choice: mine && s.offered.includes(mine) ? mine : null, default: s.default,
+             offered: s.offered.map(id => ({ id, label: MODEL_LABELS[id] })), defaultLabel: MODEL_LABELS[s.default] });
+});
+app.put("/api/settings/tailoring-model", requireAuth, (req, res) => {
+  const choice = req.body?.choice ?? null;
+  if (choice !== null && !modelSettings(db).offered.includes(choice)) return res.status(400).json({ error: "That model is not offered." });
+  db.prepare("UPDATE users SET tailoring_model=? WHERE id=?").run(choice, req.user.id);
+  res.json({ choice });
+});
+app.get("/api/profile/gists", requireAuth, (req, res) => {
+  const g = latestGists(db, req.user.id);
+  res.json({ gists: g?.gists || [], numberless: g?.numberless || [], edited: !!g?.edited, hash: g?.hash || null,
+             coursework: readCoursework(db, req.user.id) });
+});
+app.put("/api/profile/gists", requireAuth, (req, res) => {
+  const { hash, gists } = req.body || {};
+  const problem = typeof hash !== "string" ? "hash is required" : validateGists(gists);
+  if (problem) return res.status(400).json({ error: problem });
+  const saved = saveEditedGists(db, req.user.id, hash, gists);
+  if (!saved) return res.status(404).json({ error: "No gists for that résumé." });
+  res.json({ gists: saved, edited: true });
+});
+app.put("/api/profile/coursework", requireAuth, (req, res) => {
+  const saved = saveCoursework(db, req.user.id, req.body?.coursework);
+  if (!saved) return res.status(400).json({ error: "coursework must be a list of at most 20 course names" });
+  res.json({ coursework: saved });
+});
+
 app.get("/api/admin/users/:id/applications", requireAdmin, (req, res) => {
   // ⛔ A107: a whole row carries Note why's private text — redacted like every raw row an admin reads (adminSafety.js).
   res.json(redactRows(db.prepare("SELECT * FROM job_applications WHERE user_id=? ORDER BY applied_at DESC").all(parseInt(req.params.id))));
@@ -12398,9 +12484,13 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   // ⭐ D123 P2 · THE LEAN CALL: Haiku edits bullets and skills from keywords draft computes here (the full posting text,
   // draft's scorer, the KB's placements at the candidate's own employers); the posting's text is not sent. Off unless
   // DRAFT_TAILORING=lean (services/leanTailoring.js). Any failure to build the keywords falls back to the full call.
-  const tailoring = promptMode === "GENERATE" ? tailoringFor({ env: process.env, isTrial: isTrialAccount(db, userId) }) : "full";
+  // D123 (11-01): Admin → Ops → Tailoring's switch (app_settings) wins over DRAFT_TAILORING; "payload" adds the job block
+  // and the per-employer gists (built once per résumé), "code" calls no model (P6d). The model is the person's pick while
+  // the admin offers it, else the admin's default (services/leanTailoring.js modelFor).
+  const tailoring = promptMode === "GENERATE" ? tailoringFor({ db, env: process.env, isTrial: isTrialAccount(db, userId) }) : "full";
   let leanKeywords = null;
-  if (tailoring === "lean") {
+  let tailorGists = null;
+  if (tailoring !== "full") {
     try {
       const kwProfile = getOrRepairActiveProfile(userId);
       const report = scoreAtsLocally({
@@ -12414,7 +12504,9 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
         termWeights: atsTermWeightsForJob(job),
         synonyms: atsSynonyms(),
       });
-      leanKeywords = leanJobKeywords(db, { job, report, claims: profileClaims, resumeText: authoritativeResumeText, synonyms: atsSynonyms() });
+      const kwArgs = { job, report, claims: profileClaims, resumeText: authoritativeResumeText, synonyms: atsSynonyms() };
+      leanKeywords = tailoring === "lean" ? leanJobKeywords(db, kwArgs) : payloadJobKeywords(db, kwArgs);
+      if (tailoring === "payload") tailorGists = await ensureGists(db, toolsService, { userId, resumeText: authoritativeResumeText });
     } catch (e) {
       console.warn("[generate] lean keywords failed, using the full call:", e.message);
       leanKeywords = null;
@@ -12423,7 +12515,9 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   const generateBody = toolsGenerateRequest({
     profile, job, baseResumeText: authoritativeResumeText, mode: promptMode, employers,
     domainProfile: activeDomainProfile, claims: profileClaims, includeSummary, cache,
-    tailoring: leanKeywords ? "lean" : "full", keywords: leanKeywords,
+    tailoring: leanKeywords ? tailoring : "full", keywords: leanKeywords,
+    model: leanKeywords ? modelFor(db, { userId, tailoring }) : null,
+    gists: tailorGists, coursework: leanKeywords && tailoring !== "lean" ? readCoursework(db, userId) : null,
     // D109 P2: which Profile bullets carry evidence — on the wire once the tools service declares it.
     evidence: evidenceForRequest(db, userId),
   });

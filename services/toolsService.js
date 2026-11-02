@@ -122,6 +122,8 @@ export function createToolsServiceClient({
     generate: (req) => call("POST", "/v1/resumes/generate", req, "generate"),
     enhance: (req) => call("POST", "/v1/resumes/enhance", req, "enhance"),
     parsePdf: (req) => call("POST", "/v1/resumes/parse-pdf", req, "parse-pdf"),
+    // D123 P6g (2), contract 1.8.0: the per-employer gists, once per base résumé (services/resumeGists.js).
+    gists: (req) => call("POST", "/v1/resumes/gists", req, "generate"),
   };
 }
 

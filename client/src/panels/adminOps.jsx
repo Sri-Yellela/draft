@@ -580,6 +580,68 @@ export function KillSwitchSection({ theme }) {
   );
 }
 
+// ── D123 Tailoring — GET / PUT / DELETE /api/admin/tailoring ───────────────────────────────────
+// Owner 11-01: "switch the prompt between lean or the payload from the admin panel, or the model being used from the
+// users side". The mode wins over DRAFT_TAILORING (Clear follows the deploy again); the model default and the list a
+// person may pick from apply from the next tailoring. No deploy, no restart.
+const MODE_TEXT = {
+  full: "the whole résumé written by the model (≈ 13¢)",
+  lean: "Haiku edits bullets and skills as JSON",
+  payload: "the job block + per-employer gists; new bullets only inside a gist",
+  code: "no model: Skills, coursework and bullet order by code (0¢)",
+};
+export function TailoringAdminSection({ theme }) {
+  const [s, setS] = useState(null);
+  const [err, setErr] = useState(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { api("/api/admin/tailoring").then(setS).catch(e => setErr(e.message)); }, []);
+  const send = async (method, body) => {
+    setBusy(true); setErr(null);
+    try { setS(await api("/api/admin/tailoring", { method, ...(body ? { body: JSON.stringify(body) } : {}) })); }
+    catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+  const m = s?.models;
+  const toggleOffered = (id) => send("PUT", { modelsOffered: m.offered.includes(id) ? m.offered.filter(x => x !== id) : [...m.offered, id] });
+  return (
+    <Panel title="Tailoring" data-admin-tailoring=""
+      code="D123: app_settings.tailoring_mode overrides DRAFT_TAILORING; tailoring_model_default and tailoring_models_offered pick the model (contract 1.8.0 options.model). Read per generation."
+      purpose="Which tailoring call every Generate uses, and which model runs it. A person picks their model in Settings from the ones offered here; anyone who has not picked gets the default."
+      numbers={s ? [[s.mode, MODE_TEXT[s.mode] || "", false], [s.source === "override" ? "Here" : s.source === "env" ? "The deploy" : "Default", "decides it"],
+        [m.default === "service" ? "Service" : m.default, "default model"]] : []}>
+      <Err msg={err}/>
+      {s && <>
+        <div style={what}>Prompt</div>
+        <div style={row}>
+          {s.modes.map(mode => (
+            <Btn key={mode} theme={theme} primary={s.mode === mode} disabled={busy} title={MODE_TEXT[mode]}
+              onClick={() => send("PUT", { mode })}>{mode}</Btn>
+          ))}
+          <Btn theme={theme} disabled={busy || s.source !== "override"} onClick={() => send("DELETE")}>Follow the deploy (DRAFT_TAILORING={s.envRaw ?? "unset"})</Btn>
+        </div>
+        <div style={quiet}>{MODE_TEXT[s.mode]}. Trial accounts: {s.trialMode}. Only lean and payload use the model below.</div>
+        <div style={what}>Default model</div>
+        <div style={row}>
+          {["service", ...m.choices].map(id => (
+            <Btn key={id} theme={theme} primary={m.default === id} disabled={busy} title={m.labels[id]}
+              onClick={() => send("PUT", { modelDefault: id })}>{id === "service" ? "service default" : id}</Btn>
+          ))}
+        </div>
+        <div style={what}>Offered to people</div>
+        <div style={row}>
+          {m.choices.map(id => (
+            <Btn key={id} theme={theme} primary={m.offered.includes(id)} disabled={busy} title={m.labels[id]}
+              onClick={() => toggleOffered(id)}>{m.offered.includes(id) ? "✓ " : ""}{id}</Btn>
+          ))}
+        </div>
+        <div style={quiet}>"open" works only when the tools service has RM_OPENAI_COMPAT_BASE_URL, RM_OPENAI_COMPAT_API_KEY and RM_OPEN_MODEL; otherwise
+          a Generate
+          that asks for it fails with the service's refusal (nothing is spent) — configure it there before offering it. A résumé sent to another provider must be named in the privacy policy first.</div>
+      </>}
+    </Panel>
+  );
+}
+
 // ── Board-fit precompute — POST /api/admin/board-fit/precompute ───────────────────────────────
 // The route is dry-run by default and so is this: Score is unreachable until a dry run of the SAME
 // parameters has been read, and its label is the number of postings it will score.

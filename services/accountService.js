@@ -308,6 +308,8 @@ export const MERGE_PLAN = Object.freeze({
   // opening, its own words, its build link), FROM's fill the rest.
   learn_opened: "keepInto", learn_explanations: "keepInto", learn_builds: "keepInto",
   trial_surveys: "keepInto", trial_feedback: "move", practice_submissions: "move", trial_events: "move",
+  // D123 (212): gists keyed (user, résumé hash) — INTO's own (perhaps edited) gists win on a clash, FROM's fill the rest.
+  resume_gists: "keepInto",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

@@ -186,6 +186,9 @@ export function AccountPanel({ onSignedOut }) {
           <GeneratedResumes busy={busy} run={run} />
         </SettingsSection>
 
+        {/* ⭐ D123 (owner 11-01): the model that tailors this person's résumés, and what tailoring knows about their work. */}
+        <TailoringSection />
+
         {/* ⭐ D88 P5: the user's own plan and allowance, read-only. */}
         <AllowanceSection />
 
@@ -214,6 +217,84 @@ export function generatedResumeStatus(r) {
  * ⭐ D66 · "Use my base résumé for applications". On → every application carries the base résumé and
  * no résumé is generated for it (no model call). A plan that forces it says so, and the box is locked.
  */
+// ⭐ D123 · HOW YOUR RÉSUMÉS ARE TAILORED. The model (only those Admin → Ops offers; none picked = the default), the
+// per-employer gists the payload tailoring writes within (P6a, built once per résumé, the person's edit wins), the
+// bullets with no number (P6g — optional; a real number they add goes in their base résumé, never invented) and the
+// courses for the Relevant Coursework row (P6d).
+function TailoringSection() {
+  const [m, setM] = useState(null);
+  const [g, setG] = useState(null);
+  const [draft, setDraft] = useState([]);
+  const [courses, setCourses] = useState("");
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    api("/api/settings/tailoring-model").then(setM).catch(() => setM({ error: true }));
+    api("/api/profile/gists").then(r => { setG(r); setDraft(r.gists); setCourses((r.coursework || []).join(", ")); }).catch(() => setG({ error: true }));
+  }, []);
+  const save = async (label, fn) => {
+    setMsg("");
+    try { await fn(); setMsg(`${label} saved.`); } catch (e) { setMsg(e.message || "Could not save that."); }
+  };
+  const pick = (choice) => save("Model", async () => setM({ ...m, ...(await api("/api/settings/tailoring-model", { method: "PUT", body: JSON.stringify({ choice }) })) }));
+  const saveGists = () => save("Descriptions", async () => { const r = await api("/api/profile/gists", { method: "PUT", body: JSON.stringify({ hash: g.hash, gists: draft }) }); setG({ ...g, ...r }); });
+  const saveCourses = () => save("Courses", async () => {
+    const r = await api("/api/profile/coursework", { method: "PUT", body: JSON.stringify({ coursework: courses.split(",").map(c => c.trim()).filter(Boolean) }) });
+    setCourses(r.coursework.join(", "));
+  });
+  return (
+    <SettingsSection title="How your résumés are tailored" subtitle="The model that rewrites your bullets for each job, and what it may say about your work.">
+      <div data-tailoring-model="" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>Model</div>
+        {m && !m.error && (
+          <div style={row}>
+            <label style={{ ...row, fontSize: 13, color: "var(--color-text)" }}>
+              <input type="radio" name="tailoring-model" checked={!m.choice} onChange={() => pick(null)} />Default ({m.defaultLabel})
+            </label>
+            {m.offered.map(o => (
+              <label key={o.id} style={{ ...row, fontSize: 13, color: "var(--color-text)" }}>
+                <input type="radio" name="tailoring-model" checked={m.choice === o.id} onChange={() => pick(o.id)} />{o.label}
+              </label>
+            ))}
+          </div>
+        )}
+        {m?.error && <div style={muted}>This setting could not be loaded just now.</div>}
+      </div>
+      {g && !g.error && g.gists.length > 0 && (
+        <div data-tailoring-gists="" style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>How we describe your work</div>
+          <div style={muted}>A new bullet for a job is written only inside these lines. Change anything that isn't right.</div>
+          {draft.map((x, i) => (
+            <label key={x.employer} style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--color-text-muted)" }}>
+              At {x.employer}
+              <textarea style={{ ...input, minHeight: 56 }} maxLength={400} value={x.text}
+                onChange={(e) => setDraft(draft.map((y, j) => (j === i ? { ...y, text: e.target.value } : y)))} />
+            </label>
+          ))}
+          <div style={row}><button style={btnQuiet} onClick={saveGists}>Save descriptions</button></div>
+        </div>
+      )}
+      {g && !g.error && g.numberless.length > 0 && (
+        <div data-tailoring-numbers="" style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>Add a real number if you have one</div>
+          <div style={muted}>Optional. Users, %, time saved, scale — add it to these bullets in your base résumé and it becomes yours to use. We never make one up.</div>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "var(--color-text)" }}>
+            {g.numberless.slice(0, 12).map((n, i) => <li key={i}>{n.bullet}</li>)}
+          </ul>
+        </div>
+      )}
+      <div data-tailoring-coursework="" style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>Courses you took</div>
+        <div style={muted}>Separated by commas. The ones a job asks about go in a Relevant Coursework line.</div>
+        <div style={row}>
+          <input style={{ ...input, flex: 1, minWidth: 220 }} value={courses} onChange={(e) => setCourses(e.target.value)} placeholder="Data Structures, Operating Systems" />
+          <button style={btnQuiet} onClick={saveCourses}>Save courses</button>
+        </div>
+      </div>
+      {msg && <div role="status" style={muted}>{msg}</div>}
+    </SettingsSection>
+  );
+}
+
 function BaseResumeOnly() {
   const [s, setS] = useState(null);
   const [saving, setSaving] = useState(false);
