@@ -113,12 +113,27 @@ export function fillEmptyProfileFields(db, userId, text) {
 export function startFromResume(db, userId, { content, name }, deps) {
   const text = String(content || "");
   if (text.trim().length < 200) throw Object.assign(new Error("That résumé has too little text to read — try the PDF or Word file."), { status: 400, code: "resume_too_short" });
-  if (db.prepare("SELECT 1 FROM domain_profiles WHERE user_id = ?").get(userId)) {
+  const existing = db.prepare("SELECT id FROM domain_profiles WHERE user_id = ? ORDER BY is_active DESC, id LIMIT 1").get(userId);
+  // Owner 11-02 ("none of the samples work"): a trial account whose profile was made from one sample, picking another,
+  // has that profile switched to the new sample — not the 409 that stranded every later pick. Any other résumé is refused.
+  const swapSample = !!existing && !!deps.isSampleSwap?.(text);
+  if (existing && !swapSample) {
     throw Object.assign(new Error("You already have a job profile — upload a résumé to it from Job profiles."), { status: 409, code: "has_profile" });
   }
   const inferred = inferProfileFromResume(text, deps.registry);
   const sampleFamily = deps.sampleRoleFamily?.(text);
   if (sampleFamily) inferred.roleFamily = sampleFamily;
+  if (swapSample) {
+    db.prepare(`UPDATE domain_profiles SET profile_name = ?, role_family = ?, domain = ?, seniority = ?, target_titles = ?,
+        selected_keywords = ?, selected_verbs = ?, selected_tools = ?, is_active = 1 WHERE id = ?`)
+      .run(inferred.profileName, inferred.roleFamily, inferred.domain, inferred.seniority, JSON.stringify(inferred.titles),
+        JSON.stringify(inferred.keywords), JSON.stringify(inferred.verbs), JSON.stringify(inferred.tools), existing.id);
+    db.prepare("UPDATE domain_profiles SET is_active = 0 WHERE user_id = ? AND id <> ?").run(userId, existing.id);
+    deps.saveBaseResume(existing.id, text, name || "resume.txt");
+    const profile = deps.readProfile(db, userId);
+    try { deps.onProfileWrite?.(existing.id); } catch { /* the board re-scores on its next read */ }
+    return { profileId: existing.id, inferred, filled: [], completeness: profile?.completeness || null, swapped: true };
+  }
   const id = db.transaction(() => {
     const r = db.prepare(`INSERT INTO domain_profiles (user_id, profile_name, role_family, domain, seniority,
         target_titles, selected_keywords, selected_verbs, selected_tools, is_active) VALUES (?,?,?,?,?,?,?,?,?,1)`)

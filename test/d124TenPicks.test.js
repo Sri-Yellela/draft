@@ -33,7 +33,8 @@ const FIN = (n) => Array.from({ length: n }, (_, i) => ({ cat: "business", title
 test("d124: six samples by category, each fictional, each naming its category and seniority", async () => {
   assert.deepEqual([...SAMPLE_IDS], ["A", "B", "C", "D", "E", "F"]);
   // Owner 11-01 (changed on purpose): "omit own resumes entirely for the tour" — samples only.
-  assert.deepEqual([...RESUME_CHOICES], ["A", "B", "C", "D", "E", "F"]);
+  // Owner 11-02 (changed on purpose): only A and B are offered; C–F stay loaded to recognise profiles made from them.
+  assert.deepEqual([...RESUME_CHOICES], ["A", "B"]);
   const want = { A: "computing", B: "computing", C: "engineering", D: "engineering", E: "business", F: "management" };
   for (const id of SAMPLE_IDS) {
     const s = samples()[id];
@@ -68,12 +69,11 @@ test("d124NoCrossCategoryPicks: a sample never gets another category's posting, 
 
 test("d124SampleHiddenUnderTen: a sample whose category has fewer than 10 good picks is not offered — and is refused", async () => {
   clearPicksCache();
-  const db = board([...MECH(12), ...SWE(12), ...FIN(4)]);
+  const db = board([...MECH(12), ...SWE(4), ...FIN(4)]);
   const offered = Object.fromEntries((await offeredSamples(db)).map(s => [s.id, s.offered]));
-  assert.equal(offered.C, true);
-  assert.equal(offered.A, true);
-  assert.equal(offered.E, false, "4 analyst postings: hidden that day, not padded");
-  assert.equal(offered.F, false, "no management postings");
+  // Owner 11-02 (changed on purpose): only A and B are offered at all; C–F are not listed.
+  assert.deepEqual(Object.keys(offered), ["A", "B"]);
+  assert.equal(offered.A, false, "4 software postings: hidden that day, not padded");
   const routes = read("routes/trial.js");
   assert.match(routes, /\(await offeredSamples\(db\)\)\.some\(x => x\.id === choice && !x\.offered\)/);
   assert.match(routes, /error: "sample_not_offered"/);
@@ -111,7 +111,6 @@ test("d124: an engineering sample is dealt its own discipline and near neighbour
   const db = board([...elec, ...MECH(4)]);
   const picks = await samplePicks(db, "C");
   assert.ok(picks.every(p => /^Mechanical/.test(p.title)), "the electrical roles are not a mechanical engineer's picks, whatever their overlap");
-  assert.equal((await offeredSamples(db)).find(s => s.id === "C").offered, false, "4 mechanical postings: C is hidden");
   assert.match(read("services/trialPicks.js"), /export const GOOD_ATS_SCORE = 30;/);
 });
 

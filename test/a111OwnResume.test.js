@@ -77,7 +77,7 @@ function drafted(db, userId, jobs) {
 }
 
 test("a111OwnResumeOffByDefault: off, /try offers samples only and POST /api/trial/resume {own} answers 409 own_resume_off — nothing saved", async () => {
-  const db = fresh(FIN(12));
+  const db = fresh([...FIN(12), ...SWE(12)]);
   assert.equal(trialOwnResumeOn(db), false, "no row: off");
   const { call, close } = await serve(db);
   try {
@@ -88,7 +88,7 @@ test("a111OwnResumeOffByDefault: off, /try offers samples only and POST /api/tri
     assert.equal(db.prepare("SELECT trial_resume FROM users WHERE id = 1").pluck().get(), null);
     assert.equal(db.prepare("SELECT COUNT(*) FROM trial_events WHERE event = 'own_resume'").pluck().get(), 0, "not even read");
     // the samples still work exactly as today
-    assert.equal((await call("POST", "/api/trial/resume", { choice: "E" })).body.choice, "E");
+    assert.equal((await call("POST", "/api/trial/resume", { choice: "A" })).body.choice, "A");
     // Admin → Trial's switch turns it on (and off again)
     assert.deepEqual((await call("POST", "/api/admin/trial/own-resume", { on: true })).body, { on: true });
     assert.equal((await call("GET", "/api/trial/samples")).body.ownResume, true);
@@ -97,7 +97,7 @@ test("a111OwnResumeOffByDefault: off, /try offers samples only and POST /api/tri
     assert.deepEqual((await call("POST", "/api/admin/trial/own-resume", { on: false })).body, { on: false });
   } finally { await close(); }
   // the samples-only choice list is unchanged; "own" goes only through the switch
-  assert.deepEqual([...RESUME_CHOICES], ["A", "B", "C", "D", "E", "F"]);
+  assert.deepEqual([...RESUME_CHOICES], ["A", "B"]);
   const page = read("client/src/pages/TryPage.jsx");
   assert.match(page, /\{ownOn && <OwnResumeCard /, "the card renders only when the server says the switch is on");
   assert.match(page, /setOwnOn\(r\.ownResume === true\)/);
