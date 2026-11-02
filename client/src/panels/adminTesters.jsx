@@ -73,6 +73,24 @@ function Headline({ h }) {
   );
 }
 
+/**
+ * Owner 11-02: "−18 left here" alone said nothing. Each drop-off now reads as who is still going (active in the last
+ * 30 min), where the rest stopped (their furthest tour step), and how many met an error.
+ */
+function WhyLeft({ s }) {
+  const w = s.why;
+  const stopped = s.left - w.stillGoing;
+  return (
+    <details data-testers-why="" style={{ gridColumn: "1 / -1", margin: "-2px 0 4px", fontSize: 13 }}>
+      <summary style={{ cursor: "pointer", color: C.INK_MUTED }}>
+        {s.left} didn't reach “{s.label}”: <b style={{ color: C.INK }}>{w.stillGoing} still going</b> · <b style={{ color: C.WARNING }}>{stopped} stopped</b>
+        {w.errored ? <> · <b style={{ color: C.DANGER }}>{w.errored} met an error</b></> : null}
+      </summary>
+      {w.stoppedAt.length > 0 && <div style={{ marginTop: 6 }}><Bars bars={w.stoppedAt}/></div>}
+    </details>
+  );
+}
+
 function SignupFunnel({ f }) {
   const first = Math.max(1, f.steps[0]?.n || 0);
   return (
@@ -84,7 +102,8 @@ function SignupFunnel({ f }) {
             <i style={{ display: "flex", alignItems: "center", height: "100%", width: `${(100 * s.n) / first}%`, minWidth: s.n ? 28 : 0,
               background: C.SUCCESS, color: C.ON_ACCENT, fontWeight: 800, fontSize: 12.5, paddingLeft: 8, borderRadius: 7, boxSizing: "border-box" }}>{s.n}</i>
           </span>
-          <span style={{ fontSize: 12.5, color: C.WARNING }}>{s.left ? `−${s.left} left here` : ""}</span>
+          <span style={{ fontSize: 12.5, color: C.WARNING }}>{s.left ? `−${s.left} didn't get here` : ""}</span>
+          {s.why && <WhyLeft s={s}/>}
         </div>
       ))}
     </div>
@@ -152,7 +171,8 @@ export function TestersTab() {
             <input type="checkbox" checked={opts.exclude} onChange={e => setOpts(o => ({ ...o, exclude: e.target.checked }))}/> Leave out my own and test accounts
           </label>
           <DepthButton onClick={copy} disabled={!d.copyText}>Copy the YC numbers</DepthButton>
-          <DepthButton onClick={() => { window.location.href = `/api/admin/testers/export.csv?${qs}`; }}>Export (no emails)</DepthButton>
+          <DepthButton onClick={() => { window.location.href = `/api/admin/testers/export.csv?${qs}`; }}>Export without names or emails</DepthButton>
+          <DepthButton onClick={() => { window.location.href = `/api/admin/testers/export.csv?${qs}&contact=1`; }}>Export with names and emails</DepthButton>
         </div>
       </div>
       <p style={{ color: C.INK_MUTED, margin: "2px 0 8px" }}>

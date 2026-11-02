@@ -83,6 +83,31 @@ test("d131FunnelDropOffs: signed up → picked → drafted 1 → drafted 2 → s
   assert.equal(r.funnel.medianMinutes, 10);
 });
 
+test("testersWhyLeft (owner 11-02): each drop-off says who is still going, where the rest stopped, and who met an error", () => {
+  const db = db0({ trialers: 4 });
+  // user 3 picked (A) but drafted nothing: reached The facts, met an error, last seen an hour ago → stopped
+  db.prepare("UPDATE users SET trial_resume = 'A' WHERE id = 3").run();
+  const ev = db.prepare("INSERT INTO trial_events (user_id, event, detail, created_at) VALUES (?, ?, ?, ?)");
+  ev.run(3, "tour", JSON.stringify({ step: "deck", phase: "reached" }), NOW - 3700);
+  ev.run(3, "tour", JSON.stringify({ step: "deck_facts", phase: "reached" }), NOW - 3600);
+  ev.run(3, "error", JSON.stringify({ code: "x", step: "deck_facts" }), NOW - 3600);
+  // user 4 never picked: active 5 minutes ago → still going, not left
+  db.prepare("UPDATE users SET trial_resume = NULL WHERE id = 4").run();
+  ev.run(4, "page", "/try", NOW - 300);
+  // a cancelled row is not a Draft (the trial's own rule): user 2's only job is cancelled → user 2 drafted nothing
+  db.prepare("UPDATE apply_run_jobs SET status = 'cancelled' WHERE user_id = 2").run();
+  const r = testersReport(db, { now: NOW });
+  const at = Object.fromEntries(r.funnel.steps.map(s => [s.label, s]));
+  assert.deepEqual([at["Picked a résumé"].left, at["Picked a résumé"].why.stillGoing], [1, 1]);
+  const first = at["Drafted the 1st job"];
+  assert.equal(first.n, 1, "only user 1 drafted");
+  assert.equal(first.left, 2);
+  assert.deepEqual(first.why, { stillGoing: 0, errored: 1,
+    stoppedAt: [{ label: "stopped at “The facts”", n: 1 }, { label: "stopped before the tour began", n: 1 }] });
+  const page = fs.readFileSync("client/src/panels/adminTesters.jsx", "utf8");
+  assert.match(page, /<WhyLeft s=\{s\}\/>/);
+});
+
 test("d131LockedPressesRanked: locked buttons by presses, most first; pages by distinct testers", () => {
   const r = testersReport(db0(), { now: NOW });
   assert.deepEqual(r.funnel.locked, [{ label: "Upload my résumé", n: 2 }, { label: "Draft a job", n: 1 }]);
@@ -129,6 +154,19 @@ test("d131ExportNoEmailsByDefault: the CSV carries every answer but no name, ema
   assert.doesNotMatch(head, /\bname\b|email/);
   assert.doesNotMatch(csv, /@example\.com|Sam 0/);
   assert.equal(csv.trim().split("\n").length, 1 + 3, "three answers, the owner's left out");
+});
+
+test("testersExportWithContacts (owner 11-02): ?contact=1 adds name and email first; both buttons on the page", () => {
+  const csv = testersCsv(db0(), { now: NOW, contact: true });
+  const [head, ...rows] = csv.trim().split("\n");
+  assert.match(head, /^name,email,source,answered_at,search_stage,/);
+  assert.ok(rows.some(l => l.startsWith("Pat Tester,t1@example.com,trial,")), "a trial tester's name and sign-up email");
+  assert.ok(rows.some(l => l.startsWith("Sam 0,sam0@example.com,standalone,")), "a standalone respondent's own name and email");
+  assert.doesNotMatch(csv, /owner@example\.com|friend@example\.com/, "the owner left out; the referral email never exported");
+  const page = fs.readFileSync("client/src/panels/adminTesters.jsx", "utf8");
+  assert.match(page, />Export without names or emails</);
+  assert.match(page, /export\.csv\?\$\{qs\}&contact=1/);
+  assert.match(fs.readFileSync("routes/trial.js", "utf8"), /const contact = req\.query\.contact === "1";/);
 });
 
 test("d131PhoneLayout: cards stack on a phone — every grid is minmax(min(N px, 100%), 1fr); no fixed page width", () => {
