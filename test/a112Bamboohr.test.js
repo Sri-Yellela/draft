@@ -37,3 +37,16 @@ test("A112: BambooHR is registered where every crawled source is — the fetcher
   assert.equal(typeof ATS_FETCHERS.bamboohr, "function");
   assert.ok(DIRECT_ATS_SOURCES.has("bamboohr"));
 });
+
+test("A112: a Gem posting — the posting's offices name its place when its own location is blank", async () => {
+  const { normalizeGemJob } = await import("../services/jobs/sources/gem.js");
+  const j = normalizeGemJob({ id: "abc", requisition_id: "R4", title: "Senior Customer Success Manager",
+    absolute_url: "https://jobs.gem.com/gemco/abc", content: "<div>Own the renewals of our enterprise customers.</div>",
+    first_published_at: "2026-10-09T19:17:02.814Z", location: { name: "" }, location_type: "in_office",
+    offices: [{ location: { name: "" }, name: "San Francisco (On-Site) OR Remote" }], employment_type: "full_time" }, "Gemco");
+  assert.equal(j.source, "gem");
+  assert.equal(j.location, "San Francisco (On-Site) OR Remote");
+  assert.match(j.description, /renewals of our enterprise customers/);
+  assert.equal(j.posted_at, "2026-10-09T19:17:02.814Z");
+  assert.ok(DIRECT_ATS_SOURCES.has("gem") && typeof ATS_FETCHERS.gem === "function");
+});
