@@ -129,6 +129,9 @@ function Dock({ state, onFinish }) {
           Trial: {left == null ? `${state.drafts} Drafts` : `${left} of ${state.drafts} Drafts left`}.
           {state.sample ? (narrow ? ` Sample ${state.sample}: fictional, sends to the practice form.`
             : ` Sample ${state.sample} is a fictional person; its Drafts go to draft's practice form, never to the employer.`) : ""}
+          {/* A111: the own-résumé pathway — a demonstration too (services/trial.js isOwnTrial: the practice form, never the employer) */}
+          {!state.sample && state.resume === "own" ? (narrow ? " Your résumé: a demonstration, nothing is sent."
+            : " Your own résumé: Drafts here are a demonstration and go to draft's practice form, never to the employer.") : ""}
         </div>
         {said && <div role="status" style={{ ...box, padding: "8px 12px", fontSize: 13, maxWidth: 360 }}>{said}</div>}
         <div style={{ display: "flex", gap: narrow ? 6 : 8, flexWrap: narrow ? "nowrap" : "wrap" }}>

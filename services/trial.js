@@ -97,7 +97,19 @@ export function verifyPracticeToken({ secret, jobId, u, t }) {
  * (the caller keeps the posting's own apply URL).
  */
 export function trialSendUrl(db, { userId, jobId, baseUrl, secret }) {
-  return activeSampleId(db, userId) ? practiceUrlFor({ baseUrl, secret, userId, jobId }) : null;
+  return activeSampleId(db, userId) || isOwnTrial(db, userId) ? practiceUrlFor({ baseUrl, secret, userId, jobId }) : null;
+}
+
+/**
+ * ⛔ A111 · the safety rule, extended: a TRIAL account on the own-résumé pathway is a demonstration too (owner 11-01: "it's a
+ * demonstration: nothing is sent to an employer") — its Drafts fill the practice form, never the employer's. Keyed on the
+ * account being in the trial AND having chosen "own"; once an admin grants it full access it is an ordinary account again.
+ */
+export function isOwnTrial(db, userId) {
+  try {
+    if (!isTrial(db, userId)) return false;
+    return db.prepare("SELECT trial_resume FROM users WHERE id = ?").pluck().get(userId) === "own";
+  } catch { return false; }
 }
 
 // ── the account: THE TRIAL IS THE MAIN FRAME (owner 11-01, second amendment) ─────────────────────
@@ -135,9 +147,12 @@ export function startTrial(db, userId) {
   return trialState(db, userId);
 }
 
-/** The résumé the tester picked. For a sample, returns its text, which the client sends to /api/domain-profiles/from-resume. */
-export function pickResume(db, userId, choice) {
-  if (!RESUME_CHOICES.includes(choice)) throw Object.assign(new Error("Pick one of the sample résumés."), { status: 400, code: "bad_choice" });
+/**
+ * The résumé the tester picked. For a sample, returns its text, which the client sends to /api/domain-profiles/from-resume.
+ * A111: "own" only when the caller says the pathway is on AND the résumé's field is live (routes/trial.js decides both).
+ */
+export function pickResume(db, userId, choice, { own = false } = {}) {
+  if (!RESUME_CHOICES.includes(choice) && !(own && choice === "own")) throw Object.assign(new Error("Pick one of the sample résumés."), { status: 400, code: "bad_choice" });
   startTrial(db, userId);
   db.prepare("UPDATE users SET trial_resume = ? WHERE id = ?").run(choice, userId);
   if (choice === "own") return { choice };
@@ -589,16 +604,18 @@ Nothing was sent to the employer.</p></body></html>`;
 }
 
 /** A submission reached the practice form: count it (never its values) and put the confirmation in the tester's Inbox. */
-export function recordPracticeSubmission(db, { userId, job, fieldsFilled = 0, resumeAttached = false, deliver = null }) {
+export function recordPracticeSubmission(db, { userId, job, fieldsFilled = 0, resumeAttached = false, deliver = null, own = false }) {
   db.prepare("INSERT INTO practice_submissions (user_id, job_id, fields_filled, resume_attached) VALUES (?, ?, ?, ?)")
     .run(userId ?? null, String(job?.job_id ?? job?.jobId ?? ""), Math.max(0, Number(fieldsFilled) || 0), resumeAttached ? 1 : 0);
   if (userId && deliver) {
     const company = job?.company || "the employer", title = job?.title || "the role";
     try {
+      // A111: an own-résumé tester's confirmation says why it went to the practice form — the trial, not a fictional person.
+      const why = own ? "used because this is draft's trial, a demonstration" : "used because the résumé is a sample, a fictional person";
       deliver({ userId, source: "practice", from: "no-reply@practice.jobsviadraft.com",
         subject: `Thank you for applying to ${company}`,
         text: `We received your application for ${title} at ${company} (draft practice form).\n\n` +
-              `This came from draft's practice form, used because the résumé is a sample, a fictional person. Nothing was sent to ${company}.` });
+              `This came from draft's practice form, ${why}. Nothing was sent to ${company}.` });
     } catch { /* the submission stands; a missing confirmation is not a failed send */ }
   }
 }
@@ -611,6 +628,8 @@ export function adminTrialCounts(db) {
   const started = one(`SELECT COUNT(*) n FROM (${T})`);
   const picked = {};
   for (const c of RESUME_CHOICES) picked[c] = one("SELECT COUNT(*) n FROM users WHERE trial_at IS NOT NULL AND trial_resume = ?", c);
+  // A111: the own-résumé pathway's testers (0 while the switch has never been on).
+  picked.own = one("SELECT COUNT(*) n FROM users WHERE trial_at IS NOT NULL AND trial_resume = 'own'");
   const sentAtLeast = (k) => one(`SELECT COUNT(*) n FROM (SELECT user_id FROM apply_run_jobs WHERE status = 'submitted'
     AND user_id IN (${T}) GROUP BY user_id HAVING COUNT(*) >= ?)`, k);
   const surveys = all(`SELECT answers FROM trial_surveys WHERE user_id IN (${T})`).map(r => JSON.parse(r.answers));
