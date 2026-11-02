@@ -1,7 +1,7 @@
 // ⭐ D129 (owner 11-01) · THE GUIDED TOUR — its steps, the interactions it counts and the sections the survey rates.
 // 11-01 (the owner's bug report): the card step is three (the match · the facts · the actions) and the modes and
 // Auto settings are two. Shared by the client's GuidedTour and the server's analytics, so a step is named once (A93: built once). Order is the
-// path: pick a résumé → the deck → the filters → Draft House (example) → the Atlas → pick 2 → Draft House live → The
+// path: pick a résumé → the deck → Draft House (example) → the Atlas → pick 2 → Draft House live → The
 // Table → the survey.
 
 export const TOUR_STEPS = Object.freeze([
@@ -10,7 +10,6 @@ export const TOUR_STEPS = Object.freeze([
   { id: "deck_match",   section: "picks",       title: "The match" },
   { id: "deck_facts",   section: "picks",       title: "The facts" },
   { id: "deck_actions", section: "picks",       title: "Pass, Save or Draft" },
-  { id: "filters",      section: "filters",     title: "Getting your best matches" },
   { id: "draft_house",  section: "draft_house", title: "Draft House" },
   { id: "modes",        section: "draft_house", title: "Ask me first or Apply for me" },
   { id: "auto_settings",section: "draft_house", title: "Auto settings" },
