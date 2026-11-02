@@ -173,6 +173,7 @@ export const SOURCES = {
     { value: "workable",           label: "Workable"        },
     { value: "recruitee",          label: "Recruitee"       },
     { value: "bamboohr",           label: "BambooHR"        },
+    { value: "gem",                label: "Gem"             },
     { value: "adzuna",             label: "Adzuna"          },
     { value: "serpapi",            label: "Google Jobs"     },
     { value: "linkedin_extension", label: "LinkedIn (Saved)" },

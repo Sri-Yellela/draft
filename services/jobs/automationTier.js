@@ -63,6 +63,7 @@ const PLATFORM_TIER = {
   smartrecruiters: "guest",
   workable:        "guest",
   bamboohr:        "guest",
+  gem:             "guest",
   workday:         "account",
   icims:           "account",
   taleo:           "account",
