@@ -62,10 +62,13 @@ export function resumeSkills(text) {
 export function postingTerms(resumeText, job) {
   let fromReport = [];
   try { fromReport = (JSON.parse(job?.ats_report || "null")?.tier1_matched || []).filter(t => typeof t === "string"); } catch { /* no report */ }
-  const shown = fromReport.filter(t => names(resumeText, t));
+  // A111: each term in the résumé's OWN spelling ("Excel", not the report's lower-cased "excel"), deduplicated.
+  const spelt = (t) => String(resumeText).match(new RegExp(`(?<![\\w+#.])${esc(t)}(?![\\w+#])`, "i"))?.[0] || t;
+  const uniq = (xs) => xs.filter((t, i) => xs.findIndex(x => x.toLowerCase() === t.toLowerCase()) === i);
+  const shown = uniq(fromReport.filter(t => names(resumeText, t)).map(spelt));
   if (shown.length) return shown.slice(0, 10);
   const posting = [job?.title, job?.description_text, job?.description].filter(Boolean).join("\n");
-  return resumeSkills(resumeText).filter(t => names(posting, t) && names(resumeText, t)).slice(0, 10);
+  return uniq(resumeSkills(resumeText).filter(t => names(posting, t) && names(resumeText, t))).slice(0, 10);
 }
 
 /**
