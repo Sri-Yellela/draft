@@ -41,7 +41,7 @@ test("trialNoOwnResume: samples only by default — 'own' only behind the switch
   assert.doesNotMatch(page, /data-trial-choice="own"/);
   assert.match(page, /\{ownOn && <OwnResumeCard /);
   assert.match(page, /const \[ownOn, setOwnOn\] = useState\(false\);/, "off until the server says on");
-  assert.match(read("services/trial.js"), /export const RESUME_CHOICES = Object\.freeze\(\[\.\.\.SAMPLE_IDS\]\);/);
+  assert.match(read("services/trial.js"), /export const RESUME_CHOICES = Object\.freeze\(\[\.\.\.OFFERED_SAMPLE_IDS\]\);/);
 });
 
 test("trialSimulatedTailoring: the sample résumé and a tailored one, side by side — simulated (no model), only the sample's own facts", () => {

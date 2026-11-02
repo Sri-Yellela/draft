@@ -25,7 +25,7 @@ import {
 } from "../services/profileSignalAggregator.js";
 import { mergeUniqueSignalLabels } from "../shared/profileSignals.js";
 import { startFromResume } from "../services/resumeOnboarding.js";
-import { sampleRoleFamily } from "../services/trial.js";
+import { sampleRoleFamily, sampleIdForText, activeSampleId } from "../services/trial.js";
 import { readProfile } from "../services/structuredProfile.js";
 import { MODEL_HAIKU } from "../shared/anthropicModels.js";
 import { callModel, DATA_CLASS } from "../services/modelCall.js";
@@ -248,6 +248,7 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
         },
         readProfile,
         sampleRoleFamily,
+        isSampleSwap: (text) => !!sampleIdForText(text) && !!activeSampleId(db, req.user.id),
         onProfileWrite: (profileId) => onProfileWrite?.(req.user.id, profileId, "POST /from-resume"),
       });
       const row = db.prepare("SELECT * FROM domain_profiles WHERE id=?").get(out.profileId);

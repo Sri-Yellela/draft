@@ -19,8 +19,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // E business / financial analyst, F project / operations manager. Each is OFFERED only on a day its category has 10
 // good picks (services/trialPicks.js offeredSamples).
 export const SAMPLE_IDS = Object.freeze(["A", "B", "C", "D", "E", "F"]);
+// Owner 11-02: "revert the additional samples" — only A and B are offered; C–F stay loaded so a profile already made
+// from one is still known as a sample (and can be switched to A or B).
+export const OFFERED_SAMPLE_IDS = Object.freeze(["A", "B"]);
 // Owner 11-01: "omit own resumes entirely for the tour" — the trial is a demonstration on a sample, so "own" is not a choice.
-export const RESUME_CHOICES = Object.freeze([...SAMPLE_IDS]);
+export const RESUME_CHOICES = Object.freeze([...OFFERED_SAMPLE_IDS]);
 /** The survey pops up once, after this many sent Drafts. */
 export const SURVEY_AFTER_SENT = 2;
 

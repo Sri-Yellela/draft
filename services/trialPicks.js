@@ -9,7 +9,7 @@
 // Scoring is ≈ 7 ms a posting, so candidates are capped (the most recent SCORE_CAP) and the result is cached per sample
 // per day and per board size. The picks are what D129's tour deals; the board itself is unchanged.
 import { scoreAtsLocally } from "./localAtsScorer.js";
-import { samples, SAMPLE_IDS } from "./trial.js";
+import { samples, OFFERED_SAMPLE_IDS } from "./trial.js";
 import { categoryOf, profileCategory } from "./jobs/professionalScope.js";
 
 export const PICKS_PER_SAMPLE = 10;
@@ -171,7 +171,7 @@ export async function samplePicks(db, id, opts = {}) {
 /** Every sample with whether it is offered today: offered only with ≥ PICKS_PER_SAMPLE picks. */
 export async function offeredSamples(db, opts = {}) {
   const out = [];
-  for (const id of SAMPLE_IDS) {
+  for (const id of OFFERED_SAMPLE_IDS) {
     const s = samples()[id];
     const picks = (await samplePicks(db, id, opts)).length;
     out.push({ id, label: s.label, category: s.category, picks, offered: picks >= PICKS_PER_SAMPLE });
