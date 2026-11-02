@@ -1,5 +1,5 @@
 {
-  "about": "D116 M1 · the Atlas families, seeded ONCE per node (a node with family_by set is never re-seeded; Admin → Atlas changes it). Drafted by the agent for the owner's review, 10-31. A slug missing from the Atlas is skipped. Five families; web and mobile application work sits under Backend until a family of its own is added.",
+  "about": "D116 M1 · the Atlas families, seeded ONCE per node (a node with family_by set is never re-seeded; Admin → Atlas changes it). Drafted by the agent for the owner's review, 10-31. A slug missing from the Atlas is skipped. Five families; web and mobile application work sits under Backend until a family of its own is added. ⭐ A111 P3 (11-02): a family per field for every D127 category (shared/atlasFamilies.js names each family's category); a non-computing registry node with no family here takes its domain's default (services/atlas/atlasCategories.js DOMAIN_FAMILY), and this file overrides that default. Slugs the vocabulary lane has not added to the registry yet are skipped until they exist. Drafted by the agent for the owner's review, 11-02.",
   "families": {
     "ml": [
       "machine-learning", "deep-learning", "pytorch", "tensorflow", "scikit-learn", "computer-vision", "nlp", "opencv", "mlflow",
@@ -37,6 +37,118 @@
       "multi-tier-systems", "web-applications", "ui-implementation", "object-oriented", "code-review", "test-automation", "unit-test",
       "playwright", "selenium", "rate-limiting", "payments-platforms", "internationalization", "technical-leadership", "agile",
       "advanced-algorithms", "webassembly"
+    ],
+    "business_analysis": [
+      "business-analyst", "senior-business-analyst", "business-systems-analyst", "business-analysis", "requirements-gathering",
+      "requirements-analysis", "business-requirements", "functional-requirements", "process-mapping", "business-process-modeling",
+      "business-process-mapping", "bpmn", "user-stories", "use-cases", "gap-analysis", "uat", "user-acceptance-testing",
+      "stakeholder-analysis", "functional-specifications", "data-analysis", "kpi-tracking", "power-bi", "powerbi", "visio",
+      "lucidchart"
+    ],
+    "accounting_audit": [
+      "accountant", "senior-accountant", "staff-accountant", "auditor", "internal-auditor", "accounting-analyst", "controller",
+      "gaap", "ifrs", "financial-reporting", "accounts-payable", "accounts-receivable", "general-ledger", "reconciliation",
+      "account-reconciliation", "month-end-close", "sox", "sox-compliance", "internal-controls", "audit", "external-audit",
+      "internal-audit", "tax", "tax-compliance", "cpa", "quickbooks", "netsuite", "workiva", "xero", "sage-intacct", "blackline"
+    ],
+    "fpa": [
+      "financial-analyst", "senior-financial-analyst", "fp-a-analyst", "corporate-finance-analyst", "finance-manager",
+      "investment-banking-analyst", "credit-analyst", "portfolio-analyst", "financial-modelling", "financial-modeling",
+      "budget-forecasting", "budgeting", "forecasting", "variance-analysis", "p-l-management", "p-l", "cash-flow-analysis",
+      "dcf", "lbo", "valuation", "capital-markets", "treasury", "portfolio-management", "anaplan", "hyperion", "adaptive-insights",
+      "bloomberg", "capital-iq", "refinitiv", "factset"
+    ],
+    "consulting": [
+      "consultant", "management-consultant", "strategy-consultant", "senior-consultant", "strategy-analyst", "due-diligence",
+      "m-a", "market-analysis", "market-research", "competitive-analysis", "business-strategy", "strategic-planning"
+    ],
+    "people": [
+      "hr-manager", "people-operations-manager", "hr-business-partner", "talent-acquisition-manager", "recruiter", "compensation-analyst",
+      "hr-generalist", "talent-acquisition", "employee-relations", "performance-management", "compensation-benefits", "hris",
+      "workforce-planning", "onboarding", "succession-planning", "workday", "bamboohr", "adp", "greenhouse", "lever", "linkedin-recruiter"
+    ],
+    "project_management": [
+      "project-manager", "program-manager", "it-project-manager", "technical-program-manager", "it-program-manager", "scrum-master",
+      "delivery-manager", "release-manager", "pmo-manager", "project-coordinator", "construction-project-manager", "assistant-project-manager",
+      "program-management", "project-management", "pmp", "prince2", "pmo", "waterfall", "kanban", "scrum", "risk-management",
+      "resource-planning", "dependency-management", "release-planning", "change-management", "stakeholder-management",
+      "project-portfolio", "ms-project", "microsoft-project", "smartsheet", "monday-com", "trello", "asana", "primavera-p6"
+    ],
+    "product": [
+      "product-manager", "senior-product-manager", "associate-product-manager", "group-product-manager", "director-of-product",
+      "technical-product-manager", "principal-product-manager", "product-roadmap", "product-strategy", "okrs", "kpis",
+      "prioritisation", "product-vision", "customer-discovery", "feature-definition", "product-lifecycle", "sprint-planning",
+      "productboard", "roadmunk", "amplitude", "mixpanel"
+    ],
+    "operations": [
+      "operations-manager", "supply-chain-manager", "logistics-manager", "operations-analyst", "business-operations-manager",
+      "strategy-operations-manager", "chief-operating-officer", "process-improvement", "supply-chain-optimisation", "logistics",
+      "inventory-management", "procurement", "vendor-management", "operational-efficiency", "lean", "six-sigma", "capacity-planning",
+      "cost-reduction", "sap", "oracle", "coupa", "ariba"
+    ],
+    "marketing_digital": [
+      "marketing-manager", "digital-marketing-manager", "growth-manager", "performance-marketing-manager", "demand-generation-manager",
+      "seo-manager", "marketing-analyst", "seo", "sem", "paid-media", "google-ads", "meta-ads", "google-analytics", "semrush",
+      "ahrefs", "conversion-optimisation", "marketing-analytics", "marketing-attribution", "cac", "ltv", "customer-acquisition",
+      "demand-generation", "pipeline-generation", "abm", "campaign-management", "hubspot", "marketo", "pardot"
+    ],
+    "marketing_brand": [
+      "brand-manager", "brand-strategy", "go-to-market", "product-marketing", "product-marketing-manager", "brand-marketing",
+      "positioning", "messaging"
+    ],
+    "marketing_content": [
+      "content-marketing-manager", "content-marketing", "email-marketing", "social-media", "mailchimp", "content-strategy",
+      "lifecycle-marketing", "social-media-manager", "community-management"
+    ],
+    "sales": [
+      "account-executive", "sales-manager", "account-manager", "sales-development-representative", "business-development-representative",
+      "sdr", "bdr", "business-development", "customer-success-manager", "salesforce", "crm", "pipeline-management", "prospecting",
+      "cold-calling", "negotiation", "lead-generation", "solution-selling", "meddic", "gong", "outreach", "salesloft",
+      "zoominfo", "linkedin-sales-navigator", "territory-management"
+    ],
+    "legal_practice": [
+      "paralegal", "attorney", "associate-attorney", "lawyer", "legal-assistant", "legal-counsel", "corporate-counsel",
+      "general-counsel", "contract-manager", "compliance-manager", "litigation-paralegal", "e-discovery", "ediscovery",
+      "legal-writing", "legal-research", "legal-drafting", "contract-drafting", "document-review", "litigation", "regulatory-compliance",
+      "gdpr", "contract-negotiation", "westlaw", "lexisnexis", "relativity", "clio", "ironclad", "kira-systems"
+    ],
+    "design": [
+      "ux-designer", "product-designer", "ui-ux-designer", "senior-product-designer", "interaction-designer", "visual-designer",
+      "ux-researcher", "design-lead", "brand-designer", "motion-designer", "user-research", "interaction-design", "wireframing",
+      "prototyping", "usability-testing", "design-systems", "figma", "sketch", "adobe-xd", "illustrator", "after-effects",
+      "photoshop", "indesign", "adobe-creative-suite"
+    ],
+    "writing_comms": [
+      "writer", "technical-writer", "copywriter", "editor", "communications-manager", "communications-specialist", "public-relations",
+      "pr-manager", "content-strategist", "copywriting", "editing", "proofreading", "press-releases", "media-relations",
+      "internal-communications", "storytelling", "ap-style", "content-writing", "technical-writing"
+    ],
+    "research_science": [
+      "scientist", "research-associate", "chemist", "biologist", "economist", "experimental-design",
+      "literature-review", "grant-writing", "pcr", "cell-culture", "hplc", "mass-spectrometry", "assay-development", "spss",
+      "stata", "graphpad-prism"
+    ],
+    "eng_mechanical": [
+      "mechanical-engineer", "mechanical-design-engineer", "gd-t", "solidworks", "creo", "catia", "fea", "cfd"
+    ],
+    "eng_electrical": [
+      "electrical-engineer", "electronics-engineer", "power-electronics-engineer", "pcb-layout", "circuit-design", "altium-designer"
+    ],
+    "eng_civil": [
+      "civil-engineer", "structural-engineer", "geotechnical-engineer", "structural-analysis", "autocad-civil-3d"
+    ],
+    "eng_process": [
+      "chemical-engineer", "process-engineer", "industrial-engineer", "process-safety", "hazop", "aspen-plus"
+    ],
+    "eng_aerospace": [
+      "aerospace-engineer", "propulsion-engineer", "avionics-engineer", "aerodynamics"
+    ],
+    "eng_biomedical": [
+      "biomedical-engineer", "medical-device-engineer", "design-controls", "iso-13485"
+    ],
+    "workplace_tools": [
+      "excel", "microsoft-excel", "powerpoint", "word", "microsoft-office", "google-suite", "google-workspace", "slack",
+      "zoom", "notion", "confluence", "jira", "miro", "sharepoint", "microsoft-teams", "outlook"
     ]
   }
 }
