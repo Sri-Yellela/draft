@@ -17,11 +17,12 @@ import { fetchCompanyJobs as recruitee } from "./jobs/sources/recruitee.js";
 import { fetchCompanyJobs as workday } from "./jobs/sources/workday.js";
 import { fetchCompanyJobs as bamboohr } from "./jobs/sources/bamboohr.js";
 import { fetchCompanyJobs as gem } from "./jobs/sources/gem.js";
+import { fetchCompanyJobs as rippling } from "./jobs/sources/rippling.js";
 import { usEligibility } from "./jobs/usLocation.js";
 import { fetchDescription, hasDetailFetcher } from "./jobs/detailFetch.js";
 import { auditActorColumns } from "./actor.js";
 
-export const ATS_FETCHERS = Object.freeze({ greenhouse, lever, ashby, smartrecruiters, workable, recruitee, workday, bamboohr, gem });
+export const ATS_FETCHERS = Object.freeze({ greenhouse, lever, ashby, smartrecruiters, workable, recruitee, workday, bamboohr, gem, rippling });
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._|-]{0,119}$/;
 const AUDIT = { ADD: "company_add", ACTIVE: "company_active" };
 
