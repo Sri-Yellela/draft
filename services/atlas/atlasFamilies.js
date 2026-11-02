@@ -32,8 +32,10 @@ export function readFamilyMapping(file = FAMILIES_FILE) {
 }
 
 /** @returns {{ assigned: number, missing: string[] }} missing = slugs in the file with no node (skipped) */
+// ⭐ A111 P3: a node the registry seed tagged with its domain's default family (family_by 'registry', atlasSeed.js) is
+// re-tagged by the reviewed file — the file is the reviewed word, the domain default only a fallback. A curator's stays.
 export function seedAtlasFamilies(db, mapping = readFamilyMapping()) {
-  const put = db.prepare(`UPDATE atlas_nodes SET family = ?, family_by = '${FAMILY_SEED}' WHERE slug = ? AND family_by IS NULL`);
+  const put = db.prepare(`UPDATE atlas_nodes SET family = ?, family_by = '${FAMILY_SEED}' WHERE slug = ? AND (family_by IS NULL OR family_by = 'registry')`);
   const known = new Set(db.prepare(`SELECT slug FROM atlas_nodes`).pluck().all());
   let assigned = 0;
   const missing = [];

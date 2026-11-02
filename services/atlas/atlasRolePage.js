@@ -17,6 +17,7 @@ import { atlasIndex, boardCounts, levelRises, LEVEL_BANDS } from "./atlasMe.js";
 import { atlasPostingsChanged } from "./atlasLive.js";
 import { companiesForRole } from "./atlasSponsors.js";
 import { LEVELS_READ } from "../../shared/postingLevel.js";
+import { roleCategoryFilter } from "./atlasCategories.js";
 
 /** How much of each list the role page shows. */
 export const ROLE_PAGE = Object.freeze({ SKILLS: 12, COMPANIES: 12, RISES: 8 });
@@ -38,9 +39,12 @@ export function roleBoard(db, slug) {
   const r = rollup.roles.get(role.id);
   const postings = r?.postings ?? 0;
 
+  // ⭐ A111 P3 · never another category's skills (D127): a role's page lists what its own category asks — a board
+  // co-occurrence ("culture", "onboarding" in a backend posting) does not reach it unless the role's curated list names it.
+  const keep = roleCategoryFilter(db, role);
   const topSkills = [...(r?.skill ?? new Map()).entries()]
     .map(([id, c]) => [idx.byId.get(id), c])
-    .filter(([n]) => n && n.kind !== "role" && n.status === "published")
+    .filter(([n]) => n && n.kind !== "role" && n.status === "published" && keep(n))
     .sort((a, b) => b[1] - a[1] || a[0].name.localeCompare(b[0].name))
     .slice(0, ROLE_PAGE.SKILLS)
     .map(([n, c]) => ({ ...nodeOut(n), postings: c, share: pct(c, postings) }));
