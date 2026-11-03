@@ -20,6 +20,7 @@ import DepthButton from "../../components/DepthButton.jsx";
 import { BRAND } from "../../../../shared/brand.js";
 import AtlasGraph from "./AtlasGraph.jsx";
 import LearnView from "./LearnView.jsx";
+import ReadinessCheck from "./ReadinessCheck.jsx";
 import YourMap, { RoleMap, FamilyMap } from "./YourMap.jsx";
 import {
   KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
@@ -322,7 +323,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
 
   useEffect(() => {
     let live = true;
-    if (!slug || slug === "learn" || slug.startsWith("family/")) { setPage({ status: "idle", node: null }); return undefined; }
+    if (!slug || slug === "learn" || slug === "check" || slug.startsWith("family/")) { setPage({ status: "idle", node: null }); return undefined; }
     setPage({ status: "loading", node: null });
     loadNode(slug).then(n => live && setPage({ status: n ? "done" : "missing", node: n }))
       .catch(e => live && setPage({ status: "error", node: null, error: e.message }));
@@ -336,11 +337,13 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
 
   // ⭐ D115: /atlas/learn is the owner's learning path, not a node (the slug "learn" is reserved for it).
   const learning = slug === "learn";
+  // ⭐ D142: /atlas/check is the readiness check (the slug "check" is reserved, like "learn").
+  const checking = slug === "check";
   // ⭐ D116 M7: /atlas/family/<key> is a family's page (a node slug never holds a "/").
   const familyKey = slug && slug.startsWith("family/") ? slug.slice("family/".length) : null;
   const wide = !slug || !!familyKey;
   const body = (
-    <main className={`atl${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : familyKey ? "family" : slug ? "node" : "search"}>
+    <main className={`atl${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : checking ? "check" : familyKey ? "family" : slug ? "node" : "search"}>
       {/* ⭐ D120 P2 · THE HOME IS YOUR MAP (owner 10-31: "very text rich with no direction"): signed in, the direction
           line, the tree, the course and the five sections, with search, Explore by role, the families and the recent pages
           in a side column; signed out (or no résumé), search · Learn (the full circle) · Explore by role. A query is the
@@ -348,8 +351,9 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
       {!slug && q && <AtlasSearch base={base} q={q} />}
       {!slug && !q && <YourMap base={base} search={<section className="atl__section" data-atlas-home-search=""><h2 className="atl__h2">Search the Atlas</h2><SearchBox base={base} /></section>} />}
       {learning && <LearnView signedIn={base.startsWith("/app")} />}
+      {checking && <ReadinessCheck signedIn={base.startsWith("/app")} />}
       {familyKey && <FamilyMap base={base} familyKey={familyKey} />}
-      {slug && !learning && !familyKey && (
+      {slug && !learning && !checking && !familyKey && (
         <>
           <SearchBox base={base} />
           {page.status === "loading" && <p className="atl__quiet" role="status">Opening…</p>}

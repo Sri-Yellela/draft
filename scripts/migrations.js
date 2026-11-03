@@ -6052,4 +6052,54 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_warm_contacts_company ON warm_contacts(user_id, company_key);
       `,
     },
+    {
+      // ⭐ D142 (owner 11-02) · READINESS — CHECK. readiness_questions: the bank, per skill and concept, difficulty 1–3,
+      // seconds per question; ⛔ status 'draft' until a person reviews it ('live'), so a wrong answer key never reaches a
+      // user. readiness_checks: one adaptive check (mode timed / extended / untimed; the question being asked and when
+      // the SERVER served it — the timer is the server's). readiness_answers: each answer, right or not, in time or not.
+      // services/readiness.js. Merge plan move (checks, answers). After 216.
+      id: "217_readiness",
+      sql: `
+        CREATE TABLE IF NOT EXISTS readiness_questions (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          skill         TEXT NOT NULL,
+          skill_key     TEXT NOT NULL,
+          concept       TEXT NOT NULL,
+          difficulty    INTEGER NOT NULL,
+          prompt        TEXT NOT NULL,
+          options_json  TEXT NOT NULL,
+          answer        INTEGER NOT NULL,
+          explanation   TEXT,
+          seconds       INTEGER NOT NULL DEFAULT 20,
+          status        TEXT NOT NULL DEFAULT 'draft',
+          written_by    TEXT NOT NULL,
+          reviewed_by   TEXT,
+          reviewed_at   INTEGER,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_readiness_questions_skill ON readiness_questions(skill_key, status, difficulty);
+        CREATE TABLE IF NOT EXISTS readiness_checks (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          skill_key     TEXT NOT NULL,
+          mode          TEXT NOT NULL,
+          current_q     INTEGER,
+          served_at     INTEGER,
+          started_at    INTEGER NOT NULL,
+          finished_at   INTEGER,
+          summary_json  TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_readiness_checks_user ON readiness_checks(user_id, skill_key);
+        CREATE TABLE IF NOT EXISTS readiness_answers (
+          check_id      INTEGER NOT NULL REFERENCES readiness_checks(id) ON DELETE CASCADE,
+          question_id   INTEGER NOT NULL,
+          chosen        INTEGER,
+          correct       INTEGER NOT NULL,
+          in_time       INTEGER NOT NULL,
+          ms            INTEGER NOT NULL,
+          answered_at   INTEGER NOT NULL,
+          PRIMARY KEY (check_id, question_id)
+        );
+      `,
+    },
   ];
