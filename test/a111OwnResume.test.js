@@ -168,7 +168,9 @@ test("a111OwnPickShowsScoreAndWhy: the own résumé's cards carry the board's on
   for (let i = 1; i < own.picks.length; i++) assert.ok(own.picks[i - 1].score >= own.picks[i].score, "best first");
   // the deck: every TRIAL account's card carries its stored score (not only a sample's) — ⭐ D145 (changed on purpose):
   // drawn as the card's top-right match by the one card-facts function, for any card with a score
-  assert.match(read("server.js"), /if \(isTrialAccount\(db, req\.user\.id\)\) deck\.cards = deck\.cards\.map\(c => \(\{ \.\.\.c, score: scoreFor\(c\.job\.id\) \}\)\);/);
+  // ⭐ A117 (owner 11-03, "number for everyone"): every account's card carries its stored score, not only a trial's.
+  assert.match(read("server.js"), /\n    deck\.cards = deck\.cards\.map\(c => \(\{ \.\.\.c, score: scoreFor\(c\.job\.id\) \}\)\);/);
+  assert.doesNotMatch(read("server.js"), /if \(isTrialAccount\(db, req\.user\.id\)\) deck\.cards/);
   const facts = read("client/src/lib/deckCardFacts.js");
   assert.match(facts, /const hasScore = Number\.isFinite\(card\?\.score\);/);
   assert.doesNotMatch(facts, /sample/i, "no sample-only condition on the match");
