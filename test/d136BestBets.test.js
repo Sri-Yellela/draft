@@ -85,6 +85,22 @@ test("D136 · d136HardFiltersOut — not eligible, won't sponsor (for a needer),
     "the user set a sponsorship answer nothing contradicts; Rust is Preferred — a nice-to-have, not a must-have");
 });
 
+test("D136 · fit is required — a posting not scored yet is never ranked on freshness alone (found by 44i's walk)", async () => {
+  assert.deepEqual(bestBetOf({ hoursSinceFirstSeen: 1, ghostLevel: 0 }), { score: null, band: "unscored", label: "Not scored yet", reasons: [], points: {} });
+  const db = fixtureDb();
+  post(db, "fresh-unscored", { first: NOW - 3600 });
+  post(db, "scored", { first: NOW - 20 * DAY });
+  report(db, "scored", { matched: ["Go"], missing: ["Postgres", "Kubernetes"], score: 45 });
+  const r = await bestBetsFor(db, { userId: 1, fetchBoardPage: page([{ id: "fresh-unscored" }, { id: "scored" }]), now: NOW });
+  assert.deepEqual(r.bets.map(b => b.job.id), ["scored"]);
+  assert.equal(r.unscored, 1);
+  const none = await bestBetsFor(db, { userId: 1, fetchBoardPage: page([{ id: "fresh-unscored" }]), now: NOW });
+  assert.equal(none.reason, "scoring", "nothing scored yet is said, not ranked");
+  assert.match(read("client/src/components/BestBets.jsx"), /appear as your matches are scored/);
+  // picks: an unscored candidate's best bet is null, so the ATS order decides (choosePicks reads Number.isFinite)
+  assert.equal(bestBetOf({ hoursSinceFirstSeen: 1 }).score, null);
+});
+
 test("D136 · d136ShortlistDefaultFive — 5 by default, the user sets 3–20; Auto settings carry it", async () => {
   assert.equal(SHORTLIST_DEFAULT, 5);
   assert.equal(shortlistSize(undefined), 5);
@@ -94,7 +110,7 @@ test("D136 · d136ShortlistDefaultFive — 5 by default, the user sets 3–20; A
   assert.equal(normaliseAutoSettings({ bestBets: 12 }).value.bestBets, 12);
   assert.equal(normaliseAutoSettings({ bestBets: 2 }).ok, false);
   const db = fixtureDb();
-  for (let i = 0; i < 9; i++) post(db, `j${i}`);
+  for (let i = 0; i < 9; i++) { post(db, `j${i}`); report(db, `j${i}`, { matched: ["Go"], missing: ["SQL"], score: 50 + i }); }
   const r = await bestBetsFor(db, { userId: 1, fetchBoardPage: page(Array.from({ length: 9 }, (_, i) => ({ id: `j${i}` }))), now: NOW });
   assert.equal(r.bets.length, 5);
   const server = read("server.js");
