@@ -38,7 +38,12 @@ export default function BestBets({ onOpen, normalize = (j) => j, refreshKey = nu
   }
 
   if (!data && !error) return null;
-  if (data && !data.bets?.length) return null;
+  if (data && !data.bets?.length) {
+    // Nothing scored yet: say so, rather than rank on freshness alone.
+    return data.reason === "scoring"
+      ? <div data-best-bets="scoring" style={{ margin: "10px 16px 4px", fontSize: 12, color: theme.textMuted }}>This week's best bets appear as your matches are scored.</div>
+      : null;
+  }
   const box = { margin: "10px 16px 4px", padding: "10px 12px", borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.surface };
 
   if (!shown) {

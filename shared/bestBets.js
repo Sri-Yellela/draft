@@ -66,6 +66,10 @@ export function shortlistSize(n) {
  */
 export function bestBetOf(s = {}) {
   const W = BEST_BET_WEIGHTS;
+  // ⛔ FIT IS REQUIRED (44i walk, 11-03): with no fit known, freshness alone scored 100 % and unscored postings outranked
+  // scored ones. A posting not scored yet has no best-bet score — it waits for its fit (the board's precompute).
+  const fitKnown = (s.mustHaves && s.mustHaves.total > 0) || Number.isFinite(s.atsScore);
+  if (!fitKnown) return { score: null, band: "unscored", label: "Not scored yet", reasons: [], points: {} };
   let got = 0, could = 0;
   const reasons = [];
   const points = {};

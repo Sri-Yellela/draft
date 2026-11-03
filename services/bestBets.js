@@ -118,6 +118,7 @@ export async function bestBetsFor(db, { userId, profileId = null, size = undefin
     cursor = page.nextCursor;
   }
   const scored = [];
+  let unscored = 0;
   for (const [i, j] of jobs.entries()) {
     const id = String(j.id ?? j.job_id);
     if (done.has(id)) continue;                                                     // already drafted or applied
@@ -126,10 +127,13 @@ export async function bestBetsFor(db, { userId, profileId = null, size = undefin
     if (needsSponsorship && j.sponsorship?.level === "says_no") continue;           // D121: won't sponsor
     const s = bestBetSignalsFor(db, { userId, profileId, job: { id }, userLevel, inputs, aim, warm, now });
     if (s.ineligible) continue;
-    scored.push({ job: j, bestBet: bestBetOf(s), i });
+    const bet = bestBetOf(s);
+    if (bet.score == null) { unscored++; continue; }               // its fit is not known yet — never ranked on freshness alone
+    scored.push({ job: j, bestBet: bet, i });
   }
   scored.sort((a, b) => b.bestBet.score - a.bestBet.score || a.i - b.i);
-  return { size: want, considered: jobs.length, matches: matches ?? jobs.length, calibrated: false,
+  return { size: want, considered: jobs.length, matches: matches ?? jobs.length, calibrated: false, unscored,
+    ...(!scored.length && unscored ? { reason: "scoring" } : {}),
     bets: scored.slice(0, want).map(({ job, bestBet }) => ({ job, bestBet })) };
 }
 
