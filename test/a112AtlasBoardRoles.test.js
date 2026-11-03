@@ -76,3 +76,20 @@ test("A112/Atlas · boardRolesAtBoot — server.js seeds the board roles inside 
   assert.ok(fam > 0 && roles > fam);
   assert.match(src.slice(roles - 200, roles), /try \{\s*$/);
 });
+
+test("A112/Atlas · functionFirstTitles — a 'Level, Function' title is read function-first, only when the title as written finds no role", async () => {
+  const { functionFirstTitle } = await import("../services/atlas/postingMatcher.js");
+  assert.equal(functionFirstTitle("Manager, Product Marketing"), "Product Marketing Manager");
+  assert.equal(functionFirstTitle("Senior Director - Sales, West"), "Senior Sales Director");
+  assert.equal(functionFirstTitle("Head of Growth"), "Growth Head");
+  assert.equal(functionFirstTitle("Product Marketing Manager"), null);
+  const db = fixtureDb();
+  seedBoardRoles(db, [...ROLES, { family: "marketing_brand", name: "Product Marketing Manager", slug: "product-marketing-manager", titles: [] },
+    { family: "sales", name: "Sales Manager", slug: "sales-manager", titles: [] }]);
+  const nodes = db.prepare(`SELECT id, slug, kind, name, term FROM atlas_nodes`).all();
+  const id = (s) => nodes.find(n => n.slug === s).id;
+  const m = postingMatcher(db, nodes, { listOnly: true });
+  assert.equal(m.roleOf("Manager, Product Marketing (Payments)"), id("product-marketing-manager"));
+  assert.equal(m.roleOf("Sales Manager, Product Marketing"), id("sales-manager"), "the title as written wins");
+  assert.equal(m.roleOf("Director, Brand"), null);
+});

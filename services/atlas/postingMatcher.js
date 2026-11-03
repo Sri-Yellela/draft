@@ -326,6 +326,17 @@ function exactMatcher(name) {
  * @returns {{ roleOf(title) → id | null, askedBy(posting { title, company, text, skills_json }) → id[],
  *   read(posting, { boilerplate? }) → { asked: id[], linked: id[], roleId }, bulkHashes: Map | null }}
  */
+// ⭐ A112/Atlas · a "Level, Function" title turned function-first: "Manager, Product Marketing" → "Product Marketing
+// Manager", "Senior Director - Sales, West" → "Senior Sales Director", "Head of Growth" → "Growth Head". Anything after a
+// second comma, bracket or dash (a team, a place) is dropped. Not that shape → null.
+const LEVEL_FIRST = /^\s*((?:senior|sr\.?|associate|assoc\.?|principal|lead|group|executive)\s+)?(manager|director|head|lead|vice president|vp|specialist|analyst|engineer|counsel|consultant|coordinator|partner|scientist)\s*(?:of\s+|[,:\-–—|]\s*)(.+)$/i;
+export function functionFirstTitle(title) {
+  const m = String(title ?? "").match(LEVEL_FIRST);
+  if (!m) return null;
+  const fn = m[3].split(/[,(|\-–—]/)[0].trim();
+  return fn ? `${m[1] || ""}${fn} ${m[2]}` : null;
+}
+
 export function postingMatcher(db, nodes, { listOnly = false, bulk = false, rolesAsTerms = false, live = false } = {}) {
   const SHORT = POSTING_MATCH.SHORT_CONCEPT_CHARS;
   // Each asked-for node's terms: its own and its confirmed aliases (the one thesaurus).
@@ -349,9 +360,17 @@ export function postingMatcher(db, nodes, { listOnly = false, bulk = false, role
   const anyConcept = asks.some(a => a.concept);
   const board = bulk ? refreshBoilerplate(db) : null;
 
-  const roleOf = (title) => {
+  const roleIn = (title) => {
     const tk = ` ${normaliseAtsTerm(title ?? "")} `;
     return roles.find(r => tk.includes(` ${r.term} `))?.id ?? null;
+  };
+  // ⭐ A112/Atlas: "Manager, Product Marketing" is read as "Product Marketing Manager" — only when the title as written
+  // finds no role (measured on the 44i crawl copy: 352 more postings found theirs, none moved).
+  const roleOf = (title) => {
+    const id = roleIn(title);
+    if (id != null) return id;
+    const turned = functionFirstTitle(title);
+    return turned ? roleIn(turned) : null;
   };
   // One pass over the posting's counted words, answered in each reading asked for.
   //   reading.listOnly   D114's rule (the posting's own list, when it has one) — else the stats' rule
