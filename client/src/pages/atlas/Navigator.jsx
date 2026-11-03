@@ -27,7 +27,7 @@ export default function Navigator({ base, fallback = null }) {
   }
 
   if (!nav?.ready) return fallback;
-  const { destination: d, route, bridges, progress, changes, suggest, next } = nav;
+  const { destination: d, route, bridges, progress, changes, suggest, next, elsewhere = [], changer = null } = nav;
   const options = [...(d.recommended || []), ...(d.alternatives || [])];
   return (
     <section className="atl-nav" data-navigator="" aria-label="Your direction">
@@ -72,6 +72,33 @@ export default function Navigator({ base, fallback = null }) {
             ))}
           </ol>
           <p className="atl__quiet">≈ weeks are a rough guide, not a measurement.</p>
+        </div>
+      )}
+
+      {/* ⭐ D139 · a move into another field: what transfers, said in the new field's words; the gaps; the interview's
+          first questions. Built only from skills the user has. */}
+      {changer && (
+        <div className="atl-nav__card" data-navigator-changer="">
+          <h2 className="atl-nav__h">Changing fields: {changer.from} → {changer.to}</h2>
+          {changer.transferable.length > 0 && <p className="atl-nav__line">What transfers: {changer.transferable.join(", ")}</p>}
+          {changer.framing && <p className="atl-nav__line">{changer.framing}</p>}
+          {changer.gaps.length > 0 && <p className="atl-nav__line">To close: {changer.gaps.join(", ")}</p>}
+          <p className="atl-nav__line">Be ready for:</p>
+          <ul className="atl-nav__steps">{changer.interview.map((q, i) => <li key={i}>{q}</li>)}</ul>
+        </div>
+      )}
+
+      {elsewhere.length > 0 && (
+        <div className="atl-nav__card" data-navigator-elsewhere="">
+          <h2 className="atl-nav__h">Other fields you could move into</h2>
+          <ul className="atl-nav__steps">
+            {elsewhere.map(e => (
+              <li key={e.slug}>
+                {e.line}{e.framing ? <> · <span className="atl__quiet">{e.framing}</span></> : null}{" "}
+                <button type="button" className="atl-nav__link" onClick={() => aimAt(e.slug)} disabled={busy}>Aim there</button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
