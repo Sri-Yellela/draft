@@ -310,6 +310,8 @@ export const MERGE_PLAN = Object.freeze({
   trial_surveys: "keepInto", trial_feedback: "move", practice_submissions: "move", trial_events: "move",
   // D123 (212): gists keyed (user, résumé hash) — INTO's own (perhaps edited) gists win on a clash, FROM's fill the rest.
   resume_gists: "keepInto",
+  // D136 P3 (214): the signals each application had when sent — one row per (user, posting); INTO's own wins on a clash.
+  application_signals: "keepInto",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

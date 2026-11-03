@@ -62,6 +62,7 @@ import { atsScorePair } from "../../../shared/resumeScores.js";
 import { openPosting } from "../lib/openPosting.js";
 import { rememberBoardFilters } from "../lib/boardFilterMemory.js";
 import StartFromResume from "../components/StartFromResume.jsx";
+import BestBets from "../components/BestBets.jsx";
 
 // The three extension-bridge stubs that stood here (getLinkedInExtensionInstallUrl,
 // isLinkedInExtensionInstalled, sendExtensionRequest) are gone with cleanup 5.3. They returned
@@ -3961,6 +3962,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               emptyReason={emptyReason}
               savedTab={boardTab === "saved"}
               importedTab={boardTab === "imported"}
+              // ⭐ D136: "This week's best bets" tops the ALL board — not a search, not Saved / + / Pending.
+              bestBets={boardTab === "all" && !localSearch.trim()}
+              bestBetsKey={activeDomainProfile?.id ?? null}
               boardLoading={boardLoading}
               cardTier={1}
             />
@@ -4046,6 +4050,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               emptyReason={emptyReason}
               savedTab={boardTab === "saved"}
               importedTab={boardTab === "imported"}
+              // ⭐ D136: "This week's best bets" tops the ALL board — not a search, not Saved / + / Pending.
+              bestBets={boardTab === "all" && !localSearch.trim()}
+              bestBetsKey={activeDomainProfile?.id ?? null}
               boardLoading={boardLoading}
               cardTier={effectiveTier}
               containerRef={jobsPanelElementRef}
@@ -4205,7 +4212,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       searchActive = false, profileName = null,
                       curation = null, curateOff = false, onToggleCurate, boardReason = null,
                       emptyReason = null, canRankByFit = true, onAddResume,
-                      savedTab = false, importedTab = false, boardLoading = false,
+                      savedTab = false, importedTab = false, boardLoading = false, bestBets = false, bestBetsKey = null,
                       cardTier = 1, containerRef }) {
   const [pageInput, setPageInput] = useState("");
   // ⛔ D45: never while the current view is still loading — "nothing here" when the truth is "not here yet"
@@ -4305,6 +4312,9 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
               </div>
             </div>
           )}
+
+          {/* ⭐ D136 (owner 11-02): the few to apply to this week, above the board — ranked from signals, with reasons. */}
+          {bestBets && <BestBets onOpen={onJobSelect} normalize={normalizeApiJob} refreshKey={bestBetsKey} />}
 
           {/* ⭐ D1 (chosen 10-02): THE CARD IS A BUBBLE — rows of 2/3/4 (3 by default), a hovered or focused
               card grows to 1.55 and its neighbours give up the width; the rail (ATS · Save · Draft) opens on

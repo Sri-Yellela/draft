@@ -103,10 +103,13 @@ export function choosePicks(candidates, { remaining, drafted = new Set(), compan
     pool.push(c);
   }
   const score = (c) => (Number.isFinite(c.score) ? c.score : -1);
+  // ⭐ D136 P2 · picks draw from the shortlist first: a candidate's best-bet score (shared/bestBets.js) leads, the ATS
+  // match breaks its ties. A candidate without one (an older caller) ranks by the ATS match alone, as before.
+  const bet = (c) => (Number.isFinite(c.bestBet) ? c.bestBet : -1);
   // For a user who needs sponsorship, sponsors rank first (often → sometimes → unknown → no record), then the ATS match.
   const sponsorRank = (c) => (needsSponsorship && wantsSignal ? PICK_RANK[signal.get(String(c.jobId))] ?? PICK_RANK.unknown : 0);
   const ranked = pool.map((c, i) => ({ c, i }))
-    .sort((a, b) => sponsorRank(a.c) - sponsorRank(b.c) || score(b.c) - score(a.c) || a.i - b.i).map(x => x.c);
+    .sort((a, b) => sponsorRank(a.c) - sponsorRank(b.c) || bet(b.c) - bet(a.c) || score(b.c) - score(a.c) || a.i - b.i).map(x => x.c);
   const take = [];
   const counts = new Map(companyCounts);
   const room = Math.max(0, Math.min(remaining, MAX_PICKS_PER_RUN));

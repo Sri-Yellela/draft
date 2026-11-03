@@ -41,7 +41,7 @@ import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
 import { runAutoTick, runPicksFollowUps } from "./services/autoScheduler.js";
 import { configureNotify, notifyEvent } from "./services/notify.js";
-import { pickSecret } from "./services/picks.js";
+import { pickSecret, userLevelFor } from "./services/picks.js";
 import picksConfirmRoutes from "./routes/picksConfirm.js";
 import notifyRoutes from "./routes/notify.js";
 import generatedResumeRoutes from "./routes/generatedResumes.js";
@@ -98,6 +98,9 @@ import { runHiringSignalsRollup } from "./services/jobs/hiringSignals.js";
 // ⭐ D107: every posting's first seen / last seen / closed, kept after its board row goes; reposts read from it.
 import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js";
 import { scoreGhosts, ghostForRows, calibrateGhostThreshold } from "./services/jobs/ghostScore.js";
+import { bestBetsFor, refitBestBets, bestBetSignalsFor } from "./services/bestBets.js";
+import { bestBetOf } from "./shared/bestBets.js";
+import { readAutoSettings } from "./shared/autoSettings.js";
 // ⭐ D105: the Atlas — roles, skills, tools, linked; seeded as drafts from the scorer's own registry, stats from the board.
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
@@ -6490,6 +6493,23 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D136 P3 (owner 11-02) · BEST BETS' CALIBRATION. The signals an application had when it was SENT (fit against the
+      // must-haves, level, freshness, the ghost level, the company's closings), stored once per (user, posting) by
+      // services/bestBets.js recordApplicationSignals from writeApplication; the first send wins. The monthly refit joins
+      // it to job_applications' outcome. Merge plan keepInto. After 213.
+      id: "214_application_signals",
+      sql: `
+        CREATE TABLE IF NOT EXISTS application_signals (
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id        TEXT NOT NULL,
+          signals_json  TEXT NOT NULL,
+          score         INTEGER,
+          recorded_at   INTEGER NOT NULL,
+          PRIMARY KEY (user_id, job_id)
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7223,6 +7243,14 @@ cron.schedule("0 4 * * *", async () => {
     if (c.ran) console.log(`[Cron] ghost calibration: ${c.measure.replied} of ${c.measure.withOutcomes} flagged postings replied — cut ${c.from}${c.raised ? ` → ${c.to}` : " (kept)"}`);
   } catch(e) {
     console.error('[Cron] Ghost score error:', e.message);
+  }
+  // ⭐ D136 P3: on the 1st of the month, best bets' weights are refit on real outcomes — only once 500 exist.
+  if (new Date().getUTCDate() === 1) {
+    try {
+      const f = refitBestBets(db);
+      console.log(f.ready ? `[Cron] best bets refit: ${f.outcomes} outcomes, held-out loss ${f.testLogLoss?.toFixed(3)} vs ${f.baselineLogLoss?.toFixed(3)} — ${f.used ? "used" : "not used"}`
+        : `[Cron] best bets refit: ${f.outcomes} of ${f.needed} outcomes — signals only`);
+    } catch(e) { console.error('[Cron] Best bets refit error:', e.message); }
   }
   // ⭐ D105 P3: the Atlas's "On the board" — every number computed from today's active postings, never typed.
   // ⭐ P9 (amended 10-31): the same pass rebuilds the 'board' edges; ⭐ P7: then the auto-publish bar is re-checked
@@ -11286,6 +11314,27 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
   }
 }
 
+// ⭐ D136 · GET /api/best-bets — "This week's best bets": the few postings on the user's own curated board most likely to
+// lead to a real conversation, each with its band (Best bet · Good bet · Long shot) and its reasons. Hard filters first
+// (eligibility, won't sponsor, closed, already drafted / applied), then the signals in shared/bestBets.js. ⛔ A ranked
+// score from signals — never a probability until P3's calibration has 500 outcomes. ?size= (3–20) else Auto settings'
+// bestBets (default 5). A sample trial account has no board of its own: nothing is dealt.
+app.get("/api/best-bets", requireAuth, async (req, res) => {
+  try {
+    const profile = getOrRepairActiveProfile(req.user.id);
+    if (!profile || trialSampleOf(db, req.user.id)) return res.json({ size: 0, considered: 0, matches: 0, calibrated: false, bets: [] });
+    const settings = readAutoSettings(db.prepare("SELECT auto_settings FROM users WHERE id = ?").get(req.user.id)?.auto_settings);
+    const size = req.query.size != null ? Number(req.query.size) : settings.bestBets;
+    const fetchBoardPage = async (cursor) => {
+      const { status, body } = await boardPageResponse({ ...req, query: { pageSize: "50", ...(cursor ? { cursor } : {}) } });
+      return { ok: status === 200 && body?.success !== false, jobs: body?.jobs || [], nextCursor: body?.nextCursor || null, total: body?.total };
+    };
+    res.json(await bestBetsFor(db, { userId: req.user.id, profileId: profile.id, size, fetchBoardPage }));
+  } catch (e) {
+    console.error("[best-bets]", e.message);
+    res.status(500).json({ error: "best_bets_failed", message: "Best bets could not be worked out. Try again." });
+  }
+});
 
 // GET /api/draft/today — today's deck (UI step 3b; docs/UI_REDESIGN.md §3.2, services/dailyDraft.js).
 //
@@ -13638,10 +13687,15 @@ const autoFetchBoard = async (userId, filters, settings = {}) => {
     boardProfileId: Number.isInteger(settings.profileId) ? settings.profileId : undefined });
   if (status !== 200) throw new Error(body?.error || `board ${status}`);
   // ⭐ D113 P1: the title, the ATS match (picks are ranked by it) and the D106 level read travel with each candidate.
+  // ⭐ D136 P2: and its best-bet score — picks draw from the shortlist first.
+  const profileId = Number.isInteger(settings.profileId) ? settings.profileId : (getOrRepairActiveProfile(userId)?.id ?? null);
+  const userLevel = (() => { try { return userLevelFor(db, userId); } catch { return null; } })();
   return (body.jobs || []).map(j => {
     const t = j.postedAt ? Date.parse(j.postedAt) : NaN;
+    let bestBet = null;
+    try { bestBet = bestBetOf(bestBetSignalsFor(db, { userId, profileId, job: { id: j.id }, userLevel })).score; } catch { bestBet = null; }
     return { jobId: j.id, company: j.company, title: j.title ?? null, score: Number.isFinite(j.matchScore) ? j.matchScore : null,
-      levelRead: j.levelRead ?? null, postedAt: Number.isFinite(t) ? Math.floor(t / 1000) : null };
+      levelRead: j.levelRead ?? null, postedAt: Number.isFinite(t) ? Math.floor(t / 1000) : null, bestBet };
   });
 };
 // ⭐ D113: the picks links' key (derived from SESSION_SECRET, never stored) and where the links point.

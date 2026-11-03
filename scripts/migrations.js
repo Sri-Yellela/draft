@@ -5994,4 +5994,21 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D136 P3 (owner 11-02) · BEST BETS' CALIBRATION. The signals an application had when it was SENT (fit against the
+      // must-haves, level, freshness, the ghost level, the company's closings), stored once per (user, posting) by
+      // services/bestBets.js recordApplicationSignals from writeApplication; the first send wins. The monthly refit joins
+      // it to job_applications' outcome. Merge plan keepInto. After 213.
+      id: "214_application_signals",
+      sql: `
+        CREATE TABLE IF NOT EXISTS application_signals (
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id        TEXT NOT NULL,
+          signals_json  TEXT NOT NULL,
+          score         INTEGER,
+          recorded_at   INTEGER NOT NULL,
+          PRIMARY KEY (user_id, job_id)
+        );
+      `,
+    },
   ];

@@ -206,13 +206,23 @@ export function broaderTerms(db, { resumeText, missing = [] } = {}) {
  * it does, up to 8 responsibilities — and the broader terms. Missing-and-unclaimed must-haves travel here on purpose:
  * they are the job block, and the tools service accepts one in a NEW bullet only where the employer's gist covers it.
  */
-export function payloadJobKeywords(db, { job, report, claims = null, resumeText, synonyms = null }) {
-  const base = leanJobKeywords(db, { job, report, claims, resumeText, synonyms });
+/**
+ * The posting's terms split must-have / nice-to-have by where it names them (the D125 reading's rule): a term named ONLY
+ * in the Preferred / nice-to-have section is a nice-to-have. One rule — payload tailoring and D136's best bets read it.
+ */
+export function splitMustNice(job, terms) {
   const text = fullPostingText(job);
   const nice = niceSection(text);
   const outside = nice ? text.replace(nice, "") : text;
-  const terms = [...(report?.tier1_matched || []), ...(report?.tier1_missing || [])];
   const isNice = (t) => !!nice && countIn(nice, t) > 0 && countIn(outside, t) === 0;
+  return { must: terms.filter(t => !isNice(t)), nice: terms.filter(isNice) };
+}
+
+export function payloadJobKeywords(db, { job, report, claims = null, resumeText, synonyms = null }) {
+  const base = leanJobKeywords(db, { job, report, claims, resumeText, synonyms });
+  const text = fullPostingText(job);
+  const terms = [...(report?.tier1_matched || []), ...(report?.tier1_missing || [])];
+  const split = splitMustNice(job, terms);
   const verbs = cap80([...(report?.action_verbs_matched || []), ...(report?.action_verbs_missing || [])], 60)
     .map((v, i) => ({ v, i, n: countIn(text, v) })).sort((a, b) => b.n - a.n || a.i - b.i).map(x => x.v).slice(0, 30);
   const broader = broaderTerms(db, { resumeText, missing: report?.tier1_missing || [] });
@@ -220,8 +230,8 @@ export function payloadJobKeywords(db, { job, report, claims = null, resumeText,
     ...base,
     verbs,
     phrases: (base.phrases || []).slice(0, 8),
-    mustHave: cap80(terms.filter(t => !isNice(t)), 40),
-    niceToHave: cap80(terms.filter(isNice), 30),
+    mustHave: cap80(split.must, 40),
+    niceToHave: cap80(split.nice, 30),
     ...(broader.length ? { broader } : {}),
   };
 }

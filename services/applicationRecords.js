@@ -45,6 +45,7 @@ import { snapshotResumeForRecord } from "./applicationArtifacts.js";
 
 import { buildHistory, matchesSearch } from "../shared/applicationHistory.js";
 import { groupCompanies, companyNameKey } from "../shared/companyIdentity.js";
+import { recordApplicationSignals } from "./bestBets.js";
 
 /** "Northwind, Inc." and "NORTHWIND" match; "the confirmation for Northwind Traders" contains it. */
 export function normaliseCompanyForMatch(s) {
@@ -247,6 +248,8 @@ function writeApplication(db, { userId, jobId, job, record, capturedAtsAtApply }
          record.submitted_at, notes || null,
          stamp.score, stamp.version, stamp.report, stamp.score == null ? null : nowSec(),
          job?.salary_min ?? null, job?.salary_max ?? null, job?.salary_currency ?? null);
+  // ⭐ D136 P3: the signals this application had when it was sent, stored once — never in the way of the send.
+  try { recordApplicationSignals(db, { userId, jobId }); } catch { /* a schema without application_signals */ }
   try {
     const profileId = db.prepare("SELECT id FROM domain_profiles WHERE user_id=? AND is_active=1 ORDER BY id DESC LIMIT 1")
       .pluck().get(userId) ?? null;
