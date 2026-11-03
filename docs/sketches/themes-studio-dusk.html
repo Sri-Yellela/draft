@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft — Studio and Dusk themes (sketch, D144)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!--
+  D144 sketch (agent, 11-03). The owner picks Dusk's tokens here; then Dusk ships in D91's registry beside D133 Studio.
+  ⛔ Draft's own wordmark, words and components only. Every person, company and figure below is synthetic.
+  ⛔ The Google Fonts link is for the SKETCH only — the shipped theme self-hosts the chosen OFL font (d144NoThirdPartyAssets).
+  The token objects in the script are the single source: the frames AND the contrast table read them.
+-->
+<style>
+:root{color-scheme:light dark;--pg:#EDEBE6;--pg-ink:#1B1A18;--pg-muted:#5F5B54;--pg-line:#D2CEC6;--pg-card:#FFFFFF}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--pg:#0E0E0F;--pg-ink:#ECEAE6;--pg-muted:#A8A39B;--pg-line:#2E3033;--pg-card:#18191B}}
+:root[data-theme="dark"]{--pg:#0E0E0F;--pg-ink:#ECEAE6;--pg-muted:#A8A39B;--pg-line:#2E3033;--pg-card:#18191B}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--pg-ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,select{font:inherit;color:inherit}
+.page{max-width:1500px;margin:0 auto;padding:18px 16px 60px}
+.page>h1{margin:0;font-size:24px;letter-spacing:-.01em}
+.page>.sub{color:var(--pg-muted);margin:2px 0 14px;max-width:900px}
+.ctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:12px;padding:10px 14px;margin-bottom:16px;position:sticky;top:0;z-index:5}
+.ctl label{display:flex;flex-wrap:wrap;min-width:0;max-width:100%;gap:6px;align-items:center;font-size:13.5px;color:var(--pg-muted)}
+.ctl select{max-width:100%;min-width:0;background:var(--pg);border:1px solid var(--pg-line);border-radius:8px;padding:5px 8px;color:var(--pg-ink)}
+.frames{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr))}
+.frames.one{grid-template-columns:minmax(0,430px)}
+.frames>div{min-width:0}
+.frames.wide{grid-template-columns:1fr}
+.fhead{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--pg-muted);margin:0 2px 6px}
+.fhead b{color:var(--pg-ink);font-size:14.5px}
+h2.pg{font-size:13.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--pg-muted);margin:30px 0 10px}
+
+/* ── a frame wears one theme: only --t-* variables differ between frames ───────────────────────── */
+.frame{background:var(--t-canvas);color:var(--t-ink);border-radius:16px;overflow:hidden;border:1px solid var(--pg-line);
+  font-family:var(--t-font);font-size:var(--t-body-size)}
+.frame .bar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--t-line)}
+.wm{font-weight:800;font-size:19px;letter-spacing:-.02em;color:var(--t-logo-word);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wm i{font-style:normal;color:var(--t-logo-slash)}
+.prog{width:120px;height:4px;background:var(--t-well);border-radius:1px;overflow:hidden}
+.prog i{display:block;height:100%;width:38%;background:var(--t-figure)}
+.scr{padding:var(--t-pad) 18px;border-bottom:1px solid var(--t-line)}
+.scr:last-child{border-bottom:0}
+.scr .tag{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--t-muted);margin-bottom:10px}
+.card{background:var(--t-surface);border:var(--t-card-border) solid var(--t-line);border-radius:var(--t-r-card);padding:16px;box-shadow:var(--t-card-shadow)}
+.row{display:flex;gap:12px;align-items:center}
+.tile{width:46px;height:46px;border-radius:10px;background:var(--t-logo-tile);display:grid;place-items:center;flex:none;
+  color:#1B1A18;font-weight:800;font-size:18px;font-family:system-ui,sans-serif}
+.co{font-weight:600}
+.ttl{color:var(--t-muted);font-size:.93em;line-height:1.35}
+.rule{height:1px;background:var(--t-line);margin:14px 0}
+.fig{font-family:var(--t-head-font);color:var(--t-figure);font-weight:var(--t-fig-weight);letter-spacing:var(--t-track);line-height:1.05}
+.fig.xl{font-size:var(--t-fig-xl)}
+.fig.l{font-size:calc(var(--t-fig-xl) * .72)}
+.fine{color:var(--t-muted);font-size:.86em;margin-top:6px}
+.marks{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.mark{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:3px 8px 3px 0;border-radius:6px;background:var(--t-well);color:var(--t-ink);overflow:hidden}
+.mark::before{content:"";width:3px;align-self:stretch;background:var(--m,var(--t-muted))}
+.mark.ok{--m:var(--t-ok)}
+.mark.ok b{color:var(--t-ok)}
+.btn{display:flex;justify-content:center;align-items:center;gap:8px;width:100%;margin-top:14px;min-height:var(--t-btn-h);border:0;cursor:pointer;
+  background:var(--t-accent);color:var(--t-on-accent);border-radius:var(--t-r-btn);font-weight:650;font-size:1.02em;box-shadow:var(--t-glow)}
+.btn:hover{background:var(--t-accent-hover)}
+.btn:focus-visible{outline:2px solid var(--t-figure);outline-offset:3px}
+.btn2{display:block;width:100%;margin-top:8px;background:transparent;border:1px solid var(--t-line);color:var(--t-ink);border-radius:calc(var(--t-r-btn) * .6);min-height:42px;cursor:pointer}
+.eyebrow{color:var(--t-eyebrow);font-size:.9em;margin-bottom:6px}
+.hl{font-family:var(--t-head-font);font-size:var(--t-hl);font-weight:var(--t-hl-weight);letter-spacing:var(--t-track);line-height:1.04;margin:0 0 10px;color:var(--t-ink)}
+.lede{color:var(--t-muted);line-height:1.55;margin:0 0 6px}
+.hero{text-align:var(--t-hero-align)}
+.steps{list-style:none;padding:0;margin:14px 0 0;display:flex;flex-direction:column;gap:10px}
+.steps li{display:grid;grid-template-columns:22px 1fr;gap:8px;line-height:1.4}
+.steps li span{color:var(--t-figure);font-variant-numeric:tabular-nums;font-weight:600}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{background:var(--t-surface);border:var(--t-card-border) solid var(--t-line);border-radius:var(--t-r-card);padding:14px;box-shadow:var(--t-card-shadow);min-width:0}
+.kpi .fig{font-size:calc(var(--t-fig-xl) * .8)}
+.kpi .fig small{font-size:.42em;color:var(--t-muted);letter-spacing:0;font-weight:500;margin-left:3px}
+.kpi .lbl{font-weight:600;margin-top:4px;font-size:.92em}
+.kpi .what{font-size:.8em;color:var(--t-muted)}
+.bars{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.br{display:grid;grid-template-columns:96px 1fr 30px;gap:8px;align-items:center;font-size:.84em}
+.br .track{height:10px;background:var(--t-well);border-radius:2px;overflow:hidden}
+.br .track i{display:block;height:100%;background:var(--t-bar);border-radius:2px}
+.br.top .track i{background:var(--t-figure)}
+.br .n{text-align:right;color:var(--t-muted);font-variant-numeric:tabular-nums}
+
+/* contrast table + decisions */
+table{border-collapse:collapse;width:100%;font-size:13px;background:var(--pg-card);border-radius:12px;overflow:hidden}
+th,td{border-bottom:1px solid var(--pg-line);padding:6px 8px;text-align:left;vertical-align:middle}
+th{color:var(--pg-muted);font-weight:600}
+td.r{font-variant-numeric:tabular-nums;white-space:nowrap}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid var(--pg-line);vertical-align:-2px;margin-right:4px}
+.pass{color:#1E7A43}.fail{color:#B3261E;font-weight:700}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pass{color:#62C98A}:root:not([data-theme="light"]) .fail{color:#F27F72}}
+.tablewrap{overflow-x:auto}
+.dec{background:var(--pg-card);border:1px solid var(--pg-line);border-radius:12px;padding:14px 18px}
+.dec ol{margin:6px 0 0;padding-left:20px}
+.dec li{margin:8px 0}
+.dec li b{display:block}
+.dec .d{color:var(--pg-muted);font-size:13.5px}
+code{font-size:.9em}
+@media (max-width:520px){.frames{grid-template-columns:1fr}.br{grid-template-columns:80px 1fr 26px}}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Studio and Dusk: the same three screens, light and dark</h1>
+  <p class="sub">D144 sketch. Pick Dusk's tokens here, then both themes go in the registry. <b>Studio</b> is D133 as shipped (live, offered to nobody). <b>Dusk</b> is new: warm charcoal with a peach accent. Each frame differs only in its theme's tokens; the contrast table further down reads the same tokens. Everything shown is synthetic.</p>
+
+  <div class="ctl" role="group" aria-label="Sketch controls">
+    <label>Show
+      <select id="show">
+        <option value="all">All four, side by side</option>
+        <option value="dusk">Dusk only (light + dark)</option>
+        <option value="dusk-dark">Dusk Dark, one phone</option>
+        <option value="dusk-light">Dusk Light, one phone</option>
+        <option value="studio">Studio only (light + dark)</option>
+      </select></label>
+    <label>Dusk's shape and type
+      <select id="shape">
+        <option value="full">Colours + radii + type (the screenshots' look)</option>
+        <option value="colours">Colours only (fits today's theme module)</option>
+      </select></label>
+    <label>Dusk's headline font
+      <select id="font">
+        <option value="Inter Tight">Inter Tight</option>
+        <option value="Manrope">Manrope</option>
+        <option value="system">System UI (no font file)</option>
+      </select></label>
+    <label>Dusk Light's button
+      <select id="lbtn">
+        <option value="coral">Deep coral, white label</option>
+        <option value="peach">Pale peach, charcoal label</option>
+      </select></label>
+  </div>
+
+  <div class="frames" id="frames"></div>
+
+  <h2 class="pg">Contrast, computed from the tokens above (WCAG 2.x)</h2>
+  <div class="tablewrap"><table id="ctab"></table></div>
+  <p class="sub" style="margin-top:8px">Targets: body text 4.5 : 1; the large figures and headlines 3 : 1 (they're ≥ 24 px, so they count as large text); bars and the progress track 3 : 1 against their track. Every row in the registry's <code>CONTRAST_PAIRS</code> is checked by <code>d91ThemeModule</code> once Dusk is generated; this table covers only the pairs these screens show.</p>
+
+  <h2 class="pg">What you decide</h2>
+  <div class="dec">
+    <ol>
+      <li><b>1 · Shape and type: colours only, or colours + radii + type?</b>
+        <span class="d">What makes the screenshots look the way they do is mostly the 24 px corners, the huge tight headlines and the roomy spacing, not the colours. Today's theme module carries <b>colours only</b> (THEME_MODULE §5, "effects stay put", and that's why Studio has no radii either). So "colours + radii + type" adds a small second token axis: card / button radius, headline font, headline size, tracking and padding. It's built once in the shared components and is off for every existing theme, so they stay byte-identical. "Colours only" ships without that work, but you'd get the palette without the feel. Flip the second control to compare. <b>Default: colours + radii + type.</b></span></li>
+      <li><b>2 · The headline font:</b> <span class="d">Inter Tight or Manrope, both free (OFL). The site would <b>self-host</b> the file (one woff2, about 30 KB) so no page calls Google; or System UI, which needs no file. Only headlines and figures use it; body text stays the system font. <b>Default: Inter Tight.</b></span></li>
+      <li><b>3 · Dusk Light's button:</b> <span class="d">pale peach on a warm off-white barely reads as a button (its edge is about 1.3 : 1 against the page), though its label passes. A deep coral with a white label (5.35 : 1) reads clearly. <b>Default: deep coral.</b></span></li>
+      <li><b>4 · The orange mark inside Dusk:</b> <span class="d">the wordmark keeps draft's <code>#FD4600</code>, and peach is the interface's accent. In Dusk Light, orange on the off-white is 3.1 : 1, which is fine for a logo but would fail as text. <b>Default: keep the mark orange.</b></span></li>
+      <li><b>5 · Ordinary bars:</b> <span class="d">Studio draws ordinary bars in blue with orange for the top one. Dusk draws them in grey with peach for the top one (one accent, as in the screenshots). <b>Default: grey + peach.</b></span></li>
+      <li><b>6 · Where it applies:</b> <span class="d">the same per-surface choice as Studio (the app · the Admin pages · public pages) in Admin → System → Appearance, and an "Offer Dusk to users" switch, <b>off by default</b>. Documents are never themed.</span></li>
+    </ol>
+  </div>
+</div>
+
+<script>
+// ── THE TOKENS — the single source for the frames and the table ──────────────────────────────────
+// Studio = client/src/themes/studio-*.js as shipped (D133). Dusk = proposed here.
+const THEMES = {
+  "studio-light": { label: "Studio Light", note: "D133, shipped", shape: "studio", t: {
+    canvas:"#F2F0EB", surface:"#FFFFFF", well:"#EFEDE8", line:"#D8D4CC", ink:"#1B1A18", muted:"#5F5B54",
+    accent:"#FD4600", "accent-hover":"#FF6424", "on-accent":"#1E1915", figure:"#A33200", eyebrow:"#A33200",
+    ok:"#166B3A", bar:"#1A5AAE", "logo-slash":"#FD4600", "logo-word":"#1B1A18", "logo-tile":"#FBF7F0",
+    glow:"none" } },
+  "studio-dark": { label: "Studio Dark", note: "D133, shipped", shape: "studio", t: {
+    canvas:"#121213", surface:"#1C1D1F", well:"#26282B", line:"#34363A", ink:"#ECEAE6", muted:"#A8A39B",
+    accent:"#FD4600", "accent-hover":"#FF6424", "on-accent":"#1E1915", figure:"#FF7D4A", eyebrow:"#FF7D4A",
+    ok:"#62C98A", bar:"#6FA8E8", "logo-slash":"#FD4600", "logo-word":"#FD4600", "logo-tile":"#FBF7F0",
+    glow:"none" } },
+  "dusk-light": { label: "Dusk Light", note: "proposed", shape: "dusk", t: {
+    canvas:"#F6F2EE", surface:"#FFFFFF", well:"#EEE8E2", line:"#E4DDD6", ink:"#1B1B1B", muted:"#5C5752",
+    accent:"#B4492A", "accent-hover":"#9E3E22", "on-accent":"#FFFFFF", figure:"#A8401F", eyebrow:"#A8401F",
+    ok:"#166B3A", bar:"#8A817A", "logo-slash":"#FD4600", "logo-word":"#1B1B1B", "logo-tile":"#FFFFFF",
+    glow:"0 14px 34px -14px rgba(180,73,42,.45)" } },
+  "dusk-dark": { label: "Dusk Dark", note: "proposed", shape: "dusk", t: {
+    canvas:"#1B1B1B", surface:"#262626", well:"#333333", line:"#353535", ink:"#F5F3F0", muted:"#A3A3A3",
+    accent:"#FBD3C4", "accent-hover":"#F2C2B2", "on-accent":"#1B1B1B", figure:"#FBD3C4", eyebrow:"#FBD3C4",
+    ok:"#7FD1A0", bar:"#9A9A9A", "logo-slash":"#FD4600", "logo-word":"#FD4600", "logo-tile":"#FFFFFF",
+    glow:"0 16px 40px -14px rgba(251,211,196,.38)" } },
+};
+const PEACH_LIGHT = { accent:"#F4C3B0", "accent-hover":"#EEB39C", "on-accent":"#1B1B1B" };
+
+// The second axis (decision 1). Studio = how D131 draws today.
+const SHAPES = {
+  studio: { "r-card":"14px", "r-btn":"10px", "btn-h":"44px", "card-border":"1px", "card-shadow":"none",
+    font:'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif', "head-font":'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',
+    "body-size":"15px", hl:"26px", "hl-weight":"800", "fig-xl":"34px", "fig-weight":"800", track:"-.02em", pad:"18px", "hero-align":"left" },
+  dusk: { "r-card":"24px", "r-btn":"20px", "btn-h":"58px", "card-border":"0px", "card-shadow":"none",
+    font:'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif', "head-font":"FONT",
+    "body-size":"16px", hl:"38px", "hl-weight":"500", "fig-xl":"40px", "fig-weight":"500", track:"-.045em", pad:"28px", "hero-align":"center" },
+};
+
+const SCREENS = `
+  <div class="bar"><span class="wm"><i>/</i>draft</span><span class="prog" aria-label="Step 2 of 5"><i></i></span></div>
+
+  <section class="scr"><div class="tag">1 · Your map's header</div>
+    <div class="hero">
+      <div class="eyebrow">Your next role · Backend, mid level</div>
+      <h2 class="hl">Platform engineer</h2>
+      <p class="lede">What 214 open postings for this role ask for, what your résumé already shows, and the few things that would close the distance.</p>
+      <button class="btn" type="button">See what's missing →</button>
+      <div class="fine">Built from postings seen in the last 60 days</div>
+    </div>
+  </section>
+
+  <section class="scr"><div class="tag">2 · A board card</div>
+    <div class="card">
+      <div class="row"><div class="tile" aria-hidden="true">N</div>
+        <div><div class="co">Northwind Labs</div><div class="ttl">Software Engineer II, Platform</div></div></div>
+      <div class="rule"></div>
+      <div class="fig l">$168k – $212k</div>
+      <div class="fine">From the posting text · Boston, MA · posted 9 hours ago</div>
+      <div class="marks"><span class="mark ok"><b>Best bet</b></span><span class="mark">13 of 15 must-haves</span><span class="mark">Sponsors</span></div>
+      <ol class="steps">
+        <li><span>1</span>Go services behind gRPC and REST</li>
+        <li><span>2</span>Kafka at a few million events a day</li>
+        <li><span>3</span>Design docs other teams build from</li>
+      </ol>
+      <button class="btn" type="button">Draft it →</button>
+      <button class="btn2" type="button">Not for me</button>
+    </div>
+  </section>
+
+  <section class="scr"><div class="tag">3 · Admin → Testers, headline cards</div>
+    <div class="kpis">
+      <div class="kpi"><div class="fig">42</div><div class="lbl">Signed up</div><div class="what">since the invites went out</div></div>
+      <div class="kpi"><div class="fig">27<small>of 42</small></div><div class="lbl">Finished the trial</div><div class="what">all ten picks seen</div></div>
+      <div class="kpi"><div class="fig">19</div><div class="lbl">Answered the survey</div><div class="what">3 wrote more than a line</div></div>
+      <div class="kpi"><div class="fig">8</div><div class="lbl">Would pay</div><div class="what">"yes" or "probably"</div></div>
+    </div>
+    <div class="kpi" style="margin-top:10px"><div class="lbl" style="margin:0">What they liked most</div>
+      <div class="bars">
+        <div class="br top"><span>The picks</span><span class="track"><i style="width:82%"></i></span><span class="n">14</span></div>
+        <div class="br"><span>Tailored drafts</span><span class="track"><i style="width:53%"></i></span><span class="n">9</span></div>
+        <div class="br"><span>Your map</span><span class="track"><i style="width:35%"></i></span><span class="n">6</span></div>
+        <div class="br"><span>The Table</span><span class="track"><i style="width:18%"></i></span><span class="n">3</span></div>
+      </div></div>
+  </section>`;
+
+// ── contrast ───────────────────────────────────────────────────────────────────────────────────
+const lum = h => { const n = parseInt(h.slice(1), 16);
+  return [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; })
+    .reduce((a, v, i) => a + v * [.2126, .7152, .0722][i], 0); };
+const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+const PAIRS = [
+  ["Body text", "ink", "surface", 4.5], ["Body text on the page", "ink", "canvas", 4.5],
+  ["Muted text on a card", "muted", "surface", 4.5], ["Muted text on the page", "muted", "canvas", 4.5],
+  ["Button label", "on-accent", "accent", 4.5], ["Button label, hover", "on-accent", "accent-hover", 4.5],
+  ["Big figures on a card (large)", "figure", "surface", 3], ["Eyebrow line (small text)", "eyebrow", "canvas", 4.5],
+  ["Numbered markers (small text)", "figure", "surface", 4.5], ["Fit mark text", "ok", "well", 4.5],
+  ["Top bar / progress vs track", "figure", "well", 3], ["Ordinary bar vs track", "bar", "well", 3],
+  ["Wordmark on the page (logo)", "logo-slash", "canvas", 3],
+];
+
+function tokensFor(id) {
+  const th = THEMES[id], t = { ...th.t };
+  if (id === "dusk-light" && document.getElementById("lbtn").value === "peach") Object.assign(t, PEACH_LIGHT);
+  let shapeKey = th.shape;
+  if (th.shape === "dusk" && document.getElementById("shape").value === "colours") shapeKey = "studio";
+  const s = { ...SHAPES[shapeKey] };
+  const f = document.getElementById("font").value;
+  if (s["head-font"] === "FONT") s["head-font"] = f === "system" ? s.font : `"${f}",${s.font}`;
+  return { t, s };
+}
+
+function render() {
+  const show = document.getElementById("show").value;
+  const ids = { all: Object.keys(THEMES), dusk: ["dusk-light", "dusk-dark"], studio: ["studio-light", "studio-dark"],
+    "dusk-dark": ["dusk-dark"], "dusk-light": ["dusk-light"] }[show];
+  const host = document.getElementById("frames");
+  host.className = "frames" + (ids.length === 1 ? " one" : "");
+  host.innerHTML = "";
+  for (const id of ids) {
+    const { t, s } = tokensFor(id);
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `<div class="fhead"><b>${THEMES[id].label}</b><span>${THEMES[id].note}</span></div>`;
+    const fr = document.createElement("div");
+    fr.className = "frame";
+    fr.style.colorScheme = id.endsWith("dark") ? "dark" : "light";
+    for (const [k, v] of Object.entries({ ...t, ...s })) fr.style.setProperty("--t-" + k, v);
+    fr.innerHTML = SCREENS;
+    wrap.appendChild(fr);
+    host.appendChild(wrap);
+  }
+  // table: every theme, always
+  const all = Object.keys(THEMES);
+  let html = `<tr><th>Pair</th><th>Target</th>${all.map(id => `<th>${THEMES[id].label}</th>`).join("")}</tr>`;
+  for (const [name, fg, bg, min] of PAIRS) {
+    html += `<tr><td>${name}</td><td class="r">${min} : 1</td>`;
+    for (const id of all) {
+      const { t } = tokensFor(id); const r = ratio(t[fg], t[bg]);
+      html += `<td class="r"><span class="sw" style="background:${t[fg]}"></span><span class="sw" style="background:${t[bg]}"></span>`
+        + `<span class="${r >= min ? "pass" : "fail"}">${r.toFixed(2)}${r >= min ? "" : " ✕"}</span></td>`;
+    }
+    html += "</tr>";
+  }
+  document.getElementById("ctab").innerHTML = html;
+}
+for (const id of ["show", "shape", "font", "lbtn"]) document.getElementById(id).addEventListener("change", render);
+render();
+</script>
+</body>
+</html>
