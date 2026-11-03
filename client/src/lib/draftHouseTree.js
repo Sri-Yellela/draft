@@ -12,7 +12,6 @@
 //   buildNodes   one node per JOB from the feeds AutoApplyContext already loads (+ D113's picks).
 //   buildTree    the nodes hung on their runs (D113's stored runs), the rest grouped by day.
 //   treeView     the filter + search (U6): in All a miss is dimmed; elsewhere a run with no match hides.
-//   sideBlocks   the side column (U7), in its order, each hidden when empty except Needs you.
 //   branchStep   one branch open at a time (U4); Escape closes.
 //   answerRows   the Answers leaf: a guess flagged "read this", the user's own statement never filled.
 //
@@ -314,31 +313,6 @@ export function treeView(tree, { filter = "all", q = "" } = {}) {
     if (items.length) out.push({ run, items });
   }
   return out;
-}
-
-// ── the side column ──────────────────────────────────────────────────────────────────────────
-
-export const SIDE_ORDER = Object.freeze(["connections", "needs", "review", "running", "replies", "tidy"]);
-export const TIDY_DAYS = 7;
-
-/**
- * U7 · the side column, in order. Every block but Needs you is left out when it is empty.
- * `connections` are broken connections (a sign-in, Gmail) — one line and the fix each.
- */
-export function sideBlocks({ nodes = [], connections = [], binCount = 0, now = Date.now() } = {}) {
-  const ring = (r) => nodes.filter(n => n.ring === r);
-  // A withdrawn application wears Stopped's ring but is a record, not a stopped job to clear.
-  const old = nodes.filter(n => n.ring === "stop" && n.kind !== "withdrawn" && n.at && now - n.at > TIDY_DAYS * 86400000);
-  const blocks = [
-    { id: "connections", items: connections },
-    // Questions, sign-ins and holds first, then the picks waiting for Apply.
-    { id: "needs", items: [...ring("need"), ...ring("pick")] },
-    { id: "review", items: ring("review") },
-    { id: "running", items: ring("work") },
-    { id: "replies", items: ring("reply").filter(n => n.status !== "rejected") },
-    { id: "tidy", items: old, count: old.length, binCount },
-  ];
-  return blocks.filter(b => b.id === "needs" || (b.id === "tidy" ? (b.count > 0 || binCount > 0) : b.items.length > 0));
 }
 
 // ── branches and leaves ──────────────────────────────────────────────────────────────────────

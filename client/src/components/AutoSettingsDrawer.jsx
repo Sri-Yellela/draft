@@ -27,7 +27,9 @@ const when = (sec) => (sec ? new Date(sec * 1000).toLocaleDateString(undefined, 
 // A105 finding 8 (10-30): every change SAVES — no Save / Cancel. Changes are sent whole after a short pause (a dragged
 // slider is one save, not forty); a value the server refuses puts the last saved settings back and says why. Done / × /
 // Esc / the scrim close only after the last change is saved.
-export default function AutoSettingsDrawer({ open, onClose, runBar = null, group = null }) {
+// ⭐ D146: a fourth group, View — the table (default) or The Table's full sheet (spreadsheet, by company, board, funnel),
+// kept here rather than on the first screen. `listView` / `onListView` are the panel's; the setting is not stored.
+export default function AutoSettingsDrawer({ open, onClose, runBar = null, group = null, listView = "table", onListView = null }) {
   const [s, setS] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -259,6 +261,26 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
                   : "Off — a terms box waits for you in Needs you."}</span>
               </div>
             </section>
+            {/* ── 4 · VIEW (D146) — how the applications are shown: the table, or the full sheet ── */}
+            {onListView && (
+              <section className="dh-group" data-settings-group="view" aria-labelledby="dh-g-view">
+                <h3 id="dh-g-view" className="dh-group__h">View</h3>
+                <div className="dh-set" role="radiogroup" aria-labelledby="dh-g-view">
+                  <label className="dh-sw">
+                    <input type="radio" name="dh-list-view" value="table" data-list-view="table" checked={listView === "table"}
+                      onChange={() => onListView("table")} />
+                    <span className="dh-set__lab">The table</span>
+                  </label>
+                  <span className="dh-set__hint">One row per application; a row opens in place.</span>
+                  <label className="dh-sw">
+                    <input type="radio" name="dh-list-view" value="sheet" data-list-view="sheet" checked={listView === "sheet"}
+                      onChange={() => onListView("sheet")} />
+                    <span className="dh-set__lab">The full sheet</span>
+                  </label>
+                  <span className="dh-set__hint">The spreadsheet you can edit, By company, Board and Funnel, Pending, Not applied and the Inbox.</span>
+                </div>
+              </section>
+            )}
             {msg && <p className="dh-drawer__msg" role="alert">{msg}</p>}
           </div>
         )}

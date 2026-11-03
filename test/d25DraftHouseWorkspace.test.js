@@ -222,8 +222,9 @@ test("PanelControls is reused, not forked — and the Database panel keeps all t
 test("the panel's header describes Draft House as it is — the AD1-era prose is gone", () => {
   const head = panel.slice(0, at(panel, "export function AutoApplyPanel"));
   assert.doesNotMatch(head, /the strip that used to sit between the search bar and the postings/);
-  assert.match(head, /AutoApplyPanel — DRAFT HOUSE, a tree that grows inline \(D113 UI, owner 10-31\)/);
-  assert.match(head, /⛔ REPLACED: D25's run bar, the separate Stopped list/);
+  // ⭐ D146 (changed on purpose, 11-03): the header names the one tracker.
+  assert.match(head, /AutoApplyPanel — DRAFT HOUSE, THE ONE APPLICATION TRACKER \(D146, owner 11-03; D113 UI before it\)/);
+  assert.match(head, /D25's run bar, the separate Stopped list/);
   assert.match(head, /NO second status model/);
 });
 

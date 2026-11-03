@@ -63,7 +63,7 @@ test("d129PickTwoThenLiveRun + d129EndsOnTable: Next waits for 2 Drafts, then th
   assert.match(tour, /const n = Math\.max\(st\.draftsUsed \?\? 0, st\.sent \?\? 0\);[\s\S]{0,80}if \(n >= r\.count\)/);
   assert.match(tour, /disabled=\{!met\}/, "Next is locked until the action is done");
   // Owner 11-01 (changed on purpose): The Table is the last step and moves on to the survey by itself.
-  assert.match(script, /id: "table", route: "\/app\/database", target: "\[data-table-split\]", noNext: true, autoAfter: 5000, finish: true,/);
+  assert.match(script, /id: "table", route: "\/app\/auto-apply", target: "\[data-tracker-table\]", noNext: true, autoAfter: 5000, finish: true,/ /* ⭐ D146: the one tracker */);
   assert.match(tour, /if \(step\.finish\) \{ send\("tour", \{ step: "survey", phase: "reached", ms: 0, device, speed \}\); setDone\(true\); await onFinish\?\.\(\); return; \}/, "the last step locks the site into the survey");
   const dock = read("client/src/components/TrialDock.jsx");
   assert.match(dock, /<GuidedTour state=\{state\} onFinish=\{finish\} onActive=\{setTouring\} onSkipToSurvey=/, "44b: leaving the tour goes to the survey");

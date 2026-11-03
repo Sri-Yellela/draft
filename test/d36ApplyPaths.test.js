@@ -523,6 +523,12 @@ test("D36·5 · the decision surfaces can only Draft, and only the approval butt
   assert.ok(sends.length >= 3, `expected the three Approve buttons, found ${sends.length}`);
   for (const m of sends) {
     const before = panel.slice(Math.max(0, m.index - 30), m.index);
+    // ⭐ D146 (the owner's row): "Send all ready (n)" — ONE confirm listing them, inside a handler that only a click calls.
+    if (/window\.confirm\(sendAllConfirmText\(ready, approvalCap\)\)\) $/.test(panel.slice(Math.max(0, m.index - 60), m.index))) {
+      assert.equal(panel.split("sendAllReady").length - 1, 2, "defined once, used once");
+      assert.match(panel, /onClick=\{sendAllReady\}>Send all ready \(\{ready\.length\}\)</);
+      continue;
+    }
     assert.match(before, /onClick=\{\(\) => $|onClick: \(\) => $/, `an approve that is not a click: …${before}${m[0]}`);
   }
   // Bulk send is two deliberate steps.

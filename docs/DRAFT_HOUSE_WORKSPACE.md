@@ -6,6 +6,12 @@ LEFTOVERS, DEFINED", 10-31). The decision is the WORKLOG's **D113 UI — DECIDED
 is `docs/sketches/draft-house-tree.html`; **where the two differ, the row wins.** This file replaces the D25 write-up
 of the run bar and its two columns; §6 says what of D25 is still in force.
 
+⭐ **D146 (owner 11-03) — ONE APPLICATION TRACKER.** Draft House and The Table merged: a plain table
+(`components/ApplicationTracker.jsx`, what each row says from `lib/trackerRows.js`) with the tree restyled as the
+**auto-apply timeline** beside it. A job's lead card and leaves became the table's **opened row** (`RowOpen`, its panes
+*The posting · Résumé · Answers · Emails*); the side column was removed — its blocks went to the counts, the filters and
+a broken-connection banner (§5). The WORKLOG's D146 row wins where this file and it differ.
+
 ## 0 · One page, three parts
 
 The tab reads **Draft House** (D18); the file is still `client/src/panels/AutoApplyPanel.jsx` and the route
@@ -15,11 +21,11 @@ board and this page read one pipeline.
 | Part | What it is | Where |
 |---|---|---|
 | **Header** (U1) | one sentence (*"On. Next look at 5 PM. 3 of 10 sent today. You tap Apply on each pick."* / *"… Good matches are sent for you."* / *"Paused. Nothing new is picked or sent until you resume."*), the mode switch **Ask me first \| Apply for me**, **Pause / Resume**, **Settings** | `AutoApplyPanel.jsx` |
-| **Tree** (U3, U4) | left, scrolls: the next run, a Now line, each run newest first with its jobs as bubbles; one branch open at a time grows in place | `components/DraftHouseTree.jsx` |
-| **Side column** (U7) | right, 340 px; on top below 900 px: what matters now | `components/DraftHouseSide.jsx` |
+| **Table** (D146) | left: counts, filters + search + period, Position · Résumé · Answers · Status · When; a row opens in place | `components/ApplicationTracker.jsx` |
+| **Timeline** (U3, D146) | right, 300 px: the next run, a Now line, each run newest first with its jobs as bubbles; a bubble opens its row | `components/DraftHouseTree.jsx` |
 | **Settings** (U8) | ONE drawer, three groups | `components/AutoSettingsDrawer.jsx` |
 
-The rules are pure and live in `client/src/lib/draftHouseTree.js` (`buildNodes`, `buildTree`, `treeView`, `sideBlocks`,
+The rules are pure and live in `client/src/lib/draftHouseTree.js` (`buildNodes`, `buildTree`, `treeView`,
 `branchStep`, `createLeafCache`, `answerRows`, `inlineAnswerStart`, `leftOutLines`, `nextRunFromSettings`); the components
 take every piece of state as a prop. Styles: `components/DraftHouse.css`.
 
@@ -66,12 +72,13 @@ Seven rings, colour **tokens** only (`client/src/styles/rings.js`), seven distin
   - **A run** → its card: picked, left out, the counts **by reason** (outside your filters · not eligible · stale or
     reposted · over today's limit · company · level) + **Change filters** (Settings at *Which jobs*) · **See what was
     left out** (`GET /api/picks/runs/:id/left-out`, kept 14 days).
-  - **A job** → a **lead card** (bubble, title, company, ring) with ONE sentence and the next action, then the leaves,
+  - **A job** → ⭐ since D146 its **row in the table** opens in place (the old lead card) with ONE headline and the
+    stage's actions, then the panes (the old leaves, grouped: *Answers* = What happened + Answers + The form as filled),
     each loaded only when opened (`createLeafCache`): **What happened** (attempts, the run's log, the scoped review) ·
     **Answers** (a loose match flagged *read this*; the user's own statements — attestation, eligibility — marked and
     never shown or seeded as filled) · **The form as filled** (the picture) · **Your résumé for it** · **The job**.
-- **Filters + search** (sticky): **All · Needs you · Running · Sent and replies · Stopped** and a search box (company,
-  title, the reason). In All a miss is dimmed; in any other filter a run with no match is hidden.
+- **Filters + search** — ⭐ since D146 the TABLE's: **All · Needs you · In progress · Sent · Replies · Stopped**, a search
+  field and the period (`trackerView`). The timeline shows every run and dims nothing.
 
 ## 4 · The sentences and actions per state (U5)
 
@@ -126,27 +133,27 @@ a current artifact without a model call. Each pick on `GET /api/picks/runs` carr
 **Full page** opens the application's own page (`JobWorkspacePanel`, `/app/job/for/<jobId>`): beside the tree on a wide
 screen, the page itself below that.
 
-## 5 · The side column (U7) and Settings (U8)
+## 5 · Where the side column went (D146) and Settings (U8)
 
-`sideBlocks` builds, in this order, each block hidden when empty **except Needs you** (*"Nothing. It's all running."*):
+The side column (U7) is REMOVED; each of its blocks, in its old order, now lives here:
 
-1. **Broken connections** — an expired portal sign-in, Gmail disconnected, missing prerequisites, a portal batch.
-2. **Needs you** — questions and picks.
-3. **Ready for your review** + **Review all** (the deep review modal; **Approve all lives inside it**, with its second
-   confirm).
-4. **Running** — in flight and the A59 line (move, tool, remove).
-5. **Replies** — rejections excluded.
-6. **Tidy up** — *"3 stopped jobs older than 7 days"* + Clear older than 7 / 30 days; the D53 bin (Restore / Delete now).
+1. **Broken connections** — one banner line each, with its fix, above the table.
+2. **Needs you** — the accented count and the *Needs you* filter (questions, sign-ins, picks).
+3. **Ready for your review** — the *Ready to send* rows; **Review all** under the timeline (the deep review modal;
+   **Approve all lives inside it**, with its second confirm); **Send all ready (n)** in the header, one confirm listing them.
+4. **Running** — the *In progress* filter; the A59 line (move, tool, remove) under the timeline.
+5. **Replies** — the *Replies* filter.
+6. **Tidy up** — under the timeline: Clear older than 7 / 30 days; the D53 bin (Restore / Delete now).
 
-A side row opens the same branch in the tree and scrolls to it.
+A timeline bubble opens that job's row in the table and scrolls to it.
 
-**Settings** — one drawer (`AutoSettingsDrawer`), three groups: *When and how much* (daily cap, run times, picks arrive
+**Settings** — one drawer (`AutoSettingsDrawer`), three groups (+ D146's fourth, *View*: The Table's other layouts — the full sheet): *When and how much* (daily cap, run times, picks arrive
 by, **Show me the form before sending**, what Pause does) · *Which jobs* (board filters, per-company limit, skip after an
 interview, **Skip stale or reposted jobs** = D107 P3) · *Accounts on job sites* (D100's portals and accounts with
 Remove, Gmail, **Agree to a job site's terms for me**). The old Portals drawer merged into it.
 
-**Narrow (U10, below 900 px):** one column, the side column on top, branches indent 16 px, actions wrap; the tree keeps
-its order.
+**Narrow (U10, below 900 px):** one column and a switch, *Applications · Auto-apply timeline* (D146 layout 3); branches
+indent 16 px, actions wrap.
 
 ## 6 · What of D25 is still in force
 

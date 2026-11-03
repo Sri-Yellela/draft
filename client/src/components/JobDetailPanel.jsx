@@ -347,7 +347,7 @@ export default function JobDetailPanel({
               </button>
             </div>
             {(pendingState === "pending" || pendingState === "recorded") && (
-              <button type="button" className="pp__pending" data-pending-tag onClick={() => navigate("/app/database?sheet=pending")}
+              <button type="button" className="pp__pending" data-pending-tag onClick={() => navigate({ pathname: "/app/auto-apply", search: "?sheet=pending" })}
                 title="You may have applied — record when and how, and it moves to Submitted once it verifies.">
                 {pendingState === "recorded" ? "Pending · not verified" : "Pending · record it"}
               </button>

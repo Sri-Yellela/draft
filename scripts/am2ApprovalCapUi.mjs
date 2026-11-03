@@ -14,9 +14,9 @@
  * So this drives the REAL App, the REAL AutoApplyContext and the REAL AutoApplyPanel in a real
  * Chrome, once per state, and reads the rendered text back.
  *
- * ⭐ D113 UI (brought up to date 2026-10-31): Draft House is a tree with a side column. The approval
- * card is gone; the approvals are the side column's "Ready for your review" block (one row each,
- * [data-side-block="review"] [data-side-item]) and the budget is the line under its Review all
+ * ⭐ D146 (brought up to date 2026-11-03): Draft House is ONE tracker — a table, the timeline beside it. The
+ * approvals are the table's "Ready to send" rows (one row each, [data-tracker-table] [data-status-ring="review"])
+ * and the budget is the line under the timeline's Review all
  * ([data-approval-budget]) — the same sentences (AutoApplyPanel's approvalBudgetLine). Same approach and same vite-with-stubbed-
  * /api mechanism as scripts/abPanelUi.mjs; see that file for why the API is stubbed rather than a
  * real server (the server's DB path is not configurable, and seeding a developer's working database
@@ -173,7 +173,7 @@ async function main() {
       // thing, because each scenario must start from a mount that has never seen another fixture.
       await page.goto(`${vite.url}/app/auto-apply`, { waitUntil: 'networkidle2', timeout: 60000 });
       await page.waitForFunction(
-        () => document.querySelectorAll('[data-side-block="review"] [data-side-item]').length > 0,
+        () => document.querySelectorAll('[data-tracker-table] [data-status-ring="review"]').length > 0,
         { timeout: 30000 }
       ).catch(async () => {
         const t = await page.evaluate(() => document.body.innerText.slice(0, 600));
@@ -183,14 +183,14 @@ async function main() {
 
       const text = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
       const side = await page.evaluate(() => ({
-        rows: document.querySelectorAll('[data-side-block="review"] [data-side-item]').length,
-        reviewAll: !!document.querySelector('[data-side-block="review"] [data-review-all]'),
+        rows: document.querySelectorAll('[data-tracker-table] [data-status-ring="review"]').length,
+        reviewAll: !!document.querySelector('[data-review-all-block] [data-review-all]'),
         budget: document.querySelector('[data-approval-budget]')?.innerText.replace(/\s+/g, ' ') ?? null,
       }));
       await page.screenshot({ path: path.join(OUT_DIR, `${s.key}.png`), fullPage: true });
 
       // The block itself must be there in every scenario, or every check below would be vacuous.
-      check(`${s.key}: Ready for your review lists every approval, one row each`, side.rows === s.waiting,
+      check(`${s.key}: the table lists every approval as Ready to send, one row each`, side.rows === s.waiting,
         `${side.rows} rows for ${s.waiting} waiting`);
       check(`${s.key}: with Review all, where Approve all lives`, side.reviewAll);
 

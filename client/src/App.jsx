@@ -25,7 +25,6 @@ import { ExtensionFirstRunPrompt } from "./components/ExtensionPrompt.jsx";
 import { ProfilePanel }          from "./panels/ProfilePanel.jsx";
 import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
 import { SavedAnswersPanel }     from "./panels/SavedAnswersPanel.jsx";
-import { DatabasePanel }         from "./panels/DatabasePanel.jsx";
 import { PlansPanel }            from "./panels/PlansPanel.jsx";
 import DeckView                  from "./panels/DeckView.jsx";
 import { routeCommitted, transitionTo } from "./lib/viewTransitions.js";
@@ -73,6 +72,8 @@ import { oauthNext }       from "./lib/oauthNext.js";
 
 const CONSOLE_ROUTE = "jobs";
 const LEGACY_CONSOLE_ROUTES = new Set(["simple-apply", "tailored", "custom-sampler"]);
+// ⭐ D146: The Table's old route — it redirects to Draft House, the one application tracker.
+const TABLE_ROUTE = "database";
 
 function AuthBootstrapScreen({ theme }) {
   return (
@@ -351,11 +352,13 @@ function AppDashboard({ authUser, setAuthUser }) {
     // D18 (amends D6/D10): displayed as DRAFT HOUSE — it rhymes with Full House beside it — and with
     // NO mark: the /d is the card's Draft button, not a tab. The id and the /app/auto-apply route
     // are internal and stay — renaming them is cost without benefit (docs/BRAND.md).
+    // ⭐ D146 (owner 11-03): Draft House and The Table are ONE application tracker, so ONE entry — "Draft House · your
+    // applications" (the name is the owner's to confirm; alternatives The Table, Applications). /app/database redirects
+    // here (below), its ?sheet= deep links included.
     { id: "auto-apply",   label: "Draft House" },
     // D10: no "Job Profiles" tab. The PAGE stays (ROUTE_ONLY_TABS below), reached from the avatar
     // menu ("Manage Job Profiles", and the profile switcher's add / manage), Profile's "Open Job
     // Profiles", and the Daily Deck's set-up state ("Add your résumé →").
-    { id: "database",     label: "The Table" },
     // ⭐ D105 P4: D102's navigation gains one place — the Atlas, a dictionary of roles, skills, tools and stacks.
     // One word, so TabLabel sets it on one line. /app/atlas renders the same page the public /atlas does.
     { id: "atlas",        label: "Atlas" },
@@ -452,6 +455,12 @@ function AppDashboard({ authUser, setAuthUser }) {
       navigate(consolePath, { replace:true });
       return;
     }
+    // ⭐ D146: The Table merged into Draft House — /app/database lands on the one tracker, with its query (a ?sheet=
+    // deep link — the board's Pending tag, the Gmail return, a notification — opens the full sheet there).
+    if (routeKey === TABLE_ROUTE) {
+      navigate({ pathname: "/app/auto-apply", search: location.search || "" }, { replace:true });
+      return;
+    }
     // The SAME set handlePanelChange navigates with, so a tab cannot be routable in one direction
     // and bounced in the other. This was the second hardcoded copy of the tab list, and adding
     // "Auto Apply" to appTabs was not enough for either of them: the tab rendered and did nothing
@@ -460,7 +469,7 @@ function AppDashboard({ authUser, setAuthUser }) {
     if (!jobRoute && !atlasRoute && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS.has(routeKey)) {
       navigate(consolePath, { replace:true });
     }
-  }, [routeKey, consolePath, navigate, NAVIGABLE_TABS, atlasRoute]);
+  }, [routeKey, consolePath, navigate, NAVIGABLE_TABS, atlasRoute, location.search]);
 
   useEffect(() => {
     const handleVisibility = async () => {
@@ -592,9 +601,8 @@ function AppDashboard({ authUser, setAuthUser }) {
                 refreshKey={jobBoardRefreshKey} isActive={activeTab === "console"}/>
             )}
             {activeTab === "today"        && <DeckView canUseAPlusResume={canUseAPlusResumeHere}/>}
-            {activeTab === "auto-apply"   && <AutoApplyPanel/>}
+            {activeTab === "auto-apply"   && <AutoApplyPanel user={authUser}/>}
             {activeTab === "job" && jobRoute && <JobWorkspacePanel {...(jobByJobId ? { jobId: decodeURIComponent(jobRoute[1]) } : { applicationId: jobRoute[1] })}/>}
-            {activeTab === "database"     && <DatabasePanel user={authUser}/>}
             {activeTab === "integrations" && <IntegrationsPanel/>}
             {activeTab === "account"      && <AccountPanel onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/>}
             {activeTab === "plans" && monetisationEnabled && <PlansPanel user={authUser} onUserChange={setAuthUser}/>}

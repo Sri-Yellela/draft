@@ -85,7 +85,7 @@ test("trialAutoToSurveyAfterTwoDrafts: 2 Drafts move the tour on; the demonstrat
   assert.match(tour, /id: "pick_two", route: "\/app\/today", target: "\[data-deck-clip\]", auto: true,/);
   assert.match(tour, /if \(step\.auto\) setTimeout\(\(\) => \{ tour\(step\.id, "completed", Date\.now\(\) - startedAt\.current\); setI\(x => x \+ 1\); \}, 1200\);/);
   assert.match(tour, /id: "live_run", route: "\/app\/auto-apply", target: "\[data-trial-demo\]", demo: true, noNext: true,/);
-  assert.match(tour, /id: "table", route: "\/app\/database", target: "\[data-table-split\]", noNext: true, autoAfter: 5000, finish: true,/);
+  assert.match(tour, /id: "table", route: "\/app\/auto-apply", target: "\[data-tracker-table\]", noNext: true, autoAfter: 5000, finish: true,/ /* ⭐ D146: the one tracker */);
   assert.match(tour, /Every application lands here, with replies as they come in\./);
 });
 

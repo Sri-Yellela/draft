@@ -49,8 +49,10 @@ test("the panel is organised as D113 UI's tree + side column — no sub-tabs, he
   assert.doesNotMatch(panel, /OUTCOME\.COMPLETED/, "a Sent listing is back in Draft House");
   // D113 UI (owner 10-31) RE-PINS it: a vertical tree of runs whose jobs are bubbles, and a side column
   // for what matters now. Stopped is a ring and a filter, never a column of its own.
+  // ⭐ D146 (changed on purpose, 11-03): the side column is gone — ONE tracker, the table and the timeline beside it.
   assert.match(panel, /<DraftHouseTree view=\{view\}/);
-  assert.match(panel, /<DraftHouseSide blocks=\{blocks\}/);
+  assert.match(panel, /<ApplicationTracker rows=\{shownRows\}/);
+  assert.doesNotMatch(panel, /DraftHouseSide/);
   // "Stopped" here is the D14 COLUMN of exceptions, never a SectionHeading that flattens
   // held-on-purpose into failed — only the BROKE half of splitByFault reaches it.
   assert.ok(!/SectionHeading[^>]*>\s*Stopped\s*</.test(panel),

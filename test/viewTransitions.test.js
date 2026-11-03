@@ -118,11 +118,12 @@ test("the three surfaces carry the shared title, and the tab row navigates throu
   assert.doesNotMatch(read("client/src/panels/DeckView.jsx"), /vtTitle=/, "a second element of the same transition name");
   const queue = read("client/src/panels/AutoApplyPanelSections.jsx");
   // D113 UI: a Draft lands on its BUBBLE in Draft House's tree — the one element per job that is always on the page
-  // (the side column's copy and the branch's lead card carry none). The in-flight row keeps its own.
+  // (the table's row carries none — D146). The in-flight row keeps its own.
   assert.equal((queue.match(/data-vt-title=\{job\.jobId \|\| undefined\}/g) || []).length, 1, "the in-flight line");
   assert.match(read("client/src/components/CompanyBubble.jsx"), /data-vt-title=\{vtTitle \|\| undefined\}/);
-  assert.match(read("client/src/components/DraftHouseTree.jsx"), /dataKey=\{node\.key\} expanded=\{sel\} vtTitle=\{node\.jobId\}/, "the tree's bubble");
-  assert.doesNotMatch(read("client/src/components/DraftHouseSide.jsx"), /vtTitle/, "a second element of the same transition name");
+  // ⭐ D146 (changed on purpose): a bubble no longer expands a branch here — it opens its row in the table.
+  assert.match(read("client/src/components/DraftHouseTree.jsx"), /dataKey=\{node\.key\} vtTitle=\{node\.jobId\}/, "the tree's bubble");
+  assert.doesNotMatch(read("client/src/components/ApplicationTracker.jsx"), /vtTitle/, "a second element of the same transition name");
   const app = read("client/src/App.jsx");
   const handler = app.slice(at(app, "const handlePanelChange = useCallback", 0, "tab handler"), at(app, "const handleProfileActivate", 0, "next"));
   assert.equal((handler.match(/transitionTo\(navigate,/g) || []).length, 2);

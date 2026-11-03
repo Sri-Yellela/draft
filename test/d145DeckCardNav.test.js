@@ -141,7 +141,8 @@ test("d145MenuPanelMatchesDock: the side panel's buttons are EXACTLY the dock's 
   assert.match(nav, /\(e\.key === "m" \|\| e\.key === "M"\)/);
   assert.match(nav, /if \(!btn \|\| getComputedStyle\(btn\)\.display === "none"\) return;/, "M only while the Menu is the navigation");
   // Each button: the section name + a small plain line (D145 Step 2 rule 5).
-  assert.match(nav, /today: "today's jobs", console: "every job", "auto-apply" : "in progress", database: "applied", atlas: "your skills"/);
+  // ⭐ D146 (changed on purpose): Draft House and The Table are one entry, "your applications".
+  assert.match(nav, /today: "today's jobs", console: "every job", "auto-apply" : "your applications", atlas: "your skills"/);
 });
 
 test("d145NoNavSymbols: no icon, symbol or image in the Dock or the Menu", () => {

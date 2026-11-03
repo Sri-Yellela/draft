@@ -177,11 +177,12 @@ test("AD1 requirement 5 -> D25: the actionable work is not behind any tab — it
   // tabs: the actionable work — portals, questions, approvals, prerequisites, holds — is the
   // Stopped column, always rendered, and nothing gates it on a selection.
   assert.doesNotMatch(panel, /historyGroup/);
-  // D113 UI: the work is the tree's bubbles and the side column, always rendered; Review all sits in
-  // the side's Ready for your review block.
-  const side = panel.slice(at(panel, "const sideExtra = {"), at(panel, "running: (applyLine.waiting"));
+  // D113 UI: the work is the tree's bubbles, always rendered. ⭐ D146 (changed on purpose): the side column is gone —
+  // the work is the table's rows (counts + Needs you filter), and Review all sits under the timeline.
+  const side = panel.slice(at(panel, "const timelineExtra = {"), at(panel, "running: (applyLine.waiting"));
   assert.match(side, /Review all \{needsYouCount\} →/);
   assert.match(panel, /<DraftHouseTree view=\{view\}/);
+  assert.match(panel, /<ApplicationTracker rows=\{shownRows\}/);
   for (const feed of ["prereqMissing: applyPrereqMissing", "gatePortals: applyGatePortals",
                       "questions: applyQuestions", "pending: applyPending", "heldApplications, brokeApplications"]) {
     assert.ok(panel.includes(feed), `${feed} no longer reaches the Stopped column`);

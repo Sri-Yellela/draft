@@ -33,9 +33,11 @@ test("D102 P5 · The Table's History opens a row's page by its record id", () =>
 });
 
 // D113 UI: a job's branch carries "Full page" — the same page, by its job id.
-test("D102 P5 · Draft House's job branch opens the same page by its job id", () => {
+test("D102 P5 · Draft House's opened row opens the same page by its job id", () => {
   const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
-  assert.match(panel, /fullHref=\{node\.jobId != null \? `\/app\/job\/for\/\$\{encodeURIComponent\(node\.jobId\)\}` : undefined\}/);
+  // ⭐ D146 (changed on purpose): the lead card's "Full page" link is the opened row's Full page action.
+  assert.match(panel, /\{ id: "page", label: "Full page", onClick: \(\) => openFull\(n\.jobId\) \}/);
+  assert.match(panel, /else navigate\(`\/app\/job\/for\/\$\{encodeURIComponent\(jobId\)\}`\);/);
   assert.match(page, /`\/api\/pipeline\/job-for\/\$\{encodeURIComponent\(jobId\)\}`/);
 });
 
