@@ -312,6 +312,8 @@ export const MERGE_PLAN = Object.freeze({
   resume_gists: "keepInto",
   // D136 P3 (214): the signals each application had when sent — one row per (user, posting); INTO's own wins on a clash.
   application_signals: "keepInto",
+  // D143 (215): the navigator — INTO's own aim and route win; FROM's fill an INTO that has none.
+  navigator_routes: "keepInto",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

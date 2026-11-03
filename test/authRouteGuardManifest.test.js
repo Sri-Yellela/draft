@@ -238,6 +238,8 @@ const AUTHENTICATED = new Set([
   "GET /api/jobs",
   "GET /api/draft/today",        // UI step 3b: the user's own daily deck
   "GET /api/best-bets",          // D136: the user's own shortlist from their own board
+  "GET /api/navigator",          // D143: the user's own destination, route and progress
+  "PUT /api/navigator/aim",      // D143: the user's own aim
   "GET /api/settings/theme",     // follow-up 18: the account's light/dark preference
   "PUT /api/settings/theme",
   "GET /api/settings/appearance",   // D91 P5: the account's theme + shape cues

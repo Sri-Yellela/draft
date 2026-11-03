@@ -102,6 +102,7 @@ import { bestBetsFor, refitBestBets, bestBetSignalsFor } from "./services/bestBe
 import { bestBetOf } from "./shared/bestBets.js";
 import { readAutoSettings } from "./shared/autoSettings.js";
 import { honestyCheck } from "./services/honestyCheck.js";
+import { navigatorFor, setAim, aimRoleFor } from "./services/navigator.js";
 // ⭐ D105: the Atlas — roles, skills, tools, linked; seeded as drafts from the scorer's own registry, stats from the board.
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
@@ -6511,6 +6512,23 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D143 (owner 11-02) · THE NAVIGATOR. One row per user: their own aim (a role's slug; NULL = follow draft's
+      // recommendation), the route as last shown (the skills in order, what they had at the start) and the re-routing
+      // changes with their reasons. Written by services/navigator.js. Merge plan keepInto. After 214.
+      id: "215_navigator",
+      sql: `
+        CREATE TABLE IF NOT EXISTS navigator_routes (
+          user_id       INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          aim_slug      TEXT,
+          aim_set_by    TEXT,
+          aim_at        INTEGER,
+          route_json    TEXT,
+          route_at      INTEGER,
+          changes_json  TEXT NOT NULL DEFAULT '[]'
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -11337,6 +11355,18 @@ app.get("/api/best-bets", requireAuth, async (req, res) => {
   }
 });
 
+// ⭐ D143 · THE NAVIGATOR — GET: the destination (recommended with reasons, the alternatives, or the user's own aim), the
+// route (skills in order with their Learn steps, and the bridge roles to apply to now), this week's progress and the
+// re-routing changes with their reasons. PUT /aim { slug | null }: the user's own aim (null = follow the recommendation).
+app.get("/api/navigator", requireAuth, (req, res) => {
+  try { res.set("Cache-Control", "private, no-store"); res.json(navigatorFor(db, req.user.id)); }
+  catch (e) { console.error("[navigator]", e.message); res.status(500).json({ error: "navigator_failed", message: "The navigator could not be worked out. Try again." }); }
+});
+app.put("/api/navigator/aim", requireAuth, (req, res) => {
+  try { res.json(setAim(db, req.user.id, req.body?.slug ?? null)); }
+  catch (e) { res.status(e.status || 500).json({ error: e.code || "navigator_failed", message: e.message }); }
+});
+
 // GET /api/draft/today — today's deck (UI step 3b; docs/UI_REDESIGN.md §3.2, services/dailyDraft.js).
 //
 // Dealt on the first call of the user's LOCAL day from the board's own default order (the same
@@ -13691,10 +13721,11 @@ const autoFetchBoard = async (userId, filters, settings = {}) => {
   // ⭐ D136 P2: and its best-bet score — picks draw from the shortlist first.
   const profileId = Number.isInteger(settings.profileId) ? settings.profileId : (getOrRepairActiveProfile(userId)?.id ?? null);
   const userLevel = (() => { try { return userLevelFor(db, userId); } catch { return null; } })();
+  const aim = (() => { try { return aimRoleFor(db, userId); } catch { return null; } })();
   return (body.jobs || []).map(j => {
     const t = j.postedAt ? Date.parse(j.postedAt) : NaN;
     let bestBet = null;
-    try { bestBet = bestBetOf(bestBetSignalsFor(db, { userId, profileId, job: { id: j.id }, userLevel })).score; } catch { bestBet = null; }
+    try { bestBet = bestBetOf(bestBetSignalsFor(db, { userId, profileId, job: { id: j.id }, userLevel, aim })).score; } catch { bestBet = null; }
     return { jobId: j.id, company: j.company, title: j.title ?? null, score: Number.isFinite(j.matchScore) ? j.matchScore : null,
       levelRead: j.levelRead ?? null, postedAt: Number.isFinite(t) ? Math.floor(t / 1000) : null, bestBet };
   });

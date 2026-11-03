@@ -22,6 +22,7 @@ import { splitMustNice } from "./leanTailoring.js";
 import { userLevelFor } from "./picks.js";
 import { userEligibilityInputs, eligibilityForJob, hasEligibilityInputs } from "./jobEligibility.js";
 import { getSetting, setSetting } from "./appSettings.js";
+import { aimRoleFor } from "./navigator.js";
 
 const DAY = 86400;
 const safe = (fn, fallback) => { try { return fn(); } catch { return fallback; } };
@@ -44,7 +45,7 @@ function velocityOf(db, company, now) {
  * @param job a scraped_jobs row (description, company, level_read, ghost_level, discovered_at …) — or a board job
  *            carrying `id`; the row is read when the text is not on it.
  */
-export function bestBetSignalsFor(db, { userId, profileId = null, job, userLevel = undefined, inputs = null, now = Math.floor(Date.now() / 1000) }) {
+export function bestBetSignalsFor(db, { userId, profileId = null, job, userLevel = undefined, inputs = null, aim = undefined, now = Math.floor(Date.now() / 1000) }) {
   const jobId = String(job?.job_id ?? job?.id ?? job?.jobId);
   const row = job?.description != null && job?.job_id != null ? job
     : safe(() => db.prepare(`SELECT * FROM scraped_jobs WHERE job_id = ?`).get(jobId), null) ?? {};
@@ -76,7 +77,13 @@ export function bestBetSignalsFor(db, { userId, profileId = null, job, userLevel
     ghostLevel: row.ghost_level ?? 0,
     velocity: velocityOf(db, row.company, now),
     warmPath: null,
-    aim: null,
+    // ⭐ D143: the posting's role (the one matcher's, atlas_posting_match) is the user's navigator destination.
+    aim: (() => {
+      const a = aim === undefined ? safe(() => aimRoleFor(db, userId), null) : aim;
+      if (!a) return null;
+      const roleId = safe(() => db.prepare(`SELECT pm.role_id FROM atlas_posting_match pm JOIN scraped_jobs sj ON sj.id = pm.posting_id WHERE sj.job_id = ?`).pluck().get(jobId), null);
+      return roleId != null && roleId === a.roleId ? { text: `on your route to ${a.name}` } : null;
+    })(),
   };
 }
 
@@ -92,6 +99,7 @@ export async function bestBetsFor(db, { userId, profileId = null, size = undefin
   const done = new Set(safe(() => db.prepare(`SELECT job_id FROM application_records WHERE user_id = ? AND state != 'withdrawn'
       UNION SELECT job_id FROM job_applications WHERE user_id = ?`).pluck().all(userId, userId), []).map(String));
   const userLevel = safe(() => userLevelFor(db, userId), null);
+  const aim = safe(() => aimRoleFor(db, userId), null);
   const jobs = [];
   let cursor = null, matches = null;
   for (let p = 0; p < MAX_BOARD_PAGES; p++) {
@@ -109,7 +117,7 @@ export async function bestBetsFor(db, { userId, profileId = null, size = undefin
     if (j.isActive === false) continue;                                             // closed
     if (j.eligibility?.status === "ineligible") continue;                           // D104: what the user SET
     if (needsSponsorship && j.sponsorship?.level === "says_no") continue;           // D121: won't sponsor
-    const s = bestBetSignalsFor(db, { userId, profileId, job: { id }, userLevel, inputs, now });
+    const s = bestBetSignalsFor(db, { userId, profileId, job: { id }, userLevel, inputs, aim, now });
     if (s.ineligible) continue;
     scored.push({ job: j, bestBet: bestBetOf(s), i });
   }
