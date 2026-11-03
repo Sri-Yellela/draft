@@ -251,9 +251,13 @@ ${opts.length ? `<select id="${name}" name="${name}"><option value=""></option>$
  */
 export default function picksConfirmRoutes(app, db, requireAuth, deps) {
   const form = express.urlencoded({ extended: false, limit: "32kb" });
+  // ⭐ A115 (44l): the clock is a dep (default: the real one), so a test that builds its run at a fixed time reads its
+  // links at that time too — test/d113Picks.test.js pinned NOW to 11-02 while this read the real clock, and every link
+  // read "expired" from 11-03 14:00Z on.
+  const clock = typeof deps?.now === "function" ? deps.now : now;
 
   app.get("/p/confirm/:token", (req, res) => {
-    const nowSec = now();
+    const nowSec = clock();
     let r;
     try { r = resolve(db, deps.secret, req.params.token, nowSec); } catch { r = { ok: false, status: 404, html: message("This link is not valid", "Open draft to see your picks.") }; }
     if (!r.ok) return send(res, r.status, r.html);
@@ -265,7 +269,7 @@ export default function picksConfirmRoutes(app, db, requireAuth, deps) {
   });
 
   app.post("/p/confirm/:token", form, (req, res) => {
-    const nowSec = now();
+    const nowSec = clock();
     let r;
     try { r = resolve(db, deps.secret, req.params.token, nowSec); } catch { r = { ok: false, status: 404, html: message("This link is not valid", "Open draft to see your picks.") }; }
     if (!r.ok) return send(res, r.status, r.html);
@@ -315,7 +319,7 @@ export default function picksConfirmRoutes(app, db, requireAuth, deps) {
 
   // ── the API ──
 
-  const stateOf = (userId, nowSec = now()) => {
+  const stateOf = (userId, nowSec = clock()) => {
     const u = db.prepare(`SELECT send_mode, auto_settings, auto_last_run_at FROM users WHERE id = ?`).get(userId) || {};
     const settings = readAutoSettings(u.auto_settings);
     const mode = u.send_mode === "auto" ? "apply" : settings.picks === true ? "ask" : "off";

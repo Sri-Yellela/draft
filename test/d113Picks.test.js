@@ -49,7 +49,8 @@ const runsOf = (db, userId = 1) => db.prepare("SELECT * FROM picks_runs WHERE us
 function mount(db, deps) {
   const app = express();
   app.use(express.json());
-  picksConfirmRoutes(app, db, (req, _res, next) => { req.user = { id: 1, planTier: "PRO" }; next(); }, { secret: SECRET, env: {}, ...deps });
+  // A115: the routes read the fixture's clock (NOW, the 09:30 run), not the machine's.
+  picksConfirmRoutes(app, db, (req, _res, next) => { req.user = { id: 1, planTier: "PRO" }; next(); }, { secret: SECRET, env: {}, now: () => NOW, ...deps });
   const server = app.listen(0);
   const base = `http://127.0.0.1:${server.address().port}`;
   return {
@@ -326,7 +327,7 @@ test("D113 · d113TokenSingleUseExpires — signed, bound to (user, pick), works
     assert.equal((await t.post(`/p/confirm/${signPickToken(pickSecret("another-secret"), { k: "apply", id: b.id, u: 1, exp: b.expires_at })}`)).status, 404);
     assert.equal(b.expires_at, runsOf(db)[0].expires_at);
     assert.equal(b.expires_at, runsOf(db)[0].slot_at + DAY, "the next run time (one run a day → tomorrow 09:00)");
-    const expired = signPickToken(SECRET, { k: "apply", id: b.id, u: 1, exp: Math.floor(Date.now() / 1000) - 1 });
+    const expired = signPickToken(SECRET, { k: "apply", id: b.id, u: 1, exp: NOW - 1 });
     assert.equal((await t.post(`/p/confirm/${expired}`)).status, 410);
     assert.equal(readPickToken(SECRET, tok, b.expires_at).error, "expired");
     assert.equal(starts.length, 1);
