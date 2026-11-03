@@ -43,6 +43,7 @@ import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT, BOARD_PANEL, view
 import { ATSToolPage }           from "./pages/tools/ATSToolPage.jsx";
 import { GenerateToolPage }      from "./pages/tools/GenerateToolPage.jsx";
 import { ApplyToolPage }         from "./pages/tools/ApplyToolPage.jsx";
+import { HonestyToolPage }       from "./pages/tools/HonestyToolPage.jsx";
 
 import LandingPage    from "./pages/LandingPage.jsx";
 import NavBar         from "./components/NavBar.jsx";
@@ -758,6 +759,8 @@ function AppRouter() {
         <Route path="/tools/ats"      element={<ATSToolPage/>}/>
         <Route path="/tools/generate" element={<GenerateToolPage/>}/>
         <Route path="/tools/apply"    element={<ApplyToolPage/>}/>
+        {/* ⭐ D141: the free résumé honesty check — no account, nothing kept. */}
+        <Route path="/tools/honesty"  element={<HonestyToolPage/>}/>
 
         {/* ── LEGACY ALIASES FOR THE PUBLISHED EXTENSION ──────────────────────────────────────
             The extension shipped as v1.0.0 opens `/resume` and `/ats-score?jd=…`. NEITHER HAS

@@ -79,6 +79,7 @@ const PUBLIC = new Set([
   "GET /api/standalone/auth/me",
   "POST /api/standalone/auth/logout",
   "POST /api/standalone/ats",
+  "POST /api/standalone/honesty",          // D141: the free résumé honesty check — parsed in memory, nothing kept
   "POST /api/standalone/generate",
   "POST /api/standalone/apply",
 ]);
