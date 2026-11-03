@@ -1,0 +1,19 @@
+Jordan Rivera
+jordan.rivera@example.com
+
+EXPERIENCE
+Senior Machine Learning Engineer, Larkspur Compute — Santa Clara, CA
+• Led incentive compensation plan design for LLM inference workloads, cutting p99 latency by 38%
+• Spearheaded a PyTorch benchmarking harness adopted by 12 revenue teams to forecast quota attainment
+• Profiled GPU memory use and wrote Triton kernels for attention layers
+
+Data Engineer, Brightmart Retail — Bentonville, AR
+• Owned Salesforce pipeline management and territory planning for regional sales, growing revenue 25%
+• Wrote SQL reports on regional sales for the merchandising analysts
+
+Software Engineer, Corvane Consulting — Boston, MA
+• Delivered executive presentations on sales enablement strategy for the client's CRM rollout
+
+SKILLS
+AI skills: Python, PyTorch, CUDA, Triton, C++, LLM inference, quantization, Salesforce, CRM, pipeline management, forecasting, quota attainment, territory planning, account management, negotiation
+Data: SQL, Spark, Airflow

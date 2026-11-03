@@ -1,0 +1,8 @@
+Sales Operations Analyst
+Requirements
+- Salesforce and CRM administration, pipeline management, forecasting
+- quota attainment analysis, territory planning, account management
+- SQL and Tableau reporting; negotiation with sales leaders
+- executive presentations and sales enablement
+Preferred
+- Python

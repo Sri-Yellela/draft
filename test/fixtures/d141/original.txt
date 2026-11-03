@@ -1,0 +1,19 @@
+Jordan Rivera
+jordan.rivera@example.com
+
+EXPERIENCE
+Machine Learning Engineer, Larkspur Compute — Santa Clara, CA
+• Optimized LLM inference kernels in CUDA and C++, cutting p99 latency by 38%
+• Built a PyTorch benchmarking harness used by 4 model teams to compare quantization schemes
+• Profiled GPU memory use and wrote Triton kernels for attention layers
+
+Data Engineer, Brightmart Retail — Bentonville, AR
+• Built Spark pipelines in Python that loaded 2 TB of daily store sales into the warehouse
+• Wrote SQL reports on regional sales for the merchandising analysts
+
+Software Engineer, Corvane Consulting — Boston, MA
+• Built REST APIs in Java for a client's claims processing system
+
+SKILLS
+AI skills: Python, PyTorch, CUDA, Triton, C++, LLM inference, quantization
+Data: SQL, Spark, Airflow

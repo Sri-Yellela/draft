@@ -101,6 +101,7 @@ import { scoreGhosts, ghostForRows, calibrateGhostThreshold } from "./services/j
 import { bestBetsFor, refitBestBets, bestBetSignalsFor } from "./services/bestBets.js";
 import { bestBetOf } from "./shared/bestBets.js";
 import { readAutoSettings } from "./shared/autoSettings.js";
+import { honestyCheck } from "./services/honestyCheck.js";
 // ⭐ D105: the Atlas — roles, skills, tools, linked; seeded as drafts from the scorer's own registry, stats from the board.
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
@@ -14001,6 +14002,33 @@ app.post("/api/standalone/ats", standaloneUpload.single("resume"), async (req, r
     res.json(standaloneAtsResult({ resumeText, jdText, jobTitle: req.body?.job_title,
                                    termWeightsFor: atsTermWeightsForJob, synonyms: atsSynonyms() }));
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ⭐ D141 · POST /api/standalone/honesty — THE RÉSUMÉ HONESTY CHECK. Free, no account (the hook: "Will your AI résumé get
+// you caught?"). The résumé (PDF `resume` or `resume_text`), optionally the original it came from (`original` /
+// `original_text`) and the job (`jd_text`); line by line, what the original does not support, the interview risk, and the
+// fix (services/honestyCheck.js). ⛔ Nothing is kept: the files are parsed in memory and the text is never written —
+// not to the database, not to a log line. No model call (D17).
+app.post("/api/standalone/honesty", standaloneUpload.fields([{ name: "resume", maxCount: 1 }, { name: "original", maxCount: 1 }]), async (req, res) => {
+  try {
+    const { default: pdfParse } = await import("pdf-parse/lib/pdf-parse.js");
+    const textOf = async (field) => {
+      const f = req.files?.[field]?.[0];
+      if (f) return ((await pdfParse(f.buffer)).text || "").trim();
+      return String(req.body?.[`${field}_text`] || "").slice(0, 60000).trim();
+    };
+    const resumeText = await textOf("resume");
+    if (resumeText.length < 50) return res.status(400).json({ error: "resume_required", message: "Upload the résumé as a PDF, or paste its text." });
+    const originalText = await textOf("original");
+    const jdText = String(req.body?.jd_text || "").slice(0, 30000);
+    const keywordsFor = (text) => {
+      const a = standaloneAtsResult({ resumeText: text, jdText, jobTitle: req.body?.job_title, termWeightsFor: atsTermWeightsForJob, synonyms: atsSynonyms() });
+      return { matched: a.matched_skills, missing: a.missing_skills };
+    };
+    res.json(honestyCheck({ resumeText, originalText, jdText, keywordsFor }));
+  } catch (e) {
+    res.status(422).json({ error: "honesty_check_failed", message: "That file could not be read. Paste the text instead." });
+  }
 });
 
 // POST /api/standalone/generate — Generate resume (requires STANDALONE auth, not main-app auth)
