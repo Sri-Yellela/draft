@@ -1,5 +1,5 @@
 {
-  "about": "A112/Atlas · DRAFTED DEFINITIONS for the Atlas's non-computing skills and tools, written by the agent in its own words (no source copied) for the OWNER'S REVIEW. Seeded at boot into atlas_nodes.definition_draft ONLY (definition_by = 'drafted') — never into `definition` — so nothing public shows them and the auto-publish bar does not count them until the owner accepts them in Admin → Atlas → Drafted definitions (D105 P11). A node that already has a definition or a waiting draft, or whose draft the owner rejected, is never touched; a slug with no node is skipped. Same rules as the chat import: one or two sentences, 20–400 characters, no links. Grouped by family; batch 1 (11-03): sales, finance & FP&A, accounting & audit, the three marketing families, product, workplace tools; batch 2a (11-03): people & HR, project & program management, operations & supply chain, consulting, business analysis. Left out on purpose (A114): store / hospitality terms (their roles are held as non-professional), boilerplate ('culture'), a misfiled node ('sales-growth'), the ambiguous 'oracle', and the second spelling of each duplicate pair (powerbi, ms-project, steering-committees, process-maps, brd, wbs, sar-filing, successfactors, toast-pos); batches 2b + 2c (11-03): design, legal practice, research & science, writing & communications. Also left out (A114): 'principle' (the common word matched as the Principle tool) and the second spelling of design-critique(s), press-release(s), copy-editing / copyediting, ediscovery / e-discovery, msas / master-services-agreements, ngs / next-generation-sequencing, wireframes / wireframing, user-research / ux-research; batch 2d (11-03): the six engineering families. Also left out (A114): 'safe' (523: the word matched as the SAFE software), 'mechanisms' (264, a common word), 'doors' (80: the word matched as IBM DOORS), the ambiguous 'soc', and the second spelling of v-v, dhf, fea, dfm, gn-c; batch 3 (11-03): the ROLES' definitions, every family (a role publishes on its postings alone; its definition shows above the board's data). The computing roles carry no stored family (roles are not drawn on the tree); they are grouped here under the family whose work they do, for reading only. Left out (A114): store / hospitality roles (branch-manager, hotel-general-manager, assistant-general-manager, practice-manager, site-manager) and the ambiguous portfolio-manager; batch 4c (11-03): the computing skills / tools that are NOT public on production (measured against /api/atlas/node/<slug>: 404) — no definition and no matched Wikipedia summary, often a short or ambiguous name (Go, Rust, R, C, Spark). One spelling kept per duplicate group (A114): spi / spi-protocol, i2c / i2c-protocol, jtag / jtag-debugging, trace32 / t32 / lauterbach / ltb / lauterbach-trace32-debugging / t32-debugging.",
+  "about": "A112/Atlas · DRAFTED DEFINITIONS for the Atlas's non-computing skills and tools, written by the agent in its own words (no source copied) for the OWNER'S REVIEW. Seeded at boot into atlas_nodes.definition_draft ONLY (definition_by = 'drafted') — never into `definition` — so nothing public shows them and the auto-publish bar does not count them until the owner accepts them in Admin → Atlas → Drafted definitions (D105 P11). A node that already has a definition or a waiting draft, or whose draft the owner rejected, is never touched; a slug with no node is skipped. Same rules as the chat import: one or two sentences, 20–400 characters, no links. Grouped by family; batch 1 (11-03): sales, finance & FP&A, accounting & audit, the three marketing families, product, workplace tools; batch 2a (11-03): people & HR, project & program management, operations & supply chain, consulting, business analysis. Left out on purpose (A114): store / hospitality terms (their roles are held as non-professional), boilerplate ('culture'), a misfiled node ('sales-growth'), the ambiguous 'oracle', and the second spelling of each duplicate pair (powerbi, ms-project, steering-committees, process-maps, brd, wbs, sar-filing, successfactors, toast-pos); batches 2b + 2c (11-03): design, legal practice, research & science, writing & communications. Also left out (A114): 'principle' (the common word matched as the Principle tool) and the second spelling of design-critique(s), press-release(s), copy-editing / copyediting, ediscovery / e-discovery, msas / master-services-agreements, ngs / next-generation-sequencing, wireframes / wireframing, user-research / ux-research; batch 2d (11-03): the six engineering families. Also left out (A114): 'safe' (523: the word matched as the SAFE software), 'mechanisms' (264, a common word), 'doors' (80: the word matched as IBM DOORS), the ambiguous 'soc', and the second spelling of v-v, dhf, fea, dfm, gn-c; batch 3 (11-03): the ROLES' definitions, every family (a role publishes on its postings alone; its definition shows above the board's data). The computing roles carry no stored family (roles are not drawn on the tree); they are grouped here under the family whose work they do, for reading only. Left out (A114): store / hospitality roles (branch-manager, hotel-general-manager, assistant-general-manager, practice-manager, site-manager) and the ambiguous portfolio-manager; batch 4c (11-03): the computing skills / tools that are NOT public on production (measured against /api/atlas/node/<slug>: 404) — no definition and no matched Wikipedia summary, often a short or ambiguous name (Go, Rust, R, C, Spark). One spelling kept per duplicate group (A114): spi / spi-protocol, i2c / i2c-protocol, jtag / jtag-debugging, trace32 / t32 / lauterbach / ltb / lauterbach-trace32-debugging / t32-debugging; batch 5 (11-03): the board roles' definitions (content/atlas/roles.json — roles the registry never named; seeded at boot BEFORE these drafts).",
   "definitions": {
     "sales": {
       "salesforce": "A customer relationship management platform where sales teams record accounts, contacts, opportunities and forecasts. Sellers use it to track every deal from first contact to close and managers use it to report on the pipeline.",
@@ -51,7 +51,15 @@
       "business-development-representative": "An early-career salesperson who generates new leads and qualifies them for account executives.",
       "business-development-manager": "A person who finds new business opportunities and partnerships and turns them into revenue.",
       "inside-sales-representative": "A salesperson who sells remotely by phone, email and video.",
-      "territory-sales-representative": "A salesperson responsible for customers in an assigned geographic area."
+      "territory-sales-representative": "A salesperson responsible for customers in an assigned geographic area.",
+      "customer-success-manager": "A person who makes sure customers get value from a product after they buy it, guiding adoption, renewals and growth.",
+      "sales-engineer": "A technical specialist who supports the sales team by explaining and demonstrating how a product meets a customer's technical needs.",
+      "solutions-engineer": "A technical specialist who works with sales to show prospective customers how the product solves their problems, through demos and proofs of concept.",
+      "customer-engineer": "A technical specialist who helps customers design, adopt and get value from a product, before or after the sale.",
+      "account-director": "A senior person who manages the relationship and revenue for an organisation's most important client accounts.",
+      "partner-manager": "A person who manages relationships with partner companies, such as resellers and technology partners, to grow joint business.",
+      "business-development-executive": "A salesperson who finds and wins new business for an organisation.",
+      "sales-director": "A senior sales leader who manages sales managers or a region and is responsible for its revenue."
     },
     "fpa": {
       "forecasting": "Estimating future results such as revenue, costs, demand or cash from past data, current trends and assumptions. Finance and operations teams update forecasts regularly to guide decisions.",
@@ -119,7 +127,8 @@
       "investment-banking-analyst": "An early-career banker who builds models and materials for mergers, acquisitions and capital raising.",
       "corporate-finance-analyst": "An analyst who supports a company's funding, investment and capital decisions.",
       "corporate-development-analyst": "An analyst who supports a company's acquisitions, partnerships and investments.",
-      "equity-research-analyst": "An analyst who studies public companies and publishes recommendations on their shares."
+      "equity-research-analyst": "An analyst who studies public companies and publishes recommendations on their shares.",
+      "strategic-finance-manager": "A finance manager who leads planning, modelling and analysis to support a company's strategic decisions."
     },
     "accounting_audit": {
       "payroll": "Calculating and paying employees' wages, withholding taxes and deductions, and filing the related tax reports on time.",
@@ -178,7 +187,8 @@
       "accounting-analyst": "An analyst who supports accounting work such as reconciliations, journal entries and reporting.",
       "tax-accountant": "An accountant who prepares tax returns and provisions and keeps an organisation or its clients compliant with tax rules.",
       "internal-auditor": "An auditor employed by an organisation to test its own controls, processes and risks and report findings to management.",
-      "audit-associate": "An early-career auditor at an accounting firm who carries out audit procedures and documents evidence."
+      "audit-associate": "An early-career auditor at an accounting firm who carries out audit procedures and documents evidence.",
+      "tax-manager": "A manager who leads tax compliance, planning and reporting for an organisation or its clients."
     },
     "marketing_brand": {
       "go-to-market": "The plan for bringing a product to market: which customers to target, how to position and price it, and which channels and teams will sell it.",
@@ -188,7 +198,8 @@
       "brand-management": "Looking after how a brand is presented and perceived over time, keeping its positioning, identity and messages consistent.",
       "market-segmentation": "Dividing a market into groups of customers with shared needs or traits, so products and messages can be targeted at each.",
       "product-marketing-manager": "A marketer who positions a product, defines its messaging and audience, leads launches and equips sales to sell it.",
-      "brand-manager": "A marketer responsible for a brand's positioning, image and growth across its campaigns and products."
+      "brand-manager": "A marketer responsible for a brand's positioning, image and growth across its campaigns and products.",
+      "creative-strategist": "A person who turns research about audiences and brands into the ideas and direction for creative campaigns."
     },
     "marketing_content": {
       "social-media": "Using platforms such as LinkedIn, Instagram, TikTok and X to publish content, engage an audience and promote a brand or product.",
@@ -368,7 +379,10 @@
       "chief-people-officer": "The executive responsible for an organisation's people strategy and HR.",
       "talent-acquisition-specialist": "A specialist who sources, screens and hires candidates.",
       "benefits-specialist": "A specialist who administers employee benefits programmes.",
-      "hr-coordinator": "A person who supports HR processes with scheduling, records and administration."
+      "hr-coordinator": "A person who supports HR processes with scheduling, records and administration.",
+      "technical-sourcer": "A recruiter who finds candidates for technical roles, searching databases and networks and making first contact.",
+      "recruiting-coordinator": "A person who schedules interviews, communicates with candidates and keeps the hiring process running smoothly.",
+      "compensation-manager": "A manager who designs and runs an organisation's pay structures and compensation programmes."
     },
     "project_management": {
       "risk-management": "Identifying, assessing and reducing the risks that could harm a project, a business or its finances, and monitoring them over time.",
@@ -461,7 +475,8 @@
       "construction-manager": "A manager who plans and oversees construction work on site.",
       "owner-s-representative": "A person who manages a construction project on behalf of the owner, overseeing designers and contractors.",
       "pmo-manager": "The manager of a project management office.",
-      "project-management-specialist": "A specialist who supports project planning, tracking and reporting."
+      "project-management-specialist": "A specialist who supports project planning, tracking and reporting.",
+      "chief-of-staff": "A senior adviser to an executive who manages priorities, runs key initiatives and keeps the leadership team coordinated."
     },
     "operations": {
       "process-improvement": "Analysing how work is done and changing it to be faster, cheaper, more reliable or higher quality.",
@@ -594,7 +609,10 @@
       "strategy-consultant": "A consultant who advises leaders on high-level decisions such as growth, market entry and portfolio choices.",
       "business-consultant": "A consultant who helps organisations solve business problems and improve performance.",
       "associate-consultant": "An early-career consultant who does research, analysis and slide work on client engagements.",
-      "corporate-strategy-manager": "A manager on a company's internal strategy team who leads analysis of growth options, markets and plans."
+      "corporate-strategy-manager": "A manager on a company's internal strategy team who leads analysis of growth options, markets and plans.",
+      "solutions-consultant": "A specialist who works with prospective customers to understand their needs and show how a product fits, often running demos.",
+      "technical-consultant": "A consultant who advises clients on technical systems and helps implement them.",
+      "implementation-consultant": "A consultant who sets up and configures a product for a customer and guides them through going live."
     },
     "business_analysis": {
       "finra": "The Financial Industry Regulatory Authority, the US self-regulatory organisation that oversees broker-dealers and licenses their staff.",
@@ -733,7 +751,8 @@
       "ui-ux-designer": "A designer who handles both the user experience and the visual interface of a digital product.",
       "interaction-designer": "A designer who defines how users interact with a product, its flows, controls and feedback.",
       "visual-designer": "A designer who focuses on the look of a product or brand, its layout, typography, colour and imagery.",
-      "senior-graphic-designer": "An experienced graphic designer who leads design projects and mentors other designers."
+      "senior-graphic-designer": "An experienced graphic designer who leads design projects and mentors other designers.",
+      "creative-director": "The person who leads an organisation's or agency's creative work, setting its vision and guiding designers, writers and other creatives."
     },
     "legal_practice": {
       "risk-assessment": "Identifying the risks an activity, decision or organisation faces and judging how likely and serious each one is.",
@@ -1034,7 +1053,8 @@
       "corporate-communications-manager": "A manager who handles a company's communications with the media, investors and the public.",
       "pr-manager": "A manager who runs public relations, winning coverage and managing reputation.",
       "public-relations-specialist": "A person who manages media relations and publicity for an organisation.",
-      "media-relations-manager": "A manager who builds relationships with journalists and wins coverage."
+      "media-relations-manager": "A manager who builds relationships with journalists and wins coverage.",
+      "producer": "A person who plans and oversees the making of content such as news segments, video, podcasts or games, coordinating people, schedules and budgets."
     },
     "eng_aerospace": {
       "mbse": "Model-based systems engineering: describing a system's requirements, structure and behaviour in connected models instead of separate documents.",
@@ -1386,7 +1406,11 @@
       "web-applications": "Applications that run in a web browser and talk to servers over the internet, from simple sites to complex online tools.",
       "swift": "Apple's programming language for building apps on iOS, macOS and its other platforms.",
       "selenium": "An open-source framework for automating web browsers, used mainly to test web applications.",
-      "playwright": "An open-source framework from Microsoft for automating browsers to test web applications across Chromium, Firefox and WebKit."
+      "playwright": "An open-source framework from Microsoft for automating browsers to test web applications across Chromium, Firefox and WebKit.",
+      "engineering-manager": "A manager who leads a team of software engineers, hiring and developing them and making sure the team delivers reliable work on time.",
+      "forward-deployed-engineer": "A software engineer who works directly with customers, building and adapting the product inside their environment to solve their problems.",
+      "ios-engineer": "A software engineer who builds apps for iPhone and iPad, usually in Swift.",
+      "salesforce-developer": "A developer who customises and extends Salesforce with code, configuration and integrations."
     },
     "systems": {
       "security-engineer": "An engineer who protects an organisation's systems and data by designing defences, finding vulnerabilities and responding to threats.",
@@ -1469,7 +1493,11 @@
       "docker": "A platform for packaging an application and everything it needs into a container that runs the same way on any machine.",
       "prometheus": "An open-source monitoring system that collects metrics from services as time series and raises alerts on them.",
       "security-and-cryptography": "Protecting systems and data from attack, including the use of encryption, hashing, signatures and key management.",
-      "windows": "Microsoft's operating system for personal computers and servers, and the work of developing for or administering it."
+      "windows": "Microsoft's operating system for personal computers and servers, and the work of developing for or administering it.",
+      "solutions-architect": "A technical expert who designs how a product or platform should be used to meet a customer's requirements, often working alongside sales.",
+      "devops-engineer": "An engineer who automates how software is built, tested, deployed and operated, bridging development and operations.",
+      "network-engineer": "An engineer who designs, builds and maintains computer networks.",
+      "support-engineer": "An engineer who investigates and resolves customers' technical problems with a product."
     },
     "data": {
       "data-scientist": "A person who uses statistics, programming and machine learning to analyse data, build models and answer business questions.",
@@ -1494,13 +1522,16 @@
       "tableau": "Salesforce's data visualisation software for building interactive charts and dashboards.",
       "pandas": "A Python library for loading, cleaning, reshaping and analysing tabular data.",
       "databricks": "A cloud data platform built around Apache Spark for data engineering, analytics and machine learning on a shared lakehouse.",
-      "jupyter": "Jupyter notebooks, documents that combine live code, results, charts and text, widely used for data analysis."
+      "jupyter": "Jupyter notebooks, documents that combine live code, results, charts and text, widely used for data analysis.",
+      "product-analyst": "An analyst who studies how people use a product, through data and experiments, to guide product decisions."
     },
     "ml": {
       "ml-engineer": "An engineer who builds, trains and deploys machine learning models and the systems that serve them in production.",
       "model-deployment": "Putting a trained machine learning model into production so applications can use its predictions, and keeping it running and monitored.",
       "nlp": "Natural language processing: methods that let computers analyse, understand and generate human language.",
-      "mlflow": "An open-source platform for tracking machine learning experiments, packaging models and managing their deployment."
+      "mlflow": "An open-source platform for tracking machine learning experiments, packaging models and managing their deployment.",
+      "ai-engineer": "An engineer who builds products and features on top of AI models, such as language models, including their prompts, data, evaluation and deployment.",
+      "research-engineer": "An engineer who builds the code, experiments and infrastructure that research teams need, turning research ideas into working systems."
     }
   }
 }
