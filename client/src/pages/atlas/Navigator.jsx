@@ -107,7 +107,8 @@ export default function Navigator({ base, fallback = null }) {
         {bridges.length
           ? <ul className="atl-nav__steps">{bridges.map(b => <li key={b.slug}>{b.line}</li>)}</ul>
           : <p className="atl__quiet">No role is 60 % covered yet — your best bets on the board are still worth a look.</p>}
-        <Link className="atl__link" to="/app" data-navigator-best-bets="">See this week's best bets</Link>
+        <Link className="atl__link" to="/app" data-navigator-best-bets="">See this week's best bets</Link>{" · "}
+        <Link className="atl__link" to={`${base}/check`} data-navigator-check="">Check where you stand on your skills</Link>
       </div>
 
       <div className="atl-nav__card" data-navigator-progress="">

@@ -127,6 +127,8 @@ const ADMIN = new Set([
   "POST /api/admin/board-fit/precompute",
   // D118 P2: Admin → Atlas → Import content — the owner replaces the Learn content (validated JSON, diffed, applied on
   // Apply). Admin-only: it changes what every reader of /atlas/learn sees.
+  "GET /api/admin/readiness",                       // D142: the bank and the most-claimed skills
+  "POST /api/admin/readiness/questions/:id/review",  // D142: a person approves, edits or retires a question
   "GET /api/admin/learn/content",
   "POST /api/admin/learn/import/preview",
   "POST /api/admin/learn/import/apply",
@@ -243,6 +245,9 @@ const AUTHENTICATED = new Set([
   "GET /api/warm-paths",         // D138: the user's own imported contacts (counts)
   "POST /api/warm-paths/import", // D138: the user's own LinkedIn export / alumni list
   "DELETE /api/warm-paths",      // D138: delete them
+  "GET /api/readiness",                       // D142: the user's own skills and check states
+  "POST /api/readiness/checks",               // D142: start the user's own check
+  "POST /api/readiness/checks/:id/answer",    // D142: answer it (scoped to the user)
   "GET /api/warm-paths/job/:jobId", // D138: the people the user knows at this posting's company
   "GET /api/settings/theme",     // follow-up 18: the account's light/dark preference
   "PUT /api/settings/theme",

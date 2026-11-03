@@ -18,6 +18,7 @@ import { TrialTab } from "./adminTrial.jsx";
 import { TestersTab } from "./adminTesters.jsx";
 import { AppearanceTab } from "./adminAppearance.jsx";
 import { CalibrateTab } from "./adminCalibrate.jsx";
+import { ReadinessTab } from "./adminReadiness.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
@@ -725,6 +726,8 @@ export function AdminPanel() {
       {at("data", "scoring") && <BoardFitSection theme={theme}/>}
       {/* D125: the owner calibrates the ATS by hand — the gold set the scorer is held to. */}
       {at("data", "calibrate") && <CalibrateTab/>}
+      {/* D142: the readiness bank — nothing reaches a user until a person approves it. */}
+      {at("data", "readiness") && <ReadinessTab/>}
       {at("data", "database") && (
         <div className="rm-card" data-admin-database="" style={{ maxWidth:640 }}>
           <div style={{ fontWeight:700, fontSize:14, color:theme.text, marginBottom:8 }}>The database, read-only</div>

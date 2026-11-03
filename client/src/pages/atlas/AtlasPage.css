@@ -96,5 +96,9 @@
 .atl-nav__options { list-style: none; padding: 0; }
 .atl-nav__option { width: 100%; text-align: left; padding: 8px 10px; border: 1px solid var(--c-border-control); border-radius: 8px; background: var(--c-surface-solid); color: var(--c-ink); font: inherit; cursor: pointer; }
 .atl-nav__link { padding: 0; border: 0; background: none; color: var(--c-accent-ink); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
+/* ⭐ D142 · the readiness check — the question, its timer. */
+.atl-check { display: grid; gap: 12px; min-width: 0; max-width: 760px; }
+.atl-check__prompt { margin: 8px 0; font-size: 15px; line-height: 1.55; color: var(--c-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.atl-check__timer { font: 800 15px/1 var(--font-body); color: var(--c-accent-ink); }
 .atl-course__ring { max-width: 520px; margin: 0 auto; }
 .atl-course__next { margin: 8px 0 0; font-size: 14px; color: var(--c-ink); }

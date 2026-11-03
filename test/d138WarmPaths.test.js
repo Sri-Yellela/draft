@@ -96,7 +96,7 @@ test("D138 · d138ConnectionsPrivateDeletable — re-upload replaces, delete by 
   db.prepare("DELETE FROM users WHERE id = 1").run();
   assert.equal(db.prepare("SELECT COUNT(*) FROM warm_contacts").pluck().get(), 0, "gone with the account");
   assert.match(read("services/accountService.js"), /warm_contacts: "move",/);
-  assert.match(read("services/accountService.js"), /"application_signals", "navigator_routes", "warm_contacts"\];/, "in the person's export");
+  assert.match(read("services/accountService.js"), /"application_signals", "navigator_routes", "warm_contacts"[,\]]/, "in the person's export");
   const ui = read("client/src/components/WarmPathsSettings.jsx");
   assert.match(ui, /Delete all my contacts/);
   assert.match(read("client/src/panels/AccountPanel.jsx"), /<WarmPathsSettings say=\{say\} \/>/);
