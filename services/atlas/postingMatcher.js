@@ -33,6 +33,7 @@
 
 import { normaliseAtsTerm } from "../localAtsScorer.js";
 import { aliasesOf } from "./atlasStore.js";
+import { roleTitles } from "./atlasRoles.js";
 import { maskCommonPhrases, COMMON_PHRASE_RE } from "../../shared/atlasCommonPhrases.js";
 
 export const POSTING_MATCH = Object.freeze({
@@ -337,7 +338,11 @@ export function postingMatcher(db, nodes, { listOnly = false, bulk = false, role
     if (short) terms = terms.filter(t => t.length >= SHORT);
     return { id: n.id, role: n.kind === "role", concept, terms, exact: short ? exactMatcher(name) : null, exactKey: short ? normaliseAtsTerm(name) : null };
   });
-  const roles = nodes.filter(n => n.kind === "role").map(n => ({ id: n.id, term: n.term })).sort((a, b) => b.term.length - a.term.length);
+  // ⭐ A112/Atlas: a role is found by its own term and by its alternate titles (content/atlas/roles.json, atlasRoles.js).
+  const titles = roleTitles();
+  const roles = nodes.filter(n => n.kind === "role")
+    .flatMap(n => [n.term, ...(titles.get(n.slug) || [])].filter(Boolean).map(term => ({ id: n.id, term })))
+    .sort((a, b) => b.term.length - a.term.length);
   // The runs only need to be as long as the longest term.
   const words = (t) => t.split(" ").length;
   const maxGram = Math.min(POSTING_MATCH.MAX_GRAM, Math.max(1, ...asks.flatMap(a => a.terms.map(words))));
