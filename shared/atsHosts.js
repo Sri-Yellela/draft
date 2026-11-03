@@ -49,6 +49,8 @@ export const ATS_HOST_SUFFIXES = Object.freeze([
 export const ATS_PROVIDER_NAMES = Object.freeze([
   "greenhouse", "lever", "ashby", "workday", "icims", "taleo", "jobvite",
   "smartrecruiters", "workable", "bamboohr", "recruitee", "linkedin",
+  // A112 (11-02) made Gem and Rippling crawled sources; as with Workday, an employer named exactly so reads as the ATS.
+  "gem", "rippling",
 ]);
 
 /** What a company with no name is called. Never a hostname, and never blank. */
