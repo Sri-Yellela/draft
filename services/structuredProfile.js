@@ -120,6 +120,22 @@ export function splitCompanyTitle(company, title) {
   return { company: c, title: t || null, dateInTitle: null };
 }
 
+const ROLE_WORD = /\b(analyst|engineer|developer|programmer|manager|scientist|designer|consultant|specialist|associate|intern|director|lead|coordinator|administrator|architect|representative|executive|officer|assistant|technician|researcher|recruiter|accountant|strategist|writer|editor)\b/i;
+
+/**
+ * ⭐ A113 (agent, 11-03; found by 44i's warm-paths walk): "Data Analyst, Brightmart Retail — Bentonville, AR (2022 – 2025)"
+ * is parsed at its first comma — company "Data Analyst", no title, location "Brightmart Retail — Bentonville, AR ()". When
+ * there is no title, the "company" is a job title, and the location holds "Employer — Place", they are put back.
+ * @returns {{ company, title, location } | null} null when the entry does not have that shape
+ */
+export function titleFirstHeader(company, title, location) {
+  const c = String(company || "").trim(), loc = String(location || "").replace(/\(\s*\)/g, "").trim();
+  if (String(title || "").trim() || !ROLE_WORD.test(c)) return null;
+  const m = /^(.+?)\s+[—–|]\s+(.+)$/.exec(loc);
+  if (!m || ROLE_WORD.test(m[1])) return null;
+  return { company: m[1].trim(), title: c, location: m[2].trim() || null };
+}
+
 /** The profile as the résumé's parse reads it (nothing written). Null when there is no base résumé to read. */
 export function profileFromResume(db, userId) {
   const payload = payloadResumeParse(db, { userId, resumeId: null });
@@ -128,12 +144,13 @@ export function profileFromResume(db, userId) {
   const e = buildPacketEntries({ profile, payload });
   const summary = (payload.structured?.sections || []).find(s => s?.type === "summary")?.text?.trim() || null;
   const experience = (e.work || []).map(w => {
-    const s = splitCompanyTitle(w.company, w.title);
+    const flipped = titleFirstHeader(w.company, w.title, w.location);
+    const s = flipped ? { company: flipped.company, title: flipped.title, dateInTitle: null } : splitCompanyTitle(w.company, w.title);
     // The parse sometimes puts "Jan 2022 – Present | Boston, MA" where the title goes — its dates and place are read here.
     const r = !w.from && s.dateInTitle ? parseDateRange(s.dateInTitle.split("|")[0]) : null;
     const place = s.dateInTitle && s.dateInTitle.includes("|") ? s.dateInTitle.split("|").slice(1).join("|").trim() : null;
     const from = r ? r.from : w.from, to = r ? r.to : w.to, current = r ? r.current : !!w.current;
-    return { company: s.company, title: s.title, location: w.location || place || null,
+    return { company: s.company, title: s.title, location: (flipped ? flipped.location : w.location) || place || null,
       start: ym(from), end: current ? null : ym(to), current,
       bullets: String(w.description || "").split("\n").map(b => b.replace(/^•\s*/, "").trim()).filter(Boolean) };
   }).filter(x => x.company);
