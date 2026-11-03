@@ -1,0 +1,3244 @@
+[
+ {
+  "id": "deck",
+  "name": "Daily Deck",
+  "path": "/app",
+  "width": 1280,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/today",
+  "errors": [],
+  "shot": "deck-1280.jpg",
+  "wordsFold": 145,
+  "wordsPage": 897,
+  "ownFold": 141,
+  "ownPage": 150,
+  "actionsFold": 17,
+  "actionsPage": 23,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Layout",
+   "Dealt",
+   "ATS match",
+   "›",
+   "Strong match 3 of 6 skills open the repo",
+   "U.S. Department of Labor, OFLC LCA discl",
+   "Open the posting ↓",
+   "Strong match 2 of 4 skills open the repo",
+   "Pass X",
+   "Save S",
+   "Draft D"
+  ],
+  "features": [
+   "match / fit",
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "terms": {
+   "ATS": {
+    "count": 1,
+    "examples": [
+     "ATS"
+    ],
+    "context": "ATS match"
+   }
+  },
+  "pageHeight": 1106,
+  "overflowX": 0
+ },
+ {
+  "id": "deck",
+  "name": "Daily Deck",
+  "path": "/app",
+  "width": 390,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/today",
+  "errors": [],
+  "shot": "deck-390.jpg",
+  "wordsFold": 90,
+  "wordsPage": 899,
+  "ownFold": 86,
+  "ownPage": 152,
+  "actionsFold": 17,
+  "actionsPage": 24,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Layout",
+   "Dealt",
+   "ATS match",
+   "›",
+   "Strong match 3 of 6 skills tap for the r",
+   "The full report ↑",
+   "Open the posting ↓",
+   "Strong match 2 of 4 skills tap for the r",
+   "Pass",
+   "Save",
+   "Draft"
+  ],
+  "features": [
+   "match / fit",
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "terms": {
+   "ATS": {
+    "count": 1,
+    "examples": [
+     "ATS"
+    ],
+    "context": "ATS match"
+   }
+  },
+  "pageHeight": 1040,
+  "overflowX": 0
+ },
+ {
+  "id": "deck-card",
+  "name": "Daily Deck — a card opened",
+  "path": "/app",
+  "width": 1280,
+  "opened": "the top card’s report",
+  "note": "sign-in 200",
+  "url": "/app/today",
+  "errors": [],
+  "shot": "deck-card-1280.jpg",
+  "wordsFold": 148,
+  "wordsPage": 899,
+  "ownFold": 144,
+  "ownPage": 152,
+  "actionsFold": 18,
+  "actionsPage": 24,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Layout",
+   "Dealt",
+   "ATS match",
+   "›",
+   "Collapse",
+   "Strong match 3 of 6 skills open the repo",
+   "U.S. Department of Labor, OFLC LCA discl",
+   "What changed",
+   "Strong match 2 of 4 skills open the repo",
+   "Pass X",
+   "Save S",
+   "Draft D"
+  ],
+  "features": [
+   "match / fit",
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "terms": {
+   "ATS": {
+    "count": 2,
+    "examples": [
+     "ATS"
+    ],
+    "context": "ATS match"
+   }
+  },
+  "pageHeight": 4320,
+  "overflowX": 0
+ },
+ {
+  "id": "deck-card",
+  "name": "Daily Deck — a card opened",
+  "path": "/app",
+  "width": 390,
+  "opened": "the top card’s report",
+  "note": "sign-in 200",
+  "url": "/app/today",
+  "errors": [],
+  "shot": "deck-card-390.jpg",
+  "wordsFold": 99,
+  "wordsPage": 908,
+  "ownFold": 95,
+  "ownPage": 161,
+  "actionsFold": 18,
+  "actionsPage": 25,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Layout",
+   "Dealt",
+   "ATS match",
+   "›",
+   "Strong match 3 of 6 skills tap for the r",
+   "The full report ↑",
+   "Open the posting ↓",
+   "Strong match 2 of 4 skills tap for the r",
+   "Pass",
+   "Save",
+   "Draft",
+   "Close"
+  ],
+  "features": [
+   "match / fit",
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "terms": {
+   "ATS": {
+    "count": 2,
+    "examples": [
+     "ATS"
+    ],
+    "context": "ATS match"
+   }
+  },
+  "pageHeight": 1040,
+  "overflowX": 0
+ },
+ {
+  "id": "board",
+  "name": "Full House (the board)",
+  "path": "/app/jobs",
+  "width": 1280,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/jobs",
+  "errors": [],
+  "shot": "board-1280.jpg",
+  "wordsFold": 206,
+  "wordsPage": 727,
+  "ownFold": 206,
+  "ownPage": 727,
+  "actionsFold": 34,
+  "actionsPage": 182,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "all",
+   "the United States",
+   "ALL 746",
+   "★ 0",
+   "/d 0",
+   "+ 0",
+   "Search jobs",
+   "Sort: For you",
+   "Get the extension",
+   "Not now",
+   "3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18",
+   "Best bet Software Engineer, IP Infrastru",
+   "Best bet Software Engineer, Agent Auth ·",
+   "Best bet Staff Software Engineer, Data A",
+   "Best bet Staff+ Software Engineer, Platf",
+   "Best bet Software Engineer, Fraud System",
+   "See all 746 matches",
+   "OpenAI — company profile",
+   "OpenAI",
+   "Backend Software Engineer, Gov",
+   "Full Stack Software Engineer - Codex for",
+   "Software Engineer, Build Systems / CI"
+  ],
+  "features": [
+   "match / fit",
+   "freshness / ghost",
+   "pay",
+   "tailoring / drafts",
+   "tracking / status",
+   "filters / sort",
+   "extension"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "freshness / ghost",
+   "pay",
+   "tailoring / drafts",
+   "filters / sort",
+   "extension"
+  ],
+  "terms": {
+   "API": {
+    "count": 4,
+    "examples": [
+     "API"
+    ],
+    "context": "Software Engineer, API Enterprise Controls"
+   },
+   "signals": {
+    "count": 1,
+    "examples": [
+     "signals"
+    ],
+    "context": "ranked from signals, not a probability"
+   },
+   "cache": {
+    "count": 1,
+    "examples": [
+     "Caching"
+    ],
+    "context": "Software Engineer, Caching Infrastructure"
+   }
+  },
+  "pageHeight": 2569,
+  "overflowX": 0
+ },
+ {
+  "id": "board",
+  "name": "Full House (the board)",
+  "path": "/app/jobs",
+  "width": 390,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/jobs",
+  "errors": [],
+  "shot": "board-390.jpg",
+  "wordsFold": 142,
+  "wordsPage": 883,
+  "ownFold": 142,
+  "ownPage": 883,
+  "actionsFold": 23,
+  "actionsPage": 333,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "all",
+   "the United States",
+   "ALL 746",
+   "★ 0",
+   "/d 0",
+   "+ 0",
+   "Search jobs",
+   "Sort: For you",
+   "Get the extension",
+   "Not now",
+   "3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18",
+   "Best bet Software Engineer, IP Infrastru",
+   "Best bet Software Engineer, Agent Auth ·",
+   "Best bet Staff Software Engineer, Data A",
+   "Best bet Staff+ Software Engineer, Platf"
+  ],
+  "features": [
+   "match / fit",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "tracking / status",
+   "filters / sort",
+   "extension"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "freshness / ghost",
+   "tailoring / drafts",
+   "extension"
+  ],
+  "terms": {
+   "ATS": {
+    "count": 2,
+    "examples": [
+     "ATS"
+    ],
+    "context": "ATS"
+   },
+   "API": {
+    "count": 4,
+    "examples": [
+     "API"
+    ],
+    "context": "Software Engineer, API Enterprise Controls"
+   },
+   "signals": {
+    "count": 1,
+    "examples": [
+     "signals"
+    ],
+    "context": "ranked from signals, not a probability"
+   },
+   "cache": {
+    "count": 1,
+    "examples": [
+     "Caching"
+    ],
+    "context": "Software Engineer, Caching Infrastructure"
+   }
+  },
+  "pageHeight": 9180,
+  "overflowX": 0
+ },
+ {
+  "id": "board-posting",
+  "name": "Full House — a posting opened",
+  "path": "/app/jobs",
+  "width": 1280,
+  "opened": "Backend Software Engineer, Gov",
+  "note": "sign-in 200",
+  "url": "/app/jobs?job=ashby%3A%3Aa90cdb7c-1c33-4fca-9a96-26c236006f14",
+  "errors": [],
+  "shot": "board-posting-1280.jpg",
+  "wordsFold": 290,
+  "wordsPage": 1508,
+  "ownFold": 286,
+  "ownPage": 807,
+  "actionsFold": 45,
+  "actionsPage": 194,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "all",
+   "the United States",
+   "ALL 746",
+   "★ 0",
+   "/d 0",
+   "+ 0",
+   "Search jobs",
+   "Sort: For you",
+   "Get the extension",
+   "Not now",
+   "3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18",
+   "Best bet Software Engineer, IP Infrastru",
+   "Best bet Software Engineer, Agent Auth ·",
+   "Best bet Staff Software Engineer, Data A",
+   "Best bet Staff+ Software Engineer, Platf",
+   "Best bet Software Engineer, Fraud System",
+   "See all 746 matches",
+   "OpenAI — company profile",
+   "OpenAI",
+   "Backend Software Engineer, Gov",
+   "Full Stack Software Engineer - Codex for",
+   "Software Engineer, Build Systems / CI",
+   "View OpenAI's KB profile",
+   "41 ATS",
+   "Close panel",
+   "Pass — it won't come back",
+   "Save for later",
+   "0 Out of drafts — all 10 used in the las",
+   "Write a cover letter",
+   "I submitted it",
+   "U.S. Department of Labor, OFLC LCA discl",
+   "What changed"
+  ],
+  "features": [
+   "match / fit",
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "tracking / status",
+   "filters / sort",
+   "extension"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "tracking / status",
+   "filters / sort",
+   "extension"
+  ],
+  "terms": {
+   "ATS": {
+    "count": 1,
+    "examples": [
+     "ATS"
+    ],
+    "context": "ATS"
+   },
+   "API": {
+    "count": 4,
+    "examples": [
+     "API"
+    ],
+    "context": "Software Engineer, API Enterprise Controls"
+   },
+   "signals": {
+    "count": 1,
+    "examples": [
+     "signals"
+    ],
+    "context": "ranked from signals, not a probability"
+   },
+   "cache": {
+    "count": 1,
+    "examples": [
+     "Caching"
+    ],
+    "context": "Software Engineer, Caching Infrastructure"
+   }
+  },
+  "pageHeight": 800,
+  "overflowX": 0
+ },
+ {
+  "id": "board-posting",
+  "name": "Full House — a posting opened",
+  "path": "/app/jobs",
+  "width": 390,
+  "opened": "Backend Software Engineer, Gov",
+  "note": "sign-in 200",
+  "url": "/app/jobs?job=ashby%3A%3Aa90cdb7c-1c33-4fca-9a96-26c236006f14",
+  "errors": [],
+  "shot": "board-posting-390.jpg",
+  "wordsFold": 233,
+  "wordsPage": 1671,
+  "ownFold": 229,
+  "ownPage": 970,
+  "actionsFold": 34,
+  "actionsPage": 345,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "all",
+   "the United States",
+   "ALL 746",
+   "★ 0",
+   "/d 0",
+   "+ 0",
+   "Search jobs",
+   "Sort: For you",
+   "Get the extension",
+   "Not now",
+   "3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18",
+   "Best bet Software Engineer, IP Infrastru",
+   "Best bet Software Engineer, Agent Auth ·",
+   "Best bet Staff Software Engineer, Data A",
+   "Best bet Staff+ Software Engineer, Platf",
+   "View OpenAI's KB profile",
+   "OpenAI",
+   "41 ATS",
+   "Close panel",
+   "Pass",
+   "Save",
+   "0 Out of drafts",
+   "Letter",
+   "I submitted it",
+   "U.S. Department of Labor, OFLC LCA discl",
+   "What changed"
+  ],
+  "features": [
+   "match / fit",
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "tracking / status",
+   "filters / sort",
+   "extension"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "tracking / status",
+   "filters / sort",
+   "extension"
+  ],
+  "terms": {
+   "ATS": {
+    "count": 3,
+    "examples": [
+     "ATS"
+    ],
+    "context": "ATS"
+   },
+   "API": {
+    "count": 4,
+    "examples": [
+     "API"
+    ],
+    "context": "Software Engineer, API Enterprise Controls"
+   },
+   "signals": {
+    "count": 1,
+    "examples": [
+     "signals"
+    ],
+    "context": "ranked from signals, not a probability"
+   },
+   "cache": {
+    "count": 1,
+    "examples": [
+     "Caching"
+    ],
+    "context": "Software Engineer, Caching Infrastructure"
+   }
+  },
+  "pageHeight": 844,
+  "overflowX": 0
+ },
+ {
+  "id": "draft-house",
+  "name": "Draft House",
+  "path": "/app/auto-apply",
+  "width": 1280,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/auto-apply",
+  "errors": [],
+  "shot": "draft-house-1280.jpg",
+  "wordsFold": 77,
+  "wordsPage": 77,
+  "ownFold": 69,
+  "ownPage": 69,
+  "actionsFold": 26,
+  "actionsPage": 26,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Ask me first",
+   "Apply for me",
+   "Pause",
+   "Settings",
+   "All",
+   "Needs you",
+   "Running",
+   "Sent and replies",
+   "Stopped",
+   "Search, e.g. a company",
+   "−",
+   "+",
+   "I",
+   "J",
+   "T",
+   "Q",
+   "L",
+   "R",
+   "S",
+   "O"
+  ],
+  "features": [
+   "tailoring / drafts",
+   "auto-apply",
+   "tracking / status"
+  ],
+  "featuresFold": [
+   "tailoring / drafts",
+   "auto-apply",
+   "tracking / status"
+  ],
+  "terms": {},
+  "pageHeight": 800,
+  "overflowX": 0
+ },
+ {
+  "id": "draft-house",
+  "name": "Draft House",
+  "path": "/app/auto-apply",
+  "width": 390,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/auto-apply",
+  "errors": [],
+  "shot": "draft-house-390.jpg",
+  "wordsFold": 77,
+  "wordsPage": 77,
+  "ownFold": 69,
+  "ownPage": 69,
+  "actionsFold": 26,
+  "actionsPage": 26,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Ask me first",
+   "Apply for me",
+   "Pause",
+   "Settings",
+   "All",
+   "Needs you",
+   "Running",
+   "Sent and replies",
+   "Stopped",
+   "Search, e.g. a company",
+   "−",
+   "+",
+   "I",
+   "J",
+   "T",
+   "Q",
+   "L",
+   "R",
+   "S",
+   "O"
+  ],
+  "features": [
+   "tailoring / drafts",
+   "auto-apply",
+   "tracking / status"
+  ],
+  "featuresFold": [
+   "tailoring / drafts",
+   "auto-apply",
+   "tracking / status"
+  ],
+  "terms": {},
+  "pageHeight": 844,
+  "overflowX": 0
+ },
+ {
+  "id": "draft-house-branch",
+  "name": "Draft House — an application opened",
+  "path": "/app/auto-apply",
+  "width": 1280,
+  "opened": "Ironwood Security (sample), Staff Backend Engineer (sample p",
+  "note": "sign-in 200",
+  "url": "/app/auto-apply",
+  "errors": [],
+  "shot": "draft-house-branch-1280.jpg",
+  "wordsFold": 86,
+  "wordsPage": 132,
+  "ownFold": 78,
+  "ownPage": 124,
+  "actionsFold": 31,
+  "actionsPage": 35,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Ask me first",
+   "Apply for me",
+   "Pause",
+   "Settings",
+   "All",
+   "Needs you",
+   "Running",
+   "Sent and replies",
+   "Stopped",
+   "Search, e.g. a company",
+   "−",
+   "+",
+   "I",
+   "J",
+   "T",
+   "Q",
+   "L",
+   "R",
+   "S",
+   "O",
+   "×",
+   "Run it again",
+   "Clear",
+   "Full page",
+   "What happened 1 attempt, stopped ›"
+  ],
+  "features": [
+   "tailoring / drafts",
+   "auto-apply",
+   "tracking / status"
+  ],
+  "featuresFold": [
+   "tailoring / drafts",
+   "auto-apply",
+   "tracking / status"
+  ],
+  "terms": {
+   "run": {
+    "count": 1,
+    "examples": [
+     "Run"
+    ],
+    "context": "Run it again"
+   }
+  },
+  "pageHeight": 1290,
+  "overflowX": 0
+ },
+ {
+  "id": "draft-house-branch",
+  "name": "Draft House — an application opened",
+  "path": "/app/auto-apply",
+  "width": 390,
+  "opened": "Ironwood Security (sample), Staff Backend Engineer (sample p",
+  "note": "sign-in 200",
+  "url": "/app/auto-apply",
+  "errors": [],
+  "shot": "draft-house-branch-390.jpg",
+  "wordsFold": 82,
+  "wordsPage": 132,
+  "ownFold": 74,
+  "ownPage": 124,
+  "actionsFold": 27,
+  "actionsPage": 35,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Ask me first",
+   "Apply for me",
+   "Pause",
+   "Settings",
+   "All",
+   "Needs you",
+   "Running",
+   "Sent and replies",
+   "Stopped",
+   "Search, e.g. a company",
+   "−",
+   "+",
+   "I",
+   "J",
+   "T",
+   "Q",
+   "L",
+   "R",
+   "S",
+   "O",
+   "×"
+  ],
+  "features": [
+   "tailoring / drafts",
+   "auto-apply",
+   "tracking / status"
+  ],
+  "featuresFold": [
+   "tailoring / drafts",
+   "auto-apply",
+   "tracking / status"
+  ],
+  "terms": {
+   "run": {
+    "count": 1,
+    "examples": [
+     "Run"
+    ],
+    "context": "Run it again"
+   }
+  },
+  "pageHeight": 1378,
+  "overflowX": 0
+ },
+ {
+  "id": "table",
+  "name": "The Table",
+  "path": "/app/database",
+  "width": 1280,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/database",
+  "errors": [],
+  "shot": "table-1280.jpg",
+  "wordsFold": 151,
+  "wordsPage": 169,
+  "ownFold": 127,
+  "ownPage": 141,
+  "actionsFold": 39,
+  "actionsPage": 40,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "History",
+   "Spreadsheet 6",
+   "Resumes 0",
+   "Saved Jobs",
+   "Pending Apply 0",
+   "Not applied 0",
+   "Inbox",
+   "↻ Refresh",
+   "📥 Export Excel",
+   "Search applications",
+   "INPUT",
+   "List",
+   "By company",
+   "Board",
+   "Funnel",
+   "Newest Oldest A–Z Awaiting longest",
+   "Export CSV",
+   "Import CSV",
+   "In play 0",
+   "Sent 4",
+   "Screen 1",
+   "Interviewing 0",
+   "Offer 0",
+   "Rejected 1",
+   "No reply 0",
+   "Closed 0",
+   "Did they reply?",
+   "Litware (synthetic) Backend Engineer, Pa",
+   "Northwind Labs (synthetic) Backend Engin",
+   "Fabrikam (synthetic) Senior Software Eng",
+   "Contoso (synthetic) Platform Engineer Se",
+   "Tailspin (synthetic) Software Engineer I"
+  ],
+  "features": [
+   "tracking / status",
+   "inbox / email",
+   "filters / sort"
+  ],
+  "featuresFold": [
+   "tracking / status",
+   "inbox / email",
+   "filters / sort"
+  ],
+  "terms": {},
+  "pageHeight": 939,
+  "overflowX": 0
+ },
+ {
+  "id": "table",
+  "name": "The Table",
+  "path": "/app/database",
+  "width": 390,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/database",
+  "errors": [],
+  "shot": "table-390.jpg",
+  "wordsFold": 98,
+  "wordsPage": 175,
+  "ownFold": 88,
+  "ownPage": 147,
+  "actionsFold": 33,
+  "actionsPage": 46,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "History",
+   "Spreadsheet 6",
+   "Resumes 0",
+   "Saved Jobs",
+   "Search applications",
+   "INPUT",
+   "List",
+   "By company",
+   "Board",
+   "Funnel",
+   "Newest Oldest A–Z Awaiting longest",
+   "Export CSV",
+   "Import CSV",
+   "In play 0",
+   "Sent 4",
+   "Screen 1",
+   "Interviewing 0",
+   "Offer 0",
+   "Rejected 1",
+   "No reply 0",
+   "Closed 0",
+   "Did they reply?",
+   "Litware (synthetic) Backend Engineer, Pa",
+   "⌂ posting",
+   "Northwind Labs (synthetic) Backend Engin"
+  ],
+  "features": [
+   "tracking / status",
+   "inbox / email",
+   "filters / sort"
+  ],
+  "featuresFold": [
+   "tracking / status",
+   "filters / sort"
+  ],
+  "terms": {},
+  "pageHeight": 1542,
+  "overflowX": 0
+ },
+ {
+  "id": "table-row",
+  "name": "The Table — a row opened",
+  "path": "/app/database",
+  "width": 1280,
+  "opened": "Litware (synthetic) Backend Engineer, Payments Sent Oct 31, ",
+  "note": "sign-in 200",
+  "url": "/app/database",
+  "errors": [],
+  "shot": "table-row-1280.jpg",
+  "wordsFold": 158,
+  "wordsPage": 201,
+  "ownFold": 139,
+  "ownPage": 173,
+  "actionsFold": 44,
+  "actionsPage": 46,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "History",
+   "Spreadsheet 6",
+   "Resumes 0",
+   "Saved Jobs",
+   "Pending Apply 0",
+   "Not applied 0",
+   "Inbox",
+   "↻ Refresh",
+   "📥 Export Excel",
+   "Search applications",
+   "INPUT",
+   "List",
+   "By company",
+   "Board",
+   "Funnel",
+   "Newest Oldest A–Z Awaiting longest",
+   "Export CSV",
+   "Import CSV",
+   "In play 0",
+   "Sent 4",
+   "Screen 1",
+   "Interviewing 0",
+   "Offer 0",
+   "Rejected 1",
+   "No reply 0",
+   "Closed 0",
+   "Did they reply?",
+   "Litware (synthetic) Backend Engineer, Pa",
+   "No response",
+   "Rejected",
+   "Screen",
+   "Interview",
+   "Offer",
+   "Withdrawn"
+  ],
+  "features": [
+   "tailoring / drafts",
+   "tracking / status",
+   "inbox / email",
+   "filters / sort"
+  ],
+  "featuresFold": [
+   "tailoring / drafts",
+   "tracking / status",
+   "inbox / email",
+   "filters / sort"
+  ],
+  "terms": {},
+  "pageHeight": 1056,
+  "overflowX": 0
+ },
+ {
+  "id": "table-row",
+  "name": "The Table — a row opened",
+  "path": "/app/database",
+  "width": 390,
+  "opened": "Litware (synthetic) Backend Engineer, Payments Sent Oct 31, ",
+  "note": "sign-in 200",
+  "url": "/app/database",
+  "errors": [],
+  "shot": "table-row-390.jpg",
+  "wordsFold": 95,
+  "wordsPage": 207,
+  "ownFold": 90,
+  "ownPage": 179,
+  "actionsFold": 31,
+  "actionsPage": 52,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "History",
+   "Spreadsheet 6",
+   "Resumes 0",
+   "Saved Jobs",
+   "Search applications",
+   "INPUT",
+   "List",
+   "By company",
+   "Board",
+   "Funnel",
+   "Newest Oldest A–Z Awaiting longest",
+   "Export CSV",
+   "Import CSV",
+   "In play 0",
+   "Sent 4",
+   "Screen 1",
+   "Interviewing 0",
+   "Offer 0",
+   "Rejected 1",
+   "No reply 0",
+   "Closed 0",
+   "Did they reply?",
+   "Litware (synthetic) Backend Engineer, Pa",
+   "⌂ posting"
+  ],
+  "features": [
+   "tailoring / drafts",
+   "tracking / status",
+   "inbox / email",
+   "filters / sort"
+  ],
+  "featuresFold": [
+   "tailoring / drafts",
+   "tracking / status",
+   "filters / sort"
+  ],
+  "terms": {},
+  "pageHeight": 1840,
+  "overflowX": 0
+ },
+ {
+  "id": "inbox",
+  "name": "The Table — Inbox",
+  "path": "/app/database",
+  "width": 1280,
+  "opened": "Inbox",
+  "note": "sign-in 200",
+  "url": "/app/database",
+  "errors": [],
+  "shot": "inbox-1280.jpg",
+  "wordsFold": 80,
+  "wordsPage": 80,
+  "ownFold": 80,
+  "ownPage": 80,
+  "actionsFold": 25,
+  "actionsPage": 25,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "History",
+   "Spreadsheet 6",
+   "Resumes 0",
+   "Saved Jobs",
+   "Pending Apply 0",
+   "Not applied 0",
+   "Inbox",
+   "↻ Refresh",
+   "📥 Export Excel",
+   "All",
+   "Applied",
+   "Verification",
+   "Interview",
+   "Assessment",
+   "Recruiter",
+   "Reminder",
+   "Offer",
+   "Rejection",
+   "Other"
+  ],
+  "features": [
+   "tailoring / drafts",
+   "tracking / status",
+   "inbox / email"
+  ],
+  "featuresFold": [
+   "tailoring / drafts",
+   "tracking / status",
+   "inbox / email"
+  ],
+  "terms": {},
+  "pageHeight": 800,
+  "overflowX": 0
+ },
+ {
+  "id": "inbox",
+  "name": "The Table — Inbox",
+  "path": "/app/database",
+  "width": 390,
+  "opened": "Inbox",
+  "note": "sign-in 200",
+  "url": "/app/database",
+  "errors": [],
+  "shot": "inbox-390.jpg",
+  "wordsFold": 70,
+  "wordsPage": 80,
+  "ownFold": 70,
+  "ownPage": 80,
+  "actionsFold": 20,
+  "actionsPage": 25,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "History",
+   "Spreadsheet 6",
+   "Resumes 0",
+   "Saved Jobs",
+   "All",
+   "Applied",
+   "Verification",
+   "Interview",
+   "Assessment",
+   "Recruiter",
+   "Reminder",
+   "Offer",
+   "Rejection",
+   "Other"
+  ],
+  "features": [
+   "tailoring / drafts",
+   "tracking / status",
+   "inbox / email"
+  ],
+  "featuresFold": [
+   "tailoring / drafts",
+   "tracking / status",
+   "inbox / email"
+  ],
+  "terms": {},
+  "pageHeight": 844,
+  "overflowX": 0
+ },
+ {
+  "id": "atlas",
+  "name": "Atlas home",
+  "path": "/app/atlas",
+  "width": 1280,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/atlas",
+  "errors": [],
+  "shot": "atlas-1280.jpg",
+  "wordsFold": 249,
+  "wordsPage": 746,
+  "ownFold": 249,
+  "ownPage": 746,
+  "actionsFold": 27,
+  "actionsPage": 187,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "What it is",
+   "Choose another aim",
+   "Classical machine learning",
+   "Aim there",
+   "See this week's best bets",
+   "Check where you stand on your skills",
+   "Look up a role, skill, tool or stack",
+   "Look up",
+   "ML",
+   "Systems",
+   "Infra",
+   "Data",
+   "Backend",
+   "5G",
+   "A-GPS",
+   "ACH and SEPA",
+   "ADC and DAC",
+   "ADS-B",
+   "AI agent and tool use",
+   "AI alignment",
+   "ALU"
+  ],
+  "features": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness"
+  ],
+  "featuresFold": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness"
+  ],
+  "terms": {
+   "ring": {
+    "count": 3,
+    "examples": [
+     "ring"
+    ],
+    "context": "ones you don't yet. The further out a square sits, the further it is from what you know. S"
+   },
+   "branch": {
+    "count": 3,
+    "examples": [
+     "branch",
+     "Branches"
+    ],
+    "context": "Each family is a branch from you."
+   },
+   "pipeline": {
+    "count": 2,
+    "examples": [
+     "pipelines"
+    ],
+    "context": "reliability → observability → machine learning → React → data pipelines, ≈ 10 weeks"
+   },
+   "API": {
+    "count": 2,
+    "examples": [
+     "API"
+    ],
+    "context": "Next up: API"
+   },
+   "family": {
+    "count": 3,
+    "examples": [
+     "family",
+     "families"
+    ],
+    "context": "Each family is a branch from you."
+   },
+   "seniority": {
+    "count": 1,
+    "examples": [
+     "seniority"
+    ],
+    "context": "Set an aim to see what seniority adds."
+   },
+   "model": {
+    "count": 3,
+    "examples": [
+     "model",
+     "LLM"
+    ],
+    "context": "Multimodal model"
+   }
+  },
+  "pageHeight": 3044,
+  "overflowX": 0
+ },
+ {
+  "id": "atlas",
+  "name": "Atlas home",
+  "path": "/app/atlas",
+  "width": 390,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/atlas",
+  "errors": [],
+  "shot": "atlas-390.jpg",
+  "wordsFold": 143,
+  "wordsPage": 746,
+  "ownFold": 143,
+  "ownPage": 746,
+  "actionsFold": 9,
+  "actionsPage": 187,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "What it is",
+   "Choose another aim",
+   "Classical machine learning"
+  ],
+  "features": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness"
+  ],
+  "featuresFold": [
+   "Learn / readiness"
+  ],
+  "terms": {
+   "ring": {
+    "count": 3,
+    "examples": [
+     "ring"
+    ],
+    "context": "ones you don't yet. The further out a square sits, the further it is from what you know. S"
+   },
+   "branch": {
+    "count": 3,
+    "examples": [
+     "branch",
+     "Branches"
+    ],
+    "context": "Each family is a branch from you."
+   },
+   "pipeline": {
+    "count": 2,
+    "examples": [
+     "pipelines"
+    ],
+    "context": "reliability → observability → machine learning → React → data pipelines, ≈ 10 weeks"
+   },
+   "API": {
+    "count": 2,
+    "examples": [
+     "API"
+    ],
+    "context": "Next up: API"
+   },
+   "family": {
+    "count": 3,
+    "examples": [
+     "family",
+     "families"
+    ],
+    "context": "Each family is a branch from you."
+   },
+   "seniority": {
+    "count": 1,
+    "examples": [
+     "seniority"
+    ],
+    "context": "Set an aim to see what seniority adds."
+   },
+   "model": {
+    "count": 3,
+    "examples": [
+     "model",
+     "LLM"
+    ],
+    "context": "Multimodal model"
+   }
+  },
+  "pageHeight": 4116,
+  "overflowX": 0
+ },
+ {
+  "id": "your-map",
+  "name": "Atlas — Your map, a waypoint opened (side panel)",
+  "path": "/app/atlas",
+  "width": 1280,
+  "opened": "Your skills",
+  "note": "sign-in 200",
+  "url": "/app/atlas",
+  "errors": [],
+  "shot": "your-map-1280.jpg",
+  "wordsFold": 255,
+  "wordsPage": 671,
+  "ownFold": 255,
+  "ownPage": 671,
+  "actionsFold": 28,
+  "actionsPage": 187,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "What it is",
+   "Choose another aim",
+   "Classical machine learning",
+   "Aim there",
+   "See this week's best bets",
+   "Check where you stand on your skills",
+   "ML family — ML · you have 0 of 17",
+   "Look up a role, skill, tool or stack",
+   "Look up",
+   "ML",
+   "Systems",
+   "Infra",
+   "Data",
+   "Backend",
+   "5G",
+   "A-GPS",
+   "ACH and SEPA",
+   "ADC and DAC",
+   "ADS-B",
+   "AI agent and tool use",
+   "AI alignment",
+   "ALU"
+  ],
+  "features": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness"
+  ],
+  "featuresFold": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness"
+  ],
+  "terms": {
+   "ring": {
+    "count": 2,
+    "examples": [
+     "ring"
+    ],
+    "context": "Orange ring: rises toward senior"
+   },
+   "branch": {
+    "count": 1,
+    "examples": [
+     "Branches"
+    ],
+    "context": "Branches"
+   },
+   "pipeline": {
+    "count": 2,
+    "examples": [
+     "pipelines"
+    ],
+    "context": "reliability → observability → machine learning → React → data pipelines, ≈ 10 weeks"
+   },
+   "API": {
+    "count": 2,
+    "examples": [
+     "API"
+    ],
+    "context": "Next up: API"
+   },
+   "family": {
+    "count": 1,
+    "examples": [
+     "families"
+    ],
+    "context": "The families"
+   },
+   "seniority": {
+    "count": 1,
+    "examples": [
+     "seniority"
+    ],
+    "context": "Set an aim to see what seniority adds."
+   },
+   "model": {
+    "count": 3,
+    "examples": [
+     "model",
+     "LLM"
+    ],
+    "context": "Multimodal model"
+   }
+  },
+  "pageHeight": 3044,
+  "overflowX": 0
+ },
+ {
+  "id": "your-map",
+  "name": "Atlas — Your map, a waypoint opened (side panel)",
+  "path": "/app/atlas",
+  "width": 390,
+  "opened": "Your skills",
+  "note": "sign-in 200",
+  "url": "/app/atlas",
+  "errors": [],
+  "shot": "your-map-390.jpg",
+  "wordsFold": 143,
+  "wordsPage": 671,
+  "ownFold": 143,
+  "ownPage": 671,
+  "actionsFold": 9,
+  "actionsPage": 187,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "What it is",
+   "Choose another aim",
+   "Classical machine learning"
+  ],
+  "features": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness"
+  ],
+  "featuresFold": [
+   "Learn / readiness"
+  ],
+  "terms": {
+   "ring": {
+    "count": 2,
+    "examples": [
+     "ring"
+    ],
+    "context": "Orange ring: rises toward senior"
+   },
+   "branch": {
+    "count": 1,
+    "examples": [
+     "Branches"
+    ],
+    "context": "Branches"
+   },
+   "pipeline": {
+    "count": 2,
+    "examples": [
+     "pipelines"
+    ],
+    "context": "reliability → observability → machine learning → React → data pipelines, ≈ 10 weeks"
+   },
+   "API": {
+    "count": 2,
+    "examples": [
+     "API"
+    ],
+    "context": "Next up: API"
+   },
+   "family": {
+    "count": 1,
+    "examples": [
+     "families"
+    ],
+    "context": "The families"
+   },
+   "seniority": {
+    "count": 1,
+    "examples": [
+     "seniority"
+    ],
+    "context": "Set an aim to see what seniority adds."
+   },
+   "model": {
+    "count": 3,
+    "examples": [
+     "model",
+     "LLM"
+    ],
+    "context": "Multimodal model"
+   }
+  },
+  "pageHeight": 3893,
+  "overflowX": 0
+ },
+ {
+  "id": "learn",
+  "name": "Learn (the circle)",
+  "path": "/app/atlas/learn",
+  "width": 1280,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/atlas/learn",
+  "errors": [],
+  "shot": "learn-1280.jpg",
+  "wordsFold": 228,
+  "wordsPage": 699,
+  "ownFold": 228,
+  "ownPage": 699,
+  "actionsFold": 62,
+  "actionsPage": 142,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "The circle",
+   "Learning path",
+   "LeetCode pattern atlas",
+   "Concept index",
+   "The whole circle",
+   "Make sense of Kubernetes",
+   "Backend → senior",
+   "System design interviews",
+   "From your map",
+   "Make a route to a concept",
+   "Make a route",
+   "1",
+   "2",
+   "3",
+   "4",
+   "5",
+   "6",
+   "7",
+   "8",
+   "9",
+   "10",
+   "11",
+   "12",
+   "13",
+   "14",
+   "15",
+   "16",
+   "17",
+   "18",
+   "19",
+   "20",
+   "21",
+   "22",
+   "89"
+  ],
+  "features": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness",
+   "profiles / saved answers"
+  ],
+  "featuresFold": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness"
+  ],
+  "terms": {
+   "gate": {
+    "count": 2,
+    "examples": [
+     "gates",
+     "gate"
+    ],
+    "context": "No need to finish it before moving on. Read through the chapters on relays, logic gates an"
+   },
+   "signals": {
+    "count": 2,
+    "examples": [
+     "signal",
+     "signals"
+    ],
+    "context": "A path from a flashlight signal to the phones, machines, networks, money and AI systems of"
+   }
+  },
+  "pageHeight": 1552,
+  "overflowX": 0
+ },
+ {
+  "id": "learn",
+  "name": "Learn (the circle)",
+  "path": "/app/atlas/learn",
+  "width": 390,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/atlas/learn",
+  "errors": [],
+  "shot": "learn-390.jpg",
+  "wordsFold": 119,
+  "wordsPage": 699,
+  "ownFold": 119,
+  "ownPage": 699,
+  "actionsFold": 17,
+  "actionsPage": 142,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "The circle",
+   "Learning path",
+   "LeetCode pattern atlas",
+   "Concept index",
+   "The whole circle",
+   "Make sense of Kubernetes",
+   "Backend → senior",
+   "System design interviews",
+   "From your map",
+   "Make a route to a concept",
+   "Make a route"
+  ],
+  "features": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness",
+   "profiles / saved answers"
+  ],
+  "featuresFold": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness"
+  ],
+  "terms": {
+   "gate": {
+    "count": 2,
+    "examples": [
+     "gates",
+     "gate"
+    ],
+    "context": "No need to finish it before moving on. Read through the chapters on relays, logic gates an"
+   },
+   "signals": {
+    "count": 2,
+    "examples": [
+     "signal",
+     "signals"
+    ],
+    "context": "A path from a flashlight signal to the phones, machines, networks, money and AI systems of"
+   }
+  },
+  "pageHeight": 2493,
+  "overflowX": 0
+ },
+ {
+  "id": "learn-piece",
+  "name": "Learn — a piece opened",
+  "path": "/app/atlas/learn",
+  "width": 1280,
+  "opened": "Flashlights to the first CPU, piece 1 of 108, not ",
+  "note": "sign-in 200",
+  "url": "/app/atlas/learn",
+  "errors": [],
+  "shot": "learn-piece-1280.jpg",
+  "wordsFold": 191,
+  "wordsPage": 549,
+  "ownFold": 191,
+  "ownPage": 549,
+  "actionsFold": 25,
+  "actionsPage": 41,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "The circle",
+   "Learning path",
+   "LeetCode pattern atlas",
+   "Concept index",
+   "The whole circle",
+   "Make sense of Kubernetes",
+   "Backend → senior",
+   "System design interviews",
+   "From your map",
+   "Make a route to a concept",
+   "Make a route",
+   "1 1 Part 1 · Part 1: Foundations Piece 1",
+   "102",
+   "103",
+   "104",
+   "105",
+   "106",
+   "107",
+   "108"
+  ],
+  "features": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness",
+   "profiles / saved answers"
+  ],
+  "featuresFold": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness"
+  ],
+  "terms": {
+   "gate": {
+    "count": 2,
+    "examples": [
+     "gates",
+     "gate"
+    ],
+    "context": "No need to finish it before moving on. Read through the chapters on relays, logic gates an"
+   },
+   "signals": {
+    "count": 2,
+    "examples": [
+     "signal",
+     "signals"
+    ],
+    "context": "A path from a flashlight signal to the phones, machines, networks, money and AI systems of"
+   }
+  },
+  "pageHeight": 1552,
+  "overflowX": 0
+ },
+ {
+  "id": "learn-piece",
+  "name": "Learn — a piece opened",
+  "path": "/app/atlas/learn",
+  "width": 390,
+  "opened": "Flashlights to the first CPU, piece 1 of 108, not ",
+  "note": "sign-in 200",
+  "url": "/app/atlas/learn",
+  "errors": [],
+  "shot": "learn-piece-390.jpg",
+  "wordsFold": 119,
+  "wordsPage": 549,
+  "ownFold": 119,
+  "ownPage": 549,
+  "actionsFold": 23,
+  "actionsPage": 41,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "The circle",
+   "Learning path",
+   "LeetCode pattern atlas",
+   "Concept index",
+   "The whole circle",
+   "Make sense of Kubernetes",
+   "Backend → senior",
+   "System design interviews",
+   "From your map",
+   "Make a route to a concept",
+   "Make a route",
+   "102",
+   "103",
+   "104",
+   "105",
+   "106",
+   "107"
+  ],
+  "features": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness",
+   "profiles / saved answers"
+  ],
+  "featuresFold": [
+   "tracking / status",
+   "Atlas / map",
+   "Learn / readiness"
+  ],
+  "terms": {
+   "gate": {
+    "count": 2,
+    "examples": [
+     "gates",
+     "gate"
+    ],
+    "context": "No need to finish it before moving on. Read through the chapters on relays, logic gates an"
+   },
+   "signals": {
+    "count": 2,
+    "examples": [
+     "signal",
+     "signals"
+    ],
+    "context": "A path from a flashlight signal to the phones, machines, networks, money and AI systems of"
+   }
+  },
+  "pageHeight": 2493,
+  "overflowX": 0
+ },
+ {
+  "id": "readiness",
+  "name": "Atlas — readiness check",
+  "path": "/app/atlas/check",
+  "width": 1280,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/atlas/check",
+  "errors": [],
+  "shot": "readiness-1280.jpg",
+  "wordsFold": 127,
+  "wordsPage": 127,
+  "ownFold": 127,
+  "ownPage": 127,
+  "actionsFold": 9,
+  "actionsPage": 9,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "on"
+  ],
+  "features": [
+   "Learn / readiness"
+  ],
+  "featuresFold": [
+   "Learn / readiness"
+  ],
+  "terms": {
+   "claim(ed)": {
+    "count": 10,
+    "examples": [
+     "claim",
+     "Claimed"
+    ],
+    "context": "A short check on a skill you claim: harder when you're right, easier when you're not. It's"
+   }
+  },
+  "pageHeight": 800,
+  "overflowX": 0
+ },
+ {
+  "id": "readiness",
+  "name": "Atlas — readiness check",
+  "path": "/app/atlas/check",
+  "width": 390,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/atlas/check",
+  "errors": [],
+  "shot": "readiness-390.jpg",
+  "wordsFold": 127,
+  "wordsPage": 127,
+  "ownFold": 127,
+  "ownPage": 127,
+  "actionsFold": 9,
+  "actionsPage": 9,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "on"
+  ],
+  "features": [
+   "Learn / readiness"
+  ],
+  "featuresFold": [
+   "Learn / readiness"
+  ],
+  "terms": {
+   "claim(ed)": {
+    "count": 10,
+    "examples": [
+     "claim",
+     "Claimed"
+    ],
+    "context": "A short check on a skill you claim: harder when you're right, easier when you're not. It's"
+   }
+  },
+  "pageHeight": 844,
+  "overflowX": 0
+ },
+ {
+  "id": "profile",
+  "name": "Profile",
+  "path": "/app/profile",
+  "width": 1280,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/profile",
+  "errors": [],
+  "shot": "profile-1280.jpg",
+  "wordsFold": 52,
+  "wordsPage": 834,
+  "ownFold": 52,
+  "ownPage": 834,
+  "actionsFold": 13,
+  "actionsPage": 81,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Fill from your résumé…",
+   "First Last (or First Middle Last)",
+   "you@email.com",
+   "+1 (555) 000-0000 or 5550001234",
+   "linkedin.com/in/yourhandle",
+   "github.com/yourhandle",
+   "123 Main St"
+  ],
+  "features": [
+   "match / fit",
+   "eligibility / sponsorship",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "inbox / email",
+   "filters / sort",
+   "profiles / saved answers"
+  ],
+  "featuresFold": [
+   "tailoring / drafts",
+   "inbox / email",
+   "profiles / saved answers"
+  ],
+  "terms": {
+   "ATS": {
+    "count": 9,
+    "examples": [
+     "ATS"
+    ],
+    "context": "This base resume belongs only to the selected profile and drives profile-specific ATS/sear"
+   },
+   "picks": {
+    "count": 1,
+    "examples": [
+     "Pick"
+    ],
+    "context": "Pick broadly useful ATS suggestions here. Enhancement unlocks when you reach the threshold"
+   },
+   "held": {
+    "count": 1,
+    "examples": [
+     "Held"
+    ],
+    "context": "Nothing stored yet. Held runs offer to save the answers you write, so this fills itself as"
+   },
+   "run": {
+    "count": 1,
+    "examples": [
+     "runs"
+    ],
+    "context": "Nothing stored yet. Held runs offer to save the answers you write, so this fills itself as"
+   },
+   "crawl / scrape": {
+    "count": 1,
+    "examples": [
+     "scraped"
+    ],
+    "context": "ATS suggestions will appear here after enough scraped jobs surface recurring missing skill"
+   },
+   "signals": {
+    "count": 6,
+    "examples": [
+     "signal",
+     "Signals",
+     "signals"
+    ],
+    "context": "Job profile creation, editing, switching, and deletion now live in the dedicated Job Profi"
+   },
+   "keyword(s)": {
+    "count": 1,
+    "examples": [
+     "Keywords"
+    ],
+    "context": "Keywords — from your résumé"
+   },
+   "normalis/ze": {
+    "count": 1,
+    "examples": [
+     "normalised"
+    ],
+    "context": "Any format accepted — normalised to +1 (XXX) XXX-XXXX on save."
+   },
+   "cache": {
+    "count": 1,
+    "examples": [
+     "caching"
+    ],
+    "context": "Added Redis caching that halved the catalogue page's response time"
+   },
+   "hash / id": {
+    "count": 1,
+    "examples": [
+     "ID"
+    ],
+    "context": "Voluntary self-ID"
+   }
+  },
+  "pageHeight": 6339,
+  "overflowX": 0
+ },
+ {
+  "id": "profile",
+  "name": "Profile",
+  "path": "/app/profile",
+  "width": 390,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/profile",
+  "errors": [],
+  "shot": "profile-390.jpg",
+  "wordsFold": 52,
+  "wordsPage": 834,
+  "ownFold": 52,
+  "ownPage": 834,
+  "actionsFold": 13,
+  "actionsPage": 81,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Fill from your résumé…",
+   "First Last (or First Middle Last)",
+   "you@email.com",
+   "+1 (555) 000-0000 or 5550001234",
+   "linkedin.com/in/yourhandle",
+   "github.com/yourhandle",
+   "123 Main St"
+  ],
+  "features": [
+   "match / fit",
+   "eligibility / sponsorship",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "inbox / email",
+   "filters / sort",
+   "profiles / saved answers"
+  ],
+  "featuresFold": [
+   "tailoring / drafts",
+   "inbox / email",
+   "profiles / saved answers"
+  ],
+  "terms": {
+   "ATS": {
+    "count": 9,
+    "examples": [
+     "ATS"
+    ],
+    "context": "This base resume belongs only to the selected profile and drives profile-specific ATS/sear"
+   },
+   "picks": {
+    "count": 1,
+    "examples": [
+     "Pick"
+    ],
+    "context": "Pick broadly useful ATS suggestions here. Enhancement unlocks when you reach the threshold"
+   },
+   "held": {
+    "count": 1,
+    "examples": [
+     "Held"
+    ],
+    "context": "Nothing stored yet. Held runs offer to save the answers you write, so this fills itself as"
+   },
+   "run": {
+    "count": 1,
+    "examples": [
+     "runs"
+    ],
+    "context": "Nothing stored yet. Held runs offer to save the answers you write, so this fills itself as"
+   },
+   "crawl / scrape": {
+    "count": 1,
+    "examples": [
+     "scraped"
+    ],
+    "context": "ATS suggestions will appear here after enough scraped jobs surface recurring missing skill"
+   },
+   "signals": {
+    "count": 6,
+    "examples": [
+     "signal",
+     "Signals",
+     "signals"
+    ],
+    "context": "Job profile creation, editing, switching, and deletion now live in the dedicated Job Profi"
+   },
+   "keyword(s)": {
+    "count": 1,
+    "examples": [
+     "Keywords"
+    ],
+    "context": "Keywords — from your résumé"
+   },
+   "normalis/ze": {
+    "count": 1,
+    "examples": [
+     "normalised"
+    ],
+    "context": "Any format accepted — normalised to +1 (XXX) XXX-XXXX on save."
+   },
+   "cache": {
+    "count": 1,
+    "examples": [
+     "caching"
+    ],
+    "context": "Added Redis caching that halved the catalogue page's response time"
+   },
+   "hash / id": {
+    "count": 1,
+    "examples": [
+     "ID"
+    ],
+    "context": "Voluntary self-ID"
+   }
+  },
+  "pageHeight": 7903,
+  "overflowX": 0
+ },
+ {
+  "id": "auto-settings",
+  "name": "Auto settings (Draft House)",
+  "path": "/app/auto-apply",
+  "width": 1280,
+  "opened": "Settings",
+  "note": "sign-in 200",
+  "url": "/app/auto-apply",
+  "errors": [],
+  "shot": "auto-settings-1280.jpg",
+  "wordsFold": 271,
+  "wordsPage": 409,
+  "ownFold": 263,
+  "ownPage": 401,
+  "actionsFold": 34,
+  "actionsPage": 39,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Ask me first",
+   "Apply for me",
+   "Pause",
+   "Settings",
+   "✕",
+   "10",
+   "A run time to add",
+   "on",
+   "Done",
+   "All",
+   "Needs you",
+   "Running",
+   "Sent and replies",
+   "Stopped",
+   "Search, e.g. a company",
+   "−",
+   "+",
+   "I",
+   "J",
+   "T",
+   "Q",
+   "L",
+   "R",
+   "S",
+   "O"
+  ],
+  "features": [
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "tailoring / drafts",
+   "auto-apply",
+   "tracking / status",
+   "inbox / email",
+   "filters / sort",
+   "extension",
+   "profiles / saved answers"
+  ],
+  "featuresFold": [
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "tailoring / drafts",
+   "auto-apply",
+   "tracking / status",
+   "inbox / email",
+   "filters / sort"
+  ],
+  "terms": {
+   "picks": {
+    "count": 2,
+    "examples": [
+     "Picks",
+     "pick"
+    ],
+    "context": "Picks arrive by"
+   },
+   "run": {
+    "count": 3,
+    "examples": [
+     "run"
+    ],
+    "context": "Each run takes the jobs posted since the last."
+   }
+  },
+  "pageHeight": 800,
+  "overflowX": 0
+ },
+ {
+  "id": "auto-settings",
+  "name": "Auto settings (Draft House)",
+  "path": "/app/auto-apply",
+  "width": 390,
+  "opened": "Settings",
+  "note": "sign-in 200",
+  "url": "/app/auto-apply",
+  "errors": [],
+  "shot": "auto-settings-390.jpg",
+  "wordsFold": 276,
+  "wordsPage": 409,
+  "ownFold": 268,
+  "ownPage": 401,
+  "actionsFold": 35,
+  "actionsPage": 39,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Ask me first",
+   "Apply for me",
+   "Pause",
+   "Settings",
+   "✕",
+   "10",
+   "A run time to add",
+   "on",
+   "Done",
+   "All",
+   "Needs you",
+   "Running",
+   "Sent and replies",
+   "Stopped",
+   "Search, e.g. a company",
+   "−",
+   "+",
+   "I",
+   "J",
+   "T",
+   "Q",
+   "L",
+   "R",
+   "S",
+   "O"
+  ],
+  "features": [
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "tailoring / drafts",
+   "auto-apply",
+   "tracking / status",
+   "inbox / email",
+   "filters / sort",
+   "extension",
+   "profiles / saved answers"
+  ],
+  "featuresFold": [
+   "eligibility / sponsorship",
+   "freshness / ghost",
+   "tailoring / drafts",
+   "auto-apply",
+   "tracking / status",
+   "inbox / email",
+   "filters / sort"
+  ],
+  "terms": {
+   "picks": {
+    "count": 2,
+    "examples": [
+     "Picks",
+     "pick"
+    ],
+    "context": "Picks arrive by"
+   },
+   "run": {
+    "count": 3,
+    "examples": [
+     "run"
+    ],
+    "context": "Each run takes the jobs posted since the last."
+   }
+  },
+  "pageHeight": 844,
+  "overflowX": 0
+ },
+ {
+  "id": "account",
+  "name": "Account",
+  "path": "/app/account",
+  "width": 1280,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/account",
+  "errors": [],
+  "shot": "account-1280.jpg",
+  "wordsFold": 105,
+  "wordsPage": 1990,
+  "ownFold": 105,
+  "ownPage": 1990,
+  "actionsFold": 9,
+  "actionsPage": 188,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Upload picture",
+   "Alex Rivera",
+   "on"
+  ],
+  "features": [
+   "tailoring / drafts",
+   "tracking / status",
+   "inbox / email",
+   "referrals / warm paths",
+   "extension",
+   "plans / credits",
+   "profiles / saved answers"
+  ],
+  "featuresFold": [
+   "tailoring / drafts",
+   "tracking / status",
+   "inbox / email",
+   "profiles / saved answers"
+  ],
+  "terms": {
+   "KB / MB": {
+    "count": 1,
+    "examples": [
+     "2 MB"
+    ],
+    "context": "PNG, JPEG or WebP, up to 2 MB."
+   },
+   "provider": {
+    "count": 1,
+    "examples": [
+     "provider"
+    ],
+    "context": "Or, if it signs in with a provider:"
+   },
+   "JSON": {
+    "count": 1,
+    "examples": [
+     "JSON"
+    ],
+    "context": "A copy of everything Draft keeps for you, as JSON."
+   },
+   "model": {
+    "count": 3,
+    "examples": [
+     "model",
+     "Haiku",
+     "Sonnet"
+    ],
+    "context": "The model that rewrites your bullets for each job, and what it may say about your work."
+   }
+  },
+  "pageHeight": 11873,
+  "overflowX": 0
+ },
+ {
+  "id": "account",
+  "name": "Account",
+  "path": "/app/account",
+  "width": 390,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/app/account",
+  "errors": [],
+  "shot": "account-390.jpg",
+  "wordsFold": 90,
+  "wordsPage": 1998,
+  "ownFold": 90,
+  "ownPage": 1998,
+  "actionsFold": 8,
+  "actionsPage": 189,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Upload picture",
+   "Alex Rivera"
+  ],
+  "features": [
+   "tailoring / drafts",
+   "tracking / status",
+   "inbox / email",
+   "referrals / warm paths",
+   "extension",
+   "plans / credits",
+   "profiles / saved answers"
+  ],
+  "featuresFold": [
+   "tailoring / drafts",
+   "tracking / status",
+   "inbox / email",
+   "profiles / saved answers"
+  ],
+  "terms": {
+   "KB / MB": {
+    "count": 1,
+    "examples": [
+     "2 MB"
+    ],
+    "context": "PNG, JPEG or WebP, up to 2 MB."
+   },
+   "provider": {
+    "count": 1,
+    "examples": [
+     "provider"
+    ],
+    "context": "Or, if it signs in with a provider:"
+   },
+   "JSON": {
+    "count": 1,
+    "examples": [
+     "JSON"
+    ],
+    "context": "A copy of everything Draft keeps for you, as JSON."
+   },
+   "model": {
+    "count": 3,
+    "examples": [
+     "model",
+     "Haiku",
+     "Sonnet"
+    ],
+    "context": "The model that rewrites your bullets for each job, and what it may say about your work."
+   }
+  },
+  "pageHeight": 12582,
+  "overflowX": 0
+ },
+ {
+  "id": "job-page",
+  "name": "The job page (public)",
+  "path": "/jobs/persado-project-manager-7696",
+  "width": 1280,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/jobs/persado-project-manager-7696",
+  "errors": [],
+  "shot": "job-page-1280.jpg",
+  "wordsFold": 209,
+  "wordsPage": 687,
+  "ownFold": 209,
+  "ownPage": 687,
+  "actionsFold": 4,
+  "actionsPage": 4,
+  "actionLabelsFold": [
+   "/draft",
+   "Sign in",
+   "View the original posting",
+   "Draft this job"
+  ],
+  "features": [
+   "freshness / ghost",
+   "pay",
+   "tailoring / drafts",
+   "filters / sort",
+   "plans / credits"
+  ],
+  "featuresFold": [
+   "freshness / ghost",
+   "pay",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "terms": {
+   "enrichment": {
+    "count": 1,
+    "examples": [
+     "Enrichment"
+    ],
+    "context": "Employee Enrichment Fund to pursue a passion or upgrade your home office"
+   },
+   "model": {
+    "count": 1,
+    "examples": [
+     "model"
+    ],
+    "context": "Persado’s hybrid working model empowers both remote and in-office work equitably"
+   }
+  },
+  "pageHeight": 2673,
+  "overflowX": 0
+ },
+ {
+  "id": "job-page",
+  "name": "The job page (public)",
+  "path": "/jobs/persado-project-manager-7696",
+  "width": 390,
+  "opened": null,
+  "note": "sign-in 200",
+  "url": "/jobs/persado-project-manager-7696",
+  "errors": [],
+  "shot": "job-page-390.jpg",
+  "wordsFold": 209,
+  "wordsPage": 687,
+  "ownFold": 209,
+  "ownPage": 687,
+  "actionsFold": 4,
+  "actionsPage": 4,
+  "actionLabelsFold": [
+   "/draft",
+   "Sign in",
+   "View the original posting",
+   "Draft this job"
+  ],
+  "features": [
+   "freshness / ghost",
+   "pay",
+   "tailoring / drafts",
+   "filters / sort",
+   "plans / credits"
+  ],
+  "featuresFold": [
+   "freshness / ghost",
+   "pay",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "terms": {
+   "enrichment": {
+    "count": 1,
+    "examples": [
+     "Enrichment"
+    ],
+    "context": "Employee Enrichment Fund to pursue a passion or upgrade your home office"
+   },
+   "model": {
+    "count": 1,
+    "examples": [
+     "model"
+    ],
+    "context": "Persado’s hybrid working model empowers both remote and in-office work equitably"
+   }
+  },
+  "pageHeight": 4497,
+  "overflowX": 0
+ },
+ {
+  "id": "landing",
+  "name": "Landing (signed out)",
+  "path": "/",
+  "width": 1280,
+  "opened": null,
+  "note": "",
+  "url": "/",
+  "errors": [],
+  "shot": "landing-1280.jpg",
+  "wordsFold": 107,
+  "wordsPage": 265,
+  "ownFold": 107,
+  "ownPage": 265,
+  "actionsFold": 20,
+  "actionsPage": 30,
+  "actionLabelsFold": [
+   "Draft home",
+   "Products",
+   "Atlas",
+   "About",
+   "Blog",
+   "Sign In",
+   "Get Started",
+   "Get Started Free →",
+   "Job title",
+   "Location",
+   "Any Level",
+   "Any Domain",
+   "All Jobs",
+   "Search",
+   "Channable Account Executive - North Amer",
+   "Hygraph Senior Solutions Engineer (f/m/d",
+   "Persado Senior Account Manager Onsite Ap",
+   "Blueground Operations Lead - New York Ci",
+   "Persado Project Manager Onsite Apply pat",
+   "Notion Business Development Representati"
+  ],
+  "features": [
+   "match / fit",
+   "pay",
+   "tailoring / drafts",
+   "tracking / status",
+   "Atlas / map",
+   "filters / sort"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "pay",
+   "Atlas / map",
+   "filters / sort"
+  ],
+  "terms": {
+   "run": {
+    "count": 1,
+    "examples": [
+     "runs"
+    ],
+    "context": "Hiring? The same line runs the other way — find candidates, see the fit, reach out — start"
+   }
+  },
+  "pageHeight": 2604,
+  "overflowX": 0
+ },
+ {
+  "id": "landing",
+  "name": "Landing (signed out)",
+  "path": "/",
+  "width": 390,
+  "opened": null,
+  "note": "",
+  "url": "/",
+  "errors": [],
+  "shot": "landing-390.jpg",
+  "wordsFold": 52,
+  "wordsPage": 257,
+  "ownFold": 52,
+  "ownPage": 257,
+  "actionsFold": 11,
+  "actionsPage": 25,
+  "actionLabelsFold": [
+   "Draft home",
+   "Toggle menu",
+   "Get Started Free →",
+   "Job title",
+   "Location",
+   "Any Level",
+   "Any Domain",
+   "All Jobs",
+   "Search",
+   "Channable Account Executive - North Amer",
+   "Hygraph Senior Solutions Engineer (f/m/d"
+  ],
+  "features": [
+   "match / fit",
+   "pay",
+   "tailoring / drafts",
+   "tracking / status",
+   "filters / sort"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "pay",
+   "filters / sort"
+  ],
+  "terms": {
+   "run": {
+    "count": 1,
+    "examples": [
+     "runs"
+    ],
+    "context": "Hiring? The same line runs the other way — find candidates, see the fit, reach out — start"
+   }
+  },
+  "pageHeight": 4284,
+  "overflowX": 0
+ },
+ {
+  "id": "try",
+  "name": "Trial — /try (signed out)",
+  "path": "/try",
+  "width": 1280,
+  "opened": null,
+  "note": "",
+  "url": "/try",
+  "errors": [],
+  "shot": "try-1280.jpg",
+  "wordsFold": 63,
+  "wordsPage": 63,
+  "ownFold": 63,
+  "ownPage": 63,
+  "actionsFold": 9,
+  "actionsPage": 9,
+  "actionLabelsFold": [
+   "Draft home",
+   "Products",
+   "Atlas",
+   "About",
+   "Blog",
+   "Sign In",
+   "Get Started",
+   "Start",
+   "Sign in"
+  ],
+  "features": [
+   "match / fit",
+   "tailoring / drafts",
+   "tracking / status",
+   "Atlas / map"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "tailoring / drafts",
+   "tracking / status",
+   "Atlas / map"
+  ],
+  "terms": {
+   "picks": {
+    "count": 1,
+    "examples": [
+     "Pick"
+    ],
+    "context": "Pick a sample résumé, look through the jobs we match to it, choose 2, and watch draft tail"
+   }
+  },
+  "pageHeight": 888,
+  "overflowX": 0
+ },
+ {
+  "id": "try",
+  "name": "Trial — /try (signed out)",
+  "path": "/try",
+  "width": 390,
+  "opened": null,
+  "note": "",
+  "url": "/try",
+  "errors": [],
+  "shot": "try-390.jpg",
+  "wordsFold": 55,
+  "wordsPage": 55,
+  "ownFold": 55,
+  "ownPage": 55,
+  "actionsFold": 4,
+  "actionsPage": 4,
+  "actionLabelsFold": [
+   "Draft home",
+   "Toggle menu",
+   "Start",
+   "Sign in"
+  ],
+  "features": [
+   "match / fit",
+   "tailoring / drafts",
+   "tracking / status"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "tailoring / drafts",
+   "tracking / status"
+  ],
+  "terms": {
+   "picks": {
+    "count": 1,
+    "examples": [
+     "Pick"
+    ],
+    "context": "Pick a sample résumé, look through the jobs we match to it, choose 2, and watch draft tail"
+   }
+  },
+  "pageHeight": 932,
+  "overflowX": 0
+ },
+ {
+  "id": "try-samples",
+  "name": "Trial — choose a sample",
+  "path": "/try",
+  "width": 1280,
+  "opened": null,
+  "note": "sign-up 200",
+  "url": "/try",
+  "errors": [],
+  "shot": "try-samples-1280.jpg",
+  "wordsFold": 91,
+  "wordsPage": 91,
+  "ownFold": 91,
+  "ownPage": 91,
+  "actionsFold": 9,
+  "actionsPage": 9,
+  "actionLabelsFold": [
+   "Draft home",
+   "Products",
+   "Atlas",
+   "About",
+   "Blog",
+   "Dashboard",
+   "Sign Out",
+   "Use Sample A",
+   "Use Sample B"
+  ],
+  "features": [
+   "match / fit",
+   "tailoring / drafts",
+   "Atlas / map",
+   "Learn / readiness",
+   "profiles / saved answers"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "tailoring / drafts",
+   "Atlas / map",
+   "Learn / readiness",
+   "profiles / saved answers"
+  ],
+  "terms": {
+   "picks": {
+    "count": 2,
+    "examples": [
+     "Pick",
+     "pick"
+    ],
+    "context": "Pick a résumé"
+   }
+  },
+  "pageHeight": 888,
+  "overflowX": 0
+ },
+ {
+  "id": "try-samples",
+  "name": "Trial — choose a sample",
+  "path": "/try",
+  "width": 390,
+  "opened": null,
+  "note": "sign-up 200",
+  "url": "/try",
+  "errors": [],
+  "shot": "try-samples-390.jpg",
+  "wordsFold": 84,
+  "wordsPage": 84,
+  "ownFold": 84,
+  "ownPage": 84,
+  "actionsFold": 4,
+  "actionsPage": 4,
+  "actionLabelsFold": [
+   "Draft home",
+   "Toggle menu",
+   "Use Sample A",
+   "Use Sample B"
+  ],
+  "features": [
+   "match / fit",
+   "tailoring / drafts",
+   "Learn / readiness",
+   "profiles / saved answers"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "tailoring / drafts",
+   "Learn / readiness",
+   "profiles / saved answers"
+  ],
+  "terms": {
+   "picks": {
+    "count": 2,
+    "examples": [
+     "Pick",
+     "pick"
+    ],
+    "context": "Pick a résumé"
+   }
+  },
+  "pageHeight": 932,
+  "overflowX": 0
+ },
+ {
+  "id": "try-tour",
+  "name": "Trial — the tour's first step",
+  "path": "/try",
+  "width": 1280,
+  "opened": null,
+  "note": "sign-up 200 · sample A",
+  "url": "/app/today",
+  "errors": [],
+  "shot": "try-tour-1280.jpg",
+  "wordsFold": 310,
+  "wordsPage": 936,
+  "ownFold": 156,
+  "ownPage": 163,
+  "actionsFold": 21,
+  "actionsPage": 23,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Layout",
+   "Dealt",
+   "ATS match",
+   "‹",
+   "›",
+   "56% 3 of 6 skills · open the report Type",
+   "56% 3 of 4 skills · open the report Pyth",
+   "Open the posting ↓",
+   "56% 4 of 8 skills · open the report Pyth",
+   "Pass X",
+   "Save S",
+   "Draft D",
+   "on",
+   "Skip to the survey",
+   "Next"
+  ],
+  "features": [
+   "match / fit",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "terms": {
+   "ATS": {
+    "count": 1,
+    "examples": [
+     "ATS"
+    ],
+    "context": "ATS match"
+   },
+   "node": {
+    "count": 2,
+    "examples": [
+     "Node"
+    ],
+    "context": "Node.js"
+   },
+   "deck (as a word)": {
+    "count": 1,
+    "examples": [
+     "deck"
+    ],
+    "context": "These jobs were picked for this résumé from today's live postings. Watch the deck deal: th"
+   }
+  },
+  "pageHeight": 885,
+  "overflowX": 0
+ },
+ {
+  "id": "try-tour",
+  "name": "Trial — the tour's first step",
+  "path": "/try",
+  "width": 390,
+  "opened": null,
+  "note": "sign-up 200 · sample A",
+  "url": "/app/today",
+  "errors": [],
+  "shot": "try-tour-390.jpg",
+  "wordsFold": 157,
+  "wordsPage": 939,
+  "ownFold": 152,
+  "ownPage": 166,
+  "actionsFold": 22,
+  "actionsPage": 24,
+  "actionLabelsFold": [
+   "Daily Deck",
+   "Full House",
+   "Draft House",
+   "The Table",
+   "Atlas",
+   "D",
+   "Layout",
+   "Dealt",
+   "ATS match",
+   "‹",
+   "›",
+   "56% 3 of 6 skills · tap for the report T",
+   "56% 3 of 4 skills · tap for the report P",
+   "The full report ↑",
+   "Open the posting ↓",
+   "56% 4 of 8 skills · tap for the report P",
+   "Pass",
+   "Save",
+   "Draft",
+   "on",
+   "Skip to the survey",
+   "Next"
+  ],
+  "features": [
+   "match / fit",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "featuresFold": [
+   "match / fit",
+   "freshness / ghost",
+   "pay",
+   "ATS score",
+   "tailoring / drafts",
+   "filters / sort"
+  ],
+  "terms": {
+   "ATS": {
+    "count": 1,
+    "examples": [
+     "ATS"
+    ],
+    "context": "ATS match"
+   },
+   "node": {
+    "count": 2,
+    "examples": [
+     "Node"
+    ],
+    "context": "Node.js"
+   },
+   "deck (as a word)": {
+    "count": 1,
+    "examples": [
+     "deck"
+    ],
+    "context": "These jobs were picked for this résumé from today's live postings. Watch the deck deal: th"
+   }
+  },
+  "pageHeight": 1040,
+  "overflowX": 0
+ }
+]
