@@ -10,6 +10,9 @@
 // ⛔ The import is ALL OR NOTHING: one bad row (an unknown slug, a node that already has a definition, too long,
 // more than two sentences, a link, a duplicate) refuses the file and names every problem.
 
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { autoPublish } from "./atlasPublish.js";
 
 export const DEFINITION_EXPORT_MAX = 30;
@@ -17,7 +20,7 @@ export const DEFINITION_MAX_CHARS = 400;
 export const DEFINITION_MIN_CHARS = 20;
 
 export const DEFINITION_INSTRUCTIONS = [
-  "For each item below, write a definition of the term as it is used in software and computing jobs.",
+  "For each item below, write a definition of the term as it is used at work, in the jobs whose postings ask for it (software, business, finance, marketing, sales, legal, engineering or science).",
   "Rules:",
   "- One or two plain sentences: what it is, and what it is used for at work.",
   "- No marketing, no claims about popularity or adoption, no opinions.",
@@ -69,11 +72,7 @@ export function importDrafted(db, pasted) {
       : seen.has(slug) ? "duplicate slug"
       : !node.get(slug) ? "unknown slug"
       : String(node.get(slug).definition ?? "").trim() ? "already has a definition"
-      : def.length < DEFINITION_MIN_CHARS ? "too short"
-      : def.length > DEFINITION_MAX_CHARS ? `longer than ${DEFINITION_MAX_CHARS} characters`
-      : sentences(def) > 2 ? "more than two sentences"
-      : LINK.test(def) ? "contains a link"
-      : null;
+      : textRefusal(def);
     if (slug) seen.add(slug);
     if (why) errors.push({ slug, reason: why }); else ok.push({ slug, def });
   }
@@ -81,6 +80,62 @@ export function importDrafted(db, pasted) {
   const put = db.prepare(`UPDATE atlas_nodes SET definition_draft = ?, definition_by = 'drafted', updated_at = unixepoch() WHERE slug = ?`);
   db.transaction(() => { for (const r of ok) put.run(r.def, r.slug); })();
   return { ok: true, drafted: ok.length };
+}
+
+// ⭐ A112/Atlas (11-03) · THE DRAFTED-DEFINITIONS FILE. content/atlas/definitions-drafted.json holds definitions the
+// agent wrote in batches for the non-computing families (their skill maps were near empty: no Wikipedia match, so
+// nothing met the publish bar). They take the SAME road as a chat import — definition_draft, 'drafted', the owner
+// Accepts or Rejects in Admin → Atlas — never `definition`. Each slug is offered ONCE: the slugs already offered are kept
+// in app_settings (DRAFTED_SEEDED_KEY), so a draft the owner rejected is not offered again on the next boot.
+export const DRAFTED_FILE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../content/atlas/definitions-drafted.json");
+export const DRAFTED_SEEDED_KEY = "atlas_drafted_definitions_offered";
+
+/** The file's { slug → definition }, flattened from its families. A slug listed twice is refused (the file is wrong). */
+export function readDraftedFile(file = DRAFTED_FILE) {
+  const raw = JSON.parse(fs.readFileSync(file, "utf8"));
+  const out = new Map();
+  for (const [family, defs] of Object.entries(raw.definitions || {})) {
+    for (const [slug, def] of Object.entries(defs)) {
+      if (out.has(slug)) throw new Error(`definitions-drafted.json lists "${slug}" twice (${family})`);
+      out.set(slug, String(def).replace(/\s+/g, " ").trim());
+    }
+  }
+  return out;
+}
+
+/** Why the import rules refuse a definition's TEXT, or null (the chat import's rules: length, sentences, links). */
+export function textRefusal(def) {
+  return def.length < DEFINITION_MIN_CHARS ? "too short"
+    : def.length > DEFINITION_MAX_CHARS ? `longer than ${DEFINITION_MAX_CHARS} characters`
+    : sentences(def) > 2 ? "more than two sentences"
+    : LINK.test(def) ? "contains a link"
+    : null;
+}
+
+/**
+ * Offer the file's definitions as drafts: a node with no definition, no draft waiting, never offered before.
+ * @returns {{ drafted: string[], missing: string[], refused: { slug, reason }[] }}
+ */
+export function seedDraftedDefinitions(db, mapping = readDraftedFile()) {
+  const offered = new Set(JSON.parse(db.prepare(`SELECT value FROM app_settings WHERE key = ?`).pluck().get(DRAFTED_SEEDED_KEY) || "[]"));
+  const node = db.prepare(`SELECT id, definition, definition_draft FROM atlas_nodes WHERE slug = ?`);
+  const put = db.prepare(`UPDATE atlas_nodes SET definition_draft = ?, definition_by = 'drafted', updated_at = unixepoch()
+    WHERE id = ? AND TRIM(COALESCE(definition, '')) = '' AND definition_draft IS NULL`);
+  const drafted = [], missing = [], refused = [];
+  db.transaction(() => {
+    for (const [slug, def] of mapping) {
+      if (offered.has(slug)) continue;
+      const n = node.get(slug);
+      if (!n) { missing.push(slug); continue; }
+      const why = textRefusal(def);
+      if (why) { refused.push({ slug, reason: why }); continue; }
+      offered.add(slug);                        // a node that already has its own words is offered nothing, ever
+      if (put.run(def, n.id).changes) drafted.push(slug);
+    }
+    db.prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, unixepoch())
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`).run(DRAFTED_SEEDED_KEY, JSON.stringify([...offered].sort()));
+  })();
+  return { drafted, missing, refused };
 }
 
 /** The review list. */
