@@ -112,7 +112,7 @@ export function levelRank(level) { return typeof level === "string" && level in 
  * ⭐ D106 P2 · the one line. Inputs are what the card already has: the match score (as shown), D104's eligibility,
  * D107's liveness, and the stored level read with its disagreement. Never reads more than it is given.
  */
-export function applyLine({ score = null, eligibility = null, liveness = null, level = null, sponsorship = null } = {}) {
+export function applyLine({ score = null, eligibility = null, liveness = null, level = null, sponsorship = null, ghost = null } = {}) {
   if (eligibility?.status === "ineligible") {
     const r = Array.isArray(eligibility.reasons) && eligibility.reasons[0];
     return { verdict: "skip", text: `Skip: ${r || "a stated requirement rules you out"}.` };
@@ -135,8 +135,11 @@ export function applyLine({ score = null, eligibility = null, liveness = null, l
   }
   const SPONSOR_CLAUSE = { often: "sponsors often", sometimes: "sponsors sometimes", no_record: "no sponsorship record" };
   if (needs && SPONSOR_CLAUSE[sponsorship.level]) parts.push(SPONSOR_CLAUSE[sponsorship.level]);
+  // ⭐ D137 · the ghost score's "Likely not hiring" joins the line (its reasons are said beside it, not here).
+  const ghosted = ghost?.level >= 2;
+  if (ghosted) parts.push("likely not hiring");
   if (!parts.length) return null;
-  const staleish = liveness && (liveness.kind === "reposted" && liveness.reposts >= 3);
+  const staleish = ghosted || (liveness && (liveness.kind === "reposted" && liveness.reposts >= 3));
   const verdict = band === ATS_BAND.WEAK || staleish ? "doubtful" : band === ATS_BAND.STRONG ? "apply" : "maybe";
   const text = parts.join(" · ");
   return { verdict, text: text.charAt(0).toUpperCase() + text.slice(1) + "." };
