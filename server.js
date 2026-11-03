@@ -97,7 +97,7 @@ import { runOrgLayerRollup } from "./services/kb/orgLayer.js";
 import { runHiringSignalsRollup } from "./services/jobs/hiringSignals.js";
 // ⭐ D107: every posting's first seen / last seen / closed, kept after its board row goes; reposts read from it.
 import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js";
-import { scoreGhosts, ghostForRows, calibrateGhostThreshold } from "./services/jobs/ghostScore.js";
+import { scoreGhosts, ghostForRows, calibrateGhostThreshold, ghostRates } from "./services/jobs/ghostScore.js";
 import { bestBetsFor, refitBestBets, bestBetSignalsFor } from "./services/bestBets.js";
 import { bestBetOf } from "./shared/bestBets.js";
 import { readAutoSettings } from "./shared/autoSettings.js";
@@ -11487,6 +11487,9 @@ app.post("/api/readiness/checks/:id/answer", requireAuth, (req, res) => {
   try { res.json(answerCheck(db, req.user.id, Number(req.params.id), { questionId: req.body?.questionId, chosen: req.body?.chosen })); }
   catch (e) { res.status(e.status || 500).json({ error: e.code || "answer_failed", message: e.message }); }
 });
+// ⭐ D137 P3 · the ghost-posting rate by category and company (aggregates only) — the Skills Index's data, for the owner
+// until the Index exists.
+app.get("/api/admin/ghost-rates", requireAdmin, (_req, res) => res.json(ghostRates(db)));
 app.get("/api/admin/readiness", requireAdmin, (req, res) => {
   const status = ["draft", "live", "retired"].includes(req.query.status) ? req.query.status : "draft";
   res.json({ mostClaimed: mostClaimed(db, 10),
