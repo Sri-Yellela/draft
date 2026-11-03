@@ -42,8 +42,39 @@ export const NAVIGATOR = Object.freeze({
   REPLIES_TO_SUGGEST: 2,
   CHANGES_KEPT: 10,
   MIN_PAY_N: 20,          // a role's pay median is said only from this many postings that state pay
+  // ⭐ D139 · career changers: the roles of OTHER categories read, and the reach that makes one worth showing.
+  CHANGER_CANDIDATES: 40,
+  CHANGER_MIN_REACH: 0.2,
+  CHANGER_SHOWN: 5,
 });
 
+/**
+ * ⭐ D139 (owner 11-02) · CAREER CHANGERS — "The main job search tools are all built for people staying in their field.
+ * None of them help someone translate their skills across industries." PURE: one cross-field move, said in the
+ * DESTINATION's words. The transferable skills are the destination role's own top-15 names that the user already has
+ * (roleFitReading's `have` — the destination's category vocabulary, D127), so a logistics coordinator's "SQL, Excel"
+ * read as the operations analyst's. ⛔ Framing stays truthful: `lead` and the interview questions are built ONLY from
+ * those had skills — never a skill the user does not have.
+ * ⚠ O*NET's Related Occupations (29.3, CC BY 4.0) was measured for the ranking and NOT used: the board's SOC codes are
+ * too coarse to join on (11-02 crawl copy: Data Scientist carries 15-1252, a recruiter 13-2051), so it would add noise.
+ */
+export function changerMove({ from, to, have = [], missing = [] }) {
+  const transferable = have.map(h => h.name);
+  const lead = transferable.slice(0, 4);
+  return {
+    from, to: to.name, slug: to.slug, transferable,
+    line: `${from} → ${to.name}: you have ${to.covered} of ${to.of} skills${to.payDelta != null && Math.abs(to.payDelta) >= 5000 ? ` · ≈ ${money(to.payDelta)} ${to.payDelta > 0 ? "more" : "less"}` : ""} · ${to.postings} open postings`,
+    framing: lead.length ? `Lead with ${lead.join(", ")} — named the way ${to.name} postings name them.` : null,
+    gaps: missing.slice(0, NAVIGATOR.ROUTE_SKILLS).map(m => m.name),
+    interview: [
+      `Why are you moving from ${from} to ${to.name}?`,
+      ...(lead[0] ? [`Tell me about a time you used ${lead[0]} in your work as ${an(from)}.`] : []),
+      `What would you need to learn in your first 90 days as ${an(to.name)}?`,
+    ],
+  };
+}
+
+const an = (role) => `${/^[aeiou]/i.test(String(role)) ? "an" : "a"} ${role}`;
 const money = (usd) => `$${Math.round(Math.abs(usd) / 1000)}k`;
 
 /**
@@ -193,6 +224,26 @@ export function navigatorFor(db, userId, { now = Math.floor(Date.now() / 1000), 
     .map(c => ({ slug: c.slug, name: c.name, covered: c.covered, of: c.of, newThisWeek: c.newThisWeek,
       line: `${c.name}: you cover ${c.covered} of ${c.of} · ${c.newThisWeek} new this week` }));
 
+  // ⭐ D139 · other fields you could move into — the same reading over OTHER categories' roles, said in their words.
+  const others = roles.filter(r => (r.postings || 0) >= NAVIGATOR.MIN_POSTINGS && roleCategory(r, cIndex) && roleCategory(r, cIndex) !== category)
+    .sort((a, b) => (b.postings || 0) - (a.postings || 0)).slice(0, NAVIGATOR.CHANGER_CANDIDATES);
+  const otherReads = new Map();
+  for (const r of others) {
+    const f = safe(() => roleFitReading(db, { role: r.slug, userId, registry: reg }), null);
+    if (f?.found && f.of > 0) otherReads.set(r.slug, { node: r, f });
+  }
+  const elsewhere = rankDestinations([...otherReads.values()].map(({ node, f }) => ({ slug: node.slug, name: node.name, covered: f.covered, of: f.of,
+      postings: f.role.postings, newThisWeek: newWeek.get(node.id) || 0, payMedian: payMedian(db, node.id), page: f.role.page })), current)
+    .filter(c => c.reach >= NAVIGATOR.CHANGER_MIN_REACH).slice(0, NAVIGATOR.CHANGER_SHOWN)
+    .map(c => changerMove({ from: current.name, to: c, have: otherReads.get(c.slug).f.have, missing: otherReads.get(c.slug).f.missing }));
+  // An aim in another field makes the whole route a changer's: the same move, for the chosen role.
+  const aimElsewhere = aimNode && aimReading?.found && roleCategory(aimNode, cIndex) !== category;
+  const changer = aimElsewhere ? changerMove({ from: current.name,
+    to: { slug: aimNode.slug, name: aimNode.name, covered: aimReading.covered, of: aimReading.of, postings: aimReading.role.postings,
+      payDelta: current.payMedian && payMedian(db, aimNode.id) ? payMedian(db, aimNode.id) - current.payMedian : null },
+    have: aimReading.have, missing: aimReading.missing }) : null;
+  if (changer && aim) aim.line = changer.line;
+
   // (3) PROGRESS, this week.
   const apps = safe(() => db.prepare(`SELECT COUNT(*) FROM job_applications WHERE user_id = ? AND applied_at >= ?`).pluck().get(userId, now - 7 * DAY), 0);
   const replies = safe(() => db.prepare(`SELECT COUNT(*) FROM job_applications WHERE user_id = ? AND first_response_at >= ?`).pluck().get(userId, now - 7 * DAY), 0);
@@ -233,6 +284,7 @@ export function navigatorFor(db, userId, { now = Math.floor(Date.now() / 1000), 
     destination: { aim, recommended: recommended.map(pick), alternatives: alternatives.map(pick) },
     route, bridges, progress,
     changes: kept, suggest,
+    elsewhere, changer,
     next: route?.skills?.[0] ? { slug: route.skills[0].slug, name: route.skills[0].name, learn: route.skills[0].learn,
       text: `Next on your route to ${route.role}: ${route.skills[0].name}${route.skills[0].learn ? ` · start with ${route.skills[0].learn.title}` : ""}` } : null,
   };
