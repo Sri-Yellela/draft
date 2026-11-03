@@ -200,7 +200,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D110 (186): interview mode — the dates the user typed, their story bank, their debriefs and their own question bank.
   "interview_prep", "interview_stories", "interview_debriefs", "interview_questions",
   // D113 (188): the picks runs (what each run looked at, picked and left out, by reason) and the picks themselves.
-  "picks_runs", "picks", "picks_left_out"];
+  "picks_runs", "picks", "picks_left_out",
+  // D136 P3 (214) / D143 (215) / D138 (216): the signals each send had, the navigator's aim and route, the person's own contacts.
+  "application_signals", "navigator_routes", "warm_contacts"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -314,6 +316,8 @@ export const MERGE_PLAN = Object.freeze({
   application_signals: "keepInto",
   // D143 (215): the navigator — INTO's own aim and route win; FROM's fill an INTO that has none.
   navigator_routes: "keepInto",
+  // D138 (216): the person's own contacts — a merged person keeps them all.
+  warm_contacts: "move",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

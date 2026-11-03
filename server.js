@@ -103,6 +103,7 @@ import { bestBetOf } from "./shared/bestBets.js";
 import { readAutoSettings } from "./shared/autoSettings.js";
 import { honestyCheck } from "./services/honestyCheck.js";
 import { navigatorFor, setAim, aimRoleFor } from "./services/navigator.js";
+import { importContacts, warmSummary, deleteContacts, warmPathTo, draftNote } from "./services/warmPaths.js";
 // ⭐ D105: the Atlas — roles, skills, tools, linked; seeded as drafts from the scorer's own registry, stats from the board.
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
@@ -6529,6 +6530,30 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D138 (owner 11-02) · WARM PATHS. The user's OWN contacts: their LinkedIn connections export, or an alumni list
+      // they add (school). Private to the user, deletable (DELETE /api/warm-paths), cascading with the account; never
+      // shown to anyone else, never used to contact anyone. company_key = shared/companyIdentity.js companyNameKey, so a
+      // posting's company finds its people. services/warmPaths.js. Merge plan move. After 215.
+      id: "216_warm_contacts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS warm_contacts (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          source        TEXT NOT NULL,
+          school        TEXT,
+          name          TEXT NOT NULL,
+          company       TEXT NOT NULL,
+          company_key   TEXT NOT NULL,
+          position      TEXT,
+          url           TEXT,
+          email         TEXT,
+          connected_on  INTEGER,
+          imported_at   INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_warm_contacts_company ON warm_contacts(user_id, company_key);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -11365,6 +11390,32 @@ app.get("/api/navigator", requireAuth, (req, res) => {
 app.put("/api/navigator/aim", requireAuth, (req, res) => {
   try { res.json(setAim(db, req.user.id, req.body?.slug ?? null)); }
   catch (e) { res.status(e.status || 500).json({ error: e.code || "navigator_failed", message: e.message }); }
+});
+
+// ⭐ D138 · WARM PATHS — the user's OWN contacts (LinkedIn's Connections.csv, an alumni list they add), matched to a
+// posting's company, with a note drafted from the facts for them to edit. Private, deletable; draft never sends the note
+// nor contacts anyone. The file's text is read by the browser and posted here (no upload stored).
+app.get("/api/warm-paths", requireAuth, (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  res.json(warmSummary(db, req.user.id));
+});
+app.post("/api/warm-paths/import", requireAuth, (req, res) => {   // the app's 4 MB JSON limit: ≈ 30,000 connections
+  try { res.json(importContacts(db, req.user.id, { source: req.body?.source, text: String(req.body?.text ?? ""), school: req.body?.school ?? null })); }
+  catch (e) { res.status(e.status || 500).json({ error: e.code || "import_failed", message: e.message }); }
+});
+app.delete("/api/warm-paths", requireAuth, (req, res) => {
+  try { res.json({ deleted: deleteContacts(db, req.user.id, { source: req.query.source || null, school: req.query.school ?? null }) }); }
+  catch (e) { res.status(e.status || 500).json({ error: e.code || "delete_failed", message: e.message }); }
+});
+app.get("/api/warm-paths/job/:jobId", requireAuth, (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  const job = db.prepare("SELECT job_id, title, company, apply_url, url FROM scraped_jobs WHERE job_id = ?").get(String(req.params.jobId));
+  if (!job) return res.status(404).json({ error: "not_found" });
+  const path = warmPathTo(db, req.user.id, job.company);
+  if (!path) return res.json({ count: 0, people: [] });
+  const userName = db.prepare("SELECT full_name FROM user_profile WHERE user_id = ?").pluck().get(req.user.id) || null;
+  res.json({ ...path, people: path.people.map(p => ({ ...p,
+    note: draftNote({ person: p, job: { title: job.title, company: job.company, url: job.apply_url || job.url }, userName }) })) });
 });
 
 // GET /api/draft/today — today's deck (UI step 3b; docs/UI_REDESIGN.md §3.2, services/dailyDraft.js).

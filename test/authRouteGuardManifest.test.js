@@ -240,6 +240,10 @@ const AUTHENTICATED = new Set([
   "GET /api/best-bets",          // D136: the user's own shortlist from their own board
   "GET /api/navigator",          // D143: the user's own destination, route and progress
   "PUT /api/navigator/aim",      // D143: the user's own aim
+  "GET /api/warm-paths",         // D138: the user's own imported contacts (counts)
+  "POST /api/warm-paths/import", // D138: the user's own LinkedIn export / alumni list
+  "DELETE /api/warm-paths",      // D138: delete them
+  "GET /api/warm-paths/job/:jobId", // D138: the people the user knows at this posting's company
   "GET /api/settings/theme",     // follow-up 18: the account's light/dark preference
   "PUT /api/settings/theme",
   "GET /api/settings/appearance",   // D91 P5: the account's theme + shape cues

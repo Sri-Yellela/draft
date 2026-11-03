@@ -23,6 +23,7 @@ import { userLevelFor } from "./picks.js";
 import { userEligibilityInputs, eligibilityForJob, hasEligibilityInputs } from "./jobEligibility.js";
 import { getSetting, setSetting } from "./appSettings.js";
 import { aimRoleFor } from "./navigator.js";
+import { warmCounts } from "./warmPaths.js";
 
 const DAY = 86400;
 const safe = (fn, fallback) => { try { return fn(); } catch { return fallback; } };
@@ -45,7 +46,7 @@ function velocityOf(db, company, now) {
  * @param job a scraped_jobs row (description, company, level_read, ghost_level, discovered_at …) — or a board job
  *            carrying `id`; the row is read when the text is not on it.
  */
-export function bestBetSignalsFor(db, { userId, profileId = null, job, userLevel = undefined, inputs = null, aim = undefined, now = Math.floor(Date.now() / 1000) }) {
+export function bestBetSignalsFor(db, { userId, profileId = null, job, userLevel = undefined, inputs = null, aim = undefined, warm = undefined, now = Math.floor(Date.now() / 1000) }) {
   const jobId = String(job?.job_id ?? job?.id ?? job?.jobId);
   const row = job?.description != null && job?.job_id != null ? job
     : safe(() => db.prepare(`SELECT * FROM scraped_jobs WHERE job_id = ?`).get(jobId), null) ?? {};
@@ -76,7 +77,12 @@ export function bestBetSignalsFor(db, { userId, profileId = null, job, userLevel
     hoursSinceFirstSeen: Number.isFinite(first) ? Math.max(0, (now - first) / 3600) : null,
     ghostLevel: row.ghost_level ?? 0,
     velocity: velocityOf(db, row.company, now),
-    warmPath: null,
+    // ⭐ D138: people the user knows at the company (their own LinkedIn export / alumni list).
+    warmPath: (() => {
+      const counts = warm === undefined ? safe(() => warmCounts(db, userId), new Map()) : warm;
+      const n = counts?.get?.(companyNameKey(row.company || "")) || 0;
+      return n ? { text: `${n} ${n === 1 ? "person" : "people"} you know work${n === 1 ? "s" : ""} there` } : null;
+    })(),
     // ⭐ D143: the posting's role (the one matcher's, atlas_posting_match) is the user's navigator destination.
     aim: (() => {
       const a = aim === undefined ? safe(() => aimRoleFor(db, userId), null) : aim;
@@ -100,6 +106,7 @@ export async function bestBetsFor(db, { userId, profileId = null, size = undefin
       UNION SELECT job_id FROM job_applications WHERE user_id = ?`).pluck().all(userId, userId), []).map(String));
   const userLevel = safe(() => userLevelFor(db, userId), null);
   const aim = safe(() => aimRoleFor(db, userId), null);
+  const warm = safe(() => warmCounts(db, userId), new Map());
   const jobs = [];
   let cursor = null, matches = null;
   for (let p = 0; p < MAX_BOARD_PAGES; p++) {
@@ -117,7 +124,7 @@ export async function bestBetsFor(db, { userId, profileId = null, size = undefin
     if (j.isActive === false) continue;                                             // closed
     if (j.eligibility?.status === "ineligible") continue;                           // D104: what the user SET
     if (needsSponsorship && j.sponsorship?.level === "says_no") continue;           // D121: won't sponsor
-    const s = bestBetSignalsFor(db, { userId, profileId, job: { id }, userLevel, inputs, aim, now });
+    const s = bestBetSignalsFor(db, { userId, profileId, job: { id }, userLevel, inputs, aim, warm, now });
     if (s.ineligible) continue;
     scored.push({ job: j, bestBet: bestBetOf(s), i });
   }

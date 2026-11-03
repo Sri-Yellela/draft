@@ -6028,4 +6028,28 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D138 (owner 11-02) · WARM PATHS. The user's OWN contacts: their LinkedIn connections export, or an alumni list
+      // they add (school). Private to the user, deletable (DELETE /api/warm-paths), cascading with the account; never
+      // shown to anyone else, never used to contact anyone. company_key = shared/companyIdentity.js companyNameKey, so a
+      // posting's company finds its people. services/warmPaths.js. Merge plan move. After 215.
+      id: "216_warm_contacts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS warm_contacts (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          source        TEXT NOT NULL,
+          school        TEXT,
+          name          TEXT NOT NULL,
+          company       TEXT NOT NULL,
+          company_key   TEXT NOT NULL,
+          position      TEXT,
+          url           TEXT,
+          email         TEXT,
+          connected_on  INTEGER,
+          imported_at   INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_warm_contacts_company ON warm_contacts(user_id, company_key);
+      `,
+    },
   ];

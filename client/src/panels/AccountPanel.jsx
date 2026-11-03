@@ -6,6 +6,7 @@ import { C } from "../styles/colorTokens.js";
 import ResumeList, { RESUME_ICONS } from "../components/ResumeList.jsx";
 import SettingsSection from "../components/SettingsSection.jsx";
 import NotificationSettings from "../components/NotificationSettings.jsx";
+import WarmPathsSettings from "../components/WarmPathsSettings.jsx";
 
 // ── Account (/app/account) ──────────────────────────────────────────────────────────────────────
 // Profile and picture, sign-in and security (password, sign-in methods, where you're signed in),
@@ -145,6 +146,9 @@ export function AccountPanel({ onSignedOut }) {
 
         {/* ⭐ D112 item 8: which events also reach the person by push (this browser) and email — per event, per channel. */}
         <NotificationSettings say={say} />
+
+        {/* ⭐ D138: the user's own contacts, for "people you know at this company" on a posting. */}
+        <WarmPathsSettings say={say} />
 
         <SettingsSection title="Sign-in & security"
           subtitle={account.recentAuth ? "You signed in recently, so changes below are unlocked."
