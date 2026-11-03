@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PostingPanel from "./PostingPanel.jsx";
+import WarmPathsBlock from "./WarmPathsBlock.jsx";
 import { api } from "../lib/api.js";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import CoverLetterModal from "./CoverLetterModal.jsx";
@@ -394,6 +395,8 @@ export default function JobDetailPanel({
               {/* D32 · the posting half of the ink pair: the masthead (kicker · title · company · the deck
                   strip, "not stated" where a fact is not on file), then the employer's own description,
                   formatted plainly. What shows when there is no text is the panel's fallback. */}
+              {/* ⭐ D138: who the user knows at this company, from their own contacts — beside the pair, not in it. */}
+              <WarmPathsBlock jobId={selectedJob.id ?? selectedJob.jobId} />
               <PostingPanel job={selectedJob} text={description} vtTitle={selectedJob.id}>
               {fetchState === "loading" ? (
                 <p style={{ fontSize:12, color:"var(--color-text-faint)", fontStyle:"italic" }}>
