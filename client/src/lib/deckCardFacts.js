@@ -8,8 +8,8 @@
 //
 // ⛔ Never "ATS" on the card. ⛔ "posted" only in the stats (never beside the location). ⛔ salary / type / work mode only
 // on the collapsed card. A fact with no value is LEFT OUT, never "not stated" — the full posting is one press away.
-// ⛔ G5 (services/dailyDraft.js) still holds: a card carries a NUMBER only when the server sent one (a trial account's
-// card, server.js /api/draft/today); every other card shows its band's word in the same place.
+// ⭐ A117 (owner 11-03, "number for everyone"): /api/draft/today sends every card its caller's own stored score, so the
+// match is a number; a card with no score yet (not scored) shows its band's word in the same place.
 import { atsBandLabel } from "../../../shared/atsBands.js";
 import { salaryLabel, workstyleOf, yearsAsked, kickerFor } from "../../../shared/postingFacts.js";
 import { EXPERIENCE_LEVELS } from "../../../shared/jobFilterOptions.js";

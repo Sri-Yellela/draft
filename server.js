@@ -11574,8 +11574,10 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
       if (scoredSoFar < 30) { scheduleBoardFit(req.user.id, "deck", profile); return res.json({ ...deck, reason: "scoring" }); }
     }
     // ⭐ 11-01 (the owner's tour bug report): "the trial cards show the number, not only Strong match". A75 kept the score
-    // off the client; for a TRIAL account each card now carries its own stored score, so the tour's match step shows it.
-    if (isTrialAccount(db, req.user.id)) deck.cards = deck.cards.map(c => ({ ...c, score: scoreFor(c.job.id) }));
+    // off the client; a TRIAL account's cards carried their stored score. ⭐ A117 (owner 11-03, "number for everyone"):
+    // EVERY account's card carries its own stored score now — D145's card shows it at the top right. The frozen snapshot
+    // still holds no number (G5, services/dailyDraft.js); the score is the caller's own, read here at serve time.
+    deck.cards = deck.cards.map(c => ({ ...c, score: scoreFor(c.job.id) }));
     res.json(deck);
   } catch (e) {
     console.error("[GET /api/draft/today]", e.message);
