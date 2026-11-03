@@ -126,16 +126,15 @@ test("D60 · the rule is written down where the next agent looks — BRAND.md an
 });
 
 test("D60 · the named offenders are gone: the nav tabs, résumé ready, the band, the Requirements row, The Table's status", () => {
-  const top = read("client/src/components/TopBar.jsx");
+  // ⭐ D145 (changed on purpose): the tab row is gone; the sections are the Dock / the Menu (AppNav). Each button is a
+  // BOX (radius 14, the shape token's 16 under Dusk — on a ~44px two-line button, never a capsule), the current one raised.
+  const top = read("client/src/components/AppNav.jsx");
   const navAt = at(top, '<nav aria-label="Main"', 0, "the main nav");
   const nav = top.slice(navAt, at(top, "</nav>", navAt, "the nav's end"));
-  // ⭐ D92/D93: the tab's look is TopBar.css now — still a box (radius 10, 8 on a phone), and the page you are on
-  // carries D1's depth; the others are ghost (or sit in one track) by the owner's choice.
-  assert.match(nav, /className="tbar-tab"/);
-  const css = read("client/src/components/TopBar.css");
-  assert.match(css, /\.tbar-tab \{[^}]*border-radius: 10px;/, "the nav tab is a box (it was radius 14 on a ~26px tab — a capsule)");
-  assert.match(css, /\.tbar-nav\[data-size="tiny"\] \.tbar-tab \{[^}]*border-radius: 8px;/);
-  assert.match(css, /\.tbar-tab\[aria-current="page"\],\s*\.tbar-tab\[aria-current="page"\]:hover \{[^}]*box-shadow: var\(--c-depth-accent\);/, "with D1's depth");
+  assert.match(read("client/src/components/AppNav.jsx"), /className="appnav-item"/);
+  const css = read("client/src/components/AppNav.css");
+  assert.match(css, /\.appnav-item \{[^}]*border-radius: var\(--shape-radius-control, 14px\);/, "the nav button is a box");
+  assert.match(css, /\.appnav-item\[aria-current="page"\] \{ background: var\(--c-surface-2\); color: var\(--c-ink\); \}/, "the current one raised by its fill");
   assert.doesNotMatch(nav + css, /text-transform: uppercase|textTransform: "uppercase"/);
   assert.match(read("client/src/components/JobBubble.css"), /\.jb__ready \{[^}]*border-radius: 6px;[^}]*border-left: 3px solid var\(--c-success\)/);
   assert.match(read("client/src/components/PostingPanel.css"), /\.posting__pill \{[^}]*border-radius: 6px;[^}]*border-left: 3px solid/);

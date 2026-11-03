@@ -16,7 +16,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { api } from "./api.js";
 
-const MonetisationContext = createContext({ enabled: false, known: false, studioForUsers: false });
+const MonetisationContext = createContext({ enabled: false, known: false, studioForUsers: false, duskForUsers: false });
 
 export function MonetisationProvider({ children }) {
   // null = not yet known. Kept distinct from `false` so a surface that genuinely needs to wait
@@ -25,6 +25,8 @@ export function MonetisationProvider({ children }) {
   // ⭐ D133: the same one /api/config read also says whether users are offered the Studio theme (off until the owner
   // turns it on) — Settings → Appearance reads it here instead of calling a route of its own.
   const [studioForUsers, setStudioForUsers] = useState(false);
+  // ⭐ D144: and Dusk, behind its own switch.
+  const [duskForUsers, setDuskForUsers] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,7 +34,7 @@ export function MonetisationProvider({ children }) {
     // wrong account, but "this one is harmless" is how the cookie-only call sites got there in the
     // first place — the rule is every /api call site, so that the rule stays checkable.
     api("/api/config")
-      .then(d => { if (!cancelled) { setEnabled(d?.monetisationEnabled === true); setStudioForUsers(d?.studioForUsers === true); } })
+      .then(d => { if (!cancelled) { setEnabled(d?.monetisationEnabled === true); setStudioForUsers(d?.studioForUsers === true); setDuskForUsers(d?.duskForUsers === true); } })
       // A failed or blocked config fetch lands on OFF for the same reason the initial state does:
       // the product presenting as free when it is actually paid is recoverable, the reverse makes
       // a commercial claim the trader declaration says is not being made.
@@ -41,7 +43,7 @@ export function MonetisationProvider({ children }) {
   }, []);
 
   return (
-    <MonetisationContext.Provider value={{ enabled: enabled === true, known: enabled !== null, studioForUsers }}>
+    <MonetisationContext.Provider value={{ enabled: enabled === true, known: enabled !== null, studioForUsers, duskForUsers }}>
       {children}
     </MonetisationContext.Provider>
   );
@@ -55,6 +57,11 @@ export function useMonetisation() {
 /** D133: whether Settings → Appearance offers the Studio theme to users (GET /api/config studioForUsers). */
 export function useStudioForUsers() {
   return useContext(MonetisationContext).studioForUsers === true;
+}
+
+/** D144: whether Settings → Appearance offers the Dusk theme to users (GET /api/config duskForUsers). */
+export function useDuskForUsers() {
+  return useContext(MonetisationContext).duskForUsers === true;
 }
 
 /** Convenience for the common case: "is this commercial surface allowed to render at all?" */

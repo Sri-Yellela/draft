@@ -29,7 +29,9 @@ test("⛔ it is STICKY — reachable at any scroll position, just under the fixe
 
 test("⛔ the label is \"Collapse\" — one word, at the top and at the bottom, and in the shortcut list", () => {
   assert.match(button, />\s*Collapse\s*<\/button>/, "the top control's label");
-  assert.match(face, /\{expanded \? "Collapse" : "Open the posting ↓"\}/, "the bottom control's label");
+  // ⭐ D145 (changed on purpose): the full posting is one press away inside "Why this job" — "The full posting ↓" /
+  // "Hide the posting ↑"; the top control still says Collapse.
+  assert.match(face, /\{expanded \? "Hide the posting ↑" : "The full posting ↓"\}/, "the posting control's label");
   assert.match(deckSrc, /\["Esc", "Collapse"\]/, "the keyboard legend");
   assert.doesNotMatch(deckSrc, /click to collapse|collapse the card|Fold the card|Fold it again/i, "a longer label");
 });

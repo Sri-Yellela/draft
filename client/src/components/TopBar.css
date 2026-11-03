@@ -1,57 +1,9 @@
-/* D92 + D93 · THE TOP BAR'S TAB ROW (TopBar.jsx) — tokens only.
+/* The top bar (TopBar.jsx) — tokens only.
  *
- * ⛔ D92's rules here: (2) NEVER CLIP A SHADOW — the group clips its SIDES only (clip-path: inset(-18px 0)), and
- * the row scrolls only when the tabs genuinely overflow, with vertical room for the active tab's depth even
- * then; (5) WELLS ARE FOR INPUTS — an inactive tab is not a surface. The boxed tabs (a well, a hairline and a
- * shadow on every tab, clipped into a rectangle by two overflow containers) are REMOVED and not offered (D93).
- *
- * ⭐ D93 · TWO LAYOUTS, the owner's choice on the Customise page, read off the <html> attribute data-nav
- * (themes/layoutOptions.js). The attribute sets CUSTOM PROPERTIES; the rules below only read them — so a
- * preview box carrying its own data-nav is drawn in its own layout, whatever <html> carries.
- *   ghost (default) — no track; inactive tabs are ghost until pointed at; only the active tab is a depth box.
- *   track           — one recessed track holds all four; inactive tabs are borderless inside it.          */
-[data-nav="ghost"] {
-  --nav-track-bg: transparent; --nav-track-edge: transparent; --nav-track-depth: none; --nav-track-pad: 0px; --nav-track-gap: 4px;
-  --nav-scroll-pad: 14px; --nav-scroll-pull: -14px;
-}
-[data-nav="track"] {
-  --nav-track-bg: var(--c-fh-well); --nav-track-edge: var(--c-fh-line); --nav-track-depth: var(--c-fh-inset); --nav-track-pad: 3px; --nav-track-gap: 2px;
-  --nav-scroll-pad: 3px; --nav-scroll-pull: 0px;   /* inside a track only the active tab has depth; the track is its room */
-}
-
+ * ⛔ D145 Step 3 (owner 11-03): the TAB ROW that this file styled (D92 + D93: ghost tabs / one track, the Customise
+ * page's "Top bar" option) is REMOVED, with the option. The sections are reached from the Dock or the Menu
+ * (AppNav.css). What is left is the mark's group.                                                                   */
 /* The left group: the mark, then the row. It must give way to the avatar (flex 1, min-width 0) — and clips
    only its SIDES, so the active tab's shadow above and below is never cut into a rectangle. */
 .tbar-group { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; clip-path: inset(-18px 0); }
 
-/* The row. overflow stays VISIBLE until the tabs do not fit (TopBar measures, data-overflow); then it scrolls,
-   and its block padding (ghost: 14px, given back by a negative margin) is room for the shadow inside the scroller. */
-.tbar-nav {
-  display: flex; align-items: center; min-width: 0;
-  gap: var(--nav-track-gap, 4px); padding: var(--nav-track-pad, 0px);
-  background: var(--nav-track-bg, transparent); border: 1px solid var(--nav-track-edge, transparent);
-  box-shadow: var(--nav-track-depth, none); border-radius: 12px;
-  scrollbar-width: none; -ms-overflow-style: none;
-}
-.tbar-nav::-webkit-scrollbar { display: none; }
-.tbar-nav[data-overflow="true"] { overflow-x: auto; padding-block: var(--nav-scroll-pad, 14px); margin-block: var(--nav-scroll-pull, -14px); }
-.tbar-nav[data-size="narrow"] { --nav-track-gap: 2px; }
-.tbar-nav[data-size="tiny"] { --nav-track-gap: 1px; }
-
-/* A tab: the logo face, two lines; quiet until pointed at. */
-.tbar-tab {
-  display: inline-block; flex-shrink: 0; text-decoration: none; cursor: pointer; text-align: center;
-  padding: 6px 13px; border-radius: 10px; line-height: 1.15; letter-spacing: 0; white-space: nowrap;
-  font-family: 'Poppins', var(--font-body); font-style: italic; font-weight: 800; font-size: 12px;
-  background: transparent; border: 1px solid transparent; box-shadow: none; color: var(--c-ink-muted);
-  transition: background .16s, color .16s, box-shadow .16s, border-color .16s;
-}
-.tbar-nav[data-size="narrow"] .tbar-tab { padding: 5px 8px; }
-.tbar-nav[data-size="tiny"] .tbar-tab { padding: 3px 4px; border-radius: 8px; font-size: 11px; white-space: normal; width: min-content; }
-.tbar-tab:hover { background: var(--c-hover); color: var(--c-ink); }
-.tbar-tab:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; color: var(--c-ink); }
-/* The page you are on: the ONE depth box — the orange fill, its own orange depth. */
-.tbar-tab[aria-current="page"],
-.tbar-tab[aria-current="page"]:hover {
-  background: var(--c-accent); border-color: var(--c-fh-accent-edge); box-shadow: var(--c-depth-accent); color: var(--c-fh-on-accent);
-}
-@media (prefers-reduced-motion: reduce) { .tbar-tab { transition: none; } }

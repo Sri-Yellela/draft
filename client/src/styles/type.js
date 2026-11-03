@@ -11,6 +11,8 @@
 // ACCENT_INK, and only where the orange means something.
 import { C } from "./colorTokens.js";
 import { MARK_SIZES, LOGO_FACE } from "./brandMark.js";
+// ⭐ D145 · every size in TYPE follows the user's text size (Settings → Appearance → Text size).
+import { ts, TYPE_SCALE_VAR } from "../themes/shapes.js";
 
 export const FONT = Object.freeze({
   DISPLAY: "var(--font-display)",
@@ -20,17 +22,17 @@ export const FONT = Object.freeze({
 
 export const TYPE = Object.freeze({
   // What the page is — DeckView's "Today's draft", the board's "Your jobs."
-  PAGE_TITLE: { fontFamily: FONT.DISPLAY, fontWeight: 400, fontSize: "clamp(36px, 5vw, 54px)",
+  PAGE_TITLE: { fontFamily: FONT.DISPLAY, fontWeight: 400, fontSize: `calc(clamp(36px, 5vw, 54px) * var(${TYPE_SCALE_VAR}, 1))`,
                 lineHeight: 1, letterSpacing: "-0.01em", color: C.INK, margin: 0 },
   // A section of a page, a dialog's heading.
-  SECTION_TITLE: { fontFamily: FONT.DISPLAY, fontWeight: 400, fontSize: 28, lineHeight: 1.1,
+  SECTION_TITLE: { fontFamily: FONT.DISPLAY, fontWeight: 400, fontSize: ts(28), lineHeight: 1.1,
                    letterSpacing: "-0.005em", color: C.INK, margin: 0 },
   // A card's own title (a profile, a company).
-  CARD_TITLE: { fontFamily: FONT.DISPLAY, fontWeight: 400, fontSize: 24, lineHeight: 1.15, color: C.INK },
+  CARD_TITLE: { fontFamily: FONT.DISPLAY, fontWeight: 400, fontSize: ts(24), lineHeight: 1.15, color: C.INK },
   // The deck's section label: small tracked capitals in the faintest text ink.
-  EYEBROW: { fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.INK_FAINT },
+  EYEBROW: { fontSize: ts(11), fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.INK_FAINT },
   // The sentence under a page title.
-  LEAD: { fontSize: 14, lineHeight: 1.6, color: C.INK_MUTED },
+  LEAD: { fontSize: ts(14), lineHeight: 1.6, color: C.INK_MUTED },
 });
 
 // ── D35 · THE FULL HOUSE SENTENCE — one family, one size, one line-height (header.html) ─────────

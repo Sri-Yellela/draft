@@ -36,19 +36,23 @@ const SERVER   = read("server.js");
 
 // ── 1. the tab row is openable in a new tab ──────────────────────────────────────────────────
 test("every nav tab is a real link, not a button", () => {
-  assert.match(TOPBAR, /<a key=\{t\.id\}/);
-  assert.match(TOPBAR, /href=\{hrefForTab\?\.\(t\.id\) \|\| undefined\}/);
+  // ⭐ D145: the tab row is the Dock / the Menu now (components/AppNav.jsx) — the same real links.
+  const NAV = fs.readFileSync("client/src/components/AppNav.jsx", "utf8");
+  assert.match(NAV, /<a key=\{t\.id\} className="appnav-item" href=\{hrefForTab\?\.\(t\.id\) \|\| undefined\}/);
+  assert.doesNotMatch(NAV, /<button key=\{t\.id\}/);
   assert.doesNotMatch(TOPBAR, /<button key=\{t\.id\} onClick=\{\(\) => onTabChange/);
 });
 
 test("a modified click is left to the browser, a plain click still navigates in-app", () => {
-  const nav = TOPBAR.slice(at(TOPBAR, '<a key={t.id}'), at(TOPBAR, "<TabLabel label={t.label}/></a>"));
+  const NAV = fs.readFileSync("client/src/components/AppNav.jsx", "utf8");
+  const nav = NAV.slice(at(NAV, '<a key={t.id}'), at(NAV, "</a>", at(NAV, '<a key={t.id}')));
   // Without this the href would hijack every click into a full page load, which is a worse
   // regression than the missing affordance it is there to add.
   assert.match(nav, /e\.metaKey \|\| e\.ctrlKey \|\| e\.shiftKey \|\| e\.altKey \|\| e\.button !== 0/);
   assert.match(nav, /return;/);
   assert.match(nav, /e\.preventDefault\(\);/);
-  assert.match(nav, /onTabChange\?\.\(t\.id\)/);
+  assert.match(nav, /onGo\(t\.id\)/);
+  assert.match(NAV, /const go = useCallback\(\(id\) => \{ setOpen\(false\); onTabChange\?\.\(id\); \}, \[onTabChange\]\);/);
 });
 
 test("the href and the click resolve through ONE mapping", () => {

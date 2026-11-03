@@ -47,7 +47,9 @@ test("⛔ ONE CLOCK, NO STAGGER: every movement reads --deck-t / --deck-ease, se
   assert.match(deckSrc, /const ON_THE_CLOCK = "var\(--deck-t\) var\(--deck-ease\)";/);
   assert.match(deckSrc, /"--deck-t": reduced \? "0s" : EXPAND_CLOCK\.duration, "--deck-ease": EXPAND_CLOCK\.ease/);
   assert.match(grid, /transition: `grid-template-columns \$\{ON_THE_CLOCK\}, column-gap \$\{ON_THE_CLOCK\}`/);
-  assert.match(face, /data-deck-signal-row style=\{\{ display: "grid", gridTemplateRows: signalShown \? "1fr" : "0fr", transition: `grid-template-rows \$\{ON_THE_CLOCK\}` \}\}/);
+  // ⭐ D145: the hover facts and "Why this job" ride the same clock (the signal row went to the header's match).
+  assert.match(face, /data-deck-soft="" style=\{\{ display: "grid", gridTemplateRows: soft \? "1fr" : "0fr", opacity: soft \? 1 : 0,\s*transition: `grid-template-rows \$\{ON_THE_CLOCK\}, opacity \$\{ON_THE_CLOCK\}` \}\}/);
+  assert.match(face, /data-deck-why-row="" style=\{\{ display: "grid", gridTemplateRows: deep \? "1fr" : "0fr", transition: `grid-template-rows \$\{ON_THE_CLOCK\}` \}\}/);
   assert.match(face, /data-deck-posting-row style=\{\{ display: "grid", gridTemplateRows: open \? "1fr" : "0fr", transition: `grid-template-rows \$\{ON_THE_CLOCK\}` \}\}/);
   // No delay anywhere in the expansion — a delayed panel read as two events in the sketch.
   const expansion = deckSrc.slice(at(deckSrc, "const ON_THE_CLOCK", 0, "clock"), at(deckSrc, "function FanCard", 0, "FanCard")) + grid;
@@ -60,14 +62,13 @@ test("⛔ ONE CLOCK, NO STAGGER: every movement reads --deck-t / --deck-ease, se
 
 test("⭐ the collapsed card is COMPACT: ONE signal line, no chip rows — and on a wide screen it leaves as the report arrives", () => {
   assert.doesNotMatch(deckSrc, /WhyChips|Why it's here|Not on your résumé yet/, "a chip row on the collapsed card");
-  // D129 / D124 (1884857, owner 11-01): the counts read "N of M skills" — term counts, never a score.
-  const signal = deckSrc.slice(at(deckSrc, "function AtsSignal", 0, "signal"), at(deckSrc, "function CollapsedScore", 0, "end of signal"));
-  assert.match(signal, /\{matched\} of \{total\} skills/, "the signal line's term counts");
-  // D32 re-pin: open, the signal line leaves on EVERY width — beside the report when wide, and on a phone
-  // to the collapsed score that heads the posting (the sticky column's phone answer). Closed, it stays.
-  assert.match(face, /const signalShown = !open;/);
+  // D129 / D124 (1884857, owner 11-01): the counts read "N of M skills" — term counts, never a score. ⭐ D145 (changed on
+  // purpose): they are the "Why this job" headline now (lib/deckCardFacts.js); the folded card says the match, the title
+  // and ONE info row — no signal line, no chip row.
+  assert.match(read("client/src/lib/deckCardFacts.js"), /`\$\{mTotal\} of \$\{total\} skills`/);
+  assert.doesNotMatch(face, /<AtsSignal|<TrialMatch|signalShown/, "the old signal line on the card");
+  // On a phone the full posting is still headed by the collapsed score (the sticky column's phone answer).
   assert.match(face, /\{!twoPanel && <CollapsedScore card=\{card\} onOpen=\{isFront \? onSignal : undefined\} \/>\}/);
-  assert.match(face, /cta=\{twoPanel \? "open the report" : "tap for the report"\}/);
 });
 
 test("⛔ the LEFT panel is the FULL report — the board's own ATSPanel — fed the BAND, never a number", () => {
@@ -128,7 +129,7 @@ test("⛔ NARROW: the vertical fan stays, the signal line opens the report as a 
   assert.match(sheet, /zIndex: Z\.MODAL_SCRIM/);
   assert.match(sheet, /zIndex: Z\.MODAL,/);
   assert.match(sheet, />\s*Close\s*<\/button>/);
-  assert.match(deckSrc, /if \(k === "Escape"\) \{ if \(sheetRef\.current\) setSheet\(false\); else setExpanded\(false\);/);
+  assert.match(deckSrc, /if \(k === "Escape"\) \{ if \(sheetRef\.current\) setSheet\(false\); else \{ setExpanded\(false\); setWhy\(false\); \}/);
 });
 
 test("⛔⭐ SWIPE IS DISABLED WHEN THE CARD IS EXPANDED — buttons only while reading", () => {
@@ -139,7 +140,8 @@ test("⛔⭐ SWIPE IS DISABLED WHEN THE CARD IS EXPANDED — buttons only while 
 test("⛔ hidden content is INERT: the closed posting and the departed signal take no focus and no clicks", () => {
   assert.match(deckSrc, /const inertIf = \(hidden\) => \(hidden \? \{ inert: "", "aria-hidden": true \} : null\);/);
   assert.match(face, /<section id="deck-detail" aria-label="The posting" style=\{\{ minHeight: 0, overflow: "hidden" \}\} \{\.\.\.inertIf\(!open\)\}>/);
-  assert.match(face, /\{\.\.\.inertIf\(!signalShown\)\}/);
+  // ⭐ D145: and the folded "Why this job" layer.
+  assert.match(face, /<section id="deck-why" aria-label="Why this job" data-deck-why="" style=\{\{ minHeight: 0, overflow: "hidden" \}\} \{\.\.\.inertIf\(!deep\)\}>/);
 });
 
 test("⛔ the fan never scrolls the page sideways — clipped by `clip` on a full-width wrapper, never `hidden`", () => {

@@ -193,32 +193,26 @@ test("the actions row's vertical rhythm matches the bar's horizontal spacing", (
   assert.match(usb, /justifyContent: "space-between",/);
 });
 
-test("the tab row moved into the top bar, whole, and from appTabs", () => {
+test("the tab row moved into the top bar, whole, and from appTabs — ⭐ D145: and from there into the Dock / the Menu", () => {
   // Y4. The app's primary navigation was a slot on the search bar, so it appeared and disappeared
-  // with a control that is only meaningful on the Jobs board.
+  // with a control that is only meaningful on the Jobs board. ⭐ D145 Step 3 (owner 11-03, changed on purpose): the bar's
+  // tab row is REMOVED; the bar mounts AppNav (the Dock or the Menu, the user's choice), fed the same `tabs`.
   const app = read("client/src/App.jsx");
-
-  // Rendered in the bar, in a real <nav>, from the tabs it is GIVEN — not from a list of its own.
-  assert.match(topBarCode, /<nav aria-label="Main"/);
-  assert.match(topBarCode, /\(tabs \|\| \[\]\)\.map\(t =>/);
-  assert.match(topBarCode, /aria-current=\{activeTab === t\.id \? "page" : undefined\}/);
-  assert.ok(!/id: "console"|id: "auto-apply"|id: "database"/.test(topBarCode),
-    "TopBar grew its own tab list — that is the fourth copy, and the previous three all drifted");
+  const nav = read("client/src/components/AppNav.jsx");
+  assert.match(topBarCode, /<AppNav tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onTabChange=\{onTabChange\} \/>/);
+  assert.doesNotMatch(topBarCode, /className="tbar-tab"|className="tbar-nav"/, "the old tab row is back");
+  // Rendered in a real <nav>, from the tabs it is GIVEN — not from a list of its own.
+  assert.match(nav, /<nav aria-label="Main"/);
+  assert.match(nav, /\(tabs \|\| \[\]\)\.map\(\(t\) => \(/);
+  assert.match(nav, /aria-current=\{activeTab === t\.id \? "page" : undefined\}/);
+  assert.ok(!/id: "console"|id: "auto-apply"|id: "database"/.test(topBarCode + nav),
+    "TopBar / AppNav grew its own tab list — that is the fourth copy, and the previous three all drifted");
   assert.match(app, /tabs=\{appTabs\}/, "the bar is no longer fed from appTabs");
+  // ⛔ D60: a nav button is a box, never a capsule, never an uppercase label.
+  const css = read("client/src/components/AppNav.css");
+  assert.doesNotMatch(css, /text-transform: uppercase|border-radius: 999px/);
 
-  // ⛔ D60 (10-07) superseded the moved styling: a tab is a depth box in the logo face, the active one
-  // filled accent — never a capsule, never the uppercase condensed label. (D69 (b): 11px below 440px.)
-  // ⭐ D92/D93 (owner, 10-11): the boxed tab — a well, hairline and shadow on EVERY tab — is REMOVED. The look is
-  // TopBar.css: the logo face, the page you are on the one orange depth box, the others ghost (or in one track).
-  const tabCss = read("client/src/components/TopBar.css");
-  for (const kept of [/border-radius: 10px;/, /font-family: 'Poppins', var\(--font-body\); font-style: italic; font-weight: 800; font-size: 12px;/,
-                      /\.tbar-tab\[aria-current="page"\],\s*\.tbar-tab\[aria-current="page"\]:hover \{\s*background: var\(--c-accent\);/]) {
-    assert.match(tabCss, kept, `the tab lost its D60 / D92 look (${kept})`);
-  }
-  assert.doesNotMatch(tabCss.slice(at(tabCss, ".tbar-tab {")), /var\(--c-fh-well\)/, "a tab is a well again — the old boxed tabs (D93: not offered)");
-  assert.doesNotMatch(topBarCode.slice(at(topBarCode, '<nav aria-label="Main"', 0, "the main nav")), /textTransform: "uppercase"/, "D60: no uppercase tab label");
-
-  // ...and the search bar no longer renders tabs at all, so there is exactly one tab row.
+  // ...and the search bar no longer renders tabs at all, so there is exactly one tab list.
   assert.ok(!/onTabChange\?\.\(t\.id\)/.test(usb), "the search bar still renders a tab row");
   assert.ok(!/tabs,\s*\n\s*activeTab,\s*\n\s*onTabChange,/.test(usb),
     "the search bar still takes tab props");
@@ -227,23 +221,15 @@ test("the tab row moved into the top bar, whole, and from appTabs", () => {
 test("the AUTO APPLY needs-review count survived the move", () => {
   // Y4's requirement 2. The count is the ONLY thing the apply pipeline renders outside its own
   // panel, and a review queue nobody sees is worse than a cluttered bar. It rode on the tab row, so
-  // it had to travel with it.
+  // it had to travel with it — ⭐ D145: to the Draft House button of the Dock and the Menu.
   const app = read("client/src/App.jsx");
   assert.match(app, /function AppTopBar\(\{ tabs, \.\.\.props \}\)/);
   assert.match(app, /const \{ needsAttentionCount = 0 \} = useAutoApply\(\);/);
-  // D6: the tab is always decorated (it carries the /d mark); the COUNT still appears only when
-  // something needs a human.
-  assert.match(app, /t\.id === "auto-apply"\s*\n\s*\? \{/);
-  assert.match(app, /\{needsAttentionCount > 0 && \(/);
   assert.match(app, /needsAttentionCount === 1 \? "draft needs" : "drafts need"\} your attention/);
-  // It is a ReactNode substituted for the tab's LABEL, which is why TopBar renders {t.label} rather
-  // than a string — the badge could not travel any other way without the bar knowing about it.
-  assert.match(app, /label: \(/);
-  // The element is an <a> since AH2 (a <button> cannot be opened in a new tab by any means a
-  // browser offers). What this assertion is actually pinning is unchanged: the tab renders
-  // {t.label} as a NODE, so the badge still travels inside it.
-  // D10: through TabLabel, which returns a ReactNode label untouched (test/d10NavRenames.test.js).
-  // D92: the tab's look moved to TopBar.css, so the element closes on its className, not an inline style.
-  assert.match(topBarCode, /className="tbar-tab"><TabLabel label=\{t\.label\}\/><\/a>/);
+  // The count and its sentence are data on the tab; AppNav draws them, and only when something needs a human.
+  assert.match(app, /t\.id === "auto-apply" \? \{ \.\.\.t, badge: needsAttentionCount, badgeLabel: attention \} : t/);
+  const nav = read("client/src/components/AppNav.jsx");
+  assert.match(nav, /\{t\.badge > 0 && \(/);
+  assert.match(nav, /<span aria-hidden="true">\{t\.badge\}<\/span><span className="sr-only">\{`, \$\{t\.badgeLabel\}`\}<\/span>/);
   assert.match(app, /<AppTopBar/, "the decorator is defined but never rendered");
 });

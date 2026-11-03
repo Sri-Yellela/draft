@@ -32,9 +32,8 @@ import StartFromResume from "../components/StartFromResume.jsx";
 import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
-import { bandMarkStyle, markStyle } from "../styles/mark.js";
+import { bandMarkStyle } from "../styles/mark.js";
 import { ATS_BAND, atsBandLabel } from "../../../shared/atsBands.js";
-import { salaryLabel } from "../../../shared/postingFacts.js";
 import { DECK_SCROLL_MS } from "../../../shared/trialTour.js";
 import { ATSPanel } from "../components/ATSPanel.jsx";
 import { AtsBandCard, fromDeckReport } from "../components/AtsReport.jsx";
@@ -57,6 +56,8 @@ import DeckGeometryControl from "../components/DeckGeometryControl.jsx";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 import { readDeckOrder, writeDeckOrder } from "../lib/deckOrder.js";
 import { postingClick } from "../lib/openPosting.js";
+import { cardFacts } from "../lib/deckCardFacts.js";
+import { shape, ts, TYPE_SCALE_VAR } from "../themes/shapes.js";
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
 const TOAST_MS = DECISION_TOAST_MS;
@@ -78,24 +79,7 @@ const kbd = { fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 5
               color: C.INK_MUTED, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", lineHeight: "16px" };
 const isInteractive = (el) => !!el?.closest?.("a,button,input,textarea,select,[role=button]");
 
-function ago(job) {
-  const t = job.postedAt ? Date.parse(job.postedAt) : job.discoveredAt ? job.discoveredAt * 1000 : NaN;
-  if (!Number.isFinite(t)) return null;
-  const d = Math.max(0, Math.round((Date.now() - t) / 86400000));
-  return d === 0 ? "today" : d === 1 ? "yesterday" : `${d}d ago`;
-}
-function salary(job) {
-  // never a range from one bound (SWIPE_FEED_DESIGN §2.2); D71: the shared label otherwise.
-  if (job.salaryMin == null || job.salaryMax == null) return null;
-  return salaryLabel(job);
-}
-function workModel(job) {
-  const w = String(job.workplaceType || "").toLowerCase();
-  if (w === "remote" || job.remote) return "Remote";
-  if (w === "hybrid") return "Hybrid";
-  if (w === "onsite" || w === "on-site") return "On-site";
-  return null;
-}
+// ⭐ D145: the card's facts (salary · type · mode, the time since posted) are lib/deckCardFacts.js — one function.
 function untilTomorrow() {
   const now = new Date();
   const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
@@ -118,18 +102,20 @@ function SlashProgress({ drafted, size, big = false }) {
   );
 }
 
-function ActionButton({ label, hint, onClick, primary, disabled, ariaKeys, compact }) {
+// ⭐ D145: raised neutral buttons, Draft in the accent with its glow; no key hints on them (the keys stay, said by
+// aria-keyshortcuts and the "?" legend).
+function ActionButton({ label, onClick, primary, disabled, ariaKeys, compact }) {
   const [hov, setHov] = useState(false);
   const base = primary
-    ? { background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`, boxShadow: hov ? C.SHADOW_GLASS_HOVER : C.SHADOW_GLASS }
-    : { ...glass({ hover: hov, radius: 16 }), color: C.INK };
+    ? { background: hov ? C.ACCENT_HOVER : C.ACCENT, color: C.ON_ACCENT, border: "none", boxShadow: C.DEPTH_ACCENT }
+    : { background: C.SURFACE_2, color: C.INK, border: "none", boxShadow: hov ? C.DEPTH_HOVER : C.DEPTH_REST };
   return (
-    <motion.button type="button" onClick={onClick} disabled={disabled} aria-keyshortcuts={ariaKeys}
+    <motion.button type="button" onClick={onClick} disabled={disabled} aria-keyshortcuts={ariaKeys} data-deck-action={label.toLowerCase()}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} whileTap={{ scale: 0.96 }}
-      style={{ ...base, flex: 1, minHeight: compact ? 48 : 54, borderRadius: 16, fontSize: 16, fontWeight: 800, letterSpacing: "0.02em",
-               display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: disabled ? "default" : "pointer",
+      style={{ ...base, flex: primary ? 1.4 : 1, minHeight: compact ? 48 : 54, borderRadius: shape("RADIUS_CONTROL"), fontSize: ts(15.5), fontWeight: 600,
+               fontFamily: shape("FONT_UI"), display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "default" : "pointer",
                opacity: disabled ? 0.5 : 1 }}>
-      {label}{!compact && <span style={{ ...kbd, ...(primary ? { borderColor: C.ON_ACCENT, color: C.ON_ACCENT } : null) }}>{hint}</span>}
+      {label}
     </motion.button>
   );
 }
@@ -182,36 +168,8 @@ function AtsSignal({ band, why = {}, onOpen, cta, score = null }) {
   );
 }
 
-// ⭐ THE TRIAL'S MATCH (owner 11-01: "we also need to show the ats matching to help them choose"): a trial account's card
-// carries its own stored score (server.js) — the SAME reading the board uses, never a separate trial number — shown as
-// a number in a ring, "N of M skills", the top 4 matched skills (green marks) and the top 2 missing (grey).
-function TrialMatch({ score, why = {}, onOpen, cta }) {
-  const matched = Number(why.matchedTotal) || 0;
-  const total = matched + (Number.isFinite(why.missingTotal) ? why.missingTotal : (why.missing?.length || 0));
-  const pct = Math.max(0, Math.min(100, Math.round(score)));
-  return (
-    <button type="button" data-deck-signal data-trial-match onClick={onOpen} aria-controls="deck-ats"
-      style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", padding: "2px 0", background: "transparent",
-               border: "none", cursor: "pointer", textAlign: "left", color: C.INK }}>
-      <span data-deck-score={pct} aria-label={`${pct}% match`}
-        style={{ width: 60, height: 60, borderRadius: "50%", flex: "none", display: "grid", placeItems: "center",
-                 background: `conic-gradient(${C.SUCCESS} ${pct}%, ${C.BORDER} 0)` }}>
-        <span style={{ width: 46, height: 46, borderRadius: "50%", background: "var(--color-surface)", display: "grid", placeItems: "center",
-                       fontWeight: 800, fontSize: 15 }}>{pct}%</span>
-      </span>
-      <span style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-        <span style={{ fontSize: 13.5 }}>
-          {total > 0 && <><b style={{ color: C.SUCCESS }}>{matched} of {total}</b> skills · </>}
-          {cta && <span style={{ color: C.ACCENT_INK, fontWeight: 700 }}>{cta}</span>}
-        </span>
-        <span style={{ display: "flex", gap: 5, flexWrap: "wrap" }} data-trial-chips="">
-          {(why.matched || []).slice(0, 4).map(t => <span key={`m-${t}`} data-chip="matched" style={{ ...markStyle(C.SUCCESS), fontSize: 12 }}>{t}</span>)}
-          {(why.missing || []).slice(0, 2).map(t => <span key={`x-${t}`} data-chip="missing" style={{ ...markStyle(C.INK_MUTED), fontSize: 12 }}>{t}</span>)}
-        </span>
-      </span>
-    </button>
-  );
-}
+// ⭐ THE TRIAL'S MATCH (11-01: a number in a ring, green and grey marks) is REPLACED by D145's match at the card's top
+// right — the number over "résumé match", the same stored score (lib/deckCardFacts.js); the skills are in "Why this job".
 
 // D32 · THE POSTING HALF OF THE INK PAIR (components/PostingPanel.jsx): the masthead's kicker and deck
 // strip, then the employer's own description, formatted plainly. The card's heading above IS the title,
@@ -356,22 +314,28 @@ function AtsSheet({ card, profileId, onClose, onReport }) {
 }
 
 // ── the face-up side ─────────────────────────────────────────────────────────────────────────
-// `twoPanel`: the report opens BESIDE the card (so the signal line leaves it on the clock); otherwise
-// the signal stays, because it is the way into the sheet.
-function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, onReport, onSignal, orientation, twoPanel }) {
-  const { job, why = {}, band } = card;
-  const meta = [job.location, workModel(job), salary(job), ago(job)].filter(Boolean);
+// ⭐ D145 STEP 3 (owner 11-03, declutter-v7 — docs/sketches/declutter-v7.html). THREE depths:
+//   collapsed  the company + location, the résumé match at the top right, the title, ONE info row (salary · type · mode)
+//   hover      at most two soft facts and "Why this job? ↓" (pointer over the card, or focus inside it)
+//   why        scroll down on the card, or press "Why this job?" — the résumé against the job and the posting's stat
+//              cards in the "one screen at a time" type; scroll up at the top of the page folds it
+// and the FULL POSTING stays one press away ("The full posting ↓" — the old expansion, unchanged, with the report beside
+// it on a wide screen). What each depth says is lib/deckCardFacts.js — one function, nothing said twice.
+// ⛔ No coloured labels or boxes on the card (the old band mark, the ring, the green chips); never "ATS".
+function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, onCollapse, onReport, onSignal, orientation, twoPanel }) {
+  const { job } = card;
+  const facts = cardFacts(card);
   const titleId = `deck-title-${job.id}`;
   const vertical = orientation === "vertical";
   const open = isFront && expanded;
-  // D32: open, the signal line always leaves — beside the report on a wide screen, and on a phone to the
-  // collapsed score that heads the posting.
-  const signalShown = !open;
+  const deep = isFront && (why || expanded);
+  const [hover, setHover] = useState(false);
+  const soft = isFront && (hover || deep);
   return (
-    <div style={{ padding: vertical ? "22px 22px 20px" : "28px 30px 24px" }}>
-      {/* ⭐ COLLAPSE AT THE TOP TOO (A39), and STICKY — the bottom one is a whole posting away. A
-          zero-height sticky row, so the button rides down with the reader without pushing the card's
-          content; it sits just under the fixed top bar (its measured height, published). */}
+    <div data-deck-face="" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      onFocus={() => setHover(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setHover(false); }}
+      style={{ padding: vertical ? "22px 22px 20px" : "30px 30px 26px", fontFamily: shape("FONT_UI") }}>
+      {/* ⭐ COLLAPSE AT THE TOP TOO (A39), and STICKY — the bottom one is a whole posting away. */}
       {open && (
         <div data-deck-collapse-top style={{ position: "sticky", top: `calc(var(${CHROME_HEIGHT_VAR}, 74px) + 10px)`, height: 0 }}>
           <div style={{ display: "flex", justifyContent: "flex-end", transform: vertical ? "translate(8px, -10px)" : "translate(12px, -14px)" }}>
@@ -379,43 +343,123 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
           </div>
         </div>
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, paddingRight: open ? 104 : 0 }}>
-        <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={vertical ? 48 : 56} radius={16} />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.INK_MUTED }}>{job.company}</div>
-          {meta.length > 0 && <div style={{ fontSize: 13, color: C.INK_FAINT, marginTop: 2 }}>{meta.join("  ·  ")}</div>}
+      <div data-deck-head="" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, paddingRight: open ? 104 : 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+          <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={vertical ? 46 : 52} radius={16} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: ts(17), fontWeight: 600, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.company}</div>
+            {/* ⛔ LOCATION ONLY — "posted … ago" lives in the stats (D145). */}
+            {job.location && <div data-deck-location="" style={{ fontSize: ts(14), color: C.INK_MUTED, marginTop: 1 }}>{job.location}</div>}
+          </div>
         </div>
+        {/* ⭐ THE MATCH, at the top right — "86%" (or the band's word when the card carries no number, G5) over
+            "résumé match". It is the way into the full report (the sheet on a phone, the report beside the card on a wide
+            screen); data-deck-signal-row keeps the guided tour's match step pointing at it. */}
+        {facts.match && (
+          <button type="button" data-deck-signal-row="" data-deck-signal="" data-deck-match={facts.match.numeric ? "number" : "band"}
+            {...(facts.match.numeric ? { "data-deck-score": parseInt(facts.match.value, 10) } : null)}
+            onClick={isFront ? (e) => { e.stopPropagation(); onSignal?.(); } : undefined} aria-controls="deck-ats"
+            aria-label={`${facts.match.value} résumé match — open the full report`}
+            style={{ flex: "none", textAlign: "right", background: "transparent", border: "none", padding: 0, cursor: isFront ? "pointer" : "default", color: "inherit", fontFamily: "inherit" }}>
+            <div style={{ color: C.ACCENT_INK, fontSize: ts(facts.match.numeric ? 34 : 24), fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1 }}>{facts.match.value}</div>
+            <div style={{ color: C.INK_MUTED, fontSize: ts(13), marginTop: 4 }}>{facts.match.word}</div>
+          </button>
+        )}
       </div>
 
       <h2 id={titleId} ref={isFront ? headingRef : undefined} tabIndex={-1} {...(isFront ? { [TITLE_ATTR]: job.id } : null)}
         // ⭐ The shared element (queue 29): this heading IS the job's title on the board's detail and
         // on the review queue's line — one name, so a navigation moves it instead of cutting.
-        style={{ fontFamily: "var(--font-display)", fontWeight: 400, lineHeight: 1.06, letterSpacing: "-0.01em", color: C.INK,
-                 fontSize: vertical ? "clamp(28px, 8vw, 36px)" : "clamp(30px, 3.4vw, 46px)", margin: vertical ? "18px 0 18px" : "22px 0 20px",
-                 outline: "none",
-                 ...(expanded ? null : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
+        style={{ fontFamily: "var(--font-display)", fontWeight: 400, lineHeight: 1.04, letterSpacing: "-0.01em", color: C.INK,
+                 fontSize: vertical ? `calc(clamp(28px, 8vw, 36px) * var(${TYPE_SCALE_VAR}, 1))` : `calc(clamp(30px, 3.4vw, 42px) * var(${TYPE_SCALE_VAR}, 1))`,
+                 margin: "16px 0 12px", outline: "none",
+                 ...(deep ? null : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
         {job.title}
       </h2>
 
+      {/* ⭐ ONE minimal info row: each a white value over a small grey label. */}
+      {facts.info.length > 0 && (
+        <div data-deck-info="" style={{ display: "flex", gap: vertical ? 18 : 26, flexWrap: "wrap", margin: "4px 0 2px" }}>
+          {facts.info.map((f) => (
+            <div key={f.key} data-deck-info-item={f.key}>
+              <b style={{ display: "block", fontWeight: 500, fontSize: ts(18), letterSpacing: "-0.01em", color: C.INK }}>{f.value}</b>
+              <span style={{ display: "block", color: C.INK_MUTED, fontSize: ts(13) }}>{f.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {card.error && (
         <div role="alert" style={{ background: C.DANGER_QUIET, color: C.DANGER, padding: "10px 14px", borderRadius: 12,
-                                   fontSize: 13.5, fontWeight: 600, marginBottom: 16 }}>
+                                   fontSize: 13.5, fontWeight: 600, margin: "14px 0 0" }}>
           {card.error}
         </div>
       )}
 
-      {/* The ONE signal line. On a two-panel screen it collapses to nothing as the report opens beside
-          the card — grid-row 1fr → 0fr on the expansion's clock, so it and the posting are one motion. */}
-      <div data-deck-signal-row style={{ display: "grid", gridTemplateRows: signalShown ? "1fr" : "0fr", transition: `grid-template-rows ${ON_THE_CLOCK}` }}>
-        <div style={{ minHeight: 0, overflow: "hidden" }} {...inertIf(!signalShown)}>
-          {Number.isFinite(card.score)
-            ? <TrialMatch score={card.score} why={why} onOpen={isFront ? onSignal : undefined} cta={twoPanel ? "open the report" : "tap for the report"} />
-            : <AtsSignal band={band} why={why} onOpen={isFront ? onSignal : undefined} cta={twoPanel ? "open the report" : "tap for the report"} />}
+      {/* HOVER: at most two soft facts, then "Why this job?" — on the expansion's clock. */}
+      {isFront && (
+        <div data-deck-soft="" style={{ display: "grid", gridTemplateRows: soft ? "1fr" : "0fr", opacity: soft ? 1 : 0,
+                                        transition: `grid-template-rows ${ON_THE_CLOCK}, opacity ${ON_THE_CLOCK}` }}>
+          <div style={{ minHeight: 0, overflow: "hidden" }}>
+            {facts.chips.length > 0 && (
+              <div data-deck-chips="" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
+                {facts.chips.map((c) => <span key={c} style={{ fontSize: ts(13.5), color: C.INK_MUTED, background: C.SURFACE_2, borderRadius: 10, padding: "5px 11px" }}>{c}</span>)}
+              </div>
+            )}
+            <button type="button" data-deck-why-button="" aria-expanded={!!why} aria-controls="deck-why"
+              onClick={(e) => { e.stopPropagation(); onWhy?.(!why); }}
+              style={{ marginTop: 16, padding: 0, background: "transparent", border: "none", cursor: "pointer", color: C.ACCENT_INK,
+                       fontSize: ts(14), fontWeight: 600, fontFamily: "inherit" }}>
+              {why ? "Fold it away ↑" : "Why this job? ↓"}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ⭐ EXPANSION IS THE DETAIL — the same element, grown. The posting grows INSIDE the card
-          (grid-row 0fr → 1fr, on the same clock). No modal, no second view, no third column. */}
+      {/* ⭐ WHY THIS JOB — version A's type and stat cards (the sketch's "one screen at a time"). */}
+      {isFront && (
+        <div data-deck-why-row="" style={{ display: "grid", gridTemplateRows: deep ? "1fr" : "0fr", transition: `grid-template-rows ${ON_THE_CLOCK}` }}>
+          <section id="deck-why" aria-label="Why this job" data-deck-why="" style={{ minHeight: 0, overflow: "hidden" }} {...inertIf(!deep)}>
+            <div style={{ marginTop: 24, paddingTop: 26, borderTop: `1px solid ${C.BORDER}` }}>
+              {facts.why.headline && (
+                <>
+                  <p style={WHY.eyebrow}>Your résumé against this job</p>
+                  <h3 data-deck-why-headline="" style={{ ...WHY.headline, fontSize: vertical ? ts(36) : ts(46) }}>{facts.why.headline}</h3>
+                  {(facts.why.matched.length + facts.why.missing.length) > 0 && (
+                    <div data-deck-why-chips="" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: facts.why.lead ? 16 : 24 }}>
+                      {facts.why.matched.map((t) => <span key={`m-${t}`} data-chip="matched" style={{ ...WHY.chip, color: C.INK, borderColor: C.ACCENT_INK }}>{t}</span>)}
+                      {facts.why.missing.map((t) => <span key={`x-${t}`} data-chip="missing" style={WHY.chip}>{t}</span>)}
+                    </div>
+                  )}
+                  {facts.why.lead && <p style={{ ...WHY.lead, fontSize: vertical ? ts(17) : ts(19) }}>{facts.why.lead}</p>}
+                </>
+              )}
+              {facts.stats.length > 0 && (
+                <>
+                  <p style={WHY.eyebrow}>From the posting</p>
+                  <div data-deck-why-stats="" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, margin: "6px 0 20px" }}>
+                    {facts.stats.map((st) => (
+                      <div key={st.key} data-deck-stat={st.key} style={{ background: C.SURFACE_2, borderRadius: shape("RADIUS_CONTROL"), padding: 20, minWidth: 0 }}>
+                        <div style={{ fontSize: ts(34), fontWeight: 500, color: C.ACCENT_INK, letterSpacing: "-0.03em", lineHeight: 1.1, overflowWrap: "anywhere" }}>{st.value}</div>
+                        <div style={{ color: C.INK_MUTED, fontSize: ts(14), marginTop: 4 }}>{st.line}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              <div style={{ display: "flex", gap: 18, flexWrap: "wrap", fontSize: ts(14), fontWeight: 600 }}>
+                <button type="button" onClick={(e) => { e.stopPropagation(); if (expanded) onCollapse(); else onExpand(); }}
+                  aria-expanded={!!expanded} aria-controls="deck-detail" data-deck-full-posting="" style={WHY.link}>
+                  {expanded ? "Hide the posting ↑" : "The full posting ↓"}
+                </button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); onSignal?.(); }} aria-controls="deck-ats" style={WHY.link}>The full report</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* THE FULL POSTING — the old expansion, one press away. The same element, grown. */}
       {isFront && (
         <div data-deck-posting-row style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: `grid-template-rows ${ON_THE_CLOCK}` }}>
           <section id="deck-detail" aria-label="The posting" style={{ minHeight: 0, overflow: "hidden" }} {...inertIf(!open)}>
@@ -427,18 +471,19 @@ function CardFace({ card, headingRef, isFront, expanded, onExpand, onCollapse, o
           </section>
         </div>
       )}
-
-      {isFront && (
-        <button type="button" onClick={expanded ? onCollapse : onExpand} aria-expanded={expanded} aria-controls="deck-detail"
-          aria-keyshortcuts={expanded ? "Escape" : "Enter"}
-          style={{ marginTop: 18, padding: 0, background: "transparent", border: "none", cursor: "pointer",
-                   fontSize: 12.5, fontWeight: 700, color: C.INK_FAINT }}>
-          {expanded ? "Collapse" : "Open the posting ↓"}
-        </button>
-      )}
     </div>
   );
 }
+
+// The expanded card's type — version A's (the D145 row: the accent eyebrow 14, the large tight headline 46 / 500 /
+// −0.035 em (36 on phones), the lead in body grey 19, the stat cards' value 34 in the accent).
+const WHY = {
+  eyebrow: { color: C.ACCENT_INK, fontSize: ts(14), margin: "0 0 10px" },
+  headline: { fontWeight: 500, lineHeight: 1.03, letterSpacing: "-0.035em", margin: "0 0 14px", color: C.INK, fontFamily: shape("FONT_UI") },
+  lead: { color: C.INK_MUTED, margin: "0 0 26px", maxWidth: "34ch" },
+  chip: { fontSize: ts(13), border: `1px solid ${C.BORDER}`, borderRadius: 9, padding: "3px 9px", color: C.INK_MUTED },
+  link: { padding: 0, background: "transparent", border: "none", cursor: "pointer", color: C.ACCENT_INK, fontWeight: 600, fontSize: "inherit", fontFamily: "inherit" },
+};
 
 // ── one card in the fan ─────────────────────────────────────────────────────────────────────
 // Four layers, each owning one motion so none fights another:
@@ -456,7 +501,7 @@ const POSITION_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const FLIP_EASE = "cubic-bezier(0.34, 1.32, 0.5, 1)";   // a touch of overshoot: the card settles face-up
 
 function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimmed, dealing, appear, dealRank, dealTotal, reduced,
-                   onDecide, onExpand, onCollapse, onReport, onSignal, onGoto, headingRef, faceRef }) {
+                   onDecide, onExpand, onCollapse, onReport, onSignal, onGoto, headingRef, faceRef, why = false, onWhy }) {
   const { card, offset } = entry;
   const isFront = offset === 0;
   // The arc's position. Opening a card does not move it here: the fan lives in the card's grid column,
@@ -518,7 +563,7 @@ function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimme
                      transform: `perspective(1800px) rotateY(${faceUp ? 0 : 180}deg)`,
                      transition: reduced ? "none" : `transform 520ms ${FLIP_EASE} 40ms` }}>
             <article ref={isFront ? faceRef : undefined} aria-labelledby={`deck-title-${card.job.id}`} aria-hidden={!isFront}
-              onClick={isFront && !expanded ? (e) => { if (!dragged.current && !isInteractive(e.target)) onExpand(); } : undefined}
+              onClick={isFront && !expanded && !why ? (e) => { if (!dragged.current && !isInteractive(e.target)) onWhy?.(true); } : undefined}
               style={{ position: "relative", minHeight: size.height, borderRadius: 28, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
                        // OPAQUE, not see-through glass: over a fan, a translucent face shows the backs
                        // through it (Android found the same with the next card's text, 09-30).
@@ -526,6 +571,7 @@ function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimme
                        transition: "none", transform: "none",
                        cursor: isFront && !expanded ? "pointer" : "auto", visibility: showFace ? "visible" : "hidden" }}>
               {showFace && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
+                                     why={isFront && why} onWhy={onWhy}
                                      onExpand={onExpand} onCollapse={onCollapse} onReport={onReport} onSignal={onSignal}
                                      orientation={orientation} twoPanel={twoPanel} />}
             </article>
@@ -626,6 +672,10 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const [live, setLive] = useState("");
   const [legend, setLegend] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // ⭐ D145: "Why this job?" — the layer between the folded card and the full posting.
+  const [why, setWhy] = useState(false);
+  const whyRef = useRef(false);
+  whyRef.current = why;
   const [leave, setLeave] = useState(null);
   const [frontH, setFrontH] = useState(0);
   const [sheet, setSheet] = useState(false);          // the phone's ATS report (A40)
@@ -768,7 +818,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
     };
     window.addEventListener("draft:deck-sweep", onSweep);
     // D129 (the facts step): the tour opens the top card so its facts can be lit, and closes it after.
-    const onExpand = (e) => setExpanded(!!e.detail?.open);
+    const onExpand = (e) => setWhy(!!e.detail?.open);
     window.addEventListener("draft:deck-expand", onExpand);
     return () => { window.removeEventListener("draft:deck-sweep", onSweep); window.removeEventListener("draft:deck-expand", onExpand); clearInterval(timer); };
   }, [reduced]);
@@ -796,7 +846,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
 
   // Focus follows the deck: after an action or a rotation the front card's heading takes focus (§3.7).
   useEffect(() => { headingRef.current?.focus({ preventScroll: true }); }, [s.index]);
-  useEffect(() => { setExpanded(false); }, [s.index]);
+  useEffect(() => { setExpanded(false); setWhy(false); }, [s.index]);
   useEffect(() => { if (load.status === "ready") firstPaint.current = false; }, [load.status]);
 
   // The stage is as tall as the face-up card — which is what lets the expansion push the page.
@@ -827,6 +877,17 @@ export default function DeckView({ canUseAPlusResume = true }) {
       if (expandedRef.current || e.ctrlKey) return;           // reading, or pinch-zoom: the page's
       const d = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
       const dir = d > 0 ? 1 : -1;
+      // ⭐ D145 · scroll DOWN on the front card opens "Why this job"; scroll UP, with the card's top on screen, folds it. Open,
+      // a further scroll down reads on (the page scrolls). A vertical flick only — a sideways one still turns the fan.
+      const onFront = Math.abs(e.deltaY) >= Math.abs(e.deltaX) && faceRef.current?.contains(e.target);
+      if (onFront) {
+        const now = performance.now();
+        if (dir > 0 && !whyRef.current) { e.preventDefault(); if (now >= settleUntil) { settleUntil = now + 300; setWhy(true); } return; }
+        // Fold when the card's top is on screen (reading further down, a scroll up reads back up first).
+        const top = faceRef.current.getBoundingClientRect().top;
+        if (dir < 0 && whyRef.current && top >= 0) { e.preventDefault(); if (now >= settleUntil) { settleUntil = now + 300; setWhy(false); } return; }
+        if (whyRef.current) return;                           // open: the page scrolls
+      }
       if (stepTarget(stateRef.current, dir) == null) { acc = 0; return; }   // at an end: let the page scroll
       e.preventDefault();
       const now = performance.now();
@@ -852,8 +913,8 @@ export default function DeckView({ canUseAPlusResume = true }) {
       else if (k === "j" || k === "J") { e.preventDefault(); step(1); }
       else if (k === "k" || k === "K") { e.preventDefault(); step(-1); }
       else if ((k === "ArrowDown" || k === "ArrowUp") && !expandedRef.current) { if (step(k === "ArrowDown" ? 1 : -1)) e.preventDefault(); }
-      else if (k === "Enter" && tag !== "button" && tag !== "a") { e.preventDefault(); setExpanded(v => !v); }
-      else if (k === "Escape") { if (sheetRef.current) setSheet(false); else setExpanded(false); setLegend(false); }
+      else if (k === "Enter" && tag !== "button" && tag !== "a") { e.preventDefault(); setWhy(v => !v); }
+      else if (k === "Escape") { if (sheetRef.current) setSheet(false); else { setExpanded(false); setWhy(false); } setLegend(false); }
       else if (k === "?") setLegend(v => !v);
     };
     window.addEventListener("keydown", onKey);
@@ -1029,6 +1090,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
                     <FanCard key={e.card.job.id} entry={e} orientation={orientation} geometry={geometry} size={size}
                       expanded={expanded} twoPanel={twoPanel} dimmed={expanded} dealing={dealing} appear={!firstPaint.current} reduced={!!reduced} dealRank={Math.max(0, dealTotal - 1 - Math.abs(e.offset))}
                       dealTotal={dealTotal} onDecide={decide} onExpand={() => setExpanded(true)} onCollapse={() => setExpanded(false)}
+                      why={why} onWhy={(v) => { setWhy(v); if (!v) setExpanded(false); }}
                       // The signal line: beside the card on a wide screen (it opens the card), a sheet on a narrow one.
                       onSignal={() => (twoPanel ? setExpanded(true) : setSheet(true))}
                       onReport={transitionClick(navigate, jobDetailHref(e.card.job.id), { awaitTitle: e.card.job.id })} onGoto={(i) => dispatch({ type: "goto", index: i })} headingRef={headingRef} faceRef={faceRef} />
@@ -1039,11 +1101,11 @@ export default function DeckView({ canUseAPlusResume = true }) {
               {/* ⛔ The action row STICKS: an expanded card is tall, and Pass / Save / Draft must stay
                   reachable without scrolling back. It is above the fan by tier, and in the card's own
                   column, so it travels with the card when the report opens. */}
-              <div data-deck-actions style={{ position: "sticky", bottom: 16, zIndex: Z.NAV, display: "flex", gap: 12,
+              <div data-deck-actions style={{ position: "sticky", bottom: "calc(16px + var(--appnav-lift, 0px))", transition: "bottom .3s ease", zIndex: Z.NAV, display: "flex", gap: 12,
                                               marginTop: vertical ? 18 : 22, maxWidth: size.width, marginLeft: "auto", marginRight: "auto" }}>
-                <ActionButton label="Pass" hint="X" ariaKeys="X ArrowLeft" compact={vertical} onClick={() => decide(DECISIONS.PASSED)} />
-                <ActionButton label="Save" hint="S" ariaKeys="S" compact={vertical} onClick={() => decide(DECISIONS.SAVED)} />
-                <ActionButton label="Draft" hint="D" ariaKeys="D ArrowRight" compact={vertical} primary onClick={() => decide(DECISIONS.DRAFTED)} />
+                <ActionButton label="Pass" ariaKeys="X ArrowLeft" compact={vertical} onClick={() => decide(DECISIONS.PASSED)} />
+                <ActionButton label="Save" ariaKeys="S" compact={vertical} onClick={() => decide(DECISIONS.SAVED)} />
+                <ActionButton label="Draft" ariaKeys="D ArrowRight" compact={vertical} primary onClick={() => decide(DECISIONS.DRAFTED)} />
               </div>
             </div>
           </div>
@@ -1063,7 +1125,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
           <div role="dialog" aria-label="Keyboard shortcuts" style={{ ...glass({ radius: 18 }), backgroundColor: C.SURFACE_MENU, position: "fixed", right: 24, bottom: 96,
                                                                     zIndex: Z.NAV, padding: "16px 20px", fontSize: 13.5, color: C.INK }}>
             {[["D  →", "Draft — queue it for your review"], ["X  ←", "Pass — it won't come back"], ["S", "Save for later"],
-              ["U", "Undo the last one"], ["J ↓ / K ↑", "Next / previous card (as the wheel does)"], ["Enter", "Open the posting in the card"],
+              ["U", "Undo the last one"], ["J ↓ / K ↑", "Next / previous card (as the wheel does)"], ["Enter", "Why this job — open or fold it"],
               ["Esc", "Collapse"], ["?", "This list"]].map(([k, v]) => (
               <div key={k} style={{ display: "flex", gap: 14, padding: "3px 0" }}><span style={{ ...kbd, minWidth: 64, textAlign: "center" }}>{k}</span>{v}</div>
             ))}

@@ -39,17 +39,19 @@ test("D93 · the registry is complete: the ids are shared/'s, exactly one defaul
     }
   }
   assert.deepEqual(layoutDefaults(), LAYOUT_DEFAULTS);
-  assert.deepEqual(LAYOUT_DEFAULTS, { nav: "ghost", sentence: "marked", learning: "quiet" }, "the recommendations are the defaults (D92)");
+  assert.deepEqual(LAYOUT_DEFAULTS, { sentence: "marked", learning: "quiet", navigation: "auto", text: "default" }, "the recommendations are the defaults (D92)");
 });
 
 test("D93 · the stored value: flags only off the default, every pre-D93 value reads as the defaults, junk refused", () => {
-  assert.equal(formatStoredAppearance({ theme: "system", cues: false, nav: "ghost", sentence: "marked", learning: "quiet" }), "system");
-  assert.equal(formatStoredAppearance({ theme: "contrast-dark", cues: true, nav: "track", sentence: "calm", learning: "quiet" }), "contrast-dark;cues;nav=track;sentence=calm");
-  assert.deepEqual(parseStoredAppearance("contrast-dark;cues;nav=track;sentence=calm"), { theme: "contrast-dark", cues: true, nav: "track", sentence: "calm", learning: "quiet" });
-  assert.deepEqual(parseStoredAppearance("light;cues"), { theme: "light", cues: true, nav: "ghost", sentence: "marked", learning: "quiet" });
-  assert.deepEqual(parseStoredAppearance(null), { theme: null, cues: false, nav: "ghost", sentence: "marked", learning: "quiet" });
-  assert.deepEqual(parseStoredAppearance("dark;nav=boxed;sentence=boxes"), { theme: "dark", cues: false, nav: "ghost", sentence: "marked", learning: "quiet" }, "an unknown stored value reads as the default");
-  assert.equal(formatStoredAppearance({ theme: "dark", nav: "boxed" }), null, "an unknown value is never stored");
+  assert.equal(formatStoredAppearance({ theme: "system", cues: false, sentence: "marked", learning: "quiet", navigation: "auto", text: "default" }), "system");
+  assert.equal(formatStoredAppearance({ theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", navigation: "menu", text: "default" }), "contrast-dark;cues;sentence=calm;navigation=menu");
+  assert.deepEqual(parseStoredAppearance("contrast-dark;cues;sentence=calm;navigation=menu"), { theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", navigation: "menu", text: "default" });
+  assert.deepEqual(parseStoredAppearance("light;cues"), { theme: "light", cues: true, sentence: "marked", learning: "quiet", navigation: "auto", text: "default" });
+  assert.deepEqual(parseStoredAppearance(null), { theme: null, cues: false, sentence: "marked", learning: "quiet", navigation: "auto", text: "default" });
+  assert.deepEqual(parseStoredAppearance("dark;nav=boxed;sentence=boxes"), { theme: "dark", cues: false, sentence: "marked", learning: "quiet", navigation: "auto", text: "default" }, "an unknown stored value reads as the default");
+  assert.equal(formatStoredAppearance({ theme: "dark", navigation: "boxed" }), null, "an unknown value is never stored");
+  // ⭐ D145: `nav` (the tab row's ghost / track) is RETIRED with the row — a stored flag reads as nothing, never an error.
+  assert.deepEqual(parseStoredAppearance("dark;nav=track"), parseStoredAppearance("dark"));
   // ⭐ D114 P3: the third option, learning links — stored only when shown, read back.
   assert.equal(formatStoredAppearance({ theme: "system", learning: "shown" }), "system;learning=shown");
   assert.equal(parseStoredAppearance("system;learning=shown").learning, "shown");
@@ -77,24 +79,24 @@ test("D93 · the server: refuses an unknown value · round-trips · a second dev
   const s = await server();
   try {
     // A new account: the defaults.
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance", null, 2)).json, { theme: null, cues: false, nav: "ghost", sentence: "marked", learning: "quiet" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance", null, 2)).json, { theme: null, cues: false, sentence: "marked", learning: "quiet", navigation: "auto", text: "default" });
     // Unknown values are refused, and nothing is stored.
-    assert.equal((await s.call("PUT", "/api/settings/appearance", { theme: "system", nav: "boxed" })).status, 400);
+    assert.equal((await s.call("PUT", "/api/settings/appearance", { theme: "system", navigation: "boxed" })).status, 400);
     assert.equal((await s.call("PUT", "/api/settings/appearance", { theme: "system", sentence: "boxes" })).status, 400);
     assert.equal(s.db.prepare("SELECT theme_preference FROM users WHERE id=1").get().theme_preference, null);
     // Set → read back (a second device is just another GET for the same account).
-    const put = await s.call("PUT", "/api/settings/appearance", { theme: "contrast-dark", cues: true, nav: "track", sentence: "calm", learning: "quiet" });
+    const put = await s.call("PUT", "/api/settings/appearance", { theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", navigation: "menu", text: "default" });
     assert.equal(put.status, 200);
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "contrast-dark", cues: true, nav: "track", sentence: "calm", learning: "quiet" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "contrast-dark", cues: true, sentence: "calm", learning: "quiet", navigation: "menu", text: "default" });
     // A layout-only PUT (the Customise page) keeps the theme and cues.
     await s.call("PUT", "/api/settings/appearance", { sentence: "marked", learning: "quiet" });
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "contrast-dark", cues: true, nav: "track", sentence: "marked", learning: "quiet" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "contrast-dark", cues: true, sentence: "marked", learning: "quiet", navigation: "menu", text: "default" });
     // An older client's PUT ({ theme, cues } only) keeps the layout.
     await s.call("PUT", "/api/settings/appearance", { theme: "paper-light", cues: false });
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "paper-light", cues: false, nav: "track", sentence: "marked", learning: "quiet" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "paper-light", cues: false, sentence: "marked", learning: "quiet", navigation: "menu", text: "default" });
     // …and so does the pre-D91 theme route.
     assert.equal((await s.call("PUT", "/api/settings/theme", { preference: "dark" })).status, 200);
-    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "dark", cues: false, nav: "track", sentence: "marked", learning: "quiet" });
+    assert.deepEqual((await s.call("GET", "/api/settings/appearance")).json, { theme: "dark", cues: false, sentence: "marked", learning: "quiet", navigation: "menu", text: "default" });
     assert.deepEqual((await s.call("GET", "/api/settings/theme")).json, { preference: "dark" });
     // The other account is untouched.
     assert.equal(s.db.prepare("SELECT theme_preference FROM users WHERE id=2").get().theme_preference, null);
@@ -107,26 +109,26 @@ test("D93 · the device: a layout applies LIVE (no reload); the account's layout
   try {
     const attrs = {}; const doc = { documentElement: { setAttribute: (k, v) => { attrs[k] = v; } } };
     store.set("draft-theme", "contrast-dark;cues;no-offer");
-    REG.setLayout({ nav: "track" }, { doc });
-    assert.equal(store.get("draft-theme"), "contrast-dark;cues;no-offer;nav=track", "the other flags survive");
-    assert.deepEqual(attrs, { "data-nav": "track", "data-sentence": "marked", "data-learning-links": "quiet" });
+    REG.setLayout({ navigation: "menu" }, { doc });
+    assert.equal(store.get("draft-theme"), "contrast-dark;cues;no-offer;navigation=menu", "the other flags survive");
+    assert.deepEqual(attrs, { "data-sentence": "marked", "data-learning-links": "quiet", "data-navigation": "menu", "data-text-size": "default" });   // D145: navigation + text size; nav retired
     // apply:false (the Customise page) stores but leaves <html> alone.
     const before = { ...attrs };
-    REG.setLayout({ sentence: "calm", learning: "quiet" }, { apply: false, doc });
+    REG.setLayout({ sentence: "calm" }, { apply: false, doc });
     assert.deepEqual(attrs, before, "the page changed while the preview was being chosen");
-    assert.deepEqual(REG.layout(), { nav: "track", sentence: "calm", learning: "quiet" });
+    assert.deepEqual(REG.layout(), { sentence: "calm", learning: "quiet", navigation: "menu", text: "default" });
     // A theme change keeps the layout.
     REG.setAppearance({ pref: "paper-light", cues: false }, { reload() {} });
-    assert.deepEqual(REG.layout(), { nav: "track", sentence: "calm", learning: "quiet" });
+    assert.deepEqual(REG.layout(), { sentence: "calm", learning: "quiet", navigation: "menu", text: "default" });
     // The account's appearance, differing only in layout: adopted, NO reload.
     let reloads = 0;
-    assert.equal(REG.adoptAccountTheme({ theme: "paper-light", cues: false, nav: "ghost", sentence: "marked", learning: "quiet" }, { reload: () => reloads++ }), false);
+    assert.equal(REG.adoptAccountTheme({ theme: "paper-light", cues: false, sentence: "marked", learning: "quiet", navigation: "auto", text: "default" }, { reload: () => reloads++ }), false);
     assert.equal(reloads, 0);
-    assert.deepEqual(REG.layout(), { nav: "ghost", sentence: "marked", learning: "quiet" });
+    assert.deepEqual(REG.layout(), { sentence: "marked", learning: "quiet", navigation: "auto", text: "default" });
   } finally { delete globalThis.localStorage; }
 });
 
-test("D93 · ⛔ no flash: the pre-paint script sets data-nav and data-sentence from the stored value (defaults otherwise)", () => {
+test("D93 · ⛔ no flash: the pre-paint script sets data-navigation and data-sentence from the stored value (defaults otherwise)", () => {
   const src = REG.prePaintScript();
   const run = (raw) => {
     const attrs = {};
@@ -134,11 +136,12 @@ test("D93 · ⛔ no flash: the pre-paint script sets data-nav and data-sentence 
       { documentElement: { setAttribute: (k, v) => { attrs[k] = v; }, style: { setProperty() {} } } });
     return attrs;
   };
-  assert.equal(run("")["data-nav"], "ghost");
+  assert.equal(run("")["data-navigation"], "auto");
+  assert.equal(run("")["data-text-size"], "default");
   assert.equal(run("")["data-sentence"], "marked");
-  const a = run("contrast-dark;cues;nav=track;sentence=calm");
-  assert.equal(a["data-nav"], "track"); assert.equal(a["data-sentence"], "calm"); assert.equal(a["data-cues"], "shape");
-  assert.equal(run("system;nav=boxed")["data-nav"], "ghost", "an unknown value falls back to the default");
+  const a = run("contrast-dark;cues;sentence=calm;navigation=menu;text=largest");
+  assert.equal(a["data-navigation"], "menu"); assert.equal(a["data-text-size"], "largest"); assert.equal(a["data-sentence"], "calm"); assert.equal(a["data-cues"], "shape");
+  assert.equal(run("system;navigation=boxed")["data-navigation"], "auto", "an unknown value falls back to the default");
   // …and the bundle sets the same attributes when it loads.
   assert.match(read("client/src/themes/index.js"), /applyLayout\(layout\(\), doc\);/);
 });
@@ -154,7 +157,7 @@ test("D93 · the page: drawn from the registry; the preview carries its own attr
   assert.match(pv, /\[o\.attribute, values\?\.\[k\] \|\| o\.default\]/, "the preview sets its own data-nav / data-sentence");
   assert.match(pv, /aria-hidden="true"/); assert.match(pv, /setAttribute\("inert", ""\)/);
   // The styles read the attribute through CUSTOM PROPERTIES — so the nearest carrier (the preview) wins.
-  for (const [file, attr] of [["client/src/components/TopBar.css", "data-nav"], ["client/src/components/FullHouse.css", "data-sentence"]]) {
+  for (const [file, attr] of [["client/src/components/AppNav.css", "data-navigation"], ["client/src/components/FullHouse.css", "data-sentence"]]) {
     const css = read(file);
     assert.doesNotMatch(css, new RegExp(`\\[${attr}="[a-z]+"\\]\\s+[.#\\w]`), `${file}: a descendant selector off [${attr}] — it would match <html>'s value inside the preview`);
   }
@@ -177,9 +180,9 @@ test("D93 · Account no longer renders Appearance; the menu has Customise, and i
 });
 
 test("D93 · ⛔ the old designs are gone and not offered — no boxed tab, no boxed sentence word", () => {
+  // ⭐ D145: the tab row is gone altogether (the Dock / the Menu replaced it) — no tab rule is left to regrow a box.
   const top = read("client/src/components/TopBar.css");
-  const tab = top.slice(at(top, ".tbar-tab {"));
-  assert.doesNotMatch(tab, /var\(--c-fh-well\)|var\(--c-depth-rest\)/, "an inactive tab is a well / depth box again");
+  assert.doesNotMatch(top, /\.tbar-tab|\.tbar-nav|\[data-nav=/, "the retired tab row's styles came back");
   assert.doesNotMatch(read("client/src/components/TopBar.jsx"), /var\(--c-fh-well\)|var\(--c-depth-rest\)/);
   const fh = read("client/src/components/FullHouse.css");
   const tok = fh.slice(at(fh, ".bh .tok {"), at(fh, "}", at(fh, ".bh .tok {")));

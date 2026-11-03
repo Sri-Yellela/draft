@@ -37,11 +37,12 @@ test("D10: no Job Profiles TAB — but the page keeps its route and its ways in"
   assert.match(read("client/src/panels/DeckView.jsx"), /\["\/app\/job-profiles", "Add your résumé →"\]/);
 });
 
-test("D10: a two-word label is set on two lines; a ReactNode label is left alone", () => {
-  const fn = topBar.slice(at(topBar, "function TabLabel"), at(topBar, "function useNotifications"));
-  assert.match(fn, /typeof label !== "string" \|\| !label\.includes\(" "\)\) return label;/);
-  assert.match(fn, /<br\/>/);
-  assert.match(topBar, /<TabLabel label=\{t\.label\}\/>/);
+test("D10 → D145: the tab row is gone; the Dock / the Menu set each name on ONE line with its plain words under it", () => {
+  // ⭐ D145 Step 3 (owner 11-03, changed on purpose): TabLabel (two-word names on two lines) went with the row.
+  assert.doesNotMatch(topBar, /function TabLabel|<TabLabel /);
+  const nav = read("client/src/components/AppNav.jsx");
+  assert.match(nav, /<span className="appnav-name">\s*\{t\.label\}/);
+  assert.match(nav, /<small className="appnav-plain">\{NAV_PLAIN\[t\.id\] \|\| ""\}<\/small>/);
 });
 
 test("D10: the bar is ~74px with a ~30px mark", () => {

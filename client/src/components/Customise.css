@@ -31,6 +31,12 @@
 .cz-pv { --fh-sentence-size: 24px; }   /* the sentence's own size token, smaller inside the frame — never a .bh rule here (D35) */
 .cz-pv__ph { padding: 10px 0; font-size: 13px; color: var(--c-ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ⭐ D145 · the Navigation picture: AppNav's own dock, set in the frame (not fixed to the screen) — the carrier's
+   data-navigation still decides, through AppNav.css's properties, whether the dock or the Menu button shows. */
+.cz-pv .cz-pv__dock { position: static; transform: none; margin: 10px auto; width: max-content; max-width: calc(100% - 20px); box-shadow: none; }
+.cz-pv .cz-pv__bar .appnav-menu-btn { margin-right: 0; }
+.cz-pv__text { padding: 14px 16px; }
+
 /* An option card's own mini preview: the same drawing at half size. */
 .cz-mini { height: 66px; overflow: hidden; border-radius: 8px; position: relative; }
 .cz-mini > .cz-pv { transform: scale(.5); transform-origin: left top; width: 200%; border-radius: 16px; }

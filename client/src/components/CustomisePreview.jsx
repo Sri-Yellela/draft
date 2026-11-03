@@ -1,36 +1,49 @@
-// D93 · THE CUSTOMISE PREVIEW — the top bar, the filter sentence and the bar, drawn with the REAL stylesheets
-// (TopBar.css, FullHouse.css) and carrying its OWN layout attributes (data-nav, data-sentence). The styles read
+// D93 · THE CUSTOMISE PREVIEW — the navigation, the filter sentence and the bar, drawn with the REAL stylesheets
+// (AppNav.css, FullHouse.css) and carrying its OWN layout attributes (data-navigation, data-sentence, data-text-size). The styles read
 // those attributes through custom properties that inherit from the nearest carrier, so this box shows the
 // choice being made while the page around it — and <html> — keep the old one until you leave.
 //
 // A picture, not controls: aria-hidden and inert, so nothing in it is focusable or announced.
-//   part   "all" (the live preview) · "nav" (just the tab row) · "sentence" (just the sentence) — the option cards
-//   values { nav, sentence } — the layout to draw
+//   part   "all" (the live preview) · "navigation" · "sentence" · "text" — the option cards
+//   values { navigation, sentence, text, … } — the layout to draw
 import { useEffect, useRef } from "react";
 import { LAYOUT_OPTION_IDS } from "../../../shared/appearance.js";
 import { StampLogo } from "./StampLogo.jsx";
 import "../styles/type.js";
-import "./TopBar.css";
+import "./AppNav.css";
+import { ts } from "../themes/shapes.js";
 import "./FullHouse.css";
 
-const TABS = [["Daily", "Deck"], ["Full", "House"], ["Draft", "House"], ["The", "Table"]];
+// ⭐ D145 · the Navigation option's picture: the bar with its Menu button, and the Dock under it — drawn with AppNav's
+// real classes, so the carrier's data-navigation decides which of the two shows (as it does in the app).
+const NAV = [["Daily Deck", "today's jobs"], ["Full House", "every job"], ["Draft House", "in progress"], ["The Table", "applied"], ["Atlas", "your skills"]];
 
-// The real bar's width tiers (TopBar.jsx: narrow < 560, tiny < 440), read once — the preview is a picture of
-// the bar on THIS screen.
-const sizeFor = (w) => (w < 440 ? "tiny" : w < 560 ? "narrow" : "wide");
-
-function TabRow() {
-  const size = sizeFor(typeof window !== "undefined" ? window.innerWidth : 1280);
+function Navigation() {
   return (
-    <div className="cz-pv__bar">
-      <StampLogo size="nav" />
-      <div className="tbar-group">
-        <div className="tbar-nav" data-size={size} data-overflow="false">
-          {TABS.map(([a, b], i) => (
-            <span key={a + b} className="tbar-tab" aria-current={i === 1 ? "page" : undefined}>{a}<br />{b}</span>
-          ))}
-        </div>
+    <div className="cz-pv__nav">
+      <div className="cz-pv__bar">
+        <StampLogo size="nav" />
+        <span style={{ flex: 1 }} />
+        <span className="appnav-menu-btn">Menu</span>
       </div>
+      <div className="appnav-dock cz-pv__dock">
+        {NAV.map(([n, p], i) => (
+          <span key={n} className="appnav-item" aria-current={i === 0 ? "page" : undefined}>
+            <span className="appnav-name">{n}</span><small className="appnav-plain">{p}</small>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ⭐ D145 · the Text size option's picture: a card's title, a figure and a line of body text, in the scaled sizes.
+function TextSample() {
+  return (
+    <div className="cz-pv__text">
+      <div style={{ fontFamily: "var(--font-display)", fontSize: ts(30), lineHeight: 1.05 }}>Senior Data Engineer</div>
+      <div style={{ color: "var(--c-accent-ink)", fontSize: ts(26), fontWeight: 500, marginTop: 6 }}>13 of 15</div>
+      <div style={{ color: "var(--c-ink-muted)", fontSize: ts(15), marginTop: 4 }}>must-haves your résumé shows</div>
     </div>
   );
 }
@@ -69,7 +82,8 @@ export default function CustomisePreview({ part = "all", values }) {
   const attrs = Object.fromEntries(Object.entries(LAYOUT_OPTION_IDS).map(([k, o]) => [o.attribute, values?.[k] || o.default]));
   return (
     <div ref={ref} aria-hidden="true" className="cz-pv" data-part={part} data-customise-preview={part} {...attrs}>
-      {(part === "all" || part === "nav") && <TabRow />}
+      {(part === "all" || part === "navigation") && <Navigation />}
+      {part === "text" && <TextSample />}
       {(part === "all" || part === "sentence") && (
         <div className="fh cz-pv__fh">
           <Sentence />

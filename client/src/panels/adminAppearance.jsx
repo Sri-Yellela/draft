@@ -10,13 +10,19 @@ import DepthButton from "../components/DepthButton.jsx";
 import { THEME_LIST, ACTIVE_THEME, adminSurfaceTheme, setAdminSurfaceTheme } from "../themes/index.js";
 import { Panel, row, quiet } from "./adminKit.jsx";
 
-const PAIRS = [["studio", "Studio · follow the system"], ["system", "Paper / Charcoal · follow the system"], ["contrast", "Contrast · follow the system"]];
+const PAIRS = [["dusk", "Dusk · follow the system"], ["studio", "Studio · follow the system"], ["system", "Paper / Charcoal · follow the system"], ["contrast", "Contrast · follow the system"]];
 
 export function AppearanceTab() {
   const mine = adminSurfaceTheme();
   const [users, setUsers] = useState(null);
+  const [dusk, setDusk] = useState(null);   // ⭐ D144: Dusk's own switch
   const [said, setSaid] = useState("");
-  useEffect(() => { api("/api/admin/appearance").then((r) => setUsers(!!r.studioForUsers)).catch((e) => setSaid(e.message)); }, []);
+  useEffect(() => { api("/api/admin/appearance").then((r) => { setUsers(!!r.studioForUsers); setDusk(!!r.duskForUsers); }).catch((e) => setSaid(e.message)); }, []);
+  const offerDusk = async (on) => {
+    try { const r = await api("/api/admin/appearance", { method: "POST", body: JSON.stringify({ duskForUsers: on }) }); setDusk(!!r.duskForUsers);
+      setSaid(r.duskForUsers ? "Users now see Dusk in Settings → Appearance." : "Dusk is no longer offered to users (anyone already on it keeps it)."); }
+    catch (e) { setSaid(e.message); }
+  };
   const offer = async (on) => {
     try { const r = await api("/api/admin/appearance", { method: "POST", body: JSON.stringify({ studioForUsers: on }) }); setUsers(!!r.studioForUsers);
       setSaid(r.studioForUsers ? "Users now see Studio in Settings → Appearance." : "Studio is no longer offered to users (anyone already on it keeps it)."); }
@@ -43,6 +49,15 @@ export function AppearanceTab() {
           <span style={quiet}>{users == null ? "Loading…" : users ? "Offered to users." : "Not offered to users."}</span>
         </div>
         {said && <p role="status" style={quiet}>{said}</p>}
+      </Panel>
+      <Panel data-admin-appearance-dusk="" title="Offer Dusk to users"
+        purpose="When on, Dusk Light and Dusk Dark appear in every user's Settings → Appearance. Dusk is warm charcoal with a peach accent, larger corners and the Inter Tight face. Off by default; nobody is switched to it."
+        code="GET/POST /api/admin/appearance — app_settings dusk_for_users · GET /api/config duskForUsers">
+        <div style={row}>
+          <DepthButton primary={dusk === true} pressed={dusk === true} disabled={dusk == null} onClick={() => offerDusk(true)}>Offer it</DepthButton>
+          <DepthButton pressed={dusk === false} disabled={dusk == null} onClick={() => offerDusk(false)}>Don't offer it</DepthButton>
+          <span style={quiet}>{dusk == null ? "Loading…" : dusk ? "Offered to users." : "Not offered to users."}</span>
+        </div>
       </Panel>
     </>
   );

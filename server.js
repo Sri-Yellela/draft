@@ -14379,13 +14379,17 @@ app.get("/.well-known/security.txt", (_req, res) => res.type("text/plain").send(
 // Admin → System → Appearance. Public like the rest of /api/config: one boolean about the product, nothing user-scoped.
 const STUDIO_FOR_USERS_KEY = "studio_for_users";
 const studioForUsers = () => { try { return getSetting(db, STUDIO_FOR_USERS_KEY) === "1"; } catch { return false; } };
-app.get("/api/config", (_req, res) => res.json({ monetisationEnabled: monetisationEnabled(), studioForUsers: studioForUsers() }));
-app.get("/api/admin/appearance", requireAdmin, (_req, res) => res.json({ studioForUsers: studioForUsers() }));
+// ⭐ D144 · Dusk likewise — its own switch, off by default ("Dusk offered to users only when the owner switches it on").
+const DUSK_FOR_USERS_KEY = "dusk_for_users";
+const duskForUsers = () => { try { return getSetting(db, DUSK_FOR_USERS_KEY) === "1"; } catch { return false; } };
+app.get("/api/config", (_req, res) => res.json({ monetisationEnabled: monetisationEnabled(), studioForUsers: studioForUsers(), duskForUsers: duskForUsers() }));
+app.get("/api/admin/appearance", requireAdmin, (_req, res) => res.json({ studioForUsers: studioForUsers(), duskForUsers: duskForUsers() }));
 app.post("/api/admin/appearance", requireAdmin, (req, res) => {
-  const on = req.body?.studioForUsers === true;
-  try { if (on) setSetting(db, STUDIO_FOR_USERS_KEY, "1"); else clearSetting(db, STUDIO_FOR_USERS_KEY); }
+  // Each switch is changed only when the body names it (an older client sends studioForUsers alone).
+  const flip = (key, v) => { if (typeof v !== "boolean") return; if (v) setSetting(db, key, "1"); else clearSetting(db, key); };
+  try { flip(STUDIO_FOR_USERS_KEY, req.body?.studioForUsers); flip(DUSK_FOR_USERS_KEY, req.body?.duskForUsers); }
   catch (e) { return res.status(500).json({ error: "error", message: e.message }); }
-  res.json({ studioForUsers: studioForUsers() });
+  res.json({ studioForUsers: studioForUsers(), duskForUsers: duskForUsers() });
 });
 
 // ── AH-1: WHAT IS ACTUALLY RUNNING ─────────────────────────────────────────────

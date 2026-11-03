@@ -17,16 +17,24 @@
 // client/src/themes/layoutOptions.js adds the labels and test/d93Customise.test.js holds the two equal.
 export const LEGACY_THEME_PREFERENCES = Object.freeze(["system", "light", "dark"]);
 export const APPEARANCE_THEMES = Object.freeze([
-  "system", "light", "dark", "contrast", "studio", "paper-light", "charcoal-dark", "contrast-light", "contrast-dark", "studio-light", "studio-dark",
+  "system", "light", "dark", "contrast", "studio", "dusk", "paper-light", "charcoal-dark", "contrast-light", "contrast-dark", "studio-light", "studio-dark",
+  "dusk-light", "dusk-dark",
 ]);
 
 /** D93: each layout option — the <html> attribute it drives, its values, and the default (the recommendation). */
 export const LAYOUT_OPTION_IDS = Object.freeze({
-  nav:      Object.freeze({ attribute: "data-nav",      values: Object.freeze(["ghost", "track"]), default: "ghost" }),
+  // ⛔ D145 (11-03): `nav` (the top bar's tab row: ghost tabs / one track) is RETIRED with the row it styled — the
+  // Dock / Menu below replaced it. A stored ";nav=track" reads as an unknown flag and is ignored (parseLayoutFlags).
   sentence: Object.freeze({ attribute: "data-sentence", values: Object.freeze(["marked", "calm"]), default: "marked" }),
   // ⭐ D114 P3 (owner 10-31, "yes to all three") · the Atlas terms in a posting: quiet at rest (the owner's call), or
   // a faint dotted underline at rest for anyone who wants to see them without pointing (accessibility).
   learning: Object.freeze({ attribute: "data-learning-links", values: Object.freeze(["quiet", "shown"]), default: "quiet" }),
+  // ⭐ D145 Step 3 (owner 11-03, declutter-v7) · how the sections are reached: a Dock at the bottom that rises when the
+  // pointer nears the edge, or a Menu button at the top right opening a side panel with the dock's buttons. "auto" (the
+  // default) is the row's own default — Dock on a computer, Menu on a phone — resolved by the client from the screen.
+  navigation: Object.freeze({ attribute: "data-navigation", values: Object.freeze(["auto", "dock", "menu"]), default: "auto" }),
+  // ⭐ D145 · text size — the whole type scale × 0.9 · 1 · 1.12 · 1.25 (client/src/themes/shapes.js TEXT_SCALE).
+  text: Object.freeze({ attribute: "data-text-size", values: Object.freeze(["smaller", "default", "larger", "largest"]), default: "default" }),
 });
 export const LAYOUT_KEYS = Object.freeze(Object.keys(LAYOUT_OPTION_IDS));
 /** Every option at its default — what a new account, and every account stored before D93, reads. */
