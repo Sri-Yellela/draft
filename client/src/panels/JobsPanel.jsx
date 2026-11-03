@@ -324,6 +324,8 @@ function defaultFilterSnapshot() {
     hideEligibility: false,
     // D106: "Truly entry level" — the text asks entry / early, not just the title. Default off.
     trulyEntry: false,
+    // D137: "Hide likely not hiring" — only the ghost score's Likely not hiring postings. Default off.
+    hideGhost: false,
     // Provider + automation-tier include/exclude. Empty arrays are the default-off state: buildParams
     // emits nothing at all for them, which is what keeps the default querystring byte-identical.
     sourcesInclude: [],
@@ -401,6 +403,7 @@ function FiltersPanel({
   companySponsors, setCompanySponsors,
   hideEligibility = false, setHideEligibility = () => {},
   trulyEntry = false, setTrulyEntry = () => {},
+  hideGhost = false, setHideGhost = () => {},
   sectors = [], setSectors = () => {},
   sourcesInclude, setSourcesInclude,
   sourcesExclude, setSourcesExclude,
@@ -915,6 +918,31 @@ function FiltersPanel({
           <div style={{ fontSize:10, color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
             Leaves out postings titled junior or entry that ask for 3+ years, system design or leading others.
             Read from the posting's own words.
+          </div>
+        </div>
+
+        {/* ⭐ D137 (owner, 11-02): THE GHOST SCORE. Off by default — a posting is only ever RANKED DOWN by its score;
+            this leaves out the ones scored Likely not hiring, for a user who asks. A posting gone from the company's
+            own site is already off the board. */}
+        <div data-filter="hide-ghost">
+          <button type="button" aria-pressed={!!hideGhost} onClick={() => setHideGhost(!hideGhost)}
+            style={{
+              display:"flex", alignItems:"center", gap:8, width:"100%",
+              padding:"8px 10px", borderRadius:4, cursor:"pointer",
+              border:`1px solid ${hideGhost ? theme.accent : theme.border}`,
+              background: hideGhost ? theme.accentMuted : "transparent",
+              color: hideGhost ? theme.accentText : theme.text,
+            }}>
+            <span style={{
+              width:16, height:16, borderRadius:3, flexShrink:0,
+              border:`1px solid ${hideGhost ? theme.accent : theme.border}`,
+              background: hideGhost ? theme.accent : "transparent",
+            }}/>
+            <span style={{ fontSize:12, fontWeight:600 }}>Hide likely not hiring</span>
+          </button>
+          <div style={{ fontSize:10, color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
+            Leaves out postings with strong signs of no current opening — a talent-pool title, many reposts, months
+            open, no replies to people who applied. Each one shows its reasons; off, they stay at the end of the board.
           </div>
         </div>
 
@@ -1664,6 +1692,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [companySponsors,setCompanySponsors]= useState("");
   const [hideEligibility, setHideEligibility] = useState(false);
   const [trulyEntry, setTrulyEntry] = useState(false);
+  const [hideGhost, setHideGhost] = useState(false);
   // Provider + automation-tier include/exclude. Default [] on all four — buildParams emits nothing
   // for an empty array, so the default querystring is unchanged.
   const [sourcesInclude, setSourcesInclude] = useState([]);
@@ -1746,6 +1775,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     companySponsors,
     hideEligibility,
     trulyEntry,
+    hideGhost,
     sourcesInclude,
     sourcesExclude,
     tiersInclude,
@@ -1759,7 +1789,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     roleFilter, locationFilter, workType, employmentTypePrefs,
     catFilter, srcFilter, minYoe, maxYoe, maxApplicants, visitedFilter, ageFilter,
     salaryMin, salaryMax, workModels, experienceLevels, skillsInclude, sponsorFriendly,
-    companySponsors, hideEligibility, trulyEntry, sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, fitBands,
+    companySponsors, hideEligibility, trulyEntry, hideGhost, sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, fitBands,
     jobFunctions, places, sectors, strictTags,
   ]);
 
@@ -1804,6 +1834,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setCompanySponsors(next.companySponsors === true ? "1" : typeof next.companySponsors === "string" ? next.companySponsors : "");
     setHideEligibility(!!next.hideEligibility);
     setTrulyEntry(!!next.trulyEntry);
+    setHideGhost(!!next.hideGhost);
     setSourcesInclude(Array.isArray(next.sourcesInclude) ? next.sourcesInclude : []);
     setSourcesExclude(Array.isArray(next.sourcesExclude) ? next.sourcesExclude : []);
     setTiersInclude(Array.isArray(next.tiersInclude) ? next.tiersInclude : []);
@@ -2268,6 +2299,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (companySponsors)         p.set("company_sponsorship", companySponsors);
     if (hideEligibility)         p.set("hide_eligibility_required", "1");
     if (trulyEntry)              p.set("truly_entry", "1");
+    if (hideGhost)               p.set("hide_ghost", "1");
     // "Show everything in my role" — turns off the profile-derived defaults for this request only
     // (server.js's ?curate=off). Emitted solely when the user has asked for it, so the default
     // querystring is unchanged.
@@ -2305,7 +2337,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       salaryMin, salaryMax, workModels, experienceLevels, skillsInclude, sponsorFriendly,
       // D106: companySponsors and hideEligibility were missing here — the refetch below fired, but with the
       // callback's OLD closure, so toggling either sent the previous querystring.
-      companySponsors, hideEligibility, trulyEntry,
+      companySponsors, hideEligibility, trulyEntry, hideGhost,
       sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, curateOff, fitBands,
       jobFunctions, places, sectors, strictTags]);
 
@@ -2689,7 +2721,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       // above — they were missing from this list, so changing ONLY one of them (leaving every
       // legacy filter untouched) would build the right querystring but never actually refetch.
       salaryMin, salaryMax, workModels, experienceLevels, skillsInclude, sponsorFriendly,
-      companySponsors, hideEligibility, trulyEntry,
+      companySponsors, hideEligibility, trulyEntry, hideGhost,
       // Same failure, third time this file has been at risk of it: a new filter that feeds
       // buildParams but is missing HERE builds a correct querystring that is never sent, so the
       // control looks dead. FE-3 fixed it for FE-2's params; these four are added in the same
@@ -2996,6 +3028,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setCompanySponsors(p.get("company_sponsorship") || "");
     setHideEligibility(p.get("hide_eligibility_required") === "1");
     setTrulyEntry(p.get("truly_entry") === "1");
+    setHideGhost(p.get("hide_ghost") === "1");
     // A saved search stores buildParams' raw querystring, so a param buildParams emits but this
     // function never reads is silently dropped on apply — the saved search would come back
     // subtly wider than the one that was saved. These four round-trip through the same
@@ -3662,6 +3695,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             companySponsors={pendingFilters.companySponsors} setCompanySponsors={value => stageFilter("companySponsors", value)}
             hideEligibility={!!pendingFilters.hideEligibility} setHideEligibility={value => stageFilter("hideEligibility", value)}
             trulyEntry={!!pendingFilters.trulyEntry} setTrulyEntry={value => stageFilter("trulyEntry", value)}
+            hideGhost={!!pendingFilters.hideGhost} setHideGhost={value => stageFilter("hideGhost", value)}
             sectors={pendingFilters.sectors || []} setSectors={value => stageFilter("sectors", value)}
             sourcesInclude={pendingFilters.sourcesInclude || []} setSourcesInclude={value => stageFilter("sourcesInclude", value)}
             sourcesExclude={pendingFilters.sourcesExclude || []} setSourcesExclude={value => stageFilter("sourcesExclude", value)}

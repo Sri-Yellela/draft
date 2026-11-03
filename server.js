@@ -97,6 +97,7 @@ import { runOrgLayerRollup } from "./services/kb/orgLayer.js";
 import { runHiringSignalsRollup } from "./services/jobs/hiringSignals.js";
 // ⭐ D107: every posting's first seen / last seen / closed, kept after its board row goes; reposts read from it.
 import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js";
+import { scoreGhosts, ghostForRows, calibrateGhostThreshold } from "./services/jobs/ghostScore.js";
 // ⭐ D105: the Atlas — roles, skills, tools, linked; seeded as drafts from the scorer's own registry, stats from the board.
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
@@ -6469,6 +6470,26 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D137 (owner 11-02) · THE GHOST SCORE. scraped_jobs.ghost_level: NULL = nothing against the posting,
+      // 1 = Uncertain, 2 = Likely not hiring — the board's order (ranked down, never removed) and its "Hide likely not
+      // hiring" filter read it. job_ghost: the evidence the card shows, and flagged_at — the FIRST time a posting was
+      // flagged, never cleared, so the monthly calibration reads applications sent after the flag. Written by
+      // services/jobs/ghostScore.js scoreGhosts after D107's history rollup. Not a trigger column of 199. After 212.
+      id: "213_ghost_score",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN ghost_level INTEGER;
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_ghost ON scraped_jobs(ghost_level) WHERE ghost_level IS NOT NULL;
+        CREATE TABLE IF NOT EXISTS job_ghost (
+          job_id         TEXT PRIMARY KEY,
+          level          INTEGER NOT NULL,
+          points         INTEGER NOT NULL DEFAULT 0,
+          evidence_json  TEXT NOT NULL DEFAULT '[]',
+          scored_at      INTEGER NOT NULL,
+          flagged_at     INTEGER
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -6973,6 +6994,9 @@ function runExpiredJobsCleanup() {
   // ⭐ D107: the history is written BEFORE anything is deleted — a deleted posting is the one a later repost points back to.
   try { const h = recordJobHistory(db); console.log(`[job-history] cleanup: ${h.seen} seen, ${h.closed} closed`); }
   catch (e) { console.warn("[job-history] cleanup:", e.message); }
+  // ⭐ D137: the ghost score over that history (it never removes a row — closing is the cleanup's, below).
+  try { const g = scoreGhosts(db); console.log(`[ghost-score] cleanup: ${g.scored} scored, ${g.notHiring} likely not hiring, ${g.changed} changed`); }
+  catch (e) { console.warn("[ghost-score] cleanup:", e.message); }
 
   // STARRED ROWS ARE RETIRED, NEVER REMOVED.
   //
@@ -7190,6 +7214,15 @@ cron.schedule("0 4 * * *", async () => {
     console.log(`[Cron] job history: ${h.seen} seen, ${h.closed} closed`);
   } catch(e) {
     console.error('[Cron] Job history rollup error:', e.message);
+  }
+  // ⭐ D137: the ghost score from the history just written; monthly, the "Likely not hiring" cut is checked on outcomes.
+  try {
+    const g = scoreGhosts(db);
+    console.log(`[Cron] ghost score: ${g.scored} scored, ${g.uncertain} uncertain, ${g.notHiring} likely not hiring (cut ${g.notHiringMin}), ${g.changed} changed`);
+    const c = calibrateGhostThreshold(db);
+    if (c.ran) console.log(`[Cron] ghost calibration: ${c.measure.replied} of ${c.measure.withOutcomes} flagged postings replied — cut ${c.from}${c.raised ? ` → ${c.to}` : " (kept)"}`);
+  } catch(e) {
+    console.error('[Cron] Ghost score error:', e.message);
   }
   // ⭐ D105 P3: the Atlas's "On the board" — every number computed from today's active postings, never typed.
   // ⭐ P9 (amended 10-31): the same pass rebuilds the 'board' edges; ⭐ P7: then the auto-publish bar is re-checked
@@ -10739,9 +10772,12 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // requirements contradict an answer they SET goes to the end of the BOARD) and the per-row mark below.
       // Nothing set → ineligibleOrderKey is null → no key; the order, the cursor and the count are as before.
       const boardEligInputs = (() => { try { return userEligibilityInputs(db, req.user.id); } catch { return { defaults: {}, degrees: [] }; } })();
+      // ⭐ D137 · postings scored Likely not hiring go to the end of the board — only when there are any (one indexed
+      // probe), so a board with none keeps its order and its cursors exactly as before.
+      const boardHasGhosts = (() => { try { return !!db.prepare("SELECT 1 FROM scraped_jobs WHERE ghost_level IS NOT NULL AND ghost_level >= 2 AND is_active = 1 LIMIT 1").get(); } catch { return false; } })();
       const orderKeys = buildOrderKeys(sort, richFilters.rank.keys,
         { fit: fitRequested, search: boardSearch, established: richFilters.established.keys,
-          ineligible: ineligibleOrderKey(boardEligInputs.defaults) });
+          ineligible: ineligibleOrderKey(boardEligInputs.defaults), ghost: boardHasGhosts });
       const fitApplied = ordersByFit(orderKeys);
       // The fit keys sort on scores a precompute pass can rewrite while this user pages, so the
       // cursor is signed with an EPOCH that moves whenever their scores do: the newest report row
@@ -11082,6 +11118,9 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       const pageRows = ineligible.size ? [...rows.filter(j => !ineligible.has(j.job_id)), ...rows.filter(j => ineligible.has(j.job_id))] : rows;
       // ⭐ D107 P2 · is this posting alive — "Reposted 4 times since June" · "Open 94 days" · "New — first seen yesterday".
       const liveness = (() => { try { return livenessForRows(db, pageRows); } catch { return new Map(); } })();
+      // ⭐ D137 · the ghost score with its evidence — "Likely not hiring · Reposted 4 times since June · Open 94 days".
+      // Only Uncertain and Likely not hiring are sent; nothing against a posting sends nothing.
+      const ghost = (() => { try { return ghostForRows(db, pageRows); } catch { return new Map(); } })();
       // ⭐ D108 P1 · "Filed 290 certified LCAs in FY2025" — the company's public filings, with the source and its date.
       const sponsorship = (() => { try { return sponsorshipFactsForRows(db, pageRows); } catch { return new Map(); } })();
       // ⭐ D121 · the ONE sponsorship signal per posting (company · title family · the posting's own words) — the card's
@@ -11099,6 +11138,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
                                      scrapedAt: j.scraped_at,
                                      ...(ineligible.get(j.job_id) ? { eligibility: { status: "ineligible", reasons: ineligible.get(j.job_id) } } : {}),
                                      ...(liveness.has(String(j.job_id)) ? { liveness: liveness.get(String(j.job_id)) } : {}),
+                                     ...(ghost.has(String(j.job_id)) ? { ghost: ghost.get(String(j.job_id)) } : {}),
                                      ...(levelOfRow(j) ? { levelRead: levelOfRow(j) } : {}),
                                      ...(sponsorship.get(j.company) ? { sponsorshipFact: sponsorship.get(j.company) } : {}),
                                      ...(signals.get(j.job_id) ? { sponsorship: { ...signals.get(j.job_id), needed: sponsorshipNeeded } } : {}),

@@ -62,7 +62,7 @@ test("⭐ in SQLite: Remote shows the remote rows FIRST, the unclassified after,
 
 test("the board passes the keys and discloses the unclassified count", () => {
   const src = fs.readFileSync("server.js", "utf8");
-  assert.match(src, /established: richFilters\.established\.keys,\s*ineligible: ineligibleOrderKey\(boardEligInputs\.defaults\) \}\);/);
+  assert.match(src, /established: richFilters\.established\.keys,\s*ineligible: ineligibleOrderKey\(boardEligInputs\.defaults\), ghost: boardHasGhosts \}\);/);
   assert.match(src, /const unclassifiedSql = richFilters\.established\.unclassifiedSql;/);
   assert.match(src, /\.\.\.\(unclassified \? \{ unclassified \} : \{\}\),/);
 });

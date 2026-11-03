@@ -18,6 +18,7 @@
 import { deckStrip, kickerFor, NOT_STATED, COULD_NOT_READ } from "../../../shared/postingFacts.js";
 import { formatPosting, markTerm } from "../../../shared/postingFormat.js";
 import { textForRender } from "../../../shared/postingNormalize.js";
+import { ghostLine } from "../../../shared/ghostScore.js";
 import { requirementPills } from "../../../shared/postingRequirements.js";
 import { applyLine } from "../../../shared/postingLevel.js";
 import { usePairLink } from "../lib/pairLink.js";
@@ -60,6 +61,7 @@ export function PostingMasthead({ job, experience = null, showTitle = true, vtTi
       <PostingRequirements requirements={job.requirements} />
       <PostingDetails fields={job.postingFields} />
       <PostingLiveness liveness={job.liveness} />
+      <PostingGhost ghost={job.ghost} />
       <PostingLevel levelRead={job.levelRead} />
       <PostingApplyLine job={job} />
       {/* ⭐ D121: the ONE signal's block when the server sent it; D108's filings line otherwise (an older response). */}
@@ -97,6 +99,20 @@ export function PostingLiveness({ liveness }) {
   );
 }
 
+/**
+ * ⭐ D137 · THE GHOST SCORE with its evidence — "Likely not hiring · Reposted 4 times since June · Open 94 days". Said for
+ * Uncertain and Likely not hiring only; information, never a block (shared/ghostScore.js).
+ */
+export function PostingGhost({ ghost }) {
+  const line = ghostLine(ghost);
+  if (!line) return null;
+  return (
+    <p className="posting__details" data-posting-ghost={ghost.level}>
+      <span className="posting__details-k">Hiring?</span> {line}.
+    </p>
+  );
+}
+
 /** ⭐ D106 P1 · the level the posting's text asks for, said when it is two steps from its title. */
 export function PostingLevel({ levelRead }) {
   const d = levelRead?.disagreement;
@@ -111,7 +127,7 @@ export function PostingLevel({ levelRead }) {
 /** ⭐ D106 P2 · the one "should I apply" sentence — information, never a block; the ATS number is unchanged. */
 export function PostingApplyLine({ job }) {
   const score = Number.isFinite(job?.matchScore) ? job.matchScore : Number.isFinite(job?.baseAtsScore) ? job.baseAtsScore : null;
-  const line = applyLine({ score, eligibility: job?.eligibility, liveness: job?.liveness, level: job?.levelRead, sponsorship: job?.sponsorship });
+  const line = applyLine({ score, eligibility: job?.eligibility, liveness: job?.liveness, level: job?.levelRead, sponsorship: job?.sponsorship, ghost: job?.ghost });
   if (!line) return null;
   return (
     <p className="posting__details" data-apply-line={line.verdict}>

@@ -393,6 +393,9 @@ const ELIGIBILITY_FREE_SQL = `NOT (sj.description_basis IS NOT NULL AND sj.descr
 export const TRULY_ENTRY_SQL = `(sj.level_read IN ('entry', 'early')
     OR (sj.level_read IS NULL AND ${LEVEL_SQL} IN ('entry', 'intern')))`;
 
+/** ⭐ D137 · "Hide likely not hiring": everything but the postings scored Likely not hiring (ghost_level 2). Off by default. */
+export const NOT_GHOST_SQL = `(sj.ghost_level IS NULL OR sj.ghost_level < 2)`;
+
 function buildJobFilters(params = {}, opts = {}) {
   const clauses = [];
   const args = [];
@@ -569,6 +572,12 @@ function buildJobFilters(params = {}, opts = {}) {
   // narrowing the user chose — a posting with no level anywhere is not kept.
   if (isTruthyParam(params.truly_entry)) {
     clauses.push(TRULY_ENTRY_SQL);
+  }
+
+  // ⭐ D137 · "Hide likely not hiring" (off by default): leaves out only postings the ghost score flags Likely not hiring,
+  // with their evidence (services/jobs/ghostScore.js). Unscored and Uncertain postings stay.
+  if (isTruthyParam(params.hide_ghost)) {
+    clauses.push(NOT_GHOST_SQL);
   }
 
   const sources = toArray(params.sources);

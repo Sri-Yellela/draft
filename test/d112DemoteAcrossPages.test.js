@@ -147,7 +147,7 @@ test("D112 item 6 · the key reads eligibilityOf's verdicts per answer, and its 
 test("D112 item 6 · server.js: the board's order leads with the key; the count statement is unchanged; the within-page move stays", () => {
   const src = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
   const board = src.slice(at(src, "const boardEligInputs = "), at(src, "const responseBody = {"));
-  assert.match(board, /buildOrderKeys\(sort, richFilters\.rank\.keys,\s*\{[^}]*ineligible: ineligibleOrderKey\(boardEligInputs\.defaults\) \}\)/);
+  assert.match(board, /buildOrderKeys\(sort, richFilters\.rank\.keys,\s*\{[^}]*ineligible: ineligibleOrderKey\(boardEligInputs\.defaults\), ghost: boardHasGhosts \}\)/);
   assert.match(board, /const total = db\.prepare\(`SELECT COUNT\(\*\) as n \$\{joinClause\} \$\{whereClause\}`\)\.get\(\.\.\.baseArgs\)/);
   assert.match(board, /const eligInputs = boardEligInputs;/);
   assert.match(board, /const pageRows = ineligible\.size \?/, "sponsorship and degree are not stored: they stay demoted within the page");

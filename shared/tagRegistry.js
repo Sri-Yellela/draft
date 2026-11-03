@@ -139,6 +139,13 @@ export const TAG_DIMENSIONS = Object.freeze([
   d({ key: "apply_origins", subject: "posting", class: "INFO", type: "origin family",
       values: "services/applyOrigins.js#APPLY_ORIGIN_FAMILIES + learned pairs", stores: [{ at: "code table + apply_origin_pairs", role: "primary" }],
       writers: ["code (observed rows)", "learnedOrigins.js"], readers: ["packet release"], unknown: "no family", coverage: null }),
+  // ── POSTING · D137 THE GHOST SCORE ────────────────────────────────────────────────────────────────
+  d({ key: "ghost", subject: "posting", class: "SOFT", type: "enum + evidence",
+      values: "shared/ghostScore.js#GHOST_LABELS (1 Uncertain · 2 Likely not hiring)",
+      stores: [{ at: "scraped_jobs.ghost_level", role: "primary" }, { at: "job_ghost.evidence_json", role: "primary", note: "the reasons" }],
+      writers: ["services/jobs/ghostScore.js scoreGhosts (after D107's history rollup)"],
+      readers: ["jobQuery hide_ghost", "jobCursor ghost lead key", "the card and the posting panel"],
+      unknown: "NULL = nothing against it (or not scored yet)", coverage: "sj.ghost_level IS NOT NULL" }),
   // ── POSTING · BOILERPLATE ─────────────────────────────────────────────────────────────────────────
   d({ key: "boilerplate", subject: "posting", class: "BOILERPLATE", type: "span set",
       values: "EEO · benefits · culture", stores: [], writers: ["NOT BUILT — the scorer's generic-language list is the nearest thing"],

@@ -13,6 +13,7 @@ import CompanyLogo from "./CompanyLogo.jsx";
 import CompanyLink from "./CompanyLink.jsx";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { applyLine } from "../../../shared/postingLevel.js";
+import { ghostLine } from "../../../shared/ghostScore.js";
 import { salaryLabel } from "../../../shared/postingFacts.js";
 import { markStyle, bandMarkStyle } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
@@ -226,6 +227,17 @@ function LivenessMark({ liveness }) {
   );
 }
 
+// ── D137 · THE GHOST SCORE — the card marks only "Likely not hiring"; its reasons are the mark's title, and the posting
+// panel says them in full (with "Uncertain" too). Ranked down, never hidden: the user can still open it and apply.
+function GhostMark({ ghost }) {
+  if (!(ghost?.level >= 2)) return null;
+  return (
+    <span data-ghost={ghost.level} style={markStyle(C.WARNING)} title={`${ghostLine(ghost)}. From what draft's crawl and applications have seen.`}>
+      {ghost.label}
+    </span>
+  );
+}
+
 // ── D106 · the level the posting ASKS for, when it is two steps from its title ("Titled Junior · asks for 3+ years…") ──
 function LevelMark({ levelRead }) {
   const d = levelRead?.disagreement;
@@ -236,7 +248,7 @@ function LevelMark({ levelRead }) {
 // ── D106 P2 · ONE LINE: should I apply — the match, eligibility, liveness and level in one sentence. Information only:
 // it may say skip, it never blocks, and the ATS number beside it is the same number (shared/postingLevel.js applyLine).
 function ApplyLineNote({ job, score }) {
-  const line = applyLine({ score, eligibility: job?.eligibility, liveness: job?.liveness, level: job?.levelRead, sponsorship: job?.sponsorship });
+  const line = applyLine({ score, eligibility: job?.eligibility, liveness: job?.liveness, level: job?.levelRead, sponsorship: job?.sponsorship, ghost: job?.ghost });
   if (!line) return null;
   return <p data-apply-line={line.verdict} style={{ margin:"4px 0 0", fontSize:11, color:"var(--color-text-muted)" }}>{line.text}</p>;
 }
@@ -695,6 +707,7 @@ export default function JobCard({
               <VisaBadge isH1bSponsor={job.isH1bSponsor} requiresWorkAuth={job.requiresWorkAuth}/>
               <EligibilityMark eligibility={job.eligibility} sponsorship={job.sponsorshipFact}/>
               <LivenessMark liveness={job.liveness}/>
+              <GhostMark ghost={job.ghost}/>
               <LevelMark levelRead={job.levelRead}/>
               {/* THE BOARD AND THE PIPELINE STOP BEING SEPARATE WORLDS. A card gave no hint that
                   you had already applied to it, that it was queued, or that it was stuck waiting on

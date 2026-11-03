@@ -5974,4 +5974,24 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D137 (owner 11-02) · THE GHOST SCORE. scraped_jobs.ghost_level: NULL = nothing against the posting,
+      // 1 = Uncertain, 2 = Likely not hiring — the board's order (ranked down, never removed) and its "Hide likely not
+      // hiring" filter read it. job_ghost: the evidence the card shows, and flagged_at — the FIRST time a posting was
+      // flagged, never cleared, so the monthly calibration reads applications sent after the flag. Written by
+      // services/jobs/ghostScore.js scoreGhosts after D107's history rollup. Not a trigger column of 199. After 212.
+      id: "213_ghost_score",
+      sql: `
+        ALTER TABLE scraped_jobs ADD COLUMN ghost_level INTEGER;
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_ghost ON scraped_jobs(ghost_level) WHERE ghost_level IS NOT NULL;
+        CREATE TABLE IF NOT EXISTS job_ghost (
+          job_id         TEXT PRIMARY KEY,
+          level          INTEGER NOT NULL,
+          points         INTEGER NOT NULL DEFAULT 0,
+          evidence_json  TEXT NOT NULL DEFAULT '[]',
+          scored_at      INTEGER NOT NULL,
+          flagged_at     INTEGER
+        );
+      `,
+    },
   ];

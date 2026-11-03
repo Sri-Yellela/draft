@@ -47,6 +47,8 @@ import { ATS_BAND_CUTPOINTS } from "../../shared/atsBands.js";
 
 /** One ORDER BY term. `sql` may be any expression; `params` binds placeholders inside it. */
 const KEY = (sql, dir = "ASC", params = []) => ({ sql, dir, params });
+/** ⭐ D137 · 1 for a posting scored Likely not hiring (scraped_jobs.ghost_level 2), else 0. */
+const GHOST_LAST_SQL = "(CASE WHEN sj.ghost_level >= 2 THEN 1 ELSE 0 END)";
 
 /**
  * The "NULLs last" guard that precedes every keyed sort.
@@ -298,8 +300,11 @@ const CURATED_TAIL = Object.freeze([...NEWEST, ...COMPANY_AZ, BY_ID]);
 // ⭐ D112 item 6 · `ineligible`: services/jobEligibility.js ineligibleOrderKey — 1 when the posting's STORED
 // requirements contradict an answer the user SET. It leads EVERY key, a search tier included: an ineligible
 // posting goes to the end of the board, not of its page. null (nothing set) adds no key, so the order is unchanged.
-function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, established = [], ineligible = null } = {}) {
+// ⭐ D137 · `ghost`: true when the board holds any posting scored Likely not hiring — those are RANKED DOWN (after the
+// eligible-first key, before everything else), never removed. false adds no key, so the order is unchanged.
+function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, established = [], ineligible = null, ghost = false } = {}) {
   const lead = ineligible?.sql ? [KEY(ineligible.sql, "ASC", ineligible.params || [])] : [];
+  if (ghost) lead.push(KEY(GHOST_LAST_SQL, "ASC"));
   const sortIsDefault = !SORT_KEYS[sort];
   const chosen = sortIsDefault ? CURATED_TAIL : SORT_KEYS[sort];
   const known = (established || []).map(k => KEY(k.sql, "ASC", k.params || []));
