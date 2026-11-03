@@ -38,17 +38,15 @@ test("⛔ D69 (a) · a SpeedyApply export's \"Archived\" imports as WITHDRAWN �
 
 // D69 (b): measured in Chrome by scripts/d69NavPass.mjs — at 360, 390, 440 and 1280 every tab fits with
 // no scrolling, inside the bar and clear of the avatar. This pins the rule that made it fit.
-test("⛔ D69 (b) · on a phone the tabs stack their words, so all four fit at 390px (and 360) — no scrolling", () => {
+test("⛔ D69 (b) → D145 · the tab row (and its phone tier) is gone; the dock scrolls sideways rather than clip at 390", () => {
+  // ⭐ D145 Step 3 (changed on purpose): the sections are the Dock / the Menu (AppNav). The dock never clips a button:
+  // it is no wider than the screen and scrolls along itself.
   const src = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
-  assert.match(src, /const tiny = vw < 440;/);
-  // ⭐ D92: the phone tier is CSS now (TopBar.css, the nav's data-size), the same values.
-  assert.match(src, /data-size=\{tiny \? "tiny" : narrow \? "narrow" : "wide"\}/);
-  const css = fs.readFileSync("client/src/components/TopBar.css", "utf8");
-  assert.match(css, /\.tbar-nav\[data-size="tiny"\] \.tbar-tab \{ padding: 3px 4px; border-radius: 8px; font-size: 11px; white-space: normal; width: min-content; \}/);
-  assert.match(css, /\.tbar-tab \{[^}]*white-space: nowrap;[^}]*font-size: 12px;/);
+  assert.doesNotMatch(src, /const tiny = vw < 440;|data-size=\{tiny/);
+  const css = fs.readFileSync("client/src/components/AppNav.css", "utf8");
+  assert.match(css, /\.appnav-dock \{[^}]*max-width: calc\(100vw - 32px\); overflow-x: auto;/);
 });
 
-// D68 · the Copy sheet compliance check (PRIVACY_RECONCILIATION § D68) — the two fixes it needed, pinned.
 test("⛔ D68 · the policy names the Copy sheet and carries the Web Store Limited Use affirmation", () => {
   const policy = fs.readFileSync("client/src/pages/marketing/PrivacyPage.jsx", "utf8").replace(/<[^>]+>/g, " ").replace(/\{" "\}/g, " ").replace(/\s+/g, " ");
   assert.match(policy, /Copy sheet shows your own prepared answers — including any work-authorisation or voluntary self-identification answers you saved/);

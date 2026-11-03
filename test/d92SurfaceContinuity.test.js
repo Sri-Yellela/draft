@@ -31,9 +31,12 @@ test("D92 ② the top bar: nothing clips a shadow — the group clips its sides 
   assert.match(css, /\.tbar-group \{[^}]*clip-path: inset\(-18px 0\);/);
   assert.doesNotMatch(css.slice(at(css, ".tbar-group {"), at(css, "}", at(css, ".tbar-group {"))), /overflow/);
   assert.doesNotMatch(top, /overflowX: "auto"|overflow: "hidden" \}\}>\s*\{\/\* Logo/);
-  const nav = css.slice(at(css, ".tbar-nav {"), at(css, "}", at(css, ".tbar-nav {")));
-  assert.doesNotMatch(nav, /(^|[^-])overflow(-[xy])?:/, "the row is a scroll container at rest — it clips every tab's shadow");
-  assert.match(css, /\.tbar-nav\[data-overflow="true"\] \{ overflow-x: auto; padding-block: var\(--nav-scroll-pad, 14px\); margin-block: var\(--nav-scroll-pull, -14px\); \}/);
+  // ⭐ D145 (changed on purpose): the tab row is gone; the Dock replaced it. The dock DOES scroll along itself (390 px),
+  // so nothing inside it carries a shadow to clip — the current button is raised by its fill.
+  const dock = read("client/src/components/AppNav.css");
+  const item = dock.slice(at(dock, ".appnav-item {"), at(dock, "}", at(dock, ".appnav-item {")));
+  const cur = dock.slice(at(dock, '.appnav-item[aria-current="page"] {'), at(dock, "}", at(dock, '.appnav-item[aria-current="page"] {')));
+  assert.doesNotMatch(item + cur, /box-shadow/, "a dock button carries a shadow its scrolling dock would clip");
 });
 
 test("D92 ③ the bar is ONE surface with hairline dividers — no well inside it; ⑤ no navigation control is a well", () => {
@@ -47,8 +50,8 @@ test("D92 ③ the bar is ONE surface with hairline dividers — no well inside i
   assert.match(rule(".fh-views"), /border-right: 1px solid var\(--c-fh-line\)/);
   assert.match(rule(".fh-ico"), /border-left: 1px solid var\(--c-fh-line\)/);
   // Rule 5: the tab and the view buttons never wear the well.
-  const tab = read("client/src/components/TopBar.css");
-  assert.doesNotMatch(tab.slice(at(tab, ".tbar-tab {")), /--c-fh-well/);
+  const tab = read("client/src/components/AppNav.css");   // ⭐ D145: the Dock's buttons are the navigation controls now
+  assert.doesNotMatch(tab.slice(at(tab, ".appnav-item {")), /--c-fh-well/);
   assert.doesNotMatch(rule(".fh-views button"), /--c-fh-well/);
 });
 
@@ -85,9 +88,9 @@ test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 the
   const { THEME_LIST, cssVarName } = await import("../client/src/themes/index.js");
   const { FULL_HOUSE_TYPE, typeVarName } = await import("../client/src/styles/type.js");
   const { LAYOUT_OPTION_IDS } = await import("../shared/appearance.js");
-  const css = ["client/src/components/TopBar.css", "client/src/components/StickyBar.css", "client/src/components/FullHouse.css"].map(read).join("\n");
+  const css = ["client/src/components/TopBar.css", "client/src/components/AppNav.css", "client/src/components/StickyBar.css", "client/src/components/FullHouse.css"].map(read).join("\n");
   const typeVars = Object.entries(FULL_HOUSE_TYPE).map(([k, v]) => `${typeVarName(k)}:${v}`).join(";");
-  const page0 = (t, nav, sentence, stuck) => `<!doctype html><html data-theme="${t.id}" data-nav="${nav}" data-sentence="${sentence}"
+  const page0 = (t, nav, sentence, stuck) => `<!doctype html><html data-theme="${t.id}" data-navigation="${nav}" data-sentence="${sentence}"
     style="${Object.entries(t.tokens).map(([k, v]) => `${cssVarName(k)}:${v}`).join(";")};${typeVars};--z-sticky:5;--font-body:sans-serif;--app-chrome-height:74px">
     <head><style>${css}
       body{margin:0;background:var(--c-canvas);font-family:sans-serif} *{transition:none!important;animation:none!important}
@@ -95,8 +98,9 @@ test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 the
       .list{max-width:1100px;margin:16px auto 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;padding:0 22px}
       .card{height:84px;border-radius:14px;background:var(--c-surface);border:1px solid var(--c-fh-line);box-shadow:var(--c-depth-rest)}
     </style></head><body>
-    <div class="chrome"><div class="tbar-group"><nav class="tbar-nav" data-size="wide" data-overflow="false">
-      <a class="tbar-tab">Daily<br>Deck</a><a class="tbar-tab" aria-current="page">Full<br>House</a><a class="tbar-tab">Draft<br>House</a><a class="tbar-tab">The<br>Table</a></nav></div></div>
+    <div class="chrome"><div class="tbar-group"><b>draft</b></div><span class="appnav-menu-btn">Menu</span></div>
+    <!-- ⭐ D145: the Dock (risen), in place of the retired tab row -->
+    <nav class="appnav-dock" data-up="true"><a class="appnav-item" aria-current="page"><span class="appnav-name">Full House</span><small class="appnav-plain">every job</small></a><a class="appnav-item"><span class="appnav-name">Draft House</span><small class="appnav-plain">in progress</small></a></nav>
     ${stuck === "true" ? "" : `<header class="fh" id="hd"><h1 class="bh"><span class="bh__verb">discovering</span> <button class="tok">all</button> roles at <button class="tok">all</button> career levels and <button class="tok">all</button> workstyles in <button class="tok" aria-pressed="true">the United States</button>.</h1></header>`}
     <!-- stuck: the bar's box at the chrome's edge, as top: var(--app-chrome-height) puts it (the bar's 16px margin collapses outside the box) -->
     <main style="${stuck === "true" ? "margin-top:-16px" : "padding-top:24px"}"><div class="sticky-bar fh fh--bar-row" id="bar" data-stuck="${stuck}"><div class="fh-bar">
@@ -122,7 +126,7 @@ test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 the
     const worst = (vals) => worstAt(vals)[0];
     const THRESHOLD = 3;   // in 0–255 luminance, per 4px — a hairline or a hard band edge is 10–40
     for (const t of THEME_LIST) for (const [vp, size] of [["desktop", { width: 1440, height: 760 }], ["phone", { width: 390, height: 760 }]])
-      for (const nav of LAYOUT_OPTION_IDS.nav.values) for (const sentence of LAYOUT_OPTION_IDS.sentence.values) for (const stuck of ["false", "true"]) {
+      for (const nav of LAYOUT_OPTION_IDS.navigation.values) for (const sentence of LAYOUT_OPTION_IDS.sentence.values) for (const stuck of ["false", "true"]) {
         await page.setViewport(size);
         await page.setContent(page0(t, nav, sentence, stuck), { waitUntil: "load" });
         const g = await page.evaluate(() => {

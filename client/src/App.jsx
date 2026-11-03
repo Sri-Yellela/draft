@@ -11,7 +11,7 @@ import AuthScreen                from "./components/AuthScreen.jsx";
 import AdminLayout               from "./components/AdminLayout.jsx";
 import AdminLoginPage, { AdminSetPasswordPage } from "./pages/AdminLoginPage.jsx";
 import DBInspector               from "./pages/admin/DBInspector.jsx";
-import TopBar, { TabLabel }      from "./components/TopBar.jsx";
+import TopBar                     from "./components/TopBar.jsx";
 import AppShell                  from "./components/AppShell.jsx";
 import { useChromeHeight }       from "./hooks/useChromeHeight.js";
 import { useCollapsibleHeight }  from "./hooks/useCollapsibleHeight.js";
@@ -210,30 +210,10 @@ function AppTopBar({ tabs, ...props }) {
   // So the title and the screen-reader text say "N drafts need your attention", and the bare digit is
   // hidden from the accessible name.
   const attention = `${needsAttentionCount} ${needsAttentionCount === 1 ? "draft needs" : "drafts need"} your attention`;
+  // ⭐ D145: the count rides on the Draft House button of the Dock / the Menu (AppNav.jsx draws it) as data — a number
+  // and its sentence — rather than as a decorated label.
   const decorated = (tabs || []).map(t =>
-    t.id === "auto-apply"
-      ? {
-          ...t,
-          label: (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <span><TabLabel label={t.label}/></span>
-              {needsAttentionCount > 0 && (
-                <span
-                  title={attention}
-                  style={{
-                    minWidth: 16, height: 16, padding: "0 4px", borderRadius: 6,
-                    background: "var(--color-primary)", color: "var(--color-on-primary)",
-                    fontSize: 10, fontWeight: 800, lineHeight: "16px", textAlign: "center",
-                  }}>
-                  <span aria-hidden="true">{needsAttentionCount}</span>
-                  <span className="sr-only">{`, ${attention}`}</span>
-                </span>
-              )}
-            </span>
-          ),
-        }
-      : t,
-  );
+    t.id === "auto-apply" ? { ...t, badge: needsAttentionCount, badgeLabel: attention } : t);
 
   return <TopBar {...props} tabs={decorated} />;
 }

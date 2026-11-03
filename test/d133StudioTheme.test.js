@@ -66,7 +66,8 @@ test("d133PerSurfaceSelection: the Admin pages can have their own look; every ot
   assert.match(read("client/src/panels/adminAppearance.jsx"), /setAdminSurfaceTheme\(id\)/);
   const server = read("server.js");
   assert.match(server, /app\.post\("\/api\/admin\/appearance", requireAdmin,/);
-  assert.match(server, /studioForUsers: studioForUsers\(\) \}\)\);/);
+  // ⭐ D144 (changed on purpose): the same routes carry Dusk's own switch beside Studio's.
+  assert.match(server, /studioForUsers: studioForUsers\(\), duskForUsers: duskForUsers\(\) \}\)\);/);
 });
 
 test("d133UsersOfferedOnlyWhenOn: Settings → Appearance lists Studio only when the owner offers it, or the person is on it", () => {
@@ -87,7 +88,7 @@ test("d133FourExistingThemesUnchanged: Paper, Charcoal and the Contrast pair are
     "contrast-light": "de93f28d8dbc1402efa1c4008203e16aaec10a1dbf2519210cbba16c7e96da76",
     "contrast-dark": "2ed8b244967883b5e4ff4e359f2cb6c7ec37c6c8d0ec6e8088a357c50d901f0f",
   });
-  assert.equal(THEME_LIST.length, 6);
+  assert.equal(THEME_LIST.length, 8, "6 + D144's Dusk pair");
 });
 
 test("d133ContrastAA: every declared pair passes AA in both Studio themes", () => {

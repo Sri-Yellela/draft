@@ -17,16 +17,6 @@ const def = (key, id) => (LAYOUT_OPTION_IDS[key].default === id ? { default: tru
 
 export const LAYOUT_OPTIONS = Object.freeze([
   {
-    id: "nav", label: "Top bar", attribute: LAYOUT_OPTION_IDS.nav.attribute,
-    description: "How the four pages are laid out across the top.",
-    values: [
-      { id: "ghost", label: "Ghost tabs", ...def("nav", "ghost"),
-        description: "Only the page you are on is a box. The others stay quiet until you point at them." },
-      { id: "track", label: "One track", ...def("nav", "track"),
-        description: "All four sit in a single recessed track; the page you are on is filled." },
-    ],
-  },
-  {
     id: "sentence", label: "Filter sentence", attribute: LAYOUT_OPTION_IDS.sentence.attribute,
     description: "The sentence at the top of Full House — “discovering all roles at all career levels…”.",
     values: [
@@ -45,6 +35,30 @@ export const LAYOUT_OPTIONS = Object.freeze([
         description: "The posting reads as the employer wrote it. A dotted line appears only under the word you point at." },
       { id: "shown", label: "Shown", ...def("learning", "shown"),
         description: "A faint dotted line under every learning link, all the time — so you can see them without pointing." },
+    ],
+  },
+  {
+    // ⭐ D145 Step 3 · styled in components/AppNav.css under [data-navigation="…"].
+    id: "navigation", label: "Navigation", attribute: LAYOUT_OPTION_IDS.navigation.attribute,
+    description: "How you move between Daily Deck, Full House, Draft House, The Table and Atlas.",
+    values: [
+      { id: "auto", label: "Automatic", ...def("navigation", "auto"),
+        description: "The dock on a computer, the menu on a phone." },
+      { id: "dock", label: "Dock", ...def("navigation", "dock"),
+        description: "A bar at the bottom of the screen. It rises when your pointer nears the bottom edge." },
+      { id: "menu", label: "Menu", ...def("navigation", "menu"),
+        description: "A Menu button at the top right opens a panel from the side with the same buttons." },
+    ],
+  },
+  {
+    // ⭐ D145 · styled in index.css under [data-text-size="…"] (the --type-scale every scaled size multiplies).
+    id: "text", label: "Text size", attribute: LAYOUT_OPTION_IDS.text.attribute,
+    description: "How large draft's text is. Your browser's zoom still works on top.",
+    values: [
+      { id: "smaller", label: "Smaller", ...def("text", "smaller"), description: "A little smaller than usual." },
+      { id: "default", label: "Default", ...def("text", "default"), description: "The size draft is designed at." },
+      { id: "larger", label: "Larger", ...def("text", "larger"), description: "About an eighth larger." },
+      { id: "largest", label: "Largest", ...def("text", "largest"), description: "A quarter larger." },
     ],
   },
 ].map((o) => Object.freeze({ ...o, values: Object.freeze(o.values.map((v) => Object.freeze(v))) })));

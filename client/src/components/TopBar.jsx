@@ -24,6 +24,7 @@ import { Z } from "../styles/zLayers.js";
 import { C } from "../styles/colorTokens.js";
 import { ACTIVE_THEME, appearance, setAppearance } from "../themes/index.js";
 import { useAccountAvatar } from "../lib/accountAvatar.js";
+import AppNav from "./AppNav.jsx";
 import "./TopBar.css";
 
 // The slideDown keyframes and injectKeyframes() were removed with the pill (Y4).
@@ -61,21 +62,8 @@ function AnimatedLucyLogo() {
   return <StampLogo size="nav"/>;
 }
 
-// D10: a two-word tab name is set on two lines ("Daily / Deck", "Full / House", "The / Table"), so the
-// label is as tall as the mark beside it rather than a long single line. A one-word string, or a
-// decorated ReactNode (Draft House's label + count, which calls this itself), renders as given. The
-// accessible name is the same words with a space — the line break is a <br>, not a character in the name.
-// D18: no tab carries a symbol — all four are two-line text in the same format.
-// The scrollable tab row's "there is more" cue: the last 36px fade out (a mask, so it works over
-// any background and in both themes — no colour literal).
-const TAB_ROW_FADE = "linear-gradient(to right, var(--c-ink) calc(100% - 36px), transparent)";   // a mask reads alpha only; ink is opaque
-
-export function TabLabel({ label }) {
-  if (typeof label !== "string" || !label.includes(" ")) return label;
-  const cut = label.indexOf(" ");
-  return <>{label.slice(0, cut)}<br/>{label.slice(cut + 1)}</>;
-}
-
+// D10 / D18's TabLabel (a two-word tab name on two lines) went with the tab row (D145): the Dock and the Menu set each
+// name on one line with its plain words under it (AppNav.jsx).
 
 // ── Notifications ─────────────────────────────────────────────
 //
@@ -459,26 +447,9 @@ export default function TopBar({
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // The tab row scrolls when it does not fit (below ~760px with the full wordmark). D18/O56e: at
-  // 390px "The Table" sat wholly past the edge with nothing to say it was there. Two small things:
-  // tighter tab spacing on a phone, and a fade on the edge that still hides a tab, so the row reads
-  // as scrollable. `tabsMore` is recomputed on scroll and resize; nothing fades when it all fits.
-  const narrow = vw < 560;
-  // ⭐ D69 (b) (owner, 10-07): at 390px the row still clipped "THE TABLE" behind the fade. On a phone each
-  // tab's words stack — DAILY / DECK, FULL / HOUSE, DRAFT, THE / TABLE — two 11px lines inside the 46px
-  // bar, so all four fit at 360px and up with no scrolling (measured: scripts/d69NavPass.mjs).
-  const tiny = vw < 440;
-  const tabRowRef = useRef(null);
-  const [tabsMore, setTabsMore] = useState(false);
-  // ⭐ D92: the row scrolls ONLY when the tabs genuinely overflow (an overflow container clips every shadow in
-  // it), so `overflows` turns scrolling on; `tabsMore` is the fade on an edge that still hides a tab.
-  const [overflows, setOverflows] = useState(false);
-  const measureTabs = useCallback(() => {
-    const el = tabRowRef.current;
-    setOverflows(!!el && el.scrollWidth > el.clientWidth + 1);
-    setTabsMore(!!el && el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
-  }, []);
-  useEffect(() => { measureTabs(); }, [measureTabs, vw, tabs]);
+  // ⭐ D145 Step 3 (owner 11-03): the tab row that lived here is REMOVED — the sections are reached from the Dock or the
+  // Menu (AppNav.jsx, the user's choice in Settings → Appearance → Navigation). Its width tiers and overflow
+  // measuring went with it.
 
   // Domain profiles for docked pill switcher
   const [profiles, setProfiles] = useState([]);
@@ -595,8 +566,7 @@ export default function TopBar({
           zIndex: Z.NAV,
           fontFamily: "'DM Sans',system-ui,sans-serif",
         }}>
-        {/* Left group: the mark, then the app's primary navigation.
-            logo | DAILY DECK | FULL HOUSE | DRAFT | THE TABLE (D10) */}
+        {/* Left group: the mark. (The tab row that followed it is gone — D145, AppNav.) */}
         {/* flex 1 + clipped sides: the tab row must give way to the avatar, never slide under it — at 390px the
             avatar sat on top of "AUTO APPLY" (seen in the 10-02 reshoot). ⛔ D92: it clips its SIDES only
             (TopBar.css .tbar-group, clip-path) — `overflow: hidden` here cut the tabs' shadows into a rectangle. */}
@@ -604,42 +574,6 @@ export default function TopBar({
           {/* Logo — "R" always visible, "esume Master" collapses */}
           <AnimatedLucyLogo/>
 
-          {/* THE TAB ROW. Moved here from UnifiedSearchBar (Y4), where the app's primary navigation
-              was a slot on a control that is only meaningful on the Jobs board.
-
-              The button styling is UnifiedSearchBar's verbatim — same padding, radius, border,
-              colours, uppercase 12px/0.08em type, same active treatment — because this is a MOVE.
-              `t.label` is a ReactNode, not a string: that is what carries the AUTO APPLY
-              needs-review count, which AppDashboard decorates onto the tab before passing it down
-              (see AppTopBar there). A review queue nobody sees is worse than a cluttered bar.
-
-              Scrolling with a hidden scrollbar rather than wrapping, when the row does not fit: the bar is
-              a fixed height and the tabs plus the mark plus the avatar do not fit everywhere. Scrolling keeps
-              every tab REACHABLE at any width, where wrapping would push the second row outside the bar.
-              ⭐ D92 + D93: the look is TopBar.css — ghost tabs or one track, the owner's choice (data-nav on
-              <html>, the Customise page); scrolling is on only while `overflows`. */}
-          <nav aria-label="Main" ref={tabRowRef} onScroll={measureTabs} className="tbar-nav"
-            data-size={tiny ? "tiny" : narrow ? "narrow" : "wide"} data-overflow={overflows ? "true" : "false"} style={{
-            ...(tabsMore ? { WebkitMaskImage: TAB_ROW_FADE, maskImage: TAB_ROW_FADE } : null),
-          }}>
-            {(tabs || []).map(t => (
-              <a key={t.id}
-                href={hrefForTab?.(t.id) || undefined}
-                // Plain left-click stays an SPA navigation — preventDefault and route in-app, so
-                // nothing about single-tab behaviour changes. Every MODIFIED click is left to the
-                // browser: ctrl/cmd (new tab), shift (new window), middle-click, and the context
-                // menu, which needs no handler at all now that there is an href to act on.
-                onClick={(e) => {
-                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-                  e.preventDefault();
-                  onTabChange?.(t.id);
-                }}
-                aria-current={activeTab === t.id ? "page" : undefined}
-                // ⛔ D60: never a capsule, never the old uppercase condensed label. ⭐ D92: the page you are on is
-                // the ONE depth box (the orange fill); the others are ghost until pointed at (TopBar.css).
-                className="tbar-tab"><TabLabel label={t.label}/></a>
-            ))}
-          </nav>
         </div>
 
         {/* Right: utility icons */}
@@ -647,6 +581,9 @@ export default function TopBar({
           {/* The bell and the quick-actions button are gone from the bar (W6). Notifications live
               in the profile menu below; their unread count rides on the avatar so it is still
               visible without opening anything. */}
+          {/* ⭐ D145: the Menu button (shown when Navigation is Menu, or Automatic on a phone) and the Dock (portalled to
+              the bottom of the screen) — one list, the same `tabs` the row used to draw. */}
+          <AppNav tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onTabChange={onTabChange} />
           {user && (
             <UserAvatarMenu
               theme={theme} user={user} onLogout={onLogout}

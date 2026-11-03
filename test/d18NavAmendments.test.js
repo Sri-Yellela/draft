@@ -29,17 +29,18 @@ test("D18: the AUTO APPLY tab reads Draft House — four two-word labels, ids un
   assert.match(tabsBlock(), /\{ id: "auto-apply",\s*label: "Draft House" \}/);
 });
 
-test("D18: NO symbol on any tab — the decorated Draft House label is text + the count, set by TabLabel", () => {
+test("D18: NO symbol on any tab — the Draft House count rides on the button as data (D145: AppNav draws it)", () => {
   const fn = decorator();
   assert.doesNotMatch(fn, /<DraftMark/, "the Draft House tab carries the /d mark again (D18: no symbol on any tab)");
   assert.doesNotMatch(fn, /<svg|<img|[★⏳✦]/u, "a tab carries a symbol (D18)");
-  // The decorated label still goes through the shared two-line setter, so it matches the other three.
-  assert.match(fn, /<TabLabel label=\{t\.label\}\/>/);
-  assert.match(app, /import TopBar, \{ TabLabel \}\s+from "\.\/components\/TopBar\.jsx";/);
-  assert.match(topBar, /export function TabLabel\(\{ label \}\)/);
-  // The tab row renders labels and nothing else beside them.
-  const row = topBar.slice(at(topBar, '<nav aria-label="Main"'), at(topBar, "</nav>", at(topBar, '<nav aria-label="Main"')));
-  assert.doesNotMatch(row, /<DraftMark|<svg|<img/);
+  // ⭐ D145 (changed on purpose): the count and its sentence are data on the tab, not a decorated label.
+  assert.match(fn, /t\.id === "auto-apply" \? \{ \.\.\.t, badge: needsAttentionCount, badgeLabel: attention \} : t/);
+  const nav = read("client/src/components/AppNav.jsx");
+  for (const tag of ["<nav aria-label=\"Main\"", "<nav aria-label=\"Main menu\""]) {
+    const row = nav.slice(nav.indexOf(tag), nav.indexOf("</nav>", nav.indexOf(tag)));
+    assert.ok(row.length > 20, tag);
+    assert.doesNotMatch(row, /<DraftMark|<svg|<img/);
+  }
 });
 
 test("D18: Job Profiles lives in SETTINGS — the avatar menu's Settings group; the page stays route-only", () => {
@@ -75,23 +76,11 @@ test("D18: no display string still sends the user to 'the Draft tab'", () => {
   assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /<h2 style=\{TYPE\.PAGE_TITLE\}>\s*Draft House\s*</);
 });
 
-test("O56e: on a phone the tab row tightens and FADES at the edge that still hides a tab — it reads as scrollable", () => {
-  // Four two-line tabs + the full wordmark + the avatar need ~470px; a 390px phone shows ~3.5 tabs.
-  // The row has always scrolled; nothing said so, and "The Table" sat wholly past the edge.
-  assert.match(topBar, /const narrow = vw < 560;/);
-  // D69 (b) adds a tighter phone tier below 440px; the narrow tier is unchanged. ⭐ D92: the tiers are CSS now
-  // (TopBar.css, keyed off the nav's data-size), the same paddings.
-  assert.match(topBar, /data-size=\{tiny \? "tiny" : narrow \? "narrow" : "wide"\}/);
-  const css = read("client/src/components/TopBar.css");
-  assert.match(css, /\.tbar-tab \{[^}]*padding: 6px 13px;/);
-  assert.match(css, /\.tbar-nav\[data-size="narrow"\] \.tbar-tab \{ padding: 5px 8px; \}/);
-  assert.match(css, /\.tbar-nav\[data-size="tiny"\] \.tbar-tab \{ padding: 3px 4px;/);
-  // The cue is driven by a measurement, not by the width alone: nothing fades when everything fits.
-  assert.match(topBar, /setTabsMore\(!!el && el\.scrollLeft \+ el\.clientWidth < el\.scrollWidth - 2\)/);
-  assert.match(topBar, /<nav aria-label="Main" ref=\{tabRowRef\} onScroll=\{measureTabs\}/);
-  assert.match(topBar, /\.\.\.\(tabsMore \? \{ WebkitMaskImage: TAB_ROW_FADE, maskImage: TAB_ROW_FADE \} : null\)/);
-  // Scrolling, not wrapping, still keeps every tab reachable — ⭐ D92: switched on only when the tabs genuinely
-  // overflow (an overflow container clips every shadow in it).
-  assert.match(topBar, /setOverflows\(!!el && el\.scrollWidth > el\.clientWidth \+ 1\)/);
-  assert.match(css, /\.tbar-nav\[data-overflow="true"\] \{ overflow-x: auto;/);
+test("O56e → D145: the phone's tab row is gone — the Menu (or the dock, chosen) reaches every section at any width", () => {
+  // ⭐ D145 Step 3 (changed on purpose): no row to tighten or fade. "Automatic" is the Menu below 640 px or on a touch
+  // screen (AppNav.css), and the panel lists all five; scripts/d145DeckShots.mjs walks it at 390 px.
+  assert.doesNotMatch(topBar, /tabsMore|TAB_ROW_FADE|className="tbar-nav"/);
+  const css = read("client/src/components/AppNav.css");
+  assert.match(css, /@media \(max-width: 639px\), \(hover: none\) and \(pointer: coarse\) \{\s*\[data-navigation="auto"\] \{ --appnav-dock: none; --appnav-menu: inline-flex; \}/);
 });
+

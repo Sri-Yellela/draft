@@ -59,11 +59,14 @@ test("tourTargetNotCovered: measured only after it stops moving (three equal rea
 test("tourMatchShowsNumber: the match step lights the match row, and a trial account's card shows its score", () => {
   assert.match(tour, /id: "deck_match", route: "\/app\/today", target: "\[data-deck-signal-row\]"/);
   const deck = read("client/src/panels/DeckView.jsx");
-  // trialCardShowsScoreAndWhy (owner 11-01): the score in a ring, "N of M skills", top 4 matched (green) + top 2 missing (grey).
-  assert.match(deck, /\{Number\.isFinite\(card\.score\)\n\s+\? <TrialMatch score=\{card\.score\} why=\{why\}/);
-  assert.match(deck, /<span data-deck-score=\{pct\} aria-label=\{`\$\{pct\}% match`\}/);
-  assert.match(deck, /\(why\.matched \|\| \[\]\)\.slice\(0, 4\)\.map\(t => <span key=\{`m-\$\{t\}`\} data-chip="matched" style=\{\{ \.\.\.markStyle\(C\.SUCCESS\)/);
-  assert.match(deck, /\(why\.missing \|\| \[\]\)\.slice\(0, 2\)\.map\(t => <span key=\{`x-\$\{t\}`\} data-chip="missing"/);
+  // trialCardShowsScoreAndWhy (owner 11-01) — ⭐ D145 Step 3 (changed on purpose): the score is the card's top-right
+  // match ("86%" over "résumé match", data-deck-signal-row still the tour's target); the skills moved to "Why this job":
+  // the matched ones outlined in the accent, the missing plain (lib/deckCardFacts.js — 6 and 4).
+  assert.match(deck, /<button type="button" data-deck-signal-row="" data-deck-signal="" data-deck-match=/);
+  assert.match(deck, /\{ "data-deck-score": parseInt\(facts\.match\.value, 10\) \}/);
+  assert.match(deck, /facts\.why\.matched\.map\(\(t\) => <span key=\{`m-\$\{t\}`\} data-chip="matched"/);
+  assert.match(deck, /facts\.why\.missing\.map\(\(t\) => <span key=\{`x-\$\{t\}`\} data-chip="missing"/);
+  assert.match(read("client/src/lib/deckCardFacts.js"), /value: `\$\{Math\.max\(0, Math\.min\(100, Math\.round\(card\.score\)\)\)\}%`, word: "résumé match"/);
   assert.match(deck, /trialDeck \? `Best match first · Drafted \$\{tally\.drafted\} of 2` : `Drafted \$\{tally\.drafted\}`/);
   assert.doesNotMatch(read("client/src/pages/TryPage.jsx"), /data-trial-choice="own"/, "trialNoOwnResume");
   assert.match(read("server.js"), /if \(isTrialAccount\(db, req\.user\.id\)\) deck\.cards = deck\.cards\.map\(c => \(\{ \.\.\.c, score: scoreFor\(c\.job\.id\) \}\)\);/);
@@ -85,8 +88,9 @@ test("tourYourTurnWholeDeckLit + tourDraftedCounter: the whole deck lit, and a l
 test("the card is three steps: the match, the facts (the card opened), Pass · Save · Draft", () => {
   const ids = [...tour.matchAll(/\{ id: "([a-z_]+)", route:/g)].map(m => m[1]);
   assert.deepEqual(ids.slice(0, 4), ["deck", "deck_match", "deck_facts", "deck_actions"]);
-  assert.match(tour, /id: "deck_facts", route: "\/app\/today", target: "\[data-fan-offset=\\"0\\"\] \[data-posting-masthead\]", expand: true,/);
-  assert.match(read("client/src/panels/DeckView.jsx"), /const onExpand = \(e\) => setExpanded\(!!e\.detail\?\.open\);/);
+  // ⭐ D145 (changed on purpose): "the card opened" is its "Why this job" layer — the facts as stat cards.
+  assert.match(tour, /id: "deck_facts", route: "\/app\/today", target: "\[data-fan-offset=\\"0\\"\] \[data-deck-why\]", expand: true,/);
+  assert.match(read("client/src/panels/DeckView.jsx"), /const onExpand = \(e\) => setWhy\(!!e\.detail\?\.open\);/);
 });
 
 test("tourWaitingPopoverNeverCatchesPresses + a tall target measured on screen only (11-01 proof: the 2nd consent box; The Table on a phone)", () => {

@@ -40,6 +40,10 @@ export function themePair(pref) {
   const t = String(pref || 'system');
   if (EXT_THEMES[t]) return { light: EXT_THEMES[t].tokens, dark: EXT_THEMES[t].tokens, id: t };
   if (t === 'contrast') return { light: EXT_THEMES['contrast-light'].tokens, dark: EXT_THEMES['contrast-dark'].tokens, id: 'contrast' };
+  // D133 / D144: the Studio and Dusk pairs follow the OS the same way (before this, both fell back to the Paper pair).
+  if ((t === 'studio' || t === 'dusk') && EXT_THEMES[`${t}-light`] && EXT_THEMES[`${t}-dark`]) {
+    return { light: EXT_THEMES[`${t}-light`].tokens, dark: EXT_THEMES[`${t}-dark`].tokens, id: t };
+  }
   return { light: C_LIGHT, dark: C_DARK, id: 'system' };
 }
 

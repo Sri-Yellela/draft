@@ -108,7 +108,8 @@ test("⛔ layering by NAMED tier: --z-bg < --z-fan < --z-content < --z-nav, and 
   const literals = deckSrc.match(/zIndex:\s*-?\d/g) || [];
   assert.deepEqual(literals, [], "a z-index number someone can nudge");
   assert.match(deckSrc, /zIndex: isFront \? Z\.CONTENT : Z\.FAN - t\.depth/, "only the face-up card rises into content");
-  assert.match(deckSrc, /data-deck-actions style=\{\{ position: "sticky", bottom: 16, zIndex: Z\.NAV/, "the action row sticks, above the fan");
+  // ⭐ D145: and it lifts above the risen Dock (--appnav-lift, AppNav.jsx).
+  assert.match(deckSrc, /data-deck-actions style=\{\{ position: "sticky", bottom: "calc\(16px \+ var\(--appnav-lift, 0px\)\)", transition: "bottom \.3s ease", zIndex: Z\.NAV/, "the action row sticks, above the fan");
   const paper = codeOnly(read("client/src/components/PaperBackground.jsx"));
   assert.match(paper, /zIndex: Z\.BG/);
   assert.doesNotMatch(paper, /-z-10/, "the substrate's old Tailwind literal");
@@ -116,7 +117,10 @@ test("⛔ layering by NAMED tier: --z-bg < --z-fan < --z-content < --z-nav, and 
 
 test("⛔ scroll capture is paid back: the keyboard does everything the wheel does, and the ends release the page", () => {
   const wheel = deckSrc.slice(at(deckSrc, "const onWheel = (e) =>", 0, "wheel handler"), at(deckSrc, 'el.addEventListener("wheel"', 0, "wheel listener"));
-  assert.ok(wheel.indexOf("stepTarget(stateRef.current, dir) == null") < wheel.indexOf("e.preventDefault()"),
+  // ⭐ D145 (changed on purpose): over the FRONT card a vertical flick opens / folds "Why this job" first (its own capture,
+  // test/d145DeckCardNav.test.js); every OTHER capture — turning the fan — still waits until a rotation is possible.
+  const fan = wheel.slice(wheel.indexOf("if (whyRef.current) return;"));
+  assert.ok(fan.indexOf("stepTarget(stateRef.current, dir) == null") < fan.indexOf("e.preventDefault()"),
     "the wheel is only captured AFTER a rotation is known to be possible");
   assert.match(wheel, /if \(expandedRef\.current \|\| e\.ctrlKey\) return;/, "reading an expanded card, or pinch-zooming, scrolls the page");
   assert.match(deckSrc, /addEventListener\("wheel", onWheel, \{ passive: false \}\)/);
@@ -143,7 +147,7 @@ test("⭐ the flip and the rotation are compositor-only: transform and opacity, 
 test("⛔ expansion is the detail: the posting opens INSIDE the card, and Draft never sends a review-less run", () => {
   assert.doesNotMatch(deckSrc, /<Detail\b/, "a separate detail block under the card");
   assert.match(deckSrc, /<section id="deck-detail" aria-label="The posting"/, "the posting grows inside the card (A40)");
-  assert.match(deckSrc, /aria-expanded=\{expanded\}/);
+  assert.match(deckSrc, /aria-expanded=\{!!expanded\} aria-controls="deck-detail"/);
   assert.doesNotMatch(deckSrc, /approvalMode/);
 });
 

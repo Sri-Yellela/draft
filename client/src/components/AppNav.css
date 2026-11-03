@@ -1,0 +1,70 @@
+/* ⭐ D145 STEP 3 · THE APP'S NAVIGATION (AppNav.jsx) — the Dock or the Menu, tokens only, no symbols.
+ *
+ * WHICH ONE SHOWS is read off data-navigation (shared/appearance.js `navigation`) through custom properties set on the
+ * carrier (D93's rule: a preview box carrying its own attribute is drawn in its own choice). "auto": the dock on a
+ * computer, the menu on a phone (narrow, or a touch screen with no hover).                                          */
+[data-navigation="auto"] { --appnav-dock: flex; --appnav-menu: none; }
+@media (max-width: 639px), (hover: none) and (pointer: coarse) {
+  [data-navigation="auto"] { --appnav-dock: none; --appnav-menu: inline-flex; }
+}
+[data-navigation="dock"] { --appnav-dock: flex; --appnav-menu: none; }
+[data-navigation="menu"] { --appnav-dock: none; --appnav-menu: inline-flex; }
+
+/* ── one button — the dock's and the panel's are the SAME (section name + a small plain line; the current raised) ── */
+.appnav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 14px;
+  border-radius: var(--shape-radius-control, 14px); text-decoration: none; cursor: pointer;
+  color: var(--c-ink-muted); font-weight: 600; font-size: calc(13px * var(--type-scale, 1)); line-height: 1.2;
+  transition: background .16s, color .16s;
+}
+.appnav-item:hover { background: var(--c-hover); color: var(--c-ink); }
+.appnav-item:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; color: var(--c-ink); }
+/* The current one RAISED by its fill (the sketch's): no shadow, because the dock scrolls along itself at 390 px and a
+   scroll container clips every shadow in it (D92 rule 2). */
+.appnav-item[aria-current="page"] { background: var(--c-surface-2); color: var(--c-ink); }
+.appnav-name { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.appnav-plain { font-weight: 400; font-size: calc(11px * var(--type-scale, 1)); color: var(--c-ink-muted); white-space: nowrap; }
+.appnav-badge {
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 6px; text-align: center;
+  background: var(--c-accent); color: var(--c-on-accent); font-size: 10px; font-weight: 800; line-height: 16px;
+}
+
+/* ── the Dock: bottom centre, rises when the pointer nears the bottom edge ── */
+.appnav-dock {
+  display: var(--appnav-dock, flex); gap: 6px; padding: 8px;
+  position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, calc(100% + 30px));
+  z-index: 250; /* Z.NAV */ max-width: calc(100vw - 32px); overflow-x: auto; scrollbar-width: none;
+  background: var(--c-surface-menu); border: 1px solid var(--c-border); border-radius: var(--shape-radius-card, 20px);
+  box-shadow: var(--c-shadow-lg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  transition: transform .3s ease;
+}
+.appnav-dock::-webkit-scrollbar { display: none; }
+.appnav-dock[data-up="true"], .appnav-dock:focus-within { transform: translate(-50%, 0); }
+/* A touch screen has no pointer to approach with: the dock stays up. */
+@media (hover: none) { .appnav-dock { transform: translate(-50%, 0); } }
+
+/* ── the Menu: a button at the top right, a side panel from the right with the dock's buttons ── */
+.appnav-menu-btn {
+  display: var(--appnav-menu, none); align-items: center; margin-right: 6px; cursor: pointer;
+  padding: 9px 14px; border-radius: var(--shape-radius-control, 12px); border: 1px solid var(--c-border);
+  background: var(--c-surface-solid); color: var(--c-ink); font: inherit; font-weight: 600; font-size: calc(14px * var(--type-scale, 1));
+}
+.appnav-menu-btn:hover { background: var(--c-hover); }
+.appnav-menu-btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.appnav-scrim { position: fixed; inset: 0; z-index: 800; /* Z.MODAL_SCRIM */ background: var(--c-scrim); display: none; }
+.appnav-scrim[data-open="true"] { display: block; }
+.appnav-panel {
+  position: fixed; top: 0; bottom: 0; right: 0; width: min(300px, 86vw); z-index: 850; /* Z.MODAL */
+  display: flex; flex-direction: column; gap: 6px; padding: 70px 14px 20px; overflow-y: auto;
+  background: var(--c-surface-menu); border-left: 1px solid var(--c-border);
+  transform: translateX(105%); visibility: hidden; transition: transform .3s ease, visibility 0s linear .3s;
+}
+.appnav-panel[data-open="true"] { transform: none; visibility: visible; transition: transform .3s ease; }
+.appnav-panel .appnav-item { align-items: flex-start; padding: 12px 16px; }
+.appnav-close {
+  position: absolute; top: 16px; right: 16px; cursor: pointer; padding: 6px 12px; font: inherit; font-weight: 600;
+  font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink);
+  border: 1px solid var(--c-border); background: var(--c-surface-solid); border-radius: var(--shape-radius-small, 10px);
+}
+.appnav-close:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .appnav-dock, .appnav-panel, .appnav-item { transition: none; } }

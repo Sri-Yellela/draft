@@ -103,6 +103,16 @@
     text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 400; }
+  /* ⭐ D145 · TEXT SIZE (Settings → Appearance; shared/appearance.js `text`). The scale is a custom property on the
+     element carrying the attribute (so the Customise preview can carry its own); every size written ts(px)
+     (themes/shapes.js) multiplies it, and the root size follows it, so rem-based sizes scale too. */
+  [data-text-size="smaller"] { --type-scale: 0.9; }
+  [data-text-size="default"] { --type-scale: 1; }
+  [data-text-size="larger"]  { --type-scale: 1.12; }
+  [data-text-size="largest"] { --type-scale: 1.25; }
+  html { font-size: calc(100% * var(--type-scale, 1)); }
+  /* ⭐ D144 · the second token set: a theme with corners + type (only Dusk) sets the interface face. */
+  html[data-shape="on"] body { font-family: var(--shape-font-ui); }
   ::selection { background: var(--c-accent-quiet); color: var(--c-ink); }
 
   /* Smooth scrollbar */

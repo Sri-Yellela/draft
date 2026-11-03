@@ -166,11 +166,12 @@ test("a111OwnPickShowsScoreAndWhy: the own résumé's cards carry the board's on
   const own = await ownPicks(db, 1);
   for (const p of own.picks) assert.ok(Number.isFinite(p.score) && p.score >= 30 && p.basis === "ats", `${p.title}: the local ATS score (one scorer)`);
   for (let i = 1; i < own.picks.length; i++) assert.ok(own.picks[i - 1].score >= own.picks[i].score, "best first");
-  // the deck: every TRIAL account's card carries its stored score (not only a sample's), drawn by the same TrialMatch ring
+  // the deck: every TRIAL account's card carries its stored score (not only a sample's) — ⭐ D145 (changed on purpose):
+  // drawn as the card's top-right match by the one card-facts function, for any card with a score
   assert.match(read("server.js"), /if \(isTrialAccount\(db, req\.user\.id\)\) deck\.cards = deck\.cards\.map\(c => \(\{ \.\.\.c, score: scoreFor\(c\.job\.id\) \}\)\);/);
-  const deck = read("client/src/panels/DeckView.jsx");
-  assert.match(deck, /\{Number\.isFinite\(card\.score\)\n\s+\? <TrialMatch score=\{card\.score\} why=\{why\}/);
-  assert.doesNotMatch(deck, /TrialMatch[^\n]*sample/, "no sample-only condition on the ring");
+  const facts = read("client/src/lib/deckCardFacts.js");
+  assert.match(facts, /const hasScore = Number\.isFinite\(card\?\.score\);/);
+  assert.doesNotMatch(facts, /sample/i, "no sample-only condition on the match");
 });
 
 test("a111RoleAgainstResume: opening a pick reads the role against the résumé — the ATS report + the Atlas reading (the seam)", async () => {
