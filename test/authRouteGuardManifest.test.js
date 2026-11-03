@@ -127,6 +127,7 @@ const ADMIN = new Set([
   "POST /api/admin/board-fit/precompute",
   // D118 P2: Admin → Atlas → Import content — the owner replaces the Learn content (validated JSON, diffed, applied on
   // Apply). Admin-only: it changes what every reader of /atlas/learn sees.
+  "GET /api/admin/ghost-rates",                     // D137 P3: aggregates only
   "GET /api/admin/readiness",                       // D142: the bank and the most-claimed skills
   "POST /api/admin/readiness/questions/:id/review",  // D142: a person approves, edits or retires a question
   "GET /api/admin/learn/content",

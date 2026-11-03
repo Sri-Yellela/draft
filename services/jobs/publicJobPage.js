@@ -14,6 +14,8 @@
 import { mapJobRow } from "./mapJobRow.js";
 import { levelOfRow } from "./levelRead.js";
 import { livenessFor } from "./jobHistory.js";
+import { ghostFor } from "./ghostScore.js";
+import { ghostLine } from "../../shared/ghostScore.js";
 import { salaryLabel, workstyleOf } from "../../shared/postingFacts.js";
 import { formatPosting } from "../../shared/postingFormat.js";
 import { sponsorshipSignal } from "../kb/sponsorshipSignal.js";
@@ -211,6 +213,10 @@ export function renderPublicJobPage(db, row, { base, open, now = Math.floor(Date
   try { live = open ? livenessFor(db, row.job_id, { now }) : null; } catch { live = null; }
   let sponsor = null;
   try { sponsor = sponsorshipSignal(db, row.company, { title: row.title, posting: row }); } catch { sponsor = null; }
+  // ⭐ D137 P3 · the ghost score on the public page — the label and its evidence, the same words as in the app. Never
+  // "fake": a posting is "Likely not hiring" with its reasons, or nothing is said.
+  let ghost = null;
+  try { ghost = open ? ghostLine(ghostFor(db, row.job_id)) : null; } catch { ghost = null; }
   const skills = (job.skills || []).slice(0, SKILLS_SHOWN_MAX);
   const atlas = atlasLinksFor(db, job.skills || []);
   const salary = salaryLabel(job);
@@ -221,6 +227,7 @@ export function renderPublicJobPage(db, row, { base, open, now = Math.floor(Date
   const reading = [
     level?.read && LEVEL_WORDS[level.read] ? `<p><strong>${esc(LEVEL_WORDS[level.read])}</strong>${level.years != null ? ` · asks for ${esc(level.years)}+ years` : ""}${level.disagreement?.text ? ` · ${esc(level.disagreement.text)}` : ""}</p>` : "",
     live?.label ? `<p>${esc(live.label)}</p>` : "",
+    ghost ? `<p data-ghost=""><strong>Hiring?</strong> ${esc(ghost)}.</p>` : "",
     skills.length ? `<p>${skills.map(s => `<span class="mark">${esc(s)}</span>`).join("")}</p>` : "",
     sponsor && sponsor.level !== "unknown" ? `<p><strong>Visa sponsorship:</strong> ${esc(sponsor.line)}<br><span class="small">${esc(sponsor.notice || "")}</span></p>` : "",
   ].filter(Boolean).join("\n");

@@ -189,3 +189,20 @@ export function calibrateGhostThreshold(db, { now = Math.floor(Date.now() / 1000
   setSetting(db, CALIBRATION_KEY, JSON.stringify({ at: now, ...measure, cut: to, raised }));
   return { ran: true, raised, from, to, measure };
 }
+
+/**
+ * ⭐ D137 P3 · the Skills Index's ghost-posting rate (the Index itself is not built yet): of the open postings, the share
+ * scored Likely not hiring — by category, and by company where a company has at least MIN_COMPANY_POSTINGS open.
+ * ⛔ Aggregated only: no posting is named, and a smaller company is left out rather than shown as a rate of a few.
+ */
+export const RATE_MIN_COMPANY_POSTINGS = 10;
+export function ghostRates(db, { minCompany = RATE_MIN_COMPANY_POSTINGS } = {}) {
+  const q = (group) => safe(() => db.prepare(`SELECT ${group} AS key, COUNT(*) AS open, SUM(CASE WHEN ghost_level >= 2 THEN 1 ELSE 0 END) AS flagged
+      FROM scraped_jobs WHERE is_active = 1 AND duplicate_of IS NULL AND ${group} IS NOT NULL GROUP BY ${group}`).all(), []);
+  const rate = (r) => ({ ...r, rate: r.open ? Math.round((r.flagged / r.open) * 1000) / 10 : 0 });
+  return {
+    byCategory: q("board_category").map(rate).sort((a, b) => b.rate - a.rate || b.open - a.open),
+    byCompany: q("company").filter(r => r.open >= minCompany).map(rate).sort((a, b) => b.rate - a.rate || b.open - a.open),
+    minCompany,
+  };
+}

@@ -214,3 +214,31 @@ test("D137 · the nightly tick and the boot cleanup score after D107's rollup", 
   const boot = at(server, "function runExpiredJobsCleanup()", 0, "the cleanup");
   assert.ok(at(server, "scoreGhosts(db)", boot, "scores before anything is deleted") < at(server, "STARRED ROWS ARE RETIRED", boot, "the delete"));
 });
+
+test("D137 P3 · the public job page says the score with its evidence — never 'fake'", async () => {
+  const { renderPublicJobPage } = await import("../services/jobs/publicJobPage.js");
+  const db = fixtureDb();
+  post(db, "pool", { company: "Pool Co", title: "Engineering Talent Community", first: NOW - 2 * DAY });
+  recordJobHistory(db, { now: NOW });
+  scoreGhosts(db, { now: NOW });
+  const row = db.prepare("SELECT * FROM scraped_jobs WHERE job_id = 'pool'").get();
+  const { html } = renderPublicJobPage(db, row, { base: "https://x.test", open: true, now: NOW });
+  assert.match(html, /<p data-ghost=""><strong>Hiring\?<\/strong> Likely not hiring · The title says it is a talent pool or future opening, not a current role\.<\/p>/);
+  assert.doesNotMatch(html, /\bfake\b/i);
+  const closed = renderPublicJobPage(db, row, { base: "https://x.test", open: false, now: NOW }).html;
+  assert.doesNotMatch(closed, /data-ghost/, "a closed posting's page says nothing of it");
+});
+
+test("D137 P3 · the ghost-posting rate — by category and by company, aggregates only, small companies left out", async () => {
+  const { ghostRates } = await import("../services/jobs/ghostScore.js");
+  const db = fixtureDb();
+  for (let i = 0; i < 10; i++) post(db, `big${i}`, { company: "Big Co", title: i < 2 ? "Talent Pool" : `Engineer ${i}`, first: NOW - DAY });
+  post(db, "small", { company: "Small Co", title: "Future Opportunities", first: NOW - DAY });
+  db.prepare("UPDATE scraped_jobs SET board_category = 'computing'").run();
+  recordJobHistory(db, { now: NOW });
+  scoreGhosts(db, { now: NOW });
+  const r = ghostRates(db);
+  assert.deepEqual(r.byCategory, [{ key: "computing", open: 11, flagged: 3, rate: 27.3 }]);
+  assert.deepEqual(r.byCompany, [{ key: "Big Co", open: 10, flagged: 2, rate: 20 }], "Small Co (1 open) is left out");
+  assert.doesNotMatch(JSON.stringify(r), /job_id|"big\d|"small"/, "no posting is named");
+});
