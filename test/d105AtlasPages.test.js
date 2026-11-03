@@ -307,7 +307,8 @@ test("D105 P4 · Admin → Data → Atlas lists the drafts and publishes them; t
   assert.deepEqual(MODULES.atlas.members.slice().sort(),
     ["App.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/LearnView.jsx", "pages/atlas/atlasModel.js", "pages/atlas/learnModel.js",
       "pages/atlas/AtlasTree.jsx", "pages/atlas/YourMap.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js",
-      "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/YourCourse.jsx"].sort());   // + D115 Learn, + D116 the tree, + D117 the circle, + D120 the course on the home, + D117 C12 the deck
+      "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/YourCourse.jsx",
+      "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx"].sort());   // + D115 Learn, + D116 the tree, + D117 the circle, + D120 the course on the home, + D117 C12 the deck, + D143 the navigator, + D142 the check
   assert.deepEqual(MODULES.atlas.css, ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css"]);   // + D115 Learn, + D117 the circle, + D116 the tree
   assert.ok(MODULES.admin.members.includes("panels/adminAtlas.jsx"));
   for (const f of [...MODULES.atlas.members, ...MODULES.atlas.css]) assert.ok(fs.existsSync(`client/src/${f}`), f);
