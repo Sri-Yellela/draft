@@ -37,6 +37,8 @@ export const AUTO_DEFAULTS = Object.freeze({
   // ⭐ D121 P3 · "Only companies with a sponsorship record" — OFF by default. On, picks leave out a posting whose signal is
   // not "Sponsors often / sometimes" (an unknown employer is left out too — the switch asks for a RECORD).
   onlySponsorRecord: false,
+  // ⭐ D136 P2 · "This week's best bets" — how many the shortlist shows (3–20); picks draw from the shortlist first.
+  bestBets: 5,
 });
 export const CAP_MIN = 1;
 export const CAP_MAX = 150;
@@ -126,6 +128,11 @@ export function normaliseAutoSettings(input = {}) {
   if ("showFormBeforeSending" in input) {
     if (typeof input.showFormBeforeSending !== "boolean") return fail("bad_show_form", "Show me the form before sending is on or off.");
     v.showFormBeforeSending = input.showFormBeforeSending;
+  }
+  if ("bestBets" in input) {
+    const n = input.bestBets;
+    if (!(Number.isInteger(n) && n >= 3 && n <= 20)) return fail("bad_best_bets", "This week's best bets shows 3 to 20 postings.");
+    v.bestBets = n;
   }
   if ("profileId" in input) {
     if (!(input.profileId === null || Number.isInteger(input.profileId))) return fail("bad_profile", "The job profile is an id, or none for the active one.");

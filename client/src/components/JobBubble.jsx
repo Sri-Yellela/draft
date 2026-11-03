@@ -21,6 +21,7 @@ import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyLink from "./CompanyLink.jsx";
 import { atsBandFor, atsBandLabel, ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "../../../shared/atsBands.js";
 import { salaryLabel } from "../../../shared/postingFacts.js";
+import { ghostLine } from "../../../shared/ghostScore.js";
 import { columnsFor } from "../lib/bubbleColumns.js";
 import { DraftMark } from "./DraftMark.jsx";
 import { draftButtonState } from "../lib/jobDecisions.js";
@@ -66,7 +67,8 @@ export default function JobBubble({ job, score = null, selected = false, saved =
   const band = atsBandFor(score);
   const bandLabel = atsBandLabel(band).label;
   const showNumber = ATS_NUMBER_SHOWN && Number.isFinite(score);
-  const status = job.heldOutsideUs ? "Outside the US" : job.isActive === false ? "No longer listed" : null;
+  // ⭐ D137: "Likely not hiring" takes the status slot (no extra label, A109); its reasons are the meta line's title.
+  const status = job.heldOutsideUs ? "Outside the US" : job.isActive === false ? "No longer listed" : job.ghost?.level >= 2 ? "Likely not hiring" : null;
   const meta = [status, job.location, job.workType || job.workplaceType, salary(job), ago(job.postedAt, job.scrapedAt)].filter(Boolean);
 
   const open = (e) => {
@@ -90,7 +92,7 @@ export default function JobBubble({ job, score = null, selected = false, saved =
           onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) { e.stopPropagation(); return; } e.preventDefault(); e.stopPropagation(); onOpen?.(); }}>
           {job.title}
         </a>
-        {meta.length > 0 && <div className="jb__meta">{meta.join("  ·  ")}</div>}
+        {meta.length > 0 && <div className="jb__meta" title={ghostLine(job.ghost) ? `${ghostLine(job.ghost)}.` : undefined}>{meta.join("  ·  ")}</div>}
         {/* ⭐ A109 (owner 11-01): no sponsorship label on each post — it is in the expanded posting panel (SponsorshipBlock) and is a board filter. */}
         {/* D40: on the + view, the one line that differs from ALL — when and from where it was captured. */}
         {job.captured && <div className="jb__meta" data-captured="">{capturedLine(job.captured)}</div>}

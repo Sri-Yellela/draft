@@ -29,7 +29,8 @@ export const MODULES = Object.freeze({
     // owner kept the card back as decided, 10-07). It is the one place outside the deck that may use them.
     members: ["panels/DeckView.jsx", "components/DeckGeometryControl.jsx", "components/CardBack.jsx", "components/DealBackdrop.jsx"] },
   board: { why: "Full House — the board, its cards and its posting panel",
-    members: ["panels/JobsPanel.jsx", "components/JobBubble.jsx", "components/JobDetailPanel.jsx", "components/CoverLetterModal.jsx", "components/ByomResumeChoice.jsx"] },
+    members: ["panels/JobsPanel.jsx", "components/JobBubble.jsx", "components/JobDetailPanel.jsx", "components/CoverLetterModal.jsx", "components/ByomResumeChoice.jsx",
+      "components/BestBets.jsx"] },
   fullHouseHeader: { why: "the Full House header — the sentence, its words, the sort, the bar",
     css: ["components/FullHouse.css"],
     // ⚠ D93: the Customise preview draws the sentence and the bar with this module's classes — a decided reuse
@@ -144,6 +145,7 @@ export const SHARED = Object.freeze({
   "components/CardBack.jsx":            { what: "a deck card's back (the tinted logo — owner-decided O34)", module: "deck" },
   "components/DeckGeometryControl.jsx": { what: "the deck's layout control", module: "deck" },
   "components/JobBubble.jsx":           { what: "the board's card (D1)", module: "board" },
+  "components/BestBets.jsx":            { what: "D136 — This week's best bets, above the board", module: "board" },
   "components/JobBubble.css":           { what: "its look", owner: "components/JobBubble.jsx" },
   "components/JobDetailPanel.jsx":      { what: "the board's posting panel (D48)", module: "board" },
   "components/JobDetailPanel.css":      { what: "its look", owner: "components/JobDetailPanel.jsx" },
