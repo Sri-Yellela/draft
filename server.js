@@ -123,6 +123,7 @@ import { importLearnConcepts, publishLearnConcepts } from "./services/atlas/atla
 import { learnContent } from "./services/learn/learnContent.js";
 import { importLearnPatterns } from "./services/learn/learnLinks.js";
 import { seedAtlasFamilies } from "./services/atlas/atlasFamilies.js";
+import { seedDraftedDefinitions } from "./services/atlas/atlasDefinitions.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { liveVersion, atlasPostingsChanged } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
@@ -10320,6 +10321,13 @@ try {
   const f = seedAtlasFamilies(db);
   if (f.assigned) console.log(`[atlas] families: ${f.assigned} node(s) assigned from content/atlas/families.json`);
 } catch (e) { console.warn("[atlas] families:", e.message); }
+// ⭐ A112/Atlas (11-03): the agent's drafted definitions for the non-computing families (content/atlas/definitions-drafted.json)
+// wait as DRAFTS for the owner (Admin → Atlas → Drafted definitions); each slug is offered once, so a rejection sticks.
+try {
+  const d = seedDraftedDefinitions(db);
+  if (d.drafted.length) console.log(`[atlas] ${d.drafted.length} drafted definition(s) await review (Admin → Atlas)`);
+  if (d.refused.length) console.warn(`[atlas] drafted definitions refused: ${d.refused.map(r => `${r.slug} (${r.reason})`).join("; ")}`);
+} catch (e) { console.warn("[atlas] drafted definitions:", e.message); }
 // ⭐ D118 P1: the live counts need a baseline — one full pass. A database that has none (the first boot with migration
 // 199) gets it shortly after boot, not on the request path; until then the queue waits and pages read the last nightly.
 try {

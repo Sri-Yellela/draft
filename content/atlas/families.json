@@ -1,5 +1,5 @@
 {
-  "about": "D116 M1 · the Atlas families, seeded ONCE per node (a node with family_by set is never re-seeded; Admin → Atlas changes it). Drafted by the agent for the owner's review, 10-31. A slug missing from the Atlas is skipped. Five families; web and mobile application work sits under Backend until a family of its own is added. ⭐ A111 P3 (11-02): a family per field for every D127 category (shared/atlasFamilies.js names each family's category); a non-computing registry node with no family here takes its domain's default (services/atlas/atlasCategories.js DOMAIN_FAMILY), and this file overrides that default. Slugs the vocabulary lane has not added to the registry yet are skipped until they exist. Drafted by the agent for the owner's review, 11-02.",
+  "about": "D116 M1 · the Atlas families, seeded ONCE per node (a node with family_by set is never re-seeded; Admin → Atlas changes it). Drafted by the agent for the owner's review, 10-31. A slug missing from the Atlas is skipped. Five families; web and mobile application work sits under Backend until a family of its own is added. ⭐ A111 P3 (11-02): a family per field for every D127 category (shared/atlasFamilies.js names each family's category); a non-computing registry node with no family here takes its domain's default (services/atlas/atlasCategories.js DOMAIN_FAMILY), and this file overrides that default. Slugs the vocabulary lane has not added to the registry yet are skipped until they exist. Drafted by the agent for the owner's review, 11-02. ⭐ 11-03 (A112/Atlas batch 1): brand-management / brand-awareness / market-segmentation to Brand, the lifecycle / email-flow / social-tool / influencer nodes to Content (their domain default was Digital); five systems skills that had no family (protocol debugging, Lauterbach LTB, Windows development, wireless applications, software tools) to Systems.",
   "families": {
     "ml": [
       "machine-learning", "deep-learning", "pytorch", "tensorflow", "scikit-learn", "computer-vision", "nlp", "opencv", "mlflow",
@@ -18,7 +18,8 @@
       "compiler-engineering", "compilers-and-tools", "compiler", "ebpf", "silicon-validation", "post-silicon-validation",
       "hardware-software-co-debug", "low-level-diagnostics", "debug-tooling", "trace32", "t32", "t32-debugging", "lauterbach",
       "lauterbach-trace32-debugging", "openocd", "oscilloscope", "logic-analyzer", "fpga", "asic", "secure-boot", "scheduler",
-      "interrupt", "kernel-module", "microcontroller", "gpio", "opengl", "vulkan", "graphics-and-imaging", "audio-video-systems", "ffmpeg"
+      "interrupt", "kernel-module", "microcontroller", "gpio", "opengl", "vulkan", "graphics-and-imaging", "audio-video-systems", "ffmpeg",
+      "protocol-debugging", "ltb", "windows-development", "wireless-applications", "software-tools"
     ],
     "infra": [
       "aws", "azure", "gcp", "cloud-infrastructure", "kubernetes", "docker", "terraform", "ci-cd", "linux", "windows", "networking",
@@ -94,11 +95,13 @@
     ],
     "marketing_brand": [
       "brand-manager", "brand-strategy", "go-to-market", "product-marketing", "product-marketing-manager", "brand-marketing",
-      "positioning", "messaging"
+      "positioning", "messaging",
+      "brand-management", "brand-awareness", "market-segmentation"
     ],
     "marketing_content": [
       "content-marketing-manager", "content-marketing", "email-marketing", "social-media", "mailchimp", "content-strategy",
-      "lifecycle-marketing", "social-media-manager", "community-management"
+      "lifecycle-marketing", "social-media-manager", "community-management",
+      "lifecycle-campaigns", "email-flows", "klaviyo", "hootsuite", "sprout-social", "influencer-marketing", "lifecycle-marketing-manager"
     ],
     "sales": [
       "account-executive", "sales-manager", "account-manager", "sales-development-representative", "business-development-representative",
