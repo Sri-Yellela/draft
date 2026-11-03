@@ -75,8 +75,10 @@ test("D6: the badge says what it counts — drafts that need you, not drafts", (
   const app = read("client/src/App.jsx");
   assert.match(app, /needsAttentionCount === 1 \? "draft needs" : "drafts need"\} your attention/);
   // The bare digit is hidden from the accessible name; the sentence is what a screen reader hears.
-  assert.match(app, /<span aria-hidden="true">\{needsAttentionCount\}<\/span>/);
-  assert.match(app, /<span className="sr-only">\{`, \$\{attention\}`\}<\/span>/);
+  // ⭐ D145 (changed on purpose): the count is data on the tab (badge + badgeLabel); AppNav draws it the same way.
+  assert.match(app, /badge: needsAttentionCount, badgeLabel: attention/);
+  const nav = read("client/src/components/AppNav.jsx");
+  assert.match(nav, /<span aria-hidden="true">\{t\.badge\}<\/span><span className="sr-only">\{`, \$\{t\.badgeLabel\}`\}<\/span>/);
 });
 
 test("D6: no user-visible string in the client, server routes or extension says Auto Apply", () => {
