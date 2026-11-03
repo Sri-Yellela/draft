@@ -9,6 +9,7 @@ import { api } from "../../lib/api.js";
 import AtlasTree from "./AtlasTree.jsx";
 import { headerLine } from "./atlasTreeModel.js";
 import YourCourse from "./YourCourse.jsx";
+import Navigator from "./Navigator.jsx";
 
 /** The five sections' chips, in M6's order. Pure: the page's test reads it. */
 export function mapSections(me) {
@@ -192,15 +193,15 @@ export function AtlasHome({ me, base, search = null, request = null, setRequest 
   return (
     <div className="atl-home" data-atlas-home="you">
       <div className="atl-home__main">
-        {/* ⭐ D120 P2: one line of direction first, then the map, the course, the five sections. */}
-        {dir && (
+        {/* ⭐ D143: the navigator first — its next step is the direction line; D120's line is its fallback. */}
+        <Navigator base={base} fallback={dir && (
           <p className="atl-home__dir" data-atlas-direction={dir.slug}>
             <span>{dir.text}</span>
             {dir.stepId
               ? <Link className="dbx-depth atl-home__go" to={`${base}/learn#step-${encodeURIComponent(dir.stepId)}`} data-atlas-direction-open="">Open the piece</Link>
               : <button type="button" className="dbx-depth atl-home__go" onClick={() => open(dir.slug)} data-atlas-direction-open="">Show it on the map</button>}
           </p>
-        )}
+        )} />
         <div className="atree-map" data-your-map="" ref={top}>
           <header className="atl__head">
             <h2 className="atl__title">Your map</h2>

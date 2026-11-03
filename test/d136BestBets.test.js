@@ -157,7 +157,7 @@ test("D136 P2 · picks draw from the shortlist first — the best-bet score lead
   assert.deepEqual(choosePicks(c, { remaining: 3, settings }).take.map(x => x.jobId), ["best", "high-ats", "none"]);
   assert.deepEqual(choosePicks(c.map(({ bestBet, ...r }) => r), { remaining: 3, settings }).take.map(x => x.jobId),
     ["none", "high-ats", "best"], "without best bets, the ATS match as before");
-  assert.match(read("server.js"), /bestBetOf\(bestBetSignalsFor\(db, \{ userId, profileId, job: \{ id: j\.id \}, userLevel \}\)\)\.score/);
+  assert.match(read("server.js"), /bestBetOf\(bestBetSignalsFor\(db, \{ userId, profileId, job: \{ id: j\.id \}, userLevel, aim \}\)\)\.score/);
 });
 
 test("D136 · signals: the level against the user's, the crawl's first sighting, the ghost level", () => {

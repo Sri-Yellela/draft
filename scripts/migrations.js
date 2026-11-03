@@ -6011,4 +6011,21 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D143 (owner 11-02) · THE NAVIGATOR. One row per user: their own aim (a role's slug; NULL = follow draft's
+      // recommendation), the route as last shown (the skills in order, what they had at the start) and the re-routing
+      // changes with their reasons. Written by services/navigator.js. Merge plan keepInto. After 214.
+      id: "215_navigator",
+      sql: `
+        CREATE TABLE IF NOT EXISTS navigator_routes (
+          user_id       INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          aim_slug      TEXT,
+          aim_set_by    TEXT,
+          aim_at        INTEGER,
+          route_json    TEXT,
+          route_at      INTEGER,
+          changes_json  TEXT NOT NULL DEFAULT '[]'
+        );
+      `,
+    },
   ];
