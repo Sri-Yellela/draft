@@ -28,6 +28,8 @@ import { companyRows, companySummary } from "../../../shared/companyIdentity.js"
 import "./ApplicationHistory.css";
 import { WhatWeSentLink } from "./ResumeChangesPanel.jsx";
 import { postingClick } from "../lib/openPosting.js";
+// ⭐ D146: the CSV download is the one export module's (the tracker's header Export calls the same).
+import { saveText, csvName } from "../lib/tableExport.js";
 
 const fmtDay = (sec) => sec == null ? "—"
   : new Date(sec * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -58,20 +60,13 @@ const RESUME_LINK = {
 };
 const resumeLink = (row) => RESUME_LINK[row.resumeSource] || RESUME_LINK.current_resume;
 
-/** Hand the browser a text file to save. */
-function saveText(name, text, type = "text/csv;charset=utf-8") {
-  const url = URL.createObjectURL(new Blob(["﻿" + text], { type }));
-  const a = document.createElement("a");
-  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 /**
  * ⭐ D55 (i) · IMPORT PAST APPLICATIONS. Pick a CSV → map its columns (guessed) → Preview (a dry run on
  * the server: what lands, what is a duplicate by company + title, what is refused and why) → Import.
  * ⛔ Imported rows are SENT applications with their dates and outcomes — never Drafts, never a score.
  */
-function ImportPanel({ onClose, onImported }) {
+// ⭐ D146: exported — the one tracker's header Import opens this same panel (the full sheet keeps its own button).
+export function ImportPanel({ onClose, onImported }) {
   const [file, setFile] = useState(null);       // { name, text, headers }
   const [mapping, setMapping] = useState({});
   const [preview, setPreview] = useState(null);
@@ -356,7 +351,7 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse, on
         <div className="ah__layout" role="group" aria-label="CSV">
           <button type="button" className="ah__chip" data-csv="export" disabled={!view.rows.length}
             title="Download the rows shown as a CSV"
-            onClick={() => saveText(`draft-the-table-${new Date().toISOString().slice(0, 10)}.csv`, historyToCsv(view.rows))}>
+            onClick={() => saveText(csvName(), historyToCsv(view.rows))}>
             Export CSV
           </button>
           <button type="button" className="ah__chip" data-csv="import" aria-pressed={importing}

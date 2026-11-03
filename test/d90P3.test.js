@@ -15,17 +15,18 @@ const TABLE = read("client/src/components/ApplicationHistory.jsx");
 
 test("⛔ D90 P3: Draft House shows what we changed BEFORE Approve & send — in the fold and in the review list", () => {
   // D113 UI: the approval's lead card (its branch) — the line sits in the card, above the actions it renders.
+  // ⭐ D146 (changed on purpose): the lead card is the table's opened row (renderRow → RowOpen).
   // (companyLabel: an ATS host must never reach the screen as a company — test/applyCompanyAttribution.test.js.)
-  const lead = HOUSE.slice(at(HOUSE, "const renderJobBranch = (node) => {"), at(HOUSE, "const seeLeftOut = async"));
+  const lead = HOUSE.slice(at(HOUSE, "const renderRow = (row) => {"), at(HOUSE, "</RowOpen>"));
   assert.match(lead, /\{node\.kind === "approval" && !node\.ref\.generationDeferred && <ChangesSummaryLine jobId=\{node\.ref\.jobId\} jobLabel=\{companyLabel\(node\.ref\.company\)\} \/>\}/);
-  const card = fs.readFileSync("client/src/components/DraftHouseTree.jsx", "utf8").replace(/\r\n/g, "\n");
-  const leadCard = card.slice(at(card, "export function LeadCard("), at(card, "export function Leaf("));
+  const card = fs.readFileSync("client/src/components/ApplicationTracker.jsx", "utf8").replace(/\r\n/g, "\n");
+  const leadCard = card.slice(at(card, "export function RowOpen("));
   assert.ok(at(leadCard, "{children}") < at(leadCard, "actions.map("), "the line comes after Approve & send in the card");
   // The review list.
   const list = HOUSE.slice(at(HOUSE, "{/* D90 P3: what we changed in the résumé, read before Approve & send. */}"));
   assert.match(list, /\{!p\.generationDeferred && <ChangesSummaryLine jobId=\{p\.jobId\} jobLabel=\{companyLabel\(p\.company\)\} \/>\}/);
   assert.ok(at(list, "<ChangesSummaryLine") < at(list, "Approve &amp; send"), "the line comes after Approve & send in the review list");
-  assert.match(HOUSE, /import \{ ChangesSummaryLine \} from "\.\.\/components\/ResumeChangesPanel\.jsx";/);
+  assert.match(HOUSE, /import \{ ChangesSummaryLine(?:, WhatWeSentLink)? \} from "\.\.\/components\/ResumeChangesPanel\.jsx";/);
 });
 
 test("⛔ D90 P3: the review line is the stored comparison — numbers, ATS delta, still missing — and an untraced change leads it", () => {

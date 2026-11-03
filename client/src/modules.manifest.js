@@ -44,10 +44,11 @@ export const MODULES = Object.freeze({
   // App.jsx is a member for ContrastOffer, the prefers-contrast banner the shell mounts.
   customise: { why: "the Customise page (D93) — theme, shape cues and the layout options", css: ["components/Customise.css"],
     members: ["App.jsx", "panels/CustomisePanel.jsx", "components/AppearanceSettings.jsx", "components/RadioCards.jsx", "components/CustomisePreview.jsx"] },
-  draftHouse: { why: "Draft House (the panel behind the Draft tab)", css: ["components/DraftHouse.css"],
-    members: ["panels/AutoApplyPanel.jsx", "panels/AutoApplyPanelSections.jsx", "components/DraftHouseTree.jsx", "components/DraftHouseSide.jsx", "components/WaitingLine.jsx", "components/AutoSettingsDrawer.jsx"] },
-  theTable: { why: "The Table (the database panel)",
-    members: ["panels/DatabasePanel.jsx", "components/ApplicationHistory.jsx", "components/PendingApplications.jsx", "components/ApplicationInbox.jsx"] },
+  // ⭐ D146 (owner 11-03): Draft House and The Table are ONE application tracker, so one module — the old theTable
+  // module's members joined this one (The Table's views are its full sheet, behind Settings → View).
+  draftHouse: { why: "Draft House, the one application tracker (D146) — the table, the auto-apply timeline, and The Table's full sheet", css: ["components/DraftHouse.css", "components/ApplicationTracker.css"],
+    members: ["panels/AutoApplyPanel.jsx", "panels/AutoApplyPanelSections.jsx", "components/DraftHouseTree.jsx", "components/ApplicationTracker.jsx", "components/WaitingLine.jsx", "components/AutoSettingsDrawer.jsx",
+      "panels/DatabasePanel.jsx", "components/ApplicationHistory.jsx", "components/PendingApplications.jsx", "components/ApplicationInbox.jsx"] },
   landing: { why: "the landing page", members: ["pages/LandingPage.jsx", "components/FindFitApply.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTrial.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
@@ -171,19 +172,20 @@ export const SHARED = Object.freeze({
   "components/UnifiedSearchBar.css":    { what: "its look", owner: "components/UnifiedSearchBar.jsx" },
   "components/UsbSelect.jsx":           { what: "the search bar's select", module: "searchBar" },
   "components/UsbSuggest.jsx":          { what: "the search bar's suggest", module: "searchBar" },
-  "components/DraftHouseTree.jsx":      { what: "Draft House's tree that grows inline — runs, bubbles, branches, leaves (D113 UI U3, U4, U6)", module: "draftHouse" },
-  "components/DraftHouseSide.jsx":      { what: "Draft House's side column — what matters now (D113 UI U7)", module: "draftHouse" },
+  "components/DraftHouseTree.jsx":      { what: "Draft House's auto-apply timeline — D113's runs by day, bubbles ringed by stage, pulsing for the live ones; a bubble opens its row (D146)", module: "draftHouse" },
+  "components/ApplicationTracker.jsx":  { what: "D146 · the one tracker's table — counts, filters, sortable plain rows, a row that opens in place (RowOpen)", module: "draftHouse" },
+  "components/ApplicationTracker.css":  { what: "its look", owner: "components/ApplicationTracker.jsx" },
   "components/WaitingLine.jsx":         { what: "Draft House's waiting line", module: "draftHouse" },
   "components/AutoSettingsDrawer.jsx":  { what: "Draft House's ONE Settings drawer — when and how much, which jobs, accounts on job sites (D102 P4 + D100 Portals, merged by D113 UI U8)", module: "draftHouse" },
   "components/DraftHouse.css":          { what: "Draft House's look", owner: "panels/AutoApplyPanel.jsx" },
-  "components/ApplicationHistory.jsx":  { what: "The Table's history view (D15)", module: "theTable" },
+  "components/ApplicationHistory.jsx":  { what: "The Table's history view (D15) — the full sheet's History; its CSV import is the tracker's header Import (D146)", module: "draftHouse" },
   "components/DocToolbar.jsx":         { what: "the PDF sandbox's Word-like toolbar — font, size, B/I/U, lists, spacing, sections, margins, fit to one page (A106)" },
   "components/RefineJobProfile.jsx":   { what: "'Refine your job profile' — a profile made from a résumé opens the same wizard, everything filled (D112 e2); profiles and the profile panel" },
   "components/StartFromResume.jsx":    { what: "the first screen of a new account — one résumé upload sets up the first job profile (A104); the board and the deck" },
   "components/ProfileSections.jsx":    { what: "Profile in sections + Application defaults — what the fill reads for eligibility and self-ID (D101)" },
-  "components/ApplicationInbox.jsx":    { what: "The Table's Inbox — replies from job sites, forwarded or read through a Gmail connection, filed by rule (D103, D112)", module: "theTable" },
+  "components/ApplicationInbox.jsx":    { what: "The Table's Inbox — replies from job sites, forwarded or read through a Gmail connection, filed by rule (D103, D112)", module: "draftHouse" },
   "components/ApplicationHistory.css":  { what: "its look", owner: "components/ApplicationHistory.jsx" },
-  "components/PendingApplications.jsx": { what: "The Table's pending list", module: "theTable" },
+  "components/PendingApplications.jsx": { what: "The Table's pending list", module: "draftHouse" },
   "components/FindFitApply.jsx":        { what: "the landing page's find → fit → apply", module: "landing" },
   // ── state ──
   "contexts/AppScrollContext.jsx":      { what: "the app's scroll container" },
@@ -217,7 +219,9 @@ export const SHARED = Object.freeze({
   "lib/deckCardFacts.js":               { what: "what the deck card says and where — collapsed, hover, Why this job (D145); one function, nothing said twice" },
   "lib/deckOrder.js":                   { what: "the deck's order (dealt | ATS match) — the deck's control and Customise read one store (D93)" },
   "lib/draftHouseExceptions.js":        { what: "Draft House's exceptions" },
-  "lib/draftHouseTree.js":              { what: "Draft House's tree as data — the ladder to the ring, runs, filters, the side column (D113 UI)" },
+  "lib/draftHouseTree.js":              { what: "Draft House's tree as data — the ladder to the ring, runs, the nodes, answers (D113 UI)" },
+  "lib/trackerRows.js":                 { what: "what each tracker row says, and where — stage, filter, columns, the opened row, actions by stage (D146); one function" },
+  "lib/tableExport.js":                 { what: "The Table's exports, built once — Excel and the CSV of the rows shown (D146: the header's Export and the full sheet's)" },
   "lib/draftHouseRuns.js":              { what: "Draft House's ONE adapter to D113's routes (runs, picks, left out) — degrades when they 404" },
   "lib/docFormat.js":                  { what: "the sandbox's editing commands — the one place execCommand is used; the template's CSS variables for document-wide changes (A106)" },
   "lib/parseResumeFile.js":            { what: "THE résumé file → text reader (PDF via /api/parse-pdf, Word via mammoth) — Job profiles and A104" },
@@ -270,6 +274,7 @@ export const COMPOSITIONS = Object.freeze([
   { from: "panels/JobsPanel.jsx", to: "panels/AtsReportPanel.jsx", why: "the board's panel dock mounts the ATS card beside the posting" },
   { from: "panels/AutoApplyPanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen Draft House shows an opened application beside its list" },
   { from: "panels/DatabasePanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen The Table shows an opened application beside History" },
+  { from: "panels/AutoApplyPanel.jsx", to: "panels/DatabasePanel.jsx", why: "D146: The Table merged into Draft House — its full sheet (spreadsheet, by company, board, funnel, pending, inbox) behind Settings → View" },
 ]);
 
 // ── CROSS_PRODUCT: ONE component, outside client/src, drawn by the web app AND the extension (T9, owner 10-14: "the

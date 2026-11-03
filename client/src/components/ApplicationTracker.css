@@ -1,0 +1,66 @@
+/* ⭐ D146 · the one application tracker's table (components/ApplicationTracker.jsx). Tokens only (var(--c-*)); type
+   follows the user's text size (--type-scale, D145); corners from D144's shape tokens with today's values as fallback. */
+
+/* D145's minimal counts, as the sketch draws them: a large number over a small grey label. */
+.trk-counts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; font-size: calc(12.5px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+.trk-counts > span { display: flex; flex-direction: column; gap: 2px; }
+.trk-counts b { font-size: calc(30px * var(--type-scale, 1)); line-height: 1.1; font-weight: 500; letter-spacing: -0.02em; color: var(--c-ink); font-variant-numeric: tabular-nums; }
+@media (max-width: 639px) { .trk-counts { gap: 6px 16px; } .trk-counts b { font-size: calc(22px * var(--type-scale, 1)); } }
+.trk-counts [data-accent="true"] b { color: var(--c-accent-ink); }
+
+.trk-filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.trk-filters__end { margin-left: auto; display: flex; gap: 8px; align-items: center; min-width: 0; max-width: 100%; }
+.trk-filters__end > div { flex: 0 1 220px !important; min-width: 0; }
+.trk-chip {
+  border: 1px solid var(--c-border); border-radius: var(--shape-radius-small, 10px); padding: 5px 11px; background: transparent;
+  font: inherit; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-muted); cursor: pointer;
+}
+.trk-chip[aria-pressed="true"] { border-color: var(--c-ink); color: var(--c-ink); font-weight: 700; }
+.trk-chip:focus-visible, .trk-sort:focus-visible, .trk-row:focus-visible, .trk-period:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.trk-period {
+  height: 32px; padding: 0 8px; border-radius: var(--shape-radius-small, 10px); border: 1px solid var(--c-border);
+  background: var(--c-surface-solid); color: var(--c-ink); font: inherit; font-size: calc(13px * var(--type-scale, 1));
+}
+
+.trk { min-width: 0; border: 1px solid var(--c-border); border-radius: var(--shape-radius-card, 22px); background: var(--c-surface-solid); overflow: hidden; }
+.trk-table { width: 100%; border-collapse: collapse; table-layout: auto; }
+.trk-table th { text-align: left; padding: 0; border-bottom: 1px solid var(--c-border); }
+.trk-sort {
+  width: 100%; text-align: left; padding: 11px 14px; border: 0; background: transparent; font: inherit;
+  font-size: calc(12px * var(--type-scale, 1)); font-weight: 700; color: var(--c-ink-muted); cursor: pointer;
+}
+.trk-sort[aria-pressed="true"] { color: var(--c-ink); }
+.trk-row { cursor: pointer; border-bottom: 1px solid var(--c-border); }
+.trk-row:hover, .trk-row[data-open="true"] { background: var(--c-hover); }
+.trk-row td { padding: 10px 14px; vertical-align: middle; font-size: calc(13.5px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+.trk-pos { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.trk-pos__t { display: flex; flex-direction: column; min-width: 0; }
+.trk-pos__t b { color: var(--c-ink); font-weight: 700; }
+.trk-pos__t span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trk-status { display: inline-flex; gap: 8px; align-items: center; color: var(--c-ink); }
+.trk-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--trk-dot, var(--c-ink-faint)); flex-shrink: 0; }
+.trk-when-m { display: none; }
+
+/* the opened row: D145's "one screen at a time" type — accent eyebrow 14, the headline 46 / 500 / −0.035em */
+.trk-open > td { padding: 0; border-bottom: 1px solid var(--c-border); background: var(--c-hover); }
+.trk-o { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+.trk-o__head { display: flex; align-items: center; gap: 10px; }
+.trk-o__eyebrow { margin: 0; color: var(--c-accent-ink); font-size: calc(14px * var(--type-scale, 1)); }
+.trk-o__x { margin-left: auto; border: 0; background: transparent; color: var(--c-ink-muted); font-size: 22px; line-height: 1; cursor: pointer; }
+.trk-o__headline {
+  margin: 0; color: var(--c-ink); font-family: var(--shape-font-ui, 'DM Sans', system-ui, sans-serif);
+  font-size: calc(46px * var(--type-scale, 1)); font-weight: 500; line-height: 1.03; letter-spacing: -0.035em; max-width: 24ch;
+}
+.trk-o__panes { display: flex; flex-wrap: wrap; gap: 6px; }
+.trk-o__panes .dh-btn[aria-pressed="true"] { border-color: var(--c-ink); color: var(--c-ink); }
+.trk-o__pane { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: var(--shape-radius-control, 16px);
+  background: var(--c-surface-solid); border: 1px solid var(--c-border); font-size: calc(13.5px * var(--type-scale, 1)); }
+
+/* phones: two columns — position, and status with its when beneath; the row opens for the rest */
+@media (max-width: 640px) {
+  .trk-table [data-col="resume"], .trk-table [data-col="answers"], .trk-table [data-col="when"] { display: none; }
+  .trk-when-m { display: block; margin-top: 2px; color: var(--c-ink-faint); font-size: calc(12px * var(--type-scale, 1)); }
+  .trk-o__headline { font-size: calc(36px * var(--type-scale, 1)); }
+  .trk-o { padding: 14px 14px 16px; }
+  .trk-filters__end { margin-left: 0; width: 100%; }
+}

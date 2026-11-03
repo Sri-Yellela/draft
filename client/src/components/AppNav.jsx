@@ -18,7 +18,8 @@ import "./AppNav.css";
 
 // The plain line under each section name (D145 Step 2 rule 5: feature names stay, paired with plain words).
 export const NAV_PLAIN = Object.freeze({
-  today: "today's jobs", console: "every job", "auto-apply" : "in progress", database: "applied", atlas: "your skills",   // (the id, spaced for the D6 guard)
+  // ⭐ D146: one entry for every application — Draft House and The Table merged.
+  today: "today's jobs", console: "every job", "auto-apply" : "your applications", atlas: "your skills",   // (the id, spaced for the D6 guard)
 });
 // How near the bottom edge the pointer must come before the dock rises, and how far above it before it falls.
 export const DOCK_REVEAL_PX = 72;

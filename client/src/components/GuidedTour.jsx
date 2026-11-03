@@ -69,7 +69,8 @@ export const TOUR_SCRIPT = Object.freeze([
   { id: "live_run", route: "/app/auto-apply", target: "[data-trial-demo]", demo: true, noNext: true,
     text: "Here's what draft does for each pick: reads the job, tailors the résumé, fills the application and sends it. This is a demonstration; nothing goes to the employer.",
     short: "A demonstration of each pick, end to end." },
-  { id: "table", route: "/app/database", target: "[data-table-split]", noNext: true, autoAfter: 5000, finish: true,
+  // ⭐ D146 (changed on purpose): The Table is Draft House's table now.
+  { id: "table", route: "/app/auto-apply", target: "[data-tracker-table]", noNext: true, autoAfter: 5000, finish: true,
     text: "Every application lands here, with replies as they come in.",
     short: "Every application, and the replies." },
 ]);

@@ -157,7 +157,8 @@ const read = (p) => fs.readFileSync(p, "utf8");
 test("D15: The Table opens on the history; no summary strip survives", () => {
   const db = read("client/src/panels/DatabasePanel.jsx");
   assert.match(db, /<ApplicationHistory /);
-  assert.match(db, /=== "pending" \? "pending" : "history"/, "the default sheet is the history");
+  // ⭐ D146 (changed on purpose): the tracker can open the sheet at a named sheet (Not applied too); otherwise History.
+  assert.match(db, /s === "pending" \? "pending" : s === "not_applied" \? "not_applied" : "history"/, "the default sheet is the history");
   assert.doesNotMatch(db, /ResponseSummary/, "⛔ no status bar — the chips carry the counts");
 });
 

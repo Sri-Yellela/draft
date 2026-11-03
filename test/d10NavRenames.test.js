@@ -20,7 +20,7 @@ test("D10/D18: the bar reads Daily Deck · Full House · Draft House · The Tabl
     ["today", "Daily Deck"],
     ["console", "Full House"],
     ["auto-apply", "Draft House"],   // D18 amended D10's "Draft"
-    ["database", "The Table"],
+    // ⭐ D146 (changed on purpose, 11-03): The Table merged into Draft House — one entry; /app/database redirects.
     // ⭐ D105 P4 (changed on purpose): D102's navigation gains one place — the Atlas — after the card family.
     ["atlas", "Atlas"],
   ]);

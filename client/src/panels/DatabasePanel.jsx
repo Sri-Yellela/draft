@@ -40,6 +40,7 @@ import EmptyState from "../components/EmptyState.jsx";
 import { bandMarkStyle, dotCue } from "../styles/mark.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { openPosting } from "../lib/openPosting.js";
+import { downloadExcel } from "../lib/tableExport.js";
 
 // ── Calendar component ────────────────────────────────────────
 //
@@ -275,7 +276,10 @@ function DetailModal({ modal, onClose, theme }) {
 }
 
 // ── Main panel ────────────────────────────────────────────────
-export function DatabasePanel({ user }) {
+// ⭐ D146 (changed on purpose): The Table is no longer its own nav entry — Draft House mounts it as Settings → View →
+// "The full sheet" (`embedded`), opened at `sheet` (the tracker's "I applied" opens Pending at `focusJobId`). Embedded,
+// Saved Jobs is left out: it moved to Full House's Saved.
+export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId = null }) {
   const monetisationEnabled = useMonetisationEnabled();
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -283,7 +287,7 @@ export function DatabasePanel({ user }) {
   // A63: the board's Pending tag links here with ?sheet=pending; D112: the Gmail connect returns with ?sheet=inbox.
   // D15: otherwise The Table opens on the application history.
   const [activeSheet,  setActiveSheet]  = useState(() => {
-    try { const s = new URLSearchParams(window.location.search).get("sheet"); return s === "inbox" ? "inbox" : s === "pending" ? "pending" : "history"; }
+    try { const s = sheet || new URLSearchParams(window.location.search).get("sheet"); return s === "inbox" ? "inbox" : s === "pending" ? "pending" : s === "not_applied" ? "not_applied" : "history"; }
     catch { return "history"; }
   });
   const [apps,         setApps]         = useState([]);
@@ -314,7 +318,7 @@ export function DatabasePanel({ user }) {
   const [pendingData,  setPendingData]  = useState({ pending: [], verified: [], notApplied: [], moveDays: 14, methods: [], verifyRule: null });
   const [pendingBusy,  setPendingBusy]  = useState(null);
   const [pendingMsgs,  setPendingMsgs]  = useState({});
-  const [pendingFocus, setPendingFocus] = useState(null); // A105 finding 3: the job History sent here
+  const [pendingFocus, setPendingFocus] = useState(focusJobId); // A105 finding 3: the job History sent here
   // D102 P5 · list and detail: on a wide screen an opened application shows beside History (by its record id).
   const { w: viewportWidth } = useViewport();
   const sideDetail = viewportWidth >= 1280;
@@ -608,16 +612,7 @@ export function DatabasePanel({ user }) {
   };
 
   const exportExcel = async () => {
-    try {
-      const r = await api("/api/export/excel");
-      const b = await r.blob();
-      const u = URL.createObjectURL(b);
-      Object.assign(document.createElement("a"), {
-        href: u,
-        download:`ResuMaster_${user?.username}_${new Date().toISOString().slice(0,10)}.xlsx`,
-      }).click();
-      URL.revokeObjectURL(u);
-    } catch(e) { alert("Export failed: " + e.message); }
+    try { await downloadExcel(user?.username); } catch(e) { alert("Export failed: " + e.message); }
   };
 
   const rows        = activeSheet === "applications" ? apps : resumes;
@@ -627,7 +622,8 @@ export function DatabasePanel({ user }) {
 
   // D15: "History" is The Table's own view — every application, pending and sent, with its timeline
   // and the "Did they reply?" capture. The spreadsheet stays as the editable sheet behind it.
-  const SHEETS = [["history","History"],["applications","Spreadsheet"],["resumes","Resumes"],["saved","Saved Jobs"],["pending","Pending Apply"],["not_applied","Not applied"],["inbox","Inbox"]];
+  const SHEETS = [["history","History"],["applications","Spreadsheet"],["resumes","Resumes"],["saved","Saved Jobs"],["pending","Pending Apply"],["not_applied","Not applied"],["inbox","Inbox"]]
+    .filter(([id]) => !(embedded && id === "saved"));
   const isTableSheet = activeSheet === "applications" || activeSheet === "resumes";
 
   return (

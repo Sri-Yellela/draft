@@ -13,7 +13,7 @@ import {
 } from "./AutoApplyPanelSections.jsx";
 import { companyLabel, UNKNOWN_COMPANY } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
-import { REJECTION_REASONS, REJECTION_NOTE_MAX } from "../../../shared/applicationResponse.js";
+import { REJECTION_REASONS, REJECTION_NOTE_MAX, RESPONSE_OUTCOME, RESPONSE_LABELS } from "../../../shared/applicationResponse.js";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import { TYPE } from "../styles/type.js";
@@ -21,12 +21,21 @@ import { TYPE } from "../styles/type.js";
 import { PanelSearch } from "../components/ui/PanelControls.jsx";
 import WaitingLine from "../components/WaitingLine.jsx";
 import AutoSettingsDrawer from "../components/AutoSettingsDrawer.jsx";
-import DraftHouseTree, { Branch, LeadCard, Leaf, RunCard } from "../components/DraftHouseTree.jsx";
-import DraftHouseSide from "../components/DraftHouseSide.jsx";
+import DraftHouseTree, { Branch, RunCard } from "../components/DraftHouseTree.jsx";
+// ⭐ D146 · the one tracker: the table (and its opened row), what each row says, and The Table's full sheet behind View.
+import ApplicationTracker, { RowOpen, TrackerCounts, TrackerFilters } from "../components/ApplicationTracker.jsx";
+import {
+  trackerRows, trackerView, trackerCounts, sortRows, stageActions, readyToSend, sendAllConfirmText, TRACKER_PERIODS,
+} from "../lib/trackerRows.js";
+import { DatabasePanel } from "./DatabasePanel.jsx";
+import { ImportPanel } from "../components/ApplicationHistory.jsx";
+import { saveText, csvName, downloadExcel } from "../lib/tableExport.js";
+import { historyToCsv } from "../../../shared/applicationCsv.js";
+import { REPLY_ASK } from "../../../shared/applicationHistory.js";
 import { JobWorkspacePanel } from "./JobWorkspacePanel.jsx";
 import { buildStoppedItems, packetLife, autoToggle, STOP_DOES, STOP_DOES_NOT } from "../lib/draftHouseExceptions.js";
 import {
-  buildNodes, buildTree, treeView, sideBlocks, branchStep, createLeafCache, answerRows, inlineAnswerStart, isOwnStatement,
+  buildNodes, buildTree, treeView, branchStep, createLeafCache, answerRows, inlineAnswerStart, isOwnStatement,
   leftOutLines, nextRunFromSettings, timeLabel, connectionsFromStopped, viewerTimeZone, timeZoneOptions,
 } from "../lib/draftHouseTree.js";
 import {
@@ -36,27 +45,34 @@ import {
 import { jobDetailHref } from "../lib/jobUrl.js";
 import { useViewport } from "../hooks/useViewport.js";
 import { A_PLUS_TOOL } from "../lib/applyTools.js";
-import { ChangesSummaryLine } from "../components/ResumeChangesPanel.jsx";
+import { ChangesSummaryLine, WhatWeSentLink } from "../components/ResumeChangesPanel.jsx";
 import { postingClick } from "../lib/openPosting.js";
 
 // ============================================================
-// AutoApplyPanel — DRAFT HOUSE, a tree that grows inline (D113 UI, owner 10-31)
+// AutoApplyPanel — DRAFT HOUSE, THE ONE APPLICATION TRACKER (D146, owner 11-03; D113 UI before it)
 // ============================================================
-// The tab reads "Draft House" (D18). The file and the /app/auto-apply route keep their old names —
-// renaming them is cost without benefit (docs/BRAND.md) — but nothing on the page is "Auto Apply".
+// The nav entry reads "Draft House · your applications" (D18, D145). The file and the /app/auto-apply route keep their
+// old names — renaming them is cost without benefit (docs/BRAND.md). ⭐ D146: Draft House and The Table are ONE panel;
+// /app/database redirects here (App.jsx) and The Table's own views live behind Settings → View → The full sheet.
 //
-// THE TREE MODEL (D113 UI U1–U10, docs/sketches/draft-house-tree.html; the WORKLOG row wins):
+// THE PAGE (the D146 row; tracker-options.html layout 1 on a computer, layout 3 on a phone):
 //
-//   HEADER  one sentence ("On. Next look at 5 PM. 3 of 10 sent today. You tap Apply on each pick."), the
-//           mode switch Ask me first | Apply for me, Pause / Resume (= Stop everything) and Settings —
-//           ONE drawer with three groups (components/AutoSettingsDrawer.jsx).
-//   TREE    left, scrolls: the next run as a dashed square, a Now line, then each run newest first with
-//           its jobs as CompanyBubbles (the bubble standard). One BRANCH open at a time grows in place:
-//           a run's card (picked, left out by reason) or a job's lead card + four leaves.
-//   SIDE    right, 340 px (on top below 900 px): broken connections, Needs you, Ready for your review +
-//           Review all (Approve all inside it, with its second confirm), Running, Replies, Tidy up.
+//   HEADER    "Draft House" + "Every application, from draft to reply"; the mode switch Ask me first | Apply for me;
+//             Settings (ONE drawer: when, which jobs, accounts, view — components/AutoSettingsDrawer.jsx); Import and
+//             Export (The Table's CSV import, Excel and CSV export, unchanged in function); Send all ready (n) — one
+//             confirm that lists them.
+//   TABLE     one row of counts; the filters All · Needs you · In progress · Sent · Replies · Stopped, the search and the
+//             period; plain rows and columns (components/ApplicationTracker.jsx), what each says from lib/trackerRows.js.
+//             A row opens IN PLACE, one at a time: the stage's eyebrow and headline, the panes on demand (The posting ·
+//             Résumé · Answers · Emails — the tree's old leaves) and the stage's actions (actionsFor below + the stage's).
+//   TIMELINE  beside the table, ≈ 300 px (components/DraftHouseTree.jsx): D113's runs by day, each "N looked at · N picked
+//             · why these", the jobs as small bubbles ringed by stage — Needs you, Ready, Working pulse. A bubble opens
+//             its row in the table. Under it: Pause, Review all (Approve all inside it), the line, Tidy up and the bin.
+//   PHONES    one column and a switch: Applications · Auto-apply timeline.
+//   BANNER    a broken connection (a sign-in, Gmail, a missing profile field) is one line with its fix.
 //
-// ⛔ REPLACED: D25's run bar, the separate Stopped list with its search, the tabbed list and select
+// ⛔ REPLACED: D113's side column (D146: its blocks are the counts, the filters and the banner), the job branch and its
+// leaves (D146: the opened row's panes), D25's run bar, the separate Stopped list with its search, the tabbed list and select
 // mode (Review all covers its one bulk use). ⛔ NO second status model: every ring
 // is D102's ladder (shared/applicationStatus.js → lib/draftHouseTree.js ringFor). ⛔ NO second
 // exceptions model: buildStoppedItems / groupByApplication / splitByFault / packetLife still decide
@@ -90,7 +106,7 @@ function ExampleNote() {
   );
 }
 
-export function AutoApplyPanel() {
+export function AutoApplyPanel({ user = null } = {}) {
   const { theme } = useTheme();
   const { w: viewportWidth } = useViewport();
   const navigate = useNavigate();
@@ -228,12 +244,17 @@ export function AutoApplyPanel() {
   // ⭐ D54 · a job's branch names the company's OTHER applications — The Table's rows, grouped by
   // the one identity (shared/companyIdentity.js). Re-read when the pipeline's feeds change.
   const [companyIndex, setCompanyIndex] = useState(null);
+  // ⭐ D146 · The Table's rows ride the same read: they are the tracker's history half (lib/trackerRows.js).
+  const [history, setHistory] = useState([]);
+  const [historyTick, setHistoryTick] = useState(0);
+  const refreshTableRecords = () => setHistoryTick(n => n + 1);
   useEffect(() => {
     api("/api/applications/history").then(d => {
+      setHistory(Array.isArray(d?.rows) ? d.rows : []);
       const groups = companyRows(d?.rows || []);
       setCompanyIndex({ groups, members: new Map(groups.map(g => [g.key, g.roles.map(x => ({ company: x.company, url: x.applyUrl }))])) });
     }).catch(() => {});
-  }, [applyRuns.length, applyPending.length, applyReviewJobs.length]);
+  }, [applyRuns.length, applyPending.length, applyReviewJobs.length, applySubmitted.length, historyTick]);
   const companyOthers = (row) => {
     if (!companyIndex || !row) return null;
     const key = matchCompany({ company: row.company, url: row.applyUrl }, companyIndex.members);
@@ -443,11 +464,20 @@ export function AutoApplyPanel() {
   const generateResume = (job) => { draftJob?.(job, companyLabel(job.company)); };
 
   // ── D113 UI · THE TREE ──────────────────────────────────────────────────────────────────────
+  // ⭐ D146 · the table's filter, search, period and sort; ONE thing open at a time (a row, or a run in the timeline).
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
-  const [zoom, setZoom] = useState(1);
+  const [period, setPeriod] = useState("any");
+  const [sort, setSort] = useState({ key: "when", dir: "desc" });
   const [open, setOpen] = useState(null);
-  const [leaves, setLeaves] = useState(() => new Set());
+  const [pane, setPane] = useState(null);
+  const [phoneView, setPhoneView] = useState("table");
+  // Settings → View: the table, or The Table's full sheet (a deep link with ?sheet= opens the sheet, as /app/database did).
+  const [listView, setListView] = useState(() => { try { return new URLSearchParams(window.location.search).get("sheet") ? "sheet" : "table"; } catch { return "table"; } });
+  const [sheetAt, setSheetAt] = useState(null);   // { sheet, jobId } — "I applied" opens the sheet's Pending at that job
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [rowMsg, setRowMsg] = useState("");
   const [pickMsg, setPickMsg] = useState("");
   // U4 · "Make it now", per pick: { busy } while it is made, then { ok, message, atsScore }.
   const [madeNow, setMadeNow] = useState({});
@@ -471,16 +501,28 @@ export function AutoApplyPanel() {
   const picksOn = settings?.picks === true;
   const nextRunAt = held ? null : (d113.nextRunAt || ((fullAuto || picksOn) ? nextRunFromSettings(settings, now) : null));
   const tree = buildTree({ runs: d113.available ? d113.runs : null, nodes, nextRunAt, timeZone, now });
-  const treeShown = treeView(tree, { filter, q });
+  // ⭐ D146: the timeline shows every run; filtering and search are the table's.
+  const treeShown = treeView(tree, {});
   // D129 (3): the tour's example shows only while the tester's own tree is empty — a real tree is never covered.
   const showExample = tourExample && nothingYetForExample(nodes);
   const demoView = Object.keys(demoRings).length
     ? treeShown.map(v => ({ ...v, items: v.items.map(x => (demoRings[x.node.jobId] ? { ...x, node: { ...x.node, ring: demoRings[x.node.jobId] } } : x)) }))
     : treeShown;
   const view = showExample ? EXAMPLE_VIEW : demoView;
-  const blocks = sideBlocks({
-    nodes, connections: [...connectionsFromStopped(stoppedItems), ...connections], binCount: bin.items.length, now,
-  });
+  const brokenConnections = [...connectionsFromStopped(stoppedItems), ...connections];
+  // ⭐ D146 · THE TABLE: one row per job — the nodes and The Table's history, merged (lib/trackerRows.js).
+  const rows = trackerRows({ nodes, history, now });
+  const periodDays = TRACKER_PERIODS.find(p => p[0] === period)?.[2] ?? null;
+  const shownRows = sortRows(trackerView(rows, { filter, q, periodDays, now }), sort);
+  const counts = trackerCounts(rows);
+  const ready = readyToSend(rows);
+  // CSV out: exactly the rows shown that The Table knows (D55 (i)).
+  const csvRows = shownRows.map(r => r.hist).filter(Boolean);
+  const exportExcel = async () => { try { await downloadExcel(user?.username); } catch (e) { setRowMsg(`Export failed: ${e.message}`); } };
+  const sendAllReady = () => {
+    if (!ready.length) return;
+    if (window.confirm(sendAllConfirmText(ready, approvalCap))) decidePending(ready.map(r => r.runJobId), true);
+  };
 
   // U4 · one branch open at a time; Escape closes. Opening from the side scrolls the tree to it.
   // The tour's example opens nothing (its keys are "example-…").
@@ -490,14 +532,19 @@ export function AutoApplyPanel() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [settingsOpen, applyRunDetailOpen]);
-  const openFromSide = (node) => {
-    if (!view.some(v => v.items.some(x => x.node.key === node.key))) { setFilter("all"); setQ(""); }
-    setOpen({ type: "job", key: node.key });
+  // ⭐ D146 · a timeline bubble opens THAT ROW in the table, in place, and scrolls to it (a filter hiding it is cleared).
+  const openRow = (key) => {
+    if (String(key ?? "").startsWith("example-")) return;
+    if (!shownRows.some(r => r.key === key)) { setFilter("all"); setQ(""); setPeriod("any"); }
+    setListView("table"); setPhoneView("table");
+    setOpen({ type: "job", key });
     requestAnimationFrame(() => {
-      const el = document.querySelector(`[data-draft-tree] [data-key="${CSS.escape(node.key)}"]`);
+      const el = document.querySelector(`[data-tracker-table] [data-row="${CSS.escape(key)}"]`);
       el?.scrollIntoView?.({ block: "center", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     });
   };
+  // A pane belongs to the row it was opened in: opening another row starts with none shown.
+  useEffect(() => { setPane(null); }, [open?.key]);
   // ⛔ An own statement (an attestation, an eligibility answer) is never sent from a value the system seeded.
   useEffect(() => {
     const ask = open?.type === "job" ? nodes.find(n => n.key === open.key)?.question : null;
@@ -505,7 +552,6 @@ export function AutoApplyPanel() {
       setQuestionDrafts(prev => ({ ...prev, [ask.question]: "" }));
     }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
-  const toggleLeaf = (id) => setLeaves(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   // "Full page" — the application's own page (JobWorkspacePanel): beside the tree on a wide screen.
   const openFull = (jobId) => {
@@ -776,87 +822,182 @@ export function AutoApplyPanel() {
     return out;
   };
 
-  const renderJobBranch = (node) => {
-    const ask = node.question;
+  // ⭐ D146 · THE OPENED ROW — in place, one at a time: the eyebrow and headline for its stage, the panes on demand,
+  // the stage's actions. Its panes are Draft House's leaves, grouped (PANE_LEAVES) — the posting (the job), the résumé,
+  // the answers (every field, the form as filled, what happened) — and the application's emails (D103 / D112).
+  const PANE_LEAVES = { posting: ["job"], resume: ["resume"], answers: ["answers", "form", "happened"] };
+  const profileLink = <button type="button" className="dh-btn" data-profile-link="" onClick={() => navigate("/app/profile")}>Your résumés, in Profile</button>;
+  const paneFor = (row) => (id) => {
+    if (id === "emails") return <EmailsBody row={row} />;
+    if (!row.node) return <HistoryBody row={row} pane={id} />;
+    const ls = leavesFor(row.node).filter(l => (PANE_LEAVES[id] || []).includes(l.id));
     return (
-      <Branch ring={node.ring} label={`${node.company}, ${node.title}`}>
-        <LeadCard node={node} actions={actionsFor(node)} onClose={() => step({ type: "close" })}
-          onFullPage={node.jobId != null && !sentAlready(node) ? () => openFull(node.jobId) : null}
-          fullHref={node.jobId != null ? `/app/job/for/${encodeURIComponent(node.jobId)}` : undefined}>
-          {/* D90 P3: the CHANGES, read before Approve & send — nothing to show until the résumé is written. */}
-          {node.kind === "approval" && !node.ref.generationDeferred && <ChangesSummaryLine jobId={node.ref.jobId} jobLabel={companyLabel(node.ref.company)} />}
-          {/* U5 · a question is answered INLINE. ⛔ The user's own statement never starts filled. */}
-          {ask && (
-            <div className="dht-ask" data-inline-question="">
-              <input aria-label={ask.question} value={inlineAnswerStart(ask, questionDrafts?.[ask.question])}
-                onChange={(e) => setQuestionDrafts(prev => ({ ...prev, [ask.question]: e.target.value }))} />
-              {/* D55 (f): "Save this answer for next time" — ticked keeps it for every employer. */}
-              <label data-save-for-next-time="">
-                <input type="checkbox" checked={questionRemember[ask.question] !== false}
-                  onChange={(e) => setQuestionRemember?.(prev => ({ ...prev, [ask.question]: e.target.checked }))} />
-                Save this answer for next time
-              </label>
-              {answersMsg && <span className="dh-fold__quiet" role="status">{answersMsg}</span>}
+      <>
+        {ls.map(l => (
+          <section key={l.id} className="dht-deep" data-leaf-body={l.id}>
+            <b>{l.label}</b>{l.sub && <span className="dht-r__s">{l.sub}</span>}
+            {l.body()}
+          </section>
+        ))}
+        {id === "resume" && profileLink}
+      </>
+    );
+  };
+  // A Table-only row (an application recorded, imported or sent before Draft House saw it): what the history knows.
+  const HistoryBody = ({ row, pane: id }) => {
+    const h = row.hist || {};
+    if (id === "posting") return (
+      <div className="dht-acts">
+        {h.applyUrl
+          ? <a className="dh-btn" href={h.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(h, e)}>The posting ↗</a>
+          : <p className="dh-fold__quiet">The posting is not stored for this one.</p>}
+        {h.postingListed && row.jobId != null && <a className="dh-btn" href={jobDetailHref(row.jobId)}>On the board</a>}
+      </div>
+    );
+    if (id === "resume") return (
+      <>
+        {h.imported ? <p className="dh-fold__quiet">Sent elsewhere — imported, so draft has no résumé for it.</p>
+          : <ChangesSummaryLine jobId={row.jobId} jobLabel={row.company} />}
+        <div className="dht-acts"><WhatWeSentLink jobId={row.jobId} recordId={h.recordId} jobLabel={row.company} className="dh-btn" />{profileLink}</div>
+      </>
+    );
+    return null;
+  };
+  // The Emails pane: the application's own mail, read when the pane opens (GET /api/pipeline/job-for/:jobId), once.
+  const emailsCache = useRef(null);
+  if (!emailsCache.current) emailsCache.current = createLeafCache((jobId) => api(`/api/pipeline/job-for/${encodeURIComponent(jobId)}`));
+  const EmailsBody = ({ row }) => {
+    const id = row.jobId != null ? String(row.jobId) : null;
+    const entry = id != null ? emailsCache.current.get(id) : { state: "none" };
+    useEffect(() => { if (id != null) emailsCache.current.open(id, () => rerender(n => n + 1)); }, [id]);
+    const mail = entry.state === "ready" ? (entry.data?.emails || []) : [];
+    return (
+      <>
+        {entry.state === "loading" || entry.state === "idle" ? <p className="dh-fold__quiet">Reading the emails…</p>
+          : mail.length === 0 ? <p className="dh-fold__quiet">No email linked to this application yet. Replies you forward to your draft inbox, or read through Gmail, appear here.</p>
+          : mail.map(m => (
+            <div key={m.id} className="dht-r" data-email={m.id}>
+              <span><b>{m.subject || "(no subject)"}</b>{m.preview ? <span className="dht-r__s"> {m.preview}</span> : null}</span>
+              <span className="dht-r__s">{m.category}{m.receivedAt ? ` · ${new Date(m.receivedAt * 1000).toLocaleDateString()}` : ""}</span>
             </div>
-          )}
-          {/* U5 · Add the date / Note why, inline in the lead card; a result line after any of the three. */}
-          {/* U5 · Withdraw: the company's page opened in a new tab; the user confirms here once they have withdrawn. */}
-          {rowEdit?.key === node.key && rowEdit.kind === "withdraw" && (
-            <div className="dht-ask" data-row-edit="withdraw">
-              <span>Withdraw it on {node.company}'s site; then confirm here.</span>
-              <div className="dht-acts">
-                <button type="button" className="dh-btn" data-kind="primary" data-action="confirm-withdrawn"
-                  disabled={!!rowEdit.busy} onClick={() => confirmWithdrawnRow(node)}>I withdrew it</button>
-                <button type="button" className="dh-btn" onClick={() => setRowEdit(null)}>Cancel</button>
+          ))}
+        <div className="dht-acts"><button type="button" className="dh-btn" data-open-inbox="" onClick={() => openSheet("inbox", null)}>The inbox</button></div>
+      </>
+    );
+  };
+
+  // ⭐ D146 · A ROW'S ACTIONS: Draft House's for its node (actionsFor — unchanged), then the stage's own
+  // (lib/trackerRows.js stageActions) that the node's set does not already carry, then a Table-only row's.
+  const openSheet = (sheet, jobId) => { setSheetAt({ sheet, jobId }); setListView("sheet"); };
+  const tableAct = async (row, path, init, done) => {
+    setRowMsg("");
+    try { await api(path, init); setRowMsg(done); }
+    catch (e) { setRowMsg(`Not saved — ${e.message || "try again"}.`); }
+    refreshTableRecords(); loadTableRows().then(setTableRows);
+  };
+  const recordReply = (row, outcome) => tableAct(row, `/api/apply/applications/${encodeURIComponent(row.jobId)}/response`,
+    { method: "PATCH", body: JSON.stringify({ outcome, source: "manual" }) },
+    outcome === RESPONSE_OUTCOME.NO_RESPONSE ? "Recorded: no reply." : `Recorded: ${RESPONSE_LABELS[outcome]?.label ?? outcome}.`);
+  const extraAction = (row, id) => {
+    const n = row.node, h = row.hist;
+    switch (id) {
+      case "edit": return n?.kind === "approval" ? { id, label: "Edit an answer", onClick: () => openApprovalReview(n.ref) } : null;
+      case "form": return row.panes.includes("answers") ? { id, label: "See the form", onClick: () => setPane("answers") } : null;
+      case "reply_ask": return (h?.ask || row.stage === "no_reply") && row.jobId != null
+        ? REPLY_ASK.map(a => ({ id: `reply-${a.outcome}`, label: a.label, onClick: () => recordReply(row, a.outcome) })) : null;
+      case "record": return !n && h ? { id, label: "I applied", kind: "primary", title: "Record when and how you applied — in the full sheet's Pending",
+        onClick: () => openSheet("pending", row.jobId) } : null;
+      case "did_not_apply": return !n && h?.recordState === "pending" ? { id, label: "I did not apply",
+        onClick: () => tableAct(row, `/api/applications/pending/${encodeURIComponent(row.jobId)}/withdraw`, { method: "POST" }, "Moved to Not applied.") } : null;
+      case "restore": return !n && h ? { id, label: "Restore", kind: "primary", title: "Back to Pending for another 14 days",
+        onClick: () => tableAct(row, `/api/applications/not-applied/${encodeURIComponent(row.jobId)}/restore`, { method: "POST" }, "Restored to Pending.") } : null;
+      default: return null;
+    }
+  };
+  const rowActions = (row) => {
+    const base = row.node ? actionsFor(row.node) : [];
+    const have = new Set(base.map(a => a.id));
+    const extra = stageActions(row.stage).filter(id => !have.has(id)).flatMap(id => [extraAction(row, id)].flat()).filter(Boolean);
+    const n = row.node;
+    // The application's own page (JobWorkspacePanel) — what the lead card's "Full page" was.
+    const page = n ? (n.jobId != null && !sentAlready(n) ? [{ id: "page", label: "Full page", onClick: () => openFull(n.jobId) }] : [])
+      : row.hist?.recordId != null ? [{ id: "page", label: "Its own page", onClick: () => navigate(`/app/job/${row.hist.recordId}`) }] : [];
+    return [...base, ...extra, ...page];
+  };
+
+  const renderRow = (row) => {
+    const node = row.node;
+    const ask = node?.question;
+    return (
+      <RowOpen row={row} pane={pane} onPane={setPane} paneBody={paneFor(row)} actions={rowActions(row)} onClose={() => step({ type: "close" })}>
+        {node && (<>
+            {/* D90 P3: the CHANGES, read before Approve & send — nothing to show until the résumé is written. */}
+            {node.kind === "approval" && !node.ref.generationDeferred && <ChangesSummaryLine jobId={node.ref.jobId} jobLabel={companyLabel(node.ref.company)} />}
+            {/* U5 · a question is answered INLINE. ⛔ The user's own statement never starts filled. */}
+            {ask && (
+              <div className="dht-ask" data-inline-question="">
+                <input aria-label={ask.question} value={inlineAnswerStart(ask, questionDrafts?.[ask.question])}
+                  onChange={(e) => setQuestionDrafts(prev => ({ ...prev, [ask.question]: e.target.value }))} />
+                {/* D55 (f): "Save this answer for next time" — ticked keeps it for every employer. */}
+                <label data-save-for-next-time="">
+                  <input type="checkbox" checked={questionRemember[ask.question] !== false}
+                    onChange={(e) => setQuestionRemember?.(prev => ({ ...prev, [ask.question]: e.target.checked }))} />
+                  Save this answer for next time
+                </label>
+                {answersMsg && <span className="dh-fold__quiet" role="status">{answersMsg}</span>}
               </div>
-            </div>
-          )}
-          {rowEdit?.key === node.key && (rowEdit.kind === "date" || rowEdit.kind === "note") && (
-            <div className="dht-ask" data-row-edit={rowEdit.kind}>
-              {rowEdit.kind === "date" ? (
-                <>
-                  <input type="date" aria-label="Interview date" value={rowEdit.date}
-                    onChange={(e) => setRowEdit({ ...rowEdit, date: e.target.value })} />
-                  <input type="time" aria-label="Interview time (optional)" value={rowEdit.time}
-                    onChange={(e) => setRowEdit({ ...rowEdit, time: e.target.value })} />
-                  <select aria-label="Time zone" value={rowEdit.timeZone}
-                    onChange={(e) => setRowEdit({ ...rowEdit, timeZone: e.target.value })}>
-                    {timeZoneOptions(rowEdit.timeZone).map(z => <option key={z} value={z}>{z}</option>)}
-                  </select>
-                </>
-              ) : (
-                <>
-                  {/* Quick picks (what D111 may later count) + a short private note — never read by a model. */}
-                  {Object.entries(REJECTION_REASONS).map(([k, l]) => (
-                    <label key={k} data-reason={k}>
-                      <input type="checkbox" checked={rowEdit.reasons.includes(k)}
-                        onChange={(e) => setRowEdit({ ...rowEdit, reasons: e.target.checked ? [...rowEdit.reasons, k] : rowEdit.reasons.filter(x => x !== k) })} />
-                      {l}
-                    </label>
-                  ))}
-                  <textarea aria-label="Why they said no" rows={3} maxLength={REJECTION_NOTE_MAX} value={rowEdit.note}
-                    onChange={(e) => setRowEdit({ ...rowEdit, note: e.target.value })} />
-                  <span>{rowEdit.note.length} / {REJECTION_NOTE_MAX}. Private: only you see it.</span>
-                </>
-              )}
-              <div className="dht-acts">
-                <button type="button" className="dh-btn" data-kind="primary" data-action="save-row-edit"
-                  disabled={!!rowEdit.busy || (rowEdit.kind === "date" && !rowEdit.date)} onClick={() => saveRowEdit(node)}>Save</button>
-                <button type="button" className="dh-btn" onClick={() => setRowEdit(null)}>Cancel</button>
+            )}
+            {/* U5 · Add the date / Note why, inline in the lead card; a result line after any of the three. */}
+            {/* U5 · Withdraw: the company's page opened in a new tab; the user confirms here once they have withdrawn. */}
+            {rowEdit?.key === node.key && rowEdit.kind === "withdraw" && (
+              <div className="dht-ask" data-row-edit="withdraw">
+                <span>Withdraw it on {node.company}'s site; then confirm here.</span>
+                <div className="dht-acts">
+                  <button type="button" className="dh-btn" data-kind="primary" data-action="confirm-withdrawn"
+                    disabled={!!rowEdit.busy} onClick={() => confirmWithdrawnRow(node)}>I withdrew it</button>
+                  <button type="button" className="dh-btn" onClick={() => setRowEdit(null)}>Cancel</button>
+                </div>
               </div>
-            </div>
-          )}
-          {rowEdit?.key === node.key && rowEdit.message && <span className="dh-fold__quiet" role="status">{rowEdit.message}</span>}
-        </LeadCard>
-        {leavesFor(node).map(l => {
-          const lid = `${node.key}:${l.id}`;
-          return (
-            <Leaf key={l.id} id={l.id} label={l.label} sub={l.sub} open={leaves.has(lid)} onToggle={() => toggleLeaf(lid)}>
-              {l.body()}
-            </Leaf>
-          );
-        })}
-      </Branch>
+            )}
+            {rowEdit?.key === node.key && (rowEdit.kind === "date" || rowEdit.kind === "note") && (
+              <div className="dht-ask" data-row-edit={rowEdit.kind}>
+                {rowEdit.kind === "date" ? (
+                  <>
+                    <input type="date" aria-label="Interview date" value={rowEdit.date}
+                      onChange={(e) => setRowEdit({ ...rowEdit, date: e.target.value })} />
+                    <input type="time" aria-label="Interview time (optional)" value={rowEdit.time}
+                      onChange={(e) => setRowEdit({ ...rowEdit, time: e.target.value })} />
+                    <select aria-label="Time zone" value={rowEdit.timeZone}
+                      onChange={(e) => setRowEdit({ ...rowEdit, timeZone: e.target.value })}>
+                      {timeZoneOptions(rowEdit.timeZone).map(z => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </>
+                ) : (
+                  <>
+                    {/* Quick picks (what D111 may later count) + a short private note — never read by a model. */}
+                    {Object.entries(REJECTION_REASONS).map(([k, l]) => (
+                      <label key={k} data-reason={k}>
+                        <input type="checkbox" checked={rowEdit.reasons.includes(k)}
+                          onChange={(e) => setRowEdit({ ...rowEdit, reasons: e.target.checked ? [...rowEdit.reasons, k] : rowEdit.reasons.filter(x => x !== k) })} />
+                        {l}
+                      </label>
+                    ))}
+                    <textarea aria-label="Why they said no" rows={3} maxLength={REJECTION_NOTE_MAX} value={rowEdit.note}
+                      onChange={(e) => setRowEdit({ ...rowEdit, note: e.target.value })} />
+                    <span>{rowEdit.note.length} / {REJECTION_NOTE_MAX}. Private: only you see it.</span>
+                  </>
+                )}
+                <div className="dht-acts">
+                  <button type="button" className="dh-btn" data-kind="primary" data-action="save-row-edit"
+                    disabled={!!rowEdit.busy || (rowEdit.kind === "date" && !rowEdit.date)} onClick={() => saveRowEdit(node)}>Save</button>
+                  <button type="button" className="dh-btn" onClick={() => setRowEdit(null)}>Cancel</button>
+                </div>
+              </div>
+            )}
+            {rowEdit?.key === node.key && rowEdit.message && <span className="dh-fold__quiet" role="status">{rowEdit.message}</span>}
+        </>)}
+        {rowMsg && <span className="dh-fold__quiet" role="status" data-row-msg="">{rowMsg}</span>}
+      </RowOpen>
     );
   };
 
@@ -905,13 +1046,30 @@ export function AutoApplyPanel() {
        sub && `${sub.used} of ${settings?.dailyCap ?? sub.limit} sent today.`,
        fullAuto ? "Good matches are sent for you." : picksOn ? "You tap Apply on each pick." : "Nothing is submitted until you approve it."]
       .filter(Boolean).join(" ");
+  // ⭐ D146 · the timeline's head: "Auto-apply · Ask me first · runs at 9 AM and 6 PM", the sentence, Pause.
+  const runAt = (t) => { const [h, m] = t.split(":").map(Number); return `${h % 12 || 12}${m ? `:${String(m).padStart(2, "0")}` : ""} ${h < 12 ? "AM" : "PM"}`; };
+  const runTimes = (Array.isArray(settings?.runTimes) ? settings.runTimes : []).filter(t => /^\d\d:\d\d$/.test(t)).map(runAt);
+  const runsWord = !runTimes.length ? "" : ` · runs at ${runTimes.length > 1 ? `${runTimes.slice(0, -1).join(", ")} and ${runTimes[runTimes.length - 1]}` : runTimes[0]}`;
+  const timelineHead = (
+    <div className="dht-head" data-held={held ? "true" : "false"}>
+      <p className="dht-head__t" data-timeline-title="">Auto-apply · {fullAuto ? "Apply for me" : "Ask me first"}{runsWord}</p>
+      <p className="dht-head__say" data-house-sentence="">{sentence}</p>
+      <div className="dht-acts">
+        <button type="button" className="dh-btn" data-stop-everything="" data-held={held ? "true" : "false"}
+          disabled={holdBusy || !runBar} title={`${STOP_DOES} ${STOP_DOES_NOT}`} onClick={() => setStopEverything?.(!held)}>
+          {held ? "Resume" : "Pause"}
+        </button>
+      </div>
+    </div>
+  );
   const chooseAsk = async () => {
     if (fullAuto) await setApplyMode?.("semi");
     const s = await setPicksSwitch(true);
     if (s) setSettings(s);
   };
 
-  const sideExtra = {
+  // ⭐ D146: the side column's own controls, now under the timeline — Review all (Approve all inside it), the line, Tidy up.
+  const timelineExtra = {
     review: (
       <div className="dht-acts" data-review-all-block="">
         {/* THE DELIBERATE "REVIEW ALL" (AB3 requirement 3) — its own control, not what every item's
@@ -976,12 +1134,12 @@ export function AutoApplyPanel() {
 
   return (
     <div className="dh-page">
-      {/* ── U1 · THE HEADER ── */}
+      {/* ── ⭐ D146 · THE HEADER — the name and its line, the two modes, Settings, Import, Export, Send all ready ── */}
       <header className="dh-head" data-house-header="" data-held={held ? "true" : "false"}>
         <div className="dh-head__text">
           {/* A53: the deck's type — the display serif for what the page is (styles/type.js). */}
           <h2 style={TYPE.PAGE_TITLE}>Draft House</h2>
-          <p className="dh-head__say" data-house-sentence="">{sentence}</p>
+          <p className="dh-head__say" data-house-line="">Every application, from draft to reply</p>
         </div>
         <div className="dh-head__ctl">
           <div className="dh-mode" role="group" aria-label="Mode">
@@ -993,17 +1151,28 @@ export function AutoApplyPanel() {
               aria-describedby={mode.selectable ? undefined : "dh-auto-why"}
               onClick={mode.selectable ? () => !fullAuto && setApplyMode?.("auto") : undefined}>Apply for me</button>
           </div>
-          <button type="button" className="dh-btn" data-stop-everything="" data-held={held ? "true" : "false"}
-            disabled={holdBusy || !runBar} title={`${STOP_DOES} ${STOP_DOES_NOT}`} onClick={() => setStopEverything?.(!held)}>
-            {held ? "Resume" : "Pause"}
-          </button>
           <button type="button" className="dh-btn" data-settings-open="" onClick={(e) => openSettings(null, e.currentTarget)}>Settings</button>
+          {/* The Table's Excel / CSV import and export, unchanged in function (lib/tableExport.js, ApplicationHistory's ImportPanel). */}
+          <button type="button" className="dh-btn" data-import-open="" aria-pressed={importing} onClick={() => setImporting(v => !v)}>Import</button>
+          <button type="button" className="dh-btn" data-export-open="" aria-pressed={exporting} onClick={() => setExporting(v => !v)}>Export</button>
+          {/* Send all ready: every Ready-to-send row, ONE confirm that lists them by name (lib/trackerRows.js). */}
+          <button type="button" className="dh-btn" data-kind="primary" data-send-all-ready="" disabled={!ready.length || pendingBusy}
+            title="Approves every application that is Ready to send. Approving submits it to the employer and cannot be undone."
+            onClick={sendAllReady}>Send all ready ({ready.length})</button>
         </div>
         {!mode.selectable && <p className="dh-head__why" id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: {mode.reason}</p>}
         {holdMsg && <p className="dh-head__why" role="status">{holdMsg}</p>}
       </header>
-      <AutoSettingsDrawer open={settingsOpen} runBar={runBar} group={settingsGroup}
+      <AutoSettingsDrawer open={settingsOpen} runBar={runBar} group={settingsGroup} listView={listView} onListView={setListView}
         onClose={() => { setSettingsOpen(false); settingsOpener.current?.focus?.(); }} />
+      {exporting && (
+        <div className="dht-acts" data-export="" role="group" aria-label="Export">
+          <button type="button" className="dh-btn" data-export-kind="excel" onClick={exportExcel}>Excel (.xlsx) — every application</button>
+          <button type="button" className="dh-btn" data-export-kind="csv" disabled={!csvRows.length}
+            title="Download the rows shown as a CSV" onClick={() => saveText(csvName(), historyToCsv(csvRows))}>CSV — the rows shown</button>
+        </div>
+      )}
+      {importing && <ImportPanel onClose={() => setImporting(false)} onImported={() => { refreshTableRecords(); loadTableRows().then(setTableRows); }} />}
 
       {/* What it said BEFORE a run still matters: autofill unavailable is stated here. */}
       {applyReadiness && !applyReadiness.available && (
@@ -1026,20 +1195,50 @@ export function AutoApplyPanel() {
         </div>
       )}
 
-      {/* ── U3 + U7 · THE TREE AND THE SIDE COLUMN. Below 900 px: one column, the side on top (CSS). ── */}
-      <div className="dh-main" data-draft-split="" data-detail={sideJob && sideDetail ? "true" : undefined}>
-        {/* The trial's demonstration renders here (the guided tour portals it in); empty for everyone else. */}
-        <div id="trial-demo-slot"/>
-        <DraftHouseTree view={view} filter={filter} zoom={zoom} open={open}
-          onFilter={setFilter} onZoom={setZoom} onOpen={step}
-          search={<PanelSearch theme={theme} value={q} onChange={setQ} width={200} placeholder="Search, e.g. a company" />}
-          renderRunBranch={renderRunBranch} renderJobBranch={renderJobBranch}
-          nextLine={fullAuto ? "Next look. Good matches are sent for you." : "Next look. You'll get one email with the picks."}
-          empty={showExample ? <ExampleNote/> : nothingYet && nodes.length === 0 && (
-            <p className="dht-empty">Nothing drafted yet. Draft jobs from the Daily Deck or Full House.</p>
-          )} />
-        {/* D102 P5 · an opened application takes the side column on a wide screen (the side returns on
-            Close); narrower, "Full page" goes to its own page. */}
+      {/* ── ⭐ D146 · a broken connection is one banner line with its fix (it was the side column's first block). ── */}
+      {brokenConnections.map(c => (
+        <div key={c.key} className="dh-banner" data-connection-banner={c.key} data-connection={c.key} role="status">
+          <b>{c.title}</b>{c.sub && <span>{c.sub}</span>}
+          <button type="button" className="dh-btn" onClick={() => fixConnection(c)}>{c.fixLabel || "Fix it"}</button>
+        </div>
+      ))}
+
+      {/* ── ⭐ D146 · phones: a switch, Applications · Auto-apply timeline (layout 3). Hidden from 900 px (CSS). ── */}
+      <div className="dh-mode dh-switch" role="group" aria-label="Show" data-phone-switch="">
+        <button type="button" className="dh-mode__seg" data-phone-view="table" aria-pressed={phoneView === "table"} onClick={() => setPhoneView("table")}>Applications</button>
+        <button type="button" className="dh-mode__seg" data-phone-view="timeline" aria-pressed={phoneView === "timeline"} onClick={() => setPhoneView("timeline")}>Auto-apply timeline</button>
+      </div>
+
+      {/* ── ⭐ D146 · THE TABLE, AND THE AUTO-APPLY TIMELINE BESIDE IT (layout 1). ── */}
+      <div className="dh-main" data-draft-split="" data-phone-view={phoneView} data-detail={sideJob && sideDetail ? "true" : undefined}>
+        <div className="dh-table-col">
+          {/* The trial's demonstration renders here (the guided tour portals it in); empty for everyone else. */}
+          <div id="trial-demo-slot"/>
+          {listView === "sheet" ? (
+            /* Settings → View → The full sheet: The Table's own views (D15 / D54 / D55), kept, not on the first screen. */
+            <section data-full-sheet="" aria-label="The full sheet" style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 480 }}>
+              <div className="dht-acts"><button type="button" className="dh-btn" data-back-to-table="" onClick={() => { setListView("table"); setSheetAt(null); }}>Back to the table</button></div>
+              <DatabasePanel key={sheetAt ? `${sheetAt.sheet}:${sheetAt.jobId}` : "sheet"} user={user} embedded
+                sheet={sheetAt?.sheet || null} focusJobId={sheetAt?.jobId || null} />
+            </section>
+          ) : (
+            <>
+              <TrackerCounts counts={counts} />
+              <TrackerFilters filter={filter} onFilter={setFilter} period={period} onPeriod={setPeriod}
+                search={<PanelSearch theme={theme} value={q} onChange={setQ} width={220} placeholder="Search, e.g. a company" />} />
+              <ApplicationTracker rows={shownRows} sort={sort} onSort={setSort}
+                openKey={open?.type === "job" ? open.key : null}
+                onOpen={(key) => step(key == null ? { type: "close" } : { type: "job", key })}
+                renderOpen={renderRow}
+                empty={showExample ? <ExampleNote/> : (
+                  <p className="dht-empty">{rows.length ? "Nothing here with this filter."
+                    : nothingYet ? "Nothing drafted yet. Draft jobs from the Daily Deck or Full House." : "Nothing to show yet."}</p>
+                )} />
+            </>
+          )}
+        </div>
+        {/* D102 P5 · an opened application's own page takes the timeline's column on a wide screen (the timeline returns
+            on Close); narrower, "Full page" goes to its own page. */}
         {sideJob && sideDetail ? (
           <aside data-draft-detail="" aria-label="This application" className="dh-detail">
             <div className="dht-acts" style={{ justifyContent: "flex-end" }}>
@@ -1049,7 +1248,17 @@ export function AutoApplyPanel() {
             <JobWorkspacePanel jobId={sideJob} embedded />
           </aside>
         ) : (
-          <DraftHouseSide blocks={blocks} onOpen={openFromSide} onFix={fixConnection} extra={sideExtra} />
+          <DraftHouseTree view={view} open={open} onOpen={step} onBubble={(node) => openRow(node.key)} head={timelineHead}
+            renderRunBranch={renderRunBranch}
+            nextLine={fullAuto ? "Next look. Good matches are sent for you." : "Next look. You'll get one email with the picks."}
+            empty={!showExample && !view.some(v => !v.run.future) ? <p className="dht-empty">No runs yet. Each run's picks show here as they are made.</p> : null}
+            footer={(needsYouCount > 0 || timelineExtra.running || bin.items.length > 0 || binMsg) ? (
+              <div className="dht-foot" data-timeline-foot="">
+                {needsYouCount > 0 && timelineExtra.review}
+                {timelineExtra.running}
+                {timelineExtra.tidy}
+              </div>
+            ) : <div className="dht-foot" data-timeline-foot="">{timelineExtra.tidy}</div>} />
         )}
       </div>
 

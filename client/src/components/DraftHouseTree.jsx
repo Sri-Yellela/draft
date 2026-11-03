@@ -1,42 +1,36 @@
 import "./DraftHouse.css";
 import CompanyBubble from "./CompanyBubble.jsx";
-import { FILTERS, ringLabelOf } from "../lib/draftHouseTree.js";
-import { RINGS } from "../styles/rings.js";
+import { ringLabelOf } from "../lib/draftHouseTree.js";
 
 // ============================================================
-// DraftHouseTree — the tree that grows inline (D113 UI U3, U4, U6; owner 10-31)
+// DraftHouseTree — THE AUTO-APPLY TIMELINE, a card beside the table (D113's runs, restyled by D146; owner 11-03:
+// "i love the pulsing icons against the timeline format but needs restyled in our current approach beside the table")
 // ============================================================
-// Time runs DOWN a trunk: the next run as a dashed square at the top, a Now line, then each run newest
-// first — its time, its square, a meta line and its jobs as CompanyBubbles (the bubble standard). A run
-// or a bubble opens a BRANCH that grows in place, one at a time (lib/draftHouseTree.js branchStep);
-// the branch's contents are the panel's (renderRunBranch / renderJobBranch), built from the parts below.
+// Time runs DOWN: the next run as a dashed square at the top, a Now line, then each run newest first — its time, its
+// square, "N looked at · N picked · why these" and its jobs as small CompanyBubbles ringed by stage. Needs you, Ready
+// and Working PULSE (styles/rings.js; reduced motion stops it, CompanyBubble.css); sent, replied and stopped are still.
+// ⭐ D146: a bubble press opens THAT ROW in the table (onBubble) — the job's details live in the table's row, never in
+// a second branch here. A run's square opens its run card in place (renderRunBranch), one at a time.
 // Presentational: every piece of state is a prop, so it renders the same in a test as on the page.
+// ⛔ D146 (changed on purpose): the filters, the search and the zoom moved to the table's one filter row; the job
+// branch, its lead card and its leaves became the table's opened row (components/ApplicationTracker.jsx RowOpen).
 // ============================================================
 
-export default function DraftHouseTree({ view = [], filter = "all", zoom = 1, open = null, search = null,
-  onFilter, onZoom, onOpen, renderRunBranch, renderJobBranch, nextLine = "Next look.", empty = null }) {
+/** The one quiet line of key: which bubbles pulse, which are still. */
+export const TIMELINE_KEY = "Pulsing: needs you · ready · working. Still: sent · replied · stopped.";
+
+export default function DraftHouseTree({ view = [], open = null, head = null, onOpen, onBubble, renderRunBranch,
+  nextLine = "Next look.", empty = null, footer = null }) {
   let lastDay = null;
   const hasNext = !!view[0]?.run?.future;
   return (
-    <div className="dht" data-draft-tree="">
-      <div className="dht-filters" role="toolbar" aria-label="Show">
-        {FILTERS.map(([id, label]) => (
-          <button key={id} type="button" className="dht-chip" data-filter={id} aria-pressed={filter === id}
-            onClick={() => onFilter?.(id)}>{label}</button>
-        ))}
-        {/* The search box is the panel's (PanelControls' PanelSearch, shared — never redrawn here). */}
-        {search && <span className="dht-search">{search}</span>}
-        <span className="dht-zoom" role="group" aria-label="Detail">
-          <button type="button" aria-label="Less detail" disabled={zoom <= 0} onClick={() => onZoom?.(Math.max(0, zoom - 1))}>−</button>
-          <button type="button" aria-label="More detail" disabled={zoom >= 2} onClick={() => onZoom?.(Math.min(2, zoom + 1))}>+</button>
-        </span>
-      </div>
+    <section className="dht" data-draft-tree="" data-timeline="" aria-label="Auto-apply timeline">
+      {head}
       <div className="dht-trunk">
         {view.map(({ run, items }, i) => {
           const day = run.day !== lastDay ? run.day : null;
           lastDay = run.day;
           const runOpen = open?.type === "run" && open.key === run.key;
-          const jobOpen = open?.type === "job" ? items.find(x => x.node.key === open.key)?.node : null;
           return (
             <div key={run.key} className="dht-runwrap" data-run={run.key} data-future={run.future ? "true" : undefined}>
               {day && <div className="dht-day">{day}</div>}
@@ -49,90 +43,33 @@ export default function DraftHouseTree({ view = [], filter = "all", zoom = 1, op
                 ) : <span className={run.future ? "dht-sq dht-sq--next" : "dht-sq dht-sq--day"} aria-hidden="true" />}
                 <div className="dht-body">
                   {run.future ? <span className="dht-meta" data-next-run="">{nextLine}</span>
-                    : zoom > 0 && (run.real ? (
+                    : run.real ? (
                       <span className="dht-meta" data-run-meta="">{run.seen} looked at · {run.picked} picked ·{" "}
                         <button type="button" onClick={() => onOpen?.({ type: "run", key: run.key })}>{runOpen ? "hide" : "why these"}</button>
                       </span>
-                    ) : <span className="dht-meta">{run.nodes.length} drafted by you</span>)}
-                  {items.map(({ node, dim }) => {
-                    const sel = open?.type === "job" && open.key === node.key;
-                    const bubble = (
-                      <CompanyBubble key={node.key} company={node.company} ring={node.ring} dim={dim} selected={sel}
-                        dataKey={node.key} expanded={sel} vtTitle={node.jobId} label={`${node.company}, ${node.title || "a job"}, ${ringLabelOf(node)}`}
-                        onClick={() => onOpen?.({ type: "job", key: node.key })} />
-                    );
-                    return zoom === 2 ? (
-                      <span key={node.key} className="dht-named" data-dim={dim ? "true" : undefined}>{bubble}<span className="dht-name">{node.company}</span></span>
-                    ) : bubble;
-                  })}
+                    ) : <span className="dht-meta">{run.nodes.length} drafted by you</span>}
+                  {items.map(({ node }) => (
+                    <CompanyBubble key={node.key} company={node.company} ring={node.ring} size="sm"
+                      dataKey={node.key} vtTitle={node.jobId} label={`${node.company}, ${node.title || "a job"}, ${ringLabelOf(node)}`}
+                      onClick={() => onBubble?.(node)} />
+                  ))}
                 </div>
               </div>
               {runOpen && renderRunBranch?.(run)}
-              {jobOpen && renderJobBranch?.(jobOpen)}
             </div>
           );
         })}
         {empty}
       </div>
-      <div className="dht-legend" aria-label="What the rings mean">
-        {Object.entries(RINGS).map(([id, r]) => <span key={id} data-ring={id}>{r.label}</span>)}
-      </div>
-    </div>
+      <p className="dht-legend" data-timeline-key="">{TIMELINE_KEY}</p>
+      {footer}
+    </section>
   );
 }
 
-/** A branch: a vertical line in the ring's colour with nodes hanging off it. */
+/** A branch: a vertical line with the run card hanging off it. */
 export function Branch({ ring = null, children, label }) {
   return <div className="dht-branch" data-branch="" data-ring={ring || undefined} role="group" aria-label={label}>{children}</div>;
-}
-
-/** U4 (b) · the lead card: bubble, title, company and state; ONE sentence; the next action. */
-export function LeadCard({ node, actions = [], onFullPage, fullHref, onClose, children }) {
-  const ringWord = ringLabelOf(node);
-  return (
-    <div className="dht-node">
-      <div className="dht-card dht-card--lead" data-lead-card="" data-ring={node.ring}>
-        <div className="dht-card__head">
-          <CompanyBubble company={node.company} ring={node.ring} size="sm" />
-          <div className="dht-card__who">
-            <h3>{node.title || "A job"}</h3>
-            <span>{node.company} · {ringWord}{node.kind === "reply" && node.status ? `: ${node.status[0].toUpperCase()}${node.status.slice(1)}` : ""}</span>
-          </div>
-          <button type="button" className="dht-x" aria-label="Close" onClick={onClose}>×</button>
-        </div>
-        <p className="dht-say" data-say="">{node.say}</p>
-        {/* ⭐ A109: no sponsorship label here either — the posting panel carries it. */}
-        {children}
-        <div className="dht-acts">
-          {actions.map(a => a.href ? (
-            <a key={a.label} className="dh-btn" data-kind={a.kind} href={a.href} target="_blank" rel="noreferrer" title={a.title}
-              onClick={a.onClick}>{a.label}</a>
-          ) : (
-            <button key={a.label} type="button" className="dh-btn" data-kind={a.kind} title={a.title} disabled={a.disabled}
-              data-action={a.id} onClick={a.onClick}>{a.label}</button>
-          ))}
-          {/* The application's own page (JobWorkspacePanel): a real link, so a modified click opens a tab. */}
-          {onFullPage && (
-            <a className="dh-btn" href={fullHref} data-open-job-page=""
-              onClick={(e) => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); onFullPage(); } }}>Full page</a>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** A leaf: one level deeper, its body rendered (and its data asked for) only when it is open. */
-export function Leaf({ id, label, sub, open = false, onToggle, children }) {
-  return (
-    <div className="dht-node" data-leaf={id}>
-      <button type="button" className="dht-leaf" aria-expanded={open} onClick={() => onToggle?.(id)}>
-        <span><b>{label}</b> {sub && <span className="dht-leaf__sub">{sub}</span>}</span>
-        <span className="dht-leaf__tw" aria-hidden="true">›</span>
-      </button>
-      {open && <div className="dht-deep" data-leaf-body={id}>{children}</div>}
-    </div>
-  );
 }
 
 /** U4 (a) · a run's card: what it looked at, what it picked and left out, by reason. */

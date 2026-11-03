@@ -373,14 +373,16 @@ function startVite() {
   });
 }
 
-// ── The page's own hooks (client/src/components/DraftHouseTree.jsx, CompanyBubble.jsx, DraftHouseSide.jsx) ──
+// ── The page's own hooks (client/src/components/DraftHouseTree.jsx, CompanyBubble.jsx, ApplicationTracker.jsx) ──
+// ⭐ D146 (11-03): a timeline bubble opens its ROW in the table; the old lead card is the opened row (data-row-detail) and
+// the old leaves are its panes — "What happened" lives in the Answers pane (AutoApplyPanel PANE_LEAVES).
 // test/d113ui.test.js d113uiHarnessesCurrent pins that each of these still exists in the client source.
 const SEL = {
   tree: '[data-draft-tree]',
   bubble: (jobId) => `[data-draft-tree] [data-company-bubble][data-vt-title="${jobId}"]`,
-  lead: '[data-lead-card]',
-  action: (id) => `[data-lead-card] [data-action="${id}"]`,
-  leaf: (id) => `[data-leaf="${id}"] > button`,
+  lead: '[data-row-detail]',
+  action: (id) => `[data-row-detail] [data-action="${id}"]`,
+  leaf: (id) => `[data-row-detail] [data-pane="${({ happened: 'answers', answers: 'answers', form: 'answers', job: 'posting', resume: 'resume' })[id] || id}"]`,
   leafBody: (id) => `[data-leaf-body="${id}"]`,
   reviewAll: '[data-review-all]',
   connection: (key) => `[data-connection="${key}"] button`,

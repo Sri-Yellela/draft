@@ -91,10 +91,10 @@ test("the pipeline's state sits above the tab switch, so a run keeps reporting w
   // place you would go to watch a run is the very tab that would have stopped it.
   const dash = app.slice(at(app, "<JobBoardProvider>"));
   const providerAt = dash.indexOf("<AutoApplyProvider");
-  const panelAt = dash.indexOf("<AutoApplyPanel/>");
+  const panelAt = dash.indexOf("<AutoApplyPanel user={authUser}/>"); // ⭐ D146: the panel takes the user (The Table's exports)
   assert.ok(providerAt !== -1 && panelAt !== -1 && providerAt < panelAt,
     "AutoApplyProvider must wrap the panel, above the tab switch");
-  assert.match(app, /activeTab === "auto-apply"\s*&& <AutoApplyPanel\/>/);
+  assert.match(app, /activeTab === "auto-apply"\s*&& <AutoApplyPanel user=\{authUser\}\/>/);
 });
 
 test("the tab exists, routes, and is not bounced back to the board", () => {

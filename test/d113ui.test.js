@@ -15,10 +15,11 @@ import { pathToFileURL } from "node:url";
 import { LADDER, ladderStatus, surfaceOf, TABLE_TABS } from "../shared/applicationStatus.js";
 import { THEME_LIST } from "../client/src/themes/index.js";
 import {
-  RINGS, RING_ORDER, LADDER_RING, ringFor, FILTERS, buildNodes, buildTree, treeView, sideBlocks, SIDE_ORDER,
+  RINGS, RING_ORDER, LADDER_RING, ringFor, FILTERS, buildNodes, buildTree, treeView,
   branchStep, createLeafCache, answerRows, inlineAnswerStart, leftOutLines, nextRunFromSettings, matchesSearch, ringLabelOf,
   interviewLine, timeZoneOptions,
 } from "../client/src/lib/draftHouseTree.js";
+import { trackerRows, stageActions } from "../client/src/lib/trackerRows.js";
 import {
   loadRuns, loadLeftOut, actOnPick, makePickResume, D113_ROUTES, confirmWithdrawn, saveNoteWhy, setInterviewDate, ROW_ROUTES,
 } from "../client/src/lib/draftHouseRuns.js";
@@ -40,7 +41,7 @@ const read = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 const code = (src) => src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, "");
 const panel = read("client/src/panels/AutoApplyPanel.jsx");
 const treeSrc = read("client/src/components/DraftHouseTree.jsx");
-const sideSrc = read("client/src/components/DraftHouseSide.jsx");
+const trackerSrc = read("client/src/components/ApplicationTracker.jsx");
 const drawer = read("client/src/components/AutoSettingsDrawer.jsx");
 const css = read("client/src/components/DraftHouse.css");
 const bubbleCss = read("client/src/components/CompanyBubble.css");
@@ -59,11 +60,11 @@ async function loadUi() {
       contents: `
         import { createElement } from "react";
         import { renderToStaticMarkup } from "react-dom/server.browser";
-        import DraftHouseTree, { Branch, LeadCard, Leaf, RunCard } from ${abs("components/DraftHouseTree.jsx")};
-        import DraftHouseSide from ${abs("components/DraftHouseSide.jsx")};
+        import DraftHouseTree, { Branch, RunCard } from ${abs("components/DraftHouseTree.jsx")};
+        import ApplicationTracker, { RowOpen } from ${abs("components/ApplicationTracker.jsx")};
         import CompanyBubble from ${abs("components/CompanyBubble.jsx")};
         export const html = (C, props) => renderToStaticMarkup(createElement(C, props));
-        export { createElement, DraftHouseTree, DraftHouseSide, CompanyBubble, Branch, LeadCard, Leaf, RunCard };`,
+        export { createElement, DraftHouseTree, CompanyBubble, Branch, RunCard, ApplicationTracker, RowOpen };`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -159,18 +160,20 @@ test("d113uiOneBranchOpen — opening another closes the first; the same one tog
   const { html, DraftHouseTree, Branch } = await loadUi();
   const nodes = fixtureNodes();
   const view = treeView(buildTree({ runs: [RUN], nodes, now: NOW, timeZone: "UTC" }), {});
-  const props = (o) => ({ view, open: o, renderJobBranch: (n) => Branch({ ring: n.ring, children: n.key }), renderRunBranch: (r) => Branch({ children: r.key }) });
+  // ⭐ D146 (changed on purpose): a JOB no longer opens a branch in the timeline — it opens its row in the table
+  // (d146RowOpensInPlaceOneAtATime). A run still opens its one card in place.
+  const props = (o) => ({ view, open: o, renderRunBranch: (r) => Branch({ children: r.key }) });
   const one = html(DraftHouseTree, props({ type: "job", key: nodes.find(n => n.jobId === "j-sent").key }));
-  assert.equal(count(one, "data-branch=\"\""), 1, "exactly one branch");
+  assert.equal(count(one, "data-branch=\"\""), 0, "a job's details are the table's row, never a branch here");
   const run = html(DraftHouseTree, props({ type: "run", key: "run-7" }));
   assert.equal(count(run, "data-branch=\"\""), 1);
   assert.equal(count(html(DraftHouseTree, props(null)), "data-branch=\"\""), 0);
   // The bubble's own press asks for exactly that branch.
   const seen = [];
-  const el = DraftHouseTree({ view, open: null, onOpen: (a) => seen.push(a) });
+  const el = DraftHouseTree({ view, open: null, onBubble: (n) => seen.push(n.key) });
   const bubble = [...walk(el)].find(e => e.props?.dataKey === nodes.find(n => n.jobId === "j-int").key);
   bubble.props.onClick();
-  assert.deepEqual(seen, [{ type: "job", key: nodes.find(n => n.jobId === "j-int").key }]);
+  assert.deepEqual(seen, [nodes.find(n => n.jobId === "j-int").key], "the bubble asks for THAT row");
 });
 
 test("d113uiRunBranchCountsByReason — a run's card: picked, left out, and the counts BY REASON from P1", async () => {
@@ -207,14 +210,17 @@ test("d113uiLeavesLazy — a leaf's data loads only when the leaf is opened, onc
   assert.deepEqual(calls, [21], "asked once");
   assert.equal(cache.get(21).state, "ready");
   assert.equal(changed, 1);
-  const { html, Leaf, createElement } = await loadUi();
-  const closed = html(Leaf, { id: "answers", label: "Answers", open: false, children: createElement("i", null, "BODY") });
-  assert.doesNotMatch(closed, /BODY|data-leaf-body/, "a closed leaf renders no body — so its loader never mounts");
-  assert.match(html(Leaf, { id: "answers", label: "Answers", open: true, children: createElement("i", null, "BODY") }), /data-leaf-body="answers"><i>BODY/);
+  // ⭐ D146 (changed on purpose): the leaves are the opened row's panes — a pane not shown renders no body.
+  const { html, RowOpen, createElement } = await loadUi();
+  const row = { key: "r1", eyebrow: "Sent", headline: "Sent today", panes: ["posting", "answers"] };
+  const body = () => createElement("i", null, "BODY");
+  const closed = html(RowOpen, { row, pane: null, paneBody: body });
+  assert.doesNotMatch(closed, /BODY|data-pane-body/, "a closed pane renders no body — so its loader never mounts");
+  assert.match(html(RowOpen, { row, pane: "answers", paneBody: body }), /data-pane-body="answers"><i>BODY/);
   // The panel's Answers body asks the cache from an effect INSIDE the leaf's body.
-  const body = panel.slice(at(panel, "const AnswersBody = ({ node }) => {"), at(panel, "const leavesFor = (node) => {"));
-  assert.match(body, /useEffect\(\(\) => \{ if \(id != null\) answersCache\.current\.open\(id, /);
-  assert.match(panel, /<Leaf key=\{l\.id\} id=\{l\.id\} label=\{l\.label\} sub=\{l\.sub\} open=\{leaves\.has\(lid\)\}/);
+  const ab = panel.slice(at(panel, "const AnswersBody = ({ node }) => {"), at(panel, "const leavesFor = (node) => {"));
+  assert.match(ab, /useEffect\(\(\) => \{ if \(id != null\) answersCache\.current\.open\(id, /);
+  assert.match(panel, /const ls = leavesFor\(row\.node\)\.filter\(l => \(PANE_LEAVES\[id\] \|\| \[\]\)\.includes\(l\.id\)\);/);
 });
 
 test("d113uiAttestationNeverFilled — the user's own statement is marked and its value never shown as filled", () => {
@@ -269,51 +275,21 @@ test("d113uiSearchDimsInAll — in All a miss is dimmed, not hidden; elsewhere i
   // The search reads the reason too (the node's sentence), through the one narrowing Stopped always had.
   assert.ok(matchesSearch(fixtureNodes().find(n => n.jobId === "j-ask"), "start date"));
   const { html, DraftHouseTree } = await loadUi();
-  const out = html(DraftHouseTree, { view });
-  assert.equal(count(out, 'data-dim="true"'), items.length - 1);
+  // ⭐ D146 (changed on purpose): the search and the filters are the TABLE's (trackerView); the timeline shows every run
+  // and dims nothing — the panel asks treeView for no filter and no search.
+  assert.match(panel, /const treeShown = treeView\(tree, \{\}\);/);
+  assert.equal(count(html(DraftHouseTree, { view }), 'data-dim="true"'), 0);
 });
 
-test("d113uiSideOrderAndEmpty — connections, Needs you, review, running, replies, tidy; empty blocks left out but Needs you", async () => {
-  const nodes = fixtureNodes();
-  const blocks = sideBlocks({ nodes, connections: [{ key: "gmail", title: "Gmail disconnected", sub: "x", fixLabel: "Reconnect Gmail" }], now: NOW });
-  assert.deepEqual(blocks.map(b => b.id), SIDE_ORDER);
-  assert.deepEqual(blocks.find(b => b.id === "needs").items.map(n => n.jobId), ["j-ask", "j-pick"], "questions first, then picks");
-  assert.deepEqual(blocks.find(b => b.id === "replies").items.map(n => n.jobId), ["j-int"], "rejections excluded");
-  assert.equal(blocks.find(b => b.id === "tidy").count, 1, "one stopped job older than 7 days");
-  const empty = sideBlocks({ nodes: [], now: NOW });
-  assert.deepEqual(empty.map(b => b.id), ["needs"], "only Needs you stays when empty");
-  assert.deepEqual(sideBlocks({ nodes: [], binCount: 2, now: NOW }).map(b => b.id), ["needs", "tidy"], "a full bin keeps Tidy up");
-  const { html, DraftHouseSide } = await loadUi();
-  assert.match(html(DraftHouseSide, { blocks: empty }), /Nothing\. It&#x27;s all running\./);
-  const out = html(DraftHouseSide, { blocks });
-  const order = ["data-side-block=\"connections\"", "data-side-block=\"needs\"", "data-side-block=\"review\"", "data-side-block=\"running\"", "data-side-block=\"replies\"", "data-side-block=\"tidy\""];
-  const idx = order.map(o => out.indexOf(o));
-  assert.ok(idx.every((v, i) => v >= 0 && (i === 0 || v > idx[i - 1])), "rendered in order");
-  assert.match(out, /1 stopped job older than 7 days\./);
-});
+// ⭐ D146 (changed on purpose, 11-03): the side column is gone — Draft House and The Table merged into ONE tracker.
+// d113uiSideOrderAndEmpty and d113uiSideOpensBranch are RETIRED with it: its blocks became the tracker's counts,
+// filters and the broken-connection banner (d146NothingDropped), and a timeline bubble opens its ROW (d146BubbleOpensRow).
 
-test("d113uiSideOpensBranch — a side row opens the same branch in the tree and scrolls to it", async () => {
-  const nodes = fixtureNodes();
-  const blocks = sideBlocks({ nodes, now: NOW });
-  const { DraftHouseSide } = await loadUi();
-  const opened = [];
-  const el = DraftHouseSide({ blocks, onOpen: (n) => opened.push(n.key) });
-  const row = [...walk(el)].find(e => e.props?.["data-side-item"] === nodes.find(n => n.jobId === "j-review").key);
-  row.props.onClick();
-  assert.deepEqual(opened, [nodes.find(n => n.jobId === "j-review").key]);
-  // The panel opens THAT node's branch (the same key the tree's bubble uses), clears a filter hiding it, and scrolls.
-  const fn = panel.slice(at(panel, "const openFromSide = (node) => {"), at(panel, "const toggleLeaf"));
-  assert.match(fn, /setOpen\(\{ type: "job", key: node\.key \}\)/);
-  assert.match(fn, /setFilter\("all"\); setQ\(""\);/);
-  assert.match(fn, /\[data-key="\$\{CSS\.escape\(node\.key\)\}"\]/);
-  assert.match(fn, /scrollIntoView/);
-  assert.match(panel, /<DraftHouseSide blocks=\{blocks\} onOpen=\{openFromSide\}/);
-  assert.match(treeSrc, /dataKey=\{node\.key\}/);
-});
-
-test("d113uiApproveAllInsideReviewAll — the side carries Review all only; Approve all is inside it, with two confirms", () => {
-  assert.doesNotMatch(panel, /confirmSendAll|data-send-all/, "no Approve all in the page's chrome");
-  const side = panel.slice(at(panel, "const sideExtra = {"), at(panel, "running: (applyLine.waiting"));
+test("d113uiApproveAllInsideReviewAll — the timeline carries Review all only (D146: was the side); Approve all is inside it, with two confirms", () => {
+  // ⭐ D146 (changed on purpose, the owner's row): the header carries "Send all ready (n)" with ONE confirm that lists
+  // them (d146SendAllReadyConfirms); the timeline's Review all keeps Approve all inside it, two confirms.
+  assert.match(panel, /data-send-all-ready=""/);
+  const side = panel.slice(at(panel, "const timelineExtra = {"), at(panel, "running: (applyLine.waiting"));
   assert.match(side, /<button onClick=\{openEverything\}[^>]*data-review-all=""/);
   assert.doesNotMatch(code(side), /Approve all/);
   const modal = panel.slice(at(panel, "Apply Runs Review Modal"));
@@ -325,7 +301,7 @@ test("d113uiApproveAllInsideReviewAll — the side carries Review all only; Appr
 });
 
 test("d113uiNoSelectMode — select mode is gone; Review all covers the one bulk use; each job clears in its branch", () => {
-  for (const src of [panel, treeSrc, sideSrc].map(code)) {
+  for (const src of [panel, treeSrc].map(code)) {
     assert.doesNotMatch(src, /Done selecting|setSelecting|selectable=|selectedIds|type="checkbox"[^>]*Select/);
   }
   assert.ok(!fs.existsSync("client/src/components/StoppedItem.jsx"), "the stopped item and its checkbox are gone");
@@ -339,7 +315,8 @@ test("d113uiOneSettingsDrawer — ONE drawer, three groups in order, D113's swit
   assert.equal(count(panel, "<AutoSettingsDrawer "), 1);
   assert.doesNotMatch(panel, /PortalsDrawer|portalsOpen/);
   const groups = [...drawer.matchAll(/data-settings-group="(\w+)"/g)].map(m => m[1]);
-  assert.deepEqual(groups, ["when", "jobs", "accounts"]);
+  // ⭐ D146 (changed on purpose): a fourth group, View — The Table's other layouts, kept off the first screen.
+  assert.deepEqual(groups, ["when", "jobs", "accounts", "view"]);
   for (const h of ["When and how much", "Which jobs", "Accounts on job sites"]) assert.match(drawer, new RegExp(`>${h}</h3>`));
   const when = drawer.slice(at(drawer, 'data-settings-group="when"'), at(drawer, 'data-settings-group="jobs"'));
   for (const w of ["Applications a day, at most", "When to look for new jobs", "Picks arrive by", "Show me the form before sending"]) assert.ok(when.includes(w), w);
@@ -385,15 +362,17 @@ test("d113uiFourThemes — every ring is a token in all four themes, seven disti
   assert.match(bubbleCss, /:root\[data-contrast="aaa"\] \.cb \{ box-shadow: 0 0 0 2px var\(--c-ink\); \}/, "contrast themes swap the shadow for an outline");
 });
 
-test("d113uiNarrow — below 900 px: one column, the side column on top, branches indent 16 px, actions wrap", () => {
-  const narrow = css.slice(at(css, "@media (max-width: 899px) {"), at(css, "/* ── U3 · THE TREE"));
+test("d113uiNarrow — below 900 px: one column and a switch (D146 layout 3), branches indent 16 px, actions wrap", () => {
+  // ⭐ D146 (changed on purpose): the side column became the timeline card (300 px), and a phone switches between the
+  // table and the timeline instead of stacking them.
+  const narrow = css.slice(at(css, "@media (max-width: 899px) {"), at(css, "/* ── THE TIMELINE CARD"));
   assert.match(narrow, /\.dh-main, \.dh-main\[data-detail="true"\] \{ grid-template-columns: minmax\(0, 1fr\); \}/);
-  assert.match(narrow, /\.dh-main > \.dhs, \.dh-main > \.dh-detail \{ order: -1;/);
+  assert.match(narrow, /\.dh-main\[data-phone-view="table"\] > \.dht, \.dh-main\[data-phone-view="timeline"\] > \.dh-table-col \{ display: none; \}/);
   assert.match(narrow, /\.dht-branch \{ margin-left: 16px; \}/);
   assert.match(narrow, /\.dht-acts \{ flex-wrap: wrap; \}/);
-  assert.match(css, /\.dh-main \{\n  display: grid; grid-template-columns: minmax\(0, 1fr\) 340px;/, "wide: the side column is 340 px");
-  // DOM order is tree then side: the tree keeps the same order on a phone, the side is lifted by CSS only.
-  assert.ok(at(panel, "<DraftHouseTree view={view}") < at(panel, "<DraftHouseSide blocks={blocks}"));
+  assert.match(css, /\.dh-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\) 300px;/, "wide: the timeline is 300 px");
+  // DOM order is table then timeline.
+  assert.ok(at(panel, "<ApplicationTracker rows={shownRows}") < at(panel, "<DraftHouseTree view={view}"));
 });
 
 // ── the adapter: D113's routes in ONE place, degrading when they are not there ─────────────────
@@ -415,7 +394,7 @@ test("D113 UI · the adapter falls back when the runs route 404s, and the next r
   assert.equal(nextRunFromSettings({ runTimes: [] }, NOW), null);
   // Every D113 route call is in the adapter, none in the panel.
   assert.doesNotMatch(panel, /\/api\/picks/);
-  for (const f of ["client/src/components/DraftHouseTree.jsx", "client/src/components/DraftHouseSide.jsx", "client/src/lib/draftHouseTree.js"]) {
+  for (const f of ["client/src/components/DraftHouseTree.jsx", "client/src/lib/draftHouseTree.js"]) {
     assert.doesNotMatch(read(f), /\/api\/picks/);
   }
 });
@@ -565,17 +544,18 @@ test("d113uiWithdrawNeverClaimsToWithdraw — Withdraw opens the company's page 
   const sent = leadActions("sent", 'case "withdrawn":');
   assert.match(sent, /\{ id: "withdraw", label: "Withdraw", \.\.\.\(r\.url \? \{ href: r\.url \} : \{\}\),\s*title: `Opens \$\{node\.company\}'s page\. draft cannot withdraw it for you\.`, onClick: \(\) => withdrawRow\(node\) \}/);
   assert.match(panel, /const withdrawRow = \(node\) => setRowEdit\(\{ key: node\.key, kind: "withdraw" \}\);/, "pressing Withdraw calls nothing");
-  assert.match(treeSrc, /a\.href \? \(\s*<a [^>]*href=\{a\.href\} target="_blank" rel="noreferrer"/, "an href action opens a new tab");
+  assert.match(trackerSrc, /a\.href \? \(\s*<a [^>]*href=\{a\.href\} target="_blank" rel="noreferrer"/, "an href action opens a new tab");
   const confirm = panel.slice(at(panel, 'rowEdit.kind === "withdraw" && ('), at(panel, 'rowEdit.kind === "date" || rowEdit.kind === "note") && ('));
   assert.match(confirm, /<span>Withdraw it on \{node\.company\}'s site; then confirm here\.<\/span>/);
   assert.match(confirm, /data-action="confirm-withdrawn"[\s\S]{0,120}onClick=\{\(\) => confirmWithdrawnRow\(node\)\}>I withdrew it<\/button>/);
   assert.match(panel, /afterRowAct\(node, await confirmWithdrawn\(node\.applicationId\)\);/, "only the confirmation calls the route");
   assert.equal(count(code(panel), "confirmWithdrawn("), 1);
   // Rendered: the lead card's Withdraw is an <a target="_blank"> to the company's page, never a button that posts.
-  const { html, LeadCard } = await loadUi();
-  const node = { key: "table-9", kind: "sent", company: "Northwind", title: "SWE", ring: "sent", say: "Sent today." };
-  const out = html(LeadCard, { node, actions: [{ id: "withdraw", label: "Withdraw", href: "https://northwind.example/apply/9", title: "Opens Northwind's page." }] });
-  assert.match(out, /<a class="dh-btn" href="https:\/\/northwind\.example\/apply\/9" target="_blank" rel="noreferrer"[^>]*>Withdraw<\/a>/);
+  // ⭐ D146: the lead card is the opened row (RowOpen).
+  const { html, RowOpen } = await loadUi();
+  const row = { key: "table-9", eyebrow: "Sent", headline: "Sent today.", panes: [] };
+  const out = html(RowOpen, { row, actions: [{ id: "withdraw", label: "Withdraw", href: "https://northwind.example/apply/9", title: "Opens Northwind's page." }] });
+  assert.match(out, /<a class="dh-btn"[^>]* href="https:\/\/northwind\.example\/apply\/9" target="_blank" rel="noreferrer"[^>]*>Withdraw<\/a>/);
   // The server: nothing in the route or the service reaches the employer — no mail, no portal, no worker, no fetch.
   for (const src of [code(read("services/pipelineWorkspace.js")), code(read("routes/pipeline.js"))]) {
     assert.doesNotMatch(src, /fetch\(|sendEmail|notify|resend|applyWorker|portal/i);
@@ -624,9 +604,11 @@ test("d113uiWithdrawnStatus — \"I withdrew it\" sets the ladder's terminal wit
   assert.equal(nodes[0].kind, "withdrawn");
   assert.equal(ringLabelOf(nodes[0]), "Withdrawn");
   assert.equal(nodes[0].say, "You withdrew it. It's closed.");
-  assert.equal(sideBlocks({ nodes, now: NOW }).find(b => b.id === "tidy"), undefined, "a withdrawn record is not a stopped job to clear");
-  const { html, LeadCard } = await loadUi();
-  assert.match(html(LeadCard, { node: nodes[0], actions: [] }), /Northwind · Withdrawn/);
+  // ⭐ D146: the table's row says it — Withdrawn, in the Stopped filter, no actions.
+  const [wr] = trackerRows({ nodes, now: NOW });
+  assert.equal(wr.status, "Withdrawn");
+  assert.equal(wr.stage, "withdrawn");
+  assert.deepEqual(stageActions(wr.stage), []);
   assert.match(panel, /case "withdrawn": return \[\];/);
   const calls = [];
   assert.equal((await confirmWithdrawn(9, async (p, o) => { calls.push([p, o.method]); return {}; })).ok, true);
@@ -674,7 +656,7 @@ test("d113uiAddDateStartsPrep — Add the date (interview or assessment): date, 
   const reply = leadActions("reply", "default: return [];");
   assert.match(reply, /\.\.\.\(\(node\.status === "interview" \|\| node\.status === "assessment"\) \? \[\{ id: "date", label: r\.interview \? "Change the date" : "Add the date",/);
   assert.match(reply, /date: r\.interview\?\.ymd \|\| "", time: r\.interview\?\.time \|\| "",\s*timeZone: r\.interview\?\.timeZone \|\| viewerTimeZone\(\)/);
-  const editor = panel.slice(at(panel, 'rowEdit.kind === "date" || rowEdit.kind === "note") && ('), at(panel, "</LeadCard>\n        {leavesFor(node)"));
+  const editor = panel.slice(at(panel, 'rowEdit.kind === "date" || rowEdit.kind === "note") && ('), at(panel, "{rowEdit?.key === node.key && rowEdit.message &&"));
   assert.match(editor, /<input type="date" aria-label="Interview date"/);
   assert.match(editor, /<input type="time" aria-label="Interview time \(optional\)"/);
   assert.match(editor, /<select aria-label="Time zone" value=\{rowEdit\.timeZone\}/);
@@ -718,7 +700,7 @@ test("d113uiNoteWhySaved — a rejection's Note why: a private note ≤ 500 + qu
   // The lead card: Note why opens with the saved note and picks; the editor offers the five picks and a 500-character note.
   const reply = leadActions("reply", "default: return [];");
   assert.match(reply, /onClick: \(\) => setRowEdit\(\{ key: node\.key, kind: "note", note: r\.rejection\?\.note \|\| "", reasons: r\.rejection\?\.reasons \|\| \[\] \}\) \}\];/);
-  const editor = panel.slice(at(panel, 'rowEdit.kind === "date" || rowEdit.kind === "note") && ('), at(panel, "</LeadCard>\n        {leavesFor(node)"));
+  const editor = panel.slice(at(panel, 'rowEdit.kind === "date" || rowEdit.kind === "note") && ('), at(panel, "{rowEdit?.key === node.key && rowEdit.message &&"));
   assert.match(editor, /Object\.entries\(REJECTION_REASONS\)\.map\(\(\[k, l\]\) => \(\s*<label key=\{k\} data-reason=\{k\}>/);
   assert.match(editor, /<textarea aria-label="Why they said no" rows=\{3\} maxLength=\{REJECTION_NOTE_MAX\}/);
   assert.match(editor, /Private: only you see it\./);
@@ -747,15 +729,14 @@ test("d113uiWorkspaceDocCurrent — docs/DRAFT_HOUSE_WORKSPACE.md describes the 
     const allowed = gone === "run bar" ? n(doc.slice(0, at(doc, "## 0 ·"))) + n(doc.slice(at(doc, "## 6 ·"))) : n(removedPara);
     assert.equal(n(doc), allowed, `${gone} appears outside the Removed paragraph (the run bar: outside the intro and §6)`);
   }
-  // Every route it names is mounted, and the side column's order is sideBlocks' order.
+  // Every route it names is mounted, and §5 maps every block of the removed side column (D146) in its old order.
   const sources = ["server.js", "routes/apply.js", "routes/pipeline.js", "routes/picksConfirm.js", "routes/interview.js"].map(read).join("\n");
   const routes = [...doc.matchAll(/`(GET|POST|PUT) (\/api\/[^`\s]+)`/g)];
   assert.ok(routes.length >= 6);
   for (const [, m, p] of routes) assert.match(sources, new RegExp(`app\\.${m.toLowerCase()}\\("${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`), `${m} ${p}`);
-  const side = doc.slice(at(doc, "## 5 · The side column"), at(doc, "**Settings** — one drawer"));
+  const side = doc.slice(at(doc, "## 5 · Where the side column went (D146)"), at(doc, "**Settings** — one drawer"));
   const order = [...side.matchAll(/^\d\. \*\*([^*]+)\*\*/gm)].map(m => m[1]);
   assert.deepEqual(order, ["Broken connections", "Needs you", "Ready for your review", "Running", "Replies", "Tidy up"]);
-  assert.equal(SIDE_ORDER.length, order.length);
   // The rings table: seven, in RING_ORDER, with their tokens.
   const rows = [...doc.matchAll(/^\| (Needs you|Ready for your review|Picked|Working on it|Sent|Replied|Stopped) \| (\w+) \|/gm)];
   assert.deepEqual(rows.map(r => [r[1], r[2]]), RING_ORDER.map(k => [RINGS[k].label, RINGS[k].token]));
@@ -767,7 +748,7 @@ test("d113uiHarnessesCurrent — the real-browser harnesses drive the tree's own
   // ah6RecentRunDefault drove AD1's calendar default (removed by D25): deleted, and nothing still names it.
   assert.ok(!fs.existsSync("scripts/ah6RecentRunDefault.mjs"));
   for (const f of ["scripts/verifyHarnesses.mjs", "scripts/harnessBaseline.json"]) assert.doesNotMatch(read(f), /ah6RecentRunDefault/, f);
-  const client = ["client/src/panels/AutoApplyPanel.jsx", "client/src/components/DraftHouseTree.jsx", "client/src/components/DraftHouseSide.jsx",
+  const client = ["client/src/panels/AutoApplyPanel.jsx", "client/src/components/DraftHouseTree.jsx", "client/src/components/ApplicationTracker.jsx",
     "client/src/components/CompanyBubble.jsx", "client/src/panels/AutoApplyPanelSections.jsx"].map(read).join("\n");
   const ab = read("scripts/abPanelUi.mjs");
   const am2 = read("scripts/am2ApprovalCapUi.mjs");
@@ -779,8 +760,8 @@ test("d113uiHarnessesCurrent — the real-browser harnesses drive the tree's own
       assert.ok(client.includes(hook), `${hook} is not rendered by the client`);
     }
   }
-  for (const hook of ["data-draft-tree", "data-company-bubble", "data-vt-title", "data-lead-card", "data-action", "data-leaf=", "data-leaf-body",
-    "data-review-all", "data-connection", "data-side-block", "data-side-item", "data-approval-budget"]) assert.ok(client.includes(hook), hook);
+  for (const hook of ["data-draft-tree", "data-company-bubble", "data-vt-title", "data-row-detail", "data-action", "data-pane=", "data-leaf-body",
+    "data-review-all", "data-connection", "data-tracker-table", "data-status-ring", "data-approval-budget"]) assert.ok(client.includes(hook), hook);
   assert.match(panel, />Open its review<\/button>/, "abPanelUi opens the scoped review from the What happened leaf");
   assert.match(read("client/src/lib/draftHouseExceptions.js"), /key: `portal-\$\{p\.origin\}`/, "the side's portal row key abPanelUi clicks");
   // Neither waits on the removed chrome.
