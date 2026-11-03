@@ -1,0 +1,67 @@
+{
+  "about": "A112/Atlas (11-03) · BOARD ROLES — roles the board's own titles ask for that the scorer's registry (its suggested titles, atlasSeed.js) never named, and ALTERNATE TITLES for roles the Atlas already has. Measured on a copy of the 44i crawl DB: 6,994 of 12,514 active postings matched no role; each role here is a title seen on >= 7 active postings there (the count is in the comment field). Seeded at boot by services/atlas/atlasRoles.js as draft role nodes, source 'board' (a role publishes on >= 5 active postings, D105 P12); a non-computing role takes the family it is listed under (family_by 'seed', so a curator's choice wins), a computing role none (roles are not drawn on the tree). The matcher's roleOf reads a role's alternate titles as well as its own name. Drafted by the agent for the owner's review. Store / branch / hospitality titles are left out on purpose (the board holds them, 72149d9), and so are bare 'Manager' / 'Director' / 'Analyst' titles.",
+  "roles": {
+    "backend": {
+      "Software Engineer": { "titles": ["software development engineer"], "seen": 14 },
+      "Engineering Manager": { "titles": ["software engineering manager", "manager of engineering"], "seen": 131 },
+      "Forward Deployed Engineer": { "titles": [], "seen": 52 },
+      "iOS Engineer": { "titles": ["ios developer", "ios software engineer"], "seen": 10 },
+      "Salesforce Developer": { "titles": ["salesforce engineer"], "seen": 6 }
+    },
+    "ml": {
+      "ML Engineer": { "titles": ["machine learning engineer"], "seen": 107 },
+      "AI Engineer": { "titles": ["ai/ml engineer", "artificial intelligence engineer"], "seen": 33 },
+      "Research Engineer": { "titles": [], "seen": 25 }
+    },
+    "infra": {
+      "Solutions Architect": { "titles": ["solution architect"], "seen": 78 },
+      "DevOps Engineer": { "titles": ["dev ops engineer"], "seen": 6 },
+      "Network Engineer": { "titles": [], "seen": 8 },
+      "Support Engineer": { "titles": [], "seen": 8 }
+    },
+    "systems": {
+      "Security Engineer": { "titles": ["security operations engineer", "application security engineer"], "seen": 7 }
+    },
+    "data": {
+      "Product Analyst": { "titles": [], "seen": 7 }
+    },
+    "sales": {
+      "Customer Success Manager": { "titles": [], "seen": 51 },
+      "Sales Engineer": { "titles": [], "seen": 29 },
+      "Solutions Engineer": { "titles": ["solution engineer"], "seen": 22 },
+      "Customer Engineer": { "titles": [], "seen": 25 },
+      "Account Director": { "titles": [], "seen": 20 },
+      "Partner Manager": { "titles": ["partner development manager"], "seen": 14 },
+      "Business Development Executive": { "titles": [], "seen": 8 },
+      "Sales Director": { "titles": [], "seen": 13 }
+    },
+    "consulting": {
+      "Solutions Consultant": { "titles": ["solution consultant"], "seen": 19 },
+      "Technical Consultant": { "titles": [], "seen": 11 },
+      "Implementation Consultant": { "titles": [], "seen": 7 }
+    },
+    "project_management": {
+      "Chief of Staff": { "titles": [], "seen": 8 }
+    },
+    "fpa": {
+      "Strategic Finance Manager": { "titles": ["strategic finance"], "seen": 12 }
+    },
+    "accounting_audit": {
+      "Tax Manager": { "titles": [], "seen": 11 }
+    },
+    "people": {
+      "Technical Sourcer": { "titles": ["sourcer"], "seen": 14 },
+      "Recruiting Coordinator": { "titles": [], "seen": 8 },
+      "Compensation Manager": { "titles": [], "seen": 7 }
+    },
+    "design": {
+      "Creative Director": { "titles": [], "seen": 16 }
+    },
+    "marketing_brand": {
+      "Creative Strategist": { "titles": [], "seen": 8 }
+    },
+    "writing_comms": {
+      "Producer": { "titles": [], "seen": 42 }
+    }
+  }
+}

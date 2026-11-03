@@ -124,6 +124,7 @@ import { learnContent } from "./services/learn/learnContent.js";
 import { importLearnPatterns } from "./services/learn/learnLinks.js";
 import { seedAtlasFamilies } from "./services/atlas/atlasFamilies.js";
 import { seedDraftedDefinitions } from "./services/atlas/atlasDefinitions.js";
+import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { liveVersion, atlasPostingsChanged } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
@@ -10321,6 +10322,12 @@ try {
   const f = seedAtlasFamilies(db);
   if (f.assigned) console.log(`[atlas] families: ${f.assigned} node(s) assigned from content/atlas/families.json`);
 } catch (e) { console.warn("[atlas] families:", e.message); }
+// ⭐ A112/Atlas (11-03): the board's own roles (content/atlas/roles.json) — roles the registry never named, as drafts that
+// publish on their postings; the matcher reads every listed role's alternate titles. Idempotent; a curator's family wins.
+try {
+  const r = seedBoardRoles(db);
+  if (r.created.length) console.log(`[atlas] ${r.created.length} board role(s) added from content/atlas/roles.json`);
+} catch (e) { console.warn("[atlas] board roles:", e.message); }
 // ⭐ A112/Atlas (11-03): the agent's drafted definitions for the non-computing families (content/atlas/definitions-drafted.json)
 // wait as DRAFTS for the owner (Admin → Atlas → Drafted definitions); each slug is offered once, so a rejection sticks.
 try {
