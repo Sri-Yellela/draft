@@ -37,7 +37,7 @@ test("D18: NO symbol on any tab — the Draft House count rides on the button as
   assert.match(fn, /t\.id === "auto-apply" \? \{ \.\.\.t, badge: needsAttentionCount, badgeLabel: attention \} : t/);
   const nav = read("client/src/components/AppNav.jsx");
   for (const tag of ["<nav aria-label=\"Main\"", "<nav aria-label=\"Main menu\""]) {
-    const row = nav.slice(nav.indexOf(tag), nav.indexOf("</nav>", nav.indexOf(tag)));
+    const row = nav.slice(at(nav, tag), at(nav, "</nav>", at(nav, tag)));
     assert.ok(row.length > 20, tag);
     assert.doesNotMatch(row, /<DraftMark|<svg|<img/);
   }

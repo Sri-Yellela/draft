@@ -118,7 +118,9 @@ test("the board keeps a count badge, and only when something needs a human", () 
   // review queue nobody sees is worse than a cluttered board — but an idle pipeline must show
   // nothing at all.
   assert.match(ctx, /needsAttentionCount: applyPending\.length \+ applyReviewJobs\.length \+ applyQuestions\.length/);
-  assert.match(app, /needsAttentionCount > 0/);
+  // ⭐ D145 (changed on purpose): the count is data on the Draft House tab; the Dock / the Menu draw it only when > 0.
+  assert.match(app, /badge: needsAttentionCount, badgeLabel: attention/);
+  assert.match(fs.readFileSync("client/src/components/AppNav.jsx", "utf8"), /\{t\.badge > 0 && \(/);
   // D6: under the name "Draft" the count is said as drafts that need you, not a bare "need".
   assert.match(app, /needsAttentionCount === 1 \? "draft needs" : "drafts need"\} your attention/);
   // The queue itself is deliberately NOT counted: queueing a job is not something waiting on you.
