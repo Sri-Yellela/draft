@@ -1619,20 +1619,30 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // fetchJobs keys its board-clearing branch off this — see the note there.
   const profilesLoadedRef = useRef(false);
 
+  // ⛔ 44p · "loading" | "ready" | "error". The set-up block ("Start with your résumé") shows ONLY when the read
+  // SUCCEEDED and found no profile. This read used to `.catch(() => {})`, so a server that did not answer (production
+  // 11-02 / 11-03, the event loop blocked) was drawn as "no profile": "Upload your résumé", no jobs.
+  const [profilesState, setProfilesState] = useState("loading");
+  const [profilesTry, setProfilesTry] = useState(0);
+
   // Load domain profiles on mount and seed the shared active profile id.
   useEffect(() => {
-    api("/api/domain-profiles")
+    let live = true;
+    api("/api/domain-profiles", { timeoutMs: 10000 })
       .then(rows => {
+        if (!live) return;
         const profiles = Array.isArray(rows) ? rows : [];
         profilesLoadedRef.current = true;
         setDomainProfiles(profiles);
+        setProfilesState("ready");
         const active = profiles.find(p => p.is_active) || profiles[0];
         if (active && !activeProfileId) setActiveProfileId?.(active.id);
         // Clear any stale "create profile" error that may have appeared before profiles loaded
         if (profiles.length > 0) setScrapeError(e => e.startsWith("Create a job search profile") ? "" : e);
       })
-      .catch(() => {});
-  }, [activeProfileId, setActiveProfileId]); // eslint-disable-line react-hooks/exhaustive-deps
+      .catch(() => { if (live) setProfilesState(s => (s === "ready" ? s : "error")); });
+    return () => { live = false; };
+  }, [activeProfileId, setActiveProfileId, profilesTry]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Enhance resume state
   // ENHANCE GATING: one free per account lifetime.
@@ -3609,8 +3619,17 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   //
   // What the missing resume gates now is the ATS sort, and only that — see `atsSortAvailable`
   // below. Decided 2026-09-26.
-  const setupBlock = !activeDomainProfile
-    ? {
+  // ⛔ 44p: the set-up block only when the profile read SUCCEEDED and found none; a failed read says so and offers
+  // Try again (resumePromptOnlyOnEmptySuccess); while it is in flight, nothing replaces the board.
+  const setupBlock = activeDomainProfile ? null
+    : profilesState === "error" ? {
+        title: "We couldn't load your job profiles",
+        body: "draft didn't answer in time — nothing is lost, your résumé and profiles are where you left them. Try again in a moment.",
+        actionLabel: "Try again",
+        onAction: () => { setProfilesState("loading"); setProfilesTry(n => n + 1); },
+      }
+    : profilesState !== "ready" ? null
+    : {
         title: "Start with your résumé",
         body: "Your résumé already says the roles you want and the skills you have. draft reads it and sets up your first job profile — refine it whenever you like.",
         actionLabel: "Add Profile",
@@ -3625,8 +3644,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               setProfileSwitchKey(k => k + 1);
             }}/>
         ),
-      }
-    : null;
+      };
 
   // The board ranks by fit only when there are signals to rank with. Published to the context
   // because the sort control lives in App.jsx, a different tree — see JobBoardContext.

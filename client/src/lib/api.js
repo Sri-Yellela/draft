@@ -105,11 +105,21 @@ export async function api(path, opts = {}) {
     ...(bodyIsForm ? {} : { "Content-Type": "application/json" }),
     ...(opts.headers || {}),
   });
-  const r = await fetch(path, {
-    credentials: "include",
-    ...opts,
-    headers,
-  });
+  // ⭐ 44p: `timeoutMs` (opt-in) — a request the edge holds for 30–67 s (production 11-02) fails at the screen's own
+  // limit with a plain message, so the screen can say so instead of spinning.
+  const { timeoutMs, ...fetchOpts } = opts;
+  let r;
+  try {
+    r = await fetch(path, {
+      credentials: "include",
+      ...fetchOpts,
+      ...(timeoutMs && typeof AbortSignal !== "undefined" && AbortSignal.timeout ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
+      headers,
+    });
+  } catch (e) {
+    if (e?.name === "TimeoutError") throw Object.assign(new Error("draft didn't answer in time. Try again in a moment."), { status: 0, timeout: true });
+    throw e;
+  }
   if (r.status === 401) {
     const payload = await r.json().catch(() => ({}));
     // D95: the admin's own sign-in answers 401 for a wrong password too — that is not a user session expiring.

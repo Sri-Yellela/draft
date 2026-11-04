@@ -415,22 +415,31 @@ export function writeTags(db, jobId, tags, basis) {
  * a second pass over an unchanged board touches nothing. Never fatal to a caller — it returns counts.
  * @returns {{ scanned: number, tagged: number }}
  */
-export function tagStaleJobs(db, { all = false } = {}) {
-  const rows = db.prepare(ROWS_SQL).all();
+export function tagStaleJobs(db, { all = false, limit = Infinity } = {}) {
+  // ⭐ 44p: iterate and stop at `limit` stale rows (the 10-minute pass's slices, server.js) — at 81k postings a scan that
+  // materialised and re-tagged the whole backlog held the event loop for minutes. The writes wait for the scan to end
+  // (better-sqlite3 allows no write while a statement is iterating). `scanned` = the rows read before it stopped.
+  const rows = [];
+  let scanned = 0;
+  for (const row of db.prepare(ROWS_SQL).iterate()) {
+    scanned++;
+    const basis = tagBasis(row);
+    if (!all && row.tag_basis === basis && row.tag_version === TAGGER_VERSION) continue;
+    rows.push({ row, basis });
+    if (rows.length >= limit) break;
+  }
   // D59: the normalised text when there is one — raw HTML's `text-align` is not a phrase about the role.
   const descStmt = db.prepare("SELECT COALESCE(description_text, description) AS description FROM scraped_jobs WHERE job_id = ?");
   let tagged = 0;
   db.transaction(() => {
-    for (const row of rows) {
-      const basis = tagBasis(row);
-      if (!all && row.tag_basis === basis && row.tag_version === TAGGER_VERSION) continue;
+    for (const { row, basis } of rows) {
       const description = descStmt.get(row.job_id)?.description || "";
       const tags = mergeOwner(deriveTags({ ...row, description }), ownerOf(row));
       writeTags(db, row.job_id, tags, basis);
       tagged++;
     }
   })();
-  return { scanned: rows.length, tagged };
+  return { scanned, tagged };
 }
 
 /**
