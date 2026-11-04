@@ -177,8 +177,11 @@ export function panelRows(clause, params, facets, _opts = {}) {
   // A zero sinks to the end of the row (header.html: intern, at 0, after lead) — dimmed, never dropped.
   const opts = optionRows(clause, params, facets);
   for (const r of [...opts.filter(o => !o.dimmed), ...opts.filter(o => o.dimmed)]) {
-    // Under the strict toggle an option shows only its KNOWN matches, so its count is `known`.
-    const count = strict && r.known != null ? r.known : r.count;
+    // ⛔⛔ D153 (2) (owner 11-04: "the filters are way off … the workplace says 52,000, and then remote 38,000, and then
+    // hybrid 36,000"): an option's number is its KNOWN matches only, strict or not. `count` adds every posting whose
+    // value is unknown (9,672 engineering + 43,009 unknown = the 52,681 shown), so the options summed to twice the
+    // board. The unknowns are said once, in the panel's note ("N postings have no kind of work on file — kept").
+    const count = r.known != null ? r.known : r.count;
     rows.push({ kind: "option", value: r.value, label: panelWord(clause, r.value), selected: r.selected,
       count, dimmed: r.dimmed, disabled: r.dimmed && !r.selected,
       note: r.dimmed && !r.selected ? "Would show no jobs" : null });
