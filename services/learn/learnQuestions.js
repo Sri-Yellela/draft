@@ -5,8 +5,8 @@
 //   · An ITEM: id · role · level · type (scenario | recall | explain) · skills[] (Atlas slugs) · pieces[] (Learn step ids)
 //     · role_families[] · stem · choices[] · correct · why[] (⛔ one for EVERY choice — the wrong ones teach too) · source
 //     · status (draft | live | retired).
-//   · ⛔ NOTHING IS LIVE UNREVIEWED. An import writes NEW items as drafts whatever the file says; only Admin → Learn →
-//     Questions' Approve (reviewQuestion) makes one live. A re-import of the same content touches nothing — never its
+//   · ⛔ NOTHING IS LIVE UNREVIEWED. An import writes NEW items as drafts whatever the file says; only Admin → Data →
+//     Question bank's Approve (reviewQuestion) makes one live. A re-import of the same content touches nothing — never its
 //     status, never its answers. Changed content of a LIVE item goes back to draft (a changed answer key is a new item to
 //     review — reported as `requeued`); a retired item stays retired. A reviewer's edit is never undone by re-importing the
 //     same file (content_hash is the file's content at its last import, not the row's).

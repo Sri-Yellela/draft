@@ -10359,7 +10359,7 @@ try {
     else if (r.added.length || r.changed.length || r.requeued.length) console.log(`[questions] ${r.file}: ${r.added.length} added, ${r.changed.length} changed, ${r.requeued.length} back to review`);
   }
   const drafts = db.prepare(`SELECT COUNT(*) FROM learn_questions WHERE status = 'draft'`).pluck().get();
-  if (drafts) console.log(`[questions] ${drafts} drafted question(s) await review (Admin → Learn → Questions)`);
+  if (drafts) console.log(`[questions] ${drafts} drafted question(s) await review (Admin → Data → Question bank)`);
 } catch (e) { console.warn("[questions] import:", e.message); }
 // ⭐ D118 P2 (c): the Learn content lives in the DATABASE (learn_content). content/learn/*.json goes in ONLY on an empty
 // table — a first install — and never over newer database content (Admin → Atlas → Import content replaces it).
