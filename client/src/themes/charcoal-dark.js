@@ -123,6 +123,14 @@ const tokens = Object.freeze({
   DEPTH_ACCENT:        "0 3px 9px rgba(253,70,0,0.40), inset 0 1px 0 rgba(255,255,255,0.20)",
   LOGO_SHADOW:         "0 2px 6px rgba(0,0,0,0.45)",
   LOGO_TILE:           "#FBF7F0",   // D61: the SAME paper as light — a logo's tile never follows the theme
+  TILE_BLUE:           "#2B59C3",   // D149: the letter tile — the same as light (Paper Light says why)
+  TILE_GREEN:          "#1F7A4D",   // D149: the letter tile — the same as light (Paper Light says why)
+  TILE_PURPLE:         "#7A2E8E",   // D149: the letter tile — the same as light (Paper Light says why)
+  TILE_ORANGE:         "#C2410C",   // D149: the letter tile — the same as light (Paper Light says why)
+  TILE_TEAL:           "#0E7490",   // D149: the letter tile — the same as light (Paper Light says why)
+  TILE_SLATE:          "#374151",   // D149: the letter tile — the same as light (Paper Light says why)
+  TILE_ROSE:           "#9D174D",   // D149: the letter tile — the same as light (Paper Light says why)
+  ON_TILE:             "#FFFFFF",   // D149: the letter tile — the same as light (Paper Light says why)
   DOC_PAPER:           "#FFFFFF",   // D91: a document is black on white in every theme
   DOC_INK:             "#1A1A1A",
 });

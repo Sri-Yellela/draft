@@ -160,6 +160,14 @@ export const CONTRAST_PAIRS = [
   ["INFO", "SURFACE_2", "normal"],
   // ── D91 · the document surface (the cover letter as shown) — the same black on white in every theme ──
   ["DOC_INK", "DOC_PAPER", "normal"],
+  // D149: the white letter on each company letter tile (CompanyLogo)
+  ["ON_TILE", "TILE_BLUE", "normal"],
+  ["ON_TILE", "TILE_GREEN", "normal"],
+  ["ON_TILE", "TILE_PURPLE", "normal"],
+  ["ON_TILE", "TILE_ORANGE", "normal"],
+  ["ON_TILE", "TILE_TEAL", "normal"],
+  ["ON_TILE", "TILE_SLATE", "normal"],
+  ["ON_TILE", "TILE_ROSE", "normal"],
 ];
 
 // Pairs that are FORBIDDEN, asserted to fail so nobody "fixes" the test by adding them above.

@@ -47,6 +47,8 @@ export const FIXED = {
     DEPTH_ACCENT: "0 0 0 1px #A32E00, 0 5px 14px rgba(253,70,0,0.45), inset 0 1px 0 rgba(255,255,255,0.35)",
     SHADOW_GLASS: "0 0 0 1px rgba(0,0,0,0.16), 0 14px 30px -10px rgba(0,0,0,0.34)",
     LOGO_SLASH: "#FD4600", LOGO_WORD: "#000000", LOGO_TILE: "#FFFFFF",
+    // D149 "go bold": the letter tile's colours, the four under 7:1 darkened in lightness to AAA (hue kept)
+    TILE_BLUE: "#2852B4", TILE_GREEN: "#19643F", TILE_PURPLE: "#7A2E8E", TILE_ORANGE: "#9E350A", TILE_TEAL: "#0C5F76", TILE_SLATE: "#374151", TILE_ROSE: "#9D174D", ON_TILE: "#FFFFFF",
     PAIR_MATCHED: "#005A26", PAIR_MISSING: "#9E0B0B", PAIR_GENERIC: "#5A5A5A",
   },
   "contrast-dark": {
@@ -67,6 +69,8 @@ export const FIXED = {
     DEPTH_ACCENT: "0 0 0 1px #FF6424, 0 6px 20px rgba(253,70,0,0.45), inset 0 1px 0 rgba(255,255,255,0.35)",
     SHADOW_GLASS: "0 0 0 1px rgba(255,255,255,0.14), 0 18px 40px -14px rgba(255,255,255,0.16)",
     LOGO_SLASH: "#FD4600", LOGO_WORD: "#FD4600", LOGO_TILE: "#FFFFFF",
+    // D149 "go bold": the letter tile's colours, the four under 7:1 darkened in lightness to AAA (hue kept)
+    TILE_BLUE: "#2852B4", TILE_GREEN: "#19643F", TILE_PURPLE: "#7A2E8E", TILE_ORANGE: "#9E350A", TILE_TEAL: "#0C5F76", TILE_SLATE: "#374151", TILE_ROSE: "#9D174D", ON_TILE: "#FFFFFF",
     PAIR_MATCHED: "#46D683", PAIR_MISSING: "#FF8080", PAIR_GENERIC: "#A8A8A8",
   },
 };

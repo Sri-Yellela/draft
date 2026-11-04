@@ -74,6 +74,9 @@ test("⛔ neutrals are PURE GREY and every other colour is the brand set — sha
   const stray = [];
   for (const t of [CL, CD]) for (const [k, v] of Object.entries(t.tokens)) {
     if (THIRD_PARTY.test(k)) continue;
+    // D149 (owner 11-04, "go bold"): a company's letter tile is the company's colour, not a brand or status colour —
+    // the sketch's seven, darkened in lightness to 7:1 under the white letter (scripts/deriveThemeTokens.mjs FIXED).
+    if (/^(TILE_|ON_TILE$)/.test(k)) continue;
     for (const { rgb } of coloursIn(v)) {
       const grey = rgb[0] === rgb[1] && rgb[1] === rgb[2];
       if (!grey && !brandFamily(rgb)) stray.push(`${t.id}.${k} ${v}`);

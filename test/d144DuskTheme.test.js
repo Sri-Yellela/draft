@@ -89,7 +89,11 @@ test("d144NoThirdPartyAssets: Inter Tight is served from our origin; no other co
 });
 
 test("d144ExistingThemesUnchanged: the six themes before Dusk are value for value what they were; the shape set is Dusk's only", () => {
-  const h = (t) => crypto.createHash("sha256").update(JSON.stringify({ tokens: t.tokens, substrate: t.substrate, label: t.label, scheme: t.scheme, contrast: t.contrast })).digest("hex");
+  // D149 (owner 11-04, "go bold") ADDED the letter tile's keys to every theme; the pin covers every value that existed
+  // before, so an addition is allowed and a change to an existing value is not.
+  const D149_TILES = new Set(["TILE_BLUE", "TILE_GREEN", "TILE_PURPLE", "TILE_ORANGE", "TILE_TEAL", "TILE_SLATE", "TILE_ROSE", "ON_TILE"]);
+  const h = (t) => crypto.createHash("sha256").update(JSON.stringify({ tokens: Object.fromEntries(Object.entries(t.tokens).filter(([k]) => !D149_TILES.has(k))),
+    substrate: t.substrate, label: t.label, scheme: t.scheme, contrast: t.contrast })).digest("hex");
   // The four D133 measured (test/d133StudioTheme.test.js), unchanged by D144.
   assert.equal(h(THEMES["paper-light"]), "b0460711d9592670ab80ff36e1a440cf42d914d4d23c0c08d388b2401fbf5911");
   assert.equal(h(THEMES["charcoal-dark"]), "245e41bae8565047444098f2cb17a41b3821a94704f7e5bf421dc8b3b01d17f8");

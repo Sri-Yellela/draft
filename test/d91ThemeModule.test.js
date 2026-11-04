@@ -79,7 +79,8 @@ test("⭐ P1 changed nothing: Paper Light and Charcoal Dark are the pre-move pal
   // Measured 10-11 on f04c927, from styles/colorTokens.js C_LIGHT / C_DARK and styles/paper.js PAPER, before the move.
   // Keys ADDED since the move, each with its reason — the pin covers every value that existed before it, so
   // an addition is allowed and a change to an existing value is not.
-  const ADDED_SINCE_P1 = new Set(["DOC_PAPER", "DOC_INK"]);   // D91 P2: the document surface (cover letter)
+  const ADDED_SINCE_P1 = new Set(["DOC_PAPER", "DOC_INK",   // D91 P2: the document surface (cover letter)
+    "TILE_BLUE", "TILE_GREEN", "TILE_PURPLE", "TILE_ORANGE", "TILE_TEAL", "TILE_SLATE", "TILE_ROSE", "ON_TILE"]);   // D149 (owner 11-04, "go bold"): the company letter tile
   const pre = (t) => Object.fromEntries(Object.entries(t).filter(([k]) => !ADDED_SINCE_P1.has(k)));
   assert.equal(h(pre(THEMES["paper-light"].tokens)), "84bef674ad453c97adff47f2829456aa701083fc038ebaec204b1e14af263ccc", "Paper Light's tokens moved");
   assert.equal(h(pre(THEMES["charcoal-dark"].tokens)), "20dadd282f307ec9437e74766aab7e025cfee6089e348775c074f1170dd108c2", "Charcoal Dark's tokens moved");

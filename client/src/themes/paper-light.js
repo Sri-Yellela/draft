@@ -194,6 +194,17 @@ const tokens = Object.freeze({
   // ⛔ D61 · THE LOGO TILE — paper in BOTH themes (the sketch's .tile #fbf7f0). A company's mark is drawn on
   // the paper it was designed for; a transparent dark mark (Mercury, RTX) on a dark card was invisible.
   LOGO_TILE:    "#FBF7F0",
+  // ⭐ D149 (owner 11-04, "go bold") · THE LETTER TILE — a company with no logo gets one of the sketch's strong
+  // colours (tracker-options.html .lg --c) with a white upright letter, the same on every screen and in every theme
+  // (the contrast themes darken the four under 7:1). White on each holds AA (5.18 the lowest, the orange).
+  TILE_BLUE:    "#2B59C3",
+  TILE_GREEN:   "#1F7A4D",
+  TILE_PURPLE:  "#7A2E8E",
+  TILE_ORANGE:  "#C2410C",
+  TILE_TEAL:    "#0E7490",
+  TILE_SLATE:   "#374151",
+  TILE_ROSE:    "#9D174D",
+  ON_TILE:      "#FFFFFF",
   // ⛔ D91 · THE DOCUMENT SURFACE — never themed. A document an employer will read (the cover letter as it is
   // shown; the résumé carries its own) is black on white in EVERY theme: these two are the same in all four.
   DOC_PAPER:    "#FFFFFF",

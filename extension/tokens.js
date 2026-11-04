@@ -77,6 +77,14 @@ export const C_LIGHT = Object.freeze({
   DEPTH_ACCENT: "0 3px 9px rgba(253,70,0,0.34), inset 0 1px 0 rgba(255,255,255,0.35)",
   LOGO_SHADOW: "0 2px 6px rgba(30,25,21,0.14)",
   LOGO_TILE: "#FBF7F0",
+  TILE_BLUE: "#2B59C3",
+  TILE_GREEN: "#1F7A4D",
+  TILE_PURPLE: "#7A2E8E",
+  TILE_ORANGE: "#C2410C",
+  TILE_TEAL: "#0E7490",
+  TILE_SLATE: "#374151",
+  TILE_ROSE: "#9D174D",
+  ON_TILE: "#FFFFFF",
 });
 
 export const C_DARK = Object.freeze({
@@ -151,6 +159,14 @@ export const C_DARK = Object.freeze({
   DEPTH_ACCENT: "0 3px 9px rgba(253,70,0,0.40), inset 0 1px 0 rgba(255,255,255,0.20)",
   LOGO_SHADOW: "0 2px 6px rgba(0,0,0,0.45)",
   LOGO_TILE: "#FBF7F0",
+  TILE_BLUE: "#2B59C3",
+  TILE_GREEN: "#1F7A4D",
+  TILE_PURPLE: "#7A2E8E",
+  TILE_ORANGE: "#C2410C",
+  TILE_TEAL: "#0E7490",
+  TILE_SLATE: "#374151",
+  TILE_ROSE: "#9D174D",
+  ON_TILE: "#FFFFFF",
 });
 
 // ⭐ T17: the registry's Contrast pair (client/src/themes/contrast-*.js), for the dock and its views.
@@ -226,6 +242,14 @@ export const C_CONTRAST_LIGHT = Object.freeze({
   DEPTH_ACCENT: "0 0 0 1px #A32E00, 0 5px 14px rgba(253,70,0,0.45), inset 0 1px 0 rgba(255,255,255,0.35)",
   LOGO_SHADOW: "0 2px 6px rgba(0,0,0,0.14)",
   LOGO_TILE: "#FFFFFF",
+  TILE_BLUE: "#2852B4",
+  TILE_GREEN: "#19643F",
+  TILE_PURPLE: "#7A2E8E",
+  TILE_ORANGE: "#9E350A",
+  TILE_TEAL: "#0C5F76",
+  TILE_SLATE: "#374151",
+  TILE_ROSE: "#9D174D",
+  ON_TILE: "#FFFFFF",
 });
 
 export const C_CONTRAST_DARK = Object.freeze({
@@ -300,6 +324,14 @@ export const C_CONTRAST_DARK = Object.freeze({
   DEPTH_ACCENT: "0 0 0 1px #FF6424, 0 6px 20px rgba(253,70,0,0.45), inset 0 1px 0 rgba(255,255,255,0.35)",
   LOGO_SHADOW: "0 2px 6px rgba(0,0,0,0.45)",
   LOGO_TILE: "#FFFFFF",
+  TILE_BLUE: "#2852B4",
+  TILE_GREEN: "#19643F",
+  TILE_PURPLE: "#7A2E8E",
+  TILE_ORANGE: "#9E350A",
+  TILE_TEAL: "#0C5F76",
+  TILE_SLATE: "#374151",
+  TILE_ROSE: "#9D174D",
+  ON_TILE: "#FFFFFF",
 });
 
 // ⭐ D133: the registry's Studio pair (client/src/themes/studio-*.js), so an account on Studio sees it in the dock too.
@@ -375,6 +407,14 @@ export const C_STUDIO_LIGHT = Object.freeze({
   DEPTH_ACCENT: "0 3px 9px rgba(253,70,0,0.34), inset 0 1px 0 rgba(255,255,255,0.35)",
   LOGO_SHADOW: "0 2px 6px rgba(30,25,21,0.14)",
   LOGO_TILE: "#FBF7F0",
+  TILE_BLUE: "#2B59C3",
+  TILE_GREEN: "#1F7A4D",
+  TILE_PURPLE: "#7A2E8E",
+  TILE_ORANGE: "#C2410C",
+  TILE_TEAL: "#0E7490",
+  TILE_SLATE: "#374151",
+  TILE_ROSE: "#9D174D",
+  ON_TILE: "#FFFFFF",
 });
 
 export const C_STUDIO_DARK = Object.freeze({
@@ -449,6 +489,14 @@ export const C_STUDIO_DARK = Object.freeze({
   DEPTH_ACCENT: "0 3px 9px rgba(253,70,0,0.40), inset 0 1px 0 rgba(255,255,255,0.20)",
   LOGO_SHADOW: "0 2px 6px rgba(0,0,0,0.45)",
   LOGO_TILE: "#FBF7F0",
+  TILE_BLUE: "#2B59C3",
+  TILE_GREEN: "#1F7A4D",
+  TILE_PURPLE: "#7A2E8E",
+  TILE_ORANGE: "#C2410C",
+  TILE_TEAL: "#0E7490",
+  TILE_SLATE: "#374151",
+  TILE_ROSE: "#9D174D",
+  ON_TILE: "#FFFFFF",
 });
 
 // ⭐ D144: the registry's Dusk pair (client/src/themes/dusk-*.js), so an account on Dusk sees it in the dock too.
@@ -524,6 +572,14 @@ export const C_DUSK_LIGHT = Object.freeze({
   DEPTH_ACCENT: "0 6px 18px rgba(194,89,58,0.22), inset 0 1px 0 rgba(255,255,255,0.20)",
   LOGO_SHADOW: "0 2px 6px rgba(30,25,21,0.14)",
   LOGO_TILE: "#FBF7F0",
+  TILE_BLUE: "#2B59C3",
+  TILE_GREEN: "#1F7A4D",
+  TILE_PURPLE: "#7A2E8E",
+  TILE_ORANGE: "#C2410C",
+  TILE_TEAL: "#0E7490",
+  TILE_SLATE: "#374151",
+  TILE_ROSE: "#9D174D",
+  ON_TILE: "#FFFFFF",
 });
 
 export const C_DUSK_DARK = Object.freeze({
@@ -598,6 +654,14 @@ export const C_DUSK_DARK = Object.freeze({
   DEPTH_ACCENT: "0 10px 26px rgba(251,211,196,0.16), inset 0 1px 0 rgba(255,255,255,0.30)",
   LOGO_SHADOW: "0 2px 6px rgba(0,0,0,0.45)",
   LOGO_TILE: "#FBF7F0",
+  TILE_BLUE: "#2B59C3",
+  TILE_GREEN: "#1F7A4D",
+  TILE_PURPLE: "#7A2E8E",
+  TILE_ORANGE: "#C2410C",
+  TILE_TEAL: "#0E7490",
+  TILE_SLATE: "#374151",
+  TILE_ROSE: "#9D174D",
+  ON_TILE: "#FFFFFF",
 });
 
 /** Every theme of the registry, by id: its scheme and its palette. */

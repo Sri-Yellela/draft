@@ -60,10 +60,12 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
     assert.deepEqual([d.panel.body.size, d.panel.body.color], ["15px", BODY]);
     assert.deepEqual([d.panel.heading.color, d.panel.heading.size], [INK, "15px"], `${size}: their headings are plain ink lines`);
     const [pass, save, draft] = d.panel.actions;
-    for (const b of [pass, save]) assert.deepEqual([b.bg, b.image, b.radius, b.size, b.weight, b.color], [RAISE, "none", "16px", "15.5px", "600", INK], `${size}: ${b.text}`);
-    assert.deepEqual([pass.text, save.text, draft.text, d.panel.more.text], ["Pass", "Save", "Draft", "More"]);
-    assert.equal(draft.image, "linear-gradient(rgb(251, 211, 196), rgb(242, 194, 178))", `${size}: Draft on the accent gradient`);
-    assert.equal(draft.color, "rgb(27, 27, 27)");
+    for (const b of [pass, save, draft]) assert.deepEqual([b.bg, b.image, b.radius], [RAISE, "none", "16px"], `${size}: ${b.name}`);
+    for (const b of [pass, save]) assert.deepEqual([b.size, b.weight, b.color], ["15.5px", "600", INK], `${size}: ${b.text}`);
+    assert.deepEqual([pass.text, save.text, d.panel.more.text], ["Pass", "Save", "More"]);
+    // D149 (owner 11-04, "/draft logo"): Draft is the /draft mark on the raised grey, named "Draft" — not the sketch's
+    // plain word on the accent gradient (changed on purpose).
+    assert.deepEqual([draft.mark, draft.label], [true, "Draft"], `${size}: Draft is the /draft logo button`);
     assert.deepEqual([d.panel.more.bg, d.panel.more.color, d.panel.more.radius], [RAISE, BODY, "16px"]);
     assert.equal(d.panel.pinnedFoot, "static", `${size}: the actions follow the posting (the sketch does not pin them)`);
     // The sketch's vertical rhythm inside the posting.

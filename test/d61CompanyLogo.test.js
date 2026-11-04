@@ -83,13 +83,22 @@ test("⛔ D61 · fixtures: a transparent dark mark is padded on paper; an opaque
   assert.ok(LOGO_HOST, "the logo host is the shared module's");
 });
 
-test("D61 · the letter fallback is a token-coloured tile in the depth style, in the logo face", async () => {
-  const { logo } = await loadUi();
+// D149 (owner 11-04, "go bold") changed this on purpose: the letter tile was a pale status tone with an italic dark
+// letter in the logo face; it is now the sketch's bold tile (tracker-options.html .lg) — a strong TILE_* colour under
+// the sketch's top light, a white upright letter at 700 — the same on every screen.
+test("D61 → D149 · the letter fallback is a bold TILE_* colour with a white upright letter", async () => {
+  const { logo, C_LIGHT } = await loadUi();
   const t = tileStyle(logo({ company: "Brightmoor Analytics Group", size: 40 }));
   assert.equal(t.kind, "letter");
-  assert.match(t.style["box-shadow"], /inset/, "D1's depth");
-  assert.equal(t.style["font-style"], "italic");
+  const tiles = ["TILE_BLUE", "TILE_GREEN", "TILE_PURPLE", "TILE_ORANGE", "TILE_TEAL", "TILE_SLATE", "TILE_ROSE"].map(k => C_LIGHT[k]);
+  assert.ok(tiles.some(c => t.style.background.includes(c)), `a TILE_* colour: ${t.style.background}`);
+  assert.match(t.style.background, /^linear-gradient\(155deg/, "the sketch's top light");
+  assert.equal(t.style.color, C_LIGHT.ON_TILE);
+  assert.equal(t.style["font-style"], "normal");
+  assert.equal(t.style["font-weight"], "700");
   assert.equal(t.style.filter, "none");
+  const src = read("client/src/components/CompanyLogo.jsx");
+  assert.doesNotMatch(src, /C\.(INFO|VIOLET|TEAL|SUCCESS|DANGER|WARNING)\b/, "no status tone is a company's colour");
 });
 
 test("⛔ D61 · ONE CompanyLogo — every surface that draws a company mark imports it, and no other tile exists", () => {

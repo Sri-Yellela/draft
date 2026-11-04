@@ -111,6 +111,14 @@ const tokens = Object.freeze({
   DEPTH_ACCENT:        "0 0 0 1px #FF6424, 0 6px 20px rgba(253,70,0,0.45), inset 0 1px 0 rgba(255,255,255,0.35)",   // §3 (the sketch)
   LOGO_SHADOW:         "0 2px 6px rgba(0,0,0,0.45)",   // neutrals snapped to black / white, alpha kept
   LOGO_TILE:           "#FFFFFF",   // §3 (the sketch)
+  TILE_BLUE:           "#2852B4",   // §3 (the sketch)
+  TILE_GREEN:          "#19643F",   // §3 (the sketch)
+  TILE_PURPLE:         "#7A2E8E",   // §3 (the sketch)
+  TILE_ORANGE:         "#9E350A",   // §3 (the sketch)
+  TILE_TEAL:           "#0C5F76",   // §3 (the sketch)
+  TILE_SLATE:          "#374151",   // §3 (the sketch)
+  TILE_ROSE:           "#9D174D",   // §3 (the sketch)
+  ON_TILE:             "#FFFFFF",   // §3 (the sketch)
   DOC_PAPER:           "#FFFFFF",   // the document surface — never themed
   DOC_INK:             "#1A1A1A",   // the document surface — never themed
 });
