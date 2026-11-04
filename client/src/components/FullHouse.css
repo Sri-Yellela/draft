@@ -340,6 +340,10 @@
    padding makes room for it (the sketch's body.docked .home), so it never covers the deck or the sentence. */
 :root[data-dock-open="true"] .home { padding-left: 268px; }
 .home__deck { position: sticky; top: calc(var(--app-chrome-height, 74px) + 44px); align-self: start; width: 390px; }
+/* With the dock as the navigation there is nothing in the chrome strip (D152 (4): no corner mark), so Home starts at the
+   sketch's 44 px from the top of the screen, not 44 under an empty strip. The Menu keeps its button there, and the strip. */
+:root:not([data-navigation="menu"]) .home { margin-top: calc(-1 * var(--app-chrome-height, 74px)); }
+:root:not([data-navigation="menu"]) .home__deck { top: 44px; }
 .home__board { min-width: 0; }
 .home__board .fh[data-fh-d147], .home__board .fh.fh--bar-row, .home__board .fh.fh-counts { max-width: none; padding-left: 0; padding-right: 0; }
 .home__board .fh[data-fh-d147] { padding-top: 0; }

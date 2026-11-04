@@ -51,7 +51,7 @@ import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
 import { DECISION_SURFACES, DECISION_TOAST_MS, DECISION_VERB, commitDecision, undoDecision } from "../lib/jobDecisions.js";
 import DecisionToast from "../components/DecisionToast.jsx";
-import { CARD, EXPAND_CLOCK, TWO_PANEL, cardSize, fanTransform, geometryFor, orientationFor, twoPanelColumn, twoPanelFor } from "../lib/fanGeometry.js";
+import { CARD, EXPAND_CLOCK, TWO_PANEL, HOME_CARD, HOME_FAN, cardSize, fanTransform, geometryFor, homeCardSize, homeFanTransform, orientationFor, twoPanelColumn, twoPanelFor } from "../lib/fanGeometry.js";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 import { readDeckOrder } from "../lib/deckOrder.js";
 import { postingClick } from "../lib/openPosting.js";
@@ -298,7 +298,7 @@ function AtsSheet({ card, profileId, onClose, onReport }) {
 // and the FULL POSTING stays one press away ("The full posting ↓" — the old expansion, unchanged, with the report beside
 // it on a wide screen). What each depth says is lib/deckCardFacts.js — one function, nothing said twice.
 // ⛔ No coloured labels or boxes on the card (the old band mark, the ring, the green chips); never "ATS".
-function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, onCollapse, onReport, onSignal, orientation, twoPanel }) {
+function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, onCollapse, onReport, onSignal, orientation, twoPanel, home = false }) {
   const { job } = card;
   const facts = cardFacts(card);
   const titleId = `deck-title-${job.id}`;
@@ -312,7 +312,9 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
       onFocus={() => setHover(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setHover(false); }}
       // ⭐ D149: declutter-v7.html's card at BOTH widths — 30 / 30 / 26 padding, a 52 px bubble, the 42 px title, a 26 px
       // gap in the info row (the sketch has no phone rule for them; the app used to shrink each on a phone).
-      style={{ padding: "30px 30px 26px", fontFamily: shape("FONT_UI") }}>
+      // ⭐ D152 (2): on Home the card is card-shaped (300 × 420) and its face is home-sketch.html's .card — 22 22 18
+      // padding, a 42 px bubble, the 30 px serif title.
+      style={{ padding: home ? "22px 22px 18px" : "30px 30px 26px", fontFamily: shape("FONT_UI") }}>
       {/* ⭐ COLLAPSE AT THE TOP TOO (A39), and STICKY — the bottom one is a whole posting away. */}
       {open && (
         <div data-deck-collapse-top style={{ position: "sticky", top: `calc(var(${CHROME_HEIGHT_VAR}, 74px) + 10px)`, height: 0 }}>
@@ -323,11 +325,11 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
       )}
       <div data-deck-head="" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, paddingRight: open ? 104 : 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-          <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={52} radius={16} />
+          <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={home ? 42 : 52} radius={home ? 13 : 16} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: ts(17), fontWeight: 600, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.company}</div>
+            <div style={{ fontSize: ts(home ? 15 : 17), fontWeight: 600, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.company}</div>
             {/* ⛔ LOCATION ONLY — "posted … ago" lives in the stats (D145). */}
-            {job.location && <div data-deck-location="" style={{ fontSize: ts(14), color: C.INK_MUTED, marginTop: 1 }}>{job.location}</div>}
+            {job.location && <div data-deck-location="" style={{ fontSize: ts(home ? 13 : 14), color: C.INK_MUTED, marginTop: 1 }}>{job.location}</div>}
           </div>
         </div>
         {/* ⭐ THE MATCH, at the top right — "86%" (or the band's word when the card carries no number, G5) over
@@ -349,8 +351,8 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
         // ⭐ The shared element (queue 29): this heading IS the job's title on the board's detail and
         // on the review queue's line — one name, so a navigation moves it instead of cutting.
         style={{ fontFamily: "var(--font-display)", fontWeight: 400, lineHeight: 1.04, letterSpacing: "-0.01em", color: C.INK,
-                 fontSize: `calc(42px * var(${TYPE_SCALE_VAR}, 1))`,
-                 margin: "16px 0 12px", outline: "none",
+                 fontSize: `calc(${home ? 30 : 42}px * var(${TYPE_SCALE_VAR}, 1))`,
+                 margin: home ? "18px 0 12px" : "16px 0 12px", outline: "none",
                  ...(deep ? null : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
         {job.title}
       </h2>
@@ -478,13 +480,14 @@ const WHY = {
 const POSITION_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const FLIP_EASE = "cubic-bezier(0.34, 1.32, 0.5, 1)";   // a touch of overshoot: the card settles face-up
 
-function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimmed, dealing, appear, dealRank, dealTotal, reduced,
+function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimmed, dealing, appear, dealRank, dealTotal, reduced, home = false,
                    onDecide, onExpand, onCollapse, onReport, onSignal, onGoto, headingRef, faceRef, why = false, onWhy }) {
   const { card, offset } = entry;
   const isFront = offset === 0;
   // The arc's position. Opening a card does not move it here: the fan lives in the card's grid column,
   // and that column is what moves (A40) — so the arc rides right on the expansion's own clock.
-  const t = fanTransform(offset, orientation, geometry);
+  // ⭐ D152 (2): Home's fan turns each back about the card's lower-left corner (lib/fanGeometry.js homeFanTransform).
+  const t = home ? homeFanTransform(offset, geometry) : fanTransform(offset, orientation, geometry);
   const x = useMotionValue(0);
   const tilt = useTransform(x, [-320, 0, 320], [-10, 0, 10]);
   const draftStamp = useTransform(x, [20, SWIPE_COMMIT_PX + 40], [0, 1]);
@@ -515,12 +518,13 @@ function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimme
       variants={{ leave: (d) => d?.variant || { opacity: 0 } }}
       transition={{ type: "spring", stiffness: 260, damping: 32, delay: dealDelay }}
       onClick={!isFront && t.shown ? () => onGoto(entry.i) : undefined}
-      style={{ position: "absolute", top: 0, left: "50%", width: size.width, marginLeft: -size.width / 2,
+      // D152 (2): on Home the card sits at the column's left, the fan's room to its right.
+      style={{ position: "absolute", top: 0, left: home ? 0 : "50%", width: size.width, marginLeft: home ? 0 : -size.width / 2,
                // Layer by TIER: the face-up card is content; the fan sits under it, nearer cards above farther.
                zIndex: isFront ? Z.CONTENT : Z.FAN - t.depth,
                pointerEvents: t.shown ? "auto" : "none", cursor: isFront ? "default" : "pointer" }}>
       <div data-fan-position style={{
-          transform: `translate3d(${t.x}px, ${t.y}px, 0) rotate(${t.rotate}deg) scale(${t.scale})`, opacity,
+          transform: `translate3d(${t.x}px, ${t.y}px, 0) rotate(${t.rotate}deg) scale(${t.scale})`, opacity, transformOrigin: t.origin,
           transition: reduced ? "none" : `transform 460ms ${POSITION_EASE}, opacity 320ms ease`, willChange: "transform, opacity" }}>
         {/* ⛔ SWIPE IS DISABLED WHEN THE CARD IS EXPANDED (A40, decided 10-01). Collapsed is triage —
             swipe freely; expanded is reading — buttons only. A long posting means heavy vertical
@@ -542,10 +546,11 @@ function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimme
                      transition: reduced ? "none" : `transform 520ms ${FLIP_EASE} 40ms` }}>
             <article ref={isFront ? faceRef : undefined} aria-labelledby={`deck-title-${card.job.id}`} aria-hidden={!isFront}
               onClick={isFront && !expanded && !why ? (e) => { if (!dragged.current && !isInteractive(e.target)) onWhy?.(true); } : undefined}
-              style={{ position: "relative", minHeight: size.height, borderRadius: 28, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
+              // D152 (2): Home's card corner is the sketch's 26.
+              style={{ position: "relative", minHeight: size.height, borderRadius: home ? 26 : 28, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
                        // OPAQUE, not see-through glass: over a fan, a translucent face shows the backs
                        // through it (Android found the same with the next card's text, 09-30).
-                       ...glass({ radius: 28 }), backgroundColor: C.SURFACE_SOLID, backdropFilter: "none", WebkitBackdropFilter: "none",
+                       ...glass({ radius: home ? 26 : 28 }), backgroundColor: C.SURFACE_SOLID, backdropFilter: "none", WebkitBackdropFilter: "none",
                        // ⭐ D149: the sketch's card — NO border (no glass rim), its one soft shadow (Dusk's SHADOW_GLASS is the
                        // sketch's 0 30px 70px rgba(0,0,0,.35)).
                        border: "none", boxShadow: C.SHADOW_GLASS,
@@ -554,10 +559,10 @@ function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimme
               {showFace && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
                                      why={isFront && why} onWhy={onWhy}
                                      onExpand={onExpand} onCollapse={onCollapse} onReport={onReport} onSignal={onSignal}
-                                     orientation={orientation} twoPanel={twoPanel} />}
+                                     orientation={orientation} twoPanel={twoPanel} home={home} />}
             </article>
             <div style={{ position: "absolute", inset: 0, transform: "rotateY(180deg)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
-                          borderRadius: 28, maxHeight: size.height }}>
+                          borderRadius: home ? 26 : 28, maxHeight: size.height }}>
               <CardBack company={card.job.company} iconUrl={card.job.companyIconUrl} />
             </div>
           </div>
@@ -691,11 +696,11 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   // The user's layout (queue 38), FITTED to the screen and overridden by reduced motion — geometryFor
   // is the only road from a stored preference to the fan.
   const [deckPref] = useDeckGeometry();
-  const geometry = { ...geometryFor(orientation, deckPref, { reduced: !!reduced }), ...(DEV_FAN?.[orientation] || null) };
+  const geometry = home ? HOME_FAN : { ...geometryFor(orientation, deckPref, { reduced: !!reduced }), ...(DEV_FAN?.[orientation] || null) };
   // ⭐ TWO EQUAL PANELS (A40) on a wide horizontal screen: the card is one column wide at rest AND open,
   // so opening never resizes it. Below TWO_PANEL_PX the report is a sheet and the card is as it was.
   const twoPanel = home ? false : twoPanelFor(vw);
-  const size = twoPanel ? { width: twoPanelColumn(vw), height: CARD.horizontal.height } : cardSize(orientation, vw);
+  const size = home ? homeCardSize(viewportW) : twoPanel ? { width: twoPanelColumn(vw), height: CARD.horizontal.height } : cardSize(orientation, vw);
 
   const scoringTries = useRef(0);
   const fetchDeck = useCallback(async () => {
@@ -934,8 +939,8 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       <div data-deck-orientation={orientation} data-deck-two-panel={twoPanel ? "" : undefined} data-deck-home={home ? "" : undefined}
         style={{ maxWidth: home ? HOME_DECK_COLUMN : twoPanel ? TWO_PANEL.maxWidth + 2 * TWO_PANEL.pad : vertical ? 560 : 760, margin: "0 auto",
                  // ⭐ D149: the card's top at the sketch's 90 px — the chrome's 74 + 16 (App.jsx gives the deck no main padding).
-                 // D152: on Home the column's own padding places it; the fan's room below stays.
-                 padding: home ? "0 0 120px" : vertical ? "16px 12px 120px" : "16px 16px 140px",
+                 // D152: on Home the column's own padding places it, and the fan's room is above the buttons (HOME_CARD.below).
+                 padding: home ? 0 : vertical ? "16px 12px 120px" : "16px 16px 140px",
                  // ⛔ D92: never `clip` here, in either layout. Clipping this 560px column sliced the vertical fan's
                  // outer cards with two hard vertical lines (the "cut out and pasted" deck); the full-width
                  // data-deck-clip above already stops a sideways page scroll, at the SCREEN's edge.
@@ -1059,7 +1064,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                     remove a card, so only a decided card ever plays an exit. */}
                 <AnimatePresence initial custom={leave}>
                   {order.map((e) => (
-                    <FanCard key={e.card.job.id} entry={e} orientation={orientation} geometry={geometry} size={size}
+                    <FanCard key={e.card.job.id} entry={e} orientation={orientation} geometry={geometry} size={size} home={home}
                       expanded={expanded} twoPanel={twoPanel} dimmed={expanded} dealing={dealing} appear={!firstPaint.current} reduced={!!reduced} dealRank={Math.max(0, dealTotal - 1 - Math.abs(e.offset))}
                       dealTotal={dealTotal} onDecide={decide} onExpand={() => setExpanded(true)} onCollapse={() => setExpanded(false)}
                       why={why} onWhy={(v) => { setWhy(v); if (!v) setExpanded(false); }}
@@ -1074,7 +1079,8 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                   reachable without scrolling back. It is above the fan by tier, and in the card's own
                   column, so it travels with the card when the report opens. */}
               <div data-deck-actions style={{ position: "sticky", bottom: "calc(16px + var(--appnav-lift, 0px))", transition: "bottom .3s ease", zIndex: Z.NAV, display: "flex", gap: 12,
-                                              marginTop: vertical ? 18 : 22, maxWidth: size.width, marginLeft: "auto", marginRight: "auto" }}>
+                                              // D152 (2) / D153 (1): on Home, under the fan's sweep (HOME_CARD.below), at the card's left.
+                                              marginTop: home ? HOME_CARD.below : vertical ? 18 : 22, maxWidth: size.width, marginLeft: home ? 0 : "auto", marginRight: "auto" }}>
                 <ActionButton label="Pass" ariaKeys="X ArrowLeft" compact={vertical} onClick={() => decide(DECISIONS.PASSED)} />
                 <ActionButton label="Save" ariaKeys="S" compact={vertical} onClick={() => decide(DECISIONS.SAVED)} />
                 <ActionButton label="Draft" ariaKeys="D ArrowRight" compact={vertical} primary onClick={() => decide(DECISIONS.DRAFTED)} />
