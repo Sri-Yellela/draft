@@ -202,7 +202,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D113 (188): the picks runs (what each run looked at, picked and left out, by reason) and the picks themselves.
   "picks_runs", "picks", "picks_left_out",
   // D136 P3 (214) / D143 (215) / D138 (216): the signals each send had, the navigator's aim and route, the person's own contacts.
-  "application_signals", "navigator_routes", "warm_contacts", "readiness_checks"];
+  "application_signals", "navigator_routes", "warm_contacts", "readiness_checks",
+  // D150 T01 (218): the person's answers to the question bank (the audit's anonymous answers carry no user).
+  "learn_question_answers"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -320,6 +322,8 @@ export const MERGE_PLAN = Object.freeze({
   warm_contacts: "move",
   // D142 (217): a person's readiness checks are their history (answers cascade with their check).
   readiness_checks: "move",
+  // D150 T01 (218): a person's answers to the question bank are their history.
+  learn_question_answers: "move",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

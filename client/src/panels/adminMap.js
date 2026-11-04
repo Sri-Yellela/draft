@@ -28,6 +28,7 @@ export const ADMIN_GROUPS = Object.freeze([
     ["scoring", "Board-fit scoring"],   // #7
     ["calibrate", "ATS calibration"],   // D125 — the owner's hand-checked gold set: terms, verbs, scores; the gate's baseline
     ["readiness", "Readiness questions"], // D142 — the CHECK bank: drafts wait for a person's review
+    ["questions", "Question bank"],     // D150 T02 — the ONE bank (audit, Check, Play, Learn, guides): nothing live unreviewed
     ["database", "Database"],           // #20–#26 — the inspector's own page
     ["atlas", "Atlas"],                 // D105 P4 — the Atlas's drafts, published here so the public pages exist
   ] },
