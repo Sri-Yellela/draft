@@ -39,7 +39,8 @@ test("⭐ the grid is the trick: the report's column grows 0fr → 1fr and PUSHE
   assert.match(col, /data-deck-stage/, "the fan lives in the card's column, so it moves WITH it");
   assert.match(col, /data-deck-actions/, "and so does the action row");
   // No per-card shift: nothing positions the card for the expansion — the column does.
-  assert.match(deckSrc, /const t = fanTransform\(offset, orientation, geometry\);/);
+  // ⭐ D152 (2), changed on purpose: Home's card turns about its lower-left corner (homeFanTransform); the arc is the rest.
+  assert.match(deckSrc, /const t = home \? homeFanTransform\(offset, geometry\) : fanTransform\(offset, orientation, geometry\);/);
   assert.match(grid, /minmax\(0,/, "minmax(0, …): an fr column's auto minimum would keep a closed column open");
 });
 
@@ -114,7 +115,8 @@ test("⭐ two panels from TWO_PANEL_PX — where two EQUAL columns each hold a c
     assert.ok(2 * w + gap <= Math.min(TWO_PANEL.maxWidth, vw - 2 * pad), `${vw}: two columns overflow`);
   }
   // One width at rest and open: the card IS a column wide, so opening only moves it.
-  assert.match(deckSrc, /const size = twoPanel \? \{ width: twoPanelColumn\(vw\), height: CARD\.horizontal\.height \} : cardSize\(orientation, vw\);/);
+  // ⭐ D152 (2), changed on purpose: Home's card is its own 5 : 7 size (homeCardSize) and never two-panel.
+  assert.match(deckSrc, /const size = home \? homeCardSize\(viewportW\) : twoPanel \? \{ width: twoPanelColumn\(vw\), height: CARD\.horizontal\.height \} : cardSize\(orientation, vw\);/);
   assert.match(grid, /width: size\.width, flexShrink: 0/, "the report is as wide as its OPEN column from the first frame");
   // D32: + alignSelf stretch, so the column is the card's height and the report inside it can be STICKY.
   assert.match(grid, /data-deck-ats-col style=\{\{ minWidth: 0, overflowX: "clip", display: "flex", justifyContent: "flex-end", alignSelf: "stretch" \}\}/,

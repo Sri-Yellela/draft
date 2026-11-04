@@ -74,4 +74,36 @@ test("d152DockLeftWithLogo / d153DockPushes / d152DockSlidesFromLeftEdge (real C
   assert.equal(out.phone.grid.columns.split(" ").length, 1, "one column on a phone");
   assert.ok(out.phone.grid.deck.bottom <= out.phone.grid.board.top, "d152PhoneOrderDeckThenPostings");
   assert.equal(out.phone.handle, true, "a touch screen opens it from the edge handle");
+  // ⭐ D152 (2) / D153 (1): the card is card-shaped, its fan sweeps to the lower right inside the deck's column, and the
+  // sweep never covers Pass · Save · Draft or the board.
+  for (const [size, d] of Object.entries(out)) {
+    const { card, backs, acts } = d.deck;
+    assert.ok(Math.abs(card.width / (card.bottom - card.top) - 5 / 7) < 0.01, `${size}: d152CardFiveBySeven (${card.width} × ${card.bottom - card.top})`);
+    const shown = backs.filter(b => b && Number(b.opacity) > 0);
+    assert.deepEqual(shown.map(b => b.rotate), ["5", "10"], `${size}: two backs, turned 5° and 10°`);
+    for (const b of shown) {
+      assert.equal(b.left, card.left, `${size}: d152FanLowerRight — back ${b.n} turns about the card's lower-left corner`);
+      assert.ok(b.right > card.right && b.bottom > card.bottom, `${size}: back ${b.n} sweeps right and down`);
+    }
+    assert.equal(d.deck.backsCoverButtons, false, `${size}: d153FanNeverCoversButtons`);
+    assert.equal(d.deck.backsCoverBoard, false, `${size}: the fan never reaches the board's column`);
+    assert.equal(d.deck.backsOutsideColumn, false, `${size}: the fan stays inside the deck's column (no clipped edge)`);
+    assert.equal(acts.width, card.width, `${size}: the buttons as wide as the card`);
+  }
+  assert.deepEqual([out.desktop.deck.card.width, out.desktop.deck.card.bottom - out.desktop.deck.card.top], [300, 420]);
+});
+
+test("d152 (2) · Home's card size and fan transform (pure)", async () => {
+  const { HOME_CARD, HOME_FAN, homeCardSize, homeFanTransform } = await import("../client/src/lib/fanGeometry.js");
+  assert.deepEqual(homeCardSize(1280), { width: 300, height: 420 });
+  assert.deepEqual(homeCardSize(390), { width: 250, height: 350 }, "the phone column (330) less the fan's 80, at 5 : 7");
+  assert.equal(HOME_FAN.visible, 2);
+  assert.deepEqual(homeFanTransform(0), { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1, shown: true, depth: 0, origin: "0% 100%" });
+  assert.deepEqual([1, 2, 3].map(n => [homeFanTransform(n).rotate, homeFanTransform(n).shown]), [[5, true], [10, true], [0, false]]);
+  assert.equal(homeFanTransform(-1).shown, false, "a passed card is gone, not fanned behind");
+  assert.equal(homeFanTransform(2).origin, "0% 100%");
+  // the 10° back's corners: top-right moves ≤ 90 px right (the column's spare), bottom-right drops < the 84 px gap
+  const r = (10 * Math.PI) / 180;
+  assert.ok(HOME_CARD.height * Math.sin(r) + HOME_CARD.width * (Math.cos(r) - 1) <= 390 - HOME_CARD.width);
+  assert.ok(HOME_CARD.width * Math.sin(r) < HOME_CARD.below);
 });

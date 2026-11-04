@@ -63,6 +63,32 @@ export function cardSize(orientation, viewportWidth) {
 
 const rad = (deg) => (deg * Math.PI) / 180;
 
+// ── ⭐ D152 (2) · HOME'S CARD AND ITS FAN (home-sketch.html .stack / .ghost) ─────────────────────────────────────────
+//
+// On Home the card is CARD-SHAPED — playing-card proportions, 5 : 7 — and the deck takes only the column it needs (390).
+// The fan is the sketch's: the backs turn about the card's LOWER-LEFT corner (transform-origin 0% 100%), 5° a step, so
+// the stack sweeps through the lower-right quadrant of its circle and stays inside the column's 90 px to the right of
+// the card (a 10° back's top-right corner moves 420·sin 10° ≈ 73 px). Its bottom-right corner drops 300·sin 10° ≈ 52 px,
+// which is why the buttons sit 84 px under the card (the sketch's margin) — the sweep never covers Pass · Save · Draft
+// (D153 (1)). Two backs show; a passed card is gone, not fanned behind. Not the Customise sliders' fan (those tune the
+// other two orientations); reduced motion only drops the movement, the shape is the same.
+export const HOME_CARD = Object.freeze({ width: 300, height: 420, phoneMax: 330, phoneGutter: 80, below: 84, stackPx: 980 });
+export const HOME_FAN = Object.freeze({ zoom: 1, spread: 5, reach: 0, visible: 2 });
+/** The Home card's size: 300 × 420 on a computer; on a phone the column (≤ 330) less the fan's 80 px, at 5 : 7. */
+export function homeCardSize(viewportWidth) {
+  if (viewportWidth > HOME_CARD.stackPx) return { width: HOME_CARD.width, height: HOME_CARD.height };
+  const col = Math.min(HOME_CARD.phoneMax, viewportWidth - 36);
+  const width = Math.max(200, col - HOME_CARD.phoneGutter);
+  return { width, height: Math.round((width * 7) / 5) };
+}
+/** Where Home's card `offset` places from the front sits: turned about its lower-left corner, never moved. */
+export function homeFanTransform(offset, geometry = HOME_FAN) {
+  const origin = "0% 100%";
+  if (offset === 0) return { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1, shown: true, depth: 0, origin };
+  const shown = offset > 0 && offset <= geometry.visible;
+  return { x: 0, y: 0, rotate: shown ? offset * geometry.spread : 0, scale: 1, opacity: shown ? 1 : 0, shown, depth: Math.abs(offset), origin };
+}
+
 /**
  * Where the card `offset` places from the front sits. offset 0 is the front card; positive offsets
  * are the cards still to come, negative the ones rotated past. Returns a transform relative to the

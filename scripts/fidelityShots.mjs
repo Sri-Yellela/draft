@@ -411,6 +411,16 @@ const STYLE_PROBES = {
     const overlap = (a, b) => !!a && !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
     const dock = q("[data-nav-dock]");
     await wait(1900);   // past the arrival show (1.6 s)
+    // D152 (2) / D153 (1): the card, its backs (their rotated bounds), the buttons, the board column.
+    const card = box(q("[data-deck-face]")?.closest("article"));
+    const backs = [1, 2, 3].map(n => box(q(`[data-fan-offset="${n}"] [data-fan-position]`))).map((b, i) => b && { n: i + 1, ...b,
+      rotate: (q(`[data-fan-offset="${i + 1}"] [data-fan-position]`).style.transform.match(/rotate\(([-\d.]+)deg\)/) || [])[1] ?? null,
+      opacity: getComputedStyle(q(`[data-fan-offset="${i + 1}"] [data-fan-position]`)).opacity });
+    const acts = box(q("[data-deck-actions]")), deckCol = box(q("[data-home-deck]")), boardCol = box(q("[data-home-board]"));
+    const shownBacks = backs.filter(b => b && Number(b.opacity) > 0);
+    const deckGeom = { card, backs, acts, deckCol,
+      backsCoverButtons: shownBacks.some(b => overlap(b, acts)), backsCoverBoard: shownBacks.some(b => overlap(b, boardCol)),
+      backsOutsideColumn: shownBacks.some(b => b.right > deckCol.right + 1 || b.left < deckCol.left - 1) };
     const sortOver = () => overlap(box(q(".fh-title--home")), box(q("[data-home-board] .bh")));
     const rest = { dock: box(dock), padLeft: getComputedStyle(q(".home")).paddingLeft, sortCoversSentence: sortOver() };
     window.dispatchEvent(new MouseEvent("mousemove", { clientX: 4, clientY: 300, bubbles: true }));
@@ -422,6 +432,7 @@ const STYLE_PROBES = {
     await wait(600);
     return {
       grid: { deck: box(q("[data-home-deck]")), board: box(q("[data-home-board]")), columns: getComputedStyle(q(".home")).gridTemplateColumns },
+      deck: deckGeom,
       title: !!q(".fh-title__h"), cornerMark: visible(q(".tbar-group")), emboss: q("[data-nav-emboss]")?.textContent || null,
       items: [...document.querySelectorAll("[data-nav-dock] [data-nav-item]")].map(a => a.getAttribute("data-nav-item")),
       current: q('[data-nav-dock] [aria-current="page"]')?.getAttribute("data-nav-item") || null,

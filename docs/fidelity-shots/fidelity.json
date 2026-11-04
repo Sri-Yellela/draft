@@ -543,100 +543,105 @@
   "home-desktop": {
     "sketch": "home-sketch.html",
     "app": "/app",
-    "similarity": 0.8718,
+    "similarity": 0.8778,
     "worstRegions": [
       {
-        "row": 1,
-        "col": 0,
+        "row": 0,
+        "col": 1,
         "diff": 0.357
+      },
+      {
+        "row": 6,
+        "col": 1,
+        "diff": 0.343
+      },
+      {
+        "row": 5,
+        "col": 1,
+        "diff": 0.336
+      },
+      {
+        "row": 6,
+        "col": 3,
+        "diff": 0.334
+      },
+      {
+        "row": 0,
+        "col": 0,
+        "diff": 0.309
       },
       {
         "row": 4,
         "col": 3,
-        "diff": 0.347
-      },
-      {
-        "row": 6,
-        "col": 1,
-        "diff": 0.342
-      },
-      {
-        "row": 6,
-        "col": 3,
-        "diff": 0.338
-      },
-      {
-        "row": 5,
-        "col": 3,
-        "diff": 0.323
-      },
-      {
-        "row": 3,
-        "col": 1,
-        "diff": 0.32
+        "diff": 0.3
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T22:10:54.009Z"
+    "at": "2026-11-04T22:26:10.510Z"
   },
   "home-phone": {
     "sketch": "home-sketch.html",
     "app": "/app",
-    "similarity": 0.7894,
+    "similarity": 0.8014,
     "worstRegions": [
+      {
+        "row": 0,
+        "col": 1,
+        "diff": 0.656
+      },
+      {
+        "row": 0,
+        "col": 4,
+        "diff": 0.514
+      },
       {
         "row": 1,
         "col": 1,
-        "diff": 0.682
+        "diff": 0.49
       },
       {
-        "row": 3,
-        "col": 5,
-        "diff": 0.603
-      },
-      {
-        "row": 3,
-        "col": 6,
-        "diff": 0.533
-      },
-      {
-        "row": 5,
-        "col": 5,
-        "diff": 0.462
-      },
-      {
-        "row": 3,
-        "col": 2,
-        "diff": 0.381
-      },
-      {
-        "row": 3,
+        "row": 4,
         "col": 1,
-        "diff": 0.38
+        "diff": 0.465
+      },
+      {
+        "row": 4,
+        "col": 4,
+        "diff": 0.464
+      },
+      {
+        "row": 0,
+        "col": 2,
+        "diff": 0.451
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T22:11:02.187Z"
+    "at": "2026-11-04T22:26:18.716Z"
   },
   "home-dock-desktop": {
     "sketch": "home-sketch.html",
     "app": "/app",
-    "similarity": 0.8493,
+    "similarity": 0.847,
     "worstRegions": [
+      {
+        "row": 0,
+        "col": 2,
+        "diff": 0.553
+      },
+      {
+        "row": 5,
+        "col": 3,
+        "diff": 0.42
+      },
       {
         "row": 1,
         "col": 2,
-        "diff": 0.59
+        "diff": 0.375
       },
       {
-        "row": 3,
-        "col": 3,
-        "diff": 0.543
-      },
-      {
-        "row": 4,
-        "col": 3,
-        "diff": 0.363
+        "row": 5,
+        "col": 2,
+        "diff": 0.374
       },
       {
         "row": 6,
@@ -647,53 +652,48 @@
         "row": 1,
         "col": 0,
         "diff": 0.321
-      },
-      {
-        "row": 5,
-        "col": 5,
-        "diff": 0.317
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T22:11:11.271Z"
+    "at": "2026-11-04T22:26:27.588Z"
   },
   "home-dock-phone": {
     "sketch": "home-sketch.html",
     "app": "/app",
-    "similarity": 0.8021,
+    "similarity": 0.7834,
     "worstRegions": [
+      {
+        "row": 0,
+        "col": 6,
+        "diff": 0.72
+      },
       {
         "row": 1,
         "col": 1,
         "diff": 0.485
       },
       {
+        "row": 0,
+        "col": 7,
+        "diff": 0.46
+      },
+      {
+        "row": 4,
+        "col": 6,
+        "diff": 0.426
+      },
+      {
+        "row": 4,
+        "col": 5,
+        "diff": 0.422
+      },
+      {
         "row": 1,
         "col": 4,
         "diff": 0.403
-      },
-      {
-        "row": 5,
-        "col": 5,
-        "diff": 0.388
-      },
-      {
-        "row": 2,
-        "col": 0,
-        "diff": 0.349
-      },
-      {
-        "row": 3,
-        "col": 1,
-        "diff": 0.348
-      },
-      {
-        "row": 2,
-        "col": 1,
-        "diff": 0.335
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T22:11:19.504Z"
+    "at": "2026-11-04T22:26:35.900Z"
   }
 }
