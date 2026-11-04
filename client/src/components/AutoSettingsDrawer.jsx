@@ -24,6 +24,7 @@
 //   View's two choices drawn like the mode's; "Today: n sent of N." with Details under it. Every handler, value and
 //   save is the same.
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api, authContextQuery } from "../lib/api.js";
 import { Z } from "../styles/zLayers.js";
 import { lastBoardFilters, filterLine } from "../lib/boardFilterMemory.js";
@@ -190,7 +191,9 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
   const times = s?.runTimes?.length || 0;
   const boardOn = !!s && Object.keys(s.filters || {}).length > 0;
 
-  return (
+  // ⭐ D149: PORTALLED to <body>. Rendered inside the page, the drawer's z-index only ranked within the page's own
+  // stacking context, and the Dock (portalled to <body> at Z.NAV) drew over its bottom edge.
+  return createPortal(
     <>
       <div className="dh-scrim" style={{ zIndex: Z.MODAL_SCRIM }} onClick={close} aria-hidden="true" />
       <aside className="dh-drawer dh-drawer--d148" style={{ zIndex: Z.MODAL }} role="dialog" aria-modal="true" aria-labelledby="dh-settings-title" ref={panel}
@@ -381,8 +384,7 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
             screen readers; a refused value is shown above (role="alert"). */}
         <span className="sr-only" role="status" data-save-state="">{busy ? "Saving…" : saved}</span>
       </aside>
-    </>
-  );
+    </>, document.body);
 }
 
 // ── D100 · the sign-in portals draft can apply on for the user: sessions they connected (sealed — draft cannot read them)
