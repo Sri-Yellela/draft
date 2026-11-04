@@ -19,8 +19,10 @@ test("D50 · the number is on, and the provisional note exists once", () => {
 test("D50 · the board card's square and the ATS card show it — beside the note — and only for a real score", () => {
   const bubble = read("client/src/components/JobBubble.jsx");
   assert.match(bubble, /const showNumber = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/, "no score → no digit");
-  assert.match(bubble, /\{showNumber \? \(<><span className="jb__ats-n">\{score\}<\/span>[\s\S]*?: <BarMark \/>\}/, "null is the bar mark, never a 0");
-  assert.match(bubble, /title=\{showNumber \? `ATS match \$\{score\} · \$\{bandLabel\} — \$\{ATS_NUMBER_NOTE\}\. Open the report\.`/);
+  // ⭐ D152 (5), changed on purpose: the board card's ATS square is gone — its number is the match on the right (.jb__mt),
+  // drawn only for a real score (no score → nothing, never a 0); the note travels with the report (below).
+  assert.match(bubble, /\{showNumber \? <><b>\{score\}%<\/b><span>match<\/span><\/> : null\}/, "no score → nothing, never a 0");
+  assert.doesNotMatch(bubble, /jb__ats-n|BarMark/);
   // T9: the ATS card is the one shared component (shared/atsReportElement.js) — the web app and the extension draw it.
   const card = read("shared/atsReportElement.js");
   // The band, the count and the number stay together in the card's head; the note follows them.

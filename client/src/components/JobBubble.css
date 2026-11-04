@@ -101,9 +101,7 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
 .jb__sq:disabled { cursor: default; }
 
 /* ATS — the score when the number is shown (A75/A76), green on its quiet ground; otherwise the bar mark. */
-.jb__sq--ats[data-score] { background: var(--c-success-quiet); color: var(--c-success); }
-.jb__ats-n   { font-size: 17px; font-weight: 800; line-height: 1; }
-.jb__ats-cap { font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: lowercase; }
+/* ⛔ D152 (5): the green "ats" square is gone from the rail — the match on the right is the one number. */
 
 .jb__sq--save[aria-pressed="true"] { color: var(--c-accent-ink); }
 
@@ -175,4 +173,28 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
   .jb__text { flex: 1 1 0; }
   /* The always-shown rail (touch) on its own line under the row, at its right — never over the text. */
   .jb .jb__rail, .jb:hover .jb__rail, .jb:focus-within .jb__rail { max-width: none; flex-basis: 100%; justify-content: flex-end; margin-left: 0; }
+}
+
+/* ── ⭐ D152 (5) · HOME: TWO COLUMNS OF BUBBLES THAT MAKE ROOM FOR EACH OTHER — home-sketch.html's .rows / .row / .bub ─────
+ * The board is Home's right column now, so its page column is the column itself (no 1240 / 20px gutters of its own).
+ * Pairs 12px apart, each pair one flex line: a bubble flex 1 1 0; hovering the pair settles both at .75 and the hovered
+ * (or focused) one grows to 1.5 — its neighbour gives way, the line's height unchanged — over .32s (reduced motion:
+ * none). The sketch's bubble: the card, corner 22, padding 16, a 42 px logo column, 12px gaps. One column on a phone
+ * (the options always shown there, D1) and while a posting is open beside the list (JobsPanel passes columns 1). */
+.jb-board { max-width: none; padding: 0; }
+.jb-rows[data-columns="2"] { display: flex; flex-direction: column; gap: 12px; }
+.jb-pair { display: flex; gap: 12px; }
+.jb-pair .jb { flex: 1 1 0; min-width: 0; border-radius: 22px; padding: 16px; gap: 12px;
+  transition: flex-grow .32s cubic-bezier(.2, .9, .3, 1), background .2s; }
+.jb-pair:hover .jb { flex-grow: .75; }
+.jb-pair .jb:hover, .jb-pair .jb:focus-within { flex-grow: 1.5; background: var(--c-surface-tint); }
+.jb-pair .jb__logo { width: 42px; height: 42px; }
+/* Every line one line (the sketch's .bt b / span / i: nowrap, ellipsis), so giving way never changes the line's height. */
+.jb-pair .jb__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jb-pair .jb__meta { flex-wrap: nowrap; overflow: hidden; white-space: nowrap; }
+.jb-pair .jb__meta i { flex: none; }
+@media (prefers-reduced-motion: reduce) { .jb-pair .jb { transition: none; } }
+@media (max-width: 700px) {
+  .jb-pair { flex-direction: column; }
+  .jb-pair:hover .jb, .jb-pair .jb:hover, .jb-pair .jb:focus-within { flex-grow: 1; }
 }

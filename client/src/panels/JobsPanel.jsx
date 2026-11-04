@@ -4361,7 +4361,8 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
               hover / focus-within, and is always shown on touch. components/JobBubble.jsx carries the spec.
               Generate and the posting link are off the card (D1): Apply is the company name (A63), and
               generating lives on the job's detail panel. */}
-          <JobBubbleRows jobs={jobs}>
+          {/* ⭐ D152 (5): two columns of resizing bubbles; one while a posting is open beside the list. */}
+          <JobBubbleRows jobs={jobs} columns={beside ? 1 : 2}>
           {(job) => {
             const key = job.jobId, g = generated[key];
             // Without a detail panel to select into: a generated résumé opens in its sandbox, else the posting.
@@ -4384,7 +4385,6 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                 onOpen={open}
                 // ⛔ CC5 · opening with an EMPTY payload is the working case: ATSPanel scores the posting
                 // against this caller's résumé on demand when it is handed no report.
-                onAts={() => openAtsPanel(buildAtsPayload(job, g))}
                 // A53: the card's decisions are the deck's — Save and Draft SET; Pass is on the detail panel.
                 onSave={() => decideJob?.(job, DECISIONS.SAVED)}
                 onDraft={() => decideJob?.(job, DECISIONS.DRAFTED)}

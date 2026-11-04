@@ -418,6 +418,17 @@ const STYLE_PROBES = {
       opacity: getComputedStyle(q(`[data-fan-offset="${i + 1}"] [data-fan-position]`)).opacity });
     const acts = box(q("[data-deck-actions]")), deckCol = box(q("[data-home-deck]")), boardCol = box(q("[data-home-board]"));
     const shownBacks = backs.filter(b => b && Number(b.opacity) > 0);
+    // D152 (5): the first pair at rest, then with its first bubble focused (:focus-within grows it as :hover does).
+    const pair = q("[data-jb-pair]"), bubs = pair ? [...pair.querySelectorAll(".jb")] : [];
+    const widths = () => bubs.map(b => Math.round(b.getBoundingClientRect().width));
+    const heights = () => bubs.map(b => Math.round(b.getBoundingClientRect().height));
+    const pairs = { count: document.querySelectorAll("[data-jb-pair]").length, perPair: bubs.length, restW: widths(), restH: heights(),
+      atsSquare: !!q(".jb__sq--ats") };
+    bubs[0]?.querySelector("button")?.focus();
+    await wait(450);
+    Object.assign(pairs, { focusW: widths(), focusH: heights(), options: bubs[0] ? getComputedStyle(bubs[0].querySelector(".jb__rail")).visibility : null });
+    document.activeElement?.blur?.();
+    await wait(200);
     const deckGeom = { card, backs, acts, deckCol,
       backsCoverButtons: shownBacks.some(b => overlap(b, acts)), backsCoverBoard: shownBacks.some(b => overlap(b, boardCol)),
       backsOutsideColumn: shownBacks.some(b => b.right > deckCol.right + 1 || b.left < deckCol.left - 1) };
@@ -432,7 +443,7 @@ const STYLE_PROBES = {
     await wait(600);
     return {
       grid: { deck: box(q("[data-home-deck]")), board: box(q("[data-home-board]")), columns: getComputedStyle(q(".home")).gridTemplateColumns },
-      deck: deckGeom,
+      deck: deckGeom, pairs,
       title: !!q(".fh-title__h"), cornerMark: visible(q(".tbar-group")), emboss: q("[data-nav-emboss]")?.textContent || null,
       items: [...document.querySelectorAll("[data-nav-dock] [data-nav-item]")].map(a => a.getAttribute("data-nav-item")),
       current: q('[data-nav-dock] [aria-current="page"]')?.getAttribute("data-nav-item") || null,

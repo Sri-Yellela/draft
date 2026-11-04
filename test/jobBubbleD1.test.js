@@ -50,15 +50,16 @@ test("⛔ NO BAND AND NO NUMBER on the card body; the ATS button carries the num
   assert.doesNotMatch(body, /score|band/i, "fit shown in the card's text");
   assert.match(jsx, /\{showNumber \? <><b>\{score\}%<\/b><span>match<\/span><\/> : null\}/, "no score is no number — never a zero");
   assert.match(jsx, /const showNumber = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);
-  // No score is the bar mark — never a zero.
-  assert.match(jsx, /\{showNumber \? \(<><span className="jb__ats-n">\{score\}<\/span><span className="jb__ats-cap">ats<\/span><\/>\) : <BarMark \/>\}/);
+  // ⭐ D152 (5), changed on purpose: no ATS button on the card any more — the match on the right is the one number.
+  assert.doesNotMatch(jsx, /jb__sq--ats|jb__ats-n|BarMark/);
   const bands = read("shared/atsBands.js");
   // ⭐ D50 (owner, 10-07): ON, provisional — the box's tooltip carries the note.
   assert.match(bands, /export const ATS_NUMBER_SHOWN = true;/, "D50 turned the number on");
-  assert.match(jsx, /\$\{ATS_NUMBER_NOTE\}\. Open the report\./);
+  // (the number's note now travels with the report itself — shared/atsReportElement.js, d50AtsNumberShown)
 });
 
-test("the rail: three 52px squares, zero width until hover / focus-within, one motion; always shown on touch", () => {
+// ⭐ D152 (5), changed on purpose: TWO squares (Save · Draft) — the ATS square left the bubbles (home-sketch.html's ☆ · /d).
+test("the rail: two 52px squares, zero width until hover / focus-within, one motion; always shown on touch", () => {
   assert.match(css, /\.jb__sq \{\n  width: 52px; height: 52px;/);
   assert.match(css, /max-width: 0; opacity: 0; margin-left: 0;/);
   // T25: visibility rides the reveal, so the collapsed squares are out of the pointer's and the keyboard's reach.
@@ -67,7 +68,7 @@ test("the rail: three 52px squares, zero width until hover / focus-within, one m
   assert.match(css, /@media \(hover: none\) \{\n  \.jb__rail \{ max-width: 196px; opacity: 1; margin-left: 4px; visibility: visible; \}/);
   // ⛔ GENERATE and APPLY are off the card.
   const rail = jsx.slice(at(jsx, '<div className="jb__rail">', 0, "rail"), at(jsx, "{companyView &&", 0, "end"));
-  assert.equal((rail.match(/<button /g) || []).length, 3);
+  assert.equal((rail.match(/<button /g) || []).length, 2);
   assert.doesNotMatch(rail, /Generate|onGenerate|onVisit|↗/);
   // D6: the mark is DraftMark.jsx — the one implementation the top bar's Draft tab renders too.
   assert.match(rail, />\s*<DraftMark \/>\s*<\/button>/, "Draft is the mark");
@@ -95,7 +96,8 @@ test("⛔ the logo face is SELF-HOSTED — no third-party font request", () => {
 });
 
 test("the board renders bubbles in rows; the Database panel keeps JobCard", () => {
-  assert.match(panel, /<JobBubbleRows jobs=\{jobs\}>/);
+  // ⭐ D152 (5), changed on purpose: two columns (pairs), one beside an open posting.
+  assert.match(panel, /<JobBubbleRows jobs=\{jobs\} columns=\{beside \? 1 : 2\}>/);
   assert.doesNotMatch(panel, /<JobCard\b/);
   assert.match(read("client/src/panels/DatabasePanel.jsx"), /<JobCard/);
   // D149 (11-03): one column — see the first test.

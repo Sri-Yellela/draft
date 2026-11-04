@@ -19,7 +19,7 @@ import CompanyLogo from "./CompanyLogo.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyLink from "./CompanyLink.jsx";
-import { atsBandFor, atsBandLabel, ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "../../../shared/atsBands.js";
+import { ATS_NUMBER_SHOWN } from "../../../shared/atsBands.js";
 import { salaryLabel, workstyleOf } from "../../../shared/postingFacts.js";
 import { ghostLine } from "../../../shared/ghostScore.js";
 import { DraftMark } from "./DraftMark.jsx";
@@ -29,16 +29,6 @@ import "./JobBubble.css";
 
 // D71: the shared label.
 const salary = salaryLabel;
-
-function BarMark() {
-  return (
-    <svg width="20" height="16" viewBox="0 0 20 16" aria-hidden="true" focusable="false">
-      <rect x="1" y="9" width="4" height="6" rx="1.2" fill="currentColor" opacity=".45" />
-      <rect x="8" y="5" width="4" height="10" rx="1.2" fill="currentColor" opacity=".7" />
-      <rect x="15" y="1" width="4" height="14" rx="1.2" fill="currentColor" />
-    </svg>
-  );
-}
 
 function StarMark({ filled }) {
   return (
@@ -50,14 +40,12 @@ function StarMark({ filled }) {
 }
 
 export default function JobBubble({ job, score = null, selected = false, saved = false, drafted = false, drafting = false, resumeReady = false,
-                                    onOpen, onAts, onSave, onDraft, onViewDraft = null, draftBlocked = null,
+                                    onOpen, onSave, onDraft, onViewDraft = null, draftBlocked = null,
                                     onExplainDraft = null, draftSlots = null }) {
   const [companyView, setCompanyView] = useState(false);
   const draft = draftButtonState({ drafted, drafting, block: draftBlocked, canView: !!onViewDraft, slots: draftSlots });
   const id = job.jobId || job.id;
   const applyHref = job.applyUrl || job.url;
-  const band = atsBandFor(score);
-  const bandLabel = atsBandLabel(band).label;
   const showNumber = ATS_NUMBER_SHOWN && Number.isFinite(score);
   // ⭐ D137: "Likely not hiring" takes the status slot (no extra label, A109); its reasons are the meta line's title.
   const status = job.heldOutsideUs ? "Outside the US" : job.isActive === false ? "No longer listed" : job.ghost?.level >= 2 ? "Likely not hiring" : null;
@@ -107,15 +95,10 @@ export default function JobBubble({ job, score = null, selected = false, saved =
         {showNumber ? <><b>{score}%</b><span>match</span></> : null}
       </div>
 
-      {/* The rail (ATS · Save · Draft) stays — revealed on hover / focus, always on touch (D1) — so the row's quick
-          decisions keep working; at rest the row is the sketch's. */}
+      {/* The rail (Save · Draft) — revealed on hover / focus, always on touch (D1) — so the row's quick decisions keep
+          working; at rest the row is the sketch's. ⛔ D152 (5): the old "86 ats" square is gone from every bubble — the
+          match on the right says the same number; the match itself opens in the posting (D152 (8)). */}
       <div className="jb__rail">
-        <button type="button" className="jb__sq jb__sq--ats" data-score={showNumber ? score : undefined}
-          onClick={stop(onAts)}
-          aria-label={showNumber ? `ATS report — ${score}, ${bandLabel}. ${ATS_NUMBER_NOTE}` : `ATS report — ${bandLabel}`}
-          title={showNumber ? `ATS match ${score} · ${bandLabel} — ${ATS_NUMBER_NOTE}. Open the report.` : `${bandLabel} — open the ATS report`}>
-          {showNumber ? (<><span className="jb__ats-n">{score}</span><span className="jb__ats-cap">ats</span></>) : <BarMark />}
-        </button>
         <button type="button" className="jb__sq jb__sq--save" aria-pressed={saved} onClick={stop(saved ? null : onSave)}
           aria-label={saved ? "Saved" : "Save"} title={saved ? "Saved" : "Save"}>
           <StarMark filled={saved} />
@@ -180,6 +163,20 @@ export function JobBoardColumns({ beside = false, sideRef = null, children }) {
   );
 }
 
-export function JobBubbleRows({ jobs, children }) {
-  return <div className="jb-rows" data-columns={1}>{jobs.map(children)}</div>;
+// ⭐ D152 (5) (owner 11-04: "two bubbles, two columns of job postings that resize to accommodate the others dynamically when
+// hovering above them, and it shows the options"): home-sketch.html's `.rows` / `.row` — the postings in PAIRS, each pair
+// one line; a hovered or focused bubble grows (1.5) and its neighbour gives way (.75), the line's height unchanged; its
+// options (☆ Save · /d Draft) open on hover / focus, always on touch. One column while a posting is open beside the list,
+// and on a phone (JobBubble.css). The pairs are laid out by CSS flex alone — nothing measured.
+export function JobBubbleRows({ jobs, children, columns = 2 }) {
+  if (columns !== 2) return <div className="jb-rows" data-columns={1}>{jobs.map(children)}</div>;
+  const pairs = [];
+  for (let i = 0; i < jobs.length; i += 2) pairs.push(jobs.slice(i, i + 2));
+  return (
+    <div className="jb-rows" data-columns={2}>
+      {pairs.map((pair, p) => (
+        <div className="jb-pair" key={p} data-jb-pair="">{pair.map((job, k) => children(job, p * 2 + k))}</div>
+      ))}
+    </div>
+  );
 }

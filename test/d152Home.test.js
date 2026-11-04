@@ -91,6 +91,28 @@ test("d152DockLeftWithLogo / d153DockPushes / d152DockSlidesFromLeftEdge (real C
     assert.equal(acts.width, card.width, `${size}: the buttons as wide as the card`);
   }
   assert.deepEqual([out.desktop.deck.card.width, out.desktop.deck.card.bottom - out.desktop.deck.card.top], [300, 420]);
+  // ⭐ D152 (5): two columns of bubbles that make room for each other; no old ATS square on any bubble.
+  for (const [size, d] of Object.entries(out)) {
+    assert.equal(d.pairs.atsSquare, false, `${size}: d152NoOldAtsBox`);
+    assert.equal(d.pairs.perPair, 2, `${size}: the postings in pairs`);
+    assert.equal(d.pairs.options, "visible", `${size}: d152HoverShowsOptions — a hovered / focused bubble shows its options`);
+    assert.deepEqual(d.pairs.focusH, d.pairs.restH, `${size}: giving way never changes the line's height`);
+  }
+  const P = out.desktop.pairs;
+  assert.equal(P.restW[0], P.restW[1], "d152TwoColumnResizingBubbles: equal at rest");
+  assert.ok(P.focusW[0] > P.restW[0] && P.focusW[1] < P.restW[1], `the focused bubble grows and its neighbour gives way (${P.focusW})`);
+  assert.ok(Math.abs(P.focusW[0] + P.focusW[1] - P.restW[0] - P.restW[1]) <= 1, "within the same line");
+  assert.equal(out.phone.pairs.restW[0], out.phone.pairs.focusW[0], "a phone stacks the pair — nothing to give way to");
+});
+
+test("d152 (5) · the bubbles' source: pairs from JobBubbleRows, one column beside an open posting, no ATS square", () => {
+  const BUB = read("client/src/components/JobBubble.jsx");
+  const PANEL = read("client/src/panels/JobsPanel.jsx");
+  const CSSB = read("client/src/components/JobBubble.css");
+  assert.match(BUB, /export function JobBubbleRows\(\{ jobs, children, columns = 2 \}\)/);
+  assert.doesNotMatch(BUB, /jb__sq--ats|onAts/, "the old ATS square and its handler are gone");
+  assert.match(PANEL, /<JobBubbleRows jobs=\{jobs\} columns=\{beside \? 1 : 2\}>/);
+  assert.match(CSSB, /\.jb-pair:hover \.jb \{ flex-grow: \.75; \}\n\.jb-pair \.jb:hover, \.jb-pair \.jb:focus-within \{ flex-grow: 1\.5;/);
 });
 
 test("d152 (2) · Home's card size and fan transform (pure)", async () => {
