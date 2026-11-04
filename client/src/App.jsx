@@ -380,8 +380,8 @@ function AppDashboard({ authUser, setAuthUser }) {
   // label on two lines, so the bar's height fits the mark's.
   const appTabs = [
     // Today's draft — the deck, dealt from the top of the fit-ranked board (UI_REDESIGN §3).
-    { id: "today",        label: "Daily Deck" },
-    { id: "console",      label: "Full House" },
+    // ⭐ D152 (1) / (4): ONE entry, Home — the deck and every job on one screen (/app; /app/jobs is the same screen).
+    { id: "today",        label: "Home" },
     // The auto-apply pipeline is a peer of the board now, not a strip above it (W5). It sits in
     // this row for the same reason the others do — it is a place you go, not a thing that happens
     // on the board. AppTopBar decorates it with the needs-attention count.
@@ -579,7 +579,7 @@ function AppDashboard({ authUser, setAuthUser }) {
           <AppTopBar
             user={authUser}
             tabs={appTabs}
-            activeTab={activeTab}
+            activeTab={home ? "today" : activeTab}
             onTabChange={handlePanelChange}
             hrefForTab={pathForTab}
             onLogout={handleLogout}

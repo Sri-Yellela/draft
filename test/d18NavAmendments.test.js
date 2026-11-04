@@ -23,10 +23,9 @@ test("D18: the AUTO APPLY tab reads Draft House — four two-word labels, ids un
   const labels = [...tabsBlock().matchAll(/\{ id: "([^"]+)",\s*label: "([^"]+)" \}/g)].map(m => m[2]);
   // ⭐ D105 P4 (changed on purpose): the Atlas joins the row after the card family (D102's navigation gains one place).
   // ⭐ D146 (changed on purpose, 11-03): The Table merged into Draft House — one entry.
-  assert.deepEqual(labels, ["Daily Deck", "Full House", "Draft House", "Atlas"]);
-  // Every card-family label is two words, so TabLabel sets each on two lines — the same format across the family.
-  // Atlas is a place outside the family and its one word sits on one line (TabLabel leaves a one-word label alone).
-  for (const l of labels.filter(l => l !== "Atlas")) assert.equal(l.split(" ").length, 2, `"${l}" is not a two-word label`);
+  // ⭐ D152 (1) / (4), changed on purpose: Daily Deck + Full House = Home (one word, like Atlas).
+  assert.deepEqual(labels, ["Home", "Draft House", "Atlas"]);
+  for (const l of labels.filter(l => l !== "Atlas" && l !== "Home")) assert.equal(l.split(" ").length, 2, `"${l}" is not a two-word label`);
   assert.match(tabsBlock(), /\{ id: "auto-apply",\s*label: "Draft House" \}/);
 });
 
@@ -79,10 +78,11 @@ test("D18: no display string still sends the user to 'the Draft tab'", () => {
 });
 
 test("O56e → D145: the phone's tab row is gone — the Menu (or the dock, chosen) reaches every section at any width", () => {
-  // ⭐ D145 Step 3 (changed on purpose): no row to tighten or fade. "Automatic" is the Menu below 640 px or on a touch
-  // screen (AppNav.css), and the panel lists all five; scripts/d145DeckShots.mjs walks it at 390 px.
+  // ⭐ D145 Step 3 (changed on purpose): no row to tighten or fade. ⭐ D152 (4), changed on purpose: "Automatic" is the
+  // dock at every width now — on a touch screen it opens from the left-edge handle (d152Home's real-Chrome walk at 390).
   assert.doesNotMatch(topBar, /tabsMore|TAB_ROW_FADE|className="tbar-nav"/);
   const css = read("client/src/components/AppNav.css");
-  assert.match(css, /@media \(max-width: 639px\), \(hover: none\) and \(pointer: coarse\) \{\s*\[data-navigation="auto"\] \{ --appnav-dock: none; --appnav-menu: inline-flex; \}/);
+  assert.match(css, /\[data-navigation="auto"\] \{ --appnav-dock: flex; --appnav-menu: none; --appnav-mark: none; \}/);
+  assert.match(css, /@media \(hover: none\) \{ \.appnav-handle \{ display: var\(--appnav-dock, none\); \} \}/);
 });
 

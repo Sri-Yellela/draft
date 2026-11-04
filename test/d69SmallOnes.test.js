@@ -39,12 +39,12 @@ test("⛔ D69 (a) · a SpeedyApply export's \"Archived\" imports as WITHDRAWN �
 // D69 (b): measured in Chrome by scripts/d69NavPass.mjs — at 360, 390, 440 and 1280 every tab fits with
 // no scrolling, inside the bar and clear of the avatar. This pins the rule that made it fit.
 test("⛔ D69 (b) → D145 · the tab row (and its phone tier) is gone; the dock scrolls sideways rather than clip at 390", () => {
-  // ⭐ D145 Step 3 (changed on purpose): the sections are the Dock / the Menu (AppNav). The dock never clips a button:
-  // it is no wider than the screen and scrolls along itself.
+  // ⭐ D145 Step 3 (changed on purpose): the sections are the Dock / the Menu (AppNav). ⭐ D152 (4), changed on purpose:
+  // the dock is a 212 px column on the left edge that scrolls along itself (down) rather than clip a button.
   const src = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
   assert.doesNotMatch(src, /const tiny = vw < 440;|data-size=\{tiny/);
   const css = fs.readFileSync("client/src/components/AppNav.css", "utf8");
-  assert.match(css, /\.appnav-dock \{[^}]*max-width: calc\(100vw - 32px\); overflow-x: auto;/);
+  assert.match(css, /\.appnav-dock \{[^}]*width: 212px;[^}]*max-height: calc\(100vh - 88px\); overflow-y: auto;/);
 });
 
 test("⛔ D68 · the policy names the Copy sheet and carries the Web Store Limited Use affirmation", () => {

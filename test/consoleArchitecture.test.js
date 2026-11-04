@@ -10,8 +10,9 @@ test("app routes users into one shared jobs console", () => {
   assert.match(app, /LEGACY_CONSOLE_ROUTES/);
   // Tolerate the space after the colon — App.jsx's tab list is formatted `label: "Jobs"`, and a
   // reformat should not read as a missing tab.
-  // D10: the console tab DISPLAYS "Full House"; its id stays "console".
-  assert.match(app, /id:\s*"console",\s*label:\s*"Full House"/);
+  // ⭐ D152 (1), changed on purpose: the console is HOME's board column — no tab of its own; /app/jobs draws Home.
+  assert.doesNotMatch(app, /id:\s*"console",\s*label:/);
+  assert.match(app, /const home = activeTab === "today" \|\| activeTab === "console";/);
   assert.match(app, /<Route path="\/app\/\*"/);
   assert.match(consoles, /function JobsConsole/);
   assert.match(consoles, /consoleKind="jobs"/);

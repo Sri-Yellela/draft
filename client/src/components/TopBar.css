@@ -10,3 +10,7 @@
 
 /* ⭐ D149: the chrome strip is click-through (no bar any more); the mark itself still takes the pointer. */
 .tbar-group { pointer-events: auto; }
+
+/* ⛔ D152 (4): no logo in the page corner — the dock carries it (AppNav.css sets --appnav-mark: none wherever the dock
+   is the navigation); the mark stays with the Menu. */
+.tbar-group { display: var(--appnav-mark, flex); }

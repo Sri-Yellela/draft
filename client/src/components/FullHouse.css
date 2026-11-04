@@ -336,6 +336,9 @@
   padding: 44px 40px 90px; box-sizing: border-box; width: 100%;
   transition: padding-left .32s cubic-bezier(.2, .9, .3, 1); }
 @media (prefers-reduced-motion: reduce) { .home { transition: none; } }
+/* D152 (4) / D153 (1): the dock pushes the page — while it is out (AppNav sets data-dock-open on <html>) Home's left
+   padding makes room for it (the sketch's body.docked .home), so it never covers the deck or the sentence. */
+:root[data-dock-open="true"] .home { padding-left: 268px; }
 .home__deck { position: sticky; top: calc(var(--app-chrome-height, 74px) + 44px); align-self: start; width: 390px; }
 .home__board { min-width: 0; }
 .home__board .fh[data-fh-d147], .home__board .fh.fh--bar-row, .home__board .fh.fh-counts { max-width: none; padding-left: 0; padding-right: 0; }
@@ -345,8 +348,12 @@
    (34ch, so the two never meet at these widths); in the flow on a phone. */
 .home__board { position: relative; }
 .fh-title--home { justify-content: flex-end; position: absolute; top: 0; right: 0; z-index: 2; }
+/* ⛔ D153 (1): the sentence never runs under it — the header keeps the Sort box's width free beside it (the dock's push
+   narrows the column, measured 11-04: "levels and" under "Sort: For you"). */
+.home__board .fh[data-fh-d147] { padding-right: 132px; }
 @media (max-width: 980px) {
   .home { grid-template-columns: minmax(0, 1fr); gap: 34px; padding: 28px 18px 80px; }
   .home__deck { position: static; margin: 0 auto; width: min(330px, 100%); }
   .fh-title--home { position: static; margin-bottom: 12px; }
+  .home__board .fh[data-fh-d147] { padding-right: 0; }
 }

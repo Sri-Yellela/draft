@@ -19,9 +19,9 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
   for (const [size, d] of Object.entries(out)) {
     assert.equal(d.canvas.toUpperCase(), "#1B1B1B", `${size}: the page is the sketch's --bg`);
     assert.equal(d.fonts.serif && d.fonts.ui, true, `${size}: Instrument Serif and Inter Tight are loaded, not their fallbacks`);
-    // The header: the title, the ONE Sort word, the sentence, the search, the counts.
-    assert.match(d.title.family, SERIF); assert.equal(d.title.size, "44px"); assert.equal(d.title.weight, "400");
-    assert.equal(d.title.top, 84, `${size}: the title at the sketch's 84 px`);
+    // The header: the ONE Sort word, the sentence, the search, the counts. ⭐ D152 (1), changed on purpose: Full House is
+    // Home's board column now (home-sketch.html) — no "Full House" title (test/d152Home.test.js).
+    assert.equal(d.title, null, `${size}: no page title on Home`);
     assert.deepEqual([d.sort.bg, d.sort.radius, d.sort.border, d.sort.size, d.sort.weight, d.sort.color, d.sort.glyph],
       [CARD, "12px", "0px", "14px", "600", BODY, false], `${size}: "Sort: …" is the sketch's quiet box — no edge, no glyph`);
     assert.match(d.sort.text, /^Sort: /);
@@ -75,10 +75,13 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
     near(b.eyebrow.top - (b.facts.top + b.facts.height), 20, `${size}: 20px under the facts box`);
     near(b.actions.top - (b.body.top + b.body.height), 18, `${size}: the actions 18px under the posting`);
   }
-  // Desktop: the posting BESIDE the list, in the sketch's columns (1240 page, 20px gutters, 1fr : 1.05fr, 18px apart).
+  // Desktop: the posting BESIDE the list. ⭐ D152 (1), changed on purpose: both now sit inside Home's board column
+  // (486–1240 at 1280: the deck's 390 + the 56 gap after the 40 padding) — never over the deck. The sketch's next step
+  // (D152 (6) / D153 (1): the posting opens IN PLACE of the list, cross-fading) replaces this layout.
   const D = out.desktop;
-  assert.deepEqual([D.row.left, D.row.width], [40, 577], "the list column");
-  assert.deepEqual([D.panel.left, D.panel.width, D.panel.radius, D.panel.padding], [635, 605, "28px", "24px 24px 20px"], "the posting column");
+  assert.ok(D.row.left >= 486 && D.panel.left + D.panel.width <= 1240, `the list and the posting stay in the board column (${D.row.left}, ${D.panel.left + D.panel.width})`);
+  assert.ok(D.panel.left >= D.row.left + D.row.width, "the posting beside the list, not over it");
+  assert.deepEqual([D.panel.radius, D.panel.padding], ["28px", "24px 24px 20px"], "the posting column");
   assert.equal(D.panel.top, D.row.top, "the posting's top is the first row's");
   assert.equal(D.panel.height, 690, "the sketch's calc(100vh - 110px)");
   // Phone: the posting is the screen.
