@@ -119,6 +119,7 @@ import { createLearnAdminRouter } from "./routes/learnAdmin.js";
 import { seedLearnContentIfEmpty } from "./services/learn/learnImport.js";
 import { importQuestionFiles, reviewList, unknownPieces, reviewQuestion as reviewLearnQuestion,
   QUESTION_LEVELS, QUESTION_TYPES, QUESTION_STATUSES } from "./services/learn/learnQuestions.js";
+import { auditRoles, roleCard } from "./services/audit/auditRoleCard.js";
 import { seedCircleData, checkExtraItems } from "./services/learn/learnCircle.js";
 import { seedAtlasFromRegistry } from "./services/atlas/atlasSeed.js";
 import { importLearnConcepts, publishLearnConcepts } from "./services/atlas/atlasLearnImport.js";
@@ -11600,6 +11601,19 @@ app.get("/api/admin/questions", requireAdmin, (req, res) => {
   const counts = Object.fromEntries(db.prepare(`SELECT status, COUNT(*) n FROM learn_questions GROUP BY status`).all().map(r => [r.status, r.n]));
   const roles = db.prepare(`SELECT DISTINCT role FROM learn_questions WHERE role IS NOT NULL ORDER BY role`).pluck().all();
   res.json({ items, counts, roles, unknownPieces: unknownPieces(db) });
+});
+// ⭐ D150 T04 · the audit's role card — PUBLIC (the audit needs no sign-in): the board's own numbers, counted and dated,
+// pay hidden under 20 postings that state it. services/audit/auditRoleCard.js.
+app.get("/api/audit/roles", (req, res) => {
+  try { res.json({ roles: auditRoles(db, { field: typeof req.query.field === "string" && req.query.field ? req.query.field : null }) }); }
+  catch (e) { res.status(500).json({ error: "audit_roles_failed", message: e.message }); }
+});
+app.get("/api/audit/role/:slug", (req, res) => {
+  try {
+    const card = roleCard(db, String(req.params.slug), { level: typeof req.query.level === "string" ? req.query.level : null });
+    if (!card) return res.status(404).json({ error: "not_found", message: "We can't audit that role yet." });
+    res.json(card);
+  } catch (e) { res.status(500).json({ error: "audit_card_failed", message: e.message }); }
 });
 app.post("/api/admin/questions/:id/review", requireAdmin, (req, res) => {
   try { res.json(reviewLearnQuestion(db, String(req.params.id), { action: req.body?.action, edits: req.body?.edits || null,
