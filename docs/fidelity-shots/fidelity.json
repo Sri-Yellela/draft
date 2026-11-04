@@ -539,5 +539,161 @@
     ],
     "appErrors": [],
     "at": "2026-11-04T05:17:42.057Z"
+  },
+  "home-desktop": {
+    "sketch": "home-sketch.html",
+    "app": "/app",
+    "similarity": 0.8718,
+    "worstRegions": [
+      {
+        "row": 1,
+        "col": 0,
+        "diff": 0.357
+      },
+      {
+        "row": 4,
+        "col": 3,
+        "diff": 0.347
+      },
+      {
+        "row": 6,
+        "col": 1,
+        "diff": 0.342
+      },
+      {
+        "row": 6,
+        "col": 3,
+        "diff": 0.338
+      },
+      {
+        "row": 5,
+        "col": 3,
+        "diff": 0.323
+      },
+      {
+        "row": 3,
+        "col": 1,
+        "diff": 0.32
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T22:10:54.009Z"
+  },
+  "home-phone": {
+    "sketch": "home-sketch.html",
+    "app": "/app",
+    "similarity": 0.7894,
+    "worstRegions": [
+      {
+        "row": 1,
+        "col": 1,
+        "diff": 0.682
+      },
+      {
+        "row": 3,
+        "col": 5,
+        "diff": 0.603
+      },
+      {
+        "row": 3,
+        "col": 6,
+        "diff": 0.533
+      },
+      {
+        "row": 5,
+        "col": 5,
+        "diff": 0.462
+      },
+      {
+        "row": 3,
+        "col": 2,
+        "diff": 0.381
+      },
+      {
+        "row": 3,
+        "col": 1,
+        "diff": 0.38
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T22:11:02.187Z"
+  },
+  "home-dock-desktop": {
+    "sketch": "home-sketch.html",
+    "app": "/app",
+    "similarity": 0.8493,
+    "worstRegions": [
+      {
+        "row": 1,
+        "col": 2,
+        "diff": 0.59
+      },
+      {
+        "row": 3,
+        "col": 3,
+        "diff": 0.543
+      },
+      {
+        "row": 4,
+        "col": 3,
+        "diff": 0.363
+      },
+      {
+        "row": 6,
+        "col": 1,
+        "diff": 0.342
+      },
+      {
+        "row": 1,
+        "col": 0,
+        "diff": 0.321
+      },
+      {
+        "row": 5,
+        "col": 5,
+        "diff": 0.317
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T22:11:11.271Z"
+  },
+  "home-dock-phone": {
+    "sketch": "home-sketch.html",
+    "app": "/app",
+    "similarity": 0.8021,
+    "worstRegions": [
+      {
+        "row": 1,
+        "col": 1,
+        "diff": 0.485
+      },
+      {
+        "row": 1,
+        "col": 4,
+        "diff": 0.403
+      },
+      {
+        "row": 5,
+        "col": 5,
+        "diff": 0.388
+      },
+      {
+        "row": 2,
+        "col": 0,
+        "diff": 0.349
+      },
+      {
+        "row": 3,
+        "col": 1,
+        "diff": 0.348
+      },
+      {
+        "row": 2,
+        "col": 1,
+        "diff": 0.335
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T22:11:19.504Z"
   }
 }

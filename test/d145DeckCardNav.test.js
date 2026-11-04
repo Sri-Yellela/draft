@@ -118,15 +118,17 @@ test("d145ScrollExpandsAndFolds: a scroll down on the front card opens 'Why this
 
 test("d145NavDockOrMenuSetting: Settings → Appearance → Navigation is Automatic · Dock · Menu; CSS shows exactly one", () => {
   assert.deepEqual(LAYOUT_OPTION_IDS.navigation, { attribute: "data-navigation", values: ["auto", "dock", "menu"], default: "auto" });
-  assert.match(navCss, /\[data-navigation="auto"\] \{ --appnav-dock: flex; --appnav-menu: none; \}/, "Automatic: the dock on a computer");
-  assert.match(navCss, /@media \(max-width: 639px\), \(hover: none\) and \(pointer: coarse\) \{\s*\[data-navigation="auto"\] \{ --appnav-dock: none; --appnav-menu: inline-flex; \}/, "… the menu on a phone");
-  assert.match(navCss, /\[data-navigation="dock"\] \{ --appnav-dock: flex; --appnav-menu: none; \}/);
-  assert.match(navCss, /\[data-navigation="menu"\] \{ --appnav-dock: none; --appnav-menu: inline-flex; \}/);
+  // ⭐ D152 (4), changed on purpose: Automatic is the dock at every width (a phone opens it from the edge handle); the
+  // corner mark shows only with the Menu (the dock carries the logo).
+  assert.match(navCss, /\[data-navigation="auto"\] \{ --appnav-dock: flex; --appnav-menu: none; --appnav-mark: none; \}/, "Automatic: the dock");
+  assert.match(navCss, /\[data-navigation="dock"\] \{ --appnav-dock: flex; --appnav-menu: none; --appnav-mark: none; \}/);
+  assert.match(navCss, /\[data-navigation="menu"\] \{ --appnav-dock: none; --appnav-menu: inline-flex; --appnav-mark: flex; \}/);
   assert.match(navCss, /\.appnav-dock \{\s*display: var\(--appnav-dock, flex\);/);
   assert.match(navCss, /\.appnav-menu-btn \{\s*display: var\(--appnav-menu, none\);/);
-  // The dock rises near the bottom edge, from a window listener (no strip over the page), and stays up on a touch screen.
-  assert.match(nav, /if \(fromBottom <= DOCK_REVEAL_PX\) setUp\(true\);/);
-  assert.match(navCss, /@media \(hover: none\) \{ \.appnav-dock \{ transform: translate\(-50%, 0\); \} \}/);
+  // ⭐ D152 (4), changed on purpose: the dock slides in at the LEFT edge, from a window listener (no strip over the page);
+  // a touch screen opens it from the edge handle.
+  assert.match(nav, /if \(e\.clientX <= DOCK_REVEAL_PX\) setUp\(true\);/);
+  assert.match(navCss, /@media \(hover: none\) \{ \.appnav-handle \{ display: var\(--appnav-dock, none\); \} \}/);
   // The old tab row is gone from the top bar.
   const top = read("client/src/components/TopBar.jsx");
   assert.doesNotMatch(top, /className="tbar-tab"|className="tbar-nav"/);
@@ -140,10 +142,13 @@ test("d145MenuPanelMatchesDock: the side panel's buttons are EXACTLY the dock's 
   assert.match(nav, /className="appnav-scrim"[^>]*onClick=\{\(\) => setOpen\(false\)\}/);
   assert.match(nav, /if \(e\.key === "Escape" && open\)/);
   assert.match(nav, /\(e\.key === "m" \|\| e\.key === "M"\)/);
-  assert.match(nav, /if \(!btn \|\| getComputedStyle\(btn\)\.display === "none"\) return;/, "M only while the Menu is the navigation");
+  // ⭐ D152 (4), changed on purpose: M toggles the Menu while it is the navigation, else the dock.
+  assert.match(nav, /if \(btn && getComputedStyle\(btn\)\.display !== "none"\) \{ e\.preventDefault\(\); setOpen\(\(o\) => !o\); return; \}/, "M opens the Menu while it is the navigation");
+  assert.match(nav, /if \(dock && getComputedStyle\(dock\)\.display !== "none"\) \{ e\.preventDefault\(\); setUp\(\(u\) => !u\); \}/, "… else the dock");
   // Each button: the section name + a small plain line (D145 Step 2 rule 5).
   // ⭐ D146 (changed on purpose): Draft House and The Table are one entry, "your applications".
-  assert.match(nav, /today: "today's jobs", console: "every job", "auto-apply" : "your applications", atlas: "your skills"/);
+  // ⭐ D152 (4), changed on purpose: Home's line is the sketch's "today's picks and every job".
+  assert.match(nav, /today: "today's picks and every job", console: "every job", "auto-apply" : "your applications", atlas: "your skills"/);
 });
 
 test("d145NoNavSymbols: no icon, symbol or image in the Dock or the Menu", () => {
@@ -176,6 +181,7 @@ test("d145LargestNoClip390: on Largest at 390 px nothing forces a horizontal scr
   assert.match(face, /flexWrap: "wrap"/, "the info row wraps");
   assert.match(face, /overflowWrap: "anywhere"/, "a long stat value breaks rather than push the card wider");
   assert.match(face, /<div style=\{\{ minWidth: 0 \}\}>/, "the company block can shrink beside the match");
-  assert.match(navCss, /\.appnav-dock \{[^}]*max-width: calc\(100vw - 32px\); overflow-x: auto;/);
+  // ⭐ D152 (4), changed on purpose: the dock is a 212 px left column — never wider than a 390 screen.
+  assert.match(navCss, /\.appnav-dock \{[^}]*width: 212px;/);
   assert.match(navCss, /\.appnav-panel \{[^}]*width: min\(300px, 86vw\);/);
 });

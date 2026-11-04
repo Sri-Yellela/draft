@@ -133,6 +133,10 @@ const SCREENS = {
   // ⭐ D152 · HOME. The sketch opens its dock for 1.5 s on load — shot after it has slid away.
   home: { sketch: "home-sketch.html", app: "/app", fixtures: HOME, ready: "[data-home-board]",
     sketchPrep: async () => { await sleep(1700); } },
+  // The same screen with the dock out (the sketch shows it for 1.5 s on load; the app's pointer at the left edge).
+  "home-dock": { sketch: "home-sketch.html", app: "/app", fixtures: HOME, ready: "[data-home-board]",
+    sketchPrep: async () => { await sleep(100); },
+    appPrep: async (page) => { await sleep(1200); await page.mouse.move(4, 300); await sleep(700); } },
   deck: { sketch: "declutter-v7.html", app: "/app", fixtures: DECK, ready: "[data-deck-face]" },
   fullhouse: { sketch: "fullhouse-declutter.html", app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-fh-title]",
     appPrep: async (page) => {   // the sketch shows the first posting open beside the list
@@ -395,6 +399,34 @@ const STYLE_PROBES = {
       bubble: box(q("[data-timeline] [data-company-bubble]")),
       phoneSwitch: (() => { const b = q('[data-phone-view="timeline"]'); return !!b && b.offsetParent !== null; })(),
       hscroll: document.documentElement.scrollWidth > window.innerWidth + 1,
+    };
+  },
+  // ⭐ D152 (1) / (4) · HOME: the grid's two columns, the corner mark gone, and the dock — off the left edge at rest, out
+  // at the left edge (a pointer at x = 4), pushing Home so it covers neither the deck nor the sentence.
+  home: async () => {
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const q = (s) => document.querySelector(s);
+    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), width: Math.round(r.width) }; };
+    const visible = (el) => !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().width > 0;
+    const overlap = (a, b) => !!a && !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    const dock = q("[data-nav-dock]");
+    await wait(1900);   // past the arrival show (1.6 s)
+    const sortOver = () => overlap(box(q(".fh-title--home")), box(q("[data-home-board] .bh")));
+    const rest = { dock: box(dock), padLeft: getComputedStyle(q(".home")).paddingLeft, sortCoversSentence: sortOver() };
+    window.dispatchEvent(new MouseEvent("mousemove", { clientX: 4, clientY: 300, bubbles: true }));
+    await wait(700);
+    const deck = box(q("[data-home-deck]")), sentence = box(q("[data-home-board] .bh")), d = box(dock);
+    const out = { dock: d, padLeft: getComputedStyle(q(".home")).paddingLeft, open: document.documentElement.getAttribute("data-dock-open"),
+      coversDeck: overlap(d, deck), coversSentence: overlap(d, sentence), sortCoversSentence: sortOver() };
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await wait(600);
+    return {
+      grid: { deck: box(q("[data-home-deck]")), board: box(q("[data-home-board]")), columns: getComputedStyle(q(".home")).gridTemplateColumns },
+      title: !!q(".fh-title__h"), cornerMark: visible(q(".tbar-group")), emboss: q("[data-nav-emboss]")?.textContent || null,
+      items: [...document.querySelectorAll("[data-nav-dock] [data-nav-item]")].map(a => a.getAttribute("data-nav-item")),
+      current: q('[data-nav-dock] [aria-current="page"]')?.getAttribute("data-nav-item") || null,
+      handle: visible(q("[data-nav-handle]")),
+      rest, out, afterEsc: { dock: box(dock), open: document.documentElement.getAttribute("data-dock-open") },
     };
   },
   // ⛔ D153 (5) · every facts cell's words, measured: a word whose characters lie on two lines has two client rects.

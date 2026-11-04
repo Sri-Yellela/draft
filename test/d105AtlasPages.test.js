@@ -275,7 +275,7 @@ test("D105 P4 · the top bar gains Atlas; /atlas is public and a signed-in reade
   const app = read("client/src/App.jsx");
   const tabs = app.slice(at(app, "const appTabs = ["), at(app, "];", at(app, "const appTabs = [")));
   assert.deepEqual([...tabs.matchAll(/\{ id: "([^"]+)",\s*label: "([^"]+)" \}/g)].map(m => m[2]),
-    ["Daily Deck", "Full House", "Draft House", "Atlas"]); // ⭐ D146: The Table merged into Draft House
+    ["Home", "Draft House", "Atlas"]); // ⭐ D146: The Table merged into Draft House · ⭐ D152: Daily Deck + Full House = Home
   // The tab routes through the ONE tab → path mapping (NAVIGABLE_TABS is derived from appTabs), and the page mounts.
   assert.match(app, /new Set\(\[\.\.\.appTabs\.map\(t => t\.id\)/);
   // + D116 M7: /app/atlas/family/:key is a page too.

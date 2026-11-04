@@ -17,8 +17,8 @@ const tabsBlock = () => app.slice(at(app, "const appTabs = ["), at(app, "];", at
 test("D10/D18: the bar reads Daily Deck · Full House · Draft House · The Table, in that order, ids unchanged", () => {
   const ids = [...tabsBlock().matchAll(/\{ id: "([^"]+)",\s*label: "([^"]+)" \}/g)].map(m => [m[1], m[2]]);
   assert.deepEqual(ids, [
-    ["today", "Daily Deck"],
-    ["console", "Full House"],
+    // ⭐ D152 (1) / (4), changed on purpose (11-04): the Daily Deck and Full House are ONE screen, one entry — Home.
+    ["today", "Home"],
     ["auto-apply", "Draft House"],   // D18 amended D10's "Draft"
     // ⭐ D146 (changed on purpose, 11-03): The Table merged into Draft House — one entry; /app/database redirects.
     // ⭐ D105 P4 (changed on purpose): D102's navigation gains one place — the Atlas — after the card family.

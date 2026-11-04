@@ -99,8 +99,10 @@ test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 the
       .card{height:84px;border-radius:14px;background:var(--c-surface);border:1px solid var(--c-fh-line);box-shadow:var(--c-depth-rest)}
     </style></head><body>
     <div class="chrome"><div class="tbar-group"><b>draft</b></div><span class="appnav-menu-btn">Menu</span></div>
-    <!-- ⭐ D145: the Dock (risen), in place of the retired tab row -->
-    <nav class="appnav-dock" data-up="true"><a class="appnav-item" aria-current="page"><span class="appnav-name">Full House</span><small class="appnav-plain">every job</small></a><a class="appnav-item"><span class="appnav-name">Draft House</span><small class="appnav-plain">in progress</small></a></nav>
+    <!-- ⭐ D145: the Dock, in place of the retired tab row. ⭐ D152 (4), changed on purpose: the dock is on the LEFT edge and
+         rests off-screen; when it is out it PUSHES the page (test/d152Home.test.js measures it covering nothing), so the
+         seams here are read with it at rest. -->
+    <nav class="appnav-dock" data-up="false"><a class="appnav-item" aria-current="page"><span class="appnav-name">Full House</span><small class="appnav-plain">every job</small></a><a class="appnav-item"><span class="appnav-name">Draft House</span><small class="appnav-plain">in progress</small></a></nav>
     ${stuck === "true" ? "" : `<header class="fh" id="hd"><h1 class="bh"><span class="bh__verb">discovering</span> <button class="tok">all</button> roles at <button class="tok">all</button> career levels and <button class="tok">all</button> workstyles in <button class="tok" aria-pressed="true">the United States</button>.</h1></header>`}
     <!-- stuck: the bar's box at the chrome's edge, as top: var(--app-chrome-height) puts it (the bar's 16px margin collapses outside the box) -->
     <main style="${stuck === "true" ? "margin-top:-16px" : "padding-top:24px"}"><div class="sticky-bar fh fh--bar-row" id="bar" data-stuck="${stuck}"><div class="fh-bar">
