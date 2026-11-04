@@ -17,7 +17,7 @@ import {
   SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, wouldEmpty, activeClauseCount,
   OPEN_SET_CLAUSES, chosenValues, slotText, sentenceParts, sentenceText, panelWord, panelAnyWord,
 } from "../../../shared/filterSentence.js";
-import { SORTS } from "../../../shared/jobFilterOptions.js";
+import { SORTS, POSTING_AGE } from "../../../shared/jobFilterOptions.js";
 
 export { SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, activeClauseCount, OPEN_SET_CLAUSES, slotText, sentenceParts, sentenceText };
 
@@ -297,6 +297,18 @@ export function viewCounts(facets) {
   const v = facetsUsable(facets) ? facets.views : null;
   const n = (x) => (Number.isFinite(x) ? x : null);
   return { all: n(v?.all), saved: n(v?.saved), pending: n(v?.pending), imported: n(v?.imported) };
+}
+
+/**
+ * ⭐ D147 · the board's minimal counts — jobs · new today · saved. `jobs` and `saved` are the views' counts; `newToday` is
+ * the Posted clause's "Past 24h" count (the same filters, the age replaced). null when the answer does not hold it.
+ */
+export function boardCounts(facets) {
+  const v = viewCounts(facets);
+  // The one-day option, read off the contract (never a literal value here).
+  const day = POSTING_AGE.options.find(o => o.days === 1)?.value;
+  const posted = facetsUsable(facets) && day ? (facets.clauses?.posted || []).find(o => o.value === day) : null;
+  return { jobs: v.all, newToday: Number.isFinite(posted?.count) ? posted.count : null, saved: v.saved };
 }
 
 // ── The sort panel ──────────────────────────────────────────────────────────────────────────────

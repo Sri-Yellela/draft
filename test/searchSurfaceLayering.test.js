@@ -121,9 +121,9 @@ test("EVERY CONTROL THE PILL CARRIED IS STILL REACHABLE", () => {
   assert.match(app, /<BoardTabs \/>/, "BoardTabs is defined but never rendered");
   // ...and the three that did NOT need moving are still where they were.
   assert.match(app, /<BoardControlIcons \/>/);
-  // D24 → D35: the sort control is the bar's ⇅ square (it opens the sort panel).
-  assert.match(app, /<SortSquare\b/);
-  assert.match(read("client/src/components/BoardBar.jsx"), /aria-label=\{label \? `Sort: \$\{label\}` : "Sort"\}/);
+  // D24 → D35 → D147: the sort control is the title row's Sort / view WORD (it opens the sort panel, which holds the views).
+  assert.match(app, /<SortWord\b/);
+  assert.match(read("client/src/components/BoardBar.jsx"), /const said = `\$\{label \? `Sort: \$\{label\}` : "Sort"\}/);
   assert.match(topbar, /<ProfileSelectorDropdown/, "the profile switcher left the avatar menu");
   assert.match(read("client/src/components/BoardBar.jsx"),
     /placeholder="Job title, company, or anything in the posting…"/);

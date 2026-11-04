@@ -75,11 +75,11 @@ async function loadUi() {
         import BoardHeadline, { SENTENCE_ID, PANEL_ID } from ${abs("components/BoardHeadline.jsx")};
         import WordPanel, { PanelOptions, AddOptions, panelFocusTarget, panelKeyDown, openerSlot } from ${abs("components/WordPanel.jsx")};
         import SortPanel from ${abs("components/SortPanel.jsx")};
-        import { ViewSegment, SortSquare, SORT_GLYPH_PATH } from ${abs("components/BoardBar.jsx")};
+        import { ViewSegment, SortWord, SORT_GLYPH_PATH } from ${abs("components/BoardBar.jsx")};
         export const html = (C, props) => renderToStaticMarkup(createElement(C, props));
         export const htmlRouted = (C, props) => renderToStaticMarkup(createElement(MemoryRouter, null, createElement(C, props)));
         export { BoardHeadline, SENTENCE_ID, PANEL_ID, WordPanel, PanelOptions, AddOptions, panelFocusTarget,
-                 panelKeyDown, openerSlot, SortPanel, ViewSegment, SortSquare, SORT_GLYPH_PATH };`,
+                 panelKeyDown, openerSlot, SortPanel, ViewSegment, SortWord, SORT_GLYPH_PATH };`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -402,17 +402,20 @@ test("D35 §4: the VERTICAL ORDER is the sentence, the open panel, the bar, the 
   const app = strip(read("client/src/App.jsx"));
   // D49: the sentence in the header; the bar and the sort panel at the top of <main>, in StickyBar,
   // BEFORE the board — the same reading order, now able to stick.
+  // ⭐ D147 (owner 11-03): the title row (Full House + the Sort / view word, its panel beneath it) leads; then the
+  // sentence and its panel, the search bar, the counts, the jobs.
   const chrome = app.slice(at(app, '<header className="fh"'), at(app, "</main>"));
   const pos = (q) => at(chrome, q);
-  assert.ok(pos("<BoardHeadlineSlot />") < pos("<BoardBar />") && pos("<BoardBar />") < pos("<BoardSortSlot />"));
-  assert.ok(pos("<BoardSortSlot />") < pos("<JobsConsole "), "the jobs come after the bar");
+  assert.ok(pos("<BoardTitleRow />") < pos("<BoardHeadlineSlot />") && pos("<BoardHeadlineSlot />") < pos("<BoardBar />"));
+  assert.ok(pos("<BoardBar />") < pos("<BoardCounts />") && pos("<BoardCounts />") < pos("<JobsConsole "), "the jobs come after the bar");
+  assert.match(app.slice(at(app, "function BoardTitleRow()"), at(app, "function BoardCounts()")), /<BoardControlIcons \/>[\s\S]*<BoardSortSlot \/>/);
   assert.ok(at(app, "</header>") < at(app, "<main "), "the jobs come after the header");
   const panel = strip(read("client/src/panels/JobsPanel.jsx"));
   assert.doesNotMatch(panel, /<SortPanel\b|<WordPanel\b|<FilterDials\b/, "a panel renders between the bar and the board");
 });
 
 test("D35 §3 → D40: the CONDENSED BAR — FOUR views with counts, the search, ⇅ in a 40px square", async () => {
-  const { html, ViewSegment, SortSquare, SORT_GLYPH_PATH } = await loadUi();
+  const { html, ViewSegment, SortWord, SORT_GLYPH_PATH } = await loadUi();
   const views = [["all", "ALL", "All jobs"], ["saved", "★", "Saved jobs"], ["pending", "/d", "Pending apply"], ["imported", "+", "Imported jobs"]];
   const counted = html(ViewSegment, { views, value: "all", counts: viewCounts(FACETS) });
   assert.match(counted, /data-view="all" aria-pressed="true"[^>]*><span aria-hidden="true">ALL<\/span><span class="fh-ct" aria-hidden="true">400</);
@@ -422,23 +425,22 @@ test("D35 §3 → D40: the CONDENSED BAR — FOUR views with counts, the search,
   const blank = html(ViewSegment, { views, value: "all", counts: viewCounts(null) });
   assert.doesNotMatch(blank, /fh-ct/);
   // The sketch's glyph, exactly; open = filled (aria-expanded), a chosen order holds its edge.
+  // ⭐ D147 (owner 11-03): the ⇅ square became the Sort / view WORD in the title row — the same glyph beside the words.
   assert.equal(SORT_GLYPH_PATH, "M7 4v16M7 20l-3-3M7 4l3 3M17 20V4M17 4l3 3M17 20l-3-3");
-  assert.match(html(SortSquare, { open: true }), /data-board-icon="sort" data-active="false" aria-expanded="true"/);
-  assert.match(html(SortSquare, { chosen: true }), /data-active="true"/);
+  assert.match(html(SortWord, { open: true }), /data-board-icon="sort" data-active="false" aria-expanded="true"/);
+  assert.match(html(SortWord, { chosen: true }), /data-active="true"/);
   // ⛔ D40 (owner, 10-06): + is the FOURTH VIEW; the standalone + square is gone, everywhere.
   assert.match(counted, /data-view="imported"[^>]*><span aria-hidden="true">\+<\/span>/);
   assert.doesNotMatch(read("client/src/components/BoardBar.jsx"), /export function AddSquare/);
   assert.doesNotMatch(strip(read("client/src/App.jsx")), /<AddSquare\b/);
   const rules = cssRules(read(CSS_FILE));
   assert.ok(!rules.some(r => r.selector === ".fh-add"), "the + square's rule is back");
-  const ico = rules.find(r => r.selector === ".fh-ico");
-  assert.equal(ico.decls.width, "40px"); assert.equal(ico.decls.height, "40px");
   void typeVarName;
-  assert.ok(rules.some(r => r.selector === '.fh-ico[aria-expanded="true"]' && r.decls.background === "var(--c-accent)"), "sort open is not filled accent");
-  // The bar: views, the search, the squares — one row, and the search has no separate button.
+  assert.ok(rules.some(r => r.selector === '.fh-sortw[aria-expanded="true"]' && r.decls.background === "var(--c-accent)"), "sort open is not filled accent");
+  // D147: the bar is the search alone (the views and the sort word moved), and the search has no separate button.
   const app = strip(read("client/src/App.jsx"));
-  const bar = app.slice(at(app, "function BoardBar()"), at(app, "function AppDashboard("));
-  assert.match(bar, /<BoardTabs \/>\s*<BoardSearchBar \/>\s*<BoardControlIcons \/>/);
+  const bar = app.slice(at(app, "function BoardBar()"), at(app, "function BoardTitleRow()"));
+  assert.match(bar, /<div className="fh-bar" data-board-bar="">\s*<BoardSearchBar \/>\s*<\/div>/);
   assert.doesNotMatch(read("client/src/components/BoardBar.jsx"), /aria-label="Search"/, "a separate Search button is back");
   // ⚠ Phone: the bar becomes two rows, by decision — the search on its own line.
   const phone = read(CSS_FILE).slice(at(read(CSS_FILE), "@media (max-width: 600px)"));

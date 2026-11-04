@@ -101,6 +101,8 @@ test("Full House: the ★ Saved empty state and the first-run prompt follow the 
   assert.match(saved, /const connected = status\?\.state === "connected";/);
   assert.match(saved, /\{!connected && \(/, "a connected user is offered the extension again");
   const first = prompt.slice(at(prompt, "export function ExtensionFirstRunPrompt"), at(prompt, "export function SavedEmptyState"));
-  assert.match(first, /if \(dismissed \|\| !status \|\| status\.connected\) return null;/);
+  // D147 (11-03): the same condition, named — and the prompt is shown ONCE (a later visit treats it as seen).
+  assert.match(first, /const showing = !dismissed && !!status && !status\.connected;/);
+  assert.match(first, /if \(!showing\) return null;/);
   assert.match(first, /"How to connect it" : "Get the extension"/);
 });

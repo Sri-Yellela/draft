@@ -27,7 +27,8 @@ test("D11 → D26: the header is ONE line — the filter sentence, where the cap
 
 test("D11: the Pending chip carries the draft mark, not an hourglass", () => {
   const tabs = app.slice(at(app, "const BOARD_TABS = ["), at(app, "];", at(app, "const BOARD_TABS = [")));
-  assert.match(tabs, /\["pending", <DraftMark[^>]*\/>, "Pending apply"\]/);
+  // ⭐ D147 (owner 11-03) changed this on purpose: the views are WORDS now (inside the Sort / view panel) — "Pending".
+  assert.match(tabs, /\["pending",\s+"Pending",\s+"Pending apply"\]/);
   assert.doesNotMatch(tabs, /⏳/);
 });
 

@@ -320,7 +320,8 @@ const src = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 test("⛔ D86 UI: the Résumé button's one click is unchanged, and the caret renders nothing while the operator's switch is off", () => {
   const panel = src("client/src/components/JobDetailPanel.jsx");
   assert.match(panel, /<DepthButton icon=\{ICONS\.resume\} onClick=\{\(\) => onGenerate\(false\)\}/, "the wide Résumé button still calls Generate");
-  assert.match(panel, /<DepthButton size="square" icon=\{ICONS\.resume\} onClick=\{\(\) => onGenerate\(false\)\}/, "the square one too");
+  // D147 (11-03): the icon-square rendering is gone — the one Résumé button lives under More.
+  assert.doesNotMatch(panel, /size="square"/, "no square rendering is left to drift");
   const choice = src("client/src/components/ByomResumeChoice.jsx");
   assert.match(choice, /if \(!byom\?\.available\) return null;/, "no caret while the feature is off");
   assert.match(choice, /available: !!settings\?\.available/);

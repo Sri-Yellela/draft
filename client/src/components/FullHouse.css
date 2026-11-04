@@ -35,12 +35,16 @@
    The attribute sets CUSTOM PROPERTIES and the rules below only read them, so a preview carrying its own
    data-sentence is drawn in its own look whatever <html> carries. ⛔ Neither look letters a token: both are
    INLINE boxes in the sentence's own type (D34) — an inline box's padding and border never change the line. */
+/* ⭐ D147 (owner 11-03): the marked look is now the sketch's — every changeable word UNDERLINED IN THE ACCENT, and a SET
+   filter keeps the underline and the ink instead of becoming the orange box (the --tok-on-* properties). */
 [data-sentence="marked"] {
   --bh-room: 1;
   --tok-pad: 0 .08em; --tok-margin: 0; --tok-edge: transparent; --tok-fill: transparent; --tok-radius: 2px;
-  --tok-depth: inset 0 -.16em 0 var(--c-accent-quiet);
-  --tok-hover-fill: var(--c-accent-quiet); --tok-hover-edge: transparent; --tok-hover-depth: inset 0 -.16em 0 var(--c-accent-ink);
-  --tok-on-pad: 0 .3em; --tok-on-margin: 0 .04em;
+  --tok-depth: inset 0 -1.5px 0 var(--c-accent);
+  --tok-hover-fill: transparent; --tok-hover-edge: transparent; --tok-hover-depth: inset 0 -2px 0 var(--c-accent-ink);
+  --tok-on-pad: 0 .08em; --tok-on-margin: 0;
+  --tok-on-fill: transparent; --tok-on-edge: transparent; --tok-on-ink: var(--c-ink); --tok-on-depth: inset 0 -1.5px 0 var(--c-accent);
+  --tok-on-radius: 2px; --tok-on-hover-ink: var(--c-accent-ink);
 }
 [data-sentence="calm"] {
   --bh-room: 1.2;
@@ -76,11 +80,11 @@
 }
 /* ACTIVE — a filter is set: the ONE orange box, its own orange depth, dark text. */
 .bh .tok[aria-pressed="true"] {
-  background: var(--c-accent); border-color: var(--c-fh-accent-edge); color: var(--c-fh-on-accent);
-  box-shadow: var(--c-depth-accent); border-radius: 10px;
+  background: var(--tok-on-fill, var(--c-accent)); border-color: var(--tok-on-edge, var(--c-fh-accent-edge)); color: var(--tok-on-ink, var(--c-fh-on-accent));
+  box-shadow: var(--tok-on-depth, var(--c-depth-accent)); border-radius: var(--tok-on-radius, 10px);
   padding: var(--tok-on-pad, 0 .3em); margin: var(--tok-on-margin, 0 .04em);
 }
-.bh .tok[aria-pressed="true"]:hover, .bh .tok[aria-pressed="true"]:focus-visible { color: var(--c-fh-on-accent); }
+.bh .tok[aria-pressed="true"]:hover, .bh .tok[aria-pressed="true"]:focus-visible { color: var(--tok-on-hover-ink, var(--c-fh-on-accent)); }
 /* OPEN — its panel is showing: an OUTLINE, a different signal from the fill, and a word can carry both. */
 .bh .tok[aria-expanded="true"],
 .bh .tok[aria-expanded="true"]:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
@@ -243,3 +247,40 @@
 @media (max-width: 860px) {
   .fh.fh--bar-row[data-stuck="true"]::before { left: 0; right: 0; }
 }
+
+/* ── ⭐ D147 (owner 11-03, fullhouse-declutter.html) · FULL HOUSE, RESTYLED ─────────────────────────────────────────
+ * The title + the ONE Sort / view word · the sentence in the serif at ≈ 30px, its words underlined in the accent ·
+ * the search under it (the sticky bar, now the search alone) · the minimal counts · the postings.
+ * ⛔ D34 still holds: the sentence's type is set by OVERRIDING its tokens on .fh[data-fh-d147]; no token rule names a font. */
+.fh[data-fh-d147] {
+  --fh-sentence-family: var(--font-display); --fh-sentence-size: min(30px, 7vw); --fh-sentence-line: 1.35;
+  --fh-sentence-weight: 400; --fh-sentence-style: normal;
+}
+.fh-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; }
+.fh-title__h { margin: 0; font: 400 min(44px, 10vw)/1 var(--font-display); color: var(--c-ink); letter-spacing: -.01em; }
+.fh[data-fh-d147] .bh { letter-spacing: 0; max-width: 32ch; }
+/* The Sort / view word: the ⇅ glyph and the words, a quiet box (D60: never a capsule). */
+.fh-sortw {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; cursor: pointer;
+  border: 1px solid var(--c-fh-line); border-radius: var(--shape-radius-control, 12px);
+  background: var(--c-fh-surface); color: var(--c-ink-muted); font: 600 14px/1.1 var(--font-body);
+  transition: color .16s, border-color .16s, background .16s;
+}
+.fh-sortw svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+.fh-sortw:hover, .fh-sortw:focus-visible { color: var(--c-ink); border-color: var(--c-accent-ink); outline: none; }
+.fh-sortw[data-active="true"] { color: var(--c-ink); border-color: var(--c-accent-ink); }
+.fh-sortw[aria-expanded="true"] { background: var(--c-accent); color: var(--c-fh-on-accent); border-color: var(--c-fh-accent-edge); }
+/* The views inside the sort panel, as words. */
+.fh-show { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--c-fh-line); display: flex; flex-direction: column; gap: 8px; }
+.fh-show .fh-views { padding: 0; margin: 0; border-right: 0; flex-wrap: wrap; gap: 6px; }
+.fh-show .fh-views button { font: 600 13px/1 var(--font-body); padding: 8px 12px; border: 1px solid var(--c-fh-line); background: var(--c-fh-well); }
+.fh-show .fh-views .fh-ct { font-size: 11px; }
+/* The bar is the search alone. */
+.fh--bar-row .fh-bar { margin-top: 4px; }
+/* The minimal counts. */
+.fh.fh-counts { display: flex; gap: 28px; flex-wrap: wrap; padding-top: 10px; padding-bottom: 14px; }
+.fh-count b { display: block; font: 500 28px/1.1 var(--font-body); letter-spacing: -.03em; color: var(--c-ink); }
+.fh-count span { display: block; font-size: 13px; color: var(--c-ink-faint); }
+.fh-count--hot b { color: var(--c-accent-ink); }
+@media (max-width: 600px) { .fh.fh-counts { gap: 18px; padding-top: 6px; } .fh-count b { font-size: 24px; } }
+@media (prefers-reduced-motion: reduce) { .fh-sortw { transition: none; } }

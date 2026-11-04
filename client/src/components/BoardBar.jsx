@@ -5,6 +5,8 @@ import UsbSuggest from "./UsbSuggest.jsx";
 import "./UnifiedSearchBar.css";
 import "./FullHouse.css";
 
+// ⭐ D147 (owner 11-03): the bar is the SEARCH alone now — the views moved into the Sort / view control's panel (as
+// words) and the sort control moved to the title row (SortWord). D35's account below is the history.
 // ── D35 §3 · THE CONDENSED BAR — one row, below the sentence, above the jobs ─────────────────────────
 //
 //   [ ALL 2626 · ★ 14 · /d 9 · + 3 ]  [ search ———————————— ]  [ ⇅ ]      (D40: + is a view)
@@ -64,14 +66,20 @@ export function BoardSearch({ onSubmit }) {
 /** The sketch's sort glyph — two arrows, up and down, exactly header.html's path. */
 export const SORT_GLYPH_PATH = "M7 4v16M7 20l-3-3M7 4l3 3M17 20V4M17 4l3 3M17 20l-3-3";
 
-/** ⇅ — a 40px square. Open = filled accent; a chosen (non-default) order holds the accent edge. */
-export function SortSquare({ open = false, chosen = false, label = "", onPress }) {
+/**
+ * ⭐ D147 (owner 11-03) · THE ONE SORT / VIEW CONTROL — it was the ⇅ square in the bar; now it is a WORD in the title
+ * row: "⇅ Sort: <the order's label>", + " · Saved" when a view other than All jobs is chosen (the views live in its panel).
+ * Open = filled accent; a chosen (non-default) order or view holds the accent edge. The same attributes the square had.
+ */
+export function SortWord({ open = false, chosen = false, label = "", view = null, onPress }) {
+  const said = `${label ? `Sort: ${label}` : "Sort"}${view ? ` · ${view}` : ""}`;
   return (
-    <button type="button" className="fh-ico" data-board-icon="sort" data-active={chosen ? "true" : "false"}
+    <button type="button" className="fh-sortw" data-board-icon="sort" data-active={chosen ? "true" : "false"}
       aria-expanded={open} aria-controls={open ? "fh-sort" : undefined}
-      aria-label={label ? `Sort: ${label}` : "Sort"} title={label ? `Sort: ${label}` : "Sort"}
+      aria-label={`${said} — change the order or the view`} title={`${said} — change the order or the view`}
       onClick={() => onPress?.()}>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d={SORT_GLYPH_PATH} /></svg>
+      <span>{said}</span>
     </button>
   );
 }

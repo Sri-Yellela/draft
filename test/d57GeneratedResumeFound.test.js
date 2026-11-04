@@ -154,7 +154,8 @@ test("D57 · deleting frees the button: the delete answers, the board hears resu
   // D86: two renderings of the same control — the plain button, or the split while bring-your-own-model is on.
   // Both stay gated on !hasArtifact, which is what this pins.
   assert.match(jd, /\{canGen && onGenerate && !hasArtifact && !byom\.available && \(/, "no résumé → the Résumé button");
-  assert.match(jd, /\{canGen && onGenerate && !hasArtifact && byom\.available && split\(false, "Résumé"/, "no résumé → the Résumé split");
+  // D147 (11-03): under More the button reads "Résumé for this job".
+  assert.match(jd, /\{canGen && onGenerate && !hasArtifact && byom\.available && split\(false, "Résumé for this job"/, "no résumé → the Résumé split");
 });
 
 test("D57 · the retention sweep deletes an expired convenience copy and never a drafted/applied one", () => {
@@ -218,7 +219,8 @@ test("D57 · after a reload the stored résumé reads 'Résumé ready · 2h ago'
   const acts = jd.slice(at(jd, "function PostingActions("), at(jd, "export default function JobDetailPanel("));
   assert.match(acts, /const hasArtifact = done && !!g\?\.html;/, "a stored résumé counts — it used to be hidden behind Regenerate");
   assert.match(acts, /\{ago \? `Résumé ready · \$\{ago\}` : "Résumé ready"\}/);
-  for (const label of [">View<", ">Download<", '"Regenerate"']) assert.ok(acts.includes(label), label);
+  // D147 (11-03): under More, "View" reads "View résumé" (the row is no longer beside the résumé button).
+  for (const label of [">View résumé<", ">Download<", '"Regenerate"']) assert.ok(acts.includes(label), label);
   assert.doesNotMatch(acts, /done \? "Regenerate" : "Résumé"/, "never a Regenerate button in place of the résumé");
   assert.match(jd, /if \(s < 86400\) return `\$\{Math\.round\(s \/ 3600\)\}h ago`;/);
 });

@@ -368,7 +368,8 @@ test("d146NothingDropped — every capability in the row's map survives, where t
   // Resumes → each row's Résumé pane (+ Profile).
   check("Resumes → the Résumé pane + Profile", /navigate\("\/app\/profile"\)/.test(panel) && /\{id === "resume" && profileLink\}/.test(panel) && /\["resumes","Resumes"\]/.test(dbPanel));
   // Saved Jobs → Full House's Saved.
-  check("Saved Jobs → Full House's Saved", /\["saved",\s+"★",\s+"Saved jobs"\]/.test(app) && /\.filter\(\(\[id\]\) => !\(embedded && id === "saved"\)\)/.test(dbPanel));
+  // D147 (11-03): the view is the word "Saved" now (the Sort / view panel), not ★.
+  check("Saved Jobs → Full House's Saved", /\["saved",\s+"Saved",\s+"Saved jobs"\]/.test(app) && /\.filter\(\(\[id\]\) => !\(embedded && id === "saved"\)\)/.test(dbPanel));
   // Pending Apply / Not applied → In progress / Stopped (one meaning each).
   check("Pending Apply → In progress", byJob(rows, "j-self").filter === "progress" && stageOfHistory({ status: "in_play", origin: "opened_posting" }) === "pending_self");
   check("Not applied → Stopped", byJob(rows, "j-gone").filter === "stopped" && byJob(rows, "j-gone").stage === "not_applied");
