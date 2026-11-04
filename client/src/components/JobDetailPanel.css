@@ -124,3 +124,14 @@
 @container pp (max-width: 420px) { .pp__main-acts { grid-template-columns: 1fr 1fr 1.4fr auto; } .pp__moreb { grid-column: auto; padding: 14px 16px; } }
 /* Full screen (the panel host's phone fallback) — the panel's own state, never a window query (D48). */
 .pp[data-full-screen="true"] { padding: 70px 20px 30px; }
+
+/* ── ⭐ D152 (8) · OPTION A — THE MATCH OPENS INSIDE THE POSTING, under the facts (ats-options.html option A) ──────────────
+ * Its height grows from 0 and folds back by CSS (grid-template-rows 0fr → 1fr) — nothing measured — over .35s; reduced
+ * motion: instant. No overlay, no blur: the posting below is pushed down. The card is the facts box's raised surface,
+ * corner 18; the accent eyebrow "Your résumé against this job" over the one report (ATSPanel). */
+.pp__matchrow { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s cubic-bezier(.2, .9, .3, 1); }
+.pp__matchrow[data-open="true"] { grid-template-rows: 1fr; }
+.pp__matchin { min-height: 0; overflow: hidden; }
+.pp__matchcard { margin: 12px 0 18px; padding: 18px; border-radius: 18px; background: var(--c-surface-2); }
+.pp__matcheyebrow { margin: 0 0 8px; color: var(--c-accent-ink); font-size: calc(14px * var(--type-scale, 1)); }
+@media (prefers-reduced-motion: reduce) { .pp__matchrow { transition: none; } }

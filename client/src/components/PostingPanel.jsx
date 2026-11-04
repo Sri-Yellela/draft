@@ -36,8 +36,10 @@ function Lit({ text, term }) {
 }
 
 /** The masthead. `showTitle` false where the surface already shows the title (the deck card's heading). */
-export function PostingMasthead({ job, experience = null, showTitle = true, vtTitle = null, layout = "deck", matchBox = null }) {
-  if (layout === "panel") return <PanelMasthead job={job} experience={experience} vtTitle={vtTitle} matchBox={matchBox} />;
+export function PostingMasthead({ job, experience = null, showTitle = true, vtTitle = null, layout = "deck", matchBox = null,
+                                 matchPanel = null }) {
+  if (layout === "panel") return <PanelMasthead job={job} experience={experience} vtTitle={vtTitle} matchBox={matchBox}
+    matchPanel={matchPanel} />;
   const kicker = kickerFor(job);
   const cells = deckStrip(job, { experience });
   return (
@@ -93,7 +95,7 @@ export function panelWords(cell, job, now = Date.now()) {
   return cell;
 }
 
-function PanelMasthead({ job, experience, vtTitle, matchBox }) {
+function PanelMasthead({ job, experience, vtTitle, matchBox, matchPanel = null }) {
   const [open, setOpen] = useState(null);
   const cells = deckStrip(job, { experience }).map(c => panelWords(c, job));
   const extra = [];
@@ -136,6 +138,9 @@ function PanelMasthead({ job, experience, vtTitle, matchBox }) {
         </dl>
         {matchBox && <div className="posting__match" data-posting-match="">{matchBox}</div>}
       </div>
+      {/* ⭐ D152 (8): the slot right under the facts box where the panel's match opens (option A). The posting draws it
+          as given — it holds no report and no motion of its own (D32); JobDetailPanel owns both. */}
+      {matchPanel}
       {shown && <div className="posting__cell-more" data-cell-more={shown.key}>{shown.more}</div>}
     </header>
   );
@@ -290,13 +295,14 @@ export function PostingBody({ text, jobId = null }) {
 // ⭐ D147: `layout="panel"` is the opened posting (JobDetailPanel) — its masthead is PanelMasthead, and the label
 // block's other fields (travel, relocation …) follow the description instead of preceding it. The deck keeps "deck".
 export default function PostingPanel({ job, text = job?.description, experience = null, showTitle = true, vtTitle = null, children = null,
-                                       layout = "deck", matchBox = null }) {
+                                       layout = "deck", matchBox = null, matchPanel = null }) {
   if (!job) return null;
   const body = String(text || "").trim();
   const panel = layout === "panel";
   return (
     <article className={`posting ink-pair${panel ? " posting--panel" : ""}`} data-posting-panel data-posting-layout={layout}>
-      <PostingMasthead job={job} experience={experience} showTitle={showTitle} vtTitle={vtTitle} layout={layout} matchBox={matchBox} />
+      <PostingMasthead job={job} experience={experience} showTitle={showTitle} vtTitle={vtTitle} layout={layout} matchBox={matchBox}
+        matchPanel={matchPanel} />
       {/* ⭐ D149 (fullhouse-declutter.html): the accent eyebrow "The posting" heads the description. */}
       {panel && <p className="posting__eyebrow" data-posting-eyebrow="">The posting</p>}
       {body ? <PostingBody text={body} jobId={job.id ?? null} /> : <div className="posting__none">{children}</div>}

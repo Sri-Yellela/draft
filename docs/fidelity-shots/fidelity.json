@@ -773,5 +773,83 @@
     ],
     "appErrors": [],
     "at": "2026-11-04T23:21:39.396Z"
+  },
+  "home-match-desktop": {
+    "sketch": "ats-options.html",
+    "app": "/app",
+    "similarity": 0.7884,
+    "worstRegions": [
+      {
+        "row": 6,
+        "col": 2,
+        "diff": 0.866
+      },
+      {
+        "row": 7,
+        "col": 2,
+        "diff": 0.85
+      },
+      {
+        "row": 5,
+        "col": 2,
+        "diff": 0.791
+      },
+      {
+        "row": 1,
+        "col": 0,
+        "diff": 0.746
+      },
+      {
+        "row": 4,
+        "col": 2,
+        "diff": 0.735
+      },
+      {
+        "row": 2,
+        "col": 6,
+        "diff": 0.68
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T23:32:41.579Z"
+  },
+  "home-match-phone": {
+    "sketch": "ats-options.html",
+    "app": "/app",
+    "similarity": 0.8369,
+    "worstRegions": [
+      {
+        "row": 1,
+        "col": 1,
+        "diff": 0.443
+      },
+      {
+        "row": 2,
+        "col": 1,
+        "diff": 0.429
+      },
+      {
+        "row": 2,
+        "col": 2,
+        "diff": 0.354
+      },
+      {
+        "row": 5,
+        "col": 2,
+        "diff": 0.32
+      },
+      {
+        "row": 0,
+        "col": 6,
+        "diff": 0.299
+      },
+      {
+        "row": 5,
+        "col": 3,
+        "diff": 0.299
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T23:32:52.293Z"
   }
 }

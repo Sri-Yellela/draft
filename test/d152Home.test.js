@@ -108,6 +108,16 @@ test("d152DockLeftWithLogo / d153DockPushes / d152DockSlidesFromLeftEdge (real C
   assert.ok(O.post && O.inBoard, "d152OnePostingPanelEverywhere — the posting takes the board column");
   assert.equal(O.listOut, "true"); assert.equal(O.listInert, true, "the folded list is out of the keyboard's reach");
   assert.equal(O.coversDeck, false, "d153NoOverlapOpenFilter — the posting never covers the deck");
+  // ⭐ D152 (8) · option A: the match opens IN the posting, under the facts, and folds again — no overlay, no blur.
+  for (const [size, d] of Object.entries(out)) {
+    const m = d.opened.match;
+    assert.equal(m.opened, "true", `${size}: d152AtsTogglesFromMatchBox — the match box opens it`);
+    assert.ok(m.height > 0 && m.underFacts, `${size}: d152AtsInlineUnderFacts (${m.height} px under the facts)`);
+    assert.equal(m.eyebrow, "Your résumé against this job");
+    assert.equal(m.overlay, false, `${size}: d152AtsNoOverlayNoBlur — no separate panel`);
+    assert.equal(m.blur, false, `${size}: … and nothing blurred`);
+    assert.deepEqual([m.folded, m.foldedHeight, m.foldedInert], ["false", 0, true], `${size}: pressing it again folds it`);
+  }
   for (const [size, d] of Object.entries(out)) {
     assert.equal(d.closed.sameListNode, true, `${size}: d153OpenPostingNoRemount — the list's node survives an open / close`);
     assert.equal(d.closed.post, false, `${size}: closed`);

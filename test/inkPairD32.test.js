@@ -312,7 +312,7 @@ test("⛔ the ATS content is OUT of the description — the posting reads no rep
   // It is handed, at most, the scorer's experience judgement — for the Experience cell's tint.
   // D147 (11-03): + `layout` and `matchBox` — the match box is the one AtsNumberBox handed in as a NODE; this file
   // still reads no report section (the scan above).
-  assert.match(POSTING, /export default function PostingPanel\(\{ job, text = job\?\.description, experience = null, showTitle = true, vtTitle = null, children = null,\s+layout = "deck", matchBox = null \}\)/);
+  assert.match(POSTING, /export default function PostingPanel\(\{ job, text = job\?\.description, experience = null, showTitle = true, vtTitle = null, children = null,\s+layout = "deck", matchBox = null, matchPanel = null \}\)/);   // ⭐ D152 (8), changed on purpose: + the match slot, drawn as given
 });
 
 test("⛔ D17: zero model calls — the masthead is columns, tags and a regex; the body is the stored text", () => {
