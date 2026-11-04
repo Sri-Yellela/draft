@@ -103,7 +103,9 @@ function PanelMasthead({ job, experience, vtTitle, matchBox }) {
   else if (job.sponsorshipFact?.text) extra.push({ key: "sponsorship", label: "Visa filings", value: "On file", more: <PostingSponsorship fact={job.sponsorshipFact} /> });
   const req = requirementPills(job.requirements);
   if (req.length) extra.push({ key: "requirements", label: "Requirements", value: req.map(p => p.label).join(" · ") });
-  const all = [...cells, ...extra];
+  // ⛔ D153 (5) / D152 (7) (owner 11-04): a fact that is not on file is LEFT OUT of the opened posting's facts box — no
+  // "not stated" cell. (The deck card's strip, above, keeps its own rule.)
+  const all = [...cells, ...extra].filter(c => c.value != null);
   const shown = all.find(c => c.key === open && c.more);
   const toggle = (key) => setOpen(o => (o === key ? null : key));
   return (
