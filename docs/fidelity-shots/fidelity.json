@@ -543,7 +543,7 @@
   "home-desktop": {
     "sketch": "home-sketch.html",
     "app": "/app",
-    "similarity": 0.8778,
+    "similarity": 0.8801,
     "worstRegions": [
       {
         "row": 0,
@@ -561,11 +561,6 @@
         "diff": 0.336
       },
       {
-        "row": 6,
-        "col": 3,
-        "diff": 0.334
-      },
-      {
         "row": 0,
         "col": 0,
         "diff": 0.309
@@ -573,11 +568,16 @@
       {
         "row": 4,
         "col": 3,
-        "diff": 0.3
+        "diff": 0.307
+      },
+      {
+        "row": 1,
+        "col": 0,
+        "diff": 0.292
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T22:26:10.510Z"
+    "at": "2026-11-04T22:39:34.135Z"
   },
   "home-phone": {
     "sketch": "home-sketch.html",
@@ -616,12 +616,12 @@
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T22:26:18.716Z"
+    "at": "2026-11-04T22:39:42.252Z"
   },
   "home-dock-desktop": {
     "sketch": "home-sketch.html",
     "app": "/app",
-    "similarity": 0.847,
+    "similarity": 0.8518,
     "worstRegions": [
       {
         "row": 0,
@@ -655,7 +655,7 @@
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T22:26:27.588Z"
+    "at": "2026-11-04T22:39:51.156Z"
   },
   "home-dock-phone": {
     "sketch": "home-sketch.html",
@@ -694,6 +694,6 @@
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T22:26:35.900Z"
+    "at": "2026-11-04T22:39:59.345Z"
   }
 }

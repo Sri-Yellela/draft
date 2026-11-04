@@ -37,9 +37,14 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
     assert.deepEqual(d.counts.map(c => [c.size, c.weight]), Array(3).fill(["30px", "500"]));
     assert.equal(d.counts[1].color, ACCENT, `${size}: "new today" in the accent`);
     // The rows.
-    assert.deepEqual([d.row.bg, d.row.radius, d.row.border, d.row.shadow, d.row.padding], [CARD, "20px", "0px", "none", "14px 16px"],
-      `${size}: a row is the card, corner 20, no border, no shadow`);
-    assert.equal(d.row.gap, 8, `${size}: rows 8px apart`);
+    // ⭐ D152 (5), changed on purpose: where the list is two columns (a phone here — its posting is the screen, not beside
+    // the list) a row is Home's bubble, corner 22, padding 16; beside an open posting (the computer) the one column keeps
+    // the row's 20 / 14 16.
+    const bubble = size === "phone";
+    assert.deepEqual([d.row.bg, d.row.radius, d.row.border, d.row.shadow, d.row.padding],
+      [CARD, bubble ? "22px" : "20px", "0px", "none", bubble ? "16px" : "14px 16px"],
+      `${size}: a row is the card, no border, no shadow`);
+    assert.equal(d.row.gap, bubble ? 12 : 8, `${size}: rows 8px apart (Home's pairs 12, D152 (5))`);
     assert.match(d.row.outline, /solid rgb\(251, 211, 196\)$/, `${size}: the open row is outlined in the accent`);
     assert.match(d.row.title.family, UI); assert.deepEqual([d.row.title.size, d.row.title.weight, d.row.title.color], ["15px", "600", INK]);
     assert.deepEqual([d.row.sub.size], ["13px"]); assert.deepEqual([d.row.meta.size, d.row.meta.color], ["12.5px", BODY]);

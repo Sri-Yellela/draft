@@ -164,8 +164,12 @@ test("an unscored row still offers a way into its ATS report", () => {
   assert.doesNotMatch(slot, /atsBandFor|atsBandLabel/,
     "the neutral control may not consult the band vocabulary — there is no band to report");
 
-  // Both call sites go through it, or the two rows of one card disagree about when it appears.
-  assert.equal((JOBS_PANEL.match(/onAts=\{\(\) => openAtsPanel\(buildAtsPayload\(job, g\)\)\}/g) || []).length, 1);
+  // ⭐ D152 (5), changed on purpose (11-04): the board's bubbles carry no ATS square any more ("the old green ATS box leaves
+  // the bubbles") — an unscored row's way into its report is the opened posting's match box, whose handler is not gated
+  // on a score (JobDetailPanel's onOpen → selectedJobMeta.onAts).
+  assert.equal((JOBS_PANEL.match(/onAts=\{\(\) => openAtsPanel\(buildAtsPayload\(job, g\)\)\}/g) || []).length, 0);
+  assert.match(JOBS_PANEL, /onAts: \(\) => openAtsPanel\(buildAtsPayload\(selectedJob, g2\)\),/);
+  assert.match(fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8"), /onOpen=\{\(\) => selectedJobMeta\?\.onAts\?\.\(\)\}/);
   noLiveMatch(JOBS_PANEL, /if \(g\?\.atsReport \|\| g\?\.atsScore != null/,
     "the handler may not require the report it exists to go and fetch");
   assert.equal((JOB_CARD.match(/<AtsSlot score=/g) || []).length, 2);
