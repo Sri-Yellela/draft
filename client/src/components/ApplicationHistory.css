@@ -59,17 +59,19 @@
 .ah__title { font-size: 12.5px; color: var(--c-ink-muted); }
 .ah__meta  { font-size: 11px; color: var(--c-ink-faint); }
 
-.ah__status { flex-shrink: 0; border-radius: 6px; padding: 4px 8px 4px 7px; font: 800 italic 10.5px/1 'Poppins', var(--font-body);
-              white-space: nowrap; color: var(--c-ink-muted); border-left: 3px solid currentColor;
-              background: color-mix(in srgb, currentColor 12%, transparent); } /* D60: a mark, never a capsule */
-.ah__status[data-status="in_play"]  { color: var(--c-info); }
-.ah__status[data-status="sent"]     { color: var(--c-warning); }
-.ah__status[data-status="replied"]  { color: var(--c-success); }
+/* ⛔ D152 (7b): no label chip — the status is a word in body grey with a 6px dot before it in the status's tone (the
+   tracker's style, D146); one that needs the user ("ask") is the word in the accent. Never a capsule (D60). */
+.ah__status { flex-shrink: 0; --st: var(--c-ink-muted); padding-left: 12px; white-space: nowrap; color: var(--c-ink-muted);
+              font: 500 calc(12.5px * var(--type-scale, 1))/1.4 var(--shape-font-ui, var(--font-body));
+              background: radial-gradient(circle at 3px 50%, var(--st) 3px, transparent 3.5px) no-repeat; }
+.ah__status[data-status="in_play"]  { --st: var(--c-info); }
+.ah__status[data-status="sent"]     { --st: var(--c-warning); }
+.ah__status[data-status="replied"]  { --st: var(--c-success); }
 /* D55 F: the funnel's stages inside "replied" — each its own tone (the Kanban and funnel use the same). */
-.ah__status[data-stage="screen"]       { color: var(--c-teal); }
-.ah__status[data-stage="interviewing"] { color: var(--c-violet); }
-.ah__status[data-stage="rejected"]     { color: var(--c-danger); }
-.ah__status[data-ask="true"]        { color: var(--c-accent-ink); }
+.ah__status[data-stage="screen"]       { --st: var(--c-teal); }
+.ah__status[data-stage="interviewing"] { --st: var(--c-violet); }
+.ah__status[data-stage="rejected"]     { --st: var(--c-danger); }
+.ah__status[data-ask="true"]        { color: var(--c-accent-ink); --st: var(--c-accent-ink); }
 
 /* THE RAIL — D1's motion: zero width until hover / focus-within. */
 .ah__rail {

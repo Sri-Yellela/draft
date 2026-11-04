@@ -65,10 +65,11 @@
   font-family: var(--font-body); font-size: 8.5px; font-weight: 700; letter-spacing: .12em;
   text-transform: uppercase; color: var(--c-pair-ink-faint); margin-right: 2px;
 }
+/* ⛔ D152 (7b): a posting's tag is a plain word in faint ink — no chip. */
 .posting__pill {
-  font: 800 italic 10.5px/1 'Poppins', var(--font-body); padding: 4px 8px 4px 7px; border-radius: 6px;
-  border: 0; border-left: 3px solid var(--c-pair-ink-faint); color: var(--c-pair-ink-faint);
-  background: color-mix(in srgb, var(--c-pair-ink-faint) 12%, transparent);
+  font: 500 calc(12.5px * var(--type-scale, 1))/1.4 var(--shape-font-ui, var(--font-body)); padding: 0; border-radius: 0;
+  border: 0; color: var(--c-pair-ink-faint);
+  background: none;
   cursor: default; user-select: text;
 }
 .posting__details { margin: 8px 0 0; font-family: var(--font-body); font-size: 11px; line-height: 1.45; color: var(--c-pair-ink-faint); }

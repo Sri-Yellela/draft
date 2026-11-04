@@ -109,15 +109,25 @@ test("⛔ D60 guard · it sees the extension's INJECTED CSS, and it catches a pi
   assert.equal(plant(`<i style={{ width: 7, height: 7, borderRadius: "50%" }}/>`), false, "a dot is a circle");
 });
 
-test("D60 · the mark: a rectangle with a 3px leading bar in the logo face — the sketch's .mkr", async () => {
+// ⭐ D152 (7b), changed on purpose (owner 11-04: "that label design wherever in the site get rid of it"): the mark is no
+// longer the .mkr chip (a tinted rectangle with a 3px bar, heavy italic) — it is D145's plain type: a word, no box / border /
+// fill / bar; a STATE carries a 6px dot before the word. Still never a capsule (D60): no radius at all now.
+test("D60 → D152 (7b) · the mark is a plain word; a state is a 6px dot before it — never a chip, never a capsule", async () => {
   const css = read("client/src/components/DepthButton.css");
-  assert.match(css, /\.mark \{[^}]*border-radius: 6px;[^}]*font: 800 italic 10\.5px\/1 'Poppins'[^}]*border-left: 3px solid var\(--mk-c\);[^}]*color-mix\(in srgb, var\(--mk-c\) 12%, transparent\)/);
-  assert.match(css, /\.mark-count \{[^}]*border-radius: 6px;/);
+  const mark = css.slice(at(css, ".mark {"), at(css, "}", at(css, ".mark {")) + 1);
+  assert.match(mark, /border-radius: 0; padding: 0;/);
+  assert.match(mark, /font-style: normal;/);
+  assert.match(mark, /border: 0; background: none;/);
+  assert.doesNotMatch(mark, /border-left|color-mix|italic|Poppins/, "no bar, no tint, no heavy italic face");
+  assert.match(css, /background: radial-gradient\(circle at 3px 50%, var\(--mk-c\) 3px, transparent 3\.5px\) no-repeat;/, "a state's 6px dot");
+  assert.match(css, /\.mark-count \{[^}]*border-radius: 6px;/, "a COUNT is still the small rectangle (not a label chip)");
   const src = read("client/src/styles/mark.js");
-  assert.match(src, /borderRadius: 6, padding: "4px 8px 4px 7px"/);
-  assert.match(src, /borderLeft: `3px \$\{dashed \? "dashed" : "solid"\} \$\{color\}`/);
-  // Not enough signal stays the ABSENCE of a grade: dashed, untinted (bandStyle.js's rule, kept).
-  assert.match(src, /background: dashed \? "transparent"/);
+  const fn = src.slice(at(src, "export function markStyle("), at(src, "export function bandMarkStyle("));
+  assert.match(fn, /borderRadius: 0, padding: state \? "0 0 0 12px" : 0,/);
+  assert.doesNotMatch(fn, /borderLeft|color-mix|fontStyle: "italic"|LOGO_FACE/);
+  assert.match(fn, /background: state \? `radial-gradient\(circle at 3px 50%, \$\{color\} 3px, transparent 3\.5px\) no-repeat` : "none",/);
+  // Not enough signal stays the ABSENCE of a grade: no dot (bandStyle.js's rule, kept).
+  assert.match(fn, /const state = !!k && !dashed;/);
 });
 
 test("D60 · the rule is written down where the next agent looks — BRAND.md and CLAUDE.md", () => {
@@ -136,9 +146,13 @@ test("D60 · the named offenders are gone: the nav tabs, résumé ready, the ban
   assert.match(css, /\.appnav-item \{[^}]*border-radius: var\(--shape-radius-control, 14px\);/, "the nav button is a box");
   assert.match(css, /\.appnav-item\[aria-current="page"\] \{ background: var\(--c-surface-2\); color: var\(--c-ink\); \}/, "the current one raised by its fill");
   assert.doesNotMatch(nav + css, /text-transform: uppercase|textTransform: "uppercase"/);
-  assert.match(read("client/src/components/JobBubble.css"), /\.jb__ready \{[^}]*border-radius: 6px;[^}]*border-left: 3px solid var\(--c-success\)/);
-  assert.match(read("client/src/components/PostingPanel.css"), /\.posting__pill \{[^}]*border-radius: 6px;[^}]*border-left: 3px solid/);
-  assert.match(read("client/src/components/ApplicationHistory.css"), /\.ah__status \{[^}]*border-radius: 6px;[^}]*border-left: 3px solid currentColor;/);
+  // ⭐ D152 (7b), changed on purpose: never a capsule, and no chip either — a word with a 6px success dot.
+  assert.match(read("client/src/components/JobBubble.css"), /\.jb__ready \{[^}]*border-radius: 0;[^}]*background: radial-gradient\(circle at 3px 50%, var\(--c-success\) 3px/);
+  // ⭐ D152 (7b), changed on purpose: the posting's tag is a plain word — no chip, no bar, never a capsule.
+  assert.match(read("client/src/components/PostingPanel.css"), /\.posting__pill \{[^}]*padding: 0; border-radius: 0;[^}]*background: none;/);
+  // ⭐ D152 (7b), changed on purpose: The Table's status is a word with a 6px dot in its tone — no chip.
+  assert.match(read("client/src/components/ApplicationHistory.css"), /\.ah__status \{[^}]*padding-left: 12px;[^}]*background: radial-gradient\(circle at 3px 50%, var\(--st\) 3px/);
+  assert.doesNotMatch(read("client/src/components/ApplicationHistory.css"), /\.ah__status \{[^}]*border-left/);
   for (const f of ["client/src/components/JobCard.jsx", "client/src/panels/JobsPanel.jsx", "client/src/panels/DeckView.jsx",
                    "client/src/panels/AtsReportPanel.jsx", "client/src/panels/DatabasePanel.jsx", "client/src/panels/AutoApplyPanelSections.jsx"]) {
     assert.doesNotMatch(read(f), /bandChipStyle/, `${f}: a band is a mark (bandMarkStyle), not the old filled chip`);
