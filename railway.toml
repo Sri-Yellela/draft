@@ -4,7 +4,9 @@ startCommand = "node server.js"
 # Without it, every deploy has a window where the edge has no listener and answers 502
 # ("/extension returns 502", 10-05). /api/health is a real API route registered before the SPA
 # catch-all, which would answer 200 for any path and make a check on it meaningless.
-healthcheckPath = "/api/health"
+# D151 Rule 1 (11-04): /api/health/ready, not /api/health — it answers 503 until the boot warm-up (the board passes
+# that used to hold the port ≈ 50 s, and the startup cleanup) has run, so the old deployment keeps serving until then.
+healthcheckPath = "/api/health/ready"
 healthcheckTimeout = 300
 
 [env]

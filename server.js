@@ -307,8 +307,12 @@ import { buildStructuredResume } from "./services/resumeFormatter.js";
 import { skillVocabularyTerms } from "./services/skillVocabulary.js";
 import { getCompanyProfile } from "./services/kb/companyProfile.js";
 import { artifactCurrency, currencySentence, modeForTool } from "./services/resumeCurrency.js";
+import { createBootWarmup } from "./services/boot/bootWarmup.js";
 
 console.log("[boot] server module loaded");
+// ⛔⛔ D151 Rule 1: the boot's timeline, and the warm-up that runs AFTER the listener binds (services/boot/bootWarmup.js).
+// startedAt is the process's own start, so listenMs is "start → port bound", the number Rule 1 budgets (≤ 3 s).
+const BOOT = createBootWarmup({ startedAt: Number(process.hrtime.bigint() / 1000000n) - Math.round(process.uptime() * 1000) });
 
 // ── Config ────────────────────────────────────────────────────
 const PORT           = process.env.PORT           || 3001;
@@ -6658,6 +6662,7 @@ console.log(`[boot] database ready: ${DB_PATH}`);
   ];
 
   console.log("[boot] migrations: checking schema");
+  const migrationsStartedAt = Date.now();
   // ⛔ ONE TRANSACTION PER MIGRATION, INCLUDING THE ROW THAT RECORDS IT. The loop that stood here
   // called `db.exec(m.sql)` bare, so a migration failing partway kept whatever it had already
   // committed — survivable while every migration was additive, and not survivable from 108, which
@@ -6708,13 +6713,17 @@ console.log(`[boot] database ready: ${DB_PATH}`);
     process.exit(1);
   }
   console.log(`[boot] migrations complete (${migrationCount} applied)`);
+  BOOT.note(`migrations (${migrationCount} applied)`, Date.now() - migrationsStartedAt);
 
 // D126 + D127: every active posting gets its category (migration 207) — the rows from before it, and any a crawl wrote
 // without one. NULL-only, so a no-op after the first boot; pure regex over titles, milliseconds.
-try {
+// ⛔⛔ D151 Rule 1 (11-04): every board pass from here to the tracking sink is queued with BOOT.add and runs AFTER the
+// listener binds, in this same order (the tags read the role map's bucket). On an 81k-posting copy they held the port
+// for over a minute. /api/health/ready answers 503 until they have run, so no deploy takes traffic before them.
+BOOT.add("posting categories", () => {
   const cat = backfillCategories(db);
   if (cat.classified) console.log(`[boot] posting categories: ${cat.classified} classified, ${cat.held} held`);
-} catch (e) { console.warn("[boot] posting categories:", e.message); }
+});
 
 // Populate migration 078's automation_tier for rows written before it existed. This is here
 // rather than inside the migration because the derivation is JavaScript
@@ -6729,7 +6738,7 @@ try {
 // Never fatal. A board whose tiers are NULL still works — jobQuery.js reads NULL as 'unknown' in
 // both directions of the tier filter — so failing the boot over it would trade a degraded label
 // for an outage.
-try {
+BOOT.add("automation tier", () => { try {
   const tierFill = backfillAutomationTier(db);
   if (tierFill.updated > 0) {
     console.log(`[boot] automation_tier backfilled: ${tierFill.updated} of ${tierFill.scanned} rows ` +
@@ -6737,7 +6746,7 @@ try {
   }
 } catch (e) {
   console.error("[boot] automation_tier backfill failed (board falls back to 'unknown'):", e.message);
-}
+} });
 
 // ── D84 F2 · enrichment provenance backfill ────────────────────────────────────────────────────────
 // Every row with no provenance map gets one by DETECTION (a summary equal to the first 300 characters, a
@@ -6745,7 +6754,7 @@ try {
 // batch's own record wins over every rule). NULL-only and bounded, so a no-op after the first boot. A guessed
 // level is re-derived with the shared mapping (Staff / Principal were stored as `senior`). Never fatal: without
 // a map the importer detects the same thing per row at plan time.
-try {
+BOOT.add("enrichment provenance", () => { try {
   const provFill = backfillProvenance(db);
   if (provFill.written > 0) {
     console.log(`[boot] enrichment provenance backfilled: ${provFill.written} row(s), ${provFill.placeholders} ` +
@@ -6753,7 +6762,7 @@ try {
   }
 } catch (e) {
   console.error("[boot] enrichment provenance backfill failed (the importer detects per row instead):", e.message);
-}
+} });
 
 // ── job_role_map backfill (CC1b's follow-up) ────────────────────────────────────────────────────
 //
@@ -6788,7 +6797,7 @@ try {
 // once, and nothing on every boot after.
 if (String(process.env.ROLE_MAP_BACKFILL || "").toLowerCase() === "off") {
   console.log("[boot] job_role_map backfill: DISABLED by ROLE_MAP_BACKFILL=off");
-} else {
+} else BOOT.add("job_role_map", () => {
   try {
     const roleFill = backfillRoleMap(db);
     if (roleFill.inserted > 0) {
@@ -6820,7 +6829,7 @@ if (String(process.env.ROLE_MAP_BACKFILL || "").toLowerCase() === "off") {
   } catch (e) {
     console.error("[boot] job_role_map 'general' re-file failed (those rows stay in 'general'):", e.message);
   }
-}
+});
 
 // ── D29 · the board's own tags (services/jobs/jobTags.js) ───────────────────────────────────────
 //
@@ -6872,7 +6881,7 @@ function runJobTagPass(trigger, { descriptions = true } = {}) {
   }
   return worked;
 }
-runJobTagPassSliced("boot");
+BOOT.add("job tags (first slice)", () => runJobTagPassSliced("boot"));
 setInterval(() => runJobTagPassSliced("interval"), 10 * 60 * 1000).unref();
 
 // ── ATS term weights: say what state they are in, then fix it if it needs fixing ────────────────
@@ -6923,7 +6932,7 @@ try {
 // renders CompanyIcon's lettered tile, so failing the boot over it would trade a missing image for
 // an outage. Offline — no HEAD request — because a boot path that waits on a third party is a boot
 // path that hangs when that third party is precisely what broke.
-try {
+BOOT.add("company logo urls", () => { try {
   const logoFill = backfillCompanyLogos(db);
   if (logoFill.updated > 0 || logoFill.cleared > 0) {
     console.log(`[boot] company_icon_url repaired: ${logoFill.updated} repointed, ` +
@@ -6932,7 +6941,7 @@ try {
   }
 } catch (e) {
   console.error("[boot] company_icon_url backfill failed (board falls back to lettered tiles):", e.message);
-}
+} });
 
 // A77 — resolve and STORE each company's logo (services/jobs/companyLogoStore.js). In the background,
 // never at boot's expense: 20 s after start, then every 6 hours, 40 companies a pass. COMPANY_LOGOS=off
@@ -14469,6 +14478,13 @@ REQUIREMENTS:
 // HEALTH + SPA
 // ═══════════════════════════════════════════════════════════════
 app.get("/api/health", (_req,res) => res.json({ ok:true, time:new Date().toISOString() }));
+// ⛔⛔ D151 Rule 1: /live = the process is up (answers the moment the port binds); /ready = the database answers AND the
+// boot warm-up has run — Railway's healthcheck (railway.toml), so a deploy takes traffic only when ready, never mid-warm-up.
+app.get("/api/health/live", (_req, res) => res.json({ ok: true, state: BOOT.state, uptimeMs: Math.round(process.uptime() * 1000) }));
+app.get("/api/health/ready", (_req, res) => { let dbOk = false; try { dbOk = db.prepare("SELECT 1 AS one").get()?.one === 1; } catch { /* reported below */ }
+  const s = BOOT.snapshot();
+  if (BOOT.ready && dbOk) return res.json({ ok: true, listenMs: s.listenMs, readyMs: s.readyMs });
+  res.status(503).json({ ok: false, error: dbOk ? "warming up" : "database not answering", state: s.state, pending: s.pending }); });
 // D86 §6: RFC 9116 security.txt — the security contact the connector directory requires (shared/brand.js).
 app.get("/.well-known/security.txt", (_req, res) => res.type("text/plain").send(securityTxt()));
 
@@ -14602,6 +14618,8 @@ app.get("/api/version", (_req, res) => {
     // ⭐ 44p: the Atlas live-count backlog — a number, nothing user-scoped. The deck bug's cause was this queue drained
     // whole on the request path; the background drainer now counts it, and this says how much is left.
     atlasQueue: atlasQueueLength(db),
+    // ⭐ D151 Rule 1: the last boot's timeline — start → listen, → ready, and each warm-up step's duration.
+    boot: BOOT.snapshot(),
     monetisationEnabled: monetisationEnabled(),
   });
 });
@@ -14653,7 +14671,8 @@ process.on("unhandledRejection", (reason) => {
 
 console.log(`[boot] binding HTTP listener on :${PORT}`);
 app.listen(PORT, () => {
-  console.log(`[server] ${BRAND} v5 on :${PORT}`);
+  BOOT.listening();
+  console.log(`[server] ${BRAND} v5 on :${PORT} (listening ${BOOT.snapshot().listenMs} ms after start)`);
   // Warm up browser availability probe in background so /api/integrations/status
   // returns a cached result without delay on first user request.
   // ⭐ 44p · the Atlas live-count queue drains HERE, in the background, in slices that yield — never whole on a request
@@ -14668,11 +14687,14 @@ app.listen(PORT, () => {
   }).catch(() => {});
   // Run startup cleanup to expire any stale jobs that accumulated while server was
   // down and the 03:00 cron window was missed.
-  setImmediate(() => {
+  // ⛔ D151 Rule 1: the last warm-up step, so /api/health/ready stays 503 until it has run — production's took 8 s
+  // (job-history 3.5 s + ghost-score 4.5 s) right AFTER the healthcheck had switched traffic (11-03 23:35Z dial timeouts).
+  BOOT.add("startup expired-jobs cleanup", () => {
     console.log("[boot] running startup expired-jobs cleanup");
     try { runExpiredJobsCleanup(); }
     catch(e) { console.warn("[cleanup] startup cleanup failed:", e.message); }
   });
+  BOOT.run();
   // The board's fit, reconciled once after boot. Incremental, so on every boot after the first it
   // is one plan query per active profile and "nothing to do". It is what backfills a deployment
   // that gained migration 110 with users already on it — without it their boards would sit on
