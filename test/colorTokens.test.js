@@ -14,8 +14,9 @@ import fs from "node:fs";
 
 const { C, C_LIGHT, C_DARK, CONTRAST_PAIRS, FORBIDDEN_PAIRS, cssVarName, installColorVars, resolveTheme, themePreference } =
   await import("../client/src/styles/colorTokens.js");
-// The live palette under Node is LIGHT (no window); the dark one is proved explicitly below.
-let PAL = C;
+// ⭐ D149 (11-03): the live palette under Node is now the DEFAULT, Dusk Light. The rules in this file are PAPER LIGHT's
+// (the logo-orange accent, the forbidden pairs), so they read Paper Light explicitly; Dusk is held by d91ThemeModule.
+let PAL = C_LIGHT;
 
 // ── WCAG 2.x relative luminance ────────────────────────────────────────────────────────────────
 function parse(v) {
@@ -55,7 +56,7 @@ test("every declared text-on-background token pair passes WCAG AA", () => {
   assert.ok(CONTRAST_PAIRS.length >= 30, "the pair list has been emptied — a vacuous pass");
   const failures = [];
   for (const [fg, bg, size] of CONTRAST_PAIRS) {
-    assert.ok(fg in C && bg in C, `${fg} / ${bg} must both be tokens`);
+    assert.ok(fg in C_LIGHT && bg in C_LIGHT, `${fg} / ${bg} must both be tokens`);
     const r = contrast(fg, bg);
     if (r < REQUIRED[size]) failures.push(`${fg} on ${bg} (${size}): ${r.toFixed(2)} < ${REQUIRED[size]}`);
   }
@@ -72,14 +73,14 @@ test("⛔ the forbidden pairs really are below AA — orange on cream, white on 
 });
 
 test("the palette is the logo's: ACCENT is #FD4600, INK is near-black and NOT pure black", () => {
-  assert.equal(C.ACCENT, "#FD4600", "the accent is keyed from the logo source");
+  assert.equal(C_LIGHT.ACCENT, "#FD4600", "the accent is keyed from the logo source");
   // D91 (owner 10-11): this rule is PAPER LIGHT's — pure black on CREAM vibrates. Contrast Light is pure black
   // on pure white by design (test/d91ContrastThemes.test.js), so the rule is scoped to the paper theme.
   assert.notEqual(C_LIGHT.INK.toUpperCase(), "#000000", "pure black on cream vibrates — the doc forbids it");
   assert.ok(contrast("INK", "CANVAS") < 18, "INK is so dark it is effectively black");
-  assert.equal(C.ON_ACCENT, C.INK, "text on the orange fill is ink — white fails AA on #FD4600");
-  // Hex tokens are 6-digit so `${token}44` alpha suffixes stay valid CSS.
-  for (const [k, v] of Object.entries(C)) {
+  assert.equal(C_LIGHT.ON_ACCENT, C_LIGHT.INK, "text on the orange fill is ink — white fails AA on #FD4600");
+  // Hex tokens are 6-digit so `${token}44` alpha suffixes stay valid CSS — in the live palette too.
+  for (const [k, v] of [...Object.entries(C_LIGHT), ...Object.entries(C)]) {
     if (v.startsWith("#")) assert.match(v, /^#[0-9A-F]{6}$/i, `${k} must be a 6-digit hex`);
   }
 });
@@ -87,7 +88,7 @@ test("the palette is the logo's: ACCENT is #FD4600, INK is near-black and NOT pu
 test("the tokens are published as custom properties from the one definition", () => {
   const set = new Map();
   installColorVars({ documentElement: { style: { setProperty: (k, v) => set.set(k, v) } } });
-  assert.equal(set.get("--c-accent"), "#FD4600");
+  assert.equal(set.get("--c-accent"), C.ACCENT, "the live palette's own accent (Dusk by default, D149)");
   assert.equal(set.get("--c-accent-quiet"), C.ACCENT_QUIET);
   assert.equal([...set.keys()].filter(k => k.startsWith("--c-")).length, Object.keys(C).length);
   assert.equal(set.get("color-scheme"), "light", "the page must say which scheme it is");
@@ -170,7 +171,7 @@ test("⛔ every declared pair passes AA in DARK too — passing on cream says no
     // In dark the floor INVERTS: CANVAS_SHADE is the LIGHTEST substrate tone, so it must be lighter
     // than CANVAS — the worst case for light text — and still dark.
     assert.ok(contrast("CANVAS_SHADE", "#000000") > contrast("CANVAS", "#000000"), "dark CANVAS_SHADE is not the lighter tone");
-  } finally { PAL = C; }
+  } finally { PAL = C_LIGHT; }
 });
 
 test("the theme preference: system follows the OS; an explicit choice wins; junk is system", () => {
@@ -179,8 +180,9 @@ test("the theme preference: system follows the OS; an explicit choice wins; junk
   assert.equal(resolveTheme("light", mm(true)), "light");
   assert.equal(resolveTheme("system", mm(true)), "dark");
   assert.equal(resolveTheme("system", mm(false)), "light");
-  assert.equal(themePreference({ getItem: () => "neon" }), "system");
-  assert.equal(themePreference({ getItem: () => { throw new Error("blocked"); } }), "system");
+  // ⭐ D149: junk (or nothing, or blocked storage) is the DEFAULT now — Dusk.
+  assert.equal(themePreference({ getItem: () => "neon" }), "dusk");
+  assert.equal(themePreference({ getItem: () => { throw new Error("blocked"); } }), "dusk");
 });
 
 test("the ACCOUNT's theme wins on a device — and reloads only when the screen would change", async () => {
@@ -189,9 +191,9 @@ test("the ACCOUNT's theme wins on a device — and reloads only when the screen 
   const store = new Map();
   globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
   try {
-    // Under Node the live theme is light. Account says light: stored, NO reload (nothing changes).
-    assert.equal(adoptAccountTheme("light", { reload: () => reloads++ }), false);
-    assert.equal(store.get("draft-theme"), "light");
+    // Under Node the live theme is the default, Dusk Light (D149). Account says dusk-light: stored, NO reload.
+    assert.equal(adoptAccountTheme("dusk-light", { reload: () => reloads++ }), false);
+    assert.equal(store.get("draft-theme"), "dusk-light");
     // Account says dark: stored, and a reload (the screen must change).
     assert.equal(adoptAccountTheme("dark", { reload: () => reloads++ }), true);
     assert.equal(reloads, 1);

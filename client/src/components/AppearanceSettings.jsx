@@ -12,7 +12,7 @@ import SettingsSection from "./SettingsSection.jsx";
 import DepthButton from "./DepthButton.jsx";
 import RadioCards from "./RadioCards.jsx";
 import { api } from "../lib/api.js";
-import { useStudioForUsers, useDuskForUsers } from "../lib/monetisation.jsx";
+import { useStudioForUsers } from "../lib/monetisation.jsx";
 import { THEME_LIST, STUDIO_IDS, DUSK_IDS, ACTIVE_THEME, appearance, layout, setAppearance, pairPreference, CONTRAST_OFFER, dismissContrastOffer } from "../themes/index.js";
 
 /** Save the whole appearance to the account (theme, cues and the layout options), then apply it (a reload). */
@@ -46,8 +46,8 @@ export function ThemeSection() {
   // ⭐ D133: the Studio pair is offered once the owner turns it on (the app's one /api/config read); a person already
   // on Studio always sees it, so their own choice never disappears from the list.
   const studioOn = useStudioForUsers() || STUDIO_IDS.includes(ACTIVE_THEME.id);
-  // ⭐ D144: Dusk the same way, behind its own switch.
-  const duskOn = useDuskForUsers() || DUSK_IDS.includes(ACTIVE_THEME.id);
+  // ⭐ D144 → D149: Dusk is the DEFAULT now, so it is always offered (its admin switch no longer gates it).
+  const duskOn = true;
   const choose = (id) => { const t = THEME_LIST.find((x) => x.id === id); saveAppearance({ pref: follow ? pairPreference(t) : t.id, cues: cur.cues }); };
   return (
     <SettingsSection title="Theme"

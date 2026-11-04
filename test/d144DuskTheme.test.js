@@ -32,7 +32,9 @@ test("d144DuskTokensOnly: Dusk Light / Dark are registry data — every key, no 
   }
   const d = THEMES["dusk-dark"].tokens, l = THEMES["dusk-light"].tokens;
   assert.equal(d.CANVAS, "#1B1B1B"); assert.equal(d.SURFACE_SOLID, "#262626"); assert.equal(d.ACCENT, "#FBD3C4"); assert.equal(d.ON_ACCENT, "#1B1B1B");
-  assert.equal(l.ACCENT, "#B4492A", "answer 3: deep coral"); assert.equal(l.ON_ACCENT, "#FFFFFF", "… with a white label");
+  // ⭐ D149 (owner 11-03) changed this on purpose: Dusk takes theme-dusk-v2.html's values; Light's coral is the sketch's
+  // #C2593A moved the smallest step that holds AA under its white label (test/d149DuskDefault.test.js holds the moves).
+  assert.equal(l.ACCENT, "#BE5739", "the sketch's coral, held at AA"); assert.equal(l.ON_ACCENT, "#FFFFFF", "… with a white label");
   // Answer 4: the mark stays draft's own — the orange slash in both, the word as Paper / Charcoal draw it.
   for (const t of [d, l]) assert.equal(t.LOGO_SLASH, "#FD4600");
   assert.equal(l.LOGO_WORD, THEMES["paper-light"].tokens.LOGO_WORD); assert.equal(d.LOGO_WORD, THEMES["charcoal-dark"].tokens.LOGO_WORD);
@@ -101,9 +103,9 @@ test("d144ExistingThemesUnchanged: the six themes before Dusk are value for valu
   assert.deepEqual(el.props, {}); assert.equal(el.dataset.shape, undefined);
   installShapeVars("dusk-dark", el);
   assert.equal(el.props["--shape-radius-card"], "28px"); assert.equal(el.dataset.shape, "on");
-  // Offered to users only when the owner switches it on; a person already on it keeps it.
+  // ⭐ D149 (owner 11-03) changed this on purpose: Dusk is the DEFAULT, always offered — its admin switch no longer gates it.
   const ui = read("client/src/components/AppearanceSettings.jsx");
-  assert.match(ui, /const duskOn = useDuskForUsers\(\) \|\| DUSK_IDS\.includes\(ACTIVE_THEME\.id\);/);
+  assert.match(ui, /const duskOn = true;/);
   assert.match(ui, /\.filter\(\(c\) => duskOn \|\| !DUSK_IDS\.includes\(c\.id\)\)/);
   assert.match(read("server.js"), /const DUSK_FOR_USERS_KEY = "dusk_for_users";/);
 });

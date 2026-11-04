@@ -6,17 +6,17 @@
 // change its OVERRIDES and run it. Keys with a note are the sketch's; every other key is Charcoal Dark's, unchanged.
 // Corners and type are the second token set (themes/shapes.js), not theme keys.
 const tokens = Object.freeze({
-  CANVAS:              "#1B1B1B",   // warm near-black ground
+  CANVAS:              "#1B1B1B",   // theme-dusk-v2.html (D149)
   CANVAS_SHADE:        "#202020",   // a step toward the card
   GRAIN:               "#050403",
   SHEEN_TINT:          "#8C7A66",
   SURFACE_TINT:        "#2A2A2A",   // neutral, not brown
-  SURFACE:             "rgba(38,38,38,0.96)",   // the card, one step lighter, no border
-  SURFACE_2:           "rgba(51,51,51,0.96)",   // the well
-  SURFACE_MENU:        "rgba(38,38,38,0.97)",   // menus: the card
-  SURFACE_MODAL:       "rgba(38,38,38,0.98)",   // dialogs: the card
+  SURFACE:             "rgba(38,38,38,0.96)",   // theme-dusk-v2.html (D149)
+  SURFACE_2:           "rgba(46,46,46,0.96)",   // theme-dusk-v2.html (D149)
+  SURFACE_MENU:        "rgba(38,38,38,0.98)",   // theme-dusk-v2.html (D149)
+  SURFACE_MODAL:       "rgba(38,38,38,0.99)",   // theme-dusk-v2.html (D149)
   SURFACE_INPUT:       "rgba(255,240,225,0.06)",
-  SURFACE_SOLID:       "#262626",   // the card
+  SURFACE_SOLID:       "#262626",   // theme-dusk-v2.html (D149)
   HOVER:               "rgba(255,240,225,0.07)",
   SCRIM:               "rgba(0,0,0,0.55)",
   GLASS_EDGE:          "rgba(255,255,255,0.07)",   // a faint neutral edge
@@ -27,28 +27,28 @@ const tokens = Object.freeze({
   GLASS_BODY:          "rgba(38,38,38,0.70)",   // the card's glass, below
   GLASS_RIM:           "rgba(255,255,255,0.06)",   // neutral
   GLASS_UNDERSIDE:     "rgba(0,0,0,0.40)",
-  INK:                 "#F5F3F0",   // headlines
-  INK_MUTED:           "#A3A3A3",   // body grey
-  INK_FAINT:           "#ADA090",
-  BORDER:              "#353535",   // thin dividers
+  INK:                 "#FFFFFF",   // theme-dusk-v2.html (D149)
+  INK_MUTED:           "#A3A3A3",   // theme-dusk-v2.html (D149)
+  INK_FAINT:           "#959595",   // theme-dusk-v2.html (D149); the sketch's #7A7A7A, moved the smallest step that holds AA
+  BORDER:              "#343434",   // theme-dusk-v2.html (D149)
   BORDER_STRONG:       "#53483F",
   BORDER_CONTROL:      "#8E8072",
-  ACCENT:              "#FBD3C4",   // the pale peach button
-  ACCENT_HOVER:        "#F2C2B2",   // the peach, a step deeper
-  ON_ACCENT:           "#1B1B1B",   // the dark label on peach
-  ACCENT_INK:          "#FBD3C4",   // large figures and eyebrows
+  ACCENT:              "#FBD3C4",   // theme-dusk-v2.html (D149)
+  ACCENT_HOVER:        "#F2C2B2",   // theme-dusk-v2.html (D149)
+  ON_ACCENT:           "#1B1B1B",   // theme-dusk-v2.html (D149)
+  ACCENT_INK:          "#FBD3C4",   // theme-dusk-v2.html (D149)
   ACCENT_QUIET:        "#3A2E29",   // a dark peach tint
   LOGO_SLASH:          "#FD4600",
   LOGO_WORD:           "#FD4600",
-  SUCCESS:             "#7FD1A0",   // ok
+  SUCCESS:             "#8FD6A8",   // theme-dusk-v2.html (D149)
   SUCCESS_QUIET:       "#163120",
-  WARNING:             "#E6AA4E",
+  WARNING:             "#F2C26B",   // theme-dusk-v2.html (D149)
   WARNING_QUIET:       "#35280F",
   DANGER:              "#F27F72",
   DANGER_QUIET:        "#3B1C18",
   INFO:                "#9A9A9A",   // answer 4: ordinary bars grey
   INFO_QUIET:          "#15263A",
-  VIOLET:              "#BCA2F0",
+  VIOLET:              "#C6A8F0",   // theme-dusk-v2.html (D149)
   VIOLET_QUIET:        "#2B2142",
   TEAL:                "#62C5D1",
   BAND_STRONG:         "#72D59D",
@@ -64,40 +64,40 @@ const tokens = Object.freeze({
   PROVIDER_GOOGLE:     "#1A73E8",
   PROVIDER_INDEED:     "#003A9B",
   ON_PROVIDER:         "#FFFFFF",
-  PAIR_SURFACE:        "#191511",
-  PAIR_RAISED:         "#221D18",
-  PAIR_INK:            "#E8E0D2",
-  PAIR_INK_MUTED:      "#CDC4B6",
-  PAIR_INK_FAINT:      "#A39A8C",
-  PAIR_RULE:           "#342C25",
-  PAIR_KICKER:         "#FD4600",
-  PAIR_ACCENT:         "#FD4600",
+  PAIR_SURFACE:        "#262626",   // theme-dusk-v2.html (D149)
+  PAIR_RAISED:         "#2E2E2E",   // theme-dusk-v2.html (D149)
+  PAIR_INK:            "#FFFFFF",   // theme-dusk-v2.html (D149)
+  PAIR_INK_MUTED:      "#A3A3A3",   // theme-dusk-v2.html (D149)
+  PAIR_INK_FAINT:      "#959595",   // theme-dusk-v2.html (D149); the sketch's #7A7A7A, moved the smallest step that holds AA
+  PAIR_RULE:           "#343434",   // theme-dusk-v2.html (D149)
+  PAIR_KICKER:         "#FBD3C4",   // theme-dusk-v2.html (D149)
+  PAIR_ACCENT:         "#FBD3C4",   // theme-dusk-v2.html (D149)
   PAIR_MATCHED:        "#7FC79A",
   PAIR_MISSING:        "#E8937C",
-  PAIR_GENERIC:        "#91887D",
+  PAIR_GENERIC:        "#958C83",   // the sketch's #91887D, moved the smallest step that holds AA
   PAIR_MET_QUIET:      "#262C23",
   PAIR_LIT:            "#4B2C1A",
-  PAIR_HI:             "#FBF7F0",
+  PAIR_HI:             "#FFFFFF",   // theme-dusk-v2.html (D149)
   PAIR_MATCHED_EDGE:   "#384A3A",
   PAIR_MISSING_QUIET:  "#32241E",
   PAIR_MISSING_EDGE:   "#5D4036",
   PAIR_GENERIC_QUIET:  "#27221D",
   PAIR_GENERIC_EDGE:   "#36312B",
-  PAIR_MAST_TINT:      "rgba(253,70,0,0.07)",
-  PAIR_CARD_SHADOW:    "0 12px 34px rgba(0,0,0,0.18)",
+  PAIR_MAST_TINT:      "rgba(0,0,0,0)",   // theme-dusk-v2.html (D149)
+  PAIR_CARD_SHADOW:    "none",   // theme-dusk-v2.html (D149)
   PAIR_KIND_ALPHA:     "0.75",
   PAIR_LIFT:           "0 3px 9px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.07)",
   PAIR_LIFT2:          "0 8px 20px rgba(0,0,0,0.52), inset 0 1px 0 rgba(255,255,255,0.11)",
   PAIR_PRESS:          "0 2px 5px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,240,225,0.06)",
-  FH_SURFACE:          "#241F1B",
-  FH_WELL:             "#2D2722",
-  FH_LINE:             "#40372F",
-  FH_ACCENT_EDGE:      "#E03D00",
-  FH_ON_ACCENT:        "#2A0D00",
-  FH_SEG_LIFT:         "0 2px 6px rgba(253,70,0,0.36)",
+  FH_SURFACE:          "#262626",   // theme-dusk-v2.html (D149)
+  FH_WELL:             "#2E2E2E",   // theme-dusk-v2.html (D149)
+  FH_LINE:             "#343434",   // theme-dusk-v2.html (D149)
+  FH_ACCENT_EDGE:      "#F2C2B2",   // theme-dusk-v2.html (D149)
+  FH_ON_ACCENT:        "#1B1B1B",   // theme-dusk-v2.html (D149)
+  FH_SEG_LIFT:         "0 2px 6px rgba(251,211,196,0.25)",   // the peach, not the orange
   FH_INSET:            "inset 0 1px 3px rgba(0,0,0,0.38)",
   FH_ADD_HOVER:        "0 8px 20px rgba(253,70,0,0.46)",
-  PP_ATS_NUMBER:       "#FD4600",
+  PP_ATS_NUMBER:       "#FBD3C4",   // theme-dusk-v2.html (D149)
   SHADOW_SM:           "0 1px 2px rgba(0,0,0,0.35), 0 1px 1px rgba(0,0,0,0.25)",
   SHADOW_MD:           "0 4px 12px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.30)",
   SHADOW_LG:           "0 18px 40px rgba(0,0,0,0.50), 0 6px 14px rgba(0,0,0,0.35)",

@@ -6,17 +6,17 @@
 // change its OVERRIDES and run it. Keys with a note are the sketch's; every other key is Paper Light's, unchanged.
 // Corners and type are the second token set (themes/shapes.js), not theme keys.
 const tokens = Object.freeze({
-  CANVAS:              "#F6F2EE",   // warm off-white ground
+  CANVAS:              "#F7F3F0",   // theme-dusk-v2.html (D149)
   CANVAS_SHADE:        "#EEE8E2",   // a step below the ground
   GRAIN:               "#5A4632",
   SHEEN_TINT:          "#FFFFFF",
   SURFACE_TINT:        "#FFFBF5",
-  SURFACE:             "rgba(255,255,255,0.96)",   // white cards, no border
-  SURFACE_2:           "rgba(238,232,226,0.96)",   // the well
-  SURFACE_MENU:        "rgba(255,255,255,0.98)",   // menus: the card, opaque
-  SURFACE_MODAL:       "rgba(255,255,255,0.99)",   // dialogs: the card, opaque
+  SURFACE:             "rgba(255,255,255,0.96)",   // theme-dusk-v2.html (D149)
+  SURFACE_2:           "rgba(251,248,246,0.96)",   // theme-dusk-v2.html (D149)
+  SURFACE_MENU:        "rgba(255,255,255,0.98)",   // theme-dusk-v2.html (D149)
+  SURFACE_MODAL:       "rgba(255,255,255,0.99)",   // theme-dusk-v2.html (D149)
   SURFACE_INPUT:       "rgba(255,255,255,0.55)",
-  SURFACE_SOLID:       "#FFFFFF",   // the card
+  SURFACE_SOLID:       "#FFFFFF",   // theme-dusk-v2.html (D149)
   HOVER:               "rgba(30,25,21,0.05)",
   SCRIM:               "rgba(30,25,21,0.28)",
   GLASS_EDGE:          "rgba(30,25,21,0.10)",
@@ -27,28 +27,28 @@ const tokens = Object.freeze({
   GLASS_BODY:          "rgba(255,251,245,0.36)",
   GLASS_RIM:           "rgba(255,255,255,0.50)",
   GLASS_UNDERSIDE:     "rgba(60,40,20,0.10)",
-  INK:                 "#1B1B1B",   // charcoal text
-  INK_MUTED:           "#5C5752",   // body grey
-  INK_FAINT:           "#62574D",
-  BORDER:              "#E4DDD6",   // thin dividers
+  INK:                 "#1B1B1B",   // theme-dusk-v2.html (D149)
+  INK_MUTED:           "#55504C",   // theme-dusk-v2.html (D149)
+  INK_FAINT:           "#6B6763",   // theme-dusk-v2.html (D149); the sketch's #8A837D, moved the smallest step that holds AA
+  BORDER:              "#E6DED8",   // theme-dusk-v2.html (D149)
   BORDER_STRONG:       "#C7B9A7",
   BORDER_CONTROL:      "#7F7263",
-  ACCENT:              "#B4492A",   // answer 3: deep coral button, white label
-  ACCENT_HOVER:        "#9E3E22",   // the button, pressed darker
-  ON_ACCENT:           "#FFFFFF",   // the label on the coral button
-  ACCENT_INK:          "#A8401F",   // figures and eyebrows
+  ACCENT:              "#BE5739",   // theme-dusk-v2.html (D149); the sketch's #C2593A, moved the smallest step that holds AA
+  ACCENT_HOVER:        "#AD4C30",   // theme-dusk-v2.html (D149)
+  ON_ACCENT:           "#FFFFFF",   // theme-dusk-v2.html (D149)
+  ACCENT_INK:          "#A54A32",   // theme-dusk-v2.html (D149); the sketch's #C2593A, moved the smallest step that holds AA
   ACCENT_QUIET:        "#F6E1D8",   // a pale coral tint
   LOGO_SLASH:          "#FD4600",
   LOGO_WORD:           "#1E1915",
-  SUCCESS:             "#166B3A",   // ok
+  SUCCESS:             "#1B7440",   // theme-dusk-v2.html (D149); the sketch's #1E7A43, moved the smallest step that holds AA
   SUCCESS_QUIET:       "#D5E8D8",
-  WARNING:             "#855000",
+  WARNING:             "#8B5A00",   // theme-dusk-v2.html (D149); the sketch's #9A6400, moved the smallest step that holds AA
   WARNING_QUIET:       "#F2E2C4",
   DANGER:              "#B3261E",
   DANGER_QUIET:        "#F5D9D3",
   INFO:                "#625B55",   // answer 4: ordinary bars grey (deepened from the sketch's #8A817A to hold 4.5:1 as text on its quiet tint)
   INFO_QUIET:          "#D7E4F0",
-  VIOLET:              "#6A3DB0",
+  VIOLET:              "#644BD2",   // theme-dusk-v2.html (D149); the sketch's #6E55E8, moved the smallest step that holds AA
   VIOLET_QUIET:        "#E6DCF2",
   TEAL:                "#0E6470",
   BAND_STRONG:         "#17663A",
@@ -64,40 +64,40 @@ const tokens = Object.freeze({
   PROVIDER_GOOGLE:     "#1A73E8",
   PROVIDER_INDEED:     "#003A9B",
   ON_PROVIDER:         "#FFFFFF",
-  PAIR_SURFACE:        "#FBF7F0",
-  PAIR_RAISED:         "#F2ECE1",
-  PAIR_INK:            "#171512",
-  PAIR_INK_MUTED:      "#3D362E",
-  PAIR_INK_FAINT:      "#726960",
-  PAIR_RULE:           "#DED5C4",
-  PAIR_KICKER:         "#A33200",
-  PAIR_ACCENT:         "#FC4600",
+  PAIR_SURFACE:        "#FFFFFF",   // theme-dusk-v2.html (D149)
+  PAIR_RAISED:         "#FBF8F6",   // theme-dusk-v2.html (D149)
+  PAIR_INK:            "#1B1B1B",   // theme-dusk-v2.html (D149)
+  PAIR_INK_MUTED:      "#55504C",   // theme-dusk-v2.html (D149)
+  PAIR_INK_FAINT:      "#6D6965",   // theme-dusk-v2.html (D149); the sketch's #8A837D, moved the smallest step that holds AA
+  PAIR_RULE:           "#E6DED8",   // theme-dusk-v2.html (D149)
+  PAIR_KICKER:         "#BE5739",   // theme-dusk-v2.html (D149); the sketch's #C2593A, moved the smallest step that holds AA
+  PAIR_ACCENT:         "#C2593A",   // theme-dusk-v2.html (D149)
   PAIR_MATCHED:        "#1D6B43",
   PAIR_MISSING:        "#8A3B2E",
   PAIR_GENERIC:        "#6B6257",
   PAIR_MET_QUIET:      "#DFF0DA",
   PAIR_LIT:            "#F6DCC6",
-  PAIR_HI:             "#0F0D0B",
+  PAIR_HI:             "#1B1B1B",   // theme-dusk-v2.html (D149)
   PAIR_MATCHED_EDGE:   "#BCDCB4",
   PAIR_MISSING_QUIET:  "#F6E2DB",
   PAIR_MISSING_EDGE:   "#E6CAC1",
   PAIR_GENERIC_QUIET:  "#EFEAE0",
   PAIR_GENERIC_EDGE:   "#DED5C4",
-  PAIR_MAST_TINT:      "rgba(253,70,0,0.07)",
-  PAIR_CARD_SHADOW:    "0 12px 34px rgba(0,0,0,0.18)",
+  PAIR_MAST_TINT:      "rgba(0,0,0,0)",   // theme-dusk-v2.html (D149)
+  PAIR_CARD_SHADOW:    "none",   // theme-dusk-v2.html (D149)
   PAIR_KIND_ALPHA:     "0.91",
   PAIR_LIFT:           "0 3px 8px rgba(0,0,0,0.11), inset 0 1px 0 rgba(255,255,255,0.66)",
   PAIR_LIFT2:          "0 7px 17px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.72)",
   PAIR_PRESS:          "0 2px 5px rgba(30,25,21,0.13), inset 0 1px 0 rgba(255,255,255,0.5)",
-  FH_SURFACE:          "#FBF7F0",
-  FH_WELL:             "#F2ECE1",
-  FH_LINE:             "#DED5C4",
-  FH_ACCENT_EDGE:      "#E03D00",
-  FH_ON_ACCENT:        "#FFFFFF",   // Full House's label on the coral, white like the button's
+  FH_SURFACE:          "#FFFFFF",   // theme-dusk-v2.html (D149)
+  FH_WELL:             "#FBF8F6",   // theme-dusk-v2.html (D149)
+  FH_LINE:             "#E6DED8",   // theme-dusk-v2.html (D149)
+  FH_ACCENT_EDGE:      "#AD4C30",   // theme-dusk-v2.html (D149)
+  FH_ON_ACCENT:        "#FFFFFF",   // theme-dusk-v2.html (D149)
   FH_SEG_LIFT:         "0 2px 6px rgba(253,70,0,0.30)",
   FH_INSET:            "inset 0 1px 3px rgba(30,25,21,0.07)",
   FH_ADD_HOVER:        "0 7px 17px rgba(253,70,0,0.40)",
-  PP_ATS_NUMBER:       "#A33200",
+  PP_ATS_NUMBER:       "#C2593A",   // theme-dusk-v2.html (D149)
   SHADOW_SM:           "0 1px 2px rgba(30,25,21,0.08), 0 1px 1px rgba(30,25,21,0.05)",
   SHADOW_MD:           "0 4px 12px rgba(30,25,21,0.10), 0 2px 4px rgba(30,25,21,0.06)",
   SHADOW_LG:           "0 18px 40px rgba(30,25,21,0.14), 0 6px 14px rgba(30,25,21,0.08)",
@@ -107,7 +107,7 @@ const tokens = Object.freeze({
   DEPTH_REST:          "0 3px 8px rgba(30,25,21,0.11), inset 0 1px 0 rgba(255,255,255,0.66)",
   DEPTH_HOVER:         "0 7px 17px rgba(30,25,21,0.15), inset 0 1px 0 rgba(255,255,255,0.66)",
   DEPTH_PRESS:         "0 2px 5px rgba(30,25,21,0.13), inset 0 1px 0 rgba(255,255,255,0.5)",
-  DEPTH_ACCENT:        "0 6px 18px rgba(180,73,42,0.22), inset 0 1px 0 rgba(255,255,255,0.20)",   // a faint warm glow under the button
+  DEPTH_ACCENT:        "0 6px 18px rgba(194,89,58,0.22), inset 0 1px 0 rgba(255,255,255,0.20)",   // a faint warm glow under the button
   LOGO_SHADOW:         "0 2px 6px rgba(30,25,21,0.14)",
   LOGO_TILE:           "#FBF7F0",
   DOC_PAPER:           "#FFFFFF",
