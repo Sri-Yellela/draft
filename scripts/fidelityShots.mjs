@@ -65,6 +65,13 @@ const FULLHOUSE = {
   "/api/jobs/facets": { total: 746, unscored: 0, coverage: { level: 746, where: 746, employment: 746 },
     views: { all: 746, saved: 12, pending: 3, imported: 0 }, clauses: { posted: [{ value: "", count: 746, known: 746 }, { value: "1d", count: 38, known: 38 }] } },
 };
+// ⛔ D153 (5) · THE FACTS BOX WITH EVERY LONG FACT ON FILE — the owner's production screenshot broke "Rem / ote", "not
+// state / d", "Says no spon / sors / hip". The first posting carries a sponsorship statement and a history line too, so
+// the box holds six cells at both widths.
+const FACTS_BOARD = FH_BOARD.map((j, i) => (i ? j : { ...j, workType: "Remote", tagWorkplace: "remote",
+  sponsorship: { level: "says_no", label: "Says no sponsorship", sources: [], notice: "" },
+  liveness: { label: "Reposted 3 times" } }));
+const FACTS = { ...FULLHOUSE, "/api/jobs": { ...FULLHOUSE["/api/jobs"], jobs: FACTS_BOARD } };
 const SETTINGS = {
   "/api/apply/auto-settings": { settings: { dailyCap: 10, runTimes: ["09:00", "18:00"], timeZone: "America/New_York", pauseCompanyAfterReply: true,
     filters: {}, profileId: null, agreeToTerms: false, staleReposts: 3, staleOpenDays: 90, showFormBeforeSending: true, onlySponsorRecord: true, perCompanyLimit30d: 2 } },
@@ -124,6 +131,12 @@ const SCREENS = {
   deck: { sketch: "declutter-v7.html", app: "/app", fixtures: DECK, ready: "[data-deck-face]" },
   fullhouse: { sketch: "fullhouse-declutter.html", app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-fh-title]",
     appPrep: async (page) => {   // the sketch shows the first posting open beside the list
+      await page.evaluate(() => { const t = [...document.querySelectorAll("*")].find(e => e.children.length === 0 && e.textContent.trim() === "Senior Data Engineer"); t?.click(); });
+      await sleep(900);
+    } },
+  // D153 (5): the facts box measured, not compared (no sketch of its own) — `--styles posting-facts` only.
+  "posting-facts": { sketch: null, app: "/app/jobs", fixtures: FACTS, ready: "[data-fh-title]",
+    appPrep: async (page) => {
       await page.evaluate(() => { const t = [...document.querySelectorAll("*")].find(e => e.children.length === 0 && e.textContent.trim() === "Senior Data Engineer"); t?.click(); });
       await sleep(900);
     } },
@@ -379,6 +392,27 @@ const STYLE_PROBES = {
       hscroll: document.documentElement.scrollWidth > window.innerWidth + 1,
     };
   },
+  // ⛔ D153 (5) · every facts cell's words, measured: a word whose characters lie on two lines has two client rects.
+  "posting-facts": () => {
+    const facts = document.querySelector(".posting--panel .posting__facts") || document.querySelector(".posting__facts");
+    if (!facts) return { facts: null };
+    const words = [];
+    const walker = document.createTreeWalker(facts.querySelector(".posting__strip") || facts, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      for (const m of n.data.matchAll(/\S+/g)) {
+        const r = document.createRange(); r.setStart(n, m.index); r.setEnd(n, m.index + m[0].length);
+        const lines = new Set([...r.getClientRects()].filter(x => x.width > 0).map(x => Math.round(x.top)));
+        words.push({ word: m[0], lines: lines.size });
+      }
+    }
+    const cells = [...facts.querySelectorAll(".posting__cell")].map(c => {
+      const b = c.getBoundingClientRect();
+      return { key: c.getAttribute("data-cell"), text: c.textContent.trim(), top: Math.round(b.top), width: Math.round(b.width),
+               overflows: c.scrollWidth > c.clientWidth + 1 };
+    });
+    return { facts: { width: Math.round(facts.getBoundingClientRect().width), cells, words,
+      broken: words.filter(w => w.lines > 1).map(w => w.word), rows: new Set(cells.map(c => c.top)).size } };
+  },
   // ⭐ D149 · Full House + the opened posting (fullhouse-declutter.html), the first posting open (the screen's appPrep).
   fullhouse: () => {
     const cs = (el) => (el ? getComputedStyle(el) : null);
@@ -459,7 +493,7 @@ if (process.argv[2] === "--styles") {
   process.exit(0);
 }
 
-const only = process.argv[2] ? process.argv[2].split(",") : Object.keys(SCREENS);
+const only = process.argv[2] ? process.argv[2].split(",") : Object.keys(SCREENS).filter(k => SCREENS[k].sketch);
 fs.mkdirSync(OUT, { recursive: true });
 const resolution = await resolveBrowserExecutable();
 if (!resolution) { console.error("No Chrome binary."); process.exit(1); }

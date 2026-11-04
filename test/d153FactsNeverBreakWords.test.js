@@ -1,10 +1,13 @@
 // ⛔ D153 (5) · THE FACTS BOX NEVER BREAKS A WORD (owner 11-04: production showed "Rem / ote", "not state / d",
 // "Says no spon / sors / hip"). D149's one-row grid (`grid-auto-flow: column`) squeezed every cell into the panel's width,
 // and `overflow-wrap: anywhere` broke the words. And D152 (7): a fact not on file is left out, never a "not stated" cell.
-// ⚠ A source pin. The real-Chrome measurement at 1280 and 390 (the row's d153FactsNeverBreakWords) is not written yet.
+// The source pins below, and (44s) the real-Chrome measurement at 1280 and 390: `fidelityShots.mjs --styles posting-facts`
+// opens a posting with six facts on file (sponsorship "Says no sponsorship" and a history line included) and reads every
+// word's client rects — a word broken across lines has rects on two lines.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { execFileSync } from "node:child_process";
 import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
@@ -25,4 +28,19 @@ test("d153FactsNeverBreakWords: the last facts rules wrap the cells and never br
 test("d153NoNotStatedInPanel: the opened posting's facts box leaves out a fact with no value", () => {
   const fn = JSX.slice(at(JSX, "function PanelMasthead("));
   assert.match(fn.slice(0, 2000), /const all = \[\.\.\.cells, \.\.\.extra\]\.filter\(c => c\.value != null\);/);
+});
+
+test("d153FactsNeverBreakWords (real Chrome, 1280 and 390): six facts wrap onto rows and no word is split", { timeout: 200000 }, (t) => {
+  const out = JSON.parse(execFileSync(process.execPath, ["scripts/fidelityShots.mjs", "--styles", "posting-facts"],
+    { encoding: "utf8", timeout: 180000, stdio: ["ignore", "pipe", "ignore"] }).trim().split("\n").pop());
+  if (out.skipped) { t.skip(out.skipped); return; }
+  for (const [size, d] of Object.entries(out)) {
+    assert.ok(d.facts, `${size}: the opened posting has a facts box`);
+    assert.deepEqual(d.facts.cells.map(c => c.key), ["experience", "workstyle", "salary", "posted", "history", "sponsorship"], `${size}: the six facts`);
+    assert.deepEqual(d.facts.broken, [], `${size}: a word broke across lines`);
+    assert.ok(d.facts.rows >= 2, `${size}: the cells wrap onto rows (${d.facts.rows}), not one squeezed row`);
+    for (const c of d.facts.cells) assert.equal(c.overflows, false, `${size}: ${c.key} overflows its cell`);
+    assert.ok(d.facts.words.some(w => w.word === "sponsorship"), `${size}: the long value is measured`);
+    assert.doesNotMatch(d.facts.cells.map(c => c.text).join(" "), /not stated|unknown/i, `${size}: no "not stated" cell`);
+  }
 });
