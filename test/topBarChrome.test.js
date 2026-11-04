@@ -37,8 +37,8 @@ test("notifications moved INTO the profile menu, whole", () => {
   assert.ok(!/function NotificationsBell/.test(topBarCode), "the standalone bell is back in the bar");
   assert.match(topBar, /function useNotifications\(\)/);
   assert.match(topBar, /function NotificationsSection\(/);
-  // Rendered inside the avatar menu's dropdown, not beside it in the bar.
-  const menu = topBar.slice(at(topBar, "function UserAvatarMenu"));
+  // Rendered inside the Profile panel (D149: the avatar menu's new home), not beside it in the bar.
+  const menu = topBar.slice(at(topBar, "function ProfileMenuPanel"));
   assert.match(menu, /<NotificationsSection theme=\{theme\} notifs=\{notifs\} unread=\{unread\} markAll=\{markAll\}\/>/);
   // Everything the bell did:
   assert.match(topBar, /api\("\/api\/notifications"\)/);
@@ -51,24 +51,23 @@ test("notifications moved INTO the profile menu, whole", () => {
   assert.match(topBar, /notification:\s*\(\) => setUnread\(n => n \+ 1\)/);
 });
 
-test("the unread count stays OUTSIDE the menu, on the avatar", () => {
+test("the unread count stays OUTSIDE the menu — D149: on the Profile button of the Dock and the Menu", () => {
   // This is the load-bearing half of the move. Same "9+" cap the bell used.
-  const menu = topBar.slice(at(topBar, "function UserAvatarMenu"));
-  const trigger = menu.slice(0, at(menu, "<DockPortal"));
-  assert.match(trigger, /\{unread > 0 && \(/, "the avatar carries no unread badge");
-  assert.match(trigger, /\{unread > 9 \? "9\+" : unread\}/);
-  // And it is announced, not just painted — the badge itself is aria-hidden, so the count has to
-  // reach assistive tech through the button's own label.
-  assert.match(trigger, /aria-label=\{unread > 0/);
-  assert.match(trigger, /unread notification\$\{unread === 1 \? "" : "s"\}/);
-  // One source of truth for both renderings: the hook. A second counter could disagree with the
-  // list it is supposed to be summarising.
-  assert.match(menu, /const \{ notifs, unread, load: loadNotifs, markAll \} = useNotifications\(\);/);
+  const nav = fs.readFileSync("client/src/components/AppNav.jsx", "utf8").replace(/\r\n/g, "\n");
+  const item = nav.slice(at(nav, "function ProfileItem("), at(nav, "export default function AppNav("));
+  assert.match(item, /\{profile\.badge > 0 && \(/, "the Profile button carries no unread badge");
+  assert.match(item, /\{profile\.badge > 9 \? "9\+" : profile\.badge\}/);
+  // And it is announced, not just painted — the number is aria-hidden; the label says it in words.
+  assert.match(item, /<span aria-hidden="true">/);
+  assert.match(item, /<span className="sr-only">\{`, \$\{profile\.badgeLabel\}`\}<\/span>/);
+  assert.match(topBar, /badgeLabel: `\$\{unread\} unread notification\$\{unread === 1 \? "" : "s"\}`/);
+  // One source of truth for both renderings: the hook, in TopBar, feeding the badge AND the panel's list.
+  assert.match(topBar, /const \{ notifs, unread, load: loadNotifs, markAll \} = useNotifications\(\);/);
 });
 
 test("the profile menu kept everything it already had", () => {
   // Notifications were inserted into this menu, not swapped in for something.
-  const menu = topBar.slice(at(topBar, "function UserAvatarMenu"));
+  const menu = topBar.slice(at(topBar, "function ProfileMenuPanel"));
   // "Accent Color" WAS in this list. docs/UI_REDESIGN.md step 2 removed it on purpose — the
   // per-session accent and the picker that chose among four were killed by the owner (2026-09-27),
   // and the accent is the logo orange, always. So it is asserted GONE, not merely dropped from here:
@@ -199,7 +198,7 @@ test("the tab row moved into the top bar, whole, and from appTabs — ⭐ D145: 
   // tab row is REMOVED; the bar mounts AppNav (the Dock or the Menu, the user's choice), fed the same `tabs`.
   const app = read("client/src/App.jsx");
   const nav = read("client/src/components/AppNav.jsx");
-  assert.match(topBarCode, /<AppNav tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onTabChange=\{onTabChange\} \/>/);
+  assert.match(topBarCode, /<AppNav tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onTabChange=\{onTabChange\}\s+profile=/);   // D149: + the Profile entry
   assert.doesNotMatch(topBarCode, /className="tbar-tab"|className="tbar-nav"/, "the old tab row is back");
   // Rendered in a real <nav>, from the tabs it is GIVEN — not from a list of its own.
   assert.match(nav, /<nav aria-label="Main"/);

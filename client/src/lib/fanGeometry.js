@@ -44,9 +44,12 @@ export const FAN = Object.freeze({
 
 // The card that ships, per orientation. The vertical card is narrower than its viewport so the fan
 // behind it has somewhere to show — the gutter is where the stack reads as a stack.
+// ⭐ D149 (owner 11-03): the card's box is declutter-v7.html's, measured in a real Chrome — 640 × 232 at 1280 × 800 and
+// 366 × 232 at 390 × 844 (the collapsed card is as tall as its content; the front card still grows with it). Was
+// 700 × 380 and 360 × 500, a frame with empty space under the info row.
 export const CARD = Object.freeze({
-  horizontal: Object.freeze({ width: 700, height: 380 }),
-  vertical:   Object.freeze({ maxWidth: 360, gutter: 36, height: 500 }),
+  horizontal: Object.freeze({ width: 640, height: 232 }),
+  vertical:   Object.freeze({ maxWidth: 366, gutter: 12, height: 232 }),
 });
 
 export const orientationFor = (viewportWidth) => (viewportWidth >= FAN_SWITCH_PX ? "horizontal" : "vertical");

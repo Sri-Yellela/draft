@@ -163,6 +163,61 @@ async function compare(browser, a, b) {
   return res;
 }
 
+// ── --styles <screen>: the app screen's COMPUTED styles as JSON (test/fidelity.test.js asserts them against the sketch).
+const STYLE_PROBES = {
+  deck: () => {
+    const cs = (el) => (el ? getComputedStyle(el) : null);
+    const face = document.querySelector("[data-deck-face]")?.closest("article");
+    const title = document.querySelector("[data-deck-face] h2");
+    const company = document.querySelector("[data-deck-head] div div div");
+    const draft = [...document.querySelectorAll("[data-deck-actions] button")].find(b => /Draft/.test(b.textContent));
+    const r = face?.getBoundingClientRect();
+    return {
+      canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(),
+      card: face && { bg: cs(face).backgroundColor, radius: cs(face).borderTopLeftRadius, border: cs(face).borderTopWidth, shadow: cs(face).boxShadow,
+                      width: Math.round(r.width), top: Math.round(r.top) },
+      title: title && { family: cs(title).fontFamily, size: cs(title).fontSize, weight: cs(title).fontWeight },
+      company: company && { family: cs(company).fontFamily, size: cs(company).fontSize, weight: cs(company).fontWeight },
+      draft: draft && { bg: cs(draft).backgroundColor, color: cs(draft).color },
+      topBar: !!document.querySelector("[data-app-chrome]") && cs(document.querySelector("[data-app-chrome]")).backgroundColor,
+      controlsRow: !!document.querySelector("[data-deck-counter]"),
+    };
+  },
+};
+if (process.argv[2] === "--styles") {
+  const id = process.argv[3] || "deck";
+  const s = SCREENS[id];
+  const resolution = await resolveBrowserExecutable();
+  if (!resolution) { console.log(JSON.stringify({ skipped: "no Chrome" })); process.exit(0); }
+  const vite = await startVite();
+  const browser = await puppeteer.launch({ executablePath: resolution.path, headless: "new", pipe: true, args: ["--no-first-run", "--no-default-browser-check"] });
+  const out = {};
+  try {
+    for (const [size, [w, h]] of Object.entries(SIZES)) {
+      const page = await browser.newPage();
+      await page.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 500, hasTouch: w < 500 });
+      await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }, { name: "prefers-reduced-motion", value: "reduce" }]);
+      await page.setRequestInterception(true);
+      page.on("request", (req) => {
+        const raw = req.url();
+        if (raw.startsWith(LOGO_HOST)) return req.respond({ status: 404, body: "" });
+        const u = new URL(raw);
+        if (!u.pathname.startsWith("/api/")) return req.continue();
+        req.respond({ status: 200, contentType: "application/json", body: JSON.stringify(s.fixtures[u.pathname] ?? COMMON[u.pathname] ?? {}) });
+      });
+      await page.evaluateOnNewDocument(() => { try { localStorage.setItem("draft-theme", "dusk-dark"); localStorage.setItem("draft:extension-prompt-seen", "1"); } catch {} });
+      await page.goto(`${vite.url}${s.app}`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
+      await page.evaluateHandle("document.fonts.ready").catch(() => {});
+      if (s.ready) await page.waitForSelector(s.ready, { timeout: 30000 }).catch(() => {});
+      await sleep(900);
+      out[size] = await page.evaluate(STYLE_PROBES[id]);
+      await page.close();
+    }
+  } finally { await browser.close(); vite.proc.kill(); }
+  console.log(JSON.stringify(out));
+  process.exit(0);
+}
+
 const only = process.argv[2] ? process.argv[2].split(",") : Object.keys(SCREENS);
 fs.mkdirSync(OUT, { recursive: true });
 const resolution = await resolveBrowserExecutable();

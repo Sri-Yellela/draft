@@ -67,7 +67,8 @@ test("tourMatchShowsNumber: the match step lights the match row, and a trial acc
   assert.match(deck, /facts\.why\.matched\.map\(\(t\) => <span key=\{`m-\$\{t\}`\} data-chip="matched"/);
   assert.match(deck, /facts\.why\.missing\.map\(\(t\) => <span key=\{`x-\$\{t\}`\} data-chip="missing"/);
   assert.match(read("client/src/lib/deckCardFacts.js"), /value: `\$\{Math\.max\(0, Math\.min\(100, Math\.round\(card\.score\)\)\)\}%`, word: "résumé match"/);
-  assert.match(deck, /trialDeck \? `Best match first · Drafted \$\{tally\.drafted\} of 2` : `Drafted \$\{tally\.drafted\}`/);
+  // ⭐ D149 (owner 11-03, in the session): the deck page shows only the card — "Drafted N of 2" went with the controls row.
+  assert.doesNotMatch(deck, /Drafted \$\{tally\.drafted\}/);
   assert.doesNotMatch(read("client/src/pages/TryPage.jsx"), /data-trial-choice="own"/, "trialNoOwnResume");
   // ⭐ A117 (owner 11-03, "number for everyone"): every account's card carries its stored score, not only a trial's.
   assert.match(read("server.js"), /\n    deck\.cards = deck\.cards\.map\(c => \(\{ \.\.\.c, score: scoreFor\(c\.job\.id\) \}\)\);/);

@@ -31,7 +31,8 @@ test("d145DeckButtonsOutsideCard: Pass · Save · Draft sit below the card, outs
   const actions = deck.slice(at(deck, "<div data-deck-actions"), at(deck, "</div>", at(deck, "<div data-deck-actions")));
   for (const l of ["Pass", "Save", "Draft"]) assert.match(actions, new RegExp(`<ActionButton label="${l}" ariaKeys=`));
   assert.doesNotMatch(actions, /hint=/, "a key hint on a button (D145: none)");
-  const btn = deck.slice(at(deck, "function ActionButton("), at(deck, "function StepButton("));
+  // D149: the ‹ › step buttons went with the controls row; ActionButton runs to the next function.
+  const btn = deck.slice(at(deck, "function ActionButton("), at(deck, "\nfunction ", at(deck, "function ActionButton(") + 10));
   assert.doesNotMatch(btn, /kbd/, "the button draws a key hint");
   assert.match(btn, /background: hov \? C\.ACCENT_HOVER : C\.ACCENT/, "Draft in the accent");
   assert.match(btn, /background: C\.SURFACE_2, color: C\.INK/, "Pass and Save raised neutral");
@@ -129,7 +130,7 @@ test("d145NavDockOrMenuSetting: Settings → Appearance → Navigation is Automa
   // The old tab row is gone from the top bar.
   const top = read("client/src/components/TopBar.jsx");
   assert.doesNotMatch(top, /className="tbar-tab"|className="tbar-nav"/);
-  assert.match(top, /<AppNav tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onTabChange=\{onTabChange\} \/>/);
+  assert.match(top, /<AppNav tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onTabChange=\{onTabChange\}\s+profile=/);   // D149: + the Profile entry
 });
 
 test("d145MenuPanelMatchesDock: the side panel's buttons are EXACTLY the dock's — one component, one list; Close, outside, Esc, M", () => {

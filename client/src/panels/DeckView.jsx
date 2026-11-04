@@ -52,9 +52,8 @@ import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, step
 import { DECISION_SURFACES, DECISION_TOAST_MS, DECISION_VERB, commitDecision, undoDecision } from "../lib/jobDecisions.js";
 import DecisionToast from "../components/DecisionToast.jsx";
 import { CARD, EXPAND_CLOCK, TWO_PANEL, cardSize, fanTransform, geometryFor, orientationFor, twoPanelColumn, twoPanelFor } from "../lib/fanGeometry.js";
-import DeckGeometryControl from "../components/DeckGeometryControl.jsx";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
-import { readDeckOrder, writeDeckOrder } from "../lib/deckOrder.js";
+import { readDeckOrder } from "../lib/deckOrder.js";
 import { postingClick } from "../lib/openPosting.js";
 import { cardFacts } from "../lib/deckCardFacts.js";
 import { shape, ts, TYPE_SCALE_VAR } from "../themes/shapes.js";
@@ -120,16 +119,6 @@ function ActionButton({ label, onClick, primary, disabled, ariaKeys, compact }) 
   );
 }
 
-function StepButton({ dir, onClick, disabled }) {
-  return (
-    <button type="button" className="dbx-depth" onClick={onClick} disabled={disabled} aria-keyshortcuts={dir < 0 ? "K ArrowUp" : "J ArrowDown"}
-      aria-label={dir < 0 ? "Previous card" : "Next card"}
-      style={{ ...glass({ radius: 10 }), width: 32, height: 32, display: "grid", placeItems: "center", padding: 0,
-               color: C.INK, fontSize: 16, fontWeight: 800, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.4 : 1 }}>
-      {dir < 0 ? "‹" : "›"}
-    </button>
-  );
-}
 
 // ── the expansion (A40, rebuilt 10-02): TWO EQUAL PANELS — the ATS report │ the card ─────────────
 // docs/BRAND_OUTLAY_AND_MOTION.md §"THE EXPANDED CARD — DECIDED 2026-10-01" is authoritative. The
@@ -244,23 +233,6 @@ function DeckAtsReport({ card, profileId, onReport }) {
   );
 }
 
-// A75 · the deck's sort: the dealt order (the board's own — position IS the fit signal) or ATS match. The key and
-// the read / write are lib/deckOrder.js (D93: Customise mirrors this control).
-function DeckOrderControl({ order, onChoose }) {
-  const opt = (value, label) => (
-    <button type="button" aria-pressed={order === value} onClick={() => onChoose(value)}
-      style={{ border: "none", borderRadius: 7, padding: "5px 11px", fontSize: 12.5, fontWeight: 800, cursor: "pointer",
-               background: order === value ? C.INK : "transparent", color: order === value ? C.SURFACE_MENU : C.INK_MUTED }}>
-      {label}
-    </button>
-  );
-  return (
-    <div role="group" aria-label="Order the deck by" data-deck-order
-      style={{ ...glass({ radius: 10 }), display: "flex", gap: 2, padding: 2 }}>
-      {opt("dealt", "Dealt")}{opt("ats", "ATS match")}
-    </div>
-  );
-}
 
 // ⛔ The label is "Collapse". One word — not "click to collapse", not "fold the card".
 function CollapseButton({ onCollapse, controls }) {
@@ -334,7 +306,9 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
   return (
     <div data-deck-face="" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       onFocus={() => setHover(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setHover(false); }}
-      style={{ padding: vertical ? "22px 22px 20px" : "30px 30px 26px", fontFamily: shape("FONT_UI") }}>
+      // ⭐ D149: declutter-v7.html's card at BOTH widths — 30 / 30 / 26 padding, a 52 px bubble, the 42 px title, a 26 px
+      // gap in the info row (the sketch has no phone rule for them; the app used to shrink each on a phone).
+      style={{ padding: "30px 30px 26px", fontFamily: shape("FONT_UI") }}>
       {/* ⭐ COLLAPSE AT THE TOP TOO (A39), and STICKY — the bottom one is a whole posting away. */}
       {open && (
         <div data-deck-collapse-top style={{ position: "sticky", top: `calc(var(${CHROME_HEIGHT_VAR}, 74px) + 10px)`, height: 0 }}>
@@ -345,7 +319,7 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
       )}
       <div data-deck-head="" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, paddingRight: open ? 104 : 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-          <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={vertical ? 46 : 52} radius={16} />
+          <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={52} radius={16} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: ts(17), fontWeight: 600, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.company}</div>
             {/* ⛔ LOCATION ONLY — "posted … ago" lives in the stats (D145). */}
@@ -371,7 +345,7 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
         // ⭐ The shared element (queue 29): this heading IS the job's title on the board's detail and
         // on the review queue's line — one name, so a navigation moves it instead of cutting.
         style={{ fontFamily: "var(--font-display)", fontWeight: 400, lineHeight: 1.04, letterSpacing: "-0.01em", color: C.INK,
-                 fontSize: vertical ? `calc(clamp(28px, 8vw, 36px) * var(${TYPE_SCALE_VAR}, 1))` : `calc(clamp(30px, 3.4vw, 42px) * var(${TYPE_SCALE_VAR}, 1))`,
+                 fontSize: `calc(42px * var(${TYPE_SCALE_VAR}, 1))`,
                  margin: "16px 0 12px", outline: "none",
                  ...(deep ? null : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
         {job.title}
@@ -379,7 +353,7 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
 
       {/* ⭐ ONE minimal info row: each a white value over a small grey label. */}
       {facts.info.length > 0 && (
-        <div data-deck-info="" style={{ display: "flex", gap: vertical ? 18 : 26, flexWrap: "wrap", margin: "4px 0 2px" }}>
+        <div data-deck-info="" style={{ display: "flex", gap: 26, flexWrap: "wrap", margin: "4px 0 2px" }}>
           {facts.info.map((f) => (
             <div key={f.key} data-deck-info-item={f.key}>
               <b style={{ display: "block", fontWeight: 500, fontSize: ts(18), letterSpacing: "-0.01em", color: C.INK }}>{f.value}</b>
@@ -568,6 +542,9 @@ function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimme
                        // OPAQUE, not see-through glass: over a fan, a translucent face shows the backs
                        // through it (Android found the same with the next card's text, 09-30).
                        ...glass({ radius: 28 }), backgroundColor: C.SURFACE_SOLID, backdropFilter: "none", WebkitBackdropFilter: "none",
+                       // ⭐ D149: the sketch's card — NO border (no glass rim), its one soft shadow (Dusk's SHADOW_GLASS is the
+                       // sketch's 0 30px 70px rgba(0,0,0,.35)).
+                       border: "none", boxShadow: C.SHADOW_GLASS,
                        transition: "none", transform: "none",
                        cursor: isFront && !expanded ? "pointer" : "auto", visibility: showFace ? "visible" : "hidden" }}>
               {showFace && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
@@ -683,11 +660,8 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const [deckProfileId, setDeckProfileId] = useState(null);
   // A75 (owner, 10-03): "ATS match" as a sort on the daily draft. The deal is frozen; the server reads it
   // back in ATS order when asked (the score itself never reaches the client). Remembered per browser.
-  const [deckOrder, setDeckOrder] = useState(readDeckOrder);
-  const chooseDeckOrder = useCallback((next) => {
-    setDeckOrder(next);
-    writeDeckOrder(next);
-  }, []);
+  // ⭐ D149: chosen in Settings → Customise (the deck page has no controls row now); read once, here.
+  const [deckOrder] = useState(readDeckOrder);
   const headingRef = useRef(null);
   const faceRef = useRef(null);
   const stageRef = useRef(null);
@@ -708,7 +682,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const orientation = orientationFor(vw);
   // The user's layout (queue 38), FITTED to the screen and overridden by reduced motion — geometryFor
   // is the only road from a stored preference to the fan.
-  const [deckPref, chooseDeckPref] = useDeckGeometry();
+  const [deckPref] = useDeckGeometry();
   const geometry = { ...geometryFor(orientation, deckPref, { reduced: !!reduced }), ...(DEV_FAN?.[orientation] || null) };
   // ⭐ TWO EQUAL PANELS (A40) on a wide horizontal screen: the card is one column wide at rest AND open,
   // so opening never resizes it. Below TWO_PANEL_PX the report is a sheet and the card is as it was.
@@ -754,8 +728,6 @@ export default function DeckView({ canUseAPlusResume = true }) {
   // A trial account's cards carry their score (server.js): the deck reads "Best match first · Drafted N of 2".
   const trialDeck = (s.cards || []).some(c => Number.isFinite(c.score));
   const tool = canUseAPlusResume ? A_PLUS_TOOL : GENERATE_TOOL;
-  const canPrev = stepTarget(s, -1) != null;
-  const canNext = stepTarget(s, 1) != null;
 
   const commit = useCallback(async (card, decision) => {
     const id = card.job.id;
@@ -940,7 +912,8 @@ export default function DeckView({ canUseAPlusResume = true }) {
       {/* isolation: the fan's tiers are below CONTENT, and this keeps them above the page itself. */}
       <div data-deck-orientation={orientation} data-deck-two-panel={twoPanel ? "" : undefined}
         style={{ maxWidth: twoPanel ? TWO_PANEL.maxWidth + 2 * TWO_PANEL.pad : vertical ? 560 : 760, margin: "0 auto",
-                 padding: vertical ? "20px 16px 120px" : "28px 16px 140px",
+                 // ⭐ D149: the card's top at the sketch's 90 px — the chrome's 74 + 16 (App.jsx gives the deck no main padding).
+                 padding: vertical ? "16px 12px 120px" : "16px 16px 140px",
                  // ⛔ D92: never `clip` here, in either layout. Clipping this 560px column sliced the vertical fan's
                  // outer cards with two hard vertical lines (the "cut out and pasted" deck); the full-width
                  // data-deck-clip above already stops a sideways page scroll, at the SCREEN's edge.
@@ -953,41 +926,11 @@ export default function DeckView({ canUseAPlusResume = true }) {
         {/* The header and every non-deck state keep the deck's resting width; only the deck's grid is wide. */}
         <div style={{ maxWidth: vertical ? 560 : 760, margin: "0 auto" }}>
 
-        <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, marginBottom: vertical ? 18 : 22,
-                         flexWrap: "wrap", position: "relative", zIndex: Z.CONTENT }}>
-          <div>
-            <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "clamp(36px, 5vw, 54px)", lineHeight: 1, margin: 0, color: C.INK }}>
-              Today's draft
-            </h1>
-            <div style={{ fontSize: 14, color: C.INK_MUTED, marginTop: 8 }}>
-              {dateLabel}
-              {load.status === "ready" && s.reason === "thin" && ` · ${s.size} good ${s.size === 1 ? "one" : "ones"} today`}
-            </div>
-          </div>
-          {load.status === "ready" && s.size > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              {!isFinished(s) && <DeckGeometryControl orientation={orientation} pref={deckPref} onChoose={chooseDeckPref} reduced={!!reduced} />}
-              {!isFinished(s) && <DeckOrderControl order={deckOrder} onChoose={chooseDeckOrder} />}
-              <SlashProgress drafted={tally.drafted} size={s.size} />
-              {!isFinished(s) && (
-                // The counter is also what makes the fan's clipped edges read as deliberate: it says
-                // where you are in a stack that runs past the frame.
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <StepButton dir={-1} onClick={() => step(-1)} disabled={!canPrev} />
-                  <div data-deck-counter style={{ fontSize: 14, fontWeight: 700, color: C.INK, minWidth: 44, textAlign: "center" }}>
-                    {Math.min(s.index + 1, s.size)} <span style={{ color: C.INK_FAINT, fontWeight: 600 }}>/ {s.size}</span>
-                  </div>
-                  <StepButton dir={1} onClick={() => step(1)} disabled={!canNext} />
-                </div>
-              )}
-              <motion.span ref={counterRef} key={tally.drafted} initial={{ scale: 1.35 }} animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 420, damping: 18 }}
-                style={{ ...glass({ radius: 10 }), padding: "6px 12px", fontSize: 13, fontWeight: 800, color: C.INK, display: "inline-block" }}>
-                {trialDeck ? `Best match first · Drafted ${tally.drafted} of 2` : `Drafted ${tally.drafted}`}
-              </motion.span>
-            </div>
-          )}
-        </header>
+        {/* ⭐ D149 (owner 11-03): THE PAGE IS THE CARD, as declutter-v7.html draws it — no visible title and no controls row.
+            The owner's answer: the order (Dealt / ATS match) and the layout live in Settings → Customise (they always
+            had a copy there, D93); browsing without deciding stays on J / K, ↑ / ↓ while folded and the wheel; Pass ·
+            Save · Draft advance; "Drafted N" goes. The page keeps its heading for screen readers. */}
+        <h1 style={visuallyHidden} data-deck-title="">Today's draft · {dateLabel}</h1>
 
         {(load.status === "loading" || load.status === "scoring") && (
           <div style={{ ...glass({ radius: 28 }), padding: 40, minHeight: 340, display: "grid", placeItems: "center", color: C.INK_MUTED, textAlign: "center" }}

@@ -221,13 +221,16 @@ test("D93 · the deck's layout and order are mirrored on Customise — through t
   assert.equal(lib.DECK_ORDER_KEY, "draft-deck-order", "the key the deck has always used — a chosen order survives");
   assert.deepEqual(lib.DECK_ORDERS.map((o) => o.id), ["dealt", "ats"]);
   const deck = read("client/src/panels/DeckView.jsx");
-  assert.match(deck, /import \{ readDeckOrder, writeDeckOrder \} from "\.\.\/lib\/deckOrder\.js";/);
+  // ⭐ D149 (owner 11-03): the deck only READS the order now — it is chosen here, on Customise.
+  assert.match(deck, /import \{ readDeckOrder \} from "\.\.\/lib\/deckOrder\.js";/);
   assert.doesNotMatch(deck, /"draft-deck-order"/, "the deck keeps its own copy of the key");
   assert.match(page, /DECK_ORDERS\.map/); assert.match(page, /writeDeckOrder\(next\)/);
   // A custom layout (the deck's sliders) is named, not silently shown as a preset.
   assert.match(page, /data-deck-custom=""/);
-  // The deck keeps its quick controls; Reset restores the deck too, its layout awaited before the reload.
-  assert.match(deck, /<DeckGeometryControl /); assert.match(deck, /<DeckOrderControl /);
+  // ⭐ D149: the deck page has NO controls row — the layout control (its sliders too) is HERE ("Fine-tune the fan"),
+  // and the order with it. Reset restores the deck too, its layout awaited before the reload.
+  assert.doesNotMatch(deck, /<DeckGeometryControl |<DeckOrderControl /);
+  assert.match(page, /<DeckGeometryControl label="Fine-tune the fan"/);
   assert.match(page, /chooseOrder\("dealt"\); chooseLayout\("standard"\);[^\n]*\n\s*await api\("\/api\/settings\/deck-geometry", \{ method: "PUT"/);
   // A round trip of the order through the shared helpers.
   const store = new Map(); globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };

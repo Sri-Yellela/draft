@@ -17,6 +17,7 @@
   color: var(--c-ink-muted); font-weight: 600; font-size: calc(13px * var(--type-scale, 1)); line-height: 1.2;
   transition: background .16s, color .16s;
 }
+button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 .appnav-item:hover { background: var(--c-hover); color: var(--c-ink); }
 .appnav-item:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; color: var(--c-ink); }
 /* The current one RAISED by its fill (the sketch's): no shadow, because the dock scrolls along itself at 390 px and a
@@ -68,3 +69,6 @@
 }
 .appnav-close:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .appnav-dock, .appnav-panel, .appnav-item { transition: none; } }
+
+/* ⭐ D149 · the Profile panel (TopBar AccountPanel): the Menu panel's surface, the old account menu's width. */
+.acct-panel { width: min(360px, 92vw); gap: 0; padding: 64px 4px 20px; }

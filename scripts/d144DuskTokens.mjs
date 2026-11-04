@@ -93,6 +93,7 @@ const OVERRIDES = {
     ACCENT_QUIET: ["#3A2E29", "a dark peach tint"],
     INFO: ["#9A9A9A", "answer 4: ordinary bars grey"],
     FH_SEG_LIFT: ["0 2px 6px rgba(251,211,196,0.25)", "the peach, not the orange"],
+    SHADOW_GLASS: ["0 30px 70px rgba(0,0,0,0.35)", "declutter-v7.html's .card shadow (D149)"],
     DEPTH_ACCENT: ["0 10px 26px rgba(251,211,196,0.16), inset 0 1px 0 rgba(255,255,255,0.30)", "a faint warm glow under the button"],
     ...fromSketch(DARK) },
     substrate: { grain: 0, sheen: 0 } },

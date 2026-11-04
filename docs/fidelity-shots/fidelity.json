@@ -2,80 +2,80 @@
   "deck-desktop": {
     "sketch": "declutter-v7.html",
     "app": "/app",
-    "similarity": 0.8084,
+    "similarity": 0.9526,
     "worstRegions": [
       {
-        "row": 0,
-        "col": 1,
-        "diff": 0.74
-      },
-      {
-        "row": 0,
-        "col": 2,
-        "diff": 0.74
-      },
-      {
-        "row": 0,
-        "col": 3,
-        "diff": 0.74
-      },
-      {
-        "row": 0,
-        "col": 4,
-        "diff": 0.74
-      },
-      {
-        "row": 0,
+        "row": 3,
         "col": 5,
-        "diff": 0.74
+        "diff": 0.523
       },
       {
-        "row": 0,
-        "col": 6,
-        "diff": 0.74
+        "row": 3,
+        "col": 4,
+        "diff": 0.352
+      },
+      {
+        "row": 2,
+        "col": 3,
+        "diff": 0.318
+      },
+      {
+        "row": 1,
+        "col": 2,
+        "diff": 0.281
+      },
+      {
+        "row": 7,
+        "col": 2,
+        "diff": 0.246
+      },
+      {
+        "row": 2,
+        "col": 2,
+        "diff": 0.244
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T01:16:06.538Z"
+    "at": "2026-11-04T02:24:54.207Z"
   },
   "deck-phone": {
     "sketch": "declutter-v7.html",
     "app": "/app",
-    "similarity": 0.7358,
+    "similarity": 0.8763,
     "worstRegions": [
       {
         "row": 3,
-        "col": 5,
-        "diff": 0.81
+        "col": 6,
+        "diff": 0.647
       },
       {
         "row": 3,
-        "col": 6,
-        "diff": 0.745
+        "col": 5,
+        "diff": 0.626
       },
       {
-        "row": 0,
-        "col": 2,
-        "diff": 0.698
-      },
-      {
-        "row": 0,
-        "col": 3,
-        "diff": 0.698
-      },
-      {
-        "row": 0,
-        "col": 4,
-        "diff": 0.698
-      },
-      {
-        "row": 0,
+        "row": 1,
         "col": 1,
-        "diff": 0.696
+        "diff": 0.547
+      },
+      {
+        "row": 3,
+        "col": 7,
+        "diff": 0.534
+      },
+      {
+        "row": 3,
+        "col": 3,
+        "diff": 0.389
+      },
+      {
+        "row": 3,
+        "col": 1,
+        "diff": 0.386
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T01:16:12.142Z"
+    "at": "2026-11-04T02:24:59.866Z"
   },
   "fullhouse-desktop": {
     "sketch": "fullhouse-declutter.html",
