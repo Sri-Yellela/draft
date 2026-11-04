@@ -33,7 +33,16 @@ import { atlasPostingsChanged } from "../atlas/atlasLive.js";
 export const BASIS_PREFIX = `v${NORMALIZER_VERSION}:`;
 // The SQL function the stale query uses — the same descriptionBasis, so SQL and JS cannot disagree.
 export const BASIS_FN = "d59_description_basis";
-export const DESCRIPTION_STALE_SQL = `(description_basis IS NULL OR description_basis != ${BASIS_FN}(description))`;
+// ⛔ 44r (11-04, D151 / A123 (2)) · THE STALE SCAN IS AN INDEX READ, NOT A HASH OF THE BOARD. It used to compare
+// the basis with a JS sha1 of every description, twice a pass (the COUNT and the SELECT): 18.6 s of blocked event
+// loop at production's 84k postings on the 11-04 20:31Z boot, and again every 10 minutes. Migration 219's trigger now
+// sets description_basis to NULL when a description changes, so "stale" is: never read (NULL), or read by another
+// normaliser version (outside this version's prefix range) — both answered by idx_scraped_jobs_description_basis.
+// Rows that changed before the trigger existed are caught once by sweepStaleDescriptionBasis (in slices).
+const BASIS_PREFIX_END = BASIS_PREFIX.slice(0, -1) + String.fromCharCode(BASIS_PREFIX.charCodeAt(BASIS_PREFIX.length - 1) + 1);
+export const DESCRIPTION_STALE_SQL = `(description_basis IS NULL OR description_basis < '${BASIS_PREFIX}' OR description_basis >= '${BASIS_PREFIX_END}')`;
+/** The old whole-text comparison — only for the one-time sweep, over a bounded rowid range. */
+export const DESCRIPTION_HASH_MISMATCH_SQL = `(description_basis IS NOT NULL AND description_basis != ${BASIS_FN}(description))`;
 const fnRegistered = new WeakSet();
 export function registerDescriptionBasis(db) {
   if (fnRegistered.has(db)) return;
@@ -172,4 +181,30 @@ export function parseDescriptionFields(raw) {
   if (!raw) return null;
   if (typeof raw === "object") return raw;
   try { const v = JSON.parse(raw); return v && typeof v === "object" ? v : null; } catch { return null; }
+}
+
+// ⛔ 44r · THE ONE-TIME CATCH-UP for rows whose description changed before migration 219's trigger existed: compares
+// each row's basis with its description's hash, `rows` at a time by rowid (≈ 0.1 ms a row), and sets a mismatched
+// basis to NULL so the normal pass re-reads it. Resumable: app_settings holds the last rowid; "done" when it passes the
+// end. Returns { done, from, to, reset } for one slice — the caller schedules the next one (a yield between slices).
+export const BASIS_SWEEP_KEY = "d151_description_basis_sweep_v1";
+export function sweepStaleDescriptionBasis(db, { rows = 1000 } = {}) {
+  registerDescriptionBasis(db);
+  const get = db.prepare("SELECT value FROM app_settings WHERE key = ?");
+  const put = db.prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, unixepoch())
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`);
+  const state = get.get(BASIS_SWEEP_KEY)?.value;
+  if (state === "done") return { done: true, from: null, to: null, reset: 0 };
+  const from = Number(state) || 0;
+  const end = db.prepare("SELECT rowid AS r FROM scraped_jobs WHERE rowid > ? ORDER BY rowid LIMIT 1 OFFSET ?").get(from, rows - 1)?.r
+    ?? db.prepare("SELECT MAX(rowid) AS r FROM scraped_jobs").get().r ?? from;
+  let reset = 0;
+  db.transaction(() => {
+    reset = db.prepare(`UPDATE scraped_jobs SET description_basis = NULL WHERE rowid > ? AND rowid <= ? AND ${DESCRIPTION_HASH_MISMATCH_SQL}`)
+      .run(from, end).changes;
+    const more = db.prepare("SELECT 1 FROM scraped_jobs WHERE rowid > ? LIMIT 1").get(end);
+    put.run(BASIS_SWEEP_KEY, more ? String(end) : "done");
+  })();
+  const done = get.get(BASIS_SWEEP_KEY).value === "done";
+  return { done, from, to: end, reset };
 }

@@ -5,6 +5,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const CSS = read("client/src/components/PostingPanel.css");
@@ -22,6 +23,6 @@ test("d153FactsNeverBreakWords: the last facts rules wrap the cells and never br
 });
 
 test("d153NoNotStatedInPanel: the opened posting's facts box leaves out a fact with no value", () => {
-  const fn = JSX.slice(JSX.indexOf("function PanelMasthead("));
+  const fn = JSX.slice(at(JSX, "function PanelMasthead("));
   assert.match(fn.slice(0, 2000), /const all = \[\.\.\.cells, \.\.\.extra\]\.filter\(c => c\.value != null\);/);
 });

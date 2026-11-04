@@ -10,6 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { createBootWarmup } from "../services/boot/bootWarmup.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const SERVER = read("server.js");
@@ -18,7 +19,7 @@ const quiet = { log() {}, error() {}, warn() {} };
 // Every whole-board pass that used to run before the listener. Each must appear ONLY inside a BOOT.add(...) step
 // (or a function the warm-up / an interval calls), never as a bare statement of module evaluation.
 const BOARD_PASSES = ["backfillCategories(db)", "backfillAutomationTier(db)", "backfillProvenance(db)",
-  "backfillRoleMap(db)", "remapGeneralRows(db)", "backfillCompanyLogos(db)"];
+  "backfillRoleMap(db)", "remapGeneralRows(db, { skipIfSettled: true })", "backfillCompanyLogos(db)"];   // 44r: the re-file skips when settled
 
 test("d151NoBoardPassBeforeListen: each board pass is called only inside a BOOT.add warm-up step", () => {
   for (const call of BOARD_PASSES) {
@@ -52,7 +53,7 @@ test("d151ReadyGatesTraffic: /api/health/ready answers 503 until ready, and Rail
   assert.match(toml, /^healthcheckPath = "\/api\/health\/ready"$/m);
   const i = SERVER.indexOf('app.get("/api/health/ready"');
   assert.ok(i > 0 && i < SERVER.indexOf('app.get("*"'), "ready must be registered before the SPA catch-all");
-  const handler = SERVER.slice(i, SERVER.indexOf("\napp.", i + 10));
+  const handler = SERVER.slice(i, at(SERVER, "\napp.", i + 10));
   assert.match(handler, /BOOT\.ready && dbOk/);
   assert.match(handler, /res\.status\(503\)\.json\(\{ ok: false, error: dbOk \? "warming up"/);
   assert.doesNotMatch(handler, /requireAuth|requireAdmin/, "Railway's probe carries no session");

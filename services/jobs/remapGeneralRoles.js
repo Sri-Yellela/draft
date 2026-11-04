@@ -6,6 +6,23 @@
 
 import { ROLE_KEY_FALLBACK } from "./classifyJob.js";
 import { backfillDecision } from "./backfillRoleMap.js";
+import crypto from "node:crypto";
+import fs from "node:fs";
+
+// ⛔ 44r (11-04, D151 / A123 (3)) · NOT EVERY BOOT. The pass re-read all 22k 'general' rows on every boot (10.7 s of blocked
+// event loop on production's 20:31Z boot, 18 s on the 82k copy) and moved 0 — a row the classifier could not name
+// yesterday it cannot name today unless the CLASSIFIER changed (a changed posting is re-classified by the crawl itself).
+// So the boot skips the pass while the classifier's source is the one the last full pass ran with: a fingerprint of the
+// files backfillDecision depends on (line endings normalised, so a CRLF and an LF checkout agree), kept in app_settings.
+const CLASSIFIER_FILES = ["./backfillRoleMap.js", "./classifyJob.js", "./collarClassifier.js", "./jobTaxonomy.js", "../jobClassifier.js"];
+let _fingerprint = null;
+export function classifierFingerprint() {
+  if (_fingerprint) return _fingerprint;
+  const h = crypto.createHash("sha1");
+  for (const f of CLASSIFIER_FILES) h.update(f).update(fs.readFileSync(new URL(f, import.meta.url), "utf8").replace(/\r\n/g, "\n"));
+  return (_fingerprint = h.digest("hex").slice(0, 16));
+}
+export const REMAP_SETTLED_KEY = "d74_remap_general_classifier";
 // ── D74 · RE-FILE A 'general' ROW THE CLASSIFIER CAN NOW NAME ────────────────────────────────────
 //
 // D74 (10-07) added strong anchors the live boards showed were missing (services/jobClassifier.js,
@@ -35,7 +52,12 @@ export const GENERAL_ONLY_SQL = `
 /**
  * @returns {{ scanned: number, candidates: number, moved: number, byBucket: Record<string, number> }}
  */
-export function remapGeneralRows(db, { dryRun = false } = {}) {
+export function remapGeneralRows(db, { dryRun = false, skipIfSettled = false } = {}) {
+  if (skipIfSettled) {
+    let settled = null;
+    try { settled = db.prepare("SELECT value FROM app_settings WHERE key = ?").get(REMAP_SETTLED_KEY)?.value; } catch { /* no table */ }
+    if (settled === classifierFingerprint()) return { scanned: 0, candidates: 0, moved: 0, byBucket: {}, skipped: true };
+  }
   const rows = db.prepare(GENERAL_ONLY_SQL).all();
   const byBucket = {};
   const moves = [];
@@ -46,7 +68,14 @@ export function remapGeneralRows(db, { dryRun = false } = {}) {
     moves.push({ row, ...d });
   }
   const base = { scanned: rows.length, candidates: moves.length, byBucket };
-  if (dryRun || !moves.length) return { ...base, moved: 0 };
+  const markSettled = () => {
+    try {
+      db.prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, unixepoch())
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`).run(REMAP_SETTLED_KEY, classifierFingerprint());
+    } catch { /* no table: the next boot runs the pass again, as before */ }
+  };
+  if (dryRun) return { ...base, moved: 0 };
+  if (!moves.length) { markSettled(); return { ...base, moved: 0 }; }
   const insert = db.prepare(`
     INSERT OR IGNORE INTO job_role_map (job_id, role_key, role_family, domain, source_profile_id, confidence, matched_by)
     VALUES (?, ?, ?, ?, NULL, ?, ?)
@@ -58,5 +87,6 @@ export function remapGeneralRows(db, { dryRun = false } = {}) {
       retire.run(m.row.job_id);
     }
   })();
+  markSettled();
   return { ...base, moved: moves.length };
 }
