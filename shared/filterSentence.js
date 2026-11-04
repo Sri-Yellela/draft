@@ -90,6 +90,10 @@ export const SENTENCE_WORDS = Object.freeze({
   sponsorship: { filed: "at employers with H-1B filings", 1: "hiding employers with no H-1B record" },
 });
 
+// ⛔ D153 (2) · REMOTE (US) IN THE LOCATION PANEL: the workplace option a remote posting with no city is counted under,
+// once, instead of under every place. Its value is the workplace dimension's own remote value.
+export const LOCATION_REMOTE = Object.freeze({ clause: "where", value: "remote", label: "Remote (US)" });
+
 // D35 · THE WORDS AN OPTION READS AS IN ITS PANEL (header.html: "entry", "remote", "on-site", "the Bay
 // Area"). Lower-case, sentence-like, so the panel reads as the same voice as the sentence it opens
 // from; where the sentence's own word fits (level, fit) the sentence's word is used, so there is one
