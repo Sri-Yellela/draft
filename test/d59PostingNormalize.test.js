@@ -420,7 +420,8 @@ test("D59 · one normaliser for every source: the panel's formatter, the capture
   for (const f of ["services/jobs/descriptionText.js", "services/jobs/importJob.js", "client/src/components/PostingPanel.jsx"]) {
     assert.match(read(f), /shared\/postingNormalize\.js/, `${f} does not use the one normaliser`);
   }
-  assert.match(read("server.js"), /backfillDescriptionText\(db, \{ dryRun: false, limit: 2000, ceiling: 2000 \}\)/, "the boot / interval pass runs it");
+  // 44p (changed on purpose): 500 a pass, the first slice only — the stale scan over the whole board is the cost (≈ 4 s at 81k).
+  assert.match(read("server.js"), /backfillDescriptionText\(db, \{ dryRun: false, limit: 500, ceiling: 500 \}\)/, "the boot / interval pass runs it");
   // ⛔ no source renders posting HTML as HTML.
   for (const f of ["client/src/components/PostingPanel.jsx", "client/src/components/JobDetailPanel.jsx", "client/src/views/DeckView.jsx"]) {
     if (fs.existsSync(f)) assert.doesNotMatch(read(f), /dangerouslySetInnerHTML/, `${f} injects HTML`);

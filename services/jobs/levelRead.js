@@ -18,23 +18,33 @@ const basisOf = (r) => crypto.createHash("sha1")
 export function readStaleLevels(db, { limit = 1000 } = {}) {
   // 1,000 a pass (every 10 minutes): ~5 ms a posting, so a first pass over a large board fills over a few passes
   // instead of holding the event loop for half a minute.
-  const rows = db.prepare(`SELECT job_id, title, level_read_basis, LENGTH(COALESCE(description_text, description)) AS text_length
-    FROM scraped_jobs WHERE is_active = 1 OR level_read_basis IS NULL`).all();
+  // ⭐ 44p: iterate, and stop at `limit` stale rows — an 81k board is not materialised on every slice. The writes wait
+  // until the scan is done (better-sqlite3 allows no write while a statement is iterating).
+  const scan = db.prepare(`SELECT job_id, title, level_read_basis, LENGTH(COALESCE(description_text, description)) AS text_length
+    FROM scraped_jobs WHERE is_active = 1 OR level_read_basis IS NULL`);
+  const stale = [];
+  let scanned = 0;
+  for (const r of scan.iterate()) {
+    scanned++;
+    const basis = basisOf(r);
+    if (r.level_read_basis === basis) continue;
+    stale.push({ job_id: r.job_id, basis });
+    if (stale.length >= limit) break;   // the iterator is closed by the break
+  }
   const text = db.prepare(`SELECT COALESCE(description_text, description) FROM scraped_jobs WHERE job_id = ?`).pluck();
   const write = db.prepare(`UPDATE scraped_jobs SET level_read = ?, level_reasons = ?, level_read_basis = ? WHERE job_id = ?`);
   let read = 0;
   db.transaction(() => {
-    for (const r of rows) {
-      if (read >= limit) break;
-      const basis = basisOf(r);
-      if (r.level_read_basis === basis) continue;
+    for (const r of stale) {
       const l = readLevel(text.get(r.job_id) || "");
-      write.run(l.level, JSON.stringify({ reasons: l.reasons, years: l.years }), basis, r.job_id);
+      write.run(l.level, JSON.stringify({ reasons: l.reasons, years: l.years }), r.basis, r.job_id);
       read++;
     }
-    atlasPostingsChanged(db);   // ⭐ D118 P1: a posting whose level changed moves between the per-level counts here
+    // ⭐ D118 P1: a posting whose level changed moves between the per-level counts — budgeted (44p); the background
+    // drainer counts the rest.
+    if (read) atlasPostingsChanged(db);
   })();
-  return { scanned: rows.length, read };
+  return { scanned, read };
 }
 
 /** A board row → { read, reasons, years, disagreement } or null when nothing was read. */

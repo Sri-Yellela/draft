@@ -151,7 +151,8 @@ test("⛔ A MISSING RESUME GATES THE ATS SORT, NOT THE BOARD", () => {
 
   // ONE setup block remains, and it is the profile — the board is scoped to one, and without it
   // the server has nothing to scope to.
-  assert.match(jobsPanel, /const setupBlock = !activeDomainProfile/,
+  // 44p (changed on purpose): the gate now also tells a FAILED profile read from an empty one (resumePromptOnlyOnEmptySuccess).
+  assert.match(jobsPanel, /const setupBlock = activeDomainProfile \? null/,
     "the profile gate stays: an unscoped board is not a board");
   assert.ok(!/!resumeText\.trim\(\)\s*\n?\s*\?\s*\{/.test(jobsPanel),
     "the resume must not open a second setup block — that is the gate that hid the board");

@@ -75,7 +75,8 @@ test("fetchJobs does not clear the board while the profile list is still loading
 test("profilesLoadedRef is only set once the profiles request actually resolves", () => {
   // If it were initialised true, or set before the await, the guard above would be decorative.
   assert.match(panel, /const profilesLoadedRef = useRef\(false\)/);
-  const i = panel.indexOf('api("/api/domain-profiles")');
+  // 44p (changed on purpose): the read carries a timeout now — anchored on the call, not its exact arguments.
+  const i = at(panel, 'api("/api/domain-profiles", { timeoutMs');
   const block = panel.slice(i, i + 600);
   assert.match(block, /\.then\(rows => \{[\s\S]*profilesLoadedRef\.current = true/,
     "the flag must be set in the .then, so an unanswered or failed request still counts as " +
@@ -85,7 +86,7 @@ test("profilesLoadedRef is only set once the profiles request actually resolves"
 test("an empty profile list still clears the board — the legitimate case is preserved", () => {
   // A new account genuinely has no profiles: profilesLoadedRef becomes true with an empty list,
   // so the clear runs and setupBlock takes over. The fix must not have disabled that.
-  const i = panel.indexOf('api("/api/domain-profiles")');
+  const i = at(panel, 'api("/api/domain-profiles", { timeoutMs');
   const block = panel.slice(i, i + 600);
   assert.match(block, /const profiles = Array\.isArray\(rows\) \? rows : \[\];/);
   assert.match(block, /profilesLoadedRef\.current = true;\s*\n\s*setDomainProfiles\(profiles\);/,

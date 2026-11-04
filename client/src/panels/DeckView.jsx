@@ -62,6 +62,10 @@ const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SO
 const TOAST_MS = DECISION_TOAST_MS;
 const WHEEL_STEP = 60;               // accumulated wheel delta for one card
 const WHEEL_SETTLE_MS = 140;         // one trackpad flick is many events; rotate once per flick
+// ⛔ 44p: the deck's request fails at 8 s with a plain message + Try again (deckNeverSpinsForever), and today's last
+// good deal in this tab is kept on screen when a refresh fails (precomputeFailureShowsLastGood). In memory only.
+const DECK_TIMEOUT_MS = 8000;
+const lastGoodDeck = new Map();      // `${date}|${order}` → the last deck the server dealt
 // YYYY-MM-DD in the user's zone, built from its parts. ⛔ 44e: toLocaleDateString("en-CA") is NOT always YYYY-MM-DD — some
 // Safari / Chrome builds answer "11/2/2026", the server refused it (400) and a tester's deck dealt nothing.
 const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -692,8 +696,11 @@ export default function DeckView({ canUseAPlusResume = true }) {
   const scoringTries = useRef(0);
   const fetchDeck = useCallback(async () => {
     setLoad(l => (l.status === "scoring" ? l : { status: "loading", error: null }));
+    const cacheKey = `${localDate()}|${deckOrder}`;
     try {
-      const deck = await api(`/api/draft/today?date=${encodeURIComponent(localDate())}&order=${deckOrder}`);
+      // ⛔ 44p (deckNeverSpinsForever): at most DECK_TIMEOUT_MS, then a plain message and Try again — never a spinner
+      // for as long as the edge holds the request (30–67 s on production 11-02).
+      const deck = await api(`/api/draft/today?date=${encodeURIComponent(localDate())}&order=${deckOrder}`, { timeoutMs: DECK_TIMEOUT_MS });
       // 43y: a new résumé's matches are still being scored — say so and ask again (every 4 s, up to 3 minutes),
       // rather than showing an empty deck the tester takes for "no jobs".
       if (deck.reason === "scoring" && scoringTries.current < 45) {
@@ -703,6 +710,7 @@ export default function DeckView({ canUseAPlusResume = true }) {
         return;
       }
       scoringTries.current = 0;
+      lastGoodDeck.set(cacheKey, deck);
       dispatch({ type: "__replace", state: initialDeck(deck) });
       setDeckProfileId(deck.profileId ?? null);
       // ⛔ The deal plays on the day's FIRST open only — the server says whether this request dealt.
@@ -710,6 +718,15 @@ export default function DeckView({ canUseAPlusResume = true }) {
       setDealing(!!deck.dealtNow);
       setLoad({ status: "ready", error: null });
     } catch (e) {
+      // ⭐ 44p (precomputeFailureShowsLastGood): today's last good deal, if this tab has one, stays on screen with a
+      // quiet line saying it could not be refreshed.
+      const last = lastGoodDeck.get(cacheKey);
+      if (last) {
+        dispatch({ type: "__replace", state: initialDeck(last) });
+        setDeckProfileId(last.profileId ?? null);
+        setLoad({ status: "ready", error: null, stale: e.message || "The deck could not be refreshed." });
+        return;
+      }
       setLoad({ status: "error", error: e.message || "The deck could not be dealt." });
     }
   }, [deckOrder]);
@@ -946,6 +963,13 @@ export default function DeckView({ canUseAPlusResume = true }) {
             <div style={{ fontSize: 18, fontWeight: 700, color: C.INK, marginBottom: 8 }}>Today's draft could not be dealt.</div>
             <div style={{ fontSize: 14, color: C.INK_MUTED, marginBottom: 18 }}>{load.error}</div>
             <button type="button" onClick={fetchDeck} style={{ ...glass({ radius: 12 }), padding: "10px 18px", fontWeight: 800, color: C.INK, cursor: "pointer" }}>Try again</button>
+          </div>
+        )}
+
+        {load.status === "ready" && load.stale && (
+          <div role="status" data-deck-stale style={{ fontSize: 13.5, color: C.INK_MUTED, margin: "0 0 12px", display: "flex", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
+            <span>Showing today's draft from earlier — {load.stale}</span>
+            <button type="button" onClick={fetchDeck} style={{ background: "none", border: 0, padding: 0, fontWeight: 800, color: C.ACCENT_INK, cursor: "pointer" }}>Try again</button>
           </div>
         )}
 

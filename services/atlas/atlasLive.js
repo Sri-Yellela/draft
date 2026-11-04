@@ -117,34 +117,102 @@ function writeDelta(db, d, now) {
  * it. Runs inside the caller's transaction when there is one (a savepoint), else its own.
  * @returns {{ postings, rematched, changed, pending? } | null} null — no live store on this database
  */
-export function syncAtlasPostings(db, { now = Math.floor(Date.now() / 1000) } = {}) {
-  let dirty;
-  try { dirty = db.prepare(`SELECT posting_id FROM atlas_posting_dirty`).pluck().all(); } catch { return null; }
-  if (!dirty.length) return { postings: 0, rematched: 0, changed: 0 };
-  if (liveVersion(db) == null) return { postings: 0, rematched: 0, changed: 0, pending: dirty.length };
+//
+// ⛔ 44p (11-04) · NO CALLER DRAINS AN UNBOUNDED QUEUE ON THE REQUEST PATH. Reading a posting costs ≈ 4.3 ms (measured
+// at 81k postings: 12,030 queued = 51 s in one transaction), and after A112's crawler boost one drain of the whole queue
+// held the event loop for minutes — every request on the server, a static favicon included, hung 20–67 s (production
+// 11-02 ≈ 19:05Z; the owner saw "upload résumé, no jobs, the deck keeps loading"). So:
+//   · syncAtlasPostings(db, { limit }) reads at most `limit` queued postings, oldest first (no limit = the whole queue:
+//     the nightly full pass and scripts only);
+//   · atlasPostingsChanged(db) — every write path and every read — drains for a small time budget (ATLAS_DRAIN_BUDGET_MS)
+//     in slices of ATLAS_DRAIN_SLICE, always at least one slice: a single write or a test's handful still settles in
+//     the same call, a crawl batch of a thousand does not hold the loop for four seconds;
+//   · startAtlasDrainer(db) (server.js, after listen) drains what is left in the background, yielding between slices.
+// The counts are the same ones a whole drain gives — each slice is one more incremental step, like another writer's.
+
+/** Postings read per slice (≈ 70 ms at 4.3 ms each). */
+export const ATLAS_DRAIN_SLICE = 16;
+/** The longest a write or a read spends draining before it leaves the rest to the background drainer. */
+export const ATLAS_DRAIN_BUDGET_MS = 50;
+
+export function syncAtlasPostings(db, { now = Math.floor(Date.now() / 1000), limit = Infinity } = {}) {
+  let queued;
+  try { queued = db.prepare(`SELECT COUNT(*) FROM atlas_posting_dirty`).pluck().get(); } catch { return null; }
+  if (!queued) return { postings: 0, rematched: 0, changed: 0, pending: 0 };
+  if (liveVersion(db) == null) return { postings: 0, rematched: 0, changed: 0, pending: queued };
   try {
-    return db.transaction(() => syncNow(db, now))();
+    return db.transaction(() => syncNow(db, now, limit))();
   } catch (e) {
     companyCacheDrop(db);   // its in-place changes were rolled back with the savepoint
     throw e;
   }
 }
 
-/** The write paths' call: the same as syncAtlasPostings, but a failure never fails the posting's own write. */
-export function atlasPostingsChanged(db) {
-  try { return syncAtlasPostings(db); }
+/** The queue's length — Admin → System and the drainer read it. null on a database with no live store. */
+export function atlasQueueLength(db) {
+  try { return db.prepare(`SELECT COUNT(*) FROM atlas_posting_dirty`).pluck().get(); } catch { return null; }
+}
+
+/**
+ * One budgeted drain: slices of `slice` postings until the queue is empty or `budgetMs` is spent — always one slice.
+ * @returns {{ postings, rematched, changed, pending } | null}
+ */
+export function drainAtlasQueue(db, { budgetMs = ATLAS_DRAIN_BUDGET_MS, slice = ATLAS_DRAIN_SLICE, clock = () => performance.now() } = {}) {
+  const start = clock();
+  const total = { postings: 0, rematched: 0, changed: 0, pending: 0 };
+  for (;;) {
+    const r = syncAtlasPostings(db, { limit: slice });
+    if (!r) return null;
+    total.postings += r.postings; total.rematched += r.rematched; total.changed += r.changed; total.pending = r.pending ?? 0;
+    if (!r.postings || !total.pending || clock() - start >= budgetMs) return total;
+  }
+}
+
+/** The write paths' and the reads' call: a budgeted drain, and a failure never fails the posting's own write. */
+export function atlasPostingsChanged(db, opts) {
+  try { return drainAtlasQueue(db, opts); }
   catch (e) { console.warn(`[atlas live] the counts wait for the next read: ${e.message}`); return null; }
 }
 
-function syncNow(db, now) {
-  const dirty = db.prepare(`SELECT posting_id FROM atlas_posting_dirty`).pluck().all();
+/**
+ * ⭐ 44p · The background drainer: a budgeted drain every `restMs` while postings are queued (the loop is free between
+ * slices, so requests interleave), every `idleMs` when the queue is empty. Returns stop().
+ */
+export function startAtlasDrainer(db, { budgetMs = 100, restMs = 100, idleMs = 5000, log = console } = {}) {
+  let timer = null, stopped = false, drained = 0, since = Date.now();
+  const tick = () => {
+    if (stopped) return;
+    let r = null;
+    try { r = drainAtlasQueue(db, { budgetMs }); }
+    catch (e) { log.warn?.(`[atlas live] background drain failed: ${e.message}`); }
+    drained += r?.postings || 0;
+    if (drained && !r?.pending) {
+      log.log?.(`[atlas live] background drain: ${drained} posting(s) counted in ${Math.round((Date.now() - since) / 1000)} s`);
+      drained = 0;
+    }
+    if (!r?.pending) since = Date.now();
+    timer = setTimeout(tick, r?.pending ? restMs : idleMs);
+    timer.unref?.();
+  };
+  timer = setTimeout(tick, restMs);
+  timer.unref?.();
+  return () => { stopped = true; clearTimeout(timer); };
+}
+
+function syncNow(db, now, limit = Infinity) {
+  const all = !Number.isFinite(limit);
+  const dirty = all
+    ? db.prepare(`SELECT posting_id FROM atlas_posting_dirty`).pluck().all()
+    : db.prepare(`SELECT posting_id FROM atlas_posting_dirty ORDER BY rowid LIMIT ?`).pluck().all(Math.max(1, Math.floor(limit)));
+  const pendingAfter = all ? 0 : Math.max(0, db.prepare(`SELECT COUNT(*) FROM atlas_posting_dirty`).pluck().get() - dirty.length);
   const L = liveMatcher(db);
   const version = liveVersion(db);
   const key = `live:${version}`;
   const getPosting = db.prepare(`SELECT id, ${POSTING_TEXT_SQL}, ${levelReadColumn(db)} FROM scraped_jobs WHERE id = ? AND ${ACTIVE_POSTINGS_WHERE}`);
   const getRow = db.prepare(`SELECT * FROM atlas_posting_match WHERE posting_id = ?`);
-  // A posting replaced under a new id (INSERT OR REPLACE fires no delete trigger) leaves its old row: swept here.
-  const orphans = db.prepare(`SELECT posting_id FROM atlas_posting_match WHERE posting_id NOT IN (SELECT id FROM scraped_jobs)`).pluck().all();
+  // A posting replaced under a new id (INSERT OR REPLACE fires no delete trigger) leaves its old row: swept here — by the
+  // slice that empties the queue (the sweep scans every match row, so not on every slice of a backlog).
+  const orphans = pendingAfter ? [] : db.prepare(`SELECT posting_id FROM atlas_posting_match WHERE posting_id NOT IN (SELECT id FROM scraped_jobs)`).pluck().all();
   const work = new Set([...dirty, ...orphans]);
 
   // 1. The companies touched, adjusted in place: the posting's old sentences out, its new ones in.
@@ -215,7 +283,7 @@ function syncNow(db, now) {
   const v = newVersion();
   putState(db, "version", v);
   companyCacheMoved(db, v);
-  return { postings: work.size, rematched: rematch.size, changed };
+  return { postings: work.size, rematched: rematch.size, changed, pending: pendingAfter };
 }
 
 // ── the full pass's side: the baseline and the drift ────────────────────────────────────────────

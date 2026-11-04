@@ -126,7 +126,7 @@ import { seedAtlasFamilies } from "./services/atlas/atlasFamilies.js";
 import { seedDraftedDefinitions } from "./services/atlas/atlasDefinitions.js";
 import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
-import { liveVersion, atlasPostingsChanged } from "./services/atlas/atlasLive.js";
+import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
 import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes } from "./services/jobs/publicJobPage.js";
 import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
@@ -6783,32 +6783,49 @@ if (String(process.env.ROLE_MAP_BACKFILL || "").toLowerCase() === "off") {
 //
 // Never fatal: an untagged row is NULL on every tag, which every board predicate reads as UNKNOWN
 // and keeps (soft-null). Failing the boot over it would trade precision for an outage.
-function runJobTagPass(trigger) {
+//
+// ⛔ 44p (11-04) · IN SLICES THAT YIELD. At 81k postings one pass of 2,000 descriptions + 1,000 levels
+// (≈ 3.5 ms a level) held the event loop for seconds every 10 minutes, with the Atlas drain on top
+// (11-02 19:02Z: every request stalled). A slice is 200 descriptions + 100 levels; the next slice runs
+// 50 ms later while the last one found work, up to JOB_TAG_SLICES a pass — the same 2,000 / 1,000.
+const JOB_TAG_SLICES = 10;
+function runJobTagPassSliced(trigger, left = JOB_TAG_SLICES) {
+  let worked = false;
+  try { worked = runJobTagPass(trigger, { descriptions: left === JOB_TAG_SLICES }); }
+  catch (e) { console.error(`[tags] (${trigger}) slice failed:`, e.message); }
+  if (worked && left > 1) setTimeout(() => runJobTagPassSliced(trigger, left - 1), 50).unref();
+}
+function runJobTagPass(trigger, { descriptions = true } = {}) {
+  let worked = false;
   // ⛔ D59 · the description pass first — the tags read its label fields (workstyle, location). Writes
   // only description_text / description_fields / req_* (never description or content_hash), at most
-  // 2,000 rows a pass, so a large board fills over a few passes. Migration 137's trigger re-queues a
-  // posting whose description changed.
-  try {
-    const d = backfillDescriptionText(db, { dryRun: false, limit: 2000, ceiling: 2000 });
+  // 500 rows a pass, so a large board fills over a few passes. Migration 137's trigger re-queues a
+  // posting whose description changed. 44p: the FIRST slice only — its stale scan over the whole board
+  // (≈ 4 s at 81k) is the cost, not the rows, so slicing it would pay the scan ten times.
+  if (descriptions) try {
+    const d = backfillDescriptionText(db, { dryRun: false, limit: 500, ceiling: 500 });
+    if (d.written > 0) worked = true;
     if (d.written > 0) console.log(`[description] (${trigger}) normalised ${d.written} of ${d.due} posting(s) — ${d.changedText} with new text, ${d.withFields} with a label block`);
   } catch (e) {
     console.error(`[description] (${trigger}) normalising failed (readers fall back to the stored description):`, e.message);
   }
   try {
-    const r = tagStaleJobs(db);
+    const r = tagStaleJobs(db, { limit: 200 });
+    if (r.tagged > 0) worked = true;
     if (r.tagged > 0) console.log(`[tags] (${trigger}) tagged ${r.tagged} of ${r.scanned} posting(s)`);
   } catch (e) {
     console.error(`[tags] (${trigger}) tagging failed (untagged rows read as unknown and stay visible):`, e.message);
   }
   try {
-    const l = readStaleLevels(db);
-    if (l.read > 0) console.log(`[level] (${trigger}) read the asked level of ${l.read} of ${l.scanned} posting(s)`);
+    const l = readStaleLevels(db, { limit: 100 });
+    if (l.read > 0) { worked = true; console.log(`[level] (${trigger}) read the asked level of ${l.read} of ${l.scanned} posting(s)`); }
   } catch (e) {
     console.error(`[level] (${trigger}) reading levels failed (an unread posting has no level line):`, e.message);
   }
+  return worked;
 }
-runJobTagPass("boot");
-setInterval(() => runJobTagPass("interval"), 10 * 60 * 1000).unref();
+runJobTagPassSliced("boot");
+setInterval(() => runJobTagPassSliced("interval"), 10 * 60 * 1000).unref();
 
 // ── ATS term weights: say what state they are in, then fix it if it needs fixing ────────────────
 //
@@ -14495,6 +14512,9 @@ app.get("/api/version", (_req, res) => {
     contract: CONTRACT_VERSION,
     migrations,
     atsWeights,
+    // ⭐ 44p: the Atlas live-count backlog — a number, nothing user-scoped. The deck bug's cause was this queue drained
+    // whole on the request path; the background drainer now counts it, and this says how much is left.
+    atlasQueue: atlasQueueLength(db),
     monetisationEnabled: monetisationEnabled(),
   });
 });
@@ -14549,6 +14569,11 @@ app.listen(PORT, () => {
   console.log(`[server] ${BRAND} v5 on :${PORT}`);
   // Warm up browser availability probe in background so /api/integrations/status
   // returns a cached result without delay on first user request.
+  // ⭐ 44p · the Atlas live-count queue drains HERE, in the background, in slices that yield — never whole on a request
+  // (services/atlas/atlasLive.js: one whole drain held the loop for minutes after A112's crawler boost).
+  const queued = atlasQueueLength(db);
+  if (queued) console.log(`[atlas live] ${queued} posting(s) queued at boot — counted in the background`);
+  startAtlasDrainer(db);
   console.log("[boot] scheduling background browser probe");
   probeBrowserAvailability().then(r => {
     if (r.available) console.log(`[server] browser ready — source=${r.source}`);
