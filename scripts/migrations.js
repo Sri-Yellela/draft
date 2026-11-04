@@ -6102,4 +6102,49 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D150 T01 (owner 11-03) · THE QUESTION BANK — one reviewed bank used by the audit, Check, Play, Learn, Defend and the
+      // company guides (services/learn/learnQuestions.js, ONE reader). learn_questions: the item (role, level, type
+      // scenario | recall | explain, a stem, choices, the correct one and a WHY for every choice, the skills and Learn
+      // pieces it evidences); ⛔ status 'draft' until a person approves it in Admin → Learn → Questions ('live'), 'retired'
+      // after; a re-import never resets status or stats. learn_question_answers: each answer (the choice, the time) — the
+      // stats and T02's flags read them; user_id is NULL for the public audit (no sign-in). Merge plan: move. After 217.
+      id: "218_learn_questions",
+      sql: `
+        CREATE TABLE IF NOT EXISTS learn_questions (
+          id             TEXT PRIMARY KEY,
+          role           TEXT,
+          level          TEXT,
+          type           TEXT NOT NULL,
+          skills_json    TEXT NOT NULL DEFAULT '[]',
+          pieces_json    TEXT NOT NULL DEFAULT '[]',
+          families_json  TEXT NOT NULL DEFAULT '[]',
+          stem           TEXT NOT NULL,
+          choices_json   TEXT NOT NULL,
+          correct        INTEGER NOT NULL,
+          why_json       TEXT NOT NULL,
+          source         TEXT,
+          status         TEXT NOT NULL DEFAULT 'draft',
+          version        INTEGER NOT NULL DEFAULT 1,
+          content_hash   TEXT NOT NULL,
+          imported_from  TEXT,
+          reviewed_by    TEXT,
+          reviewed_at    INTEGER,
+          created_at     INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at     INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_learn_questions_pick ON learn_questions(status, role, level, type);
+        CREATE TABLE IF NOT EXISTS learn_question_answers (
+          id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          question_id    TEXT NOT NULL REFERENCES learn_questions(id) ON DELETE CASCADE,
+          user_id        INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          surface        TEXT NOT NULL,
+          chosen         INTEGER NOT NULL,
+          correct        INTEGER NOT NULL,
+          ms             INTEGER,
+          answered_at    INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_learn_question_answers_q ON learn_question_answers(question_id);
+      `,
+    },
   ];

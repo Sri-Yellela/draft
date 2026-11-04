@@ -130,6 +130,8 @@ const ADMIN = new Set([
   "GET /api/admin/ghost-rates",                     // D137 P3: aggregates only
   "GET /api/admin/readiness",                       // D142: the bank and the most-claimed skills
   "POST /api/admin/readiness/questions/:id/review",  // D142: a person approves, edits or retires a question
+  "GET /api/admin/questions",                       // D150 T02: the question bank's review desk (every status, stats, flags)
+  "POST /api/admin/questions/:id/review",            // D150 T02: ⛔ the only way an item becomes live
   "GET /api/admin/learn/content",
   "POST /api/admin/learn/import/preview",
   "POST /api/admin/learn/import/apply",

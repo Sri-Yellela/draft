@@ -117,6 +117,8 @@ import { ingestForUser } from "./services/inbox.js";
 import { refreshThumbs } from "./services/thumbs/resourceThumbs.js";
 import { createLearnAdminRouter } from "./routes/learnAdmin.js";
 import { seedLearnContentIfEmpty } from "./services/learn/learnImport.js";
+import { importQuestionFiles, reviewList, unknownPieces, reviewQuestion as reviewLearnQuestion,
+  QUESTION_LEVELS, QUESTION_TYPES, QUESTION_STATUSES } from "./services/learn/learnQuestions.js";
 import { seedCircleData, checkExtraItems } from "./services/learn/learnCircle.js";
 import { seedAtlasFromRegistry } from "./services/atlas/atlasSeed.js";
 import { importLearnConcepts, publishLearnConcepts } from "./services/atlas/atlasLearnImport.js";
@@ -6607,6 +6609,51 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         );
       `,
     },
+    {
+      // ⭐ D150 T01 (owner 11-03) · THE QUESTION BANK — one reviewed bank used by the audit, Check, Play, Learn, Defend and the
+      // company guides (services/learn/learnQuestions.js, ONE reader). learn_questions: the item (role, level, type
+      // scenario | recall | explain, a stem, choices, the correct one and a WHY for every choice, the skills and Learn
+      // pieces it evidences); ⛔ status 'draft' until a person approves it in Admin → Learn → Questions ('live'), 'retired'
+      // after; a re-import never resets status or stats. learn_question_answers: each answer (the choice, the time) — the
+      // stats and T02's flags read them; user_id is NULL for the public audit (no sign-in). Merge plan: move. After 217.
+      id: "218_learn_questions",
+      sql: `
+        CREATE TABLE IF NOT EXISTS learn_questions (
+          id             TEXT PRIMARY KEY,
+          role           TEXT,
+          level          TEXT,
+          type           TEXT NOT NULL,
+          skills_json    TEXT NOT NULL DEFAULT '[]',
+          pieces_json    TEXT NOT NULL DEFAULT '[]',
+          families_json  TEXT NOT NULL DEFAULT '[]',
+          stem           TEXT NOT NULL,
+          choices_json   TEXT NOT NULL,
+          correct        INTEGER NOT NULL,
+          why_json       TEXT NOT NULL,
+          source         TEXT,
+          status         TEXT NOT NULL DEFAULT 'draft',
+          version        INTEGER NOT NULL DEFAULT 1,
+          content_hash   TEXT NOT NULL,
+          imported_from  TEXT,
+          reviewed_by    TEXT,
+          reviewed_at    INTEGER,
+          created_at     INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at     INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_learn_questions_pick ON learn_questions(status, role, level, type);
+        CREATE TABLE IF NOT EXISTS learn_question_answers (
+          id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          question_id    TEXT NOT NULL REFERENCES learn_questions(id) ON DELETE CASCADE,
+          user_id        INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          surface        TEXT NOT NULL,
+          chosen         INTEGER NOT NULL,
+          correct        INTEGER NOT NULL,
+          ms             INTEGER,
+          answered_at    INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_learn_question_answers_q ON learn_question_answers(question_id);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -10302,6 +10349,17 @@ catch (e) { console.warn("[atlas] seed:", e.message); }
 // ⭐ D142: the drafted readiness questions go in as DRAFTS on an empty table only — nothing is served until reviewed.
 try { const n = seedReadinessDrafts(db); if (n) console.log(`[readiness] ${n} drafted question(s) await review`); }
 catch (e) { console.warn("[readiness] seed:", e.message); }
+// ⭐ D150 T01: the question bank's files (content/learn/audit-questions-vN.json) go in as DRAFTS — idempotent, a re-import
+// never resets a reviewed item; nothing is live until Admin → Learn → Questions approves it.
+try {
+  for (const r of importQuestionFiles(db)) {
+    if (r.error) console.warn(`[questions] ${r.file} NOT imported — ${r.error}`);
+    else if (r.refused.length) console.warn(`[questions] ${r.file} NOT imported — ${r.refused.length} item(s) refused: ${r.refused.slice(0, 3).map(x => `${x.id}: ${x.problems.join(", ")}`).join("; ")}`);
+    else if (r.added.length || r.changed.length || r.requeued.length) console.log(`[questions] ${r.file}: ${r.added.length} added, ${r.changed.length} changed, ${r.requeued.length} back to review`);
+  }
+  const drafts = db.prepare(`SELECT COUNT(*) FROM learn_questions WHERE status = 'draft'`).pluck().get();
+  if (drafts) console.log(`[questions] ${drafts} drafted question(s) await review (Admin → Learn → Questions)`);
+} catch (e) { console.warn("[questions] import:", e.message); }
 // ⭐ D118 P2 (c): the Learn content lives in the DATABASE (learn_content). content/learn/*.json goes in ONLY on an empty
 // table — a first install — and never over newer database content (Admin → Atlas → Import content replaces it).
 try {
@@ -11530,6 +11588,21 @@ app.get("/api/admin/readiness", requireAdmin, (req, res) => {
 });
 app.post("/api/admin/readiness/questions/:id/review", requireAdmin, (req, res) => {
   try { res.json(reviewQuestion(db, Number(req.params.id), { action: req.body?.action, edits: req.body?.edits || null,
+    reviewer: req.user?.username || req.admin?.email || null })); }
+  catch (e) { res.status(e.status || 500).json({ error: e.code || "review_failed", message: e.message }); }
+});
+// ⭐ D150 T02 · Admin → Data → Question bank: every item (any status) with its stats and flags; ⛔ the review route is the
+// ONLY way an item becomes live (services/learn/learnQuestions.js reviewQuestion).
+app.get("/api/admin/questions", requireAdmin, (req, res) => {
+  const pick = (k, allowed) => (allowed ? (allowed.includes(req.query[k]) ? req.query[k] : null) : (typeof req.query[k] === "string" && req.query[k].trim() ? req.query[k].trim() : null));
+  const items = reviewList(db, { role: pick("role"), level: pick("level", QUESTION_LEVELS), type: pick("type", QUESTION_TYPES),
+    status: pick("status", QUESTION_STATUSES), flagged: req.query.flagged === "1" });
+  const counts = Object.fromEntries(db.prepare(`SELECT status, COUNT(*) n FROM learn_questions GROUP BY status`).all().map(r => [r.status, r.n]));
+  const roles = db.prepare(`SELECT DISTINCT role FROM learn_questions WHERE role IS NOT NULL ORDER BY role`).pluck().all();
+  res.json({ items, counts, roles, unknownPieces: unknownPieces(db) });
+});
+app.post("/api/admin/questions/:id/review", requireAdmin, (req, res) => {
+  try { res.json(reviewLearnQuestion(db, String(req.params.id), { action: req.body?.action, edits: req.body?.edits || null,
     reviewer: req.user?.username || req.admin?.email || null })); }
   catch (e) { res.status(e.status || 500).json({ error: e.code || "review_failed", message: e.message }); }
 });
