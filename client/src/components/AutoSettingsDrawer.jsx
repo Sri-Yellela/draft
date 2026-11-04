@@ -16,6 +16,13 @@
 //     When · How many · Which jobs · Before sending · Tell me · Pausing · Accounts (when there is anything in it) ·
 //     View (D146, when the panel offers it)
 //   and the internal limits off the first screen: "Today: n sent of N · Details".
+//
+// ⭐ D149 (owner 11-03) REBUILDS IT TO THE SKETCH, values verbatim (DraftHouse.css's D148 block): a 520 px drawer with
+//   no footer (Close closes, saving first); the sketch's own switches (role="switch" buttons, were the platform
+//   checkbox); "Use my board filters" a switch (was a button; off clears them); "At most N per company" (the number
+//   stays editable in its line); the stale thresholds in the stale row's line; "Add a time" the sketch's dashed button;
+//   View's two choices drawn like the mode's; "Today: n sent of N." with Details under it. Every handler, value and
+//   save is the same.
 import { useEffect, useRef, useState } from "react";
 import { api, authContextQuery } from "../lib/api.js";
 import { Z } from "../styles/zLayers.js";
@@ -51,7 +58,8 @@ export function foldValues(s, { notify = null, held = false, accounts = null, li
   const jobs = [];
   if (s.onlySponsorRecord) jobs.push("sponsors only");
   if (s.staleReposts != null || s.staleOpenDays != null) jobs.push("skips stale posts");
-  if (s.perCompanyLimit30d != null) jobs.push(`at most ${s.perCompanyLimit30d} per company`);
+  // D149 (11-03): the sketch's line is "sponsors only · skips stale posts" with its per-company switch ON — the limit is
+  // not on the line (it wrapped the line to two); it shows when the fold opens.
   if (Object.keys(s.filters || {}).length) jobs.push("your board filters");
   const picks = notify?.events?.find(e => e.key === "picks");
   const ch = picks ? [picks.email && "email", picks.push && "notification"].filter(Boolean) : null;
@@ -68,6 +76,8 @@ export function foldValues(s, { notify = null, held = false, accounts = null, li
 }
 
 // A fold: its one line (a button that opens it in place), and — open — the eyebrow, the headline, the controls, Done.
+// ⭐ D149 (11-03): the sketch's .gq — .top (the line), .body (eyebrow · h3 · controls · .done2); Done is the sketch's
+// accent button, not the old depth box.
 function Fold({ id, title, value, headline, open, onOpen, onDone, children }) {
   return (
     <section className="dh-fold2" data-settings-group={id} data-open={open ? "true" : "false"}>
@@ -79,7 +89,7 @@ function Fold({ id, title, value, headline, open, onOpen, onDone, children }) {
           <p className="dh-fold2__eyebrow">{title}</p>
           <h3 className="dh-fold2__h">{headline}</h3>
           {children}
-          <button type="button" className="dh-btn dh-fold2__done" onClick={onDone} data-fold-done={id}>Done</button>
+          <button type="button" className="dh-fold2__done" onClick={onDone} data-fold-done={id}>Done</button>
         </div>
       )}
     </section>
@@ -100,6 +110,7 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
   const [msg, setMsg] = useState("");
   const [saved, setSaved] = useState("");
   const [newTime, setNewTime] = useState("");
+  const [adding, setAdding] = useState(false);   // D149: "Add a time" is the sketch's dashed button; pressed, the time box
   const [fold, setFold] = useState(null);
   const [notify, setNotify] = useState(null);
   const [acct, setAcct] = useState(null);   // { connected, anything } — Accounts' own answer
@@ -131,7 +142,7 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
   useEffect(() => {
     if (!open) return undefined;
     let live = true;
-    setMsg(""); setSaved(""); setFold(group || null);
+    setMsg(""); setSaved(""); setFold(group || null); setAdding(false);
     api("/api/apply/auto-settings").then(r => { if (live) { lastSaved.current = r.settings; setS(r.settings); } })
       .catch(e => live && setMsg(e.message || "Could not load your settings."));
     api("/api/domain-profiles").then(r => { if (live) setProfiles(Array.isArray(r) ? r : (r?.profiles || [])); }).catch(() => {});
@@ -170,10 +181,14 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
   const v = foldValues(s, { notify, held, accounts: acct?.connected ?? null, listView });
   const fp = (id) => ({ open: fold === id, onOpen: () => setFold(f => (f === id ? null : id)), onDone: () => setFold(null) });
   const picks = notify?.events?.find(e => e.key === "picks") || null;
+  // ⭐ D149 (11-03): the sketch's own switch (.sw) — a real control: a button with role="switch" + aria-checked, Space /
+  // Enter press it, its name from the row's label. Was the platform checkbox. The track's corners are 8, not the sketch's
+  // 14: 14 on 28 is a capsule, barred by D60 (8 on 28 = 29 %, inside d60CompactRadius' 30 %).
   const sw = (checked, onChange, extra = {}) => (
-    <input type="checkbox" role="switch" checked={!!checked} aria-checked={!!checked} onChange={onChange} {...extra} />
+    <button type="button" role="switch" className="dh-swb" aria-checked={!!checked} onClick={onChange} {...extra} />
   );
   const times = s?.runTimes?.length || 0;
+  const boardOn = !!s && Object.keys(s.filters || {}).length > 0;
 
   return (
     <>
@@ -182,7 +197,7 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
         data-auto-settings="" data-settings-drawer="">
         <header className="dh-drawer__head">
           <h2 id="dh-settings-title">Auto-apply</h2>
-          <button type="button" className="dh-btn" onClick={close} data-first="" data-settings-close="">Close</button>
+          <button type="button" className="dh-close" onClick={close} data-first="" data-settings-close="">Close</button>
         </header>
         {!s ? <p className="dh-drawer__msg" role="status">{msg || "Loading…"}</p> : (
           <div className="dh-drawer__body">
@@ -202,6 +217,8 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
 
             <Fold id="when" title="When" value={v.when} {...fp("when")}
               headline={`draft looks for new jobs ${times === 1 ? "once" : times === 2 ? "twice" : `${times} times`} a day`}>
+              {/* D149: the sketch's .times — a chip per time (its ✕ removes it: behaviour the sketch does not draw), then the
+                  dashed "Add a time"; pressed, it becomes the time box and Add. */}
               <div className="dh-times">
                 {s.runTimes.map(t => (
                   <span key={t} className="dh-time">{RUN_AT(t)}
@@ -209,15 +226,17 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
                       onClick={() => set({ runTimes: s.runTimes.filter(x => x !== t) })}>✕</button>
                   </span>
                 ))}
-                {s.runTimes.length < MAX_TIMES && (
-                  <span className="dh-time" data-add-time="">
+                {s.runTimes.length < MAX_TIMES && (adding ? (
+                  <span className="dh-time dh-time--add" data-add-time="">
                     <input type="time" aria-label="A run time to add" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
                     <button type="button" aria-label="Add this time" disabled={!newTime || s.runTimes.includes(newTime)}
-                      onClick={() => { set({ runTimes: [...s.runTimes, newTime].sort() }); setNewTime(""); }}>Add a time</button>
+                      onClick={() => { set({ runTimes: [...s.runTimes, newTime].sort() }); setNewTime(""); setAdding(false); }}>Add</button>
                   </span>
-                )}
+                ) : (
+                  <button type="button" className="dh-time-add" data-add-time-open="" onClick={() => setAdding(true)}>Add a time</button>
+                ))}
               </div>
-              <p className="dh-set__hint">In {zoneWords(s.timeZone)} ({s.timeZone}). Each time, it only looks at jobs posted since the last.</p>
+              <p className="dh-fold2__lead dh-fold2__lead--after">Each time, it only looks at jobs posted since the last. Times are in {zoneWords(s.timeZone)} ({s.timeZone}).</p>
             </Fold>
 
             <Fold id="howmany" title="How many" value={v.howmany} headline="At most this many a day" {...fp("howmany")}>
@@ -226,75 +245,72 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
                 <b aria-live="polite">{s.dailyCap}</b>
                 <button type="button" aria-label="More" disabled={s.dailyCap >= CAP_MAX} onClick={() => set({ dailyCap: Math.min(CAP_MAX, s.dailyCap + 1) })}>+</button>
               </div>
-              <p className="dh-set__hint">Anything over waits for tomorrow, in your time zone.</p>
+              <p className="dh-fold2__lead dh-fold2__lead--after">Anything over waits for tomorrow.</p>
             </Fold>
 
             <Fold id="jobs" title="Which jobs" value={v.jobs} headline="Only the jobs worth sending" {...fp("jobs")}>
               {/* ⭐ D121 P3: off by default. On, picks keep only companies whose public LCA record says they sponsor. */}
+              {/* D149: the sketch's rows (.tg) — a label, a quiet line under it, the switch on the right. A row whose line
+                  holds a number box names its switch with <label htmlFor> so a press on the box never flips the switch. */}
               {"onlySponsorRecord" in s && (
-                <label className="dh-sw" data-only-sponsor-setting="">
-                  <span className="dh-sw__t">Only companies with a sponsorship record<small>{s.onlySponsorRecord
+                <label className="dh-tg" data-only-sponsor-setting="">
+                  <span>Only companies with a sponsorship record<small>{s.onlySponsorRecord
                     ? "certified LCAs in the latest complete fiscal year or the one before — a record, not a promise"
                     : "off — if you need sponsorship, companies with a record come first"}</small></span>
                   {sw(s.onlySponsorRecord, () => set({ onlySponsorRecord: !s.onlySponsorRecord }))}
                 </label>
               )}
               {/* ⭐ D107 P3 · postings that look never-filled — left out of picks, FULL AUTO and Approve all, still on the board. */}
-              <div className="dh-set" data-stale-settings="">
-                <label className="dh-sw">
-                  <span className="dh-sw__t">Skip stale posts<small>{stale ? "they stay on your board; you can still send one yourself" : "off — reposted and long-open jobs are picked like any other"}</small></span>
-                  {sw(stale, () => set(stale ? { staleReposts: null, staleOpenDays: null } : { staleReposts: 3, staleOpenDays: 90 }))}
-                </label>
-                {stale && (
-                  <label className="dh-set__hint">Reposted{" "}
+              <div className="dh-tg" data-stale-settings="">
+                <span><label htmlFor="dh-sw-stale">Skip stale posts</label>{stale ? (
+                  <small>reposted{" "}
                     <input type="number" min={1} max={20} value={s.staleReposts ?? 3} aria-label="Reposts before a posting is skipped"
                       onChange={(e) => set({ staleReposts: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })} />
-                    {" "}times or more, or open more than{" "}
+                    + times or open{" "}
                     <input type="number" min={14} max={365} value={s.staleOpenDays ?? 90} aria-label="Days open before a posting is skipped"
                       onChange={(e) => set({ staleOpenDays: Math.max(14, Math.min(365, Number(e.target.value) || 14)) })} />
-                    {" "}days.</label>
-                )}
+                    + days</small>
+                ) : <small>off — reposted and long-open jobs are picked like any other</small>}</span>
+                {sw(stale, () => set(stale ? { staleReposts: null, staleOpenDays: null } : { staleReposts: 3, staleOpenDays: 90 }), { id: "dh-sw-stale" })}
               </div>
-              <div className="dh-set">
-                <button type="button" className="dh-btn" disabled={!boardLine} onClick={() => set({ filters: board })}>Use my board filters</button>
-                <span className="dh-set__hint">{Object.keys(s.filters || {}).length ? `Now: ${filterLine(s.filters)}`
-                  : boardLine ? `Your board: ${boardLine}` : "Open the board and filter it first — its filters start here."}</span>
-              </div>
-              <div className="dh-set">
-                <label className="dh-sw">
-                  <span className="dh-sw__t">Limit applications per company<small>{s.perCompanyLimit30d == null ? "off — no per-company limit" : "in any 30 days"}</small></span>
-                  {sw(s.perCompanyLimit30d != null, () => set({ perCompanyLimit30d: s.perCompanyLimit30d == null ? 2 : null }))}
-                </label>
-                {s.perCompanyLimit30d != null && (
-                  <label className="dh-set__hint">At most{" "}
+              {/* D149: "Use my board filters" is the sketch's switch — on starts from the board's filters (as the button
+                  did), off clears them; it cannot turn on before the board has any. */}
+              <label className="dh-tg" data-board-filters-setting="">
+                <span>Use my board filters<small>{boardOn ? `Now: ${filterLine(s.filters)}`
+                  : boardLine ? `Your board: ${boardLine}` : "Open the board and filter it first — its filters start here."}</small></span>
+                {sw(boardOn, () => (boardOn ? set({ filters: {} }) : set({ filters: board })), { disabled: !boardOn && !boardLine })}
+              </label>
+              <div className="dh-tg" data-per-company-setting="">
+                <span><label htmlFor="dh-sw-company">At most {s.perCompanyLimit30d ?? 2} per company</label>{s.perCompanyLimit30d != null ? (
+                  <small>in any 30 days · change it:{" "}
                     <input type="number" min={1} max={20} value={s.perCompanyLimit30d} aria-label="Applications per company"
-                      onChange={(e) => set({ perCompanyLimit30d: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })} />
-                    {" "}to one company in 30 days.</label>
-                )}
+                      onChange={(e) => set({ perCompanyLimit30d: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })} /></small>
+                ) : <small>off — no per-company limit</small>}</span>
+                {sw(s.perCompanyLimit30d != null, () => set({ perCompanyLimit30d: s.perCompanyLimit30d == null ? 2 : null }), { id: "dh-sw-company" })}
               </div>
-              <div className="dh-set">
-                <label htmlFor="dh-prof">Job profile</label>
-                <select id="dh-prof" value={s.profileId ?? ""} onChange={(e) => set({ profileId: e.target.value === "" ? null : Number(e.target.value) })}>
+              <div className="dh-tg">
+                <span><label htmlFor="dh-prof">Job profile</label><small>the résumé and the board it picks from</small></span>
+                <select id="dh-prof" className="dh-select" value={s.profileId ?? ""} onChange={(e) => set({ profileId: e.target.value === "" ? null : Number(e.target.value) })}>
                   <option value="">The active profile</option>
                   {profiles.map(p => <option key={p.id} value={p.id}>{p.profile_name || p.name || `Profile ${p.id}`}</option>)}
                 </select>
               </div>
-              <p className="dh-set__hint" data-never-sent="">Never sent automatically: jobs your Application defaults rule out, jobs past the limits,
+              <p className="dh-fold2__lead dh-fold2__lead--after" data-never-sent="">Never sent automatically: jobs your Application defaults rule out, jobs past the limits,
                 a human check (a CAPTCHA), an eligibility question you have not answered{s.agreeToTerms ? "" : ", a terms box"} — each waits in Needs you.</p>
             </Fold>
 
             <Fold id="before" title="Before sending" value={v.before} headline="Check each form yourself?" {...fp("before")}>
               {/* ⭐ D113 answer (1): off by default — a tap on Apply sends. On, the form waits at Ready for your review. */}
               {"showFormBeforeSending" in s && (
-                <label className="dh-sw" data-show-form-setting="">
-                  <span className="dh-sw__t">Show me the form before sending<small>{s.showFormBeforeSending
+                <label className="dh-tg" data-show-form-setting="">
+                  <span>Show me the form before sending<small>{s.showFormBeforeSending
                     ? "each filled form waits in Ready for your review until you approve it"
                     : "off — a tap on Apply sends it"}</small></span>
                   {sw(s.showFormBeforeSending, () => set({ showFormBeforeSending: !s.showFormBeforeSending }))}
                 </label>
               )}
-              <label className="dh-sw">
-                <span className="dh-sw__t">Agree to a job site's terms for me<small>{s.agreeToTerms
+              <label className="dh-tg">
+                <span>Agree to a job site's terms for me<small>{s.agreeToTerms
                   ? "a terms, privacy or data-processing box — never a signature or a statement that your answers are true"
                   : "off — a terms box waits for you in Needs you"}</small></span>
                 {sw(s.agreeToTerms, () => set({ agreeToTerms: !s.agreeToTerms }), { "data-agree-to-terms": "" })}
@@ -303,26 +319,28 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
 
             <Fold id="tell" title="Tell me" value={v.tell} headline="How you hear about new picks" {...fp("tell")}>
               {picks && notify?.email?.offered && (
-                <label className="dh-sw" data-picks-channel="email"><span className="dh-sw__t">Email<small>one per run, with Apply and Pass on each pick</small></span>
+                <label className="dh-tg" data-picks-channel="email"><span>Email</span>
                   {sw(picks.email, () => setPick("email", !picks.email))}</label>
               )}
               {picks && notify?.push?.offered && (
-                <label className="dh-sw" data-picks-channel="push"><span className="dh-sw__t">Notification<small>on the browsers you turned notifications on for, in Account → Notifications</small></span>
+                <label className="dh-tg" data-picks-channel="push"><span>Notification</span>
                   {sw(picks.push, () => setPick("push", !picks.push))}</label>
               )}
-              {!picks && <p className="dh-set__hint">One email and one notification per run, with Apply and Pass on each pick. Set them in Account → Notifications.</p>}
+              <p className="dh-fold2__lead dh-fold2__lead--after">{picks
+                ? "One per run, with Apply and Pass on each pick — the same choice as Account → Notifications."
+                : "One email and one notification per run, with Apply and Pass on each pick. Set them in Account → Notifications."}</p>
             </Fold>
 
             <Fold id="pausing" title="Pausing" value={v.pausing} headline="Stop when it matters" {...fp("pausing")}>
-              <label className="dh-sw">
-                <span className="dh-sw__t">Skip a company after it interviews me<small>for 60 days after an interview or offer, read from your inbox</small></span>
+              <label className="dh-tg">
+                <span>Skip a company after it interviews me<small>for 60 days after an interview or offer, read from your inbox</small></span>
                 {sw(s.pauseCompanyAfterReply, () => set({ pauseCompanyAfterReply: !s.pauseCompanyAfterReply }))}
               </label>
               {onPauseNow && (
-                <button type="button" className="dh-btn" data-pause-now="" data-held={held ? "true" : "false"} disabled={modeBusy || !runBar}
+                <button type="button" className="dh-pausebtn" data-pause-now="" data-held={held ? "true" : "false"} disabled={modeBusy || !runBar}
                   onClick={() => onPauseNow(!held)}>{held ? "Resume" : "Pause everything now"}</button>
               )}
-              <p className="dh-set__hint" data-stop-says="">{STOP_DOES} {STOP_DOES_NOT}</p>
+              <p className="dh-fold2__lead dh-fold2__lead--pause" data-stop-says="">{STOP_DOES} {STOP_DOES_NOT}</p>
             </Fold>
 
             {/* ── ACCOUNTS ON JOB SITES (D100) — a fold only when there is anything in it ── */}
@@ -336,35 +354,32 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
             {/* ── VIEW (D146) — how the applications are shown: the table, or the full sheet ── */}
             {onListView && (
               <Fold id="view" title="View" value={v.view} headline="How your applications are shown" {...fp("view")}>
-                <div className="dh-set" role="radiogroup" aria-label="View">
-                  <label className="dh-sw">
-                    <input type="radio" name="dh-list-view" value="table" data-list-view="table" checked={listView === "table"}
-                      onChange={() => onListView("table")} />
-                    <span className="dh-sw__t">The table<small>one row per application; a row opens in place</small></span>
-                  </label>
-                  <label className="dh-sw">
-                    <input type="radio" name="dh-list-view" value="sheet" data-list-view="sheet" checked={listView === "sheet"}
-                      onChange={() => onListView("sheet")} />
-                    <span className="dh-sw__t">The full sheet<small>the spreadsheet you can edit, By company, Board and Funnel, Pending, Not applied and the Inbox</small></span>
-                  </label>
+                {/* D149: two choices drawn as the sketch draws the mode's two choices (the current one outlined). */}
+                <div className="dh-mode2" role="group" aria-label="View">
+                  <button type="button" data-list-view="table" aria-pressed={listView === "table"} onClick={() => onListView("table")}>
+                    <b>The table</b><span>one row per application; a row opens in place</span>
+                  </button>
+                  <button type="button" data-list-view="sheet" aria-pressed={listView === "sheet"} onClick={() => onListView("sheet")}>
+                    <b>The full sheet</b><span>the spreadsheet: By company, Board and Funnel, Pending, Not applied, the Inbox</span>
+                  </button>
                 </div>
               </Fold>
             )}
 
-            {/* ── THE INTERNAL LIMITS, off the first screen: one quiet line, the rest behind Details ── */}
+            {/* ── THE INTERNAL LIMITS, off the first screen: one quiet line, the rest behind Details ──
+                D149: the sketch's p.detail — "Today: 4 sent of 10." and the Details link under it. */}
             {caps.length > 0 && (
               <details className="dh-limits" data-caps-used="">
-                <summary>Today: {sent ? `${sent.used} sent of ${Math.min(sent.limit, s.dailyCap)}` : "the limits"} · <span className="dh-limits__more">Details</span></summary>
-                <p className="dh-set__hint" data-caps-detail="">Last {runBar?.windowHours ?? 24} h: {caps.map(c => `${c.label} ${capUsage(c) ?? "—"}`).join(" · ")}</p>
+                <summary>{sent ? `Today: ${sent.used} sent of ${Math.min(sent.limit, s.dailyCap)}.` : "Today's limits."} <span className="dh-limits__more">Details</span></summary>
+                <p data-caps-detail="">Last {runBar?.windowHours ?? 24} h: {caps.map(c => `${c.label} ${capUsage(c) ?? "—"}`).join(" · ")}</p>
               </details>
             )}
             {msg && <p className="dh-drawer__msg" role="alert">{msg}</p>}
           </div>
         )}
-        <footer className="dh-drawer__foot">
-          <span className="dh-set__hint" role="status" data-save-state="">{busy ? "Saving…" : saved}</span>
-          <button type="button" className="dh-btn" data-kind="primary" onClick={close}>Done</button>
-        </footer>
+        {/* D149: no footer — the sketch closes with Close (every close saves first). The save state is still said, to
+            screen readers; a refused value is shown above (role="alert"). */}
+        <span className="sr-only" role="status" data-save-state="">{busy ? "Saving…" : saved}</span>
       </aside>
     </>
   );
