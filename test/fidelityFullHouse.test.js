@@ -40,11 +40,14 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
     // ⭐ D152 (5), changed on purpose: where the list is two columns (a phone here — its posting is the screen, not beside
     // the list) a row is Home's bubble, corner 22, padding 16; beside an open posting (the computer) the one column keeps
     // the row's 20 / 14 16.
-    const bubble = size === "phone";
+    // ⭐ D152 (6): the list keeps its pairs at both widths now (the posting opens in place of it, not beside it).
+    const bubble = true;
     assert.deepEqual([d.row.bg, d.row.radius, d.row.border, d.row.shadow, d.row.padding],
       [CARD, bubble ? "22px" : "20px", "0px", "none", bubble ? "16px" : "14px 16px"],
       `${size}: a row is the card, no border, no shadow`);
-    assert.equal(d.row.gap, bubble ? 12 : 8, `${size}: rows 8px apart (Home's pairs 12, D152 (5))`);
+    // Pairs 12 apart (D152 (5)) — measured on a phone: on a computer the list is folded away while the posting is open
+    // in its place (D152 (6)), so its rows have no gap to measure there.
+    if (size === "phone") assert.equal(d.row.gap, 12, `${size}: pairs 12px apart`);
     assert.match(d.row.outline, /solid rgb\(251, 211, 196\)$/, `${size}: the open row is outlined in the accent`);
     assert.match(d.row.title.family, UI); assert.deepEqual([d.row.title.size, d.row.title.weight, d.row.title.color], ["15px", "600", INK]);
     assert.deepEqual([d.row.sub.size], ["13px"]); assert.deepEqual([d.row.meta.size, d.row.meta.color], ["12.5px", BODY]);
@@ -80,15 +83,13 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
     near(b.eyebrow.top - (b.facts.top + b.facts.height), 20, `${size}: 20px under the facts box`);
     near(b.actions.top - (b.body.top + b.body.height), 18, `${size}: the actions 18px under the posting`);
   }
-  // Desktop: the posting BESIDE the list. ⭐ D152 (1), changed on purpose: both now sit inside Home's board column
-  // (486–1240 at 1280: the deck's 390 + the 56 gap after the 40 padding) — never over the deck. The sketch's next step
-  // (D152 (6) / D153 (1): the posting opens IN PLACE of the list, cross-fading) replaces this layout.
+  // Desktop. ⭐ D152 (6) / D153 (1), changed on purpose (11-04): the posting opens IN PLACE of the list — it takes Home's
+  // whole board column (486–1240 at 1280: the deck's 390 + the 56 gap after the 40 padding), never over the deck, and is
+  // as tall as its content (it scrolls with the page, as the list did); the list stays mounted, folded away
+  // (test/d152Home.test.js walks the open and the close).
   const D = out.desktop;
-  assert.ok(D.row.left >= 486 && D.panel.left + D.panel.width <= 1240, `the list and the posting stay in the board column (${D.row.left}, ${D.panel.left + D.panel.width})`);
-  assert.ok(D.panel.left >= D.row.left + D.row.width, "the posting beside the list, not over it");
-  assert.deepEqual([D.panel.radius, D.panel.padding], ["28px", "24px 24px 20px"], "the posting column");
-  assert.equal(D.panel.top, D.row.top, "the posting's top is the first row's");
-  assert.equal(D.panel.height, 690, "the sketch's calc(100vh - 110px)");
+  assert.deepEqual([D.panel.left, D.panel.width], [486, 754], "the posting takes the board column");
+  assert.deepEqual([D.panel.radius, D.panel.padding], ["28px", "24px 24px 20px"], "the posting's card");
   // Phone: the posting is the screen.
   const P = out.phone.panel;
   assert.deepEqual([P.left, P.top, P.width, P.height, P.radius, P.padding], [0, 0, 390, 844, "0px", "70px 20px 30px"]);

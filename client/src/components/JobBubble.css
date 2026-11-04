@@ -136,10 +136,13 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
  * (ATS · Save · Draft) still opens on hover / focus. The page column is the sketch's: 1240 wide with 20px gutters,
  * and with a posting open on a desktop, two columns — the list | the posting (1fr : 1.05fr, 18px apart). */
 .jb-board { box-sizing: border-box; width: 100%; max-width: 1240px; margin: 0 auto; padding: 0 20px; }
-.jb-board[data-beside="true"] { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 18px; align-items: start; }
-.jb-board[data-beside="false"] .jb-board__list { max-width: 760px; }
+/* ⭐ D152 (6) / D153 (1) · the posting opens IN PLACE of the list (home-sketch.html's .layer): the list layer folds away —
+   no height, faded, inert, still mounted — and the posting fades up where it was (≤ 350 ms; reduced motion: instant). */
+.jb-board__list[data-out="true"] { height: 0; overflow: hidden; opacity: 0; pointer-events: none; }
+.jb-board__post { animation: jb-post-in .35s cubic-bezier(.2, .9, .3, 1) both; }
+@keyframes jb-post-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .jb-board__post { animation: none; } }
 .jb-board__list { min-width: 0; }
-.jb-board__side { min-height: 1px; margin-top: 4px; }   /* the list scroller's 4px top padding (PullToRefresh): the posting's top is the first row's */
 .jb-rows { gap: 8px; padding: 0; }
 .jb {
   flex: none; gap: 12px; padding: 14px 16px; border-radius: 20px; background: var(--c-surface-solid); box-shadow: none;

@@ -115,7 +115,7 @@ test("D1 (10-03): the listings are bubble ROWS of 2/3/4 — the two-column TileG
   // module, and the rows are ONE column now (jobBubbleD1) — the TileGrid stays superseded.
   assert.match(jobsPanel, /import JobBubble, \{ JobBubbleRows(, JobBubbleSkeleton)?(, JobBoardColumns)? \} from "\.\.\/components\/JobBubble\.jsx";/);
   // ⭐ D152 (5), changed on purpose: two columns of resizing bubbles again (home-sketch.html), one beside an open posting.
-  assert.match(jobsPanel, /<JobBubbleRows jobs=\{jobs\} columns=\{beside \? 1 : 2\}>/);
+  assert.match(jobsPanel, /<JobBubbleRows jobs=\{jobs\} columns=\{2\}>/);
   assert.doesNotMatch(jobsPanel, /<TileGrid/);
 });
 

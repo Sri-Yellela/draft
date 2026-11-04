@@ -97,7 +97,7 @@ test("⛔ the logo face is SELF-HOSTED — no third-party font request", () => {
 
 test("the board renders bubbles in rows; the Database panel keeps JobCard", () => {
   // ⭐ D152 (5), changed on purpose: two columns (pairs), one beside an open posting.
-  assert.match(panel, /<JobBubbleRows jobs=\{jobs\} columns=\{beside \? 1 : 2\}>/);
+  assert.match(panel, /<JobBubbleRows jobs=\{jobs\} columns=\{2\}>/);
   assert.doesNotMatch(panel, /<JobCard\b/);
   assert.match(read("client/src/panels/DatabasePanel.jsx"), /<JobCard/);
   // D149 (11-03): one column — see the first test.

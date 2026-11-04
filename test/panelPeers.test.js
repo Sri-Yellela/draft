@@ -144,8 +144,9 @@ test("the PDF and ATS surfaces are no longer inline columns", () => {
   // Exactly one mount of each panel type.
   assert.equal((jobs.match(/<SandboxPanel\b/g) || []).length, 1);
   assert.equal((jobs.match(/<AtsReportPanel\b/g) || []).length, 1);
-  // D149 (11-03) changed this on purpose: the posting has a second mount — BESIDE the list on a desktop (BesideDock,
-  // fullhouse-declutter.html), where it leaves the overlay host; never both at once (the host's jd is closed then).
+  // D149 (11-03) changed this on purpose: the posting has a second mount on a desktop, where it leaves the overlay host;
+  // never both at once (the host's jd is closed then). ⭐ D152 (6): that mount is IN PLACE of the list (JobBoardColumns'
+  // post), no longer BesideDock.
   assert.equal((jobs.match(/<JobDetailPanel\b/g) || []).length, 2);
   assert.match(jobs, /\{ id: "jd",  open: !!selectedJob && !besideMode,/);
 });
