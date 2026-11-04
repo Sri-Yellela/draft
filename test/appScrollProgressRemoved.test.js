@@ -85,12 +85,14 @@ test("the bar's geometry is the constants it always rendered, not an interpolati
   // 10-01, on the owner's call: the bar is no longer transparent (a long expanded deck card scrolled
   // through its labels). It is still CONSTANTS — a token background and a literal blur — which is
   // what this test exists for; it was the p=0 transparent end of the dead interpolation until then.
-  assert.match(style, /background: C\.SURFACE_2,/);
-  assert.match(style, /borderBottom: `1px solid \$\{C\.GLASS_EDGE\}`,/);
+  // ⭐ D149 (owner 11-03) changed this on purpose: the sketches have NO top bar — the band, its border and its blur are
+  // gone; the strip is a transparent, click-through layer (the mark and the Menu button take the pointer, TopBar.css).
+  // Still CONSTANTS, which is what this test exists for.
+  assert.match(style, /background: "transparent",/);
+  assert.match(style, /border: "none",/);
+  assert.match(style, /pointerEvents: "none",/);
   assert.match(style, /boxShadow: "none",/);
-  // The blur pair used to be `blur(${effectiveBlur}px)` with effectiveBlur always 0. It is back as a
-  // fixed value; a blur driven by a variable would need a live progress first.
-  assert.match(style, /backdropFilter: "blur\(18px\) saturate\(1\.4\)",/);
+  assert.ok(!/backdropFilter|borderBottom/.test(style), "the bar's band is back");
   assert.ok(!/blur\(\$\{/.test(style), "the blur is interpolated again");
 });
 

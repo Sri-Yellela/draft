@@ -46,7 +46,8 @@ test("top-right account controls are consolidated into avatar menu", () => {
   const scrollDock = fs.readFileSync("client/src/components/ScrollDock.jsx", "utf8");
   const consoles = fs.readFileSync("client/src/consoles/PlanConsoles.jsx", "utf8");
 
-  assert.match(topBar, /function UserAvatarMenu/);
+  // D149 (11-03): the avatar menu is the Profile panel now (opened from the Dock / the Menu); the same contents.
+  assert.match(topBar, /function ProfileMenuPanel/);
   assert.match(topBar, /Job Profile/);
   assert.match(topBar, /ProfileSelectorDropdown/);
   assert.match(topBar, /onActivateProfile/);

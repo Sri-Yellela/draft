@@ -25,7 +25,9 @@ const AXIS_COPY = {
   reach:  ["Reach",  "How flat the arc is — further is flatter"],
 };
 
-export default function DeckGeometryControl({ orientation, pref, onChoose, reduced }) {
+// ⭐ D149 (owner 11-03): the deck page shows only the card now, so this control lives on the Customise page (its
+// Daily Deck section), opened by `label` — the same presets, the same three sliders, the same store.
+export default function DeckGeometryControl({ orientation, pref, onChoose, reduced, label = "Layout" }) {
   const [open, setOpen] = useState(false);
   const [custom, setCustom] = useState(pref?.preset === "custom");
   const id = useId();
@@ -79,7 +81,7 @@ export default function DeckGeometryControl({ orientation, pref, onChoose, reduc
     <div ref={rootRef} style={{ position: "relative" }}>
       <button className="dbx-depth" type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} aria-controls={`${id}-panel`}
         style={{ ...glass({ radius: 10 }), padding: "6px 12px", fontSize: 13, fontWeight: 800, color: C.INK, cursor: "pointer" }}>
-        Layout
+        {label}
       </button>
       {open && at && createPortal(
         <div ref={panelRef} id={`${id}-panel`} role="dialog" aria-label="Deck layout" data-deck-geometry

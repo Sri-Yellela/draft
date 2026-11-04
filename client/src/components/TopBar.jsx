@@ -12,18 +12,17 @@
 // now frosted SURFACE_2 with the glass hairline under it: INK and INK_MUTED on SURFACE_2 are declared,
 // contrast-proved pairs in both themes (colorTokens.js CONTRAST_PAIRS), so the labels stay AA over anything.
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useTheme } from "../styles/theme.jsx";
 import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import { useSyncEvents } from "../hooks/useSyncEvents.js";
 import { api } from "../lib/api.js";
 import { StampLogo } from "./StampLogo.jsx";
-import { DockPortal } from "./DockPortal.jsx";
 import ProfileSelectorDropdown from "./ProfileSelectorDropdown.jsx";
 import { Z } from "../styles/zLayers.js";
 import { C } from "../styles/colorTokens.js";
 import { ACTIVE_THEME, appearance, setAppearance } from "../themes/index.js";
-import { useAccountAvatar } from "../lib/accountAvatar.js";
 import AppNav from "./AppNav.jsx";
 import "./TopBar.css";
 
@@ -207,84 +206,44 @@ function QuickScheme() {
   );
 }
 
-function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, profiles, onActivateProfile, onDeleteProfile }) {
+// ⭐ D149 (owner 11-03): THE TOP BAR IS GONE, AND ITS ACCOUNT MENU IS THE PROFILE PANEL (ProfileMenuPanel — not panels/ProfilePanel.jsx, the Profile page, nor
+// panels/AccountPanel.jsx, the Account & security page) — opened by "Profile — you and
+// your résumé", the last button of the Dock and of the Menu (AppNav), it slides in from the right like the Menu's panel
+// (the same surface, Close, Esc and a click outside close it). What it holds is the old avatar menu's, unchanged:
+// Profile, the notifications, the job-profile switcher, the appearance shortcut, the plan, the settings links, Sign Out.
+function ProfileMenuPanel({ open, onClose, theme, user, onLogout, onTabChange, profiles, onActivateProfile, onDeleteProfile,
+                        notifs, unread, markAll }) {
   const monetisationEnabled = useMonetisationEnabled();
-  const [open,        setOpen]        = useState(false);
-  const [rect,        setRect]        = useState(null);
-  const triggerRef = useRef(null);
-  // Notifications moved in here from their own bell in the bar. The COUNT stays outside, on the
-  // avatar — see the badge below.
-  const { notifs, unread, load: loadNotifs, markAll } = useNotifications();
-  const { url: avatarUrl } = useAccountAvatar(!!user);
+  const panelRef = useRef(null);
   const planTier = user?.planTier || "BASIC";
   const planLabel = planTier === "PRO" ? "Pro" : planTier === "PLUS" ? "Plus" : "Basic";
   const toolLabel = planTier === "PRO" ? "Generate + A+ Resume"
     : planTier === "PLUS" ? "Generate"
     : "Baseline jobs console";
-
   const menuItemStyle = {
     padding: "10px 16px", cursor: "pointer", fontSize: 13,
     color: theme.text, background: "transparent", border: "none",
     display: "block", width: "100%", textAlign: "left",
   };
   const activeProfile = profiles?.find(p => p.is_active) || profiles?.[0] || null;
-
-  return (
-    <div style={{ position: "relative" }}>
-      <button
-        ref={triggerRef}
-        onClick={() => {
-          if (triggerRef.current) setRect(triggerRef.current.getBoundingClientRect());
-          setOpen(o => { if (!o) loadNotifs(); return !o; });
-        }}
-        title={unread > 0
-          ? `${user?.username || "Account"} — ${unread} unread notification${unread === 1 ? "" : "s"}`
-          : user?.username}
-        aria-label={unread > 0
-          ? `Account menu, ${unread} unread notification${unread === 1 ? "" : "s"}`
-          : "Account menu"}
-        style={{
-          width: 30, height: 30, borderRadius: "50%", border: "none", cursor: "pointer",
-          background: theme.accent, color: "var(--c-on-accent)",
-          fontWeight: 800, fontSize: 12, position: "relative",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          outline: open ? `2px solid ${theme.accent}` : "none",
-          outlineOffset: 2, transition: "outline 0.15s",
-          fontFamily: "'DM Sans',system-ui,sans-serif",
-        }}>
-        {/* The account picture (uploaded, else Google's), the initial until there is one. */}
-        {avatarUrl
-          ? <img src={avatarUrl} alt="" referrerPolicy="no-referrer"
-              style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}/>
-          : (user?.username || "U")[0].toUpperCase()}
-        {/* The unread count, kept OUTSIDE the menu on purpose. Moving notifications into the
-            profile menu is only safe if the fact that there ARE unread ones survives the move —
-            otherwise they become invisible until someone happens to open a menu. Same "9+" cap and
-            the same badge the bell carried, now on the avatar. Bordered against the avatar's own
-            accent fill so it reads as a separate mark rather than part of the initial. */}
-        {unread > 0 && (
-          <span
-            aria-hidden="true"
-            style={{
-              position: "absolute", top: -3, right: -3,
-              minWidth: 16, height: 16, padding: "0 3px",
-              background: "var(--c-danger)", color: "var(--c-surface-solid)",
-              border: `2px solid ${theme.surfaceBase || theme.surface}`,
-              borderRadius: 6,
-              fontSize: 9, fontWeight: 800, lineHeight: "12px", textAlign: "center",
-            }}>
-            {unread > 9 ? "9+" : unread}
-          </span>
-        )}
-      </button>
-
-      {open && rect && (
-        <DockPortal anchorRect={rect} theme={theme} onClose={() => setOpen(false)}
-          style={{ minWidth: 320, maxWidth: "calc(100vw - 24px)" }}>
-          {/* PROFILE nav */}
+  useEffect(() => {
+    if (!open) return undefined;
+    panelRef.current?.querySelector("button")?.focus({ preventScroll: true });
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <>
+      <div className="appnav-scrim" data-open={open ? "true" : "false"} aria-hidden="true" onClick={onClose} />
+      <aside role="dialog" aria-modal="true" aria-label="Profile" ref={panelRef} className="appnav-panel acct-panel" data-account-panel=""
+        data-open={open ? "true" : "false"} {...(open ? null : { inert: "", "aria-hidden": true })}>
+        <button type="button" className="appnav-close" onClick={onClose}>Close</button>
+        {/* PROFILE nav */}
           <div style={{ padding: "10px 16px 8px", borderBottom: `1px solid ${theme.border}` }}>
             <button
-              onClick={() => { setOpen(false); onTabChange?.("profile"); }}
+              onClick={() => { onClose(); onTabChange?.("profile"); }}
               style={{
                 background: "transparent", border: "none", padding: 0, cursor: "pointer",
                 fontFamily: "var(--font-display)",
@@ -315,10 +274,10 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
                 activeProfile={activeProfile}
                 onActivate={onActivateProfile}
                 onDelete={onDeleteProfile}
-                onAdd={() => { setOpen(false); onTabChange?.("job-profiles"); }}
+                onAdd={() => { onClose(); onTabChange?.("job-profiles"); }}
               />
             ) : (
-              <button onClick={() => { setOpen(false); onTabChange?.("job-profiles"); }}
+              <button onClick={() => { onClose(); onTabChange?.("job-profiles"); }}
                 style={{ width:"100%", border:`1px solid ${theme.border}`, borderRadius:6,
                          background:theme.surfaceHigh, color:theme.text, padding:"8px 10px",
                          cursor:"pointer", textAlign:"left", fontSize:12, fontWeight:700 }}>
@@ -348,7 +307,7 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
                 </div>
                 <div style={{ fontSize: 13, color: theme.text, fontWeight: 700 }}>{planLabel}</div>
                 <div style={{ fontSize: 11, color: theme.textDim, marginTop: 2 }}>{toolLabel}</div>
-                <button onClick={() => { setOpen(false); onTabChange?.("plans"); }}
+                <button onClick={() => { onClose(); onTabChange?.("plans"); }}
                   style={{ ...menuItemStyle, marginTop:4, color:theme.accentText, fontWeight:700 }}>
                   View Plans
                 </button>
@@ -357,24 +316,24 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
             {/* D18 (10-03): JOB PROFILES LIVES IN SETTINGS. It left the top bar in D10; the page stays
                 route-only (/app/job-profiles) and this group is its home, beside the other settings. */}
             <div className="rm-section-label" style={{ marginTop: monetisationEnabled ? 10 : 2 }}>Settings</div>
-            <button onClick={() => { setOpen(false); onTabChange?.("job-profiles"); }}
+            <button onClick={() => { onClose(); onTabChange?.("job-profiles"); }}
               style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
               Job Profiles
             </button>
-            <button onClick={() => { setOpen(false); onTabChange?.("saved-answers"); }}
+            <button onClick={() => { onClose(); onTabChange?.("saved-answers"); }}
               style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
               Saved answers
             </button>
-            <button onClick={() => { setOpen(false); onTabChange?.("account"); }}
+            <button onClick={() => { onClose(); onTabChange?.("account"); }}
               style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
               Account &amp; security
             </button>
             {/* ⭐ D93: Customise — its own page (theme, shape cues, the layout options), beside the other settings. */}
-            <button onClick={() => { setOpen(false); onTabChange?.("customise"); }} data-customise-link=""
+            <button onClick={() => { onClose(); onTabChange?.("customise"); }} data-customise-link=""
               style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
               Customise
             </button>
-            <button onClick={() => { setOpen(false); onTabChange?.("integrations"); }}
+            <button onClick={() => { onClose(); onTabChange?.("integrations"); }}
               style={{ ...menuItemStyle, marginTop:2, color:theme.accentText, fontWeight:700 }}>
               Integrations
             </button>
@@ -382,16 +341,14 @@ function UserAvatarMenu({ theme, user, onLogout, onTabChange, onUserChange, prof
 
           {/* Sign out */}
           <button
-            onClick={() => { setOpen(false); onLogout?.(); }}
+            onClick={() => { onClose(); onLogout?.(); }}
             onMouseEnter={e => e.currentTarget.style.background = "var(--c-danger-quiet)"}
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             style={{ ...menuItemStyle, color: "var(--c-danger)", fontWeight: 600 }}>
             Sign Out
           </button>
-        </DockPortal>
-      )}
-    </div>
-  );
+      </aside>
+    </>, document.body);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -526,6 +483,12 @@ export default function TopBar({
   // The bar is still centred on the viewport rather than left-anchored, which is why dockCenter and
   // the translateX(-50%) survive a full-width bar: the board's content column is centred too, so the
   // two coincide (measured at vw=1600: search bar spans 340..1260, centre 800 = vw/2).
+  // ⭐ D149: the Profile panel's state and the notifications (their unread count rides on the Profile button).
+  const { notifs, unread, load: loadNotifs, markAll } = useNotifications();
+  const [accountOpen, setAccountOpen] = useState(false);
+  const openAccount = useCallback(() => { loadNotifs(); setAccountOpen(true); }, [loadNotifs]);
+  const closeAccount = useCallback(() => setAccountOpen(false), []);
+
   const dockCenter = vw / 2;
   const padH       = 20;
 
@@ -551,11 +514,12 @@ export default function TopBar({
           // sticky offset read the MEASURED height (hooks/useChromeHeight.js), not this number.
           height: 74,
           borderRadius: 0,
-          background: C.SURFACE_2,
-          backdropFilter: "blur(18px) saturate(1.4)",
-          WebkitBackdropFilter: "blur(18px) saturate(1.4)",
+          // ⭐ D149 (owner 11-03): the sketches have NO top bar — the /draft mark floats at the top left and the Menu
+          // button (when Menu is the navigation) at the top right. The band, its blur and its border are gone; the
+          // strip stays as a click-through layer so the page still starts below the mark (--app-chrome-height).
+          background: "transparent",
           border: "none",
-          borderBottom: `1px solid ${C.GLASS_EDGE}`,
+          pointerEvents: "none",
           boxSizing: "border-box",
           boxShadow: "none",
           display: "flex",
@@ -577,21 +541,20 @@ export default function TopBar({
         </div>
 
         {/* Right: utility icons */}
-        <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0, marginLeft: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0, marginLeft: 8, pointerEvents: "auto" }}>
           {/* The bell and the quick-actions button are gone from the bar (W6). Notifications live
               in the profile menu below; their unread count rides on the avatar so it is still
               visible without opening anything. */}
           {/* ⭐ D145: the Menu button (shown when Navigation is Menu, or Automatic on a phone) and the Dock (portalled to
               the bottom of the screen) — one list, the same `tabs` the row used to draw. */}
-          <AppNav tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onTabChange={onTabChange} />
+          <AppNav tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onTabChange={onTabChange}
+            profile={user ? { onOpen: openAccount, badge: unread,
+              badgeLabel: `${unread} unread notification${unread === 1 ? "" : "s"}` } : null} />
           {user && (
-            <UserAvatarMenu
-              theme={theme} user={user} onLogout={onLogout}
-              onTabChange={onTabChange} onUserChange={onUserChange}
-              profiles={profiles}
-              onActivateProfile={activateProfile}
-              onDeleteProfile={deleteProfile}
-            />
+            <ProfileMenuPanel open={accountOpen} onClose={closeAccount}
+              theme={theme} user={user} onLogout={onLogout} onTabChange={onTabChange}
+              profiles={profiles} onActivateProfile={activateProfile} onDeleteProfile={deleteProfile}
+              notifs={notifs} unread={unread} markAll={markAll} />
           )}
         </div>
       </div>

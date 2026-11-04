@@ -27,7 +27,7 @@ export const MODULES = Object.freeze({
   deck: { why: "the Daily Deck",
     // ⚠ DealBackdrop (behind the login form) deals the deck's OWN card backs — a decided reuse (queue 30; the
     // owner kept the card back as decided, 10-07). It is the one place outside the deck that may use them.
-    members: ["panels/DeckView.jsx", "components/DeckGeometryControl.jsx", "components/CardBack.jsx", "components/DealBackdrop.jsx"] },
+    members: ["panels/DeckView.jsx", "components/CardBack.jsx", "components/DealBackdrop.jsx"] },
   board: { why: "Full House — the board, its cards and its posting panel",
     members: ["panels/JobsPanel.jsx", "components/JobBubble.jsx", "components/JobDetailPanel.jsx", "components/CoverLetterModal.jsx", "components/ByomResumeChoice.jsx",
       "components/BestBets.jsx", "components/WarmPathsBlock.jsx"] },
@@ -43,7 +43,8 @@ export const MODULES = Object.freeze({
   // ⭐ D93 · the Customise page — Appearance (moved off Account) and the layout options, with its live preview.
   // App.jsx is a member for ContrastOffer, the prefers-contrast banner the shell mounts.
   customise: { why: "the Customise page (D93) — theme, shape cues and the layout options", css: ["components/Customise.css"],
-    members: ["App.jsx", "panels/CustomisePanel.jsx", "components/AppearanceSettings.jsx", "components/RadioCards.jsx", "components/CustomisePreview.jsx"] },
+    members: ["App.jsx", "panels/CustomisePanel.jsx", "components/AppearanceSettings.jsx", "components/RadioCards.jsx", "components/CustomisePreview.jsx",
+    "components/DeckGeometryControl.jsx"] },
   // ⭐ D146 (owner 11-03): Draft House and The Table are ONE application tracker, so one module — the old theTable
   // module's members joined this one (The Table's views are its full sheet, behind Settings → View).
   draftHouse: { why: "Draft House, the one application tracker (D146) — the table, the auto-apply timeline, and The Table's full sheet", css: ["components/DraftHouse.css", "components/ApplicationTracker.css"],
@@ -150,7 +151,7 @@ export const SHARED = Object.freeze({
   "components/SignupAtsHook.jsx":       { what: "the sign-up page's ATS hook", module: "auth" },
   "components/DealBackdrop.jsx":        { what: "the dealt cards behind the login form", module: "auth" },
   "components/CardBack.jsx":            { what: "a deck card's back (the tinted logo — owner-decided O34)", module: "deck" },
-  "components/DeckGeometryControl.jsx": { what: "the deck's layout control", module: "deck" },
+  "components/DeckGeometryControl.jsx": { what: "the deck's layout control (D149: on the Customise page)", module: "customise" },
   "components/JobBubble.jsx":           { what: "the board's card (D1)", module: "board" },
   "components/BestBets.jsx":            { what: "D136 — This week's best bets, above the board", module: "board" },
   "components/WarmPathsBlock.jsx":      { what: "D138 — people the user knows at a posting's company, beside the posting panel", module: "board" },

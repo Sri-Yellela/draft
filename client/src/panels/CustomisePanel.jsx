@@ -19,6 +19,8 @@ import { LAYOUT_OPTIONS, layoutDefaults } from "../themes/layoutOptions.js";
 import { ACTIVE_THEME, CUES, layout, setLayout, applyLayout } from "../themes/index.js";
 import { api } from "../lib/api.js";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
+import DeckGeometryControl from "../components/DeckGeometryControl.jsx";
+import { orientationFor } from "../lib/fanGeometry.js";
 import { DECK_ORDERS, readDeckOrder, writeDeckOrder } from "../lib/deckOrder.js";
 import { DECK_PRESET_NAMES, DECK_PRESET_COPY } from "../../../shared/deckGeometry.js";
 import "../components/Customise.css";
@@ -27,14 +29,19 @@ import "../components/Customise.css";
 // SAME stores the deck's own quick controls use: the layout preset with the account (hooks/useDeckGeometry.js,
 // /api/settings/deck-geometry), the order on this browser (lib/deckOrder.js). The deck keeps its controls; a custom
 // layout (the deck's three sliders) is shown as such, and choosing a preset here replaces it.
-function DeckSection({ geometry, order, onLayout, onOrder }) {
+function DeckSection({ geometry, order, onLayout, onOrder, onGeometry }) {
   const custom = geometry?.preset === "custom";
   return (
-    <SettingsSection title="Daily Deck" subtitle="How today's cards are fanned out, and the order they are dealt in. The deck page keeps its own quick controls.">
+    <SettingsSection title="Daily Deck" subtitle="How today's cards are fanned out, and the order they are dealt in.">
       <div className="cz-sub">Layout</div>
       <RadioCards label="Deck layout" name="deck-layout" value={geometry?.preset || "standard"} onChange={onLayout}
         items={DECK_PRESET_NAMES.map((id) => ({ id, label: DECK_PRESET_COPY[id][0], description: DECK_PRESET_COPY[id][1], tag: id === "standard" ? "default" : null }))} />
-      {custom && <p className="cz-note" data-deck-custom="">You have your own layout, set with the sliders on the deck. Choosing one of these replaces it.</p>}
+      {custom && <p className="cz-note" data-deck-custom="">You have your own layout, set with Fine-tune the fan. Choosing one of these replaces it.</p>}
+      {/* ⭐ D149: the deck's own layout control (its three sliders included) moved here when the deck became just the card. */}
+      <div data-deck-fine-tune="">
+        <DeckGeometryControl label="Fine-tune the fan" orientation={orientationFor(typeof window !== "undefined" ? window.innerWidth : 1280)}
+          pref={geometry} onChoose={onGeometry} reduced={typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches} />
+      </div>
       <div className="cz-sub">Order</div>
       <RadioCards label="Deck order" name="deck-order" value={order} onChange={onOrder}
         items={DECK_ORDERS.map((o) => ({ ...o, tag: o.id === "dealt" ? "default" : null }))} />
@@ -99,7 +106,7 @@ export default function CustomisePanel() {
                   preview: <div className="cz-mini"><CustomisePreview part={o.id} values={{ ...lay, [o.id]: v.id }} /></div> }))} />
             </SettingsSection>
           ))}
-          <DeckSection geometry={geometry} order={order} onLayout={chooseLayout} onOrder={chooseOrder} />
+          <DeckSection geometry={geometry} order={order} onLayout={chooseLayout} onOrder={chooseOrder} onGeometry={chooseGeometry} />
           <SettingsSection title="Reset" subtitle="Back to how draft ships: follow your system's light / dark setting, shape cues off, the recommended layout, and the standard deck in its dealt order.">
             <div><DepthButton onClick={reset} data-customise-reset="">Reset to defaults</DepthButton></div>
           </SettingsSection>

@@ -25,12 +25,17 @@ test("the route accepts only 'dealt' and 'ats', defaults to dealt, and looks the
   assert.match(src, /todaysDeck\(db, \{ userId: req\.user\.id, profileId: profile\.id, date, fetchBoardPage, reportFor, order, scoreFor \}\)/);
 });
 
-test("the deck offers Dealt | ATS match and asks the server for that order", () => {
+// ⭐ D149 (owner 11-03) changed this on purpose: the choice moved off the deck page into Settings → Customise (the deck
+// shows only the card); the deck still asks the server for the chosen order.
+test("the order is chosen on Customise (Dealt | ATS match) and the deck asks the server for it", () => {
   const deck = fs.readFileSync("client/src/panels/DeckView.jsx", "utf8");
   assert.match(deck, /\/api\/draft\/today\?date=\$\{encodeURIComponent\(localDate\(\)\)\}&order=\$\{deckOrder\}/);
-  assert.match(deck, /\{opt\("dealt", "Dealt"\)\}\{opt\("ats", "ATS match"\)\}/);
-  assert.match(deck, /aria-pressed=\{order === value\}/);
+  assert.match(deck, /const \[deckOrder\] = useState\(readDeckOrder\);/);
+  const page = fs.readFileSync("client/src/panels/CustomisePanel.jsx", "utf8");
+  assert.match(page, /<RadioCards label="Deck order" name="deck-order" value=\{order\} onChange=\{onOrder\}/);
+  assert.deepEqual(DECK_ORDERS_UI(), ["dealt", "ats"]);
 });
+const DECK_ORDERS_UI = () => [...fs.readFileSync("client/src/lib/deckOrder.js", "utf8").matchAll(/id: "(\w+)"/g)].map(m => m[1]);
 
 test("the jobs page's sort is named the same: ATS match", () => {
   assert.ok(SORTS.options.some(o => o.value === "atsScore" && o.label === "ATS match"));

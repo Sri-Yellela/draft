@@ -102,7 +102,7 @@ const tokens = Object.freeze({
   SHADOW_MD:           "0 4px 12px rgba(0,0,0,0.40), 0 2px 4px rgba(0,0,0,0.30)",
   SHADOW_LG:           "0 18px 40px rgba(0,0,0,0.50), 0 6px 14px rgba(0,0,0,0.35)",
   SHADOW_XL:           "0 36px 80px rgba(0,0,0,0.60), 0 14px 30px rgba(0,0,0,0.40)",
-  SHADOW_GLASS:        "0 1px 1px rgba(0,0,0,0.30), 0 14px 30px -10px rgba(0,0,0,0.65)",
+  SHADOW_GLASS:        "0 30px 70px rgba(0,0,0,0.35)",   // declutter-v7.html's .card shadow (D149)
   SHADOW_GLASS_HOVER:  "0 2px 2px rgba(0,0,0,0.35), 0 24px 44px -14px rgba(0,0,0,0.75)",
   DEPTH_REST:          "0 3px 8px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.08)",
   DEPTH_HOVER:         "0 7px 17px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.10)",

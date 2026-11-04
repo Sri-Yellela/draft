@@ -47,7 +47,26 @@ function NavItems({ tabs, activeTab, hrefForTab, onGo }) {
   ));
 }
 
-export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange }) {
+// ⭐ D149 (owner 11-03): the top bar is gone, and its account menu is "Profile — you and your résumé", the last button
+// of the Dock and of the Menu (the sketch's Menu has it). `profile` = { onOpen, badge, badgeLabel } (TopBar's).
+function ProfileItem({ profile, onPress }) {
+  if (!profile) return null;
+  return (
+    <button type="button" className="appnav-item" data-nav-item="profile" aria-haspopup="dialog" onClick={onPress}>
+      <span className="appnav-name">
+        Profile
+        {profile.badge > 0 && (
+          <span className="appnav-badge" title={profile.badgeLabel}>
+            <span aria-hidden="true">{profile.badge > 9 ? "9+" : profile.badge}</span><span className="sr-only">{`, ${profile.badgeLabel}`}</span>
+          </span>
+        )}
+      </span>
+      <small className="appnav-plain">you and your résumé</small>
+    </button>
+  );
+}
+
+export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, profile = null }) {
   const [up, setUp] = useState(false);          // the dock, risen
   const [open, setOpen] = useState(false);      // the menu's side panel
   const dockRef = useRef(null), menuBtnRef = useRef(null), panelRef = useRef(null);
@@ -115,12 +134,14 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange }
             onFocus={() => setUp(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setUp(false); }}
             onMouseLeave={(e) => { if (window.innerHeight - e.clientY > DOCK_REVEAL_PX) setUp(false); }}>
             <NavItems tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onGo={go} />
+            <ProfileItem profile={profile} onPress={() => profile?.onOpen?.()} />
           </nav>
           <div className="appnav-scrim" data-open={open ? "true" : "false"} aria-hidden="true" onClick={() => setOpen(false)} />
           <nav aria-label="Main menu" id="appnav-panel" ref={panelRef} className="appnav-panel" data-nav-panel="" data-open={open ? "true" : "false"}
             {...(open ? null : { inert: "", "aria-hidden": true })}>
             <button type="button" className="appnav-close" onClick={() => { setOpen(false); menuBtnRef.current?.focus({ preventScroll: true }); }}>Close</button>
             <NavItems tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onGo={go} />
+            <ProfileItem profile={profile} onPress={() => { setOpen(false); profile?.onOpen?.(); }} />
           </nav>
         </>, body)}
     </>

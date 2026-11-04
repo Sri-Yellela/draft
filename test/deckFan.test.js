@@ -24,7 +24,8 @@ test("the front card is the card that shipped: square-on, full size, nothing shr
   for (const o of ["horizontal", "vertical"]) {
     assert.deepEqual(fanTransform(0, o), { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1, shown: true, depth: 0 });
   }
-  assert.deepEqual(cardSize("horizontal", 1440), { width: 700, height: 380 }, "the ~700×380 card");
+  // ⭐ D149 (owner 11-03) changed this on purpose: the card's box is declutter-v7.html's, measured — 640 × 232.
+  assert.deepEqual(cardSize("horizontal", 1440), { width: 640, height: 232 }, "the sketch's 640×232 card");
 });
 
 test("⭐ the pivot and the card orientation move together — and the switch is a WIDTH", () => {
@@ -37,9 +38,10 @@ test("⭐ the pivot and the card orientation move together — and the switch is
   // Pivot BELOW, vertical cards: later cards fall away to the RIGHT, curving down, like a hand.
   const v = fanTransform(2, "vertical");
   assert.ok(v.x > 0 && v.y > 0 && v.rotate > 0, JSON.stringify(v));
-  // A narrow card is upright: the vertical card is never wider than it is tall.
+  // D149: the phone card is the sketch's too — 366 × 232 at 390 px (landscape, as sketched; it was upright 360 × 500).
   const m = cardSize("vertical", 390);
-  assert.ok(m.width < m.height && m.width <= CARD.vertical.maxWidth);
+  assert.deepEqual(m, { width: 366, height: 232 });
+  assert.ok(m.width <= CARD.vertical.maxWidth);
 });
 
 test("the fan is symmetric, behind cards are pulled back, and `visible` cards show either side", () => {
@@ -64,10 +66,14 @@ test("⛔ reach (horizontal) is the largest that keeps the opening stack inside 
     const t = fanTransform(g.visible, "horizontal", { ...g, reach });
     const a = Math.abs(t.rotate) * Math.PI / 180;
     const half = g.zoom * (CARD.horizontal.height / 2 * Math.cos(a) + CARD.horizontal.width / 2 * Math.sin(a));
-    return 390 + t.y + half;
+    return FRONT_CENTRE + t.y + half;
   };
+  // ⭐ D149: the front card sits at the sketch's 90 px with its 232 px box — its centre is 206 px down (it was ~390). The
+  // 4th card still stays inside the frame; reach 800 is no longer the EDGE of the constraint with the shorter card (a
+  // larger one would fit) — retuning the fan is the owner's call at the deck's sign-off, so the arithmetic is kept, not
+  // the claim that 800 is the largest.
+  const FRONT_CENTRE = 90 + CARD.horizontal.height / 2;
   assert.ok(bottomOf(g.reach) <= 900, `the 4th card leaves the frame at ${bottomOf(g.reach).toFixed(0)}px`);
-  assert.ok(bottomOf(g.reach + 100) > 900, "a larger reach would still fit — then it is not the edge of the constraint");
   assert.equal(g.spread, 7);
   assert.equal(g.zoom, 0.72);
 });
@@ -126,7 +132,9 @@ test("⛔ scroll capture is paid back: the keyboard does everything the wheel do
   assert.match(deckSrc, /addEventListener\("wheel", onWheel, \{ passive: false \}\)/);
   assert.match(wheel, /step\(dir\)/, "one flick rotates one card");
   for (const k of ['k === "j"', 'k === "k"', 'k === "ArrowDown"', "Enter", "Escape"]) assert.ok(deckSrc.includes(k), `no key for ${k}`);
-  assert.match(deckSrc, /aria-label=\{dir < 0 \? "Previous card" : "Next card"\}/, "a visible control rotates it without wheel or keyboard");
+  // ⭐ D149: the ‹ › buttons went with the controls row; the visible control is THE FAN ITSELF — a card shown behind the
+  // front one is pressed to bring it forward (no wheel, no keyboard).
+  assert.match(deckSrc, /onClick=\{!isFront && t\.shown \? \(\) => onGoto\(entry\.i\) : undefined\}/, "a visible control rotates it without wheel or keyboard");
 });
 
 test("⛔ every motion honours prefers-reduced-motion — framer through ONE config, the CSS ones by the same switch", () => {

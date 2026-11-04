@@ -7,3 +7,6 @@
    only its SIDES, so the active tab's shadow above and below is never cut into a rectangle. */
 .tbar-group { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; clip-path: inset(-18px 0); }
 
+
+/* ⭐ D149: the chrome strip is click-through (no bar any more); the mark itself still takes the pointer. */
+.tbar-group { pointer-events: auto; }

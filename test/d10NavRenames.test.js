@@ -31,8 +31,9 @@ test("D10: no Job Profiles TAB — but the page keeps its route and its ways in"
   // The route: a route-only panel is in NAVIGABLE_TABS, so /app/job-profiles renders, not bounces.
   assert.match(app, /const ROUTE_ONLY_TABS = \[[^\]]*"job-profiles"[^\]]*\];/);
   assert.match(app, /activeTab === "job-profiles" && <JobProfilesPanel/);
-  // The ways in: the avatar menu's SETTINGS group (D18), Profile, and the Daily Deck's set-up state.
-  assert.match(topBar, />Settings<\/div>\s*<button onClick=\{\(\) => \{ setOpen\(false\); onTabChange\?\.\("job-profiles"\); \}\}[^\n]*\n[^\n]*\n\s*Job Profiles\s*\n/);
+  // The ways in: the Profile panel's SETTINGS group (D18; D149 moved the avatar menu into the Profile panel), Profile,
+  // and the Daily Deck's set-up state.
+  assert.match(topBar, />Settings<\/div>\s*<button onClick=\{\(\) => \{ onClose\(\); onTabChange\?\.\("job-profiles"\); \}\}[^\n]*\n[^\n]*\n\s*Job Profiles\s*\n/);
   assert.match(app, /onOpenJobProfiles=\{\(\) => handlePanelChange\("job-profiles"\)\}/);
   assert.match(read("client/src/panels/DeckView.jsx"), /\["\/app\/job-profiles", "Add your résumé →"\]/);
 });
