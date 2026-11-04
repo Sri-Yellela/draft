@@ -217,6 +217,8 @@ export function createBoardFitPrecompute({
   batchSize = 50,
   sliceMs = 40,
   commitChunk = 400,
+  // A123 (7): rows per plan page — one page is the longest the plan holds the event loop (≈ 0.75 ms a row on production).
+  planPage = 200,
   now = () => performance.now(),
 } = {}) {
   if (!db || typeof basisFor !== "function" || typeof scoreJob !== "function" || typeof store !== "function") {
@@ -248,26 +250,66 @@ export function createBoardFitPrecompute({
     FROM scraped_jobs sj
     LEFT JOIN ats_only_reports aor
       ON aor.job_id = sj.job_id AND aor.user_id = ? AND aor.domain_profile_id IS ?
-    WHERE sj.is_active = 1${SCOPE_SQL}
+    WHERE sj.is_active = 1${SCOPE_SQL} AND sj.job_id > ?
     ORDER BY sj.job_id
+    LIMIT ?
   `);
   const activeCountStmt = db.prepare(`SELECT COUNT(*) AS n FROM scraped_jobs sj WHERE sj.is_active = 1${SCOPE_SQL}`);
   const inFlight = new Map();   // "user:profile" -> { promise, rerun }
 
-  /** What would be scored, without scoring it. */
+  /**
+   * What would be scored, without scoring it.
+   *
+   * ⛔ A123 (7) · IN PAGES, YIELDING BETWEEN THEM. The plan reads every in-scope active posting with its
+   * scorer inputs and hashes each in JS (the posting side of "fresh" — SQLite has no hash). At 18,185 active
+   * postings that was one synchronous pass: user 3's plan alone held the event loop 13.9 s on production
+   * (11-04 21:24Z, inside the boot's warm-up), all four profiles "nothing_to_do". Now the rows are read in
+   * keyset pages of `planPage` (job_id is the key) and the loop is handed back between pages, so a plan holds
+   * it for one page at most — the same counts, the same job ids, in the same order.
+   */
+  function planPageRows({ userId, profileId, basisHash, force, scope, after }) {
+    return planStmt.all(basisHash, force ? 1 : 0, userId, profileId ?? null, ...scope, after, planPage);
+  }
+  function tally(acc, rows) {
+    for (const r of rows) {
+      if (r.why === "missing") { acc.missing++; acc.jobIds.push(r.job_id); continue; }
+      if (r.why === "stale") { acc.stale++; acc.jobIds.push(r.job_id); continue; }
+      // The basis matches: the row is fresh only if the POSTING is still the one that was scored.
+      if (r.stored_job_hash !== atsJobInputHash(r)) { acc.stale++; acc.postingChanged++; acc.jobIds.push(r.job_id); }
+    }
+  }
+  function finishPlan(acc, scope) {
+    const active = activeCountStmt.get(...scope).n;
+    const { missing, stale, postingChanged, jobIds } = acc;
+    return { active, missing, stale, postingChanged, fresh: active - jobIds.length, jobIds };
+  }
+  /** The plan in one call (tests and any synchronous caller). Same pages, no yields. */
   function plan({ userId, profileId, basisHash, force = false, category = null }) {
     const scope = SCOPE_SQL ? [category, category] : [];
-    const all = planStmt.all(basisHash, force ? 1 : 0, userId, profileId ?? null, ...scope);
-    const active = activeCountStmt.get(...scope).n;
-    let missing = 0, stale = 0, postingChanged = 0;
-    const jobIds = [];
-    for (const r of all) {
-      if (r.why === "missing") { missing++; jobIds.push(r.job_id); continue; }
-      if (r.why === "stale") { stale++; jobIds.push(r.job_id); continue; }
-      // The basis matches: the row is fresh only if the POSTING is still the one that was scored.
-      if (r.stored_job_hash !== atsJobInputHash(r)) { stale++; postingChanged++; jobIds.push(r.job_id); }
+    const acc = { missing: 0, stale: 0, postingChanged: 0, jobIds: [] };
+    for (let after = ""; ;) {
+      const rows = planPageRows({ userId, profileId, basisHash, force, scope, after });
+      tally(acc, rows);
+      if (rows.length < planPage) break;
+      after = rows[rows.length - 1].job_id;
     }
-    return { active, missing, stale, postingChanged, fresh: active - jobIds.length, jobIds };
+    return finishPlan(acc, scope);
+  }
+  /** The same plan, handing the event loop back between pages — what every pass uses. */
+  async function planSliced({ userId, profileId, basisHash, force = false, category = null }) {
+    const scope = SCOPE_SQL ? [category, category] : [];
+    const acc = { missing: 0, stale: 0, postingChanged: 0, jobIds: [] };
+    let pages = 0, longestPageMs = 0;
+    for (let after = ""; ;) {
+      const t0 = now();
+      const rows = planPageRows({ userId, profileId, basisHash, force, scope, after });
+      tally(acc, rows);
+      pages++; longestPageMs = Math.max(longestPageMs, now() - t0);
+      if (rows.length < planPage) break;
+      after = rows[rows.length - 1].job_id;
+      await yieldToEventLoop();
+    }
+    return { ...finishPlan(acc, scope), planPages: pages, longestPlanPageMs: Math.round(longestPageMs) };
   }
 
   function emit(level, result) {
@@ -295,9 +337,10 @@ export function createBoardFitPrecompute({
 
     let category = null;
     try { category = scopeFor ? scopeFor(userId, profile) ?? null : null; } catch { category = null; }
-    const p = plan({ userId, profileId: profile.id, basisHash: basis.basisHash, force, category });
+    const p = await planSliced({ userId, profileId: profile.id, basisHash: basis.basisHash, force, category });
     const counts = { active: p.active, fresh: p.fresh, missing: p.missing, stale: p.stale,
-                     postingChanged: p.postingChanged, todo: p.jobIds.length };
+                     postingChanged: p.postingChanged, todo: p.jobIds.length,
+                     planPages: p.planPages, longestPlanPageMs: p.longestPlanPageMs };
     if (dryRun) {
       const r = { ...base, status: "dry_run", ...counts, basisHash: basis.basisHash, ms: Math.round(now() - started) };
       emit("log", r); return r;
@@ -461,5 +504,5 @@ export function createBoardFitPrecompute({
     return { summary, results };
   }
 
-  return { plan, runFor, schedule, runAll, isRunning: (userId, profileId) => inFlight.has(`${userId}:${profileId}`) };
+  return { plan, planSliced, runFor, schedule, runAll, isRunning: (userId, profileId) => inFlight.has(`${userId}:${profileId}`) };
 }

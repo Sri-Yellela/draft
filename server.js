@@ -14772,19 +14772,22 @@ app.listen(PORT, () => {
     try { runExpiredJobsCleanup(); }
     catch(e) { console.warn("[cleanup] startup cleanup failed:", e.message); }
   });
-  BOOT.run();
   // The board's fit, reconciled once after boot. Incremental, so on every boot after the first it
-  // is one plan query per active profile and "nothing to do". It is what backfills a deployment
+  // is one plan per active profile and "nothing to do". It is what backfills a deployment
   // that gained migration 110 with users already on it — without it their boards would sit on
-  // "not established" until the 04:00 crawl. Delayed so it never competes with the boot itself;
-  // BOARD_FIT_PRECOMPUTE=off disables it with every other automatic trigger.
-  setTimeout(() => {
+  // "not established" until the 04:00 crawl. BOARD_FIT_PRECOMPUTE=off disables it with every other
+  // automatic trigger.
+  // ⛔ A123 (7): the delay counts from READY, not from listen. On a timer from listen it landed inside the
+  // warm-up (production 11-04 21:24Z: ≈ 18 s of plans, user 3's alone 13.9 s, between job_role_map and
+  // the tag slice) — and every request in a deploy window waits for ready. The plan itself now yields
+  // between pages (services/jobs/boardFitPrecompute.js planSliced).
+  BOOT.run().then(() => setTimeout(() => {
     if (!boardFitAutomationEnabled()) {
       console.log("[board-fit] boot pass: DISABLED by BOARD_FIT_PRECOMPUTE=off");
       return;
     }
     scheduleBoardFitForAll("boot");
-  }, Number(process.env.BOARD_FIT_BOOT_DELAY_MS ?? 30000)).unref?.();
+  }, Number(process.env.BOARD_FIT_BOOT_DELAY_MS ?? 30000)).unref?.());
 });
 
 
