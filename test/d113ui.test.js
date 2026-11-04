@@ -556,7 +556,8 @@ test("d113uiWithdrawNeverClaimsToWithdraw — Withdraw opens the company's page 
   const { html, RowOpen } = await loadUi();
   const row = { key: "table-9", eyebrow: "Sent", headline: "Sent today.", panes: [] };
   const out = html(RowOpen, { row, actions: [{ id: "withdraw", label: "Withdraw", href: "https://northwind.example/apply/9", title: "Opens Northwind's page." }] });
-  assert.match(out, /<a class="dh-btn"[^>]* href="https:\/\/northwind\.example\/apply\/9" target="_blank" rel="noreferrer"[^>]*>Withdraw<\/a>/);
+  // D149 (11-03) changed this on purpose: the opened row's actions are the sketch's .btn (class trk-btn), same link.
+  assert.match(out, /<a class="trk-btn"[^>]* href="https:\/\/northwind\.example\/apply\/9" target="_blank" rel="noreferrer"[^>]*>Withdraw<\/a>/);
   // The server: nothing in the route or the service reaches the employer — no mail, no portal, no worker, no fetch.
   for (const src of [code(read("services/pipelineWorkspace.js")), code(read("routes/pipeline.js"))]) {
     assert.doesNotMatch(src, /fetch\(|sendEmail|notify|resend|applyWorker|portal/i);

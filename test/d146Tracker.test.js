@@ -179,9 +179,12 @@ test("d146ColumnsAndSort — Position · Résumé · Answers · Status · When; 
   [...walk(el)].find(e => e.props?.["data-sort"] === "company" || e.props?.["data-sort"] === "position").props.onClick();
   assert.deepEqual(seen, [{ key: "when", dir: "asc" }, { key: "position", dir: "desc" }]);
   // Phones: two columns, position and status (with its when beneath).
-  const phone = trkCss.slice(at(trkCss, "@media (max-width: 640px)"));
-  assert.match(phone, /\[data-col="resume"\], \.trk-table \[data-col="answers"\], \.trk-table \[data-col="when"\] \{ display: none; \}/);
-  assert.match(phone, /\.trk-when-m \{ display: block;/);
+  // D149 (11-03) changed this on purpose: tracker-options.html's phone row is a `1fr auto` grid from 760 px — the when
+  // sits on its own line under the position (right-aligned), so the row grid places the When cell instead of a copy.
+  const phone = trkCss.slice(at(trkCss, "@media (max-width: 760px)"));
+  assert.match(phone, /\.trk-row \{ display: grid; grid-template-columns: minmax\(0, 1fr\) auto;/);
+  assert.match(phone, /\.trk-table \[data-col="resume"\], \.trk-table \[data-col="answers"\] \{ display: none; \}/);
+  assert.match(phone, /\.trk-row td\[data-col="when"\] \{ grid-column: 1; text-align: right; \}/);
 });
 
 test("d146StatusDotWordNoPill — the status is a quiet dot + a word, never a capsule", async () => {
@@ -199,8 +202,9 @@ test("d146StatusDotWordNoPill — the status is a quiet dot + a word, never a ca
   const dot = html(StatusDot, { ring: "need", word: "Needs you" });
   assert.match(dot, /class="trk-dot"[^>]*style="--trk-dot:var\(--c-accent\)"/);
   assert.match(dot, />Needs you</);
-  const rule = trkCss.slice(at(trkCss, ".trk-dot {"), at(trkCss, ".trk-when-m"));
-  assert.match(rule, /width: 8px; height: 8px; border-radius: 50%;/, "a circle: equal sides");
+  // D149 (11-03) changed this on purpose: the sketch's .dot is 7 px (still a circle: equal sides).
+  const rule = trkCss.slice(at(trkCss, ".trk-dot {"), at(trkCss, ".trk-dot {") + 120);
+  assert.match(rule, /width: 7px; height: 7px; border-radius: 50%;/, "a circle: equal sides");
   for (const src of [trkCss, trk]) assert.doesNotMatch(code(src), /999px|rounded-full|borderRadius:\s*999/);
   // Tokens only.
   assert.doesNotMatch(trkCss.replace(/\/\*[\s\S]*?\*\//g, ""), /#[0-9a-fA-F]{3,8}\b|rgba?\(/);
@@ -295,10 +299,13 @@ test("d146TimelineBesideDesktop — the table, and the timeline card beside it a
   assert.match(dhCss, /\.dh-main \{ display: grid; grid-template-columns: minmax\(0, 1fr\) 300px;/);
   const mainJsx = panel.slice(at(panel, "THE TABLE, AND THE AUTO-APPLY TIMELINE BESIDE IT"));
   assert.ok(at(mainJsx, "<ApplicationTracker rows={shownRows}") < at(mainJsx, "<DraftHouseTree view={view}"), "the table, then the timeline");
-  assert.match(panel, /Auto-apply · \{fullAuto \? "Apply for me" : "Ask me first"\}\{runsWord\}/);
+  // D149 (11-03) changed this on purpose: the sketch's head is two lines — "Auto-apply", then the mode and run times.
+  assert.match(panel, />Auto-apply<\/h3>/);
+  assert.match(panel, /<p className="dht-head__sub">\{fullAuto \? "Apply for me" : "Ask me first"\}\{runsWord\}<\/p>/);
   assert.match(panel, /` · runs at \$\{runTimes\.length > 1 \?/);
   assert.match(tree, /data-timeline=""/);
-  assert.match(tree, /\{run\.seen\} looked at · \{run\.picked\} picked ·/);
+  // ... and "why these" only when the run looked at something (the sketch's empty run: "0 looked at · 0 picked").
+  assert.match(tree, /\{run\.seen\} looked at · \{run\.picked\} picked\s*\{\(run\.seen > 0 \|\| run\.picked > 0 \|\| runOpen\) && /);
   assert.match(tree, /"why these"/);
 });
 

@@ -34,7 +34,9 @@ test("no swept surface sets the pre-rebrand type inline", () => {
 test("the page titles use the deck's type scale", () => {
   const type = read("client/src/styles/type.js");
   assert.match(type, /PAGE_TITLE: \{ fontFamily: FONT\.DISPLAY, fontWeight: 400/);
-  assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /<h2 style=\{TYPE\.PAGE_TITLE\}>/);
+  // D149 (11-03) changed this on purpose: tracker-options.html's title is an h1 at a fixed 44 px — the deck's page-title
+  // type is still the base, with the sketch's size on top (DH_TITLE).
+  assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /<h1 style=\{\{ \.\.\.TYPE\.PAGE_TITLE, \.\.\.DH_TITLE \}\}>/);
   assert.match(read("client/src/panels/RecruiterPanel.jsx"), /<h1 style=\{TYPE\.PAGE_TITLE\}>/);
   assert.match(read("client/src/panels/JobProfilesPanel.jsx"), /<h1 style=\{\{ \.\.\.TYPE\.PAGE_TITLE/);
 });
