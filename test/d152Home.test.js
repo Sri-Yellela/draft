@@ -191,3 +191,23 @@ test("d152ReasonLineOnCard / d152NoSeparateBestBetsList: the card says the best-
   assert.match(DECK, /\{!home && facts\.chips\.length > 0 && \(/, "on Home the reason line replaces the hover chips (each fact once)");
   assert.match(DECK, /of \{s\.size\} today · \{deckOrder === "best" \? "best match first"/, "the sketch's count line");
 });
+
+// ⭐ D152 (7b) (owner 11-04: "that label design wherever in the site get rid of it"): the label chip — a tinted rectangle
+// with a coloured 3px left bar and heavy italic text — is retired everywhere it was drawn: the two mark twins (.mark,
+// markStyle) and the four own copies (résumé ready, a posting's tag, The Table's status, Customise's tag).
+test("d152NoLabelChipComponent / d152StateAsWordOrDotWord: no label chip anywhere; a state is a word with a 6px dot", () => {
+  const RULES = [
+    ["client/src/components/DepthButton.css", ".mark {"], ["client/src/components/JobBubble.css", ".jb__ready {"],
+    ["client/src/components/PostingPanel.css", ".posting__pill {"], ["client/src/components/ApplicationHistory.css", ".ah__status {"],
+    ["client/src/components/Customise.css", ".cz-opt__tag {"],
+  ];
+  for (const [file, sel] of RULES) {
+    const css = read(file);
+    const rule = css.slice(at(css, sel), at(css, "}", at(css, sel)) + 1);
+    assert.doesNotMatch(rule, /border-left:\s*3px|800 italic|color-mix\(/, `${file} ${sel}: the chip's bar, face or tint`);
+  }
+  const mark = read("client/src/styles/mark.js");
+  const fn = mark.slice(at(mark, "export function markStyle("), at(mark, "export function bandMarkStyle("));
+  assert.doesNotMatch(fn, /borderLeft|color-mix|fontStyle: "italic"/, "the inline twin draws no chip either");
+  assert.match(fn, /radial-gradient\(circle at 3px 50%/, "a state's dot");
+});

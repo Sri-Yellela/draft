@@ -44,16 +44,24 @@ export function dotCue(kind) {
 /** A mark in `color` (a text-tone token). `dashed` draws the bar dashed and drops the tint — the
  *  "not a grade" treatment Not enough signal needs (bandStyle.js). `kind` names the status when the colour
  *  alone does not (a muted tag that means "failed"). */
+// ⛔⛔ D152 (7b) (owner 11-04): THE LABEL CHIP IS RETIRED SITE-WIDE — the inline twin of .mark (DepthButton.css): a word or
+// a short phrase in D145's plain type, no box / border / fill / bar / heavy italic. A STATE (a status colour) gets a 6px
+// dot before the word, drawn as a background (the shape cue's ::before keeps its place), and the word in body grey; any
+// other colour (the accent, a muted tag) is simply the word in that colour. `dashed` (Not enough signal — not a grade)
+// drops the dot: a grey word.
 export function markStyle(color, { dashed = false, kind = null } = {}) {
+  const k = kind || KIND_BY_COLOUR.get(color);
+  const state = !!k && !dashed;
   return {
-    ...(statusCue(kind || KIND_BY_COLOUR.get(color)) || {}),
+    ...(statusCue(k) || {}),
     position: "relative",
     display: "inline-flex", alignItems: "center", gap: 6,
-    borderRadius: 6, padding: "4px 8px 4px 7px",
-    fontFamily: LOGO_FACE, fontStyle: "italic", fontWeight: 800, fontSize: 10.5, lineHeight: 1,
+    borderRadius: 0, padding: state ? "0 0 0 12px" : 0,
+    fontFamily: "var(--shape-font-ui, var(--font-body))", fontStyle: "normal", fontWeight: 500,
+    fontSize: "calc(12.5px * var(--type-scale, 1))", lineHeight: 1.4,
     letterSpacing: 0, textTransform: "none", whiteSpace: "nowrap",
-    color, border: 0, borderLeft: `3px ${dashed ? "dashed" : "solid"} ${color}`,
-    background: dashed ? "transparent" : `color-mix(in srgb, ${color} 12%, transparent)`,
+    color: state ? C.INK_MUTED : dashed ? C.INK_MUTED : color, border: 0,
+    background: state ? `radial-gradient(circle at 3px 50%, ${color} 3px, transparent 3.5px) no-repeat` : "none",
   };
 }
 

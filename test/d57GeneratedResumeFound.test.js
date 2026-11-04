@@ -229,5 +229,6 @@ test("D57 · the job card carries a 'résumé ready' marker in every view", () =
   const bubble = read("client/src/components/JobBubble.jsx");
   assert.match(bubble, /\{resumeReady && <div className="jb__ready" data-resume-ready="" [^>]*>résumé ready<\/div>\}/);
   assert.match(read("client/src/panels/JobsPanel.jsx"), /resumeReady=\{!!g\?\.html\}/);
-  assert.match(read("client/src/components/JobBubble.css"), /\.jb__ready \{[^}]*color: var\(--c-success\);/);
+  // ⭐ D152 (7b), changed on purpose: a word with the success DOT before it (no chip) — still said in the success tone.
+  assert.match(read("client/src/components/JobBubble.css"), /\.jb__ready \{[^}]*background: radial-gradient\(circle at 3px 50%, var\(--c-success\) 3px/);
 });

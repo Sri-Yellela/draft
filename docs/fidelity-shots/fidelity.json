@@ -158,7 +158,7 @@
   "settings-desktop": {
     "sketch": "settings-declutter.html",
     "app": "/app/auto-apply",
-    "similarity": 0.9842,
+    "similarity": 0.9848,
     "worstRegions": [
       {
         "row": 1,
@@ -169,11 +169,6 @@
         "row": 1,
         "col": 1,
         "diff": 0.117
-      },
-      {
-        "row": 0,
-        "col": 0,
-        "diff": 0.083
       },
       {
         "row": 1,
@@ -187,7 +182,7 @@
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T05:16:53.791Z"
+    "at": "2026-11-04T23:47:43.685Z"
   },
   "settings-phone": {
     "sketch": "settings-declutter.html",
@@ -226,7 +221,7 @@
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T05:16:59.551Z"
+    "at": "2026-11-04T23:47:49.978Z"
   },
   "settings-region-desktop": {
     "sketch": "settings-declutter.html",
@@ -260,7 +255,7 @@
         "diff": 0.052
       }
     ],
-    "at": "2026-11-04T05:16:54.141Z"
+    "at": "2026-11-04T23:47:44.097Z"
   },
   "settings-region-phone": {
     "sketch": "settings-declutter.html",
@@ -304,12 +299,12 @@
         "diff": 0.064
       }
     ],
-    "at": "2026-11-04T05:16:59.860Z"
+    "at": "2026-11-04T23:47:50.256Z"
   },
   "tracker-desktop": {
     "sketch": "tracker-options.html",
     "app": "/app/auto-apply",
-    "similarity": 0.9594,
+    "similarity": 0.9601,
     "worstRegions": [
       {
         "row": 4,
@@ -332,23 +327,23 @@
         "diff": 0.122
       },
       {
-        "row": 0,
-        "col": 0,
-        "diff": 0.101
-      },
-      {
         "row": 6,
         "col": 4,
         "diff": 0.094
+      },
+      {
+        "row": 2,
+        "col": 1,
+        "diff": 0.09
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T05:17:06.656Z"
+    "at": "2026-11-04T23:47:30.306Z"
   },
   "tracker-phone": {
     "sketch": "tracker-options.html",
     "app": "/app/auto-apply",
-    "similarity": 0.911,
+    "similarity": 0.9135,
     "worstRegions": [
       {
         "row": 5,
@@ -356,14 +351,14 @@
         "diff": 0.32
       },
       {
+        "row": 3,
+        "col": 0,
+        "diff": 0.278
+      },
+      {
         "row": 7,
         "col": 1,
         "diff": 0.273
-      },
-      {
-        "row": 3,
-        "col": 0,
-        "diff": 0.242
       },
       {
         "row": 6,
@@ -382,7 +377,7 @@
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T05:17:12.608Z"
+    "at": "2026-11-04T23:47:36.641Z"
   },
   "tracker-open-desktop": {
     "sketch": "tracker-options.html",
@@ -811,7 +806,7 @@
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T23:32:41.579Z"
+    "at": "2026-11-04T23:37:01.772Z"
   },
   "home-match-phone": {
     "sketch": "ats-options.html",
@@ -850,6 +845,6 @@
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T23:32:52.293Z"
+    "at": "2026-11-04T23:37:12.411Z"
   }
 }
