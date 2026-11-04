@@ -23,7 +23,7 @@ import WaitingLine from "../components/WaitingLine.jsx";
 import AutoSettingsDrawer from "../components/AutoSettingsDrawer.jsx";
 import DraftHouseTree, { Branch, RunCard } from "../components/DraftHouseTree.jsx";
 // ⭐ D146 · the one tracker: the table (and its opened row), what each row says, and The Table's full sheet behind View.
-import ApplicationTracker, { RowOpen, TrackerCounts, TrackerFilters } from "../components/ApplicationTracker.jsx";
+import ApplicationTracker, { RowOpen, TrackerCounts, TrackerFilters, DEFAULT_SORT } from "../components/ApplicationTracker.jsx";
 import {
   trackerRows, trackerView, trackerCounts, sortRows, stageActions, readyToSend, sendAllConfirmText, TRACKER_PERIODS,
 } from "../lib/trackerRows.js";
@@ -85,7 +85,7 @@ import { postingClick } from "../lib/openPosting.js";
 
 // ⭐ D129 (3) · DRAFT HOUSE'S EXAMPLE, for the guided tour: two runs and the five rings, LABELLED "Example" — so a new
 // tester sees what the tree becomes. Invented companies; nothing in it opens or acts.
-const EX = (key, company, title, ring) => ({ key: `example-${key}`, company, title, ring, jobId: null });
+const EX =(key, company, title, ring) => ({ key: `example-${key}`, company, title, ring, jobId: null });
 const EXAMPLE_VIEW = [
   { run: { key: "example-run-2", day: "Example", time: "9:00", real: false, nodes: [1, 2, 3] },
     items: [{ node: EX("a", "Northwind Robotics", "Software Engineer", "review"), dim: false },
@@ -95,6 +95,8 @@ const EXAMPLE_VIEW = [
     items: [{ node: EX("d", "Cedar Logistics", "Platform Engineer", "sent"), dim: false },
             { node: EX("e", "Lumen Payments", "Software Engineer II", "reply"), dim: false }] },
 ];
+// ⭐ D149 (11-03) · tracker-options.html's `.ph3 h1`: the deck's page-title type at the sketch's fixed 44 px, no tracking.
+const DH_TITLE = Object.freeze({ fontSize: "calc(44px * var(--type-scale, 1))", letterSpacing: "normal" });
 const nothingYetForExample = (nodes) => !nodes || nodes.length === 0;
 function ExampleNote() {
   return (
@@ -468,7 +470,10 @@ export function AutoApplyPanel({ user = null } = {}) {
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const [period, setPeriod] = useState("any");
-  const [sort, setSort] = useState({ key: "when", dir: "desc" });
+  // D149: the search and the period sit behind the filter row's last button, Search (not on the sketch's first screen).
+  const [findOpen, setFindOpen] = useState(false);
+  // D149 (11-03): the table opens in the sketch's order — what needs you first (status), every header still sorts.
+  const [sort, setSort] = useState(DEFAULT_SORT);
   const [open, setOpen] = useState(null);
   const [pane, setPane] = useState(null);
   const [phoneView, setPhoneView] = useState("table");
@@ -1051,15 +1056,19 @@ export function AutoApplyPanel({ user = null } = {}) {
   const runTimes = (Array.isArray(settings?.runTimes) ? settings.runTimes : []).filter(t => /^\d\d:\d\d$/.test(t)).map(runAt);
   const runsWord = !runTimes.length ? "" : ` · runs at ${runTimes.length > 1 ? `${runTimes.slice(0, -1).join(", ")} and ${runTimes[runTimes.length - 1]}` : runTimes[0]}`;
   const timelineHead = (
+    // ⭐ D149 (11-03) · the sketch's .tl head: "Auto-apply" (15 / 600) over "Ask me first · runs at 9 AM and 6 PM". The
+    // running sentence is not on the sketch (shown only while paused). Pause — the safety stop — stays here as one
+    // quiet word on the title's line (it is also Settings → Pausing, D148), not a boxed button.
     <div className="dht-head" data-held={held ? "true" : "false"}>
-      <p className="dht-head__t" data-timeline-title="">Auto-apply · {fullAuto ? "Apply for me" : "Ask me first"}{runsWord}</p>
-      <p className="dht-head__say" data-house-sentence="">{sentence}</p>
-      <div className="dht-acts">
-        <button type="button" className="dh-btn" data-stop-everything="" data-held={held ? "true" : "false"}
+      <div className="dht-head__top">
+        <h3 className="dht-head__t" data-timeline-title="">Auto-apply</h3>
+        <button type="button" className="dht-link" data-stop-everything="" data-held={held ? "true" : "false"}
           disabled={holdBusy || !runBar} title={`${STOP_DOES} ${STOP_DOES_NOT}`} onClick={() => setStopEverything?.(!held)}>
           {held ? "Resume" : "Pause"}
         </button>
       </div>
+      <p className="dht-head__sub">{fullAuto ? "Apply for me" : "Ask me first"}{runsWord}</p>
+      {held && <p className="dht-head__say" data-house-sentence="">{sentence}</p>}
     </div>
   );
   const chooseAsk = async () => {
@@ -1137,10 +1146,11 @@ export function AutoApplyPanel({ user = null } = {}) {
       {/* ── ⭐ D146 · THE HEADER — the name and its line, the two modes, Settings, Import, Export, Send all ready ── */}
       <header className="dh-head" data-house-header="" data-held={held ? "true" : "false"}>
         <div className="dh-head__text">
-          {/* A53: the deck's type — the display serif for what the page is (styles/type.js). */}
-          <h2 style={TYPE.PAGE_TITLE}>Draft House</h2>
-          <p className="dh-head__say" data-house-line="">Every application, from draft to reply</p>
+          {/* ⭐ D149 (11-03): the sketch's .ph3 — the serif at 44 / 1 over its line in body grey (DraftHouse.css). */}
+          <h1 style={{ ...TYPE.PAGE_TITLE, ...DH_TITLE }}>Draft House</h1>
+          <p className="dh-head__say" data-house-line="">Every application, from draft to reply.</p>
         </div>
+        {/* The sketch's .tools3: the mode (.seg2), three quiet buttons, and Send all ready in the accent. */}
         <div className="dh-head__ctl">
           <div className="dh-mode" role="group" aria-label="Mode">
             <button type="button" className="dh-mode__seg" data-mode="ask" aria-pressed={!fullAuto}
@@ -1151,12 +1161,12 @@ export function AutoApplyPanel({ user = null } = {}) {
               aria-describedby={mode.selectable ? undefined : "dh-auto-why"}
               onClick={mode.selectable ? () => !fullAuto && setApplyMode?.("auto") : undefined}>Apply for me</button>
           </div>
-          <button type="button" className="dh-btn" data-settings-open="" onClick={(e) => openSettings(null, e.currentTarget)}>Settings</button>
+          <button type="button" className="dh-quiet" data-settings-open="" onClick={(e) => openSettings(null, e.currentTarget)}>Settings</button>
           {/* The Table's Excel / CSV import and export, unchanged in function (lib/tableExport.js, ApplicationHistory's ImportPanel). */}
-          <button type="button" className="dh-btn" data-import-open="" aria-pressed={importing} onClick={() => setImporting(v => !v)}>Import</button>
-          <button type="button" className="dh-btn" data-export-open="" aria-pressed={exporting} onClick={() => setExporting(v => !v)}>Export</button>
+          <button type="button" className="dh-quiet" data-import-open="" aria-pressed={importing} onClick={() => setImporting(v => !v)}>Import</button>
+          <button type="button" className="dh-quiet" data-export-open="" aria-pressed={exporting} onClick={() => setExporting(v => !v)}>Export</button>
           {/* Send all ready: every Ready-to-send row, ONE confirm that lists them by name (lib/trackerRows.js). */}
-          <button type="button" className="dh-btn" data-kind="primary" data-send-all-ready="" disabled={!ready.length || pendingBusy}
+          <button type="button" className="dh-send" data-kind="primary" data-send-all-ready="" disabled={!ready.length || pendingBusy}
             title="Approves every application that is Ready to send. Approving submits it to the employer and cannot be undone."
             onClick={sendAllReady}>Send all ready ({ready.length})</button>
         </div>
@@ -1206,6 +1216,18 @@ export function AutoApplyPanel({ user = null } = {}) {
         </div>
       ))}
 
+      {/* ⭐ D149 (11-03): the counts and the filters span the page above the table and the timeline (the sketch's .cnt
+          and .flt sit before its .layout), so the timeline's top meets the table's, and on a phone both stay above the
+          switch whichever side is shown. The full sheet (Settings → View) replaces them. */}
+      {listView !== "sheet" && (
+        <>
+          <TrackerCounts counts={counts} />
+          <TrackerFilters filter={filter} onFilter={setFilter} period={period} onPeriod={setPeriod}
+            findOpen={findOpen || !!q || period !== "any"} onFind={(on) => { setFindOpen(on); if (!on) { setQ(""); setPeriod("any"); } }}
+            search={<PanelSearch theme={theme} value={q} onChange={setQ} width={200} placeholder="Search" />} />
+        </>
+      )}
+
       {/* ── ⭐ D146 · phones: a switch, Applications · Auto-apply timeline (layout 3). Hidden from 900 px (CSS). ── */}
       <div className="dh-mode dh-switch" role="group" aria-label="Show" data-phone-switch="">
         <button type="button" className="dh-mode__seg" data-phone-view="table" aria-pressed={phoneView === "table"} onClick={() => setPhoneView("table")}>Applications</button>
@@ -1226,9 +1248,6 @@ export function AutoApplyPanel({ user = null } = {}) {
             </section>
           ) : (
             <>
-              <TrackerCounts counts={counts} />
-              <TrackerFilters filter={filter} onFilter={setFilter} period={period} onPeriod={setPeriod}
-                search={<PanelSearch theme={theme} value={q} onChange={setQ} width={220} placeholder="Search, e.g. a company" />} />
               <ApplicationTracker rows={shownRows} sort={sort} onSort={setSort}
                 openKey={open?.type === "job" ? open.key : null}
                 onOpen={(key) => step(key == null ? { type: "close" } : { type: "job", key })}

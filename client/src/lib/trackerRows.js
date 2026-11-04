@@ -147,7 +147,8 @@ export const HISTORY_HEADLINES = Object.freeze({
 /** The headline of an opened row: one sentence for its stage — the question itself when it is one. */
 export function headlineOf(row) {
   const n = row.node;
-  if (row.stage === "question" && n?.question?.question) return n.question.question;
+  // D149 (11-03): the question in quotes, as tracker-options.html says it — it is the form's words, not ours.
+  if (row.stage === "question" && n?.question?.question) return `"${n.question.question}"`;
   if (row.stage === "ready") {
     const a = Number(n?.ref?.answerCount) || 0;
     return [a ? `${a} answers filled` : "Filled and checked", row.resume === "Tailored" ? "résumé tailored" : null].filter(Boolean).join(", ");
