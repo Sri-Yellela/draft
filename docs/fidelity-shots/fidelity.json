@@ -36,12 +36,12 @@
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T02:24:54.207Z"
+    "at": "2026-11-04T04:51:11.828Z"
   },
   "deck-phone": {
     "sketch": "declutter-v7.html",
     "app": "/app",
-    "similarity": 0.8763,
+    "similarity": 0.8789,
     "worstRegions": [
       {
         "row": 3,
@@ -75,7 +75,7 @@
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T02:24:59.866Z"
+    "at": "2026-11-04T04:51:17.610Z"
   },
   "fullhouse-desktop": {
     "sketch": "fullhouse-declutter.html",
@@ -114,7 +114,7 @@
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T04:20:51.254Z"
+    "at": "2026-11-04T04:52:15.170Z"
   },
   "fullhouse-phone": {
     "sketch": "fullhouse-declutter.html",
@@ -153,85 +153,80 @@
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T04:20:58.170Z"
+    "at": "2026-11-04T04:52:22.134Z"
   },
   "settings-desktop": {
     "sketch": "settings-declutter.html",
     "app": "/app/auto-apply",
-    "similarity": 0.9698,
+    "similarity": 0.9841,
     "worstRegions": [
       {
         "row": 1,
         "col": 0,
-        "diff": 0.252
+        "diff": 0.121
       },
       {
         "row": 1,
         "col": 1,
-        "diff": 0.208
-      },
-      {
-        "row": 0,
-        "col": 5,
-        "diff": 0.118
+        "diff": 0.117
       },
       {
         "row": 0,
         "col": 0,
-        "diff": 0.115
-      },
-      {
-        "row": 1,
-        "col": 5,
-        "diff": 0.091
-      },
-      {
-        "row": 1,
-        "col": 6,
-        "diff": 0.081
-      }
-    ],
-    "appErrors": [],
-    "at": "2026-11-04T03:42:53.701Z"
-  },
-  "settings-phone": {
-    "sketch": "settings-declutter.html",
-    "app": "/app/auto-apply",
-    "similarity": 0.9537,
-    "worstRegions": [
-      {
-        "row": 1,
-        "col": 5,
-        "diff": 0.191
-      },
-      {
-        "row": 0,
-        "col": 2,
-        "diff": 0.165
-      },
-      {
-        "row": 0,
-        "col": 1,
-        "diff": 0.154
-      },
-      {
-        "row": 1,
-        "col": 1,
-        "diff": 0.15
+        "diff": 0.083
       },
       {
         "row": 1,
         "col": 4,
-        "diff": 0.117
+        "diff": 0.053
+      },
+      {
+        "row": 6,
+        "col": 5,
+        "diff": 0.051
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T04:53:18.177Z"
+  },
+  "settings-phone": {
+    "sketch": "settings-declutter.html",
+    "app": "/app/auto-apply",
+    "similarity": 0.9861,
+    "worstRegions": [
+      {
+        "row": 1,
+        "col": 5,
+        "diff": 0.111
       },
       {
         "row": 5,
         "col": 1,
-        "diff": 0.11
+        "diff": 0.092
+      },
+      {
+        "row": 1,
+        "col": 4,
+        "diff": 0.09
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "diff": 0.07
+      },
+      {
+        "row": 6,
+        "col": 1,
+        "diff": 0.07
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "diff": 0.065
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T03:42:59.982Z"
+    "at": "2026-11-04T04:53:24.202Z"
   },
   "settings-region-desktop": {
     "sketch": "settings-declutter.html",
@@ -242,40 +237,30 @@
       520,
       800
     ],
-    "similarity": 0.9635,
+    "similarity": 0.989,
     "worstRegions": [
       {
-        "row": 0,
-        "col": 1,
-        "diff": 0.137
+        "row": 6,
+        "col": 0,
+        "diff": 0.116
+      },
+      {
+        "row": 2,
+        "col": 5,
+        "diff": 0.072
       },
       {
         "row": 2,
         "col": 6,
-        "diff": 0.124
-      },
-      {
-        "row": 1,
-        "col": 1,
-        "diff": 0.115
-      },
-      {
-        "row": 1,
-        "col": 5,
-        "diff": 0.112
+        "diff": 0.063
       },
       {
         "row": 6,
-        "col": 0,
-        "diff": 0.106
-      },
-      {
-        "row": 0,
-        "col": 2,
-        "diff": 0.101
+        "col": 1,
+        "diff": 0.052
       }
     ],
-    "at": "2026-11-04T03:42:54.039Z"
+    "at": "2026-11-04T04:53:18.568Z"
   },
   "settings-region-phone": {
     "sketch": "settings-declutter.html",
@@ -286,206 +271,206 @@
       390,
       844
     ],
-    "similarity": 0.9537,
+    "similarity": 0.9861,
     "worstRegions": [
       {
         "row": 1,
         "col": 5,
-        "diff": 0.191
-      },
-      {
-        "row": 0,
-        "col": 2,
-        "diff": 0.165
-      },
-      {
-        "row": 0,
-        "col": 1,
-        "diff": 0.154
-      },
-      {
-        "row": 1,
-        "col": 1,
-        "diff": 0.15
-      },
-      {
-        "row": 1,
-        "col": 4,
-        "diff": 0.117
+        "diff": 0.111
       },
       {
         "row": 5,
         "col": 1,
-        "diff": 0.11
+        "diff": 0.092
+      },
+      {
+        "row": 1,
+        "col": 4,
+        "diff": 0.09
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "diff": 0.07
+      },
+      {
+        "row": 6,
+        "col": 1,
+        "diff": 0.07
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "diff": 0.065
       }
     ],
-    "at": "2026-11-04T03:43:00.322Z"
+    "at": "2026-11-04T04:53:24.532Z"
   },
   "tracker-desktop": {
     "sketch": "tracker-options.html",
     "app": "/app/auto-apply",
-    "similarity": 0.9458,
+    "similarity": 0.9565,
     "worstRegions": [
       {
         "row": 4,
         "col": 6,
-        "diff": 0.216
+        "diff": 0.181
+      },
+      {
+        "row": 4,
+        "col": 0,
+        "diff": 0.171
       },
       {
         "row": 6,
         "col": 6,
-        "diff": 0.192
-      },
-      {
-        "row": 4,
-        "col": 0,
-        "diff": 0.17
+        "diff": 0.16
       },
       {
         "row": 4,
         "col": 7,
-        "diff": 0.169
+        "diff": 0.142
       },
       {
-        "row": 1,
+        "row": 5,
         "col": 0,
-        "diff": 0.149
+        "diff": 0.131
       },
       {
-        "row": 1,
+        "row": 7,
+        "col": 0,
+        "diff": 0.122
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T04:54:19.042Z"
+  },
+  "tracker-phone": {
+    "sketch": "tracker-options.html",
+    "app": "/app/auto-apply",
+    "similarity": 0.9111,
+    "worstRegions": [
+      {
+        "row": 5,
+        "col": 1,
+        "diff": 0.314
+      },
+      {
+        "row": 7,
+        "col": 1,
+        "diff": 0.273
+      },
+      {
+        "row": 3,
+        "col": 0,
+        "diff": 0.242
+      },
+      {
+        "row": 6,
+        "col": 1,
+        "diff": 0.24
+      },
+      {
+        "row": 4,
+        "col": 1,
+        "diff": 0.235
+      },
+      {
+        "row": 5,
+        "col": 2,
+        "diff": 0.19
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T04:54:25.209Z"
+  },
+  "tracker-open-desktop": {
+    "sketch": "tracker-options.html",
+    "app": "/app/auto-apply",
+    "similarity": 0.9473,
+    "worstRegions": [
+      {
+        "row": 7,
+        "col": 0,
+        "diff": 0.388
+      },
+      {
+        "row": 4,
+        "col": 6,
+        "diff": 0.181
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "diff": 0.171
+      },
+      {
+        "row": 6,
+        "col": 1,
+        "diff": 0.166
+      },
+      {
+        "row": 6,
+        "col": 6,
+        "diff": 0.16
+      },
+      {
+        "row": 5,
         "col": 1,
         "diff": 0.145
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T03:53:08.525Z"
-  },
-  "tracker-phone": {
-    "sketch": "tracker-options.html",
-    "app": "/app/auto-apply",
-    "similarity": 0.9244,
-    "worstRegions": [
-      {
-        "row": 7,
-        "col": 1,
-        "diff": 0.237
-      },
-      {
-        "row": 0,
-        "col": 1,
-        "diff": 0.229
-      },
-      {
-        "row": 1,
-        "col": 3,
-        "diff": 0.222
-      },
-      {
-        "row": 1,
-        "col": 1,
-        "diff": 0.217
-      },
-      {
-        "row": 6,
-        "col": 1,
-        "diff": 0.199
-      },
-      {
-        "row": 1,
-        "col": 2,
-        "diff": 0.166
-      }
-    ],
-    "appErrors": [],
-    "at": "2026-11-04T03:53:14.536Z"
-  },
-  "tracker-open-desktop": {
-    "sketch": "tracker-options.html",
-    "app": "/app/auto-apply",
-    "similarity": 0.933,
-    "worstRegions": [
-      {
-        "row": 7,
-        "col": 0,
-        "diff": 0.385
-      },
-      {
-        "row": 4,
-        "col": 6,
-        "diff": 0.216
-      },
-      {
-        "row": 5,
-        "col": 1,
-        "diff": 0.195
-      },
-      {
-        "row": 6,
-        "col": 6,
-        "diff": 0.192
-      },
-      {
-        "row": 5,
-        "col": 2,
-        "diff": 0.174
-      },
-      {
-        "row": 4,
-        "col": 7,
-        "diff": 0.169
-      }
-    ],
-    "appErrors": [],
-    "at": "2026-11-04T03:53:22.813Z"
+    "at": "2026-11-04T04:54:33.177Z"
   },
   "tracker-open-phone": {
     "sketch": "tracker-options.html",
     "app": "/app/auto-apply",
-    "similarity": 0.9102,
+    "similarity": 0.888,
     "worstRegions": [
+      {
+        "row": 6,
+        "col": 1,
+        "diff": 0.439
+      },
       {
         "row": 7,
         "col": 1,
-        "diff": 0.36
+        "diff": 0.39
+      },
+      {
+        "row": 6,
+        "col": 2,
+        "diff": 0.367
+      },
+      {
+        "row": 6,
+        "col": 3,
+        "diff": 0.317
+      },
+      {
+        "row": 5,
+        "col": 1,
+        "diff": 0.312
       },
       {
         "row": 7,
         "col": 2,
-        "diff": 0.354
-      },
-      {
-        "row": 7,
-        "col": 3,
-        "diff": 0.351
-      },
-      {
-        "row": 7,
-        "col": 4,
-        "diff": 0.264
-      },
-      {
-        "row": 0,
-        "col": 1,
-        "diff": 0.229
-      },
-      {
-        "row": 1,
-        "col": 3,
-        "diff": 0.222
+        "diff": 0.31
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T03:53:30.390Z"
+    "at": "2026-11-04T04:54:40.375Z"
   },
   "tracker-timeline-desktop": {
     "sketch": "tracker-options.html",
     "app": "/app/auto-apply",
-    "similarity": 0.9391,
+    "similarity": 0.9419,
     "worstRegions": [
       {
         "row": 4,
         "col": 1,
-        "diff": 0.321
+        "diff": 0.325
       },
       {
         "row": 5,
@@ -495,64 +480,64 @@
       {
         "row": 4,
         "col": 0,
-        "diff": 0.199
+        "diff": 0.208
       },
       {
         "row": 4,
         "col": 6,
-        "diff": 0.19
+        "diff": 0.201
       },
       {
         "row": 5,
         "col": 0,
-        "diff": 0.178
+        "diff": 0.184
       },
       {
         "row": 6,
         "col": 6,
-        "diff": 0.169
+        "diff": 0.174
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T03:53:37.772Z"
+    "at": "2026-11-04T04:54:47.514Z"
   },
   "tracker-timeline-phone": {
     "sketch": "tracker-options.html",
     "app": "/app/auto-apply",
-    "similarity": 0.9202,
+    "similarity": 0.8926,
     "worstRegions": [
       {
         "row": 7,
+        "col": 3,
+        "diff": 0.554
+      },
+      {
+        "row": 7,
         "col": 4,
-        "diff": 0.402
+        "diff": 0.449
+      },
+      {
+        "row": 6,
+        "col": 3,
+        "diff": 0.321
       },
       {
         "row": 7,
-        "col": 3,
-        "diff": 0.391
+        "col": 2,
+        "diff": 0.306
       },
       {
-        "row": 7,
-        "col": 5,
-        "diff": 0.231
+        "row": 6,
+        "col": 4,
+        "diff": 0.297
       },
       {
-        "row": 0,
+        "row": 5,
         "col": 1,
-        "diff": 0.229
-      },
-      {
-        "row": 1,
-        "col": 3,
-        "diff": 0.222
-      },
-      {
-        "row": 1,
-        "col": 1,
-        "diff": 0.217
+        "diff": 0.256
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T03:53:44.314Z"
+    "at": "2026-11-04T04:54:53.835Z"
   }
 }
