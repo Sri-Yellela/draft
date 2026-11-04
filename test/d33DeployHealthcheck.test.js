@@ -45,7 +45,9 @@ test("D33: the healthcheck path is a REAL API route, before the SPA catch-all, a
   const catchAll = SERVER.indexOf(`app.get("*"`);
   assert.ok(route > 0, `server.js registers no app.get("${path}") — the healthcheck would hit the SPA`);
   assert.ok(catchAll > route, "the healthcheck route must be registered before the SPA catch-all");
-  const handler = SERVER.slice(route, at(SERVER, "\n", route));
+  // D151 Rule 1 (11-04): the path is now /api/health/ready, a handler of several lines (503 while warming up), so the
+  // handler is read to the next route rather than to the end of its first line.
+  const handler = SERVER.slice(route, at(SERVER, "\napp.", route));
   assert.match(handler, /res\.json\(\{\s*ok\s*:\s*true/, "the healthcheck route must answer JSON { ok: true }");
   // It must not sit behind auth: Railway's probe carries no session.
   assert.doesNotMatch(handler, /requireAuth|requireAdmin/);
