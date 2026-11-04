@@ -99,7 +99,8 @@ test("44p · server.js: the drainer starts after listen; the 10-minute pass runs
   assert.ok(at(s, "startAtlasDrainer(db);", listen) > listen, "startAtlasDrainer inside the listen callback");
   assert.match(s, /tagStaleJobs\(db, \{ limit: 200 \}\)/);
   assert.match(s, /readStaleLevels\(db, \{ limit: 100 \}\)/);
-  assert.match(s, /runJobTagPassSliced\("boot"\);/);
+  // D151 Rule 1 (11-04): the boot's first slice is a warm-up step, after the listener binds.
+  assert.match(s, /BOOT\.add\("job tags \(first slice\)", \(\) => runJobTagPassSliced\("boot"\)\)/);
   assert.match(s, /setInterval\(\(\) => runJobTagPassSliced\("interval"\)/);
 });
 
