@@ -8,6 +8,14 @@
 // With the mode these settings ARE the user's submit in FULL AUTO (D36 amended), so every value is the server's to
 // validate (shared/autoSettings.js, PUT /api/apply/auto-settings — refused whole, never half-stored).
 // A right-edge drawer with a scrim; × and Esc close it; focus moves in and returns to the button that opened it.
+//
+// ⭐ D148 (owner 11-03, settings-declutter.html) RESTYLES IT — the same drawer, the same settings and saves:
+//   the title "Auto-apply" + Close · THE MODE FIRST as two choices (Ask me first · Apply for me — the header's
+//   switch, the same handlers and lock) · then folds, each ONE line showing its current value, ONE open at a time,
+//   opened in place in D145's type (an accent eyebrow + a short headline + its controls) with Done to fold it:
+//     When · How many · Which jobs · Before sending · Tell me · Pausing · Accounts (when there is anything in it) ·
+//     View (D146, when the panel offers it)
+//   and the internal limits off the first screen: "Today: n sent of N · Details".
 import { useEffect, useRef, useState } from "react";
 import { api, authContextQuery } from "../lib/api.js";
 import { Z } from "../styles/zLayers.js";
@@ -29,13 +37,72 @@ const when = (sec) => (sec ? new Date(sec * 1000).toLocaleDateString(undefined, 
 // Esc / the scrim close only after the last change is saved.
 // ⭐ D146: a fourth group, View — the table (default) or The Table's full sheet (spreadsheet, by company, board, funnel),
 // kept here rather than on the first screen. `listView` / `onListView` are the panel's; the setting is not stored.
-export default function AutoSettingsDrawer({ open, onClose, runBar = null, group = null, listView = "table", onListView = null }) {
+const RUN_AT = (t) => { const [h, m] = String(t).split(":").map(Number); return `${h % 12 || 12}${m ? `:${String(m).padStart(2, "0")}` : ""} ${h < 12 ? "AM" : "PM"}`; };
+const listWords = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}` : xs[0] || "");
+/** "America/New_York" → "New York time". */
+export function zoneWords(tz) {
+  const city = String(tz || "").split("/").pop().replace(/_/g, " ");
+  return city ? `${city} time` : "";
+}
+/** ⭐ D148 · each fold's ONE line — its current value, in words. Pure. */
+export function foldValues(s, { notify = null, held = false, accounts = null, listView = "table" } = {}) {
+  if (!s) return {};
+  const times = (s.runTimes || []).map(RUN_AT);
+  const jobs = [];
+  if (s.onlySponsorRecord) jobs.push("sponsors only");
+  if (s.staleReposts != null || s.staleOpenDays != null) jobs.push("skips stale posts");
+  if (s.perCompanyLimit30d != null) jobs.push(`at most ${s.perCompanyLimit30d} per company`);
+  if (Object.keys(s.filters || {}).length) jobs.push("your board filters");
+  const picks = notify?.events?.find(e => e.key === "picks");
+  const ch = picks ? [picks.email && "email", picks.push && "notification"].filter(Boolean) : null;
+  return {
+    when: `${listWords(times)}${times.length ? ", " : ""}${zoneWords(s.timeZone)}`,
+    howmany: `up to ${s.dailyCap} a day`,
+    jobs: jobs.length ? jobs.join(" · ") : "every match",
+    before: [s.showFormBeforeSending ? "show me the form" : "send when I tap Apply", s.agreeToTerms ? "agree to terms for me" : null].filter(Boolean).join(" · "),
+    tell: ch == null ? "set in Account → Notifications" : ch.length ? `by ${ch.join(" and ")}` : "off",
+    pausing: [held ? "paused now" : null, s.pauseCompanyAfterReply ? "pause after an interview" : "keeps going after an interview"].filter(Boolean).join(" · "),
+    accounts: accounts == null ? "" : `${accounts} connected`,
+    view: listView === "sheet" ? "the full sheet" : "the table",
+  };
+}
+
+// A fold: its one line (a button that opens it in place), and — open — the eyebrow, the headline, the controls, Done.
+function Fold({ id, title, value, headline, open, onOpen, onDone, children }) {
+  return (
+    <section className="dh-fold2" data-settings-group={id} data-open={open ? "true" : "false"}>
+      <button type="button" className="dh-fold2__top" aria-expanded={open} aria-controls={`dh-fb-${id}`} onClick={onOpen} data-fold-top={id}>
+        <b>{title}</b><span data-fold-value="">{value}</span>
+      </button>
+      {open && (
+        <div className="dh-fold2__body" id={`dh-fb-${id}`}>
+          <p className="dh-fold2__eyebrow">{title}</p>
+          <h3 className="dh-fold2__h">{headline}</h3>
+          {children}
+          <button type="button" className="dh-btn dh-fold2__done" onClick={onDone} data-fold-done={id}>Done</button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// A105 finding 8 (10-30): every change SAVES — no Save / Cancel. Changes are sent whole after a short pause (a dragged
+// slider is one save, not forty); a value the server refuses puts the last saved settings back and says why. Done / ×
+// / Esc / the scrim close only after the last change is saved.
+// ⭐ D146: View — the table (default) or The Table's full sheet, kept here rather than on the first screen.
+// ⭐ D148: `mode` ({ fullAuto, selectable, reason }), `onAsk` / `onAuto` (the header switch's own handlers), `held` and
+// `onPauseNow` (the timeline's Pause, setStopEverything) — the drawer offers what the header and the timeline offer.
+export default function AutoSettingsDrawer({ open, onClose, runBar = null, group = null, listView = "table", onListView = null,
+                                             mode = null, onAsk = null, onAuto = null, modeBusy = false, held = false, onPauseNow = null }) {
   const [s, setS] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [saved, setSaved] = useState("");
   const [newTime, setNewTime] = useState("");
+  const [fold, setFold] = useState(null);
+  const [notify, setNotify] = useState(null);
+  const [acct, setAcct] = useState(null);   // { connected, anything } — Accounts' own answer
   const panel = useRef(null);
   const timer = useRef(null);
   const pending = useRef(null);
@@ -64,20 +131,21 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
   useEffect(() => {
     if (!open) return undefined;
     let live = true;
-    setMsg(""); setSaved("");
+    setMsg(""); setSaved(""); setFold(group || null);
     api("/api/apply/auto-settings").then(r => { if (live) { lastSaved.current = r.settings; setS(r.settings); } })
       .catch(e => live && setMsg(e.message || "Could not load your settings."));
     api("/api/domain-profiles").then(r => { if (live) setProfiles(Array.isArray(r) ? r : (r?.profiles || [])); }).catch(() => {});
+    api("/api/notify/settings").then(r => { if (live) setNotify(r?.events ? r : null); }).catch(() => {});
     const onKey = (e) => { if (e.key === "Escape") closeRef.current?.(); };
     window.addEventListener("keydown", onKey);
     return () => { live = false; window.removeEventListener("keydown", onKey); };
-  }, [open]);
+  }, [open, group]);
   useEffect(() => {
     if (!open || !s) return;
-    const target = group ? panel.current?.querySelector(`[data-settings-group="${group}"]`) : null;
-    if (target) target.scrollIntoView?.({ block: "start" });
+    const target = fold ? panel.current?.querySelector(`[data-settings-group="${fold}"] .dh-fold2__body`) : null;
+    if (target) target.scrollIntoView?.({ block: "nearest" });
     (target?.querySelector("button, input, select") || panel.current?.querySelector("[data-first]"))?.focus();
-  }, [open, s, group]);
+  }, [open, s, fold]);
   useEffect(() => () => clearTimeout(timer.current), []);
 
   if (!open) return null;
@@ -89,148 +157,121 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
     clearTimeout(timer.current);
     timer.current = setTimeout(flush, SAVE_AFTER_MS);
   };
+  // "Tell me" writes the SAME preference Account → Notifications writes (the "picks" event, per channel).
+  const setPick = async (channel, on) => {
+    try { setNotify(await api("/api/notify/prefs", { method: "PUT", body: JSON.stringify({ event: "picks", channel, on }) })); }
+    catch (e) { setMsg(e.message || "Could not save that."); }
+  };
   const board = lastBoardFilters();
   const boardLine = filterLine(board);
   const caps = Array.isArray(runBar?.caps) ? runBar.caps : [];
-  const stale = s && (s.staleReposts != null || s.staleOpenDays != null);
+  const sent = caps.find(c => c.id === "submission");
+  const stale = !!s && (s.staleReposts != null || s.staleOpenDays != null);
+  const v = foldValues(s, { notify, held, accounts: acct?.connected ?? null, listView });
+  const fp = (id) => ({ open: fold === id, onOpen: () => setFold(f => (f === id ? null : id)), onDone: () => setFold(null) });
+  const picks = notify?.events?.find(e => e.key === "picks") || null;
+  const sw = (checked, onChange, extra = {}) => (
+    <input type="checkbox" role="switch" checked={!!checked} aria-checked={!!checked} onChange={onChange} {...extra} />
+  );
+  const times = s?.runTimes?.length || 0;
 
   return (
     <>
       <div className="dh-scrim" style={{ zIndex: Z.MODAL_SCRIM }} onClick={close} aria-hidden="true" />
-      <aside className="dh-drawer" style={{ zIndex: Z.MODAL }} role="dialog" aria-modal="true" aria-labelledby="dh-settings-title" ref={panel}
+      <aside className="dh-drawer dh-drawer--d148" style={{ zIndex: Z.MODAL }} role="dialog" aria-modal="true" aria-labelledby="dh-settings-title" ref={panel}
         data-auto-settings="" data-settings-drawer="">
         <header className="dh-drawer__head">
-          <h2 id="dh-settings-title">Settings</h2>
-          <button type="button" className="dh-btn" onClick={close} aria-label="Close">✕</button>
+          <h2 id="dh-settings-title">Auto-apply</h2>
+          <button type="button" className="dh-btn" onClick={close} data-first="" data-settings-close="">Close</button>
         </header>
         {!s ? <p className="dh-drawer__msg" role="status">{msg || "Loading…"}</p> : (
           <div className="dh-drawer__body">
-            {/* ── 1 · WHEN AND HOW MUCH ── */}
-            <section className="dh-group" data-settings-group="when" aria-labelledby="dh-g-when">
-              <h3 id="dh-g-when" className="dh-group__h">When and how much</h3>
-              <div className="dh-set">
-                <label htmlFor="dh-cap">Applications a day, at most · <b>{s.dailyCap}</b></label>
-                <input id="dh-cap" type="range" min={CAP_MIN} max={CAP_MAX} value={s.dailyCap} data-first=""
-                  onChange={(e) => set({ dailyCap: Number(e.target.value) })} />
-                <span className="dh-set__hint">The {s.dailyCap + 1}th waits for tomorrow, in your time zone.</span>
-                {caps.length > 0 && (
-                  <span className="dh-set__hint" data-caps-used="">Last {runBar?.windowHours ?? 24} h: {caps.map(c => `${c.label} ${capUsage(c) ?? "—"}`).join(" · ")}</span>
+            {/* ── THE MODE, FIRST — two plain choices; the header switch's own handlers and its lock ── */}
+            {mode && (
+              <div className="dh-mode2" role="group" aria-label="Mode" data-settings-mode="">
+                <button type="button" data-mode="ask" aria-pressed={!mode.fullAuto} disabled={modeBusy || !onAsk}
+                  onClick={() => { if (mode.fullAuto) onAsk?.(); }}>
+                  <b>Ask me first</b><span>nothing is sent until you approve</span>
+                </button>
+                <button type="button" data-mode="auto" aria-pressed={!!mode.fullAuto} data-locked={mode.selectable ? "false" : "true"}
+                  disabled={modeBusy || !mode.selectable || !onAuto} onClick={mode.selectable ? () => { if (!mode.fullAuto) onAuto?.(); } : undefined}>
+                  <b>Apply for me</b><span>{mode.selectable ? "good matches are sent on their own" : `locked: ${mode.reason}`}</span>
+                </button>
+              </div>
+            )}
+
+            <Fold id="when" title="When" value={v.when} {...fp("when")}
+              headline={`draft looks for new jobs ${times === 1 ? "once" : times === 2 ? "twice" : `${times} times`} a day`}>
+              <div className="dh-times">
+                {s.runTimes.map(t => (
+                  <span key={t} className="dh-time">{RUN_AT(t)}
+                    <button type="button" aria-label={`Remove ${t}`} disabled={s.runTimes.length === 1}
+                      onClick={() => set({ runTimes: s.runTimes.filter(x => x !== t) })}>✕</button>
+                  </span>
+                ))}
+                {s.runTimes.length < MAX_TIMES && (
+                  <span className="dh-time" data-add-time="">
+                    <input type="time" aria-label="A run time to add" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
+                    <button type="button" aria-label="Add this time" disabled={!newTime || s.runTimes.includes(newTime)}
+                      onClick={() => { set({ runTimes: [...s.runTimes, newTime].sort() }); setNewTime(""); }}>Add a time</button>
+                  </span>
                 )}
               </div>
+              <p className="dh-set__hint">In {zoneWords(s.timeZone)} ({s.timeZone}). Each time, it only looks at jobs posted since the last.</p>
+            </Fold>
 
-              <div className="dh-set">
-                <span className="dh-set__lab">When to look for new jobs · {s.timeZone}</span>
-                <div className="dh-times">
-                  {s.runTimes.map(t => (
-                    <span key={t} className="dh-time">{t}
-                      <button type="button" aria-label={`Remove ${t}`} disabled={s.runTimes.length === 1}
-                        onClick={() => set({ runTimes: s.runTimes.filter(x => x !== t) })}>✕</button>
-                    </span>
-                  ))}
-                  {s.runTimes.length < MAX_TIMES && (
-                    <span className="dh-time" data-add-time="">
-                      <input type="time" aria-label="A run time to add" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
-                      <button type="button" aria-label="Add this time" disabled={!newTime || s.runTimes.includes(newTime)}
-                        onClick={() => { set({ runTimes: [...s.runTimes, newTime].sort() }); setNewTime(""); }}>+ Add</button>
-                    </span>
-                  )}
-                </div>
-                <span className="dh-set__hint">Each run takes the jobs posted since the last.</span>
+            <Fold id="howmany" title="How many" value={v.howmany} headline="At most this many a day" {...fp("howmany")}>
+              <div className="dh-stepper" data-daily-cap="">
+                <button type="button" aria-label="Fewer" disabled={s.dailyCap <= CAP_MIN} onClick={() => set({ dailyCap: Math.max(CAP_MIN, s.dailyCap - 1) })}>−</button>
+                <b aria-live="polite">{s.dailyCap}</b>
+                <button type="button" aria-label="More" disabled={s.dailyCap >= CAP_MAX} onClick={() => set({ dailyCap: Math.min(CAP_MAX, s.dailyCap + 1) })}>+</button>
               </div>
+              <p className="dh-set__hint">Anything over waits for tomorrow, in your time zone.</p>
+            </Fold>
 
-              <div className="dh-set">
-                <span className="dh-set__lab">Picks arrive by</span>
-                <span className="dh-set__hint">One email and one notification per run, with Apply and Pass on each pick. Turn either off in Account → Notifications.</span>
-              </div>
-
-              {/* What Pause (= Stop everything) does and does NOT do, in text — not only in the button's tooltip. */}
-              <div className="dh-set">
-                <span className="dh-set__lab">Pause</span>
-                <span className="dh-set__hint" data-stop-says="">{STOP_DOES} {STOP_DOES_NOT}</span>
-              </div>
-
-              {/* ⭐ D113 answer (1): off by default — a tap on Apply sends. On, the form waits at Ready for your review. */}
-              {"showFormBeforeSending" in s && (
-                <div className="dh-set" data-show-form-setting="">
-                  <label className="dh-sw">
-                    <input type="checkbox" role="switch" checked={!!s.showFormBeforeSending} aria-checked={!!s.showFormBeforeSending}
-                      onChange={() => set({ showFormBeforeSending: !s.showFormBeforeSending })} />
-                    <span className="dh-set__lab">Show me the form before sending</span>
-                  </label>
-                  <span className="dh-set__hint">{s.showFormBeforeSending
-                    ? "Each filled form waits in Ready for your review until you approve it."
-                    : "Off — a tap on Apply sends it."}</span>
-                </div>
+            <Fold id="jobs" title="Which jobs" value={v.jobs} headline="Only the jobs worth sending" {...fp("jobs")}>
+              {/* ⭐ D121 P3: off by default. On, picks keep only companies whose public LCA record says they sponsor. */}
+              {"onlySponsorRecord" in s && (
+                <label className="dh-sw" data-only-sponsor-setting="">
+                  <span className="dh-sw__t">Only companies with a sponsorship record<small>{s.onlySponsorRecord
+                    ? "certified LCAs in the latest complete fiscal year or the one before — a record, not a promise"
+                    : "off — if you need sponsorship, companies with a record come first"}</small></span>
+                  {sw(s.onlySponsorRecord, () => set({ onlySponsorRecord: !s.onlySponsorRecord }))}
+                </label>
               )}
-            </section>
-
-            {/* ── 2 · WHICH JOBS ── */}
-            <section className="dh-group" data-settings-group="jobs" aria-labelledby="dh-g-jobs">
-              <h3 id="dh-g-jobs" className="dh-group__h">Which jobs</h3>
+              {/* ⭐ D107 P3 · postings that look never-filled — left out of picks, FULL AUTO and Approve all, still on the board. */}
+              <div className="dh-set" data-stale-settings="">
+                <label className="dh-sw">
+                  <span className="dh-sw__t">Skip stale posts<small>{stale ? "they stay on your board; you can still send one yourself" : "off — reposted and long-open jobs are picked like any other"}</small></span>
+                  {sw(stale, () => set(stale ? { staleReposts: null, staleOpenDays: null } : { staleReposts: 3, staleOpenDays: 90 }))}
+                </label>
+                {stale && (
+                  <label className="dh-set__hint">Reposted{" "}
+                    <input type="number" min={1} max={20} value={s.staleReposts ?? 3} aria-label="Reposts before a posting is skipped"
+                      onChange={(e) => set({ staleReposts: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })} />
+                    {" "}times or more, or open more than{" "}
+                    <input type="number" min={14} max={365} value={s.staleOpenDays ?? 90} aria-label="Days open before a posting is skipped"
+                      onChange={(e) => set({ staleOpenDays: Math.max(14, Math.min(365, Number(e.target.value) || 14)) })} />
+                    {" "}days.</label>
+                )}
+              </div>
               <div className="dh-set">
-                <button type="button" className="dh-btn" disabled={!boardLine}
-                  onClick={() => set({ filters: board })}>Start from my board filters</button>
+                <button type="button" className="dh-btn" disabled={!boardLine} onClick={() => set({ filters: board })}>Use my board filters</button>
                 <span className="dh-set__hint">{Object.keys(s.filters || {}).length ? `Now: ${filterLine(s.filters)}`
                   : boardLine ? `Your board: ${boardLine}` : "Open the board and filter it first — its filters start here."}</span>
               </div>
-              {/* ⭐ D121 P3: off by default. On, picks keep only companies whose public LCA record says they sponsor. */}
-              {"onlySponsorRecord" in s && (
-                <div className="dh-set" data-only-sponsor-setting="">
-                  <label className="dh-sw">
-                    <input type="checkbox" role="switch" checked={!!s.onlySponsorRecord} aria-checked={!!s.onlySponsorRecord}
-                      onChange={() => set({ onlySponsorRecord: !s.onlySponsorRecord })} />
-                    <span className="dh-set__lab">Only companies with a sponsorship record</span>
-                  </label>
-                  <span className="dh-set__hint">{s.onlySponsorRecord
-                    ? "Picks keep only companies that filed certified LCAs in the latest complete fiscal year or the one before. A record of filings, not a promise."
-                    : "Off — every company can be picked. If you need sponsorship, companies with a record come first."}</span>
-                </div>
-              )}
-
               <div className="dh-set">
                 <label className="dh-sw">
-                  <input type="checkbox" role="switch" checked={s.perCompanyLimit30d != null} aria-checked={s.perCompanyLimit30d != null}
-                    onChange={() => set({ perCompanyLimit30d: s.perCompanyLimit30d == null ? 2 : null })} />
-                  <span className="dh-set__lab">Limit applications per company</span>
+                  <span className="dh-sw__t">Limit applications per company<small>{s.perCompanyLimit30d == null ? "off — no per-company limit" : "in any 30 days"}</small></span>
+                  {sw(s.perCompanyLimit30d != null, () => set({ perCompanyLimit30d: s.perCompanyLimit30d == null ? 2 : null }))}
                 </label>
-                {s.perCompanyLimit30d != null ? (
+                {s.perCompanyLimit30d != null && (
                   <label className="dh-set__hint">At most{" "}
                     <input type="number" min={1} max={20} value={s.perCompanyLimit30d} aria-label="Applications per company"
                       onChange={(e) => set({ perCompanyLimit30d: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })} />
                     {" "}to one company in 30 days.</label>
-                ) : <span className="dh-set__hint">Off — no per-company limit.</span>}
+                )}
               </div>
-
-              <div className="dh-set">
-                <label className="dh-sw">
-                  <input type="checkbox" role="switch" checked={!!s.pauseCompanyAfterReply} aria-checked={!!s.pauseCompanyAfterReply}
-                    onChange={() => set({ pauseCompanyAfterReply: !s.pauseCompanyAfterReply })} />
-                  <span className="dh-set__lab">Skip a company after it interviews me</span>
-                </label>
-                <span className="dh-set__hint">For 60 days after an interview or offer, read from your inbox.</span>
-              </div>
-
-              {/* ⭐ D107 P3 · postings that look never-filled — left out of picks, FULL AUTO and Approve all, still on the board. */}
-              <div className="dh-set" data-stale-settings="">
-                <label className="dh-sw">
-                  <input type="checkbox" role="switch" checked={!!stale} aria-checked={!!stale}
-                    onChange={() => set(stale ? { staleReposts: null, staleOpenDays: null } : { staleReposts: 3, staleOpenDays: 90 })} />
-                  <span className="dh-set__lab">Skip stale or reposted jobs</span>
-                </label>
-                {stale ? (
-                  <>
-                    <label className="dh-set__hint">Reposted{" "}
-                      <input type="number" min={1} max={20} value={s.staleReposts ?? 3} aria-label="Reposts before a posting is skipped"
-                        onChange={(e) => set({ staleReposts: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })} />
-                      {" "}times or more, or open more than{" "}
-                      <input type="number" min={14} max={365} value={s.staleOpenDays ?? 90} aria-label="Days open before a posting is skipped"
-                        onChange={(e) => set({ staleOpenDays: Math.max(14, Math.min(365, Number(e.target.value) || 14)) })} />
-                      {" "}days.</label>
-                    <span className="dh-set__hint">They stay on your board; you can still send one yourself.</span>
-                  </>
-                ) : <span className="dh-set__hint">Off — reposted and long-open jobs are picked like any other.</span>}
-              </div>
-
               <div className="dh-set">
                 <label htmlFor="dh-prof">Job profile</label>
                 <select id="dh-prof" value={s.profileId ?? ""} onChange={(e) => set({ profileId: e.target.value === "" ? null : Number(e.target.value) })}>
@@ -238,48 +279,84 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
                   {profiles.map(p => <option key={p.id} value={p.id}>{p.profile_name || p.name || `Profile ${p.id}`}</option>)}
                 </select>
               </div>
+              <p className="dh-set__hint" data-never-sent="">Never sent automatically: jobs your Application defaults rule out, jobs past the limits,
+                a human check (a CAPTCHA), an eligibility question you have not answered{s.agreeToTerms ? "" : ", a terms box"} — each waits in Needs you.</p>
+            </Fold>
 
-              <div className="dh-set">
-                <span className="dh-set__lab">Never sent automatically</span>
-                <span className="dh-set__hint">Jobs your Application defaults rule out, jobs past the limits above, a human check (a CAPTCHA), an eligibility
-                  question you have not answered{s.agreeToTerms ? "" : ", a terms box"} — each waits in Needs you.</span>
-              </div>
-            </section>
-
-            {/* ── 3 · ACCOUNTS ON JOB SITES (was the Portals drawer, D100) ── */}
-            <section className="dh-group" data-settings-group="accounts" aria-labelledby="dh-g-accounts">
-              <h3 id="dh-g-accounts" className="dh-group__h">Accounts on job sites</h3>
-              <Accounts />
-              <div className="dh-set">
-                <label className="dh-sw">
-                  <input type="checkbox" role="switch" checked={!!s.agreeToTerms} aria-checked={!!s.agreeToTerms} data-agree-to-terms=""
-                    onChange={() => set({ agreeToTerms: !s.agreeToTerms })} />
-                  <span className="dh-set__lab">Agree to a job site's terms for me</span>
+            <Fold id="before" title="Before sending" value={v.before} headline="Check each form yourself?" {...fp("before")}>
+              {/* ⭐ D113 answer (1): off by default — a tap on Apply sends. On, the form waits at Ready for your review. */}
+              {"showFormBeforeSending" in s && (
+                <label className="dh-sw" data-show-form-setting="">
+                  <span className="dh-sw__t">Show me the form before sending<small>{s.showFormBeforeSending
+                    ? "each filled form waits in Ready for your review until you approve it"
+                    : "off — a tap on Apply sends it"}</small></span>
+                  {sw(s.showFormBeforeSending, () => set({ showFormBeforeSending: !s.showFormBeforeSending }))}
                 </label>
-                <span className="dh-set__hint">{s.agreeToTerms
-                  ? "draft ticks a terms, privacy or data-processing box when an application needs it. Never a signature or a statement that your answers are true."
-                  : "Off — a terms box waits for you in Needs you."}</span>
-              </div>
-            </section>
-            {/* ── 4 · VIEW (D146) — how the applications are shown: the table, or the full sheet ── */}
+              )}
+              <label className="dh-sw">
+                <span className="dh-sw__t">Agree to a job site's terms for me<small>{s.agreeToTerms
+                  ? "a terms, privacy or data-processing box — never a signature or a statement that your answers are true"
+                  : "off — a terms box waits for you in Needs you"}</small></span>
+                {sw(s.agreeToTerms, () => set({ agreeToTerms: !s.agreeToTerms }), { "data-agree-to-terms": "" })}
+              </label>
+            </Fold>
+
+            <Fold id="tell" title="Tell me" value={v.tell} headline="How you hear about new picks" {...fp("tell")}>
+              {picks && notify?.email?.offered && (
+                <label className="dh-sw" data-picks-channel="email"><span className="dh-sw__t">Email<small>one per run, with Apply and Pass on each pick</small></span>
+                  {sw(picks.email, () => setPick("email", !picks.email))}</label>
+              )}
+              {picks && notify?.push?.offered && (
+                <label className="dh-sw" data-picks-channel="push"><span className="dh-sw__t">Notification<small>on the browsers you turned notifications on for, in Account → Notifications</small></span>
+                  {sw(picks.push, () => setPick("push", !picks.push))}</label>
+              )}
+              {!picks && <p className="dh-set__hint">One email and one notification per run, with Apply and Pass on each pick. Set them in Account → Notifications.</p>}
+            </Fold>
+
+            <Fold id="pausing" title="Pausing" value={v.pausing} headline="Stop when it matters" {...fp("pausing")}>
+              <label className="dh-sw">
+                <span className="dh-sw__t">Skip a company after it interviews me<small>for 60 days after an interview or offer, read from your inbox</small></span>
+                {sw(s.pauseCompanyAfterReply, () => set({ pauseCompanyAfterReply: !s.pauseCompanyAfterReply }))}
+              </label>
+              {onPauseNow && (
+                <button type="button" className="dh-btn" data-pause-now="" data-held={held ? "true" : "false"} disabled={modeBusy || !runBar}
+                  onClick={() => onPauseNow(!held)}>{held ? "Resume" : "Pause everything now"}</button>
+              )}
+              <p className="dh-set__hint" data-stop-says="">{STOP_DOES} {STOP_DOES_NOT}</p>
+            </Fold>
+
+            {/* ── ACCOUNTS ON JOB SITES (D100) — a fold only when there is anything in it ── */}
+            {acct == null && <Accounts onState={setAcct} probe />}
+            {acct?.anything && (
+              <Fold id="accounts" title="Accounts" value={v.accounts} headline="Job sites draft applies on for you" {...fp("accounts")}>
+                <Accounts onState={setAcct} />
+              </Fold>
+            )}
+
+            {/* ── VIEW (D146) — how the applications are shown: the table, or the full sheet ── */}
             {onListView && (
-              <section className="dh-group" data-settings-group="view" aria-labelledby="dh-g-view">
-                <h3 id="dh-g-view" className="dh-group__h">View</h3>
-                <div className="dh-set" role="radiogroup" aria-labelledby="dh-g-view">
+              <Fold id="view" title="View" value={v.view} headline="How your applications are shown" {...fp("view")}>
+                <div className="dh-set" role="radiogroup" aria-label="View">
                   <label className="dh-sw">
                     <input type="radio" name="dh-list-view" value="table" data-list-view="table" checked={listView === "table"}
                       onChange={() => onListView("table")} />
-                    <span className="dh-set__lab">The table</span>
+                    <span className="dh-sw__t">The table<small>one row per application; a row opens in place</small></span>
                   </label>
-                  <span className="dh-set__hint">One row per application; a row opens in place.</span>
                   <label className="dh-sw">
                     <input type="radio" name="dh-list-view" value="sheet" data-list-view="sheet" checked={listView === "sheet"}
                       onChange={() => onListView("sheet")} />
-                    <span className="dh-set__lab">The full sheet</span>
+                    <span className="dh-sw__t">The full sheet<small>the spreadsheet you can edit, By company, Board and Funnel, Pending, Not applied and the Inbox</small></span>
                   </label>
-                  <span className="dh-set__hint">The spreadsheet you can edit, By company, Board and Funnel, Pending, Not applied and the Inbox.</span>
                 </div>
-              </section>
+              </Fold>
+            )}
+
+            {/* ── THE INTERNAL LIMITS, off the first screen: one quiet line, the rest behind Details ── */}
+            {caps.length > 0 && (
+              <details className="dh-limits" data-caps-used="">
+                <summary>Today: {sent ? `${sent.used} sent of ${Math.min(sent.limit, s.dailyCap)}` : "the limits"} · <span className="dh-limits__more">Details</span></summary>
+                <p className="dh-set__hint" data-caps-detail="">Last {runBar?.windowHours ?? 24} h: {caps.map(c => `${c.label} ${capUsage(c) ?? "—"}`).join(" · ")}</p>
+              </details>
             )}
             {msg && <p className="dh-drawer__msg" role="alert">{msg}</p>}
           </div>
@@ -298,7 +375,9 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
 // stays the user's). Creating an account is offered per portal, with its consent said in full, ONLY when the apply worker is
 // configured (GET /api/portals `worker`) — nothing is offered that nothing can do. Connecting a signed-in session happens
 // from the extension / the Android app (D100 P3), not from this page. Gmail (D112) reads codes and replies.
-function Accounts() {
+// ⭐ D148: `onState` reports { connected, anything } so the drawer can name the fold ("2 connected") and hide it when
+// there is nothing in it; `probe` renders nothing — it only loads and reports while the fold is unmeasured.
+function Accounts({ onState = null, probe = false }) {
   const [d, setD] = useState(null);
   const [g, setG] = useState(null);
   const [msg, setMsg] = useState("");
@@ -316,9 +395,14 @@ function Accounts() {
     catch (e) { setMsg(e.message || "That did not work — nothing changed."); }
     finally { setBusy(null); }
   };
+  const live = (d?.portals || []).filter(p => p.status !== "removed");
+  const accounts = (d?.accounts || []).filter(a => a.status !== "removed");
+  useEffect(() => {
+    if (!d) return;
+    onState?.({ connected: live.length + accounts.length, anything: live.length + accounts.length > 0 || !!d.worker || !!g?.available });
+  }, [d, g]);   // eslint-disable-line react-hooks/exhaustive-deps
+  if (probe) return null;
   if (!d) return <p className="dh-set__hint" role="status" data-portals-drawer="">{msg || "Loading…"}</p>;
-  const live = (d.portals || []).filter(p => p.status !== "removed");
-  const accounts = (d.accounts || []).filter(a => a.status !== "removed");
   const hasAccount = (family) => accounts.some(a => a.portalFamily === family);
   return (
     <div className="dh-accounts" data-portals-drawer="">

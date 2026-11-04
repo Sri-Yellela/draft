@@ -83,7 +83,8 @@ test("⚙ Auto settings: the drawer reads and writes the server's settings, term
   // Any run time, not a fixed list.
   assert.match(drawer, /<input type="time" aria-label="A run time to add"/);
   assert.doesNotMatch(drawer, /SPARE_TIMES/);
-  assert.match(drawer, /checked=\{!!s\.agreeToTerms\}[^>]*data-agree-to-terms=""/);
+  // D148 (11-03): the switch is drawn by the drawer's one `sw` helper — the same value, the same attribute.
+  assert.match(drawer, /\{sw\(s\.agreeToTerms, \(\) => set\(\{ agreeToTerms: !s\.agreeToTerms \}\), \{ "data-agree-to-terms": "" \}\)\}/);
   assert.match(drawer, /a human check \(a CAPTCHA\)/, "the drawer says a human check is never sent automatically");
 });
 
@@ -132,7 +133,8 @@ test("the bar says plainly what Stop does and does NOT do — sent applications 
   assert.match(STOP_DOES_NOT, /already being filled finishes — stop it under Running/);
   // Said on the button (its title) and, in text a phone can read, in Settings.
   assert.match(panel, /title=\{\x60\$\{STOP_DOES\} \$\{STOP_DOES_NOT\}\x60\}/);
-  assert.match(drawer, /data-stop-says="">\{STOP_DOES\} \{STOP_DOES_NOT\}<\/span>/);
+  // D148 (11-03): in the Pausing fold, beside "Pause everything now" — a paragraph now.
+  assert.match(drawer, /data-stop-says="">\{STOP_DOES\} \{STOP_DOES_NOT\}<\/p>/);
   // And the copy matches what the server does: the hold is checked before a run, and between jobs.
   assert.match(route, /if \(userHeld\(db, run\.user_id\)\) \{\s*\n\s*parkRunAtHead\(run,/);
   assert.match(route, /if \(userHeld\(db, run\.user_id\)\) \{ heldMidRun = true; break; \}/);

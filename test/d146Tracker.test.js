@@ -362,7 +362,7 @@ test("d146NothingDropped — every capability in the row's map survives, where t
   check("History → the table", HISTORY.every(h => rows.some(r => r.jobId === h.jobId)) && rows.filter(r => r.jobId === "j-sent").length === 1);
   // Spreadsheet / By company / Board / Funnel → Export and a View option in Settings.
   check("Spreadsheet, By company, Board, Funnel → Settings → View → the full sheet",
-    /data-settings-group="view"/.test(drawer) && /The full sheet/.test(drawer) && /onListView=\{setListView\}/.test(panel)
+    /<Fold id="view"/.test(drawer) && /The full sheet/.test(drawer) && /onListView=\{setListView\}/.test(panel)
     && /listView === "sheet" \? \(/.test(panel) && /\["applications","Spreadsheet"\]/.test(dbPanel)
     && /\["list", "List"\], \["company", "By company"\], \["board", "Board"\], \["funnel", "Funnel"\]/.test(history));
   // Resumes → each row's Résumé pane (+ Profile).

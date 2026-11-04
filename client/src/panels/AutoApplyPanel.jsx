@@ -1163,7 +1163,10 @@ export function AutoApplyPanel({ user = null } = {}) {
         {!mode.selectable && <p className="dh-head__why" id="dh-auto-why" data-auto-locked-reason="">Apply for me is locked: {mode.reason}</p>}
         {holdMsg && <p className="dh-head__why" role="status">{holdMsg}</p>}
       </header>
+      {/* ⭐ D148: the drawer opens with the mode (the header switch's own handlers and lock) and Pause everything now. */}
       <AutoSettingsDrawer open={settingsOpen} runBar={runBar} group={settingsGroup} listView={listView} onListView={setListView}
+        mode={{ fullAuto, selectable: mode.selectable, reason: mode.reason }} onAsk={runBar ? chooseAsk : null}
+        onAuto={mode.selectable ? () => setApplyMode?.("auto") : null} modeBusy={holdBusy} held={held} onPauseNow={setStopEverything}
         onClose={() => { setSettingsOpen(false); settingsOpener.current?.focus?.(); }} />
       {exporting && (
         <div className="dht-acts" data-export="" role="group" aria-label="Export">

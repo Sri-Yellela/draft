@@ -41,8 +41,9 @@ test("D100 · GET /api/portals says whether the apply worker is configured", asy
 test("D100 · Accounts on job sites (the Settings drawer): Remove for each, consent said in full, create offered only with a worker", () => {
   const ui = fs.readFileSync("client/src/components/AutoSettingsDrawer.jsx", "utf8");
   const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
-  assert.match(ui, /data-settings-group="accounts"/);
-  assert.match(ui, /<Accounts \/>/);
+  // D148 (11-03): Accounts is a fold of the drawer (data-settings-group from Fold's id), drawn when there is anything in it.
+  assert.match(ui, /<Fold id="accounts" title="Accounts"/);
+  assert.match(ui, /<Accounts onState=\{setAcct\} \/>/);
   assert.match(panel, /<AutoSettingsDrawer open=\{settingsOpen\}/);
   assert.match(ui, /api\(`\/api\/portals\/\$\{p\.id\}`, \{ method: "DELETE" \}\)/);
   assert.match(ui, /api\(`\/api\/portals\/accounts\/\$\{a\.id\}`, \{ method: "DELETE" \}\)/);
