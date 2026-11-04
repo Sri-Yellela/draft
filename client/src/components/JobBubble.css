@@ -165,7 +165,7 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
 .jb__meta { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; white-space: normal; overflow: visible; line-height: 1.55; }
 .jb__meta i { font-style: normal; font-size: calc(12.5px * var(--type-scale, 1)); color: var(--c-ink-muted); }
 .jb__mt { flex: 0 0 auto; margin-left: auto; text-align: right; }
-.jb__mt b { display: block; font: 500 calc(22px * var(--type-scale, 1))/1 var(--shape-font-ui, var(--font-body)); letter-spacing: -.02em; color: var(--c-accent); }
+.jb__mt b { display: block; font: 500 calc(22px * var(--type-scale, 1))/1 var(--shape-font-ui, var(--font-body)); letter-spacing: -.02em; color: var(--c-accent-ink); }
 .jb__mt span { display: block; font-size: calc(12px * var(--type-scale, 1)); line-height: 1.55; color: var(--c-ink-faint); }
 .jb__ready { margin-top: 4px; }
 @media (max-width: 640px) {
