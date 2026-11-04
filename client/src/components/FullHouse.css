@@ -253,17 +253,17 @@
  * the search under it (the sticky bar, now the search alone) · the minimal counts · the postings.
  * ⛔ D34 still holds: the sentence's type is set by OVERRIDING its tokens on .fh[data-fh-d147]; no token rule names a font. */
 .fh[data-fh-d147] {
-  --fh-sentence-family: var(--font-display); --fh-sentence-size: min(30px, 7vw); --fh-sentence-line: 1.35;
+  --fh-sentence-family: var(--font-display); --fh-sentence-size: calc(min(30px, 7vw) * var(--type-scale, 1)); --fh-sentence-line: 1.35;
   --fh-sentence-weight: 400; --fh-sentence-style: normal;
 }
 .fh-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; }
-.fh-title__h { margin: 0; font: 400 min(44px, 10vw)/1 var(--font-display); color: var(--c-ink); letter-spacing: -.01em; }
+.fh-title__h { margin: 0; font: 400 calc(min(44px, 10vw) * var(--type-scale, 1))/1 var(--font-display); color: var(--c-ink); letter-spacing: -.01em; }
 .fh[data-fh-d147] .bh { letter-spacing: 0; max-width: 32ch; }
 /* The Sort / view word: the ⇅ glyph and the words, a quiet box (D60: never a capsule). */
 .fh-sortw {
   display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; cursor: pointer;
   border: 1px solid var(--c-fh-line); border-radius: var(--shape-radius-control, 12px);
-  background: var(--c-fh-surface); color: var(--c-ink-muted); font: 600 14px/1.1 var(--font-body);
+  background: var(--c-fh-surface); color: var(--c-ink-muted); font: 600 calc(14px * var(--type-scale, 1))/1.1 var(--font-body);
   transition: color .16s, border-color .16s, background .16s;
 }
 .fh-sortw svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
@@ -273,14 +273,14 @@
 /* The views inside the sort panel, as words. */
 .fh-show { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--c-fh-line); display: flex; flex-direction: column; gap: 8px; }
 .fh-show .fh-views { padding: 0; margin: 0; border-right: 0; flex-wrap: wrap; gap: 6px; }
-.fh-show .fh-views button { font: 600 13px/1 var(--font-body); padding: 8px 12px; border: 1px solid var(--c-fh-line); background: var(--c-fh-well); }
-.fh-show .fh-views .fh-ct { font-size: 11px; }
+.fh-show .fh-views button { font: 600 calc(13px * var(--type-scale, 1))/1 var(--font-body); padding: 8px 12px; border: 1px solid var(--c-fh-line); background: var(--c-fh-well); }
+.fh-show .fh-views .fh-ct { font-size: calc(11px * var(--type-scale, 1)); }
 /* The bar is the search alone. */
 .fh--bar-row .fh-bar { margin-top: 4px; }
 /* The minimal counts. */
 .fh.fh-counts { display: flex; gap: 28px; flex-wrap: wrap; padding-top: 10px; padding-bottom: 14px; }
-.fh-count b { display: block; font: 500 28px/1.1 var(--font-body); letter-spacing: -.03em; color: var(--c-ink); }
-.fh-count span { display: block; font-size: 13px; color: var(--c-ink-faint); }
+.fh-count b { display: block; font: 500 calc(28px * var(--type-scale, 1))/1.1 var(--font-body); letter-spacing: -.03em; color: var(--c-ink); }
+.fh-count span { display: block; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-faint); }
 .fh-count--hot b { color: var(--c-accent-ink); }
-@media (max-width: 600px) { .fh.fh-counts { gap: 18px; padding-top: 6px; } .fh-count b { font-size: 24px; } }
+@media (max-width: 600px) { .fh.fh-counts { gap: 18px; padding-top: 6px; } .fh-count b { font-size: calc(24px * var(--type-scale, 1)); } }
 @media (prefers-reduced-motion: reduce) { .fh-sortw { transition: none; } }

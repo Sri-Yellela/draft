@@ -46,7 +46,7 @@
 .trk-o { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
 .trk-o__head { display: flex; align-items: center; gap: 10px; }
 .trk-o__eyebrow { margin: 0; color: var(--c-accent-ink); font-size: calc(14px * var(--type-scale, 1)); }
-.trk-o__x { margin-left: auto; border: 0; background: transparent; color: var(--c-ink-muted); font-size: 22px; line-height: 1; cursor: pointer; }
+.trk-o__x { margin-left: auto; border: 0; background: transparent; color: var(--c-ink-muted); font-size: calc(22px * var(--type-scale, 1)); line-height: 1; cursor: pointer; }
 .trk-o__headline {
   margin: 0; color: var(--c-ink); font-family: var(--shape-font-ui, 'DM Sans', system-ui, sans-serif);
   font-size: calc(46px * var(--type-scale, 1)); font-weight: 500; line-height: 1.03; letter-spacing: -0.035em; max-width: 24ch;
