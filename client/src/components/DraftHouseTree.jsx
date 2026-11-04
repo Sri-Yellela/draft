@@ -1,6 +1,7 @@
 import "./DraftHouse.css";
 import CompanyBubble from "./CompanyBubble.jsx";
 import { ringLabelOf } from "../lib/draftHouseTree.js";
+import { ringVar } from "../styles/rings.js";
 
 // ============================================================
 // DraftHouseTree — THE AUTO-APPLY TIMELINE, a card beside the table (D113's runs, restyled by D146; owner 11-03:
@@ -18,6 +19,8 @@ import { ringLabelOf } from "../lib/draftHouseTree.js";
 
 /** The one quiet line of key: which bubbles pulse, which are still. */
 export const TIMELINE_KEY = "Pulsing: needs you · ready · working. Still: sent · replied · stopped.";
+/** The sketch's key, drawn: one dot per stage a bubble's ring can say (tracker-options.html). */
+const KEY_RINGS = [["need", "needs you"], ["review", "ready"], ["work", "working"], ["sent", "sent"], ["reply", "replied"]];
 
 export default function DraftHouseTree({ view = [], open = null, head = null, onOpen, onBubble, renderRunBranch,
   nextLine = "Next look.", empty = null, footer = null }) {
@@ -35,24 +38,32 @@ export default function DraftHouseTree({ view = [], open = null, head = null, on
             <div key={run.key} className="dht-runwrap" data-run={run.key} data-future={run.future ? "true" : undefined}>
               {day && <div className="dht-day">{day}</div>}
               {hasNext && i === 1 && <div className="dht-now" aria-hidden="true"><span>Now</span></div>}
+              {/* D149 (11-03) · the sketch's .run: the time (54 px) · the line with its 9 px square (14 px) · the words
+                  and the bubbles. The square is still the run's button; "why these" too. */}
               <div className="dht-run">
                 <span className="dht-time">{run.time}</span>
-                {run.real ? (
-                  <button type="button" className="dht-sq" data-open={runOpen ? "true" : undefined} aria-expanded={runOpen}
-                    aria-label={`Run, ${run.day} ${run.time}`} onClick={() => onOpen?.({ type: "run", key: run.key })} />
-                ) : <span className={run.future ? "dht-sq dht-sq--next" : "dht-sq dht-sq--day"} aria-hidden="true" />}
+                <span className="dht-ln">
+                  {run.real ? (
+                    <button type="button" className="dht-sq" data-open={runOpen ? "true" : undefined} aria-expanded={runOpen}
+                      aria-label={`Run, ${run.day} ${run.time}`} onClick={() => onOpen?.({ type: "run", key: run.key })} />
+                  ) : <span className={run.future ? "dht-sq dht-sq--next" : "dht-sq dht-sq--day"} aria-hidden="true" />}
+                </span>
                 <div className="dht-body">
-                  {run.future ? <span className="dht-meta" data-next-run="">{nextLine}</span>
+                  {run.future ? <p className="dht-meta" data-next-run="">{nextLine}</p>
                     : run.real ? (
-                      <span className="dht-meta" data-run-meta="">{run.seen} looked at · {run.picked} picked ·{" "}
-                        <button type="button" onClick={() => onOpen?.({ type: "run", key: run.key })}>{runOpen ? "hide" : "why these"}</button>
-                      </span>
-                    ) : <span className="dht-meta">{run.nodes.length} drafted by you</span>}
-                  {items.map(({ node }) => (
-                    <CompanyBubble key={node.key} company={node.company} ring={node.ring} size="sm"
-                      dataKey={node.key} vtTitle={node.jobId} label={`${node.company}, ${node.title || "a job"}, ${ringLabelOf(node)}`}
-                      onClick={() => onBubble?.(node)} />
-                  ))}
+                      <p className="dht-meta" data-run-meta="">{run.seen} looked at · {run.picked} picked
+                        {(run.seen > 0 || run.picked > 0 || runOpen) && <>{" · "}<button type="button" onClick={() => onOpen?.({ type: "run", key: run.key })}>{runOpen ? "hide" : "why these"}</button></>}
+                      </p>
+                    ) : <p className="dht-meta">{run.nodes.length} drafted by you</p>}
+                  {items.length > 0 && (
+                    <div className="dht-bubs">
+                      {items.map(({ node }) => (
+                        <CompanyBubble key={node.key} company={node.company} ring={node.ring} size="tl"
+                          dataKey={node.key} vtTitle={node.jobId} label={`${node.company}, ${node.title || "a job"}, ${ringLabelOf(node)}`}
+                          onClick={() => onBubble?.(node)} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               {runOpen && renderRunBranch?.(run)}
@@ -61,7 +72,12 @@ export default function DraftHouseTree({ view = [], open = null, head = null, on
         })}
         {empty}
       </div>
-      <p className="dht-legend" data-timeline-key="">{TIMELINE_KEY}</p>
+      {/* D149 (11-03) · the sketch's .key: a dot per live and finished stage; what pulses is said to a screen reader. */}
+      <p className="dht-legend" data-timeline-key="" aria-label={TIMELINE_KEY} title={TIMELINE_KEY}>
+        {KEY_RINGS.map(([ring, word]) => (
+          <span key={ring} aria-hidden="true" style={{ "--dht-k": ringVar(ring) }}>{word}</span>
+        ))}
+      </p>
       {footer}
     </section>
   );

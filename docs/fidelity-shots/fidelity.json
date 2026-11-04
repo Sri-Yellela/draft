@@ -320,5 +320,239 @@
       }
     ],
     "at": "2026-11-04T03:43:00.322Z"
+  },
+  "tracker-desktop": {
+    "sketch": "tracker-options.html",
+    "app": "/app/auto-apply",
+    "similarity": 0.9458,
+    "worstRegions": [
+      {
+        "row": 4,
+        "col": 6,
+        "diff": 0.216
+      },
+      {
+        "row": 6,
+        "col": 6,
+        "diff": 0.192
+      },
+      {
+        "row": 4,
+        "col": 0,
+        "diff": 0.17
+      },
+      {
+        "row": 4,
+        "col": 7,
+        "diff": 0.169
+      },
+      {
+        "row": 1,
+        "col": 0,
+        "diff": 0.149
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "diff": 0.145
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T03:53:08.525Z"
+  },
+  "tracker-phone": {
+    "sketch": "tracker-options.html",
+    "app": "/app/auto-apply",
+    "similarity": 0.9244,
+    "worstRegions": [
+      {
+        "row": 7,
+        "col": 1,
+        "diff": 0.237
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "diff": 0.229
+      },
+      {
+        "row": 1,
+        "col": 3,
+        "diff": 0.222
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "diff": 0.217
+      },
+      {
+        "row": 6,
+        "col": 1,
+        "diff": 0.199
+      },
+      {
+        "row": 1,
+        "col": 2,
+        "diff": 0.166
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T03:53:14.536Z"
+  },
+  "tracker-open-desktop": {
+    "sketch": "tracker-options.html",
+    "app": "/app/auto-apply",
+    "similarity": 0.933,
+    "worstRegions": [
+      {
+        "row": 7,
+        "col": 0,
+        "diff": 0.385
+      },
+      {
+        "row": 4,
+        "col": 6,
+        "diff": 0.216
+      },
+      {
+        "row": 5,
+        "col": 1,
+        "diff": 0.195
+      },
+      {
+        "row": 6,
+        "col": 6,
+        "diff": 0.192
+      },
+      {
+        "row": 5,
+        "col": 2,
+        "diff": 0.174
+      },
+      {
+        "row": 4,
+        "col": 7,
+        "diff": 0.169
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T03:53:22.813Z"
+  },
+  "tracker-open-phone": {
+    "sketch": "tracker-options.html",
+    "app": "/app/auto-apply",
+    "similarity": 0.9102,
+    "worstRegions": [
+      {
+        "row": 7,
+        "col": 1,
+        "diff": 0.36
+      },
+      {
+        "row": 7,
+        "col": 2,
+        "diff": 0.354
+      },
+      {
+        "row": 7,
+        "col": 3,
+        "diff": 0.351
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "diff": 0.264
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "diff": 0.229
+      },
+      {
+        "row": 1,
+        "col": 3,
+        "diff": 0.222
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T03:53:30.390Z"
+  },
+  "tracker-timeline-desktop": {
+    "sketch": "tracker-options.html",
+    "app": "/app/auto-apply",
+    "similarity": 0.9391,
+    "worstRegions": [
+      {
+        "row": 4,
+        "col": 1,
+        "diff": 0.321
+      },
+      {
+        "row": 5,
+        "col": 1,
+        "diff": 0.223
+      },
+      {
+        "row": 4,
+        "col": 0,
+        "diff": 0.199
+      },
+      {
+        "row": 4,
+        "col": 6,
+        "diff": 0.19
+      },
+      {
+        "row": 5,
+        "col": 0,
+        "diff": 0.178
+      },
+      {
+        "row": 6,
+        "col": 6,
+        "diff": 0.169
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T03:53:37.772Z"
+  },
+  "tracker-timeline-phone": {
+    "sketch": "tracker-options.html",
+    "app": "/app/auto-apply",
+    "similarity": 0.9202,
+    "worstRegions": [
+      {
+        "row": 7,
+        "col": 4,
+        "diff": 0.402
+      },
+      {
+        "row": 7,
+        "col": 3,
+        "diff": 0.391
+      },
+      {
+        "row": 7,
+        "col": 5,
+        "diff": 0.231
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "diff": 0.229
+      },
+      {
+        "row": 1,
+        "col": 3,
+        "diff": 0.222
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "diff": 0.217
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T03:53:44.314Z"
   }
 }

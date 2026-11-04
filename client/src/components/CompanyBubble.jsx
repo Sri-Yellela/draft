@@ -17,7 +17,8 @@ import CompanyLogo from "./CompanyLogo.jsx";
 import { RINGS, ringVar } from "../styles/rings.js";
 import "./CompanyBubble.css";
 
-const SIZES = { sm: 28, md: 44 };
+// D149 (11-03): `row` and `tl` are tracker-options.html's two — the table's 36 px logo and the timeline's 30 px bubble.
+const SIZES = { sm: 28, md: 44, row: 36, tl: 30 };
 
 export default function CompanyBubble({ company, iconUrl, ring = null, size = "md", selected = false, dim = false,
                                         label, onClick, expanded, dataKey, title, vtTitle }) {

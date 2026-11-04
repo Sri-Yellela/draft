@@ -3,12 +3,20 @@
  * (--c-*, published from themes/*.js); the bubbles are components/CompanyBubble.css. No pills (D60):
  * rectangles, marks and depth boxes; the trunk's run squares are squares. */
 
-.dh-page { padding: 24px 20px; max-width: 1260px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+/* ⭐ D149 (11-03) · tracker-options.html, layout 1 / layout 3, its values verbatim (the token map is in
+   ApplicationTracker.css's head): the page is the sketch's .wrap3 — 1240 wide, 84 × 20 × 120 — in 16 / 1.55 type. */
+/* The shell already reserves the floating mark's 74 px above (App.jsx, useChromeHeight), so 10 more puts the title at
+   the sketch's 84. The interface face is the theme's (Inter Tight in Dusk) — the shell's inline DM Sans is overridden. */
+.dh-page {
+  padding: 10px 20px 120px; max-width: 1240px; width: 100%; margin: 0 auto; display: flex; flex-direction: column;
+  line-height: 1.55; font-family: var(--shape-font-ui, var(--font-body)); font-size: calc(16px * var(--type-scale, 1));
+}
+.dh-page > .dht-acts, .dh-page > .dh-note, .dh-page > .dh-handoff, .dh-page > .dh-banner { margin-top: 12px; }
 
-/* ── U1 · THE HEADER — one line: the sentence, the two modes, Pause, Settings ─────────────── */
-.dh-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
-.dh-head__text { min-width: 0; flex: 1 1 320px; }
-.dh-head__say { margin: 6px 0 0; font-size: 14px; color: var(--c-ink-muted); }
+/* ── U1 · THE HEADER — the sketch's .ph3: the name and its line; .tools3 to the right, wrapping under on a phone ── */
+.dh-head { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; justify-content: space-between; }
+.dh-head__text { min-width: 0; }
+.dh-head__say { margin: 6px 0 0; font-size: calc(16px * var(--type-scale, 1)); color: var(--c-ink-muted); }
 .dh-head[data-held="true"] .dh-head__say { color: var(--c-ink); font-weight: 700; }
 .dh-head__ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .dh-head__why { flex-basis: 100%; margin: 0; font-size: 11.5px; color: var(--c-ink-muted); }
@@ -22,15 +30,28 @@
 .dh-handoff span { flex: 1; line-height: 1.6; color: var(--c-ink); }
 .dh-handoff button { border: 0; background: transparent; color: var(--c-ink-faint); cursor: pointer; font-size: 16px; line-height: 1; }
 
-.dh-mode { display: inline-flex; gap: 4px; padding: 3px; border-radius: 12px; background: var(--c-hover); }
+/* the sketch's .seg2 — the card colour, 4 px in; the chosen side raised (the mode, and the phone's switch) */
+.dh-mode { display: inline-flex; padding: 4px; border-radius: 14px; background: var(--c-surface-solid); }
 .dh-mode__seg {
-  border: 0; border-radius: 9px; padding: 6px 14px; font: inherit; font-size: 12px; font-weight: 800;
-  letter-spacing: .06em; background: transparent; color: var(--c-ink-muted); cursor: pointer;
-  transition: box-shadow .2s ease, transform .2s ease;
+  border: 0; border-radius: 10px; padding: 8px 14px; font: inherit; line-height: 1.55; font-size: calc(14px * var(--type-scale, 1)); font-weight: 600;
+  background: transparent; color: var(--c-ink-muted); cursor: pointer;
 }
-.dh-mode__seg[aria-pressed="true"] { background: var(--c-surface-solid); color: var(--c-ink); box-shadow: var(--c-depth-rest); }
-.dh-mode__seg:disabled { cursor: not-allowed; color: var(--c-ink-faint); }
-.dh-mode__seg:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.dh-mode__seg[aria-pressed="true"] { background: var(--c-fh-well); color: var(--c-ink); }
+.dh-mode__seg:disabled:not([aria-pressed="true"]) { cursor: not-allowed; }
+.dh-mode__seg:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
+/* the sketch's .quiet (Settings · Import · Export) and its `.btn.p` at 10 × 16 (Send all ready) */
+.dh-head__ctl { gap: 8px; }
+.dh-quiet {
+  border: 0; border-radius: 12px; padding: 9px 14px; background: var(--c-surface-solid); color: var(--c-ink-muted); cursor: pointer;
+  font: inherit; line-height: 1.55; font-size: calc(14px * var(--type-scale, 1)); font-weight: 600;
+}
+.dh-quiet:hover, .dh-quiet[aria-pressed="true"] { color: var(--c-ink); }
+.dh-send {
+  border: 0; border-radius: 16px; padding: 10px 16px; cursor: pointer; font: inherit; line-height: 1.55; font-size: calc(15.5px * var(--type-scale, 1)); font-weight: 600;
+  background: linear-gradient(180deg, var(--c-accent), var(--c-accent-hover)); color: var(--c-on-accent); box-shadow: var(--c-depth-accent);
+}
+.dh-send:disabled { cursor: default; }
+.dh-quiet:focus-visible, .dh-send:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
 .dh-mode__why { margin: 0; font-size: 11.5px; color: var(--c-ink-muted); max-width: 30ch; }
 
 .dh-btn {
@@ -48,20 +69,24 @@
 .dh-fold__quiet { margin: 0; font-size: 12px; color: var(--c-ink-faint); }
 
 /* ── ⭐ D146 · THE MAIN GRID — the table, and the auto-apply timeline card beside it at 300 px ───── */
-.dh-main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.dh-main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
 .dh-main[data-detail="true"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
 .dh-table-col { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.dh-table-col > #trial-demo-slot:empty { display: none; }
 .dh-detail { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; position: sticky; top: 8px; }
 .dh-switch { display: none; }
+/* D149 (11-03): a broken connection is one line on the card colour — no border, no coloured edge (no card borders). */
 .dh-banner {
-  display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 10px 14px; border-radius: var(--shape-radius-control, 16px);
-  border: 1px solid var(--c-border); border-left: 3px solid var(--c-danger); background: var(--c-surface-solid); font-size: 13px; color: var(--c-ink);
+  display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 12px 18px; border-radius: 16px;
+  background: var(--c-surface-solid); font-size: calc(14px * var(--type-scale, 1)); color: var(--c-ink);
 }
+.dh-banner b { font-weight: 600; }
 .dh-banner span { color: var(--c-ink-muted); }
+.dh-banner .dh-btn { margin-left: auto; }
 /* phones: ONE column and a switch — Applications · Auto-apply timeline (D146 layout 3). */
 @media (max-width: 899px) {
   .dh-main, .dh-main[data-detail="true"] { grid-template-columns: minmax(0, 1fr); }
-  .dh-switch { display: inline-flex; align-self: flex-start; }
+  .dh-switch { display: inline-flex; align-self: flex-start; margin-bottom: 14px; }
   .dh-main[data-phone-view="table"] > .dht, .dh-main[data-phone-view="timeline"] > .dh-table-col { display: none; }
   .dht { position: static; }
   .dh-main > .dh-detail { order: -1; }
@@ -70,41 +95,56 @@
 }
 
 /* ── THE TIMELINE CARD (D113's runs, restyled) ──────────────────────────────────────────────── */
+/* ⭐ D149 (11-03) · the sketch's .tl: the card colour, radius 22, padding 18, no border or shadow; "Auto-apply" 15 / 600
+   over the mode and run times (13, grey); the day 12 uppercase; each .run the time · the line + its 9 px square · the
+   words (13.5, body grey; "why these" in the accent) and the 30 px bubbles; the key a dot per stage. */
 .dht {
-  min-width: 0; display: flex; flex-direction: column; position: sticky; top: 8px;
-  border-radius: var(--shape-radius-card, 22px); background: var(--c-surface-solid); box-shadow: var(--c-depth-rest); overflow: clip;
+  min-width: 0; display: flex; flex-direction: column; position: sticky; top: 8px; padding: 18px;
+  border-radius: 22px; background: var(--c-surface-solid);
 }
-.dht-head { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 12px; border-bottom: 1px solid var(--c-border); }
-.dht-head__t { margin: 0; font-size: calc(14px * var(--type-scale, 1)); color: var(--c-accent-ink); }
-.dht-head__say { margin: 0; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-muted); }
-.dht-head[data-held="true"] .dht-head__say { color: var(--c-ink); font-weight: 700; }
-.dht-sq:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.dht-head { display: flex; flex-direction: column; margin-bottom: 14px; }
+.dht-head__t { margin: 0 0 2px; font: 600 calc(15px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body)); color: var(--c-ink); }
+.dht-head__sub { margin: 0; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-faint); }
+.dht-head__top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.dht-head__say { margin: 8px 0 0; font-size: calc(13.5px * var(--type-scale, 1)); color: var(--c-ink); font-weight: 600; }
+.dht-link { border: 0; padding: 0; background: none; font: inherit; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-faint); cursor: pointer; }
+.dht-link:hover, .dht-head[data-held="true"] .dht-link { color: var(--c-accent); }
+.dht-link:disabled { opacity: .55; cursor: default; }
+.dht-sq:focus-visible, .dht-link:focus-visible, .dht-meta button:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
 
-.dht-trunk { position: relative; padding: 4px 0 16px; }
-.dht-trunk::before { content: ""; position: absolute; left: 55px; top: 0; bottom: 0; border-left: 2px solid var(--c-border); }
-.dht-day {
-  padding: 5px 16px; font-size: 12px; font-weight: 800;
-  background: var(--c-surface-solid); border-bottom: 1px solid var(--c-border); position: relative; z-index: 1;
-}
-.dht-now { position: relative; display: grid; grid-template-columns: 44px 1fr; align-items: center; padding: 2px 12px 2px 0; }
-.dht-now::after { content: ""; position: absolute; left: 44px; right: 12px; top: 50%; border-top: 2px solid var(--c-accent); }
-.dht-now span { position: relative; z-index: 1; padding-right: 8px; text-align: right; font-size: 11px; font-weight: 800; color: var(--c-accent-ink); }
-.dht-run { position: relative; display: grid; grid-template-columns: 44px 22px minmax(0, 1fr); align-items: start; padding: 8px 12px 8px 0; }
-.dht-time { padding: 8px 8px 0 0; text-align: right; font-size: 11.5px; color: var(--c-ink-muted); }
+.dht-trunk { position: relative; }
+.dht-day { margin: 14px 0 8px; font-size: calc(12px * var(--type-scale, 1)); letter-spacing: .06em; text-transform: uppercase; color: var(--c-ink-faint); }
+.dht-runwrap:first-child > .dht-day { margin-top: 0; }
+.dht-now { display: grid; grid-template-columns: 54px 1fr; gap: 10px; align-items: center; margin: 0 0 10px; }
+.dht-now::after { content: ""; grid-column: 2; border-top: 1px solid var(--c-accent); }
+.dht-now span { grid-column: 1; grid-row: 1; text-align: right; font-size: calc(12.5px * var(--type-scale, 1)); color: var(--c-accent); }
+.dht-run { display: grid; grid-template-columns: 54px 14px minmax(0, 1fr); gap: 10px; align-items: start; position: relative; }
+.dht-time { padding-top: 2px; text-align: right; font-size: calc(12.5px * var(--type-scale, 1)); color: var(--c-ink-faint); }
+.dht-ln { position: relative; align-self: stretch; }
+.dht-ln::before { content: ""; position: absolute; left: 6px; top: 0; bottom: -14px; width: 1px; background: var(--c-border); }
 .dht-sq {
-  position: relative; z-index: 1; width: 12px; height: 12px; margin: 10px 0 0 5px; padding: 0; border: 0;
-  border-radius: 4px; background: var(--c-ink); cursor: pointer;
+  position: absolute; z-index: 1; left: 2px; top: 5px; width: 9px; height: 9px; padding: 0; border: 0;
+  border-radius: 3px; background: var(--c-ink-muted); cursor: pointer;
 }
-.dht-sq[data-open="true"] { outline: 3px solid var(--c-accent-quiet); outline-offset: 2px; }
-.dht-sq--next { background: var(--c-surface-solid); border: 2px dashed var(--c-ink-faint); cursor: default; }
-.dht-sq--day { background: var(--c-ink-faint); cursor: default; }
-.dht-body { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-left: 6px; min-width: 0; }
-.dht-meta { width: 100%; font-size: 12px; color: var(--c-ink-muted); }
-.dht-meta button { border: 0; padding: 0; background: none; font: inherit; color: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
-.dht-empty { margin: 12px 16px 0; font-size: 13px; color: var(--c-ink-muted); }
-.dht-trunk > .dht-empty { margin-left: 72px; } /* clear of the trunk line (left 55px) */
-.dht-legend { margin: 0; padding: 10px 16px 12px; font-size: 11.5px; color: var(--c-ink-faint); border-top: 1px solid var(--c-border); }
-.dht-foot { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 14px; border-top: 1px solid var(--c-border); }
+.dht-sq[data-open="true"] { background: var(--c-accent); }
+.dht-sq--next { background: var(--c-surface-solid); outline: 1px dashed var(--c-ink-faint); cursor: default; }
+.dht-sq--day { cursor: default; }
+.dht-body { padding-bottom: 14px; min-width: 0; }
+.dht-meta { margin: 0 0 8px; font-size: calc(13.5px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+.dht-meta button { border: 0; padding: 0; background: none; font: inherit; color: var(--c-accent); cursor: pointer; }
+.dht-bubs { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 0 0 4px; }
+.dht-empty { margin: 0; font-size: calc(13.5px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+.dht-legend { display: flex; gap: 12px; flex-wrap: wrap; margin: 6px 0 0; font-size: calc(12px * var(--type-scale, 1)); color: var(--c-ink-faint); }
+.dht-legend span::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--dht-k); margin-right: 6px; }
+/* What the sketch does not show, kept reachable as quiet accent words under the key: Review all (Approve all inside
+   it), the approvals left, the line, Clear older than 7 / 30 days and the bin. No buttons-in-boxes. */
+.dht-foot { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--c-border); font-size: calc(13px * var(--type-scale, 1)); }
+.dht-foot .dht-acts { margin-top: 0; gap: 4px 14px; }
+.dht-foot .dh-btn, .dht-foot .dh-bulk {
+  border: 0; padding: 0; background: none; box-shadow: none; transform: none; font: inherit; font-weight: 400; color: var(--c-accent); cursor: pointer;
+}
+.dht-foot .dh-btn:disabled, .dht-foot .dh-bulk:disabled { opacity: .55; }
+.dht-foot .dh-fold__quiet { font-size: calc(12.5px * var(--type-scale, 1)); color: var(--c-ink-faint); }
 .dht-branch[data-ring="need"] { --dht-ring: var(--c-accent); }
 .dht-branch[data-ring="review"] { --dht-ring: var(--c-warning); }
 .dht-branch[data-ring="pick"] { --dht-ring: var(--c-ink-faint); }
@@ -114,14 +154,14 @@
 .dht-branch[data-ring="stop"] { --dht-ring: var(--c-danger); }
 
 /* ── U4 · THE BRANCHES — they grow in place, one at a time ─────────────────────────────────── */
-.dht-branch { position: relative; margin: 2px 12px 10px 50px; padding: 2px 0 4px 18px; border-left: 2px solid var(--dht-ring, var(--c-border)); }
-.dht-node { position: relative; margin: 8px 0; }
-.dht-node::before { content: ""; position: absolute; left: -18px; top: 16px; width: 14px; border-top: 2px solid var(--dht-ring, var(--c-border)); }
-.dht-card { padding: 12px 14px; border-radius: 6px; border: 1px solid var(--c-border); background: var(--c-surface-solid); }
+/* D149 (11-03): a run's card opens under its run, in the words' column, on the raised colour — no border, no branch line. */
+.dht-branch { position: relative; margin: 0 0 14px 78px; }
+.dht-node { position: relative; }
+.dht-card { padding: 14px; border-radius: 16px; background: var(--c-fh-well); }
 
 .dht-card__head { display: flex; gap: 10px; align-items: center; }
 .dht-card__who { min-width: 0; display: flex; flex-direction: column; }
-.dht-card__who h3 { margin: 0; font-size: 15px; line-height: 1.25; color: var(--c-ink); }
+.dht-card__who h3 { margin: 0; font: 600 calc(15px * var(--type-scale, 1))/1.25 var(--shape-font-ui, var(--font-body)); color: var(--c-ink); }
 .dht-card__who span { font-size: 12.5px; color: var(--c-ink-muted); }
 .dht-x { margin-left: auto; border: 0; background: transparent; color: var(--c-ink-muted); font-size: 20px; line-height: 1; cursor: pointer; }
 .dht-say { margin: 8px 0 0; font-size: 15px; line-height: 1.4; color: var(--c-ink); }
