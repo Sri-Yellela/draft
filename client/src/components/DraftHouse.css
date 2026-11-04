@@ -141,12 +141,6 @@
 .dht-why div { display: flex; gap: 10px; align-items: center; padding: 4px 0; font-size: 13.5px; }
 .dht-why b { min-width: 28px; text-align: right; }
 
-/* ── U8 · SETTINGS — the one drawer's three groups ─────────────────────────────────────────── */
-.dh-group { display: flex; flex-direction: column; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--c-border); }
-.dh-group:last-of-type { border-bottom: 0; }
-.dh-group__h { margin: 0; font-size: 13px; font-weight: 800; color: var(--c-ink-muted); }
-.dh-accounts { display: flex; flex-direction: column; gap: 14px; }
-
 @media (prefers-reduced-motion: reduce) {
   .dh-btn, .dh-mode__seg { transition: none; }
 }
@@ -166,78 +160,125 @@
 .dh-bin__what { flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; }
 .dh-bin__when { display: block; color: var(--c-ink-muted); font-size: 11px; }
 
-/* ⭐ D102 P4 · THE MODE'S SETTINGS — the run bar's ⚙ button and the Auto settings drawer (approved sketch,
- * docs/sketches/pipeline-workspace.html), one drawer since D113 UI U8. Depth boxes, tokens only; switches are the platform checkbox. */
-.dh-scrim { position: fixed; inset: 0; background: var(--c-scrim); }
-.dh-drawer {
-  position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100vw);
-  display: flex; flex-direction: column; background: var(--c-surface-solid); color: var(--c-ink);
-  box-shadow: var(--c-depth-hover); border-radius: 18px 0 0 18px;
-}
-.dh-drawer__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 8px; }
-.dh-drawer__head h2 { margin: 0; font-size: 16px; font-weight: 800; }
-.dh-drawer__body { flex: 1; overflow-y: auto; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 16px; }
-.dh-drawer__foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--c-border); }
-.dh-drawer__msg { margin: 0; padding: 0 16px; font-size: 12.5px; color: var(--c-ink-muted); }
-.dh-set { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
-.dh-set label, .dh-set__lab { font-weight: 700; color: var(--c-ink); }
-.dh-set__hint { font-size: 11.5px; font-weight: 400; color: var(--c-ink-muted); }
-.dh-set__hint input { width: 4em; font: inherit; }
-.dh-set select, .dh-set input[type="range"] { font: inherit; max-width: 100%; }
-.dh-sw { display: flex; align-items: center; gap: 10px; cursor: pointer; }
-.dh-times { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.dh-time {
-  display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px;
-  border-left: 3px solid var(--c-accent); background: var(--c-hover); font-size: 12.5px; font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.dh-time button { border: 0; background: transparent; color: var(--c-ink-muted); cursor: pointer; font: inherit; padding: 0 2px; }
-.dh-time button:disabled { cursor: not-allowed; opacity: .4; }
-@media (max-width: 640px) { .dh-drawer { border-radius: 0; } }
-
 /* ── ⭐ D148 (owner 11-03, settings-declutter.html) · THE SETTINGS DRAWER, RESTYLED ─────────────────────────────────
  * The mode first as two choices (the current one outlined in the accent); then folds, each ONE line with its value,
- * one open at a time, opened in place in D145's type (accent eyebrow + a short headline); the limits behind Details. */
-.dh-drawer--d148 .dh-drawer__head h2 { font: 400 calc(30px * var(--type-scale, 1))/1.05 var(--font-display); }
-.dh-drawer--d148 .dh-drawer__body { gap: 10px; }
-.dh-mode2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px; }
-.dh-mode2 button {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; cursor: pointer;
-  padding: 12px 14px; border-radius: var(--shape-radius-card, 16px); border: 1.5px solid var(--c-border);
-  background: var(--c-surface-solid); color: var(--c-ink); font: inherit;
+ * one open at a time, opened in place in D145's type (accent eyebrow + a short headline); the limits behind Details.
+ * ⭐ D149 (owner 11-03) REBUILT IT TO THE SKETCH — every value below is settings-declutter.html's, verbatim (.drawer,
+ * .dh, .mode, .gq, .times, .stepper, .tg, .sw, .done2, .detail, .pausebtn), through Dusk's tokens:
+ *   --card → --c-surface-solid · the drawer's rgba(38,38,38,.98) → --c-surface-menu · --raise #2F2F2F → --c-surface-2
+ *   (Dusk's 46,46,46: one step; no #2F2F2F token) · --line #363636 → --c-border (#343434: two steps; no #363636 token) ·
+ *   --body → --c-ink-muted · --muted #777 → --c-ink-faint (#959595, the AA step) · --accent / --accent2 / --on-accent →
+ *   --c-accent / --c-accent-hover / --c-on-accent (accent TEXT is --c-accent-ink: the same value in Dusk, AA in light) ·
+ *   the serif → --font-display · the interface face → the theme's (Inter Tight under Dusk).
+ * The page behind: the sketch draws it at opacity .35 + blur 1px over the canvas; the scrim is that — the canvas at 65 %.
+ * No footer, no radius or shadow on the drawer, no borders on the folds or the mode buttons (the sketch draws none). */
+.dh-scrim { position: fixed; inset: 0; background: color-mix(in srgb, var(--c-canvas) 65%, transparent); backdrop-filter: blur(1px); }
+.dh-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100vw); box-sizing: border-box; overflow: auto;
+  background: var(--c-surface-menu); border-left: 1px solid var(--c-border); padding: 26px 24px 30px;
+  color: var(--c-ink); font: 400 calc(16px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body)); -webkit-font-smoothing: antialiased;
 }
-.dh-mode2 button b { font-size: calc(14.5px * var(--type-scale, 1)); font-weight: 700; }
-.dh-mode2 button span { font-size: calc(12.5px * var(--type-scale, 1)); color: var(--c-ink-muted); line-height: 1.35; }
-.dh-mode2 button[aria-pressed="true"] { border-color: var(--c-accent-ink); }
+.dh-drawer :focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 3px; }
+.dh-drawer__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.dh-drawer__head h2 { font: 400 calc(34px * var(--type-scale, 1))/1 var(--font-display); margin: 0; }
+.dh-close {
+  border: 1px solid var(--c-border); background: var(--c-surface-solid); border-radius: 12px; padding: 7px 13px; cursor: pointer;
+  font: inherit; font-weight: 600; font-size: calc(13px * var(--type-scale, 1)); color: inherit;
+}
+/* the mode — two choices; the current one outlined in the accent, its name in the accent */
+.dh-mode2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+.dh-mode2 button { all: unset; cursor: pointer; background: var(--c-surface-solid); border-radius: 16px; padding: 14px 16px; }
+.dh-mode2 button b { display: block; font-weight: 600; font-size: calc(15.5px * var(--type-scale, 1)); }
+.dh-mode2 button span { display: block; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-faint); }
+.dh-mode2 button[aria-pressed="true"] { outline: 1.5px solid var(--c-accent); }
+.dh-mode2 button[aria-pressed="true"] b { color: var(--c-accent-ink); }
+.dh-mode2 button:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 3px; }
 .dh-mode2 button:disabled { cursor: not-allowed; }
 .dh-mode2 button:disabled:not([aria-pressed="true"]) { opacity: .6; }
-.dh-mode2 button:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-.dh-fold2 { border-radius: var(--shape-radius-card, 16px); background: var(--c-surface-solid); border: 1px solid var(--c-border); overflow: hidden; }
+.dh-fold2 .dh-mode2 { margin: 0; }
+/* the folds — .gq */
+.dh-fold2 { background: var(--c-surface-solid); border-radius: 20px; margin-top: 10px; transition: background .15s; }
 .dh-fold2__top {
-  width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 13px 15px;
-  border: 0; background: transparent; color: var(--c-ink); font: inherit; cursor: pointer; text-align: left;
+  all: unset; box-sizing: border-box; width: 100%; cursor: pointer;
+  display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding: 15px 18px;
 }
-.dh-fold2__top b { font-size: calc(14.5px * var(--type-scale, 1)); font-weight: 700; flex: 0 0 auto; }
-.dh-fold2__top span { font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-muted); text-align: right; min-width: 0; }
-.dh-fold2__top:hover span, .dh-fold2__top:focus-visible span { color: var(--c-ink); }
-.dh-fold2__top:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: -2px; }
+.dh-fold2__top b { font-weight: 600; font-size: calc(15px * var(--type-scale, 1)); }
+.dh-fold2__top span { color: var(--c-ink-muted); font-size: calc(14px * var(--type-scale, 1)); text-align: right; }
 .dh-fold2[data-open="true"] .dh-fold2__top { display: none; }
-.dh-fold2__body { display: flex; flex-direction: column; gap: 12px; padding: 15px; }
-.dh-fold2__eyebrow { margin: 0; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-accent-ink); }
-.dh-fold2__h { margin: -6px 0 2px; font: 500 calc(22px * var(--type-scale, 1))/1.15 var(--font-body); letter-spacing: -.02em; color: var(--c-ink); }
-.dh-fold2__done { align-self: flex-start; }
-.dh-drawer--d148 .dh-sw { justify-content: space-between; gap: 14px; font-size: calc(13.5px * var(--type-scale, 1)); }
-.dh-sw__t { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--c-ink); }
-.dh-sw__t small { font-size: calc(12px * var(--type-scale, 1)); color: var(--c-ink-muted); }
-.dh-drawer--d148 .dh-sw input[type="radio"] { order: 2; }
+.dh-fold2__body { padding: 20px 18px; }
+.dh-fold2__eyebrow { color: var(--c-accent-ink); font-size: calc(14px * var(--type-scale, 1)); margin: 0 0 6px; }
+.dh-fold2__h { font-family: inherit; font-weight: 500; font-size: calc(30px * var(--type-scale, 1)); line-height: 1.08; letter-spacing: -.03em; margin: 0 0 14px; }
+.dh-fold2__lead { color: var(--c-ink-muted); font-size: calc(15px * var(--type-scale, 1)); margin: 0 0 14px; }
+.dh-fold2__lead--after { margin-top: 12px; }
+.dh-fold2__lead--pause { margin-top: 10px; }
+.dh-fold2__done {
+  border: 0; border-radius: 14px; padding: 11px 18px; font: inherit; font-weight: 600; cursor: pointer; margin-top: 14px;
+  background: linear-gradient(180deg, var(--c-accent), var(--c-accent-hover)); color: var(--c-on-accent);
+}
+/* When — the time chips and the dashed "Add a time" */
+.dh-times { display: flex; gap: 8px; flex-wrap: wrap; }
+.dh-time { display: inline-flex; align-items: center; gap: 8px; background: var(--c-surface-2); border-radius: 12px; padding: 9px 14px; font-weight: 600; }
+.dh-time button { all: unset; cursor: pointer; color: var(--c-ink-faint); font-size: calc(13px * var(--type-scale, 1)); font-weight: 400; }
+.dh-time button:disabled { cursor: not-allowed; opacity: .4; }
+.dh-time--add input { font: inherit; color: inherit; background: transparent; border: 0; padding: 0; }
+.dh-time--add button { color: var(--c-accent-ink); font-weight: 600; }
+.dh-time-add { all: unset; cursor: pointer; border: 1px dashed var(--c-border); border-radius: 12px; padding: 9px 14px; color: var(--c-ink-muted); }
+/* How many — the stepper */
 .dh-stepper { display: flex; align-items: center; gap: 16px; }
-.dh-stepper b { font: 500 calc(44px * var(--type-scale, 1))/1 var(--font-body); letter-spacing: -.03em; min-width: 2.2ch; text-align: center; color: var(--c-ink); }
 .dh-stepper button {
-  width: 44px; height: 44px; border-radius: var(--shape-radius-control, 12px); border: 1px solid var(--c-border);
-  background: var(--c-surface-solid); color: var(--c-ink); font: 600 calc(20px * var(--type-scale, 1))/1 var(--font-body); cursor: pointer;
+  all: unset; cursor: pointer; width: 44px; height: 44px; border-radius: 14px; background: var(--c-surface-2);
+  display: grid; place-items: center; font-size: calc(22px * var(--type-scale, 1));
 }
 .dh-stepper button:disabled { opacity: .4; cursor: not-allowed; }
-.dh-limits { font-size: calc(12.5px * var(--type-scale, 1)); color: var(--c-ink-muted); padding: 4px 2px; }
-.dh-limits summary { cursor: pointer; list-style: none; }
+.dh-stepper b { font-size: calc(44px * var(--type-scale, 1)); font-weight: 500; letter-spacing: -.03em; color: var(--c-accent-ink); min-width: 60px; text-align: center; }
+/* the rows — .tg: a label (a quiet line under it), the switch on the right; a rule between rows */
+.dh-tg { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--c-border); }
+.dh-fold2__h + .dh-tg { border-top: 0; }
+label.dh-tg, .dh-tg label { cursor: pointer; }
+.dh-tg > span { font-size: calc(15px * var(--type-scale, 1)); }
+.dh-tg small { display: block; color: var(--c-ink-faint); font-size: calc(13px * var(--type-scale, 1)); }
+.dh-tg small input {
+  width: 3.2em; font: inherit; color: var(--c-ink); background: var(--c-surface-2); border: 0; border-radius: 6px; padding: 1px 4px;
+}
+.dh-select {
+  flex: none; max-width: 50%; border: 0; border-radius: 12px; padding: 9px 14px; background: var(--c-surface-2);
+  color: var(--c-ink); font: inherit; font-weight: 600; font-size: calc(14px * var(--type-scale, 1));
+}
+/* the switch — .sw: a real role="switch" button. Corners 8 where the sketch has 14 (14 on 28 is a capsule: D60). */
+.dh-swb { all: unset; cursor: pointer; width: 46px; height: 28px; border-radius: 8px; background: var(--c-surface-2); position: relative; flex: none; }
+.dh-swb::after {
+  content: ""; position: absolute; left: 4px; top: 4px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--c-ink-muted); transition: left .2s, background .2s;
+}
+.dh-swb[aria-checked="true"] { background: var(--c-accent); }
+.dh-swb[aria-checked="true"]::after { left: 22px; background: var(--c-on-accent); }
+.dh-swb:disabled { opacity: .45; cursor: not-allowed; }
+.dh-swb:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 3px; }
+/* Pausing — .pausebtn */
+.dh-pausebtn {
+  width: 100%; margin-top: 14px; border: 1px solid var(--c-border); background: transparent; border-radius: 16px; padding: 14px;
+  font: inherit; font-weight: 600; cursor: pointer; color: var(--c-ink);
+}
+.dh-pausebtn:disabled { opacity: .55; cursor: not-allowed; }
+/* the limits — .detail (it also wears the sketch's earlier .detail: the rule above it and the grid that puts Details on
+   its own line) */
+.dh-limits { color: var(--c-ink-faint); font-size: calc(13px * var(--type-scale, 1)); margin-top: 18px; border-top: 1px solid var(--c-border); padding-top: 16px; }
+.dh-limits summary { display: grid; gap: 14px; cursor: pointer; list-style: none; }
 .dh-limits summary::-webkit-details-marker { display: none; }
-.dh-limits__more { color: var(--c-accent-ink); text-decoration: underline; text-underline-offset: 2px; }
+.dh-limits__more { justify-self: start; color: var(--c-ink-muted); text-decoration: underline; }
+.dh-limits p { margin: 14px 0 0; }
+.dh-drawer__msg { margin: 14px 0 0; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+/* Accounts (D100) in the same rows and quiet buttons */
+.dh-accounts { display: flex; flex-direction: column; gap: 14px; }
+.dh-set { display: flex; flex-direction: column; gap: 6px; font-size: calc(15px * var(--type-scale, 1)); }
+.dh-set__lab { font-weight: 600; }
+.dh-set__hint { color: var(--c-ink-faint); font-size: calc(13px * var(--type-scale, 1)); }
+.dh-sw { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--c-border); }
+.dh-drawer .dh-btn {
+  border: 1px solid var(--c-border); background: var(--c-surface-solid); border-radius: 12px; padding: 7px 13px; box-shadow: none;
+  font: inherit; font-weight: 600; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink); transform: none;
+}
+.dh-drawer .dh-btn[data-kind="primary"] {
+  border: 0; border-radius: 14px; padding: 11px 18px; font-size: inherit;
+  background: linear-gradient(180deg, var(--c-accent), var(--c-accent-hover)); color: var(--c-on-accent);
+}

@@ -52,7 +52,9 @@ test("d148ModeTwoChoices · the mode first, as two choices — the header switch
   assert.ok(at(drawer, 'data-settings-mode=""') < at(drawer, '<Fold id="when"'), "the mode comes first");
   assert.match(panel, /mode=\{\{ fullAuto, selectable: mode\.selectable, reason: mode\.reason \}\} onAsk=\{runBar \? chooseAsk : null\}/);
   assert.match(panel, /onAuto=\{mode\.selectable \? \(\) => setApplyMode\?\.\("auto"\) : null\}/);
-  assert.match(css, /\.dh-mode2 button\[aria-pressed="true"\] \{ border-color: var\(--c-accent-ink\); \}/, "the current one outlined in the accent");
+  // D149 (11-03) changed this on purpose: the sketch draws the current choice with an OUTLINE (1.5px, the accent), not a
+  // border — the mode buttons have no border at all (test/fidelitySettings.test.js measures it).
+  assert.match(css, /\.dh-mode2 button\[aria-pressed="true"\] \{ outline: 1\.5px solid var\(--c-accent\); \}/, "the current one outlined in the accent");
   assert.match(drawer, /<h2 id="dh-settings-title">Auto-apply<\/h2>/);
 });
 
@@ -104,7 +106,8 @@ test("d148EverySettingPresent · every setting has its fold (the row's map)", ()
 
 test("d148LimitsBehindDetails · the internal limits are one quiet line; the full limits behind Details", () => {
   const d = drawer.slice(at(drawer, '<details className="dh-limits" data-caps-used="">'), at(drawer, "</details>"));
-  assert.match(d, /<summary>Today: \{sent \? `\$\{sent\.used\} sent of \$\{Math\.min\(sent\.limit, s\.dailyCap\)\}` : "the limits"\} · <span className="dh-limits__more">Details<\/span><\/summary>/);
+  // D149 (11-03) changed this on purpose: the sketch's line is "Today: 4 sent of 10." with Details under it (its p.detail).
+  assert.match(d, /<summary>\{sent \? `Today: \$\{sent\.used\} sent of \$\{Math\.min\(sent\.limit, s\.dailyCap\)\}\.` : "Today's limits\."\} <span className="dh-limits__more">Details<\/span><\/summary>/);
   assert.match(d, /caps\.map\(c => `\$\{c\.label\} \$\{capUsage\(c\) \?\? "—"\}`\)/);
   assert.ok(at(drawer, '<Fold id="view"') < at(drawer, '<details className="dh-limits"'), "after the folds, not on the first lines");
   assert.match(drawer, /const sent = caps\.find\(c => c\.id === "submission"\);/);

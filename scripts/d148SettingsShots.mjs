@@ -115,7 +115,8 @@ try {
       "Tell me=by email and notification", "Pausing=pause after an interview", "View=the table"];
     check(where, "the folds, each one line with its value (Accounts hidden)", first.folds.join("|") === want.join("|"), first.folds.join(" | "));
     check(where, "none open at first", first.open === 0);
-    check(where, "the limits: one line", first.limits === "Today: 4 sent of 10 · Details", first.limits);
+    // D149 (11-03) changed this on purpose: the sketch's "Today: 4 sent of 10." with Details under it.
+    check(where, "the limits: one line", first.limits === "Today: 4 sent of 10. Details", first.limits);
 
     // Open How many; + raises it; Done folds it and the line follows.
     await page.click('[data-fold-top="howmany"]');

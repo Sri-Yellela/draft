@@ -85,7 +85,10 @@ const SCREENS = {
       await sleep(900);
     } },
   settings: { sketch: "settings-declutter.html", app: "/app/auto-apply", fixtures: SETTINGS, ready: "[data-settings-open]",
-    appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(600); } },
+    appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(600); },
+    // ⭐ D149 settings: --styles opens the drawer first too; and the comparison that matters is the DRAWER (the page behind
+    // it is a stand-in in the sketch) — its 520 px at the right edge on a computer, the whole screen on a phone.
+    stylesWithPrep: true, region: ([w, h]) => (w >= 520 ? [w - 520, 0, 520, h] : null) },
 };
 
 function startVite() {
@@ -163,6 +166,28 @@ async function compare(browser, a, b) {
   return res;
 }
 
+// ── ⭐ D149 settings · A REGION of a screen (a screen's `region([w, h])` → [x, y, w, h], or null for the whole shot):
+// both shots cropped to it, compared like the whole, and written as <screen>-region-side-<size>.png + the report key
+// <screen>-region-<size>. The settings drawer uses it: the sketch's page behind the drawer is a stand-in.
+async function cropPng(browser, buf, [x, y, w, h]) {
+  const page = await browser.newPage();
+  const out = await page.evaluate(async (src, X, Y, W, H) => {
+    const i = await new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.src = src; });
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    c.getContext("2d").drawImage(i, X, Y, W, H, 0, 0, W, H);
+    return c.toDataURL("image/png");
+  }, `data:image/png;base64,${buf.toString("base64")}`, x, y, w, h);
+  await page.close();
+  return Buffer.from(out.split(",")[1], "base64");
+}
+async function compareRegion(browser, id, s, size, dims, skBuf, apBuf, report) {
+  const clip = s.region(dims) || [0, 0, dims[0], dims[1]];
+  const cmp = await compare(browser, await cropPng(browser, skBuf, clip), await cropPng(browser, apBuf, clip));
+  fs.writeFileSync(path.join(OUT, `${id}-region-side-${size}.png`), Buffer.from(cmp.side.split(",")[1], "base64"));
+  report[`${id}-region-${size}`] = { sketch: s.sketch, app: s.app, region: clip, similarity: cmp.score, worstRegions: cmp.regions, at: new Date().toISOString() };
+  console.log(`${id} ${size} region [${clip.join(", ")}]: similarity ${(cmp.score * 100).toFixed(1)}% · worst cells ${cmp.regions.map(r => `r${r.row}c${r.col} ${(r.diff * 100).toFixed(0)}%`).join(", ") || "none"}`);
+}
+
 // ── --styles <screen>: the app screen's COMPUTED styles as JSON (test/fidelity.test.js asserts them against the sketch).
 const STYLE_PROBES = {
   deck: () => {
@@ -182,6 +207,61 @@ const STYLE_PROBES = {
       topBar: !!document.querySelector("[data-app-chrome]") && cs(document.querySelector("[data-app-chrome]")).backgroundColor,
       controlsRow: !!document.querySelector("[data-deck-counter]"),
     };
+  },
+  // ⭐ D149 · the settings drawer (settings-declutter.html): the drawer, the title, the mode, a fold's line; then it opens
+  // When, How many, Which jobs and Before sending in turn and reads the time chip, the stepper, the eyebrow, the
+  // headline, a switch on and off, Done and Pause.
+  settings: async () => {
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const cs = (el, pseudo) => (el ? getComputedStyle(el, pseudo) : null);
+    const q = (sel) => document.querySelector(sel);
+    const box = (el) => { const r = el?.getBoundingClientRect(); return r ? { w: Math.round(r.width), h: Math.round(r.height) } : null; };
+    const open = async (id) => { q(`[data-fold-top="${id}"]`)?.click(); await wait(250); return q(`[data-settings-group="${id}"] .dh-fold2__body`); };
+    const d = q("[data-settings-drawer]");
+    const title = q("#dh-settings-title");
+    const close = q("[data-settings-close]");
+    const [ask, auto] = [...document.querySelectorAll("[data-settings-mode] button")];
+    const fold = q('[data-settings-group="when"]');
+    const top = q('[data-fold-top="when"]');
+    const out = {
+      drawer: d && { bg: cs(d).backgroundColor, radius: cs(d).borderTopLeftRadius, width: box(d).w, borderLeft: `${cs(d).borderLeftWidth} ${cs(d).borderLeftColor}`,
+                     padding: cs(d).padding, shadow: cs(d).boxShadow, family: cs(d).fontFamily, size: cs(d).fontSize, lineHeight: cs(d).lineHeight },
+      footer: !!d?.querySelector("footer"), checkboxes: d ? d.querySelectorAll('input[type="checkbox"], input[type="radio"]').length : -1,
+      title: title && { family: cs(title).fontFamily, size: cs(title).fontSize, weight: cs(title).fontWeight, letter: cs(title).letterSpacing, w: box(title).w,
+                        faces: [...document.fonts].filter(f => /Instrument/.test(f.family)).map(f => `${f.style}:${f.weight}:${f.status}:${f.unicodeRange.slice(0, 20)}`) },
+      close: close && { bg: cs(close).backgroundColor, radius: cs(close).borderTopLeftRadius, border: `${cs(close).borderTopWidth} ${cs(close).borderTopColor}`, size: cs(close).fontSize, weight: cs(close).fontWeight, padding: cs(close).padding },
+      mode: ask && { bg: cs(auto).backgroundColor, radius: cs(ask).borderTopLeftRadius, padding: cs(ask).padding, border: cs(auto).borderTopWidth,
+                     pressedOutline: `${cs(ask).outlineWidth} ${cs(ask).outlineStyle} ${cs(ask).outlineColor}`, restOutline: cs(auto).outlineStyle,
+                     bSize: cs(ask.querySelector("b")).fontSize, bWeight: cs(ask.querySelector("b")).fontWeight, bPressed: cs(ask.querySelector("b")).color, bRest: cs(auto.querySelector("b")).color,
+                     spanSize: cs(ask.querySelector("span")).fontSize, spanColor: cs(ask.querySelector("span")).color },
+      fold: fold && { bg: cs(fold).backgroundColor, radius: cs(fold).borderTopLeftRadius, border: cs(fold).borderTopWidth, marginTop: cs(fold).marginTop,
+                      padding: cs(top).padding, bSize: cs(top.querySelector("b")).fontSize, bWeight: cs(top.querySelector("b")).fontWeight,
+                      valueColor: cs(top.querySelector("span")).color, valueSize: cs(top.querySelector("span")).fontSize },
+      limits: q("[data-caps-used] summary")?.textContent.trim() || null,
+    };
+    const when = await open("when");
+    const chip = when?.querySelector(".dh-time"), add = when?.querySelector(".dh-time-add");
+    out.when = when && { bodyPadding: cs(when).padding, chipBg: cs(chip).backgroundColor, chipRadius: cs(chip).borderTopLeftRadius, chipPadding: cs(chip).padding, chipWeight: cs(chip).fontWeight,
+                         addBorder: `${cs(add).borderTopWidth} ${cs(add).borderTopStyle}`, addRadius: cs(add).borderTopLeftRadius };
+    const hm = await open("howmany");
+    const step = hm?.querySelector(".dh-stepper button"), n = hm?.querySelector(".dh-stepper b");
+    out.howmany = hm && { btn: box(step), btnRadius: cs(step).borderTopLeftRadius, btnBg: cs(step).backgroundColor, nSize: cs(n).fontSize, nWeight: cs(n).fontWeight, nColor: cs(n).color };
+    const jobs = await open("jobs");
+    const eb = jobs?.querySelector(".dh-fold2__eyebrow"), h = jobs?.querySelector(".dh-fold2__h"), tg = jobs?.querySelectorAll(".dh-tg")[1];
+    const on = jobs?.querySelector('.dh-swb[aria-checked="true"]');
+    const done = jobs?.querySelector("[data-fold-done]");
+    out.jobs = jobs && { eyebrowColor: cs(eb).color, eyebrowSize: cs(eb).fontSize, hFamily: cs(h).fontFamily, hSize: cs(h).fontSize, hWeight: cs(h).fontWeight, hLetter: cs(h).letterSpacing, hLine: cs(h).lineHeight,
+                         rowPadding: cs(tg).padding, rowBorder: `${cs(tg).borderTopWidth} ${cs(tg).borderTopColor}`, smallColor: cs(tg.querySelector("small")).color, smallSize: cs(tg.querySelector("small")).fontSize,
+                         switchOn: on && { role: on.getAttribute("role"), tag: on.tagName, box: box(on), radius: cs(on).borderTopLeftRadius, bg: cs(on).backgroundColor, knobBg: cs(on, "::after").backgroundColor, knobLeft: cs(on, "::after").left, knobSize: cs(on, "::after").width },
+                         done: done && { bg: cs(done).backgroundImage, color: cs(done).color, radius: cs(done).borderTopLeftRadius, padding: cs(done).padding, weight: cs(done).fontWeight } };
+    const before = await open("before");
+    const off = before?.querySelector('.dh-swb[aria-checked="false"]');
+    out.before = before && { switchOff: off && { bg: cs(off).backgroundColor, knobBg: cs(off, "::after").backgroundColor, knobLeft: cs(off, "::after").left } };
+    const pausing = await open("pausing");
+    const pb = pausing?.querySelector("[data-pause-now]");
+    out.pausing = pb && { width: box(pb).w, parent: Math.round(pb.parentElement.getBoundingClientRect().width - parseFloat(cs(pb.parentElement).paddingLeft) - parseFloat(cs(pb.parentElement).paddingRight)),
+                          border: `${cs(pb).borderTopWidth} ${cs(pb).borderTopColor}`, bg: cs(pb).backgroundColor, radius: cs(pb).borderTopLeftRadius, padding: cs(pb).padding };
+    return out;
   },
 };
 if (process.argv[2] === "--styles") {
@@ -210,6 +290,7 @@ if (process.argv[2] === "--styles") {
       await page.evaluateHandle("document.fonts.ready").catch(() => {});
       if (s.ready) await page.waitForSelector(s.ready, { timeout: 30000 }).catch(() => {});
       await sleep(900);
+      if (s.stylesWithPrep && s.appPrep) await s.appPrep(page);
       out[size] = await page.evaluate(STYLE_PROBES[id]);
       await page.close();
     }
@@ -239,6 +320,7 @@ try {
       fs.writeFileSync(path.join(OUT, `${id}-side-${size}.png`), Buffer.from(cmp.side.split(",")[1], "base64"));
       report[`${id}-${size}`] = { sketch: s.sketch, app: s.app, similarity: cmp.score, worstRegions: cmp.regions, appErrors: ap.errors.slice(0, 3), at: new Date().toISOString() };
       console.log(`${id} ${size}: similarity ${(cmp.score * 100).toFixed(1)}% · worst cells ${cmp.regions.map(r => `r${r.row}c${r.col} ${(r.diff * 100).toFixed(0)}%`).join(", ") || "none"}${ap.errors.length ? ` · app errors: ${ap.errors[0]}` : ""}`);
+      if (s.region) await compareRegion(browser, id, s, size, dims, sk.buf, ap.buf, report);
     }
   }
 } finally {
