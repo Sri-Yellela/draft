@@ -121,6 +121,9 @@ test("every self-hosted family is one the UI actually asks for, under the name i
       "instrument-serif/400", "instrument-serif/400-italic",
       // D144 (11-02, the owner's answer 2): Inter Tight, self-hosted — Dusk's interface face; body 400, headline / stat 500, labels 600.
       "inter-tight/400", "inter-tight/500", "inter-tight/600",
+      // D149 (11-03): + 700 — the approved sketches load Inter Tight at 400–700 and set the company bubbles' letters
+      // and the strong labels at 700; Dusk is the default now, so every visitor's screen asks for it.
+      "inter-tight/700",
       // D1 (10-03): the job card's company name is "the logo face" — heavy italic geometric sans.
       // One weight, one style; Poppins approximates the mark.
       "poppins/800-italic",

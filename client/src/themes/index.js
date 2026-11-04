@@ -28,7 +28,11 @@ export const STUDIO_IDS = Object.freeze([studioLight.id, studioDark.id]);
 // ⭐ D144 · Dusk likewise: offered to users only when the owner switches it on (its own switch, Admin → System → Appearance).
 export const DUSK_IDS = Object.freeze([duskLight.id, duskDark.id]);
 export const THEMES = Object.freeze(Object.fromEntries(THEME_LIST.map((t) => [t.id, t])));
-export const DEFAULT_THEME_ID = paperLight.id;
+// ⭐ D149 (owner 11-03): DUSK IS THE DEFAULT for every user and every surface — Dusk Dark or Dusk Light following the
+// device. A device / account with NO stored choice opens in it; an explicit choice (any theme id or pair, "system"
+// included — Paper Light / Charcoal Dark following the device) is kept. D144's "off for users" is superseded.
+export const DEFAULT_PREFERENCE = "dusk";
+export const DEFAULT_THEME_ID = duskDark.id;
 
 // ── The preference ────────────────────────────────────────────────────────────────────────────────────
 // Stored in ONE key (no new storage key for D91): "<pref>" plus optional ";cues" (shape cues on),
@@ -58,7 +62,7 @@ function readRaw(storage = store()) { try { return storage?.getItem(THEME_STORAG
 function parseRaw(raw) {
   const [pref, ...flags] = String(raw || "").split(";");
   const admin = flags.find((f) => f.startsWith(SURFACE_FLAG))?.slice(SURFACE_FLAG.length) || null;
-  return { pref: THEME_PREFERENCES.includes(pref) ? pref : "system", cues: flags.includes("cues"), noOffer: flags.includes("no-offer"),
+  return { pref: THEME_PREFERENCES.includes(pref) ? pref : DEFAULT_PREFERENCE, cues: flags.includes("cues"), noOffer: flags.includes("no-offer"),
            layout: parseLayoutFlags(flags), admin: THEME_PREFERENCES.includes(admin) ? admin : null };
 }
 const formatRaw = ({ pref, cues, noOffer, layout, admin }) =>
@@ -92,7 +96,7 @@ const defaultMM = () => (typeof window !== "undefined" ? window.matchMedia : nul
 export function resolve(pref = surfacePreference(), matchMedia = defaultMM()) {   // D133: the preference for the surface this page is
   if (THEMES[pref]) return THEMES[pref];
   if (LEGACY[pref]) return THEMES[LEGACY[pref]];
-  const pair = PAIRS[pref] || PAIRS.system;
+  const pair = PAIRS[pref] || PAIRS[DEFAULT_PREFERENCE];
   return THEMES[pair[osDark(matchMedia) ? "dark" : "light"]];
 }
 /** The SCHEME a preference resolves to — "light" or "dark" (the name older callers know). */
@@ -217,7 +221,7 @@ export function prePaintScript() {
   // layout never flashes the default first.
   const L = Object.fromEntries(LAYOUT_KEYS.map((k) => [k, [LAYOUT_OPTION_IDS[k].attribute, LAYOUT_OPTION_IDS[k].values, LAYOUT_OPTION_IDS[k].default]]));
   return `(function(){try{var T=${JSON.stringify(themes)},A=${JSON.stringify(alias)},L=${JSON.stringify(L)},r="";try{r=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)})||""}catch(e){}` +
-    `var f=r.split(";"),p=f[0],P=(typeof location!=="undefined"&&location.pathname)||"";if(P.indexOf("/admin")===0&&(P.length===6||P.charAt(6)==="/")){for(var j=1;j<f.length;j++){if(f[j].indexOf("admin=")===0&&(T[f[j].slice(6)]||A[f[j].slice(6)]))p=f[j].slice(6)}}var id=T[p]?p:null;if(!id){var a=A[p]||A.system;id=typeof a==="string"?a:a[window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?1:0]}` +
+    `var f=r.split(";"),p=f[0],P=(typeof location!=="undefined"&&location.pathname)||"";if(P.indexOf("/admin")===0&&(P.length===6||P.charAt(6)==="/")){for(var j=1;j<f.length;j++){if(f[j].indexOf("admin=")===0&&(T[f[j].slice(6)]||A[f[j].slice(6)]))p=f[j].slice(6)}}var id=T[p]?p:null;if(!id){var a=A[p]||A[${JSON.stringify(DEFAULT_PREFERENCE)}];id=typeof a==="string"?a:a[window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?1:0]}` +
     `var t=T[id],d=document.documentElement;d.setAttribute("data-theme",id);d.setAttribute("data-contrast",t[0]);if(f.indexOf("cues")>0)d.setAttribute("data-cues","shape");` +
     `d.style.setProperty("color-scheme",t[1]);d.style.setProperty("--c-canvas",t[2]);` +
     `for(var k in L){var v=L[k][2];for(var i=1;i<f.length;i++){var kv=f[i].split("=");if(kv[0]===k&&L[k][1].indexOf(kv[1])>-1)v=kv[1]}d.setAttribute(L[k][0],v)}}catch(e){}})();`;

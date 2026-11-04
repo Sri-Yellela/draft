@@ -96,8 +96,10 @@ test("resolve(): light and dark name the Paper pair; system follows the OS", () 
   assert.equal(resolve("dark", mm(false)).id, "charcoal-dark");
   assert.equal(resolve("system", mm(true)).id, "charcoal-dark");
   assert.equal(resolve("system", mm(false)).id, "paper-light");
-  assert.equal(resolve("neon", mm(false)).id, "paper-light", "junk is system");
-  assert.equal(ACTIVE_THEME.id, "paper-light", "under Node (no window) the live theme is Paper Light");
+  // ⭐ D149 (owner 11-03) changed this on purpose: with nothing (or junk) stored, the default is DUSK, following the OS.
+  assert.equal(resolve("neon", mm(false)).id, "dusk-light", "junk is the default, Dusk");
+  assert.equal(resolve("neon", mm(true)).id, "dusk-dark");
+  assert.equal(ACTIVE_THEME.id, "dusk-light", "under Node (no window, nothing stored) the live theme is the default — Dusk Light (D149)");
 });
 
 test("the live theme is published: every token as --c-*, plus data-theme, data-contrast and color-scheme", () => {

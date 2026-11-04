@@ -73,7 +73,8 @@ test("⛔ no flash: the pre-paint script reads the same stored value — theme, 
   };
   for (const raw of ["contrast-light", "contrast-dark;cues", "contrast", "system;cues;no-offer", "light", ""]) for (const dark of [false, true]) {
     const { attrs, style } = run(raw, dark);
-    const want = resolve(raw.split(";")[0] || "system", mm(dark));
+    // D149 (11-03): nothing stored resolves to the DEFAULT, Dusk — the oracle asks resolve() the same question.
+    const want = resolve(raw.split(";")[0] || "dusk", mm(dark));
     assert.equal(attrs["data-theme"], want.id, `${raw} / dark ${dark}`);
     assert.equal(attrs["data-contrast"], want.contrast);
     assert.equal(style["--c-canvas"], want.tokens.CANVAS);

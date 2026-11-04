@@ -33,6 +33,8 @@ import "@fontsource/instrument-serif/400-italic.css";
 import "@fontsource/inter-tight/400.css";
 import "@fontsource/inter-tight/500.css";
 import "@fontsource/inter-tight/600.css";
+// ⭐ D149: the sketches set the Inter Tight 700 too (the wordmark, strong labels) — loaded with the rest.
+import "@fontsource/inter-tight/700.css";
 // Inter was here until 10-02: nothing asked for it (the body renders DM Sans) — A53 follow-up.
 
 import "./styles/colorTokens.js";   // publishes --c-* before anything paints
