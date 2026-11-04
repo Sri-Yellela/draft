@@ -75,7 +75,9 @@ const FACTS_BOARD = FH_BOARD.map((j, i) => (i ? j : { ...j, workType: "Remote", 
   liveness: { label: "Reposted 3 times" } }));
 const FACTS = { ...FULLHOUSE, "/api/jobs": { ...FULLHOUSE["/api/jobs"], jobs: FACTS_BOARD } };
 // ⭐ D152 · HOME (home-sketch.html): the deck and the board on one screen, fed by both screens' fixtures.
-const HOME = { ...FULLHOUSE, ...DECK };
+// 14 postings, so the page scrolls (the in-place posting's Close must return the reader to where they were).
+const HOME_BOARD = Array.from({ length: 14 }, (_, i) => ({ ...FH_BOARD[i % FH_BOARD.length], jobId: `h${i}`, id: `h${i}` }));
+const HOME = { ...FULLHOUSE, ...DECK, "/api/jobs": { ...FULLHOUSE["/api/jobs"], jobs: HOME_BOARD } };
 const SETTINGS = {
   "/api/apply/auto-settings": { settings: { dailyCap: 10, runTimes: ["09:00", "18:00"], timeZone: "America/New_York", pauseCompanyAfterReply: true,
     filters: {}, profileId: null, agreeToTerms: false, staleReposts: 3, staleOpenDays: 90, showFormBeforeSending: true, onlySponsorRecord: true, perCompanyLimit30d: 2 } },
@@ -139,6 +141,10 @@ const SCREENS = {
   "home-dock": { sketch: "home-sketch.html", app: "/app", fixtures: HOME, ready: "[data-home-board]",
     sketchPrep: async () => { await sleep(100); },
     appPrep: async (page) => { await sleep(1200); await page.mouse.move(4, 300); await sleep(700); } },
+  // D152 (6): the first posting open, in place of the list (the sketch's .bub click → its .pp layer).
+  "home-open": { sketch: "home-sketch.html", app: "/app", fixtures: HOME, ready: "[data-home-board]",
+    sketchPrep: async (page) => { await sleep(1700); await page.evaluate(() => document.querySelector(".bub")?.click()); await sleep(700); },
+    appPrep: async (page) => { await sleep(1700); await page.evaluate(() => document.querySelector(".jb__title")?.click()); await sleep(900); } },
   deck: { sketch: "declutter-v7.html", app: "/app", fixtures: DECK, ready: "[data-deck-face]" },
   fullhouse: { sketch: "fullhouse-declutter.html", app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-fh-title]",
     appPrep: async (page) => {   // the sketch shows the first posting open beside the list
@@ -443,7 +449,26 @@ const STYLE_PROBES = {
       coversDeck: overlap(d, deck), coversSentence: overlap(d, sentence), sortCoversSentence: sortOver() };
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     await wait(600);
+    // ⭐ D152 (6) / D153 (1): a posting opens IN PLACE of the list — the list's node survives, nothing overlaps, and Close
+    // returns the reader to where they were in the list.
+    const listNode = q(".jb-board__list");
+    window.scrollTo(0, 120); await wait(150);
+    const yBefore = Math.round(window.scrollY);
+    [...document.querySelectorAll(".jb__title")].find(e => e.textContent.trim())?.click();
+    await wait(900);
+    const post = box(q("[data-board-post]"));
+    const opened = { post, listOut: q(".jb-board__list")?.getAttribute("data-out"), listInert: q(".jb-board__list")?.hasAttribute("inert"),
+      coversDeck: overlap(post, box(q("[data-home-deck]"))), coversSort: overlap(post, box(q(".fh-title--home"))),
+      inBoard: !!post && post.left >= box(q("[data-home-board]")).left - 1 && post.right <= box(q("[data-home-board]")).right + 1 };
+    const closeBtn = q('[data-board-post] .pp__x') || q('.pp__x');   // in place on a computer; the overlay on a phone
+    if (closeBtn) closeBtn.click(); else document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await wait(700);
+
+    const closed = { sameListNode: q(".jb-board__list") === listNode, post: !!q("[data-board-post]"), yBefore, yAfter: Math.round(window.scrollY),
+      listOut: q(".jb-board__list")?.getAttribute("data-out") };
+    window.scrollTo(0, 0);
     return {
+      opened, closed,
       grid: { deck: box(q("[data-home-deck]")), board: box(q("[data-home-board]")), columns: getComputedStyle(q(".home")).gridTemplateColumns },
       deck: deckGeom, pairs,
       title: !!q(".fh-title__h"), cornerMark: visible(q(".tbar-group")), emboss: q("[data-nav-emboss]")?.textContent || null,

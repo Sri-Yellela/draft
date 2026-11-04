@@ -14,7 +14,7 @@
 //    a touch screen (no hover) it is always shown.
 //
 // The Database panel and the landing page keep JobCard; D1 replaces the JOBS-PAGE card.
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import CompanyLogo from "./CompanyLogo.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
@@ -154,11 +154,40 @@ export function JobBubbleSkeleton() {
  * ⭐ D149 · the board's page column (`.fhw`: 1240 wide, 20px gutters) and, with a posting open on a desktop, its two
  * columns — the list | an empty right column the posting is drawn over (JobsPanel's BesideDock measures `sideRef`).
  */
-export function JobBoardColumns({ beside = false, sideRef = null, children }) {
+// ⭐ D152 (6) / D153 (1) (owner 11-04: "opening a posting or a card should [not] be flickering with a choppy rerender, it
+// should be smooth … use the space and move content around smoothly"): THE POSTING OPENS IN PLACE OF THE LIST, laid out
+// by CSS — home-sketch.html's `.right` / `.layer`. The tree is the same whether a posting is open or not, so the list's
+// DOM node (and every bubble in it) survives an open and a close: the list layer folds away (inert, no height, faded)
+// and the posting layer fades in where the list was. Nothing is measured and nothing listens to scroll (BesideDock, a
+// panel placed by JS offsets refreshed on scroll — the "panel stranded after closing the filter" — is gone).
+export function JobBoardColumns({ post = null, children }) {
+  const open = !!post;
+  // D153 (1) d153ScrollRestoredOnClose: where the reader was in the list is kept while a posting is open and returned to
+  // on Close; opening never scrolls DOWN — only up to the board, when the reader was below its top (the sketch's swap()).
+  const ref = useRef(null), listY = useRef(null), was = useRef(open);
+  // ⚠ Read where the reader is DURING the render that opens it — before the commit. Measured 11-04: by the layout effect
+  // the posting's insertion has already folded the list and hidden the column's header, the document is briefly short,
+  // and the browser has clamped the scroll to 0 (the restore then returned the reader to the top).
+  if (open && !was.current && listY.current == null && typeof window !== "undefined") listY.current = window.scrollY;
+  useLayoutEffect(() => {
+    if (was.current === open) return;
+    was.current = open;
+    if (open) {
+      const top = (ref.current?.getBoundingClientRect().top ?? 0) + window.scrollY - 20;
+      if (window.scrollY > top) window.scrollTo({ top, behavior: "auto" });
+    } else if (listY.current != null) {
+      // Again on the next frame: the column's header (hidden while the posting was open, FullHouse.css :has) and the
+      // list are back in this commit, but the document can still be measured short until then.
+      const y = listY.current;
+      listY.current = null;
+      window.scrollTo({ top: y, behavior: "auto" });
+      requestAnimationFrame(() => { if (Math.abs(window.scrollY - y) > 1) window.scrollTo({ top: y, behavior: "auto" }); });
+    }
+  }, [open]);
   return (
-    <div className="jb-board" data-beside={beside ? "true" : "false"}>
-      <div className="jb-board__list">{children}</div>
-      {beside && <div className="jb-board__side" ref={sideRef} aria-hidden="true" data-beside-slot="" />}
+    <div className="jb-board" ref={ref} data-post-open={open ? "true" : "false"}>
+      <div className="jb-board__list" data-out={open ? "true" : "false"} {...(open ? { inert: "", "aria-hidden": "true" } : null)}>{children}</div>
+      {open && <div className="jb-board__post" data-board-post="">{post}</div>}
     </div>
   );
 }

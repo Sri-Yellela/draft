@@ -139,7 +139,8 @@ test("panels tile inside the dock, not against the viewport", () => {
   // Each panel is a FLEX CHILD of the dock. This is the line that makes the tiling internal: a
   // panel has no relationship with the viewport, only with its siblings, so it cannot lay out
   // against the board or be shoved past the screen edge.
-  // D149 (11-03) changed this on purpose: `fill` — the posting beside the list fills its column (BesideDock).
+  // D149 (11-03) changed this on purpose: `fill` — the posting on a desktop fills its container (⭐ D152 (6): in place of
+  // the list, whose container takes the posting's own height).
   assert.match(shell, /flex: fullScreen \|\| fill \? "1 1 auto" : `0 0 \$\{Math\.round\(width\)\}px`/);
   assert.ok(!/right: rightOffset/.test(shell),
     "a panel is anchoring itself to the viewport again instead of tiling inside the dock");

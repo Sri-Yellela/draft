@@ -103,6 +103,25 @@ test("d152DockLeftWithLogo / d153DockPushes / d152DockSlidesFromLeftEdge (real C
   assert.ok(P.focusW[0] > P.restW[0] && P.focusW[1] < P.restW[1], `the focused bubble grows and its neighbour gives way (${P.focusW})`);
   assert.ok(Math.abs(P.focusW[0] + P.focusW[1] - P.restW[0] - P.restW[1]) <= 1, "within the same line");
   assert.equal(out.phone.pairs.restW[0], out.phone.pairs.focusW[0], "a phone stacks the pair — nothing to give way to");
+  // ⭐ D152 (6) / D153 (1): the posting opens IN PLACE of the list on a computer (a phone keeps the full-screen posting).
+  const O = out.desktop.opened;
+  assert.ok(O.post && O.inBoard, "d152OnePostingPanelEverywhere — the posting takes the board column");
+  assert.equal(O.listOut, "true"); assert.equal(O.listInert, true, "the folded list is out of the keyboard's reach");
+  assert.equal(O.coversDeck, false, "d153NoOverlapOpenFilter — the posting never covers the deck");
+  for (const [size, d] of Object.entries(out)) {
+    assert.equal(d.closed.sameListNode, true, `${size}: d153OpenPostingNoRemount — the list's node survives an open / close`);
+    assert.equal(d.closed.post, false, `${size}: closed`);
+    assert.equal(d.closed.yAfter, d.closed.yBefore, `${size}: d153ScrollRestoredOnClose (${d.closed.yBefore} → ${d.closed.yAfter})`);
+  }
+});
+
+test("d153 (1) · no panel placed by JS offsets: BesideDock is gone; the in-place layers and the column swap are CSS", () => {
+  const PANEL = read("client/src/panels/JobsPanel.jsx");
+  const BUB = read("client/src/components/JobBubble.jsx");
+  assert.doesNotMatch(PANEL, /BesideDock|BESIDE_TOP|addEventListener\("scroll"/, "d153NoScrollPositionListeners");
+  assert.match(BUB, /export function JobBoardColumns\(\{ post = null, children \}\)/);
+  assert.match(BUB, /<div className="jb-board__list" data-out=\{open \? "true" : "false"\}/, "one tree, open or not");
+  assert.match(CSS, /\.home__board:has\(\[data-board-post\]\) > :not\(:has\(\[data-board-post\]\)\) \{ display: none; \}/);
 });
 
 test("d152 (5) · the bubbles' source: pairs from JobBubbleRows, one column beside an open posting, no ATS square", () => {
@@ -111,7 +130,7 @@ test("d152 (5) · the bubbles' source: pairs from JobBubbleRows, one column besi
   const CSSB = read("client/src/components/JobBubble.css");
   assert.match(BUB, /export function JobBubbleRows\(\{ jobs, children, columns = 2 \}\)/);
   assert.doesNotMatch(BUB, /jb__sq--ats|onAts/, "the old ATS square and its handler are gone");
-  assert.match(PANEL, /<JobBubbleRows jobs=\{jobs\} columns=\{beside \? 1 : 2\}>/);
+  assert.match(PANEL, /<JobBubbleRows jobs=\{jobs\} columns=\{2\}>/);
   assert.match(CSSB, /\.jb-pair:hover \.jb \{ flex-grow: \.75; \}\n\.jb-pair \.jb:hover, \.jb-pair \.jb:focus-within \{ flex-grow: 1\.5;/);
 });
 

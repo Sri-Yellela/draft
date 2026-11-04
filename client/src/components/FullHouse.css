@@ -339,6 +339,10 @@
 /* D152 (4) / D153 (1): the dock pushes the page — while it is out (AppNav sets data-dock-open on <html>) Home's left
    padding makes room for it (the sketch's body.docked .home), so it never covers the deck or the sentence. */
 :root[data-dock-open="true"] .home { padding-left: 268px; }
+/* ⭐ D152 (6) · the opened posting takes the WHOLE right column (home-sketch.html: the .pp layer in place of #list, the
+   sentence and search included) — every other child of the board column steps aside while the board holds an open
+   posting, and comes back on Close. CSS alone (:has), nothing measured. */
+.home__board:has([data-board-post]) > :not(:has([data-board-post])) { display: none; }
 .home__deck { position: sticky; top: calc(var(--app-chrome-height, 74px) + 44px); align-self: start; width: 390px; }
 /* With the dock as the navigation there is nothing in the chrome strip (D152 (4): no corner mark), so Home starts at the
    sketch's 44 px from the top of the screen, not 44 under an empty strip. The Menu keeps its button there, and the strip. */
