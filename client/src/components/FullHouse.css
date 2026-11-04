@@ -326,3 +326,27 @@
   .fh-count b { font-size: calc(30px * var(--type-scale, 1)); }
   .fh-bar .fh-srch { border-top: 0; border-radius: 14px; }
 }
+
+/* ── ⭐ D152 (1) · HOME — home-sketch.html's `.home`, its values verbatim ────────────────────────────────────────────────
+ * One grid laid out by CSS (D153 (1): never by JS offsets): the deck's column (`.deckcol`, 390 wide, sticky in its own
+ * track 44px under the chrome) and the board's column taking the rest, 56px apart, the page 1440 wide with 44 40 90
+ * padding. At 980px and under: one column, the deck first, centred, 28 18 80. The header pieces inside the board column
+ * drop their own 1240 column and gutters — the column is theirs. */
+.home { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 56px; max-width: 1440px; margin: 0 auto;
+  padding: 44px 40px 90px; box-sizing: border-box; width: 100%;
+  transition: padding-left .32s cubic-bezier(.2, .9, .3, 1); }
+@media (prefers-reduced-motion: reduce) { .home { transition: none; } }
+.home__deck { position: sticky; top: calc(var(--app-chrome-height, 74px) + 44px); align-self: start; width: 390px; }
+.home__board { min-width: 0; }
+.home__board .fh[data-fh-d147], .home__board .fh.fh--bar-row, .home__board .fh.fh-counts { max-width: none; padding-left: 0; padding-right: 0; }
+.home__board .fh[data-fh-d147] { padding-top: 0; }
+.home__board .fh[data-fh-d147] .bh { margin-top: 0; max-width: 34ch; }
+/* The one Sort / view control: no title row of its own on a computer — at the column's top right, beside the sentence
+   (34ch, so the two never meet at these widths); in the flow on a phone. */
+.home__board { position: relative; }
+.fh-title--home { justify-content: flex-end; position: absolute; top: 0; right: 0; z-index: 2; }
+@media (max-width: 980px) {
+  .home { grid-template-columns: minmax(0, 1fr); gap: 34px; padding: 28px 18px 80px; }
+  .home__deck { position: static; margin: 0 auto; width: min(330px, 100%); }
+  .fh-title--home { position: static; margin-bottom: 12px; }
+}

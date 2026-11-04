@@ -26,7 +26,7 @@ test("the sort trigger sits in the board's ONE bar beside the views (D35: the fi
   // views into its panel (BoardSortSlot), as words; the bar is the search alone.
   const bar = app.slice(at(app, "function BoardBar()"), at(app, "// ⭐ D147 · THE TITLE ROW"));
   assert.doesNotMatch(bar, /<BoardControlIcons \/>|<BoardTabs \/>/);
-  assert.match(app.slice(at(app, "function BoardTitleRow()"), at(app, "function BoardCounts()")), /<BoardControlIcons \/>/);
+  assert.match(app.slice(at(app, "function BoardTitleRow("), at(app, "function BoardCounts()")), /<BoardControlIcons \/>/);
   assert.match(app.slice(at(app, "function BoardSortSlot()"), at(app, "function BoardBar()")), /<BoardTabs \/>/);
   // D49: in the StickyBar at the top of <main>, right after the header.
   assert.match(app.slice(at(app, '<header className="fh"'), at(app, "</main>")), /<StickyBar[^>]*>\s*<BoardBar \/>/);

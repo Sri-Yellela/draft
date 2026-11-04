@@ -644,7 +644,10 @@ function EndOfDeck({ s, tally, needsReview, onUndo }) {
 }
 
 // ── the view ────────────────────────────────────────────────────────────────────────────────
-export default function DeckView({ canUseAPlusResume = true }) {
+// ⭐ D152 (1) · HOME: `home` draws the deck as Home's left column (home-sketch.html's .deckcol, 390 px) — the card-shaped
+// vertical layout at every width, never the two-panel report beside it (the column is the deck's whole width).
+export const HOME_DECK_COLUMN = 390;
+export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const [load, setLoad] = useState({ status: "loading", error: null });
   // "__replace" swaps in a freshly loaded deck; every other action is the pure reducer's.
   const [state, dispatch] = useReducer((st, a) => (a.type === "__replace" ? a.state : deckReducer(st, a)), null, () => initialDeck(null));
@@ -682,15 +685,16 @@ export default function DeckView({ canUseAPlusResume = true }) {
   // arrives later — an undo, a refusal — fades into its slot.
   const firstPaint = useRef(true);
 
-  const { w: vw } = useViewport();
-  const orientation = orientationFor(vw);
+  const { w: viewportW } = useViewport();
+  const vw = home ? Math.min(viewportW, HOME_DECK_COLUMN) : viewportW;
+  const orientation = home ? "vertical" : orientationFor(vw);
   // The user's layout (queue 38), FITTED to the screen and overridden by reduced motion — geometryFor
   // is the only road from a stored preference to the fan.
   const [deckPref] = useDeckGeometry();
   const geometry = { ...geometryFor(orientation, deckPref, { reduced: !!reduced }), ...(DEV_FAN?.[orientation] || null) };
   // ⭐ TWO EQUAL PANELS (A40) on a wide horizontal screen: the card is one column wide at rest AND open,
   // so opening never resizes it. Below TWO_PANEL_PX the report is a sheet and the card is as it was.
-  const twoPanel = twoPanelFor(vw);
+  const twoPanel = home ? false : twoPanelFor(vw);
   const size = twoPanel ? { width: twoPanelColumn(vw), height: CARD.horizontal.height } : cardSize(orientation, vw);
 
   const scoringTries = useRef(0);
@@ -927,10 +931,11 @@ export default function DeckView({ canUseAPlusResume = true }) {
           the arc riding right with an open card's column is clipped at the SCREEN's edge. */}
       <div data-deck-clip style={{ overflowX: "clip" }}>
       {/* isolation: the fan's tiers are below CONTENT, and this keeps them above the page itself. */}
-      <div data-deck-orientation={orientation} data-deck-two-panel={twoPanel ? "" : undefined}
-        style={{ maxWidth: twoPanel ? TWO_PANEL.maxWidth + 2 * TWO_PANEL.pad : vertical ? 560 : 760, margin: "0 auto",
+      <div data-deck-orientation={orientation} data-deck-two-panel={twoPanel ? "" : undefined} data-deck-home={home ? "" : undefined}
+        style={{ maxWidth: home ? HOME_DECK_COLUMN : twoPanel ? TWO_PANEL.maxWidth + 2 * TWO_PANEL.pad : vertical ? 560 : 760, margin: "0 auto",
                  // ⭐ D149: the card's top at the sketch's 90 px — the chrome's 74 + 16 (App.jsx gives the deck no main padding).
-                 padding: vertical ? "16px 12px 120px" : "16px 16px 140px",
+                 // D152: on Home the column's own padding places it; the fan's room below stays.
+                 padding: home ? "0 0 120px" : vertical ? "16px 12px 120px" : "16px 16px 140px",
                  // ⛔ D92: never `clip` here, in either layout. Clipping this 560px column sliced the vertical fan's
                  // outer cards with two hard vertical lines (the "cut out and pasted" deck); the full-width
                  // data-deck-clip above already stops a sideways page scroll, at the SCREEN's edge.
