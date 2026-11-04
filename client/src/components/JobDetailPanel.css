@@ -16,7 +16,7 @@
 .pp__logo:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
 .pp__who { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .pp__co { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pp__loc { font-size: 13px; color: var(--c-ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp__loc { font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pp__sp { flex: 1 1 auto; }
 
 /* The ATS number box is components/AtsNumberBox.css (A93) — one box, every surface. */
@@ -25,7 +25,7 @@
 .pp__x {
   flex: 0 0 auto; padding: 6px 11px; border-radius: var(--shape-radius-small, 10px); cursor: pointer;
   border: 0; background: var(--c-fh-well); color: var(--c-ink-muted);
-  font: 600 13px/1.2 var(--font-body); transition: color .16s, background .16s;
+  font: 600 calc(13px * var(--type-scale, 1))/1.2 var(--font-body); transition: color .16s, background .16s;
 }
 .pp__x:hover, .pp__x:focus-visible { color: var(--c-ink); outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
 
@@ -33,11 +33,11 @@
 .pp__pending {
   align-self: flex-start; margin: -4px 18px 8px 76px; padding: 4px 9px; border-radius: 8px; cursor: pointer; box-shadow: var(--c-depth-rest);
   border: 1px solid var(--c-accent-ink); background: transparent; color: var(--c-accent-ink);
-  font: 800 10px/1.4 var(--font-body); letter-spacing: .02em;
+  font: 800 calc(10px * var(--type-scale, 1))/1.4 var(--font-body); letter-spacing: .02em;
 }
 
 .pp__body { flex: 1; padding: 0 0 8px; }
-.pp__applicants { margin: 8px 22px 0; font-size: 12px; color: var(--c-ink-faint); }
+.pp__applicants { margin: 8px 22px 0; font-size: calc(12px * var(--type-scale, 1)); color: var(--c-ink-faint); }
 
 /* D147 · the actions at the panel's FOOT, pinned while the posting scrolls beneath. */
 .pp__foot {
@@ -49,20 +49,20 @@
 .pp__main-acts .dbx { width: 100%; justify-content: center; }
 .pp__moreb {
   padding: 0 16px; border-radius: var(--shape-radius-control, 12px); cursor: pointer; border: 1px solid var(--c-fh-line);
-  background: var(--c-fh-well); color: var(--c-ink-muted); font: 600 14px/1 var(--font-body); box-shadow: var(--c-depth-rest);
+  background: var(--c-fh-well); color: var(--c-ink-muted); font: 600 calc(14px * var(--type-scale, 1))/1 var(--font-body); box-shadow: var(--c-depth-rest);
 }
 .pp__moreb:hover, .pp__moreb:focus-visible { color: var(--c-ink); border-color: var(--c-accent-ink); outline: none; }
 .pp__moreb[aria-expanded="true"] { color: var(--c-ink); border-color: var(--c-accent-ink); }
 .pp__more { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
-.pp__more .pp__submitted { padding: 0; flex-basis: 100%; font-size: 12.5px; }
+.pp__more .pp__submitted { padding: 0; flex-basis: 100%; font-size: calc(12.5px * var(--type-scale, 1)); }
 .pp__more .pp__quota { padding: 0; flex-basis: 100%; }
 .pp__foot .pp__quota, .pp__foot .pp__ready { padding: 6px 0 0; }
-.pp__quota { margin: 0; padding: 0 18px 10px; font-size: 11px; color: var(--c-ink-faint); }
+.pp__quota { margin: 0; padding: 0 18px 10px; font-size: calc(11px * var(--type-scale, 1)); color: var(--c-ink-faint); }
 .pp__quota[data-empty="true"] { color: var(--c-accent-ink); }
 /* ⭐ D57 · "Résumé ready · 2h ago" — the stored résumé said in words, in both renderings (it is the state, not a hint). */
-.pp__ready { margin: 0; padding: 0 18px 6px; font-size: 11px; font-weight: 700; color: var(--c-success); }
+.pp__ready { margin: 0; padding: 0 18px 6px; font-size: calc(11px * var(--type-scale, 1)); font-weight: 700; color: var(--c-success); }
 /* ⭐ D56 · "I submitted it" on the manual route — a text control, then one evidence field. */
-.pp__submitted { padding: 0 18px 8px; font-size: 11px; }
+.pp__submitted { padding: 0 18px 8px; font-size: calc(11px * var(--type-scale, 1)); }
 .pp__submitted-btn { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--c-accent-ink);
   text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .pp__submitted form { display: flex; gap: 6px; }

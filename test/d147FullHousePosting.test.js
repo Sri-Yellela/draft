@@ -80,7 +80,7 @@ test("d147FilterSentenceKept · the sentence that filters stays — its words st
   assert.match(app, /<BoardHeadline params=\{params\}[^>]*\n\s+open=\{boardPanel\} onToggle=\{\(key\) => setBoardPanel\(current => nextBoardPanel\(current, key\)\)\} \/>/,
     "a word's press still opens its filter");
   // The serif at about 30px, through the sentence's TOKENS (D34: no token rule names a font).
-  assert.match(fhCss, /\.fh\[data-fh-d147\] \{\s+--fh-sentence-family: var\(--font-display\); --fh-sentence-size: min\(30px, 7vw\);/);
+  assert.match(fhCss, /\.fh\[data-fh-d147\] \{\s+--fh-sentence-family: var\(--font-display\); --fh-sentence-size: calc\(min\(30px, 7vw\) \* var\(--type-scale, 1\)\);/, "≈ 30px, following the text size (A116)");
   // The marked look (the default) underlines every changeable word in the accent, a SET one too (no orange box).
   const marked = fhCss.slice(at(fhCss, '[data-sentence="marked"] {'), at(fhCss, '[data-sentence="calm"] {'));
   assert.match(marked, /--tok-depth: inset 0 -1\.5px 0 var\(--c-accent\);/, "underlined in the accent");
