@@ -18,9 +18,12 @@ const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const jd = read("client/src/components/JobDetailPanel.jsx");
 const jdCss = read("client/src/components/JobDetailPanel.css");
 
-test("D48 · the header: logo · company link · ATS number box · × — and no title, chips or keyword chips", () => {
+// ⭐ D147 (owner 11-03) changed this on purpose: the header is logo · company link (over the location) · Close — the
+// ATS number box moved to the END OF THE FACTS BOX (test/d147FullHousePosting.test.js holds it there).
+test("D48 → D147 · the header: logo · company link · location · Close — and no title, chips or keyword chips", () => {
   const hd = jd.slice(at(jd, '<div className="pp__hd" data-posting-header="">'), at(jd, "{(pendingState ==="));
-  const order = ['className="pp__logo"', "<CompanyLink", "<AtsNumberBox", 'className="pp__x"'].map(s => hd.indexOf(s));
+  assert.ok(!hd.includes("<AtsNumberBox"), "D147: the match box is not in the header");
+  const order = ['className="pp__logo"', "<CompanyLink", 'className="pp__loc"', 'className="pp__x"'].map(s => hd.indexOf(s));
   assert.ok(order.every(i => i >= 0), "a header piece is missing");
   assert.deepEqual([...order].sort((a, b) => a - b), order, "the header's order is the sketch's");
   assert.doesNotMatch(hd, /selectedJob\.title|WorkBadge|VisaBadge|SkillChips|atsBandLabel|ago\(/, "the old header's chips are back");
@@ -60,20 +63,20 @@ test("D48 · owner: \"the ATS number switches colour\" — the ATS card's number
   assert.doesNotMatch(rule, /--c-pair-accent/);
 });
 
-test("D48 · the actions: one component, A ≥ 600px of PANEL and B below — a container query, sticky through StickyBar", () => {
+// ⭐ D147 (owner 11-03) changed this on purpose: the A / B renderings (labelled boxes / icon squares) became ONE row at
+// the panel's FOOT — Pass · Save · Draft · More — and the sticky top bar went with them. Still a container query, never
+// the window's; StickyBar keeps its one remaining consumer (the board's bar, D49).
+test("D48 → D147 · the actions: one row at the panel's foot, Pass · Save · Draft · More — a container query, never the window", () => {
   assert.match(jdCss, /\.pp \{ container-type: inline-size; container-name: pp; \}/);
-  assert.match(jdCss, /@container pp \(min-width: 600px\) \{ \.pp__a \{ display: flex; \} \}/);
-  assert.match(jdCss, /@container pp \(max-width: 599\.98px\) \{ \.pp__b \{ display: flex; \} \.pp__quota \{ display: none; \} \}/);
+  assert.match(jdCss, /@container pp \(max-width: 420px\)/);
   assert.doesNotMatch(jdCss, /@media[^{]*width/, "a viewport query decides the panel's rendering");
-  assert.match(jd, /<StickyBar top="0px" className="pp__bar" data-posting-actions-bar="">/);
-  // D49: ONE module, two consumers — the board's bar and this one.
-  const consumers = ["client/src/App.jsx", "client/src/components/JobDetailPanel.jsx"].filter(f => /<StickyBar/.test(read(f)));
-  assert.equal(consumers.length, 2);
+  assert.doesNotMatch(jd, /<StickyBar/, "the top bar is gone");
+  assert.match(jd, /<div className="pp__foot" data-posting-actions-bar="">/);
+  assert.match(jdCss, /\.pp__foot \{\s+position: sticky; bottom: 0;/);
+  assert.match(read("client/src/App.jsx"), /<StickyBar/, "D49's module keeps the board's bar");
   const acts = jd.slice(at(jd, "function PostingActions("), at(jd, "export default function JobDetailPanel("));
-  // A: Pass · Save · Draft | Résumé · (Preview · PDF) · Cover letter; B: the same as squares, the quota as Draft's badge.
-  assert.match(acts, /<div className="pp__a" role="group" aria-label="Actions">/);
-  assert.match(acts, /<div className="pp__b" role="group" aria-label="Actions">/);
-  assert.match(acts, /<DraftButton logo square [^>]*\n\s+badge=\{slots \? slots\.remaining : null\} \/>/);
+  assert.match(acts, /<div className="pp__main-acts" role="group" aria-label="Actions" data-d147-actions="">/);
+  assert.doesNotMatch(acts, /className="pp__a"|className="pp__b"|size="square"/, "no icon squares are left");
   assert.match(acts, /<p className="pp__quota" data-draft-slots/);
 });
 
@@ -93,8 +96,8 @@ test("D48 · the deck strip: Workstyle replaces Where; the location is a muted l
 test("owner 10-07 (36) · the posting panel's Draft button IS the logo — the one StampLogo, in the mark's own tokens", () => {
   const db = read("client/src/components/DecisionButtons.jsx");
   const acts = jd.slice(at(jd, "function PostingActions("), at(jd, "export default function JobDetailPanel("));
-  assert.match(acts, /<DraftButton logo drafted=/, "A: /draft");
-  assert.match(acts, /<DraftButton logo square drafted=/, "B: /d");
+  assert.match(acts, /<DraftButton logo drafted=/, "/draft");
+  // D147: the /d square went with the icon squares — Draft is the one labelled /draft box in the row.
   assert.match(db, /import \{ StampLogo \} from "\.\/StampLogo\.jsx";/, "reused, never redrawn");
   const logo = db.slice(at(db, "  if (logo) {"), at(db, "  return <DecisionPill compact={compact} square={square} primary"));
   assert.match(logo, /icon=\{square \? <StampLogo size="md" progress=\{1\} \/> : null\}/);

@@ -310,7 +310,9 @@ test("⛔ the ATS content is OUT of the description — the posting reads no rep
   const posting = strip(POSTING);
   assert.doesNotMatch(posting, /tier1_|competencies_|action_verbs_|decline_reasons|skillsMatched|verbsMissing|AtsReport|AtsBandCard/);
   // It is handed, at most, the scorer's experience judgement — for the Experience cell's tint.
-  assert.match(POSTING, /export default function PostingPanel\(\{ job, text = job\?\.description, experience = null, showTitle = true, vtTitle = null, children = null \}\)/);
+  // D147 (11-03): + `layout` and `matchBox` — the match box is the one AtsNumberBox handed in as a NODE; this file
+  // still reads no report section (the scan above).
+  assert.match(POSTING, /export default function PostingPanel\(\{ job, text = job\?\.description, experience = null, showTitle = true, vtTitle = null, children = null,\s+layout = "deck", matchBox = null \}\)/);
 });
 
 test("⛔ D17: zero model calls — the masthead is columns, tags and a regex; the body is the stored text", () => {
@@ -380,7 +382,8 @@ test("⛔ THE ONLY DARK SURFACE IS A RULE: no file but the pair wears it, and no
   assert.equal(decl(ATS_REPORT_CSS), decl(PAIR_CSS), "the score half's surface drifted from the posting's");
   // … and the web wrapper decides no surface: it passes the registry's live theme, nothing else.
   assert.match(WRAPPER, /theme: ACTIVE_THEME\.id/);
-  assert.match(POSTING, /<article className="posting ink-pair" data-posting-panel>/);
+  // D147 (11-03): the opened posting adds `posting--panel` beside it — the surface is still the pair's.
+  assert.match(POSTING, /<article className=\{`posting ink-pair\$\{panel \? " posting--panel" : ""\}`\} data-posting-panel/);
   // The extension's own generated tokens carry none of the pair's: since T9 it draws the score half only through
   // the shared component, whose shadow root carries its own values (shared/atsReportTokens.js) — never a page sheet.
   for (const f of ["extension/tokens.css", "extension/tokens.js"]) assert.doesNotMatch(read(f), /PAIR_|--c-pair-/, `${f} carries the pair`);

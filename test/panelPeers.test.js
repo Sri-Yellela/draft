@@ -77,8 +77,9 @@ test("4. TWO sticky regions — identity header AND action bar — and only the 
   // The PDF and ATS panels supply both slots. ⭐ D48 (owner, 10-07 — posting-header2.html): the posting panel
   // is `bare` — its header SCROLLS AWAY and its actions stick through the one StickyBar (D49) inside the body,
   // which is still the only scroller.
+  // ⭐ D147 (11-03) changed this on purpose: the actions moved to the body's FOOT (`.pp__foot`, sticky bottom).
   assert.match(jd, /^\s+bare$/m, "the posting panel renders its own header and sticky actions");
-  assert.match(jd, /<StickyBar top="0px" className="pp__bar"/);
+  assert.match(jd, /<div className="pp__foot" data-posting-actions-bar="">/);
   assert.match(shell, /\{!bare && \(/, "a bare shell draws neither pinned region");
   for (const [name, src] of [["PDF", sandbox], ["ATS", ats]]) {
     assert.match(src, /header=\{/, `${name} must fill the identity header slot`);
@@ -102,7 +103,8 @@ test("6. one close affordance, top-right of the header, owned by the primitive",
   assert.equal((shell.match(/aria-label="Close panel"/g) || []).length, 1);
   // D48: the bare posting panel's × is its header's (the sketch's row) — and only because the shell's is not
   // drawn when bare, so a panel never shows two. Esc and the scrim still close through the shell.
-  assert.equal((jd.match(/aria-label="Close panel"/g) || []).length, 1);
+  // ⭐ D147 (11-03): that × is now a small "Close" text box, named "Close the posting" — still exactly one.
+  assert.equal((jd.match(/aria-label="Close the posting"/g) || []).length, 1);
   assert.match(jd, /^\s+bare$/m);
 });
 

@@ -11,7 +11,6 @@ import CompanyLink from "./CompanyLink.jsx";
 import CompanyLogo from "./CompanyLogo.jsx";
 import { AtsNumberBox } from "./AtsNumberBox.jsx";
 import { atsScorePair } from "../../../shared/resumeScores.js";
-import StickyBar from "./StickyBar.jsx";
 import DepthButton, { ICONS } from "./DepthButton.jsx";
 import "./JobDetailPanel.css";
 import { DraftButton, PassButton, SaveButton } from "./DecisionButtons.jsx";
@@ -62,6 +61,7 @@ export function clockLabel(ms, now = Date.now()) {
  * confirmation email's subject, or a reference number) verifies it; without it the record is kept as
  * "recorded, not verified" and the server's sentence says what is missing.
  */
+// ⭐ D147: the button reads "I applied myself" (it was "I submitted it") and lives under More; its behaviour is unchanged.
 function ManualSubmitted({ jobId }) {
   const [open, setOpen] = useState(false);
   const [evidence, setEvidence] = useState("");
@@ -84,7 +84,7 @@ function ManualSubmitted({ jobId }) {
   };
   return (
     <div className="pp__submitted" data-manual-submitted="">
-      {!open && <button type="button" className="pp__submitted-btn" onClick={() => setOpen(true)}>I submitted it</button>}
+      {!open && <button type="button" className="pp__submitted-btn" onClick={() => setOpen(true)}>I applied myself</button>}
       {open && (
         <form onSubmit={(ev) => { ev.preventDefault(); record(); }}>
           <input type="text" value={evidence} onChange={(ev) => setEvidence(ev.target.value)} aria-label="Confirmation link, email subject, or reference number"
@@ -126,69 +126,61 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
   const split = (square, label, onRun) => (
     <ByomResumeChoice byom={byom} square={square} label={label} onGenerate={onRun} disabled={!!st || noSlots} busy={generateLoading} />
   );
+  // More opens in place, one posting at a time; it opens by itself while a résumé is being made, so the progress shows.
+  const [more, setMore] = useState(false);
+  useEffect(() => { setMore(false); }, [job?.jobId]);
+  useEffect(() => { if (generateLoading) setMore(true); }, [generateLoading]);
+  const moreId = `pp-more-${job?.jobId ?? "x"}`;
   const quota = slots
     ? (noSlots
         ? `You've used your drafts for now — the next one frees up ${freeAt ? `at ${freeAt}` : "within 24 hours"}.`
         : `${slots.remaining} of ${slots.limit} drafts left in the last 24 hours — a Draft or a new résumé uses one.`)
     : null;
+  // ⭐ D147 (owner 11-03) · PASS · SAVE · DRAFT · MORE. The five icon-only squares (✕ ★ /d 📄 ✉) and "I submitted it"
+  // are folded: ✕ is the header's Close, ★ and /d are Save and Draft here, and 📄 (the résumé), ✉ (the COVER LETTER —
+  // measured in the code: ICONS.letter, onCoverLetter; there is no "email it to me" feature) and "I submitted it" go
+  // under More, which opens IN PLACE. Each keeps its behaviour under its new label.
   return (
     <div className="pp__act" data-posting-actions="">
-      {/* A — labelled boxes, when the panel is wide enough. */}
-      <div className="pp__a" role="group" aria-label="Actions">
+      <div className="pp__main-acts" role="group" aria-label="Actions" data-d147-actions="">
         {onPass && <PassButton passed={!!selectedJob.disliked} onPass={onPass} />}
         {onSave && <SaveButton saved={!!selectedJob.starred} onSave={onSave} />}
         {canApply && onDraft && <DraftButton logo drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} {...draftProps} />}
-        <span className="pp__div" aria-hidden="true" />
-        {canGen && onGenerate && !hasArtifact && byom.available && split(false, "Résumé", () => onGenerate(false))}
-        {canGen && onGenerate && !hasArtifact && !byom.available && (
-          <DepthButton icon={ICONS.resume} onClick={() => onGenerate(false)} title={resumeTitle}
-            disabled={!!st || noSlots}>
-            {generateLoading ? "Generating…" : "Résumé"}
-          </DepthButton>
-        )}
-        {hasArtifact && <DepthButton icon={ICONS.preview} onClick={() => onViewSandbox?.()} title="View the résumé">View</DepthButton>}
-        {hasArtifact && <DepthButton icon={ICONS.pdf} onClick={() => onExport?.()} title="Download the résumé as a PDF">Download</DepthButton>}
-        {hasArtifact && canGen && onGenerate && byom.available && split(false, "Regenerate", regen)}
-        {hasArtifact && canGen && onGenerate && !byom.available && (
-          <DepthButton icon={ICONS.resume} onClick={regen} title={resumeTitle} disabled={!!st || noSlots}>
-            {generateLoading ? "Generating…" : "Regenerate"}
-          </DepthButton>
-        )}
-        <DepthButton icon={ICONS.letter} onClick={onCoverLetter} title="Write a cover letter">Cover letter</DepthButton>
+        <button type="button" className="pp__moreb" aria-expanded={more} aria-controls={moreId} data-posting-more-toggle=""
+          onClick={() => setMore(m => !m)}>More</button>
       </div>
-      {/* B — icon squares, when the panel is condensed. */}
-      <div className="pp__b" role="group" aria-label="Actions">
-        {onPass && <PassButton square passed={!!selectedJob.disliked} onPass={onPass} />}
-        {onSave && <SaveButton square saved={!!selectedJob.starred} onSave={onSave} />}
-        {canApply && onDraft && <DraftButton logo square drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} {...draftProps}
-          badge={slots ? slots.remaining : null} />}
-        <span className="pp__div" aria-hidden="true" />
-        {canGen && onGenerate && !hasArtifact && byom.available && split(true, "Résumé", () => onGenerate(false))}
-        {canGen && onGenerate && !hasArtifact && !byom.available && (
-          <DepthButton size="square" icon={ICONS.resume} onClick={() => onGenerate(false)}
-            title={resumeTitle} caption="Résumé" disabled={!!st || noSlots}>Generate résumé</DepthButton>
-        )}
-        {hasArtifact && <DepthButton size="square" icon={ICONS.preview} onClick={() => onViewSandbox?.()} title="View the résumé" caption="View">View résumé</DepthButton>}
-        {hasArtifact && <DepthButton size="square" icon={ICONS.pdf} onClick={() => onExport?.()} title="Download the résumé as a PDF" caption="PDF">Download résumé</DepthButton>}
-        {hasArtifact && canGen && onGenerate && byom.available && split(true, "Redo", regen)}
-        {hasArtifact && canGen && onGenerate && !byom.available && (
-          <DepthButton size="square" icon={ICONS.resume} onClick={regen}
-            title={resumeTitle} caption="Redo" disabled={!!st || noSlots}>Regenerate résumé</DepthButton>
-        )}
-        <DepthButton size="square" icon={ICONS.letter} onClick={onCoverLetter} title="Write a cover letter" caption="Letter">Cover letter</DepthButton>
-      </div>
+      {more && (
+        <div className="pp__more" id={moreId} role="group" aria-label="More actions" data-posting-more="">
+          {canGen && onGenerate && !hasArtifact && byom.available && split(false, "Résumé for this job", () => onGenerate(false))}
+          {canGen && onGenerate && !hasArtifact && !byom.available && (
+            <DepthButton icon={ICONS.resume} onClick={() => onGenerate(false)} title={resumeTitle}
+              disabled={!!st || noSlots} data-more="resume">
+              {generateLoading ? "Generating…" : "Résumé for this job"}
+            </DepthButton>
+          )}
+          {hasArtifact && <DepthButton icon={ICONS.preview} onClick={() => onViewSandbox?.()} title="View the résumé" data-more="view">View résumé</DepthButton>}
+          {hasArtifact && <DepthButton icon={ICONS.pdf} onClick={() => onExport?.()} title="Download the résumé as a PDF" data-more="download">Download</DepthButton>}
+          {hasArtifact && canGen && onGenerate && byom.available && split(false, "Regenerate", regen)}
+          {hasArtifact && canGen && onGenerate && !byom.available && (
+            <DepthButton icon={ICONS.resume} onClick={regen} title={resumeTitle} disabled={!!st || noSlots} data-more="regenerate">
+              {generateLoading ? "Generating…" : "Regenerate"}
+            </DepthButton>
+          )}
+          <DepthButton icon={ICONS.letter} onClick={onCoverLetter} title="Write a cover letter" data-more="cover-letter">Cover letter</DepthButton>
+          {/* ⭐ D56 / A105 finding 3: the manual route records its own submission, on every posting. */}
+          {job?.jobId && <ManualSubmitted jobId={job.jobId} />}
+          {/* ⭐ D70 Phase 3: the cost, in words, before Generate / Regenerate is pressed. */}
+          {canGen && onGenerate && !noSlots && <p className="pp__quota" data-generate-expect="">Takes about 10–20 seconds.</p>}
+        </div>
+      )}
       {/* ⭐ D57: the state, in words — "Résumé ready · 2h ago". */}
       {/* ⭐ D90 P2: beside the state, the way into "What we changed" — the tailored résumé against the one it was made from. */}
       {hasArtifact && <p className="pp__ready" data-resume-ready="">{ago ? `Résumé ready · ${ago}` : "Résumé ready"} · <WhatWeChangedLink jobId={job?.jobId} jobLabel={[job?.title, job?.company].filter(Boolean).join(" · ")} /></p>}
       {/* ⭐ D86: Open → Waiting for your résumé… → Checks → Done, updating itself while the user is in the chat. */}
       <ByomStatus byom={byom} onView={() => onViewSandbox?.()} onDownload={() => onExport?.()} />
-      {/* ⭐ D56: the manual route records its own submission, here too — not only the extension. A105 finding 3: on every
-          posting, not only once a résumé was generated — applying with the base résumé is applying too. */}
-      {job?.jobId && <ManualSubmitted jobId={job.jobId} />}
       {/* A63: the shared allowance, said before anything is pressed — a muted line in A, the badge in B. */}
       {quota && <p className="pp__quota" data-draft-slots data-empty={noSlots ? "true" : "false"}>{quota}</p>}
       {/* ⭐ D70 Phase 3: the cost, in words, before Generate / Regenerate is pressed — a line, never a capsule (D60). */}
-      {canGen && onGenerate && !noSlots && <p className="pp__quota" data-generate-expect="">Takes about 10–20 seconds.</p>}
       {/* ⭐ D54: never silent, never a block — the user's other roles at this company, before Draft. */}
       {companyNotice && <p className="pp__quota" data-company-notice="">{companyNotice.replace(" Draft this one too?", "")}</p>}
       {/* ⛔ D59: what the POSTING requires, and whether the profile STATES an answer — never a block, and
@@ -326,25 +318,21 @@ export default function JobDetailPanel({
           description, which is what they annotate. */}
       <div className="pp" data-jd-panel="" style={{ display:"flex", flexDirection:"column", minHeight:"100%" }}>
 
-            {/* ⭐ D48 (owner, 10-07 — posting-header2.html, built to the file) · THE HEADER, which SCROLLS AWAY:
-                [logo]  Company (the one company link, D38)  ····  [ATS number box]  [×]. The title is the
-                masthead's; the chips (workstyle, location, salary, posted, band) and the keyword chips are
-                gone — the deck strip and the ATS card carry them. */}
+            {/* ⭐ D147 (owner 11-03, fullhouse-declutter.html) · THE HEADER: the company bubble (press = the company's
+                hiring data — CompanyViewModal: the stack, the teams hiring, the hiring signal, the sponsorship filings; the
+                behaviour it always had) · the company name = the original posting (A63 / D38's ONE CompanyLink, unchanged)
+                with the location under it · a small Close at the top right. The match box moved to the facts box's end. */}
             <div className="pp__hd" data-posting-header="">
-              <button type="button" className="pp__logo" onClick={() => setShowCompanyView(true)} title={`View ${selectedJob.company}'s KB profile`}
-                aria-label={`View ${selectedJob.company}'s KB profile`}>
+              <button type="button" className="pp__logo" onClick={() => setShowCompanyView(true)} title={`Hiring at ${selectedJob.company}`}
+                aria-label={`Hiring at ${selectedJob.company}`} data-company-hiring="">
                 <CompanyLogo company={selectedJob.company} iconUrl={selectedJob.companyIconUrl} size={46} radius={12}/>
               </button>
-              {/* ⭐ A63: APPLY IS THE COMPANY NAME — a link to the posting, opened in a new tab. */}
-              {/* ⛔ D38: the card's treatment, at last — the ONE company link: the logo face, no underline,
-                  no ↗, and a hit area that is the text alone (it was display:block, the whole line). */}
-              <div className="pp__co"><CompanyLink company={selectedJob.company} href={postingUrl || null} jobId={jobId} size="panel" onOpen={openedPosting} /></div>
+              <div className="pp__who">
+                <div className="pp__co"><CompanyLink company={selectedJob.company} href={postingUrl || null} jobId={jobId} size="panel" onOpen={openedPosting} /></div>
+                {selectedJob.location && <span className="pp__loc" data-posting-location="">{selectedJob.location}</span>}
+              </div>
               <span className="pp__sp" />
-              <AtsNumberBox score={scores.shown} tailored={scores.tailoredShown} base={scores.base}
-                open={!!selectedJobMeta?.atsOpen} onOpen={() => selectedJobMeta?.onAts?.()} />
-              <button type="button" className="pp__x" onClick={close} aria-label="Close panel" title="Close">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-              </button>
+              <button type="button" className="pp__x" onClick={close} aria-label="Close the posting" title="Close" data-posting-close="">Close</button>
             </div>
             {(pendingState === "pending" || pendingState === "recorded") && (
               <button type="button" className="pp__pending" data-pending-tag onClick={() => navigate({ pathname: "/app/auto-apply", search: "?sheet=pending" })}
@@ -353,15 +341,6 @@ export default function JobDetailPanel({
               </button>
             )}
 
-            {/* ⭐ D48 · THE ACTIONS, STICKY AT THE TOP of the panel's scroll area — through the ONE StickyBar
-                (D49), exactly as the board's bar sticks. × stays in the header (Esc and the backdrop close
-                from anywhere) — the row's default. */}
-            {selectedJobMeta && (
-              <StickyBar top="0px" className="pp__bar" data-posting-actions-bar="">
-                <PostingActions job={selectedJob} meta={selectedJobMeta} slots={slots}
-                  onCoverLetter={() => setShowCoverLetter(true)} />
-              </StickyBar>
-            )}
 
             {/* Company view (FE-4) */}
             {showCompanyView && (
@@ -382,12 +361,7 @@ export default function JobDetailPanel({
             {/* Description. PanelShell's body is the scroll container (property 5), so this is a
                 plain padded block — nesting another overflow:auto here would put a second scrollbar
                 inside the first. */}
-            <div style={{ flex:1, padding:"14px 14px" }}>
-              {selectedJob.applicantCount != null && (
-                <div style={{ fontSize:11, color:"var(--color-text-faint)", marginBottom:10 }}>
-                  👥 {selectedJob.applicantCount > 200 ? "200+" : selectedJob.applicantCount} applicants
-                </div>
-              )}
+            <div className="pp__body">
               {/* Y2B — four outcomes, each said plainly. The previous version had one fallback
                   sentence, "No description available.", which was shown for a posting the source
                   never described, for a fetch still in flight, and for a fetch that failed. Three
@@ -396,8 +370,10 @@ export default function JobDetailPanel({
                   strip, "not stated" where a fact is not on file), then the employer's own description,
                   formatted plainly. What shows when there is no text is the panel's fallback. */}
               {/* ⭐ D138: who the user knows at this company, from their own contacts — beside the pair, not in it. */}
-              <WarmPathsBlock jobId={selectedJob.id ?? selectedJob.jobId} />
-              <PostingPanel job={selectedJob} text={description} vtTitle={selectedJob.id}>
+              {/* ⭐ D147: the role · the facts box with the match box at its end · the posting — nothing between. */}
+              <PostingPanel job={selectedJob} text={description} vtTitle={selectedJob.id} layout="panel"
+                matchBox={<AtsNumberBox score={scores.shown} tailored={scores.tailoredShown} base={scores.base} caption="match"
+                  open={!!selectedJobMeta?.atsOpen} onOpen={() => selectedJobMeta?.onAts?.()} />}>
               {fetchState === "loading" ? (
                 <p style={{ fontSize:12, color:"var(--color-text-faint)", fontStyle:"italic" }}>
                   Loading the description from the source…
@@ -420,9 +396,24 @@ export default function JobDetailPanel({
                 <p style={{ fontSize:12, color:"var(--color-text-faint)", fontStyle:"italic" }}>No description available.</p>
               )}
               </PostingPanel>
-              {/* A63: no second "Apply directly" link here — Apply is the company name in the pinned
-                  header, which stays in view however far the posting is scrolled. */}
+              {/* ⭐ D138 · who the user knows at this company — after the posting now (D147: nothing between the facts
+                  and the description). The applicant count, when a source gives one, is a quiet line beside it. */}
+              <WarmPathsBlock jobId={selectedJob.id ?? selectedJob.jobId} />
+              {selectedJob.applicantCount != null && (
+                <p className="pp__applicants" data-applicant-count="">
+                  {selectedJob.applicantCount > 200 ? "200+" : selectedJob.applicantCount} applicants
+                </p>
+              )}
             </div>
+
+            {/* ⭐ D147 · THE ACTIONS, AT THE BOTTOM — Pass · Save · Draft · More, pinned to the panel's foot while the
+                posting scrolls (position: sticky; bottom: 0 in JobDetailPanel.css). */}
+            {selectedJobMeta && (
+              <div className="pp__foot" data-posting-actions-bar="">
+                <PostingActions job={selectedJob} meta={selectedJobMeta} slots={slots}
+                  onCoverLetter={() => setShowCoverLetter(true)} />
+              </div>
+            )}
       </div>
     </PanelShell>
   );

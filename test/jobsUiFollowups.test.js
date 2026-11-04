@@ -62,8 +62,9 @@ test("jobs search button uses two-step local then scrape flow and pagination sup
   assert.match(jobsPanel, /await handleSetRole\(q\)/);
   assert.match(jobsPanel, /await handlePullRefresh\(\)/);
   assert.match(jobsPanel, /searchPhase === "local" && roleIsSet \? "Search New" : "Set Role"/);
-  assert.match(jobsPanel, /buildVisiblePageItems/);
-  assert.match(jobsPanel, /Go to page/);
+  // ⭐ D147 (owner 11-03) changed this on purpose: page numbers → scrolling (the next page appends at the list's end).
+  assert.doesNotMatch(jobsPanel, /buildVisiblePageItems|Go to page/);
+  assert.match(jobsPanel, /<BoardMore /);
   assert.doesNotMatch(jobsPanel, /resultsUpToDate/);
   assert.doesNotMatch(jobsPanel, /scrapeNewCount/);
 });

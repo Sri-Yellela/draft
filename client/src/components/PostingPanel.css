@@ -103,10 +103,44 @@
 .posting__none { padding: 20px 30px 26px; font-size: 14px; color: var(--c-pair-ink-muted); }
 .posting__none a, .posting__none button { color: var(--c-pair-kicker); }
 
+/* ── ⭐ D147 · the opened posting (layout="panel", fullhouse-declutter.html) ───────────────────────────────────
+ * The role in the serif, then ONE rounded facts box whose last cell is the match box; the posting follows directly.
+ * No wash, no kicker, no company line (the panel's header carries the company). D144 corners via the shape tokens. */
+.posting--panel { box-shadow: none; border-radius: var(--shape-radius-card, 18px); }
+.posting__mast--panel { background: none; padding: 6px 22px 18px; }
+.posting__mast--panel .posting__title { font-size: 34px; line-height: 1.06; margin: 4px 0 14px; }
+.posting__facts {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch;
+  border: 1px solid var(--c-pair-rule); border-radius: var(--shape-radius-card, 18px); overflow: hidden; background: var(--c-pair-raised);
+}
+.posting__facts .posting__strip {
+  margin: 0; border: 0; border-radius: 0; background: var(--c-pair-rule);
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+}
+.posting__facts .posting__cell dd { font-size: 17px; line-height: 1.15; }
+.posting__cell--more { cursor: pointer; }
+.posting__cell--more:hover, .posting__cell--more:focus-visible { background: var(--c-pair-met-quiet); outline: none; }
+.posting__cell--more[aria-expanded="true"] dd { color: var(--c-pair-accent); }
+/* The match box: the one AtsNumberBox, filling the facts box's last cell. */
+.posting__match { display: grid; place-items: center; padding: 10px 14px; border-left: 1px solid var(--c-pair-rule); background: var(--c-pair-raised); }
+.posting__match .atsn { width: 72px; height: 62px; }
+.posting__match .atsn b { font-size: 28px; }
+.posting__match .atsn small { font-size: 9px; letter-spacing: .08em; text-transform: none; }
+.posting__cell-more { margin-top: 12px; }
+.posting--panel .posting__body { padding: 4px 22px 22px; }
+.posting__after { padding: 0 22px 10px; }
+
 /* ── The phone. The sketch has no phone values; D32's phone answer stands — the strip two by two, and
  * the masthead and body inset less, so the employer's text is not squeezed to a column. Last, so it wins. */
 @media (max-width: 560px) {
   .posting__mast { padding: 22px 18px 18px; }
   .posting__body { padding: 20px 18px 24px; }
   .posting__strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* D147 · the facts two by two, the match box a full-width row under them (the sketch's phone). */
+  .posting__mast--panel { padding: 4px 16px 16px; }
+  .posting__mast--panel .posting__title { font-size: 28px; }
+  .posting__facts { grid-template-columns: 1fr; }
+  .posting__facts .posting__strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .posting__match { border-left: 0; border-top: 1px solid var(--c-pair-rule); }
+  .posting--panel .posting__body { padding: 4px 16px 20px; }
 }

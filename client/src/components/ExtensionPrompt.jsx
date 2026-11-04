@@ -52,12 +52,27 @@ function readDismissed() {
   try { return localStorage.getItem(DISMISS_KEY) === "1"; } catch { return false; }
 }
 
+// ⭐ D147 (owner 11-03): the prompt is shown ONCE — on the first visit that shows it — and stays dismissible. A later
+// visit (a new page load) treats it as seen; within the visit that showed it, it stays until dismissed.
+const SEEN_KEY = "draft:extension-prompt-seen";
+let shownThisLoad = false;
+function seenBefore() {
+  if (shownThisLoad) return false;
+  try { return localStorage.getItem(SEEN_KEY) === "1"; } catch { return false; }
+}
+function markSeen() {
+  shownThisLoad = true;
+  try { localStorage.setItem(SEEN_KEY, "1"); } catch {}
+}
+
 export function ExtensionFirstRunPrompt() {
   const status = useExtensionStatus();
-  const [dismissed, setDismissed] = useState(readDismissed);
+  const [dismissed, setDismissed] = useState(() => readDismissed() || seenBefore());
+  const showing = !dismissed && !!status && !status.connected;
+  useEffect(() => { if (showing) markSeen(); }, [showing]);
   // Unknown (loading, or the check failed) shows nothing: a prompt that flashes and vanishes for
   // someone who already has the extension is worse than one that arrives a beat late.
-  if (dismissed || !status || status.connected) return null;
+  if (!showing) return null;
   const dismiss = () => {
     try { localStorage.setItem(DISMISS_KEY, "1"); } catch {}
     setDismissed(true);
@@ -82,7 +97,7 @@ export function ExtensionFirstRunPrompt() {
         <div data-extension-state="not_installed" style={{ flex: "1 1 260px", minWidth: 0, lineHeight: 1.5 }}>
           <strong>Add jobs from any site.</strong>{" "}
           <span style={{ color: "var(--color-text-muted)" }}>
-            The draft browser extension captures the posting you're viewing onto your board — find it under +.
+            The draft browser extension captures the posting you're viewing onto your board — find it under Sort → Imported.
           </span>
         </div>
       )}

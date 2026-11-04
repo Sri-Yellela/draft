@@ -20,7 +20,6 @@ import { JobBoardProvider, useJobBoard } from "./contexts/JobBoardContext.jsx";
 import { AutoApplyProvider, useAutoApply } from "./contexts/AutoApplyContext.jsx";
 import { AutoApplyPanel }        from "./panels/AutoApplyPanel.jsx";
 import { JobWorkspacePanel }     from "./panels/JobWorkspacePanel.jsx";
-import { DraftMark }             from "./components/DraftMark.jsx";
 import { ExtensionFirstRunPrompt } from "./components/ExtensionPrompt.jsx";
 import { ProfilePanel }          from "./panels/ProfilePanel.jsx";
 import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
@@ -36,9 +35,9 @@ import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
 import BoardHeadline             from "./components/BoardHeadline.jsx";
 import WordPanel                 from "./components/WordPanel.jsx";
 import SortPanel                 from "./components/SortPanel.jsx";
-import { ViewSegment, BoardSearch, SortSquare } from "./components/BoardBar.jsx";
+import { ViewSegment, BoardSearch, SortWord } from "./components/BoardBar.jsx";
 import StickyBar from "./components/StickyBar.jsx";
-import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT, BOARD_PANEL, viewCounts } from "./lib/filterSentenceModel.js";
+import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT, BOARD_PANEL, viewCounts, boardCounts } from "./lib/filterSentenceModel.js";
 import { ATSToolPage }           from "./pages/tools/ATSToolPage.jsx";
 import { GenerateToolPage }      from "./pages/tools/GenerateToolPage.jsx";
 import { ApplyToolPage }         from "./pages/tools/ApplyToolPage.jsx";
@@ -233,15 +232,18 @@ function AppTopBar({ tabs, ...props }) {
 //
 // D11: the Pending chip is the DRAFT MARK, not an hourglass — a pending row is one you drafted, and
 // the card's Draft button carries the same /d (components/DraftMark.jsx). (D18: the tab no longer does.)
+// ⭐ D147 (owner 11-03): the symbols (ALL · ★ · /d · +) became WORDS and left the first screen — they live inside the
+// Sort / view control's panel now (BoardSortSlot), under "Show". The four views, their values and counts are unchanged.
 const BOARD_TABS = [
-  ["all",     "ALL",  "All jobs on your board"],
-  ["saved",   "★",    "Saved jobs"],
-  ["pending", <DraftMark key="d" style={{ fontSize: "inherit" }}/>, "Pending apply"],
-  // ⭐ D40 (owner, 10-06): + is the FOURTH VIEW — the jobs you imported, on the board's own card.
-  ["imported", "+", "Imported jobs"],
+  ["all",      "All jobs", "All jobs on your board"],
+  ["saved",    "Saved",    "Saved jobs"],
+  ["pending",  "Pending",  "Pending apply"],
+  // ⭐ D40 (owner, 10-06): the FOURTH VIEW — the jobs you imported, on the board's own card.
+  ["imported", "Imported", "Imported jobs"],
 ];
+const BOARD_VIEW_WORDS = Object.fromEntries(BOARD_TABS.map(([id, w]) => [id, w]));
 
-// D35: the three views as ONE segmented control, each with its count (facets' `views`).
+// D35: the views as ONE segmented control, each with its count (facets' `views`).
 function BoardTabs() {
   const { boardTab, setBoardTab, boardHeadline } = useJobBoard();
   return (
@@ -276,15 +278,15 @@ function BoardControlIcons() {
   }, [atsSortAvailable, sortBy, setSortBy, fitRow]);
 
   const sortLabel = sortRows(atsSortAvailable).find(r => r.value === sortBy)?.label || "";
+  const { boardTab } = useJobBoard();
   return (
-    <>
-      <SortSquare
-        open={boardPanel === BOARD_PANEL.SORT}
-        onPress={() => setBoardPanel(current => nextBoardPanel(current, BOARD_PANEL.SORT))}
-        label={sortLabel}
-        chosen={isSortChosen(sortBy)}
-      />
-    </>
+    <SortWord
+      open={boardPanel === BOARD_PANEL.SORT}
+      onPress={() => setBoardPanel(current => nextBoardPanel(current, BOARD_PANEL.SORT))}
+      label={sortLabel}
+      view={boardTab && boardTab !== "all" ? BOARD_VIEW_WORDS[boardTab] : null}
+      chosen={isSortChosen(sortBy) || (!!boardTab && boardTab !== "all")}
+    />
   );
 }
 
@@ -295,17 +297,50 @@ function BoardSortSlot() {
   return (
     <SortPanel value={sortBy} onChange={setSortBy} atsAvailable={atsSortAvailable}
       facets={boardHeadline?.facets ?? null} facetsStatus={boardHeadline?.facetsStatus ?? "idle"}
-      onClose={() => setBoardPanel(null)} />
+      onClose={() => setBoardPanel(null)}>
+      {/* ⭐ D147: the views, as words, inside the one Sort / view control. */}
+      <BoardTabs />
+    </SortPanel>
   );
 }
 
-// D35 §3: THE CONDENSED BAR, one row — [ ALL · ★ · /d ] [ search ] [ ⇅ ] [ + ].
+// ⭐ D147 (owner 11-03, fullhouse-declutter.html): THE BAR IS THE SEARCH — the views moved into the Sort / view
+// control and the sort control moved to the title row (BoardTitleRow), so what sticks under the sentence is the search.
 function BoardBar() {
   return (
     <div className="fh-bar" data-board-bar="">
-      <BoardTabs />
       <BoardSearchBar />
-      <BoardControlIcons />
+    </div>
+  );
+}
+
+// ⭐ D147 · THE TITLE ROW — "Full House" and the ONE Sort / view control, with its panel beneath it.
+function BoardTitleRow() {
+  return (
+    <>
+      <div className="fh-title" data-fh-title="">
+        <p className="fh-title__h">Full House</p>
+        <BoardControlIcons />
+      </div>
+      <BoardSortSlot />
+    </>
+  );
+}
+
+// ⭐ D147 (D145's minimal counts) · "746 jobs · 38 new today · 12 saved" — each from the facets answer (views.all, the
+// Posted clause's Past 24h count, views.saved); a count the answer does not hold is not drawn, never a 0 in its place.
+function BoardCounts() {
+  const { boardHeadline } = useJobBoard();
+  const c = boardCounts(boardHeadline?.facets);
+  const cells = [["jobs", c.jobs, false], ["new today", c.newToday, true], ["saved", c.saved, false]].filter(([, n]) => n != null);
+  if (!cells.length) return null;
+  return (
+    <div className="fh fh-counts" data-board-counts="">
+      {cells.map(([label, n, hot]) => (
+        <div key={label} className={hot ? "fh-count fh-count--hot" : "fh-count"} data-count={label}>
+          <b>{n.toLocaleString()}</b><span>{label}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -572,7 +607,8 @@ function AppDashboard({ authUser, setAuthUser }) {
                 {/* ⛔ D35 · THE FULL HOUSE HEADER, in header.html's order: 1 the sentence (its words are
                     the filters), 2 the one panel a word opens, 3 the condensed bar, then the sort
                     panel when it is open — and 4 the jobs, below this chrome. */}
-                <header className="fh" style={{ animation:"fadeUp 0.6s ease both" }}>
+                <header className="fh" data-fh-d147="" style={{ animation:"fadeUp 0.6s ease both" }}>
+                  <BoardTitleRow />
                   <BoardHeadlineSlot />
                 </header>
                 </>
@@ -590,8 +626,8 @@ function AppDashboard({ authUser, setAuthUser }) {
               <>
                 <StickyBar top="var(--app-chrome-height, 74px)" className="fh fh--bar-row" data-board-sticky="">
                   <BoardBar />
-                  <BoardSortSlot />
                 </StickyBar>
+                <BoardCounts />
                 {/* D12: until the extension is connected, say where jobs from elsewhere come from. */}
                 <ExtensionFirstRunPrompt />
               </>

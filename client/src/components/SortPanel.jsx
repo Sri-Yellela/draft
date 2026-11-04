@@ -18,7 +18,9 @@ import "./FullHouse.css";
 // Props: value, onChange(value), atsAvailable, facets, facetsStatus, onClose()
 export const SORT_PANEL_ID = "fh-sort";
 
-export default function SortPanel({ value, onChange, atsAvailable = true, facets = null, facetsStatus = "idle", onClose }) {
+// ⭐ D147: `children` — the board's views (All jobs · Saved · Pending · Imported), as words under "Show", so the one
+// control holds the order and the view.
+export default function SortPanel({ value, onChange, atsAvailable = true, facets = null, facetsStatus = "idle", onClose, children = null }) {
   const rows = sortRows(atsAvailable);
   const counted = facetsStatus === "ready" || facetsStatus === "loading" ? facets : null;
   const chosen = rows.find(r => r.value === value) || rows[0];
@@ -49,6 +51,12 @@ export default function SortPanel({ value, onChange, atsAvailable = true, facets
           </p>
         )}
         {tieBreakText(chosen) && <p className="fh-cov" data-tie-break="">{tieBreakText(chosen)}</p>}
+        {children && (
+          <div className="fh-show" data-sort-views="">
+            <span className="fh-k">Show</span>
+            {children}
+          </div>
+        )}
       </div>
     </section>
   );

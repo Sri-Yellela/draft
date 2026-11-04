@@ -22,10 +22,12 @@ test("the sort trigger sits in the board's ONE bar beside the views (D35: the fi
   // The Import button was removed by D11 (importing is the extension's job; test/d11FullHouseHeader
   // .test.js pins its absence), and D35 deleted the FILTER icon: the sentence's words are the filters
   // (test/d35FullHouseHeader.test.js pins that).
-  const bar = app.slice(at(app, "function BoardBar()"), at(app, "function AppDashboard("));
-  assert.match(bar, /<BoardControlIcons \/>/);
-  // And the board's view tabs, which moved here off the retired pill.
-  assert.match(bar, /<BoardTabs \/>/);
+  // ⭐ D147 (owner 11-03) changed this on purpose: the sort control moved to the TITLE ROW (BoardTitleRow) and the
+  // views into its panel (BoardSortSlot), as words; the bar is the search alone.
+  const bar = app.slice(at(app, "function BoardBar()"), at(app, "// ⭐ D147 · THE TITLE ROW"));
+  assert.doesNotMatch(bar, /<BoardControlIcons \/>|<BoardTabs \/>/);
+  assert.match(app.slice(at(app, "function BoardTitleRow()"), at(app, "function BoardCounts()")), /<BoardControlIcons \/>/);
+  assert.match(app.slice(at(app, "function BoardSortSlot()"), at(app, "function BoardBar()")), /<BoardTabs \/>/);
   // D49: in the StickyBar at the top of <main>, right after the header.
   assert.match(app.slice(at(app, '<header className="fh"'), at(app, "</main>")), /<StickyBar[^>]*>\s*<BoardBar \/>/);
   // And inside the provider, for the same reason BoardSearchBar is: AppDashboard renders

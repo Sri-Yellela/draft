@@ -100,14 +100,17 @@ test("D12: Full House — + Add jobs where IMPORT sat, the first-run prompt, the
   // Import jobs (to /extension).
   const icons = app.slice(at(app, "function BoardControlIcons()"), at(app, "function BoardSortSlot()"));
   assert.doesNotMatch(icons, /<AddSquare\b/, "the standalone + square is back");
-  assert.match(app, /\["imported", "\+", "Imported jobs"\]/);
+  // ⭐ D147 (owner 11-03): the view is the WORD "Imported" now, inside the Sort / view panel.
+  assert.match(app, /\["imported", "Imported", "Imported jobs"\]/);
   const chrome = app.slice(at(app, '<header className="fh"'), at(app, "</main>"));
   assert.match(chrome, /<ExtensionFirstRunPrompt \/>/);
 
   const prompt = read("client/src/components/ExtensionPrompt.jsx");
   assert.match(prompt, /api\("\/api\/extension\/status"\)/);
   // Shown only when the check SUCCEEDED and said not connected — unknown shows nothing.
-  assert.match(prompt, /if \(dismissed \|\| !status \|\| status\.connected\) return null;/);
+  // D147 (11-03): the same condition, named `showing` — and shown ONCE (a later visit treats it as seen).
+  assert.match(prompt, /const showing = !dismissed && !!status && !status\.connected;/);
+  assert.match(prompt, /if \(!showing\) return null;/);
   // Storage is wrapped: a private window must not crash the board.
   assert.match(prompt, /try \{ return localStorage\.getItem\(DISMISS_KEY\) === "1"; \} catch \{ return false; \}/);
 

@@ -31,7 +31,8 @@ test("D49 · the module: sticky against the nearest scroll container, stuck foun
 test("D49 · the board's bar renders through StickyBar, at the top of <main> — where sticky can work", () => {
   const app = read("client/src/App.jsx");
   assert.match(app, /import StickyBar from "\.\/components\/StickyBar\.jsx";/);
-  assert.match(app, /<StickyBar top="var\(--app-chrome-height, 74px\)" className="fh fh--bar-row" data-board-sticky="">\s*<BoardBar \/>\s*<BoardSortSlot \/>\s*<\/StickyBar>/);
+  // D147 (11-03): the sort panel moved up with the Sort / view word (the title row); the bar sticks alone.
+  assert.match(app, /<StickyBar top="var\(--app-chrome-height, 74px\)" className="fh fh--bar-row" data-board-sticky="">\s*<BoardBar \/>\s*<\/StickyBar>/);
   const header = app.slice(at(app, '<header className="fh"'), at(app, "</header>"));
   assert.doesNotMatch(header, /<BoardBar \/>/, "the bar is back in the short header, where it cannot stick");
   assert.ok(app.indexOf("<BoardHeadlineSlot />") < app.indexOf("<BoardBar />"), "the order: the sentence, then the bar");

@@ -2876,7 +2876,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // stored ("__exists__", D57) so the panel offers View and Download, which READ the store and never generate.
     // A résumé this tab is generating already has its html here and is left alone.
     resume_generated: ({ jobId, atsScore } = {}) => {
-      fetchJobs(currentPage).catch(() => {});
+      // D147: past page 1 the board is SCROLLED pages, so the refresh merges into them instead of replacing them.
+      fetchJobs(currentPage, currentPage > 1).catch(() => {});
       if (!jobId) return;
       setGenerated(p => (p[jobId]?.html && p[jobId].html !== "__exists__") ? p : { ...p, [jobId]: { ...(p[jobId] || {}),
         html: "__exists__", status: "exists", atsScore: atsScore ?? null, jobId, tool: GENERATE_TOOL,
@@ -3389,7 +3390,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       await api("/api/applications/pending", { method:"POST", body:JSON.stringify({
         jobId:targetJob.jobId, origin:"exported_resume",
       }) }).catch(()=>{});
-      await fetchJobs(currentPage);
+      await fetchJobs(currentPage, currentPage > 1);   // D147: merge into the scrolled pages
     }
   }, [applyMode, fetchJobs, currentPage, sandbox]);
 
@@ -3444,7 +3445,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         setFacetsNonce(n => n + 1);
         loadApplyRuns?.();
         loadCompanyIndex();
-        if (boardTab === "pending") fetchJobs(currentPage);
+        if (boardTab === "pending") fetchJobs(1);   // D147: the list is scrolled from page 1, and a decision can drop a row
       } catch (e) {
         // ⛔ Never a success toast for a refused call. "Already drafted" IS the drafted state.
         if (e.payload?.code === "already_drafted") setDraftedIds(prev => new Set(prev).add(jobId));
@@ -3477,7 +3478,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         // D51: the slot comes back and the job leaves /d — both re-read, never assumed.
         api("/api/draft/slots").then(setDraftSlots).catch(() => {});
         setFacetsNonce(n => n + 1);
-        if (boardTab === "pending") fetchJobs(currentPage);
+        if (boardTab === "pending") fetchJobs(1);   // D147: the list is scrolled from page 1, and a decision can drop a row
       } else {
         applyFlags(t.jobId, undoFlagsFor(t.decision, t.prior));
       }
@@ -3555,6 +3556,20 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   ];
 
   const isLastPage = currentPage >= totalPages;
+
+  // ⭐ D147 (owner 11-03) · PAGE NUMBERS → SCROLLING. The next page is APPENDED (fetchJobs' merge mode) when the end of
+  // the list comes into view — the same request Next made (its cursor when the chain has one, planPageFetch's rule), so
+  // the board's two paging modes are unchanged underneath. One load at a time.
+  const loadingMoreRef = useRef(false);
+  const loadMore = useCallback(async () => {
+    if (loadingMoreRef.current || !totalPages || currentPage >= totalPages) return;
+    loadingMoreRef.current = true;
+    try {
+      const plan = planPageFetch({ target: currentPage + 1, currentPage, nextCursor: nextCursorRef.current, stack: cursorStackRef.current });
+      await fetchJobs(currentPage + 1, true, plan.cursor ? { cursor: plan.cursor } : {});
+    } catch { /* fetchJobs says so on the board (A73) */ }
+    finally { loadingMoreRef.current = false; }
+  }, [currentPage, totalPages, fetchJobs]);
 
   // BUTTON STATES: first click applies local role filter, second click triggers fresh scrape.
   // To change labels edit the buttonLabel derived value below.
@@ -3946,7 +3961,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               totalPages={totalPages} currentPage={currentPage} isLastPage={isLastPage}
               generate={generate} openSandbox={openSandbox} exportAndTrack={exportAndTrack}
               visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} draftControls={draftControls} openAtsPanel={openAtsPanel}
-              goPage={goPage} onPullRefresh={handlePullRefresh}
+              goPage={goPage} onLoadMore={loadMore} totalJobs={totalJobs} onPullRefresh={handlePullRefresh}
               isMobile={isMobile}
               onJobSelect={handleJobSelect} selectedJobId={selectedJob?.jobId}
               activeFilterCount={activeFilterCount}
@@ -4034,7 +4049,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               generate={generate} openSandbox={openSandbox} exportAndTrack={exportAndTrack}
               visitUrl={visitUrl} decideJob={decideJob} isJobDrafted={isJobDrafted} draftingIds={draftingIds} draftControls={draftControls}
               openAtsPanel={openAtsPanel}
-              goPage={goPage} onPullRefresh={handlePullRefresh}
+              goPage={goPage} onLoadMore={loadMore} totalJobs={totalJobs} onPullRefresh={handlePullRefresh}
               isMobile={isMobile}
               compact={false} selectedJobId={selectedJob?.jobId} onJobSelect={handleJobSelect}
               activeFilterCount={activeFilterCount}
@@ -4205,7 +4220,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       theme, totalPages, currentPage, isLastPage,
                       generate, openSandbox, exportAndTrack,
                       visitUrl, decideJob, isJobDrafted = () => false, draftingIds = new Set(), draftControls = null, openAtsPanel,
-                      goPage, onPullRefresh,
+                      goPage, onLoadMore, totalJobs = 0, onPullRefresh,
                       isMobile,
                       compact, selectedJobId, onJobSelect,
                       activeFilterCount = 0, onClearFilters,
@@ -4214,7 +4229,6 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       emptyReason = null, canRankByFit = true, onAddResume,
                       savedTab = false, importedTab = false, boardLoading = false, bestBets = false, bestBetsKey = null,
                       cardTier = 1, containerRef }) {
-  const [pageInput, setPageInput] = useState("");
   // ⛔ D45: never while the current view is still loading — "nothing here" when the truth is "not here yet"
   // is silence reported as success.
   const shouldShowEmptyState = jobs.length === 0 && !scraping && !boardLoading;
@@ -4247,18 +4261,6 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
   const emptyBecauseNoPool   = shouldShowEmptyState && !pagingProblem && boardReason === "cache_empty";
   // Third case: nothing is narrowing the board and it is still empty. See RoleScopedEmptyState.
   const emptyBecauseRole     = shouldShowEmptyState && !pagingProblem && !emptyBecauseNoPool && narrowingCount === 0 && !!profileName;
-  const visiblePages = buildVisiblePageItems(currentPage, totalPages);
-  useEffect(() => {
-    setPageInput(String(currentPage || ""));
-  }, [currentPage]);
-  const commitPageJump = () => {
-    if (!totalPages) return;
-    const parsed = Number.parseInt(pageInput, 10);
-    if (!Number.isFinite(parsed)) return;
-    const nextPage = Math.min(totalPages, Math.max(1, parsed));
-    goPage(nextPage);
-    setPageInput(String(nextPage));
-  };
   return (
     // ⛔ D92: NOTHING paints behind the jobs. This box drew a 160° accent tint from its own hard top edge — the
     // "tint behind the cards" and the page read in two parts, split by a line (measured on the running app).
@@ -4355,71 +4357,9 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
           }}
           </JobBubbleRows>
 
-          {/* Pagination controls */}
-          {totalPages > 1 && (
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
-                           gap:8, padding:"16px 20px", borderTop:`1px solid ${theme.border}`, flexWrap:"wrap" }}>
-              <LucyBtn onClick={() => goPage(currentPage-1)}
-                        disabled={currentPage <= 1} accent={theme.surfaceHigh}>
-                Prev
-              </LucyBtn>
-              <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", justifyContent:"center" }}>
-                {visiblePages.map(item => typeof item === "string" ? (
-                  <span key={item} style={{ fontSize:12, color:theme.textDim, padding:"0 4px" }}>
-                    …
-                  </span>
-                ) : (
-                  <button className="dbx-depth"
-                    key={item}
-                    type="button"
-                    onClick={() => goPage(item)}
-                    aria-label={item === currentPage ? `Current page, page ${item}` : `Go to page ${item}`}
-                    title={item === currentPage ? `Current page ${item}` : `Go to page ${item}`}
-                    style={{
-                      minWidth:32,
-                      height:32,
-                      border:`1px solid ${item === currentPage ? theme.accent : theme.border}`,
-                      background:item === currentPage ? theme.accent : theme.surface,
-                      color:item === currentPage ? theme.accentText : theme.text,
-                      fontSize:12,
-                      fontWeight:item === currentPage ? 800 : 600,
-                      cursor:item === currentPage ? "default" : "pointer",
-                      padding:"0 10px",
-                    }}>
-                    {item}
-                  </button>
-                ))}
-              </div>
-              <LucyBtn onClick={() => goPage(currentPage+1)}
-                        disabled={currentPage >= totalPages} accent={theme.surfaceHigh}>
-                Next
-              </LucyBtn>
-              <div style={{ display:"inline-flex", alignItems:"center", gap:6 }}>
-                <span style={{ fontSize:12, color:theme.textMuted }}>Go to page</span>
-                <input
-                  value={pageInput}
-                  onChange={e => setPageInput(e.target.value.replace(/[^\d]/g, ""))}
-                  onKeyDown={e => e.key === "Enter" && commitPageJump()}
-                  inputMode="numeric"
-                  aria-label="Go to page"
-                  style={{
-                    width:64,
-                    height:32,
-                    borderRadius:10,
-                    border:`1px solid ${theme.border}`,
-                    background:theme.surface,
-                    color:theme.text,
-                    fontSize:12,
-                    padding:"0 10px",
-                    outline:"none",
-                  }}
-                  placeholder={String(currentPage)}
-                />
-                <LucyBtn onClick={commitPageJump} accent={theme.surfaceHigh} title="Go to page">
-                  Go
-                </LucyBtn>
-              </div>
-            </div>
+          {/* ⭐ D147 · scrolling, not page numbers: the next page loads as the list's end comes into view. */}
+          {jobs.length > 0 && totalPages > 0 && (
+            <BoardMore shown={jobs.length} total={totalJobs} more={currentPage < totalPages} onMore={onLoadMore} theme={theme} />
           )}
 
         </PullToRefresh>
@@ -4428,19 +4368,30 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
   );
 }
 
-function buildVisiblePageItems(currentPage, totalPages) {
-  if (totalPages <= 1) return [1];
-  const pages = new Set([1, totalPages]);
-  for (let page = currentPage - 2; page <= currentPage + 2; page += 1) {
-    if (page >= 1 && page <= totalPages) pages.add(page);
-  }
-  const sorted = [...pages].sort((a, b) => a - b);
-  const items = [];
-  sorted.forEach((page, index) => {
-    if (index > 0 && page - sorted[index - 1] > 1) items.push("ellipsis-" + page);
-    items.push(page);
-  });
-  return items;
+// ⭐ D147 · THE END OF THE LIST — "Showing 50 of 746 · scroll for more", and the next page appended when this line comes
+// within 600px of the viewport (an IntersectionObserver, never a scroll listener). The line is also a button, so the
+// next page is reachable without scrolling (keyboard, a browser with no observer).
+function BoardMore({ shown, total, more, onMore, theme }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !more || typeof IntersectionObserver === "undefined") return undefined;
+    const io = new IntersectionObserver((entries) => { if (entries.some(e => e.isIntersecting)) onMore?.(); }, { rootMargin: "600px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [more, onMore, shown]);
+  const of = Number.isFinite(total) && total > 0 ? ` of ${total.toLocaleString()}` : "";
+  return (
+    <div ref={ref} data-board-more="" data-more={more ? "true" : "false"}
+      style={{ display:"flex", justifyContent:"center", padding:"18px 20px 26px", fontSize:13.5, color:theme.textMuted }}>
+      {more
+        ? <button type="button" onClick={() => onMore?.()} className="fh-more"
+            style={{ background:"none", border:0, font:"inherit", color:"inherit", cursor:"pointer", padding:"6px 10px" }}>
+            Showing {shown.toLocaleString()}{of} · scroll for more
+          </button>
+        : <span>Showing all {shown.toLocaleString()}</span>}
+    </div>
+  );
 }
 
 // Displays LinkedIn jobs already captured via the extension. The `onImport`/`linkedinImporting`
