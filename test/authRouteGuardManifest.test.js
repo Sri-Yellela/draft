@@ -29,6 +29,9 @@ const SERVER = fs.readFileSync("server.js", "utf8");
 // SHOULD be able to call it.
 const PUBLIC = new Set([
   "GET /api/health",
+  // D151 Rule 1: liveness / readiness for Railway's healthcheck — no session, no user data.
+  "GET /api/health/live",
+  "GET /api/health/ready",
   // D150 T04: the audit's role card — public (the audit needs no sign-in); board aggregates only, no user data.
   "GET /api/audit/roles",
   "GET /api/audit/role/:slug",
