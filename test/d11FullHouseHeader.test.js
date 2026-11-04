@@ -8,7 +8,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { at } from "../test-support/sourceAnchors.js";
-import { columnsFor } from "../client/src/lib/bubbleColumns.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const strip = (t) => t.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
@@ -42,8 +41,9 @@ test("⛔ D11: no IMPORT control on the board — and the extension's import rou
 });
 
 test("D11: never more than 3 tiles per row; ~50 per page", () => {
-  for (const w of [1440, 1700, 1920, 2560, 3840]) assert.equal(columnsFor(w), 3, `${w}px`);
-  assert.equal(columnsFor(820), 2);
-  assert.equal(columnsFor(390), 1);
+  // D149 (11-03) changed this on purpose: fullhouse-declutter.html draws the postings as ONE column of rows (`.list`), so
+  // lib/bubbleColumns.js (2 or 3 per row) is deleted — one per row is within D11's "never more than 3".
+  assert.ok(!fs.existsSync("client/src/lib/bubbleColumns.js"), "the per-row column rule is back");
+  assert.match(read("client/src/components/JobBubble.jsx"), /<div className="jb-rows" data-columns=\{1\}>\{jobs\.map\(children\)\}<\/div>/);
   assert.match(read("client/src/panels/JobsPanel.jsx"), /const PAGE_SIZE = 50;/);
 });

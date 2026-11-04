@@ -14,26 +14,18 @@
 //    a touch screen (no hover) it is always shown.
 //
 // The Database panel and the landing page keep JobCard; D1 replaces the JOBS-PAGE card.
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import CompanyLogo from "./CompanyLogo.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyLink from "./CompanyLink.jsx";
 import { atsBandFor, atsBandLabel, ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "../../../shared/atsBands.js";
-import { salaryLabel } from "../../../shared/postingFacts.js";
+import { salaryLabel, workstyleOf } from "../../../shared/postingFacts.js";
 import { ghostLine } from "../../../shared/ghostScore.js";
-import { columnsFor } from "../lib/bubbleColumns.js";
 import { DraftMark } from "./DraftMark.jsx";
 import { draftButtonState } from "../lib/jobDecisions.js";
 import "./JobBubble.css";
 
-
-function ago(postedAt, scrapedAt) {
-  const t = postedAt ? Date.parse(postedAt) / 1000 : scrapedAt;
-  if (!t) return null;
-  const d = Math.max(0, Math.floor((Date.now() / 1000 - t) / 86400));
-  return d === 0 ? "today" : `${d}d`;
-}
 
 // D71: the shared label.
 const salary = salaryLabel;
@@ -69,7 +61,8 @@ export default function JobBubble({ job, score = null, selected = false, saved =
   const showNumber = ATS_NUMBER_SHOWN && Number.isFinite(score);
   // ⭐ D137: "Likely not hiring" takes the status slot (no extra label, A109); its reasons are the meta line's title.
   const status = job.heldOutsideUs ? "Outside the US" : job.isActive === false ? "No longer listed" : job.ghost?.level >= 2 ? "Likely not hiring" : null;
-  const meta = [status, job.location, job.workType || job.workplaceType, salary(job), ago(job.postedAt, job.scrapedAt)].filter(Boolean);
+  // ⭐ D149 (fullhouse-declutter.html `.jr .meta`): salary · type · workstyle, each its own quiet word; a status first.
+  const meta = [status, salary(job), job.contractType || null, workstyleOf(job) || job.workType || job.workplaceType || null].filter(Boolean);
 
   const open = (e) => {
     if (e.target.closest("a, button")) return;
@@ -82,17 +75,26 @@ export default function JobBubble({ job, score = null, selected = false, saved =
       data-dim={job.disliked ? "passed" : job.visited ? "visited" : undefined} onClick={open}>
       <button type="button" className="jb__logo" onClick={stop(() => setCompanyView(true))}
         aria-label={`${job.company} — company profile`}>
-        <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={52} radius={13} />
+        <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={36} radius={11} />
       </button>
 
+      {/* ⭐ D149 (owner 11-03, fullhouse-declutter.html `.jr`): the row is the sketch's — the ROLE first (600 15px), then
+          "company · location" quiet, then salary · type · workstyle; the match on the right. */}
       <div className="jb__text">
-        {/* ⭐ A63: APPLY IS THE COMPANY NAME — D38: the ONE company link, sized to its text. */}
-        <CompanyLink company={job.company} href={applyHref || null} jobId={id} size="card" className="jb__company" />
-        <a className="jb__title" href={jobDetailHref(id)} style={{ color: "inherit", textDecoration: "none" }}
+        <a className="jb__title" href={jobDetailHref(id)}
           onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) { e.stopPropagation(); return; } e.preventDefault(); e.stopPropagation(); onOpen?.(); }}>
           {job.title}
         </a>
-        {meta.length > 0 && <div className="jb__meta" title={ghostLine(job.ghost) ? `${ghostLine(job.ghost)}.` : undefined}>{meta.join("  ·  ")}</div>}
+        <span className="jb__sub">
+          {/* ⭐ A63: APPLY IS THE COMPANY NAME — D38: the ONE company link, sized to its text (in the line's own type). */}
+          <CompanyLink company={job.company} href={applyHref || null} jobId={id} size="row" className="jb__company" />
+          {job.location ? <span className="jb__loc"> · {job.location}</span> : null}
+        </span>
+        {meta.length > 0 && (
+          <div className="jb__meta" title={ghostLine(job.ghost) ? `${ghostLine(job.ghost)}.` : undefined}>
+            {meta.map((m, i) => <i key={i}>{m}</i>)}
+          </div>
+        )}
         {/* ⭐ A109 (owner 11-01): no sponsorship label on each post — it is in the expanded posting panel (SponsorshipBlock) and is a board filter. */}
         {/* D40: on the + view, the one line that differs from ALL — when and from where it was captured. */}
         {job.captured && <div className="jb__meta" data-captured="">{capturedLine(job.captured)}</div>}
@@ -100,6 +102,13 @@ export default function JobBubble({ job, score = null, selected = false, saved =
         {resumeReady && <div className="jb__ready" data-resume-ready="" title="A résumé is ready for this job — open the posting to view, download or regenerate it">résumé ready</div>}
       </div>
 
+      {/* ⭐ D149 · the match on the right (`.mt`: 22px accent, "match" under it) — the same number the ATS square carries. */}
+      <div className="jb__mt" data-match={showNumber ? score : undefined} aria-hidden={showNumber ? undefined : "true"}>
+        {showNumber ? <><b>{score}%</b><span>match</span></> : null}
+      </div>
+
+      {/* The rail (ATS · Save · Draft) stays — revealed on hover / focus, always on touch (D1) — so the row's quick
+          decisions keep working; at rest the row is the sketch's. */}
       <div className="jb__rail">
         <button type="button" className="jb__sq jb__sq--ats" data-score={showNumber ? score : undefined}
           onClick={stop(onAts)}
@@ -154,29 +163,23 @@ export function JobBubbleSkeleton() {
   );
 }
 
-export function JobBubbleRows({ jobs, children }) {
-  const ref = useRef(null);
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
-    ro.observe(el);
-    setWidth(el.getBoundingClientRect().width);
-    return () => ro.disconnect();
-  }, []);
-  const n = columnsFor(width);
-  const rows = [];
-  for (let i = 0; i < jobs.length; i += n) rows.push(jobs.slice(i, i + n));
+/**
+ * ⭐ D149 (owner 11-03, fullhouse-declutter.html `.list`): ONE column of rows, 8px apart — the sketch's list. D1's rows of
+ * 2 / 3 growing bubbles (lib/bubbleColumns.js, deleted) are not in the approved design.
+ */
+/**
+ * ⭐ D149 · the board's page column (`.fhw`: 1240 wide, 20px gutters) and, with a posting open on a desktop, its two
+ * columns — the list | an empty right column the posting is drawn over (JobsPanel's BesideDock measures `sideRef`).
+ */
+export function JobBoardColumns({ beside = false, sideRef = null, children }) {
   return (
-    <div ref={ref} className="jb-rows" data-columns={n}>
-      {rows.map((row, i) => (
-        <div className="jb-row" key={i}>
-          {row.map(children)}
-          {/* A short last row keeps the same card width as the rows above. */}
-          {Array.from({ length: n - row.length }, (_, k) => <div key={`pad-${k}`} style={{ flex: "1 1 0" }} aria-hidden="true" />)}
-        </div>
-      ))}
+    <div className="jb-board" data-beside={beside ? "true" : "false"}>
+      <div className="jb-board__list">{children}</div>
+      {beside && <div className="jb-board__side" ref={sideRef} aria-hidden="true" data-beside-slot="" />}
     </div>
   );
+}
+
+export function JobBubbleRows({ jobs, children }) {
+  return <div className="jb-rows" data-columns={1}>{jobs.map(children)}</div>;
 }

@@ -96,7 +96,10 @@ test("D48 · the deck strip: Workstyle replaces Where; the location is a muted l
 test("owner 10-07 (36) · the posting panel's Draft button IS the logo — the one StampLogo, in the mark's own tokens", () => {
   const db = read("client/src/components/DecisionButtons.jsx");
   const acts = jd.slice(at(jd, "function PostingActions("), at(jd, "export default function JobDetailPanel("));
-  assert.match(acts, /<DraftButton logo drafted=/, "/draft");
+  // D149 (11-03) changed this on purpose: fullhouse-declutter.html's posting reads "Draft" on the accent gradient (the
+  // sketch is the spec, D149 rule 2), so the posting no longer draws the /draft logo button; DecisionButtons' logo
+  // rendering below is kept as it was (pinned here) for any surface that still asks for it.
+  assert.match(acts, /className="pp__btn pp__btn--p" data-decision="draft"/, "Draft");
   // D147: the /d square went with the icon squares — Draft is the one labelled /draft box in the row.
   assert.match(db, /import \{ StampLogo \} from "\.\/StampLogo\.jsx";/, "reused, never redrawn");
   const logo = db.slice(at(db, "  if (logo) {"), at(db, "  return <DecisionPill compact={compact} square={square} primary"));

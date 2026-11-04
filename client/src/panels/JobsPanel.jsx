@@ -17,7 +17,7 @@ import { eligibilityNotice, statedEligibility } from "../../../shared/postingReq
 import DecisionToast from "../components/DecisionToast.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
-import JobBubble, { JobBubbleRows, JobBubbleSkeleton } from "../components/JobBubble.jsx";
+import JobBubble, { JobBubbleRows, JobBubbleSkeleton, JobBoardColumns } from "../components/JobBubble.jsx";
 import { viewKey, viewCacheGet, viewCacheSet, otherViewQueries } from "../lib/boardViewCache.js";
 import { SavedEmptyState, useExtensionStatus } from "../components/ExtensionPrompt.jsx";
 import { EXTENSION_PAGE, EXTENSION_STORE_URL } from "../../../shared/extension.js";
@@ -1430,11 +1430,19 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // [jd, ats, pdf]: the resume outranks its report, which outranks the job description it was
   // generated from. Above capacity 1 nothing here applies — eviction is still by focus recency —
   // and JD open on its own is unaffected either way.
+  // ⭐ D149 (owner 11-03, fullhouse-declutter.html) · THE POSTING OPENS BESIDE THE LIST on a desktop — the sketch's
+  // `.fhl` grid (list | posting, 1fr : 1.05fr) with the posting held at the top of the window while the list scrolls,
+  // no scrim, the list still live (another row opens in its place). So the JD panel leaves the overlay host there and
+  // is drawn by BesideDock; the ATS and the PDF stay overlay peers (the sketch's ATS is a drawer over a scrim). At
+  // ≤ 1000px (the sketch's breakpoint) it is the full-screen overlay as before.
+  const besideMode = !!selectedJob && vpWidth > BESIDE_MIN_VIEWPORT;
   const panelDescriptors = useMemo(() => ([
-    { id: "jd",  open: !!selectedJob,   close: () => { clearDeepLink(); setSelectedJob(null); } },
+    { id: "jd",  open: !!selectedJob && !besideMode, close: () => { clearDeepLink(); setSelectedJob(null); } },
     { id: "ats", open: rightPanelOpen,  close: () => setRightPanelOpen(false) },
     { id: "pdf", open: sandboxOpen,     close: () => { setSandboxOpen(false); setSandbox(null); } },
-  ]), [selectedJob, sandboxOpen, rightPanelOpen, setSelectedJob, clearDeepLink]);
+  ]), [selectedJob, besideMode, sandboxOpen, rightPanelOpen, setSelectedJob, clearDeepLink]);
+  // The list's right-hand column, measured by BesideDock (a callback ref, so the dock hears when it mounts).
+  const [besideAnchor, setBesideAnchor] = useState(null);
   const {
     visible: visiblePanels, dockWidth, focusPanel,
     beginResize, resizeBy, endResize,
@@ -4071,6 +4079,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               boardLoading={boardLoading}
               cardTier={effectiveTier}
               containerRef={jobsPanelElementRef}
+              beside={besideMode} besideRef={setBesideAnchor}
             />
           </Panel>
 
@@ -4138,6 +4147,14 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           )}
         </AnimatePresence>
       </PanelDock>
+      {/* ⭐ D149 · the posting beside the list (desktop): the same JobDetailPanel, outside the overlay host. Escape closes
+          it only while no overlay panel is open (the overlay's most recent one goes first, D39). */}
+      {besideMode && (
+        <BesideDock anchor={besideAnchor}>
+          <JobDetailPanel key="panel-jd" slot={0} fullScreen={false} beside focused={openPanelCount === 0}
+            closesOnEscape={openPanelCount === 0} resizeMode="none" />
+        </BesideDock>
+      )}
     </div>
   );
 }
@@ -4228,7 +4245,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       curation = null, curateOff = false, onToggleCurate, boardReason = null,
                       emptyReason = null, canRankByFit = true, onAddResume,
                       savedTab = false, importedTab = false, boardLoading = false, bestBets = false, bestBetsKey = null,
-                      cardTier = 1, containerRef }) {
+                      cardTier = 1, containerRef, beside = false, besideRef = null }) {
   // ⛔ D45: never while the current view is still loading — "nothing here" when the truth is "not here yet"
   // is silence reported as success.
   const shouldShowEmptyState = jobs.length === 0 && !scraping && !boardLoading;
@@ -4265,6 +4282,9 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
     // ⛔ D92: NOTHING paints behind the jobs. This box drew a 160° accent tint from its own hard top edge — the
     // "tint behind the cards" and the page read in two parts, split by a line (measured on the running app).
     <div ref={containerRef} style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+      {/* ⭐ D149 · the sketch's page column (1240 + 20px gutters) and, with a posting open on a desktop, its two columns:
+          the list | the posting (BesideDock draws the posting over the empty right column, held at the window's top). */}
+      <JobBoardColumns beside={beside} sideRef={besideRef}>
       {/* Rendered OUTSIDE the empty/non-empty branch on purpose: the bridge can narrow a board to a
           short list or to nothing at all, and both need to say so. Left inside the non-empty branch
           it would go silent in the very case where the user has least to go on. */}
@@ -4364,7 +4384,59 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
 
         </PullToRefresh>
       )}
+      </JobBoardColumns>
     </div>
+  );
+}
+
+/** ⭐ D149 · below this width the opened posting is the full-screen overlay (fullhouse-declutter.html's 1000px rule). */
+const BESIDE_MIN_VIEWPORT = 1000;
+/** The sketch's `.panel{position:sticky;top:84px;max-height:calc(100vh - 110px)}` — the posting's top and height. */
+const BESIDE_TOP = 84;
+
+/**
+ * ⭐ D149 · THE POSTING BESIDE THE LIST. The board's wrappers clip (overflow: hidden, for the resizable layout), so a
+ * CSS sticky column cannot hold the panel; this draws it FIXED over the list's empty right column instead — its left
+ * and width are the column's, its top the column's top until that scrolls above 84px, then 84px (what `sticky` would
+ * do), its height the sketch's 100vh − 110. Portalled to body (outside [data-app-shell]) so the board lock that an
+ * overlay panel (the ATS) takes never inerts it; beneath the overlay's scrim (Z.NAV − 1), as the sketch's ATS scrim
+ * covers its posting. Measured on scroll / resize into the node's style — no re-render per frame.
+ */
+function BesideDock({ anchor, children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !anchor) return undefined;
+    let frame = 0;
+    const place = () => {
+      frame = 0;
+      const r = anchor.getBoundingClientRect();
+      el.style.left = `${Math.round(r.left)}px`;
+      el.style.width = `${Math.round(r.width)}px`;
+      el.style.top = `${Math.round(Math.max(BESIDE_TOP, r.top))}px`;
+      el.style.visibility = r.width > 0 ? "visible" : "hidden";
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(place); };
+    place();
+    window.addEventListener("scroll", schedule, { passive: true, capture: true });
+    window.addEventListener("resize", schedule);
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(schedule) : null;
+    ro?.observe(anchor);
+    ro?.observe(document.body);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule, { capture: true });
+      window.removeEventListener("resize", schedule);
+      ro?.disconnect();
+    };
+  }, [anchor]);
+  return createPortal(
+    <div ref={ref} data-beside-dock="" className="jb-beside"
+      style={{ position: "fixed", zIndex: Z.NAV - 1, height: `calc(100vh - ${BESIDE_TOP + 26}px)`, display: "flex",
+               visibility: anchor ? "visible" : "hidden" }}>
+      {children}
+    </div>,
+    document.body
   );
 }
 

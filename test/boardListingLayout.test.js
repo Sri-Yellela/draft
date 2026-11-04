@@ -111,7 +111,9 @@ test("A GUESS IS NOT A LOGO — an unknown company resolves to null, not a slug"
 test("D1 (10-03): the listings are bubble ROWS of 2/3/4 — the two-column TileGrid is superseded", () => {
   // AE5 put two listings per row in a TileGrid; D1 (chosen 10-02) replaces the jobs-page card with
   // bubbles in rows, so a growing card's neighbours share its row (test/jobBubbleD1.test.js).
-  assert.match(jobsPanel, /import JobBubble, \{ JobBubbleRows(, JobBubbleSkeleton)? \} from "\.\.\/components\/JobBubble\.jsx";/);
+  // D149 (11-03) changed this on purpose: the board also takes the sketch's page columns (JobBoardColumns) from the card's
+  // module, and the rows are ONE column now (jobBubbleD1) — the TileGrid stays superseded.
+  assert.match(jobsPanel, /import JobBubble, \{ JobBubbleRows(, JobBubbleSkeleton)?(, JobBoardColumns)? \} from "\.\.\/components\/JobBubble\.jsx";/);
   assert.match(jobsPanel, /<JobBubbleRows jobs=\{jobs\}>/);
   assert.doesNotMatch(jobsPanel, /<TileGrid/);
 });
@@ -173,7 +175,9 @@ test("THE PASS LIST KEPT A HOME — dislike is a query filter, not a preference"
   // A53 (owner, 10-02): it is SET through /api/jobs/interact (the deck's call), never toggled.
   assert.match(server, /app\.patch\("\/api\/jobs\/interact"/);
   // And the surface that sets it.
-  assert.match(detail, /\{onPass && <PassButton passed=\{!!selectedJob\.disliked\} onPass=\{onPass\} \/>\}/);
+  // D149 (11-03) changed this on purpose: the posting's Pass is the sketch's plain button — the same SET and the same call.
+  assert.match(detail, /const passed = !!selectedJob\.disliked/);
+  assert.match(detail, /data-decision="pass" disabled=\{passed\} aria-pressed=\{passed\} onClick=\{onPass\}/);
   // JobsPanel still wires it through, so the detail panel's action is live rather than decorative.
   assert.match(jobsPanel, /onPass: \(\) => decideJob\(selectedJob, DECISIONS\.PASSED\)/);
 });

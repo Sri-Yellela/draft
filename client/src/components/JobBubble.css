@@ -7,7 +7,6 @@
  * Colours are tokens only (--c-*, published from styles/colorTokens.js). */
 
 .jb-rows { display: flex; flex-direction: column; gap: 18px; padding: 0 28px 8px; }
-.jb-row  { display: flex; gap: 18px; align-items: stretch; }
 
 .jb {
   flex: 1 1 0;
@@ -130,3 +129,50 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
 .jb-sk--meta { height: 9px; opacity: .7; }
 @keyframes jb-sk-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { .jb-sk { animation: none; } }
+
+/* ── ⭐ D149 (owner 11-03) · THE ROW, AS fullhouse-declutter.html DRAWS IT — `.list` / `.jr`, its values verbatim ─────────
+ * One column, 8px apart. Each row the card (--card), corner 20, padding 14 16, NO border and NO shadow; hover a step
+ * lighter (the sketch's hover grey = --c-surface-tint); the open one outlined 1.5px in the accent. A 40px logo column (the tile 36,
+ * corner 11) · the role 600 15px/1.25 · "company · location" 13px muted · salary · type · workstyle 12.5px in --body,
+ * 14px apart · the match on the right, 22px accent over "match" 12px muted. D1's growth on hover is gone; the rail
+ * (ATS · Save · Draft) still opens on hover / focus. The page column is the sketch's: 1240 wide with 20px gutters,
+ * and with a posting open on a desktop, two columns — the list | the posting (1fr : 1.05fr, 18px apart). */
+.jb-board { box-sizing: border-box; width: 100%; max-width: 1240px; margin: 0 auto; padding: 0 20px; }
+.jb-board[data-beside="true"] { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 18px; align-items: start; }
+.jb-board[data-beside="false"] .jb-board__list { max-width: 760px; }
+.jb-board__list { min-width: 0; }
+.jb-board__side { min-height: 1px; margin-top: 4px; }   /* the list scroller's 4px top padding (PullToRefresh): the posting's top is the first row's */
+.jb-rows { gap: 8px; padding: 0; }
+.jb {
+  flex: none; gap: 12px; padding: 14px 16px; border-radius: 20px; background: var(--c-surface-solid); box-shadow: none;
+  font-family: var(--shape-font-ui, var(--font-body)); line-height: 1.55; transition: background .15s;
+}
+.jb:hover, .jb:focus-within { flex-grow: 0; box-shadow: none; background: var(--c-surface-tint); }
+.jb[data-selected="true"] { outline: 1.5px solid var(--c-accent); outline-offset: 0; }
+/* The open row is at full strength (the sketch's `.jr.sel`) even though opening it marked it visited. */
+.jb[data-selected="true"][data-dim="visited"] { opacity: 1; }
+.jb__logo { width: 40px; height: 36px; border-radius: 11px; box-shadow: none; justify-content: flex-start; overflow: visible; }
+.jb__text { min-height: 0; justify-content: flex-start; }
+.jb__title {
+  display: block; white-space: normal; font: 600 calc(15px * var(--type-scale, 1))/1.25 var(--shape-font-ui, var(--font-body)); color: var(--c-ink);
+  text-decoration: none; margin: 0;
+}
+.jb__sub {
+  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: calc(13px * var(--type-scale, 1)); line-height: 1.55; color: var(--c-ink-faint);
+}
+.jb__sub .jb__company { display: inline; font: inherit; letter-spacing: 0; color: inherit; vertical-align: baseline; }
+.jb__meta { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; white-space: normal; overflow: visible; line-height: 1.55; }
+.jb__meta i { font-style: normal; font-size: calc(12.5px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+.jb__mt { flex: 0 0 auto; margin-left: auto; text-align: right; }
+.jb__mt b { display: block; font: 500 calc(22px * var(--type-scale, 1))/1 var(--shape-font-ui, var(--font-body)); letter-spacing: -.02em; color: var(--c-accent); }
+.jb__mt span { display: block; font-size: calc(12px * var(--type-scale, 1)); line-height: 1.55; color: var(--c-ink-faint); }
+.jb__ready { margin-top: 4px; }
+@media (max-width: 640px) {
+  .jb-board { padding: 0 20px; }
+  .jb-rows { padding: 0; gap: 8px; }
+  .jb { padding: 14px 16px; }
+  .jb__text { flex: 1 1 0; }
+  /* The always-shown rail (touch) on its own line under the row, at its right — never over the text. */
+  .jb .jb__rail, .jb:hover .jb__rail, .jb:focus-within .jb__rail { max-width: none; flex-basis: 100%; justify-content: flex-end; margin-left: 0; }
+}

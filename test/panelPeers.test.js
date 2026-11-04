@@ -36,7 +36,10 @@ test("1. right-anchored overlay, inset from the viewport edges, with rounded cor
   assert.match(shell, /\{ right: EDGE_GAP, top: PANEL_TOP_INSET, bottom: PANEL_BOTTOM_INSET,/);
   assert.match(shell, /export const PANEL_TOP_INSET = "calc\(var\(--app-chrome-height, 74px\) \+ 34px\)";/);
   assert.match(shell, /export const PANEL_BOTTOM_INSET = 16;/);
-  assert.match(shell, /borderRadius: 16,/);
+  // D149 (11-03) changed this on purpose: 16 is the DEFAULT corner (a panel may wear its own — the posting is the
+  // sketch's 28), and a full-screen panel (a phone) has none: the sketch's posting is the whole screen.
+  assert.match(shell, /surfaceClass = "liquid-panel", radius = 16, fill = false,/);
+  assert.match(shell, /borderRadius: fullScreen \? 0 : radius,/);
   // Not full-height, not flush, and not in the layout flow: the dock is portalled to body.
   assert.match(shell, /document\.body\s*\)/);
   assert.equal((shell.match(/createPortal\(/g) || []).length, 2,
@@ -59,7 +62,8 @@ test("2. the scrim dims but does not hide, and there is exactly one for the grou
 });
 
 test("3. backdrop blur on the panel surface itself (dark glass), not a flat fill", () => {
-  assert.match(shell, /className="liquid-panel"/);
+  // D149 (11-03) changed this on purpose: the glass is the DEFAULT surface; the posting wears the sketch's card instead.
+  assert.match(shell, /className=\{surfaceClass\}/);
   const css = read("client/src/index.css");
   assert.match(css, /\.liquid-panel \{[\s\S]*?backdrop-filter: blur\(14px\)/);
   // Was `rgba(255, 255, 255, 0.03)`: a white wash that reads as glass only over a dark video. Over
@@ -140,7 +144,10 @@ test("the PDF and ATS surfaces are no longer inline columns", () => {
   // Exactly one mount of each panel type.
   assert.equal((jobs.match(/<SandboxPanel\b/g) || []).length, 1);
   assert.equal((jobs.match(/<AtsReportPanel\b/g) || []).length, 1);
-  assert.equal((jobs.match(/<JobDetailPanel\b/g) || []).length, 1);
+  // D149 (11-03) changed this on purpose: the posting has a second mount — BESIDE the list on a desktop (BesideDock,
+  // fullhouse-declutter.html), where it leaves the overlay host; never both at once (the host's jd is closed then).
+  assert.equal((jobs.match(/<JobDetailPanel\b/g) || []).length, 2);
+  assert.match(jobs, /\{ id: "jd",  open: !!selectedJob && !besideMode,/);
 });
 
 test("one host owns the ordered set, and JD moved under it", () => {

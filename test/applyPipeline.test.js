@@ -194,7 +194,8 @@ test("jobs UI can queue multiple jobs and start an apply run that holds for appr
   // "Autofill for Review" dispatch are gone. Each Draft is its own run, held for approval.
   const decisions = fs.readFileSync("client/src/lib/jobDecisions.js", "utf8");
   assert.match(detailPanel, /onDraft/);
-  assert.match(detailPanel, /<DraftButton /);
+  // D149 (11-03) changed this on purpose: the posting's Draft is the sketch's plain button (draftButtonState, onDraft).
+  assert.match(detailPanel, /data-decision="draft"/);
   assert.doesNotMatch(detailPanel, /Queue Auto/);
   assert.doesNotMatch(jobsPanel, /const \[applyQueue, setApplyQueue\]/);
   assert.match(decisions, /api\("\/api\/apply\/runs"/);

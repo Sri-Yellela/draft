@@ -76,3 +76,53 @@
 @container pp (max-width: 420px) { .pp__main-acts { grid-template-columns: 1fr 1fr 1.3fr; } .pp__moreb { grid-column: 1 / -1; padding: 10px 16px; } }
 
 @media (prefers-reduced-motion: reduce) { .pp__x { transition: none; } }
+
+/* ── ⭐ D149 (owner 11-03) · THE OPENED POSTING, AS fullhouse-declutter.html DRAWS IT — its values verbatim ──────────────
+ * `.panel` the card (--card), corner 28, padding 24 24 20, no edge, no glass, no shadow · `.co` logo 36 · company 600
+ * 16px ink over the location 13.5px muted · `.pclose` 600 13.5px muted on the raised grey, padding 6 10, corner 10 ·
+ * `.ua` Pass · Save · Draft · More (1fr 1fr 1.4fr auto, gap 10, 18px above), each `.btn` 600 15.5px, corner 16,
+ * padding 14, the raised grey — Draft on the accent gradient with its glow — and More quiet (--body). The row follows
+ * the posting (the sketch does not pin it). `.uamore` opens under it in place. On a phone the panel is the screen,
+ * padding 70 20 30. */
+.pp-shell { background: var(--c-surface-solid); color: var(--c-ink); border: 0; box-shadow: none; }
+.pp { padding: 24px 24px 20px; font-family: var(--shape-font-ui, var(--font-body)); font-size: calc(16px * var(--type-scale, 1)); line-height: 1.55; }
+.pp__hd { padding: 0; gap: 12px; }
+.pp__logo { border-radius: 11px; }
+.pp__who { gap: 0; }
+.pp__co .company-link {
+  font: 600 calc(16px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body)); letter-spacing: 0; color: var(--c-ink);
+}
+.pp__loc { font-size: calc(13.5px * var(--type-scale, 1)); line-height: 1.55; color: var(--c-ink-faint); }
+.pp__x {
+  padding: 6px 10px; border-radius: 10px; background: var(--c-fh-well); color: var(--c-ink-faint);
+  font: 600 calc(13.5px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body));
+}
+.pp__x:hover, .pp__x:focus-visible { color: var(--c-ink); }
+.pp__body { padding: 0; flex: none; }   /* the row follows the posting; the panel does not stretch the gap */
+.pp__foot { position: static; padding: 0; background: transparent; border-top: 0; }
+.pp__main-acts { gap: 10px; margin-top: 18px; }
+.pp__btn {
+  border: 0; border-radius: 16px; padding: 14px; cursor: pointer; background: var(--c-fh-well); color: var(--c-ink);
+  font: 600 calc(15.5px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body)); min-width: 0;
+}
+.pp__btn:focus-visible, .pp__moreb:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
+.pp__btn:disabled, .pp__btn[aria-disabled="true"] { cursor: default; color: var(--c-ink-muted); }
+.pp__btn--p {
+  background: linear-gradient(180deg, var(--c-accent), var(--c-accent-hover)); color: var(--c-on-accent); box-shadow: var(--c-depth-accent);
+}
+.pp__btn--p:disabled, .pp__btn--p[aria-disabled="true"] { color: var(--c-on-accent); opacity: .6; }
+.pp__moreb {
+  padding: 14px 16px; border: 0; border-radius: 16px; background: var(--c-fh-well); color: var(--c-ink-muted); box-shadow: none;
+  font: 600 calc(16px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body));
+}
+.pp__moreb:hover, .pp__moreb[aria-expanded="true"] { color: var(--c-ink); }
+.pp__more { gap: 10px; margin-top: 10px; }
+.pp__more .pp__btn { padding: 12px 16px; }
+.pp__more .pp__submitted { flex-basis: auto; font-size: inherit; }
+.pp__submitted-btn { text-decoration: none; color: var(--c-ink); font-weight: 600; }
+.pp__foot .pp__quota, .pp__foot .pp__ready { padding: 8px 0 0; }
+.pp__applicants { margin: 8px 0 0; }
+.pp__pending { margin: 8px 0 0; }
+@container pp (max-width: 420px) { .pp__main-acts { grid-template-columns: 1fr 1fr 1.4fr auto; } .pp__moreb { grid-column: auto; padding: 14px 16px; } }
+/* Full screen (the panel host's phone fallback) — the panel's own state, never a window query (D48). */
+.pp[data-full-screen="true"] { padding: 70px 20px 30px; }

@@ -105,7 +105,9 @@ export function PanelDock({ width, fullScreen = false, children }) {
     // Narrow-viewport fallback: the dock spans the viewport and its single child fills it. Still
     // inset (8px) and still rounded, so it reads as the same object rather than becoming a
     // different component below a breakpoint.
-    ? { left: 8, right: 8, top: 64, bottom: 8 }
+    // ⭐ D149 (fullhouse-declutter.html): on a phone the panel IS the screen — the sketch's `.panel{position:fixed;
+    // inset:0;border-radius:0}` and its ATS drawer's full height. It was inset 8 / 64 and rounded.
+    ? { left: 0, right: 0, top: 0, bottom: 0 }
     : { right: EDGE_GAP, top: PANEL_TOP_INSET, bottom: PANEL_BOTTOM_INSET,
         width: `min(${Math.round(width)}px, calc(100vw - ${EDGE_GAP * 2}px))` };
 
@@ -156,6 +158,8 @@ export default function PanelShell({
   closesOnEscape = undefined, reserveRight = 0, bare = false,
   resizeMode = "dock", onResizeStart, onResize, onResizeEnd,
   onClose, onFocus, header, actions, children, bodyRef,
+  // ⭐ D149: a panel may wear its own surface (the posting is the sketch's card, not the glass) and its own corner.
+  surfaceClass = "liquid-panel", radius = 16, fill = false,
 }) {
   const dragRef = useRef(null);
   const ownBodyRef = useRef(null);
@@ -227,7 +231,7 @@ export default function PanelShell({
       exit={{ x: 560, opacity: 0 }}
       transition={{ type: "spring", damping: 26, stiffness: 220 }}
       onMouseDown={onFocus}
-      className="liquid-panel"
+      className={surfaceClass}
       data-panel-id={panelId}
       data-panel-slot={slot}
       style={{
@@ -235,7 +239,7 @@ export default function PanelShell({
         // tiling internal: the panel's position is now a consequence of its siblings' widths, so it
         // can never be laid out against the board or shoved past the viewport's edge.
         position: "relative",
-        flex: fullScreen ? "1 1 auto" : `0 0 ${Math.round(width)}px`,
+        flex: fullScreen || fill ? "1 1 auto" : `0 0 ${Math.round(width)}px`,
         // D39: the space a closed neighbour held, kept so this panel stays where it was.
         marginRight: fullScreen ? 0 : Math.round(reserveRight),
         minWidth: 0,
@@ -248,7 +252,7 @@ export default function PanelShell({
         pointerEvents: "auto",
         // Within the dock's stacking context — the dock itself carries Z.MODAL.
         zIndex: focused ? 1 : 0,
-        borderRadius: 16,
+        borderRadius: fullScreen ? 0 : radius,
         // The dark-glass blur is set INLINE as well as via .liquid-panel, and that is deliberate.
         // The CSS pipeline minifies the class rule down to `-webkit-backdrop-filter` only — the
         // unprefixed declaration is dropped, so the panel's computed backdropFilter reads "none"
