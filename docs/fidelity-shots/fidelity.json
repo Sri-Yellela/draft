@@ -1,0 +1,236 @@
+{
+  "deck-desktop": {
+    "sketch": "declutter-v7.html",
+    "app": "/app",
+    "similarity": 0.8084,
+    "worstRegions": [
+      {
+        "row": 0,
+        "col": 1,
+        "diff": 0.74
+      },
+      {
+        "row": 0,
+        "col": 2,
+        "diff": 0.74
+      },
+      {
+        "row": 0,
+        "col": 3,
+        "diff": 0.74
+      },
+      {
+        "row": 0,
+        "col": 4,
+        "diff": 0.74
+      },
+      {
+        "row": 0,
+        "col": 5,
+        "diff": 0.74
+      },
+      {
+        "row": 0,
+        "col": 6,
+        "diff": 0.74
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T01:16:06.538Z"
+  },
+  "deck-phone": {
+    "sketch": "declutter-v7.html",
+    "app": "/app",
+    "similarity": 0.7358,
+    "worstRegions": [
+      {
+        "row": 3,
+        "col": 5,
+        "diff": 0.81
+      },
+      {
+        "row": 3,
+        "col": 6,
+        "diff": 0.745
+      },
+      {
+        "row": 0,
+        "col": 2,
+        "diff": 0.698
+      },
+      {
+        "row": 0,
+        "col": 3,
+        "diff": 0.698
+      },
+      {
+        "row": 0,
+        "col": 4,
+        "diff": 0.698
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "diff": 0.696
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T01:16:12.142Z"
+  },
+  "fullhouse-desktop": {
+    "sketch": "fullhouse-declutter.html",
+    "app": "/app/jobs",
+    "similarity": 0.5851,
+    "worstRegions": [
+      {
+        "row": 6,
+        "col": 1,
+        "diff": 0.92
+      },
+      {
+        "row": 6,
+        "col": 2,
+        "diff": 0.92
+      },
+      {
+        "row": 7,
+        "col": 1,
+        "diff": 0.92
+      },
+      {
+        "row": 7,
+        "col": 2,
+        "diff": 0.92
+      },
+      {
+        "row": 5,
+        "col": 2,
+        "diff": 0.912
+      },
+      {
+        "row": 3,
+        "col": 5,
+        "diff": 0.87
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T01:16:19.821Z"
+  },
+  "fullhouse-phone": {
+    "sketch": "fullhouse-declutter.html",
+    "app": "/app/jobs",
+    "similarity": 0.7532,
+    "worstRegions": [
+      {
+        "row": 0,
+        "col": 0,
+        "diff": 0.789
+      },
+      {
+        "row": 0,
+        "col": 2,
+        "diff": 0.763
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "diff": 0.733
+      },
+      {
+        "row": 0,
+        "col": 3,
+        "diff": 0.668
+      },
+      {
+        "row": 0,
+        "col": 4,
+        "diff": 0.623
+      },
+      {
+        "row": 0,
+        "col": 7,
+        "diff": 0.6
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T01:16:26.441Z"
+  },
+  "settings-desktop": {
+    "sketch": "settings-declutter.html",
+    "app": "/app/auto-apply",
+    "similarity": 0.6513,
+    "worstRegions": [
+      {
+        "row": 2,
+        "col": 3,
+        "diff": 1
+      },
+      {
+        "row": 2,
+        "col": 4,
+        "diff": 1
+      },
+      {
+        "row": 5,
+        "col": 1,
+        "diff": 1
+      },
+      {
+        "row": 5,
+        "col": 2,
+        "diff": 1
+      },
+      {
+        "row": 5,
+        "col": 3,
+        "diff": 1
+      },
+      {
+        "row": 5,
+        "col": 4,
+        "diff": 1
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T01:16:33.020Z"
+  },
+  "settings-phone": {
+    "sketch": "settings-declutter.html",
+    "app": "/app/auto-apply",
+    "similarity": 0.9116,
+    "worstRegions": [
+      {
+        "row": 0,
+        "col": 1,
+        "diff": 0.254
+      },
+      {
+        "row": 1,
+        "col": 5,
+        "diff": 0.238
+      },
+      {
+        "row": 0,
+        "col": 2,
+        "diff": 0.236
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "diff": 0.236
+      },
+      {
+        "row": 7,
+        "col": 7,
+        "diff": 0.225
+      },
+      {
+        "row": 3,
+        "col": 1,
+        "diff": 0.218
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T01:16:38.302Z"
+  }
+}
