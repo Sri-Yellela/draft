@@ -263,7 +263,7 @@ import { remapGeneralRows, REMAP_MATCHED_BY } from "./services/jobs/remapGeneral
 import { tagStaleJobs } from "./services/jobs/jobTags.js";
 // ⭐ D106: the level a posting's text ASKS for, beside its title's ("Titled Junior · asks for 3+ years and system design").
 import { readStaleLevels, levelOfRow } from "./services/jobs/levelRead.js";
-import { backfillDescriptionText, withPostingText, refreshDescriptionText, postingText, registerDescriptionBasis } from "./services/jobs/descriptionText.js";
+import { backfillDescriptionText, withPostingText, refreshDescriptionText, postingText, registerDescriptionBasis, sweepStaleDescriptionBasis } from "./services/jobs/descriptionText.js";
 import { backfillProvenance } from "./services/jobs/enrichmentProvenance.js";
 import { listPairs as listLearnedPairs, setPairRevoked, setPairPromoted, PROMOTE_AT_USERS } from "./services/learnedOrigins.js";
 import { CRAWLER_PAGE_HTML } from "./services/crawlerPage.js";
@@ -6659,6 +6659,22 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         CREATE INDEX IF NOT EXISTS idx_learn_question_answers_q ON learn_question_answers(question_id);
       `,
     },
+    {
+      // D151 / A123 (2) (44r, 11-04): THE DESCRIPTION PASS'S STALE SCAN BECOMES AN INDEX READ. A changed description now
+      // clears its description_basis here, so services/jobs/descriptionText.js finds stale rows by the basis alone
+      // (NULL, or another normaliser version's prefix) instead of hashing every description on the board twice a pass
+      // (18.6 s of blocked event loop at 84k postings, on every boot and every 10 minutes). Schema only (D151 Rule 1:
+      // no data step in a migration); rows changed before this trigger existed are caught by a one-time sliced sweep.
+      // (The cleanup's scraped_at index is built by the boot warm-up, not here: 29 s on the 82k copy, so not before listen.)
+      id: "219_boot_bounded_scans",
+      sql: `
+        CREATE TRIGGER IF NOT EXISTS d151_description_basis_reset AFTER UPDATE OF description ON scraped_jobs
+          WHEN NEW.description IS NOT OLD.description AND NEW.description_basis IS NOT NULL
+        BEGIN
+          UPDATE scraped_jobs SET description_basis = NULL WHERE rowid = NEW.rowid;
+        END;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -6720,6 +6736,12 @@ console.log(`[boot] database ready: ${DB_PATH}`);
 // ⛔⛔ D151 Rule 1 (11-04): every board pass from here to the tracking sink is queued with BOOT.add and runs AFTER the
 // listener binds, in this same order (the tags read the role map's bucket). On an 81k-posting copy they held the port
 // for over a minute. /api/health/ready answers 503 until they have run, so no deploy takes traffic before them.
+// ⛔ 44r (11-04, D151 / A123) · the startup / 03:00 cleanup's two expiry statements (scraped_at < cutoff AND …) were full
+// scans of the board — 19 s + 26 s on the 82k copy, matching 0 rows — because nothing indexed scraped_at. With the index
+// they are 3 ms. Built here, after listen, once (29 s on the 82k copy; IF NOT EXISTS is instant after).
+BOOT.add("index: scraped_jobs.scraped_at", () => {
+  db.exec("CREATE INDEX IF NOT EXISTS idx_scraped_jobs_scraped_at ON scraped_jobs(scraped_at)");
+});
 BOOT.add("posting categories", () => {
   const cat = backfillCategories(db);
   if (cat.classified) console.log(`[boot] posting categories: ${cat.classified} classified, ${cat.held} held`);
@@ -6820,7 +6842,7 @@ if (String(process.env.ROLE_MAP_BACKFILL || "").toLowerCase() === "off") {
   // D74: a stored posting the old anchors filed under 'general' (invisible on every board) is re-filed
   // when the classifier now names its family. Classifier rows only; reversible by its matched_by.
   try {
-    const remap = remapGeneralRows(db);
+    const remap = remapGeneralRows(db, { skipIfSettled: true });   // 44r: skipped while the classifier is unchanged
     if (remap.moved > 0) {
       console.log(`[boot] job_role_map: re-filed ${remap.moved} of ${remap.scanned} 'general' posting(s) `
         + `(${Object.entries(remap.byBucket).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k}=${n}`).join(" ")}); `
@@ -6882,6 +6904,17 @@ function runJobTagPass(trigger, { descriptions = true } = {}) {
   return worked;
 }
 BOOT.add("job tags (first slice)", () => runJobTagPassSliced("boot"));
+// ⛔ 44r · migration 219's one-time catch-up (descriptionText.sweepStaleDescriptionBasis): 1,000 rows a slice, a 50 ms
+// yield between slices, started after the warm-up so it never holds a deploy's ready. Resumable across restarts.
+function runDescriptionBasisSweep() {
+  try {
+    const r = sweepStaleDescriptionBasis(db, { rows: 1000 });
+    if (r.reset > 0) console.log(`[description] basis sweep: ${r.reset} posting(s) changed since their last read, rowid ${r.from}–${r.to}; re-read by the next pass`);
+    if (r.done) { if (r.from != null) console.log("[description] basis sweep: done"); return; }
+  } catch (e) { console.error("[description] basis sweep failed (the next boot resumes it):", e.message); return; }
+  setTimeout(runDescriptionBasisSweep, 50).unref();
+}
+setTimeout(runDescriptionBasisSweep, 120 * 1000).unref();
 setInterval(() => runJobTagPassSliced("interval"), 10 * 60 * 1000).unref();
 
 // ── ATS term weights: say what state they are in, then fix it if it needs fixing ────────────────
@@ -6922,7 +6955,18 @@ try {
   // never-fatal wrapper caught it and the boot survived, which is precisely how a refresh that
   // never runs would have gone unnoticed. setImmediate runs after the module finishes evaluating,
   // when every declaration below exists.
-  setImmediate(() => runTermWeightRefresh("boot"));
+  // ⛔ 44r (11-04) · NOT ON EVERY DEPLOY. A volume-backed Railway service never overlaps its old and new
+  // containers, so the boot's synchronous work is an outage: the 20:31Z deploy held the loop ≈ 18 s here
+  // (a recompute over 84k postings, refused for a thin corpus) with nothing else serving. The nightly cron
+  // runs this same refresh; the boot only runs it when no attempt (ok, refused or failed) is on record in
+  // the last 24 h — a fresh database, or a cron that has stopped.
+  setImmediate(() => {
+    if (termWeightRefreshRanWithin(24 * 3600)) {
+      console.log("[ats-weights] (boot) skipped — a refresh ran in the last 24 h (the nightly cron owns it)");
+      return;
+    }
+    runTermWeightRefresh("boot");
+  });
 } catch (e) {
   console.error("[boot] ats_term_weights check failed (scoring continues, possibly unweighted):", e.message);
 }
@@ -7180,14 +7224,37 @@ const upload = multer({
 // Extracts into a named function so it can be called at startup (to
 // catch any window missed if the server was down during the cron time)
 // and also scheduled daily.
+// ⛔ 44r (11-04, D151 / A123 (4)) · at BOOT the two whole-board rollups run only when they have not run in the last 20 h.
+// They held production's 20:31Z boot ≈ 8 s with nothing else serving (a volume-backed Railway service never overlaps its
+// deploys), and the cron runs both after every crawl and at 03:00. The deletes below are bounded and stay.
+const ROLLUP_AT_KEY = "d151_history_rollup_at";
+function rollupsRanWithin(seconds) {
+  try {
+    const v = Number(db.prepare("SELECT value FROM app_settings WHERE key = ?").get(ROLLUP_AT_KEY)?.value);
+    return Number.isFinite(v) && v >= Math.floor(Date.now() / 1000) - seconds;
+  } catch { return false; }
+}
+function markRollupsRan() {
+  try {
+    db.prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, unixepoch())
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`).run(ROLLUP_AT_KEY, String(Math.floor(Date.now() / 1000)));
+  } catch { /* the next boot runs them again, as before */ }
+}
+let cleanupRunsThisProcess = 0;   // the first run in a process is the startup one (its BOOT.add step)
 function runExpiredJobsCleanup() {
   const cutoff = Math.floor(Date.now()/1000) - 7*24*60*60;
-  // ⭐ D107: the history is written BEFORE anything is deleted — a deleted posting is the one a later repost points back to.
-  try { const h = recordJobHistory(db); console.log(`[job-history] cleanup: ${h.seen} seen, ${h.closed} closed`); }
-  catch (e) { console.warn("[job-history] cleanup:", e.message); }
-  // ⭐ D137: the ghost score over that history (it never removes a row — closing is the cleanup's, below).
-  try { const g = scoreGhosts(db); console.log(`[ghost-score] cleanup: ${g.scored} scored, ${g.notHiring} likely not hiring, ${g.changed} changed`); }
-  catch (e) { console.warn("[ghost-score] cleanup:", e.message); }
+  const startup = cleanupRunsThisProcess++ === 0;
+  if (startup && rollupsRanWithin(20 * 3600)) {
+    console.log("[job-history] cleanup (boot): history + ghost score skipped — they ran in the last 20 h");
+  } else {
+    // ⭐ D107: the history is written BEFORE anything is deleted — a deleted posting is the one a later repost points back to.
+    try { const h = recordJobHistory(db); console.log(`[job-history] cleanup: ${h.seen} seen, ${h.closed} closed`); }
+    catch (e) { console.warn("[job-history] cleanup:", e.message); }
+    // ⭐ D137: the ghost score over that history (it never removes a row — closing is the cleanup's, below).
+    try { const g = scoreGhosts(db); console.log(`[ghost-score] cleanup: ${g.scored} scored, ${g.notHiring} likely not hiring, ${g.changed} changed`); }
+    catch (e) { console.warn("[ghost-score] cleanup:", e.message); }
+    markRollupsRan();
+  }
 
   // STARRED ROWS ARE RETIRED, NEVER REMOVED.
   //
@@ -7409,6 +7476,7 @@ cron.schedule("0 4 * * *", async () => {
   // ⭐ D137: the ghost score from the history just written; monthly, the "Likely not hiring" cut is checked on outcomes.
   try {
     const g = scoreGhosts(db);
+    markRollupsRan();
     console.log(`[Cron] ghost score: ${g.scored} scored, ${g.uncertain} uncertain, ${g.notHiring} likely not hiring (cut ${g.notHiringMin}), ${g.changed} changed`);
     const c = calibrateGhostThreshold(db);
     if (c.ran) console.log(`[Cron] ghost calibration: ${c.measure.replied} of ${c.measure.withOutcomes} flagged postings replied — cut ${c.from}${c.raised ? ` → ${c.to}` : " (kept)"}`);
@@ -8727,6 +8795,16 @@ function runTermWeightRefresh(trigger) {
  * so it neither increments nor resets the streak: it is not evidence either way about whether the
  * pass works. Only 'ok' resets it.
  */
+/** 44r: whether any term-weight refresh (any status, any trigger) is on record within `seconds`. */
+function termWeightRefreshRanWithin(seconds, now = Math.floor(Date.now() / 1000)) {
+  try {
+    const row = db.prepare(
+      `SELECT 1 FROM pipeline_runs WHERE run_kind = 'term_weights' AND started_at >= ? LIMIT 1`
+    ).get(now - seconds);
+    return !!row;
+  } catch { return false; }
+}
+
 function termWeightRefreshHealth() {
   try {
     const rows = db.prepare(

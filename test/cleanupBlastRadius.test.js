@@ -184,7 +184,7 @@ test("cleanupBrakeOptions — only a real authorisation counts as one", () => {
 
 test("server.js counts the pass before running it, and gates the DELETE on the result", () => {
   const src = fs.readFileSync("server.js", "utf8");
-  const fn = src.slice(at(src, "function runExpiredJobsCleanup()", 0, "server.js"),
+  const fn = src.slice(at(src, "function runExpiredJobsCleanup(", 0, "server.js"),
                        at(src, "cron.schedule(\"0 3 * * *\"", 0, "server.js"));
 
   assert.match(fn, /assessCleanupScope\(/, "the pass must be assessed, not just run");

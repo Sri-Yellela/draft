@@ -6147,4 +6147,20 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_learn_question_answers_q ON learn_question_answers(question_id);
       `,
     },
+    {
+      // D151 / A123 (2) (44r, 11-04): THE DESCRIPTION PASS'S STALE SCAN BECOMES AN INDEX READ. A changed description now
+      // clears its description_basis here, so services/jobs/descriptionText.js finds stale rows by the basis alone
+      // (NULL, or another normaliser version's prefix) instead of hashing every description on the board twice a pass
+      // (18.6 s of blocked event loop at 84k postings, on every boot and every 10 minutes). Schema only (D151 Rule 1:
+      // no data step in a migration); rows changed before this trigger existed are caught by a one-time sliced sweep.
+      // (The cleanup's scraped_at index is built by the boot warm-up, not here: 29 s on the 82k copy, so not before listen.)
+      id: "219_boot_bounded_scans",
+      sql: `
+        CREATE TRIGGER IF NOT EXISTS d151_description_basis_reset AFTER UPDATE OF description ON scraped_jobs
+          WHEN NEW.description IS NOT OLD.description AND NEW.description_basis IS NOT NULL
+        BEGIN
+          UPDATE scraped_jobs SET description_basis = NULL WHERE rowid = NEW.rowid;
+        END;
+      `,
+    },
   ];

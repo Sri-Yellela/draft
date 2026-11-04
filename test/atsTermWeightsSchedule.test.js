@@ -197,7 +197,8 @@ test("⛔ the per-job warning covers ABSENT, not only stale", () => {
 
 test("both boot and the nightly cron run the refresh, through one function", () => {
   assert.match(SERVER, /function runTermWeightRefresh\(trigger\)/);
-  assert.match(SERVER, /setImmediate\(\(\) => runTermWeightRefresh\("boot"\)\)/,
+  // 44r (A123 (1)) changed on purpose: still deferred one tick, now skipped when a refresh is on record in the last 24 h.
+  assert.match(SERVER, /setImmediate\(\(\) => \{\s+if \(termWeightRefreshRanWithin\(24 \* 3600\)\)[\s\S]{0,200}?runTermWeightRefresh\("boot"\);/,
     "boot, deferred past module evaluation so the weight cache exists");
   assert.match(SERVER, /runTermWeightRefresh\("cron"\)/, "and the nightly pass, after the crawl");
   // One implementation, so the two cannot report the same event differently.
@@ -268,7 +269,7 @@ test("the streak reaches the cliff in THREE, and the number is derived from the 
 
 test("a failing refresh is LOUD at boot, and silent when healthy", () => {
   const boot = SERVER.slice(at(SERVER, "const before = atsWeightStatus(db);"),
-                            at(SERVER, 'setImmediate(() => runTermWeightRefresh("boot"))'));
+                            at(SERVER, 'runTermWeightRefresh("boot");'));
   assert.match(boot, /if \(health\.consecutiveFailures > 0\)/,
     "nothing is printed in the healthy case — '0 consecutive failures' on every boot forever is " +
     "how a warning stops being read");
