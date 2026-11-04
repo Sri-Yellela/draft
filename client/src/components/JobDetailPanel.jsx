@@ -9,6 +9,7 @@ import CompanyViewModal from "./CompanyViewModal.jsx";
 import PanelShell from "./PanelShell.jsx";
 import CompanyLink from "./CompanyLink.jsx";
 import CompanyLogo from "./CompanyLogo.jsx";
+import { StampLogo } from "./StampLogo.jsx";
 import { AtsNumberBox } from "./AtsNumberBox.jsx";
 import { atsScorePair } from "../../../shared/resumeScores.js";
 import "./JobDetailPanel.css";
@@ -160,11 +161,15 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
             {saved ? "Saved" : "Save"}
           </button>
         )}
+        {/* ⭐ D149 (owner 11-04, "/draft logo"): Draft is the owner's 10-07 logo button again, not the sketch's plain
+            word on the accent — at rest the button IS the /draft mark (the one StampLogo, in the mark's own tokens), on
+            the raised grey like Pass and Save, never on the accent fill where the slash would vanish; the word comes back
+            only for the states (Drafting… · Drafted · out of drafts). Named by its sentence, not "/draft". */}
         {canApply && onDraft && (
-          <button type="button" className="pp__btn pp__btn--p" data-decision="draft" data-draft-state={draft.kind}
-            disabled={draft.disabled} aria-disabled={draft.ariaDisabled || undefined} aria-pressed={!!drafted}
-            title={draft.title} onClick={draftClick}>
-            {draft.label}
+          <button type="button" className="pp__btn pp__btn--logo" data-decision="draft" data-draft-state={draft.kind}
+            data-draft-logo="" disabled={draft.disabled} aria-disabled={draft.ariaDisabled || undefined} aria-pressed={!!drafted}
+            aria-label={draft.kind === "idle" ? "Draft" : undefined} title={draft.title} onClick={draftClick}>
+            {draft.kind === "idle" ? <StampLogo size="mini" /> : draft.label}
           </button>
         )}
         <button type="button" className="pp__moreb" aria-expanded={more} aria-controls={moreId} data-posting-more-toggle=""

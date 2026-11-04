@@ -110,6 +110,14 @@ const tokens = Object.freeze({
   DEPTH_ACCENT:        "0 6px 18px rgba(194,89,58,0.22), inset 0 1px 0 rgba(255,255,255,0.20)",   // a faint warm glow under the button
   LOGO_SHADOW:         "0 2px 6px rgba(30,25,21,0.14)",
   LOGO_TILE:           "#FBF7F0",
+  TILE_BLUE:           "#2B59C3",
+  TILE_GREEN:          "#1F7A4D",
+  TILE_PURPLE:         "#7A2E8E",
+  TILE_ORANGE:         "#C2410C",
+  TILE_TEAL:           "#0E7490",
+  TILE_SLATE:          "#374151",
+  TILE_ROSE:           "#9D174D",
+  ON_TILE:             "#FFFFFF",
   DOC_PAPER:           "#FFFFFF",
   DOC_INK:             "#1A1A1A",
 });

@@ -107,10 +107,8 @@
 }
 .pp__btn:focus-visible, .pp__moreb:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
 .pp__btn:disabled, .pp__btn[aria-disabled="true"] { cursor: default; color: var(--c-ink-muted); }
-.pp__btn--p {
-  background: linear-gradient(180deg, var(--c-accent), var(--c-accent-hover)); color: var(--c-on-accent); box-shadow: var(--c-depth-accent);
-}
-.pp__btn--p:disabled, .pp__btn--p[aria-disabled="true"] { color: var(--c-on-accent); opacity: .6; }
+/* D149 (owner 11-04): Draft is the /draft mark on the raised grey (the mark wears its own tokens). */
+.pp__btn--logo { display: inline-flex; align-items: center; justify-content: center; }
 .pp__moreb {
   padding: 14px 16px; border: 0; border-radius: 16px; background: var(--c-fh-well); color: var(--c-ink-muted); box-shadow: none;
   font: 600 calc(16px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body));
