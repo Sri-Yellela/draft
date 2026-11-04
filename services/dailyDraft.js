@@ -160,7 +160,17 @@ function readDeal(db, userId, profileId, date) {
  * `{ ok, jobs, nextCursor }`. The deal pages until the deck is full or the board ends.
  */
 /** The orders a deck can be read in. 'dealt' is the board's own (position IS the fit signal). */
-export const DECK_ORDERS = Object.freeze(["dealt", "ats"]);
+export const DECK_ORDERS = Object.freeze(["dealt", "ats", "best"]);
+
+// ⭐ D152 (3) (owner 11-04: "merge the daily deck, daily picks, and the best bets"): ONE RANKING FEEDS THE DECK — D136's
+// best-bets reading of each dealt card (shared/bestBets.js bestBetOf: hard filters, then the signals; a ranked score,
+// never a probability). The deal stays frozen; "best" reorders the READ by it (then the dealt position), and every card
+// carries its reading so the card can say its reason line. A card with no fit yet (score null) sorts after the scored.
+export function orderByBest(cards) {
+  return cards.map((c, i) => ({ c, i, s: Number.isFinite(c.bestBet?.score) ? c.bestBet.score : null }))
+    .sort((a, b) => ((b.s ?? -1) - (a.s ?? -1)) || (a.c.position - b.c.position) || (a.i - b.i))
+    .map(k => k.c);
+}
 
 // A75 (owner, 10-03): "ATS match" as a sort on the daily draft. The deal stays frozen; only the READ
 // is reordered — by the caller's own stored score, with the board's fit-band rule (FIT_KEYS in
@@ -179,7 +189,7 @@ export function orderByAts(cards, scoreFor) {
 }
 
 export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, reportFor = () => null, size = DECK_SIZE,
-                                       order = "dealt", scoreFor = () => null }) {
+                                       order = "dealt", scoreFor = () => null, betFor = null }) {
   let rows = readDeal(db, userId, profileId, date);
   let dealtNow = false;
   if (!rows.length) {
@@ -214,9 +224,11 @@ export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, 
     return { position: r.position, band: r.band, decision: decisions[r.job_id], job: snap.job, why: readWhy(snap.why),
              report: snap.report ?? null };
   });
-  const cards = order === "ats" ? orderByAts(dealtCards, scoreFor) : dealtCards;
+  // D152 (3): each card's best-bets reading (its score and reasons), read at serve time — never frozen into the deal.
+  if (betFor) for (const c of dealtCards) { try { c.bestBet = betFor(c.job) ?? null; } catch { c.bestBet = null; } }
+  const cards = order === "ats" ? orderByAts(dealtCards, scoreFor) : order === "best" ? orderByBest(dealtCards) : dealtCards;
   return {
-    date, profileId, size: cards.length, dealtNow, cards, order: order === "ats" ? "ats" : "dealt",
+    date, profileId, size: cards.length, dealtNow, cards, order: order === "ats" || order === "best" ? order : "dealt",
     thin: cards.length > 0 && cards.length < size,
     ...(cards.length === 0 ? { reason: "empty" } : cards.length < size ? { reason: "thin" } : {}),
   };

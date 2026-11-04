@@ -129,3 +129,36 @@ test("d152 (2) · Home's card size and fan transform (pure)", async () => {
   assert.ok(HOME_CARD.height * Math.sin(r) + HOME_CARD.width * (Math.cos(r) - 1) <= 390 - HOME_CARD.width);
   assert.ok(HOME_CARD.width * Math.sin(r) < HOME_CARD.below);
 });
+
+// ⭐ D152 (3) · ONE RANKING FEEDS THE DECK — the best-bets reading orders the deck and is its reason line.
+test("d152DeckFromBestBets: the 'best' read orders the frozen deal by each card's best-bets score, the dealt position breaking ties", async () => {
+  const { orderByBest, DECK_ORDERS } = await import("../services/dailyDraft.js");
+  assert.ok(DECK_ORDERS.includes("best"));
+  const cards = [
+    { position: 0, job: { id: "a" }, bestBet: { score: 40 } },
+    { position: 1, job: { id: "b" }, bestBet: { score: 90 } },
+    { position: 2, job: { id: "c" }, bestBet: null },
+    { position: 3, job: { id: "d" }, bestBet: { score: 90 } },
+  ];
+  assert.deepEqual(orderByBest(cards).map(c => c.job.id), ["b", "d", "a", "c"], "scored first, a card with no fit yet last");
+  const srv = read("server.js");
+  const route = srv.slice(at(srv, 'app.get("/api/draft/today"'), at(srv, "// GET /api/company-logo/:key"));
+  assert.match(route, /const betFor = \(job\) => bestBetOf\(bestBetSignalsFor\(db, \{ userId: req\.user\.id, profileId: profile\.id, job: \{ id: job\.id \}, \.\.\.betInputs \}\)\);/,
+    "the route reads each card through the ONE best-bets function");
+  assert.match(route, /todaysDeck\(db, \{[^}]*betFor \}\)/);
+  const order = read("client/src/lib/deckOrder.js");
+  assert.match(order, /catch \{ return "best"; \}/, "best bets is the deck's default order");
+});
+
+test("d152ReasonLineOnCard / d152NoSeparateBestBetsList: the card says the best-bets reasons once; no separate list", async () => {
+  const { cardFacts } = await import("../client/src/lib/deckCardFacts.js");
+  const f = cardFacts({ job: { id: "x" }, score: 66, bestBet: { reasons: ["you're eligible", "7 of 7 must-haves", "66 ATS match", "posted 10 hours ago", "7 of 7 must-haves"] } });
+  assert.deepEqual(f.reason, { eligible: true, rest: ["7 of 7 must-haves", "posted 10 hours ago"] },
+    "the ATS-match reason is dropped (the match is the card's number) and each reason said once");
+  assert.equal(cardFacts({ job: { id: "y" } }).reason, null, "no reading → no reason line");
+  assert.ok(!fs.existsSync("client/src/components/BestBets.jsx"));
+  assert.doesNotMatch(read("client/src/panels/JobsPanel.jsx"), /<BestBets\b|bestBets=/);
+  assert.match(DECK, /\{home && facts\.reason && \(/);
+  assert.match(DECK, /\{!home && facts\.chips\.length > 0 && \(/, "on Home the reason line replaces the hover chips (each fact once)");
+  assert.match(DECK, /of \{s\.size\} today · \{deckOrder === "best" \? "best match first"/, "the sketch's count line");
+});

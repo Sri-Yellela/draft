@@ -298,7 +298,7 @@ function AtsSheet({ card, profileId, onClose, onReport }) {
 // and the FULL POSTING stays one press away ("The full posting ↓" — the old expansion, unchanged, with the report beside
 // it on a wide screen). What each depth says is lib/deckCardFacts.js — one function, nothing said twice.
 // ⛔ No coloured labels or boxes on the card (the old band mark, the ring, the green chips); never "ATS".
-function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, onCollapse, onReport, onSignal, orientation, twoPanel, home = false }) {
+function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, onCollapse, onReport, onSignal, orientation, twoPanel, home = false, faceMin = null }) {
   const { job } = card;
   const facts = cardFacts(card);
   const titleId = `deck-title-${job.id}`;
@@ -306,7 +306,8 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
   const open = isFront && expanded;
   const deep = isFront && (why || expanded);
   const [hover, setHover] = useState(false);
-  const soft = isFront && (hover || deep);
+  // D152 (3): on Home "Why this job" is always on the card (home-sketch.html), under the reason line.
+  const soft = isFront && (home || hover || deep);
   return (
     <div data-deck-face="" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       onFocus={() => setHover(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setHover(false); }}
@@ -314,7 +315,9 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
       // gap in the info row (the sketch has no phone rule for them; the app used to shrink each on a phone).
       // ⭐ D152 (2): on Home the card is card-shaped (300 × 420) and its face is home-sketch.html's .card — 22 22 18
       // padding, a 42 px bubble, the 30 px serif title.
-      style={{ padding: home ? "22px 22px 18px" : "30px 30px 26px", fontFamily: shape("FONT_UI") }}>
+      // On Home the face is a column as tall as the card, so the reason line sits at its foot (the sketch's margin-top: auto).
+      style={{ padding: home ? "22px 22px 18px" : "30px 30px 26px", fontFamily: shape("FONT_UI"),
+               ...(home && faceMin ? { display: "flex", flexDirection: "column", minHeight: faceMin } : null) }}>
       {/* ⭐ COLLAPSE AT THE TOP TOO (A39), and STICKY — the bottom one is a whole posting away. */}
       {open && (
         <div data-deck-collapse-top style={{ position: "sticky", top: `calc(var(${CHROME_HEIGHT_VAR}, 74px) + 10px)`, height: 0 }}>
@@ -329,7 +332,8 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: ts(home ? 15 : 17), fontWeight: 600, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.company}</div>
             {/* ⛔ LOCATION ONLY — "posted … ago" lives in the stats (D145). */}
-            {job.location && <div data-deck-location="" style={{ fontSize: ts(home ? 13 : 14), color: C.INK_MUTED, marginTop: 1 }}>{job.location}</div>}
+            {job.location && <div data-deck-location="" style={{ fontSize: ts(home ? 13 : 14), color: C.INK_MUTED, marginTop: 1,
+              ...(home ? { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } : null) }}>{job.location}</div>}
           </div>
         </div>
         {/* ⭐ THE MATCH, at the top right — "86%" (or the band's word when the card carries no number, G5) over
@@ -341,8 +345,9 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
             onClick={isFront ? (e) => { e.stopPropagation(); onSignal?.(); } : undefined} aria-controls="deck-ats"
             aria-label={`${facts.match.value} résumé match — open the full report`}
             style={{ flex: "none", textAlign: "right", background: "transparent", border: "none", padding: 0, cursor: isFront ? "pointer" : "default", color: "inherit", fontFamily: "inherit" }}>
-            <div style={{ color: C.ACCENT_INK, fontSize: ts(facts.match.numeric ? 34 : 24), fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1 }}>{facts.match.value}</div>
-            <div style={{ color: C.INK_MUTED, fontSize: ts(13), marginTop: 4 }}>{facts.match.word}</div>
+            {/* D152 (2): Home's card is the sketch's .m — the number at 28 over "match" in 11.5 (the narrow card's room). */}
+            <div style={{ color: C.ACCENT_INK, fontSize: ts(home ? 28 : facts.match.numeric ? 34 : 24), fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1 }}>{facts.match.value}</div>
+            <div style={{ color: C.INK_MUTED, fontSize: ts(home ? 11.5 : 13), marginTop: 4 }}>{home ? "match" : facts.match.word}</div>
           </button>
         )}
       </div>
@@ -352,18 +357,19 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
         // on the review queue's line — one name, so a navigation moves it instead of cutting.
         style={{ fontFamily: "var(--font-display)", fontWeight: 400, lineHeight: 1.04, letterSpacing: "-0.01em", color: C.INK,
                  fontSize: `calc(${home ? 30 : 42}px * var(${TYPE_SCALE_VAR}, 1))`,
-                 margin: home ? "18px 0 12px" : "16px 0 12px", outline: "none",
-                 ...(deep ? null : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
+                 margin: home ? "14px 0 10px" : "16px 0 12px", outline: "none",
+                 // D152 (2): Home's card keeps its 5 : 7 — the title clamps at 2 lines there (the full title is in the posting).
+                 ...(deep ? null : { display: "-webkit-box", WebkitLineClamp: home ? 2 : 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
         {job.title}
       </h2>
 
       {/* ⭐ ONE minimal info row: each a white value over a small grey label. */}
       {facts.info.length > 0 && (
-        <div data-deck-info="" style={{ display: "flex", gap: 26, flexWrap: "wrap", margin: "4px 0 2px" }}>
+        <div data-deck-info="" style={{ display: "flex", gap: home ? "6px 18px" : 26, flexWrap: "wrap", margin: "4px 0 2px" }}>
           {facts.info.map((f) => (
             <div key={f.key} data-deck-info-item={f.key}>
-              <b style={{ display: "block", fontWeight: 500, fontSize: ts(18), letterSpacing: "-0.01em", color: C.INK }}>{f.value}</b>
-              <span style={{ display: "block", color: C.INK_MUTED, fontSize: ts(13) }}>{f.label}</span>
+              <b style={{ display: "block", fontWeight: 500, fontSize: ts(home ? 15.5 : 18), letterSpacing: "-0.01em", color: C.INK }}>{f.value}</b>
+              <span style={{ display: "block", color: C.INK_MUTED, fontSize: ts(home ? 12 : 13) }}>{f.label}</span>
             </div>
           ))}
         </div>
@@ -376,19 +382,31 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
         </div>
       )}
 
+      {/* ⭐ D152 (3) · THE REASON LINE — the best-bets reading's reasons, at the card's foot on Home (the sketch's .reason). */}
+      {home && facts.reason && (
+        <p data-deck-reason="" title="Why it ranks here — a ranked reading of these signals, not a probability."
+          style={{ margin: "auto 0 0", paddingTop: 10, color: C.INK_MUTED, fontSize: ts(13.5), lineHeight: 1.5,
+                   display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {facts.reason.eligible && <b style={{ color: C.INK, fontWeight: 600 }}>you're eligible</b>}
+          {facts.reason.eligible && facts.reason.rest.length > 0 && " · "}
+          {facts.reason.rest.join(" · ")}
+        </p>
+      )}
+
       {/* HOVER: at most two soft facts, then "Why this job?" — on the expansion's clock. */}
       {isFront && (
         <div data-deck-soft="" style={{ display: "grid", gridTemplateRows: soft ? "1fr" : "0fr", opacity: soft ? 1 : 0,
                                         transition: `grid-template-rows ${ON_THE_CLOCK}, opacity ${ON_THE_CLOCK}` }}>
           <div style={{ minHeight: 0, overflow: "hidden" }}>
-            {facts.chips.length > 0 && (
+            {/* D152 (3) / (7): on Home the reason line says these — no chips there. */}
+            {!home && facts.chips.length > 0 && (
               <div data-deck-chips="" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
                 {facts.chips.map((c) => <span key={c} style={{ fontSize: ts(13.5), color: C.INK_MUTED, background: C.SURFACE_2, borderRadius: 10, padding: "5px 11px" }}>{c}</span>)}
               </div>
             )}
             <button type="button" data-deck-why-button="" aria-expanded={!!why} aria-controls="deck-why"
               onClick={(e) => { e.stopPropagation(); onWhy?.(!why); }}
-              style={{ marginTop: 16, padding: 0, background: "transparent", border: "none", cursor: "pointer", color: C.ACCENT_INK,
+              style={{ marginTop: home ? 8 : 16, padding: 0, background: "transparent", border: "none", cursor: "pointer", color: C.ACCENT_INK,
                        fontSize: ts(14), fontWeight: 600, fontFamily: "inherit" }}>
               {why ? "Fold it away ↑" : "Why this job? ↓"}
             </button>
@@ -559,7 +577,7 @@ function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimme
               {showFace && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
                                      why={isFront && why} onWhy={onWhy}
                                      onExpand={onExpand} onCollapse={onCollapse} onReport={onReport} onSignal={onSignal}
-                                     orientation={orientation} twoPanel={twoPanel} home={home} />}
+                                     orientation={orientation} twoPanel={twoPanel} home={home} faceMin={home ? size.height : null} />}
             </article>
             <div style={{ position: "absolute", inset: 0, transform: "rotateY(180deg)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
                           borderRadius: home ? 26 : 28, maxHeight: size.height }}>
@@ -1055,6 +1073,12 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
             )}
 
             <div data-deck-col style={{ minWidth: 0 }}>
+              {/* ⭐ D152 (3): home-sketch.html's .count — where you are in today's picks, and in what order. */}
+              {home && (
+                <p data-deck-count="" style={{ margin: "0 0 12px", color: C.INK_MUTED, fontSize: ts(13.5) }}>
+                  {Math.min(s.index + 1, s.size)} of {s.size} today · {deckOrder === "best" ? "best match first" : deckOrder === "ats" ? "ATS match first" : "as dealt"}
+                </p>
+              )}
               <div ref={stageRef} data-deck-stage
                 // The stage is the face-up card's box; the fan overflows it on purpose, behind the
                 // header above and the action row below. Its height FOLLOWS the card (measured each
