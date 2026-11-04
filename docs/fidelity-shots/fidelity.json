@@ -80,80 +80,80 @@
   "fullhouse-desktop": {
     "sketch": "fullhouse-declutter.html",
     "app": "/app/jobs",
-    "similarity": 0.5851,
+    "similarity": 0.9095,
     "worstRegions": [
       {
-        "row": 6,
+        "row": 4,
+        "col": 4,
+        "diff": 0.294
+      },
+      {
+        "row": 2,
         "col": 1,
-        "diff": 0.92
+        "diff": 0.28
       },
       {
-        "row": 6,
-        "col": 2,
-        "diff": 0.92
-      },
-      {
-        "row": 7,
-        "col": 1,
-        "diff": 0.92
-      },
-      {
-        "row": 7,
-        "col": 2,
-        "diff": 0.92
+        "row": 4,
+        "col": 0,
+        "diff": 0.269
       },
       {
         "row": 5,
-        "col": 2,
-        "diff": 0.912
+        "col": 0,
+        "diff": 0.266
       },
       {
-        "row": 3,
-        "col": 5,
-        "diff": 0.87
+        "row": 6,
+        "col": 0,
+        "diff": 0.257
+      },
+      {
+        "row": 7,
+        "col": 0,
+        "diff": 0.256
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T01:16:19.821Z"
+    "at": "2026-11-04T04:20:51.254Z"
   },
   "fullhouse-phone": {
     "sketch": "fullhouse-declutter.html",
     "app": "/app/jobs",
-    "similarity": 0.7532,
+    "similarity": 0.9485,
     "worstRegions": [
       {
         "row": 0,
         "col": 0,
-        "diff": 0.789
+        "diff": 0.169
       },
       {
-        "row": 0,
-        "col": 2,
-        "diff": 0.763
-      },
-      {
-        "row": 0,
+        "row": 6,
         "col": 1,
-        "diff": 0.733
+        "diff": 0.146
       },
       {
-        "row": 0,
-        "col": 3,
-        "diff": 0.668
+        "row": 6,
+        "col": 2,
+        "diff": 0.128
       },
       {
-        "row": 0,
-        "col": 4,
-        "diff": 0.623
+        "row": 4,
+        "col": 1,
+        "diff": 0.126
       },
       {
-        "row": 0,
-        "col": 7,
-        "diff": 0.6
+        "row": 1,
+        "col": 1,
+        "diff": 0.108
+      },
+      {
+        "row": 7,
+        "col": 2,
+        "diff": 0.108
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T01:16:26.441Z"
+    "at": "2026-11-04T04:20:58.170Z"
   },
   "settings-desktop": {
     "sketch": "settings-declutter.html",

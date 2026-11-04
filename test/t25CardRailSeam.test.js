@@ -60,7 +60,7 @@ let browserPath = null;
 try { browserPath = (await resolveBrowserExecutable())?.path || null; } catch { browserPath = null; }
 const NO_CHROME = browserPath && fs.existsSync(browserPath) ? false : "no Chrome on this machine (services/browserLauncher.js found none)";
 
-test("T25 · THE SEAM TEST — no hard edge around the ATS · star · Draft squares: 4 themes × 2 / 3 per row / phone × card / square hover", { skip: NO_CHROME, timeout: 180000 }, async () => {
+test("T25 · THE SEAM TEST — no hard edge around the ATS · star · Draft squares: 4 themes × desktop / phone × card / square hover", { skip: NO_CHROME, timeout: 180000 }, async () => {
   const { default: puppeteer } = await import("puppeteer-core");
   const { THEME_LIST, cssVarName } = await import("../client/src/themes/index.js");
   const card = `<div class="jb"><button class="jb__logo" style="background:var(--c-fh-well)"></button>
@@ -71,7 +71,7 @@ test("T25 · THE SEAM TEST — no hard edge around the ATS · star · Draft squa
   const page0 = (t, n, extra = "") => `<!doctype html><html data-theme="${t.id}" style="${Object.entries(t.tokens).map(([k, v]) => `${cssVarName(k)}:${v}`).join(";")};--font-body:sans-serif">
     <head><style>${css}
       body{margin:0;padding-top:40px;background:var(--c-canvas);font-family:sans-serif} *{transition:none!important;animation:none!important}${extra}
-    </style></head><body><div class="jb-rows" data-columns="${n}"><div class="jb-row">${card.repeat(n)}</div></div></body></html>`;
+    </style></head><body><div class="jb-rows" data-columns="${n}">${card.repeat(n)}</div></body></html>`;
   const browser = await puppeteer.launch({ executablePath: browserPath, headless: "new", pipe: true, args: ["--no-first-run"] });
   const failures = [];
   try {
@@ -96,7 +96,9 @@ test("T25 · THE SEAM TEST — no hard edge around the ATS · star · Draft squa
       await page.hover(".jb .jb__text");
       if (hover !== "card") await page.hover(`.jb .jb__sq--${hover}`);
     };
-    for (const t of THEME_LIST) for (const [vp, size, n] of [["desktop", { width: 1440, height: 400 }, 3], ["desktop", { width: 1440, height: 400 }, 2], ["phone", { width: 390, height: 400 }, 1]])
+    // D149 (11-03) changed this on purpose: the board is ONE column of rows now (fullhouse-declutter.html; D1's rows of
+    // 2 / 3 and their .jb-row are gone), so the card is drawn as the board draws it — one per row, desktop and phone.
+    for (const t of THEME_LIST) for (const [vp, size, n] of [["desktop", { width: 1440, height: 400 }, 1], ["phone", { width: 390, height: 400 }, 1]])
       for (const hover of ["card", "ats", "draft"]) {
         await page.setViewport(size);
         await load(t, n, hover, "");

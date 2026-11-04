@@ -319,7 +319,8 @@ const src = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 
 test("⛔ D86 UI: the Résumé button's one click is unchanged, and the caret renders nothing while the operator's switch is off", () => {
   const panel = src("client/src/components/JobDetailPanel.jsx");
-  assert.match(panel, /<DepthButton icon=\{ICONS\.resume\} onClick=\{\(\) => onGenerate\(false\)\}/, "the wide Résumé button still calls Generate");
+  // D149 (11-03) changed this on purpose: the button is the sketch's plain .pp__btn (no DepthButton icon), the same call.
+  assert.match(panel, /<button type="button" className="pp__btn" onClick=\{\(\) => onGenerate\(false\)\}/, "the wide Résumé button still calls Generate");
   // D147 (11-03): the icon-square rendering is gone — the one Résumé button lives under More.
   assert.doesNotMatch(panel, /size="square"/, "no square rendering is left to drift");
   const choice = src("client/src/components/ByomResumeChoice.jsx");
@@ -327,7 +328,7 @@ test("⛔ D86 UI: the Résumé button's one click is unchanged, and the caret re
   assert.match(choice, /available: !!settings\?\.available/);
   assert.match(choice, /localStorage\.getItem\(METHOD_KEY\) \|\| "draft"/, "the default method is draft");
   assert.match(choice, /const method = usable\(chosen\) \? chosen : "draft";/, "a remembered host that is off falls back to draft");
-  assert.match(panel, /!byom\.available && \(\s*<DepthButton icon=\{ICONS\.resume\} onClick=\{\(\) => onGenerate\(false\)\}/, "the plain button is drawn while the feature is off");
+  assert.match(panel, /!byom\.available && \(\s*<button type="button" className="pp__btn" onClick=\{\(\) => onGenerate\(false\)\}/, "the plain button is drawn while the feature is off");
 });
 
 test("⛔ D86 UI: Settings reads \"unavailable\" when the operator's switch is off, and its switch starts from the server's value", () => {

@@ -80,9 +80,22 @@ export function PostingMasthead({ job, experience = null, showTitle = true, vtTi
  * company line (the header carries the company), no "In short" / ghost / level lines (D137's ghost filter and D104's
  * eligibility already filter the board). A cell with sources behind it (sponsorship) opens them in place on press.
  */
+/** ⭐ D149 · the opened posting says its facts in words, as fullhouse-declutter.html does: "5+ years", "9 hours ago". */
+export function panelWords(cell, job, now = Date.now()) {
+  if (cell.key === "experience" && cell.value) return { ...cell, value: cell.value.replace(/ yrs$/, " years") };
+  if (cell.key === "posted" && job?.postedAt) {
+    const s = Math.max(0, (now - Date.parse(job.postedAt)) / 1000);
+    if (!Number.isFinite(s)) return cell;
+    const n = (v, w) => `${v} ${w}${v === 1 ? "" : "s"} ago`;
+    const value = s < 3600 ? "just now" : s < 86400 ? n(Math.floor(s / 3600), "hour") : n(Math.floor(s / 86400), "day");
+    return { ...cell, value };
+  }
+  return cell;
+}
+
 function PanelMasthead({ job, experience, vtTitle, matchBox }) {
   const [open, setOpen] = useState(null);
-  const cells = deckStrip(job, { experience });
+  const cells = deckStrip(job, { experience }).map(c => panelWords(c, job));
   const extra = [];
   if (job.liveness?.label) extra.push({ key: "history", label: "History", value: job.liveness.label });
   const sig = job.sponsorship?.level ? job.sponsorship : null;
@@ -100,10 +113,13 @@ function PanelMasthead({ job, experience, vtTitle, matchBox }) {
         <dl className="posting__strip" data-posting-strip>
           {all.map(c => {
             const inner = (<>
-              <dt className={c.labelHidden ? "posting__k--sr" : undefined}>{c.label}</dt>
+              {/* D149: every cell shows its label here (the sketch labels Workstyle too). */}
+              <dt>{c.label}</dt>
               <dd>{c.value ?? <span className="posting__ns">{c.missing === "unread" ? COULD_NOT_READ : NOT_STATED}</span>}</dd>
-              {c.sub && <dd className="posting__sub" data-cell-sub="">{c.sub}</dd>}
+              {c.sub && c.key !== "workstyle" && <dd className="posting__sub" data-cell-sub="">{c.sub}</dd>}
             </>);
+            // ⭐ D149: no location line under Workstyle here — the panel's header carries the location (the sketch's cell
+            // is the value over its label, nothing more).
             return c.more ? (
               <div key={c.key} className="posting__cell posting__cell--more" data-cell={c.key} data-stated="true" role="button" tabIndex={0}
                 aria-expanded={open === c.key} title={`${c.label} — show the sources`} onClick={() => toggle(c.key)}
@@ -279,6 +295,8 @@ export default function PostingPanel({ job, text = job?.description, experience 
   return (
     <article className={`posting ink-pair${panel ? " posting--panel" : ""}`} data-posting-panel data-posting-layout={layout}>
       <PostingMasthead job={job} experience={experience} showTitle={showTitle} vtTitle={vtTitle} layout={layout} matchBox={matchBox} />
+      {/* ⭐ D149 (fullhouse-declutter.html): the accent eyebrow "The posting" heads the description. */}
+      {panel && <p className="posting__eyebrow" data-posting-eyebrow="">The posting</p>}
       {body ? <PostingBody text={body} jobId={job.id ?? null} /> : <div className="posting__none">{children}</div>}
       {panel && <div className="posting__after"><PostingDetails fields={job.postingFields} /></div>}
     </article>

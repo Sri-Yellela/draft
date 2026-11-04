@@ -45,11 +45,11 @@ export function BoardSearch({ onSubmit }) {
   const submit = () => onSubmit?.({ query: q });
   return (
     <div className="fh-srch" role="search" aria-label="Job search">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4.3-4.3" /></svg>
+      {/* ⭐ D149 (fullhouse-declutter.html `.sbar`): the field alone — no magnifier — and the sketch's words. */}
       <UsbSuggest field="title" value={q} onChange={setQ}>
         {sugg => (
           <input {...sugg} type="search" enterKeyHint="search"
-            placeholder="Job title, company, or anything in the posting…" aria-label="Search jobs"
+            placeholder="Search a company, title or skill" aria-label="Search jobs"
             onKeyDown={e => { sugg.onKeyDown(e); if (!e.defaultPrevented && e.key === "Enter") submit(); }} />
         )}
       </UsbSuggest>
@@ -63,8 +63,6 @@ export function BoardSearch({ onSubmit }) {
   );
 }
 
-/** The sketch's sort glyph — two arrows, up and down, exactly header.html's path. */
-export const SORT_GLYPH_PATH = "M7 4v16M7 20l-3-3M7 4l3 3M17 20V4M17 4l3 3M17 20l-3-3";
 
 /**
  * ⭐ D147 (owner 11-03) · THE ONE SORT / VIEW CONTROL — it was the ⇅ square in the bar; now it is a WORD in the title
@@ -78,7 +76,7 @@ export function SortWord({ open = false, chosen = false, label = "", view = null
       aria-expanded={open} aria-controls={open ? "fh-sort" : undefined}
       aria-label={`${said} — change the order or the view`} title={`${said} — change the order or the view`}
       onClick={() => onPress?.()}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d={SORT_GLYPH_PATH} /></svg>
+      {/* ⭐ D149: the sketch's `.quiet` "Sort: for you" — words only, no ⇅ glyph. */}
       <span>{said}</span>
     </button>
   );

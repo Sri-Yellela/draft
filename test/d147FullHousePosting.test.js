@@ -146,7 +146,9 @@ test("d147FactsBoxReused · the existing deck strip, restyled into one box; hist
   const out = html(PostingPanel, { job: JOB, layout: "panel", matchBox: "MATCH" });
   const cells = [...out.matchAll(/data-cell="([a-z]+)"/g)].map(m => m[1]);
   assert.deepEqual(cells, ["experience", "workstyle", "salary", "posted", "history", "sponsorship", "requirements"]);
-  assert.match(posting, /const cells = deckStrip\(job, \{ experience \}\);\n\s+const extra = \[\];/, "the deck strip is the box's source");
+  // D149 (11-03) changed this on purpose: the box still reads the deck strip, its values said in the sketch's words
+  // ("5+ years", "9 hours ago") by panelWords — the deck's own strip is unchanged.
+  assert.match(posting, /const cells = deckStrip\(job, \{ experience \}\)\.map\(c => panelWords\(c, job\)\);\n\s+const extra = \[\];/, "the deck strip is the box's source");
   // A posting without the optional facts draws only the four.
   const bare = html(PostingPanel, { job: { ...JOB, liveness: null, sponsorship: null, requirements: null }, layout: "panel" });
   assert.deepEqual([...bare.matchAll(/data-cell="([a-z]+)"/g)].map(m => m[1]), ["experience", "workstyle", "salary", "posted"]);
@@ -185,7 +187,11 @@ test("d147NoShouldYouApply · no 'In short' / ghost / level lines in the opened 
 
 test("d147ActionsPassSaveDraftMore · Pass · Save · Draft · More, one row at the panel's foot", () => {
   const row = acts.slice(at(acts, '<div className="pp__main-acts"'), at(acts, "{more && ("));
-  const order = ["<PassButton", "<SaveButton", "<DraftButton logo", 'className="pp__moreb"'].map(s => row.indexOf(s));
+  // D149 (11-03) changed this on purpose: fullhouse-declutter.html's .ua is four PLAIN buttons (no glyphs, no logo face),
+  // so the row draws its own — the same states and calls (Pass / Save SET; Draft is draftButtonState's, D51).
+  const order = ['data-decision="pass"', 'data-decision="save"', 'data-decision="draft"', 'className="pp__moreb"'].map(s => row.indexOf(s));
+  assert.match(row, /onClick=\{onPass\}/); assert.match(row, /onClick=\{onSave\}/); assert.match(row, /title=\{draft\.title\} onClick=\{draftClick\}/);
+  assert.match(acts, /const draftClick = draft\.action === "draft" \? onDraft : draft\.action === "view" \? onViewDraft/);
   assert.ok(order.every(i => i >= 0), "a piece of the row is missing");
   assert.deepEqual([...order].sort((a, b) => a - b), order);
   assert.match(row, />More<\/button>/);
@@ -198,16 +204,17 @@ test("d147ActionsPassSaveDraftMore · Pass · Save · Draft · More, one row at 
 test("d147UtilityBehaviourKept · each folded button's action is reachable under its new label", () => {
   const more = acts.slice(at(acts, "{more && ("), at(acts, "{/* ⭐ D57: the state, in words"));
   // 📄 → "Résumé for this job": the same Generate (and BYOM split), View, Download, Regenerate.
-  assert.match(more, /<DepthButton icon=\{ICONS\.resume\} onClick=\{\(\) => onGenerate\(false\)\}[^>]*\n?[^>]*>\s+\{generateLoading \? "Generating…" : "Résumé for this job"\}/);
+  // D149 (11-03) changed this on purpose: the More buttons are the sketch's plain .btn (no DepthButton icons), same calls.
+  assert.match(more, /<button type="button" className="pp__btn" onClick=\{\(\) => onGenerate\(false\)\}[^>]*\n?[^>]*>\s+\{generateLoading \? "Generating…" : "Résumé for this job"\}/);
   assert.match(more, /split\(false, "Résumé for this job", \(\) => onGenerate\(false\)\)/);
   assert.match(more, /onClick=\{\(\) => onViewSandbox\?\.\(\)\}/);
   assert.match(more, /onClick=\{\(\) => onExport\?\.\(\)\}/);
   assert.match(more, /onClick=\{regen\}/);
   // ✉ is the COVER LETTER in the code (ICONS.letter, onCoverLetter) — kept as itself.
-  assert.match(more, /<DepthButton icon=\{ICONS\.letter\} onClick=\{onCoverLetter\}[^>]*>Cover letter<\/DepthButton>/);
+  assert.match(more, /<button type="button" className="pp__btn" onClick=\{onCoverLetter\}[^>]*>Cover letter<\/button>/);
   // "I submitted it" → "I applied myself": the same evidence form and route.
   assert.match(more, /<ManualSubmitted jobId=\{job\.jobId\} \/>/);
-  assert.match(jd, /onClick=\{\(\) => setOpen\(true\)\}>I applied myself<\/button>/);
+  assert.match(jd, /className="pp__btn pp__submitted-btn" onClick=\{\(\) => setOpen\(true\)\}>I applied myself<\/button>/);
   assert.match(jd, /api\(`\/api\/applications\/pending\/\$\{encodeURIComponent\(jobId\)\}\/record`/);
   // ✕ → the header's Close (the same close); ★ and /d → Save and Draft in the row.
   assert.match(jd, /const close = useCallback\(\(\) => setSelectedJob\(null\), \[setSelectedJob\]\);/);
