@@ -1,0 +1,25 @@
+# Competitor research — the owner's 33 screenshots (11-03)
+
+D150 T00. The owner's own phone screenshots (`IMG_0874`–`IMG_0907`, no 0891), kept under their names.
+⛔ **References for patterns only** — no copy, no wording and no assets from these products go into draft.
+
+| Product | Screens | What it shows | Used by |
+|---|---|---|---|
+| **TripleTen** | 0874 · 0875 · 0876 · **0877** | the skills audit's **scenario questions**: an interviewer avatar, a topic tag (Architecture foundations / AI & data systems / Scalability & performance / API design), a scenario, four choices with › | T05 |
+| | 0878 | the programme page (22 weeks, ~15 h a week, how it works) | — |
+| | 0879 | "Let's map out your next career step" — the call | — |
+| | 0884 – 0888 | the five steps (Step 1 *Diagnose a live system* … Step 5 *Build and defend an AI system*), 1/5 … 5/5 dashes | T15 |
+| | **0889** | "Same foundation you already have. One tier of systems on top." — **the stack** | **T15** |
+| | **0890** | "Do you clear the AI infrastructure bar? — Take the free skills audit, 3 minutes" — **the front door** | **T05** |
+| | (`docs/sketches/`, 11-02) | the two earlier TripleTen shots: the landing and the role card | T04 |
+| **Hello Interview** | 0892 | free tracks + Company Guides | T12 – T13 |
+| | 0893 | home | — |
+| | 0894 | System Design in a Hurry | — |
+| | **0895** | **a guide's stages table** | **T13** |
+| | 0896 | the recruiter conversation | T12 |
+| | **0897** | **a guide's header**: level selector, "Find something incorrect? Report an issue" | **T13** |
+| | 0898 | guides by company and level | T12 – T13 |
+| **A Life Engineered** | 0899 · 0900 | a promise + an application quiz | — |
+| **AlgoMap** | 0901 · 0902 | a 90-day programme + "Question 1 of 9" | T05 |
+| **Interview Kickstart** | 0903 · **0904** | "AI Engineer postings up 2.4×, FDE 5.3× — see which role fits"; "where tech hiring is growing" | **T09** |
+| **newline** | 0880 · 0881 · 0882 · 0883 · 0905 · 0906 · 0907 | a webinar funnel ("what you'll leave knowing", the side door, proof files) | — |
