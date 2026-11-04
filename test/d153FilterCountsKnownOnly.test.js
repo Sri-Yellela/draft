@@ -5,7 +5,7 @@
 // the unknowns are said once, in the panel's note.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { SENTENCE_CLAUSES, panelRows, panelNote, clauseOptions } from "../client/src/lib/filterSentenceModel.js";
+import { SENTENCE_CLAUSES, panelRows, panelNote, panelPress, clauseOptions } from "../client/src/lib/filterSentenceModel.js";
 
 const where = SENTENCE_CLAUSES.find(c => c.key === "where");
 const UNKNOWN = 30_000;
@@ -36,4 +36,34 @@ test("d153KnownOnlyCounts: the same numbers with the strict toggle on (they no l
 test("d153KnownOnlyCounts: the unknowns are said once, in the panel's note", () => {
   const note = panelNote("where", {}, facets);
   assert.ok(note, "the note must say what is not on file");
+});
+
+const location = SENTENCE_CLAUSES.find(c => c.key === "location");
+
+test("d153RemoteNotCountedPerCity: the location panel counts remote once, under Remote (US), from the known remote postings", () => {
+  const rows = panelRows(location, {}, facets);
+  const remote = rows.filter(r => r.kind === "remote-us");
+  assert.equal(remote.length, 1, "one Remote (US) row");
+  assert.equal(remote[0].label, "Remote (US)");
+  assert.equal(remote[0].count, KNOWN[0], "the known remote postings, not remote + unknown");
+  assert.equal(rows[0].kind, "any", "the US floor stays first");
+  // a place is chosen: the remote row has no number (it would not be this view's count)
+  const chosen = { [location.dim.param]: location.dim.multi ? [clauseOptions(location)[0].value] : clauseOptions(location)[0].value };
+  assert.equal(panelRows(location, chosen, facets).find(r => r.kind === "remote-us").count, null);
+});
+
+test("d153RemoteNotCountedPerCity: pressing Remote (US) clears the place and sets the workplace to remote, and again undoes it", () => {
+  const press = (params) => panelPress(location, params, panelRows(location, params, facets).find(r => r.kind === "remote-us"));
+  const chosen = { [location.dim.param]: location.dim.multi ? [clauseOptions(location)[0].value] : clauseOptions(location)[0].value };
+  const on = press(chosen);
+  assert.deepEqual(on[location.dim.param], location.dim.multi ? [] : "");
+  assert.deepEqual(on[where.dim.param], where.dim.multi ? ["remote"] : "remote");
+  const params = { ...chosen, ...on };
+  assert.equal(panelRows(location, params, facets).find(r => r.kind === "remote-us").selected, true);
+  assert.deepEqual(press(params)[where.dim.param], where.dim.multi ? [] : "");
+});
+
+test("d153LocationListsThisPlace: the location note says each number is the postings that list that place", () => {
+  assert.match(panelNote("location", {}, facets), /list that place/);
+  assert.match(panelNote("location", {}, facets), /Remote \(US\)/);
 });

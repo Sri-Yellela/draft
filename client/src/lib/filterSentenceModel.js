@@ -15,7 +15,7 @@
 // footer drops its number, and nothing is dimmed or warned about — "unknown" is never drawn as zero.
 import {
   SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, wouldEmpty, activeClauseCount,
-  OPEN_SET_CLAUSES, chosenValues, slotText, sentenceParts, sentenceText, panelWord, panelAnyWord,
+  OPEN_SET_CLAUSES, chosenValues, slotText, sentenceParts, sentenceText, panelWord, panelAnyWord, LOCATION_REMOTE,
 } from "../../../shared/filterSentence.js";
 import { SORTS, POSTING_AGE } from "../../../shared/jobFilterOptions.js";
 
@@ -174,6 +174,18 @@ export function panelRows(clause, params, facets, _opts = {}) {
   // anyone asked for.
   const rows = [{ kind: "any", value: "", label: panelAnyWord(clause), selected: none,
                   count: none && usable ? facets.total : null, dimmed: false, disabled: false, note: null }];
+  // ⛔ D153 (2) · REMOTE (US), ONCE, IN THE LOCATION PANEL. A remote posting names no city, so it is in no place's
+  // count (each number is the postings that LIST that place); it is counted here, once, from the workplace facet.
+  // Pressing it is "anywhere in the US, remote": the place choice clears and the workplace becomes remote.
+  if (clause.key === "location") {
+    const whereClause = SENTENCE_CLAUSES.find(c => c.key === LOCATION_REMOTE.clause);
+    const wp = whereClause ? clauseSelection(whereClause, params) : [];
+    const remoteOnly = wp.length === 1 && wp[0] === LOCATION_REMOTE.value;
+    const fo = usable ? (facets.clauses?.[LOCATION_REMOTE.clause] || []).find(f => f.value === LOCATION_REMOTE.value) : null;
+    const known = fo && Number.isFinite(fo.known) ? fo.known : fo && Number.isFinite(fo.count) ? fo.count : null;
+    rows.push({ kind: "remote-us", value: LOCATION_REMOTE.value, label: LOCATION_REMOTE.label, selected: none && remoteOnly,
+      count: none ? known : null, dimmed: false, disabled: false, note: null });
+  }
   // A zero sinks to the end of the row (header.html: intern, at 0, after lead) — dimmed, never dropped.
   const opts = optionRows(clause, params, facets);
   for (const r of [...opts.filter(o => !o.dimmed), ...opts.filter(o => o.dimmed)]) {
@@ -211,6 +223,12 @@ export function panelPress(clause, params, row) {
   if (row.kind === "any") return clearClause(clause);
   if (row.kind === "all") return allDomainsPatch(clause);
   if (row.kind === "strict") return { [STRICT_PARAM]: row.selected ? "" : "1" };
+  if (row.kind === "remote-us") {
+    const whereClause = SENTENCE_CLAUSES.find(c => c.key === LOCATION_REMOTE.clause);
+    const off = whereClause.dim.multi ? [] : "";
+    const on = whereClause.dim.multi ? [LOCATION_REMOTE.value] : LOCATION_REMOTE.value;
+    return { ...clearClause(clause), [whereClause.dim.param]: row.selected ? off : on };
+  }
   return pressOption(clause, params, row.value);
 }
 
@@ -225,7 +243,9 @@ export function panelNote(panel, params, facets) {
   // blends the two is the lie. From the chosen option's own facet (known vs count), so one choice only.
   const split = knownSplit(panel, params, facets);
   if (split) return split;
-  if (panel === "location") return "The United States is the floor — it can be narrowed, never cleared.";
+  // D153 (2): a place's number is the postings that LIST it — one that lists two cities counts in both — and a remote
+  // role with no city is counted once, under Remote (US).
+  if (panel === "location") return `The United States is the floor — it can be narrowed, never cleared. Each number is the postings that list that place; remote roles with no city are under ${LOCATION_REMOTE.label}.`;
   if (panel === "where") {
     const p = coverageShare(facets, "where");
     return p == null ? null : `${p}% coverage — postings with no workplace on file are kept, not hidden.`;
