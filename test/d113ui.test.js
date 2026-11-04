@@ -322,7 +322,8 @@ test("d113uiOneSettingsDrawer — ONE drawer, three groups in order, D113's swit
   const fold = (id, next) => drawer.slice(at(drawer, `<Fold id="${id}"`), next ? at(drawer, `<Fold id="${next}"`) : undefined);
   assert.match(fold("before", "tell"), /\{sw\(s\.showFormBeforeSending, \(\) => set\(\{ showFormBeforeSending: !s\.showFormBeforeSending \}\)\)\}/);
   const jobs = fold("jobs", "before");
-  for (const w of ["Use my board filters", "Limit applications per company", "Skip stale posts", "Job profile"]) assert.ok(jobs.includes(w), w);
+  // D149 (11-03) changed this on purpose: the per-company switch reads as the sketch's "At most N per company".
+  for (const w of ["Use my board filters", "At most {s.perCompanyLimit30d ?? 2} per company", "Skip stale posts", "Job profile"]) assert.ok(jobs.includes(w), w);
   assert.ok(fold("pausing", "accounts").includes("Skip a company after it interviews me"));
   assert.match(fold("accounts", "view"), /<Accounts onState=\{setAcct\} \/>/);
   assert.match(fold("before", "tell"), /Agree to a job site's terms for me/);

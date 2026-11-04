@@ -158,79 +158,167 @@
   "settings-desktop": {
     "sketch": "settings-declutter.html",
     "app": "/app/auto-apply",
-    "similarity": 0.6513,
+    "similarity": 0.9698,
     "worstRegions": [
       {
-        "row": 2,
-        "col": 3,
-        "diff": 1
+        "row": 1,
+        "col": 0,
+        "diff": 0.252
       },
       {
-        "row": 2,
-        "col": 4,
-        "diff": 1
-      },
-      {
-        "row": 5,
+        "row": 1,
         "col": 1,
-        "diff": 1
+        "diff": 0.208
       },
-      {
-        "row": 5,
-        "col": 2,
-        "diff": 1
-      },
-      {
-        "row": 5,
-        "col": 3,
-        "diff": 1
-      },
-      {
-        "row": 5,
-        "col": 4,
-        "diff": 1
-      }
-    ],
-    "appErrors": [],
-    "at": "2026-11-04T01:16:33.020Z"
-  },
-  "settings-phone": {
-    "sketch": "settings-declutter.html",
-    "app": "/app/auto-apply",
-    "similarity": 0.9116,
-    "worstRegions": [
       {
         "row": 0,
-        "col": 1,
-        "diff": 0.254
+        "col": 5,
+        "diff": 0.118
+      },
+      {
+        "row": 0,
+        "col": 0,
+        "diff": 0.115
       },
       {
         "row": 1,
         "col": 5,
-        "diff": 0.238
+        "diff": 0.091
+      },
+      {
+        "row": 1,
+        "col": 6,
+        "diff": 0.081
+      }
+    ],
+    "appErrors": [],
+    "at": "2026-11-04T03:42:53.701Z"
+  },
+  "settings-phone": {
+    "sketch": "settings-declutter.html",
+    "app": "/app/auto-apply",
+    "similarity": 0.9537,
+    "worstRegions": [
+      {
+        "row": 1,
+        "col": 5,
+        "diff": 0.191
       },
       {
         "row": 0,
         "col": 2,
-        "diff": 0.236
+        "diff": 0.165
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "diff": 0.154
       },
       {
         "row": 1,
         "col": 1,
-        "diff": 0.236
+        "diff": 0.15
       },
       {
-        "row": 7,
-        "col": 7,
-        "diff": 0.225
+        "row": 1,
+        "col": 4,
+        "diff": 0.117
       },
       {
-        "row": 3,
+        "row": 5,
         "col": 1,
-        "diff": 0.218
+        "diff": 0.11
       }
     ],
     "appErrors": [],
-    "at": "2026-11-04T01:16:38.302Z"
+    "at": "2026-11-04T03:42:59.982Z"
+  },
+  "settings-region-desktop": {
+    "sketch": "settings-declutter.html",
+    "app": "/app/auto-apply",
+    "region": [
+      760,
+      0,
+      520,
+      800
+    ],
+    "similarity": 0.9635,
+    "worstRegions": [
+      {
+        "row": 0,
+        "col": 1,
+        "diff": 0.137
+      },
+      {
+        "row": 2,
+        "col": 6,
+        "diff": 0.124
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "diff": 0.115
+      },
+      {
+        "row": 1,
+        "col": 5,
+        "diff": 0.112
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "diff": 0.106
+      },
+      {
+        "row": 0,
+        "col": 2,
+        "diff": 0.101
+      }
+    ],
+    "at": "2026-11-04T03:42:54.039Z"
+  },
+  "settings-region-phone": {
+    "sketch": "settings-declutter.html",
+    "app": "/app/auto-apply",
+    "region": [
+      0,
+      0,
+      390,
+      844
+    ],
+    "similarity": 0.9537,
+    "worstRegions": [
+      {
+        "row": 1,
+        "col": 5,
+        "diff": 0.191
+      },
+      {
+        "row": 0,
+        "col": 2,
+        "diff": 0.165
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "diff": 0.154
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "diff": 0.15
+      },
+      {
+        "row": 1,
+        "col": 4,
+        "diff": 0.117
+      },
+      {
+        "row": 5,
+        "col": 1,
+        "diff": 0.11
+      }
+    ],
+    "at": "2026-11-04T03:43:00.322Z"
   }
 }
