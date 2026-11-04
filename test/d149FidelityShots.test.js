@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const DIR = "docs/fidelity-shots";
-const SCREENS = ["deck", "fullhouse", "settings"];
+const SCREENS = ["deck", "fullhouse", "settings", "tracker"];
 
 test("d149FidelityShotsGenerated · every screen × both sizes: the sketch, the app, the side-by-side, and a score", () => {
   const report = JSON.parse(fs.readFileSync(`${DIR}/fidelity.json`, "utf8"));

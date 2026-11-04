@@ -73,6 +73,46 @@ const SETTINGS = {
   "/api/apply/pending": { pending: [], approvalCap: { remaining: 10, limit: 10 } },
 };
 
+// ── ⭐ D149 · TRACKER (tracker-options.html, layout 1 on desktop / layout 3 on phones) — its own block ─────────────
+// The sketch's six applications, fed through the app's own feeds so lib/trackerRows.js builds them as it would live:
+//   Halcyon — held on one question (Needs you) · Quanta — filled, waiting for approval (Ready to send) · Lumen — filling
+//   7 of 11 · Vireo — interview Tuesday 2 PM · Northwind — sent 3 days ago · Basalt — not selected 2 weeks ago;
+// and the timeline's three runs (today 9 AM: 50 looked at · 4 picked; yesterday 6 PM: 32 · 3; yesterday 9 AM: 0 · 0).
+// Times are New York's (the settings' zone), so "9 AM" reads 9 AM whatever the machine's zone.
+const TRK = (() => {
+  const ymdNY = (t) => new Date(t).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const nyAt = (daysAgo, hour) => Math.floor((Date.parse(`${ymdNY(Date.now() - daysAgo * 86400000)}T00:00:00-05:00`) + hour * 3600000) / 1000);
+  const nextTue = (() => { const d = new Date(); d.setDate(d.getDate() + (((2 - d.getDay()) + 7) % 7 || 7)); return d.toLocaleDateString("en-CA"); })();
+  const H = { jobId: "trk-h", company: "Halcyon", title: "Machine Learning Engineer" };
+  const Q = { jobId: "trk-q", company: "Quanta", title: "Data Engineer" };
+  const L = { jobId: "trk-l", company: "Lumen", title: "Backend Engineer" };
+  const V = { jobId: "trk-v", company: "Vireo", title: "Data Platform Engineer" };
+  const N = { jobId: "trk-n", company: "Northwind", title: "Senior Data Engineer" };
+  const B = { jobId: "trk-b", company: "Basalt", title: "Software Engineer, Platform" };
+  const pick = (j, id) => ({ id, jobId: j.jobId, company: j.company, title: j.title, state: "applied" });
+  return {
+    ...SETTINGS,
+    "/api/apply/readiness": { available: true },
+    "/api/apply/runs": { runs: [], gated: [], submitted: [], stopped: [], statusCounts: {}, line: { waiting: [], held: null },
+      review: [{ id: 101, ...H, status: "held_review", reasonCode: "needs_answer", createdAt: now - 2 * 3600, resumeAvailable: true }],
+      inFlight: [{ id: 103, ...L, status: "running", startedAt: now - 60, createdAt: now - 60, progress: { filled: 7, total: 11 } }] },
+    "/api/apply/questions": { questions: [{ question: "Are you open to relocating to Austin?", blocking: [{ jobId: H.jobId }] }] },
+    "/api/apply/pending": { pending: [{ runJobId: 102, ...Q, createdAt: now - 3 * 3600, answerCount: 12, resume: { available: true } }],
+      approvalCap: { remaining: 10, limit: 10 } },
+    "/api/pipeline": { rows: [
+      { id: 201, ...V, status: "interview", updatedAt: now - 6 * 86400, resumeAvailable: true, interview: { ymd: nextTue, time: "14:00" }, progress: { filled: 11, total: 11 } },
+      { id: 202, ...N, status: "submitted", updatedAt: now - 3 * 86400, resumeAvailable: true, progress: { filled: 14, total: 14 } },
+      { id: 203, ...B, status: "rejected", updatedAt: now - 15 * 86400, progress: { filled: 9, total: 9 } },
+    ] },
+    "/api/picks/runs": { state: { nextRunAt: null }, runs: [
+      { id: 3, slotAt: nyAt(0, 9), seen: 50, picked: 4, picks: [pick(H, 31), pick(Q, 32), pick(L, 33), pick(V, 34)] },
+      { id: 2, slotAt: nyAt(1, 18), seen: 32, picked: 3, picks: [pick(N, 21), pick(B, 23)] },
+      { id: 1, slotAt: nyAt(1, 9), seen: 0, picked: 0, picks: [] },
+    ] },
+  };
+})();
+// ── end TRACKER fixtures ──────────────────────────────────────────────────────────────────────────────────────────
+
 // ── The screens ───────────────────────────────────────────────────────────────────────────────────────────────────
 // sketch: the file; sketchPrep: hide the sketch's own controls (they are not the design); app: the route, its fixtures,
 // and what to press so the app shows the sketch's state.
@@ -86,6 +126,29 @@ const SCREENS = {
     } },
   settings: { sketch: "settings-declutter.html", app: "/app/auto-apply", fixtures: SETTINGS, ready: "[data-settings-open]",
     appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(600); } },
+  // ⭐ D149 · TRACKER — the owner's pick: layout 1 (table + timeline beside) on a computer, layout 3 (the switch) on phones.
+  tracker: { sketch: "tracker-options.html", app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
+    sketchPrep: async (page) => {
+      await page.evaluate(() => document.querySelector(`[data-l="${window.innerWidth < 700 ? "tabs" : "side"}"]`)?.click());
+      await sleep(400);
+    } },
+  // The two states the first screen does not show: the first row opened (its posting pane chosen, as the sketch opens
+  // it), and on a phone the switch's other side, the timeline.
+  "tracker-open": { sketch: "tracker-options.html", app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
+    sketchPrep: async (page) => {
+      await page.evaluate(() => { document.querySelector(`[data-l="${window.innerWidth < 700 ? "tabs" : "side"}"]`)?.click(); document.querySelector(".tr")?.click(); });
+      await sleep(700);
+    },
+    appPrep: async (page) => {
+      await page.evaluate(() => document.querySelector("[data-tracker-table] tbody tr.trk-row")?.click()); await sleep(300);
+      await page.evaluate(() => document.querySelector('[data-row-detail] [data-pane="posting"]')?.click()); await sleep(700);
+    } },
+  "tracker-timeline": { sketch: "tracker-options.html", app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr",
+    sketchPrep: async (page) => {
+      await page.evaluate(() => { document.querySelector(`[data-l="${window.innerWidth < 700 ? "tabs" : "side"}"]`)?.click(); document.querySelector('[data-tv="tl"]')?.click(); });
+      await sleep(400);
+    },
+    appPrep: async (page) => { await page.evaluate(() => document.querySelector('[data-phone-view="timeline"]')?.click()); await sleep(500); } },
 };
 
 function startVite() {
@@ -181,6 +244,42 @@ const STYLE_PROBES = {
       draft: draft && { bg: cs(draft).backgroundColor, color: cs(draft).color },
       topBar: !!document.querySelector("[data-app-chrome]") && cs(document.querySelector("[data-app-chrome]")).backgroundColor,
       controlsRow: !!document.querySelector("[data-deck-counter]"),
+    };
+  },
+  // ⭐ D149 · TRACKER (tracker-options.html) — the page, the header's controls, the counts, the filters, the table, a
+  // row, the status dot and the timeline card, as computed (test/fidelityTracker.test.js holds them to the sketch).
+  tracker: () => {
+    const q = (s) => document.querySelector(s);
+    const cs = (el) => (el ? getComputedStyle(el) : null);
+    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; };
+    const font = (el) => el && { family: cs(el).fontFamily, size: cs(el).fontSize, weight: cs(el).fontWeight, color: cs(el).color, lh: cs(el).lineHeight };
+    const fill = (el) => el && { bg: cs(el).backgroundColor, bgImage: cs(el).backgroundImage, radius: cs(el).borderTopLeftRadius, border: cs(el).borderTopWidth, shadow: cs(el).boxShadow, padding: cs(el).padding };
+    const title = q("[data-house-header] h1");
+    const tbl = q("[data-tracker-table]");
+    const row = q("[data-tracker-table] tbody tr.trk-row");
+    const tl = q("[data-timeline]");
+    const dot = q("[data-tracker-table] .trk-dot");
+    return {
+      canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(),
+      title: { ...font(title), ...box(title) },
+      line: font(q("[data-house-line]")),
+      mode: fill(q(".dh-head__ctl .dh-mode")), modeOn: { ...fill(q('[data-mode][aria-pressed="true"]')), ...font(q('[data-mode][aria-pressed="true"]')) },
+      quiet: { ...fill(q("[data-settings-open]")), ...font(q("[data-settings-open]")) },
+      send: { ...fill(q("[data-send-all-ready]")), ...font(q("[data-send-all-ready]")) },
+      count: font(q("[data-tracker-counts] b")), countWord: font(q("[data-tracker-counts] span")), countHot: font(q('[data-tracker-counts] [data-accent="true"] b')),
+      filter: { ...fill(q('[data-filter="needs"]')), ...font(q('[data-filter="needs"]')) }, filterOn: fill(q('[data-filter][aria-pressed="true"]')),
+      table: { ...fill(tbl), ...box(tbl) },
+      th: font(q("[data-tracker-table] thead .trk-sort")), thTransform: cs(q("[data-tracker-table] thead .trk-sort"))?.textTransform,
+      row: box(row), rowBorder: row && cs(row).borderTopWidth,
+      company: font(q("[data-tracker-table] .trk-pos__t b")), role: font(q("[data-tracker-table] .trk-pos__t span")),
+      logo: box(q("[data-tracker-table] [data-company-bubble]")),
+      dot: dot && { w: cs(dot).width, h: cs(dot).height, radius: cs(dot).borderTopLeftRadius },
+      statusNeeds: font(q('[data-tracker-table] [data-status-ring="need"]')),
+      timeline: { ...fill(tl), ...box(tl), shown: !!tl && tl.offsetParent !== null },
+      tlTitle: font(q("[data-timeline-title]")),
+      bubble: box(q("[data-timeline] [data-company-bubble]")),
+      phoneSwitch: (() => { const b = q('[data-phone-view="timeline"]'); return !!b && b.offsetParent !== null; })(),
+      hscroll: document.documentElement.scrollWidth > window.innerWidth + 1,
     };
   },
 };

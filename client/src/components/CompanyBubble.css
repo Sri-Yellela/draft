@@ -20,6 +20,12 @@ button.cb { cursor: pointer; font: inherit; color: inherit; }
   border: 3px solid var(--cb-ring); pointer-events: none;
 }
 .cb[data-size="sm"] .cb__ring { inset: -4px; border-width: 2px; border-radius: calc(var(--cb-r) + 3px); }
+/* D149 (11-03) · tracker-options.html's timeline bubble: a 1.5 px ring 2 px off the face (`0 0 0 2px card, 0 0 0 3.5px
+   ring`), pulsing out to 6 px; its radius 9 of 30 and the table logo's 11 of 36. */
+.cb[data-size="tl"], .cb[data-size="row"] { --cb-r: calc(var(--cb-size) * 0.3); box-shadow: none; }
+.cb[data-size="tl"] .cb__ring { inset: -3.5px; border-width: 1.5px; border-radius: calc(var(--cb-r) + 3.5px); }
+.cb[data-size="tl"][data-pulse="true"] .cb__ring { animation-name: cb-pulse-tl; }
+@keyframes cb-pulse-tl { 50% { inset: -6px; border-width: 4px; } }
 button.cb:hover, button.cb:focus-visible, .cb[data-selected="true"] { transform: translateY(-2px); box-shadow: var(--c-depth-hover); z-index: 3; }
 .cb[data-selected="true"] .cb__ring { inset: -6px; border-width: 4px; }
 button.cb:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 6px; }

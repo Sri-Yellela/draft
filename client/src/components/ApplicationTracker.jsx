@@ -15,32 +15,44 @@ import { ringVar } from "../styles/rings.js";
 //     the on-demand panes (one shown at a time) and the stage's actions.
 // ============================================================
 
+// ⭐ D149 (11-03) · built to tracker-options.html's markup: the counts are the sketch's `.cnt` (a large number over a
+// small grey word, as blocks), the filters its `.flt` buttons, the status its `.dot` (a 7 px dot + the word; "Needs
+// you" in the accent), the opened row its `.det` (eyebrow · 32 px headline · on-demand buttons · the pane · `.btn`s).
 export function TrackerCounts({ counts = {} }) {
   return (
-    <p className="trk-counts" data-tracker-counts="">
+    <div className="trk-counts" data-tracker-counts="">
       {TRACKER_COUNTS.map(c => (
-        <span key={c.id} data-count={c.id} data-accent={c.accent ? "true" : undefined}>
-          <b>{counts[c.id] ?? 0}</b> {c.label}
-        </span>
+        <div key={c.id} data-count={c.id} data-accent={c.accent ? "true" : undefined}>
+          <b>{counts[c.id] ?? 0}</b><span>{c.label}</span>
+        </div>
       ))}
-    </p>
+    </div>
   );
 }
 
-export function TrackerFilters({ filter = "all", onFilter, search = null, period = "any", onPeriod }) {
+export function TrackerFilters({ filter = "all", onFilter, search = null, period = "any", onPeriod, findOpen = false, onFind }) {
   return (
-    <div className="trk-filters" role="toolbar" aria-label="Show">
-      {TRACKER_FILTERS.map(([id, label]) => (
-        <button key={id} type="button" className="trk-chip" data-filter={id} aria-pressed={filter === id}
-          onClick={() => onFilter?.(id)}>{label}</button>
-      ))}
-      <span className="trk-filters__end">
-        {search}
-        <select className="trk-period" aria-label="Period" value={period} onChange={(e) => onPeriod?.(e.target.value)}>
-          {TRACKER_PERIODS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-        </select>
-      </span>
-    </div>
+    <>
+      <div className="trk-filters" role="toolbar" aria-label="Show">
+        {TRACKER_FILTERS.map(([id, label]) => (
+          <button key={id} type="button" className="trk-chip" data-filter={id} aria-pressed={filter === id}
+            onClick={() => onFilter?.(id)}>{label}</button>
+        ))}
+        {/* D149 (11-03): the search and the period are not on the sketch (D146: "the date range / search → a search
+            field and the period in the filter row") — kept one press away: a last quiet button, Search, opens them
+            in a row under the filters (open while either is in use). */}
+        <button type="button" className="trk-chip" data-find-open="" aria-pressed={findOpen} aria-expanded={findOpen}
+          onClick={() => onFind?.(!findOpen)}>Search</button>
+      </div>
+      {findOpen && (
+        <div className="trk-find" data-find="">
+          {search && <span className="trk-search">{search}</span>}
+          <select className="trk-period" aria-label="Period" value={period} onChange={(e) => onPeriod?.(e.target.value)}>
+            {TRACKER_PERIODS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          </select>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -54,14 +66,19 @@ export function StatusDot({ ring, word }) {
   );
 }
 
-export default function ApplicationTracker({ rows = [], sort = { key: "when", dir: "desc" }, onSort, openKey = null, onOpen,
+/** The order the table opens in: the sketch's — what needs you first, then what is moving, then what is done. */
+export const DEFAULT_SORT = Object.freeze({ key: "status", dir: "asc" });
+
+export default function ApplicationTracker({ rows = [], sort = DEFAULT_SORT, onSort, openKey = null, onOpen,
   renderOpen, empty = null }) {
   const sortBtn = (c) => {
     const on = sort.key === c.key;
+    // The sketch's headers carry no arrow: the default order is unmarked; one the user chose shows its direction.
+    const chosen = on && !(sort.key === DEFAULT_SORT.key && sort.dir === DEFAULT_SORT.dir);
     return (
       <button type="button" className="trk-sort" data-sort={c.key} aria-pressed={on}
         onClick={() => onSort?.({ key: c.key, dir: on && sort.dir === "desc" ? "asc" : "desc" })}>
-        {c.label}<span aria-hidden="true">{on ? (sort.dir === "asc" ? " ↑" : " ↓") : ""}</span>
+        {c.label}<span aria-hidden="true">{chosen ? (sort.dir === "asc" ? " ↑" : " ↓") : ""}</span>
       </button>
     );
   };
@@ -86,13 +103,13 @@ export default function ApplicationTracker({ rows = [], sort = { key: "when", di
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen?.(open ? null : r.key); } }}>
                 <td data-col="position">
                   <span className="trk-pos">
-                    <CompanyBubble company={r.company} size="sm" />
+                    <CompanyBubble company={r.company} size="row" />
                     <span className="trk-pos__t"><b>{r.company}</b><span>{r.title || "A role"}</span></span>
                   </span>
                 </td>
                 <td data-col="resume">{r.resume}</td>
                 <td data-col="answers">{r.answers}</td>
-                <td data-col="status"><StatusDot ring={r.ring} word={r.status} /><small className="trk-when-m">{r.when}</small></td>
+                <td data-col="status"><StatusDot ring={r.ring} word={r.status} /></td>
                 <td data-col="when">{r.when}</td>
               </tr>,
               open && (
@@ -117,27 +134,26 @@ export default function ApplicationTracker({ rows = [], sort = { key: "when", di
 export function RowOpen({ row, pane = null, onPane, paneBody, actions = [], onClose, children }) {
   const labels = Object.fromEntries(TRACKER_PANES);
   return (
-    <div className="trk-o" data-row-detail={row.key}>
-      <div className="trk-o__head">
-        <p className="trk-o__eyebrow">{row.eyebrow}</p>
-        <button type="button" className="trk-o__x" aria-label="Close" onClick={onClose}>×</button>
-      </div>
+    // D149 (11-03): the sketch's opened row has no × — it folds by pressing the row again, or Escape (the panel's
+    // window listener, and here for a key pressed inside the row).
+    <div className="trk-o" data-row-detail={row.key} onKeyDown={(e) => { if (e.key === "Escape") onClose?.(); }}>
+      <p className="trk-o__eyebrow">{row.eyebrow}</p>
       <h3 className="trk-o__headline" data-row-headline="">{row.headline}</h3>
       <div className="trk-o__panes" role="group" aria-label="Show">
         {row.panes.map(id => (
-          <button key={id} type="button" className="dh-btn" data-pane={id} aria-pressed={pane === id}
+          <button key={id} type="button" className="trk-od" data-pane={id} aria-pressed={pane === id}
             onClick={() => onPane?.(pane === id ? null : id)}>{labels[id]}</button>
         ))}
       </div>
       {pane && <div className="trk-o__pane" data-pane-body={pane}>{paneBody?.(pane)}</div>}
       {children}
       {actions.length > 0 && (
-        <div className="dht-acts" data-row-actions="">
+        <div className="trk-acts" data-row-actions="">
           {actions.map(a => a.href ? (
-            <a key={a.id} className="dh-btn" data-kind={a.kind} data-action={a.id} href={a.href} target="_blank" rel="noreferrer" title={a.title}
+            <a key={a.id} className="trk-btn" data-kind={a.kind} data-action={a.id} href={a.href} target="_blank" rel="noreferrer" title={a.title}
               onClick={a.onClick}>{a.label}</a>
           ) : (
-            <button key={a.id} type="button" className="dh-btn" data-kind={a.kind} title={a.title} disabled={a.disabled}
+            <button key={a.id} type="button" className="trk-btn" data-kind={a.kind} title={a.title} disabled={a.disabled}
               data-action={a.id} onClick={a.onClick}>{a.label}</button>
           ))}
         </div>

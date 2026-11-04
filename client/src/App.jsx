@@ -617,7 +617,8 @@ function AppDashboard({ authUser, setAuthUser }) {
           </div>
 
           {/* D149: the deck (like Full House) starts right under the mark — its card sits at the sketch's 90 px. */}
-          <main style={{ flex:1, paddingTop: activeTab === "console" || activeTab === "today" ? 0 : 24 }}>
+          {/* D149 (11-03): Draft House too — its own top padding puts its title at tracker-options.html's 84 px. */}
+          <main style={{ flex:1, paddingTop: activeTab === "console" || activeTab === "today" || activeTab === "auto-apply" ? 0 : 24 }}>
             {/* ⭐ D49 · THE BOARD'S BAR STICKS — through the one StickyBar module (the posting panel's
                 action bar is its second consumer, D48). It lives HERE, at the top of <main>, and not
                 in the header above: sticky only works inside its parent's box, and the header ended

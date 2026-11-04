@@ -74,7 +74,8 @@ test("D18: no display string still sends the user to 'the Draft tab'", () => {
     });
   }
   assert.deepEqual(hits, [], "a display string names the old tab — it is Draft House (D18):\n" + hits.join("\n"));
-  assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /<h2 style=\{TYPE\.PAGE_TITLE\}>\s*Draft House\s*</);
+  // D149 (11-03) changed this on purpose: the sketch's h1 at 44 px on the deck's page-title type (DH_TITLE).
+  assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /<h1 style=\{\{ \.\.\.TYPE\.PAGE_TITLE, \.\.\.DH_TITLE \}\}>\s*Draft House\s*</);
 });
 
 test("O56e → D145: the phone's tab row is gone — the Menu (or the dock, chosen) reaches every section at any width", () => {
