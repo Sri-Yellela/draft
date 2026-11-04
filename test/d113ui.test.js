@@ -314,18 +314,18 @@ test("d113uiOneSettingsDrawer — ONE drawer, three groups in order, D113's swit
   assert.ok(!fs.existsSync("client/src/components/PortalsDrawer.jsx"), "the Portals drawer merged in");
   assert.equal(count(panel, "<AutoSettingsDrawer "), 1);
   assert.doesNotMatch(panel, /PortalsDrawer|portalsOpen/);
-  const groups = [...drawer.matchAll(/data-settings-group="(\w+)"/g)].map(m => m[1]);
-  // ⭐ D146 (changed on purpose): a fourth group, View — The Table's other layouts, kept off the first screen.
-  assert.deepEqual(groups, ["when", "jobs", "accounts", "view"]);
-  for (const h of ["When and how much", "Which jobs", "Accounts on job sites"]) assert.match(drawer, new RegExp(`>${h}</h3>`));
-  const when = drawer.slice(at(drawer, 'data-settings-group="when"'), at(drawer, 'data-settings-group="jobs"'));
-  for (const w of ["Applications a day, at most", "When to look for new jobs", "Picks arrive by", "Show me the form before sending"]) assert.ok(when.includes(w), w);
-  assert.match(when, /onChange=\{\(\) => set\(\{ showFormBeforeSending: !s\.showFormBeforeSending \}\)\}/);
-  const jobs = drawer.slice(at(drawer, 'data-settings-group="jobs"'), at(drawer, 'data-settings-group="accounts"'));
-  for (const w of ["Start from my board filters", "Limit applications per company", "Skip a company after it interviews me", "Skip stale or reposted jobs"]) assert.ok(jobs.includes(w), w);
-  const acc = drawer.slice(at(drawer, 'data-settings-group="accounts"'));
-  assert.match(acc, /<Accounts \/>/);
-  assert.match(acc, /Agree to a job site's terms for me/);
+  // ⭐ D148 (owner 11-03) changed this on purpose: the three groups became FOLDS — When · How many · Which jobs · Before
+  // sending · Tell me · Pausing · Accounts · View — each one line with its value. test/d148SettingsDrawer.test.js holds
+  // every setting's new home; this keeps D113's switches and the accounts in the ONE drawer.
+  const groups = [...drawer.matchAll(/<Fold id="(\w+)"/g)].map(m => m[1]);
+  assert.deepEqual(groups, ["when", "howmany", "jobs", "before", "tell", "pausing", "accounts", "view"]);
+  const fold = (id, next) => drawer.slice(at(drawer, `<Fold id="${id}"`), next ? at(drawer, `<Fold id="${next}"`) : undefined);
+  assert.match(fold("before", "tell"), /\{sw\(s\.showFormBeforeSending, \(\) => set\(\{ showFormBeforeSending: !s\.showFormBeforeSending \}\)\)\}/);
+  const jobs = fold("jobs", "before");
+  for (const w of ["Use my board filters", "Limit applications per company", "Skip stale posts", "Job profile"]) assert.ok(jobs.includes(w), w);
+  assert.ok(fold("pausing", "accounts").includes("Skip a company after it interviews me"));
+  assert.match(fold("accounts", "view"), /<Accounts onState=\{setAcct\} \/>/);
+  assert.match(fold("before", "tell"), /Agree to a job site's terms for me/);
   assert.match(drawer, /Gmail, for codes and replies/);
   // The header's one Settings button and the run card's Change filters open it (at Which jobs).
   assert.match(panel, /onChangeFilters=\{\(e\) => openSettings\("jobs", e\?\.currentTarget\)\}/);
