@@ -57,8 +57,11 @@ const DECK = {
     cards: BOARD.slice(0, 3).map((job, i) => ({ position: i, band: "strong", decision: null, score: job.matchScore,
       job: { ...job, id: job.jobId }, why: { matched: ["Python", "SQL", "Spark", "AWS"], missing: ["Kafka", "Airflow"], matchedTotal: 13, missingTotal: 2 }, report: null })) },
 };
+// The opened posting's text is fullhouse-declutter.html's own (its `.pn`), so the two panels hold the same words.
+const FH_DESCRIPTION = "We're looking for a senior data engineer to build and run the pipelines behind our platform, working with analysts and ML engineers to make data reliable and fast.\n\nWhat you'll do:\n- Design and run batch and streaming pipelines in Spark and Airflow\n- Model data for analytics and machine learning\n- Improve reliability, cost and speed across the platform\n\nWhat you'll bring:\n- 5+ years building data pipelines in production\n- Strong SQL and Python\n- A streaming system such as Kafka";
+const FH_BOARD = BOARD.map(j => ({ ...j, description: FH_DESCRIPTION }));
 const FULLHOUSE = {
-  "/api/jobs": { jobs: BOARD, total: 746, totalPages: 15, nextCursor: null, attribution: [] },
+  "/api/jobs": { jobs: FH_BOARD, total: 746, totalPages: 15, nextCursor: null, attribution: [] },
   "/api/jobs/facets": { total: 746, unscored: 0, coverage: { level: 746, where: 746, employment: 746 },
     views: { all: 746, saved: 12, pending: 3, imported: 0 }, clauses: { posted: [{ value: "", count: 746, known: 746 }, { value: "1d", count: 38, known: 38 }] } },
 };
@@ -154,6 +157,19 @@ const SCREENS = {
     appPrep: async (page) => { await page.evaluate(() => document.querySelector('[data-phone-view="timeline"]')?.click()); await sleep(500); } },
 };
 
+// ⚠ D149 · THE SELF-HOSTED FONTS IN A GIT WORKTREE. A worktree's node_modules is a junction to the main checkout, so
+// vite serves @fontsource's files as /@fs/<main checkout>/… and refuses them (403: outside its fs.allow). The app then
+// draws in the fallback faces (measured 11-03: Instrument Serif and Inter Tight not loaded, the title 25% wider) and
+// every comparison is off. The browser is handed the same file from disk instead — in the main checkout vite serves it.
+function selfHostedFont(u, req) {
+  if (!u.pathname.startsWith("/@fs/") || !/\.(woff2?|ttf)$/.test(u.pathname)) return false;
+  const file = decodeURIComponent(u.pathname.slice(4).replace(/^\/([A-Za-z]:)/, "$1"));
+  if (!fs.existsSync(file)) return false;
+  req.respond({ status: 200, contentType: file.endsWith(".woff") ? "font/woff" : file.endsWith(".ttf") ? "font/ttf" : "font/woff2",
+    headers: { "Access-Control-Allow-Origin": "*" }, body: fs.readFileSync(file) });
+  return true;
+}
+
 function startVite() {
   return new Promise((resolve, reject) => {
     const proc = spawn(process.execPath, [path.join(ROOT, "client", "node_modules", "vite", "bin", "vite.js"), "--port", String(PORT), "--strictPort"],
@@ -178,6 +194,7 @@ async function shoot(browser, url, [w, h], { fixtures = null, prep = null, ready
       const raw = req.url();
       if (raw.startsWith(LOGO_HOST)) return req.respond({ status: 404, body: "" });
       const u = new URL(raw);
+      if (selfHostedFont(u, req)) return;
       if (!u.pathname.startsWith("/api/")) return req.continue();
       req.respond({ status: 200, contentType: "application/json", body: JSON.stringify(fixtures[u.pathname] ?? COMMON[u.pathname] ?? {}) });
     });
@@ -362,6 +379,48 @@ const STYLE_PROBES = {
       hscroll: document.documentElement.scrollWidth > window.innerWidth + 1,
     };
   },
+  // ⭐ D149 · Full House + the opened posting (fullhouse-declutter.html), the first posting open (the screen's appPrep).
+  fullhouse: () => {
+    const cs = (el) => (el ? getComputedStyle(el) : null);
+    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) }; };
+    const type = (el) => el && { family: cs(el).fontFamily, size: cs(el).fontSize, weight: cs(el).fontWeight, line: cs(el).lineHeight, color: cs(el).color, style: cs(el).fontStyle };
+    const surface = (el) => el && { bg: cs(el).backgroundColor, image: cs(el).backgroundImage, radius: cs(el).borderTopLeftRadius, border: cs(el).borderTopWidth, shadow: cs(el).boxShadow };
+    const q = (s) => document.querySelector(s);
+    const h1 = q(".fh-title__h"), sent = q(".fh[data-fh-d147] .bh"), word = q(".fh[data-fh-d147] .bh .tok") || q(".fh[data-fh-d147] .bh button");
+    const sort = q(".fh-sortw"), bar = q(".fh-bar"), input = q(".fh-bar input");
+    const counts = [...document.querySelectorAll(".fh-count")];
+    const rows = [...document.querySelectorAll(".jb[data-job-bubble]")];
+    const row = rows[0], panel = q('[data-panel-id="jd"]'), pp = q(".pp");
+    const facts = q(".posting__facts"), match = q(".posting__match .atsn b"), matchCell = q(".posting__match");
+    const btn = (name) => q(`.pp__btn[data-decision="${name}"]`);
+    return {
+      canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(), bodyBg: cs(document.body).backgroundColor,
+      fonts: { serif: document.fonts.check("36px \"Instrument Serif\""), ui: document.fonts.check("16px \"Inter Tight\""),
+               loaded: [...new Set([...document.fonts].filter(x => x.status === "loaded").map(x => x.family))] },
+      title: h1 && { ...type(h1), ...box(h1) },
+      sentence: sent && { ...type(sent), ...box(sent), maxWidth: cs(sent).maxWidth, word: word && { color: cs(word).color, underline: cs(word).boxShadow, border: cs(word).borderBottom } },
+      sort: sort && { ...surface(sort), ...type(sort), text: sort.textContent.trim(), glyph: !!sort.querySelector("svg") },
+      search: bar && { ...surface(bar), ...box(bar), placeholder: input?.placeholder, inputSize: cs(input).fontSize, glyph: !!bar.querySelector("svg") },
+      countsBox: box(q(".fh.fh-counts")), listTop: box(q(".jb-board__list"))?.top, rowsTop: box(q(".jb-rows"))?.top,
+      counts: counts.map(c => ({ n: c.querySelector("b").textContent, label: c.querySelector("span").textContent, size: cs(c.querySelector("b")).fontSize,
+        weight: cs(c.querySelector("b")).fontWeight, color: cs(c.querySelector("b")).color })),
+      row: row && { ...surface(row), ...box(row), padding: cs(row).padding, outline: `${cs(row).outlineWidth} ${cs(row).outlineStyle} ${cs(row).outlineColor}`,
+        gap: rows[1] ? Math.round(rows[1].getBoundingClientRect().top - row.getBoundingClientRect().bottom) : null,
+        title: type(row.querySelector(".jb__title")), sub: type(row.querySelector(".jb__sub")), meta: type(row.querySelector(".jb__meta i")),
+        match: type(row.querySelector(".jb__mt b")), matchText: row.querySelector(".jb__mt b")?.textContent },
+      panel: panel && { ...surface(panel), ...box(panel), padding: pp && cs(pp).padding,
+        title: type(q(".posting--panel .posting__title")), company: type(q(".pp__co .company-link")), close: q(".pp__x") && { ...surface(q(".pp__x")), ...type(q(".pp__x")), text: q(".pp__x").textContent },
+        facts: facts && { ...surface(facts), cells: [...facts.querySelectorAll(".posting__cell")].map(c => c.getAttribute("data-cell")),
+          value: type(q(".posting__facts .posting__cell dd")), label: type(q(".posting__facts .posting__cell dt")) },
+        match: match && { ...type(match), text: match.textContent, cellBg: cs(matchCell).backgroundColor, caption: q(".posting__match .atsn small")?.textContent },
+        eyebrow: q(".posting__eyebrow") && { ...type(q(".posting__eyebrow")), text: q(".posting__eyebrow").textContent },
+        body: type(q(".posting--panel .posting__body")), heading: type(q(".posting--panel .posting__h")),
+        actions: ["pass", "save", "draft"].map(n => btn(n) && { name: n, text: btn(n).textContent.trim(), ...surface(btn(n)), ...type(btn(n)) }),
+        more: q(".pp__moreb") && { ...surface(q(".pp__moreb")), ...type(q(".pp__moreb")), text: q(".pp__moreb").textContent.trim() },
+        pinnedFoot: q(".pp__foot") && cs(q(".pp__foot")).position,
+        boxes: Object.fromEntries([["co", ".pp__hd"], ["title", ".posting--panel .posting__title"], ["facts", ".posting__facts"], ["eyebrow", ".posting__eyebrow"], ["body", ".posting--panel .posting__body"], ["actions", ".pp__main-acts"], ["close", ".pp__x"], ["logo", ".pp__logo"]].map(([k, s]) => [k, box(q(s))])) },
+    };
+  },
 };
 if (process.argv[2] === "--styles") {
   const id = process.argv[3] || "deck";
@@ -381,6 +440,7 @@ if (process.argv[2] === "--styles") {
         const raw = req.url();
         if (raw.startsWith(LOGO_HOST)) return req.respond({ status: 404, body: "" });
         const u = new URL(raw);
+        if (selfHostedFont(u, req)) return;
         if (!u.pathname.startsWith("/api/")) return req.continue();
         req.respond({ status: 200, contentType: "application/json", body: JSON.stringify(s.fixtures[u.pathname] ?? COMMON[u.pathname] ?? {}) });
       });
@@ -389,7 +449,7 @@ if (process.argv[2] === "--styles") {
       await page.evaluateHandle("document.fonts.ready").catch(() => {});
       if (s.ready) await page.waitForSelector(s.ready, { timeout: 30000 }).catch(() => {});
       await sleep(900);
-      if (s.stylesWithPrep && s.appPrep) await s.appPrep(page);
+      if (s.appPrep) await s.appPrep(page);   // D149: the screen's own state (Full House: the first posting open)
       out[size] = await page.evaluate(STYLE_PROBES[id]);
       await page.close();
     }

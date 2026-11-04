@@ -75,11 +75,11 @@ async function loadUi() {
         import BoardHeadline, { SENTENCE_ID, PANEL_ID } from ${abs("components/BoardHeadline.jsx")};
         import WordPanel, { PanelOptions, AddOptions, panelFocusTarget, panelKeyDown, openerSlot } from ${abs("components/WordPanel.jsx")};
         import SortPanel from ${abs("components/SortPanel.jsx")};
-        import { ViewSegment, SortWord, SORT_GLYPH_PATH } from ${abs("components/BoardBar.jsx")};
+        import { ViewSegment, SortWord } from ${abs("components/BoardBar.jsx")};
         export const html = (C, props) => renderToStaticMarkup(createElement(C, props));
         export const htmlRouted = (C, props) => renderToStaticMarkup(createElement(MemoryRouter, null, createElement(C, props)));
         export { BoardHeadline, SENTENCE_ID, PANEL_ID, WordPanel, PanelOptions, AddOptions, panelFocusTarget,
-                 panelKeyDown, openerSlot, SortPanel, ViewSegment, SortWord, SORT_GLYPH_PATH };`,
+                 panelKeyDown, openerSlot, SortPanel, ViewSegment, SortWord };`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -415,7 +415,7 @@ test("D35 §4: the VERTICAL ORDER is the sentence, the open panel, the bar, the 
 });
 
 test("D35 §3 → D40: the CONDENSED BAR — FOUR views with counts, the search, ⇅ in a 40px square", async () => {
-  const { html, ViewSegment, SortWord, SORT_GLYPH_PATH } = await loadUi();
+  const { html, ViewSegment, SortWord } = await loadUi();
   const views = [["all", "ALL", "All jobs"], ["saved", "★", "Saved jobs"], ["pending", "/d", "Pending apply"], ["imported", "+", "Imported jobs"]];
   const counted = html(ViewSegment, { views, value: "all", counts: viewCounts(FACETS) });
   assert.match(counted, /data-view="all" aria-pressed="true"[^>]*><span aria-hidden="true">ALL<\/span><span class="fh-ct" aria-hidden="true">400</);
@@ -426,7 +426,9 @@ test("D35 §3 → D40: the CONDENSED BAR — FOUR views with counts, the search,
   assert.doesNotMatch(blank, /fh-ct/);
   // The sketch's glyph, exactly; open = filled (aria-expanded), a chosen order holds its edge.
   // ⭐ D147 (owner 11-03): the ⇅ square became the Sort / view WORD in the title row — the same glyph beside the words.
-  assert.equal(SORT_GLYPH_PATH, "M7 4v16M7 20l-3-3M7 4l3 3M17 20V4M17 4l3 3M17 20l-3-3");
+  // D149 (11-03) changed this on purpose: fullhouse-declutter.html draws the control as the words "Sort: for you" alone,
+  // so the ⇅ glyph (and its SORT_GLYPH_PATH) left the control.
+  assert.doesNotMatch(html(SortWord, {}), /<svg/);
   assert.match(html(SortWord, { open: true }), /data-board-icon="sort" data-active="false" aria-expanded="true"/);
   assert.match(html(SortWord, { chosen: true }), /data-active="true"/);
   // ⛔ D40 (owner, 10-06): + is the FOURTH VIEW; the standalone + square is gone, everywhere.

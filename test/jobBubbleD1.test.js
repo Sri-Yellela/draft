@@ -9,40 +9,46 @@ const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const css = read("client/src/components/JobBubble.css");
 const jsx = read("client/src/components/JobBubble.jsx");
 const panel = read("client/src/panels/JobsPanel.jsx");
-import { columnsFor } from "../client/src/lib/bubbleColumns.js";
+// D149 (11-03) changed the first two tests on purpose: docs/sketches/fullhouse-declutter.html (`.list` / `.jr`) is the
+// approved board — ONE column of rows, 8px apart, no growth on hover; the row's own values (pinned below, and in a real
+// Chrome by test/fidelityFullHouse.test.js). D1's bubble rows and lib/bubbleColumns.js are gone.
+const d149 = css.slice(at(css, "⭐ D149 (owner 11-03) · THE ROW"));
 
-test("⭐ rows of 2 or 3 (D11: never 4) — 3 by default; a hovered or focused card grows to 1.55 and the NEIGHBOURS give up the width", () => {
-  assert.match(css, /\.jb-row  \{ display: flex; gap: 18px;/);
-  assert.match(css, /\.jb \{\n  flex: 1 1 0;\n  min-width: 0;/);
-  assert.match(css, /\.jb:hover, \.jb:focus-within \{ flex-grow: 1\.55;/);
-  assert.match(css, /padding: 16px 20px;/);
-  assert.match(css, /\.jb-rows \{ display: flex; flex-direction: column; gap: 18px; padding: 0 28px 8px; \}/);
-  assert.doesNotMatch(css, /\.jb-row  \{[^}]*flex-wrap/, "a row that wraps reflows a neighbour to another row");
+test("⭐ D149: one column of rows, 8px apart — no hovered card grows (D1's rows of 2 / 3 are retired)", () => {
+  assert.match(jsx, /<div className="jb-rows" data-columns=\{1\}>\{jobs\.map\(children\)\}<\/div>/);
+  assert.match(d149, /\.jb-rows \{ gap: 8px; padding: 0; \}/);
+  assert.match(d149, /\.jb:hover, \.jb:focus-within \{ flex-grow: 0; box-shadow: none; background: var\(--c-surface-tint\); \}/);
+  assert.match(d149, /padding: 14px 16px; border-radius: 20px; background: var\(--c-surface-solid\); box-shadow: none;/);
+  assert.ok(!fs.existsSync("client/src/lib/bubbleColumns.js"));
 });
 
-test("the card: logo 52 / radius 13; the text block is 52px tall; company in the logo face; three single lines", () => {
-  assert.match(css, /\.jb__logo \{ flex-shrink: 0; width: 52px; height: 52px; border-radius: 13px; box-shadow: var\(--c-logo-shadow\);/);
-  // D46: AT LEAST 52px (min-height) — a fixed height clipped the + card's fourth line.
-  assert.match(css, /\.jb__text \{[^}]*min-height: 52px;[^}]*justify-content: center;/);
-  assert.match(css, /font-style: italic; font-weight: 800; font-size: 17px; letter-spacing: -\.015em;/);
-  assert.match(css, /\.jb__title \{ font-size: 12\.5px; color: var\(--c-ink-muted\);/);
-  assert.match(css, /\.jb__meta  \{ font-size: 11px; color: var\(--c-ink-faint\);/);
-  assert.match(css, /\.jb__company, \.jb__title, \.jb__meta \{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; line-height: 1\.25; \}/);
+test("D149: the row — a 36px tile (corner 11) · the role 600 15px · company · location 13px · salary · type · workstyle · the match", () => {
+  assert.match(jsx, /<CompanyLogo company=\{job\.company\} iconUrl=\{job\.companyIconUrl\} size=\{36\} radius=\{11\} \/>/);
+  assert.match(d149, /\.jb__title \{\n  display: block; white-space: normal; font: 600 calc\(15px \* var\(--type-scale, 1\)\)\/1\.25/);
+  assert.match(d149, /\.jb__sub \{[^}]*font-size: calc\(13px \* var\(--type-scale, 1\)\); line-height: 1\.55; color: var\(--c-ink-faint\);/);
+  assert.match(d149, /\.jb__meta i \{ font-style: normal; font-size: calc\(12\.5px \* var\(--type-scale, 1\)\); color: var\(--c-ink-muted\); \}/);
+  assert.match(d149, /\.jb__mt b \{ display: block; font: 500 calc\(22px \* var\(--type-scale, 1\)\)\/1/);
+  // The title before the company line, the company line before the meta (the sketch's order).
+  assert.ok(at(jsx, 'className="jb__title"') < at(jsx, 'className="jb__sub"') && at(jsx, 'className="jb__sub"') < at(jsx, 'className="jb__meta"'));
 });
 
 test("⛔ A78: the company name is a link with NO underline and NO ↗ — and a NON-COLOUR hover cue", () => {
   assert.match(css, /\.jb__company \{[\s\S]*?text-decoration: none;/);
   assert.match(css, /a\.jb__company:hover, a\.jb__company:focus-visible \{ text-decoration: underline; \}/);
   // D38: the card's link IS the shared CompanyLink, and the A63 / A78 rules are asserted on it.
-  assert.match(jsx, /<CompanyLink company=\{job\.company\} href=\{applyHref \|\| null\} jobId=\{id\} size="card" className="jb__company" \/>/);
+  // D149 (11-03) changed this on purpose: the link sits in the row's quiet "company · location" line, in that line's type.
+  assert.match(jsx, /<CompanyLink company=\{job\.company\} href=\{applyHref \|\| null\} jobId=\{id\} size="row" className="jb__company" \/>/);
   const companyLink = read("client/src/components/CompanyLink.jsx");
   assert.doesNotMatch(companyLink, /↗/);
   assert.match(companyLink, /\/api\/applications\/pending/, "A63: opening the posting still tags the job Pending");
 });
 
 test("⛔ NO BAND AND NO NUMBER on the card body; the ATS button carries the number only when A76 has earned it", () => {
-  const body = jsx.slice(at(jsx, '<div className="jb__text">', 0, "text"), at(jsx, '<div className="jb__rail">', 0, "rail"));
-  assert.doesNotMatch(body, /score|band/i, "fit shown on the card body");
+  // D149 (11-03) changed this on purpose: the sketch (and D147: "the match on the right") puts the match number at the
+  // row's right edge (.jb__mt) — the text block itself still carries no score and no band.
+  const body = jsx.slice(at(jsx, '<div className="jb__text">', 0, "text"), at(jsx, '<div className="jb__mt"', 0, "match"));
+  assert.doesNotMatch(body, /score|band/i, "fit shown in the card's text");
+  assert.match(jsx, /\{showNumber \? <><b>\{score\}%<\/b><span>match<\/span><\/> : null\}/, "no score is no number — never a zero");
   assert.match(jsx, /const showNumber = ATS_NUMBER_SHOWN && Number\.isFinite\(score\);/);
   // No score is the bar mark — never a zero.
   assert.match(jsx, /\{showNumber \? \(<><span className="jb__ats-n">\{score\}<\/span><span className="jb__ats-cap">ats<\/span><\/>\) : <BarMark \/>\}/);
@@ -92,10 +98,5 @@ test("the board renders bubbles in rows; the Database panel keeps JobCard", () =
   assert.match(panel, /<JobBubbleRows jobs=\{jobs\}>/);
   assert.doesNotMatch(panel, /<JobCard\b/);
   assert.match(read("client/src/panels/DatabasePanel.jsx"), /<JobCard/);
-  assert.equal(columnsFor(0), 3, "3 is the default");
-  assert.equal(columnsFor(390), 1);
-  assert.equal(columnsFor(820), 2);
-  assert.equal(columnsFor(1440), 3);
-  assert.equal(columnsFor(1920), 3, "D11: never more than 3 per row");
-  assert.equal(columnsFor(3840), 3);
+  // D149 (11-03): one column — see the first test.
 });

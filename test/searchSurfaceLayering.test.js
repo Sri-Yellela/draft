@@ -126,7 +126,7 @@ test("EVERY CONTROL THE PILL CARRIED IS STILL REACHABLE", () => {
   assert.match(read("client/src/components/BoardBar.jsx"), /const said = `\$\{label \? `Sort: \$\{label\}` : "Sort"\}/);
   assert.match(topbar, /<ProfileSelectorDropdown/, "the profile switcher left the avatar menu");
   assert.match(read("client/src/components/BoardBar.jsx"),
-    /placeholder="Job title, company, or anything in the posting…"/);
+    /* D149 (11-03) changed this on purpose: the sketch's words */ /placeholder="Search a company, title or skill"/);
 });
 
 test("the second, unrelated scroll source is still gone", () => {

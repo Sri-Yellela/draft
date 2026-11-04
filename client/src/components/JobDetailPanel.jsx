@@ -11,9 +11,8 @@ import CompanyLink from "./CompanyLink.jsx";
 import CompanyLogo from "./CompanyLogo.jsx";
 import { AtsNumberBox } from "./AtsNumberBox.jsx";
 import { atsScorePair } from "../../../shared/resumeScores.js";
-import DepthButton, { ICONS } from "./DepthButton.jsx";
 import "./JobDetailPanel.css";
-import { DraftButton, PassButton, SaveButton } from "./DecisionButtons.jsx";
+import { draftButtonState } from "../lib/jobDecisions.js";
 import ByomResumeChoice, { ByomStatus, useByomFlow } from "./ByomResumeChoice.jsx";
 import { WhatWeChangedLink } from "./ResumeChangesPanel.jsx";
 
@@ -84,7 +83,7 @@ function ManualSubmitted({ jobId }) {
   };
   return (
     <div className="pp__submitted" data-manual-submitted="">
-      {!open && <button type="button" className="pp__submitted-btn" onClick={() => setOpen(true)}>I applied myself</button>}
+      {!open && <button type="button" className="pp__btn pp__submitted-btn" onClick={() => setOpen(true)}>I applied myself</button>}
       {open && (
         <form onSubmit={(ev) => { ev.preventDefault(); record(); }}>
           <input type="text" value={evidence} onChange={(ev) => setEvidence(ev.target.value)} aria-label="Confirmation link, email subject, or reference number"
@@ -103,8 +102,11 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
   // D51: the panel knows the slots too — out of drafts is a reason on the button, not a grey box.
   const block = draftBlock || (slots != null && slots.remaining <= 0 ? { code: "out_of_drafts", label: "Out of drafts",
     reason: `Out of drafts — all ${slots.limit} used in the last 24 hours (a Draft or a new résumé uses one).` } : null);
-  const draftProps = { block, onView: onViewDraft, onExplain: onExplainDraft, slots };
   const selectedJob = job;
+  const passed = !!selectedJob.disliked, saved = !!selectedJob.starred;
+  const draft = draftButtonState({ drafted: !!drafted, drafting: !!drafting, block, canView: !!onViewDraft, slots });
+  const draftClick = draft.action === "draft" ? onDraft : draft.action === "view" ? onViewDraft
+    : draft.action === "explain" ? () => onExplainDraft?.(draft.title) : undefined;
   const generateLoading = st === "generate";
   const canApply = !!(selectedJob.applyUrl || selectedJob.url);
   // A63: a NEW résumé uses a slot (a cached one does not, so Regenerate says so too).
@@ -142,10 +144,29 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
   // under More, which opens IN PLACE. Each keeps its behaviour under its new label.
   return (
     <div className="pp__act" data-posting-actions="">
+      {/* ⭐ D149 (fullhouse-declutter.html `.ua`): the sketch's four plain buttons — Pass · Save on the raised grey, Draft on
+          the accent gradient, More quiet — no glyphs, no logo face. The same states and calls as DecisionButtons' (Pass
+          and Save SET: a decided one says so and is disabled; Draft is draftButtonState's, D51: never a dead end). */}
       <div className="pp__main-acts" role="group" aria-label="Actions" data-d147-actions="">
-        {onPass && <PassButton passed={!!selectedJob.disliked} onPass={onPass} />}
-        {onSave && <SaveButton saved={!!selectedJob.starred} onSave={onSave} />}
-        {canApply && onDraft && <DraftButton logo drafted={!!drafted} drafting={!!drafting} onDraft={onDraft} {...draftProps} />}
+        {onPass && (
+          <button type="button" className="pp__btn" data-decision="pass" disabled={passed} aria-pressed={passed} onClick={onPass}
+            title={passed ? "Passed — it won't come back. Undo on the toast to reverse it" : "Pass — it won't come back"}>
+            {passed ? "Passed" : "Pass"}
+          </button>
+        )}
+        {onSave && (
+          <button type="button" className="pp__btn" data-decision="save" disabled={saved} aria-pressed={saved} onClick={onSave}
+            title={saved ? "Saved — to reverse it, Undo on the toast, or Remove it from Saved in Database" : "Save for later"}>
+            {saved ? "Saved" : "Save"}
+          </button>
+        )}
+        {canApply && onDraft && (
+          <button type="button" className="pp__btn pp__btn--p" data-decision="draft" data-draft-state={draft.kind}
+            disabled={draft.disabled} aria-disabled={draft.ariaDisabled || undefined} aria-pressed={!!drafted}
+            title={draft.title} onClick={draftClick}>
+            {draft.label}
+          </button>
+        )}
         <button type="button" className="pp__moreb" aria-expanded={more} aria-controls={moreId} data-posting-more-toggle=""
           onClick={() => setMore(m => !m)}>More</button>
       </div>
@@ -153,24 +174,27 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
         <div className="pp__more" id={moreId} role="group" aria-label="More actions" data-posting-more="">
           {canGen && onGenerate && !hasArtifact && byom.available && split(false, "Résumé for this job", () => onGenerate(false))}
           {canGen && onGenerate && !hasArtifact && !byom.available && (
-            <DepthButton icon={ICONS.resume} onClick={() => onGenerate(false)} title={resumeTitle}
+            <button type="button" className="pp__btn" onClick={() => onGenerate(false)} title={resumeTitle}
               disabled={!!st || noSlots} data-more="resume">
               {generateLoading ? "Generating…" : "Résumé for this job"}
-            </DepthButton>
+            </button>
           )}
-          {hasArtifact && <DepthButton icon={ICONS.preview} onClick={() => onViewSandbox?.()} title="View the résumé" data-more="view">View résumé</DepthButton>}
-          {hasArtifact && <DepthButton icon={ICONS.pdf} onClick={() => onExport?.()} title="Download the résumé as a PDF" data-more="download">Download</DepthButton>}
+          {hasArtifact && <button type="button" className="pp__btn" onClick={() => onViewSandbox?.()} title="View the résumé" data-more="view">View résumé</button>}
+          {hasArtifact && <button type="button" className="pp__btn" onClick={() => onExport?.()} title="Download the résumé as a PDF" data-more="download">Download</button>}
           {hasArtifact && canGen && onGenerate && byom.available && split(false, "Regenerate", regen)}
           {hasArtifact && canGen && onGenerate && !byom.available && (
-            <DepthButton icon={ICONS.resume} onClick={regen} title={resumeTitle} disabled={!!st || noSlots} data-more="regenerate">
+            <button type="button" className="pp__btn" onClick={regen} title={resumeTitle} disabled={!!st || noSlots} data-more="regenerate">
               {generateLoading ? "Generating…" : "Regenerate"}
-            </DepthButton>
+            </button>
           )}
-          <DepthButton icon={ICONS.letter} onClick={onCoverLetter} title="Write a cover letter" data-more="cover-letter">Cover letter</DepthButton>
+          <button type="button" className="pp__btn" onClick={onCoverLetter} title="Write a cover letter" data-more="cover-letter">Cover letter</button>
           {/* ⭐ D56 / A105 finding 3: the manual route records its own submission, on every posting. */}
           {job?.jobId && <ManualSubmitted jobId={job.jobId} />}
           {/* ⭐ D70 Phase 3: the cost, in words, before Generate / Regenerate is pressed. */}
           {canGen && onGenerate && !noSlots && <p className="pp__quota" data-generate-expect="">Takes about 10–20 seconds.</p>}
+          {/* A63: the shared allowance — D149: under More (the sketch's row carries no line beneath it); Draft's title
+              and an out-of-drafts Draft's own label still say it before a press. */}
+          {quota && <p className="pp__quota" data-draft-slots data-empty={noSlots ? "true" : "false"}>{quota}</p>}
         </div>
       )}
       {/* ⭐ D57: the state, in words — "Résumé ready · 2h ago". */}
@@ -178,8 +202,8 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
       {hasArtifact && <p className="pp__ready" data-resume-ready="">{ago ? `Résumé ready · ${ago}` : "Résumé ready"} · <WhatWeChangedLink jobId={job?.jobId} jobLabel={[job?.title, job?.company].filter(Boolean).join(" · ")} /></p>}
       {/* ⭐ D86: Open → Waiting for your résumé… → Checks → Done, updating itself while the user is in the chat. */}
       <ByomStatus byom={byom} onView={() => onViewSandbox?.()} onDownload={() => onExport?.()} />
-      {/* A63: the shared allowance, said before anything is pressed — a muted line in A, the badge in B. */}
-      {quota && <p className="pp__quota" data-draft-slots data-empty={noSlots ? "true" : "false"}>{quota}</p>}
+      {/* A63: out of drafts is said under the row even with More folded (the allowance itself is under More). */}
+      {quota && noSlots && !more && <p className="pp__quota" data-draft-slots data-empty="true">{quota}</p>}
       {/* ⭐ D70 Phase 3: the cost, in words, before Generate / Regenerate is pressed — a line, never a capsule (D60). */}
       {/* ⭐ D54: never silent, never a block — the user's other roles at this company, before Draft. */}
       {companyNotice && <p className="pp__quota" data-company-notice="">{companyNotice.replace(" Draft this one too?", "")}</p>}
@@ -191,7 +215,7 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
 }
 
 export default function JobDetailPanel({
-  slot = 0, width, focused = true, fullScreen = false, resizeMode = "dock", closesOnEscape, reserveRight = 0,
+  slot = 0, width, focused = true, fullScreen = false, resizeMode = "dock", closesOnEscape, reserveRight = 0, beside = false,
   onFocus, onResizeStart, onResize, onResizeEnd,
 }) {
   const { selectedJob, setSelectedJob, selectedJobMeta } = useJobBoard();
@@ -311,12 +335,15 @@ export default function JobDetailPanel({
       onClose={close} onFocus={onFocus}
       onResizeStart={onResizeStart} onResize={onResize} onResizeEnd={onResizeEnd}
       bare
+      // ⭐ D149: the sketch's `.panel` — the card, corner 28 (0 on a phone, full screen), no glass edge; beside the list
+      // it fills BesideDock's column.
+      surfaceClass="pp-shell" radius={28} fill={beside}
     >
       {/* ── BODY (the only scrolling region) ───────────────────────────────────────────────────
           The modals below render through their own portals, so their position here is immaterial;
           the apply toast and the automation banner are inline and stay directly above the
           description, which is what they annotate. */}
-      <div className="pp" data-jd-panel="" style={{ display:"flex", flexDirection:"column", minHeight:"100%" }}>
+      <div className="pp" data-jd-panel="" data-full-screen={fullScreen ? "true" : undefined} style={{ display:"flex", flexDirection:"column", minHeight:"100%" }}>
 
             {/* ⭐ D147 (owner 11-03, fullhouse-declutter.html) · THE HEADER: the company bubble (press = the company's
                 hiring data — CompanyViewModal: the stack, the teams hiring, the hiring signal, the sponsorship filings; the
@@ -325,7 +352,7 @@ export default function JobDetailPanel({
             <div className="pp__hd" data-posting-header="">
               <button type="button" className="pp__logo" onClick={() => setShowCompanyView(true)} title={`Hiring at ${selectedJob.company}`}
                 aria-label={`Hiring at ${selectedJob.company}`} data-company-hiring="">
-                <CompanyLogo company={selectedJob.company} iconUrl={selectedJob.companyIconUrl} size={46} radius={12}/>
+                <CompanyLogo company={selectedJob.company} iconUrl={selectedJob.companyIconUrl} size={36} radius={11}/>
               </button>
               <div className="pp__who">
                 <div className="pp__co"><CompanyLink company={selectedJob.company} href={postingUrl || null} jobId={jobId} size="panel" onOpen={openedPosting} /></div>
