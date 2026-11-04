@@ -2052,6 +2052,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       eligibilityNotice: isJobDrafted(selectedJob.jobId) ? null : eligibilityNoticeFor(selectedJob),
       onExplainDraft: (reason) => draftControls.onExplain(selectedJob, reason),
       onAts: () => openAtsPanel(buildAtsPayload(selectedJob, g2)),
+      // ⭐ D152 (8): the match opens IN the posting — its report payload, the profile it is scored for, and the verdict sink.
+      atsPayload: buildAtsPayload(selectedJob, g2), activeProfileId, onAtsReport: adoptPanelVerdict,
       // D58: the header box reads the same pair the card badge and the ATS card read.
       scores: scoresFor(selectedJob, g2),
       // D48: the posting header's ATS box opens the card beside the posting and shows OPEN as an outline.

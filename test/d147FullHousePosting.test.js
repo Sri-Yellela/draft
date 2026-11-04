@@ -159,8 +159,11 @@ test("d147FactsBoxReused · the existing deck strip, restyled into one box; hist
   assert.match(deck, /data-posting-liveness=/, "the deck still draws its lines");
 });
 
-test("d147MatchBoxOpensExistingAtsPanel · the match box ends the facts box and opens the existing ATS panel", async () => {
-  assert.match(jd, /matchBox=\{<AtsNumberBox score=\{scores\.shown\} tailored=\{scores\.tailoredShown\} base=\{scores\.base\} caption="match"\s+open=\{!!selectedJobMeta\?\.atsOpen\} onOpen=\{\(\) => selectedJobMeta\?\.onAts\?\.\(\)\} \/>\}/);
+// ⭐ D152 (8), changed on purpose (11-04, option A): the match box opens the existing report IN the posting, under the facts
+// (the one loader, ATSPanel), instead of the separate panel over the page — test/d152Home.test.js walks it in Chrome.
+test("d147MatchBoxOpensExistingAtsPanel · the match box ends the facts box and opens the existing report, in the posting", async () => {
+  assert.match(jd, /matchBox=\{<AtsNumberBox score=\{scores\.shown\} tailored=\{scores\.tailoredShown\} base=\{scores\.base\} caption="match"\s+open=\{matchOpen\} onOpen=\{\(\) => \{ setMatchMounted\(true\); setMatchOpen\(o => !o\); \}\} \/>\}/);
+  assert.match(jd, /<ATSPanel report=\{selectedJobMeta\?\.atsPayload\?\.report\}/);
   assert.ok(!header.includes("<AtsNumberBox"), "not in the header any more");
   const { html, h, PostingPanel } = await loadUi();
   const out = html(PostingPanel, { job: JOB, layout: "panel", matchBox: h("b", { "data-m": "1" }, "86") });

@@ -145,6 +145,12 @@ const SCREENS = {
   "home-open": { sketch: "home-sketch.html", app: "/app", fixtures: HOME, ready: "[data-home-board]",
     sketchPrep: async (page) => { await sleep(1700); await page.evaluate(() => document.querySelector(".bub")?.click()); await sleep(700); },
     appPrep: async (page) => { await sleep(1700); await page.evaluate(() => document.querySelector(".jb__title")?.click()); await sleep(900); } },
+  // D152 (8): the posting open with its match open under the facts (ats-options.html option A).
+  "home-match": { sketch: "ats-options.html", app: "/app", fixtures: HOME, ready: "[data-home-board]",
+    sketchPrep: async (page) => { await page.evaluate(() => document.querySelector('[data-o="inline"]')?.click()); await sleep(300);
+      await page.evaluate(() => document.querySelector("#mbox")?.click()); await sleep(600); },
+    appPrep: async (page) => { await sleep(1700); await page.evaluate(() => document.querySelector(".jb__title")?.click()); await sleep(900);
+      await page.evaluate(() => document.querySelector("[data-posting-match] button, [data-posting-match] [role=button]")?.click()); await sleep(700); } },
   deck: { sketch: "declutter-v7.html", app: "/app", fixtures: DECK, ready: "[data-deck-face]" },
   fullhouse: { sketch: "fullhouse-declutter.html", app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-fh-title]",
     appPrep: async (page) => {   // the sketch shows the first posting open beside the list
@@ -460,6 +466,18 @@ const STYLE_PROBES = {
     const opened = { post, listOut: q(".jb-board__list")?.getAttribute("data-out"), listInert: q(".jb-board__list")?.hasAttribute("inert"),
       coversDeck: overlap(post, box(q("[data-home-deck]"))), coversSort: overlap(post, box(q(".fh-title--home"))),
       inBoard: !!post && post.left >= box(q("[data-home-board]")).left - 1 && post.right <= box(q("[data-home-board]")).right + 1 };
+    // ⭐ D152 (8): the match box opens the match IN the posting, under the facts; again folds it. No overlay, no blur.
+    const mbox = q("[data-posting-match] button") || q("[data-posting-match] [role=button]") || q("[data-posting-match] *");
+    mbox?.click(); await wait(600);
+    const row = q("[data-posting-match-row]"), facts = box(q(".posting__facts"));
+    const match = { opened: row?.getAttribute("data-open"), height: row ? Math.round(row.getBoundingClientRect().height) : null,
+      underFacts: !!row && !!facts && Math.round(row.getBoundingClientRect().top) >= facts.bottom - 1,
+      eyebrow: q("[data-posting-match-panel] .pp__matcheyebrow")?.textContent || null,
+      overlay: !!q('[data-panel-id="ats"]'), blur: [...document.querySelectorAll("body *")].some(e => /blur/.test(getComputedStyle(e).filter)) };
+    mbox?.click(); await wait(600);
+    Object.assign(match, { folded: row?.getAttribute("data-open"), foldedHeight: row ? Math.round(row.getBoundingClientRect().height) : null,
+      foldedInert: row?.hasAttribute("inert") ?? null });
+    opened.match = match;
     const closeBtn = q('[data-board-post] .pp__x') || q('.pp__x');   // in place on a computer; the overlay on a phone
     if (closeBtn) closeBtn.click(); else document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     await wait(700);

@@ -169,7 +169,9 @@ test("an unscored row still offers a way into its ATS report", () => {
   // on a score (JobDetailPanel's onOpen → selectedJobMeta.onAts).
   assert.equal((JOBS_PANEL.match(/onAts=\{\(\) => openAtsPanel\(buildAtsPayload\(job, g\)\)\}/g) || []).length, 0);
   assert.match(JOBS_PANEL, /onAts: \(\) => openAtsPanel\(buildAtsPayload\(selectedJob, g2\)\),/);
-  assert.match(fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8"), /onOpen=\{\(\) => selectedJobMeta\?\.onAts\?\.\(\)\}/);
+  // ⭐ D152 (8): the match box opens the report IN the posting — ATSPanel, which fetches it on demand when handed none.
+  assert.match(fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8"), /onOpen=\{\(\) => \{ setMatchMounted\(true\); setMatchOpen\(o => !o\); \}\}/);
+  assert.match(fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8"), /<ATSPanel report=\{selectedJobMeta\?\.atsPayload\?\.report\}/);
   noLiveMatch(JOBS_PANEL, /if \(g\?\.atsReport \|\| g\?\.atsScore != null/,
     "the handler may not require the report it exists to go and fetch");
   assert.equal((JOB_CARD.match(/<AtsSlot score=/g) || []).length, 2);

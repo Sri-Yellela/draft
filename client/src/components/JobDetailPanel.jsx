@@ -1,3 +1,4 @@
+import { ATSPanel } from "./ATSPanel.jsx";
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PostingPanel from "./PostingPanel.jsx";
@@ -326,6 +327,11 @@ export default function JobDetailPanel({
       .then(d => setPendingState(d?.state ?? "pending")).catch(() => {});
   }, [jobId]);
 
+  // ⭐ D152 (8): the match in the posting — open / folded, and mounted from its first open (a new posting starts folded). Above the
+  // early return — hooks run on every render.
+  const [matchOpen, setMatchOpen] = useState(false);
+  const [matchMounted, setMatchMounted] = useState(false);
+  useEffect(() => { setMatchOpen(false); setMatchMounted(false); }, [selectedJob?.jobId]);
   if (!selectedJob) return null;
   // ⭐ D58: the score the header's box shows is the board's ONE read (scoresFor in JobsPanel) — the tailored
   // résumé's when it exists, else the stored base. Never a guess, and null shows no digit.
@@ -403,9 +409,26 @@ export default function JobDetailPanel({
                   formatted plainly. What shows when there is no text is the panel's fallback. */}
               {/* ⭐ D138: who the user knows at this company, from their own contacts — beside the pair, not in it. */}
               {/* ⭐ D147: the role · the facts box with the match box at its end · the posting — nothing between. */}
+              {/* ⭐ D152 (8): pressing the match box opens the match IN the posting (option A), pressing it again folds it;
+                  the content is the one report loader (ATSPanel — its fetch, cache and claims), mounted on first open. */}
               <PostingPanel job={selectedJob} text={description} vtTitle={selectedJob.id} layout="panel"
+                // Its height grows and folds by CSS alone (JobDetailPanel.css .pp__matchrow: grid-template-rows 0fr → 1fr,
+                // ≤ 350 ms; reduced motion: instant), pushing the posting down — no overlay, no blur; folded, it is inert.
+                matchPanel={matchMounted ? (
+                  <div className="pp__matchrow" data-posting-match-row="" data-open={matchOpen ? "true" : "false"}
+                    {...(matchOpen ? null : { inert: "", "aria-hidden": "true" })}>
+                    <div className="pp__matchin" id="posting-match">
+                      <section className="pp__matchcard" aria-label="Your résumé against this job" data-posting-match-panel="">
+                        <p className="pp__matcheyebrow">Your résumé against this job</p>
+                        <ATSPanel report={selectedJobMeta?.atsPayload?.report} score={selectedJobMeta?.atsPayload?.score}
+                          jobId={selectedJob.jobId} resumeText={selectedJobMeta?.resumeText || ""}
+                          activeProfileId={selectedJobMeta?.activeProfileId ?? null} onReport={selectedJobMeta?.onAtsReport || null} />
+                      </section>
+                    </div>
+                  </div>
+                ) : null}
                 matchBox={<AtsNumberBox score={scores.shown} tailored={scores.tailoredShown} base={scores.base} caption="match"
-                  open={!!selectedJobMeta?.atsOpen} onOpen={() => selectedJobMeta?.onAts?.()} />}>
+                  open={matchOpen} onOpen={() => { setMatchMounted(true); setMatchOpen(o => !o); }} />}>
               {fetchState === "loading" ? (
                 <p style={{ fontSize:12, color:"var(--color-text-faint)", fontStyle:"italic" }}>
                   Loading the description from the source…
