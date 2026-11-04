@@ -139,7 +139,8 @@ test("panels tile inside the dock, not against the viewport", () => {
   // Each panel is a FLEX CHILD of the dock. This is the line that makes the tiling internal: a
   // panel has no relationship with the viewport, only with its siblings, so it cannot lay out
   // against the board or be shoved past the screen edge.
-  assert.match(shell, /flex: fullScreen \? "1 1 auto" : `0 0 \$\{Math\.round\(width\)\}px`/);
+  // D149 (11-03) changed this on purpose: `fill` — the posting beside the list fills its column (BesideDock).
+  assert.match(shell, /flex: fullScreen \|\| fill \? "1 1 auto" : `0 0 \$\{Math\.round\(width\)\}px`/);
   assert.ok(!/right: rightOffset/.test(shell),
     "a panel is anchoring itself to the viewport again instead of tiling inside the dock");
   // The dock's width is the sum of the set plus the gaps — a property of the group, not of a drag.
@@ -158,5 +159,7 @@ test("the narrow-viewport fallback is defined, not left to collapse arbitrarily"
   assert.match(host, /const capacity = tileCapacity\(viewportWidth\);/);
   // Full-screen, but still inset and rounded — the same object, not a different component below a
   // breakpoint. The inset moved to the DOCK, which is what the single panel now fills.
-  assert.match(shell, /\{ left: 8, right: 8, top: 64, bottom: 8 \}/);
+  // D149 (11-03) changed this on purpose: fullhouse-declutter.html draws the phone's opened posting (and its ATS drawer)
+  // as the whole screen — inset 0, no corner — so the dock's full-screen geometry is the viewport itself.
+  assert.match(shell, /\{ left: 0, right: 0, top: 0, bottom: 0 \}/);
 });

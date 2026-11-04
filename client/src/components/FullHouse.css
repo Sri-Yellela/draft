@@ -39,10 +39,12 @@
    filter keeps the underline and the ink instead of becoming the orange box (the --tok-on-* properties). */
 [data-sentence="marked"] {
   --bh-room: 1;
-  --tok-pad: 0 .08em; --tok-margin: 0; --tok-edge: transparent; --tok-fill: transparent; --tok-radius: 2px;
+  --tok-pad: 0; --tok-margin: 0; --tok-edge: transparent; --tok-fill: transparent; --tok-radius: 2px;
   --tok-depth: inset 0 -1.5px 0 var(--c-accent);
+  /* D149: the sketch's words are all:unset — no padding, no box edge (an inline button's 1px edge made each line 2px taller). */
+  --tok-border-w: 0;
   --tok-hover-fill: transparent; --tok-hover-edge: transparent; --tok-hover-depth: inset 0 -2px 0 var(--c-accent-ink);
-  --tok-on-pad: 0 .08em; --tok-on-margin: 0;
+  --tok-on-pad: 0; --tok-on-margin: 0;
   --tok-on-fill: transparent; --tok-on-edge: transparent; --tok-on-ink: var(--c-ink); --tok-on-depth: inset 0 -1.5px 0 var(--c-accent);
   --tok-on-radius: 2px; --tok-on-hover-ink: var(--c-accent-ink);
 }
@@ -68,7 +70,7 @@
   font: inherit;
   display: inline; box-decoration-break: clone; -webkit-box-decoration-break: clone; vertical-align: baseline;
   margin: var(--tok-margin, 0); padding: var(--tok-pad, 0 .08em); white-space: nowrap;
-  border: 1px solid var(--tok-edge, transparent); border-radius: var(--tok-radius, 2px);
+  border: var(--tok-border-w, 1px) solid var(--tok-edge, transparent); border-radius: var(--tok-radius, 2px);
   background: var(--tok-fill, transparent); color: var(--c-ink); box-shadow: var(--tok-depth, none);
   cursor: pointer;
   transition: box-shadow .15s, border-color .15s, color .15s, background .15s;
@@ -284,3 +286,43 @@
 .fh-count--hot b { color: var(--c-accent-ink); }
 @media (max-width: 600px) { .fh.fh-counts { gap: 18px; padding-top: 6px; } .fh-count b { font-size: calc(24px * var(--type-scale, 1)); } }
 @media (prefers-reduced-motion: reduce) { .fh-sortw { transition: none; } }
+
+/* ── ⭐ D149 (owner 11-03) · THE HEADER, AS fullhouse-declutter.html DRAWS IT — its values verbatim ───────────────────────
+ * The page column is the sketch's `.fhw` (1240 wide, 20px gutters, the content from its left edge), not D37's centred
+ * 804 · `.ph3 h1` 400 44px/1 serif · `.quiet` "Sort: for you" — 600 14px in --body on the card, padding 9 14, corner 12,
+ * no edge, no glyph · `.fsent` 400 30px/1.35 serif in --body, 18px above / 14 below, 30ch; its words ink, underlined
+ * 1.5px in the accent · `.sbar` the field alone: the card, corner 14, padding 12 16, 16px, 620 wide, no edge, no shadow
+ * · `.cnt` 30px 500 (-.03em) over 13px muted, 28px apart, 22px under the search, 14px above the list. */
+.fh[data-fh-d147], .fh.fh--bar-row, .fh.fh-counts { max-width: 1240px; padding-left: 20px; padding-right: 20px; }
+.fh[data-fh-d147] { padding-top: 10px; font-family: var(--shape-font-ui, var(--font-body)); }
+.fh[data-fh-d147] .fh-title { margin: 0; }
+.fh[data-fh-d147] .fh-title__h { letter-spacing: 0; font-size: calc(44px * var(--type-scale, 1)); }
+/* The sketch keeps 44 / 30 on a phone too (its only phone rule is for another screen's `.ph`). */
+.fh[data-fh-d147] { --fh-sentence-size: calc(30px * var(--type-scale, 1)); }
+.fh[data-fh-d147] .bh { margin: 18px 0 14px; max-width: 30ch; color: var(--c-ink-muted); }
+.fh-sortw {
+  padding: 9px 14px; border: 0; border-radius: 12px; background: var(--c-surface-solid); color: var(--c-ink-muted);
+  font: 600 calc(14px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body));
+}
+.fh-sortw:hover, .fh-sortw:focus-visible { color: var(--c-ink); }
+.fh-sortw[data-active="true"] { color: var(--c-ink); }
+.fh.fh--bar-row { padding-bottom: 18px; }
+.fh--bar-row .fh-bar, .fh-bar {
+  max-width: 620px; margin-top: 0; padding: 0; border: 0; border-radius: 14px; background: var(--c-surface-solid); box-shadow: none;
+}
+.fh-bar .fh-srch { padding: 0; border-radius: 14px; border-top: 0; }
+.fh-bar .fh-srch input {
+  padding: 12px 16px; font: 400 calc(16px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body)); color: var(--c-ink);
+}
+.fh-bar .fh-srch input::placeholder { color: var(--c-ink-faint); }
+/* 10 + the list scroller's own 4px top padding = the sketch's 14 above the first row. */
+.fh.fh-counts { gap: 28px; padding-top: 0; padding-bottom: 10px; font-family: var(--shape-font-ui, var(--font-body)); }
+.fh-count { font-size: calc(16px * var(--type-scale, 1)); line-height: 1.55; }
+.fh-count b { font: 500 calc(30px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body)); letter-spacing: -.03em; }
+.fh-count span { display: inline; font-size: calc(13px * var(--type-scale, 1)); line-height: 1.55; color: var(--c-ink-faint); }
+@media (max-width: 600px) {
+  .fh[data-fh-d147], .fh.fh--bar-row, .fh.fh-counts { padding-left: 20px; padding-right: 20px; }
+  .fh.fh-counts { gap: 28px; }
+  .fh-count b { font-size: calc(30px * var(--type-scale, 1)); }
+  .fh-bar .fh-srch { border-top: 0; border-radius: 14px; }
+}

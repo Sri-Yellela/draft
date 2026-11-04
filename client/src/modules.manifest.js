@@ -215,7 +215,6 @@ export const SHARED = Object.freeze({
   "lib/openPosting.js":                 { what: "THE way a posting is opened — handed to the extension when it is here (D99 J11)" },
   "lib/boardPaging.js":                 { what: "the board's paging" },
   "lib/boardViewCache.js":              { what: "the board's view cache (D45)" },
-  "lib/bubbleColumns.js":               { what: "the card rows' columns" },
   "lib/deckState.js":                   { what: "the deck's reducer" },
   "lib/deckCardFacts.js":               { what: "what the deck card says and where — collapsed, hover, Why this job (D145); one function, nothing said twice" },
   "lib/deckOrder.js":                   { what: "the deck's order (dealt | ATS match) — the deck's control and Customise read one store (D93)" },
