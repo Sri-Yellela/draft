@@ -29,6 +29,9 @@ const SERVER = fs.readFileSync("server.js", "utf8");
 // SHOULD be able to call it.
 const PUBLIC = new Set([
   "GET /api/health",
+  // D150 T04: the audit's role card — public (the audit needs no sign-in); board aggregates only, no user data.
+  "GET /api/audit/roles",
+  "GET /api/audit/role/:slug",
   // D115: the owner's learning path — public like the Atlas it lives in; links and the owner's words only, no user data.
   "GET /api/learn/",
   // D117: the circle's links, taught terms, live P5 links and routes — the same public content, no user data.
@@ -745,6 +748,7 @@ test("every authenticated route taking an id from the request derives the owner 
   // Known and reviewed: these take an id but own nothing user-scoped, so there is nothing to scope.
   const REVIEWED = new Set([
     "server.js: GET /api/domain-metadata/:key",                    // a static registry file
+    "server.js: GET /api/audit/role/:slug",                        // D150 T04: a role's board aggregates, public, no owner
     "server.js: POST /api/auth/provider/:provider",                // pre-auth, by definition
     // Retired: answers 410 and reads nothing at all, so there is no owner to scope to.
     "routes/apply.js: GET /api/apply/session/:domain",
