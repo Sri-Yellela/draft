@@ -23,7 +23,8 @@ test("fidelity · the deck on Home (home-sketch.html): the page, the card, its t
     assert.equal(d.card.radius, "26px", `${size}: card radius 26`);
     assert.equal(d.card.border, "0px", `${size}: no border on the card`);
     assert.equal(d.card.shadow, "rgba(0, 0, 0, 0.35) 0px 30px 70px 0px", `${size}: the sketch's one shadow`);
-    assert.equal(d.card.top, size === "phone" ? 28 : 44, `${size}: the card's top at the sketch's padding (44, a phone's 28)`);
+    // The sketch's padding (44; a phone's 28) + its count line ("1 of 10 today · best match first", 20 px) + 12 px under it.
+    assert.equal(d.card.top, size === "phone" ? 60 : 76, `${size}: the card's top under the sketch's count line`);
     assert.match(d.title.family, /^"Instrument Serif"/, `${size}: the title in Instrument Serif`);
     assert.equal(d.title.size, "30px", `${size}: the title at 30 px`);
     assert.equal(d.title.weight, "400");

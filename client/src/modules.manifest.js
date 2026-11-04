@@ -30,7 +30,7 @@ export const MODULES = Object.freeze({
     members: ["panels/DeckView.jsx", "components/CardBack.jsx", "components/DealBackdrop.jsx"] },
   board: { why: "Full House — the board, its cards and its posting panel",
     members: ["panels/JobsPanel.jsx", "components/JobBubble.jsx", "components/JobDetailPanel.jsx", "components/CoverLetterModal.jsx", "components/ByomResumeChoice.jsx",
-      "components/BestBets.jsx", "components/WarmPathsBlock.jsx"] },
+      "components/WarmPathsBlock.jsx"] },
   fullHouseHeader: { why: "the Full House header — the sentence, its words, the sort, the bar",
     css: ["components/FullHouse.css"],
     // ⚠ D93: the Customise preview draws the sentence and the bar with this module's classes — a decided reuse
@@ -153,7 +153,6 @@ export const SHARED = Object.freeze({
   "components/CardBack.jsx":            { what: "a deck card's back (the tinted logo — owner-decided O34)", module: "deck" },
   "components/DeckGeometryControl.jsx": { what: "the deck's layout control (D149: on the Customise page)", module: "customise" },
   "components/JobBubble.jsx":           { what: "the board's card (D1)", module: "board" },
-  "components/BestBets.jsx":            { what: "D136 — This week's best bets, above the board", module: "board" },
   "components/WarmPathsBlock.jsx":      { what: "D138 — people the user knows at a posting's company, beside the posting panel", module: "board" },
   "components/JobBubble.css":           { what: "its look", owner: "components/JobBubble.jsx" },
   "components/JobDetailPanel.jsx":      { what: "the board's posting panel (D48)", module: "board" },

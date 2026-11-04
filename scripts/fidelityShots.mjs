@@ -55,7 +55,9 @@ const COMMON = {
 const DECK = {
   "/api/draft/today": { date: new Date().toLocaleDateString("en-CA"), profileId: 1, size: 3, dealtNow: false, thin: false,
     cards: BOARD.slice(0, 3).map((job, i) => ({ position: i, band: "strong", decision: null, score: job.matchScore,
-      job: { ...job, id: job.jobId }, why: { matched: ["Python", "SQL", "Spark", "AWS"], missing: ["Kafka", "Airflow"], matchedTotal: 13, missingTotal: 2 }, report: null })) },
+      job: { ...job, id: job.jobId }, why: { matched: ["Python", "SQL", "Spark", "AWS"], missing: ["Kafka", "Airflow"], matchedTotal: 13, missingTotal: 2 }, report: null,
+      // D152 (3): each card's best-bets reading (the server's bestBetOf), its reasons the card's reason line.
+      bestBet: { score: 80 - i, band: "best", reasons: ["you're eligible", `${7 - i} of 7 must-haves`, `${job.matchScore} ATS match`, "posted 9 hours ago"] } })) },
 };
 // The opened posting's text is fullhouse-declutter.html's own (its `.pn`), so the two panels hold the same words.
 const FH_DESCRIPTION = "We're looking for a senior data engineer to build and run the pipelines behind our platform, working with analysts and ML engineers to make data reliable and fast.\n\nWhat you'll do:\n- Design and run batch and streaming pipelines in Spark and Airflow\n- Model data for analytics and machine learning\n- Improve reliability, cost and speed across the platform\n\nWhat you'll bring:\n- 5+ years building data pipelines in production\n- Strong SQL and Python\n- A streaming system such as Kafka";

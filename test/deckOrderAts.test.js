@@ -18,22 +18,23 @@ test("⭐ ATS match orders Strong, Moderate, NOT ESTABLISHED, Weak — then the 
   for (const c of orderByAts(cards, (id) => scores[id])) assert.ok(!("score" in c) && !("matchScore" in c.job));
 });
 
-test("the route accepts only 'dealt' and 'ats', defaults to dealt, and looks the score up server-side", () => {
-  assert.deepEqual([...DECK_ORDERS], ["dealt", "ats"]);
+// ⭐ D152 (3), changed on purpose (11-04): a third order, "best" — the best-bets ranking that feeds the deck.
+test("the route accepts only 'dealt', 'ats' and 'best', defaults to dealt, and looks the score up server-side", () => {
+  assert.deepEqual([...DECK_ORDERS], ["dealt", "ats", "best"]);
   const src = fs.readFileSync("server.js", "utf8");
   assert.match(src, /const order = String\(req\.query\.order \|\| "dealt"\);\s*if \(!DECK_ORDERS\.includes\(order\)\) \{\s*return res\.status\(400\)/);
-  assert.match(src, /todaysDeck\(db, \{ userId: req\.user\.id, profileId: profile\.id, date, fetchBoardPage, reportFor, order, scoreFor \}\)/);
+  assert.match(src, /todaysDeck\(db, \{ userId: req\.user\.id, profileId: profile\.id, date, fetchBoardPage, reportFor, order, scoreFor, betFor \}\)/);
 });
 
 // ⭐ D149 (owner 11-03) changed this on purpose: the choice moved off the deck page into Settings → Customise (the deck
 // shows only the card); the deck still asks the server for the chosen order.
-test("the order is chosen on Customise (Dealt | ATS match) and the deck asks the server for it", () => {
+test("the order is chosen on Customise (Best bets | Dealt | ATS match) and the deck asks the server for it", () => {
   const deck = fs.readFileSync("client/src/panels/DeckView.jsx", "utf8");
   assert.match(deck, /\/api\/draft\/today\?date=\$\{encodeURIComponent\(localDate\(\)\)\}&order=\$\{deckOrder\}/);
   assert.match(deck, /const \[deckOrder\] = useState\(readDeckOrder\);/);
   const page = fs.readFileSync("client/src/panels/CustomisePanel.jsx", "utf8");
   assert.match(page, /<RadioCards label="Deck order" name="deck-order" value=\{order\} onChange=\{onOrder\}/);
-  assert.deepEqual(DECK_ORDERS_UI(), ["dealt", "ats"]);
+  assert.deepEqual(DECK_ORDERS_UI(), ["best", "dealt", "ats"]);   // D152 (3): best bets first, the default
 });
 const DECK_ORDERS_UI = () => [...fs.readFileSync("client/src/lib/deckOrder.js", "utf8").matchAll(/id: "(\w+)"/g)].map(m => m[1]);
 

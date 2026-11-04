@@ -44,7 +44,7 @@ function DeckSection({ geometry, order, onLayout, onOrder, onGeometry }) {
       </div>
       <div className="cz-sub">Order</div>
       <RadioCards label="Deck order" name="deck-order" value={order} onChange={onOrder}
-        items={DECK_ORDERS.map((o) => ({ ...o, tag: o.id === "dealt" ? "default" : null }))} />
+        items={DECK_ORDERS.map((o) => ({ ...o, tag: o.id === "best" ? "default" : null }))} />
     </SettingsSection>
   );
 }
@@ -68,7 +68,7 @@ export default function CustomisePanel() {
   const reset = async () => {
     // The deck's defaults too. Its layout is saved on a debounce that a reload would cut short, so it is written
     // to the account directly and awaited before saveAppearance reloads.
-    chooseOrder("dealt"); chooseLayout("standard");   // (the hook also refreshes the device's cached layout)
+    chooseOrder("best"); chooseLayout("standard");   // (the hook also refreshes the device's cached layout)
     await api("/api/settings/deck-geometry", { method: "PUT", body: JSON.stringify({ preference: { preset: "standard", custom: geometry?.custom || {} } }) }).catch(() => {});
     setLayout(layoutDefaults(), { apply: false });
     saveAppearance({ pref: "system", cues: false, layout: layoutDefaults() });

@@ -103,7 +103,7 @@ import { bestBetOf } from "./shared/bestBets.js";
 import { readAutoSettings } from "./shared/autoSettings.js";
 import { honestyCheck } from "./services/honestyCheck.js";
 import { navigatorFor, setAim, aimRoleFor } from "./services/navigator.js";
-import { importContacts, warmSummary, deleteContacts, warmPathTo, draftNote } from "./services/warmPaths.js";
+import { importContacts, warmSummary, deleteContacts, warmPathTo, draftNote, warmCounts } from "./services/warmPaths.js";
 import { startCheck, answerCheck, readinessStates, mostClaimed, reviewQuestion, seedReadinessDrafts } from "./services/readiness.js";
 // ⭐ D105: the Atlas — roles, skills, tools, linked; seeded as drafts from the scorer's own registry, stats from the board.
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
@@ -11756,7 +11756,14 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
     const scoreStmt = db.prepare(
       "SELECT ats_score FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?");
     const scoreFor = (jobId) => scoreStmt.get(req.user.id, profile.id, jobId)?.ats_score ?? null;
-    const deck = await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor });
+    // ⭐ D152 (3): every card's best-bets reading (bestBetOf over its signals) — the one ranking the "best" order reads and
+    // the reason line the card says. The eligibility inputs, level, aim and warm paths are read once for the deal.
+    const tryOr = (fn, dflt) => { try { return fn(); } catch { return dflt; } };
+    const betInputs = { inputs: tryOr(() => userEligibilityInputs(db, req.user.id), { defaults: {}, degrees: [] }),
+                        userLevel: tryOr(() => userLevelFor(db, req.user.id), null),
+                        aim: tryOr(() => aimRoleFor(db, req.user.id), null), warm: tryOr(() => warmCounts(db, req.user.id), new Map()) };
+    const betFor = (job) => bestBetOf(bestBetSignalsFor(db, { userId: req.user.id, profileId: profile.id, job: { id: job.id }, ...betInputs }));
+    const deck = await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, betFor });
     // 43y (the owner's trial walk, 11-01: "no jobs or picks" on a new account): an empty deal for a profile whose
     // scores have not landed yet is not "empty" — it is SCORING. The pass is (re)asked for, the client says so and asks
     // again; the deal is not frozen (an empty one never is), so the next request deals from the first scores.

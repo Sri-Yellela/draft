@@ -219,7 +219,7 @@ test("D93 · the deck's layout and order are mirrored on Customise — through t
   // The order: one key, one read / write, used by both.
   const lib = await import("../client/src/lib/deckOrder.js");
   assert.equal(lib.DECK_ORDER_KEY, "draft-deck-order", "the key the deck has always used — a chosen order survives");
-  assert.deepEqual(lib.DECK_ORDERS.map((o) => o.id), ["dealt", "ats"]);
+  assert.deepEqual(lib.DECK_ORDERS.map((o) => o.id), ["best", "dealt", "ats"]);   // ⭐ D152 (3), changed on purpose: best bets, the default
   const deck = read("client/src/panels/DeckView.jsx");
   // ⭐ D149 (owner 11-03): the deck only READS the order now — it is chosen here, on Customise.
   assert.match(deck, /import \{ readDeckOrder \} from "\.\.\/lib\/deckOrder\.js";/);
@@ -231,9 +231,10 @@ test("D93 · the deck's layout and order are mirrored on Customise — through t
   // and the order with it. Reset restores the deck too, its layout awaited before the reload.
   assert.doesNotMatch(deck, /<DeckGeometryControl |<DeckOrderControl /);
   assert.match(page, /<DeckGeometryControl label="Fine-tune the fan"/);
-  assert.match(page, /chooseOrder\("dealt"\); chooseLayout\("standard"\);[^\n]*\n\s*await api\("\/api\/settings\/deck-geometry", \{ method: "PUT"/);
+  // ⭐ D152 (3), changed on purpose: Reset returns the order to the default, Best bets.
+  assert.match(page, /chooseOrder\("best"\); chooseLayout\("standard"\);[^\n]*\n\s*await api\("\/api\/settings\/deck-geometry", \{ method: "PUT"/);
   // A round trip of the order through the shared helpers.
   const store = new Map(); globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
-  try { assert.equal(lib.readDeckOrder(), "dealt"); lib.writeDeckOrder("ats"); assert.equal(store.get("draft-deck-order"), "ats"); assert.equal(lib.readDeckOrder(), "ats"); }
+  try { assert.equal(lib.readDeckOrder(), "best"); lib.writeDeckOrder("ats"); assert.equal(store.get("draft-deck-order"), "ats"); assert.equal(lib.readDeckOrder(), "ats"); }
   finally { delete globalThis.localStorage; }
 });

@@ -59,10 +59,12 @@ test("D136 · d136ReasonsOnCard — 'Best bet: you're eligible · posted 9 hours
   assert.equal(bestBetOf({ ...base, velocity: { watchedDays: 20, closed60: 0 } }).score, unknown.score, "watched under 60 days: unknown");
   assert.equal(bestBetOf({ mustHaves: { have: 15, total: 15 }, hoursSinceFirstSeen: 1, ghostLevel: 2 }).band, "long",
     "Likely not hiring is never above Long shot");
-  const ui = read("client/src/components/BestBets.jsx");
-  assert.match(ui, /\{bestBet\.label\}/);
-  assert.match(ui, /\{bestBet\.reasons\.join\(" · "\)\}/);
-  assert.match(read("client/src/panels/JobsPanel.jsx"), /\{bestBets && <BestBets onOpen=\{onJobSelect\}/);
+  // ⭐ D152 (3), changed on purpose (11-04): the separate list is gone — the best-bets reading feeds the deck and its
+  // reasons are each card's reason line (no band label: D152 (7b) retires the chips).
+  assert.ok(!fs.existsSync("client/src/components/BestBets.jsx"), "the separate best-bets list is deleted");
+  assert.doesNotMatch(read("client/src/panels/JobsPanel.jsx"), /<BestBets\b/);
+  assert.match(read("client/src/lib/deckCardFacts.js"), /card\?\.bestBet\?\.reasons/);
+  assert.match(read("client/src/panels/DeckView.jsx"), /\{facts\.reason\.rest\.join\(" · "\)\}/);
 });
 
 test("D136 · d136HardFiltersOut — not eligible, won't sponsor (for a needer), closed and already applied never enter; the rest are ranked", async () => {
@@ -96,7 +98,8 @@ test("D136 · fit is required — a posting not scored yet is never ranked on fr
   assert.equal(r.unscored, 1);
   const none = await bestBetsFor(db, { userId: 1, fetchBoardPage: page([{ id: "fresh-unscored" }]), now: NOW });
   assert.equal(none.reason, "scoring", "nothing scored yet is said, not ranked");
-  assert.match(read("client/src/components/BestBets.jsx"), /appear as your matches are scored/);
+  // D152 (3): the deck says so while a new résumé's matches are scored (DeckView's scoring state).
+  assert.match(read("client/src/panels/DeckView.jsx"), /Your best matches will be here in a few seconds/);
   // picks: an unscored candidate's best bet is null, so the ATS order decides (choosePicks reads Number.isFinite)
   assert.equal(bestBetOf({ hoursSinceFirstSeen: 1 }).score, null);
 });
@@ -124,7 +127,7 @@ test("D136 · d136NoProbabilityUntilCalibrated — a band and reasons, never a c
   assert.equal(calibratedChance(db, b), null);
   assert.deepEqual(refitBestBets(db, { rows: [] }), { ready: false, outcomes: 0, needed: CALIBRATED_MIN });
   for (const t of [b.label, ...b.reasons]) assert.doesNotMatch(t, /%|chance|probab/i, t);
-  assert.match(read("client/src/components/BestBets.jsx"), /not a probability/);
+  assert.match(read("client/src/panels/DeckView.jsx"), /data-deck-reason=""[^>]*title="[^"]*not a probability\./);   // D152 (3)
 });
 
 test("D136 · d136OutcomeRecordedWithSignals — a verified send stores the signals it had, once", () => {

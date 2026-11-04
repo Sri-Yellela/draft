@@ -91,5 +91,13 @@ export function cardFacts(card, now = Date.now()) {
     sp && SPONSOR[sp.level] ? { key: "sponsorship", value: SPONSOR[sp.level], line: sp.line || sp.label || "the employer's visa record" } : null,
   ].filter(Boolean);
 
-  return { match, info, chips, why: { headline, matched: matched.slice(0, 6), missing: missing.slice(0, 4), lead }, stats };
+  // ⭐ D152 (3) · THE REASON LINE — the best-bets reading's reasons (server: bestBetOf, the one ranking), in D145's quiet
+  // style: "you're eligible · 7 of 7 must-haves · posted 10 hours ago". Each fact ONCE (D152 (7)): the "N ATS match" reason
+  // is dropped (the match is the card's top-right number) and a repeated reason is said once. null when there is none.
+  const reasons = [...new Set((card?.bestBet?.reasons || []).map(String))].filter((r) => !/\bATS match$/i.test(r));
+  const reason = reasons.length
+    ? { eligible: reasons[0] === "you're eligible", rest: reasons[0] === "you're eligible" ? reasons.slice(1) : reasons }
+    : null;
+
+  return { match, info, chips, reason, why: { headline, matched: matched.slice(0, 6), missing: missing.slice(0, 4), lead }, stats };
 }
