@@ -11,7 +11,7 @@
 .trk-counts { display: flex; flex-wrap: wrap; gap: 28px; margin: 24px 0 14px; }
 .trk-counts b { display: block; font-size: calc(30px * var(--type-scale, 1)); font-weight: 500; letter-spacing: -0.03em; color: var(--c-ink); font-variant-numeric: tabular-nums; }
 .trk-counts span { color: var(--c-ink-faint); font-size: calc(13px * var(--type-scale, 1)); }
-.trk-counts [data-accent="true"] b { color: var(--c-accent); }
+.trk-counts [data-accent="true"] b { color: var(--c-accent-ink); }
 
 /* the sketch's .flt — quiet buttons on the card colour; the pressed one raised */
 .trk-filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 14px; }
@@ -58,7 +58,7 @@
 .trk-pos__t span { font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* the sketch's .dot — a 7 px circle in the stage's colour, 8 px before the word; "Needs you" in the accent */
 .trk-status { display: inline-flex; gap: 8px; align-items: center; color: var(--c-ink); font-size: calc(14px * var(--type-scale, 1)); }
-.trk-status[data-status-ring="need"] { color: var(--c-accent); }
+.trk-status[data-status-ring="need"] { color: var(--c-accent-ink); }
 .trk-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--trk-dot, var(--c-ink-faint)); flex-shrink: 0; }
 /* "Not selected" is the sketch's grey dot (--muted), not the replied violet */
 .trk-row[data-stage="rejected"] .trk-dot { background: var(--c-ink-faint); }
@@ -66,7 +66,7 @@
 /* the opened row: the sketch's .det inside the row (.tr.open is #2A2A2A) — .in 18 × 4 × 6 inside the row's 14 × 18 */
 .trk-open > td { padding: 0; background: var(--c-surface-tint); }
 .trk-o { padding: 4px 22px 20px; }
-.trk-o__eyebrow { margin: 0 0 8px; color: var(--c-accent); font-size: calc(14px * var(--type-scale, 1)); }
+.trk-o__eyebrow { margin: 0 0 8px; color: var(--c-accent-ink); font-size: calc(14px * var(--type-scale, 1)); }
 .trk-o__headline {
   margin: 0 0 14px; color: var(--c-ink); font-family: var(--shape-font-ui, var(--font-body));
   font-size: calc(32px * var(--type-scale, 1)); font-weight: 500; line-height: 1.05; letter-spacing: -0.03em;
