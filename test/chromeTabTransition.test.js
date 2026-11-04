@@ -24,7 +24,10 @@ const hook = read("client/src/hooks/useCollapsibleHeight.js");
 const app  = read("client/src/App.jsx");
 
 test("the height change is animated, and the animation is what the chrome is wrapped in", () => {
-  assert.match(app, /const jobsChrome = useCollapsibleHeight\(activeTab === "console"\);/,
+  // ⭐ D152 (1), changed on purpose: Home draws the board's header inside its own right column, so this full-width
+  // wrapper never opens on Home (both /app and /app/jobs are Home). ⚠ A125: delete the wrapper and this hook when
+  // Home merges.
+  assert.match(app, /const jobsChrome = useCollapsibleHeight\(activeTab === "console" && !home\);/,
     "the Jobs chrome is no longer collapsible — switching tabs jumps");
   assert.match(app, /<div ref=\{jobsChrome\.outerRef\} style=\{jobsChrome\.outerStyle\}>/);
   assert.match(app, /<div ref=\{jobsChrome\.innerRef\} style=\{jobsChrome\.innerStyle\}>/);
@@ -118,7 +121,7 @@ test("switching between two NON-Jobs tabs does not animate anything", () => {
   // Y4's requirement 4: "switching between non-Jobs tabs behaves as it does now". The hook's input
   // is `activeTab === "console"`, which is false on both sides of such a switch — and the effect
   // returns early when the value has not changed, so no phase change and no transition.
-  assert.match(app, /useCollapsibleHeight\(activeTab === "console"\)/);
+  assert.match(app, /useCollapsibleHeight\(activeTab === "console" && !home\)/);   // D152 (1): never open on Home
   assert.match(hook, /if \(prevOpen\.current === open\) return undefined;/,
     "the effect no longer short-circuits when `open` did not change");
 });

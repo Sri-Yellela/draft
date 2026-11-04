@@ -408,7 +408,7 @@ test("D35 §4: the VERTICAL ORDER is the sentence, the open panel, the bar, the 
   const pos = (q) => at(chrome, q);
   assert.ok(pos("<BoardTitleRow />") < pos("<BoardHeadlineSlot />") && pos("<BoardHeadlineSlot />") < pos("<BoardBar />"));
   assert.ok(pos("<BoardBar />") < pos("<BoardCounts />") && pos("<BoardCounts />") < pos("<JobsConsole "), "the jobs come after the bar");
-  assert.match(app.slice(at(app, "function BoardTitleRow()"), at(app, "function BoardCounts()")), /<BoardControlIcons \/>[\s\S]*<BoardSortSlot \/>/);
+  assert.match(app.slice(at(app, "function BoardTitleRow("), at(app, "function BoardCounts()")), /<BoardControlIcons \/>[\s\S]*<BoardSortSlot \/>/);
   assert.ok(at(app, "</header>") < at(app, "<main "), "the jobs come after the header");
   const panel = strip(read("client/src/panels/JobsPanel.jsx"));
   assert.doesNotMatch(panel, /<SortPanel\b|<WordPanel\b|<FilterDials\b/, "a panel renders between the bar and the board");
@@ -441,7 +441,7 @@ test("D35 §3 → D40: the CONDENSED BAR — FOUR views with counts, the search,
   assert.ok(rules.some(r => r.selector === '.fh-sortw[aria-expanded="true"]' && r.decls.background === "var(--c-accent)"), "sort open is not filled accent");
   // D147: the bar is the search alone (the views and the sort word moved), and the search has no separate button.
   const app = strip(read("client/src/App.jsx"));
-  const bar = app.slice(at(app, "function BoardBar()"), at(app, "function BoardTitleRow()"));
+  const bar = app.slice(at(app, "function BoardBar()"), at(app, "function BoardTitleRow("));
   assert.match(bar, /<div className="fh-bar" data-board-bar="">\s*<BoardSearchBar \/>\s*<\/div>/);
   assert.doesNotMatch(read("client/src/components/BoardBar.jsx"), /aria-label="Search"/, "a separate Search button is back");
   // ⚠ Phone: the bar becomes two rows, by decision — the search on its own line.

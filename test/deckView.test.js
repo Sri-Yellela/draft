@@ -38,7 +38,9 @@ test("/app lands on Today, and the board keeps /app/jobs", () => {
   // D10: displayed as DAILY DECK; the id and route stay "today".
   assert.match(app, /\{ id: "today",\s+label: "Daily Deck" \}/);
   assert.match(app, /if \(!routeKey\) \{\s*navigate\("\/app\/today", \{ replace:true \}\);/);
-  assert.match(app, /activeTab === "today"\s+&& <DeckView/);
+  // ⭐ D152 (1), changed on purpose: Today is HOME — the deck is Home's left column (test/d152Home.test.js).
+  assert.match(app, /const home = activeTab === "today" \|\| activeTab === "console";/);
+  assert.match(app, /<DeckView canUseAPlusResume=\{canUseAPlusResumeHere\} home\/>/);
 });
 
 test("a brand-new account is a SET-UP state on Today, never an error", () => {

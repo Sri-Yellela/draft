@@ -72,6 +72,8 @@ const FACTS_BOARD = FH_BOARD.map((j, i) => (i ? j : { ...j, workType: "Remote", 
   sponsorship: { level: "says_no", label: "Says no sponsorship", sources: [], notice: "" },
   liveness: { label: "Reposted 3 times" } }));
 const FACTS = { ...FULLHOUSE, "/api/jobs": { ...FULLHOUSE["/api/jobs"], jobs: FACTS_BOARD } };
+// ⭐ D152 · HOME (home-sketch.html): the deck and the board on one screen, fed by both screens' fixtures.
+const HOME = { ...FULLHOUSE, ...DECK };
 const SETTINGS = {
   "/api/apply/auto-settings": { settings: { dailyCap: 10, runTimes: ["09:00", "18:00"], timeZone: "America/New_York", pauseCompanyAfterReply: true,
     filters: {}, profileId: null, agreeToTerms: false, staleReposts: 3, staleOpenDays: 90, showFormBeforeSending: true, onlySponsorRecord: true, perCompanyLimit30d: 2 } },
@@ -128,6 +130,9 @@ const TRK = (() => {
 // and what to press so the app shows the sketch's state.
 const SKETCH_CONTROLS = ".ctl, .lay-ctl, .switch, .note, #note";
 const SCREENS = {
+  // ⭐ D152 · HOME. The sketch opens its dock for 1.5 s on load — shot after it has slid away.
+  home: { sketch: "home-sketch.html", app: "/app", fixtures: HOME, ready: "[data-home-board]",
+    sketchPrep: async () => { await sleep(1700); } },
   deck: { sketch: "declutter-v7.html", app: "/app", fixtures: DECK, ready: "[data-deck-face]" },
   fullhouse: { sketch: "fullhouse-declutter.html", app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-fh-title]",
     appPrep: async (page) => {   // the sketch shows the first posting open beside the list

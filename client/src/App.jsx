@@ -315,11 +315,12 @@ function BoardBar() {
 }
 
 // ⭐ D147 · THE TITLE ROW — "Full House" and the ONE Sort / view control, with its panel beneath it.
-function BoardTitleRow() {
+// ⛔ D152 (1): on Home there is no page title — the row keeps only the Sort / view control.
+function BoardTitleRow({ home = false }) {
   return (
     <>
-      <div className="fh-title" data-fh-title="">
-        <p className="fh-title__h">Full House</p>
+      <div className={home ? "fh-title fh-title--home" : "fh-title"} data-fh-title="">
+        {!home && <p className="fh-title__h">Full House</p>}
         <BoardControlIcons />
       </div>
       <BoardSortSlot />
@@ -406,7 +407,11 @@ function AppDashboard({ authUser, setAuthUser }) {
   // tab", so switching between two NON-Jobs tabs never animates anything — the wrapper is already 0
   // on both sides, which is Y4's "switching between non-Jobs tabs behaves as it does now".
   // Declared after activeTab, which it reads.
-  const jobsChrome = useCollapsibleHeight(activeTab === "console");
+  // ⭐ D152 (1) · HOME: the Daily Deck and Full House are ONE screen — /app and /app/jobs both draw it (home-sketch.html):
+  // the deck on the left, the sentence, search, counts and every job on the right. Home draws the board's header inside
+  // its own right column, so the old full-width header wrapper above <main> stays closed.
+  const home = activeTab === "today" || activeTab === "console";
+  const jobsChrome = useCollapsibleHeight(activeTab === "console" && !home);
 
   // The console is handled by its own branch above (it has a legacy-route alias and a refresh key),
   // so it is excluded here. The three extras are reachable from the profile menu rather than the
@@ -619,26 +624,31 @@ function AppDashboard({ authUser, setAuthUser }) {
           {/* D149: the deck (like Full House) starts right under the mark — its card sits at the sketch's 90 px. */}
           {/* D149 (11-03): Draft House too — its own top padding puts its title at tracker-options.html's 84 px. */}
           <main style={{ flex:1, paddingTop: activeTab === "console" || activeTab === "today" || activeTab === "auto-apply" ? 0 : 24 }}>
-            {/* ⭐ D49 · THE BOARD'S BAR STICKS — through the one StickyBar module (the posting panel's
-                action bar is its second consumer, D48). It lives HERE, at the top of <main>, and not
-                in the header above: sticky only works inside its parent's box, and the header ended
-                right under the bar, so the bar scrolled away with the page (measured 202 → −698 px).
-                The order is unchanged: the sentence, its panel, then the bar, the sort panel, the jobs. */}
-            {activeTab === "console" && (
-              <>
-                <StickyBar top="var(--app-chrome-height, 74px)" className="fh fh--bar-row" data-board-sticky="">
-                  <BoardBar />
-                </StickyBar>
-                <BoardCounts />
-                {/* D12: until the extension is connected, say where jobs from elsewhere come from. */}
-                <ExtensionFirstRunPrompt />
-              </>
+            {/* ⭐ D152 (1) · HOME — one grid, laid out by CSS (FullHouse.css .home): the deck's column is sticky in its
+                own track and the board's column takes the rest; on a phone one column, the deck first. No page titles. */}
+            {home && (
+              <div className="home" data-home="">
+                <section className="home__deck" aria-label="Today's picks" data-home-deck="">
+                  <DeckView canUseAPlusResume={canUseAPlusResumeHere} home/>
+                </section>
+                <section className="home__board" aria-label="Every job" data-home-board="">
+                  <header className="fh" data-fh-d147="">
+                    <BoardTitleRow home />
+                    <BoardHeadlineSlot />
+                  </header>
+                  <StickyBar top="var(--app-chrome-height, 74px)" className="fh fh--bar-row" data-board-sticky="">
+                    <BoardBar />
+                  </StickyBar>
+                  <BoardCounts />
+                  <ExtensionFirstRunPrompt />
+                  <JobsConsole user={authUser} onUserChange={setAuthUser}
+                    refreshKey={jobBoardRefreshKey} isActive={home}/>
+                </section>
+              </div>
             )}
-            {activeTab === "console" && (
-              <JobsConsole user={authUser} onUserChange={setAuthUser}
-                refreshKey={jobBoardRefreshKey} isActive={activeTab === "console"}/>
-            )}
-            {activeTab === "today"        && <DeckView canUseAPlusResume={canUseAPlusResumeHere}/>}
+            {/* ⭐ D49 · THE BOARD'S BAR STICKS (StickyBar, above in Home's board column): sticky only works inside its
+                parent's box, so it sits in the column with the jobs, not in the header. D12's ExtensionFirstRunPrompt
+                says where jobs from elsewhere come from until the extension is connected. */}
             {activeTab === "auto-apply"   && <AutoApplyPanel user={authUser}/>}
             {activeTab === "job" && jobRoute && <JobWorkspacePanel {...(jobByJobId ? { jobId: decodeURIComponent(jobRoute[1]) } : { applicationId: jobRoute[1] })}/>}
             {activeTab === "integrations" && <IntegrationsPanel/>}
