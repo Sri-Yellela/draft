@@ -18,7 +18,7 @@ import DecisionToast from "../components/DecisionToast.jsx";
 import { useTheme } from "../styles/theme.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import JobBubble, { JobBubbleRows, JobBubbleSkeleton, JobBoardColumns } from "../components/JobBubble.jsx";
-import { viewKey, viewCacheGet, viewCacheSet, otherViewQueries } from "../lib/boardViewCache.js";
+import { viewKey, viewCacheGet, viewCacheSet } from "../lib/boardViewCache.js";
 import { SavedEmptyState, useExtensionStatus } from "../components/ExtensionPrompt.jsx";
 import { EXTENSION_PAGE, EXTENSION_STORE_URL } from "../../../shared/extension.js";
 import JobDetailPanel from "../components/JobDetailPanel.jsx";
@@ -1330,7 +1330,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const viewCacheRef = useRef(new Map());   // D45 · stale-while-revalidate, per view (lib/boardViewCache.js)
   const requestedKeyRef = useRef(null);
   const inFlightRef = useRef(null);
-  const prefetchedRef = useRef(new Set());
   const [categories,  setCategories]  = useState([]);
   const [resumeText,  setResumeText]  = useState("");
   // ⛔ D156 (6) · "loading" | "ready" | "error" for the active profile's base-résumé read. "Sorting by fit needs this
@@ -2662,21 +2661,10 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       if (!mergeMode) {
         viewCacheSet(viewCacheRef.current, key, { jobs: incoming, total: d.total || 0, totalPages: d.totalPages || 0 });
         setAnsweredKey(key);
-        // D45 · prefetch the other three views on idle, once per filter set, so a first switch is warm too.
-        if (page === 1 && !prefetchedRef.current.has(viewKey(otherViewQueries(qs).base))) {
-          prefetchedRef.current.add(viewKey(otherViewQueries(qs).base));
-          const idle = typeof requestIdleCallback === "function" ? requestIdleCallback : (fn) => setTimeout(fn, 400);
-          idle(() => {
-            for (const q of otherViewQueries(qs).views) {
-              const k = `${requestProfileKey}|${viewKey(q)}`;
-              if (viewCacheGet(viewCacheRef.current, k)) continue;
-              api(`/api/jobs?${q}`).then(r => {
-                if (requestProfileKey !== activeProfileKeyRef.current) return;
-                viewCacheSet(viewCacheRef.current, k, { jobs: (r.jobs || []).map(normalizeApiJob), total: r.total || 0, totalPages: r.totalPages || 0 });
-              }).catch(() => {});
-            }
-          });
-        }
+        // ⛔ A126 (4) (hotfix 11-05) · D45's idle prefetch of the other three views (★ · /d · +) is OFF. It was cheap while
+        // the board was its own tab; since D152 / D156 put the board on Home under the deck, it made every Home visit four
+        // whole-board reads (All 14 s, ★ 2.4 s, /d 7.6 s, + 18 s on the 18k copy; 12–35 s each on production 11-05 17:39Z)
+        // where the 11-03 Home made none. A view not seen yet still shows skeletons until it answers (D45), never empty.
       }
       // A73 · this request answered, so a board error from an earlier one no longer describes the screen.
       setScrapeError(prev => (typeof prev === "string" && prev.startsWith(BOARD_ERROR_PREFIX) ? null : prev));
