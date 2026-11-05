@@ -1270,6 +1270,16 @@ function buildAtsPayload(job, artifact = null) {
 // A126 · the posting-by-id reads in flight / just answered, shared across the deck's repeated asks (see onOpen).
 const byIdReads = new Map();
 
+// ⛔ A126 (8) (hotfix 11-05) · THE BOARD'S VIEW CACHE OUTLIVES THE PANEL. It was a useRef inside JobsPanel, so leaving Home
+// (Atlas, Profile, the tracker) unmounted the panel and threw the cache away: every return showed skeletons and re-asked
+// for the board (owner: "jobs are still rerendering on every nav"). At module scope it lives for the tab; a return
+// renders the last answer at once (D45's stale-while-revalidate) and refreshes behind it. Keys carry the profile key.
+const BOARD_VIEW_CACHE = new Map();
+// A126 (8) · the view last ANSWERED on screen, for the first frame after a return: a remount used to wait for the
+// profile list (/api/domain-profiles) before it could read the cache — measured 1.4 s of skeletons on the copy. The new
+// mount starts from this (cards, totals, being-matched line) and the refetch replaces it behind; a different profile's
+// board never starts from it (applyProfileSnapshot checks the profile key).
+let BOARD_LAST = null;   // { key, profileKey, jobs, total, totalPages, beingMatched }
 export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive = true }) {
   const monetisationEnabled = useMonetisationEnabled();
   const { theme } = useTheme();
@@ -1292,7 +1302,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const sessionDislikedRef = useRef(new Map()); // jobId ? job object
 
   // Job data
-  const [jobs,        setJobs]        = useState([]);
+  const [jobs,        setJobs]        = useState(() => BOARD_LAST?.jobs || []);
   const decideJobRef = useRef(null);
   // ⭐ D156 (1c): who opened the posting — "deck" (the front card expanding, or its match) or "board" (a bubble, a deep
   // link). On Home the posting is drawn on the deck either way; a deck card's Pass · Save · Draft are the deck's to make.
@@ -1300,8 +1310,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const postOriginRef = useRef("board");
   postOriginRef.current = postOrigin;
   const decidePostingRef = useRef(null);
-  const [totalJobs,   setTotalJobs]   = useState(0);
-  const [totalPages,  setTotalPages]  = useState(0);
+  const [totalJobs,   setTotalJobs]   = useState(() => BOARD_LAST?.total || 0);
+  const [totalPages,  setTotalPages]  = useState(() => BOARD_LAST?.totalPages || 0);
   const [currentPage, setCurrentPage] = useState(1);
   // Profile→Board Bridge disclosure. `curation` is the server's { total, demoted, rankedKeys }
   // block, present ONLY when the bridge actually demoted something; `curateOff` is the user's
@@ -1318,6 +1328,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // Richer than `boardReason`, which is the older single-string field and is kept for the branches
   // already reading it. Null whenever the board has rows.
   const [emptyReason, setEmptyReason] = useState(null);
+  // A126 (7): postings this view would show once matched to the résumé (server: the match queue is scoring them).
+  const [beingMatched, setBeingMatched] = useState(() => BOARD_LAST?.beingMatched || 0);
 
   // UI state
   const [scraping,    setScraping]    = useState(false);  // a live refresh is running
@@ -1325,10 +1337,10 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // ⛔ D45 · LOADING IS NOT EMPTY. `requestedKey` is the view the board last ASKED for, `answeredKey`
   // the one it has an answer for (from the network or the per-view cache). Until they match the
   // board shows skeletons — never the empty state, and never the previous view's cards.
-  const [requestedKey, setRequestedKey] = useState(null);
-  const [answeredKey,  setAnsweredKey]  = useState(null);
-  const viewCacheRef = useRef(new Map());   // D45 · stale-while-revalidate, per view (lib/boardViewCache.js)
-  const requestedKeyRef = useRef(null);
+  const [requestedKey, setRequestedKey] = useState(() => BOARD_LAST?.key ?? null);
+  const [answeredKey,  setAnsweredKey]  = useState(() => BOARD_LAST?.key ?? null);
+  const viewCacheRef = useRef(BOARD_VIEW_CACHE);   // D45 · stale-while-revalidate, per view (lib/boardViewCache.js)
+  const requestedKeyRef = useRef(BOARD_LAST?.key ?? null);
   const inFlightRef = useRef(null);
   const [categories,  setCategories]  = useState([]);
   const [resumeText,  setResumeText]  = useState("");
@@ -1960,14 +1972,19 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
 
   latestSnapshotRef.current = makeProfileSnapshot();
 
-  const applyProfileSnapshot = useCallback((snapshot) => {
+  const applyProfileSnapshot = useCallback((snapshot, profileKey = null) => {
     // Do NOT restore stale job rows from cache — they cause the "jobs appear then vanish"
     // flicker when the fresh fetch arrives with a filtered subset. Filter settings and
     // pagination state are still restored so the board refetches with the right params.
-    setJobs([]);
+    // ⛔ A126 (8): EXCEPT the cards this tab last showed for THIS profile (BOARD_LAST) — a return to Home keeps them on
+    // screen while the refetch runs; another profile's board still starts empty.
+    const keepShown = BOARD_LAST && profileKey != null && String(BOARD_LAST.profileKey) === String(profileKey);
+    if (!keepShown) {
+      setJobs([]);
+      setTotalJobs(snapshot.totalJobs || 0);
+      setTotalPages(snapshot.totalPages || 0);
+    }
     setPendingJobs([]);
-    setTotalJobs(snapshot.totalJobs || 0);
-    setTotalPages(snapshot.totalPages || 0);
     setCurrentPage(snapshot.currentPage || 1);
     // D40: a view named in the URL (the extension page's "+ view" link) is honoured.
     // ⛔ A126 (5) (hotfix 11-05) · the CACHED view is NOT restored: Home opens on ALL. Since D152 / D156 put the board on
@@ -2166,12 +2183,12 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     const cached = getProfileCache?.(nextKey);
     if (cached) {
       nextFetchPageRef.current = cached.currentPage || 1;
-      applyProfileSnapshot(cached);
+      applyProfileSnapshot(cached, nextKey);
       setScrapeError("");
     } else {
       const cachedUi = readProfileUiCache(nextKey);
       nextFetchPageRef.current = cachedUi?.currentPage || 1;
-      applyProfileSnapshot({ ...(cachedUi || {}), jobs: [], pendingJobs: [], totalJobs: 0, totalPages: 0, selectedJob: null });
+      applyProfileSnapshot({ ...(cachedUi || {}), jobs: [], pendingJobs: [], totalJobs: 0, totalPages: 0, selectedJob: null }, nextKey);
       setSandbox(null);
       setSandboxOpen(false);
       setScrapeError("");
@@ -2669,6 +2686,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       if (!mergeMode) {
         viewCacheSet(viewCacheRef.current, key, { jobs: incoming, total: d.total || 0, totalPages: d.totalPages || 0 });
         setAnsweredKey(key);
+        BOARD_LAST = { key, profileKey: requestProfileKey, jobs: incoming, total: d.total || 0, totalPages: d.totalPages || 0,
+                       beingMatched: Number(d.beingMatched) || 0 };
         // ⛔ A126 (4) (hotfix 11-05) · D45's idle prefetch of the other three views (★ · /d · +) is OFF. It was cheap while
         // the board was its own tab; since D152 / D156 put the board on Home under the deck, it made every Home visit four
         // whole-board reads (All 14 s, ★ 2.4 s, /d 7.6 s, + 18 s on the 18k copy; 12–35 s each on production 11-05 17:39Z)
@@ -2681,6 +2700,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       setCuration(d.curation || null);
       setBoardReason(d.reason || null);
       setEmptyReason(d.emptyReason || null);
+      if (!mergeMode) setBeingMatched(Number(d.beingMatched) || 0);
       console.log(`[board] profile:${requestProfileKey} sort:${buildParams(page).match(/sort=([^&]+)/)?.[1]||"?"} page:${page} total:${d.total||0} returned:${incoming.length} source:${mergeMode?"merge":"replace"}`);
       setProfileCache?.(requestProfileKey, makeProfileSnapshot({
         jobs: mergeMode
@@ -2963,7 +2983,15 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   }, [localSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Multi-session sync — reflect changes from other tabs/devices without full reload
+  const boardScoredTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(boardScoredTimerRef.current), []);
   useSyncEvents({
+    // ⭐ A126 (7): the match queue scored a chunk of this board's held-back postings — refetch the view on screen so they
+    // land in the current sort. Debounced (one refresh per 4 s at most); page 1 only, so a person paging is not moved.
+    board_scored: () => {
+      clearTimeout(boardScoredTimerRef.current);
+      boardScoredTimerRef.current = setTimeout(() => { if (currentPage <= 1) fetchJobsRef.current?.(1).catch(() => {}); }, 4000);
+    },
     job_flag: ({ jobId, starred, disliked }) => {
       setJobs(prev => prev.map(j =>
         j.jobId === jobId
@@ -4105,6 +4133,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               savedTab={boardTab === "saved"}
               importedTab={boardTab === "imported"}
               boardLoading={boardLoading}
+              beingMatched={beingMatched}
               cardTier={1}
             />
             {/* The mobile "editor" pane is gone: the PDF sandbox is a popup panel now and renders
@@ -4191,6 +4220,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               savedTab={boardTab === "saved"}
               importedTab={boardTab === "imported"}
               boardLoading={boardLoading}
+              beingMatched={beingMatched}
               cardTier={effectiveTier}
               containerRef={jobsPanelElementRef}
             />
@@ -4345,7 +4375,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       searchActive = false, profileName = null,
                       curation = null, curateOff = false, onToggleCurate, boardReason = null,
                       emptyReason = null, canRankByFit = true, onAddResume, resumeReadState = "ready", onRetryResume,
-                      savedTab = false, importedTab = false, boardLoading = false,
+                      savedTab = false, importedTab = false, boardLoading = false, beingMatched = 0,
                       cardTier = 1, containerRef }) {
   // ⛔ D45: never while the current view is still loading — "nothing here" when the truth is "not here yet"
   // is silence reported as success.
@@ -4393,6 +4423,12 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
         failed={resumeReadState === "error"} onRetry={onRetryResume} onAddResume={onAddResume}/>
       {/* ⭐ D40: the + view's head — Import jobs and the extension page; the list below is ALL's own cards. */}
       {importedTab && <ImportedHeader theme={theme}/>}
+      {/* A126 (7): the postings held back until they are matched — said, never silently missing. */}
+      {!boardLoading && beingMatched > 0 && (
+        <p data-being-matched="" style={{ margin:"4px 2px 10px", fontSize:12.5, color:theme.textMuted }}>
+          {beingMatched.toLocaleString()} more {beingMatched === 1 ? "posting is" : "postings are"} being matched to your résumé — they appear here as they're scored.
+        </p>
+      )}
       {boardLoading ? (
         // D45: the card's own geometry from the first frame, until this view answers.
         <JobBubbleRows jobs={SKELETON_CARDS}>{(_, i) => <JobBubbleSkeleton key={i} />}</JobBubbleRows>
