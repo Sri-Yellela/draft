@@ -1969,8 +1969,12 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setTotalJobs(snapshot.totalJobs || 0);
     setTotalPages(snapshot.totalPages || 0);
     setCurrentPage(snapshot.currentPage || 1);
-    // D40: a view named in the URL (the extension page's "+ view" link) outranks the cached one.
-    setBoardTab(viewFromUrl() || (["linkedin", "linkedin_saved"].includes(snapshot.boardTab) ? "saved" : (snapshot.boardTab || "all")));
+    // D40: a view named in the URL (the extension page's "+ view" link) is honoured.
+    // ⛔ A126 (5) (hotfix 11-05) · the CACHED view is NOT restored: Home opens on ALL. Since D152 / D156 put the board on
+    // Home under the deck, a remembered ★ / /d / + silently decided what Home showed — the owner's Home read "1 imported
+    // job, no other jobs" for days (production 11-05: every visit logged total 12177 for ALL, then total 1 for the restored
+    // + view, which landed last). Filters, search and sort are still restored; the view is the person's click each time.
+    setBoardTab(viewFromUrl() || "all");
     setLocalSearch(snapshot.localSearch || "");
     setSortBy(sortFromCachedSnapshot(snapshot));
     // Restore every committed filter through the single writer, and re-stage the drawer to match, so
