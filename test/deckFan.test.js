@@ -122,7 +122,9 @@ test("⛔ layering by NAMED tier: --z-bg < --z-fan < --z-content < --z-nav, and 
 });
 
 test("⛔ scroll capture is paid back: the keyboard does everything the wheel does, and the ends release the page", () => {
-  const wheel = deckSrc.slice(at(deckSrc, "const onWheel = (e) =>", 0, "wheel handler"), at(deckSrc, 'el.addEventListener("wheel"', 0, "wheel listener"));
+  // ⭐ D156 (1c): the deck's slot has its own wheel listener above this one — the end is searched after the start.
+  const wheelAt = at(deckSrc, "const onWheel = (e) =>", 0, "wheel handler");
+  const wheel = deckSrc.slice(wheelAt, at(deckSrc, 'el.addEventListener("wheel", onWheel', wheelAt, "wheel listener"));
   // ⭐ D145 (changed on purpose): over the FRONT card a vertical flick opens / folds "Why this job" first (its own capture,
   // test/d145DeckCardNav.test.js); every OTHER capture — turning the fan — still waits until a rotation is possible.
   const fan = wheel.slice(at(wheel, "if (whyRef.current) return;"));

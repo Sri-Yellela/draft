@@ -78,6 +78,11 @@ const FACTS = { ...FULLHOUSE, "/api/jobs": { ...FULLHOUSE["/api/jobs"], jobs: FA
 // 14 postings, so the page scrolls (the in-place posting's Close must return the reader to where they were).
 const HOME_BOARD = Array.from({ length: 14 }, (_, i) => ({ ...FH_BOARD[i % FH_BOARD.length], jobId: `h${i}`, id: `h${i}` }));
 const HOME = { ...FULLHOUSE, ...DECK, "/api/jobs": { ...FULLHOUSE["/api/jobs"], jobs: HOME_BOARD } };
+// ⭐ D156: the same Home, plus the import route's answer (a synthetic posting) for "Import a job".
+const HOME156 = { ...HOME, "/api/import/job": { job: { id: "imp1", jobId: "imp1", title: "Data Engineer", company: "Acme" },
+  capture: { message: "Data Engineer at Acme is on your board — under Imported." } },
+  // ⭐ D156 (1c): the deck's cards are not on the board's first page, so opening one into its long post fetches it by id.
+  ...Object.fromEntries(FH_BOARD.slice(0, 3).map(j => [`/api/jobs/by-id/${j.jobId}`, { job: j }])) };
 const SETTINGS = {
   "/api/apply/auto-settings": { settings: { dailyCap: 10, runTimes: ["09:00", "18:00"], timeZone: "America/New_York", pauseCompanyAfterReply: true,
     filters: {}, profileId: null, agreeToTerms: false, staleReposts: 3, staleOpenDays: 90, showFormBeforeSending: true, onlySponsorRecord: true, perCompanyLimit30d: 2 } },
@@ -151,6 +156,31 @@ const SCREENS = {
       await page.evaluate(() => document.querySelector("#mbox")?.click()); await sleep(600); },
     appPrep: async (page) => { await sleep(1700); await page.evaluate(() => document.querySelector(".jb__title")?.click()); await sleep(900);
       await page.evaluate(() => document.querySelector("[data-posting-match] button, [data-posting-match] [role=button]")?.click()); await sleep(700); } },
+  // ⭐ D156 · Home revised — measured, not compared (`--styles home156`), at 1440 (the landscape card), 1280 and 390.
+  home156: { sketch: null, app: "/app", fixtures: HOME156, ready: "[data-home-board]",
+    sizes: { wide: [1440, 900], desktop: [1280, 800], phone: [390, 844] },
+    shoot: true,
+    appPrep: async () => { await sleep(1200); },
+    // ⭐ D156 (1c): a swipe on the card (a real pointer drag, which framer's drag reads) DECIDES, as the deck always has —
+    // left passes (the PASS stamp shows on the way); the next card comes to the front.
+    nodeProbe: async (page) => {
+      const r = await page.evaluate(() => { const a = document.querySelector('[data-fan-offset="0"] article')?.getBoundingClientRect(); return a && { x: a.left + a.width / 2, y: a.top + a.height / 2 }; });
+      // the deck's own count line ("2 of 3 today"): an exiting card can still carry offset 0 while it leaves
+      const front = () => page.evaluate(() => document.querySelector("[data-deck-count]")?.textContent || null);
+      if (!r) return { swipe: null };
+      const before = await front();
+      const saidBefore = await page.evaluate(() => document.querySelector('[aria-live="polite"]')?.textContent || "");
+      await page.mouse.move(r.x, r.y); await page.mouse.down();
+      let stamp = 0;
+      for (let i = 1; i <= 12; i++) {
+        await page.mouse.move(r.x - i * 16, r.y); await sleep(16);
+        stamp = Math.max(stamp, await page.evaluate(() => Math.max(0, ...[...document.querySelectorAll('[data-deck-stamp="pass"]')].map(e => Number(getComputedStyle(e).opacity) || 0))));
+      }
+      await page.mouse.up(); await sleep(900);
+      const after = await front();
+      const said = await page.evaluate(() => document.querySelector('[aria-live="polite"]')?.textContent || "");
+      return { swipe: { before, after, passed: said !== saidBefore && /^Passed /.test(said), stampShown: stamp > 0.5 } };
+    } },
   deck: { sketch: "declutter-v7.html", app: "/app", fixtures: DECK, ready: "[data-deck-face]" },
   fullhouse: { sketch: "fullhouse-declutter.html", app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-fh-title]",
     appPrep: async (page) => {   // the sketch shows the first posting open beside the list
@@ -455,17 +485,18 @@ const STYLE_PROBES = {
       coversDeck: overlap(d, deck), coversSentence: overlap(d, sentence), sortCoversSentence: sortOver() };
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     await wait(600);
-    // ⭐ D152 (6) / D153 (1): a posting opens IN PLACE of the list — the list's node survives, nothing overlaps, and Close
-    // returns the reader to where they were in the list.
+    // ⭐ D156 (1c) (was D152 (6) / D153 (1)'s posting in place of the list): a bubble's posting opens ON THE DECK, in the
+    // front card's place — the list stays, its node survives, nothing covers the board, and folding returns the reader.
     const listNode = q(".jb-board__list");
     window.scrollTo(0, 120); await wait(150);
     const yBefore = Math.round(window.scrollY);
     [...document.querySelectorAll(".jb__title")].find(e => e.textContent.trim())?.click();
     await wait(900);
-    const post = box(q("[data-board-post]"));
-    const opened = { post, listOut: q(".jb-board__list")?.getAttribute("data-out"), listInert: q(".jb-board__list")?.hasAttribute("inert"),
-      coversDeck: overlap(post, box(q("[data-home-deck]"))), coversSort: overlap(post, box(q(".fh-title--home"))),
-      inBoard: !!post && post.left >= box(q("[data-home-board]")).left - 1 && post.right <= box(q("[data-home-board]")).right + 1 };
+    const slotOpen = q('[data-deck-post-slot][data-open="true"] [data-jd-panel]');
+    const post = box(slotOpen ? q("[data-deck-post-slot]") : q('[data-panel-id="jd"]'));
+    const opened = { post, onDeck: !!slotOpen, listShown: (q(".jb-board__list")?.getBoundingClientRect().height ?? 0) > 0,
+      boardPost: !!q("[data-board-post]"), coversBoard: !!slotOpen && overlap(post, box(q("[data-home-board]"))),
+      inDeck: !!slotOpen && !!post && post.left >= box(q("[data-home-deck]")).left - 1 && post.right <= box(q("[data-home-deck]")).right + 1 };
     // ⭐ D152 (8): the match box opens the match IN the posting, under the facts; again folds it. No overlay, no blur.
     const mbox = q("[data-posting-match] button") || q("[data-posting-match] [role=button]") || q("[data-posting-match] *");
     mbox?.click(); await wait(600);
@@ -478,12 +509,12 @@ const STYLE_PROBES = {
     Object.assign(match, { folded: row?.getAttribute("data-open"), foldedHeight: row ? Math.round(row.getBoundingClientRect().height) : null,
       foldedInert: row?.hasAttribute("inert") ?? null });
     opened.match = match;
-    const closeBtn = q('[data-board-post] .pp__x') || q('.pp__x');   // in place on a computer; the overlay on a phone
+    const closeBtn = q('[data-deck-post-slot] .pp__x') || q('.pp__x');   // on the deck on a computer; the overlay on a phone
     if (closeBtn) closeBtn.click(); else document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     await wait(700);
 
-    const closed = { sameListNode: q(".jb-board__list") === listNode, post: !!q("[data-board-post]"), yBefore, yAfter: Math.round(window.scrollY),
-      listOut: q(".jb-board__list")?.getAttribute("data-out") };
+    const closed = { sameListNode: q(".jb-board__list") === listNode, post: !!q('[data-deck-post-slot][data-open="true"]') || !!q('[data-panel-id="jd"]'),
+      yBefore, yAfter: Math.round(window.scrollY) };
     window.scrollTo(0, 0);
     return {
       opened, closed,
@@ -495,6 +526,234 @@ const STYLE_PROBES = {
       handle: visible(q("[data-nav-handle]")),
       rest, out, afterEsc: { dock: box(dock), open: document.documentElement.getAttribute("data-dock-open") },
     };
+  },
+  // ⭐ D156 · HOME, REVISED (owner 11-05) — measured at 1440 (the landscape card), 1280 and 390: the card's fixed box and that
+  // nothing in it scrolls; its stats; the buttons never over it; the deck and the list never overlapping at any scroll; the
+  // flip by ‹ ›, the keys, the wheel (one card per gesture); the dock's rail of four 30 px icons, the house and the globe in
+  // the accent, /d, the picture or initials, expanding on hover / focus and pushing the page; All jobs · Starred · Imported
+  // with counts; Import a job inline; the sort icon in the search field; the D1 bubble growth.
+  home156: async () => {
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const q = (s, root = document) => root.querySelector(s);
+    const qa = (s, root = document) => [...root.querySelectorAll(s)];
+    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), width: Math.round(r.width), height: Math.round(r.height) }; };
+    const overlap = (a, b) => !!a && !!b && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+    const hOverlap = (a, b) => !!a && !!b && a.left < b.right - 1 && b.left < a.right - 1;
+    const rgb = (v) => { const d = document.createElement("i"); d.style.color = v; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; };
+    const accent = rgb(getComputedStyle(document.documentElement).getPropertyValue("--c-accent").trim());
+    const out = { vw: window.innerWidth };
+    await wait(600);
+
+    // ── the card
+    const front = () => q('[data-fan-offset="0"] article');
+    const article = front();
+    const face = q("[data-deck-face]", article);
+    const scrollers = article ? qa("*", article).filter(e => { const cs = getComputedStyle(e); return /(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 1; }).length : -1;
+    const title = q("[data-deck-face] h2", article);
+    const tcs = title && getComputedStyle(title);
+    const statEls = qa("[data-deck-face] [data-deck-stat]", article);
+    out.card = {
+      box: box(article), orientation: face?.getAttribute("data-deck-home-face") || null,
+      faceOverflows: !!face && face.scrollHeight > face.clientHeight + 1, articleOverflowY: article && getComputedStyle(article).overflowY,
+      scrollers, titleClamp: tcs && tcs.webkitLineClamp, titleLines: title ? Math.round(title.getBoundingClientRect().height / parseFloat(tcs.lineHeight)) : null,
+      stats: statEls.map(e => ({ key: e.getAttribute("data-deck-stat"), value: q("dd", e)?.textContent, label: q("dt", e)?.textContent,
+        valueSize: getComputedStyle(q("dd", e)).fontSize, labelSize: getComputedStyle(q("dt", e)).fontSize, inside: (() => { const b = box(e), a = box(article); return b.top >= a.top && b.bottom <= a.bottom && b.left >= a.left && b.right <= a.right; })() })),
+      reason: !!q("[data-deck-reason]"), why: !!q("[data-deck-why-button]"), openPosting: q("[data-deck-open-posting]", article)?.textContent?.trim() || null,
+      openInside: (() => { const b = box(q("[data-deck-open-posting]", article)), a = box(article); return !!b && b.bottom <= a.bottom; })(),
+    };
+    // grow attempt: a wheel over the card must never lengthen it (and the page must not scroll under it)
+    const h0 = article?.getBoundingClientRect().height, y0 = window.scrollY;
+
+    // ── the buttons and the fan, at rest and scrolled
+    const acts = () => box(q("[data-deck-actions]"));
+    out.buttons = { rest: { acts: acts(), card: box(article), over: overlap(acts(), box(article)) }, position: getComputedStyle(q("[data-deck-actions]")).position };
+    const shown = () => qa("[data-fan-offset]").filter(e => Number(e.getAttribute("data-fan-offset")) > 0)
+      .map(e => q("[data-fan-position]", e)).filter(e => Number(getComputedStyle(e).opacity) > 0).map(box);
+    out.fan = { backs: shown(), coverButtons: shown().some(b => overlap(b, acts())), deckCol: box(q("[data-home-deck]")),
+      outside: shown().some(b => b.right > box(q("[data-home-deck]")).right + 1) };
+
+    // ── the deck and the list never overlap, at any scroll position
+    const scrolls = [];
+    for (const y of [0, 200, 500, 900, 1400]) {
+      window.scrollTo(0, y); await wait(120);
+      const deck = box(q("[data-home-deck]")), list = box(q(".jb-board__list")), bar = box(q("[data-board-sticky]"));
+      const deckInner = box(q("[data-deck-home]"));
+      scrolls.push({ y: Math.round(window.scrollY), deckVsList: overlap(deckInner, list), deckColVsList: hOverlap(deck, list) && overlap(deck, list),
+        deckVsBar: overlap(deckInner, bar), buttonsOverCard: overlap(acts(), box(article)) });
+    }
+    window.scrollTo(0, 0); await wait(150);
+    out.scrolls = scrolls;
+
+    // ── ⭐ D156 (1c) the turn, AS THE DECK ALWAYS HAD IT: the wheel accumulates to 60 for one card and settles 140 ms (one
+    // flick, one card); J / K and ‹ › do the same. (← → decide — not pressed here.)
+    const idx = () => (q("[data-deck-count]")?.textContent.match(/^(\d+) of/) || [])[1] * 1;
+    const stage = q("[data-deck-stage]");
+    const wheel = (el, dy, dx = 0) => { const r = el.getBoundingClientRect(); el.dispatchEvent(new WheelEvent("wheel", { deltaY: dy, deltaX: dx, deltaMode: 0, bubbles: true, cancelable: true, clientX: r.left + 20, clientY: r.top + 20 })); };
+    const flip = { start: idx() };
+    wheel(stage, 30); await wait(20); flip.afterHalfFlick = idx();
+    wheel(stage, 30); await wait(20); flip.afterOneFlick = idx();
+    wheel(stage, 60); await wait(20); flip.duringSettle = idx();
+    await wait(200); wheel(stage, 60); await wait(60); flip.afterSecondFlick = idx();
+    await wait(200); wheel(stage, 0, -60); await wait(60); flip.afterSidewaysBack = idx();
+    flip.pageScrolledByWheel = Math.round(window.scrollY - y0);
+    flip.cardHeightAfterWheel = Math.round(front()?.getBoundingClientRect().height);
+    flip.cardHeightBefore = Math.round(h0);
+    document.body.focus();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", bubbles: true })); await wait(80); flip.afterK = idx();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "j", bubbles: true })); await wait(80); flip.afterJ = idx();
+    q('[data-deck-flip="next"]')?.click(); await wait(80); flip.afterNextButton = idx();
+    q('[data-deck-flip="prev"]')?.click(); await wait(80); flip.afterPrevButton = idx();
+    flip.prevKeys = q('[data-deck-flip="prev"]')?.getAttribute("aria-keyshortcuts") || null;
+    const tf = q('[data-fan-offset="0"] [data-flip]');
+    flip.flipTransition = tf ? tf.style.transition : null;   // "none" under reduced motion — the source carries 520 ms
+    out.flip = flip;
+    while (idx() > 1) { q('[data-deck-flip="prev"]')?.click(); await wait(60); }
+
+    // ── ⭐ D156 (1c) the card BECOMES THE LONG POST: a scroll down on the front card opens the posting in the deck's slot
+    // (the fan put away, the column no longer sticky); scroll up at its top, Esc or "Fold it back" folds it; Enter and
+    // "Open the posting" open it too; a bubble's posting opens on the deck as well, and the list beside it stays.
+    const slot = () => q("[data-deck-post-slot]");
+    const slotOpen = () => slot()?.getAttribute("data-open") === "true" && !!q("[data-deck-post-slot] [data-jd-panel]");
+    const waitFor = async (fn, ms = 2500) => { const t0 = performance.now(); while (performance.now() - t0 < ms) { if (fn()) return true; await wait(50); } return !!fn(); };
+    const frontTitle = () => q('[data-fan-offset="0"] [data-deck-title-line]')?.textContent || null;
+    const post = { title: frontTitle() };
+    if (window.innerWidth <= 1000) {
+      // a phone: the posting is the full-screen overlay (D149's rule), never the deck's slot
+      wheel(q('[data-fan-offset="0"] [data-deck-face]'), 80);
+      post.overlay = await waitFor(() => !!q('[data-panel-id="jd"]'));
+      post.slotOpen = slotOpen();
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); post.overlayClosed = await waitFor(() => !q('[data-panel-id="jd"]'));
+    } else {
+    wheel(q('[data-fan-offset="0"] [data-deck-face]'), 80); post.openedByWheel = await waitFor(slotOpen);
+    post.postTitle = q("[data-deck-post-slot] h1, [data-deck-post-slot] h2")?.textContent || null;
+    post.factsInSlot = !!q("[data-deck-post-slot] [data-posting-facts]");
+    post.stageHidden = !q("[data-deck-stage]") || q("[data-deck-stage]").getBoundingClientRect().height === 0;
+    post.deckPosition = getComputedStyle(q("[data-home-deck]")).position;
+    post.boardPost = !!q("[data-board-post]");
+    post.listShown = !!q(".jb-board__list") && q(".jb-board__list").getBoundingClientRect().height > 0;
+    post.foldLabel = q("[data-deck-post-slot] [data-posting-close]")?.textContent?.trim() || null;
+    post.inSlot = (() => { const a = box(q("[data-deck-post-slot]")), d = box(q("[data-home-deck]")); return !!a && a.left >= d.left - 1 && a.right <= d.right + 1; })();
+    await wait(200);   // the slot's wheel listener attaches after the commit that opens it
+    wheel(slot(), -80); post.foldedByWheelUp = await waitFor(() => !slotOpen());
+    post.backTo = frontTitle();
+    document.body.focus();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })); post.openedByEnter = await waitFor(slotOpen);
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); post.foldedByEsc = await waitFor(() => !slotOpen());
+    q('[data-fan-offset="0"] [data-deck-open-posting]')?.click(); post.openedByButton = await waitFor(slotOpen);
+    q("[data-deck-post-slot] [data-posting-close]")?.click(); post.foldedByButton = await waitFor(() => !slotOpen());
+    // a bubble's posting: on the deck too; the list stays where it is
+    q(".jb__title")?.click(); post.listOpensOnDeck = await waitFor(slotOpen);
+    post.listOrigin = slot()?.getAttribute("data-post-origin") || null;
+    post.listStillShown = !!q(".jb-board__list") && q(".jb-board__list").getBoundingClientRect().height > 0;
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await waitFor(() => !slotOpen());
+    window.scrollTo(0, 0); await wait(150);
+    // the posting's Pass on the deck's own card: the deck decides it and the next card comes to the front
+    const before = q("[data-deck-count]")?.textContent;
+    q('[data-fan-offset="0"] [data-deck-open-posting]')?.click(); await waitFor(slotOpen);
+    q('[data-deck-post-slot] [data-decision="pass"]')?.click();
+    post.passFolds = await waitFor(() => !slotOpen());
+    await wait(700);
+    post.passAdvanced = q("[data-deck-count]")?.textContent !== before;
+    post.countAfterPass = q("[data-deck-count]")?.textContent || null;
+    post.passSaid = q('[aria-live="polite"]')?.textContent || "";
+    }
+    out.post = post;
+    // the folded card: the title centred between the head and the info row; the stats' type
+    const fart = front();
+    const hd = box(q("[data-deck-head]", fart)), tt = box(q("[data-deck-title-line]", fart)), inf = box(q("[data-deck-info]", fart));
+    out.folded = { above: tt && hd ? tt.top - hd.bottom : null, below: tt && inf ? inf.top - tt.bottom : null,
+      statValue: q("[data-deck-stat] dd", fart) ? getComputedStyle(q("[data-deck-stat] dd", fart)).fontSize : null,
+      statLabel: q("[data-deck-stat] dt", fart) ? getComputedStyle(q("[data-deck-stat] dt", fart)).fontSize : null,
+      statCols: q("[data-deck-stats]", fart) ? getComputedStyle(q("[data-deck-stats]", fart)).gridTemplateColumns.split(" ").length : 0 };
+
+    // ── ⭐ D156 (1d) the filtering sentence in its ORIGINAL type (67be9da): the logo face, 800 italic, line 1.5, -.015em
+    const sent = q(".fh[data-fh-d147] .bh"), tok = q(".fh[data-fh-d147] .bh .tok:not([aria-pressed='true'])"), on = q(".fh[data-fh-d147] .bh .tok[aria-pressed='true']");
+    const scs = sent && getComputedStyle(sent);
+    out.sentence = sent && { family: scs.fontFamily, weight: scs.fontWeight, style: scs.fontStyle, size: scs.fontSize, line: scs.lineHeight, spacing: scs.letterSpacing, color: scs.color,
+      ink: rgb("var(--c-ink-muted)"),
+      word: tok && { shadow: getComputedStyle(tok).boxShadow, padding: getComputedStyle(tok).paddingLeft, color: getComputedStyle(tok).color },
+      quiet: rgb("var(--c-accent-quiet)"), set: on && { bg: getComputedStyle(on).backgroundColor, radius: getComputedStyle(on).borderTopLeftRadius }, accent };
+
+    // ── the dock: a rail of four icons, the same size; ⭐ (1c) /d (draft, the jobs) first, the house (Home) and the globe in
+    // the accent, the picture / initials
+    const dock = q("[data-nav-dock]");
+    const icons = qa("[data-nav-dock] [data-nav-icon]");
+    const shell = q("[data-app-shell]");
+    out.dock = {
+      items: qa("[data-nav-dock] [data-nav-item]").map(a => a.getAttribute("data-nav-item")),
+      icons: icons.map(i => ({ id: i.getAttribute("data-nav-icon"), w: Math.round(i.getBoundingClientRect().width), h: Math.round(i.getBoundingClientRect().height),
+        stroke: q("svg", i) ? getComputedStyle(q("svg path, svg circle", i)).stroke : null, text: i.textContent.trim(), img: !!q("img", i),
+        radius: getComputedStyle(i).borderTopLeftRadius })),
+      accent, emboss: !!q("[data-nav-emboss]"), handle: !!q("[data-nav-handle]"),
+      rest: { box: box(dock), shellPad: getComputedStyle(shell).paddingLeft, wordsOpacity: getComputedStyle(q(".appnav-words", dock)).opacity,
+        coversPage: overlap(box(dock), box(q("[data-home-deck]"))) || overlap(box(dock), box(q("[data-home-board]"))), shownAtRest: box(dock).left >= 0 && box(dock).width > 0 },
+    };
+    // hover (React's enter / leave come from mouseover / mouseout)
+    dock.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, relatedTarget: document.body }));
+    await wait(500);
+    out.dock.hover = { box: box(dock), open: dock.getAttribute("data-open"), root: document.documentElement.getAttribute("data-dock-open"), shellPad: getComputedStyle(shell).paddingLeft,
+      wordsOpacity: getComputedStyle(q(".appnav-words", dock)).opacity, names: qa("[data-nav-dock] .appnav-name").map(n => n.textContent.trim()),
+      coversDeck: overlap(box(dock), box(q("[data-home-deck]"))), coversBoard: overlap(box(dock), box(q("[data-home-board]"))) };
+    dock.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: document.body }));
+    await wait(500);
+    out.dock.afterLeave = { box: box(dock), shellPad: getComputedStyle(shell).paddingLeft };
+    q("[data-nav-dock] a")?.focus(); await wait(500);
+    out.dock.focus = { box: box(dock), open: dock.getAttribute("data-open"), shellPad: getComputedStyle(shell).paddingLeft };
+    document.activeElement?.blur?.(); await wait(400);
+
+    // ── the views under the search, with their counts; Import a job; the sort icon in the search field
+    const viewRow = q("[data-board-views]");
+    out.views = { below: !!viewRow && box(viewRow).top >= box(q("[data-board-bar]")).bottom - 1,
+      buttons: qa("[data-board-views] [data-view]").map(b => ({ id: b.getAttribute("data-view"), text: b.textContent.trim(), pressed: b.getAttribute("aria-pressed") })),
+      importButton: q("[data-import-open]")?.textContent.trim() || null };
+    q("[data-import-open]")?.click(); await wait(250);
+    const ta = q("[data-import-box] textarea");
+    out.importBox = { shown: !!ta, inBoard: !!ta && !!ta.closest("[data-home-board]"), placeholder: ta?.placeholder || null, overlay: !!q('[role="dialog"] [data-import-box]') };
+    if (ta) {
+      const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+      setter.call(ta, "https://jobs.example.invalid/acme/123"); ta.dispatchEvent(new Event("input", { bubbles: true }));
+      await wait(100);
+      q("[data-import-box] button[type=submit]")?.click(); await wait(900);
+      out.importBox.note = q("[data-import-note]")?.textContent || null;
+      out.importBox.noteKind = q("[data-import-note]")?.getAttribute("data-import-note") || null;
+      out.importBox.viewAfter = qa("[data-board-views] [data-view]").find(b => b.getAttribute("aria-pressed") === "true")?.getAttribute("data-view") || null;
+      q('[data-board-views] [data-view="all"]')?.click(); await wait(300);
+      q(".fh-import__x")?.click(); await wait(150);
+    }
+    const sort = q('[data-board-icon="sort"]');
+    out.sort = { inSearch: !!sort?.closest(".fh-srch"), label: sort?.getAttribute("aria-label") || null, hasSvg: !!q("svg", sort), topWord: !!q(".fh-sortw") || !!q(".fh-title") };
+    sort?.click(); await wait(250);
+    const menu = q("#fh-sort");
+    out.sort.menu = { open: !!menu, rows: qa("#fh-sort [role=radio]").map(r => r.innerText.replace(/\s+/g, " ").trim()),   // what is drawn (the tags are hidden)
+      checked: q('#fh-sort [aria-checked="true"]')?.getAttribute("data-sort") ?? null, underField: !!menu && box(menu).top >= box(q("[data-board-bar]")).bottom - 1 };
+    q('#fh-sort [data-sort="dateDesc"]')?.click(); await wait(300);
+    out.sort.afterPick = { label: q('[data-board-icon="sort"]')?.getAttribute("aria-label"), menuOpen: !!q("#fh-sort") };
+    q('[data-board-icon="sort"]')?.click(); await wait(200);
+    q('#fh-sort [data-sort=""]')?.click(); await wait(300);
+
+    // ── the bubbles: D1's growth, driven by the rail
+    const pair = q("[data-jb-pair]"), bubs = pair ? qa(".jb", pair) : [];
+    const widths = () => bubs.map(b => Math.round(b.getBoundingClientRect().width));
+    const heights = () => bubs.map(b => Math.round(b.getBoundingClientRect().height));
+    const rule = (sel) => { for (const sh of document.styleSheets) { let rs; try { rs = sh.cssRules; } catch { continue; } for (const r of rs) if (r.selectorText === sel) return r.style; } return null; };
+    const grow = rule(".jb-pair .jb:hover, .jb-pair .jb:focus-within");
+    const railOpen = rule(".jb-pair .jb:hover .jb__rail, .jb-pair .jb:focus-within .jb__rail");
+    const railBase = rule(".jb__rail");
+    const bubBase = rule(".jb-pair .jb");
+    pair?.scrollIntoView({ block: "center" }); await wait(200);
+    const bubbles = { perPair: bubs.length, restW: widths(), restH: heights(), rowH: pair ? Math.round(pair.getBoundingClientRect().height) : null,
+      restGrow: bubs.map(b => getComputedStyle(b).flexGrow), restRail: bubs[0] ? getComputedStyle(q(".jb__rail", bubs[0])).maxWidth : null,
+      cssGrow: grow?.flexGrow || null, cssRailOpen: railOpen?.maxWidth || null, cssTransition: bubBase?.transition || null, cssRailTransition: railBase?.transition || null,
+      padding: bubs[0] ? getComputedStyle(bubs[0]).padding : null, gap: pair ? getComputedStyle(pair).columnGap : null, rowsGap: q('.jb-rows[data-columns="2"]') ? getComputedStyle(q('.jb-rows[data-columns="2"]')).rowGap : null };
+    q("button", bubs[0])?.focus(); await wait(500);
+    Object.assign(bubbles, { focusW: widths(), focusH: heights(), focusRowH: pair ? Math.round(pair.getBoundingClientRect().height) : null,
+      focusGrow: bubs.map(b => getComputedStyle(b).flexGrow), focusRail: bubs[0] ? Math.round(q(".jb__rail", bubs[0]).getBoundingClientRect().width) : null,
+      railVisible: bubs[0] ? getComputedStyle(q(".jb__rail", bubs[0])).visibility : null, samePair: !!bubs[1] && bubs[1].parentElement === pair });
+    document.activeElement?.blur?.(); await wait(300);
+    window.scrollTo(0, 0);
+    out.bubbles = bubbles;
+    out.hscroll = document.documentElement.scrollWidth > window.innerWidth + 1;
+    return out;
   },
   // ⛔ D153 (5) · every facts cell's words, measured: a word whose characters lie on two lines has two client rects.
   "posting-facts": () => {
@@ -570,7 +829,7 @@ if (process.argv[2] === "--styles") {
   const browser = await puppeteer.launch({ executablePath: resolution.path, headless: "new", pipe: true, args: ["--no-first-run", "--no-default-browser-check"] });
   const out = {};
   try {
-    for (const [size, [w, h]] of Object.entries(SIZES)) {
+    for (const [size, [w, h]] of Object.entries(s.sizes || SIZES)) {
       const page = await browser.newPage();
       await page.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 500, hasTouch: w < 500 });
       await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }, { name: "prefers-reduced-motion", value: "reduce" }]);
@@ -589,7 +848,10 @@ if (process.argv[2] === "--styles") {
       if (s.ready) await page.waitForSelector(s.ready, { timeout: 30000 }).catch(() => {});
       await sleep(900);
       if (s.appPrep) await s.appPrep(page);   // D149: the screen's own state (Full House: the first posting open)
+      // ⭐ D156: a screen that asks for it is also shot as it is measured (docs/fidelity-shots/<screen>-app-<size>.png).
+      if (s.shoot) { fs.mkdirSync(OUT, { recursive: true }); fs.writeFileSync(path.join(OUT, `${id}-app-${size}.png`), await page.screenshot({ type: "png" })); }
       out[size] = await page.evaluate(STYLE_PROBES[id]);
+      if (s.nodeProbe) Object.assign(out[size], await s.nodeProbe(page));
       await page.close();
     }
   } finally { await browser.close(); vite.proc.kill(); }

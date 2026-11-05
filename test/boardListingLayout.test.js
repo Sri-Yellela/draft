@@ -180,7 +180,9 @@ test("THE PASS LIST KEPT A HOME — dislike is a query filter, not a preference"
   assert.match(detail, /const passed = !!selectedJob\.disliked/);
   assert.match(detail, /data-decision="pass" disabled=\{passed\} aria-pressed=\{passed\} onClick=\{onPass\}/);
   // JobsPanel still wires it through, so the detail panel's action is live rather than decorative.
-  assert.match(jobsPanel, /onPass: \(\) => decideJob\(selectedJob, DECISIONS\.PASSED\)/);
+  // ⭐ D156 (1c) (changed on purpose): the posting's decisions go through decidePosting — on the deck, a deck card's are
+  // the deck's (the same commitDecision), a bubble's posting is the board's decideJob; off the deck, decideJob as before.
+  assert.match(jobsPanel, /onPass: \(\) => decidePostingRef\.current\?\.\(selectedJob, DECISIONS\.PASSED\)/);
 });
 
 test("a passed job still READS as passed on the board", () => {

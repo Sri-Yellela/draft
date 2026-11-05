@@ -76,9 +76,9 @@ async function loadUi() {
         import WordPanel, { PanelOptions } from ${abs("components/WordPanel.jsx")};
         import BoardHeadline from ${abs("components/BoardHeadline.jsx")};
         import SortPanel from ${abs("components/SortPanel.jsx")};
-        import { SortWord } from ${abs("components/BoardBar.jsx")};
+        import { SortIcon } from ${abs("components/BoardBar.jsx")};
         export const html = (C, props) => renderToStaticMarkup(createElement(C, props));
-        export { WordPanel, PanelOptions, BoardHeadline, SortPanel, SortWord };`,
+        export { WordPanel, PanelOptions, BoardHeadline, SortPanel, SortIcon };`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -100,12 +100,12 @@ test("D24 → D35: the board's panel is CLOSED BY DEFAULT — the bar sits right
   const ctx = read("client/src/contexts/JobBoardContext.jsx");
   assert.match(ctx, /const \[boardPanel, setBoardPanel\] = useState\(null\);/,
     "the board's panel state no longer starts closed");
-  const { html, WordPanel, BoardHeadline, SortWord } = await loadUi();
+  const { html, WordPanel, BoardHeadline, SortIcon } = await loadUi();
   assert.equal(html(WordPanel, { open: BOARD_PANEL_DEFAULT, params: {} }), "", "a panel renders with nothing open");
   const words = html(BoardHeadline, { params: {}, open: BOARD_PANEL_DEFAULT });
   assert.doesNotMatch(words, /aria-expanded="true"/);
-  // D147 (11-03): the ⇅ square became the Sort / view WORD (SortWord) — the same attributes.
-  assert.match(html(SortWord, { open: false }), /aria-expanded="false"/);
+  // D147 (11-03): the ⇅ square became the Sort / view WORD; ⭐ D156 (5): an icon in the search field (SortIcon) — the same attributes.
+  assert.match(html(SortIcon, { open: false }), /aria-expanded="false"/);
   const app = strip(read("client/src/App.jsx"));
   assert.match(app, /if \(boardPanel !== BOARD_PANEL\.SORT\) return null;/);
 });
@@ -302,14 +302,14 @@ test("D24: the DEFAULT board request carries NO sort param — the curated order
   assert.equal(sortRows(true)[0], DEFAULT_SORT_ROW);
   assert.equal(isSortChosen(""), false);
   assert.equal(isSortChosen("dateDesc"), true, "Newest is a CHOSEN sort now, not the default");
-  const { html, SortPanel, SortWord } = await loadUi();
+  const { html, SortPanel, SortIcon } = await loadUi();
   const out = html(SortPanel, { value: "", atsAvailable: true, facets: FACETS, facetsStatus: "ready" });
   assert.match(out, new RegExp(`aria-checked="true" class="fh-op" data-sort="" title="[^"]+">${DEFAULT_SORT_ROW.short}<`));
   assert.equal((out.match(/aria-checked="true"/g) || []).length, 1);
-  assert.match(html(SortWord, { chosen: true }), /data-board-icon="sort" data-active="true"/);
-  assert.match(html(SortWord, { chosen: false }), /data-board-icon="sort" data-active="false"/);
-  // D147: a chosen VIEW (not All jobs) holds the edge too — the views live in the same control now.
-  assert.match(strip(read("client/src/App.jsx")), /chosen=\{isSortChosen\(sortBy\) \|\| \(!!boardTab && boardTab !== "all"\)\}/);
+  assert.match(html(SortIcon, { chosen: true }), /data-board-icon="sort" data-active="true"/);
+  assert.match(html(SortIcon, { chosen: false }), /data-board-icon="sort" data-active="false"/);
+  // ⭐ D156 (5), changed on purpose: the views left the sort control (their own row), so only a chosen ORDER holds the accent.
+  assert.match(strip(read("client/src/App.jsx")), /chosen=\{isSortChosen\(sortBy\)\}/);
 });
 
 // ── 7. No literal option values ─────────────────────────────────────────────────────────────────

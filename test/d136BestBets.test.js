@@ -63,8 +63,10 @@ test("D136 · d136ReasonsOnCard — 'Best bet: you're eligible · posted 9 hours
   // reasons are each card's reason line (no band label: D152 (7b) retires the chips).
   assert.ok(!fs.existsSync("client/src/components/BestBets.jsx"), "the separate best-bets list is deleted");
   assert.doesNotMatch(read("client/src/panels/JobsPanel.jsx"), /<BestBets\b/);
-  assert.match(read("client/src/lib/deckCardFacts.js"), /card\?\.bestBet\?\.reasons/);
-  assert.match(read("client/src/panels/DeckView.jsx"), /\{facts\.reason\.rest\.join\(" · "\)\}/);
+  // ⭐ D156 (1b), changed on purpose (owner 11-05: "theres a stat saying skills matched, dont need the sentence above it"):
+  // the reason line left the card; the best-bets reading still ORDERS the deck (test/d152Home.test.js d152DeckFromBestBets).
+  assert.doesNotMatch(read("client/src/lib/deckCardFacts.js"), /card\?\.bestBet\?\.reasons/);
+  assert.doesNotMatch(read("client/src/panels/DeckView.jsx"), /facts\.reason/);
 });
 
 test("D136 · d136HardFiltersOut — not eligible, won't sponsor (for a needer), closed and already applied never enter; the rest are ranked", async () => {
@@ -127,7 +129,8 @@ test("D136 · d136NoProbabilityUntilCalibrated — a band and reasons, never a c
   assert.equal(calibratedChance(db, b), null);
   assert.deepEqual(refitBestBets(db, { rows: [] }), { ready: false, outcomes: 0, needed: CALIBRATED_MIN });
   for (const t of [b.label, ...b.reasons]) assert.doesNotMatch(t, /%|chance|probab/i, t);
-  assert.match(read("client/src/panels/DeckView.jsx"), /data-deck-reason=""[^>]*title="[^"]*not a probability\./);   // D152 (3)
+  // ⭐ D156 (1b): the reason line (and its "not a probability" title) left the card — nothing on it claims a chance.
+  assert.doesNotMatch(read("client/src/panels/DeckView.jsx"), /data-deck-reason|chance of/);
 });
 
 test("D136 · d136OutcomeRecordedWithSignals — a verified send stores the signals it had, once", () => {

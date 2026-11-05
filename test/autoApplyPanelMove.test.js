@@ -32,7 +32,10 @@ test("the board no longer owns any of the pipeline except DRAFTING a job (A53: w
   // What it keeps: the decision, through the deck's own call, and the pipeline's view of it.
   // D51 adds the two things a Draft button needs to say why it refuses: the setup and the operator's pause.
   assert.match(board, /const \{ draftTool, applyStateByJobId, loadApplyRuns, applyPrereqMissing = \[\], runBar = null \} = useAutoApply\(\);/);
-  assert.match(board, /onDraft: \(\) => decideJob\(selectedJob, DECISIONS\.DRAFTED\)/);
+  // ⭐ D156 (1c) (changed on purpose): the posting's decisions go through decidePosting — on the deck, a deck card's are
+  // the deck's (the same commitDecision), a bubble's posting is the board's decideJob; off the deck, decideJob as before.
+  assert.match(board, /onDraft: \(\) => decidePostingRef\.current\?\.\(selectedJob, DECISIONS\.DRAFTED\)/);
+  assert.match(board, /if \(!besideMode\) \{ decideJob\(job, decision\); return; \}/);
 });
 
 test("every piece of the surface arrived in the panel — nothing dropped in the move", () => {
@@ -120,7 +123,8 @@ test("the board keeps a count badge, and only when something needs a human", () 
   assert.match(ctx, /needsAttentionCount: applyPending\.length \+ applyReviewJobs\.length \+ applyQuestions\.length/);
   // ⭐ D145 (changed on purpose): the count is data on the Draft House tab; the Dock / the Menu draw it only when > 0.
   assert.match(app, /badge: needsAttentionCount, badgeLabel: attention/);
-  assert.match(fs.readFileSync("client/src/components/AppNav.jsx", "utf8"), /\{t\.badge > 0 && \(/);
+  // ⭐ D156 (3) (changed on purpose): the dock's Badge — a small number on the icon, nothing when nothing needs a human.
+  assert.match(fs.readFileSync("client/src/components/AppNav.jsx", "utf8").replace(/\r\n/g, "\n"), /function Badge\(\{ n, label \}\) \{\n\s+if \(!\(n > 0\)\) return null;/);
   // D6: under the name "Draft" the count is said as drafts that need you, not a bare "need".
   assert.match(app, /needsAttentionCount === 1 \? "draft needs" : "drafts need"\} your attention/);
   // The queue itself is deliberately NOT counted: queueing a job is not something waiting on you.

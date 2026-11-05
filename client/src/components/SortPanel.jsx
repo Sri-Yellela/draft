@@ -18,9 +18,9 @@ import "./FullHouse.css";
 // Props: value, onChange(value), atsAvailable, facets, facetsStatus, onClose()
 export const SORT_PANEL_ID = "fh-sort";
 
-// ⭐ D147: `children` — the board's views (All jobs · Saved · Pending · Imported), as words under "Show", so the one
-// control holds the order and the view.
-export default function SortPanel({ value, onChange, atsAvailable = true, facets = null, facetsStatus = "idle", onClose, children = null }) {
+// ⭐ D156 (5): a small menu under the search field's sort icon (the views left it for their own row under the search —
+// D147 had put them here, under "Show").
+export default function SortPanel({ value, onChange, atsAvailable = true, facets = null, facetsStatus = "idle", onClose }) {
   const rows = sortRows(atsAvailable);
   const counted = facetsStatus === "ready" || facetsStatus === "loading" ? facets : null;
   const chosen = rows.find(r => r.value === value) || rows[0];
@@ -28,6 +28,16 @@ export default function SortPanel({ value, onChange, atsAvailable = true, facets
   const ref = useRef(null);
   useEffect(() => { ref.current?.querySelector?.('[aria-checked="true"]')?.focus?.(); }, []);
   const close = () => { onClose?.(); document.querySelector?.('[data-board-icon="sort"]')?.focus?.(); };
+  // ⭐ D156 (5) (44u's open item): a press anywhere outside the menu (and outside the icon that toggles it) closes it, as
+  // home-sketch.html's .sortpop does. Focus is left where the press put it.
+  useEffect(() => {
+    const onDown = (e) => {
+      if (ref.current?.contains(e.target) || e.target?.closest?.('[data-board-icon="sort"]')) return;
+      onClose?.();
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [onClose]);
   return (
     <section ref={ref} id={SORT_PANEL_ID} className="fh-sortp" aria-labelledby={`${SORT_PANEL_ID}-key`}
       data-board-panel="sort" onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); close(); } }}>
@@ -51,12 +61,6 @@ export default function SortPanel({ value, onChange, atsAvailable = true, facets
           </p>
         )}
         {tieBreakText(chosen) && <p className="fh-cov" data-tie-break="">{tieBreakText(chosen)}</p>}
-        {children && (
-          <div className="fh-show" data-sort-views="">
-            <span className="fh-k">Show</span>
-            {children}
-          </div>
-        )}
       </div>
     </section>
   );

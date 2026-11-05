@@ -224,6 +224,9 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
 
 export default function JobDetailPanel({
   slot = 0, width, focused = true, fullScreen = false, resizeMode = "dock", closesOnEscape, reserveRight = 0, beside = false,
+  // ⭐ D156 (1c): drawn ON THE DECK, in the front card's place (JobsPanel portals it into DeckView's slot) — the card's own
+  // corner (26) and "Fold it back" for Close (home-sketch.html's .foldb): the card folds back, nothing closes.
+  onDeck = false,
   onFocus, onResizeStart, onResize, onResizeEnd,
 }) {
   const { selectedJob, setSelectedJob, selectedJobMeta } = useJobBoard();
@@ -390,7 +393,7 @@ export default function JobDetailPanel({
       bare
       // ⭐ D149: the sketch's `.panel` — the card, corner 28 (0 on a phone, full screen), no glass edge; beside the list
       // it fills BesideDock's column.
-      surfaceClass="pp-shell" radius={28} fill={beside}
+      surfaceClass="pp-shell" radius={onDeck ? 26 : 28} fill={beside}
     >
       {/* ── BODY (the only scrolling region) ───────────────────────────────────────────────────
           The modals below render through their own portals, so their position here is immaterial;
@@ -412,7 +415,8 @@ export default function JobDetailPanel({
                 {selectedJob.location && <span className="pp__loc" data-posting-location="">{selectedJob.location}</span>}
               </div>
               <span className="pp__sp" />
-              <button type="button" className="pp__x" onClick={close} aria-label="Close the posting" title="Close" data-posting-close="">Close</button>
+              <button type="button" className="pp__x" onClick={close} aria-label={onDeck ? "Fold the posting back into its card" : "Close the posting"}
+                title={onDeck ? "Fold it back (Esc)" : "Close"} data-posting-close="">{onDeck ? "Fold it back" : "Close"}</button>
             </div>
             {(pendingState === "pending" || pendingState === "recorded") && (
               <button type="button" className="pp__pending" data-pending-tag onClick={() => navigate({ pathname: "/app/auto-apply", search: "?sheet=pending" })}

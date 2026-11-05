@@ -42,7 +42,9 @@ test("D10 → D145: the tab row is gone; the Dock / the Menu set each name on ON
   // ⭐ D145 Step 3 (owner 11-03, changed on purpose): TabLabel (two-word names on two lines) went with the row.
   assert.doesNotMatch(topBar, /function TabLabel|<TabLabel /);
   const nav = read("client/src/components/AppNav.jsx");
-  assert.match(nav, /<span className="appnav-name">\s*\{t\.label\}/);
+  // ⭐ D156 (1c) (changed on purpose): the name is DOCK_NAMES' (draft / Home) or the section's own label.
+  assert.match(nav, /<span className="appnav-name">\s*\{name\}/);
+  assert.match(nav, /const name = DOCK_NAMES\[t\.id\] \|\| t\.label;/);
   assert.match(nav, /<small className="appnav-plain">\{NAV_PLAIN\[t\.id\] \|\| ""\}<\/small>/);
 });
 

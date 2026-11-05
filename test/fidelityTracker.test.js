@@ -49,10 +49,13 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
   }
   const dk = out.desktop, ph = out.phone;
   // Layout 1: the table (the sketch's 882) and the timeline card beside it at 300, 18 apart, tops level.
-  assert.equal(dk.table.x, 40);
-  assert.equal(dk.table.w, 882, "the table is the sketch's 882 at 1280");
+  // ⭐ D156 (3) (changed on purpose): the dock is a rail always visible at the left, and the app shell gives it its room
+  // (72 px at 1280) — the page is the sketch's layout in what is left: the table from 72 + 20, taking the width the
+  // timeline leaves (850 here, the sketch's 882 before the rail), the timeline 300 wide beside it, 18 apart, tops level.
+  assert.equal(dk.table.x, 92);
+  assert.equal(dk.table.w, 850, "the table takes what the rail and the timeline leave at 1280");
   assert.equal(dk.row.h, 84, "a row is the sketch's 84: 14 + the 44 px position + the folded .det's 12 px gap + 14");
-  assert.deepEqual([dk.timeline.w, dk.timeline.x, dk.timeline.y], [300, 940, dk.table.y], "the timeline beside, 300 wide, level with the table");
+  assert.deepEqual([dk.timeline.w, dk.timeline.x, dk.timeline.y], [300, dk.table.x + dk.table.w + 18, dk.table.y], "the timeline beside, 300 wide, 18 apart, level with the table");
   assert.deepEqual([dk.timeline.bg, dk.timeline.radius, dk.timeline.padding, dk.timeline.border, dk.timeline.shadow], [CARD, "22px", "18px", "0px", "none"]);
   assert.deepEqual([dk.tlTitle.size, dk.tlTitle.weight], ["15px", "600"]);
   assert.deepEqual([dk.bubble.w, dk.bubble.h], [30, 30], "the timeline's 30 px bubbles");
@@ -60,6 +63,7 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
   // Layout 3: the switch, the table alone, full width inside the 20 px gutters.
   assert.equal(ph.phoneSwitch, true, "the Applications · Auto-apply timeline switch on a phone");
   assert.equal(ph.timeline.shown, false, "the timeline waits behind the switch");
-  assert.deepEqual([ph.table.x, ph.table.w], [20, 350]);
-  assert.equal(ph.title.x, 20);
+  // ⭐ D156 (3) (changed on purpose): a phone's rail (52 px) + the page's 20; the table takes the rest of the 390.
+  assert.deepEqual([ph.table.x, ph.table.w], [72, 298]);
+  assert.equal(ph.title.x, 72, "the title starts where the table does");
 });

@@ -22,16 +22,17 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
     // The header: the ONE Sort word, the sentence, the search, the counts. ⭐ D152 (1), changed on purpose: Full House is
     // Home's board column now (home-sketch.html) — no "Full House" title (test/d152Home.test.js).
     assert.equal(d.title, null, `${size}: no page title on Home`);
-    assert.deepEqual([d.sort.bg, d.sort.radius, d.sort.border, d.sort.size, d.sort.weight, d.sort.color, d.sort.glyph],
-      [CARD, "12px", "0px", "14px", "600", BODY, false], `${size}: "Sort: …" is the sketch's quiet box — no edge, no glyph`);
-    assert.match(d.sort.text, /^Sort: /);
-    assert.match(d.sentence.family, SERIF, `${size}: the sentence in the serif`);
+    // ⭐ D156 (5) (changed on purpose): no "Sort: …" word — the sort is an icon inside the search (test/d156Home.test.js).
+    assert.equal(d.sort, null, `${size}: no Sort word at the top`);
+    // ⭐ D156 (1d) (changed on purpose): the sentence's ORIGINAL type and marked look (67be9da) — the logo face, its words
+    // in ink over the quiet accent's .16em highlighter underline, each an inline box with a transparent 1px edge.
+    assert.match(d.sentence.family, /^Poppins/, `${size}: the sentence in the logo face`);
     assert.equal(d.sentence.color, BODY);
     assert.equal(d.sentence.word.color, INK, `${size}: its words in ink`);
-    assert.equal(d.sentence.word.underline, "rgb(251, 211, 196) 0px -1.5px 0px 0px inset", `${size}: underlined 1.5px in the accent`);
-    assert.match(d.sentence.word.border, /^0px /, `${size}: no box edge around a word`);
+    assert.match(d.sentence.word.underline, /^rgb\(58, 46, 41\) 0px -[\d.]+px 0px 0px inset$/, `${size}: the quiet-accent highlighter underline`);
+    assert.match(d.sentence.word.border, /^1px solid rgba\(0, 0, 0, 0\)/, `${size}: the original transparent edge`);
     assert.deepEqual([d.search.bg, d.search.radius, d.search.border, d.search.shadow, d.search.glyph, d.search.inputSize],
-      [CARD, "14px", "0px", "none", false, "16px"], `${size}: the search is the field alone`);
+      [CARD, "14px", "0px", "none", true, "16px"], `${size}: the search is the field — ⭐ D156 (5): with the sort icon inside it`);
     assert.equal(d.search.placeholder, "Search a company, title or skill");
     assert.deepEqual(d.counts.map(c => [c.n, c.label]), [["746", "jobs"], ["38", "new today"], ["12", "saved"]]);
     assert.deepEqual(d.counts.map(c => [c.size, c.weight]), Array(3).fill(["30px", "500"]));
@@ -42,12 +43,12 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
     // the row's 20 / 14 16.
     // ⭐ D152 (6): the list keeps its pairs at both widths now (the posting opens in place of it, not beside it).
     const bubble = true;
+    // ⭐ D156 (1b) (changed on purpose): D1's bubble padding, 16 / 20 (c6bd1124's JobBubble.css).
     assert.deepEqual([d.row.bg, d.row.radius, d.row.border, d.row.shadow, d.row.padding],
-      [CARD, bubble ? "22px" : "20px", "0px", "none", bubble ? "16px" : "14px 16px"],
+      [CARD, bubble ? "22px" : "20px", "0px", "none", bubble ? "16px 20px" : "14px 16px"],
       `${size}: a row is the card, no border, no shadow`);
-    // Pairs 12 apart (D152 (5)) — measured on a phone: on a computer the list is folded away while the posting is open
-    // in its place (D152 (6)), so its rows have no gap to measure there.
-    if (size === "phone") assert.equal(d.row.gap, 12, `${size}: pairs 12px apart`);
+    // Rows apart on a phone, one bubble per row (D1's phone rule); on a computer the pair sits side by side.
+    if (size === "phone") assert.equal(d.row.gap, 14, `${size}: rows 14px apart`);
     assert.match(d.row.outline, /solid rgb\(251, 211, 196\)$/, `${size}: the open row is outlined in the accent`);
     assert.match(d.row.title.family, UI); assert.deepEqual([d.row.title.size, d.row.title.weight, d.row.title.color], ["15px", "600", INK]);
     assert.deepEqual([d.row.sub.size], ["13px"]); assert.deepEqual([d.row.meta.size, d.row.meta.color], ["12.5px", BODY]);
@@ -56,7 +57,9 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
     assert.deepEqual([d.panel.bg, d.panel.border, d.panel.shadow], [CARD, "0px", "none"], `${size}: the posting is the card — no edge, no glass shadow`);
     assert.match(d.panel.title.family, SERIF); assert.deepEqual([d.panel.title.size, d.panel.title.weight], ["36px", "400"]);
     assert.match(d.panel.company.family, UI); assert.deepEqual([d.panel.company.size, d.panel.company.weight, d.panel.company.style], ["16px", "600", "normal"]);
-    assert.deepEqual([d.panel.close.text, d.panel.close.bg, d.panel.close.radius, d.panel.close.size], ["Close", RAISE, "10px", "13.5px"]);
+    // ⭐ D156 (1c): on a computer the posting is the deck card's long post — its Close says "Fold it back".
+    assert.deepEqual([d.panel.close.text, d.panel.close.bg, d.panel.close.radius, d.panel.close.size],
+      [size === "phone" ? "Close" : "Fold it back", RAISE, "10px", "13.5px"]);
     assert.deepEqual([d.panel.facts.bg, d.panel.facts.radius, d.panel.facts.border], [RAISE, "18px", "0px"], `${size}: one raised facts box, corner 18`);
     assert.deepEqual(d.panel.facts.cells, ["experience", "workstyle", "salary", "posted"]);
     assert.deepEqual([d.panel.facts.value.size, d.panel.facts.value.weight, d.panel.facts.value.color], ["16.5px", "500", INK]);
@@ -87,9 +90,11 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
   // whole board column (486–1240 at 1280: the deck's 390 + the 56 gap after the 40 padding), never over the deck, and is
   // as tall as its content (it scrolls with the page, as the list did); the list stays mounted, folded away
   // (test/d152Home.test.js walks the open and the close).
+  // ⭐ D156 (1c) (changed on purpose, owner 11-05: "the card can turn into the long post"): the posting is drawn ON THE
+  // DECK, in the front card's place — the deck's column (from the rail's 72 + the page's 24, 390 wide), the card's corner.
   const D = out.desktop;
-  assert.deepEqual([D.panel.left, D.panel.width], [486, 754], "the posting takes the board column");
-  assert.deepEqual([D.panel.radius, D.panel.padding], ["28px", "24px 24px 20px"], "the posting's card");
+  assert.deepEqual([D.panel.left, D.panel.width], [96, 390], "the posting is drawn in the deck's column");
+  assert.deepEqual([D.panel.radius, D.panel.padding], ["26px", "24px 24px 20px"], "the posting's card, the deck card's corner");
   // Phone: the posting is the screen.
   const P = out.phone.panel;
   assert.deepEqual([P.left, P.top, P.width, P.height, P.radius, P.padding], [0, 0, 390, 844, "0px", "70px 20px 30px"]);

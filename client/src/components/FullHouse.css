@@ -35,18 +35,16 @@
    The attribute sets CUSTOM PROPERTIES and the rules below only read them, so a preview carrying its own
    data-sentence is drawn in its own look whatever <html> carries. ⛔ Neither look letters a token: both are
    INLINE boxes in the sentence's own type (D34) — an inline box's padding and border never change the line. */
-/* ⭐ D147 (owner 11-03): the marked look is now the sketch's — every changeable word UNDERLINED IN THE ACCENT, and a SET
-   filter keeps the underline and the ink instead of becoming the orange box (the --tok-on-* properties). */
+/* ⭐ D156 (1d) (owner 11-05: "restore the older design to the filtering sentence font and style"): the marked look is
+   RESTORED VERBATIM from 67be9da (D92 + D93, the last commit before D147's restyle a1e5309) — the highlighter underline
+   (.16em, the quiet accent; the accent ink on hover / focus, over the quiet fill) and a SET filter as the ONE orange box.
+   D147's accent underline on every word, its underlined set filter and D149's borderless words are withdrawn. */
 [data-sentence="marked"] {
   --bh-room: 1;
-  --tok-pad: 0; --tok-margin: 0; --tok-edge: transparent; --tok-fill: transparent; --tok-radius: 2px;
-  --tok-depth: inset 0 -1.5px 0 var(--c-accent);
-  /* D149: the sketch's words are all:unset — no padding, no box edge (an inline button's 1px edge made each line 2px taller). */
-  --tok-border-w: 0;
-  --tok-hover-fill: transparent; --tok-hover-edge: transparent; --tok-hover-depth: inset 0 -2px 0 var(--c-accent-ink);
-  --tok-on-pad: 0; --tok-on-margin: 0;
-  --tok-on-fill: transparent; --tok-on-edge: transparent; --tok-on-ink: var(--c-ink); --tok-on-depth: inset 0 -1.5px 0 var(--c-accent);
-  --tok-on-radius: 2px; --tok-on-hover-ink: var(--c-accent-ink);
+  --tok-pad: 0 .08em; --tok-margin: 0; --tok-edge: transparent; --tok-fill: transparent; --tok-radius: 2px;
+  --tok-depth: inset 0 -.16em 0 var(--c-accent-quiet);
+  --tok-hover-fill: var(--c-accent-quiet); --tok-hover-edge: transparent; --tok-hover-depth: inset 0 -.16em 0 var(--c-accent-ink);
+  --tok-on-pad: 0 .3em; --tok-on-margin: 0 .04em;
 }
 [data-sentence="calm"] {
   --bh-room: 1.2;
@@ -254,29 +252,12 @@
  * The title + the ONE Sort / view word · the sentence in the serif at ≈ 30px, its words underlined in the accent ·
  * the search under it (the sticky bar, now the search alone) · the minimal counts · the postings.
  * ⛔ D34 still holds: the sentence's type is set by OVERRIDING its tokens on .fh[data-fh-d147]; no token rule names a font. */
-.fh[data-fh-d147] {
-  --fh-sentence-family: var(--font-display); --fh-sentence-size: calc(min(30px, 7vw) * var(--type-scale, 1)); --fh-sentence-line: 1.35;
-  --fh-sentence-weight: 400; --fh-sentence-style: normal;
-}
-.fh-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; }
-.fh-title__h { margin: 0; font: 400 calc(min(44px, 10vw) * var(--type-scale, 1))/1 var(--font-display); color: var(--c-ink); letter-spacing: -.01em; }
-.fh[data-fh-d147] .bh { letter-spacing: 0; max-width: 32ch; }
-/* The Sort / view word: the ⇅ glyph and the words, a quiet box (D60: never a capsule). */
-.fh-sortw {
-  display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; cursor: pointer;
-  border: 1px solid var(--c-fh-line); border-radius: var(--shape-radius-control, 12px);
-  background: var(--c-fh-surface); color: var(--c-ink-muted); font: 600 calc(14px * var(--type-scale, 1))/1.1 var(--font-body);
-  transition: color .16s, border-color .16s, background .16s;
-}
-.fh-sortw svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
-.fh-sortw:hover, .fh-sortw:focus-visible { color: var(--c-ink); border-color: var(--c-accent-ink); outline: none; }
-.fh-sortw[data-active="true"] { color: var(--c-ink); border-color: var(--c-accent-ink); }
-.fh-sortw[aria-expanded="true"] { background: var(--c-accent); color: var(--c-fh-on-accent); border-color: var(--c-fh-accent-edge); }
-/* The views inside the sort panel, as words. */
-.fh-show { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--c-fh-line); display: flex; flex-direction: column; gap: 8px; }
-.fh-show .fh-views { padding: 0; margin: 0; border-right: 0; flex-wrap: wrap; gap: 6px; }
-.fh-show .fh-views button { font: 600 calc(13px * var(--type-scale, 1))/1 var(--font-body); padding: 8px 12px; border: 1px solid var(--c-fh-line); background: var(--c-fh-well); }
-.fh-show .fh-views .fh-ct { font-size: calc(11px * var(--type-scale, 1)); }
+/* ⛔ D156 (1d): D147's sentence type (the serif, 400, 30px / 1.35, letter-spacing 0) is WITHDRAWN — the sentence is set in
+   FULL_HOUSE_TYPE again (styles/type.js, D47: the logo face, Poppins 800 italic, at the logo's nav size, min(30px, 6.4vw),
+   line 1.5, letter-spacing -.015em). Only A116's text size stays on it: the size times --type-scale (1 = the original). */
+.fh[data-fh-d147] { --fh-sentence-size: calc(min(30px, 6.4vw) * var(--type-scale, 1)); }
+/* ⭐ D156 (5): D147's "Sort / view" word (.fh-sortw), the views inside its panel (.fh-show) and the "Full House" title row
+   (.fh-title) are gone — the sort is an icon in the search field, the views a row under it (the Home block below). */
 /* The bar is the search alone. */
 .fh--bar-row .fh-bar { margin-top: 4px; }
 /* The minimal counts. */
@@ -285,7 +266,6 @@
 .fh-count span { display: block; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-faint); }
 .fh-count--hot b { color: var(--c-accent-ink); }
 @media (max-width: 600px) { .fh.fh-counts { gap: 18px; padding-top: 6px; } .fh-count b { font-size: calc(24px * var(--type-scale, 1)); } }
-@media (prefers-reduced-motion: reduce) { .fh-sortw { transition: none; } }
 
 /* ── ⭐ D149 (owner 11-03) · THE HEADER, AS fullhouse-declutter.html DRAWS IT — its values verbatim ───────────────────────
  * The page column is the sketch's `.fhw` (1240 wide, 20px gutters, the content from its left edge), not D37's centred
@@ -295,17 +275,8 @@
  * · `.cnt` 30px 500 (-.03em) over 13px muted, 28px apart, 22px under the search, 14px above the list. */
 .fh[data-fh-d147], .fh.fh--bar-row, .fh.fh-counts { max-width: 1240px; padding-left: 20px; padding-right: 20px; }
 .fh[data-fh-d147] { padding-top: 10px; font-family: var(--shape-font-ui, var(--font-body)); }
-.fh[data-fh-d147] .fh-title { margin: 0; }
-.fh[data-fh-d147] .fh-title__h { letter-spacing: 0; font-size: calc(44px * var(--type-scale, 1)); }
-/* The sketch keeps 44 / 30 on a phone too (its only phone rule is for another screen's `.ph`). */
-.fh[data-fh-d147] { --fh-sentence-size: calc(30px * var(--type-scale, 1)); }
+/* ⭐ D156 (1d): the sentence's size is the original's (above), not the sketch's 30px at every width. */
 .fh[data-fh-d147] .bh { margin: 18px 0 14px; max-width: 30ch; color: var(--c-ink-muted); }
-.fh-sortw {
-  padding: 9px 14px; border: 0; border-radius: 12px; background: var(--c-surface-solid); color: var(--c-ink-muted);
-  font: 600 calc(14px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body));
-}
-.fh-sortw:hover, .fh-sortw:focus-visible { color: var(--c-ink); }
-.fh-sortw[data-active="true"] { color: var(--c-ink); }
 .fh.fh--bar-row { padding-bottom: 18px; }
 .fh--bar-row .fh-bar, .fh-bar {
   max-width: 620px; margin-top: 0; padding: 0; border: 0; border-radius: 14px; background: var(--c-surface-solid); box-shadow: none;
@@ -332,36 +303,85 @@
  * track 44px under the chrome) and the board's column taking the rest, 56px apart, the page 1440 wide with 44 40 90
  * padding. At 980px and under: one column, the deck first, centred, 28 18 80. The header pieces inside the board column
  * drop their own 1240 column and gutters — the column is theirs. */
-.home { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 56px; max-width: 1440px; margin: 0 auto;
-  padding: 44px 40px 90px; box-sizing: border-box; width: 100%;
-  transition: padding-left .32s cubic-bezier(.2, .9, .3, 1); }
-@media (prefers-reduced-motion: reduce) { .home { transition: none; } }
-/* D152 (4) / D153 (1): the dock pushes the page — while it is out (AppNav sets data-dock-open on <html>) Home's left
-   padding makes room for it (the sketch's body.docked .home), so it never covers the deck or the sentence. */
-:root[data-dock-open="true"] .home { padding-left: 268px; }
-/* ⭐ D152 (6) · the opened posting takes the WHOLE right column (home-sketch.html: the .pp layer in place of #list, the
-   sentence and search included) — every other child of the board column steps aside while the board holds an open
-   posting, and comes back on Close. CSS alone (:has), nothing measured. */
-.home__board:has([data-board-post]) > :not(:has([data-board-post])) { display: none; }
-.home__deck { position: sticky; top: calc(var(--app-chrome-height, 74px) + 44px); align-self: start; width: 390px; }
+/* ⭐ D156 (2) (owner 11-05: "use less margins to make space for a bigger card"): 28 24 80 around the page and 40 between
+ * the columns (were 44 40 90 and 56), 1600 wide at most. The dock's room is the app shell's (AppNav.css pads it by the
+ * rail, and by the expanded dock while it is open — D156 (3)), so Home has no dock rule of its own any more. */
+.home { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 40px; max-width: 1600px; margin: 0 auto;
+  padding: 28px 24px 80px; box-sizing: border-box; width: 100%; }
+/* ⛔ D156 (1c): D152 (6)'s posting in place of the list (the whole right column) is REMOVED — the opened posting is drawn
+   on the deck, in the front card's place (DeckView's slot); the list beside it stays as it is. */
+.home__deck { position: sticky; top: calc(var(--app-chrome-height, 74px) + 28px); align-self: start; width: 390px; }
+/* ⭐ D156 (1c) · READING: while the front card is the long post the deck column stops being sticky, so the page scrolls to
+   read it (home-sketch.html's .deckcol.reading). The post fills the column; it rises into the card's place. */
+.home__deck:has([data-deck-reading="true"]) { position: relative; top: auto; }
+[data-deck-post-slot][data-open="true"] { display: flex; flex-direction: column; min-height: 420px; }
+[data-deck-post-slot][data-open="true"] > * { flex: 1 1 auto; }
+/* ⭐ D156 (2): at 1440 and wider the card is landscape (600 × 372) and the column 640 (lib/fanGeometry.js HOME_WIDE). */
+@media (min-width: 1440px) { .home__deck { width: 640px; } }
 /* With the dock as the navigation there is nothing in the chrome strip (D152 (4): no corner mark), so Home starts at the
    sketch's 44 px from the top of the screen, not 44 under an empty strip. The Menu keeps its button there, and the strip. */
 :root:not([data-navigation="menu"]) .home { margin-top: calc(-1 * var(--app-chrome-height, 74px)); }
-:root:not([data-navigation="menu"]) .home__deck { top: 44px; }
+:root:not([data-navigation="menu"]) .home__deck { top: 28px; }
 .home__board { min-width: 0; }
-.home__board .fh[data-fh-d147], .home__board .fh.fh--bar-row, .home__board .fh.fh-counts { max-width: none; padding-left: 0; padding-right: 0; }
+.home__board .fh[data-fh-d147], .home__board .fh.fh--bar-row, .home__board .fh.fh-counts, .home__board .fh.fh-viewrow { max-width: none; padding-left: 0; padding-right: 0; }
 .home__board .fh[data-fh-d147] { padding-top: 0; }
 .home__board .fh[data-fh-d147] .bh { margin-top: 0; max-width: 34ch; }
-/* The one Sort / view control: no title row of its own on a computer — at the column's top right, beside the sentence
-   (34ch, so the two never meet at these widths); in the flow on a phone. */
 .home__board { position: relative; }
-.fh-title--home { justify-content: flex-end; position: absolute; top: 0; right: 0; z-index: 2; }
-/* ⛔ D153 (1): the sentence never runs under it — the header keeps the Sort box's width free beside it (the dock's push
-   narrows the column, measured 11-04: "levels and" under "Sort: For you"). */
-.home__board .fh[data-fh-d147] { padding-right: 132px; }
+/* ⭐ D156 (5): the sort is an icon INSIDE the search field (D152's "Sort: For you" box at the column's top right is gone,
+   and with it the sentence's padding that kept its width free). Its menu opens under the field, at its right. */
+.fh-bar { position: relative; }
+.fh-sorti {
+  flex: 0 0 auto; display: grid; place-items: center; width: 36px; height: 36px; margin-right: -6px; padding: 0; border: 0;
+  border-radius: 10px; background: transparent; color: var(--c-ink-muted); cursor: pointer; transition: background .16s, color .16s;
+}
+.fh-sorti svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.fh-sorti:hover, .fh-sorti:focus-visible { background: var(--c-hover); color: var(--c-ink); outline: none; }
+.fh-sorti:focus-visible { box-shadow: inset 0 0 0 2px var(--c-accent-ink); }
+.fh-sorti[data-active="true"], .fh-sorti[aria-expanded="true"] { color: var(--c-accent-ink); }
+.fh-bar > .fh-sortp { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; width: min(340px, 100%); margin: 0; animation: none; }
+.fh-bar > .fh-sortp .fh-pin { background: var(--c-surface-menu); box-shadow: var(--c-shadow-lg); }
+.fh-bar > .fh-sortp .fh-opts { flex-direction: column; gap: 4px; }
+.fh-bar > .fh-sortp .fh-op { box-shadow: none; }
+.fh-bar > .fh-sortp .fh-op .n { display: none; }
+/* ⭐ D156 (4) · under the search: the views (All jobs · Starred · Imported, with counts) and "Import a job". Plain words in
+   the interface face; the chosen view a quiet box (D60: a box, never a capsule); the counts muted. */
+.fh.fh-viewrow { padding-top: 0; padding-bottom: 14px; font-family: var(--shape-font-ui, var(--font-body)); }
+.fh-viewrow__line { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; }
+.fh-viewrow .fh-views { padding: 0; margin: 0; border: 0; gap: 4px; }
+.fh-viewrow .fh-views button {
+  font: 500 calc(14px * var(--type-scale, 1))/1.3 var(--shape-font-ui, var(--font-body)); color: var(--c-ink-muted);
+  padding: 7px 12px; border-radius: 10px;
+}
+.fh-viewrow .fh-views button[aria-pressed="true"] { background: var(--c-surface-solid); color: var(--c-ink); box-shadow: none; font-weight: 600; }
+.fh-viewrow .fh-views .fh-ct { font: 500 calc(12.5px * var(--type-scale, 1))/1 var(--shape-font-ui, var(--font-body)); color: var(--c-ink-faint); }
+.fh-importb {
+  margin-left: auto; padding: 7px 12px; border: 0; border-radius: 10px; background: transparent; cursor: pointer;
+  font: 600 calc(14px * var(--type-scale, 1))/1.3 var(--shape-font-ui, var(--font-body)); color: var(--c-accent-ink);
+}
+.fh-importb:hover, .fh-importb:focus-visible, .fh-importb[aria-expanded="true"] { background: var(--c-surface-solid); outline: none; }
+.fh-importb:focus-visible { box-shadow: inset 0 0 0 2px var(--c-accent-ink); }
+.fh-import { margin-top: 10px; padding: 12px; border-radius: 14px; background: var(--c-surface-solid); display: grid; gap: 10px; }
+.fh-import textarea {
+  box-sizing: border-box; width: 100%; resize: vertical; min-height: 44px; padding: 11px 14px; border-radius: 10px;
+  border: 1px solid var(--c-border); background: var(--c-surface-2); color: var(--c-ink);
+  font: 400 calc(15px * var(--type-scale, 1))/1.5 var(--shape-font-ui, var(--font-body));
+}
+.fh-import textarea::placeholder { color: var(--c-ink-faint); }
+.fh-import textarea:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
+.fh-import__row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fh-import__go {
+  padding: 9px 18px; border: 0; border-radius: 10px; cursor: pointer; background: var(--c-accent); color: var(--c-on-accent);
+  box-shadow: var(--c-depth-accent); font: 600 calc(14px * var(--type-scale, 1))/1.3 var(--shape-font-ui, var(--font-body));
+}
+.fh-import__go:disabled { opacity: .5; cursor: default; }
+.fh-import__x {
+  padding: 9px 12px; border: 0; border-radius: 10px; cursor: pointer; background: transparent; color: var(--c-ink-muted);
+  font: 600 calc(14px * var(--type-scale, 1))/1.3 var(--shape-font-ui, var(--font-body));
+}
+.fh-import__go:focus-visible, .fh-import__x:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.fh-import__note { margin: 0; flex: 1 1 220px; font-size: calc(13.5px * var(--type-scale, 1)); line-height: 1.45; color: var(--c-ink-muted); }
+.fh-import__note[data-import-note="error"] { color: var(--c-danger); }
 @media (max-width: 980px) {
-  .home { grid-template-columns: minmax(0, 1fr); gap: 34px; padding: 28px 18px 80px; }
+  .home { grid-template-columns: minmax(0, 1fr); gap: 34px; padding: 24px 14px 80px; }
   .home__deck { position: static; margin: 0 auto; width: min(330px, 100%); }
-  .fh-title--home { position: static; margin-bottom: 12px; }
-  .home__board .fh[data-fh-d147] { padding-right: 0; }
 }

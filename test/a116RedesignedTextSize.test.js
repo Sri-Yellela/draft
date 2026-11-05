@@ -35,7 +35,8 @@ test("A116 · D147 — Full House's header block and the sentence's size follow 
   const fh = raw("client/src/components/FullHouse.css");
   const block = slice(fh, "/* ── ⭐ D147 (owner 11-03, fullhouse-declutter.html) · FULL HOUSE, RESTYLED");
   assert.deepEqual(unscaled(block.replace(/\/\*[\s\S]*?\*\//g, "")), []);
-  assert.match(block, /--fh-sentence-size: calc\(min\(30px, 7vw\) \* var\(--type-scale, 1\)\);/);
+  // ⭐ D156 (1d) (changed on purpose): the sentence's ORIGINAL size (FULL_HOUSE_TYPE, min(30px, 6.4vw)) — still times the text size.
+  assert.match(block, /--fh-sentence-size: calc\(min\(30px, 6\.4vw\) \* var\(--type-scale, 1\)\);/);
 });
 
 test("A116 · D147 — the opened posting (its header, actions, facts box and match box) follows the text size", () => {

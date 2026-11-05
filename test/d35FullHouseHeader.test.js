@@ -75,11 +75,11 @@ async function loadUi() {
         import BoardHeadline, { SENTENCE_ID, PANEL_ID } from ${abs("components/BoardHeadline.jsx")};
         import WordPanel, { PanelOptions, AddOptions, panelFocusTarget, panelKeyDown, openerSlot } from ${abs("components/WordPanel.jsx")};
         import SortPanel from ${abs("components/SortPanel.jsx")};
-        import { ViewSegment, SortWord } from ${abs("components/BoardBar.jsx")};
+        import { ViewSegment, SortIcon } from ${abs("components/BoardBar.jsx")};
         export const html = (C, props) => renderToStaticMarkup(createElement(C, props));
         export const htmlRouted = (C, props) => renderToStaticMarkup(createElement(MemoryRouter, null, createElement(C, props)));
         export { BoardHeadline, SENTENCE_ID, PANEL_ID, WordPanel, PanelOptions, AddOptions, panelFocusTarget,
-                 panelKeyDown, openerSlot, SortPanel, ViewSegment, SortWord };`,
+                 panelKeyDown, openerSlot, SortPanel, ViewSegment, SortIcon };`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -406,9 +406,11 @@ test("D35 §4: the VERTICAL ORDER is the sentence, the open panel, the bar, the 
   // sentence and its panel, the search bar, the counts, the jobs.
   const chrome = app.slice(at(app, '<header className="fh"'), at(app, "</main>"));
   const pos = (q) => at(chrome, q);
-  assert.ok(pos("<BoardTitleRow home />") < pos("<BoardHeadlineSlot />") && pos("<BoardHeadlineSlot />") < pos("<BoardBar />"));
-  assert.ok(pos("<BoardBar />") < pos("<BoardCounts />") && pos("<BoardCounts />") < pos("<JobsConsole "), "the jobs come after the bar");
-  assert.match(app.slice(at(app, "function BoardTitleRow("), at(app, "function BoardCounts()")), /<BoardControlIcons \/>[\s\S]*<BoardSortSlot \/>/);
+  // ⭐ D156 (5) / (4), changed on purpose: no title row; the sentence, the bar (the search with the sort icon, its menu
+  // under it), the views row with Import a job, the counts, the jobs.
+  assert.ok(pos("<BoardHeadlineSlot />") < pos("<BoardBar />"));
+  assert.ok(pos("<BoardBar />") < pos("<BoardViews ") && pos("<BoardViews ") < pos("<BoardCounts />") && pos("<BoardCounts />") < pos("<JobsConsole "), "the jobs come after the bar");
+  assert.match(app.slice(at(app, "function BoardBar()"), at(app, "function BoardViews(")), /<BoardControlIcons \/>[\s\S]*<BoardSortSlot \/>/);
   // ⭐ A125: the full-width header wrapper above <main> is gone — Home draws its header inside <main>, before the jobs.
   assert.ok(at(app, "</header>") < at(app, "<JobsConsole "), "the jobs come after the header");
   const panel = strip(read("client/src/panels/JobsPanel.jsx"));
@@ -416,7 +418,7 @@ test("D35 §4: the VERTICAL ORDER is the sentence, the open panel, the bar, the 
 });
 
 test("D35 §3 → D40: the CONDENSED BAR — FOUR views with counts, the search, ⇅ in a 40px square", async () => {
-  const { html, ViewSegment, SortWord } = await loadUi();
+  const { html, ViewSegment, SortIcon } = await loadUi();
   const views = [["all", "ALL", "All jobs"], ["saved", "★", "Saved jobs"], ["pending", "/d", "Pending apply"], ["imported", "+", "Imported jobs"]];
   const counted = html(ViewSegment, { views, value: "all", counts: viewCounts(FACETS) });
   assert.match(counted, /data-view="all" aria-pressed="true"[^>]*><span aria-hidden="true">ALL<\/span><span class="fh-ct" aria-hidden="true">400</);
@@ -429,9 +431,11 @@ test("D35 §3 → D40: the CONDENSED BAR — FOUR views with counts, the search,
   // ⭐ D147 (owner 11-03): the ⇅ square became the Sort / view WORD in the title row — the same glyph beside the words.
   // D149 (11-03) changed this on purpose: fullhouse-declutter.html draws the control as the words "Sort: for you" alone,
   // so the ⇅ glyph (and its SORT_GLYPH_PATH) left the control.
-  assert.doesNotMatch(html(SortWord, {}), /<svg/);
-  assert.match(html(SortWord, { open: true }), /data-board-icon="sort" data-active="false" aria-expanded="true"/);
-  assert.match(html(SortWord, { chosen: true }), /data-active="true"/);
+  // ⭐ D156 (5) changed it again on purpose (owner 11-05: "bring back the sort as an icon in the search bar"): the ⇅ glyph
+  // is back, as an icon inside the search field, its words in its label.
+  assert.match(html(SortIcon, {}), /<svg/);
+  assert.match(html(SortIcon, { open: true }), /data-board-icon="sort" data-active="false" aria-haspopup="true" aria-expanded="true"/);
+  assert.match(html(SortIcon, { chosen: true }), /data-active="true"/);
   // ⛔ D40 (owner, 10-06): + is the FOURTH VIEW; the standalone + square is gone, everywhere.
   assert.match(counted, /data-view="imported"[^>]*><span aria-hidden="true">\+<\/span>/);
   assert.doesNotMatch(read("client/src/components/BoardBar.jsx"), /export function AddSquare/);
@@ -439,11 +443,11 @@ test("D35 §3 → D40: the CONDENSED BAR — FOUR views with counts, the search,
   const rules = cssRules(read(CSS_FILE));
   assert.ok(!rules.some(r => r.selector === ".fh-add"), "the + square's rule is back");
   void typeVarName;
-  assert.ok(rules.some(r => r.selector === '.fh-sortw[aria-expanded="true"]' && r.decls.background === "var(--c-accent)"), "sort open is not filled accent");
+  assert.ok(rules.some(r => r.selector === '.fh-sorti[data-active="true"], .fh-sorti[aria-expanded="true"]' && r.decls.color === "var(--c-accent-ink)"), "sort open / chosen is not the accent");
   // D147: the bar is the search alone (the views and the sort word moved), and the search has no separate button.
   const app = strip(read("client/src/App.jsx"));
-  const bar = app.slice(at(app, "function BoardBar()"), at(app, "function BoardTitleRow("));
-  assert.match(bar, /<div className="fh-bar" data-board-bar="">\s*<BoardSearchBar \/>\s*<\/div>/);
+  const bar = app.slice(at(app, "function BoardBar()"), at(app, "function BoardViews("));
+  assert.match(bar, /<div className="fh-bar" data-board-bar="">\s*<BoardSearchBar><BoardControlIcons \/><\/BoardSearchBar>\s*<BoardSortSlot \/>\s*<\/div>/);
   assert.doesNotMatch(read("client/src/components/BoardBar.jsx"), /aria-label="Search"/, "a separate Search button is back");
   // ⚠ Phone: the bar becomes two rows, by decision — the search on its own line.
   const phone = read(CSS_FILE).slice(at(read(CSS_FILE), "@media (max-width: 600px)"));

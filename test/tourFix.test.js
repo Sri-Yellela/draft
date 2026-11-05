@@ -91,9 +91,12 @@ test("tourYourTurnWholeDeckLit + tourDraftedCounter: the whole deck lit, and a l
 test("the card is three steps: the match, the facts (the card opened), Pass · Save · Draft", () => {
   const ids = [...tour.matchAll(/\{ id: "([a-z_]+)", route:/g)].map(m => m[1]);
   assert.deepEqual(ids.slice(0, 4), ["deck", "deck_match", "deck_facts", "deck_actions"]);
-  // ⭐ D145 (changed on purpose): "the card opened" is its "Why this job" layer — the facts as stat cards.
-  assert.match(tour, /id: "deck_facts", route: "\/app\/today", target: "\[data-fan-offset=\\"0\\"\] \[data-deck-why\]", expand: true,/);
-  assert.match(read("client/src/panels/DeckView.jsx"), /const onExpand = \(e\) => setWhy\(!!e\.detail\?\.open\);/);
+  // ⭐ D156 (1c) (changed on purpose): "the card opened" is its LONG POST, drawn in the deck's slot — the step lights the
+  // posting's facts box there; off Home the deck's expand is still its "Why this job" layer (D145).
+  assert.match(tour, /id: "deck_facts", route: "\/app\/today", target: "\[data-posting-facts\]", expand: true,/);
+  const deck = read("client/src/panels/DeckView.jsx");
+  assert.match(deck, /if \(!home\) \{ setWhy\(!!e\.detail\?\.open\); return; \}/);
+  assert.match(deck, /if \(e\.detail\?\.open\) \{ if \(cur\) openPostingOnDeck\(cur\.job\.id\); \} else closePostingOnDeck\(\);/);
 });
 
 test("tourWaitingPopoverNeverCatchesPresses + a tall target measured on screen only (11-01 proof: the 2nd consent box; The Table on a phone)", () => {

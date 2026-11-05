@@ -41,7 +41,7 @@ import {
   POSTING_AGE, VISITED, ageDaysMap,
 } from "../../../shared/jobFilterOptions.js";
 // AH2: the job-detail address, shared with JobCard so the href and the param cannot disagree.
-import { JOB_URL_PARAM, jobIdFromSearch, OPEN_MATCH_EVENT } from "../lib/jobUrl.js";
+import { JOB_URL_PARAM, jobIdFromSearch, OPEN_MATCH_EVENT, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID } from "../lib/jobUrl.js";
 // D35: the Full House header (App.jsx) renders the sentence, its one panel and the sort panel; this
 // panel publishes what they read — the committed clause params and the facets answer.
 import { JOB_FUNCTIONS, PLACES } from "../../../shared/jobTagVocabulary.js";
@@ -1291,6 +1291,12 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // Job data
   const [jobs,        setJobs]        = useState([]);
   const decideJobRef = useRef(null);
+  // ⭐ D156 (1c): who opened the posting — "deck" (the front card expanding, or its match) or "board" (a bubble, a deep
+  // link). On Home the posting is drawn on the deck either way; a deck card's Pass · Save · Draft are the deck's to make.
+  const [postOrigin, setPostOrigin] = useState("board");
+  const postOriginRef = useRef("board");
+  postOriginRef.current = postOrigin;
+  const decidePostingRef = useRef(null);
   const [totalJobs,   setTotalJobs]   = useState(0);
   const [totalPages,  setTotalPages]  = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -1446,9 +1452,18 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // ⭐ D149 (owner 11-03, fullhouse-declutter.html) · THE POSTING OPENS BESIDE THE LIST on a desktop — the sketch's
   // `.fhl` grid (list | posting, 1fr : 1.05fr) with the posting held at the top of the window while the list scrolls,
   // no scrim, the list still live (another row opens in its place). So the JD panel leaves the overlay host there and
-  // is drawn IN PLACE of the list by the board (D152 (6), JobBoardColumns' post); the PDF stays an overlay peer (⭐ D152 (8): the ATS report is no longer one — it opens inside the posting). At
+  // is drawn ON THE DECK in the front card's place (⭐ D156 (1c), DeckView's slot — it was D152 (6)'s posting in place of the list); the PDF stays an overlay peer (⭐ D152 (8): the ATS report is no longer one — it opens inside the posting). At
   // ≤ 1000px (the sketch's breakpoint) it is the full-screen overlay as before.
-  const besideMode = !!selectedJob && vpWidth > BESIDE_MIN_VIEWPORT;
+  // ⭐ D156 (1c): ON THE DECK — the deck's slot (DeckView renders it on Home, an earlier sibling, so it is in the document
+  // by the time a posting opens). Without a deck on screen the posting is the overlay, as on a phone.
+  const deckSlot = typeof document !== "undefined" ? document.getElementById(DECK_POST_SLOT_ID) : null;
+  const besideMode = !!selectedJob && vpWidth > BESIDE_MIN_VIEWPORT && !!deckSlot;
+  // …and the deck is told which posting it is showing, so it folds its card into it (and out again).
+  const postOnDeckId = besideMode ? String(selectedJob?.jobId ?? "") || null : null;
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent(POSTING_ON_DECK_EVENT, { detail: { jobId: postOnDeckId, origin: postOrigin } }));
+  }, [postOnDeckId, postOrigin]);
+  useEffect(() => () => window.dispatchEvent(new CustomEvent(POSTING_ON_DECK_EVENT, { detail: { jobId: null } })), []);
   const panelDescriptors = useMemo(() => ([
     { id: "jd",  open: !!selectedJob && !besideMode, close: () => { clearDeepLink(); setSelectedJob(null); } },
     { id: "pdf", open: sandboxOpen,     close: () => { setSandboxOpen(false); setSandbox(null); } },
@@ -2048,9 +2063,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       onRegenerate: () => generate(selectedJob, true),
       onVisit: () => visitUrl(selectedJob),
       // A53: the deck's three decisions, the deck's calls. Save and Pass SET; Undo is the toast.
-      onSave: () => decideJob(selectedJob, DECISIONS.SAVED),
-      onPass: () => decideJob(selectedJob, DECISIONS.PASSED),
-      onDraft: () => decideJob(selectedJob, DECISIONS.DRAFTED),
+      onSave: () => decidePostingRef.current?.(selectedJob, DECISIONS.SAVED),
+      onPass: () => decidePostingRef.current?.(selectedJob, DECISIONS.PASSED),
+      onDraft: () => decidePostingRef.current?.(selectedJob, DECISIONS.DRAFTED),
       drafted: isJobDrafted(selectedJob.jobId),
       drafting: draftingIds.has(selectedJob.jobId),
       // D51: never a dead end — the reason, and the way to Draft House.
@@ -2170,6 +2185,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // -- Split-view: job selection ---------------------------------
   const handleJobSelect = useCallback((job) => {
     clearDeepLink();   // the user is driving the panel now
+    setPostOrigin("board");
     setSelectedJob(prev => {
       if (prev?.jobId === job.jobId) return null; // toggle off
       return job;
@@ -2230,15 +2246,33 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     const onAsk = (e) => {
       const id = e.detail?.jobId;
       if (!id) return;
-      const go = (job) => { clearDeepLink(); openAtsPanel(null, job); };
+      const go = (job) => { clearDeepLink(); setPostOrigin(e.detail?.origin === "board" ? "board" : "deck"); openAtsPanel(null, job); };
       const known = displayJobsRef.current.find(j => String(j.jobId) === id || String(j.id) === id);
       if (known) { go(known); return; }
       api(`/api/jobs/by-id/${encodeURIComponent(id)}`)
         .then(d => { if (d?.job) go(normalizeApiJob(d.job)); })
         .catch(() => {});
     };
+    // ⭐ D156 (1c): the deck's front card expanding into the long post — the same posting, opened by the deck.
+    const onOpen = (e) => {
+      const id = e.detail?.jobId;
+      if (!id) return;
+      const go = (job) => { clearDeepLink(); setPostOrigin(e.detail?.origin === "board" ? "board" : "deck"); setSelectedJob(job); };
+      const known = displayJobsRef.current.find(j => String(j.jobId) === id || String(j.id) === id);
+      if (known) { go(known); return; }
+      api(`/api/jobs/by-id/${encodeURIComponent(id)}`)
+        .then(d => { if (d?.job) go(normalizeApiJob(d.job)); })
+        .catch(() => {});
+    };
+    const onClose = () => { clearDeepLink(); setSelectedJob(null); };
     window.addEventListener(OPEN_MATCH_EVENT, onAsk);
-    return () => window.removeEventListener(OPEN_MATCH_EVENT, onAsk);
+    window.addEventListener(OPEN_POSTING_EVENT, onOpen);
+    window.addEventListener(CLOSE_POSTING_EVENT, onClose);
+    return () => {
+      window.removeEventListener(OPEN_MATCH_EVENT, onAsk);
+      window.removeEventListener(OPEN_POSTING_EVENT, onOpen);
+      window.removeEventListener(CLOSE_POSTING_EVENT, onClose);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // state -> URL, so the address is copyable and survives a reload.
@@ -2266,7 +2300,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       const typing = e.target?.closest?.("input, textarea, select, [contenteditable=''], [contenteditable='true']");
       if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
         const decision = { s: DECISIONS.SAVED, d: DECISIONS.DRAFTED, p: DECISIONS.PASSED }[e.key.toLowerCase()];
-        if (decision) { e.preventDefault(); decideJobRef.current?.(selectedJob, decision); return; }
+        if (decision) { e.preventDefault(); decidePostingRef.current?.(selectedJob, decision); return; }
       }
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
@@ -3522,6 +3556,23 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     }
   }, [applyFlags, draftTool, draftedIds, draftingIds, applyStateByJobId, loadApplyRuns, boardTab, currentPage, companyNoticeFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ⭐ D156 (1c) · THE OPENED POSTING'S Pass · Save · Draft. On Home's deck (besideMode — the posting is drawn in the front
+  // card's place): a posting the DECK opened is the deck's card, so the deck decides it (DECK_DECIDE_EVENT — one commit,
+  // the deck's exit and toast); one opened from the list is decided here. Either way the posting then folds and the day's
+  // card is in front again (owner 11-05: "its buttons act on that posting, then the day's card returns"). Off the deck
+  // (a phone's full-screen posting) nothing changes: the board decides and the posting stays open.
+  const decidePosting = (job, decision) => {
+    if (!besideMode) { decideJob(job, decision); return; }
+    if (postOriginRef.current === "deck") {
+      window.dispatchEvent(new CustomEvent(DECK_DECIDE_EVENT, { detail: { jobId: String(job?.jobId ?? job?.id), decision } }));
+    } else {
+      decideJob(job, decision);
+    }
+    clearDeepLink();
+    setSelectedJob(null);
+  };
+  decidePostingRef.current = decidePosting;
+
   const undoLastDecision = useCallback(async () => {
     const t = decisionToast;
     if (!t || t.error) return;
@@ -4131,10 +4182,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               boardLoading={boardLoading}
               cardTier={effectiveTier}
               containerRef={jobsPanelElementRef}
-              post={besideMode ? (
-                <JobDetailPanel key="panel-jd" slot={0} fullScreen={false} beside focused={openPanelCount === 0}
-                  closesOnEscape={openPanelCount === 0} resizeMode="none" />
-              ) : null}
             />
           </Panel>
 
@@ -4190,8 +4237,14 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           )}
         </AnimatePresence>
       </PanelDock>
-      {/* ⭐ D152 (6): the posting (desktop) is drawn IN PLACE of the list by the board itself (JobBoardColumns' post) —
-          outside the overlay host, Escape closing it only while no overlay panel is open (D39). */}
+      {/* ⭐ D156 (1c): on a desktop the posting is drawn ON THE DECK, in the front card's place (the deck's slot) — the card
+          becomes the long post; the list beside it never folds away. Outside the overlay host, Escape closing it only while
+          no overlay panel is open (D39). */}
+      {besideMode && deckSlot && createPortal(
+        <JobDetailPanel key="panel-jd" slot={0} fullScreen={false} beside onDeck focused={openPanelCount === 0}
+          closesOnEscape={openPanelCount === 0} resizeMode="none" />,
+        deckSlot,
+      )}
     </div>
   );
 }
@@ -4282,7 +4335,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       curation = null, curateOff = false, onToggleCurate, boardReason = null,
                       emptyReason = null, canRankByFit = true, onAddResume, resumeReadState = "ready", onRetryResume,
                       savedTab = false, importedTab = false, boardLoading = false,
-                      cardTier = 1, containerRef, post = null }) {
+                      cardTier = 1, containerRef }) {
   // ⛔ D45: never while the current view is still loading — "nothing here" when the truth is "not here yet"
   // is silence reported as success.
   const shouldShowEmptyState = jobs.length === 0 && !scraping && !boardLoading;
@@ -4321,7 +4374,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
     <div ref={containerRef} style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
       {/* ⭐ D152 (6) · Home's board column; with a posting open on a desktop the posting takes the list's place (the list
           stays mounted, folded away). */}
-      <JobBoardColumns post={post}>
+      <JobBoardColumns>
       {/* Rendered OUTSIDE the empty/non-empty branch on purpose: the bridge can narrow a board to a
           short list or to nothing at all, and both need to say so. Left inside the non-empty branch
           it would go silent in the very case where the user has least to go on. */}

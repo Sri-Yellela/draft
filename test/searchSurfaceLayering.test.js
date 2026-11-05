@@ -115,15 +115,17 @@ test("EVERY CONTROL THE PILL CARRIED IS STILL REACHABLE", () => {
   assert.match(app, /const \{ boardTab, setBoardTab, boardHeadline \} = useJobBoard\(\);/,
     "BoardTabs no longer writes the board's own state");
   assert.match(app, /onChange=\{id => setBoardTab\?\.\(id\)\}/);
-  for (const id of ['"all"', '"saved"', '"pending"']) {
+  // ⭐ D156 (4), changed on purpose (owner 11-05: "we dont need the drafted panel now"): All jobs · Starred · Imported.
+  for (const id of ['"all"', '"saved"', '"imported"']) {
     assert.ok(app.includes(id), `the ${id} board view is gone`);
   }
   assert.match(app, /<BoardTabs \/>/, "BoardTabs is defined but never rendered");
   // ...and the three that did NOT need moving are still where they were.
   assert.match(app, /<BoardControlIcons \/>/);
-  // D24 → D35 → D147: the sort control is the title row's Sort / view WORD (it opens the sort panel, which holds the views).
-  assert.match(app, /<SortWord\b/);
-  assert.match(read("client/src/components/BoardBar.jsx"), /const said = `\$\{label \? `Sort: \$\{label\}` : "Sort"\}/);
+  // D24 → D35 → D147 → ⭐ D156 (5): the sort control is an ICON inside the search field (it opens the sort panel); its
+  // label says the current order.
+  assert.match(app, /<SortIcon\b/);
+  assert.match(read("client/src/components/BoardBar.jsx"), /const said = label \? `Sort: \$\{label\}` : "Sort";/);
   assert.match(topbar, /<ProfileSelectorDropdown/, "the profile switcher left the avatar menu");
   assert.match(read("client/src/components/BoardBar.jsx"),
     /* D149 (11-03) changed this on purpose: the sketch's words */ /placeholder="Search a company, title or skill"/);

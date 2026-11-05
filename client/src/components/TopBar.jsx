@@ -548,7 +548,7 @@ export default function TopBar({
           {/* ⭐ D145: the Menu button (shown when Navigation is Menu, or Automatic on a phone) and the Dock (portalled to
               the bottom of the screen) — one list, the same `tabs` the row used to draw. */}
           <AppNav tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onTabChange={onTabChange}
-            profile={user ? { onOpen: openAccount, badge: unread,
+            profile={user ? { onOpen: openAccount, badge: unread, name: user.displayName || user.name || user.username || user.email,
               badgeLabel: `${unread} unread notification${unread === 1 ? "" : "s"}` } : null} />
           {user && (
             <ProfileMenuPanel open={accountOpen} onClose={closeAccount}
