@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import UsbSuggest from "./UsbSuggest.jsx";
+import { api } from "../lib/api.js";
 // The typeahead list's own rules (.usb__suggest*) live with the landing page's bar.
 import "./UnifiedSearchBar.css";
 import "./FullHouse.css";
@@ -39,8 +40,9 @@ export function ViewSegment({ views, value, counts = {}, onChange }) {
   );
 }
 
-/** The search field: the board's keyword, Enter commits it (A74: one press, one search). */
-export function BoardSearch({ onSubmit }) {
+/** The search field: the board's keyword, Enter commits it (A74: one press, one search). ⭐ D156 (5): `children` sit
+ *  inside the field at its right end — the sort icon. */
+export function BoardSearch({ onSubmit, children = null }) {
   const [q, setQ] = useState("");
   const submit = () => onSubmit?.({ query: q });
   return (
@@ -59,26 +61,69 @@ export function BoardSearch({ onSubmit }) {
           <X size={12} aria-hidden="true" />
         </button>
       )}
+      {children}
     </div>
   );
 }
 
 
 /**
- * ⭐ D147 (owner 11-03) · THE ONE SORT / VIEW CONTROL — it was the ⇅ square in the bar; now it is a WORD in the title
- * row: "⇅ Sort: <the order's label>", + " · Saved" when a view other than All jobs is chosen (the views live in its panel).
- * Open = filled accent; a chosen (non-default) order or view holds the accent edge. The same attributes the square had.
+ * ⭐ D156 (5) (owner 11-05: "bring back the sort as an icon in the search bar") · THE SORT ICON — inside the search field,
+ * at its right end (it was D147's "Sort: For you" word at the top of the column). It opens the one sort panel (SortPanel)
+ * as a small menu under the field — For you · Best fit · Newest · Salary · Company, the current one marked; the icon's
+ * label says the current sort. A chosen (non-default) order holds the accent. The same attributes the word had.
  */
-export function SortWord({ open = false, chosen = false, label = "", view = null, onPress }) {
-  const said = `${label ? `Sort: ${label}` : "Sort"}${view ? ` · ${view}` : ""}`;
+export function SortIcon({ open = false, chosen = false, label = "", onPress }) {
+  const said = label ? `Sort: ${label}` : "Sort";
   return (
-    <button type="button" className="fh-sortw" data-board-icon="sort" data-active={chosen ? "true" : "false"}
-      aria-expanded={open} aria-controls={open ? "fh-sort" : undefined}
-      aria-label={`${said} — change the order or the view`} title={`${said} — change the order or the view`}
+    <button type="button" className="fh-sorti" data-board-icon="sort" data-active={chosen ? "true" : "false"}
+      aria-haspopup="true" aria-expanded={open} aria-controls={open ? "fh-sort" : undefined}
+      aria-label={`${said} — change the order`} title={`${said} — change the order`}
       onClick={() => onPress?.()}>
-      {/* ⭐ D149: the sketch's `.quiet` "Sort: for you" — words only, no ⇅ glyph. */}
-      <span>{said}</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v15M3.5 15.5 7 19l3.5-3.5M17 20V5M13.5 8.5 17 5l3.5 3.5" /></svg>
     </button>
+  );
+}
+
+/**
+ * ⭐ D156 (4) (owner 11-05: "the starred and imported has to be there and the import function") · IMPORT A JOB, inline under
+ * the search: paste a link or the job's description → POST /api/import/job (the existing import — the extension's capture
+ * route: draft reads it deterministically, dedups it, keeps it for you, and it is scored against your résumé like every
+ * posting on the board) → it is under Imported. A login-walled link asks for the text instead (the route's
+ * needsClientCapture); a refusal says why, in the route's own words.
+ */
+export function ImportJobBox({ onImported, onClose }) {
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState(null);   // { kind: "ok" | "ask" | "error", text }
+  const v = value.trim();
+  const isLink = /^https?:\/\/\S+$/i.test(v);
+  const submit = async (e) => {
+    e?.preventDefault?.();
+    if (!v || busy) return;
+    setBusy(true); setNote(null);
+    try {
+      const d = await api("/api/import/job", { method: "POST", body: JSON.stringify(isLink ? { url: v } : { text: v }) });
+      if (d?.needsClientCapture) { setNote({ kind: "ask", text: d.message || "That site needs you signed in — paste the job's description instead." }); return; }
+      setNote({ kind: "ok", text: d?.capture?.message || d?.message || `${d?.job?.title || "The job"} is under Imported.` });
+      setValue("");
+      onImported?.(d?.job || null);
+    } catch (err) {
+      setNote({ kind: "error", text: err?.message || "Could not import this job. Please try again." });
+    } finally { setBusy(false); }
+  };
+  return (
+    <form className="fh-import" data-import-box="" onSubmit={submit} aria-label="Import a job"
+      onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); onClose?.(); } }}>
+      <textarea value={value} onChange={(e) => setValue(e.target.value)} rows={isLink || !v ? 1 : 4} autoFocus
+        placeholder="Paste a link to the posting, or its description" aria-label="A link to the posting, or its description"
+        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && isLink) submit(e); }} />
+      <div className="fh-import__row">
+        <button type="submit" className="fh-import__go" disabled={!v || busy}>{busy ? "Reading it…" : "Import"}</button>
+        <button type="button" className="fh-import__x" onClick={() => onClose?.()}>Close</button>
+        {note && <p className="fh-import__note" data-import-note={note.kind} role={note.kind === "error" ? "alert" : "status"}>{note.text}</p>}
+      </div>
+    </form>
   );
 }
 

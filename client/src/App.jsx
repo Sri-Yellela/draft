@@ -34,7 +34,7 @@ import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
 import BoardHeadline             from "./components/BoardHeadline.jsx";
 import WordPanel                 from "./components/WordPanel.jsx";
 import SortPanel                 from "./components/SortPanel.jsx";
-import { ViewSegment, BoardSearch, SortWord } from "./components/BoardBar.jsx";
+import { ViewSegment, BoardSearch, SortIcon, ImportJobBox } from "./components/BoardBar.jsx";
 import StickyBar from "./components/StickyBar.jsx";
 import { nextBoardPanel, sortRows, isSortChosen, DEFAULT_SORT, BOARD_PANEL, viewCounts, boardCounts } from "./lib/filterSentenceModel.js";
 import { ATSToolPage }           from "./pages/tools/ATSToolPage.jsx";
@@ -235,12 +235,13 @@ function AppTopBar({ tabs, ...props }) {
 // Sort / view control's panel now (BoardSortSlot), under "Show". The four views, their values and counts are unchanged.
 const BOARD_TABS = [
   ["all",      "All jobs", "All jobs on your board"],
-  ["saved",    "Saved",    "Saved jobs"],
-  ["pending",  "Pending",  "Pending apply"],
-  // ⭐ D40 (owner, 10-06): the FOURTH VIEW — the jobs you imported, on the board's own card.
+  // ⭐ D156 (4): the ☆ on a bubble STARS it — the view's word is Starred (its id stays `saved`, the API's `starred`).
+  ["saved",    "Starred",  "Starred jobs"],
+  // ⭐ D40 (owner, 10-06): the jobs you imported, on the board's own card.
   ["imported", "Imported", "Imported jobs"],
 ];
-const BOARD_VIEW_WORDS = Object.fromEntries(BOARD_TABS.map(([id, w]) => [id, w]));
+// ⛔ D156 (4) (owner 11-05: "we dont need the drafted panel now"): the Pending / Drafted view is not offered on Home — the
+// tracker (Draft House) holds every application. ?view=pending still reads (JobBoardContext's BOARD_VIEWS).
 
 // D35: the views as ONE segmented control, each with its count (facets' `views`).
 function BoardTabs() {
@@ -277,53 +278,57 @@ function BoardControlIcons() {
   }, [atsSortAvailable, sortBy, setSortBy, fitRow]);
 
   const sortLabel = sortRows(atsSortAvailable).find(r => r.value === sortBy)?.label || "";
-  const { boardTab } = useJobBoard();
+  // ⭐ D156 (5): the sort is an ICON inside the search field; its label says the current order.
   return (
-    <SortWord
+    <SortIcon
       open={boardPanel === BOARD_PANEL.SORT}
       onPress={() => setBoardPanel(current => nextBoardPanel(current, BOARD_PANEL.SORT))}
       label={sortLabel}
-      view={boardTab && boardTab !== "all" ? BOARD_VIEW_WORDS[boardTab] : null}
-      chosen={isSortChosen(sortBy) || (!!boardTab && boardTab !== "all")}
+      chosen={isSortChosen(sortBy)}
     />
   );
 }
 
-// D35: the sort panel opens BENEATH the bar (header.html), above the jobs.
+// D35: the sort panel — ⭐ D156 (5): a small menu under the search field's sort icon (FullHouse.css .fh-bar > .fh-sortp).
 function BoardSortSlot() {
   const { boardPanel, setBoardPanel, sortBy, setSortBy, atsSortAvailable, boardHeadline } = useJobBoard();
   if (boardPanel !== BOARD_PANEL.SORT) return null;
   return (
-    <SortPanel value={sortBy} onChange={setSortBy} atsAvailable={atsSortAvailable}
+    <SortPanel value={sortBy} onChange={(v) => { setSortBy(v); setBoardPanel(null); }} atsAvailable={atsSortAvailable}
       facets={boardHeadline?.facets ?? null} facetsStatus={boardHeadline?.facetsStatus ?? "idle"}
-      onClose={() => setBoardPanel(null)}>
-      {/* ⭐ D147: the views, as words, inside the one Sort / view control. */}
-      <BoardTabs />
-    </SortPanel>
+      onClose={() => setBoardPanel(null)} />
   );
 }
 
-// ⭐ D147 (owner 11-03, fullhouse-declutter.html): THE BAR IS THE SEARCH — the views moved into the Sort / view
-// control and the sort control moved to the title row (BoardTitleRow), so what sticks under the sentence is the search.
+// ⭐ D147 (owner 11-03, fullhouse-declutter.html): THE BAR IS THE SEARCH. ⭐ D156 (5): with the sort icon inside it, and
+// the sort's small menu under it. (D152's title row — the "Sort: For you" word at the top of the column — is gone.)
 function BoardBar() {
   return (
     <div className="fh-bar" data-board-bar="">
-      <BoardSearchBar />
+      <BoardSearchBar><BoardControlIcons /></BoardSearchBar>
+      <BoardSortSlot />
     </div>
   );
 }
 
-// ⭐ D147 · THE TITLE ROW — "Full House" and the ONE Sort / view control, with its panel beneath it.
-// ⛔ D152 (1): on Home there is no page title — the row keeps only the Sort / view control.
-function BoardTitleRow({ home = false }) {
+// ⭐ D156 (4) · UNDER THE SEARCH: All jobs · Starred · Imported, each with its count (facets' views — a count the answer
+// does not hold is not drawn), and "Import a job" — the inline box (BoardBar.jsx ImportJobBox; the existing import route).
+// A job imported lands under Imported: the view switches there and the board is asked again.
+function BoardViews({ onImported }) {
+  const { setBoardTab } = useJobBoard();
+  const [importing, setImporting] = useState(false);
   return (
-    <>
-      <div className={home ? "fh-title fh-title--home" : "fh-title"} data-fh-title="">
-        {!home && <p className="fh-title__h">Full House</p>}
-        <BoardControlIcons />
+    <div className="fh fh-viewrow" data-board-views="">
+      <div className="fh-viewrow__line">
+        <BoardTabs />
+        <button type="button" className="fh-importb" data-import-open="" aria-expanded={importing}
+          onClick={() => setImporting(v => !v)}>Import a job</button>
       </div>
-      <BoardSortSlot />
-    </>
+      {importing && (
+        <ImportJobBox onClose={() => setImporting(false)}
+          onImported={() => { setBoardTab?.("imported"); onImported?.(); }} />
+      )}
+    </div>
   );
 }
 
@@ -594,12 +599,12 @@ function AppDashboard({ authUser, setAuthUser }) {
                 </section>
                 <section className="home__board" aria-label="Every job" data-home-board="">
                   <header className="fh" data-fh-d147="">
-                    <BoardTitleRow home />
                     <BoardHeadlineSlot />
                   </header>
                   <StickyBar top="var(--app-chrome-height, 74px)" className="fh fh--bar-row" data-board-sticky="">
                     <BoardBar />
                   </StickyBar>
+                  <BoardViews onImported={() => setJobBoardRefreshKey(k => k + 1)} />
                   <BoardCounts />
                   <ExtensionFirstRunPrompt />
                   <JobsConsole user={authUser} onUserChange={setAuthUser}

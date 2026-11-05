@@ -19,7 +19,8 @@ const panel = read("client/src/panels/JobsPanel.jsx");
 
 test("D40 · the bar has exactly FOUR views, + last — and no standalone import control remains", () => {
   const tabs = app.slice(at(app, "const BOARD_TABS = ["), at(app, "];", at(app, "const BOARD_TABS = [")));
-  assert.deepEqual([...tabs.matchAll(/^\s*\["(\w+)",/gm)].map(m => m[1]), ["all", "saved", "pending", "imported"]);
+  // ⭐ D156 (4) (changed on purpose): All jobs · Starred · Imported — the Pending (Drafted) view is not needed now.
+  assert.deepEqual([...tabs.matchAll(/^\s*\["(\w+)",/gm)].map(m => m[1]), ["all", "saved", "imported"]);
   // D147 (11-03): the view is the word "Imported" now (inside the Sort / view panel).
   assert.match(tabs, /\["imported", "Imported", "Imported jobs"\]/);
   assert.doesNotMatch(app, /<AddSquare\b/);

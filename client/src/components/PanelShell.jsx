@@ -226,9 +226,11 @@ export default function PanelShell({
   return (
     <motion.div
       key={`panel-${panelId}`}
-      initial={{ x: 560, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 560, opacity: 0 }}
+      // ⭐ D156 (1c): a panel that FILLS its place (the posting drawn on the deck, in the front card's place) rises into it,
+      // as the card it replaces — it does not slide in from the window's edge across the board.
+      initial={fill && !fullScreen ? { y: 10, opacity: 0 } : { x: 560, opacity: 0 }}
+      animate={{ x: 0, y: 0, opacity: 1 }}
+      exit={fill && !fullScreen ? { y: 10, opacity: 0 } : { x: 560, opacity: 0 }}
       transition={{ type: "spring", damping: 26, stiffness: 220 }}
       onMouseDown={onFocus}
       className={surfaceClass}

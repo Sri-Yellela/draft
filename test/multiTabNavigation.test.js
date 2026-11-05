@@ -52,7 +52,8 @@ test("a modified click is left to the browser, a plain click still navigates in-
   assert.match(nav, /return;/);
   assert.match(nav, /e\.preventDefault\(\);/);
   assert.match(nav, /onGo\(t\.id\)/);
-  assert.match(NAV, /const go = useCallback\(\(id\) => \{ setOpen\(false\); onTabChange\?\.\(id\); \}, \[onTabChange\]\);/);
+  // ⭐ D156 (3): a press also folds the expanded dock back to its icons.
+  assert.match(NAV, /const go = useCallback\(\(id\) => \{ setOpen\(false\); setWide\(false\); onTabChange\?\.\(id\); \}, \[onTabChange\]\);/);
 });
 
 test("the href and the click resolve through ONE mapping", () => {
@@ -78,7 +79,8 @@ test("the job-detail address is defined in exactly one place", () => {
   // else — a failure that looks exactly like the feature not existing.
   assert.match(JOBCARD, /import \{ jobDetailHref \} from "\.\.\/lib\/jobUrl\.js"/);
   // ⭐ D152 (8) (b): the board also takes OPEN_MATCH_EVENT from the same file (the deck's "open the match" ask).
-  assert.match(PANEL, /import \{ JOB_URL_PARAM, jobIdFromSearch(, OPEN_MATCH_EVENT)? \} from "\.\.\/lib\/jobUrl\.js"/);
+  // ⭐ D156 (1c): the deck's posting events come from the same one place.
+  assert.match(PANEL, /import \{ JOB_URL_PARAM, jobIdFromSearch(, OPEN_MATCH_EVENT)?(, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID)? \} from "\.\.\/lib\/jobUrl\.js"/);
   // And neither BUILDS the URL itself. Matched against a quoted/templated literal rather than the
   // bare string, so the prose comment explaining the address does not count as a second copy.
   assert.doesNotMatch(JOBCARD, /[`'"]\/app\/jobs\?job=/);

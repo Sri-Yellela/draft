@@ -103,12 +103,13 @@ test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 the
          rests off-screen; when it is out it PUSHES the page (test/d152Home.test.js measures it covering nothing), so the
          seams here are read with it at rest. -->
     <nav class="appnav-dock" data-up="false"><a class="appnav-item" aria-current="page"><span class="appnav-name">Full House</span><small class="appnav-plain">every job</small></a><a class="appnav-item"><span class="appnav-name">Draft House</span><small class="appnav-plain">in progress</small></a></nav>
+    <div data-app-shell><!-- ⭐ D156 (3): the app shell, as App.jsx draws it — AppNav.css pads it by the always-visible rail -->
     ${stuck === "true" ? "" : `<header class="fh" id="hd"><h1 class="bh"><span class="bh__verb">discovering</span> <button class="tok">all</button> roles at <button class="tok">all</button> career levels and <button class="tok">all</button> workstyles in <button class="tok" aria-pressed="true">the United States</button>.</h1></header>`}
     <!-- stuck: the bar's box at the chrome's edge, as top: var(--app-chrome-height) puts it (the bar's 16px margin collapses outside the box) -->
     <main style="${stuck === "true" ? "margin-top:-16px" : "padding-top:24px"}"><div class="sticky-bar fh fh--bar-row" id="bar" data-stuck="${stuck}"><div class="fh-bar">
       <div class="fh-views"><button aria-pressed="true">ALL <em class="fh-ct">454</em></button><button>★ <em class="fh-ct">3</em></button></div>
       <div class="fh-srch"><input placeholder="Job title, company, or anything in the posting…"></div><button class="fh-ico">⇅</button></div></div>
-      <div class="list" id="list">${"<div class=card></div>".repeat(6)}</div></main></body></html>`;
+      <div class="list" id="list">${"<div class=card></div>".repeat(6)}</div></main></div></body></html>`;
   const browser = await puppeteer.launch({ executablePath: browserPath, headless: "new", pipe: true, args: ["--no-first-run"] });
   const failures = [];
   try {
@@ -142,7 +143,10 @@ test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 the
           // Nested painted surfaces (own border AND a fill or a shadow) in the bar.
           const surf = (e) => { const s = getComputedStyle(e); return parseFloat(s.borderTopWidth) > 0 && s.borderTopColor !== "rgba(0, 0, 0, 0)" && (s.backgroundColor !== "rgba(0, 0, 0, 0)" || s.boxShadow !== "none"); };
           const depth = (e) => Math.max(0, ...[...e.children].map(depth)) + (surf(e) ? 1 : 0);
+          // ⭐ D156 (3): the dock is a rail always visible at the left edge — its right edge is an intended boundary.
+          const dock = document.querySelector(".appnav-dock"), dockBox = dock && getComputedStyle(dock).display !== "none" ? dock.getBoundingClientRect() : null;
           return { fhBarLeft: fhBar.left, barTop: bar.top, barBottom: bar.bottom, listTop: list.top, colLeft: col.left, barMid: (bar.top + bar.bottom) / 2,
+            dockRight: dockBox && dockBox.width > 0 ? dockBox.right : 0,
             clipped, nesting: depth(document.querySelector(".fh-bar")), pageWidth: document.documentElement.scrollWidth, win: innerWidth };
         });
         const tag = `${t.id} ${vp} nav=${nav} sentence=${sentence} stuck=${stuck}`;
@@ -157,7 +161,10 @@ test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 the
         if (w > THRESHOLD) failures.push(`${tag}: a hard step of ${w.toFixed(1)} down the page at x=${x}, y≈${80 + wy} (bar ${Math.round(g.barTop)}–${Math.round(g.barBottom)}, list ${Math.round(g.listTop)})`);
         if (stuck === "true") {
           // Across the stuck bar's left edge, at its middle: the frost must feather in, not start at a line.
-          const from = Math.max(0, Math.floor(g.colLeft) - 60);
+          // ⭐ D156 (3) (changed on purpose): never across the dock's rail or its own soft shadow (44 px blur, AppNav.css) — the
+          // rail sits at the window's left edge, always visible, an intended surface. On a phone the rail covers the frost's
+          // left fringe, so what is left to sample there is the bar's own start.
+          const from = Math.max(0, Math.floor(g.colLeft) - 60, g.dockRight ? Math.ceil(g.dockRight) + 44 : 0);
           const across = await profile({ x: from, y: Math.floor(g.barMid), width: Math.min(110, size.width - from), height: 4 }, false);
           // …up to the bar's own edge, short of its shadow (12px): the bar itself is intended.
           const wa = worst(across.slice(0, Math.max(5, Math.floor(g.fhBarLeft) - 12 - from)));

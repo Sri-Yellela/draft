@@ -72,12 +72,27 @@ const rad = (deg) => (deg * Math.PI) / 180;
 // which is why the buttons sit 84 px under the card (the sketch's margin) — the sweep never covers Pass · Save · Draft
 // (D153 (1)). Two backs show; a passed card is gone, not fanned behind. Not the Customise sliders' fan (those tune the
 // other two orientations); reduced motion only drops the movement, the shape is the same.
-export const HOME_CARD = Object.freeze({ width: 300, height: 420, phoneMax: 330, phoneGutter: 80, below: 84, stackPx: 980 });
+// ⭐ D156 (3): a phone keeps the dock's 52 px rail beside the page, so the column is the screen less 80 (the rail + Home's
+// 14 px gutters) and the fan's room 60 (a 250 px card's 10° back reaches 350·sin 10° − 250·(1 − cos 10°) ≈ 57 px right).
+export const HOME_CARD = Object.freeze({ width: 300, height: 420, phoneMax: 330, phoneGutter: 60, phoneChrome: 80, below: 84, stackPx: 980 });
 export const HOME_FAN = Object.freeze({ zoom: 1, spread: 5, reach: 0, visible: 2 });
-/** The Home card's size: 300 × 420 on a computer; on a phone the column (≤ 330) less the fan's 80 px, at 5 : 7. */
+// ⭐ D156 (2) (owner 11-05: "use the horizontal cards for a wider screen and use less margins to make space for a bigger
+// card, so that the stats from the expanded card can come on to the card itself"): at 1440 px and wider the card is
+// LANDSCAPE, 600 × 372, its stats on it. Its backs turn 3° a step (6° for the second): the second's top-right corner moves
+// 600·cos 6° + 372·sin 6° − 600 ≈ 36 px right (the column keeps 40 for it) and its bottom-right corner drops
+// 600·sin 6° ≈ 63 px, under the 72 px gap above Pass · Save · Draft.
+export const HOME_WIDE = Object.freeze({ minViewport: 1440, width: 600, height: 372, column: 640, below: 72 });
+export const HOME_FAN_WIDE = Object.freeze({ ...HOME_FAN, spread: 3 });
+/** Is Home's card landscape at this viewport width? */
+export const homeLandscape = (viewportWidth) => viewportWidth >= HOME_WIDE.minViewport;
+/** The deck's column on Home: 640 for the landscape card, 390 for the portrait one. */
+export const homeDeckColumn = (viewportWidth) => (homeLandscape(viewportWidth) ? HOME_WIDE.column : 390);
+/** The Home card's size: 600 × 372 at ≥ 1440; 300 × 420 on a computer; on a phone the column (≤ 330) less the fan's
+ *  80 px, at 5 : 7. */
 export function homeCardSize(viewportWidth) {
+  if (homeLandscape(viewportWidth)) return { width: HOME_WIDE.width, height: HOME_WIDE.height };
   if (viewportWidth > HOME_CARD.stackPx) return { width: HOME_CARD.width, height: HOME_CARD.height };
-  const col = Math.min(HOME_CARD.phoneMax, viewportWidth - 36);
+  const col = Math.min(HOME_CARD.phoneMax, viewportWidth - HOME_CARD.phoneChrome);
   const width = Math.max(200, col - HOME_CARD.phoneGutter);
   return { width, height: Math.round((width * 7) / 5) };
 }
@@ -85,7 +100,9 @@ export function homeCardSize(viewportWidth) {
 export function homeFanTransform(offset, geometry = HOME_FAN) {
   const origin = "0% 100%";
   if (offset === 0) return { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1, shown: true, depth: 0, origin };
-  const shown = offset > 0 && offset <= geometry.visible;
+  // ⭐ D156 (1b): a card flipped past slides out to the left (and back in from there when the reader goes back).
+  if (offset < 0) return { x: -96, y: 0, rotate: -4, scale: 1, opacity: 0, shown: false, depth: Math.abs(offset), origin };
+  const shown = offset <= geometry.visible;
   return { x: 0, y: 0, rotate: shown ? offset * geometry.spread : 0, scale: 1, opacity: shown ? 1 : 0, shown, depth: Math.abs(offset), origin };
 }
 

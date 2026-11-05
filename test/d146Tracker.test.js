@@ -117,7 +117,8 @@ test("d146OnePanelOneNavEntry — one Dock / Menu entry, Draft House · your app
   assert.match(app, /const TABLE_ROUTE = "database";/);
   assert.match(app, /if \(routeKey === TABLE_ROUTE\) \{\s+navigate\(\{ pathname: "\/app\/auto-apply", search: location\.search \|\| "" \}, \{ replace:true \}\);\s+return;/,
     "the old route lands on the one tracker, its ?sheet= deep link kept");
-  assert.match(nav, /"auto-apply"\s?: "your applications"/);
+  // ⭐ D156 (1c) (changed on purpose): the one entry is the house, "Home · your dashboard and applications".
+  assert.match(nav, /"auto-apply"\s?: "your dashboard and applications"/);
   assert.doesNotMatch(code(nav), /database:/);
   assert.match(app, /<AutoApplyPanel user=\{authUser\}\/>/);
   // The Table is mounted ONCE, inside the tracker, and that composition is declared.
@@ -376,7 +377,8 @@ test("d146NothingDropped — every capability in the row's map survives, where t
   check("Resumes → the Résumé pane + Profile", /navigate\("\/app\/profile"\)/.test(panel) && /\{id === "resume" && profileLink\}/.test(panel) && /\["resumes","Resumes"\]/.test(dbPanel));
   // Saved Jobs → Full House's Saved.
   // D147 (11-03): the view is the word "Saved" now (the Sort / view panel), not ★.
-  check("Saved Jobs → Full House's Saved", /\["saved",\s+"Saved",\s+"Saved jobs"\]/.test(app) && /\.filter\(\(\[id\]\) => !\(embedded && id === "saved"\)\)/.test(dbPanel));
+  // ⭐ D156 (4) (changed on purpose): the view is "Starred" (All jobs · Starred · Imported under the search).
+  check("Saved Jobs → Full House's Saved", /\["saved",\s+"Starred",\s+"Starred jobs"\]/.test(app) && /\.filter\(\(\[id\]\) => !\(embedded && id === "saved"\)\)/.test(dbPanel));
   // Pending Apply / Not applied → In progress / Stopped (one meaning each).
   check("Pending Apply → In progress", byJob(rows, "j-self").filter === "progress" && stageOfHistory({ status: "in_play", origin: "opened_posting" }) === "pending_self");
   check("Not applied → Stopped", byJob(rows, "j-gone").filter === "stopped" && byJob(rows, "j-gone").stage === "not_applied");

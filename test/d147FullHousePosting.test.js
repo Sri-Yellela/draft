@@ -43,11 +43,11 @@ async function loadUi() {
         import { renderToStaticMarkup } from "react-dom/server.browser";
         import PostingPanel from ${abs("components/PostingPanel.jsx")};
         import SortPanel from ${abs("components/SortPanel.jsx")};
-        import { SortWord } from ${abs("components/BoardBar.jsx")};
+        import { SortIcon } from ${abs("components/BoardBar.jsx")};
         import { boardCounts } from ${abs("lib/filterSentenceModel.js")};
         export const html = (C, props, ...kids) => renderToStaticMarkup(createElement(C, props, ...kids));
         export const h = createElement;
-        export { PostingPanel, SortPanel, SortWord, boardCounts };`,
+        export { PostingPanel, SortPanel, SortIcon, boardCounts };`,
       resolveDir: CLIENT, loader: "jsx",
     },
     bundle: true, write: false, format: "esm", platform: "node", jsx: "automatic",
@@ -76,19 +76,25 @@ const JOB = {
 };
 
 test("d147FilterSentenceKept · the sentence that filters stays — its words still open their filters — restyled in the serif", () => {
-  assert.match(app, /<header className="fh" data-fh-d147=""[^>]*>\s*<BoardTitleRow home \/>\s*<BoardHeadlineSlot \/>/);   // A125: Home's header is the only one
+  // ⭐ D156 (5), changed on purpose: no title row before the sentence (the sort is an icon in the search field).
+  assert.match(app, /<header className="fh" data-fh-d147=""[^>]*>\s*<BoardHeadlineSlot \/>/);   // A125: Home's header is the only one
   assert.match(app, /<BoardHeadline params=\{params\}[^>]*\n\s+open=\{boardPanel\} onToggle=\{\(key\) => setBoardPanel\(current => nextBoardPanel\(current, key\)\)\} \/>/,
     "a word's press still opens its filter");
   // The serif at about 30px, through the sentence's TOKENS (D34: no token rule names a font).
-  assert.match(fhCss, /\.fh\[data-fh-d147\] \{\s+--fh-sentence-family: var\(--font-display\); --fh-sentence-size: calc\(min\(30px, 7vw\) \* var\(--type-scale, 1\)\);/, "≈ 30px, following the text size (A116)");
-  // The marked look (the default) underlines every changeable word in the accent, a SET one too (no orange box).
+  // ⭐ D156 (1d) (changed on purpose): the sentence's ORIGINAL type (FULL_HOUSE_TYPE, the logo face) — D147's serif override
+  // is withdrawn; only the size stays here, the original's times the text size (A116).
+  assert.doesNotMatch(fhCss, /--fh-sentence-family: var\(--font-display\)/);
+  assert.match(fhCss, /\.fh\[data-fh-d147\] \{ --fh-sentence-size: calc\(min\(30px, 6\.4vw\) \* var\(--type-scale, 1\)\); \}/, "≈ 30px, following the text size (A116)");
+  // ⭐ D156 (1d) (changed on purpose): the marked look is the ORIGINAL one again (67be9da) — the quiet highlighter underline,
+  // and a SET filter is the one orange box (no --tok-on-* overrides); D147's accent underline is withdrawn.
   const marked = fhCss.slice(at(fhCss, '[data-sentence="marked"] {'), at(fhCss, '[data-sentence="calm"] {'));
-  assert.match(marked, /--tok-depth: inset 0 -1\.5px 0 var\(--c-accent\);/, "underlined in the accent");
-  assert.match(marked, /--tok-on-fill: transparent;[^}]*--tok-on-depth: inset 0 -1\.5px 0 var\(--c-accent\);/, "a set word keeps the underline");
+  assert.match(marked, /--tok-depth: inset 0 -\.16em 0 var\(--c-accent-quiet\);/, "the highlighter underline");
+  assert.doesNotMatch(marked, /--tok-on-fill/, "a set word is the orange box");
   // The search sits under it — the sticky bar holds the search alone.
-  const bar = app.slice(at(app, "function BoardBar() {"), at(app, "// ⭐ D147 · THE TITLE ROW"));
-  assert.match(bar, /<BoardSearchBar \/>/);
-  assert.doesNotMatch(bar, /<BoardTabs|<BoardControlIcons/);
+  // ⭐ D156 (5), changed on purpose: the search holds the sort icon; the views are their own row under it.
+  const bar = app.slice(at(app, "function BoardBar() {"), at(app, "function BoardViews("));
+  assert.match(bar, /<BoardSearchBar><BoardControlIcons \/><\/BoardSearchBar>/);
+  assert.doesNotMatch(bar, /<BoardTabs/);
 });
 
 test("d147PostingsRowsRestyledOnly · the postings are the board's own rows — the same JobBubble with the same decisions", () => {
@@ -97,21 +103,21 @@ test("d147PostingsRowsRestyledOnly · the postings are the board's own rows — 
   assert.match(jobs, /onDraft=\{\(\) => decideJob\?\.\(job, DECISIONS\.DRAFTED\)\}/);
 });
 
-test("d147NoSymbolCounts · ALL · ★ · /d · + are words inside the Sort / view control, not on the first screen", async () => {
-  const tabs = app.slice(at(app, "const BOARD_TABS = ["), at(app, "const BOARD_VIEW_WORDS"));
-  for (const [id, word] of [["all", "All jobs"], ["saved", "Saved"], ["pending", "Pending"], ["imported", "Imported"]]) {
+test("d147NoSymbolCounts · ALL · ★ · /d · + are words, not symbols (⭐ D156: a row under the search)", async () => {
+  // ⭐ D156 (4), changed on purpose: All jobs · Starred · Imported (no Pending view), a row under the search with counts.
+  const tabs = app.slice(at(app, "const BOARD_TABS = ["), at(app, "];", at(app, "const BOARD_TABS = [")));
+  for (const [id, word] of [["all", "All jobs"], ["saved", "Starred"], ["imported", "Imported"]]) {
     assert.match(tabs, new RegExp(`\\["${id}",\\s+"${word}"`), `${id} is the word ${word}`);
   }
   assert.doesNotMatch(tabs, /"ALL"|"★"|"\+"|DraftMark/, "a symbol is back");
-  // The views render only inside the sort panel.
   assert.equal((app.match(/<BoardTabs \/>/g) || []).length, 1);
-  assert.match(app.slice(at(app, "function BoardSortSlot()"), at(app, "function BoardBar()")), /<BoardTabs \/>/);
-  const { html, h, SortPanel, SortWord } = await loadUi();
-  const panel = html(SortPanel, { value: "", atsAvailable: false }, h("span", { "data-kid": "views" }, "views"));
-  assert.match(panel, /data-sort-views=""[^>]*><span class="fh-k">Show<\/span><span data-kid="views">/);
-  assert.match(html(SortWord, { label: "Newest", view: "Saved", chosen: true }), /data-board-icon="sort" data-active="true"[^>]*>.*<span>Sort: Newest · Saved<\/span>/);
-  assert.match(html(SortWord, { label: "For you" }), /<span>Sort: For you<\/span>/);
-  assert.match(html(SortWord, {}), /<span>Sort<\/span>/, "no label from the contract, no invented one");
+  assert.match(app.slice(at(app, "function BoardViews("), at(app, "function BoardCounts()")), /<BoardTabs \/>/);
+  const { html, SortPanel, SortIcon } = await loadUi();
+  assert.doesNotMatch(html(SortPanel, { value: "", atsAvailable: false }), /data-sort-views/, "the views left the sort panel");
+  // ⭐ D156 (5): the sort is an icon; its label says the current order.
+  assert.match(html(SortIcon, { label: "Newest", chosen: true }), /data-board-icon="sort" data-active="true"[^>]*aria-label="Sort: Newest — change the order"/);
+  assert.match(html(SortIcon, { label: "For you" }), /aria-label="Sort: For you — change the order"/);
+  assert.match(html(SortIcon, {}), /aria-label="Sort — change the order"/, "no label from the contract, no invented one");
   // Page numbers → scrolling.
   assert.doesNotMatch(jobs, /Go to page|buildVisiblePageItems|commitPageJump/);
   assert.match(jobs, /<BoardMore shown=\{jobs\.length\} total=\{totalJobs\} more=\{currentPage < totalPages\} onMore=\{onLoadMore\}/);
@@ -201,7 +207,9 @@ test("d147ActionsPassSaveDraftMore · Pass · Save · Draft · More, one row at 
   assert.match(jdCss, /\.pp__main-acts \{ display: grid; grid-template-columns: 1fr 1fr 1\.4fr auto;/);
   assert.match(jd, /<div className="pp__foot" data-posting-actions-bar="">/);
   // Close is a small word in the header now.
-  assert.match(header, /aria-label="Close the posting" title="Close" data-posting-close="">Close<\/button>/);
+  // ⭐ D156 (1c) (changed on purpose): drawn on the deck it says "Fold it back"; elsewhere "Close", as D147 had it.
+  assert.match(header, /aria-label=\{onDeck \? "Fold the posting back into its card" : "Close the posting"\}/);
+  assert.match(header, /data-posting-close="">\{onDeck \? "Fold it back" : "Close"\}<\/button>/);
 });
 
 test("d147UtilityBehaviourKept · each folded button's action is reachable under its new label", () => {

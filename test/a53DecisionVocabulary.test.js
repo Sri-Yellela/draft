@@ -85,7 +85,10 @@ test("the board's Draft calls the SAME route, through the SAME function, as the 
   assert.match(deck, /commitDecision\(\{ jobId: id, decision, tool, surface: DECISION_SURFACES\.DECK \}\)/);
   assert.match(board, /commitDecision\(\{ jobId, decision, tool: draftTool, surface: DECISION_SURFACES\.BOARD \}\)/);
   // Both wire the board's buttons to it.
-  assert.match(board, /onDraft: \(\) => decideJob\(selectedJob, DECISIONS\.DRAFTED\)/);
+  // ⭐ D156 (1c) (changed on purpose): the posting's decisions go through decidePosting — on the deck, a deck card's are
+  // the deck's (the same commitDecision), a bubble's posting is the board's decideJob; off the deck, decideJob as before.
+  assert.match(board, /onDraft: \(\) => decidePostingRef\.current\?\.\(selectedJob, DECISIONS\.DRAFTED\)/);
+  assert.match(board, /const decidePosting = \(job, decision\) => \{\n\s+if \(!besideMode\) \{ decideJob\(job, decision\); return; \}/);
   assert.match(board, /onDraft=\{\(\) => decideJob\?\.\(job, DECISIONS\.DRAFTED\)\}/);
   // ⛔ No fork: lib/jobDecisions.js is the ONLY client file that POSTs a run.
   const posters = CLIENT.filter(f => /api\(\s*"\/api\/apply\/runs"\s*,\s*\{\s*method:\s*"POST"/.test(f.src)).map(f => f.p);

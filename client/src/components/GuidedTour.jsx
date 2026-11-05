@@ -37,10 +37,11 @@ export const TOUR_SCRIPT = Object.freeze([
     text: "The match: how well this résumé fits the job, as a score and as the posting's skills it already shows. Press it for the full report.",
     short: "The match: the score and the skills it shows." },
   // ⭐ D145: the card's facts are its "Why this job" layer now (the skills, then the posting's stat cards) — `expand` opens
-  // it (DeckView's draft:deck-expand), and the step lights it.
-  { id: "deck_facts", route: "/app/today", target: "[data-fan-offset=\"0\"] [data-deck-why]", expand: true,
-    text: "Why this job: the skills your résumé already shows, then the posting's facts: the experience asked, the level, how fresh it is, the visa record.",
-    short: "The skills it shows, then the posting's facts." },
+  // it (DeckView's draft:deck-expand), and the step lights it. ⭐ D156 (1c): on Home `expand` turns the top card into its
+  // long post (drawn in the deck's slot — the only posting on Home), and the step lights its facts box.
+  { id: "deck_facts", route: "/app/today", target: "[data-posting-facts]", expand: true,
+    text: "The posting, opened from its card: the facts at a glance (the experience asked, the workstyle, the pay, how fresh it is) and your match at the end of them.",
+    short: "The posting's facts, and your match." },
   { id: "deck_actions", route: "/app/today", target: "[data-deck-actions]",
     text: "Pass, Save or Draft. Draft makes a résumé tailored to this job and fills in the application for you.",
     short: "Pass, Save or Draft." },

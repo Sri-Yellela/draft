@@ -26,16 +26,17 @@ test("d152OneHomeScreen: /app and /app/jobs both draw the one Home grid — the 
 });
 
 test("d152OneHomeScreen: no page title on Home — the Full House title is not drawn there", () => {
-  const row = APP.slice(at(APP, "function BoardTitleRow("));
-  assert.match(row.slice(0, 600), /\{!home && <p className="fh-title__h">Full House<\/p>\}/);
-  assert.match(APP, /<BoardTitleRow home \/>/);
+  // ⭐ D156 (5) changed this on purpose: the title row that held only the "Sort: For you" word is gone with it — the sort
+  // is an icon inside the search field (test/d156Home.test.js d156SortIconInSearch).
+  assert.doesNotMatch(APP, /BoardTitleRow|fh-title__h|Full House<\/p>/);
 });
 
 test("d152 (1) · the grid is CSS — the deck's 390 column sticky in its track, one column at 980 and under", () => {
   const i = CSS.lastIndexOf("D152 (1) · HOME");
   assert.ok(i > 0);
   const block = CSS.slice(i);
-  assert.match(block, /\.home \{ display: grid; grid-template-columns: auto minmax\(0, 1fr\); gap: 56px; max-width: 1440px;/);
+  // ⭐ D156 (2) changed the numbers on purpose ("use less margins"): 40 apart (was 56), 1600 wide (was 1440).
+  assert.match(block, /\.home \{ display: grid; grid-template-columns: auto minmax\(0, 1fr\); gap: 40px; max-width: 1600px;/);
   assert.match(block, /\.home__deck \{ position: sticky;[^}]*width: 390px; \}/);
   assert.match(block, /@media \(max-width: 980px\) \{\n  \.home \{ grid-template-columns: minmax\(0, 1fr\);/);
   assert.match(DECK, /export const HOME_DECK_COLUMN = 390;/);
@@ -57,24 +58,21 @@ test("d152DockLeftWithLogo / d153DockPushes / d152DockSlidesFromLeftEdge (real C
   for (const [size, d] of Object.entries(out)) {
     assert.equal(d.title, false, `${size}: no page title`);
     assert.equal(d.cornerMark, false, `${size}: no logo in the page corner`);
-    assert.equal(d.emboss, "draft", `${size}: the logo is embossed on the dock`);
-    assert.deepEqual(d.items, ["today", "auto-apply", "atlas", "profile"], `${size}: Home · Draft House · Atlas · Profile`);
+    // ⭐ D156 (3) changed these on purpose: the dock is an always-visible rail of icons — no embossed logo, no edge handle,
+    // nothing off the left edge at rest; it expands on hover / focus and the page moves over (test/d156Home.test.js).
+    assert.equal(d.emboss, null, `${size}: no embossed logo`);
+    assert.deepEqual(d.items, ["today", "auto-apply", "atlas", "profile"], `${size}: Home · draft · Atlas · Profile`);
     assert.equal(d.current, "today");
-    assert.ok(d.rest.dock.right <= 0, `${size}: the dock is off the left edge at rest (${d.rest.dock.right})`);
-    assert.ok(d.out.dock.left >= 0 && d.out.open === "true", `${size}: the pointer at the left edge brings it out`);
-    assert.equal(d.out.padLeft, "268px", `${size}: the page moves over to make room`);
+    assert.ok(d.rest.dock.left >= 0 && d.rest.dock.width > 0, `${size}: the rail is on screen at rest`);
     assert.equal(d.out.coversDeck, false, `${size}: the dock never covers the deck`);
     assert.equal(d.out.coversSentence, false, `${size}: the dock never covers the sentence`);
-    assert.equal(d.rest.sortCoversSentence, false, `${size}: d153 (1) the Sort box never sits on the sentence`);
-    assert.equal(d.out.sortCoversSentence, false, `${size}: … nor with the dock out (the column narrower)`);
-    assert.ok(d.afterEsc.dock.right <= 0 && d.afterEsc.open === null, `${size}: Esc puts it away`);
   }
   assert.equal(out.desktop.grid.columns.split(" ").length, 2, "two columns on a computer");
   assert.equal(out.desktop.grid.deck.width, 390);
   assert.ok(out.desktop.grid.deck.right <= out.desktop.grid.board.left, "the deck's column and the board's never overlap");
   assert.equal(out.phone.grid.columns.split(" ").length, 1, "one column on a phone");
   assert.ok(out.phone.grid.deck.bottom <= out.phone.grid.board.top, "d152PhoneOrderDeckThenPostings");
-  assert.equal(out.phone.handle, true, "a touch screen opens it from the edge handle");
+  assert.equal(out.phone.handle, false, "D156 (3): no edge handle — the rail is always there");
   // ⭐ D152 (2) / D153 (1): the card is card-shaped, its fan sweeps to the lower right inside the deck's column, and the
   // sweep never covers Pass · Save · Draft or the board.
   for (const [size, d] of Object.entries(out)) {
@@ -104,11 +102,12 @@ test("d152DockLeftWithLogo / d153DockPushes / d152DockSlidesFromLeftEdge (real C
   assert.ok(P.focusW[0] > P.restW[0] && P.focusW[1] < P.restW[1], `the focused bubble grows and its neighbour gives way (${P.focusW})`);
   assert.ok(Math.abs(P.focusW[0] + P.focusW[1] - P.restW[0] - P.restW[1]) <= 1, "within the same line");
   assert.equal(out.phone.pairs.restW[0], out.phone.pairs.focusW[0], "a phone stacks the pair — nothing to give way to");
-  // ⭐ D152 (6) / D153 (1): the posting opens IN PLACE of the list on a computer (a phone keeps the full-screen posting).
+  // ⭐ D156 (1c) (changed on purpose — D152 (6) / D153 (1)'s posting in place of the list is removed): a bubble's posting
+  // opens ON THE DECK, in the front card's place, on a computer (a phone keeps the full-screen posting); the list stays.
   const O = out.desktop.opened;
-  assert.ok(O.post && O.inBoard, "d152OnePostingPanelEverywhere — the posting takes the board column");
-  assert.equal(O.listOut, "true"); assert.equal(O.listInert, true, "the folded list is out of the keyboard's reach");
-  assert.equal(O.coversDeck, false, "d153NoOverlapOpenFilter — the posting never covers the deck");
+  assert.ok(O.post && O.onDeck && O.inDeck, "d156ListPostingOpensOnDeck — the posting is drawn in the deck's column");
+  assert.equal(O.listShown, true, "the list beside it stays"); assert.equal(O.boardPost, false, "d156NoSeparatePostingPanel");
+  assert.equal(O.coversBoard, false, "the posting never covers the board");
   // ⭐ D152 (8) · option A: the match opens IN the posting, under the facts, and folds again — no overlay, no blur.
   for (const [size, d] of Object.entries(out)) {
     const m = d.opened.match;
@@ -122,7 +121,8 @@ test("d152DockLeftWithLogo / d153DockPushes / d152DockSlidesFromLeftEdge (real C
   for (const [size, d] of Object.entries(out)) {
     assert.equal(d.closed.sameListNode, true, `${size}: d153OpenPostingNoRemount — the list's node survives an open / close`);
     assert.equal(d.closed.post, false, `${size}: closed`);
-    assert.equal(d.closed.yAfter, d.closed.yBefore, `${size}: d153ScrollRestoredOnClose (${d.closed.yBefore} → ${d.closed.yAfter})`);
+    // ⭐ D156 (1c): on the deck, folding returns the reader to where they were (DeckView keeps it); a phone's overlay never moved it.
+    assert.equal(d.closed.yAfter, d.closed.yBefore, `${size}: the reader returned on fold (${d.closed.yBefore} → ${d.closed.yAfter})`);
   }
 });
 
@@ -130,9 +130,9 @@ test("d153 (1) · no panel placed by JS offsets: BesideDock is gone; the in-plac
   const PANEL = read("client/src/panels/JobsPanel.jsx");
   const BUB = read("client/src/components/JobBubble.jsx");
   assert.doesNotMatch(PANEL, /BesideDock|BESIDE_TOP|addEventListener\("scroll"/, "d153NoScrollPositionListeners");
-  assert.match(BUB, /export function JobBoardColumns\(\{ post = null, children \}\)/);
-  assert.match(BUB, /<div className="jb-board__list" data-out=\{open \? "true" : "false"\}/, "one tree, open or not");
-  assert.match(CSS, /\.home__board:has\(\[data-board-post\]\) > :not\(:has\(\[data-board-post\]\)\) \{ display: none; \}/);
+  // ⭐ D156 (1c) (changed on purpose): the board's column has no posting layer any more — the posting is drawn on the deck.
+  assert.match(BUB, /export function JobBoardColumns\(\{ children \}\) \{\n  return \(\n    <div className="jb-board">\n      <div className="jb-board__list">\{children\}<\/div>/);
+  assert.doesNotMatch(CSS, /\[data-board-post\]/);
 });
 
 test("d152 (5) · the bubbles' source: pairs from JobBubbleRows, one column beside an open posting, no ATS square", () => {
@@ -142,13 +142,15 @@ test("d152 (5) · the bubbles' source: pairs from JobBubbleRows, one column besi
   assert.match(BUB, /export function JobBubbleRows\(\{ jobs, children, columns = 2 \}\)/);
   assert.doesNotMatch(BUB, /jb__sq--ats|onAts/, "the old ATS square and its handler are gone");
   assert.match(PANEL, /<JobBubbleRows jobs=\{jobs\} columns=\{2\}>/);
-  assert.match(CSSB, /\.jb-pair:hover \.jb \{ flex-grow: \.75; \}\n\.jb-pair \.jb:hover, \.jb-pair \.jb:focus-within \{ flex-grow: 1\.5;/);
+  // ⭐ D156 (1b) changed this on purpose: D1's growth — only the hovered one grows (1.55), the neighbour is not squeezed.
+  assert.match(CSSB, /\.jb-pair \.jb:hover, \.jb-pair \.jb:focus-within \{ flex-grow: 1\.55;/);
+  assert.doesNotMatch(CSSB, /\.jb-pair:hover \.jb \{ flex-grow: \.75; \}/);
 });
 
 test("d152 (2) · Home's card size and fan transform (pure)", async () => {
   const { HOME_CARD, HOME_FAN, homeCardSize, homeFanTransform } = await import("../client/src/lib/fanGeometry.js");
   assert.deepEqual(homeCardSize(1280), { width: 300, height: 420 });
-  assert.deepEqual(homeCardSize(390), { width: 250, height: 350 }, "the phone column (330) less the fan's 80, at 5 : 7");
+  assert.deepEqual(homeCardSize(390), { width: 250, height: 350 }, "D156: the phone column (390 less the rail and gutters, 310) less the fan's 60, at 5 : 7");
   assert.equal(HOME_FAN.visible, 2);
   assert.deepEqual(homeFanTransform(0), { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1, shown: true, depth: 0, origin: "0% 100%" });
   assert.deepEqual([1, 2, 3].map(n => [homeFanTransform(n).rotate, homeFanTransform(n).shown]), [[5, true], [10, true], [0, false]]);
@@ -180,16 +182,14 @@ test("d152DeckFromBestBets: the 'best' read orders the frozen deal by each card'
   assert.match(order, /catch \{ return "best"; \}/, "best bets is the deck's default order");
 });
 
-test("d152ReasonLineOnCard / d152NoSeparateBestBetsList: the card says the best-bets reasons once; no separate list", async () => {
+test("d152NoSeparateBestBetsList: no separate best-bets list; the count line (the reason line left the card in D156)", async () => {
+  // ⭐ D156 (1b) changed this on purpose (owner 11-05: "theres a stat saying skills matched, dont need the sentence above
+  // it"): the reason line is gone from the card — test/d156Home.test.js d156NoReasonSentence.
   const { cardFacts } = await import("../client/src/lib/deckCardFacts.js");
-  const f = cardFacts({ job: { id: "x" }, score: 66, bestBet: { reasons: ["you're eligible", "7 of 7 must-haves", "66 ATS match", "posted 10 hours ago", "7 of 7 must-haves"] } });
-  assert.deepEqual(f.reason, { eligible: true, rest: ["7 of 7 must-haves", "posted 10 hours ago"] },
-    "the ATS-match reason is dropped (the match is the card's number) and each reason said once");
-  assert.equal(cardFacts({ job: { id: "y" } }).reason, null, "no reading → no reason line");
+  assert.equal(cardFacts({ job: { id: "x" }, bestBet: { reasons: ["you're eligible"] } }).reason, undefined);
   assert.ok(!fs.existsSync("client/src/components/BestBets.jsx"));
   assert.doesNotMatch(read("client/src/panels/JobsPanel.jsx"), /<BestBets\b|bestBets=/);
-  assert.match(DECK, /\{home && facts\.reason && \(/);
-  assert.match(DECK, /\{!home && facts\.chips\.length > 0 && \(/, "on Home the reason line replaces the hover chips (each fact once)");
+  assert.doesNotMatch(DECK, /facts\.reason/);
   assert.match(DECK, /of \{s\.size\} today · \{deckOrder === "best" \? "best match first"/, "the sketch's count line");
 });
 

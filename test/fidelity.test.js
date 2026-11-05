@@ -23,13 +23,16 @@ test("fidelity · the deck on Home (home-sketch.html): the page, the card, its t
     assert.equal(d.card.radius, "26px", `${size}: card radius 26`);
     assert.equal(d.card.border, "0px", `${size}: no border on the card`);
     assert.equal(d.card.shadow, "rgba(0, 0, 0, 0.35) 0px 30px 70px 0px", `${size}: the sketch's one shadow`);
-    // The sketch's padding (44; a phone's 28) + its count line ("1 of 10 today · best match first", 20 px) + 12 px under it.
-    assert.equal(d.card.top, size === "phone" ? 60 : 76, `${size}: the card's top under the sketch's count line`);
+    // ⭐ D156 (2) / (1b) / (1c) (changed on purpose — home-sketch.html revised 11-05): the page's 28 px padding + the count
+    // row with ‹ › (34 px buttons, .flip) + 10 px under it = 72. ⚠ A phone measures 75 (the sketch has no phone rule for
+    // this row) — pinned as measured, for the owner's sign-off pass (D149).
+    assert.equal(d.card.top, size === "phone" ? 75 : 72, `${size}: the card's top under the count row`);
     assert.match(d.title.family, /^"Instrument Serif"/, `${size}: the title in Instrument Serif`);
-    assert.equal(d.title.size, "30px", `${size}: the title at 30 px`);
+    // ⭐ D156 (1c): the folded card's title — the sketch's 26 px (.ct) on the portrait card, 22 on a phone's smaller card.
+    assert.equal(d.title.size, size === "phone" ? "22px" : "26px", `${size}: the title's size`);
     assert.equal(d.title.weight, "400");
     assert.match(d.company.family, /^"Inter Tight"/, `${size}: the interface face is Inter Tight`);
-    assert.deepEqual([d.company.size, d.company.weight], ["15px", "600"]);
+    assert.deepEqual([d.company.size, d.company.weight], [size === "phone" ? "14px" : "15px", "600"], `${size}: the sketch's 15 (14 on a phone's 250 px card)`);
     assert.deepEqual([d.draft.bg, d.draft.color], ["rgb(251, 211, 196)", "rgb(27, 27, 27)"], `${size}: Draft in the accent, its dark label`);
   }
   assert.equal(out.phone.card.width, 250, "the phone card: the column (330) less the fan's 80");

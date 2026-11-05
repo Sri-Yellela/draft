@@ -109,7 +109,9 @@ test("6. one close affordance, top-right of the header, owned by the primitive",
   // D48: the bare posting panel's × is its header's (the sketch's row) — and only because the shell's is not
   // drawn when bare, so a panel never shows two. Esc and the scrim still close through the shell.
   // ⭐ D147 (11-03): that × is now a small "Close" text box, named "Close the posting" — still exactly one.
-  assert.equal((jd.match(/aria-label="Close the posting"/g) || []).length, 1);
+  // ⭐ D156 (1c): on the deck the same one button says "Fold it back" — still exactly one.
+  assert.equal((jd.match(/"Close the posting"/g) || []).length, 1);
+  assert.equal((jd.match(/data-posting-close=""/g) || []).length, 1);
   assert.match(jd, /^\s+bare$/m);
 });
 

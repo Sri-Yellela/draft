@@ -54,12 +54,16 @@ test("notifications moved INTO the profile menu, whole", () => {
 test("the unread count stays OUTSIDE the menu — D149: on the Profile button of the Dock and the Menu", () => {
   // This is the load-bearing half of the move. Same "9+" cap the bell used.
   const nav = fs.readFileSync("client/src/components/AppNav.jsx", "utf8").replace(/\r\n/g, "\n");
+  // ⭐ D156 (3), changed on purpose: the badge is ONE small component (Badge) every dock icon and Menu entry wears — on the
+  // Profile icon in the dock, beside the name in the Menu.
   const item = nav.slice(at(nav, "function ProfileItem("), at(nav, "export default function AppNav("));
-  assert.match(item, /\{profile\.badge > 0 && \(/, "the Profile button carries no unread badge");
-  assert.match(item, /\{profile\.badge > 9 \? "9\+" : profile\.badge\}/);
+  assert.match(item, /<Badge n=\{profile\.badge\} label=\{profile\.badgeLabel\} \/>/, "the Profile button carries no unread badge");
+  const badge = nav.slice(at(nav, "function Badge("), at(nav, "function NavItems("));
+  assert.match(badge, /if \(!\(n > 0\)\) return null;/);
+  assert.match(badge, /\{n > 9 \? "9\+" : n\}/);
   // And it is announced, not just painted — the number is aria-hidden; the label says it in words.
-  assert.match(item, /<span aria-hidden="true">/);
-  assert.match(item, /<span className="sr-only">\{`, \$\{profile\.badgeLabel\}`\}<\/span>/);
+  assert.match(badge, /<span aria-hidden="true">/);
+  assert.match(badge, /<span className="sr-only">\{`, \$\{label\}`\}<\/span>/);
   assert.match(topBar, /badgeLabel: `\$\{unread\} unread notification\$\{unread === 1 \? "" : "s"\}`/);
   // One source of truth for both renderings: the hook, in TopBar, feeding the badge AND the panel's list.
   assert.match(topBar, /const \{ notifs, unread, load: loadNotifs, markAll \} = useNotifications\(\);/);
@@ -202,7 +206,7 @@ test("the tab row moved into the top bar, whole, and from appTabs — ⭐ D145: 
   assert.doesNotMatch(topBarCode, /className="tbar-tab"|className="tbar-nav"/, "the old tab row is back");
   // Rendered in a real <nav>, from the tabs it is GIVEN — not from a list of its own.
   assert.match(nav, /<nav aria-label="Main"/);
-  assert.match(nav, /\(tabs \|\| \[\]\)\.map\(\(t\) => \(/);
+  assert.match(nav, /\(tabs \|\| \[\]\)\.map\(\(t\) => \{/);
   assert.match(nav, /aria-current=\{activeTab === t\.id \? "page" : undefined\}/);
   assert.ok(!/id: "console"|id: "auto-apply"|id: "database"/.test(topBarCode + nav),
     "TopBar / AppNav grew its own tab list — that is the fourth copy, and the previous three all drifted");
@@ -228,7 +232,9 @@ test("the AUTO APPLY needs-review count survived the move", () => {
   // The count and its sentence are data on the tab; AppNav draws them, and only when something needs a human.
   assert.match(app, /t\.id === "auto-apply" \? \{ \.\.\.t, badge: needsAttentionCount, badgeLabel: attention \} : t/);
   const nav = read("client/src/components/AppNav.jsx");
-  assert.match(nav, /\{t\.badge > 0 && \(/);
-  assert.match(nav, /<span aria-hidden="true">\{t\.badge\}<\/span><span className="sr-only">\{`, \$\{t\.badgeLabel\}`\}<\/span>/);
+  // ⭐ D156 (3): one Badge — a small number on the dock's icon, beside the name in the Menu; drawn only when n > 0.
+  assert.match(nav, /<Badge n=\{t\.badge\} label=\{t\.badgeLabel\} \/>/);
+  assert.match(nav, /if \(!\(n > 0\)\) return null;/);
+  assert.match(nav, /<span aria-hidden="true">\{n > 9 \? "9\+" : n\}<\/span><span className="sr-only">\{`, \$\{label\}`\}<\/span>/);
   assert.match(app, /<AppTopBar/, "the decorator is defined but never rendered");
 });

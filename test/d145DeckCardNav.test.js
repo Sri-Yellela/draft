@@ -104,14 +104,17 @@ test("d145NothingSaidTwice: salary / type / mode only on the folded card, 'poste
 });
 
 test("d145ScrollExpandsAndFolds: a scroll down on the front card opens 'Why this job', a scroll up with the card's top on screen folds it", () => {
-  const wheel = deck.slice(at(deck, "const onWheel = (e) => {"), at(deck, 'el.addEventListener("wheel", onWheel'));
+  // ⭐ D156 (1c): the deck's slot has its own wheel listener (onPostWheel) above this one — the end is searched after the start.
+  const wheelAt = at(deck, "const onWheel = (e) => {");
+  const wheel = deck.slice(wheelAt, at(deck, 'el.addEventListener("wheel", onWheel', wheelAt));
   assert.match(wheel, /const onFront = Math\.abs\(e\.deltaY\) >= Math\.abs\(e\.deltaX\) && faceRef\.current\?\.contains\(e\.target\);/);
   assert.match(wheel, /if \(dir > 0 && !whyRef\.current\) \{ e\.preventDefault\(\);[^\n]*setWhy\(true\)/);
   assert.match(wheel, /if \(dir < 0 && whyRef\.current && top >= 0\) \{ e\.preventDefault\(\);[^\n]*setWhy\(false\)/);
   assert.match(wheel, /if \(whyRef\.current\) return;\s+\/\/ open: the page scrolls/);
   assert.ok(wheel.indexOf("onFront") < wheel.indexOf("stepTarget"), "the card's own scroll is read before the fan turns");
   // The keyboard and the press do the same; a card change folds it.
-  assert.match(deck, /k === "Enter" && tag !== "button" && tag !== "a"\) \{ e\.preventDefault\(\); setWhy\(v => !v\); \}/);
+  // ⭐ D156 (1c) (changed on purpose): on Home Enter opens the card into its long post; elsewhere "Why this job".
+  assert.match(deck, /k === "Enter" && tag !== "button" && tag !== "a"\) \{ e\.preventDefault\(\); if \(home\) openPost\(\); else setWhy\(v => !v\); \}/);
   assert.match(deck, /useEffect\(\(\) => \{ setExpanded\(false\); setWhy\(false\); \}, \[s\.index\]\);/);
   assert.match(face, /data-deck-why-button="" aria-expanded=\{!!why\}/);
 });
@@ -125,10 +128,10 @@ test("d145NavDockOrMenuSetting: Settings → Appearance → Navigation is Automa
   assert.match(navCss, /\[data-navigation="menu"\] \{ --appnav-dock: none; --appnav-menu: inline-flex; --appnav-mark: flex; \}/);
   assert.match(navCss, /\.appnav-dock \{\s*display: var\(--appnav-dock, flex\);/);
   assert.match(navCss, /\.appnav-menu-btn \{\s*display: var\(--appnav-menu, none\);/);
-  // ⭐ D152 (4), changed on purpose: the dock slides in at the LEFT edge, from a window listener (no strip over the page);
-  // a touch screen opens it from the edge handle.
-  assert.match(nav, /if \(e\.clientX <= DOCK_REVEAL_PX\) setUp\(true\);/);
-  assert.match(navCss, /@media \(hover: none\) \{ \.appnav-handle \{ display: var\(--appnav-dock, none\); \} \}/);
+  // ⭐ D152 (4) slid the dock in at the left edge; ⭐ D156 (3) changed it on purpose: an always-visible rail of icons at
+  // the left edge that expands on hover / focus — no edge reveal, no handle (test/d156Home.test.js).
+  assert.doesNotMatch(nav, /DOCK_REVEAL_PX|appnav-handle/);
+  assert.match(nav, /onMouseEnter=\{canHover \? \(\) => setWide\(true\) : undefined\}/);
   // The old tab row is gone from the top bar.
   const top = read("client/src/components/TopBar.jsx");
   assert.doesNotMatch(top, /className="tbar-tab"|className="tbar-nav"/);
@@ -136,24 +139,31 @@ test("d145NavDockOrMenuSetting: Settings → Appearance → Navigation is Automa
 });
 
 test("d145MenuPanelMatchesDock: the side panel's buttons are EXACTLY the dock's — one component, one list; Close, outside, Esc, M", () => {
-  const items = [...nav.matchAll(/<NavItems tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onGo=\{go\} \/>/g)];
+  // ⭐ D156 (3): the dock draws the same list as icons (`dock`); the panel as words.
+  const items = [...nav.matchAll(/<NavItems tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onGo=\{go\}( dock)? \/>/g)];
   assert.equal(items.length, 2, "the dock and the panel each render the one NavItems");
+  assert.deepEqual(items.map(m => !!m[1]), [true, false]);
   assert.match(nav, />Close<\/button>/);
   assert.match(nav, /className="appnav-scrim"[^>]*onClick=\{\(\) => setOpen\(false\)\}/);
   assert.match(nav, /if \(e\.key === "Escape" && open\)/);
   assert.match(nav, /\(e\.key === "m" \|\| e\.key === "M"\)/);
   // ⭐ D152 (4), changed on purpose: M toggles the Menu while it is the navigation, else the dock.
   assert.match(nav, /if \(btn && getComputedStyle\(btn\)\.display !== "none"\) \{ e\.preventDefault\(\); setOpen\(\(o\) => !o\); return; \}/, "M opens the Menu while it is the navigation");
-  assert.match(nav, /if \(dock && getComputedStyle\(dock\)\.display !== "none"\) \{ e\.preventDefault\(\); setUp\(\(u\) => !u\); \}/, "… else the dock");
+  assert.match(nav, /if \(dock && getComputedStyle\(dock\)\.display !== "none"\) \{ e\.preventDefault\(\); setWide\(\(u\) => !u\); \}/, "… else the dock (D156: expands it)");
   // Each button: the section name + a small plain line (D145 Step 2 rule 5).
   // ⭐ D146 (changed on purpose): Draft House and The Table are one entry, "your applications".
   // ⭐ D152 (4), changed on purpose: Home's line is the sketch's "today's picks and every job".
-  assert.match(nav, /today: "today's picks and every job", console: "every job", "auto-apply" : "your applications", atlas: "your skills"/);
+  // ⭐ D156 (1c) (changed on purpose): the tracker's entry is the house, Home — "your dashboard and applications".
+  assert.match(nav, /today: "today's picks and every job", console: "every job", "auto-apply" : "your dashboard and applications", atlas: "your skills"/);
 });
 
-test("d145NoNavSymbols: no icon, symbol or image in the Dock or the Menu", () => {
+// ⭐ D156 (3) changed this on purpose (owner 11-05: "use symbols for the menu dock: a home, a globe like atlas icon, draft
+// icon … profile pic for the profile"): the DOCK is icons; the Menu's side panel stays words.
+test("d145NoNavSymbols → d156: icons only in the Dock (house · /d · globe · picture); the Menu stays words", () => {
   const items = nav.slice(at(nav, "function NavItems("), at(nav, "export default function AppNav"));
-  assert.doesNotMatch(items, /<svg|<img|<i\b|[☰≡★⏳✦→←↑↓]/u);
+  assert.match(items, /\{dock && Icon && <span className="appnav-ico"/, "an icon only in the dock");
+  assert.match(nav, /\{dock && \(\n\s+<span className="appnav-ico appnav-ico--me"/);
+  assert.doesNotMatch(items, /[☰≡★⏳✦→←↑↓]/u);
   assert.doesNotMatch(nav.slice(at(nav, 'className="appnav-menu-btn"')), /<svg|<img|[☰≡]/u, "the Menu button is a word");
 });
 

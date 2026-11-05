@@ -3,8 +3,8 @@
  * WHICH ONE SHOWS is read off data-navigation (shared/appearance.js `navigation`) through custom properties set on the
  * carrier (D93's rule: a preview box carrying its own attribute is drawn in its own choice). "auto": the dock on a
  * computer, the menu on a phone (narrow, or a touch screen with no hover).                                          */
-/* ⭐ D152 (4): "auto" is the dock everywhere now — on a phone it opens from a slim edge handle (home-sketch.html). The
-   corner mark (TopBar.css .tbar-group) shows only with the Menu: the dock carries the logo itself. */
+/* ⭐ D152 (4): "auto" is the dock everywhere now. The corner mark (TopBar.css .tbar-group) shows only with the Menu.
+   ⭐ D156 (3): the dock is an always-visible rail of icons (no edge handle, no embossed logo). */
 [data-navigation="auto"] { --appnav-dock: flex; --appnav-menu: none; --appnav-mark: none; }
 [data-navigation="dock"] { --appnav-dock: flex; --appnav-menu: none; --appnav-mark: none; }
 [data-navigation="menu"] { --appnav-dock: none; --appnav-menu: inline-flex; --appnav-mark: flex; }
@@ -29,36 +29,55 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
   background: var(--c-accent); color: var(--c-on-accent); font-size: 10px; font-weight: 800; line-height: 16px;
 }
 
-/* ── ⭐ D152 (4) · the Dock: the LEFT edge, the logo embossed at its top, slides in and out — home-sketch.html's .dock ── */
-/* At rest it sits 100px past the edge (the sketch's 20px), so its 60px shadow does not bleed onto the page (D92's seam test). */
+/* ── ⭐ D156 (3) / (1b) · the Dock: a SLIM RAIL on the left edge, always visible — four icons of one size (30 px), the
+ * house and the globe in the theme's accent, the short logo /d, the person's picture. Hover or keyboard focus expands it
+ * to the full names (data-open), and the page moves over to make room (the shell's padding below) — it never covers it.
+ * Supersedes D152 (4)'s hidden dock with the embossed logo. The Customise preview draws .appnav-dock too, so every
+ * rail rule is scoped to the real dock ([data-nav-dock]). */
 .appnav-dock {
   display: var(--appnav-dock, flex); flex-direction: column; gap: 2px; padding: 14px 10px; width: 212px; box-sizing: border-box;
-  position: fixed; left: 14px; top: 44px; transform: translateX(calc(-100% - 100px));
+  position: fixed; left: 14px; top: 44px;
   z-index: 250; /* Z.NAV */ max-height: calc(100vh - 88px); overflow-y: auto; scrollbar-width: none;
   background: var(--c-surface-menu); border: 1px solid var(--c-border); border-radius: 24px;
   box-shadow: var(--c-shadow-lg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  transition: transform .32s cubic-bezier(.2, .9, .3, 1);
 }
 .appnav-dock::-webkit-scrollbar { display: none; }
-.appnav-dock[data-up="true"], .appnav-dock:focus-within { transform: translateX(0); }
 .appnav-dock .appnav-item { align-items: flex-start; gap: 1px; padding: 10px 14px; font-size: calc(14px * var(--type-scale, 1)); }
 .appnav-dock .appnav-plain { font-size: calc(12px * var(--type-scale, 1)); }
-/* The embossed logo: the dock's own surface raised and pressed in light and shadow, no colour of its own. */
-.appnav-emboss {
-  display: flex; align-items: center; gap: 7px; padding: 6px 12px 14px; margin-bottom: 8px; border-bottom: 1px solid var(--c-border);
-  font-weight: 800; font-style: italic; font-size: 24px; line-height: 1; color: var(--c-surface-2);
-  text-shadow: -1px -1px 0 var(--c-glass-edge), 1px 1px 1px var(--c-scrim);
+.appnav-words { display: flex; flex-direction: column; gap: inherit; align-items: inherit; min-width: 0; }
+/* The rail: 60 px wide at rest (a 30 px icon in a 9 px item padding, the rail's 6 px), 212 px expanded. */
+.appnav-dock[data-nav-dock] {
+  --appnav-ico: 30px; left: 10px; top: 44px; width: 60px; padding: 8px 6px; gap: 4px; overflow: hidden; border-radius: 20px;
+  box-shadow: var(--c-shadow-sm, none); transition: width .32s cubic-bezier(.2, .9, .3, 1);
 }
-.appnav-emboss i {
-  display: inline-block; width: 8px; height: 24px; transform: skewX(-20deg); background: var(--c-surface-2);
-  box-shadow: -1px -1px 0 var(--c-glass-edge), 1px 1px 1px var(--c-scrim);
+.appnav-dock[data-nav-dock][data-open="true"] { width: 212px; }
+.appnav-dock[data-nav-dock] .appnav-item { flex-direction: row; align-items: center; gap: 12px; padding: 9px; white-space: nowrap; }
+.appnav-dock[data-nav-dock] .appnav-words { gap: 1px; align-items: flex-start; opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+.appnav-dock[data-nav-dock][data-open="true"] .appnav-words { opacity: 1; transition-delay: .08s; }
+/* The icon box — the same 30 px for all four. */
+.appnav-ico {
+  position: relative; flex: none; width: var(--appnav-ico); height: var(--appnav-ico); box-sizing: border-box;
+  display: inline-flex; align-items: center; justify-content: center; color: var(--c-ink);
 }
-/* A touch screen has no pointer to approach with: a slim handle on the left edge opens it. */
-.appnav-handle {
-  display: none; position: fixed; left: 0; top: 50%; transform: translateY(-50%); width: 6px; height: 64px; padding: 0;
-  border: 0; border-radius: 0 6px 6px 0; background: var(--c-surface-2); z-index: 249; cursor: pointer;
+.appnav-svg { width: 100%; height: 100%; fill: none; stroke: var(--c-accent); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+/* The short logo, /d, in the logo face — as wide as the house and the globe, set to fill the box. */
+.appnav-ico [data-draft-mark] { font-size: 19px; letter-spacing: -.04em; }
+.appnav-ico--me { aspect-ratio: 1; border-radius: 50%; overflow: visible; background: var(--c-surface-2); }
+.appnav-ico--me img { width: 100%; height: 100%; aspect-ratio: 1; border-radius: 50%; object-fit: cover; display: block; }
+.appnav-initials { font-weight: 700; font-size: 12px; line-height: 1; color: var(--c-ink); }
+/* A badge rides on the icon's top-right corner. */
+.appnav-ico .appnav-badge { position: absolute; top: -5px; right: -7px; }
+/* The page makes room: the shell is padded by the rail (72 = 10 + 60 + 2) and, while the dock is expanded, by the
+   expanded dock (10 + 212 + 2). Only when the dock is the navigation (the Menu leaves the page alone). */
+:root:not([data-navigation="menu"]) { --appnav-rail-w: 72px; }
+:root:not([data-navigation="menu"])[data-dock-open="true"] { --appnav-rail-w: 224px; }
+[data-app-shell] { padding-left: var(--appnav-rail-w, 0px); transition: padding-left .32s cubic-bezier(.2, .9, .3, 1); }
+/* A phone: the rail a step slimmer (52 px), so the page keeps its width; a tap goes straight to the page. */
+@media (max-width: 600px) {
+  .appnav-dock[data-nav-dock] { left: 6px; top: 24px; width: 46px; padding: 6px 4px; border-radius: 16px; }
+  .appnav-dock[data-nav-dock] .appnav-item { padding: 4px; gap: 10px; }
+  :root:not([data-navigation="menu"]) { --appnav-rail-w: 52px; }
 }
-@media (hover: none) { .appnav-handle { display: var(--appnav-dock, none); } }
 
 /* ── the Menu: a button at the top right, a side panel from the right with the dock's buttons ── */
 .appnav-menu-btn {
@@ -84,7 +103,7 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
   border: 1px solid var(--c-border); background: var(--c-surface-solid); border-radius: var(--shape-radius-small, 10px);
 }
 .appnav-close:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .appnav-dock, .appnav-panel, .appnav-item { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .appnav-dock, .appnav-panel, .appnav-item, .appnav-words, [data-app-shell] { transition: none; } }
 
 /* ⭐ D149 · the Profile panel (TopBar AccountPanel): the Menu panel's surface, the old account menu's width. */
 .acct-panel { width: min(360px, 92vw); gap: 0; padding: 64px 4px 20px; }

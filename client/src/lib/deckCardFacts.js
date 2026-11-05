@@ -35,11 +35,15 @@ export function sincePosted(job, now = Date.now()) {
   return w < 9 ? `${w} weeks` : `${Math.round(d / 30)} months`;
 }
 
+// ⭐ D156 (1b) · Home's card: its stats' short labels, and how many fit.
+export const HOME_STATS_MAX = 4;
+const HOME_STAT_LABEL = { experience: "experience", level: "level", posted: "since posted", sponsorship: "sponsorship" };
+
 const levelWord = (job) => EXPERIENCE_LEVELS.options.find((o) => o.value === job?.tagLevel)?.label || null;
 
 /**
  * @param card { job, band, why, report, score? } — a dealt card as /api/draft/today sends it
- * @returns {{ match, info, chips, why, stats }}
+ * @returns {{ match, info, chips, homeStats, why, stats }}
  */
 export function cardFacts(card, now = Date.now()) {
   const job = card?.job || {};
@@ -91,13 +95,13 @@ export function cardFacts(card, now = Date.now()) {
     sp && SPONSOR[sp.level] ? { key: "sponsorship", value: SPONSOR[sp.level], line: sp.line || sp.label || "the employer's visa record" } : null,
   ].filter(Boolean);
 
-  // ⭐ D152 (3) · THE REASON LINE — the best-bets reading's reasons (server: bestBetOf, the one ranking), in D145's quiet
-  // style: "you're eligible · 7 of 7 must-haves · posted 10 hours ago". Each fact ONCE (D152 (7)): the "N ATS match" reason
-  // is dropped (the match is the card's top-right number) and a repeated reason is said once. null when there is none.
-  const reasons = [...new Set((card?.bestBet?.reasons || []).map(String))].filter((r) => !/\bATS match$/i.test(r));
-  const reason = reasons.length
-    ? { eligible: reasons[0] === "you're eligible", rest: reasons[0] === "you're eligible" ? reasons.slice(1) : reasons }
-    : null;
+  // ⭐ D156 (1b) (owner 11-05: "theres a stat saying skills matched, dont need the sentence above it"): D152 (3)'s reason
+  // line is gone from the card — Home's card carries its stats instead, small: skills matched · experience · level · since
+  // posted · sponsorship, the known ones only, AT MOST FOUR (so they fit the card; nothing scrolls inside it).
+  const homeStats = [
+    total > 0 ? { key: "skills", value: `${mTotal} of ${total}`, label: "skills matched" } : null,
+    ...stats.map((st) => ({ key: st.key, value: st.value, label: HOME_STAT_LABEL[st.key] })),
+  ].filter(Boolean).slice(0, HOME_STATS_MAX);
 
-  return { match, info, chips, reason, why: { headline, matched: matched.slice(0, 6), missing: missing.slice(0, 4), lead }, stats };
+  return { match, info, chips, homeStats, why: { headline, matched: matched.slice(0, 6), missing: missing.slice(0, 4), lead }, stats };
 }

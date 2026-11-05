@@ -42,13 +42,13 @@ import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import { CHROME_HEIGHT_VAR } from "../hooks/useChromeHeight.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
-import { jobDetailHref, openMatchInPosting } from "../lib/jobUrl.js";
+import { DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, POSTING_ON_DECK_EVENT, closePostingOnDeck, jobDetailHref, openMatchInPosting, openPostingOnDeck } from "../lib/jobUrl.js";
 import { TITLE_ATTR, transitionClick } from "../lib/viewTransitions.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
 import { DECISION_SURFACES, DECISION_TOAST_MS, DECISION_VERB, commitDecision, undoDecision } from "../lib/jobDecisions.js";
 import DecisionToast from "../components/DecisionToast.jsx";
-import { EXPAND_CLOCK, HOME_CARD, HOME_FAN, cardSize, fanTransform, geometryFor, homeCardSize, homeFanTransform, orientationFor } from "../lib/fanGeometry.js";
+import { EXPAND_CLOCK, HOME_CARD, HOME_FAN, HOME_FAN_WIDE, HOME_WIDE, cardSize, fanTransform, geometryFor, homeCardSize, homeDeckColumn, homeFanTransform, homeLandscape, orientationFor } from "../lib/fanGeometry.js";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 import { readDeckOrder } from "../lib/deckOrder.js";
 import { postingClick } from "../lib/openPosting.js";
@@ -59,6 +59,11 @@ const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SO
 const TOAST_MS = DECISION_TOAST_MS;
 const WHEEL_STEP = 60;               // accumulated wheel delta for one card
 const WHEEL_SETTLE_MS = 140;         // one trackpad flick is many events; rotate once per flick
+// ⭐ D156 (1c) (owner 11-05: "retain how the cards flipped and how they behaved … from the previous version of the daily
+// deck, we are only changing the content on it"): Home turns its fan exactly as the deck always has — one flick, one card
+// (WHEEL_STEP, WHEEL_SETTLE_MS), J / K, ↑ ↓, ‹ ›; swipe right drafts, left passes. (1b)'s per-gesture flip is gone.
+// A vertical scroll DOWN on the front card opens it into the long post; up, at the post's top, folds it (FOLD_SETTLE_MS).
+const FOLD_SETTLE_MS = 300;
 // ⛔ 44p: the deck's request fails at 8 s with a plain message + Try again (deckNeverSpinsForever), and today's last
 // good deal in this tab is kept on screen when a refresh fails (precomputeFailureShowsLastGood). In memory only.
 const DECK_TIMEOUT_MS = 8000;
@@ -135,6 +140,19 @@ function ActionButton({ label, onClick, primary, disabled, ariaKeys, compact }) 
                opacity: disabled ? 0.5 : 1 }}>
       {label}
     </motion.button>
+  );
+}
+
+// ⭐ D156 (1b) · ‹ › — turn Home's fan one card back or on (a depth box, D60: never a capsule). ⭐ (1c): the keys that do
+// the same are J / K and ↓ / ↑ — the arrows ← → decide (X / D), as the deck always had them.
+function FlipButton({ dir, disabled, onFlip }) {
+  return (
+    <button type="button" data-deck-flip={dir > 0 ? "next" : "prev"} disabled={disabled}
+      aria-label={dir > 0 ? "Next card" : "Previous card"} aria-keyshortcuts={dir > 0 ? "J ArrowDown" : "K ArrowUp"} onClick={() => onFlip(dir)}
+      style={{ width: 34, height: 34, flex: "none", borderRadius: 10, border: "none", background: C.SURFACE_2, color: C.INK, boxShadow: C.DEPTH_REST,
+               fontSize: 18, lineHeight: 1, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.4 : 1, fontFamily: "inherit" }}>
+      <span aria-hidden="true">{dir > 0 ? "›" : "‹"}</span>
+    </button>
   );
 }
 
@@ -217,7 +235,7 @@ function CollapseButton({ onCollapse, controls }) {
 // and the FULL POSTING stays one press away ("The full posting ↓" — the old expansion, unchanged, with the report beside
 // it on a wide screen). What each depth says is lib/deckCardFacts.js — one function, nothing said twice.
 // ⛔ No coloured labels or boxes on the card (the old band mark, the ring, the green chips); never "ATS".
-function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, onCollapse, onReport, onSignal, orientation, home = false, faceMin = null }) {
+function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, onCollapse, onReport, onSignal, orientation }) {
   const { job } = card;
   const facts = cardFacts(card);
   const titleId = `deck-title-${job.id}`;
@@ -225,18 +243,14 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
   const open = isFront && expanded;
   const deep = isFront && (why || expanded);
   const [hover, setHover] = useState(false);
-  // D152 (3): on Home "Why this job" is always on the card (home-sketch.html), under the reason line.
-  const soft = isFront && (home || hover || deep);
+  const soft = isFront && (hover || deep);
   return (
     <div data-deck-face="" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       onFocus={() => setHover(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setHover(false); }}
       // ⭐ D149: declutter-v7.html's card at BOTH widths — 30 / 30 / 26 padding, a 52 px bubble, the 42 px title, a 26 px
       // gap in the info row (the sketch has no phone rule for them; the app used to shrink each on a phone).
-      // ⭐ D152 (2): on Home the card is card-shaped (300 × 420) and its face is home-sketch.html's .card — 22 22 18
-      // padding, a 42 px bubble, the 30 px serif title.
-      // On Home the face is a column as tall as the card, so the reason line sits at its foot (the sketch's margin-top: auto).
-      style={{ padding: home ? "22px 22px 18px" : "30px 30px 26px", fontFamily: shape("FONT_UI"),
-               ...(home && faceMin ? { display: "flex", flexDirection: "column", minHeight: faceMin } : null) }}>
+      // (Home's card face is HomeCardFace, below — D156.)
+      style={{ padding: "30px 30px 26px", fontFamily: shape("FONT_UI") }}>
       {/* ⭐ COLLAPSE AT THE TOP TOO (A39), and STICKY — the bottom one is a whole posting away. */}
       {open && (
         <div data-deck-collapse-top style={{ position: "sticky", top: `calc(var(${CHROME_HEIGHT_VAR}, 74px) + 10px)`, height: 0 }}>
@@ -247,12 +261,11 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
       )}
       <div data-deck-head="" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, paddingRight: open ? 104 : 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-          <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={home ? 42 : 52} radius={home ? 13 : 16} />
+          <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={52} radius={16} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: ts(home ? 15 : 17), fontWeight: 600, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.company}</div>
+            <div style={{ fontSize: ts(17), fontWeight: 600, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.company}</div>
             {/* ⛔ LOCATION ONLY — "posted … ago" lives in the stats (D145). */}
-            {job.location && <div data-deck-location="" style={{ fontSize: ts(home ? 13 : 14), color: C.INK_MUTED, marginTop: 1,
-              ...(home ? { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } : null) }}>{job.location}</div>}
+            {job.location && <div data-deck-location="" style={{ fontSize: ts(14), color: C.INK_MUTED, marginTop: 1 }}>{job.location}</div>}
           </div>
         </div>
         {/* ⭐ THE MATCH, at the top right — "86%" (or the band's word when the card carries no number, G5) over
@@ -264,9 +277,8 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
             onClick={isFront ? (e) => { e.stopPropagation(); onSignal?.(); } : undefined}
             aria-label={`${facts.match.value} résumé match — open the full report`}
             style={{ flex: "none", textAlign: "right", background: "transparent", border: "none", padding: 0, cursor: isFront ? "pointer" : "default", color: "inherit", fontFamily: "inherit" }}>
-            {/* D152 (2): Home's card is the sketch's .m — the number at 28 over "match" in 11.5 (the narrow card's room). */}
-            <div style={{ color: C.ACCENT_INK, fontSize: ts(home ? 28 : facts.match.numeric ? 34 : 24), fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1 }}>{facts.match.value}</div>
-            <div style={{ color: C.INK_MUTED, fontSize: ts(home ? 11.5 : 13), marginTop: 4 }}>{home ? "match" : facts.match.word}</div>
+            <div style={{ color: C.ACCENT_INK, fontSize: ts(facts.match.numeric ? 34 : 24), fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1 }}>{facts.match.value}</div>
+            <div style={{ color: C.INK_MUTED, fontSize: ts(13), marginTop: 4 }}>{facts.match.word}</div>
           </button>
         )}
       </div>
@@ -275,20 +287,19 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
         // ⭐ The shared element (queue 29): this heading IS the job's title on the board's detail and
         // on the review queue's line — one name, so a navigation moves it instead of cutting.
         style={{ fontFamily: "var(--font-display)", fontWeight: 400, lineHeight: 1.04, letterSpacing: "-0.01em", color: C.INK,
-                 fontSize: `calc(${home ? 30 : 42}px * var(${TYPE_SCALE_VAR}, 1))`,
-                 margin: home ? "14px 0 10px" : "16px 0 12px", outline: "none",
-                 // D152 (2): Home's card keeps its 5 : 7 — the title clamps at 2 lines there (the full title is in the posting).
-                 ...(deep ? null : { display: "-webkit-box", WebkitLineClamp: home ? 2 : 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
+                 fontSize: `calc(42px * var(${TYPE_SCALE_VAR}, 1))`,
+                 margin: "16px 0 12px", outline: "none",
+                 ...(deep ? null : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>
         {job.title}
       </h2>
 
       {/* ⭐ ONE minimal info row: each a white value over a small grey label. */}
       {facts.info.length > 0 && (
-        <div data-deck-info="" style={{ display: "flex", gap: home ? "6px 18px" : 26, flexWrap: "wrap", margin: "4px 0 2px" }}>
+        <div data-deck-info="" style={{ display: "flex", gap: 26, flexWrap: "wrap", margin: "4px 0 2px" }}>
           {facts.info.map((f) => (
             <div key={f.key} data-deck-info-item={f.key}>
-              <b style={{ display: "block", fontWeight: 500, fontSize: ts(home ? 15.5 : 18), letterSpacing: "-0.01em", color: C.INK }}>{f.value}</b>
-              <span style={{ display: "block", color: C.INK_MUTED, fontSize: ts(home ? 12 : 13) }}>{f.label}</span>
+              <b style={{ display: "block", fontWeight: 500, fontSize: ts(18), letterSpacing: "-0.01em", color: C.INK }}>{f.value}</b>
+              <span style={{ display: "block", color: C.INK_MUTED, fontSize: ts(13) }}>{f.label}</span>
             </div>
           ))}
         </div>
@@ -301,31 +312,19 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
         </div>
       )}
 
-      {/* ⭐ D152 (3) · THE REASON LINE — the best-bets reading's reasons, at the card's foot on Home (the sketch's .reason). */}
-      {home && facts.reason && (
-        <p data-deck-reason="" title="Why it ranks here — a ranked reading of these signals, not a probability."
-          style={{ margin: "auto 0 0", paddingTop: 10, color: C.INK_MUTED, fontSize: ts(13.5), lineHeight: 1.5,
-                   display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-          {facts.reason.eligible && <b style={{ color: C.INK, fontWeight: 600 }}>you're eligible</b>}
-          {facts.reason.eligible && facts.reason.rest.length > 0 && " · "}
-          {facts.reason.rest.join(" · ")}
-        </p>
-      )}
-
       {/* HOVER: at most two soft facts, then "Why this job?" — on the expansion's clock. */}
       {isFront && (
         <div data-deck-soft="" style={{ display: "grid", gridTemplateRows: soft ? "1fr" : "0fr", opacity: soft ? 1 : 0,
                                         transition: `grid-template-rows ${ON_THE_CLOCK}, opacity ${ON_THE_CLOCK}` }}>
           <div style={{ minHeight: 0, overflow: "hidden" }}>
-            {/* D152 (3) / (7): on Home the reason line says these — no chips there. */}
-            {!home && facts.chips.length > 0 && (
+            {facts.chips.length > 0 && (
               <div data-deck-chips="" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
                 {facts.chips.map((c) => <span key={c} style={{ fontSize: ts(13.5), color: C.INK_MUTED, background: C.SURFACE_2, borderRadius: 10, padding: "5px 11px" }}>{c}</span>)}
               </div>
             )}
             <button type="button" data-deck-why-button="" aria-expanded={!!why} aria-controls="deck-why"
               onClick={(e) => { e.stopPropagation(); onWhy?.(!why); }}
-              style={{ marginTop: home ? 8 : 16, padding: 0, background: "transparent", border: "none", cursor: "pointer", color: C.ACCENT_INK,
+              style={{ marginTop: 16, padding: 0, background: "transparent", border: "none", cursor: "pointer", color: C.ACCENT_INK,
                        fontSize: ts(14), fontWeight: 600, fontFamily: "inherit" }}>
               {why ? "Fold it away ↑" : "Why this job? ↓"}
             </button>
@@ -392,6 +391,96 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
   );
 }
 
+// ⭐ D156 (1c) · HOME'S FOLDED CARD (home-sketch.html's .sum — owner 11-05: "use the space on the card wisely, no need to cram
+// content and leave space"). A FIXED box — 600 × 372 landscape at ≥ 1440 px, 300 × 420 (5 : 7) narrower, 250 × 350 on a
+// phone — and nothing scrolls inside it. The company, location and match; the title, clamped to three lines and CENTRED in
+// its column (margin: auto); the info row (known values only); the stats from the old expanded card (lib/deckCardFacts.js
+// homeStats — skills matched · experience · level · since posted · sponsorship, at most four) as a 2 × 2 grid, and on the
+// landscape card filling the right column as larger cells (22 px values); and "Open the posting", which turns the card
+// into the long post IN PLACE (no reason line, no "Why this job", no separate posting panel — D156 (1c)).
+function HomeCardFace({ card, headingRef, isFront, onSignal, onOpenPost, size, landscape }) {
+  const { job } = card;
+  const facts = cardFacts(card);
+  const titleId = `deck-title-${job.id}`;
+  const small = size.width < 280;   // the phone's card
+  const pad = landscape ? 26 : small ? 16 : 22;
+  const head = (
+    <div data-deck-head="" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+        <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={small ? 36 : 42} radius={small ? 11 : 13} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: ts(small ? 14 : 15), fontWeight: 600, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.company}</div>
+          {job.location && <div data-deck-location="" style={{ fontSize: ts(small ? 12 : 13), color: C.INK_MUTED, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.location}</div>}
+        </div>
+      </div>
+      {facts.match && (
+        <button type="button" data-deck-signal-row="" data-deck-signal="" data-deck-match={facts.match.numeric ? "number" : "band"}
+          {...(facts.match.numeric ? { "data-deck-score": parseInt(facts.match.value, 10) } : null)}
+          onClick={isFront ? (e) => { e.stopPropagation(); onSignal?.(); } : undefined}
+          aria-label={`${facts.match.value} résumé match — open the full report`}
+          style={{ flex: "none", textAlign: "right", background: "transparent", border: "none", padding: 0, cursor: isFront ? "pointer" : "default", color: "inherit", fontFamily: "inherit" }}>
+          <div style={{ color: C.ACCENT_INK, fontSize: ts(small ? 24 : 28), fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1 }}>{facts.match.value}</div>
+          <div style={{ color: C.INK_MUTED, fontSize: ts(11.5) }}>match</div>
+        </button>
+      )}
+    </div>
+  );
+  const title = (
+    <h2 id={titleId} ref={isFront ? headingRef : undefined} tabIndex={-1} {...(isFront ? { [TITLE_ATTR]: job.id } : null)} data-deck-title-line=""
+      style={{ fontFamily: "var(--font-display)", fontWeight: 400, lineHeight: 1.08, letterSpacing: "-0.01em", color: C.INK,
+               fontSize: `calc(${landscape ? 34 : small ? 22 : 26}px * var(${TYPE_SCALE_VAR}, 1))`,
+               // ⭐ centred in the room between the head and the info row — the space used, not left as an empty half.
+               margin: "auto 0", outline: "none",
+               display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+      {job.title}
+    </h2>
+  );
+  const info = facts.info.length > 0 && (
+    <div data-deck-info="" style={{ display: "flex", gap: small ? 12 : 16, flexWrap: "wrap", overflow: "hidden", maxHeight: small ? 40 : 44 }}>
+      {facts.info.map((f) => (
+        <div key={f.key} data-deck-info-item={f.key} style={{ flex: "none", minWidth: 0 }}>
+          <b style={{ display: "block", fontWeight: 500, fontSize: ts(small ? 13 : 14.5), letterSpacing: "-0.01em", color: C.INK, whiteSpace: "nowrap" }}>{f.value}</b>
+          <span style={{ display: "block", color: C.INK_MUTED, fontSize: ts(12), whiteSpace: "nowrap" }}>{f.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+  const stats = facts.homeStats.length > 0 && (
+    <dl data-deck-stats="" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: 0,
+                                    ...(landscape ? { flex: 1, gridAutoRows: "1fr" } : null) }}>
+      {facts.homeStats.map((st) => (
+        <div key={st.key} data-deck-stat={st.key} style={{ display: "flex", flexDirection: "column-reverse", justifyContent: "center", background: C.SURFACE_2, borderRadius: 14,
+                                                            padding: landscape ? "12px 14px" : small ? "8px 10px" : "10px 12px", minWidth: 0 }}>
+          <dt style={{ margin: 0, fontSize: ts(11.5), color: C.INK_MUTED, lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{st.label}</dt>
+          <dd style={{ margin: 0, fontSize: ts(landscape ? 22 : small ? 15 : 17), fontWeight: 500, color: C.ACCENT_INK, letterSpacing: "-0.02em", lineHeight: 1.2,
+                       whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{st.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+  const open = (
+    <button type="button" data-deck-open-posting="" tabIndex={isFront ? undefined : -1} aria-keyshortcuts="Enter"
+      onClick={(e) => { e.stopPropagation(); onOpenPost?.(); }}
+      style={{ alignSelf: "flex-start", background: "transparent", border: "none", padding: 0, cursor: "pointer", color: C.ACCENT_INK,
+               fontSize: ts(13.5), fontWeight: 600, fontFamily: "inherit" }}>
+      Open the posting
+    </button>
+  );
+  return (
+    <div data-deck-face="" data-deck-home-face={landscape ? "landscape" : "portrait"}
+      style={{ boxSizing: "border-box", height: size.height, overflow: "hidden", padding: pad, fontFamily: shape("FONT_UI"),
+               display: "flex", flexDirection: landscape ? "row" : "column", gap: landscape ? 24 : small ? 10 : 14 }}>
+      <div data-deck-home-left="" style={{ flex: landscape ? 1.15 : 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", gap: small ? 8 : 10 }}>
+        {head}{title}{info}
+      </div>
+      <div data-deck-home-right="" style={{ flex: landscape ? 1 : "none", minWidth: 0, display: "flex", flexDirection: "column", gap: 10,
+                                            justifyContent: landscape ? "space-between" : undefined }}>
+        {stats}{open}
+      </div>
+    </div>
+  );
+}
+
 // The expanded card's type — version A's (the D145 row: the accent eyebrow 14, the large tight headline 46 / 500 /
 // −0.035 em (36 on phones), the lead in body grey 19, the stat cards' value 34 in the accent).
 const WHY = {
@@ -417,8 +506,8 @@ const WHY = {
 const POSITION_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const FLIP_EASE = "cubic-bezier(0.34, 1.32, 0.5, 1)";   // a touch of overshoot: the card settles face-up
 
-function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing, appear, dealRank, dealTotal, reduced, home = false,
-                   onDecide, onExpand, onCollapse, onReport, onSignal, onGoto, headingRef, faceRef, why = false, onWhy }) {
+function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing, appear, dealRank, dealTotal, reduced, home = false, landscape = false,
+                   onDecide, onExpand, onCollapse, onReport, onSignal, onGoto, onOpenPost, headingRef, faceRef, why = false, onWhy }) {
   const { card, offset } = entry;
   const isFront = offset === 0;
   // The arc's position. Opening a card does not move it here: the fan lives in the card's grid column,
@@ -478,13 +567,14 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
                    userSelect: expanded ? "text" : "none" }}>
           <div data-flip
             // ⭐ THE FLIP: a card reaching the front turns face-up as it arrives.
-            style={{ position: "relative", transformStyle: "preserve-3d", minHeight: size.height, height: isFront ? "auto" : size.height,
+            style={{ position: "relative", transformStyle: "preserve-3d", minHeight: size.height, height: isFront && !home ? "auto" : size.height,
                      transform: `perspective(1800px) rotateY(${faceUp ? 0 : 180}deg)`,
                      transition: reduced ? "none" : `transform 520ms ${FLIP_EASE} 40ms` }}>
             <article ref={isFront ? faceRef : undefined} aria-labelledby={`deck-title-${card.job.id}`} aria-hidden={!isFront}
-              onClick={isFront && !expanded && !why ? (e) => { if (!dragged.current && !isInteractive(e.target)) onWhy?.(true); } : undefined}
-              // D152 (2): Home's card corner is the sketch's 26.
-              style={{ position: "relative", minHeight: size.height, borderRadius: home ? 26 : 28, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
+              // ⭐ D156 (1c): a press on Home's front card opens it into the long post (the deck's press opened "Why this job").
+              onClick={isFront && !expanded && !why ? (e) => { if (!dragged.current && !isInteractive(e.target)) { if (home) onOpenPost?.(); else onWhy?.(true); } } : undefined}
+              // D152 (2): Home's card corner is the sketch's 26. ⭐ D156 (1b): and its box is FIXED — nothing grows or scrolls in it.
+              style={{ position: "relative", minHeight: size.height, borderRadius: home ? 26 : 28, ...(home ? { height: size.height, overflow: "hidden" } : null), backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
                        // OPAQUE, not see-through glass: over a fan, a translucent face shows the backs
                        // through it (Android found the same with the next card's text, 09-30).
                        ...glass({ radius: home ? 26 : 28 }), backgroundColor: C.SURFACE_SOLID, backdropFilter: "none", WebkitBackdropFilter: "none",
@@ -493,10 +583,12 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
                        border: "none", boxShadow: C.SHADOW_GLASS,
                        transition: "none", transform: "none",
                        cursor: isFront && !expanded ? "pointer" : "auto", visibility: showFace ? "visible" : "hidden" }}>
-              {showFace && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
+              {showFace && home && <HomeCardFace card={card} headingRef={headingRef} isFront={isFront} onSignal={onSignal} onOpenPost={onOpenPost}
+                                                 size={size} landscape={landscape} />}
+              {showFace && !home && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
                                      why={isFront && why} onWhy={onWhy}
                                      onExpand={onExpand} onCollapse={onCollapse} onReport={onReport} onSignal={onSignal}
-                                     orientation={orientation} home={home} faceMin={home ? size.height : null} />}
+                                     orientation={orientation} />}
             </article>
             <div style={{ position: "absolute", inset: 0, transform: "rotateY(180deg)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
                           borderRadius: home ? 26 : 28, maxHeight: size.height }}>
@@ -504,8 +596,8 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
             </div>
           </div>
           {/* The stamps come AFTER the card in the DOM, so they paint over it with no z-index of their own. */}
-          {isFront && <motion.div aria-hidden style={{ ...stamp, color: C.SUCCESS, borderColor: C.SUCCESS, opacity: draftStamp, rotate: 10 }}>DRAFT</motion.div>}
-          {isFront && <motion.div aria-hidden style={{ ...stamp, color: C.INK_MUTED, borderColor: C.INK_MUTED, opacity: passStamp, rotate: -10 }}>PASS</motion.div>}
+          {isFront && <motion.div aria-hidden data-deck-stamp="draft" style={{ ...stamp, color: C.SUCCESS, borderColor: C.SUCCESS, opacity: draftStamp, rotate: 10 }}>DRAFT</motion.div>}
+          {isFront && <motion.div aria-hidden data-deck-stamp="pass" style={{ ...stamp, color: C.INK_MUTED, borderColor: C.INK_MUTED, opacity: passStamp, rotate: -10 }}>PASS</motion.div>}
         </motion.div>
       </div>
     </motion.div>
@@ -588,6 +680,7 @@ function EndOfDeck({ s, tally, needsReview, onUndo }) {
 // ── the view ────────────────────────────────────────────────────────────────────────────────
 // ⭐ D152 (1) · HOME: `home` draws the deck as Home's left column (home-sketch.html's .deckcol, 390 px) — the card-shaped
 // vertical layout at every width, never the two-panel report beside it (the column is the deck's whole width).
+// ⭐ D156 (2): 640 px at ≥ 1440 for the landscape card (lib/fanGeometry.js homeDeckColumn).
 export const HOME_DECK_COLUMN = 390;
 // ⭐ D152 (8) (b): on Home a "Full report on the board" link stays a real link (copyable, opens in a new tab) but a plain
 // click opens the posting beside the deck with its match open — the board is already on this screen.
@@ -612,6 +705,14 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   whyRef.current = why;
   const [leave, setLeave] = useState(null);
   const [frontH, setFrontH] = useState(0);
+  // ⭐ D156 (1c) · THE CARD BECOMES THE LONG POST. On Home the opened posting (the board's JobDetailPanel) is drawn in the
+  // deck's slot, in the front card's place; the board says which one (POSTING_ON_DECK_EVENT, lib/jobUrl.js). While it is
+  // there the deck is READING: the fan is put away, the column stops being sticky, the page scrolls to read it.
+  const [boardPost, setBoardPost] = useState(null);
+  const boardPostRef = useRef(null);
+  boardPostRef.current = boardPost;
+  const slotRef = useRef(null);
+  const pendingDecision = useRef(null);   // a decision from the posting, made once the deck is on screen again
   // A75 (owner, 10-03): "ATS match" as a sort on the daily draft. The deal is frozen; the server reads it
   // back in ATS order when asked (the score itself never reaches the client). Remembered per browser.
   // ⭐ D149: chosen in Settings → Customise (the deck page has no controls row now); read once, here.
@@ -637,7 +738,8 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   // The user's layout (queue 38), FITTED to the screen and overridden by reduced motion — geometryFor
   // is the only road from a stored preference to the fan.
   const [deckPref] = useDeckGeometry();
-  const geometry = home ? HOME_FAN : { ...geometryFor(orientation, deckPref, { reduced: !!reduced }), ...(DEV_FAN?.[orientation] || null) };
+  const landscape = home && homeLandscape(viewportW);
+  const geometry = home ? (landscape ? HOME_FAN_WIDE : HOME_FAN) : { ...geometryFor(orientation, deckPref, { reduced: !!reduced }), ...(DEV_FAN?.[orientation] || null) };
   const size = home ? homeCardSize(viewportW) : cardSize(orientation, vw);
 
   const scoringTries = useRef(0);
@@ -732,6 +834,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     }
   }, [tool]);
 
+  const decideRef = useRef(null);
   const decide = useCallback((decision) => {
     const cur = stateRef.current.cards[stateRef.current.index];
     if (!cur || cur.decision) return;
@@ -739,7 +842,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     let target = null;
     const a = faceRef.current?.getBoundingClientRect?.();
     const b = counterRef.current?.getBoundingClientRect?.();
-    if (a && b) target = { dx: b.left + b.width / 2 - (a.left + a.width / 2), dy: b.top + b.height / 2 - (a.top + a.height / 2) };
+    if (a && b && a.width > 0) target = { dx: b.left + b.width / 2 - (a.left + a.width / 2), dy: b.top + b.height / 2 - (a.top + a.height / 2) };
     setLeave({ variant: leaveFor(decision, target, geometry) });
     setExpanded(false);
     dispatch({ type: "decide", decision });
@@ -748,6 +851,15 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     setToast({ jobId: cur.job.id, company: cur.job.company, decision, at: Date.now() });
     setLive(`${VERB[decision]} ${cur.job.title} at ${cur.job.company}. ${decision === DECISIONS.DRAFTED ? `${n} drafted.` : ""}`);
   }, [commit, geometry.zoom]);   // eslint-disable-line react-hooks/exhaustive-deps
+  decideRef.current = decide;
+  // ⭐ D156 (1c): the posting's decision on the deck's own card, made after the post has folded (the commit that shows
+  // the fan again has painted), so the card leaves as a decided card always does.
+  useEffect(() => {
+    if (boardPost || !pendingDecision.current) return;
+    const d = pendingDecision.current;
+    pendingDecision.current = null;
+    decide(d);
+  }, [boardPost, decide]);
 
   const step = useCallback((dir) => {
     if (stepTarget(stateRef.current, dir) == null) return false;
@@ -776,11 +888,75 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       }, Number(e.detail?.every) || DECK_SCROLL_MS);
     };
     window.addEventListener("draft:deck-sweep", onSweep);
-    // D129 (the facts step): the tour opens the top card so its facts can be lit, and closes it after.
-    const onExpand = (e) => setWhy(!!e.detail?.open);
+    // D129 (the facts step): the tour opens the top card so its facts can be lit, and closes it after. ⭐ D156 (1c): on
+    // Home the top card opens into its long post.
+    const onExpand = (e) => {
+      if (!home) { setWhy(!!e.detail?.open); return; }
+      const cur = stateRef.current?.cards?.[stateRef.current.index];
+      if (e.detail?.open) { if (cur) openPostingOnDeck(cur.job.id); } else closePostingOnDeck();
+    };
     window.addEventListener("draft:deck-expand", onExpand);
     return () => { window.removeEventListener("draft:deck-sweep", onSweep); window.removeEventListener("draft:deck-expand", onExpand); clearInterval(timer); };
-  }, [reduced]);
+  }, [reduced, home]);
+
+  // ⭐ D156 (1c) · open the front card into its long post / fold it back (the board draws the posting in the slot).
+  const openPost = useCallback(() => {
+    const cur = stateRef.current.cards[stateRef.current.index];
+    if (cur && !cur.decision) openPostingOnDeck(cur.job.id);
+  }, []);
+  const foldPost = useCallback(() => closePostingOnDeck(), []);
+  useEffect(() => {
+    if (!home) return undefined;
+    const onPost = (e) => setBoardPost(e.detail?.jobId ? { jobId: String(e.detail.jobId), origin: e.detail.origin || "board" } : null);
+    // The posting's Pass · Save · Draft on the deck's own card: the deck decides it — the same call, exit and toast as
+    // its own buttons (and the posting has folded by then).
+    // ⛔ Measured (44v, real Chrome): decided while the post still covers the deck (its content display: none), the card's
+    // exit never ran and the passed card stayed on top of the fan. So the post folds first, and the decision is made once
+    // the deck is back on screen (the effect below).
+    const onDecide = (e) => {
+      const cur = stateRef.current.cards[stateRef.current.index];
+      if (!cur || String(cur.job.id) !== String(e.detail?.jobId) || !e.detail?.decision) return;
+      if (!boardPostRef.current) { decideRef.current?.(e.detail.decision); return; }
+      pendingDecision.current = e.detail.decision;
+      setBoardPost(null);
+    };
+    window.addEventListener(POSTING_ON_DECK_EVENT, onPost);
+    window.addEventListener(DECK_DECIDE_EVENT, onDecide);
+    return () => { window.removeEventListener(POSTING_ON_DECK_EVENT, onPost); window.removeEventListener(DECK_DECIDE_EVENT, onDecide); };
+  }, [home]);
+  // Reading: a scroll UP with the post's top on screen folds it (home-sketch.html); otherwise the page scrolls.
+  useEffect(() => {
+    const el = slotRef.current;
+    if (!home || !boardPost || !el) return undefined;
+    let settleUntil = 0;
+    const onPostWheel = (e) => {
+      if (e.ctrlKey || Math.abs(e.deltaY) < Math.abs(e.deltaX) || e.deltaY >= 0) return;
+      if (el.getBoundingClientRect().top < 0) return;
+      // Only at the posting's own top: a scroll inside its long description reads back up first.
+      if (e.target?.closest?.("[data-panel-body], .pp__body") && e.target.closest("[data-panel-body], .pp__body").scrollTop > 0) return;
+      e.preventDefault();
+      const now = performance.now();
+      if (now >= settleUntil) { settleUntil = now + FOLD_SETTLE_MS; foldPost(); }
+    };
+    el.addEventListener("wheel", onPostWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onPostWheel);
+  }, [home, boardPost, foldPost]);
+  // Opening scrolls UP to the post when the reader is below it (a bubble far down the list — the sketch's scrollTo);
+  // folding returns them to where they were. Nothing else moves the page.
+  const readFromY = useRef(null);
+  const reading = !!boardPost;
+  useLayoutEffect(() => {
+    if (!home) return;
+    if (reading) {
+      if (readFromY.current == null) readFromY.current = window.scrollY;
+      const top = slotRef.current?.getBoundingClientRect().top;
+      if (top != null && top < 0) window.scrollTo({ top: Math.max(0, window.scrollY + top - 20), behavior: "auto" });
+    } else if (readFromY.current != null) {
+      const y = readFromY.current;
+      readFromY.current = null;
+      window.scrollTo({ top: y, behavior: "auto" });
+    }
+  }, [home, reading]);
 
   const undo = useCallback(async () => {
     const t = toast;
@@ -828,10 +1004,20 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       if (expandedRef.current || e.ctrlKey) return;           // reading, or pinch-zoom: the page's
       const d = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
       const dir = d > 0 ? 1 : -1;
-      // ⭐ D145 · scroll DOWN on the front card opens "Why this job"; scroll UP, with the card's top on screen, folds it. Open,
-      // a further scroll down reads on (the page scrolls). A vertical flick only — a sideways one still turns the fan.
       const onFront = Math.abs(e.deltaY) >= Math.abs(e.deltaX) && faceRef.current?.contains(e.target);
-      if (onFront) {
+      // ⭐ D156 (1c) · HOME: a scroll DOWN on the front card opens it into the long post (the slot then folds it on a scroll
+      // up at its top); any other flick turns the fan, one card per flick, as the deck always has.
+      if (home) {
+        if (boardPostRef.current) return;                     // reading: the page scrolls
+        if (onFront && dir > 0) {
+          e.preventDefault();
+          const now = performance.now();
+          if (now >= settleUntil) { settleUntil = now + FOLD_SETTLE_MS; openPost(); }
+          return;
+        }
+      } else if (onFront) {
+        // ⭐ D145 · scroll DOWN on the front card opens "Why this job"; scroll UP, with the card's top on screen, folds it. Open,
+        // a further scroll down reads on (the page scrolls). A vertical flick only — a sideways one still turns the fan.
         const now = performance.now();
         if (dir > 0 && !whyRef.current) { e.preventDefault(); if (now >= settleUntil) { settleUntil = now + 300; setWhy(true); } return; }
         // Fold when the card's top is on screen (reading further down, a scroll up reads back up first).
@@ -848,7 +1034,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [step, load.status, isFinished(state)]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, home, openPost, load.status, isFinished(state)]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onKey = (e) => {
@@ -856,6 +1042,13 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       const tag = (e.target?.tagName || "").toLowerCase();
       if (tag === "input" || tag === "textarea" || tag === "select" || e.target?.isContentEditable) return;
       const k = e.key;
+      // ⭐ D156 (1c): reading the long post, the posting's own keys act on it (JobsPanel: S · D · P, Esc folds) — the deck's
+      // letters would decide the card hidden under it.
+      if (boardPostRef.current) {
+        if (k === "Escape") foldPost();
+        else if (k === "Enter" && tag !== "button" && tag !== "a") { e.preventDefault(); foldPost(); }
+        return;
+      }
       if (k === "d" || k === "D" || k === "ArrowRight") { e.preventDefault(); decide(DECISIONS.DRAFTED); }
       else if (k === "x" || k === "X" || k === "ArrowLeft") { e.preventDefault(); decide(DECISIONS.PASSED); }
       else if (k === "s" || k === "S") { e.preventDefault(); decide(DECISIONS.SAVED); }
@@ -864,17 +1057,18 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       else if (k === "j" || k === "J") { e.preventDefault(); step(1); }
       else if (k === "k" || k === "K") { e.preventDefault(); step(-1); }
       else if ((k === "ArrowDown" || k === "ArrowUp") && !expandedRef.current) { if (step(k === "ArrowDown" ? 1 : -1)) e.preventDefault(); }
-      else if (k === "Enter" && tag !== "button" && tag !== "a") { e.preventDefault(); setWhy(v => !v); }
+      else if (k === "Enter" && tag !== "button" && tag !== "a") { e.preventDefault(); if (home) openPost(); else setWhy(v => !v); }
       else if (k === "Escape") { setExpanded(false); setWhy(false); setLegend(false); }
       else if (k === "?") setLegend(v => !v);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [decide, undo, step]);
+  }, [decide, undo, step, home, openPost, foldPost]);
 
   const dateLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   const vertical = orientation === "vertical";
-  const stageH = Math.max(size.height, frontH || 0);
+  // ⭐ D156 (1b): Home's stage is the card's fixed box — it never follows a growing face.
+  const stageH = home ? size.height : Math.max(size.height, frontH || 0);
   const dealTotal = Math.min(order.length, geometry.visible + 1);
 
   return (
@@ -888,8 +1082,8 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
           the arc riding right with an open card's column is clipped at the SCREEN's edge. */}
       <div data-deck-clip style={{ overflowX: "clip" }}>
       {/* isolation: the fan's tiers are below CONTENT, and this keeps them above the page itself. */}
-      <div data-deck-orientation={orientation} data-deck-home={home ? "" : undefined}
-        style={{ maxWidth: home ? HOME_DECK_COLUMN : vertical ? 560 : 760, margin: "0 auto",
+      <div data-deck-orientation={orientation} data-deck-home={home ? "" : undefined} data-deck-reading={home && boardPost ? "true" : undefined}
+        style={{ maxWidth: home ? homeDeckColumn(viewportW) : vertical ? 560 : 760, margin: "0 auto",
                  // ⭐ D149: the card's top at the sketch's 90 px — the chrome's 74 + 16 (App.jsx gives the deck no main padding).
                  // D152: on Home the column's own padding places it, and the fan's room is above the buttons (HOME_CARD.below).
                  padding: home ? 0 : vertical ? "16px 12px 120px" : "16px 16px 140px",
@@ -902,6 +1096,14 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                  "--deck-t": reduced ? "0s" : EXPAND_CLOCK.duration, "--deck-ease": EXPAND_CLOCK.ease }}>
         <CardBackDefs />
         <div aria-live="polite" style={visuallyHidden}>{live}</div>
+        {/* ⭐ D156 (1c) · THE LONG POST'S PLACE — the board draws the opened posting here (JobsPanel, a portal), in the front
+            card's place; the deck's own content steps aside while it is open. Always in the document on Home, so the board
+            can find it the moment a posting opens. */}
+        {home && (
+          <div id={DECK_POST_SLOT_ID} ref={slotRef} data-deck-post-slot="" data-open={boardPost ? "true" : "false"}
+            {...(boardPost ? { "data-post-origin": boardPost.origin } : { hidden: true })} />
+        )}
+        <div data-deck-content="" style={home && boardPost ? { display: "none" } : undefined}>
         {/* The header and every non-deck state keep the deck's resting width; only the deck's grid is wide. */}
         <div style={{ maxWidth: vertical ? 560 : 760, margin: "0 auto" }}>
 
@@ -977,10 +1179,15 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
         {load.status === "ready" && (current || order.length > 0) && !isFinished(s) && (
             <div data-deck-col style={{ minWidth: 0 }}>
               {/* ⭐ D152 (3): home-sketch.html's .count — where you are in today's picks, and in what order. */}
+              {/* ⭐ D156 (1b): ‹ › beside it turn the fan one card (as J / K, ↑ ↓ and the wheel do). */}
               {home && (
-                <p data-deck-count="" style={{ margin: "0 0 12px", color: C.INK_MUTED, fontSize: ts(13.5) }}>
-                  {Math.min(s.index + 1, s.size)} of {s.size} today · {deckOrder === "best" ? "best match first" : deckOrder === "ats" ? "ATS match first" : "as dealt"}
-                </p>
+                <div data-deck-count-row="" style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 0 10px", maxWidth: size.width }}>
+                  <p data-deck-count="" style={{ margin: 0, color: C.INK_MUTED, fontSize: ts(13.5), flex: 1, minWidth: 0 }}>
+                    {Math.min(s.index + 1, s.size)} of {s.size} today · {deckOrder === "best" ? "best match first" : deckOrder === "ats" ? "ATS match first" : "as dealt"}
+                  </p>
+                  <FlipButton dir={-1} disabled={stepTarget(s, -1) == null} onFlip={step} />
+                  <FlipButton dir={1} disabled={stepTarget(s, 1) == null} onFlip={step} />
+                </div>
               )}
               <div ref={stageRef} data-deck-stage
                 // The stage is the face-up card's box; the fan overflows it on purpose, behind the
@@ -991,7 +1198,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                     remove a card, so only a decided card ever plays an exit. */}
                 <AnimatePresence initial custom={leave}>
                   {order.map((e) => (
-                    <FanCard key={e.card.job.id} entry={e} orientation={orientation} geometry={geometry} size={size} home={home}
+                    <FanCard key={e.card.job.id} entry={e} orientation={orientation} geometry={geometry} size={size} home={home} landscape={landscape} onOpenPost={openPost}
                       expanded={expanded} dimmed={expanded} dealing={dealing} appear={!firstPaint.current} reduced={!!reduced} dealRank={Math.max(0, dealTotal - 1 - Math.abs(e.offset))}
                       dealTotal={dealTotal} onDecide={decide} onExpand={() => setExpanded(true)} onCollapse={() => setExpanded(false)}
                       why={why} onWhy={(v) => { setWhy(v); if (!v) setExpanded(false); }}
@@ -1008,7 +1215,10 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                   column, so it travels with the card when the report opens. */}
               <div data-deck-actions style={{ position: "sticky", bottom: "calc(16px + var(--appnav-lift, 0px))", transition: "bottom .3s ease", zIndex: Z.NAV, display: "flex", gap: 12,
                                               // D152 (2) / D153 (1): on Home, under the fan's sweep (HOME_CARD.below), at the card's left.
-                                              marginTop: home ? HOME_CARD.below : vertical ? 18 : 22, maxWidth: size.width, marginLeft: home ? 0 : "auto", marginRight: "auto" }}>
+                                              // ⭐ D156 (1): and NOT sticky there — the card is a fixed box, so the row sits under the
+                                              // card and its fan and never rides over the card's content on a short screen.
+                                              ...(home ? { position: "relative", bottom: "auto" } : null),
+                                              marginTop: home ? (landscape ? HOME_WIDE.below : HOME_CARD.below) : vertical ? 18 : 22, maxWidth: size.width, marginLeft: home ? 0 : "auto", marginRight: "auto" }}>
                 <ActionButton label="Pass" ariaKeys="X ArrowLeft" compact={vertical} onClick={() => decide(DECISIONS.PASSED)} />
                 <ActionButton label="Save" ariaKeys="S" compact={vertical} onClick={() => decide(DECISIONS.SAVED)} />
                 <ActionButton label="Draft" ariaKeys="D ArrowRight" compact={vertical} primary onClick={() => decide(DECISIONS.DRAFTED)} />
@@ -1016,14 +1226,20 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
             </div>
         )}
 
+        </div>
         <DecisionToast toast={toast} onUndo={undo} undoKey="U" />
 
         {legend && (
           <div role="dialog" aria-label="Keyboard shortcuts" style={{ ...glass({ radius: 18 }), backgroundColor: C.SURFACE_MENU, position: "fixed", right: 24, bottom: 96,
                                                                     zIndex: Z.NAV, padding: "16px 20px", fontSize: 13.5, color: C.INK }}>
-            {[["D  →", "Draft — queue it for your review"], ["X  ←", "Pass — it won't come back"], ["S", "Save for later"],
+            {(home
+              // ⭐ D156 (1c): on Home Enter opens the card into its long post, and Esc folds it.
+              ? [["D  →", "Draft — queue it for your review"], ["X  ←", "Pass — it won't come back"], ["S", "Save for later"],
+                 ["U", "Undo the last one"], ["J ↓ / K ↑", "Next / previous card (as the wheel and ‹ › do)"], ["Enter", "Open the posting"],
+                 ["Esc", "Fold it back"], ["?", "This list"]]
+              : [["D  →", "Draft — queue it for your review"], ["X  ←", "Pass — it won't come back"], ["S", "Save for later"],
               ["U", "Undo the last one"], ["J ↓ / K ↑", "Next / previous card (as the wheel does)"], ["Enter", "Why this job — open or fold it"],
-              ["Esc", "Collapse"], ["?", "This list"]].map(([k, v]) => (
+              ["Esc", "Collapse"], ["?", "This list"]]).map(([k, v]) => (
               <div key={k} style={{ display: "flex", gap: 14, padding: "3px 0" }}><span style={{ ...kbd, minWidth: 64, textAlign: "center" }}>{k}</span>{v}</div>
             ))}
           </div>
