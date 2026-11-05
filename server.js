@@ -81,7 +81,7 @@ import { runSchedule as runCrawlerSchedule } from "./services/crawlerQueue.js";
 import { readPolicy as readBoardPolicy, setPolicy as setBoardPolicy, sweepAged } from "./services/jobs/boardAge.js";
 import { sweepScope, backfillCategories } from "./services/jobs/boardScope.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
-import { touchBoardVisit, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
+import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
 import { runHnDiscovery, runCandidateProbe } from "./services/companyCandidates.js";
 import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHook.js";
@@ -245,6 +245,7 @@ import {
 } from "./services/jobs/jobQuery.js";
 // D24 · GET /api/jobs/facets — the sentence's counts, measured through boardPageResponse itself.
 import { boardFacetsResponse } from "./services/jobs/boardFacets.js";
+import { createFacetsCache, facetsKey } from "./services/jobs/facetsCache.js";
 import { mapJobRow } from "./services/jobs/mapJobRow.js";
 import { describeEmptyBoard, activeFilterNames } from "./services/jobs/emptyBoardReason.js";
 // Board ordering AND keyset pagination, generated from one key-list declaration so the ORDER BY
@@ -9279,6 +9280,10 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+// ⭐ D156 (6) · the facets cache (services/jobs/facetsCache.js): any write by a signed-in user drops their kept counts, so
+// the filter sentence never shows a count from before their own decision, star, import or profile change.
+// (Its middleware runs after bindAuthContext, below — a token-authenticated request's user is bound there.)
+const facetsCache = createFacetsCache();
 // Account management: every sign-in is STAMPED (sensitive changes need a recent one — see
 // routes/accountManagement.js) and every signed-in browser is kept in a registry, because the sealed
 // store is keyed by sid alone and cannot answer "where am I signed in?". req.logIn is passport's,
@@ -9310,6 +9315,11 @@ app.use((req, res, next) => {
   next();
 });
 app.use(bindAuthContext);
+// ⭐ D156 (6): any write by a signed-in user (session or auth-context token) drops their kept facets counts.
+app.use((req, _res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD" && req.user?.id != null) facetsCache.clearUser(req.user.id);
+  next();
+});
 // ⛔ D95: the admin's own session (the draft_admin cookie, Path=/api/admin) — and no admin credential anywhere else.
 app.use(createAdminSessionBinder({ db }));
 // ⛔ CROSS-SITE REQUEST FORGERY, refused at the door (09-30). A state-changing request that carries
@@ -10635,18 +10645,32 @@ app.use(createAccountManagementRouter({
 // an unknown value, with the board's body), and every count measured through boardPageResponse's
 // own join / where / args — services/jobs/boardFacets.js. The shape is shared/filterSentence.js's
 // FacetsResponse.
+// ⭐ D156 (6) / D151 (44v, measured): KEPT per user + active profile + query for FACETS_TTL_MS, one count in flight per key,
+// dropped on the user's own writes (the middleware after passport.session). X-Facets-Cache says hit / shared / miss and
+// X-Facets-As-Of when the counts were taken. Before: every Home render re-ran 5 + N whole-board aggregates on the loop.
 app.get("/api/jobs/facets", requireAuth, async (req, res) => {
   const nowSec = Math.floor(Date.now() / 1000);
-  const { status, body } = await boardFacetsResponse({
+  const profileId = (() => { try { return getOrRepairActiveProfile(req.user.id)?.id ?? null; } catch { return null; } })();
+  // The "since your last visit" cutoff rolls on a GET (a board load, D74 P1) — no write clears the cache then, so the
+  // stored visit mark is part of the key: a new visit is a new entry (never the first-visit fallback, which moves with now).
+  const lens = { nowSec, visitSinceSec: visitSince(db, req.user.id, { now: nowSec }) };
+  const key = facetsKey(req.user.id, profileId, { ...req.query, "~visit": visitMark(db, req.user.id) ?? "first" });
+  const { value: { status, body }, cache, asOf } = await facetsCache.get(key, () => facetsAnswer(req, lens));
+  res.set("X-Facets-Cache", cache);
+  res.set("X-Facets-As-Of", new Date(asOf).toISOString());
+  res.status(status).json(body);
+});
+async function facetsAnswer(req, { nowSec, visitSinceSec }) {
+  return boardFacetsResponse({
     query: req.query, nowSec,
-    // D74 P1: the "since your last visit" option's cutoff — read, never rolled (counting is not visiting).
-    visitSinceSec: visitSince(db, req.user.id, { now: nowSec }),
+    // D74 P1: the "since your last visit" option's cutoff — read, never rolled (counting is not visiting); read once by
+    // the route (it is part of the cache key).
+    visitSinceSec,
     measureBoard: (query, measure) => boardPageResponse({ ...req, query }, { measure, nowSec }),
     // D35 · the /d view's count — the Pending list's own query, counted.
     countPending: () => pendingJobsQuery(req.user.id, { count: true }),
   });
-  res.status(status).json(body);
-});
+}
 
 
 // ── /api/jobs/suggest — typeahead for the search bar ──────────────

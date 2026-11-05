@@ -159,9 +159,15 @@ const EMPTY = (clauses) => ({
  *        ageFilter cutoff so "Past 24h" means the same second in both
  * @param {() => number} [deps.countPending]  D35 · the Pending view's row count (server.js's
  *        pendingJobsQuery, the /d list's own query, counted). Absent → `views.pending` is null.
+ * @param {() => Promise<void>} [deps.breathe]  ⭐ D156 (6) · awaited before each view count and each clause: every
+ *        aggregate here reads the whole board synchronously, and before 44v the 4 + N of them ran back to back on the
+ *        event loop (the 44v profile: the largest busy stretches on a request path). Between them the loop now serves
+ *        what is waiting — a health check, another person's request. Default: one setImmediate turn.
  * @returns {Promise<{status:number, body:any}>}
  */
-export async function boardFacetsResponse({ query, measureBoard, nowSec, countPending = null, visitSinceSec = null }) {
+export const yieldToLoop = () => new Promise((resolve) => setImmediate(resolve));
+
+export async function boardFacetsResponse({ query, measureBoard, nowSec, countPending = null, visitSinceSec = null, breathe = yieldToLoop }) {
   const clauses = facetClauses({ nowSec, visitSinceSec });
 
   const head = await measureBoard(withoutKeys(query, []), ({ db, joinClause, whereClause, baseArgs, unclassifiedSql, fitScoreSql }) => {
@@ -198,6 +204,7 @@ export async function boardFacetsResponse({ query, measureBoard, nowSec, countPe
   const viewTotal = async (starred, imported = false, pendingView = false) => {
     const q = { ...withoutKeys(query, ["starred", "imported", "pending"]), ...(starred ? { starred: "1" } : {}),
                 ...(imported ? { imported: "1" } : {}), ...(pendingView ? { pending: "1" } : {}) };
+    await breathe();
     const r = await measureBoard(q, ({ db, joinClause, whereClause, baseArgs }) =>
       db.prepare(`SELECT COUNT(*) AS n ${joinClause} ${whereClause}`).get(...baseArgs).n);
     return r.status === 200 && r.body?.measured ? r.body.value : (r.status === 200 ? 0 : null);
@@ -212,6 +219,7 @@ export async function boardFacetsResponse({ query, measureBoard, nowSec, countPe
   const body = { ...head.body.value, views, clauses: {} };
   for (const clause of clauses) {
     const baseQuery = { ...withoutKeys(query, clause.remove), ...(clause.base || {}) };
+    await breathe();
     const r = await measureBoard(baseQuery, (ctx) => {
       if (clause.compute) return clause.compute(ctx);
       const { db, joinClause, whereClause, baseArgs } = ctx;
