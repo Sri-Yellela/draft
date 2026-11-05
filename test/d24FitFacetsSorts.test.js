@@ -217,7 +217,7 @@ test("② the fit filter is HARD and reads the caller's OWN score: unscored and 
   const handler = SERVER.slice(at(SERVER, "async function boardPageResponse("));
   // A85: banded on the CURRENT score (the badge's), not the raw stored cell.
   assert.match(handler, /const fitBandSql = fitBands\.length \? `AND \$\{fitBandsSql\(fitBands, \{ scoreSql: fitScoreSql \}\)\}` : '';/);
-  const where = handler.slice(at(handler, "const whereClauseFor = (rich) =>"), at(handler, "const argsFor = (rich) =>"));
+  const where = handler.slice(at(handler, "const whereClauseFor = (rich, { gate = true } = {}) =>"), at(handler, "const argsFor = (rich) =>"));
   assert.match(where, /\$\{rich\.sql\}\s*\n?\s*\$\{fitBandSql\}/, "fit_bands is not in the board's WHERE");
 });
 

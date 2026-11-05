@@ -504,5 +504,53 @@ export function createBoardFitPrecompute({
     return { summary, results };
   }
 
-  return { plan, planSliced, runFor, schedule, runAll, isRunning: (userId, profileId) => inFlight.has(`${userId}:${profileId}`) };
+  /**
+   * ⛔ A126 (7) (hotfix 11-05) · THE BOARD'S MATCH QUEUE — score NAMED postings for one profile, outside its precompute
+   * scope. The precompute scores the profile's own category (A112); a board widened by a chosen function or a search
+   * (the owner's engineering filter: 52,115 postings against an 18,044 scope) read ≈ 77 % of its rows as "pending". The
+   * board now shows only scored postings (server.js boardPageResponse) and hands the unscored ones it would have shown
+   * here. Same scorer, same store, same slices and yields as runFor; written in commit chunks after scoring (runFor's
+   * reason: a sort key moving mid-page). Ids already scored against the current basis are skipped.
+   */
+  const scoredStmtFor = (n) => db.prepare(`SELECT job_id FROM ats_only_reports
+      WHERE user_id = ? AND domain_profile_id IS ? AND basis_hash = ? AND job_id IN (${Array(n).fill("?").join(",")})`);
+  async function scoreIds({ userId, profile, jobIds, reason = "board-queue" }) {
+    const started = now();
+    const base = { userId, profileId: profile?.id ?? null, reason, queue: true };
+    if (!profile?.id || !Array.isArray(jobIds) || !jobIds.length) return { ...base, status: "nothing_to_do", scored: 0 };
+    if (skipped(userId)) return { ...base, status: "skipped", scored: 0 };
+    let basis;
+    try { basis = basisFor(userId, profile); } catch (e) { return { ...base, status: "failed", error: `basis: ${e.message}` }; }
+    if (!basis?.runtimeBasis || !basis.basisHash) return { ...base, status: "no_basis", scored: 0 };
+    const results = [];
+    let failed = 0, yields = 0;
+    for (let i = 0; i < jobIds.length; i += batchSize) {
+      const ids = jobIds.slice(i, i + batchSize);
+      const done = new Set(scoredStmtFor(ids.length).pluck().all(userId, profile.id, basis.basisHash, ...ids));
+      const want = ids.filter(id => !done.has(id));
+      if (!want.length) continue;
+      const jobs = db.prepare(`SELECT * FROM scraped_jobs WHERE is_active = 1 AND job_id IN (${want.map(() => "?").join(",")})`).all(...want);
+      let sliceStart = now();
+      for (const job of jobs) {
+        try { results.push({ jobId: job.job_id, report: scoreJob(job, basis.runtimeBasis), jobHash: atsJobInputHash(job) }); }
+        catch { failed++; }
+        if (now() - sliceStart >= sliceMs) { yields++; await yieldToEventLoop(); sliceStart = now(); }
+      }
+      yields++; await yieldToEventLoop();
+    }
+    const writeChunk = db.transaction((items) => {
+      for (const it of items) store({ userId, profileId: profile.id, jobId: it.jobId, report: it.report, basisHash: basis.basisHash, jobHash: it.jobHash });
+    });
+    let scored = 0;
+    for (let i = 0; i < results.length; i += commitChunk) {
+      try { writeChunk(results.slice(i, i + commitChunk)); scored += Math.min(commitChunk, results.length - i); }
+      catch { failed += Math.min(commitChunk, results.length - i); }
+      await yieldToEventLoop();
+    }
+    const r = { ...base, status: scored ? "scored" : "nothing_to_do", asked: jobIds.length, scored, failed, yields, ms: Math.round(now() - started) };
+    emit(failed ? "warn" : "log", r);
+    return r;
+  }
+
+  return { plan, planSliced, runFor, schedule, runAll, scoreIds, isRunning: (userId, profileId) => inFlight.has(`${userId}:${profileId}`) };
 }

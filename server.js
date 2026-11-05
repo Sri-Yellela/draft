@@ -9226,6 +9226,41 @@ function evaluateProfileFactEligibility(jobLike = {}, signalProfile = null) {
 // and handle the event type in the frontend useSyncEvents hook.
 const syncClients = new Map(); // key: userId, value: Set of res objects
 
+// ⛔ A126 (7) (hotfix 11-05) · THE BOARD'S MATCH QUEUE. One worker per (user, profile): it takes the postings a board
+// load held back (unscored for the current basis), scores them in chunks through the precompute's own scorer
+// (boardFit().scoreIds — the same scorer, store, slices and yields), and after each chunk that scored something sends
+// the person's open tabs `board_scored`, on which the board refetches its current view (new postings land in the
+// current sort). Bounded: at most BOARD_MATCH_MAX ids waiting per profile; a trial account is never queued (skipUser).
+const BOARD_MATCH_BATCH = 2000;
+const BOARD_MATCH_MAX = 6000;
+const BOARD_MATCH_CHUNK = 250;
+const _boardMatch = new Map();   // "user:profile" -> { ids: Set, running: boolean, profile }
+function enqueueBoardMatch(userId, profile, jobIds) {
+  if (!boardFitAutomationEnabled() || !userId || !profile?.id || !jobIds?.length) return;
+  const key = `${userId}:${profile.id}`;
+  let q = _boardMatch.get(key);
+  if (!q) { q = { ids: new Set(), running: false, profile }; _boardMatch.set(key, q); }
+  q.profile = profile;
+  for (const id of jobIds) { if (q.ids.size >= BOARD_MATCH_MAX) break; q.ids.add(String(id)); }
+  if (q.running) return;
+  q.running = true;
+  (async () => {
+    try {
+      while (q.ids.size) {
+        const chunk = [...q.ids].slice(0, BOARD_MATCH_CHUNK);
+        for (const id of chunk) q.ids.delete(id);
+        const r = await boardFit().scoreIds({ userId, profile: q.profile, jobIds: chunk, reason: "board-queue" });
+        if (r?.scored) emitToUser(userId, { type: "board_scored", profileId: profile.id, scored: r.scored, waiting: q.ids.size });
+        if (r?.status === "no_basis" || r?.status === "skipped" || r?.status === "failed") { q.ids.clear(); break; }
+      }
+    } catch (e) {
+      console.warn(`[board-match] ${key}:`, e.message);
+    } finally {
+      q.running = false;
+      if (!q.ids.size) _boardMatch.delete(key);
+    }
+  })();
+}
 function emitToUser(userId, event) {
   const clients = syncClients.get(userId);
   if (!clients?.size) return;
@@ -11355,7 +11390,21 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       const boardCategory = (savedTab || boardSearch || functionChosen) ? null : profileCategory(sessionActiveProfile || {});
       const categorySql = savedTab ? '' : `AND (sj.board_category IS NULL OR (sj.board_category <> 'held'${
         boardCategory && /^[a-z_]+$/.test(boardCategory) ? ` AND sj.board_category = '${boardCategory}'` : ''}) OR ${ownRowsSql})`;
-      const whereClauseFor = (rich) => `
+      // ⛔ A126 (7) (hotfix 11-05) · A POSTING REACHES THE BOARD AFTER THE ENGINES, NOT BEFORE. Discovery views (ALL, the
+      // sentence's filters, a search, the deck that deals from this board) show only postings scored against the
+      // profile's CURRENT résumé basis; the rest are counted as `beingMatched` and handed to the match queue
+      // (enqueueBoardMatch → boardFit().scoreIds), which scores them and tells the open board (sync event
+      // `board_scored`). ★ / + / /d and ?curate=off are the person's own lists — never gated. The cheap half of the
+      // badge's "current" test (basis_hash), not the per-row posting re-hash: that would cost seconds a load at 52k
+      // rows; a posting edited after scoring is rescored by the precompute's postingChanged pass. Before: ≈ 80 % of the
+      // owner's widened board read "ATS pending". DRAFT_BOARD_SCORED_ONLY=off turns it off.
+      const scoreGateOn = String(process.env.DRAFT_BOARD_SCORED_ONLY || "on").toLowerCase() !== "off"
+        && !savedTab && !importedTab && !pendingTab && req.query.curate !== 'off';
+      let gateBasis = null;
+      if (scoreGateOn) { try { gateBasis = atsBasisForProfile(req.user.id, sessionActiveProfile)?.basisHash ?? null; } catch { gateBasis = null; } }
+      const scoreGateSql = scoreGateOn && typeof gateBasis === "string" && /^[0-9a-f]{8,128}$/.test(gateBasis)
+        ? `AND aor.id IS NOT NULL AND aor.basis_hash = '${gateBasis}'` : '';
+      const whereClauseFor = (rich, { gate = true } = {}) => `
         WHERE ${(savedTab || importedTab) ? '1 = 1' : 'sj.is_active = 1'}
           ${roleSql}
           ${categorySql}
@@ -11378,6 +11427,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
           ${minYoeSql}
           ${rich.sql}
           ${fitBandSql}
+          ${gate ? scoreGateSql : ''}
           AND (uj.disliked IS NULL OR uj.disliked = 0)
       `;
       const argsFor = (rich) => [
@@ -11459,6 +11509,20 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // test/boardCountMatchesList.test.js asserts the two statements are built from these same
       // three variables, so a future edit cannot fork one without failing.
       const total = (await readPool.get(`SELECT COUNT(*) as n ${joinClause} ${whereClause}`, baseArgs))?.n || 0;
+      // ⛔ A126 (7) · what the gate held back: counted (the board says "N more being matched") and queued, newest first.
+      // First page only — paging the same board must not re-queue it.
+      let beingMatched = 0;
+      if (scoreGateSql && pg === 1 && !rawCursor) {
+        try {
+          const heldSql = `${whereClauseFor(richFilters, { gate: false })} AND (aor.id IS NULL OR aor.basis_hash IS NOT '${gateBasis}')`;
+          beingMatched = (await readPool.get(`SELECT COUNT(*) AS n ${joinClause} ${heldSql}`, baseArgs))?.n || 0;
+          if (beingMatched) {
+            const held = await readPool.all(
+              `SELECT sj.job_id AS id ${joinClause} ${heldSql} ORDER BY COALESCE(sj.posted_at, sj.discovered_at) DESC LIMIT ${BOARD_MATCH_BATCH}`, baseArgs);
+            enqueueBoardMatch(req.user.id, sessionActiveProfile, held.map(r => r.id));
+          }
+        } catch (e) { console.warn("[board-match] count / queue:", e.message); }
+      }
       const totalPages = Math.ceil(total / ps);
       // A73 · of `total`, how many are on the board only because a filter the user set could not
       // judge them (the column is not classified yet). They are ordered last; this says how many.
@@ -11574,6 +11638,8 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         // to infer from a number that looks valid — rendering "page 1 of 34" on every cursor page
         // is precisely the kind of quietly-wrong surface this codebase keeps finding.
         paging: rawCursor ? 'cursor' : 'offset',
+        // A126 (7): postings this board would show once matched — queued now; the board refreshes on `board_scored`.
+        ...(beingMatched ? { beingMatched } : {}),
       };
 
       // Curation disclosure — now a statement about ORDER, not about a withheld remainder.
