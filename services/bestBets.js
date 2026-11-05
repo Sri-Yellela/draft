@@ -32,13 +32,22 @@ export const FIT_KEY = "best_bet_fit";
 export const SIGNAL_KEYS = Object.freeze(["mustHaves", "level", "freshness", "ghost", "velocity"]);
 
 /** One company's closings in the last 60 days and how long draft has watched it (job_history). */
+// ⛔ A126 (hotfix 11-05, measured by a CPU profile): this read walks every job_history row of the company, once PER CARD —
+// up to 200 cards a call, most from a few large employers — ≈ 3 s of the event loop per /api/best-bets on an 18k board.
+// A company's 60-day closings move with a crawl, not with a request: kept per company for VELOCITY_TTL_SEC.
+export const VELOCITY_TTL_SEC = 600;
+const velocityCache = new Map();
 function velocityOf(db, company, now) {
   const key = companyNameKey(company || "");
   if (!key) return null;
+  const hit = velocityCache.get(key);
+  if (hit && hit.db === db && Math.abs(now - hit.at) < VELOCITY_TTL_SEC) return hit.value;
   const r = safe(() => db.prepare(`SELECT MIN(first_seen) AS first, SUM(CASE WHEN closed_at >= ? THEN 1 ELSE 0 END) AS closed60
       FROM job_history WHERE company_key = ?`).get(now - 60 * DAY, key), null);
-  if (!r?.first) return null;
-  return { watchedDays: Math.floor((now - r.first) / DAY), closed60: r.closed60 ?? 0 };
+  const value = r?.first ? { watchedDays: Math.floor((now - r.first) / DAY), closed60: r.closed60 ?? 0 } : null;
+  if (velocityCache.size > 20000) velocityCache.clear();
+  velocityCache.set(key, { db, at: now, value });
+  return value;
 }
 
 /**

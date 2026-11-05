@@ -11594,9 +11594,10 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // exactly what this block exists to prevent. Same Curation shape: rankedKeys was always a
       // string list, so no client has to learn a field.
       if (rankApplied || fitApplied) {
-        const demotedRows = rankApplied ? (db.prepare(
-          `SELECT COUNT(*) as n ${joinClause} ${whereClause} AND ${richFilters.rank.demotedSql}`
-        ).get(...baseArgs, ...richFilters.rank.demotedParams)?.n || 0) : 0;
+        // ⛔ A126 · a whole-board count — in the worker pool, off the event loop (the 11-05 profile's largest stretch).
+        const demotedRows = rankApplied ? ((await readPool.get(
+          `SELECT COUNT(*) as n ${joinClause} ${whereClause} AND ${richFilters.rank.demotedSql}`,
+          [...baseArgs, ...richFilters.rank.demotedParams]))?.n || 0) : 0;
         if (demotedRows > 0 || fitApplied) {
           responseBody.curation = {
             applied:    true,
