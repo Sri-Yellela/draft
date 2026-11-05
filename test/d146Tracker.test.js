@@ -110,7 +110,7 @@ const byJob = (rows, j) => rows.find(r => r.jobId === j);
 // ── the tests ────────────────────────────────────────────────────────────────────────────────
 
 test("d146OnePanelOneNavEntry — one Dock / Menu entry, Draft House · your applications; /app/database redirects to it", () => {
-  const tabs = app.slice(at(app, "const appTabs = ["), at(app, "  ];\n\n  // The Jobs-only chrome"));
+  const tabs = app.slice(at(app, "const appTabs = ["), at(app, "  ];\n\n  // ⭐ D152 (1) · HOME: the Daily Deck and Full House"));   // A125: the Y4 wrapper's comment that followed is gone
   assert.match(tabs, /\{ id: "auto-apply",\s+label: "Draft House" \}/);
   assert.doesNotMatch(code(tabs), /id: "database"/, "The Table is no longer its own entry");
   assert.doesNotMatch(code(app), /DatabasePanel/, "App mounts no second panel for applications");
