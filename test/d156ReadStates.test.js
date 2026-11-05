@@ -26,8 +26,9 @@ test("d156FailedReadNeverShownAsMissing · the résumé: 'Add one' only after a 
   const notice = JOBS.slice(at(JOBS, "function FitRankingNotice("), at(JOBS, "function FilteredEmptyState("));
   const failed = notice.indexOf("if (failed) return (");
   assert.ok(failed > 0 && failed < notice.indexOf("Sorting by fit needs this profile's base resume"), "the failure is answered first");
-  assert.match(notice.slice(failed, notice.indexOf("Sorting by fit needs")), /We couldn't load this profile's résumé[\s\S]*Try again/);
-  assert.doesNotMatch(notice.slice(failed, notice.indexOf("Sorting by fit needs")), /Add one/);
+  const failedBranch = notice.slice(failed, at(notice, "Sorting by fit needs"));
+  assert.match(failedBranch, /We couldn't load this profile's résumé[\s\S]*Try again/);
+  assert.doesNotMatch(failedBranch, /Add one/);
   // both board call sites hand the state down
   assert.equal(JOBS.split("resumeReadState={resumeState} onRetryResume={() => setResumeTry(n => n + 1)}").length - 1, 2);
 });
