@@ -227,8 +227,8 @@ test("the panel renders both new buckets, and AG2's copy is untouched", () => {
   // Generic language is NOT claimable — a chip that offers to add "Manage" to your profile is the
   // same false gap in a different control. (The whole fold, up to the next one.)
   const genericBlock = panel.slice(at(panel, '"data-ats-generic": true'), at(panel, '"data-ats-more": true'));
-  // D32: the pills became depth boxes; a generic box is read-only (no claim state) and says it is generic.
-  assert.match(genericBlock, /generic\.map\(t => box\(t, \{ generic: true \}\)\)/);
+  // D32 → D152 (8): the boxes became plain rows; a generic row is read-only (no claim state) and says it is generic.
+  assert.match(genericBlock, /generic\.map\(t => row\(t, \{ generic: true \}\)\)/);
   assert.doesNotMatch(genericBlock, /claims:|onclick/);
   // Competencies matched must count as evidenced, or a term shown as matched above renders as
   // unevidenced below (shared/atsReportModel.js evidencedKeys).
@@ -239,7 +239,7 @@ test("the panel renders both new buckets, and AG2's copy is untouched", () => {
   // the job ranks, so that sentence had to go — copy promising one thing while the code does
   // another is a lie, not a caveat. The two that describe unchanged behaviour stay.
   for (const sentence of [
-    "Claiming a term says it is true of you",
+    "Claiming says it's true of you",   // ⭐ D152 (8): option A's wording of the same promise
     "never rewrites one you already have",
     "counts toward this",
   ]) assert.ok(panel.includes(sentence), sentence);

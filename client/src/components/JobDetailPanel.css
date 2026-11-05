@@ -132,6 +132,8 @@
 .pp__matchrow { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s cubic-bezier(.2, .9, .3, 1); }
 .pp__matchrow[data-open="true"] { grid-template-rows: 1fr; }
 .pp__matchin { min-height: 0; overflow: hidden; }
-.pp__matchcard { margin: 12px 0 18px; padding: 18px; border-radius: 18px; background: var(--c-surface-2); }
+/* ⭐ D152 (8): option A's .inline .match — one block (the report inside is `bare`: no card of its own), corner 22, padded 20. */
+.pp__matchcard { margin: 0 0 20px; padding: 20px; border-radius: 22px; background: var(--c-surface-2); }
 .pp__matcheyebrow { margin: 0 0 8px; color: var(--c-accent-ink); font-size: calc(14px * var(--type-scale, 1)); }
+.pp__matchpair { margin: -2px 0 10px; color: var(--c-ink-muted); font-size: calc(13px * var(--type-scale, 1)); }
 @media (prefers-reduced-motion: reduce) { .pp__matchrow { transition: none; } }

@@ -154,7 +154,7 @@ test("D60 · the named offenders are gone: the nav tabs, résumé ready, the ban
   assert.match(read("client/src/components/ApplicationHistory.css"), /\.ah__status \{[^}]*padding-left: 12px;[^}]*background: radial-gradient\(circle at 3px 50%, var\(--st\) 3px/);
   assert.doesNotMatch(read("client/src/components/ApplicationHistory.css"), /\.ah__status \{[^}]*border-left/);
   for (const f of ["client/src/components/JobCard.jsx", "client/src/panels/JobsPanel.jsx", "client/src/panels/DeckView.jsx",
-                   "client/src/panels/AtsReportPanel.jsx", "client/src/panels/DatabasePanel.jsx", "client/src/panels/AutoApplyPanelSections.jsx"]) {
+                   "client/src/panels/DatabasePanel.jsx", "client/src/panels/AutoApplyPanelSections.jsx"]) {   // (AtsReportPanel.jsx: retired, D152 (8))
     assert.doesNotMatch(read(f), /bandChipStyle/, `${f}: a band is a mark (bandMarkStyle), not the old filled chip`);
   }
 });

@@ -57,7 +57,8 @@ test("jobs UI opens ATS panel from stored base ATS reports without requiring reg
   assert.match(jobsPanel, /function buildAtsPayload\(job, artifact = null\)/);
   assert.match(jobsPanel, /job\?\.baseAtsScore/);
   assert.match(jobsPanel, /job\?\.baseAtsReport/);
-  assert.match(jobsPanel, /openAtsPanel\(buildAtsPayload\(job, g\)\)/);
+  // ⭐ D152 (8) (b): openAtsPanel(payload, job) selects that job and opens its match inside the posting.
+  assert.match(jobsPanel, /openAtsPanel\(buildAtsPayload\(job, g\), job\)/);
   // D58: the header reads the stored pair (tailored, else the stored base) — still no regeneration needed.
   assert.match(detailPanel, /atsScorePair\(\{ base: job\?\.baseAtsScore, tailored: g\?\.html \? g\?\.atsScore : null \}\)/);
   // ⛔ CC5 REVERSED BOTH OF THESE, AND THEY WERE THE LEAK.

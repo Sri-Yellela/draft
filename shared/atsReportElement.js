@@ -22,13 +22,18 @@
 // ⛔ D32's hover link: with `linkable`, pointing at (or focusing) a box dispatches `draft-ats-term` { term } and
 // { term: null } on leaving — on request only, never standing.
 // ⭐ D105 P5 · LINKS IN: with `atlas` = { base, slugs: { term: slug } }, a term that has a PUBLISHED Atlas page gets a
-// small "Atlas" link beside its box (a sibling — a claim box is a button, and a link never goes inside a button). The
+// small "Atlas" link beside its term (inside the row, never inside the claim button). The
 // host resolves the slugs (GET /api/atlas/resolve); a term absent from `slugs` draws no link, so there is never a
 // dead one. `base` is "/atlas/" in the web app and the server's https origin + "/atlas/" in the extension; anything
 // else falls back to "/atlas/". Verbs and generic language never link.
 //
-// The structure, the classes and the copy are A52 / D31 / D32 / A86 / D50's, unchanged — see the history of
-// client/src/components/AtsReport.jsx for the reasoning behind each; the comments below keep the load-bearing ones.
+// ⭐ D152 (8) (owner 11-04, docs/sketches/ats-options.html OPTION A — approved): the INSIDE is option A's content —
+// "28 of 40 things this posting asks for" as the heading (the band heading in the logo face is gone), one plain
+// sentence, the bar (on your résumé · claimed by you · missing) and its key, "You could claim · n" / "History" as quiet
+// switches, and the claims as PLAIN ROWS with a "That's true of me" button (the depth boxes are gone). The rest —
+// Experience, Already yours, Generic, More — keeps its meaning, restyled as plain rows and folds.
+// The reasoning behind each section is A52 / D31 / D32 / A86 / D50's — see the history of
+// client/src/components/AtsReport.jsx; the comments below keep the load-bearing ones.
 import { atsBandLabel, atsBandFor, ATS_BAND, ATS_NUMBER_SHOWN, ATS_NUMBER_NOTE } from "./atsBands.js";
 import { profileSignalKey } from "./profileSignals.js";
 import { reportBand, reportAsks, evidencedKeys, experienceState, EXPERIENCE_MARK, TERM_KINDS, cleanReport } from "./atsReportModel.js";
@@ -66,60 +71,80 @@ function claimState(claims) {
   };
 }
 
-/**
- * The one THREE-segment bar: matched · missing · generic. Not enough signal is a dashed, hue-less
- * outline whose segments carry no hue at all — never a short Weak bar.
- */
-function askBar(doc, { band, matched, missing, generic }) {
-  const unknown = band === ATS_BAND.NOT_ENOUGH_SIGNAL;
-  const all = matched + missing + generic;
-  const share = (n) => `${all > 0 ? (n / all) * 100 : 0}%`;
-  return h(doc, "div", { class: "ats-bar", "data-ats-bar": true, "data-unknown": unknown ? "true" : "false", role: "img",
-      "aria-label": `${matched} of ${matched + missing} asks already on your résumé; ${generic} generic, not a gap` },
-    h(doc, "div", { class: "ats-bar__seg ats-bar__seg--matched", width: share(matched) }),
-    h(doc, "div", { class: "ats-bar__seg ats-bar__seg--missing", width: share(missing) }),
-    h(doc, "div", { class: "ats-bar__seg ats-bar__seg--generic", width: share(generic) }));
+/** How many of the asks the person could claim they have claimed — a lock, a claim, a click in flight. */
+function claimedCount(couldClaim, state) {
+  if (!state) return 0;
+  let n = 0;
+  for (const t of couldClaim) {
+    const claimKind = TERM_KINDS[t.kind]?.claim || "skill";
+    const key = profileSignalKey(t.term);
+    const keys = claimKind === "action_verb" ? state.verbKeys : state.skillKeys;
+    const locked = claimKind === "action_verb" ? state.lockedVerbs : state.lockedSkills;
+    if (keys.has(key) || locked.has(key) || state.pending.has(`${claimKind}:${t.term}`)) n += 1;
+  }
+  return n;
 }
 
 /**
- * The band card — THE HEADER: the band, "you cover 9 of 12", the score (D50: shown, provisional), the
- * three-segment bar. Below it, only when they exist, the reasons the band is what it is: why the scorer
- * declined, the seniority note, the profile facts the posting requires. The full report opens with it;
- * the signup hook and the deck's collapsed score show only this (mode "band").
+ * ⭐ D152 (8) · THE BAR (ats-options.html option A): what the résumé shows · what the person claimed · the rest is the
+ * track (missing). Generic language is not an ask, so it is not on the bar at all. Not enough signal is a dashed,
+ * hue-less outline whose segments carry no hue — never a short Weak bar.
  */
-export function buildBandCard(doc, report, { band: knownBand = null, compact = false, extra = null } = {}) {
+function askBar(doc, { band, matched, claimed, total }) {
+  const unknown = band === ATS_BAND.NOT_ENOUGH_SIGNAL;
+  const share = (n) => `${total > 0 ? (n / total) * 100 : 0}%`;
+  return h(doc, "div", { class: "ats-bar", "data-ats-bar": true, "data-unknown": unknown ? "true" : "false", role: "img",
+      "aria-label": `${matched} of ${total} asks already on your résumé; ${claimed} claimed by you` },
+    h(doc, "div", { class: "ats-bar__seg ats-bar__seg--matched", width: share(matched) }),
+    h(doc, "div", { class: "ats-bar__seg ats-bar__seg--claimed", width: share(claimed) }));
+}
+
+/** The bar's key — three words, each after a dot (a perfect circle, D60). */
+function barKey(doc) {
+  return h(doc, "div", { class: "ats-key", "aria-hidden": "true" },
+    h(doc, "span", { class: "ats-key__i", "data-k": "matched" }, "on your résumé"),
+    h(doc, "span", { class: "ats-key__i", "data-k": "claimed" }, "claimed by you"),
+    h(doc, "span", { class: "ats-key__i", "data-k": "missing" }, "missing"));
+}
+
+/**
+ * The header — ⭐ D152 (8), ats-options.html option A: "28 of 40 things this posting asks for", one plain sentence
+ * under it (the number, provisional — D50 — or, with no number, the band in words), the reasons the reading is what
+ * it is, then the bar and its key. ⛔ The band heading (the "Strong match" in the logo face) is GONE: the count is the
+ * heading. Not enough signal is still the scorer declining — said in words, the bar dashed and hue-less.
+ * The full report opens with it; the signup hook and the deck's collapsed score show only this (mode "band").
+ */
+export function buildBandCard(doc, report, { band: knownBand = null, compact = false, extra = null, claims = null } = {}) {
   const band = reportBand(report, knownBand);
   const meta = atsBandLabel(band);
   const isUnknown = band === ATS_BAND.NOT_ENOUGH_SIGNAL;
   const declineReasons = Array.isArray(report?.decline_reasons) ? report.decline_reasons : [];
   const seniority = report?.seniority_cap?.applied ? report.seniority_cap : null;
   const hardMisses = Array.isArray(report?.hard_constraint_misses) ? report.hard_constraint_misses : [];
-  const { matched, missing, total, generic } = reportAsks(report);
-  // ⭐ D50 (owner, 10-07): the number, beside the band and the count — never the only claim — and provisional
-  // (ATS_NUMBER_NOTE). Static — nothing counts up. No score → no digit.
+  const { matched, total, couldClaim } = reportAsks(report);
+  const claimed = claimedCount(couldClaim, claims);
+  // ⭐ D50 (owner, 10-07): the number, beside the count — never the only claim — and provisional (ATS_NUMBER_NOTE).
+  // Static — nothing counts up. No score → no digit.
   const showNumber = ATS_NUMBER_SHOWN && !isUnknown && Number.isFinite(report?.score);
   const hasNotes = declineReasons.length > 0 || seniority || hardMisses.length > 0 || extra;
-  return h(doc, "div", { "data-ats-band-card": true, class: "ats-sum ink-pair", "data-compact": compact ? "true" : "false" },
-    h(doc, "div", { class: "ats-sum__head" },
-      h(doc, "div", null,
-        // BAND-FIRST: the band is the heading, read first (pair2.html's .bd). ⛔ "Not enough signal" is
-        // the scorer declining — dashed and hue-less (data-unknown), with "no judgement" beside it.
-        h(doc, "div", { "data-ats-band": true, class: "ats-sum__band", "data-unknown": isUnknown ? "true" : "false" }, meta.label),
-        isUnknown && h(doc, "span", { class: "ats-sum__cap" }, "no judgement"),
-        total > 0 && h(doc, "p", { "data-ats-count": true, class: "ats-sum__count" },
-          `You cover ${matched} of the ${total} things this posting asks for.`)),
-      showNumber && h(doc, "div", { "data-ats-score": true, class: "ats-sum__score", title: ATS_NUMBER_NOTE },
-        String(Math.round(report.score)), h(doc, "small", null, "ats"))),
-    showNumber && h(doc, "p", { "data-ats-number-note": true, class: "ats-sum__note" },
-      `${ATS_NUMBER_NOTE} — read it with the band and the count above.`),
+  const sub = isUnknown
+    ? h(doc, "p", { class: "ats-sum__sub", "data-ats-unknown": true }, "Not enough signal to judge this posting — no judgement.")
+    : showNumber
+      ? h(doc, "p", { class: "ats-sum__sub", "data-ats-number-note": true, title: ATS_NUMBER_NOTE },
+          "A ", h(doc, "span", { "data-ats-score": true }, `${Math.round(report.score)}%`), " match. The score is still being tuned, so read it with the count.")
+      : h(doc, "p", { class: "ats-sum__sub", "data-ats-band-words": true }, `${meta.label} — read it with the count.`);
+  return h(doc, "div", { "data-ats-band-card": true, "data-ats-band": band, class: "ats-sum ink-pair", "data-compact": compact ? "true" : "false" },
+    total > 0 && h(doc, "h3", { "data-ats-count": true, class: "ats-sum__count" },
+      `${matched + claimed} of ${total} things this posting asks for`),
+    sub,
     hasNotes && h(doc, "div", { class: "ats-sum__notes" },
       declineReasons.length > 0 && h(doc, "ul", { class: "ats-notes" }, declineReasons.map(r => h(doc, "li", null, r))),
       seniority && h(doc, "div", { class: "ats-note" }, seniority.reason || ""),
       hardMisses.length > 0 && h(doc, "div", { "data-ats-hard": true, class: "ats-note ats-note--hard" },
         `Required by this posting, not on your profile: ${hardMisses.join(" · ")}`),
       extra),
-    // The bar runs flush across the card, under the header (pair2.html's .bar).
-    total > 0 && askBar(doc, { band, matched, missing, generic: generic.length }));
+    total > 0 && askBar(doc, { band, matched, claimed, total }),
+    total > 0 && barKey(doc));
 }
 
 /** Experience — its own row: the one requirement that is genuinely pass/fail. */
@@ -133,17 +158,32 @@ function experienceRow(doc, experience) {
       h(doc, "span", { class: "ats-exp__text" }, experience.summary || "")));
 }
 
+/** The Atlas link's base: a same-origin path or an https origin's /atlas/ — never javascript:, never http. */
+export function atlasBase(base) {
+  const b = String(base ?? "");
+  if (b.startsWith("/") && !b.startsWith("//") && !b.includes("\\")) return b.endsWith("/") ? b : `${b}/`;
+  try { const u = new URL(b); if (u.protocol === "https:") return u.href.endsWith("/") ? u.href : `${u.href}/`; } catch { /* fall through */ }
+  return "/atlas/";
+}
+
+/** The small "Atlas" link for a term with a published Atlas page — or null (D105 P5: never a dead link). */
+function atlasLink(doc, term, atlas) {
+  const slug = atlas?.slugs && typeof atlas.slugs[term] === "string" ? atlas.slugs[term] : null;
+  if (!slug) return null;
+  return h(doc, "a", { class: "ats-atlas", href: `${atlasBase(atlas.base)}${encodeURIComponent(slug)}`, target: "_blank",
+    rel: "noopener noreferrer", title: `About ${term} in the Atlas`, "aria-label": `About ${term} in the Atlas`, "data-atlas-link": slug }, "Atlas");
+}
+
 /**
- * One term, as a RECTANGULAR DEPTH BOX (D32 — the pills are gone), with the scorer's `kind` beside it.
- * With claims it is a CLAIM BOX (AG2) — a button, with the + affordance and D1's lift / hover / press;
- * without, a read-only box.
+ * One term, as a PLAIN ROW (⭐ D152 (8), option A — the depth boxes are gone): the term, its kind in small type, and —
+ * where the person can claim it — a quiet "That's true of me" button at the row's end ("Claimed · undo" once claimed).
  *
- * THE COPY IS THE FEATURE. Clicking one of these asserts "I have this" — a claim the candidate will
- * have to defend in an interview. So the box never reads as "add this to improve your score".
- * CC4: a claim DOES count toward this score and toward where the job ranks, and the copy says so.
- * NOTHING IS PRE-SELECTED: a box reads as claimed only from what the person did — a lock, a claim, a click in flight.
+ * THE COPY IS THE FEATURE. Pressing it asserts "I have this" — a claim the candidate will have to defend in an
+ * interview. So it never reads as "add this to improve your score". CC4: a claim DOES count toward this score and
+ * toward where the job ranks, and the copy says so. NOTHING IS PRE-SELECTED: a row reads as claimed only from what
+ * the person did — a lock, a claim, a click in flight.
  */
-function termBox(doc, host, { term: k, kind, generic = false, claims = null, evidenced: evidencedLookup = new Set(), linkable = false }) {
+function termRow(doc, host, { term: k, kind, generic = false, claims = null, evidenced: evidencedLookup = new Set(), linkable = false, atlas = null }) {
   const claimKind = TERM_KINDS[kind]?.claim || "skill";
   const claimedKeys = claims ? (claimKind === "action_verb" ? claims.verbKeys : claims.skillKeys) : new Set();
   const lockedLookup = claims ? (claimKind === "action_verb" ? claims.lockedVerbs : claims.lockedSkills) : new Set();
@@ -162,44 +202,27 @@ function termBox(doc, host, { term: k, kind, generic = false, claims = null, evi
     : evidenced
       ? "Your resume already shows this"
       : claimed ? "You claimed this — the job description asked for it" : "This job asked for it. Your resume does not show it.";
-  const kindLabel = () => h(doc, "span", { class: "ats-box__kind" }, TERM_KINDS[kind]?.label || kind);
-  // The box's tone (pair2.html): green for what the résumé shows or the candidate claimed, grey for
-  // generic language, the claim red for an ask it does not show.
   const tone = generic ? "gen" : (evidenced || claimed) ? "ok" : "claim";
   const key = `${generic ? "g" : kind}:${k}`;
+  // Skills and qualities link; a verb ("design", "lead") and generic language are not Atlas pages.
+  const link = generic || kind === "verb" ? null : atlasLink(doc, k, atlas);
+  const label = h(doc, "span", { class: "ats-cl__term" }, h(doc, "b", null, k),
+    // Generic language carries no kind — the word alone.
+    !generic && h(doc, "small", { class: "ats-cl__kind" }, TERM_KINDS[kind]?.label || kind), link);
   if (!interactive) {
-    return h(doc, "span", { class: "ats-box", "data-kind": kind, "data-tone": tone, "data-claimed": claimed ? "true" : "false",
+    return h(doc, "div", { class: "ats-cl", "data-kind": kind, "data-tone": tone, "data-claimed": claimed ? "true" : "false",
         "data-key": key, title: provenance, tabindex: linkable ? "0" : null, ...linkProps },
-      // Generic language carries no kind — the sketch's grey boxes are the word alone.
-      h(doc, "span", { class: "ats-box__term" }, claimed ? `✓ ${k}` : k), !generic && kindLabel());
+      label, claimed && !evidenced && h(doc, "span", { class: "ats-cl__state" }, locked ? "On your profile" : "Claimed"));
   }
-  return h(doc, "button", { type: "button", class: "ats-box ats-box--claim", "data-kind": kind, "data-tone": "claim",
-      "data-claim-chip": claimKind, "data-key": key, "aria-pressed": claimed ? "true" : "false",
-      title: claimed ? `You claimed "${k}". Click to withdraw it.`
-                     : `Claim "${k}" — only if it is true of you. It counts toward this score and toward where this job ranks, and it is used in future resumes.`,
-      onclick: () => host?.dispatchEvent?.(new CustomEvent(ATS_CLAIM_EVENT,
-        { detail: { kind: claimKind, term: k, claimed: !claimed }, bubbles: true, composed: true })),
-      ...linkProps },
-    // The FILLED square: + to claim, ✓ once claimed (pair2.html's .p). aria-pressed carries the state.
-    h(doc, "span", { class: "ats-box__plus", "aria-hidden": "true" }, claimed ? "✓" : "+"),
-    h(doc, "span", { class: "ats-box__term" }, k), kindLabel());
-}
-
-/** The Atlas link's base: a same-origin path or an https origin's /atlas/ — never javascript:, never http. */
-export function atlasBase(base) {
-  const b = String(base ?? "");
-  if (b.startsWith("/") && !b.startsWith("//") && !b.includes("\\")) return b.endsWith("/") ? b : `${b}/`;
-  try { const u = new URL(b); if (u.protocol === "https:") return u.href.endsWith("/") ? u.href : `${u.href}/`; } catch { /* fall through */ }
-  return "/atlas/";
-}
-
-/** A box, and — when its term has a published Atlas page — the small link beside it, held together. */
-function withAtlas(doc, el, term, atlas) {
-  const slug = atlas?.slugs && typeof atlas.slugs[term] === "string" ? atlas.slugs[term] : null;
-  if (!slug) return el;
-  return h(doc, "span", { class: "ats-boxwrap" }, el,
-    h(doc, "a", { class: "ats-atlas", href: `${atlasBase(atlas.base)}${encodeURIComponent(slug)}`, target: "_blank",
-      rel: "noopener noreferrer", title: `About ${term} in the Atlas`, "aria-label": `About ${term} in the Atlas`, "data-atlas-link": slug }, "Atlas"));
+  return h(doc, "div", { class: "ats-cl", "data-kind": kind, "data-tone": claimed ? "ok" : "claim", "data-claimed": claimed ? "true" : "false" },
+    label,
+    h(doc, "button", { type: "button", class: "ats-cl__claim", "data-claim-chip": claimKind, "data-key": key, "aria-pressed": claimed ? "true" : "false",
+        title: claimed ? `You claimed "${k}". Press to withdraw it.`
+                       : `Claim "${k}" — only if it is true of you. It counts toward this score and toward where this job ranks, and it is used in future resumes.`,
+        onclick: () => host?.dispatchEvent?.(new CustomEvent(ATS_CLAIM_EVENT,
+          { detail: { kind: claimKind, term: k, claimed: !claimed }, bubbles: true, composed: true })),
+        ...linkProps },
+      claimed ? "Claimed · undo" : "That's true of me"));
 }
 
 function listSection(doc, title, items) {
@@ -210,17 +233,39 @@ function listSection(doc, title, items) {
 }
 
 /**
+ * ⭐ D152 (8) · THE QUIET SWITCHES — "You could claim · n" and "History". Only where the host has a history to show
+ * (the web app's posting: this job's résumé versions, handed in as light-DOM content for the `history` slot); with
+ * nothing to switch to, "You could claim · n" is a plain heading and no control is drawn (the extension, the deck).
+ */
+function viewSwitches(doc, n, withHistory) {
+  if (!withHistory) return h(doc, "div", { class: "ats-tabs ats-tabs--one" }, h(doc, "span", { class: "ats-tab", "data-ats-view": "claim" }, `You could claim · ${n}`));
+  return h(doc, "div", { class: "ats-tabs", role: "group", "aria-label": "Show" },
+    [["claim", `You could claim · ${n}`], ["history", "History"]].map(([view, words]) =>
+    h(doc, "button", { type: "button", class: "ats-tab", "data-ats-view": view, "aria-pressed": view === "claim" ? "true" : "false",
+      onclick: (e) => showAtsView(e.currentTarget?.closest?.("[data-ats-report]"), view) }, words)));
+}
+
+/** Show one view: the switch pressed, its panel shown, the other hidden. No redraw — the claim rows keep their state. */
+export function showAtsView(tree, view) {
+  for (const b of tree.querySelectorAll?.("button[data-ats-view]") || []) b.setAttribute("aria-pressed", String(b.getAttribute("data-ats-view") === view));
+  for (const p of tree.querySelectorAll?.("[data-ats-view-panel]") || []) {
+    if (p.getAttribute("data-ats-view-panel") === view) p.removeAttribute("hidden"); else p.setAttribute("hidden", "");
+  }
+}
+
+/**
  * THE FULL REPORT, as a DOM tree (no styles — mountAtsReport adds the shadow root and the stylesheet).
  *
  * @param doc     the document to build in
  * @param report  the scorer's report shape (cleanReport'd by the caller; see fromDeckReport / fromStandaloneResult)
- * @param opts    { band, mode: "full"|"band", compact, claims, linkable, atlas, host } — `host` receives the events;
- *                `atlas` { base, slugs } links a term to its published Atlas page (D105 P5)
+ * @param opts    { band, mode: "full"|"band", compact, claims, linkable, atlas, history, host } — `host` receives the
+ *                events; `atlas` { base, slugs } links a term to its published Atlas page (D105 P5); `history` true
+ *                draws the History switch and a `history` slot for the host's own content (D152 (8))
  */
-export function buildAtsReport(doc, report, { band: knownBand = null, mode = "full", compact = false, claims = null, linkable = false, atlas = null, host = null } = {}) {
+export function buildAtsReport(doc, report, { band: knownBand = null, mode = "full", compact = false, claims = null, linkable = false, atlas = null, history = false, host = null } = {}) {
   if (!report) return null;
-  if (mode === "band") return buildBandCard(doc, report, { band: knownBand, compact });
   const state = claimState(claims);
+  if (mode === "band") return buildBandCard(doc, report, { band: knownBand, compact, claims: state });
   // Strengths and improvements only ever came from the LLM scorer. Matched on the family, so a new
   // local report version cannot quietly switch them back on.
   const isLocalReport = String(report.source || "").startsWith("local_ats");
@@ -234,13 +279,7 @@ export function buildAtsReport(doc, report, { band: knownBand = null, mode = "fu
   // defect), the Experience row already said it.
   const verdict = report.verdict && report.verdict !== report.experience?.summary ? report.verdict : null;
   const more = verdict || (!isLocalReport && (report.strengths?.length || report.improvements?.length));
-  const hasBody = !!(depth || couldClaim.length || report.experience?.summary || onResume.length
-    || report.action_verbs_generic?.length || more);
-  const box = (t, extra = {}) => {
-    const el = termBox(doc, host, { ...t, evidenced, linkable, ...extra });
-    // Skills and qualities link; a verb ("design", "lead") and generic language are not Atlas pages.
-    return extra.generic || t.kind === "verb" ? el : withAtlas(doc, el, t.term, atlas);
-  };
+  const row = (t, extra = {}) => termRow(doc, host, { ...t, evidenced, linkable, atlas, ...extra });
 
   // A BAND, NOT THE NUMBER (G5): the best fit the profile can reach.
   const best = report.best_possible_score != null ? h(doc, "div", { class: "ats-note", "data-best": pct === report.best_possible_score ? "reached" : "short" },
@@ -249,46 +288,53 @@ export function buildAtsReport(doc, report, { band: knownBand = null, mode = "fu
       : [h(doc, "span", { class: "ats-note__best" }, `Best possible for your profile: ${atsBandLabel(atsBandFor(report.best_possible_score)).label}`),
          report.best_possible_reason ? h(doc, "span", null, ` — ${report.best_possible_reason}`) : null]) : null;
 
+  const claimView = [
+    // The résumé-depth warning sits under the header it qualifies, never above it.
+    depth && h(doc, "div", { class: "ats-note ats-sec" },
+      h(doc, "div", { class: "ats-note__head" }, depth.headline || ""), h(doc, "div", null, depth.detail || "")),
+    // ⭐ D32 → D152 (8): "YOU COULD CLAIM" IS ONE BLOCK, AND THE ONLY OPEN SECTION — skills, verbs and qualities
+    // together, each row labelled with the scorer's bucket, a plain row each.
+    couldClaim.length > 0 && h(doc, "section", { "data-ats-could-claim": true, class: "ats-sec ats-sec--claim" },
+      h(doc, "p", { class: "ats-sec__sub" }, canClaim
+        ? "The posting asks for these and your résumé doesn't show them. Claim only the ones that are true of you."
+        : "The posting asks for these and your résumé doesn't show them."),
+      h(doc, "div", { class: "ats-claims" }, couldClaim.map(t => row(t, { claims: state }))),
+      // ⛔ THE CLAIM COPY APPEARS ONCE — beneath the rows, where the action is.
+      canClaim && h(doc, "p", { "data-claim-note": true, class: "ats-claim-note" },
+        "Claiming says it's true of you: it counts toward this score and where jobs rank, and it's used in résumés " +
+        "made from now on. It never rewrites one you already have, and you can withdraw it any time. " +
+        "Nothing is ever pre-selected.")),
+    // ⭐ D32: Experience gets its own row — pass/fail, not a footnote.
+    report.experience?.summary && experienceRow(doc, report.experience),
+    // FOLDED: what the résumé already shows. Read-only — there is nothing to do here.
+    onResume.length > 0 && h(doc, "details", { "data-ats-on-resume": true, "data-fold": "on-resume", class: "ats-fold ats-sec" },
+      h(doc, "summary", { class: "ats-gh" }, h(doc, "span", { class: "ats-gh__label" }, "Already yours"), h(doc, "span", { class: "ats-gh__ct" }, onResume.length)),
+      h(doc, "div", { class: "ats-claims" }, onResume.map(t => row(t)))),
+    // Generic language — AH3. ⛔ NOT a gap, deliberately not claimable, FOLDED AWAY and labelled so —
+    // surfacing "Managed" or "collaboration" as a deficiency is a claim that is not true.
+    report.action_verbs_generic?.length > 0 && h(doc, "details", { "data-ats-generic": true, "data-fold": "generic", class: "ats-fold ats-sec" },
+      h(doc, "summary", { class: "ats-gh" }, h(doc, "span", { class: "ats-gh__label" }, "Generic — not a gap"), h(doc, "span", { class: "ats-gh__ct" }, generic.length)),
+      h(doc, "p", { class: "ats-sec__sub" }, "This job uses these, but almost any candidate could claim them — they are not a gap."),
+      h(doc, "div", { class: "ats-claims" }, generic.map(t => row(t, { generic: true })))),
+    // The verdict and (LLM reports only) strengths and improvements — folded, printed once.
+    more && h(doc, "details", { "data-ats-more": true, "data-fold": "more", class: "ats-fold ats-sec" },
+      h(doc, "summary", { class: "ats-gh" }, h(doc, "span", { class: "ats-gh__label" }, "More about this match")),
+      h(doc, "div", { class: "ats-more" },
+        verdict && h(doc, "div", { class: "ats-more__verdict" }, verdict),
+        !isLocalReport && report.strengths?.length > 0 && listSection(doc, "💪 Strengths", report.strengths),
+        !isLocalReport && report.improvements?.length > 0 && listSection(doc, "🔧 Improvements", report.improvements))),
+  ].filter(Boolean);
+  const withHistory = !!history;
+  const hasBody = claimView.length > 0 || withHistory;
+
   return h(doc, "div", { "data-ats-report": true, class: "ats-card ink-pair" },
-    // Band card. Renders for EVERY report, including a declined one.
-    buildBandCard(doc, report, { band: knownBand, extra: best }),
+    // Band card. Renders for EVERY report, including a declined one. (⭐ D152 (8): the header — the count, not the band.)
+    buildBandCard(doc, report, { band: knownBand, extra: best, claims: state }),
     hasBody && h(doc, "div", { class: "ats-sb" },
-      // The résumé-depth warning sits under the band it qualifies, never above it (band-first).
-      depth && h(doc, "div", { class: "ats-note ats-sec" },
-        h(doc, "div", { class: "ats-note__head" }, depth.headline || ""), h(doc, "div", null, depth.detail || "")),
-      // ⭐ D32: "YOU COULD CLAIM" IS ONE BLOCK, AND THE ONLY OPEN SECTION — skills, verbs and qualities
-      // together, each box labelled with the scorer's bucket.
-      couldClaim.length > 0 && h(doc, "section", { "data-ats-could-claim": true, class: "ats-sec" },
-        h(doc, "div", { class: "ats-gh" }, h(doc, "span", { class: "ats-gh__label" }, "You could claim"), h(doc, "span", { class: "ats-gh__ct" }, couldClaim.length)),
-        h(doc, "div", { class: "ats-sec__sub" }, canClaim
-          ? "This posting asks for these and your résumé does not show them. Claim the ones that are true of you."
-          : "This posting asks for these and your résumé does not show them."),
-        h(doc, "div", { class: "ats-boxes" }, couldClaim.map(t => box(t, { claims: state }))),
-        // ⛔ THE CLAIM COPY APPEARS ONCE — beneath the boxes, where the action is.
-        canClaim && h(doc, "div", { "data-claim-note": true, class: "ats-claim-note" },
-          "Claiming a term says it is true of you — claim it only if it is. It counts toward this score and toward " +
-          "where jobs rank on your board, and it is used in resumes generated from now on; " +
-          "it never rewrites one you already have. Withdraw it at any time and all three go back. " +
-          "Nothing is ever pre-selected.")),
-      // ⭐ D32: Experience gets its own row — pass/fail, not a footnote.
-      report.experience?.summary && experienceRow(doc, report.experience),
-      // FOLDED: what the résumé already shows. Read-only — there is nothing to do here.
-      onResume.length > 0 && h(doc, "details", { "data-ats-on-resume": true, "data-fold": "on-resume", class: "ats-fold ats-sec" },
-        h(doc, "summary", { class: "ats-gh" }, h(doc, "span", { class: "ats-gh__label" }, "Already yours"), h(doc, "span", { class: "ats-gh__ct" }, onResume.length)),
-        h(doc, "div", { class: "ats-boxes" }, onResume.map(t => box(t)))),
-      // Generic language — AH3. ⛔ NOT a gap, deliberately not claimable, FOLDED AWAY and labelled so —
-      // surfacing "Managed" or "collaboration" as a deficiency is a claim that is not true.
-      report.action_verbs_generic?.length > 0 && h(doc, "details", { "data-ats-generic": true, "data-fold": "generic", class: "ats-fold ats-sec" },
-        h(doc, "summary", { class: "ats-gh" }, h(doc, "span", { class: "ats-gh__label" }, "Generic — not a gap"), h(doc, "span", { class: "ats-gh__ct" }, generic.length)),
-        h(doc, "div", { class: "ats-sec__sub" }, "This job uses these, but almost any candidate could claim them — they are not a gap."),
-        h(doc, "div", { class: "ats-boxes" }, generic.map(t => box(t, { generic: true })))),
-      // The verdict and (LLM reports only) strengths and improvements — folded, printed once.
-      more && h(doc, "details", { "data-ats-more": true, "data-fold": "more", class: "ats-fold ats-sec" },
-        h(doc, "summary", { class: "ats-gh" }, h(doc, "span", { class: "ats-gh__label" }, "More about this match")),
-        h(doc, "div", { class: "ats-more" },
-          verdict && h(doc, "div", { class: "ats-more__verdict" }, verdict),
-          !isLocalReport && report.strengths?.length > 0 && listSection(doc, "💪 Strengths", report.strengths),
-          !isLocalReport && report.improvements?.length > 0 && listSection(doc, "🔧 Improvements", report.improvements)))));
+      (couldClaim.length > 0 || withHistory) && viewSwitches(doc, couldClaim.length, withHistory),
+      h(doc, "div", { "data-ats-view-panel": "claim", class: "ats-view" }, claimView),
+      withHistory && h(doc, "div", { "data-ats-view-panel": "history", class: "ats-view ats-hist", hidden: true },
+        h(doc, "slot", { name: "history" }))));
 }
 
 // ── mounting: a shadow root, the stylesheet once, and the reader's place kept across a redraw ────────────────────
@@ -298,7 +344,7 @@ const setsOut = (c) => c && { pending: [...asSet(c.pending)].sort(), s: [...asSe
 
 /**
  * Draw `report` into `host`'s (open) shadow root — creating it, and its one <style>, the first time. A redraw with
- * the same inputs does nothing; a redraw with new ones keeps which folds are open and which box has focus, so a
+ * the same inputs does nothing; a redraw with new ones keeps which folds are open, which switch is chosen and which row has focus, so a
  * claim click (which the host answers with new claim state) never closes a fold or drops the keyboard's place.
  * @returns {ShadowRoot}
  */
@@ -308,19 +354,22 @@ export function mountAtsReport(host, report, opts = {}) {
   let style = root.querySelector?.("style[data-ats-style]") || null;
   if (!style) { style = doc.createElement("style"); style.setAttribute("data-ats-style", ""); style.textContent = ATS_REPORT_SHADOW_CSS; root.append(style); }
   const clean = cleanReport(report);
-  const sig = JSON.stringify([clean, opts.band ?? null, opts.mode || "full", !!opts.compact, !!opts.linkable, setsOut(opts.claims),
+  const sig = JSON.stringify([clean, opts.band ?? null, opts.mode || "full", !!opts.compact, !!opts.linkable, !!opts.history, setsOut(opts.claims),
     opts.atlas ? [atlasBase(opts.atlas.base), opts.atlas.slugs || {}] : null]);
   if (root[SIG] === sig) return root;
   root[SIG] = sig;
   const prior = root.querySelector?.("[data-ats-root]") || null;
   const open = new Set(prior ? [...prior.querySelectorAll("details[open]")].map(d => d.getAttribute("data-fold")) : []);
   const focused = root.activeElement?.getAttribute?.("data-key") || null;
+  // ⭐ D152 (8): the switch the reader chose (You could claim / History) survives a redraw, as a fold does.
+  const view = prior?.querySelector?.('button[data-ats-view][aria-pressed="true"]')?.getAttribute("data-ats-view") || null;
   const tree = clean ? buildAtsReport(doc, clean, { ...opts, host }) : null;
   const wrap = doc.createElement("div");
   wrap.setAttribute("data-ats-root", "");
   if (tree) wrap.append(tree);
   if (prior) prior.replaceWith(wrap); else root.append(wrap);
   for (const d of wrap.querySelectorAll?.("details[data-fold]") || []) if (open.has(d.getAttribute("data-fold"))) d.setAttribute("open", "");
+  if (view && tree) showAtsView(tree, view);
   if (focused) {
     for (const el of wrap.querySelectorAll?.("[data-key]") || []) if (el.getAttribute("data-key") === focused) { el.focus?.(); break; }
   }
@@ -330,14 +379,15 @@ export function mountAtsReport(host, report, opts = {}) {
 /**
  * `<draft-ats-report>` — the element. Properties: `report` (the scorer's JSON), `band`, `claims` (see claimState),
  * `linkable`, `atlas` ({ base, slugs } — D105 P5). Attributes: `mode` ("full" | "band"), `compact`, `theme` (a registry id; none follows the OS),
- * `cues` ("shape"). Defined only where a registry exists; returns the class (or null).
+ * `cues` ("shape"), `history` (D152 (8): draw the History switch; the host's light-DOM child with slot="history" is its content), `bare`
+ * (no card of its own — the host's surface is the card, as the posting's match block is). Defined only where a registry exists; returns the class (or null).
  */
 export function defineAtsReportElement(registry = typeof customElements !== "undefined" ? customElements : null) {
   if (!registry || typeof HTMLElement === "undefined") return null;
   const existing = registry.get(ATS_REPORT_TAG);
   if (existing) return existing;
   class DraftAtsReport extends HTMLElement {
-    static get observedAttributes() { return ["mode", "compact"]; }
+    static get observedAttributes() { return ["mode", "compact", "history"]; }
     constructor() { super(); this._report = null; this._band = null; this._claims = null; this._linkable = false; this._atlas = null; this._queued = false; }
     set report(v) { this._report = v ?? null; this._schedule(); }
     get report() { return this._report; }
@@ -359,7 +409,7 @@ export function defineAtsReportElement(registry = typeof customElements !== "und
     /** Draw now (the microtask batch calls this; a host that needs the tree at once may too). */
     render() {
       return mountAtsReport(this, this._report, { band: this._band, mode: this.getAttribute("mode") || "full",
-        compact: this.hasAttribute("compact"), claims: this._claims, linkable: this._linkable, atlas: this._atlas });
+        compact: this.hasAttribute("compact"), history: this.hasAttribute("history"), claims: this._claims, linkable: this._linkable, atlas: this._atlas });
     }
   }
   registry.define(ATS_REPORT_TAG, DraftAtsReport);

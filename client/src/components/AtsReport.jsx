@@ -5,7 +5,7 @@
 // AtsReport.css rule for rule; shared/atsReportModel.js — the report's shape and the two adapters). The web app and
 // the extension (its popup and its on-page panel) draw THAT component from the same JSON — owner 10-14: "the same
 // ATS panel we use on the website — same design and everything". Every web surface still renders from here: the
-// board's side panel (ATSPanel inside AtsReportPanel), the deck's left panel and the phone's sheet (DeckView, through
+// posting's match (ATSPanel inside JobDetailPanel, D152 (8) — the old AtsReportPanel overlay is retired), the deck's left panel and the phone's sheet (DeckView, through
 // ATSPanel), the deck's collapsed score, the free public tool (/tools/ats) and the signup hook (AtsBandCard).
 // test/atsReportOneImplementation.test.js refuses a second copy, in the client or the extension.
 //
@@ -31,7 +31,7 @@ defineAtsReportElement();
 // useLayoutEffect warns under a server render; the element only exists in a browser anyway.
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-function AtsReportHost({ report, band = null, mode = "full", compact = false, claims = null }) {
+function AtsReportHost({ report, band = null, mode = "full", compact = false, claims = null, history = null, bare = false }) {
   const ref = useRef(null);
   const link = usePairLink();
   // The latest callbacks, read at event time — so a re-render never re-binds listeners or redraws the card.
@@ -67,9 +67,12 @@ function AtsReportHost({ report, band = null, mode = "full", compact = false, cl
     return () => { el.removeEventListener(ATS_CLAIM_EVENT, onClaim); el.removeEventListener(ATS_TERM_EVENT, onTerm); };
   }, []);
 
+  // ⭐ D152 (8): `history` is the host's own content for the report's History switch — light DOM, in the element's
+  // `history` slot (the posting's résumé versions); `bare` lets the posting's match block be the card.
   return createElement(ATS_REPORT_TAG, {
-    ref, mode, ...(compact ? { compact: "" } : {}), theme: ACTIVE_THEME.id, ...(CUES ? { cues: "shape" } : {}),
-  });
+    ref, mode, ...(compact ? { compact: "" } : {}), ...(history ? { history: "" } : {}), ...(bare ? { bare: "" } : {}),
+    theme: ACTIVE_THEME.id, ...(CUES ? { cues: "shape" } : {}),
+  }, history ? createElement("div", { slot: "history" }, history) : null);
 }
 
 /**
@@ -79,13 +82,15 @@ function AtsReportHost({ report, band = null, mode = "full", compact = false, cl
  * @param band    a band the caller already holds (the deck), else derived from report.score
  * @param claims  optional — { onToggle(kind, label, claimed), pending:Set, claimedLookup, lockedSkills:Set,
  *                lockedVerbs:Set } — present only where the candidate can claim a term (a profile)
+ * @param history optional — a React node: the History switch's content (D152 (8), the posting's résumé versions)
+ * @param bare    true where the host's surface is the card (the posting's match block)
  */
-export function AtsReport({ report, band = null, claims = null }) {
+export function AtsReport({ report, band = null, claims = null, history = null, bare = false }) {
   if (!report) return null;
-  return createElement(AtsReportHost, { report, band, claims });
+  return createElement(AtsReportHost, { report, band, claims, history, bare });
 }
 
-/** The band card alone — the header: band, "you cover 9 of 12", the number, the bar (the signup hook, the deck's collapsed score). */
+/** The header alone — "9 of 12 things this posting asks for", the number or the band in words, the bar (the signup hook, the deck's collapsed score). */
 export function AtsBandCard({ report, band = null, compact = false }) {
   // A caller holding only the band (no report yet) still gets the band heading, as before.
   return createElement(AtsReportHost, { report: report ?? {}, band, mode: "band", compact });

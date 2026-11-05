@@ -10,9 +10,11 @@
 // (shared/atsReportTokens.js, generated from client/src/themes/* by scripts/buildAtsReport.mjs) — so the card is the
 // same pixels on every surface for the same theme, whatever page it sits in.
 // ⛔ NOTHING HERE ANIMATES: no transition, no keyframes, no minimum width — the card renders the same in the deck's
-// panel, the board's panel, the phone's sheet, /tools/ats, the extension's popup and its on-page panel. A hover lifts
-// a box instantly (the sketch eases it over .15s; D31 forbids motion, so it does not).
-// ⛔ D60: no capsule — boxes radius 9, the count chip radius 6, the bar square.
+// panel, the board's panel, the phone's sheet, /tools/ats, the extension's popup and its on-page panel. A hover tints
+// a claim button instantly (D31 forbids motion).
+// ⛔ D60: no capsule — the switches radius 11, the claim buttons radius 10, the bar corner 2; the key's dots are circles.
+// ⭐ D152 (8): option A's look (docs/sketches/ats-options.html) — plain rows, the count as the heading, no depth boxes.
+// The sketch's 600 weight is drawn at 500: the faces both products ship are DM Sans 400 / 500 / 700 (extension/fonts).
 import { ATS_REPORT_THEMES, ATS_REPORT_DEFAULT_THEMES, ATS_REPORT_FONTS } from "./atsReportTokens.js";
 
 export const ATS_REPORT_CSS = `
@@ -29,143 +31,113 @@ export const ATS_REPORT_CSS = `
   border: 1px solid var(--c-pair-rule);
 }
 
-.ats-card { border-radius: 18px; overflow: hidden; box-shadow: var(--c-pair-card-shadow); }
-
-/* ── The header (.shd): band heading · "you cover 9 of the 12" · (score) — then the flush bar ──────── */
-.ats-sum { border-radius: 18px; overflow: hidden; box-shadow: var(--c-pair-card-shadow); }
+/* ⭐ D152 (8) · ats-options.html OPTION A. On its own (the extension, the deck, the public tool) the report is one block
+   on the pair's surface, corner 22, padded 20 (the sketch's .match). In the posting it is :host([bare]) — the
+   posting's match block is the surface, so the report draws no card of its own (one block, never a card in a card). */
+.ats-card { border-radius: 22px; overflow: hidden; padding: 20px; font-size: 15.5px; line-height: 1.55; }
+:host([bare]) .ats-card { background: transparent; border: 0; border-radius: 0; padding: 0; }
+.ats-sum { border-radius: 22px; padding: 20px; font-size: 15.5px; line-height: 1.55; }
 /* Inside the full report the header is the card's top, not a card of its own. */
-.ats-card .ats-sum { border: 0; border-radius: 0; box-shadow: none; }
-.ats-sum__head {
-  padding: 20px 24px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
-  background: linear-gradient(180deg, var(--c-pair-mast-tint), transparent);
-}
-.ats-sum[data-compact="true"] .ats-sum__head { padding: 14px 16px; }
-/* The band IS the heading — the logo face, 800 italic (.bd). */
-.ats-sum__band {
-  display: inline-block; margin-bottom: 5px;
-  font-family: 'Poppins', var(--font-body); font-style: italic; font-weight: 800; font-size: 20px; line-height: 1.1;
-  color: var(--c-pair-hi);
-}
-/* ⛔ NOT ENOUGH SIGNAL is the scorer declining — no hue, a DASHED outline: never a low grade. */
-.ats-sum__band[data-unknown="true"] {
-  padding: 4px 10px; border-radius: 9px; border: 1.5px dashed var(--c-band-unknown-edge); color: var(--c-band-unknown);
-}
-.ats-sum__cap { margin-left: 8px; font-size: 11px; color: var(--c-pair-ink-faint); }
-.ats-sum__count { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--c-pair-ink-faint); }
-/* D50 · the provisional note under a shown number. */
-.ats-sum__note { margin: 6px 0 0; font-size: 11px; line-height: 1.4; font-style: italic; color: var(--c-pair-ink-faint); }
-/* The number in SERIF (.n) — the largest element when A76 lets it show. ⭐ D48 (owner, 10-07): "the ATS number
-   switches colour" — to the sketch's --atx (PAIR_KICKER: #A33200 on cream, where the logo orange fails as text),
-   the same ink as the posting panel's ATS number box. */
-.ats-sum__score {
-  font-family: var(--font-display); font-weight: 400; font-size: 46px; line-height: 1; text-align: right;
-  color: var(--c-pair-kicker);
-}
-.ats-sum__score small {
-  display: block; margin-top: 4px; font-family: var(--font-body); font-size: 7.5px; font-weight: 700; line-height: 1;
-  letter-spacing: .16em; text-transform: uppercase; color: var(--c-pair-ink-faint);
-}
-.ats-sum__notes { padding: 0 24px 16px; display: flex; flex-direction: column; gap: 8px; }
-.ats-sum[data-compact="true"] .ats-sum__notes { padding: 0 16px 12px; }
+.ats-card .ats-sum { border: 0; border-radius: 0; padding: 0; background: transparent; }
+.ats-sum[data-compact="true"] { padding: 14px 16px; }
 
-/* The bar (.bar): THREE flush segments, 6px, square — matched · missing · generic (grey: never a gap). */
-.ats-bar { display: flex; height: 6px; box-sizing: border-box; }
+/* ── The header: "28 of 40 things this posting asks for" (the sketch's h3) · one plain sentence · the bar · its key ── */
+.ats-sum__count {
+  margin: 0 0 8px; font-family: var(--font-body); font-weight: 500; font-size: 30px; line-height: 1.08; letter-spacing: -.03em;
+  color: var(--c-pair-ink);
+}
+.ats-sum[data-compact="true"] .ats-sum__count { font-size: 21px; }
+.ats-sum__sub { margin: 0 0 14px; font-size: 15.5px; line-height: 1.55; color: var(--c-pair-ink-muted); }
+.ats-sum[data-compact="true"] .ats-sum__sub { font-size: 13.5px; margin-bottom: 10px; }
+.ats-sum__notes { margin: 0 0 14px; display: flex; flex-direction: column; gap: 8px; }
+
+/* The bar (.bar): 6px, on the rule's colour (missing) — on your résumé · claimed by you. Corner 1 (D60: never a capsule — d60CompactRadius allows ≤ 30 % of the height; 2 on 6 was 33 %). */
+.ats-bar { display: flex; height: 6px; border-radius: 1px; overflow: hidden; background: var(--c-pair-rule); margin: 0 0 6px; box-sizing: border-box; }
 .ats-bar__seg { height: 100%; }
 .ats-bar__seg--matched { background: var(--c-pair-matched); }
-.ats-bar__seg--missing { background: var(--c-pair-missing); }
-.ats-bar__seg--generic { background: var(--c-pair-generic); }
+.ats-bar__seg--claimed { background: var(--c-pair-kicker); }
 /* ⛔ NOT ENOUGH SIGNAL: every segment loses its colour, the bar is a DASHED outline — never a short Weak bar. */
-.ats-bar[data-unknown="true"] { border: 1.5px dashed var(--c-band-unknown-edge); }
+.ats-bar[data-unknown="true"] { border: 1.5px dashed var(--c-band-unknown-edge); background: transparent; }
 .ats-bar[data-unknown="true"] .ats-bar__seg { background: transparent; }
+/* The key (.key): three words, each after a 7px dot (a perfect circle). */
+.ats-key { display: flex; gap: 14px; flex-wrap: wrap; margin: 0 0 18px; font-size: 12.5px; line-height: 1.5; color: var(--c-pair-ink-faint); }
+.ats-key__i::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; }
+.ats-key__i[data-k="matched"]::before { background: var(--c-pair-matched); }
+.ats-key__i[data-k="claimed"]::before { background: var(--c-pair-kicker); }
+.ats-key__i[data-k="missing"]::before { background: var(--c-pair-rule); }
+.ats-sum[data-compact="true"] .ats-key { margin-bottom: 0; }
 
-.ats-notes { margin: 0; padding-left: 16px; font-size: 11.5px; line-height: 1.6; color: var(--c-pair-ink-muted); }
-.ats-note {
-  font-size: 11.5px; line-height: 1.6; padding: 8px 11px; border-radius: 9px;
-  background: var(--c-pair-raised); color: var(--c-pair-ink-muted); border: 1px solid var(--c-pair-rule);
-}
-.ats-note__head { font-weight: 700; color: var(--c-pair-ink); margin-bottom: 2px; }
+.ats-notes { margin: 0; padding-left: 16px; font-size: 13px; line-height: 1.6; color: var(--c-pair-ink-muted); }
+.ats-note { font-size: 13px; line-height: 1.6; color: var(--c-pair-ink-muted); }
+.ats-note__head { font-weight: 500; color: var(--c-pair-ink); margin-bottom: 2px; }
 .ats-note--hard { color: var(--c-pair-missing); }
-.ats-note[data-best="reached"] { background: var(--c-pair-met-quiet); color: var(--c-pair-matched); border-color: var(--c-pair-matched-edge); }
-.ats-note__best { font-weight: 700; }
+.ats-note[data-best="reached"] { color: var(--c-pair-matched); }
+.ats-note__best { font-weight: 500; }
 
-/* ── The body (.sb) and its sections, each headed by a .gh with a monospace count ─────────────────── */
-.ats-sb { padding: 19px 22px 22px; border-top: 1px solid var(--c-pair-rule); }
-.ats-sec + .ats-sec { margin-top: 21px; padding-top: 18px; border-top: 1px solid var(--c-pair-rule); }
+/* ── The quiet switches (.tabs): "You could claim · n" · "History" — corner 11, the pressed one outlined in the accent ── */
+.ats-tabs { display: flex; gap: 6px; margin: 0 0 14px; }
+.ats-tab {
+  all: unset; box-sizing: border-box; cursor: pointer; padding: 7px 12px; border-radius: 11px;
+  font-family: var(--font-body); font-weight: 500; font-size: 13.5px; line-height: 1.4;
+  color: var(--c-pair-ink-muted); background: var(--c-pair-surface);
+}
+.ats-tab[aria-pressed="true"] { color: var(--c-pair-ink); outline: 1px solid var(--c-pair-kicker); }
+.ats-tab:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; }
+/* With nothing to switch to it is a heading, not a control: the pressed look, no pointer. */
+.ats-tabs--one .ats-tab { cursor: default; color: var(--c-pair-ink); outline: 1px solid var(--c-pair-kicker); }
+[hidden] { display: none !important; }
+
+/* ── The body and its sections ─────────────────────────────────────────────────────────────── */
+.ats-sec + .ats-sec { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--c-pair-rule); }
 .ats-gh {
-  margin: 0 0 12px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-  font-family: var(--font-body); font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: .15em;
-  text-transform: uppercase; color: var(--c-pair-ink-faint);
+  margin: 0 0 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  font-family: var(--font-body); font-size: 13.5px; font-weight: 500; line-height: 1.4; color: var(--c-pair-ink-muted);
 }
-.ats-gh__ct {
-  font-family: var(--font-count); font-size: 10px; font-weight: 700; line-height: 1; letter-spacing: 0;
-  background: var(--c-pair-raised); border: 1px solid var(--c-pair-rule); border-radius: 6px; padding: 3px 7px;
-  color: var(--c-pair-ink-faint);
-}
-.ats-sec__sub { font-size: 11.5px; color: var(--c-pair-ink-faint); margin: -6px 0 12px; line-height: 1.5; }
-.ats-boxes { display: flex; flex-wrap: wrap; gap: 8px; }
-/* ⭐ D105 P5: a box and its Atlas link, kept together on one line. The link is a quiet word, not a second box. */
-.ats-boxwrap { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; }
+.ats-gh__ct { font-weight: 500; font-size: 12.5px; color: var(--c-pair-ink-faint); }
+.ats-sec__sub { font-size: 15.5px; color: var(--c-pair-ink-muted); margin: 0 0 6px; line-height: 1.55; }
+.ats-fold .ats-sec__sub { font-size: 13px; }
+/* ⭐ D105 P5: the Atlas link — a quiet word beside the term. */
 .ats-atlas {
-  font-family: var(--font-body); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  margin-left: 8px; font-family: var(--font-body); font-size: 12.5px; font-weight: 500;
   color: var(--c-pair-kicker); text-decoration: underline; text-underline-offset: 2px; white-space: nowrap;
 }
 .ats-atlas:hover { color: var(--c-pair-ink); }
 .ats-atlas:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; border-radius: 3px; }
-/* A fold's summary IS its .gh; a caret says it opens. */
+/* A fold's summary IS its heading; a caret says it opens. */
 .ats-fold > summary { cursor: pointer; list-style: none; }
 .ats-fold > summary::-webkit-details-marker { display: none; }
 .ats-fold > summary .ats-gh__label::before { content: "▸ "; }
 .ats-fold[open] > summary .ats-gh__label::before { content: "▾ "; }
 .ats-fold:not([open]) > summary { margin-bottom: 0; }
 .ats-fold > summary:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; border-radius: 4px; }
-.ats-claim-note { font-size: 11px; color: var(--c-pair-ink-faint); font-style: italic; line-height: 1.55; margin-top: 11px; }
+.ats-claim-note { font-size: 12.5px; color: var(--c-pair-ink-faint); line-height: 1.55; margin: 14px 0 0; }
 
-/* ── Experience (.xp): its own row, pass/fail ────────────────────────────────────────────────── */
-.ats-exp {
-  display: flex; align-items: center; gap: 11px; padding: 11px 13px; border-radius: 10px;
-  background: var(--c-pair-raised); border: 1px solid var(--c-pair-rule); box-shadow: var(--c-pair-lift);
-  font-size: 12.5px; line-height: 1.5; color: var(--c-pair-ink-muted);
-}
-.ats-exp__mark {
-  flex: 0 0 auto; white-space: nowrap; color: var(--c-pair-ink);
-  font-family: 'Poppins', var(--font-body); font-style: italic; font-weight: 800; font-size: 12.5px; line-height: 1;
-}
-.ats-exp[data-state="met"] { background: var(--c-pair-met-quiet); border-color: var(--c-pair-matched-edge); color: var(--c-pair-matched); }
+/* ── Experience: its own row, pass/fail — a plain line, the state a word ─────────────────────── */
+.ats-exp { display: flex; align-items: baseline; gap: 11px; font-size: 13.5px; line-height: 1.5; color: var(--c-pair-ink-muted); }
+.ats-exp__mark { flex: 0 0 auto; white-space: nowrap; font-weight: 500; color: var(--c-pair-ink); }
 .ats-exp[data-state="met"] .ats-exp__mark { color: var(--c-pair-matched); }
-.ats-exp[data-state="short"] { background: var(--c-pair-missing-quiet); border-color: var(--c-pair-missing-edge); color: var(--c-pair-missing); }
 .ats-exp[data-state="short"] .ats-exp__mark { color: var(--c-pair-missing); }
 
-/* ── Boxes (.b). RECTANGULAR (radius 9), D1's depth at rest. A claim box is a CONTROL: it lifts on hover
- * and settles on press. A read-only box is a label: it rests, and never pretends to be pressable. */
-.ats-box {
-  display: inline-flex; align-items: center; gap: 9px; max-width: 100%; box-sizing: border-box;
-  padding: 8px 11px; border-radius: 9px; font: inherit; font-size: 12.5px; font-weight: 400; line-height: 1.35;
-  background: var(--c-pair-raised); color: var(--c-pair-ink); border: 1px solid var(--c-pair-rule);
-  box-shadow: var(--c-pair-lift); overflow-wrap: anywhere; text-align: left;
+/* ── The rows (.cl): the term · its kind in small type · at the end, "That's true of me" ─────── */
+.ats-claims { display: grid; gap: 0; }
+.ats-cl {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 0;
+  border-top: 1px solid var(--c-pair-rule); font-size: 15.5px; line-height: 1.4; color: var(--c-pair-ink);
 }
-/* The \`kind\` (.kind): a small label behind a hairline, at the sketch's reduced opacity — raised from .62 to
- * the least that still reads at 4.5:1 on every box (PAIR_KIND_ALPHA, per theme). */
-.ats-box__kind {
-  font-family: var(--font-body); font-size: 7.5px; font-weight: 700; line-height: 1; letter-spacing: .11em;
-  text-transform: uppercase; opacity: var(--c-pair-kind-alpha);
-  border-left: 1px solid var(--c-pair-rule); padding-left: 9px; margin-left: 1px;
+.ats-cl:first-child { border-top: 0; }
+.ats-cl__term { min-width: 0; overflow-wrap: anywhere; }
+.ats-cl__term b { font-weight: 500; }
+.ats-cl__kind { margin-left: 8px; font-size: 12.5px; color: var(--c-pair-ink-faint); }
+.ats-cl[data-tone="gen"] { color: var(--c-pair-ink-muted); }
+.ats-cl:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; }
+.ats-cl__state { font-size: 13.5px; font-weight: 500; color: var(--c-pair-ink-faint); }
+.ats-cl__claim {
+  all: unset; box-sizing: border-box; cursor: pointer; padding: 6px 10px; border-radius: 10px; white-space: nowrap;
+  font-family: var(--font-body); font-size: 13.5px; font-weight: 500; line-height: 1.4; color: var(--c-pair-kicker);
 }
-.ats-box[data-tone="ok"] { background: var(--c-pair-met-quiet); border-color: var(--c-pair-matched-edge); color: var(--c-pair-matched); }
-.ats-box[data-tone="gen"] { background: var(--c-pair-generic-quiet); border-color: var(--c-pair-generic-edge); color: var(--c-pair-generic); }
-.ats-box[data-tone="claim"] { border-color: var(--c-pair-missing-edge); color: var(--c-pair-missing); }
-.ats-box:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; }
-.ats-box--claim { cursor: pointer; }
-.ats-box--claim:hover { transform: translateY(-2px); box-shadow: var(--c-pair-lift2); }
-.ats-box--claim:active { transform: translateY(0); box-shadow: var(--c-pair-press); }
-.ats-box--claim[aria-pressed="true"] { background: var(--c-pair-met-quiet); border-color: var(--c-pair-matched-edge); color: var(--c-pair-matched); }
-/* The FILLED + square (.p) — the claim box's indicator; a ✓ on the green once claimed. */
-.ats-box__plus {
-  flex: 0 0 auto; width: 17px; height: 17px; border-radius: 5px; display: grid; place-items: center;
-  background: var(--c-pair-missing); color: var(--c-pair-surface);
-  font-family: var(--font-body); font-size: 13px; font-weight: 700; line-height: 1;
-}
-.ats-box--claim[aria-pressed="true"] .ats-box__plus { background: var(--c-pair-matched); }
-
+.ats-cl__claim:hover { background: var(--c-pair-surface); }
+.ats-cl__claim:focus-visible { outline: 2px solid var(--c-pair-kicker); outline-offset: 2px; }
+.ats-cl__claim[aria-pressed="true"] { color: var(--c-pair-ink-faint); }
 /* ── More about this match ───────────────────────────────────────────────────────────────────── */
 .ats-sec__label {
   font-size: 9px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; color: var(--c-pair-ink-faint);
@@ -178,18 +150,14 @@ export const ATS_REPORT_CSS = `
 
 /* ── D91 P4 · SHAPE CUES (moved from client/src/styles/cues.css — a document rule cannot reach into a shadow root).
    A user setting, not a theme: the host carries cues="shape" (the web app sets it from the one stored preference).
-   The pair's three-segment bar: yours solid · missing hatched · generic dotted. ⛔ No reflow — a pattern, not a size. */
-:host([cues="shape"]) .ats-bar__seg--missing {
+   The bar: yours solid · claimed hatched · missing the bare track. ⛔ No reflow — a pattern, not a size. */
+:host([cues="shape"]) .ats-bar__seg--claimed {
   background-image: repeating-linear-gradient(135deg, transparent 0 2px, var(--c-pair-surface) 2px 3.5px);
 }
-:host([cues="shape"]) .ats-bar__seg--generic {
-  background-image: radial-gradient(var(--c-pair-surface) 0.8px, transparent 1px); background-size: 4px 4px;
-}
 
-/* forced-colors (Windows High Contrast) DROPS box-shadow, which is all a depth box has for an edge (cues.css P5). */
+/* forced-colors (Windows High Contrast): the switches and the claim buttons keep an edge, the bar an outline (cues.css P5). */
 @media (forced-colors: active) {
-  .ats-box, .ats-exp, .ats-note, .ats-gh__ct { border: 1px solid CanvasText; }
-  .ats-box--claim { border-color: ButtonText; }
+  .ats-tab, .ats-cl__claim { border: 1px solid ButtonText; }
   .ats-bar { border: 1px solid CanvasText; }
 }
 `;

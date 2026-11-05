@@ -105,7 +105,8 @@ test("⭐ T9 · the web app's path and the extension's data path draw the SAME c
   const ext = bundleApi().buildAtsReport(miniDocument(), model.report).outerHTML;
   assert.equal(ext, web, "the extension drew a different card from the same report");
   // The words and the numbers, read off the card itself.
-  for (const words of ["You cover 4 of the 8 things this posting asks for.", "61", "Kafka", "mentoring", "Scaled", "Managed",
+  // ⭐ D152 (8), changed on purpose (option A): the count is the heading, the number a plain sentence under it.
+  for (const words of ["4 of 8 things this posting asks for", "A 61% match.", "Kafka", "mentoring", "Scaled", "Managed",
                        "Already yours", "Generic — not a gap", "Required by this posting, not on your profile: Security clearance", "✓ Met"]) {
     assert.ok(webCard.textContent.includes(words), `the card does not say: ${words}`);
   }
@@ -125,10 +126,13 @@ test("⭐ T9 · no extension-only field: the extension's `ats.report` is the sco
 
 test("⭐ T9 · the deck's frozen report and a declined report draw through the same component", () => {
   const declined = buildAtsReport(miniDocument(), cleanReport({ source: "local_ats_v5", score: null, decline_reasons: ["Too little text to judge."] }));
-  assert.match(declined.outerHTML, /data-unknown="true">Not enough signal<\/div><span class="ats-sum__cap">no judgement<\/span>/);
+  // ⭐ D152 (8), changed on purpose: the band heading is gone — the scorer declining is said in words (still no grade).
+  assert.match(declined.outerHTML, /data-ats-band="not_enough_signal"/);
+  assert.match(declined.outerHTML, /data-ats-unknown>Not enough signal to judge this posting — no judgement\.<\/p>/);
   assert.doesNotMatch(declined.outerHTML, /data-ats-score/, "a declined report printed a number");
   const deck = buildAtsReport(miniDocument(), cleanReport(fromDeckReport({ skillsMatched: ["Go"], skillsMissing: ["Rust"], verbsGeneric: [] })), { band: "moderate" });
-  assert.match(deck.outerHTML, /Moderate match/);
+  assert.match(deck.outerHTML, /Moderate match — read it with the count\./, "with no number, the band in words — not a heading");
+  assert.match(deck.outerHTML, /1 of 2 things this posting asks for/);
 });
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -190,7 +194,7 @@ test("⭐ T9 · read-only without claims (the extension, the public tool); real 
   host.addEventListener(ATS_CLAIM_EVENT, (e) => got.push(e.detail));
   const rw = buildAtsReport(miniDocument(), cleanReport(RAW), { host, claims: { pending: new Set(["skill:mentoring"]) } });
   const buttons = rw.querySelectorAll("button");
-  assert.equal(buttons.length, 4, "one button per 'You could claim' box");
+  assert.equal(buttons.length, 4, "one \"That's true of me\" per 'You could claim' row (no switch without a History)");
   for (const b of buttons) { assert.equal(b.getAttribute("type"), "button"); assert.ok(["true", "false"].includes(b.getAttribute("aria-pressed"))); }
   // NOTHING IS PRE-SELECTED: only the click in flight reads as claimed.
   assert.deepEqual(buttons.filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.getAttribute("data-key")), ["quality:mentoring"]);
@@ -202,7 +206,16 @@ test("⭐ T9 · read-only without claims (the extension, the public tool); real 
   assert.ok(rw.querySelectorAll("details").every((d) => !d.hasAttribute("open") && d.children[0].localName === "summary"));
   const bar = rw.querySelector("[data-ats-bar]");
   assert.equal(bar.getAttribute("role"), "img");
-  assert.equal(bar.getAttribute("aria-label"), "4 of 8 asks already on your résumé; 2 generic, not a gap");
+  // ⭐ D152 (8): the bar is on your résumé · claimed by you · missing (generic language is not an ask, so not on it).
+  assert.equal(bar.getAttribute("aria-label"), "4 of 8 asks already on your résumé; 1 claimed by you");
+  assert.match(rw.textContent, /That's true of me/);
+  assert.match(rw.textContent, /Claimed · undo/);
+  // ⭐ D152 (8): with a History, the two quiet switches — buttons with aria-pressed; the History panel is the host's slot.
+  const hist = buildAtsReport(miniDocument(), cleanReport(RAW), { host, claims: { pending: new Set() }, history: true });
+  const sw = hist.querySelectorAll("button[data-ats-view]");
+  assert.deepEqual(sw.map((b) => [b.textContent, b.getAttribute("aria-pressed")]), [["You could claim · 4", "true"], ["History", "false"]]);
+  assert.ok(hist.querySelector('[data-ats-view-panel="history"]').hasAttribute("hidden"));
+  assert.equal(hist.querySelectorAll('slot[name="history"]').length, 1);
 });
 
 test("⭐ T9 · D32's hover link: only where the host asks — focus and pointer say the term, leaving says null", () => {
@@ -299,6 +312,7 @@ function staticServer() {
 const FS = "/client/node_modules/@fontsource";
 const HOST_HTML = `<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face { font-family: 'DM Sans'; font-weight: 400; src: url(${FS}/dm-sans/files/dm-sans-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'DM Sans'; font-weight: 500; src: url(${FS}/dm-sans/files/dm-sans-latin-500-normal.woff2) format('woff2'); }
 @font-face { font-family: 'DM Sans'; font-weight: 700; src: url(${FS}/dm-sans/files/dm-sans-latin-700-normal.woff2) format('woff2'); }
 @font-face { font-family: 'Poppins'; font-style: italic; font-weight: 800; src: url(${FS}/poppins/files/poppins-latin-800-italic.woff2) format('woff2'); }
 @font-face { font-family: 'Instrument Serif'; font-weight: 400; src: url(${FS}/instrument-serif/files/instrument-serif-latin-400-normal.woff2) format('woff2'); }
@@ -316,8 +330,8 @@ document.getElementById("card").addEventListener(ATS_CLAIM_EVENT, (e) => window.
 window.ready = true;
 </script></body></html>`;
 
-// Every face the card draws with (atsReportStyles.js: DM Sans 400/700, Poppins 800 italic, Instrument Serif 400).
-const CARD_FACES = Object.freeze(['400 16px "DM Sans"', '700 16px "DM Sans"', 'italic 800 16px "Poppins"', '400 16px "Instrument Serif"']);
+// Every face the card may draw with (atsReportStyles.js: DM Sans 400/500/700 — ⭐ D152 (8) added 500 — Poppins 800 italic, Instrument Serif 400).
+const CARD_FACES = Object.freeze(['400 16px "DM Sans"', '500 16px "DM Sans"', '700 16px "DM Sans"', 'italic 800 16px "Poppins"', '400 16px "Instrument Serif"']);
 
 /** Load every face the card uses in THIS page, explicitly — `document.fonts.ready` alone can resolve before a face
  *  nothing has asked for yet is fetched, which is how the parity check flaked once beside j9FullPass under load. */

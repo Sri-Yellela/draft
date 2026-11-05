@@ -33,7 +33,8 @@ import { at } from "../test-support/sourceAnchors.js";
 const SERVER = fs.readFileSync("server.js", "utf8");
 const JOB_CARD = fs.readFileSync("client/src/components/JobCard.jsx", "utf8");
 const JOBS_PANEL = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
-const ATS_REPORT_PANEL = fs.readFileSync("client/src/panels/AtsReportPanel.jsx", "utf8");
+// ⭐ D152 (8): the ATS overlay (AtsReportPanel) is retired — the match is drawn inside the posting (JobDetailPanel).
+const JOB_DETAIL = fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8");
 const APPLY = fs.readFileSync("routes/apply.js", "utf8");
 
 // ⛔ EVERY ASSERTION BELOW THAT A STATEMENT IS GONE HAS TO IGNORE THE COMMENTS QUOTING IT.
@@ -168,7 +169,8 @@ test("an unscored row still offers a way into its ATS report", () => {
   // the bubbles") — an unscored row's way into its report is the opened posting's match box, whose handler is not gated
   // on a score (JobDetailPanel's onOpen → selectedJobMeta.onAts).
   assert.equal((JOBS_PANEL.match(/onAts=\{\(\) => openAtsPanel\(buildAtsPayload\(job, g\)\)\}/g) || []).length, 0);
-  assert.match(JOBS_PANEL, /onAts: \(\) => openAtsPanel\(buildAtsPayload\(selectedJob, g2\)\),/);
+  // D152 (8) (44t): the opener also names the job, so the match opens inside that posting (option A), not over the page.
+  assert.match(JOBS_PANEL, /onAts: \(\) => openAtsPanel\(buildAtsPayload\(selectedJob, g2\), selectedJob\),/);
   // ⭐ D152 (8): the match box opens the report IN the posting — ATSPanel, which fetches it on demand when handed none.
   assert.match(fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8"), /onOpen=\{\(\) => \{ setMatchMounted\(true\); setMatchOpen\(o => !o\); \}\}/);
   assert.match(fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8"), /<ATSPanel report=\{selectedJobMeta\?\.atsPayload\?\.report\}/);
@@ -185,6 +187,7 @@ test("the report payload names its own job, so the panel fetches the right one",
   // knows WHICH posting, and it used to take that from `selectedJob`, the JD drawer's state. A card
   // click on a board with nothing selected therefore fetched nothing at all.
   assert.match(JOBS_PANEL, /jobId: job\?\.jobId \|\| job\?\.id \|\| null,/);
-  assert.match(ATS_REPORT_PANEL, /const reportJobId = activeAts\?\.jobId \?\? jobId;/);
-  assert.match(ATS_REPORT_PANEL, /jobId=\{reportJobId\}/);
+  // ⭐ D152 (8): the match is inside the posting the report is about — its own job, and an opener selects that job first.
+  assert.match(JOB_DETAIL, /<ATSPanel report=\{selectedJobMeta\?\.atsPayload\?\.report\} score=\{selectedJobMeta\?\.atsPayload\?\.score\}\s+jobId=\{selectedJob\.jobId\}/);
+  assert.match(JOBS_PANEL, /if \(job && selectedJobIdRef\.current !== job\.jobId\) setSelectedJob\(job\);/);
 });

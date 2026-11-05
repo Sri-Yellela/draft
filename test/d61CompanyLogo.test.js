@@ -104,7 +104,7 @@ test("D61 → D149 · the letter fallback is a bold TILE_* colour with a white u
 test("⛔ D61 · ONE CompanyLogo — every surface that draws a company mark imports it, and no other tile exists", () => {
   for (const f of ["client/src/components/JobBubble.jsx", "client/src/components/JobCard.jsx",
                    "client/src/components/JobDetailPanel.jsx", "client/src/panels/DeckView.jsx",
-                   "client/src/panels/AtsReportPanel.jsx", "client/src/components/ResumeList.jsx"]) {
+                   "client/src/components/ResumeList.jsx"]) {   // (AtsReportPanel.jsx: retired, D152 (8))
     const src = read(f);
     assert.match(src, /import CompanyLogo from "[./]+(components\/)?CompanyLogo\.jsx";/, f);
     assert.match(src, /<CompanyLogo /, f);
@@ -112,7 +112,7 @@ test("⛔ D61 · ONE CompanyLogo — every surface that draws a company mark imp
   // The History list's own letter tile (the green "A" for Amazon in the owner's screenshot) is gone — D62
   // replaced the whole list with ResumeList, and the ATS panel's header draws CompanyLogo.
   assert.doesNotMatch(read("client/src/panels/JobsPanel.jsx"), /function HistoryList\(/);
-  assert.match(read("client/src/panels/AtsReportPanel.jsx"), /<CompanyLogo company=\{activeAts\.company\}/);
+  assert.ok(!fs.existsSync("client/src/panels/AtsReportPanel.jsx"), "D152 (8): the ATS overlay (and its header's logo) is retired");
   assert.match(read("client/src/components/ResumeList.jsx"), /<CompanyLogo company=\{r\.company\}/);
   // No second letter tile anywhere in the client: a company's initial is drawn by CompanyLogo only.
   const offenders = [];

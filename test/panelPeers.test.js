@@ -19,7 +19,8 @@ const shell   = read("client/src/components/PanelShell.jsx");
 const host    = read("client/src/hooks/usePanelHost.js");
 const jd      = read("client/src/components/JobDetailPanel.jsx");
 const sandbox = read("client/src/panels/SandboxPanel.jsx");
-const ats     = read("client/src/panels/AtsReportPanel.jsx");
+// ⭐ D152 (8) (b), changed on purpose: the ATS panel drawn over the page (AtsReportPanel) is RETIRED — the match opens
+// inside the posting (ats-options.html option A). The PDF and the posting are the peers now; the ATS checks below say so.
 const atsBody = read("client/src/components/ATSPanel.jsx");
 const jobs    = read("client/src/panels/JobsPanel.jsx");
 const app     = read("client/src/App.jsx");
@@ -85,7 +86,7 @@ test("4. TWO sticky regions — identity header AND action bar — and only the 
   assert.match(jd, /^\s+bare$/m, "the posting panel renders its own header and sticky actions");
   assert.match(jd, /<div className="pp__foot" data-posting-actions-bar="">/);
   assert.match(shell, /\{!bare && \(/, "a bare shell draws neither pinned region");
-  for (const [name, src] of [["PDF", sandbox], ["ATS", ats]]) {
+  for (const [name, src] of [["PDF", sandbox]]) {
     assert.match(src, /header=\{/, `${name} must fill the identity header slot`);
     assert.match(src, /actions=\{/, `${name} must fill the action bar slot`);
   }
@@ -125,11 +126,13 @@ test("7. modal tier: above the board, the Applications table AND the search over
 
 // ── Peers, not lookalikes ─────────────────────────────────────────────────────────────────────
 
-test("all three panels render through the one primitive", () => {
-  for (const [name, src] of [["JD", jd], ["PDF", sandbox], ["ATS", ats]]) {
+test("both panels render through the one primitive (⭐ D152 (8): the ATS panel is retired — the match is in the posting)", () => {
+  for (const [name, src] of [["JD", jd], ["PDF", sandbox]]) {
     assert.match(src, /<PanelShell/, `${name} must render through PanelShell`);
-    assert.match(src, /panelId="(jd|pdf|ats)"/, `${name} must declare a panel type id`);
+    assert.match(src, /panelId="(jd|pdf)"/, `${name} must declare a panel type id`);
   }
+  assert.ok(!fs.existsSync("client/src/panels/AtsReportPanel.jsx"), "the ATS panel drawn over the page is back");
+  assert.match(jd, /<ATSPanel report=\{selectedJobMeta\?\.atsPayload\?\.report\}/, "the match is drawn inside the posting");
   // And none of them may reimplement the chrome the primitive provides.
   assert.ok(!/createPortal/.test(jd), "JD is portalling itself again instead of via PanelShell");
   assert.ok(!/AnimatePresence/.test(jd), "JD is animating itself again");
@@ -143,7 +146,7 @@ test("the PDF and ATS surfaces are no longer inline columns", () => {
     "an inline copy of the sandbox survives above the popup group");
   // Exactly one mount of each panel type.
   assert.equal((jobs.match(/<SandboxPanel\b/g) || []).length, 1);
-  assert.equal((jobs.match(/<AtsReportPanel\b/g) || []).length, 1);
+  assert.equal((jobs.match(/<AtsReportPanel\b/g) || []).length, 0, "D152 (8): no ATS overlay");
   // D149 (11-03) changed this on purpose: the posting has a second mount on a desktop, where it leaves the overlay host;
   // never both at once (the host's jd is closed then). ⭐ D152 (6): that mount is IN PLACE of the list (JobBoardColumns'
   // post), no longer BesideDock.
@@ -155,7 +158,7 @@ test("one host owns the ordered set, and JD moved under it", () => {
   assert.match(jobs, /usePanelHost\(panelDescriptors, vpWidth\)/);
   assert.match(jobs, /\{ id: "jd",\s+open: !!selectedJob/);
   assert.match(jobs, /\{ id: "pdf", open: sandboxOpen/);
-  assert.match(jobs, /\{ id: "ats", open: rightPanelOpen/);
+  assert.doesNotMatch(jobs, /\{ id: "ats", open:/, "D152 (8): the ATS report is not an overlay peer any more");
   // Three peers cannot tile from two different parents, so App no longer mounts JD itself.
   assert.ok(!/<JobDetailPanel/.test(app), "App is mounting the JD drawer outside the host again");
 });
@@ -346,7 +349,8 @@ test("the panel openers do not switch to mobile panes that no longer exist", () 
   // The bottom-nav Resume / ATS items reach the PANELS that own those surfaces now, rather than a
   // pane — the tab still shows the resume and still shows the report.
   assert.match(jobs, /onPress: \(\) => openSandbox\(sandbox\)/);
-  assert.match(jobs, /onPress: \(\) => openAtsPanel\(null\)/);
+  // ⭐ D152 (8): the ATS item opens the match inside the open posting.
+  assert.match(jobs, /onPress: \(\) => \{ closeSandbox\(\); openAtsPanel\(null\); \}/);
   assert.match(jobs, /enabled: !!sandbox,/);
-  assert.match(jobs, /enabled: !!activeAts,/);
+  assert.match(jobs, /enabled: !!activeAts && !!selectedJob,/);
 });

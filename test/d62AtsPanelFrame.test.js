@@ -71,29 +71,26 @@ test("⭐ D62 · a History row: version and date · the tailored score in the nu
   assert.doesNotMatch(css, /rl__score|atsp__/, "A93: the list's stylesheet holds only the list");
 });
 
-test("⭐ D62 · the header: CompanyLogo · the company link in the logo face · the number box · the serif 62 → 70 mark", () => {
-  const src = code(read("client/src/panels/AtsReportPanel.jsx"));
-  assert.match(src, /<CompanyLogo company=\{activeAts\.company\} iconUrl=\{activeAts\.companyIconUrl\}/);
-  assert.match(src, /<CompanyLink company=\{activeAts\.company\} href=\{activeAts\.applyUrl \|\| null\}/, "the ONE company link (D38)");
-  assert.match(src, /<AtsNumberBox readOnly score=\{Number\.isFinite\(shown\) \? shown : null\}/, "the ONE number box (D50, A93)");
-  assert.match(src, /\{pair\.base\} → \{pair\.tailored\}\{pair\.lower \? " · lower than your base" : ""\}/, "two numbers, and lower is SAID (D58)");
-  assert.match(src, /className=\{`mark \$\{pair\.lower \? "mark--warn" : "mark--dim"\}`\}/, "a mark (D60)");
-  assert.match(read("client/src/panels/AtsReportPanel.css"), /\.atsp__pair \.mark \{ font-family: var\(--font-display\);/, "in the serif");
-  assert.doesNotMatch(src, /bandMarkStyle|bandChipStyle|Barlow|textTransform: "uppercase"/, "no band chip, no condensed capitals");
+// ⭐ D152 (8) (b), changed on purpose (owner 11-04, ats-options.html option A): the ATS panel drawn over the page —
+// AtsReportPanel, its header and its tab row — is RETIRED. The match opens inside the posting, under the facts, whose
+// own header already names the company (CompanyLogo, the ONE CompanyLink) and holds the number box (D58's pair). Its
+// History is the report's quiet "History" switch; the rows are still THIS job's résumé versions, in ResumeList.
+test("⭐ D62 → D152 (8) · the overlay's header and tabs are gone; the posting is the frame", () => {
+  assert.ok(!fs.existsSync("client/src/panels/AtsReportPanel.jsx") && !fs.existsSync("client/src/panels/AtsReportPanel.css"));
+  const jd = code(read("client/src/components/JobDetailPanel.jsx"));
+  assert.match(jd, /<CompanyLogo company=\{selectedJob\.company\}/);
+  assert.match(jd, /<AtsNumberBox score=\{scores\.shown\} tailored=\{scores\.tailoredShown\} base=\{scores\.base\} caption="match"/, "the ONE number box (D50, A93)");
 });
 
-test("⭐ D62 · the tabs are depth boxes in the logo face, the active one filled accent; History counts THIS job's versions", () => {
-  const src = code(read("client/src/panels/AtsReportPanel.jsx"));
-  assert.match(src, /className="atsp__tab" aria-selected=\{rightTab === id\}/);
-  assert.match(src, /count \? `History · \$\{count\}` : "History"/);
-  assert.match(src, /api\(`\/api\/resumes\/\$\{encodeURIComponent\(reportJobId\)\}\/versions`\)/, "the job's résumé versions");
-  const css = read("client/src/panels/AtsReportPanel.css");   // A93: the panel's own stylesheet
-  assert.match(css, /\.atsp__tab \{[^}]*border-radius: 11px;[^}]*font: 800 italic 12px\/1 'Poppins'/);
-  assert.match(css, /\.atsp__tab\[aria-selected="true"\] \{ background: var\(--c-accent\);/);
+test("⭐ D62 → D152 (8) · History is the report's switch, and counts THIS job's versions", () => {
+  const jd = code(read("client/src/components/JobDetailPanel.jsx"));
+  assert.match(jd, /api\(`\/api\/resumes\/\$\{encodeURIComponent\(versionsJobId\)\}\/versions`\)/, "the job's résumé versions");
+  assert.match(jd, /history=\{matchHistory\} bare \/>/);
+  assert.match(read("shared/atsReportElement.js"), /\["history", "History"\]/);
 });
 
-test("⭐ D62 · ONE list component, two homes: the ATS panel's History and Settings' Generated résumés", () => {
-  assert.match(read("client/src/panels/AtsReportPanel.jsx"), /<ResumeList loading=\{versions === null\} rows=\{versionRows\}/);
+test("⭐ D62 · ONE list component, two homes: the posting match's History and Settings' Generated résumés", () => {
+  assert.match(read("client/src/components/JobDetailPanel.jsx"), /<ResumeList loading=\{versions === null\} rows=\{versionRows\}/);
   const acct = read("client/src/panels/AccountPanel.jsx");
   assert.match(acct, /import ResumeList, \{ RESUME_ICONS \} from "\.\.\/components\/ResumeList\.jsx";/);
   assert.match(acct, /<ResumeList showLogo scoreCaption="tailored" rows=\{list\.map\(r => \(\{/);

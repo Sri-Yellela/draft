@@ -89,11 +89,13 @@ test("exactly one implementation defines the report, the web wrapper only re-exp
 
 test("the four surfaces — board side panel, deck panel, phone sheet, public tool — the signup hook, and the extension all render it", () => {
   const code = (f) => strip(SOURCES[`client/src/${f}`]);
-  // The board's side panel and the deck (both its left panel and its sheet) render ATSPanel …
-  assert.match(code("panels/AtsReportPanel.jsx"), /<ATSPanel\b/, "the board's side panel");
+  // The board's posting renders ATSPanel … (⭐ D152 (8) (b): the deck's left panel and its sheet are deleted — the deck's
+  // match opens in the posting, so the deck draws only its collapsed score through the one adapter.)
+  // ⭐ D152 (8): the board's report is the match INSIDE the posting (the side panel over the page is retired).
+  assert.match(code("components/JobDetailPanel.jsx"), /<ATSPanel\b/, "the posting's match");
   const deck = code("panels/DeckView.jsx");
-  assert.match(deck, /<ATSPanel report=\{fromDeckReport\(r\)\}/, "the deck draws the frozen report through the one adapter");
-  assert.match(deck, /<DeckAtsReport\b[\s\S]*<DeckAtsReport\b/, "the deck's left panel AND its phone sheet");
+  assert.match(deck, /<AtsBandCard report=\{fromDeckReport\(card\.report\)\}/, "the deck draws the frozen report through the one adapter");
+  assert.doesNotMatch(deck, /<ATSPanel\b|DeckAtsReport|AtsSheet/, "the deck's own full report is back");
   // … which is the data container, and draws nothing itself.
   assert.match(code("components/ATSPanel.jsx"), /<AtsReport report=\{activeReport\}/);
   assert.match(code("pages/tools/ATSToolPage.jsx"), /<AtsReport report=\{fromStandaloneResult\(result\)\}/, "the public tool");

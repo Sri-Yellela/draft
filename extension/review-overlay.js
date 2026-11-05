@@ -504,12 +504,13 @@ export function renderOverlay(model, meta) {
     #${ID} .rm-f { font-size: 11px; color: var(--c-ink-muted); }
     #${ID} .rm-v { font-size: 12.5px; font-weight: 700; word-break: break-word; }
     #${ID} .rm-acts { display: flex; gap: 6px; margin-top: 6px; align-items: center; flex-wrap: wrap; }
-    /* ⛔ D60 / D63: a provenance chip is a MARK — a rectangle with a 3px leading bar, never a capsule. ⭐ T26: it is drawn
-       for a screen reader only (.sr); the row's status mark carries the same words as its tooltip. */
-    #${ID} .rm-pill { --mk: var(--c-ink-faint); font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 10.5px;
-      line-height: 1; padding: 3px 7px 3px 6px; border-radius: 6px; white-space: nowrap; color: var(--mk);
-      border-left: 3px solid var(--mk); background: color-mix(in srgb, var(--mk) 12%, transparent); margin-left: 6px; }
-    #${ID} .rm-pill.ok { --mk: var(--c-success); }
+    /* ⛔ D60 / D63 → ⭐ D152 (7b): a provenance mark is a PLAIN WORD — no box, bar, tint or heavy italic; a state (.ok) a
+       6px dot before it. ⭐ T26: it is drawn for a screen reader only (.sr); the row's status mark carries the same words. */
+    #${ID} .rm-pill { --mk: var(--c-ink-faint); font-style: normal; font-weight: 500; font-size: 12px;
+      line-height: 1.4; padding: 0; border-radius: 0; white-space: nowrap; color: var(--mk);
+      border: 0; background: none; margin-left: 6px; }
+    #${ID} .rm-pill.ok { --mk: var(--c-success); color: var(--c-ink-muted); padding-left: 12px;
+      background: radial-gradient(circle at 3px 50%, var(--mk) 3px, transparent 3.5px) no-repeat; }
     /* ⛔ D60: a 30px icon control at radius 8 (27%). */
     #${ID} .rm-btn { width: 30px; height: 30px; padding: 0; display: inline-grid; place-items: center; flex: none;
       border-radius: 8px; border: 0; background: var(--c-surface-solid); color: var(--c-ink);

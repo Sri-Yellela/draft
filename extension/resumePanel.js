@@ -338,12 +338,14 @@ export function renderResumePanel(model, meta) {
     .pb { flex: 1; min-width: 40px; height: 4px; border-radius: 1px; background: var(--c-surface-solid); overflow: hidden; position: relative; }
     .pb i { position: absolute; top: 0; bottom: 0; width: 34%; background: var(--c-accent); animation: rm-slide 1.4s ease-in-out infinite; }
     @keyframes rm-slide { from { left: -34%; } to { left: 100%; } }
-    /* ⛔ D60 / D63: a status is a MARK — a rectangle with a 3px leading bar, never a capsule. */
-    .marks { display: flex; gap: 6px; flex-wrap: wrap; }
-    .mark { --mk: var(--c-ink-faint); display: inline-block; font-family: ${logo}; font-style: italic; font-weight: 800; font-size: 11px;
-      line-height: 1.2; padding: 4px 8px 4px 7px; border-radius: 6px; color: var(--mk); border-left: 3px solid var(--mk);
-      background: color-mix(in srgb, var(--mk) 12%, transparent); }
+    /* ⛔ D60 / D63 → ⭐ D152 (7b): a status is a MARK — a plain word (no box, bar, tint or heavy italic); a state a 6px dot
+       before it, the word in muted ink. */
+    .marks { display: flex; gap: 6px 14px; flex-wrap: wrap; }
+    .mark { --mk: var(--c-ink-faint); display: inline-block; font-style: normal; font-weight: 500; font-size: 12.5px;
+      line-height: 1.4; padding: 0; border-radius: 0; color: var(--mk); border: 0; background: none; }
     .mark.ok { --mk: var(--c-success); } .mark.warn { --mk: var(--c-warning); } .mark.no { --mk: var(--c-danger); } .mark.info { --mk: var(--c-info); }
+    .mark:is(.ok, .warn, .no, .info) { color: var(--c-ink-muted); padding-left: 12px;
+      background: radial-gradient(circle at 3px 50%, var(--mk) 3px, transparent 3.5px) no-repeat; }
     .list { margin: 0; padding: 0 0 0 16px; font-size: 12px; }
     .list li { margin: 0 0 3px; }
     .pvw { flex: 1; min-height: 200px; overflow: auto; border-radius: 6px; background: var(--c-paper); box-shadow: var(--c-depth-rest); }

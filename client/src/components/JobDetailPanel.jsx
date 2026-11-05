@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PostingPanel from "./PostingPanel.jsx";
 import WarmPathsBlock from "./WarmPathsBlock.jsx";
+import TrialRoleFit from "./TrialRoleFit.jsx";
 import { api } from "../lib/api.js";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import CoverLetterModal from "./CoverLetterModal.jsx";
@@ -12,6 +13,7 @@ import CompanyLink from "./CompanyLink.jsx";
 import CompanyLogo from "./CompanyLogo.jsx";
 import { StampLogo } from "./StampLogo.jsx";
 import { AtsNumberBox } from "./AtsNumberBox.jsx";
+import ResumeList, { RESUME_ICONS } from "./ResumeList.jsx";
 import { atsScorePair } from "../../../shared/resumeScores.js";
 import "./JobDetailPanel.css";
 import { draftButtonState } from "../lib/jobDecisions.js";
@@ -332,7 +334,47 @@ export default function JobDetailPanel({
   const [matchOpen, setMatchOpen] = useState(false);
   const [matchMounted, setMatchMounted] = useState(false);
   useEffect(() => { setMatchOpen(false); setMatchMounted(false); }, [selectedJob?.jobId]);
+  // ⭐ D152 (8) (b): every other opener of the match — the deck's report, a generated résumé, the reuse flow, the phone's
+  // ATS button — asks the board to open it HERE (selectedJobMeta.matchAsk, a counter per request) instead of the old
+  // ATS panel drawn over the page (AtsReportPanel, deleted). Each ask is acted on once, and only for its own posting.
+  const matchAsk = selectedJobMeta?.matchAsk || null;
+  const [askDone, setAskDone] = useState(0);
+  useEffect(() => {
+    if (!matchAsk || matchAsk.n === askDone || !selectedJob) return;
+    if (matchAsk.jobId && String(matchAsk.jobId) !== String(selectedJob.jobId)) return;
+    setAskDone(matchAsk.n);
+    setMatchMounted(true);
+    setMatchOpen(true);
+  }, [matchAsk?.n, matchAsk?.jobId, selectedJob?.jobId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ⭐ D152 (8) · HISTORY = THIS JOB'S RÉSUMÉ VERSIONS (D62's, moved here from the retired ATS panel), newest first —
+  // fetched when the match is first opened, and again after a résumé is generated (genCount).
+  const [versions, setVersions] = useState(null);
+  const versionsJobId = matchMounted ? jobId : null;
+  const genCount = selectedJobMeta?.genCount ?? 0;
+  useEffect(() => {
+    if (!versionsJobId) { setVersions(null); return undefined; }
+    let live = true;
+    setVersions(null);
+    api(`/api/resumes/${encodeURIComponent(versionsJobId)}/versions`)
+      .then(rows => { if (live) setVersions(Array.isArray(rows) ? rows : []); })
+      .catch(() => { if (live) setVersions([]); });
+    return () => { live = false; };
+  }, [versionsJobId, genCount]);
   if (!selectedJob) return null;
+  const versionRows = (versions || []).map(v => ({
+    key: `${v.job_id}-${v.version}`,
+    title: `Version ${v.version}`,
+    meta: [v.created_at ? new Date(v.created_at * 1000).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : null,
+           Number.isFinite(v.base_ats_score) ? `base ${Math.round(v.base_ats_score)}` : null].filter(Boolean).join(" · "),
+    score: Number.isFinite(v.ats_score) ? v.ats_score : null,
+    actions: [
+      { id: "view", label: `View version ${v.version}`, icon: RESUME_ICONS.view, onClick: () => selectedJobMeta?.onOpenVersion?.(v) },
+      { id: "download", label: `Download version ${v.version} as PDF`, icon: RESUME_ICONS.download, onClick: () => selectedJobMeta?.onExportVersion?.(v) },
+    ],
+  }));
+  const matchHistory = (
+    <ResumeList loading={versions === null} rows={versionRows} empty="No résumé generated for this job yet — generate one from this posting." />
+  );
   // ⭐ D58: the score the header's box shows is the board's ONE read (scoresFor in JobsPanel) — the tailored
   // résumé's when it exists, else the stored base. Never a guess, and null shows no digit.
   const g = selectedJobMeta?.g, job = selectedJob;
@@ -420,9 +462,20 @@ export default function JobDetailPanel({
                     <div className="pp__matchin" id="posting-match">
                       <section className="pp__matchcard" aria-label="Your résumé against this job" data-posting-match-panel="">
                         <p className="pp__matcheyebrow">Your résumé against this job</p>
+                        {/* ⛔ D58 (moved with D152 (8) from the retired ATS panel's header): base → tailored, and a tailored
+                            score BELOW the base is SAID — the full sentence its title. */}
+                        {scores.base != null && scores.tailored != null && (
+                          <p className="pp__matchpair" data-ats-pair="" data-lower={scores.lower ? "true" : undefined} title={scores.line || undefined}>
+                            {scores.base} → {scores.tailored}{scores.lower ? " · lower than your base" : ""}
+                          </p>
+                        )}
                         <ATSPanel report={selectedJobMeta?.atsPayload?.report} score={selectedJobMeta?.atsPayload?.score}
                           jobId={selectedJob.jobId} resumeText={selectedJobMeta?.resumeText || ""}
-                          activeProfileId={selectedJobMeta?.activeProfileId ?? null} onReport={selectedJobMeta?.onAtsReport || null} />
+                          activeProfileId={selectedJobMeta?.activeProfileId ?? null} onReport={selectedJobMeta?.onAtsReport || null}
+                          history={matchHistory} bare />
+                        {/* A111 step 4 (moved from the deck's deleted report with D152 (8) (b)): under the match, the role
+                            against a trial tester's own résumé — renders nothing for anyone else. */}
+                        <TrialRoleFit jobId={selectedJob.jobId} />
                       </section>
                     </div>
                   </div>

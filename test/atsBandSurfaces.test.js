@@ -83,9 +83,7 @@ test("no user-facing surface prints the raw ATS number", () => {
     "client/src/components/AtsReport.jsx",
     "client/src/pages/tools/ATSToolPage.jsx",
     "client/src/pages/tools/GenerateToolPage.jsx",
-    // Added at UI step 2b: its header printed "Score {activeAts.score}" on the v3 ramp, and the
-    // pattern below could not see it — it looks for `ATS {…atsScore`, and this read `.score`.
-    "client/src/panels/AtsReportPanel.jsx",
+    // (AtsReportPanel.jsx was listed here from UI step 2b — retired in D152 (8): the match opens inside the posting.)
     // Added at UI step 2b (09-30): the saved-resume modal printed "ATS {modal.atsScore}" on a fourth
     // copy of the v3 ramp. The pattern below always matched it; the file was simply not listed.
     "client/src/panels/DatabasePanel.jsx",
@@ -220,7 +218,7 @@ test("the ATS panel renders the band for a DECLINED report, and the depth warnin
   const panel = fs.readFileSync("shared/atsReportElement.js", "utf8");
   // The card used to be gated on `score != null`, so a declined report displayed nothing at all.
   // It is rendered unconditionally now — no gate in front of the band card.
-  assert.match(panel, /\/\/ Band card\. Renders for EVERY report, including a declined one\.\s*buildBandCard\(doc, report, /);
+  assert.match(panel, /\/\/ Band card\. Renders for EVERY report, including a declined one\.[^\n]*\s*buildBandCard\(doc, report, /);   // D152 (8): the comment says why the header is the count
   assert.match(panel, /decline_reasons/);
   assert.match(panel, /depth && h\(doc, "div", \{ class: "ats-note ats-sec" \}/);
   assert.match(panel, /seniority_cap/);

@@ -78,7 +78,8 @@ test("⛔ the hue-only places the audit found (§5) all have a cue", () => {
   }
   // ⭐ T9: the pair's bar is inside the ATS report's shadow root, so its cues travel with the component — keyed on the
   // host's cues="shape", which the web wrapper sets from the same one preference.
-  for (const sel of [".ats-bar__seg--missing", ".ats-bar__seg--generic"]) {
+  // ⭐ D152 (8): the bar is yours · claimed · missing (the bare track) — the claimed segment carries the hatch.
+  for (const sel of [".ats-bar__seg--claimed"]) {
     assert.ok(ATS_REPORT_CSS.includes(`:host([cues="shape"]) ${sel}`), `no cue for ${sel} in the ATS report`);
   }
   assert.match(read("client/src/components/AtsReport.jsx"), /\.\.\.\(CUES \? \{ cues: "shape" \} : \{\}\)/);

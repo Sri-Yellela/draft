@@ -31,7 +31,9 @@ test("every deck motion is under ONE reduced-motion config", () => {
 
 test("the deck shows a band and never a score", () => {
   assert.doesNotMatch(src, /matchScore|atsScore/, "the deck reads a score");
-  assert.match(src, /bandMarkStyle\(band\)/);   // D60: the band is a mark, never a capsule
+  // D60: the band is a mark, never a capsule. ⭐ D152 (8) (b), changed on purpose: the deck's own signal line
+  // (bandMarkStyle(band)) went with its report — the band it still shows is the one report's (AtsBandCard).
+  assert.match(src, /<AtsBandCard report=\{fromDeckReport\(card\.report\)\} band=\{card\.report\.scorable \? card\.band : ATS_BAND\.NOT_ENOUGH_SIGNAL\} compact \/>/);
 });
 
 test("/app lands on Today, and the board keeps /app/jobs", () => {

@@ -292,7 +292,8 @@ test("D105 P5 · skill tags link — the ATS report's boxes (web + extension doc
   const panel = read("extension/resumePanel.js");
   assert.match(panel, /ATS\.mountAtsReport\(cardHost, m\.report\.report, m\.report\.atlas \? \{ atlas: m\.report\.atlas \} : \{\}\)/);
   assert.match(panel, /const atlas = found\.ats\.report \? await atlasForReport\(url\(\), found\.ats\.report\)/);
-  assert.match(read("extension/atsReport.js"), /function withAtlas\(doc, el, term, atlas\)/, "the extension's bundle carries it");
+  // ⭐ D152 (8): the link sits inside the term's plain row now (atlasLink), not beside a box (withAtlas).
+  assert.match(read("extension/atsReport.js"), /function atlasLink\(doc, term, atlas\)/, "the extension's bundle carries it");
   // The web app: the wrapper resolves the report's terms and hands the element `atlas`.
   const wrapper = read("client/src/components/AtsReport.jsx");
   assert.match(wrapper, /const slugs = useAtlasSlugs\(terms\);/);

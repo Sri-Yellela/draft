@@ -60,10 +60,10 @@ export function renderCopySheetPanel(sheet, theme, dockMeta) {
     .copied { color: ${c.SUCCESS}; }
     .note { display: inline-flex; align-items: center; gap: 3px; color: ${c.WARNING}; }
     .empty { display: grid; justify-items: center; padding: 24px 0; color: ${c.INK_FAINT}; }
-    /* ⛔ D60: where an answer came from is a MARK — a rectangle with a 3px leading bar, never a capsule (read aloud only). */
-    .src { display: inline-block; margin: 2px 0; padding: 0 6px 0 5px; border-left: 3px solid ${c.BORDER_STRONG}; border-radius: 6px;
-           background: ${c.SURFACE_TINT || c.SURFACE_SOLID}; color: ${c.INK_MUTED}; font-size: 10.5px; font-weight: 700; }
-    .src.you { border-left-color: ${c.ACCENT_INK}; color: ${c.ACCENT_INK}; }
+    /* ⛔ D60 → ⭐ D152 (7b): where an answer came from is a MARK — a plain word, no box, bar or tint (read aloud only). */
+    .src { display: inline-block; margin: 2px 0; padding: 0; border: 0; border-radius: 0;
+           background: none; color: ${c.INK_MUTED}; font-size: 12px; font-weight: 500; }
+    .src.you { color: ${c.ACCENT_INK}; }
 `;
   const I = (name, size) => (typeof D.icon === 'function' ? D.icon(name, size) : '');
   const style = document.createElement('style');

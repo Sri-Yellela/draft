@@ -123,9 +123,11 @@ test("side-by-side has a defined capacity and a defined overflow rule", () => {
   assert.match(host, /priority\.indexOf\(a\) - priority\.indexOf\(b\)\)\.slice\(-1\)/);
   const at = jobsPanel.indexOf("const panelDescriptors");
   const descriptors = jobsPanel.slice(at, at + 420);
-  assert.ok(descriptors.indexOf('id: "jd"') < descriptors.indexOf('id: "ats"')
-         && descriptors.indexOf('id: "ats"') < descriptors.indexOf('id: "pdf"'),
-    "the descriptor order IS the capacity-1 priority: the resume must outrank its report, which must outrank the JD");
+  // ⭐ D152 (8) (b), changed on purpose: the ATS report is no longer a peer panel — the match opens inside the posting
+  // (JobDetailPanel), so the set is [jd, pdf] and the résumé still outranks the JD.
+  assert.ok(descriptors.indexOf('id: "jd"') >= 0 && descriptors.indexOf('id: "jd"') < descriptors.indexOf('id: "pdf"'),
+    "the descriptor order IS the capacity-1 priority: the resume must outrank the JD");
+  assert.equal(descriptors.indexOf('id: "ats"'), -1, "the retired ATS overlay is a peer panel again");
 });
 
 test("panels tile inside the dock, not against the viewport", () => {
