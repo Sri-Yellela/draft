@@ -406,10 +406,11 @@ test("D35 §4: the VERTICAL ORDER is the sentence, the open panel, the bar, the 
   // sentence and its panel, the search bar, the counts, the jobs.
   const chrome = app.slice(at(app, '<header className="fh"'), at(app, "</main>"));
   const pos = (q) => at(chrome, q);
-  assert.ok(pos("<BoardTitleRow />") < pos("<BoardHeadlineSlot />") && pos("<BoardHeadlineSlot />") < pos("<BoardBar />"));
+  assert.ok(pos("<BoardTitleRow home />") < pos("<BoardHeadlineSlot />") && pos("<BoardHeadlineSlot />") < pos("<BoardBar />"));
   assert.ok(pos("<BoardBar />") < pos("<BoardCounts />") && pos("<BoardCounts />") < pos("<JobsConsole "), "the jobs come after the bar");
   assert.match(app.slice(at(app, "function BoardTitleRow("), at(app, "function BoardCounts()")), /<BoardControlIcons \/>[\s\S]*<BoardSortSlot \/>/);
-  assert.ok(at(app, "</header>") < at(app, "<main "), "the jobs come after the header");
+  // ⭐ A125: the full-width header wrapper above <main> is gone — Home draws its header inside <main>, before the jobs.
+  assert.ok(at(app, "</header>") < at(app, "<JobsConsole "), "the jobs come after the header");
   const panel = strip(read("client/src/panels/JobsPanel.jsx"));
   assert.doesNotMatch(panel, /<SortPanel\b|<WordPanel\b|<FilterDials\b/, "a panel renders between the bar and the board");
 });
