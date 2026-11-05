@@ -91,3 +91,55 @@ test("A126 (7)(8) · the board refreshes on board_scored, says what is being mat
   assert.match(src, /useState\(\(\) => BOARD_LAST\?\.jobs \|\| \[\]\)/, "a remount starts from the last-shown view");
   assert.match(src, /String\(BOARD_LAST\.profileKey\) === String\(profileKey\)/, "never another profile's cards");
 });
+
+// ── A126 (9) · today's deal is re-dealt when the board now holds a better match ───────────────────────────────────
+import { todaysDeck } from "../services/dailyDraft.js";
+const DATE = "2026-11-05";
+const job = (id, score) => ({ id, jobId: id, title: `T ${id}`, company: "Synthetic Co", matchScore: score });
+const boardOf = (jobs) => async () => ({ ok: true, jobs, nextCursor: null });
+
+test("A126 (9) · a better match replaces the weakest undecided card; a decided card stays; no better match, no change", async () => {
+  const db = boardDb(0);
+  const scores = new Map([["a", 66], ["b", 60], ["c", 58]]);
+  const scoreFor = (id) => scores.get(id) ?? null;
+  const first = await todaysDeck(db, { userId: USER, profileId: PROFILE, date: DATE, size: 3, scoreFor,
+    fetchBoardPage: boardOf([job("a", 66), job("b", 60), job("c", 58)]) });
+  assert.equal(first.dealtNow, true);
+  assert.deepEqual(first.cards.map(c => c.job.id), ["a", "b", "c"]);
+  // the person saves "c" (a decision): it must stay in today's deck
+  db.prepare("INSERT INTO user_jobs (user_id, job_id, domain_profile_id, starred) VALUES (?, 'c', ?, 1)").run(USER, PROFILE);
+  // no better match on the board → nothing changes, even with refresh
+  const same = await todaysDeck(db, { userId: USER, profileId: PROFILE, date: DATE, size: 3, scoreFor, refresh: true,
+    fetchBoardPage: boardOf([job("a", 66), job("b", 60)]) });
+  assert.equal(same.reshuffled, false);
+  // a 90 % match lands on the board (the match queue scored it)
+  scores.set("n", 90);
+  const re = await todaysDeck(db, { userId: USER, profileId: PROFILE, date: DATE, size: 3, scoreFor, refresh: true,
+    fetchBoardPage: boardOf([job("n", 90), job("a", 66), job("b", 60)]) });
+  assert.equal(re.reshuffled, true);
+  const ids = re.cards.map(c => c.job.id);
+  assert.ok(ids.includes("n"), "the better match is dealt");
+  assert.ok(ids.includes("c"), "the decided card stays");
+  assert.ok(!ids.includes("b"), "the weakest undecided card makes room");
+  assert.equal(ids.length, 3);
+  // without refresh (the route's throttle), the deal is read as it is
+  scores.set("m", 95);
+  const held = await todaysDeck(db, { userId: USER, profileId: PROFILE, date: DATE, size: 3, scoreFor,
+    fetchBoardPage: boardOf([job("m", 95), job("n", 90), job("a", 66)]) });
+  assert.equal(held.reshuffled, false);
+  assert.deepEqual(held.cards.map(c => c.job.id), ids);
+});
+
+test("A126 (9) · the deck keeps its place when a refresh answers the same cards, re-deals with the deal animation, refreshes live", () => {
+  const src = read("client/src/panels/DeckView.jsx");
+  assert.match(src, /if \(sameCards\) \{ setLoad\(\{ status: "ready", error: null \}\); return; \}/);
+  assert.match(src, /setDealing\(!!deck\.dealtNow \|\| !!deck\.reshuffled \|\| reshuffleNextRef\.current\)/);
+  assert.match(src, /board_scored: \(\) => queueDeckRefresh\(\),/);
+  assert.match(src, /if \(deckBusyRef\.current\) \{ queueDeckRefresh\(\); return; \}/, "never while a card is open or a decision is in flight");
+  const server = read("server.js");
+  assert.match(server, /const DECK_REDEAL_EVERY_MS = 3 \* 60_000;/);
+  // the re-deal is OFF the request path: the answer reads the deal as it stands; the re-deal runs after the response
+  assert.match(server, /res\.on\("finish", \(\) => \{\s*todaysDeck\(db, \{[^}]*refresh: true \}\)/);
+  assert.match(server, /emitToUser\(redealUser, \{ type: "deck_reshuffled"/);
+  assert.match(src, /deck_reshuffled: \(\) => \{/);
+});

@@ -11881,6 +11881,8 @@ app.post("/api/admin/questions/:id/review", requireAdmin, (req, res) => {
 // boardPageResponse the board route answers with — one ordering), then frozen. Decisions are the
 // existing calls, not new ones: Draft = POST /api/apply/runs with surface:"deck" and NO approvalMode
 // (the route refuses one from that surface); Pass/Save = PATCH /api/jobs/interact.
+const DECK_REDEAL_EVERY_MS = 3 * 60_000;
+const _deckRedealAt = new Map();   // "user:profile:date" -> ms of the last re-deal check (A126 (9))
 app.get("/api/draft/today", requireAuth, async (req, res) => {
   // ⛔ 44e (testers on iPhone Safari, 11-02): a page built before the fix sent toLocaleDateString("en-CA"), which some
   // browsers write as "11/2/2026"; the 400 here left their deck — and the tour that starts on it — empty. A date this
@@ -11933,7 +11935,24 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
     // ⭐ D152 (3): picks per day — the person's own count (Customise → Daily Deck, migration 220), 10 when never chosen.
     // It sizes the NEXT deal; a deal already frozen today is read as it was dealt.
     const size = deckSizeOf(db, req.user.id);
-    const deck = await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor });
+    // ⛔ A126 (9): today's undecided cards are re-dealt when the board now holds a better match — OFF the request path.
+    // This request answers with the deal as it stands (refresh: false — no board read, as fast as before); after it is
+    // sent, at most every DECK_REDEAL_EVERY_MS per (user, profile, day), the re-deal runs in the background and, only
+    // if it changed the deal, tells the person's open tabs `deck_reshuffled` — the deck then fetches the new deal and
+    // plays the deal animation when it has it. (Measured: the check inside this request read the board and the
+    // client's 8 s deck timeout cut it off on a slow server.)
+    const redealKey = `${req.user.id}:${profile.id}:${date}`;
+    const redealDue = Date.now() - (_deckRedealAt.get(redealKey) || 0) >= DECK_REDEAL_EVERY_MS;
+    if (redealDue) {
+      _deckRedealAt.set(redealKey, Date.now());
+      const redealUser = req.user.id;
+      res.on("finish", () => {
+        todaysDeck(db, { userId: redealUser, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor, refresh: true })
+          .then(d => { if (d?.reshuffled) emitToUser(redealUser, { type: "deck_reshuffled", date, profileId: profile.id }); })
+          .catch(e => console.warn("[deck] re-deal:", e.message));
+      });
+    }
+    const deck = await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor, refresh: false });
     // 43y (the owner's trial walk, 11-01: "no jobs or picks" on a new account): an empty deal for a profile whose
     // scores have not landed yet is not "empty" — it is SCORING. The pass is (re)asked for, the client says so and asks
     // again; the deal is not frozen (an empty one never is), so the next request deals from the first scores.

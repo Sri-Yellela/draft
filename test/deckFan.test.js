@@ -168,8 +168,8 @@ test("⛔ the back carries the company's LOGO, tinted by the ACCENT token — ne
   assert.match(backSrc, /onError=\{\(e\) => \{ e\.currentTarget\.style\.display = "none"; \}\}/, "a dead logo leaves the weave, not a broken image");
 });
 
-test("⛔ the deal plays once per DAY: only when the server says this request dealt", () => {
-  assert.match(deckSrc, /setDealing\(!!deck\.dealtNow\)/);
+test("⛔ the deal plays once per DAY: only when the server says this request dealt — or re-dealt for a better match (A126 (9))", () => {
+  assert.match(deckSrc, /setDealing\(!!deck\.dealtNow \|\| !!deck\.reshuffled \|\| reshuffleNextRef\.current\)/);
   assert.doesNotMatch(deckSrc, /setDealing\(true\)/, "a deal on every navigation means nothing");
 });
 
