@@ -205,7 +205,8 @@ test("D93 · nothing new leaves the page: the one settings route, no new storage
   for (const f of ["client/src/panels/CustomisePanel.jsx", "client/src/components/AppearanceSettings.jsx", "client/src/components/CustomisePreview.jsx", "client/src/components/RadioCards.jsx"]) {
     const src = read(f);
     // (the deck mirror writes the deck's EXISTING route — Reset awaits it; no new endpoint)
-    assert.deepEqual([...new Set([...src.matchAll(/api\("([^"]+)"/g)].map((m) => m[1]))].filter((u) => u !== "/api/settings/appearance" && u !== "/api/settings/deck-geometry"), [], `${f} calls another route`);
+    // ⭐ D152 (3), changed on purpose: picks per day is the deck's third choice, with the account (/api/settings/deck-size).
+    assert.deepEqual([...new Set([...src.matchAll(/api\("([^"]+)"/g)].map((m) => m[1]))].filter((u) => u !== "/api/settings/appearance" && u !== "/api/settings/deck-geometry" && u !== "/api/settings/deck-size"), [], `${f} calls another route`);
     assert.doesNotMatch(src, /localStorage|sessionStorage/, `${f} keeps its own storage`);
   }
 });

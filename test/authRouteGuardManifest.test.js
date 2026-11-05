@@ -269,6 +269,8 @@ const AUTHENTICATED = new Set([
   "PUT /api/profile/coursework",
   "GET /api/settings/deck-geometry",   // queue 38: the deck's geometry preset / sliders, with the account
   "PUT /api/settings/deck-geometry",
+  "GET /api/settings/deck-size",       // D152 (3): picks per day, with the account (migration 220)
+  "PUT /api/settings/deck-size",
   "GET /api/jobs/facets",
   "GET /api/jobs/suggest",
   "GET /api/jobs/pending",

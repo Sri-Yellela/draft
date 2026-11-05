@@ -6163,4 +6163,12 @@ export const MIGRATIONS = [
         END;
       `,
     },
+    {
+      // D152 (3) (11-05): PICKS PER DAY — how many cards the Daily Deck deals, the person's own choice (Customise → Daily
+      // Deck; shared/deckGeometry.js DECK_SIZES). NULL = never chosen = the standard 10. Schema only (D151 Rule 1).
+      id: "220_users_deck_size",
+      sql: `
+        ALTER TABLE users ADD COLUMN deck_size INTEGER;
+      `,
+    },
   ];

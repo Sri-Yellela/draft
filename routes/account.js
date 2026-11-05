@@ -3,7 +3,8 @@ import { monetisationEnabledFromEnv } from "../shared/monetisation.js";
 import { SPONSORSHIP_NEEDS } from "../services/applyAutomation.js";
 
 import { readAnswerStore } from "../services/customAnswers.js";
-import { normaliseDeckPreference } from "../shared/deckGeometry.js";
+import { normaliseDeckPreference, normaliseDeckSize, DECK_SIZES } from "../shared/deckGeometry.js";
+import { deckSizeOf } from "../services/dailyDraft.js";
 import { LEGACY_THEME_PREFERENCES, APPEARANCE_THEMES, LAYOUT_OPTION_IDS, LAYOUT_KEYS, isLayoutValue, parseStoredAppearance, formatStoredAppearance } from "../shared/appearance.js";
 import { baseResumeOnlyState, activeBaseResume } from "../services/baseResumeOnly.js";
 // Shared with server.js's OAuth upsert, which called it without a binding until 09-30.
@@ -191,6 +192,18 @@ export function createAccountRouter({
     if (!preference) return res.status(400).json({ error: "preference must be { preset: tight | standard | wide | custom, custom? }" });
     db.prepare("UPDATE users SET deck_geometry=? WHERE id=?").run(JSON.stringify(preference), req.user.id);
     res.json({ preference });
+  });
+
+  // ⭐ D152 (3) · PICKS PER DAY (migration 220): how many cards the deck deals — read by GET /api/draft/today
+  // (deckSizeOf below). Today's deal is already frozen, so a new count is dealt from the next day's deal.
+  router.get("/api/settings/deck-size", requireAuth, (req, res) => {
+    res.json({ size: deckSizeOf(db, req.user.id), sizes: DECK_SIZES });
+  });
+  router.put("/api/settings/deck-size", requireAuth, (req, res) => {
+    const size = normaliseDeckSize(req.body?.size);
+    if (size == null) return res.status(400).json({ error: `size must be one of ${DECK_SIZES.join(", ")}` });
+    db.prepare("UPDATE users SET deck_size=? WHERE id=?").run(size, req.user.id);
+    res.json({ size, sizes: DECK_SIZES });
   });
 
   router.get("/api/settings", requireAuth, (req, res) => {
