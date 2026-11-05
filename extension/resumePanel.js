@@ -819,7 +819,7 @@ export function handlersFor(serverUrl = null) {
     return { tab, job, rec, view, error };
   }
 
-  return {
+  const api = {
     /** Open (or refresh) the ATS and Résumé tabs — from Open dock / the context menu (the active tab), the dock's own tab
      *  press, or the review row's "See the Résumé tab". Starts nothing. */
     // ⭐ T17: the dock's ATS and Résumé tabs (`msg.tab`: 'ats' | 'resume' — which one to show), drawn in the TOP frame.
@@ -853,7 +853,8 @@ export function handlersFor(serverUrl = null) {
       const job = await jobOfTab(tab);
       if (!job) return { ok: false, model: resumePanelModel({}) };
       const regenerate = msg.regenerate === true;
-      const r = await post(url(), '/api/extension/resume', { boundJobId: job.jobId, trigger: 'click', ...(regenerate ? { regenerate: true } : {}) });
+      const r = await post(url(), '/api/extension/resume', { boundJobId: job.jobId, trigger: 'click', ...(regenerate ? { regenerate: true } : {}),
+        ...(msg.reuseOnly === true && !regenerate ? { reuseOnly: true } : {}) });
       if (!r.ok || !ID_RE.test(String(r.body?.id || ''))) {
         return { ok: false, message: r.body?.error || 'Résumé generation is unavailable right now.', model: resumePanelModel({ job, error: r.body, allowance: r.body?.allowance || null }) };
       }
@@ -885,6 +886,19 @@ export function handlersFor(serverUrl = null) {
     RESUME_ATTACH: async (msg, sender) => {
       const s = await scope(msg, sender);
       if (s.error) return s.error;
+      // ⭐ (lane e2e-apply, 11-05) "Attach tailored" for a résumé the WEB APP made (the review row learnt it from the
+      // server: resumeFilesFor). The extension holds no generation for it yet, so the click asks the server to REUSE
+      // that version — `reuseOnly`: it never queues a model call or spends a slot (nothing to reuse → refused).
+      // Through the ONE start (RESUME_GENERATE), with `reuseOnly`, so it is still the one place that POSTs a start.
+      if (s.view?.status !== 'ready' && msg?.reuse === true && msg?.trigger === 'click') {
+        const g = await api.RESUME_GENERATE({ type: 'RESUME_GENERATE', trigger: 'click', reuseOnly: true }, sender);
+        const again = g?.ok ? await scope({}, sender) : null;
+        if (!again || again.error || again.view?.status !== 'ready') {
+          return { ok: false, message: g?.message || 'There is no tailored résumé for this job yet.', model: resumePanelModel({ job: s.job, view: s.view }) };
+        }
+        s.rec = again.rec;
+        s.view = again.view;
+      }
       if (s.view?.status !== 'ready') return { ok: false, message: 'Only a ready résumé can be attached.', model: resumePanelModel({ job: s.job, view: s.view }) };
       // ⭐ T18: into the FORM's frame (T11 — Greenhouse's iframe on a company's page), and into the upload the review
       // row names when it was pressed there (`msg.target`).
@@ -1008,6 +1022,7 @@ export function handlersFor(serverUrl = null) {
       try { await chrome.tabs.create({ url: `${url()}${path}` }); return { ok: true }; } catch { return refuse('Could not open draft.'); }
     },
   };
+  return api;
 }
 
 /** The contract the wiring guide names: one object of handlers, bound to the configured server URL. */

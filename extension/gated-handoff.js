@@ -2434,6 +2434,18 @@ export async function resumeFilesFor(serverUrl, jobId, { setting = 'on_cue' } = 
       else if (b?.id === rec.id && ['queued', 'generating'].includes(b.status)) out.inFlight = true;
     } catch { /* no tailored choice is offered */ }
   }
+  // ⭐ (lane e2e-apply, 11-05) a résumé tailored in the WEB APP for this job (from the current base) is the tailored
+  // choice too — measured: with one made on the board, the row offered only the base résumé and "Generate and attach".
+  // The server's peek (GET /api/extension/draft/:jobId → resume.state) says so without starting or spending anything;
+  // the click then reuses it (RESUME_ATTACH `reuse`).
+  if (!out.tailored && !out.inFlight && jobId != null) {
+    try {
+      const r = await authedFetch(serverUrl, `/api/extension/draft/${encodeURIComponent(jobId)}`);
+      const state = r?.ok ? (await r.json())?.resume?.state : null;
+      if (state === 'made' || state === 'ready') out.tailored = { id: null, reuse: true };
+      else if (state === 'in_flight') out.inFlight = true;
+    } catch { /* no tailored choice is offered */ }
+  }
   try {
     const r = await authedFetch(serverUrl, '/api/extension/base-resume');
     out.base = r?.ok ? (await r.json())?.exists === true : false;
