@@ -8,6 +8,7 @@
 import crypto from "node:crypto";
 import { readLevel, levelDisagreement } from "../../shared/postingLevel.js";
 import { atlasPostingsChanged } from "../atlas/atlasLive.js";
+import { rangeSql, rangeParams } from "./rowidWalk.js";
 
 export const LEVEL_READER_VERSION = 1;
 
@@ -15,16 +16,17 @@ const basisOf = (r) => crypto.createHash("sha1")
   .update(JSON.stringify([LEVEL_READER_VERSION, r.title, r.text_length ?? 0])).digest("hex").slice(0, 16);
 
 /** @returns {{ scanned: number, read: number }} */
-export function readStaleLevels(db, { limit = 1000 } = {}) {
+export function readStaleLevels(db, { limit = 1000, range = null } = {}) {
   // 1,000 a pass (every 10 minutes): ~5 ms a posting, so a first pass over a large board fills over a few passes
   // instead of holding the event loop for half a minute.
   // ⭐ 44p: iterate, and stop at `limit` stale rows — an 81k board is not materialised on every slice. The writes wait
   // until the scan is done (better-sqlite3 allows no write while a statement is iterating).
   const scan = db.prepare(`SELECT job_id, title, level_read_basis, LENGTH(COALESCE(description_text, description)) AS text_length
-    FROM scraped_jobs WHERE is_active = 1 OR level_read_basis IS NULL`);
+    FROM scraped_jobs WHERE (is_active = 1 OR level_read_basis IS NULL)${rangeSql(range)}`);
+  // ⛔ A123 (8): a settled board never reaches the limit, so without `range` (rowidWalk.js) this reads every active row.
   const stale = [];
   let scanned = 0;
-  for (const r of scan.iterate()) {
+  for (const r of scan.iterate(...rangeParams(range))) {
     scanned++;
     const basis = basisOf(r);
     if (r.level_read_basis === basis) continue;

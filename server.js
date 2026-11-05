@@ -264,7 +264,8 @@ import { tagStaleJobs } from "./services/jobs/jobTags.js";
 // ⭐ D106: the level a posting's text ASKS for, beside its title's ("Titled Junior · asks for 3+ years and system design").
 import { readStaleLevels, levelOfRow } from "./services/jobs/levelRead.js";
 import { backfillDescriptionText, withPostingText, refreshDescriptionText, postingText, registerDescriptionBasis, sweepStaleDescriptionBasis } from "./services/jobs/descriptionText.js";
-import { backfillProvenance } from "./services/jobs/enrichmentProvenance.js";
+import { backfillProvenanceSlice } from "./services/jobs/enrichmentProvenance.js";
+import { nextRowidRange } from "./services/jobs/rowidWalk.js";
 import { listPairs as listLearnedPairs, setPairRevoked, setPairPromoted, PROMOTE_AT_USERS } from "./services/learnedOrigins.js";
 import { CRAWLER_PAGE_HTML } from "./services/crawlerPage.js";
 import { resolvePlaceText, roleScopeExtra } from "./shared/jobTagVocabulary.js";
@@ -6776,15 +6777,24 @@ BOOT.add("automation tier", () => { try {
 // batch's own record wins over every rule). NULL-only and bounded, so a no-op after the first boot. A guessed
 // level is re-derived with the shared mapping (Staff / Principal were stored as `senior`). Never fatal: without
 // a map the importer detects the same thing per row at plan time.
-BOOT.add("enrichment provenance", () => { try {
-  const provFill = backfillProvenance(db);
-  if (provFill.written > 0) {
-    console.log(`[boot] enrichment provenance backfilled: ${provFill.written} row(s), ${provFill.placeholders} ` +
-      `crawler placeholder value(s) found, ${provFill.remappedLevels} guessed level(s) re-mapped`);
-  }
-} catch (e) {
-  console.error("[boot] enrichment provenance backfill failed (the importer detects per row instead):", e.message);
-} });
+// ⛔ A123 (8) (11-05) · A ROWID WALK FROM A HIGH-WATER MARK, 500 rows a slice, a 50 ms yield between slices: the
+// NULL-only statement had no index and read every row's overflow chain to find nothing — 18.7 s of the 66297c3 boot's
+// 44.4 s to ready (production, 11-05). The warm-up runs the first slice; the rest run after it. A settled board starts
+// at its mark, so a boot reads only the rows inserted since the last one (enrichmentProvenance.backfillProvenanceSlice).
+const PROVENANCE_SLICE_ROWS = 500;
+BOOT.add("enrichment provenance", () => {
+  const slice = () => { try {
+    const provFill = backfillProvenanceSlice(db, { rows: PROVENANCE_SLICE_ROWS });
+    if (provFill.written > 0) {
+      console.log(`[boot] enrichment provenance backfilled: ${provFill.written} row(s) in rowid ${provFill.from}–${provFill.to}, ` +
+        `${provFill.placeholders} crawler placeholder value(s) found, ${provFill.remappedLevels} guessed level(s) re-mapped`);
+    }
+    if (!provFill.done) setTimeout(slice, 50).unref();
+  } catch (e) {
+    console.error("[boot] enrichment provenance backfill failed (the importer detects per row instead):", e.message);
+  } };
+  slice();
+});
 
 // ── job_role_map backfill (CC1b's follow-up) ────────────────────────────────────────────────────
 //
@@ -6866,15 +6876,38 @@ if (String(process.env.ROLE_MAP_BACKFILL || "").toLowerCase() === "off") {
 // ⛔ 44p (11-04) · IN SLICES THAT YIELD. At 81k postings one pass of 2,000 descriptions + 1,000 levels
 // (≈ 3.5 ms a level) held the event loop for seconds every 10 minutes, with the Atlas drain on top
 // (11-02 19:02Z: every request stalled). A slice is 200 descriptions + 100 levels; the next slice runs
-// 50 ms later while the last one found work, up to JOB_TAG_SLICES a pass — the same 2,000 / 1,000.
-const JOB_TAG_SLICES = 10;
-function runJobTagPassSliced(trigger, left = JOB_TAG_SLICES) {
-  let worked = false;
-  try { worked = runJobTagPass(trigger, { descriptions: left === JOB_TAG_SLICES }); }
-  catch (e) { console.error(`[tags] (${trigger}) slice failed:`, e.message); }
-  if (worked && left > 1) setTimeout(() => runJobTagPassSliced(trigger, left - 1), 50).unref();
+// 50 ms later while the last one found work, up to 10 slices a pass — the same 2,000 / 1,000 (until A123 (8) below).
+// ⛔ A123 (8) (11-05) · A PASS WALKS THE BOARD IN ROWID RANGES. On a settled board nothing is stale, so the tag and
+// level scans never reached their limits and each slice read every active row (is_active and the bases sit after
+// `description`, so every row's overflow chain): the first slice was 22.5 s of the 66297c3 boot (production, 11-05),
+// and the same pass held the loop every 10 minutes. Now a slice reads JOB_TAG_SLICE_ROWS consecutive rowids, a 50 ms
+// yield between slices; a range whose tag or level limit was reached is read again (the rest of its stale rows) before
+// the walk moves on, at most JOB_TAG_RANGE_REPEATS times. One walk at a time: an interval that finds one running skips.
+const JOB_TAG_SLICE_ROWS = 500;
+const JOB_TAG_RANGE_REPEATS = 10;
+let jobTagWalk = null;
+function runJobTagPassSliced(trigger) {
+  if (jobTagWalk) return;
+  jobTagWalk = { trigger, from: 0, first: true, repeats: 0 };
+  runJobTagWalkSlice();
 }
-function runJobTagPass(trigger, { descriptions = true } = {}) {
+function runJobTagWalkSlice() {
+  const w = jobTagWalk;
+  let next = null;
+  try {
+    const range = nextRowidRange(db, w.from, JOB_TAG_SLICE_ROWS);
+    const r = runJobTagPass(w.trigger, { descriptions: w.first, range });
+    const again = r.full && w.repeats < JOB_TAG_RANGE_REPEATS;
+    w.repeats = again ? w.repeats + 1 : 0;
+    next = again ? w.from : (range.more ? range.to : null);
+  } catch (e) { console.error(`[tags] (${w.trigger}) slice failed:`, e.message); }
+  w.first = false;
+  if (next == null) { jobTagWalk = null; return; }
+  w.from = next;
+  setTimeout(runJobTagWalkSlice, 50).unref();
+}
+function runJobTagPass(trigger, { descriptions = true, range = null } = {}) {
+  let full = false;   // a limit was reached: the range may hold more stale rows
   let worked = false;
   // ⛔ D59 · the description pass first — the tags read its label fields (workstyle, location). Writes
   // only description_text / description_fields / req_* (never description or content_hash), at most
@@ -6889,19 +6922,21 @@ function runJobTagPass(trigger, { descriptions = true } = {}) {
     console.error(`[description] (${trigger}) normalising failed (readers fall back to the stored description):`, e.message);
   }
   try {
-    const r = tagStaleJobs(db, { limit: 200 });
+    const r = tagStaleJobs(db, { limit: 200, range });
     if (r.tagged > 0) worked = true;
+    if (r.tagged >= 200) full = true;
     if (r.tagged > 0) console.log(`[tags] (${trigger}) tagged ${r.tagged} of ${r.scanned} posting(s)`);
   } catch (e) {
     console.error(`[tags] (${trigger}) tagging failed (untagged rows read as unknown and stay visible):`, e.message);
   }
   try {
-    const l = readStaleLevels(db, { limit: 100 });
+    const l = readStaleLevels(db, { limit: 100, range });
     if (l.read > 0) { worked = true; console.log(`[level] (${trigger}) read the asked level of ${l.read} of ${l.scanned} posting(s)`); }
+    if (l.read >= 100) full = true;
   } catch (e) {
     console.error(`[level] (${trigger}) reading levels failed (an unread posting has no level line):`, e.message);
   }
-  return worked;
+  return { worked, full };
 }
 BOOT.add("job tags (first slice)", () => runJobTagPassSliced("boot"));
 // ⛔ 44r · migration 219's one-time catch-up (descriptionText.sweepStaleDescriptionBasis): 1,000 rows a slice, a 50 ms
