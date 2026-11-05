@@ -63,7 +63,7 @@ import { createExtensionJobRouter } from "./routes/extensionJob.js";
 import { createExtensionDraftRouter } from "./routes/extensionDraft.js";
 import { purgeSolvedTickets } from "./services/tickets.js";
 import { storeGeneratedResume, refundGeneration, ResumeStoreError, STORE_FAILED_SENTENCE, listGeneratedResumes,
-         deleteGeneratedResume, sweepExpiredResumes, resumeRetentionDays } from "./services/generatedResumes.js";
+         deleteGeneratedResume, sweepExpiredResumes, resumeRetentionDays, resumeContentLoss } from "./services/generatedResumes.js";
 import { markPending, movePendingExpired } from "./services/applicationRecords.js";
 import { purgeSweep } from "./services/draftBin.js";
 import { createAccountRouter } from "./routes/account.js";
@@ -13294,6 +13294,17 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
 
 
   const resumeStripped = stripResumeHtml(formattedHtml);
+  // ⛔ 44x (e2e walk): a résumé that came back without most of the base (the tools service's parser lost every section
+  // of an "Education:"-style base — header only) is WITHHELD before anything is scored, stored, debited, marked Pending
+  // or packed for an application. Its usage row is refunded like a failed store. services/generatedResumes.js says why.
+  const contentLoss = resumeContentLoss(authoritativeResumeText, resumeStripped);
+  if (contentLoss) {
+    const refunded = refundGeneration(db, usageEventId, "résumé came back incomplete — withheld, refunded");
+    console.error(`[generate] job=${jobId}: the tools service returned ${contentLoss.keptChars} of ${contentLoss.baseChars} characters ` +
+      `of the base résumé (${contentLoss.ratio}) — withheld; generation count ${refunded ? "refunded" : "not found to refund"}`);
+    throw new ToolsServiceError("The tailored résumé came back missing most of the base résumé",
+      { code: "resume_incomplete", status: 502, retryable: false, permanent: true });
+  }
   const activeProfile = getOrRepairActiveProfile(userId);
   const signalProfile = activeProfile
     ? loadOrCreateSimpleApplyProfile(db, { userId, profileId: activeProfile.id })
