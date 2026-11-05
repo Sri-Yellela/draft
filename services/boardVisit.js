@@ -28,6 +28,13 @@ export function touchBoardVisit(db, userId, { now = Math.floor(Date.now() / 1000
   }
 }
 
+/** ⭐ D156 (6): the STORED visit mark (board_prev_seen_at) or null — what changes only when a visit rolls. The facets
+ *  cache keys on it; visitSince's first-visit fallback is relative to now and would make every second a new key. */
+export function visitMark(db, userId) {
+  try { return db.prepare("SELECT board_prev_seen_at FROM users WHERE id = ?").pluck().get(userId) ?? null; }
+  catch { return null; }
+}
+
 /** The cutoff for "since your last visit" (epoch seconds). Read-only. */
 export function visitSince(db, userId, { now = Math.floor(Date.now() / 1000) } = {}) {
   try {
