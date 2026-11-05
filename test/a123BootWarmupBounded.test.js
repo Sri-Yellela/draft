@@ -132,3 +132,92 @@ test("A123 · the cleanup's expiry scans read an index on scraped_at, built by t
   assert.match(plan, /idx_scraped_jobs_scraped_at/, plan);
   d.close();
 });
+// ── A123 (8) (44t, 11-05) · the provenance backfill and the tag / level scans read bounded rowid ranges ──────────────
+import { nextRowidRange } from "../services/jobs/rowidWalk.js";
+import { backfillProvenanceSlice, PROVENANCE_WALK_KEY } from "../services/jobs/enrichmentProvenance.js";
+import { tagStaleJobs as tagStale8 } from "../services/jobs/jobTags.js";
+import { readStaleLevels as readLevels8 } from "../services/jobs/levelRead.js";
+
+const provNull = (d) => d.prepare("SELECT COUNT(*) AS n FROM scraped_jobs WHERE enrichment_provenance IS NULL").get().n;
+const mark = (d) => Number(d.prepare("SELECT value FROM app_settings WHERE key = ?").get(PROVENANCE_WALK_KEY)?.value);
+
+test("A123 (8) · nextRowidRange: consecutive (from, to] ranges cover every row once, `more` false at the end", () => {
+  const d = migratedDb();
+  for (let i = 0; i < 12; i++) seed(d, `r${i}`, `Text ${i}.`);
+  const seen = [];
+  let from = 0, guard = 0;
+  for (;;) {
+    const r = nextRowidRange(d, from, 5);
+    seen.push(...d.prepare("SELECT rowid AS r FROM scraped_jobs WHERE rowid > ? AND rowid <= ?").all(r.from, r.to).map(x => x.r));
+    if (!r.more) break;
+    from = r.to;
+    assert.ok(++guard < 10, "the walk ends");
+  }
+  assert.equal(seen.length, 12);
+  assert.equal(new Set(seen).size, 12, "no row read twice");
+  assert.equal(nextRowidRange(d, from, 5).more, false);
+});
+
+test("A123 (8) · the provenance walk fills a slice at a time, keeps its mark, then reads only rows inserted since", () => {
+  const d = migratedDb();
+  for (let i = 0; i < 7; i++) seed(d, `p${i}`, `Build services ${i}.`);
+  assert.equal(provNull(d), 7);
+  const a = backfillProvenanceSlice(d, { rows: 3 });
+  assert.equal(a.done, false);
+  assert.equal(provNull(d), 4, "only the first 3 rowids were read");
+  let r = a, n = 1;
+  while (!r.done) { r = backfillProvenanceSlice(d, { rows: 3 }); assert.ok(++n < 6); }
+  assert.equal(provNull(d), 0);
+  const end = mark(d);
+  // settled: a further slice starts at the mark and reads nothing
+  const again = backfillProvenanceSlice(d, { rows: 3 });
+  assert.equal(again.scanned, 0);
+  assert.equal(again.done, true);
+  assert.equal(mark(d), end, "the mark holds");
+  // a new posting past the mark is the only row the next boot reads
+  seed(d, "p-new", "A new posting.");
+  const fresh = backfillProvenanceSlice(d, { rows: 3 });
+  assert.equal(fresh.scanned, 1);
+  assert.equal(provNull(d), 0);
+  assert.ok(mark(d) > end);
+});
+
+test("A123 (8) · a ranged tag / level scan reads only its range; the full walk tags everything once", () => {
+  const d = migratedDb();
+  for (let i = 0; i < 10; i++) seed(d, `t${i}`, `Senior engineer, 5+ years, remote ${i}.`);
+  const first = nextRowidRange(d, 0, 4);
+  const t = tagStale8(d, { limit: 200, range: first });
+  assert.equal(t.scanned, 4, "only the range's rows");
+  const l = readLevels8(d, { limit: 100, range: first });
+  assert.ok(l.scanned <= 4, "levels: only the range's rows");
+  let from = first.to;
+  for (;;) {
+    const r = nextRowidRange(d, from, 4);
+    tagStale8(d, { limit: 200, range: r }); readLevels8(d, { limit: 100, range: r });
+    if (!r.more) break;
+    from = r.to;
+  }
+  assert.equal(tagStale8(d).tagged, 0, "settled after one walk");
+});
+
+test("A123 (8) · a range that hit its limit is re-read before the walk moves on", () => {
+  const d = migratedDb();
+  for (let i = 0; i < 6; i++) seed(d, `l${i}`, `Engineer ${i}.`);
+  const r = nextRowidRange(d, 0, 6);
+  assert.equal(tagStale8(d, { limit: 2, range: r }).tagged, 2);
+  assert.equal(tagStale8(d, { limit: 2, range: r }).tagged, 2, "the same range again: the next stale rows");
+  assert.equal(tagStale8(d, { limit: 2, range: r }).tagged, 2);
+  assert.equal(tagStale8(d, { limit: 2, range: r }).tagged, 0);
+});
+
+test("A123 (8) · server.js: the provenance step and the tag pass walk in rowid ranges, one walk at a time", () => {
+  const s = read("server.js");
+  const prov = at(s, 'BOOT.add("enrichment provenance"');
+  assert.ok(at(s, "backfillProvenanceSlice(db, { rows: PROVENANCE_SLICE_ROWS })", prov) > prov);
+  assert.match(s, /if \(!provFill\.done\) setTimeout\(slice, 50\)\.unref\(\)/);
+  assert.doesNotMatch(s, /backfillProvenance\(db\)/, "the whole-board statement is not called at boot");
+  const walk = at(s, "function runJobTagPassSliced(trigger) {");
+  assert.ok(at(s, "if (jobTagWalk) return;", walk) > walk, "an interval finding a walk running skips");
+  assert.ok(at(s, "nextRowidRange(db, w.from, JOB_TAG_SLICE_ROWS)", walk) > walk);
+  assert.match(s, /setTimeout\(runJobTagWalkSlice, 50\)\.unref\(\)/);
+});

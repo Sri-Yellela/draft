@@ -97,8 +97,9 @@ test("44p · server.js: the drainer starts after listen; the 10-minute pass runs
   const s = read("server.js");
   const listen = at(s, "app.listen(PORT, () => {");
   assert.ok(at(s, "startAtlasDrainer(db);", listen) > listen, "startAtlasDrainer inside the listen callback");
-  assert.match(s, /tagStaleJobs\(db, \{ limit: 200 \}\)/);
-  assert.match(s, /readStaleLevels\(db, \{ limit: 100 \}\)/);
+  // A123 (8) (44t): each slice is also bounded to a rowid range of the board.
+  assert.match(s, /tagStaleJobs\(db, \{ limit: 200, range \}\)/);
+  assert.match(s, /readStaleLevels\(db, \{ limit: 100, range \}\)/);
   // D151 Rule 1 (11-04): the boot's first slice is a warm-up step, after the listener binds.
   assert.match(s, /BOOT\.add\("job tags \(first slice\)", \(\) => runJobTagPassSliced\("boot"\)\)/);
   assert.match(s, /setInterval\(\(\) => runJobTagPassSliced\("interval"\)/);
