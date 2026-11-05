@@ -195,7 +195,6 @@ export const SHARED = Object.freeze({
   "hooks/use-toast.js":                 { what: "toasts" },
   "hooks/useBoardLock.js":              { what: "the board's lock" },
   "hooks/useChromeHeight.js":           { what: "the chrome's height" },
-  "hooks/useCollapsibleHeight.js":      { what: "a collapsible's height" },
   "hooks/useDeckGeometry.js":           { what: "the deck's geometry" },
   "hooks/useInactivityLogout.js":       { what: "sign-out on inactivity" },
   "hooks/useJobFacets.js":              { what: "the board's facets" },

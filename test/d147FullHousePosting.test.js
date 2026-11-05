@@ -76,7 +76,7 @@ const JOB = {
 };
 
 test("d147FilterSentenceKept · the sentence that filters stays — its words still open their filters — restyled in the serif", () => {
-  assert.match(app, /<header className="fh" data-fh-d147=""[^>]*>\s*<BoardTitleRow \/>\s*<BoardHeadlineSlot \/>/);
+  assert.match(app, /<header className="fh" data-fh-d147=""[^>]*>\s*<BoardTitleRow home \/>\s*<BoardHeadlineSlot \/>/);   // A125: Home's header is the only one
   assert.match(app, /<BoardHeadline params=\{params\}[^>]*\n\s+open=\{boardPanel\} onToggle=\{\(key\) => setBoardPanel\(current => nextBoardPanel\(current, key\)\)\} \/>/,
     "a word's press still opens its filter");
   // The serif at about 30px, through the sentence's TOKENS (D34: no token rule names a font).

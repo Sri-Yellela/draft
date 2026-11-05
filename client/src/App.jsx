@@ -14,7 +14,6 @@ import DBInspector               from "./pages/admin/DBInspector.jsx";
 import TopBar                     from "./components/TopBar.jsx";
 import AppShell                  from "./components/AppShell.jsx";
 import { useChromeHeight }       from "./hooks/useChromeHeight.js";
-import { useCollapsibleHeight }  from "./hooks/useCollapsibleHeight.js";
 import { AppScrollProvider } from "./contexts/AppScrollContext.jsx";
 import { JobBoardProvider, useJobBoard } from "./contexts/JobBoardContext.jsx";
 import { AutoApplyProvider, useAutoApply } from "./contexts/AutoApplyContext.jsx";
@@ -403,15 +402,11 @@ function AppDashboard({ authUser, setAuthUser }) {
     // its route stay (ROUTE_ONLY_TABS below) for the two in-app deep links and R2–R6.
   ];
 
-  // The Jobs-only chrome's height, animated in and out. Its `open` input is simply "is Jobs the
-  // tab", so switching between two NON-Jobs tabs never animates anything — the wrapper is already 0
-  // on both sides, which is Y4's "switching between non-Jobs tabs behaves as it does now".
-  // Declared after activeTab, which it reads.
   // ⭐ D152 (1) · HOME: the Daily Deck and Full House are ONE screen — /app and /app/jobs both draw it (home-sketch.html):
   // the deck on the left, the sentence, search, counts and every job on the right. Home draws the board's header inside
-  // its own right column, so the old full-width header wrapper above <main> stays closed.
+  // its own right column. ⭐ A125: the old full-width Y4 header wrapper above <main> (hooks/useCollapsibleHeight.js),
+  // which could never open once both routes were Home, is deleted with its hook.
   const home = activeTab === "today" || activeTab === "console";
-  const jobsChrome = useCollapsibleHeight(activeTab === "console" && !home);
 
   // The console is handled by its own branch above (it has a legacy-route alias and a refresh key),
   // so it is excluded here. The three extras are reachable from the profile menu rather than the
@@ -586,40 +581,6 @@ function AppDashboard({ authUser, setAuthUser }) {
             onUserChange={setAuthUser}
             onProfileActivate={handleProfileActivate}
           />
-
-          {/* ── The JOBS-ONLY chrome ──────────────────────────────────────────────────────────
-              The hero and the search bar, and nothing else, in a wrapper whose height animates
-              between 0 and its measured content (hooks/useCollapsibleHeight.js). Switching to or
-              from Jobs changes the in-flow chrome's height by 539px at 1440x900, and Y4 asks for
-              that to move smoothly rather than jump. Switching between two NON-Jobs tabs is
-              unaffected: the wrapper is already 0 on both sides, so nothing animates.
-
-              THE PILL IS GONE, and with it the reason this block used to stay mounted and hide
-              itself with `visibility`. That trick existed because unmounting took 386px out of the
-              document above the fold, Chrome's scroll anchoring subtracted it from the scroll
-              offset, and the sentinel the pill's threshold was measured from moved back across that
-              threshold — the observer's condition was a function of the state the observer set.
-              With one search surface there is no threshold and no sentinel, so a conditional render
-              is simply a conditional render again. */}
-          <div ref={jobsChrome.outerRef} style={jobsChrome.outerStyle}>
-            <div ref={jobsChrome.innerRef} style={jobsChrome.innerStyle}>
-              {jobsChrome.mounted && (
-                <>
-                {/* The hero's top padding is 34px, not the 80px it was: the shell RESERVES the
-                    chrome's height above this (Y3), so 34 + a 46px bar is the same 80px from the top
-                    of the viewport the hero has always had. Expressed that way it is a distance
-                    BELOW THE CHROME rather than an absolute offset that cleared it by coincidence. */}
-                {/* ⛔ D35 · THE FULL HOUSE HEADER, in header.html's order: 1 the sentence (its words are
-                    the filters), 2 the one panel a word opens, 3 the condensed bar, then the sort
-                    panel when it is open — and 4 the jobs, below this chrome. */}
-                <header className="fh" data-fh-d147="" style={{ animation:"fadeUp 0.6s ease both" }}>
-                  <BoardTitleRow />
-                  <BoardHeadlineSlot />
-                </header>
-                </>
-              )}
-            </div>
-          </div>
 
           {/* D149: the deck (like Full House) starts right under the mark — its card sits at the sketch's 90 px. */}
           {/* D149 (11-03): Draft House too — its own top padding puts its title at tracker-options.html's 84 px. */}
