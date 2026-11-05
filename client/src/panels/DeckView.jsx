@@ -63,6 +63,24 @@ const WHEEL_SETTLE_MS = 140;         // one trackpad flick is many events; rotat
 // good deal in this tab is kept on screen when a refresh fails (precomputeFailureShowsLastGood). In memory only.
 const DECK_TIMEOUT_MS = 8000;
 const lastGoodDeck = new Map();      // `${date}|${order}` → the last deck the server dealt
+// ⛔ D156 (6) (11-05) · d156DeckShowsLastGoodWhileRefreshing: the last good deal also survives a reload in this tab
+// (sessionStorage — the session cache of D153 (6)), so a refresh shows those picks with a quiet "Refreshing…" instead of
+// "Dealing today's draft…" while the server is slow (production 11-05 02:52Z: /api/draft/today cut off at 8 s twice).
+// Storage can be absent or full: every read and write is guarded, and the Map alone still works.
+const LAST_GOOD_PREFIX = "draft.deck.lastGood.";
+function rememberDeck(key, deck) {
+  lastGoodDeck.set(key, deck);
+  try { sessionStorage.setItem(LAST_GOOD_PREFIX + key, JSON.stringify(deck)); } catch { /* no storage: memory only */ }
+}
+function rememberedDeck(key) {
+  if (lastGoodDeck.has(key)) return lastGoodDeck.get(key);
+  try {
+    const raw = sessionStorage.getItem(LAST_GOOD_PREFIX + key);
+    const deck = raw ? JSON.parse(raw) : null;
+    if (deck && Array.isArray(deck.cards)) { lastGoodDeck.set(key, deck); return deck; }
+  } catch { /* unreadable: no last good */ }
+  return null;
+}
 // YYYY-MM-DD in the user's zone, built from its parts. ⛔ 44e: toLocaleDateString("en-CA") is NOT always YYYY-MM-DD — some
 // Safari / Chrome builds answer "11/2/2026", the server refused it (400) and a tester's deck dealt nothing.
 const localDate = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -623,9 +641,21 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const size = home ? homeCardSize(viewportW) : cardSize(orientation, vw);
 
   const scoringTries = useRef(0);
+  const loadStatusRef = useRef(load.status);
+  loadStatusRef.current = load.status;
   const fetchDeck = useCallback(async () => {
-    setLoad(l => (l.status === "scoring" ? l : { status: "loading", error: null }));
     const cacheKey = `${localDate()}|${deckOrder}`;
+    // ⛔ D156 (6) · with a last good deal for today, the refresh happens UNDER it: those picks stay on screen
+    // ("Refreshing…"), never the "Dealing…" box. Without one it is the first deal of the day, and the box shows.
+    const held = rememberedDeck(cacheKey);
+    if (held) {
+      if (loadStatusRef.current !== "ready") {
+        dispatch({ type: "__replace", state: initialDeck(held) });
+      }
+      setLoad({ status: "ready", error: null, refreshing: true });
+    } else {
+      setLoad(l => (l.status === "scoring" ? l : { status: "loading", error: null }));
+    }
     try {
       // ⛔ 44p (deckNeverSpinsForever): at most DECK_TIMEOUT_MS, then a plain message and Try again — never a spinner
       // for as long as the edge holds the request (30–67 s on production 11-02).
@@ -634,12 +664,14 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       // rather than showing an empty deck the tester takes for "no jobs".
       if (deck.reason === "scoring" && scoringTries.current < 45) {
         scoringTries.current += 1;
-        setLoad({ status: "scoring", error: null });
+        // ⛔ D156 (6): while it scores, a last good deal stays on screen (refreshing), not the scoring box.
+        setLoad(held ? { status: "ready", error: null, refreshing: true } : { status: "scoring", error: null });
         setTimeout(() => fetchDeck(), 4000);
         return;
       }
       scoringTries.current = 0;
       lastGoodDeck.set(cacheKey, deck);
+      rememberDeck(cacheKey, deck);
       dispatch({ type: "__replace", state: initialDeck(deck) });
       // ⛔ The deal plays on the day's FIRST open only — the server says whether this request dealt.
       // Once per day, not per navigation, or the signal that today's draft is new means nothing.
@@ -650,7 +682,10 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       // quiet line saying it could not be refreshed.
       const last = lastGoodDeck.get(cacheKey);
       if (last) {
-        dispatch({ type: "__replace", state: initialDeck(last) });
+        // D156 (6): the picks on screen (and the decisions made on them since) are kept as they are.
+        if (loadStatusRef.current !== "ready") {
+          dispatch({ type: "__replace", state: initialDeck(last) });
+        }
         setLoad({ status: "ready", error: null, stale: e.message || "The deck could not be refreshed." });
         return;
       }
@@ -658,6 +693,14 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     }
   }, [deckOrder]);
   useEffect(() => { fetchDeck(); }, [fetchDeck]);
+  // D156 (6): the remembered deal carries the decisions made on it since, so a reload that cannot reach the server
+  // never shows a passed or drafted card as undecided.
+  useEffect(() => {
+    if (load.status !== "ready" || !state.cards.length) return;
+    const key = `${localDate()}|${deckOrder}`;
+    const base = lastGoodDeck.get(key);
+    if (base && base.date === state.date) rememberDeck(key, { ...base, cards: state.cards.map(({ error, pending, ...c }) => c) });
+  }, [state.cards, load.status, deckOrder]); // eslint-disable-line react-hooks/exhaustive-deps
   // The deal is an arrival, not a mode: once it has played, later moves are ordinary rotations.
   useEffect(() => {
     if (!dealing) return;
@@ -883,6 +926,10 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
             <div style={{ fontSize: 14, color: C.INK_MUTED, marginBottom: 18 }}>{load.error}</div>
             <button type="button" onClick={fetchDeck} style={{ ...glass({ radius: 12 }), padding: "10px 18px", fontWeight: 800, color: C.INK, cursor: "pointer" }}>Try again</button>
           </div>
+        )}
+
+        {load.status === "ready" && load.refreshing && !load.stale && (
+          <div role="status" data-deck-refreshing="" style={{ fontSize: 13.5, color: C.INK_MUTED, margin: "0 0 12px" }}>Refreshing today's draft…</div>
         )}
 
         {load.status === "ready" && load.stale && (
