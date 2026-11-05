@@ -32,6 +32,7 @@ import { segments, classifySegment, remoteRegionFromText, US_STATES } from "./us
 import { EXPERIENCE_LEVELS, EMPLOYMENT_TYPES, WORK_MODELS, valueSet } from "../../shared/jobFilterOptions.js";
 import { METROS, JOB_FUNCTIONS, functionForRole } from "../../shared/jobTagVocabulary.js";
 import { parseCodedLocation } from "../../shared/postingNormalize.js";
+import { rangeSql, rangeParams } from "./rowidWalk.js";
 
 /** Bump when a rule changes: every row is re-tagged on the next pass (owner tags survive). */
 // 3 (D59): coded locations ("US-MA-MARLBOROUGH-MA2 1001 Boston Post Rd") and the label block's
@@ -415,13 +416,16 @@ export function writeTags(db, jobId, tags, basis) {
  * a second pass over an unchanged board touches nothing. Never fatal to a caller — it returns counts.
  * @returns {{ scanned: number, tagged: number }}
  */
-export function tagStaleJobs(db, { all = false, limit = Infinity } = {}) {
+export function tagStaleJobs(db, { all = false, limit = Infinity, range = null } = {}) {
   // ⭐ 44p: iterate and stop at `limit` stale rows (the 10-minute pass's slices, server.js) — at 81k postings a scan that
   // materialised and re-tagged the whole backlog held the event loop for minutes. The writes wait for the scan to end
   // (better-sqlite3 allows no write while a statement is iterating). `scanned` = the rows read before it stopped.
+  // ⛔ A123 (8): on a SETTLED board the limit is never reached, so the scan read every active row (22.5 s of the 66297c3
+  // boot, cold). `range` ({ from, to }, rowidWalk.js) bounds it to a rowid range — the server walks the board in them.
   const rows = [];
   let scanned = 0;
-  for (const row of db.prepare(ROWS_SQL).iterate()) {
+  const sql = range ? `${ROWS_SQL.replace("WHERE sj.is_active = 1 OR sj.tag_basis IS NULL", "WHERE (sj.is_active = 1 OR sj.tag_basis IS NULL)")}${rangeSql(range, "sj.")}` : ROWS_SQL;
+  for (const row of db.prepare(sql).iterate(...rangeParams(range))) {
     scanned++;
     const basis = tagBasis(row);
     if (!all && row.tag_basis === basis && row.tag_version === TAGGER_VERSION) continue;

@@ -18,6 +18,7 @@
 // record wins over every detection rule.
 import { levelFromTitle } from "../../shared/levelMapping.js";
 import { normalizeWorkplaceType, inferClearanceRequired } from "./schema.js";
+import { nextRowidRange } from "./rowidWalk.js";
 
 export const PLACEHOLDER = "crawler_fallback";
 export const STATED = ["source", "board_location", "import", "owner"];
@@ -96,11 +97,39 @@ export function markImported(json, columns) {
  * no-op; bounded by `ceiling` rows a call. A crawler-guessed `experience_level` is re-derived with the shared
  * mapping (D84 F2: Staff / Principal were stored as `senior`) — the crawl's OWN guess, never an import's value.
  */
+const ENRICHED = ["summary", "normalized_title", "experience_level", "workplace_type", "skills_json", "salary_min_usd",
+  "salary_max_usd", "salary_period", "is_h1b_sponsor", "requires_work_auth", "is_clearance_required", "org_unit_raw"];
+const SELECT_UNMAPPED = `SELECT job_id, title, location, description, ${ENRICHED.join(", ")} FROM scraped_jobs
+    WHERE enrichment_provenance IS NULL`;
+
 export function backfillProvenance(db, { ceiling = 5000 } = {}) {
-  const ENRICHED = ["summary", "normalized_title", "experience_level", "workplace_type", "skills_json", "salary_min_usd",
-    "salary_max_usd", "salary_period", "is_h1b_sponsor", "requires_work_auth", "is_clearance_required", "org_unit_raw"];
-  const rows = db.prepare(`SELECT job_id, title, location, description, ${ENRICHED.join(", ")} FROM scraped_jobs
-    WHERE enrichment_provenance IS NULL LIMIT ?`).all(ceiling);
+  return fillProvenance(db, db.prepare(`${SELECT_UNMAPPED} LIMIT ?`).all(ceiling));
+}
+
+// ⛔ A123 (8) (11-05) · THE BOOT'S PASS IS A ROWID WALK WITH A HIGH-WATER MARK, NOT A SCAN OF THE BOARD.
+// `WHERE enrichment_provenance IS NULL` has no index, and the column sits after `description`, so on a settled board
+// (nothing NULL) backfillProvenance above read every row's overflow chain to find nothing: 18.7 s of the 66297c3 boot
+// (production, 11-05 00:16Z, no "backfilled" line), 4.5 s on the laptop's 84k copy. The walk reads `rows` consecutive
+// rowids a slice and records the last one in app_settings; once it has passed the end, a later boot starts from that
+// mark, so it reads only the rows inserted since (the crawl writes a map on insert anyway). A row below the mark that
+// somehow has no map is not lost: the importer detects its provenance per row at plan time (isPlaceholder).
+export const PROVENANCE_WALK_KEY = "a123_provenance_walk_v1";
+export function backfillProvenanceSlice(db, { rows = 500 } = {}) {
+  const get = db.prepare("SELECT value FROM app_settings WHERE key = ?");
+  const from = Number(get.get(PROVENANCE_WALK_KEY)?.value) || 0;
+  const range = nextRowidRange(db, from, rows);
+  let res = { scanned: 0, written: 0, remappedLevels: 0, placeholders: 0 };
+  db.transaction(() => {
+    if (range.to > from) {
+      res = fillProvenance(db, db.prepare(`${SELECT_UNMAPPED} AND rowid > ? AND rowid <= ?`).all(from, range.to));
+    }
+    db.prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, unixepoch())
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`).run(PROVENANCE_WALK_KEY, String(Math.max(from, range.to)));
+  })();
+  return { ...res, from, to: Math.max(from, range.to), done: !range.more };
+}
+
+function fillProvenance(db, rows) {
   const write = db.prepare("UPDATE scraped_jobs SET enrichment_provenance = ?, experience_level = ? WHERE job_id = ?");
   let written = 0, remappedLevels = 0, placeholders = 0;
   db.transaction(() => {
