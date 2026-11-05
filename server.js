@@ -285,6 +285,7 @@ import { loadConfirmedSynonyms } from "./services/kb/skillSynonyms.js";
 // A72 — the board's ranked local search (tiers, whole words, the same synonym map).
 import { registerBoardSearch, boardSearchSql, searchVariants } from "./services/jobs/boardSearch.js";
 import { createReadPool } from "./services/db/readWorker.js";
+import { useTrialPicksReader } from "./services/trialPicks.js";
 // Y2B — the SAME fetcher and the SAME writer the enrichment pass uses. One implementation, two
 // triggers: the background pass buys descriptions for rows it is about to enrich, and this buys
 // one for a job a user actually opened. See services/jobs/detailFetch.js.
@@ -531,6 +532,7 @@ const readPool = createReadPool({
   enabled: String(process.env.DRAFT_READ_WORKERS || "on").toLowerCase() !== "off",
   size: Math.max(1, Math.min(4, Number(process.env.DRAFT_READ_WORKERS_SIZE) || 2)),
 });
+useTrialPicksReader(readPool);   // A126 · the trial samples' category scan (warmed 20 s after boot) off the loop
 
 // ── Inline migration runner (additive only — never drops data) ─
 {
@@ -7066,7 +7068,7 @@ BOOT.add("company logo urls", () => {
 // ⛔ A provider with attempts and no success is NAMED in the log — the line that would have caught Clearbit.
 async function runCompanyLogoPass(trigger) {
   try {
-    const r = await resolveCompanyLogos(db, { limit: 40 });
+    const r = await resolveCompanyLogos(db, { limit: 40, read: readPool });   // A126: the company list off the loop
     if (r.scanned) console.log(`[logos] ${trigger}: ${r.ok} stored, ${r.none} without a logo (of ${r.scanned}); providers ${JSON.stringify(r.providers)}`);
     if (r.dead.length) console.error(`[logos] ⛔ provider(s) with attempts and NO success: ${r.dead.join(", ")} — check scripts/a77LogoProvidersLive.mjs`);
   } catch (e) {

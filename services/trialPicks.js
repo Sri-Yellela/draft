@@ -86,16 +86,23 @@ const titleWords = (t) => String(t || "").toLowerCase().split(/[^a-z0-9&+]+/).fi
  * catch-all), then the share of the target's words the title has — then by recency, and the top SCORE_CAP are scored.
  * With no target titles it is the old order.
  */
-function candidates(db, category, seniority, targets = []) {
+// ⛔ A126 (hotfix 11-05) · server.js hands the read-worker pool here (useTrialPicksReader): the category scan below runs OFF
+// the event loop. It is warmed 20 s after boot (routes/trial.js), the same second as the logo pass — together the ≈ 10 s
+// stall measured on production right after every deploy (18:31:34–44Z). Without a reader (tests) it reads `db`.
+let poolReader = null;
+export function useTrialPicksReader(read) { poolReader = read || null; }
+async function candidates(db, category, seniority, targets = []) {
   const levels = LEVEL_FIT[seniority] || LEVEL_FIT.mid;
   const marks = levels.map(() => "?").join(",");
   // The pool reads titles only; descriptions are read for the SCORE_CAP chosen (3,000 descriptions held the event loop).
-  const rows = db.prepare(`SELECT job_id, title, company, location, ${targets.length ? "NULL AS description" : "description"}, discipline, soc FROM scraped_jobs
+  const sql = `SELECT job_id, title, company, location, ${targets.length ? "NULL AS description" : "description"}, discipline, soc FROM scraped_jobs
     WHERE is_active = 1 AND duplicate_of IS NULL AND board_category = ?
       AND COALESCE(level_read, bucket_seniority, 'mid') IN (${marks})
       AND COALESCE(req_citizenship, '') NOT IN ('citizen_only', 'us_person')
       AND COALESCE(req_clearance, 'none') IN ('none', '')
-    ORDER BY COALESCE(posted_at, discovered_at) DESC LIMIT ?`).all(category, ...levels, targets.length ? TITLE_POOL : SCORE_CAP);
+    ORDER BY COALESCE(posted_at, discovered_at) DESC LIMIT ?`;
+  const params = [category, ...levels, targets.length ? TITLE_POOL : SCORE_CAP];
+  const rows = poolReader ? await poolReader.all(sql, params) : db.prepare(sql).all(...params);
   if (!targets.length) return rows;
   const socs = new Set(targets.map(t => categoryOf({ title: t }).soc).filter(s => s && !s.endsWith("1199")));
   const words = targets.map(t => new Set(titleWords(t))).filter(s => s.size);
@@ -139,7 +146,7 @@ async function picksNow(db, { category, seniority = "mid", resumeText, disciplin
   const scored = [];
   const skills = resumeSkills(resumeText);
   let n = 0;
-  for (const j of candidates(db, category, seniority, targets)) {
+  for (const j of await candidates(db, category, seniority, targets)) {
     if (++n % YIELD_EVERY === 0) await breathe();
     const v = categoryOf({ title: j.title });
     if (v.category !== category) continue;

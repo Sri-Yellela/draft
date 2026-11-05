@@ -193,13 +193,17 @@ export const logoPath = (key) => `${LOGO_ROUTE}${encodeURIComponent(key)}`;
  * RETRY_NONE_DAYS), up to `limit`. Stores per company; points that company's rows at the stored logo
  * unless a row carries a FEED logo (a LinkedIn / serpapi CDN URL, which is better than anything here).
  */
-export async function resolveCompanyLogos(db, { fetchImpl = globalThis.fetch, limit = 40, now = Math.floor(Date.now() / 1000) } = {}) {
-  const stats = {};
-  const companies = db.prepare(`
+// ⛔ A126 (hotfix 11-05) · `read` (server.js: the read-worker pool) runs the board-wide company list OFF the event loop.
+// Measured on production: this pass starts 20 s after boot, and its GROUP BY over every active posting held the loop
+// ≈ 10 s (18:31:34–44Z, the stall right after every deploy). Without `read` (tests, scripts) it reads `db` as before.
+const COMPANIES_SQL = `
     SELECT sj.company AS company, GROUP_CONCAT(COALESCE(sj.url, '') || ' ' || COALESCE(sj.apply_url, ''), ' ') AS urls
     FROM scraped_jobs sj
     WHERE sj.is_active = 1 AND sj.company IS NOT NULL AND TRIM(sj.company) != ''
-    GROUP BY sj.company`).all();
+    GROUP BY sj.company`;
+export async function resolveCompanyLogos(db, { fetchImpl = globalThis.fetch, limit = 40, now = Math.floor(Date.now() / 1000), read = null } = {}) {
+  const stats = {};
+  const companies = read ? await read.all(COMPANIES_SQL, []) : db.prepare(COMPANIES_SQL).all();
   const existing = db.prepare("SELECT status, checked_at FROM company_logos WHERE company_key = ?");
   const due = companies.filter(c => {
     const key = companyKey(c.company);
