@@ -127,6 +127,29 @@ export function refundGeneration(db, usageEventId, reason = "résumé not stored
   } catch { return false; }
 }
 
+/**
+ * ⛔ 44x (e2e walk on the 18k copy, 11-05): A TAILORED RÉSUMÉ THAT LOST THE BASE IS NOT A RÉSUMÉ. The tools service's
+ * text parser did not read "Education:" (a heading with a colon) as a heading, so the lean / payload / code tailorings
+ * rebuilt the résumé from a structure with NO sections and returned the header alone — name, contact, the word
+ * "Education:" — 80 characters of a 1,466-character base. draft stored it, took a Draft slot, marked the job Pending
+ * and prepared the apply packet with it. No claim guard catches an omission, so draft checks the one thing it can:
+ * how much of the base's text came back.
+ *
+ * Returns null when the résumé is plausibly whole, else { baseChars, keptChars, ratio }. Deliberately loose — a
+ * tailoring may shorten (one page, summary off), so only a résumé under a quarter of a base of real length fails.
+ * Both arguments are plain text (the route's stripResumeHtml output and the base résumé's text).
+ */
+export const CONTENT_LOSS_MIN_BASE_CHARS = 400;
+export const CONTENT_LOSS_MIN_RATIO = 0.25;
+export function resumeContentLoss(baseText, tailoredText) {
+  const len = (s) => String(s || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().length;
+  const baseChars = len(baseText);
+  if (baseChars < CONTENT_LOSS_MIN_BASE_CHARS) return null;
+  const keptChars = len(tailoredText);
+  const ratio = keptChars / baseChars;
+  return ratio < CONTENT_LOSS_MIN_RATIO ? { baseChars, keptChars, ratio: Math.round(ratio * 100) / 100 } : null;
+}
+
 /** 'applied' | 'drafted' | null — what keeps a résumé for good. */
 export function resumeTie(db, userId, jobId) {
   const one = (sql) => { try { return !!db.prepare(sql).get(userId, String(jobId)); } catch { return false; } };
