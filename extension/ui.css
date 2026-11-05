@@ -87,13 +87,19 @@ body {
 .link:focus-visible, .mb:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
 .mini { display: flex; gap: 8px; margin-bottom: 12px; }
 
-/* ⛔ D60 · THE MARK — status as a rectangle with a 3px leading bar, never a capsule (the sketch's .mkr). */
+/* ⛔ D60 → ⭐ D152 (7b) (owner 11-04: the label chip is retired site-wide) · THE MARK — the client's .mark, mirrored: a
+   plain word, no box / border / tint / bar / heavy italic; a STATE (.ok .no .warn .info) gets a 6px dot before the word
+   (a background) and the word in muted ink; .dim is the word in faint ink. */
 .mkr {
   --mk: var(--c-ink-faint);
-  display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; padding: 4px 8px 4px 7px;
-  font-family: 'Poppins', 'DM Sans', ui-sans-serif, sans-serif; font-style: italic; font-weight: 800;
-  font-size: 10.5px; line-height: 1; white-space: nowrap;
-  color: var(--mk); border-left: 3px solid var(--mk); background: color-mix(in srgb, var(--mk) 12%, transparent);
+  display: inline-flex; align-items: center; gap: 6px; border-radius: 0; padding: 0;
+  font-family: 'DM Sans', ui-sans-serif, sans-serif; font-style: normal; font-weight: 500;
+  font-size: 12.5px; line-height: 1.4; white-space: nowrap;
+  color: var(--mk); border: 0; background: none;
+}
+.mkr:is(.ok, .no, .warn, .info) {
+  color: var(--c-ink-muted); padding-left: 12px;
+  background: radial-gradient(circle at 3px 50%, var(--mk) 3px, transparent 3.5px) no-repeat;
 }
 .mkr svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .mkr.ok { --mk: var(--c-success); } .mkr.no { --mk: var(--c-danger); } .mkr.warn { --mk: var(--c-warning); }

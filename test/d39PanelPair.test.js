@@ -37,7 +37,10 @@ test("D39 · the left X closes only the left; the right panel does not move — 
   assert.deepEqual(slotsFor(["jd"], 3), ["jd"], "closing the ATS card leaves the posting alone");
   // Each panel's X is wired to ITS OWN close — and the X's press can no longer swap the pair first.
   const jobs = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
-  assert.match(jobs, /<AtsReportPanel key="panel-ats" \{\.\.\.panelProps\("ats"\)\}\s+onClose=\{closeAtsPanel\}/);
+  // ⭐ D152 (8), changed on purpose: the ATS card is no longer an overlay panel (it opens inside the posting); the PDF
+  // panel is the posting's peer, and its X is its own close. (The host's pure functions above stay generic.)
+  assert.match(jobs, /<SandboxPanel key="panel-pdf" \{\.\.\.panelProps\("pdf"\)\}\s+entry=\{sandbox\} onClose=\{closeSandbox\}/);
+  assert.ok(!fs.existsSync("client/src/panels/AtsReportPanel.jsx"));
   const shell = fs.readFileSync("client/src/components/PanelShell.jsx", "utf8");
   assert.match(shell, /<button onClick=\{onClose\}/, "the X is the panel's own close");
 });
@@ -49,7 +52,7 @@ test("D39 · the backdrop and Escape close the MOST RECENTLY OPENED first, one a
   const jobs = fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8");
   assert.match(jobs, /panelDescriptors\.find\(d => d\.id === lastOpenedId\)\?\.close\?\.\(\);/);
   assert.match(jobs, /closesOnEscape: id === lastOpenedId,/);
-  for (const f of ["client/src/components/JobDetailPanel.jsx", "client/src/panels/AtsReportPanel.jsx", "client/src/panels/SandboxPanel.jsx"]) {
+  for (const f of ["client/src/components/JobDetailPanel.jsx", "client/src/panels/SandboxPanel.jsx"]) {
     assert.match(fs.readFileSync(f, "utf8"), /closesOnEscape=\{closesOnEscape\}/, `${f} drops the Escape rule`);
   }
 });
@@ -73,7 +76,7 @@ test("D39 · a lone panel does NOT slide across — the closed neighbour's space
   assert.deepEqual(reserveAfterClose({ ids: ["jd"], widths: { jd: 560 }, reserve: { jd: 572 } }, ["jd", "ats"], 12), { jd: 0, ats: 0 });
   const shell = fs.readFileSync("client/src/components/PanelShell.jsx", "utf8");
   assert.match(shell, /marginRight: fullScreen \? 0 : Math\.round\(reserveRight\),/);
-  for (const f of ["client/src/components/JobDetailPanel.jsx", "client/src/panels/AtsReportPanel.jsx", "client/src/panels/SandboxPanel.jsx"]) {
+  for (const f of ["client/src/components/JobDetailPanel.jsx", "client/src/panels/SandboxPanel.jsx"]) {
     assert.match(fs.readFileSync(f, "utf8"), /reserveRight=\{reserveRight\}/, `${f} drops the hold`);
   }
 });

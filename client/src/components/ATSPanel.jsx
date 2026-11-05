@@ -28,7 +28,8 @@ import { AtsReport } from "./AtsReport.jsx";
 // can show THIS verdict on the card and the JD header instead of the stored one it loaded earlier —
 // one scoring read per screen. Without it a card read "No signal" beside this panel reading
 // "Strong match".
-export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeText, activeProfileId, onReport = null }) {
+// ⭐ D152 (8): `history` (a node — the History switch's content) and `bare` (the host is the card) pass straight through.
+export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeText, activeProfileId, onReport = null, history = null, bare = false }) {
   const [localReport, setLocalReport] = useState(null);
   const [kwLoading,   setKwLoading]   = useState(false);
   const [kwError,     setKwError]     = useState(false);
@@ -218,5 +219,5 @@ export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeT
 
   // THE REPORT ITSELF IS components/AtsReport.jsx — the one implementation every ATS surface draws
   // (A52). This panel only fetches, caches and claims.
-  return <AtsReport report={activeReport} band={band} claims={claims} />;
+  return <AtsReport report={activeReport} band={band} claims={claims} history={history} bare={bare} />;
 }

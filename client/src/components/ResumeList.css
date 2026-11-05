@@ -1,6 +1,6 @@
 /* ⭐ D62 · the résumé list (ResumeList.jsx) — the current language: tokens, the logo face, D1's depth, no pills.
-   A93: ONLY the list's own classes live here. The number box is AtsNumberBox.css; the ATS panel's header and
-   tabs are AtsReportPanel.css — a shared stylesheet holding one page's look is the leak A93 removes. */
+   A93: ONLY the list's own classes live here. The number box is AtsNumberBox.css; the old ATS panel's header and
+   tabs were AtsReportPanel.css (retired, D152 (8)) — a shared stylesheet holding one page's look is the leak A93 removes. */
 .rl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .rl__row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--c-fh-line); }
 .rl__text { flex: 1 1 auto; min-width: 0; }

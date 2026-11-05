@@ -28,3 +28,14 @@ export function jobIdFromSearch(search) {
   try { return new URLSearchParams(raw).get(JOB_URL_PARAM) || null; }
   catch { return null; }
 }
+
+// ⭐ D152 (8) (b): "open this job's match" — the deck (Home's left column) asks the board (its right column) to open
+// the posting IN PLACE with its match open under the facts (ats-options.html option A), instead of drawing a report
+// over the page. One event, named once: the deck dispatches it, JobsPanel listens.
+export const OPEN_MATCH_EVENT = "draft:open-match";
+
+/** Ask the board to open job `jobId`'s posting with its match open. A no-op without a window. */
+export function openMatchInPosting(jobId) {
+  if (!jobId || typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(OPEN_MATCH_EVENT, { detail: { jobId: String(jobId) } }));
+}

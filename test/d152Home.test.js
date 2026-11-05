@@ -40,7 +40,8 @@ test("d152 (1) · the grid is CSS — the deck's 390 column sticky in its track,
   assert.match(block, /@media \(max-width: 980px\) \{\n  \.home \{ grid-template-columns: minmax\(0, 1fr\);/);
   assert.match(DECK, /export const HOME_DECK_COLUMN = 390;/);
   assert.match(DECK, /const orientation = home \? "vertical" : orientationFor\(vw\);/, "the card-shaped layout at every width");
-  assert.match(DECK, /const twoPanel = home \? false : twoPanelFor\(vw\);/, "no report beside the card inside the column");
+  // ⭐ D152 (8) (b), changed on purpose: the report beside the card is deleted outright, not switched off on Home.
+  assert.doesNotMatch(DECK, /twoPanel/, "no report beside the card inside the column");
 });
 
 test("d152DockHomeEntry: one Home entry in place of the Daily Deck and Full House", () => {

@@ -25,12 +25,14 @@ test("D50 · the board card's square and the ATS card show it — beside the not
   assert.doesNotMatch(bubble, /jb__ats-n|BarMark/);
   // T9: the ATS card is the one shared component (shared/atsReportElement.js) — the web app and the extension draw it.
   const card = read("shared/atsReportElement.js");
-  // The band, the count and the number stay together in the card's head; the note follows them.
-  const head = card.slice(at(card, 'class: "ats-sum__head"'), at(card, '"data-ats-number-note"'));
+  // ⭐ D152 (8), changed on purpose (option A): the count is the heading and the number is ONE sentence under it, the
+  // note in the same sentence ("…still being tuned, so read it with the count") and as its title.
+  const head = card.slice(at(card, "export function buildBandCard("), at(card, "/** Experience"));
   for (const part of ["data-ats-band", "data-ats-count", "data-ats-score"]) assert.ok(head.includes(part), `${part} left the card's head`);
   assert.match(card, /const showNumber = ATS_NUMBER_SHOWN && !isUnknown && Number\.isFinite\(report\?\.score\);/);
-  assert.match(card, /showNumber && h\(doc, "div", \{ "data-ats-score": true, class: "ats-sum__score", title: ATS_NUMBER_NOTE \}/);
-  assert.match(card, /showNumber && h\(doc, "p", \{ "data-ats-number-note": true/, "the note goes wherever the number goes");
+  assert.match(card, /\? h\(doc, "p", \{ class: "ats-sum__sub", "data-ats-number-note": true, title: ATS_NUMBER_NOTE \},\s*"A ", h\(doc, "span", \{ "data-ats-score": true \}/,
+    "the note goes wherever the number goes");
+  assert.match(card, /The score is still being tuned, so read it with the count\./);
   // "Best fit" stays a word in the sort panel.
   assert.match(read("shared/filterSentence.js"), /label: "Best fit"/);
 });

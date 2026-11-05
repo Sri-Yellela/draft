@@ -32,26 +32,23 @@ import StartFromResume from "../components/StartFromResume.jsx";
 import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
-import { bandMarkStyle } from "../styles/mark.js";
-import { ATS_BAND, atsBandLabel } from "../../../shared/atsBands.js";
+import { ATS_BAND } from "../../../shared/atsBands.js";
 import { DECK_SCROLL_MS } from "../../../shared/trialTour.js";
-import { ATSPanel } from "../components/ATSPanel.jsx";
 import { AtsBandCard, fromDeckReport } from "../components/AtsReport.jsx";
 import PostingPanel from "../components/PostingPanel.jsx";
-import TrialRoleFit from "../components/TrialRoleFit.jsx";
 import { PairLinkProvider } from "../lib/pairLink.js";
 import CompanyLogo from "../components/CompanyLogo.jsx";
 import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import { CHROME_HEIGHT_VAR } from "../hooks/useChromeHeight.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
-import { jobDetailHref } from "../lib/jobUrl.js";
+import { jobDetailHref, openMatchInPosting } from "../lib/jobUrl.js";
 import { TITLE_ATTR, transitionClick } from "../lib/viewTransitions.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
 import { DECISION_SURFACES, DECISION_TOAST_MS, DECISION_VERB, commitDecision, undoDecision } from "../lib/jobDecisions.js";
 import DecisionToast from "../components/DecisionToast.jsx";
-import { CARD, EXPAND_CLOCK, TWO_PANEL, HOME_CARD, HOME_FAN, cardSize, fanTransform, geometryFor, homeCardSize, homeFanTransform, orientationFor, twoPanelColumn, twoPanelFor } from "../lib/fanGeometry.js";
+import { EXPAND_CLOCK, HOME_CARD, HOME_FAN, cardSize, fanTransform, geometryFor, homeCardSize, homeFanTransform, orientationFor } from "../lib/fanGeometry.js";
 import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 import { readDeckOrder } from "../lib/deckOrder.js";
 import { postingClick } from "../lib/openPosting.js";
@@ -124,42 +121,14 @@ function ActionButton({ label, onClick, primary, disabled, ariaKeys, compact }) 
 }
 
 
-// ── the expansion (A40, rebuilt 10-02): TWO EQUAL PANELS — the ATS report │ the card ─────────────
-// docs/BRAND_OUTLAY_AND_MOTION.md §"THE EXPANDED CARD — DECIDED 2026-10-01" is authoritative. The
-// posting stays INSIDE the card, growing downward; the one panel beside it is the FULL ATS report.
-// ⛔ The first build (8c38dd2, da73ff9) was three columns — ATS │ card │ posting — and was wrong.
-//
-// COLLAPSED  logo, company, title and ONE signal line ("Strong match · 9 of 12 skills · tap for the
-//            report"). ⛔ No chip rows: the collapsed card is a two-second decision.
-// CLICK      four things on ONE clock (--deck-t / --deck-ease, set once on the deck's root) and NO
-//            stagger: the grid 0fr → 1fr · the arc riding right with the card's column · the signal
-//            collapsing to nothing · the posting growing inside the card. Both height changes are
-//            grid-row 0fr ↔ 1fr on the same curve, so they read as ONE continuous change, not two jerks.
-// NARROW     (below TWO_PANEL_PX — phones, portrait tablets) the vertical fan stays, the signal line
-//            stays on the card, and tapping it opens the report as a SHEET.
-const sectionLabel = { fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.INK_FAINT, marginBottom: 8 };
+// ── the expansion (A40) ──────────────────────────────────────────────────────────────────────────────────────
+// The posting stays INSIDE the card, growing downward (grid-row 0fr ↔ 1fr on ONE clock, --deck-t / --deck-ease, set
+// once on the deck's root, no stagger). ⭐ D152 (8) (b): the report beside the card (A40's two equal panels) and the
+// phone's sheet are DELETED — the deck lives only on Home, where the match opens in the board's posting, under its
+// facts (option A, docs/sketches/ats-options.html), through lib/jobUrl.js openMatchInPosting.
 const ON_THE_CLOCK = "var(--deck-t) var(--deck-ease)";
 // `inert` as an attribute — React 18 has no boolean prop for it. Hidden content takes no focus and no clicks.
 const inertIf = (hidden) => (hidden ? { inert: "", "aria-hidden": true } : null);
-
-// The card's ONE line of ATS: the band, how many of the posting's skills the résumé shows (term counts,
-// never a score), and the way in to the full report.
-// 11-01: a TRIAL account's card carries its score (server.js /api/draft/today) — shown as "86% match" before the counts.
-function AtsSignal({ band, why = {}, onOpen, cta, score = null }) {
-  const meta = atsBandLabel(band);
-  const matched = Number(why.matchedTotal) || 0;
-  const total = matched + (Number.isFinite(why.missingTotal) ? why.missingTotal : (why.missing?.length || 0));
-  return (
-    <button type="button" data-deck-signal onClick={onOpen} aria-controls="deck-ats"
-      style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "2px 0", background: "transparent",
-               border: "none", cursor: "pointer", textAlign: "left", fontSize: 13.5, color: C.INK_MUTED }}>
-      <span style={{ ...bandMarkStyle(band), fontSize: 12.5 }}>{meta.label}</span>
-      {Number.isFinite(score) && <span data-deck-score={score} style={{ fontWeight: 700, color: C.INK }}>{Math.round(score)}% match</span>}
-      {total > 0 && <span>{matched} of {total} skills</span>}
-      {cta && <span style={{ color: C.ACCENT_INK, fontWeight: 700 }}>{cta}</span>}
-    </button>
-  );
-}
 
 // ⭐ THE TRIAL'S MATCH (11-01: a number in a ring, green and grey marks) is REPLACED by D145's match at the card's top
 // right — the number over "résumé match", the same stored score (lib/deckCardFacts.js); the skills are in "Why this job".
@@ -177,13 +146,13 @@ function CardPosting({ card }) {
 }
 
 // D32 · THE PHONE'S ANSWER: the sticky score column COLLAPSES ABOVE THE POSTING — its header only (band ·
-// "you cover 9 of 12" · the three-segment bar), with the way into the full report as a sheet.
+// "you cover 9 of 12" · the three-segment bar), with the way into the full report (D152 (8): the board's posting).
 function CollapsedScore({ card, onOpen }) {
   if (!card.report) return null;
   return (
     <div data-pair-collapsed style={{ marginBottom: 14 }}>
       <AtsBandCard report={fromDeckReport(card.report)} band={card.report.scorable ? card.band : ATS_BAND.NOT_ENOUGH_SIGNAL} compact />
-      <button type="button" onClick={onOpen} aria-controls="deck-ats"
+      <button type="button" onClick={onOpen}
         style={{ marginTop: 8, padding: 0, background: "transparent", border: "none", cursor: "pointer",
                  fontSize: 13, fontWeight: 700, color: C.ACCENT_INK }}>
         The full report ↑
@@ -206,37 +175,6 @@ function PostingLinks({ job, onReport }) {
 // (components/AtsReport.jsx, A52) — so the deck draws THE SAME report rather than a second one, and no
 // file but that one knows a report's field names.
 
-// The FULL report — D31's simple card: band · "9 of 12" · one bar, then "You could claim" open and the
-// résumé's terms and generic language folded — the board's ATSPanel, fed the frozen
-// report and the card's BAND (never a number). ⛔ A declined report is the scorer saying it cannot
-// judge, drawn as "Not enough signal", never as a low band.
-function DeckAtsReport({ card, profileId, onReport }) {
-  const r = card.report;
-  if (!r) {
-    // A card dealt before the deck froze the full report. Say where it is — never rebuild one from the
-    // six-chip summary, which would be a second, thinner report wearing the first one's name.
-    return (
-      <div style={{ padding: "4px 16px" }}>
-        <AtsSignal band={card.band} why={card.why} cta="" />
-        <p style={{ fontSize: 14, color: C.INK_MUTED, lineHeight: 1.6, margin: "14px 0 12px" }}>
-          This card was dealt before the deck carried the full report. Tomorrow's will; this one's is on the board.
-        </p>
-        <Link to={jobDetailHref(card.job.id)} onClick={onReport} style={{ color: C.ACCENT_INK, fontWeight: 700, fontSize: 13.5 }}>Full report on the board →</Link>
-        {Number.isFinite(card.score) && <TrialRoleFit jobId={card.job.id}/>}
-      </div>
-    );
-  }
-  // A111 step 4: a trial account's card carries its score — under the report, the role against the tester's own résumé
-  // (TrialRoleFit renders nothing unless the account is on the own-résumé pathway).
-  return (
-    <>
-      <ATSPanel report={fromDeckReport(r)} band={r.scorable ? card.band : ATS_BAND.NOT_ENOUGH_SIGNAL}
-                   jobId={card.job.id} activeProfileId={profileId} />
-      {Number.isFinite(card.score) && <TrialRoleFit jobId={card.job.id}/>}
-    </>
-  );
-}
-
 
 // ⛔ The label is "Collapse". One word — not "click to collapse", not "fold the card".
 function CollapseButton({ onCollapse, controls }) {
@@ -252,43 +190,6 @@ function CollapseButton({ onCollapse, controls }) {
   );
 }
 
-// The phone's report: a SHEET from the bottom, opened by the card's signal line. Above everything by
-// tier (MODAL over its scrim); Esc, the scrim and Close all dismiss it; focus goes in and comes back.
-function AtsSheet({ card, profileId, onClose, onReport }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const back = document.activeElement;
-    ref.current?.focus({ preventScroll: true });
-    return () => back?.focus?.({ preventScroll: true });
-  }, []);
-  return (
-    <>
-      <motion.div aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        style={{ position: "fixed", inset: 0, background: C.SCRIM, zIndex: Z.MODAL_SCRIM }} />
-      <motion.div ref={ref} role="dialog" aria-modal="true" aria-label="The ATS report" tabIndex={-1} data-deck-sheet
-        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-        style={{ ...glass({ radius: 24 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU,
-                 position: "fixed", left: 0, right: 0, bottom: 0, margin: "0 auto", maxWidth: 640, maxHeight: "85vh",
-                 overflowY: "auto", overscrollBehavior: "contain", borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
-                 zIndex: Z.MODAL, outline: "none", padding: "14px 4px 28px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 12px 4px" }}>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={sectionLabel}>The ATS report</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {card.job.title} · {card.job.company}
-            </div>
-          </div>
-          <button type="button" className="dbx-depth" onClick={onClose} aria-keyshortcuts="Escape"
-            style={{ ...glass({ radius: 10 }), padding: "7px 14px", fontSize: 13, fontWeight: 800, color: C.INK, cursor: "pointer" }}>
-            Close
-          </button>
-        </div>
-        <DeckAtsReport card={card} profileId={profileId} onReport={onReport} />
-      </motion.div>
-    </>
-  );
-}
-
 // ── the face-up side ─────────────────────────────────────────────────────────────────────────
 // ⭐ D145 STEP 3 (owner 11-03, declutter-v7 — docs/sketches/declutter-v7.html). THREE depths:
 //   collapsed  the company + location, the résumé match at the top right, the title, ONE info row (salary · type · mode)
@@ -298,7 +199,7 @@ function AtsSheet({ card, profileId, onClose, onReport }) {
 // and the FULL POSTING stays one press away ("The full posting ↓" — the old expansion, unchanged, with the report beside
 // it on a wide screen). What each depth says is lib/deckCardFacts.js — one function, nothing said twice.
 // ⛔ No coloured labels or boxes on the card (the old band mark, the ring, the green chips); never "ATS".
-function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, onCollapse, onReport, onSignal, orientation, twoPanel, home = false, faceMin = null }) {
+function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, onCollapse, onReport, onSignal, orientation, home = false, faceMin = null }) {
   const { job } = card;
   const facts = cardFacts(card);
   const titleId = `deck-title-${job.id}`;
@@ -337,12 +238,12 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
           </div>
         </div>
         {/* ⭐ THE MATCH, at the top right — "86%" (or the band's word when the card carries no number, G5) over
-            "résumé match". It is the way into the full report (the sheet on a phone, the report beside the card on a wide
-            screen); data-deck-signal-row keeps the guided tour's match step pointing at it. */}
+            "résumé match". It is the way into the full report (D152 (8): the board's posting, its match open);
+            data-deck-signal-row keeps the guided tour's match step pointing at it. */}
         {facts.match && (
           <button type="button" data-deck-signal-row="" data-deck-signal="" data-deck-match={facts.match.numeric ? "number" : "band"}
             {...(facts.match.numeric ? { "data-deck-score": parseInt(facts.match.value, 10) } : null)}
-            onClick={isFront ? (e) => { e.stopPropagation(); onSignal?.(); } : undefined} aria-controls="deck-ats"
+            onClick={isFront ? (e) => { e.stopPropagation(); onSignal?.(); } : undefined}
             aria-label={`${facts.match.value} résumé match — open the full report`}
             style={{ flex: "none", textAlign: "right", background: "transparent", border: "none", padding: 0, cursor: isFront ? "pointer" : "default", color: "inherit", fontFamily: "inherit" }}>
             {/* D152 (2): Home's card is the sketch's .m — the number at 28 over "match" in 11.5 (the narrow card's room). */}
@@ -450,7 +351,7 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
                   aria-expanded={!!expanded} aria-controls="deck-detail" data-deck-full-posting="" style={WHY.link}>
                   {expanded ? "Hide the posting ↑" : "The full posting ↓"}
                 </button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); onSignal?.(); }} aria-controls="deck-ats" style={WHY.link}>The full report</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); onSignal?.(); }} style={WHY.link}>The full report</button>
               </div>
             </div>
           </section>
@@ -462,7 +363,7 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
         <div data-deck-posting-row style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: `grid-template-rows ${ON_THE_CLOCK}` }}>
           <section id="deck-detail" aria-label="The posting" style={{ minHeight: 0, overflow: "hidden" }} {...inertIf(!open)}>
             <div style={{ marginTop: 18, paddingTop: 20, borderTop: `1px solid ${C.BORDER}` }}>
-              {!twoPanel && <CollapsedScore card={card} onOpen={isFront ? onSignal : undefined} />}
+              <CollapsedScore card={card} onOpen={isFront ? onSignal : undefined} />
               <CardPosting card={card} />
               <PostingLinks job={job} onReport={onReport} />
             </div>
@@ -498,7 +399,7 @@ const WHY = {
 const POSITION_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const FLIP_EASE = "cubic-bezier(0.34, 1.32, 0.5, 1)";   // a touch of overshoot: the card settles face-up
 
-function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimmed, dealing, appear, dealRank, dealTotal, reduced, home = false,
+function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing, appear, dealRank, dealTotal, reduced, home = false,
                    onDecide, onExpand, onCollapse, onReport, onSignal, onGoto, headingRef, faceRef, why = false, onWhy }) {
   const { card, offset } = entry;
   const isFront = offset === 0;
@@ -577,7 +478,7 @@ function FanCard({ entry, orientation, geometry, size, expanded, twoPanel, dimme
               {showFace && <CardFace card={card} headingRef={headingRef} isFront={isFront} expanded={isFront && expanded}
                                      why={isFront && why} onWhy={onWhy}
                                      onExpand={onExpand} onCollapse={onCollapse} onReport={onReport} onSignal={onSignal}
-                                     orientation={orientation} twoPanel={twoPanel} home={home} faceMin={home ? size.height : null} />}
+                                     orientation={orientation} home={home} faceMin={home ? size.height : null} />}
             </article>
             <div style={{ position: "absolute", inset: 0, transform: "rotateY(180deg)", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
                           borderRadius: home ? 26 : 28, maxHeight: size.height }}>
@@ -670,6 +571,14 @@ function EndOfDeck({ s, tally, needsReview, onUndo }) {
 // ⭐ D152 (1) · HOME: `home` draws the deck as Home's left column (home-sketch.html's .deckcol, 390 px) — the card-shaped
 // vertical layout at every width, never the two-panel report beside it (the column is the deck's whole width).
 export const HOME_DECK_COLUMN = 390;
+// ⭐ D152 (8) (b): on Home a "Full report on the board" link stays a real link (copyable, opens in a new tab) but a plain
+// click opens the posting beside the deck with its match open — the board is already on this screen.
+const homeReport = (jobId) => (e) => {
+  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  openMatchInPosting(jobId);
+};
+
 export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const [load, setLoad] = useState({ status: "loading", error: null });
   // "__replace" swaps in a freshly loaded deck; every other action is the pure reducer's.
@@ -685,9 +594,6 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   whyRef.current = why;
   const [leave, setLeave] = useState(null);
   const [frontH, setFrontH] = useState(0);
-  const [sheet, setSheet] = useState(false);          // the phone's ATS report (A40)
-  const [atsMounted, setAtsMounted] = useState(false); // the two-panel report stays mounted while it closes
-  const [deckProfileId, setDeckProfileId] = useState(null);
   // A75 (owner, 10-03): "ATS match" as a sort on the daily draft. The deal is frozen; the server reads it
   // back in ATS order when asked (the score itself never reaches the client). Remembered per browser.
   // ⭐ D149: chosen in Settings → Customise (the deck page has no controls row now); read once, here.
@@ -700,7 +606,6 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   stateRef.current = state;
   const expandedRef = useRef(expanded);
   expandedRef.current = expanded;
-  const sheetRef = useRef(false);
   const { needsAttentionCount = 0 } = useAutoApply();
   const reduced = useReducedMotion();   // the CSS-driven motion reads it here; framer's reads MotionConfig
   const navigate = useNavigate();
@@ -715,10 +620,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   // is the only road from a stored preference to the fan.
   const [deckPref] = useDeckGeometry();
   const geometry = home ? HOME_FAN : { ...geometryFor(orientation, deckPref, { reduced: !!reduced }), ...(DEV_FAN?.[orientation] || null) };
-  // ⭐ TWO EQUAL PANELS (A40) on a wide horizontal screen: the card is one column wide at rest AND open,
-  // so opening never resizes it. Below TWO_PANEL_PX the report is a sheet and the card is as it was.
-  const twoPanel = home ? false : twoPanelFor(vw);
-  const size = home ? homeCardSize(viewportW) : twoPanel ? { width: twoPanelColumn(vw), height: CARD.horizontal.height } : cardSize(orientation, vw);
+  const size = home ? homeCardSize(viewportW) : cardSize(orientation, vw);
 
   const scoringTries = useRef(0);
   const fetchDeck = useCallback(async () => {
@@ -739,7 +641,6 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       scoringTries.current = 0;
       lastGoodDeck.set(cacheKey, deck);
       dispatch({ type: "__replace", state: initialDeck(deck) });
-      setDeckProfileId(deck.profileId ?? null);
       // ⛔ The deal plays on the day's FIRST open only — the server says whether this request dealt.
       // Once per day, not per navigation, or the signal that today's draft is new means nothing.
       setDealing(!!deck.dealtNow);
@@ -750,7 +651,6 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       const last = lastGoodDeck.get(cacheKey);
       if (last) {
         dispatch({ type: "__replace", state: initialDeck(last) });
-        setDeckProfileId(last.profileId ?? null);
         setLoad({ status: "ready", error: null, stale: e.message || "The deck could not be refreshed." });
         return;
       }
@@ -875,14 +775,6 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     return () => ro.disconnect();
   }, [current?.job.id, load.status]);
 
-  // The two-panel report mounts as the card opens and stays until its column has closed, so it is
-  // pushed shut on the clock rather than vanishing. Reduced motion has no transition to wait for.
-  useEffect(() => {
-    if (expanded && twoPanel) { setAtsMounted(true); return; }
-    if (reduced || !twoPanel) setAtsMounted(false);
-  }, [expanded, twoPanel, reduced]);
-  // The sheet belongs to the card it was opened on, and only to a narrow screen.
-  useEffect(() => { setSheet(false); }, [s.index, twoPanel]);
 
   // ⛔ SCROLL CAPTURE, only when a rotation is possible. One flick, one card.
   useEffect(() => {
@@ -930,7 +822,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       else if (k === "k" || k === "K") { e.preventDefault(); step(-1); }
       else if ((k === "ArrowDown" || k === "ArrowUp") && !expandedRef.current) { if (step(k === "ArrowDown" ? 1 : -1)) e.preventDefault(); }
       else if (k === "Enter" && tag !== "button" && tag !== "a") { e.preventDefault(); setWhy(v => !v); }
-      else if (k === "Escape") { if (sheetRef.current) setSheet(false); else { setExpanded(false); setWhy(false); } setLegend(false); }
+      else if (k === "Escape") { setExpanded(false); setWhy(false); setLegend(false); }
       else if (k === "?") setLegend(v => !v);
     };
     window.addEventListener("keydown", onKey);
@@ -939,7 +831,6 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
 
   const dateLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   const vertical = orientation === "vertical";
-  sheetRef.current = sheet;
   const stageH = Math.max(size.height, frontH || 0);
   const dealTotal = Math.min(order.length, geometry.visible + 1);
 
@@ -954,8 +845,8 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
           the arc riding right with an open card's column is clipped at the SCREEN's edge. */}
       <div data-deck-clip style={{ overflowX: "clip" }}>
       {/* isolation: the fan's tiers are below CONTENT, and this keeps them above the page itself. */}
-      <div data-deck-orientation={orientation} data-deck-two-panel={twoPanel ? "" : undefined} data-deck-home={home ? "" : undefined}
-        style={{ maxWidth: home ? HOME_DECK_COLUMN : twoPanel ? TWO_PANEL.maxWidth + 2 * TWO_PANEL.pad : vertical ? 560 : 760, margin: "0 auto",
+      <div data-deck-orientation={orientation} data-deck-home={home ? "" : undefined}
+        style={{ maxWidth: home ? HOME_DECK_COLUMN : vertical ? 560 : 760, margin: "0 auto",
                  // ⭐ D149: the card's top at the sketch's 90 px — the chrome's 74 + 16 (App.jsx gives the deck no main padding).
                  // D152: on Home the column's own padding places it, and the fan's room is above the buttons (HOME_CARD.below).
                  padding: home ? 0 : vertical ? "16px 12px 120px" : "16px 16px 140px",
@@ -1037,41 +928,6 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
         </div>
 
         {load.status === "ready" && (current || order.length > 0) && !isFinished(s) && (
-          // ⭐ THE GRID IS THE TRICK (A40): the report's column goes 0fr → 1fr and PUSHES the card's
-          // column right — the card is never animated to a new place, and the fan, living in the card's
-          // column, rides right with it. minmax(0, …) so a closed column is truly zero wide.
-          <div data-deck-grid onTransitionEnd={(e) => { if (e.target === e.currentTarget && !expanded) setAtsMounted(false); }}
-            style={{ display: "grid", alignItems: "start",
-                     gridTemplateColumns: twoPanel ? `minmax(0, ${expanded ? 1 : 0}fr) minmax(0, 1fr)` : "minmax(0, 1fr)",
-                     columnGap: twoPanel && expanded ? TWO_PANEL.gap : 0,
-                     transition: `grid-template-columns ${ON_THE_CLOCK}, column-gap ${ON_THE_CLOCK}` }}>
-            {twoPanel && (
-              // `clip`, not `hidden`: no scroll container, so the page — not this column — scrolls the report.
-              // flex-end: while the column is narrower than the report, the report overflows to the LEFT
-              // (start) side and is clipped there — so it is uncovered from behind the card, edge first.
-              // (marginLeft: auto cannot do this: an over-wide child's auto margin resolves to 0.)
-              // D32: the column STRETCHES to the card's height so the report inside it can be STICKY — the
-              // score stays beside the posting as the reader scrolls it.
-              <div data-deck-ats-col style={{ minWidth: 0, overflowX: "clip", display: "flex", justifyContent: "flex-end", alignSelf: "stretch" }}>
-                {atsMounted && current && !current.decision && (
-                  // As wide as its OPEN column from the first frame, pinned to the column's right edge: it
-                  // is uncovered from behind the card as the column grows, never reflowed while it does.
-                  <aside id="deck-ats" aria-label="The ATS report" {...inertIf(!expanded)}
-                    style={{ ...glass({ radius: 24 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU,
-                             width: size.width, flexShrink: 0, boxSizing: "border-box", padding: "18px 6px 10px",
-                             // ⭐ D32: STICKY, under the fixed top bar; a report taller than the screen scrolls
-                             // inside itself rather than running off the bottom.
-                             position: "sticky", top: `calc(var(${CHROME_HEIGHT_VAR}, 74px) + 10px)`, alignSelf: "flex-start",
-                             maxHeight: `calc(100vh - var(${CHROME_HEIGHT_VAR}, 74px) - 20px)`, overflowY: "auto",
-                             overscrollBehavior: "contain", zIndex: Z.CONTENT }}>
-                    <div style={{ ...sectionLabel, padding: "0 16px" }}>The ATS report</div>
-                    <DeckAtsReport card={current} profileId={deckProfileId}
-                      onReport={transitionClick(navigate, jobDetailHref(current.job.id), { awaitTitle: current.job.id })} />
-                  </aside>
-                )}
-              </div>
-            )}
-
             <div data-deck-col style={{ minWidth: 0 }}>
               {/* ⭐ D152 (3): home-sketch.html's .count — where you are in today's picks, and in what order. */}
               {home && (
@@ -1089,12 +945,13 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                 <AnimatePresence initial custom={leave}>
                   {order.map((e) => (
                     <FanCard key={e.card.job.id} entry={e} orientation={orientation} geometry={geometry} size={size} home={home}
-                      expanded={expanded} twoPanel={twoPanel} dimmed={expanded} dealing={dealing} appear={!firstPaint.current} reduced={!!reduced} dealRank={Math.max(0, dealTotal - 1 - Math.abs(e.offset))}
+                      expanded={expanded} dimmed={expanded} dealing={dealing} appear={!firstPaint.current} reduced={!!reduced} dealRank={Math.max(0, dealTotal - 1 - Math.abs(e.offset))}
                       dealTotal={dealTotal} onDecide={decide} onExpand={() => setExpanded(true)} onCollapse={() => setExpanded(false)}
                       why={why} onWhy={(v) => { setWhy(v); if (!v) setExpanded(false); }}
-                      // The signal line: beside the card on a wide screen (it opens the card), a sheet on a narrow one.
-                      onSignal={() => (twoPanel ? setExpanded(true) : setSheet(true))}
-                      onReport={transitionClick(navigate, jobDetailHref(e.card.job.id), { awaitTitle: e.card.job.id })} onGoto={(i) => dispatch({ type: "goto", index: i })} headingRef={headingRef} faceRef={faceRef} />
+                      // ⭐ D152 (8) (b): the report opens in the board's posting, under its facts (option A) — the sheet
+                      // and the report beside the card are deleted; on Home "Full report on the board" goes there too.
+                      onSignal={() => openMatchInPosting(e.card.job.id)}
+                      onReport={home ? homeReport(e.card.job.id) : transitionClick(navigate, jobDetailHref(e.card.job.id), { awaitTitle: e.card.job.id })} onGoto={(i) => dispatch({ type: "goto", index: i })} headingRef={headingRef} faceRef={faceRef} />
                   ))}
                 </AnimatePresence>
               </div>
@@ -1110,16 +967,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                 <ActionButton label="Draft" ariaKeys="D ArrowRight" compact={vertical} primary onClick={() => decide(DECISIONS.DRAFTED)} />
               </div>
             </div>
-          </div>
         )}
-
-        {/* The phone's report (A40): a sheet, opened by the card's signal line. */}
-        <AnimatePresence>
-          {sheet && !twoPanel && current && !current.decision && (
-            <AtsSheet key="ats-sheet" card={current} profileId={deckProfileId} onClose={() => setSheet(false)}
-              onReport={transitionClick(navigate, jobDetailHref(current.job.id), { awaitTitle: current.job.id })} />
-          )}
-        </AnimatePresence>
 
         <DecisionToast toast={toast} onUndo={undo} undoKey="U" />
 

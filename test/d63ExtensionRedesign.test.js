@@ -100,11 +100,14 @@ test("⭐ D63 (2) · server: the read-page answer carries the score pair, the lo
   assert.match(read("extension/background.js"), /authedFetch\(RESUME_MASTER_URL, '\/api\/import\/context', \{\s*method: 'POST', headers: \{ 'Content-Type': 'application\/json' \}, body: JSON\.stringify\(\{ url \}\),/);
 });
 
-test("D63 · the review overlay's provenance chips are marks, and its bar is square-ended (D60)", () => {
+// ⭐ D152 (7b), changed on purpose (owner 11-04: the label chip is retired site-wide): the provenance mark is a plain word.
+test("D63 → D152 (7b) · the review overlay's provenance marks are plain words, and its bar is square-ended (D60)", () => {
   const src = read("extension/review-overlay.js");
   const pill = src.slice(at(src, "#${ID} .rm-pill {", 0, "the chip rule"), at(src, "#${ID} .rm-pill.ok", 0, "its ok tone"));
-  assert.match(pill, /border-radius: 6px;/);
-  assert.match(pill, /border-left: 3px solid var\(--mk\);/);
+  assert.match(pill, /border-radius: 0;/);
+  assert.match(pill, /border: 0; background: none;/);
+  assert.doesNotMatch(pill, /border-left|color-mix|italic/, "no bar, no tint, no heavy italic");
+  assert.match(src, /\.rm-pill\.ok \{[^}]*padding-left: 12px;\s*background: radial-gradient\(circle at 3px 50%, var\(--mk\) 3px/, "a state is a 6px dot");
   assert.match(src, /\.rm-bar \{[^}]*border-radius: 2px;/);
   assert.doesNotMatch(src, /border-radius:\s*999px/);
 });

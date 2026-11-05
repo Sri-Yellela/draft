@@ -181,7 +181,7 @@ const P_ = "posting", A_ = "ats";
 const FIDELITY = [
   // .card
   [P_, ".posting", "border-radius", "18px"], [P_, ".posting", "box-shadow", "var(--c-pair-card-shadow)"],
-  [A_, ".ats-card", "border-radius", "18px"], [A_, ".ats-card", "box-shadow", "var(--c-pair-card-shadow)"],
+  // ⭐ D152 (8) (44t): the report's card is option A's now (22px, no shadow — it sits inside the posting); its rows are below.
   // .mast — the orange wash and the rule under it
   [P_, ".posting__mast", "padding", "26px 30px 22px"], [P_, ".posting__mast", "border-bottom", "1px solid var(--c-pair-rule)"],
   [P_, ".posting__mast", "background", "linear-gradient(180deg, var(--c-pair-mast-tint), transparent)"],
@@ -205,35 +205,31 @@ const FIDELITY = [
   [P_, ".posting__h", "padding-bottom", "9px"], [P_, ".posting__h", "margin", "26px 0 12px"],
   [P_, ".posting__ul", "padding-left", "20px"], [P_, ".posting__ul li", "margin", "0 0 8px"],
   [P_, ".posting__ul li::marker", "color", "var(--c-pair-accent)"],
-  // .shd · .bd · .n
-  [A_, ".ats-sum__head", "padding", "20px 24px"], [A_, ".ats-sum__head", "grid-template-columns", "1fr auto"],
-  [A_, ".ats-sum__head", "background", "linear-gradient(180deg, var(--c-pair-mast-tint), transparent)"],
-  [A_, ".ats-sum__band", "font-size", "20px"], [A_, ".ats-sum__band", "font-weight", "800"], [A_, ".ats-sum__band", "font-style", "italic"],
-  [A_, ".ats-sum__band", "color", "var(--c-pair-hi)"], [A_, ".ats-sum__count", "font-size", "12.5px"],
-  [A_, ".ats-sum__score", "font-size", "46px"], [A_, ".ats-sum__score small", "font-size", "7.5px"],
-  // .bar — 6px, flush, square
-  [A_, ".ats-bar", "height", "6px"], [A_, ".ats-bar__seg--generic", "background", "var(--c-pair-generic)"],
-  // .sb · .gh · .ct · .sub
-  [A_, ".ats-sb", "padding", "19px 22px 22px"], [A_, ".ats-sb", "border-top", "1px solid var(--c-pair-rule)"],
-  [A_, ".ats-gh", "font-size", "9px"], [A_, ".ats-gh", "letter-spacing", ".15em"],
-  [A_, ".ats-sec + .ats-sec", "margin-top", "21px"], [A_, ".ats-sec + .ats-sec", "padding-top", "18px"],
-  [A_, ".ats-sec + .ats-sec", "border-top", "1px solid var(--c-pair-rule)"],
-  [A_, ".ats-gh__ct", "font-family", "var(--font-count)"], [A_, ".ats-gh__ct", "font-size", "10px"], [A_, ".ats-gh__ct", "padding", "3px 7px"],
-  [A_, ".ats-gh__ct", "border-radius", "6px"], [A_, ".ats-sec__sub", "font-size", "11.5px"], [A_, ".ats-sec__sub", "margin", "-6px 0 12px"],
-  // .b · .kind · .b.ok · .b.gen · .b.cl · .p
-  [A_, ".ats-box", "padding", "8px 11px"], [A_, ".ats-box", "border-radius", "9px"], [A_, ".ats-box", "gap", "9px"],
-  [A_, ".ats-box", "font-size", "12.5px"], [A_, ".ats-box", "box-shadow", "var(--c-pair-lift)"],
-  [A_, ".ats-box__kind", "font-size", "7.5px"], [A_, ".ats-box__kind", "letter-spacing", ".11em"],
-  [A_, ".ats-box__kind", "border-left", "1px solid var(--c-pair-rule)"], [A_, ".ats-box__kind", "padding-left", "9px"],
-  [A_, ".ats-box__kind", "opacity", "var(--c-pair-kind-alpha)"],
-  [A_, '.ats-box[data-tone="ok"]', "background", "var(--c-pair-met-quiet)"], [A_, '.ats-box[data-tone="ok"]', "border-color", "var(--c-pair-matched-edge)"],
-  [A_, '.ats-box[data-tone="gen"]', "background", "var(--c-pair-generic-quiet)"], [A_, '.ats-box[data-tone="gen"]', "border-color", "var(--c-pair-generic-edge)"],
-  [A_, '.ats-box[data-tone="claim"]', "border-color", "var(--c-pair-missing-edge)"], [A_, '.ats-box[data-tone="claim"]', "color", "var(--c-pair-missing)"],
-  [A_, ".ats-box__plus", "width", "17px"], [A_, ".ats-box__plus", "border-radius", "5px"], [A_, ".ats-box__plus", "background", "var(--c-pair-missing)"],
-  [A_, ".ats-claim-note", "font-size", "11px"], [A_, ".ats-claim-note", "margin-top", "11px"],
-  // .xp
-  [A_, ".ats-exp", "padding", "11px 13px"], [A_, ".ats-exp", "border-radius", "10px"], [A_, ".ats-exp", "box-shadow", "var(--c-pair-lift)"],
-  [A_, '.ats-exp[data-state="met"]', "background", "var(--c-pair-met-quiet)"],
+  // ⭐ D152 (8), CHANGED ON PURPOSE (owner 11-04): the ATS half's sketch is now docs/sketches/ats-options.html OPTION A
+  // (approved), which replaced pair2.html's .shd / .bd / .n / .b / .p with its .match: the count as an h3, one sentence,
+  // the 6px bar and its key, the quiet switches (.tabs) and the plain claim rows (.cl). Its values, rule by rule (the
+  // sketch's weight 600 is drawn at 500 — the faces both products ship are DM Sans 400 / 500 / 700).
+  [A_, ".ats-card", "border-radius", "22px"], [A_, ".ats-card", "padding", "20px"],
+  [A_, ".ats-sum__count", "font-size", "30px"], [A_, ".ats-sum__count", "font-weight", "500"], [A_, ".ats-sum__count", "line-height", "1.08"],
+  [A_, ".ats-sum__count", "letter-spacing", "-.03em"], [A_, ".ats-sum__count", "margin", "0 0 8px"],
+  [A_, ".ats-sum__sub", "margin", "0 0 14px"], [A_, ".ats-sum__sub", "color", "var(--c-pair-ink-muted)"],
+  // .bar — 6px, on the rule's colour; .key — 12.5px, gap 14, the 7px dots
+  [A_, ".ats-bar", "height", "6px"], [A_, ".ats-bar", "background", "var(--c-pair-rule)"], [A_, ".ats-bar", "margin", "0 0 6px"],
+  [A_, ".ats-bar__seg--matched", "background", "var(--c-pair-matched)"], [A_, ".ats-bar__seg--claimed", "background", "var(--c-pair-kicker)"],
+  [A_, ".ats-key", "gap", "14px"], [A_, ".ats-key", "font-size", "12.5px"], [A_, ".ats-key", "margin", "0 0 18px"],
+  [A_, ".ats-key__i::before", "width", "7px"], [A_, ".ats-key__i::before", "border-radius", "50%"], [A_, ".ats-key__i::before", "margin-right", "6px"],
+  // .tabs
+  [A_, ".ats-tabs", "gap", "6px"], [A_, ".ats-tabs", "margin", "0 0 14px"],
+  [A_, ".ats-tab", "padding", "7px 12px"], [A_, ".ats-tab", "border-radius", "11px"], [A_, ".ats-tab", "font-size", "13.5px"],
+  [A_, ".ats-tab", "background", "var(--c-pair-surface)"], [A_, '.ats-tab[aria-pressed="true"]', "outline", "1px solid var(--c-pair-kicker)"],
+  // .cl · its button · .fine
+  [A_, ".ats-cl", "grid-template-columns", "minmax(0, 1fr) auto"], [A_, ".ats-cl", "gap", "12px"], [A_, ".ats-cl", "padding", "11px 0"],
+  [A_, ".ats-cl", "border-top", "1px solid var(--c-pair-rule)"], [A_, ".ats-cl:first-child", "border-top", "0"],
+  [A_, ".ats-cl__term b", "font-weight", "500"], [A_, ".ats-cl__kind", "margin-left", "8px"], [A_, ".ats-cl__kind", "font-size", "12.5px"],
+  [A_, ".ats-cl__claim", "padding", "6px 10px"], [A_, ".ats-cl__claim", "border-radius", "10px"], [A_, ".ats-cl__claim", "font-size", "13.5px"],
+  [A_, ".ats-cl__claim", "color", "var(--c-pair-kicker)"], [A_, ".ats-cl__claim:hover", "background", "var(--c-pair-surface)"],
+  [A_, '.ats-cl__claim[aria-pressed="true"]', "color", "var(--c-pair-ink-faint)"],
+  [A_, ".ats-claim-note", "font-size", "12.5px"], [A_, ".ats-claim-note", "margin", "14px 0 0"],
 ];
 
 test("⭐ the boxes and the type are the sketch's, rule by rule", () => {
@@ -242,7 +238,9 @@ test("⭐ the boxes and the type are the sketch's, rule by rule", () => {
     .map(([s, sel, prop, want]) => `${sel} { ${prop}: ${decl(sheets[s], sel, prop) ?? "—"} } — the sketch says ${want}`);
   assert.deepEqual(misses, []);
   // D32's drift, by name: none of it is back.
-  assert.doesNotMatch(ATS_CSS.replace(/\/\*[\s\S]*?\*\//g, ""), /\.ats-bar \{[^}]*(border-radius|gap)/, "the bar is rounded or gapped again");
+  // ⭐ D152 (8): option A's bar has a small corner (1px — the sketch's 4px on a 6px bar is a capsule, and 2px is 33%, over d60CompactRadius's 30%) and no gap.
+  assert.doesNotMatch(ATS_CSS.replace(/\/\*[\s\S]*?\*\//g, ""), /\.ats-bar \{[^}]*gap/, "the bar is gapped");
+  assert.match(ATS_CSS, /\.ats-bar \{[^}]*border-radius: 1px;/);
   assert.doesNotMatch(ATS_CSS.replace(/\/\*[\s\S]*?\*\//g, ""), /dashed var\(--c-pair/, "a claim box is dashed again (only \"not enough signal\" is dashed)");
 });
 
@@ -275,6 +273,8 @@ test("⛔ the kind label, at its opacity, reads at 4.5:1 on every box it sits in
     assert.ok(at(alphaOf(P) - 0.02).some(([c]) => c < 4.5), `${theme}: PAIR_KIND_ALPHA is higher than it needs to be`);
     assert.ok(alphaOf(P) > 0.62 && alphaOf(P) < 1, `${theme}: PAIR_KIND_ALPHA is not a reduced opacity`);
   }
-  // Generic boxes carry no kind label, so they need no alpha (pair2.html's .b.gen is the word alone).
-  assert.match(read("shared/atsReportElement.js"), /!generic && kindLabel\(\)/);
+  // Generic rows carry no kind label (the word alone). ⭐ D152 (8): option A's kind is small type in faint ink at FULL
+  // opacity (the sketch's .cl small) — the token above stays proved for any surface that still reads it.
+  assert.match(read("shared/atsReportElement.js"), /!generic && h\(doc, "small", \{ class: "ats-cl__kind" \}/);
+  assert.doesNotMatch(ATS_CSS, /--c-pair-kind-alpha/);
 });

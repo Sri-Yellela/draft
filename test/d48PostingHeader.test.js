@@ -51,16 +51,19 @@ test("D48 · the ATS box: the number in the display face and PP_ATS_NUMBER; no s
   assert.match(boxCss, /\.atsn b \{ font: 400 26px\/1 var\(--font-display\); color: var\(--c-pp-ats-number\); \}/);
   assert.match(boxCss, /\.atsn\[aria-expanded="true"\] \{ outline: 2px solid var\(--c-accent-ink\);/);
   assert.match(boxCss, /\.atsn--none \{ border-style: dashed; box-shadow: none; \}/);
-  // The open state comes from the board, which knows whether the ATS card is beside the posting.
-  assert.match(read("client/src/panels/JobsPanel.jsx"), /atsOpen: !!rightPanelOpen/);
+  // ⭐ D152 (8), changed on purpose: the open state is the match's own — it opens inside the posting (no ATS card beside it).
+  assert.match(jd, /open=\{matchOpen\} onOpen=\{\(\) => \{ setMatchMounted\(true\); setMatchOpen\(o => !o\); \}\}/);
+  assert.doesNotMatch(read("client/src/panels/JobsPanel.jsx"), /rightPanelOpen/);
 });
 
-test("D48 · owner: \"the ATS number switches colour\" — the ATS card's number is the kicker ink (--atx), not the accent", () => {
+test("D48 · owner: \"the ATS number switches colour\" — the ATS card's accent is the kicker ink (--atx), not the accent", () => {
   // T9: the ATS card's stylesheet travels with the one component (shared/atsReportStyles.js).
+  // ⭐ D152 (8), changed on purpose: the big serif number left the card (option A: "A 66% match." is a sentence); its
+  // one accent — the claim button and the claimed segment — is still the kicker ink, never the brand accent.
   const css = read("shared/atsReportStyles.js");
-  const rule = css.slice(at(css, ".ats-sum__score {"), at(css, ".ats-sum__score small {"));
+  const rule = css.slice(at(css, ".ats-cl__claim {"), at(css, ".ats-cl__claim:hover {"));
   assert.match(rule, /color: var\(--c-pair-kicker\);/);
-  assert.doesNotMatch(rule, /--c-pair-accent/);
+  assert.doesNotMatch(css, /--c-pair-accent/);
 });
 
 // ⭐ D147 (owner 11-03) changed this on purpose: the A / B renderings (labelled boxes / icon squares) became ONE row at

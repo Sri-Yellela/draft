@@ -205,44 +205,10 @@ export function geometryFor(orientation, pref, { reduced = false } = {}) {
   return std;
 }
 
-// ── The expanded card: TWO EQUAL PANELS, ATS report │ card (A40, rebuilt 10-02) ────────────────
-//
-// docs/BRAND_OUTLAY_AND_MOTION.md §"THE EXPANDED CARD — DECIDED 2026-10-01" is authoritative. The
-// first build (8c38dd2) was THREE columns — ATS │ card │ posting — and was wrong: the posting stays
-// INSIDE the card, growing downward, and the report is the one panel beside it.
-//
-// ⭐ THE GRID IS THE TRICK. The deck sits in a two-column grid whose LEFT column goes 0fr → 1fr: the
-// card is never animated to a new position — the column grows from nothing and PUSHES it, and the
-// fan, living in the same right-hand column, translates right WITH it. Four things move on ONE clock
-// (the grid, the arc, the signal line collapsing, the posting growing), so no number here says where
-// anything goes: the columns do.
-//
-//   minCard 522   (FAN_SWITCH_PX − gap − 2 × pad) / 2 — so two panels start where the horizontal
-//                 deck starts. ⛔ A71 (10-03): minCard was 560 (the 46px title in three lines), which
-//                 put TWO_PANEL_PX at 1176 and left a 1100–1175 band where the HORIZONTAL card
-//                 expanded alone and the report opened only from the signal line. On production that
-//                 read as "the ATS panel does not open — reverted to the single-panel version" (a
-//                 zoomed or unmaximised window lands there). At 522 the title takes a fourth line.
-//   gap      24   between the report and the card
-//   pad      16   the page gutter the deck already had
-//   → TWO_PANEL_PX = 2 × minCard + gap + 2 × pad = FAN_SWITCH_PX: EVERY horizontal deck opens two
-//     panels. Below it — a phone, a portrait tablet — the deck is the vertical fan, and the report
-//     opens as a SHEET from the card's signal line; the posting still grows inside the card.
-//
-// ⚠ The card is as wide as one column, at rest AND open, so expanding never resizes it: at 1440 a
-// column is 692 (the card was 700), at 1280 it is 612. Nothing jumps on click.
-export const TWO_PANEL = Object.freeze({ minCard: (FAN_SWITCH_PX - 24 - 2 * 16) / 2, gap: 24, pad: 16, maxWidth: 2 * CARD.horizontal.width + 24 });
-export const TWO_PANEL_PX = 2 * TWO_PANEL.minCard + TWO_PANEL.gap + 2 * TWO_PANEL.pad;
-
-/** Whether this screen gets two panels when a card opens (else the report is a sheet). */
-export const twoPanelFor = (viewportWidth) => orientationFor(viewportWidth) === "horizontal" && viewportWidth >= TWO_PANEL_PX;
-
-/** The width of each panel — and so of the card — on a two-panel screen. */
-export function twoPanelColumn(viewportWidth) {
-  const { pad, gap, maxWidth } = TWO_PANEL;
-  const inner = Math.min(maxWidth, viewportWidth - 2 * pad);
-  return Math.min(CARD.horizontal.width, Math.floor((inner - gap) / 2));
-}
+// ── The expanded card (A40) ────────────────────────────────────────────────────────────────────
+// ⭐ D152 (8) (b): A40's TWO EQUAL PANELS (the ATS report beside the card: TWO_PANEL, TWO_PANEL_PX, twoPanelFor,
+// twoPanelColumn) are DELETED with the deck's sheet — the deck lives only on Home, where the match opens in the
+// board's posting. The posting still grows INSIDE the card, on the clock below.
 
 // ⭐ ONE CLOCK. The design's "in unison, a bit slowly": ~0.9–1.3 s, exposed as ONE custom property so
 // it is tuned in one place. Every rule in the expansion reads --deck-t and --deck-ease; none restates

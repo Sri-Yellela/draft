@@ -70,11 +70,12 @@ test("D58 · a tailored score BELOW the base is shown — and said", () => {
   assert.equal(p.shown, 52, "the score of the résumé that would be sent, even when it is lower");
   assert.equal(p.lower, true);
   assert.equal(p.line, "Base 58 → tailored 52 — lower than your base résumé");
-  const card = read("client/src/panels/AtsReportPanel.jsx");
-  // D62: the pair is a two-number serif MARK in the ATS panel's header, and "lower" is still SAID.
-  assert.match(card, /<span data-ats-pair="" data-lower=\{pair\.lower \? "true" : undefined\}/);
-  assert.match(card, /\{pair\.base\} → \{pair\.tailored\}\{pair\.lower \? " · lower than your base" : ""\}/);
-  assert.match(card, /title=\{pair\.line \|\| undefined\}/, "the full sentence stays as the mark's title");
+  const card = read("client/src/components/JobDetailPanel.jsx");
+  // D62 → ⭐ D152 (8), changed on purpose: the ATS panel's header is retired; the pair moved into the posting's match,
+  // under its eyebrow — and "lower" is still SAID.
+  assert.match(card, /<p className="pp__matchpair" data-ats-pair="" data-lower=\{scores\.lower \? "true" : undefined\} title=\{scores\.line \|\| undefined\}>/,
+    "the full sentence stays as the line's title");
+  assert.match(card, /\{scores\.base\} → \{scores\.tailored\}\{scores\.lower \? " · lower than your base" : ""\}/);
 });
 
 test("D58 · the manual route records the TAILORED score at apply — the newest, even after an export", () => {

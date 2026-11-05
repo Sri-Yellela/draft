@@ -23,12 +23,11 @@ test("the client: one scoring read per screen", () => {
   // The panel's own verdict is adopted by the board, the JD header and the panel header.
   const jobs = read("client/src/panels/JobsPanel.jsx");
   assert.match(jobs, /const adoptPanelVerdict = useCallback\(/);
-  assert.match(jobs, /onReport=\{adoptPanelVerdict\}/);
+  // ⭐ D152 (8): the verdict sink reaches the match inside the posting (the ATS overlay is retired).
+  assert.match(jobs, /atsPayload: buildAtsPayload\(selectedJob, g2\), activeProfileId, onAtsReport: adoptPanelVerdict,/);
   assert.match(jobs, /report\.report_basis === "generated_resume"\) return;/, "a generated résumé's report is not the base verdict");
-  assert.match(read("client/src/panels/AtsReportPanel.jsx"), /onReport=\{onReport\}/);
+  assert.match(jd, /onReport=\{selectedJobMeta\?\.onAtsReport \|\| null\}/);
   assert.match(read("client/src/components/ATSPanel.jsx"), /if \(data && onReport\) onReport\(jobId, data\);/);
-  // The panel header reads the report the body draws, not the stored score alone.
-  assert.match(read("client/src/panels/AtsReportPanel.jsx"), /reportBand\(r && Object\.prototype\.hasOwnProperty\.call\(r, "score"\)/);
   // ATSPanel: a declined report's null is the band, never replaced by a stored number.
   assert.match(read("client/src/components/ATSPanel.jsx"), /hasOwnProperty\.call\(activeReport, "score"\) \? activeReport\.score : \(score \?\? null\)/);
   assert.match(SERVER, /report_basis: "generated_resume"/);

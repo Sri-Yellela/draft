@@ -43,13 +43,13 @@ test("ATS missing chips stay visible, turn green when claimed, and react to prof
   // T9: the stylesheet travels with the component (shared/atsReportStyles.js), rule for rule.
   const css = fs.readFileSync("shared/atsReportStyles.js", "utf8");
   assert.match(chips, /"aria-pressed": claimed \? "true" : "false"/);
-  // A86 re-pin (pair2.html's .b.cl / .b.cl.on): an unclaimed box is the claim red on the raised surface
-  // (no longer dashed); claimed, it is the green, its square too.
-  assert.match(css, /\.ats-box--claim\[aria-pressed="true"\] \{ background: var\(--c-pair-met-quiet\);[^}]*color: var\(--c-pair-matched\);/);
-  assert.match(css, /\.ats-box--claim\[aria-pressed="true"\] \.ats-box__plus \{ background: var\(--c-pair-matched\); \}/);
-  assert.match(css, /\.ats-box\[data-tone="claim"\] \{ border-color: var\(--c-pair-missing-edge\); color: var\(--c-pair-missing\); \}/, "an unclaimed box is the claim red");
-  assert.match(chips, /"data-tone": "claim",\s*"data-claim-chip": claimKind/);
-  assert.match(chips, /claimed \? `✓ \$\{k\}` : k/);
+  // ⭐ D152 (8) re-pin (ats-options.html option A): the claim is a plain row with a quiet button at its end — "That's
+  // true of me" in the kicker ink; claimed, "Claimed · undo" in faint ink, and the row reads as yours (tone ok).
+  assert.match(css, /\.ats-cl__claim \{[^}]*color: var\(--c-pair-kicker\);/);
+  assert.match(css, /\.ats-cl__claim\[aria-pressed="true"\] \{ color: var\(--c-pair-ink-faint\); \}/);
+  assert.match(chips, /"data-tone": claimed \? "ok" : "claim", "data-claimed": claimed \? "true" : "false" \}/);
+  assert.match(chips, /"data-claim-chip": claimKind, "data-key": key, "aria-pressed": claimed \? "true" : "false"/);
+  assert.match(chips, /claimed \? "Claimed · undo" : "That's true of me"/);
   assert.doesNotMatch(chips, /pointerEvents:\s*claimed/,
     "a claimed chip must stay clickable — that click is how the claim is withdrawn");
 });

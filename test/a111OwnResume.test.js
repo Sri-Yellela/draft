@@ -212,7 +212,8 @@ test("a111RoleAgainstResume: opening a pick reads the role against the résumé 
   const seam = read("services/trialRoleFit.js");
   assert.match(seam, /import \{ roleFitReading as atlasRoleFitReading \} from "\.\/atlas\/atlasRoleFit\.js";/, "P3's reading is wired");
   assert.doesNotMatch(seam, /localRoleFitReading/, "the stand-in is gone");
-  assert.match(read("client/src/panels/DeckView.jsx"), /\{Number\.isFinite\(card\.score\) && <TrialRoleFit jobId=\{card\.job\.id\}\/>\}/);
+  // ⭐ D152 (8) (b), changed on purpose: the deck's own report is deleted — the role reading sits under the posting's match.
+  assert.match(read("client/src/components/JobDetailPanel.jsx"), /bare \/>\s*\{\/\*[\s\S]*?\*\/\}\s*<TrialRoleFit jobId=\{selectedJob\.jobId\} \/>/);
 });
 
 test("a111DemoTailorsOwnResume: Draft 2's demonstration tailors the tester's OWN résumé — and never adds a skill it does not have", () => {

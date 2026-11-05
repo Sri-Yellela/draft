@@ -23,7 +23,6 @@ import { SavedEmptyState, useExtensionStatus } from "../components/ExtensionProm
 import { EXTENSION_PAGE, EXTENSION_STORE_URL } from "../../../shared/extension.js";
 import JobDetailPanel from "../components/JobDetailPanel.jsx";
 import SandboxPanel from "./SandboxPanel.jsx";
-import AtsReportPanel from "./AtsReportPanel.jsx";
 import { PanelScrim, PanelDock, PANEL_TOP_INSET, PANEL_BOTTOM_INSET } from "../components/PanelShell.jsx";
 import { usePanelHost } from "../hooks/usePanelHost.js";
 import { useBoardLock } from "../hooks/useBoardLock.js";
@@ -42,7 +41,7 @@ import {
   POSTING_AGE, VISITED, ageDaysMap,
 } from "../../../shared/jobFilterOptions.js";
 // AH2: the job-detail address, shared with JobCard so the href and the param cannot disagree.
-import { JOB_URL_PARAM, jobIdFromSearch } from "../lib/jobUrl.js";
+import { JOB_URL_PARAM, jobIdFromSearch, OPEN_MATCH_EVENT } from "../lib/jobUrl.js";
 // D35: the Full House header (App.jsx) renders the sentence, its one panel and the sort panel; this
 // panel publishes what they read — the committed clause params and the facets answer.
 import { JOB_FUNCTIONS, PLACES } from "../../../shared/jobTagVocabulary.js";
@@ -1331,8 +1330,10 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [loading,     setLoading]     = useState({});
   const [sandbox,     setSandbox]     = useState(null);
   const [sandboxOpen, setSandboxOpen] = useState(false);
-  const [rightTab,      setRightTab]      = useState("history");
-  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  // ⭐ D152 (8) (b): the ATS panel drawn OVER the page (AtsReportPanel — its own overlay, scrim and History tab) is
+  // RETIRED. Every opener now asks for the match INSIDE the posting, under the facts (ats-options.html option A): a
+  // counter per ask, read by JobDetailPanel through selectedJobMeta.matchAsk.
+  const [matchAsk, setMatchAsk] = useState(null);
 
   // Split view — selectedJob lifted to JobBoardContext (must be declared here,
   // before the useMemo at ~line 962 that uses !!selectedJob in its dep array)
@@ -1345,6 +1346,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setAtsSortAvailable, atsSortAvailable,
     setBoardPanel, setBoardHeadline,
   } = useJobBoard();
+  // The open posting's id, for callbacks that must not re-bind on every selection (openAtsPanel, D152 (8)).
+  const selectedJobIdRef = useRef(null);
+  selectedJobIdRef.current = selectedJob?.jobId ?? null;
 
   // Open / close sandbox — panel size rebalancing handled by useEffect below.
   //
@@ -1388,10 +1392,13 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setSandboxOpen(false);
   }, []);
 
-  const openAtsPanel = useCallback((atsData) => {
+  // ⭐ D152 (8) (b): open THE MATCH IN THE POSTING. `job` — when the caller holds it and it is not the one open — is
+  // selected first, so the posting the report is about is the one on screen; with neither, the open posting's.
+  const openAtsPanel = useCallback((atsData, job = null) => {
     if (atsData) setActiveAts(atsData);
-    setRightPanelOpen(true);
-    setRightTab("ats");
+    if (job && selectedJobIdRef.current !== job.jobId) setSelectedJob(job);
+    const id = job?.jobId ?? atsData?.jobId ?? selectedJobIdRef.current ?? null;
+    setMatchAsk(prev => ({ jobId: id, n: (prev?.n || 0) + 1 }));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ⛔ A52 · ONE SCORING READ PER SCREEN. When the ATS panel has scored a posting itself, its verdict
@@ -1411,9 +1418,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── The panel host ──────────────────────────────────────────────────────────────────────────
+  // ⭐ D152 (8): ATS is no longer one of them — the match opens inside the posting. What follows is the history of the
+  // three-peer order, kept for why PDF outranks JD.
   // JD, PDF and ATS are peers in one ordered set. The host does not own their open/closed state —
-  // that still lives where it always did (selectedJob in JobBoardContext, sandboxOpen and
-  // rightPanelOpen here), set by the same dozen call sites as before, including the generate flow's
+  // that still lives where it always did (selectedJob in JobBoardContext, sandboxOpen here; the
+  // match's own state moved into the posting with D152 (8)), set by the same call sites, including the generate flow's
   // own openSandbox(). It observes them, orders them by focus, tiles them, and evicts the least
   // recently focused when one more opens than will fit. See hooks/usePanelHost.js for why eviction
   // rather than refusal.
@@ -1432,14 +1441,13 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // ⭐ D149 (owner 11-03, fullhouse-declutter.html) · THE POSTING OPENS BESIDE THE LIST on a desktop — the sketch's
   // `.fhl` grid (list | posting, 1fr : 1.05fr) with the posting held at the top of the window while the list scrolls,
   // no scrim, the list still live (another row opens in its place). So the JD panel leaves the overlay host there and
-  // is drawn IN PLACE of the list by the board (D152 (6), JobBoardColumns' post); the ATS and the PDF stay overlay peers (the sketch's ATS is a drawer over a scrim). At
+  // is drawn IN PLACE of the list by the board (D152 (6), JobBoardColumns' post); the PDF stays an overlay peer (⭐ D152 (8): the ATS report is no longer one — it opens inside the posting). At
   // ≤ 1000px (the sketch's breakpoint) it is the full-screen overlay as before.
   const besideMode = !!selectedJob && vpWidth > BESIDE_MIN_VIEWPORT;
   const panelDescriptors = useMemo(() => ([
     { id: "jd",  open: !!selectedJob && !besideMode, close: () => { clearDeepLink(); setSelectedJob(null); } },
-    { id: "ats", open: rightPanelOpen,  close: () => setRightPanelOpen(false) },
     { id: "pdf", open: sandboxOpen,     close: () => { setSandboxOpen(false); setSandbox(null); } },
-  ]), [selectedJob, besideMode, sandboxOpen, rightPanelOpen, setSelectedJob, clearDeepLink]);
+  ]), [selectedJob, besideMode, sandboxOpen, setSelectedJob, clearDeepLink]);
   const {
     visible: visiblePanels, dockWidth, focusPanel,
     beginResize, resizeBy, endResize,
@@ -1474,10 +1482,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // filterPanelOpen, not the `filtersOpen` alias — the alias is declared ~130 lines below this call
   // and reading it here would be a temporal-dead-zone ReferenceError on every render.
   useBoardLock(openPanelCount > 0 || filterPanelOpen);
-
-  const closeAtsPanel = useCallback(() => {
-    setRightPanelOpen(false);
-  }, []);
 
   const [activeAts,   setActiveAts]   = useState(null);
   const [attribution, setAttribution] = useState([]); // job source attribution from aggregator
@@ -1572,11 +1576,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
 
   // effectiveTier: panel count is primary driver; ResizeObserver only overrides Tier 1 ? 2
   const effectiveTier = useMemo(() => {
-    const baseTier = getCardTier(!!selectedJob, sandboxOpen, rightPanelOpen);
+    const baseTier = getCardTier(!!selectedJob, sandboxOpen, false);
     if (baseTier === 3) return 3; // panel count wins — never override Tier 3
     if (manualWidth !== null && manualWidth < 280 && manualWidth >= 180) return 2;
     return baseTier;
-  }, [!!selectedJob, sandboxOpen, rightPanelOpen, manualWidth]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [!!selectedJob, sandboxOpen, manualWidth]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // Task 5 — Inline error states
@@ -2023,7 +2027,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       onViewSandbox: () => {
         if (g2?.html === "__exists__") { generate(selectedJob, false); return; }
         const e2 = { ...g2, company: g2?.company || selectedJob.company, title: g2?.title || selectedJob.title };
-        openSandbox(e2); openAtsPanel(buildAtsPayload(selectedJob, g2));
+        openSandbox(e2); openAtsPanel(buildAtsPayload(selectedJob, g2), selectedJob);
       },
       onExport: async () => {
         if (g2?.html === "__exists__") {
@@ -2051,16 +2055,20 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       // ⛔ D59: the posting's stated citizenship / clearance, at the point of Draft.
       eligibilityNotice: isJobDrafted(selectedJob.jobId) ? null : eligibilityNoticeFor(selectedJob),
       onExplainDraft: (reason) => draftControls.onExplain(selectedJob, reason),
-      onAts: () => openAtsPanel(buildAtsPayload(selectedJob, g2)),
+      onAts: () => openAtsPanel(buildAtsPayload(selectedJob, g2), selectedJob),
       // ⭐ D152 (8): the match opens IN the posting — its report payload, the profile it is scored for, and the verdict sink.
       atsPayload: buildAtsPayload(selectedJob, g2), activeProfileId, onAtsReport: adoptPanelVerdict,
       // D58: the header box reads the same pair the card badge and the ATS card read.
       scores: scoresFor(selectedJob, g2),
-      // D48: the posting header's ATS box opens the card beside the posting and shows OPEN as an outline.
-      atsOpen: !!rightPanelOpen,
+      // ⭐ D152 (8) (b): an opener's ask for the match in this posting, and the History switch's résumé versions (D62's,
+      // moved from the retired ATS panel): how many résumés exist (a refetch after one is generated), and what a row does.
+      matchAsk,
+      genCount: Object.values(generated).filter(v => v?.html && v.html !== "__exists__").length,
+      onOpenVersion: (v) => openSandbox({ ...v, jobId: v.job_id, title: v.role, atsScore: v.ats_score, atsReport: v.atsReport }),
+      onExportVersion: (v) => exportAndTrack(null, v.html, v.company),
       onResume: () => generate(selectedJob, false),
     });
-  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId, rightPanelOpen, companyNoticeFor, eligibilityNoticeFor, draftBlocked]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId, matchAsk, companyNoticeFor, eligibilityNoticeFor, draftBlocked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-open resume + ATS panel when a pending job card is selected
   useEffect(() => {
@@ -2082,8 +2090,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       };
       setGenerated(p => ({ ...p, [key]: entry }));
       openSandbox({ ...entry });
-      openAtsPanel({ score: entry.atsScore, report: entry.atsReport,
-                     company: selectedJob.company, title: selectedJob.title });
+      openAtsPanel({ score: entry.atsScore, report: entry.atsReport, jobId: selectedJob.jobId,
+                     company: selectedJob.company, title: selectedJob.title }, selectedJob);
       return;
     }
 
@@ -2136,7 +2144,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       applyProfileSnapshot({ ...(cachedUi || {}), jobs: [], pendingJobs: [], totalJobs: 0, totalPages: 0, selectedJob: null });
       setSandbox(null);
       setSandboxOpen(false);
-      setRightPanelOpen(false);
       setScrapeError("");
     }
 
@@ -2211,6 +2218,23 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (selectedJob?.jobId === deepLinkedJob.jobId) return;
     setSelectedJob(deepLinkedJob);
   }, [deepLinkedJob, selectedJob?.jobId, activeProfileKey, setSelectedJob]);
+
+  // ⭐ D152 (8) (b): the deck's report opens HERE — the posting in place, its match open under the facts (lib/jobUrl.js
+  // OPEN_MATCH_EVENT). A job on this page is opened as it is; one that is not is fetched by id, as a deep link is.
+  useEffect(() => {
+    const onAsk = (e) => {
+      const id = e.detail?.jobId;
+      if (!id) return;
+      const go = (job) => { clearDeepLink(); openAtsPanel(null, job); };
+      const known = displayJobsRef.current.find(j => String(j.jobId) === id || String(j.id) === id);
+      if (known) { go(known); return; }
+      api(`/api/jobs/by-id/${encodeURIComponent(id)}`)
+        .then(d => { if (d?.job) go(normalizeApiJob(d.job)); })
+        .catch(() => {});
+    };
+    window.addEventListener(OPEN_MATCH_EVENT, onAsk);
+    return () => window.removeEventListener(OPEN_MATCH_EVENT, onAsk);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // state -> URL, so the address is copyable and survives a reload.
   useEffect(() => {
@@ -3288,7 +3312,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (existingArtifact?.html && existingArtifact.html !== "__exists__" && !force) {
       const entry = {...existing, ...existingArtifact, company:existingArtifact.company||job.company, title:existingArtifact.title||job.title};
       openSandbox(entry);
-      openAtsPanel(buildAtsPayload(job, existing));
+      openAtsPanel(buildAtsPayload(job, existing), job);
       return;
     }
     if (existing?.html === "__exists__" && existing.tool === tool && !force) {
@@ -3300,7 +3324,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           generatedAt: existing.generatedAt ?? null }, tool);
         setGenerated(p => ({ ...p, [key]: entry }));
         openSandbox({ ...entry, company: entry.company, title: entry.title });
-        openAtsPanel(buildAtsPayload(job, entry));
+        openAtsPanel(buildAtsPayload(job, entry), job);
       } catch(e) {
         setSandbox({ generating: false, status:"missing", missing:true, error: e.message, company: job.company, title: job.title });
       }
@@ -3342,7 +3366,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       const artifact = buildArtifact(job, d, tool);
       setGenerated(p => ({ ...p, [key]: mergeArtifact(p[key], artifact) }));
       openSandbox(mergeArtifact(generated[key], artifact));
-      openAtsPanel(buildAtsPayload(job, artifact));
+      openAtsPanel(buildAtsPayload(job, artifact), job);
     } catch(e) {
       setSandbox({ generating: false, status:"error", error: e.message, company: job.company, title: job.title });
     }
@@ -3953,7 +3977,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             setGenerated(p => ({ ...p, [key]: priorEntry }));
             openSandbox({ ...priorEntry, company: job.company, title: job.title });
             if (priorEntry.atsReport || priorEntry.atsScore != null) {
-              openAtsPanel({ score: priorEntry.atsScore, report: priorEntry.atsReport, company: job.company, title: job.title });
+              openAtsPanel({ score: priorEntry.atsScore, report: priorEntry.atsReport, jobId: job.jobId, company: job.company, title: job.title }, job);
             }
           }}
           onGenerateNew={() => {
@@ -4008,8 +4032,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             {/* The mobile "editor" pane is gone: the PDF sandbox is a popup panel now and renders
                 full-screen on a narrow viewport (usePanelHost's fallback), so a second inline copy
                 of it would be a divergent implementation of the same surface. */}
-            {/* Likewise the mobile "ats" pane — AtsReportPanel renders full-screen on narrow
-                viewports through the shared primitive. */}
+            {/* Likewise the mobile "ats" pane — ⭐ D152 (8): the match opens inside the posting (full screen on a
+                narrow viewport), never a panel of its own. */}
           </div>
           {/* Bottom nav.
               Resume and ATS now OPEN THE PANEL that owns each surface instead of switching to a
@@ -4022,12 +4046,12 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
           <div style={{ display:"flex", borderTop:`1px solid ${theme.border}`,
                         background:theme.surface, flexShrink:0 }}>
             {[
-              { id:"jobs",   label:"Jobs",   icon:"Jobs", active: !sandboxOpen && !rightPanelOpen,
-                enabled: true,          onPress: () => { closeSandbox(); closeAtsPanel(); } },
+              { id:"jobs",   label:"Jobs",   icon:"Jobs", active: !sandboxOpen && !selectedJob,
+                enabled: true,          onPress: () => { closeSandbox(); clearDeepLink(); setSelectedJob(null); } },
               { id:"editor", label:"Resume", icon:"Edit", active: sandboxOpen,
                 enabled: !!sandbox,     onPress: () => openSandbox(sandbox) },
-              { id:"ats",    label:"ATS",    icon:"ATS",  active: rightPanelOpen,
-                enabled: !!activeAts,   onPress: () => openAtsPanel(null) },
+              { id:"ats",    label:"ATS",    icon:"ATS",  active: !!selectedJob && !sandboxOpen,
+                enabled: !!activeAts && !!selectedJob, onPress: () => { closeSandbox(); openAtsPanel(null); } },
             ].map(({ id, label, icon, active, enabled, onPress }) => (
               <button key={id} onClick={onPress} disabled={!enabled}
                 title={enabled ? undefined : `No ${label.toLowerCase()} yet — generate a resume first`}
@@ -4146,18 +4170,6 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             <SandboxPanel key="panel-pdf" {...panelProps("pdf")}
               entry={sandbox} onClose={closeSandbox}
               onSave={saveSandboxHtml} onExport={exportAndTrack}/>
-          )}
-          {panelProps("ats") && (
-            <AtsReportPanel key="panel-ats" {...panelProps("ats")}
-              onClose={closeAtsPanel}
-              theme={theme} activeAts={activeAts}
-              rightTab={rightTab} setRightTab={setRightTab} genCount={genCount}
-              jobId={selectedJob?.jobId} resumeText={resumeText} activeProfileId={activeProfileId}
-              onReport={adoptPanelVerdict}
-              /* ⭐ D62: History is this job's résumé VERSIONS (the panel fetches them); a version opens in
-                 the PDF panel beside the ATS card, and downloads as a PDF. */
-              onOpenVersion={v => openSandbox({ ...v, jobId: v.job_id, title: v.role, atsScore: v.ats_score, atsReport: v.atsReport })}
-              onExportVersion={v => exportAndTrack(null, v.html, v.company)}/>
           )}
         </AnimatePresence>
       </PanelDock>
@@ -4359,7 +4371,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
             const open = onJobSelect ? () => onJobSelect(job) : () => {
               if (g?.html && g.html !== "__exists__") {
                 openSandbox({ ...g, company: g.company || job.company, title: g.title || job.title });
-                openAtsPanel(buildAtsPayload(job, g));
+                openAtsPanel(buildAtsPayload(job, g), job);
               } else if (job.url) visitUrl(job);
             };
             return (

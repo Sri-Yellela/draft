@@ -437,7 +437,10 @@ test("⛔ J6: the panel's CSS — tokens for both themes, no capsule, marks not 
   assert.match(css, /@media \(prefers-color-scheme: dark\) \{ \.rp \{ \$\{varsOf\(theme\.dark\)\} \} \}/);
   assert.doesNotMatch(css, /999px|border-radius:\s*50%|rounded-full/);
   for (const m of css.matchAll(/border-radius:\s*(\d+)px/g)) assert.ok(Number(m[1]) <= 10, `radius ${m[1]}px`);
-  assert.match(css, /\.mark \{ --mk[\s\S]*?border-radius: 6px;[\s\S]*?border-left: 3px solid var\(--mk\);/);
+  // ⭐ D152 (7b), changed on purpose: the mark is a plain word — no box, no 3px bar, no tint; a state a 6px dot before it.
+  assert.match(css, /\.mark \{ --mk[^}]*?padding: 0; border-radius: 0; color: var\(--mk\); border: 0; background: none; \}/);
+  assert.match(css, /\.mark:is\(\.ok, \.warn, \.no, \.info\) \{[^}]*radial-gradient\(circle at 3px 50%, var\(--mk\) 3px, transparent 3\.5px\)/);
+  assert.doesNotMatch(css, /border-left: 3px/, "the label chip's bar is back");
 });
 
 // ── the copy of resumeInputScore is the fill's ──────────────────────────────────────────────────────────────────
