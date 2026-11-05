@@ -29,7 +29,8 @@ const ROUTE = SERVER.slice(at(SERVER, 'app.get("/api/jobs", requireAuth'),
                            at(SERVER, 'app.get("/api/jobs/generic"'));
 
 test("⛔ the COUNT and the LIST are built from the same join, where and args", () => {
-  const countStmt = /SELECT COUNT\(\*\) as n \$\{joinClause\} \$\{whereClause\}`\)\.get\(\.\.\.baseArgs\)/;
+  // A126 (hotfix 11-05): read in the worker pool — the same statement, the same baseArgs, awaited.
+  const countStmt = /readPool\.get\(`SELECT COUNT\(\*\) as n \$\{joinClause\} \$\{whereClause\}`, baseArgs\)/;
   assert.match(ROUTE, countStmt,
     "the count must interpolate the SAME joinClause/whereClause variables the list uses and bind " +
     "the SAME baseArgs — a count with its own predicate is the defect this file exists for");

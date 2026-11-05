@@ -1267,6 +1267,9 @@ function buildAtsPayload(job, artifact = null) {
 }
 
 // -- Main panel ------------------------------------------------
+// A126 · the posting-by-id reads in flight / just answered, shared across the deck's repeated asks (see onOpen).
+const byIdReads = new Map();
+
 export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive = true }) {
   const monetisationEnabled = useMonetisationEnabled();
   const { theme } = useTheme();
@@ -2243,26 +2246,38 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // ⭐ D152 (8) (b): the deck's report opens HERE — the posting in place, its match open under the facts (lib/jobUrl.js
   // OPEN_MATCH_EVENT). A job on this page is opened as it is; one that is not is fetched by id, as a deep link is.
   useEffect(() => {
+    // ⛔ A126 (hotfix 11-05) · ONE read per posting, and only the LAST ask opens. Production 11-05: every scroll on the
+    // deck card re-asked for the same posting (greenhouse::8198280 thirteen times in 90 s) while the board was slow, each
+    // a request the server still ran after the page gave up on it. Now a posting's read is shared while in flight and
+    // kept for a minute, and a reply for a card the person has since scrolled past is dropped.
+    const latest = { id: null };
+    const byId = (id) => {
+      const hit = byIdReads.get(id);
+      if (hit && Date.now() - hit.at < 60_000) return hit.p;
+      const p = api(`/api/jobs/by-id/${encodeURIComponent(id)}`)
+        .then(d => (d?.job ? normalizeApiJob(d.job) : null))
+        .catch((err) => { byIdReads.delete(id); throw err; });
+      byIdReads.set(id, { p, at: Date.now() });
+      return p;
+    };
     const onAsk = (e) => {
       const id = e.detail?.jobId;
       if (!id) return;
+      latest.id = id;
       const go = (job) => { clearDeepLink(); setPostOrigin(e.detail?.origin === "board" ? "board" : "deck"); openAtsPanel(null, job); };
       const known = displayJobsRef.current.find(j => String(j.jobId) === id || String(j.id) === id);
       if (known) { go(known); return; }
-      api(`/api/jobs/by-id/${encodeURIComponent(id)}`)
-        .then(d => { if (d?.job) go(normalizeApiJob(d.job)); })
-        .catch(() => {});
+      byId(id).then(job => { if (job && latest.id === id) go(job); }).catch(() => {});
     };
     // ⭐ D156 (1c): the deck's front card expanding into the long post — the same posting, opened by the deck.
     const onOpen = (e) => {
       const id = e.detail?.jobId;
       if (!id) return;
+      latest.id = id;
       const go = (job) => { clearDeepLink(); setPostOrigin(e.detail?.origin === "board" ? "board" : "deck"); setSelectedJob(job); };
       const known = displayJobsRef.current.find(j => String(j.jobId) === id || String(j.id) === id);
       if (known) { go(known); return; }
-      api(`/api/jobs/by-id/${encodeURIComponent(id)}`)
-        .then(d => { if (d?.job) go(normalizeApiJob(d.job)); })
-        .catch(() => {});
+      byId(id).then(job => { if (job && latest.id === id) go(job); }).catch(() => {});
     };
     const onClose = () => { clearDeepLink(); setSelectedJob(null); };
     window.addEventListener(OPEN_MATCH_EVENT, onAsk);

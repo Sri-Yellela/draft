@@ -127,7 +127,7 @@ const measureFor = (db, calls = []) => async (query, measure) => {
       if (bad.length) return { status: 400, body: { success: false, error: `Unknown ${name} value for "${key}": ${bad.join(", ")}`, jobs: [], total: 0 } };
     }
   }
-  return { status: 200, body: { measured: true, value: measure({ db, ...boardSql(query) }) } };
+  return { status: 200, body: { measured: true, value: await measure({ db, ...boardSql(query) }) } };
 };
 
 // ═══ 1 · FUNCTION BEFORE FORM ═══════════════════════════════════════════════════════════════════
@@ -428,7 +428,7 @@ test("④ one statement for the headline and ONE per clause — never one per op
   let prepares = 0;
   const counting = new Proxy(db, { get: (t, k) => k === "prepare" ? (...a) => { prepares++; return t.prepare(...a); } : (typeof t[k] === "function" ? t[k].bind(t) : t[k]) });
   const query = { experience_levels: "senior", work_models: "remote", ageFilter: "1w", posted_after: "1", fit_bands: "strong", page: "3", cursor: "x" };
-  const res = await boardFacetsResponse({ query, nowSec: NOW, measureBoard: async (q, m) => { calls.push(q); return { status: 200, body: { measured: true, value: m({ db: counting, ...boardSql(q) }) } }; } });
+  const res = await boardFacetsResponse({ query, nowSec: NOW, measureBoard: async (q, m) => { calls.push(q); return { status: 200, body: { measured: true, value: await m({ db: counting, ...boardSql(q) }) } }; } });
   assert.equal(res.status, 200);
   // D35: + one COUNT each for the ALL and ★ views (the /d count is countPending's, absent here).
   // D40: + adds one view count (ALL · ★ · + measured, /d is its own query) — 4 before the clauses.
@@ -472,7 +472,7 @@ test("④ server.js: the facets route measures through boardPageResponse — val
   const board = SERVER.slice(at(SERVER, "async function boardPageResponse("));
   const guard = board.indexOf("rejectInvalidFilterValues(req.query)");
   const hook = board.indexOf("if (measure) {");
-  const fetchAt = board.indexOf("const fetched = db.prepare(");
+  const fetchAt = board.indexOf("const fetched = await readPool.all(");   // A126: the worker pool
   assert.ok(guard > 0 && hook > guard && fetchAt > hook, "measure must run after validation and before the page fetch");
   assert.match(board.slice(hook - 400, hook), /const baseArgs\s+= argsFor\(richFilters\);/,
     "measure must receive the SAME baseArgs the list and the count use");

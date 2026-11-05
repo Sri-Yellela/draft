@@ -54,7 +54,8 @@ test("placeFacetCounts equals placesFilterSql for EVERY location option — coun
 
 test("the facets' location clause counts through placeFacetCounts, in one read of the board's places", () => {
   const src = fs.readFileSync("services/jobs/boardFacets.js", "utf8");
-  assert.match(src, /compute: \(\{ db, joinClause, whereClause, baseArgs \}\) => \{/);
+  // A126 (hotfix 11-05): async, reading through readerOf(ctx) — the worker pool when the board hands one.
+  assert.match(src, /compute: async \(ctx\) => \{\s*const \{ joinClause, whereClause, baseArgs \} = ctx;\s*const read = readerOf\(ctx\);/);
   assert.match(src, /placeFacetCounts\(byJob, PLACES\.options\.map\(o => o\.value\)\)/);
   assert.match(src, /if \(clause\.compute\) return clause\.compute\(ctx\);/);
 });

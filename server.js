@@ -284,6 +284,7 @@ import { assessCleanupScope, cleanupBrakeOptions } from "./services/jobs/cleanup
 import { loadConfirmedSynonyms } from "./services/kb/skillSynonyms.js";
 // A72 — the board's ranked local search (tiers, whole words, the same synonym map).
 import { registerBoardSearch, boardSearchSql, searchVariants } from "./services/jobs/boardSearch.js";
+import { createReadPool } from "./services/db/readWorker.js";
 // Y2B — the SAME fetcher and the SAME writer the enrichment pass uses. One implementation, two
 // triggers: the background pass buys descriptions for rows it is about to enrich, and this buys
 // one for a job a user actually opened. See services/jobs/detailFetch.js.
@@ -522,6 +523,14 @@ registerScoreFreshness(db);
 // D59 · the eligibility filter's "was req_* read from THIS description?" — the readers' freshness rule.
 registerDescriptionBasis(db);
 console.log(`[boot] database ready: ${DB_PATH}`);
+// ⛔ A126 (hotfix 11-05) · the board's heavy reads (GET /api/jobs, /api/jobs/facets, the daily deal) run in worker threads
+// with their own read-only connections, so one person's board never freezes everyone's site (services/db/readWorker.js).
+// Any failure there falls back to this connection. DRAFT_READ_WORKERS=off turns it off without a deploy of code.
+const readPool = createReadPool({
+  dbPath: DB_PATH, fallbackDb: db,
+  enabled: String(process.env.DRAFT_READ_WORKERS || "on").toLowerCase() !== "off",
+  size: Math.max(1, Math.min(4, Number(process.env.DRAFT_READ_WORKERS_SIZE) || 2)),
+});
 
 // ── Inline migration runner (additive only — never drops data) ─
 {
@@ -11385,8 +11394,8 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // D24 · GET /api/jobs/facets stops here, with the board's own bindings (see boardPageResponse's
       // `measure` note). No page is fetched, no fit pass is scheduled, nothing is logged as a board load.
       if (measure) {
-        return boardReply(200, { measured: true, value: measure({
-          db, joinClause, whereClause, baseArgs, unclassifiedSql: richFilters.established.unclassifiedSql,
+        return boardReply(200, { measured: true, value: await measure({
+          db, read: readPool, joinClause, whereClause, baseArgs, unclassifiedSql: richFilters.established.unclassifiedSql,
           fitScoreSql,
         }) });
       }
@@ -11401,7 +11410,8 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // SELECT (cursor projection) -> JOIN/WHERE (baseArgs) -> AND cursor predicate -> ORDER BY
       // (rank params) -> LIMIT. Getting this wrong does not throw; it returns plausible wrong rows.
       const cursorSql = cursorClause.sql ? `AND ${cursorClause.sql}` : "";
-      const fetched = db.prepare(
+      // ⛔ A126 · read in the worker pool (readPool), off the event loop — the same statement, the same params.
+      const fetched = await readPool.all(
         // CC5 · `matchScore` is selected from the CALLER's cache, aliased to the name mapJobRow
         // reads. sj.ats_score is deliberately not selected under that name any more — see the
         // joinClause note.
@@ -11414,14 +11424,15 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         `SELECT ${selectCols}, uj.visited, uj.applied, uj.starred, uj.disliked,
                 (sj.is_active = 0 AND EXISTS (SELECT 1 FROM rejected_jobs rj WHERE rj.job_id = sj.job_id AND rj.reason LIKE 'out_of_market:%')) AS held_outside_us,
                 aor.ats_score AS matchScore, ${storedScoreSql("sj", "aor")}${cursorCols.sql}
-         ${joinClause} ${whereClause} ${cursorSql} ORDER BY ${order.sql} LIMIT ?${rawCursor ? "" : " OFFSET ?"}`
-      ).all(
+         ${joinClause} ${whereClause} ${cursorSql} ORDER BY ${order.sql} LIMIT ?${rawCursor ? "" : " OFFSET ?"}`,
+        [
         ...cursorCols.params,
         ...baseArgs,
         ...cursorClause.params,
         ...order.params,
         ps + 1,
         ...(rawCursor ? [] : [offset]),
+        ],
       );
       const hasMore = fetched.length > ps;
       const rows    = hasMore ? fetched.slice(0, ps) : fetched;
@@ -11445,13 +11456,13 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       //
       // test/boardCountMatchesList.test.js asserts the two statements are built from these same
       // three variables, so a future edit cannot fork one without failing.
-      const total = db.prepare(`SELECT COUNT(*) as n ${joinClause} ${whereClause}`).get(...baseArgs)?.n || 0;
+      const total = (await readPool.get(`SELECT COUNT(*) as n ${joinClause} ${whereClause}`, baseArgs))?.n || 0;
       const totalPages = Math.ceil(total / ps);
       // A73 · of `total`, how many are on the board only because a filter the user set could not
       // judge them (the column is not classified yet). They are ordered last; this says how many.
       const unclassifiedSql = richFilters.established.unclassifiedSql;
       const unclassified = unclassifiedSql
-        ? { count: db.prepare(`SELECT COUNT(*) as n ${joinClause} ${whereClause} AND ${unclassifiedSql}`).get(...baseArgs)?.n || 0,
+        ? { count: (await readPool.get(`SELECT COUNT(*) as n ${joinClause} ${whereClause} AND ${unclassifiedSql}`, baseArgs))?.n || 0,
             filters: richFilters.established.filters }
         : null;
 
@@ -14793,6 +14804,8 @@ app.get("/api/version", (_req, res) => {
     // ⭐ 44p: the Atlas live-count backlog — a number, nothing user-scoped. The deck bug's cause was this queue drained
     // whole on the request path; the background drainer now counts it, and this says how much is left.
     atlasQueue: atlasQueueLength(db),
+    // A126 · the board's read workers: ready / served / fallback — fallback climbing means the workers are not serving.
+    readPool: readPool.status(),
     // ⭐ D151 Rule 1: the last boot's timeline — start → listen, → ready, and each warm-up step's duration.
     boot: BOOT.snapshot(),
     monetisationEnabled: monetisationEnabled(),

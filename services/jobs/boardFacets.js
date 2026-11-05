@@ -84,11 +84,13 @@ export function facetClauses({ nowSec, visitSinceSec = null }) {
       // ⚡ The SQL above is the definition; this is how it is COUNTED — the board's places read once and
       // placeFacetCounts applying the same rule per job, instead of 74 options × correlated EXISTS
       // (9–10 s per facets call, measured 10-06 (33)). test/placeFacetCounts.test.js holds them equal.
-      compute: ({ db, joinClause, whereClause, baseArgs }) => {
-        const byJob = new Map(db.prepare(`SELECT sj.job_id AS id ${joinClause} ${whereClause}`).all(...baseArgs).map(r => [r.id, []]));
+      compute: async (ctx) => {
+        const { joinClause, whereClause, baseArgs } = ctx;
+        const read = readerOf(ctx);
+        const byJob = new Map((await read.all(`SELECT sj.job_id AS id ${joinClause} ${whereClause}`, baseArgs)).map(r => [r.id, []]));
         if (byJob.size) {
-          for (const p of db.prepare(`SELECT p.job_id, p.country, p.state, p.metro FROM job_tag_places p
-              WHERE p.job_id IN (SELECT sj.job_id ${joinClause} ${whereClause})`).all(...baseArgs)) {
+          for (const p of await read.all(`SELECT p.job_id, p.country, p.state, p.metro FROM job_tag_places p
+              WHERE p.job_id IN (SELECT sj.job_id ${joinClause} ${whereClause})`, baseArgs)) {
             byJob.get(p.job_id)?.push(p);
           }
         }
@@ -166,21 +168,28 @@ const EMPTY = (clauses) => ({
  * @returns {Promise<{status:number, body:any}>}
  */
 export const yieldToLoop = () => new Promise((resolve) => setImmediate(resolve));
+// ⛔ A126 (hotfix 11-05) · the measure's reads go through ctx.read (server.js: the read-worker pool, off the event loop)
+// when the board hands one; a caller with only a db (tests, scripts) reads it directly, as before.
+export const readerOf = (ctx) => ctx.read ?? {
+  get: async (sql, params = []) => ctx.db.prepare(sql).get(...params),
+  all: async (sql, params = []) => ctx.db.prepare(sql).all(...params),
+};
 
 export async function boardFacetsResponse({ query, measureBoard, nowSec, countPending = null, visitSinceSec = null, breathe = yieldToLoop }) {
   const clauses = facetClauses({ nowSec, visitSinceSec });
 
-  const head = await measureBoard(withoutKeys(query, []), ({ db, joinClause, whereClause, baseArgs, unclassifiedSql, fitScoreSql }) => {
+  const head = await measureBoard(withoutKeys(query, []), async (ctx) => {
+    const { joinClause, whereClause, baseArgs, unclassifiedSql, fitScoreSql } = ctx;
     // A85 · "no score" means no CURRENT score — what the badge shows nothing for.
     const score = fitScoreSql ?? FIT_SCORE_SQL;
-    const r = db.prepare(
+    const r = await readerOf(ctx).get(
       `SELECT COUNT(*) AS total,
               COALESCE(SUM(CASE WHEN ${score} IS NULL THEN 1 ELSE 0 END), 0) AS unscored
               ${unclassifiedSql ? `, COALESCE(SUM(CASE WHEN ${unclassifiedSql} THEN 1 ELSE 0 END), 0) AS unclassified` : ""},
               COALESCE(SUM(CASE WHEN ${LEVEL_SQL} IS NOT NULL THEN 1 ELSE 0 END), 0) AS cov_level,
               COALESCE(SUM(CASE WHEN ${WORKPLACE_SQL} IS NOT NULL THEN 1 ELSE 0 END), 0) AS cov_where,
               COALESCE(SUM(CASE WHEN ${EMPLOYMENT_SQL} IS NOT NULL THEN 1 ELSE 0 END), 0) AS cov_employment
-       ${joinClause} ${whereClause}`).get(...baseArgs);
+       ${joinClause} ${whereClause}`, baseArgs);
     return {
       total: r.total, known: r.total - (r.unclassified || 0), unscored: r.unscored,
       // D35 · COVERAGE, LIVE: of `total`, the rows whose tag is ON FILE — the panels say
@@ -205,8 +214,8 @@ export async function boardFacetsResponse({ query, measureBoard, nowSec, countPe
     const q = { ...withoutKeys(query, ["starred", "imported", "pending"]), ...(starred ? { starred: "1" } : {}),
                 ...(imported ? { imported: "1" } : {}), ...(pendingView ? { pending: "1" } : {}) };
     await breathe();
-    const r = await measureBoard(q, ({ db, joinClause, whereClause, baseArgs }) =>
-      db.prepare(`SELECT COUNT(*) AS n ${joinClause} ${whereClause}`).get(...baseArgs).n);
+    const r = await measureBoard(q, async (ctx) =>
+      (await readerOf(ctx).get(`SELECT COUNT(*) AS n ${ctx.joinClause} ${ctx.whereClause}`, ctx.baseArgs)).n);
     return r.status === 200 && r.body?.measured ? r.body.value : (r.status === 200 ? 0 : null);
   };
   let pending = await viewTotal(false, false, true);
@@ -220,9 +229,9 @@ export async function boardFacetsResponse({ query, measureBoard, nowSec, countPe
   for (const clause of clauses) {
     const baseQuery = { ...withoutKeys(query, clause.remove), ...(clause.base || {}) };
     await breathe();
-    const r = await measureBoard(baseQuery, (ctx) => {
+    const r = await measureBoard(baseQuery, async (ctx) => {
       if (clause.compute) return clause.compute(ctx);
-      const { db, joinClause, whereClause, baseArgs } = ctx;
+      const { joinClause, whereClause, baseArgs } = ctx;
       const cols = [], params = [];
       clause.options.forEach((o, i) => {
         const count = typeof o.count === "function" ? o.count(ctx) : o.count;
@@ -233,7 +242,7 @@ export async function boardFacetsResponse({ query, measureBoard, nowSec, countPe
         params.push(...known.params);
       });
       // PARAMETER ORDER IS SQL TEXT ORDER: the SELECT's option params, then the board's own.
-      return db.prepare(`SELECT ${cols.join(", ")} ${joinClause} ${whereClause}`).get(...params, ...baseArgs);
+      return readerOf(ctx).get(`SELECT ${cols.join(", ")} ${joinClause} ${whereClause}`, [...params, ...baseArgs]);
     });
     if (r.status !== 200 || !r.body?.measured) return r.status !== 200 ? r : { status: 200, body: EMPTY(clauses) };
     body.clauses[clause.key] = clause.options.map((o, i) => ({
