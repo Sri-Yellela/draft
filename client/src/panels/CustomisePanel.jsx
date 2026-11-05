@@ -22,17 +22,24 @@ import { useDeckGeometry } from "../hooks/useDeckGeometry.js";
 import DeckGeometryControl from "../components/DeckGeometryControl.jsx";
 import { orientationFor } from "../lib/fanGeometry.js";
 import { DECK_ORDERS, readDeckOrder, writeDeckOrder } from "../lib/deckOrder.js";
-import { DECK_PRESET_NAMES, DECK_PRESET_COPY } from "../../../shared/deckGeometry.js";
+import { DECK_PRESET_NAMES, DECK_PRESET_COPY, DECK_SIZES, DECK_SIZE_STANDARD } from "../../../shared/deckGeometry.js";
 import "../components/Customise.css";
 
 // ⭐ D93 (owner, 10-12: "mirror the deck layout and order on Customise") — the Daily Deck's two choices, through the
 // SAME stores the deck's own quick controls use: the layout preset with the account (hooks/useDeckGeometry.js,
 // /api/settings/deck-geometry), the order on this browser (lib/deckOrder.js). The deck keeps its controls; a custom
 // layout (the deck's three sliders) is shown as such, and choosing a preset here replaces it.
-function DeckSection({ geometry, order, onLayout, onOrder, onGeometry }) {
+// ⭐ D152 (3) · PICKS PER DAY: how many cards the deck deals, with the account (PUT /api/settings/deck-size, migration 220;
+// GET /api/draft/today reads it). Today's deal is already frozen, so the note says a new count starts tomorrow.
+const DECK_SIZE_COPY = { 5: "A short list — the five best.", 10: "The deck as designed.", 15: "More to look at each day.", 20: "The most the deck deals." };
+function DeckSection({ geometry, order, size, onLayout, onOrder, onGeometry, onSize }) {
   const custom = geometry?.preset === "custom";
   return (
-    <SettingsSection title="Daily Deck" subtitle="How today's cards are fanned out, and the order they are dealt in.">
+    <SettingsSection title="Daily Deck" subtitle="How many cards you're dealt each day, how they are fanned out, and the order they come in.">
+      <div className="cz-sub">Cards a day</div>
+      <RadioCards label="Cards a day" name="deck-size" value={String(size)} onChange={(id) => onSize(Number(id))}
+        items={DECK_SIZES.map((n) => ({ id: String(n), label: `${n} a day`, description: DECK_SIZE_COPY[n], tag: n === DECK_SIZE_STANDARD ? "default" : null }))} />
+      <p className="cz-note" data-deck-size-note="">Today's cards are already dealt — a new count starts with tomorrow's deal.</p>
       <div className="cz-sub">Layout</div>
       <RadioCards label="Deck layout" name="deck-layout" value={geometry?.preset || "standard"} onChange={onLayout}
         items={DECK_PRESET_NAMES.map((id) => ({ id, label: DECK_PRESET_COPY[id][0], description: DECK_PRESET_COPY[id][1], tag: id === "standard" ? "default" : null }))} />
@@ -55,6 +62,12 @@ export default function CustomisePanel() {
   const [geometry, chooseGeometry] = useDeckGeometry();
   const [order, setOrder] = useState(readDeckOrder);
   const chooseOrder = (next) => { setOrder(next); writeDeckOrder(next); };
+  const [size, setSize] = useState(DECK_SIZE_STANDARD);
+  useEffect(() => { api("/api/settings/deck-size").then((r) => { if (DECK_SIZES.includes(r?.size)) setSize(r.size); }).catch(() => {}); }, []);
+  const chooseSize = (next) => {
+    setSize(next);
+    return api("/api/settings/deck-size", { method: "PUT", body: JSON.stringify({ size: next }) }).catch(() => {});
+  };
   const chooseLayout = (preset) => chooseGeometry({ preset, custom: geometry?.custom || {} });
 
   // Leaving the page applies what was chosen here (the page itself never changed under the pointer).
@@ -70,6 +83,7 @@ export default function CustomisePanel() {
     // to the account directly and awaited before saveAppearance reloads.
     chooseOrder("best"); chooseLayout("standard");   // (the hook also refreshes the device's cached layout)
     await api("/api/settings/deck-geometry", { method: "PUT", body: JSON.stringify({ preference: { preset: "standard", custom: geometry?.custom || {} } }) }).catch(() => {});
+    await chooseSize(DECK_SIZE_STANDARD);
     setLayout(layoutDefaults(), { apply: false });
     saveAppearance({ pref: "system", cues: false, layout: layoutDefaults() });
   };
@@ -106,8 +120,8 @@ export default function CustomisePanel() {
                   preview: <div className="cz-mini"><CustomisePreview part={o.id} values={{ ...lay, [o.id]: v.id }} /></div> }))} />
             </SettingsSection>
           ))}
-          <DeckSection geometry={geometry} order={order} onLayout={chooseLayout} onOrder={chooseOrder} onGeometry={chooseGeometry} />
-          <SettingsSection title="Reset" subtitle="Back to how draft ships: follow your system's light / dark setting, shape cues off, the recommended layout, and the standard deck in its dealt order.">
+          <DeckSection geometry={geometry} order={order} size={size} onLayout={chooseLayout} onOrder={chooseOrder} onGeometry={chooseGeometry} onSize={chooseSize} />
+          <SettingsSection title="Reset" subtitle="Back to how draft ships: follow your system's light / dark setting, shape cues off, the recommended layout, and the standard deck of 10, best bets first.">
             <div><DepthButton onClick={reset} data-customise-reset="">Reset to defaults</DepthButton></div>
           </SettingsSection>
         </div>

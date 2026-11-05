@@ -15,8 +15,19 @@
 // ⛔ NO NUMBER. A card carries its band; the per-caller score is stripped from the snapshot (G5).
 import { atsBandFor, ATS_BAND } from "../shared/atsBands.js";
 import { experienceState } from "../shared/postingFacts.js";
+import { normaliseDeckSize } from "../shared/deckGeometry.js";
 
 export const DECK_SIZE = 10;
+
+/**
+ * ⭐ D152 (3) · the person's picks per day (users.deck_size, migration 220; Customise → Daily Deck). NULL, a value
+ * shared/deckGeometry.js DECK_SIZES does not hold, or a database without the column (a test fixture) is DECK_SIZE.
+ */
+export function deckSizeOf(db, userId) {
+  try {
+    return normaliseDeckSize(db.prepare("SELECT deck_size FROM users WHERE id = ?").pluck().get(userId)) ?? DECK_SIZE;
+  } catch { return DECK_SIZE; }
+}
 export const DEAL_BANDS = Object.freeze([ATS_BAND.STRONG, ATS_BAND.MODERATE]);
 // How far down the board the deal may read to fill the deck: the board pages 50 at a time.
 const MAX_PAGES = 4;

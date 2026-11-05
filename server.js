@@ -227,7 +227,7 @@ import {
 // The band, not the number, is what a user is shown — see the header of shared/atsBands.js.
 import { atsBandFor } from "./shared/atsBands.js";
 import { standaloneAtsResult } from "./services/standaloneAts.js";
-import { todaysDeck, validDraftDate, DECK_ORDERS } from "./services/dailyDraft.js";
+import { todaysDeck, validDraftDate, DECK_ORDERS, deckSizeOf } from "./services/dailyDraft.js";
 import { roleFamilyForTitle, roleAliasCount } from "./services/searchQueryBuilder.js";
 import {
   INTEGRATION_PROVIDERS,
@@ -6676,6 +6676,14 @@ console.log(`[boot] database ready: ${DB_PATH}`);
         END;
       `,
     },
+    {
+      // D152 (3) (11-05): PICKS PER DAY — how many cards the Daily Deck deals, the person's own choice (Customise → Daily
+      // Deck; shared/deckGeometry.js DECK_SIZES). NULL = never chosen = the standard 10. Schema only (D151 Rule 1).
+      id: "220_users_deck_size",
+      sql: `
+        ALTER TABLE users ADD COLUMN deck_size INTEGER;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -11798,7 +11806,10 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
                         userLevel: tryOr(() => userLevelFor(db, req.user.id), null),
                         aim: tryOr(() => aimRoleFor(db, req.user.id), null), warm: tryOr(() => warmCounts(db, req.user.id), new Map()) };
     const betFor = (job) => bestBetOf(bestBetSignalsFor(db, { userId: req.user.id, profileId: profile.id, job: { id: job.id }, ...betInputs }));
-    const deck = await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, betFor });
+    // ⭐ D152 (3): picks per day — the person's own count (Customise → Daily Deck, migration 220), 10 when never chosen.
+    // It sizes the NEXT deal; a deal already frozen today is read as it was dealt.
+    const size = deckSizeOf(db, req.user.id);
+    const deck = await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor });
     // 43y (the owner's trial walk, 11-01: "no jobs or picks" on a new account): an empty deal for a profile whose
     // scores have not landed yet is not "empty" — it is SCORING. The pass is (re)asked for, the client says so and asks
     // again; the deal is not frozen (an empty one never is), so the next request deals from the first scores.

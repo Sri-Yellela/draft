@@ -23,7 +23,7 @@ test("the route accepts only 'dealt', 'ats' and 'best', defaults to dealt, and l
   assert.deepEqual([...DECK_ORDERS], ["dealt", "ats", "best"]);
   const src = fs.readFileSync("server.js", "utf8");
   assert.match(src, /const order = String\(req\.query\.order \|\| "dealt"\);\s*if \(!DECK_ORDERS\.includes\(order\)\) \{\s*return res\.status\(400\)/);
-  assert.match(src, /todaysDeck\(db, \{ userId: req\.user\.id, profileId: profile\.id, date, fetchBoardPage, reportFor, order, scoreFor, betFor \}\)/);
+  assert.match(src, /todaysDeck\(db, \{ userId: req\.user\.id, profileId: profile\.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor \}\)/);   // D152 (3): size = picks per day
 });
 
 // ⭐ D149 (owner 11-03) changed this on purpose: the choice moved off the deck page into Settings → Customise (the deck

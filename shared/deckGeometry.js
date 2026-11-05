@@ -76,3 +76,16 @@ export function normaliseDeckPreference(raw) {
   }
   return { preset, custom };
 }
+
+// ── ⭐ D152 (3) · PICKS PER DAY — how many cards the deck deals (migration 220, users.deck_size) ──────────────
+// The owner's "1 of 10 today": the count is the person's own choice, with the account (Customise → Daily Deck). One
+// short list, not a free number — a deal is read from at most four board pages (services/dailyDraft.js MAX_PAGES),
+// and a choice the list does not hold is refused, never stored. NULL (never chosen) is the standard 10, which is
+// services/dailyDraft.js DECK_SIZE (pinned equal by test/d152PicksPerDay.test.js).
+export const DECK_SIZES = Object.freeze([5, 10, 15, 20]);
+export const DECK_SIZE_STANDARD = 10;
+/** A stored or posted count, or null when it is not one of DECK_SIZES. */
+export function normaliseDeckSize(raw) {
+  const n = typeof raw === "number" ? raw : typeof raw === "string" && raw.trim() !== "" ? Number(raw) : NaN;
+  return DECK_SIZES.includes(n) ? n : null;
+}
