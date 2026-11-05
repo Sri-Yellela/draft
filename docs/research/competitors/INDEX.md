@@ -30,17 +30,17 @@ D150 T00b. `IMG_0908`–`IMG_0944`, kept under their names; **0912 not copied** 
 
 | Product | Screens | What it shows | Used by |
 |---|---|---|---|
-| **ByteByteGo** | 0908 – 0911 | the masterclass: the roadmap graphic, LLM / RAG / agent diagrams, the build walkthrough | D154 P10 (the AI-engineering route) |
+| **ByteByteGo** | 0908 – 0911 | the masterclass: the roadmap graphic, LLM / RAG / agent diagrams, the build walkthrough | D154 P8 (the AI-engineering route) |
 | **Devmaxx** | 0913 – 0916 | store screens: the daily question, lessons, progress, basics | D154 P1 |
 | | 0917 – 0921 | the placement quiz: multiple choice, **match**, **order** | D154 P2 |
-| | 0922 | *Here's your starting point* | T05 |
+| | 0922 | *Here's your starting point* | T05 · D154 P5 |
 | | 0923 – 0925 | what you get, community, Pro | — |
 | | 0926 | home | — |
 | | 0927 – 0934 | the mini-lesson grid | D154 P4 |
-| | 0935 | the weekly league | — (rewards from proof, not volume) |
-| | 0936 | stats | D154 P5 |
-| | **0937 – 0939** | **today's question, the answer with *Go to lesson*, the discussion** | **D154 P1 + P3** |
+| | 0935 | the weekly league | D154 P7 (rewards from proof, not volume — the league itself not adopted) |
+| | 0936 | stats | D154 P6 |
+| | **0937 – 0939** | **today's question, the answer with *Go to lesson*, the discussion** | **D154 P1 + P3 · P10** |
 | | 0940 · 0941 | a five-slide lesson | D154 P4 |
 | **An engineer-story post** | 0942 | a career story | — |
 | **GetCracked** | 0943 | — | — |
-| **Rockstar Developer University** | 0944 | the AI-risk quiz | D154 (how exposed is my stack) |
+| **Rockstar Developer University** | 0944 | the AI-risk quiz | D154 P9 (the honest version; fear-led hooks not adopted) |
