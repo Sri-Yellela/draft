@@ -23,3 +23,24 @@ D150 T00. The owner's own phone screenshots (`IMG_0874`–`IMG_0907`, no 0891), 
 | **AlgoMap** | 0901 · 0902 | a 90-day programme + "Question 1 of 9" | T05 |
 | **Interview Kickstart** | 0903 · **0904** | "AI Engineer postings up 2.4×, FDE 5.3× — see which role fits"; "where tech hiring is growing" | **T09** |
 | **newline** | 0880 · 0881 · 0882 · 0883 · 0905 · 0906 · 0907 | a webinar funnel ("what you'll leave knowing", the side door, proof files) | — |
+
+## The second batch (11-05) — D154
+
+D150 T00b. `IMG_0908`–`IMG_0944`, kept under their names; **0912 not copied** (a comment thread — other people's words, not a pattern). ⛔ Patterns only, as above.
+
+| Product | Screens | What it shows | Used by |
+|---|---|---|---|
+| **ByteByteGo** | 0908 – 0911 | the masterclass: the roadmap graphic, LLM / RAG / agent diagrams, the build walkthrough | D154 P10 (the AI-engineering route) |
+| **Devmaxx** | 0913 – 0916 | store screens: the daily question, lessons, progress, basics | D154 P1 |
+| | 0917 – 0921 | the placement quiz: multiple choice, **match**, **order** | D154 P2 |
+| | 0922 | *Here's your starting point* | T05 |
+| | 0923 – 0925 | what you get, community, Pro | — |
+| | 0926 | home | — |
+| | 0927 – 0934 | the mini-lesson grid | D154 P4 |
+| | 0935 | the weekly league | — (rewards from proof, not volume) |
+| | 0936 | stats | D154 P5 |
+| | **0937 – 0939** | **today's question, the answer with *Go to lesson*, the discussion** | **D154 P1 + P3** |
+| | 0940 · 0941 | a five-slide lesson | D154 P4 |
+| **An engineer-story post** | 0942 | a career story | — |
+| **GetCracked** | 0943 | — | — |
+| **Rockstar Developer University** | 0944 | the AI-risk quiz | D154 (how exposed is my stack) |
