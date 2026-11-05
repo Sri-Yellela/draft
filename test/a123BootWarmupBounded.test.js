@@ -221,3 +221,66 @@ test("A123 (8) · server.js: the provenance step and the tag pass walk in rowid 
   assert.ok(at(s, "nextRowidRange(db, w.from, JOB_TAG_SLICE_ROWS)", walk) > walk);
   assert.match(s, /setTimeout\(runJobTagWalkSlice, 50\)\.unref\(\)/);
 });
+// ── A123 (9) (11-05) · job_role_map's "active and unmapped" read and the logo repair: no whole-table read at boot ─────
+import { UNMAPPED_SQL, backfillRoleMap } from "../services/jobs/backfillRoleMap.js";
+import { ACTIVE_JOB_INDEX } from "../services/jobs/rowidWalk.js";
+import { GENERAL_ONLY_SQL } from "../services/jobs/remapGeneralRoles.js";
+import { backfillCompanyLogosSlice, LOGO_WALK_KEY } from "../services/jobs/backfillCompanyLogos.js";
+
+const planOf = (d, sql) => d.prepare(`EXPLAIN QUERY PLAN ${sql}`).all().map(r => r.detail).join(" | ");
+function indexedDb() {
+  const d = migratedDb();
+  d.exec(`CREATE INDEX IF NOT EXISTS ${ACTIVE_JOB_INDEX} ON scraped_jobs(job_id, is_active)`);
+  return d;
+}
+
+test("A123 (9) · a123ActiveRowsReadTheIndex: the unmapped / 'general' reads use (job_id, is_active); the category backfill keeps its own index", () => {
+  const d = indexedDb();
+  for (let i = 0; i < 30; i++) seed(d, `a${i}`, `Text ${i}.`);
+  const unmapped = planOf(d, UNMAPPED_SQL);
+  assert.match(unmapped, new RegExp(`SCAN sj USING INDEX ${ACTIVE_JOB_INDEX}`), unmapped);
+  assert.doesNotMatch(unmapped, /SCAN sj USING INDEX sqlite_autoindex|SCAN sj(?! USING)/, unmapped);
+  const general = planOf(d, GENERAL_ONLY_SQL);
+  assert.doesNotMatch(general, /SCAN sj(?! USING (COVERING )?INDEX)/, general);
+  // ⚠ the class's regression: an (is_active, …) index would win this plan from board_category's
+  const cat = planOf(d, "SELECT job_id, title, description, company FROM scraped_jobs WHERE is_active = 1 AND board_category IS NULL LIMIT 100");
+  assert.match(cat, /idx_scraped_jobs_board_category/, cat);
+  assert.equal(backfillRoleMap(d).inserted, 30, "the backfill still finds what is unmapped");
+  assert.equal(backfillRoleMap(d).scanned, 0);
+  d.close();
+});
+
+test("A123 (9) · server.js: the index is built by the warm-up before job_role_map, not by a migration before listen", () => {
+  const s = read("server.js");
+  const idx = at(s, 'BOOT.add("index: scraped_jobs (job_id, is_active)"');
+  assert.ok(idx < at(s, 'BOOT.add("job_role_map"'), "built before the backfill reads it");
+  assert.ok(at(s, "CREATE INDEX IF NOT EXISTS ${ACTIVE_JOB_INDEX} ON scraped_jobs(job_id, is_active)", idx) > idx);
+  assert.ok(!MIGRATIONS.some(m => m.sql.includes(ACTIVE_JOB_INDEX)), "a whole-table index build never holds the port");
+  assert.doesNotMatch(read("services/jobs/backfillRoleMap.js"), /ACTIVE_JOB_INDEX/, "not in a classifier-fingerprint file: touching one re-runs the 22k-row re-file");
+});
+
+test("A123 (9) · the logo repair walks rowid ranges from a mark; a settled board reads only rows inserted since", () => {
+  const d = migratedDb();
+  for (let i = 0; i < 7; i++) seed(d, `g${i}`, `Text ${i}.`);
+  d.prepare("UPDATE scraped_jobs SET company = 'Stripe', company_icon_url = 'https://logo.clearbit.com/stripe.com'").run();
+  const first = backfillCompanyLogosSlice(d, { rows: 3 });
+  assert.equal(first.scanned, 3);
+  assert.equal(first.done, false);
+  let r = first, n = 1;
+  while (!r.done) { r = backfillCompanyLogosSlice(d, { rows: 3 }); assert.ok(++n < 6); }
+  assert.equal(d.prepare("SELECT COUNT(*) AS n FROM scraped_jobs WHERE company_icon_url LIKE 'https://logo.clearbit.com/%'").get().n, 0);
+  const end = Number(d.prepare("SELECT value FROM app_settings WHERE key = ?").get(LOGO_WALK_KEY).value);
+  assert.equal(backfillCompanyLogosSlice(d, { rows: 3 }).scanned, 0, "settled: nothing re-read");
+  seed(d, "g-new", "New.");
+  d.prepare("UPDATE scraped_jobs SET company = 'Stripe', company_icon_url = 'https://logo.clearbit.com/stripe.com' WHERE job_id = 'g-new'").run();
+  const fresh = backfillCompanyLogosSlice(d, { rows: 3 });
+  assert.equal(fresh.scanned, 1);
+  assert.equal(fresh.updated + fresh.cleared, 1);
+  assert.ok(Number(d.prepare("SELECT value FROM app_settings WHERE key = ?").get(LOGO_WALK_KEY).value) > end);
+  assert.match(LOGO_WALK_KEY, /^company_logo_walk:[0-9a-f]{12}$/, "the key carries the retired-host list");
+  const s = read("server.js");
+  const step = at(s, 'BOOT.add("company logo urls"');
+  assert.ok(at(s, "backfillCompanyLogosSlice(db, { rows: LOGO_SLICE_ROWS })", step) > step);
+  assert.match(s, /if \(!logoFill\.done\) setTimeout\(slice, 50\)\.unref\(\)/);
+  d.close();
+});

@@ -19,7 +19,7 @@ const quiet = { log() {}, error() {}, warn() {} };
 // Every whole-board pass that used to run before the listener. Each must appear ONLY inside a BOOT.add(...) step
 // (or a function the warm-up / an interval calls), never as a bare statement of module evaluation.
 const BOARD_PASSES = ["backfillCategories(db)", "backfillAutomationTier(db)", "backfillProvenanceSlice(db, { rows: PROVENANCE_SLICE_ROWS })",
-  "backfillRoleMap(db)", "remapGeneralRows(db, { skipIfSettled: true })", "backfillCompanyLogos(db)"];   // 44r: the re-file skips when settled · 44t A123 (8): provenance is a rowid walk
+  "backfillRoleMap(db)", "remapGeneralRows(db, { skipIfSettled: true })", "backfillCompanyLogosSlice(db, { rows: LOGO_SLICE_ROWS })"];   // 44r: the re-file skips when settled · 44t A123 (8): provenance is a rowid walk · A123 (9): the logo repair too
 
 test("d151NoBoardPassBeforeListen: each board pass is called only inside a BOOT.add warm-up step", () => {
   for (const call of BOARD_PASSES) {

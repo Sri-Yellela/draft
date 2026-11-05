@@ -28,7 +28,9 @@
  */
 "use strict";
 
+import { createHash } from "node:crypto";
 import { getKnownLogoUrl, isKnownLogoUrlHost } from "../../shared/companyLogos.js";
+import { nextRowidRange } from "./rowidWalk.js";
 
 /**
  * Hosts this module has produced in the past and no longer does. A row pointing at one of these
@@ -66,7 +68,38 @@ function backfillCompanyLogos(db, { all = false } = {}) {
     FROM scraped_jobs
     WHERE company_icon_url IS NOT NULL
   `).all();
+  return repairLogoRows(db, rows, { all });
+}
 
+/**
+ * ⛔ A123 (9) (11-05) · THE BOOT'S REPAIR WALKS THE BOARD IN ROWID RANGES FROM A HIGH-WATER MARK (rowidWalk.js, A123 (8)).
+ * `company_icon_url IS NOT NULL` has no index and the column sits after `description`, so the whole-table form read
+ * every row's overflow chain on every boot to find nothing (3.1–3.2 s on production's last boots, warm behind the steps
+ * before it; 11.8 s on the 82k copy cold) — and with job_role_map's cold read gone (A123 (9)) it would have been the next
+ * cold whole-table step. A slice reads `rows` consecutive rowids; the mark is kept in app_settings under a key carrying
+ * the retired-host list, so retiring another provider starts a fresh walk. A settled board reads only the rows inserted
+ * since the last boot — no writer produces a retired host any more, so an older row cannot gain one.
+ * The admin script (`{ all: true }`) still reads the whole column.
+ */
+const LOGO_WALK_KEY = `company_logo_walk:${createHash("sha1").update(RETIRED_LOGO_HOSTS.join("\n")).digest("hex").slice(0, 12)}`;
+
+function backfillCompanyLogosSlice(db, { rows = 500 } = {}) {
+  const get = db.prepare("SELECT value FROM app_settings WHERE key = ?");
+  const from = Number(get.get(LOGO_WALK_KEY)?.value) || 0;
+  const range = nextRowidRange(db, from, rows);
+  let res = { scanned: 0, updated: 0, cleared: 0, kept: 0 };
+  db.transaction(() => {
+    if (range.to > from) {
+      res = repairLogoRows(db, db.prepare(`SELECT job_id, company, company_icon_url FROM scraped_jobs
+        WHERE company_icon_url IS NOT NULL AND rowid > ? AND rowid <= ?`).all(from, range.to), { all: false });
+    }
+    db.prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, unixepoch())
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`).run(LOGO_WALK_KEY, String(Math.max(from, range.to)));
+  })();
+  return { ...res, from, to: Math.max(from, range.to), done: !range.more };
+}
+
+function repairLogoRows(db, rows, { all }) {
   const update = db.prepare("UPDATE scraped_jobs SET company_icon_url = ? WHERE job_id = ?");
   let updated = 0, cleared = 0, kept = 0;
 
@@ -91,4 +124,4 @@ function backfillCompanyLogos(db, { all = false } = {}) {
   return { scanned: rows.length, updated, cleared, kept };
 }
 
-export { backfillCompanyLogos, isRetiredLogoUrl, RETIRED_LOGO_HOSTS };
+export { backfillCompanyLogos, backfillCompanyLogosSlice, LOGO_WALK_KEY, isRetiredLogoUrl, RETIRED_LOGO_HOSTS };
