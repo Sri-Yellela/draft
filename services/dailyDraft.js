@@ -199,10 +199,60 @@ export function orderByAts(cards, scoreFor) {
   return keyed.map(k => k.c);
 }
 
+/**
+ * ⛔ A126 (9) (owner 11-05: "theres a job with higher match sitting in the postings while the deck stagnates with a
+ * different job with a lower score") · TODAY'S DEAL IS RE-DEALT WHEN THE BOARD NOW HOLDS A BETTER MATCH. The deal was
+ * frozen at the day's first open; the match queue (A126 (7)) keeps scoring postings after that, so a 90 % match could
+ * land on the board while the deck held a 66 % one all day. The cards the person DECIDED (drafted / passed / saved) stay
+ * — they are the day's record; the undecided slots are re-picked from the board's first page (its own fit order,
+ * selectDeal's rules) and written only when the best new pick out-scores the weakest undecided card. The caller
+ * throttles (server.js); `reshuffled: true` tells the client to play the re-deal.
+ */
+async function redealIfBetter(db, { userId, profileId, date, rows, fetchBoardPage, reportFor, size, scoreFor }) {
+  const decisions = decisionsFor(db, userId, rows.map(r => r.job_id));
+  const kept = rows.filter(r => decisions[r.job_id]);
+  const open = rows.filter(r => !decisions[r.job_id]);
+  const slots = Math.max(0, size - kept.length);
+  if (!slots) return null;
+  const r = await fetchBoardPage(null);
+  if (!r?.ok) return null;
+  const exclude = new Set([...decidedJobIds(db, userId), ...kept.map(k => k.job_id)]);
+  const fresh = selectDeal(r.jobs || [], { decided: exclude, size: slots });
+  if (!fresh.length) return null;
+  const score = (id) => { const v = scoreFor(id); return Number.isFinite(v) ? v : -1; };
+  const openIds = new Set(open.map(o => o.job_id));
+  const newcomers = fresh.filter(c => !openIds.has(c.job.id));
+  if (!newcomers.length) return null;
+  const weakestOpen = open.length ? Math.min(...open.map(o => score(o.job_id))) : -1;
+  const bestNew = Math.max(...newcomers.map(c => score(c.job.id)));
+  if (open.length >= slots && bestNew <= weakestOpen) return null;
+  const insert = db.prepare(
+    `INSERT INTO daily_drafts (user_id, profile_id, draft_date, position, job_id, band, card_json) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+  db.transaction(() => {
+    db.prepare("DELETE FROM daily_drafts WHERE user_id = ? AND profile_id = ? AND draft_date = ?").run(userId, profileId, date);
+    let pos = 0;
+    for (const k of kept) insert.run(userId, profileId, date, pos++, k.job_id, k.band, k.card_json);
+    for (const c of fresh) {
+      const report = reportFor(c.job.id);
+      insert.run(userId, profileId, date, pos++, c.job.id, c.band, JSON.stringify({ job: c.job, why: whyFromReport(report), report: deckReport(report) }));
+    }
+  })();
+  return { replaced: newcomers.length, bestNew, weakestOpen };
+}
+
 export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, reportFor = () => null, size = DECK_SIZE,
-                                       order = "dealt", scoreFor = () => null, betFor = null }) {
+                                       order = "dealt", scoreFor = () => null, betFor = null, refresh = false }) {
   let rows = readDeal(db, userId, profileId, date);
   let dealtNow = false;
+  let reshuffled = false;
+  if (rows.length && refresh) {
+    try {
+      if (await redealIfBetter(db, { userId, profileId, date, rows, fetchBoardPage, reportFor, size, scoreFor })) {
+        rows = readDeal(db, userId, profileId, date);
+        reshuffled = true;
+      }
+    } catch { /* a failed re-deal leaves the day's deal as it was */ }
+  }
   if (!rows.length) {
     const decided = decidedJobIds(db, userId);
     const picked = [];
@@ -239,7 +289,7 @@ export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, 
   if (betFor) for (const c of dealtCards) { try { c.bestBet = betFor(c.job) ?? null; } catch { c.bestBet = null; } }
   const cards = order === "ats" ? orderByAts(dealtCards, scoreFor) : order === "best" ? orderByBest(dealtCards) : dealtCards;
   return {
-    date, profileId, size: cards.length, dealtNow, cards, order: order === "ats" || order === "best" ? order : "dealt",
+    date, profileId, size: cards.length, dealtNow, reshuffled, cards, order: order === "ats" || order === "best" ? order : "dealt",
     thin: cards.length > 0 && cards.length < size,
     ...(cards.length === 0 ? { reason: "empty" } : cards.length < size ? { reason: "thin" } : {}),
   };

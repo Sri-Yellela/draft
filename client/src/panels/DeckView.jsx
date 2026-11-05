@@ -25,6 +25,7 @@
 // the leaving element. ⛔ Every motion honours prefers-reduced-motion — from ONE MotionConfig, so a
 // new transition cannot forget it. ⛔ Colours are tokens only; the card shows a band and never a number.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useSyncEvents } from "../hooks/useSyncEvents.js";
 import { AnimatePresence, MotionConfig, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
@@ -772,12 +773,22 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
         return;
       }
       scoringTries.current = 0;
+      const shown = held || lastGoodDeck.get(cacheKey);
       lastGoodDeck.set(cacheKey, deck);
       rememberDeck(cacheKey, deck);
+      // ⛔ A126 (9) · NOTHING CHANGED → NOTHING MOVES. A refresh that answers the same cards in the same order keeps the
+      // deck exactly as it is (the card you are on, your decisions); before, every refresh re-built the deck from its
+      // first card — the "choppy" re-render on every return to Home.
+      const sameCards = shown && loadStatusRef.current === "ready" && Array.isArray(shown.cards)
+        && shown.cards.length === deck.cards.length && shown.cards.every((c, i) => c?.job?.id === deck.cards[i]?.job?.id);
+      if (sameCards) { setLoad({ status: "ready", error: null }); return; }
       dispatch({ type: "__replace", state: initialDeck(deck) });
       // ⛔ The deal plays on the day's FIRST open only — the server says whether this request dealt.
       // Once per day, not per navigation, or the signal that today's draft is new means nothing.
-      setDealing(!!deck.dealtNow);
+      // ⭐ A126 (9): and when the server RE-DEALT today's undecided cards (a better match landed): the same deal animation —
+      // the new cards fly in from the deck, the replaced ones fade out (AnimatePresence) — never a jump cut.
+      setDealing(!!deck.dealtNow || !!deck.reshuffled || reshuffleNextRef.current);
+      reshuffleNextRef.current = false;
       setLoad({ status: "ready", error: null });
     } catch (e) {
       // ⭐ 44p (precomputeFailureShowsLastGood): today's last good deal, if this tab has one, stays on screen with a
@@ -795,6 +806,30 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     }
   }, [deckOrder]);
   useEffect(() => { fetchDeck(); }, [fetchDeck]);
+  // ⭐ A126 (9) · LIVE, WHEN READY: the match queue scored more of the board (`board_scored`) — ask for today's deal again
+  // (the server re-deals at most every 3 minutes, and only for a better match). Debounced 30 s; never while a card is
+  // open or a decision is in flight, so the deck does not change under a gesture — it tries again after.
+  const deckBusyRef = useRef(false);
+  // The server re-dealt in the background (`deck_reshuffled`): the next answer is a new deal — play the deal for it.
+  const reshuffleNextRef = useRef(false);
+  const deckRefreshTimer = useRef(null);
+  useEffect(() => () => clearTimeout(deckRefreshTimer.current), []);
+  const queueDeckRefresh = useCallback(() => {
+    clearTimeout(deckRefreshTimer.current);
+    deckRefreshTimer.current = setTimeout(() => {
+      if (deckBusyRef.current) { queueDeckRefresh(); return; }
+      fetchDeck();
+    }, 30_000);
+  }, [fetchDeck]);
+  useSyncEvents({
+    board_scored: () => queueDeckRefresh(),
+    deck_reshuffled: () => {
+      reshuffleNextRef.current = true;
+      clearTimeout(deckRefreshTimer.current);
+      const go = () => { if (deckBusyRef.current) { deckRefreshTimer.current = setTimeout(go, 2000); return; } fetchDeck(); };
+      go();
+    },
+  });
   // D156 (6): the remembered deal carries the decisions made on it since, so a reload that cannot reach the server
   // never shows a passed or drafted card as undecided.
   useEffect(() => {
@@ -811,6 +846,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   }, [dealing]);
 
   const s = state;
+  deckBusyRef.current = !!expanded || !!s.flight;
   const current = s.cards[s.index];
   const order = useMemo(() => fanOrder(s), [s]);
   const tally = counts(s);

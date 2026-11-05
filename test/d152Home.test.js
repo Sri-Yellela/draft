@@ -177,7 +177,7 @@ test("d152DeckFromBestBets: the 'best' read orders the frozen deal by each card'
   const route = srv.slice(at(srv, 'app.get("/api/draft/today"'), at(srv, "// GET /api/company-logo/:key"));
   assert.match(route, /const betFor = \(job\) => bestBetOf\(bestBetSignalsFor\(db, \{ userId: req\.user\.id, profileId: profile\.id, job: \{ id: job\.id \}, \.\.\.betInputs \}\)\);/,
     "the route reads each card through the ONE best-bets function");
-  assert.match(route, /todaysDeck\(db, \{[^}]*betFor \}\)/);
+  assert.match(route, /todaysDeck\(db, \{[^}]*betFor, refresh: false \}\)/);
   const order = read("client/src/lib/deckOrder.js");
   assert.match(order, /catch \{ return "best"; \}/, "best bets is the deck's default order");
 });
