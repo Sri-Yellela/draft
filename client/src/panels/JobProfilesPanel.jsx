@@ -17,6 +17,9 @@ export function JobProfilesPanel() {
   const { theme } = useTheme();
   const { setActiveProfileId, deleteProfileCache } = useJobBoard() || {};
   const [profiles, setProfiles] = useState([]);
+  // ⛔ D156 (6) · "loading" | "ready" | "error": "No job profiles yet" only when the read SUCCEEDED and found none — a read
+  // the server did not answer is said as such, with Try again (d156FailedReadNeverShownAsMissing).
+  const [profilesState, setProfilesState] = useState("loading");
   const [status, setStatus] = useState("");
   const [wizardMode, setWizardMode] = useState(null);
   const [editingProfile, setEditingProfile] = useState(null);
@@ -31,12 +34,14 @@ export function JobProfilesPanel() {
 
   const loadProfiles = useCallback(async () => {
     try {
-      const rows = await api("/api/domain-profiles");
+      const rows = await api("/api/domain-profiles", { timeoutMs: 10000 });
       const next = Array.isArray(rows) ? rows : [];
       setProfiles(next);
+      setProfilesState("ready");
       const active = next.find(p => p.is_active) || next[0];
       if (active) setActiveProfileId?.(active.id);
     } catch (e) {
+      setProfilesState(s => (s === "ready" ? s : "error"));
       setStatus(e.message || "Could not load job profiles");
     }
   }, [setActiveProfileId]);
@@ -330,7 +335,25 @@ export function JobProfilesPanel() {
           })}
         </TileGrid>
 
-        {profiles.length === 0 && (
+        {profilesState === "error" && profiles.length === 0 && (
+          <div role="alert" data-profiles-read-failed="" style={{
+            border:`1px dashed ${"var(--color-border)"}`,
+            background:"var(--color-surface)",
+            borderRadius:16,
+            padding:"28px",
+            textAlign:"center",
+            color:"var(--color-text-muted)",
+          }}>
+            We couldn't load your job profiles — draft didn't answer in time. Nothing is lost.{" "}
+            <button type="button" onClick={() => { setProfilesState("loading"); loadProfiles(); }}
+              style={{ background:"none", border:0, padding:0, cursor:"pointer", fontWeight:700,
+                       color:"var(--c-accent-ink)", textDecoration:"underline" }}>
+              Try again
+            </button>
+          </div>
+        )}
+
+        {profilesState === "ready" && profiles.length === 0 && (
           <div style={{
             border:`1px dashed ${"var(--color-border)"}`,
             background:"var(--color-surface)",

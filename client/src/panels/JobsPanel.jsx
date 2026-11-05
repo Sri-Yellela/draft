@@ -1324,6 +1324,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const prefetchedRef = useRef(new Set());
   const [categories,  setCategories]  = useState([]);
   const [resumeText,  setResumeText]  = useState("");
+  // ⛔ D156 (6) · "loading" | "ready" | "error" for the active profile's base-résumé read. "Sorting by fit needs this
+  // profile's base resume — Add one" only when the read SUCCEEDED and found none: production 11-05 showed it to a user who
+  // has one, because a read the blocked server never answered landed in a catch that cleared the text.
+  const [resumeState, setResumeState] = useState("loading");
+  const [resumeTry, setResumeTry] = useState(0);
   const [fileName,    setFileName]    = useState("");
   const [uploading,   setUploading]   = useState(false);
   const [generated,   setGenerated]   = useState({});
@@ -2716,23 +2721,32 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       setFileName("");
       setEnhanceUsed(false);
       setEnhancePaid(false);
+      setResumeState("loading");   // no profile yet: nothing has been read, so nothing is "missing"
       return;
     }
+    let live = true;
+    setResumeState("loading");
     Promise.all([
-      api(activeProfileResumePath),
-      api(activeProfileEnhanceStatusPath),
+      api(activeProfileResumePath, { timeoutMs: 10000 }),
+      api(activeProfileEnhanceStatusPath, { timeoutMs: 10000 }),
     ]).then(([resume, status]) => {
+      if (!live) return;
+      setResumeState("ready");
       setResumeText(resume?.content || "");
       setFileName(resume?.name || (resume?.content ? "Saved resume" : ""));
       setEnhanceUsed(!!status?.enhanceUsed);
       setEnhancePaid(!!status?.enhancePaid);
     }).catch(() => {
+      if (!live) return;
+      // D156 (6): a failed read is an error, never "no résumé" — the notice says it could not be read and offers Try again.
+      setResumeState("error");
       setResumeText("");
       setFileName("");
       setEnhanceUsed(false);
       setEnhancePaid(false);
     });
-  }, [user, activeProfileResumePath, activeProfileEnhanceStatusPath]);
+    return () => { live = false; };
+  }, [user, activeProfileResumePath, activeProfileEnhanceStatusPath, resumeTry]);
 
   // Bulk-import completion effect removed in cleanup 5.3. `extensionState` is a hardcoded
   // { status: "IDLE" } literal, so neither branch could ever run — it watched for DONE/ERROR
@@ -3294,6 +3308,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         text = (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value;
       } else { text = await file.text(); }
       setResumeText(text);
+      setResumeState("ready");
       await api(activeProfileResumePath, { method:"POST", body:JSON.stringify({ content:text, name:file.name }) });
     } catch(err) {
       setUploadError("Error: " + err.message);
@@ -4019,6 +4034,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               profileName={activeDomainProfile?.profile_name || null}
               curation={curation}
               canRankByFit={canRankByFit}
+              resumeReadState={resumeState} onRetryResume={() => setResumeTry(n => n + 1)}
               onAddResume={() => navigate("/app/job-profiles")}
               curateOff={curateOff}
               onToggleCurate={toggleCuration}
@@ -4104,6 +4120,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               profileName={activeDomainProfile?.profile_name || null}
               curation={curation}
               canRankByFit={canRankByFit}
+              resumeReadState={resumeState} onRetryResume={() => setResumeTry(n => n + 1)}
               onAddResume={() => navigate("/app/job-profiles")}
               curateOff={curateOff}
               onToggleCurate={toggleCuration}
@@ -4263,7 +4280,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       activeFilterCount = 0, onClearFilters,
                       searchActive = false, profileName = null,
                       curation = null, curateOff = false, onToggleCurate, boardReason = null,
-                      emptyReason = null, canRankByFit = true, onAddResume,
+                      emptyReason = null, canRankByFit = true, onAddResume, resumeReadState = "ready", onRetryResume,
                       savedTab = false, importedTab = false, boardLoading = false,
                       cardTier = 1, containerRef, post = null }) {
   // ⛔ D45: never while the current view is still loading — "nothing here" when the truth is "not here yet"
@@ -4308,7 +4325,8 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
       {/* Rendered OUTSIDE the empty/non-empty branch on purpose: the bridge can narrow a board to a
           short list or to nothing at all, and both need to say so. Left inside the non-empty branch
           it would go silent in the very case where the user has least to go on. */}
-      <FitRankingNotice theme={theme} show={!canRankByFit} onAddResume={onAddResume}/>
+      <FitRankingNotice theme={theme} show={!canRankByFit && resumeReadState !== "loading"}
+        failed={resumeReadState === "error"} onRetry={onRetryResume} onAddResume={onAddResume}/>
       {/* ⭐ D40: the + view's head — Import jobs and the extension page; the list below is ALL's own cards. */}
       {importedTab && <ImportedHeader theme={theme}/>}
       {boardLoading ? (
@@ -4513,10 +4531,24 @@ function PagingEmptyState({ theme, reason, onFirstPage }) {
 //
 // ⚠ DELIBERATELY NOT A BLOCKER AND NOT A MODAL. One line, above a board that works. The old gate's
 // mistake was treating an optional refinement as a prerequisite.
-function FitRankingNotice({ theme, show, onAddResume }) {
+function FitRankingNotice({ theme, show, failed = false, onRetry, onAddResume }) {
   const { theme: t } = useTheme();
   const th = theme || t;
   if (!show) return null;
+  // ⛔ D156 (6) · d156FailedReadNeverShownAsMissing: a read that failed says so — never "Add one" to a user who may have one.
+  if (failed) return (
+    <div role="status" data-resume-read-failed="" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+                  padding: "6px 14px", fontSize: 11, color: th.textDim }}>
+      <span>We couldn't load this profile's résumé — draft didn't answer in time. Sorting by fit waits for it.</span>
+      {onRetry && (
+        <button type="button" onClick={onRetry}
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer",
+                   color: "var(--c-accent-ink)", fontSize: 11, fontWeight: 700, textDecoration: "underline" }}>
+          Try again
+        </button>
+      )}
+    </div>
+  );
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
                   padding: "6px 14px", fontSize: 11, color: th.textDim }}>

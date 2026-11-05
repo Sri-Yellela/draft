@@ -118,7 +118,7 @@ test("44p · deckNeverSpinsForever — the deck's request has a timeout and a fa
 test("44p · precomputeFailureShowsLastGood — a failed refresh keeps today's last good deal on screen, saying so", () => {
   const deck = read("client/src/panels/DeckView.jsx");
   assert.match(deck, /lastGoodDeck\.set\(cacheKey, deck\)/);
-  assert.match(deck, /const last = lastGoodDeck\.get\(cacheKey\);[\s\S]{0,300}stale:/);
+  assert.match(deck, /const last = lastGoodDeck\.get\(cacheKey\);[\s\S]{0,500}stale:/);   // D156 (6): +the "keep the picks on screen" guard
   assert.match(deck, /data-deck-stale[\s\S]{0,400}Try again/);
 });
 
