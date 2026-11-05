@@ -10,6 +10,12 @@
 //
 // A range of `rows` consecutive rowids is a primary-key range read: bounded work, whatever the board's size.
 // `{ from, to }` is (from, to]; `more` says whether rows exist past `to`.
+// ⛔ A123 (9) (11-05) · the index the boot's "active and unmapped" read relies on (server.js builds it in the warm-up):
+// (job_id, is_active), so backfillRoleMap's UNMAPPED_SQL scan in job_id order tests is_active from the index instead of
+// fetching every row (is_active sits after `description`). Named here, not in backfillRoleMap.js: that file is part of
+// the classifier fingerprint (remapGeneralRoles.js), and touching it re-runs the 22k-row 'general' re-file on the next boot.
+export const ACTIVE_JOB_INDEX = "idx_scraped_jobs_job_active";
+
 export function nextRowidRange(db, from, rows) {
   const start = Number(from) || 0;
   const to = db.prepare("SELECT rowid AS r FROM scraped_jobs WHERE rowid > ? ORDER BY rowid LIMIT 1 OFFSET ?").get(start, Math.max(1, rows) - 1)?.r

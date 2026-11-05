@@ -265,14 +265,14 @@ import { tagStaleJobs } from "./services/jobs/jobTags.js";
 import { readStaleLevels, levelOfRow } from "./services/jobs/levelRead.js";
 import { backfillDescriptionText, withPostingText, refreshDescriptionText, postingText, registerDescriptionBasis, sweepStaleDescriptionBasis } from "./services/jobs/descriptionText.js";
 import { backfillProvenanceSlice } from "./services/jobs/enrichmentProvenance.js";
-import { nextRowidRange } from "./services/jobs/rowidWalk.js";
+import { nextRowidRange, ACTIVE_JOB_INDEX } from "./services/jobs/rowidWalk.js";
 import { listPairs as listLearnedPairs, setPairRevoked, setPairPromoted, PROMOTE_AT_USERS } from "./services/learnedOrigins.js";
 import { CRAWLER_PAGE_HTML } from "./services/crawlerPage.js";
 import { resolvePlaceText, roleScopeExtra } from "./shared/jobTagVocabulary.js";
 import { userReferencedSql } from "./services/jobs/userReferences.js";
 import { deliverPipelineAlerts } from "./services/jobs/alertDelivery.js";
 import { recordPipelineRun } from "./services/jobs/pipelineRunLog.js";
-import { backfillCompanyLogos } from "./services/jobs/backfillCompanyLogos.js";
+import { backfillCompanyLogosSlice } from "./services/jobs/backfillCompanyLogos.js";
 // A77 — per-company logos, resolved during enrichment and stored first-party.
 import { resolveCompanyLogos, resolveCaptureLogo, storedLogo } from "./services/jobs/companyLogoStore.js";
 import { deriveProfileFilters } from "./services/jobs/profileFilterBridge.js";
@@ -6751,6 +6751,18 @@ console.log(`[boot] database ready: ${DB_PATH}`);
 BOOT.add("index: scraped_jobs.scraped_at", () => {
   db.exec("CREATE INDEX IF NOT EXISTS idx_scraped_jobs_scraped_at ON scraped_jobs(scraped_at)");
 });
+// ⛔ A123 (9) (11-05) · job_role_map's "active postings with no bucket" read (backfillRoleMap UNMAPPED_SQL, ORDER BY
+// job_id) scanned the job_id key and fetched EVERY row to test is_active — which sits after `description`, so on a cold
+// volume it read all 83,623 rows' overflow chains to find nothing: 36.2 s / 36.4 s of production's last two boots. With
+// (job_id, is_active) the scan reads the index alone and touches the table only for an unmapped row (10.5 s → 142 ms on
+// the 82k copy; the 'general' re-file's read 10.8 s → 2.6 s). ⚠ NOT (is_active, job_id): with it the planner moved the
+// category backfill (is_active = 1 AND board_category IS NULL) off its board_category index (3 ms → 513 ms warm, a
+// whole-table read cold) — an active-row filter with a sharper index of its own must keep it. Built here, after listen,
+// for the scraped_at index's reason: the build reads every row once (≈ the cold read it replaces, on one boot only);
+// IF NOT EXISTS is instant after.
+BOOT.add("index: scraped_jobs (job_id, is_active)", () => {
+  db.exec(`CREATE INDEX IF NOT EXISTS ${ACTIVE_JOB_INDEX} ON scraped_jobs(job_id, is_active)`);
+});
 BOOT.add("posting categories", () => {
   const cat = backfillCategories(db);
   if (cat.classified) console.log(`[boot] posting categories: ${cat.classified} classified, ${cat.held} held`);
@@ -7019,16 +7031,24 @@ try {
 // renders CompanyIcon's lettered tile, so failing the boot over it would trade a missing image for
 // an outage. Offline — no HEAD request — because a boot path that waits on a third party is a boot
 // path that hangs when that third party is precisely what broke.
-BOOT.add("company logo urls", () => { try {
-  const logoFill = backfillCompanyLogos(db);
-  if (logoFill.updated > 0 || logoFill.cleared > 0) {
-    console.log(`[boot] company_icon_url repaired: ${logoFill.updated} repointed, ` +
-      `${logoFill.cleared} cleared to NULL, ${logoFill.kept} feed-supplied left untouched ` +
-      `(of ${logoFill.scanned} scanned)`);
-  }
-} catch (e) {
-  console.error("[boot] company_icon_url backfill failed (board falls back to lettered tiles):", e.message);
-} });
+// ⛔ A123 (9) (11-05) · A ROWID WALK FROM A HIGH-WATER MARK, as the provenance step: the whole-column read
+// (company_icon_url IS NOT NULL, no index, after `description`) was 3.2 s of every production boot and the next cold
+// whole-table read once job_role_map's was gone. The warm-up runs the first slice; the rest run after it, 50 ms apart.
+const LOGO_SLICE_ROWS = 500;
+BOOT.add("company logo urls", () => {
+  const slice = () => { try {
+    const logoFill = backfillCompanyLogosSlice(db, { rows: LOGO_SLICE_ROWS });
+    if (logoFill.updated > 0 || logoFill.cleared > 0) {
+      console.log(`[boot] company_icon_url repaired: ${logoFill.updated} repointed, ` +
+        `${logoFill.cleared} cleared to NULL, ${logoFill.kept} feed-supplied left untouched ` +
+        `(of ${logoFill.scanned} scanned, rowid ${logoFill.from}–${logoFill.to})`);
+    }
+    if (!logoFill.done) setTimeout(slice, 50).unref();
+  } catch (e) {
+    console.error("[boot] company_icon_url backfill failed (board falls back to lettered tiles):", e.message);
+  } };
+  slice();
+});
 
 // A77 — resolve and STORE each company's logo (services/jobs/companyLogoStore.js). In the background,
 // never at boot's expense: 20 s after start, then every 6 hours, 40 companies a pass. COMPANY_LOGOS=off
