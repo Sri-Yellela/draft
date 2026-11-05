@@ -2072,7 +2072,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       // ⛔ D57: a résumé stored on an earlier visit (`__exists__`) is VIEWED and DOWNLOADED from the
       // store — never a dead Preview, and never "Regenerate" as the only way back to it.
       onViewSandbox: () => {
-        if (g2?.html === "__exists__") { generate(selectedJob, false); return; }
+        if (g2?.html === "__exists__") { viewStoredResume(selectedJob, g2.tool); return; }
         const e2 = { ...g2, company: g2?.company || selectedJob.company, title: g2?.title || selectedJob.title };
         openSandbox(e2); openAtsPanel(buildAtsPayload(selectedJob, g2), selectedJob);
       },
@@ -3389,34 +3389,43 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     } finally { setUploading(false); }
   }, [activeProfileResumePath]);
 
+  // -- A stored résumé, opened from the store ----------------
+  // ⛔ e2e 11-05 (step 3): VIEWING A STORED RÉSUMÉ IS NOT GENERATING ONE. "View résumé" on a résumé stored on an
+  // earlier visit (`__exists__`) used to go through generateActual, which returns silently unless the plan may
+  // generate AND the profile's base résumé text has loaded — so right after a page load (the text still in flight),
+  // or on a plan without Generate, the button did nothing at all. Reading your own stored résumé needs neither.
+  const viewStoredResume = useCallback(async (job, tool = "generate") => {
+    tool = normalizeTool(tool);
+    const key = job.jobId, existing = generated[key];
+    if (loading[key]) { return; }
+    setLoading(p => ({ ...p, [key]: tool }));
+    try {
+      const d = await api(`/api/resumes/${encodeURIComponent(key)}`);
+      const entry = buildArtifact(job, { html: d.html, ats_score: d.ats_score, base_ats_score: d.base_ats_score, atsReport: d.atsReport, company: d.company, role: d.role, tool,
+        generatedAt: existing?.generatedAt ?? null }, tool);
+      setGenerated(p => ({ ...p, [key]: entry }));
+      openSandbox({ ...entry, company: entry.company, title: entry.title });
+      openAtsPanel(buildAtsPayload(job, entry), job);
+    } catch(e) {
+      setSandbox({ generating: false, status:"missing", missing:true, error: e.message, company: job.company, title: job.title });
+    }
+    finally { setLoading(p => { const n = {...p}; delete n[key]; return n; }); }
+  }, [generated, loading, openSandbox]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // -- Generate (actual logic) -------------------------------
   const generateActual = useCallback(async (job, force = false, skipCompanyCheck = false, tool = "generate") => {
     tool = normalizeTool(tool);
+    const key = job.jobId, existing = generated[key];
+    // A stored résumé is opened, never gated on the generate checks below (viewStoredResume).
+    if (existing?.html === "__exists__" && existing.tool === tool && !force) { await viewStoredResume(job, tool); return; }
     if (tool === A_PLUS_TOOL ? !canUseAPlusResume : !canUseGenerate) { return; }
     if (!resumeText)            { return; }
-    const key = job.jobId, existing = generated[key];
     if (loading[key]) { return; }
     const existingArtifact = getActiveArtifact(existing, tool);
     if (existingArtifact?.html && existingArtifact.html !== "__exists__" && !force) {
       const entry = {...existing, ...existingArtifact, company:existingArtifact.company||job.company, title:existingArtifact.title||job.title};
       openSandbox(entry);
       openAtsPanel(buildAtsPayload(job, existing), job);
-      return;
-    }
-    if (existing?.html === "__exists__" && existing.tool === tool && !force) {
-      // Resume exists in DB but not in memory — fetch on demand
-      setLoading(p => ({ ...p, [key]: tool }));
-      try {
-        const d = await api(`/api/resumes/${key}`);
-        const entry = buildArtifact(job, { html: d.html, ats_score: d.ats_score, base_ats_score: d.base_ats_score, atsReport: d.atsReport, company: d.company, role: d.role, tool,
-          generatedAt: existing.generatedAt ?? null }, tool);
-        setGenerated(p => ({ ...p, [key]: entry }));
-        openSandbox({ ...entry, company: entry.company, title: entry.title });
-        openAtsPanel(buildAtsPayload(job, entry), job);
-      } catch(e) {
-        setSandbox({ generating: false, status:"missing", missing:true, error: e.message, company: job.company, title: job.title });
-      }
-      finally { setLoading(p => { const n = {...p}; delete n[key]; return n; }); }
       return;
     }
 
@@ -3463,7 +3472,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       setGenStage("");
       setLoading(p => { const n = {...p}; delete n[key]; return n; });
     }
-  }, [resumeText, generated, loading, canUseGenerate, canUseAPlusResume, openSandbox]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [resumeText, generated, loading, canUseGenerate, canUseAPlusResume, openSandbox, viewStoredResume]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -- Generate (with company-reuse check) ------------------
   const generate = useCallback(async (job, force = false, tool = "generate") => {

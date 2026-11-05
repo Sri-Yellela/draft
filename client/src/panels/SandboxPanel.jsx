@@ -524,7 +524,7 @@ export default function SandboxPanel({
                               background:"var(--color-primary-muted)", color:"var(--color-primary-text)",
                               fontSize:10, fontWeight:700, flexShrink:0 }}>
                   <span>Reading view reflows to the panel width — page breaks are not shown. Switch to Page view to edit and format.</span>
-                  <button onClick={() => setViewMode("page")}
+                  <button onClick={() => setViewChoice("page")}
                     style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer",
                              color:"inherit", fontSize:10, fontWeight:800, textDecoration:"underline" }}>
                     Page view

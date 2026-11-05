@@ -13993,7 +13993,10 @@ app.post("/api/resumes/:jobId/html", requireAuth, (req, res) => {
 });
 app.post("/api/resumes/:jobId/keep", requireAuth, (req, res) => {
   const tool = req.body?.tool === "a_plus_resume" ? "a_plus_resume" : "generate";
-  const version = Number.isFinite(Number(req.body?.version)) ? Number(req.body.version) : null;
+  // ⛔ e2e 11-05: `version: null` (every résumé opened from the store) is "no version", not 0 — Number(null) is 0, so
+  // the lookup asked for version 0, found nothing, and every PDF export of a stored résumé answered 404.
+  const rawVersion = req.body?.version;
+  const version = rawVersion == null || rawVersion === "" ? null : (Number.isFinite(Number(rawVersion)) ? Number(rawVersion) : null);
   const row = db.prepare(`
     SELECT * FROM resume_versions
     WHERE user_id=? AND job_id=? AND tool_type=?
