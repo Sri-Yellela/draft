@@ -1975,7 +1975,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // job, no other jobs" for days (production 11-05: every visit logged total 12177 for ALL, then total 1 for the restored
     // + view, which landed last). Filters, search and sort are still restored; the view is the person's click each time.
     setBoardTab(viewFromUrl() || "all");
-    setLocalSearch(snapshot.localSearch || "");
+    // ⛔ A126 (6) (hotfix 11-05) · the saved SEARCH TEXT is NOT restored either. The search box shows only what is typed
+    // into it this visit (barFilters → localSearch; nothing writes localSearch back into the box), so a restored search
+    // was an INVISIBLE filter: the owner's profile had `localSearch: "micro1"` saved, and every Home load asked for
+    // `localSearch=micro1&job_functions=engineering` → the one micro1 posting, under an empty-looking search box.
+    setLocalSearch("");
     setSortBy(sortFromCachedSnapshot(snapshot));
     // Restore every committed filter through the single writer, and re-stage the drawer to match, so
     // reopening it shows the filters the board is actually applying. Hand-listing them here is what
