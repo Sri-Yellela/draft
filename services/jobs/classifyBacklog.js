@@ -29,6 +29,9 @@ export const CLASSIFY_PAGE_ROWS = 500;
 // transaction on the one thread. The writes now go in transactions of at most CLASSIFY_WRITE_CHUNK rows, with a yield
 // between chunks — the read stays one bounded page.
 export const CLASSIFY_WRITE_CHUNK = 50;
+// A132 · the page read's budget on the loop, and the smallest page the walk shrinks to (see createClassifyBacklog's step).
+export const READ_BUDGET_MS = 200;
+export const MIN_PAGE_ROWS = 50;
 
 const PAGE_SQL = `
   SELECT sj.job_id, sj.title, sj.company, sj.board_category, sj.tag_function, sj.tag_owner_json,
@@ -118,7 +121,7 @@ export function applyWrites(db, writes, c) {
  * with the final status. `schedule` is the yield (setImmediate by default; tests pass their own).
  */
 export function createClassifyBacklog(db, { pageRows = CLASSIFY_PAGE_ROWS, writeChunk = CLASSIFY_WRITE_CHUNK, schedule = (fn) => setImmediate(fn), log = console } = {}) {
-  let status = { state: "idle", runs: 0, pages: 0, ...emptyCounts(), startedAt: null, finishedAt: null, error: null, lastPageMs: 0, maxPageMs: 0, maxWriteMs: 0 };
+  let status = { state: "idle", runs: 0, pages: 0, ...emptyCounts(), startedAt: null, finishedAt: null, error: null, lastPageMs: 0, maxPageMs: 0, maxWriteMs: 0, maxReadMs: 0, pageRows };
   let running = null;
 
   const coverage = () => ({
@@ -129,7 +132,7 @@ export function createClassifyBacklog(db, { pageRows = CLASSIFY_PAGE_ROWS, write
   function run(trigger = "manual") {
     if (running) return running;
     status = { ...status, state: "running", trigger, runs: status.runs + 1, pages: 0, ...emptyCounts(),
-               startedAt: new Date().toISOString(), finishedAt: null, error: null, lastPageMs: 0, maxPageMs: 0, maxWriteMs: 0 };
+               startedAt: new Date().toISOString(), finishedAt: null, error: null, lastPageMs: 0, maxPageMs: 0, maxWriteMs: 0, maxReadMs: 0, pageRows };
     running = new Promise((resolve) => {
       let from = 0;
       const finish = (error) => {
@@ -143,13 +146,21 @@ export function createClassifyBacklog(db, { pageRows = CLASSIFY_PAGE_ROWS, write
         resolve(self.status());
       };
       // Each slice of work on the loop is one bounded read + its first write chunk, or one later write chunk.
+      // ⛔ A132 (production 10313b5, 11-06: maxPageMs 2,420 with maxWriteMs 0 — the READ, not the writes): board_category /
+      // tag_function were added by ALTER, so they sit after the description in every row and reading them walks its
+      // overflow pages — slow on the volume, invisible on a local SSD (181 ms). The page size ADAPTS: halved while a read
+      // takes longer than READ_BUDGET_MS (never below MIN_PAGE_ROWS), grown back toward `pageRows` while reads are fast.
+      let rows = pageRows;
       const step = () => {
         try {
           const t0 = Date.now();
-          const range = nextRowidRange(db, from, pageRows);
+          const range = nextRowidRange(db, from, rows);
           const plan = range.to > from ? classifyPage(db, range, { apply: false }) : { ...emptyCounts(), writes: [] };
+          const readMs = Date.now() - t0;
+          if (readMs > READ_BUDGET_MS && rows > MIN_PAGE_ROWS) rows = Math.max(MIN_PAGE_ROWS, Math.floor(rows / 2));
+          else if (readMs < READ_BUDGET_MS / 4 && rows < pageRows) rows = Math.min(pageRows, rows * 2);
           const { writes, ...c } = plan;
-          status = { ...status, pages: status.pages + 1,
+          status = { ...status, pages: status.pages + 1, maxReadMs: Math.max(status.maxReadMs || 0, readMs), pageRows: rows,
             active: status.active + c.active, shown: status.shown + c.shown, held: status.held + c.held,
             withFunction: status.withFunction + c.withFunction,
             unknownByCategory: addUnknown(status.unknownByCategory, c.unknownByCategory) };
