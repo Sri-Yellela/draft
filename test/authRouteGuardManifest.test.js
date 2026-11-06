@@ -239,6 +239,8 @@ const AUTHENTICATED = new Set([
   "GET /api/saved-answers/export",
   "POST /api/saved-answers/import",
   "POST /api/saved-answers/test",
+  // D165 (3): forget one of the caller's OWN scoped salary answers (user_profile.custom_answer_scoped).
+  "DELETE /api/saved-answers/scoped",
   // D96 §4 (J8): the answer lifecycle — the caller's OWN saved_answers / answer_history rows, always req.user.id.
   "POST /api/saved-answers/acknowledge",
   "POST /api/saved-answers/change",

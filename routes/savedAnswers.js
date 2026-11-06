@@ -16,6 +16,7 @@ import {
 import { buildPacketEntries } from "../services/applyGatePacket.js";
 import { buildStructuredResume } from "../services/resumeFormatter.js";
 import { SAVED_ANSWER_LIMITS, workHistoryCompanies } from "../shared/savedAnswers.js";
+import { readScoped, forgetScoped } from "../services/scopedAnswers.js";
 import {
   acknowledgeAnswer, changeAnswer, editLifecycleAnswer, deleteLifecycleAnswer, listLifecycle, reviewDueOf, recordReview,
   packetLifecycleAnswers, lifecycleInputs,
@@ -48,7 +49,21 @@ export function createSavedAnswersRouter({ db, requireAuth, buildAutofillPayload
       lifecycle: listLifecycle(db, userId),
       reviewDue: reviewDueOf(db, userId),
       limits: SAVED_ANSWER_LIMITS,
+      // ⛔ D165 (3): the salary answers saved per role + location (migration 222), each { question, answer, kind,
+      // roleKey, locationKey, savedAt } — roleKey / locationKey null = open. Additive: every key above is unchanged.
+      scoped: readScoped(profileOf(userId)),
     });
+  });
+
+  /** D165 (3): forget one scoped salary answer. Body: { question, roleKey?, locationKey? } → 200 { ok, scoped } */
+  router.delete("/api/saved-answers/scoped", requireAuth, (req, res) => {
+    const { question, roleKey = null, locationKey = null } = req.body || {};
+    if (!String(question ?? "").trim()) return res.status(400).json({ error: "question_required" });
+    db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(req.user.id);
+    const next = forgetScoped(readScoped(profileOf(req.user.id)), { question, roleKey, locationKey });
+    try { db.prepare("UPDATE user_profile SET custom_answer_scoped=? WHERE user_id=?").run(JSON.stringify(next), req.user.id); }
+    catch { return res.status(503).json({ error: "scoped_answers_unavailable" }); }
+    res.json({ ok: true, scoped: next });
   });
 
   /** Edit one entry, or rename it. Body: { question, answer, previousQuestion?, company? } */

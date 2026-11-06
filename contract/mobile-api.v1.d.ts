@@ -116,11 +116,17 @@ export interface ActiveProfileResponse {
 
 /** `saved` is the list of QUESTION TEXTS stored, not a count. */
 export interface AnswersResponse {
+  /** Present only when `remember` was sent: questions answered with remember:false and no blocked employer to keep them for — used for nothing. */
+  notKept: string[];
   ok: boolean;
+  /** Present only when `remember` was sent: what each "save this for next time?" choice stored ({ scope, question, company?, templated?, narrowed? }). */
+  remembered: Record<string, unknown>[];
   /** Present only when retryJobIds was sent. Carries the started run, or a report of which requested jobs were not queued because they are still blocked. */
   retried: Record<string, unknown> | null;
   saved: string[];
   savedOverrides: SavedOverride[];
+  /** D165 (3), present only when a SALARY answer was saved: each one is kept for the scope (role + location) of the job it was given for, not globally. Eligibility answers stay global and never appear here. */
+  scoped: ScopedAnswer[];
   /** The job ids these answers actually unblocked. Answering does NOT authorise a submission — a retry re-enters the approval flow. Present as 'ready to try again', never as 'applied'. */
   unblocked: string[];
 }
@@ -613,6 +619,17 @@ export interface SavedOverride {
   question: string;
 }
 
+/** D165 (3): a salary answer saved for one role + location. A fill uses the most specific entry whose scope matches the job (role + location, then role, then location, then open); an entry naming another role or location is never used. */
+export interface ScopedAnswer {
+  answer: string;
+  kind: string;
+  /** "us" | "non_us" | "remote" | null (open). */
+  locationKey: string | null;
+  question: string;
+  roleKey: string | null;
+  savedAt: string | null;
+}
+
 /** Whether the submission was OBSERVED to succeed, as opposed to merely claimed. Do not render 'Applied' on status alone when `verified` is false. */
 export interface SubmissionEvidence {
   evidence: string | null;
@@ -643,6 +660,8 @@ export interface UserProfileResponse {
   current_job_title: string | null;
   /** A JSON STRING keyed by company, for per-employer answers. */
   custom_answer_overrides: string | null;
+  /** READ-ONLY through this endpoint. D165 (3): a JSON STRING, an array of ScopedAnswer — the salary answers saved per role + location. Written by POST /api/apply/answers; listed parsed in GET /api/saved-answers `scoped`. */
+  custom_answer_scoped: string | null;
   /** A JSON STRING, not an object — parse it. Keyed by the exact question text captured from the form. */
   custom_answers: string | null;
   desired_salary: number | null;
@@ -704,6 +723,8 @@ export interface UserProfileWrite {
   current_job_title: string | null;
   /** A JSON STRING keyed by company, for per-employer answers. */
   custom_answer_overrides: string | null;
+  /** READ-ONLY through this endpoint. D165 (3): a JSON STRING, an array of ScopedAnswer — the salary answers saved per role + location. Written by POST /api/apply/answers; listed parsed in GET /api/saved-answers `scoped`. */
+  custom_answer_scoped: string | null;
   /** A JSON STRING, not an object — parse it. Keyed by the exact question text captured from the form. */
   custom_answers: string | null;
   desired_salary: number | null;

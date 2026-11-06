@@ -13,6 +13,7 @@ import {
 } from "../services/customAnswers.js";
 import { normaliseQuestion, workHistoryCompanies } from "../shared/savedAnswers.js";
 import { lifecycleInputs } from "../services/answerLifecycle.js";
+import { isSalaryQuestion, jobAnswerScope, readScoped, rememberScoped, resolveScoped, scopedResolves, withScopedAnswers } from "../services/scopedAnswers.js";
 import { atsScorePair } from "../shared/resumeScores.js";
 import { getKnownLogoUrl } from "../shared/companyLogos.js";
 import {
@@ -285,11 +286,17 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     return generateResumeForApplyModel(userId, jobId, toolType);
   };
   const buildAutofillPayloadBase = buildAutofillPayload;
-  buildAutofillPayload = (profile, mode, company = null) => {
-    const payload = buildAutofillPayloadBase(profile, mode, company);
+  // ⛔ D165 (3): `jobId` (optional) is the posting the payload fills — its role + location pick the person's SCOPED
+  // salary answers (services/scopedAnswers.js: the most specific matching scope wins). Without a job only the global
+  // answers apply, as before.
+  buildAutofillPayload = (profile, mode, company = null, jobId = null) => {
+    let payload = buildAutofillPayloadBase(profile, mode, company);
     if (!payload || typeof payload !== "object") return payload;
     let work = [];
     try { if (profile?.user_id != null) work = packetEntriesFor(profile.user_id)?.work || []; } catch { /* fewer employers, never a thrown payload */ }
+    if (jobId != null) {
+      try { payload = withScopedAnswers(payload, readScoped(profile), jobAnswerScope(db, jobId)); } catch { /* the global answers, never a thrown payload */ }
+    }
     return { ...payload, worked_here: { company: company ?? payload.worked_here?.company ?? null,
       history: [...new Set([...(payload.worked_here?.history || []), ...workHistoryCompanies({ profile, work })])] } };
   };
@@ -1189,7 +1196,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         try { company = db.prepare("SELECT company FROM scraped_jobs WHERE job_id=?").get(String(jobId))?.company ?? null; } catch { /* no jobs table */ }
       }
       const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {};
-      const live = packetSavedAnswers(withSavedAnswerRecords(userId, buildAutofillPayload(profile, "APPLY", company))).savedAnswers;
+      const live = packetSavedAnswers(withSavedAnswerRecords(userId, buildAutofillPayload(profile, "APPLY", company, jobId))).savedAnswers;
       const { savedAnswers: _old, ...rest } = body;
       return live?.length ? { ...rest, savedAnswers: live } : rest;
     } catch (e) {
@@ -1348,7 +1355,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     try {
       const entries = packetEntriesFor(userId, artifactId);
       packet = buildGatePacket({
-        autofillPayload: withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", job.company), entries)),
+        autofillPayload: withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", job.company, jobId), entries)),
         applyUrl: job.apply_url || job.url, jobId: String(jobId),
         resumeArtifactId: artifactId, gateReason: PREPARED_REASON,
         entries,
@@ -1532,7 +1539,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           const p = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
           createGatePacket({
             runId, runJobId, userId, jobId,
-            result: {}, autofillPayload: buildAutofillPayload(p, "APPLY", job?.company),
+            result: {}, autofillPayload: buildAutofillPayload(p, "APPLY", job?.company, jobId),
             // run.tool_type, not toolType: the early holds run BEFORE `const toolType` is declared below,
             // and reading it here would throw (TDZ) inside this try — losing the packet silently.
             resumeArtifactId: usedArtifactId, reasonCode, jobUrl, toolType: run.tool_type || "generate",
@@ -1610,7 +1617,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
       const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
       // The employer is passed so `{company}`-templated custom answers resolve for THIS company.
-      const autofillPayload = buildAutofillPayload(profile, "APPLY", job?.company);
+      const autofillPayload = buildAutofillPayload(profile, "APPLY", job?.company, jobId);
 
       /**
        * AF5's correction record. A semi run returns while the browser is still open, so the human's
@@ -4557,7 +4564,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
       const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
       try {
-        body = buildGatePacket({ autofillPayload: withSavedAnswerRecords(userId, buildAutofillPayload(profile, "APPLY", job?.company ?? null)),
+        body = buildGatePacket({ autofillPayload: withSavedAnswerRecords(userId, buildAutofillPayload(profile, "APPLY", job?.company ?? null, job?.jobId ?? null)),
           applyUrl: url || "https://jobsviadraft.com/", jobId: job?.jobId ?? "copy-sheet", gateReason: PREPARED_REASON, baseResume: baseResumeParsed(userId) });
       } catch (e) {
         return res.json({ source: "profile", job, rows: [], unanswered: [],
@@ -5089,8 +5096,46 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       }
       const remembered = [];
       const notKept = [];
+      // ⛔ D165 (3) · A SALARY ANSWER IS SAVED FOR ITS SCOPE (role + location), not globally: a salary given for a
+      // full-stack role in the US is not the answer for a data role abroad. Its scope is, in order: the caller's
+      // `scopes[question]` ("global", { jobId }, or { roleKey, locationKey }); else the scope of every held job blocked
+      // on that question (one entry per distinct scope); else open (no role, no location). remember:false keeps the
+      // old per-company override below. Eligibility and every other answer stay global — unchanged.
+      const scopesIn = (req.body?.scopes && typeof req.body.scopes === "object" && !Array.isArray(req.body.scopes)) ? req.body.scopes : {};
+      let scopedList = null;
+      const scopedSaved = [];
+      const scopesFor = (q) => {
+        const given = Object.prototype.hasOwnProperty.call(scopesIn, q) ? scopesIn[q] : undefined;
+        if (given === "global") return [{ roleKey: null, locationKey: null }];
+        if (given && typeof given === "object") {
+          if (given.jobId != null) return [jobAnswerScope(db, given.jobId)];
+          return [{ roleKey: given.roleKey ? String(given.roleKey) : null, locationKey: given.locationKey ? String(given.locationKey) : null }];
+        }
+        const want = normaliseQuestion(q);
+        const seen = new Map();
+        for (const row of db.prepare(`SELECT job_id, open_questions_json FROM apply_run_jobs
+            WHERE user_id=? AND status='held_review' AND open_questions_json IS NOT NULL`).all(req.user.id)) {
+          if (!parseJson(row.open_questions_json, []).some(x => normaliseQuestion(x?.question) === want)) continue;
+          const s = jobAnswerScope(db, row.job_id);
+          seen.set(`${s.roleKey}|${s.locationKey}`, s);
+        }
+        return seen.size ? [...seen.values()] : [{ roleKey: null, locationKey: null }];
+      };
       for (const [q, a] of entries) {
         const choice = Object.prototype.hasOwnProperty.call(remember, q) ? remember[q] : undefined;
+        if (choice !== false && isSalaryQuestion(q)) {
+          if (scopedList === null) scopedList = readScoped(db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(req.user.id));
+          try {
+            for (const scope of scopesFor(q)) {
+              const r = rememberScoped(scopedList, { question: q, answer: a, ...scope });
+              scopedList = r.list; scopedSaved.push(r.saved);
+            }
+          } catch (e) {
+            if (!e.code) throw e;
+            return out.status(400).json({ error: e.code, question: q });
+          }
+          continue;
+        }
         if (choice === undefined) { merged[q] = String(a); continue; }
         const companies = [...(blockingCompanies.get(normaliseQuestion(q))?.values() || [])];
         try {
@@ -5128,6 +5173,22 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         db.prepare("UPDATE user_profile SET custom_answers=? WHERE user_id=?")
           .run(JSON.stringify(merged), req.user.id);
       }
+      // D165 (3): the scoped salary answers (migration 222's column). A database without the column keeps them out of
+      // `scoped` in the reply rather than claiming they were saved.
+      let scopedPersisted = false;
+      if (scopedList !== null) {
+        try {
+          db.prepare("UPDATE user_profile SET custom_answer_scoped=? WHERE user_id=?").run(JSON.stringify(scopedList), req.user.id);
+          scopedPersisted = true;
+        } catch (e) {
+          // Never lose the person's answer: without the column it is kept GLOBALLY, as before D165 (3).
+          console.warn(`[applyRoutes] scoped answers kept globally (migration 222?): ${e.message}`);
+          for (const s of scopedSaved) merged[s.question] = s.answer;
+          db.prepare("UPDATE user_profile SET custom_answers=? WHERE user_id=?").run(JSON.stringify(merged), req.user.id);
+        }
+      }
+      const scopedNow = scopedPersisted ? scopedList
+        : readScoped(db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(req.user.id));
 
       // Which held jobs are now fully answered? A job is retryable when every question it was
       // blocked on has an answer — retrying one that is still missing an answer just burns a run.
@@ -5149,9 +5210,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           const qs = parseJson(row.open_questions_json, []);
           if (qs.length === 0) return false;
           const resolved = effectiveCustomAnswers(store, row.company);
+          // D165 (3): a held job's salary question is answered by a scoped salary answer that matches ITS role + location.
+          const scopedPick = scopedNow.length ? resolveScoped(scopedNow, jobAnswerScope(db, row.job_id)) : null;
           // D55 (f): by normalised question, the comparison buildAnswers makes — so an answer stored
           // as "Why Figma?" unblocks the form's "Why Figma? *". Every word must still agree.
-          return qs.every(q => resolvesQuestion(resolved, q.question));
+          return qs.every(q => resolvesQuestion(resolved, q.question) || scopedResolves(scopedPick, q.question));
         })
         .map(row => row.job_id);
 
@@ -5163,6 +5226,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           : [],
         unblocked,
         ...(Object.keys(remember).length ? { remembered, notKept } : {}),
+        // D165 (3): each salary answer saved for a scope — { question, answer, roleKey, locationKey, savedAt }.
+        ...(scopedSaved.length && scopedPersisted ? { scoped: scopedSaved } : {}),
       };
 
       if (retryJobIds !== null) {
@@ -5267,7 +5332,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {};
     const company = db.prepare("SELECT company FROM scraped_jobs WHERE job_id=?").pluck().get(String(jobId)) ?? null;
     const entries = packetEntriesFor(userId, resumeArtifactId);
-    return withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", company), entries));
+    return withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", company, jobId), entries));
   };
   const workerResumePdf = async ({ userId, resumeArtifactId }) => {
     const artifact = db.prepare("SELECT html FROM resumes WHERE id=? AND user_id=?").get(resumeArtifactId, userId);

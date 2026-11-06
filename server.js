@@ -6733,6 +6733,18 @@ let classifyBacklog = null;
           ON model_eval_records(task, provider, model, at);
       `,
     },
+    {
+      // D165 (3) (11-06): A SAVED SALARY ANSWER IS SCOPED PER ROLE + LOCATION (D165 R2: "scoped: per role / location
+      // for salary, global for eligibility"). user_profile.custom_answer_scoped = a JSON array of
+      // { question, answer, kind, roleKey, locationKey, savedAt } (services/scopedAnswers.js); the fill picks the most
+      // specific entry whose scope matches the job. NULL = none saved. Eligibility and every other answer stay in
+      // custom_answers (global). A column on user_profile, not a new user table, so the account-merge plan and the
+      // profile row's lifecycle already cover it. Schema only (D151 Rule 1): one O(1) column add.
+      id: "222_saved_answer_scopes",
+      sql: `
+        ALTER TABLE user_profile ADD COLUMN custom_answer_scoped TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
