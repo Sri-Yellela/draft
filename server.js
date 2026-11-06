@@ -6821,8 +6821,8 @@ BOOT.add("index: scraped_jobs (job_id, is_active)", () => {
 // coverage it measured are in /api/version (`classify`). New postings are classified at ingest (aggregator → the
 // category; jobTags.deriveTags → the kind of work, the same rule), and the walk runs again every 6 hours for rows other
 // writers left behind.
-// Started from the listen callback, on BOOT.run()'s ready (calling BOOT.run() here would start the warm-up before
-// the port is bound).
+// Started from the listen callback, on the warm-up's ready (running the warm-up here would start it before the port
+// is bound).
 // ⚠ This line sits inside the migration runner's bare { … } block: assign the module-level `let` (declared above the
 // block) — a `const` here was block-scoped, and the listen callback and /api/version threw "classifyBacklog is not
 // defined" (found by the 44z boot smoke; the wiring test read the source, not a booted server).
@@ -15089,9 +15089,11 @@ app.listen(PORT, () => {
       return;
     }
     scheduleBoardFitForAll("boot");
-  }, Number(process.env.BOARD_FIT_BOOT_DELAY_MS ?? 30000)).unref?.());
-  // ⛔⛔ D153 (3): the backlog classification walk, from READY (never inside the warm-up; it yields between pages).
-  BOOT.run().then(() => classifyBacklog.run("boot"));
+  }, Number(process.env.BOARD_FIT_BOOT_DELAY_MS ?? 30000)).unref?.()).then(() => {
+    // ⛔⛔ D153 (3): the backlog classification walk, from READY (never inside the warm-up; it yields between pages).
+    // On the same ready as the board-fit pass — the warm-up is started once (test/a123BoardFitReconcile A123 (7)).
+    classifyBacklog.run("boot");
+  });
 });
 
 
