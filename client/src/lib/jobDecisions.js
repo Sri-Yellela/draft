@@ -103,6 +103,21 @@ export function draftButtonState({ drafted = false, drafting = false, block = nu
     disabled: false, ariaDisabled: false, action: "draft" };
 }
 
+/**
+ * ⭐ D164 (owner 11-05) · THE POSTING'S RÉSUMÉ STATE, said in words: Generating… · Ready · Failed — Try again · none yet.
+ * A failure is its own state with its sentence and a retry — never folded into "none" (D156 6: a failure is never shown
+ * as "no résumé"). A résumé being REgenerated over a stored one reads Generating…; a failed regeneration keeps saying
+ * Failed while the stored résumé stays available underneath.
+ * @returns {{ kind: "generating"|"failed"|"ready"|"none", word: string, detail: string|null, retry: boolean }}
+ */
+export function resumeControlState({ hasArtifact = false, generating = false, error = null, ago = null } = {}) {
+  if (generating) return { kind: "generating", word: "Generating…", detail: "Takes about 10–20 seconds.", retry: false };
+  if (error) return { kind: "failed", word: "Failed — Try again",
+    detail: String(error?.message || error || "The résumé could not be generated."), retry: true };
+  if (hasArtifact) return { kind: "ready", word: ago ? `Ready · ${ago}` : "Ready", detail: null, retry: false };
+  return { kind: "none", word: "Not made for this job yet", detail: null, retry: false };
+}
+
 /** The flags a Save or a Pass SETS. They are exclusive: saving a passed job un-passes it, and back. */
 export function flagsFor(decision) {
   if (decision === DECISIONS.SAVED) return { starred: true, disliked: false };

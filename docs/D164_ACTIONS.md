@@ -68,3 +68,13 @@ No pre-D145 action is gone from the code. What the owner met as "gone":
 3. **Which résumé** (base or a job profile) was never on the posting — only the Profile menu's switcher, which
    swaps the whole board. → T2: choose the job profile whose base résumé is tailored, for this posting only.
 4. **Download as HTML** was never on the posting (sandbox only). → T2: Download PDF and HTML, one HTML helper.
+
+## After T2 (where the four MISSING items live now)
+
+| Item | Now (file:line, after D164 T2) |
+|---|---|
+| One quiet **Résumé** control beside Draft (opens in place) | JDP:196 `data-posting-resume-toggle` → the group `data-posting-resume` |
+| Which résumé (a job profile's base résumé, this posting only) | JDP:206 `data-resume-source` → `JobsPanel.jsx` `generateFrom` (reads `GET /api/domain-profiles/:id/base-resume`, never switches the board) |
+| Résumé for this job · Preview / edit · What we changed · Regenerate · Download PDF · Download HTML | JDP:220, 224, 225, 228, 232, 233 (`data-more="resume" / "view" / "changes" / "regenerate" / "download" / "download-html"`) |
+| Generating… · Ready · Failed — Try again | JDP:252–259 `data-resume-state`, from `lib/jobDecisions.js` `resumeControlState`; the failure kept per job in `JobsPanel.jsx` `genFailed` |
+| Cover letter · I applied myself · drafts left | JDP:241–247 — under More, as before |

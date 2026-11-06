@@ -44,7 +44,8 @@
   position: sticky; bottom: 0; z-index: 2; padding: 12px 18px 10px;
   background: var(--c-surface-solid); border-top: 1px solid var(--c-fh-line);
 }
-.pp__main-acts { display: grid; grid-template-columns: 1fr 1fr 1.4fr auto; gap: 9px; align-items: stretch; }
+/* ⭐ D164: Pass · Save · Draft · Résumé · More — Résumé is quiet like More (.pp__moreb), one more auto column. */
+.pp__main-acts { display: grid; grid-template-columns: 1fr 1fr 1.4fr auto auto; gap: 9px; align-items: stretch; }
 .pp__main-acts > * { min-width: 0; }
 .pp__main-acts .dbx { width: 100%; justify-content: center; }
 .pp__moreb {
@@ -56,6 +57,19 @@
 .pp__more { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
 .pp__more .pp__submitted { padding: 0; flex-basis: 100%; font-size: calc(12.5px * var(--type-scale, 1)); }
 .pp__more .pp__quota { padding: 0; flex-basis: 100%; }
+/* ⭐ D164 · the Résumé group: Which résumé (a field — a rectangle, never a capsule, D60), the actions, and the state
+   line under the row — Generating… / Ready / Failed — Try again, each a mark (a 6px dot before the word, D152 7b). */
+.pp__src { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex-basis: 100%; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+.pp__srcs { min-width: 0; max-width: 100%; font: inherit; color: var(--c-ink); padding: 6px 10px; border-radius: 10px;
+  border: 1px solid var(--c-border-control); background: var(--c-surface-input); }
+.pp__srcs:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.pp__changed { display: inline-flex; align-items: center; padding: 0 4px; }
+.pp__retry { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--c-accent-ink);
+  text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.pp__retry:disabled { color: var(--c-ink-muted); cursor: default; }
+.pp__retry:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.pp__ready--busy, .pp__ready--failed { font-weight: 600; color: var(--c-ink-muted); }
+.pp__faildetail { font-weight: 400; color: var(--c-ink-muted); }
 .pp__foot .pp__quota, .pp__foot .pp__ready { padding: 6px 0 0; }
 .pp__quota { margin: 0; padding: 0 18px 10px; font-size: calc(11px * var(--type-scale, 1)); color: var(--c-ink-faint); }
 .pp__quota[data-empty="true"] { color: var(--c-accent-ink); }
@@ -73,7 +87,8 @@
 .pp__submitted-msg { margin: 4px 0 0; color: var(--c-ink-muted); }
 
 /* A narrow panel (a phone, a narrow dock): Pass · Save · Draft over More's full-width row. */
-@container pp (max-width: 420px) { .pp__main-acts { grid-template-columns: 1fr 1fr 1.3fr; } .pp__moreb { grid-column: 1 / -1; padding: 10px 16px; } }
+/* ⭐ D164: and Résumé · More share the second row (Résumé the wider). */
+@container pp (max-width: 420px) { .pp__main-acts { grid-template-columns: 1fr 1fr 1.3fr; } .pp__moreb { grid-column: span 1; padding: 10px 16px; } .pp__resb { grid-column: span 2; } }
 
 @media (prefers-reduced-motion: reduce) { .pp__x { transition: none; } }
 
@@ -121,7 +136,7 @@
 .pp__foot .pp__quota, .pp__foot .pp__ready { padding: 8px 0 0; }
 .pp__applicants { margin: 8px 0 0; }
 .pp__pending { margin: 8px 0 0; }
-@container pp (max-width: 420px) { .pp__main-acts { grid-template-columns: 1fr 1fr 1.4fr auto; } .pp__moreb { grid-column: auto; padding: 14px 16px; } }
+@container pp (max-width: 420px) { .pp__main-acts { grid-template-columns: 1fr 1fr 1.4fr; } .pp__moreb { grid-column: span 1; padding: 14px 16px; } .pp__resb { grid-column: span 2; } }
 /* Full screen (the panel host's phone fallback) — the panel's own state, never a window query (D48). */
 .pp[data-full-screen="true"] { padding: 70px 20px 30px; }
 
