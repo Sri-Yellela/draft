@@ -137,7 +137,7 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
                 {open.map((q, i) => <li key={`q${i}`}>{q}</li>)}
                 {needs.map((f, i) => <li key={`f${i}`}>{f.name || "A field"}</li>)}
               </ul>
-              <p style={{ ...muted, margin: "8px 0 0" }}>Answer these in Draft House — what you answer is saved for next time.</p>
+              <p style={{ ...muted, margin: "8px 0 0" }}>Answer these in Home — what you answer is saved for next time.</p>
             </div>
           )}
           <div style={card}>

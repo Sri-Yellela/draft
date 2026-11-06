@@ -10,7 +10,7 @@ export const TOUR_STEPS = Object.freeze([
   { id: "deck_match",   section: "picks",       title: "The match" },
   { id: "deck_facts",   section: "picks",       title: "The facts" },
   { id: "deck_actions", section: "picks",       title: "Pass, Save or Draft" },
-  { id: "draft_house",  section: "draft_house", title: "Draft House" },
+  { id: "draft_house",  section: "draft_house", title: "Home" },
   { id: "modes",        section: "draft_house", title: "Ask me first or Apply for me" },
   { id: "auto_settings",section: "draft_house", title: "Auto settings" },
   { id: "atlas_map",    section: "map",         title: "Your map" },

@@ -541,7 +541,7 @@ export default function ApplicationHistory({ onOpenPending, onOpenDraftHouse, on
                       <p className="ah__ask">
                         Drafted — it waits for your review.{" "}
                         <button type="button" className="ah__btn" onClick={() => onOpenDraftHouse?.(row.jobId)}>
-                          Open Draft House
+                          Open Home
                         </button>
                       </p>
                     )}

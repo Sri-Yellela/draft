@@ -62,7 +62,7 @@ test("D51 · ONE WRITE, THREE READERS — a Draft is in Draft House, /d and The 
     // No posting row, so the run fails fast without a browser; the Draft itself is what is measured.
     const r = await t.call("POST", "/api/apply/runs", { jobIds: ["gh::d51"], mode: "auto", surface: "board" });
     assert.equal(r.status, 202);
-    assert.ok(runJob(t.db, "gh::d51"), "Draft House's row");
+    assert.ok(runJob(t.db, "gh::d51"), "Home's row");
     assert.deepEqual(record(t.db, "gh::d51"), { state: "pending", origin: "drafted" }, "the record, written with the run-job");
     // /d — with NO user_jobs row for the active profile: the case that could never match before.
     addPosting(t.db, "gh::d51");
@@ -71,7 +71,7 @@ test("D51 · ONE WRITE, THREE READERS — a Draft is in Draft House, /d and The 
     // The Table — In play, labelled as a Draft.
     const row = listHistory(t.db, 1).find(x => x.jobId === "gh::d51");
     assert.equal(row?.status, "in_play");
-    assert.equal(row?.label, "Drafted — in Draft House");
+    assert.equal(row?.label, "Drafted — in Home");
   } finally { t.stop(); }
 });
 
@@ -161,7 +161,7 @@ test("D51 · the button is NEVER disabled without a reason — every state, ever
   assert.equal(d.action, "view");
   assert.equal(d.disabled, false);
   assert.match(d.label, /Drafted ✓/);
-  assert.match(d.title, /Draft House/);
+  assert.match(d.title, /Home/);
 });
 
 test("D51 · each refusal says the server's own reason, with when it ends", () => {
@@ -205,7 +205,7 @@ test("D51 · every Draft control takes its state from the one function, and the 
   const panel = read("client/src/panels/JobsPanel.jsx");
   const decide = panel.slice(at(panel, "const decideJob = useCallback("), at(panel, "const undoLastDecision = useCallback("));
   assert.match(decide, /if \(r\.slots\) setDraftSlots\(r\.slots\);\n\s+setFacetsNonce\(n => n \+ 1\);/, "the quota and the /d count move");
-  assert.match(panel, /onView: \(\) => navigate\("\/app\/auto-apply"\)/, "Drafted ✓ opens Draft House");
+  assert.match(panel, /onView: \(\) => navigate\("\/app\/auto-apply"\)/, "Drafted ✓ opens Home");
   assert.match(read("client/src/panels/DatabasePanel.jsx"), /onOpenDraftHouse=\{\(\) => navigate\("\/app\/auto-apply"\)\}/);
   // A drafted bubble is done, not greyed out.
   assert.doesNotMatch(read("client/src/components/JobBubble.css"), /\.jb__sq--draft\[data-done="true"\] \{ opacity: \.55; \}/);
@@ -214,6 +214,6 @@ test("D51 · every Draft control takes its state from the one function, and the 
 test("D51 · The Table labels a Draft — and only a Draft — as in Draft House", () => {
   assert.deepEqual(historyStatus({ recordState: "pending", origin: "drafted" }),
     // D55 F added the funnel stage (= the status here) and how far it got (nothing: it is unsent).
-    { status: "in_play", label: "Drafted — in Draft House", ask: false, stage: "in_play", reached: null });
+    { status: "in_play", label: "Drafted — in Home", ask: false, stage: "in_play", reached: null });
   assert.equal(historyStatus({ recordState: "pending", origin: "opened_posting" }).label, "Pending");
 });

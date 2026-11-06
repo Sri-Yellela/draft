@@ -233,6 +233,7 @@ test("d156 real Chrome (1440 · 1280 · 390): the card, the flip, the dock, the 
     const p = d.post;
     if (size === "phone") {
       // A phone (≤ 1000 px) keeps D149's full-screen posting: the scroll down opens it there, never in the deck's slot.
+      // ✅ APPROVED 11-06 by the owner (O99 (b): the phone keeps the full-screen posting).
       assert.deepEqual([p.overlay, p.slotOpen, p.overlayClosed], [true, false, true], "phone: the full-screen posting, closed by Esc");
     } else {
     assert.equal(p.openedByWheel, true, `${size}: a scroll down on the front card opens it into the long post`);

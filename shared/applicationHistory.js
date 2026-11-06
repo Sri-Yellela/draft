@@ -134,7 +134,7 @@ function statusOf(row, { now }) {
     if (row.recordState === "not_applied") return { status: "closed", label: "Not applied · moved after 14 days", ask: false };
     if (row.recordState === "recorded")  return { status: "in_play", label: "Recorded — not verified yet", ask: false };
     // D51: a Draft is in play from the click — it waits in Draft House until you approve or stop it.
-    if (row.origin === "drafted")        return { status: "in_play", label: "Drafted — in Draft House", ask: false };
+    if (row.origin === "drafted")        return { status: "in_play", label: "Drafted — in Home", ask: false };
     return { status: "in_play", label: "Pending", ask: false };
   }
   const app = { applied_at: row.sentAt, response_outcome: row.responseOutcome, first_response_at: row.firstResponseAt };

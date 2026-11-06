@@ -287,7 +287,7 @@ export async function disconnectAway(tab) {
   if (!p?.live) return { ok: false, say: `${family.name} is not connected.` };
   const r = await d.fetcher(`/api/portals/${encodeURIComponent(p.live.id)}`, { method: 'DELETE' }).catch(() => null);
   const body = await json(r);
-  if (!r?.ok) return { ok: false, say: 'Could not disconnect — try again, or remove it in Draft House → Portals.' };
+  if (!r?.ok) return { ok: false, say: 'Could not disconnect — try again, or remove it in Home → Portals.' };
   // nothing else of ours reads a cookie: the API permission goes back (the family's hosts may still serve global read)
   try { await d.api.permissions.remove({ permissions: [AWAY_PERMISSION_NAME] }); } catch { /* already gone */ }
   return { ok: true, removed: true, keyDestroyed: !!body?.keyDestroyed,

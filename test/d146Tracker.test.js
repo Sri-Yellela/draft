@@ -111,7 +111,7 @@ const byJob = (rows, j) => rows.find(r => r.jobId === j);
 
 test("d146OnePanelOneNavEntry — one Dock / Menu entry, Draft House · your applications; /app/database redirects to it", () => {
   const tabs = app.slice(at(app, "const appTabs = ["), at(app, "  ];\n\n  // ⭐ D152 (1) · HOME: the Daily Deck and Full House"));   // A125: the Y4 wrapper's comment that followed is gone
-  assert.match(tabs, /\{ id: "auto-apply",\s+label: "Draft House" \}/);
+  assert.match(tabs, /\{ id: "auto-apply",\s+label: "Home" \}/);
   assert.doesNotMatch(code(tabs), /id: "database"/, "The Table is no longer its own entry");
   assert.doesNotMatch(code(app), /DatabasePanel/, "App mounts no second panel for applications");
   assert.match(app, /const TABLE_ROUTE = "database";/);
@@ -272,7 +272,7 @@ test("d146ActionsByStage — each stage its own actions; the node's own handlers
   for (const [id, st] of Object.entries(STAGES)) assert.ok(filters.has(st.filter) && st.filter !== "all", id);
   for (const [f] of TRACKER_FILTERS.slice(1)) assert.ok(Object.values(STAGES).some(s => s.filter === f), f);
   const fn = panel.slice(at(panel, "const rowActions = (row) => {"), at(panel, "const renderRow = (row) => {"));
-  assert.match(fn, /const base = row\.node \? actionsFor\(row\.node\) : \[\];/, "Draft House's actions, unchanged");
+  assert.match(fn, /const base = row\.node \? actionsFor\(row\.node\) : \[\];/, "Home's actions, unchanged");
   assert.match(fn, /stageActions\(row\.stage\)\.filter\(id => !have\.has\(id\)\)/);
   const extra = panel.slice(at(panel, "const extraAction = (row, id) => {"), at(panel, "const rowActions = (row) => {"));
   for (const w of ["Edit an answer", "See the form", "I applied", "I did not apply", "Restore"]) assert.ok(extra.includes(`"${w}"`), w);

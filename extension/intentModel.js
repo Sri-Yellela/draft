@@ -181,7 +181,7 @@ export function pathWords(d = {}, { readyIn = READY_IN_SECONDS } = {}) {
   if (d.ask) return { tone: 'ask', line: d.ask.question, buttons: d.ask.choices, remember: !!d.ask.remember };
   const wall = d.signInWall ? ' This site wants you signed in — sign in yourself; draft never does.' : '';
   if (d.mode === 'drafted') {
-    const lead = d.draft === 'already' ? 'Drafted — in Draft House' : d.draft === 'track' ? 'Drafted — tracking this application' : 'Drafted';
+    const lead = d.draft === 'already' ? 'Drafted — in Home' : d.draft === 'track' ? 'Drafted — tracking this application' : 'Drafted';
     const tail = {
       queue: `résumé queued, ready in about ${readyIn} s`,
       join: `its résumé is being made, ready in about ${readyIn} s`,

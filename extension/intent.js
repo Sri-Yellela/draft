@@ -232,7 +232,7 @@ export async function choose(tab, { choice, resume = null, remember = false } = 
   const tells = await gatherTells(tab, job, { withPage: false }, deps);
   const d = decidePath({ ...tells, control: 'choose_manual' });
   const words = pathWords(d);
-  const kept = tells.server?.drafted ? `${words.line} Your Draft stays in Draft House — remove it there if you won't use it.` : words.line;
+  const kept = tells.server?.drafted ? `${words.line} Your Draft stays in Home — remove it there if you won't use it.` : words.line;
   // the SAME words the worker draws go back to the click's own callback, which redraws with them
   const said = { ...words, line: kept };
   await deps.draw(tab, said).catch(() => null);

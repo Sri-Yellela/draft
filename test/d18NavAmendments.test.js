@@ -24,14 +24,14 @@ test("D18: the AUTO APPLY tab reads Draft House — four two-word labels, ids un
   // ⭐ D105 P4 (changed on purpose): the Atlas joins the row after the card family (D102's navigation gains one place).
   // ⭐ D146 (changed on purpose, 11-03): The Table merged into Draft House — one entry.
   // ⭐ D152 (1) / (4), changed on purpose: Daily Deck + Full House = Home (one word, like Atlas).
-  assert.deepEqual(labels, ["Home", "Draft House", "Atlas"]);
+  assert.deepEqual(labels, ["Home", "Home", "Atlas"]);
   for (const l of labels.filter(l => l !== "Atlas" && l !== "Home")) assert.equal(l.split(" ").length, 2, `"${l}" is not a two-word label`);
-  assert.match(tabsBlock(), /\{ id: "auto-apply",\s*label: "Draft House" \}/);
+  assert.match(tabsBlock(), /\{ id: "auto-apply",\s*label: "Home" \}/);
 });
 
 test("D18: NO symbol on any tab — the Draft House count rides on the button as data (D145: AppNav draws it)", () => {
   const fn = decorator();
-  assert.doesNotMatch(fn, /<DraftMark/, "the Draft House tab carries the /d mark again (D18: no symbol on any tab)");
+  assert.doesNotMatch(fn, /<DraftMark/, "the Home tab carries the /d mark again (D18: no symbol on any tab)");
   assert.doesNotMatch(fn, /<svg|<img|[★⏳✦]/u, "a tab carries a symbol (D18)");
   // ⭐ D145 (changed on purpose): the count and its sentence are data on the tab, not a decorated label.
   assert.match(fn, /t\.id === "auto-apply" \? \{ \.\.\.t, badge: needsAttentionCount, badgeLabel: attention \} : t/);
@@ -72,9 +72,9 @@ test("D18: no display string still sends the user to 'the Draft tab'", () => {
       if (/\b(on|in|from|to) the Draft tab\b/.test(line)) hits.push(`${f}:${i + 1}: ${line.trim().slice(0, 120)}`);
     });
   }
-  assert.deepEqual(hits, [], "a display string names the old tab — it is Draft House (D18):\n" + hits.join("\n"));
+  assert.deepEqual(hits, [], "a display string names the old tab — it is Home (D18):\n" + hits.join("\n"));
   // D149 (11-03) changed this on purpose: the sketch's h1 at 44 px on the deck's page-title type (DH_TITLE).
-  assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /<h1 style=\{\{ \.\.\.TYPE\.PAGE_TITLE, \.\.\.DH_TITLE \}\}>\s*Draft House\s*</);
+  assert.match(read("client/src/panels/AutoApplyPanel.jsx"), /<h1 style=\{\{ \.\.\.TYPE\.PAGE_TITLE, \.\.\.DH_TITLE \}\}>\s*Home\s*</);
 });
 
 test("O56e → D145: the phone's tab row is gone — the Menu (or the dock, chosen) reaches every section at any width", () => {

@@ -154,7 +154,7 @@ try {
       }
       if (id === "table") {
         const table = await page.evaluate(() => document.querySelector("[data-table-split]")?.innerText || "");
-        check(where, `${tag}: The Table shows the two as Sent`, /Sent ·/.test(table) && !/Drafted — in Draft House/.test(table), table.slice(0, 160).replace(/\s+/g, " "));
+        check(where, `${tag}: The Table shows the two as Sent`, /Sent ·/.test(table) && !/Drafted — in Home/.test(table), table.slice(0, 160).replace(/\s+/g, " "));
         // owner 11-01: not straight into the survey — a pop-up with its button, which they press
         const invite = await page.waitForSelector("[data-survey-invite-open]", { timeout: 60000 }).then(() => true).catch(() => false);
         check(where, `${tag}: The Table, then a pop-up offers the survey`, invite);

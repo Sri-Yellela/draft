@@ -395,7 +395,7 @@ function AppDashboard({ authUser, setAuthUser }) {
     // ⭐ D146 (owner 11-03): Draft House and The Table are ONE application tracker, so ONE entry — "Draft House · your
     // applications" (the name is the owner's to confirm; alternatives The Table, Applications). /app/database redirects
     // here (below), its ?sheet= deep links included.
-    { id: "auto-apply",   label: "Draft House" },
+    { id: "auto-apply",   label: "Home" },
     // D10: no "Job Profiles" tab. The PAGE stays (ROUTE_ONLY_TABS below), reached from the avatar
     // menu ("Manage Job Profiles", and the profile switcher's add / manage), Profile's "Open Job
     // Profiles", and the Daily Deck's set-up state ("Add your résumé →").

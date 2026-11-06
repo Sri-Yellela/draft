@@ -94,7 +94,7 @@ export default async function run(h, { check, observe, section }) {
   section('3 · the popup\'s Draft again — already drafted, nothing more queued');
   await h.page.bringToFront();
   const again = await h.send({ type: 'INTENT_DRAFT', trigger: 'click' });
-  check('the press answers "already" — in Draft House', again?.already === true && /^Drafted — in Draft House/.test(again.message || ''), JSON.stringify(again));
+  check('the press answers "already" — in Home', again?.already === true && /^Drafted — in Home/.test(again.message || ''), JSON.stringify(again));
   check('still ONE application and ONE generation', runJobs(h) === 1 && generations(h) === 1, `${runJobs(h)} / ${generations(h)}`);
   check('…and no second Draft was even sent: the server state said it first', draftPosts(h) === 1, String(draftPosts(h)));
 
@@ -102,7 +102,7 @@ export default async function run(h, { check, observe, section }) {
   await sleep(300);
   check('the switch pressed (a trusted click)', await press(h, 'button[data-choice="manual"]'));
   const manual = await waitUntil(async () => { const p = await pathLine(h); return p?.line?.startsWith('Filling by hand') ? p : null; }, 10000, 150);
-  check('the dock says the manual path in words', /^Filling by hand — /.test(manual?.line || '') && /Your Draft stays in Draft House/.test(manual?.line || ''), JSON.stringify(manual));
+  check('the dock says the manual path in words', /^Filling by hand — /.test(manual?.line || '') && /Your Draft stays in Home/.test(manual?.line || ''), JSON.stringify(manual));
   const binds2 = (await h.bindings()).map(([, v]) => v);
   check('the tab\'s path is manual', binds2.some(b => b.path === 'manual'), JSON.stringify(binds2.map(b => b.path)));
   check('the switch queued nothing', runJobs(h) === 1 && generations(h) === 1 && draftPosts(h) === 1, `${runJobs(h)} / ${generations(h)} / ${draftPosts(h)}`);

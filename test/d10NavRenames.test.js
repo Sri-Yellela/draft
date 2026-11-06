@@ -19,7 +19,7 @@ test("D10/D18: the bar reads Daily Deck · Full House · Draft House · The Tabl
   assert.deepEqual(ids, [
     // ⭐ D152 (1) / (4), changed on purpose (11-04): the Daily Deck and Full House are ONE screen, one entry — Home.
     ["today", "Home"],
-    ["auto-apply", "Draft House"],   // D18 amended D10's "Draft"
+    ["auto-apply", "Home"],   // D18 amended D10's "Draft"
     // ⭐ D146 (changed on purpose, 11-03): The Table merged into Draft House — one entry; /app/database redirects.
     // ⭐ D105 P4 (changed on purpose): D102's navigation gains one place — the Atlas — after the card family.
     ["atlas", "Atlas"],

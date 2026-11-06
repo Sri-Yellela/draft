@@ -16,7 +16,7 @@ import "./FullHouse.css";
 
 // ⭐ D145 · the Navigation option's picture: the bar with its Menu button, and the Dock under it — drawn with AppNav's
 // real classes, so the carrier's data-navigation decides which of the two shows (as it does in the app).
-const NAV = [["Daily Deck", "today's jobs"], ["Full House", "every job"], ["Draft House", "in progress"], ["The Table", "applied"], ["Atlas", "your skills"]];
+const NAV = [["Daily Deck", "today's jobs"], ["Full House", "every job"], ["Home", "in progress"], ["The Table", "applied"], ["Atlas", "your skills"]];
 
 function Navigation() {
   return (

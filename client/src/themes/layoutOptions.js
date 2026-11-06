@@ -40,7 +40,7 @@ export const LAYOUT_OPTIONS = Object.freeze([
   {
     // ⭐ D145 Step 3 · styled in components/AppNav.css under [data-navigation="…"].
     id: "navigation", label: "Navigation", attribute: LAYOUT_OPTION_IDS.navigation.attribute,
-    description: "How you move between Daily Deck, Full House, Draft House, The Table and Atlas.",
+    description: "How you move between Daily Deck, Full House, Home, The Table and Atlas.",
     values: [
       { id: "auto", label: "Automatic", ...def("navigation", "auto"),
         description: "The dock on a computer, the menu on a phone." },

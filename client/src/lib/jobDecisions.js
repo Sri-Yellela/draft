@@ -39,7 +39,7 @@ export const DECISION_AFTER = Object.freeze({
 export function lineAfter(line) {
   if (!line?.position) return DECISION_AFTER.drafted;
   return `it waits in line (${line.position} of ${line.length}) and starts when the draft ahead of it finishes — ` +
-    "edit, reorder or remove it in Draft House";
+    "edit, reorder or remove it in Home";
 }
 
 // ── D51 · A DRAFT BUTTON IS NEVER A DEAD END ────────────────────────────────────────────────────
@@ -88,11 +88,11 @@ export function draftBlock({ slots = null, prereqMissing = [], prereqLabels = {}
  *             disabled: boolean, ariaDisabled: boolean, action: "draft"|"view"|"explain"|null }}
  */
 export function draftButtonState({ drafted = false, drafting = false, block = null, canView = true, slots = null } = {}) {
-  if (drafting) return { kind: "drafting", label: "Drafting…", title: "Drafting — it is on its way to Draft House.",
+  if (drafting) return { kind: "drafting", label: "Drafting…", title: "Drafting — it is on its way to Home.",
     disabled: true, ariaDisabled: true, action: null };
   if (drafted) return { kind: "drafted", label: "Drafted ✓",
-    title: canView ? "Drafted — view it in Draft House. Undo on the toast, or remove it there."
-                   : "Drafted — it waits for your review in Draft House.",
+    title: canView ? "Drafted — view it in Home. Undo on the toast, or remove it there."
+                   : "Drafted — it waits for your review in Home.",
     disabled: false, ariaDisabled: !canView, action: canView ? "view" : "explain" };
   if (block) return { kind: "blocked", label: block.label, title: block.reason,
     disabled: false, ariaDisabled: true, action: "explain" };

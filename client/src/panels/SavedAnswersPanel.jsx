@@ -229,7 +229,7 @@ export function SavedAnswersPanel() {
             </div>
           </div>
         )}
-        {entries.length === 0 && <div style={sub}>Nothing saved yet. Answers you give in Draft House with "Save this answer for next time" ticked appear here.</div>}
+        {entries.length === 0 && <div style={sub}>Nothing saved yet. Answers you give in Home with "Save this answer for next time" ticked appear here.</div>}
         {entries.map((e, i) => (
           <div key={`${e.company || ""}::${e.question}`} style={{ borderTop: `1px solid ${theme.border}`, paddingTop: 8,
                                                                   display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>

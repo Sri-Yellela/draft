@@ -101,7 +101,7 @@ const nothingYetForExample = (nodes) => !nodes || nodes.length === 0;
 function ExampleNote() {
   return (
     <p className="dht-empty" data-house-example="">
-      <strong>Example.</strong> This is what Draft House looks like once you send a few: each company is a tile, its ring says
+      <strong>Example.</strong> This is what Home looks like once you send a few: each company is a tile, its ring says
       where the application is (Needs you, Ready for your review, Working on it, Sent, Replied), and opening one shows what happened,
       the answers given, the form as filled and what changed in the résumé.
     </p>
@@ -1147,7 +1147,7 @@ export function AutoApplyPanel({ user = null } = {}) {
       <header className="dh-head" data-house-header="" data-held={held ? "true" : "false"}>
         <div className="dh-head__text">
           {/* ⭐ D149 (11-03): the sketch's .ph3 — the serif at 44 / 1 over its line in body grey (DraftHouse.css). */}
-          <h1 style={{ ...TYPE.PAGE_TITLE, ...DH_TITLE }}>Draft House</h1>
+          <h1 style={{ ...TYPE.PAGE_TITLE, ...DH_TITLE }}>Home</h1>
           <p className="dh-head__say" data-house-line="">Every application, from draft to reply.</p>
         </div>
         {/* The sketch's .tools3: the mode (.seg2), three quiet buttons, and Send all ready in the accent. */}
