@@ -23,6 +23,8 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
    scroll container clips every shadow in it (D92 rule 2). */
 .appnav-item[aria-current="page"] { background: var(--c-surface-2); color: var(--c-ink); }
 .appnav-name { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+/* ⭐ D167: names only — the plain line under each name (.appnav-plain) is removed. The Customise preview still draws its
+   own picture of the old list with it (CustomisePreview.jsx, retained as it is — D167's Profile approval). */
 .appnav-plain { font-weight: 400; font-size: calc(11px * var(--type-scale, 1)); color: var(--c-ink-muted); white-space: nowrap; }
 .appnav-badge {
   min-width: 16px; height: 16px; padding: 0 4px; border-radius: 6px; text-align: center;
@@ -45,19 +47,30 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 .appnav-dock .appnav-item { align-items: flex-start; gap: 1px; padding: 10px 14px; font-size: calc(14px * var(--type-scale, 1)); }
 .appnav-dock .appnav-plain { font-size: calc(12px * var(--type-scale, 1)); }
 .appnav-words { display: flex; flex-direction: column; gap: inherit; align-items: inherit; min-width: 0; }
-/* The rail: 60 px wide at rest (a 30 px icon in a 9 px item padding, the rail's 6 px), 212 px expanded. */
+/* The rail: 60 px wide at rest (a 30 px icon in an 8 px item padding, the rail's 6 px and its 1 px border — so every icon's
+   middle IS the rail's middle, 30 px), 196 px open (D167, the sketch's). */
 .appnav-dock[data-nav-dock] {
   --appnav-ico: 30px; left: 10px; width: 60px; padding: 8px 6px; gap: 4px; overflow: hidden; border-radius: 20px;
-  box-shadow: var(--c-shadow-sm, none); transition: width .32s cubic-bezier(.2, .9, .3, 1);
+  box-shadow: var(--c-shadow-sm, none); will-change: width; transition: width .38s cubic-bezier(.22, 1, .36, 1);
 }
-.appnav-dock[data-nav-dock][data-open="true"] { width: 212px; }
-/* ⭐ D163 (owner 11-05: "the menu dock … crammed into a corner"): the rail sits on its own gutter, VERTICALLY CENTRED on the
-   screen (was pinned 44 px from the top, the top-left corner), and still pushes the page when it opens (the padding below). */
-.appnav-dock[data-nav-dock] { top: 50%; transform: translateY(-50%); }
-.appnav-dock[data-nav-dock] .appnav-item { flex-direction: row; align-items: center; gap: 12px; padding: 9px; white-space: nowrap; }
-.appnav-dock[data-nav-dock] .appnav-words { gap: 1px; align-items: flex-start; opacity: 0; transition: opacity .2s ease; pointer-events: none; }
-.appnav-dock[data-nav-dock][data-open="true"] .appnav-words { opacity: 1; transition-delay: .08s; }
-/* The icon box — the same 30 px for all four. */
+.appnav-dock[data-nav-dock][data-open="true"] { width: 196px; }
+/* ⭐ D163 (owner 11-05: "the menu dock … crammed into a corner"): the rail is VERTICALLY CENTRED on the screen.
+   ⭐ D167 · THE DOCK GOES WHERE THE SPACE IS (owner 11-06): AppNav.jsx sets data-dock-place on <html> from the room
+   there is. SIDE — centred in the page's left margin (--appnav-margin) both ways; translate(-50%, -50%) keeps its
+   centre fixed, so opening (the width) grows it evenly from its centre into the margin it was given room in. */
+.appnav-dock[data-nav-dock] { top: 50%; left: calc(var(--appnav-margin, 72px) / 2); transform: translate(-50%, -50%); }
+/* ⭐ D167 · THE DOCK'S MOTION (owner 11-06: "looks a bit choppy the logo and the menu items have to be centered"): ONLY the
+   rail's width, transforms, the mark's clip-path and opacity animate — the items themselves never transition (no
+   background / colour fades, no padding or font-size change); the names fade and slide in AFTER 0.1 s. */
+.appnav-dock[data-nav-dock] .appnav-item { flex-direction: row; align-items: center; gap: 12px; padding: 9px 8px; white-space: nowrap; transition: none; }
+.appnav-dock[data-nav-dock] .appnav-words {
+  gap: 1px; align-items: flex-start; opacity: 0; transform: translateX(-6px); pointer-events: none;
+  transition: opacity .16s ease, transform .16s ease;
+}
+.appnav-dock[data-nav-dock][data-open="true"] .appnav-words {
+  opacity: 1; transform: none; transition: opacity .22s ease .1s, transform .3s cubic-bezier(.22, 1, .36, 1) .1s;
+}
+/* The icon box — the same 30 px for every place. */
 .appnav-ico {
   position: relative; flex: none; width: var(--appnav-ico); height: var(--appnav-ico); box-sizing: border-box;
   display: inline-flex; align-items: center; justify-content: center; color: var(--c-ink);
@@ -65,22 +78,61 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 .appnav-svg { width: 100%; height: 100%; fill: none; stroke: var(--c-accent); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 /* The short logo, /d, in the logo face — as wide as the house and the globe, set to fill the box. */
 .appnav-ico [data-draft-mark] { font-size: 19px; letter-spacing: -.04em; }
+/* ⭐ D167 · THE /d MARK DRAWS OUT INTO /draft. The whole wordmark is set ONCE at one size (DraftMark drawOut); at rest the
+   mark is slid right by half of "raft"'s width (--appnav-raft-w, measured once by AppNav.jsx) so "/d" sits in the
+   rail's middle, and "raft" is covered by its clip-path; opening slides the mark to centre "/draft" (transform) while
+   the clip-path uncovers "raft" — 0.38 s cubic-bezier(.22, 1, .36, 1). Nothing about the text's size or box changes.
+   The clip reaches .3em past the glyph boxes, because the italic's overhang would otherwise be cut off. */
+.appnav-dock[data-nav-dock] .appnav-item[data-nav-brand] { justify-content: center; padding: 9px 0; }
+.appnav-ico--mark { width: auto; min-width: var(--appnav-ico); }
+.appnav-ico--mark [data-draft-mark] {
+  display: inline-block; white-space: nowrap; line-height: var(--appnav-ico);
+  transform: translateX(calc(var(--appnav-raft-w, 0px) / 2)); transition: transform .38s cubic-bezier(.22, 1, .36, 1);
+}
+.appnav-ico--mark [data-draft-raft] {
+  display: inline-block; clip-path: inset(-.3em 100% -.3em 0); transition: clip-path .38s cubic-bezier(.22, 1, .36, 1);
+}
+.appnav-dock[data-nav-dock][data-open="true"] .appnav-ico--mark [data-draft-mark] { transform: translateX(0); }
+.appnav-dock[data-nav-dock][data-open="true"] .appnav-ico--mark [data-draft-raft] { clip-path: inset(-.3em -.3em -.3em -.3em); }
 .appnav-ico--me { aspect-ratio: 1; border-radius: 50%; overflow: visible; background: var(--c-surface-2); }
 .appnav-ico--me img { width: 100%; height: 100%; aspect-ratio: 1; border-radius: 50%; object-fit: cover; display: block; }
 .appnav-initials { font-weight: 700; font-size: 12px; line-height: 1; color: var(--c-ink); }
 /* A badge rides on the icon's top-right corner. */
 .appnav-ico .appnav-badge { position: absolute; top: -5px; right: -7px; }
-/* The page makes room: the shell is padded by the rail (72 = 10 + 60 + 2) and, while the dock is expanded, by the
-   expanded dock (10 + 212 + 2). Only when the dock is the navigation (the Menu leaves the page alone). */
-:root:not([data-navigation="menu"]) { --appnav-rail-w: 72px; }
-:root:not([data-navigation="menu"])[data-dock-open="true"] { --appnav-rail-w: 224px; }
-[data-app-shell] { padding-left: var(--appnav-rail-w, 0px); transition: padding-left .32s cubic-bezier(.2, .9, .3, 1); }
-/* A phone: the rail a step slimmer (52 px), so the page keeps its width; a tap goes straight to the page. */
-@media (max-width: 600px) {
-  .appnav-dock[data-nav-dock] { left: 6px; width: 46px; padding: 6px 4px; border-radius: 16px; }
-  .appnav-dock[data-nav-dock] .appnav-item { padding: 4px; gap: 10px; }
-  :root:not([data-navigation="menu"]) { --appnav-rail-w: 52px; }
+/* ⭐ D167: the thin divider before Ask draft. */
+.appnav-sep { display: block; flex: none; height: 1px; margin: 4px 6px; background: var(--c-border); }
+/* ⭐ D167: THE DOCK NEVER PUSHES THE PAGE (the rail's padding and D156 (3)'s push are gone): a side dock sits in a margin
+   measured to fit it open; otherwise it goes to the top, and the page starts one gap below it (--appnav-top-reserve). */
+[data-app-shell] { transition: padding-right .38s cubic-bezier(.22, 1, .36, 1); }
+/* (a spacer, not padding: the shell's padding-top is its inline chrome height — App.jsx) */
+:root:not([data-navigation="menu"])[data-dock-place="top"] [data-app-shell]::before,
+:root:not([data-navigation="menu"])[data-dock-place="phone"] [data-app-shell]::before {
+  content: ""; display: block; flex: none; height: var(--appnav-top-reserve, 0px);
 }
+
+/* TOP — one row, centred, icons AND names (the whole /draft); the gap above it equals the gap to the content
+   (--appnav-top-y, measured). Its one form: hovering never widens it. */
+:root[data-dock-place="top"] .appnav-dock[data-nav-dock],
+:root[data-dock-place="phone"] .appnav-dock[data-nav-dock] {
+  top: var(--appnav-top-y, 20px); left: 50%; transform: translateX(-50%);
+  width: auto; max-width: calc(100vw - 24px); flex-direction: row; align-items: center; gap: 2px; padding: 6px 10px;
+  transition: none; will-change: auto;
+}
+:root[data-dock-place="top"] .appnav-dock[data-nav-dock] .appnav-item { padding: 6px 10px; gap: 8px; }
+:root[data-dock-place="top"] .appnav-dock[data-nav-dock] .appnav-words { opacity: 1; transform: none; transition: none; }
+:root[data-dock-place="top"] .appnav-dock[data-nav-dock] .appnav-ico--mark [data-draft-mark] { transform: none; transition: none; }
+:root[data-dock-place="top"] .appnav-dock[data-nav-dock] .appnav-ico--mark [data-draft-raft] { clip-path: none; transition: none; }
+:root[data-dock-place="top"] .appnav-dock[data-nav-dock] .appnav-sep,
+:root[data-dock-place="phone"] .appnav-dock[data-nav-dock] .appnav-sep { width: 1px; height: 22px; margin: 0 4px; }
+
+/* PHONE — at the top, centred, below the status bar, ICONS ONLY (the short /d). */
+:root[data-dock-place="phone"] .appnav-dock[data-nav-dock] {
+  top: max(var(--appnav-top-y, 10px), calc(env(safe-area-inset-top, 0px) + 8px)); padding: 4px 6px; border-radius: 16px;
+}
+:root[data-dock-place="phone"] .appnav-dock[data-nav-dock] .appnav-item { padding: 5px; gap: 0; }
+:root[data-dock-place="phone"] .appnav-dock[data-nav-dock] .appnav-words { display: none; }
+:root[data-dock-place="phone"] .appnav-dock[data-nav-dock] .appnav-ico--mark [data-draft-mark] { transform: none; transition: none; }
+:root[data-dock-place="phone"] .appnav-dock[data-nav-dock] .appnav-ico--mark [data-draft-raft] { display: none; }
 
 /* ── the Menu: a button at the top right, a side panel from the right with the dock's buttons ── */
 .appnav-menu-btn {
@@ -106,7 +158,65 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
   border: 1px solid var(--c-border); background: var(--c-surface-solid); border-radius: var(--shape-radius-small, 10px);
 }
 .appnav-close:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .appnav-dock, .appnav-panel, .appnav-item, .appnav-words, [data-app-shell] { transition: none; } }
+/* ⭐ D167 · THE PROFILE QUICK PEEK ("draft screen"'s .peek) — a small Dusk menu beside a side dock (its left past the
+   open dock's right edge + 10; the dock stays open while the peek is) or below a top dock, so it never covers the dock;
+   a transient menu may sit over the page. A plain list of words; the mode switch is two boxes in a box (radius 12 / 9 on 30 px — not capsules). */
+.appnav-peek {
+  position: fixed; z-index: 255; /* just above Z.NAV, below the modal tiers */ width: min(268px, calc(100vw - 92px)); box-sizing: border-box;
+  padding: 14px 10px 10px; border-radius: 22px; background: var(--c-surface-menu); border: 1px solid var(--c-border); box-shadow: var(--c-shadow-lg);
+  opacity: 0; transform: translateX(-6px); visibility: hidden; pointer-events: none;
+  transition: opacity .18s ease, transform .22s cubic-bezier(.22, 1, .36, 1), visibility 0s linear .22s;
+}
+.appnav-peek[data-open="true"] { opacity: 1; transform: none; visibility: visible; pointer-events: auto; transition: opacity .18s ease, transform .22s cubic-bezier(.22, 1, .36, 1); }
+.appnav-peek__head { display: flex; gap: 10px; align-items: center; padding: 2px 8px 12px; min-width: 0; }
+.appnav-peek__head > div { min-width: 0; }
+.appnav-peek__head b { display: block; font-weight: 600; color: var(--c-ink); font-size: calc(14px * var(--type-scale, 1)); }
+.appnav-peek__head div span { display: block; color: var(--c-ink-muted); font-size: calc(12.5px * var(--type-scale, 1)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.appnav-peek__pic { flex: none; width: 36px; height: 36px; aspect-ratio: 1; border-radius: 50%; object-fit: cover; display: inline-flex; align-items: center; justify-content: center; background: var(--c-surface-2); }
+.appnav-peek a, .appnav-peek__out {
+  display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; padding: 9px 10px;
+  border: 0; border-radius: 12px; background: transparent; color: var(--c-ink-muted); font: inherit; font-size: calc(14px * var(--type-scale, 1));
+  text-decoration: none; text-align: left; cursor: pointer;
+}
+.appnav-peek a:hover, .appnav-peek__out:hover { background: var(--c-hover); color: var(--c-ink); }
+.appnav-peek a:focus-visible, .appnav-peek__out:focus-visible, .appnav-peek__seg button:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.appnav-peek small { color: var(--c-ink-muted); font-size: calc(12px * var(--type-scale, 1)); }
+.appnav-peek .appnav-peek__open { color: var(--c-accent-ink); font-weight: 600; }
+.appnav-peek__sep { height: 1px; background: var(--c-border); margin: 6px 8px; }
+.appnav-peek__seg { display: flex; gap: 3px; margin: 4px 6px 6px; padding: 3px; border-radius: 12px; background: var(--c-surface-2); }
+.appnav-peek__seg button {
+  flex: 1; padding: 6px 4px; border: 0; border-radius: 9px; background: transparent; cursor: pointer; font: inherit;
+  font-size: calc(12.5px * var(--type-scale, 1)); font-weight: 600; color: var(--c-ink-muted); text-align: center;
+}
+.appnav-peek__seg button[aria-pressed="true"] { background: var(--c-surface-menu); color: var(--c-accent-ink); }
+.appnav-peek__seg button:disabled { cursor: default; }
+.appnav-peek__seg button[data-locked="true"] { opacity: .6; }
+/* ⭐ D167: its place is set by AppNav.jsx — beside a side dock, below a top one (placePeek). */
+@media (max-width: 600px) { .appnav-peek { width: min(268px, calc(100vw - 24px)); } }
+
+/* ⭐ D167 · ASK DRAFT — the assistant's panel, on the right. It MOVES THE PAGE OVER (D153 / D156's rule): while it is open
+   the app shell and the fixed chrome are padded by its width, so nothing is under it. */
+:root { --appnav-ask-w: min(380px, 88vw); }
+.appnav-ask {
+  position: fixed; top: 0; right: 0; bottom: 0; width: var(--appnav-ask-w); box-sizing: border-box; z-index: 240; /* below Z.NAV */
+  display: flex; flex-direction: column; gap: 12px; padding: 22px 20px; overflow-y: auto;
+  background: var(--c-surface-menu); border-left: 1px solid var(--c-border);
+  transform: translateX(100%); visibility: hidden; transition: transform .38s cubic-bezier(.22, 1, .36, 1), visibility 0s linear .38s;
+}
+.appnav-ask[data-open="true"] { transform: none; visibility: visible; transition: transform .38s cubic-bezier(.22, 1, .36, 1); }
+.appnav-ask__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.appnav-ask__head h2 { margin: 0; font-size: calc(20px * var(--type-scale, 1)); font-weight: 600; color: var(--c-ink); }
+.appnav-ask .appnav-ask__close { position: static; }
+.appnav-ask__say { margin: 0; color: var(--c-ink-muted); font-size: calc(14px * var(--type-scale, 1)); line-height: 1.5; }
+:root[data-ask-open="true"] [data-app-shell] { padding-right: var(--appnav-ask-w); }
+:root[data-ask-open="true"] [data-app-chrome] { padding-right: calc(20px + var(--appnav-ask-w)) !important; }
+
+/* Reduced motion: every one of these is instant (the rail, the mark's slide and clip, the names, the peek, Ask draft). */
+@media (prefers-reduced-motion: reduce) {
+  .appnav-dock, .appnav-dock[data-nav-dock], .appnav-panel, .appnav-item, .appnav-words, .appnav-dock[data-nav-dock] .appnav-words,
+  .appnav-dock[data-nav-dock][data-open="true"] .appnav-words, .appnav-ico--mark [data-draft-mark], .appnav-ico--mark [data-draft-raft],
+  .appnav-peek, .appnav-peek[data-open="true"], .appnav-ask, .appnav-ask[data-open="true"], [data-app-shell] { transition: none; }
+}
 
 /* ⭐ D149 · the Profile panel (TopBar AccountPanel): the Menu panel's surface, the old account menu's width. */
 .acct-panel { width: min(360px, 92vw); gap: 0; padding: 64px 4px 20px; }

@@ -31,7 +31,8 @@ test("d163 (pure): one centred group at most 1680 wide; gutters and gaps are cla
   assert.match(FH, /\.home \{ --home-gutter: clamp\(24px, 5\.625vw - 48px, 96px\); --home-gap: clamp\(32px, 2\.5vw, 64px\);/);
   assert.match(FH, /max-width: calc\(1680px \+ 2 \* var\(--home-gutter\)\); margin: 0 auto;\n  padding: 28px var\(--home-gutter\) 80px;/);
   assert.match(FH, /@media \(min-width: 1440px\) \{ \.home \{ --home-deck-track: minmax\(640px, \.75fr\); \}/);
-  assert.match(NAVCSS, /\.appnav-dock\[data-nav-dock\] \{ top: 50%; transform: translateY\(-50%\); \}/);
+  // ⭐ D167 (changed on purpose): a side dock is centred in the page's margin both ways (AppNav.jsx measures the margin).
+  assert.match(NAVCSS, /\.appnav-dock\[data-nav-dock\] \{ top: 50%; left: calc\(var\(--appnav-margin, 72px\) \/ 2\); transform: translate\(-50%, -50%\); \}/);
   assert.doesNotMatch(NAVCSS, /\.appnav-dock\[data-nav-dock\] \{[^}]*top: (44|24)px/, "no longer pinned to the top-left corner");
 });
 
@@ -79,18 +80,26 @@ test("d163DeckCentredInColumn (real Chrome): the card and its fan sit in the mid
   assert.ok(out["1920"].rest.stackLeft > 10 && out["2560"].rest.stackLeft > 10, "a wide column: the deck is not pinned to its left");
 });
 
-test("d163DockOwnGutterVerticallyCentred (real Chrome): the rail on its own gutter, in the middle of the screen, still pushing the page", { timeout: 300000 }, (t) => {
+// ⭐ D167 (owner 11-06, "the dock goes where the space is" — changed on purpose: the rail on its own gutter, pushing the
+// page, is gone): a SIDE dock (only where the margin fits it open — 2560 here) is vertically centred in that margin and
+// never covers or pushes the content; a TOP dock (1280–1920, phones) sits above the content. test/d167Dock has the rest.
+test("d163DockOwnGutterVerticallyCentred → D167 (real Chrome): a side dock centred in its margin, a top dock above the content; never pushes or covers", { timeout: 300000 }, (t) => {
   const out = measured(t); if (!out) return;
   for (const w of [...WIDTHS, "phone"]) {
     const d = out[w], r = d.rest;
-    assert.ok(Math.abs(r.dockMid - d.vh / 2) <= 2, `${w}: vertically centred (${r.dockMid} of ${d.vh})`);
-    assert.ok(r.dock.left > 0 && r.dock.right <= (r.group?.left ?? Infinity), `${w}: its own gutter, left of the content`);
+    if (r.place === "side") {
+      assert.ok(Math.abs(r.dockMid - d.vh / 2) <= 2, `${w}: vertically centred (${r.dockMid} of ${d.vh})`);
+      assert.ok(r.dock.left > 0 && r.dock.right <= (r.group?.left ?? Infinity), `${w}: in the margin, left of the content`);
+    } else {
+      assert.ok(r.dock.bottom <= (r.group?.top ?? Infinity), `${w}: above the content (${r.dock.bottom} vs ${r.group?.top})`);
+    }
   }
+  assert.equal(out["2560"].rest.place, "side"); assert.equal(out["1280"].rest.place, "top");
   for (const w of WIDTHS) {
     const o = out[w].open;
-    assert.equal(o.shellPad, "224px", `${w}: opening it pushes the page`);
-    assert.equal(o.covers, false, `${w}: the open dock never covers the content`);
-    assert.ok(Math.abs((o.dock.top + o.dock.bottom) / 2 - out[w].vh / 2) <= 2, `${w}: still centred when open`);
+    if (!o) continue;
+    assert.equal(o.shellPad, "0px", `${w}: opening it never pushes the page`);
+    assert.equal(o.covers, false, `${w}: the dock never covers the content`);
   }
 });
 

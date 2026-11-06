@@ -45,7 +45,8 @@ test("D10 → D145: the tab row is gone; the Dock / the Menu set each name on ON
   // ⭐ D156 (1c) (changed on purpose): the name is DOCK_NAMES' (draft / Home) or the section's own label.
   assert.match(nav, /<span className="appnav-name">\s*\{name\}/);
   assert.match(nav, /const name = DOCK_NAMES\[t\.id\] \|\| t\.label;/);
-  assert.match(nav, /<small className="appnav-plain">\{NAV_PLAIN\[t\.id\] \|\| ""\}<\/small>/);
+  // ⭐ D167 (owner 11-06, changed on purpose): NAMES ONLY — the plain line under each name is removed (test/d167Dock d167NoDescriptionsUnderNames).
+  assert.doesNotMatch(nav, /NAV_PLAIN|className="appnav-plain"/);
 });
 
 test("D10: the bar is ~74px with a ~30px mark", () => {
