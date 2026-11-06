@@ -151,6 +151,13 @@ const ADMIN = new Set([
   "POST /api/admin/learn/circle/links/check",
   "PUT /api/admin/learn/circle/routes/:id",
   "DELETE /api/admin/learn/circle/routes/:id",
+  // D162 G2–G4: the model gateway — every task's route, the switch / rollback (audited), evals, telemetry.
+  "GET /api/admin/model-gateway/",
+  "GET /api/admin/model-gateway/telemetry",
+  "GET /api/admin/model-gateway/tasks/:task",
+  "POST /api/admin/model-gateway/tasks/:task/change",
+  "POST /api/admin/model-gateway/tasks/:task/rollback",
+  "POST /api/admin/model-gateway/tasks/:task/evals",
   // A50 step 3: the daily glance. Read-only, but it reads every user's apply outcomes and spend.
   "GET /api/admin/glance",
   "GET /api/admin/costs",                   // cost visibility (10-09): résumé economics, admin-only
@@ -640,6 +647,9 @@ function collect() {
     // D118 P2: mounted at /api/admin/learn behind requireAdmin — the mount's guard is every route's.
     ...routerRoutes(fs.readFileSync("routes/learnAdmin.js", "utf8"), "/api/admin/learn")
       .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/admin/learn") })),
+    // D162: mounted at /api/admin/model-gateway behind requireAdmin — the mount's guard is every route's.
+    ...routerRoutes(fs.readFileSync("routes/modelGateway.js", "utf8"), "/api/admin/model-gateway")
+      .map(r => ({ ...r, guard: named(r.guard) || mounts.get("/api/admin/model-gateway") })),
   ];
   return routes.map(r => ({ ...r, guard: named(r.guard) }));
 }

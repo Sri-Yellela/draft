@@ -22,6 +22,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { TASKS } from "../shared/modelTasks.js";
 
 const ALLOWED = new Set([
   "cover_letter",        // /api/cover-letter/generate — the generation family
@@ -50,13 +51,19 @@ function productionFiles() {
   return out;
 }
 
-/** Every purpose passed to callModel in a source string. */
+/**
+ * Every purpose a source string calls a model for. D162: a feature calls callTask({ task }) — the ledger purpose is the
+ * call's own `purpose:` (one of the task's) or else the task's first (shared/modelTasks.js), so this ratchet still reads
+ * purposes and its lists stay as they were.
+ */
 export function modelPurposes(src) {
   const found = [];
-  for (const m of src.matchAll(/callModel\(\{/g)) {
+  for (const m of src.matchAll(/call(Model|Task)\(\{/g)) {
     const window = src.slice(m.index, m.index + 400);
     const p = window.match(/purpose:\s*["']([a-z_0-9]+)["']/);
-    found.push(p ? p[1] : "<no literal purpose>");
+    if (p) { found.push(p[1]); continue; }
+    const t = m[1] === "Task" ? window.match(/task:\s*["']([a-z_.0-9]+)["']/) : null;
+    found.push(t && TASKS[t[1]] ? TASKS[t[1]].purposes[0] : `<no literal ${m[1] === "Task" ? "task" : "purpose"}>`);
   }
   return found;
 }
@@ -65,6 +72,7 @@ test("D17: production code calls a model only for generation, or for a violation
   const found = new Map();
   for (const file of productionFiles()) {
     if (file.replace(/\\/g, "/") === "services/modelCall.js") continue; // the definition, not a call
+    if (file.replace(/\\/g, "/") === "services/modelGateway.js") continue; // D162: callTask's definition, not a call
     const src = fs.readFileSync(file, "utf8");
     for (const purpose of modelPurposes(src)) {
       if (!found.has(purpose)) found.set(purpose, []);

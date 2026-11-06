@@ -27,8 +27,9 @@ import { mergeUniqueSignalLabels } from "../shared/profileSignals.js";
 import { startFromResume } from "../services/resumeOnboarding.js";
 import { sampleRoleFamily, sampleIdForText, activeSampleId } from "../services/trial.js";
 import { readProfile } from "../services/structuredProfile.js";
-import { MODEL_HAIKU } from "../shared/anthropicModels.js";
-import { callModel, DATA_CLASS } from "../services/modelCall.js";
+import { DATA_CLASS } from "../services/modelCall.js";
+// D162 G1: the feature names its task; the gateway picks the model (shared/modelTasks.js profile.domain_chips).
+import { callTask } from "../services/modelGateway.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -719,12 +720,10 @@ Rules:
 - tools: exactly 5 software tools or platforms, not in existing list`;
 
     try {
-      const msg = await callModel({
-        anthropic, db, purpose: "domain_chips", userId: req.user.id,
+      const msg = await callTask({
+        task: "profile.domain_chips", anthropic, db, userId: req.user.id,
         // CANDIDATE: the candidate's profile, to suggest domain skills. Never routed off Anthropic.
         dataClass: DATA_CLASS.CANDIDATE,
-        model: MODEL_HAIKU,
-        max_tokens: 600,
         messages: [{ role: "user", content: prompt }],
       });
       const raw = msg.content.map(b => b.text || "").join("").replace(/```json|```/g, "").trim();

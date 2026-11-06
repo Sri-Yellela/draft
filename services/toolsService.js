@@ -36,6 +36,7 @@
 
 import { trackApiCall } from "./usageTracker.js";
 import { retryLedgerText } from "./generationRetry.js";
+import { taskForPurpose } from "../shared/modelTasks.js";
 
 export class ToolsServiceError extends Error {
   constructor(message, { code, status = null, retryable, permanent, violations = null, usage = [] } = {}) {
@@ -55,6 +56,14 @@ export class ToolsServiceError extends Error {
 const TRANSIENT_4XX = new Set([408, 429]);
 
 const TIMEOUT_MS = { generate: 150_000, enhance: 120_000, "parse-pdf": 90_000, default: 20_000 };
+
+// ⛔ D162 G1 · the model TASK each tools-service call asks for (shared/modelTasks.js, runsIn "tools-service"). The tools
+// service makes the call and picks its model (RM_TAILOR_PROVIDER, D123 P3); draft names the task here and tags the usage
+// records the service hands back with it (recordToolsServiceUsage) — per purpose, since one generate request can bill
+// two tasks (the lean tailoring and its repair).
+export const TOOLS_SERVICE_TASKS = Object.freeze({
+  generate: "resume.generate", enhance: "resume.enhance", parsePdf: "resume.parse_pdf", gists: "resume.gist",
+});
 
 export function createToolsServiceClient({
   baseUrl = process.env.RESUME_MASTER_URL,
@@ -118,6 +127,7 @@ export function createToolsServiceClient({
 
   return {
     configured,
+    tasks: TOOLS_SERVICE_TASKS,
     version: () => call("GET", "/v1/version"),
     generate: (req) => call("POST", "/v1/resumes/generate", req, "generate"),
     enhance: (req) => call("POST", "/v1/resumes/enhance", req, "enhance"),
@@ -213,7 +223,11 @@ export function recordToolsServiceUsage(db, usage, { userId, eventSubtype = null
     if (!u || typeof u !== "object") continue;
     const purpose = renamePurpose[u.purpose] || u.purpose;
     const eventId = trackApiCall(db, {
-      userId, eventType: purpose, eventSubtype, purpose, model: u.model, provider: "anthropic",
+      // D162 G4: the provider the service REPORTS (an open model via RM_TAILOR_PROVIDER is not Anthropic — recording it
+      // as such would mis-tag a non-Claude output as Claude's, and the reverse is worse); Anthropic when it says nothing,
+      // as before. The task comes from the service's own purpose name, before any rename.
+      userId, eventType: purpose, eventSubtype, purpose, model: u.model, provider: typeof u.provider === "string" && u.provider ? u.provider : "anthropic",
+      task: taskForPurpose(u.purpose) || taskForPurpose(purpose), route: "tools-service",
       usage: u, durationMs: u.duration_ms, success: u.success !== false,
       errorText: [u.success === false ? "failed inside Resume Master"
         : (typeof requestError === "string" && requestError ? `request failed: ${requestError}` : null),

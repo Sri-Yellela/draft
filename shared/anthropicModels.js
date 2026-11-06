@@ -19,6 +19,9 @@
 export const MODEL_SONNET = "claude-sonnet-5";
 export const MODEL_HAIKU = "claude-haiku-4-5-20251001";
 
+// D162: models kept in ANTHROPIC_PRICING only so old usage rows still price — never routable to (shared/modelTasks.js).
+export const RETIRED_MODELS = Object.freeze(["claude-sonnet-4-20250514"]);
+
 // Per-token costs in USD. Verified against
 // https://platform.claude.com/docs/en/about-claude/pricing on 2026-08-13, re-verified 2026-08-31.
 // Cache reads cost 0.1x base input; 5-minute cache writes cost 1.25x base input.

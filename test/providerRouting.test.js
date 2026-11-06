@@ -197,7 +197,8 @@ test("every callModel call site declares a dataClass", () => {
   const missing = [];
   for (const file of files) {
     const src = fs.readFileSync(file, "utf8");
-    for (const m of src.matchAll(/callModel\(\{([\s\S]{0,900}?)\}\);/g)) {
+    // D162: features call callTask (services/modelGateway.js), which hands dataClass through to callModel.
+    for (const m of src.matchAll(/call(?:Model|Task)\(\{([\s\S]{0,900}?)\}\);/g)) {
       if (!/dataClass:\s*DATA_CLASS\./.test(m[1])) {
         missing.push(`${file}: near "${m[1].trim().slice(0, 70)}"`);
       }

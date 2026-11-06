@@ -12,9 +12,9 @@
 // absence guard (test/modelCallGuard.test.js) that fails the build if a bare
 // anthropic.messages.create appears anywhere outside this module.
 //
-// TO ADD A CALL SITE: call callModel({ anthropic, db, model, purpose, userId, ...params }).
-// `purpose` is required and should be a stable snake_case feature name — it is what lets spend be
-// grouped by feature rather than only by model.
+// ⛔ D162: A FEATURE DOES NOT CALL THIS DIRECTLY. It calls callTask({ task, ... }) from services/modelGateway.js, which
+// picks the model from the task's configuration and calls this. callModel stays the one place a call is MADE and
+// RECORDED; the gateway is the one place a model is CHOSEN.
 
 import { trackApiCall } from "./usageTracker.js";
 import { assertOutboundFields } from "../shared/piiPolicy.js";
@@ -103,10 +103,14 @@ export async function callModel({
   // and asserted field-by-field against shared/piiPolicy.js before anything is sent. Not forwarded
   // to any provider; it exists to be checked.
   piiFields = null,
+  // D162 G4: set by the gateway (services/modelGateway.js callTask) — the task and how it was routed, recorded on the
+  // usage row. Never forwarded to the provider.
+  task = null,
+  route = null,
   ...params
 } = {}) {
   if (!purpose) throw new Error("callModel: `purpose` is required — it is how spend is attributed to a feature");
-  if (!model) throw new Error(`callModel(${purpose}): no model — import MODEL_SONNET/MODEL_HAIKU from shared/anthropicModels.js`);
+  if (!model) throw new Error(`callModel(${purpose}): no model — call callTask (services/modelGateway.js), which takes it from the task's route`);
 
   // Checked before the timer and outside the try: a bad declaration is a code error, not a call, so
   // no usage row is written for it.
@@ -177,6 +181,8 @@ export async function callModel({
         atsScoreAfter,
         success,
         errorText,
+        task,
+        route,
       });
       if (typeof onTracked === "function") {
         // Swallowed on purpose. This is a measurement hook; it may not turn a successful

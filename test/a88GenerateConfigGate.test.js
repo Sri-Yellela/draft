@@ -26,7 +26,7 @@ const code = (s) => s.split("\n").map(l => l.replace(/^\s*\/\/.*$/, "").replace(
 
 const generateRoute = server.slice(at(server, 'app.post("/api/generate", requireAuth'), at(server, "// SANDBOX + PDF"));
 const coreGenerate = server.slice(at(server, "async function coreGenerateResume("), at(server, "function generateResumeForApply"));
-const coverRoute = server.slice(at(server, 'app.post("/api/cover-letter/generate"'), at(server, "const message = await callModel({", at(server, 'app.post("/api/cover-letter/generate"')));
+const coverRoute = server.slice(at(server, 'app.post("/api/cover-letter/generate"'), at(server, "const message = await callTask({", at(server, 'app.post("/api/cover-letter/generate"')));
 
 test("A88 · /api/generate makes no model call of its own — generation goes through the tools service", () => {
   for (const [name, region] of [["the route", generateRoute], ["coreGenerateResume", coreGenerate]]) {
