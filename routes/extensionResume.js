@@ -36,7 +36,7 @@ export function createExtensionResumeRouter({ service, requireAuth, isExtension,
     // ⛔ USER-TRIGGERED ONLY: the extension sends `trigger: "click"` from the button's handler and nowhere else.
     if (req.body?.trigger !== "click") return send(res, userError("trigger_required"));
     const jobId = req.body?.boundJobId != null && req.body.boundJobId !== "" ? String(req.body.boundJobId) : null;
-    send(res, service.start(req.user.id, { jobId, regenerate: req.body?.regenerate === true }));
+    send(res, service.start(req.user.id, { jobId, regenerate: req.body?.regenerate === true, reuseOnly: req.body?.reuseOnly === true }));
   });
 
   router.get("/api/extension/resume/:id", ...guard, limited(readOk), (req, res) => send(res, service.get(req.user.id, req.params.id)));

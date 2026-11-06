@@ -861,7 +861,7 @@ export function renderOverlay(model, meta) {
       let reply;
       try {
         reply = which === 'tailored'
-          ? await send({ type: 'RESUME_ATTACH', id: files.tailored?.id, target })
+          ? await send(files.tailored?.reuse ? { type: 'RESUME_ATTACH', reuse: true, trigger: 'click', target } : { type: 'RESUME_ATTACH', id: files.tailored?.id, target })
           : await send({ type: 'RESUME_ATTACH_FILE', which, target, trigger: 'click' });
       } finally { r.pending = false; }
       btn.disabled = false;
