@@ -13,6 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const DECK = read("client/src/panels/DeckView.jsx");
@@ -40,8 +41,8 @@ test("d168OneOpenPathForCardAndBubble (pure): a bubble's press on the jobs page 
 });
 
 test("d168WheelHasOneJob (pure): the deck's wheel handler turns the deck and nothing else; the post has no wheel listener", () => {
-  const at = DECK.indexOf("const onWheel = (e) => {");
-  const wheel = DECK.slice(at, DECK.indexOf('el.addEventListener("wheel", onWheel', at));
+  const from = at(DECK, "const onWheel = (e) => {");
+  const wheel = DECK.slice(from, at(DECK, 'el.addEventListener("wheel", onWheel', from));
   assert.doesNotMatch(wheel, /openPost|foldPost|setWhy|closePostingOnDeck/);
   assert.match(wheel, /if \(boardPostRef\.current\) return;\s+\/\/ reading: the page scrolls/);
   assert.equal((DECK.match(/addEventListener\("wheel"/g) || []).length, 1, "one wheel listener in the deck");

@@ -20,6 +20,7 @@ import { ATLAS_NAV, PANEL_IDS, panelFor, isPanelSlug, panelHref, learnStages, ov
 import { slugOf } from "../services/atlas/atlasStore.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
 import { computeYourMap } from "../services/atlas/atlasMe.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const CLIENT = path.resolve("client");
@@ -53,7 +54,7 @@ async function loadUi() {
   return ui;
 }
 
-const navOf = (html) => html.slice(html.indexOf('<nav class="atl-anav"'), html.indexOf("</nav>", html.indexOf('<nav class="atl-anav"')) + 6);
+const navOf = (html) => html.slice(at(html, '<nav class="atl-anav"'), at(html, "</nav>", at(html, '<nav class="atl-anav"')) + 6);
 const currentOf = (html) => [...navOf(html).matchAll(/data-atlas-nav="([^"]+)"[^>]*aria-current="page"/g)].map(m => m[1]);
 
 /** A synthetic reader with a map (D120's fixture shape): five published nodes, five postings, two profile skills. */
