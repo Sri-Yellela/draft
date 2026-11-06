@@ -1,5 +1,5 @@
 // client/src/panels/JobsPanel.jsx — Lucy Brand, shared job pool
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import EmptyState from "../components/EmptyState.jsx";
@@ -41,7 +41,7 @@ import {
   POSTING_AGE, VISITED, ageDaysMap,
 } from "../../../shared/jobFilterOptions.js";
 // AH2: the job-detail address, shared with JobCard so the href and the param cannot disagree.
-import { JOB_URL_PARAM, jobIdFromSearch, OPEN_MATCH_EVENT, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, panelOverPosting } from "../lib/jobUrl.js";
+import { JOB_URL_PARAM, jobIdFromSearch, OPEN_MATCH_EVENT, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, POST_FADE_MS, openPostingOnDeck, panelOverPosting } from "../lib/jobUrl.js";
 // D35: the Full House header (App.jsx) renders the sentence, its one panel and the sort panel; this
 // panel publishes what they read — the committed clause params and the facets answer.
 import { JOB_FUNCTIONS, PLACES } from "../../../shared/jobTagVocabulary.js";
@@ -1482,6 +1482,19 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     window.dispatchEvent(new CustomEvent(POSTING_ON_DECK_EVENT, { detail: { jobId: postOnDeckId, origin: postOrigin } }));
   }, [postOnDeckId, postOrigin]);
   useEffect(() => () => window.dispatchEvent(new CustomEvent(POSTING_ON_DECK_EVENT, { detail: { jobId: null } })), []);
+  // ⭐ D168 · THE SWAP's outgoing half: the posting DRAWN on the deck lags a change AWAY from the one shown by POST_FADE_MS,
+  // so a folding (or replaced) posting fades out with its own content while DeckView runs the swap; opening one onto the
+  // deck, or the same posting updating, is drawn at once.
+  const deckPostTarget = besideMode ? selectedJob : null;
+  const [deckPostJob, setDeckPostJob] = useState(null);
+  const deckPostJobRef = useRef(null);
+  deckPostJobRef.current = deckPostJob;
+  useLayoutEffect(() => {
+    const cur = deckPostJobRef.current;
+    if (!cur || (deckPostTarget && String(deckPostTarget.jobId) === String(cur.jobId))) { setDeckPostJob(deckPostTarget); return undefined; }
+    const t = setTimeout(() => setDeckPostJob(deckPostTarget), POST_FADE_MS);
+    return () => clearTimeout(t);
+  }, [deckPostTarget]);
   const panelDescriptors = useMemo(() => ([
     { id: "jd",  open: !!selectedJob && !besideMode, close: () => { clearDeepLink(); setSelectedJob(null); } },
     { id: "pdf", open: sandboxOpen,     close: () => { setSandboxOpen(false); setSandbox(null); } },
@@ -2234,7 +2247,12 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const handleJobSelect = useCallback((job) => {
     clearDeepLink();   // the user is driving the panel now
     setPostOrigin("board");
-    setSelectedJob(prev => {
+    // ⭐ D168 · ONE WAY TO OPEN: on the jobs page (the deck's slot is in the document) a bubble's press opens its posting
+    // through the deck card's own open — openPostingOnDeck, heard once below (onOpen) — so a card and a bubble open the
+    // same way, with the same swap. A press opens (a second press on the open one is no fold: Esc / "Fold it back" fold).
+    // Elsewhere (Full House) the row toggles the panel as before.
+    if (typeof document !== "undefined" && document.getElementById(DECK_POST_SLOT_ID)) openPostingOnDeck(job.jobId, { origin: "board" });
+    else setSelectedJob(prev => {
       if (prev?.jobId === job.jobId) return null; // toggle off
       return job;
     });
@@ -2315,6 +2333,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       byId(id).then(job => { if (job && latest.id === id) go(job); }).catch(() => {});
     };
     // ⭐ D156 (1c): the deck's front card expanding into the long post — the same posting, opened by the deck.
+    // ⭐ D168: and a bubble's press on the jobs page (handleJobSelect) — THE one open path for both (origin deck / board).
     const onOpen = (e) => {
       const id = e.detail?.jobId;
       if (!id) return;
@@ -4353,8 +4372,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       {/* ⭐ D156 (1c): on a desktop the posting is drawn ON THE DECK, in the front card's place (the deck's slot) — the card
           becomes the long post; the list beside it never folds away. Outside the overlay host, Escape closing it only while
           no overlay panel is open (D39). */}
-      {besideMode && deckSlot && createPortal(
-        <JobDetailPanel key="panel-jd" slot={0} fullScreen={false} beside onDeck focused={openPanelCount === 0}
+      {/* ⭐ D168: the posting drawn is deckPostJob — the selection, held a fade longer when it goes (the swap's fade-out). */}
+      {deckPostJob && deckSlot && createPortal(
+        <JobDetailPanel key="panel-jd" slot={0} fullScreen={false} beside onDeck job={deckPostJob} focused={openPanelCount === 0}
           closesOnEscape={openPanelCount === 0} resizeMode="none" />,
         deckSlot,
       )}

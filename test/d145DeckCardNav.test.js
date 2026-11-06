@@ -103,15 +103,12 @@ test("d145NothingSaidTwice: salary / type / mode only on the folded card, 'poste
   assert.doesNotMatch(face, /bandMarkStyle|conic-gradient|markStyle\(C\.SUCCESS\)/);
 });
 
-test("d145ScrollExpandsAndFolds: a scroll down on the front card opens 'Why this job', a scroll up with the card's top on screen folds it", () => {
-  // ⭐ D156 (1c): the deck's slot has its own wheel listener (onPostWheel) above this one — the end is searched after the start.
+// ⭐ D168 (owner 11-06, concept B — changed on purpose): the wheel NO LONGER opens or folds "Why this job" (nor the long
+// post): over the deck it only turns it. The press, Enter and the "Why this job" button open it; a card change folds it.
+test("d145ScrollExpandsAndFolds → D168: the wheel never opens or folds 'Why this job'; the press, Enter and the button do", () => {
   const wheelAt = at(deck, "const onWheel = (e) => {");
   const wheel = deck.slice(wheelAt, at(deck, 'el.addEventListener("wheel", onWheel', wheelAt));
-  assert.match(wheel, /const onFront = Math\.abs\(e\.deltaY\) >= Math\.abs\(e\.deltaX\) && faceRef\.current\?\.contains\(e\.target\);/);
-  assert.match(wheel, /if \(dir > 0 && !whyRef\.current\) \{ e\.preventDefault\(\);[^\n]*setWhy\(true\)/);
-  assert.match(wheel, /if \(dir < 0 && whyRef\.current && top >= 0\) \{ e\.preventDefault\(\);[^\n]*setWhy\(false\)/);
-  assert.match(wheel, /if \(whyRef\.current\) return;\s+\/\/ open: the page scrolls/);
-  assert.ok(wheel.indexOf("onFront") < wheel.indexOf("stepTarget"), "the card's own scroll is read before the fan turns");
+  assert.doesNotMatch(wheel, /setWhy|openPost|foldPost|onFront/, "the wheel has one job: turning the deck");
   // The keyboard and the press do the same; a card change folds it.
   // ⭐ D156 (1c) (changed on purpose): on Home Enter opens the card into its long post; elsewhere "Why this job".
   assert.match(deck, /k === "Enter" && tag !== "button" && tag !== "a"\) \{ e\.preventDefault\(\); if \(home\) openPost\(\); else setWhy\(v => !v\); \}/);

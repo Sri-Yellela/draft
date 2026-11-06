@@ -81,7 +81,7 @@ test("the job-detail address is defined in exactly one place", () => {
   // ⭐ D152 (8) (b): the board also takes OPEN_MATCH_EVENT from the same file (the deck's "open the match" ask).
   // ⭐ D156 (1c): the deck's posting events come from the same one place.
   // ⭐ D164 (changed on purpose): and panelOverPosting (an Escape over the sandbox leaves the posting open, D39).
-  assert.match(PANEL, /import \{ JOB_URL_PARAM, jobIdFromSearch(, OPEN_MATCH_EVENT)?(, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID)?(, panelOverPosting)? \} from "\.\.\/lib\/jobUrl\.js"/);
+  assert.match(PANEL, /import \{ JOB_URL_PARAM, jobIdFromSearch(, OPEN_MATCH_EVENT)?(, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID)?(, POST_FADE_MS, openPostingOnDeck)?(, panelOverPosting)? \} from "\.\.\/lib\/jobUrl\.js"/);
   // And neither BUILDS the URL itself. Matched against a quoted/templated literal rather than the
   // bare string, so the prose comment explaining the address does not count as a second copy.
   assert.doesNotMatch(JOBCARD, /[`'"]\/app\/jobs\?job=/);
