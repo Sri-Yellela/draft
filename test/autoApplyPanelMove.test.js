@@ -111,7 +111,7 @@ test("the tab exists, routes, and is not bounced back to the board", () => {
   assert.match(app, /if \(NAVIGABLE_TABS\.has\(tab\)\) \{/);
   // D102 P5 (10-30) on purpose: /app/job/:id (one application's page) is a path the guard lets through besides the tabs;
   // D105 P4 (10-30) on purpose: so is /app/atlas/<slug> (one Atlas page under the Atlas tab).
-  assert.match(app, /if \(!jobRoute && !atlasRoute && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS\.has\(routeKey\)\) \{/);
+  assert.match(app, /if \(!jobRoute && !atlasRoute && profilePanel === undefined && interviewPanel === undefined[\s\S]{0,160}?routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS\.has\(routeKey\)\) \{/);
   assert.ok(!/\["database","plans","profile","job-profiles","integrations","recruiter"\]/.test(app),
     "a hardcoded tab list is back — it is silent when wrong in both directions");
 });
