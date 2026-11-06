@@ -109,8 +109,12 @@ export const RESPONSE_SCHEMAS = Object.freeze({
       unclassified: "$Unclassified|null",
       emptyReason: "object|null",
       needsProfileSetup: "boolean|null",
+      // ⭐ A130 (45b): emitted since D121, undocumented until aj1 found it.
+      sponsorshipNeeded: "boolean",
     },
     fieldNotes: {
+      sponsorshipNeeded: "Whether the person's own Application defaults say they need sponsorship (now or later). It only " +
+        "sets how a posting's sponsorship signal is worded; it is never inferred.",
       nextCursor: "Opaque. Pass it back as ?cursor= for the next page. **null means this is the " +
         "last page** — established by over-fetching one row, not by comparing a count, so it is a " +
         "fact rather than an inference. Emitted on BOTH paging modes, so an offset client can " +
@@ -333,6 +337,8 @@ export const RESPONSE_SCHEMAS = Object.freeze({
       review: "$RunJob[]", gated: "$RunJob[]", inFlight: "$RunJob[]",
       submitted: "$RunJob[]", stopped: "$RunJob[]",
       statusCounts: "object",
+      // ⭐ A130 (45b): A59's line, undocumented until aj1 found it.
+      line: "object",
     },
     fieldNotes: {
       runs: "The 20 most recent runs, newest first.",
@@ -340,6 +346,7 @@ export const RESPONSE_SCHEMAS = Object.freeze({
         "(no extension, so no activeTab). Render them as needing a desktop; do not offer a retry.",
       statusCounts: "Keyed by apply status, valued by count, over ALL non-hidden run-jobs — not " +
         "just the ones in the buckets above. Use it for badges, not to size the arrays.",
+      line: "The person's line of queued applications, next first — the same payload as GET /api/apply/line.",
     },
   },
   RunDetailResponse: {
@@ -401,6 +408,8 @@ export const RESPONSE_SCHEMAS = Object.freeze({
       answers: "object[]", openQuestions: "object[]",
       resume: "$PendingResume", submission: "$SubmissionEvidence",
       missingRequired: "string[]", screenshotAvailable: "boolean", fillLogAvailable: "boolean",
+      // ⭐ A130 (45b): undocumented until aj1 found them.
+      baseAts: "object|null", generationDeferred: "boolean",
     },
     fieldNotes: {
       answers: "Every filled field WITH THE RULE THAT PRODUCED IT. A `label_fuzzy` provenance is a " +
@@ -408,6 +417,8 @@ export const RESPONSE_SCHEMAS = Object.freeze({
         "the entire point of showing this — surface it, do not flatten it away.",
       missingRequired: "The LABELS of required fields left blank. A hold saying 'required fields " +
         "were left empty' without saying which is a hold the candidate cannot act on.",
+      baseAts: "The base résumé's fit for this posting ({ score, band, … }) when no tailored résumé was made for it; null otherwise.",
+      generationDeferred: "true when the résumé is written only on approval (AL2's operator switch, off by default since D165 R1).",
     },
   },
   SubmissionEvidence: {
@@ -562,6 +573,9 @@ export const RESPONSE_SCHEMAS = Object.freeze({
       years_of_experience: "number|null",
       custom_answers: "string|null", custom_answer_overrides: "string|null",
       custom_answer_scoped: "string|null",
+      // ⭐ A130 (45b): on the row since D96 / D112 d / D150, undocumented until aj1 found them.
+      custom_answers_acknowledged_at: "number|null", answer_review_reminded_at: "number|null",
+      education_override: "string|null", coursework_json: "string|null",
       updated_at: "number|null",
       // Present on the row and returned, but NOT writable through POST /api/profile — that
       // handler's UPDATE does not name them. Documented because they arrive and a strict decoder
@@ -619,6 +633,9 @@ export const RESPONSE_SCHEMAS = Object.freeze({
       include_summary: "boolean",
       has_base_resume: "number", base_resume_updated_at: "number|null",
       created_at: "number|null", updated_at: "number|null",
+      // ⭐ A130 (45b): on the row, undocumented until aj1 found them.
+      generate_at_queue: "number|null", made_from_resume: "number|null",
+      refined_at: "number|null", needs_refine: "number|null",
     },
     fieldNotes: {
       is_active: "0 or 1, not a boolean — the raw SQLite column. Exactly one profile per user is 1.",
