@@ -47,3 +47,37 @@ test("a135ClaimViolationRetriedOnce: one withheld résumé is regenerated once, 
   // Exactly one retry: callOnce is invoked twice in the chain, no loop.
   assert.equal((fn.match(/callOnce\(\)/g) || []).length, 2);
 });
+
+test("d165SemiStopsOnlyForPersonQuestions: an upload slot is never an open question put to the person", async () => {
+  const { buildOpenQuestions } = await import("../services/applyAutomation.js");
+  const qs = buildOpenQuestions({ missingFields: [
+    { label: "Resume", name: "resume", type: "file", is_required: true },
+    { label: "Cover Letter", name: "cl", type: "file", is_required: true },
+    { label: "Salary Requirement", name: "salary", type: "text", is_required: true },
+  ] });
+  assert.deepEqual(qs.map(q => q.question), ["Salary Requirement"]);
+});
+
+// R3 · AUTO answers from what it knows — the Profile and the person's own saved answers. D123 P7 (a model writing routine
+// answers) was never built (A120), so nothing in the fill path can invent an eligibility, salary or legal answer; these
+// pin that, so the day P7 lands it has to keep the never-list out of the model's hands.
+test("d165AutoNeverInventsNeverListAnswers: the fill path imports no model; eligibility classes are recognised; salary comes from the Profile", () => {
+  const auto = fs.readFileSync("services/applyAutomation.js", "utf8");
+  for (const l of auto.split(/\r?\n/).filter(l => /^import\b/.test(l))) {
+    assert.doesNotMatch(l, /anthropic|modelGateway|toolsService|coreGenerate/i, `the fill path must not reach a model: ${l}`);
+  }
+  for (const cls of ["sponsorship", "citizenship", "visa", "eeo", "work_auth", "criminal", "clearance"]) {
+    assert.ok(auto.includes(`['${cls}',`), `${cls} is on the never-guess list`);
+  }
+  assert.match(auto, /'desired_salary':'salary'/, "salary is answered only from the Profile's salary key or a saved answer");
+});
+
+// R2 · every answer given is saved for next time, and the held jobs it unblocks are retried under the person's own
+// approval default (an Ask-me-first retry ends at Ready to review, never sent).
+test("d165AnswersSavedForNextTime: /api/apply/answers saves (remember), retries what it unblocks, keeps the approval default", () => {
+  const core = route.slice(at(route, "function answersCore(req, out) {"), at(route, 'app.post("/api/apply/answers"'));
+  assert.match(core, /const \{ answers = \{\}, overrides = \{\}, retryJobIds = null, mode = "auto", approvalMode = null \} = req\.body \|\| \{\};/);
+  assert.match(core, /if \(approvalMode === "approved"\)\s*\n\s*return out\.status\(400\)/, "answering never authorises a send");
+  assert.match(core, /Object\.prototype\.hasOwnProperty\.call\(remember, q\)/, "each answer carries its own remember choice");
+  assert.match(core, /startRun\(req\.user\.id, normalisePlanTier\(req\.user\?\.planTier\), toRetry,\s*\n\s*\{ mode, tool: "generate", approvalMode, retryOfHeld: true \}\)/);
+});
