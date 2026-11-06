@@ -16,6 +16,7 @@ import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { markStyle, bandMarkStyle, dotCue } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
 import { postingClick } from "../lib/openPosting.js";
+import AttemptResume from "../components/AttemptResume.jsx";
 // AD1: OUTCOME_LABELS moved to AutoApplyPanel with the groups themselves — they name the SUB-TABS
 // now, and nothing in this module reads them. The partition still lives in shared/ because
 // routes/apply.js groups rows with it; a copy on each side is how the two come to disagree.
@@ -226,12 +227,11 @@ export function ApplicationObstacleCard({
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         {app.primary?.row?.resumeAvailable ? (
-          <a className="dbx-depth" href={artifactUrl(app.primary.row.id, "resume")} target="_blank" rel="noreferrer"
+          // ⭐ D171 FIX 4: the résumé opens in draft (the embedded editor); only "PDF" downloads.
+          <AttemptResume runJobId={app.primary.row.id} artifactUrl={artifactUrl} className="dbx-depth"
             style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
                      border: `1px solid ${theme.border}`, background: theme.surface,
-                     color: theme.text, textDecoration: "none", whiteSpace: "nowrap" }}>
-            Resume PDF ↗
-          </a>
+                     color: theme.text, whiteSpace: "nowrap", cursor: "pointer" }} />
         ) : onGenerateResume && !app.postingGone
              && app.reasons.some(r => r.resumeBlocked) ? (
           // Requirement 5. No resume means this application cannot be submitted, which is a problem
@@ -686,13 +686,11 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
           tell whether a resume had even been generated. */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {job.resumeAvailable ? (
-          <a className="dbx-depth" href={artifactUrl(job.id, "resume")} target="_blank" rel="noreferrer"
-            onClick={e => e.stopPropagation()}
+          // ⭐ D171 FIX 4: what this attempt sent opens in draft (read-only once sent); "PDF" downloads it.
+          <AttemptResume runJobId={job.id} artifactUrl={artifactUrl} className="dbx-depth"
             style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
                      border: `1px solid ${theme.border}`, background: theme.surfaceHigh,
-                     color: theme.text, textDecoration: "none", whiteSpace: "nowrap" }}>
-            Resume PDF ↗
-          </a>
+                     color: theme.text, whiteSpace: "nowrap", cursor: "pointer" }} />
         ) : (
           <span title="No resume artifact was recorded for this attempt."
             style={markStyle(theme.textDim)}>

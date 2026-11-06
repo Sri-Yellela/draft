@@ -61,6 +61,7 @@ import { atsScorePair } from "../../../shared/resumeScores.js";
 import { openPosting } from "../lib/openPosting.js";
 import { rememberBoardFilters } from "../lib/boardFilterMemory.js";
 import StartFromResume from "../components/StartFromResume.jsx";
+import { openResumeEditor } from "../lib/resumeEditor.js";
 
 // The three extension-bridge stubs that stood here (getLinkedInExtensionInstallUrl,
 // isLinkedInExtensionInstalled, sendExtensionRequest) are gone with cleanup 5.3. They returned
@@ -1412,9 +1413,26 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // passed once and failed the next run on the same build.
   const clearDeepLink = useCallback(() => { deepLinkedJobIdRef.current = null; }, []);
 
+  // ⭐ D157 (option A) + D171 FIX 4: a résumé that is READY opens in the embedded editor (resume-master's tool, a focused
+  // full-screen view — components/ResumeEditorHost.jsx); Back / Esc returns here with the posting still open. The
+  // panel below keeps what the editor doesn't do: the generating skeleton, a failure, a missing artifact, the company
+  // KB's findings to review, and the A+ / Generate switch — and it is the fallback when the editor can't be reached.
+  const sandboxSaveRef = useRef(null);
+  const sandboxExportRef = useRef(null);
   const openSandbox = useCallback((entry) => {
     setSandbox(entry);
-    setSandboxOpen(true);
+    const active = getActiveArtifact(entry);
+    const panelOnly = !active?.html || entry?.generating || entry?.error || entry?.missing
+      || active?.kbFindings?.length > 0 || Object.keys(entry?.variants || {}).length > 1;
+    if (panelOnly) { setSandboxOpen(true); return; }
+    setSandboxOpen(false);
+    openResumeEditor({
+      html: cleanDocHtml(active.html), jobId: active.jobId || entry.jobId, company: active.company || entry.company,
+      title: active.title || entry.title, tool: active.tool, version: active.version,
+      onSave: (html) => sandboxSaveRef.current?.(html, active),
+      onExport: (html) => sandboxExportRef.current?.(null, html, active.company, active),
+      fallback: () => setSandboxOpen(true),
+    });
   }, []);
 
   const closeSandbox = useCallback(() => {
@@ -3613,6 +3631,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       await fetchJobs(currentPage, currentPage > 1);   // D147: merge into the scrolled pages
     }
   }, [applyMode, fetchJobs, currentPage, sandbox]);
+  // D157: the embedded editor saves and exports through the same two calls the panel uses.
+  sandboxSaveRef.current = saveSandboxHtml;
+  sandboxExportRef.current = exportAndTrack;
 
   // -- Save / Pass / Draft — the deck's decisions, the deck's calls (A53, owner 10-02) ----------
   //

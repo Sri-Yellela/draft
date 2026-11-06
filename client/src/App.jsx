@@ -64,6 +64,7 @@ import { ConnectorDocsPage } from "./pages/marketing/ConnectorDocsPage.jsx";
 // ⭐ D105 P4: the Atlas — public at /atlas, and inside the app at /app/atlas under the top bar's Atlas tab.
 import AtlasPage       from "./pages/atlas/AtlasPage.jsx";
 import { Toaster }         from "./components/ui/toaster.jsx";
+import ResumeEditorHost     from "./components/ResumeEditorHost.jsx";
 import TryPage, { hasTrialIntent } from "./pages/TryPage.jsx";
 import SurveyPublicPage from "./pages/SurveyPublicPage.jsx";
 import TrialGate       from "./components/TrialDock.jsx";
@@ -671,6 +672,8 @@ function AppDashboard({ authUser, setAuthUser }) {
             called them, and nothing rendered <Toaster/>, so its z-[100] — below the top bar — was
             never observable. It reads Z.TOAST now (client/src/styles/zLayers.js). */}
         <Toaster />
+        {/* ⭐ D157 option A: the embedded résumé editor's full-screen view, opened from anywhere (lib/resumeEditor.js). */}
+        <ResumeEditorHost />
       </AppScrollProvider>
     </AutoApplyProvider>
     </JobBoardProvider>
