@@ -9,7 +9,7 @@
  * because a source string cannot tell you WHO a request is answered as. Only a real request can.
  *
  * The authentication stack is also the one part of this codebase that cannot be mounted piecemeal:
- * passport, the connect-sqlite3 session store and bindAuthContext are wired together in server.js
+ * passport, the session store (services/sqliteSessionStore.js) and bindAuthContext are wired together in server.js
  * and only behave as a stack. So this boots the real server.js against a THROWAWAY data directory
  * (RM_DATA_DIR) and asserts on what real HTTP responses say the caller's identity is.
  *
@@ -157,7 +157,7 @@ try {
   // ════════════════════════════════════════════════════════════════════════════════════════════
   console.log("\n── 1. WHAT AUTHENTICATES A REQUEST ─────────────────────────────────────────────");
   // The owner's belief was that cookies are not in use. They are: the durable credential is an
-  // HttpOnly connect.sid backed by connect-sqlite3, and the auth-context token is a SECOND,
+  // HttpOnly connect.sid backed by the session store, and the auth-context token is a SECOND,
   // per-tab credential on top of it. Both are validated per request; neither is process memory.
   check("migration 090 applied on a virgin database",
     /090_auth_context_session_binding/.test(serverLog));

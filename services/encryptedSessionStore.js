@@ -1,6 +1,6 @@
 // ── Sessions sealed at rest ───────────────────────────────────────────────────────────────────
 //
-// The session store (connect-sqlite3, /app/data/sessions.db) kept every session as plain JSON: who
+// The session store (/app/data/sessions.db — services/sqliteSessionStore.js since A127; connect-sqlite3 before) kept every session as plain JSON: who
 // is signed in, OAuth state, the auth-context bookkeeping. Anyone holding a copy of the volume — a
 // backup, a misplaced download — could read them. This wraps the store so each session is sealed
 // with AES-256-GCM before it is written and opened when it is read.
@@ -59,9 +59,12 @@ export class EncryptedSessionStore extends session.Store {
    * was swallowed, so a password reset destroyed no cookie session. It asks here instead.
    */
   sessionsForUser(userId, cb) {
-    const { db, table } = this.inner;
-    if (!db?.all) return cb(new Error("inner store cannot be scanned"));
-    db.all(`SELECT sid, sess FROM ${table}`, (err, rows) => {
+    // A127: the better-sqlite3 store (services/sqliteSessionStore.js) hands its rows WITH the sid; an inner store
+    // shaped like connect-sqlite3 (a node-sqlite3 `db` and its `table`) is still scanned the old way.
+    const scan = typeof this.inner.rows === "function" ? (done) => this.inner.rows(done)
+      : this.inner.db?.all ? (done) => this.inner.db.all(`SELECT sid, sess FROM ${this.inner.table}`, done) : null;
+    if (!scan) return cb(new Error("inner store cannot be scanned"));
+    scan((err, rows) => {
       if (err) return cb(err);
       const mine = [];
       for (const row of rows || []) {

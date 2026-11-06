@@ -11,7 +11,7 @@ import Anthropic      from "@anthropic-ai/sdk";
 import passport       from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import session        from "express-session";
-import SQLiteStoreFactory from "connect-sqlite3";
+import { SqliteSessionStore } from "./services/sqliteSessionStore.js";
 import { launchBrowser, probeBrowserAvailability } from "./services/browserLauncher.js";
 import multer         from "multer";
 import ExcelJS        from "exceljs";
@@ -7869,12 +7869,13 @@ function buildAutofillPayloadFromProfile(profile, mode, company = null) {
 }
 
 // ── Auth ──────────────────────────────────────────────────────
-const SQLiteStore = SQLiteStoreFactory(session);
+// A127 (O101 (a), 11-06): the store runs on better-sqlite3 (services/sqliteSessionStore.js) — the same sessions.db and
+// rows connect-sqlite3 wrote, so nobody is signed out; connect-sqlite3 and its `sqlite3` driver (tar, node-gyp) are gone.
 // Same DATA_DIR as the main database: a throwaway boot must not share the real sessions.db, or the
 // session-revocation assertions would be destroying the developer's own sessions.
 // Sessions are SEALED at rest (services/encryptedSessionStore.js): AES-256-GCM under a key derived
 // from COOKIE_ENCRYPTION_KEY. Plain rows written before this still read, and are resealed on write.
-const SStore = new EncryptedSessionStore(new SQLiteStore({ db:"sessions.db", dir:DATA_DIR }), SECRET_KEY);
+const SStore = new EncryptedSessionStore(new SqliteSessionStore({ db:"sessions.db", dir:DATA_DIR }), SECRET_KEY);
 
 passport.use(new LocalStrategy((username, password, done) => {
   const login = String(username || "").trim();
@@ -8040,14 +8041,13 @@ function revokeBrowserAuthContexts(sid, presentedToken) {
 // leaving a 7-day rolling cookie and a fleet of tokens alive is the opposite of what they asked
 // for.
 //
-// The store's public all() is unusable here: connect-sqlite3 returns `rows.map(r => JSON.parse(
-// r.sess))` and so DROPS the sid, which is the one thing destroy() needs. So the sid comes from a
-// SELECT on the store's own connection — deliberately not a second better-sqlite3 handle on
-// sessions.db, which connect-sqlite3 opens without WAL and would give us SQLITE_BUSY writes.
-// Deletion still goes through the store's destroy() so the table name stays its business.
+// The store's public all() is unusable here: it returns the sessions without their sids, and the sid
+// is the one thing destroy() needs. So the sids come from the store itself (sessionsForUser → the
+// store's rows(), on its own connection — never a second handle on sessions.db). Deletion still goes
+// through the store's destroy() so the table name stays its business.
 //
 // AWAITED by its callers, deliberately. The token revocation below is a synchronous better-sqlite3
-// write, but the cookie sweep runs on the store's async node-sqlite3 connection — so returning
+// write, but the cookie sweep answers through the store's callbacks (on the next tick) — so returning
 // before it finished would answer "your password is changed" while the old session was still, for a
 // few milliseconds, a working credential. On this path that window is the whole point of the call.
 function revokeAllUserSessions(userId, reason) {
