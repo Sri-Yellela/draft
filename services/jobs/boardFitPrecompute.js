@@ -312,6 +312,7 @@ export function createBoardFitPrecompute({
     return { ...finishPlan(acc, scope), planPages: pages, longestPlanPageMs: Math.round(longestPageMs) };
   }
 
+  const saidNoBaseResume = new Set();
   function emit(level, result) {
     const line = `[board-fit] ${JSON.stringify(result)}`;
     if (level === "error") log.error(line); else if (level === "warn") log.warn(line); else log.log(line);
@@ -332,7 +333,11 @@ export function createBoardFitPrecompute({
     }
     if (!basis?.runtimeBasis || !basis.basisHash) {
       const r = { ...base, status: "no_basis", why: "no_base_resume", ms: Math.round(now() - started) };
-      emit("warn", r); return r;
+      // ⭐ D170 (6): a profile with no base résumé is a normal state, not a fault — said once per profile per process
+      // (info), not on every pass (production 11-06 printed it for user 9 / profile 10 on every pass).
+      const key = `${userId}:${profile?.id}`;
+      if (!saidNoBaseResume.has(key)) { saidNoBaseResume.add(key); emit("info", r); }
+      return r;
     }
 
     let category = null;
