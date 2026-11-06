@@ -17,7 +17,9 @@ const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const SHOTS = read("scripts/fidelityShots.mjs");
 const INTEG = read("client/src/panels/IntegrationsPanel.jsx");
 const WIDTHS = ["1280", "1440", "1920", "2560"];
-const SCREENS = ["tracker", "atlas", "profile", "account", "customise", "integrations", "saved-answers", "admin"];
+// ⭐ D167: profile / account / customise / integrations / saved-answers are measured at their Profile panels now, and the
+// Interview page joins them (scripts/fidelityShots.mjs screens163).
+const SCREENS = ["tracker", "atlas", "profile", "account", "customise", "integrations", "saved-answers", "interview", "admin"];
 
 let probe = null;
 function measured(t) {
@@ -70,13 +72,19 @@ test("d163NoCornerCramming, the other screens (real Chrome): nothing flush to an
   }
 });
 
-test("d163DockOwnGutterVerticallyCentred, the other screens (real Chrome): the rail in the middle of the screen, left of the content", { timeout: 900000 }, (t) => {
+// ⭐ D167 (owner 11-06, "the dock goes where the space is" — changed on purpose): a SIDE dock (where the margin fits it
+// open) is vertically centred, left of the content; a TOP dock sits above it. Never over the content.
+test("d163DockOwnGutterVerticallyCentred → D167, the other screens (real Chrome): a side dock centred left of the content, a top dock above it", { timeout: 900000 }, (t) => {
   const out = measured(t); if (!out) return;
   for (const s of SCREENS.filter(x => x !== "admin")) for (const w of [...WIDTHS, "phone"]) {
     const m = out[s][w];
     assert.ok(m.dock, `${s} ${w}: the dock is there`);
-    assert.ok(Math.abs(m.dockMid - m.vh / 2) <= 2, `${s} ${w}: vertically centred (${m.dockMid} of ${m.vh})`);
-    assert.ok(m.dock.left > 0 && m.dock.right <= m.group.left, `${s} ${w}: its own gutter, left of the content`);
+    if (m.place === "side") {
+      assert.ok(Math.abs(m.dockMid - m.vh / 2) <= 2, `${s} ${w}: vertically centred (${m.dockMid} of ${m.vh})`);
+      assert.ok(m.dock.left > 0 && m.dock.right <= m.group.left, `${s} ${w}: in the margin, left of the content`);
+    } else {
+      assert.ok(m.dock.bottom <= m.group.top, `${s} ${w}: above the content (${m.dock.bottom} vs ${m.group.top})`);
+    }
   }
   for (const w of WIDTHS) assert.equal(out.admin[w].dock, null, `admin ${w}: no dock (its own header)`);
 });

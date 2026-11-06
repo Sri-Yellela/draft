@@ -49,7 +49,11 @@ export const MODULES = Object.freeze({
   // module's members joined this one (The Table's views are its full sheet, behind Settings → View).
   draftHouse: { why: "Draft House, the one application tracker (D146) — the table, the auto-apply timeline, and The Table's full sheet", css: ["components/DraftHouse.css", "components/ApplicationTracker.css"],
     members: ["panels/AutoApplyPanel.jsx", "panels/AutoApplyPanelSections.jsx", "components/DraftHouseTree.jsx", "components/ApplicationTracker.jsx", "components/WaitingLine.jsx", "components/AutoSettingsDrawer.jsx",
-      "panels/DatabasePanel.jsx", "components/ApplicationHistory.jsx", "components/PendingApplications.jsx", "components/ApplicationInbox.jsx"] },
+      "panels/DatabasePanel.jsx", "components/ApplicationHistory.jsx", "components/PendingApplications.jsx", "components/ApplicationInbox.jsx",
+      // ⚠ D167: Profile → Auto-apply draws the tracker's ONE settings drawer in the page (AutoSettingsDrawer `inline`), and
+      // Profile → Connections its portals (PortalAccounts) and the Inbox's Gmail control — a decided reuse: the same
+      // settings in two places must be one implementation, not a copy.
+      "pages/profile/ProfilePage.jsx"] },
   landing: { why: "the landing page", members: ["pages/LandingPage.jsx", "components/FindFitApply.jsx"] },
   admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTrial.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
@@ -65,6 +69,11 @@ export const MODULES = Object.freeze({
       "pages/atlas/AtlasTree.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js", "pages/atlas/YourMap.jsx",
       "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx",
       "pages/atlas/AtlasNav.jsx", "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js"] },
+  // ⭐ D167 (owner 11-06) · Profile and Interview, each a place with its own navigation (components/PlaceNav.jsx), like Atlas.
+  profile: { why: "Profile (D167) — About you, résumés, saved answers, auto-apply, connections, appearance, notifications, privacy, account",
+    css: ["pages/profile/ProfilePage.css"], members: ["App.jsx", "pages/profile/ProfilePage.jsx", "pages/profile/profilePanels.js"] },
+  interview: { why: "Interview (D167) — Coming up, Prepare, Practise, After; D110's prep, bank and debriefs",
+    css: ["pages/interview/InterviewPage.css"], members: ["App.jsx", "pages/interview/InterviewPage.jsx", "pages/interview/interviewModel.js"] },
   trial: { why: "D124 · the trial — /try and the in-app dock (Feedback / survey, Something broke?)",
     members: ["App.jsx", "pages/TryPage.jsx", "components/TrialDock.jsx", "components/GuidedTour.jsx", "lib/tourGeometry.js", "components/TrialDemo.jsx", "components/ExploreLock.jsx"] },
 });
@@ -110,6 +119,9 @@ export const SHARED = Object.freeze({
   // preview must be the real look, as with the sentence, D93).
   "components/AppNav.css":              { what: "the Dock and the Menu's side panel (D145)", owner: "components/AppNav.jsx", alsoBy: ["components/CustomisePreview.jsx"] },
   "components/SectionHeading.jsx":      { what: "THE section heading (A93: was inside AutoApplyPanel's file)" },
+  // ⭐ D167 · a place with its own navigation — Profile and Interview (and the pattern Atlas's navigation follows).
+  "components/PlaceNav.jsx":            { what: "a place's own navigation (D167) — the nav card beside the dock, groups of panels at their own addresses, and PlaceHead" },
+  "components/PlaceNav.css":            { what: "its look", owner: "components/PlaceNav.jsx" },
   "components/SettingsSection.jsx":     { what: "THE settings card — Account and Integrations (A93)" },
   "components/WarmPathsSettings.jsx":   { what: "Account's Warm paths card — import / delete the user's own LinkedIn export or alumni list (D138)" },
   "components/NotificationSettings.jsx": { what: "Account's Notifications card — push to this browser and email, a switch per event per channel (D112 item 8)" },
@@ -275,6 +287,11 @@ export const COMPOSITIONS = Object.freeze([
   { from: "panels/JobsPanel.jsx", to: "panels/SandboxPanel.jsx", why: "the board's panel dock mounts the PDF panel beside the posting" },
   { from: "panels/AutoApplyPanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen Draft House shows an opened application beside its list" },
   { from: "panels/DatabasePanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen The Table shows an opened application beside History" },
+  { from: "pages/profile/ProfilePage.jsx", to: "panels/ProfilePanel.jsx", why: "D167: About you / Your résumés / Saved answers are the Profile page's own parts (`section`)" },
+  { from: "pages/profile/ProfilePage.jsx", to: "panels/SavedAnswersPanel.jsx", why: "D167: Profile → Saved answers is the saved-answer bank, whole (its own API)" },
+  { from: "pages/profile/ProfilePage.jsx", to: "panels/IntegrationsPanel.jsx", why: "D167: Profile → Connections holds Integrations, whole (`embedded`)" },
+  { from: "pages/profile/ProfilePage.jsx", to: "panels/AccountPanel.jsx", why: "D167: Account's cards spread over Notifications, Privacy, Account, Résumés and Connections (`only`)" },
+  { from: "pages/profile/ProfilePage.jsx", to: "panels/CustomisePanel.jsx", why: "D167: Profile → Appearance IS the Customise screen, retained exactly (owner 11-06)" },
   { from: "panels/AutoApplyPanel.jsx", to: "panels/DatabasePanel.jsx", why: "D146: The Table merged into Draft House — its full sheet (spreadsheet, by company, board, funnel, pending, inbox) behind Settings → View" },
 ]);
 

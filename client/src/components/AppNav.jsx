@@ -56,7 +56,9 @@ import { DOCK_OPEN_PX, DOCK_GAP_PX, DOCK_TOP_GAP_PX, PHONE_MAX_PX, dockPlace } f
 export { DOCK_OPEN_PX, DOCK_GAP_PX, DOCK_TOP_GAP_PX, PHONE_MAX_PX, dockPlace };
 // The Profile page's panels (the d167-profile lane builds them): one helper, so every link here says the same thing.
 export const PROFILE_PANELS = Object.freeze(["about", "resumes", "answers", "autoapply", "connections", "appearance", "notifications", "privacy", "account"]);
-export const profileHref = (panel) => (panel ? `/app/profile?panel=${panel}` : "/app/profile");
+// ⭐ D167: Profile's panels live at /app/profile/<id> (pages/profile/profilePanels.js profilePath — a profile-module
+// file the shell may not import, A93; the ids above are its PROFILE_PANEL_IDS, pinned equal by test/d167Profile).
+export const profileHref = (panel) => (panel ? `/app/profile/${panel}` : "/app/profile");
 
 // The house, the globe, the microphone and the speech bubble: line drawings in the theme's accent (AppNav.css strokes
 // them with --c-accent).

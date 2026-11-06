@@ -103,8 +103,12 @@ function Fold({ id, title, value, headline, open, onOpen, onDone, children }) {
 // ⭐ D146: View — the table (default) or The Table's full sheet, kept here rather than on the first screen.
 // ⭐ D148: `mode` ({ fullAuto, selectable, reason }), `onAsk` / `onAuto` (the header switch's own handlers), `held` and
 // `onPauseNow` (the timeline's Pause, setStopEverything) — the drawer offers what the header and the timeline offer.
+// ⭐ D167: `inline` — a DOM element to draw INTO instead of <body>: Profile → Auto-apply (pages/profile/ProfilePage.jsx)
+// shows these same settings as its panel — no scrim, not a dialog, its head left to the page — and a change still
+// pending when the panel is left is saved on the way out. The same folds, values, handlers and saves.
 export default function AutoSettingsDrawer({ open, onClose, runBar = null, group = null, listView = "table", onListView = null,
-                                             mode = null, onAsk = null, onAuto = null, modeBusy = false, held = false, onPauseNow = null }) {
+                                             mode = null, onAsk = null, onAuto = null, modeBusy = false, held = false, onPauseNow = null,
+                                             inline = null }) {
   const [s, setS] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -159,6 +163,7 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
     (target?.querySelector("button, input, select") || panel.current?.querySelector("[data-first]"))?.focus();
   }, [open, s, fold]);
   useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => () => { if (inline) closeRef.current?.(); }, [inline]);   // D167: leaving the inline panel saves first
 
   if (!open) return null;
   const set = (patch) => {
@@ -195,8 +200,9 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
   // stacking context, and the Dock (portalled to <body> at Z.NAV) drew over its bottom edge.
   return createPortal(
     <>
-      <div className="dh-scrim" style={{ zIndex: Z.MODAL_SCRIM }} onClick={close} aria-hidden="true" />
-      <aside className="dh-drawer dh-drawer--d148" style={{ zIndex: Z.MODAL }} role="dialog" aria-modal="true" aria-labelledby="dh-settings-title" ref={panel}
+      {!inline && <div className="dh-scrim" style={{ zIndex: Z.MODAL_SCRIM }} onClick={close} aria-hidden="true" />}
+      <aside className={inline ? "dh-drawer dh-drawer--d148 dh-drawer--inline" : "dh-drawer dh-drawer--d148"} style={inline ? undefined : { zIndex: Z.MODAL }}
+        role={inline ? "region" : "dialog"} aria-modal={inline ? undefined : "true"} aria-labelledby="dh-settings-title" ref={panel}
         data-auto-settings="" data-settings-drawer="">
         <header className="dh-drawer__head">
           <h2 id="dh-settings-title">Auto-apply</h2>
@@ -384,7 +390,7 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
             screen readers; a refused value is shown above (role="alert"). */}
         <span className="sr-only" role="status" data-save-state="">{busy ? "Saving…" : saved}</span>
       </aside>
-    </>, document.body);
+    </>, inline || document.body);
 }
 
 // ── D100 · the sign-in portals draft can apply on for the user: sessions they connected (sealed — draft cannot read them)
@@ -474,6 +480,18 @@ function Accounts({ onState = null, probe = false }) {
         </div>
       )}
       {msg && <p className="dh-drawer__msg" role="status">{msg}</p>}
+    </div>
+  );
+}
+
+/**
+ * ⭐ D167 · Profile → Connections → Managed portals: the drawer's own Accounts fold (D100 portals, the accounts draft made,
+ * Gmail for codes), drawn in the page — the same component, its classes inside this module's own frame.
+ */
+export function PortalAccounts() {
+  return (
+    <div className="dh-drawer dh-drawer--d148 dh-drawer--inline" data-profile-portals="">
+      <Accounts />
     </div>
   );
 }

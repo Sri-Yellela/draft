@@ -219,6 +219,10 @@
   color: var(--c-ink); font: 400 calc(16px * var(--type-scale, 1))/1.55 var(--shape-font-ui, var(--font-body)); -webkit-font-smoothing: antialiased;
 }
 .dh-drawer :focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 3px; }
+/* ⭐ D167 · the same settings drawn INTO Profile → Auto-apply (AutoSettingsDrawer `inline`): in the page's flow, no edge, no
+ * fill of its own, its head left to the page (Profile's panel head names it). */
+.dh-drawer.dh-drawer--inline { position: static; width: auto; max-width: 720px; overflow: visible; background: transparent; border-left: 0; padding: 0; }
+.dh-drawer--inline .dh-drawer__head { display: none; }
 .dh-drawer__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
 .dh-drawer__head h2 { font: 400 calc(34px * var(--type-scale, 1))/1 var(--font-display); margin: 0; }
 .dh-close {

@@ -21,7 +21,8 @@ const COLOUR = { interview: C.SUCCESS, offer: C.SUCCESS, assessment: C.WARNING, 
   verification: C.INFO, applied: C.INK_MUTED };
 
 // ⭐ D112 · the Gmail connection: connect (a navigation to Google's consent), the connected state, Disconnect.
-function GmailConnection({ theme, onChange }) {
+// ⭐ D167: exported — Profile → Connections draws this same control (pages/profile/ProfilePage.jsx).
+export function GmailConnection({ theme, onChange }) {
   const [g, setG] = useState(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState(() => {

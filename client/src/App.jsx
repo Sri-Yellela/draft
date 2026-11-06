@@ -20,15 +20,16 @@ import { AutoApplyProvider, useAutoApply } from "./contexts/AutoApplyContext.jsx
 import { AutoApplyPanel }        from "./panels/AutoApplyPanel.jsx";
 import { JobWorkspacePanel }     from "./panels/JobWorkspacePanel.jsx";
 import { ExtensionFirstRunPrompt } from "./components/ExtensionPrompt.jsx";
-import { ProfilePanel }          from "./panels/ProfilePanel.jsx";
 import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
-import { SavedAnswersPanel }     from "./panels/SavedAnswersPanel.jsx";
+// ⭐ D167 · Profile and Interview, each with its own navigation (pages/profile, pages/interview). Profile mounts the old
+// settings pages (Profile, Saved answers, Integrations, Account, Customise) as its panels, so App no longer does.
+import ProfilePage               from "./pages/profile/ProfilePage.jsx";
+import { profilePanelFor, profilePath, LEGACY_PROFILE_ROUTES } from "./pages/profile/profilePanels.js";
+import InterviewPage             from "./pages/interview/InterviewPage.jsx";
+import { interviewPanelFor, interviewPath } from "./pages/interview/interviewModel.js";
 import { PlansPanel }            from "./panels/PlansPanel.jsx";
 import DeckView                  from "./panels/DeckView.jsx";
 import { routeCommitted, transitionTo } from "./lib/viewTransitions.js";
-import { IntegrationsPanel }     from "./panels/IntegrationsPanel.jsx";
-import { AccountPanel }          from "./panels/AccountPanel.jsx";
-import CustomisePanel            from "./panels/CustomisePanel.jsx";
 import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
 import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
 import BoardHeadline             from "./components/BoardHeadline.jsx";
@@ -376,7 +377,12 @@ function AppDashboard({ authUser, setAuthUser }) {
   // ⭐ D105 P4 · /app/atlas and /app/atlas/:slug — the Atlas inside the app (the public mount is /atlas).
   // ⭐ D116 M7: and /app/atlas/family/:key, a family's page.
   const atlasRoute = /^atlas(?:\/family)?(?:\/[^/]+)?$/.test(routeKey);
+  // ⭐ D167 · /app/profile/<panel> and /app/interview/<panel> (pages/profile/profilePanels.js, pages/interview/interviewModel.js);
+  // the bare /app/profile and /app/interview read a #<panel> hash. undefined = not that place; null = an unknown panel.
+  const profilePanel = profilePanelFor(routeKey, location.hash);
+  const interviewPanel = interviewPanelFor(routeKey, location.hash);
   const activeTab = jobRoute ? "job" : atlasRoute ? "atlas"
+    : profilePanel !== undefined ? "profile" : interviewPanel !== undefined ? "interview"
     : routeKey === CONSOLE_ROUTE || LEGACY_CONSOLE_ROUTES.has(routeKey)
     ? "console" : routeKey === "" ? "today" : routeKey;
   // D10 (10-03): the card-game family — DAILY DECK, FULL HOUSE, DRAFT, THE TABLE. Display strings
@@ -444,6 +450,9 @@ function AppDashboard({ authUser, setAuthUser }) {
   // not point is a nav where left-click and middle-click disagree, which is worse than no href.
   const pathForTab = useCallback((tab) => {
     if (tab === "jobs" || tab === "console") return consolePath;
+    // ⭐ D167: the old settings pages are Profile's panels now — their tabs point straight at the panel.
+    if (LEGACY_PROFILE_ROUTES[tab]) return profilePath(LEGACY_PROFILE_ROUTES[tab]);
+    if (tab === "interview") return interviewPath();
     return NAVIGABLE_TABS.has(tab) ? `/app/${tab}` : null;
   }, [consolePath, NAVIGABLE_TABS]);
 
@@ -459,12 +468,16 @@ function AppDashboard({ authUser, setAuthUser }) {
     // this array had never heard of it. A tab that silently does nothing is the same defect class as
     // a filter wired to a no-op — so the row itself is now the source of truth and a tab added
     // tomorrow routes without anyone remembering this line.
+    if (LEGACY_PROFILE_ROUTES[tab] || tab === "interview") {
+      transitionTo(navigate, pathForTab(tab));
+      return;
+    }
     if (NAVIGABLE_TABS.has(tab)) {
       // A view transition (queue 29): a job title on the page you leave and the page you reach is
       // one element moving, not two that cut. lib/viewTransitions.js says why it is not RR's prop.
       transitionTo(navigate, `/app/${tab}`);
     }
-  }, [activeTab, consolePath, navigate, NAVIGABLE_TABS]);
+  }, [activeTab, consolePath, navigate, NAVIGABLE_TABS, pathForTab]);
 
   const handleProfileActivate = useCallback(() => {
     setJobBoardRefreshKey(k => k + 1);
@@ -501,15 +514,25 @@ function AppDashboard({ authUser, setAuthUser }) {
       navigate({ pathname: "/app/auto-apply", search: location.search || "" }, { replace:true });
       return;
     }
+    // ⭐ D167: every old settings page keeps a home — /app/customise, /app/saved-answers, /app/integrations and /app/account
+    // land on the Profile panel that holds them, the query kept (an OAuth or Gmail return's ?oauthStatus= / ?gmail=).
+    if (LEGACY_PROFILE_ROUTES[routeKey] && routeKey !== "profile") {
+      navigate({ pathname: profilePath(LEGACY_PROFILE_ROUTES[routeKey]), search: location.search || "" }, { replace:true });
+      return;
+    }
+    // An unknown panel lands on the place's first one.
+    if (profilePanel === null) { navigate(profilePath(), { replace:true }); return; }
+    if (interviewPanel === null) { navigate(interviewPath(), { replace:true }); return; }
     // The SAME set handlePanelChange navigates with, so a tab cannot be routable in one direction
     // and bounced in the other. This was the second hardcoded copy of the tab list, and adding
     // "Auto Apply" to appTabs was not enough for either of them: the tab rendered and did nothing
     // because handlePanelChange had never heard of it, and typing /app/auto-apply bounced straight
     // back to the board because THIS guard had not either. Two lists, both silent when wrong.
-    if (!jobRoute && !atlasRoute && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS.has(routeKey)) {
+    if (!jobRoute && !atlasRoute && profilePanel === undefined && interviewPanel === undefined
+        && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS.has(routeKey)) {
       navigate(consolePath, { replace:true });
     }
-  }, [routeKey, consolePath, navigate, NAVIGABLE_TABS, atlasRoute, location.search]);
+  }, [routeKey, consolePath, navigate, NAVIGABLE_TABS, atlasRoute, location.search, profilePanel, interviewPanel]);
 
   useEffect(() => {
     const handleVisibility = async () => {
@@ -617,13 +640,11 @@ function AppDashboard({ authUser, setAuthUser }) {
                 says where jobs from elsewhere come from until the extension is connected. */}
             {activeTab === "auto-apply"   && <AutoApplyPanel user={authUser}/>}
             {activeTab === "job" && jobRoute && <JobWorkspacePanel {...(jobByJobId ? { jobId: decodeURIComponent(jobRoute[1]) } : { applicationId: jobRoute[1] })}/>}
-            {activeTab === "integrations" && <IntegrationsPanel/>}
-            {activeTab === "account"      && <AccountPanel onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/>}
             {activeTab === "plans" && monetisationEnabled && <PlansPanel user={authUser} onUserChange={setAuthUser}/>}
-            {activeTab === "profile"      && <ProfilePanel user={authUser} onOpenJobProfiles={() => handlePanelChange("job-profiles")}/>}
+            {/* ⭐ D167 · Profile (its own navigation, nine panels) and Interview (Coming up · Prepare · Practise · After). */}
+            {activeTab === "profile" && profilePanel && <ProfilePage panel={profilePanel} onSignedOut={() => { setAuthContext(""); setAuthUser(null); }}/>}
+            {activeTab === "interview" && interviewPanel && <InterviewPage panel={interviewPanel}/>}
             {activeTab === "job-profiles" && <JobProfilesPanel/>}
-            {activeTab === "saved-answers" && <SavedAnswersPanel/>}
-            {activeTab === "customise"    && <CustomisePanel/>}
             {activeTab === "recruiter"    && <RecruiterPanel/>}
             {activeTab === "atlas"        && <AtlasPage base="/app/atlas"/>}
           </main>
@@ -654,6 +675,13 @@ function AppDashboard({ authUser, setAuthUser }) {
     </AutoApplyProvider>
     </JobBoardProvider>
   );
+}
+
+/** ⭐ D167: /profile… and /interview… are in-app places — forwarded under /app, the query and the #panel kept (the app's
+ *  own gate signs a signed-out reader in first). */
+function ToApp() {
+  const { pathname, search, hash } = useLocation();
+  return <Navigate to={`/app${pathname}${search}${hash}`} replace/>;
 }
 
 /** D105 P4: a signed-in person opening a public /atlas link lands on the same page inside the app. */
@@ -807,6 +835,10 @@ function AppRouter() {
             ? <AtlasInApp/>
             : <AtlasPage base="/atlas" publicChrome/>
         }/>
+
+        {/* ⭐ D167 · /profile/<panel> and /interview/<panel> without /app — the in-app place, for a signed-in reader. */}
+        <Route path="/profile/*" element={<ToApp/>}/>
+        <Route path="/interview/*" element={<ToApp/>}/>
 
         {/* New public pages with NavBar */}
         <Route path="/products" element={<>{navBar}<ProductsPage/></>}/>

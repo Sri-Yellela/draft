@@ -165,7 +165,9 @@ test("Settings → Saved answers is reachable, and the panel has all four tools"
   const app = fs.readFileSync("client/src/App.jsx", "utf8").replace(/\r\n/g, "\n");
   // (D93 added "customise" after it, with its comment line.)
   assert.match(app, /"account",\n(?:\s*\/\/.*\n)*\s*"saved-answers",\n(?:\s*\/\/.*\n)*(?:\s*"customise",\n)?\s*\.\.\.ROUTE_ONLY_TABS\]\)/, "saved-answers is navigable");
-  assert.match(app, /activeTab === "saved-answers" && <SavedAnswersPanel\/>/);
+  // ⭐ D167 (changed on purpose): Saved answers is Profile → Saved answers — /app/saved-answers lands on /app/profile/answers.
+  assert.match(fs.readFileSync("client/src/pages/profile/profilePanels.js", "utf8"), /"saved-answers": "answers",/);
+  assert.match(fs.readFileSync("client/src/pages/profile/ProfilePage.jsx", "utf8"), /<ProfilePanel section="answers"[^\n]*\/>\r?\n\s+<SavedAnswersPanel \/>/);
   const bar = fs.readFileSync("client/src/components/TopBar.jsx", "utf8");
   assert.match(bar, /onTabChange\?\.\("saved-answers"\)/);
   const panel = fs.readFileSync("client/src/panels/SavedAnswersPanel.jsx", "utf8");

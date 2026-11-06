@@ -59,6 +59,12 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
   useEffect(() => { setD(null); setTab("checklist"); load(); }, [applicationId, jobId]); // eslint-disable-line react-hooks/exhaustive-deps
   // Land on what needs the user: an application stopped for answers opens on its Form.
   useEffect(() => { if (d?.status === "needs_you" || d?.form?.approvable) setTab("form"); }, [d?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ⭐ D167: Interview → Coming up's Prepare opens the application here on its Prep tab (?tab=prep), when Prep is on.
+  useEffect(() => {
+    let want = null;
+    try { want = new URLSearchParams(window.location.search).get("tab"); } catch { want = null; }
+    if (want === "prep" && d?.prep?.active) setTab("prep");
+  }, [d?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const muted = { fontSize: 12.5, color: theme.textMuted };
   const card = { background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 12, padding: "14px 16px" };

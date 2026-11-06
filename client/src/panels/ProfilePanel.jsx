@@ -346,8 +346,12 @@ function CustomAnswerRow({ question, answer, overrides, onRename, onAnswer, onDe
   );
 }
 
-export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
+export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null }) {
   const { theme } = useTheme();
+  // ⭐ D167: Profile has its own navigation now (pages/profile/ProfilePage.jsx) and this page is drawn in three of its
+  // panels — About you ("about"), Your résumés ("resumes"), Saved answers ("answers"). `section` picks the part; with no
+  // section the whole page draws as before. One state, one save: each part is the same form, nothing copied.
+  const on = (part) => !section || section === part;
 
   const BLANK = {
     full_name:"", email:"", phone:"",
@@ -806,12 +810,15 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
   return (
     <div style={{ maxWidth:680, margin:"0 auto", padding:"32px 24px",
                   overflowY:"auto", height:"100%", boxSizing:"border-box" }}>
+      {!section && (
       <div style={{ fontWeight:900, fontSize:22, color:theme.text,
                     letterSpacing:"-0.5px", marginBottom:24 }}>
         Profile
       </div>
+      )}
       <form onSubmit={save}>
 
+        {on("about") && <>
         {/* ── Personal ── */}
         <PSec title="Personal" theme={theme}>
           {/* ── A33: FILL FROM YOUR RÉSUMÉ — proposed, never auto-accepted ─────────────────────────
@@ -1014,10 +1021,12 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
             Willing to relocate
           </label>
         </PSec>
+        </>}
 
         {/* D112 d2: the old Education block is gone — the Education SECTION (ProfileSections, above) is the source of
             the degree, with its own Change override. Migration 179 moved the block's values into it. */}
 
+        {on("answers") && <>
         {/* ── Custom Answers ── */}
         <PSec title="Custom Answers" theme={theme}>
           <p style={{ fontSize:12, color:theme.textMuted, lineHeight:1.5, marginBottom:6 }}>
@@ -1103,7 +1112,9 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
             )}
           </div>
         </PSec>
+        </>}
 
+        {on("resumes") && <>
         {/* ── Job Profiles ── */}
         <PSec title="Job Profiles" theme={theme}>
           {/* D112 e2: a profile made from a résumé — the same wizard, everything filled. */}
@@ -1494,7 +1505,9 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
             )}
           </PSec>
         )}
+        </>}
 
+        {(on("about") || on("answers")) && (
         <div data-profile-savebar="" style={{ display:"flex", justifyContent:"flex-end", alignItems:"center",
                       gap:14, marginTop:8, position:"sticky", bottom:0, zIndex:1, padding:"10px 0",
                       background:theme.bg }}>
@@ -1510,6 +1523,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {} }) {
             Save Profile
           </button>
         </div>
+        )}
       </form>
       {false && showProfileWizard && (
         <DomainProfileWizard

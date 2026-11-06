@@ -360,7 +360,7 @@ export default function ProfileSections({ theme }) {
         )}
       </Box>
 
-      <Box title="Experience" theme={theme}>
+      <Box title="Your experience" theme={theme}>
         <ListEditor theme={theme} items={s.experience} addLabel="+ Add a role"
           blank={{ company: "", title: "", location: "", start: "", end: "", current: false, bullets: [] }}
           fields={[{ k: "company", label: "Company" }, { k: "title", label: "Title" }, { k: "location", label: "Location" },
