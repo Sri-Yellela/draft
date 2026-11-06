@@ -16,7 +16,7 @@ import { AtsNumberBox } from "./AtsNumberBox.jsx";
 import ResumeList, { RESUME_ICONS } from "./ResumeList.jsx";
 import { atsScorePair } from "../../../shared/resumeScores.js";
 import "./JobDetailPanel.css";
-import { draftButtonState } from "../lib/jobDecisions.js";
+import { draftButtonState, resumeControlState } from "../lib/jobDecisions.js";
 import ByomResumeChoice, { ByomStatus, useByomFlow } from "./ByomResumeChoice.jsx";
 import { WhatWeChangedLink } from "./ResumeChangesPanel.jsx";
 
@@ -100,9 +100,11 @@ function ManualSubmitted({ jobId }) {
   );
 }
 
-function PostingActions({ job, meta, slots, onCoverLetter }) {
-  const { g, done, st, canUseGenerate: canGen, onGenerate, onViewSandbox, onExport, onRegenerate = null, onSave, onPass, onDraft, drafted, drafting,
-          draftBlock = null, onViewDraft = null, onExplainDraft = null, companyNotice = null, eligibilityNotice = null } = meta;
+// Exported for test/d164ResumeControls.test.js (rendered alone); `openResume` opens the Résumé group at first render.
+export function PostingActions({ job, meta, slots, onCoverLetter, openResume = false }) {
+  const { g, done, st, canUseGenerate: canGen, onGenerate, onViewSandbox, onExport, onExportHtml = null, onRegenerate = null, onSave, onPass, onDraft, drafted, drafting,
+          draftBlock = null, onViewDraft = null, onExplainDraft = null, companyNotice = null, eligibilityNotice = null,
+          genError = null, resumeSources = [], resumeSourceId = null } = meta;
   // D51: the panel knows the slots too — out of drafts is a reason on the button, not a grey box.
   const block = draftBlock || (slots != null && slots.remaining <= 0 ? { code: "out_of_drafts", label: "Out of drafts",
     reason: `Out of drafts — all ${slots.limit} used in the last 24 hours (a Draft or a new résumé uses one).` } : null);
@@ -118,7 +120,16 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
   // D57: a résumé stored on an earlier visit (`__exists__`) is just as viewable — the panel fetches it.
   const hasArtifact = done && !!g?.html;
   const ago = hasArtifact ? resumeAgo(g?.generatedAt) : null;
-  const regen = onRegenerate || (() => onGenerate(true));
+  // ⭐ D164 · WHICH RÉSUMÉ — the job profile whose base résumé is tailored, chosen for THIS posting (the board's active
+  // profile by default); every generate and regenerate from here carries it (JobsPanel generateFrom).
+  const [sourceId, setSourceId] = useState(resumeSourceId);
+  useEffect(() => { setSourceId(resumeSourceId); }, [job?.jobId, resumeSourceId]);
+  const genOpts = sourceId != null ? { profileId: sourceId } : undefined;
+  const runGenerate = () => onGenerate(false, genOpts);
+  const regen = onRegenerate ? () => onRegenerate(genOpts) : () => onGenerate(true, genOpts);
+  // ⭐ D164 · the résumé's state in words — Generating… · Ready · Failed — Try again (lib/jobDecisions.js).
+  const resState = resumeControlState({ hasArtifact, generating: generateLoading, error: genError, ago });
+  const retry = hasArtifact ? regen : runGenerate;
   // ⛔ Cost visibility (owner, 10-09): a user sees their ALLOWANCE and what to expect — never what a résumé
   // costs, which tool or model runs, or whether it was cached. Those are the admin's (Admin → Costs & quotas).
   const freeAt = noSlots && slots?.nextFreeAt ? clockLabel(slots.nextFreeAt) : null;
@@ -132,25 +143,32 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
   const split = (square, label, onRun) => (
     <ByomResumeChoice byom={byom} square={square} label={label} onGenerate={onRun} disabled={!!st || noSlots} busy={generateLoading} />
   );
-  // More opens in place, one posting at a time; it opens by itself while a résumé is being made, so the progress shows.
+  // ⭐ D164 (owner 11-05): Résumé and More each open IN PLACE, one posting at a time. Résumé opens by itself while a résumé
+  // is being made or has just failed, so the progress and the retry show; More keeps the cover letter and "I applied myself".
+  const [res, setRes] = useState(openResume);
   const [more, setMore] = useState(false);
-  useEffect(() => { setMore(false); }, [job?.jobId]);
-  useEffect(() => { if (generateLoading) setMore(true); }, [generateLoading]);
+  useEffect(() => { setRes(false); setMore(false); }, [job?.jobId]);
+  useEffect(() => { if (generateLoading || genError) setRes(true); }, [generateLoading, genError]);
+  const resId = `pp-res-${job?.jobId ?? "x"}`;
   const moreId = `pp-more-${job?.jobId ?? "x"}`;
   const quota = slots
     ? (noSlots
         ? `You've used your drafts for now — the next one frees up ${freeAt ? `at ${freeAt}` : "within 24 hours"}.`
         : `${slots.remaining} of ${slots.limit} drafts left in the last 24 hours — a Draft or a new résumé uses one.`)
     : null;
-  // ⭐ D147 (owner 11-03) · PASS · SAVE · DRAFT · MORE. The five icon-only squares (✕ ★ /d 📄 ✉) and "I submitted it"
-  // are folded: ✕ is the header's Close, ★ and /d are Save and Draft here, and 📄 (the résumé), ✉ (the COVER LETTER —
-  // measured in the code: ICONS.letter, onCoverLetter; there is no "email it to me" feature) and "I submitted it" go
-  // under More, which opens IN PLACE. Each keeps its behaviour under its new label.
+  const activeSource = resumeSources.find(s => String(s.id) === String(sourceId)) || null;
+  // ⭐ D147 (owner 11-03) · PASS · SAVE · DRAFT · MORE — ⭐ D164 (owner 11-05) · … · RÉSUMÉ · MORE. D147 folded the five
+  // icon squares under More, and the résumé went with them: its controls were reachable only behind a word that says
+  // nothing about a résumé (docs/D164_ACTIONS.md). The primary Draft stays the one loud button; Résumé is ONE quiet
+  // control beside it that opens, in place: Which résumé · Résumé for this job (generate without drafting) / Regenerate ·
+  // Preview / edit (panels/SandboxPanel.jsx) · What we changed (D90) · Download PDF · Download HTML. ✉ is the COVER LETTER
+  // (measured in the code: ICONS.letter, onCoverLetter; there is no "email it to me" feature) — it and "I applied myself"
+  // stay under More. Each keeps its behaviour under its label.
   return (
     <div className="pp__act" data-posting-actions="">
-      {/* ⭐ D149 (fullhouse-declutter.html `.ua`): the sketch's four plain buttons — Pass · Save on the raised grey, Draft on
-          the accent gradient, More quiet — no glyphs, no logo face. The same states and calls as DecisionButtons' (Pass
-          and Save SET: a decided one says so and is disabled; Draft is draftButtonState's, D51: never a dead end). */}
+      {/* ⭐ D149 (fullhouse-declutter.html `.ua`): the sketch's plain buttons — Pass · Save on the raised grey, Draft the
+          /draft mark, Résumé and More quiet — no glyphs. The same states and calls as DecisionButtons' (Pass and Save SET:
+          a decided one says so and is disabled; Draft is draftButtonState's, D51: never a dead end). */}
       <div className="pp__main-acts" role="group" aria-label="Actions" data-d147-actions="">
         {onPass && (
           <button type="button" className="pp__btn" data-decision="pass" disabled={passed} aria-pressed={passed} onClick={onPass}
@@ -175,44 +193,75 @@ function PostingActions({ job, meta, slots, onCoverLetter }) {
             {draft.kind === "idle" ? <StampLogo size="mini" /> : draft.label}
           </button>
         )}
+        <button type="button" className="pp__moreb pp__resb" aria-expanded={res} aria-controls={resId} data-posting-resume-toggle=""
+          data-resume-state={resState.kind} onClick={() => setRes(r => !r)}
+          title="Your résumé for this job — generate it without drafting, choose which résumé, preview, download">Résumé</button>
         <button type="button" className="pp__moreb" aria-expanded={more} aria-controls={moreId} data-posting-more-toggle=""
           onClick={() => setMore(m => !m)}>More</button>
       </div>
-      {more && (
-        <div className="pp__more" id={moreId} role="group" aria-label="More actions" data-posting-more="">
-          {canGen && onGenerate && !hasArtifact && byom.available && split(false, "Résumé for this job", () => onGenerate(false))}
+      {res && (
+        <div className="pp__more pp__res" id={resId} role="group" aria-label="Résumé for this job" data-posting-resume="">
+          {/* Which résumé: each job profile's base résumé; one profile is said, not offered as a choice of one. */}
+          {resumeSources.length > 1 ? (
+            <label className="pp__src" data-resume-source="">
+              <span className="pp__srcl">Which résumé</span>
+              <select className="pp__srcs" value={sourceId ?? ""} disabled={!!st} onChange={(e) => setSourceId(e.target.value)}>
+                {resumeSources.map(s => (
+                  <option key={s.id} value={s.id}>{`${s.name} — base résumé${s.active ? " (this board's)" : ""}`}</option>
+                ))}
+              </select>
+            </label>
+          ) : activeSource ? (
+            <p className="pp__quota" data-resume-source="">Tailored from the base résumé of {activeSource.name}.</p>
+          ) : null}
+          {canGen && onGenerate && !hasArtifact && byom.available && split(false, "Résumé for this job", runGenerate)}
           {canGen && onGenerate && !hasArtifact && !byom.available && (
-            <button type="button" className="pp__btn" onClick={() => onGenerate(false)} title={resumeTitle}
+            <button type="button" className="pp__btn" onClick={runGenerate} title={resumeTitle}
               disabled={!!st || noSlots} data-more="resume">
-              {generateLoading ? "Generating…" : "Résumé for this job"}
+              {generateLoading ? "Generating…" : genError ? "Try again" : "Résumé for this job"}
             </button>
           )}
-          {hasArtifact && <button type="button" className="pp__btn" onClick={() => onViewSandbox?.()} title="View the résumé" data-more="view">View résumé</button>}
-          {hasArtifact && <button type="button" className="pp__btn" onClick={() => onExport?.()} title="Download the résumé as a PDF" data-more="download">Download</button>}
+          {hasArtifact && <button type="button" className="pp__btn" onClick={() => onViewSandbox?.()} title="Preview and edit the résumé" data-more="view">Preview / edit</button>}
+          {hasArtifact && <span className="pp__changed" data-more="changes"><WhatWeChangedLink jobId={job?.jobId} jobLabel={[job?.title, job?.company].filter(Boolean).join(" · ")} /></span>}
           {hasArtifact && canGen && onGenerate && byom.available && split(false, "Regenerate", regen)}
           {hasArtifact && canGen && onGenerate && !byom.available && (
             <button type="button" className="pp__btn" onClick={regen} title={resumeTitle} disabled={!!st || noSlots} data-more="regenerate">
               {generateLoading ? "Generating…" : "Regenerate"}
             </button>
           )}
+          {hasArtifact && <button type="button" className="pp__btn" onClick={() => onExport?.()} title="Download the résumé as a PDF" data-more="download">Download PDF</button>}
+          {hasArtifact && onExportHtml && <button type="button" className="pp__btn" onClick={() => onExportHtml()} title="Download the résumé as an HTML file" data-more="download-html">Download HTML</button>}
+          {/* ⭐ D70 Phase 3: the cost, in words, before Generate / Regenerate is pressed. */}
+          {canGen && onGenerate && !noSlots && <p className="pp__quota" data-generate-expect="">Takes about 10–20 seconds.</p>}
+          {!canGen && <p className="pp__quota" data-generate-plan="">Generating a résumé is not on your plan — Preview and Download work on one you already have.</p>}
+        </div>
+      )}
+      {more && (
+        <div className="pp__more" id={moreId} role="group" aria-label="More actions" data-posting-more="">
           <button type="button" className="pp__btn" onClick={onCoverLetter} title="Write a cover letter" data-more="cover-letter">Cover letter</button>
           {/* ⭐ D56 / A105 finding 3: the manual route records its own submission, on every posting. */}
           {job?.jobId && <ManualSubmitted jobId={job.jobId} />}
-          {/* ⭐ D70 Phase 3: the cost, in words, before Generate / Regenerate is pressed. */}
-          {canGen && onGenerate && !noSlots && <p className="pp__quota" data-generate-expect="">Takes about 10–20 seconds.</p>}
           {/* A63: the shared allowance — D149: under More (the sketch's row carries no line beneath it); Draft's title
               and an out-of-drafts Draft's own label still say it before a press. */}
           {quota && <p className="pp__quota" data-draft-slots data-empty={noSlots ? "true" : "false"}>{quota}</p>}
         </div>
       )}
-      {/* ⭐ D57: the state, in words — "Résumé ready · 2h ago". */}
+      {/* ⭐ D57: the state, in words — "Résumé ready · 2h ago". ⭐ D164: and Generating… / Failed — Try again, said under the
+          row whether Résumé is open or not; a failure carries its sentence and a retry, never reads as "no résumé". */}
       {/* ⭐ D90 P2: beside the state, the way into "What we changed" — the tailored résumé against the one it was made from. */}
-      {hasArtifact && <p className="pp__ready" data-resume-ready="">{ago ? `Résumé ready · ${ago}` : "Résumé ready"} · <WhatWeChangedLink jobId={job?.jobId} jobLabel={[job?.title, job?.company].filter(Boolean).join(" · ")} /></p>}
+      {resState.kind === "ready" && <p className="pp__ready" data-resume-ready="" data-resume-state="ready"><span className="mark mark--ok">{ago ? `Résumé ready · ${ago}` : "Résumé ready"}</span>{!res && <> · <WhatWeChangedLink jobId={job?.jobId} jobLabel={[job?.title, job?.company].filter(Boolean).join(" · ")} /></>}</p>}
+      {resState.kind === "generating" && <p className="pp__ready pp__ready--busy" data-resume-state="generating" role="status"><span className="mark mark--info">Résumé · Generating…</span></p>}
+      {resState.kind === "failed" && (
+        <p className="pp__ready pp__ready--failed" data-resume-state="failed" role="alert">
+          <span className="mark mark--no">Résumé · Failed —</span>{" "}
+          <button type="button" className="pp__retry" onClick={retry} disabled={!!st || noSlots} data-resume-retry="">Try again</button>
+          <span className="pp__faildetail"> {resState.detail}</span>
+        </p>
+      )}
       {/* ⭐ D86: Open → Waiting for your résumé… → Checks → Done, updating itself while the user is in the chat. */}
       <ByomStatus byom={byom} onView={() => onViewSandbox?.()} onDownload={() => onExport?.()} />
       {/* A63: out of drafts is said under the row even with More folded (the allowance itself is under More). */}
       {quota && noSlots && !more && <p className="pp__quota" data-draft-slots data-empty="true">{quota}</p>}
-      {/* ⭐ D70 Phase 3: the cost, in words, before Generate / Regenerate is pressed — a line, never a capsule (D60). */}
       {/* ⭐ D54: never silent, never a block — the user's other roles at this company, before Draft. */}
       {companyNotice && <p className="pp__quota" data-company-notice="">{companyNotice.replace(" Draft this one too?", "")}</p>}
       {/* ⛔ D59: what the POSTING requires, and whether the profile STATES an answer — never a block, and

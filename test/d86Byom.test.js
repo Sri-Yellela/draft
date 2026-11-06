@@ -320,15 +320,18 @@ const src = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 test("⛔ D86 UI: the Résumé button's one click is unchanged, and the caret renders nothing while the operator's switch is off", () => {
   const panel = src("client/src/components/JobDetailPanel.jsx");
   // D149 (11-03) changed this on purpose: the button is the sketch's plain .pp__btn (no DepthButton icon), the same call.
-  assert.match(panel, /<button type="button" className="pp__btn" onClick=\{\(\) => onGenerate\(false\)\}/, "the wide Résumé button still calls Generate");
-  // D147 (11-03): the icon-square rendering is gone — the one Résumé button lives under More.
+  // ⭐ D164 (11-05) changed this on purpose: the click is `runGenerate` = onGenerate(false, genOpts) — the same Generate,
+  // carrying the posting's "Which résumé" choice (the job profile to tailor from).
+  assert.match(panel, /const runGenerate = \(\) => onGenerate\(false, genOpts\);/);
+  assert.match(panel, /<button type="button" className="pp__btn" onClick=\{runGenerate\}/, "the wide Résumé button still calls Generate");
+  // D147 (11-03): the icon-square rendering is gone — ⭐ D164: the one Résumé button lives under the Résumé control.
   assert.doesNotMatch(panel, /size="square"/, "no square rendering is left to drift");
   const choice = src("client/src/components/ByomResumeChoice.jsx");
   assert.match(choice, /if \(!byom\?\.available\) return null;/, "no caret while the feature is off");
   assert.match(choice, /available: !!settings\?\.available/);
   assert.match(choice, /localStorage\.getItem\(METHOD_KEY\) \|\| "draft"/, "the default method is draft");
   assert.match(choice, /const method = usable\(chosen\) \? chosen : "draft";/, "a remembered host that is off falls back to draft");
-  assert.match(panel, /!byom\.available && \(\s*<button type="button" className="pp__btn" onClick=\{\(\) => onGenerate\(false\)\}/, "the plain button is drawn while the feature is off");
+  assert.match(panel, /!byom\.available && \(\s*<button type="button" className="pp__btn" onClick=\{runGenerate\}/, "the plain button is drawn while the feature is off");
 });
 
 test("⛔ D86 UI: Settings reads \"unavailable\" when the operator's switch is off, and its switch starts from the server's value", () => {

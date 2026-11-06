@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import EmptyState from "../components/EmptyState.jsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
-import { api, printResume, authHeaders, authContextQuery } from "../lib/api.js";
+import { api, printResume, downloadBlob, authHeaders, authContextQuery } from "../lib/api.js";
 import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { GENERATE_TOOL, A_PLUS_TOOL, TOOL_LABELS, normalizeTool } from "../lib/applyTools.js";
 import { planPageFetch, recordPageCursor } from "../lib/boardPaging.js";
@@ -22,7 +22,7 @@ import { viewKey, viewCacheGet, viewCacheSet } from "../lib/boardViewCache.js";
 import { SavedEmptyState, useExtensionStatus } from "../components/ExtensionPrompt.jsx";
 import { EXTENSION_PAGE, EXTENSION_STORE_URL } from "../../../shared/extension.js";
 import JobDetailPanel from "../components/JobDetailPanel.jsx";
-import SandboxPanel from "./SandboxPanel.jsx";
+import SandboxPanel, { cleanDocHtml } from "./SandboxPanel.jsx";
 import { PanelScrim, PanelDock, PANEL_TOP_INSET, PANEL_BOTTOM_INSET } from "../components/PanelShell.jsx";
 import { usePanelHost } from "../hooks/usePanelHost.js";
 import { useBoardLock } from "../hooks/useBoardLock.js";
@@ -1353,6 +1353,10 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [uploading,   setUploading]   = useState(false);
   const [generated,   setGenerated]   = useState({});
   const [loading,     setLoading]     = useState({});
+  // ⭐ D164 (owner 11-05): a FAILED generation, per job — its sentence, kept until the next attempt or a success. Without it
+  // the failure lived only in the sandbox and the posting fell back to "Résumé for this job", i.e. read as "no résumé"
+  // (D156 6). The posting's Résumé control draws it as "Failed — Try again".
+  const [genFailed,   setGenFailed]   = useState({});
   const [sandbox,     setSandbox]     = useState(null);
   const [sandboxOpen, setSandboxOpen] = useState(false);
   // ⭐ D152 (8) (b): the ATS panel drawn OVER the page (AtsReportPanel — its own overlay, scrim and History tab) is
@@ -2068,7 +2072,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       // capture now lands in scraped_jobs and is indistinguishable from a crawled row, so the
       // predicate is unconditionally false and the actions it disabled (sandbox, export, star, ATS,
       // resume, queue) are all valid for any board job.
-      onGenerate: (force) => generate(selectedJob, force),
+      // ⭐ D164: `opts.profileId` — the posting's "Which résumé" (generateFrom); omitted, the board's active profile.
+      onGenerate: (force, opts) => generateFrom(selectedJob, force, opts),
       // ⛔ D57: a résumé stored on an earlier visit (`__exists__`) is VIEWED and DOWNLOADED from the
       // store — never a dead Preview, and never "Regenerate" as the only way back to it.
       onViewSandbox: () => {
@@ -2087,7 +2092,23 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         }
         exportAndTrack(selectedJob, getActiveArtifact(g2)?.html, selectedJob.company, getActiveArtifact(g2));
       },
-      onRegenerate: () => generate(selectedJob, true),
+      // ⭐ D164: Download as HTML from the posting — the same document the sandbox's HTML button saves (its editing
+      // attributes stripped, cleanDocHtml), through the one blob download (lib/api.js downloadBlob). A stored résumé is
+      // read from the store first, as Download (PDF) does.
+      onExportHtml: async () => {
+        try {
+          let html = getActiveArtifact(g2)?.html;
+          if (!html || html === "__exists__") html = (await api(`/api/resumes/${encodeURIComponent(selectedJob.jobId)}`))?.html;
+          if (!html) throw new Error("No résumé is stored for this job yet.");
+          await downloadBlob(new Blob([cleanDocHtml(html)], { type: "text/html" }), `Resume_${(selectedJob.company || "resume").replace(/\s+/g, "_")}.html`);
+        } catch (e) { setSandbox({ generating: false, status:"missing", missing:true, error: e.message, company: selectedJob.company, title: selectedJob.title }); }
+      },
+      onRegenerate: (opts) => generateFrom(selectedJob, true, opts),
+      // ⭐ D164: the generation's failure on THIS posting (Failed — Try again), and the résumés it can be tailored from —
+      // each job profile's base résumé, the board's active one first and the default.
+      genError: genFailed[selectedJob.jobId] || null,
+      resumeSources: domainProfiles.map(p => ({ id: p.id, name: p.profile_name || p.name || `Job profile ${p.id}`, active: p.id === activeDomainProfile?.id })),
+      resumeSourceId: activeDomainProfile?.id ?? null,
       onVisit: () => visitUrl(selectedJob),
       // A53: the deck's three decisions, the deck's calls. Save and Pass SET; Undo is the toast.
       onSave: () => decidePostingRef.current?.(selectedJob, DECISIONS.SAVED),
@@ -2115,7 +2136,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       onExportVersion: (v) => exportAndTrack(null, v.html, v.company),
       onResume: () => generate(selectedJob, false),
     });
-  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId, matchAsk, companyNoticeFor, eligibilityNoticeFor, draftBlocked]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedJob, generated, loading, applyMode, canUseGenerate, resumeText, draftedIds, draftingIds, applyStateByJobId, matchAsk, companyNoticeFor, eligibilityNoticeFor, draftBlocked, genFailed, domainProfiles, activeDomainProfile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-open resume + ATS panel when a pending job card is selected
   useEffect(() => {
@@ -3413,14 +3434,31 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   }, [generated, loading, openSandbox]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -- Generate (actual logic) -------------------------------
-  const generateActual = useCallback(async (job, force = false, skipCompanyCheck = false, tool = "generate") => {
+  // ⭐ D164: why there is no résumé text to tailor — a read that failed or has not come back is never "no résumé" (D156 6).
+  const noResumeTextReason = useCallback(() => (
+    resumeState === "error" ? "Your résumé could not be read just now, so nothing was generated."
+      : resumeState === "loading" ? "Your résumé is still loading — try again in a moment."
+      : "This job profile has no résumé on file — choose another under Which résumé, or add one in Job profiles."
+  ), [resumeState]);
+  const failGen = useCallback((key, message) => {
+    setGenFailed(p => ({ ...p, [key]: { message: String(message || "The résumé could not be generated."), at: Date.now() } }));
+  }, []);
+  const clearGenFailed = useCallback((key) => {
+    setGenFailed(p => { if (!p[key]) return p; const n = { ...p }; delete n[key]; return n; });
+  }, []);
+
+  // `source` (D164): { resumeText } — the base résumé of the job profile chosen under the posting's "Which résumé", when it
+  // is not the board's active one. Absent, the active profile's text is used, as always.
+  const generateActual = useCallback(async (job, force = false, skipCompanyCheck = false, tool = "generate", source = null) => {
     tool = normalizeTool(tool);
     const key = job.jobId, existing = generated[key];
+    const baseText = source?.resumeText || resumeText;
     // A stored résumé is opened, never gated on the generate checks below (viewStoredResume).
     if (existing?.html === "__exists__" && existing.tool === tool && !force) { await viewStoredResume(job, tool); return; }
     if (tool === A_PLUS_TOOL ? !canUseAPlusResume : !canUseGenerate) { return; }
-    if (!resumeText)            { return; }
+    if (!baseText)              { failGen(key, noResumeTextReason()); return; }
     if (loading[key]) { return; }
+    clearGenFailed(key);
     const existingArtifact = getActiveArtifact(existing, tool);
     if (existingArtifact?.html && existingArtifact.html !== "__exists__" && !force) {
       const entry = {...existing, ...existingArtifact, company:existingArtifact.company||job.company, title:existingArtifact.title||job.title};
@@ -3454,31 +3492,34 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     setLoading(p => ({ ...p, [key]:tool }));
     try {
       const d = await api("/api/generate", { method:"POST",
-        body:JSON.stringify({ jobId:key, job, resumeText, forceRegen:force, tool }) });
+        body:JSON.stringify({ jobId:key, job, resumeText: baseText, forceRegen:force, tool }) });
       if (d.limitReached) {
         setSandbox({ generating: false, status:"error", error: d.error, company: job.company, title: job.title });
+        failGen(key, d.error);   // D164: said on the posting too, not only in the sandbox
         return; // don't throw, just show error in sandbox panel
       }
       if (d.error) throw new Error(d.error);
       const artifact = buildArtifact(job, d, tool);
       setGenerated(p => ({ ...p, [key]: mergeArtifact(p[key], artifact) }));
+      clearGenFailed(key);
       openSandbox(mergeArtifact(generated[key], artifact));
       openAtsPanel(buildAtsPayload(job, artifact), job);
     } catch(e) {
       setSandbox({ generating: false, status:"error", error: e.message, company: job.company, title: job.title });
+      failGen(key, e.message);   // D164: the posting's Résumé control says "Failed — Try again", never "no résumé"
     }
     finally {
       if (genTimerRef.current) { clearInterval(genTimerRef.current); genTimerRef.current = null; }
       setGenStage("");
       setLoading(p => { const n = {...p}; delete n[key]; return n; });
     }
-  }, [resumeText, generated, loading, canUseGenerate, canUseAPlusResume, openSandbox, viewStoredResume]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [resumeText, generated, loading, canUseGenerate, canUseAPlusResume, openSandbox, viewStoredResume, failGen, clearGenFailed, noResumeTextReason]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -- Generate (with company-reuse check) ------------------
-  const generate = useCallback(async (job, force = false, tool = "generate") => {
+  const generate = useCallback(async (job, force = false, tool = "generate", source = null) => {
     tool = normalizeTool(tool);
     if (tool === A_PLUS_TOOL ? !canUseAPlusResume : !canUseGenerate) { return; }
-    if (!resumeText)            { return; }
+    if (!(source?.resumeText || resumeText)) { failGen(job.jobId, noResumeTextReason()); return; }
     if (loading[job.jobId])     { return; }
     // Company check: if we have a prior resume for this company and this is a fresh generate (not force),
     // show the reuse modal instead of generating.
@@ -3488,12 +3529,33 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         getActiveArtifact(v)?.company?.toLowerCase() === (job.company || "").toLowerCase()
       );
       if (priorEntry && !generated[job.jobId]?.html) {
-        setCompanyReuseTarget({ job, priorEntry, tool });
+        setCompanyReuseTarget({ job, priorEntry, tool, source });
         return;
       }
     }
-    await generateActual(job, force, false, tool);
-  }, [generated, generateActual, resumeText, canUseGenerate, canUseAPlusResume, loading]);
+    await generateActual(job, force, false, tool, source);
+  }, [generated, generateActual, resumeText, canUseGenerate, canUseAPlusResume, loading, failGen, noResumeTextReason]);
+
+  // ⭐ D164 · WHICH RÉSUMÉ: generate from the base résumé of the job profile chosen on the posting. The board's active
+  // profile is the plain path; another profile's base résumé is read (GET /api/domain-profiles/:id/base-resume — the
+  // read the board already makes for its active one) and handed to the same generate, for THIS posting only — choosing
+  // it never switches the board's profile (that stays the Profile menu's switcher).
+  const generateFrom = useCallback(async (job, force = false, { profileId = null } = {}) => {
+    const key = job.jobId;
+    const activeId = activeDomainProfile?.id ?? null;
+    if (profileId == null || String(profileId) === String(activeId)) return generate(job, force);
+    clearGenFailed(key);
+    let text = "";
+    try {
+      const r = await api(`/api/domain-profiles/${encodeURIComponent(profileId)}/base-resume`, { timeoutMs: 10000 });
+      text = r?.content || "";
+    } catch (e) {
+      failGen(key, `That job profile's résumé could not be read just now${e?.message ? ` (${e.message})` : ""}.`);
+      return;
+    }
+    if (!text.trim()) { failGen(key, "That job profile has no résumé on file — choose another, or add one in Job profiles."); return; }
+    return generate(job, force, GENERATE_TOOL, { resumeText: text });
+  }, [activeDomainProfile, generate, failGen, clearGenFailed]);
 
   const saveSandboxHtml = useCallback(async (html, artifact = null) => {
     const current = artifact || getActiveArtifact(sandbox);
@@ -4095,9 +4157,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             }
           }}
           onGenerateNew={() => {
-            const { job, tool } = companyReuseTarget;
+            const { job, tool, source } = companyReuseTarget;
             setCompanyReuseTarget(null);
-            generateActual(job, false, true, tool);
+            generateActual(job, false, true, tool, source || null);
           }}
           onCancel={() => setCompanyReuseTarget(null)}
         />

@@ -217,13 +217,16 @@ test("D57 · after a reload the stored résumé reads 'Résumé ready · 2h ago'
   assert.match(jobs, /onViewSandbox: \(\) => \{\n\s+if \(g2\?\.html === "__exists__"\) \{ viewStoredResume\(selectedJob, g2\.tool\); return; \}/);
   assert.match(jobs, /const viewStoredResume = useCallback\(async \(job, tool = "generate"\) => \{/);
   assert.match(jobs, /const d = await api\(`\/api\/resumes\/\$\{encodeURIComponent\(selectedJob\.jobId\)\}`\);/);
-  assert.match(jobs, /onRegenerate: \(\) => generate\(selectedJob, true\),/);
+  // ⭐ D164 (11-05) changed this on purpose: Regenerate carries the posting's "Which résumé" (generateFrom → generate).
+  assert.match(jobs, /onRegenerate: \(opts\) => generateFrom\(selectedJob, true, opts\),/);
   const jd = read("client/src/components/JobDetailPanel.jsx");
   const acts = jd.slice(at(jd, "function PostingActions("), at(jd, "export default function JobDetailPanel("));
   assert.match(acts, /const hasArtifact = done && !!g\?\.html;/, "a stored résumé counts — it used to be hidden behind Regenerate");
   assert.match(acts, /\{ago \? `Résumé ready · \$\{ago\}` : "Résumé ready"\}/);
   // D147 (11-03): under More, "View" reads "View résumé" (the row is no longer beside the résumé button).
-  for (const label of [">View résumé<", ">Download<", '"Regenerate"']) assert.ok(acts.includes(label), label);
+  // ⭐ D164 (11-05) changed this on purpose: under the Résumé control they read "Preview / edit" and "Download PDF" (beside
+  // a new "Download HTML") — the same onViewSandbox / onExport calls.
+  for (const label of [">Preview / edit<", ">Download PDF<", '"Regenerate"']) assert.ok(acts.includes(label), label);
   assert.doesNotMatch(acts, /done \? "Regenerate" : "Résumé"/, "never a Regenerate button in place of the résumé");
   assert.match(jd, /if \(s < 86400\) return `\$\{Math\.round\(s \/ 3600\)\}h ago`;/);
 });

@@ -204,7 +204,9 @@ test("d147ActionsPassSaveDraftMore · Pass · Save · Draft · More, one row at 
   assert.ok(order.every(i => i >= 0), "a piece of the row is missing");
   assert.deepEqual([...order].sort((a, b) => a - b), order);
   assert.match(row, />More<\/button>/);
-  assert.match(jdCss, /\.pp__main-acts \{ display: grid; grid-template-columns: 1fr 1fr 1\.4fr auto;/);
+  // ⭐ D164 (11-05) changed this on purpose: a quiet Résumé control sits between Draft and More — one more auto column
+  // (the résumé controls had been folded under More, and the owner read them as gone; docs/D164_ACTIONS.md).
+  assert.match(jdCss, /\.pp__main-acts \{ display: grid; grid-template-columns: 1fr 1fr 1\.4fr auto auto;/);
   assert.match(jd, /<div className="pp__foot" data-posting-actions-bar="">/);
   // Close is a small word in the header now.
   // ⭐ D156 (1c) (changed on purpose): drawn on the deck it says "Fold it back"; elsewhere "Close", as D147 had it.
@@ -214,13 +216,17 @@ test("d147ActionsPassSaveDraftMore · Pass · Save · Draft · More, one row at 
 
 test("d147UtilityBehaviourKept · each folded button's action is reachable under its new label", () => {
   const more = acts.slice(at(acts, "{more && ("), at(acts, "{/* ⭐ D57: the state, in words"));
+  // ⭐ D164 (11-05) changed this on purpose: the résumé's buttons moved from More to their own Résumé control (opened in
+  // place, beside Draft) — the same Generate (and BYOM split), View, Download, Regenerate; More keeps the rest.
+  const res = acts.slice(at(acts, "{res && ("), at(acts, "{more && ("));
   // 📄 → "Résumé for this job": the same Generate (and BYOM split), View, Download, Regenerate.
   // D149 (11-03) changed this on purpose: the More buttons are the sketch's plain .btn (no DepthButton icons), same calls.
-  assert.match(more, /<button type="button" className="pp__btn" onClick=\{\(\) => onGenerate\(false\)\}[^>]*\n?[^>]*>\s+\{generateLoading \? "Generating…" : "Résumé for this job"\}/);
-  assert.match(more, /split\(false, "Résumé for this job", \(\) => onGenerate\(false\)\)/);
-  assert.match(more, /onClick=\{\(\) => onViewSandbox\?\.\(\)\}/);
-  assert.match(more, /onClick=\{\(\) => onExport\?\.\(\)\}/);
-  assert.match(more, /onClick=\{regen\}/);
+  // ⭐ D164: the click is runGenerate (onGenerate(false, genOpts), the posting's Which résumé), and a failed one says Try again.
+  assert.match(res, /<button type="button" className="pp__btn" onClick=\{runGenerate\}[^>]*\n?[^>]*>\s+\{generateLoading \? "Generating…" : genError \? "Try again" : "Résumé for this job"\}/);
+  assert.match(res, /split\(false, "Résumé for this job", runGenerate\)/);
+  assert.match(res, /onClick=\{\(\) => onViewSandbox\?\.\(\)\}/);
+  assert.match(res, /onClick=\{\(\) => onExport\?\.\(\)\}/);
+  assert.match(res, /onClick=\{regen\}/);
   // ✉ is the COVER LETTER in the code (ICONS.letter, onCoverLetter) — kept as itself.
   assert.match(more, /<button type="button" className="pp__btn" onClick=\{onCoverLetter\}[^>]*>Cover letter<\/button>/);
   // "I submitted it" → "I applied myself": the same evidence form and route.
@@ -231,8 +237,10 @@ test("d147UtilityBehaviourKept · each folded button's action is reachable under
   assert.match(jd, /const close = useCallback\(\(\) => setSelectedJob\(null\), \[setSelectedJob\]\);/);
   assert.match(header, /onClick=\{close\}/);
   // More opens in place, resets per posting, and opens by itself while a résumé is being made.
-  assert.match(acts, /useEffect\(\(\) => \{ setMore\(false\); \}, \[job\?\.jobId\]\);/);
-  assert.match(acts, /useEffect\(\(\) => \{ if \(generateLoading\) setMore\(true\); \}, \[generateLoading\]\);/);
+  // ⭐ D164 changed this on purpose: Résumé and More both reset per posting; it is the Résumé group that opens by itself
+  // (while one is being made or has just failed).
+  assert.match(acts, /useEffect\(\(\) => \{ setRes\(false\); setMore\(false\); \}, \[job\?\.jobId\]\);/);
+  assert.match(acts, /useEffect\(\(\) => \{ if \(generateLoading \|\| genError\) setRes\(true\); \}, \[generateLoading, genError\]\);/);
 });
 
 test("d147PhoneFullScreen · on a phone the posting is full screen (the panel host's fallback) and its layout folds", () => {
@@ -241,5 +249,6 @@ test("d147PhoneFullScreen · on a phone the posting is full screen (the panel ho
   // The facts two by two with the match box as its own row; the actions fold under a narrow panel.
   assert.match(postingCss, /\.posting__facts \{ grid-template-columns: 1fr; \}/);
   assert.match(postingCss, /\.posting__match \{ border-left: 0; border-top: 1px solid var\(--c-pair-rule\); \}/);
-  assert.match(jdCss, /@container pp \(max-width: 420px\) \{ \.pp__main-acts \{ grid-template-columns: 1fr 1fr 1\.3fr; \} \.pp__moreb \{ grid-column: 1 \/ -1;/);
+  // ⭐ D164 (11-05) changed this on purpose: Résumé · More share the second row (Résumé spans two of the three columns).
+  assert.match(jdCss, /@container pp \(max-width: 420px\) \{ \.pp__main-acts \{ grid-template-columns: 1fr 1fr 1\.3fr; \} \.pp__moreb \{ grid-column: span 1;[^}]*\} \.pp__resb \{ grid-column: span 2; \} \}/);
 });
