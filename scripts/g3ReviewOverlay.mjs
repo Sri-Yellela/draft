@@ -554,7 +554,7 @@ async function main() {
     {
       const h = await (await panel()).evaluateHandle((p, s) => p?.querySelector(s) || null, `${rowSel} [data-role="editor"] [data-role="input"]`);
       const el = h.asElement();
-      if (el) { await el.click({ clickCount: 3 }); await el.type('Augusta'); }
+      if (el) { await el.click({ count: 3 }); await el.type('Augusta'); }
     }
     await press(`${rowSel} [data-role="save"]`);
     await sleep(1200);
