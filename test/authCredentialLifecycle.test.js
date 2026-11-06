@@ -94,7 +94,7 @@ test("a password change revokes every credential for that user, both kinds", () 
   assert.match(fn, /SStore\.sessionsForUser\(userId/);
   assert.match(fn, /SStore\.destroy\(sid/);
   assert.doesNotMatch(fn, /SStore\.db\.all/);
-  // connect-sqlite3's own all() drops the sid, which is the one field destroy() needs.
+  // The store's all() drops the sid, which is the one field destroy() needs.
   assert.doesNotMatch(fn, /SStore\.all\(/);
 });
 
@@ -111,7 +111,7 @@ test("the data directory is overridable so the auth stack can be tested against 
   assert.match(SERVER, /const DATA_DIR\s+= process\.env\.RM_DATA_DIR \|\| path\.join\(__dirname, "data"\)/);
   assert.match(SERVER, /const DB_PATH\s+= path\.join\(DATA_DIR, "resume_master\.db"\)/);
   // The session store must follow it, or a test boot would revoke the developer's own sessions.
-  assert.match(SERVER, /new SQLiteStore\(\{ db:"sessions\.db", dir:DATA_DIR \}\)/);
+  assert.match(SERVER, /new SqliteSessionStore\(\{ db:"sessions\.db", dir:DATA_DIR \}\)/);
 });
 
 test("scoped mutations report whether they matched a row, instead of a no-op success", () => {

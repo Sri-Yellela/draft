@@ -7,27 +7,23 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
-import session from "express-session";
-import connectSqlite3 from "connect-sqlite3";
 import { EncryptedSessionStore } from "../services/encryptedSessionStore.js";
+import { SqliteSessionStore } from "../services/sqliteSessionStore.js";
 import { at } from "../test-support/sourceAnchors.js";
-
-const SQLiteStore = connectSqlite3(session);
 
 test("sessionsForUser finds a user's SEALED sessions in the real sqlite store", async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sess-"));
-  const inner = new SQLiteStore({ db: "s.db", dir });
-  // node-sqlite3's close() is asynchronous: removing the directory before its callback races the
-  // still-open s.db, which Windows refuses with EPERM. Wait for the close, then remove.
-  t.after(async () => {
-    await new Promise((r) => inner.db.close(() => r()));
+  // A127: the store the server runs (better-sqlite3); before 11-06 this was connect-sqlite3.
+  const inner = new SqliteSessionStore({ db: "s.db", dir });
+  t.after(() => {
+    inner.close();
     fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
   const store = new EncryptedSessionStore(inner, crypto.randomBytes(32));
   const cookie = { originalMaxAge: 60000, expires: new Date(Date.now() + 60000).toISOString() };
   const put = (sid, user) => new Promise((r, j) => store.set(sid, { cookie, passport: { user } }, (e) => (e ? j(e) : r())));
   await put("a", 3); await put("b", 10); await put("c", 3);
-  const raw = await new Promise((r) => inner.db.all("SELECT sess FROM sessions", (_e, rows) => r(rows)));
+  const raw = inner.db.prepare("SELECT sess FROM sessions").all();
   assert.ok(raw.every(row => !row.sess.includes('"passport"')), "rows are sealed at rest");
   const mine = await new Promise((r, j) => store.sessionsForUser(3, (e, s) => (e ? j(e) : r(s))));
   assert.deepEqual(mine.sort(), ["a", "c"]);
