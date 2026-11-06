@@ -537,6 +537,9 @@ const readPool = createReadPool({
   size: Math.max(1, Math.min(4, Number(process.env.DRAFT_READ_WORKERS_SIZE) || 2)),
 });
 useTrialPicksReader(readPool);   // A126 · the trial samples' category scan (warmed 20 s after boot) off the loop
+// D153 (3) · the backlog classification walk — created inside the migration block below, used by /api/version and the
+// listen callback, so it is declared out here.
+let classifyBacklog = null;
 
 // ── Inline migration runner (additive only — never drops data) ─
 {
@@ -6820,7 +6823,10 @@ BOOT.add("index: scraped_jobs (job_id, is_active)", () => {
 // writers left behind.
 // Started from the listen callback, on BOOT.run()'s ready (calling BOOT.run() here would start the warm-up before
 // the port is bound).
-const classifyBacklog = createClassifyBacklog(db);
+// ⚠ This line sits inside the migration runner's bare { … } block: assign the module-level `let` (declared above the
+// block) — a `const` here was block-scoped, and the listen callback and /api/version threw "classifyBacklog is not
+// defined" (found by the 44z boot smoke; the wiring test read the source, not a booted server).
+classifyBacklog = createClassifyBacklog(db);
 setInterval(() => classifyBacklog.run("interval"), 6 * 60 * 60 * 1000).unref();
 
 // Populate migration 078's automation_tier for rows written before it existed. This is here
