@@ -16,6 +16,7 @@ import { api } from "../../lib/api.js";
 import { matchCandidate } from "../../../../shared/atlasSearchNormalize.js";
 import Navigator from "./Navigator.jsx";
 import ReadinessCheck from "./ReadinessCheck.jsx";
+import SkillsListAndMap from "./YourSkillsPanel.jsx";   // D169
 import { ExploreByRole, Recent, directionLine, useAtlasMe } from "./YourMap.jsx";
 import { KIND_LABEL } from "./atlasModel.js";
 import { flatSteps, stepState } from "./learnModel.js";
@@ -112,14 +113,17 @@ export function OverviewPanel({ base }) {
 // ── You · Your skills (a slot) ─────────────────────────────────────────────────────────────────
 
 /**
- * ⚠ THE SLOT for D169's *Your skills* panel (List + Map; claimed · checked · built) — built by its own lane as its own
- * component; the coordinator swaps it in here at merge. Until then the panel mounts the skills surface that exists:
- * D142's check (your skills with their state, an adaptive check per skill).
+ * ⭐ D169 (owner 11-06, approved, revisable) · YOUR SKILLS — D169's panel (List + Map of the same data; claimed · checked
+ * · built; "Check it · 1 min" in place), and below it D142's full readiness check, which keeps its home here
+ * (docs/D167_ATLAS_MAP.md row 14; /atlas/check still lights this panel).
  */
-export function YourSkillsPanel({ signedIn }) {
+export function YourSkillsSlot({ signedIn, base = "/app/atlas" }) {
   return (
     <div className="atl-pan" data-atlas-panel-body="your-skills" data-atlas-slot="your-skills">
-      <ReadinessCheck signedIn={signedIn} />
+      <SkillsListAndMap signedIn={signedIn} base={base} />
+      <section className="atl-pan__more" data-atlas-readiness="" aria-label="The full readiness check">
+        <ReadinessCheck signedIn={signedIn} />
+      </section>
     </div>
   );
 }

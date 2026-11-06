@@ -6213,4 +6213,53 @@ export const MIGRATIONS = [
         ALTER TABLE user_profile ADD COLUMN custom_answer_scoped TEXT;
       `,
     },
+    {
+      // ⭐ D169 (owner 11-06, approved, revisable) · YOUR SKILLS IN ATLAS — a skill is proven before it goes into a résumé.
+      // skill_proofs: what proved a person's skill (a passed quick check → 'checked'; a proof link, D109's validator →
+      // 'built'); the gate (services/yourSkills.js resumeClaims) reads it. skill_quick_checks: one quick check — 3–5 items
+      // of D150's bank, the item being asked and when the SERVER served it (D142's clock), the answers, passed or not.
+      // atlas_skill_holds: a skill a person typed that the Atlas has no published node for — held for the curator, never
+      // invented as a node. Schema only (D151 Rule 1). Merge plan: move. Export: all three. After 222.
+      id: "223_your_skills",
+      sql: `
+        CREATE TABLE IF NOT EXISTS skill_proofs (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          skill_key     TEXT NOT NULL,
+          skill         TEXT NOT NULL,
+          state         TEXT NOT NULL,
+          via           TEXT NOT NULL,
+          url           TEXT,
+          label         TEXT,
+          kind          TEXT,
+          check_id      INTEGER,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_skill_proofs_user ON skill_proofs(user_id, skill_key);
+        CREATE TABLE IF NOT EXISTS skill_quick_checks (
+          id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id            INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          skill_key          TEXT NOT NULL,
+          skill              TEXT NOT NULL,
+          slug               TEXT NOT NULL,
+          mode               TEXT NOT NULL,
+          question_ids_json  TEXT NOT NULL,
+          position           INTEGER NOT NULL DEFAULT 0,
+          served_at          INTEGER,
+          answers_json       TEXT NOT NULL DEFAULT '[]',
+          started_at         INTEGER NOT NULL,
+          finished_at        INTEGER,
+          passed             INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_skill_quick_checks_user ON skill_quick_checks(user_id, skill_key);
+        CREATE TABLE IF NOT EXISTS atlas_skill_holds (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          term          TEXT NOT NULL,
+          name          TEXT NOT NULL,
+          held_at       INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_atlas_skill_holds_term ON atlas_skill_holds(term);
+      `,
+    },
   ];

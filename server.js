@@ -109,6 +109,9 @@ import { startCheck, answerCheck, readinessStates, mostClaimed, reviewQuestion, 
 // ⭐ D105: the Atlas — roles, skills, tools, linked; seeded as drafts from the scorer's own registry, stats from the board.
 import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
+// ⭐ D169: Your skills in Atlas — and the gate: a skill not on the résumé goes into a tailored one only once proven.
+import { createYourSkillsRouter, createYourSkillsAdminRouter } from "./routes/yourSkills.js";
+import { gateClaimsForResume, gatedDomainProfile } from "./services/yourSkills.js";
 import { createThumbsRouter, createThumbsAdminRouter, resourceItems } from "./routes/thumbs.js";
 import trialRoutes from "./routes/trial.js";
 import atsCalibrationRoutes from "./routes/atsCalibration.js";
@@ -6745,6 +6748,55 @@ let classifyBacklog = null;
         ALTER TABLE user_profile ADD COLUMN custom_answer_scoped TEXT;
       `,
     },
+    {
+      // ⭐ D169 (owner 11-06, approved, revisable) · YOUR SKILLS IN ATLAS — a skill is proven before it goes into a résumé.
+      // skill_proofs: what proved a person's skill (a passed quick check → 'checked'; a proof link, D109's validator →
+      // 'built'); the gate (services/yourSkills.js resumeClaims) reads it. skill_quick_checks: one quick check — 3–5 items
+      // of D150's bank, the item being asked and when the SERVER served it (D142's clock), the answers, passed or not.
+      // atlas_skill_holds: a skill a person typed that the Atlas has no published node for — held for the curator, never
+      // invented as a node. Schema only (D151 Rule 1). Merge plan: move. Export: all three. After 222.
+      id: "223_your_skills",
+      sql: `
+        CREATE TABLE IF NOT EXISTS skill_proofs (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          skill_key     TEXT NOT NULL,
+          skill         TEXT NOT NULL,
+          state         TEXT NOT NULL,
+          via           TEXT NOT NULL,
+          url           TEXT,
+          label         TEXT,
+          kind          TEXT,
+          check_id      INTEGER,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_skill_proofs_user ON skill_proofs(user_id, skill_key);
+        CREATE TABLE IF NOT EXISTS skill_quick_checks (
+          id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id            INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          skill_key          TEXT NOT NULL,
+          skill              TEXT NOT NULL,
+          slug               TEXT NOT NULL,
+          mode               TEXT NOT NULL,
+          question_ids_json  TEXT NOT NULL,
+          position           INTEGER NOT NULL DEFAULT 0,
+          served_at          INTEGER,
+          answers_json       TEXT NOT NULL DEFAULT '[]',
+          started_at         INTEGER NOT NULL,
+          finished_at        INTEGER,
+          passed             INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_skill_quick_checks_user ON skill_quick_checks(user_id, skill_key);
+        CREATE TABLE IF NOT EXISTS atlas_skill_holds (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          term          TEXT NOT NULL,
+          name          TEXT NOT NULL,
+          held_at       INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_atlas_skill_holds_term ON atlas_skill_holds(term);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -10586,6 +10638,9 @@ app.use("/api/admin/job-tags", requireAdmin, createJobTagsRouter(db, requireAdmi
 // ⭐ D105 · the Atlas: pages are PUBLIC (published nodes only, no sign-in); the curator's list and publish are admin.
 app.use("/api/atlas", createAtlasRouter(db));
 app.use("/api/learn", createLearnRouter(db, { requireAuth }));
+// ⭐ D169 · Your skills (signed in, the person's own): the list, the map, add / remove, the quick check, a proof link.
+app.use("/api/your-skills", createYourSkillsRouter(db, { requireAuth }));
+app.use("/api/admin/your-skills", requireAdmin, createYourSkillsAdminRouter(db));
 // ⭐ D119 · thumbnails: stored pictures for Learn's resources (public), and the admin's Pin a video / Hide / refresh.
 app.use("/api/thumbs", createThumbsRouter(db));
 // ⭐ D124 · the trial: /api/trial/* (the account's own), Admin → Trial's counts, and draft's practice form (/try/practice/:jobId),
@@ -13244,8 +13299,10 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
 
   // AG2. Read fresh on every generation, so a claim made after an earlier resume was produced
   // affects the NEXT one and never reaches back into an artifact already saved.
+  // ⛔ D169 P2: a claimed skill NOT on this base résumé reaches the résumé only once proven (checked / built) —
+  // services/yourSkills.js. Scoring is not gated (atsClaims reads the claims whole).
   const profileClaims = activeDomainProfile
-    ? listProfileClaims(db, { userId, profileId: activeDomainProfile.id })
+    ? gateClaimsForResume(db, { userId, claims: listProfileClaims(db, { userId, profileId: activeDomainProfile.id }), resumeText: authoritativeResumeText })
     : null;
 
   // AI1. The summary is opt-in per job profile and defaults OFF, so a profile that predates the
@@ -13287,7 +13344,7 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   }
   const generateBody = toolsGenerateRequest({
     profile, job, baseResumeText: authoritativeResumeText, mode: promptMode, employers,
-    domainProfile: activeDomainProfile, claims: profileClaims, includeSummary, cache,
+    domainProfile: gatedDomainProfile(db, { userId, domainProfile: activeDomainProfile, resumeText: authoritativeResumeText }), claims: profileClaims, includeSummary, cache,
     tailoring: leanKeywords ? tailoring : "full", keywords: leanKeywords,
     model: leanKeywords ? modelFor(db, { userId, tailoring }) : null,
     gists: tailorGists, coursework: leanKeywords && tailoring !== "lean" ? readCoursework(db, userId) : null,
@@ -13493,7 +13550,8 @@ function byomDeps() {
       return {
         text, structured: buildStructuredResume(text), domainProfile: dp,
         userProfile: db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {},
-        claims: listProfileClaims(db, { userId, profileId: dp.id }), allowSummary: dp.include_summary === 1,
+        // ⛔ D169 P2: the claims the patch guard accepts — an unproven skill not on this base is refused like any new term.
+        claims: gateClaimsForResume(db, { userId, claims: listProfileClaims(db, { userId, profileId: dp.id }), resumeText: text }), allowSummary: dp.include_summary === 1,
         // D109 P2: a brief bullet is backed when the Profile has evidence on a bullet with the same text.
         backedFor: ((keys) => (text) => keys.has(evidenceKey(text)))(backedBulletKeys(db, userId)),
       };

@@ -86,6 +86,9 @@ export const SHARED = Object.freeze({
   "components/AtsReport.jsx":           { what: "THE ATS report in the web app — a thin React wrapper of the ONE component, shared/atsReportElement.js (A52 → T9; see CROSS_PRODUCT)" },
   "components/AtsNumberBox.jsx":        { what: "THE ATS number box (D50) — posting header, ATS panel, résumé rows (A93)" },
   "components/AtsNumberBox.css":        { what: "its look", owner: "components/AtsNumberBox.jsx" },
+  // ⭐ D169 · one skill's proof in place — shared because the ATS panel's "That's true of me" and Your skills in Atlas open the SAME check.
+  "components/SkillCheck.jsx":          { what: "D169 · a skill's quick check (D150's bank, D142's timer rules) or its proof choice (a D109 link, a build), opened in place" },
+  "components/SkillCheck.css":          { what: "its look", owner: "components/SkillCheck.jsx" },
   // ── companies and jobs ──
   "components/CompanyLink.jsx":         { what: "THE company link (D38) — the text only" },
   "components/CompanyLink.css":         { what: "its look", owner: "components/CompanyLink.jsx" },

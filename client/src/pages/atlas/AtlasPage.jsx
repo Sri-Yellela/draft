@@ -22,7 +22,7 @@ import AtlasGraph from "./AtlasGraph.jsx";
 import LearnView from "./LearnView.jsx";
 import YourMap, { RoleMap, FamilyMap } from "./YourMap.jsx";
 import AtlasNav from "./AtlasNav.jsx";
-import { OverviewPanel, YourSkillsPanel, YourRoutePanel, LearnStages, TodaysQuestionPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
+import { OverviewPanel, YourSkillsSlot, YourRoutePanel, LearnStages, TodaysQuestionPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
   PanelHead } from "./AtlasPanels.jsx";
 import { panelFor, isPanelSlug, PANEL_LABEL } from "./atlasPanels.js";
 import {
@@ -372,7 +372,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
           <YourMap base={base} parts={{ navigator: false, explore: false, families: true, recent: false }} />
         </div>
       )}
-      {panel === "your-skills" && <YourSkillsPanel signedIn={signedIn} />}
+      {panel === "your-skills" && <YourSkillsSlot signedIn={signedIn} base={base} />}
       {panel === "your-route" && <YourRoutePanel base={base} signedIn={signedIn} />}
       {learning && <LearnStages base={base} signedIn={signedIn} />}
       {panel === "todays-question" && <TodaysQuestionPanel base={base} />}

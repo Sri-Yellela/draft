@@ -1,0 +1,29 @@
+/* ⭐ D169 · the proof, in place (SkillCheck.jsx) — every colour a theme token; no capsules (D60): depth boxes for the
+   choices and buttons, plain words for everything else. Phone width: everything wraps. */
+.skc { box-sizing: border-box; margin: 6px 0 10px; padding: 14px 16px; border-radius: 18px; background: var(--c-surface-solid);
+  border: 1px solid var(--c-border); color: var(--c-ink); min-width: 0; overflow-wrap: anywhere; }
+.skc__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 0 0 8px; }
+.skc__title { margin: 0; font-weight: 600; font-size: 14.5px; }
+.skc__clock { font-variant-numeric: tabular-nums; color: var(--c-accent-ink); font-weight: 600; font-size: 14px; }
+.skc__stem { margin: 0 0 10px; color: var(--c-ink); font-size: 14.5px; line-height: 1.5; }
+.skc__opts { display: grid; gap: 6px; }
+.skc__opt { all: unset; box-sizing: border-box; cursor: pointer; padding: 10px 12px; font-size: 14px; line-height: 1.4;
+  background: var(--c-surface); color: var(--c-ink); border-radius: 12px; }
+.skc__opt:disabled { cursor: default; opacity: .6; }
+.skc__opt:focus-visible, .skc__btn:focus-visible, .skc__link:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.skc__line { margin: 8px 0 6px; font-size: 14px; line-height: 1.5; color: var(--c-ink-muted); }
+.skc__quiet { font-size: 12.5px; line-height: 1.5; color: var(--c-ink-faint); }
+.skc__error { margin: 8px 0 0; font-size: 13px; color: var(--c-danger); }
+.skc__row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.skc__modes { display: grid; gap: 4px; margin: 6px 0 0; font-size: 13.5px; }
+.skc__mode { line-height: 1.5; }
+.skc__btn { border: 0; cursor: pointer; padding: 10px 14px; font: 600 14px var(--font-body); background: var(--c-surface); color: var(--c-ink); }
+.skc__btn--p { background: var(--c-accent); color: var(--c-on-accent); }
+.skc__btn:disabled { cursor: default; opacity: .6; }
+.skc__link { all: unset; cursor: pointer; color: var(--c-accent-ink); font-weight: 600; font-size: 13.5px; text-decoration: underline; text-underline-offset: 2px; }
+.skc__proof { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: flex-end; margin-top: 10px; }
+.skc__field { display: grid; gap: 4px; font-size: 12.5px; color: var(--c-ink-muted); min-width: 0; }
+.skc__field--wide { flex: 1 1 220px; }
+.skc__field input, .skc__field select { box-sizing: border-box; width: 100%; height: 38px; padding: 0 10px; border-radius: 10px;
+  border: 1px solid var(--c-border-control); background: var(--c-surface-input); color: var(--c-ink); font: 14px var(--font-body); }
+.skc__proof .skc__quiet { flex-basis: 100%; margin: 0; }
