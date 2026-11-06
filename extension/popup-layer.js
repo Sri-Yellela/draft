@@ -97,6 +97,20 @@
     }
   }
 
+  /**
+   * ⭐ A128: a popup over the dock's foot covers the dock's last rows — measured: the Workday Resume/CV row's "Attach
+   * tailored" sat under "Filling by hand — a résumé on cue", the press landed on the toast, and the hover then held the
+   * toast open. The dock keeps that much room below its panes while a popup is up (dock.js footInset); null clears it.
+   */
+  function footInset(host) {
+    const dock = globalThis.__draftDock?.current?.();
+    if (!dock?.footInset) return;
+    const el = document.getElementById('rm-draft-dock');
+    const r = el && el.style.display !== 'none' ? el.getBoundingClientRect() : null;
+    const pr = host?.isConnected ? host.getBoundingClientRect() : null;
+    dock.footInset(r && pr && pr.top < r.bottom && pr.bottom > r.top ? r.bottom - pr.top + 8 : 0);
+  }
+
   const deepActive = () => { let a = document.activeElement; while (a?.shadowRoot?.activeElement) a = a.shadowRoot.activeElement; return a; };
 
   function draw(p) {
@@ -124,6 +138,7 @@
     place(host);
     document.documentElement.appendChild(host);
     p.host = host;
+    footInset(host);
     root.addEventListener('click', (ev) => {
       const b = ev.target.closest?.('button');
       if (!b) return;
@@ -164,6 +179,7 @@
     const a = deepActive();
     const held = !!(p.host && (p.host.shadowRoot?.activeElement || a === p.host)) || !a || a === document.body;
     p.host?.remove();
+    footInset(null);
     if (current === p) current = null;
     try { p.spec.onClose?.(answer); } catch { /* the caller's own */ }
     p.resolve(answer);

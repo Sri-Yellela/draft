@@ -281,7 +281,11 @@
     :host([data-cues="shape"]) .tab[aria-selected="true"] { text-decoration: underline; text-underline-offset: 3px; }
     :host([data-cues="shape"]) .tab[aria-selected="true"]::before { content: "▸ "; }
     .body { flex: 1; min-height: 0; position: relative; }
-    .pane { position: absolute; inset: 0; overflow: auto; }
+    .pane { position: absolute; inset: 0; overflow: auto;
+      /* ⭐ A128: a popup over the dock's foot (popup-layer.js) sets --draft-foot-inset to the height it covers. Every view
+         is height:100% of its pane with its OWN scroller (review .rm-sc, résumé .sc, copy sheet .b), so this padding
+         makes the view — and its scroller — end above the popup; before, the Resume/CV row sat under the toast. */
+      padding-bottom: var(--draft-foot-inset, 0px); box-sizing: border-box; }
     .pane[hidden] { display: none; }
     ::slotted([slot^="view-"]) { display: block; height: 100%; }
     /* ⭐ T26 · TEXT BUDGET: an empty tab is its icon, faint, and nothing else — the words are its accessible name. */
@@ -926,6 +930,12 @@
       popOut, dockBack,
       popped: () => [...pops.keys()],
       rect: () => frame.rectNow(),
+      /** ⭐ A128: the height a popup covers at the dock's foot (0 when none) — the panes keep that much room below. */
+      footInset(px) {
+        const n = Math.max(0, Math.round(Number(px) || 0));
+        if (n) frame.host.style.setProperty('--draft-foot-inset', `${n}px`);
+        else frame.host.style.removeProperty('--draft-foot-inset');
+      },
       place: () => placeNow(),
     };
     // a tab that was popped out when this site last showed the dock opens popped out again, once its view arrives
