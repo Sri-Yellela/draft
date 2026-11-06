@@ -43,7 +43,7 @@ import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import { CHROME_HEIGHT_VAR } from "../hooks/useChromeHeight.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
-import { DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, POSTING_ON_DECK_EVENT, closePostingOnDeck, jobDetailHref, openMatchInPosting, openPostingOnDeck } from "../lib/jobUrl.js";
+import { DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, POSTING_ON_DECK_EVENT, closePostingOnDeck, jobDetailHref, openMatchInPosting, openPostingOnDeck, panelOverPosting } from "../lib/jobUrl.js";
 import { TITLE_ATTR, transitionClick } from "../lib/viewTransitions.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
@@ -1081,7 +1081,8 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       // ⭐ D156 (1c): reading the long post, the posting's own keys act on it (JobsPanel: S · D · P, Esc folds) — the deck's
       // letters would decide the card hidden under it.
       if (boardPostRef.current) {
-        if (k === "Escape") foldPost();
+        // ⭐ D164: not while the sandbox (or another panel) is open over it — that Escape is the panel's (D39).
+        if (k === "Escape") { if (!panelOverPosting()) foldPost(); }
         else if (k === "Enter" && tag !== "button" && tag !== "a") { e.preventDefault(); foldPost(); }
         return;
       }

@@ -80,7 +80,8 @@ test("the job-detail address is defined in exactly one place", () => {
   assert.match(JOBCARD, /import \{ jobDetailHref \} from "\.\.\/lib\/jobUrl\.js"/);
   // ⭐ D152 (8) (b): the board also takes OPEN_MATCH_EVENT from the same file (the deck's "open the match" ask).
   // ⭐ D156 (1c): the deck's posting events come from the same one place.
-  assert.match(PANEL, /import \{ JOB_URL_PARAM, jobIdFromSearch(, OPEN_MATCH_EVENT)?(, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID)? \} from "\.\.\/lib\/jobUrl\.js"/);
+  // ⭐ D164 (changed on purpose): and panelOverPosting (an Escape over the sandbox leaves the posting open, D39).
+  assert.match(PANEL, /import \{ JOB_URL_PARAM, jobIdFromSearch(, OPEN_MATCH_EVENT)?(, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID)?(, panelOverPosting)? \} from "\.\.\/lib\/jobUrl\.js"/);
   // And neither BUILDS the URL itself. Matched against a quoted/templated literal rather than the
   // bare string, so the prose comment explaining the address does not count as a second copy.
   assert.doesNotMatch(JOBCARD, /[`'"]\/app\/jobs\?job=/);
@@ -142,7 +143,8 @@ test("the deep link ends on an EXPLICIT signal, never on a timing guess", () => 
   // Every path by which the deep-linked selection legitimately ends must say so. Missing one means
   // the panel reopens itself after the user closed it.
   assert.match(PANEL, /close: \(\) => \{ clearDeepLink\(\); setSelectedJob\(null\); \}/);        // close button
-  assert.match(PANEL, /if \(e\.key === "Escape"\) \{ clearDeepLink\(\); setSelectedJob\(null\); return; \}/); // Escape
+  // ⭐ D164 (changed on purpose): Escape still ends the deep link, unless it is closing the sandbox over the posting (D39).
+  assert.match(PANEL, /if \(e\.key === "Escape"\) \{ if \(panelOverPosting\(\)\) return; clearDeepLink\(\); setSelectedJob\(null\); return; \}/); // Escape
   const select = PANEL.slice(at(PANEL, "const handleJobSelect = useCallback"), at(PANEL, "// ── AH2: the open job detail lives IN THE URL"));
   assert.match(select, /clearDeepLink\(\);/);                                                      // picking another card
   // A real profile SWITCH ends it; the FIRST arrival of a profile key does not, because that is the
