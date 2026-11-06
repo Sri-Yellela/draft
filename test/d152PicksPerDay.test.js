@@ -91,7 +91,7 @@ test("GET /api/draft/today sizes the deal by the person's own count", () => {
   const src = codeOnly(read("server.js"));
   const route = src.slice(at(src, 'app.get("/api/draft/today"'), at(src, 'console.error("[GET /api/draft/today]"'));
   assert.match(route, /const size = deckSizeOf\(db, req\.user\.id\);/);
-  assert.match(route, /await todaysDeck\(db, \{[^}]*\bsize, betFor, warmBets, refresh: false \}\)/);   // D151: warmBets = the cards' velocity via the read pool
+  assert.match(route, /await todaysDeck\(db, \{[^}]*\bsize, betFor, warmBets, resumeText, refresh: false \}\)/);   // D151: warmBets = the cards' velocity via the read pool
 });
 
 test("Customise → Daily Deck offers the count as radio cards (no pills), saved with the account, and Reset restores 10", () => {
