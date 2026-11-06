@@ -47,6 +47,7 @@ import { useViewport } from "../hooks/useViewport.js";
 import { A_PLUS_TOOL } from "../lib/applyTools.js";
 import { ChangesSummaryLine, WhatWeSentLink } from "../components/ResumeChangesPanel.jsx";
 import { postingClick } from "../lib/openPosting.js";
+import AttemptResume from "../components/AttemptResume.jsx";
 
 // ============================================================
 // AutoApplyPanel — DRAFT HOUSE, THE ONE APPLICATION TRACKER (D146, owner 11-03; D113 UI before it)
@@ -809,7 +810,7 @@ export function AutoApplyPanel({ user = null } = {}) {
             <ChangesSummaryLine jobId={node.jobId} jobLabel={node.company} />
           )}
           {node.kind === "approval" && node.ref.resume?.available && (
-            <a className="dh-btn" href={artifactUrl(node.ref.runJobId, "resume")} target="_blank" rel="noreferrer">Résumé PDF ↗</a>
+            <AttemptResume runJobId={node.ref.runJobId} artifactUrl={artifactUrl} className="dh-btn" />
           )}
         </>
       ) });
@@ -1443,10 +1444,8 @@ export function AutoApplyPanel({ user = null } = {}) {
                             {open ? "Hide" : "Review"} answers
                           </button>
                           {p.resume.available && (
-                            <a href={artifactUrl(p.runJobId, "resume")} target="_blank" rel="noreferrer"
-                              style={{ ...btn(theme.surface, theme.text, theme.border), textDecoration:"none" }}>
-                              Resume PDF ↗
-                            </a>
+                            <AttemptResume runJobId={p.runJobId} artifactUrl={artifactUrl}
+                              style={btn(theme.surface, theme.text, theme.border)} />
                           )}
                           {/* ── KEPT HERE ON PURPOSE (AE4) ──────────────────────────────────
                               AE4 removed this from held and review rows, where it duplicated facts

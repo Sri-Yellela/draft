@@ -57,6 +57,7 @@ import { createAdminAuthRouters } from "./routes/adminAuth.js";
 import { createAdminPeopleRouter } from "./routes/adminPeople.js";
 import { createSupportRouters } from "./routes/tickets.js";
 import { createResumeChangesRouter } from "./routes/resumeChanges.js";
+import { createResumeEditorRouter } from "./routes/resumeEditor.js";
 import { createExtensionResumeService, GenerationCancelledError, baseResumeFor as extensionBaseResumeFor } from "./services/extensionResume.js";
 import { createExtensionResumeRouter } from "./routes/extensionResume.js";
 import { createExtensionJobRouter } from "./routes/extensionJob.js";
@@ -10418,6 +10419,8 @@ app.get("/api/account/allowance", requireAuth, (req, res) => {
 }
 // ⭐ D90 P1 · "what we changed" — any two of a job's résumés compared (routes/resumeChanges.js). Read-only, own data only.
 app.use(createResumeChangesRouter({ db, requireAuth }));
+// ⭐ D157 / D171 FIX 4 · the embedded résumé editor's two reads (routes/resumeEditor.js): where it lives, and an attempt's résumé as HTML.
+app.use(createResumeEditorRouter({ db, requireAuth }));
 // ⛔ D95 · the admin's own door (public: sign-in, links, break glass) and Admin → System → Admins (owner only).
 {
   const adminAuth = createAdminAuthRouters({ db, requireAdmin, production: IS_PRODUCTION, sendEmail,

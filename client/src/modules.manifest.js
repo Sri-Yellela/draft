@@ -182,6 +182,9 @@ export const SHARED = Object.freeze({
   // D90 P3: shared — the posting panel (board), Draft House's review line and The Table's What we sent all open it.
   "components/ResumeChangesPanel.jsx":  { what: "What we changed — any two résumés side by side, its summary line, and What we sent (D90)" },
   "components/ResumeChangesPanel.css":  { what: "its look", owner: "components/ResumeChangesPanel.jsx" },
+  "components/ResumeEditorHost.jsx":    { what: "THE résumé editor's full-screen view — resume-master's editor embedded through rm-editor/1, Back / Esc returns (D157 option A)" },
+  "components/ResumeEditorHost.css":    { what: "its look", owner: "components/ResumeEditorHost.jsx" },
+  "components/AttemptResume.jsx":       { what: "an application attempt's résumé: open it in draft (read-only once sent) or download the PDF (D171 FIX 4)" },
   "components/BoardBar.jsx":            { what: "the Full House bar", module: "fullHouseHeader" },
   "components/BoardHeadline.jsx":       { what: "the filter sentence", module: "fullHouseHeader" },
   "components/SortPanel.jsx":           { what: "the sort panel", module: "fullHouseHeader" },
@@ -230,6 +233,7 @@ export const SHARED = Object.freeze({
   "lib/applyTools.js":                  { what: "the apply-run request constants" },
   "lib/oauthNext.js":                  { what: "the one return path after sign-in to a host's consent screen (D86)" },
   "lib/openPosting.js":                 { what: "THE way a posting is opened — handed to the extension when it is here (D99 J11)" },
+  "lib/resumeEditor.js":                { what: "THE way the résumé editor is opened, from anywhere; its change list and draft's live theme tokens (D157)" },
   "lib/boardPaging.js":                 { what: "the board's paging" },
   "lib/boardViewCache.js":              { what: "the board's view cache (D45)" },
   "lib/deckState.js":                   { what: "the deck's reducer" },
