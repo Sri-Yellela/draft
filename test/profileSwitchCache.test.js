@@ -28,7 +28,8 @@ test("jobs panel restores profile cache and guards stale profile responses", () 
 
   assert.match(jobsPanel, /const activeProfileKey = activeDomainProfile\?\.id \|\| null/);
   assert.match(jobsPanel, /const cached = getProfileCache\?\.\(nextKey\)/);
-  assert.match(jobsPanel, /applyProfileSnapshot\(cached\)/);
+  // A126 (8) (07364b3): the snapshot carries the profile key, so a return to Home keeps THIS profile's last cards
+  assert.match(jobsPanel, /applyProfileSnapshot\(cached, nextKey\)/);
   assert.match(jobsPanel, /readProfileUiCache\(nextKey\)/);
   assert.match(jobsPanel, /writeProfileUiCache\(activeProfileKey, latestSnapshotRef\.current\)/);
   assert.match(jobsPanel, /requestProfileKey !== activeProfileKeyRef\.current/);
