@@ -11,12 +11,16 @@
 // a screen reader never hears "slash d". `textTransform: none` because the tab row is uppercase and
 // "/D" is not the mark. Size and colour inherit from the host — the card sets 19px on the orange,
 // the others set their own.
-export function DraftMark({ style }) {
+//
+// ⭐ D167 (owner 11-06: "i want the draft option on the menu to come out such that raft comes out to me it whole
+// smoothly"): `drawOut` sets the WHOLE wordmark once — "/d" then "raft" in its own span (data-draft-raft) — so the dock
+// can uncover "raft" with clip-path while the mark slides (AppNav.css). The text is never re-set and never resized.
+export function DraftMark({ style, drawOut = false }) {
   return (
-    <span aria-hidden="true" data-draft-mark=""
+    <span aria-hidden="true" data-draft-mark="" {...(drawOut ? { "data-draft-drawout": "" } : null)}
       style={{ fontFamily: "'Poppins', var(--font-body)", fontStyle: "italic", fontWeight: 800,
                letterSpacing: "-.02em", textTransform: "none", lineHeight: 1, ...style }}>
-      /d
+      /d{drawOut && <span data-draft-raft="">raft</span>}
     </span>
   );
 }

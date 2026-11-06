@@ -254,6 +254,167 @@ const SCREENS = {
   home163: { sketch: null, app: "/app", fixtures: HOME156, ready: "[data-home-board]", shoot: true,
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
     appPrep: async () => { await sleep(1200); } },
+  // ⭐ D167 · THE DOCK GOES WHERE THE SPACE IS (owner 11-06) — `--styles dock167place`: at each width, where the dock is
+  // (side / top / phone), its box, the page's content box and the gaps between them; a resize across the threshold
+  // re-places it; the peek's place beside a side dock / below a top one.
+  dock167place: { sketch: null, app: "/app", fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } } },
+    ready: "[data-nav-dock]", shoot: true, motion: true,
+    sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
+    appPrep: async () => { await sleep(1400); },
+    nodeProbe: async (page, size) => {
+      const read = () => page.evaluate(() => {
+        const dock = document.querySelector("[data-nav-dock]"), d = dock.getBoundingClientRect();
+        const first = document.querySelector("[data-app-shell] main")?.firstElementChild;
+        const fr = first?.getBoundingClientRect(), fcs = first && getComputedStyle(first);
+        // the content's drawn box: the first box's padding edge
+        const content = fr && { left: fr.left + parseFloat(fcs.paddingLeft), top: fr.top + parseFloat(fcs.paddingTop), right: fr.right - parseFloat(fcs.paddingRight) };
+        const ink = [...dock.querySelectorAll(".appnav-name")].filter(e => getComputedStyle(e.closest(".appnav-words")).display !== "none" && Number(getComputedStyle(e.closest(".appnav-words")).opacity) > 0.5).map(e => e.textContent.trim());
+        const raft = dock.querySelector("[data-draft-raft]");
+        return { place: document.documentElement.getAttribute("data-dock-place"), vw: document.documentElement.clientWidth,
+          dock: { left: d.left, right: d.right, top: d.top, bottom: d.bottom, width: d.width, height: d.height }, content,
+          namesShown: ink, raftShown: !!raft && getComputedStyle(raft).display !== "none" && getComputedStyle(raft).clipPath === "none",
+          shellPadLeft: getComputedStyle(document.querySelector("[data-app-shell]")).paddingLeft,
+          scrollW: document.documentElement.scrollWidth };
+      });
+      const out = { rest: await read() };
+      // a side dock opens evenly from its centre, never over the content
+      if (out.rest.place === "side") {
+        await page.mouse.move(out.rest.dock.left + out.rest.dock.width / 2, out.rest.dock.top + 40); await sleep(700);
+        out.open = await read();
+        await page.mouse.move(Math.round(out.rest.vw / 2), 700); await sleep(700);
+      }
+      // the peek follows the dock
+      const pic = await page.evaluate(() => { const r = document.querySelector("[data-nav-dock] [data-nav-item='profile']").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+      await page.mouse.click(pic.x, pic.y); await sleep(600);
+      out.peek = await page.evaluate(() => { const p = document.querySelector("[data-profile-peek]"), r = p.getBoundingClientRect(), d = document.querySelector("[data-nav-dock]").getBoundingClientRect();
+        return { open: p.getAttribute("data-open"), left: r.left, top: r.top, right: r.right, dockRight: d.right, dockBottom: d.bottom, dockLeft: d.left }; });
+      await page.keyboard.press("Escape"); await sleep(400);
+      fs.mkdirSync(OUT, { recursive: true });
+      fs.writeFileSync(path.join(OUT, `dock167place-${size}.png`), await page.screenshot({ type: "png" }));
+      // re-placed on resize: across the threshold and back
+      if (size === "1920" || size === "1280") {
+        const [w, h] = size === "1920" ? [1280, 800] : [2560, 1440];
+        await page.setViewport({ width: w, height: h, deviceScaleFactor: 1 }); await sleep(900);
+        out.resized = await read();
+      }
+      return { node: out };
+    } },
+  // ⭐ D167 · THE DOCK — measured in a real Chrome WITH motion (`--styles dock167`; the "rm" size with reduced motion): the six
+  // places, names only, every icon centred in the rail, the /d mark drawing out into /draft without changing size, what
+  // animates, the page moving over only when it has no room, Ask draft pushing the page, and the Profile quick peek
+  // (opens on a press and on a rest, closes on Esc, a press outside, leaving it). Shots: docs/fidelity-shots/dock167-*.png.
+  dock167: { sketch: null, app: "/app", fixtures: { ...HOME156, "/api/auth/me": { authenticated: true, user: { id: 1, username: "ada", displayName: "Ada Lovelace", email: "ada@example.invalid", planTier: "PRO", applyMode: "TAILORED" } },
+      // the auto-apply mode: Apply for me selectable; choosing it answers with the bar in FULL AUTO
+      "/api/apply/run-bar": SETTINGS["/api/apply/run-bar"],
+      "/api/apply/mode": { ...SETTINGS["/api/apply/run-bar"], mode: { current: "auto", auto: { locked: false } } } },
+    ready: "[data-nav-dock]", shoot: true, motion: true, reducedSizes: ["rm"],
+    // ⭐ D167 (owner 11-06, the dock goes where the space is): the rail's motion exists only as a SIDE dock — 2560 has the
+    // margin for it; narrower screens put the dock at the top (`--styles dock167place`).
+    sizes: { "2560": [2560, 1440], rm: [2560, 1440] },
+    appPrep: async () => { await sleep(1200); },
+    nodeProbe: async (page, size) => {
+      const q = (fn, ...a) => page.evaluate(fn, ...a);
+      const box = (sel) => q((s) => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height }; }, sel);
+      const mark = () => q(() => {
+        const m = document.querySelector("[data-nav-dock] [data-draft-mark]"), r = m?.getBoundingClientRect(), cs = m && getComputedStyle(m);
+        const raft = document.querySelector("[data-nav-dock] [data-draft-raft]");
+        const range = document.createRange(); if (m) { range.setStart(m.firstChild, 0); range.setEnd(m.firstChild, 2); }
+        const d = m ? range.getBoundingClientRect() : null;
+        return m && { width: r.width, height: r.height, fontSize: cs.fontSize, text: m.textContent, transform: cs.transform,
+          slashD: { left: d.left, right: d.right }, raftClip: getComputedStyle(raft).clipPath, raftWidth: raft.offsetWidth };
+      });
+      const out = { size };
+      await q(() => { window.__dockLog = []; const t0 = performance.now(); new MutationObserver(() => window.__dockLog.push([Math.round(performance.now() - t0), document.documentElement.getAttribute("data-dock-open"), document.documentElement.getAttribute("data-dock-push")])).observe(document.documentElement, { attributes: true, attributeFilter: ["data-dock-open", "data-dock-push"] }); });
+      const rail = await box("[data-nav-dock]");
+      out.rest = await q(() => {
+        const dock = document.querySelector("[data-nav-dock]"), r = dock.getBoundingClientRect(), mid = (r.left + r.right) / 2;
+        const tr = (e) => { const cs = getComputedStyle(e); return { property: cs.transitionProperty, duration: cs.transitionDuration, delay: cs.transitionDelay }; };
+        return {
+          railMid: mid, rail: { left: r.left, right: r.right, width: r.width },
+          places: [...dock.children].map(e => e.getAttribute("data-nav-item") || (e.classList.contains("appnav-sep") ? "|" : e.tagName)),
+          names: [...dock.querySelectorAll(".appnav-name")].map(e => e.textContent.trim()),
+          labels: [...dock.querySelectorAll("[data-nav-item]")].map(e => e.getAttribute("aria-label")),
+          smalls: dock.querySelectorAll("small, .appnav-plain").length,
+          icons: [...dock.querySelectorAll("[data-nav-icon]")].filter(e => e.getAttribute("data-nav-icon") !== "today").map(e => { const b = e.getBoundingClientRect(); return { id: e.getAttribute("data-nav-icon"), mid: (b.left + b.right) / 2, w: b.width, h: b.height }; }),
+          transitions: { dock: tr(dock), item: tr(dock.querySelector(".appnav-item")), words: tr(dock.querySelector(".appnav-words")),
+            mark: tr(dock.querySelector("[data-draft-mark]")), raft: tr(dock.querySelector("[data-draft-raft]")) },
+        };
+      });
+      out.rest.mark = await mark();
+      const shot = async (name) => { const b = await box("[data-nav-dock]"); fs.mkdirSync(OUT, { recursive: true });
+        fs.writeFileSync(path.join(OUT, `dock167-${name}-${size}.png`), await page.screenshot({ type: "png", clip: { x: 0, y: Math.max(0, b.top - 12), width: 240, height: b.height + 24 } })); };
+      await shot("rest");
+      // open it with a real pointer; sample the mark mid-motion
+      const contentLeftBefore = await q(() => { const f = document.querySelector("[data-app-shell] main")?.firstElementChild; return f ? f.getBoundingClientRect().left + parseFloat(getComputedStyle(f).paddingLeft) : null; });
+      await page.mouse.move(rail.left + 30, rail.top + 40);
+      await sleep(120);
+      out.mid = await mark();
+      out.midWordsOpacity = await q(() => Number(getComputedStyle(document.querySelector("[data-nav-dock] [data-nav-item='atlas'] .appnav-words")).opacity));
+      await sleep(700);
+      out.open = await mark();
+      out.openRail = await box("[data-nav-dock]");
+      out.push = await q(() => ({ push: document.documentElement.getAttribute("data-dock-push"), open: document.documentElement.getAttribute("data-dock-open"),
+        shellPad: getComputedStyle(document.querySelector("[data-app-shell]")).paddingLeft }));
+      out.push.contentLeftBefore = contentLeftBefore;
+      out.push.contentLeftOpen = await q(() => { const f = document.querySelector("[data-app-shell] main")?.firstElementChild; return f ? f.getBoundingClientRect().left + parseFloat(getComputedStyle(f).paddingLeft) : null; });
+      out.openIcons = await q(() => [...document.querySelectorAll("[data-nav-dock] [data-nav-icon]")].filter(e => e.getAttribute("data-nav-icon") !== "today").map(e => { const b = e.getBoundingClientRect(); return (b.left + b.right) / 2; }));
+      await shot("open");
+      // the peek: resting on the picture ≈ 350 ms opens it
+      const pic = await box("[data-nav-dock] [data-nav-item='profile']");
+      await page.mouse.move(pic.left + 20, pic.top + pic.height / 2);
+      await sleep(150);
+      out.peekAt150 = await q(() => document.querySelector("[data-profile-peek]")?.getAttribute("data-open"));
+      await sleep(500);
+      const peekState = () => q(() => {
+        const p = document.querySelector("[data-profile-peek]"), r = p.getBoundingClientRect(), d = document.querySelector("[data-nav-dock]").getBoundingClientRect();
+        return { open: p.getAttribute("data-open"), left: r.left, top: r.top, bottom: r.bottom, dockRight: d.right, dockOpen: document.querySelector("[data-nav-dock]").getAttribute("data-open"),
+          name: p.querySelector("[data-peek-name]")?.textContent, email: p.querySelector("[data-peek-email]")?.textContent,
+          links: [...p.querySelectorAll("a")].map(a => [a.textContent.trim(), a.getAttribute("href")]),
+          mode: [...p.querySelectorAll("[data-peek-mode] button")].map(b => [b.textContent, b.getAttribute("aria-pressed"), b.disabled]),
+          signOut: !!p.querySelector("[data-peek-signout]"), openAccent: getComputedStyle(p.querySelector(".appnav-peek__open")).color,
+          accentInk: getComputedStyle(document.documentElement).getPropertyValue("--c-accent-ink").trim(),
+          radius: getComputedStyle(p).borderTopLeftRadius, bg: getComputedStyle(p).backgroundColor,
+          push: document.documentElement.getAttribute("data-dock-push"), shellPad: getComputedStyle(document.querySelector("[data-app-shell]")).paddingLeft };
+      });
+      out.peekRest = await peekState();
+      await page.screenshot({ type: "png" }).then(b => fs.writeFileSync(path.join(OUT, `dock167-peek-${size}.png`), b));
+      // the mode switch: Apply for me posts the mode (the fixture answers with the bar)
+      await q(() => document.querySelector('[data-peek-mode] [data-mode="auto"]')?.click()); await sleep(500);
+      out.modeAfterApplyForMe = await q(() => [...document.querySelectorAll("[data-peek-mode] button")].map(b => b.getAttribute("aria-pressed")));
+      // leaving it (the pointer far away) closes it
+      await page.mouse.move(900, 700); await sleep(700);
+      out.peekAfterLeave = (await peekState()).open;
+      // a press opens it; Esc closes it
+      // (re-measured: a side dock re-centres as it folds — D167 — so the picture is not where it was while open)
+      let pic2 = await box("[data-nav-dock] [data-nav-item='profile']");
+      await page.mouse.move(pic2.left + pic2.width / 2, pic2.top + pic2.height / 2); await sleep(80);
+      await page.mouse.down(); await page.mouse.up(); await sleep(450);
+      out.peekAfterPress = (await peekState()).open;
+      await page.keyboard.press("Escape"); await sleep(400);
+      out.peekAfterEsc = (await peekState()).open;
+      // a press outside closes it
+      pic2 = await box("[data-nav-dock] [data-nav-item='profile']");
+      await page.mouse.click(pic2.left + pic2.width / 2, pic2.top + pic2.height / 2); await sleep(450);
+      out.peekAfterPress2 = (await peekState()).open;
+      await page.mouse.click(1100, 500); await sleep(450);
+      out.peekAfterOutside = (await peekState()).open;
+      // Ask draft: the page moves over, never under the panel
+      await page.mouse.move(900, 400); await sleep(700);
+      const ask = await box("[data-nav-dock] [data-nav-item='ask']");
+      await page.mouse.click(ask.left + 25, ask.top + ask.height / 2); await sleep(800);
+      out.ask = await q(() => {
+        const p = document.querySelector("[data-ask-draft]"), r = p.getBoundingClientRect(), shell = document.querySelector("[data-app-shell]");
+        // the page's boxes (main and its first box) — leaves inside them may be clipped by their own overflow
+        const leaves = [document.querySelector("[data-app-shell] main"), document.querySelector("[data-app-shell] main")?.firstElementChild].filter(Boolean).map(e => e.getBoundingClientRect().right);
+        return { open: p.getAttribute("data-open"), left: r.left, right: r.right, vw: innerWidth, shellPadRight: getComputedStyle(shell).paddingRight,
+          contentRight: Math.max(...leaves), stub: !!p.querySelector("[data-ask-draft-stub]"), html: document.documentElement.getAttribute("data-ask-open") };
+      });
+      await page.screenshot({ type: "png" }).then(b => fs.writeFileSync(path.join(OUT, `dock167-ask-${size}.png`), b));
+      await page.keyboard.press("Escape"); await sleep(600);
+      out.askAfterEsc = await q(() => ({ open: document.querySelector("[data-ask-draft]").getAttribute("data-open"), pad: getComputedStyle(document.querySelector("[data-app-shell]")).paddingRight }));
+      out.log = await q(() => window.__dockLog);
+      return { dock: out };
+    } },
   "home-wide": { sketch: "home-sketch.html", app: "/app", fixtures: HOME156, ready: "[data-home-board]",
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440] },
     sketchPrep: async () => { await sleep(1700); }, appPrep: async () => { await sleep(1200); } },
@@ -682,6 +843,9 @@ const STYLE_PROBES = {
       dockMid: dock ? (dock.top + dock.bottom) / 2 : null,
       flush, sideScroll: document.documentElement.scrollWidth > vw + 1 };
   },
+  // ⭐ D167: the dock is measured by its nodeProbe (a real pointer); the page-side probe only says where it ran.
+  dock167: () => ({ vw: window.innerWidth, vh: window.innerHeight }),
+  dock167place: () => ({ vw: window.innerWidth, vh: window.innerHeight }),
   home163: async () => {
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     const q = (s, root = document) => root.querySelector(s);
@@ -701,7 +865,10 @@ const STYLE_PROBES = {
     const measure = () => {
       const dock = box(q("[data-nav-dock]")), deckCol = box(q("[data-home-deck]")), board = box(q("[data-home-board]")), home = box(q("[data-home]"));
       const g = ink();
-      const dockRight = dock && dock.width > 0 ? dock.right : 0;
+      // ⭐ D167 (the dock goes where the space is): the dock lives in the page's margin or above it, so the page's free
+      // space is measured from the VIEWPORT's edges; nothing may sit within 8 px of a SIDE dock.
+      const place = document.documentElement.getAttribute("data-dock-place");
+      const dockRight = place === "side" && dock && dock.width > 0 ? dock.right : 0;
       const card = box(q('[data-fan-offset="0"] article'));
       const backs = qa("[data-fan-offset]").filter(e => Number(e.getAttribute("data-fan-offset")) > 0)
         .map(e => q("[data-fan-position]", e)).filter(e => e && Number(getComputedStyle(e).opacity) > 0).map(box);
@@ -713,8 +880,8 @@ const STYLE_PROBES = {
       const bubbles = qa(".jb-pair").slice(0, 1).map(p => qa(".jb", p).map(b => Math.round(b.getBoundingClientRect().width)))[0] || [];
       return {
         dock, home, deckCol, board, group: g,
-        leftFree: g ? g.left - dockRight : null, rightFree: g ? vw - g.right : null,
-        homeLeftFree: home ? home.left - dockRight : null, homeRightFree: home ? vw - home.right : null,
+        place, leftFree: g ? g.left : null, rightFree: g ? vw - g.right : null,
+        homeLeftFree: home ? home.left : null, homeRightFree: home ? vw - home.right : null,
         colGap: deckCol && board ? board.left - deckCol.right : null,
         gutterL: parseFloat(hcs.paddingLeft), gutterR: parseFloat(hcs.paddingRight), columnGap: parseFloat(hcs.columnGap),
         card, stack, stackLeft: stack && deckCol ? stack.left - deckCol.left : null, stackRight: stack && deckCol ? deckCol.right - stack.right : null,
@@ -727,7 +894,8 @@ const STYLE_PROBES = {
       dock.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, relatedTarget: document.body }));
       await wait(600);
       const m = measure();
-      out.open = { dock: m.dock, group: m.group, home: m.home, covers: !!m.dock && !!m.group && m.dock.right > m.group.left, shellPad: getComputedStyle(q("[data-app-shell]")).paddingLeft };
+      out.open = { place: m.place, dock: m.dock, group: m.group, home: m.home, shellPad: getComputedStyle(q("[data-app-shell]")).paddingLeft,
+        covers: !!m.dock && !!m.group && m.dock.right > m.group.left && m.dock.bottom > m.group.top && m.dock.top < m.group.bottom };
       dock.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: document.body }));
       await wait(500);
     }
@@ -1117,8 +1285,9 @@ if (process.argv[2] === "--styles") {
       const pageErrors = [];
       page.on("pageerror", e => pageErrors.push(String(e.message).slice(0, 200)));
       await page.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 500, hasTouch: w < 500 });
-      // ⭐ D168: a screen that measures motion itself (`motion: true`) runs with motion on.
-      await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }, { name: "prefers-reduced-motion", value: s.motion ? "no-preference" : "reduce" }]);
+      // ⭐ D168 / D167: a screen measuring MOTION (`motion: true`) keeps the animations, except at its `reducedSizes`.
+      const reduce = !s.motion || (s.reducedSizes || []).includes(size);
+      await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }, { name: "prefers-reduced-motion", value: reduce ? "reduce" : "no-preference" }]);
       await page.setRequestInterception(true);
       page.on("request", (req) => {
         const raw = req.url();
@@ -1141,7 +1310,7 @@ if (process.argv[2] === "--styles") {
       // ⭐ D156: a screen that asks for it is also shot as it is measured (docs/fidelity-shots/<screen>-app-<size>.png).
       if (s.shoot) { fs.mkdirSync(OUT, { recursive: true }); fs.writeFileSync(path.join(OUT, `${shotName}.png`), await page.screenshot({ type: "png" })); }
       sink[size] = await page.evaluate(STYLE_PROBES[id], t.probe ?? null);
-      if (s.nodeProbe) Object.assign(sink[size], await s.nodeProbe(page));
+      if (s.nodeProbe) Object.assign(sink[size], await s.nodeProbe(page, size));
       if (routeId && pageErrors.length) sink[size].pageErrors = pageErrors.slice(0, 3);   // D163: a screen that did not draw says why
       await page.close();
     }

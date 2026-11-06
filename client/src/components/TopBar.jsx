@@ -549,7 +549,9 @@ export default function TopBar({
               the bottom of the screen) — one list, the same `tabs` the row used to draw. */}
           <AppNav tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onTabChange={onTabChange}
             profile={user ? { onOpen: openAccount, badge: unread, name: user.displayName || user.name || user.username || user.email,
-              badgeLabel: `${unread} unread notification${unread === 1 ? "" : "s"}` } : null} />
+              badgeLabel: `${unread} unread notification${unread === 1 ? "" : "s"}`,
+              // ⭐ D167: the dock's quick peek shows the email and signs out with the same handler as the Profile panel.
+              email: user.email || "", onSignOut: onLogout } : null} />
           {user && (
             <ProfileMenuPanel open={accountOpen} onClose={closeAccount}
               theme={theme} user={user} onLogout={onLogout} onTabChange={onTabChange}

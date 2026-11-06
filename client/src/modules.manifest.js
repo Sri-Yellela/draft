@@ -21,7 +21,7 @@
 
 // ── MODULES: a page and the files that are its parts. A part (`module:` below) may be used ONLY by members.
 export const MODULES = Object.freeze({
-  shell: { why: "the app's chrome — App mounts it", members: ["App.jsx", "components/AppShell.jsx", "components/TopBar.jsx", "components/AppNav.jsx",
+  shell: { why: "the app's chrome — App mounts it", members: ["App.jsx", "components/AppShell.jsx", "components/TopBar.jsx", "components/AppNav.jsx", "components/dockPlace.js",
     "components/NavBar.jsx", "components/InlineLoginPopover.jsx", "components/AdminLayout.jsx", "consoles/PlanConsoles.jsx"] },
   auth: { why: "sign-in and sign-up", members: ["App.jsx", "components/AuthScreen.jsx", "components/SignupAtsHook.jsx", "components/DealBackdrop.jsx"] },
   deck: { why: "the Daily Deck",
@@ -142,6 +142,7 @@ export const SHARED = Object.freeze({
   "components/AppShell.jsx":           { what: "the signed-in frame", module: "shell" },
   "components/TopBar.jsx":              { what: "the top bar", module: "shell" },
   "components/AppNav.jsx":              { what: "the app's navigation — the Dock or the Menu, the user's choice (D145)", module: "shell" },
+  "components/dockPlace.js":           { what: "where the dock goes from the room it has — side / top / phone (D167)", module: "shell" },
   "components/NavBar.jsx":              { what: "the marketing nav", module: "shell" },
   "components/NavBar.css":              { what: "its look", owner: "components/NavBar.jsx" },
   "components/InlineLoginPopover.jsx":  { what: "the nav's sign-in popover", module: "shell" },

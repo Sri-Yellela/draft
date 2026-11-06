@@ -38,7 +38,9 @@ const SERVER   = read("server.js");
 test("every nav tab is a real link, not a button", () => {
   // ⭐ D145: the tab row is the Dock / the Menu now (components/AppNav.jsx) — the same real links.
   const NAV = fs.readFileSync("client/src/components/AppNav.jsx", "utf8");
-  assert.match(NAV, /<a key=\{t\.id\} className="appnav-item" href=\{hrefForTab\?\.\(t\.id\) \|\| undefined\}/);
+  // ⭐ D167 (owner 11-06, changed on purpose): the href is the section's own, or Interview's page (the dock's sixth place).
+  assert.match(NAV, /const href = hrefForTab\?\.\(t\.id\) \|\| \(t\.id === "interview" \? INTERVIEW_PATH : undefined\);/);
+  assert.match(NAV, /<a key=\{t\.id\} className="appnav-item" href=\{href\}/);
   assert.doesNotMatch(NAV, /<button key=\{t\.id\}/);
   assert.doesNotMatch(TOPBAR, /<button key=\{t\.id\} onClick=\{\(\) => onTabChange/);
 });
@@ -51,9 +53,10 @@ test("a modified click is left to the browser, a plain click still navigates in-
   assert.match(nav, /e\.metaKey \|\| e\.ctrlKey \|\| e\.shiftKey \|\| e\.altKey \|\| e\.button !== 0/);
   assert.match(nav, /return;/);
   assert.match(nav, /e\.preventDefault\(\);/);
-  assert.match(nav, /onGo\(t\.id\)/);
-  // ⭐ D156 (3): a press also folds the expanded dock back to its icons.
-  assert.match(NAV, /const go = useCallback\(\(id\) => \{ setOpen\(false\); setWide\(false\); onTabChange\?\.\(id\); \}, \[onTabChange\]\);/);
+  assert.match(nav, /onGo\(t\.id, href\)/);
+  // ⭐ D156 (3): a press also folds the expanded dock back to its icons. ⭐ D167 (owner 11-06, changed on purpose): and closes the peek; Interview's page
+  // is navigated to directly while it is not a tab of its own.
+  assert.match(NAV, /const go = useCallback\(\(id, href\) => \{\n\s+setOpen\(false\); setWide\(false\); closePeek\(\);/);
 });
 
 test("the href and the click resolve through ONE mapping", () => {

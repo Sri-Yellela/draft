@@ -146,17 +146,19 @@ test("d156DockIconsSameSizeThemeAccent / d156ShortLogoInDock (pure): 30 px icons
   assert.match(NAVCSS, /--appnav-ico: 30px;/);
   assert.match(NAVCSS, /\.appnav-svg \{[^}]*stroke: var\(--c-accent\);/, "the house and the globe in the theme's accent");
   // ⭐ (1c): swapped — the jobs page is "/d · draft", the tracker is the house, "Home".
-  assert.match(NAV, /const ICONS = \{ today: \(\) => <DraftMark \/>, console: \(\) => <DraftMark \/>, atlas: \(\) => <GlobeIcon \/>, "auto-apply" ?: \(\) => <HouseIcon \/> \};/);
-  assert.match(NAV, /export const DOCK_NAMES = Object\.freeze\(\{ today: "draft", "auto-apply" ?: "Home" \}\);/, "slash for short, draft for long — the jobs");
-  assert.match(NAV, /"auto-apply" : "your dashboard and applications"/);
+  // ⭐ D167 (owner 11-06, changed on purpose): + Interview (the microphone); the jobs' icon is the drawing-out wordmark (<DraftMark drawOut />); names only.
+  assert.match(NAV, /const ICONS = \{ atlas: \(\) => <GlobeIcon \/>, "auto-apply" ?: \(\) => <HouseIcon \/>, interview: \(\) => <MicIcon \/> \};/);
+  assert.match(NAV, /<DraftMark drawOut \/>/);
+  assert.match(NAV, /export const DOCK_NAMES = Object\.freeze\(\{ today: "draft", "auto-apply" ?: "Home", atlas: "Atlas", interview: "Interview" \}\);/, "slash for short, draft for long — the jobs");
   assert.match(NAV, /\{url \? <img src=\{url\} alt="" \/> : <span className="appnav-initials" aria-hidden="true">\{initialsOf\(profile\.name\)\}<\/span>\}/);
   assert.doesNotMatch(NAV, /appnav-emboss|appnav-handle|DOCK_REVEAL_PX/, "D152 (4)'s embossed logo, edge handle and edge reveal are gone");
 });
 
-test("d156DockPushesPage (pure): the app shell is padded by the rail, and by the expanded dock while it is open", () => {
-  assert.match(NAVCSS, /:root:not\(\[data-navigation="menu"\]\) \{ --appnav-rail-w: 72px; \}/);
-  assert.match(NAVCSS, /:root:not\(\[data-navigation="menu"\]\)\[data-dock-open="true"\] \{ --appnav-rail-w: 224px; \}/);
-  assert.match(NAVCSS, /\[data-app-shell\] \{ padding-left: var\(--appnav-rail-w, 0px\);/);
+// ⭐ D167 (owner 11-06, changed on purpose) — "the dock goes where the space is" supersedes D156 (3)'s push: the dock never pads the page sideways; a
+// side dock sits in a margin measured to fit it open, otherwise it goes to the top (test/d167Dock).
+test("d156DockPushesPage → D167 (pure): the dock never pushes the page", () => {
+  assert.doesNotMatch(NAVCSS, /--appnav-rail-w|padding-left: var\(--appnav/);
+  assert.match(NAVCSS, /\[data-app-shell\] \{ transition: padding-right/, "only Ask draft moves the page (to the left of its panel)");
   assert.doesNotMatch(read("client/src/components/FullHouse.css"), /data-dock-open/, "Home has no dock rule of its own");
 });
 
@@ -267,26 +269,19 @@ test("d156 real Chrome (1440 · 1280 · 390): the card, the flip, the dock, the 
     assert.ok(sn.word.shadow.includes(sn.quiet) && /inset/.test(sn.word.shadow), `${size}: the quiet-accent highlighter underline (${sn.word.shadow})`);
     // d156DockIconsSameSizeThemeAccent / d156ShortLogoInDock / ⭐ (1c) d156DockDraftIsJobsHomeIsDashboard
     const k = d.dock;
-    assert.deepEqual(k.items, ["today", "auto-apply", "atlas", "profile"]);
-    assert.deepEqual(k.icons.map(i => [i.w, i.h]), [[30, 30], [30, 30], [30, 30], [30, 30]], `${size}: four icons the same size`);
-    assert.deepEqual(k.icons.filter(i => i.stroke).map(i => [i.id, i.stroke]), [["auto-apply", k.accent], ["atlas", k.accent]], `${size}: the house and the globe in the accent`);
-    assert.equal(k.icons[0].text, "/d", `${size}: the jobs page is the short logo`);
-    assert.equal(k.icons[3].text, "A", `${size}: initials when there is no picture`); assert.equal(k.icons[3].radius, "50%");
+    // ⭐ D167 (owner 11-06, changed on purpose): six places — + Interview, and Ask draft after the divider.
+    assert.deepEqual(k.items, ["today", "auto-apply", "atlas", "interview", "profile", "ask"]);
+    // ⭐ D167 (owner 11-06, changed on purpose): THE DOCK GOES WHERE THE SPACE IS — at 1440 / 1280 it is a top row, on a
+    // phone a top row of icons; its form, motion, placement and the peek are test/d167Dock's. What D156 asked still holds:
+    // every line icon one size and in the theme's accent, the person's initials in a circle, no emboss and no edge handle.
+    const icons = k.icons.filter(i => i.id !== "today");   // the jobs' icon is the wordmark (/d → /draft)
+    for (const i of icons) assert.deepEqual([i.w, i.h], [30, 30], `${size}: ${i.id} 30 px`);
+    for (const i of icons.filter(i => i.stroke)) assert.equal(i.stroke, k.accent, `${size}: ${i.id} in the accent`);
+    const me = icons.find(i => i.text === "A");
+    assert.ok(me, `${size}: initials when there is no picture`); assert.equal(me.radius, "50%");
     assert.equal(k.emboss, false); assert.equal(k.handle, false);
-    assert.equal(k.rest.shownAtRest, true, `${size}: the rail is always visible`);
-    assert.equal(k.rest.wordsOpacity, "0", `${size}: at rest, icons only`);
-    assert.equal(k.rest.coversPage, false, `${size}: the rail never covers the page`);
-    // d156DockIconsExpandOnHover / d156DockPushesPage — by keyboard focus everywhere, by hover where there is one
-    assert.equal(k.focus.open, "true"); assert.equal(k.focus.box.width, 212); assert.equal(k.focus.shellPad, "224px", `${size}: focus pushes the page`);
-    if (size !== "phone") {
-      assert.equal(k.hover.open, "true", `${size}: hover expands it`);
-      assert.equal(k.hover.wordsOpacity, "1");
-      assert.deepEqual(k.hover.names, ["draft", "Home", "Atlas", "Profile"]);
-      assert.deepEqual([k.rest.shellPad, k.hover.shellPad, k.afterLeave.shellPad], ["72px", "224px", "72px"], `${size}: the page moves over and back`);
-      assert.equal(k.hover.coversDeck, false); assert.equal(k.hover.coversBoard, false);
-    } else {
-      assert.equal(k.rest.shellPad, "52px", "a phone's rail is slimmer");
-    }
+    assert.equal(k.rest.shownAtRest, true, `${size}: the dock is always visible`);
+    assert.equal(k.rest.coversPage, false, `${size}: the dock never covers the page`);
     // d156StarredImportedViews
     assert.equal(d.views.below, true, `${size}: the views sit under the search`);
     assert.deepEqual(d.views.buttons.map(b => b.text), ["All jobs746", "Starred12", "Imported0"], `${size}: with their counts`);

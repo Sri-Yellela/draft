@@ -117,8 +117,8 @@ test("d146OnePanelOneNavEntry — one Dock / Menu entry, Draft House · your app
   assert.match(app, /const TABLE_ROUTE = "database";/);
   assert.match(app, /if \(routeKey === TABLE_ROUTE\) \{\s+navigate\(\{ pathname: "\/app\/auto-apply", search: location\.search \|\| "" \}, \{ replace:true \}\);\s+return;/,
     "the old route lands on the one tracker, its ?sheet= deep link kept");
-  // ⭐ D156 (1c) (changed on purpose): the one entry is the house, "Home · your dashboard and applications".
-  assert.match(nav, /"auto-apply"\s?: "your dashboard and applications"/);
+  // ⭐ D156 (1c): the one entry is the house, "Home". ⭐ D167 (owner 11-06, changed on purpose): names only, no line under it.
+  assert.match(nav, /"auto-apply"\s?: "Home"/);
   assert.doesNotMatch(code(nav), /database:/);
   assert.match(app, /<AutoApplyPanel user=\{authUser\}\/>/);
   // The Table is mounted ONCE, inside the tracker, and that composition is declared.

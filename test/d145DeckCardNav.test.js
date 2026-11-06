@@ -147,18 +147,20 @@ test("d145MenuPanelMatchesDock: the side panel's buttons are EXACTLY the dock's 
   // ⭐ D152 (4), changed on purpose: M toggles the Menu while it is the navigation, else the dock.
   assert.match(nav, /if \(btn && getComputedStyle\(btn\)\.display !== "none"\) \{ e\.preventDefault\(\); setOpen\(\(o\) => !o\); return; \}/, "M opens the Menu while it is the navigation");
   assert.match(nav, /if \(dock && getComputedStyle\(dock\)\.display !== "none"\) \{ e\.preventDefault\(\); setWide\(\(u\) => !u\); \}/, "… else the dock (D156: expands it)");
-  // Each button: the section name + a small plain line (D145 Step 2 rule 5).
-  // ⭐ D146 (changed on purpose): Draft House and The Table are one entry, "your applications".
-  // ⭐ D152 (4), changed on purpose: Home's line is the sketch's "today's picks and every job".
-  // ⭐ D156 (1c) (changed on purpose): the tracker's entry is the house, Home — "your dashboard and applications".
-  assert.match(nav, /today: "today's picks and every job", console: "every job", "auto-apply" : "your dashboard and applications", atlas: "your skills"/);
+  // ⭐ D167 (owner 11-06, changed on purpose): names only — no plain line under a name (D145 Step 2 rule 5's line is removed); the panel and the dock
+  // also share Profile, the divider and Ask draft.
+  assert.doesNotMatch(nav, /NAV_PLAIN|today's picks and every job/);
+  assert.equal((nav.match(/<AskItem /g) || []).length, 2, "Ask draft in the dock and in the panel");
 });
 
 // ⭐ D156 (3) changed this on purpose (owner 11-05: "use symbols for the menu dock: a home, a globe like atlas icon, draft
 // icon … profile pic for the profile"): the DOCK is icons; the Menu's side panel stays words.
 test("d145NoNavSymbols → d156: icons only in the Dock (house · /d · globe · picture); the Menu stays words", () => {
-  const items = nav.slice(at(nav, "function NavItems("), at(nav, "export default function AppNav"));
-  assert.match(items, /\{dock && Icon && <span className="appnav-ico"/, "an icon only in the dock");
+  // ⭐ D167: the items alone (the peek and Ask draft that follow them carry prose comments with arrows)
+  const items = nav.slice(at(nav, "function NavItems("), at(nav, "const initialsOf ="));
+  // ⭐ D167 (owner 11-06, changed on purpose): the jobs' icon is the drawing-out wordmark, every other place its line icon.
+  assert.match(items, /\{dock && !jobs && Icon && <span className="appnav-ico"/, "an icon only in the dock");
+  assert.match(items, /\{dock && jobs && <span className="appnav-ico appnav-ico--mark"/);
   assert.match(nav, /\{dock && \(\n\s+<span className="appnav-ico appnav-ico--me"/);
   assert.doesNotMatch(items, /[☰≡★⏳✦→←↑↓]/u);
   assert.doesNotMatch(nav.slice(at(nav, 'className="appnav-menu-btn"')), /<svg|<img|[☰≡]/u, "the Menu button is a word");
