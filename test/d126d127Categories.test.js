@@ -179,7 +179,9 @@ test("d127 migration 207: the category columns, byte-identical in both migration
   const block = (s) => s.slice(at(s, 'id: "207_posting_category"'), at(s, "`,", at(s, 'id: "207_posting_category"')));
   assert.ok(block(server).includes("ADD COLUMN board_category TEXT"));
   assert.equal(block(server), block(mig));
-  assert.match(read("server.js"), /const cat = backfillCategories\(db\);/);
+  // ⛔⛔ D153 (3) (changed on purpose): the boot backfill is the paged background job (classifyBacklog.js), from ready.
+  assert.match(read("server.js"), /const classifyBacklog = createClassifyBacklog\(db\);/);
+  assert.match(read("server.js"), /BOOT\.run\(\)\.then\(\(\) => classifyBacklog\.run\("boot"\)\);/);
 });
 
 test("d127 report: counts by category, discipline and held reason", () => {

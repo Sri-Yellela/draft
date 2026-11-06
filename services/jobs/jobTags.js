@@ -33,6 +33,7 @@ import { EXPERIENCE_LEVELS, EMPLOYMENT_TYPES, WORK_MODELS, valueSet } from "../.
 import { METROS, JOB_FUNCTIONS, functionForRole } from "../../shared/jobTagVocabulary.js";
 import { parseCodedLocation } from "../../shared/postingNormalize.js";
 import { rangeSql, rangeParams } from "./rowidWalk.js";
+import { functionFromTitle } from "./categoryFunction.js";
 
 /** Bump when a rule changes: every row is re-tagged on the next pass (owner tags survive). */
 // 3 (D59): coded locations ("US-MA-MARLBOROUGH-MA2 1001 Boston Post Rd") and the label block's
@@ -263,9 +264,12 @@ export function tagLevel({ title, experience_level, enriched_at, description }) 
 // ── FUNCTION ("domain" in the sentence) ─────────────────────────────────────────────────────────
 //
 // From the classifier's bucket (job_role_map, written from the title at ingest). 'general' is the
-// classifier's "matched nothing" and becomes NULL — it is the absence of a function, not one.
-export function tagFunction(roleKey) {
-  return functionForRole(roleKey);
+// classifier's "matched nothing" and is not a function.
+// ⛔⛔ D153 (3): for a bucket that names no function ('general'), the title's D127 verdict decides
+// (categoryFunction.js) — only when it is IN SCOPE; a held or unknown title stays NULL (D127's leak
+// rule). Without a title (the bucket alone) it is exactly the bucket's function, as before.
+export function tagFunction(roleKey, title = null) {
+  return functionForRole(roleKey) ?? (title ? functionFromTitle(title, roleKey) : null);
 }
 
 // ── EMPLOYMENT TYPE ──────────────────────────────────────────────────────────────────────────────
@@ -336,7 +340,7 @@ export function deriveTags(row) {
   return {
     places, remote, workplace, us,
     level: tagLevel(row),
-    job_function: tagFunction(row.role_key),
+    job_function: tagFunction(row.role_key, row.title),
     employment: tagEmployment(row),
   };
 }
