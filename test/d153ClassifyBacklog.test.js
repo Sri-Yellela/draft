@@ -177,7 +177,7 @@ test("d153 wiring: started from READY in the listen callback, every 6 h, reporte
   assert.match(server, /setInterval\(\(\) => classifyBacklog\.run\("interval"\), 6 \* 60 \* 60 \* 1000\)\.unref\(\);/);
   assert.match(server, /classify: classifyBacklog\.status\(\),/);
   const src = read("services/jobs/classifyBacklog.js");
-  assert.match(src, /nextRowidRange\(db, from, pageRows\)/, "pages are A123's rowid ranges");
+  assert.match(src, /nextRowidRange\(db, from, rows\)/, "pages are A123's rowid ranges (A132: `rows` adapts to the read's time)");
   assert.match(src, /schedule = \(fn\) => setImmediate\(fn\)/, "the yield is setImmediate");
   assert.match(src, /UPDATE scraped_jobs SET tag_function = \? WHERE job_id = \? AND tag_function IS NULL/, "conditional write: idempotent, never overwrites");
 });
@@ -206,4 +206,25 @@ test("a132ClassifyWritesChunked: at most writeChunk rows per transaction, a yiel
   assert.equal(typeof s.unknownByCategory, "object");
   const unknown = Object.values(s.unknownByCategory).reduce((a, b) => a + b, 0);
   assert.equal(unknown, s.shown - s.withFunction, "every shown posting without a kind of work is counted under its category");
+});
+
+// ⛔ A132 (production 10313b5: maxPageMs 2,420 with no writes — the READ): the page shrinks while a read is over budget and
+// grows back while reads are fast. A fake clock makes every read "slow" for the first pages, then fast.
+test("a132ClassifyPageAdapts: a slow read halves the page (floor MIN_PAGE_ROWS), fast reads grow it back", async () => {
+  const { READ_BUDGET_MS, MIN_PAGE_ROWS } = await import("../services/jobs/classifyBacklog.js");
+  const db = board();
+  for (let i = 0; i < 1200; i++) insert(db, `bulk${i}`, "Software Engineer", "software_engineer");
+  const realNow = Date.now;
+  let clock = realNow(), slowCalls = 8, sizes = [];
+  Date.now = () => { if (slowCalls > 0) { slowCalls--; clock += READ_BUDGET_MS + 50; } else clock += 1; return clock; };
+  try {
+    const job = createClassifyBacklog(db, { pageRows: 400, log: quiet, schedule: (fn) => { sizes.push(job.status().pageRows); setImmediate(fn); } });
+    const s = await job.run("test");
+    assert.equal(s.state, "done");
+    assert.ok(sizes.includes(MIN_PAGE_ROWS) || Math.min(...sizes.filter(Boolean)) < 400, `the page shrank: ${sizes}`);
+    assert.ok(Math.min(...sizes.filter(Boolean)) >= MIN_PAGE_ROWS, "never below the floor");
+    assert.equal(sizes.filter(Boolean).at(-1), 400, `it grew back to pageRows once reads were fast: ${sizes}`);
+    assert.ok(s.maxReadMs >= READ_BUDGET_MS, "maxReadMs reports the slow read");
+    assert.equal(s.active, db.prepare("SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1").pluck().get(), "every active row read once");
+  } finally { Date.now = realNow; }
 });
