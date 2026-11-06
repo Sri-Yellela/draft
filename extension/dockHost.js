@@ -17,6 +17,7 @@
 // ⛔ No new permission: executeScript and storage are already declared, and the appearance is read with the extension's
 // own token from draft's own server (GET /api/settings/appearance — the same answer the web app reads).
 import { authedFetch } from './auth.js';
+import { bindingForTab } from './tabBinding.js';
 import { C_LIGHT, C_DARK, EXT_THEMES } from './tokens.js';
 
 let SERVER_URL = null;
@@ -148,8 +149,10 @@ export async function forgetDockPlaces() { await writeDockPlaces({}); }
 /** What the dock needs on its first draw on a page: where it sat on this site, and the account's look. */
 export async function dockMeta(tabOrId) {
   const tab = typeof tabOrId === 'number' ? await chrome.tabs.get(tabOrId).catch(() => null) : tabOrId;
-  const [place, theme, appearance] = await Promise.all([loadDockPlace(tab?.url), overlayTheme(), accountAppearance()]);
-  return { place, theme, cues: appearance?.cues === true };
+  const [place, theme, appearance, bound] = await Promise.all([loadDockPlace(tab?.url), overlayTheme(), accountAppearance(),
+    bindingForTab(tab).catch(() => null)]);
+  // ⭐ O100 (a): the tab's bound job (its title and company only) — the dock shows "I submitted it" on a bound tab
+  return { place, theme, cues: appearance?.cues === true, job: bound ? { title: bound.title || '', company: bound.company || '' } : null };
 }
 
 // ── drawing ──────────────────────────────────────────────────────────────────────────────────────────────────────
