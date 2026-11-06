@@ -52,6 +52,7 @@ export default function ResumeEditorHost() {
   const pendingSave = useRef(Promise.resolve());
   const pushedRef = useRef(false);
   const backRef = useRef(null);
+  const saidReady = useRef(false);   // the editor answered `ready` for the request open now
 
   const close = useCallback((fromPop = false) => {
     setRequest(null); setPhase("idle"); setStatus("");
@@ -68,6 +69,7 @@ export default function ResumeEditorHost() {
       const r = e.detail;
       if (!r?.html) return;
       reqRef.current = r;
+      saidReady.current = false;
       setRequest(r); setPhase("loading"); setStatus("");
       setInset(insetFromDock());
       if (!pushedRef.current) {
@@ -182,6 +184,7 @@ export default function ResumeEditorHost() {
       const r = reqRef.current;
       if (!r) return;
       if (m.type === "ready") {
+        saidReady.current = true;
         post("theme", { tokens: themeTokens() });
         let changes = Array.isArray(r.changes) ? r.changes : null;
         if (!changes && r.jobId) {
@@ -234,6 +237,9 @@ export default function ResumeEditorHost() {
         </div>
       ) : src && (
         <iframe ref={frameRef} className="rmeh__frame" src={src} title="Résumé editor"
+          // The page arrived but never said `ready` (an older tools service without the editor answers a 404 page):
+          // don't make the person wait out the whole timeout.
+          onLoad={() => { const r = reqRef.current; setTimeout(() => { if (reqRef.current === r && !saidReady.current) fail("The résumé editor didn't load."); }, 3000); }}
           sandbox="allow-scripts allow-same-origin allow-modals allow-downloads" allow="clipboard-write"
           referrerPolicy="no-referrer" data-ready={phase === "ready" ? "true" : "false"} />
       )}
