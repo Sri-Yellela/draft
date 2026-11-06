@@ -14,6 +14,9 @@
 //   GET  /api/atlas/terms/:jobId          → { terms: [{ slug, name, kind, forms: [{ text, exactCase }] }] } for ONE posting
 //   GET  /api/atlas/peek/:slug            → the popup: name, kind, meaning (+ fromWikipedia), postings, firstResource, you?
 //   POST /api/atlas/link-event            { event: "open" | "visit" } → 204; a per-day count, nothing else stored
+// ⭐ D167 · the Atlas's Glossary panel (public):
+//   GET  /api/atlas/glossary              → { terms: [{ slug, name, kind, meaning, fromWikipedia, wikipediaUrl, postings }], total }
+//                                           every PUBLISHED term; `meaning` is the popup's own (meaningOf — one source)
 // ⭐ D116 · YOUR MAP (public router — signed out is the fallback answer, never a 401):
 //   GET  /api/atlas/me[?all=<section>]    signed in with profile skills → haveSkills · nextLevel · adjacent · branches ·
 //                                         learnNext (each ≤ 12 + its total; ?all= one section uncapped, "see all");
@@ -67,7 +70,7 @@ import { createNode, updateNode, readNodeForEditor, mergeNodes, addTypedEdge, re
 import { checkAtlasLinks } from "../services/atlas/atlasLinkCheck.js";
 import { probeWikipedia, wikiMatchSummary } from "../services/atlas/atlasWikidata.js";
 import { wikiCandidates, pickWikiTitle, redirectPreview, acceptPicks } from "../services/atlas/atlasWikiFind.js";
-import { atlasTermsForPosting, peekNode, countLinkEvent } from "../services/atlas/atlasLinks.js";
+import { atlasTermsForPosting, peekNode, countLinkEvent, glossaryTerms } from "../services/atlas/atlasLinks.js";
 import { learnStepForNode } from "../services/learn/learnLinks.js";
 import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts } from "../services/atlas/atlasDefinitions.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
@@ -131,6 +134,13 @@ export function createAtlasRouter(db) {
     if (!p) return res.status(404).json({ error: "not_found" });
     res.set("Cache-Control", `${uid != null ? "private" : "public"}, max-age=${LIVE_CACHE_MS / 1000}`);
     res.json(p);
+  });
+  // ⭐ D167 · the Atlas's Glossary: every published term in plain words + its postings — the SAME meaning as the popup
+  // (services/atlas/atlasLinks.js meaningOf), kept like the popup at most LIVE_CACHE_MS. The same for everyone.
+  router.get("/glossary", (_req, res) => {
+    const terms = liveCached(db, "glossary", () => glossaryTerms(db));
+    res.set("Cache-Control", `public, max-age=${LIVE_CACHE_MS / 1000}`);
+    res.json({ terms, total: terms.length });
   });
   // ⭐ D116 · computed from THIS reader's profile only (req.user, when signed in) — never stored, never cached shared.
   router.get("/me", (req, res) => {

@@ -73,7 +73,7 @@ export function ExploreByRole({ roles = [], base }) {
 }
 
 /** ⭐ D120 P2 · the five families, each with what the reader has of it, opening the family's page. */
-function Families({ families = [], base }) {
+export function Families({ families = [], base }) {
   if (!families.length) return null;
   return (
     <section className="atl__section" data-atlas-home-families="" aria-labelledby="atl-families">
@@ -89,7 +89,7 @@ function Families({ families = [], base }) {
 }
 
 /** ⭐ D120 P2 · the pages published most recently. */
-function Recent({ items = [], base }) {
+export function Recent({ items = [], base }) {
   if (!items.length) return null;
   return (
     <section className="atl__section" data-atlas-home-recent="" aria-labelledby="atl-recent">
@@ -114,18 +114,26 @@ export function directionLine(tree) {
 }
 
 /** The signed-out (or no résumé) home — never an empty page: search, Learn (the full circle), Explore by role. */
-export function ExploreHome({ me, base, search = null, signedIn = false, course = null }) {
+// ⭐ D167 · Atlas's own navigation splits the old home into panels: Your map keeps the tree, the course, the five sections
+// and the families; Roles and skills takes search, Explore by role and the recent pages; Your route takes the navigator.
+// `parts` turns a piece off for its panel; the default draws everything (the home as D120 drew it).
+export const ALL_PARTS = Object.freeze({ navigator: true, explore: true, families: true, recent: true });
+
+export function ExploreHome({ me, base, search = null, signedIn = false, course = null, parts = ALL_PARTS }) {
+  const side = search || parts.explore || parts.recent;
   return (
-    <div className="atl-home" data-atlas-home="explore">
+    <div className={`atl-home${side ? "" : " atl-home--one"}`} data-atlas-home="explore">
       <div className="atl-home__main">
         <p className="atl__lede" data-atlas-upload="">{me.prompt}</p>
         {course || <YourCourse base={base} signedIn={signedIn} />}
       </div>
-      <aside className="atl-home__side" data-atlas-home-side="">
-        {search}
-        <ExploreByRole roles={me.exploreByRole?.items} base={base} />
-        <Recent items={me.recent} base={base} />
-      </aside>
+      {side && (
+        <aside className="atl-home__side" data-atlas-home-side="">
+          {search}
+          {parts.explore && <ExploreByRole roles={me.exploreByRole?.items} base={base} />}
+          {parts.recent && <Recent items={me.recent} base={base} />}
+        </aside>
+      )}
     </div>
   );
 }
@@ -172,36 +180,44 @@ export function FamilyMap({ base, familyKey }) {
   );
 }
 
-export default function YourMap({ base, search = null }) {
+/** GET /api/atlas/me, once per mount — Your map, Roles and skills and Overview read the same answer. */
+export function useAtlasMe() {
   const [me, setMe] = useState(null);
-  const [request, setRequest] = useState(null);
-  const top = useRef(null);
   useEffect(() => {
     let live = true;
-    api("/api/atlas/me").then(r => live && setMe(r)).catch(() => live && setMe(null));
+    api("/api/atlas/me").then(r => live && setMe(r)).catch(() => live && setMe(false));
     return () => { live = false; };
   }, []);
+  return me;
+}
+
+export default function YourMap({ base, search = null, parts = ALL_PARTS }) {
+  const me = useAtlasMe();
+  const [request, setRequest] = useState(null);
+  const top = useRef(null);
   if (!me) return null;
-  return <AtlasHome me={me} base={base} search={search} request={request} setRequest={setRequest} top={top} />;
+  return <AtlasHome me={me} base={base} search={search} request={request} setRequest={setRequest} top={top} parts={parts} />;
 }
 
 /** ⭐ D120 P2 · the home drawn from GET /api/atlas/me's answer — pure apart from the open-on-tree request (tests render it). */
-export function AtlasHome({ me, base, search = null, request = null, setRequest = () => {}, top = null, course = null }) {
-  if (!me.map || !me.tree) return <ExploreHome me={me} base={base} search={search} signedIn={!!me.signedIn} course={course} />;
+export function AtlasHome({ me, base, search = null, request = null, setRequest = () => {}, top = null, course = null, parts = ALL_PARTS }) {
+  if (!me.map || !me.tree) return <ExploreHome me={me} base={base} search={search} signedIn={!!me.signedIn} course={course} parts={parts} />;
   const open = (slug) => { setRequest(r => ({ slug, n: (r?.n || 0) + 1 })); top?.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" }); };
   const dir = directionLine(me.tree);
+  const side = search || parts.explore || parts.families || parts.recent;
   return (
-    <div className="atl-home" data-atlas-home="you">
+    <div className={`atl-home${side ? "" : " atl-home--one"}`} data-atlas-home="you">
       <div className="atl-home__main">
-        {/* ⭐ D143: the navigator first — its next step is the direction line; D120's line is its fallback. */}
-        <Navigator base={base} fallback={dir && (
+        {/* ⭐ D143: the navigator first — its next step is the direction line; D120's line is its fallback.
+            ⭐ D167: in Atlas's own navigation the navigator is the Your route panel; Your map keeps D120's line. */}
+        {parts.navigator ? <Navigator base={base} fallback={dir && (
           <p className="atl-home__dir" data-atlas-direction={dir.slug}>
             <span>{dir.text}</span>
             {dir.stepId
               ? <Link className="dbx-depth atl-home__go" to={`${base}/learn#step-${encodeURIComponent(dir.stepId)}`} data-atlas-direction-open="">Open the piece</Link>
               : <button type="button" className="dbx-depth atl-home__go" onClick={() => open(dir.slug)} data-atlas-direction-open="">Show it on the map</button>}
           </p>
-        )} />
+        )} /> : null}
         <div className="atree-map" data-your-map="" ref={top}>
           <header className="atl__head">
             <h2 className="atl__title">Your map</h2>
@@ -213,12 +229,14 @@ export function AtlasHome({ me, base, search = null, request = null, setRequest 
         {course || <YourCourse base={base} signedIn />}
         <Sections me={me} base={base} onOpen={open} />
       </div>
-      <aside className="atl-home__side" data-atlas-home-side="">
-        {search}
-        <ExploreByRole roles={me.exploreByRole?.items} base={base} />
-        <Families families={me.tree.families} base={base} />
-        <Recent items={me.recent} base={base} />
-      </aside>
+      {side && (
+        <aside className="atl-home__side" data-atlas-home-side="">
+          {search}
+          {parts.explore && <ExploreByRole roles={me.exploreByRole?.items} base={base} />}
+          {parts.families && <Families families={me.tree.families} base={base} />}
+          {parts.recent && <Recent items={me.recent} base={base} />}
+        </aside>
+      )}
     </div>
   );
 }

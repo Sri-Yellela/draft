@@ -20,8 +20,11 @@ import DepthButton from "../../components/DepthButton.jsx";
 import { BRAND } from "../../../../shared/brand.js";
 import AtlasGraph from "./AtlasGraph.jsx";
 import LearnView from "./LearnView.jsx";
-import ReadinessCheck from "./ReadinessCheck.jsx";
 import YourMap, { RoleMap, FamilyMap } from "./YourMap.jsx";
+import AtlasNav from "./AtlasNav.jsx";
+import { OverviewPanel, YourSkillsPanel, YourRoutePanel, LearnStages, TodaysQuestionPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
+  PanelHead } from "./AtlasPanels.jsx";
+import { panelFor, isPanelSlug, PANEL_LABEL } from "./atlasPanels.js";
 import {
   KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
   WIKI_LICENCE, YOU_LABEL, YOU_MARK, LEVEL_READ_LABEL, shareText, stepTitle, stepEmptyLine, roleBoardParts,
@@ -323,7 +326,8 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
 
   useEffect(() => {
     let live = true;
-    if (!slug || slug === "learn" || slug === "check" || slug.startsWith("family/")) { setPage({ status: "idle", node: null }); return undefined; }
+    // ⭐ D167: a panel's address (/atlas/<panel>) is never a node — "learn" and "check" were the first reserved slugs.
+    if (!slug || slug === "learn" || slug === "check" || isPanelSlug(slug) || slug.startsWith("family/")) { setPage({ status: "idle", node: null }); return undefined; }
     setPage({ status: "loading", node: null });
     loadNode(slug).then(n => live && setPage({ status: n ? "done" : "missing", node: n }))
       .catch(e => live && setPage({ status: "error", node: null, error: e.message }));
@@ -331,7 +335,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   }, [slug]);
 
   useEffect(() => {
-    const name = slug === "learn" ? "Learn" : page.node?.name;
+    const name = slug === "learn" ? "Learn" : isPanelSlug(slug) ? PANEL_LABEL[panelFor(slug)] : page.node?.name;
     document.title = name ? `${name} · Atlas · ${BRAND}` : `Atlas · ${BRAND}`;
   }, [page.node, slug]);
 
@@ -342,18 +346,45 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   // ⭐ D116 M7: /atlas/family/<key> is a family's page (a node slug never holds a "/").
   const familyKey = slug && slug.startsWith("family/") ? slug.slice("family/".length) : null;
   const wide = !slug || !!familyKey;
+  // ⭐ D167 (owner APPROVED 11-06) · ATLAS IS A PRODUCT WITH ITS OWN NAVIGATION: a card of panels (AtlasNav.jsx) beside the
+  // panel it opens. Every address lights the panel it belongs to (atlasPanels.js panelFor); the older addresses keep
+  // working — a node page and a search open in Roles and skills, a family in Your map, /learn in Learn, /check in Your
+  // skills. docs/D167_ATLAS_MAP.md maps every surface that existed to its panel.
+  const panel = panelFor(slug, q);
+  const signedIn = base.startsWith("/app");
+  const panelOnly = !slug ? !q : (isPanelSlug(slug) && !learning && !checking);
   const body = (
-    <main className={`atl${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : checking ? "check" : familyKey ? "family" : slug ? "node" : "search"}>
+    <main className={`atl atl--panels${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : checking ? "check" : familyKey ? "family" : panelOnly ? "panel" : slug ? "node" : "search"}
+      data-atlas-panel={panel}>
+     <div className="atl-shell">
+      <AtlasNav base={base} current={panel} />
+      <div className="atl-shell__main" id="atlas-panel" aria-label={PANEL_LABEL[panel]} role="region">
       {/* ⭐ D120 P2 · THE HOME IS YOUR MAP (owner 10-31: "very text rich with no direction"): signed in, the direction
-          line, the tree, the course and the five sections, with search, Explore by role, the families and the recent pages
-          in a side column; signed out (or no résumé), search · Learn (the full circle) · Explore by role. A query is the
-          search page as before. */}
+          line, the tree, the course and the five sections, with the families in a side column; signed out (or no
+          résumé), Learn (the full circle). ⭐ D167: it is the Your map panel now; search, Explore by role and the recent
+          pages are Roles and skills', the navigator is Your route's. A query is the search page as before. */}
       {!slug && q && <AtlasSearch base={base} q={q} />}
-      {!slug && !q && <YourMap base={base} search={<section className="atl__section" data-atlas-home-search=""><h2 className="atl__h2">Search the Atlas</h2><SearchBox base={base} /></section>} />}
+      {panelOnly && panel === "overview" && <OverviewPanel base={base} />}
+      {panel === "your-map" && !familyKey && (
+        <div className="atl-pan" data-atlas-panel-body="your-map">
+          <PanelHead eyebrow="Your map" title="Your skills, against the market"
+            lead="What you have, what sits next to it, and what your target asks for. Larger gaps open more roles." />
+          <YourMap base={base} parts={{ navigator: false, explore: false, families: true, recent: false }} />
+        </div>
+      )}
+      {panel === "your-skills" && <YourSkillsPanel signedIn={signedIn} />}
+      {panel === "your-route" && <YourRoutePanel base={base} signedIn={signedIn} />}
+      {learning && <LearnStages base={base} signedIn={signedIn} />}
+      {panel === "todays-question" && <TodaysQuestionPanel base={base} />}
+      {panel === "the-audit" && <AuditPanel base={base} />}
+      {panel === "roles-and-skills" && panelOnly && (
+        <RolesPanel base={base} search={<section className="atl__section" data-atlas-home-search=""><h2 className="atl__h2">Search the Atlas</h2><SearchBox base={base} /></section>} />
+      )}
+      {panel === "this-weeks-market" && <MarketPanel base={base} />}
+      {panel === "glossary" && <GlossaryPanel base={base} />}
       {learning && <LearnView signedIn={base.startsWith("/app")} />}
-      {checking && <ReadinessCheck signedIn={base.startsWith("/app")} />}
       {familyKey && <FamilyMap base={base} familyKey={familyKey} />}
-      {slug && !learning && !checking && !familyKey && (
+      {slug && !learning && !checking && !familyKey && !panelOnly && (
         <>
           <SearchBox base={base} />
           {page.status === "loading" && <p className="atl__quiet" role="status">Opening…</p>}
@@ -367,6 +398,8 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
           )}
         </>
       )}
+      </div>
+     </div>
     </main>
   );
   if (!publicChrome) return body;

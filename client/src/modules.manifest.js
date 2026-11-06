@@ -58,10 +58,13 @@ export const MODULES = Object.freeze({
   // PieceBody in the path view); LearnCircle.css is worn by those two only.
   // ⭐ D116 · the tree (Your map, a role's and a family's map): AtlasTree.jsx draws it, atlasTreeLayout.js lays it out
   // (M2), atlasTreeModel.js its words and choices; YourMap.jsx is the home and the role / family page wrappers.
-  atlas: { why: "the Atlas pages (D105) — search, one node's page, its neighbourhood graph; Learn, the owner's path (D115); Your map, the tree (D116)", css: ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css"],
+  // ⭐ D167 · Atlas's own navigation: AtlasNav.jsx (the card of panels), AtlasPanels.jsx (the panels), atlasPanels.js (which
+  // panel an address belongs to; docs/D167_ATLAS_MAP.md maps every older surface to its panel); AtlasNav.css is both's look.
+  atlas: { why: "the Atlas pages (D105) — search, one node's page, its neighbourhood graph; Learn, the owner's path (D115); Your map, the tree (D116); its own navigation of panels (D167)", css: ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasNav.css"],
     members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js", "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/YourCourse.jsx",
       "pages/atlas/AtlasTree.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js", "pages/atlas/YourMap.jsx",
-      "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx"] },
+      "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx",
+      "pages/atlas/AtlasNav.jsx", "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js"] },
   trial: { why: "D124 · the trial — /try and the in-app dock (Feedback / survey, Something broke?)",
     members: ["App.jsx", "pages/TryPage.jsx", "components/TrialDock.jsx", "components/GuidedTour.jsx", "lib/tourGeometry.js", "components/TrialDemo.jsx", "components/ExploreLock.jsx"] },
 });

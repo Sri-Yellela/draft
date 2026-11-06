@@ -104,6 +104,34 @@ const firstSentence = (s) => {
 };
 
 /**
+ * ⭐ D167 · THE ONE MEANING of a node, in plain words — what D114's popup says AND what the Atlas's Glossary says (one
+ * source, D115): the node's own definition (a curator's, or a drafted one accepted in Admin, D105 P11), else the first
+ * sentence of its Wikipedia summary, marked so (CC BY-SA, D105). A definition is one or two sentences already (P11).
+ */
+export function meaningOf({ definition, wikiExtract, wikiPageUrl } = {}) {
+  const own = String(definition ?? "").trim();
+  const wiki = wikiExtract ? firstSentence(wikiExtract) : "";
+  return {
+    meaning: own ? own.slice(0, PEEK_MEANING_CHARS) : wiki || null,
+    fromWikipedia: !own && !!wiki,
+    wikipediaUrl: !own && wiki ? wikiPageUrl || null : null,
+  };
+}
+
+/**
+ * ⭐ D167 · THE GLOSSARY — every PUBLISHED Atlas term: name, kind, its meaning (meaningOf — the popup's own words) and how
+ * many open postings ask for it (the popup's own count, atlas_node_stats). Sorted by name. Drafts never appear.
+ */
+export function glossaryTerms(db) {
+  atlasPostingsChanged(db);   // the counts are the board's as of now, as the popup's are
+  return db.prepare(`SELECT n.slug, n.name, n.kind, n.definition, w.extract AS wikiExtract, w.page_url AS wikiPageUrl,
+      COALESCE(s.postings, 0) AS postings
+    FROM atlas_nodes n LEFT JOIN atlas_wiki_cache w ON w.node_id = n.id LEFT JOIN atlas_node_stats s ON s.node_id = n.id
+    WHERE n.status = 'published' ORDER BY n.name COLLATE NOCASE, n.slug`).all()
+    .map(r => ({ slug: r.slug, name: r.name, kind: r.kind, ...meaningOf(r), postings: r.postings }));
+}
+
+/**
  * P4 · the popup's read: name, kind, one line of meaning (the node's own definition, else the first sentence of its
  * Wikipedia summary, marked so), how many open postings ask for it, its first resource, and — signed in only — whether
  * it is on the reader's profile (D101). Published nodes only.
@@ -112,14 +140,10 @@ export function peekNode(db, slug, userId = null) {
   atlasPostingsChanged(db);   // ⭐ D118 P1: "asked for in N" counts a posting written a moment ago
   const n = readNode(db, slug);
   if (!n) return null;
-  const own = String(n.definition ?? "").trim();
-  const wiki = n.wikipedia?.extract ? firstSentence(n.wikipedia.extract) : "";
   const first = (n.resources || [])[0] || null;
   const out = {
     slug: n.slug, name: n.name, kind: n.kind,
-    meaning: own ? own.slice(0, PEEK_MEANING_CHARS) : wiki || null,   // a definition is one or two sentences already (P11)
-    fromWikipedia: !own && !!wiki,
-    wikipediaUrl: !own && wiki ? n.wikipedia.pageUrl || null : null,
+    ...meaningOf({ definition: n.definition, wikiExtract: n.wikipedia?.extract, wikiPageUrl: n.wikipedia?.pageUrl }),
     postings: n.onTheBoard?.postings ?? 0,
     firstResource: first ? { title: first.title, url: first.url, format: first.format || null } : null,
   };
