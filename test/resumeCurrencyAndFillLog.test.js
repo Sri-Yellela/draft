@@ -237,7 +237,7 @@ test("the hold NAMES its missing fields, on the row the panel already renders", 
   // Twice: on the per-attempt review, and on publicRunJob, so the panel needs no second request.
   assert.equal((route.match(/\.filter\(b => b\?\.required\)\.map\(b => b\.label \|\| b\.field\)/g) || []).length, 2);
   const sections = fs.readFileSync("client/src/panels/AutoApplyPanelSections.jsx", "utf8");
-  assert.match(sections, /job\.missingRequired\?\.length > 0/);
+  assert.match(sections, /personQuestions\(job\.missingRequired\)\.length > 0/);   // D165 R1: the résumé / cover-letter slots are filtered out
   assert.match(sections, /Still yours to answer/);
 });
 

@@ -13688,7 +13688,17 @@ function generateResumeForApply(userId, jobId, toolType) {
   // when the account has other Drafts queued or running behind it; a single Draft is a one-shot and sends cache:false — the
   // 10-31 production call WROTE 7,897 cache tokens at 1.25x that nothing read.
   const applyBurst = (() => { try { return db.prepare("SELECT COUNT(*) n FROM apply_run_jobs WHERE user_id = ? AND status IN ('queued','running')").get(userId).n > 1; } catch { return true; } })();
-  const p = coreGenerateResume({ userId, jobId: String(jobId), job: jobRow, tool, cache: applyBurst ? undefined : false })
+  const callOnce = () => coreGenerateResume({ userId, jobId: String(jobId), job: jobRow, tool, cache: applyBurst ? undefined : false });
+  // ⛔ D165 R1 + A135 (45a, measured: 4 of 5 local generations for a Staff posting on a "mid" profile were withheld for a
+  // "director" claim): generation is stochastic, so ONE withheld résumé is retried once, automatically, before the run
+  // says "The résumé couldn't be made". Only for a claim violation (the guard's refusal), and only within the person's
+  // generation limit — every other failure goes straight to the caller as before.
+  const p = callOnce()
+    .catch(e => {
+      if (e?.code !== "resume_claim_violation" || !checkLimit(db, userId, "resume_generate").allowed) throw e;
+      console.log(`[generateResumeForApply] job=${jobId}: the résumé was withheld (claim guard) — retrying once`);
+      return callOnce();
+    })
     .then(r => ({ html: r.html, atsScore: r.atsScore, resumeId: r.resumeId, fromCache: false }))
     // Keep the upstream failure STRUCTURED. This used to be `{ error: e.message }`, which threw
     // away the HTTP status, the API error type and the request_id — so a 404 on a retired model
