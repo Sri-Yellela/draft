@@ -7,13 +7,15 @@
 //     route (server.js generateResumeForApply → coreGenerateResume);
 //   · the tools service — its model constants and which route uses which (src/model/anthropicCall.js, src/generation/
 //     generate.js, tailor.js), and whether the full prompt carries prompts/bullet_craft.md (promptAssembler.js);
-//   · live — resumemaster.one /v1/version (its commit) and draft's /api/version (its commit), unless --offline.
+//   · live — the tools service's /v1/version (shared/brand.js LEGACY_HOST; its commit) and draft's /api/version (its commit), unless --offline.
 // ⚠ What it CANNOT read: production's DRAFT_TAILORING / Admin → Ops → Tailoring value (a production read). It says so.
 //
 // Usage: node scripts/d165ModelReport.mjs [--offline] [--rm <path to resume-master>] [--out docs/D165_MODEL_REPORT.md]
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+// The tools service's host from the single source (test/brandAndOriginGuard: no legacy literal outside shared/brand.js).
+import { LEGACY_HOST } from "../shared/brand.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -60,7 +62,7 @@ export function toolsFacts(rm = RM) {
 async function live() {
   if (offline) return { tools: "not read (--offline)", draft: "not read (--offline)" };
   const get = async (u) => { try { const r = await fetch(u, { signal: AbortSignal.timeout(10000) }); return r.ok ? await r.json() : null; } catch { return null; } };
-  const t = await get("https://resumemaster.one/v1/version");
+  const t = await get(`https://${LEGACY_HOST}/v1/version`);
   const d = await get("https://jobsviadraft.com/api/version");
   return { tools: t ? `${String(t.commit || "").slice(0, 7)} (scorer ${t.scorer}, llmFormat ${t.llmFormat})` : "unreachable",
            draft: d ? `${d.commit} (started ${d.startedAt})` : "unreachable" };

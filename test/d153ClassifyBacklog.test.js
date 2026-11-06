@@ -171,8 +171,10 @@ test("d153 wiring: started from READY in the listen callback, every 6 h, reporte
   assert.match(server, /import \{ createClassifyBacklog \} from "\.\/services\/jobs\/classifyBacklog\.js";/);
   assert.doesNotMatch(server, /backfillCategories\(db\)/, "the one-transaction category backfill is gone from the boot");
   const listen = server.indexOf("app.listen(PORT, () => {");
-  const start = server.indexOf('BOOT.run().then(() => classifyBacklog.run("boot"));');
-  assert.ok(listen > 0 && start > listen, "the walk starts on ready, inside the listen callback");
+  // 45b (changed on purpose): chained on the board-fit pass's BOOT.run() — the warm-up is started once (A123 (7)).
+  const ready = server.indexOf("BOOT.run().then(() => setTimeout(() => {", listen);
+  const start = server.indexOf('classifyBacklog.run("boot");', ready);
+  assert.ok(listen > 0 && ready > listen && start > ready && start - ready < 900, "the walk starts on ready, inside the listen callback");
   assert.equal(server.split('classifyBacklog.run("boot")').length, 2, "started once");
   assert.match(server, /setInterval\(\(\) => classifyBacklog\.run\("interval"\), 6 \* 60 \* 60 \* 1000\)\.unref\(\);/);
   assert.match(server, /classify: classifyBacklog\.status\(\),/);
