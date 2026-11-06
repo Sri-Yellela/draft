@@ -131,7 +131,8 @@ test("D151 · todaysDeck runs warmBets before betFor; a warm that throws never b
   const deck = await todaysDeck(d, { userId: 1, profileId: 1, date, fetchBoardPage,
     warmBets: async (jobs) => { order.push(`warm:${jobs.map(j => j.company).join(",")}`); },
     betFor: (job) => { order.push(`bet:${job.id}`); return { score: 50 }; } });
-  assert.deepEqual(order, ["warm:Acme,Globex", "bet:a", "bet:b"], "the cards' companies are warmed (in the pool) before the synchronous betFor");
+  // A133: the deal ranks its pool by the blend (warm, then bet per candidate), then the serve reads each card's reading.
+  assert.deepEqual(order, ["warm:Acme,Globex", "bet:a", "bet:b", "warm:Acme,Globex", "bet:a", "bet:b"], "the cards' companies are warmed (in the pool) before the synchronous betFor, each time");
   assert.equal(deck.size, 2);
 
   const d2 = mk();
@@ -192,7 +193,7 @@ test("D151 · server.js wires best-bets, the daily deal, the board's existence p
   const src = fs.readFileSync("server.js", "utf8");
   assert.match(src, /bestBetsFor\(db, \{ userId: req\.user\.id, profileId: profile\.id, size, fetchBoardPage, read: readPool \}\)/);
   assert.match(src, /const warmBets = \(jobs\) => warmVelocity\(db, jobs\.map\(j => j\?\.company\), \{ read: readPool \}\)/);
-  assert.equal((src.match(/todaysDeck\(db, \{[^}]*betFor, warmBets, refresh: (true|false) \}\)/g) || []).length, 2,
+  assert.equal((src.match(/todaysDeck\(db, \{[^}]*betFor, warmBets, resumeText, refresh: (true|false) \}\)/g) || []).length, 2,
     "both the request's read and the background re-deal (A126 (9)) warm through the pool");
   assert.match(src, /const cacheCount = \(await readPool\.get\("SELECT EXISTS\(SELECT 1 FROM scraped_jobs WHERE is_active = 1\) AS n", \[\]\)\)\?\.n \|\| 0;/);
   assert.ok(!/const cacheCount = db\.prepare\(/.test(src), "the board page's main-thread whole-board count is gone");

@@ -11973,14 +11973,20 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
     const profile = getOrRepairActiveProfile(req.user.id);
     if (!profile) return noDeal("no_profile");
     const hasResume = db.prepare(
-      "SELECT 1 FROM profile_base_resumes WHERE profile_id = ? AND TRIM(content) != ''").get(profile.id);
+      "SELECT content FROM profile_base_resumes WHERE profile_id = ? AND TRIM(content) != ''").get(profile.id);
     if (!hasResume) return noDeal("no_resume", profile.id);
+    const resumeText = String(hasResume.content || "");
     // ⭐ Owner 11-02: a sample trial account is dealt its sample's FROZEN cards (services/trialDeck.js) — no board read,
     // no precompute. The cards carry their score for the tour's match step.
     const trialSample = trialSampleOf(db, req.user.id);
     if (trialSample) return res.json(await trialDeckResponse(db, { userId: req.user.id, profileId: profile.id, sampleId: trialSample, date, order }));
+    // ⛔ A133 (owner 11-06, "the deck shows jobs that has 65 while many new jobs touch 90"): the deal's candidates are the
+    // board's top BY ATS (sort=atsScore - the same boardPageResponse, so the role scope, the ineligible-last and ghost-last
+    // keys and the user's own filters still hold), NOT the curated order, whose title / role / skills rank keys lead the
+    // fit. services/dailyDraft.js then ranks that pool by shared/dealRanking.js (ATS + best bets + role similarity,
+    // earlier days' undecided cards rotated down).
     const fetchBoardPage = async (cursor) => {
-      const { status, body } = await boardPageResponse({ ...req, query: { pageSize: "50", ...(cursor ? { cursor } : {}) } });
+      const { status, body } = await boardPageResponse({ ...req, query: { pageSize: "50", sort: "atsScore", ...(cursor ? { cursor } : {}) } });
       return { ok: status === 200 && body?.success !== false, jobs: body?.jobs || [], nextCursor: body?.nextCursor || null, error: body?.error };
     };
     const reportStmt = db.prepare(
@@ -12016,12 +12022,12 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
       _deckRedealAt.set(redealKey, Date.now());
       const redealUser = req.user.id;
       res.on("finish", () => {
-        todaysDeck(db, { userId: redealUser, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor, warmBets, refresh: true })
+        todaysDeck(db, { userId: redealUser, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor, warmBets, resumeText, refresh: true })
           .then(d => { if (d?.reshuffled) emitToUser(redealUser, { type: "deck_reshuffled", date, profileId: profile.id }); })
           .catch(e => console.warn("[deck] re-deal:", e.message));
       });
     }
-    const deck = await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor, warmBets, refresh: false });
+    const deck = await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor, warmBets, resumeText, refresh: false });
     // 43y (the owner's trial walk, 11-01: "no jobs or picks" on a new account): an empty deal for a profile whose
     // scores have not landed yet is not "empty" — it is SCORING. The pass is (re)asked for, the client says so and asks
     // again; the deal is not frozen (an empty one never is), so the next request deals from the first scores.

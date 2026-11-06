@@ -16,6 +16,27 @@
 import { atsBandFor, ATS_BAND } from "../shared/atsBands.js";
 import { experienceState } from "../shared/postingFacts.js";
 import { normaliseDeckSize } from "../shared/deckGeometry.js";
+import { rankDeal, ROTATION_DAYS } from "../shared/dealRanking.js";
+
+/**
+ * ⛔ A133 · the days (in the last ROTATION_DAYS, before `date`) each job was dealt to this person and left undecided —
+ * shared/dealRanking.js's rotation. A decided card never re-deals, so counting every earlier row is "shown undecided".
+ */
+export function shownBeforeFor(db, userId, profileId, date) {
+  const out = new Map();
+  try {
+    const since = new Date(Date.parse(date + "T00:00:00Z") - ROTATION_DAYS * 86400000).toISOString().slice(0, 10);
+    for (const r of db.prepare(
+      `SELECT job_id, COUNT(DISTINCT draft_date) n FROM daily_drafts
+       WHERE user_id = ? AND profile_id = ? AND draft_date < ? AND draft_date >= ? GROUP BY job_id`).all(userId, profileId, date, since)) {
+      out.set(r.job_id, r.n);
+    }
+  } catch { /* no history → no rotation */ }
+  return out;
+}
+// ⛔ A133 · how many eligible candidates the deal ranks before it picks (≥ the deck): the top of the board by ATS. 50 =
+// one board page, so the deal reads no more of the board than it did before (measured: a page is the deal's cost).
+const POOL_MIN = 50;
 
 export const DECK_SIZE = 10;
 
@@ -208,7 +229,10 @@ export function orderByAts(cards, scoreFor) {
  * selectDeal's rules) and written only when the best new pick out-scores the weakest undecided card. The caller
  * throttles (server.js); `reshuffled: true` tells the client to play the re-deal.
  */
-async function redealIfBetter(db, { userId, profileId, date, rows, fetchBoardPage, reportFor, size, scoreFor }) {
+// ⛔ A133 · the re-deal ranks the open cards and the board's top TOGETHER with the deal's own blend (shared/dealRanking.js)
+// — before, it took the board's first `slots` cards in the curated order, which were the open cards themselves, so a
+// 90 % posting lower on the first page was never a "newcomer" and the re-deal never fired.
+async function redealIfBetter(db, { userId, profileId, date, rows, fetchBoardPage, reportFor, size, scoreFor, betFor = null, warmBets = null, resumeText = "" }) {
   const decisions = decisionsFor(db, userId, rows.map(r => r.job_id));
   const kept = rows.filter(r => decisions[r.job_id]);
   const open = rows.filter(r => !decisions[r.job_id]);
@@ -216,16 +240,23 @@ async function redealIfBetter(db, { userId, profileId, date, rows, fetchBoardPag
   if (!slots) return null;
   const r = await fetchBoardPage(null);
   if (!r?.ok) return null;
-  const exclude = new Set([...decidedJobIds(db, userId), ...kept.map(k => k.job_id)]);
-  const fresh = selectDeal(r.jobs || [], { decided: exclude, size: slots });
-  if (!fresh.length) return null;
-  const score = (id) => { const v = scoreFor(id); return Number.isFinite(v) ? v : -1; };
   const openIds = new Set(open.map(o => o.job_id));
-  const newcomers = fresh.filter(c => !openIds.has(c.job.id));
+  const exclude = new Set([...decidedJobIds(db, userId), ...kept.map(k => k.job_id), ...openIds]);
+  const candidates = selectDeal(r.jobs || [], { decided: exclude, size: POOL_MIN });
+  if (!candidates.length) return null;
+  const openCards = open.map(o => { const snap = JSON.parse(o.card_json); return { band: o.band, job: snap.job, row: o }; });
+  const shownBefore = shownBeforeFor(db, userId, profileId, date);
+  if (betFor && warmBets) { try { await warmBets([...openCards, ...candidates].map(c => c.job)); } catch { /* betFor reads it itself */ } }
+  const ranked = rankDeal([...openCards, ...candidates], { scoreFor, betFor, resumeText, shownBefore });
+  const top = ranked.slice(0, slots);
+  const newcomers = top.filter(c => !c.row);
   if (!newcomers.length) return null;
-  const weakestOpen = open.length ? Math.min(...open.map(o => score(o.job_id))) : -1;
-  const bestNew = Math.max(...newcomers.map(c => score(c.job.id)));
+  const val = (c) => c.dealScore ?? -1;
+  const openRanked = ranked.filter(c => c.row);
+  const weakestOpen = openRanked.length ? Math.min(...openRanked.map(val)) : -1;
+  const bestNew = Math.max(...newcomers.map(val));
   if (open.length >= slots && bestNew <= weakestOpen) return null;
+  const fresh = top;
   const insert = db.prepare(
     `INSERT INTO daily_drafts (user_id, profile_id, draft_date, position, job_id, band, card_json) VALUES (?, ?, ?, ?, ?, ?, ?)`);
   db.transaction(() => {
@@ -233,6 +264,7 @@ async function redealIfBetter(db, { userId, profileId, date, rows, fetchBoardPag
     let pos = 0;
     for (const k of kept) insert.run(userId, profileId, date, pos++, k.job_id, k.band, k.card_json);
     for (const c of fresh) {
+      if (c.row) { insert.run(userId, profileId, date, pos++, c.row.job_id, c.row.band, c.row.card_json); continue; }
       const report = reportFor(c.job.id);
       insert.run(userId, profileId, date, pos++, c.job.id, c.band, JSON.stringify({ job: c.job, why: whyFromReport(report), report: deckReport(report) }));
     }
@@ -241,32 +273,50 @@ async function redealIfBetter(db, { userId, profileId, date, rows, fetchBoardPag
 }
 
 export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, reportFor = () => null, size = DECK_SIZE,
-                                       order = "dealt", scoreFor = () => null, betFor = null, warmBets = null, refresh = false }) {
+                                       order = "dealt", scoreFor = () => null, betFor = null, warmBets = null, refresh = false,
+                                       resumeText = "" }) {
   let rows = readDeal(db, userId, profileId, date);
   let dealtNow = false;
   let reshuffled = false;
   if (rows.length && refresh) {
     try {
-      if (await redealIfBetter(db, { userId, profileId, date, rows, fetchBoardPage, reportFor, size, scoreFor })) {
+      const r = await redealIfBetter(db, { userId, profileId, date, rows, fetchBoardPage, reportFor, size, scoreFor, betFor, warmBets, resumeText });
+      if (r) {
+        console.log(`[deck] re-dealt user ${userId} profile ${profileId} ${date}: ${r.replaced} new, best ${r.bestNew.toFixed(3)} > weakest ${r.weakestOpen.toFixed(3)}`);
         rows = readDeal(db, userId, profileId, date);
         reshuffled = true;
       }
     } catch { /* a failed re-deal leaves the day's deal as it was */ }
   }
   if (!rows.length) {
+    // ⛔ A133 · POOL, THEN RANK: the eligible top of the board (≥ POOL_MIN, the caller pages it by ATS), ranked by the
+    // deal's blend — ATS + best bets + role similarity, with yesterday's undecided cards rotated down — then the top `size`.
+    const t0 = Date.now();
     const decided = decidedJobIds(db, userId);
-    const picked = [];
+    const pool = [];
+    const want = Math.max(size, POOL_MIN);
     let cursor = null;
-    for (let page = 0; page < MAX_PAGES && picked.length < size; page++) {
+    for (let page = 0; page < MAX_PAGES && pool.length < want; page++) {
       const r = await fetchBoardPage(cursor);
       if (!r?.ok) throw new Error(r?.error || "the board could not be read");
-      const already = new Set(picked.map(c => c.job.id));
-      for (const card of selectDeal(r.jobs || [], { decided: new Set([...decided, ...already]), size: size - picked.length })) {
-        picked.push(card);
+      const already = new Set(pool.map(c => c.job.id));
+      for (const card of selectDeal(r.jobs || [], { decided: new Set([...decided, ...already]), size: want - pool.length })) {
+        pool.push(card);
       }
       if (!r.nextCursor) break;
       cursor = r.nextCursor;
     }
+    const tPool = Date.now();
+    const shownBefore = shownBeforeFor(db, userId, profileId, date);
+    if (betFor && warmBets && pool.length) { try { await warmBets(pool.map(c => c.job)); } catch { /* betFor reads it itself */ } }
+    const tWarm = Date.now();
+    const rankedPool = rankDeal(pool, { scoreFor, betFor, resumeText, shownBefore });
+    // A133 · DRAFT_DECK_DEBUG=1 prints the ranked pool's signals (no numbers leave the server; this is the server log).
+    if (process.env.DRAFT_DECK_DEBUG === "1") {
+      console.log(`[deck] deal timing: pool ${tPool - t0} ms (${pool.length}) · warm ${tWarm - tPool} ms · rank ${Date.now() - tWarm} ms`);
+      for (const c of rankedPool.slice(0, 20)) console.log(`[deck] rank ${c.dealScore?.toFixed(3)} ${JSON.stringify(c.signals)} ${c.job.title} @ ${c.job.company}`);
+    }
+    const picked = rankedPool.slice(0, size);
     // One transaction; a concurrent first call loses on the primary key and reads the winner's deal.
     const insert = db.prepare(
       `INSERT OR IGNORE INTO daily_drafts (user_id, profile_id, draft_date, position, job_id, band, card_json)
