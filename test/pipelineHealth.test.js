@@ -628,6 +628,12 @@ test("alerts is empty when everything is healthy, so an empty list MEANS somethi
   recordPipelineRun(db, {
     runKind: "enrichment", status: "ok", startedAt: now, fetched: 1, written: 1, failed: 0,
   });
+  // ⭐ D170 (3b) (changed on purpose): an EMPTY ats_term_weights is now an alert (every score unweighted), so the
+  // healthy board carries a current table.
+  db.exec(`CREATE TABLE IF NOT EXISTS ats_term_weights (role_family TEXT, term TEXT, df INTEGER, corpus_size INTEGER,
+           weight REAL, computed_at INTEGER)`);
+  db.prepare(`INSERT INTO ats_term_weights (role_family, term, df, corpus_size, weight, computed_at)
+              VALUES ('__global__', 'python', 9, 500, 1.4, ?)`).run(now);
 
   const { body } = await getHealth(db);
   // Other SOURCES are legitimately unhealthy in this fixture (nothing ran for them), so this
