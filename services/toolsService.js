@@ -137,13 +137,24 @@ export function httpErrorFor(e, fallback = "The request failed") {
     return { status: 422, body: { error: "The generated résumé claimed more than your profile states, so it was withheld — nothing was saved or sent. Generating again may produce an honest one.",
       code: e.code, retryable: true, violations: (e.violations || []).map(v => v.message).filter(Boolean) } };
   }
+  // 44x: thrown by draft itself (coreGenerateResume) when the résumé came back without most of the base — said as what
+  // happened, and that nothing was used; the same base gives the same result, so it does not invite a retry.
+  if (e?.code === "resume_incomplete") {
+    return { status: 422, body: { error: USER_GENERATION_MESSAGES.incomplete, code: e.code, retryable: false,
+      detail: "Retrying will not help until this is fixed on the server." } };
+  }
   if (e instanceof ToolsServiceError) {
     const retryable = e.retryable === true && e.permanent !== true;
     const status = e.code === "invalid_request" ? 400 : e.code === "payload_too_large" ? 413 : 503;
     // ⛔ Cost visibility (owner, 10-09): the tools service's message is NEVER the user's — it can carry the
     // model provider's own words ("Your credit balance is too low…"). A small fixed set of user messages;
     // the raw one goes to the server log and, for a funding failure, the admin banner (isFundingFailure).
-    return { status, body: { error: USER_GENERATION_MESSAGES[status] || USER_GENERATION_MESSAGES[503], code: e.code, retryable,
+    // ⛔ 44x (e2e walk, 11-05): a NOT-retryable 503 used to say "try again shortly" beside its own detail "Retrying will
+    // not help" — and the sandbox shows only `error`, so a user facing a server-side fault (an unscoped model key, an
+    // unfunded balance, no tools service) was told to retry. It now says the opposite, in the same vendor-free words.
+    const userMessage = status === 503 && !retryable ? USER_GENERATION_MESSAGES.down
+      : USER_GENERATION_MESSAGES[status] || USER_GENERATION_MESSAGES[503];
+    return { status, body: { error: userMessage, code: e.code, retryable,
       ...(retryable ? {} : { detail: "Retrying will not help until this is fixed on the server." }) } };
   }
   return { status: 500, body: { error: fallback, code: "internal_error", retryable: false } };
@@ -152,6 +163,11 @@ export function httpErrorFor(e, fallback = "The request failed") {
 /** The only words a user is shown when generation fails on the tools service's side. */
 export const USER_GENERATION_MESSAGES = Object.freeze({
   503: "Résumé generation is unavailable right now — try again shortly.",
+  // A 503 that retrying cannot clear (httpErrorFor: retryable false). Shared by every route httpErrorFor answers, so
+  // it promises nothing about slots — /api/generate debits one only on success anyway.
+  down: "Résumé generation is down on our side — trying again won't help until we fix it.",
+  // draft's own check (services/generatedResumes.js resumeContentLoss) — nothing was saved and no draft was used.
+  incomplete: "The tailored résumé came back missing most of your résumé, so it was withheld — nothing was saved and no draft was used. We're looking into it.",
   400: "That résumé or posting couldn't be processed. Check that both have text, then try again.",
   413: "That résumé or posting is too large to process.",
 });

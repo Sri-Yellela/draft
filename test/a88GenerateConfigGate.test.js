@@ -61,7 +61,8 @@ test("A88 · a NEW résumé is refused 503 when the tools service is not configu
   assert.equal(body.code, "tools_service_unconfigured");
   assert.equal(body.retryable, false);
   // Cost visibility (10-09): the user's words are the generic sentence; the code still names the cause.
-  assert.equal(body.error, "Résumé generation is unavailable right now — try again shortly.");
+  // 44x: not retryable → it does not say "try again shortly" (the old sentence contradicted the detail below).
+  assert.equal(body.error, "Résumé generation is down on our side — trying again won't help until we fix it.");
   assert.match(body.detail, /Retrying will not help/);
 });
 

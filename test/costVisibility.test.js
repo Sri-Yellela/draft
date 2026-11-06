@@ -77,7 +77,9 @@ test("cost (d): a credit-balance failure gives the user the generic sentence and
     { code: "upstream_error", status: 502, retryable: false, permanent: true });
   const { status, body } = httpErrorFor(e);
   assert.equal(status, 503);
-  assert.equal(body.error, "Résumé generation is unavailable right now — try again shortly.");
+  // 44x: a permanent failure no longer tells the user to retry (it said "try again shortly" beside "Retrying will not help").
+  assert.equal(body.error, USER_GENERATION_MESSAGES.down);
+  assert.doesNotMatch(body.error, /try again shortly/);
   assert.doesNotMatch(JSON.stringify(body), /credit|billing|Anthropic/i);
   assert.ok(isFundingFailure(e));
   assert.ok(!isFundingFailure(new ToolsServiceError("overloaded", { code: "overloaded" })));
@@ -158,4 +160,23 @@ test("cost (i): a swapped résumé is listed as Generate to its non-admin owner;
   const listing = SERVER.slice(at(SERVER, 'app.get("/api/resumes", requireAuth'), at(SERVER, 'app.delete("/api/resumes/:jobId"'));
   assert.equal((listing.match(/view\(\{ \.\.\.r|resumeRowView\(req\)\(\{ \.\.\.row/g) || []).length, 3, "all three listings pass through it");
   assert.match(SERVER, /swapActive = resolveEntitlement\(db, req\.user\.id, "a_plus_default"\)\.value === true/);
+});
+
+// 44x (e2e walk on the 18k copy, 11-05): the tools service refused an UNSCOPED key ("not scoped to a workspace", 400 →
+// 502 upstream_model_failure, retryable:false) and the sandbox told the user "try again shortly". A permanent failure
+// now says trying again won't help; a transient one still says try again shortly.
+test("44x: a permanent 503 never tells the user to try again; a transient one still does", () => {
+  const unscoped = new ToolsServiceError("This API key is not scoped to a workspace, so this request must include the anthropic-workspace-id header",
+    { code: "upstream_model_failure", status: 502, retryable: false, permanent: true });
+  const p = httpErrorFor(unscoped, "Resume generation failed");
+  assert.equal(p.status, 503);
+  assert.equal(p.body.retryable, false);
+  assert.equal(p.body.error, USER_GENERATION_MESSAGES.down);
+  assert.doesNotMatch(p.body.error, /try again shortly/i);
+  assert.doesNotMatch(JSON.stringify(p.body), /workspace|Anthropic|key/i);
+  assert.ok(isFundingFailure(unscoped), "the admin banner still names it");
+  const busy = httpErrorFor(new ToolsServiceError("overloaded", { code: "overloaded", status: 529, retryable: true, permanent: false }));
+  assert.equal(busy.status, 503);
+  assert.equal(busy.body.retryable, true);
+  assert.equal(busy.body.error, USER_GENERATION_MESSAGES[503]);
 });
