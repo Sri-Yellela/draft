@@ -21,7 +21,7 @@ const LABELS = {
   interview_prep: "interview prep", salary_insights: "salary insights", referrals: "referrals", mobile_app: "mobile app", browser_extension: "browser extension",
   computing: "computing", engineering: "engineering", management: "management", business: "business", science: "science",
   legal: "legal", arts_media: "design / media", sales: "sales", marketing: "marketing",
-  picks: "the picks", filters: "the filters", draft_house: "Draft House", map: "Your map", learn: "Learn", table: "The Table",
+  picks: "the picks", filters: "the filters", draft_house: "Home", map: "Your map", learn: "Learn", table: "The Table",
   ...Object.fromEntries(TOUR_STEPS.map(x => [x.id, x.title])),
 };
 const secs = (ms) => (ms == null ? "—" : `${Math.round(ms / 1000)} s`);

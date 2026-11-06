@@ -118,7 +118,7 @@ export function createExtensionDraftRouter({ db, requireAuth, isExtension, draft
     const d = draftStateOf(userId, jobId);
     if (d.drafted) {
       return res.status(200).json({ ok: true, already: true, draft: { drafted: true, status: d.status, runId: d.runId },
-        resume: peek(userId, jobId), message: "Already drafted — it is in Draft House, waiting for your review, in progress, or sent. Nothing more was queued." });
+        resume: peek(userId, jobId), message: "Already drafted — it is in Home, waiting for your review, in progress, or sent. Nothing more was queued." });
     }
     // (6) a résumé already known for (job, base) is reused, one in flight is joined: neither spends a slot.
     const known = wantResume ? peek(userId, jobId) : null;

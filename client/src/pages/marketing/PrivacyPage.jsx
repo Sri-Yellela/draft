@@ -861,7 +861,7 @@ export function PrivacyPage() {
           </P>
           {/* D53 (10-07): the Draft House bin — services/draftBin.js, purgeSweep scheduled in server.js. */}
           <P>
-            An application you clear in Draft House stays in its Cleared bin for 7 days, where you can
+            An application you clear in Home stays in its Cleared bin for 7 days, where you can
             restore it. After 7 days its prepared answers, handoff and screenshot are deleted. You can
             delete one sooner with Delete now. An application you have sent is never cleared.
           </P>

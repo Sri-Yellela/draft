@@ -25,7 +25,7 @@ test("fidelity · the deck on Home (home-sketch.html): the page, the card, its t
     assert.equal(d.card.shadow, "rgba(0, 0, 0, 0.35) 0px 30px 70px 0px", `${size}: the sketch's one shadow`);
     // ⭐ D156 (2) / (1b) / (1c) (changed on purpose — home-sketch.html revised 11-05): the page's 28 px padding + the count
     // row with ‹ › (34 px buttons, .flip) + 10 px under it = 72. ⚠ A phone measures 75 (the sketch has no phone rule for
-    // this row) — pinned as measured, for the owner's sign-off pass (D149).
+    // this row) — ✅ APPROVED 11-06 by the owner (O99 (c): the 75 px phone card top accepted).
     assert.equal(d.card.top, size === "phone" ? 75 : 72, `${size}: the card's top under the count row`);
     assert.match(d.title.family, /^"Instrument Serif"/, `${size}: the title in Instrument Serif`);
     // ⭐ D156 (1c): the folded card's title — the sketch's 26 px (.ct) on the portrait card, 22 on a phone's smaller card.

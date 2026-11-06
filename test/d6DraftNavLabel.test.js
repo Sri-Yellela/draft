@@ -50,7 +50,7 @@ const tracked = (globs) =>
 
 test("D6/D18: the nav tab DISPLAYS Draft House — its id and route stay auto-apply", () => {
   const app = read("client/src/App.jsx");
-  assert.match(app, /\{ id: "auto-apply",\s*label: "Draft House" \}/);
+  assert.match(app, /\{ id: "auto-apply",\s*label: "Home" \}/);
   assert.doesNotMatch(app, /label: "Auto Apply"/);
 });
 
@@ -61,7 +61,7 @@ test("D6/D18: the /d mark is ONE implementation on the card — and D18 took it 
   // D18 (owner, 10-03) REVERSES D6 here: no tab carries a symbol. ⭐ D147 (owner 11-03): the board's Pending chip became
   // the word "Pending" (inside the Sort / view panel), so App.jsx no longer imports the mark at all.
   assert.doesNotMatch(app, /import \{ DraftMark \}/);
-  assert.doesNotMatch(app, /t\.id === "auto-apply"[\s\S]{0,400}<DraftMark /, "the Draft House tab renders the mark again (D18: no symbol on any tab)");
+  assert.doesNotMatch(app, /t\.id === "auto-apply"[\s\S]{0,400}<DraftMark /, "the Home tab renders the mark again (D18: no symbol on any tab)");
   assert.match(bubble, /<DraftMark \/>/, "the card's Draft button no longer renders the shared mark");
   // The mark is decorative (the word or the button's aria-label names the action), and it must not be
   // uppercased by the tab row's text-transform — "/D" is not the mark.

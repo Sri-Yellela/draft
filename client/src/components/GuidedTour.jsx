@@ -46,7 +46,7 @@ export const TOUR_SCRIPT = Object.freeze([
     text: "Pass, Save or Draft. Draft makes a résumé tailored to this job and fills in the application for you.",
     short: "Pass, Save or Draft." },
   { id: "draft_house", route: "/app/auto-apply", target: "[data-draft-tree]", example: true,
-    text: "Draft House: every application while draft works on it. This is an example: each tile is a company, its ring says where the application is.",
+    text: "Home: every application while draft works on it. This is an example: each tile is a company, its ring says where the application is.",
     short: "Every application, by stage (an example)." },
   { id: "modes", route: "/app/auto-apply", target: ".dh-mode", example: true,
     text: "Ask me first sends nothing until you approve it. Apply for me sends good matches on its own.",

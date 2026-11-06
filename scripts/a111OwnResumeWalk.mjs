@@ -190,7 +190,7 @@ async function walkHappy(browser, label, viewport, who) {
   // The Table loads its list after the step opens: wait for two Sent rows before reading it
   if (table) await page.waitForFunction(() => ((document.querySelector("[data-table-split]")?.innerText || "").match(/Sent ·/g) || []).length >= 2, { timeout: 20000 }).catch(() => {});
   const tableText = table ? await page.evaluate(() => document.querySelector("[data-table-split]")?.innerText || "") : "";
-  check(where, "step 5: The Table shows both Sent", table && (tableText.match(/Sent ·/g) || []).length >= 2 && !/Drafted — in Draft House/.test(tableText), tableText.slice(0, 160).replace(/\s+/g, " "));
+  check(where, "step 5: The Table shows both Sent", table && (tableText.match(/Sent ·/g) || []).length >= 2 && !/Drafted — in Home/.test(tableText), tableText.slice(0, 160).replace(/\s+/g, " "));
   if (table) await shot(page, `${label}-${who.name}-6-table`);
   const inbox = await page.evaluate(() => fetch("/api/trial/state", { credentials: "include" }).then(r => r.json()));
   check(where, "step 5: the trial locks into the survey (2 sent)", inbox.locked === true && inbox.sent >= 2, `sent ${inbox.sent}`);

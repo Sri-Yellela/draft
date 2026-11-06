@@ -110,7 +110,7 @@ export const TOOL_DEFS = Object.freeze([
   {
     name: "draft_list_my_drafts",
     title: "List my drafted jobs",
-    description: "Lists the jobs in the candidate's Draft House, newest first: job id, title, company and whether a résumé exists.",
+    description: "Lists the jobs in the candidate's Home, newest first: job id, title, company and whether a résumé exists.",
     inputSchema: { type: "object", additionalProperties: false, properties: {} },
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     scope: READ,

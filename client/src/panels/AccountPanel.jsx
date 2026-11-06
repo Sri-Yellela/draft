@@ -212,7 +212,7 @@ export function AccountPanel({ onSignedOut }) {
  * (the server's resume_deleted event).
  */
 export function generatedResumeStatus(r) {
-  if (r.keptForGood) return r.tie === "applied" ? "Kept — you applied with it" : "Kept — the job is in Draft House";
+  if (r.keptForGood) return r.tie === "applied" ? "Kept — you applied with it" : "Kept — the job is in Home";
   if (r.expiresInDays == null) return "";
   return r.expiresInDays <= 0 ? "Expires today" : `Expires in ${r.expiresInDays} day${r.expiresInDays === 1 ? "" : "s"}`;
 }

@@ -55,7 +55,7 @@ export function eventText(event, data = {}) {
   switch (event) {
     case "needs_you":
       return data.ready ? { title: "Ready for your approval", body: "A job is ready for your approval." }
-        : { title: "Needs you", body: "An application is waiting for you in Draft House." };
+        : { title: "Needs you", body: "An application is waiting for you in Home." };
     case "inbox_reply":
       return data.category === "offer" ? { title: "An offer", body: "A reply from an employer was filed as an offer." }
         : { title: "An interview", body: "A reply from an employer was filed as an interview." };

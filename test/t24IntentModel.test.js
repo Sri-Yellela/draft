@@ -286,7 +286,7 @@ test("T24 · the Draft button: ONE draft with ONE résumé; a second press queue
   const second = await runDraft(TAB, { control: "draft" }, deps);
   assert.equal(second.already, true);
   assert.equal(calls.draft.length, 1, "the server said drafted — the second press sends nothing");
-  assert.match(calls.draw.at(-1).line, /^Drafted — in Draft House — its résumé is being made/);
+  assert.match(calls.draw.at(-1).line, /^Drafted — in Home — its résumé is being made/);
 });
 
 test("T24 · 0 of 10 slots: said on the dock, and nothing is sent", async () => {

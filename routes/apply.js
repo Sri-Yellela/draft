@@ -2367,7 +2367,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         && !(jobIds.length && jobIds.every(id => pickAuthorisesSend(db, userId, id)))) {
       return respond(403, {
         error: "full_auto_not_chosen",
-        message: "Sending without your review needs FULL AUTO, and your mode is SEMI. Switch it in Draft House, " +
+        message: "Sending without your review needs FULL AUTO, and your mode is SEMI. Switch it in Home, " +
           "or draft it without approvalMode and it will wait for your approval.",
       });
     }
@@ -2394,7 +2394,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       return respond(429, {
         error: "line_full",
         message: `${waitingAhead} drafts are already waiting in line — the most there can be. ` +
-          "Remove one from the line in Draft House, or wait for the current one to finish.",
+          "Remove one from the line in Home, or wait for the current one to finish.",
         waiting: waitingAhead,
         limit: APPLY_MAX_WAITING_RUNS,
       });
@@ -2610,9 +2610,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       message: line
         ? (heldByUser
           ? `Waiting in line (${line.position} of ${line.length}) — you stopped everything, so nothing ` +
-            "starts until you resume in Draft House. Until then you can edit, reorder or remove it."
+            "starts until you resume in Home. Until then you can edit, reorder or remove it."
           : `Waiting in line (${line.position} of ${line.length}) — it starts when the draft ahead of it ` +
-            "finishes. Until then you can edit, reorder or remove it in Draft House.")
+            "finishes. Until then you can edit, reorder or remove it in Home.")
         : undefined,
       held: heldByUser || undefined,
       dailyCap: { limit: APPLY_DAILY_CAP, submittedLast24h: used, remaining: Math.max(0, APPLY_DAILY_CAP - used - filtered.length) },
@@ -4025,7 +4025,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // ⛔ D53: a cleared application is not filled. Restore it from the bin first.
     if (row.run_job_id != null && db.prepare("SELECT hidden_at FROM apply_run_jobs WHERE id=?").pluck().get(row.run_job_id) != null) {
       return res.status(410).json({ error: "packet_cleared",
-        message: "You cleared this application. Restore it from Cleared in Draft House to fill it." });
+        message: "You cleared this application. Restore it from Cleared in Home to fill it." });
     }
 
     // STALE PACKETS ARE REFUSED HERE, before a token exists (AB1 requirement 5).
