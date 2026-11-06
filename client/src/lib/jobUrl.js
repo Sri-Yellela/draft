@@ -61,3 +61,12 @@ const emit = (name, detail) => { if (typeof window !== "undefined") window.dispa
 export function openPostingOnDeck(jobId, { origin = "deck" } = {}) { if (jobId) emit(OPEN_POSTING_EVENT, { jobId: String(jobId), origin }); }
 /** Ask the board to fold the posting drawn on the deck. */
 export function closePostingOnDeck() { emit(CLOSE_POSTING_EVENT, {}); }
+/**
+ * ⭐ D164 (measured in the T2 walk, 11-05): is another panel (the résumé sandbox — any PanelShell but the posting's own
+ * "jd") open over the posting? Then Escape is THAT panel's (D39: one Escape closes one panel), and the posting's own
+ * Escape handlers (JobsPanel's keys, the deck's fold) leave it alone. Read from the DOM at the keypress, so it is never a
+ * stale closure: the generate flow opens the sandbox over the posting, and one Esc used to close both.
+ */
+export function panelOverPosting() {
+  return typeof document !== "undefined" && !!document.querySelector('[data-panel-id]:not([data-panel-id="jd"])');
+}

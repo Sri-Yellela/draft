@@ -199,6 +199,14 @@ test("d164StatesAndRetry · Generating… · Ready · Failed — Try again; a fa
   // A résumé read that failed or has not come back is said as such, never "no résumé on file" (D156 6).
   assert.match(jobs, /resumeState === "error" \? "Your résumé could not be read just now, so nothing was generated\."/);
   assert.match(jobs, /: resumeState === "loading" \? "Your résumé is still loading — try again in a moment\."/);
+  // The walk's finding: generating opens the sandbox over the posting, and one Escape closed the sandbox AND folded the
+  // posting (JobsPanel's keys and the deck's fold ignored D39's one-panel-per-Escape). Both now leave the posting while
+  // another panel is open over it.
+  const jobUrl = read("client/src/lib/jobUrl.js");
+  assert.match(jobUrl, /export function panelOverPosting\(\) \{\n\s+return typeof document !== "undefined" && !!document\.querySelector\('\[data-panel-id\]:not\(\[data-panel-id="jd"\]\)'\);/);
+  assert.match(jobs, /if \(e\.key === "Escape"\) \{ if \(panelOverPosting\(\)\) return; clearDeepLink\(\); setSelectedJob\(null\); return; \}/);
+  assert.match(deck, /if \(k === "Escape"\) \{ if \(!panelOverPosting\(\)\) foldPost\(\); \}/);
+  assert.match(read("client/src/components/PanelShell.jsx"), /data-panel-id=\{panelId\}/);
   // The Résumé group opens itself while one is being made or has just failed.
   assert.match(acts, /useEffect\(\(\) => \{ if \(generateLoading \|\| genError\) setRes\(true\); \}, \[generateLoading, genError\]\);/);
 });

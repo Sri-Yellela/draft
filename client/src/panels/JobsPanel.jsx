@@ -41,7 +41,7 @@ import {
   POSTING_AGE, VISITED, ageDaysMap,
 } from "../../../shared/jobFilterOptions.js";
 // AH2: the job-detail address, shared with JobCard so the href and the param cannot disagree.
-import { JOB_URL_PARAM, jobIdFromSearch, OPEN_MATCH_EVENT, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID } from "../lib/jobUrl.js";
+import { JOB_URL_PARAM, jobIdFromSearch, OPEN_MATCH_EVENT, OPEN_POSTING_EVENT, CLOSE_POSTING_EVENT, POSTING_ON_DECK_EVENT, DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, panelOverPosting } from "../lib/jobUrl.js";
 // D35: the Full House header (App.jsx) renders the sentence, its one panel and the sort panel; this
 // panel publishes what they read — the committed clause params and the facets answer.
 import { JOB_FUNCTIONS, PLACES } from "../../../shared/jobTagVocabulary.js";
@@ -2354,7 +2354,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   useEffect(() => {
     if (!selectedJob) return;
     const handler = (e) => {
-      if (e.key === "Escape") { clearDeepLink(); setSelectedJob(null); return; }
+      // ⭐ D164: an Escape that closes the sandbox over the posting does not also close the posting (D39: one per press).
+      if (e.key === "Escape") { if (panelOverPosting()) return; clearDeepLink(); setSelectedJob(null); return; }
       // A105 finding 11: the open posting's three decisions from the keyboard — S save, D draft, P pass (the deck's
       // letters). Never while typing, never with a modifier; Draft only DRAFTS (D36·5: nothing here sends).
       const typing = e.target?.closest?.("input, textarea, select, [contenteditable=''], [contenteditable='true']");
