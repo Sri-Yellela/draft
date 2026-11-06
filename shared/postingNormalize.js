@@ -321,6 +321,19 @@ export function parseCodedLocation(raw) {
   return null;
 }
 
+/**
+ * A location field that says nothing — "N/A", "na", "none", "-", "TBD", "unknown" (any case, the WHOLE value only).
+ * 175 active postings showed "Stripe · na". These are UNKNOWN, and D156 (7) omits an unknown value rather than print
+ * it. ⛔ Exact match only: "NA" is never guessed to mean North America, and "Nashville, TN" or "Remote - NA" are
+ * places, left as written. Pure — the server's serialiser (services/jobs/mapJobRow.js) applies it at display time,
+ * so rows already stored are covered without a re-normalisation.
+ */
+const PLACEHOLDER_LOCATION = /^(?:n\/?a|none|-+|tbd|unknown|location not specified)$/i;
+export function isPlaceholderLocation(value) {
+  const s = String(value ?? "").trim().replace(/\.$/, "");
+  return !s || PLACEHOLDER_LOCATION.test(s);
+}
+
 /** "Marlborough, MA" for a coded location; the value as written otherwise. */
 export function locationLabel(raw) {
   const c = parseCodedLocation(raw);

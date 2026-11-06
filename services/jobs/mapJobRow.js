@@ -3,6 +3,7 @@
 // server.js so routes/importJob.js can return the exact same shape the board already uses,
 // without duplicating the mapping.
 import { isFresh } from './descriptionText.js';
+import { isPlaceholderLocation } from '../../shared/postingNormalize.js';
 
 function parseSkillsList(raw) {
   if (Array.isArray(raw)) return raw;
@@ -61,15 +62,18 @@ function mapJobRow(j) {
   const pay = fields?.pay || null;
   // ⛔ D71: precedence, never an overwrite — the provider's structured salary, then the text's.
   const structured = (j.salary_min ?? j.salaryMin) != null || (j.salary_max ?? j.salaryMax) != null;
-  // normalizeJob's placeholder is not a location; the posting's own words are.
-  const location = j.location && j.location !== 'Location not specified' ? j.location : null;
+  // normalizeJob's placeholder is not a location; the posting's own words are. ⭐ Nor is a provider's "N/A" / "na" /
+  // "none" / "-" / "TBD" / "unknown" (shared/postingNormalize.js isPlaceholderLocation, exact match only): D156 (7)
+  // omits an unknown value, so the card reads "Stripe", never "Stripe · na".
+  const known = (v) => (isPlaceholderLocation(v) ? null : v);
+  const location = known(j.location);
   return {
     id:              j.job_id || j.id,
     title:           j.title,
     company:         j.company,
     // D59: a posting whose location field is empty takes its label block's ("Marlborough, MA");
     // D71: failing that, the place on its pay line ("Boston, MA").
-    location:        location || fields?.locationLabel || fields?.payLocationLabel || j.location || null,
+    location:        location || known(fields?.locationLabel) || known(fields?.payLocationLabel) || null,
     // ⛔ D59: the NORMALISED text when there is one — markup-free, the label block's lines removed.
     // `description` itself is never rewritten (content_hash is a hash of it).
     description:     (fresh ? j.description_text : null) ?? j.description,
