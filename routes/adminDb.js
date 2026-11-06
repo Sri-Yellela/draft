@@ -8,6 +8,7 @@ import fs from "fs";
 import path from "path";
 import { readGauge, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "../services/diskGauge.js";
 import { emailHealthAlerts } from "../services/emailHealth.js";
+import { atsWeightStatus, REFRESH_WEIGHT_AGE_DAYS, MAX_WEIGHT_AGE_DAYS } from "../services/atsTermWeights.js";
 import Database from "better-sqlite3";
 import { redactRow, redactRows, runReadOnlyQuery, secretColumnsMentioned } from "../services/adminSafety.js";
 import { JobReviewError, jobReviewImpact, reassignJob, recentJobReviewChanges, undoJobReview } from "../services/adminJobReview.js";
@@ -646,6 +647,16 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
       // ⭐ D94: email health — failed sends (louder at 3 inside an hour) and a sending domain that stopped being
       // verified, from the Resend webhook's own record (services/emailHealth.js). Silence here meant resets stopped.
       for (const a of emailHealthAlerts(db)) push(a.severity, a.kind, a.subject, a.detail);
+      // ⭐ D170 (3b): THE ATS TERM WEIGHTS PAST THEIR REFRESH AGE. Production sat 20 days overdue (34.7d, every nightly
+      // rebuild refused) with nothing raised; the scorer drops them at MAX_WEIGHT_AGE_DAYS and scores unweighted. A warn
+      // from the refresh age (14d), critical within 7 days of the cliff or once dropped / never computed.
+      try {
+        const w = atsWeightStatus(db, { now });
+        if (w.state === "absent") push("critical", "ats_weights", "never computed", "ats_term_weights is empty — every ATS score is unweighted");
+        else if (w.state === "stale") push("critical", "ats_weights", "dropped", `the weights are ${w.ageDays.toFixed(1)}d old — past ${MAX_WEIGHT_AGE_DAYS}d the scorer ignores them and every score is unweighted`);
+        else if (w.overdue) push(MAX_WEIGHT_AGE_DAYS - w.ageDays <= 7 ? "critical" : "warn", "ats_weights", "overdue",
+          `the weights are ${w.ageDays.toFixed(1)}d old (refresh at ${REFRESH_WEIGHT_AGE_DAYS}d) — the nightly rebuild has not replaced them; dropped in ${(MAX_WEIGHT_AGE_DAYS - w.ageDays).toFixed(1)}d`);
+      } catch (e) { console.warn("[pipeline-health] ats weight status unavailable:", e.message); }
       // A44: an alert when enrichment has STOPPED. The checks below fire on a failed run and the
       // coverage loop on exactly 0%; neither fires when runs simply cease, which is how local
       // enrichment stopped on 2026-08-24 with nothing raised — and A48 found that unenriched rows are

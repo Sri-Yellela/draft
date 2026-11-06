@@ -202,7 +202,9 @@ test("both boot and the nightly cron run the refresh, through one function", () 
     "boot, deferred past module evaluation so the weight cache exists");
   assert.match(SERVER, /runTermWeightRefresh\("cron"\)/, "and the nightly pass, after the crawl");
   // One implementation, so the two cannot report the same event differently.
-  assert.equal((SERVER.match(/maybeRecomputeTermWeights\(/g) || []).length, 1);
+  // ⭐ D170 (3) (changed on purpose): the async refresh (the count in a worker thread); no synchronous one is left.
+  assert.equal((SERVER.match(/maybeRecomputeTermWeightsAsync\(/g) || []).length, 1);
+  assert.equal((SERVER.match(/maybeRecomputeTermWeights\(/g) || []).length, 0);
 });
 
 test("the refresh is invoked with the cache invalidator, not without it", () => {

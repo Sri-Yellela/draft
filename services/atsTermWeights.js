@@ -37,7 +37,7 @@
 // takes a prepared weight Map as an argument and never touches the database, which is what keeps it
 // pure, deterministic and testable without a DB. Loading is the caller's job.
 import { roleFamilyForTitle } from "./searchQueryBuilder.js";
-import { normaliseAtsTerm } from "./localAtsScorer.js";
+import { normaliseAtsTerm, postingTermKeys } from "./localAtsScorer.js";
 import { assessRebuildScope, thinBoardConfirmed } from "./jobs/boardSufficiency.js";
 
 /**
@@ -184,33 +184,118 @@ export function weightFamilyForJob(db, job) {
  * is a silent no-op.
  */
 export function computeTermWeights(db, { now = Math.floor(Date.now() / 1000), familyFor = titleWeightFamily } = {}) {
-  const rows = db.prepare(
-    `SELECT job_id, title, normalized_title, skills_json
-       FROM scraped_jobs
-      WHERE skills_json IS NOT NULL AND skills_json != '' AND skills_json != '[]'`
-  ).all();
+  return writeTermWeights(db, countCorpusTerms(db, familyFor), now);
+}
 
-  // family -> { postings, df: Map<term, count> }
+/** Every corpus row's terms, counted in one pass (on whatever thread calls it — the worker, a script, a test). */
+export function countCorpusTerms(db, familyFor = titleWeightFamily) {
+  const acc = termAccumulator(db, familyFor);
+  for (const row of db.prepare(`SELECT ${corpusColumns(db)} FROM scraped_jobs WHERE ${CORPUS_WHERE}`).iterate()) acc.add(row);
+  return acc;
+}
+
+/**
+ * ⭐ D170 (3) · WHAT server.js RUNS: the count in a worker thread (services/atsTermWeightsWorker.js, its own read-only
+ * connection), the write here; if the worker cannot answer, the count runs here in yielding pages instead.
+ */
+export async function computeTermWeightsOffThread(db, { dbPath, now = Math.floor(Date.now() / 1000), log = console,
+                                                       countOffThread = null, pageRows, yieldFn } = {}) {
+  try {
+    const count = countOffThread || (await import("./atsTermWeightsWorker.js")).countCorpusTermsOffThread;
+    const acc = await count(dbPath);
+    return { ...writeTermWeights(db, acc, now), counted: "worker" };
+  } catch (e) {
+    log.warn?.(`[ats-weights] the worker could not count (${e.message}) — counting on the main thread in pages`);
+    const r = await computeTermWeightsAsync(db, { now, ...(pageRows ? { pageRows } : {}), ...(yieldFn ? { yieldFn } : {}) });
+    return { ...r, counted: "main-thread pages" };
+  }
+}
+
+/**
+ * ⭐ D170 (3) · THE SAME REBUILD, IN YIELDING PAGES — the fallback when the worker (computeTermWeightsOffThread) can't
+ * answer. Extracting a posting's scored terms (postingTermKeys) costs ≈ 4–5 ms (measured 11-06 on 801 postings, the
+ * machine loaded), so over production's ≈ 18k active postings it is over a minute of CPU in the server process
+ * (D151 Rule 2). This pages through the corpus by rowid (`pageRows` at a time — 25 ≈ 100 ms) and yields between
+ * pages; only the final write (a few thousand INSERTs in one transaction) runs in one piece. The result is identical
+ * to computeTermWeights' (d170WeightsRebuildFromFullBoard pins it).
+ */
+export async function computeTermWeightsAsync(db, { now = Math.floor(Date.now() / 1000), familyFor = titleWeightFamily,
+                                                    pageRows = 25, yieldFn = () => new Promise(r => setImmediate(r)) } = {}) {
+  const acc = termAccumulator(db, familyFor);
+  const page = db.prepare(
+    `SELECT rowid AS _rowid, ${corpusColumns(db)} FROM scraped_jobs WHERE rowid > ? AND (${CORPUS_WHERE}) ORDER BY rowid LIMIT ?`
+  );
+  let after = 0;
+  for (;;) {
+    const rows = page.all(after, pageRows);
+    if (!rows.length) break;
+    for (const row of rows) acc.add(row);
+    after = rows[rows.length - 1]._rowid;
+    if (rows.length < pageRows) break;
+    await yieldFn();
+  }
+  return writeTermWeights(db, acc, now);
+}
+
+/**
+ * ⭐ D170 (3) · WHICH POSTINGS THE WEIGHTS ARE COUNTED OVER: every ACTIVE posting (what people are scored against
+ * today), plus any posting that carries enrichment skills (the corpus the table was first built from, kept so a
+ * rebuild never has less evidence than the one before it).
+ *
+ * ⛔ It used to be `skills_json` ALONE. Only the retired feeds (D78 C) and the offline enrichment imports ever fill
+ * that column, so as those postings aged out the corpus shrank while the board grew: production 11-06 held 82,720
+ * postings and the nightly rebuild would have written 362 rows over the 1,666 it had (refused by the thin-board
+ * guard, correctly), leaving 34-day-old weights 11 days from being dropped (MAX_WEIGHT_AGE_DAYS).
+ */
+const CORPUS_COLUMN_NAMES = ["job_id", "title", "normalized_title", "company", "description_text", "description", "skills_json"];
+const CORPUS_WHERE = "is_active = 1 OR (skills_json IS NOT NULL AND skills_json != '' AND skills_json != '[]')";
+/** The corpus SELECT list; a column an older (or a test's hand-made) scraped_jobs lacks reads as NULL. */
+function corpusColumns(db) {
+  let have;
+  try { have = new Set(db.prepare("PRAGMA table_info(scraped_jobs)").all().map(c => c.name)); } catch { have = null; }
+  return CORPUS_COLUMN_NAMES.map(c => (!have || have.has(c) ? c : `NULL AS ${c}`)).join(", ");
+}
+
+/** The terms one corpus row is scored against — the scorer's own extraction (postingTermKeys). */
+export function corpusTermsOf(row) {
+  return postingTermKeys({
+    title: row?.title || row?.normalized_title || "",
+    company: row?.company || "",
+    // mapJobRow serves description_text when it is the read of the description held now; for a document
+    // frequency either reads the same words, so the plain text wins when present.
+    description: row?.description_text || row?.description || "",
+    skills_json: row?.skills_json ?? null,
+  });
+}
+
+/** family -> { postings, df } over the rows given to add(); `rows` counts every row seen. */
+function termAccumulator(db, familyFor) {
   const families = new Map();
+  let rows = 0, withTerms = 0;
   const bump = (family, terms) => {
     let bucket = families.get(family);
     if (!bucket) { bucket = { postings: 0, df: new Map() }; families.set(family, bucket); }
     bucket.postings += 1;
     for (const term of terms) bucket.df.set(term, (bucket.df.get(term) || 0) + 1);
   };
+  return {
+    families,
+    get rows() { return rows; },
+    get withTerms() { return withTerms; },
+    add(row) {
+      rows += 1;
+      const terms = corpusTermsOf(row);
+      if (!terms.size) return;
+      withTerms += 1;
+      bump(GLOBAL_FAMILY, terms);
+      const family = familyFor(db, row);
+      if (family) bump(family, terms);
+    },
+  };
+}
 
-  for (const row of rows) {
-    const terms = new Set();
-    for (const skill of parseSkills(row.skills_json)) {
-      const key = normaliseAtsTerm(skill);
-      if (key) terms.add(key);
-    }
-    if (!terms.size) continue;
-    bump(GLOBAL_FAMILY, terms);
-    const family = familyFor(db, row);
-    if (family) bump(family, terms);
-  }
-
+function writeTermWeights(db, acc, now) {
+  const { families } = acc;
   // ⛔ COUNT THE OUTCOME BEFORE DESTROYING THE PREDECESSOR — see services/jobs/boardSufficiency.js.
   //
   // The DELETE below is unconditional and inside the same transaction as the rebuild, so the only
@@ -232,7 +317,7 @@ export function computeTermWeights(db, { now = Math.floor(Date.now() / 1000), fa
   });
   if (!scope.allowed) {
     console.error(`[atsTermWeights] ⛔ ${scope.reason}`);
-    return { computedAt: now, corpusSize: rows.length, families: [], skipped: true, reason: scope.reason };
+    return { computedAt: now, corpusSize: acc.withTerms, scanned: acc.rows, families: [], skipped: true, reason: scope.reason, incoming, existing };
   }
   if (scope.reason) console.warn(`[atsTermWeights] ${scope.reason}`);
 
@@ -260,7 +345,8 @@ export function computeTermWeights(db, { now = Math.floor(Date.now() / 1000), fa
     }
   })();
 
-  return { computedAt: now, corpusSize: rows.length, families: written };
+  // corpusSize: the postings that contributed terms (what the weights are frequencies over); scanned: every row read.
+  return { computedAt: now, corpusSize: acc.withTerms, scanned: acc.rows, families: written, incoming, existing };
 }
 
 /**
@@ -354,6 +440,10 @@ export function atsWeightStatus(db, { now = Math.floor(Date.now() / 1000) } = {}
   const ageDays = Number.isFinite(computedAt) && computedAt > 0 ? (now - computedAt) / 86400 : null;
   return {
     state: weightsAreStale(computedAt, now) ? "stale" : "fresh",
+    // ⭐ D170 (3b): past REFRESH_WEIGHT_AGE_DAYS the table is still used ("fresh") but OVERDUE — the schedule should
+    // have replaced it. Production sat overdue for 20 days (34.7d, every rebuild refused) with only a boot info line
+    // saying "fresh"; pipeline health now raises it from the 14th day, not silently at the 45-day cliff.
+    overdue: ageDays != null && ageDays > REFRESH_WEIGHT_AGE_DAYS,
     terms: row.terms,
     families,
     computedAt,
@@ -395,6 +485,31 @@ export function maybeRecomputeTermWeights(db, { force = false, now = Math.floor(
     log.error?.(`[ats-weights] recompute FAILED: ${e.message} — scoring continues unweighted`);
     return { ran: false, reason: `failed: ${e.message}`, before, after: before, result: null };
   }
+  return settleRecompute(db, { result, before, force, now, onInvalidate, log });
+}
+
+/** ⭐ D170 (3): maybeRecomputeTermWeights through computeTermWeightsAsync — what server.js runs (boot and cron). */
+export async function maybeRecomputeTermWeightsAsync(db, { force = false, now = Math.floor(Date.now() / 1000),
+                                                           onInvalidate = null, log = console, pageRows, yieldFn,
+                                                           dbPath = null, countOffThread = null } = {}) {
+  const before = atsWeightStatus(db, { now });
+  if (!force && !weightsNeedRefresh(before, { now })) {
+    return { ran: false, reason: `weights are ${before.state} (${before.ageDays?.toFixed(1)}d old)`, before, after: null, result: null };
+  }
+  let result = null;
+  try {
+    const paging = { ...(pageRows ? { pageRows } : {}), ...(yieldFn ? { yieldFn } : {}) };
+    result = dbPath
+      ? await computeTermWeightsOffThread(db, { dbPath, now, log, countOffThread, ...paging })
+      : await computeTermWeightsAsync(db, { now, ...paging });
+  } catch (e) {
+    log.error?.(`[ats-weights] recompute FAILED: ${e.message} — scoring continues unweighted`);
+    return { ran: false, reason: `failed: ${e.message}`, before, after: before, result: null };
+  }
+  return settleRecompute(db, { result, before, force, now, onInvalidate, log });
+}
+
+function settleRecompute(db, { result, before, force, now, onInvalidate, log }) {
   // assessRebuildScope refuses to replace a good table from a suspiciously thin board. That is a
   // REFUSAL to destroy data, not a failure, and it must be reported as such or the next person
   // reads "0 terms written" as a broken recompute.

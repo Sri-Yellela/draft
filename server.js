@@ -225,7 +225,7 @@ import {
   scoreAtsLocally,
 } from "./services/localAtsScorer.js";
 import {
-  loadTermWeights, atsWeightStatus, maybeRecomputeTermWeights, REFRESH_WEIGHT_AGE_DAYS,
+  loadTermWeights, atsWeightStatus, maybeRecomputeTermWeightsAsync, REFRESH_WEIGHT_AGE_DAYS,
   MAX_WEIGHT_AGE_DAYS,
 } from "./services/atsTermWeights.js";
 // The band, not the number, is what a user is shown — see the header of shared/atsBands.js.
@@ -7054,7 +7054,10 @@ try {
     + (before.state === "absent"
         ? " — NEVER COMPUTED; every score is unweighted until this is fixed"
         : ` — ${before.terms} terms over ${before.families.length} famil${before.families.length === 1 ? "y" : "ies"}, `
-          + `${before.ageDays?.toFixed(1)}d old (refresh at ${REFRESH_WEIGHT_AGE_DAYS}d, refused at ${MAX_WEIGHT_AGE_DAYS}d)`));
+          + `${before.ageDays?.toFixed(1)}d old (refresh at ${REFRESH_WEIGHT_AGE_DAYS}d, refused at ${MAX_WEIGHT_AGE_DAYS}d)`
+          // ⭐ D170 (3b): "fresh" at 34 days read as healthy for 20 days; past the refresh age it says so.
+          + (before.overdue ? ` — ⚠ OVERDUE: ${(before.ageDays - REFRESH_WEIGHT_AGE_DAYS).toFixed(1)}d past the refresh, `
+              + `dropped in ${Math.max(0, MAX_WEIGHT_AGE_DAYS - before.ageDays).toFixed(1)}d` : "")));
   // A failing refresh is silent by construction — it is never-fatal on purpose — so the streak is
   // printed at boot rather than left for whoever thinks to curl /api/version. Nothing is printed
   // in the healthy case: this line is the exception to the "speak even when fine" rule above,
@@ -8870,14 +8873,17 @@ function invalidateAtsWeightCache() { _atsWeightCache.clear(); }
  * differently. Never throws: a scorer on 20-day-old weights beats a dead cron tick, and both beat
  * a boot that fails over a ranking refinement.
  */
-function runTermWeightRefresh(trigger) {
+// ⭐ D170 (3): async — the count runs in a worker thread (services/atsTermWeightsWorker.js, its own read-only
+// connection), only the write runs here. Callers fire and forget it (boot, cron); it still never throws.
+async function runTermWeightRefresh(trigger) {
   const startedAt = Math.floor(Date.now() / 1000);
   try {
-    const r = maybeRecomputeTermWeights(db, { onInvalidate: invalidateAtsWeightCache });
+    const r = await maybeRecomputeTermWeightsAsync(db, { onInvalidate: invalidateAtsWeightCache, dbPath: DB_PATH });
     if (r.ran) {
       const fams = (r.result?.families || []).map(f => `${f.family}:${f.weighted}`).join(" ");
       console.log(`[ats-weights] (${trigger}) rebuilt — ${r.before.state} -> ${r.after.state}, `
-        + `${r.after.terms} terms over ${r.result?.corpusSize ?? "?"} enriched postings [${fams}]`);
+        + `${r.after.terms} terms over ${r.result?.corpusSize ?? "?"} postings (${r.result?.scanned ?? "?"} read, `
+        + `counted by ${r.result?.counted ?? "?"}) [${fams}]`);
       recordPipelineRun(db, {
         runKind: "term_weights", source: trigger, status: "ok", startedAt,
         written: r.after.terms,
