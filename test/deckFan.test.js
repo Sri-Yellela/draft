@@ -125,9 +125,9 @@ test("⛔ scroll capture is paid back: the keyboard does everything the wheel do
   // ⭐ D156 (1c): the deck's slot has its own wheel listener above this one — the end is searched after the start.
   const wheelAt = at(deckSrc, "const onWheel = (e) =>", 0, "wheel handler");
   const wheel = deckSrc.slice(wheelAt, at(deckSrc, 'el.addEventListener("wheel", onWheel', wheelAt, "wheel listener"));
-  // ⭐ D145 (changed on purpose): over the FRONT card a vertical flick opens / folds "Why this job" first (its own capture,
-  // test/d145DeckCardNav.test.js); every OTHER capture — turning the fan — still waits until a rotation is possible.
-  const fan = wheel.slice(at(wheel, "if (whyRef.current) return;"));
+  // ⭐ D168 (changed on purpose): the wheel's one job is turning the fan (no "Why this job" capture any more); the capture
+  // still waits until a rotation is possible.
+  const fan = wheel.slice(at(wheel, "if (boardPostRef.current) return;"));
   assert.ok(fan.indexOf("stepTarget(stateRef.current, dir) == null") < fan.indexOf("e.preventDefault()"),
     "the wheel is only captured AFTER a rotation is known to be possible");
   assert.match(wheel, /if \(expandedRef\.current \|\| e\.ctrlKey\) return;/, "reading an expanded card, or pinch-zooming, scrolls the page");

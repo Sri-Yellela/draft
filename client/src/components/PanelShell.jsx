@@ -160,6 +160,10 @@ export default function PanelShell({
   onClose, onFocus, header, actions, children, bodyRef,
   // ⭐ D149: a panel may wear its own surface (the posting is the sketch's card, not the glass) and its own corner.
   surfaceClass = "liquid-panel", radius = 16, fill = false,
+  // ⭐ D168: false = the body is part of the PAGE (no scroll container, no overscroll containment), for a panel drawn in
+  // the page's flow at its full height — the posting on the deck, read by scrolling the page. A body that is a scroll
+  // container with nothing to scroll and `overscroll-behavior: contain` swallowed the wheel: the page never moved.
+  bodyScrolls = true,
 }) {
   const dragRef = useRef(null);
   const ownBodyRef = useRef(null);
@@ -322,10 +326,10 @@ export default function PanelShell({
           that drags the app behind it". `outline: none` because this element is focused
           programmatically for scrolling, not by the user tabbing to it — the visible focus ring
           belongs on the close button and the actions, which are still in the tab order. */}
-      <div ref={scrollRef} tabIndex={-1} data-panel-body="" style={{
+      <div ref={scrollRef} tabIndex={-1} data-panel-body="" data-panel-body-scrolls={bodyScrolls ? undefined : "false"} style={bodyScrolls ? {
         flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden",
         overscrollBehavior: "contain", outline: "none",
-      }}>
+      } : { flex: 1, minHeight: 0, outline: "none" }}>
         {children}
       </div>
     </motion.div>

@@ -1,5 +1,5 @@
 import { ATSPanel } from "./ATSPanel.jsx";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PostingPanel from "./PostingPanel.jsx";
 import WarmPathsBlock from "./WarmPathsBlock.jsx";
@@ -276,9 +276,21 @@ export default function JobDetailPanel({
   // ⭐ D156 (1c): drawn ON THE DECK, in the front card's place (JobsPanel portals it into DeckView's slot) — the card's own
   // corner (26) and "Fold it back" for Close (home-sketch.html's .foldb): the card folds back, nothing closes.
   onDeck = false,
+  // ⭐ D168: the posting to draw when it is not (or no longer) the selection — JobsPanel's deckPostJob, which holds the
+  // outgoing posting on the deck for the fade-out of the swap (lib/jobUrl.js POST_FADE_MS). Omitted: the selection.
+  job: jobOverride,
   onFocus, onResizeStart, onResize, onResizeEnd,
 }) {
-  const { selectedJob, setSelectedJob, selectedJobMeta } = useJobBoard();
+  const board = useJobBoard();
+  const { setSelectedJob } = board;
+  const selectedJob = jobOverride !== undefined ? jobOverride : board.selectedJob;
+  // The meta (the generated résumé, the résumé text) belongs to the selection; a posting fading out after it keeps the
+  // last meta it had, so its content (and so the swap's measured start) does not change under the fade.
+  const lastMeta = useRef({ jobId: null, meta: null });
+  const metaIsOurs = jobOverride === undefined || String(jobOverride?.jobId) === String(board.selectedJob?.jobId);
+  if (metaIsOurs && board.selectedJobMeta) lastMeta.current = { jobId: String(selectedJob?.jobId), meta: board.selectedJobMeta };
+  const selectedJobMeta = metaIsOurs ? board.selectedJobMeta
+    : (lastMeta.current.jobId === String(selectedJob?.jobId) ? lastMeta.current.meta : null);
   const close = useCallback(() => setSelectedJob(null), [setSelectedJob]);
 
   const navigate = useNavigate();
@@ -443,6 +455,8 @@ export default function JobDetailPanel({
       // ⭐ D149: the sketch's `.panel` — the card, corner 28 (0 on a phone, full screen), no glass edge; beside the list
       // it fills BesideDock's column.
       surfaceClass="pp-shell" radius={onDeck ? 26 : 28} fill={beside}
+      // ⭐ D168: on the deck the posting is read by scrolling the PAGE — its body is not a scroll container of its own.
+      bodyScrolls={!onDeck}
     >
       {/* ── BODY (the only scrolling region) ───────────────────────────────────────────────────
           The modals below render through their own portals, so their position here is immaterial;

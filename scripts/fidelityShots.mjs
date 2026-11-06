@@ -198,6 +198,59 @@ const SCREENS = {
   // composition, the free space shared evenly, the gaps and gutters growing with the width, the deck centred in its
   // column, the dock on its own gutter, vertically centred (`--styles home163`). Also shot beside the sketch at the four
   // widths (`node scripts/fidelityShots.mjs home-wide`).
+  // ⭐ D168 · ONE WAY TO OPEN, ONE JOB FOR THE WHEEL (owner 11-06, concept B) — measured with MOTION ON (`--styles home168`):
+  // the page probe samples the swap frame by frame and opens / folds 50 times fast; the node probe drives a REAL wheel
+  // and a real hover (puppeteer's mouse), which a dispatched event cannot (an untrusted wheel scrolls nothing).
+  home168: { sketch: null, app: "/app", fixtures: HOME156, ready: "[data-home-board]", motion: true,
+    sizes: { wide: [1440, 900], desktop: [1280, 800] },
+    appPrep: async () => { await sleep(1200); },
+    nodeProbe: async (page) => {
+      const st = () => page.evaluate(() => ({
+        y: Math.round(window.scrollY), count: document.querySelector("[data-deck-count]")?.textContent || null,
+        open: document.querySelector("[data-deck-post-slot]")?.getAttribute("data-open") === "true",
+        jd: !!document.querySelector("[data-jd-panel]"), asks: (window.__d168asks || []).slice() }));
+      const centre = (sel) => page.evaluate((s) => { const r = document.querySelector(s)?.getBoundingClientRect(); return r && { x: r.left + r.width / 2, y: r.top + Math.min(r.height / 2, 120) }; }, sel);
+      await page.evaluate(() => { window.__d168asks = []; for (const n of ["draft:open-posting", "draft:close-posting"]) window.addEventListener(n, (e) => window.__d168asks.push(`${n.split(":")[1]}:${e.detail?.origin || ""}`)); window.scrollTo(0, 0); });
+      await sleep(300);
+      const out = {};
+      // ── the wheel over the deck: one flick turns one card, the page does not move, nothing opens
+      const card = await centre('[data-fan-offset="0"] article');
+      const a = await st();
+      await page.mouse.move(card.x, card.y); await sleep(150);
+      await page.mouse.wheel({ deltaY: 120 }); await sleep(450);
+      const b = await st();
+      await page.mouse.wheel({ deltaY: -120 }); await sleep(450);
+      const c = await st();
+      out.deckWheel = { before: a, down: b, up: c };
+      // ── the wheel elsewhere (over the list): the page scrolls, the deck does not turn
+      const list = await centre(".jb-board__list .jb");
+      await page.mouse.move(list.x, list.y); await sleep(150);
+      await page.mouse.wheel({ deltaY: 200 }); await sleep(450);
+      out.listWheel = await st();
+      await page.evaluate(() => window.scrollTo(0, 0)); await sleep(300);
+      // ── an open post: the wheel over it scrolls the page and folds nothing
+      await page.evaluate(() => document.querySelector('[data-fan-offset="0"] [data-deck-title-line]')?.click());
+      await sleep(600);
+      const o0 = await st();
+      const pc = await centre("[data-deck-post-slot]");
+      await page.mouse.move(pc.x, pc.y); await sleep(150);
+      // (PanelShell's body on the deck is no scroll container — D168 bodyScrolls — so the wheel reaches the page.)
+      await page.mouse.wheel({ deltaY: 240 }); await sleep(450);
+      const o1 = await st();
+      o1.bodyScrolls = await page.evaluate(() => getComputedStyle(document.querySelector("[data-deck-post-slot] [data-panel-body]")).overflowY);
+      await page.mouse.wheel({ deltaY: -120 }); await sleep(450);
+      const o2 = await st();
+      out.postWheel = { opened: o0, down: o1, up: o2 };
+      await page.keyboard.press("Escape"); await sleep(600);
+      await page.evaluate(() => window.scrollTo(0, 0)); await sleep(300);
+      // ── hover: over the front card, the backs and the bubbles — nothing opens
+      await page.evaluate(() => { window.__d168asks = []; });
+      const points = [await centre('[data-fan-offset="0"] article'), await centre('[data-fan-offset="1"] [data-fan-position]'), await centre(".jb-board__list .jb"), await centre(".jb-board__list .jb:nth-child(2)")].filter(Boolean);
+      for (const p of points) { await page.mouse.move(p.x, p.y, { steps: 6 }); await sleep(500); }
+      out.hover = { points: points.length, ...(await st()), panels: await page.evaluate(() => document.querySelectorAll("[data-panel-id]").length) };
+      await page.mouse.move(2, 790);
+      return { node: out };
+    } },
   home163: { sketch: null, app: "/app", fixtures: HOME156, ready: "[data-home-board]", shoot: true,
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
     appPrep: async () => { await sleep(1200); } },
@@ -680,6 +733,71 @@ const STYLE_PROBES = {
     }
     return out;
   },
+  // ⭐ D168 · the swap, frame by frame (motion on), and fifty fast opens and folds.
+  home168: async () => {
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const q = (s) => document.querySelector(s);
+    const stack = () => q("[data-deck-stack]"), inner = () => q("[data-deck-stack-inner]");
+    const isOpen = () => q("[data-deck-post-slot]")?.getAttribute("data-open") === "true";
+    const press = () => q('[data-fan-offset="0"] [data-deck-title-line]')?.click();
+    const esc = () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    const settled = () => {
+      const s = stack(), i = inner();
+      return { phase: s?.getAttribute("data-swap"), lockedHeight: s?.style.height || "", stackH: s ? Math.round(s.getBoundingClientRect().height) : null,
+        contentH: i ? Math.round(i.getBoundingClientRect().height) : null, opacity: i ? getComputedStyle(i).opacity : null, open: isOpen(),
+        jd: !!q("[data-deck-post-slot] [data-jd-panel]"), deckShown: getComputedStyle(q("[data-deck-content]")).display !== "none" };
+    };
+    // Frames: the stack's height on screen, the content's opacity and the swap phase, every frame from the press.
+    const sample = (ms) => new Promise((res) => {
+      const frames = []; const t0 = performance.now();
+      const tick = () => {
+        const s = stack(), i = inner();
+        frames.push({ t: Math.round(performance.now() - t0), h: Math.round(s.getBoundingClientRect().height * 10) / 10,
+          op: Number(getComputedStyle(i).opacity), phase: s.getAttribute("data-swap"), open: isOpen() });
+        if (performance.now() - t0 < ms) requestAnimationFrame(tick); else res(frames);
+      };
+      tick();
+    });
+    window.scrollTo(0, 0);
+    await wait(600);
+    const out = { vw: window.innerWidth };
+    // ── the open
+    const before = settled();
+    const openFrames = sample(700); press(); const opened = await openFrames;
+    await wait(200);
+    const afterOpen = settled();
+    // ── the fold
+    const foldFrames = sample(700); esc(); const folded = await foldFrames;
+    await wait(200);
+    const afterFold = settled();
+    out.open = { before, frames: opened, after: afterOpen };
+    out.fold = { before: afterOpen, frames: folded, after: afterFold };
+    // ── a bubble's posting, the same swap
+    const bubbleFrames = sample(700); q(".jb__title")?.click(); const bub = await bubbleFrames;
+    await wait(200);
+    out.bubble = { frames: bub, after: settled() };
+    esc(); await wait(700); window.scrollTo(0, 0); await wait(200);
+    // ── d168NeverStuck: fifty opens and folds, fast (0–40 ms apart), then settle; and ten slower ones, each checked
+    let last = false;
+    for (let n = 0; n < 50; n++) {
+      if (n % 2 === 0) press(); else esc();
+      last = n % 2 === 0;
+      await wait((n * 7) % 41);
+    }
+    await wait(900);
+    out.fast = { lastWasOpen: last, ...settled() };
+    esc(); await wait(700);
+    out.slow = [];
+    for (let n = 0; n < 10; n++) {
+      if (n % 2 === 0) press(); else esc();
+      await wait(120 + (n * 37) % 200);   // mid-swap for some, settled for others
+      const mid = settled();
+      await wait(700);
+      out.slow.push({ wantOpen: n % 2 === 0, mid: { stackH: mid.stackH, phase: mid.phase }, ...settled() });
+    }
+    esc(); await wait(500);
+    return out;
+  },
   home156: async () => {
     const wait =(ms) => new Promise(r => setTimeout(r, ms));
     const q = (s, root = document) => root.querySelector(s);
@@ -757,22 +875,28 @@ const STYLE_PROBES = {
     out.flip = flip;
     while (idx() > 1) { q('[data-deck-flip="prev"]')?.click(); await wait(60); }
 
-    // ── ⭐ D156 (1c) the card BECOMES THE LONG POST: a scroll down on the front card opens the posting in the deck's slot
-    // (the fan put away, the column no longer sticky); scroll up at its top, Esc or "Fold it back" folds it; Enter and
-    // "Open the posting" open it too; a bubble's posting opens on the deck as well, and the list beside it stays.
+    // ── ⭐ D156 (1c) the card BECOMES THE LONG POST: a press on the front card opens the posting in the deck's slot
+    // (the fan put away, the column no longer sticky); Esc or "Fold it back" folds it; Enter and "Open the posting" open
+    // it too; a bubble's posting opens on the deck as well, and the list beside it stays.
+    // ⭐ D168 (owner 11-06, concept B): the wheel never opens or folds — a scroll down on the front card TURNS the deck
+    // (one card), a scroll up on the open post scrolls the page and leaves it open.
     const slot = () => q("[data-deck-post-slot]");
     const slotOpen = () => slot()?.getAttribute("data-open") === "true" && !!q("[data-deck-post-slot] [data-jd-panel]");
     const waitFor = async (fn, ms = 2500) => { const t0 = performance.now(); while (performance.now() - t0 < ms) { if (fn()) return true; await wait(50); } return !!fn(); };
     const frontTitle = () => q('[data-fan-offset="0"] [data-deck-title-line]')?.textContent || null;
     const post = { title: frontTitle() };
+    const press = () => q('[data-fan-offset="0"] [data-deck-title-line]')?.click();
     if (window.innerWidth <= 1000) {
       // a phone: the posting is the full-screen overlay (D149's rule), never the deck's slot
-      wheel(q('[data-fan-offset="0"] [data-deck-face]'), 80);
+      press();
       post.overlay = await waitFor(() => !!q('[data-panel-id="jd"]'));
       post.slotOpen = slotOpen();
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); post.overlayClosed = await waitFor(() => !q('[data-panel-id="jd"]'));
     } else {
-    wheel(q('[data-fan-offset="0"] [data-deck-face]'), 80); post.openedByWheel = await waitFor(slotOpen);
+    wheel(q('[data-fan-offset="0"] [data-deck-face]'), 80); await wait(400);
+    post.wheelOpened = slotOpen(); post.wheelTurned = frontTitle() !== post.title;
+    while (idx() > 1) { q('[data-deck-flip="prev"]')?.click(); await wait(300); }
+    press(); post.openedByPress = await waitFor(slotOpen);
     post.postTitle = q("[data-deck-post-slot] h1, [data-deck-post-slot] h2")?.textContent || null;
     post.factsInSlot = !!q("[data-deck-post-slot] [data-posting-facts]");
     post.stageHidden = !q("[data-deck-stage]") || q("[data-deck-stage]").getBoundingClientRect().height === 0;
@@ -781,8 +905,9 @@ const STYLE_PROBES = {
     post.listShown = !!q(".jb-board__list") && q(".jb-board__list").getBoundingClientRect().height > 0;
     post.foldLabel = q("[data-deck-post-slot] [data-posting-close]")?.textContent?.trim() || null;
     post.inSlot = (() => { const a = box(q("[data-deck-post-slot]")), d = box(q("[data-home-deck]")); return !!a && a.left >= d.left - 1 && a.right <= d.right + 1; })();
-    await wait(200);   // the slot's wheel listener attaches after the commit that opens it
-    wheel(slot(), -80); post.foldedByWheelUp = await waitFor(() => !slotOpen());
+    await wait(200);
+    wheel(slot(), -80); await wait(500); post.wheelFolded = !slotOpen();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await waitFor(() => !slotOpen());
     post.backTo = frontTitle();
     document.body.focus();
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })); post.openedByEnter = await waitFor(slotOpen);
@@ -992,7 +1117,8 @@ if (process.argv[2] === "--styles") {
       const pageErrors = [];
       page.on("pageerror", e => pageErrors.push(String(e.message).slice(0, 200)));
       await page.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 500, hasTouch: w < 500 });
-      await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }, { name: "prefers-reduced-motion", value: "reduce" }]);
+      // ⭐ D168: a screen that measures motion itself (`motion: true`) runs with motion on.
+      await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }, { name: "prefers-reduced-motion", value: s.motion ? "no-preference" : "reduce" }]);
       await page.setRequestInterception(true);
       page.on("request", (req) => {
         const raw = req.url();

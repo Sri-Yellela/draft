@@ -19,6 +19,8 @@
 // ⛔ Scroll capture is an accessibility cost, paid back in full: J/K and ↑/↓ do exactly what the
 // wheel does, ‹ › buttons do it for touch and pointer, Enter expands, Esc collapses. The wheel is
 // only captured when a rotation is POSSIBLE — at either end, and while expanded, the page scrolls.
+// ⭐ D168 (owner 11-06, concept B): THE WHEEL HAS ONE JOB — over the deck it turns it, one flick one card, and it never
+// opens or folds anything; elsewhere (and while a posting is open) it scrolls the page. A press or Enter opens.
 // ⛔ Layering by named tier (zLayers.js): --z-fan < --z-content < --z-nav. The fan passes behind the
 // header and the action row; only the face-up card rises into the content layer.
 // ⛔ No animation gates input (lib/deckState.js): an action commits at once and the fly-out plays on
@@ -43,7 +45,7 @@ import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import { CHROME_HEIGHT_VAR } from "../hooks/useChromeHeight.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
-import { DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, POSTING_ON_DECK_EVENT, closePostingOnDeck, jobDetailHref, openMatchInPosting, openPostingOnDeck, panelOverPosting } from "../lib/jobUrl.js";
+import { DECK_DECIDE_EVENT, DECK_POST_SLOT_ID, POSTING_ON_DECK_EVENT, POST_FADE_MS, closePostingOnDeck, jobDetailHref, openMatchInPosting, openPostingOnDeck, panelOverPosting } from "../lib/jobUrl.js";
 import { TITLE_ATTR, transitionClick } from "../lib/viewTransitions.js";
 import { A_PLUS_TOOL, GENERATE_TOOL } from "../lib/applyTools.js";
 import { DECISIONS, counts, deckReducer, fanOrder, initialDeck, isFinished, stepTarget } from "../lib/deckState.js";
@@ -63,8 +65,9 @@ const WHEEL_SETTLE_MS = 140;         // one trackpad flick is many events; rotat
 // ⭐ D156 (1c) (owner 11-05: "retain how the cards flipped and how they behaved … from the previous version of the daily
 // deck, we are only changing the content on it"): Home turns its fan exactly as the deck always has — one flick, one card
 // (WHEEL_STEP, WHEEL_SETTLE_MS), J / K, ↑ ↓, ‹ ›; swipe right drafts, left passes. (1b)'s per-gesture flip is gone.
-// A vertical scroll DOWN on the front card opens it into the long post; up, at the post's top, folds it (FOLD_SETTLE_MS).
-const FOLD_SETTLE_MS = 300;
+// ⛔ D168 (owner 11-06: "the scroll is assigned to too many things"): the scroll down that opened the front card and the
+// scroll up that folded the post are GONE — a press / Enter opens, Esc / "Fold it back" folds; an open post is read by
+// scrolling the page.
 // ⛔ 44p: the deck's request fails at 8 s with a plain message + Try again (deckNeverSpinsForever), and today's last
 // good deal in this tab is kept on screen when a refresh fails (precomputeFailureShowsLastGood). In memory only.
 const DECK_TIMEOUT_MS = 8000;
@@ -702,8 +705,6 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const [expanded, setExpanded] = useState(false);
   // ⭐ D145: "Why this job?" — the layer between the folded card and the full posting.
   const [why, setWhy] = useState(false);
-  const whyRef = useRef(false);
-  whyRef.current = why;
   const [leave, setLeave] = useState(null);
   const [frontH, setFrontH] = useState(0);
   // ⭐ D156 (1c) · THE CARD BECOMES THE LONG POST. On Home the opened posting (the board's JobDetailPanel) is drawn in the
@@ -712,8 +713,19 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const [boardPost, setBoardPost] = useState(null);
   const boardPostRef = useRef(null);
   boardPostRef.current = boardPost;
+  const postOriginRef = useRef("deck");   // D168: the origin of the post on screen, kept while it fades out
+  if (boardPost) postOriginRef.current = boardPost.origin;
   const slotRef = useRef(null);
   const pendingDecision = useRef(null);   // a decision from the posting, made once the deck is on screen again
+  // ⭐ D168 · THE SWAP. `boardPost` is where the deck is going; `showPost` is what the stack shows now. Between them the
+  // content fades out, swaps and fades in (POST_FADE_MS each way) while the stack's height runs from the height measured
+  // before anything changed to the height measured after the swap — never a one-frame jump. `swap.h` is the locked
+  // height (null = auto, the resting state every swap ends in).
+  const [showPost, setShowPost] = useState(false);
+  const [swap, setSwap] = useState({ phase: "idle", h: null });
+  const stackRef = useRef(null);
+  const stackInnerRef = useRef(null);
+  const swapRun = useRef({ target: "deck", timer: 0, watchdog: 0 });
   // A75 (owner, 10-03): "ATS match" as a sort on the daily draft. The deal is frozen; the server reads it
   // back in ATS order when asked (the score itself never reaches the client). Remembered per browser.
   // ⭐ D149: chosen in Settings → Customise (the deck page has no controls row now); read once, here.
@@ -889,13 +901,14 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   }, [commit, geometry.zoom]);   // eslint-disable-line react-hooks/exhaustive-deps
   decideRef.current = decide;
   // ⭐ D156 (1c): the posting's decision on the deck's own card, made after the post has folded (the commit that shows
-  // the fan again has painted), so the card leaves as a decided card always does.
+  // the fan again has painted), so the card leaves as a decided card always does. ⭐ D168: once the SWAP has put the deck
+  // back (showPost false), not merely when the board let go — the fan is display: none until then.
   useEffect(() => {
-    if (boardPost || !pendingDecision.current) return;
+    if (boardPost || showPost || !pendingDecision.current) return;
     const d = pendingDecision.current;
     pendingDecision.current = null;
     decide(d);
-  }, [boardPost, decide]);
+  }, [boardPost, showPost, decide]);
 
   const step = useCallback((dir) => {
     if (stepTarget(stateRef.current, dir) == null) return false;
@@ -960,32 +973,55 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     window.addEventListener(DECK_DECIDE_EVENT, onDecide);
     return () => { window.removeEventListener(POSTING_ON_DECK_EVENT, onPost); window.removeEventListener(DECK_DECIDE_EVENT, onDecide); };
   }, [home]);
-  // Reading: a scroll UP with the post's top on screen folds it (home-sketch.html); otherwise the page scrolls.
+  // ⛔ D168: the post has NO wheel listener of its own any more (it folded on a scroll up at its top) — reading it is the
+  // page's scroll, and folding is Esc or "Fold it back".
+  // ⭐ D168 · THE SWAP, run. (1) The target changes (a press opened a posting, or it folded): the stack's height ON SCREEN
+  // is measured before anything moves and locked, and the content fades out. (2) After POST_FADE_MS the content swaps
+  // (the newest target wins — a burst of opens and folds just retargets) and (3) the end height is measured on the inner
+  // box, which nothing constrains, and the locked height runs to it while the content fades in; a late change to the new
+  // content (a description arriving) re-aims it. (4) Then the lock is dropped: the stack is auto-height again. A
+  // watchdog drops it anyway — the swap can never stick. Reduced motion swaps at once.
+  const postKey = home && boardPost ? `post:${boardPost.jobId}` : "deck";
+  useLayoutEffect(() => {
+    const run = swapRun.current;
+    if (!home || postKey === run.target) return;
+    run.target = postKey;
+    clearTimeout(run.timer);
+    clearTimeout(run.watchdog);
+    const stack = stackRef.current;
+    if (reduced || !stack) { setShowPost(postKey !== "deck"); setSwap({ phase: "idle", h: null }); return; }
+    setSwap({ phase: "out", h: stack.getBoundingClientRect().height });
+    run.timer = setTimeout(() => {
+      setShowPost(run.target !== "deck");
+      setSwap(sw => ({ phase: "swap", h: sw.h }));
+    }, POST_FADE_MS);
+    run.watchdog = setTimeout(() => { setShowPost(run.target !== "deck"); setSwap({ phase: "idle", h: null }); }, POST_FADE_MS * 2 + 600);
+  }, [home, postKey, reduced]);
+  useLayoutEffect(() => {
+    if (swap.phase !== "swap") return;
+    // The end: measured after the swap has committed, before it is shown (opacity is still 0).
+    const inner = stackInnerRef.current;
+    setSwap({ phase: "in", h: inner ? inner.offsetHeight : null });
+  }, [swap.phase]);
   useEffect(() => {
-    const el = slotRef.current;
-    if (!home || !boardPost || !el) return undefined;
-    let settleUntil = 0;
-    const onPostWheel = (e) => {
-      if (e.ctrlKey || Math.abs(e.deltaY) < Math.abs(e.deltaX) || e.deltaY >= 0) return;
-      if (el.getBoundingClientRect().top < 0) return;
-      // Only at the posting's own top: a scroll inside its long description reads back up first.
-      if (e.target?.closest?.("[data-panel-body], .pp__body") && e.target.closest("[data-panel-body], .pp__body").scrollTop > 0) return;
-      e.preventDefault();
-      const now = performance.now();
-      if (now >= settleUntil) { settleUntil = now + FOLD_SETTLE_MS; foldPost(); }
-    };
-    el.addEventListener("wheel", onPostWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onPostWheel);
-  }, [home, boardPost, foldPost]);
+    if (swap.phase !== "in") return undefined;
+    const inner = stackInnerRef.current;
+    const ro = inner && typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(() => setSwap(sw => (sw.phase === "in" ? { ...sw, h: inner.offsetHeight } : sw))) : null;
+    ro?.observe(inner);
+    const done = setTimeout(() => { clearTimeout(swapRun.current.watchdog); setSwap({ phase: "idle", h: null }); }, POST_FADE_MS + 40);
+    return () => { ro?.disconnect(); clearTimeout(done); };
+  }, [swap.phase]);
+  useEffect(() => () => { clearTimeout(swapRun.current.timer); clearTimeout(swapRun.current.watchdog); }, []);
   // Opening scrolls UP to the post when the reader is below it (a bubble far down the list — the sketch's scrollTo);
-  // folding returns them to where they were. Nothing else moves the page.
+  // folding returns them to where they were. Nothing else moves the page. ⭐ D168: at the swap (showPost), not the ask.
   const readFromY = useRef(null);
-  const reading = !!boardPost;
+  const reading = showPost;
   useLayoutEffect(() => {
     if (!home) return;
     if (reading) {
       if (readFromY.current == null) readFromY.current = window.scrollY;
-      const top = slotRef.current?.getBoundingClientRect().top;
+      const top = stackRef.current?.getBoundingClientRect().top;
       if (top != null && top < 0) window.scrollTo({ top: Math.max(0, window.scrollY + top - 20), behavior: "auto" });
     } else if (readFromY.current != null) {
       const y = readFromY.current;
@@ -1038,29 +1074,12 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     let acc = 0, settleUntil = 0;
     const onWheel = (e) => {
       if (expandedRef.current || e.ctrlKey) return;           // reading, or pinch-zoom: the page's
+      // ⭐ D168 (owner 11-06, concept B) · THE WHEEL HAS ONE JOB: over the deck, one flick turns one card — on the front
+      // card too, in either direction. It never opens or folds anything (D156 (1c)'s scroll-down-opens and D145's
+      // scroll-down "Why this job" are gone: a press or Enter opens). While a posting is open the page scrolls.
+      if (boardPostRef.current) return;                       // reading: the page scrolls
       const d = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
       const dir = d > 0 ? 1 : -1;
-      const onFront = Math.abs(e.deltaY) >= Math.abs(e.deltaX) && faceRef.current?.contains(e.target);
-      // ⭐ D156 (1c) · HOME: a scroll DOWN on the front card opens it into the long post (the slot then folds it on a scroll
-      // up at its top); any other flick turns the fan, one card per flick, as the deck always has.
-      if (home) {
-        if (boardPostRef.current) return;                     // reading: the page scrolls
-        if (onFront && dir > 0) {
-          e.preventDefault();
-          const now = performance.now();
-          if (now >= settleUntil) { settleUntil = now + FOLD_SETTLE_MS; openPost(); }
-          return;
-        }
-      } else if (onFront) {
-        // ⭐ D145 · scroll DOWN on the front card opens "Why this job"; scroll UP, with the card's top on screen, folds it. Open,
-        // a further scroll down reads on (the page scrolls). A vertical flick only — a sideways one still turns the fan.
-        const now = performance.now();
-        if (dir > 0 && !whyRef.current) { e.preventDefault(); if (now >= settleUntil) { settleUntil = now + 300; setWhy(true); } return; }
-        // Fold when the card's top is on screen (reading further down, a scroll up reads back up first).
-        const top = faceRef.current.getBoundingClientRect().top;
-        if (dir < 0 && whyRef.current && top >= 0) { e.preventDefault(); if (now >= settleUntil) { settleUntil = now + 300; setWhy(false); } return; }
-        if (whyRef.current) return;                           // open: the page scrolls
-      }
       if (stepTarget(stateRef.current, dir) == null) { acc = 0; return; }   // at an end: let the page scroll
       e.preventDefault();
       const now = performance.now();
@@ -1070,7 +1089,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [step, home, openPost, load.status, isFinished(state)]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, load.status, isFinished(state)]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onKey = (e) => {
@@ -1119,7 +1138,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
           the arc riding right with an open card's column is clipped at the SCREEN's edge. */}
       <div data-deck-clip style={{ overflowX: "clip" }}>
       {/* isolation: the fan's tiers are below CONTENT, and this keeps them above the page itself. */}
-      <div data-deck-orientation={orientation} data-deck-home={home ? "" : undefined} data-deck-reading={home && boardPost ? "true" : undefined}
+      <div data-deck-orientation={orientation} data-deck-home={home ? "" : undefined} data-deck-reading={home && showPost ? "true" : undefined}
         style={{ maxWidth: home ? homeDeckColumn(viewportW) : vertical ? 560 : 760, margin: "0 auto",
                  // ⭐ D149: the card's top at the sketch's 90 px — the chrome's 74 + 16 (App.jsx gives the deck no main padding).
                  // D152: on Home the column's own padding places it, and the fan's room is above the buttons (HOME_CARD.below).
@@ -1136,11 +1155,19 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
         {/* ⭐ D156 (1c) · THE LONG POST'S PLACE — the board draws the opened posting here (JobsPanel, a portal), in the front
             card's place; the deck's own content steps aside while it is open. Always in the document on Home, so the board
             can find it the moment a posting opens. */}
+        {/* ⭐ D168 · THE STACK — the slot and the deck's content, swapped as one: its height is locked only while a swap
+            runs (from the measured start to the measured end, clipped vertically so nothing spills), and the inner box's
+            opacity carries the fade. At rest it has no height of its own and no transition. */}
+        <div ref={stackRef} data-deck-stack="" data-swap={swap.phase}
+          style={swap.h != null ? { height: swap.h, overflowY: "clip", transition: `height ${POST_FADE_MS}ms ease-out` } : undefined}>
+        <div ref={stackInnerRef} data-deck-stack-inner=""
+          style={swap.phase === "idle" ? undefined
+            : { opacity: swap.phase === "in" ? 1 : 0, transition: `opacity ${POST_FADE_MS}ms ease`, pointerEvents: "none" }}>
         {home && (
-          <div id={DECK_POST_SLOT_ID} ref={slotRef} data-deck-post-slot="" data-open={boardPost ? "true" : "false"}
-            {...(boardPost ? { "data-post-origin": boardPost.origin } : { hidden: true })} />
+          <div id={DECK_POST_SLOT_ID} ref={slotRef} data-deck-post-slot="" data-open={showPost ? "true" : "false"}
+            {...(showPost ? { "data-post-origin": postOriginRef.current } : { hidden: true })} />
         )}
-        <div data-deck-content="" style={home && boardPost ? { display: "none" } : undefined}>
+        <div data-deck-content="" style={home && showPost ? { display: "none" } : undefined}>
         {/* The header and every non-deck state keep the deck's resting width; only the deck's grid is wide. */}
         <div style={{ maxWidth: vertical ? 560 : 760, margin: "0 auto" }}>
 
@@ -1263,6 +1290,8 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
             </div>
         )}
 
+        </div>
+        </div>
         </div>
         <DecisionToast toast={toast} onUndo={undo} undoKey="U" />
 

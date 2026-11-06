@@ -45,7 +45,7 @@ export function openMatchInPosting(jobId, { origin = "deck" } = {}) {
 // its own beside the list. The posting (JobDetailPanel) stays the board's (JobsPanel owns its data and actions); the deck
 // owns the slot it is drawn into. Four events, named once here:
 //   OPEN_POSTING_EVENT    the deck → the board: open job `jobId`'s posting (the front card expanding: origin "deck")
-//   CLOSE_POSTING_EVENT   the deck → the board: fold it (scroll up at its top, Esc, "Fold it back")
+//   CLOSE_POSTING_EVENT   the deck → the board: fold it (Esc, "Fold it back" — ⭐ D168: never the wheel)
 //   POSTING_ON_DECK_EVENT the board → the deck: which posting is drawn in the slot now ({ jobId, origin } or jobId null)
 //   DECK_DECIDE_EVENT     the board → the deck: the posting's Pass · Save · Draft on the deck's own card — the deck decides
 //                         (one commit, the deck's exits and toast), then the day's next card is in front again.
@@ -56,8 +56,20 @@ export const DECK_DECIDE_EVENT = "draft:deck-decide";
 /** The element id of the deck's slot the opened posting is drawn into (DeckView renders it on Home). */
 export const DECK_POST_SLOT_ID = "deck-post-slot";
 
+/**
+ * ⭐ D168 (owner 11-06, concept B) · THE SWAP's half: opening or folding, the deck's content fades OUT (this long), swaps,
+ * and fades IN (this long) while its height animates from the measured start to the measured end — ≈ 180 ms in all.
+ * The board's posting on the deck lags a change away from it by the same half, so the outgoing posting fades with its
+ * own content (JobsPanel's deckPostJob); DeckView runs the swap.
+ */
+export const POST_FADE_MS = 90;
+
 const emit = (name, detail) => { if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(name, { detail })); };
-/** Ask the board to open job `jobId`'s posting on the deck. */
+/**
+ * Ask the board to open job `jobId`'s posting on the deck. ⭐ D168: THE ONE OPEN PATH on the jobs page — the deck's front
+ * card (a press, Enter, "Open the posting": origin "deck") and a posting bubble (a press: origin "board") both call this;
+ * the board's one listener opens it. The wheel never does.
+ */
 export function openPostingOnDeck(jobId, { origin = "deck" } = {}) { if (jobId) emit(OPEN_POSTING_EVENT, { jobId: String(jobId), origin }); }
 /** Ask the board to fold the posting drawn on the deck. */
 export function closePostingOnDeck() { emit(CLOSE_POSTING_EVENT, {}); }

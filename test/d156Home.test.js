@@ -99,17 +99,20 @@ test("d156DeckBehaviourAsDeckView (pure): one flick one card, the flip timings, 
 test("d156CardExpandsIntoLongPost / d156NoSeparatePostingPanel / d156ListPostingOpensOnDeck (pure)", () => {
   const url = read("client/src/lib/jobUrl.js");
   for (const e of ["OPEN_POSTING_EVENT", "CLOSE_POSTING_EVENT", "POSTING_ON_DECK_EVENT", "DECK_DECIDE_EVENT", "DECK_POST_SLOT_ID"]) assert.match(url, new RegExp(`export const ${e} = `));
-  // the deck: a scroll down on the front card, a press, Enter, "Open the posting" open it; the slot folds it on a scroll up
-  assert.match(DECK, /if \(onFront && dir > 0\) \{\n\s+e\.preventDefault\(\);\n\s+const now = performance\.now\(\);\n\s+if \(now >= settleUntil\) \{ settleUntil = now \+ FOLD_SETTLE_MS; openPost\(\); \}/);
+  // the deck: a press, Enter, "Open the posting" open it (⭐ D168, changed on purpose: never the wheel — test/d168OneWayToOpen)
+  assert.doesNotMatch(DECK, /FOLD_SETTLE_MS|onPostWheel/, "D168: no scroll-down-opens, no scroll-up-folds");
   assert.match(DECK, /if \(home\) onOpenPost\?\.\(\); else onWhy\?\.\(true\);/);
   assert.match(DECK, /if \(home\) openPost\(\); else setWhy\(v => !v\);/);
   assert.match(DECK, /<div id=\{DECK_POST_SLOT_ID\} ref=\{slotRef\} data-deck-post-slot=""/);
-  assert.match(DECK, /<div data-deck-content="" style=\{home && boardPost \? \{ display: "none" \} : undefined\}>/, "the fan steps aside while the post is open");
+  // ⭐ D168: at the swap (showPost), after the fade-out — not the moment the board asks.
+  assert.match(DECK, /<div data-deck-content="" style=\{home && showPost \? \{ display: "none" \} : undefined\}>/, "the fan steps aside while the post is open");
   const fh = read("client/src/components/FullHouse.css");
   assert.match(fh, /\.home__deck:has\(\[data-deck-reading="true"\]\) \{ position: relative; top: auto; \}/, "not sticky while reading");
   // the board: the posting is portalled onto the deck; the in-place posting beside the list is gone
   const jp = read("client/src/panels/JobsPanel.jsx");
-  assert.match(jp, /\{besideMode && deckSlot && createPortal\(\n\s+<JobDetailPanel key="panel-jd" slot=\{0\} fullScreen=\{false\} beside onDeck/);
+  // ⭐ D168 (changed on purpose): the posting drawn is deckPostJob — the beside-mode selection, held a fade longer as it goes.
+  assert.match(jp, /const deckPostTarget = besideMode \? selectedJob : null;/);
+  assert.match(jp, /\{deckPostJob && deckSlot && createPortal\(\n\s+<JobDetailPanel key="panel-jd" slot=\{0\} fullScreen=\{false\} beside onDeck job=\{deckPostJob\}/);
   assert.doesNotMatch(jp, /post=\{besideMode/);
   assert.doesNotMatch(read("client/src/components/JobBubble.jsx"), /data-board-post|jb-board__post/);
   assert.doesNotMatch(fh, /\[data-board-post\]/);
@@ -236,14 +239,16 @@ test("d156 real Chrome (1440 · 1280 · 390): the card, the flip, the dock, the 
       // ✅ APPROVED 11-06 by the owner (O99 (b): the phone keeps the full-screen posting).
       assert.deepEqual([p.overlay, p.slotOpen, p.overlayClosed], [true, false, true], "phone: the full-screen posting, closed by Esc");
     } else {
-    assert.equal(p.openedByWheel, true, `${size}: a scroll down on the front card opens it into the long post`);
+    // ⭐ D168 (changed on purpose): a scroll down on the front card TURNS the deck; a press opens the long post.
+    assert.equal(p.wheelOpened, false, `${size}: the wheel never opens the card`); assert.equal(p.wheelTurned, true, `${size}: it turns the deck`);
+    assert.equal(p.openedByPress, true, `${size}: a press on the front card opens it into the long post`);
     assert.equal(p.postTitle, p.title, `${size}: the post is the front card's job`);
     assert.equal(p.factsInSlot, true); assert.equal(p.inSlot, true, `${size}: drawn in the deck's column`);
     assert.equal(p.stageHidden, true, `${size}: the fan is put away while it is open`);
     if (size !== "phone") assert.equal(p.deckPosition, "relative", `${size}: the deck column is not sticky while reading`);
     assert.equal(p.boardPost, false, `${size}: no posting panel beside the list`); assert.equal(p.listShown, true);
     assert.equal(p.foldLabel, "Fold it back");
-    assert.equal(p.foldedByWheelUp, true, `${size}: a scroll up at its top folds it`); assert.equal(p.backTo, p.title);
+    assert.equal(p.wheelFolded, false, `${size}: D168 — a scroll up never folds it`); assert.equal(p.backTo, p.title);
     assert.deepEqual([p.openedByEnter, p.foldedByEsc, p.openedByButton, p.foldedByButton], [true, true, true, true], `${size}: Enter / Esc / Open the posting / Fold it back`);
     if (size !== "phone") {
       assert.equal(p.listOpensOnDeck, true, `${size}: a bubble's posting opens on the deck`);
