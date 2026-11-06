@@ -54,7 +54,7 @@ export const TOUR_SCRIPT = Object.freeze([
   { id: "auto_settings", route: "/app/auto-apply", target: "[data-auto-settings]", example: true, settings: true,
     text: "Auto settings: how many a day, when draft looks, and which jobs. Try one if you like; we put them back when you press Next.",
     short: "How many a day, when, which jobs. We put them back." },
-  { id: "atlas_map", route: "/app/atlas", target: "[data-your-map]",
+  { id: "atlas_map", route: "/app/atlas/your-map", target: "[data-your-map]",   // ⭐ D167: the map is Atlas's Your map panel
     text: "Your map, built from the résumé: coloured skills are the ones it shows, grey ones are the next step up.",
     short: "What the résumé shows, and what's next." },
   { id: "atlas_learn", route: "/app/atlas/learn", target: "[data-learn-wheel]",
