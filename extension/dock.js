@@ -241,6 +241,29 @@
   const send = (msg) => new Promise((resolve) => {
     try { chrome.runtime.sendMessage(msg, (reply) => { void chrome.runtime.lastError; resolve(reply ?? null); }); } catch { resolve(null); }
   });
+  /** ⭐ O100 (a): the bound job as the dock may hold it — a title and a company for the button's words, nothing else. */
+  const jobOf = (j) => (j && typeof j === 'object' && (j.title || j.company)
+    ? { title: String(j.title || '').slice(0, 120), company: String(j.company || '').slice(0, 120) } : null);
+  /**
+   * ⭐ O100 (a): the header's "I submitted it" — asked once more as the dock's question (the review panel's own words), and
+   * recorded only on the person's own Yes: DOCK_SUBMITTED, which the service worker records against THIS tab's page and
+   * its bound job (gated-handoff.js recordSubmitted — the page is the evidence, A63). The answer is said as a toast.
+   */
+  const askSubmitted = async (f, btn) => {
+    const POP = globalThis.__draftPopups;
+    if (!POP?.show) return;
+    const at = f.job?.company ? ` to ${f.job.company}` : '';
+    const answer = await POP.show({ id: 'rm-draft-submitted', kind: 'question', icon: 'submitted', theme: f.theme,
+      text: `Did you submit your application${at} yourself?`,
+      actions: [{ id: 'yes', label: 'Yes — record it', icon: 'check', primary: true }, { id: 'no', label: 'Not yet', icon: 'close' }] });
+    if (answer?.action !== 'yes' || !answer.trusted) return;
+    btn.disabled = true;
+    const reply = await send({ type: 'DOCK_SUBMITTED', trigger: 'click' });
+    btn.disabled = false;
+    const ok = !!reply?.ok;
+    void POP.show({ id: 'rm-draft-submitted-said', kind: 'toast', icon: ok ? 'check' : 'need', tone: ok ? 'ok' : 'need', theme: f.theme,
+      text: reply?.message || (ok ? 'Recorded.' : 'Could not record it — record it in your tracker.') });
+  };
 
   const FRAME_CSS = (theme, logo) => `
     :host { all: initial; ${varsOf(theme?.light)} }
@@ -455,6 +478,14 @@
     // ⭐ T26 / T29: every setting lives on the extension's settings page; the gear opens it (the service worker opens the
     // tab — a page cannot). It is the dock's, not a pop-out's.
     const gearBtn = `<button class="ib" data-role="settings" aria-label="draft settings" title="Settings">${icon('settings')}</button>`;
+    // ⭐ O100 (a) (owner 11-06): "I submitted it" in the dock on a tab BOUND to a job — it stays after the form's page
+    // has gone (the confirmation page is the evidence), where the review panel's own button cannot. Asked once more as
+    // the dock's question; recorded only on the person's own Yes (the service worker's DOCK_SUBMITTED).
+    const submittedBtn = () => {
+      const at = f.job?.company ? ` to ${f.job.company}` : '';
+      const words = `I submitted my application${at} — record it in draft`;
+      return `<button class="ib" data-role="submitted" aria-label="${esc(words)}" title="${esc(words)}">${icon('submitted')}</button>`;
+    };
 
     f.draw = () => {
       apply();
@@ -513,6 +544,7 @@
           ${kind === 'dock' ? `<button class="ib" data-role="pop" aria-label="Open this tab in its own window" title="Open this tab in its own window">${icon('pop')}</button>`
             : `<button class="ib" data-role="dock-back" aria-label="Back into the dock" title="Back into the dock">${icon('dockBack')}</button>`}
           <button class="ib" data-role="collapse" aria-label="Collapse the panel" title="Collapse">${icon('minimise')}</button>
+          ${kind === 'dock' && f.job ? submittedBtn() : ''}
           ${kind === 'dock' ? gearBtn : ''}
           <button class="ib" data-role="close" aria-label="${kind === 'dock' ? 'Close the panel' : 'Back into the dock'}" title="${kind === 'dock' ? 'Close (Esc)' : 'Back into the dock'}">${icon('close')}</button>
         </div>
@@ -666,6 +698,7 @@
       if (role === 'pop') { f.onPop?.(); return; }
       // ⛔ the person's own click only — a page script's click opens nothing
       if (role === 'settings') { if (ev.isTrusted) void send({ type: 'OPEN_SETTINGS', trigger: 'click' }); return; }
+      if (role === 'submitted') { if (ev.isTrusted) void askSubmitted(f, btn); return; }
       if (role === 'dock-back') { if (kind === 'dock') f.onDockBackTab?.(btn.dataset.tab); else onDockBack?.(); return; }
       if (role === 'load') onLoad?.(btn.dataset.tab, ev.isTrusted);
       // The empty Fill tab's one action: the SAME press as the popup's Fill it and Ctrl+Shift+Y (it reads, prepares and
@@ -785,6 +818,8 @@
       onChange: save, onClose: closeAll, onSelect: (t, o) => select(t, o), onLoad: (t, trusted) => { if (trusted) loadTab(t); } });
     frame.active = saved.tab;
     frame.popped = new Set();
+    frame.theme = meta.theme;
+    frame.job = jobOf(meta.job);                                    // ⭐ O100 (a): the tab's bound job, or null
     frame.onPop = () => popOut(frame.active);
     frame.onFill = async () => {
       frame.filling = true; frame.fillSaid = ''; frame.fillCount = null;
@@ -850,6 +885,9 @@
           loadLogo(m.theme);
         }
         if (m && 'cues' in m) for (const f of [frame, ...pops.values()]) { if (m.cues) f.host.setAttribute('data-cues', 'shape'); else f.host.removeAttribute('data-cues'); }
+        if (m?.theme) frame.theme = m.theme;
+        // ⭐ O100 (a): a later draw says whether this tab is (still) bound to a job — the header's "I submitted" follows it
+        if (m && 'job' in m) { const j = jobOf(m.job); if (JSON.stringify(j) !== JSON.stringify(frame.job)) { frame.job = j; frame.draw(); } }
       },
       /**
        * The host element for a tab's view — a fresh one (the tab's previous view is cleaned up and removed). The caller

@@ -649,6 +649,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   // D56: "I submitted it" in the review overlay — the overlay's own tab is the page recorded.
+  // ⭐ O100 (a) (owner 11-06): "I submitted it" from the DOCK's header on a tab bound to a job — after the person's own Yes
+  // (dock.js askSubmitted). It lasts past the form's page: the page now in the tab (the employer's confirmation) is the
+  // evidence, the tab's binding names the job. ⛔ The click's own message from the page's TOP frame only.
+  if (msg?.type === 'DOCK_SUBMITTED') {
+    if (msg.trigger !== 'click' || sender?.frameId !== 0 || !sender?.tab?.id) { sendResponse({ ok: false, message: 'Record it from the dock on the application page.' }); return true; }
+    recordSubmitted({ serverUrl: RESUME_MASTER_URL, tab: sender.tab })
+      .then(r => sendResponse(r)).catch(() => sendResponse({ ok: false, message: 'Could not record it.' }));
+    return true;
+  }
   if (msg?.type === 'GATE_SUBMITTED') {
     if (!sender.tab?.id) { sendResponse({ ok: false, message: 'No tab.' }); return true; }
     recordSubmitted({ serverUrl: RESUME_MASTER_URL, tab: sender.tab })
