@@ -134,6 +134,19 @@ const TRK = (() => {
 })();
 // ── end TRACKER fixtures ──────────────────────────────────────────────────────────────────────────────────────────
 
+// ⭐ D163: the Atlas home as a new reader sees it (no résumé yet: the prompt, Explore by role) — with no answer at all its
+// main column is empty and only the side column draws, which measures a fixture, not the layout.
+const ATLAS163 = { ...SETTINGS, "/api/atlas/me": { signedIn: true, prompt: "Add your résumé and the Atlas draws your map: the skills you have, the ones the roles you want ask for, and the next one to learn.",
+  exploreByRole: { items: [
+    { slug: "data-engineer", name: "Data Engineer", postings: 412, topSkills: [{ name: "Python" }, { name: "SQL" }, { name: "Spark" }] },
+    { slug: "machine-learning-engineer", name: "Machine Learning Engineer", postings: 268, topSkills: [{ name: "Python" }, { name: "PyTorch" }] },
+    { slug: "backend-engineer", name: "Backend Engineer", postings: 530, topSkills: [{ name: "Go" }, { name: "Postgres" }] },
+  ] }, recent: [] } };
+
+// ⭐ D163: the account page as a password account with one session (with {} the sessions list throws on .filter).
+const ACCOUNT163 = { ...SETTINGS, "/api/account": { username: "ada", email: "ada@example.invalid", displayName: "Ada", signInMethods: { password: true } },
+  "/api/account/sessions": { sessions: [{ id: 1, current: true, device: "Chrome on Windows", lastSeenAt: now }], apps: [] } };
+
 // ── The screens ───────────────────────────────────────────────────────────────────────────────────────────────────
 // sketch: the file; sketchPrep: hide the sketch's own controls (they are not the design); app: the route, its fixtures,
 // and what to press so the app shows the sketch's state.
@@ -191,6 +204,25 @@ const SCREENS = {
   "home-wide": { sketch: "home-sketch.html", app: "/app", fixtures: HOME156, ready: "[data-home-board]",
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440] },
     sketchPrep: async () => { await sleep(1700); }, appPrep: async () => { await sleep(1200); } },
+  // ⭐ D163 · USE THE SPACE, the other screens — measured, not compared (`--styles screens163 [route,…]`): the tracker
+  // (Draft House), the settings drawer over it, Atlas, Profile, Account, Customise, Integrations, Saved answers and Admin,
+  // at 1280 / 1440 / 1920 / 2560 and the phone, each by the same probe (the content group's free space either side, the
+  // root's box, anything flush to an edge). Shot as docs/fidelity-shots/screens163-<route>-<width>.png.
+  screens163: { sketch: null, shoot: true,
+    sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
+    routes: {
+      tracker: { app: "/app/auto-apply", fixtures: TRK, ready: "[data-tracker-table] tbody tr", appPrep: async () => { await sleep(600); } },
+      settings: { app: "/app/auto-apply", fixtures: TRK, ready: "[data-settings-open]", probe: { root: "[data-settings-drawer]" },
+        appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(700); } },
+      atlas: { app: "/app/atlas", fixtures: ATLAS163, ready: "main", appPrep: async () => { await sleep(900); } },
+      profile: { app: "/app/profile", fixtures: SETTINGS, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
+      account: { app: "/app/account", fixtures: ACCOUNT163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
+      customise: { app: "/app/customise", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
+      integrations: { app: "/app/integrations", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
+      "saved-answers": { app: "/app/saved-answers", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
+      admin: { app: "/admin", fixtures: { "/api/admin/auth/me": { authenticated: true, enforced: true, admin: { email: "admin@example.invalid" } },
+        "/api/auth/me": { authenticated: false } }, strict: true, ready: "h1", probe: { root: 'div[style*="max-width: 1200px"]' }, appPrep: async () => { await sleep(900); } },
+    } },
   deck: { sketch: "declutter-v7.html", app: "/app", fixtures: DECK, ready: "[data-deck-face]" },
   fullhouse: { sketch: "fullhouse-declutter.html", app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-fh-title]",
     appPrep: async (page) => {   // the sketch shows the first posting open beside the list
@@ -547,6 +579,56 @@ const STYLE_PROBES = {
   // edge — the dock keeps its own gutter) and right of it (to the viewport's edge), the gap between the two columns, the
   // side gutters, the deck (card + fan) inside its column, the dock's vertical centre, anything flush to an edge, and the
   // bubbles' width — at rest and with the dock expanded (it still pushes the page, D156 (3)).
+  // ⭐ D163 · USE THE SPACE, the other screens — ONE probe for every screen (`--styles screens163 [tracker,atlas,…]`):
+  // the screen's content group (the union of what is DRAWN inside its root — leaves, and boxes with their own background
+  // or border, so an empty container does not count as content), the free space left of it (from the dock's right edge,
+  // or the viewport's left edge where a screen has no dock — Admin) and right of it, the root's own box, anything within
+  // 8 px of an edge, and whether the page scrolls sideways.
+  screens163: async (arg) => {
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const q = (s, root = document) => root.querySelector(s);
+    const qa = (s, root = document) => [...root.querySelectorAll(s)];
+    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), width: Math.round(r.width), height: Math.round(r.height) }; };
+    const union = (bs) => bs.filter(Boolean).reduce((u, b) => u ? { left: Math.min(u.left, b.left), top: Math.min(u.top, b.top), right: Math.max(u.right, b.right), bottom: Math.max(u.bottom, b.bottom) } : { ...b }, null);
+    const vw = document.documentElement.clientWidth, vh = window.innerHeight;
+    await wait(300);
+    const root = q(arg?.root || "main");
+    if (!root) return { vw, vh, missing: arg?.root || "main" };
+    const visible = (e) => { for (let p = e; p && p !== root.parentElement; p = p.parentElement) { const cs = getComputedStyle(p); if (Number(cs.opacity) === 0 || cs.visibility === "hidden" || cs.display === "none") return false; } const r = e.getBoundingClientRect(); return r.width > 1 && r.height > 1; };
+    const canvas = ["[data-app-shell]", "#root", "body", "html"].map(sel => q(sel)).filter(Boolean).map(e => getComputedStyle(e).backgroundColor)
+      .find(c => c !== "rgba(0, 0, 0, 0)" && c !== "transparent") || null;
+    const drawn = (e) => {
+      if (e.children.length === 0 || e.matches("svg, img, canvas, input, textarea, select, button, hr")) return !e.closest("svg *");
+      const cs = getComputedStyle(e);
+      const bg = cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent" && cs.backgroundColor !== canvas;
+      const border = ["Top", "Right", "Bottom", "Left"].some(s => parseFloat(cs[`border${s}Width`]) > 0 && cs[`border${s}Style`] !== "none");
+      return (bg || border) && e !== root;
+    };
+    const ink = (e) => {
+      if (e.children.length || !e.textContent.trim() || e.matches("input, textarea, select, button")) return box(e);
+      const cs = getComputedStyle(e);
+      const painted = (cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== canvas) || parseFloat(cs.borderLeftWidth) > 0 || parseFloat(cs.borderTopWidth) > 0;
+      if (painted) return box(e);
+      const r = document.createRange(); r.selectNodeContents(e); const t = r.getBoundingClientRect();
+      return t.width > 0 ? { left: Math.round(t.left), top: Math.round(t.top), right: Math.round(t.right), bottom: Math.round(t.bottom), width: Math.round(t.width), height: Math.round(t.height) } : null;
+    };
+    const dockEl = q("[data-nav-dock]");
+    const dock = dockEl && visible(dockEl) ? box(dockEl) : null;
+    const dockRight = dock ? dock.right : 0;
+    const els = qa("*", root).filter(e => !e.closest("[data-nav-dock]") && getComputedStyle(e).position !== "fixed" && drawn(e) && visible(e))
+      .map(e => ({ e, b: ink(e) })).filter(({ b }) => b && b.top < vh && b.bottom > 0);
+    const g = union(els.map(x => x.b));
+    const leaves = union(els.filter(({ e }) => e.children.length === 0 || e.matches("svg, img, canvas, input, textarea, select, button")).map(x => x.b));
+    const flush = els.filter(({ b }) => b.left < dockRight + 8 || b.right > vw - 8).slice(0, 6)
+      .map(({ e, b }) => `${e.tagName.toLowerCase()}.${String(e.className?.baseVal ?? e.className).split(" ")[0]} ${b.left}–${b.right}`);
+    const rb = box(root);
+    return { vw, vh, dock, root: rb, group: g,
+      leftFree: g ? g.left - dockRight : null, rightFree: g ? vw - g.right : null,
+      rootLeftFree: rb ? rb.left - dockRight : null, rootRightFree: rb ? vw - rb.right : null,
+      leaves, insetL: leaves && rb ? leaves.left - rb.left : null, insetR: leaves && rb ? rb.right - leaves.right : null,
+      dockMid: dock ? (dock.top + dock.bottom) / 2 : null,
+      flush, sideScroll: document.documentElement.scrollWidth > vw + 1 };
+  },
   home163: async () => {
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     const q = (s, root = document) => root.querySelector(s);
@@ -894,9 +976,19 @@ if (process.argv[2] === "--styles") {
   const vite = await startVite();
   const browser = await puppeteer.launch({ executablePath: resolution.path, headless: "new", pipe: true, args: ["--no-first-run", "--no-default-browser-check"] });
   const out = {};
+  // ⭐ D163: a screen may name several ROUTES (`routes: { tracker: { app, fixtures, ready, appPrep, probe }, … }`), each
+  // measured at the screen's sizes by the screen's probe (handed the route's `probe` argument): out[route][size], and its
+  // shot docs/fidelity-shots/<screen>-<route>-<size>.png. `--styles <screen> a,b` measures only routes a and b.
+  const pickRoutes = process.argv[4] ? process.argv[4].split(",") : null;
+  const targets = s.routes ? Object.entries(s.routes).filter(([k]) => !pickRoutes || pickRoutes.includes(k)) : [[null, s]];
   try {
+   for (const [routeId, t] of targets) {
+    const sink = routeId ? (out[routeId] = {}) : out;
     for (const [size, [w, h]] of Object.entries(s.sizes || SIZES)) {
+      const shotName = routeId ? `${id}-${routeId}-${size}` : `${id}-app-${size}`;
       const page = await browser.newPage();
+      const pageErrors = [];
+      page.on("pageerror", e => pageErrors.push(String(e.message).slice(0, 200)));
       await page.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 500, hasTouch: w < 500 });
       await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }, { name: "prefers-reduced-motion", value: "reduce" }]);
       await page.setRequestInterception(true);
@@ -906,20 +998,26 @@ if (process.argv[2] === "--styles") {
         const u = new URL(raw);
         if (selfHostedFont(u, req)) return;
         if (!u.pathname.startsWith("/api/")) return req.continue();
-        req.respond({ status: 200, contentType: "application/json", body: JSON.stringify(s.fixtures[u.pathname] ?? COMMON[u.pathname] ?? {}) });
+        const answer = t.fixtures[u.pathname] ?? COMMON[u.pathname];
+        // D163: a route marked `strict` answers what its fixtures do not hold with a 404 (the screen shows its own "could
+        // not load" line) instead of {} (which Profile, Account and Admin read as data, and crash on).
+        if (answer === undefined && t.strict) return req.respond({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "Not in the fixtures." }) });
+        req.respond({ status: 200, contentType: "application/json", body: JSON.stringify(answer ?? {}) });
       });
       await page.evaluateOnNewDocument(() => { try { localStorage.setItem("draft-theme", "dusk-dark"); localStorage.setItem("draft:extension-prompt-seen", "1"); } catch {} });
-      await page.goto(`${vite.url}${s.app}`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
+      await page.goto(`${vite.url}${t.app}`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
       await page.evaluateHandle("document.fonts.ready").catch(() => {});
-      if (s.ready) await page.waitForSelector(s.ready, { timeout: 30000 }).catch(() => {});
+      if (t.ready) await page.waitForSelector(t.ready, { timeout: 30000 }).catch(() => {});
       await sleep(900);
-      if (s.appPrep) await s.appPrep(page);   // D149: the screen's own state (Full House: the first posting open)
+      if (t.appPrep) await t.appPrep(page);   // D149: the screen's own state (Full House: the first posting open)
       // ⭐ D156: a screen that asks for it is also shot as it is measured (docs/fidelity-shots/<screen>-app-<size>.png).
-      if (s.shoot) { fs.mkdirSync(OUT, { recursive: true }); fs.writeFileSync(path.join(OUT, `${id}-app-${size}.png`), await page.screenshot({ type: "png" })); }
-      out[size] = await page.evaluate(STYLE_PROBES[id]);
-      if (s.nodeProbe) Object.assign(out[size], await s.nodeProbe(page));
+      if (s.shoot) { fs.mkdirSync(OUT, { recursive: true }); fs.writeFileSync(path.join(OUT, `${shotName}.png`), await page.screenshot({ type: "png" })); }
+      sink[size] = await page.evaluate(STYLE_PROBES[id], t.probe ?? null);
+      if (s.nodeProbe) Object.assign(sink[size], await s.nodeProbe(page));
+      if (routeId && pageErrors.length) sink[size].pageErrors = pageErrors.slice(0, 3);   // D163: a screen that did not draw says why
       await page.close();
     }
+   }
   } finally { await browser.close(); vite.proc.kill(); }
   console.log(JSON.stringify(out));
   process.exit(0);
