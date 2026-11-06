@@ -305,7 +305,11 @@ export function IntegrationsPanel() {
   }
 
   return (
-    <div style={{ flex:1, overflowY:"auto", background:"var(--color-bg)", padding:"28px 24px 44px" }}>
+    // ⭐ D163 (owner 11-05: "crammed into a corner … whenever there is space they should be centred"): NO page fill. The
+    // wrapper painted var(--color-bg) (= --bg-page = SURFACE, the glass) from the dock's edge to the viewport's right edge,
+    // a lighter slab flush against the screen at every width while the cards sat centred inside it (measured: the slab
+    // 72–1920 at 1920, the cards 434 / 434 from its sides). The page is the substrate, as on the board (JobsPanel, 09-30).
+    <div style={{ flex:1, overflowY:"auto", padding:"28px 24px 44px" }}>
       <div style={{ maxWidth:980, margin:"0 auto", display:"flex", flexDirection:"column", gap:16 }}>
         <div>
           <div style={{ fontFamily: "var(--font-display)", fontSize:28,
