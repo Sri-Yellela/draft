@@ -241,7 +241,7 @@ async function redealIfBetter(db, { userId, profileId, date, rows, fetchBoardPag
 }
 
 export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, reportFor = () => null, size = DECK_SIZE,
-                                       order = "dealt", scoreFor = () => null, betFor = null, refresh = false }) {
+                                       order = "dealt", scoreFor = () => null, betFor = null, warmBets = null, refresh = false }) {
   let rows = readDeal(db, userId, profileId, date);
   let dealtNow = false;
   let reshuffled = false;
@@ -286,6 +286,10 @@ export async function todaysDeck(db, { userId, profileId, date, fetchBoardPage, 
              report: snap.report ?? null };
   });
   // D152 (3): each card's best-bets reading (its score and reasons), read at serve time — never frozen into the deal.
+  // ⛔ D151 · `warmBets(jobs)` (server.js: the cards' company velocity through the read-worker pool) runs first, so the
+  // synchronous betFor below reads a warm cache instead of walking job_history on the loop. A failed warm is ignored —
+  // betFor then reads as before (never fails closed).
+  if (betFor && warmBets) { try { await warmBets(dealtCards.map(c => c.job)); } catch { /* betFor reads it itself */ } }
   if (betFor) for (const c of dealtCards) { try { c.bestBet = betFor(c.job) ?? null; } catch { c.bestBet = null; } }
   const cards = order === "ats" ? orderByAts(dealtCards, scoreFor) : order === "best" ? orderByBest(dealtCards) : dealtCards;
   return {

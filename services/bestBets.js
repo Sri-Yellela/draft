@@ -44,11 +44,51 @@ function velocityOf(db, company, now) {
   if (hit && hit.db === db && Math.abs(now - hit.at) < VELOCITY_TTL_SEC) return hit.value;
   const r = safe(() => db.prepare(`SELECT MIN(first_seen) AS first, SUM(CASE WHEN closed_at >= ? THEN 1 ELSE 0 END) AS closed60
       FROM job_history WHERE company_key = ?`).get(now - 60 * DAY, key), null);
-  const value = r?.first ? { watchedDays: Math.floor((now - r.first) / DAY), closed60: r.closed60 ?? 0 } : null;
+  const value = velocityValue(r, now);
   if (velocityCache.size > 20000) velocityCache.clear();
   velocityCache.set(key, { db, at: now, value });
   return value;
 }
+
+const velocityValue = (r, now) => (r?.first ? { watchedDays: Math.floor((now - r.first) / DAY), closed60: r.closed60 ?? 0 } : null);
+const VELOCITY_WARM_CHUNK = 400;   // bound parameters per IN list (SQLite's default limit is far above this)
+
+/**
+ * ⛔ D151 (A126's pattern) · the velocity cache, filled for a page of postings' companies in ONE grouped read per chunk,
+ * through `read` — server.js hands the read-worker pool (services/db/readWorker.js), so the cold-cache walk of every
+ * job_history row of every company on a best-bets call (measured: the "best-bets' first call" left on the loop after
+ * A126 (2)) runs off the event loop. Without `read` (tests, scripts) it reads `db` directly, as readerOf does.
+ * ⭐ NEVER FAILS CLOSED: a read that rejects warms nothing, and velocityOf then reads each company itself, as before.
+ * The values are velocityOf's exactly (the same columns, the same 60-day window, a company with no history → null).
+ * @returns {Promise<number>} companies warmed
+ */
+export async function warmVelocity(db, companies, { read = null, now = Math.floor(Date.now() / 1000) } = {}) {
+  const keys = [...new Set((companies || []).map(c => companyNameKey(c || "")).filter(Boolean))].filter(k => {
+    const hit = velocityCache.get(k);
+    return !(hit && hit.db === db && Math.abs(now - hit.at) < VELOCITY_TTL_SEC);
+  });
+  if (!keys.length) return 0;
+  const reader = read ?? { all: async (sql, params = []) => db.prepare(sql).all(...params) };
+  let warmed = 0;
+  for (let i = 0; i < keys.length; i += VELOCITY_WARM_CHUNK) {
+    const chunk = keys.slice(i, i + VELOCITY_WARM_CHUNK);
+    let rows;
+    try {
+      rows = await reader.all(`SELECT company_key AS k, MIN(first_seen) AS first, SUM(CASE WHEN closed_at >= ? THEN 1 ELSE 0 END) AS closed60
+          FROM job_history WHERE company_key IN (${chunk.map(() => "?").join(",")}) GROUP BY company_key`, [now - 60 * DAY, ...chunk]);
+    } catch { return warmed; }
+    const got = new Map((rows || []).map(r => [r.k, r]));
+    if (velocityCache.size + chunk.length > 20000) velocityCache.clear();
+    for (const k of chunk) velocityCache.set(k, { db, at: now, value: velocityValue(got.get(k), now) });
+    warmed += chunk.length;
+  }
+  return warmed;
+}
+
+// One loop turn handed back between cards: up to 200 cards × a handful of indexed reads each is short, but it is not
+// one stretch — a health check or another person's request is served between them.
+const BREATHE_EVERY = 25;
+const breathe = () => new Promise(resolve => setImmediate(resolve));
 
 /**
  * One posting's signals for one user.
@@ -107,7 +147,7 @@ export function bestBetSignalsFor(db, { userId, profileId = null, job, userLevel
  * @param deps { userId, profileId, size, fetchBoardPage(cursor) → { ok, jobs, nextCursor, total? }, now }
  * @returns {{ size, considered, matches, bets: [{ job, bestBet }], calibrated: false }}
  */
-export async function bestBetsFor(db, { userId, profileId = null, size = undefined, fetchBoardPage, now = Math.floor(Date.now() / 1000) }) {
+export async function bestBetsFor(db, { userId, profileId = null, size = undefined, fetchBoardPage, read = null, now = Math.floor(Date.now() / 1000) }) {
   const want = shortlistSize(size);
   const inputs = safe(() => userEligibilityInputs(db, userId), { defaults: {}, degrees: [] });
   const needsSponsorship = inputs.defaults?.sponsorship_now === "yes" || inputs.defaults?.sponsorship_later === "yes";
@@ -126,9 +166,12 @@ export async function bestBetsFor(db, { userId, profileId = null, size = undefin
     if (!page.nextCursor) break;
     cursor = page.nextCursor;
   }
+  // D151 · the companies' velocity in one grouped read through the pool (off the loop) before the per-card pass.
+  await warmVelocity(db, jobs.map(j => j.company), { read, now });
   const scored = [];
   let unscored = 0;
   for (const [i, j] of jobs.entries()) {
+    if (i && i % BREATHE_EVERY === 0) await breathe();
     const id = String(j.id ?? j.job_id);
     if (done.has(id)) continue;                                                     // already drafted or applied
     if (j.isActive === false) continue;                                             // closed

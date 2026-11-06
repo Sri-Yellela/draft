@@ -98,7 +98,7 @@ import { runHiringSignalsRollup } from "./services/jobs/hiringSignals.js";
 // ⭐ D107: every posting's first seen / last seen / closed, kept after its board row goes; reposts read from it.
 import { recordJobHistory, livenessForRows } from "./services/jobs/jobHistory.js";
 import { scoreGhosts, ghostForRows, calibrateGhostThreshold, ghostRates } from "./services/jobs/ghostScore.js";
-import { bestBetsFor, refitBestBets, bestBetSignalsFor } from "./services/bestBets.js";
+import { bestBetsFor, refitBestBets, bestBetSignalsFor, warmVelocity } from "./services/bestBets.js";
 import { bestBetOf } from "./shared/bestBets.js";
 import { readAutoSettings } from "./shared/autoSettings.js";
 import { honestyCheck } from "./services/honestyCheck.js";
@@ -277,7 +277,7 @@ import { backfillCompanyLogosSlice } from "./services/jobs/backfillCompanyLogos.
 // A77 — per-company logos, resolved during enrichment and stored first-party.
 import { resolveCompanyLogos, resolveCaptureLogo, storedLogo } from "./services/jobs/companyLogoStore.js";
 import { deriveProfileFilters } from "./services/jobs/profileFilterBridge.js";
-import { suggest } from "./services/jobs/searchSuggestions.js";
+import { suggest, warmSuggestionIndex } from "./services/jobs/searchSuggestions.js";
 // Bounds the blast radius of one expiry pass — see services/jobs/cleanupBrake.js and cleanup_log 85.
 import { assessCleanupScope, cleanupBrakeOptions } from "./services/jobs/cleanupBrake.js";
 // CC3 — the confirmed synonym map, read on the scoring path. See atsSynonyms() below.
@@ -10736,7 +10736,7 @@ async function facetsAnswer(req, { nowSec, visitSinceSec }) {
 // Cached in services/jobs/searchSuggestions.js: one query per role scope per TTL, then in-memory
 // filtering. That is the requirement that this must not become a query per keystroke against the
 // jobs table — with the client's debounce on top, a fast typist costs zero additional queries.
-app.get("/api/jobs/suggest", requireAuth, (req, res) => {
+app.get("/api/jobs/suggest", requireAuth, async (req, res) => {
   try {
     const field = req.query.field === "location" ? "location" : "title";
     const q     = String(req.query.q || "").slice(0, 100);
@@ -10747,6 +10747,10 @@ app.get("/api/jobs/suggest", requireAuth, (req, res) => {
     // properly; a typeahead has nothing useful to add and must not put an error under the input.
     if (!profile) return res.json({ suggestions: [] });
 
+    const roleKey = roleKeyForProfile(profile);
+    // ⛔ D151 · the index's first build (one read over every active posting of the role) in the read-worker pool, off
+    // the event loop; suggest() below then filters the warm cache. A failed warm leaves suggest() to build it as before.
+    if (String(q).trim()) await warmSuggestionIndex(db, roleKey, { read: readPool });
     const suggestions = suggest(db, {
       roleKey: roleKeyForProfile(profile),
       field, q, limit,
@@ -11188,7 +11192,10 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
     const selectCols  = buildSelectColumns(req.query.include_fields);
     const facetDims   = resolveFacetDimensions(req.query.include_facets);
 
-    const cacheCount = db.prepare("SELECT COUNT(*) as n FROM scraped_jobs WHERE is_active = 1").get()?.n || 0;
+    // ⛔ D151 · "is there any board at all" — an existence probe, not a count of every active row (the only use is > 0),
+    // read in the read-worker pool like the rest of the board's reads (A126). Every board page asked it: /api/jobs,
+    // facets' 5 + N measures, and each page of best-bets' and the deal's fetchBoardPage.
+    const cacheCount = (await readPool.get("SELECT EXISTS(SELECT 1 FROM scraped_jobs WHERE is_active = 1) AS n", []))?.n || 0;
     if (cacheCount > 0) {
       // ── ORDERING AND PAGINATION ────────────────────────────────────────────────────────────
       //
@@ -11699,15 +11706,16 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         for (const dim of facetDims) {
           if (dim === 'skills') continue; // computed separately below (JSON column, not a plain GROUP BY)
           const { column } = FACET_DIMENSIONS[dim];
-          const facetRows = db.prepare(`
+          // ⛔ D151 · whole-result GROUP BYs — in the read-worker pool (A126), off the event loop.
+          const facetRows = await readPool.all(`
             SELECT ${column} as value, COUNT(*) as count
             ${joinClause} ${whereClause}
             GROUP BY ${column}
-          `).all(...baseArgs);
+          `, baseArgs);
           facets[dim] = facetRows.filter(r => r.value != null).map(r => ({ value: r.value, count: r.count }));
         }
         if (facetDims.includes('skills')) {
-          const skillsRows = db.prepare(`SELECT sj.skills_json as skills_json ${joinClause} ${whereClause}`).all(...baseArgs);
+          const skillsRows = await readPool.all(`SELECT sj.skills_json as skills_json ${joinClause} ${whereClause}`, baseArgs);
           facets.skills = computeSkillsFacet(skillsRows.map(r => r.skills_json));
         }
         responseBody.facets = facets;
@@ -11777,7 +11785,9 @@ app.get("/api/best-bets", requireAuth, async (req, res) => {
       const { status, body } = await boardPageResponse({ ...req, query: { pageSize: "50", ...(cursor ? { cursor } : {}) } });
       return { ok: status === 200 && body?.success !== false, jobs: body?.jobs || [], nextCursor: body?.nextCursor || null, total: body?.total };
     };
-    res.json(await bestBetsFor(db, { userId: req.user.id, profileId: profile.id, size, fetchBoardPage }));
+    // ⛔ D151 · the board pages read through boardPageResponse (its list and counts in the read-worker pool, A126); the
+    // cards' company velocity through the pool too (`read`) — the cold-cache job_history walk off the event loop.
+    res.json(await bestBetsFor(db, { userId: req.user.id, profileId: profile.id, size, fetchBoardPage, read: readPool }));
   } catch (e) {
     console.error("[best-bets]", e.message);
     res.status(500).json({ error: "best_bets_failed", message: "Best bets could not be worked out. Try again." });
@@ -11937,6 +11947,8 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
                         userLevel: tryOr(() => userLevelFor(db, req.user.id), null),
                         aim: tryOr(() => aimRoleFor(db, req.user.id), null), warm: tryOr(() => warmCounts(db, req.user.id), new Map()) };
     const betFor = (job) => bestBetOf(bestBetSignalsFor(db, { userId: req.user.id, profileId: profile.id, job: { id: job.id }, ...betInputs }));
+    // ⛔ D151 · the cards' company velocity read in the read-worker pool before betFor runs (off the event loop).
+    const warmBets = (jobs) => warmVelocity(db, jobs.map(j => j?.company), { read: readPool });
     // ⭐ D152 (3): picks per day — the person's own count (Customise → Daily Deck, migration 220), 10 when never chosen.
     // It sizes the NEXT deal; a deal already frozen today is read as it was dealt.
     const size = deckSizeOf(db, req.user.id);
@@ -11952,12 +11964,12 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
       _deckRedealAt.set(redealKey, Date.now());
       const redealUser = req.user.id;
       res.on("finish", () => {
-        todaysDeck(db, { userId: redealUser, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor, refresh: true })
+        todaysDeck(db, { userId: redealUser, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor, warmBets, refresh: true })
           .then(d => { if (d?.reshuffled) emitToUser(redealUser, { type: "deck_reshuffled", date, profileId: profile.id }); })
           .catch(e => console.warn("[deck] re-deal:", e.message));
       });
     }
-    const deck = await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor, refresh: false });
+    const deck = await todaysDeck(db, { userId: req.user.id, profileId: profile.id, date, fetchBoardPage, reportFor, order, scoreFor, size, betFor, warmBets, refresh: false });
     // 43y (the owner's trial walk, 11-01: "no jobs or picks" on a new account): an empty deal for a profile whose
     // scores have not landed yet is not "empty" — it is SCORING. The pass is (re)asked for, the client says so and asks
     // again; the deal is not frozen (an empty one never is), so the next request deals from the first scores.
