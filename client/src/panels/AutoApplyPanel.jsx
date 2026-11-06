@@ -786,6 +786,10 @@ export function AutoApplyPanel({ user = null } = {}) {
             ? <p className="dh-fold__quiet">Made{made.atsScore != null ? `. Résumé: ${atsBandLabel(atsBandFor(made.atsScore)).short}` : ""}. Nothing was sent.</p>
             : <p className="dh-fold__quiet">Not made yet: it is tailored only after you tap Apply.</p>}
           {pickReady && node.jobId != null && <ChangesSummaryLine jobId={node.jobId} jobLabel={node.company} />}
+          {/* ⭐ D171 FIX 4: the résumé opens in draft's editor, never only a link to Profile. */}
+          {pickReady && node.jobId != null && (
+            <AttemptResume jobId={node.jobId} company={node.company} artifactUrl={artifactUrl} className="dh-btn" />
+          )}
           {/* U4: Make it now — only for a pick still waiting for Apply (after Apply the run makes it). */}
           {!pickReady && node.ring === "pick" && (
             <button type="button" className="dh-btn" data-action="make-now" disabled={!!made.busy}
@@ -809,8 +813,12 @@ export function AutoApplyPanel({ user = null } = {}) {
           {node.jobId != null && node.kind !== "approval" && (
             <ChangesSummaryLine jobId={node.jobId} jobLabel={node.company} />
           )}
-          {node.kind === "approval" && node.ref.resume?.available && (
-            <AttemptResume runJobId={node.ref.runJobId} artifactUrl={artifactUrl} className="dh-btn" />
+          {/* ⭐ D171 FIX 4 (owner 11-06: "resume on home should open the resume sandbox editor, but its taking me to your
+              resumes"): every row's résumé opens in the editor — the attempt's own, else the job's tailored one; read-only
+              once it was sent. It was offered on rows waiting for approval only, so the rest showed just the Profile link. */}
+          {(runJobOf(node) != null || node.jobId != null) && !(node.kind === "approval" && !node.ref.resume?.available) && (
+            <AttemptResume runJobId={runJobOf(node)} jobId={node.jobId ?? null} sent={sentAlready(node)}
+              company={node.company} artifactUrl={artifactUrl} className="dh-btn" />
           )}
         </>
       ) });
@@ -864,7 +872,12 @@ export function AutoApplyPanel({ user = null } = {}) {
       <>
         {h.imported ? <p className="dh-fold__quiet">Sent elsewhere — imported, so draft has no résumé for it.</p>
           : <ChangesSummaryLine jobId={row.jobId} jobLabel={row.company} />}
-        <div className="dht-acts"><WhatWeSentLink jobId={row.jobId} recordId={h.recordId} jobLabel={row.company} className="dh-btn" />{profileLink}</div>
+        <div className="dht-acts">
+          {!h.imported && (h.recordId != null || row.jobId != null) && (
+            <AttemptResume recordId={h.recordId ?? null} jobId={row.jobId ?? null} sent company={row.company} className="dh-btn" />
+          )}
+          <WhatWeSentLink jobId={row.jobId} recordId={h.recordId} jobLabel={row.company} className="dh-btn" />{profileLink}
+        </div>
       </>
     );
     return null;

@@ -1,7 +1,7 @@
 // components/ResumeEditorHost.jsx — ⭐ D157 (owner 11-06: option A — "the editor opens as a focused full-screen view")
 // + D171 FIX 4 ("résumé opens as a downloaded pdf in a new tab" → it opens IN draft).
 //
-// The editor is resume-master's (resumemaster.one/editor/ — its own repo, its own tests); draft keeps no fork. This host
+// The editor is resume-master's (the tools service's /editor/ — its own repo, its own tests); draft keeps no fork. This host
 // is mounted ONCE in the app shell and opened from anywhere through lib/resumeEditor.js `openResumeEditor(request)`:
 // the posting's Résumé control (Preview / edit), Home's application rows (Résumé). It is a focused full-screen view
 // over the page — the page under it never unmounts, so Back / Esc (and the browser's Back) return to exactly where the
