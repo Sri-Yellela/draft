@@ -21,6 +21,7 @@
 // ============================================================
 
 import { normaliseRole } from "../searchQueryBuilder.js";
+import { isPlaceholderLocation } from "../../shared/postingNormalize.js";
 
 // How long a built index is served before it is rebuilt. The board is crawled nightly, so a title
 // list that is a few minutes stale is not wrong in any way a user could notice — and the point of
@@ -82,6 +83,9 @@ export function canonicalLocation(raw) {
   if (!raw || typeof raw !== "string") return "";
   const t = raw.replace(/\s+/g, " ").replace(/\s*[;|]\s*/g, ", ").trim();
   if (t.length < 2) return "";
+  // A placeholder ("na", "N/A", "none", "TBD", "unknown", normalizeJob's "Location not specified") is no place: it is
+  // never offered as a location to search for (shared/postingNormalize.js isPlaceholderLocation, exact match only).
+  if (isPlaceholderLocation(t)) return "";
   // Title-case only all-lower or all-upper input, so "New York, NY" and "USA" survive as written.
   if (t === t.toLowerCase() || t === t.toUpperCase()) {
     return t.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
