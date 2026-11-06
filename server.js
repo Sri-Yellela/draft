@@ -7688,7 +7688,12 @@ async function htmlToPdf(html) {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width:1240, height:1754 });
-    await page.setContent(html, { waitUntil:"networkidle0", timeout:30000 });
+    // ⛔ e2e 11-05 (step 4): "load", not "networkidle0". What is printed here names nothing to fetch (the extension's
+    // résumé is resumePreviewSanitiser's output — url(), @import, link and img removed — and the base PDF is our own
+    // template), so there is no network to go idle; measured in real Chrome on the 18k copy, networkidle0 timed out at
+    // 30 s on 8 of 17 renders (every tailored one) while the board was busy — every "Attach tailored" answered "The PDF could not be made" —
+    // and "load" answered in 0.5–4.8 s. The font wait below is unchanged.
+    await page.setContent(html, { waitUntil:"load", timeout:30000 });
     // Wait for fonts to settle
     await new Promise(r => setTimeout(r, 1500));
     const pdf = await page.pdf({
