@@ -22,6 +22,12 @@
  * status-only probe reported /api/admin/stats as a leak during diagnosis for a route that does
  * not exist. Every route below is one that REALLY exists, and every verdict reads content-type.
  *
+ * ⭐ D95 (10-13): an admin is no longer a users row. It is an admin_accounts row with its OWN cookie (draft_admin,
+ * path /api/admin), and the extension connects as a USER. So the browser here holds BOTH: a user session (dx2_user,
+ * whom the extension acts as) and an admin session in the same cookie jar — the strongest position from which the
+ * extension could inherit admin reach. Sections 2 and 4 must still read zero. (test-support/d95HarnessAdmin.mjs makes
+ * the admin; the legacy ADMIN_USER / ADMIN_PASSWORD bootstrap this file used was removed in D95 Phase 2.)
+ *
  * Usage:  node scripts/dx2ExtensionIdentity.mjs
  */
 import fs from 'node:fs';
@@ -32,13 +38,16 @@ import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 import { resolveBrowserExecutable } from '../services/browserLauncher.js';
 import { CANONICAL_ORIGIN } from '../shared/brand.js';
+import { d95AdminEnv, setD95AdminPassword } from '../test-support/d95HarnessAdmin.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(os.tmpdir(), 'dx2-extension-identity');
 const PORT = 4614;
 const API = `http://127.0.0.1:${PORT}`;
-const ADMIN_USER = 'dx2_admin';
+const ADMIN_EMAIL = 'dx2-admin@example.org';
 const ADMIN_PASSWORD = 'Dx2-Admin-pass!9';
+const USER = 'dx2_user';
+const USER_PASSWORD = 'Dx2-User-pass!9';
 const APP_URL_DECL = `const RESUME_MASTER_URL = '${CANONICAL_ORIGIN}';`;
 
 // Routes that REALLY exist, grepped from server.js / routes/*.js. A 404 must never be mistaken
@@ -109,7 +118,7 @@ async function main() {
   const server = spawn(process.execPath, [path.join(ROOT, 'server.js')], {
     cwd: ROOT,
     env: { ...process.env, RM_DATA_DIR: DATA_DIR, PORT: String(PORT), NODE_ENV: 'development',
-           SESSION_SECRET: 'dx2-secret', ADMIN_USER, ADMIN_PASSWORD },
+           SESSION_SECRET: 'dx2-secret', ...d95AdminEnv(ADMIN_EMAIL) },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   const log = [];
@@ -137,18 +146,25 @@ async function main() {
     const site = await browser.newPage();
     await site.goto(`${API}/api/health`);
 
-    // ── The browser signs in AS THE ADMIN, exactly as a user would ─────────────────────────
-    const who = await site.evaluate(async (u, p) => {
-      const r = await fetch('/api/auth/login', { method: 'POST', credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ username: u, password: p }) });
+    // ── The browser holds a USER session AND an ADMIN session (D95), exactly as the owner's would ──
+    const setPw = await setD95AdminPassword({ base: API, dbPath: path.join(DATA_DIR, 'resume_master.db'), email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+    const who = await site.evaluate(async (u, up, ae, ap) => {
+      const j = { 'content-type': 'application/json' };
+      const reg = await fetch('/api/auth/register', { method: 'POST', credentials: 'include', headers: j,
+        body: JSON.stringify({ username: u, password: up, profile: { email: u + '@example.com', first_name: u, last_name: 'Harness' } }) });
+      const adm = await fetch('/api/admin/auth/login', { method: 'POST', credentials: 'include', headers: j,
+        body: JSON.stringify({ email: ae, password: ap }) });
       const me = await fetch('/api/auth/me', { credentials: 'include' }).then(x => x.json());
-      return { login: r.status, me };
-    }, ADMIN_USER, ADMIN_PASSWORD);
+      const adminMe = await fetch('/api/admin/auth/me', { credentials: 'include' }).then(x => x.json());
+      return { reg: reg.status, adm: adm.status, me, adminMe };
+    }, USER, USER_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD);
 
-    console.log('── 0 · the browser holds an ADMIN session ──');
-    check('signed in as the admin', who.me?.user?.isAdmin === true,
-      `${who.me?.user?.username} isAdmin=${who.me?.user?.isAdmin}`);
+    console.log('── 0 · the browser holds a user session AND an ADMIN session ──');
+    check('the D95 admin account exists and its sign-in link set the password', setPw.ok, `status=${setPw.status}`);
+    check('signed in as the user', who.me?.user?.username === USER && who.me?.user?.isAdmin !== true,
+      `reg=${who.reg} ${who.me?.user?.username} isAdmin=${who.me?.user?.isAdmin}`);
+    check('and as the admin, in the same browser (draft_admin)', who.adm === 200 && who.adminMe?.authenticated === true,
+      `login=${who.adm} ${who.adminMe?.admin?.email}`);
 
     // The page context proves the SESSION still has full admin reach — the thing the extension
     // must no longer inherit. If this ever fails, the test below proves nothing.
@@ -172,7 +188,7 @@ async function main() {
       fetch(o + '/api/auth/me', { credentials: 'omit', headers: { 'X-RM-Auth-Context': t } })
         .then(r => r.json()), API, stored?.authToken);
     check('the token alone — no cookie — authenticates as that user',
-      row?.authenticated === true && row.user?.username === ADMIN_USER,
+      row?.authenticated === true && row.user?.username === USER,
       `${row?.user?.username}`);
 
     // ── 2 · THE FIX. The extension must not reach an admin route ───────────────────────────
@@ -188,13 +204,13 @@ async function main() {
       Object.values(byExt).every(r => r.status === 403),
       [...new Set(Object.values(byExt).map(r => r.status))].join(','));
 
-    // ── 3 · the account is STILL an admin — the privilege was removed, not the person ───────
-    console.log('\n── 3 · the account is still an admin; the CREDENTIAL is not ──');
-    check('the same account still reaches admin routes in a browser tab',
+    // ── 3 · the admin is STILL an admin in a tab — the extension's refusal is about the credential ─────
+    console.log('\n── 3 · the admin session still reaches admin routes; the extension does not ──');
+    check('the admin session still reaches admin routes in a browser tab',
       Object.values(await probeAdmin(site, API, ADMIN_ROUTES)).filter(leaked).length === ADMIN_ROUTES.length,
       'session unchanged');
-    check('the extension reports the account as admin, while not acting as one',
-      identity?.accountIsAdmin === true, `accountIsAdmin=${identity?.accountIsAdmin}`);
+    check('the account the extension acts as is not an admin (D95: no users row is one)',
+      identity?.accountIsAdmin !== true, `accountIsAdmin=${identity?.accountIsAdmin}`);
 
     // ── 4 · it is NOT the cookie. Sign the browser out; the extension must survive ──────────
     // This is the assertion that cannot be faked by a token that merely rides alongside a session.
@@ -202,7 +218,7 @@ async function main() {
     await site.evaluate(() => fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }));
     const afterLogout = await site.evaluate(() =>
       fetch('/api/auth/me', { credentials: 'include' }).then(r => r.json()));
-    check('the browser session is genuinely gone', afterLogout?.authenticated === false,
+    check('the browser USER session is genuinely gone (the admin cookie stays — the harder case)', afterLogout?.authenticated === false,
       JSON.stringify(afterLogout));
 
     const extAfter = await control.evaluate(() => chrome.runtime.sendMessage({ type: 'PROBE_AUTH' }));
@@ -225,23 +241,25 @@ async function main() {
     check('and replaying the old token no longer authenticates',
       replay?.authenticated === false, JSON.stringify(replay));
 
-    // ── 6 · the popup NAMES the identity — asserted on the rendered DOM ────────────────────
-    console.log('\n── 6 · the popup names the identity, in the rendered page ──');
+    // ── 6 · the options page NAMES the identity — asserted on the rendered DOM ──────────────
+    // T31 (10-25, 50c27bc) retired the toolbar popup; its identity line (Signed in as …) lives in options.html's
+    // #account-who now (extension/options.js showAccount).
+    console.log('\n── 6 · the options page names the identity, in the rendered page ──');
     await site.bringToFront();
     await site.evaluate(async (u, p) => {
       await fetch('/api/auth/login', { method: 'POST', credentials: 'include',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ username: u, password: p }) });
-    }, ADMIN_USER, ADMIN_PASSWORD);
+    }, USER, USER_PASSWORD);
 
     const popup = await browser.newPage();
-    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+    await popup.goto(`chrome-extension://${extensionId}/options.html`);
     await sleep(2500);
-    const shown = await popup.evaluate(() => document.getElementById('identity-who')?.innerText || '');
-    check('the popup renders "Signed in as <name>"',
-      /signed in as/i.test(shown) && shown.includes(ADMIN_USER), JSON.stringify(shown));
-    check('and it discloses that it is not acting as admin',
-      /not acting as admin/i.test(shown), JSON.stringify(shown));
+    const shown = await popup.evaluate(() => document.getElementById('account-who')?.innerText || '');
+    check('the options page renders "Signed in as <name>"',
+      /signed in as/i.test(shown) && shown.includes(USER), JSON.stringify(shown));
+    check('and it claims no admin role (the account is not an admin)',
+      !/acting as admin/i.test(shown), JSON.stringify(shown));
 
     // ── 7 · regression — the extension's OWN routes still work ─────────────────────────────
     console.log('\n── 7 · regression: the extension can still do its job ──');

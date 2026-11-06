@@ -28,7 +28,7 @@
  *   1  the mobile credential: minted sessionLess, durable, and not the login token
  *   2  every endpoint in the published contract answers on bearer alone
  *   3  cross-user access is denied on the BEARER path, not merely on the cookie path
- *   4  admin routes refuse a non-admin bearer
+ *   4  admin routes refuse a non-admin bearer (the admin is a D95 admin_accounts row — never a bearer identity)
  *   5  sliding renewal moves expires_at forward, and the absolute cap bounds it
  *   6  revoking the phone does not kill the extension, and vice versa
  *   7  the retired endpoints really answer 410
@@ -46,6 +46,7 @@ import Database from "better-sqlite3";
 import { MOBILE_ENDPOINTS, RETIRED_ENDPOINTS } from "../services/api/mobileEndpoints.js";
 import { JOB_FIELDS, JOB_REQUIRED_FIELDS } from "../services/api/mobileContract.js";
 import { RESPONSE_SCHEMAS } from "../services/api/mobileSchemas.js";
+import { d95AdminEnv, setD95AdminPassword, signInD95Admin } from "../test-support/d95HarnessAdmin.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = 4618;
@@ -53,6 +54,7 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const DATA_DIR = path.join(os.tmpdir(), `aj1-mobile-bearer-${process.pid}`);
 const PASSWORD = "Aj1-Harness-pass!9";
 const ADMIN_PASSWORD = "Aj1-Harness-admin!9";
+const ADMIN_EMAIL = "aj1-admin@example.org";
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let failures = 0;
@@ -110,8 +112,8 @@ const server = spawn(process.execPath, [path.join(ROOT, "server.js")], {
     RM_DATA_DIR: DATA_DIR,
     PORT: String(PORT),
     NODE_ENV: "development",
-    ADMIN_USER: "aj1_admin",
-    ADMIN_PASSWORD,
+    // D95: boot creates the admin_accounts row (no password; test-support/d95HarnessAdmin.mjs sets one).
+    ...d95AdminEnv(ADMIN_EMAIL),
     SESSION_SECRET: "aj1-harness-secret",
   },
   stdio: ["ignore", "pipe", "pipe"],
@@ -626,10 +628,18 @@ try {
   check(`every admin route refuses a non-admin BEARER (${adminDenied}/${adminRoutes.length})`,
     adminDenied === adminRoutes.length);
 
-  const admin = await mobileSignIn("aj1_admin", ADMIN_PASSWORD);
-  check("the admin can obtain a mobile token", !!admin.token);
-  check("the admin DOES reach an admin route on bearer — the 403s are about role, not a dead mount",
-    (await call("/api/admin/users", { token: admin.token })).status === 200);
+  // D95: an admin is an admin_accounts row with its own draft_admin cookie session — never a users row, so never a
+  // login token or a mobile bearer. The control that the 403s above are about role (not a dead mount) is the ADMIN
+  // session reaching the same route.
+  const setPw = await setD95AdminPassword({ base: BASE, dbPath: path.join(DATA_DIR, "resume_master.db"), email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+  check("boot created the admin account and the sign-in link set its password", setPw.ok, `status=${setPw.status} ${setPw.body.slice(0, 160)}`);
+  const adminSession = await signInD95Admin({ base: BASE, email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+  check("the admin signs in to its own draft_admin session", adminSession.ok, `status=${adminSession.status}`);
+  check("the admin DOES reach an admin route on its admin session — the 403s are about role, not a dead mount",
+    (await fetch(`${BASE}/api/admin/users`, { headers: { cookie: adminSession.cookie || "" } })).status === 200);
+  const adminAsUser = await mobileSignIn(ADMIN_EMAIL, ADMIN_PASSWORD);
+  check("the admin's credentials obtain NO login token and NO mobile bearer — an admin is not a user",
+    !adminAsUser.loginToken && !adminAsUser.token, `login=${adminAsUser.mint?.status}`);
   check("a non-admin cannot promote themselves through an admin route on bearer",
     (await call(`/api/admin/users/${bobId}/plan`, { method: "PATCH", token: bob.token, body: { planTier: "PRO" } })).status === 403);
 
