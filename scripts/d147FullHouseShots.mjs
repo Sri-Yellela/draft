@@ -5,14 +5,19 @@
  *
  *   node scripts/d147FullHouseShots.mjs [--out <dir>]
  *
+ * ⭐ Since D152 / D156 (11-05) the board is Home's second column: there is no "Full House" title row and no
+ * "Sort: For you" word any more — the sort is an ICON inside the search (D156 (5)) and the views are WORDS in their own
+ * row under it (D156 (4): All jobs · Starred · Imported). The checks below follow that board; the opened-posting half
+ * is D147's and unchanged.
+ *
  * At 1280 × 800 and 390 × 844, in Dusk Dark and Paper Light, it checks and prints ok / FAIL per item:
- *   · the title "Full House" and ONE Sort / view word ("Sort: For you"); no symbol views (ALL ★ /d +) on the first screen
- *   · the sentence in the serif at ≈ 30px (desktop); the search under it; the counts (jobs · new today · saved)
- *   · the sort panel holds the views as words (All jobs · Saved · Pending · Imported)
+ *   · no title row; the sort is an icon inside the search, labelled "Sort: For you"; the views as words under the search
+ *   · the sentence at ≈ 30px (desktop) — no longer the serif (D156 withdrew D147's serif sentence); the search under it; the counts (jobs · new today · saved)
+ *   · the sort icon opens the sort menu (For you · Best fit · Newest · Salary · Company)
  *   · no page numbers; scrolling to the end of the list appends page 2
  *   · a posting opened: logo · company link · location · Close; the facts box with the match box at its end; nothing
  *     between the facts and the description; Pass · Save · Draft · More; More → Résumé for this job · Cover letter ·
- *     I applied myself; the match box opens the ATS panel; on the phone the posting is full screen
+ *     I applied myself; the match box opens the match in the posting (D152 (8)); on the phone the posting is full screen
  *   · no sideways scroll, no page errors
  * Screenshots go to --out (default: the job's scratch dir, never the repo).
  */
@@ -111,7 +116,7 @@ try {
     });
     await page.evaluateOnNewDocument((t) => { try { localStorage.setItem("draft-theme", t); } catch {} }, theme);
     await page.goto(`${vite.url}/app/jobs`, { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
-    await page.waitForSelector("[data-fh-title]", { timeout: 30000 }).catch(() => {});
+    await page.waitForSelector("[data-board-bar]", { timeout: 30000 }).catch(() => {});
     await sleep(1500);
     await page.screenshot({ path: path.join(OUT, `${where}-1-board.png`) });
 
@@ -121,9 +126,10 @@ try {
       const bh = q("[data-board-headline]");
       const cs = bh ? getComputedStyle(bh) : null;
       return {
-        title: q(".fh-title__h")?.textContent || null,
-        sort: q('[data-board-icon="sort"]')?.textContent?.trim() || null,
-        views: [...document.querySelectorAll("[data-view]")].filter(vis).length,
+        titleRow: !!q("[data-fh-title], .fh-title__h"),
+        sortInSearch: !!q('.fh-srch [data-board-icon="sort"]'),
+        sort: q('[data-board-icon="sort"]')?.getAttribute("aria-label") || null,
+        views: [...document.querySelectorAll("[data-board-views] [data-view]")].filter(vis).map(e => e.textContent.trim()),
         family: cs?.fontFamily || "", size: cs ? parseFloat(cs.fontSize) : 0,
         tokens: document.querySelectorAll("[data-board-headline] .tok").length,
         searchAfter: !!(bh && q(".fh-srch") && (bh.compareDocumentPosition(q(".fh-srch")) & Node.DOCUMENT_POSITION_FOLLOWING)),
@@ -134,19 +140,19 @@ try {
         sideways: document.documentElement.scrollWidth > window.innerWidth + 1,
       };
     });
-    check(where, "title + one Sort word", top.title === "Full House" && /^Sort: For you/.test(top.sort || ""), `${top.title} | ${top.sort}`);
-    check(where, "no symbol views on the first screen", top.views === 0, `${top.views} visible`);
-    check(where, "the sentence in the serif, its words the controls", /Instrument Serif/i.test(top.family) && top.tokens > 0 && (w < 500 || Math.abs(top.size - 30) <= 1), `${top.family.split(",")[0]} ${top.size}px · ${top.tokens} words`);
+    check(where, "no title row; the sort is an icon in the search", !top.titleRow && top.sortInSearch && /^Sort: For you/.test(top.sort || ""), `${top.titleRow} | ${top.sort}`);
+    check(where, "the views as words under the search", top.views.length === 3 && /^All jobs100/.test(top.views[0]) && /^Starred/.test(top.views[1]) && /^Imported/.test(top.views[2]), top.views.join(" | "));
+    check(where, "the sentence (not the serif since D156), its words the controls", !/Instrument Serif/i.test(top.family) && top.tokens > 0 && (w < 500 || Math.abs(top.size - 30) <= 1), `${top.family.split(",")[0]} ${top.size}px · ${top.tokens} words`);
     check(where, "the search under the sentence", top.searchAfter);
     check(where, "counts: jobs · new today · saved", top.counts.length === 3 && /100jobs/.test(top.counts[0]) && /9new today/.test(top.counts[1]) && /1saved/.test(top.counts[2]), top.counts.join(" | "));
     check(where, "no page numbers, the end-of-list line", !top.pager && top.more);
     check(where, "no sideways scroll (board)", !top.sideways);
 
-    // The sort panel holds the views, as words.
+    // The sort icon opens the sort menu (D156 (5)).
     await page.click('[data-board-icon="sort"]');
     await sleep(400);
-    const views = await page.$$eval("[data-sort-views] [data-view]", els => els.map(e => e.textContent.trim()));
-    check(where, "the views as words in the Sort panel", views.length === 4 && /^All jobs100/.test(views[0]) && /^Saved/.test(views[1]) && /^Pending/.test(views[2]) && /^Imported/.test(views[3]), views.join(" | "));
+    const sorts = await page.$$eval('[data-board-panel="sort"] [data-sort]', els => els.map(e => e.textContent.trim()));
+    check(where, "the sort icon opens the sort menu", sorts.length >= 4 && /^For you/.test(sorts[0]), sorts.join(" | "));
     await page.screenshot({ path: path.join(OUT, `${where}-2-sort.png`) });
     await page.click('[data-board-icon="sort"]');
     await sleep(300);
@@ -191,7 +197,7 @@ try {
         atsInHeader: !!hd?.querySelector("[data-ats-box]"),
         cells: [...document.querySelectorAll("[data-posting-facts] [data-cell]")].map(c => c.getAttribute("data-cell")),
         match: q("[data-posting-match] [data-ats-box]")?.textContent || null,
-        between: between.filter(c => !/posting__mast|posting__title/.test(String(c))),
+        between: between.filter(c => !/posting__mast|posting__title|posting__eyebrow|pp__match/.test(String(c))),
         acts: [...document.querySelectorAll("[data-d147-actions] > *")].map(b => b.textContent.trim()),
         shellW: shell ? Math.round(shell.getBoundingClientRect().width) : 0,
         inShort: /In short|Hiring\?/.test(panel.innerText),
@@ -199,7 +205,7 @@ try {
     });
     check(where, "a posting opens", !!p);
     if (p) {
-      check(where, "header: logo · company → posting · location · Close", p.logo && p.link === "Northwind" && p.loc === "Remote (US)" && p.close === "Close" && !p.atsInHeader, JSON.stringify([p.logo, p.link, p.loc, p.close, p.atsInHeader]));
+      check(where, "header: logo · company → posting · location · Close", p.logo && p.link === "Northwind" && p.loc === "Remote (US)" && /^(Close|Fold it back)$/.test(p.close || "") && !p.atsInHeader, JSON.stringify([p.logo, p.link, p.loc, p.close, p.atsInHeader]));
       check(where, "the facts box + history / sponsorship cells", p.cells.join() === "experience,workstyle,salary,posted,history,sponsorship", p.cells.join());
       check(where, "the match box at the facts box's end", /86/.test(p.match || "") && /match/.test(p.match || ""), p.match);
       check(where, "nothing between the facts and the description", p.between.length === 0 && !p.inShort, p.between.join(", "));
@@ -214,7 +220,8 @@ try {
       await page.screenshot({ path: path.join(OUT, `${where}-4-more.png`) });
       await page.click("[data-posting-match] [data-ats-box]");
       await sleep(900);
-      check(where, "the match box opens the ATS panel", !!(await page.$('[data-panel-id="ats"]')));
+      // D152 (8): the match opens IN the posting (option A) — the ATS side panel is retired.
+      check(where, "the match box opens the match in the posting", !!(await page.$('[data-posting-match-row][data-open="true"]')));
       await page.screenshot({ path: path.join(OUT, `${where}-5-ats.png`) });
     }
     const sideways = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);

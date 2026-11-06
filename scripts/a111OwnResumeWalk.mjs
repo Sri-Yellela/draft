@@ -116,9 +116,11 @@ async function walkHappy(browser, label, viewport, who) {
   check(where, "step 1-2: the field in plain words", cat === who.expect, `${words} (${cat})`);
   await page.click("[data-own-continue]");
   await page.waitForFunction(() => location.pathname.startsWith("/app"), { timeout: 60000 }).catch(() => {});
-  // step 3: the deck — the score ring and the why marks, from the résumé's own category
-  const deck = await exists(page, "[data-trial-match]", 120000);
-  check(where, "step 3: a pick card shows the score ring + why", deck && !!(await page.$("[data-deck-score]")) && !!(await page.$("[data-trial-chips]")));
+  // step 3: the deck — the card's match, from the résumé's own category. (D145 / D152: the trial's own ring + why chips,
+  // [data-trial-match] / [data-trial-chips], became the deck card's one match at its top right — [data-deck-signal-row],
+  // a number when the card carries one, else the band's word.)
+  const deck = await exists(page, "[data-deck-signal-row]", 120000);
+  check(where, "step 3: a pick card shows its résumé match", deck && !!(await page.$("[data-deck-match]")));
   const picks = await page.evaluate(() => fetch("/api/trial/picks", { credentials: "include" }).then(r => r.json()));
   const cats = await page.evaluate(() => fetch("/api/draft/today", { credentials: "include" }).then(r => r.json()).then(d => d.cards?.map(c => c.job?.title) || []));
   check(where, "step 3: 10 picks from the résumé's own category", picks.category === who.expect && (picks.picks || []).length === 10,
@@ -135,7 +137,8 @@ async function walkHappy(browser, label, viewport, who) {
       check(where, "step 4: the role panel is on screen", vis);
       await shot(page, `${label}-${who.name}-3-role-fit`);
     }
-    await page.evaluate(() => [...document.querySelectorAll("[data-deck-sheet] button")].find(b => /Close/.test(b.innerText))?.click());
+    // D152 (8): the report is inside the posting (no deck sheet any more) — its Close / "Fold it back" folds it.
+    await page.evaluate(() => document.querySelector("[data-posting-close]")?.click());
     await sleep(600);
   };
   // the tour, step by step, to "your turn: pick 2"
