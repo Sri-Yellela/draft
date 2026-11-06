@@ -52,7 +52,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
-import { issueSignInLink } from "../services/adminAccounts.js";
+import { d95AdminEnv, setD95AdminPassword } from "../test-support/d95HarnessAdmin.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = 4612;
@@ -133,7 +133,7 @@ const server = spawn(process.execPath, [path.join(ROOT, "server.js")], {
     PORT: String(PORT),
     NODE_ENV: "development",
     // D95: boot creates the owner's admin_accounts row (no password) — see the header.
-    ADMIN_OWNER_EMAIL: ADMIN_EMAIL,
+    ...d95AdminEnv(ADMIN_EMAIL),
     SESSION_SECRET: "ah1-harness-secret",
   },
   stdio: ["ignore", "pipe", "pipe"],
@@ -312,12 +312,10 @@ try {
   // D95: the admin is an admin_accounts row, never a users row. Its password is set the way the owner sets one —
   // a one-time link, spent through the real route — and it signs in with email + password into the draft_admin cookie.
   const padmin = new Profile("admin");
-  const adminRow = (() => { const a = authDb(); const r = a.prepare("SELECT id FROM admin_accounts WHERE email = ?").get(ADMIN_EMAIL); a.close(); return r; })();
-  check("boot created the ADMIN_OWNER_EMAIL admin account (an admin_accounts row)", !!adminRow);
+  const setPw = await setD95AdminPassword({ base: BASE, dbPath: path.join(DATA_DIR, "resume_master.db"), email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+  check("boot created the ADMIN_OWNER_EMAIL admin account (an admin_accounts row)", !!setPw.row);
   check("and it is not a users row", (() => { const a = authDb(); const n = a.prepare("SELECT COUNT(*) FROM users WHERE username LIKE 'ah1-admin%' OR is_admin = 1").pluck().get(); a.close(); return n === 0; })());
-  const link = (() => { const w = new Database(path.join(DATA_DIR, "resume_master.db")); try { return issueSignInLink(w, adminRow.id); } finally { w.close(); } })();
-  const setPw = await call(new Profile("admin-link"), "/api/admin/auth/set-password", { method: "POST", body: { token: link?.token, password: ADMIN_PASSWORD } });
-  check("the sign-in link sets the admin's password", setPw.status === 200, `status=${setPw.status} ${setPw.raw.slice(0, 200)}`);
+  check("the sign-in link sets the admin's password", setPw.ok, `status=${setPw.status} ${setPw.body.slice(0, 200)}`);
   const adminLogin = await call(padmin, "/api/admin/auth/login", { method: "POST", body: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } });
   check("the admin can sign in", adminLogin.status === 200 && padmin.cookies.has("draft_admin"), `status=${adminLogin.status}`);
   const adminMe = async () => (await call(padmin, "/api/admin/auth/me")).json?.authenticated === true;
