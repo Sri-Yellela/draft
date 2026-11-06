@@ -8158,18 +8158,6 @@ function requestCookieNames(req) {
     .filter(Boolean);
 }
 
-function requestCookieMap(req) {
-  return Object.fromEntries(
-    String(req.headers.cookie || "")
-      .split(";")
-      .map(part => part.trim())
-      .filter(Boolean)
-      .map(part => {
-        const idx = part.indexOf("=");
-        return idx === -1 ? [part, ""] : [part.slice(0, idx), part.slice(idx + 1)];
-      })
-  );
-}
 
 // ⛔ Owner 11-01: "user last active … says 50s ago, i tested it 40 min ago". Last active is "the person did something",
 // not "a request arrived": a tab left open polls /api/trial/state every minute, and opening the ADMIN page in the same
@@ -8245,16 +8233,8 @@ function bindAuthContext(req, _res, next) {
 }
 
 function requireAuth(req, res, next) {
-  // TEMPORARY DIAGNOSTIC: remove after Railway session-cookie issue is resolved.
-  const debugCookies = req.cookies || requestCookieMap(req);
-  console.log("[auth-debug]", {
-    env: process.env.NODE_ENV,
-    hasCookie: !!req.cookies?.token || !!debugCookies["connect.sid"],
-    cookieKeys: Object.keys(debugCookies || {}),
-    hasAuthHeader: !!req.headers?.authorization,
-    secure: req.secure,
-    protocol: req.protocol,
-  });
+  // ⭐ D170 (6): the "[auth-debug]" dump that stood here (a TEMPORARY DIAGNOSTIC for a Railway session-cookie issue
+  // long resolved) printed ≈ 208 multi-line blocks into one 11-hour production log — one per authenticated request.
   // Accept either a valid Passport session OR a valid auth context token.
   // bindAuthContext (which runs before this) sets req.authContextToken only when the
   // token is non-expired, non-revoked, and the user exists in the DB.
@@ -8604,7 +8584,8 @@ function logOAuthReadiness() {
     if (status.configured) {
       console.log(`[oauth:${provider}] ${status.status}${status.warnings.length ? ` (${status.warnings.join(", ")})` : ""}`);
     } else {
-      console.warn(`[oauth:${provider}] ${status.status}; missing ${status.missing.join(", ")}`);
+      // ⭐ D170 (6): a provider with no credentials is simply not offered (production offers Google only) — info, not a warning.
+      console.log(`[oauth:${provider}] not offered — ${status.status}; missing ${status.missing.join(", ")}`);
     }
   }
 }

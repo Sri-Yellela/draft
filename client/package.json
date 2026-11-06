@@ -2,6 +2,7 @@
   "name": "resume-master-client",
   "version": "4.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite --port 5173",
     "build": "vite build",
