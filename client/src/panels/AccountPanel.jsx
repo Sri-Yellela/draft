@@ -72,7 +72,12 @@ function Notice({ kind, children, onClose }) {
   );
 }
 
-export function AccountPanel({ onSignedOut }) {
+export function AccountPanel({ onSignedOut, only = null }) {
+  // ⭐ D167: Account's cards are spread across Profile's own navigation (pages/profile/ProfilePage.jsx) — `only` names
+  // the cards a panel draws: Account ("profile", "email", "security", "sessions", "merge", "allowance", "help", "signout"),
+  // Notifications ("news", "notifications"), Privacy and your data ("data", "delete"), Your résumés ("tailoring"),
+  // Connections ("warmpaths"). With no `only` every card draws, as before. The same handlers and saves either way.
+  const has = (card) => !only || only.includes(card);
   const [account, setAccount] = useState(null);
   const [sessions, setSessions] = useState(null);
   const [notice, setNotice] = useState(null);         // { kind, text }
@@ -124,33 +129,35 @@ export function AccountPanel({ onSignedOut }) {
       {/* A disabled control must LOOK disabled — inline styles cannot reach :disabled. */}
       <style>{".rm-account button:disabled{opacity:.45;cursor:not-allowed}"}</style>
       <div style={{ maxWidth: 820, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
+        {!only && (
         <div>
           <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 400, color: "var(--color-text)" }}>Account</h1>
           <div style={muted}>Your profile, how you sign in, and your data.</div>
         </div>
+        )}
         {notice && <Notice kind={notice.kind} onClose={() => setNotice(null)}>{notice.text}</Notice>}
 
-        <ProfileSection account={account} avatarUrl={avatarUrl} fileRef={fileRef} busy={busy} run={run} post={post} />
+        {has("profile") && <ProfileSection account={account} avatarUrl={avatarUrl} fileRef={fileRef} busy={busy} run={run} post={post} />}
 
         {/* ⭐ D93: Appearance MOVED to its own page, Customise (/app/customise, the avatar menu) — nothing of it
             is left here. */}
 
-        <SettingsSection title="Email" subtitle="Used to sign in and to reset your password.">
+        {has("email") && <SettingsSection title="Email" subtitle="Used to sign in and to reset your password.">
           <EmailEditor account={account} busy={busy} run={run} post={post} say={say} />
-        </SettingsSection>
+        </SettingsSection>}
 
         {/* ⭐ D73 §B: product news is opt-in; switching it off here is the same as the email's unsubscribe link. */}
-        <SettingsSection title="Product news" subtitle="Occasional email about what's new in draft. Account and policy notices come either way — they are about your account.">
+        {has("news") && <SettingsSection title="Product news" subtitle="Occasional email about what's new in draft. Account and policy notices come either way — they are about your account.">
           <MarketingSwitch say={say} />
-        </SettingsSection>
+        </SettingsSection>}
 
         {/* ⭐ D112 item 8: which events also reach the person by push (this browser) and email — per event, per channel. */}
-        <NotificationSettings say={say} />
+        {has("notifications") && <NotificationSettings say={say} />}
 
         {/* ⭐ D138: the user's own contacts, for "people you know at this company" on a posting. */}
-        <WarmPathsSettings say={say} />
+        {has("warmpaths") && <WarmPathsSettings say={say} />}
 
-        <SettingsSection title="Sign-in & security"
+        {has("security") && <SettingsSection title="Sign-in & security"
           subtitle={account.recentAuth ? "You signed in recently, so changes below are unlocked."
             : "Some changes ask you to confirm it's you first."}>
           {!account.recentAuth && <ReauthBox account={account} busy={busy} run={run} post={post} methods={methods} />}
@@ -169,15 +176,15 @@ export function AccountPanel({ onSignedOut }) {
               </div>
             ))}
           </div>
-        </SettingsSection>
+        </SettingsSection>}
 
-        <SettingsSection title="Where you're signed in" subtitle="Sign out of a browser or app you no longer use.">
+        {has("sessions") && <SettingsSection title="Where you're signed in" subtitle="Sign out of a browser or app you no longer use.">
           <SessionsList sessions={sessions} busy={busy} run={run} post={post} reload={loadSessions} />
-        </SettingsSection>
+        </SettingsSection>}
 
-        <MergeSection account={account} busy={busy} run={run} post={post} say={say} />
+        {has("merge") && <MergeSection account={account} busy={busy} run={run} post={post} say={say} />}
 
-        <SettingsSection title="Your data" subtitle="A copy of everything Draft keeps for you, as JSON.">
+        {has("data") && <SettingsSection title="Your data" subtitle="A copy of everything Draft keeps for you, as JSON.">
           <div style={row}>
             <button style={btnQuiet} disabled={!!busy} onClick={() => run("export", async () => {
               const r = await fetch("/api/account/export", { credentials: "include", headers: authHeaders() });
@@ -188,18 +195,30 @@ export function AccountPanel({ onSignedOut }) {
           </div>
           <BaseResumeOnly />
           <GeneratedResumes busy={busy} run={run} />
-        </SettingsSection>
+        </SettingsSection>}
 
         {/* ⭐ D123 (owner 11-01): the model that tailors this person's résumés, and what tailoring knows about their work. */}
-        <TailoringSection />
+        {has("tailoring") && <TailoringSection />}
 
         {/* ⭐ D88 P5: the user's own plan and allowance, read-only. */}
-        <AllowanceSection />
+        {has("allowance") && <AllowanceSection />}
 
         {/* ⭐ D88 P3: contact support, and your requests with their replies. */}
-        <HelpSection say={say} />
+        {has("help") && <HelpSection say={say} />}
 
-        <DeleteSection account={account} busy={busy} run={run} post={post} onSignedOut={onSignedOut} />
+        {has("delete") && <DeleteSection account={account} busy={busy} run={run} post={post} onSignedOut={onSignedOut} />}
+
+        {/* ⭐ D167: Profile → Account's last line, the sketch's "Sign out · on this device" (the avatar menu's own action). */}
+        {only?.includes("signout") && (
+          <SettingsSection title="Sign out" subtitle="On this device. Your account and everything in it stay as they are.">
+            <div style={row}>
+              <button style={btnQuiet} disabled={!!busy} data-account-signout="" onClick={async () => {
+                try { await api("/api/auth/logout", { method: "POST" }); } catch {}
+                onSignedOut?.();
+              }}>Sign out</button>
+            </div>
+          </SettingsSection>
+        )}
       </div>
     </div>
   );

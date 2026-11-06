@@ -487,6 +487,38 @@ export function questionBank(db, userId, { round = null } = {}) {
     WHERE q.user_id = ? ${round ? "AND q.round = ?" : ""} ORDER BY q.id DESC LIMIT 500`).all(...args);
 }
 
+// ── ⭐ D167 · Interview → Coming up ──────────────────────────────────────────────────────────
+//
+// One Inbox, two views (owner 11-06, "the Inbox stays in Home"): every application an Interview or Assessment email was
+// matched to (D103 forwarding / D112 Gmail), each with D110's prep summary — the date the user gave, or the ONE date an
+// email states plainly, never guessed. Mail matched to no application is not here: it waits in Home's Inbox to be
+// attached. Order: dated and ahead (soonest first), then undated (newest mail first), then dated and past. ⛔ The user's
+// own rows only.
+export function upcomingInterviews(db, userId, { nowSec = now(), limit = 20 } = {}) {
+  let ids = [];
+  try {
+    ids = db.prepare(`SELECT application_id FROM inbox_messages WHERE user_id = ? AND application_id IS NOT NULL
+        AND category IN ('interview', 'assessment') GROUP BY application_id ORDER BY MAX(received_at) DESC, MAX(id) DESC LIMIT ?`)
+      .pluck().all(userId, Math.max(1, Math.min(100, Number(limit) || 20)));
+  } catch { ids = []; }   // before the inbox's migration
+  const out = [];
+  for (const id of ids) {
+    const rec = ownRecord(db, userId, id);
+    if (!rec) continue;
+    const s = prepSummary(db, userId, rec.id, { nowSec });
+    if (!s.active) continue;
+    const posting = postingOf(db, rec);
+    const mail = s.triggerMessageId != null
+      ? db.prepare(`SELECT subject, received_at AS receivedAt FROM inbox_messages WHERE id = ? AND user_id = ?`).get(s.triggerMessageId, userId) : null;
+    out.push({ applicationId: rec.id, jobId: rec.job_id, company: posting.company, title: posting.title, kind: s.kind,
+      date: s.date ? { ymd: s.date.ymd, time: s.date.time ?? null, source: s.date.source } : null, daysLeft: s.daysLeft,
+      subject: mail?.subject ?? null, receivedAt: mail?.receivedAt ?? null });
+  }
+  const rank = (x) => (x.daysLeft == null ? 1 : x.daysLeft >= 0 ? 0 : 2);
+  return out.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x)
+    || (rank(a.x) === 0 ? a.x.daysLeft - b.x.daysLeft : rank(a.x) === 2 ? b.x.daysLeft - a.x.daysLeft : a.i - b.i)).map(({ x }) => x);
+}
+
 // ── the Prep tab's whole read ────────────────────────────────────────────────────────────────
 
 function triggerMail(db, userId, applicationId) {

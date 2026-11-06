@@ -170,7 +170,11 @@ test("D93 · Account no longer renders Appearance; the menu has Customise, and i
   assert.doesNotMatch(read("client/src/panels/AccountPanel.jsx"), /<AppearanceSettings|<ThemeSection|<AccessibilitySection|id="appearance"|import .*AppearanceSettings/);
   const app = read("client/src/App.jsx");
   assert.match(app, /"customise",\n\s*\.\.\.ROUTE_ONLY_TABS\]/, "/app/customise is navigable");
-  assert.match(app, /activeTab === "customise"\s+&& <CustomisePanel\/>/);
+  // ⭐ D167 (changed on purpose): Customise is Profile → Appearance now — /app/customise lands on /app/profile/appearance,
+  // which draws the Customise screen exactly as it was (test/d167Profile.test.js d167ProfileRetainsCustomiseScreen).
+  assert.match(app, /customise: "appearance"|LEGACY_PROFILE_ROUTES\[routeKey\]/);
+  assert.match(read("client/src/pages/profile/profilePanels.js"), /customise: "appearance",/);
+  assert.match(read("client/src/pages/profile/ProfilePage.jsx"), /else if \(panel === "appearance"\) body = <CustomisePanel \/>;/);
   const top = read("client/src/components/TopBar.jsx");
   assert.match(top, /onTabChange\?\.\("customise"\); \}\} data-customise-link=""/);
   assert.match(top, />\s*Customise\s*</);

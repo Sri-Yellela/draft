@@ -34,7 +34,8 @@ test("D10: no Job Profiles TAB — but the page keeps its route and its ways in"
   // The ways in: the Profile panel's SETTINGS group (D18; D149 moved the avatar menu into the Profile panel), Profile,
   // and the Daily Deck's set-up state.
   assert.match(topBar, />Settings<\/div>\s*<button onClick=\{\(\) => \{ onClose\(\); onTabChange\?\.\("job-profiles"\); \}\}[^\n]*\n[^\n]*\n\s*Job Profiles\s*\n/);
-  assert.match(app, /onOpenJobProfiles=\{\(\) => handlePanelChange\("job-profiles"\)\}/);
+  // ⭐ D167 (changed on purpose): Profile's panels (pages/profile/ProfilePage.jsx) mount ProfilePanel and keep its way in.
+  assert.match(read("client/src/pages/profile/ProfilePage.jsx"), /onOpenJobProfiles=\{\(\) => navigate\("\/app\/job-profiles"\)\}/);
   assert.match(read("client/src/panels/DeckView.jsx"), /\["\/app\/job-profiles", "Add your résumé →"\]/);
 });
 

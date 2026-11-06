@@ -429,11 +429,13 @@ const SCREENS = {
       settings: { app: "/app/auto-apply", fixtures: TRK, ready: "[data-settings-open]", probe: { root: "[data-settings-drawer]" },
         appPrep: async (page) => { await page.click("[data-settings-open]").catch(() => {}); await page.waitForSelector("[data-fold-top]", { timeout: 8000 }).catch(() => {}); await sleep(700); } },
       atlas: { app: "/app/atlas", fixtures: ATLAS163, ready: "main", appPrep: async () => { await sleep(900); } },
-      profile: { app: "/app/profile", fixtures: SETTINGS, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
-      account: { app: "/app/account", fixtures: ACCOUNT163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
-      customise: { app: "/app/customise", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
-      integrations: { app: "/app/integrations", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
-      "saved-answers": { app: "/app/saved-answers", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
+      // ⭐ D167: the settings pages are Profile's panels now (each at /app/profile/<panel>); Interview is its own place.
+      profile: { app: "/app/profile/about", fixtures: SETTINGS, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
+      account: { app: "/app/profile/account", fixtures: ACCOUNT163, strict: true, ready: "main", appPrep: async () => { await sleep(900); } },
+      customise: { app: "/app/profile/appearance", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
+      integrations: { app: "/app/profile/connections", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
+      "saved-answers": { app: "/app/profile/answers", fixtures: SETTINGS, ready: "main", appPrep: async () => { await sleep(900); } },
+      interview: { app: "/app/interview/upcoming", fixtures: { ...SETTINGS, "/api/interview/upcoming": { interviews: [] } }, ready: "[data-upcoming-empty]", appPrep: async () => { await sleep(900); } },
       admin: { app: "/admin", fixtures: { "/api/admin/auth/me": { authenticated: true, enforced: true, admin: { email: "admin@example.invalid" } },
         "/api/auth/me": { authenticated: false } }, strict: true, ready: "h1", probe: { root: 'div[style*="max-width: 1200px"]' }, appPrep: async () => { await sleep(900); } },
     } },
@@ -828,7 +830,9 @@ const STYLE_PROBES = {
     };
     const dockEl = q("[data-nav-dock]");
     const dock = dockEl && visible(dockEl) ? box(dockEl) : null;
-    const dockRight = dock ? dock.right : 0;
+    // ⭐ D167 (the dock goes where the space is): free space from the VIEWPORT's edges; nothing within 8 px of a SIDE dock.
+    const place = document.documentElement.getAttribute("data-dock-place");
+    const dockRight = place === "side" && dock ? dock.right : 0;
     const els = qa("*", root).filter(e => !e.closest("[data-nav-dock]") && getComputedStyle(e).position !== "fixed" && drawn(e) && visible(e))
       .map(e => ({ e, b: ink(e) })).filter(({ b }) => b && b.top < vh && b.bottom > 0);
     const g = union(els.map(x => x.b));
@@ -836,9 +840,9 @@ const STYLE_PROBES = {
     const flush = els.filter(({ b }) => b.left < dockRight + 8 || b.right > vw - 8).slice(0, 6)
       .map(({ e, b }) => `${e.tagName.toLowerCase()}.${String(e.className?.baseVal ?? e.className).split(" ")[0]} ${b.left}–${b.right}`);
     const rb = box(root);
-    return { vw, vh, dock, root: rb, group: g,
-      leftFree: g ? g.left - dockRight : null, rightFree: g ? vw - g.right : null,
-      rootLeftFree: rb ? rb.left - dockRight : null, rootRightFree: rb ? vw - rb.right : null,
+    return { vw, vh, dock, place, root: rb, group: g,
+      leftFree: g ? g.left : null, rightFree: g ? vw - g.right : null,
+      rootLeftFree: rb ? rb.left : null, rootRightFree: rb ? vw - rb.right : null,
       leaves, insetL: leaves && rb ? leaves.left - rb.left : null, insetR: leaves && rb ? rb.right - leaves.right : null,
       dockMid: dock ? (dock.top + dock.bottom) / 2 : null,
       flush, sideScroll: document.documentElement.scrollWidth > vw + 1 };

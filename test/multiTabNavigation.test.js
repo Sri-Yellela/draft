@@ -56,7 +56,7 @@ test("a modified click is left to the browser, a plain click still navigates in-
   assert.match(nav, /onGo\(t\.id, href\)/);
   // ⭐ D156 (3): a press also folds the expanded dock back to its icons. ⭐ D167 (owner 11-06, changed on purpose): and closes the peek; Interview's page
   // is navigated to directly while it is not a tab of its own.
-  assert.match(NAV, /const go = useCallback\(\(id, href\) => \{\n\s+setOpen\(false\); setWide\(false\); closePeek\(\);/);
+  assert.match(NAV, /const go = useCallback\(\(id, href\) => \{\r?\n\s+setOpen\(false\); setWide\(false\); closePeek\(\);/);
 });
 
 test("the href and the click resolve through ONE mapping", () => {

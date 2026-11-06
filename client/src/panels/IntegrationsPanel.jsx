@@ -225,7 +225,9 @@ function ConnectedApps({ theme, buttonStyle, secondaryButton }) {
   );
 }
 
-export function IntegrationsPanel() {
+export function IntegrationsPanel({ embedded = false }) {
+  // ⭐ D167: drawn inside Profile → Connections (pages/profile/ProfilePage.jsx), which has its own head — `embedded` drops
+  // this page's title; every card, handler and save is the same.
   const { theme } = useTheme();
   const [status, setStatus] = useState(null);
   const [msg, setMsg] = useState("");
@@ -311,6 +313,7 @@ export function IntegrationsPanel() {
     // 72–1920 at 1920, the cards 434 / 434 from its sides). The page is the substrate, as on the board (JobsPanel, 09-30).
     <div style={{ flex:1, overflowY:"auto", padding:"28px 24px 44px" }}>
       <div style={{ maxWidth:980, margin:"0 auto", display:"flex", flexDirection:"column", gap:16 }}>
+        {!embedded && (
         <div>
           <div style={{ fontFamily: "var(--font-display)", fontSize:28,
             fontWeight: 400, color:"var(--color-text)" }}>
@@ -320,6 +323,7 @@ export function IntegrationsPanel() {
             Manage official data providers and profile import connections.
           </div>
         </div>
+        )}
 
         {msg && <div style={{ border:`1px solid ${"var(--color-border)"}`, background:"var(--color-surface-offset)",
           color:"var(--color-text)", borderRadius:6, padding:"9px 12px", fontSize:12 }}>{msg}</div>}

@@ -13,8 +13,9 @@
 // POST   /api/interview/debriefs                            { applicationId?, round, heldOn?, went?, notes?, questions: [] }
 // DELETE /api/interview/debriefs/:id
 // GET    /api/interview/questions                           ?round= — the user's OWN question bank (never another user's)
+// GET    /api/interview/upcoming                            ⭐ D167: Interview → Coming up — the Inbox's invites matched to applications
 import { readPrep, setPrepDate, connectorPack, listStories, createStory, updateStory, deleteStory, seedStoriesFromProfile,
-  addDebrief, listDebriefs, deleteDebrief, questionBank } from "../services/interviewPrep.js";
+  addDebrief, listDebriefs, deleteDebrief, questionBank, upcomingInterviews } from "../services/interviewPrep.js";
 import { jobDetail } from "../services/pipelineWorkspace.js";
 
 const ID = /^\d+$/;
@@ -77,6 +78,7 @@ export default function interviewRoutes(app, db, requireAuth) {
     if (!ID.test(req.params.id)) return badId(res);
     send(res, () => (deleteDebrief(db, req.user.id, req.params.id) ? { ok: true } : null));
   });
+  app.get("/api/interview/upcoming", requireAuth, (req, res) => send(res, () => ({ interviews: upcomingInterviews(db, req.user.id) })));
   app.get("/api/interview/questions", requireAuth, (req, res) =>
     send(res, () => ({ questions: questionBank(db, req.user.id, { round: req.query.round ? String(req.query.round) : null }) })));
 }
