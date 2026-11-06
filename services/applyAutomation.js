@@ -1809,6 +1809,9 @@ export function buildOpenQuestions({ missingFields = [], lowConfidence = [] } = 
   for (const f of missingFields) {
     const question = f.label || f.name || f.field_id || '';
     if (!question) continue;
+    // ⛔ D165 R1: a document upload (the résumé, the cover letter) is draft's to write and attach, never a question put to
+    // the person — a run without one is held as "The résumé couldn't be made", not asked "Resume?".
+    if (f.type === 'file') continue;
     push({
       question,
       field: f.name || f.field_id || null,
