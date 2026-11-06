@@ -10,6 +10,7 @@ import {
   isSalaryQuestion, locationKeyOf, rememberScoped, resolveScoped, specificity, withScopedAnswers, readScoped, forgetScoped,
 } from "../services/scopedAnswers.js";
 import { MIGRATIONS } from "../scripts/migrations.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 // ⛔ D165 (3) · A SAVED SALARY ANSWER IS SCOPED PER ROLE + LOCATION (D165 R2: "scoped: per role / location for salary,
 // global for eligibility"). Synthetic people and synthetic numbers only.
@@ -174,7 +175,7 @@ test("d165 the fill path passes the posting to the payload builder at every appl
   for (const c of calls) assert.match(c, /, (?:jobId|job\?\.jobId \?\? null)\)$/, `every call passes the job: ${c}`);
   const a = readFileSync(new URL("../server.js", import.meta.url), "utf8");
   const b = readFileSync(new URL("../scripts/migrations.js", import.meta.url), "utf8");
-  const block = (s) => s.slice(s.indexOf('id: "222_saved_answer_scopes"'), s.indexOf("`,", s.indexOf('id: "222_saved_answer_scopes"')));
+  const block = (s) => s.slice(at(s, 'id: "222_saved_answer_scopes"'), at(s, "`,", at(s, 'id: "222_saved_answer_scopes"')));
   assert.ok(block(a).length > 30);
   assert.equal(block(a), block(b), "migration 222 is byte-identical in server.js and scripts/migrations.js");
 });

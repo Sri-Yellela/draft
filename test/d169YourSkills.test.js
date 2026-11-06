@@ -20,6 +20,7 @@ import {
   YOUR_SKILLS, PROFILE_SKILLS_LINE, listYourSkills, addSkill, removeSkill, curatorHolds, startQuickCheck, answerQuickCheck,
   addSkillProof, proveOptions, resumeClaims, gateClaimsForResume, gatedDomainProfile, yourSkillsMap, textNamesTerm, quickSummary,
 } from "../services/yourSkills.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const T0 = Date.UTC(2026, 10, 6, 12);
@@ -195,7 +196,7 @@ test("D169 · d169UnprovenNeverInResume — a skill not on the résumé never re
   assert.deepEqual(resumeClaims(db, { userId: 1, profileId: pid }).skills.sort(), ["Kafka", "SQL"]);
   // ⛔ The gate is on every generation path draft owns: coreGenerateResume and the BYOM base.
   const server = read("server.js");
-  const kernel = server.slice(server.indexOf("async function coreGenerateResume("), server.indexOf("function scoreBaseResumeForApply("));
+  const kernel = server.slice(at(server, "async function coreGenerateResume("), at(server, "function scoreBaseResumeForApply("));
   assert.match(kernel, /gateClaimsForResume\(db, \{ userId, claims: listProfileClaims\(db, \{ userId, profileId: activeDomainProfile\.id \}\), resumeText: authoritativeResumeText \}\)/);
   assert.match(kernel, /domainProfile: gatedDomainProfile\(db, \{ userId, domainProfile: activeDomainProfile, resumeText: authoritativeResumeText \}\)/);
   assert.match(server, /claims: gateClaimsForResume\(db, \{ userId, claims: listProfileClaims\(db, \{ userId, profileId: dp\.id \}\), resumeText: text \}\)/);
