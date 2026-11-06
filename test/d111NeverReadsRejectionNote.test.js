@@ -98,16 +98,18 @@ test("d111NeverReadsRejectionNote — no model call site can reach the note", ()
   for (const f of ["services/pipelineWorkspace.js", "services/callbackRates.js", "routes/pipeline.js", "shared/applicationResponse.js"]) {
     const graph = reachable(f);
     assert.ok(!graph.has("services/modelCall.js"), `${f} reaches services/modelCall.js`);
-    for (const g of graph) assert.doesNotMatch(code(read(g)), /@anthropic-ai\/sdk|callModel\(|messages\.create\(/, `${f} → ${g} talks to a model`);
+    assert.ok(!graph.has("services/modelGateway.js"), `${f} reaches services/modelGateway.js (D162)`);
+    for (const g of graph) assert.doesNotMatch(code(read(g)), /@anthropic-ai\/sdk|callModel\(|callTask\(|messages\.create\(/, `${f} → ${g} talks to a model`);
   }
 
   // (c) Every model call in production: its handler (from the enclosing top-level function / route to the call) reads
   //     no application row and no note.
   let sites = 0;
   for (const f of productionFiles()) {
-    if (f === "services/modelCall.js") continue;
+    // D162: features call callTask (services/modelGateway.js → callModel); both definitions are skipped, not counted.
+    if (f === "services/modelCall.js" || f === "services/modelGateway.js") continue;
     const src = read(f);
-    for (const m of src.matchAll(/callModel\(\{/g)) {
+    for (const m of src.matchAll(/call(?:Model|Task)\(\{/g)) {
       sites++;
       const head = src.slice(0, m.index);
       const starts = [/\n(?:export )?(?:async )?function /g, /\napp\.(?:get|post|put|patch|delete)\(/g, /\n\s*router\.(?:get|post|put|patch|delete)\(/g]

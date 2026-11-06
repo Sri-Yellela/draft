@@ -143,7 +143,10 @@ import { createWhatChangedRouter, createWhatChangedAdminRouter } from "./routes/
 // Every model call goes through callModel, which records usage on one path — see
 // services/modelCall.js. trackApiCall is no longer imported here: server.js called it
 // directly at 4 of 14 call sites, which is how the other 10 went unrecorded.
-import { callModel, SYSTEM_USER_ID } from "./services/modelCall.js";
+import { SYSTEM_USER_ID } from "./services/modelCall.js";
+// ⛔ D162 G1 · a feature names a TASK, never a model; the gateway picks the model (services/modelGateway.js).
+import { callTask } from "./services/modelGateway.js";
+import { createModelGatewayAdminRouter } from "./routes/modelGateway.js";
 // AK1: the ONE exception to "server.js does not touch the tracker directly", and it is not a
 // second recording path — recordAtsOutcome only fills ats_score_before/after on a row callModel
 // has already written. It cannot create a usage_events row, so the reason the note above exists
@@ -159,7 +162,7 @@ import { ensureGists, latestGists, validateGists, saveEditedGists, readCoursewor
 import { retryReasonFor } from "./services/generationRetry.js";
 import { generationCostSummary } from "./services/generationCost.js";
 import { drainInto as drainTrackingFailureSink } from "./services/trackingFailureSink.js";
-import { MODEL_SONNET, MODEL_HAIKU } from "./shared/anthropicModels.js";
+import { pinnedModelIds } from "./shared/modelTasks.js";
 import { assertPinnedModelsLive } from "./services/modelCatalogue.js";
 import { workspaceHeaders, checkModelKey, keyCheckLine, KEY_CHECK_EVERY_MS } from "./services/modelKeyCheck.js";
 import { classifyGenerationError } from "./shared/failureAttribution.js";
@@ -6696,6 +6699,36 @@ useTrialPicksReader(readPool);   // A126 · the trial samples' category scan (wa
         ALTER TABLE users ADD COLUMN deck_size INTEGER;
       `,
     },
+    {
+      // D162 G3 + G4 (11-05): THE MODEL GATEWAY. usage_events.task = the model task a call served (shared/modelTasks.js)
+      // and .route = how the gateway routed it (default · cohort · shadow · fallback · tools-service); NULL on older rows,
+      // which the telemetry attributes by purpose. model_eval_records = one measured evaluation run per task × provider ×
+      // model, its verdict computed by the pass rule (services/modelEvals.js) — the gate a model must pass before it
+      // serves users on a task. The route switch itself needs no table: app_settings + admin_audit_log (who / when / why).
+      // Schema only (D151 Rule 1): two O(1) column adds and a new, empty table — no index on usage_events.
+      id: "221_model_gateway",
+      sql: `
+        ALTER TABLE usage_events ADD COLUMN task TEXT;
+        ALTER TABLE usage_events ADD COLUMN route TEXT;
+        CREATE TABLE IF NOT EXISTS model_eval_records (
+          id               INTEGER PRIMARY KEY AUTOINCREMENT,
+          task             TEXT    NOT NULL,
+          provider         TEXT    NOT NULL,
+          model            TEXT    NOT NULL,
+          eval_set         TEXT    NOT NULL,
+          eval_set_version INTEGER NOT NULL,
+          passed           INTEGER NOT NULL,
+          metrics_json     TEXT    NOT NULL,
+          baseline_json    TEXT,
+          reasons_json     TEXT    NOT NULL,
+          actor            TEXT,
+          reason           TEXT,
+          at               INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_model_eval_records_lookup
+          ON model_eval_records(task, provider, model, at);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7182,7 +7215,8 @@ console.log(`[boot] registries: ${roleAliasCount()} role aliases, ${qualificatio
 // about the catalogue, and converting a blip into an outage is worse than the problem.
 assertPinnedModelsLive({
   anthropic: ANTHROPIC_KEY ? anthropic : null,
-  anthropicModels: [MODEL_HAIKU, MODEL_SONNET],
+  // D162: every model the task registry pins (defaults and fallbacks) — today Haiku and Sonnet, as before.
+  anthropicModels: pinnedModelIds(),
 }).catch(err => {
   if (err?.code === "PINNED_MODEL_GONE") {
     console.error("\n" + err.message + "\n");
@@ -10552,6 +10586,8 @@ app.use("/api/admin/thumbs", requireAdmin, createThumbsAdminRouter(db));   // �
 app.use("/api/admin/atlas", requireAdmin, createAtlasAdminRouter(db));
 // ⭐ D118 P2 · Admin → Atlas → Import content: the extracted JSON validated, diffed by id, applied on Apply — no deploy.
 app.use("/api/admin/learn", requireAdmin, createLearnAdminRouter(db));
+// ⭐ D162 G2–G4 · the model gateway: each task's route, the switch / rollback (no deploy, audited), evals, telemetry.
+app.use("/api/admin/model-gateway", requireAdmin, createModelGatewayAdminRouter(db));
 // ⭐ D108 P2 · "What changed": facts with official source links only; public to read, the curator's to write.
 app.use("/api/what-changed", createWhatChangedRouter(db));
 app.use("/api/admin/what-changed", requireAdmin, createWhatChangedAdminRouter(db));
@@ -13725,12 +13761,10 @@ REQUIREMENTS:
 - Plain text output only — no markdown, no bullet points`;
 
   try {
-    const message = await callModel({
-      anthropic, db, purpose: "cover_letter_apply", userId, jobId: String(jobId),
+    const message = await callTask({
+      task: "cover_letter.write", anthropic, db, purpose: "cover_letter_apply", userId, jobId: String(jobId),
       // CANDIDATE: the candidate's resume and profile. Never routed off Anthropic.
       dataClass: DATA_CLASS.CANDIDATE,
-      model: MODEL_HAIKU,
-      max_tokens: 800,
       messages: [{ role: "user", content: prompt }],
     });
     const text = message.content?.[0]?.text || '';
@@ -14764,12 +14798,10 @@ REQUIREMENTS:
 - Plain text output only — no markdown, no bullet points`;
 
   try {
-    const message = await callModel({
-      anthropic, db, purpose: "cover_letter", userId: req.user.id, company: company || null,
+    const message = await callTask({
+      task: "cover_letter.write", anthropic, db, purpose: "cover_letter", userId: req.user.id, company: company || null,
       // CANDIDATE: the candidate's resume and profile. Never routed off Anthropic.
       dataClass: DATA_CLASS.CANDIDATE,
-      model: MODEL_HAIKU,
-      max_tokens: 800,
       messages: [{ role: "user", content: prompt }],
     });
     const text = message.content?.[0]?.text || "";

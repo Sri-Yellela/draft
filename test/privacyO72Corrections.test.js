@@ -58,7 +58,8 @@ test("O72b·4 — the suggestions disclosure stands or falls with the feature (O
   // move together: a disclosure of a call that no longer exists is the same defect this fixed.
   const route = fs.readFileSync("routes/domainProfiles.js", "utf8");
   const wizard = fs.readFileSync("client/src/components/DomainProfileWizard.jsx", "utf8");
-  const routeCallsModel = /router\.post\("\/generate-chips"[\s\S]*?callModel\(/.test(route);
+  // D162: the route calls the model through the gateway (callTask) — still a model call, still disclosed.
+  const routeCallsModel = /router\.post\("\/generate-chips"[\s\S]*?call(?:Model|Task)\(/.test(route);
   const wizardLabel = /Load more AI suggestions/.test(wizard);
   const disclosed = /Load more AI suggestions/.test(prose);
   assert.equal(disclosed, routeCallsModel,

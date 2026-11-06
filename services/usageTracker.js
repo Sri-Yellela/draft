@@ -79,6 +79,26 @@ export function resetTrackingStats() {
   trackingStats.lastPersistError = null;
 }
 
+// ⭐ D162 G4 · usage_events.task / .route (migration 221). Many test databases (and any database before 221) build
+// usage_events without them, so the columns are looked up once per connection and the tag is skipped where they are
+// absent — the row itself (the spend) is never put at risk by the tag: it is a separate UPDATE after the INSERT.
+const taskColumns = new WeakMap();
+function hasTaskColumns(db) {
+  if (taskColumns.has(db)) return taskColumns.get(db);
+  let ok = false;
+  try {
+    const cols = db.prepare("PRAGMA table_info(usage_events)").all().map(c => c.name);
+    ok = cols.includes("task") && cols.includes("route");
+  } catch { ok = false; }
+  taskColumns.set(db, ok);
+  return ok;
+}
+function tagTaskRoute(db, eventId, task, route) {
+  if (!hasTaskColumns(db)) return;
+  try { db.prepare("UPDATE usage_events SET task = ?, route = ? WHERE id = ?").run(task || null, route || null, eventId); }
+  catch (e) { console.warn(`[usageTracker] could not tag event ${eventId} with its task: ${e.message}`); }
+}
+
 export function trackApiCall(db, {
   userId, eventType, eventSubtype,
   model, usage,
@@ -90,6 +110,10 @@ export function trackApiCall(db, {
   // Which provider served the call. Defaults to anthropic so a caller that predates routing
   // records the truth rather than a NULL that would read as "unknown".
   provider = "anthropic",
+  // D162 G4: the model TASK (shared/modelTasks.js) and how the gateway routed this call (default · cohort · shadow ·
+  // fallback · tools-service). Written only where migration 221 added the columns — see tagTaskRoute below.
+  task = null,
+  route = null,
 }) {
   let eventId = null;
   try {
@@ -120,6 +144,7 @@ export function trackApiCall(db, {
     // resume_generate is the case that needs it — the post-generation ATS score does not exist
     // until ~100 lines after the model call that this row records. See recordAtsOutcome below.
     eventId = Number(inserted.lastInsertRowid) || null;
+    if (eventId && (task || route)) tagTaskRoute(db, eventId, task, route);
 
     console.info("[usage] model_call", JSON.stringify({
       userId,
