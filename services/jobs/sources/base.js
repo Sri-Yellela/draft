@@ -110,4 +110,72 @@ function collectCompanyJobs(results, perCompany) {
   return jobs;
 }
 
-export { validatePlugin, SEARCH_PARAMS_SCHEMA, SEARCH_RESULT_SCHEMA, collectCompanyJobs };
+/**
+ * ⭐ D170 (4) · ONE BAD POSTING IS SKIPPED, NOT THE COMPANY. normalizeJob throws on a posting with no title; mapped
+ * with a bare .map() that threw out of fetchCompanyJobs, and the source's catch dropped EVERY posting of the company
+ * (production 11-06: "Workday Broadcom failed whole on normalizeJob: title is required"). Each row is normalised on
+ * its own; the rows that throw are counted and said once per company.
+ */
+function normalizeEach(items, fn, { source = 'source', company = '', log = console } = {}) {
+  const out = [];
+  let skipped = 0, firstError = null;
+  for (const item of items || []) {
+    try { out.push(fn(item)); } catch (e) { skipped++; firstError ??= e.message; }
+  }
+  if (skipped) log.warn?.(`[${source}] skipped ${skipped} of ${(items || []).length} posting(s) for "${company}" — ${firstError}`);
+  return out;
+}
+
+/** True for a failure worth trying again: a timeout, a dropped connection, 429 or a 5xx — never a 404 / 403. */
+function isTransientFetchError(err) {
+  const code = err?.code || '';
+  const status = err?.response?.status;
+  if (status === 429 || (status >= 500 && status <= 599)) return true;
+  if (status) return false;
+  return /ECONNABORTED|ETIMEDOUT|ECONNRESET|EAI_AGAIN|ENOTFOUND|ERR_SOCKET|ECONNREFUSED/.test(code)
+    || /timeout of \d+ms exceeded|socket hang up/i.test(err?.message || '');
+}
+
+/**
+ * ⭐ D170 (4) · A TIMEOUT IS TRIED AGAIN, LATER, NOT GIVEN UP. ≈ 35 Lever companies timed out in one 11-06 crawl
+ * (Palantir, Shield AI, Getty Images, …) — every company fired at once against an 8 s timeout, not 35 broken
+ * companies. `retries` more attempts, each after base · 2^n ms plus jitter, only for transient failures.
+ */
+async function withRetry(fn, { retries = 2, baseMs = 750, sleep = (ms) => new Promise(r => setTimeout(r, ms)), random = Math.random } = {}) {
+  let attempt = 0;
+  for (;;) {
+    try { return await fn(attempt); } catch (err) {
+      if (attempt >= retries || !isTransientFetchError(err)) throw err;
+      await sleep(Math.round(baseMs * 2 ** attempt * (0.75 + random() * 0.5)));
+      attempt++;
+    }
+  }
+}
+
+/**
+ * ⭐ D170 (4) · AT MOST `limit` COMPANIES IN FLIGHT. The sources mapped every company into one Promise.allSettled,
+ * so a crawl of a few hundred Lever boards opened a few hundred requests at once and the slow tail timed out. Results
+ * come back in input order, as PromiseSettledResult entries — the shape collectCompanyJobs reads.
+ */
+async function settleWithLimit(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  const lanes = Math.max(1, Math.min(limit || 1, items.length));
+  await Promise.all(Array.from({ length: lanes }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      try { results[i] = { status: 'fulfilled', value: await fn(items[i], i) }; }
+      catch (reason) { results[i] = { status: 'rejected', reason }; }
+    }
+  }));
+  return results;
+}
+
+/** Positive integer from the environment, else the default. */
+function envInt(name, fallback) {
+  const n = Number(process.env[name]);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
+
+export { validatePlugin, SEARCH_PARAMS_SCHEMA, SEARCH_RESULT_SCHEMA, collectCompanyJobs,
+         normalizeEach, isTransientFetchError, withRetry, settleWithLimit, envInt };

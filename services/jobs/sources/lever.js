@@ -3,7 +3,7 @@ import { normalizeJob } from '../schema.js';
 import {
   htmlToText, truncateWithTail, fullDescriptionText, JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH,
 } from '../htmlToText.js';
-import { collectCompanyJobs } from './base.js';
+import { collectCompanyJobs, normalizeEach, withRetry, settleWithLimit, envInt } from './base.js';
 
 const BASE_URL = 'https://api.lever.co/v0/postings';
 
@@ -53,13 +53,17 @@ function normalizeLeverPosting(posting, companyName) {
   });
 }
 
-async function fetchCompanyJobs(slug, companyName, words) {
+// ⭐ D170 (4): a longer timeout, two retries with backoff on a transient failure, and at most LEVER_CONCURRENCY companies
+// in flight (search below) — ≈ 35 companies timed out in one 11-06 crawl when every board was fetched at once at 8 s.
+const LEVER_TIMEOUT_MS = () => envInt('LEVER_TIMEOUT_MS', 15000);
+const LEVER_CONCURRENCY = () => envInt('LEVER_CONCURRENCY', 6);
+
+async function fetchCompanyJobs(slug, companyName, words, { http = axios, retry = {} } = {}) {
   const url = `${BASE_URL}/${encodeURIComponent(slug)}?mode=json`;
-  const response = await axios.get(url, { timeout: 8000 });
+  const response = await withRetry(() => http.get(url, { timeout: LEVER_TIMEOUT_MS() }), retry);
   const postings = Array.isArray(response.data) ? response.data : [];
-  return postings
-    .filter(p => titleMatchesQuery(p.text, words))
-    .map(p => normalizeLeverPosting(p, companyName));
+  return normalizeEach(postings.filter(p => titleMatchesQuery(p.text, words)),
+    p => normalizeLeverPosting(p, companyName), { source: 'lever', company: companyName });
 }
 
 const leverPlugin = {
@@ -75,14 +79,11 @@ const leverPlugin = {
     // which silently dropped every company past the 900th posting — see collectCompanyJobs.
     const PER_COMPANY_MAX = pageSize * 3;
 
-    const results = await Promise.allSettled(
-      _companies.map(({ ats_slug, company }) =>
-        fetchCompanyJobs(ats_slug, company, words).catch(err => {
-          console.warn(`[lever] Failed to fetch jobs for "${company}" (${ats_slug}):`, err.message);
-          return [];
-        })
-      )
-    );
+    const results = await settleWithLimit(_companies, LEVER_CONCURRENCY(), ({ ats_slug, company }) =>
+      fetchCompanyJobs(ats_slug, company, words).catch(err => {
+        console.warn(`[lever] Failed to fetch jobs for "${company}" (${ats_slug}):`, err.message);
+        return [];
+      }));
 
     const jobs = collectCompanyJobs(results, PER_COMPANY_MAX);
 
