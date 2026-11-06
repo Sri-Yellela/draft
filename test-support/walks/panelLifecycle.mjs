@@ -172,7 +172,7 @@ export default async function run(h, { check, observe, section }) {
     .find(x => x.querySelector('[data-role="label"]')?.textContent === 'Address Line 1'));
   await (await (await addrRowHandle()).asElement().$('[data-role="edit"]')).click();
   const edInput = await (await addrRowHandle()).asElement().$('[data-role="editor"] [data-role="input"]');
-  await edInput.click({ clickCount: 3 });
+  await edInput.click({ count: 3 });
   await edInput.type('2 Other Road');
   await (await (await addrRowHandle()).asElement().$('[data-role="save"]')).click();
   const changedText = await waitUntil(() => h.readShadow('rm-gate-review-overlay', (root) => root.querySelector('[data-role="changed"]')?.textContent || null), BUSY_MS);
