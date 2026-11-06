@@ -33,6 +33,13 @@
  *   Section 7  two users in ONE browser profile still work, and scoped sign-out is honest
  *   Section 8  a password change revokes every credential for that user and nobody else's
  *
+ * THE ADMIN (A129). Under D95 an admin is NOT a users row: it is an admin_accounts row, created at boot from
+ * ADMIN_OWNER_EMAIL with no password, whose password is set through a one-time sign-in link and which signs in at
+ * /api/admin/auth/login into its own draft_admin cookie session. The legacy ADMIN_USER / ADMIN_PASSWORD bootstrap was
+ * removed in D95 Phase 2 (10-13), and with it this harness's admin — sections 4 and 8 failed for that reason alone.
+ * The harness now issues the link straight from the database (the email is the only step it skips) and spends it
+ * through the real /api/admin/auth/set-password route.
+ *
  * Section 7 is the distinction that must not be "fixed" wrongly: two tabs in one browser context
  * legitimately SHARE the cookie session, so a sign-out there signing both out is correct. What must
  * never happen is a sign-out reaching across browser profiles, or failing to end the one it is in.
@@ -45,6 +52,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
+import { issueSignInLink } from "../services/adminAccounts.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = 4612;
@@ -52,6 +60,7 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const DATA_DIR = path.join(os.tmpdir(), `ah1-session-identity-${process.pid}`);
 const PASSWORD = "Ah1-Harness-pass!9";
 const ADMIN_PASSWORD = "Ah1-Harness-admin!9";
+const ADMIN_EMAIL = "ah1-admin@example.org";
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let failures = 0;
@@ -123,8 +132,8 @@ const server = spawn(process.execPath, [path.join(ROOT, "server.js")], {
     RM_DATA_DIR: DATA_DIR,
     PORT: String(PORT),
     NODE_ENV: "development",
-    ADMIN_USER: "ah1_admin",
-    ADMIN_PASSWORD,
+    // D95: boot creates the owner's admin_accounts row (no password) — see the header.
+    ADMIN_OWNER_EMAIL: ADMIN_EMAIL,
     SESSION_SECRET: "ah1-harness-secret",
   },
   stdio: ["ignore", "pipe", "pipe"],
@@ -300,12 +309,22 @@ try {
   check(`every admin route refuses a non-admin session (${adminDenied}/${adminRoutes.length})`,
     adminDenied === adminRoutes.length);
 
+  // D95: the admin is an admin_accounts row, never a users row. Its password is set the way the owner sets one —
+  // a one-time link, spent through the real route — and it signs in with email + password into the draft_admin cookie.
   const padmin = new Profile("admin");
-  const adminLogin = await login(padmin, "ah1_admin", ADMIN_PASSWORD);
-  const tokenAdmin = adminLogin.json?.authContext;
-  check("the admin can sign in", adminLogin.status === 200 && !!tokenAdmin);
+  const adminRow = (() => { const a = authDb(); const r = a.prepare("SELECT id FROM admin_accounts WHERE email = ?").get(ADMIN_EMAIL); a.close(); return r; })();
+  check("boot created the ADMIN_OWNER_EMAIL admin account (an admin_accounts row)", !!adminRow);
+  check("and it is not a users row", (() => { const a = authDb(); const n = a.prepare("SELECT COUNT(*) FROM users WHERE username LIKE 'ah1-admin%' OR is_admin = 1").pluck().get(); a.close(); return n === 0; })());
+  const link = (() => { const w = new Database(path.join(DATA_DIR, "resume_master.db")); try { return issueSignInLink(w, adminRow.id); } finally { w.close(); } })();
+  const setPw = await call(new Profile("admin-link"), "/api/admin/auth/set-password", { method: "POST", body: { token: link?.token, password: ADMIN_PASSWORD } });
+  check("the sign-in link sets the admin's password", setPw.status === 200, `status=${setPw.status} ${setPw.raw.slice(0, 200)}`);
+  const adminLogin = await call(padmin, "/api/admin/auth/login", { method: "POST", body: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } });
+  check("the admin can sign in", adminLogin.status === 200 && padmin.cookies.has("draft_admin"), `status=${adminLogin.status}`);
+  const adminMe = async () => (await call(padmin, "/api/admin/auth/me")).json?.authenticated === true;
+  check("the admin's session is an ADMIN session, not a user one",
+    await adminMe() && await whoami(padmin) === null);
   check("the admin DOES reach an admin route — the 403s above are about role, not a dead mount",
-    (await call(padmin, "/api/admin/users", { token: tokenAdmin })).status === 200);
+    (await call(padmin, "/api/admin/users")).status === 200);
   check("a non-admin cannot promote themselves through an admin route",
     (await call(p2, `/api/admin/users/${bobId}/plan`, { method: "PATCH", token: tokenBob, body: { planTier: "PRO" } })).status === 403);
 
@@ -387,7 +406,7 @@ try {
   check("bob is signed in on two devices",
     await whoami(d1, tokenBob1) === "ah1_bob" && await whoami(d2, tokenBob2) === "ah1_bob");
   const reset = await call(padmin, `/api/admin/users/${bobId}/password`, {
-    method: "PATCH", token: tokenAdmin, body: { password: "Ah1-Rotated-pass!9" },
+    method: "PATCH", body: { password: "Ah1-Rotated-pass!9" },
   });
   check("the password change succeeds", reset.status === 200, JSON.stringify(reset.json));
   // No wait here, on purpose. The sweep is awaited inside the route, so by the time the response
@@ -397,7 +416,7 @@ try {
     await whoami(d1, tokenBob1) === null && await whoami(d2, tokenBob2) === null);
   check("bob's original browser-2 token is dead too", await whoami(p2, tokenBob) === null);
   check("nobody else was signed out",
-    await whoami(padmin, tokenAdmin) === "ah1_admin" && await whoami(p1) === "ah1_alice");
+    await adminMe() && await whoami(p1) === "ah1_alice");
   check("the old password no longer works", (await login(d1, "ah1_bob")).status === 401);
   check("the new password does", (await login(d1, "ah1_bob", "Ah1-Rotated-pass!9")).status === 200);
 
