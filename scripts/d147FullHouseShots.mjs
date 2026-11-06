@@ -224,8 +224,37 @@ try {
       check(where, "the match box opens the match in the posting", !!(await page.$('[data-posting-match-row][data-open="true"]')));
       await page.screenshot({ path: path.join(OUT, `${where}-5-ats.png`) });
     }
-    const sideways = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
-    check(where, "no sideways scroll (posting)", !sideways);
+    // On a FAIL, name what sticks out: the deepest elements whose right edge passes the viewport.
+    const side = await page.evaluate(() => {
+      const vw = document.documentElement.clientWidth;
+      const over = document.documentElement.scrollWidth > window.innerWidth + 1;
+      // Only elements no ancestor clips can widen the page (a box inside an overflow:hidden/auto parent cannot).
+      const clipped = (el) => { for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) { if (getComputedStyle(a).overflowX !== "visible") return true; } return false; };
+      const name = (el) => `${el.tagName.toLowerCase()}.${String(el.className?.baseVal ?? el.className).split(" ")[0]}[${[...el.attributes].filter(a => a.name.startsWith("data-")).map(a => a.name).join(" ")}]`;
+      const out = [];
+      if (over) for (const el of document.querySelectorAll("body *")) {
+        const r = el.getBoundingClientRect();
+        if (r.width && r.right > vw + 1 && !clipped(el)) out.push(`${name(el)} right=${Math.round(r.right)} w=${Math.round(r.width)} pos=${getComputedStyle(el).position}`);
+      }
+      // and by elimination: descend into the child whose removal (display:none) ends the overflow — the deepest one
+      // found is what widens the page, whatever the reason (a pseudo-element, a transform, a margin).
+      const fits = () => document.documentElement.scrollWidth <= window.innerWidth + 1;
+      let at = over ? document.body : null; const path = [];
+      while (at) {
+        let next = null;
+        for (const c of at.children) {
+          const was = c.style.display; c.style.display = "none"; const ok = fits(); c.style.display = was;
+          if (ok) { next = c; break; }
+        }
+        if (!next) break;
+        path.push(name(next)); at = next;
+      }
+      if (path.length) out.push("ELIMINATION " + path.slice(-4).join(" > "));
+      const box = (s) => { const e = document.querySelector(s); if (!e) return `${s}:none`; const r = e.getBoundingClientRect(); return `${s} ${Math.round(r.left)}-${Math.round(r.right)} sw=${e.scrollWidth} cw=${e.clientWidth} ml=${getComputedStyle(e).marginLeft} mr=${getComputedStyle(e).marginRight}`; };
+      out.push(["main", "[data-home]", "[data-home-deck]", "[data-home-board]"].map(box).join(" ; "));
+      return { over, scrollW: document.documentElement.scrollWidth, vw, out: out.slice(-7) };
+    });
+    check(where, "no sideways scroll (posting)", !side.over, side.over ? `scrollWidth ${side.scrollW} > ${side.vw}: ${side.out.join(" | ")}` : "");
     check(where, "no page errors", errors.length === 0, errors.slice(0, 2).join(" | "));
     await page.close();
   }
