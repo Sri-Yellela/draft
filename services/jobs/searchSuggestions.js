@@ -115,14 +115,39 @@ export function getSuggestionIndex(db, roleKey, { now = Date.now(), ttlMs = TTL_
   // Same scoping as the board's own discovery query: the active profile's role_key through
   // job_role_map, and live rows only. Suggesting a title that the board cannot then show would be
   // worse than suggesting nothing.
-  const rows = db.prepare(`
+  return buildIndex(key, db.prepare(INDEX_SQL).all(key), now);
+}
+
+const INDEX_SQL = `
     SELECT COALESCE(NULLIF(TRIM(sj.normalized_title), ''), sj.title) AS title,
            sj.location AS location
     FROM scraped_jobs sj
     JOIN job_role_map jrm ON jrm.job_id = sj.job_id AND jrm.role_key = ?
     WHERE sj.is_active = 1
-  `).all(key);
+  `;
 
+const inflight = new Map();
+/**
+ * ⛔ D151 (A126's pattern) · the index's one whole-scope read through `read` — server.js hands the read-worker pool
+ * (services/db/readWorker.js) — so the FIRST keystroke after a boot or a TTL expiry does not hold the event loop while
+ * it walks every active posting of the role. Concurrent first keystrokes share one read. A warm cache returns at once.
+ * ⭐ NEVER FAILS CLOSED: a read that rejects builds nothing, and suggest() then builds the index on `db` as before.
+ */
+export async function warmSuggestionIndex(db, roleKey, { read = null, now = Date.now(), ttlMs = TTL_MS } = {}) {
+  const key = String(roleKey || "");
+  const hit = cache.get(key);
+  if (hit && now - hit.at < ttlMs) return hit;
+  if (!read) return getSuggestionIndex(db, key, { now, ttlMs });
+  if (!inflight.has(key)) {
+    inflight.set(key, Promise.resolve()
+      .then(() => read.all(INDEX_SQL, [key]))
+      .then(rows => buildIndex(key, rows || [], now), () => null)
+      .finally(() => inflight.delete(key)));
+  }
+  return inflight.get(key);
+}
+
+function buildIndex(key, rows, now) {
   const titles = new Map();
   const locations = new Map();
   for (const r of rows) {
