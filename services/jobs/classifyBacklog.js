@@ -150,7 +150,12 @@ export function createClassifyBacklog(db, { pageRows = CLASSIFY_PAGE_ROWS, write
       // tag_function were added by ALTER, so they sit after the description in every row and reading them walks its
       // overflow pages — slow on the volume, invisible on a local SSD (181 ms). The page size ADAPTS: halved while a read
       // takes longer than READ_BUDGET_MS (never below MIN_PAGE_ROWS), grown back toward `pageRows` while reads are fast.
-      let rows = pageRows;
+      // ⛔ A132 (3) (production dbae3aa, 11-06: 203 pages, yet one read still 2,578 ms): the page shrank only AFTER a slow
+      // read, so the walk's FIRST page — 500 rows on a cold volume — paid the whole stall before it could adapt. The walk
+      // now STARTS at MIN_PAGE_ROWS and doubles only while a read stays under a quarter of the budget, so no read can
+      // reach more than about twice the last one that was measured fast: the stall is bounded before it happens, not after.
+      let rows = Math.min(pageRows, MIN_PAGE_ROWS);
+      status = { ...status, pageRows: rows };
       const step = () => {
         try {
           const t0 = Date.now();

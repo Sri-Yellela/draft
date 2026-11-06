@@ -223,10 +223,27 @@ test("a132ClassifyPageAdapts: a slow read halves the page (floor MIN_PAGE_ROWS),
     const job = createClassifyBacklog(db, { pageRows: 400, log: quiet, schedule: (fn) => { sizes.push(job.status().pageRows); setImmediate(fn); } });
     const s = await job.run("test");
     assert.equal(s.state, "done");
+    // ⛔ A132 (3): the FIRST page is the floor — production's first 500-row read stalled 2,578 ms before it could adapt.
+    assert.equal(sizes[0], MIN_PAGE_ROWS, `the walk starts at MIN_PAGE_ROWS, not pageRows: ${sizes}`);
     assert.ok(sizes.includes(MIN_PAGE_ROWS) || Math.min(...sizes.filter(Boolean)) < 400, `the page shrank: ${sizes}`);
     assert.ok(Math.min(...sizes.filter(Boolean)) >= MIN_PAGE_ROWS, "never below the floor");
     assert.equal(sizes.filter(Boolean).at(-1), 400, `it grew back to pageRows once reads were fast: ${sizes}`);
     assert.ok(s.maxReadMs >= READ_BUDGET_MS, "maxReadMs reports the slow read");
     assert.equal(s.active, db.prepare("SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1").pluck().get(), "every active row read once");
   } finally { Date.now = realNow; }
+});
+
+// A132 (3): reads that are fast from the start grow the page from the floor by at most x2 a page, up to pageRows.
+test("a132ClassifyStartsAtFloor: the first page is MIN_PAGE_ROWS and the page at most doubles per fast read", async () => {
+  const { MIN_PAGE_ROWS } = await import("../services/jobs/classifyBacklog.js");
+  const db = board();
+  for (let i = 0; i < 1500; i++) insert(db, `fast${i}`, "Software Engineer", "software_engineer");
+  const sizes = [];
+  const job = createClassifyBacklog(db, { pageRows: 400, log: quiet, schedule: (fn) => { sizes.push(job.status().pageRows); setImmediate(fn); } });
+  const s = await job.run("test");
+  assert.equal(s.state, "done");
+  assert.equal(sizes[0], MIN_PAGE_ROWS, `first page: ${sizes}`);
+  for (let k = 1; k < sizes.length; k++) assert.ok(sizes[k] <= 2 * sizes[k - 1], `never more than doubles: ${sizes}`);
+  assert.equal(Math.max(...sizes), 400, `reaches pageRows: ${sizes}`);
+  assert.equal(s.active, db.prepare("SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1").pluck().get());
 });
