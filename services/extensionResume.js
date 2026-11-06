@@ -69,6 +69,7 @@ export const USER_ERRORS = Object.freeze({
   extension_only:    { status: 403, message: "This is for the draft extension." },
   trigger_required:  { status: 400, message: "Generating a résumé starts from a click." },
   pdf_unavailable:   { status: 503, message: "The PDF could not be made right now." },
+  nothing_to_reuse:  { status: 409, message: "There is no tailored résumé for this job yet." },
 });
 
 export class GenerationCancelledError extends Error {
@@ -254,7 +255,10 @@ export function createExtensionResumeService({ db, generate, preflight = () => n
    * a tab the board opened — manualHandoff.js jobOnUsersBoard).
    * → { status, body } for the route.
    */
-  function start(userId, { jobId, regenerate = false }) {
+  // ⭐ `reuseOnly` (lane e2e-apply, 11-05): the review row's "Attach tailored" for a résumé the WEB APP made — the same
+  // (job, base) reuse as below, but it never queues a generation: no tailored résumé to reuse → nothing_to_reuse, and
+  // nothing is spent. The row offers it only when peek() says "made" or "ready" (gated-handoff.js resumeFilesFor).
+  function start(userId, { jobId, regenerate = false, reuseOnly = false }) {
     if (!jobId) return userError("no_job");
     const id = String(jobId).slice(0, 128);
     if (!jobOnUsersBoard(db, userId, id)) return userError("not_your_job");
@@ -276,6 +280,7 @@ export function createExtensionResumeService({ db, generate, preflight = () => n
         return { status: 200, body: view(row(gid)) };
       }
     }
+    if (reuseOnly) return userError("nothing_to_reuse");
     const refused = preflight(userId);
     if (refused) return userError(refused, { allowance: allowance(userId) });
     const slots = draftSlots(db, userId);
