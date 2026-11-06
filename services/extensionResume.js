@@ -29,7 +29,7 @@
 // USER_ERRORS — never an upstream message.
 import crypto from "node:crypto";
 import { draftSlots, slotsExhausted } from "./draftSlots.js";
-import { hashBase } from "./baseResumeHistory.js";
+import { hashBase, normaliseUploadHashes } from "./baseResumeHistory.js";
 import { getBaseResumeRecord } from "./simpleApplyProfile.js";
 import { compareResumes } from "./resumeChanges.js";
 import { listProfileClaims } from "./profileSignalAggregator.js";
@@ -243,6 +243,8 @@ export function createExtensionResumeService({ db, generate, preflight = () => n
 
   /** The newest version for this job made from THIS base — a résumé the web app (or an earlier run) already made. */
   function existingVersionFromBase(userId, jobId, baseHash) {
+    // An upload recorded before hashBase trimmed carries the untrimmed hash; bring it to the current form first.
+    normaliseUploadHashes(db, userId);
     try {
       return db.prepare(`SELECT v.version, v.ats_score, v.base_ats_score FROM resume_versions v
         JOIN base_resume_uploads u ON u.id = v.base_upload_id
