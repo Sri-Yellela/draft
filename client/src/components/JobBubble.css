@@ -201,6 +201,14 @@ a.jb__company:hover, a.jb__company:focus-visible { text-decoration: underline; }
   .jb-pair .jb .jb__rail { max-width: 124px; opacity: 1; margin-left: 4px; visibility: visible; }
 }
 @media (prefers-reduced-motion: reduce) { .jb-pair .jb, .jb-pair .jb__rail { transition: none; } }
+/* ⭐ D163 (owner 11-05: "use the space"): on a wide screen (1920 and up) the two columns stay two, and the bubbles grow with
+   the room — a roomier box (20 / 24) and a 48 px logo; the growth on hover is unchanged. */
+@media (min-width: 1920px) {
+  .jb-pair { gap: 22px; }
+  .jb-rows[data-columns="2"] { gap: 22px; }
+  .jb-pair .jb { padding: 20px 24px; gap: 16px; }
+  .jb-pair .jb__logo { width: 48px; height: 48px; }
+}
 @media (max-width: 700px) {
   .jb-pair { flex-direction: column; gap: 14px; }
   .jb-pair .jb:hover, .jb-pair .jb:focus-within { flex-grow: 1; }
