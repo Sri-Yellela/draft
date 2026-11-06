@@ -18,7 +18,9 @@ const quiet = { log() {}, error() {}, warn() {} };
 
 // Every whole-board pass that used to run before the listener. Each must appear ONLY inside a BOOT.add(...) step
 // (or a function the warm-up / an interval calls), never as a bare statement of module evaluation.
-const BOARD_PASSES = ["backfillCategories(db)", "backfillAutomationTier(db)", "backfillProvenanceSlice(db, { rows: PROVENANCE_SLICE_ROWS })",
+// ⛔⛔ D153 (3) (changed on purpose): backfillCategories(db) left this list — the category backfill is now the paged
+// classify job started from READY (d153ClassifyBacklog pins where), not a warm-up step.
+const BOARD_PASSES = ["backfillAutomationTier(db)", "backfillProvenanceSlice(db, { rows: PROVENANCE_SLICE_ROWS })",
   "backfillRoleMap(db)", "remapGeneralRows(db, { skipIfSettled: true })", "backfillCompanyLogosSlice(db, { rows: LOGO_SLICE_ROWS })"];   // 44r: the re-file skips when settled · 44t A123 (8): provenance is a rowid walk · A123 (9): the logo repair too
 
 test("d151NoBoardPassBeforeListen: each board pass is called only inside a BOOT.add warm-up step", () => {

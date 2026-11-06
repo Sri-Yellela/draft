@@ -43,7 +43,10 @@ export function writeCategory(db, jobId, v) {
 
 /**
  * Classify every ACTIVE posting with no category yet (the rows from before 207, and any a crawl wrote without one).
- * Pure regex over titles: a few thousand rows take milliseconds. Run at boot. Returns the counts.
+ * Pure regex over titles: a few thousand rows take milliseconds. Returns the counts.
+ * ⛔⛔ D153 (3): NO LONGER RUN AT BOOT — one statement + one transaction over the whole backlog is whole-board work on
+ * the event loop at 80k postings. The boot runs classifyBacklog.js instead (rowid pages, a yield between them, after
+ * ready); this stays for a script or a small database.
  */
 export function backfillCategories(db, { limit = 100000 } = {}) {
   let rows;

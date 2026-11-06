@@ -79,7 +79,8 @@ import { createSlugHarvestRouter } from "./routes/slugHarvest.js";
 import { createCrawlerWorkerRouter, createCrawlerAdminRouter } from "./routes/crawler.js";
 import { runSchedule as runCrawlerSchedule } from "./services/crawlerQueue.js";
 import { readPolicy as readBoardPolicy, setPolicy as setBoardPolicy, sweepAged } from "./services/jobs/boardAge.js";
-import { sweepScope, backfillCategories } from "./services/jobs/boardScope.js";
+import { sweepScope } from "./services/jobs/boardScope.js";
+import { createClassifyBacklog } from "./services/jobs/classifyBacklog.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
@@ -6808,10 +6809,19 @@ BOOT.add("index: scraped_jobs.scraped_at", () => {
 BOOT.add("index: scraped_jobs (job_id, is_active)", () => {
   db.exec(`CREATE INDEX IF NOT EXISTS ${ACTIVE_JOB_INDEX} ON scraped_jobs(job_id, is_active)`);
 });
-BOOT.add("posting categories", () => {
-  const cat = backfillCategories(db);
-  if (cat.classified) console.log(`[boot] posting categories: ${cat.classified} classified, ${cat.held} held`);
-});
+// ⛔⛔ D153 (3) (11-05) · THE CATEGORY BACKFILL IS A BACKGROUND JOB, AFTER READY. It was a warm-up step here: ONE
+// statement + ONE transaction over every active posting with no category (LIMIT 100k) — whole-board work on the event
+// loop at A112's 80k board, and a deploy's ready waited for it. services/jobs/classifyBacklog.js walks the board in
+// rowid pages of 500 with a setImmediate yield between pages, writes D127's category where it is missing AND the kind
+// of work (tag_function) where the role bucket named none ('general' — 82 % of the owner's 11-04 board said "no kind of
+// work on file"), never for a held posting (D127's leak rule). Idempotent (conditional writes); the walk's state and the
+// coverage it measured are in /api/version (`classify`). New postings are classified at ingest (aggregator → the
+// category; jobTags.deriveTags → the kind of work, the same rule), and the walk runs again every 6 hours for rows other
+// writers left behind.
+// Started from the listen callback, on BOOT.run()'s ready (calling BOOT.run() here would start the warm-up before
+// the port is bound).
+const classifyBacklog = createClassifyBacklog(db);
+setInterval(() => classifyBacklog.run("interval"), 6 * 60 * 60 * 1000).unref();
 
 // Populate migration 078's automation_tier for rows written before it existed. This is here
 // rather than inside the migration because the derivation is JavaScript
@@ -14957,6 +14967,9 @@ app.get("/api/version", (_req, res) => {
     atlasQueue: atlasQueueLength(db),
     // A126 · the board's read workers: ready / served / fallback — fallback climbing means the workers are not serving.
     readPool: readPool.status(),
+    // ⛔⛔ D153 (3): the backlog classification walk — state, writes, and the coverage it measured (shown share of the
+    // active board; share of the shown board with a kind of work). Counts only, nothing user-scoped.
+    classify: classifyBacklog.status(),
     // ⭐ D151 Rule 1: the last boot's timeline — start → listen, → ready, and each warm-up step's duration.
     boot: BOOT.snapshot(),
     monetisationEnabled: monetisationEnabled(),
@@ -15049,6 +15062,8 @@ app.listen(PORT, () => {
     }
     scheduleBoardFitForAll("boot");
   }, Number(process.env.BOARD_FIT_BOOT_DELAY_MS ?? 30000)).unref?.());
+  // ⛔⛔ D153 (3): the backlog classification walk, from READY (never inside the warm-up; it yields between pages).
+  BOOT.run().then(() => classifyBacklog.run("boot"));
 });
 
 
