@@ -27,3 +27,21 @@ test("the serialiser omits a placeholder location — the card reads the company
   assert.equal(mapJobRow(row("Boston, MA")).location, "Boston, MA");
   assert.equal(mapJobRow(row("Nashville, TN")).location, "Nashville, TN");
 });
+
+// The location typeahead (GET /api/jobs/suggest, services/jobs/searchSuggestions.js) is built from scraped_jobs.location
+// as written — before this it offered "Na" and "Location Not Specified" as places to search for.
+test("the location typeahead never offers a placeholder as a place", async () => {
+  const { canonicalLocation } = await import("../services/jobs/searchSuggestions.js");
+  for (const v of ["na", "N/A", "none", "-", "TBD", "unknown", "Location not specified"]) assert.equal(canonicalLocation(v), "", v);
+  assert.equal(canonicalLocation("boston, ma"), "Boston, Ma");
+  assert.equal(canonicalLocation("Nashville, TN"), "Nashville, TN");
+});
+
+// The filter sentence's location panel counts PLACES (job_tag_places, from services/jobs/jobTags.js parsePlaces), never
+// the raw string: a placeholder yields no place, so it is never an option and sits in the unknown remainder — options
+// + unknown still add up (D153 (2)). Pinned so a parser change cannot turn "NA" into a place.
+test("a placeholder location yields no place for the location panel — it is unknown, not an option", async () => {
+  const { parsePlaces } = await import("../services/jobs/jobTags.js");
+  for (const v of ["na", "N/A", "NA", "none", "-", "TBD", "unknown", "Location not specified"]) assert.deepEqual(parsePlaces(v), [], v);
+  assert.deepEqual(parsePlaces("Boston, MA"), [{ country: "US", state: "MA", metro: "boston" }]);
+});
