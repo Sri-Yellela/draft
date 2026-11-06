@@ -11,12 +11,31 @@
 // Pure SQL on purpose — no import from simpleApplyProfile.js, which calls into this module.
 import crypto from "node:crypto";
 
-export const hashBase = (text) => crypto.createHash("sha256").update(String(text ?? "").replace(/\r\n/g, "\n")).digest("hex");
+// ⭐ THE ONE NORMALISATION a base résumé's hash is taken over: CRLF → LF, then the ends trimmed. Every hasher goes
+// through it — the upload record below AND the extension's base (extensionResume.js baseResumeFor, which trims before
+// it hashes). Until 11-05 this did not trim, so a base saved with a trailing newline was recorded under H(text + "\n")
+// while the extension looked it up under H(text): the web app's tailored version was never found and the extension
+// made (and charged for) a second one. Whitespace at the ends of a résumé is never content.
+export const normaliseBaseText = (text) => String(text ?? "").replace(/\r\n/g, "\n").trim();
+export const hashBase = (text) => crypto.createHash("sha256").update(normaliseBaseText(text)).digest("hex");
 
-function fillHashes(db, userId, profileId) {
-  const rows = db.prepare("SELECT id, content FROM base_resume_uploads WHERE user_id = ? AND profile_id IS ? AND content_hash IS NULL").all(userId, profileId ?? null);
+// Rows whose stored hash may be in the OLD (untrimmed) form: no hash yet, or content with whitespace at either end
+// (for every other row trimming changes nothing, so its stored hash is already the new form). They are re-hashed in
+// place from their content — which is kept — so a row stored before the fix matches like one stored after it.
+const EDGE_WS = "char(32, 9, 10, 13, 11, 12, 160)";
+const STALE_HASH_SQL = `(content_hash IS NULL OR content GLOB '[' || ${EDGE_WS} || ']*' OR content GLOB '*[' || ${EDGE_WS} || ']')`;
+
+function fillHashes(db, userId, profileId = undefined) {
+  const scoped = profileId !== undefined;
+  const rows = db.prepare(`SELECT id, content, content_hash FROM base_resume_uploads WHERE user_id = ?${scoped ? " AND profile_id IS ?" : ""} AND ${STALE_HASH_SQL}`)
+    .all(...(scoped ? [userId, profileId ?? null] : [userId]));
   const set = db.prepare("UPDATE base_resume_uploads SET content_hash = ? WHERE id = ?");
-  for (const r of rows) set.run(hashBase(r.content), r.id);
+  for (const r of rows) { const h = hashBase(r.content); if (h !== r.content_hash) set.run(h, r.id); }
+}
+
+/** Brings every one of the user's stored upload hashes to the current form (cheap: only edge-whitespace rows are read). */
+export function normaliseUploadHashes(db, userId) {
+  try { fillHashes(db, userId); } catch { /* a missing table on an old fixture — the lookup below simply finds nothing */ }
 }
 
 /** Records a base the user saved; returns the upload's id (an existing one when the text is unchanged). */
