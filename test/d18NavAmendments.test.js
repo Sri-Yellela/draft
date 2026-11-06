@@ -84,6 +84,7 @@ test("O56e → D145: the phone's tab row is gone — the Menu (or the dock, chos
   const css = read("client/src/components/AppNav.css");
   assert.match(css, /\[data-navigation="auto"\] \{ --appnav-dock: flex; --appnav-menu: none; --appnav-mark: none; \}/);
   // ⭐ D156 (3), changed on purpose: the dock is an always-visible rail of icons (no edge handle) — a phone keeps it, slimmer.
-  assert.match(css, /@media \(max-width: 600px\) \{\n  \.appnav-dock\[data-nav-dock\] \{ left: 6px; top: 24px; width: 46px;/);
+  // ⭐ D163, changed on purpose: no `top` of its own — the rail is vertically centred at every width (test/d163UseTheSpace).
+  assert.match(css, /@media \(max-width: 600px\) \{\n  \.appnav-dock\[data-nav-dock\] \{ left: 6px; width: 46px;/);
 });
 

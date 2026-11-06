@@ -306,8 +306,16 @@
 /* ⭐ D156 (2) (owner 11-05: "use less margins to make space for a bigger card"): 28 24 80 around the page and 40 between
  * the columns (were 44 40 90 and 56), 1600 wide at most. The dock's room is the app shell's (AppNav.css pads it by the
  * rail, and by the expanded dock while it is open — D156 (3)), so Home has no dock rule of its own any more. */
-.home { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 40px; max-width: 1600px; margin: 0 auto;
-  padding: 28px 24px 80px; box-sizing: border-box; width: 100%; }
+/* ⭐ D163 · USE THE SPACE (owner 11-05: "the menu dock, the deck and all are crammed into a corner when there is so much
+ * space around, whenever there is space they should centered and distributed"): ONE CENTRED COMPOSITION. The content is
+ * at most 1680 wide (was 1600 with the gutters inside it) and centred in the room right of the dock's rail, so the free
+ * space is shared evenly on both sides; the side gutters grow with the screen, 24 at 1280 → 96 at 2560 (were 24 at every
+ * width), and the gap between the columns 32 → 64 (was 40 at every width). Measured: scripts/fidelityShots.mjs --styles
+ * home163 (test/d163UseTheSpace.test.js). */
+.home { --home-gutter: clamp(24px, 5.625vw - 48px, 96px); --home-gap: clamp(32px, 2.5vw, 64px);
+  display: grid; grid-template-columns: var(--home-deck-track, auto) minmax(0, 1fr); gap: var(--home-gap);
+  max-width: calc(1680px + 2 * var(--home-gutter)); margin: 0 auto;
+  padding: 28px var(--home-gutter) 80px; box-sizing: border-box; width: 100%; }
 /* ⛔ D156 (1c): D152 (6)'s posting in place of the list (the whole right column) is REMOVED — the opened posting is drawn
    on the deck, in the front card's place (DeckView's slot); the list beside it stays as it is. */
 .home__deck { position: sticky; top: calc(var(--app-chrome-height, 74px) + 28px); align-self: start; width: 390px; }
@@ -317,7 +325,10 @@
 [data-deck-post-slot][data-open="true"] { display: flex; flex-direction: column; min-height: 420px; }
 [data-deck-post-slot][data-open="true"] > * { flex: 1 1 auto; }
 /* ⭐ D156 (2): at 1440 and wider the card is landscape (600 × 372) and the column 640 (lib/fanGeometry.js HOME_WIDE). */
-@media (min-width: 1440px) { .home__deck { width: 640px; } }
+/* ⭐ D163: from 1440 the deck's column takes its share of a wide screen — at least the 640 the landscape card and its fan
+   need, up to .75 of the board's share — and the deck (DeckView's [data-deck-home], 640 at most, margin 0 auto) sits
+   CENTRED in it, so the deck is never pinned to the column's left with the spare width all on its right. */
+@media (min-width: 1440px) { .home { --home-deck-track: minmax(640px, .75fr); } .home__deck { width: auto; min-width: 640px; } }
 /* With the dock as the navigation there is nothing in the chrome strip (D152 (4): no corner mark), so Home starts at the
    sketch's 44 px from the top of the screen, not 44 under an empty strip. The Menu keeps its button there, and the strip. */
 :root:not([data-navigation="menu"]) .home { margin-top: calc(-1 * var(--app-chrome-height, 74px)); }
@@ -382,6 +393,6 @@
 .fh-import__note { margin: 0; flex: 1 1 220px; font-size: calc(13.5px * var(--type-scale, 1)); line-height: 1.45; color: var(--c-ink-muted); }
 .fh-import__note[data-import-note="error"] { color: var(--c-danger); }
 @media (max-width: 980px) {
-  .home { grid-template-columns: minmax(0, 1fr); gap: 34px; padding: 24px 14px 80px; }
+  .home { grid-template-columns: minmax(0, 1fr); gap: 34px; padding: 24px 16px 80px; }
   .home__deck { position: static; margin: 0 auto; width: min(330px, 100%); }
 }

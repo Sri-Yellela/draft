@@ -181,6 +181,16 @@ const SCREENS = {
       const said = await page.evaluate(() => document.querySelector('[aria-live="polite"]')?.textContent || "");
       return { swipe: { before, after, passed: said !== saidBefore && /^Passed /.test(said), stampShown: stamp > 0.5 } };
     } },
+  // ⭐ D163 · USE THE SPACE (owner 11-05) — the jobs page measured at 1280 / 1440 / 1920 / 2560 (and the phone): one centred
+  // composition, the free space shared evenly, the gaps and gutters growing with the width, the deck centred in its
+  // column, the dock on its own gutter, vertically centred (`--styles home163`). Also shot beside the sketch at the four
+  // widths (`node scripts/fidelityShots.mjs home-wide`).
+  home163: { sketch: null, app: "/app", fixtures: HOME156, ready: "[data-home-board]", shoot: true,
+    sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
+    appPrep: async () => { await sleep(1200); } },
+  "home-wide": { sketch: "home-sketch.html", app: "/app", fixtures: HOME156, ready: "[data-home-board]",
+    sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440] },
+    sketchPrep: async () => { await sleep(1700); }, appPrep: async () => { await sleep(1200); } },
   deck: { sketch: "declutter-v7.html", app: "/app", fixtures: DECK, ready: "[data-deck-face]" },
   fullhouse: { sketch: "fullhouse-declutter.html", app: "/app/jobs", fixtures: FULLHOUSE, ready: "[data-fh-title]",
     appPrep: async (page) => {   // the sketch shows the first posting open beside the list
@@ -532,8 +542,64 @@ const STYLE_PROBES = {
   // flip by ‹ ›, the keys, the wheel (one card per gesture); the dock's rail of four 30 px icons, the house and the globe in
   // the accent, /d, the picture or initials, expanding on hover / focus and pushing the page; All jobs · Starred · Imported
   // with counts; Import a job inline; the sort icon in the search field; the D1 bubble growth.
-  home156: async () => {
+  // ⭐ D163 · USE THE SPACE — where the jobs page's things sit: the content group (everything drawn inside .home, by its
+  // leaves' boxes, so an empty column end does not count as content), the free space left of it (from the dock's right
+  // edge — the dock keeps its own gutter) and right of it (to the viewport's edge), the gap between the two columns, the
+  // side gutters, the deck (card + fan) inside its column, the dock's vertical centre, anything flush to an edge, and the
+  // bubbles' width — at rest and with the dock expanded (it still pushes the page, D156 (3)).
+  home163: async () => {
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const q = (s, root = document) => root.querySelector(s);
+    const qa = (s, root = document) => [...root.querySelectorAll(s)];
+    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), width: Math.round(r.width), height: Math.round(r.height) }; };
+    const union = (bs) => bs.filter(Boolean).reduce((u, b) => u ? { left: Math.min(u.left, b.left), top: Math.min(u.top, b.top), right: Math.max(u.right, b.right), bottom: Math.max(u.bottom, b.bottom) } : { ...b }, null);
+    const vw = window.innerWidth, vh = window.innerHeight;
+    await wait(400);
+    const shown = (e) => { const cs = getComputedStyle(e); if (cs.visibility === "hidden" || Number(cs.opacity) === 0) return false; const r = e.getBoundingClientRect(); return r.width > 1 && r.height > 1; };
+    const ink = () => {
+      const home = q("[data-home]");
+      const leaves = qa("*", home).filter(e => (e.children.length === 0 || e.matches("svg, img, article, button, input, textarea")) && !e.closest("svg *") && shown(e))
+        .filter(e => { let p = e; while (p && p !== home) { const cs = getComputedStyle(p); if (Number(cs.opacity) === 0 || cs.visibility === "hidden") return false; p = p.parentElement; } return true; })
+        .map(box).filter(b => b.top < vh && b.bottom > 0);
+      return union(leaves);
+    };
+    const measure = () => {
+      const dock = box(q("[data-nav-dock]")), deckCol = box(q("[data-home-deck]")), board = box(q("[data-home-board]")), home = box(q("[data-home]"));
+      const g = ink();
+      const dockRight = dock && dock.width > 0 ? dock.right : 0;
+      const card = box(q('[data-fan-offset="0"] article'));
+      const backs = qa("[data-fan-offset]").filter(e => Number(e.getAttribute("data-fan-offset")) > 0)
+        .map(e => q("[data-fan-position]", e)).filter(e => e && Number(getComputedStyle(e).opacity) > 0).map(box);
+      const stack = union([card, ...backs]);
+      const hcs = getComputedStyle(q("[data-home]"));
+      const flush = qa("[data-home] *").filter(e => shown(e)).map(e => ({ e, b: e.getBoundingClientRect() }))
+        .filter(({ b }) => b.top < vh && b.bottom > 0 && (b.left < dockRight + 8 || b.right > vw - 8)).slice(0, 5)
+        .map(({ e, b }) => `${e.tagName.toLowerCase()}.${String(e.className?.baseVal ?? e.className).split(" ")[0]} ${Math.round(b.left)}–${Math.round(b.right)}`);
+      const bubbles = qa(".jb-pair").slice(0, 1).map(p => qa(".jb", p).map(b => Math.round(b.getBoundingClientRect().width)))[0] || [];
+      return {
+        dock, home, deckCol, board, group: g,
+        leftFree: g ? g.left - dockRight : null, rightFree: g ? vw - g.right : null,
+        homeLeftFree: home ? home.left - dockRight : null, homeRightFree: home ? vw - home.right : null,
+        colGap: deckCol && board ? board.left - deckCol.right : null,
+        gutterL: parseFloat(hcs.paddingLeft), gutterR: parseFloat(hcs.paddingRight), columnGap: parseFloat(hcs.columnGap),
+        card, stack, stackLeft: stack && deckCol ? stack.left - deckCol.left : null, stackRight: stack && deckCol ? deckCol.right - stack.right : null,
+        dockMid: dock ? (dock.top + dock.bottom) / 2 : null, flush, bubbles, pairs: qa(".jb-pair").length,
+      };
+    };
+    const out = { vw, vh, rest: measure() };
+    const dock = q("[data-nav-dock]");
+    if (dock && vw > 600) {
+      dock.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, relatedTarget: document.body }));
+      await wait(600);
+      const m = measure();
+      out.open = { dock: m.dock, group: m.group, home: m.home, covers: !!m.dock && !!m.group && m.dock.right > m.group.left, shellPad: getComputedStyle(q("[data-app-shell]")).paddingLeft };
+      dock.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: document.body }));
+      await wait(500);
+    }
+    return out;
+  },
+  home156: async () => {
+    const wait =(ms) => new Promise(r => setTimeout(r, ms));
     const q = (s, root = document) => root.querySelector(s);
     const qa = (s, root = document) => [...root.querySelectorAll(s)];
     const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), width: Math.round(r.width), height: Math.round(r.height) }; };
@@ -871,7 +937,7 @@ try {
   for (const id of only) {
     const s = SCREENS[id];
     if (!s) { console.error(`unknown screen ${id}`); continue; }
-    for (const [size, dims] of Object.entries(SIZES)) {
+    for (const [size, dims] of Object.entries(s.sizes || SIZES)) {   // D163: a screen may name its own widths
       const sk = await shoot(browser, pathToFileURL(path.join(ROOT, "docs", "sketches", s.sketch)).href, dims, { hide: SKETCH_CONTROLS, prep: s.sketchPrep });
       const ap = await shoot(browser, `${vite.url}${s.app}`, dims, { fixtures: s.fixtures, ready: s.ready, prep: s.appPrep });
       fs.writeFileSync(path.join(OUT, `${id}-sketch-${size}.png`), sk.buf);

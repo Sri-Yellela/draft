@@ -54,9 +54,13 @@ test("d156LandscapeCardAt1440WithStats (pure): 600 × 372 at ≥ 1440, the 640 c
   assert.ok(HOME_WIDE.width * Math.cos(r) + HOME_WIDE.height * Math.sin(r) - HOME_WIDE.width <= HOME_WIDE.column - HOME_WIDE.width);
   assert.ok(HOME_WIDE.width * Math.sin(r) < HOME_WIDE.below);
   const css = read("client/src/components/FullHouse.css");
-  assert.match(css, /@media \(min-width: 1440px\) \{ \.home__deck \{ width: 640px; \} \}/);
-  assert.match(css, /\.home \{ display: grid; grid-template-columns: auto minmax\(0, 1fr\); gap: 40px; max-width: 1600px; margin: 0 auto;\n  padding: 28px 24px 80px;/,
-    "less page margin (was 44 40 90, 56 between the columns)");
+  // ⭐ D163 changed these on purpose (owner 11-05, "use the space"): from 1440 the deck's column is AT LEAST 640 (the
+  // landscape card and its fan) and takes a share of a wide screen, the deck centred in it; the page's gutters and the gap
+  // between the columns grow with the screen (24 → 96, 32 → 64) and the content is 1680 wide at most
+  // (test/d163UseTheSpace.test.js). At 1280 the gutters are still D156 (2)'s 24.
+  assert.match(css, /@media \(min-width: 1440px\) \{ \.home \{ --home-deck-track: minmax\(640px, \.75fr\); \} \.home__deck \{ width: auto; min-width: 640px; \} \}/);
+  assert.match(css, /\.home \{ --home-gutter: clamp\(24px, 5\.625vw - 48px, 96px\);[^}]*grid-template-columns: var\(--home-deck-track, auto\) minmax\(0, 1fr\); gap: var\(--home-gap\);/,
+    "less page margin (was 44 40 90, 56 between the columns); D163: growing with the screen");
 });
 
 test("d156NoReasonSentence (pure): the card's facts carry at most four small stats, skills matched first; no reason line", async () => {
