@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { normalizeJob } from '../schema.js';
-import { collectCompanyJobs } from './base.js';
+import { collectCompanyJobs, normalizeEach } from './base.js';
 
 // Workday's public career-site JSON API lives at a tenant- AND site-specific path, and the
 // "wd#" subdomain number varies per tenant (wd1, wd3, wd5, ...) — unlike Greenhouse/Lever/
@@ -91,9 +91,9 @@ async function fetchCompanyJobs(atsSlug, companyName, words) {
     offset += limit;
   }
 
-  return jobs
-    .filter(j => titleMatchesQuery(j.title || '', words))
-    .map(j => normalizeWorkdayJob(j, companyName, baseUrl));
+  // ⭐ D170 (4): a posting that fails to normalise (no title) is skipped and counted — never the whole company.
+  return normalizeEach(jobs.filter(j => titleMatchesQuery(j.title || '', words)),
+    j => normalizeWorkdayJob(j, companyName, baseUrl), { source: 'workday', company: companyName });
 }
 
 const workdayPlugin = {
