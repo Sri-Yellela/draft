@@ -82,6 +82,7 @@ async function call(pathname, { method = "GET", token = null, body = null, raw =
     status: res.status, json, raw: text,
     setCookie: res.headers.getSetCookie?.() ?? [],
     contentType: res.headers.get("content-type") || "",
+    location: res.headers.get("location") || "",
   };
 }
 
@@ -752,10 +753,15 @@ try {
     ["POST", "/api/extension/save-job"],
     ["GET", "/api/imported-jobs"],
     ["GET", "/api/imported-jobs/anything"],
-    ["POST", "/api/apply/session/save"],
-    ["GET", "/api/apply/session/greenhouse.io"],
     ["PATCH", "/api/settings/apply-mode"],
   ];
+  // ⭐ A130 (45b): /api/apply/session/* are NOT retirements any more — D100 (owner 10-30) reversed them on purpose, and
+  // they now point (308, method and body kept) at the sealed-portal doors (test/applySessionRetired.test.js). Checked as
+  // what they are, not as 410s.
+  for (const [method, pathname, to] of [["POST", "/api/apply/session/save", "/api/portals/upload"], ["GET", "/api/apply/session/greenhouse.io", "/api/portals"]]) {
+    const r = await call(pathname, { method, token: bob2.token, body: method === "GET" ? null : {} });
+    check(`${method} ${pathname} points (308) at ${to}`, r.status === 308 && r.location.endsWith(to), `got ${r.status} → ${r.location || "?"}`);
+  }
   for (const [method, pathname] of retiredProbes) {
     const r = await call(pathname, { method, token: bob2.token, body: method === "GET" ? null : {} });
     check(`${method} ${pathname} answers 410 to a bearer client`, r.status === 410,

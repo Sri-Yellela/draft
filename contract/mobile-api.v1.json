@@ -2919,6 +2919,12 @@
               "null"
             ]
           },
+          "generate_at_queue": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
           "has_base_resume": {
             "type": "number",
             "description": "0 or 1, computed by an EXISTS subquery. Both board prerequisites are 'a profile exists' AND 'it has a base resume': without the second, the board renders a correct job COUNT over an empty list."
@@ -2940,8 +2946,26 @@
               "null"
             ]
           },
+          "made_from_resume": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "needs_refine": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
           "profile_name": {
             "type": "string"
+          },
+          "refined_at": {
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "role_family": {
             "type": [
@@ -3795,6 +3819,10 @@
               "type": "string"
             }
           },
+          "sponsorshipNeeded": {
+            "type": "boolean",
+            "description": "Whether the person's own Application defaults say they need sponsorship (now or later). It only sets how a posting's sponsorship signal is worded; it is never inferred."
+          },
           "success": {
             "type": "boolean"
           },
@@ -4279,6 +4307,13 @@
             },
             "description": "Every filled field WITH THE RULE THAT PRODUCED IT. A `label_fuzzy` provenance is a guess; `handler_exact` / `field_map_exact` / `custom_answer` are not. That distinction is the entire point of showing this — surface it, do not flatten it away."
           },
+          "baseAts": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "The base résumé's fit for this posting ({ score, band, … }) when no tailored résumé was made for it; null otherwise."
+          },
           "company": {
             "type": [
               "string",
@@ -4287,6 +4322,10 @@
           },
           "fillLogAvailable": {
             "type": "boolean"
+          },
+          "generationDeferred": {
+            "type": "boolean",
+            "description": "true when the résumé is written only on approval (AL2's operator switch, off by default since D165 R1)."
           },
           "jobId": {
             "type": "string"
@@ -4375,6 +4414,10 @@
             "items": {
               "$ref": "#/components/schemas/RunJob"
             }
+          },
+          "line": {
+            "type": "object",
+            "description": "The person's line of queued applications, next first — the same payload as GET /api/apply/line."
           },
           "review": {
             "type": "array",
@@ -4585,6 +4628,12 @@
               "null"
             ]
           },
+          "answer_review_reminded_at": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
           "available_start_date": {
             "type": [
               "string",
@@ -4610,6 +4659,12 @@
             ]
           },
           "country": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coursework_json": {
             "type": [
               "string",
               "null"
@@ -4648,6 +4703,12 @@
             ],
             "description": "A JSON STRING, not an object — parse it. Keyed by the exact question text captured from the form."
           },
+          "custom_answers_acknowledged_at": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
           "desired_salary": {
             "type": [
               "number",
@@ -4655,6 +4716,12 @@
             ]
           },
           "disability_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "education_override": {
             "type": [
               "string",
               "null"
@@ -4887,6 +4954,12 @@
               "null"
             ]
           },
+          "answer_review_reminded_at": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
           "available_start_date": {
             "type": [
               "string",
@@ -4912,6 +4985,12 @@
             ]
           },
           "country": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coursework_json": {
             "type": [
               "string",
               "null"
@@ -4950,6 +5029,12 @@
             ],
             "description": "A JSON STRING, not an object — parse it. Keyed by the exact question text captured from the form."
           },
+          "custom_answers_acknowledged_at": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
           "desired_salary": {
             "type": [
               "number",
@@ -4957,6 +5042,12 @@
             ]
           },
           "disability_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "education_override": {
             "type": [
               "string",
               "null"

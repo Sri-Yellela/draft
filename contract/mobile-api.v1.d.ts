@@ -292,6 +292,7 @@ export interface DomainProfile {
   base_resume_updated_at: number | null;
   created_at: number | null;
   domain: string | null;
+  generate_at_queue: number | null;
   /** 0 or 1, computed by an EXISTS subquery. Both board prerequisites are 'a profile exists' AND 'it has a base resume': without the second, the board renders a correct job COUNT over an empty list. */
   has_base_resume: number;
   id: number;
@@ -300,7 +301,10 @@ export interface DomainProfile {
   /** 0 or 1, not a boolean — the raw SQLite column. Exactly one profile per user is 1. */
   is_active: number;
   location: string | null;
+  made_from_resume: number | null;
+  needs_refine: number | null;
   profile_name: string;
+  refined_at: number | null;
   role_family: string | null;
   selected_keywords: string[];
   selected_tools: string[];
@@ -400,6 +404,8 @@ export interface JobFeedResponse {
   paging: string;
   reason: string | null;
   sources: string[];
+  /** Whether the person's own Application defaults say they need sponsorship (now or later). It only sets how a posting's sponsorship signal is worded; it is never inferred. */
+  sponsorshipNeeded: boolean;
   success: boolean;
   /** The count of matching rows AT THIS MOMENT. On a swipe feed it shrinks as the user swipes, so it is a progress denominator, not a promise about how many more are coming. */
   total: number;
@@ -556,8 +562,12 @@ export interface RunJob {
 export interface RunJobReviewResponse {
   /** Every filled field WITH THE RULE THAT PRODUCED IT. A `label_fuzzy` provenance is a guess; `handler_exact` / `field_map_exact` / `custom_answer` are not. That distinction is the entire point of showing this — surface it, do not flatten it away. */
   answers: Record<string, unknown>[];
+  /** The base résumé's fit for this posting ({ score, band, … }) when no tailored résumé was made for it; null otherwise. */
+  baseAts: Record<string, unknown> | null;
   company: string | null;
   fillLogAvailable: boolean;
+  /** true when the résumé is written only on approval (AL2's operator switch, off by default since D165 R1). */
+  generationDeferred: boolean;
   jobId: string;
   /** The LABELS of required fields left blank. A hold saying 'required fields were left empty' without saying which is a hold the candidate cannot act on. */
   missingRequired: string[];
@@ -579,6 +589,8 @@ export interface RunListResponse {
   /** held_gate — blocked on a login wall or CAPTCHA. ON MOBILE THESE ARE UNRESOLVABLE (no extension, so no activeTab). Render them as needing a desktop; do not offer a retry. */
   gated: RunJob[];
   inFlight: RunJob[];
+  /** The person's line of queued applications, next first — the same payload as GET /api/apply/line. */
+  line: Record<string, unknown>;
   review: RunJob[];
   /** The 20 most recent runs, newest first. */
   runs: Run[];
@@ -651,11 +663,13 @@ export interface UserCapabilities {
 export interface UserProfileResponse {
   address_line1: string | null;
   address_line2: string | null;
+  answer_review_reminded_at: number | null;
   available_start_date: string | null;
   city: string | null;
   clearance_level: string | null;
   confirmed_skills: string | null;
   country: string | null;
+  coursework_json: string | null;
   current_company: string | null;
   current_job_title: string | null;
   /** A JSON STRING keyed by company, for per-employer answers. */
@@ -664,8 +678,10 @@ export interface UserProfileResponse {
   custom_answer_scoped: string | null;
   /** A JSON STRING, not an object — parse it. Keyed by the exact question text captured from the form. */
   custom_answers: string | null;
+  custom_answers_acknowledged_at: number | null;
   desired_salary: number | null;
   disability_status: string | null;
+  education_override: string | null;
   email: string | null;
   ethnicity: string | null;
   field_of_study: string | null;
@@ -714,11 +730,13 @@ export interface UserProfileResponse {
 export interface UserProfileWrite {
   address_line1: string | null;
   address_line2: string | null;
+  answer_review_reminded_at: number | null;
   available_start_date: string | null;
   city: string | null;
   clearance_level: string | null;
   confirmed_skills: string | null;
   country: string | null;
+  coursework_json: string | null;
   current_company: string | null;
   current_job_title: string | null;
   /** A JSON STRING keyed by company, for per-employer answers. */
@@ -727,8 +745,10 @@ export interface UserProfileWrite {
   custom_answer_scoped: string | null;
   /** A JSON STRING, not an object — parse it. Keyed by the exact question text captured from the form. */
   custom_answers: string | null;
+  custom_answers_acknowledged_at: number | null;
   desired_salary: number | null;
   disability_status: string | null;
+  education_override: string | null;
   email: string | null;
   ethnicity: string | null;
   field_of_study: string | null;
