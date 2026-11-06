@@ -505,6 +505,9 @@ export const RESPONSE_SCHEMAS = Object.freeze({
       savedOverrides: "$SavedOverride[]",
       unblocked: "string[]",
       retried: "object|null",
+      remembered: "object[]",
+      notKept: "string[]",
+      scoped: "$ScopedAnswer[]",
     },
     fieldNotes: {
       unblocked: "The job ids these answers actually unblocked. Answering does NOT authorise a " +
@@ -512,6 +515,23 @@ export const RESPONSE_SCHEMAS = Object.freeze({
         "as 'applied'.",
       retried: "Present only when retryJobIds was sent. Carries the started run, or a report of " +
         "which requested jobs were not queued because they are still blocked.",
+      remembered: "Present only when `remember` was sent: what each \"save this for next time?\" " +
+        "choice stored ({ scope, question, company?, templated?, narrowed? }).",
+      notKept: "Present only when `remember` was sent: questions answered with remember:false and " +
+        "no blocked employer to keep them for — used for nothing.",
+      scoped: "D165 (3), present only when a SALARY answer was saved: each one is kept for the " +
+        "scope (role + location) of the job it was given for, not globally. Eligibility answers " +
+        "stay global and never appear here.",
+    },
+  },
+  ScopedAnswer: {
+    description: "D165 (3): a salary answer saved for one role + location. A fill uses the most " +
+      "specific entry whose scope matches the job (role + location, then role, then location, then " +
+      "open); an entry naming another role or location is never used.",
+    fields: { question: "string", answer: "string", kind: "string", roleKey: "string|null",
+      locationKey: "string|null", savedAt: "string|null" },
+    fieldNotes: {
+      locationKey: "\"us\" | \"non_us\" | \"remote\" | null (open).",
     },
   },
   SavedOverride: {
@@ -541,6 +561,7 @@ export const RESPONSE_SCHEMAS = Object.freeze({
       current_job_title: "string|null", current_company: "string|null",
       years_of_experience: "number|null",
       custom_answers: "string|null", custom_answer_overrides: "string|null",
+      custom_answer_scoped: "string|null",
       updated_at: "number|null",
       // Present on the row and returned, but NOT writable through POST /api/profile — that
       // handler's UPDATE does not name them. Documented because they arrive and a strict decoder
@@ -558,6 +579,9 @@ export const RESPONSE_SCHEMAS = Object.freeze({
       custom_answers: "A JSON STRING, not an object — parse it. Keyed by the exact question text " +
         "captured from the form.",
       custom_answer_overrides: "A JSON STRING keyed by company, for per-employer answers.",
+      custom_answer_scoped: "READ-ONLY through this endpoint. D165 (3): a JSON STRING, an array of " +
+        "ScopedAnswer — the salary answers saved per role + location. Written by POST " +
+        "/api/apply/answers; listed parsed in GET /api/saved-answers `scoped`.",
       sponsorship_need: "null means NOT ASKED, and the resolver treats it as a refusal rather than " +
         "guessing 'none' on the candidate's behalf. It is not a synonym for 'no'.",
       id: "READ-ONLY. The row id; POST /api/profile does not write it.",

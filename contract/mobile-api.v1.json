@@ -2360,8 +2360,22 @@
       "AnswersResponse": {
         "type": "object",
         "properties": {
+          "notKept": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Present only when `remember` was sent: questions answered with remember:false and no blocked employer to keep them for — used for nothing."
+          },
           "ok": {
             "type": "boolean"
+          },
+          "remembered": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Present only when `remember` was sent: what each \"save this for next time?\" choice stored ({ scope, question, company?, templated?, narrowed? })."
           },
           "retried": {
             "type": [
@@ -2381,6 +2395,13 @@
             "items": {
               "$ref": "#/components/schemas/SavedOverride"
             }
+          },
+          "scoped": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScopedAnswer"
+            },
+            "description": "D165 (3), present only when a SALARY answer was saved: each one is kept for the scope (role + location) of the job it was given for, not globally. Eligibility answers stay global and never appear here."
           },
           "unblocked": {
             "type": "array",
@@ -4474,6 +4495,40 @@
         },
         "description": "A per-employer answer, keyed by company."
       },
+      "ScopedAnswer": {
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "locationKey": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "\"us\" | \"non_us\" | \"remote\" | null (open)."
+          },
+          "question": {
+            "type": "string"
+          },
+          "roleKey": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "savedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "description": "D165 (3): a salary answer saved for one role + location. A fill uses the most specific entry whose scope matches the job (role + location, then role, then location, then open); an entry naming another role or location is never used."
+      },
       "SubmissionEvidence": {
         "type": "object",
         "properties": {
@@ -4578,6 +4633,13 @@
               "null"
             ],
             "description": "A JSON STRING keyed by company, for per-employer answers."
+          },
+          "custom_answer_scoped": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "READ-ONLY through this endpoint. D165 (3): a JSON STRING, an array of ScopedAnswer — the salary answers saved per role + location. Written by POST /api/apply/answers; listed parsed in GET /api/saved-answers `scoped`."
           },
           "custom_answers": {
             "type": [
@@ -4873,6 +4935,13 @@
               "null"
             ],
             "description": "A JSON STRING keyed by company, for per-employer answers."
+          },
+          "custom_answer_scoped": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "READ-ONLY through this endpoint. D165 (3): a JSON STRING, an array of ScopedAnswer — the salary answers saved per role + location. Written by POST /api/apply/answers; listed parsed in GET /api/saved-answers `scoped`."
           },
           "custom_answers": {
             "type": [
