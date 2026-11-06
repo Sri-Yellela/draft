@@ -212,7 +212,10 @@ test("D57 · after a reload the stored résumé reads 'Résumé ready · 2h ago'
   assert.match(jobs, /atsReport:r\.atsReport \?\? null, company:r\.company, title:r\.role,[^\n]*\n\s+generatedAt: r\.generated_at \? Number\(r\.generated_at\) \* 1000 : null,/);
   assert.match(read("server.js"), /COALESCE\(MAX\(v\.created_at\), r\.created_at\) AS generated_at/);
   // View and Download reach a stored (__exists__) résumé from the store.
-  assert.match(jobs, /onViewSandbox: \(\) => \{\n\s+if \(g2\?\.html === "__exists__"\) \{ generate\(selectedJob, false\); return; \}/);
+  // e2e 11-05 (step 3), changed on purpose: viewing a stored résumé is its own path — never the Generate gates
+  // (the plan may generate, the base résumé text has loaded), which made "View résumé" a silent no-op after a reload.
+  assert.match(jobs, /onViewSandbox: \(\) => \{\n\s+if \(g2\?\.html === "__exists__"\) \{ viewStoredResume\(selectedJob, g2\.tool\); return; \}/);
+  assert.match(jobs, /const viewStoredResume = useCallback\(async \(job, tool = "generate"\) => \{/);
   assert.match(jobs, /const d = await api\(`\/api\/resumes\/\$\{encodeURIComponent\(selectedJob\.jobId\)\}`\);/);
   assert.match(jobs, /onRegenerate: \(\) => generate\(selectedJob, true\),/);
   const jd = read("client/src/components/JobDetailPanel.jsx");

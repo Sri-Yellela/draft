@@ -13,7 +13,7 @@
 // iframe: scrolling="no", overflow hidden — no internal scroll.
 // To change page dimensions edit RESUME_PAGE_WIDTH / RESUME_PAGE_HEIGHT below.
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useTheme } from "../styles/theme.jsx";
 import PanelShell from "../components/PanelShell.jsx";
 import { C } from "../styles/colorTokens.js";
@@ -27,6 +27,14 @@ const AUTOSAVE_MS = 3000;
 // Below this panel width, scaling an A4 page to fit stops producing readable text (794 * 700/794
 // is already 0.88, and the fall-off is linear from there), so the reflowed view becomes the default.
 const PAGE_VIEW_MIN_WIDTH = 700;
+
+// e2e step 3: the page frames make <body> editable (contenteditable / spellcheck) — editing state, not résumé
+// content. Saved html, the HTML download, the printed PDF and Reading view all take the document without them.
+export function cleanDocHtml(html) {
+  return String(html || "").replace(/<body\b[^>]*>/i, (tag) => tag
+    .replace(/\s+contenteditable="[^"]*"/gi, "")
+    .replace(/\s+spellcheck="[^"]*"/gi, ""));
+}
 
 export default function SandboxPanel({
   entry, onClose, onSave, onExport,
@@ -97,8 +105,21 @@ export default function SandboxPanel({
   const saveRef = useRef(null);
   const currentHtmlRef = useRef(activeEntry?.html || "");
   const syncingFramesRef = useRef(false);
+  // e2e step 3: the html each Save handed up. The parent stores it as entry.html, and that must not count as a NEW
+  // résumé (the reset below would drop the view back to Reading and reload every page, losing the caret). A set, not
+  // one value: an autosave can finish after a later one has started, and its echo is still our own.
+  const savedHtmlsRef = useRef(new Set());
+  // e2e step 3: bumped only when the frames SHOULD load fresh html (a new résumé, another tool). The frames' srcDoc
+  // is memoised on it, so a re-render from typing (dirty, autosave, the page count) never reloads an iframe.
+  const [docVersion, setDocVersion] = useState(0);
 
   useEffect(() => {
+    if (entry?.html != null && savedHtmlsRef.current.has(entry.html)) return;
+    savedHtmlsRef.current = new Set();
+    // A NEW résumé drops the old one's pending autosave. (This used to be its own effect on entry.html, so a save
+    // that finished while the person kept typing cancelled the autosave of what they typed after it — measured.)
+    clearTimeout(autoSaveTimer.current);
+    setDocVersion(v => v + 1);
     setSelectedTool(entry?.activeTool || entry?.tool || "generate");
     setDirty(false);
     setExportError("");
@@ -162,14 +183,21 @@ export default function SandboxPanel({
 
   const getCurrentHtml = () => {
     const primaryFrame = frameRefs.current[0];
-    if (!primaryFrame) return currentHtmlRef.current || activeEntry?.html || "";
-    const doc = primaryFrame.contentDocument;
-    return doc ? doc.documentElement.outerHTML : currentHtmlRef.current || activeEntry?.html || "";
+    const doc = primaryFrame?.contentDocument;
+    return cleanDocHtml(doc?.documentElement ? doc.documentElement.outerHTML : currentHtmlRef.current || activeEntry?.html || "");
   };
+
+  // The html the frames load: read once per docVersion / view / tool / page count, never per keystroke. A remount
+  // (the page count changed, Page ↔ Reading) takes the edited html from currentHtmlRef, so no edit is lost.
+  const frameHtml = useMemo(
+    () => cleanDocHtml(currentHtmlRef.current || activeEntry?.html || ""),
+    [docVersion, viewMode, selectedTool, pageCount], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const save = async () => {
     const html = getCurrentHtml();
     try {
+      savedHtmlsRef.current.add(html);
       if (onSave) await onSave(html, activeEntry);
       setDirty(false);
       setSaveMsg("✓ Saved");
@@ -180,7 +208,7 @@ export default function SandboxPanel({
   };
 
   saveRef.current = save;
-  useEffect(() => () => clearTimeout(autoSaveTimer.current), [entry?.html]);
+  useEffect(() => () => clearTimeout(autoSaveTimer.current), []);
 
   // A105 finding 9: a KB "suggestion" carries its exact fix (diff.from → diff.to, services/kb/failsafe.js); Accept
   // APPLIES it on every page — before, Accept / Reject only changed a label and the résumé kept the imprecise name.
@@ -265,7 +293,7 @@ export default function SandboxPanel({
         clearTimeout(autoSaveTimer.current);
         autoSaveTimer.current = setTimeout(() => saveRef.current?.(), AUTOSAVE_MS);
       }
-      currentHtmlRef.current = doc.documentElement.outerHTML;
+      currentHtmlRef.current = cleanDocHtml(doc.documentElement.outerHTML);
       syncOtherFrames(frame, doc);
       syncPageCount();
     };
@@ -524,7 +552,7 @@ export default function SandboxPanel({
                               background:"var(--color-primary-muted)", color:"var(--color-primary-text)",
                               fontSize:10, fontWeight:700, flexShrink:0 }}>
                   <span>Reading view reflows to the panel width — page breaks are not shown. Switch to Page view to edit and format.</span>
-                  <button onClick={() => setViewMode("page")}
+                  <button onClick={() => setViewChoice("page")}
                     style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer",
                              color:"inherit", fontSize:10, fontWeight:800, textDecoration:"underline" }}>
                     Page view
@@ -532,7 +560,7 @@ export default function SandboxPanel({
                 </div>
                 <iframe
                   key={"reading-" + selectedTool}
-                  srcDoc={currentHtmlRef.current || activeEntry.html}
+                  srcDoc={frameHtml}
                   title="resume-reading-view"
                   sandbox="allow-same-origin allow-scripts"
                   style={{
@@ -603,7 +631,7 @@ export default function SandboxPanel({
                       ref={node => {
                         frameRefs.current[pageIndex] = node;
                       }}
-                      srcDoc={currentHtmlRef.current || activeEntry.html}
+                      srcDoc={frameHtml}
                       onLoad={() => handleFrameLoad(pageIndex)}
                       style={{
                         width:     RESUME_PAGE_WIDTH + "px",
