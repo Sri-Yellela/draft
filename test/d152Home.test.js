@@ -63,7 +63,8 @@ test("d152DockLeftWithLogo / d153DockPushes / d152DockSlidesFromLeftEdge (real C
     // ⭐ D156 (3) changed these on purpose: the dock is an always-visible rail of icons — no embossed logo, no edge handle,
     // nothing off the left edge at rest; it expands on hover / focus and the page moves over (test/d156Home.test.js).
     assert.equal(d.emboss, null, `${size}: no embossed logo`);
-    assert.deepEqual(d.items, ["today", "auto-apply", "atlas", "profile"], `${size}: Home · draft · Atlas · Profile`);
+    // ⭐ D167 (owner 11-06, changed on purpose): six places — + Interview, and Ask draft after the divider.
+    assert.deepEqual(d.items, ["today", "auto-apply", "atlas", "interview", "profile", "ask"], `${size}: draft · Home · Atlas · Interview · Profile · Ask draft`);
     assert.equal(d.current, "today");
     assert.ok(d.rest.dock.left >= 0 && d.rest.dock.width > 0, `${size}: the rail is on screen at rest`);
     assert.equal(d.out.coversDeck, false, `${size}: the dock never covers the deck`);

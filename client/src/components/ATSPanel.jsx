@@ -20,6 +20,9 @@ import {
 import { profileSignalKey } from "../../../shared/profileSignals.js";
 import { atsBandFor } from "../../../shared/atsBands.js";
 import { AtsReport } from "./AtsReport.jsx";
+// ⭐ D169 P2: "That's true of me" on a SKILL opens its quick check (or its proof choice) in place — the same component
+// Your skills in Atlas opens. The claim itself behaves as before (counts toward the score); the résumé waits for the proof.
+import SkillCheck from "./SkillCheck.jsx";
 
 // `band` (A40): a caller that holds the BAND and deliberately not the number — the deck — passes it here,
 // and the report is drawn from it. Everywhere else the band is derived from the report's own score.
@@ -36,6 +39,7 @@ export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeT
   const [addedItems,  setAddedItems]  = useState(new Set());
   const [profileSuggestions, setProfileSuggestions] = useState(null);
   const [profileSelections, setProfileSelections] = useState({ activeSkills: [], activeVerbs: [] });
+  const [proving, setProving] = useState(null);   // D169: the skill just claimed, whose check is open in place
 
   // Reset local state when the selected job changes — OR the profile does.
   //
@@ -51,6 +55,7 @@ export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeT
     setLocalReport(null);
     setKwError(false);
     setAddedItems(new Set());
+    setProving(null);
   }, [jobId, activeProfileId]);
 
   // Fetch keyword analysis when no generated-resume report exists
@@ -131,6 +136,7 @@ export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeT
   const toggleClaim = async (kind, label, claimed) => {
     if (!clickableProfileId || !label) return;
     const key = `${kind}:${label}`;
+    if (kind === "skill") setProving(claimed ? label : (p => (p === label ? null : p)));
     setAddedItems(prev => {
       const next = new Set(prev);
       if (claimed) next.add(key); else next.delete(key);
@@ -219,5 +225,14 @@ export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeT
 
   // THE REPORT ITSELF IS components/AtsReport.jsx — the one implementation every ATS surface draws
   // (A52). This panel only fetches, caches and claims.
-  return <AtsReport report={activeReport} band={band} claims={claims} history={history} bare={bare} />;
+  const reportEl = <AtsReport report={activeReport} band={band} claims={claims} history={history} bare={bare} />;
+  if (!proving) return reportEl;
+  return (
+    <>
+      {reportEl}
+      <div data-ats-claim-check={proving}>
+        <SkillCheck key={proving} skill={proving} onClose={() => setProving(null)} />
+      </div>
+    </>
+  );
 }

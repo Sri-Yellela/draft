@@ -204,7 +204,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D136 P3 (214) / D143 (215) / D138 (216): the signals each send had, the navigator's aim and route, the person's own contacts.
   "application_signals", "navigator_routes", "warm_contacts", "readiness_checks",
   // D150 T01 (218): the person's answers to the question bank (the audit's anonymous answers carry no user).
-  "learn_question_answers"];
+  "learn_question_answers",
+  // D169 (223): what proved each skill, the quick checks taken, and the skills held for the Atlas's curator.
+  "skill_proofs", "skill_quick_checks", "atlas_skill_holds"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -324,6 +326,8 @@ export const MERGE_PLAN = Object.freeze({
   readiness_checks: "move",
   // D150 T01 (218): a person's answers to the question bank are their history.
   learn_question_answers: "move",
+  // D169 (223): a person's skill proofs and quick checks are their history; their held skills follow them.
+  skill_proofs: "move", skill_quick_checks: "move", atlas_skill_holds: "move",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });

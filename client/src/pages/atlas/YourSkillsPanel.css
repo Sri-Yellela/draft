@@ -1,0 +1,53 @@
+/* ⭐ D169 · Your skills in Atlas (YourSkillsPanel.jsx) — the sketch's panel (docs/sketches/Atlas.html) in theme tokens.
+   ⛔ No capsules (D60 / D152 (7b)): a state is a 6px dot + a plain word; buttons are depth boxes or quiet words; the
+   map's dots are perfect circles. Phone width: rows wrap, nothing scrolls sideways. */
+.ysk { min-width: 0; color: var(--c-ink); font-family: var(--font-body); overflow-wrap: anywhere; }
+.ysk__eyebrow { margin: 4px 0 8px; color: var(--c-accent-ink); font-size: 14px; }
+.ysk__h2 { margin: 0 0 10px; font-weight: 500; font-size: clamp(30px, 5vw, 44px); line-height: 1.02; letter-spacing: -.035em; }
+.ysk__lead { margin: 0 0 22px; max-width: 60ch; color: var(--c-ink-muted); font-size: 16px; line-height: 1.5; }
+.ysk__quiet { margin: 6px 0; font-size: 12.5px; line-height: 1.5; color: var(--c-ink-faint); }
+.ysk__seg { display: inline-flex; gap: 2px; padding: 3px; margin: 0 0 14px; border-radius: 14px; background: var(--c-surface-solid); }
+.ysk__seg button { all: unset; cursor: pointer; padding: 7px 14px; border-radius: 11px; color: var(--c-ink-muted); font-weight: 600; font-size: 13.5px; }
+.ysk__seg button[aria-pressed="true"] { background: var(--c-surface); color: var(--c-ink); }
+.ysk__seg button:focus-visible, .ysk__quietbtn:focus-visible, .ysk__link:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.ysk__card { padding: 10px 22px 18px; border-radius: 28px; background: var(--c-surface-solid); margin: 0 0 14px; }
+.ysk__row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 14px; align-items: center; padding: 12px 4px; border-top: 1px solid var(--c-border); }
+.ysk__card > div:first-of-type > .ysk__row, .ysk__card > p + div > .ysk__row { border-top: 0; }
+@media (max-width: 560px) { .ysk__row { grid-template-columns: minmax(0, 1fr) auto; } .ysk__acts { grid-column: 1 / -1; } }
+.ysk__name { font-weight: 500; }
+.ysk__sub { display: block; color: var(--c-ink-faint); font-size: 12.5px; }
+.ysk__state { --sc: var(--c-ink-faint); display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--c-ink-muted); white-space: nowrap; }
+.ysk__state::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--sc); flex: none; }
+.ysk__state--built { --sc: var(--c-success); }
+.ysk__state--checked { --sc: var(--c-accent); }
+.ysk__state--claimed { --sc: var(--c-ink-faint); }
+.ysk__acts { display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.ysk__quietbtn { all: unset; cursor: pointer; color: var(--c-accent-ink); font-weight: 600; font-size: 14px; }
+.ysk__quietbtn--dim { color: var(--c-ink-faint); font-weight: 500; font-size: 13px; }
+.ysk__link { color: var(--c-accent-ink); text-decoration: underline; text-underline-offset: 2px; }
+.ysk__link--plain { color: inherit; text-decoration: none; }
+.ysk__add { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.ysk__input { flex: 1 1 200px; min-width: 0; box-sizing: border-box; height: 42px; padding: 0 13px; border-radius: 13px;
+  border: 1px solid var(--c-border-control); background: var(--c-surface-input); color: var(--c-ink); font: 15px var(--font-body); }
+.ysk__input:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
+.ysk__btn { border: 0; cursor: pointer; padding: 0 16px; height: 42px; font: 600 14px var(--font-body); background: var(--c-surface); color: var(--c-ink); }
+.ysk__btn:disabled { cursor: default; opacity: .6; }
+/* the map */
+.ysk__map { padding: 10px; border-radius: 28px; background: var(--c-surface-solid); }
+.ysk__map svg { display: block; width: 100%; height: auto; }
+.ysk__edge { stroke: var(--c-border); stroke-width: 1.5; }
+.ysk__dot--you { fill: var(--c-accent); }
+.ysk__dot--built { fill: var(--c-success); }
+.ysk__dot--checked { fill: var(--c-accent-quiet); stroke: var(--c-accent); stroke-width: 2; }
+.ysk__dot--claimed { fill: var(--c-surface); stroke: var(--c-ink-faint); stroke-width: 1.5; }
+.ysk__dot--near { fill: var(--c-surface); }
+.ysk__dot--gap { fill: var(--c-surface); stroke: var(--c-warning); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.ysk__label { fill: var(--c-ink-muted); font: 500 12px var(--font-body); }
+.ysk__label--you { fill: var(--c-on-accent); font-weight: 700; }
+.ysk__key { display: flex; gap: 14px; flex-wrap: wrap; margin: 10px 6px 4px; color: var(--c-ink-faint); font-size: 12.5px; }
+.ysk__k { --k: var(--c-ink-faint); display: inline-flex; align-items: center; gap: 6px; }
+.ysk__k::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--k); }
+.ysk__k--built { --k: var(--c-success); } .ysk__k--checked { --k: var(--c-accent); } .ysk__k--near { --k: var(--c-border-strong); } .ysk__k--gap { --k: var(--c-warning); }
+.ysk__cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 16px; margin: 12px 6px 6px; }
+.ysk__h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--c-ink-muted); }
+.ysk__plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }

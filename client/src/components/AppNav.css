@@ -111,10 +111,12 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 }
 
 /* TOP — one row, centred, icons AND names (the whole /draft); the gap above it equals the gap to the content
-   (--appnav-top-y, measured). Its one form: hovering never widens it. */
+   (--appnav-top-y, measured). Its one form: hovering never widens it. It sits at the top OF THE PAGE (absolute, not
+   fixed) and scrolls away with it — a fixed row would cover the content scrolling under it ("it never pushes or covers
+   the page"); a side dock stays fixed, in a margin with nothing under it. */
 :root[data-dock-place="top"] .appnav-dock[data-nav-dock],
 :root[data-dock-place="phone"] .appnav-dock[data-nav-dock] {
-  top: var(--appnav-top-y, 20px); left: 50%; transform: translateX(-50%);
+  position: absolute; top: var(--appnav-top-y, 20px); left: 50%; transform: translateX(-50%);
   width: auto; max-width: calc(100vw - 24px); flex-direction: row; align-items: center; gap: 2px; padding: 6px 10px;
   transition: none; will-change: auto;
 }
