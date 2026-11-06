@@ -247,6 +247,16 @@
 @media (max-width: 860px) {
   .fh.fh--bar-row[data-stuck="true"]::before { left: 0; right: 0; }
 }
+/* ⭐ A131 · ON HOME THE RIGHT FRINGE STOPS AT THE PAGE'S EDGE. The board's column ends one page gutter (.home's
+   --home-gutter, 24 px at 1280) from the window's right, so the 28 px fringe stuck out 4 px and the page scrolled
+   sideways (measured 1284 in a 1280 window, the bar stuck: scripts/a131OverflowProbe.mjs). The fringe is never wider
+   than the gutter; from 861 to 980 Home's gutter is 16 (its one-column padding). */
+@media (min-width: 981px) {
+  .home__board .fh.fh--bar-row[data-stuck="true"]::before { right: calc(-1 * min(28px, var(--home-gutter, 28px))); }
+}
+@media (min-width: 861px) and (max-width: 980px) {
+  .home__board .fh.fh--bar-row[data-stuck="true"]::before { right: -16px; }
+}
 
 /* ── ⭐ D147 (owner 11-03, fullhouse-declutter.html) · FULL HOUSE, RESTYLED ─────────────────────────────────────────
  * The title + the ONE Sort / view word · the sentence in the serif at ≈ 30px, its words underlined in the accent ·
