@@ -143,6 +143,12 @@ export function httpErrorFor(e, fallback = "The request failed") {
     return { status: 422, body: { error: USER_GENERATION_MESSAGES.incomplete, code: e.code, retryable: false,
       detail: "Retrying will not help until this is fixed on the server." } };
   }
+  // 44y, contract 1.9.0: the tools service refused a base résumé whose section headings it could not read (it used to
+  // answer 200 with the header alone). The cause is the user's file, not an outage — so not "down on our side", and
+  // not a retry: the same base reads the same way every time.
+  if (e?.code === "resume_unparsed") {
+    return { status: 422, body: { error: USER_GENERATION_MESSAGES.unparsed, code: e.code, retryable: false } };
+  }
   if (e instanceof ToolsServiceError) {
     const retryable = e.retryable === true && e.permanent !== true;
     const status = e.code === "invalid_request" ? 400 : e.code === "payload_too_large" ? 413 : 503;
@@ -168,6 +174,8 @@ export const USER_GENERATION_MESSAGES = Object.freeze({
   down: "Résumé generation is down on our side — trying again won't help until we fix it.",
   // draft's own check (services/generatedResumes.js resumeContentLoss) — nothing was saved and no draft was used.
   incomplete: "The tailored résumé came back missing most of your résumé, so it was withheld — nothing was saved and no draft was used. We're looking into it.",
+  // the tools service's 422 resume_unparsed (contract 1.9.0) — nothing was saved and no draft was used.
+  unparsed: "We couldn't find the section headings in your base résumé (Experience, Education, Skills…), so nothing was tailored and no draft was used. Put each heading on its own line, then upload it again.",
   400: "That résumé or posting couldn't be processed. Check that both have text, then try again.",
   413: "That résumé or posting is too large to process.",
 });
