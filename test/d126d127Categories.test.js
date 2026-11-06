@@ -180,7 +180,7 @@ test("d127 migration 207: the category columns, byte-identical in both migration
   assert.ok(block(server).includes("ADD COLUMN board_category TEXT"));
   assert.equal(block(server), block(mig));
   // ⛔⛔ D153 (3) (changed on purpose): the boot backfill is the paged background job (classifyBacklog.js), from ready.
-  assert.match(read("server.js"), /const classifyBacklog = createClassifyBacklog\(db\);/);
+  assert.match(read("server.js"), /^classifyBacklog = createClassifyBacklog\(db\);/m);   // 44z: declared outside the migration block, assigned here
   assert.match(read("server.js"), /BOOT\.run\(\)\.then\(\(\) => classifyBacklog\.run\("boot"\)\);/);
 });
 

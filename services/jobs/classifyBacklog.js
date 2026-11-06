@@ -24,6 +24,11 @@ import { functionForRole } from "../../shared/jobTagVocabulary.js";
 import { nextRowidRange } from "./rowidWalk.js";
 
 export const CLASSIFY_PAGE_ROWS = 500;
+// ⛔ A132 (production 11-06: write pages up to 2,711 ms, /api/health/live 0.9–4.0 s for ≈ 70 s): an UPDATE rewrites the
+// whole posting row (its description runs to overflow pages), and a 500-row page wrote up to ~500 of them in ONE
+// transaction on the one thread. The writes now go in transactions of at most CLASSIFY_WRITE_CHUNK rows, with a yield
+// between chunks — the read stays one bounded page.
+export const CLASSIFY_WRITE_CHUNK = 50;
 
 const PAGE_SQL = `
   SELECT sj.job_id, sj.title, sj.company, sj.board_category, sj.tag_function, sj.tag_owner_json,
@@ -55,13 +60,16 @@ function stmts(db) {
   return s;
 }
 
-const emptyCounts = () => ({ active: 0, shown: 0, held: 0, withFunction: 0, categorised: 0, functioned: 0 });
+const emptyCounts = () => ({ active: 0, shown: 0, held: 0, withFunction: 0, categorised: 0, functioned: 0, unknownByCategory: {} });
+// A132 · the shown postings left with no kind of work, by their category — the rule leaves a management / business /
+// arts title with no subject word (and science) unknown on purpose; this says how many, without a production DB read.
+const addUnknown = (into, from) => { const o = { ...into }; for (const [k, v] of Object.entries(from || {})) o[k] = (o[k] || 0) + v; return o; };
 
 /**
  * Classify one rowid range (from, to]. Pure database work, bounded by the range. Returns the page's counts:
  * active rows read, shown (in scope) rows, held rows, shown rows WITH a kind of work after the page, and the writes.
  */
-export function classifyPage(db, range) {
+export function classifyPage(db, range, { apply = true } = {}) {
   const s = stmts(db);
   const rows = s.page.all(range.from, range.to);
   const c = emptyCounts();
@@ -86,15 +94,22 @@ export function classifyPage(db, range) {
       if (fn) writes.push({ kind: "function", jobId: r.job_id, fn });
     }
     if (fn != null) c.withFunction++;
+    else c.unknownByCategory[category] = (c.unknownByCategory[category] || 0) + 1;
   }
-  if (writes.length) {
-    db.transaction(() => {
-      for (const w of writes) {
-        if (w.kind === "category") { writeCategory(db, w.jobId, w.verdict); c.categorised++; }
-        else if (s.fn.run(w.fn, w.jobId).changes) c.functioned++;
-      }
-    })();
-  }
+  if (!apply) return { ...c, writes };
+  if (writes.length) applyWrites(db, writes, c);
+  return c;
+}
+
+/** One transaction over `writes` (a chunk); adds to c.categorised / c.functioned. */
+export function applyWrites(db, writes, c) {
+  const s = stmts(db);
+  db.transaction(() => {
+    for (const w of writes) {
+      if (w.kind === "category") { writeCategory(db, w.jobId, w.verdict); c.categorised++; }
+      else if (s.fn.run(w.fn, w.jobId).changes) c.functioned++;
+    }
+  })();
   return c;
 }
 
@@ -102,8 +117,8 @@ export function classifyPage(db, range) {
  * The job: walk the board in rowid pages, a yield between pages. One walk at a time per status object; resolves
  * with the final status. `schedule` is the yield (setImmediate by default; tests pass their own).
  */
-export function createClassifyBacklog(db, { pageRows = CLASSIFY_PAGE_ROWS, schedule = (fn) => setImmediate(fn), log = console } = {}) {
-  let status = { state: "idle", runs: 0, pages: 0, ...emptyCounts(), startedAt: null, finishedAt: null, error: null, lastPageMs: 0, maxPageMs: 0 };
+export function createClassifyBacklog(db, { pageRows = CLASSIFY_PAGE_ROWS, writeChunk = CLASSIFY_WRITE_CHUNK, schedule = (fn) => setImmediate(fn), log = console } = {}) {
+  let status = { state: "idle", runs: 0, pages: 0, ...emptyCounts(), startedAt: null, finishedAt: null, error: null, lastPageMs: 0, maxPageMs: 0, maxWriteMs: 0 };
   let running = null;
 
   const coverage = () => ({
@@ -114,7 +129,7 @@ export function createClassifyBacklog(db, { pageRows = CLASSIFY_PAGE_ROWS, sched
   function run(trigger = "manual") {
     if (running) return running;
     status = { ...status, state: "running", trigger, runs: status.runs + 1, pages: 0, ...emptyCounts(),
-               startedAt: new Date().toISOString(), finishedAt: null, error: null, lastPageMs: 0, maxPageMs: 0 };
+               startedAt: new Date().toISOString(), finishedAt: null, error: null, lastPageMs: 0, maxPageMs: 0, maxWriteMs: 0 };
     running = new Promise((resolve) => {
       let from = 0;
       const finish = (error) => {
@@ -127,19 +142,37 @@ export function createClassifyBacklog(db, { pageRows = CLASSIFY_PAGE_ROWS, sched
         }
         resolve(self.status());
       };
+      // Each slice of work on the loop is one bounded read + its first write chunk, or one later write chunk.
       const step = () => {
         try {
           const t0 = Date.now();
           const range = nextRowidRange(db, from, pageRows);
-          const c = range.to > from ? classifyPage(db, range) : emptyCounts();
-          const ms = Date.now() - t0;
-          status = { ...status, pages: status.pages + 1, lastPageMs: ms, maxPageMs: Math.max(status.maxPageMs, ms),
+          const plan = range.to > from ? classifyPage(db, range, { apply: false }) : { ...emptyCounts(), writes: [] };
+          const { writes, ...c } = plan;
+          status = { ...status, pages: status.pages + 1,
             active: status.active + c.active, shown: status.shown + c.shown, held: status.held + c.held,
-            withFunction: status.withFunction + c.withFunction, categorised: status.categorised + c.categorised,
-            functioned: status.functioned + c.functioned };
-          if (!range.more || range.to <= from) return finish(null);
+            withFunction: status.withFunction + c.withFunction,
+            unknownByCategory: addUnknown(status.unknownByCategory, c.unknownByCategory) };
+          const done = !range.more || range.to <= from;
           from = range.to;
-          schedule(step);
+          let i = 0;
+          const writeChunk_ = (first, tStart) => {
+            try {
+              const t = first ? tStart : Date.now();
+              const tw = Date.now();
+              const w = { categorised: 0, functioned: 0 };
+              const chunk = writes.slice(i, i + writeChunk);
+              if (chunk.length) applyWrites(db, chunk, w);
+              i += chunk.length;
+              const ms = Date.now() - t;
+              status = { ...status, categorised: status.categorised + w.categorised, functioned: status.functioned + w.functioned,
+                lastPageMs: ms, maxPageMs: Math.max(status.maxPageMs, ms), maxWriteMs: Math.max(status.maxWriteMs, Date.now() - tw) };
+              if (i < writes.length) return schedule(() => writeChunk_(false));
+              if (done) return finish(null);
+              schedule(step);
+            } catch (e) { finish(e); }
+          };
+          writeChunk_(true, t0);
         } catch (e) { finish(e); }
       };
       schedule(step);

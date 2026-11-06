@@ -181,3 +181,29 @@ test("d153 wiring: started from READY in the listen callback, every 6 h, reporte
   assert.match(src, /schedule = \(fn\) => setImmediate\(fn\)/, "the yield is setImmediate");
   assert.match(src, /UPDATE scraped_jobs SET tag_function = \? WHERE job_id = \? AND tag_function IS NULL/, "conditional write: idempotent, never overwrites");
 });
+
+// ⛔ A132 (production 11-06: write pages up to 2,711 ms while the walk ran): the writes go in transactions of at most
+// `writeChunk` rows with a yield between chunks; the shown postings left unknown are counted by category.
+test("a132ClassifyWritesChunked: at most writeChunk rows per transaction, a yield between chunks, the same result", async () => {
+  const db = board();
+  const sizes = [];
+  const realTx = db.transaction.bind(db);
+  db.transaction = (fn) => { const t = realTx(fn); return (...a) => { let n = 0; const before = db.prepare("SELECT total_changes()").pluck().get(); const r = t(...a); n = db.prepare("SELECT total_changes()").pluck().get() - before; sizes.push(n); return r; }; };
+  let yields = 0;
+  const job = createClassifyBacklog(db, { pageRows: 500, writeChunk: 2, log: quiet, schedule: (fn) => { yields++; setImmediate(fn); } });
+  const s = await job.run("test");
+  assert.equal(s.state, "done");
+  assert.equal(s.pages, 1, "one bounded read");
+  assert.ok(sizes.length >= 2 && sizes.every(n => n <= 2), `transactions of ≤ 2 rows: ${sizes}`);
+  assert.equal(yields, sizes.length, "a yield before the page and between every chunk");
+  // Same outcome as the unchunked walk.
+  const ref = board();
+  const r = await createClassifyBacklog(ref, { pageRows: 500, log: quiet }).run("ref");
+  const snap = (d) => d.prepare("SELECT job_id, board_category, tag_function FROM scraped_jobs ORDER BY job_id").all();
+  assert.deepEqual(snap(db), snap(ref));
+  assert.equal(s.categorised, r.categorised); assert.equal(s.functioned, r.functioned);
+  assert.ok(Number.isFinite(s.maxWriteMs));
+  assert.equal(typeof s.unknownByCategory, "object");
+  const unknown = Object.values(s.unknownByCategory).reduce((a, b) => a + b, 0);
+  assert.equal(unknown, s.shown - s.withFunction, "every shown posting without a kind of work is counted under its category");
+});
