@@ -74,6 +74,9 @@ test("fidelity · Full House + the posting (fullhouse-declutter.html): page, hea
     for (const b of [pass, save, draft]) assert.deepEqual([b.bg, b.image, b.radius], [RAISE, "none", "16px"], `${size}: ${b.name}`);
     for (const b of [pass, save]) assert.deepEqual([b.size, b.weight, b.color], ["15.5px", "600", INK], `${size}: ${b.text}`);
     assert.deepEqual([pass.text, save.text, d.panel.more.text], ["Pass", "Save", "More"]);
+    // D164 (owner 11-05): the one quiet Résumé control is back beside Draft, on More's own surface (changed on purpose).
+    assert.match(d.panel.resume?.text || "", /^Résumé/, `${size}: the Résumé control is on the posting`);
+    assert.deepEqual([d.panel.resume.bg, d.panel.resume.radius], [d.panel.more.bg, d.panel.more.radius], `${size}: Résumé wears More's surface`);
     // D149 (owner 11-04, "/draft logo"): Draft is the /draft mark on the raised grey, named "Draft" — not the sketch's
     // plain word on the accent gradient (changed on purpose).
     assert.deepEqual([draft.mark, draft.label], [true, "Draft"], `${size}: Draft is the /draft logo button`);

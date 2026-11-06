@@ -962,7 +962,9 @@ const STYLE_PROBES = {
         body: type(q(".posting--panel .posting__body")), heading: type(q(".posting--panel .posting__h")),
         actions: ["pass", "save", "draft"].map(n => btn(n) && { name: n, text: btn(n).textContent.trim(), label: btn(n).getAttribute("aria-label"),
           mark: !!btn(n).querySelector('[role="img"]'), ...surface(btn(n)), ...type(btn(n)) }),
-        more: q(".pp__moreb") && { ...surface(q(".pp__moreb")), ...type(q(".pp__moreb")), text: q(".pp__moreb").textContent.trim() },
+        // D164: the Résumé control wears .pp__moreb too (the same quiet surface), so More is found by its own attribute.
+        more: q("[data-posting-more-toggle]") && { ...surface(q("[data-posting-more-toggle]")), ...type(q("[data-posting-more-toggle]")), text: q("[data-posting-more-toggle]").textContent.trim() },
+        resume: q("[data-posting-resume-toggle]") && { ...surface(q("[data-posting-resume-toggle]")), text: q("[data-posting-resume-toggle]").textContent.trim() },
         pinnedFoot: q(".pp__foot") && cs(q(".pp__foot")).position,
         boxes: Object.fromEntries([["co", ".pp__hd"], ["title", ".posting--panel .posting__title"], ["facts", ".posting__facts"], ["eyebrow", ".posting__eyebrow"], ["body", ".posting--panel .posting__body"], ["actions", ".pp__main-acts"], ["close", ".pp__x"], ["logo", ".pp__logo"]].map(([k, s]) => [k, box(q(s))])) },
     };
