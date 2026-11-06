@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { useTheme } from "../styles/theme.jsx";
 import { api } from "../lib/api.js";
-import { describeApplication, attemptStatusChip } from "../lib/applyObstacles.js";
+import { describeApplication, attemptStatusChip, personQuestions } from "../lib/applyObstacles.js";
 import { companyLabel } from "../../../shared/atsHosts.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { markStyle, bandMarkStyle, dotCue } from "../styles/mark.js";
@@ -673,9 +673,11 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
       {/* AH5: NAME THE FIELDS. "Required fields were left empty" is a hold the candidate cannot act
           on — the same defect class as the old unscoped review modal. The list was always computed;
           it lived in an apply_job_logs event that no surface reads. */}
-      {job.missingRequired?.length > 0 && (
+      {/* ⛔ D165 R1: the résumé and cover-letter slots are draft's to fill, never the person's — they are not listed here
+          (a run without one says "The résumé couldn't be made" with its retry instead). */}
+      {personQuestions(job.missingRequired).length > 0 && (
         <div data-rm-missing-required={job.id} style={{ fontSize: 10.5, color: C.WARNING }}>
-          Still yours to answer: <span style={{ fontWeight: 700 }}>{job.missingRequired.join(", ")}</span>
+          Still yours to answer: <span style={{ fontWeight: 700 }}>{personQuestions(job.missingRequired).join(", ")}</span>
         </div>
       )}
 

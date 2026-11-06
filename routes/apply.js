@@ -1421,7 +1421,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       SELECT dp.generate_at_queue FROM domain_profiles dp
       WHERE dp.user_id=? AND dp.is_active=1 ORDER BY dp.id DESC LIMIT 1
     `).pluck().get(userId);
-    const deferGeneration = needsApproval && !generateAtQueue;
+    // ⛔⛔ D165 R1 (owner 11-06, "the semi run failed miserably, didnt even trigger a resume generation"): THE RÉSUMÉ IS
+    // NEVER THE PERSON'S JOB. An *Ask me first* run (approval required) used to take CASE D — fill the form with NO résumé
+    // and write it only on approval (AL2, to save ≈ $0.04 per unapproved preview) — so the person met an application
+    // "held: Resume left empty". It now generates like every other run (CASE C: in parallel with the browser, the upload
+    // step awaits it, the artifact recorded on the attempt, a failure held with its reason). AL2's deferral survives only
+    // as an OPERATOR switch, off unless DRAFT_DEFER_PREVIEW_GENERATION=1; the per-profile toggle is gone.
+    const deferGeneration = needsApproval && !generateAtQueue && process.env.DRAFT_DEFER_PREVIEW_GENERATION === "1";
     // 'preview' is full-auto minus the click; 'semi' opens a visible browser for a live human.
     const applyMode = mode !== "auto" ? "semi" : needsApproval ? "preview" : "full";
     // D36 · the kill switch reaches a run ALREADY IN FLIGHT. Read at the moment before the click

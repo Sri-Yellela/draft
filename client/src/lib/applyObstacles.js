@@ -131,9 +131,11 @@ const BY_REASON = {
   // for reasons a resume would not fix, and offering to generate one there points the user at the
   // wrong thing. A missing browser binary is the clearest case — the row correctly says "this needs
   // an operator, not you", and a Generate button beside it contradicts that.
+  // ⛔ D165 R1 (owner 11-06): the résumé is never the person's job — a run without one says it could not be MADE, and
+  // offers the retry; it never reads as "attach a résumé yourself".
   resume_unavailable: {
-    obstacle: "No resume was generated, so there was nothing to attach",
-    action: "Generate one for this job, and it will be attached on the next run",
+    obstacle: "The résumé couldn't be made",
+    action: "Try again — the run writes it and attaches it",
     protective: false, retryable: true, resumeBlocked: true,
   },
   // D36: the résumé EXISTS — it was generated and scored — but turning it into the PDF the form
@@ -145,16 +147,16 @@ const BY_REASON = {
     protective: false, retryable: true, resumeBlocked: false,
   },
   generation_failed: {
-    obstacle: "The resume for this job could not be generated",
-    action: "Generate one for this job and try again",
+    obstacle: "The résumé couldn't be made",
+    action: "Try again — the run writes it and attaches it",
     protective: false, retryable: true, resumeBlocked: true,
   },
   // PROTECTIVE, like a gate hold: nothing broke. The generated resume claimed more experience or
   // more seniority than the profile and base resume support, so it was refused before being saved.
   // Under full-auto that resume would have been attached and submitted with nobody reading it.
   resume_claim_violation: {
-    obstacle: "The generated resume overstated your experience, so it was not sent",
-    action: "Regenerate it — or check the years and seniority on your profile if this keeps happening",
+    obstacle: "The résumé couldn't be made — the one written claimed more than your profile states, so it was withheld",
+    action: "Try again — or check the years and level on your profile if this keeps happening",
     protective: true, retryable: true, resumeBlocked: true,
   },
   internal_error: {
@@ -654,4 +656,11 @@ export function attemptStatusChip(status, accent = null) {
   // An unknown status still renders — as itself, muted — rather than as a blank pill. A status this
   // table has not met is a fact worth seeing, not one worth hiding.
   return BY_STATUS[status] || { label: status || "—", color: C.INK_FAINT };
+}
+
+// ⛔ D165 R1 · the required fields left blank that are the PERSON's to answer — never the résumé or cover-letter upload
+// (draft writes and attaches those; a run without one says "The résumé couldn't be made" instead).
+const DOCUMENT_SLOT = /^\s*(?:attach\s+)?(?:your\s+)?(?:r[eé]sum[eé]|cv|r[eé]sum[eé]\s*\/\s*cv|cv\s*\/\s*r[eé]sum[eé]|cover\s+letter)\s*\*?\s*$/i;
+export function personQuestions(list) {
+  return (Array.isArray(list) ? list : []).filter(label => typeof label === "string" && label.trim() && !DOCUMENT_SLOT.test(label));
 }

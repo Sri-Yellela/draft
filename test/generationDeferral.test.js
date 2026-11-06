@@ -142,7 +142,8 @@ test("the deferred branch records the free base score before opening the browser
 test("ONLY the preview path defers — semi and full-auto are untouched", () => {
   const decision = applyRoute.slice(at(applyRoute, "const generateAtQueue"),
                                     at(applyRoute, "const deferGeneration") + 200);
-  assert.match(decision, /needsApproval && !generateAtQueue/,
+  // ⛔ D165 R1 (changed on purpose): and only when the OPERATOR turns AL2 back on — off by default.
+  assert.match(decision, /needsApproval && !generateAtQueue && process\.env\.DRAFT_DEFER_PREVIEW_GENERATION === "1"/,
     "deferral is gated on a human being due to approve; semi has a human AT the browser already, " +
     "and approval_mode 'auto'/'approved' will never see an approval screen");
 });
@@ -334,16 +335,12 @@ test("the approval row explains the missing resume and shows the terms behind th
     "the base band is a FLOOR, and the copy has to say so or it reads as a verdict");
 });
 
-test("the generate-at-queue toggle states the COST, not the schedule", () => {
+// ⛔ D165 R1 (owner 11-06, changed on purpose): the toggle is GONE — every run writes its résumé first, so there is no
+// "draft now, generate on approval" choice to offer. AL2's deferral survives only as an operator switch.
+test("d165: the generate-at-queue toggle is gone from Job Profiles", () => {
   const panel = fs.readFileSync("client/src/panels/JobProfilesPanel.jsx", "utf8");
-  // A53: the verb is draft — "queue time" / "Queueing" were a second name for the same action.
-  assert.match(panel, /Generate resumes when you draft/);
-  // Sits with the other per-profile resume settings, exactly as include_summary does.
-  assert.ok(panel.indexOf("Include a summary section") < panel.indexOf("Generate resumes when you draft"),
-    "it belongs beside the profile's other resume settings");
-  assert.match(panel, /\$0\.04 each, spent whether or not you go on to approve it/,
-    "turning this on makes drafting spend money; the copy must say that, not describe timing");
-  assert.match(panel, /Drafting is free/);
+  assert.doesNotMatch(panel, /Generate resumes when you draft/);
+  assert.doesNotMatch(panel, /generate_at_queue/);
 });
 
 // ── THE COMPLETENESS GATE ───────────────────────────────────────────────────────────────────────
