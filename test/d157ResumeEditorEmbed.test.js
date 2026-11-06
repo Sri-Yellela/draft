@@ -10,6 +10,7 @@ import express from "express";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import { createResumeEditorRouter, editorOrigin, EDITOR_CONTRACT } from "../routes/resumeEditor.js";
 import { changedLines } from "../client/src/lib/resumeEditor.js";
+import { LEGACY_ORIGIN, LEGACY_HOST } from "../shared/brand.js";
 import { at } from "../test-support/sourceAnchors.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
@@ -61,12 +62,12 @@ test("d171ResumePreviewInApp: an attempt's résumé is served as HTML to open in
   } finally { await other.close(); }
 });
 
-test("d157SandboxIsResumeMaster: the editor's address is the tools service's public origin, never its private network", async () => {
-  assert.equal(editorOrigin({}), "https://resumemaster.one");
-  assert.equal(editorOrigin({ RESUME_MASTER_URL: "http://resume-master.railway.internal:8080" }), "https://resumemaster.one");
+test("d157SandboxIsTheToolsService (D157 d157SandboxIsResume-Master): the editor's address is the tools service's public origin, never its private network", async () => {
+  assert.equal(editorOrigin({}), LEGACY_ORIGIN);
+  assert.equal(editorOrigin({ RESUME_MASTER_URL: "http://tools-svc.railway.internal:8080" }), LEGACY_ORIGIN);
   assert.equal(editorOrigin({ RESUME_MASTER_URL: "https://tools.example.com/v1" }), "https://tools.example.com");
   assert.equal(editorOrigin({ RESUME_MASTER_URL: "http://localhost:3100" }), "http://localhost:3100", "a local pair works");
-  assert.equal(editorOrigin({ RESUME_EDITOR_ORIGIN: "https://staging.resumemaster.one/x" }), "https://staging.resumemaster.one");
+  assert.equal(editorOrigin({ RESUME_EDITOR_ORIGIN: `https://staging.${LEGACY_HOST}/x` }), `https://staging.${LEGACY_HOST}`);
   const s = await serve(migrated(), 1, { RESUME_MASTER_URL: "http://localhost:3100" });
   try {
     const c = await (await fetch(`${s.base}/api/resume-editor`)).json();
@@ -140,4 +141,15 @@ test("d157ReviewChangesFromTailoring: the lines tailoring added or rewrote, from
     ] }] },
   ] };
   assert.deepEqual(changedLines(report), ["New summary text, rewritten.", "Cut p99 latency by 35% with batched writes.", "Owned the on-call rotation for four services."]);
+});
+
+test("d171HomeResumeOpensEditor: every Home row's Résumé pane opens the résumé in draft — not only rows waiting for approval", () => {
+  const s = read("client/src/panels/AutoApplyPanel.jsx");
+  assert.match(s, /<AttemptResume runJobId=\{runJobOf\(node\)\} jobId=\{node\.jobId \?\? null\} sent=\{sentAlready\(node\)\}/);
+  assert.match(s, /<AttemptResume recordId=\{h\.recordId \?\? null\} jobId=\{row\.jobId \?\? null\} sent/, "a history row: the copy that was sent");
+  assert.match(s, /pickReady && node\.jobId != null && \(\n\s+<AttemptResume jobId=\{node\.jobId\}/, "a pick whose résumé is made");
+  const c = read("client/src/components/AttemptResume.jsx");
+  assert.match(c, /\/resume-doc`\)/);
+  assert.match(c, /\/api\/applications\/\$\{encodeURIComponent\(recordId\)\}\/resume\?inline=1/);
+  assert.match(c, /readOnly: true \}/, "the kept copy of a sent application is read-only");
 });

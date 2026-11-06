@@ -1,6 +1,6 @@
 // lib/resumeEditor.js — ⭐ D157 (option A) + D171 FIX 4 · open the résumé in draft's embedded editor, from anywhere.
 //
-// The editor is resume-master's tool (resumemaster.one/editor/), embedded by components/ResumeEditorHost.jsx, which
+// The editor is resume-master's tool (the tools service's /editor/), embedded by components/ResumeEditorHost.jsx, which
 // is mounted once in the app shell. A screen asks for it with `openResumeEditor(request)`; the host opens a focused
 // full-screen view and Back / Esc returns to exactly where the person was (the page under it never unmounts).
 //
