@@ -485,11 +485,19 @@ export function createBoardFitPrecompute({
   }
 
   /** Every user's ACTIVE profile — the one the board is ranked for. Sequential, never parallel. */
-  async function runAll({ dryRun = false, force = false, reason = "all", userId = null } = {}) {
+  // ⛔ A139 (45h): `idle(userId)` → true for an account the whole-board passes (boot / crawl / enrichment) may leave
+  // for later — it is scored when it next loads its board (the "board" trigger is a schedule(), never filtered here).
+  async function runAll({ dryRun = false, force = false, reason = "all", userId = null, idle = null } = {}) {
+    let idleSkipped = 0;
     const profiles = db.prepare(`
       SELECT * FROM domain_profiles WHERE is_active = 1 ${userId != null ? "AND user_id = ?" : ""}
       ORDER BY user_id, id
-    `).all(...(userId != null ? [userId] : [])).filter(p => !skipped(p.user_id));
+    `).all(...(userId != null ? [userId] : [])).filter(p => !skipped(p.user_id)).filter(p => {
+      let out = false;
+      if (userId == null && typeof idle === "function") { try { out = !!idle(p.user_id); } catch { out = false; } }
+      if (out) idleSkipped++;
+      return !out;
+    });
     const results = [];
     for (const profile of profiles) {
       results.push(dryRun
@@ -500,7 +508,7 @@ export function createBoardFitPrecompute({
         : await schedule({ userId: profile.user_id, profile, reason, force }));
     }
     const summary = {
-      reason, dryRun, profiles: results.length,
+      reason, dryRun, profiles: results.length, idleSkipped,
       byStatus: results.reduce((a, r) => ({ ...a, [r.status]: (a[r.status] || 0) + 1 }), {}),
       scored: results.reduce((a, r) => a + (r.scored || 0), 0),
       todo: results.reduce((a, r) => a + (r.todo || 0), 0),

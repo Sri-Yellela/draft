@@ -9310,9 +9310,22 @@ function scheduleBoardFit(userId, reason, profile = null) {
     console.error(`[board-fit] could not schedule (${reason}) for user ${userId}:`, e.message);
   }
 }
+// ⛔ A139 (45h): the whole-board passes score only accounts that may look soon. Production 11-07: every former trial
+// account joined the boot pass (≈ 26 s each the first time, ≈ 1 s each after; a new account's first full score 160 s),
+// and most never return. Idle = no board load, no sign-up and no Apply for me / Ask me first in BOARD_FIT_ACTIVE_DAYS
+// (30); an idle account is scored the moment it loads its board again (scheduleBoardFit "board", which is unfiltered).
+const BOARD_FIT_ACTIVE_DAYS = Number(process.env.BOARD_FIT_ACTIVE_DAYS) > 0 ? Number(process.env.BOARD_FIT_ACTIVE_DAYS) : 30;
+function boardFitIdle(userId) {
+  const u = db.prepare(`SELECT board_seen_at, created_at, send_mode, auto_settings FROM users WHERE id = ?`).get(userId);
+  if (!u) return false;
+  const since = Math.floor(Date.now() / 1000) - BOARD_FIT_ACTIVE_DAYS * 86400;
+  if ((u.board_seen_at || 0) >= since || (u.created_at || 0) >= since) return false;
+  if (u.send_mode === "auto" || /"picks":true/.test(u.auto_settings || "")) return false;   // the scheduler ranks by these scores
+  return true;
+}
 function scheduleBoardFitForAll(reason) {
   if (!boardFitAutomationEnabled()) return;
-  boardFit().runAll({ reason })
+  boardFit().runAll({ reason, idle: boardFitIdle })
     .catch(e => console.error(`[board-fit] ${reason} pass threw:`, e.message));
 }
 // A52 follow-up: a pass that enriched rows moved their job_hash, so their stored scores are stale.
