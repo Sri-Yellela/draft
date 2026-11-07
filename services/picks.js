@@ -42,7 +42,20 @@ export const LEFT_OUT_REASONS = Object.freeze({
   level: "Above your level",
   // ⭐ D121 P3 · the user's "Only companies with a sponsorship record" switch, or a posting that says it won't sponsor
   sponsorship: "No sponsorship record",
+  // ⛔ D175 FA4 · Apply for me fills its cap only with postings that can finish unattended; the rest are counted here
+  needs_you: "Would need you to sign in",
 });
+
+// ⛔ D175 FA4 · WHAT CAN FINISH UNATTENDED — from the posting's automation tier (services/jobs/automationTier.js), decided
+// before a pick is spent on it. Only `direct` (Greenhouse · Lever · Ashby single-page forms) finishes on its own today;
+// `guest` may hold, `account` / `gated` stop at Needs you until the Inbox and managed portals exist, `unknown` (null)
+// promises nothing — so all of those are "will need you". A candidate that carries no tier at all (an older caller) is
+// not judged: null.
+export const FINISH_LABELS = Object.freeze({ own: "Will finish on its own", needs_you: "Will need you" });
+export function finishKind(c) {
+  if (!c || !("automationTier" in c)) return null;
+  return c.automationTier === "direct" ? "own" : "needs_you";
+}
 export const PICK_STATES = Object.freeze(["offered", "applied", "passed", "expired", "auto", "start_failed"]);
 
 // ── the user's level (D106) ──────────────────────────────────────────────────────────────────
@@ -81,7 +94,7 @@ export function levelOutOfReach(userRank, candidate) {
  * @returns { take: candidate[], leftOut: [{ jobId, reason }] }
  */
 export function choosePicks(candidates, { remaining, drafted = new Set(), companyCounts = new Map(), pausedCompanies = new Set(), settings,
-  isIneligible = null, isStalePosting = null, userLevel = null, needsSponsorship = false, sponsorshipOf = null }) {
+  isIneligible = null, isStalePosting = null, userLevel = null, needsSponsorship = false, sponsorshipOf = null, preferUnattended = false }) {
   const leftOut = [];
   const pool = [];
   // ⭐ D121 P3 · the ONE signal (services/kb/sponsorshipSignal.js), read once per candidate, only when it can matter.
@@ -121,6 +134,8 @@ export function choosePicks(candidates, { remaining, drafted = new Set(), compan
       leftOut.push({ jobId: id, reason: "company" }); continue;
     }
     if (take.length >= room) { leftOut.push({ jobId: id, reason: "daily_cap" }); continue; }
+    // ⛔ D175 FA4: Apply for me never spends a slot on a posting that would stop at Needs you — counted, not taken.
+    if (preferUnattended && finishKind(c) === "needs_you") { leftOut.push({ jobId: id, reason: "needs_you" }); continue; }
     take.push(c);
     if (key) counts.set(key, (counts.get(key) || 0) + 1);
   }
@@ -341,7 +356,9 @@ export async function runPickSummaries(db, { notify, nowSec = now() } = {}) {
     const due = working === 0 || run.expires_at <= nowSec;
     if (!due) continue;
     if (!claimRun(db, run.id, "summary_sent_at", nowSec)) continue;
-    const result = notify ? await notify(run.user_id, "picks_summary", { sent, waiting, picked: run.picked }) : null;
+    // ⛔ D175 FA4: "… 3 more need you to sign in" — the postings this run left out because they could not finish alone.
+    const needYou = Number(parse(run.left_out_json, {}).needs_you) || 0;
+    const result = notify ? await notify(run.user_id, "picks_summary", { sent, waiting, picked: run.picked, needYou }) : null;
     out.push({ userId: run.user_id, runId: run.id, sent, waiting, result });
   }
   return out;

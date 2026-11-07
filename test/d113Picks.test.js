@@ -153,8 +153,8 @@ test("D113 · per-run left-out counts BY REASON are stored, the left-out ids for
   const [run] = runsOf(db);
   assert.equal(run.seen, 7, "the five in the filters and the two outside them");
   assert.equal(run.picked, 1);
-  assert.deepEqual(JSON.parse(run.left_out_json), { outside_filters: 2, ineligible: 1, stale: 0, daily_cap: 1, company: 1, level: 1, sponsorship: 0 });
-  assert.deepEqual(Object.keys(LEFT_OUT_REASONS), ["outside_filters", "ineligible", "stale", "daily_cap", "company", "level", "sponsorship"]);   // D121: the sponsorship switch / "says no" for a needer
+  assert.deepEqual(JSON.parse(run.left_out_json), { outside_filters: 2, ineligible: 1, stale: 0, daily_cap: 1, company: 1, level: 1, sponsorship: 0, needs_you: 0 });
+  assert.deepEqual(Object.keys(LEFT_OUT_REASONS), ["outside_filters", "ineligible", "stale", "daily_cap", "company", "level", "sponsorship", "needs_you"]);   // D121: the sponsorship switch / "says no" for a needer; D175 FA4: needs_you
   const t = mount(db, { startPickRun: () => ({ status: 202, body: {} }) });
   try {
     const runs = await t.api("/api/picks/runs");

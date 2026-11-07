@@ -65,7 +65,9 @@ export function eventText(event, data = {}) {
       return { title: "New picks", body: `${s("count", "new pick is", "new picks are")} ready. Apply or pass from the message.` };
     case "picks_summary":
       return { title: "Apply for me", body: `This run sent ${s("sent", "application", "applications")}.`
-        + (n("waiting") ? ` ${s("waiting", "needs", "need")} you.` : "") };
+        + (n("waiting") ? ` ${s("waiting", "needs", "need")} you.` : "")
+        // ⛔ D175 FA4: the postings left out because they would have stopped for a sign-in
+        + (n("needYou") ? ` ${n("needYou")} more need you to sign in.` : "") };
     case "pick_question":
       return { title: "A question for you", body: "A job you applied to has a question only you can answer." };
     default:
