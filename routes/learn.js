@@ -21,6 +21,8 @@ import { circleOf } from "../services/learn/learnCircle.js";
 import { readEarned, recordOpened, saveExplanation, saveBuild } from "../services/learn/learnEarned.js";
 import { mapRouteFor } from "../services/learn/learnMapRoute.js";
 import { courseOf, COURSE_ID } from "../services/learn/learnCourse.js";
+import { guides, deckOf } from "../services/learn/learnDecks.js";
+import { questions, recordAnswer } from "../services/learn/learnQuestions.js";
 import { loadRegistry } from "../services/atlas/sourceRegistry.js";
 
 export const LEARN_CACHE = "public, max-age=60";
@@ -43,6 +45,27 @@ export function createLearnRouter(db, { requireAuth }) {
     try { reg = loadRegistry(); } catch { /* an unreadable register leaves every source unnamed, never a 500 */ }
     res.set("Cache-Control", LEARN_CACHE);
     res.json(courseOf(learnContent(db), reg));
+  });
+  // ⭐ D172 (2b) · the Library's ladder of guides (approved decks only; a level with none is "not written yet") and one deck.
+  // Public, like the tracker: the decks' own words; a check question is served without its answer.
+  router.get("/guides", (_req, res) => { res.set("Cache-Control", LEARN_CACHE); res.json({ guides: guides() }); });
+  router.get("/deck/:id", (req, res) => {
+    const d = deckOf(db, String(req.params.id).slice(0, 40));
+    if (!d) return res.status(404).json({ error: "no_such_deck" });
+    res.set("Cache-Control", LEARN_CACHE);
+    res.json(d);
+  });
+  // A deck's check: the answer is recorded (anonymously when signed out) and the bank's "why" comes back. No points —
+  // points come from an explanation in your own words, a build, or a passed quick check (services/atlas/points.js).
+  router.post("/deck/:id/answer", (req, res) => {
+    const d = deckOf(db, String(req.params.id).slice(0, 40));
+    const q = d?.check?.question;
+    if (!q) return res.status(404).json({ error: "no_question" });
+    try {
+      const r = recordAnswer(db, { questionId: q.id, userId: req.user?.id ?? null, surface: "deck", chosen: req.body?.chosen });
+      const full = questions(db, { ids: [q.id] })[0];
+      res.json({ correct: r.correct, answer: full?.correct ?? null, why: full?.why ?? null });
+    } catch (e) { res.status(e.status || 400).json({ error: e.code || "answer_failed", message: e.message }); }
   });
   // ⭐ D117 · the circle's overlay on the tracker (public, like the tracker): per piece its "Before this" links (with
   // their status — drafted ones are used and marked "draft" until the owner accepts them), "After this" (computed), the

@@ -1,6 +1,6 @@
 {
  "version": 1,
- "note": "Drafted by the chat assistant 11-05 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'software', stage 'foundations': 8 five-slide decks. 'questions' are bank item ids shown on the deck's last slide; 'newQuestions' are items that don't exist yet and enter the bank as drafts. Nothing is live until approved.",
+ "note": "Drafted by the chat assistant 11-05 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'software', stage 'foundations': 8 five-slide decks. 'questions' are bank item ids shown on the deck's last slide; 'newQuestions' are items that don't exist yet and enter the bank as drafts. Nothing is live until approved. Approved by the owner 2026-11-07 (status: approved).",
  "decks": [
   {
    "id": "sw-f-01",
@@ -64,7 +64,7 @@
     "sw-f-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-f-02",
@@ -126,7 +126,7 @@
     "aud-swe-03"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-f-03",
@@ -187,7 +187,7 @@
     "aud-swe-03"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-f-04",
@@ -248,7 +248,7 @@
     "prac-o-05"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-f-05",
@@ -309,7 +309,7 @@
     "aud-qa-01"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-f-06",
@@ -370,7 +370,7 @@
     "aud-swe-06"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-f-07",
@@ -432,7 +432,7 @@
     "prac-m-01"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-f-08",
@@ -495,7 +495,7 @@
     "aud-sec-01"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
