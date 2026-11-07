@@ -36,7 +36,7 @@ test("⛔ DEAD PROVIDERS FALL THROUGH TO A DIFFERENT SOURCE — and when all are
                   "https://icons.duckduckgo.com/ip3/ramp.com.ico": { status: 200, body: ICO } });
   const r = await resolveCompanyLogo("Ramp", [], { fetchImpl: a.fetchImpl });
   assert.equal(r.status, "ok");
-  assert.equal(r.provider, "duckduckgo");
+  assert.equal(r.provider, "duckduckgo", "google-favicon has no route here (dead) → the next source");
   // Every provider dead → none, and no URL anywhere in the result.
   const b = net({ "https://ramp.com/": page("Ramp"), "https://ramp.com/favicon.ico": "dead",
                   "https://icons.duckduckgo.com/ip3/ramp.com.ico": "dead" });
@@ -44,7 +44,52 @@ test("⛔ DEAD PROVIDERS FALL THROUGH TO A DIFFERENT SOURCE — and when all are
   assert.equal(r2.status, "none");
   assert.ok(!("bytes" in r2) && !("url" in r2), "a result for 'nothing served a logo' carries no address");
   // The providers are three DIFFERENT sources — never the same host twice.
-  assert.deepEqual(PROVIDERS.map(p => p.name), ["site-declared", "site-favicon", "duckduckgo"]);
+  assert.deepEqual(PROVIDERS.map(p => p.name), ["site-declared", "site-favicon", "google-favicon", "duckduckgo"]);
+});
+
+// D170 (5), 11-06 — production: "site-favicon, duckduckgo" named dead, 13 of 40 companies without a logo. Measured:
+// both alive; they only ever saw SVG-only sites (<link rel=icon type=image/svg+xml>, /favicon.ico 404), and DuckDuckGo
+// mirrors that same /favicon.ico. Google's favicon service rasterises the site's icon to PNG.
+const gfav = (d) => `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(`https://${d}`)}&size=128`;
+test("d170LogosSvgOnlySiteGetsARasterisedIcon — an SVG-only site's logo comes from the rasterising provider", async () => {
+  const n = net({ "https://findigs.com/": page("Findigs", '<link rel="icon" href="/icon.svg" type="image/svg+xml">'),
+                  "https://findigs.com/favicon.ico": { status: 404, body: "<html>nope</html>" },
+                  [gfav("findigs.com")]: { status: 200, body: PNG } });
+  const r = await resolveCompanyLogo("Findigs", [], { fetchImpl: n.fetchImpl });
+  assert.equal(r.status, "ok");
+  assert.equal(r.provider, "google-favicon");
+  assert.equal(r.mime, "image/png");
+  assert.ok(!n.calls.includes("https://findigs.com/icon.svg"), "the SVG itself is never fetched");
+  // Google answers 404 with a placeholder globe (a real PNG) when it has no icon: refused, not stored.
+  const g = net({ "https://findigs.com/": page("Findigs"), [gfav("findigs.com")]: { status: 404, body: PNG } });
+  assert.equal((await resolveCompanyLogo("Findigs", [], { fetchImpl: g.fetchImpl })).status, "none");
+});
+
+test("d170LogosLateProviderZeroIsNotDeath — a provider failing only the hard companies is asked the canary sites first", async () => {
+  const db = new Database(":memory:");
+  db.exec(MIGRATIONS.find(m => m.id === "124_company_logos").sql);
+  db.exec(`CREATE TABLE scraped_jobs (job_id TEXT PRIMARY KEY, company TEXT, url TEXT, apply_url TEXT, company_icon_url TEXT, is_active INTEGER)`);
+  for (const [i, c] of ["Brex", "Figma", "Notion", "Linear", "Vercel", "Plaid"].entries()) {
+    db.prepare("INSERT INTO scraped_jobs VALUES (?,?,NULL,NULL,NULL,1)").run(`j${i}`, c);
+  }
+  // Every board company is SVG-only and unknown to every provider; the canary sites have icons everywhere.
+  const canary = ["github.com", "stripe.com", "wikipedia.org"];
+  const fetchImpl = async (url) => {
+    const isCanary = canary.some(d => url.includes(d)) && !/(brex|figma|notion|linear|vercel|plaid)/.test(url);
+    if (url.endsWith("/")) return { ok: true, status: 200, url, arrayBuffer: async () => Buffer.from(`<title>${url.match(/\/\/([a-z]+)/)[1]}</title>${isCanary ? '<link rel="icon" href="/i.png">' : ""}`) };
+    if (isCanary && !url.startsWith("https://stripe.com/")) return { ok: true, status: 200, url, arrayBuffer: async () => PNG };
+    return { ok: false, status: 404, url, arrayBuffer: async () => Buffer.alloc(0) };
+  };
+  const r = await resolveCompanyLogos(db, { fetchImpl });
+  assert.deepEqual(r.dead, [], JSON.stringify(r.providers));
+  assert.equal(r.providers["site-favicon"].canary, "ok");
+  assert.equal(r.providers.duckduckgo.canary, "ok");
+  assert.equal(r.providers["google-favicon"].canary, "ok");
+});
+
+test("d170LogosNameIsADomain — 'Oscilar.com' is its own site, not oscilarcom.com", () => {
+  assert.deepEqual(candidateDomains("Oscilar.com", [])[0], { domain: "oscilar.com", evidence: "named" });
+  assert.deepEqual(candidateDomains("Acme Robotics", []).map(c => c.domain), ["acmerobotics.com"]);
 });
 
 test("⛔ A GUESS IS NOT A LOGO: a guessed domain counts only when its own homepage names the company", async () => {

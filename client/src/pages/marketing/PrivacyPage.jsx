@@ -980,6 +980,9 @@ export function PrivacyPage() {
               DuckDuckGo sees that request the way it sees any image request. Only the company
               domain is in the address; we send them no data about you. This replaced the Clearbit
               Logo API, which the operator shut down; we send Clearbit nothing at all any more.
+              When a company's own site has no usable icon, our server may also fetch it once from
+              Google's public favicon service; that request carries only the company's domain,
+              never anything about you, and the image is then stored and served by us.
             </LI>
             <LI>
               <Strong>LinkedIn OAuth</Strong> (optional) — if you choose to sign in
