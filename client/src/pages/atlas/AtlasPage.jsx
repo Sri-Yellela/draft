@@ -21,10 +21,10 @@ import { BRAND } from "../../../../shared/brand.js";
 import AtlasGraph from "./AtlasGraph.jsx";
 import LearnView from "./LearnView.jsx";
 import YourMap, { RoleMap, FamilyMap } from "./YourMap.jsx";
-import AtlasNav from "./AtlasNav.jsx";
+import PlaceNav from "../../components/PlaceNav.jsx";
 import { OverviewPanel, YourSkillsSlot, YourRoutePanel, LearnStages, TodaysQuestionPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
   PanelHead } from "./AtlasPanels.jsx";
-import { panelFor, isPanelSlug, PANEL_LABEL } from "./atlasPanels.js";
+import { panelFor, isPanelSlug, PANEL_LABEL, ATLAS_NAV, panelHref } from "./atlasPanels.js";
 import {
   KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
   WIKI_LICENCE, YOU_LABEL, YOU_MARK, LEVEL_READ_LABEL, shareText, stepTitle, stepEmptyLine, roleBoardParts,
@@ -346,7 +346,8 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   // ⭐ D116 M7: /atlas/family/<key> is a family's page (a node slug never holds a "/").
   const familyKey = slug && slug.startsWith("family/") ? slug.slice("family/".length) : null;
   const wide = !slug || !!familyKey;
-  // ⭐ D167 (owner APPROVED 11-06) · ATLAS IS A PRODUCT WITH ITS OWN NAVIGATION: a card of panels (AtlasNav.jsx) beside the
+  // ⭐ D167 (owner APPROVED 11-06) · ATLAS IS A PRODUCT WITH ITS OWN NAVIGATION: a card of panels (components/PlaceNav.jsx,
+  // the one implementation Profile and Interview use — A136) beside the
   // panel it opens. Every address lights the panel it belongs to (atlasPanels.js panelFor); the older addresses keep
   // working — a node page and a search open in Roles and skills, a family in Your map, /learn in Learn, /check in Your
   // skills. docs/D167_ATLAS_MAP.md maps every surface that existed to its panel.
@@ -356,9 +357,8 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   const body = (
     <main className={`atl atl--panels${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : checking ? "check" : familyKey ? "family" : panelOnly ? "panel" : slug ? "node" : "search"}
       data-atlas-panel={panel}>
-     <div className="atl-shell">
-      <AtlasNav base={base} current={panel} />
-      <div className="atl-shell__main" id="atlas-panel" aria-label={PANEL_LABEL[panel]} role="region">
+     <PlaceNav place="atlas" name="Atlas" eyebrow="Your way through the market" title="Atlas" fill panelId="atlas-panel"
+       groups={ATLAS_NAV.map(g => ({ label: g.group, items: g.panels }))} current={panel} hrefFor={(id) => panelHref(base, id)}>
       {/* ⭐ D120 P2 · THE HOME IS YOUR MAP (owner 10-31: "very text rich with no direction"): signed in, the direction
           line, the tree, the course and the five sections, with the families in a side column; signed out (or no
           résumé), Learn (the full circle). ⭐ D167: it is the Your map panel now; search, Explore by role and the recent
@@ -398,8 +398,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
           )}
         </>
       )}
-      </div>
-     </div>
+     </PlaceNav>
     </main>
   );
   if (!publicChrome) return body;

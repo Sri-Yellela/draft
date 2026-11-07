@@ -54,8 +54,9 @@ async function loadUi() {
   return ui;
 }
 
-const navOf = (html) => html.slice(at(html, '<nav class="atl-anav"'), at(html, "</nav>", at(html, '<nav class="atl-anav"')) + 6);
-const currentOf = (html) => [...navOf(html).matchAll(/data-atlas-nav="([^"]+)"[^>]*aria-current="page"/g)].map(m => m[1]);
+// ⭐ A136: Atlas's card is components/PlaceNav.jsx — the one implementation Profile and Interview use.
+const navOf = (html) => html.slice(at(html, '<aside class="pl__nav" aria-label="Atlas"'), at(html, "</aside>", at(html, '<aside class="pl__nav" aria-label="Atlas"')) + 8);
+const currentOf = (html) => [...navOf(html).matchAll(/<a [^>]*data-place-item="([^"]+)"[^>]*>/g)].filter(m => /aria-current="page"/.test(m[0])).map(m => m[1]);
 
 /** A synthetic reader with a map (D120's fixture shape): five published nodes, five postings, two profile skills. */
 function mapWorld() {
@@ -90,20 +91,25 @@ test("D167 · d167AtlasHasOwnNav — the card: the eyebrow, the serif headline, 
   const u = await loadUi();
   const html = u.page("/atlas/glossary");
   const nav = navOf(html);
-  assert.match(nav, /aria-label="Atlas"/);
-  assert.match(nav, /<p class="atl-anav__eb">Your way through the market<\/p><p class="atl-anav__title">Atlas<\/p>/);
-  assert.deepEqual([...nav.matchAll(/<h2 class="atl-anav__h"[^>]*>([^<]+)<\/h2>/g)].map(m => m[1]), ["You", "Grow", "Explore"]);
-  assert.deepEqual([...nav.matchAll(/data-atlas-nav="([^"]+)"/g)].map(m => m[1]), PANEL_IDS);
+  assert.match(html, /<div class="pl pl--fill" data-place="atlas">/, "the place, inside Atlas's own padded page");
+  assert.match(nav, /<p class="pl__eb">Your way through the market<\/p><h1 class="pl__title">Atlas<\/h1>/);
+  assert.deepEqual([...nav.matchAll(/<h2 class="pl__glabel">([^<]+)<\/h2>/g)].map(m => m[1]), ["You", "Grow", "Explore"]);
+  assert.deepEqual([...nav.matchAll(/data-place-item="([^"]+)"/g)].map(m => m[1]), PANEL_IDS);
   // Real links (keyboard: Tab + Enter, the back button, a reload) — never a button that only swaps state.
-  for (const id of PANEL_IDS) assert.match(nav, new RegExp(`<a class="atl-anav__item" data-atlas-nav="${id}"[^>]*href="${id === "overview" ? "/atlas" : `/atlas/${id}`}"|<a [^>]*href="${id === "overview" ? "/atlas" : `/atlas/${id}`}"[^>]*data-atlas-nav="${id}"`), id);
+  for (const id of PANEL_IDS) assert.match(nav, new RegExp(`<a [^>]*href="${id === "overview" ? "/atlas" : `/atlas/${id}`}"[^>]*data-place-item="${id}"|<a [^>]*data-place-item="${id}"[^>]*href="${id === "overview" ? "/atlas" : `/atlas/${id}`}"`), id);
   assert.doesNotMatch(nav, /<button/);
-  // The sketch's style: serif headline, accent eyebrow, a card (rounded, not a capsule).
-  const css = read("client/src/pages/atlas/AtlasNav.css");
-  assert.match(css, /\.atl-anav__eb \{[^}]*color: var\(--c-accent-ink\)/);
-  assert.match(css, /\.atl-anav__title \{[^}]*var\(--font-display\)/);
-  assert.match(css, /\.atl-anav \{[^}]*border-radius: 28px/);
-  assert.doesNotMatch(css, /border-radius:\s*(999|50%)/, "no pills (D60)");
-  assert.doesNotMatch(css.replace(/var\(--[a-z-]+\)/g, ""), /#[0-9a-fA-F]{3,8}\b|rgba?\(/, "every colour a theme token");
+  // The sketch's style: serif headline, accent eyebrow, a card (rounded, not a capsule) — PlaceNav's, for every place.
+  const css = read("client/src/components/PlaceNav.css");
+  assert.match(css, /\.pl__eb \{[^}]*color: var\(--c-accent-ink\)/);
+  assert.match(css, /\.pl__title \{[^}]*var\(--font-display\)/);
+  assert.match(css, /\.pl__nav \{[^}]*border-radius: 24px/);
+  for (const f of ["client/src/components/PlaceNav.css", "client/src/pages/atlas/AtlasPanels.css"]) {
+    const c = read(f);
+    assert.doesNotMatch(c, /border-radius:\s*(999|50%)/, `${f}: no pills (D60)`);
+    assert.doesNotMatch(c.replace(/var\(--[a-z0-9-]+\)/g, ""), /#[0-9a-fA-F]{3,8}\b|rgba?\(/, `${f}: every colour a theme token`);
+  }
+  // ⛔ A136: one implementation — Atlas's own card is gone.
+  assert.ok(!fs.existsSync("client/src/pages/atlas/AtlasNav.jsx") && !fs.existsSync("client/src/pages/atlas/AtlasNav.css"));
 });
 
 test("D167 · d167AtlasHasOwnNav — every panel has its own address, lit in the nav; the arrow keys move inside the card", async () => {
@@ -121,13 +127,13 @@ test("D167 · d167AtlasHasOwnNav — every panel has its own address, lit in the
   // The app's route already accepts /app/atlas/<one segment> (App.jsx atlasRoute) — the panels need no new route.
   assert.match(read("client/src/App.jsx"), /const atlasRoute = \/\^atlas\(\?:\\\/family\)\?\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
   // Keyboard: ↑ / ↓ / Home / End move focus between the card's links (wrapping); Tab reaches every one (real <a href>).
-  const nav = read("client/src/pages/atlas/AtlasNav.jsx");
-  assert.match(nav, /const keys = \{ ArrowDown: 1, ArrowUp: -1, Home: "first", End: "last" \};/);
+  const nav = read("client/src/components/PlaceNav.jsx");
+  assert.match(nav, /const MOVE = \{ ArrowDown: 1, ArrowUp: -1, Home: "first", End: "last" \};/);
   assert.match(nav, /\(i \+ k \+ links\.length\) % links\.length/);
-  assert.match(nav, /aria-current=\{current === p\.id \? "page" : undefined\}/);
-  assert.match(read("client/src/pages/atlas/AtlasNav.css"), /\.atl-anav__item:focus-visible \{ outline: 2px solid var\(--c-accent-ink\)/);
-  // The panel is a labelled region beside the card.
-  assert.match(u.page("/atlas/the-audit"), /<div class="atl-shell__main" id="atlas-panel" aria-label="The audit" role="region">/);
+  assert.match(nav, /aria-current=\{it\.id === current \? "page" : undefined\}/);
+  assert.match(read("client/src/components/PlaceNav.css"), /\.pl__item:focus-visible \{ outline: 2px solid var\(--c-accent-ink\)/);
+  // The panel is a labelled region beside the card (a <section> with a name is a region).
+  assert.match(u.page("/atlas/the-audit"), /<section class="pl__panel" data-place-panel="the-audit" id="atlas-panel" aria-label="The audit">/);
 });
 
 // ── d167AtlasKeepsEverySurface ───────────────────────────────────────────────────────────────────
