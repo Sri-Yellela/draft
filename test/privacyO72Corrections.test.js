@@ -88,14 +88,17 @@ test("D44·1 — the cover-letter disclosure names exactly what both cover-lette
   // apply path's letter) interpolate résumé text, title + company, the job description and the
   // tone; no profile field. If a prompt gains an interpolation, this fails until the page and the
   // list below are updated together.
+  // Changed on purpose 11-07 (D173 (1)): both callers build the request in ONE place, services/coverLetterPrompt.js
+  // (the posting fenced as data, the role in the system prompt). The same four fields are pinned there.
   const server = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
-  const prompts = [...server.matchAll(/const prompt = `You are an expert cover letter writer\.([\s\S]*?)`;/g)].map(m => m[1]);
-  assert.equal(prompts.length, 2, "expected two cover-letter prompts in server.js (tool + apply path)");
+  assert.equal((server.match(/buildCoverLetterRequest\(\{/g) || []).length, 2, "expected both cover-letter callers (tool + apply path) to use the one builder");
+  const builder = fs.readFileSync("services/coverLetterPrompt.js", "utf8").replace(/\r\n/g, "\n");
+  const prompts = [...builder.matchAll(/const prompt = `Write a compelling, specific cover letter\.([\s\S]*?)`;/g)].map(m => m[1]);
+  assert.equal(prompts.length, 1, "expected one cover-letter prompt in services/coverLetterPrompt.js");
   const allowed = new Set([
-    "resumeText", "resumeTrimmed.slice(0, 3000)",                 // the résumé text
-    "targetLine || 'not specified'", 'targetLine || "not specified"', // job title + company
-    "jd || 'Not provided — write a strong general cover letter based on the resume.'",
-    'jobDescription ? String(jobDescription).slice(0, 2000) : "Not provided — write a strong general cover letter based on the resume."',
+    'String(resumeText || "").slice(0, 3000)',                    // the résumé text
+    'stripInvisible(targetLine || "") || "not specified"',        // job title + company
+    'jd ? fenceUntrusted("posting", jd) : "Not provided — write a strong general cover letter based on the resume."', // the job description
     "toneDesc",                                                   // the tone the user picks
   ]);
   for (const p of prompts) {

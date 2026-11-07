@@ -19,6 +19,10 @@
 
 // Cap for a stored job description. Sized to sit just above enrichJob.js's 4000-char prompt
 // slice, so enrichment always sees its full window while the DB never holds an unbounded blob.
+// ⛔ D173 (1): hidden text (invisible characters, comments, elements a reader cannot see) is removed before a posting
+// is stored — a model reads the stored text, and hidden text is where a posting would hide instructions for it.
+import { stripHiddenHtml, stripInvisible } from '../untrustedText.js';
+
 const JOB_DESCRIPTION_MAX_LENGTH = 5000;
 
 // How much of the END of a posting to keep when it exceeds the cap.
@@ -54,7 +58,7 @@ const DESCRIPTION_FULL_MAX_LENGTH = 60000;
 /** The full plain text of a posting — from plain text if the source has it, else from HTML. Never elided. */
 function fullDescriptionText(plain, html) {
   const text = typeof plain === 'string' && plain.trim()
-    ? plain.replace(/\r\n?/g, '\n').trim()
+    ? stripInvisible(plain).replace(/\r\n?/g, '\n').trim()
     : htmlToText(html);
   if (!text) return null;
   return text.length > DESCRIPTION_FULL_MAX_LENGTH ? text.slice(0, DESCRIPTION_FULL_MAX_LENGTH) : text;
@@ -95,7 +99,7 @@ function decodeEntities(str) {
 function htmlToText(html, { maxLength, tailLength = 0 } = {}) {
   if (typeof html !== 'string' || !html.trim()) return null;
 
-  let text = decodeEntities(html);
+  let text = stripHiddenHtml(decodeEntities(stripInvisible(html)));
 
   // Drop script/style wholesale — their contents are code, not description prose.
   text = text
@@ -110,7 +114,7 @@ function htmlToText(html, { maxLength, tailLength = 0 } = {}) {
     .replace(/<\/(p|div|li|tr|h[1-6]|ul|ol|section)>/gi, '\n')
     .replace(/<[^>]+>/g, ' ');
 
-  text = decodeEntities(text);
+  text = stripInvisible(decodeEntities(text));
 
   // Collapse the whitespace the tag-stripping just introduced, but keep paragraph breaks.
   text = text

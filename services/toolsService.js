@@ -38,6 +38,7 @@ import { trackApiCall } from "./usageTracker.js";
 import { toolsKeyLabel } from "./modelUsage.js";
 import { retryLedgerText } from "./generationRetry.js";
 import { taskForPurpose } from "../shared/modelTasks.js";
+import { stripInvisible, injectionSignals } from "./untrustedText.js";
 
 export class ToolsServiceError extends Error {
   constructor(message, { code, status = null, retryable, permanent, violations = null, usage = [] } = {}) {
@@ -130,12 +131,33 @@ export function createToolsServiceClient({
     configured,
     tasks: TOOLS_SERVICE_TASKS,
     version: () => call("GET", "/v1/version"),
-    generate: (req) => call("POST", "/v1/resumes/generate", req, "generate"),
+    generate: (req) => call("POST", "/v1/resumes/generate", cleanUntrustedJob(req), "generate"),
     enhance: (req) => call("POST", "/v1/resumes/enhance", req, "enhance"),
     parsePdf: (req) => call("POST", "/v1/resumes/parse-pdf", req, "parse-pdf"),
     // D123 P6g (2), contract 1.8.0: the per-employer gists, once per base résumé (services/resumeGists.js).
     gists: (req) => call("POST", "/v1/resumes/gists", req, "generate"),
   };
+}
+
+/**
+ * ⛔ D173 (1): the posting is untrusted text on its way to a model (the tools service tailors from it). Invisible
+ * characters are removed from every posting string (rows stored before D173's htmlToText strip still carry them), and
+ * a posting that tries to give orders is logged — kinds only, never the text. The tools service fences it in its prompt.
+ * Returns a copy; the caller's object is not changed.
+ */
+export function cleanUntrustedJob(req) {
+  if (!req || typeof req !== "object" || !req.job || typeof req.job !== "object") return req;
+  const clean = (v) => (typeof v === "string" ? stripInvisible(v) : Array.isArray(v) ? v.map(clean) : v);
+  const job = { ...req.job };
+  for (const k of ["title", "company", "description", "category"]) if (typeof job[k] === "string") job[k] = clean(job[k]);
+  if (job.keywords && typeof job.keywords === "object") {
+    const kw = { ...job.keywords };
+    for (const [k, v] of Object.entries(kw)) if (typeof v === "string" || Array.isArray(v)) kw[k] = clean(v);
+    job.keywords = kw;
+  }
+  const signals = injectionSignals(job.description || "");
+  if (signals.length) console.warn(`[untrusted] posting${job.company ? ` (${job.company})` : ""} carries instruction-like text: ${signals.join(", ")} — sent fenced`);
+  return { ...req, job };
 }
 
 /**
