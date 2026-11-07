@@ -161,7 +161,7 @@ export function PersonPage({ theme, id, onBack, onDelete }) {
   const ACCESS = [["full", "Full — everything, no plan limits"], ["standard", "Standard — the plan's limits"], ["none", "No access — refused and signed out"]];
   const changeAccess = () => setAction({ title: `Change ${who}'s access?`, label: "Set the access",
     body: <>Now <b>{ACCESS_WORDS[a.access] || a.access}</b>. Full lifts the plan (every tool, unlimited résumés, the most Drafts) but never the
-      apply-safety caps or auto-apply. No access signs them out everywhere at once; nothing is deleted. Every change is in the Activity below.</>,
+      apply-safety caps or automatic sending. No access signs them out everywhere at once; nothing is deleted. Every change is in the Activity below.</>,
     fields: [{ key: "level", label: "Access", options: ACCESS.filter(([k]) => k !== a.access), initial: ACCESS.find(([k]) => k !== a.access)[0], required: true }],
     run: (v) => post("/access", { level: v.level, reason: v.reason }), onDone: done("Access changed.") });
   const changePlan = () => setAction({ title: `Change ${who}'s plan?`, label: "Change the plan",
