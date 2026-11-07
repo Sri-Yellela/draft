@@ -31,6 +31,7 @@ import { useSyncEvents } from "../hooks/useSyncEvents.js";
 import { AnimatePresence, MotionConfig, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
+import { deckWheelHandler } from "../lib/deckWheel.js";
 import StartFromResume from "../components/StartFromResume.jsx";
 import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
@@ -59,8 +60,6 @@ import { shape, ts, TYPE_SCALE_VAR } from "../themes/shapes.js";
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
 const TOAST_MS = DECISION_TOAST_MS;
-const WHEEL_STEP = 60;               // accumulated wheel delta for one card
-const WHEEL_SETTLE_MS = 140;         // one trackpad flick is many events; rotate once per flick
 // ⭐ D156 (1c) (owner 11-05: "retain how the cards flipped and how they behaved … from the previous version of the daily
 // deck, we are only changing the content on it"): Home turns its fan exactly as the deck always has — one flick, one card
 // (WHEEL_STEP, WHEEL_SETTLE_MS), J / K, ↑ ↓, ‹ ›; swipe right drafts, left passes. (1b)'s per-gesture flip is gone.
@@ -1037,22 +1036,15 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
-    let acc = 0, settleUntil = 0;
-    const onWheel = (e) => {
-      if (expandedRef.current || e.ctrlKey) return;           // reading, or pinch-zoom: the page's
+    // ⭐ D178-3: the gesture is lib/deckWheel.js — one copy, shared with Atlas's lesson deck.
+    const onWheel = deckWheelHandler({
+      skip: () => !!expandedRef.current || !!boardPostRef.current,   // reading (a card or a posting open): the page scrolls
       // ⭐ D168 (owner 11-06, concept B) · THE WHEEL HAS ONE JOB: over the deck, one flick turns one card — on the front
       // card too, in either direction. It never opens or folds anything (D156 (1c)'s scroll-down-opens and D145's
       // scroll-down "Why this job" are gone: a press or Enter opens). While a posting is open the page scrolls.
-      if (boardPostRef.current) return;                       // reading: the page scrolls
-      const d = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
-      const dir = d > 0 ? 1 : -1;
-      if (stepTarget(stateRef.current, dir) == null) { acc = 0; return; }   // at an end: let the page scroll
-      e.preventDefault();
-      const now = performance.now();
-      if (now < settleUntil) return;
-      acc += d * (e.deltaMode === 1 ? 33 : 1);
-      if (Math.abs(acc) >= WHEEL_STEP) { acc = 0; settleUntil = now + WHEEL_SETTLE_MS; step(dir); }
-    };
+      canStep: (dir) => stepTarget(stateRef.current, dir) != null,
+      step,
+    });
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, [step, load.status, isFinished(state)]);   // eslint-disable-line react-hooks/exhaustive-deps

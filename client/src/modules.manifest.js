@@ -66,7 +66,7 @@ export const MODULES = Object.freeze({
   // (the panels), atlasPanels.js (which panel an address belongs to; docs/D167_ATLAS_MAP.md maps every older surface to its
   // panel); AtlasPanels.css is the panels' look.
   atlas: { why: "the Atlas pages (D105) — search, one node's page, its neighbourhood graph; Learn, the owner's path (D115); Your map, the tree (D116); its own navigation of panels (D167)", css: ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasPanels.css", "pages/atlas/LibraryPanel.css", "pages/atlas/YourRun.css", "pages/atlas/TrackBoard.css", "pages/atlas/RoleReadiness.css"],
-    members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js", "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/YourCourse.jsx", "pages/atlas/LibraryPanel.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/RoleReadiness.jsx", "pages/atlas/roleReadinessModel.js",
+    members: ["App.jsx", "pages/atlas/AtlasPage.jsx", "pages/atlas/AtlasGraph.jsx", "pages/atlas/atlasModel.js", "pages/atlas/LearnView.jsx", "pages/atlas/learnModel.js", "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/YourCourse.jsx", "pages/atlas/LibraryPanel.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/RoleReadiness.jsx", "pages/atlas/roleReadinessModel.js", "pages/atlas/LessonDeck.jsx",
       "pages/atlas/AtlasTree.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js", "pages/atlas/YourMap.jsx",
       "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx",
       "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js"] },
@@ -231,6 +231,7 @@ export const SHARED = Object.freeze({
   "lib/boardPaging.js":                 { what: "the board's paging" },
   "lib/boardViewCache.js":              { what: "the board's view cache (D45)" },
   "lib/deckState.js":                   { what: "the deck's reducer" },
+  "lib/deckWheel.js":                   { what: "the deck gesture — one flick turns one card (D168); Home's deck and Atlas's lesson deck (D178-3)" },
   "lib/deckCardFacts.js":               { what: "what the deck card says and where — collapsed, hover, Why this job (D145); one function, nothing said twice" },
   "lib/deckOrder.js":                   { what: "the deck's order (dealt | ATS match) — the deck's control and Customise read one store (D93)" },
   "lib/draftHouseExceptions.js":        { what: "Draft House's exceptions" },

@@ -123,16 +123,18 @@ test("⛔ layering by NAMED tier: --z-bg < --z-fan < --z-content < --z-nav, and 
 
 test("⛔ scroll capture is paid back: the keyboard does everything the wheel does, and the ends release the page", () => {
   // ⭐ D156 (1c): the deck's slot has its own wheel listener above this one — the end is searched after the start.
-  const wheelAt = at(deckSrc, "const onWheel = (e) =>", 0, "wheel handler");
+  // ⭐ D178-3 (changed on purpose): the gesture is ONE copy, lib/deckWheel.js; the deck passes it skip / canStep / step.
+  const wheelAt = at(deckSrc, "const onWheel = deckWheelHandler({", 0, "wheel handler");
   const wheel = deckSrc.slice(wheelAt, at(deckSrc, 'el.addEventListener("wheel", onWheel', wheelAt, "wheel listener"));
-  // ⭐ D168 (changed on purpose): the wheel's one job is turning the fan (no "Why this job" capture any more); the capture
-  // still waits until a rotation is possible.
-  const fan = wheel.slice(at(wheel, "if (boardPostRef.current) return;"));
-  assert.ok(fan.indexOf("stepTarget(stateRef.current, dir) == null") < fan.indexOf("e.preventDefault()"),
+  const lib = fs.readFileSync("client/src/lib/deckWheel.js", "utf8");
+  // ⭐ D168: the wheel's one job is turning the fan; the capture still waits until a rotation is possible.
+  assert.ok(at(lib, "if (!canStep(dir)) { acc = 0; return; }") < at(lib, "e.preventDefault()"),
     "the wheel is only captured AFTER a rotation is known to be possible");
-  assert.match(wheel, /if \(expandedRef\.current \|\| e\.ctrlKey\) return;/, "reading an expanded card, or pinch-zooming, scrolls the page");
+  assert.match(wheel, /canStep: \(dir\) => stepTarget\(stateRef\.current, dir\) != null,/);
+  assert.match(lib, /if \(e\.ctrlKey \|\| skip\(e\)\) return;/, "pinch-zooming scrolls the page");
+  assert.match(wheel, /skip: \(\) => !!expandedRef\.current \|\| !!boardPostRef\.current,/, "reading an expanded card or a posting scrolls the page");
   assert.match(deckSrc, /addEventListener\("wheel", onWheel, \{ passive: false \}\)/);
-  assert.match(wheel, /step\(dir\)/, "one flick rotates one card");
+  assert.match(wheel, /\n\s+step,\n/, "one flick rotates one card (the deck's step)");
   for (const k of ['k === "j"', 'k === "k"', 'k === "ArrowDown"', "Enter", "Escape"]) assert.ok(deckSrc.includes(k), `no key for ${k}`);
   // ⭐ D149: the ‹ › buttons went with the controls row; the visible control is THE FAN ITSELF — a card shown behind the
   // front one is pressed to bring it forward (no wheel, no keyboard).

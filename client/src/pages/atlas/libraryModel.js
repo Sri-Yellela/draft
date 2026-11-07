@@ -33,3 +33,32 @@ export function linkLine(x) {
 
 /** A deck slide's label: "1 of 5 · What it is". */
 export const slideLabel = (i, n, tag) => `${i + 1} of ${n}${tag ? ` · ${tag}` : ""}`;
+
+// ⭐ D178-3 (owner's pick 11-07: "keep the half circle for scrolling through modules") · THE HALF RING: every lesson a tick
+// on a half circle (left → over the top → right), modules separated by a gap; pure geometry for LibraryPanel's ring.
+export const HALF = Object.freeze({ w: 640, h: 340, cx: 320, cy: 320, r: 270, len: 34, gap: 0.035 });
+export function halfRingLayout(course) {
+  const mods = course?.modules || [];
+  const n = mods.reduce((a, m) => a + m.lessons.length, 0);
+  const span = Math.PI - HALF.gap * Math.max(0, mods.length - 1);
+  const per = n ? span / n : 0;
+  const ticks = [];
+  let a = Math.PI;                                      // start at the left, go over the top
+  mods.forEach((m, mi) => {
+    if (mi) a += HALF.gap;
+    for (const l of m.lessons) {
+      const t = a + per / 2;
+      const c = Math.cos(t), s = Math.sin(t);
+      ticks.push({ id: l.id, module: m.n, x1: HALF.cx + HALF.r * c, y1: HALF.cy + HALF.r * s, x2: HALF.cx + (HALF.r - HALF.len) * c, y2: HALF.cy + (HALF.r - HALF.len) * s });
+      a += per;
+    }
+  });
+  return ticks.map(t => ({ ...t, x1: +t.x1.toFixed(1), y1: +t.y1.toFixed(1), x2: +t.x2.toFixed(1), y2: +t.y2.toFixed(1) }));
+}
+
+/** A lesson card's state line: "✓ Checked" · "In progress · 3 of 7" · "Not started". */
+export function lessonStateLine(st) {
+  if (st.complete) return { state: "checked", text: "✓ Checked" };
+  if (st.started) return { state: "started", text: `In progress · ${st.done} of ${st.total}` };
+  return { state: "new", text: "Not started" };
+}
