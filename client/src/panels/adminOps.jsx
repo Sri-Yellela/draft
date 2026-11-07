@@ -966,7 +966,7 @@ export function CompaniesSection({ theme }) {
         <div data-company-heat style={{ fontSize: 12, margin: "14px 0 8px", color: heat.meetsTarget === false ? C.WARNING : theme.text }}>
           {heat.hot} hot · {heat.warm} warm · {heat.dormant} dormant · {heat.probation} on probation.
           {heat.proposals.length > 0 && <div style={{ color: C.WARNING, marginTop: 4 }}>
-            Proposed for deactivation (no new in-scope posting in {heat.dormantDays} days — press Disable to act): {heat.proposals.map(p => `${p.company} (${p.why})`).join(" · ")}
+            Proposed for deactivation (no new in-scope posting in {heat.dormantDays} days, or every posting outside the US — press Disable to act): {heat.proposals.map(p => `${p.company} (${p.why})`).join(" · ")}
           </div>}
         </div>
       )}

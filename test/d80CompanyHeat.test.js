@@ -51,6 +51,20 @@ test("⛔ D80 E: an out_of_scope row is not heat; dormant companies are PROPOSED
     "probation is left out of the share; 1 of 2 judged is below the 80% target");
 });
 
+test("⭐ D170 (4): a working board whose every posting is outside the US is PROPOSED too — with its own reason; one US posting keeps it off", () => {
+  const db = db0();
+  company(db, "Abroad Co", "abroad", NOW - 2 * DAY);          // new — would be probation, but it already shows only non-US postings
+  company(db, "Mixed Co", "mixed", NOW - 400 * DAY);
+  posting(db, "m1", "Mixed Co", NOW - 3 * DAY);
+  const held = db.prepare("INSERT INTO rejected_jobs (job_id, title, company, source, reason, rejected_at) VALUES (?, 'Software Engineer', ?, 'ashby', 'out_of_market:non_us', ?)");
+  for (const id of ["a1", "a2", "a3"]) held.run(id, "Abroad Co", NOW);
+  held.run("m2", "Mixed Co", NOW);
+  const r = heatReport(db, { now: NOW });
+  assert.deepEqual(r.proposals.map((p) => [p.company, p.kind]), [["Abroad Co", "outside_us"]]);
+  assert.equal(r.proposals[0].why, "every posting it returns (3) is outside the US");
+  assert.equal(db.prepare("SELECT COUNT(*) FROM company_ats_list WHERE active = 1").pluck().get(), 2, "a proposal deactivates nothing");
+});
+
 test("⛔ D80 E: the weekly cron only REPORTS, and Admin shows the proposals beside the Disable button", () => {
   const src = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
   const start = at(src, 'cron.schedule("0 5 * * 1"');

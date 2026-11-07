@@ -10635,7 +10635,8 @@ app.post("/api/admin/board-categories/report", requireAdmin, (req, res) => {
 });
 // D78 A: the daily sweep — 03:30 UTC, after the 03:00 cleanup, and ONLY once the owner switched age_enforce on.
 // Retire, never delete; applied postings kept. No share ceiling (owner, 10-08).
-// ⛔ D80 E: the weekly hiring-heat line — Mondays 05:00 UTC (container time; BEFORE that day's crawl, which is
+// ⛔ D80 E: the weekly hiring-heat line — Mondays 05:00 UTC (⭐ D170 (4): its PROPOSED list also names a company whose every
+// posting is outside the US — services/companyHeat.js) (container time; BEFORE that day's crawl, which is
 // 04:00 America/New_York = 08:00 UTC — it reads the week through Sunday's crawl). It only REPORTS: dormant companies are
 // proposed in Admin → Companies for the owner to disable; nothing here deactivates anything.
 cron.schedule("0 5 * * 1", () => {

@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { normalizeEach, isTransientFetchError, withRetry, settleWithLimit } from "../services/jobs/sources/base.js";
 import { fetchCompanyJobs as leverFetch } from "../services/jobs/sources/lever.js";
+import { fetchCompanyJobs as greenhouseFetch } from "../services/jobs/sources/greenhouse.js";
 import { normalizeWorkdayJob } from "../services/jobs/sources/workday.js";
 
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
@@ -47,6 +48,28 @@ test("d170LeverTimeoutsRetryWithBackoff: Lever's fetch retries through the injec
   const jobs = await leverFetch("acme", "Acme", [], { http, retry: { sleep: async () => {} } });
   assert.equal(calls, 2); assert.deepEqual(seen, [15000, 15000]);
   assert.equal(jobs.length, 1);
+});
+
+test("d170GreenhouseRetriesAndSkipsBadRow: a transient failure is retried at the 15 s timeout; a 404 is not; one bad posting is skipped, not the board", async () => {
+  let calls = 0; const seen = [];
+  const good = { id: 1, title: "Software Engineer", absolute_url: "https://boards.greenhouse.io/acme/jobs/1", location: { name: "New York, NY" }, content: "&lt;p&gt;Build things&lt;/p&gt;", first_published: "2026-11-01T00:00:00Z" };
+  const http = { get: async (url, opts) => { calls++; seen.push(opts.timeout); if (calls === 1) throw timeoutErr();
+    return { data: { jobs: [good, { id: 2, title: "", absolute_url: "https://boards.greenhouse.io/acme/jobs/2" }] } }; } };
+  const warned = [];
+  const origWarn = console.warn; console.warn = (m) => warned.push(String(m));
+  let jobs;
+  try { jobs = await greenhouseFetch("acme", "Acme", [], { http, retry: { sleep: async () => {} } }); } finally { console.warn = origWarn; }
+  assert.equal(calls, 2, "the timeout was tried again");
+  assert.deepEqual(seen, [15000, 15000]);
+  assert.equal(jobs.length, 1, "the posting with no title is skipped; the company's other posting is kept");
+  assert.ok(warned.some(w => /\[greenhouse\] skipped 1 of 2 posting\(s\) for "Acme"/.test(w)));
+  let notFound = 0;
+  const gone = { get: async () => { notFound++; const e = new Error("Request failed with status code 404"); e.response = { status: 404 }; throw e; } };
+  await assert.rejects(greenhouseFetch("gone", "Gone", [], { http: gone, retry: { sleep: async () => {} } }));
+  assert.equal(notFound, 1, "a 404 is a moved / removed board — never retried");
+  const src = read("services/jobs/sources/greenhouse.js");
+  assert.match(src, /await settleWithLimit\(_companies, GREENHOUSE_CONCURRENCY\(\),/);
+  assert.doesNotMatch(src, /Promise\.allSettled/, "every company at once is what timed out");
 });
 
 test("d170: at most `limit` companies are fetched at once, results in input order", async () => {
