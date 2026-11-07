@@ -57,7 +57,7 @@ db.exec(`
     screenshot_path TEXT, submit_verified INTEGER, submit_evidence TEXT,
     posting_title TEXT, posting_company TEXT, posting_url TEXT, posting_location TEXT,
     open_questions_json TEXT,
-    ats_score INTEGER, attempt_count INTEGER NOT NULL DEFAULT 0, fields_discovered INTEGER, corrections_json TEXT, blanks_json TEXT, gate_review_json TEXT, hidden_at INTEGER, locked_at INTEGER, resume_file TEXT, resume_id INTEGER, UNIQUE(run_id, job_id));
+    ats_score INTEGER, attempt_count INTEGER NOT NULL DEFAULT 0, fields_discovered INTEGER, corrections_json TEXT, blanks_json TEXT, gate_review_json TEXT, hidden_at INTEGER, posting_description TEXT, locked_at INTEGER, resume_file TEXT, resume_id INTEGER, UNIQUE(run_id, job_id));
   CREATE TABLE apply_job_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, run_job_id INTEGER,
     user_id INTEGER, job_id TEXT, level TEXT DEFAULT 'info', event TEXT, message TEXT,
     details_json TEXT, created_at INTEGER DEFAULT (unixepoch()));

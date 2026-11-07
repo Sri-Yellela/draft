@@ -121,16 +121,15 @@ export default function ResumeEditorHost() {
     if (w && cfg?.origin) w.postMessage({ contract: CONTRACT, type, ...payload }, cfg.origin);
   }, [cfg]);
 
-  // The theme follows the site, live.
+  // The theme follows the site, live. Only themes/index.js decides a theme (inkPairD32): a new theme
+  // reloads the page, and the tokens it writes on <html> (style / class) are what this watches.
   useEffect(() => {
     if (phase !== "ready") return undefined;
     let raf = 0;
     const send = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => post("theme", { tokens: themeTokens() })); };
     const mo = new MutationObserver(send);
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["style", "class", "data-theme"] });
-    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
-    mq?.addEventListener?.("change", send);
-    return () => { mo.disconnect(); mq?.removeEventListener?.("change", send); cancelAnimationFrame(raf); };
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["style", "class"] });
+    return () => { mo.disconnect(); cancelAnimationFrame(raf); };
   }, [phase, post]);
 
   const save = useCallback(async (html) => {
