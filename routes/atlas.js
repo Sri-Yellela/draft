@@ -68,6 +68,7 @@ import { searchNodes, readNode, setStatus, addAlias, resolveTerms, RESOLVE_MAX_T
 import { createNode, updateNode, readNodeForEditor, mergeNodes, addTypedEdge, removeEdge, addResource, updateResource, removeResource,
   AtlasEditError } from "../services/atlas/atlasEditor.js";
 import { checkAtlasLinks } from "../services/atlas/atlasLinkCheck.js";
+import { loadRegistry, registrySummary, lastLinkCheck, runRegisterLinkCheck } from "../services/atlas/sourceRegistry.js";
 import { probeWikipedia, wikiMatchSummary } from "../services/atlas/atlasWikidata.js";
 import { wikiCandidates, pickWikiTitle, redirectPreview, acceptPicks } from "../services/atlas/atlasWikiFind.js";
 import { atlasTermsForPosting, peekNode, countLinkEvent, glossaryTerms } from "../services/atlas/atlasLinks.js";
@@ -211,6 +212,16 @@ const curator = (req) => req.user?.username || req.admin?.email || "admin";
 /** @param opts { fetchImpl } — the link checker's and the Wikipedia refresh's fetcher (tests inject one; never the network). */
 export function createAtlasAdminRouter(db, { fetchImpl = globalThis.fetch, linkPauseMs, wikiPauseMs } = {}) {
   const router = Router();
+  // ⛔ D176 · the learning-centre source register (content/sources/registry.json): the summary for Admin → Atlas →
+  // Sources, with the last monthly link check; and the check, now.
+  router.get("/sources", (_req, res) => {
+    try { res.json({ ...registrySummary(loadRegistry()), links: lastLinkCheck(db) }); }
+    catch (e) { res.status(500).json({ error: "register_unreadable", message: e.message }); }
+  });
+  router.post("/sources/check", async (_req, res) => {
+    try { res.json(await runRegisterLinkCheck(db, { fetchImpl, force: true })); }
+    catch (e) { res.status(500).json({ error: "register_check_failed", message: e.message }); }
+  });
   router.get("/", (req, res) => {
     const status = req.query.status === "published" ? "published" : req.query.status === "draft" ? "draft" : null;
     const rows = db.prepare(`SELECT n.slug, n.kind, n.name, n.status, n.source, ${READINESS_COLUMNS}

@@ -38,6 +38,7 @@ import { TASKS, PROVIDERS, taskOf, taskForPurpose, routableModel, isClaudeProvid
 import { getSetting, setSetting, clearSetting } from "./appSettings.js";
 import { auditActorColumns, actorRef, toActor } from "./actor.js";
 import { canTakeTask } from "./modelEvals.js";
+import { blockedForModel } from "./atlas/sourceRegistry.js";
 
 export const ROUTE_KEY_PREFIX = "model_route:";
 export const ROUTES_ENV = "MODEL_ROUTES";
@@ -184,7 +185,17 @@ export async function settleShadows() { await Promise.allSettled([...pendingShad
  * `purpose` may pick one of the task's ledger purposes (default: its first). Everything else (messages, system,
  * dataClass, jobId, company, onTracked …) passes through to callModel. Returns the provider's message, tagged with source.
  */
-export async function callTask({ task, anthropic, db, userId = SYSTEM_USER_ID, purpose = null, env = process.env, ...rest } = {}) {
+export async function callTask({ task, anthropic, db, userId = SYSTEM_USER_ID, purpose = null, env = process.env, sources = null, ...rest } = {}) {
+  // ⛔ D176-5: a call carrying text from the learning-centre register names its source ids; a source whose AI terms
+  // forbid it (or one the register does not know) is refused before anything is sent — logged, never silently dropped.
+  if (Array.isArray(sources) && sources.length) {
+    const blocked = blockedForModel(sources);
+    if (blocked.length) {
+      console.warn(`[d176] model call ${task} REFUSED — restricted source text: ${blocked.map(b => `${b.id} (${b.why})`).join("; ")}`);
+      throw Object.assign(new Error(`This text comes from a source whose terms do not allow sending it to a model: ${blocked.map(b => b.id).join(", ")}`),
+        { status: 422, code: "restricted_source", blocked });
+    }
+  }
   const t = taskOf(task);
   if (t.runsIn !== "draft") throw new Error(`callTask(${task}): this task runs in the ${t.runsIn} — ask it there`);
   if ("model" in rest) throw new Error(`callTask(${task}): a feature does not name a model (D162 G1) — configure the task's route instead`);
