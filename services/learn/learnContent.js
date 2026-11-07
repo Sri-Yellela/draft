@@ -14,10 +14,35 @@ export const LEARN_FILE = path.join(LEARN_DIR, "silicon-to-software.json");
 /** The row the app reads: the content file's own name, so the first-install seed lands where the app looks. */
 export const LEARN_ID = "silicon-to-software";
 
+// ⭐ D178-2 · REAL LINKS, NOT SEARCHES: content/links/learn-links-v*.json maps an item id to a VERIFIED real page (the video,
+// the playlist, the book's page) found for an item that linked to a search. It is laid over whatever content Learn serves
+// (the seed or the learn_content row), so production gets it on deploy with no re-import. An entry without a url changes
+// nothing. `by` (the verified channel / author) names the item's source where its own `s` did not (D176-3).
+export const LINKS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../content/links");
+let linksCache = null;
+export function linkReplacements(dir = LINKS_DIR) {
+  if (linksCache && linksCache.dir === dir) return linksCache.map;
+  const map = new Map();
+  try {
+    for (const f of fs.readdirSync(dir).filter(x => /^learn-links-v\d+\.json$/.test(x)).sort())
+      for (const e of JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")).links || [])
+        if (e?.id && typeof e.url === "string" && /^https:\/\//.test(e.url)) map.set(e.id, { url: e.url, by: e.by || null });
+  } catch { /* no file: nothing replaced */ }
+  linksCache = { dir, map };
+  return map;
+}
+/** The document with every replaced link applied (a copy; the input is never changed). */
+export function withRealLinks(doc, map = linkReplacements()) {
+  if (!doc?.PARTS || !map.size) return doc;
+  return { ...doc, PARTS: doc.PARTS.map(p => ({ ...p, phases: (p.phases || []).map(ph => ({ ...ph, steps: (ph.steps || []).map(st => ({ ...st,
+    items: (st.items || []).map(it => { const r = map.get(it.id); return r ? { ...it, u: r.url, ...(r.by ? { by: r.by } : {}) } : it; }) })) })) })) };
+}
+export const _resetLinks = () => { linksCache = null; };
+
 let fileCache = null;
 function fromFile(file) {
   if (fileCache && fileCache.file === file) return fileCache.data;
-  const data = JSON.parse(fs.readFileSync(file, "utf8"));
+  const data = withRealLinks(JSON.parse(fs.readFileSync(file, "utf8")));
   fileCache = { file, data };
   return data;
 }
@@ -39,7 +64,7 @@ export function learnContent(src) {
     if (!v) return fromFile(LEARN_FILE);
     const key = `${v.version}:${v.at}`;
     if (dbCache.db === src && dbCache.key === key) return dbCache.data;
-    const data = JSON.parse(src.prepare(`SELECT data FROM learn_content WHERE id = ?`).pluck().get(LEARN_ID));
+    const data = withRealLinks(JSON.parse(src.prepare(`SELECT data FROM learn_content WHERE id = ?`).pluck().get(LEARN_ID)));
     dbCache = { db: src, key, data };
     return data;
   }
