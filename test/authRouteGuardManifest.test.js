@@ -111,6 +111,8 @@ const ADMIN = new Set([
   // user, not for the caller.
   "GET /api/admin/full-auto",
   "PUT /api/admin/full-auto",
+  "GET /api/admin/full-auto/prerequisites",   // D175 FA6: the four checks an unattended send waits for
+  "POST /api/admin/full-auto/prerequisites",
   "DELETE /api/admin/full-auto",
   "GET /api/admin/testers/people",     // 44b: testers by name and email with what they wrote
   "GET /api/admin/testers/people.csv",

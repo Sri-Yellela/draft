@@ -17,6 +17,7 @@ import { fullAutoDisabled } from "./appSettings.js";
 import { userHeld } from "./applyUserHold.js";
 import { notifyEvent } from "./notify.js";
 import { pickAuthorisesSend } from "./picks.js";
+import { fullAutoBlocked } from "./fullAutoGate.js";
 
 export const LEASE_SECONDS = 15 * 60;
 export const MAX_ATTEMPTS = 3;
@@ -226,6 +227,8 @@ export function leaseRemoteRun(db, { workerId = "worker", env = process.env, now
       // ⭐ D113: or the user tapped Apply on THIS job in a picks message — that tap is their send (services/picks.js).
       const tapped = () => pickAuthorisesSend(db, row.user_id, db.prepare(`SELECT job_id FROM apply_run_jobs WHERE id = ?`).pluck().get(row.run_job_id), nowSec);
       if (mode !== "auto" && !tapped()) { finishRemote(db, row, "stopped", "full_auto_not_chosen"); continue; }
+      // ⛔ D175 FA6: FULL AUTO's own send (no pick tap) waits for the four safety checks; left queued, nothing sealed leaves.
+      if (!tapped() && fullAutoBlocked(db, { env, nowSec })) continue;
     }
     if (row.attempts >= MAX_ATTEMPTS) { finishRemote(db, row, "failed", "attempts_exhausted"); continue; }
     const session = row.session_id ? db.prepare(`SELECT * FROM portal_sessions WHERE id = ?`).get(row.session_id) : null;
