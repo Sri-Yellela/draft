@@ -3,7 +3,7 @@
 // there are people asking questions too").
 //
 // ⛔ A RECORDED REVERSAL of D131's "no names anywhere; no emails in the export" — on the owner's word, for the admin
-// only: Admin → Trial → People & questions and its CSV carry each person's name and email beside what they wrote, so a
+// only: Admin → Testers → People & questions and its CSV carry each person's name and email beside what they wrote, so a
 // question can be answered. Every route here is requireAdmin; nothing of it reaches a tester or a public page.
 //
 // One row per PERSON: a trial account (its name and sign-up email, sample, drafts sent, where they are in the sequence,
@@ -11,7 +11,7 @@
 // standalone survey respondent (name and email from /survey, their written answers). Accounts tagged test / internal and
 // admins are left out by default (testersReport.excludedSets), counted apart.
 import { excludedSets } from "./testersReport.js";
-import { SURVEY, STANDALONE_SURVEY, SURVEY_AFTER_SENT } from "./trial.js";
+import { SURVEY, STANDALONE_SURVEY, SURVEY_AFTER_SENT } from "./survey.js";
 
 const TEXT_KEYS = [...new Set([...SURVEY, ...STANDALONE_SURVEY]
   .flatMap(q => [q, ...(q.follow ? [q.follow] : [])])

@@ -55,7 +55,7 @@ export const MODULES = Object.freeze({
       // settings in two places must be one implementation, not a copy.
       "pages/profile/ProfilePage.jsx"] },
   landing: { why: "the landing page", members: ["pages/LandingPage.jsx", "components/FindFitApply.jsx"] },
-  admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTrial.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
+  admin: { why: "the admin console", members: ["panels/AdminPanel.jsx", "panels/adminOps.jsx", "panels/adminEnrichment.jsx", "panels/adminMap.js", "panels/adminKit.jsx", "panels/adminPeople.jsx", "panels/adminEmail.jsx", "panels/adminUsage.jsx", "panels/adminAdmins.jsx", "panels/adminAtlas.jsx", "panels/adminLearnImport.jsx", "panels/adminLearnCircle.jsx", "panels/adminLearnSandbox.js", "panels/adminTesterDetails.jsx", "panels/adminTesters.jsx", "panels/adminAppearance.jsx", "panels/adminCalibrate.jsx", "panels/adminReadiness.jsx", "panels/adminQuestions.jsx", "pages/admin/DBInspector.jsx", "components/AdminLayout.jsx", "components/IngestFunnel.jsx"] },
   // ⭐ D105 P4 · the Atlas — public at /atlas(/:slug), and at /app/atlas under the top bar's Atlas tab (App mounts both).
   // The graph and the model are the page's own parts; AtlasPage.css is worn by the page and its graph only.
   // ⭐ D117 · Learn as a circle: LearnCircle.jsx draws the ring, the routes and the piece (LearnView mounts it, and its
@@ -75,8 +75,6 @@ export const MODULES = Object.freeze({
     css: ["pages/profile/ProfilePage.css"], members: ["App.jsx", "pages/profile/ProfilePage.jsx", "pages/profile/profilePanels.js"] },
   interview: { why: "Interview (D167) — Coming up, Prepare, Practise, After; D110's prep, bank and debriefs",
     css: ["pages/interview/InterviewPage.css"], members: ["App.jsx", "pages/interview/InterviewPage.jsx", "pages/interview/interviewModel.js"] },
-  trial: { why: "D124 · the trial — /try and the in-app dock (Feedback / survey, Something broke?)",
-    members: ["App.jsx", "pages/TryPage.jsx", "components/TrialDock.jsx", "components/GuidedTour.jsx", "lib/tourGeometry.js", "components/TrialDemo.jsx", "components/ExploreLock.jsx"] },
 });
 
 // ── SHARED: every file under components/, styles/, lib/, hooks/, contexts/, themes/, consoles/.
@@ -135,13 +133,7 @@ export const SHARED = Object.freeze({
   "components/DomainProfileWizard.jsx": { what: "the job-profile wizard — profiles, board, profile panel" },
   "components/ProfileSelectorDropdown.jsx": { what: "the active-profile picker — top bar and board" },
   "components/ExtensionPrompt.jsx":     { what: "the get-the-extension prompt — app, extension page, board" },
-  "components/TrialDock.jsx":           { what: "D124 · TrialGate: the trial as the main frame — the dock, the survey page, coming soon, the analytics events", module: "trial" },
-  "components/SurveyForm.jsx":          { what: "D129 v2 + D130 · THE ONE survey form: dropdowns, labelled stars, follow-ups, required, progress; the trial's ending and /survey" },
-  "lib/tourGeometry.js":                { what: "D129 · the tour's geometry: where the popover fits (never over its target or the nav), the cut-out's panels", module: "trial" },
-  "components/TrialDemo.jsx":           { what: "the trial's demonstration: each drafted pick replayed end to end with the real tailoring, labelled; portalled into Draft House", module: "trial" },
-  "components/ExploreLock.jsx":         { what: "explore, view-only: every acting press opens Coming soon (with their email), counted by feature", module: "trial" },
-  "components/TrialRoleFit.jsx":        { what: "A111 · one pick against the trial tester's OWN résumé — the role's top skills have / missing, covers N of M, next level, the Atlas role page; the posting's match mounts it (D152 (8))" },
-  "components/GuidedTour.jsx":          { what: "D129 · the guided tour: coach-marks on the real pages, Back · Next, Faster, the required actions, each step's time", module: "trial" },
+  "components/SurveyForm.jsx":          { what: "D129 v2 + D130 · THE ONE survey form: dropdowns, labelled stars, follow-ups, required, progress; /survey (the trial's in-app survey was removed 11-07)" },
   "components/ScrollDock.jsx":          { what: "the marketing and tools pages' dock" },
   "components/PolicyProse.jsx":         { what: "the public documents' prose parts — the privacy policy and the connector docs (/docs/claude)" },
   "components/Footer.jsx":              { what: "the site footer" },

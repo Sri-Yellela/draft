@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// ⭐ D145 STEP 3 · THE DECK CARD AND NAVIGATION, WALKED — in a real Chrome against a LOCAL draft (DRAFT_TRIAL=on, a copy
-// of a migrated database). A trial account (/try, sample A) is dealt its frozen cards with their score, so the card is
-// the one testers see. For each width × theme × navigation × text size it screenshots the folded card, the card under
+// ⭐ D145 STEP 3 · THE DECK CARD AND NAVIGATION, WALKED — in a real Chrome against a LOCAL draft (a copy of a migrated
+// database). A synthetic account onboarded with sample résumé A (content/trial/sample-a.json, through the same
+// POST /api/domain-profiles/from-resume an upload uses; the D124 trial that once did this from /try was removed 11-07)
+// is dealt the day's deck from the board. For each width × theme × navigation × text size it screenshots the folded card, the card under
 // the pointer, "Why this job" open, and the navigation (the dock risen / the menu's panel open), and checks:
 //   · Pass · Save · Draft are OUTSIDE the card · the match sits at the card's top right and no "ATS" is on the card
 //   · the info row is salary / job type / work mode only · no "posted" or "ago" beside the location
@@ -13,6 +14,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { launchBrowser } from "../services/browserLauncher.js";
+
+const SAMPLE_A = JSON.parse(fs.readFileSync("content/trial/sample-a.json", "utf8"));
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const BASE = arg("--base", "http://localhost:3962");
@@ -47,31 +50,27 @@ try {
     // The appearance is stored BEFORE the app loads, so the pre-paint script and the registry read it.
     const flags = [theme, nav !== "auto" ? `navigation=${nav}` : null, text !== "default" ? `text=${text}` : null].filter(Boolean).join(";");
     await page.evaluateOnNewDocument((v) => { try { localStorage.setItem("draft-theme", v); } catch {} }, flags);
-    await page.goto(`${BASE}/try`, { waitUntil: "networkidle2" });
-    // A synthetic tester (the same sign-up d129TourShots makes).
+    await page.goto(`${BASE}/`, { waitUntil: "networkidle2" });
+    // A synthetic account, onboarded with sample A (a fictional person — its Drafts go to the practice form).
     const user = `d145${Date.now().toString(36)}`;
-    const signed = await page.evaluate(async (u) => {
-      localStorage.setItem("draft.trialIntent", "1");
+    const signed = await page.evaluate(async (u, resume) => {
       const res = await fetch("/api/auth/register", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: u, password: "Walk-Pass-2026!x", profile: { email: `${u}@example.com`, first_name: "Shot", last_name: "Tester" } }) });
       const j = await res.json().catch(() => ({}));
+      if (res.status !== 200) return false;
       if (j.authContext) sessionStorage.setItem("rm_auth_context", j.authContext);
-      return res.status === 200;
-    }, user);
-    if (!signed) { check(where, "sign-up", false); await ctx.close(); continue; }
-    await page.goto(`${BASE}/try`, { waitUntil: "networkidle2" });
-    if (!await page.waitForSelector('[data-trial-choice="A"] button', { timeout: 60000 }).then(() => true).catch(() => false)) { check(where, "sample A offered", false); await ctx.close(); continue; }
-    await page.click('[data-trial-choice="A"] button');
-    await page.waitForFunction(() => location.pathname.startsWith("/app"), { timeout: 60000 }).catch(() => {});
-    // The tour may start; close it (its own Esc / skip), then read the deck as a person would.
+      const auth = j.authContext ? { "X-RM-Auth-Context": j.authContext, Authorization: `Bearer ${j.authContext}` } : {};
+      const made = await fetch("/api/domain-profiles/from-resume", { method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json", ...auth }, body: JSON.stringify({ content: resume, name: "sample-a.txt" }) });
+      return made.ok;
+    }, user, SAMPLE_A.resumeText);
+    if (!signed) { check(where, "sign-up and sample A onboarded", false); await ctx.close(); continue; }
+    await page.goto(`${BASE}/app`, { waitUntil: "networkidle2" });
     await wait(1500);
-    // ⛔ Not its Skip — that ends the trial's tour into the survey. The tour is left running and its overlay hidden, so
-    // the card is read as it is under the tour.
-    await page.addStyleTag({ content: "[data-guided-tour],[data-tour-spotlight],[data-tour-dim]{display:none!important}" });
     if (!await page.waitForSelector('[data-face="up"] [data-deck-head]', { timeout: 60000 }).then(() => true).catch(() => false)) {
       check(where, "the deck dealt a face-up card", false); await page.screenshot({ path: path.join(OUT, `${where}-0-nodeck.png`) }); await ctx.close(); continue;
     }
-    await wait(6000);   // the deal, the tour's sweep, the flip
+    await wait(6000);   // the deal and the flip
     await page.mouse.move(5, 5);
     await wait(500);
     await page.screenshot({ path: path.join(OUT, `${where}-1-folded.png`) });

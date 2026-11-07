@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // D124 · THE PRACTICE FORM, FILLED BY THE REAL ENGINE IN A REAL CHROME — the sample-résumé path end to end, locally.
 //
-// A sample résumé's Draft is sent to draft's practice form instead of the employer (services/trial.js trialSendUrl). This
+// A sample résumé's Draft is sent to draft's practice form instead of the employer (services/sampleResumes.js practiceSendUrl — kept when the trial was removed, 11-07). This
 // proves the engine that fills real Greenhouse forms fills and submits that one: it serves the REAL practice form
-// (routes/trial.js) on localhost from an in-memory database, then runs services/applyAutomation.js autoApply against it
+// (routes/survey.js) on localhost from an in-memory database, then runs services/applyAutomation.js autoApply against it
 //   1. mode "semi"  — fill and STOP at review (a new user's mode): nothing may be recorded;
 //   2. mode "full"  — fill and submit (what an Approve does): ONE submission recorded, with the résumé attached, and the
 //                     confirmation handed to the Inbox.
@@ -18,11 +18,10 @@ import express from "express";
 import multer from "multer";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "./migrations.js";
-import trialRoutes from "../routes/trial.js";
-import { practiceUrlFor, samples } from "../services/trial.js";
+import surveyRoutes from "../routes/survey.js";
+import { practiceUrlFor, samples } from "../services/sampleResumes.js";
 import { autoApply } from "../services/applyAutomation.js";
 
-process.env.DRAFT_TRIAL = "on";
 const SECRET = "walk-secret";
 const db = new Database(":memory:");
 for (const m of MIGRATIONS) db.exec(m.sql);
@@ -32,7 +31,7 @@ db.prepare(`INSERT INTO scraped_jobs (job_id, search_query, _hash, title, compan
 
 const delivered = [];
 const app = express();
-trialRoutes(app, db, { requireAuth: (_q, r) => r.status(401).end(), requireAdmin: (_q, r) => r.status(403).end(), secret: SECRET,
+surveyRoutes(app, db, { requireAdmin: (_q, r) => r.status(403).end(), secret: SECRET,
   upload: multer({ storage: multer.memoryStorage() }), deliver: (m) => delivered.push(m) });
 const server = http.createServer(app);
 await new Promise(r => server.listen(0, "127.0.0.1", r));

@@ -12,10 +12,6 @@
 import os from "node:os";
 import path from "node:path";
 
-// ⭐ D124: the trial is the main frame for every account made after migration 205 — which is every account a test
-// fixture makes. The suite predates it, so the preload turns it off; test/d124Trial.test.js turns it back on.
-if (!process.env.DRAFT_TRIAL) process.env.DRAFT_TRIAL = "off";
-
 // ⛔ D171 (owner 11-06: ≈ $0.50 on the local-dev key had to be accounted for): the suite never calls a live model.
 // server.js loads `dotenv/config`, so any test that boots it in this checkout would read .env's real key. dotenv
 // never overrides a variable that is already set — an empty one included — so the preload sets them empty and

@@ -69,7 +69,7 @@ const PUBLIC = new Set([
   // reachable without an account. Nothing user-scoped is in scope for it to leak.
   "GET /api/jobs/generic",
   // D130: the standalone survey is for people with NO account (jobsviadraft.com/survey). The form is public; a response
-  // is guarded by a honeypot, ≤ 5 an hour per address and one response per email (services/trial.js saveStandaloneSurvey).
+  // is guarded by a honeypot, ≤ 5 an hour per address and one response per email (services/survey.js saveStandaloneSurvey).
   "GET /api/survey/form",
   "POST /api/survey",
   // A77: a company's stored LOGO, by company key. company_logos has no user column — a logo is a fact
@@ -92,8 +92,7 @@ const PUBLIC = new Set([
 
 // ── ADMIN: requires an admin session ─────────────────────────────────────────────────────────
 const ADMIN = new Set([
-  // D124: Admin → Trial — counts only, and the survey answers without emails (routes/trial.js).
-  "GET /api/admin/trial",
+  // 11-07: the D124 trial and Admin → Trial were removed; the research routes below live in routes/survey.js.
   "GET /api/admin/appearance",           // D133: whether users are offered the Studio theme
   "POST /api/admin/appearance",
   "GET /api/admin/testers",              // D131: the readable testers page (read-only)
@@ -103,25 +102,18 @@ const ADMIN = new Set([
   "GET /api/admin/ats-calibration/item/:id", "PUT /api/admin/ats-calibration/item/:id", "POST /api/admin/ats-calibration/assist",
   "POST /api/admin/ats-calibration/assist/import", "GET /api/admin/ats-calibration/results", "POST /api/admin/ats-calibration/fix",
   "POST /api/admin/ats-calibration/baseline",
-  "GET /api/admin/trial/export",
-  // D129: usable analytics — admin only.
-  "GET /api/admin/trial/analytics",
-  "GET /api/admin/trial/crosscut",
-  "GET /api/admin/trial/export.csv",
   // D130: the standalone responses; contact details only with ?contact=1.
   "GET /api/admin/survey/export.csv",
   // D130: both surveys side by side and combined, and the YC numbers.
   "GET /api/admin/survey/sources",
-  "POST /api/admin/trial/access",
-  "POST /api/admin/trial/own-resume",   // A111: the own-résumé pathway switch (off by default)
   // AF residual. The full-auto kill switch, reachable without a SQL console. Admin-only and
   // deliberately not user-facing: it stops applications going out to real employers for EVERY
   // user, not for the caller.
   "GET /api/admin/full-auto",
   "PUT /api/admin/full-auto",
   "DELETE /api/admin/full-auto",
-  "GET /api/admin/trial/people",       // 44b: testers by name and email with what they wrote
-  "GET /api/admin/trial/people.csv",
+  "GET /api/admin/testers/people",     // 44b: testers by name and email with what they wrote
+  "GET /api/admin/testers/people.csv",
   "GET /api/admin/tailoring",      // D123: the tailoring mode, default model and models offered
   "PUT /api/admin/tailoring",
   "DELETE /api/admin/tailoring",
@@ -187,24 +179,8 @@ const ADMIN = new Set([
 
 // ── AUTHENTICATED: requires a signed-in session, any role ────────────────────────────────────
 const AUTHENTICATED = new Set([
-  // D124: the trial — the caller's own account, flag, survey and feedback (routes/trial.js). The practice form is
-  // /try/practice/:jobId, outside /api, behind an HMAC naming one (account, posting).
-  "POST /api/trial/start",
-  // D124 amended: the samples offered today (10 good picks each) and the account's picks.
-  "GET /api/trial/samples",
-  "GET /api/trial/picks",
-  "GET /api/trial/role-fit/:jobId", // A111: one pick against the tester's own résumé (ATS report + Atlas reading)
-  // The trial's demonstration: its data, and its end (the picks recorded as sent by demonstration).
-  "GET /api/trial/demo",
-  "POST /api/trial/demo/complete",
-  "POST /api/trial/resume",
-  "GET /api/trial/state",
-  "POST /api/trial/survey",
-  "POST /api/trial/name",          // owner 11-01: the tester's own name when sign-up gave none (sample résumés carry fictional ones)
-  "POST /api/trial/survey/dismiss",
-  "POST /api/trial/feedback",
-  "POST /api/trial/finish",
-  "POST /api/trial/event",
+  // 11-07: the D124 trial's /api/trial/* routes were removed with it. The sample résumés' practice form stays at
+  // /try/practice/:jobId (routes/survey.js), outside /api, behind an HMAC naming one (account, posting).
   // D115 P3: a learner's own progress marks.
   "GET /api/learn/progress", "PUT /api/learn/progress", "POST /api/learn/progress/import",
   // D117 C8: earned progress — the learner's own record (their explanations are theirs alone), an item opened from
@@ -637,7 +613,7 @@ function collect() {
     ...directRoutes(fs.readFileSync("routes/inbox.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/interview.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/picksConfirm.js", "utf8")),
-    ...directRoutes(fs.readFileSync("routes/trial.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/survey.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/atsCalibration.js", "utf8")),
     // account.js is mounted with app.use(createAccountRouter({...})) at the ROOT, so its routes
     // already carry their full /api path and their own per-route guard.

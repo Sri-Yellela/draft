@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { scoreAtsLocally, normaliseAtsTerm } from "../services/localAtsScorer.js";
-import { samples } from "../services/trial.js";
+import { samples } from "../services/sampleResumes.js";
 import { BUILTIN_REGISTRY } from "../routes/domainProfiles.js";
 import { categoryOf, profileCategory } from "../services/jobs/professionalScope.js";
 import { inferProfileFromResume } from "../services/resumeOnboarding.js";

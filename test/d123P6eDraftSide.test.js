@@ -6,7 +6,7 @@ import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import { createDomainProfilesRouter } from "../routes/domainProfiles.js";
 import { coverLetterOnDemand } from "../routes/apply.js";
-import { samples, sampleRoleFamily } from "../services/trial.js";
+import { samples, sampleRoleFamily } from "../services/sampleResumes.js";
 
 // D123 P6e, draft's half (the audit's R9 + R10, owner 11-01):
 //   R9  — the apply cover letter is a paid Haiku call; it is written only when the form shows a cover-letter upload.

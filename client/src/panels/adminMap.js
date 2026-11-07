@@ -21,7 +21,7 @@ export const ADMIN_GROUPS = Object.freeze([
     ["users", "Users"],                 // #15a + #17
     ["support", "Support"],             // D88 P3 — tickets
     ["messages", "Messages"],           // #19 — was under every tab
-    ["trial", "Testers"],               // D124 → D131: the trial + both surveys as one readable page (the old tables below it)
+    ["testers", "Testers"],             // D131: the trial testers' answers + both surveys as one readable page (the D124 trial removed 11-07)
   ] },
   { id: "data", label: "Data", question: "What is stored?", sections: [
     ["jobdata", "Job data in and out"], // #8 — the one place for postings in and out

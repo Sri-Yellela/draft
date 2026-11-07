@@ -158,7 +158,7 @@ export function HonestyToolPage() {
             </ol>
             <div style={{ padding: "14px 18px", borderRadius: 8, background: theme.surfaceHigh, fontSize: 13, border: `1px solid ${theme.border}` }}>
               Want a résumé tailored from what you've actually done?{" "}
-              <Link to="/try" style={{ color: theme.accentText, fontWeight: 700, textDecoration: "none" }}>Try draft →</Link>
+              <Link to="/register" style={{ color: theme.accentText, fontWeight: 700, textDecoration: "none" }}>Try draft →</Link>
             </div>
           </div>
         )}

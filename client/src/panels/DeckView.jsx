@@ -36,7 +36,6 @@ import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
 import { ATS_BAND } from "../../../shared/atsBands.js";
-import { DECK_SCROLL_MS } from "../../../shared/trialTour.js";
 import { AtsBandCard, fromDeckReport } from "../components/AtsReport.jsx";
 import PostingPanel from "../components/PostingPanel.jsx";
 import { PairLinkProvider } from "../lib/pairLink.js";
@@ -862,8 +861,6 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const current = s.cards[s.index];
   const order = useMemo(() => fanOrder(s), [s]);
   const tally = counts(s);
-  // A trial account's cards carry their score (server.js): the deck reads "Best match first · Drafted N of 2".
-  const trialDeck = (s.cards || []).some(c => Number.isFinite(c.score));
   const tool = canUseAPlusResume ? A_PLUS_TOOL : GENERATE_TOOL;
 
   const commit = useCallback(async (card, decision) => {
@@ -916,37 +913,6 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
     dispatch({ type: "step", dir });
     return true;
   }, []);
-
-  // ⭐ D129 (1) · THE TOUR'S SWEEP: the dealt cards shown from the back to the front, one every DECK_SCROLL_MS (or the
-  // tour's quicker `every` when it runs Faster), ending on the best match at the top (index 0); reduced motion jumps
-  // straight there. The tour asks with a window event and hears "draft:deck-swept" back — the deck owns its state.
-  useEffect(() => {
-    let timer = null;
-    const done = () => window.dispatchEvent(new CustomEvent("draft:deck-swept"));
-    const onSweep = (e) => {
-      clearInterval(timer);
-      const n = stateRef.current?.cards?.length || 0;
-      setExpanded(false);
-      if (n <= 1 || reduced) { dispatch({ type: "goto", index: 0 }); done(); return; }
-      let i = n - 1;
-      dispatch({ type: "goto", index: i });
-      timer = setInterval(() => {
-        i -= 1;
-        dispatch({ type: "goto", index: Math.max(i, 0) });
-        if (i <= 0) { clearInterval(timer); done(); }
-      }, Number(e.detail?.every) || DECK_SCROLL_MS);
-    };
-    window.addEventListener("draft:deck-sweep", onSweep);
-    // D129 (the facts step): the tour opens the top card so its facts can be lit, and closes it after. ⭐ D156 (1c): on
-    // Home the top card opens into its long post.
-    const onExpand = (e) => {
-      if (!home) { setWhy(!!e.detail?.open); return; }
-      const cur = stateRef.current?.cards?.[stateRef.current.index];
-      if (e.detail?.open) { if (cur) openPostingOnDeck(cur.job.id); } else closePostingOnDeck();
-    };
-    window.addEventListener("draft:deck-expand", onExpand);
-    return () => { window.removeEventListener("draft:deck-sweep", onSweep); window.removeEventListener("draft:deck-expand", onExpand); clearInterval(timer); };
-  }, [reduced, home]);
 
   // ⭐ D156 (1c) · open the front card into its long post / fold it back (the board draws the posting in the slot).
   const openPost = useCallback(() => {

@@ -117,10 +117,8 @@ import { createLearnRouter } from "./routes/learn.js";
 import { createYourSkillsRouter, createYourSkillsAdminRouter } from "./routes/yourSkills.js";
 import { gateClaimsForResume, gatedDomainProfile } from "./services/yourSkills.js";
 import { createThumbsRouter, createThumbsAdminRouter, resourceItems } from "./routes/thumbs.js";
-import trialRoutes from "./routes/trial.js";
+import surveyRoutes from "./routes/survey.js";
 import atsCalibrationRoutes from "./routes/atsCalibration.js";
-import { isTrial as isTrialAccount } from "./services/trial.js";
-import { trialSampleOf, trialDeckResponse, trialBoardResponse } from "./services/trialDeck.js";
 import { ingestForUser } from "./services/inbox.js";
 import { refreshThumbs } from "./services/thumbs/resourceThumbs.js";
 import { createLearnAdminRouter } from "./routes/learnAdmin.js";
@@ -297,7 +295,6 @@ import { loadConfirmedSynonyms } from "./services/kb/skillSynonyms.js";
 // A72 — the board's ranked local search (tiers, whole words, the same synonym map).
 import { registerBoardSearch, boardSearchSql, searchVariants } from "./services/jobs/boardSearch.js";
 import { createReadPool } from "./services/db/readWorker.js";
-import { useTrialPicksReader } from "./services/trialPicks.js";
 // Y2B — the SAME fetcher and the SAME writer the enrichment pass uses. One implementation, two
 // triggers: the background pass buys descriptions for rows it is about to enrich, and this buys
 // one for a job a user actually opened. See services/jobs/detailFetch.js.
@@ -544,7 +541,6 @@ const readPool = createReadPool({
   enabled: String(process.env.DRAFT_READ_WORKERS || "on").toLowerCase() !== "off",
   size: Math.max(1, Math.min(4, Number(process.env.DRAFT_READ_WORKERS_SIZE) || 2)),
 });
-useTrialPicksReader(readPool);   // A126 · the trial samples' category scan (warmed 20 s after boot) off the loop
 // D153 (3) · the backlog classification walk — created inside the migration block below, used by /api/version and the
 // listen callback, so it is declared out here.
 let classifyBacklog = null;
@@ -8253,10 +8249,11 @@ function requestCookieNames(req) {
 
 
 // ⛔ Owner 11-01: "user last active … says 50s ago, i tested it 40 min ago". Last active is "the person did something",
-// not "a request arrived": a tab left open polls /api/trial/state every minute, and opening the ADMIN page in the same
-// browser sends the tester's cookie with /api/auth/me. Those reads keep the credential alive (expiry still slides) but
-// never move last_seen_at or the session registry. Measured on production 21:24–22:28Z: one open tab, 60+ polls.
-const BACKGROUND_READS = new Set(["/api/trial/state", "/api/auth/me", "/api/sync/events", "/api/config", "/api/version"]);
+// not "a request arrived": a tab left open polls (the D124 trial's /api/trial/state did, every minute — removed 11-07),
+// and opening the ADMIN page in the same browser sends the tester's cookie with /api/auth/me. Those reads keep the
+// credential alive (expiry still slides) but never move last_seen_at or the session registry. Measured on production
+// 21:24–22:28Z: one open tab, 60+ polls.
+const BACKGROUND_READS = new Set(["/api/auth/me", "/api/sync/events", "/api/config", "/api/version"]);
 function isBackgroundRead(req) {
   if (req.method !== "GET") return false;
   const p = String(req.path || req.originalUrl || "").split("?")[0];
@@ -9261,9 +9258,6 @@ function boardFit() {
         const cat = profileCategory(profile || {});
         return cat && /^[a-z_]+$/.test(cat) ? cat : null;
       },
-      // ⛔ Owner 11-02 (the site froze behind ~20 trial profiles' passes over 17,278 postings each): a trial account
-      // is never precomputed — its deck and board are its sample's frozen cards (services/trialDeck.js).
-      skipUser: (userId) => isTrialAccount(db, userId),
     });
   }
   return _boardFit;
@@ -9280,7 +9274,6 @@ const _boardFitBoardTriggerAt = new Map();   // "user:profile" -> ms of the last
 const BOARD_FIT_BOARD_TRIGGER_EVERY_MS = 60_000;
 function scheduleBoardFit(userId, reason, profile = null) {
   if (!boardFitAutomationEnabled() || !userId) return;
-  if (isTrialAccount(db, userId)) return;   // owner 11-02: trial accounts read frozen sample cards, never a precompute
   try {
     const p = profile || getOrRepairActiveProfile(userId);
     if (!p?.id) return;
@@ -9377,7 +9370,7 @@ const syncClients = new Map(); // key: userId, value: Set of res objects
 // load held back (unscored for the current basis), scores them in chunks through the precompute's own scorer
 // (boardFit().scoreIds — the same scorer, store, slices and yields), and after each chunk that scored something sends
 // the person's open tabs `board_scored`, on which the board refetches its current view (new postings land in the
-// current sort). Bounded: at most BOARD_MATCH_MAX ids waiting per profile; a trial account is never queued (skipUser).
+// current sort). Bounded: at most BOARD_MATCH_MAX ids waiting per profile.
 const BOARD_MATCH_BATCH = 2000;
 const BOARD_MATCH_MAX = 6000;
 const BOARD_MATCH_CHUNK = 250;
@@ -9536,6 +9529,12 @@ app.use((req, res, next) => {
   if (!clean) return next();
   const q = req.originalUrl.indexOf("?");
   res.redirect(301, clean + (q >= 0 ? req.originalUrl.slice(q) : ""));
+});
+// 11-07 (owner): the D124 trial is removed — every account gets the whole site. /try was the trial's one link; an old
+// invite still opens the front door instead of the app's 404 (query kept). /try/practice/:jobId is a different route.
+app.get("/try", (req, res) => {
+  const q = req.originalUrl.indexOf("?");
+  res.redirect(302, "/" + (q >= 0 ? req.originalUrl.slice(q) : ""));
 });
 app.use(express.static(CLIENT_DIST));
 
@@ -10699,9 +10698,10 @@ app.use("/api/your-skills", createYourSkillsRouter(db, { requireAuth }));
 app.use("/api/admin/your-skills", requireAdmin, createYourSkillsAdminRouter(db));
 // ⭐ D119 · thumbnails: stored pictures for Learn's resources (public), and the admin's Pin a video / Hide / refresh.
 app.use("/api/thumbs", createThumbsRouter(db));
-// ⭐ D124 · the trial: /api/trial/* (the account's own), Admin → Trial's counts, and draft's practice form (/try/practice/:jobId),
-// which a sample résumé's Drafts send to instead of a real employer (routes/apply.js asks services/trial.js trialSendUrl).
-trialRoutes(app, db, { requireAuth, requireAdmin, secret: SESSION_SECRET,
+// ⭐ D130 / D131 · the standalone survey (public), Admin → Testers (the research over the trial's stored answers and the
+// survey's), and draft's practice form (/try/practice/:jobId), which a sample résumé's Drafts send to instead of a real
+// employer (routes/apply.js asks services/sampleResumes.js practiceSendUrl). The D124 trial itself was removed 11-07.
+surveyRoutes(app, db, { requireAdmin, secret: SESSION_SECRET,
   upload: multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 4, fields: 60 } }),
   deliver: (m) => ingestForUser(db, m) });
 // ⭐ D125 · Admin → ATS calibration: the owner's hand-checked gold set, scored by the board's own scorer (its weights and
@@ -10990,10 +10990,6 @@ const boardReply = (status, body) => ({ status, body });
 // the ageFilter cutoff so a facets response's options and its base sets read one clock.
 async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
   try {
-    // ⭐ Owner 11-02: a sample trial account's board is its sample's frozen postings (services/trialDeck.js), nothing
-    // else — no board query, no precompute. (Facets — `measure` — still read the board.)
-    const trialSample = measure ? null : trialSampleOf(db, req.user.id);
-    if (trialSample) return boardReply(200, await trialBoardResponse(db, { sampleId: trialSample }));
     // Validate the enumerated filter vocabularies BEFORE any work — a bad value must not reach the
     // query builder and come back as an empty board. 400 rather than 200-with-nothing: the caller
     // sent something this endpoint does not understand, and saying so is the whole point.
@@ -11936,11 +11932,11 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
 // lead to a real conversation, each with its band (Best bet · Good bet · Long shot) and its reasons. Hard filters first
 // (eligibility, won't sponsor, closed, already drafted / applied), then the signals in shared/bestBets.js. ⛔ A ranked
 // score from signals — never a probability until P3's calibration has 500 outcomes. ?size= (3–20) else Auto settings'
-// bestBets (default 5). A sample trial account has no board of its own: nothing is dealt.
+// bestBets (default 5).
 app.get("/api/best-bets", requireAuth, async (req, res) => {
   try {
     const profile = getOrRepairActiveProfile(req.user.id);
-    if (!profile || trialSampleOf(db, req.user.id)) return res.json({ size: 0, considered: 0, matches: 0, calibrated: false, bets: [] });
+    if (!profile) return res.json({ size: 0, considered: 0, matches: 0, calibrated: false, bets: [] });
     const settings = readAutoSettings(db.prepare("SELECT auto_settings FROM users WHERE id = ?").get(req.user.id)?.auto_settings);
     const size = req.query.size != null ? Number(req.query.size) : settings.bestBets;
     const fetchBoardPage = async (cursor) => {
@@ -12086,10 +12082,6 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
       "SELECT content FROM profile_base_resumes WHERE profile_id = ? AND TRIM(content) != ''").get(profile.id);
     if (!hasResume) return noDeal("no_resume", profile.id);
     const resumeText = String(hasResume.content || "");
-    // ⭐ Owner 11-02: a sample trial account is dealt its sample's FROZEN cards (services/trialDeck.js) — no board read,
-    // no precompute. The cards carry their score for the tour's match step.
-    const trialSample = trialSampleOf(db, req.user.id);
-    if (trialSample) return res.json(await trialDeckResponse(db, { userId: req.user.id, profileId: profile.id, sampleId: trialSample, date, order }));
     // ⛔ A133 (owner 11-06, "the deck shows jobs that has 65 while many new jobs touch 90"): the deal's candidates are the
     // board's top BY ATS (sort=atsScore - the same boardPageResponse, so the role scope, the ineligible-last and ghost-last
     // keys and the user's own filters still hold), NOT the curated order, whose title / role / skills rank keys lead the
@@ -13376,7 +13368,7 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   // D123 (11-01): Admin → Ops → Tailoring's switch (app_settings) wins over DRAFT_TAILORING; "payload" adds the job block
   // and the per-employer gists (built once per résumé), "code" calls no model (P6d). The model is the person's pick while
   // the admin offers it, else the admin's default (services/leanTailoring.js modelFor).
-  const tailoring = promptMode === "GENERATE" ? tailoringFor({ db, env: process.env, isTrial: isTrialAccount(db, userId) }) : "full";
+  const tailoring = promptMode === "GENERATE" ? tailoringFor({ db, env: process.env }) : "full";
   let leanKeywords = null;
   let tailorGists = null;
   if (tailoring !== "full") {

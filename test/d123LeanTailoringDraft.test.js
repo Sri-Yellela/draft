@@ -37,8 +37,7 @@ function kb() {
 test("d123TailoringSwitch: lean by default, DRAFT_TAILORING sets it for everyone", () => {
   assert.equal(tailoringFor({ env: {} }), "lean");
   assert.equal(tailoringFor({ env: { DRAFT_TAILORING: "lean" } }), "lean");
-  assert.equal(tailoringFor({ env: {}, isTrial: true }), "lean");
-  assert.equal(tailoringFor({ env: { DRAFT_TAILORING: "full" }, isTrial: true }), "full");
+  assert.equal(tailoringFor({ env: { DRAFT_TAILORING: "full" } }), "full");
   assert.equal(tailoringFor({ env: { DRAFT_TAILORING: "fast" } }), "lean", "an unknown value is the default");
 });
 

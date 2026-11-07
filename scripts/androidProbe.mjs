@@ -4,13 +4,13 @@
 // signed-out Pixel in real Chrome, follows every same-site link on the given start pages, and reports each page that
 // renders "404 — Page Not Found". Read-only: it signs nobody up and submits nothing.
 //
-// Usage: node scripts/androidProbe.mjs [--base https://jobsviadraft.com] [--paths /,/try,/survey]
+// Usage: node scripts/androidProbe.mjs [--base https://jobsviadraft.com] [--paths /,/survey]
 import puppeteer from "puppeteer-core";
 import { resolveBrowserExecutable } from "../services/browserLauncher.js";
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };
 const BASE = arg("base", "https://jobsviadraft.com").replace(/\/$/, "");
-const START = arg("paths", "/,/try,/survey,/login,/register").split(",");
+const START = arg("paths", "/,/survey,/login,/register").split(",");
 const UA = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36";
 
 const resolution = await resolveBrowserExecutable();

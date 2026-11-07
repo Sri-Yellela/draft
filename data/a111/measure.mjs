@@ -5,8 +5,8 @@
 //   node data/a111/measure.mjs after   <copy.db> [--detail 1500] [--a111 data/a111/approve-me.json]
 //        the passes production runs after a crawl (Workday / SmartRecruiters detail descriptions — polite, concurrency 2 —
 //        the description normaliser, the level reader, the category backfill), then the report: active / held per
-//        category (all, and the A111 employers alone), the trial samples' good picks (offeredSamples), and for a
-//        synthetic résumé of each target category the number of good picks (picksFor, uncapped) and raw candidates.
+//        category (all, and the A111 employers alone), (11-07: the trial's
+//        good-pick counts were removed with the trial).
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
@@ -36,7 +36,6 @@ const { fillMissingDescriptions } = await import("../../services/jobs/detailFetc
 const { backfillDescriptionText, registerDescriptionBasis } = await import("../../services/jobs/descriptionText.js");
 const { readStaleLevels } = await import("../../services/jobs/levelRead.js");
 const { backfillCategories } = await import("../../services/jobs/boardScope.js");
-const { offeredSamples, picksFor, clearPicksCache } = await import("../../services/trialPicks.js");
 
 const detail = Number(flag("detail", 1500));
 const out = {};
@@ -64,34 +63,7 @@ out.heldByReason = Object.fromEntries(db.prepare(`SELECT category_reason r, COUN
   GROUP BY 1 ORDER BY 2 DESC`).all().map(x => [x.r, x.n]));
 out.companiesActive = db.prepare("SELECT COUNT(*) FROM company_ats_list WHERE active = 1").pluck().get();
 
-clearPicksCache();
-out.samples = await offeredSamples(db);
-
-// Synthetic résumés (fictional people) — one per target category, a SKILLS section the interim overlap rule reads.
-const R = (name, title, exp, skills) => `${name}\nAustin, TX | ${name.toLowerCase().replace(/\W+/g, ".")}@example.com\n\nEXPERIENCE\n${title}, Example Co, Austin, TX | 2021 - Present\n${exp.map(e => `- ${e}`).join("\n")}\n\nEDUCATION\nB.A., Example State University, 2020\n\nSKILLS\n${skills.join("\n")}\n`;
-const SYN = {
-  business: R("Avery Sample", "Business Analyst", ["Built Excel and SQL models for budgeting and forecasting", "Ran variance analysis for month-end close"],
-    ["Analysis: Excel, SQL, financial modeling, forecasting, budgeting, variance analysis, Tableau, Power BI", "Practice: requirements gathering, stakeholder management, process improvement, reporting, accounting, FP&A"]),
-  management: R("Morgan Sample", "Project Manager", ["Led cross-functional projects to on-time delivery", "Owned budgets, schedules and risk registers"],
-    ["Delivery: project management, program management, Agile, Scrum, Jira, roadmap, budget, risk management", "People: stakeholder management, cross-functional leadership, operations, process improvement, vendor management, PMP"]),
-  marketing: R("Riley Sample", "Marketing Manager", ["Ran paid and lifecycle campaigns", "Owned the brand calendar and content strategy"],
-    ["Channels: digital marketing, SEO, SEM, paid social, email marketing, lifecycle, content marketing, social media", "Tools: Google Analytics, HubSpot, Salesforce, Marketo, A/B testing, brand, campaigns, market research"]),
-  sales: R("Casey Sample", "Account Executive", ["Closed new-logo deals against quota", "Built pipeline with outbound prospecting"],
-    ["Selling: B2B sales, SaaS, pipeline, prospecting, negotiation, closing, quota, account management", "Tools: Salesforce, CRM, HubSpot, forecasting, customer success, territory planning, enterprise sales"]),
-  legal: R("Jamie Sample", "Corporate Counsel", ["Drafted and negotiated commercial contracts", "Advised on privacy and regulatory compliance"],
-    ["Practice: contracts, commercial agreements, negotiation, compliance, regulatory, privacy, litigation, employment law", "Skills: legal research, drafting, corporate governance, intellectual property, risk management, due diligence, JD, bar admission"]),
-  arts_media: R("Quinn Sample", "Product Designer", ["Designed end-to-end flows for web and mobile", "Ran user research and usability tests"],
-    ["Design: Figma, Sketch, Adobe Creative Suite, prototyping, wireframes, user research, usability testing, design systems", "Craft: UX, UI, interaction design, visual design, typography, accessibility, content strategy, storytelling"]),
-  science: R("Drew Sample", "Research Scientist", ["Designed and ran assays for target validation", "Analysed data and presented to project teams"],
-    ["Lab: cell culture, PCR, qPCR, flow cytometry, ELISA, Western blot, CRISPR, assay development", "Analysis: statistics, R, Python, data analysis, molecular biology, biochemistry, immunology, publications"]),
-};
-const cand = db.prepare(`SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1 AND duplicate_of IS NULL AND board_category = ?`).pluck();
-out.categoryResumes = {};
-for (const [category, resumeText] of Object.entries(SYN)) {
-  const picks = await picksFor(db, { category, seniority: "mid", resumeText, limit: 100000 });
-  out.categoryResumes[category] = { activeInCategory: cand.get(category), goodPicks: picks.length,
-    byBasis: picks.reduce((t, p) => ((t[p.basis] = (t[p.basis] || 0) + 1), t), {}), tenOrMore: picks.length >= 10,
-    top3: picks.slice(0, 3).map(p => `${p.title} · ${p.company}`) };
-}
+// 11-07: the trial's good-pick counts (services/trialPicks.js offeredSamples / picksFor) went with the trial; the
+// per-category active counts above are what remains of this measurement.
 db.close();
 console.log(JSON.stringify(out, null, 1));

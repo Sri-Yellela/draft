@@ -19,7 +19,7 @@
 //
 // Everything is measured against the CURRENT scorer (`score(job, resumeText)` passed in by the caller — the board's
 // weights and confirmed synonyms), so a change to the scorer shows up here on the next open.
-import { samples } from "./trial.js";
+import { samples } from "./sampleResumes.js";
 import { atsBandFor } from "../shared/atsBands.js";
 import { ACTIVE_POSTINGS_WHERE, countedSentences, companyBoilerplate } from "./atlas/postingMatcher.js";
 
@@ -73,7 +73,7 @@ export function readingOf(job, reports) {
 
 // ── P1 · the set ────────────────────────────────────────────────────────────────────────────────
 
-/** The trial's samples, copied into the set's résumés once. */
+/** The sample résumés (services/sampleResumes.js), copied into the set's résumés once. */
 export function ensureResumes(db) {
   const have = new Set(db.prepare("SELECT source FROM ats_gold_resumes").pluck().all());
   const add = db.prepare("INSERT INTO ats_gold_resumes (label, source, resume_text) VALUES (?, ?, ?)");

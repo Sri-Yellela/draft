@@ -46,17 +46,6 @@ export function clearSetting(db, key) {
 export const FULL_AUTO_KEY = "apply_full_auto_disabled";
 
 /**
- * ⭐ A111 · the trial's "Use my own résumé" pathway (owner 11-02: "when it works we can add the pathway to the trial").
- * OFF unless the row says on — no env default, so a fresh deploy and every test database read it off, and /try stays the
- * sample-only page the owner's 11-01 word set ("omit own resumes entirely for the tour") until he switches it on in
- * Admin → Trial. Read at request time, never cached.
- */
-export const TRIAL_OWN_RESUME_KEY = "trial_own_resume";
-export function trialOwnResumeOn(db) {
-  return settingTruthy(getSetting(db, TRIAL_OWN_RESUME_KEY));
-}
-
-/**
  * KILL SWITCH. Blocks all full-auto submission; semi mode keeps working.
  * The DB row wins so it can be flipped with no restart and no deploy; the env var is the
  * boot-level default. Read at request time — never cached — which is the whole point.

@@ -190,8 +190,6 @@ test("D167 · d167AtlasKeepsEverySurface — each existing surface is mounted by
   // The old home's pieces are switched off per panel, never deleted: the default still draws them all.
   assert.match(map, /export const ALL_PARTS = Object\.freeze\(\{ navigator: true, explore: true, families: true, recent: true \}\);/);
   assert.match(map, /\{parts\.navigator \? <Navigator base=\{base\} fallback=\{dir && \(/);
-  // The guided tour's map step opens the Your map panel.
-  assert.match(read("client/src/components/GuidedTour.jsx"), /\{ id: "atlas_map", route: "\/app\/atlas\/your-map", target: "\[data-your-map\]",/);
   // The mapping doc: 22 surfaces, every panel named, the curator tools kept in Admin.
   const doc = read("docs/D167_ATLAS_MAP.md");
   const rows = [...doc.matchAll(/^\| (\d+) \| \*\*/gm)].map(m => Number(m[1]));

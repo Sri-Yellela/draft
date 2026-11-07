@@ -3,7 +3,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PostingPanel from "./PostingPanel.jsx";
 import WarmPathsBlock from "./WarmPathsBlock.jsx";
-import TrialRoleFit from "./TrialRoleFit.jsx";
 import { api } from "../lib/api.js";
 import { useJobBoard } from "../contexts/JobBoardContext.jsx";
 import CoverLetterModal from "./CoverLetterModal.jsx";
@@ -540,9 +539,6 @@ export default function JobDetailPanel({
                           jobId={selectedJob.jobId} resumeText={selectedJobMeta?.resumeText || ""}
                           activeProfileId={selectedJobMeta?.activeProfileId ?? null} onReport={selectedJobMeta?.onAtsReport || null}
                           history={matchHistory} bare />
-                        {/* A111 step 4 (moved from the deck's deleted report with D152 (8) (b)): under the match, the role
-                            against a trial tester's own résumé — renders nothing for anyone else. */}
-                        <TrialRoleFit jobId={selectedJob.jobId} />
                       </section>
                     </div>
                   </div>

@@ -72,7 +72,6 @@
 .dh-main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
 .dh-main[data-detail="true"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
 .dh-table-col { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.dh-table-col > #trial-demo-slot:empty { display: none; }
 .dh-detail { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; position: sticky; top: 8px; }
 .dh-switch { display: none; }
 /* D149 (11-03): a broken connection is one line on the card colour — no border, no coloured edge (no card borders). */

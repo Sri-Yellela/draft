@@ -166,7 +166,7 @@ test("testersExportWithContacts (owner 11-02): ?contact=1 adds name and email fi
   const page = fs.readFileSync("client/src/panels/adminTesters.jsx", "utf8");
   assert.match(page, />Export without names or emails</);
   assert.match(page, /export\.csv\?\$\{qs\}&contact=1/);
-  assert.match(fs.readFileSync("routes/trial.js", "utf8"), /const contact = req\.query\.contact === "1";/);
+  assert.match(fs.readFileSync("routes/survey.js", "utf8"), /const contact = req\.query\.contact === "1";/);
 });
 
 test("d131PhoneLayout: cards stack on a phone — every grid is minmax(min(N px, 100%), 1fr); no fixed page width", () => {
@@ -176,5 +176,6 @@ test("d131PhoneLayout: cards stack on a phone — every grid is minmax(min(N px,
   assert.match(page, /maxWidth: 1180/);
   const panel = fs.readFileSync("client/src/panels/AdminPanel.jsx", "utf8");
   assert.match(panel, /<TestersTab\/>/);
-  assert.match(fs.readFileSync("client/src/panels/adminMap.js", "utf8"), /\["trial", "Testers"\]/);
+  // 11-07 (changed on purpose): the section's id is "testers" now that the D124 trial is gone.
+  assert.match(fs.readFileSync("client/src/panels/adminMap.js", "utf8"), /\["testers", "Testers"\]/);
 });

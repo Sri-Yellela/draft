@@ -15,7 +15,7 @@ import { EmailHealthTab } from "./adminEmail.jsx";
 import { ModelUsageTab } from "./adminUsage.jsx";
 import { AdminsTab } from "./adminAdmins.jsx";
 import { AtlasTab } from "./adminAtlas.jsx";
-import { TrialTab } from "./adminTrial.jsx";
+import { TesterDetails } from "./adminTesterDetails.jsx";
 import { TestersTab } from "./adminTesters.jsx";
 import { AppearanceTab } from "./adminAppearance.jsx";
 import { CalibrateTab } from "./adminCalibrate.jsx";
@@ -714,12 +714,13 @@ export function AdminPanel() {
       {/* D88 P3: the support queue; a ticket links to the person's page. */}
       {at("people", "support") && <SupportQueue theme={theme} onOpenPerson={openPerson}/>}
       {at("people", "messages") && <ContactMessagesSection theme={theme}/>}
-      {/* D131: Testers — the readable page on top; D124's tables, exports and exclusive access folded beneath it. */}
-      {at("people", "trial") && <>
+      {/* D131: Testers — the readable page on top; both surveys and People & questions folded beneath it (the D124
+          trial's own tables went with the trial, 11-07). */}
+      {at("people", "testers") && <>
         <TestersTab/>
-        <details data-admin-trial-details="" style={{ marginTop: 28 }}>
-          <summary style={{ cursor: "pointer", fontWeight: 700, marginBottom: 12 }}>Details, the older tables, exports and exclusive access</summary>
-          <TrialTab/>
+        <details data-admin-testers-details="" style={{ marginTop: 28 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 700, marginBottom: 12 }}>Details: both surveys, people and what they asked</summary>
+          <TesterDetails/>
         </details>
       </>}
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ⭐ D146 · THE ONE APPLICATION TRACKER, WALKED — in a real Chrome against a LOCAL draft on a THROWAWAY copy of the
 // database (never production). Boot first:
-//   COOKIE_ENCRYPTION_KEY=<random> RM_DATA_DIR=<temp dir holding a COPY of data/resume_master.db> PORT=3962 DRAFT_TRIAL=on node server.js
+//   COOKIE_ENCRYPTION_KEY=<random> RM_DATA_DIR=<temp dir holding a COPY of data/resume_master.db> PORT=3962 node server.js
 // then:
 //   node scripts/d146TrackerShots.mjs [--base http://localhost:3962] [--out docs/d146-shots]
 // A SYNTHETIC account is made and given past applications through the app's own CSV import (sent · interviewing ·

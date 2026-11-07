@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import Database from "better-sqlite3";
 import { startFromResume } from "../services/resumeOnboarding.js";
-import { samples, sampleIdForText, activeSampleId, RESUME_CHOICES } from "../services/trial.js";
+import { samples, sampleIdForText, activeSampleId } from "../services/sampleResumes.js";
 
 function db0() {
   const db = new Database(":memory:");
@@ -24,8 +24,9 @@ const deps = (db) => ({
   isSampleSwap: (text) => !!sampleIdForText(text) && !!activeSampleId(db, 1),
 });
 
-test("sampleSwap: only A and B are offered; a profile made from C is switched to A, not refused", () => {
-  assert.deepEqual([...RESUME_CHOICES], ["A", "B"]);
+// 11-07: the trial's sample picker was removed (the trial with it); a profile already made from a sample is still known
+// as one, and another sample's text still switches it rather than being refused.
+test("sampleSwap: a profile made from sample C is switched to sample A, not refused", () => {
   const db = db0();
   const first = startFromResume(db, 1, { content: samples().C.resumeText, name: "sample-c.txt" }, deps(db));
   assert.equal(activeSampleId(db, 1), "C");

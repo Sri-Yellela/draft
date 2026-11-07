@@ -37,7 +37,7 @@ test("d123AdminSwitchWinsOverDeploy: the admin's mode beats DRAFT_TAILORING for 
   assert.equal(tailoringFor({ db, env: { DRAFT_TAILORING: "lean" } }), "lean");
   setSetting(db, TAILORING_KEY, "payload");
   assert.equal(tailoringFor({ db, env: { DRAFT_TAILORING: "lean" } }), "payload");
-  assert.equal(tailoringFor({ db, env: {}, isTrial: true }), "payload", "trial accounts follow the admin too");
+  assert.equal(tailoringFor({ db, env: {} }), "payload", "every account follows the admin");
   assert.equal(tailoringState(db, { DRAFT_TAILORING: "lean" }).source, "override");
   setSetting(db, TAILORING_KEY, "nonsense");
   assert.equal(tailoringFor({ db, env: { DRAFT_TAILORING: "code" } }), "code", "an unknown row is ignored");
@@ -119,7 +119,8 @@ test("p6gGistBuiltOnceStored: one tools-service call per résumé, metered, reus
 
 test("d123SwitchesWired: the generation reads the admin switch and the model; the routes and both panels exist", () => {
   const server = lf("server.js");
-  assert.match(server, /tailoringFor\(\{ db, env: process\.env, isTrial/);
+  // 11-07: the D124 trial was removed — the strategy no longer asks whether the account is a trial account.
+  assert.match(server, /tailoringFor\(\{ db, env: process\.env \}\)/);
   assert.match(server, /model: leanKeywords \? modelFor\(db, \{ userId, tailoring \}\) : null/);
   for (const r of ['app.get("/api/admin/tailoring"', 'app.put("/api/admin/tailoring"', 'app.delete("/api/admin/tailoring"',
                    'app.get("/api/settings/tailoring-model"', 'app.put("/api/settings/tailoring-model"', 'app.put("/api/profile/gists"',

@@ -210,8 +210,8 @@ export function createBoardFitPrecompute({
   // default view shows the profile's own category (and unclassified rows) only, so only those are precomputed; a
   // posting reached by a search or another function is scored when it is opened, as before.
   scopeFor = null,
-  // Owner 11-02: (userId) -> true for an account that is never precomputed (a trial account reads its sample's
-  // frozen cards). Skipped in schedule and in runAll.
+  // (userId) -> true for an account that is never precomputed. Skipped in schedule and in runAll. (Owner 11-02 added it
+  // for the D124 trial's accounts; the trial was removed 11-07 and server.js passes none.)
   skipUser = null,
   log = console,
   batchSize = 50,

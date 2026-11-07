@@ -85,30 +85,8 @@ import AttemptPosting from "../components/AttemptPosting.jsx";
 // The state is AutoApplyContext's, so the board and this panel read one pipeline.
 // ============================================================
 
-// ⭐ D129 (3) · DRAFT HOUSE'S EXAMPLE, for the guided tour: two runs and the five rings, LABELLED "Example" — so a new
-// tester sees what the tree becomes. Invented companies; nothing in it opens or acts.
-const EX =(key, company, title, ring) => ({ key: `example-${key}`, company, title, ring, jobId: null });
-const EXAMPLE_VIEW = [
-  { run: { key: "example-run-2", day: "Example", time: "9:00", real: false, nodes: [1, 2, 3] },
-    items: [{ node: EX("a", "Northwind Robotics", "Software Engineer", "review"), dim: false },
-            { node: EX("b", "Harbor Health", "Backend Engineer", "need"), dim: false },
-            { node: EX("c", "Bluefin Analytics", "Data Engineer", "work"), dim: false }] },
-  { run: { key: "example-run-1", day: "Example", time: "Yesterday", real: false, nodes: [1, 2] },
-    items: [{ node: EX("d", "Cedar Logistics", "Platform Engineer", "sent"), dim: false },
-            { node: EX("e", "Lumen Payments", "Software Engineer II", "reply"), dim: false }] },
-];
 // ⭐ D149 (11-03) · tracker-options.html's `.ph3 h1`: the deck's page-title type at the sketch's fixed 44 px, no tracking.
 const DH_TITLE = Object.freeze({ fontSize: "calc(44px * var(--type-scale, 1))", letterSpacing: "normal" });
-const nothingYetForExample = (nodes) => !nodes || nodes.length === 0;
-function ExampleNote() {
-  return (
-    <p className="dht-empty" data-house-example="">
-      <strong>Example.</strong> This is what Home looks like once you send a few: each company is a tile, its ring says
-      where the application is (Needs you, Ready for your review, Working on it, Sent, Replied), and opening one shows what happened,
-      the answers given, the form as filled and what changed in the résumé.
-    </p>
-  );
-}
 
 export function AutoApplyPanel({ user = null } = {}) {
   const { theme } = useTheme();
@@ -205,42 +183,6 @@ export function AutoApplyPanel({ user = null } = {}) {
     settingsOpener.current = el || document.activeElement;
     setSettingsGroup(group); setSettingsOpen(true);
   };
-
-  // ⭐ D129 (3) · THE GUIDED TOUR's two asks of Draft House, by window event (the page owns its state):
-  //   "draft:house-example" { on } — an EXAMPLE tree, labelled, while the tester's own is empty (nothing opens from it);
-  //   "draft:tour-settings" { open } — the Auto settings drawer opened for the step, and on close the settings PUT BACK
-  //   exactly as they were when it opened ("set up in the step, then reset"), only if the tester changed something.
-  const [tourExample, setTourExample] = useState(() => typeof window !== "undefined" && !!window.draftTourExample);
-  // The trial's demonstration moves its two picks' rings on the real tree as the replay runs ({ jobId: ring }).
-  const [demoRings, setDemoRings] = useState({});
-  useEffect(() => {
-    const on = (e) => setDemoRings(e.detail || {});
-    window.addEventListener("draft:trial-demo-rings", on);
-    return () => window.removeEventListener("draft:trial-demo-rings", on);
-  }, []);
-  const tourSnapshot = useRef(null);
-  useEffect(() => {
-    const onExample = (e) => setTourExample(!!e.detail?.on);
-    const onSettings = async (e) => {
-      if (e.detail?.open) {
-        try { tourSnapshot.current = (await api("/api/apply/auto-settings")).settings ?? null; } catch { tourSnapshot.current = null; }
-        openSettings("when", null);
-        return;
-      }
-      setSettingsOpen(false);
-      const before = tourSnapshot.current;
-      tourSnapshot.current = null;
-      if (!before) return;
-      try {
-        const now = (await api("/api/apply/auto-settings")).settings ?? null;
-        const strip = (x) => JSON.stringify({ ...(x || {}), savedAt: undefined });
-        if (strip(now) !== strip(before)) await api("/api/apply/auto-settings", { method: "PUT", body: JSON.stringify({ settings: before }) });
-      } catch { /* the tester's own change stands; nothing is half-restored */ }
-    };
-    window.addEventListener("draft:house-example", onExample);
-    window.addEventListener("draft:tour-settings", onSettings);
-    return () => { window.removeEventListener("draft:house-example", onExample); window.removeEventListener("draft:tour-settings", onSettings); };
-  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // D102 P5: the application open beside the tree (wide screens), by job id — "Full page".
   const [sideJob, setSideJob] = useState(null);
@@ -510,12 +452,7 @@ export function AutoApplyPanel({ user = null } = {}) {
   const tree = buildTree({ runs: d113.available ? d113.runs : null, nodes, nextRunAt, timeZone, now });
   // ⭐ D146: the timeline shows every run; filtering and search are the table's.
   const treeShown = treeView(tree, {});
-  // D129 (3): the tour's example shows only while the tester's own tree is empty — a real tree is never covered.
-  const showExample = tourExample && nothingYetForExample(nodes);
-  const demoView = Object.keys(demoRings).length
-    ? treeShown.map(v => ({ ...v, items: v.items.map(x => (demoRings[x.node.jobId] ? { ...x, node: { ...x.node, ring: demoRings[x.node.jobId] } } : x)) }))
-    : treeShown;
-  const view = showExample ? EXAMPLE_VIEW : demoView;
+  const view = treeShown;
   const brokenConnections = [...connectionsFromStopped(stoppedItems), ...connections];
   // ⭐ D146 · THE TABLE: one row per job — the nodes and The Table's history, merged (lib/trackerRows.js).
   const rows = trackerRows({ nodes, history, now });
@@ -532,8 +469,7 @@ export function AutoApplyPanel({ user = null } = {}) {
   };
 
   // U4 · one branch open at a time; Escape closes. Opening from the side scrolls the tree to it.
-  // The tour's example opens nothing (its keys are "example-…").
-  const step = (action) => { if (String(action?.key ?? "").startsWith("example-")) return; setOpen(o => branchStep(o, action)); };
+  const step = (action) => setOpen(o => branchStep(o, action));
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape" && !settingsOpen && !applyRunDetailOpen) setOpen(null); };
     window.addEventListener("keydown", onKey);
@@ -541,7 +477,6 @@ export function AutoApplyPanel({ user = null } = {}) {
   }, [settingsOpen, applyRunDetailOpen]);
   // ⭐ D146 · a timeline bubble opens THAT ROW in the table, in place, and scrolls to it (a filter hiding it is cleared).
   const openRow = (key) => {
-    if (String(key ?? "").startsWith("example-")) return;
     if (!shownRows.some(r => r.key === key)) { setFilter("all"); setQ(""); setPeriod("any"); }
     setListView("table"); setPhoneView("table");
     setOpen({ type: "job", key });
@@ -1271,8 +1206,6 @@ export function AutoApplyPanel({ user = null } = {}) {
       {/* ── ⭐ D146 · THE TABLE, AND THE AUTO-APPLY TIMELINE BESIDE IT (layout 1). ── */}
       <div className="dh-main" data-draft-split="" data-phone-view={phoneView} data-detail={sideJob && sideDetail ? "true" : undefined}>
         <div className="dh-table-col">
-          {/* The trial's demonstration renders here (the guided tour portals it in); empty for everyone else. */}
-          <div id="trial-demo-slot"/>
           {listView === "sheet" ? (
             /* Settings → View → The full sheet: The Table's own views (D15 / D54 / D55), kept, not on the first screen. */
             <section data-full-sheet="" aria-label="The full sheet" style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 480 }}>
@@ -1286,10 +1219,10 @@ export function AutoApplyPanel({ user = null } = {}) {
                 openKey={open?.type === "job" ? open.key : null}
                 onOpen={(key) => step(key == null ? { type: "close" } : { type: "job", key })}
                 renderOpen={renderRow}
-                empty={showExample ? <ExampleNote/> : (
+                empty={
                   <p className="dht-empty">{rows.length ? "Nothing here with this filter."
                     : nothingYet ? "Nothing drafted yet. Draft jobs from the Daily Deck or Full House." : "Nothing to show yet."}</p>
-                )} />
+                } />
             </>
           )}
         </div>
@@ -1307,7 +1240,7 @@ export function AutoApplyPanel({ user = null } = {}) {
           <DraftHouseTree view={view} open={open} onOpen={step} onBubble={(node) => openRow(node.key)} head={timelineHead}
             renderRunBranch={renderRunBranch}
             nextLine={fullAuto ? "Next look. Good matches are sent for you." : "Next look. You'll get one email with the picks."}
-            empty={!showExample && !view.some(v => !v.run.future) ? <p className="dht-empty">No runs yet. Each run's picks show here as they are made.</p> : null}
+            empty={!view.some(v => !v.run.future) ? <p className="dht-empty">No runs yet. Each run's picks show here as they are made.</p> : null}
             footer={(needsYouCount > 0 || timelineExtra.running || bin.items.length > 0 || binMsg) ? (
               <div className="dht-foot" data-timeline-foot="">
                 {needsYouCount > 0 && timelineExtra.review}
