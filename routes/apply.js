@@ -62,6 +62,7 @@ import { eligibilityForJob, userEligibilityInputs } from "../services/jobEligibi
 import { livenessFor, isStale } from "../services/jobs/jobHistory.js";
 import { readAutoSettings } from "../shared/autoSettings.js";
 import { currentStartedBy, withStartedBy, startedByOfRun, agentRunRefusal } from "../services/startedByContext.js";
+import { withRequestId, runJobRequestId } from "../services/requestContext.js";
 import { isProductionProcess } from "../services/modelUsage.js";
 import { educationEntries } from "../services/structuredProfile.js";
 
@@ -2261,7 +2262,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         activeWorkers++;
         // D171 FIX 1: the job runs as the run's own starter, long after the request that queued it — so its model calls
         // record who started the run, not "system".
-        const p = withStartedBy(startedByOfRun(run), () => processRunJob(job, run))
+        // ⛔ D173 (5): and inside its own request id, "run<id>-job<id>" — the string to filter both services' logs by.
+        const p = withRequestId(runJobRequestId(run.id, job.id), () => withStartedBy(startedByOfRun(run), () => processRunJob(job, run)))
           // ⭐ D112 item 8: the job's outcome, told to the person — Needs you / Ready to approve, or sent (services/notify.js;
           // a job the apply worker took over is told by the worker's report instead).
           .then(() => { notifyRunJobOutcome(db, job.id); })
