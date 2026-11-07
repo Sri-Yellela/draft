@@ -39,6 +39,7 @@ import { toolsKeyLabel } from "./modelUsage.js";
 import { retryLedgerText } from "./generationRetry.js";
 import { taskForPurpose } from "../shared/modelTasks.js";
 import { stripInvisible, injectionSignals } from "./untrustedText.js";
+import { currentRequestId, REQUEST_ID_HEADER } from "./requestContext.js";
 
 export class ToolsServiceError extends Error {
   constructor(message, { code, status = null, retryable, permanent, violations = null, usage = [] } = {}) {
@@ -87,7 +88,9 @@ export function createToolsServiceClient({
     try {
       res = await fetchImpl(base + path, {
         method,
-        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+        // ⛔ D173 (5): the work's id travels on — the tools service logs it as `rid` (docs/SERVICES.md).
+        headers: { "content-type": "application/json", authorization: `Bearer ${token}`,
+          ...(currentRequestId() ? { [REQUEST_ID_HEADER]: currentRequestId() } : {}) },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       });

@@ -42,6 +42,7 @@ import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
 import { runAutoTick, runPicksFollowUps } from "./services/autoScheduler.js";
 import { sweepTestingRecords } from "./services/testingRecords.js";
 import { startedByMiddleware, withStartedBy, SCHEDULER_STARTED } from "./services/startedByContext.js";
+import { requestIdMiddleware } from "./services/requestContext.js";
 import { prodKeyOutsideProduction } from "./services/modelUsage.js";
 import { configureNotify, notifyEvent } from "./services/notify.js";
 import { pickSecret, userLevelFor } from "./services/picks.js";
@@ -9429,6 +9430,8 @@ configureNotify({ db, emitToUser, appUrl: APP_BASE_ORIGIN || "" });
 app.set("trust proxy", 1);
 // ⛔ D171 FIX 1: FIRST — each request is its own "who started this" context (services/startedByContext.js), read lazily
 // at the model call / the run's insert, after the session and the admin binder have run.
+// ⛔ D173 (5): and before it, the request's id (x-request-id in and out) — sent on to the tools service (docs/SERVICES.md).
+app.use(requestIdMiddleware);
 app.use(startedByMiddleware);
 app.use(cors({ origin:corsOrigin, credentials:true }));
 // ⛔ D75: the crawler worker's doors come BEFORE the JSON parser — a result's HMAC is over its exact bytes.

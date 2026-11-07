@@ -307,7 +307,7 @@ test("D112 · the events fire from the pipeline — a run's held / sent job, the
 
   // The hooks are in the pipeline's own places (source pins, carved with at()).
   const apply = fs.readFileSync(new URL("../routes/apply.js", import.meta.url), "utf8");
-  assert.match(apply.slice(at(apply, "const p = withStartedBy(startedByOfRun(run), () => processRunJob(job, run))"), at(apply, "runningJobs.push(p);")), /\.then\(\(\) => \{ notifyRunJobOutcome\(db, job\.id\); \}\)/);
+  assert.match(apply.slice(at(apply, "() => withStartedBy(startedByOfRun(run), () => processRunJob(job, run)))"), at(apply, "runningJobs.push(p);")), /\.then\(\(\) => \{ notifyRunJobOutcome\(db, job\.id\); \}\)/);
   const worker = fs.readFileSync(new URL("../services/applyWorker.js", import.meta.url), "utf8");
   const report = worker.slice(at(worker, "export function acceptReport"), at(worker, "export function approveRemoteRun"));
   assert.match(report, /setRunJob\("held_review", "awaiting_approval"\);[\s\S]{0,200}notifyEvent\(row\.user_id, "needs_you", \{ ready: true \}\)/);
