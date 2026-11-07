@@ -73,6 +73,8 @@ import { probeWikipedia, wikiMatchSummary } from "../services/atlas/atlasWikidat
 import { wikiCandidates, pickWikiTitle, redirectPreview, acceptPicks } from "../services/atlas/atlasWikiFind.js";
 import { atlasTermsForPosting, peekNode, countLinkEvent, glossaryTerms } from "../services/atlas/atlasLinks.js";
 import { learnStepForNode } from "../services/learn/learnLinks.js";
+import { learnContent } from "../services/learn/learnContent.js";
+import { learnSourceSummary } from "../services/atlas/learnSources.js";
 import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts } from "../services/atlas/atlasDefinitions.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
@@ -215,7 +217,14 @@ export function createAtlasAdminRouter(db, { fetchImpl = globalThis.fetch, linkP
   // ⛔ D176 · the learning-centre source register (content/sources/registry.json): the summary for Admin → Atlas →
   // Sources, with the last monthly link check; and the check, now.
   router.get("/sources", (_req, res) => {
-    try { res.json({ ...registrySummary(loadRegistry()), links: lastLinkCheck(db) }); }
+    try {
+      const reg = loadRegistry();
+      // D176-3: every Learn item's source, resolved from the register against the content the app actually serves.
+      let learn = null;
+      try { const s = learnSourceSummary(learnContent(db), reg); learn = { items: s.items, resolved: s.resolved, own: s.own, needsNamedSource: s.needsNamedSource, unregistered: s.unregistered }; }
+      catch { learn = null; }
+      res.json({ ...registrySummary(reg), links: lastLinkCheck(db), learn });
+    }
     catch (e) { res.status(500).json({ error: "register_unreadable", message: e.message }); }
   });
   router.post("/sources/check", async (_req, res) => {

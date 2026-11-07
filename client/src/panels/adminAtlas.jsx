@@ -448,7 +448,13 @@ function AtlasSources({ say }) {
         {Object.entries(s.byPathway).sort((a, b) => b[1].sources - a[1].sources)
           .map(([p, b]) => `${p} ${b.sources}${b.neutral ? "" : " (no neutral source)"}`).join(" · ")}
       </div>
-      {s.toVerify.length > 0 && <div style={quiet}>To verify: {s.toVerify.join(", ")}</div>}
+      {s.toVerify.length > 0 && <div style={quiet}>To verify ({s.toVerify.length}): {s.toVerify.slice(0, 30).join(", ")}{s.toVerify.length > 30 ? ` and ${s.toVerify.length - 30} more` : ""}</div>}
+      {/* D176-3: every Learn item's source, resolved from this register against the content Learn serves. */}
+      {s.learn && (<div style={quiet} data-atlas-sources-learn="">
+        Learn items: {s.learn.resolved} of {s.learn.items} have a registered source ({s.learn.own} are draft's own tasks)
+        {s.learn.needsNamedSource.length > 0 && <> · {s.learn.needsNamedSource.length} link to a search, not a named source — replace each: {s.learn.needsNamedSource.slice(0, 12).map(x => `${x.stepId} ${x.title}`).join(" · ")}{s.learn.needsNamedSource.length > 12 ? " …" : ""}</>}
+        {s.learn.unregistered.length > 0 && <> · {s.learn.unregistered.length} name a source the register doesn't have</>}
+      </div>)}
       {s.aiRestricted?.length > 0 && <div style={quiet} data-atlas-sources-ai="">Never sent to a model (their AI terms): {s.aiRestricted.join(", ")}</div>}
       {dead.length > 0 && <div style={quiet}>Dead at the last check: {dead.map(d => `${d.id} (${d.status ?? d.error})`).join(", ")}</div>}
       <div style={{ ...row, marginTop: 8 }}>
