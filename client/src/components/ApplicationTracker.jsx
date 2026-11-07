@@ -148,13 +148,11 @@ export function RowOpen({ row, pane = null, onPane, paneBody, actions = [], onCl
   const labels = Object.fromEntries(TRACKER_PANES);
   // ⭐ D165 (5): a held application (lib/heldApplication.js) — the sketch's eyebrow / headline / lead for its state, the steps
   // the run took, and ONE quiet line for an earlier attempt. Rows that are not an application run pass none.
-  return (
-    // D149 (11-03): the sketch's opened row has no × — it folds by pressing the row again, or Escape (the panel's
-    // window listener, and here for a key pressed inside the row).
-    <div className="trk-o" data-row-detail={row.key} onKeyDown={(e) => { if (e.key === "Escape") onClose?.(); }}>
-      <p className="trk-o__eyebrow">{held?.eyebrow || row.eyebrow}</p>
-      <h3 className="trk-o__headline" data-row-headline="">{held?.title || row.headline}</h3>
-      {held?.lead && <p className="trk-o__lead" data-held-lead={held.state}>{held.lead}</p>}
+  // The sketch's order for a held row: lead → the question → the buttons → the steps → the panes → the earlier attempt.
+  // Every other row keeps D149's: panes first, then its editors and actions.
+  const stepsFirst = held?.steps?.length > 0;
+  const panes = (
+    <>
       <div className="trk-o__panes" role="group" aria-label="Show">
         {row.panes.map(id => (
           <button key={id} type="button" className="trk-od" data-pane={id} aria-pressed={pane === id}
@@ -162,6 +160,17 @@ export function RowOpen({ row, pane = null, onPane, paneBody, actions = [], onCl
         ))}
       </div>
       {pane && <div className="trk-o__pane" data-pane-body={pane}>{paneBody?.(pane)}</div>}
+    </>
+  );
+  return (
+    // D149 (11-03): the sketch's opened row has no × — it folds by pressing the row again, or Escape (the panel's
+    // window listener, and here for a key pressed inside the row).
+    <div className="trk-o" data-row-detail={row.key} data-order={stepsFirst ? "held" : undefined}
+      onKeyDown={(e) => { if (e.key === "Escape") onClose?.(); }}>
+      <p className="trk-o__eyebrow">{held?.eyebrow || row.eyebrow}</p>
+      <h3 className="trk-o__headline" data-row-headline="">{held?.title || row.headline}</h3>
+      {held?.lead && <p className="trk-o__lead" data-held-lead={held.state}>{held.lead}</p>}
+      {!stepsFirst && panes}
       {children}
       {actions.length > 0 && (
         <div className="trk-acts" data-row-actions="">
@@ -183,6 +192,7 @@ export function RowOpen({ row, pane = null, onPane, paneBody, actions = [], onCl
           ))}
         </ul>
       )}
+      {stepsFirst && panes}
       {held?.earlier && <EarlierAttempts earlier={held.earlier} />}
     </div>
   );

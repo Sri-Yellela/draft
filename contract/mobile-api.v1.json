@@ -3917,6 +3917,21 @@
           "question": {
             "type": "string"
           },
+          "salary": {
+            "type": "boolean"
+          },
+          "scope": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scopeSeveral": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "template": {
             "type": [
               "string",

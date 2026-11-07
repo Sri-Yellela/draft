@@ -102,3 +102,15 @@ export function earlierAttempts(rows = []) {
     count: list.length,
   };
 }
+
+/**
+ * The inline question's "keep it" label (held-application-sketch.html: "Use this for similar jobs (full-stack, US) next
+ * time"). A salary answer is saved for the scope of the jobs blocked on it (D165 (3)); the server names that scope on the
+ * question (`GET /api/apply/questions` → salary, scope, scopeSeveral). Every other answer is kept for every employer.
+ */
+export function saveForNextTimeLabel(q = {}) {
+  if (!q?.salary) return "Save this answer for next time";
+  if (q.scope) return `Use this for similar jobs (${q.scope}) next time`;
+  if (q.scopeSeveral) return "Use this for similar jobs next time (one answer per role and location)";
+  return "Use this for similar jobs next time";
+}

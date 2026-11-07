@@ -17,6 +17,7 @@
 // ⛔ USER-STATED ONLY, like the rest of the answer store: nothing here stores an answer the server worked out.
 import { normaliseQuestion, SAVED_ANSWER_LIMITS } from "../shared/savedAnswers.js";
 import { classifyLocation } from "./jobs/usLocation.js";
+import { functionForRole } from "../shared/jobTagVocabulary.js";
 
 // A question asking what the person wants to be paid. Broad on purpose (a missed salary question falls back to the
 // global store, which is where it was before), but never a question ABOUT pay that is not asking for a number from
@@ -46,6 +47,27 @@ export function locationKeyOf(location) {
 /** The scope a job's answers are saved under / matched against. Pure: { roleKey, location } → keys. */
 export function scopeOf({ roleKey = null, location = null } = {}) {
   return { roleKey: roleKey ? String(roleKey) : null, locationKey: locationKeyOf(location) };
+}
+
+// ⭐ D165 (5) · the inline question's "Use this for similar jobs (engineering, US) next time" names the scope the answer
+// will be saved under — the same scopes `POST /api/apply/answers` saves it for (every held job blocked on the question).
+const REGION_WORDS = Object.freeze({ us: "US", non_us: "outside the US", remote: "remote" });
+
+/** One scope in plain words: "engineering, US" · "US" · "product" · null (open — no role, no location). */
+export function scopeWords({ roleKey = null, locationKey = null } = {}) {
+  const role = functionForRole(roleKey);
+  const region = REGION_WORDS[locationKey] || null;
+  return [role, region].filter(Boolean).join(", ") || null;
+}
+
+/**
+ * The phrase for the scopes an answer will be saved under: one scope → its words; several → null with `several`
+ * true (the answer is saved once per role and location); none worth naming → null.
+ */
+export function scopePhrase(scopes = []) {
+  const words = [...new Set((scopes || []).map(scopeWords))];
+  if (words.length === 1) return { phrase: words[0], several: false };
+  return { phrase: null, several: words.length > 1 };
 }
 
 /** The scope of one posting, from the database: its role (the board's role map, not a profile's) and its location. */
