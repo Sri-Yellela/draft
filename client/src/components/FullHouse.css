@@ -181,6 +181,10 @@
   font: inherit; font-size: 13.5px; color: var(--c-ink); outline: none;
 }
 .fh-srch input::placeholder { color: var(--c-ink-faint); }
+/* ⛔ (owner 11-06: "an extra X mark") — the field is type="search", so the browser drew its own clear button beside
+   ours; ours is the one (.fh-srch__clear), and it also brings back all jobs. */
+.fh-srch input[type="search"]::-webkit-search-cancel-button,
+.fh-srch input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
 .fh-srch__clear {
   flex: 0 0 auto; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0;
   border-radius: 6px; background: transparent; color: var(--c-ink-faint); cursor: pointer;
