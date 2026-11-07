@@ -250,6 +250,13 @@ export function navigatorFor(db, userId, { now = Math.floor(Date.now() / 1000), 
   const startSkills = stored?.route?.slug === route?.slug ? (stored?.route?.start || null) : null;
   const start = startSkills || (route ? [...route.skills.map(s => s.slug)] : []);
   const doneNow = route ? start.filter(s => route.covered.includes(s)).length : 0;
+  // ⭐ D172 (4) · the map as a track board: every skill on the route as it was first stored, in order — done when the
+  // person has it now — with its Learn piece; and the goal's open roles (the flag).
+  const stations = route ? start.map(s => {
+    const sk = route.skills.find(x => x.slug === s);
+    const node = sk ? null : nodeBySlug(db, s);
+    return { slug: s, name: sk?.name || node?.name || s, done: route.covered.includes(s), learn: sk?.learn || null };
+  }) : [];
   const progress = { applications: apps, replies, routeSkills: start.length, routeDone: doneNow,
     line: `This week: ${apps} application${apps === 1 ? "" : "s"} sent · ${replies} repl${replies === 1 ? "y" : "ies"} · ${doneNow} of ${start.length} route skills done` };
 
@@ -282,7 +289,7 @@ export function navigatorFor(db, userId, { now = Math.floor(Date.now() / 1000), 
     ready: true,
     current: { slug: current.slug, name: current.name },
     destination: { aim, recommended: recommended.map(pick), alternatives: alternatives.map(pick) },
-    route, bridges, progress,
+    route: route ? { ...route, stations, openRoles: aimReading?.role?.postings ?? null } : null, bridges, progress,
     changes: kept, suggest,
     elsewhere, changer,
     next: route?.skills?.[0] ? { slug: route.skills[0].slug, name: route.skills[0].name, learn: route.skills[0].learn,
