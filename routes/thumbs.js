@@ -6,7 +6,7 @@
 //   POST /api/admin/thumbs/hide       { url, hidden }     the takedown (hidden: false shows it again)
 //   POST /api/admin/thumbs/refresh                        the refresh now (it also runs daily, each picture monthly)
 import { Router } from "express";
-import { learnContent } from "../services/learn/learnContent.js";
+import { servedLearnContent } from "../services/learn/learnContent.js";
 import { thumbIndex, storedThumb, pinVideo, hideThumb, refreshThumbs, thumbPlan } from "../services/thumbs/resourceThumbs.js";
 
 /** Every Learn item (the tracker's, and D115 P5's live extras) as { id, k, u, t, s } — the resources Learn lists. */
@@ -18,7 +18,7 @@ export function learnItems(db) {
     if (typeof o.u === "string" && typeof o.k === "string") out.push({ id: o.id ?? null, k: o.k, u: o.u, t: o.t ?? "", s: o.s ?? "" });
     for (const v of Object.values(o)) if (v && typeof v === "object") walk(v);
   };
-  try { walk(learnContent(db).PARTS); } catch { /* no content imported */ }
+  try { walk(servedLearnContent(db).PARTS); } catch { /* no content imported */ }   // D178-2: the real links get pictures
   try {
     for (const r of db.prepare(`SELECT id, k, u, t, s FROM learn_extra_items WHERE status = 'live'`).all()) out.push(r);
   } catch { /* before migration 202 */ }

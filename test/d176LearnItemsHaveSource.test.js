@@ -5,9 +5,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { registerIndex, itemSource, learnSourceSummary, creatorOf, isSearchLink, hostSlug, OWN_SOURCE } from "../services/atlas/learnSources.js";
 import { validateRegistry } from "../services/atlas/sourceRegistry.js";
+import { withRealLinks } from "../services/learn/learnContent.js";
 
 const reg = JSON.parse(fs.readFileSync("content/sources/registry.json", "utf8"));
-const seed = JSON.parse(fs.readFileSync("content/learn/silicon-to-software.json", "utf8"));
+// D178-2: the content as Learn serves it — the verified real links laid over the search links.
+const seed = withRealLinks(JSON.parse(fs.readFileSync("content/learn/silicon-to-software.json", "utf8")));
 
 test("d176LearnItemsHaveSource: every seed item resolves to a registered source, or is flagged for a named one", () => {
   const s = learnSourceSummary(seed, reg);
@@ -15,7 +17,8 @@ test("d176LearnItemsHaveSource: every seed item resolves to a registered source,
   assert.deepEqual(s.unregistered, [], "no item names a source the register lacks");
   assert.equal(s.resolved + s.needsNamedSource.length, s.items);
   // A ratchet: the flagged search links may only be replaced, never added to.
-  assert.ok(s.needsNamedSource.length <= 60, `${s.needsNamedSource.length} items link to a search, not a named source (was 60 on 11-07)`);
+  // A ratchet: 60 on 11-07; 5 after D178-2's verified real links (content/links/learn-links-v1.json).
+  assert.ok(s.needsNamedSource.length <= 5, `${s.needsNamedSource.length} items link to a search with no named source (was 5 after D178-2)`);
   assert.equal(s.own, 38, "our own Build tasks are draft-original");
 });
 
@@ -54,6 +57,6 @@ test("d176LearnItemsHaveSource: how an item finds its source", () => {
 
 test("d176LearnItemsHaveSource: Admin → Atlas → Sources reports it", () => {
   const route = fs.readFileSync("routes/atlas.js", "utf8");
-  assert.match(route, /learnSourceSummary\(learnContent\(db\), reg\)/, "against the content Learn serves (the database), not the seed");
+  assert.match(route, /learnSourceSummary\(servedLearnContent\(db\), reg\)/, "against the content Learn serves (the database), not the seed");
   assert.match(fs.readFileSync("client/src/panels/adminAtlas.jsx", "utf8"), /data-atlas-sources-learn=""/);
 });

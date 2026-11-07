@@ -15,7 +15,7 @@
 // ⭐ D118 P2: the content is the DATABASE's (learnContent(db), learn_content) — an import from Admin → Atlas → Import
 // content is served on the next read; the public cache is a minute (was an hour), so a browser has it within one.
 import { Router } from "express";
-import { learnContent } from "../services/learn/learnContent.js";
+import { learnContent, servedLearnContent } from "../services/learn/learnContent.js";
 import { readProgress } from "../services/learn/learnProgress.js";
 import { circleOf } from "../services/learn/learnCircle.js";
 import { readEarned, recordOpened, saveExplanation, saveBuild } from "../services/learn/learnEarned.js";
@@ -33,7 +33,7 @@ export function createLearnRouter(db, { requireAuth }) {
   const router = Router();
   const send = (res, r) => res.status(r.ok ? 200 : r.status || 400).json(r);
   router.get("/", (_req, res) => {
-    const { source, copy, PARTS, ATLAS, INDEX } = learnContent(db);
+    const { source, copy, PARTS, ATLAS, INDEX } = servedLearnContent(db);   // D178-2: real links, not searches
     res.set("Cache-Control", LEARN_CACHE);
     res.json({ source, copy, PARTS, ATLAS, INDEX });
   });
@@ -44,7 +44,7 @@ export function createLearnRouter(db, { requireAuth }) {
     let reg = { sources: [] };
     try { reg = loadRegistry(); } catch { /* an unreadable register leaves every source unnamed, never a 500 */ }
     res.set("Cache-Control", LEARN_CACHE);
-    res.json(courseOf(learnContent(db), reg));
+    res.json(courseOf(servedLearnContent(db), reg));
   });
   // ⭐ D172 (2b) · the Library's ladder of guides (approved decks only; a level with none is "not written yet") and one deck.
   // Public, like the tracker: the decks' own words; a check question is served without its answer.

@@ -38,11 +38,17 @@ export function withRealLinks(doc, map = linkReplacements()) {
     items: (st.items || []).map(it => { const r = map.get(it.id); return r ? { ...it, u: r.url, ...(r.by ? { by: r.by } : {}) } : it; }) })) })) })) };
 }
 export const _resetLinks = () => { linksCache = null; };
+/**
+ * The content AS SERVED to people: the owner's tracker (learnContent, byte for byte — D117 C9) with the verified real
+ * links laid over its search links. Used where an item's link is shown or fetched (GET /api/learn, the course, the
+ * thumbnails, Admin → Sources); everything that reads ids, steps or progress keeps learnContent.
+ */
+export function servedLearnContent(src) { return withRealLinks(learnContent(src)); }
 
 let fileCache = null;
 function fromFile(file) {
   if (fileCache && fileCache.file === file) return fileCache.data;
-  const data = withRealLinks(JSON.parse(fs.readFileSync(file, "utf8")));
+  const data = JSON.parse(fs.readFileSync(file, "utf8"));
   fileCache = { file, data };
   return data;
 }
@@ -64,7 +70,7 @@ export function learnContent(src) {
     if (!v) return fromFile(LEARN_FILE);
     const key = `${v.version}:${v.at}`;
     if (dbCache.db === src && dbCache.key === key) return dbCache.data;
-    const data = withRealLinks(JSON.parse(src.prepare(`SELECT data FROM learn_content WHERE id = ?`).pluck().get(LEARN_ID)));
+    const data = JSON.parse(src.prepare(`SELECT data FROM learn_content WHERE id = ?`).pluck().get(LEARN_ID));
     dbCache = { db: src, key, data };
     return data;
   }

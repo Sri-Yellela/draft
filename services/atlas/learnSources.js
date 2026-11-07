@@ -42,7 +42,10 @@ export const slugOf = (s) => String(s || "").toLowerCase().normalize("NFKD").rep
 const urlOf = (u) => { try { return new URL(u); } catch { return null; } };
 export const hostOf = (u) => urlOf(u)?.hostname.replace(/^www\./, "") || null;
 /** The id a SITE gets when it has no row: its host without the common top-level ending ("3blue1brown.com" → "3blue1brown"). */
-export const hostSlug = (host) => slugOf(String(host || "").replace(/\.(com|org|net|io|ai|dev|ski|edu|co|app)$/, ""));
+export const hostSlug = (host) => {
+  const full = slugOf(host), short = slugOf(String(host || "").replace(/\.(com|org|net|io|ai|dev|ski|edu|co|app)$/, ""));
+  return short.length >= 4 ? short : full;   // "web.dev" → "web-dev", never a bare "web"
+};
 
 /** Is this link a search page (the source is then the creator the item names)? */
 export function isSearchLink(u) {
