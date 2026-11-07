@@ -62,7 +62,9 @@ test("d172RunPointsOnlyFromProof: levels on the Library's ladder; the streak cou
   assert.equal(levelOf(0).n, 1);
   assert.equal(levelOf(2000).next, null);
   const today = Math.floor(NOW / DAY);
-  assert.equal(streakOf(new Set([today, today - 1, today - 2, today - 4]), NOW), 3);
+  // ⭐ D178-4 (changed on purpose): one rest day a week — day 3's gap is that week's rest day, so the streak runs on.
+  assert.equal(streakOf(new Set([today, today - 1, today - 2, today - 4]), NOW), 4);
+  assert.equal(streakOf(new Set([today - 2, today - 3]), NOW), 2, "yesterday can be the rest day");
   assert.equal(streakOf(new Set([today - 1, today - 2]), NOW), 2, "yesterday still counts — today isn't over");
   assert.equal(streakOf(new Set([today - 3]), NOW), 0);
 });

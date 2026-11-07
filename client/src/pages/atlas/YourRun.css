@@ -27,3 +27,23 @@
   .run-stat span { text-align: left; }
   .run-quest { grid-template-columns: 1fr; gap: 6px; }
 }
+
+/* D178-4 · the month of lit squares, the proven reward, the marks shelf (owner's pick: Idea A's dial + Idea B's rest). */
+.run-stat--best span { font-weight: 600; }
+.run-month { margin: 0 0 18px; }
+.run-month__grid { list-style: none; margin: 0 0 6px; padding: 0; display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 6px; max-width: 520px; }
+.run-sq { aspect-ratio: 1; border-radius: 4px; background: var(--c-border); }
+.run-sq.is-lit { background: var(--c-accent); }
+.run-sq.is-rest { background: transparent; border: 2px dashed var(--c-border-strong); box-sizing: border-box; }
+.run-sq.is-today { outline: 2px solid var(--c-ink); outline-offset: 1px; }
+.run-proven { margin: 18px 0 0; padding: 14px 16px; border: 1px solid var(--c-border); border-radius: 12px; background: var(--c-surface-tint); }
+.run-proven p { margin: 0 0 6px; color: var(--c-ink); }
+.run-marks { margin-top: 18px; }
+.run-marks__shelf { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px; }
+.run-mark { display: grid; justify-items: center; gap: 4px; width: 110px; text-align: center; font-size: 13px; color: var(--c-ink-muted); }
+.run-mark.is-earned { color: var(--c-ink); }
+.run-mark__seal { width: 40px; height: 40px; border-radius: 20px; display: grid; place-items: center; background: var(--lrc-c); color: var(--c-surface-solid); font: 700 16px/1 var(--font-display); }
+.run-mark__ring { width: 40px; height: 40px; }
+.run-mark__track { fill: none; stroke: var(--c-border); stroke-width: 4; }
+.run-mark__fill { fill: none; stroke: var(--lrc-c); stroke-width: 4; stroke-linecap: round; }
+@media (max-width: 640px) { .run-month__grid { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
