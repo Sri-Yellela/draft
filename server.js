@@ -142,6 +142,7 @@ import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength 
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
 import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes } from "./services/jobs/publicJobPage.js";
 import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
+import { runRegisterLinkCheck } from "./services/atlas/sourceRegistry.js";
 import { autoPublish, runAtlasAutoPipeline } from "./services/atlas/atlasPublish.js";
 // ⭐ D108: a company's sponsorship fact (the existing LCA match, with its source and date) and the dated "What changed".
 import { sponsorshipFactsForRows } from "./services/kb/sponsorshipFacts.js";
@@ -7763,6 +7764,11 @@ cron.schedule('30 5 * * *', async () => {
     const r = await checkAtlasLinks(db);
     if (!r.busy) console.log(`[Cron] atlas links: ${r.checked} checked, ${r.ok} ok, ${r.failing} failing, ${r.dead} dead (${r.newlyDead.length} new)`);
   } catch (e) { console.error('[Cron] Atlas link check error:', e.message); }
+  // ⛔ D176-4: the learning-centre register's own links — monthly (runRegisterLinkCheck skips until 30 days have passed).
+  try {
+    const r = await runRegisterLinkCheck(db);
+    if (r.ran) console.log(`[Cron] source register links: ${r.checked} checked, ${r.dead.length} dead${r.dead.length ? ` (${r.dead.join(", ")})` : ""}`);
+  } catch (e) { console.error('[Cron] source register link check error:', e.message); }
   // ⭐ D117 C9: D115 P5's links too — a new one waits for its first check, a held one is tried again.
   try {
     const r = await checkExtraItems(db);

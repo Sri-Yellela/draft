@@ -417,6 +417,48 @@ function AtlasNodeEditor({ slug, say }) {
   );
 }
 
+// ⛔ D176 · SOURCES — the learning-centre register (content/sources/registry.json, services/atlas/sourceRegistry.js):
+// how many sources per licence class, per pathway (and how many are vendor-neutral — "no lesson draws on a single
+// vendor"), which licences are still to be read (link-only until then), and the monthly link check's dead links.
+//   GET /api/admin/atlas/sources        POST /api/admin/atlas/sources/check (the link check, now)
+function AtlasSources({ say }) {
+  const [s, setS] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(() => { api("/api/admin/atlas/sources").then(setS).catch(e => say({ ok: false, text: e.message })); }, [say]);
+  useEffect(() => { load(); }, [load]);
+  const check = async () => {
+    setBusy(true);
+    try {
+      const r = await api("/api/admin/atlas/sources/check", { method: "POST" });
+      say({ ok: r.dead.length === 0, text: `Sources checked: ${r.checked} — ${r.dead.length ? `dead: ${r.dead.join(", ")}` : "every link answered"}.` });
+      load();
+    } catch (e) { say({ ok: false, text: e.message }); }
+    setBusy(false);
+  };
+  if (!s) return null;
+  const dead = (s.links?.results || []).filter(r => !r.ok);
+  return (
+    <Panel title="Sources" data-admin-atlas-sources=""
+      code="D176: content/sources/registry.json — one row per learning centre; its licence class decides whether text may be adapted (open-reuse, share-alike) or only summarised and linked."
+      purpose="Where Atlas's lessons may draw from, and on what terms. A source still 'to verify' is link-only until its licence is read."
+      numbers={[[String(s.total), "sources"], [String(s.byClass["open-reuse"] + s.byClass["share-alike"]), "may be adapted, with credit"],
+        [String(s.toVerify.length), "licences still to read", s.toVerify.length > 0], [String(dead.length), "dead links", dead.length > 0]]}>
+      {!s.validation.ok && <div style={{ ...callout(C.DANGER), marginBottom: 8 }}>The register has problems: {s.validation.problems.join(" · ")}</div>}
+      <div style={quiet}>
+        {Object.entries(s.byPathway).sort((a, b) => b[1].sources - a[1].sources)
+          .map(([p, b]) => `${p} ${b.sources}${b.neutral ? "" : " (no neutral source)"}`).join(" · ")}
+      </div>
+      {s.toVerify.length > 0 && <div style={quiet}>To verify: {s.toVerify.join(", ")}</div>}
+      {s.aiRestricted?.length > 0 && <div style={quiet} data-atlas-sources-ai="">Never sent to a model (their AI terms): {s.aiRestricted.join(", ")}</div>}
+      {dead.length > 0 && <div style={quiet}>Dead at the last check: {dead.map(d => `${d.id} (${d.status ?? d.error})`).join(", ")}</div>}
+      <div style={{ ...row, marginTop: 8 }}>
+        <DepthButton size="compact" disabled={busy} onClick={check} data-atlas-sources-check="">Check sources now</DepthButton>
+        <span style={quiet}>{s.links?.at ? `last checked ${new Date(s.links.at * 1000).toISOString().slice(0, 10)}` : "not checked yet"} · monthly</span>
+      </div>
+    </Panel>
+  );
+}
+
 export function AtlasTab() {
   const [status, setStatus] = useState("draft");
   const [kind, setKind] = useState("");
@@ -523,6 +565,7 @@ export function AtlasTab() {
       <AtlasImportContent say={(s) => { setSaid(s); if (s.ok) load(); }} />
       <LearnBeforeThisReview />
       <LearnThumbnails />
+      <AtlasSources say={setSaid} />
       {said && <div role="status" style={{ ...callout(said.ok ? C.SUCCESS : C.DANGER), marginBottom: 10 }}>{said.text}</div>}
       {err && <div style={{ ...callout(C.DANGER), marginBottom: 10 }}>{err}</div>}
       {!rows ? <p style={quiet}>Loading…</p> : shown.length === 0 ? <p style={quiet}>No node matches.</p> : (
