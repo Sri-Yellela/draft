@@ -1,0 +1,33 @@
+/* ⭐ D172 (2) · the Library and a course page (atlas-redesign-sketch.html). Theme tokens only; no capsules (D60). */
+.lib-shelf { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.lib-cover { margin: 0; }
+.lib-cover__link { display: flex; flex-direction: column; gap: 6px; padding: 16px; border-radius: 12px; text-decoration: none;
+  background: var(--c-accent-soft); border: 1px solid var(--c-border); color: var(--c-ink); min-height: 220px; }
+.lib-cover__link:hover, .lib-cover__link:focus-visible { border-color: var(--c-accent); }
+.lib-cover__art { width: 100%; height: 96px; }
+.lib-art__body { fill: var(--c-surface); stroke: var(--c-accent); stroke-width: 2; }
+.lib-art__core { fill: var(--c-accent); opacity: 0.35; }
+.lib-art__pin { stroke: var(--c-ink-muted); stroke-width: 2; }
+.lib-art__code { stroke: var(--c-accent); stroke-width: 3; stroke-linecap: round; }
+.lib-art__glyph { fill: var(--c-accent-ink); font: 700 13px/1 var(--font-body); }
+.lib-cover__title { font-family: var(--font-display); font-size: 21px; line-height: 1.15; }
+.lib-cover__meta { font-size: 13px; color: var(--c-ink-muted); }
+.lib-cover__go { margin-top: auto; font-weight: 700; font-size: 14px; color: var(--c-accent-ink); }
+
+.lib-course { max-width: 860px; }
+.lib-module { border: 1px solid var(--c-border); border-radius: 12px; margin: 12px 0; background: var(--c-surface); }
+.lib-module__head { all: unset; box-sizing: border-box; width: 100%; display: flex; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; cursor: pointer; font-weight: 700; color: var(--c-ink); }
+.lib-module__head:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; border-radius: 12px; }
+.lib-module__n { color: var(--c-ink-muted); font-weight: 600; white-space: nowrap; }
+.lib-lessons { list-style: none; margin: 0; padding: 0 16px 8px; }
+.lib-lesson { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--c-border); }
+.lib-lesson__main { min-width: 0; }
+.lib-lesson__t { font-weight: 700; color: var(--c-ink); }
+.lib-links { list-style: none; margin: 6px 0 0; padding: 0; font-size: 13px; color: var(--c-ink-muted); }
+.lib-links li { margin: 2px 0; overflow-wrap: anywhere; }
+.lib-links a { color: inherit; }
+.lib-lesson__check { white-space: nowrap; font-size: 13px; }
+@media (max-width: 560px) {
+  .lib-lesson { flex-direction: column; gap: 6px; }
+}

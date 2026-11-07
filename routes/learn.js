@@ -20,6 +20,8 @@ import { readProgress } from "../services/learn/learnProgress.js";
 import { circleOf } from "../services/learn/learnCircle.js";
 import { readEarned, recordOpened, saveExplanation, saveBuild } from "../services/learn/learnEarned.js";
 import { mapRouteFor } from "../services/learn/learnMapRoute.js";
+import { courseOf, COURSE_ID } from "../services/learn/learnCourse.js";
+import { loadRegistry } from "../services/atlas/sourceRegistry.js";
 
 export const LEARN_CACHE = "public, max-age=60";
 export const TICKS_GONE = Object.freeze({ error: "earned_not_ticked",
@@ -32,6 +34,15 @@ export function createLearnRouter(db, { requireAuth }) {
     const { source, copy, PARTS, ATLAS, INDEX } = learnContent(db);
     res.set("Cache-Control", LEARN_CACHE);
     res.json({ source, copy, PARTS, ATLAS, INDEX });
+  });
+  // ⭐ D172 (2) · the path as a COURSE: modules (parts) → lessons (steps), each lesson's links with their type and their
+  // source from the register (D176-3) and its check. Public, like the tracker; progress is the reader's own /earned.
+  router.get("/course/:id", (req, res) => {
+    if (req.params.id !== COURSE_ID) return res.status(404).json({ error: "no_such_course" });
+    let reg = { sources: [] };
+    try { reg = loadRegistry(); } catch { /* an unreadable register leaves every source unnamed, never a 500 */ }
+    res.set("Cache-Control", LEARN_CACHE);
+    res.json(courseOf(learnContent(db), reg));
   });
   // ⭐ D117 · the circle's overlay on the tracker (public, like the tracker): per piece its "Before this" links (with
   // their status — drafted ones are used and marked "draft" until the owner accepts them), "After this" (computed), the

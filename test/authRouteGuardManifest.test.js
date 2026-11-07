@@ -39,6 +39,8 @@ const PUBLIC = new Set([
   "GET /api/learn/",
   // D117: the circle's links, taught terms, live P5 links and routes — the same public content, no user data.
   "GET /api/learn/circle",
+  // D172 (2): the path as a course (modules, lessons, their links and register sources) — the same public content, no user data.
+  "GET /api/learn/course/:id",
   "GET /api/auth/me",                      // reports authenticated:false rather than 401 by design
   "POST /api/auth/login",
   "POST /api/auth/register",

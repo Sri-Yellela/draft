@@ -371,7 +371,8 @@ function AppDashboard({ authUser, setAuthUser }) {
   const jobByJobId = !!jobRoute && routeKey.startsWith("job/for/");
   // ⭐ D105 P4 · /app/atlas and /app/atlas/:slug — the Atlas inside the app (the public mount is /atlas).
   // ⭐ D116 M7: and /app/atlas/family/:key, a family's page.
-  const atlasRoute = /^atlas(?:\/family)?(?:\/[^/]+)?$/.test(routeKey);
+  // ⭐ D172 (2): and /app/atlas/library/:course, a course page.
+  const atlasRoute = /^atlas(?:\/(?:family|library))?(?:\/[^/]+)?$/.test(routeKey);
   // ⭐ D167 · /app/profile/<panel> and /app/interview/<panel> (pages/profile/profilePanels.js, pages/interview/interviewModel.js);
   // the bare /app/profile and /app/interview read a #<panel> hash. undefined = not that place; null = an unknown panel.
   const profilePanel = profilePanelFor(routeKey, location.hash);

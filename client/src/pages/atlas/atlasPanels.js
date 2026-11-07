@@ -17,6 +17,8 @@ export const ATLAS_NAV = Object.freeze([
     { id: "your-route", label: "Your route" },
   ] },
   { group: "Grow", panels: [
+    // ⭐ D172 (2): the Library — the courses as a shelf; /atlas/library/<course> is a course's page.
+    { id: "library", label: "Library" },
     { id: "learn", label: "Learn" },
     { id: "todays-question", label: "Today's question" },
     { id: "the-audit", label: "The audit" },
@@ -40,6 +42,7 @@ export function panelFor(slug, q = "") {
   if (PANEL_IDS.includes(s)) return s;
   if (PANEL_ALIASES[s]) return PANEL_ALIASES[s];
   if (s.startsWith("family/")) return "your-map";
+  if (s.startsWith("library/")) return "library";
   return "roles-and-skills";
 }
 
@@ -78,3 +81,6 @@ export function overviewStats({ readiness = null, nav = null } = {}) {
   }
   return out;
 }
+
+/** ⭐ D172 (2): the course a /atlas/library/<id> address opens, or null. */
+export const courseIdOf = (slug) => { const s = String(slug || ""); return s.startsWith("library/") ? s.slice("library/".length) || null : null; };

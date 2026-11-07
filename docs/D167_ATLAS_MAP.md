@@ -6,7 +6,7 @@ build (lane `d167-atlas`, 45b) from the code as it stood at `3c74cead`, and `tes
 (`d167AtlasKeepsEverySurface`) holds the code to it.
 
 The navigation (`client/src/pages/atlas/atlasPanels.js` `ATLAS_NAV`, drawn by `AtlasNav.jsx`, the panels in
-`AtlasPanels.jsx`): **You** — Overview · Your map · Your skills · Your route — **Grow** — Learn · Today's question · The
+`AtlasPanels.jsx`): **You** — Overview · Your map · Your skills · Your route — **Grow** — Library · Learn · Today's question · The
 audit — **Explore** — Roles and skills · This week's market · Glossary. Each panel is addressable: `/atlas/<panel>`
 (public) and `/app/atlas/<panel>` (signed in); Overview is `/atlas` itself (and `/atlas/overview`).
 
@@ -37,6 +37,8 @@ audit — **Explore** — Roles and skills · This week's market · Glossary. Ea
 | 21 | **The link-event counts** (opens and visits from postings, a number only) | D114 P5 | `/api/atlas/link-event` | unchanged (no screen) | — |
 | 22 | **The public mount** (signed out, with the marketing dock and footer) | D105 P4 | `/atlas/*` | the same navigation | a signed-in reader is still taken to `/app/atlas…` |
 
+**D172 (2), 11-07 — the Library.** **Library** (Grow, first) is the sketch's shelf of courses; `/atlas/library/<course>` is a course page: modules → lessons, each lesson its curated links with their source (D176-3) and its check, opening the lesson's Learn page (`#step-<id>`). The first course is the owner's path, *From silicon to software* (8 parts = modules, 108 steps = lessons) — every curated item mapped; nothing in rows 1–22 moves.
+
 ## Panels whose feature is not built yet — what they show instead (no made-up numbers)
 
 | Panel | Not built yet | Shows today |
@@ -52,5 +54,5 @@ audit — **Explore** — Roles and skills · This week's market · Glossary. Ea
 ## Reserved addresses
 
 A panel id is a reserved slug, like `learn` and `check` before it: `overview`, `your-map`, `your-skills`, `your-route`,
-`learn`, `todays-question`, `the-audit`, `roles-and-skills`, `this-weeks-market`, `glossary` (+ the alias `check`). A node
+`library` (and `library/<course>`), `learn`, `todays-question`, `the-audit`, `roles-and-skills`, `this-weeks-market`, `glossary` (+ the alias `check`). A node
 whose name slugs to one of these would be shadowed by the panel; the ids were chosen so no plausible node name does.

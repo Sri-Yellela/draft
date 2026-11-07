@@ -1,0 +1,127 @@
+// ⭐ D172 (2) (owner APPROVED 11-06, docs/sketches/atlas-redesign-sketch.html → Library, and a course opened) · THE LIBRARY:
+// the courses as a shelf of covers (each with its own drawing, colours from theme tokens), and a COURSE PAGE —
+// modules → lessons, each lesson its curated links (Read · Watch · Try, with the source the register names — D176-3) and
+// its check; a lesson opens its Learn page (#step-<id>), where the links are opened and the check is answered.
+// Honest by construction: one course exists (the owner's path), so the shelf shows one cover — no "Soon" covers for
+// courses nobody has planned; no "5 slides" or minutes until a lesson has a deck or a length; progress is EARNED.
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { api } from "../../lib/api.js";
+import { courseProgress, firstOpenModule, lessonState, linkLine } from "./libraryModel.js";
+import "./LibraryPanel.css";
+
+export const COURSES = Object.freeze([{ id: "silicon-to-software", title: "From silicon to software", art: "chip" }]);
+
+/** The cover's drawing: a chip whose pins become lines of code. Theme tokens only (d172ShelfCoversFromTokens). */
+function ChipArt() {
+  const pins = [26, 38, 50, 62, 74];
+  return (
+    <svg className="lib-cover__art" viewBox="0 0 120 100" aria-hidden="true" focusable="false">
+      <rect x="34" y="20" width="44" height="60" rx="5" className="lib-art__body" />
+      <rect x="44" y="34" width="24" height="32" rx="3" className="lib-art__core" />
+      {pins.map(y => <line key={`l${y}`} x1="22" y1={y} x2="34" y2={y} className="lib-art__pin" />)}
+      {pins.map((y, i) => <line key={`r${y}`} x1="78" y1={y} x2={88 + (i % 3) * 8} y2={y} className="lib-art__code" />)}
+      <text x="96" y="30" className="lib-art__glyph">{"{ }"}</text>
+    </svg>
+  );
+}
+
+function useCourse(id, signedIn) {
+  const [s, setS] = useState({ course: null, marks: {}, error: null });
+  useEffect(() => {
+    let live = true;
+    if (!id) return undefined;
+    Promise.all([api(`/api/learn/course/${encodeURIComponent(id)}`),
+      signedIn ? api("/api/learn/earned").catch(() => ({ marks: {} })) : Promise.resolve({ marks: {} })])
+      .then(([course, earned]) => live && setS({ course, marks: earned?.marks || {}, error: null }))
+      .catch(e => live && setS({ course: null, marks: {}, error: e.message || "The course could not be opened." }));
+    return () => { live = false; };
+  }, [id, signedIn]);
+  return s;
+}
+
+/** /atlas/library — the shelf. */
+export function LibraryShelf({ base, signedIn = false }) {
+  const { course, marks } = useCourse(COURSES[0].id, signedIn);
+  const p = course ? courseProgress(course, marks) : null;
+  return (
+    <div className="atl-pan" data-atlas-panel-body="library">
+      <header className="atl__head">
+        <p className="atl__kicker">Library</p>
+        <h1 className="atl__title">Courses</h1>
+        <p className="atl__lede">Each lesson is the best material we found on it and a quick check in your own words.</p>
+      </header>
+      <ul className="lib-shelf" data-library-shelf="">
+        {COURSES.map(c => (
+          <li key={c.id} className="lib-cover" data-course={c.id}>
+            <Link to={`${base}/library/${c.id}`} className="lib-cover__link">
+              <ChipArt />
+              <span className="lib-cover__title">{c.title}</span>
+              {course && <span className="lib-cover__meta">{course.counts.modules} modules · {course.counts.lessons} lessons</span>}
+              {signedIn && p && <span className="lib-cover__meta" data-course-progress={p.pct}>{p.pct}% done</span>}
+              <span className="lib-cover__go">{signedIn && p?.done ? "Continue →" : "Open →"}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** /atlas/library/<id> — a course: its modules, one open at a time; each lesson its links and its check. */
+export function CoursePage({ base, id, signedIn = false }) {
+  const { course, marks, error } = useCourse(id, signedIn);
+  const progress = useMemo(() => (course ? courseProgress(course, marks) : null), [course, marks]);
+  const [open, setOpen] = useState(null);
+  useEffect(() => { if (course) setOpen(firstOpenModule(course, marks)); }, [course, marks]);
+  if (error) return <p className="atl__quiet" role="alert" data-course-missing="">{/no_such_course|404/.test(error) ? "There is no course by that name." : error} <Link to={`${base}/library`} className="atl__link">Back to the library</Link></p>;
+  if (!course) return <p className="atl__quiet" role="status">Opening the course…</p>;
+  return (
+    <article className="lib-course" data-course-page={course.id}>
+      <header className="atl__head">
+        <p className="atl__kicker">Course · {course.counts.modules} modules · {course.counts.lessons} lessons</p>
+        <h1 className="atl__title">{course.title}</h1>
+        <p className="atl__lede">{signedIn ? `${progress.pct}% done · ` : ""}each lesson: the best material we found, and a quick check in your own words.</p>
+      </header>
+      {course.modules.map(m => {
+        const mp = progress.modules.find(x => x.n === m.n);
+        const isOpen = open === m.n;
+        return (
+          <section key={m.n} className="lib-module" data-module={m.n}>
+            <button type="button" className="lib-module__head" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : m.n)}>
+              <span className="lib-module__t">Module {m.n} · {m.title}</span>
+              <span className="lib-module__n">{signedIn ? `${mp.done} of ${mp.total}` : `${mp.total} lessons`}</span>
+            </button>
+            {isOpen && (
+              <ol className="lib-lessons">
+                {m.lessons.map(l => {
+                  const st = lessonState(l, marks);
+                  return (
+                    <li key={l.id} className="lib-lesson" data-lesson={l.id} data-lesson-state={st.complete ? "checked" : st.started ? "started" : "new"}>
+                      <div className="lib-lesson__main">
+                        <Link to={`${base}/learn#step-${encodeURIComponent(l.id)}`} className="lib-lesson__t">{l.title}</Link>
+                        <ul className="lib-links">
+                          {l.links.filter(x => !x.optional).map(x => (
+                            <li key={x.id} data-link-type={x.type} data-link-source={x.source?.id || ""}>
+                              {x.url ? <a href={x.url} target="_blank" rel="noopener noreferrer">{linkLine(x)}</a> : <span>{linkLine(x)}</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <span className="lib-lesson__check" data-lesson-check="">
+                        {st.complete
+                          ? <span className="mark mark--ok">✓ checked</span>
+                          : <Link to={`${base}/learn#step-${encodeURIComponent(l.id)}`} className="atl__link">Check · {l.checks.length} question{l.checks.length === 1 ? "" : "s"}</Link>}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </section>
+        );
+      })}
+      <p><Link to={`${base}/library`} className="atl__link" data-course-back="">← Back to the library</Link></p>
+    </article>
+  );
+}

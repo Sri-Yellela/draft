@@ -85,7 +85,8 @@ function mapWorld() {
 test("D167 · d167AtlasHasOwnNav — the card: the eyebrow, the serif headline, three groups in the sketch's order", async () => {
   assert.deepEqual(ATLAS_NAV.map(g => [g.group, g.panels.map(p => p.label)]), [
     ["You", ["Overview", "Your map", "Your skills", "Your route"]],
-    ["Grow", ["Learn", "Today's question", "The audit"]],
+    // ⭐ D172 (2) (changed on purpose): the Library, first in Grow, as the approved sketch draws it.
+    ["Grow", ["Library", "Learn", "Today's question", "The audit"]],
     ["Explore", ["Roles and skills", "This week's market", "Glossary"]],
   ]);
   const u = await loadUi();
@@ -125,7 +126,8 @@ test("D167 · d167AtlasHasOwnNav — every panel has its own address, lit in the
   assert.match(app, /href="\/app\/atlas\/glossary"/);
   assert.deepEqual(currentOf(app), ["glossary"]);
   // The app's route already accepts /app/atlas/<one segment> (App.jsx atlasRoute) — the panels need no new route.
-  assert.match(read("client/src/App.jsx"), /const atlasRoute = \/\^atlas\(\?:\\\/family\)\?\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
+  // ⭐ D172 (2) (changed on purpose): the rule also admits /app/atlas/library/<course>, a course page.
+  assert.match(read("client/src/App.jsx"), /const atlasRoute = \/\^atlas\(\?:\\\/\(\?:family\|library\)\)\?\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
   // Keyboard: ↑ / ↓ / Home / End move focus between the card's links (wrapping); Tab reaches every one (real <a href>).
   const nav = read("client/src/components/PlaceNav.jsx");
   assert.match(nav, /const MOVE = \{ ArrowDown: 1, ArrowUp: -1, Home: "first", End: "last" \};/);
