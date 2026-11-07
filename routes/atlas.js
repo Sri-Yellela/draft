@@ -76,6 +76,8 @@ import { learnStepForNode } from "../services/learn/learnLinks.js";
 import { servedLearnContent } from "../services/learn/learnContent.js";
 import { learnSourceSummary } from "../services/atlas/learnSources.js";
 import { yourRun } from "../services/atlas/points.js";
+import { roleReadiness } from "../services/atlas/roleReadiness.js";
+import { aimRoleFor } from "../services/navigator.js";
 import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts } from "../services/atlas/atlasDefinitions.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
@@ -170,6 +172,18 @@ export function createAtlasRouter(db) {
   };
   // ⭐ A111 P3 · the role against the reader's résumé (their Profile's skills, else the parsed résumé). Signed out: the role's
   // top skills with nothing marked as had. Private either way (it can carry the reader's skills), never cached shared.
+  // ⭐ D178-3 · readiness for a role: the share of its demand you have PROVEN (claims shown apart). Signed in; private.
+  // No role named → the person's aim on Your route (D143).
+  router.get("/readiness", (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (req.user?.id == null) return res.status(401).json({ error: "sign_in" });
+    let role = String(req.query.role ?? "").slice(0, 120) || null;
+    if (!role) { try { role = aimRoleFor(db, req.user.id)?.name || null; } catch { role = null; } }
+    if (!role) return res.status(404).json({ found: false, reason: "no_role", message: "Choose a role to see how ready you are for it." });
+    const r = roleReadiness(db, req.user.id, role);
+    if (!r.found) return res.status(404).json(r);
+    res.json(r);
+  });
   router.get("/role-fit", (req, res) => {
     const role = String(req.query.role ?? "").slice(0, 120) || null;
     const jobId = String(req.query.job ?? "").slice(0, 200) || null;

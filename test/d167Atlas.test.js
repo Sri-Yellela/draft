@@ -185,7 +185,8 @@ test("D167 · d167AtlasKeepsEverySurface — each existing surface is mounted by
   assert.match(panels, /export function RolesPanel[\s\S]*<ExploreByRole roles=\{me\.exploreByRole\?\.items\} base=\{base\} \/>[\s\S]*<Recent items=\{me\.recent\} base=\{base\} \/>/);
   // 14 · D142's check is the Your skills slot (D169 replaces it at merge).
   // ⭐ D169 (merged 45b): the slot holds D169's panel (List + Map), and D142's full check below it keeps its home.
-  assert.match(panels, /data-atlas-slot="your-skills">\n\s+<SkillsListAndMap signedIn=\{signedIn\} base=\{base\} \/>/);
+  // ⭐ D178-3 (changed on purpose): the list and map sit under Your skills' "All my skills" tab, beside "For a role".
+  assert.match(panels, /data-skills-all="">\n\s+<SkillsListAndMap signedIn=\{signedIn\} base=\{base\} \/>/);
   assert.match(panels, /data-atlas-readiness="" aria-label="The full readiness check">\n\s+<ReadinessCheck signedIn=\{signedIn\} \/>/);
   // 19 · the audit's role card and its counts.
   assert.match(panels, /api\(`\/api\/audit\/role\/\$\{encodeURIComponent\(pick\)\}`\)/);

@@ -1,0 +1,49 @@
+// ⭐ D178-3 (owner's pick 11-07) · readiness for a role — d178ReadinessCountsProvenOnly · d178ReadinessWeightsByPostingShare ·
+// d178ThinRoleShowsNoPercent · d178NeverCalledExpertise. Synthetic skills and shares.
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import { readinessOf, tierOf, READINESS } from "../services/atlas/roleReadiness.js";
+import { dialArcs } from "../client/src/pages/atlas/roleReadinessModel.js";
+
+const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
+const top = [
+  { slug: "sql", name: "SQL", share: 80 }, { slug: "python", name: "Python", share: 70 },
+  { slug: "spark", name: "Spark", share: 40 }, { slug: "airflow", name: "Airflow", share: 10 },
+];
+
+test("d178ReadinessCountsProvenOnly: only proven skills count; claims are shown apart as 'waiting'", () => {
+  const r = readinessOf(top, new Map([["sql", "proven"], ["python", "claimed"]]));
+  assert.equal(r.ready, 40, "SQL's 80 of the 200 total");
+  assert.equal(r.waiting, 35, "Python's 70 — waiting until proven");
+  assert.equal(readinessOf(top, new Map([["sql", "claimed"], ["python", "claimed"]])).ready, 0, "claims alone are 0% ready");
+  assert.deepEqual(r.moves.map(m => [m.slug, m.action]), [["python", "prove"], ["spark", "learn"], ["airflow", "learn"]], "claimed → Prove it; missing → Learn it");
+});
+
+test("d178ReadinessWeightsByPostingShare: each skill weighs by its share of the role's postings; tiers by share", () => {
+  const a = readinessOf(top, new Map([["sql", "proven"]])), b = readinessOf(top, new Map([["airflow", "proven"]]));
+  assert.ok(a.ready > b.ready, "proving the most-asked skill moves readiness more");
+  assert.deepEqual(a.moves.map(m => m.adds), [35, 20, 5], "what each would add, largest first");
+  assert.deepEqual(top.map(s => tierOf(s.share)), ["must", "must", "common", "nice"]);
+  assert.deepEqual([READINESS.MUST, READINESS.COMMON], [60, 30]);
+  assert.deepEqual([a.tiers.must.have, a.tiers.must.of], [1, 2]);
+  assert.equal(readinessOf([], new Map()).ready, 0);
+  const d = dialArcs(40, 35);
+  assert.ok(d.ready && d.waiting && parseFloat(d.waiting) > parseFloat(d.ready), "the waiting segment extends beyond ready");
+});
+
+test("d178ThinRoleShowsNoPercent: under the minimum postings, no % — 'not enough postings yet'", () => {
+  assert.equal(READINESS.MIN_POSTINGS, 30);
+  const svc = read("services/atlas/roleReadiness.js");
+  assert.match(svc, /if \(f\.role\.postings < READINESS\.MIN_POSTINGS\) return \{ \.\.\.base, thin: true, line: "Not enough postings yet to say how ready you are\." \};/);
+  assert.match(read("client/src/pages/atlas/RoleReadiness.jsx"), /\{!r\.thin && <Dial ready=\{r\.ready\} waiting=\{r\.waiting\} \/>\}/);
+});
+
+test("d178NeverCalledExpertise: 'ready', never 'expertise' or a guarantee; the scope is shown", () => {
+  for (const f of ["services/atlas/roleReadiness.js", "client/src/pages/atlas/RoleReadiness.jsx"]) {
+    const src = read(f).replace(/\/\/[^\n]*/g, "");
+    assert.doesNotMatch(src, /expertise|guarantee|certif/i, f);
+  }
+  assert.match(read("services/atlas/roleReadiness.js"), /line: `from \$\{f\.role\.postings\} live posting/);
+  assert.match(read("client/src/pages/atlas/RoleReadiness.jsx"), /data-rr-scope=""/);
+});

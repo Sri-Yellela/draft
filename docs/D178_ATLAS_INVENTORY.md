@@ -48,7 +48,7 @@ D177; **"Fly my route to senior …"** → *Your map*'s track-board animation.
 ## Reader-facing APIs (unchanged by the move; each keeps serving its new home)
 
 `GET /api/atlas/search` · `GET /api/atlas/resolve` · `GET /api/atlas/terms/:jobId` · `GET /api/atlas/peek/:slug` ·
-`GET /api/atlas/glossary` · `GET /api/atlas/run` · `GET /api/atlas/me` · `GET /api/atlas/role-fit` ·
+`GET /api/atlas/glossary` · `GET /api/atlas/run` · `GET /api/atlas/readiness` (D178-3) · `GET /api/atlas/me` · `GET /api/atlas/role-fit` ·
 `GET /api/atlas/tree/role/:key` · `GET /api/atlas/tree/family/:key` · `POST /api/atlas/link-event` ·
 `GET /api/atlas/node/:slug`
 
