@@ -7,7 +7,7 @@ import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
 import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, NoticesTab, CostsTab, DeploymentsPanel, DiskPanel, ReviewerAccount,
-         BoardPolicySection, KillSwitchSection, TailoringAdminSection, BoardFitSection, JobDataSection, CompaniesSection, SlugHarvestSection,
+         BoardPolicySection, KillSwitchSection, FullAutoPrerequisitesSection, TailoringAdminSection, BoardFitSection, JobDataSection, CompaniesSection, SlugHarvestSection,
          ToolsServiceSection } from "./adminOps.jsx";
 import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
 import { EnrichmentTab } from "./adminEnrichment.jsx";
@@ -747,7 +747,7 @@ export function AdminPanel() {
       {at("data", "atlas") && <AtlasTab/>}
 
       {/* System — is it set up right? */}
-      {at("system", "switches") && <><KillSwitchSection theme={theme}/><TailoringAdminSection theme={theme}/><PluginTab theme={theme}/></>}
+      {at("system", "switches") && <><KillSwitchSection theme={theme}/><FullAutoPrerequisitesSection theme={theme}/><TailoringAdminSection theme={theme}/><PluginTab theme={theme}/></>}
       {at("system", "tools") && <ToolsServiceSection theme={theme}/>}
       {at("system", "usage") && <ModelUsageTab/>}
 

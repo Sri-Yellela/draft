@@ -580,6 +580,63 @@ export function KillSwitchSection({ theme }) {
   );
 }
 
+// ── ⛔ D175 FA6 · FULL AUTO's safety checks — GET / POST /api/admin/full-auto/prerequisites ───────────────────────
+// FULL AUTO's own sends HOLD (`full_auto_prerequisites`) until all four are green (services/fullAutoGate.js). Two are
+// read from the code and the cost alarm; two are tests an admin runs and records here (each good for 30 days).
+// Recording asks what was tested (≥ 10 characters) and writes an admin_audit_log row; Clear un-records it.
+const FA6_RECORDABLE = ["kill_switch_verified", "never_twice_verified"];
+export function FullAutoPrerequisitesSection({ theme }) {
+  const [s, setS] = useState(null);
+  const [err, setErr] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [reason, setReason] = useState({});
+  const { ask, dialog } = useConfirm();
+  const load = useCallback(() => {
+    setErr(null);
+    api("/api/admin/full-auto/prerequisites").then(setS).catch(e => setErr(e.message));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  const send = async (check, body) => {
+    setBusy(true); setErr(null);
+    try {
+      setS(await api("/api/admin/full-auto/prerequisites", { method: "POST", body: JSON.stringify({ check, ...body }) }));
+      setReason(r => ({ ...r, [check]: "" }));
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+  const clear = async (c) => {
+    if (!await ask({ title: `Clear "${c.label}"?`, label: "Clear it",
+      body: "FULL AUTO's own sends hold again until it is recorded anew. Nothing already sent is touched. Audited." })) return;
+    send(c.id, { clear: true });
+  };
+  const red = s ? s.checks.filter(c => !c.ok).length : 0;
+  return (
+    <Panel title="Full-auto safety checks" data-admin-fullauto-prereqs=""
+      code="D175 FA6: services/fullAutoGate.js — routes/apply.js holds an unattended submit (full_auto_prerequisites) and the apply worker leaves such a run queued until every check is green. Recorded tests expire after 30 days."
+      purpose="Whether FULL AUTO may send an application nobody pressed Submit on. Approvals and a pick's Apply tap are never held by this."
+      numbers={s ? [[s.allOk ? "Green" : "Held", s.allOk ? "unattended sends may go" : `${red} of ${s.checks.length} checks red`, !s.allOk]] : []}>
+      {dialog}
+      <Err msg={err}/>
+      {s && s.checks.map(c => (
+        <div key={c.id} data-prereq={c.id} data-prereq-ok={c.ok ? "1" : "0"}>
+          <div style={what}><span style={markStyle(c.ok ? C.SUCCESS : C.WARNING)}>{c.ok ? "Green" : "Red"}</span> {c.label}</div>
+          <div style={quiet}>{c.why}{c.id === "cost_alarm" && !c.ok ? " — set it in System → Model usage, or MODEL_DAILY_COST_ALARM_USD." : ""}</div>
+          {FA6_RECORDABLE.includes(c.id) && (
+            <div style={row}>
+              <input style={field} value={reason[c.id] || ""} placeholder="What was tested, where, and what happened"
+                aria-label={`What was tested for: ${c.label}`}
+                onChange={e => setReason(r => ({ ...r, [c.id]: e.target.value }))}/>
+              <Btn theme={theme} primary disabled={busy || (reason[c.id] || "").trim().length < 10}
+                onClick={() => send(c.id, { reason: reason[c.id] })}>Record as passed</Btn>
+              <Btn theme={theme} disabled={busy || !c.ok} onClick={() => clear(c)}>Clear…</Btn>
+            </div>
+          )}
+        </div>
+      ))}
+    </Panel>
+  );
+}
+
 // ── D123 Tailoring — GET / PUT / DELETE /api/admin/tailoring ───────────────────────────────────
 // Owner 11-01: "switch the prompt between lean or the payload from the admin panel, or the model being used from the
 // users side". The mode wins over DRAFT_TAILORING (Clear follows the deploy again); the model default and the list a
