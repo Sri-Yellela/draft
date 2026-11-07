@@ -163,6 +163,7 @@ import { recordAtsOutcome } from "./services/usageTracker.js";
 // A4 — generation, the A+ rewrite and PDF parsing belong to the résumé tools service; draft calls it as a client.
 import { createToolsServiceClient, recordToolsServiceUsage, httpErrorFor, ToolsServiceError, isFundingFailure } from "./services/toolsService.js";
 import { generateRequest as toolsGenerateRequest } from "./services/toolsServiceRequests.js";
+import { aPlusOverride, servedPromptMode, APLUS_OVERRIDE_KEY } from "./services/leanTailoring.js";
 import { tailoringFor, tailoringState, leanJobKeywords, payloadJobKeywords, fullPostingText, LEAN_LEDGER_RENAME, TAILORINGS, TAILORING_KEY,
          MODEL_CHOICES, MODEL_LABELS, MODEL_DEFAULT_KEY, MODELS_OFFERED_KEY, modelSettings, modelFor, userModelChoice } from "./services/leanTailoring.js";
 import { cleanLinkPath } from "./services/linkPunctuation.js";
@@ -10366,7 +10367,8 @@ app.delete("/api/admin/full-auto", requireAdmin, (req, res) => {
 const tailoringAdminView = () => ({ ...tailoringState(db), models: { ...modelSettings(db), choices: [...MODEL_CHOICES], labels: MODEL_LABELS } });
 app.get("/api/admin/tailoring", requireAdmin, (_req, res) => res.json(tailoringAdminView()));
 app.put("/api/admin/tailoring", requireAdmin, (req, res) => {
-  const { mode, modelDefault, modelsOffered } = req.body || {};
+  const { mode, modelDefault, modelsOffered, aPlus } = req.body || {};
+  if (aPlus !== undefined && typeof aPlus !== "boolean") return res.status(400).json({ error: "aPlus must be true or false" });
   if (mode !== undefined && !TAILORINGS.includes(mode)) return res.status(400).json({ error: `mode must be one of ${TAILORINGS.join(", ")}` });
   if (modelDefault !== undefined && modelDefault !== "service" && !MODEL_CHOICES.includes(modelDefault)) {
     return res.status(400).json({ error: `modelDefault must be service or one of ${MODEL_CHOICES.join(", ")}` });
@@ -10377,8 +10379,14 @@ app.put("/api/admin/tailoring", requireAdmin, (req, res) => {
   if (mode !== undefined) setSetting(db, TAILORING_KEY, mode);
   if (modelDefault !== undefined) setSetting(db, MODEL_DEFAULT_KEY, modelDefault);
   if (modelsOffered !== undefined) setSetting(db, MODELS_OFFERED_KEY, [...new Set(modelsOffered)].join(","));
+  if (aPlus !== undefined) {
+    const before = aPlusOverride(db);
+    if (aPlus) setSetting(db, APLUS_OVERRIDE_KEY, "on"); else clearSetting(db, APLUS_OVERRIDE_KEY);
+    try { writeAudit(db, { actor: actorOf(req), action: "tailoring_aplus_override", target: APLUS_OVERRIDE_KEY, before: { on: before }, after: { on: aPlus } }); }
+    catch (e) { console.warn("[tailoring] the A+ override's audit row was not written:", e.message); }
+  }
   const view = tailoringAdminView();
-  console.warn(`[tailoring] mode ${view.mode} (${view.source}), model default ${view.models.default}, offered ${view.models.offered.join(",") || "none"} — set by ${actorRef(req)}`);
+  console.warn(`[tailoring] mode ${view.mode} (${view.source}), model default ${view.models.default}, offered ${view.models.offered.join(",") || "none"}, A+ override ${view.aPlusOverride ? "ON" : "off"} — set by ${actorRef(req)}`);
   res.json(view);
 });
 app.delete("/api/admin/tailoring", requireAdmin, (req, res) => {
@@ -13327,8 +13335,11 @@ const pendingGenerationPromises = new Map();
 // slot) and before the store (the work was done: nothing is stored). The web route and the apply worker pass none.
 async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", employers = [], cache = undefined, isCancelled = null }) {
   const mode         = legacyModeForTool(tool);
-  const promptMode   = promptModeForTool(tool);
-  const eventSubtype = eventSubtypeForTool(tool);
+  // ⛔ Owner 11-07: A+ is off the default path — an A+ request is served as a Generate with the admin's strategy × model
+  // unless the owner's override (Admin → Ops → Tailoring) is on. The artifact keeps the tool that was asked — its
+  // lookups key on it; the ledger says what was actually served.
+  const promptMode   = servedPromptMode(db, tool);
+  const eventSubtype = promptMode;
 
   const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {};
   const activeDomainProfile = db.prepare(

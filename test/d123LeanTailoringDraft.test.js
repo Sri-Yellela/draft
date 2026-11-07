@@ -33,12 +33,13 @@ function kb() {
   return db;
 }
 
-test("d123TailoringSwitch: off by default, DRAFT_TAILORING sets it for everyone, a trial account is lean", () => {
-  assert.equal(tailoringFor({ env: {} }), "full");
+// ⛔ Owner 11-07 (changed on purpose): a tailored résumé is a strategy × a model, LEAN when nothing is set — for everyone.
+test("d123TailoringSwitch: lean by default, DRAFT_TAILORING sets it for everyone", () => {
+  assert.equal(tailoringFor({ env: {} }), "lean");
   assert.equal(tailoringFor({ env: { DRAFT_TAILORING: "lean" } }), "lean");
   assert.equal(tailoringFor({ env: {}, isTrial: true }), "lean");
   assert.equal(tailoringFor({ env: { DRAFT_TAILORING: "full" }, isTrial: true }), "full");
-  assert.equal(tailoringFor({ env: { DRAFT_TAILORING: "fast" } }), "full");
+  assert.equal(tailoringFor({ env: { DRAFT_TAILORING: "fast" } }), "lean", "an unknown value is the default");
 });
 
 test("d123FullPostingText: the crawl's full text wins over the 5,000-character cut", () => {

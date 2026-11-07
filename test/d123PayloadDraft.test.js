@@ -43,7 +43,7 @@ test("d123AdminSwitchWinsOverDeploy: the admin's mode beats DRAFT_TAILORING for 
   assert.equal(tailoringFor({ db, env: { DRAFT_TAILORING: "code" } }), "code", "an unknown row is ignored");
   clearSetting(db, TAILORING_KEY);
   assert.equal(tailoringState(db, {}).source, "default");
-  assert.equal(tailoringFor({ db, env: {} }), "full");
+  assert.equal(tailoringFor({ db, env: {} }), "lean", "owner 11-07: lean when nothing is set");
 });
 
 test("d123ModelFromTheUsersSide: a person's pick wins while offered; else the admin's default; none for full / code", () => {
