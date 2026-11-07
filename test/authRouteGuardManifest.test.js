@@ -158,6 +158,10 @@ const ADMIN = new Set([
   "POST /api/admin/model-gateway/tasks/:task/change",
   "POST /api/admin/model-gateway/tasks/:task/rollback",
   "POST /api/admin/model-gateway/tasks/:task/evals",
+  // D171 FIX 2: every model call's spend by hour / key / who started it, and the daily cost alarm (set: audited).
+  "GET /api/admin/model-gateway/usage",
+  "GET /api/admin/model-gateway/cost-alarm",
+  "POST /api/admin/model-gateway/cost-alarm",
   // A50 step 3: the daily glance. Read-only, but it reads every user's apply outcomes and spend.
   "GET /api/admin/glance",
   "GET /api/admin/costs",                   // cost visibility (10-09): résumé economics, admin-only

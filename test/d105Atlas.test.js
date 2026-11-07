@@ -28,8 +28,9 @@ test("D105 · d105OneThesaurus — no Atlas alias table; an alias added in the A
   // D114 P5 adds atlas_link_counts (day · event · n) — a count, not an alias table; the check below still holds for it.
   // D118 P2 (b) adds atlas_changes (one change counter the in-memory indexes key on) — not an alias table either.
   // D118 P1 adds the live counts' four (each posting's reading, per role × level counts, the store's state, the queue).
+  // D169 (migration 223) adds atlas_skill_holds — a typed skill with no published node, held for the curator; not an alias.
   assert.deepEqual(tables.map(t => t.name).sort(), ["atlas_changes", "atlas_edges", "atlas_link_counts", "atlas_live_state", "atlas_node_stats", "atlas_nodes",
-    "atlas_posting_dirty", "atlas_posting_match", "atlas_resources", "atlas_role_level_stats", "atlas_wiki_cache"]);
+    "atlas_posting_dirty", "atlas_posting_match", "atlas_resources", "atlas_role_level_stats", "atlas_skill_holds", "atlas_wiki_cache"]);
   assert.ok(tables.every(t => !/alias/i.test(t.sql)), "aliases live in skill_synonyms only");
   assert.ok(!EDGE_TYPES.includes("alias_of"));
   assert.throws(() => addEdge(db, 1, 2, "alias_of"), /aliases live in skill_synonyms/);

@@ -602,6 +602,7 @@ const STYLE_PROBES = {
     const draft = [...document.querySelectorAll("[data-deck-actions] button")].find(b => /Draft/.test(b.textContent));
     const r = face?.getBoundingClientRect();
     return {
+      dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--appnav-top-reserve")) || 0 }; })(),   // D167: where the dock sits, and the room the page leaves under a top one
       canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(),
       card: face && { bg: cs(face).backgroundColor, radius: cs(face).borderTopLeftRadius, border: cs(face).borderTopWidth, shadow: cs(face).boxShadow,
                       width: Math.round(r.width), top: Math.round(r.top) },
@@ -681,6 +682,7 @@ const STYLE_PROBES = {
     const tl = q("[data-timeline]");
     const dot = q("[data-tracker-table] .trk-dot");
     return {
+      dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--appnav-top-reserve")) || 0 }; })(),   // D167: where the dock sits, and the room the page leaves under a top one
       canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(),
       title: { ...font(title), ...box(title) },
       line: font(q("[data-house-line]")),
@@ -1236,6 +1238,7 @@ const STYLE_PROBES = {
     const facts = q(".posting__facts"), match = q(".posting__match .atsn b"), matchCell = q(".posting__match");
     const btn = (name) => q(`.pp__btn[data-decision="${name}"]`);
     return {
+      dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--appnav-top-reserve")) || 0 }; })(),   // D167: where the dock sits, and the room the page leaves under a top one
       canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(), bodyBg: cs(document.body).backgroundColor,
       fonts: { serif: document.fonts.check("36px \"Instrument Serif\""), ui: document.fonts.check("16px \"Inter Tight\""),
                loaded: [...new Set([...document.fonts].filter(x => x.status === "loaded").map(x => x.family))] },

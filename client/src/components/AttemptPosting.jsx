@@ -2,7 +2,7 @@
 // the résumé"). An application's posting, opened IN PLACE in its Home row's "The posting" pane: the job description as
 // stored when the application was made (routes/applicationPosting.js — so it still reads after the posting closes),
 // drawn by the posting's own body (PostingPanel.jsx PostingText), and "Open the original" beside the row's Résumé
-// (`children` — the caller's <AttemptResume>, so the JD and the tailored résumé are one press apart).
+// (`children` — the caller's AttemptResume control, so the JD and the tailored résumé are one press apart).
 //
 // Where it comes from, first found wins: runJobId (one attempt's snapshot) · jobId (the person's own application to that
 // job). Read once per source and kept for the page's life: Home's panes re-mount on every refresh, and the words that

@@ -21,7 +21,8 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
     // .ph3 h1 — 400 44px/1 Instrument Serif, its top at the page's 84 px; the line in body grey, 16.
     assert.match(d.title.family, /^"Instrument Serif"/, `${size}: the title in Instrument Serif`);
     assert.deepEqual([d.title.size, d.title.weight, d.title.lh], ["44px", "400", "44px"], `${size}: the title 400 44/1`);
-    assert.equal(d.title.y, 84, `${size}: the title at the sketch's 84 px`);
+    // ⭐ D167 (changed on purpose, 45b f7a67c3): the page starts below a top dock's reserve (--appnav-top-reserve, measured).
+    assert.equal(d.title.y, 84 + (d.dock?.reserve || 0), `${size}: the title at the sketch's 84 px`);
     assert.deepEqual([d.line.size, d.line.color], ["16px", BODY]);
     // .seg2 / .quiet / .btn.p — the card colour, no borders, no capsules; the primary in the accent's gradient.
     assert.deepEqual([d.mode.bg, d.mode.radius, d.mode.padding, d.mode.border], [CARD, "14px", "4px", "0px"]);
@@ -52,8 +53,10 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
   // ⭐ D156 (3) (changed on purpose): the dock is a rail always visible at the left, and the app shell gives it its room
   // (72 px at 1280) — the page is the sketch's layout in what is left: the table from 72 + 20, taking the width the
   // timeline leaves (850 here, the sketch's 882 before the rail), the timeline 300 wide beside it, 18 apart, tops level.
-  assert.equal(dk.table.x, 92);
-  assert.equal(dk.table.w, 850, "the table takes what the rail and the timeline leave at 1280");
+  // ⭐ D167 (changed on purpose, 45b f7a67c3): "the dock never pushes the page" — the rail and its room are gone, so the
+  // table is the sketch's own 882 again, and the table + 18 + the 300 timeline are one group centred in the 1280 (D163).
+  assert.equal(dk.table.w, 882, "the table is the sketch's 882 — no rail takes from it");
+  assert.equal(dk.table.x, (1280 - (882 + 18 + 300)) / 2, "the table and the timeline centred as one group");
   assert.equal(dk.row.h, 84, "a row is the sketch's 84: 14 + the 44 px position + the folded .det's 12 px gap + 14");
   assert.deepEqual([dk.timeline.w, dk.timeline.x, dk.timeline.y], [300, dk.table.x + dk.table.w + 18, dk.table.y], "the timeline beside, 300 wide, 18 apart, level with the table");
   assert.deepEqual([dk.timeline.bg, dk.timeline.radius, dk.timeline.padding, dk.timeline.border, dk.timeline.shadow], [CARD, "22px", "18px", "0px", "none"]);
@@ -63,7 +66,7 @@ test("fidelity · the tracker (tracker-options.html): the page, the header, the 
   // Layout 3: the switch, the table alone, full width inside the 20 px gutters.
   assert.equal(ph.phoneSwitch, true, "the Applications · Auto-apply timeline switch on a phone");
   assert.equal(ph.timeline.shown, false, "the timeline waits behind the switch");
-  // ⭐ D156 (3) (changed on purpose): a phone's rail (52 px) + the page's 20; the table takes the rest of the 390.
-  assert.deepEqual([ph.table.x, ph.table.w], [72, 298]);
-  assert.equal(ph.title.x, 72, "the title starts where the table does");
+  // ⭐ D167 (changed on purpose, 45b f7a67c3): a phone's dock is at the top, so no rail: the page's 20 each side.
+  assert.deepEqual([ph.table.x, ph.table.w], [20, 350]);
+  assert.equal(ph.title.x, 20, "the title starts where the table does");
 });

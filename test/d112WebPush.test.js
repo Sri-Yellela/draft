@@ -307,7 +307,7 @@ test("D112 · the events fire from the pipeline — a run's held / sent job, the
 
   // The hooks are in the pipeline's own places (source pins, carved with at()).
   const apply = fs.readFileSync(new URL("../routes/apply.js", import.meta.url), "utf8");
-  assert.match(apply.slice(at(apply, "const p = processRunJob(job, run)"), at(apply, "runningJobs.push(p);")), /\.then\(\(\) => \{ notifyRunJobOutcome\(db, job\.id\); \}\)/);
+  assert.match(apply.slice(at(apply, "const p = withStartedBy(startedByOfRun(run), () => processRunJob(job, run))"), at(apply, "runningJobs.push(p);")), /\.then\(\(\) => \{ notifyRunJobOutcome\(db, job\.id\); \}\)/);
   const worker = fs.readFileSync(new URL("../services/applyWorker.js", import.meta.url), "utf8");
   const report = worker.slice(at(worker, "export function acceptReport"), at(worker, "export function approveRemoteRun"));
   assert.match(report, /setRunJob\("held_review", "awaiting_approval"\);[\s\S]{0,200}notifyEvent\(row\.user_id, "needs_you", \{ ready: true \}\)/);
@@ -315,7 +315,7 @@ test("D112 · the events fire from the pipeline — a run's held / sent job, the
   assert.match(report.slice(at(report, 'if (report.outcome === "stopped")')), /notifyEvent\(row\.user_id, "needs_you", \{\}\)/);
   const server = fs.readFileSync(new URL("../server.js", import.meta.url), "utf8");
   assert.ok(at(server, "configureNotify({ db, emitToUser") < at(server, "applyLine.recoverInterruptedRuns();"), "configured before a recovered run can finish");
-  const tick = server.slice(at(server, "const ran = await runAutoTick("), at(server, "}, AUTO_TICK_MS)"));
+  const tick = server.slice(at(server, "const ran = await runAutoTick("), at(server, "}), AUTO_TICK_MS)"));
   assert.doesNotMatch(tick, /runDailySummaries/, "the tick no longer sends an 8 pm summary");
   assert.match(tick, /runPicksFollowUps\(db, /, "Apply for me's per-run summary is sent from the tick");
 });

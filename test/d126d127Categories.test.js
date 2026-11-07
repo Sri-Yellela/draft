@@ -181,7 +181,8 @@ test("d127 migration 207: the category columns, byte-identical in both migration
   assert.equal(block(server), block(mig));
   // ⛔⛔ D153 (3) (changed on purpose): the boot backfill is the paged background job (classifyBacklog.js), from ready.
   assert.match(read("server.js"), /^classifyBacklog = createClassifyBacklog\(db\);/m);   // 44z: declared outside the migration block, assigned here
-  assert.match(read("server.js"), /BOOT\.run\(\)\.then\(\(\) => classifyBacklog\.run\("boot"\)\);/);
+  // 45b (bc95eec, changed on purpose): the walk starts on the SAME ready as the board-fit pass — the warm-up is started once.
+  assert.match(read("server.js"), /BOOT\.run\(\)\.then\(\(\) => setTimeout\([\s\S]{0,600}?\)\.then\(\(\) => \{[\s\S]{0,300}?classifyBacklog\.run\("boot"\);/);
 });
 
 test("d127 report: counts by category, discipline and held reason", () => {
