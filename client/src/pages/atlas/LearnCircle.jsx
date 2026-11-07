@@ -22,7 +22,7 @@ import DepthButton from "../../components/DepthButton.jsx";
 import ResourceTile, { ResourceGrid, useLearnThumbs } from "../../components/ResourceTile.jsx";
 import LearnWheel from "./LearnWheel.jsx";
 import {
-  stepState, checkpointId, circleState, circleLayout, pointAt, chordPath, routePath, arcPath, GEO, needsMap, goBackTo, routeStart, routeClosure,
+  stepState, checkpointId, circleState, circleLayout, pointAt, chordPath, routePath, arcPath, GEO, circleViewBox, partLabelLines, LABEL, needsMap, goBackTo, routeStart, routeClosure,
   routesFor, pieceForConcept, whereLine, pieceOf, barLine, pasteVerdict, wordCount, EXPLAIN_MIN_WORDS,
 } from "./learnModel.js";
 import "./LearnCircle.css";
@@ -45,7 +45,7 @@ export function CircleSvg({ pieces, layout, states, sel, route, onSelect }) {
   const title = s ? wrapTitle(s.t) : [];
   const st = s ? states.get(s.id) : null;
   return (
-    <svg className="lrc__svg" viewBox={`0 0 ${GEO.size} ${GEO.size}`} role="group" aria-label={`The course as a circle of ${pieces.length} pieces`} data-learn-circle="">
+    <svg className="lrc__svg" viewBox={circleViewBox()} role="group" aria-label={`The course as a circle of ${pieces.length} pieces`} data-learn-circle="">
       <circle cx={GEO.c} cy={GEO.c} r={GEO.r - 24} className="lrc__guide" />
       {layout.parts.map(part => {
         const am = (part.a0 + part.a1) / 2, lr = GEO.r + 40;
@@ -53,7 +53,10 @@ export function CircleSvg({ pieces, layout, states, sel, route, onSelect }) {
         return (
           <g key={part.index} className={`lrc__part lrc__part--${part.index}`} data-learn-part={part.index}>
             <path d={arcPath(part)} className="lrc__arc" />
-            <text x={GEO.c + lr * Math.cos(am)} y={GEO.c + lr * Math.sin(am) + 4} textAnchor={anchor} className="lrc__ptxt">{part.index} · {part.t.toUpperCase()}</text>
+            {/* ⭐ D178-2: wrapped, never cropped (learnModel.js partLabelLines + circleViewBox). */}
+            <text x={GEO.c + lr * Math.cos(am)} y={GEO.c + lr * Math.sin(am) + 4 - ((partLabelLines(part.index, part.t).length - 1) * LABEL.lineH) / 2} textAnchor={anchor} className="lrc__ptxt">
+              {partLabelLines(part.index, part.t).map((l, i) => <tspan key={i} x={GEO.c + lr * Math.cos(am)} dy={i ? LABEL.lineH : 0}>{l}</tspan>)}
+            </text>
           </g>
         );
       })}

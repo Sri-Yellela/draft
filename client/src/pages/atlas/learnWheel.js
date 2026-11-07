@@ -51,6 +51,16 @@ const lerpAng = (a, b, t) => { let d = b - a; while (d > 180) d -= 360; while (d
 
 /** The whole wheel's scale (zoomed out) and the front card's scale (zoomed in) for a W × H stage. */
 export const outScale = (W, H) => (Math.min(W, H) / 2 - 34) / (WHEEL.R + WHEEL.CH);
+/**
+ * ⭐ D178-2 · the part labels are never cropped and never sit on the ring: round the ring only when the wheel is wide enough
+ * for a wrapped label (≈ 160 px) on each side of it; otherwise as a LEGEND under the ring (the same pressable names, the
+ * same counts). Pure.
+ */
+export const LEGEND_BELOW_W = 720;
+export const labelsAsLegend = (W) => W < LEGEND_BELOW_W;
+/** The legend's room under the ring; the ring is laid out in the height above it (ringHeight), so the two never overlap. */
+export const LEGEND_SPACE = 230;
+export const ringHeight = (W, H) => (labelsAsLegend(W) ? Math.max(200, H - LEGEND_SPACE) : H);
 export const inScale = (W, H) => Math.max(0.2, Math.min(WHEEL.FRONT_MAX, (H - 70) / WHEEL.CW, (W - 60) / WHEEL.CH));
 
 /**

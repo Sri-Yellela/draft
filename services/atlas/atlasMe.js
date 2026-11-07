@@ -20,7 +20,9 @@
 
 import { postingMatcher, roleLevelsOfBoard } from "./atlasStats.js";
 import { liveRoleLevels, atlasPostingsChanged } from "./atlasLive.js";
-import { haveTerms, KINDS } from "./atlasStore.js";
+import { haveTerms, KINDS, termOf, aliasesOf } from "./atlasStore.js";
+import { yourSkillStates } from "../yourSkills.js";
+const safeRead = (fn, d) => { try { return fn(); } catch { return d; } };
 import { userLevelFor } from "../picks.js";
 import { LEVELS_READ } from "../../shared/postingLevel.js";
 import { learnStepForNode, learnStepPath } from "../learn/learnLinks.js";
@@ -372,12 +374,23 @@ export function computeYourMap(db, userId, { all = null } = {}) {
   if (userId == null) return { signedIn: false, map: false, ...explore(db, idx) };
   // ⚠ D120 P1: the Profile's skills, else the base résumé's parsed skills; the upload line only with no résumé at all.
   const { terms, source: skillsFrom, hasResume } = haveTerms(db, userId);
+  // ⭐ D178-2 · "you have 0 of N" with claims: Your map counted the Profile's list only, while Your skills (D169) also
+  // counts the skills claimed on postings. Both now read the same names, and a family says how many are PROVEN (a passed
+  // check or a build) and how many only CLAIMED.
+  const proven = new Set();
+  for (const s of safeRead(() => yourSkillStates(db, userId), [])) {
+    const t = termOf(s.name);
+    if (!t) continue;
+    const all = [t, ...safeRead(() => aliasesOf(db, t), [])];
+    for (const x of all) { terms.add(x); if (s.state === "checked" || s.state === "built") proven.add(x); }
+  }
   if (!terms.size) {
     return hasResume ? { signedIn: true, map: false, reason: "no_skills_read", ...explore(db, idx), prompt: NO_SKILLS_READ }
       : { signedIn: true, map: false, reason: "no_profile_skills", ...explore(db, idx) };
   }
   const have = idx.nodes.filter(n => n.kind !== "role" && n.status === "published" && terms.has(n.term));
   const profileIds = new Set(have.map(n => n.id));
+  const provenIds = new Set(have.filter(n => proven.has(n.term)).map(n => n.id));
   const rollup = boardCounts(db, idx.nodes);
   const targets = targetRoleIds(db, userId, postingMatcher(db, idx.nodes.filter(n => n.kind === "role" && n.status === "published")));
   // ⭐ D116 M8 · the course unlocks the tree: a node whose teaching step is complete is LEARNED, and the sections, the
@@ -399,7 +412,7 @@ export function computeYourMap(db, userId, { all = null } = {}) {
   ];
   const learnNext = learnNextSection(db, userId, { idx, gaps }, all === "learnNext");
   // ⭐ D116 M1 · the tree: one response draws the whole map (the client only lays it out, M2).
-  const tree = yourTree(db, userId, { idx, rollup, profileIds, learnedIds, learning, targets });
+  const tree = yourTree(db, userId, { idx, rollup, profileIds, provenIds, learnedIds, learning, targets });
   return {
     signedIn: true, map: true, skillsFrom,
     ...(skillsFrom === "resume" ? { nudge: CONFIRM_ON_PROFILE } : {}),

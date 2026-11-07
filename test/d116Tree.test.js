@@ -236,7 +236,8 @@ test("D116 M1 · d116TreeCapTwelvePerFamily — at most 12 nodes of a family on 
   const drawn = tr.nodes.filter(n => n.onTree).map(n => n.name);
   for (const n of mine) assert.ok(drawn.includes(n), `${n}: the user's own is always shown`);
   assert.ok(!drawn.includes("Beta N") && !drawn.includes("Beta K"), "the lowest postings × closeness wait in the list");
-  assert.equal(f.tag, "ML · you have 2 of 16");
+  // ⭐ D178-2 (changed on purpose): a family says how many are proven and how many only claimed — never a flat "you have N of M".
+  assert.equal(f.tag, "ML · 2 claimed · of 16");
   // The list: yours first (by postings), then closest → furthest — every member, drawn or not.
   assert.deepEqual(f.order.slice(0, 3), ["alpha-one", "alpha-two", "beta-a"]);
   assert.equal(f.order.length, 16);
@@ -314,7 +315,8 @@ test("D116 M8 · d116UnlockOnStepComplete — every required item done and every
   const tr = treeOf(db, 7);
   k = bySlug(tr).get("kubernetes");
   assert.deepEqual([k.state, k.learned, k.have, k.ring], ["learned", true, false, "have"]);
-  assert.equal(tr.families.find(f => f.key === "infra").tag, "INFRA · you have 2 of 4 · 1 learned");
+  // ⭐ D178-2 (changed on purpose): a family says how many are proven and how many only claimed — never a flat "you have N of M".
+  assert.equal(tr.families.find(f => f.key === "infra").tag, "INFRA · 1 claimed · 1 learned · of 4");
   assert.equal(k.facts.addToProfile, "Add Kubernetes to my Profile");
 });
 

@@ -105,7 +105,8 @@ test("D120 P2 · d120ExploreByRoleInSide — Explore by role, the families, sear
   const side = html.slice(at(html, "data-atlas-home-side="));
   for (const m of ["data-atlas-home-search=", "data-atlas-explore=", "data-atlas-home-families=", "data-atlas-home-recent="]) assert.ok(side.includes(m), m);
   assert.ok(!html.slice(0, at(html, "data-atlas-home-side=")).includes("data-atlas-explore="), "Explore by role is not in the main column");
-  assert.match(side, /you have \d+ of \d+/);
+  // ⭐ D178-2 (changed on purpose): a family says how many are proven and how many only claimed — never a flat "you have N of M".
+  assert.match(side, /(?:\d+ (?:proven|claimed|learned) · )*(?:none yet · )?of \d+/);
 });
 
 test("D120 P2 · d120SignedOutNotEmpty — signed out: search · Learn (the full circle) · Explore by role, never an empty page", async () => {
