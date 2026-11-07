@@ -255,7 +255,7 @@ test("D30 → D35: THE SENTENCE IS A PROJECTION — four permanent words, posted
 test("D26/D28: the board's bar is the search input only; a search never touches the sentence's filters", () => {
   const app = strip(read("client/src/App.jsx"));
   assert.match(app, /applyBarFilters\(params, \{ fields: \["query"\] \}\)/);
-  assert.match(read("client/src/components/BoardBar.jsx"), /const submit = \(\) => onSubmit\?\.\(\{ query: q \}\);/,
+  assert.match(read("client/src/components/BoardBar.jsx"), /const commit = \(query\) => \{ committed\.current = query\.trim\(\); onSubmit\?\.\(\{ query \}\); \};\s+const submit = \(\) => commit\(q\);/, // changed on purpose (11-06): every search goes through commit(), still { query } only
     "the board's search publishes more than the keyword");
   const bar = read("client/src/components/UnifiedSearchBar.jsx");
   assert.match(bar, /\{fields === 'all' && \(<>/, "location and the three selects render only on the landing page");

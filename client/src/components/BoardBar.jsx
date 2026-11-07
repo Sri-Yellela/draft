@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { X } from "lucide-react";
 import UsbSuggest from "./UsbSuggest.jsx";
 import { api } from "../lib/api.js";
@@ -44,20 +44,31 @@ export function ViewSegment({ views, value, counts = {}, onChange }) {
  *  inside the field at its right end — the sort icon. */
 export function BoardSearch({ onSubmit, children = null }) {
   const [q, setQ] = useState("");
-  const submit = () => onSubmit?.({ query: q });
+  // ⛔ (owner 11-06: "after search it doesnt go back to all jobs. its stuck on searched term results") — the board's
+  // query is committed on Enter, so emptying the field (deleting the text) left the last search in force. The term
+  // that is in force is remembered here; emptying the field while one is in force commits the empty search — all jobs.
+  const committed = useRef("");
+  const commit = (query) => { committed.current = query.trim(); onSubmit?.({ query }); };
+  const submit = () => commit(q);
+  const change = (v) => { setQ(v); if (!String(v).trim() && committed.current) commit(""); };
   return (
     <div className="fh-srch" role="search" aria-label="Job search">
       {/* ⭐ D149 (fullhouse-declutter.html `.sbar`): the field alone — no magnifier — and the sketch's words. */}
-      <UsbSuggest field="title" value={q} onChange={setQ}>
+      <UsbSuggest field="title" value={q} onChange={change}>
         {sugg => (
           <input {...sugg} type="search" enterKeyHint="search"
             placeholder="Search a company, title or skill" aria-label="Search jobs"
-            onKeyDown={e => { sugg.onKeyDown(e); if (!e.defaultPrevented && e.key === "Enter") submit(); }} />
+            onKeyDown={e => {
+              sugg.onKeyDown(e);
+              if (e.defaultPrevented) return;
+              if (e.key === "Enter") submit();
+              else if (e.key === "Escape" && q) { e.preventDefault(); change(""); }
+            }} />
         )}
       </UsbSuggest>
       {q && (
         <button type="button" className="fh-srch__clear" aria-label="Clear the search"
-          onClick={() => { setQ(""); onSubmit?.({ query: "" }); }}>
+          onClick={() => { setQ(""); commit(""); }}>
           <X size={12} aria-hidden="true" />
         </button>
       )}

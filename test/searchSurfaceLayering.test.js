@@ -327,5 +327,5 @@ test("A74 (owner, 10-03): ONE click, ONE search — the 5-second double-click is
   // D35: the board's field is BoardBar's BoardSearch — Enter is the one press, and it publishes query only.
   assert.match(app, /onSubmit=\{params => applyBarFilters\(params, \{ fields: \["query"\] \}\)\}/);
   assert.doesNotMatch(app, /onSearch=\{params => applyBarFilters\(params, \{ live: true \}\)\}/);
-  assert.match(read("client/src/components/BoardBar.jsx"), /if \(!e\.defaultPrevented && e\.key === "Enter"\) submit\(\);/);
+  assert.match(read("client/src/components/BoardBar.jsx"), /if \(e\.defaultPrevented\) return;\s+if \(e\.key === "Enter"\) submit\(\);/);
 });
