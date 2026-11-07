@@ -41,10 +41,11 @@ test("d168OneOpenPathForCardAndBubble (pure): a bubble's press on the jobs page 
 });
 
 test("d168WheelHasOneJob (pure): the deck's wheel handler turns the deck and nothing else; the post has no wheel listener", () => {
-  const from = at(DECK, "const onWheel = (e) => {");
+  // ⭐ D178-3 (changed on purpose): the gesture is lib/deckWheel.js's handler; the deck passes it skip / canStep / step.
+  const from = at(DECK, "const onWheel = deckWheelHandler({");
   const wheel = DECK.slice(from, at(DECK, 'el.addEventListener("wheel", onWheel', from));
   assert.doesNotMatch(wheel, /openPost|foldPost|setWhy|closePostingOnDeck/);
-  assert.match(wheel, /if \(boardPostRef\.current\) return;\s+\/\/ reading: the page scrolls/);
+  assert.match(wheel, /skip: \(\) => !!expandedRef\.current \|\| !!boardPostRef\.current,\s+\/\/ reading \(a card or a posting open\): the page scrolls/);
   assert.equal((DECK.match(/addEventListener\("wheel"/g) || []).length, 1, "one wheel listener in the deck");
   // the posting on the deck is read by scrolling the PAGE: its body is no scroll container (it swallowed the wheel)
   assert.match(SHELL, /bodyScrolls = true,/);

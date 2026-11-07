@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { courseProgress, firstOpenModule, lessonState, linkLine } from "./libraryModel.js";
 import { GuideLadder, useGuides } from "./LibraryGuides.jsx";
+import { HalfRing, LessonDeck } from "./LessonDeck.jsx";
 import "./LibraryPanel.css";
 
 export const COURSES = Object.freeze([{ id: "silicon-to-software", title: "From silicon to software", art: "chip" }]);
@@ -78,16 +79,37 @@ export function CoursePage({ base, id, signedIn = false }) {
   const { course, marks, error } = useCourse(id, signedIn);
   const progress = useMemo(() => (course ? courseProgress(course, marks) : null), [course, marks]);
   const [open, setOpen] = useState(null);
-  useEffect(() => { if (course) setOpen(firstOpenModule(course, marks)); }, [course, marks]);
+  // ⭐ D178-3: the half ring's selected module (the deck below shows its lessons); starts where the list starts.
+  const [sel, setSel] = useState(null);
+  const [circle, setCircle] = useState(null);
+  useEffect(() => { if (course) { const m = firstOpenModule(course, marks); setOpen(m); setSel(s => s ?? m); } }, [course, marks]);
+  useEffect(() => { let live = true; api("/api/learn/circle").then(c => live && setCircle(c)).catch(() => {}); return () => { live = false; }; }, []);
+  const titles = useMemo(() => new Map((course?.modules || []).flatMap(m => m.lessons.map(l => [l.id, l.title]))), [course]);
   if (error) return <p className="atl__quiet" role="alert" data-course-missing="">{/no_such_course|404/.test(error) ? "There is no course by that name." : error} <Link to={`${base}/library`} className="atl__link">Back to the library</Link></p>;
   if (!course) return <p className="atl__quiet" role="status">Opening the course…</p>;
   return (
     <article className="lib-course" data-course-page={course.id}>
-      <header className="atl__head">
-        <p className="atl__kicker">Course · {course.counts.modules} modules · {course.counts.lessons} lessons</p>
-        <h1 className="atl__title">{course.title}</h1>
-        <p className="atl__lede">{signedIn ? `${progress.pct}% done · ` : ""}each lesson: the best material we found, and a quick check in your own words.</p>
+      {/* ⭐ D178-3 (owner's pick: Idea A's head) — the cover, the title, the course's lit count. */}
+      <header className="lib-chead">
+        <div className="lib-chead__cover" aria-hidden="true"><ChipArt /></div>
+        <div className="lib-chead__body">
+          <p className="atl__kicker">Course · {course.counts.modules} modules · {course.counts.lessons} lessons</p>
+          <h1 className="atl__title">{course.title}</h1>
+          <p className="atl__lede">Each lesson: the best material we found, and a quick check in your own words.</p>
+          <div className="lib-chead__bar" role="img" aria-label={`${progress.done} of ${progress.total} lessons lit`}><i style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }} /></div>
+          <p className="atl__quiet" data-course-lit="">{progress.done} of {progress.total} lit{signedIn ? "" : " · sign in to light them"}</p>
+        </div>
       </header>
+      {/* ⭐ D178-3 (owner's pick: Idea C) — the half ring picks the module; its lessons are a deck. */}
+      {sel != null && <HalfRing course={course} marks={marks} progress={progress} module={sel} onModule={setSel} />}
+      {sel != null && (
+        <section className="lib-modsel" aria-labelledby="lib-modsel-h" data-module-selected={sel}>
+          <h2 className="atl__h2" id="lib-modsel-h">Module {sel} · {course.modules.find(m => m.n === sel)?.title} — {course.modules.find(m => m.n === sel)?.lessons.length} lessons</h2>
+          <LessonDeck base={base} lessons={course.modules.find(m => m.n === sel)?.lessons || []} marks={marks} circle={circle} titles={titles} />
+        </section>
+      )}
+      <p className="atl__quiet"><Link to={`${base}/learn`} className="atl__link" data-course-circle="">The whole course as a circle →</Link></p>
+      <h2 className="atl__h2">All modules</h2>
       {course.modules.map(m => {
         const mp = progress.modules.find(x => x.n === m.n);
         const isOpen = open === m.n;

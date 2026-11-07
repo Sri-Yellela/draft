@@ -106,7 +106,8 @@ test("d145NothingSaidTwice: salary / type / mode only on the folded card, 'poste
 // ⭐ D168 (owner 11-06, concept B — changed on purpose): the wheel NO LONGER opens or folds "Why this job" (nor the long
 // post): over the deck it only turns it. The press, Enter and the "Why this job" button open it; a card change folds it.
 test("d145ScrollExpandsAndFolds → D168: the wheel never opens or folds 'Why this job'; the press, Enter and the button do", () => {
-  const wheelAt = at(deck, "const onWheel = (e) => {");
+  // ⭐ D178-3 (changed on purpose): the gesture is lib/deckWheel.js's handler; the deck passes it what a turn may do.
+  const wheelAt = at(deck, "const onWheel = deckWheelHandler({");
   const wheel = deck.slice(wheelAt, at(deck, 'el.addEventListener("wheel", onWheel', wheelAt));
   assert.doesNotMatch(wheel, /setWhy|openPost|foldPost|onFront/, "the wheel has one job: turning the deck");
   // The keyboard and the press do the same; a card change folds it.

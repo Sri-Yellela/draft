@@ -81,8 +81,11 @@ test("d156DeckBehaviourAsDeckView (pure): one flick one card, the flip timings, 
   // ⛔ (1b)'s per-gesture flip, its arrow-key flip and its swipe-flips are gone (owner 11-05 (1c): "retain how the cards
   // flipped and how they behaved … from the previous version of the daily deck").
   assert.doesNotMatch(DECK, /WHEEL_GESTURE_GAP_MS|WHEEL_FLIP_COOLDOWN_MS|onHomeWheel|onFlip\?\.\(info/);
-  assert.match(DECK, /const WHEEL_STEP = 60; /); assert.match(DECK, /const WHEEL_SETTLE_MS = 140; /);
-  assert.match(DECK, /if \(Math\.abs\(acc\) >= WHEEL_STEP\) \{ acc = 0; settleUntil = now \+ WHEEL_SETTLE_MS; step\(dir\); \}/);
+  // ⭐ D178-3 (changed on purpose): the gesture is ONE copy, lib/deckWheel.js, shared with Atlas's lesson deck — same numbers, same rule.
+  const WHEEL = fs.readFileSync("client/src/lib/deckWheel.js", "utf8");
+  assert.match(WHEEL, /export const WHEEL_STEP = 60; /); assert.match(WHEEL, /export const WHEEL_SETTLE_MS = 140; /);
+  assert.match(DECK, /const onWheel = deckWheelHandler\(\{/);
+  assert.match(WHEEL, /if \(Math\.abs\(acc\) >= WHEEL_STEP\) \{ acc = 0; settleUntil = t \+ WHEEL_SETTLE_MS; step\(dir\); \}/);
   assert.match(DECK, /const FLIP_EASE = "cubic-bezier\(0\.34, 1\.32, 0\.5, 1\)";/);
   assert.match(DECK, /transition: reduced \? "none" : `transform 520ms \$\{FLIP_EASE\} 40ms`/);
   assert.match(DECK, /const POSITION_EASE = "cubic-bezier\(0\.22, 1, 0\.36, 1\)";/);

@@ -1,0 +1,112 @@
+// ⭐ D178-3 (owner's pick 11-07, docs/sketches/Atlas D178 ideas.html → Course A + C) · THE HALF RING AND THE LESSON DECK on a
+// course page. The half ring is the course at a glance and the module picker: every lesson a tick in its module's colour,
+// lit when earned; the selected module stands out; the wheel over it (the deck gesture, lib/deckWheel.js) turns modules,
+// so does ← → on it, and a chip picks one. Under it, the module's lessons are a DECK (the jobs page's card-deck design):
+// the wheel, a swipe or ← → turns one card; a card is the lesson — its state, its goal, its links (Read · Watch · Try,
+// with their source), Builds on / Opens, Open and Check. Progress is EARNED (the one rule) — nothing here ticks anything.
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import DepthButton from "../../components/DepthButton.jsx";
+import { deckWheelHandler } from "../../lib/deckWheel.js";
+import { HALF, halfRingLayout, lessonState, lessonStateLine, linkLine } from "./libraryModel.js";
+
+export function HalfRing({ course, marks, progress, module, onModule }) {
+  const ticks = useMemo(() => halfRingLayout(course), [course]);
+  const ref = useRef(null);
+  const n = course.modules.length;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const onWheel = deckWheelHandler({ canStep: (dir) => module + dir >= 1 && module + dir <= n, step: (dir) => onModule(module + dir) });
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [module, n, onModule]);
+  const lit = new Set(course.modules.flatMap(m => m.lessons.filter(l => lessonState(l, marks).complete).map(l => l.id)));
+  const sel = course.modules.find(m => m.n === module);
+  const mp = progress.modules.find(m => m.n === module);
+  return (
+    <div className="lrc lib-half" ref={ref} tabIndex={0} data-half-ring="" aria-label={`The course at a glance: ${progress.done} of ${progress.total} lessons lit. Module ${module} selected; the left and right arrows change it.`}
+      onKeyDown={e => { if (e.key === "ArrowRight" && module < n) { e.preventDefault(); onModule(module + 1); } if (e.key === "ArrowLeft" && module > 1) { e.preventDefault(); onModule(module - 1); } }}>
+      <svg className="lib-half__svg" viewBox={`0 0 ${HALF.w} ${HALF.h}`} aria-hidden="true" focusable="false">
+        {ticks.map(t => (
+          <line key={t.id} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+            className={`lib-half__tick lrc__part--${t.module}${lit.has(t.id) ? " is-lit" : ""}${t.module === module ? " is-sel" : ""}`}
+            onClick={() => onModule(t.module)} />
+        ))}
+        <text x={HALF.cx} y={HALF.cy - 70} textAnchor="middle" className="lib-half__big">{progress.done} of {progress.total} lit</text>
+        <text x={HALF.cx} y={HALF.cy - 40} textAnchor="middle" className="lib-half__sub">Module {module} · {sel?.title} · {mp?.done} of {mp?.total} lit</text>
+      </svg>
+      <div className="lib-half__chips" role="tablist" aria-label="Modules">
+        {course.modules.map(m => (
+          <button key={m.n} type="button" role="tab" aria-selected={m.n === module} className={`lib-chip lrc__part--${m.n}`} data-module-chip={m.n} onClick={() => onModule(m.n)}>
+            <i aria-hidden="true" />{m.n} · {m.title}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function LessonDeck({ base, lessons, marks, circle, titles }) {
+  const navigate = useNavigate();
+  const [i, setI] = useState(0);
+  const ref = useRef(null);
+  const touch = useRef(null);
+  useEffect(() => { setI(0); }, [lessons]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const onWheel = deckWheelHandler({ canStep: (dir) => i + dir >= 0 && i + dir < lessons.length, step: (dir) => setI(x => x + dir) });
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [i, lessons.length]);
+  if (!lessons.length) return null;
+  const go = (d) => setI(x => Math.max(0, Math.min(lessons.length - 1, x + d)));
+  return (
+    <div className="lib-ldeck" ref={ref} tabIndex={0} data-lesson-deck="" aria-roledescription="deck"
+      aria-label={`Lessons: ${i + 1} of ${lessons.length}. The left and right arrows turn the deck.`}
+      onKeyDown={e => { if (e.key === "ArrowRight") { e.preventDefault(); go(1); } if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); } }}
+      onTouchStart={e => { touch.current = e.touches[0]?.clientX ?? null; }}
+      onTouchEnd={e => { const x0 = touch.current, x1 = e.changedTouches[0]?.clientX; touch.current = null; if (x0 != null && x1 != null && Math.abs(x1 - x0) > 50) go(x1 < x0 ? 1 : -1); }}>
+      <div className="lib-ldeck__nav">
+        <span className="atl__quiet" aria-live="polite">{i + 1} of {lessons.length}</span>
+        <button type="button" className="lib-ldeck__btn" aria-label="Previous lesson" disabled={i === 0} onClick={() => go(-1)}>‹</button>
+        <button type="button" className="lib-ldeck__btn" aria-label="Next lesson" disabled={i === lessons.length - 1} onClick={() => go(1)}>›</button>
+      </div>
+      <ol className="lib-ldeck__row">
+        {lessons.map((l, k) => {
+          const off = k - i;
+          if (Math.abs(off) > 2) return null;
+          const st = lessonState(l, marks), line = lessonStateLine(st);
+          const piece = circle?.pieces?.[l.id] || {};
+          const builds = (piece.needs || []).map(x => titles.get(x.id)).filter(Boolean);
+          const opens = (piece.opens || []).map(x => titles.get(x.id ?? x)).filter(Boolean);
+          const href = `${base}/learn#step-${encodeURIComponent(l.id)}`;
+          return (
+            <li key={l.id} className={`lib-lcard${off === 0 ? " is-front" : ""}`} data-lesson-card={l.id} data-card-offset={off} data-lesson-state={line.state}
+              style={{ "--off": off }} aria-hidden={off !== 0} onClick={() => off !== 0 && setI(k)}>
+              <p className={`lib-lcard__state lib-lcard__state--${line.state}`}>{off === 0 ? line.text : `Lesson ${k + 1}`}</p>
+              {off === 0 ? <h3 className="lib-lcard__t">{l.title}</h3> : <p className="lib-lcard__peek">{line.text}</p>}
+              {off === 0 && (
+                <>
+                  {l.goal && <p className="lib-lcard__goal">{l.goal}</p>}
+                  <ul className="lib-links">
+                    {l.links.filter(x => !x.optional).slice(0, 4).map(x => (
+                      <li key={x.id}>{x.url ? <a href={x.url} target="_blank" rel="noopener noreferrer">{linkLine(x)}</a> : <span>{linkLine(x)}</span>}</li>
+                    ))}
+                  </ul>
+                  {builds.length > 0 && <p className="lib-lcard__rel"><b>Builds on</b> {builds.slice(0, 4).join(" · ")}{builds.length > 4 ? ` · +${builds.length - 4} more` : ""}</p>}
+                  {opens.length > 0 && <p className="lib-lcard__rel"><b>Opens</b> {opens.slice(0, 4).join(" · ")}{opens.length > 4 ? ` · +${opens.length - 4} more` : ""}</p>}
+                  <div className="lib-lcard__acts">
+                    <span data-lesson-open=""><DepthButton primary onClick={() => navigate(href)}>Open</DepthButton></span>
+                    <Link className="atl__link" to={href}>Check · {l.checks.length} question{l.checks.length === 1 ? "" : "s"}</Link>
+                  </div>
+                </>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
