@@ -30,3 +30,6 @@ export function linkLine(x) {
   const who = x.source?.name || x.by || null;
   return [x.type, x.title, who && who !== x.title ? who : null].filter(Boolean).join(" · ");
 }
+
+/** A deck slide's label: "1 of 5 · What it is". */
+export const slideLabel = (i, n, tag) => `${i + 1} of ${n}${tag ? ` · ${tag}` : ""}`;

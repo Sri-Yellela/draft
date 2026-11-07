@@ -25,7 +25,8 @@ import PlaceNav from "../../components/PlaceNav.jsx";
 import { OverviewPanel, YourSkillsSlot, YourRoutePanel, LearnStages, TodaysQuestionPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
   PanelHead } from "./AtlasPanels.jsx";
 import { panelFor, isPanelSlug, PANEL_LABEL, ATLAS_NAV, panelHref, courseIdOf } from "./atlasPanels.js";
-import { LibraryShelf, CoursePage } from "./LibraryPanel.jsx";
+import { LibraryShelf, CoursePage, COURSES } from "./LibraryPanel.jsx";
+import { LibraryItem } from "./LibraryGuides.jsx";
 import YourRun from "./YourRun.jsx";
 import TrackBoard from "./TrackBoard.jsx";
 import {
@@ -428,7 +429,10 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
       {familyKey && <FamilyMap base={base} familyKey={familyKey} />}
       {panel === "your-run" && <YourRun base={base} signedIn={signedIn} />}
       {panel === "library" && panelOnly && <LibraryShelf base={base} signedIn={signedIn} />}
-      {courseId && <CoursePage base={base} id={courseId} signedIn={signedIn} />}
+      {/* ⭐ D172 (2b): /atlas/library/<id> is a course, a guide (a level) or a deck. */}
+      {courseId && (COURSES.some(c => c.id === courseId)
+        ? <CoursePage base={base} id={courseId} signedIn={signedIn} />
+        : <LibraryItem base={base} id={courseId} />)}
       {slug && !learning && !checking && !familyKey && !courseId && !panelOnly && (
         <>
           <SearchBox base={base} />

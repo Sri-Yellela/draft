@@ -41,6 +41,11 @@ const PUBLIC = new Set([
   "GET /api/learn/circle",
   // D172 (2): the path as a course (modules, lessons, their links and register sources) — the same public content, no user data.
   "GET /api/learn/course/:id",
+  // D172 (2b): the Library's guides and a deck — the approved decks' own words; a check question served without its answer.
+  "GET /api/learn/guides",
+  "GET /api/learn/deck/:id",
+  // A deck's check answer: public like the deck (recorded with no user when signed out, as the audit's answers are); no points.
+  "POST /api/learn/deck/:id/answer",
   "GET /api/auth/me",                      // reports authenticated:false rather than 401 by design
   "POST /api/auth/login",
   "POST /api/auth/register",

@@ -31,3 +31,31 @@
 @media (max-width: 560px) {
   .lib-lesson { flex-direction: column; gap: 6px; }
 }
+
+/* D172 (2b) · the ladder of guides, a guide's page, the deck viewer. */
+.lib-ladder { margin: 18px 0 8px; }
+.lib-ladder__rungs { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.lib-rung { margin: 0; }
+.lib-rung__link { display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 12px; border: 1px solid var(--c-border);
+  background: var(--c-surface); color: var(--c-ink); text-decoration: none; height: 100%; box-sizing: border-box; }
+a.lib-rung__link:hover, a.lib-rung__link:focus-visible { border-color: var(--c-accent); }
+.lib-rung__link--none { opacity: 0.6; }
+.lib-rung__level { font-size: 12px; font-weight: 700; color: var(--c-accent-ink); }
+.lib-rung__name { font-family: var(--font-display); font-size: 20px; line-height: 1.15; }
+.lib-rung__list { font-size: 13px; color: var(--c-ink-muted); }
+.lib-rung__meta { margin-top: auto; font-size: 13px; font-weight: 600; color: var(--c-ink-muted); }
+.lib-lessons--plain { padding: 0; }
+.lib-deck { max-width: 760px; }
+.lib-slide { border: 1px solid var(--c-border); border-radius: 14px; background: var(--c-surface); padding: 22px 24px; margin: 10px 0 14px; min-height: 280px; }
+.lib-slide__tag { margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--c-accent-ink); }
+.lib-slide__title { margin: 0 0 12px; }
+.lib-slide__points { margin: 0; padding-left: 20px; display: grid; gap: 10px; line-height: 1.5; color: var(--c-ink); }
+.lib-deck__nav { display: flex; align-items: center; gap: 14px; }
+.lib-check__stem { font-weight: 600; color: var(--c-ink); line-height: 1.5; }
+.lib-check__choices { margin: 10px 0; padding-left: 20px; display: grid; gap: 8px; }
+.lib-check__choice { all: unset; box-sizing: border-box; cursor: pointer; display: block; width: 100%; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--c-border); color: var(--c-ink); }
+.lib-check__choice:focus-visible, .lib-check__choice:hover:not(:disabled) { border-color: var(--c-accent); }
+.lib-check__choice[data-choice-state="right"] { border-color: var(--c-success); }
+.lib-check__choice[data-choice-state="wrong"] { border-color: var(--c-danger); }
+.lib-check__why { color: var(--c-ink); }

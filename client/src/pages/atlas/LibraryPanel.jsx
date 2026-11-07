@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { courseProgress, firstOpenModule, lessonState, linkLine } from "./libraryModel.js";
+import { GuideLadder, useGuides } from "./LibraryGuides.jsx";
 import "./LibraryPanel.css";
 
 export const COURSES = Object.freeze([{ id: "silicon-to-software", title: "From silicon to software", art: "chip" }]);
@@ -44,13 +45,17 @@ function useCourse(id, signedIn) {
 export function LibraryShelf({ base, signedIn = false }) {
   const { course, marks } = useCourse(COURSES[0].id, signedIn);
   const p = course ? courseProgress(course, marks) : null;
+  const guides = useGuides();
   return (
     <div className="atl-pan" data-atlas-panel-body="library">
       <header className="atl__head">
         <p className="atl__kicker">Library</p>
-        <h1 className="atl__title">Courses</h1>
-        <p className="atl__lede">Each lesson is the best material we found on it and a quick check in your own words.</p>
+        <h1 className="atl__title">Guides and courses</h1>
+        <p className="atl__lede">Your level's guide first, then the shelf. Each lesson is the best material we found on it and a quick check.</p>
       </header>
+      {/* ⭐ D172 (2b): the ladder of guides (approved decks), above the shelf of courses. */}
+      <GuideLadder base={base} guides={guides} />
+      <h2 className="atl__h2">Courses</h2>
       <ul className="lib-shelf" data-library-shelf="">
         {COURSES.map(c => (
           <li key={c.id} className="lib-cover" data-course={c.id}>
