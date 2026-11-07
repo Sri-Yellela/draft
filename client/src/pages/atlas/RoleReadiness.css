@@ -1,0 +1,41 @@
+/* ⭐ D178-3 · readiness for a role (Your skills → For a role). Theme tokens only; the dial is a ring (D60 allows rings). */
+.rr { margin: 8px 0 18px; }
+.rr-pick { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 14px; }
+.rr-pick__in { min-width: 220px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--c-border-control); background: var(--c-surface-input); color: var(--c-ink); font: inherit; }
+.rr-pick__go { font-weight: 700; background: none; border: 0; cursor: pointer; }
+.rr-head { display: flex; gap: 18px; align-items: center; margin-bottom: 14px; }
+.rr-dial { width: 120px; height: 120px; flex: 0 0 auto; }
+.rr-dial__track { fill: none; stroke: var(--c-border); stroke-width: 11; }
+.rr-dial__wait { fill: none; stroke: var(--c-accent); opacity: 0.3; stroke-width: 11; }
+.rr-dial__fill { fill: none; stroke: var(--c-accent); stroke-width: 11; stroke-linecap: round; }
+.rr-dial__pct { fill: var(--c-ink); font: 700 24px/1 var(--font-display); }
+.rr-dial__lbl { fill: var(--c-ink-muted); font: 600 11px/1 var(--font-body); }
+.rr-head__role { margin: 0; font-family: var(--font-display); font-size: 26px; }
+.rr-head__line { margin: 4px 0; font-weight: 600; color: var(--c-ink); }
+.rr-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; align-items: start; }
+.rr-branch { border-left: 3px solid var(--c-border-strong); padding: 2px 0 6px 12px; margin-bottom: 14px; }
+.rr-branch[data-rr-branch="must"] { border-left-color: var(--c-accent); }
+.rr-branch__h { margin: 0 0 6px; }
+.rr-leaves { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.rr-leaf { display: grid; grid-template-columns: minmax(0, 1fr) 120px 42px; gap: 10px; align-items: center; font-size: 14px; color: var(--c-ink-muted); }
+.rr-leaf[data-rr-state="proven"] { color: var(--c-ink); font-weight: 600; }
+.rr-leaf__bar { height: 6px; border-radius: 3px; background: var(--c-border); overflow: hidden; }
+.rr-leaf__bar i { display: block; height: 100%; background: var(--c-border-strong); }
+.rr-leaf[data-rr-state="proven"] .rr-leaf__bar i { background: var(--c-success); }
+.rr-leaf[data-rr-state="claimed"] .rr-leaf__bar i { background: var(--c-accent); opacity: 0.45; }
+.rr-leaf__share { text-align: right; font-variant-numeric: tabular-nums; }
+.rr-moves { border: 1px solid var(--c-border); border-radius: 12px; background: var(--c-surface); padding: 14px; }
+.rr-moves .atl__h2 { margin-top: 0; }
+.rr-moves__list { margin: 0; padding-left: 18px; display: grid; gap: 10px; }
+.rr-moves__list li span { display: block; }
+.rr-moves__add { color: var(--c-accent-ink); font-weight: 700; }
+@media (max-width: 760px) {
+  .rr-body { grid-template-columns: 1fr; }
+  .rr-leaf { grid-template-columns: minmax(0, 1fr) 80px 40px; }
+}
+
+/* D178-3: Your skills' tabs (For a role · All my skills) — the Atlas's own, styled like D169's segment. */
+.rr-tabs { display: inline-flex; gap: 2px; padding: 3px; margin: 0 0 14px; border-radius: 14px; background: var(--c-surface-solid); }
+.rr-tabs button { all: unset; cursor: pointer; padding: 7px 14px; border-radius: 11px; color: var(--c-ink-muted); font-weight: 600; font-size: 13.5px; }
+.rr-tabs button[aria-pressed="true"] { background: var(--c-surface); color: var(--c-ink); }
+.rr-tabs button:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
