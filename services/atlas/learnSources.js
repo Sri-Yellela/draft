@@ -18,6 +18,10 @@ const SEARCH = [
   { host: "google.com", path: /^\/search/ },
   { host: "openlibrary.org", path: /^\/search/ },
 ];
+// ⭐ D178-2: a PLATFORM page (a YouTube video or playlist, an Open Library work) is the creator's, not the platform's —
+// its source is the creator named on the item, like a search link's (a replaced search link keeps its attribution).
+const PLATFORM = ["youtube.com", "youtu.be", "openlibrary.org"];
+const onPlatform = (u) => { const h = hostOf(u); return !!h && PLATFORM.some(p => h === p || h.endsWith(`.${p}`)); };
 const UNNAMED = /^(youtube search|google search|search)$/i;
 // A search link's `s` is usually its creator ("Computerphile", "Charles Petzold") but sometimes a description of the link
 // ("A SQLite clone, step by step", "Google's 2017 TPU paper"). A description is never registered as a source: the item
@@ -70,8 +74,8 @@ export function registerIndex(reg) {
  */
 export function itemSource(item, index) {
   if (!item?.u) return { id: OWN_SOURCE, via: "own" };
-  if (isSearchLink(item.u)) {
-    const creator = creatorOf(item.s);
+  if (isSearchLink(item.u) || onPlatform(item.u)) {
+    const creator = creatorOf(item.by) || creatorOf(item.s);
     if (!creator) return { id: null, flag: "needs_named_source" };
     const want = slugOf(creator);
     const id = index.creators.get(slugOf(item.s)) || index.creators.get(want) || null;
