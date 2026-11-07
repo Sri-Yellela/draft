@@ -1,3 +1,5 @@
+import { recordAttestation, ATTESTED } from "../services/fullAutoGate.js";
+import { setCostAlarmThreshold } from "../services/modelUsage.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import express from "express";
@@ -175,8 +177,13 @@ test("D100 · unattended (FULL AUTO, no approved values): only for a FULL AUTO u
     assert.equal((await t.lease()).status, 204, "a SEMI user's unattended run is stopped at the lease");
     assert.equal(db.prepare("SELECT state, outcome FROM apply_remote_runs").get().outcome, "full_auto_not_chosen");
     db.prepare("UPDATE users SET send_mode='auto' WHERE id=1").run();
+    // Changed on purpose 11-07 (D175 FA6): FULL AUTO's own send also waits for the four safety checks — red, it stays queued.
     const g2 = heldGate(db, { approval: "auto" });
     const id2 = enqueueRemoteRun(db, { userId: 1, runJobId: g2.runJobId, packetId: g2.packetId, applyUrl: "https://acme.portal.example.test/apply/1", approvalMode: "auto" });
+    assert.equal((await t.lease()).status, 204, "the safety checks are red: nothing unattended leaves");
+    assert.equal(db.prepare("SELECT state FROM apply_remote_runs WHERE id=?").pluck().get(id2), "queued", "held, not spent");
+    setCostAlarmThreshold(db, 5, { reason: "test" });
+    for (const id of Object.keys(ATTESTED)) recordAttestation(db, id, { reason: "tested for this synthetic run" });
     assert.equal((await t.lease()).body.run.id, id2);
     await t.report({ remoteId: id2, outcome: "submitted", fields: [{ label: "First Name", value: "Dana" }] });
     assert.equal(db.prepare("SELECT submitted_by FROM apply_run_jobs WHERE id=?").pluck().get(g2.runJobId), "auto");

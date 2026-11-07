@@ -41,6 +41,7 @@ import { getAutomationReadiness, getMissingApplyPrerequisites } from "../service
 import { canUseAPlusResume, normalisePlanTier } from "../services/entitlements.js";
 import { monetisationEnabledFromEnv } from "../shared/monetisation.js";
 import { fullAutoDisabled as sharedFullAutoDisabled } from "../services/appSettings.js";
+import { fullAutoBlocked, HOLD_REASON as FULL_AUTO_PREREQ_HOLD } from "../services/fullAutoGate.js";
 import { userHeld, userHoldSince, setUserHold } from "../services/applyUserHold.js";
 import { draftSlots, slotsExhausted } from "../services/draftSlots.js";
 import { atsJobInputHash, ATS_JOB_INPUT_FIELDS } from "../services/jobs/boardFitPrecompute.js";
@@ -1566,6 +1567,18 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           "Sending without review needs FULL AUTO, and your mode is SEMI. Nothing was opened or sent.");
         db.prepare(`UPDATE apply_runs SET held_count=held_count+1 WHERE id=?`).run(runId);
         return;
+      }
+      // ⛔ D175 FA6: an UNATTENDED send (FULL AUTO's standing instruction — not the person's approval, not a pick's Apply tap)
+      // waits until the four safety checks are green (services/fullAutoGate.js). Held, never dropped.
+      if (mode === "auto" && approvalMode === "auto" && !pickAuthorisesSend(db, userId, jobId)) {
+        const blocked = fullAutoBlocked(db);
+        if (blocked) {
+          logEvent(runId, runJobId, userId, jobId, FULL_AUTO_PREREQ_HOLD, blocked);
+          setJobStatus("held_review", FULL_AUTO_PREREQ_HOLD, blocked);
+          db.prepare(`UPDATE apply_runs SET held_count=held_count+1 WHERE id=?`).run(runId);
+          parkEarlyHandoff(FULL_AUTO_PREREQ_HOLD);
+          return;
+        }
       }
       if (mode === "auto" && fullAutoDisabled()) {
         logEvent(runId, runJobId, userId, jobId, "full_auto_disabled",

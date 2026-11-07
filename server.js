@@ -207,6 +207,7 @@ import { workHistoryCompanies } from "./shared/savedAnswers.js";
 import { allowedModesForTier, canUseAPlusResume, canUseGenerate, canUseMode, hasPlanAtLeast, nextPlan, normalisePlanTier, planForMode } from "./services/entitlements.js";
 import { monetisationEnabledFromEnv } from "./shared/monetisation.js";
 import { fullAutoState, setSetting, clearSetting, FULL_AUTO_KEY } from "./services/appSettings.js";
+import { fullAutoPrerequisites, recordAttestation } from "./services/fullAutoGate.js";
 import { getSetting } from "./services/appSettings.js";
 import { stripResumeHtml as formatterStripResumeHtml } from "./services/resumeFormatter.js";
 import {
@@ -10363,6 +10364,18 @@ app.put("/api/admin/full-auto", requireAdmin, (req, res) => {
   // log is the only record that it moved and who moved it.
   console.warn(`[killswitch] full-auto ${state.disabled ? "DISABLED" : "ENABLED"} by ${actorRef(req)} (override)`);
   res.json(state);
+});
+
+// ⛔ D175 FA6: the four checks an unattended send waits for — read, and an admin records the two that are tests
+// (POST { check: "kill_switch_verified" | "never_twice_verified", reason } — or { check, clear: true }). Audited.
+app.get("/api/admin/full-auto/prerequisites", requireAdmin, (_req, res) => res.json(fullAutoPrerequisites(db)));
+app.post("/api/admin/full-auto/prerequisites", requireAdmin, (req, res) => {
+  const { check, reason = null, clear = false } = req.body || {};
+  try {
+    const out = recordAttestation(db, String(check || ""), { actor: actorOf(req), reason, clear: clear === true });
+    console.warn(`[full-auto] prerequisite ${check} ${clear === true ? "CLEARED" : "recorded"} by ${actorRef(req)}`);
+    res.json(out);
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 
 app.delete("/api/admin/full-auto", requireAdmin, (req, res) => {
