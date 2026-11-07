@@ -10,6 +10,7 @@ import AtlasTree from "./AtlasTree.jsx";
 import { headerLine } from "./atlasTreeModel.js";
 import YourCourse from "./YourCourse.jsx";
 import Navigator from "./Navigator.jsx";
+import { familyCountLine } from "../../../../shared/atlasFamilyCount.js";
 
 /** The five sections' chips, in M6's order. Pure: the page's test reads it. */
 export function mapSections(me) {
@@ -81,7 +82,8 @@ export function Families({ families = [], base }) {
       <ul className="atl__links">
         {families.map(f => (
           <li key={f.key}><Link to={`${base}/family/${encodeURIComponent(f.key)}`} className="atl__link">{f.name}</Link>
-            <span className="atl__count"> · you have {f.haveCount + (f.learnedCount || 0)} of {f.total}</span></li>
+            {/* ⭐ D178-2: "2 proven · 3 claimed · of 8" — the same sentence as the tree's tag (shared/atlasFamilyCount.js). */}
+            <span className="atl__count" data-family-count=""> · {familyCountLine({ provenCount: f.provenCount || 0, claimedCount: f.claimedCount ?? f.haveCount ?? 0, learnedCount: f.learnedCount || 0, total: f.total })}</span></li>
         ))}
       </ul>
     </section>

@@ -67,6 +67,31 @@ export function searchConcepts(index, q) {
 export const circleState = (st) => (st.complete ? "filled" : st.started ? "half" : "open");
 
 export const GEO = Object.freeze({ size: 640, c: 320, r: 248, gap: 0.05, square: 10 });
+// ⭐ D178-2 · THE PART LABELS ARE NEVER CROPPED: a label is "n · ITS NAME" (the part's own "Part n:" is not repeated),
+// wrapped to LABEL_CHARS a line, and the drawing has PAD on every side — wide enough for the longest line at 11 px bold
+// caps (≈ LABEL_CHAR_W a character, letter-spacing included). d178CircleLabelsNeverCropped checks every label fits.
+export const LABEL = Object.freeze({ chars: 18, charW: 8.4, lineH: 13, pad: 160 });
+/** The circle's viewBox, with the label margin on every side. */
+export const circleViewBox = () => `${-LABEL.pad} ${-LABEL.pad / 4} ${GEO.size + 2 * LABEL.pad} ${GEO.size + LABEL.pad / 2}`;
+/**
+ * ⭐ D178-2 · where a wheel label's CENTRE may sit so its box stays inside a W × H wheel: the label is `lines` (wrapped) of
+ * 11 px caps plus the "n of N finished" line; the centre is clamped by half the box. Pure.
+ */
+export function clampLabel(x, y, lines, W, H, margin = 8) {
+  const hw = (Math.max(18, ...lines.map(l => l.length)) * LABEL.charW) / 2, hh = ((lines.length + 1) * LABEL.lineH) / 2 + 4;
+  const clamp = (v, lo, hi) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));
+  return { x: clamp(x, hw + margin, W - hw - margin), y: clamp(y, hh + margin, H - hh - margin) };
+}
+/** "Part 7: Computing in the physical world", 7 → ["7 · COMPUTING IN", "THE PHYSICAL WORLD"]. */
+export function partLabelLines(index, title, max = LABEL.chars) {
+  const words = `${index} · ${String(title || "").replace(/^Part\s+\d+\s*:\s*/i, "")}`.toUpperCase().split(/\s+/).filter(Boolean);
+  const lines = [];
+  for (const w of words) {
+    const last = lines[lines.length - 1];
+    if (last != null && (last + " " + w).length <= max) lines[lines.length - 1] = `${last} ${w}`; else lines.push(w);
+  }
+  return lines;
+}
 /** The ring's layout: each piece's angle in path order, each part's arc. Step 1 is at the top — one place on the ring. */
 export function circleLayout(pieces) {
   const parts = [];

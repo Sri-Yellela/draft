@@ -14,8 +14,8 @@
 //   · Reduced motion: every move is a jump.
 // The frame loop writes transforms straight to the DOM (108 cards at 60 fps would not survive a React render a frame).
 import { useEffect, useMemo, useRef, useState } from "react";
-import { circleState, pieceOf } from "./learnModel.js";
-import { WHEEL, wheelSlots, frameAt, easeInOut, outScale, ringPoint, angAtSlot, slotAt } from "./learnWheel.js";
+import { circleState, pieceOf, partLabelLines, clampLabel } from "./learnModel.js";
+import { WHEEL, wheelSlots, frameAt, easeInOut, outScale, ringPoint, angAtSlot, slotAt, labelsAsLegend, ringHeight } from "./learnWheel.js";
 import "./LearnWheel.css";
 
 const STATE_WORD = { filled: "Finished", half: "Started", open: "Not started" };
@@ -61,7 +61,8 @@ export default function LearnWheel({ pieces, states, sel, route = null, reduced 
   frameRef.current = () => {
     const a = A.current, el = stageRef.current;
     if (!el) { a.running = false; return; }
-    const W = el.clientWidth || size.W, H = el.clientHeight || size.H;
+    // D178-2: in legend mode the ring is laid out above the legend (ringHeight), never under it.
+    const W = el.clientWidth || size.W, H = ringHeight(W, el.clientHeight || size.H);
     if (reduced) { a.z = a.zt; a.f = a.ft; }
     else {
       a.z += (a.zt - a.z) * 0.15; a.f += (a.ft - a.f) * 0.24;
@@ -155,7 +156,7 @@ export default function LearnWheel({ pieces, states, sel, route = null, reduced 
   };
 
   // ── the zoomed-out overlay: part names, chords, the route's ink ──
-  const { W, H } = size;
+  const W = size.W, H = ringHeight(size.W, size.H);
   const s0 = outScale(W, H), rOut = (WHEEL.R + WHEEL.CH) * s0 + 24, rIn = WHEEL.R * s0;
   const parts = useMemo(() => {
     const out = [];
@@ -175,7 +176,7 @@ export default function LearnWheel({ pieces, states, sel, route = null, reduced 
   return (
     <div className={`lwh${zoomed ? " is-zoomed" : ""}`} ref={stageRef} tabIndex={0} onKeyDown={onKey}
       role="group" aria-label={`The course: ${N} cards in one circle`} data-learn-circle="" data-learn-wheel="">
-      <svg className="lwh__chords" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+      <svg className="lwh__chords" viewBox={`0 0 ${W} ${H}`} style={{ height: `${H}px` }} aria-hidden="true">
         {routePath && <path d={routePath} className="lrc__ink" data-learn-route-stroke={route.id} />}
         {s && (s.needs || []).filter(n => byId.has(n.id)).map(n => (
           <path key={`b-${n.id}`} d={chordD(pt(n.id, rIn - 6), pt(s.id, rIn - 6))} className={`lrc__chord lrc__chord--before${n.status === "drafted" ? " is-draft" : ""}`} data-chord-before={n.id} />
@@ -204,18 +205,21 @@ export default function LearnWheel({ pieces, states, sel, route = null, reduced 
           );
         })}
       </div>
-      <div className="lwh__labels">
+      <div className={`lwh__labels${labelsAsLegend(W) ? " lwh__labels--legend" : ""}`} data-labels-as={labelsAsLegend(W) ? "legend" : "ring"}>
         {parts.map(part => {
           const a0 = angAtSlot(slots.slot.get(part.ids[0]), slots.total), a1 = angAtSlot(slots.slot.get(part.ids[part.ids.length - 1]), slots.total);
           const am = ((a0 + a1) / 2) * Math.PI / 180 - Math.PI / 2;
           const done = part.ids.filter(id => states.get(id)?.complete).length;
           const first = part.ids.find(id => !states.get(id)?.complete) || part.ids[0];
+          // ⭐ D178-2: wrapped, and its box kept inside the wheel — a label is never cropped at an edge.
+          const lines = partLabelLines(part.index, part.t);
+          const at = clampLabel(W / 2 + rOut * Math.cos(am), H / 2 + rOut * Math.sin(am), lines, W, H);
           return (
             // The NAME is the press (zoom to the part's first unfinished piece); the count is a plain line beside it —
             // ⛔ C8: nothing pressable says "finished".
             <div key={part.index} className={`lwh__plab lrc__part--${part.index}`} data-learn-part={part.index}
-              style={{ left: `${(W / 2 + rOut * Math.cos(am)).toFixed(1)}px`, top: `${(H / 2 + rOut * Math.sin(am)).toFixed(1)}px` }}>
-              <button type="button" className="lwh__pbtn" onClick={() => zoomTo(first)} tabIndex={zoomed ? -1 : 0}>{part.index} · {String(part.t).toUpperCase()}</button>
+              style={labelsAsLegend(W) ? undefined : { left: `${at.x.toFixed(1)}px`, top: `${at.y.toFixed(1)}px` }}>
+              <button type="button" className="lwh__pbtn" onClick={() => zoomTo(first)} tabIndex={zoomed ? -1 : 0}>{lines.map((l, i) => <span key={i} className="lwh__pline">{l}</span>)}</button>
               <small>{done} of {part.ids.length} finished</small>
             </div>
           );

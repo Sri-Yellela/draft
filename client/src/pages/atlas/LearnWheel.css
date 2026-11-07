@@ -49,6 +49,10 @@
 .lwh__labels { position: absolute; inset: 0; pointer-events: none; }
 .lwh__plab { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; text-align: center; white-space: nowrap; }
 .lwh__pbtn { all: unset; cursor: zoom-in; color: var(--lrc-c); font: 800 11px/1.2 var(--font-body); letter-spacing: .06em; }
+.lwh__pline { display: block; }   /* D178-2: a label wraps line by line (learnModel.js partLabelLines) */
+/* D178-2: a narrow wheel puts its part names in a legend under the ring (learnWheel.js labelsAsLegend) — never on it. */
+.lwh__labels--legend { inset: auto 12px 56px 12px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 18px; }
+.lwh__labels--legend .lwh__plab { position: static; transform: none; }
 .lwh__pbtn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
 .lwh__plab small { display: block; font: 600 11px/1.2 var(--font-body); color: var(--c-ink-muted); }
 .lwh.is-zoomed .lwh__plab { opacity: 0; pointer-events: none; }

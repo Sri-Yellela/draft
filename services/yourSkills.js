@@ -152,8 +152,9 @@ function ensureProfileSkills(db, userId) {
 }
 
 /** The person's skills, in the Profile's order, then the ones claimed on an ATS report ("That's true of me"). */
-function skillNames(db, userId) {
-  ensureProfileSkills(db, userId);
+function skillNames(db, userId, { seed = true } = {}) {
+  // Your skills seeds an empty Profile from the résumé (D169); a READ elsewhere (Your map, D178-2) never writes.
+  if (seed) ensureProfileSkills(db, userId);
   const out = new Map();
   for (const r of safe(() => db.prepare(`SELECT name, source FROM profile_skills WHERE user_id = ? ORDER BY position, id`).all(userId), [])) {
     const k = skillKey(r.name);
@@ -167,6 +168,16 @@ function skillNames(db, userId) {
     }
   }
   return out;
+}
+
+/**
+ * ⭐ D178-2 · the person's skills as Your skills reads them — the Profile's list AND the skills claimed on postings — each
+ * with its D169 state (claimed · checked · built). Your map counts from this, so the two never disagree.
+ * @returns [{ name, key, state }]
+ */
+export function yourSkillStates(db, userId) {
+  const proofs = proofsOf(db, userId);
+  return [...skillNames(db, userId, { seed: false }).entries()].map(([key, n]) => ({ name: n.name, key, state: proofs.get(key)?.state || "claimed" }));
 }
 
 function lineFor(e) {

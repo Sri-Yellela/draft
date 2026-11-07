@@ -32,6 +32,7 @@ import { earnedMarks } from "../learn/learnEarned.js";
 import { stepState } from "../../shared/learnStepState.js";
 import { FAMILIES, isFamily, familyName } from "../../shared/atlasFamilies.js";
 import { roleCategoryFilter } from "./atlasCategories.js";
+import { familyCountLine } from "../../shared/atlasFamilyCount.js";
 
 export const NO_AIM = Object.freeze({ line: "Set an aim to see what seniority adds", path: "/app/job-profiles", label: "Set an aim" });
 
@@ -128,7 +129,7 @@ function routeWhen(step) {
  * The tree of Your map. @param ctx { idx, rollup, profileIds (Profile skills), learnedIds, learning (nodeLearnStates),
  * targets (the user's target role ids, first = the aim) }
  */
-export function yourTree(db, userId, { idx, rollup, profileIds, learnedIds, learning, targets }) {
+export function yourTree(db, userId, { idx, rollup, profileIds, provenIds = new Set(), learnedIds, learning, targets }) {
   const asIf = new Set([...profileIds, ...learnedIds]);
   const readings = boardReadings(db, idx.nodes);
   const counts = closenessCounts(readings, profileIds);
@@ -195,9 +196,11 @@ export function yourTree(db, userId, { idx, rollup, profileIds, learnedIds, lear
     for (const t of [...mine, ...learnedHere, ...[...pinned, ...others].slice(0, slots)]) t.onTree = true;
     const order = [...mine, ...learnedHere, ...rest];
     const drawn = order.filter(t => t.onTree).length;
-    families.push({ key: f.key, name: f.name, haveCount: mine.length, learnedCount: learnedHere.length, total: members.length,
+    // ⭐ D178-2: of the skills you have here, how many are PROVEN (checked / built) and how many only claimed.
+    const provenCount = mine.filter(t => provenIds.has(t.id)).length, claimedCount = mine.length - provenCount;
+    families.push({ key: f.key, name: f.name, haveCount: mine.length, provenCount, claimedCount, learnedCount: learnedHere.length, total: members.length,
       drawn, more: members.length - drawn, order: order.map(t => t.slug),
-      tag: `${f.name.toUpperCase()} · you have ${mine.length + learnedHere.length} of ${members.length}${learnedHere.length ? ` · ${learnedHere.length} learned` : ""}` });
+      tag: `${f.name.toUpperCase()} · ${familyCountLine({ provenCount, claimedCount, learnedCount: learnedHere.length, total: members.length })}` });
   }
 
   // M5 · the side panel's facts (the owner's chosen sentences, verbatim patterns).
