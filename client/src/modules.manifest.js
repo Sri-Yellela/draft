@@ -185,6 +185,7 @@ export const SHARED = Object.freeze({
   "components/ResumeEditorHost.jsx":    { what: "THE résumé editor's full-screen view — resume-master's editor embedded through rm-editor/1, Back / Esc returns (D157 option A)" },
   "components/ResumeEditorHost.css":    { what: "its look", owner: "components/ResumeEditorHost.jsx" },
   "components/AttemptResume.jsx":       { what: "an application attempt's résumé: open it in draft (read-only once sent) or download the PDF (D171 FIX 4)" },
+  "components/AttemptPosting.jsx":      { what: "an application's posting opened in place on Home: the JD as stored when it was made + Open the original (D171 FIX 3)" },
   "components/BoardBar.jsx":            { what: "the Full House bar", module: "fullHouseHeader" },
   "components/BoardHeadline.jsx":       { what: "the filter sentence", module: "fullHouseHeader" },
   "components/SortPanel.jsx":           { what: "the sort panel", module: "fullHouseHeader" },

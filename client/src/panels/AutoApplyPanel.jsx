@@ -48,6 +48,7 @@ import { A_PLUS_TOOL } from "../lib/applyTools.js";
 import { ChangesSummaryLine, WhatWeSentLink } from "../components/ResumeChangesPanel.jsx";
 import { postingClick } from "../lib/openPosting.js";
 import AttemptResume from "../components/AttemptResume.jsx";
+import AttemptPosting from "../components/AttemptPosting.jsx";
 
 // ============================================================
 // AutoApplyPanel — DRAFT HOUSE, THE ONE APPLICATION TRACKER (D146, owner 11-03; D113 UI before it)
@@ -827,10 +828,23 @@ export function AutoApplyPanel({ user = null } = {}) {
         <>
           {node.line && <p className="dh-fold__quiet">{node.line}</p>}
           {othersLine(row)}
-          {row?.applyUrl && (
-            <a className="dh-btn" href={row.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(row, e)}>The posting ↗</a>
-          )}
-          {node.jobId != null && <a className="dh-btn" href={jobDetailHref(node.jobId)}>On the board</a>}
+          {/* ⭐ D171 FIX 3: an application's posting opens IN PLACE — the JD as stored when it was made, Open the original,
+              and the Résumé beside it to compare. A pick is not an application yet: its posting is the live one. */}
+          {node.kind !== "pick" && (runJobOf(node) != null || node.jobId != null) ? (
+            <AttemptPosting runJobId={runJobOf(node)} jobId={node.jobId ?? null} fallbackUrl={row?.applyUrl || null}
+              className="dh-btn" noteClassName="dh-fold__quiet" actsClassName="dht-acts">
+              {!(node.kind === "approval" && !node.ref.resume?.available) && (
+                <AttemptResume runJobId={runJobOf(node)} jobId={node.jobId ?? null} sent={sentAlready(node)}
+                  company={node.company} artifactUrl={artifactUrl} className="dh-btn" />
+              )}
+              {node.jobId != null && <a className="dh-btn" href={jobDetailHref(node.jobId)}>On the board</a>}
+            </AttemptPosting>
+          ) : (<>
+            {row?.applyUrl && (
+              <a className="dh-btn" href={row.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(row, e)}>The posting ↗</a>
+            )}
+            {node.jobId != null && <a className="dh-btn" href={jobDetailHref(node.jobId)}>On the board</a>}
+          </>)}
         </>
       ) });
     return out;
@@ -860,12 +874,18 @@ export function AutoApplyPanel({ user = null } = {}) {
   // A Table-only row (an application recorded, imported or sent before Draft House saw it): what the history knows.
   const HistoryBody = ({ row, pane: id }) => {
     const h = row.hist || {};
-    if (id === "posting") return (
+    // ⭐ D171 FIX 3: the posting opens in place here too — the person's own application's copy, else today's, said so.
+    if (id === "posting") return row.jobId != null ? (
+      <AttemptPosting jobId={row.jobId} fallbackUrl={h.applyUrl || null}
+        className="dh-btn" noteClassName="dh-fold__quiet" actsClassName="dht-acts">
+        {!h.imported && <AttemptResume recordId={h.recordId ?? null} jobId={row.jobId} sent company={row.company} className="dh-btn" />}
+        {h.postingListed && <a className="dh-btn" href={jobDetailHref(row.jobId)}>On the board</a>}
+      </AttemptPosting>
+    ) : (
       <div className="dht-acts">
         {h.applyUrl
           ? <a className="dh-btn" href={h.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(h, e)}>The posting ↗</a>
           : <p className="dh-fold__quiet">The posting is not stored for this one.</p>}
-        {h.postingListed && row.jobId != null && <a className="dh-btn" href={jobDetailHref(row.jobId)}>On the board</a>}
       </div>
     );
     if (id === "resume") return (

@@ -227,3 +227,7 @@
 }
 .posting__facts .posting__cell dd, .posting__facts .posting__cell dt { overflow-wrap: normal; word-break: normal; hyphens: manual; }
 @media (max-width: 560px) { .posting__facts .posting__cell { flex-basis: 40%; } }
+/* ⭐ D171 FIX 3 · the description alone (PostingText), in a Home row's "The posting" pane: the panel's body look, held to
+ * a reading height so the row's buttons stay in reach; the pane scrolls, never the page sideways. */
+.posting--kept { max-height: min(60vh, 560px); overflow: auto; overscroll-behavior: contain; margin: 4px 0 10px; }
+.posting--kept .posting__body > :first-child { margin-top: 0; }
