@@ -29,7 +29,7 @@ const ATLAS_FILES = ["client/src/pages/atlas/AtlasPage.jsx", "client/src/pages/a
   // ⭐ D172 (changed on purpose): the redesign's files are Atlas files too — their tokens must exist in all four themes.
   "client/src/pages/atlas/LibraryPanel.jsx", "client/src/pages/atlas/LibraryPanel.css", "client/src/pages/atlas/YourRun.jsx",
   "client/src/pages/atlas/YourRun.css", "client/src/pages/atlas/TrackBoard.jsx", "client/src/pages/atlas/TrackBoard.css",
-  "client/src/pages/atlas/LibraryGuides.jsx", "client/src/pages/atlas/RoleReadiness.jsx", "client/src/pages/atlas/RoleReadiness.css", "client/src/pages/atlas/LessonDeck.jsx"];
+  "client/src/pages/atlas/LibraryGuides.jsx", "client/src/pages/atlas/RoleReadiness.jsx", "client/src/pages/atlas/RoleReadiness.css", "client/src/pages/atlas/LessonDeck.jsx", "client/src/pages/atlas/CompareRoles.jsx"];
 
 // ── the page, rendered ──────────────────────────────────────────────────────────────────────────────
 const CLIENT = path.resolve("client");
@@ -315,7 +315,7 @@ test("D105 P4 · Admin → Data → Atlas lists the drafts and publishes them; t
       "pages/atlas/AtlasTree.jsx", "pages/atlas/YourMap.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js",
       "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/YourCourse.jsx",
       "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx",
-      "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js", "pages/atlas/LibraryPanel.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/RoleReadiness.jsx", "pages/atlas/roleReadinessModel.js", "pages/atlas/LessonDeck.jsx"].sort());   // + D172 (2) the Library, + D115 Learn, + D116 the tree, + D117 the circle, + D120 the course on the home, + D117 C12 the deck, + D143 the navigator, + D142 the check, + D167 its own navigation
+      "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js", "pages/atlas/LibraryPanel.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/RoleReadiness.jsx", "pages/atlas/roleReadinessModel.js", "pages/atlas/LessonDeck.jsx", "pages/atlas/CompareRoles.jsx"].sort());   // + D172 (2) the Library, + D115 Learn, + D116 the tree, + D117 the circle, + D120 the course on the home, + D117 C12 the deck, + D143 the navigator, + D142 the check, + D167 its own navigation
   assert.deepEqual(MODULES.atlas.css, ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasPanels.css", "pages/atlas/LibraryPanel.css", "pages/atlas/YourRun.css", "pages/atlas/TrackBoard.css", "pages/atlas/RoleReadiness.css"]);   // ⭐ A136: the nav card is components/PlaceNav.jsx   // + D115 Learn, + D117 the circle, + D116 the tree, + D167 the nav
   assert.ok(MODULES.admin.members.includes("panels/adminAtlas.jsx"));
   for (const f of [...MODULES.atlas.members, ...MODULES.atlas.css]) assert.ok(fs.existsSync(`client/src/${f}`), f);

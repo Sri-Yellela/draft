@@ -76,7 +76,7 @@ import { learnStepForNode } from "../services/learn/learnLinks.js";
 import { servedLearnContent } from "../services/learn/learnContent.js";
 import { learnSourceSummary } from "../services/atlas/learnSources.js";
 import { yourRun } from "../services/atlas/points.js";
-import { roleReadiness } from "../services/atlas/roleReadiness.js";
+import { roleReadiness, compareRoles } from "../services/atlas/roleReadiness.js";
 import { aimRoleFor } from "../services/navigator.js";
 import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts } from "../services/atlas/atlasDefinitions.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
@@ -174,6 +174,14 @@ export function createAtlasRouter(db) {
   // top skills with nothing marked as had. Private either way (it can carry the reader's skills), never cached shared.
   // ⭐ D178-3 · readiness for a role: the share of its demand you have PROVEN (claims shown apart). Signed in; private.
   // No role named → the person's aim on Your route (D143).
+  // ⭐ D178-3 (Idea E) · compare up to four roles: ?roles=a|b|c|d (titles or slugs). Signed in; private.
+  router.get("/readiness/compare", (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (req.user?.id == null) return res.status(401).json({ error: "sign_in" });
+    const roles = String(req.query.roles ?? "").slice(0, 400).split("|").map(s => s.trim()).filter(Boolean);
+    if (!roles.length) return res.status(400).json({ error: "roles_required", message: "Name up to four roles to compare." });
+    res.json(compareRoles(db, req.user.id, roles));
+  });
   router.get("/readiness", (req, res) => {
     res.set("Cache-Control", "private, no-store");
     if (req.user?.id == null) return res.status(401).json({ error: "sign_in" });

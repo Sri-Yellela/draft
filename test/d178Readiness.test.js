@@ -47,3 +47,18 @@ test("d178NeverCalledExpertise: 'ready', never 'expertise' or a guarantee; the s
   assert.match(read("services/atlas/roleReadiness.js"), /line: `from \$\{f\.role\.postings\} live posting/);
   assert.match(read("client/src/pages/atlas/RoleReadiness.jsx"), /data-rr-scope=""/);
 });
+
+test("d178CompareRoles (Idea E): the skills-by-role grid and the skill that lifts the most roles", async () => {
+  const { compareFrom } = await import("../services/atlas/roleReadiness.js");
+  const mk = (slug, name, skills) => ({ found: true, thin: false, role: { slug, name, postings: 100 }, ...readinessOf(skills, new Map([["sql", "proven"], ["python", "claimed"]])) });
+  const c = compareFrom([
+    mk("de", "Data Engineer", [{ slug: "sql", name: "SQL", share: 80 }, { slug: "python", name: "Python", share: 70 }, { slug: "spark", name: "Spark", share: 40 }]),
+    mk("ds", "Data Scientist", [{ slug: "python", name: "Python", share: 85 }, { slug: "stats", name: "Statistics", share: 60 }]),
+    mk("be", "Backend Engineer", [{ slug: "python", name: "Python", share: 40 }, { slug: "sql", name: "SQL", share: 50 }]),
+    { found: false, reason: "unknown_role" },
+  ]);
+  assert.deepEqual(c.lifts, { slug: "python", name: "Python", roles: 3, of: 3, state: "claimed" }, "Python is in all three roles and only claimed");
+  assert.deepEqual(c.grid[0].shares, { de: 70, ds: 85, be: 40 });
+  assert.equal(c.roles.length, 4, "an unknown role stays in the list, said as such");
+  assert.equal(compareFrom([mk("de", "DE", [{ slug: "x", name: "X", share: 50 }])]).lifts, null, "one role lifts nothing 'at once'");
+});

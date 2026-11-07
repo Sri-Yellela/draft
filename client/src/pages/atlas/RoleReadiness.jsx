@@ -10,7 +10,7 @@ import { api } from "../../lib/api.js";
 import { dialArcs, TIER_LABEL } from "./roleReadinessModel.js";
 import "./RoleReadiness.css";
 
-function Dial({ ready, waiting }) {
+export function Dial({ ready, waiting }) {
   const a = dialArcs(ready, waiting);
   return (
     <svg className="rr-dial" viewBox="0 0 120 120" aria-hidden="true" focusable="false">
