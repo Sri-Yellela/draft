@@ -39,3 +39,21 @@
 .rr-tabs button { all: unset; cursor: pointer; padding: 7px 14px; border-radius: 11px; color: var(--c-ink-muted); font-weight: 600; font-size: 13.5px; }
 .rr-tabs button[aria-pressed="true"] { background: var(--c-surface); color: var(--c-ink); }
 .rr-tabs button:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+
+/* D178-3 (Idea E) · compare roles. */
+.rr-cmp__chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.rr-cmp__chips li { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-surface); font-weight: 600; }
+.rr-cmp__x { all: unset; cursor: pointer; color: var(--c-ink-muted); padding: 0 2px; }
+.rr-cmp__x:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.rr-cmp__dials { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin: 10px 0 14px; }
+.rr-cmp__dial { display: grid; justify-items: center; gap: 4px; text-align: center; }
+.rr-cmp__dial .rr-dial { width: 100px; height: 100px; }
+.rr-cmp__none { width: 100px; height: 100px; border-radius: 50px; border: 2px dashed var(--c-border); box-sizing: border-box; }
+.rr-cmp__lifts { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; background: var(--c-surface-tint); color: var(--c-ink); }
+.rr-cmp__gridwrap { overflow-x: auto; }
+.rr-cmp__grid { border-collapse: collapse; min-width: 100%; font-size: 14px; }
+.rr-cmp__grid th, .rr-cmp__grid td { padding: 6px 10px; border-bottom: 1px solid var(--c-border); text-align: center; }
+.rr-cmp__grid th[scope="row"], .rr-cmp__grid thead th:first-child { text-align: left; font-weight: 600; color: var(--c-ink); }
+.rr-cmp__dot { display: inline-block; width: calc(var(--s) * 1px); height: calc(var(--s) * 1px); border-radius: 12px; border: 2px solid var(--c-accent); box-sizing: border-box; }
+.rr-cmp__grid tr[data-rr-state="proven"] .rr-cmp__dot { background: var(--c-success); border-color: var(--c-success); }
+.rr-cmp__grid tr[data-rr-state="claimed"] .rr-cmp__dot { background: var(--c-accent); opacity: 0.5; }

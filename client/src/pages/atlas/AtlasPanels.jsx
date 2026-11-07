@@ -23,6 +23,7 @@ import { flatSteps, stepState } from "./learnModel.js";
 import { learnStages, overviewStats, panelHref } from "./atlasPanels.js";
 import "./AtlasPanels.css";
 import RoleReadiness from "./RoleReadiness.jsx";
+import CompareRoles from "./CompareRoles.jsx";
 
 const nodeHref = (base, slug) => `${base}/${encodeURIComponent(slug)}`;
 const num = (n) => Number(n || 0).toLocaleString("en-US");
@@ -121,17 +122,20 @@ export function OverviewPanel({ base }) {
  */
 export function YourSkillsSlot({ signedIn, base = "/app/atlas" }) {
   // ⭐ D178-3 (owner's pick): tabs — For a role (the default: readiness, the tree grown for the role, what moves your %)
-  // · All my skills (D169's list and map, D142's check — unchanged). Compare roles joins when it is built (no empty tab).
+  // · Compare roles (Idea E: up to four dials, the skills-by-role grid, the skill that lifts the most roles)
+  // · All my skills (D169's list and map, D142's check — unchanged).
   const [tab, setTab] = useState(signedIn ? "role" : "all");
   return (
     <div className="atl-pan" data-atlas-panel-body="your-skills" data-atlas-slot="your-skills">
       {signedIn && (
         <div className="rr-tabs" role="tablist" aria-label="Your skills" data-skills-tabs="">
           <button type="button" role="tab" aria-selected={tab === "role"} aria-pressed={tab === "role"} onClick={() => setTab("role")} data-skills-tab="role">For a role</button>
+          <button type="button" role="tab" aria-selected={tab === "compare"} aria-pressed={tab === "compare"} onClick={() => setTab("compare")} data-skills-tab="compare">Compare roles</button>
           <button type="button" role="tab" aria-selected={tab === "all"} aria-pressed={tab === "all"} onClick={() => setTab("all")} data-skills-tab="all">All my skills</button>
         </div>
       )}
       {signedIn && tab === "role" && <RoleReadiness base={base} />}
+      {signedIn && tab === "compare" && <CompareRoles base={base} />}
       <div hidden={signedIn && tab !== "all"} data-skills-all="">
         <SkillsListAndMap signedIn={signedIn} base={base} />
         <section className="atl-pan__more" data-atlas-readiness="" aria-label="The full readiness check">
