@@ -6800,13 +6800,33 @@ let classifyBacklog = null;
       `,
     },
     {
+      // ⛔ D171 FIX 1 + FIX 2 (owner 11-06: "the prophetic job run took place, which i suppose the agent triggered" ·
+      // "theres also an unknown run at 6am utc"): EVERY RUN AND EVERY MODEL CALL SAYS WHO STARTED IT, AND WHICH KEY PAID.
+      // apply_runs.started_by = user · scheduler · admin · agent · test · system (shared/startedBy.js) and
+      // .started_by_ref = the actor (user:3, admin:adm_…, a script's name). usage_events.started_by = the same kinds, from
+      // the request / the run / the scheduler that made the call (services/startedByContext.js); usage_events.key_label =
+      // the key that paid — draft's ANTHROPIC_KEY_LABEL ("draft-prod", "local-dev"), or the tools service's for the
+      // résumé generations it makes, so Admin → System → Model usage separates local-dev and production spend.
+      // users.test_account = 1 for an account made for checks: in production an agent- or test-started run is refused on
+      // any other account (FIX 1's rule). NULL on every older row = "not recorded". Schema only (D151 Rule 1): five O(1)
+      // column adds, no index, no backfill.
+      id: "224_started_by_and_key_label",
+      sql: `
+        ALTER TABLE apply_runs ADD COLUMN started_by TEXT;
+        ALTER TABLE apply_runs ADD COLUMN started_by_ref TEXT;
+        ALTER TABLE usage_events ADD COLUMN started_by TEXT;
+        ALTER TABLE usage_events ADD COLUMN key_label TEXT;
+        ALTER TABLE users ADD COLUMN test_account INTEGER;
+      `,
+    },
+    {
       // ⭐ D171 FIX 3 (owner 11-06: he could not open the job from Home to compare the JD with the résumé): THE JOB
       // DESCRIPTION, AS IT READ WHEN THE APPLICATION WAS MADE. 129 snapshotted the posting's title, company, URL and
       // location onto the run-job; the description stayed on scraped_jobs, where a re-crawl rewrites it and a closed
       // posting stops being the one applied to. It is now copied at the same moment, in the same transaction
       // (routes/apply.js), and served by routes/applicationPosting.js. NULL: made before this — the reader falls back to
       // the live posting and says so. No backfill: today's text is not what was applied to. Merge plan: apply_run_jobs
-      // moves already. After 223.
+      // moves already. After 224.
       id: "225_posting_description_snapshot",
       sql: `
         ALTER TABLE apply_run_jobs ADD COLUMN posting_description TEXT;
