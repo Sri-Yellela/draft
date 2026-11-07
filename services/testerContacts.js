@@ -12,6 +12,7 @@
 // admins are left out by default (testersReport.excludedSets), counted apart.
 import { excludedSets } from "./testersReport.js";
 import { SURVEY, STANDALONE_SURVEY, SURVEY_AFTER_SENT } from "./survey.js";
+import { retentionNote } from "./testingRecords.js";
 
 const TEXT_KEYS = [...new Set([...SURVEY, ...STANDALONE_SURVEY]
   .flatMap(q => [q, ...(q.follow ? [q.follow] : [])])
@@ -66,7 +67,7 @@ export function testerContacts(db, { exclude = true } = {}) {
     });
   }
   people.sort((a, b) => b.lastAt - a.lastAt);
-  return { people, excluded, messages: people.reduce((n, p) => n + p.feedback.length, 0) };
+  return { people, excluded, messages: people.reduce((n, p) => n + p.feedback.length, 0), retention: retentionNote(db) };
 }
 
 const iso = (t) => (t ? new Date(t * 1000).toISOString().replace("T", " ").slice(0, 16) + "Z" : "");

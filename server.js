@@ -40,6 +40,7 @@ import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow, ineligi
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
 import { runAutoTick, runPicksFollowUps } from "./services/autoScheduler.js";
+import { sweepTestingRecords } from "./services/testingRecords.js";
 import { startedByMiddleware, withStartedBy, SCHEDULER_STARTED } from "./services/startedByContext.js";
 import { prodKeyOutsideProduction } from "./services/modelUsage.js";
 import { configureNotify, notifyEvent } from "./services/notify.js";
@@ -7619,6 +7620,13 @@ function runExpiredJobsCleanup() {
 
 // ── Cron: daily backup 02:00, re-scrape 07:00, cleanup 03:00 ──
 cron.schedule("0 3 * * *", runExpiredJobsCleanup);
+// ⛔ Owner 11-07 · the early-testing records the privacy page keeps 90 days are deleted after them (survey answers exempt).
+cron.schedule("40 3 * * *", () => {
+  try {
+    const r = sweepTestingRecords(db);
+    console.log(`[testing-records] swept before ${new Date(r.cutoff * 1000).toISOString().slice(0, 10)}: ${Object.entries(r.deleted).map(([t, n]) => `${t} ${n}`).join(" · ")} (survey answers kept)`);
+  } catch (e) { console.error("[testing-records] sweep failed:", e.message); }
+});
 
 // Refresh ATS job cache daily at 04:00 ET
 cron.schedule("0 4 * * *", async () => {

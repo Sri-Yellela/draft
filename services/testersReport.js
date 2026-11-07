@@ -10,6 +10,7 @@
 import { SURVEY, STANDALONE_SURVEY, RATED, MID_MINUTES, MID_PER_WEEK } from "./survey.js";
 import { HIDDEN_TAGS } from "./userAdmin.js";
 import { TOUR_STEPS } from "../shared/trialTour.js";
+import { retentionNote } from "./testingRecords.js";
 
 /** Owner 11-02: a tester whose last trial event is this recent is "still going", not one who left. */
 export const STILL_GOING_SECONDS = 30 * 60;
@@ -228,6 +229,7 @@ export function testersReport(db, { period = "invites", source = "all", exclude 
     answers, people, tried, surveyOnly: source === "trial" ? 0 : saRows.length,
     small: answers < SMALL_N,
     headline, funnel, who, problem, stars, thought, quotes: quotes.map(({ at, ...q }) => q),
+    retention: retentionNote(db),   // owner 11-07: older activity / feedback is no longer available, and says so
     copyText: headline.filter(h => h.sentence).map(h => h.sentence).join("\n"),
   };
 }
