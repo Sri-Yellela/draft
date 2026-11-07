@@ -3,7 +3,7 @@
 // Every write takes a reason and leaves an admin_audit_log row the person's timeline shows (services/userAdmin.js).
 // ⛔ No route here sets a password (D88: send a reset link, never set one) and none impersonates a user.
 import express from "express";
-import { listPeople, personDetail, setOverride, clearOverride, setStatus, addNote, setTag, writeAudit, UserAdminError } from "../services/userAdmin.js";
+import { listPeople, personDetail, setOverride, clearOverride, setStatus, setAccessLevel, addNote, setTag, writeAudit, UserAdminError } from "../services/userAdmin.js";
 import { normalisePlanTier } from "../services/entitlements.js";
 import { actorOf } from "../services/actor.js";
 
@@ -48,6 +48,15 @@ export function createAdminPeopleRouter({ db, requireAdmin, signOutEverywhere, s
       const out = setStatus(db, { userId: id(req), status: req.body?.status, reason: reasonOf(req), actorId: actor(req) });
       // a suspension ends every session and token at once — the account is refused from the next request anyway
       if (out.status === "suspended") await signOutEverywhere(id(req), "admin_suspend");
+      res.json(out);
+    } catch (e) { fail(res, e); }
+  });
+
+  // ⛔ Owner 11-07: Full · Standard · No access (services/userAdmin.js setAccessLevel). No access signs them out at once.
+  r.post("/:id/access", requireAdmin, async (req, res) => {
+    try {
+      const out = setAccessLevel(db, { userId: id(req), level: req.body?.level, reason: reasonOf(req), actorId: actor(req) });
+      if (out.signOut) await signOutEverywhere(id(req), "admin_access_none");
       res.json(out);
     } catch (e) { fail(res, e); }
   });

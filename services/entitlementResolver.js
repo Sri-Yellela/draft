@@ -31,6 +31,20 @@ const GLOBAL = {
   },
 };
 
+// ⛔ Owner 11-07 · FULL ACCESS ("in the admin panel design an override to decide which user gets what level of access …
+// the reviewer from yc should be able to visit current state of site"): users.full_access = 1 (services/userAdmin.js setAccessLevel)
+// lifts the PLAN — plan features as the top plan, unlimited résumé generations, the most Drafts the ceiling allows.
+// It never touches the apply-safety caps, auto-apply or the A+ swap (a_plus_default): Full never sends more on its own.
+export function hasFullAccess(db, userId) {
+  return row(db, "SELECT full_access FROM users WHERE id = ?", userId)?.full_access === 1;
+}
+const FULL_LIFTS = {
+  draft_slots: (f) => f.ceiling,
+  resume_generations_per_day: () => null,
+  resume_generations_per_month: () => null,
+};
+const TOP_PLAN = "PRO";
+
 // The OVERRIDE layer: a per-user value, or undefined.
 const OVERRIDE = {
   resume_generations_per_day: (db, userId) => {
@@ -81,11 +95,17 @@ export function resolveEntitlement(db, userId, feature, { env = process.env, ctx
       const until = set.expires_at ? `, until ${new Date(set.expires_at * 1000).toISOString().slice(0, 10)}` : "";
       return clamp({ source: "override", value: set.value, detail: `override by an admin${until} — ${set.reason}` });
     }
+  }
+  // An admin's own per-feature override (above) still wins over Full; Full wins over the plan and user_limits.
+  const full = !f.hard && userId != null && hasFullAccess(db, userId);
+  if (full && FULL_LIFTS[feature]) return { source: "access", value: FULL_LIFTS[feature](f), detail: "Full access (set by an admin)" };
+  if (!f.hard && userId != null) {
     const o = OVERRIDE[feature]?.(db, userId);
     if (o !== undefined) return clamp({ source: "override", detail: null, ...o });
   }
   if (f.plan && userId != null) {
-    const tier = c.planTier ?? row(db, "SELECT plan_tier FROM users WHERE id = ?", userId)?.plan_tier ?? "BASIC";
+    const tier = full ? TOP_PLAN : (c.planTier ?? row(db, "SELECT plan_tier FROM users WHERE id = ?", userId)?.plan_tier ?? "BASIC");
+    if (full) { const p = f.plan(tier, c); if (p !== undefined) return { value: p, source: "access", detail: "Full access — the top plan's value" }; }
     const p = f.plan(tier, c);
     if (p !== undefined) return { value: p, source: "plan", detail: `plan: ${String(tier || "BASIC").toUpperCase()}` };
   }
