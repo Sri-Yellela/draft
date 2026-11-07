@@ -185,7 +185,7 @@ test("D100 · unattended (FULL AUTO, no approved values): only for a FULL AUTO u
     setCostAlarmThreshold(db, 5, { reason: "test" });
     for (const id of Object.keys(ATTESTED)) recordAttestation(db, id, { reason: "tested for this synthetic run" });
     assert.equal((await t.lease()).body.run.id, id2);
-    await t.report({ remoteId: id2, outcome: "submitted", fields: [{ label: "First Name", value: "Dana" }] });
+    await t.report({ remoteId: id2, outcome: "submitted", fields: [{ label: "First Name", value: "Dana" }], evidence: { confirmation: "Thank you for applying" } });   // D175 FA5: a submit carries its evidence
     assert.equal(db.prepare("SELECT submitted_by FROM apply_run_jobs WHERE id=?").pluck().get(g2.runJobId), "auto");
   } finally { t.stop(); }
 });
