@@ -69,6 +69,7 @@ function isAtsHost(host) {
  *   known     — the curated table (shared/companyLogos.js); trusted as written.
  *   careers   — the host of the company's own posting when it is not an ATS (careers.duolingo.com):
  *               the employer itself put the job there. Trusted.
+ *   named     — the company's name IS a domain ("Oscilar.com"): it named its own site. Trusted.
  *   guess     — <name>.com, and ONLY .com. ⛔ The first build also tried .io/.co/.ai/.app, and "Ramp"
  *               resolved to ramp.app — a different, German company titled "Ramp.app" — because ramp.com
  *               serves no <title> to check. A guess is accepted only when its homepage names the company.
@@ -83,6 +84,9 @@ export function candidateDomains(company, urls = []) {
   for (const u of urls) {
     try { const host = new URL(u).hostname; if (!isAtsHost(host)) add(registrable(host), "careers"); } catch { /* not a URL */ }
   }
+  // D170 (5): a company that NAMES itself by its domain ("Oscilar.com") — the guess below made it "oscilarcom.com".
+  const asDomain = lower.match(/^(?:www\.)?([a-z0-9][a-z0-9-]*\.(?:com|io|ai|co|app|dev|org|net|tech|health))$/)?.[1];
+  if (asDomain) add(asDomain, "named");
   const slug = nameTokens(company).replace(/\s+/g, "");
   if (slug) add(`${slug}.com`, "guess");
   return out;
@@ -142,11 +146,43 @@ async function get(fetchImpl, url, { max }) {
  * The providers, in order. Each takes (domain, ctx) and returns a URL to try, or null. They are
  * DIFFERENT SOURCES so that one failing never makes the next fail too.
  */
+//
+// ⛔ D170 (5), 11-06 — production: "provider(s) with attempts and NO success: site-favicon, duckduckgo", 13 of 40
+// companies without a logo. MEASURED (a77LogoProvidersLive: all three alive on known sites; the chain replayed on 80
+// crawled companies: site-declared 50 / 63, site-favicon 0 / 7, duckduckgo 0 / 7): the two were not dead — they
+// only ever see the companies site-declared could not serve, and those are SVG-ONLY sites (DoubleVerify, Findigs,
+// Tolmo, Kiloforge, Manifest: <link rel=icon type=image/svg+xml>, /favicon.ico 404 or an SVG). DuckDuckGo's icon
+// service is a cached copy of the same /favicon.ico, so it fails on exactly those sites: it was never a different
+// source for them. We keep raster only (no SVG from our origin), so these need someone who RASTERISES the site's
+// icon: Google's favicon service does (a PNG, 404 + a placeholder globe when it has none — refused by !res.ok).
+// Only the company's DOMAIN is sent; it is a server-side fetch, the bytes are stored and served first-party.
+export const GOOGLE_FAVICON = "https://t1.gstatic.com/faviconV2";
 export const PROVIDERS = Object.freeze([
-  { name: "site-declared", urls: (domain, ctx) => ctx.declared || [] },
-  { name: "site-favicon",  urls: (domain) => [`https://${domain}/favicon.ico`] },
-  { name: "duckduckgo",    urls: (domain) => [`${LOGO_HOST}/${domain}.ico`] },
+  { name: "site-declared",  urls: (domain, ctx) => ctx.declared || [] },
+  { name: "site-favicon",   urls: (domain) => [`https://${domain}/favicon.ico`] },
+  { name: "google-favicon", urls: (domain) => [`${GOOGLE_FAVICON}?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(`https://${domain}`)}&size=128`] },
+  { name: "duckduckgo",     urls: (domain) => [`${LOGO_HOST}/${domain}.ico`] },
 ]);
+
+/**
+ * ⛔ D170 (5) · A LATE PROVIDER'S ZERO IS NOT A DEATH. Providers after the first are tried only on the companies the
+ * earlier ones could not serve — the hardest ones — so "attempts and no success" alone named two live providers dead.
+ * Before a provider is named, it is asked once about sites whose icons are known to exist; dead = it fails those too.
+ */
+export const CANARY_DOMAINS = Object.freeze(["github.com", "stripe.com", "wikipedia.org"]);
+export async function providerAnswers(provider, { fetchImpl = globalThis.fetch, domains = CANARY_DOMAINS } = {}) {
+  for (const domain of domains) {
+    let declared = [];
+    if (provider.name === "site-declared") {
+      try { const page = await get(fetchImpl, `https://${domain}/`, { max: MAX_HTML }); declared = declaredIcons(page.buf.toString("utf8"), page.url); }
+      catch { continue; }
+    }
+    for (const url of provider.urls(domain, { declared })) {
+      try { const { buf } = await get(fetchImpl, url, { max: MAX_BYTES }); if (sniffImage(buf)) return true; } catch { /* next */ }
+    }
+  }
+  return false;
+}
 
 /**
  * Resolve ONE company: find a domain the company's own homepage confirms, then the first provider
@@ -219,7 +255,15 @@ export async function resolveCompanyLogos(db, { fetchImpl = globalThis.fetch, li
     if (r.status === "ok") ok++; else none++;
   }
   // ⛔ A PROVIDER WITH ATTEMPTS AND NO SUCCESS IS NAMED. This is the line that would have caught Clearbit.
-  const dead = Object.entries(stats).filter(([, s]) => s.ok === 0 && s.failed >= 5).map(([p]) => p);
+  // D170 (5): … once it has also failed the canary sites (providerAnswers); a live one is marked canary "ok" in the log.
+  const dead = [];
+  for (const [name, s] of Object.entries(stats)) {
+    if (!(s.ok === 0 && s.failed >= 5)) continue;
+    const p = PROVIDERS.find(x => x.name === name);
+    const alive = p ? await providerAnswers(p, { fetchImpl }).catch(() => false) : false;
+    s.canary = alive ? "ok" : "failed";
+    if (!alive) dead.push(name);
+  }
   return { scanned: due.length, ok, none, providers: stats, dead };
 }
 
