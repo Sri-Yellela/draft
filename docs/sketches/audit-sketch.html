@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft — the 3-minute audit (sketch)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark;
+  --bg:#1B1B1B;--card:#262626;--raise:#2F2F2F;--line:#363636;--ink:#FFFFFF;--body:#A3A3A3;--muted:#7A7A7A;
+  --accent:#FBD3C4;--accent2:#F2C2B2;--on-accent:#1B1B1B;--glow:rgba(251,211,196,.16);--brand:#FD4600;--ok:#8FD6A8;
+  --font:"Inter Tight",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--serif:"Instrument Serif",Georgia,serif}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--ok:#1E7A43}}
+:root[data-theme="light"]{color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--ok:#1E7A43}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--font);-webkit-font-smoothing:antialiased;min-height:100vh}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.top{display:flex;justify-content:space-between;align-items:center;padding:18px 22px}
+.mark{display:flex;align-items:center;gap:8px;font-weight:700;font-style:italic;font-size:20px}
+.slash{display:inline-block;width:8px;height:22px;background:var(--brand);transform:skewX(-20deg)}
+.prog{width:160px;height:4px;border-radius:3px;background:var(--line);overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s}
+.stage{max-width:680px;margin:0 auto;padding:6vh 22px 80px}
+.view{animation:in .4s ease}
+@keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.view{animation:none}}
+.eyebrow{color:var(--accent);font-size:14px;margin:0 0 10px}
+h1{font-weight:500;font-size:52px;line-height:1.02;letter-spacing:-.035em;margin:0 0 16px}
+h2{font-weight:500;font-size:38px;line-height:1.08;letter-spacing:-.03em;margin:0 0 18px}
+.lead{color:var(--body);font-size:19px;line-height:1.5;margin:0 0 28px;max-width:36ch}
+.meta{color:var(--muted);font-size:14px;margin-top:14px}
+.cta{display:block;width:100%;border:0;cursor:pointer;background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent);font-weight:600;font-size:18px;padding:18px 20px;border-radius:20px;box-shadow:0 14px 34px var(--glow);text-align:center}
+.cta[disabled]{opacity:.45;cursor:default;box-shadow:none}
+.quiet{all:unset;cursor:pointer;color:var(--body);font-weight:600;font-size:15px;padding:10px 4px}
+.quiet:hover{color:var(--ink)}
+.opts{display:grid;gap:10px;margin:0 0 26px}
+.opt{all:unset;cursor:pointer;background:var(--card);border-radius:18px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:14px}
+.opt:hover{background:var(--raise)}
+.opt b{font-weight:600;font-size:17px}
+.opt span{color:var(--muted);font-size:14px;text-align:right}
+.opt.sel{outline:2px solid var(--accent)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 26px}
+/* the role card */
+.rc{background:var(--card);border-radius:28px;padding:24px;margin:0 0 24px}
+.rc .t{font:400 34px/1.06 var(--serif);margin:0 0 4px}
+.rc .s{color:var(--muted);font-size:14px;margin:0 0 18px}
+.rc .pay{color:var(--accent);font-size:40px;font-weight:500;letter-spacing:-.03em;line-height:1.05}
+.rc .note{color:var(--muted);font-size:13.5px;margin-top:6px}
+.rc .rule{height:1px;background:var(--line);margin:18px 0}
+.rc ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.rc ol li{display:grid;grid-template-columns:26px 1fr;font-size:17px}
+.rc ol li i{font-style:normal;color:var(--accent)}
+/* a question */
+.qn{color:var(--muted);font-size:14px;margin:0 0 18px}
+.choices{display:grid;gap:10px;margin:0 0 20px}
+.ch{all:unset;cursor:pointer;background:var(--card);border-radius:18px;padding:16px 18px;display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;font-size:16.5px;line-height:1.45}
+.ch:hover{background:var(--raise)}
+.ch .k{color:var(--muted);font-weight:600}
+.ch.right{outline:2px solid var(--ok)}
+.ch.wrong{outline:2px solid var(--accent)}
+.ch.dim{opacity:.45}
+.why{background:var(--raise);border-radius:18px;padding:16px 18px;margin:0 0 20px;font-size:15.5px;color:var(--body)}
+.why b{color:var(--ink);font-weight:600}
+.why p{margin:0 0 8px}.why p:last-child{margin:0}
+/* the result */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 26px}
+.two .c{background:var(--card);border-radius:20px;padding:18px}
+.two .n{font-size:34px;font-weight:500;letter-spacing:-.03em;color:var(--accent);line-height:1.1}
+.two .tt{color:var(--body);font-size:14px;margin-top:4px}
+.list{display:grid;gap:10px;margin:0 0 26px}
+.li{background:var(--card);border-radius:18px;padding:15px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.li b{font-weight:600}
+.li span{color:var(--muted);font-size:14px}
+.share{color:var(--muted);font-size:14px;margin-top:16px;text-align:center}
+.share b{color:var(--ink);font-weight:500}
+.note2{max-width:680px;margin:0 auto;padding:0 22px 40px;color:var(--muted);font-size:12.5px}
+@media (max-width:620px){h1{font-size:40px}h2{font-size:28px}.rc .pay{font-size:32px}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="top"><span class="mark"><span class="slash" aria-hidden="true"></span>draft</span><div class="prog" aria-hidden="true"><i id="bar"></i></div></div>
+<main class="stage" id="stage" aria-live="polite"></main>
+<p class="note2">Sketch for D150 T05. The role card's numbers are illustrative; the build takes them from our open postings (pay shown only with 20+ postings that state it). The questions are the approved Data Engineer items from the question bank.</p>
+<script>
+(function () {
+  var Q = [
+    { skill: "Data pipelines", stem: "Your daily revenue job runs at 00:30. Mobile events can arrive up to 48 hours late, and finance says yesterday's numbers keep changing after they report them. What do you change?",
+      ch: ["Move the job to 03:00 so more events have arrived", "Aggregate by event time with a watermark, and idempotently reprocess the last two days' partitions on each run", "Drop events that arrive after the job has run", "Aggregate by the time events arrive instead of when they happened"], c: 1,
+      why: ["Three hours doesn't cover a 48-hour delay; the numbers will still move.", "Event time keeps each sale on the right day, and reprocessing a fixed window idempotently makes late data land correctly without duplicates.", "That loses real revenue; the report becomes stable but wrong.", "Stable, but it attributes sales to the wrong day."] },
+    { skill: "Streaming", stem: "Your Kafka-to-warehouse loader writes duplicate rows whenever a consumer restarts. What's the fix?",
+      ch: ["Use larger batches so restarts happen less often", "Turn off auto-commit and change nothing else", "Increase the consumer's retry count", "Write with an upsert keyed on the event id, and commit offsets only after the write succeeds"], c: 3,
+      why: ["Fewer restarts, same bug.", "A crash between write and commit still replays the batch.", "More retries mean more chances to write the same event twice.", "Idempotent writes make a replay harmless, and committing after the write means nothing is skipped."] },
+    { skill: "Data modelling", stem: "Analysts query a 2 TB fact table, almost always filtered by date and then by customer. Queries take minutes. What do you do first?",
+      ch: ["Split the table into one table per customer", "Partition by date and cluster (or sort) by customer", "Add an index on every column", "Add more warehouse nodes"], c: 1,
+      why: ["Thousands of tables break every cross-customer query.", "Partitioning skips whole dates, and clustering by customer makes the remaining scan small.", "Columnar warehouses don't use row indexes this way.", "Costs more; every query still scans data it doesn't need."] },
+    { skill: "Data contracts", stem: "An upstream team renamed a field without warning and your pipeline silently loaded nulls for a week. How do you stop this happening again?",
+      ch: ["Pin your pipeline to the old schema permanently", "Agree a data contract with a schema registry and compatibility rules, and fail fast in staging when a change breaks it", "Ask the upstream team to email you before changes", "Wrap the parser in try/catch and skip rows that fail"], c: 1,
+      why: ["You'd just break later and harder.", "Enforced compatibility makes breaking changes visible before production, and failing fast turns a silent week into a loud minute.", "Helpful, but nothing enforces it.", "Skipping rows hides the problem."] },
+    { skill: "Backfills", stem: "You need to backfill three years of history into a table that dashboards read all day. How do you run it?",
+      ch: ["Truncate the table and reload everything in one go", "One large job over the whole range, overnight", "Run it on the production cluster at peak, so it finishes fastest", "In date-partition chunks, idempotently, with bounded parallelism and a row-count check per chunk"], c: 3,
+      why: ["Dashboards show a half-filled table while it reloads.", "If it fails at 80% you start again.", "It competes with the readers you're protecting.", "Chunks retry one at a time, reruns are safe, the dashboards stay protected, and counts prove each chunk."] },
+    { skill: "Data quality", stem: "A dashboard suddenly shows a spike in nulls in a key column. What should have caught this before anyone saw it?",
+      ch: ["A fix in the BI layer that hides nulls", "Nothing: dashboards are where you notice problems", "Expectations at ingestion that check nulls, ranges and volumes, alert on failure, and quarantine bad batches", "A full reload of the table every night"], c: 2,
+      why: ["The dashboard looks fine while the data is wrong.", "Your users become your monitoring.", "Checks where data enters catch problems at the source, and quarantine stops bad data spreading.", "Reloads repeat the same bad data."] }
+  ];
+  var S = { step: "start", field: null, role: null, level: null, i: 0, ans: [] };
+  var stage = document.getElementById("stage"), bar = document.getElementById("bar");
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (m) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]; }); }
+  function prog(p) { bar.style.width = Math.round(p * 100) + "%"; }
+  function render() {
+    var h = "";
+    if (S.step === "start") {
+      prog(0);
+      h = '<p class="eyebrow">The 3-minute audit</p><h1>Do you clear the bar?</h1><p class="lead">See what the job you want actually asks for, where you stand today, and what closes the distance. No résumé needed.</p>' +
+        '<p class="eyebrow" style="color:var(--muted)">Your field</p><div class="opts">' +
+        ["Software and computing", "Data, ML and AI", "Cloud, DevOps and security"].map(function (f) { return '<button class="opt" data-f="' + f + '"><b>' + f + "</b><span></span></button>"; }).join("") + "</div>";
+    } else if (S.step === "role") {
+      prog(.08);
+      h = '<p class="eyebrow">' + esc(S.field) + '</p><h2>Which role are you aiming for?</h2><div class="opts">' +
+        [["Data Engineer", "1,240 open"], ["ML Engineer", "860 open"], ["Data Scientist", "610 open"], ["Analytics Engineer", "420 open"]].map(function (r) { return '<button class="opt" data-r="' + r[0] + '"><b>' + r[0] + "</b><span>" + r[1] + "</span></button>"; }).join("") +
+        '</div><p class="eyebrow" style="color:var(--muted)">At which level?</p><div class="seg"><button class="opt" data-l="Mid-level"><b>Mid-level</b></button><button class="opt" data-l="Senior"><b>Senior</b></button></div><button class="cta" id="go" disabled>See the bar</button>';
+    } else if (S.step === "card") {
+      prog(.14);
+      h = '<p class="eyebrow">Your target</p><div class="rc"><div class="t">' + esc(S.level + " " + S.role) + '</div><div class="s">1,240 open postings this week</div>' +
+        '<div class="pay">$165k – $205k</div><div class="note">The middle half of 412 postings that state pay. Market data, not a promise.</div><div class="rule"></div>' +
+        '<p class="eyebrow" style="color:var(--muted);margin-bottom:12px">What they ask for most</p><ol><li><i>1</i>Batch and streaming pipelines (Spark, Airflow)</li><li><i>2</i>SQL and data modelling at scale</li><li><i>3</i>A streaming system such as Kafka</li></ol></div>' +
+        '<button class="cta" id="go">Start: 6 questions, about 3 minutes</button><p class="meta" style="text-align:center">Real situations from the job. There\'s no timer.</p>';
+    } else if (S.step === "q") {
+      var q = Q[S.i], a = S.ans[S.i]; prog(.14 + .8 * (S.i + (a == null ? 0 : 1)) / Q.length);
+      h = '<p class="qn">' + (S.i + 1) + ' of 6</p><p class="eyebrow">' + esc(q.skill) + '</p><h2>' + esc(q.stem) + '</h2><div class="choices">' +
+        q.ch.map(function (c, k) { var cls = a == null ? "" : (k === q.c ? " right" : (k === a ? " wrong" : " dim")); return '<button class="ch' + cls + '" data-k="' + k + '"' + (a != null ? " disabled" : "") + '><span class="k">' + "ABCD"[k] + "</span><span>" + esc(c) + "</span></button>"; }).join("") + "</div>";
+      if (a != null) {
+        h += '<div class="why">' + (a === q.c ? "<p><b>Right.</b> " + esc(q.why[q.c]) + "</p>" : "<p><b>Not quite.</b> " + esc(q.why[a]) + "</p><p><b>The stronger move:</b> " + esc(q.why[q.c]) + "</p>") + "</div>" +
+          '<button class="cta" id="go">' + (S.i < Q.length - 1 ? "Next question" : "See where you stand") + "</button>";
+      }
+    } else if (S.step === "result") {
+      prog(1);
+      var right = S.ans.filter(function (a, k) { return a === Q[k].c; }).length;
+      var miss = Q.filter(function (q, k) { return S.ans[k] !== q.c; }).map(function (q) { return q.skill; });
+      var strong = Q.filter(function (q, k) { return S.ans[k] === q.c; }).map(function (q) { return q.skill; });
+      h = '<p class="eyebrow">Where you stand · ' + esc(S.level + " " + S.role) + '</p><h1>' + right + ' of 6</h1>' +
+        '<div class="two"><div class="c"><div class="n">' + (strong.length ? esc(strong.slice(0, 2).join(", ")) : "Building") + '</div><div class="tt">where you\'re strong</div></div><div class="c"><div class="n">' + (miss.length ? esc(miss.slice(0, 2).join(", ")) : "Nothing missed") + '</div><div class="tt">what to work on next</div></div></div>' +
+        (miss.length ? '<p class="eyebrow">What closes the distance</p><div class="list">' + miss.slice(0, 3).map(function (m) { return '<div class="li"><b>' + esc(m) + '</b><span>a short Learn piece + a build</span></div>'; }).join("") + "</div>" : "") +
+        '<p class="eyebrow">Jobs you could win now</p><div class="li" style="margin-bottom:22px"><b>38 open roles match this bar</b><span>sign up to see them</span></div>' +
+        '<button class="cta" id="keep">Keep this and see the jobs</button><p class="share">Share: <b>"I\'m ' + right + ' of 6 on the ' + esc(S.level + " " + S.role) + ' bar. Do you clear it?"</b></p>' +
+        '<p class="meta" style="text-align:center"><button class="quiet" id="again">Try another role</button></p>';
+    } else if (S.step === "keep") {
+      prog(1);
+      h = '<p class="eyebrow">Keep your result</p><h2>Sign up to save it and start your route</h2><p class="lead">Your ' + esc(S.level + " " + S.role) + ' result becomes your target, the skills you showed are marked on your map, and the gaps become your first steps.</p><button class="cta">Continue with Google</button><p class="meta" style="text-align:center">or <button class="quiet">use your email</button></p>';
+    }
+    stage.innerHTML = '<div class="view">' + h + "</div>"; wire(); window.scrollTo(0, 0);
+  }
+  function wire() {
+    stage.querySelectorAll("[data-f]").forEach(function (b) { b.addEventListener("click", function () { S.field = b.getAttribute("data-f"); S.step = "role"; render(); }); });
+    var go = stage.querySelector("#go");
+    stage.querySelectorAll("[data-r],[data-l]").forEach(function (b) { b.addEventListener("click", function () {
+      var k = b.hasAttribute("data-r") ? "data-r" : "data-l";
+      stage.querySelectorAll("[" + k + "]").forEach(function (x) { x.classList.toggle("sel", x === b); });
+      if (k === "data-r") S.role = b.getAttribute(k); else S.level = b.getAttribute(k);
+      if (go) go.disabled = !(S.role && S.level);
+    }); });
+    if (go) go.addEventListener("click", function () {
+      if (S.step === "role") S.step = "card"; else if (S.step === "card") { S.step = "q"; S.i = 0; }
+      else if (S.step === "q") { if (S.i < Q.length - 1) S.i++; else S.step = "result"; }
+      render();
+    });
+    stage.querySelectorAll(".ch").forEach(function (b) { b.addEventListener("click", function () { if (S.ans[S.i] != null) return; S.ans[S.i] = +b.getAttribute("data-k"); render(); }); });
+    var keep = stage.querySelector("#keep"); if (keep) keep.addEventListener("click", function () { S.step = "keep"; render(); });
+    var again = stage.querySelector("#again"); if (again) again.addEventListener("click", function () { S = { step: "role", field: S.field, role: null, level: null, i: 0, ans: [] }; render(); });
+  }
+  document.addEventListener("keydown", function (e) {
+    if (S.step !== "q") return;
+    if (S.ans[S.i] == null && /^[1-4]$/.test(e.key)) { S.ans[S.i] = +e.key - 1; render(); }
+    else if (S.ans[S.i] != null && e.key === "Enter") { var g = stage.querySelector("#go"); if (g) g.click(); }
+  });
+  render();
+})();
+</script>
+</body>
+</html>

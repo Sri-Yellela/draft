@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft — Interview (sketch)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark;
+  --bg:#1B1B1B;--card:#262626;--raise:#2F2F2F;--raise2:#363636;--line:#363636;--ink:#FFFFFF;--body:#A3A3A3;--muted:#777777;
+  --accent:#FBD3C4;--accent2:#F2C2B2;--on-accent:#1B1B1B;--glow:rgba(251,211,196,.16);--ok:#8FD6A8;
+  --font:"Inter Tight",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--serif:"Instrument Serif",Georgia,serif}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--raise2:#E9E2DC;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--ok:#1E7A43}}
+:root[data-theme="light"]{color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--raise2:#E9E2DC;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--ok:#1E7A43}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased;min-height:100vh}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.tint{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+/* the site's dock, collapsed, for context */
+.rail{position:fixed;left:12px;top:50%;transform:translateY(-50%);width:60px;background:var(--card);border-radius:22px;padding:8px;display:grid;gap:6px;z-index:5}
+.rail span{height:44px;border-radius:14px;display:grid;place-items:center;color:var(--accent);font:800 italic 18px/1 var(--font)}
+.rail span.on{background:var(--raise)}
+.rail svg{width:26px;height:26px;stroke:var(--accent);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+/* Atlas: its own navigation + panels, one centred group */
+.atlas{display:grid;grid-template-columns:232px minmax(0,1fr);gap:clamp(20px,3vw,40px);max-width:1280px;margin:0 auto;padding:32px clamp(16px,3vw,40px) 80px 96px}
+@media (max-width:900px){.atlas{grid-template-columns:1fr;padding-left:84px}}
+.nav{position:sticky;top:28px;align-self:start;background:var(--card);border-radius:28px;padding:20px 12px 16px}
+.nav .eb{color:var(--accent);font-size:13px;margin:0 10px 4px}
+.nav h1{font:400 34px/1 var(--serif);margin:0 10px 16px}
+.nav h3{font:500 12px/1 var(--font);color:var(--muted);margin:14px 10px 6px}
+.nav button{all:unset;cursor:pointer;display:flex;justify-content:space-between;align-items:center;width:100%;box-sizing:border-box;padding:9px 10px;border-radius:13px;color:var(--body);font-size:14.5px}
+.nav button:hover{background:var(--raise);color:var(--ink)}
+.nav button[aria-current="page"]{background:var(--raise);color:var(--ink)}
+.nav button small{color:var(--muted);font-size:12px}
+.nav button[aria-current="page"] small{color:var(--accent)}
+@media (max-width:900px){.nav{position:static}}
+.panel{animation:fi .3s ease;min-width:0}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.eyebrow{color:var(--accent);font-size:14px;margin:4px 0 8px}
+h2{font-weight:500;font-size:44px;line-height:1.02;letter-spacing:-.035em;margin:0 0 10px}
+.lead{color:var(--body);font-size:17px;margin:0 0 24px;max-width:60ch}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:0 0 22px}
+.st{background:var(--card);border-radius:22px;padding:18px}
+.st b{display:block;color:var(--accent);font-size:32px;font-weight:500;letter-spacing:-.03em;line-height:1.1}
+.st span{color:var(--body);font-size:13.5px}
+.card{background:var(--card);border-radius:28px;padding:22px;margin:0 0 14px}
+.card h4{margin:0 0 6px;font-weight:600;font-size:16px}
+.card p{margin:0;color:var(--body)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:14px;padding:11px 16px;font-weight:600;cursor:pointer;background:var(--raise);color:var(--ink)}
+.btn:hover{background:var(--raise2)}
+.btn.p{background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent);box-shadow:0 10px 26px var(--glow)}
+.quiet{all:unset;cursor:pointer;color:var(--accent);font-weight:600;font-size:14px}
+.two{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px}
+@media (max-width:1100px){.two{grid-template-columns:1fr}}
+/* the map */
+.map{background:var(--card);border-radius:28px;padding:10px;overflow:hidden}
+.map svg{width:100%;height:auto;display:block}
+.map text{font:500 12px var(--font);fill:var(--body)}
+.map .you text{fill:var(--on-accent);font-weight:700}
+.key{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin:10px 6px 4px}
+.key span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--k)}
+/* skills list */
+.seg{display:inline-flex;background:var(--card);border-radius:14px;padding:3px;margin:0 0 14px}
+.seg button{all:unset;cursor:pointer;padding:7px 14px;border-radius:11px;color:var(--body);font-weight:600;font-size:13.5px}
+.seg button[aria-pressed="true"]{background:var(--raise);color:var(--ink)}
+.sk{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 4px;border-top:1px solid var(--line)}
+.sk:first-of-type{border-top:0}
+.sk b{font-weight:500}
+.sk small{display:block;color:var(--muted);font-size:12.5px}
+.state{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:var(--body)}
+.state::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--sc)}
+.addsk{display:flex;gap:8px;margin-top:12px}
+.addsk input{flex:1;background:var(--raise);border:0;border-radius:13px;padding:11px 13px;color:var(--ink)}
+.check{display:none;background:var(--raise);border-radius:18px;padding:14px 16px;margin:6px 0 10px}
+.check.on{display:block;animation:fi .25s ease}
+.check p{margin:0 0 10px;color:var(--body)}
+.check .opts{display:grid;gap:6px}
+.check .opts button{all:unset;cursor:pointer;background:var(--card);border-radius:12px;padding:10px 12px;font-size:14px}
+.check .opts button:hover{background:var(--raise2)}
+/* route stack */
+.stack{display:flex;flex-direction:column-reverse;gap:8px}
+.step{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--card);border-radius:20px;padding:14px 16px}
+.step .n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--raise2);color:var(--body);font-weight:600;font-size:13px}
+.step.done .n{background:var(--ok);color:#0b2a17}
+.step.now{outline:1.5px solid var(--accent)}
+.step.now .n{background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent)}
+.step b{font-weight:600}
+.step p{margin:2px 0 0;color:var(--body);font-size:13.5px}
+.found{background:var(--raise);border-radius:20px;padding:14px 16px;color:var(--body)}
+.found b{color:var(--ink)}
+/* learn */
+.stages{display:grid;gap:8px}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 160px auto;gap:14px;align-items:center;background:var(--card);border-radius:20px;padding:14px 16px}
+.bar{height:6px;border-radius:4px;background:var(--raise2);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.stage small{color:var(--muted)}
+/* explore */
+.search{width:100%;background:var(--card);border:0;border-radius:16px;padding:13px 16px;color:var(--ink);margin:0 0 14px}
+.role{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:16px;align-items:center;background:var(--card);border-radius:20px;padding:14px 16px;margin-bottom:8px}
+.role span{color:var(--muted);font-size:13px}
+.up{color:var(--ok)}.down{color:var(--muted)}
+.note{max-width:1280px;margin:0 auto;padding:0 40px 40px 96px;color:var(--muted);font-size:12.5px}
+
+.tbl{background:var(--card);border-radius:22px;overflow:hidden;margin:0 0 14px}
+.tbl div{display:grid;grid-template-columns:180px minmax(0,1fr);gap:14px;padding:12px 16px;border-top:1px solid var(--line)}
+.tbl div:first-child{border-top:0}
+.tbl span{color:var(--muted)}
+.lv{display:inline-flex;background:var(--card);border-radius:14px;padding:3px;margin:0 0 14px}
+.lv button{all:unset;cursor:pointer;padding:7px 13px;border-radius:11px;color:var(--body);font-weight:600;font-size:13.5px}
+.lv button[aria-pressed="true"]{background:var(--raise);color:var(--ink)}
+.room{background:var(--card);border-radius:28px;padding:24px;display:grid;gap:14px}
+.bub{background:var(--raise);border-radius:18px 18px 18px 6px;padding:14px 16px;max-width:70ch}
+.bub.me{background:color-mix(in srgb,var(--accent) 12%,var(--card));border-radius:18px 18px 6px 18px;justify-self:end}
+.bub small{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}
+.mic{display:flex;gap:12px;align-items:center}
+.mic button{width:56px;height:56px;border-radius:50%;border:0;cursor:pointer;background:linear-gradient(180deg,var(--accent),var(--accent2));box-shadow:0 10px 26px var(--glow);display:grid;place-items:center}
+.mic svg{width:24px;height:24px;stroke:var(--on-accent);fill:none;stroke-width:1.8;stroke-linecap:round}
+.mic span{color:var(--body)}
+.pick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
+@media (max-width:800px){.pick{grid-template-columns:1fr}}
+.pick label{background:var(--card);border-radius:18px;padding:12px 14px;color:var(--muted);font-size:12.5px}
+.pick select{display:block;width:100%;margin-top:4px;background:transparent;border:0;color:var(--ink);font:500 15px var(--font)}
+.toggle{display:flex;gap:8px;align-items:center;color:var(--body);font-size:14px;margin:0 0 14px}
+.toggle input{accent-color:var(--accent);width:17px;height:17px}
+.ex{color:var(--muted);font-size:12.5px}
+
+</style>
+</head>
+<body>
+<nav class="rail" aria-label="Site"><span>/d</span><span><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/></svg></span><span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.6 2.4 3.9 5.2 3.9 8.5s-1.3 6.1-3.9 8.5c-2.6-2.4-3.9-5.2-3.9-8.5s1.3-6.1 3.9-8.5z"/></svg></span><span class="on"><svg viewBox="0 0 24 24"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/></svg></span></nav>
+<div class="atlas">
+  <aside class="nav" aria-label="Interview">
+    <p class="eb">Ready for the room</p>
+    <h1>Interview</h1>
+    <h3>Coming up</h3>
+    <button data-p="up">Your interviews <small>2</small></button>
+    <h3>Prepare</h3>
+    <button data-p="guide">Company guides</button>
+    <button data-p="tracks">Tracks by round</button>
+    <h3>Practise</h3>
+    <button data-p="mock">Mock interview</button>
+    <button data-p="reverse">Ask the coach</button>
+    <button data-p="drills">Drills</button>
+    <button data-p="defend">Defend your résumé</button>
+    <h3>After</h3>
+    <button data-p="past">Past sessions <small>3</small></button>
+    <button data-p="debrief">Debrief <small>1 to do</small></button>
+  </aside>
+  <main id="main"></main>
+</div>
+<p class="note">Sketch for D167 / D161 / D150 T12–T13: Interview as its own page, with the same own-navigation pattern as Atlas and Profile. The voice coach runs the mock interview; typing works too.</p>
+<script>
+(function () {
+  var main = document.getElementById("main");
+  var P = {
+    up: function () { return '<p class="eyebrow">Coming up</p><h2>Two interviews to prepare for</h2><p class="lead">Found in your Inbox and matched to your applications.</p>' +
+      [["Prophetic Technologies", "Recruiter screen · Thursday, 2:00 pm", "guide"], ["Stripe", "System design · next Tuesday", "mock"]].map(function (r) { return '<div class="role"><div><b>' + r[0] + '</b><br><span>' + r[1] + '</span></div><span></span><button class="btn p" data-go="' + r[2] + '">Prepare</button></div>'; }).join(""); },
+    guide: function () { return '<p class="eyebrow">Company guide · Stripe</p><h2>How Stripe interviews backend engineers</h2><div class="lv" role="group" aria-label="Level"><button>Mid</button><button aria-pressed="true">Senior</button><button>Staff</button></div>' +
+      '<div class="tbl"><div><span>Recruiter call</span>30 minutes: your background, why Stripe, what you want next</div><div><span>Technical screen</span>A practical coding problem, about an hour</div><div><span>Onsite</span>Coding, system design, an integration exercise, a behavioural round</div><div><span>Final steps</span>Team matching and references</div></div>' +
+      '<div class="card"><h4>What people were asked</h4><p>From 5 people\'s debriefs this year: idempotent payment APIs; designing a rate limiter; a time you disagreed with a design.</p></div>' +
+      '<p class="ex">Sources: Stripe\'s own hiring pages (checked 2 Nov) and 5 anonymous debriefs. <button class="quiet">Something wrong? Tell us</button></p>'; },
+    tracks: function () { var t = [["Recruiter screen", 100], ["Coding", 60], ["System design", 35], ["Behavioural", 50], ["AI-enabled coding", 0]];
+      return '<p class="eyebrow">Tracks by round</p><h2>Practise each kind of round</h2><div class="stages">' + t.map(function (x) { return '<div class="stage"><div><b>' + x[0] + '</b></div><div class="bar"><i style="width:' + x[1] + '%"></i></div>' + (x[1] === 100 ? '<span class="state" style="--sc:var(--ok)">ready</span>' : '<button class="btn">' + (x[1] ? "Continue" : "Start") + '</button>') + '</div>'; }).join("") + '</div>'; },
+    mock: function () { return '<p class="eyebrow">Mock interview</p><h2>Talk it through, like the real thing</h2>' +
+      '<div class="pick"><label>Company<select><option>Stripe</option><option>Prophetic Technologies</option><option>Any company</option></select></label><label>Round<select><option>System design</option><option>Behavioural</option><option>Recruiter screen</option></select></label><label>Level<select><option>Senior</option><option>Mid</option></select></label></div>' +
+      '<label class="toggle"><input type="checkbox" checked> Voice (you can type instead)</label>' +
+      '<div class="room"><div class="bub"><small>Interviewer</small>Let\'s design an API that charges a card. Retries happen. How do you make sure nobody is charged twice?</div><div class="bub me"><small>You</small>I\'d have the client send an idempotency key with each charge…</div><div class="mic"><button aria-label="Hold to answer"><svg viewBox="0 0 24 24"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v2.5"/></svg></button><span>Listening… press to finish your answer</span></div></div>'; },
+    reverse: function () { return '<p class="eyebrow">Ask the coach</p><h2>Ask a question, hear a strong answer</h2><p class="lead">Answers are examples built from your own résumé, never claims you couldn\'t make yourself.</p>' +
+      '<div class="room"><div class="bub me"><small>You</small>How would you answer "tell me about a hard bug"?</div><div class="bub"><small>Example answer · from your résumé</small>At Acme, our daily revenue numbers kept changing after finance reported them. I traced it to late events…</div></div>'; },
+    drills: function () { return '<p class="eyebrow">Drills</p><h2>Quick rounds to stay sharp</h2><label class="toggle"><input type="checkbox"> Timed (10 seconds a question)</label><label class="toggle"><input type="checkbox" checked> Extended time</label><div class="row"><button class="btn p">Start 5 questions</button><button class="btn">Untimed practice</button></div>'; },
+    defend: function () { return '<p class="eyebrow">Defend your résumé</p><h2>Every line you wrote, asked about</h2><p class="lead">The coach picks a bullet and asks the follow-ups an interviewer would.</p><div class="card"><h4>"Built React and Node features used by 3 product teams"</h4><p>Which feature are you proudest of, and what would you do differently?</p><div class="row" style="margin-top:14px"><button class="btn p">Answer out loud</button><button class="btn">Type it</button></div></div>'; },
+    past: function () { return '<p class="eyebrow">Past sessions</p><h2>Stripe · system design · yesterday</h2>' +
+      '<div class="stats"><div class="st"><b>142</b><span>words a minute · comfortable</span></div><div class="st"><b>6</b><span>filler words</span></div><div class="st"><b>3 of 4</b><span>answers with a clear structure</span></div><div class="st"><b>2</b><span>long pauses</span></div></div>' +
+      '<div class="card"><h4>What to work on</h4><p>State the trade-off before the solution. Your answer on retries was strong; the one on scaling skipped the numbers.</p></div><p class="ex">The recording was deleted after this report; the transcript is kept until you remove it.</p>'; },
+    debrief: function () { return '<p class="eyebrow">Debrief · Plaid · yesterday</p><h2>Two minutes while it\'s fresh</h2><div class="card"><div class="kv" style="display:grid;grid-template-columns:200px 1fr;gap:12px;padding:8px 0"><span style="color:var(--muted)">Rounds you had</span><b>Coding · system design</b></div><div class="kv" style="display:grid;grid-template-columns:200px 1fr;gap:12px;padding:8px 0"><span style="color:var(--muted)">A question you remember</span><b>Design a webhook delivery system</b></div><label class="toggle" style="margin-top:10px"><input type="checkbox" checked> Share anonymously to help others interviewing at Plaid</label><div class="row"><button class="btn p">Save the debrief</button></div></div>'; }
+  };
+  function show(p) {
+    document.querySelectorAll(".nav [data-p]").forEach(function (b) { if (b.getAttribute("data-p") === p) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    main.innerHTML = '<div class="panel">' + P[p]() + "</div>";
+    main.querySelectorAll("[data-go]").forEach(function (b) { b.addEventListener("click", function () { show(b.getAttribute("data-go")); }); });
+    main.querySelectorAll(".lv").forEach(function (g) { g.querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { g.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); }); }); });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  document.querySelectorAll(".nav [data-p]").forEach(function (b) { b.addEventListener("click", function () { show(b.getAttribute("data-p")); }); });
+  show("up");
+})();
+</script>
+</body>
+</html>
