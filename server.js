@@ -58,6 +58,7 @@ import { createAdminPeopleRouter } from "./routes/adminPeople.js";
 import { createSupportRouters } from "./routes/tickets.js";
 import { createResumeChangesRouter } from "./routes/resumeChanges.js";
 import { createResumeEditorRouter } from "./routes/resumeEditor.js";
+import { createApplicationPostingRouter } from "./routes/applicationPosting.js";
 import { createExtensionResumeService, GenerationCancelledError, baseResumeFor as extensionBaseResumeFor } from "./services/extensionResume.js";
 import { createExtensionResumeRouter } from "./routes/extensionResume.js";
 import { createExtensionJobRouter } from "./routes/extensionJob.js";
@@ -6798,6 +6799,19 @@ let classifyBacklog = null;
         CREATE INDEX IF NOT EXISTS idx_atlas_skill_holds_term ON atlas_skill_holds(term);
       `,
     },
+    {
+      // ⭐ D171 FIX 3 (owner 11-06: he could not open the job from Home to compare the JD with the résumé): THE JOB
+      // DESCRIPTION, AS IT READ WHEN THE APPLICATION WAS MADE. 129 snapshotted the posting's title, company, URL and
+      // location onto the run-job; the description stayed on scraped_jobs, where a re-crawl rewrites it and a closed
+      // posting stops being the one applied to. It is now copied at the same moment, in the same transaction
+      // (routes/apply.js), and served by routes/applicationPosting.js. NULL: made before this — the reader falls back to
+      // the live posting and says so. No backfill: today's text is not what was applied to. Merge plan: apply_run_jobs
+      // moves already. After 223.
+      id: "225_posting_description_snapshot",
+      sql: `
+        ALTER TABLE apply_run_jobs ADD COLUMN posting_description TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -10421,6 +10435,8 @@ app.get("/api/account/allowance", requireAuth, (req, res) => {
 app.use(createResumeChangesRouter({ db, requireAuth }));
 // ⭐ D157 / D171 FIX 4 · the embedded résumé editor's two reads (routes/resumeEditor.js): where it lives, and an attempt's résumé as HTML.
 app.use(createResumeEditorRouter({ db, requireAuth }));
+// ⭐ D171 FIX 3 · an application's posting from its Home row, as stored when it was made (routes/applicationPosting.js).
+app.use(createApplicationPostingRouter({ db, requireAuth }));
 // ⛔ D95 · the admin's own door (public: sign-in, links, break glass) and Admin → System → Admins (owner only).
 {
   const adminAuth = createAdminAuthRouters({ db, requireAdmin, production: IS_PRODUCTION, sendEmail,

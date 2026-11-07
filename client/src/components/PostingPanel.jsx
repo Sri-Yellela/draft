@@ -289,6 +289,20 @@ export function PostingBody({ text, jobId = null }) {
 }
 
 /**
+ * ⭐ D171 FIX 3 · THE DESCRIPTION ALONE — an application's posting opened from its Home row (components/AttemptPosting.jsx):
+ * the opened posting's body look (D147's panel), no masthead (the row already names the role), in a pane that scrolls.
+ */
+export function PostingText({ text, jobId = null }) {
+  const body = String(text || "").trim();
+  if (!body) return null;
+  return (
+    <article className="posting ink-pair posting--panel posting--kept" data-posting-kept="">
+      <PostingBody text={body} jobId={jobId} />
+    </article>
+  );
+}
+
+/**
  * THE POSTING PANEL. `text` defaults to the stored description; `children` is what a surface shows
  * when there is none (the board's fetch states, the deck's "open it at the source").
  */

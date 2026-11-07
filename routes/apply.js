@@ -2564,6 +2564,17 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         WHERE run_id = ?
       `);
     } catch { /* pre-129 schema */ }
+    // ⭐ D171 FIX 3: the JOB DESCRIPTION too, as it read now (migration 225) — so Home's "The posting" still shows what
+    // was applied to after a re-crawl rewrites it or the posting closes. Its own statement: a database without 225's
+    // column keeps 129's snapshot.
+    let snapshotDescription = null;
+    try {
+      snapshotDescription = db.prepare(`
+        UPDATE apply_run_jobs SET
+          posting_description = (SELECT COALESCE(sj.description_text, sj.description) FROM scraped_jobs sj WHERE sj.job_id = apply_run_jobs.job_id)
+        WHERE run_id = ? AND posting_description IS NULL
+      `);
+    } catch { /* pre-225 schema */ }
     // ⛔ D51 · ONE WRITE, THREE READERS. The Draft click wrote only the run-job, so the job was in Draft
     // House and nowhere else: /d reads résumés and application_records, The Table reads application_records.
     // The record is written HERE, in the run-job's own transaction — both or neither — so /d, Draft House
@@ -2592,6 +2603,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         }
       }
       snapshotJob?.run(runId);
+      snapshotDescription?.run(runId);
     })();
 
     let run = db.prepare("SELECT * FROM apply_runs WHERE id=?").get(runId);

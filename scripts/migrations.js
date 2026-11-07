@@ -6262,4 +6262,17 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_atlas_skill_holds_term ON atlas_skill_holds(term);
       `,
     },
+    {
+      // ⭐ D171 FIX 3 (owner 11-06: he could not open the job from Home to compare the JD with the résumé): THE JOB
+      // DESCRIPTION, AS IT READ WHEN THE APPLICATION WAS MADE. 129 snapshotted the posting's title, company, URL and
+      // location onto the run-job; the description stayed on scraped_jobs, where a re-crawl rewrites it and a closed
+      // posting stops being the one applied to. It is now copied at the same moment, in the same transaction
+      // (routes/apply.js), and served by routes/applicationPosting.js. NULL: made before this — the reader falls back to
+      // the live posting and says so. No backfill: today's text is not what was applied to. Merge plan: apply_run_jobs
+      // moves already. After 223.
+      id: "225_posting_description_snapshot",
+      sql: `
+        ALTER TABLE apply_run_jobs ADD COLUMN posting_description TEXT;
+      `,
+    },
   ];
