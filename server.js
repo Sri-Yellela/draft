@@ -14489,7 +14489,9 @@ const autoFetchBoard = async (userId, filters, settings = {}) => {
     let bestBet = null;
     try { bestBet = bestBetOf(bestBetSignalsFor(db, { userId, profileId, job: { id: j.id }, userLevel, aim })).score; } catch { bestBet = null; }
     return { jobId: j.id, company: j.company, title: j.title ?? null, score: Number.isFinite(j.matchScore) ? j.matchScore : null,
-      levelRead: j.levelRead ?? null, postedAt: Number.isFinite(t) ? Math.floor(t / 1000) : null, bestBet };
+      levelRead: j.levelRead ?? null, postedAt: Number.isFinite(t) ? Math.floor(t / 1000) : null, bestBet,
+      // ⛔ D175 FA4: what the run will face (direct = finishes on its own) — Apply for me spends its cap on those first.
+      automationTier: j.automationTier ?? null };
   });
 };
 // ⭐ D113: the picks links' key (derived from SESSION_SECRET, never stored) and where the links point.

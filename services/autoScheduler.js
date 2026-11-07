@@ -23,7 +23,7 @@ import { eligibilityForJob, userEligibilityInputs } from "./jobEligibility.js";
 import { livenessFor, isStale } from "./jobs/jobHistory.js";
 import { sponsorshipSignal } from "./kb/sponsorshipSignal.js";
 import { choosePicks, storeRun, deliverRun, nextSlotAfter, lineForCandidate, pickedJobsSince, everPicked, userLevelFor,
-  expireOffers, sweepLeftOut, runPickSummaries, runPickQuestions } from "./picks.js";
+  expireOffers, sweepLeftOut, runPickSummaries, runPickQuestions, finishKind, FINISH_LABELS } from "./picks.js";
 
 const DAY = 86400;
 const MAX_JOBS_PER_RUN = 25; // POST /api/apply/runs' own limit
@@ -151,6 +151,14 @@ export function userContext(db, userId, nowSec, settings) {
     eligibilityOf, livenessOf, userLevel: userLevelFor(db, userId), needsSponsorship, sponsorshipOf };
 }
 
+/** ⛔ D175 FA4: each pick's line says whether it will finish on its own or need the person. */
+export function withFinish(c, line) {
+  const k = finishKind(c);
+  if (!k) return line;
+  const text = [line?.text, FINISH_LABELS[k]].filter(Boolean).join(" · ");
+  return { ...(line || {}), text };
+}
+
 /** The user's D113 mode: 'apply' (FULL AUTO, "Apply for me"), 'ask' (SEMI with picks on, "Ask me first") or null. */
 export function picksMode(sendMode, settings) {
   if (sendMode === "auto") return "apply";
@@ -211,15 +219,15 @@ export async function runAutoTick(db, { nowSec = Math.floor(Date.now() / 1000), 
         outsideFilters = (await fetchBoard(u.id, {}, settings)).filter(c => isNew(c) && !inFilter.has(String(c.jobId))).length;
       } catch { outsideFilters = 0; }
     }
-    const { take, leftOut } = choosePicks(fresh, { ...ctx, settings });
+    const { take, leftOut } = choosePicks(fresh, { ...ctx, settings, preferUnattended: mode === "apply" });
     const skippedJobs = leftOut.length;
     let stored;
     try {
       stored = storeRun(db, { userId: u.id, slotAt, mode, expiresAt: nextSlotAfter(slotAt, settings, localClock), seen: fresh.length + outsideFilters,
         take, leftOut, outsideFilters, nowSec, review: settings.showFormBeforeSending === true,
         // D121: "why this pick" says the sponsorship signal for a user who needs sponsorship
-        lineFor: (c) => lineForCandidate(c, { eligibility: ctx.eligibilityOf(c.jobId), liveness: ctx.livenessOf(c.jobId),
-          sponsorship: ctx.needsSponsorship ? { ...(ctx.sponsorshipOf(c.jobId) || {}), needed: true } : null }) });
+        lineFor: (c) => withFinish(c, lineForCandidate(c, { eligibility: ctx.eligibilityOf(c.jobId), liveness: ctx.livenessOf(c.jobId),
+          sponsorship: ctx.needsSponsorship ? { ...(ctx.sponsorshipOf(c.jobId) || {}), needed: true } : null })) });
     } catch (e) { out.push({ userId: u.id, skipped: "store_failed", error: e.message }); continue; }
     if (!stored.created) { out.push({ userId: u.id, runId: stored.run.id, skipped: "run_exists" }); continue; }
     const r = await deliverRun(db, stored.run, deps, nowSec);
