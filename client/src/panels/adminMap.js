@@ -35,6 +35,7 @@ export const ADMIN_GROUPS = Object.freeze([
   { id: "system", label: "System", question: "Is it set up right?", sections: [
     ["switches", "Feature switches"],   // #6 + D86's plugin
     ["tools", "Tools service"],         // #11
+    ["usage", "Model usage"],           // D171 FIX 2 — every model call by hour, key and who started it; the daily cost alarm
     ["notices", "Notices"],             // D73 §B
     ["email", "Email health"],          // D94 — the Resend webhook's failed sends, suppressions, domain status
     ["admins", "Admins"],               // D95 — the admin accounts (never users): add, disable, last sign-in; owner only

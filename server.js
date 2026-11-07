@@ -40,6 +40,8 @@ import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow, ineligi
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
 import { runAutoTick, runPicksFollowUps } from "./services/autoScheduler.js";
+import { startedByMiddleware, withStartedBy, SCHEDULER_STARTED } from "./services/startedByContext.js";
+import { prodKeyOutsideProduction } from "./services/modelUsage.js";
 import { configureNotify, notifyEvent } from "./services/notify.js";
 import { pickSecret, userLevelFor } from "./services/picks.js";
 import picksConfirmRoutes from "./routes/picksConfirm.js";
@@ -7305,6 +7307,9 @@ const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY, defaultHeaders: workspa
 // show the same fp. Neither is secret; no part of the key is printed.
 if (ANTHROPIC_KEY) {
   console.log(`[boot] model key: label=${process.env.ANTHROPIC_KEY_LABEL || "(unlabelled)"} fp=${crypto.createHash("sha256").update(ANTHROPIC_KEY).digest("hex").slice(0, 8)} workspace-header=${workspaceHeaders(process.env)["anthropic-workspace-id"] ? "on" : "off"}`);
+  // D171 FIX 2 / O103: a production-labelled key on a process that is not production says so, loudly.
+  const prodKeyWarning = prodKeyOutsideProduction(process.env);
+  if (prodKeyWarning) console.error(prodKeyWarning);
 }
 // RESUME_MASTER_URL + RESUME_MASTER_TOKEN. Unset is a supported state: every route that needs the
 // service answers 503 with retryable:false and says which setting is missing (see the client).
@@ -9416,6 +9421,9 @@ configureNotify({ db, emitToUser, appUrl: APP_BASE_ORIGIN || "" });
 // trust proxy: required for Railway/Render — without this, secure: true cookies
 // fail behind their HTTPS reverse proxy and all sessions silently break.
 app.set("trust proxy", 1);
+// ⛔ D171 FIX 1: FIRST — each request is its own "who started this" context (services/startedByContext.js), read lazily
+// at the model call / the run's insert, after the session and the admin binder have run.
+app.use(startedByMiddleware);
 app.use(cors({ origin:corsOrigin, credentials:true }));
 // ⛔ D75: the crawler worker's doors come BEFORE the JSON parser — a result's HMAC is over its exact bytes.
 app.use("/api/crawler", createCrawlerWorkerRouter(db));
@@ -14465,7 +14473,7 @@ const autoFetchBoard = async (userId, filters, settings = {}) => {
 // ⭐ D113: the picks links' key (derived from SESSION_SECRET, never stored) and where the links point.
 const PICKS_SECRET = pickSecret(SESSION_SECRET);
 const PICKS_APP_URL = APP_BASE_ORIGIN || `http://localhost:${PORT}`;
-setInterval(async () => {
+setInterval(() => withStartedBy(SCHEDULER_STARTED, async () => {   // D171 FIX 1: everything this tick starts is the daily run's
   try {
     // ⭐ D113: the same tick builds the picks runs — Ask me first (one picks message) and Apply for me (straight to the run).
     const ran = await runAutoTick(db, { fetchBoard: autoFetchBoard, startAutoRun: applyLine.startAutoRun,
@@ -14476,7 +14484,7 @@ setInterval(async () => {
     if (followed.summaries.length || followed.questions.length) console.log(`[picks] summaries: ${followed.summaries.length}, questions: ${followed.questions.length}`);
     // (the 8 pm daily summary was retired 10-31 by the owner — Apply for me gets runPicksFollowUps' summary after each run)
   } catch (e) { console.error(`[auto] tick failed: ${e.message}`); }
-}, AUTO_TICK_MS).unref();
+}), AUTO_TICK_MS).unref();
 // A63: the Pending table (pending -> verified -> submitted) and the day's Draft slots.
 applicationRecordRoutes(app, db, requireAuth, { capturedAtsAtApply });
 // D102: the pipeline workspace — one row per job, one detail panel (services/pipelineWorkspace.js).

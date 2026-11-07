@@ -38,6 +38,11 @@ export function toolsKeyLabel(record = {}, env = process.env) {
   return l || TOOLS_UNLABELLED;
 }
 
+/** Whether this process is production: NODE_ENV=production or Railway's production environment. */
+export function isProductionProcess(env = process.env) {
+  return env?.NODE_ENV === "production" || String(env?.RAILWAY_ENVIRONMENT_NAME ?? env?.RAILWAY_ENVIRONMENT ?? "").toLowerCase() === "production";
+}
+
 const PROD_LABEL = /(^|[^a-z])prod(uction)?([^a-z]|$)/i;
 /** A label that names a production key ("draft-prod", "tools-prod", "production"). */
 export const isProdLabel = (label) => PROD_LABEL.test(String(label ?? ""));
@@ -51,8 +56,7 @@ export function prodKeyOutsideProduction(env = process.env) {
   const label = String(env?.ANTHROPIC_KEY_LABEL ?? "").trim();
   const hasKey = !!String(env?.ANTHROPIC_KEY ?? env?.ANTHROPIC_API_KEY ?? "").trim();
   if (!hasKey || !isProdLabel(label)) return null;
-  const isProduction = env?.NODE_ENV === "production" || String(env?.RAILWAY_ENVIRONMENT_NAME ?? env?.RAILWAY_ENVIRONMENT ?? "").toLowerCase() === "production";
-  if (isProduction) return null;
+  if (isProductionProcess(env)) return null;
   return `[boot] ⛔ MODEL KEY: this process is not production (NODE_ENV=${env?.NODE_ENV || "unset"}) but its key is labelled "${label}" — ` +
     "local work must use its own key (O103: label it local-dev), or its spend reads as production's";
 }

@@ -35,6 +35,7 @@
  */
 
 import { trackApiCall } from "./usageTracker.js";
+import { toolsKeyLabel } from "./modelUsage.js";
 import { retryLedgerText } from "./generationRetry.js";
 import { taskForPurpose } from "../shared/modelTasks.js";
 
@@ -233,6 +234,8 @@ export function recordToolsServiceUsage(db, usage, { userId, eventSubtype = null
         : (typeof requestError === "string" && requestError ? `request failed: ${requestError}` : null),
         retryLedgerText(retryReason)].filter(Boolean).join("; ") || null,
       jobId, company, domainModule,
+      // D171 FIX 2: the tools service's key paid for this, not draft's — its own label, else TOOLS_SERVICE_KEY_LABEL.
+      keyLabel: toolsKeyLabel(u),
       atsScoreBefore: u.purpose === idFor || purpose === idFor ? atsScoreBefore : null,
     });
     if (id === null && (u.purpose === idFor || purpose === idFor)) id = eventId;

@@ -14,6 +14,8 @@ import {
 } from "../shared/anthropicModels.js";
 import { appendFailure } from "./trackingFailureSink.js";
 import { notifyLostFailure } from "./trackingFailureWebhook.js";
+import { currentStartedBy } from "./startedByContext.js";
+import { draftKeyLabel, checkCostAlarm } from "./modelUsage.js";
 
 function cacheState(usage = {}) {
   const inputTokens = usage?.input_tokens || 0;
@@ -93,6 +95,25 @@ function hasTaskColumns(db) {
   taskColumns.set(db, ok);
   return ok;
 }
+// ⛔ D171 FIX 1 + FIX 2 · usage_events.started_by / .key_label (migration 224): who started the work the call served
+// (services/startedByContext.js) and which key paid. The same rule as the task tag: looked up once per connection,
+// written by a separate UPDATE, so a database before 224 records the spend exactly as before.
+const whoColumns = new WeakMap();
+function hasWhoColumns(db) {
+  if (whoColumns.has(db)) return whoColumns.get(db);
+  let ok = false;
+  try {
+    const cols = db.prepare("PRAGMA table_info(usage_events)").all().map(c => c.name);
+    ok = cols.includes("started_by") && cols.includes("key_label");
+  } catch { ok = false; }
+  whoColumns.set(db, ok);
+  return ok;
+}
+function tagWho(db, eventId, startedBy, keyLabel) {
+  if (!hasWhoColumns(db)) return;
+  try { db.prepare("UPDATE usage_events SET started_by = ?, key_label = ? WHERE id = ?").run(startedBy || null, keyLabel || null, eventId); }
+  catch (e) { console.warn(`[usageTracker] could not tag event ${eventId} with who started it: ${e.message}`); }
+}
 function tagTaskRoute(db, eventId, task, route) {
   if (!hasTaskColumns(db)) return;
   try { db.prepare("UPDATE usage_events SET task = ?, route = ? WHERE id = ?").run(task || null, route || null, eventId); }
@@ -114,6 +135,10 @@ export function trackApiCall(db, {
   // fallback · tools-service). Written only where migration 221 added the columns — see tagTaskRoute below.
   task = null,
   route = null,
+  // D171: which key paid (draft's ANTHROPIC_KEY_LABEL unless the caller says — the tools service's records carry their
+  // own) and who started it (the async context's kind unless the caller says).
+  keyLabel = null,
+  startedBy = null,
 }) {
   let eventId = null;
   try {
@@ -145,6 +170,10 @@ export function trackApiCall(db, {
     // until ~100 lines after the model call that this row records. See recordAtsOutcome below.
     eventId = Number(inserted.lastInsertRowid) || null;
     if (eventId && (task || route)) tagTaskRoute(db, eventId, task, route);
+    let who = startedBy;
+    if (!who) { try { who = currentStartedBy().kind; } catch { who = null; } }
+    if (eventId) tagWho(db, eventId, who, keyLabel || draftKeyLabel());
+    try { checkCostAlarm(db); } catch { /* the alarm never costs the record */ }
 
     console.info("[usage] model_call", JSON.stringify({
       userId,
