@@ -9,7 +9,7 @@
 //   Explore · Roles and skills (search, Explore by role, recently published; node pages and search results open here) ·
 //             This week's market (D150 T09 is not built: the auditable roles' open and new-this-week counts) ·
 //             Glossary (GET /api/atlas/glossary — the popup's own meaning, one source)
-// Every colour is a theme token (AtlasNav.css); no pills — marks and depth boxes (D60).
+// Every colour is a theme token (AtlasPanels.css); no pills — marks and depth boxes (D60).
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api.js";
@@ -21,6 +21,7 @@ import { ExploreByRole, Recent, directionLine, useAtlasMe } from "./YourMap.jsx"
 import { KIND_LABEL } from "./atlasModel.js";
 import { flatSteps, stepState } from "./learnModel.js";
 import { learnStages, overviewStats, panelHref } from "./atlasPanels.js";
+import "./AtlasPanels.css";
 
 const nodeHref = (base, slug) => `${base}/${encodeURIComponent(slug)}`;
 const num = (n) => Number(n || 0).toLocaleString("en-US");

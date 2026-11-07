@@ -6,14 +6,30 @@
 //
 // Built ONCE for every place (A93): a page passes its groups and renders the current panel as children; PlaceHead is the
 // panel's own eyebrow + headline + lead. Tokens only; no capsule (D60) — the items are 12 px-cornered rows.
+// ⭐ A136: Atlas's card is this one too (its own AtlasNav.jsx was a second implementation): ↑ / ↓ (wrapping) and Home / End
+// move focus between the card's links, for every place. `fill`: the place sits inside a page that already pads it, and
+// its panel takes the rest of the width (Atlas's map is wider than a settings panel).
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import "./PlaceNav.css";
 
+const MOVE = { ArrowDown: 1, ArrowUp: -1, Home: "first", End: "last" };
+
 /** The nav card + the panel. `groups`: [{ label, items: [{ id, label, meta? }] }]. */
-export default function PlaceNav({ name, eyebrow, title, groups, current, hrefFor, children, place }) {
+export default function PlaceNav({ name, eyebrow, title, groups, current, hrefFor, children, place, fill = false, panelId }) {
+  const ref = useRef(null);
+  const onKeyDown = (e) => {
+    if (!(e.key in MOVE)) return;
+    const links = [...(ref.current?.querySelectorAll("a[data-place-item]") || [])];
+    const i = links.indexOf(document.activeElement);
+    if (i < 0) return;
+    e.preventDefault();
+    const k = MOVE[e.key];
+    links[k === "first" ? 0 : k === "last" ? links.length - 1 : (i + k + links.length) % links.length]?.focus();
+  };
   return (
-    <div className="pl" data-place={place || name}>
-      <aside className="pl__nav" aria-label={name || title} data-place-nav="">
+    <div className={fill ? "pl pl--fill" : "pl"} data-place={place || name}>
+      <aside className="pl__nav" aria-label={name || title} data-place-nav="" ref={ref} onKeyDown={onKeyDown}>
         {eyebrow && <p className="pl__eb">{eyebrow}</p>}
         <h1 className="pl__title">{title}</h1>
         {groups.map((g) => (
@@ -29,7 +45,7 @@ export default function PlaceNav({ name, eyebrow, title, groups, current, hrefFo
           </div>
         ))}
       </aside>
-      <section className="pl__panel" data-place-panel={current} key={current} aria-label={labelOf(groups, current)}>
+      <section className="pl__panel" data-place-panel={current} key={current} id={panelId} aria-label={labelOf(groups, current)}>
         {children}
       </section>
     </div>
