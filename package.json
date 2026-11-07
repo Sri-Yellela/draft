@@ -9,6 +9,8 @@
     "prestart": "node -e \"console.log('[start] npm prestart: launching server entrypoint')\"",
     "start": "node server.js",
     "test": "node --test --import ./test-support/isolateTrackingSink.mjs",
+    "test:scale": "node scripts/scaleSuite.mjs --fixture tmp/scale-100k --build-if-missing 100000",
+    "test:scale:500k": "node scripts/scaleSuite.mjs --fixture tmp/scale-500k --build-if-missing 500000",
     "prebuild": "node scripts/freePort.mjs && node -e \"console.log('[build] npm prebuild: starting root build pipeline')\"",
     "build": "node -e \"console.log('[build] root build: using existing root install, building client')\" && npm --prefix client ci && npm --prefix client run build",
     "setup": "npm install && npm run build",
