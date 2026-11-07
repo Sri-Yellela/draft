@@ -6295,4 +6295,23 @@ export const MIGRATIONS = [
         ALTER TABLE apply_run_jobs ADD COLUMN posting_description TEXT;
       `,
     },
+    {
+      // ⭐ D172 (3) · POINTS ONLY FROM PROOF (atlas-redesign-sketch.html → Your run): one row per piece of proof — an
+      // explanation in the person's own words, a build, a skill checked (a passed quick check) or built (a proof link) —
+      // keyed (user, kind, ref), so the same proof can never pay twice. Filled from the proof records themselves
+      // (services/atlas/points.js syncPoints), so it is retroactive and cannot drift from them; a week's points (the
+      // league, later) read it by earned_at. Merge plan: keepInto (a clash keeps INTO's row). After 225.
+      id: "226_proof_points",
+      sql: `
+        CREATE TABLE IF NOT EXISTS proof_points (
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          kind       TEXT NOT NULL,
+          ref        TEXT NOT NULL,
+          points     INTEGER NOT NULL,
+          earned_at  INTEGER NOT NULL,
+          PRIMARY KEY (user_id, kind, ref)
+        );
+        CREATE INDEX IF NOT EXISTS idx_proof_points_earned ON proof_points(earned_at, user_id);
+      `,
+    },
   ];

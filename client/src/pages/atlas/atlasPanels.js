@@ -11,6 +11,8 @@
 
 export const ATLAS_NAV = Object.freeze([
   { group: "You", panels: [
+    // ⭐ D172 (3): Your run — your level, points from proof, streak and today's quests.
+    { id: "your-run", label: "Your run" },
     { id: "overview", label: "Overview" },
     { id: "your-map", label: "Your map" },
     { id: "your-skills", label: "Your skills" },

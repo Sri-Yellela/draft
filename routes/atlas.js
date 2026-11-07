@@ -75,6 +75,7 @@ import { atlasTermsForPosting, peekNode, countLinkEvent, glossaryTerms } from ".
 import { learnStepForNode } from "../services/learn/learnLinks.js";
 import { learnContent } from "../services/learn/learnContent.js";
 import { learnSourceSummary } from "../services/atlas/learnSources.js";
+import { yourRun } from "../services/atlas/points.js";
 import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts } from "../services/atlas/atlasDefinitions.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
@@ -144,6 +145,12 @@ export function createAtlasRouter(db) {
     const terms = liveCached(db, "glossary", () => glossaryTerms(db));
     res.set("Cache-Control", `public, max-age=${LIVE_CACHE_MS / 1000}`);
     res.json({ terms, total: terms.length });
+  });
+  // ⭐ D172 (3) · Your run: the reader's points from proof, level, streak and today's quests. Signed in only; private.
+  router.get("/run", (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    if (req.user?.id == null) return res.status(401).json({ error: "sign_in", message: "Sign in to see your run." });
+    res.json(yourRun(db, req.user.id));
   });
   // ⭐ D116 · computed from THIS reader's profile only (req.user, when signed in) — never stored, never cached shared.
   router.get("/me", (req, res) => {

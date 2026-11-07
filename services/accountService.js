@@ -206,7 +206,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D150 T01 (218): the person's answers to the question bank (the audit's anonymous answers carry no user).
   "learn_question_answers",
   // D169 (223): what proved each skill, the quick checks taken, and the skills held for the Atlas's curator.
-  "skill_proofs", "skill_quick_checks", "atlas_skill_holds"];
+  "skill_proofs", "skill_quick_checks", "atlas_skill_holds",
+  // D172 (3) (226): the points each piece of proof earned.
+  "proof_points"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -328,6 +330,8 @@ export const MERGE_PLAN = Object.freeze({
   learn_question_answers: "move",
   // D169 (223): a person's skill proofs and quick checks are their history; their held skills follow them.
   skill_proofs: "move", skill_quick_checks: "move", atlas_skill_holds: "move",
+  // D172 (3) (226): points from proof, one row per (user, kind, ref) — INTO's row wins on a clash; FROM's fill the rest.
+  proof_points: "keepInto",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
 });
