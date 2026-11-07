@@ -24,6 +24,19 @@ import { niceSection } from "./atsCalibration.js";
 export const TAILORINGS = Object.freeze(["full", "lean", "payload", "code"]);
 /** The admin's switch (Admin → Ops → Tailoring): an app_settings row that wins over DRAFT_TAILORING, no deploy needed. */
 export const TAILORING_KEY = "tailoring_mode";
+/**
+ * ⛔ Owner 11-07: "keep the A+ … just dropping it from the default path … A+ sonnet would be an override option i can use
+ * for testing and this override would be from the admin panel by me". OFF (absent) = an A+ request is served as a
+ * Generate with the admin's strategy × model; ON = the full A+ route, as before 11-07. Admin → Ops → Tailoring.
+ */
+export const APLUS_OVERRIDE_KEY = "tailoring_aplus_override";
+export function aPlusOverride(db) {
+  try { return String(getSetting(db, APLUS_OVERRIDE_KEY) || "").trim().toLowerCase() === "on"; } catch { return false; }
+}
+/** The prompt mode a request is SERVED with: A_PLUS only while the owner's override is on. */
+export function servedPromptMode(db, tool) {
+  return tool === "a_plus_resume" && aPlusOverride(db) ? "A_PLUS" : "GENERATE";
+}
 export const PLACEMENT_MIN_POSTINGS = 3;
 export const PLACEMENTS_MAX = 30;
 
@@ -46,7 +59,10 @@ export function tailoringFor({ db = null, env = process.env, isTrial = false } =
   if (TAILORINGS.includes(row)) return row;
   const set = String(env.DRAFT_TAILORING || "").trim().toLowerCase();
   if (TAILORINGS.includes(set)) return set;
-  return isTrial ? "lean" : "full";
+  // ⛔ Owner 11-07: a tailored résumé is a STRATEGY (lean · payload) paired with a model — lean when nothing is set,
+  // for everyone (it was "full" outside the trial). `isTrial` no longer changes it.
+  void isTrial;
+  return "lean";
 }
 
 /** For the admin surface: where the mode comes from, so clearing the override is never a guess. */
@@ -54,7 +70,7 @@ export function tailoringState(db, env = process.env) {
   const override = getSetting(db, TAILORING_KEY);
   const envRaw = env?.DRAFT_TAILORING ?? null;
   const known = (v) => TAILORINGS.includes(String(v || "").trim().toLowerCase());
-  return { mode: tailoringFor({ db, env }), trialMode: tailoringFor({ db, env, isTrial: true }),
+  return { mode: tailoringFor({ db, env }), trialMode: tailoringFor({ db, env, isTrial: true }), aPlusOverride: aPlusOverride(db),
            source: known(override) ? "override" : known(envRaw) ? "env" : "default",
            override, envRaw, modes: [...TAILORINGS] };
 }

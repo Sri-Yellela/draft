@@ -619,7 +619,7 @@ export function TailoringAdminSection({ theme }) {
           ))}
           <Btn theme={theme} disabled={busy || s.source !== "override"} onClick={() => send("DELETE")}>Follow the deploy (DRAFT_TAILORING={s.envRaw ?? "unset"})</Btn>
         </div>
-        <div style={quiet}>{MODE_TEXT[s.mode]}. Trial accounts: {s.trialMode}. Only lean and payload use the model below.</div>
+        <div style={quiet}>{MODE_TEXT[s.mode]}. Lean when nothing is set. Only lean and payload use the model below — the open model is the tools service's configured provider (e.g. Nemotron through RM_TAILOR_PROVIDER=openai-compatible).</div>
         <div style={what}>Default model</div>
         <div style={row}>
           {["service", ...m.choices].map(id => (
@@ -634,6 +634,15 @@ export function TailoringAdminSection({ theme }) {
               onClick={() => toggleOffered(id)}>{m.offered.includes(id) ? "✓ " : ""}{id}</Btn>
           ))}
         </div>
+        <div style={what}>A+ (Sonnet) — your override, for testing</div>
+        <div style={row}>
+          <Btn theme={theme} primary={s.aPlusOverride} disabled={busy} data-aplus-override={s.aPlusOverride ? "on" : "off"}
+            title="On: an A+ request runs the full A+ route on Sonnet. Off: it is served as a Generate with the strategy and model above."
+            onClick={() => send("PUT", { aPlus: !s.aPlusOverride })}>{s.aPlusOverride ? "✓ A+ on" : "A+ off"}</Btn>
+        </div>
+        <div style={quiet}>{s.aPlusOverride
+          ? "A+ is ON: every A+ request (PRO accounts, apply runs) calls the full A+ route on Sonnet — about 6¢ a résumé."
+          : "A+ is off the default path: an A+ request is served with the strategy and model above. Turn it on to test A+."} Audited.</div>
         <div style={quiet}>"open" works only when the tools service has RM_OPENAI_COMPAT_BASE_URL, RM_OPENAI_COMPAT_API_KEY and RM_OPEN_MODEL; otherwise
           a Generate
           that asks for it fails with the service's refusal (nothing is spent) — configure it there before offering it. A résumé sent to another provider must be named in the privacy policy first.</div>
