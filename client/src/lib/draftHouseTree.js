@@ -370,6 +370,8 @@ export function answerRows(answers = [], openQuestions = []) {
       value: own ? null : s(a.value),
       shown: own ? "left for you" : s(a.value),
       own, guess: !own && a.provenance === "label_fuzzy",
+      // D165 (5): where the answer came from — lib/heldApplication.js answerSource turns it into words.
+      provenance: a.provenance ?? null,
     });
   }
   for (const q of openQuestions || []) {

@@ -234,6 +234,7 @@ export const SHARED = Object.freeze({
   "lib/deckCardFacts.js":               { what: "what the deck card says and where — collapsed, hover, Why this job (D145); one function, nothing said twice" },
   "lib/deckOrder.js":                   { what: "the deck's order (dealt | ATS match) — the deck's control and Customise read one store (D93)" },
   "lib/draftHouseExceptions.js":        { what: "Draft House's exceptions" },
+  "lib/heldApplication.js":             { what: "the held application opened in place: its state's words, the steps the run took, each answer's source, earlier attempts (D165 (5))" },
   "lib/draftHouseTree.js":              { what: "Draft House's tree as data — the ladder to the ring, runs, the nodes, answers (D113 UI)" },
   "lib/trackerRows.js":                 { what: "what each tracker row says, and where — stage, filter, columns, the opened row, actions by stage (D146); one function" },
   "lib/tableExport.js":                 { what: "The Table's exports, built once — Excel and the CSV of the rows shown (D146: the header's Export and the full sheet's)" },
