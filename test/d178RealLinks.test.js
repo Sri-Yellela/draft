@@ -43,3 +43,19 @@ test("d178NoFakeMedia: the links file — only https urls count; no file, nothin
     _resetLinks(); assert.deepEqual([...linkReplacements(dir).keys()], ["a"]);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); _resetLinks(); }
 });
+
+test("d178NoFakeMedia: content/links/learn-links-v1.json — every link verified and evidenced; every search item replaced or left with its reason", async () => {
+  const f = JSON.parse(fs.readFileSync("content/links/learn-links-v1.json", "utf8"));
+  const { learnItems, isSearchLink } = await import("../services/atlas/learnSources.js");
+  const seed = JSON.parse(fs.readFileSync("content/learn/silicon-to-software.json", "utf8"));
+  const searchIds = learnItems(seed).filter(x => isSearchLink(x.item.u)).map(x => x.item.id).sort();
+  const covered = [...f.links.map(l => l.id), ...f.left.map(l => l.id)].sort();
+  assert.deepEqual(covered, searchIds, "each search item is either replaced or listed as left");
+  for (const l of f.links) {
+    assert.match(l.url, /^https:\/\//, l.id);
+    assert.ok(l.verified && l.evidence, `${l.id}: how it was verified, and what the check returned`);
+    assert.doesNotMatch(l.url, /youtube\.com\/results|google\.com\/search|openlibrary\.org\/search/, `${l.id} is not a search`);
+  }
+  for (const l of f.left) assert.ok(l.why, `${l.id}: why it is left`);
+  assert.ok(f.links.length >= 190, `${f.links.length} replaced`);
+});

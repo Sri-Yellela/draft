@@ -1,0 +1,1989 @@
+{
+ "version": 1,
+ "updated": "2026-11-07",
+ "note": "D178-2: verified real pages for Learn items that linked to a search (owner 11-07: replace them). Laid over Learn's content when it is read (services/learn/learnContent.js). picked = the item named only a topic, so a reputable page was chosen — review those. Items with no verified link are listed in `left` and stay search links, flagged.",
+ "links": [
+  {
+   "id": "s1-code",
+   "step": "s1",
+   "title": "Code: The Hidden Language of Computer Hardware and Software",
+   "url": "https://openlibrary.org/works/OL1972516W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Open Library: 'Code' by Charles Petzold (first published 1999, 7 editions)"
+  },
+  {
+   "id": "s1-cc",
+   "step": "s1",
+   "title": "Crash Course Computer Science, episodes 1 to 4",
+   "url": "https://www.youtube.com/playlist?list=PL8dPuuaLjXtNlUrzyH5r6jN9ulIgZBpdo",
+   "type": "playlist",
+   "verified": "oEmbed: Computer Science | CrashCourse",
+   "evidence": "oEmbed: 'Computer Science' | CrashCourse (playlist starts Preview, #1 Early Computing, #2, #3...)",
+   "note": "Official CrashCourse playlist; item 0 is a preview, episodes 1-4 follow"
+  },
+  {
+   "id": "s1-inno",
+   "step": "s1",
+   "title": "The Innovators",
+   "url": "https://openlibrary.org/works/OL17074268W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Open Library: 'The Innovators' by Walter Isaacson (2014, 18 editions)"
+  },
+  {
+   "id": "s1b-ada",
+   "step": "s1b",
+   "title": "Ada Lovelace: The First Computer Programmer",
+   "url": "https://www.youtube.com/watch?v=IZptxisyVqQ",
+   "type": "video",
+   "verified": "oEmbed: Ada Lovelace: The First Computer Programmer | Biographics",
+   "evidence": "oEmbed: 'Ada Lovelace: The First Computer Programmer' | Biographics"
+  },
+  {
+   "id": "s1b-tm",
+   "step": "s1b",
+   "title": "Turing Machines Explained",
+   "url": "https://www.youtube.com/watch?v=dNRDvLACg5Q",
+   "type": "video",
+   "verified": "oEmbed: Turing Machines Explained - Computerphile | Computerphile",
+   "evidence": "oEmbed: 'Turing Machines Explained - Computerphile' | Computerphile"
+  },
+  {
+   "id": "s1b-uc",
+   "step": "s1b",
+   "title": "The Universal Computer: The Road from Leibniz to Turing",
+   "url": "https://openlibrary.org/works/OL2056706W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Open Library: 'The Universal Computer' by Martin Davis (2000)",
+   "note": "Other OL works exist for later editions (OL25193372W, 2018 'Universal Computer')"
+  },
+  {
+   "id": "s2-alu",
+   "step": "s2",
+   "title": "The ALU: Crash Course Computer Science #5",
+   "url": "https://www.youtube.com/watch?v=1I5ZMmrOfnA",
+   "type": "video",
+   "verified": "oEmbed: How Computers Calculate - the ALU: Crash Course Computer Science #5 | CrashCourse",
+   "evidence": "oEmbed: 'How Computers Calculate - the ALU: Crash Course Computer Science #5' | CrashCourse"
+  },
+  {
+   "id": "n1-tc",
+   "step": "n1",
+   "title": "Two’s complement: negative numbers in binary",
+   "url": "https://www.youtube.com/watch?v=4qH4unVtJkE",
+   "type": "video",
+   "verified": "oEmbed: Twos complement: Negative numbers in binary | Ben Eater",
+   "evidence": "oEmbed: 'Twos complement: Negative numbers in binary' | Ben Eater"
+  },
+  {
+   "id": "n1-fp",
+   "step": "n1",
+   "title": "Floating Point Numbers",
+   "url": "https://www.youtube.com/watch?v=PZRI1IfStY0",
+   "type": "video",
+   "verified": "oEmbed: Floating Point Numbers - Computerphile | Computerphile",
+   "evidence": "oEmbed: 'Floating Point Numbers - Computerphile' | Computerphile"
+  },
+  {
+   "id": "n1-uni",
+   "step": "n1",
+   "title": "Characters, Symbols and the Unicode Miracle",
+   "url": "https://www.youtube.com/watch?v=MijmeoH9LT4",
+   "type": "video",
+   "verified": "oEmbed: Characters, Symbols and the Unicode Miracle - Computerphile | Computerphile",
+   "evidence": "oEmbed: 'Characters, Symbols and the Unicode Miracle - Computerphile' | Computerphile"
+  },
+  {
+   "id": "c4-61a",
+   "step": "c4",
+   "title": "CS 61A lectures",
+   "url": "https://cs61a.org/",
+   "type": "course",
+   "verified": "page HTTP 200",
+   "evidence": "Page title: 'CS 61A' (cs61a.org)",
+   "note": "Official course site (current semester; links lecture videos). Fall 2020 lecture 1 by John DeNero is on YouTube (CoHCUimLmdM) if a video is preferred"
+  },
+  {
+   "id": "s3-be",
+   "step": "s3",
+   "title": "Building an 8-bit breadboard computer",
+   "url": "https://www.youtube.com/playlist?list=PLowKtXNTBypGqImE405J2565dvjafglHU",
+   "type": "playlist",
+   "verified": "oEmbed: Building an 8-bit breadboard computer! | Ben Eater",
+   "evidence": "oEmbed: 'Building an 8-bit breadboard computer!' | Ben Eater"
+  },
+  {
+   "id": "s3x-book",
+   "step": "s3x",
+   "title": "The Elements of Computing Systems",
+   "url": "https://openlibrary.org/works/OL21015000W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Open Library: 'Elements of Computing Systems' by Noam Nisan, Shimon Schocken (2008, 4 editions)",
+   "note": "OL has duplicate works (OL19550033W 'The Elements of Computing Systems', 2005, 1 edition); chose the one with most editions"
+  },
+  {
+   "id": "e1-pei",
+   "step": "e1",
+   "title": "Practical Electronics for Inventors",
+   "url": "https://openlibrary.org/works/OL222976W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Open Library: 'Practical Electronics for Inventors' by Paul Scherz (2000, 4 editions)",
+   "note": "OL lists only Scherz as author; Simon Monk co-authored later editions"
+  },
+  {
+   "id": "wav1-nasa",
+   "step": "wav1",
+   "title": "Tour of the Electromagnetic Spectrum",
+   "url": "https://science.nasa.gov/ems/",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Page title: 'The Electromagnetic Spectrum Video Series & Companion Book - NASA Science'",
+   "note": "This is the current home of NASA's Tour of the Electromagnetic Spectrum"
+  },
+  {
+   "id": "wav1-phet",
+   "step": "wav1",
+   "title": "Radio Waves and Electromagnetic Fields",
+   "url": "https://phet.colorado.edu/en/simulations/radio-waves",
+   "type": "other",
+   "verified": "page HTTP 200",
+   "evidence": "Page title: 'Radio Waves & Electromagnetic Fields | Radio Waves | PhET Simulations'"
+  },
+  {
+   "id": "wav1-ver",
+   "step": "wav1",
+   "title": "The Big Misconception About Electricity",
+   "url": "https://www.youtube.com/watch?v=bHIhgxav9LY",
+   "type": "video",
+   "verified": "oEmbed: The Biggest Misconception About Electricity | Veritasium",
+   "evidence": "oEmbed: 'The Biggest Misconception About Electricity' | Veritasium",
+   "note": "Actual title says 'Biggest', not 'Big'"
+  },
+  {
+   "id": "s4-feyn",
+   "step": "s4",
+   "title": "The Feynman Lectures on Computation",
+   "url": "https://openlibrary.org/works/OL514615W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Open Library: 'Feynman lectures on computation' by Richard Phillips Feynman (1996, 3 editions)",
+   "note": "OL also has OL25241008W (2018 reissue)"
+  },
+  {
+   "id": "s4-ver",
+   "step": "s4",
+   "title": "How Does a Transistor Work?",
+   "url": "https://www.youtube.com/watch?v=IcrBqCFLHIY",
+   "type": "video",
+   "verified": "oEmbed: How Does a Transistor Work? | Veritasium",
+   "evidence": "oEmbed: 'How Does a Transistor Work?' | Veritasium"
+  },
+  {
+   "id": "s4-br",
+   "step": "s4",
+   "title": "How do transistors build into a CPU?",
+   "url": "https://www.youtube.com/watch?v=_Pqfjer8-O4",
+   "type": "video",
+   "verified": "oEmbed: How do Transistors Build into a CPU?  🖥️🤔  How do Transistors Work? 🖥️🤔 | Branch Education",
+   "evidence": "oEmbed: 'How do Transistors Build into a CPU? How do Transistors Work?' | Branch Education"
+  },
+  {
+   "id": "s4-idea",
+   "step": "s4",
+   "title": "The Idea Factory",
+   "url": "https://openlibrary.org/works/OL16184356W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Open Library: 'The Idea Factory' by 'Jon Gernter' (2012, 4 editions)",
+   "note": "OL misspells the author as 'Gernter'; it is Jon Gertner's book"
+  },
+  {
+   "id": "s5-cpu",
+   "step": "s5",
+   "title": "How a CPU is Made / Microchips (Animation)",
+   "url": "https://www.youtube.com/watch?v=vK-geBYygXo",
+   "type": "video",
+   "verified": "oEmbed: How a CPU is Made / Microchips (Animation) | Thomas Schwenke",
+   "evidence": "oEmbed: 'How a CPU is Made / Microchips (Animation)' | Thomas Schwenke"
+  },
+  {
+   "id": "s5-mem",
+   "step": "s5",
+   "title": "How does computer memory work?",
+   "url": "https://www.youtube.com/watch?v=7J7X7aZvMXQ",
+   "type": "video",
+   "verified": "oEmbed: How does Computer Memory Work? 💻🛠 | Branch Education",
+   "evidence": "oEmbed: 'How does Computer Memory Work?' | Branch Education"
+  },
+  {
+   "id": "s5-flash",
+   "step": "s5",
+   "title": "How does a flash memory cell work?",
+   "url": "https://www.youtube.com/watch?v=YtBysgPOKx4",
+   "type": "video",
+   "verified": "oEmbed: How does NAND Flash Work?  Reading from TLC : Triple Level Cells  ||  Exploring Solid State Drives | Branch Education",
+   "evidence": "oEmbed: 'How does NAND Flash Work? Reading from TLC : Triple Level Cells || Exploring Solid State Drives' | Branch Education",
+   "note": "No Branch video titled exactly 'How does a flash memory cell work?'; this is their flash-cell video. Alternative: 'How do SSDs Work?' (5Mh3o886qpg)"
+  },
+  {
+   "id": "f1-br",
+   "step": "f1",
+   "title": "How are Microchips Made?",
+   "url": "https://www.youtube.com/watch?v=dX9CGRZwD-w",
+   "type": "video",
+   "verified": "oEmbed: How are Microchips Made? 🖥️🛠️ CPU Manufacturing Process Steps | Branch Education",
+   "evidence": "oEmbed: 'How are Microchips Made? CPU Manufacturing Process Steps' | Branch Education"
+  },
+  {
+   "id": "f1-cw",
+   "step": "f1",
+   "title": "Chip War",
+   "url": "https://openlibrary.org/works/OL27846746W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Open Library: 'Chip War' by Chris Miller (2022, 8 editions)"
+  },
+  {
+   "id": "a1-br",
+   "step": "a1",
+   "title": "How do CPUs work?",
+   "url": "https://www.youtube.com/watch?v=16zrEPOsIcI",
+   "type": "video",
+   "verified": "oEmbed: The Engineering that Runs the Digital World 🛠️⚙️💻 How do CPUs Work? | Branch Education",
+   "evidence": "oEmbed: 'The Engineering that Runs the Digital World How do CPUs Work?' | Branch Education"
+  },
+  {
+   "id": "a1-csapp",
+   "step": "a1",
+   "title": "Computer Systems: A Programmer’s Perspective, chapters 1 to 6",
+   "url": "https://openlibrary.org/works/OL12343250W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Open Library: 'Computer systems' by Randal E. Bryant, David R. O'Hallaron (2002, 10 editions)",
+   "note": "OL also has a separate 3rd-edition work OL19545341W"
+  },
+  {
+   "id": "a1-om",
+   "step": "a1",
+   "title": "Digital Design and Computer Architecture",
+   "url": "https://www.youtube.com/playlist?list=PL5Q2soXY2Zi9Eo29LMgKVcaydS7V1zZW3",
+   "type": "playlist",
+   "verified": "oEmbed: Livestream - Digital Design and Computer Architecture - ETH Zürich (Spring 2025) | Onur Mutlu Lectures",
+   "evidence": "oEmbed: 'Livestream - Digital Design and Computer Architecture - ETH Zürich (Spring 2025)' | Onur Mutlu Lectures",
+   "note": "Course is re-run each spring; a Spring 2026 playlist also exists (PL5Q2soXY2Zi-yo9kK-BKrq11ykNKkVEpd)"
+  },
+  {
+   "id": "a1-spec",
+   "step": "a1",
+   "title": "Spectre and Meltdown",
+   "url": "https://www.youtube.com/watch?v=I5mRwzVvFGE",
+   "type": "video",
+   "verified": "oEmbed: Spectre & Meltdown - Computerphile | Computerphile",
+   "evidence": "oEmbed: 'Spectre & Meltdown - Computerphile' | Computerphile"
+  },
+  {
+   "id": "a3-wem",
+   "step": "a3",
+   "title": "What Every Programmer Should Know About Memory",
+   "url": "https://www.akkadia.org/drepper/cpumemory.pdf",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "PDF (934 KB) served at Drepper's site; his page akkadia.org/drepper/ links it as 'paper (PDF) I wrote' on CPU caches/memory",
+   "note": "PDF title text not extracted (no PDF parser available); verified via the author's linking page"
+  },
+  {
+   "id": "a3-gal",
+   "step": "a3",
+   "title": "Gallery of Processor Cache Effects",
+   "url": "https://igoro.com/archive/gallery-of-processor-cache-effects/",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Page title: 'Gallery of Processor Cache Effects - Igor Ostrovsky'"
+  },
+  {
+   "id": "a3-lat",
+   "step": "a3",
+   "title": "Latency numbers every programmer should know",
+   "url": "https://colin-scott.github.io/personal_website/research/interactive_latency.html",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Page title: 'Numbers Every Programmer Should Know By Year' (Colin Scott's interactive chart)",
+   "picked": true
+  },
+  {
+   "id": "a2-br",
+   "step": "a2",
+   "title": "How do Graphics Cards Work?",
+   "url": "https://www.youtube.com/watch?v=h9Z4oGN89MU",
+   "type": "video",
+   "verified": "oEmbed: How do Graphics Cards Work?  Exploring GPU Architecture | Branch Education",
+   "evidence": "oEmbed: 'How do Graphics Cards Work? Exploring GPU Architecture' | Branch Education"
+  },
+  {
+   "id": "a2-cuda",
+   "step": "a2",
+   "title": "An Even Easier Introduction to CUDA",
+   "url": "https://developer.nvidia.com/blog/even-easier-introduction-cuda/",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Page title: 'An Even Easier Introduction to CUDA (Updated) | NVIDIA Technical Blog'"
+  },
+  {
+   "id": "a4-soc",
+   "step": "a4",
+   "title": "What’s inside a smartphone system on a chip",
+   "url": "https://www.youtube.com/watch?v=NKfW8ijmRQ4",
+   "type": "video",
+   "by": "Branch Education",
+   "verified": "oEmbed: How do Smartphone CPUs Work?  ||  Inside the System on a Chip | Branch Education",
+   "evidence": "How do Smartphone CPUs Work?  ||  Inside the System on a Chip | Branch Education",
+   "picked": true,
+   "note": "Item was a generic search; picked the Branch Education SoC explainer"
+  },
+  {
+   "id": "a4-ph",
+   "step": "a4",
+   "title": "Computer Organization and Design: RISC-V Edition",
+   "url": "https://openlibrary.org/works/OL20842376W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Computer Organization and Design RISC-V Edition | David A. Patterson, John L. Hennessy (2017)"
+  },
+  {
+   "id": "a4-tpu",
+   "step": "a4",
+   "title": "In-Datacenter Performance Analysis of a Tensor Processing Unit",
+   "url": "https://arxiv.org/abs/1704.04760",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "[1704.04760] In-Datacenter Performance Analysis of a Tensor Processing Unit",
+   "picked": true,
+   "note": "arXiv page of the 2017 TPU paper"
+  },
+  {
+   "id": "a5-mb",
+   "step": "a5",
+   "title": "How does a motherboard work?",
+   "url": "https://www.youtube.com/watch?v=b2pd3Y6aBag",
+   "type": "video",
+   "by": "PowerCert Animated Videos",
+   "verified": "oEmbed: Motherboards Explained | PowerCert Animated Videos",
+   "evidence": "Motherboards Explained | PowerCert Animated Videos",
+   "picked": true,
+   "note": "Item was a generic search; picked PowerCert motherboard explainer"
+  },
+  {
+   "id": "a5-os",
+   "step": "a5",
+   "title": "Write a tiny bootloader",
+   "url": "https://github.com/cfenollosa/os-tutorial",
+   "type": "other",
+   "verified": "page HTTP 200",
+   "evidence": "GitHub - cfenollosa/os-tutorial: How to create an OS from scratch",
+   "picked": true
+  },
+  {
+   "id": "s7-ard",
+   "step": "s7",
+   "title": "Arduino Uno starter kit",
+   "url": "https://store.arduino.cc/products/arduino-starter-kit-multi-language",
+   "type": "other",
+   "verified": "page HTTP 200",
+   "evidence": "Arduino Starter Kit Multi-Language - Complete Kit with UNO Board - Arduino Official Store",
+   "note": "Official Arduino kit; Elegoo product page returned no title so not used"
+  },
+  {
+   "id": "s7-rfid",
+   "step": "s7",
+   "title": "Arduino with an RC522 RFID reader",
+   "url": "https://www.instructables.com/Arduino-RFID-Reader-MFRC522-Turorial/",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Arduino RFID Reader / MFRC522 Turorial : 3 Steps (with Pictures) - Instructables",
+   "note": "Several Instructables RC522 guides exist; chose this beginner one. Alt: https://www.instructables.com/Interfacing-RC522-RFID-Module-With-Arduino/"
+  },
+  {
+   "id": "s7-pi",
+   "step": "s7",
+   "title": "Raspberry Pi RFID tutorial",
+   "url": "https://docs.sunfounder.com/projects/raphael-kit/en/latest/python/2.2.10_mfrc522_rfid_module_python.html",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "2.2.10 MFRC522 RFID Module - SunFounder Ulimate Raphael Kit for Raspberry Pi documentation",
+   "note": "SunFounder has several kit versions of this lesson; this is the English Raphael kit Python page"
+  },
+  {
+   "id": "cd1-hh",
+   "step": "cd1",
+   "title": "Digital Design and Computer Architecture",
+   "url": "https://openlibrary.org/works/OL20834231W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Digital Design and Computer Architecture | Sarah Harris, David Money Harris (2010)"
+  },
+  {
+   "id": "cd2-flow",
+   "step": "cd2",
+   "title": "The chip design flow: from RTL to layout",
+   "url": "https://www.youtube.com/watch?v=6ruLtdD5dUE",
+   "type": "video",
+   "by": "Semiconductor Club",
+   "verified": "oEmbed: ASIC Design Flow | RTL to GDS | Chip Design Flow | Semiconductor Club",
+   "evidence": "ASIC Design Flow | RTL to GDS | Chip Design Flow | Semiconductor Club",
+   "picked": true,
+   "note": "Item was a generic search; smaller channel, title matches"
+  },
+  {
+   "id": "d0-bop",
+   "step": "d0",
+   "title": "Book of Proof",
+   "url": "https://richardhammack.github.io/BookOfProof/",
+   "type": "book",
+   "verified": "page HTTP 200",
+   "evidence": "Book of Proof (author's official free-online page)",
+   "note": "Open Library work also exists: /works/OL19831934W"
+  },
+  {
+   "id": "d0-pol",
+   "step": "d0",
+   "title": "How to Solve It",
+   "url": "https://openlibrary.org/works/OL4569830W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "How to solve it | George Pólya (1945, 38 editions)"
+  },
+  {
+   "id": "d1-grok",
+   "step": "d1",
+   "title": "Grokking Algorithms",
+   "url": "https://openlibrary.org/works/OL25919119W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Grokking Algorithms | Aditya Y. Bhargava (2016, 3 editions)",
+   "note": "Second edition is a separate work: OL37769525W"
+  },
+  {
+   "id": "d2-wf",
+   "step": "d2",
+   "title": "Data Structures Easy to Advanced",
+   "url": "https://www.youtube.com/watch?v=RBSGKlAvoiM",
+   "type": "video",
+   "verified": "oEmbed: Data Structures Easy to Advanced Course - Full Tutorial from a Google Engineer | freeCodeCamp.org",
+   "evidence": "Data Structures Easy to Advanced Course - Full Tutorial from a Google Engineer | freeCodeCamp.org"
+  },
+  {
+   "id": "d3-bloom",
+   "step": "d3",
+   "title": "Bloom filters by example",
+   "url": "https://llimllib.github.io/bloomfilter-tutorial/",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Bloom Filters by Example",
+   "note": "Bill Mill's (llimllib) page"
+  },
+  {
+   "id": "d4-wf",
+   "step": "d4",
+   "title": "Data Structures Easy to Advanced: trees, heaps, union-find and Fenwick trees",
+   "url": "https://www.youtube.com/watch?v=RBSGKlAvoiM",
+   "type": "video",
+   "verified": "oEmbed: Data Structures Easy to Advanced Course - Full Tutorial from a Google Engineer | freeCodeCamp.org",
+   "evidence": "Data Structures Easy to Advanced Course - Full Tutorial from a Google Engineer | freeCodeCamp.org",
+   "note": "Same full course as d2-wf (trees/heaps/union-find/Fenwick are sections of it)"
+  },
+  {
+   "id": "d5-wf",
+   "step": "d5",
+   "title": "Graph Theory Algorithms",
+   "url": "https://www.youtube.com/watch?v=09_LlHjoEiY",
+   "type": "video",
+   "verified": "oEmbed: Algorithms Course - Graph Theory Tutorial from a Google Engineer | freeCodeCamp.org",
+   "evidence": "Algorithms Course - Graph Theory Tutorial from a Google Engineer | freeCodeCamp.org",
+   "note": "Fiset's own playlist also exists: https://www.youtube.com/playlist?list=PLDV1Zeh2NRsDGO4--qE8yH72HFL1Km93P (Graph Theory Playlist | WilliamFiset)"
+  },
+  {
+   "id": "g1-vis",
+   "step": "g1",
+   "title": "15 Sorting Algorithms in 6 Minutes",
+   "url": "https://www.youtube.com/watch?v=kPRA0W1kECg",
+   "type": "video",
+   "verified": "oEmbed: 15 Sorting Algorithms in 6 Minutes | Timo Bingmann",
+   "evidence": "15 Sorting Algorithms in 6 Minutes | Timo Bingmann"
+  },
+  {
+   "id": "g3-sk",
+   "step": "g3",
+   "title": "The Algorithm Design Manual",
+   "url": "https://openlibrary.org/works/OL2677499W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "The algorithm design manual | Steven S. Skiena (1998, 7 editions)"
+  },
+  {
+   "id": "g5-pnp",
+   "step": "g5",
+   "title": "P vs. NP and the Computational Complexity Zoo",
+   "url": "https://www.youtube.com/watch?v=YX40hbAHx3s",
+   "type": "video",
+   "verified": "oEmbed: P vs. NP and the Computational Complexity Zoo | hackerdashery",
+   "evidence": "P vs. NP and the Computational Complexity Zoo | hackerdashery"
+  },
+  {
+   "id": "g5-halt",
+   "step": "g5",
+   "title": "Turing and the Halting Problem",
+   "url": "https://www.youtube.com/watch?v=macM_MtS_w4",
+   "type": "video",
+   "verified": "oEmbed: Turing & The Halting Problem - Computerphile | Computerphile",
+   "evidence": "Turing & The Halting Problem - Computerphile | Computerphile"
+  },
+  {
+   "id": "g5-sip",
+   "step": "g5",
+   "title": "Theory of Computation",
+   "url": "https://ocw.mit.edu/courses/18-404j-theory-of-computation-fall-2020/",
+   "type": "course",
+   "verified": "page HTTP 200",
+   "evidence": "Theory of Computation | Mathematics | MIT OpenCourseWare",
+   "note": "Fall 2020 offering (Sipser, with video lectures)"
+  },
+  {
+   "id": "o1-cc",
+   "step": "o1",
+   "title": "Operating Systems: Crash Course Computer Science #18",
+   "url": "https://www.youtube.com/watch?v=26QPDBe-NB8",
+   "type": "video",
+   "verified": "oEmbed: Operating Systems: Crash Course Computer Science #18 | CrashCourse",
+   "evidence": "Operating Systems: Crash Course Computer Science #18 | CrashCourse"
+  },
+  {
+   "id": "o3-sem",
+   "step": "o3",
+   "title": "The Little Book of Semaphores",
+   "url": "https://greenteapress.com/wp/semaphores/",
+   "type": "book",
+   "verified": "page HTTP 200",
+   "evidence": "The Little Book of Semaphores - Green Tea Press",
+   "note": "Official free page; Open Library work OL19884353W also exists"
+  },
+  {
+   "id": "lx1-lkmpg",
+   "step": "lx1",
+   "title": "The Linux Kernel Module Programming Guide",
+   "url": "https://sysprog21.github.io/lkmpg/",
+   "type": "book",
+   "verified": "page HTTP 200",
+   "evidence": "The Linux Kernel Module Programming Guide",
+   "picked": true
+  },
+  {
+   "id": "o4-vm",
+   "step": "o4",
+   "title": "Virtual machines vs. containers",
+   "url": "https://www.youtube.com/watch?v=cjXI-yxqGTI",
+   "type": "video",
+   "verified": "oEmbed: Containers vs VMs: What's the difference? | IBM Technology",
+   "evidence": "Containers vs VMs: What's the difference? | IBM Technology"
+  },
+  {
+   "id": "w1-cc",
+   "step": "w1",
+   "title": "Crash Course Computer Science #28 to #30",
+   "url": "https://www.youtube.com/watch?v=3QhU9jd03a0",
+   "type": "video",
+   "by": "CrashCourse",
+   "verified": "oEmbed: Computer Networks: Crash Course Computer Science #28 | CrashCourse",
+   "evidence": "Computer Networks: Crash Course Computer Science #28 | CrashCourse",
+   "picked": true,
+   "note": "No playlist for just #28-30; first episode used. #29 https://www.youtube.com/watch?v=AEaKrq3SpW8 (The Internet), #30 https://www.youtube.com/watch?v=guvsH5OFizE (The World Wide Web); full series playlist PL8dPuuaLjXtNlUrzyH5r6jN9ulIgZBpdo"
+  },
+  {
+   "id": "w1-kr",
+   "step": "w1",
+   "title": "Computer Networking: A Top-Down Approach",
+   "url": "https://gaia.cs.umass.edu/kurose_ross/index.php",
+   "type": "book",
+   "verified": "page HTTP 200",
+   "evidence": "Computer Networking 9E (authors' official site at gaia.cs.umass.edu)",
+   "note": "Official site with lectures page https://gaia.cs.umass.edu/kurose_ross/lectures.php; Open Library work OL56272W"
+  },
+  {
+   "id": "w1-dm",
+   "step": "w1",
+   "title": "The Dream Machine",
+   "url": "https://openlibrary.org/works/OL4300550W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "The Dream Machine | M. Mitchell Waldrop (2001)"
+  },
+  {
+   "id": "w4-hbw",
+   "step": "w4",
+   "title": "How browsers work",
+   "url": "https://web.dev/articles/howbrowserswork",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "How browsers work | Articles | web.dev"
+  },
+  {
+   "id": "m2-ft",
+   "step": "sig1",
+   "title": "But what is the Fourier Transform? A visual introduction",
+   "url": "https://www.youtube.com/watch?v=spUNpyF58BY",
+   "type": "video",
+   "verified": "oEmbed: But what is the Fourier Transform?  A visual introduction. | 3Blue1Brown",
+   "evidence": "But what is the Fourier Transform?  A visual introduction. | 3Blue1Brown"
+  },
+  {
+   "id": "m2-fft",
+   "step": "sig1",
+   "title": "The Fast Fourier Transform (FFT): Most Ingenious Algorithm Ever?",
+   "url": "https://www.youtube.com/watch?v=h7apO7q16V0",
+   "type": "video",
+   "verified": "oEmbed: The Fast Fourier Transform (FFT): Most Ingenious Algorithm Ever? | Reducible",
+   "evidence": "The Fast Fourier Transform (FFT): Most Ingenious Algorithm Ever? | Reducible"
+  },
+  {
+   "id": "rf1-amfm",
+   "step": "rf1",
+   "title": "AM and FM radio explained",
+   "url": "https://www.youtube.com/watch?v=w3M4cqAMWQs",
+   "type": "video",
+   "by": "Techquickie",
+   "verified": "oEmbed: AM and FM Radio As Fast As Possible | Techquickie",
+   "evidence": "AM and FM Radio As Fast As Possible | Techquickie",
+   "picked": true,
+   "note": "Item was a generic search"
+  },
+  {
+   "id": "rf1-qam",
+   "step": "rf1",
+   "title": "QAM and digital modulation explained",
+   "url": "https://www.youtube.com/watch?v=1asY7-NZ93g",
+   "type": "video",
+   "by": "Dave's Space",
+   "verified": "oEmbed: Quadrature Amplitude Modlation (QAM): Explained | Dave's Space",
+   "evidence": "Quadrature Amplitude Modlation (QAM): Explained | Dave's Space",
+   "picked": true,
+   "note": "Item was a generic search"
+  },
+  {
+   "id": "w3-wifi",
+   "step": "w3",
+   "title": "How Wi-Fi works",
+   "url": "https://www.youtube.com/watch?v=xmabFJUKMdg",
+   "type": "video",
+   "by": "BBC Earth Science",
+   "verified": "oEmbed: How Does Wi-Fi Work? | Earth Science | BBC Earth Science",
+   "evidence": "How Does Wi-Fi Work? | Earth Science | BBC Earth Science",
+   "picked": true,
+   "note": "Item was a generic search"
+  },
+  {
+   "id": "w3-cell",
+   "step": "w3",
+   "title": "How cellular networks and 5G work",
+   "url": "https://www.youtube.com/watch?v=0faCad2kKeg",
+   "type": "video",
+   "by": "Wendover Productions",
+   "verified": "oEmbed: How Cell Service Actually Works | Wendover Productions",
+   "evidence": "How Cell Service Actually Works | Wendover Productions",
+   "picked": true,
+   "note": "Item was a generic search; covers cellular networks (5G-specific alt: CNET 'How 5G works and what it delivers' iQeaK0NGMnA)"
+  },
+  {
+   "id": "w3-bt",
+   "step": "w3",
+   "title": "How Bluetooth works",
+   "url": "https://www.youtube.com/watch?v=1I1vxu5qIUM",
+   "type": "video",
+   "by": "Branch Education",
+   "verified": "oEmbed: How does Bluetooth Work? | Branch Education",
+   "evidence": "How does Bluetooth Work? | Branch Education",
+   "picked": true,
+   "note": "Item was a generic search"
+  },
+  {
+   "id": "gps1-star",
+   "step": "gps1",
+   "title": "How Starlink works",
+   "url": "https://www.youtube.com/watch?v=qs2QcycggWU",
+   "type": "video",
+   "by": "Branch Education",
+   "verified": "oEmbed: How does Starlink Satellite Internet Work?📡☄🖥 | Branch Education",
+   "evidence": "How does Starlink Satellite Internet Work? | Branch Education",
+   "picked": true,
+   "note": "Item was a generic search"
+  },
+  {
+   "id": "rf2-ant",
+   "step": "rf2",
+   "title": "How antennas work",
+   "url": "https://www.youtube.com/watch?v=ZaXm6wau-jc",
+   "type": "video",
+   "by": "Sabin Civil Engineering",
+   "verified": "oEmbed: How does an Antenna work? | ICT #4 | Sabin Civil Engineering",
+   "evidence": "How does an Antenna work? | ICT #4 — Sabin Civil Engineering",
+   "picked": true,
+   "note": "Generic search item; picked the Lesics/Sabin Civil Engineering explainer from top results"
+  },
+  {
+   "id": "rf2-ham",
+   "step": "rf2",
+   "title": "Get an amateur radio license",
+   "url": "https://www.arrl.org/getting-licensed",
+   "type": "other",
+   "verified": "page HTTP 200",
+   "evidence": "Getting Licensed — ARRL (page title 'Getting Licensed')",
+   "picked": true,
+   "note": "ARRL (U.S.) page; other countries have their own societies"
+  },
+  {
+   "id": "opt1-vid",
+   "step": "opt1",
+   "title": "How undersea internet cables work",
+   "url": "https://www.youtube.com/watch?v=PIQhA2h1ERY",
+   "type": "video",
+   "by": "Techquickie",
+   "verified": "oEmbed: Undersea Internet Cables - Everything You Need to Know | Techquickie",
+   "evidence": "Undersea Internet Cables - Everything You Need to Know — Techquickie",
+   "picked": true,
+   "note": "Generic search item; picked a top result"
+  },
+  {
+   "id": "opt1-coh",
+   "step": "opt1",
+   "title": "Coherent optics and wavelength division multiplexing",
+   "url": "https://www.youtube.com/watch?v=Ir-XaIT4w1E",
+   "type": "video",
+   "by": "Optical Networking",
+   "verified": "oEmbed: What is Coherent Optics | FiberGuide - Fiber Optics | Optical Networking",
+   "evidence": "What is Coherent Optics — FiberGuide - Fiber Optics | Optical Networking",
+   "picked": true,
+   "note": "Generic search item; covers coherent optics, WDM may be only touched on"
+  },
+  {
+   "id": "b2-build",
+   "step": "b2",
+   "title": "Let’s Build a Simple Database",
+   "url": "https://cstack.github.io/db_tutorial/",
+   "type": "other",
+   "verified": "page HTTP 200",
+   "evidence": "How Does a Database Work? | Let's Build a Simple Database (h1: Let's Build a Simple Database)",
+   "picked": true
+  },
+  {
+   "id": "x1-ddia",
+   "step": "x1",
+   "title": "Designing Data-Intensive Applications",
+   "url": "https://openlibrary.org/works/OL19293745W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Designing Data-Intensive Applications — Martin Kleppmann (2017)"
+  },
+  {
+   "id": "x1-mk",
+   "step": "x1",
+   "title": "Distributed Systems lecture series",
+   "url": "https://www.youtube.com/playlist?list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB",
+   "type": "playlist",
+   "verified": "oEmbed: Distributed Systems lecture series | Martin Kleppmann",
+   "evidence": "Distributed Systems lecture series — Martin Kleppmann"
+  },
+  {
+   "id": "x2-bbg",
+   "step": "x2",
+   "title": "ByteByteGo",
+   "url": "https://www.youtube.com/@ByteByteGo",
+   "type": "other",
+   "verified": "oEmbed: channel page 200",
+   "evidence": "ByteByteGo - YouTube (channel page title)",
+   "note": "Item names the channel; alternative official playlist 'System Design Fundamentals' by ByteByteGo: https://www.youtube.com/playlist?list=PLCRMIe5FDPsd0gVs500xeOewfySTsmEjf"
+  },
+  {
+   "id": "k1-aotp",
+   "step": "k1",
+   "title": "Gambling with Secrets",
+   "url": "https://www.youtube.com/watch?v=lICOtR078Gw",
+   "type": "video",
+   "verified": "oEmbed: Gambling with Secrets: Part 1/8 (What is Cryptography?) | Art of the Problem",
+   "evidence": "Gambling with Secrets: Part 1/8 (What is Cryptography?) — Art of the Problem",
+   "note": "First episode; the 'Gambling With Secrets' playlist found is by a third party (Chumpatrol1), and the channel's own playlist is titled 'Cryptography' (PLB4D701646DAF0817, Art of the Problem)"
+  },
+  {
+   "id": "k1-boneh",
+   "step": "k1",
+   "title": "Cryptography I",
+   "url": "https://www.coursera.org/learn/crypto",
+   "type": "course",
+   "verified": "page HTTP 200",
+   "evidence": "Cryptography I | Coursera"
+  },
+  {
+   "id": "k1-cb",
+   "step": "k1",
+   "title": "The Code Book",
+   "url": "https://openlibrary.org/works/OL31157W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "The Code Book — Simon Singh (1999)"
+  },
+  {
+   "id": "sec1-pm",
+   "step": "sec1",
+   "title": "Security+ course",
+   "url": "https://www.youtube.com/playlist?list=PLG49S3nxzAnl4QDVqK-hOnoqcSKEIDDuv",
+   "type": "playlist",
+   "verified": "oEmbed: CompTIA SY0-701 Security+ Training Course | Professor Messer",
+   "evidence": "CompTIA SY0-701 Security+ Training Course — Professor Messer",
+   "note": "Current SY0-701 exam version"
+  },
+  {
+   "id": "sec2-cp",
+   "step": "sec2",
+   "title": "How viruses, worms and ransomware work",
+   "url": "https://www.youtube.com/watch?v=qjZuI0FT9Z8",
+   "type": "video",
+   "verified": "oEmbed: Malware Overview - Computerphile | Computerphile",
+   "evidence": "Malware Overview - Computerphile — Computerphile",
+   "note": "Closest Computerphile match; ransomware specifically: Wana Decrypt0r (Wanacry Ransomware) - Computerphile, https://www.youtube.com/watch?v=88jkB1V6N9w"
+  },
+  {
+   "id": "sec2-sw",
+   "step": "sec2",
+   "title": "Sandworm",
+   "url": "https://openlibrary.org/works/OL20806093W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Sandworm — Andy Greenberg (2019)"
+  },
+  {
+   "id": "k2-cp",
+   "step": "k2",
+   "title": "SQL injection and buffer overflows",
+   "url": "https://www.youtube.com/watch?v=ciNHn38EyRc",
+   "type": "video",
+   "verified": "oEmbed: Running an SQL Injection Attack - Computerphile | Computerphile",
+   "evidence": "Running an SQL Injection Attack - Computerphile — Computerphile",
+   "note": "Item covers two videos; buffer overflow one is 'Running a Buffer Overflow Attack - Computerphile' https://www.youtube.com/watch?v=1S0aBV-Waeo (verified, Computerphile)"
+  },
+  {
+   "id": "sec3-tor",
+   "step": "sec3",
+   "title": "How Tor Works",
+   "url": "https://www.youtube.com/watch?v=QRYzre4bf7I",
+   "type": "video",
+   "verified": "oEmbed: How TOR Works- Computerphile | Computerphile",
+   "evidence": "How TOR Works- Computerphile — Computerphile"
+  },
+  {
+   "id": "sec3-tp",
+   "step": "sec3",
+   "title": "Tor’s history and design",
+   "url": "https://www.torproject.org/about/history/",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Tor Project | History"
+  },
+  {
+   "id": "sec3-ak",
+   "step": "sec3",
+   "title": "American Kingpin",
+   "url": "https://openlibrary.org/works/OL18203067W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "American Kingpin — Nick Bilton (2017)"
+  },
+  {
+   "id": "hack1-bb",
+   "step": "hack1",
+   "title": "How bug bounty programs work",
+   "url": "https://www.hackerone.com/bug-bounty-programs",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Bug Bounty Programs | HackerOne",
+   "note": "Bugcrowd equivalent: https://www.bugcrowd.com/glossary/bug-bounty-program-bbp/ ('Bug Bounty Program (BBP) | Bugcrowd')"
+  },
+  {
+   "id": "hack2-vid",
+   "step": "hack2",
+   "title": "What a security operations center does",
+   "url": "https://www.youtube.com/watch?v=OHkWXFheSKM",
+   "type": "video",
+   "by": "IBM Technology",
+   "verified": "oEmbed: Security Operations Center (SOC) Explained | IBM Technology",
+   "evidence": "Security Operations Center (SOC) Explained — IBM Technology",
+   "picked": true,
+   "note": "Generic search item; picked top result from IBM Technology"
+  },
+  {
+   "id": "fin1-card",
+   "step": "fin1",
+   "title": "How card payments work",
+   "url": "https://www.youtube.com/watch?v=gzTYbl2Kwuk",
+   "type": "video",
+   "by": "@NurtureLearning",
+   "verified": "oEmbed: Payment Processing Credit/Debit Cards (Authorization, Clearing and Settlement Basics) | @NurtureLearning",
+   "evidence": "Payment Processing Credit/Debit Cards (Authorization, Clearing and Settlement Basics) — @NurtureLearning",
+   "picked": true,
+   "note": "Generic search item; picked top result"
+  },
+  {
+   "id": "fin1-acc",
+   "step": "fin1",
+   "title": "Accounting for Developers",
+   "url": "https://www.moderntreasury.com/journal/accounting-for-developers-part-i",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Accounting for Developers, Part I | Modern Treasury Journal (h1: Accounting For Developers, Part I: The Fundamentals)",
+   "note": "Multi-part series; this is Part I"
+  },
+  {
+   "id": "k3-3b",
+   "step": "k3",
+   "title": "But how does bitcoin actually work?",
+   "url": "https://www.youtube.com/watch?v=bBC-nXj3Ng4",
+   "type": "video",
+   "verified": "oEmbed: But how does bitcoin actually work? | 3Blue1Brown",
+   "evidence": "But how does bitcoin actually work? — 3Blue1Brown"
+  },
+  {
+   "id": "fin2-idem",
+   "step": "fin2",
+   "title": "Designing robust and predictable APIs with idempotency",
+   "url": "https://stripe.com/blog/idempotency",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Designing robust and predictable APIs with idempotency (stripe.com/blog)"
+  },
+  {
+   "id": "fin2-fb",
+   "step": "fin2",
+   "title": "Flash Boys",
+   "url": "https://openlibrary.org/works/OL16816775W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Flash Boys — Michael Lewis (2014)"
+  },
+  {
+   "id": "l1-gc",
+   "step": "l1",
+   "title": "Baby’s First Garbage Collector",
+   "url": "https://journal.stuffwithstuff.com/2013/12/08/babys-first-garbage-collector/",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Baby's First Garbage Collector – journal.stuffwithstuff.com"
+  },
+  {
+   "id": "l1-pl",
+   "step": "l1",
+   "title": "Programming Languages",
+   "url": "https://www.coursera.org/learn/programming-languages",
+   "type": "course",
+   "verified": "page HTTP 200",
+   "evidence": "Programming Languages, Part A | Coursera",
+   "note": "Course is split into Parts A, B, C; this is Part A"
+  },
+  {
+   "id": "l2-pp",
+   "step": "l2",
+   "title": "The Pragmatic Programmer",
+   "url": "https://openlibrary.org/works/OL5748544W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "The Pragmatic Programmer — Andy Hunt, Dave Thomas (1999)"
+  },
+  {
+   "id": "m1-huff",
+   "step": "m1",
+   "title": "Huffman Codes: An Information Theory Perspective",
+   "url": "https://www.youtube.com/watch?v=B3y0RsVCyrw",
+   "type": "video",
+   "verified": "oEmbed: Huffman Codes: An Information Theory Perspective | Reducible",
+   "evidence": "Huffman Codes: An Information Theory Perspective — Reducible"
+  },
+  {
+   "id": "m1-wordle",
+   "step": "m1",
+   "title": "Solving Wordle using information theory",
+   "url": "https://www.youtube.com/watch?v=v68zYyaEmEA",
+   "type": "video",
+   "verified": "oEmbed: Solving Wordle using information theory | 3Blue1Brown",
+   "evidence": "Solving Wordle using information theory — 3Blue1Brown"
+  },
+  {
+   "id": "m2-jpeg",
+   "step": "m2",
+   "title": "The Unreasonable Effectiveness of JPEG",
+   "url": "https://www.youtube.com/watch?v=0me3guauqOU",
+   "type": "video",
+   "verified": "oEmbed: The Unreasonable Effectiveness of JPEG: A Signal Processing Approach | Reducible",
+   "evidence": "The Unreasonable Effectiveness of JPEG: A Signal Processing Approach — Reducible"
+  },
+  {
+   "id": "m2-vid",
+   "step": "m2",
+   "title": "How video compression works",
+   "url": "https://www.youtube.com/watch?v=QoZ8pccsYo4",
+   "type": "video",
+   "by": "Leo Isikdogan",
+   "verified": "oEmbed: How Video Compression Works | Leo Isikdogan",
+   "evidence": "How Video Compression Works — Leo Isikdogan",
+   "picked": true,
+   "note": "Generic search item; picked top result"
+  },
+  {
+   "id": "m2-mp3",
+   "step": "m2",
+   "title": "How MP3 compression works",
+   "url": "https://www.youtube.com/watch?v=KGZ0een8vSE",
+   "type": "video",
+   "by": "Computerphile",
+   "verified": "oEmbed: Digital Audio Compression - Computerphile | Computerphile",
+   "evidence": "Digital Audio Compression - Computerphile — Computerphile",
+   "picked": true,
+   "note": "Generic search item; chose Computerphile over an AI-generated top result; covers audio compression broadly rather than MP3 only"
+  },
+  {
+   "id": "m3-br",
+   "step": "m3",
+   "title": "How do Video Game Graphics Work?",
+   "url": "https://www.youtube.com/watch?v=C8YtdC8mxTU",
+   "type": "video",
+   "verified": "oEmbed: How do Video Game Graphics Work? | Branch Education",
+   "evidence": "How do Video Game Graphics Work? — Branch Education"
+  },
+  {
+   "id": "em1-val",
+   "step": "em1",
+   "title": "Embedded Systems: Shape the World",
+   "url": "https://www.edx.org/learn/embedded-systems/the-university-of-texas-at-austin-embedded-systems-shape-the-world-microcontroller-input-output",
+   "type": "course",
+   "verified": "page HTTP 200",
+   "evidence": "UTAustinX: Embedded Systems - Shape The World: Microcontroller Input/Output | edX",
+   "note": "edX splits it into two courses; this is the first (Microcontroller Input/Output)"
+  },
+  {
+   "id": "em1-mes",
+   "step": "em1",
+   "title": "Making Embedded Systems",
+   "url": "https://openlibrary.org/works/OL17470690W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Making Embedded Systems — Elecia White (2011)"
+  },
+  {
+   "id": "em1-int",
+   "step": "em1",
+   "title": "Interrupts",
+   "url": "https://www.youtube.com/watch?v=DlEa8kd7n3Q",
+   "type": "video",
+   "verified": "oEmbed: Hardware interrupts | Ben Eater",
+   "evidence": "Hardware interrupts — Ben Eater",
+   "note": "Follow-up: 'Interrupt handling' — Ben Eater, https://www.youtube.com/watch?v=oOYA-jsWTmc"
+  },
+  {
+   "id": "em2-can",
+   "step": "em2",
+   "title": "CAN Bus Explained: A Simple Intro",
+   "url": "https://www.youtube.com/watch?v=oYps7vT708E",
+   "type": "video",
+   "verified": "oEmbed: CAN Bus Explained - A Simple Intro [v2.0 | 2021] 🌟 | CSS Electronics",
+   "evidence": "CAN Bus Explained - A Simple Intro [v2.0 | 2021] — CSS Electronics"
+  },
+  {
+   "id": "em2-la",
+   "step": "em2",
+   "title": "Watch the bits with a logic analyzer",
+   "url": "https://sigrok.org/wiki/PulseView",
+   "type": "other",
+   "verified": "page HTTP 200",
+   "evidence": "PulseView - sigrok",
+   "picked": true,
+   "note": "Official PulseView page; no specific analyzer product chosen"
+  },
+  {
+   "id": "em3-dk",
+   "step": "em3",
+   "title": "Introduction to RTOS",
+   "url": "https://www.youtube.com/playlist?list=PLEBQazB0HUyQ4hAPU1cJED6t3DU0h34bz",
+   "type": "playlist",
+   "verified": "oEmbed: Introduction to RTOS | DigiKey",
+   "evidence": "Introduction to RTOS — DigiKey",
+   "note": "Part 1: https://www.youtube.com/watch?v=F321087yYy4 (verified, DigiKey)"
+  },
+  {
+   "id": "eml-boot",
+   "step": "eml",
+   "title": "Embedded Linux training materials",
+   "url": "https://bootlin.com/training/embedded-linux/",
+   "type": "course",
+   "verified": "page HTTP 200",
+   "evidence": "Embedded Linux training – Bootlin",
+   "note": "Page hosts the free slides and labs; all Bootlin materials also at https://bootlin.com/docs/"
+  },
+  {
+   "id": "em4-pid",
+   "step": "em4",
+   "title": "Understanding PID Control",
+   "url": "https://www.youtube.com/playlist?list=PLn8PRpmsu08pQBgjxYFXSsODEF3Jqmm-y",
+   "type": "playlist",
+   "verified": "oEmbed: Understanding PID Control | MATLAB",
+   "evidence": "Understanding PID Control | MATLAB",
+   "note": "Official MATLAB Tech Talks series playlist (presented by Brian Douglas); Part 1 is https://www.youtube.com/watch?v=wkfEZmsQqiA"
+  },
+  {
+   "id": "em4-ctl",
+   "step": "em4",
+   "title": "Control Systems Lectures",
+   "url": "https://www.youtube.com/playlist?list=PLUMWjy5jgHK1NC52DXXrriwihVrYZKqjk",
+   "type": "playlist",
+   "verified": "oEmbed: Classical Control Theory | Brian Douglas",
+   "evidence": "Classical Control Theory | Brian Douglas",
+   "note": "Brian Douglas's own channel lecture playlist; his channel splits lectures into several playlists, this is the main classical-control one"
+  },
+  {
+   "id": "em4-mot",
+   "step": "em4",
+   "title": "All About Stepper Motors",
+   "url": "https://learn.adafruit.com/all-about-stepper-motors",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "What is a Stepper Motor? | All About Stepper Motors | Adafruit Learning System"
+  },
+  {
+   "id": "em4-fs",
+   "step": "em4",
+   "title": "Feedback Systems",
+   "url": "https://openlibrary.org/works/OL21524220W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Feedback Systems — Karl Johan Astrom, Richard M. Murray (Open Library, 2009)",
+   "note": "The free online copy (fbswiki.org / Caltech) returned HTTP 500 / certificate errors and could not be verified, so the Open Library work is given"
+  },
+  {
+   "id": "dev1-tc",
+   "step": "dev1",
+   "title": "Technology Connections appliance videos",
+   "url": "https://www.youtube.com/watch?v=jHP942Livy0",
+   "type": "video",
+   "verified": "oEmbed: Your dishwasher is better than you think (tips, tricks, and how they work) | Technology Connections",
+   "evidence": "Your dishwasher is better than you think (tips, tricks, and how they work) | Technology Connections",
+   "note": "Item names a group of appliance videos; no official Technology Connections appliance playlist found, so the flagship dishwasher video is given"
+  },
+  {
+   "id": "dev1-wm",
+   "step": "dev1",
+   "title": "How a modern washing machine works",
+   "url": "https://www.youtube.com/watch?v=Ij3U3ZvtqSs",
+   "type": "video",
+   "by": "RepairClinic.com",
+   "verified": "oEmbed: How Does A Front-Load Washer Work? — Appliance Repair Tips | RepairClinic.com",
+   "evidence": "How Does A Front-Load Washer Work? — Appliance Repair Tips | RepairClinic.com",
+   "picked": true,
+   "note": "Item was a generic search; chosen a reputable explainer, may not dwell on the control board"
+  },
+  {
+   "id": "dev2-touch",
+   "step": "dev2",
+   "title": "How do touchscreens work?",
+   "url": "https://www.youtube.com/watch?v=cFvh7qM6LdA",
+   "type": "video",
+   "verified": "oEmbed: How Do Touchscreens Work? | Branch Education",
+   "evidence": "How Do Touchscreens Work? | Branch Education"
+  },
+  {
+   "id": "dev2-disp",
+   "step": "dev2",
+   "title": "How LCD and OLED displays work",
+   "url": "https://www.youtube.com/watch?v=JZ_hSMivZDY",
+   "type": "video",
+   "by": "iFixit",
+   "verified": "oEmbed: OLED vs LCD: Smartphone Display Teardown and Comparison | iFixit",
+   "evidence": "OLED vs LCD: Smartphone Display Teardown and Comparison | iFixit",
+   "picked": true,
+   "note": "Item was a generic search; chosen a reputable explainer"
+  },
+  {
+   "id": "dev3-spk",
+   "step": "dev3",
+   "title": "How speakers work",
+   "url": "https://www.youtube.com/watch?v=RxdFP31QYAg",
+   "type": "video",
+   "by": "Animagraffs",
+   "verified": "oEmbed: How Speakers Make Sound | Animagraffs",
+   "evidence": "How Speakers Make Sound | Animagraffs",
+   "picked": true,
+   "note": "Item was a generic search; chosen a reputable explainer"
+  },
+  {
+   "id": "dev3-mic",
+   "step": "dev3",
+   "title": "How MEMS microphones work",
+   "url": "https://www.youtube.com/watch?v=JRtLeTJdOYA",
+   "type": "video",
+   "by": "IEEE Solid-State Circuits Society (SSCS)",
+   "verified": "oEmbed: How does a MEMS microphone work?  Axel Thomsen | IEEE Solid-State Circuits Society (SSCS)",
+   "evidence": "How does a MEMS microphone work?  Axel Thomsen | IEEE Solid-State Circuits Society (SSCS)",
+   "picked": true,
+   "note": "Item was a generic search; chosen a reputable explainer"
+  },
+  {
+   "id": "dev3-anc",
+   "step": "dev3",
+   "title": "How noise-cancelling headphones work",
+   "url": "https://www.youtube.com/watch?v=VIi04uD8LtY",
+   "type": "video",
+   "by": "Branch Education",
+   "verified": "oEmbed: How Do Noise Canceling Headphones Work? | Branch Education",
+   "evidence": "How Do Noise Canceling Headphones Work? | Branch Education",
+   "picked": true,
+   "note": "Item was a generic search; chosen a reputable explainer"
+  },
+  {
+   "id": "dev4-li",
+   "step": "dev4",
+   "title": "How lithium-ion batteries work",
+   "url": "https://www.youtube.com/watch?v=G5McJw4KkG8",
+   "type": "video",
+   "by": "Branch Education",
+   "verified": "oEmbed: How do Lithium-ion Batteries Work? | Branch Education",
+   "evidence": "How do Lithium-ion Batteries Work? | Branch Education",
+   "picked": true,
+   "note": "Item was a generic search; chosen a reputable explainer"
+  },
+  {
+   "id": "dev4-usbc",
+   "step": "dev4",
+   "title": "How USB-C Power Delivery works",
+   "url": "https://www.youtube.com/watch?v=Uuh0tRLANpc",
+   "type": "video",
+   "by": "Android Authority",
+   "verified": "oEmbed: What is USB Power Delivery? - Gary Explains | Android Authority",
+   "evidence": "What is USB Power Delivery? - Gary Explains | Android Authority",
+   "picked": true,
+   "note": "Item was a generic search; chosen a reputable explainer"
+  },
+  {
+   "id": "dev4-qi",
+   "step": "dev4",
+   "title": "How wireless charging works",
+   "url": "https://www.youtube.com/watch?v=vhKVuT8-H1g",
+   "type": "video",
+   "by": "iFixit",
+   "verified": "oEmbed: How Wireless Charging Works and Why It's Terrible | iFixit",
+   "evidence": "How Wireless Charging Works and Why It's Terrible | iFixit",
+   "picked": true,
+   "note": "Item was a generic search; chosen a reputable explainer"
+  },
+  {
+   "id": "dev5-ifx",
+   "step": "dev5",
+   "title": "iPhone and Android teardowns",
+   "url": "https://www.ifixit.com/Teardown",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Gadget Teardowns - iFixit",
+   "note": "iFixit's teardown index (covers iPhone and Android teardowns), not one specific phone"
+  },
+  {
+   "id": "dev5-mems",
+   "step": "dev5",
+   "title": "How a Smartphone Knows Up from Down",
+   "url": "https://www.youtube.com/watch?v=KZVgKu6v808",
+   "type": "video",
+   "verified": "oEmbed: How a Smartphone Knows Up from Down (accelerometer) | engineerguy",
+   "evidence": "How a Smartphone Knows Up from Down (accelerometer) | engineerguy"
+  },
+  {
+   "id": "dev5-base",
+   "step": "dev5",
+   "title": "What a phone’s modem and baseband processor do",
+   "url": "https://www.youtube.com/watch?v=KEwhkHemeOU",
+   "type": "video",
+   "by": "TelcoSec - Telecom Security",
+   "verified": "oEmbed: The Secret Computer Inside Your Phone: Baseband Processors Explained | TelcoSec - Telecom Security",
+   "evidence": "The Secret Computer Inside Your Phone: Baseband Processors Explained | TelcoSec - Telecom Security",
+   "picked": true,
+   "note": "Item was a generic search; small channel, but the title matches the topic"
+  },
+  {
+   "id": "dev6-aps",
+   "step": "dev6",
+   "title": "Apple Platform Security guide",
+   "url": "https://support.apple.com/guide/security/welcome/web",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Apple Platform Security - Apple Support"
+  },
+  {
+   "id": "dev6-build",
+   "step": "dev6",
+   "title": "Build a small phone app",
+   "url": "https://developer.android.com/codelabs/basic-android-kotlin-compose-first-app",
+   "type": "course",
+   "verified": "page HTTP 200",
+   "evidence": "Create your first Android app  |  Android Developers",
+   "picked": true,
+   "note": "Covers the Android Studio path only (developer.android.com/training/basics/firstapp redirects here)"
+  },
+  {
+   "id": "dev7-matter",
+   "step": "dev7",
+   "title": "Matter, Thread and Zigbee explained",
+   "url": "https://en.wikipedia.org/wiki/Matter_(standard)",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Matter (standard) - Wikipedia",
+   "picked": true,
+   "note": "Item was a generic topic; no authoritative single explainer of all three found, so the Wikipedia article on Matter (which covers its relation to Thread and Zigbee) is given; weak match"
+  },
+  {
+   "id": "dev7-mirai",
+   "step": "dev7",
+   "title": "The Mirai botnet",
+   "url": "https://krebsonsecurity.com/2016/10/hacked-cameras-dvrs-powered-todays-massive-internet-outage/",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Hacked Cameras, DVRs Powered Today’s Massive Internet Outage – Krebs on Security",
+   "picked": true,
+   "note": "Brian Krebs's contemporaneous report on the 2016 Dyn attack"
+  },
+  {
+   "id": "cnc1-how",
+   "step": "cnc1",
+   "title": "How CNC machines work: CAD, CAM and G-code",
+   "url": "https://www.youtube.com/watch?v=cj0-wSGGe6g",
+   "type": "video",
+   "by": "Make:",
+   "verified": "oEmbed: CNC Basics - Everything a Beginner Needs To Know | Make:",
+   "evidence": "CNC Basics - Everything a Beginner Needs To Know | Make:",
+   "picked": true,
+   "note": "Item was a generic search; chosen a reputable explainer"
+  },
+  {
+   "id": "cnc1-gc",
+   "step": "cnc1",
+   "title": "G-code reference",
+   "url": "https://linuxcnc.org/docs/html/gcode/g-code.html",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "G-Codes (linuxcnc.org documentation)"
+  },
+  {
+   "id": "cnc1-plot",
+   "step": "cnc1",
+   "title": "Build a pen plotter with Grbl",
+   "url": "https://www.instructables.com/DIY-CNC-Writing-Machine-Using-GRBL/",
+   "type": "other",
+   "verified": "page HTTP 200",
+   "evidence": "DIY CNC Writing Machine Using GRBL : 16 Steps - Instructables",
+   "picked": true,
+   "note": "Item was a generic project; chosen one Arduino + Grbl pen plotter build guide"
+  },
+  {
+   "id": "ind1-rp",
+   "step": "ind1",
+   "title": "What is a PLC?",
+   "url": "https://www.youtube.com/watch?v=ReTtgzN-Dmc",
+   "type": "video",
+   "verified": "oEmbed: What is a PLC? (90 sec) | RealPars",
+   "evidence": "What is a PLC? (90 sec) | RealPars",
+   "note": "Short version; RealPars's longer 'PLC Basics | Programmable Logic Controller' is https://www.youtube.com/watch?v=PbAGl_mv5XI"
+  },
+  {
+   "id": "ind1-open",
+   "step": "ind1",
+   "title": "Program a software PLC in ladder logic",
+   "url": "https://autonomylogic.com/",
+   "type": "other",
+   "verified": "page HTTP 200",
+   "evidence": "OpenPLC & Industrial Automation Platform | AUTONOMY®",
+   "note": "openplcproject.com timed out; autonomylogic.com is the site of Autonomy, which builds OpenPLC"
+  },
+  {
+   "id": "ind1-ctzd",
+   "step": "ind1",
+   "title": "Countdown to Zero Day",
+   "url": "https://openlibrary.org/works/OL19323198W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Countdown to Zero Day: Stuxnet and the Launch of the World's First Digital Weapon — Kim Zetter"
+  },
+  {
+   "id": "sc1-p10",
+   "step": "sc1",
+   "title": "The Power of Ten: Rules for Developing Safety-Critical Code",
+   "url": "https://spinroot.com/gerard/pdf/P10.pdf",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "PDF title: The Power of Ten (spinroot.com, Gerard Holzmann's site)"
+  },
+  {
+   "id": "sc1-ar",
+   "step": "sc1",
+   "title": "Ariane 5 Flight 501 failure report",
+   "url": "https://www.cs.toronto.edu/~krj/courses/2307/disasters/ariane5rep.html",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "ARIANE 5 Failure - Full Report — 'ARIANE 5 Flight 501 Failure, Report by the Inquiry Board, Paris, 19 July 1996, Prof. J. L. Lions'",
+   "picked": true,
+   "note": "University mirror of the full report text; the ESA-hosted copy (esamultimedia.esa.int/docs/esa-x-1819eng.pdf) is a scanned PDF whose title could not be read"
+  },
+  {
+   "id": "sc1-std",
+   "step": "sc1",
+   "title": "ISO 26262 and DO-178C overviews",
+   "url": "https://en.wikipedia.org/wiki/ISO_26262",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "ISO 26262 - Wikipedia",
+   "picked": true,
+   "note": "Item covers two standards; DO-178C overview is https://en.wikipedia.org/wiki/DO-178C (verified: 'DO-178C - Wikipedia')"
+  },
+  {
+   "id": "fl1-kal",
+   "step": "fl1",
+   "title": "Understanding Kalman Filters",
+   "url": "https://www.youtube.com/playlist?list=PLn8PRpmsu08pzi6EMiYnR-076Mh-q3tWr",
+   "type": "playlist",
+   "verified": "oEmbed: Understanding Kalman Filters | MATLAB",
+   "evidence": "Understanding Kalman Filters | MATLAB"
+  },
+  {
+   "id": "fl1-sitl",
+   "step": "fl1",
+   "title": "Fly a simulated drone",
+   "url": "https://ardupilot.org/dev/docs/sitl-simulator-software-in-the-loop.html",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "SITL Simulator (Software in the Loop) — Dev  documentation",
+   "picked": true,
+   "note": "ArduPilot path only"
+  },
+  {
+   "id": "fl2-fbw",
+   "step": "fl2",
+   "title": "How fly-by-wire works",
+   "url": "https://www.youtube.com/watch?v=sqWCnsTieTU",
+   "type": "video",
+   "by": "Captain Joe",
+   "verified": "oEmbed: How does FLY-BY-WIRE work? The future of flight controls! Explained by CAPTAIN JOE | Captain Joe",
+   "evidence": "How does FLY-BY-WIRE work? The future of flight controls! Explained by CAPTAIN JOE | Captain Joe",
+   "picked": true,
+   "note": "Item was a generic search; chosen a reputable explainer"
+  },
+  {
+   "id": "fl2-adsb",
+   "step": "fl2",
+   "title": "Track the aircraft overhead",
+   "url": "https://www.rtl-sdr.com/adsb-aircraft-radar-with-rtl-sdr/",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "RTL-SDR Tutorial: Cheap ADS-B Aircraft RADAR",
+   "picked": true
+  },
+  {
+   "id": "fl2-agc",
+   "step": "fl2",
+   "title": "Apollo Guidance Computer restoration",
+   "url": "https://www.youtube.com/playlist?list=PL-_93BVApb59FWrLZfdlisi_x7-Ut_-w7",
+   "type": "playlist",
+   "verified": "oEmbed: Apollo Guidance Computer Restoration | CuriousMarc",
+   "evidence": "Apollo Guidance Computer Restoration | CuriousMarc",
+   "note": "Part 1 is https://www.youtube.com/watch?v=2KSahAoOLdU"
+  },
+  {
+   "id": "car1-css",
+   "step": "car1",
+   "title": "OBD2 Explained: A Simple Intro",
+   "url": "https://www.youtube.com/watch?v=YcwBeNQbJ5A",
+   "type": "video",
+   "verified": "oEmbed: OBD2 Explained - A Simple Intro [v2.0 | 2021] 🌟 | CSS Electronics",
+   "evidence": "OBD2 Explained - A Simple Intro [v2.0 | 2021] 🌟 | CSS Electronics"
+  },
+  {
+   "id": "car1-obd",
+   "step": "car1",
+   "title": "Read live data from a car",
+   "url": "https://python-obd.readthedocs.io/en/latest/",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "python-OBD",
+   "picked": true,
+   "note": "Python path (python-OBD library docs, works with ELM327 adapters); no phone-app link"
+  },
+  {
+   "id": "car1-adas",
+   "step": "car1",
+   "title": "How driver-assistance sensors work: radar, cameras and lidar",
+   "url": "https://www.youtube.com/watch?v=PRg5RNU_JLk",
+   "type": "video",
+   "by": "TED-Ed",
+   "verified": "oEmbed: How do self-driving cars “see”? - Sajan Saini | TED-Ed",
+   "evidence": "How do self-driving cars “see”? - Sajan Saini | TED-Ed",
+   "picked": true,
+   "note": "Item was a generic search; covers cameras, radar and lidar from the self-driving angle"
+  },
+  {
+   "id": "car1-chh",
+   "step": "car1",
+   "title": "The Car Hacker’s Handbook",
+   "url": "https://openlibrary.org/works/OL20022418W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "The Car Hacker's Handbook — Smith, Craig (Reverse engineer)"
+  },
+  {
+   "id": "med1-fda",
+   "step": "med1",
+   "title": "Software as a Medical Device",
+   "url": "https://www.fda.gov/medical-devices/digital-health-center-excellence/software-medical-device-samd",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Software as a Medical Device (SaMD)"
+  },
+  {
+   "id": "med1-std",
+   "step": "med1",
+   "title": "IEC 62304 and ISO 14971 overviews",
+   "url": "https://webstore.iec.ch/en/publication/22794",
+   "type": "other",
+   "verified": "page HTTP 200",
+   "evidence": "IEC 62304:2006+AMD1:2015 CSV | IEC",
+   "picked": true,
+   "note": "Official IEC 62304 page; covers only one of the two standards. ISO 14971 official page is https://www.iso.org/standard/72704.html but it returned 403 to automated fetch, so unverified."
+  },
+  {
+   "id": "med1-pm",
+   "step": "med1",
+   "title": "How a pacemaker works",
+   "url": "https://www.youtube.com/watch?v=Jbs-BalU4NI",
+   "type": "video",
+   "by": "The Texas Heart Institute",
+   "verified": "oEmbed: Pacemakers: How They Work and Why They're Needed | Dr. Mitch Tan Explains | The Texas Heart Institute",
+   "evidence": "Pacemakers: How They Work and Why They're Needed | Dr. Mitch Tan Explains | The Texas Heart Institute",
+   "picked": true,
+   "note": "Generic search item; picked a reputable explainer, clinical rather than engineering-focused."
+  },
+  {
+   "id": "med2-ct",
+   "step": "med2",
+   "title": "How CT scans work",
+   "url": "https://www.youtube.com/watch?v=l9swbAtRRbg",
+   "type": "video",
+   "by": "NIBIB",
+   "verified": "oEmbed: How Does a CT Scan Work? | NIBIB",
+   "evidence": "How Does a CT Scan Work? | NIBIB",
+   "picked": true,
+   "note": "Generic search item; NIH NIBIB explainer."
+  },
+  {
+   "id": "med2-mri",
+   "step": "med2",
+   "title": "How MRI works",
+   "url": "https://www.youtube.com/watch?v=NlYXqRG7lus",
+   "type": "video",
+   "by": "Real Engineering",
+   "verified": "oEmbed: The Insane Engineering of MRI Machines | Real Engineering",
+   "evidence": "The Insane Engineering of MRI Machines | Real Engineering",
+   "picked": true,
+   "note": "Generic search item; alternative: https://www.youtube.com/watch?v=nFkBhUYynUw (How does an MRI machine work? | Science Museum)."
+  },
+  {
+   "id": "med2-radon",
+   "step": "med2",
+   "title": "Reconstruct an image from simulated X-ray projections",
+   "url": "https://scikit-image.org/docs/stable/auto_examples/transform/plot_radon_transform.html",
+   "type": "other",
+   "verified": "page HTTP 200",
+   "evidence": "Radon transform — skimage 0.26.0 documentation",
+   "picked": true
+  },
+  {
+   "id": "med2-pyd",
+   "step": "med2",
+   "title": "Open a medical scan with pydicom",
+   "url": "https://pydicom.github.io/pydicom/stable/",
+   "type": "other",
+   "verified": "page HTTP 200",
+   "evidence": "pydicom documentation — pydicom 3.0.2 documentation",
+   "picked": true
+  },
+  {
+   "id": "med3-ox",
+   "step": "med3",
+   "title": "How pulse oximeters work",
+   "url": "https://www.youtube.com/watch?v=r0RISnX-cnc",
+   "type": "video",
+   "by": "STAT",
+   "verified": "oEmbed: How pulse oximeters work, and why they sometimes do not | STAT",
+   "evidence": "How pulse oximeters work, and why they sometimes do not | STAT",
+   "picked": true,
+   "note": "Generic search item."
+  },
+  {
+   "id": "hack3-hhh",
+   "step": "hack3",
+   "title": "The Hardware Hacking Handbook",
+   "url": "https://openlibrary.org/works/OL27740875W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "The Hardware Hacking Handbook | Colin O'Flynn, Jasper van Woudenberg (2021)",
+   "note": "Publisher page also verified: https://nostarch.com/hardwarehacking"
+  },
+  {
+   "id": "hack3-vid",
+   "step": "hack3",
+   "title": "Hardware hacking for beginners",
+   "url": "https://www.youtube.com/playlist?list=PLoFdAHrZtKkhcd9k8ZcR4th8Q8PNOx7iU",
+   "type": "playlist",
+   "by": "Make Me Hack",
+   "verified": "oEmbed: Hardware Hacking Tutorial | Make Me Hack",
+   "evidence": "Hardware Hacking Tutorial | Make Me Hack",
+   "picked": true,
+   "note": "Generic search item; beginner series covering UART etc. Single-video alternative: https://www.youtube.com/watch?v=SpPd0Q6dmYI (Intro to Hardware Hacking with Matt Brown | Syntax)."
+  },
+  {
+   "id": "hw2-tpm",
+   "step": "hw2",
+   "title": "What is a TPM?",
+   "url": "https://www.youtube.com/watch?v=RW2zHvVO09g",
+   "type": "video",
+   "by": "Computerphile",
+   "verified": "oEmbed: TPM (Trusted Platform Module) - Computerphile | Computerphile",
+   "evidence": "TPM (Trusted Platform Module) - Computerphile | Computerphile",
+   "picked": true
+  },
+  {
+   "id": "hw2-sc",
+   "step": "hw2",
+   "title": "Side-channel attacks",
+   "url": "https://www.youtube.com/watch?v=vXe8pe18MNk",
+   "type": "video",
+   "verified": "oEmbed: Power LED Attack - Computerphile | Computerphile",
+   "evidence": "Power LED Attack - Computerphile | Computerphile",
+   "note": "No Computerphile video titled 'Side-channel attacks' found; this is Computerphile's power-based side-channel video. Some doubt that it is the intended one."
+  },
+  {
+   "id": "hw2-cw",
+   "step": "hw2",
+   "title": "ChipWhisperer",
+   "url": "https://www.newae.com/chipwhisperer",
+   "type": "other",
+   "verified": "page HTTP 200",
+   "evidence": "ChipWhisperer | Newae Technology"
+  },
+  {
+   "id": "h2-sq",
+   "step": "h2",
+   "title": "Statistics Fundamentals",
+   "url": "https://www.youtube.com/playlist?list=PLblh5JKOoLUK0FLuzwntyYI10UQFUhsY9",
+   "type": "playlist",
+   "verified": "oEmbed: Statistics Fundamentals | StatQuest with Josh Starmer",
+   "evidence": "Statistics Fundamentals | StatQuest with Josh Starmer"
+  },
+  {
+   "id": "h2-bayes",
+   "step": "h2",
+   "title": "Bayes theorem, the geometry of changing beliefs",
+   "url": "https://www.youtube.com/watch?v=HZGCoVF3YvM",
+   "type": "video",
+   "verified": "oEmbed: Bayes theorem, the geometry of changing beliefs | 3Blue1Brown",
+   "evidence": "Bayes theorem, the geometry of changing beliefs | 3Blue1Brown"
+  },
+  {
+   "id": "ml1-ng",
+   "step": "ml1",
+   "title": "Machine Learning Specialization",
+   "url": "https://www.coursera.org/specializations/machine-learning-introduction",
+   "type": "course",
+   "verified": "page HTTP 200",
+   "evidence": "Machine Learning | Coursera",
+   "note": "Andrew Ng's Machine Learning Specialization page."
+  },
+  {
+   "id": "ml1-sq",
+   "step": "ml1",
+   "title": "Machine learning playlist",
+   "url": "https://www.youtube.com/playlist?list=PLblh5JKOoLUICTaGLRoHQDuF_7q2GfuJF",
+   "type": "playlist",
+   "verified": "oEmbed: Machine Learning | StatQuest with Josh Starmer",
+   "evidence": "Machine Learning | StatQuest with Josh Starmer"
+  },
+  {
+   "id": "ml1-ho",
+   "step": "ml1",
+   "title": "Hands-On Machine Learning",
+   "url": "https://openlibrary.org/works/OL20709638W",
+   "type": "book",
+   "verified": "Open Library search API (title + author), by the research agent",
+   "evidence": "Hands-On Machine Learning with Scikit-Learn, Keras, and TensorFlow | Aurélien Géron (2019)",
+   "note": "Other editions are separate works: Scikit-Learn and TensorFlow (OL19543288W, 2017); Scikit-Learn and PyTorch (OL44325799W, 2025)."
+  },
+  {
+   "id": "ml2-conv",
+   "step": "ml2",
+   "title": "But what is a convolution?",
+   "url": "https://www.youtube.com/watch?v=KuXjwB4LzSA",
+   "type": "video",
+   "verified": "oEmbed: But what is a convolution? | 3Blue1Brown",
+   "evidence": "But what is a convolution? | 3Blue1Brown"
+  },
+  {
+   "id": "ml3-ag",
+   "step": "ml3",
+   "title": "AlphaGo",
+   "url": "https://www.youtube.com/watch?v=WXuK6gekU1Y",
+   "type": "video",
+   "by": "Google DeepMind",
+   "verified": "oEmbed: AlphaGo - The Movie | Full award-winning documentary | Google DeepMind",
+   "evidence": "AlphaGo - The Movie | Full award-winning documentary | Google DeepMind",
+   "picked": true
+  },
+  {
+   "id": "ml3-ds",
+   "step": "ml3",
+   "title": "Reinforcement learning lectures",
+   "url": "https://www.youtube.com/playlist?list=PLqYmG7hTraZDM-OYHWgPebj2MfCFzFObQ",
+   "type": "playlist",
+   "verified": "oEmbed: DeepMind x UCL | Introduction to Reinforcement Learning 2015 | Google DeepMind",
+   "evidence": "DeepMind x UCL | Introduction to Reinforcement Learning 2015 | Google DeepMind",
+   "note": "Official playlist; lecture 1 is https://www.youtube.com/watch?v=2pWv7GOvuf0 (RL Course by David Silver - Lecture 1: Introduction to Reinforcement Learning | Google DeepMind)."
+  },
+  {
+   "id": "s10-sq",
+   "step": "s10",
+   "title": "Recurrent neural networks and LSTMs, clearly explained",
+   "url": "https://www.youtube.com/watch?v=AsNTP8Kwu80",
+   "type": "video",
+   "verified": "oEmbed: Recurrent Neural Networks (RNNs), Clearly Explained!!! | StatQuest with Josh Starmer",
+   "evidence": "Recurrent Neural Networks (RNNs), Clearly Explained!!! | StatQuest with Josh Starmer",
+   "note": "The item covers two videos; LSTM companion: https://www.youtube.com/watch?v=YCzL96nL7j0 (Long Short-Term Memory (LSTM), Clearly Explained | StatQuest with Josh Starmer)."
+  },
+  {
+   "id": "s11-sq",
+   "step": "s11",
+   "title": "Transformer Neural Networks, ChatGPT’s foundation, Clearly Explained",
+   "url": "https://www.youtube.com/watch?v=zxQyTK8quyY",
+   "type": "video",
+   "verified": "oEmbed: Transformer Neural Networks, ChatGPT's foundation, Clearly Explained!!! | StatQuest with Josh Starmer",
+   "evidence": "Transformer Neural Networks, ChatGPT's foundation, Clearly Explained!!! | StatQuest with Josh Starmer"
+  },
+  {
+   "id": "s11-lab",
+   "step": "s11",
+   "title": "Attention in Transformers: Concepts and Code in PyTorch",
+   "url": "https://www.deeplearning.ai/courses/attention-in-transformers-concepts-and-code-in-pytorch",
+   "type": "course",
+   "verified": "page HTTP 200",
+   "evidence": "Attention in Transformers: Concepts and Code in PyTorch - DeepLearning.AI"
+  },
+  {
+   "id": "t1-dd",
+   "step": "t1",
+   "title": "Deep Dive into LLMs like ChatGPT",
+   "url": "https://www.youtube.com/watch?v=7xTGNNLPyMI",
+   "type": "video",
+   "verified": "oEmbed: Deep Dive into LLMs like ChatGPT | Andrej Karpathy",
+   "evidence": "Deep Dive into LLMs like ChatGPT | Andrej Karpathy"
+  },
+  {
+   "id": "t1-tok",
+   "step": "t1",
+   "title": "Let’s build the GPT Tokenizer",
+   "url": "https://www.youtube.com/watch?v=zduSFxRajkE",
+   "type": "video",
+   "verified": "oEmbed: Let's build the GPT Tokenizer | Andrej Karpathy",
+   "evidence": "Let's build the GPT Tokenizer | Andrej Karpathy"
+  },
+  {
+   "id": "z1-tia",
+   "step": "z1",
+   "title": "Transformer Inference Arithmetic",
+   "url": "https://kipp.ly/p/transformer-inference-arithmetic",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Transformer Inference Arithmetic - kipply's blog"
+  },
+  {
+   "id": "z1-q",
+   "step": "z1",
+   "title": "A Visual Guide to Quantization",
+   "url": "https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-quantization",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "A Visual Guide to Quantization - by Maarten Grootendorst"
+  },
+  {
+   "id": "z1-moe",
+   "step": "z1",
+   "title": "A Visual Guide to Mixture of Experts",
+   "url": "https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-mixture-of-experts",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "A Visual Guide to Mixture of Experts (MoE)",
+   "note": "On Maarten Grootendorst's newsletter."
+  },
+  {
+   "id": "z2-rag",
+   "step": "z2",
+   "title": "What is retrieval-augmented generation (RAG)?",
+   "url": "https://www.youtube.com/watch?v=T-D1OfcDW1M",
+   "type": "video",
+   "verified": "oEmbed: What is Retrieval-Augmented Generation (RAG)? | IBM Technology",
+   "evidence": "What is Retrieval-Augmented Generation (RAG)? | IBM Technology"
+  },
+  {
+   "id": "z2-agents",
+   "step": "z2",
+   "title": "Building effective agents",
+   "url": "https://www.anthropic.com/research/building-effective-agents",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Building effective AI agents \\ Anthropic"
+  },
+  {
+   "id": "z3-wl",
+   "step": "z3",
+   "title": "But how do AI images and videos actually work?",
+   "url": "https://www.youtube.com/watch?v=iv-5mZ_9CPY",
+   "type": "video",
+   "verified": "oEmbed: But how do AI images and videos actually work? | Guest video by Welch Labs | 3Blue1Brown",
+   "evidence": "But how do AI images and videos actually work? | Guest video by Welch Labs | 3Blue1Brown"
+  },
+  {
+   "id": "z3-cp",
+   "step": "z3",
+   "title": "How AI image generators work",
+   "url": "https://www.youtube.com/watch?v=1CIpzeNxIhU",
+   "type": "video",
+   "verified": "oEmbed: How AI Image Generators Work (Stable Diffusion / Dall-E) - Computerphile | Computerphile",
+   "evidence": "How AI Image Generators Work (Stable Diffusion / Dall-E) - Computerphile | Computerphile"
+  },
+  {
+   "id": "z3-lw",
+   "step": "z3",
+   "title": "What are Diffusion Models?",
+   "url": "https://lilianweng.github.io/posts/2021-07-11-diffusion-models/",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "What are Diffusion Models? | Lil'Log"
+  },
+  {
+   "id": "z4-3b",
+   "step": "z4",
+   "title": "But what is quantum computing? (Grover’s algorithm)",
+   "url": "https://www.youtube.com/watch?v=RQWpF2Gb-gU",
+   "type": "video",
+   "verified": "oEmbed: But what is quantum computing?  (Grover's Algorithm) | 3Blue1Brown",
+   "evidence": "But what is quantum computing?  (Grover's Algorithm) | 3Blue1Brown"
+  },
+  {
+   "id": "z4-ibm",
+   "step": "z4",
+   "title": "IBM Quantum Learning",
+   "url": "https://quantum.cloud.ibm.com/learning/en",
+   "type": "course",
+   "verified": "page HTTP 200",
+   "evidence": "IBM Quantum Learning",
+   "picked": true,
+   "note": "learning.quantum.ibm.com redirects here."
+  },
+  {
+   "id": "z5-int",
+   "step": "z5",
+   "title": "Mapping the Mind of a Large Language Model",
+   "url": "https://www.anthropic.com/research/mapping-mind-language-model",
+   "type": "article",
+   "verified": "page HTTP 200",
+   "evidence": "Mapping the mind of a large language model \\ Anthropic"
+  },
+  {
+   "id": "z5-rm",
+   "step": "z5",
+   "title": "AI safety explainers",
+   "url": "https://www.youtube.com/watch?v=pYXy-A4siMw",
+   "type": "video",
+   "verified": "oEmbed: Intro to AI Safety, Remastered | Robert Miles AI Safety ",
+   "evidence": "Intro to AI Safety, Remastered | Robert Miles AI Safety",
+   "note": "Item names his explainers in general; this is his intro video. The channel itself (Robert Miles AI Safety) cannot be checked with oembed."
+  }
+ ],
+ "left": [
+  {
+   "id": "s1-iol",
+   "title": "How Computers Work: Circuit Logic",
+   "why": "No 'How Computers Work: Circuit Logic' on the In One Lesson channel (videos list checked). Closest In One Lesson videos: 'How TRANSISTORS do MATH' (VBDoT8o4q00), 'How a CPU Works' (cNN_tTXABUA). A 'How Computers Work: Circuits & Logic' exists but by CodeAI (ZoqMiFKspAA), not In One Lesson"
+  },
+  {
+   "id": "e1-ka",
+   "title": "Circuits",
+   "why": "Likely https://www.khanacademy.org/science/physics/circuits-topic but Khan Academy returned a bot 'Client Challenge' page to curl and WebFetch, so title could not be verified. Verified fallback video: 'Intro to electric circuits | Physics | Khan Academy' (Nbb5Lw14wvo)"
+  },
+  {
+   "id": "wav1-vid",
+   "title": "What are electromagnetic waves?",
+   "why": "Item names no creator ('YouTube search'), so there is no single video it means. Candidates: 'The origin of Electromagnetic waves, and why they behave as they do' | ScienceClic English (V_jYXQFjCmA); 'What is Light? Maxwell and the Electromagnetic Spectrum' | Professor Dave Explains (pj_ya0e20vE)"
+  },
+  {
+   "id": "f1-euv",
+   "title": "How EUV lithography works",
+   "why": "No Asianometry video titled 'How EUV lithography works' found. Asianometry EUV videos: 'The Extreme Engineering of ASML's EUV Light Source' (5Ge2RcvDlgw), 'The Decision of the Century: Choosing EUV Lithography' (RmgkV83OhHA). 'How EUV lithography works' exists but by IBM Research (RI3lCUEzSvE); Branch Education has 'The $200M Machine that Prints Microchips: The EUV Photolithography System' (B2482h_TNwg)"
+  },
+  {
+   "id": "s6-fiber",
+   "title": "How do fiber optic cables work?",
+   "why": "Branch Education channel has no fiber-optic video (checked its full video list). Popular alternative: 'Fiber optic cables: How they work' | engineerguy (0MwMkBET_5I)"
+  },
+  {
+   "id": "a3-coh",
+   "title": "Cache coherence and the MESI protocol",
+   "why": "Item names no creator ('YouTube search'). Candidates: 'MESI Cache Coherence Protocol | Vasileios Trigonakis' | Wandida, EPFL (-p9tfMMu1PE); 'Cache Coherence Problem & Cache Coherency Protocols' | Neso Academy (r_ZE1XVT8Ao)"
+  },
+  {
+   "id": "o3-pike",
+   "title": "Concurrency Is Not Parallelism",
+   "why": "a third party's re-upload of Rob Pike's talk — no official recording found"
+  },
+  {
+   "id": "gps1-sat",
+   "title": "How satellite messengers and satellite phones work",
+   "why": "No reputable explainer found; results were product ads/reviews (Garmin, satellite phone stores) or tiny channels"
+  },
+  {
+   "id": "med1-th",
+   "title": "An Investigation of the Therac-25 Accidents",
+   "why": "a university mirror of a copyrighted IEEE paper — no link to the publisher's or the author's own copy verified"
+  },
+  {
+   "id": "h1-ka",
+   "title": "Multivariable calculus",
+   "why": "Khan Academy refused automated fetches; the page could not be verified"
+  },
+  {
+   "id": "s10-st",
+   "title": "NLP with Neural Networks: n-grams to LLMs",
+   "why": "No such video found. Spanning Tree's channel video list (latest: 'Perceptrons ... Teaching Computers to Learn, Part 3') has no NLP/n-gram/LLM video, and searches only turn up other channels."
+  },
+  {
+   "id": "s11-br",
+   "title": "Transformers explained: how LLMs work",
+   "why": "No such video found. Branch Education's channel video list (latest: 'Do you think Hard Disk Drives are Slow?') has no LLM/transformer video, and searches show none."
+  },
+  {
+   "id": "s11-st",
+   "title": "Transformers, step by step",
+   "why": "No such video found. Spanning Tree's channel has no transformer/attention video; search results are 3Blue1Brown and others."
+  },
+  {
+   "id": "rf1-web",
+   "title": "WebSDR",
+   "why": "the site serves only http (http://websdr.org/) — draft links only to https pages"
+  }
+ ]
+}

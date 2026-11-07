@@ -73,7 +73,7 @@ import { probeWikipedia, wikiMatchSummary } from "../services/atlas/atlasWikidat
 import { wikiCandidates, pickWikiTitle, redirectPreview, acceptPicks } from "../services/atlas/atlasWikiFind.js";
 import { atlasTermsForPosting, peekNode, countLinkEvent, glossaryTerms } from "../services/atlas/atlasLinks.js";
 import { learnStepForNode } from "../services/learn/learnLinks.js";
-import { learnContent } from "../services/learn/learnContent.js";
+import { servedLearnContent } from "../services/learn/learnContent.js";
 import { learnSourceSummary } from "../services/atlas/learnSources.js";
 import { yourRun } from "../services/atlas/points.js";
 import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts } from "../services/atlas/atlasDefinitions.js";
@@ -228,7 +228,7 @@ export function createAtlasAdminRouter(db, { fetchImpl = globalThis.fetch, linkP
       const reg = loadRegistry();
       // D176-3: every Learn item's source, resolved from the register against the content the app actually serves.
       let learn = null;
-      try { const s = learnSourceSummary(learnContent(db), reg); learn = { items: s.items, resolved: s.resolved, own: s.own, needsNamedSource: s.needsNamedSource, unregistered: s.unregistered }; }
+      try { const s = learnSourceSummary(servedLearnContent(db), reg); learn = { items: s.items, resolved: s.resolved, own: s.own, needsNamedSource: s.needsNamedSource, unregistered: s.unregistered }; }
       catch { learn = null; }
       res.json({ ...registrySummary(reg), links: lastLinkCheck(db), learn });
     }

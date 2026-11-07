@@ -12,6 +12,7 @@
 import fs from "node:fs";
 import { registerIndex, itemSource, learnItems, OWN_SOURCE, slugOf } from "../services/atlas/learnSources.js";
 import { validateRegistry } from "../services/atlas/sourceRegistry.js";
+import { withRealLinks } from "../services/learn/learnContent.js";
 
 const REG = "content/sources/registry.json";
 const SEED = "content/learn/silicon-to-software.json";
@@ -32,7 +33,8 @@ export function dumps(v) {
 const raw = fs.readFileSync(REG, "utf8");
 const reg = JSON.parse(raw);
 if (dumps(reg) !== raw) { console.error("REFUSING: the register's format is not reproduced byte for byte — nothing written"); process.exit(2); }
-const doc = JSON.parse(fs.readFileSync(SEED, "utf8"));
+// D178-2: the content as Learn serves it — with the verified real links laid over the search links.
+const doc = withRealLinks(JSON.parse(fs.readFileSync(SEED, "utf8")));
 const index = registerIndex(reg);
 
 // A part's pathway: the path runs from hardware to software; its hardware parts are embedded's.
@@ -51,6 +53,7 @@ for (const { stepId, item } of learnItems(doc)) {
   const row = add.get(s.want) || {
     id: s.want,
     publisher: s.by === "creator" ? s.name.split(",")[0].trim() : s.host,
+    // (a picked video's channel is its creator too — named from the verified link, D178-2)
     name: s.by === "creator" ? s.name : s.host,
     url: s.by === "creator"
       ? (/youtube\.com/.test(item.u) ? `https://www.youtube.com/results?search_query=${encodeURIComponent(s.name)}`
