@@ -12,6 +12,7 @@ import { useTheme } from "../styles/theme.jsx";
 import { api } from "../lib/api.js";
 import { describeApplication, attemptStatusChip, personQuestions } from "../lib/applyObstacles.js";
 import { companyLabel } from "../../../shared/atsHosts.js";
+import { startedByPhrase } from "../../../shared/startedBy.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { markStyle, bandMarkStyle, dotCue } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
@@ -637,7 +638,10 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
       {/* which attempt, and how it ended */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <div style={{ fontSize: 10.5, color: theme.textMuted }}>
-          {job.startedAt && `Started ${new Date(job.startedAt).toLocaleString()}`}
+          {/* D171 FIX 1: who started it, when recorded (migration 224) — "Started by the daily run at 6:00 AM" */}
+          {job.startedAt && (job.startedBy
+            ? startedByPhrase({ startedBy: job.startedBy, at: job.startedAt })
+            : `Started ${new Date(job.startedAt).toLocaleString()}`)}
           {job.startedAt && job.finishedAt && " · "}
           {job.finishedAt && `Finished ${new Date(job.finishedAt).toLocaleTimeString()}`}
           {(job.startedAt || job.finishedAt) && " · "}Attempts: {job.attemptCount || 1}

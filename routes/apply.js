@@ -60,6 +60,8 @@ import { eligibilityForJob, userEligibilityInputs } from "../services/jobEligibi
 // D107 P3: Approve all also leaves out a posting past the user's staleness thresholds (Auto settings).
 import { livenessFor, isStale } from "../services/jobs/jobHistory.js";
 import { readAutoSettings } from "../shared/autoSettings.js";
+import { currentStartedBy, withStartedBy, startedByOfRun, agentRunRefusal } from "../services/startedByContext.js";
+import { isProductionProcess } from "../services/modelUsage.js";
 import { educationEntries } from "../services/structuredProfile.js";
 
 // Live read through the one shared parser, exactly as server.js does — same flag, same function,
@@ -2244,7 +2246,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         // during a run starts nothing further. What is already being filled finishes; the rest wait.
         if (userHeld(db, run.user_id)) { heldMidRun = true; break; }
         activeWorkers++;
-        const p = processRunJob(job, run)
+        // D171 FIX 1: the job runs as the run's own starter, long after the request that queued it — so its model calls
+        // record who started the run, not "system".
+        const p = withStartedBy(startedByOfRun(run), () => processRunJob(job, run))
           // ⭐ D112 item 8: the job's outcome, told to the person — Needs you / Ready to approve, or sent (services/notify.js;
           // a job the apply worker took over is told by the worker's report instead).
           .then(() => { notifyRunJobOutcome(db, job.id); })
@@ -2313,8 +2317,15 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * Returns { status, body } — body carries `error` on refusal.
    */
   function startRun(userId, planTier, jobIds, { mode = "auto", tool = "generate", approvalMode = null,
-                                                approvedFrom = null, retryOfHeld = false } = {}) {
+                                                approvedFrom = null, retryOfHeld = false, startedBy = null } = {}) {
     const respond = (status, body) => ({ status, body });
+    // ⛔ D171 FIX 1: who started this run — the caller's word, else the context (a request, the daily run's tick).
+    const who = startedBy?.kind ? startedBy : currentStartedBy();
+    const refusal = agentRunRefusal(db, userId, who, { production: isProductionProcess() });
+    if (refusal) {
+      console.warn(`[applyRoutes] ${refusal.error}: user=${userId} started_by=${who.ref}`);
+      return respond(403, refusal);
+    }
 
     // ── Three payload-contract mismatches with the client, fixed together ──────────────────────
     //
@@ -2536,6 +2547,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(userId, resolvedMode, resolvedTool, mustWait ? "waiting" : "queued", filtered.length, resolvedApproval);
     const runId = runResult.lastInsertRowid;
+    // D171 FIX 1 (migration 224): who started it, on the row. A database without 224 queues the run unrecorded.
+    try { db.prepare("UPDATE apply_runs SET started_by = ?, started_by_ref = ? WHERE id = ?").run(who.kind, who.ref, runId); }
+    catch { /* before 224 */ }
     if (mustWait) {
       db.prepare(`
         UPDATE apply_runs SET line_position =
@@ -2724,6 +2738,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     createdAt: toMs(r.created_at),
     startedAt: toMs(r.started_at),
     finishedAt: toMs(r.finished_at),
+    startedBy: r.started_by ?? null,   // D171 FIX 1: user · scheduler · admin · agent · test · system; null = not recorded
   });
 
   const publicRunJob = (r) => ({
@@ -3140,7 +3155,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     `).all(run.id);
     res.json({
       run: publicRun(run),
-      jobs: jobs.map(publicRunJob),
+      // D171 FIX 1: each attempt carries its run's starter, so the tracker can say "Started by you at 1:35 AM".
+      jobs: jobs.map(j => ({ ...publicRunJob(j), startedBy: run.started_by ?? null })),
       logs: logs.map(l => ({
         id: l.id,
         jobId: l.job_id,

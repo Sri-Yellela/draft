@@ -13,6 +13,7 @@ import { TASKS, TASK_IDS, PROVIDERS } from "../shared/modelTasks.js";
 import { effectiveRoute, validateRoute, applyRouteChange, rollbackRoute, routeHistory, taskTelemetry, ModelRouteError, ROUTE_OPS, STAGES } from "../services/modelGateway.js";
 import { recordEval, evalHistory, EVAL_SETS } from "../services/modelEvals.js";
 import { actorOf, actorRef } from "../services/actor.js";
+import { usageTable, costAlarmStatus, setCostAlarmThreshold, draftKeyLabel } from "../services/modelUsage.js";
 
 function taskView(db, id) {
   const t = TASKS[id];
@@ -61,6 +62,20 @@ export function createModelGatewayAdminRouter(db) {
     const { provider, model, metrics, baseline = null, reason } = req.body || {};
     try { res.json({ record: recordEval(db, { task: req.params.task, provider, model, metrics, baseline, reason, actor: actorRef(actorOf(req)) }) }); }
     catch (e) { fail(res, e); }
+  });
+  // ⛔ D171 FIX 2 · where the tokens went: per hour × event × model × service × key × who started it (both services, as
+  // draft recorded them), today's spend against the alarm, and this process's own key label.
+  router.get("/usage", (req, res) => {
+    const hours = Math.min(24 * 90, Math.max(1, Number(req.query.hours) || 48));
+    try { res.json({ ...usageTable(db, { hours }), alarm: costAlarmStatus(db), draftKeyLabel: draftKeyLabel() }); } catch (e) { fail(res, e); }
+  });
+  router.get("/cost-alarm", (_req, res) => {
+    try { res.json(costAlarmStatus(db)); } catch (e) { fail(res, e); }
+  });
+  router.post("/cost-alarm", (req, res) => {
+    const { usd = null, reason = null } = req.body || {};
+    try { setCostAlarmThreshold(db, usd, { actor: actorOf(req), reason }); res.json(costAlarmStatus(db)); }
+    catch (e) { res.status(400).json({ error: "cost_alarm_invalid", message: e.message }); }
   });
   return router;
 }

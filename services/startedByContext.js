@@ -63,6 +63,23 @@ export function currentStartedBy() {
   try { return startedByOfRequest(s.req); } catch { return SYSTEM_STARTED; }
 }
 
+/**
+ * ⛔ D171 FIX 1's rule: "never run on a real account unasked". In production a run an agent or a test started is
+ * refused unless the account is marked users.test_account = 1 (migration 224). null = allowed; else the refusal.
+ * Outside production (a local copy, a throwaway server) it is allowed — that is where agents and tests belong.
+ */
+export function agentRunRefusal(db, userId, startedBy, { production = false } = {}) {
+  const kind = startedBy?.kind ?? startedByKind(startedBy);
+  if (!production || (kind !== STARTED_BY.AGENT && kind !== STARTED_BY.TEST)) return null;
+  let testAccount = 0;
+  try { testAccount = Number(db.prepare("SELECT test_account FROM users WHERE id = ?").pluck().get(userId)) || 0; }
+  catch { testAccount = 0; }   // a database without 224 has no test accounts — refused, the safe side
+  if (testAccount === 1) return null;
+  return { error: "agent_run_refused",
+    message: `A run started by ${kind === STARTED_BY.TEST ? "a test" : "the agent"} is refused on a real account in production. ` +
+      "Mark a test account (users.test_account = 1) for checks, or let the person start it." };
+}
+
 /** The run row's own record, as a value — for the jobs a run processes long after the request that queued it. */
 export function startedByOfRun(run) {
   const kind = startedByKind(run?.started_by);

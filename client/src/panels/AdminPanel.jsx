@@ -12,6 +12,7 @@ import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, Notices
 import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
 import { EnrichmentTab } from "./adminEnrichment.jsx";
 import { EmailHealthTab } from "./adminEmail.jsx";
+import { ModelUsageTab } from "./adminUsage.jsx";
 import { AdminsTab } from "./adminAdmins.jsx";
 import { AtlasTab } from "./adminAtlas.jsx";
 import { TrialTab } from "./adminTrial.jsx";
@@ -747,6 +748,7 @@ export function AdminPanel() {
       {/* System — is it set up right? */}
       {at("system", "switches") && <><KillSwitchSection theme={theme}/><TailoringAdminSection theme={theme}/><PluginTab theme={theme}/></>}
       {at("system", "tools") && <ToolsServiceSection theme={theme}/>}
+      {at("system", "usage") && <ModelUsageTab/>}
 
           <AnimatePresence mode="wait">
             {at("people", "users") && (

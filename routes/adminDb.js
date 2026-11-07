@@ -26,6 +26,7 @@ import { buildJobFilters } from "../services/jobs/jobQuery.js";
 import { deriveProfileFilters } from "../services/jobs/profileFilterBridge.js";
 import { profileTitleSql } from "../services/profileTitleFilter.js";
 import { loadSimpleApplyProfile } from "../services/simpleApplyProfile.js";
+import { costAlarmStatus } from "../services/modelUsage.js";
 
 // A source that hasn't written in this long is treated as stale. Ashby stopped writing on
 // 2026-08-07 and nobody noticed for three days because nothing anywhere asserted freshness.
@@ -657,6 +658,13 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
         else if (w.overdue) push(MAX_WEIGHT_AGE_DAYS - w.ageDays <= 7 ? "critical" : "warn", "ats_weights", "overdue",
           `the weights are ${w.ageDays.toFixed(1)}d old (refresh at ${REFRESH_WEIGHT_AGE_DAYS}d) — the nightly rebuild has not replaced them; dropped in ${(MAX_WEIGHT_AGE_DAYS - w.ageDays).toFixed(1)}d`);
       } catch (e) { console.warn("[pipeline-health] ats weight status unavailable:", e.message); }
+      // ⛔ D171 FIX 2: today's (UTC) model spend over the alarm the owner set (Admin → System → Model usage).
+      try {
+        const c = costAlarmStatus(db, { now });
+        if (c.over) push("warn", "model_cost", "over the daily alarm",
+          `$${c.spentUsd.toFixed(2)} spent on models today (UTC), over the $${c.thresholdUsd.toFixed(2)} alarm — ` +
+          c.byKey.map(k => `${k.keyLabel} $${k.costUsd.toFixed(2)}`).join(" · "));
+      } catch (e) { console.warn("[pipeline-health] model cost alarm unavailable:", e.message); }
       // A44: an alert when enrichment has STOPPED. The checks below fire on a failed run and the
       // coverage loop on exactly 0%; neither fires when runs simply cease, which is how local
       // enrichment stopped on 2026-08-24 with nothing raised — and A48 found that unenriched rows are
