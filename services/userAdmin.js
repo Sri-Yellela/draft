@@ -91,6 +91,44 @@ export function clearOverride(db, { userId, featureKey, reason, actorId }) {
   })();
 }
 
+// ⛔ Owner 11-07 · WHO GETS WHAT ACCESS: "in the admin panel design an override to decide which user gets what level of
+// access to site. the reviewer from yc should be able to visit current state of site" — three levels, one per account:
+//   full      everything, no plan limits (users.full_access = 1 — services/entitlementResolver.js hasFullAccess)
+//   standard  the plan's limits (full_access cleared)
+//   none      refused on every request and signed out everywhere (users.status = 'suspended' — the existing gate)
+// Built on the two fields that already decide it, so there is one source of truth for each; one audit row a change.
+export const ACCESS_LEVELS = Object.freeze(["full", "standard", "none"]);
+export const ACCESS_WORDS = Object.freeze({ full: "Full", standard: "Standard", none: "No access" });
+
+export function accessLevelOf(row) {
+  if ((row?.status || "active") === "suspended") return "none";
+  return row?.full_access === 1 ? "full" : "standard";
+}
+
+/** Sets an account's access level, with a reason and an audit row. */
+export function setAccessLevel(db, { userId, level, reason, actorId }) {
+  const why = needReason(reason);
+  if (!ACCESS_LEVELS.includes(level)) throw new UserAdminError(`The access level is one of ${ACCESS_LEVELS.join(", ")}.`);
+  const u = db.prepare("SELECT id, username, is_admin, COALESCE(status, 'active') AS status, full_access FROM users WHERE id = ?").get(userId);
+  if (!u) throw new UserAdminError("No such user.", 404);
+  if (isSystem(u)) throw new UserAdminError("The system account's access cannot be changed.");
+  if (u.is_admin && level === "none") throw new UserAdminError("An admin account cannot be refused here — remove its admin role first.");
+  if (u.id === toActor(actorId).userId && level === "none") throw new UserAdminError("You cannot refuse your own account.");
+  const before = accessLevelOf(u);
+  if (before === level) throw new UserAdminError(`The account already has ${ACCESS_WORDS[level]} access.`);
+  const a = toActor(actorId);
+  db.transaction(() => {
+    if (level === "none") {
+      db.prepare("UPDATE users SET status = 'suspended', suspended_reason = ?, suspended_at = ? WHERE id = ?").run(why, now(), userId);
+    } else {
+      db.prepare("UPDATE users SET status = 'active', suspended_reason = NULL, suspended_at = NULL, full_access = ?, full_access_at = ?, full_access_by = ? WHERE id = ?")
+        .run(level === "full" ? 1 : null, now(), a.ref, userId);
+    }
+    writeAudit(db, { actorId, action: "user.access.set", target: `user:${userId}`, reason: why, before: { access: before }, after: { access: level } });
+  })();
+  return { access: level, signOut: level === "none" };
+}
+
 /** Suspend or restore an account. */
 export function setStatus(db, { userId, status, reason, actorId }) {
   const why = needReason(reason);
@@ -205,7 +243,7 @@ export function listPeople(db, { q = "", filter = "all", sort = "recent", page =
 
 /** One person's page — every module's data, from an allow-list. */
 export function personDetail(db, userId) {
-  const u = db.prepare(`SELECT u.id, u.username, u.is_admin, u.plan_tier, COALESCE(u.status, 'active') AS status, u.suspended_reason, u.suspended_at,
+  const u = db.prepare(`SELECT u.id, u.username, u.is_admin, u.plan_tier, COALESCE(u.status, 'active') AS status, u.suspended_reason, u.suspended_at, u.full_access,
       u.created_at, u.email_verified_at, u.byom_enabled, u.marketing_opt_in, p.email,
       COALESCE(NULLIF(p.full_name, ''), NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '')), '')) AS name,
       ${LAST_ACTIVE_SQL} AS last_active
@@ -243,7 +281,7 @@ export function personDetail(db, userId) {
   try { sessions = db.prepare("SELECT COUNT(*) AS n FROM auth_contexts WHERE user_id = ? AND revoked_at IS NULL AND expires_at > unixepoch()").get(userId).n; } catch { /* none */ }
   return {
     account: { id: u.id, username: u.username, name: u.name, email: u.email, system: isSystem(u), plan: u.plan_tier || "BASIC",
-      status: u.status, suspendedReason: u.suspended_reason, suspendedAt: u.suspended_at, createdAt: u.created_at,
+      status: u.status, access: accessLevelOf(u), suspendedReason: u.suspended_reason, suspendedAt: u.suspended_at, createdAt: u.created_at,
       emailVerifiedAt: u.email_verified_at, lastActive: u.last_active || null, pluginOn: !!u.byom_enabled, productNews: !!u.marketing_opt_in, sessions },
     usage, features, activity, notes, tags: tagsOf(db, userId),
   };

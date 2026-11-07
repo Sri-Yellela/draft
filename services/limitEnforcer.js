@@ -6,7 +6,7 @@
 // TO ADD A NEW LIMITABLE OPERATION: add a case to LIMIT_MAP and call
 //   checkLimit() in the relevant route.
 
-import { resolveEntitlement } from "./entitlementResolver.js";
+import { resolveEntitlement, hasFullAccess } from "./entitlementResolver.js";
 
 const LIMIT_MAP = {
   resume_generate:  { daily: 'daily_resumes',     monthly: 'monthly_resumes' },
@@ -18,6 +18,8 @@ const LIMIT_MAP = {
 
 export function checkLimit(db, userId, eventType) {
   try {
+    // ⛔ Owner 11-07: Full access (an admin's setting, services/userAdmin.js setAccessLevel) has no plan limits.
+    if (hasFullAccess(db, userId)) return { allowed: true, access: "full" };
     let limits = db.prepare('SELECT * FROM user_limits WHERE user_id = ?').get(userId);
     // ⭐ D88 P1: the résumé limits are the resolver's (today: user_limits as the override, unlimited by
     // default) — the other event types still read their user_limits columns directly.

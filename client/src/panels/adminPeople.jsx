@@ -20,7 +20,8 @@ const FILTERS = [["all", "Everyone"], ["active", "Active"], ["suspended", "Suspe
   ["inactive30", "Inactive 30 days"], ["new7", "Joined this week"]];
 const SORTS = [["recent", "Last active"], ["newest", "Newest"], ["name", "Name"]];
 const PLANS = ["BASIC", "PLUS", "PRO"];
-const SOURCE_WORDS = { global: "the operator", override: "an override", plan: "the plan", system: "the system default" };
+const SOURCE_WORDS = { global: "the operator", override: "an override", access: "Full access", plan: "the plan", system: "the system default" };
+const ACCESS_WORDS = { full: "Full", standard: "Standard", none: "No access" };   // services/userAdmin.js ACCESS_WORDS
 
 /** An action that changes an account: its own fields, then a reason, then the confirm. */
 function ActionDialog({ action, onDone, onCancel }) {
@@ -156,6 +157,13 @@ export function PersonPage({ theme, id, onBack, onDelete }) {
     body: a.status === "suspended" ? "They can sign in and use draft again. Their data was never touched." :
       "They are signed out everywhere at once and cannot sign in or use the API, the extension or a connected app until restored. Nothing is deleted; Restore undoes it.",
     run: (v) => post("/status", { status: a.status === "suspended" ? "active" : "suspended", reason: v.reason }), onDone: done(a.status === "suspended" ? "Restored." : "Suspended.") });
+  // ⛔ Owner 11-07: who gets what access — Full (no plan limits; the YC reviewer) · Standard (the plan) · No access.
+  const ACCESS = [["full", "Full — everything, no plan limits"], ["standard", "Standard — the plan's limits"], ["none", "No access — refused and signed out"]];
+  const changeAccess = () => setAction({ title: `Change ${who}'s access?`, label: "Set the access",
+    body: <>Now <b>{ACCESS_WORDS[a.access] || a.access}</b>. Full lifts the plan (every tool, unlimited résumés, the most Drafts) but never the
+      apply-safety caps or auto-apply. No access signs them out everywhere at once; nothing is deleted. Every change is in the Activity below.</>,
+    fields: [{ key: "level", label: "Access", options: ACCESS.filter(([k]) => k !== a.access), initial: ACCESS.find(([k]) => k !== a.access)[0], required: true }],
+    run: (v) => post("/access", { level: v.level, reason: v.reason }), onDone: done("Access changed.") });
   const changePlan = () => setAction({ title: `Change ${who}'s plan?`, label: "Change the plan",
     body: "The plan decides which tools they get while monetisation is on. Changing it back undoes it.",
     fields: [{ key: "plan", label: "Plan", options: PLANS.filter(p => p !== (a.plan || "BASIC").toUpperCase()).map(p => [p, p.toLowerCase()]), initial: PLANS.find(p => p !== (a.plan || "BASIC").toUpperCase()), required: true }],
@@ -209,7 +217,8 @@ export function PersonPage({ theme, id, onBack, onDelete }) {
       <Panel title="Account & status" data-module="account"
         code="Module 1. Shown from an allow-list: no eligibility or EEO answer, phone or address — support needs none of them."
         purpose="Who this is and whether they can use draft. Every action here asks why, and the reason is kept in the Activity below."
-        numbers={[[a.status === "suspended" ? "Suspended" : "Active", a.status === "suspended" ? `since ${stamp(a.suspendedAt)}` : "can sign in", a.status !== "suspended"],
+        numbers={[[ACCESS_WORDS[a.access] || "Standard", "access", a.access !== "none"],
+          [a.status === "suspended" ? "Suspended" : "Active", a.status === "suspended" ? `since ${stamp(a.suspendedAt)}` : "can sign in", a.status !== "suspended"],
           [(a.plan || "BASIC").toLowerCase(), "plan"], [a.lastActive ? ago(a.lastActive) : "never", "last active"], [num(a.sessions), "signed-in sessions"]]}>
         {a.status === "suspended" && <div style={{ ...callout(C.DANGER), marginBottom: 10 }}>Suspended: {a.suspendedReason}</div>}
         <KV theme={theme} rows={[
@@ -218,6 +227,7 @@ export function PersonPage({ theme, id, onBack, onDelete }) {
           ["their own plugin switch", a.pluginOn ? "on" : "off"], ["product news", a.productNews ? "asked for it" : "no"],
         ]}/>
         <div style={{ ...row, marginTop: 12 }}>
+          {!locked && <Btn theme={theme} onClick={changeAccess} data-person-access={a.access}>Access: {ACCESS_WORDS[a.access] || a.access}…</Btn>}
           {!locked && <Btn theme={theme} onClick={suspend}>{a.status === "suspended" ? "Restore…" : "Suspend…"}</Btn>}
           {!locked && <Btn theme={theme} onClick={changePlan}>Change the plan…</Btn>}
           {!locked && ["internal", "test", "beta"].map(t => {
