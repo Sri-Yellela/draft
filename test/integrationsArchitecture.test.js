@@ -35,10 +35,13 @@ test("integrations backend centralizes connector status and storage", () => {
 });
 
 test("integrations page is routed and replaces scattered Apify menu input", () => {
-  // Integrations was removed from the main tab bar — only accessible via avatar dropdown
-  assert.match(app, /IntegrationsPanel/);
-  // `renderRoute` became `activeTab` when App.jsx moved to react-router.
-  assert.match(app, /activeTab === "integrations"/);
+  // ⭐ D167 (45076cf): Integrations is no route of its own — it lives in Profile → Connections, and the old
+  // /app/integrations address lands there (the OAuth / Gmail return's query kept).
+  const profilePage = fs.readFileSync("client/src/pages/profile/ProfilePage.jsx", "utf8");
+  const profilePanels = fs.readFileSync("client/src/pages/profile/profilePanels.js", "utf8");
+  assert.match(profilePage, /<IntegrationsPanel embedded \/>/);
+  assert.match(profilePanels, /integrations: "connections"/);
+  assert.match(app, /LEGACY_PROFILE_ROUTES\[routeKey\] && routeKey !== "profile"/);
   assert.doesNotMatch(topBar, /Apify Token/);
   // The Apify section is gone with external scraping (/api/scrape now answers HTTP 410). The
   // panel's remaining sections are the ones that still correspond to live integrations.

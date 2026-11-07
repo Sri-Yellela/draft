@@ -15,6 +15,8 @@ const jobsPanel = [
   "client/src/panels/JobsPanel.jsx",
   "client/src/panels/AutoApplyPanel.jsx",
   "client/src/contexts/AutoApplyContext.jsx",
+  // D171 FIX 4 (7865477): every row's résumé link is ONE component now — the PDF link moved into it.
+  "client/src/components/AttemptResume.jsx",
 ].map(f => fs.readFileSync(f, "utf8")).join("\n");
 const apiLib    = fs.readFileSync("client/src/lib/api.js", "utf8");
 const serverSrc = fs.readFileSync("server.js", "utf8");
@@ -223,7 +225,7 @@ test("file links carry the auth token as a query param, which requireAuth honour
   // <a href> and <img src> cannot send the header api() adds, so a plain link would 401. This is
   // the same mechanism useSyncEvents relies on for SSE.
   assert.match(jobsPanel, /authContextQuery\(\)/);
-  assert.match(jobsPanel, /artifactUrl\(p\.runJobId, "resume"\)/);
+  assert.match(jobsPanel, /artifactUrl\(p\.runJobId, "resume"\)|artifactUrl\(runJobId, "resume"\)/);
   assert.match(jobsPanel, /artifactUrl\(p\.runJobId, "screenshot"\)/);
   assert.match(apiLib, /export function authContextQuery/);
   assert.match(serverSrc, /req\.query\?\.authContext/,
