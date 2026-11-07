@@ -279,7 +279,8 @@ test("D105 P4 · the top bar gains Atlas; /atlas is public and a signed-in reade
   // The tab routes through the ONE tab → path mapping (NAVIGABLE_TABS is derived from appTabs), and the page mounts.
   assert.match(app, /new Set\(\[\.\.\.appTabs\.map\(t => t\.id\)/);
   // + D116 M7: /app/atlas/family/:key is a page too.
-  assert.match(app, /const atlasRoute = \/\^atlas\(\?:\\\/family\)\?\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
+  // ⭐ D172 (2) (changed on purpose): the rule also admits /app/atlas/library/<course>, a course page.
+  assert.match(app, /const atlasRoute = \/\^atlas\(\?:\\\/\(\?:family\|library\)\)\?\(\?:\\\/\[\^\/\]\+\)\?\$\/\.test\(routeKey\);/);
   // ⭐ D167 (changed on purpose): Profile's and Interview's panel addresses are not bounced either.
   assert.match(app, /if \(!jobRoute && !atlasRoute && profilePanel === undefined && interviewPanel === undefined[\s\S]{0,160}?routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS\.has\(routeKey\)\)/, "/app/atlas/<slug> is not bounced");
   assert.match(app, /\{activeTab === "atlas"\s+&& <AtlasPage base="\/app\/atlas"\/>\}/);
@@ -310,8 +311,8 @@ test("D105 P4 · Admin → Data → Atlas lists the drafts and publishes them; t
       "pages/atlas/AtlasTree.jsx", "pages/atlas/YourMap.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js",
       "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/YourCourse.jsx",
       "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx",
-      "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js"].sort());   // + D115 Learn, + D116 the tree, + D117 the circle, + D120 the course on the home, + D117 C12 the deck, + D143 the navigator, + D142 the check, + D167 its own navigation
-  assert.deepEqual(MODULES.atlas.css, ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasPanels.css"]);   // ⭐ A136: the nav card is components/PlaceNav.jsx   // + D115 Learn, + D117 the circle, + D116 the tree, + D167 the nav
+      "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js", "pages/atlas/LibraryPanel.jsx", "pages/atlas/libraryModel.js"].sort());   // + D172 (2) the Library, + D115 Learn, + D116 the tree, + D117 the circle, + D120 the course on the home, + D117 C12 the deck, + D143 the navigator, + D142 the check, + D167 its own navigation
+  assert.deepEqual(MODULES.atlas.css, ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasPanels.css", "pages/atlas/LibraryPanel.css"]);   // ⭐ A136: the nav card is components/PlaceNav.jsx   // + D115 Learn, + D117 the circle, + D116 the tree, + D167 the nav
   assert.ok(MODULES.admin.members.includes("panels/adminAtlas.jsx"));
   for (const f of [...MODULES.atlas.members, ...MODULES.atlas.css]) assert.ok(fs.existsSync(`client/src/${f}`), f);
 });

@@ -24,7 +24,8 @@ import YourMap, { RoleMap, FamilyMap } from "./YourMap.jsx";
 import PlaceNav from "../../components/PlaceNav.jsx";
 import { OverviewPanel, YourSkillsSlot, YourRoutePanel, LearnStages, TodaysQuestionPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
   PanelHead } from "./AtlasPanels.jsx";
-import { panelFor, isPanelSlug, PANEL_LABEL, ATLAS_NAV, panelHref } from "./atlasPanels.js";
+import { panelFor, isPanelSlug, PANEL_LABEL, ATLAS_NAV, panelHref, courseIdOf } from "./atlasPanels.js";
+import { LibraryShelf, CoursePage } from "./LibraryPanel.jsx";
 import {
   KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
   WIKI_LICENCE, YOU_LABEL, YOU_MARK, LEVEL_READ_LABEL, shareText, stepTitle, stepEmptyLine, roleBoardParts, nodePanes, nodeHeadline,
@@ -357,7 +358,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   useEffect(() => {
     let live = true;
     // ⭐ D167: a panel's address (/atlas/<panel>) is never a node — "learn" and "check" were the first reserved slugs.
-    if (!slug || slug === "learn" || slug === "check" || isPanelSlug(slug) || slug.startsWith("family/")) { setPage({ status: "idle", node: null }); return undefined; }
+    if (!slug || slug === "learn" || slug === "check" || isPanelSlug(slug) || slug.startsWith("family/") || courseIdOf(slug)) { setPage({ status: "idle", node: null }); return undefined; }
     setPage({ status: "loading", node: null });
     loadNode(slug).then(n => live && setPage({ status: n ? "done" : "missing", node: n }))
       .catch(e => live && setPage({ status: "error", node: null, error: e.message }));
@@ -375,6 +376,8 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   const checking = slug === "check";
   // ⭐ D116 M7: /atlas/family/<key> is a family's page (a node slug never holds a "/").
   const familyKey = slug && slug.startsWith("family/") ? slug.slice("family/".length) : null;
+  // ⭐ D172 (2): /atlas/library/<course> is a course's page (a node slug never holds a "/").
+  const courseId = courseIdOf(slug);
   const wide = !slug || !!familyKey;
   // ⭐ D167 (owner APPROVED 11-06) · ATLAS IS A PRODUCT WITH ITS OWN NAVIGATION: a card of panels (components/PlaceNav.jsx,
   // the one implementation Profile and Interview use — A136) beside the
@@ -385,7 +388,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   const signedIn = base.startsWith("/app");
   const panelOnly = !slug ? !q : (isPanelSlug(slug) && !learning && !checking);
   const body = (
-    <main className={`atl atl--panels${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : checking ? "check" : familyKey ? "family" : panelOnly ? "panel" : slug ? "node" : "search"}
+    <main className={`atl atl--panels${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : checking ? "check" : familyKey ? "family" : courseId ? "course" : panelOnly ? "panel" : slug ? "node" : "search"}
       data-atlas-panel={panel}>
      <PlaceNav place="atlas" name="Atlas" eyebrow="Your way through the market" title="Atlas" fill panelId="atlas-panel"
        groups={ATLAS_NAV.map(g => ({ label: g.group, items: g.panels }))} current={panel} hrefFor={(id) => panelHref(base, id)}>
@@ -414,7 +417,9 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
       {panel === "glossary" && <GlossaryPanel base={base} />}
       {learning && <LearnView signedIn={base.startsWith("/app")} />}
       {familyKey && <FamilyMap base={base} familyKey={familyKey} />}
-      {slug && !learning && !checking && !familyKey && !panelOnly && (
+      {panel === "library" && panelOnly && <LibraryShelf base={base} signedIn={signedIn} />}
+      {courseId && <CoursePage base={base} id={courseId} signedIn={signedIn} />}
+      {slug && !learning && !checking && !familyKey && !courseId && !panelOnly && (
         <>
           <SearchBox base={base} />
           {page.status === "loading" && <p className="atl__quiet" role="status">Opening…</p>}
