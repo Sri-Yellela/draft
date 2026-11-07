@@ -153,6 +153,9 @@ import { createWhatChangedRouter, createWhatChangedAdminRouter } from "./routes/
 import { SYSTEM_USER_ID } from "./services/modelCall.js";
 // ⛔ D162 G1 · a feature names a TASK, never a model; the gateway picks the model (services/modelGateway.js).
 import { callTask } from "./services/modelGateway.js";
+// ⛔ D173 (1): untrusted text (postings) reaches a model only fenced, and the output is checked.
+import { buildCoverLetterRequest, checkCoverLetter } from "./services/coverLetterPrompt.js";
+import { describeViolations } from "./services/untrustedText.js";
 import { createModelGatewayAdminRouter } from "./routes/modelGateway.js";
 // AK1: the ONE exception to "server.js does not touch the tracker directly", and it is not a
 // second recording path — recordAtsOutcome only fills ats_score_before/after on a row callModel
@@ -13882,41 +13885,26 @@ async function generateCoverLetterForApply(userId, jobId) {
   }
   if (!resumeText || resumeText.length < 50) return { error: 'no_resume_text' };
 
-  const jd = (jobRow.description || '').slice(0, 2000);
   const targetLine = [jobRow.title, jobRow.company].filter(Boolean).join(' at ');
-
-  const prompt = `You are an expert cover letter writer. Write a compelling, specific cover letter.
-
-CANDIDATE RESUME:
-${resumeText}
-
-TARGET ROLE: ${targetLine || 'not specified'}
-
-JOB DESCRIPTION:
-${jd || 'Not provided — write a strong general cover letter based on the resume.'}
-
-TONE: formal and professional
-
-REQUIREMENTS:
-- 3–4 paragraphs, under 400 words total
-- Opening: hook that references the specific role or company (if known)
-- Middle: 2 most relevant achievements from the resume, tied to the job requirements
-- Closing: clear call to action and gratitude
-- Do NOT repeat the resume verbatim — add context and personality
-- Do NOT use clichés like "I am writing to express my interest"
-- Do NOT use placeholders like [Company Name] or [Your Name]
-- Begin directly with "Dear Hiring Manager," unless a name appears in the job description
-- Plain text output only — no markdown, no bullet points`;
+  // ⛔ D173 (1): the posting is UNTRUSTED — fenced as data, the rule in the system prompt, and the letter checked before
+  // it is attached to an application (services/coverLetterPrompt.js). One builder for both cover-letter callers.
+  const clReq = buildCoverLetterRequest({ resumeText, targetLine, jobDescription: jobRow.description || '', toneDesc: 'formal and professional' });
 
   try {
     const message = await callTask({
       task: "cover_letter.write", anthropic, db, purpose: "cover_letter_apply", userId, jobId: String(jobId),
       // CANDIDATE: the candidate's resume and profile. Never routed off Anthropic.
       dataClass: DATA_CLASS.CANDIDATE,
-      messages: [{ role: "user", content: prompt }],
+      system: clReq.system,
+      messages: clReq.messages,
     });
     const text = message.content?.[0]?.text || '';
     if (!text) return { error: 'empty_response' };
+    const check = checkCoverLetter(text, { resumeText, untrusted: clReq.untrusted });
+    if (!check.ok) {
+      console.warn(`[generateCoverLetterForApply] withheld (D173): ${describeViolations(check.violations)}`);
+      return { error: 'untrusted_output_violation' };
+    }
     const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:650px;margin:40px auto;line-height:1.6;font-size:14px;color:#222"><div style="white-space:pre-wrap">${escaped}</div></body></html>`;
     return { html, text };
@@ -14921,38 +14909,24 @@ app.post("/api/cover-letter/generate", requireAuth, async (req, res) => {
   const toneDesc = toneMap[tone] || toneMap.professional;
 
   const targetLine = [jobTitle, company].filter(Boolean).join(" at ");
-
-  const prompt = `You are an expert cover letter writer. Write a compelling, specific cover letter.
-
-CANDIDATE RESUME:
-${resumeTrimmed.slice(0, 3000)}
-
-TARGET ROLE: ${targetLine || "not specified"}
-
-JOB DESCRIPTION:
-${jobDescription ? String(jobDescription).slice(0, 2000) : "Not provided — write a strong general cover letter based on the resume."}
-
-TONE: ${toneDesc}
-
-REQUIREMENTS:
-- 3–4 paragraphs, under 400 words total
-- Opening: hook that references the specific role or company (if known)
-- Middle: 2 most relevant achievements from the resume, tied to the job requirements
-- Closing: clear call to action and gratitude
-- Do NOT repeat the resume verbatim — add context and personality
-- Do NOT use clichés like "I am writing to express my interest"
-- Do NOT use placeholders like [Company Name] or [Your Name]
-- Begin directly with "Dear Hiring Manager," unless a name appears in the job description
-- Plain text output only — no markdown, no bullet points`;
+  // ⛔ D173 (1): the posting is UNTRUSTED — fenced, the rule in the system prompt, the letter checked (services/coverLetterPrompt.js).
+  const clReq = buildCoverLetterRequest({ resumeText: resumeTrimmed, targetLine, jobDescription: jobDescription || "", toneDesc });
 
   try {
     const message = await callTask({
       task: "cover_letter.write", anthropic, db, purpose: "cover_letter", userId: req.user.id, company: company || null,
       // CANDIDATE: the candidate's resume and profile. Never routed off Anthropic.
       dataClass: DATA_CLASS.CANDIDATE,
-      messages: [{ role: "user", content: prompt }],
+      system: clReq.system,
+      messages: clReq.messages,
     });
     const text = message.content?.[0]?.text || "";
+    const check = checkCoverLetter(text, { resumeText: resumeTrimmed, untrusted: clReq.untrusted });
+    if (text && !check.ok) {
+      console.warn(`[cover-letter] withheld (D173): ${describeViolations(check.violations)}`);
+      return res.status(422).json({ error: "This cover letter was withheld: it carried a link or contact detail that isn't in your résumé, or text the posting asked for. Try again.",
+        code: "untrusted_output_violation", retryable: true });
+    }
     res.json({ success: true, coverLetter: text });
   } catch (err) {
     console.error("[cover-letter] Anthropic error:", err.message);

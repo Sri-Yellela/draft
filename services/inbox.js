@@ -12,6 +12,7 @@ import { postingPlainText } from "../shared/postingNormalize.js";
 import { RESPONSE_OUTCOME, STAGE_RANK } from "../shared/applicationResponse.js";
 import { companyNameKey } from "../shared/companyIdentity.js";
 import { notifyEvent } from "./notify.js";
+import { stripHiddenHtml, stripInvisible } from "./untrustedText.js";
 
 export const INBOX_DOMAIN = "in.jobsviadraft.com";
 export const BODY_CAP = 20_000;
@@ -75,7 +76,9 @@ export function codeOf({ subject = "", body = "" }) {
 
 /** HTML → text, capped. Attachments are never passed in. */
 export function bodyText({ text = null, html = null }) {
-  const raw = text && String(text).trim() ? String(text) : postingPlainText(String(html || ""));
+  // ⛔ D173 (1): an email is untrusted text — hidden parts (invisible characters, comments, elements a reader cannot
+  // see) are removed before it is stored, filed or read for a code, so a hidden line cannot plant a code or a category.
+  const raw = stripInvisible(text && String(text).trim() ? String(text) : postingPlainText(stripHiddenHtml(String(html || ""))));
   return raw.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, BODY_CAP);
 }
 
