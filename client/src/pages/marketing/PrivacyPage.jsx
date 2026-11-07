@@ -763,7 +763,8 @@ export function PrivacyPage() {
             were reached and how long each took, which features were tried (by name), any errors met, the device type (phone
             or laptop), and the in-app survey's answers. draft no longer collects these. We use them only to see where the
             product helps or loses people. Nothing typed was recorded in these steps; the survey's friend's-email field was
-            optional and was used only to send that person one note about draft. They are kept with your account for 90 days.
+            optional and was used only to send that person one note about draft. They are kept with your account for 90 days and then
+            deleted automatically; survey answers are kept.
           </P>
           <P>
             The survey at jobsviadraft.com/survey needs no account. It records your name, your email and your answers, and
