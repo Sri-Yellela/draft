@@ -330,6 +330,20 @@ export function acceptReport(db, report, { workerId = "worker", hooks = {} } = {
         return { ok: true, state: "stopped", warning: "reported values differ from the approved ones" };
       }
     }
+    // ⛔ D175 FA5 · SENT ONLY ON EVIDENCE. The in-process fill already refuses "submitted" without post-click evidence
+    // (A1 N1: applyAutomation's clicked_no_evidence → filled_not_submitted / submit_unverified). The worker's report did
+    // not: a submit with no confirmation was filed `submitted` (submit_verified NULL) and the tracker said Sent. Now it
+    // needs the success text or the confirmation page's URL; without either it stops exactly as the in-process path
+    // does — "Stopped: it pressed Submit but saw no confirmation" — and nothing is recorded as an application.
+    const confirmation = report.evidence?.confirmation ? String(report.evidence.confirmation).slice(0, 200) : null;
+    const confirmUrl = report.evidence?.url ? String(report.evidence.url).slice(0, 500) : null;
+    if (!confirmation && !confirmUrl) {
+      finishRemote(db, row, "stopped", "submit_unverified");
+      setRunJob("filled_not_submitted", "submit_unverified", "worker: pressed Submit, no confirmation text or page seen");
+      db.prepare(`UPDATE apply_run_jobs SET submit_verified = 0, submit_evidence = 'clicked_no_evidence' WHERE id = ?`).run(row.run_job_id);
+      void notifyEvent(row.user_id, "needs_you", {});
+      return { ok: true, state: "stopped", warning: "no confirmation seen — not recorded as sent" };
+    }
     // ⭐ D113: a tap on Apply in a picks message (a SEMI user's own send for this job) is the user's submit, as approval is.
     const submittedBy = row.approved_values_json ? "user"
       : (db.prepare(`SELECT send_mode FROM users WHERE id = ?`).pluck().get(row.user_id) !== "auto" && pickAuthorisesSend(db, row.user_id, row.job_id)) ? "user" : "auto";
@@ -337,8 +351,7 @@ export function acceptReport(db, report, { workerId = "worker", hooks = {} } = {
       updated_at = unixepoch() WHERE id = ?`).run(JSON.stringify(fields || []), row.id);
     db.prepare(`UPDATE apply_run_jobs SET status = 'submitted', reason_code = NULL, submitted_by = ?, submit_verified = ?,
       submit_evidence = ?, finished_at = unixepoch() WHERE id = ?`)
-      .run(submittedBy, report.evidence?.confirmation ? 1 : null,
-        report.evidence?.confirmation ? String(report.evidence.confirmation).slice(0, 200) : null, row.run_job_id);
+      .run(submittedBy, 1, confirmation || `confirmation_url:${confirmUrl}`, row.run_job_id);
     db.prepare(`UPDATE portal_session_uses SET outcome = 'submitted' WHERE apply_run_job_id = ? AND outcome IS NULL`).run(row.run_job_id);
     try { hooks.onSubmitted?.({ userId: row.user_id, jobId: row.job_id, runJobId: row.run_job_id, submittedBy }); } catch {}
     void notifyEvent(row.user_id, "apply_complete", {});
