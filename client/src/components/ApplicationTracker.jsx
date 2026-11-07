@@ -1,3 +1,4 @@
+import { useState } from "react";
 import "./ApplicationTracker.css";
 import CompanyBubble from "./CompanyBubble.jsx";
 import { TRACKER_FILTERS, TRACKER_COUNTS, TRACKER_COLUMNS, TRACKER_PANES, TRACKER_PERIODS } from "../lib/trackerRows.js";
@@ -131,14 +132,29 @@ export default function ApplicationTracker({ rows = [], sort = DEFAULT_SORT, onS
  * time, inside the row — never a new page) and the stage's actions. `paneBody(id)` renders a pane; `children` are the
  * row's inline editors (a question's answer box, a date, a note), shown above the actions.
  */
-export function RowOpen({ row, pane = null, onPane, paneBody, actions = [], onClose, children }) {
+/** D165 (5): the attempts before the latest — one quiet line; its detail stays closed until "show". */
+function EarlierAttempts({ earlier }) {
+  const [showEarlier, setShowEarlier] = useState(false);
+  return (
+    <>
+      <p className="trk-earlier" data-earlier-attempts={earlier.count}>{earlier.line} ·{" "}
+        <button type="button" aria-expanded={showEarlier} onClick={() => setShowEarlier(v => !v)}>{showEarlier ? "hide" : "show"}</button></p>
+      {showEarlier && <div className="trk-earlier__d" data-earlier-detail="">{earlier.detail}</div>}
+    </>
+  );
+}
+
+export function RowOpen({ row, pane = null, onPane, paneBody, actions = [], onClose, children, held = null }) {
   const labels = Object.fromEntries(TRACKER_PANES);
+  // ⭐ D165 (5): a held application (lib/heldApplication.js) — the sketch's eyebrow / headline / lead for its state, the steps
+  // the run took, and ONE quiet line for an earlier attempt. Rows that are not an application run pass none.
   return (
     // D149 (11-03): the sketch's opened row has no × — it folds by pressing the row again, or Escape (the panel's
     // window listener, and here for a key pressed inside the row).
     <div className="trk-o" data-row-detail={row.key} onKeyDown={(e) => { if (e.key === "Escape") onClose?.(); }}>
-      <p className="trk-o__eyebrow">{row.eyebrow}</p>
-      <h3 className="trk-o__headline" data-row-headline="">{row.headline}</h3>
+      <p className="trk-o__eyebrow">{held?.eyebrow || row.eyebrow}</p>
+      <h3 className="trk-o__headline" data-row-headline="">{held?.title || row.headline}</h3>
+      {held?.lead && <p className="trk-o__lead" data-held-lead={held.state}>{held.lead}</p>}
       <div className="trk-o__panes" role="group" aria-label="Show">
         {row.panes.map(id => (
           <button key={id} type="button" className="trk-od" data-pane={id} aria-pressed={pane === id}
@@ -158,6 +174,16 @@ export function RowOpen({ row, pane = null, onPane, paneBody, actions = [], onCl
           ))}
         </div>
       )}
+      {held?.steps?.length > 0 && (
+        <ul className="trk-steps" data-run-steps="" aria-label="What the run did">
+          {held.steps.map(st => (
+            <li key={st.id} data-step={st.id} data-step-state={st.state || "todo"}>
+              <i aria-hidden="true" /><span>{st.label}</span><span className="trk-steps__m">{st.meta}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {held?.earlier && <EarlierAttempts earlier={held.earlier} />}
     </div>
   );
 }

@@ -24,6 +24,7 @@ import AutoSettingsDrawer from "../components/AutoSettingsDrawer.jsx";
 import DraftHouseTree, { Branch, RunCard } from "../components/DraftHouseTree.jsx";
 // ⭐ D146 · the one tracker: the table (and its opened row), what each row says, and The Table's full sheet behind View.
 import ApplicationTracker, { RowOpen, TrackerCounts, TrackerFilters, DEFAULT_SORT } from "../components/ApplicationTracker.jsx";
+import { heldHeadline, runSteps, answerSource, earlierAttempts } from "../lib/heldApplication.js";
 import {
   trackerRows, trackerView, trackerCounts, sortRows, stageActions, readyToSend, sendAllConfirmText, TRACKER_PERIODS,
 } from "../lib/trackerRows.js";
@@ -658,6 +659,8 @@ export function AutoApplyPanel({ user = null } = {}) {
             <span>{a.label}{a.guess && <span className="dht-flag"> read this: matched loosely</span>}
               {a.own && <span className="dht-own"> your own statement</span>}</span>
             <span className="dht-r__s">{a.shown}</span>
+            {/* ⭐ D165 (5): each answer's source, in plain words. */}
+            <small className="dht-r__s" data-answer-source={a.provenance || (a.asked ? "asked" : a.own ? "own" : "draft")}>{answerSource(a)}</small>
           </div>
         ))}
         {node.kind === "approval" && (
@@ -899,11 +902,21 @@ export function AutoApplyPanel({ user = null } = {}) {
     return [...base, ...extra, ...page];
   };
 
+  // ⭐ D165 (5) · the held application (held-application-sketch.html): its state's words, the steps the run took, one
+  // quiet line for an earlier attempt. The answers' count comes from the approval packet when there is one.
+  const heldFor = (node) => {
+    const h = node ? heldHeadline(node) : null;
+    if (!h) return null;
+    const counts = node.kind === "approval" && Number.isFinite(node.ref?.answerCount)
+      ? { filled: node.ref.answerCount, total: node.ref.answerCount + (node.ref.openCount || 0) } : null;
+    return { ...h, steps: runSteps(node, { counts }), earlier: earlierAttempts(rowsOf(node)) };
+  };
   const renderRow = (row) => {
     const node = row.node;
     const ask = node?.question;
     return (
-      <RowOpen row={row} pane={pane} onPane={setPane} paneBody={paneFor(row)} actions={rowActions(row)} onClose={() => step({ type: "close" })}>
+      <RowOpen row={row} pane={pane} onPane={setPane} paneBody={paneFor(row)} actions={rowActions(row)} onClose={() => step({ type: "close" })}
+        held={heldFor(node)}>
         {node && (<>
             {/* D90 P3: the CHANGES, read before Approve & send — nothing to show until the résumé is written. */}
             {node.kind === "approval" && !node.ref.generationDeferred && <ChangesSummaryLine jobId={node.ref.jobId} jobLabel={companyLabel(node.ref.company)} />}
