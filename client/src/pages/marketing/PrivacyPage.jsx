@@ -759,11 +759,11 @@ export function PrivacyPage() {
             track you across the web.
           </P>
           <P>
-            During the trial, draft records, with your account, which steps of the guided tour you reached and how long each
-            took, which features you tried (by name), any errors you met, your device type (phone or laptop), and your survey
-            answers. We use them only to see where the tour helps or loses people. Nothing you type is recorded in these steps;
-            the survey's friend's-email field is optional and is used only to send that person one note about draft. They are
-            kept with your account for 90 days.
+            For accounts that took part in our early testing, draft holds, with the account, which steps of the walkthrough
+            were reached and how long each took, which features were tried (by name), any errors met, the device type (phone
+            or laptop), and the in-app survey's answers. draft no longer collects these. We use them only to see where the
+            product helps or loses people. Nothing typed was recorded in these steps; the survey's friend's-email field was
+            optional and was used only to send that person one note about draft. They are kept with your account for 90 days.
           </P>
           <P>
             The survey at jobsviadraft.com/survey needs no account. It records your name, your email and your answers, and
