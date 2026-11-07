@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft — the résumé editor (sketch)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark;
+  --bg:#1B1B1B;--card:#262626;--raise:#2F2F2F;--raise2:#363636;--line:#363636;--ink:#FFFFFF;--body:#A3A3A3;--muted:#777777;
+  --accent:#FBD3C4;--accent2:#F2C2B2;--on-accent:#1B1B1B;--glow:rgba(251,211,196,.16);--chg:rgba(251,211,196,.35);
+  --font:"Inter Tight",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--raise2:#E9E2DC;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--chg:rgba(194,89,58,.22)}}
+:root[data-theme="light"]{color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--raise2:#E9E2DC;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--chg:rgba(194,89,58,.22)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.5 var(--font);-webkit-font-smoothing:antialiased;min-height:100vh}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* borderless: only the tool's options and the résumé, on the theme's background */
+.bar{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;padding:12px 16px;background:var(--bg)}
+.grp{display:flex;gap:2px;align-items:center;background:var(--card);border-radius:12px;padding:3px}
+.grp select,.grp button{all:unset;cursor:pointer;padding:6px 10px;border-radius:9px;color:var(--body);font-size:13.5px}
+.grp select{padding-right:6px}
+.grp button:hover,.grp select:hover{background:var(--raise);color:var(--ink)}
+.grp button[aria-pressed="true"]{background:var(--raise);color:var(--ink)}
+.grp .v{min-width:30px;text-align:center;color:var(--ink);font-size:13.5px}
+.grp.cta button{background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent);font-weight:600}
+.saved{color:var(--muted);font-size:12.5px;margin-left:4px}
+.wrap{display:grid;grid-template-columns:240px minmax(0,auto);gap:clamp(20px,4vw,56px);justify-content:center;padding:18px clamp(14px,3vw,40px) 80px}
+@media (max-width:860px){.wrap{grid-template-columns:1fr}}
+/* the section menu: drag handles to reorder */
+.menu{position:sticky;top:70px;align-self:start}
+.menu h3{margin:0 0 8px;color:var(--muted);font-weight:500;font-size:13px}
+.sl{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.si{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--card);cursor:grab;transition:transform .22s cubic-bezier(.22,1,.36,1),background .15s}
+.si:hover{background:var(--raise)}
+.si.on{outline:1.5px solid var(--accent)}
+.si.drag{opacity:.4}
+.si.lock{cursor:default}
+.grip{display:grid;gap:3px;justify-items:center}
+.grip i{display:block;width:12px;height:2px;border-radius:1px;background:var(--muted)}
+.si.lock .grip i{opacity:.25}
+.si b{font-weight:500;font-size:14px}
+.mv{display:flex;gap:2px}
+.mv button{all:unset;cursor:pointer;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;color:var(--muted);font-size:12px}
+.mv button:hover{background:var(--raise2);color:var(--ink)}
+.add{all:unset;cursor:pointer;margin-top:8px;color:var(--accent);font-size:13.5px;font-weight:600}
+.hint{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.45}
+/* the page: the only surface; each section its own box, outlined only while hovered or edited */
+.paper{width:min(816px,100%);min-height:1056px;background:#fff;color:#111;border-radius:4px;box-shadow:0 30px 80px rgba(0,0,0,.35);padding:var(--mg,52px) var(--mg,56px);font-family:var(--rf,Arial),Helvetica,sans-serif;font-size:var(--rs,10.5pt);line-height:var(--lh,1.35)}
+.sec{position:relative;border-radius:6px;padding:6px 8px;margin:0 -8px 8px;outline:1px solid transparent;transition:outline-color .15s,background .15s}
+.sec:hover{outline-color:#e4ddd6}
+.sec.focus{outline:1.5px solid #c2593a;background:#fffaf7}
+.sec .tag{position:absolute;top:-9px;left:8px;font:600 10px/1 var(--font);color:#c2593a;background:#fff;padding:0 4px;opacity:0;transition:opacity .15s}
+.sec.focus .tag,.sec:hover .tag{opacity:1}
+.sec h4{margin:0 0 4px;font-size:1em;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #222;padding-bottom:2px}
+.sec .ed{outline:none}
+.sec.head{text-align:center}
+.sec.head .nm{font-size:1.9em;font-weight:700;letter-spacing:.01em}
+.sec.head .ct{color:#444}
+.role{margin:4px 0 6px}
+.role .rt{display:flex;justify-content:space-between;font-weight:700}
+.role ul{margin:2px 0 0;padding-left:1.15em}
+.role li{margin:1px 0}
+.chg{transition:background .2s}
+.showchg .chg{background:var(--chg);border-radius:2px}
+.note{text-align:center;color:var(--muted);font-size:12.5px;padding:0 20px 40px;max-width:820px;margin:0 auto}
+.paper.flip .sec{animation:none}
+/* ===== the visual pass (11-06): one floating tool pill, a calmer section menu, a cleaner page ===== */
+.bar{position:sticky;top:14px;width:max-content;max-width:calc(100% - 24px);margin:16px auto 0;padding:6px;gap:2px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 16px 44px rgba(0,0,0,.3)}
+.grp{background:transparent;padding:0;gap:1px}
+.sep{width:1px;height:22px;background:var(--line);margin:0 5px}
+.grp button,.grp select{padding:7px 10px;border-radius:11px;font-size:13px}
+.grp select{padding-right:4px;font-weight:500;color:var(--ink)}
+.ib{width:32px;height:32px;padding:0!important;display:grid!important;place-items:center}
+.ib svg,.chgb svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.chgb{display:inline-flex!important;align-items:center;gap:6px}
+.chgb[aria-pressed="true"]{color:var(--accent)!important}
+.grp .v{min-width:34px;font-variant-numeric:tabular-nums}
+.txt{color:var(--body)}
+.grp.cta button{border-radius:12px;padding:8px 15px;box-shadow:0 8px 22px var(--glow)}
+.saved{display:inline-flex;gap:6px;align-items:center;padding:0 8px 0 6px;margin:0}
+.saved::before{content:"";width:6px;height:6px;border-radius:50%;background:#8FD6A8}
+.wrap{grid-template-columns:250px minmax(0,auto);padding-top:28px}
+.menu{background:var(--card);border-radius:24px;padding:16px 12px;top:88px}
+.menu h3{font:400 26px/1 "Instrument Serif",Georgia,serif;color:var(--ink);margin:2px 8px 12px}
+.si{grid-template-columns:24px minmax(0,1fr) auto 14px;background:transparent;padding:9px 8px;border-radius:12px;outline:none}
+.si:hover,.si.on{background:var(--raise)}
+.si.on{outline:none}
+.num{width:22px;height:22px;border-radius:50%;background:var(--raise2);display:grid;place-items:center;font-size:11.5px;font-weight:600;color:var(--body)}
+.si.on .num{background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent)}
+.pin{color:var(--muted);font-size:11.5px}
+.grip,.mv{opacity:0;transition:opacity .15s}
+.si:hover .grip,.si:hover .mv,.si:focus .mv,.si.on .mv{opacity:1}
+.add{display:block;margin:10px 8px 0}
+.hint{margin:12px 8px 0}
+.paper{border-radius:6px;box-shadow:0 40px 100px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.18);padding:var(--mg,52px) calc(var(--mg,52px) + 6px)}
+.sec{margin:0 -10px 10px;padding:6px 10px}
+.sec:hover{outline-color:#ece6e0}
+.sec.focus{outline:1.5px solid #e6bca9;background:#fffcfa}
+.sec .tag{color:#b3603f;border-radius:4px}
+.sec.head .nm{font-size:2.15em;letter-spacing:-.01em}
+.sec.head .ct{font-size:.92em;color:#5a5a5a;margin-top:3px}
+.sec h4{font-size:.84em;letter-spacing:.16em;color:#222;border-bottom:1px solid #d9d2cb;padding-bottom:4px;margin:4px 0 7px}
+.role .rt span:last-child{font-weight:400;color:#6a6a6a;white-space:nowrap;padding-left:12px}
+@media (max-width:860px){.menu{position:static}.bar{top:8px}}
+/* ===== Dusk (D144 / D145): fills, not borders; 28 px cards; accent eyebrow + serif headline; the accent for what's on ===== */
+.bar{border:0;border-radius:22px;background:var(--card);box-shadow:0 18px 48px rgba(0,0,0,.32);padding:7px;gap:3px}
+.sep{background:var(--raise2);height:20px}
+.grp button,.grp select{color:var(--body);border-radius:13px}
+.grp button:hover,.grp select:hover{background:var(--raise);color:var(--ink)}
+.grp button[aria-pressed="true"]{background:rgba(251,211,196,.14);color:var(--accent)}
+:root[data-theme="light"] .grp button[aria-pressed="true"]{background:rgba(194,89,58,.12)}
+.grp .v{color:var(--ink);font-weight:500}
+.chgb[aria-pressed="true"]{background:rgba(251,211,196,.14)!important}
+.grp.cta button{background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent);font-weight:600;border-radius:14px;padding:9px 16px;box-shadow:0 10px 26px var(--glow)}
+.saved{color:var(--muted)}
+.menu{border-radius:28px;padding:22px 16px 18px;background:var(--card)}
+.menu .eb{color:var(--accent);font-size:13px;margin:0 8px 6px}
+.menu .mt{font:400 30px/1.04 "Instrument Serif",Georgia,serif;letter-spacing:-.01em;color:var(--ink);margin:0 8px 4px}
+.menu .ms{color:var(--body);font-size:13.5px;margin:0 8px 18px}
+.menu h3{font:500 12.5px/1 var(--font);color:var(--muted);letter-spacing:.02em;margin:0 8px 8px}
+.si{border-radius:14px}
+.si:hover{background:var(--raise)}
+.si.on{background:var(--raise)}
+.si b{font-weight:500;color:var(--ink)}
+.num{background:var(--raise2);color:var(--body)}
+.si.on .num{background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent);box-shadow:0 6px 16px var(--glow)}
+.grip i{background:var(--muted)}
+.mv button{color:var(--muted)}
+.mv button:hover{background:var(--raise2);color:var(--ink)}
+.add{color:var(--accent)}
+.hint{color:var(--muted)}
+.paper{border-radius:10px;box-shadow:0 44px 110px rgba(0,0,0,.45),0 2px 10px rgba(0,0,0,.2)}
+.note{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="bar" role="toolbar" aria-label="Résumé tools">
+  <div class="grp"><select id="font" aria-label="Font"><option value="Arial">Arial</option><option value="Calibri, Carlito">Calibri</option><option value="Georgia">Georgia</option><option value="Garamond, 'EB Garamond', serif">Garamond</option><option value="Helvetica">Helvetica</option></select></div>
+  <span class="sep" aria-hidden="true"></span>
+  <div class="grp" aria-label="Size"><button id="sd" class="ib" aria-label="Smaller text" title="Smaller"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button><span class="v" id="sv">10.5</span><button id="su" class="ib" aria-label="Larger text" title="Larger"><svg viewBox="0 0 24 24"><path d="M6 12h12M12 6v12"/></svg></button></div>
+  <span class="sep" aria-hidden="true"></span>
+  <div class="grp" aria-label="Line spacing"><button data-lh="1.2" class="ib" title="Tight lines" aria-label="Tight lines"><svg viewBox="0 0 24 24"><path d="M5 9h14M5 12h14M5 15h14"/></svg></button><button data-lh="1.35" class="ib" aria-pressed="true" title="Normal lines" aria-label="Normal lines"><svg viewBox="0 0 24 24"><path d="M5 7.5h14M5 12h14M5 16.5h14"/></svg></button><button data-lh="1.5" class="ib" title="Airy lines" aria-label="Airy lines"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h14"/></svg></button></div>
+  <span class="sep" aria-hidden="true"></span>
+  <div class="grp" aria-label="Margins"><button data-mg="40px" class="ib" title="Narrow margins" aria-label="Narrow margins"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="1.5"/><path d="M7 8h10M7 11h10M7 14h10"/></svg></button><button data-mg="52px" class="ib" aria-pressed="true" title="Normal margins" aria-label="Normal margins"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="1.5"/><path d="M8.5 8h7M8.5 11h7M8.5 14h7"/></svg></button><button data-mg="68px" class="ib" title="Wide margins" aria-label="Wide margins"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="1.5"/><path d="M10 8h4M10 11h4M10 14h4"/></svg></button></div>
+  <span class="sep" aria-hidden="true"></span>
+  <div class="grp"><button id="b" class="ib" aria-label="Bold" title="Bold"><b>B</b></button><button id="it" class="ib" aria-label="Italic" title="Italic"><i style="font-family:Georgia,serif">I</i></button><button id="ul" class="ib" aria-label="Bullets" title="Bullets"><svg viewBox="0 0 24 24"><circle cx="6" cy="8" r="1"/><circle cx="6" cy="12" r="1"/><circle cx="6" cy="16" r="1"/><path d="M10 8h9M10 12h9M10 16h9"/></svg></button></div>
+  <span class="sep" aria-hidden="true"></span>
+  <div class="grp"><button id="chg" aria-pressed="false" class="chgb"><svg viewBox="0 0 24 24"><path d="M12 4l1.8 4.7L18.5 10l-4.7 1.8L12 16.5l-1.8-4.7L5.5 10l4.7-1.3z"/></svg>What we changed</button></div>
+  <span class="saved" id="saved">Saved</span>
+  <div class="grp"><button id="html" class="txt">HTML</button></div>
+  <div class="grp cta"><button id="pdf">Download PDF</button></div>
+</div>
+<div class="wrap">
+  <aside class="menu" aria-label="Sections">
+    <p class="eb">Tailored for</p>
+    <h2 class="mt">Prophetic Technologies</h2>
+    <p class="ms">Full Stack Software Engineer</p>
+    <h3>Sections</h3>
+    <ul class="sl" id="sl"></ul>
+    <button class="add" id="add">+ Add a section</button>
+    <p class="hint">Drag a section to move it on the page, or use the arrows. Name and contact stay at the top.</p>
+  </aside>
+  <main><div class="paper" id="paper"></div></main>
+</div>
+<p class="note">Sketch for D157. The tool is borderless: only its options and the résumé. Each section is its own box on the page; click one to edit it in place. Reorder from the section menu and the page re-lays itself. "What we changed" highlights what draft's tailoring rewrote. All of this lives in the Resume Master tool and is embedded in draft.</p>
+<script>
+(function () {
+  var S = [
+    { id: "head", name: "Name and contact", lock: true, html: '<div class="nm">Jordan Rivera</div><div class="ct">Boston, MA · jordan@example.com · linkedin.com/in/jordan-rivera · github.com/jordan-rivera</div>' },
+    { id: "sum", name: "Summary", html: '<h4>Summary</h4><div class="ed" contenteditable="true">Software engineer building <span class="chg">full-stack web products with React and Node</span>, from data pipelines to the interface.</div>' },
+    { id: "skills", name: "Skills", html: '<h4>Skills</h4><div class="ed" contenteditable="true"><b>Languages:</b> JavaScript, TypeScript, Python, SQL<br><b>Frameworks:</b> <span class="chg">React, Node.js, Express</span>, FastAPI<br><b>Tools:</b> PostgreSQL, Docker, AWS, Git</div>' },
+    { id: "exp", name: "Experience", html: '<h4>Experience</h4><div class="ed" contenteditable="true"><div class="role"><div class="rt"><span>Software Engineer · Acme Analytics</span><span>2024 – now</span></div><ul><li><span class="chg">Built React and Node features used by 3 product teams</span>, cutting report load time by 40%.</li><li>Designed a PostgreSQL schema for event data serving 2M rows a day.</li></ul></div><div class="role"><div class="rt"><span>Software Engineering Intern · Northwind</span><span>2023</span></div><ul><li>Shipped an internal dashboard in TypeScript used by 40 analysts.</li></ul></div></div>' },
+    { id: "proj", name: "Projects", html: '<h4>Projects</h4><div class="ed" contenteditable="true"><div class="role"><div class="rt"><span>draft · AI career navigator</span><span>2026</span></div><ul><li>Full-stack app ingesting 80,000 postings a day with a skills graph and an apply engine.</li></ul></div></div>' },
+    { id: "edu", name: "Education", html: '<h4>Education</h4><div class="ed" contenteditable="true"><div class="role"><div class="rt"><span>MS Computer Science · State University</span><span>2025</span></div></div></div>' }
+  ];
+  var sl = document.getElementById("sl"), paper = document.getElementById("paper"), focusId = null, dragId = null;
+  function renderPage() {
+    // keep each section's own DOM so edits survive a reorder; re-append in the new order (FLIP for a smooth move)
+    var first = {}; paper.querySelectorAll(".sec").forEach(function (el) { first[el.dataset.id] = el.getBoundingClientRect().top; });
+    S.forEach(function (s) {
+      var el = paper.querySelector('.sec[data-id="' + s.id + '"]');
+      if (!el) { el = document.createElement("section"); el.className = "sec" + (s.id === "head" ? " head" : ""); el.dataset.id = s.id; el.innerHTML = '<span class="tag">' + s.name + '</span>' + s.html; el.addEventListener("focusin", function () { setFocus(s.id); }); el.addEventListener("click", function () { setFocus(s.id); }); el.addEventListener("input", saving); if (s.id === "head") el.querySelectorAll(".nm,.ct").forEach(function (n) { n.contentEditable = "true"; }); }
+      paper.appendChild(el);
+    });
+    paper.querySelectorAll(".sec").forEach(function (el) { var t0 = first[el.dataset.id]; if (t0 == null) return; var d = t0 - el.getBoundingClientRect().top; if (!d) return; el.style.transform = "translateY(" + d + "px)"; el.style.transition = "none"; requestAnimationFrame(function () { el.style.transition = "transform .32s cubic-bezier(.22,1,.36,1)"; el.style.transform = ""; }); });
+  }
+  function renderMenu() {
+    sl.innerHTML = "";
+    S.forEach(function (s, i) {
+      var li = document.createElement("li"); li.className = "si" + (s.lock ? " lock" : "") + (s.id === focusId ? " on" : ""); li.draggable = !s.lock; li.dataset.id = s.id;
+      li.innerHTML = '<span class="num">' + (i + 1) + '</span><b>' + s.name + '</b>' + (s.lock ? '<span class="pin">at the top</span>' : '<span class="mv"><button aria-label="Move ' + s.name + ' up">▲</button><button aria-label="Move ' + s.name + ' down">▼</button></span>') + '<span class="grip" aria-hidden="true"><i></i><i></i><i></i></span>';
+      li.addEventListener("click", function (e) { if (e.target.closest("button")) return; setFocus(s.id); var el = paper.querySelector('.sec[data-id="' + s.id + '"]'); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); });
+      if (!s.lock) {
+        var bs = li.querySelectorAll(".mv button");
+        bs[0].addEventListener("click", function () { move(s.id, -1); }); bs[1].addEventListener("click", function () { move(s.id, 1); });
+        li.addEventListener("dragstart", function (e) { dragId = s.id; li.classList.add("drag"); e.dataTransfer.effectAllowed = "move"; });
+        li.addEventListener("dragend", function () { li.classList.remove("drag"); dragId = null; });
+      }
+      li.addEventListener("dragover", function (e) { if (!dragId || s.lock) return; e.preventDefault(); });
+      li.addEventListener("drop", function (e) { e.preventDefault(); if (!dragId || dragId === s.id || s.lock) return; var from = idx(dragId), to = idx(s.id); var it = S.splice(from, 1)[0]; S.splice(to, 0, it); renderMenu(); renderPage(); saving(); });
+      li.addEventListener("keydown", function (e) { if (s.lock) return; if (e.altKey && e.key === "ArrowUp") { e.preventDefault(); move(s.id, -1); } if (e.altKey && e.key === "ArrowDown") { e.preventDefault(); move(s.id, 1); } });
+      li.tabIndex = 0; sl.appendChild(li);
+    });
+  }
+  function idx(id) { for (var i = 0; i < S.length; i++) if (S[i].id === id) return i; return -1; }
+  function move(id, d) { var i = idx(id), j = i + d; if (j < 1 || j >= S.length) return; var t = S[i]; S[i] = S[j]; S[j] = t; renderMenu(); renderPage(); saving(); var li = sl.querySelector('[data-id="' + id + '"]'); if (li) li.focus(); }
+  function setFocus(id) { focusId = id; paper.querySelectorAll(".sec").forEach(function (el) { el.classList.toggle("focus", el.dataset.id === id); }); sl.querySelectorAll(".si").forEach(function (li) { li.classList.toggle("on", li.dataset.id === id); }); }
+  var st = null, saved = document.getElementById("saved");
+  function saving() { saved.textContent = "Saving…"; clearTimeout(st); st = setTimeout(function () { saved.textContent = "Saved"; }, 600); }
+  document.getElementById("add").addEventListener("click", function () { var n = S.length; S.push({ id: "c" + n, name: "Certifications", html: '<h4>Certifications</h4><div class="ed" contenteditable="true">AWS Certified Cloud Practitioner, 2025</div>' }); renderMenu(); renderPage(); setFocus("c" + n); saving(); });
+  // the tool's options act on the whole page (via variables) or on the selection
+  var size = 10.5, sv = document.getElementById("sv");
+  function setSize(v) { size = Math.max(9, Math.min(12, Math.round(v * 2) / 2)); sv.textContent = size; paper.style.setProperty("--rs", size + "pt"); saving(); }
+  document.getElementById("sd").addEventListener("click", function () { setSize(size - .5); });
+  document.getElementById("su").addEventListener("click", function () { setSize(size + .5); });
+  document.getElementById("font").addEventListener("change", function (e) { paper.style.setProperty("--rf", e.target.value); saving(); });
+  function group(attr, prop) { document.querySelectorAll("[" + attr + "]").forEach(function (b) { b.addEventListener("click", function () { document.querySelectorAll("[" + attr + "]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); paper.style.setProperty(prop, b.getAttribute(attr)); saving(); }); }); }
+  group("data-lh", "--lh"); group("data-mg", "--mg");
+  function cmd(c) { document.execCommand(c); saving(); }
+  document.getElementById("b").addEventListener("mousedown", function (e) { e.preventDefault(); cmd("bold"); });
+  document.getElementById("it").addEventListener("mousedown", function (e) { e.preventDefault(); cmd("italic"); });
+  document.getElementById("ul").addEventListener("mousedown", function (e) { e.preventDefault(); cmd("insertUnorderedList"); });
+  var chg = document.getElementById("chg");
+  chg.addEventListener("click", function () { var on = chg.getAttribute("aria-pressed") !== "true"; chg.setAttribute("aria-pressed", String(on)); paper.classList.toggle("showchg", on); });
+  document.getElementById("pdf").addEventListener("click", function () { saved.textContent = "Opening the print dialog to save as PDF…"; setTimeout(function () { saved.textContent = "Saved"; }, 1600); });
+  document.getElementById("html").addEventListener("click", function () { saved.textContent = "HTML downloaded"; setTimeout(function () { saved.textContent = "Saved"; }, 1400); });
+  renderMenu(); renderPage(); setFocus("exp");
+})();
+</script>
+</body>
+</html>

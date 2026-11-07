@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft — an application that needs you (sketch)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark;
+  --bg:#1B1B1B;--card:#262626;--raise:#2F2F2F;--raise2:#363636;--line:#363636;--ink:#FFFFFF;--body:#A3A3A3;--muted:#7A7A7A;
+  --accent:#FBD3C4;--accent2:#F2C2B2;--on-accent:#1B1B1B;--glow:rgba(251,211,196,.16);--ok:#8FD6A8;--warn:#F2C26B;--brand:#FD4600;
+  --font:"Inter Tight",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--serif:"Instrument Serif",Georgia,serif}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--raise2:#E9E2DC;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--ok:#1E7A43;--warn:#9A6400}}
+:root[data-theme="light"]{color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--raise2:#E9E2DC;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--ok:#1E7A43;--warn:#9A6400}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15.5px/1.5 var(--font);-webkit-font-smoothing:antialiased;min-height:100vh}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.ctl{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;padding:10px;background:rgba(27,27,27,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);font-size:13px}
+.ctl span{color:var(--muted);padding:0 6px}
+.ctl button{all:unset;cursor:pointer;padding:6px 12px;border-radius:10px;color:var(--body)}
+.ctl button[aria-pressed="true"]{background:var(--raise);color:var(--ink)}
+.page{max-width:980px;margin:0 auto;padding:36px clamp(16px,4vw,48px) 80px}
+h1{font:400 40px/1 var(--serif);margin:0 0 6px}
+.sub{color:var(--body);margin:0 0 22px}
+.tbl{background:var(--card);border-radius:22px;overflow:hidden}
+.tr{display:grid;grid-template-columns:minmax(0,2.2fr) 1fr auto;gap:14px;align-items:center;padding:14px 18px;border-top:1px solid var(--line)}
+.tr:first-child{border-top:0}
+.tr.dim{opacity:.55}
+.pos{display:flex;gap:12px;align-items:center;min-width:0}
+.lg{width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;color:#fff;font-weight:700;background:linear-gradient(155deg,rgba(255,255,255,.28),rgba(255,255,255,0) 45%),var(--c)}
+.pos b{display:block;font-weight:600}
+.pos span{display:block;color:var(--muted);font-size:13px}
+.dot{display:inline-flex;align-items:center;gap:8px;font-size:14px}
+.dot::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--dc)}
+.when{color:var(--muted);font-size:13.5px;text-align:right}
+.open{background:var(--raise)}
+.det{grid-column:1/-1;padding:6px 2px 4px;animation:fi .3s ease}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.eyebrow{color:var(--accent);font-size:14px;margin:6px 0 8px}
+.det h2{font-weight:500;font-size:32px;line-height:1.08;letter-spacing:-.03em;margin:0 0 10px}
+.lead{color:var(--body);margin:0 0 16px;max-width:60ch}
+.ask{background:var(--card);border-radius:18px;padding:16px 18px;margin:0 0 14px}
+.ask label{display:block;font-weight:600;margin-bottom:8px}
+.ask .hint{color:var(--muted);font-size:13.5px;margin:6px 0 0}
+.ask input[type=text]{width:100%;max-width:320px;background:var(--raise);border:0;border-radius:12px;padding:12px 14px;color:var(--ink)}
+.ask .save{display:flex;gap:8px;align-items:center;margin-top:12px;color:var(--body);font-size:14px}
+.ask .save input{accent-color:var(--accent);width:17px;height:17px}
+.row2{display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 18px}
+.btn{border:0;border-radius:14px;padding:12px 18px;font-weight:600;cursor:pointer;background:var(--card);color:var(--ink)}
+.btn:hover{background:var(--raise2)}
+.btn.p{background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent);box-shadow:0 12px 30px var(--glow)}
+.btn[disabled]{opacity:.45;cursor:default;box-shadow:none}
+.steps{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:2px}
+.steps li{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:14.5px}
+.steps li:first-child{border-top:0}
+.steps i{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);display:block}
+.steps li.done i{background:var(--ok);border-color:var(--ok)}
+.steps li.now i{border-color:var(--accent);background:radial-gradient(var(--accent) 45%,transparent 50%)}
+.steps li.fail i{background:var(--warn);border-color:var(--warn)}
+.steps li span.m{color:var(--muted);font-size:13px}
+.steps li button{all:unset;cursor:pointer;color:var(--accent);font-size:13px;font-weight:600}
+.od{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.od button{all:unset;cursor:pointer;padding:8px 13px;border-radius:12px;background:var(--card);font-weight:600;font-size:13.5px;color:var(--body)}
+.od button[aria-pressed="true"]{color:var(--ink);outline:1px solid var(--accent)}
+.pane{display:none;background:var(--card);border-radius:16px;padding:14px 16px;color:var(--body);font-size:14.5px;margin-bottom:14px}
+.pane.on{display:block;animation:fi .25s ease}
+.pane em{font-style:normal;color:var(--ink)}
+.qa{display:grid;gap:8px}
+.qa div{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;border-top:1px solid var(--line);padding-top:8px}
+.qa div:first-child{border-top:0;padding-top:0}
+.qa small{color:var(--muted)}
+.earlier{color:var(--muted);font-size:13.5px;margin-top:4px}
+.earlier button{all:unset;cursor:pointer;color:var(--body);text-decoration:underline}
+.hist{display:none;background:var(--card);border-radius:14px;padding:12px 14px;margin-top:8px;color:var(--body);font-size:14px}
+.hist.on{display:block}
+.note{max-width:980px;margin:0 auto;padding:0 clamp(16px,4vw,48px) 40px;color:var(--muted);font-size:12.5px}
+@media (max-width:640px){.tr{grid-template-columns:1fr auto}.tr .when{display:none}.det h2{font-size:26px}.qa div{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="ctl" role="group" aria-label="Sketch states"><span>State:</span><button data-s="needs">Needs you</button><button data-s="fail">Résumé couldn't be made</button><button data-s="ready">Ready to review</button><button data-s="sent">Sent</button></div>
+<main class="page">
+  <h1>Home</h1>
+  <p class="sub">Your applications, from draft to reply.</p>
+  <div class="tbl">
+    <div class="tr dim"><div class="pos"><span class="lg" style="--c:#1F7A4D">P</span><div><b>Plaid</b><span>Senior Infrastructure Engineer</span></div></div><span class="dot" style="--dc:#8FD6A8">Sent</span><span class="when">yesterday</span></div>
+    <div class="tr open" id="row"><div class="pos"><span class="lg" style="--c:#C2410C">P</span><div><b>Prophetic Technologies</b><span>Full Stack Software Engineer</span></div></div><span class="dot" id="rowstatus" style="--dc:var(--accent)">Needs you</span><span class="when">today</span>
+      <div class="det" id="det"></div>
+    </div>
+    <div class="tr dim"><div class="pos"><span class="lg" style="--c:#0E7490">H</span><div><b>Hims &amp; Hers</b><span>Software Engineer</span></div></div><span class="dot" style="--dc:#F2C26B">Ready to send</span><span class="when">today</span></div>
+  </div>
+</main>
+<p class="note">Sketch for D165's UI. The row opens in place in the tracker (no modal, nothing blurred). It asks only what draft may not answer for you, inside draft, and remembers it. Every step the run took is listed, so "did it even try?" is answered at a glance. The résumé is never handed to you: it's made, attached and shown with what changed. One earlier attempt sits quietly at the bottom.</p>
+<script>
+(function () {
+  var S = "needs", det = document.getElementById("det"), status = document.getElementById("rowstatus");
+  function steps(state) {
+    var resumeFail = state === "fail";
+    var L = [
+      ["done", "Read the posting", "Ashby · 16 questions"],
+      [resumeFail ? "fail" : "done", resumeFail ? "Tailored your résumé — it couldn't be made" : "Tailored your résumé", resumeFail ? "" : '<button data-od-open="resume">What we changed</button>'],
+      [resumeFail ? "" : "done", "Attached the résumé", resumeFail ? "waiting" : "Jordan_Rivera_Prophetic.pdf"],
+      [resumeFail ? "" : "done", "Filled the form", resumeFail ? "waiting" : '15 of 16 · <button data-od-open="answers">see the answers</button>'],
+      [state === "needs" ? "now" : (state === "ready" || state === "sent") ? "done" : "", state === "needs" ? "Waiting for you: 1 answer" : "Your answers", state === "needs" ? "" : "1 saved"],
+      [state === "ready" ? "now" : state === "sent" ? "done" : "", "Ready for you to submit", ""],
+      [state === "sent" ? "done" : "", "Sent", state === "sent" ? "confirmation in your email" : ""]
+    ];
+    return '<ul class="steps">' + L.map(function (s) { return '<li class="' + s[0] + '"><i></i><span>' + s[1] + '</span><span class="m">' + s[2] + "</span></li>"; }).join("") + "</ul>";
+  }
+  var panes = '<div class="od" role="group" aria-label="Show"><button data-od="posting">The posting</button><button data-od="resume">Résumé</button><button data-od="answers">Answers</button></div>' +
+    '<div class="pane" data-pn="posting"><em>Full Stack Software Engineer</em> · Prophetic Technologies · Remote (US). Build the product end to end with a small team: React, Node, Postgres, AWS.</div>' +
+    '<div class="pane" data-pn="resume"><p style="margin:0 0 8px"><em>What we changed:</em> 3 bullets reworded for this job; React and Node moved up in Skills; nothing added that isn\'t yours.</p><p style="margin:0">Before: <em>Worked on web features</em> → After: <em>Built React and Node features used by 3 teams</em></p></div>' +
+    '<div class="pane" data-pn="answers"><div class="qa"><div><span>Work authorisation</span><span>Authorised · needs sponsorship later</span><small>your Profile</small></div><div><span>Résumé</span><span>Jordan_Rivera_Prophetic.pdf</span><small>tailored by draft</small></div><div><span>Why Prophetic?</span><span>Written from your résumé and the job</span><small>by draft</small></div><div><span>Salary expectation</span><span id="salans">—</span><small id="salsrc">needs you</small></div></div></div>';
+  var earlier = '<p class="earlier">1 earlier attempt · today, 1:35 AM · stopped before the résumé was made · <button id="showh">show</button></p><div class="hist" id="hist">Started 1:35:47 AM, stopped 1:35:49 AM: the résumé step didn\'t run, so the form was left with 2 empty fields. This attempt replaced it.</div>';
+  function render() {
+    document.querySelectorAll("[data-s]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-s") === S)); });
+    var h = "";
+    if (S === "needs") {
+      status.textContent = "Needs you"; status.style.setProperty("--dc", "var(--accent)");
+      h = '<p class="eyebrow">Only you can answer this</p><h2>What salary should we give Prophetic?</h2><p class="lead">Everything else is done: your résumé is tailored and attached, and 15 of 16 answers are filled. draft never makes up salary, eligibility or legal answers.</p>' +
+        '<div class="ask"><label for="sal">Salary expectation (US$ a year)</label><input type="text" id="sal" placeholder="e.g. 150,000" inputmode="numeric"><p class="hint">The posting doesn\'t state a range.</p><label class="save"><input type="checkbox" id="save" checked> Use this for similar jobs (full-stack, US) next time</label></div>' +
+        '<div class="row2"><button class="btn p" id="cont" disabled>Continue</button><button class="btn">Skip this job</button></div>';
+    } else if (S === "fail") {
+      status.textContent = "Stopped"; status.style.setProperty("--dc", "var(--warn)");
+      h = '<p class="eyebrow">Something went wrong on our side</p><h2>The résumé couldn\'t be made</h2><p class="lead">Nothing was sent, and nothing is left for you to fill. Try again, or pick another base résumé.</p><div class="row2"><button class="btn p" id="retry">Try again</button><button class="btn">Pick another résumé</button></div>';
+    } else if (S === "ready") {
+      status.textContent = "Ready to send"; status.style.setProperty("--dc", "var(--warn)");
+      h = '<p class="eyebrow">Ready for you</p><h2>Everything is filled. Submit when you\'re happy.</h2><p class="lead">Check the résumé and the answers if you like. Your salary answer is saved for similar jobs.</p><div class="row2"><button class="btn p" id="submit">Submit</button><button class="btn">Edit an answer</button></div>';
+    } else {
+      status.textContent = "Sent"; status.style.setProperty("--dc", "var(--ok)");
+      h = '<p class="eyebrow">Sent</p><h2>Applied to Prophetic</h2><p class="lead">Submitted today. The confirmation went to your email; replies will show here.</p>';
+    }
+    det.innerHTML = h + steps(S) + panes + earlier;
+    if (S === "ready" || S === "sent") { var a = det.querySelector("#salans"); if (a) { a.textContent = "$150,000"; det.querySelector("#salsrc").textContent = "you · saved"; } }
+    var sal = det.querySelector("#sal"), cont = det.querySelector("#cont");
+    if (sal) sal.addEventListener("input", function () { cont.disabled = !sal.value.trim(); });
+    if (cont) cont.addEventListener("click", function () { S = "ready"; render(); });
+    var retry = det.querySelector("#retry"); if (retry) retry.addEventListener("click", function () { S = "needs"; render(); });
+    var sub = det.querySelector("#submit"); if (sub) sub.addEventListener("click", function () { S = "sent"; render(); });
+    det.querySelectorAll("[data-od]").forEach(function (b) { b.addEventListener("click", function () { var k = b.getAttribute("data-od"), on = b.getAttribute("aria-pressed") !== "true"; det.querySelectorAll("[data-od]").forEach(function (x) { x.setAttribute("aria-pressed", "false"); }); det.querySelectorAll(".pane").forEach(function (p) { p.classList.remove("on"); }); if (on) { b.setAttribute("aria-pressed", "true"); det.querySelector('[data-pn="' + k + '"]').classList.add("on"); } }); });
+    det.querySelectorAll("[data-od-open]").forEach(function (b) { b.addEventListener("click", function () { var t = det.querySelector('[data-od="' + b.getAttribute("data-od-open") + '"]'); if (t && t.getAttribute("aria-pressed") !== "true") t.click(); }); });
+    var sh = det.querySelector("#showh"); if (sh) sh.addEventListener("click", function () { var hs = det.querySelector("#hist"); hs.classList.toggle("on"); sh.textContent = hs.classList.contains("on") ? "hide" : "show"; });
+  }
+  document.querySelectorAll("[data-s]").forEach(function (b) { b.addEventListener("click", function () { S = b.getAttribute("data-s"); render(); }); });
+  render();
+})();
+</script>
+</body>
+</html>

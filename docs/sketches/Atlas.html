@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft — Atlas (sketch)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark;
+  --bg:#1B1B1B;--card:#262626;--raise:#2F2F2F;--raise2:#363636;--line:#363636;--ink:#FFFFFF;--body:#A3A3A3;--muted:#777777;
+  --accent:#FBD3C4;--accent2:#F2C2B2;--on-accent:#1B1B1B;--glow:rgba(251,211,196,.16);--ok:#8FD6A8;
+  --font:"Inter Tight",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--serif:"Instrument Serif",Georgia,serif}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--raise2:#E9E2DC;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--ok:#1E7A43}}
+:root[data-theme="light"]{color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--raise2:#E9E2DC;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--ok:#1E7A43}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased;min-height:100vh}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.tint{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+/* the site's dock, collapsed, for context */
+.rail{position:fixed;left:12px;top:50%;transform:translateY(-50%);width:60px;background:var(--card);border-radius:22px;padding:8px;display:grid;gap:6px;z-index:5}
+.rail span{height:44px;border-radius:14px;display:grid;place-items:center;color:var(--accent);font:800 italic 18px/1 var(--font)}
+.rail span.on{background:var(--raise)}
+.rail svg{width:26px;height:26px;stroke:var(--accent);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+/* Atlas: its own navigation + panels, one centred group */
+.atlas{display:grid;grid-template-columns:232px minmax(0,1fr);gap:clamp(20px,3vw,40px);max-width:1280px;margin:0 auto;padding:32px clamp(16px,3vw,40px) 80px 96px}
+@media (max-width:900px){.atlas{grid-template-columns:1fr;padding-left:84px}}
+.nav{position:sticky;top:28px;align-self:start;background:var(--card);border-radius:28px;padding:20px 12px 16px}
+.nav .eb{color:var(--accent);font-size:13px;margin:0 10px 4px}
+.nav h1{font:400 34px/1 var(--serif);margin:0 10px 16px}
+.nav h3{font:500 12px/1 var(--font);color:var(--muted);margin:14px 10px 6px}
+.nav button{all:unset;cursor:pointer;display:flex;justify-content:space-between;align-items:center;width:100%;box-sizing:border-box;padding:9px 10px;border-radius:13px;color:var(--body);font-size:14.5px}
+.nav button:hover{background:var(--raise);color:var(--ink)}
+.nav button[aria-current="page"]{background:var(--raise);color:var(--ink)}
+.nav button small{color:var(--muted);font-size:12px}
+.nav button[aria-current="page"] small{color:var(--accent)}
+@media (max-width:900px){.nav{position:static}}
+.panel{animation:fi .3s ease;min-width:0}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.eyebrow{color:var(--accent);font-size:14px;margin:4px 0 8px}
+h2{font-weight:500;font-size:44px;line-height:1.02;letter-spacing:-.035em;margin:0 0 10px}
+.lead{color:var(--body);font-size:17px;margin:0 0 24px;max-width:60ch}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:0 0 22px}
+.st{background:var(--card);border-radius:22px;padding:18px}
+.st b{display:block;color:var(--accent);font-size:32px;font-weight:500;letter-spacing:-.03em;line-height:1.1}
+.st span{color:var(--body);font-size:13.5px}
+.card{background:var(--card);border-radius:28px;padding:22px;margin:0 0 14px}
+.card h4{margin:0 0 6px;font-weight:600;font-size:16px}
+.card p{margin:0;color:var(--body)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:14px;padding:11px 16px;font-weight:600;cursor:pointer;background:var(--raise);color:var(--ink)}
+.btn:hover{background:var(--raise2)}
+.btn.p{background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent);box-shadow:0 10px 26px var(--glow)}
+.quiet{all:unset;cursor:pointer;color:var(--accent);font-weight:600;font-size:14px}
+.two{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px}
+@media (max-width:1100px){.two{grid-template-columns:1fr}}
+/* the map */
+.map{background:var(--card);border-radius:28px;padding:10px;overflow:hidden}
+.map svg{width:100%;height:auto;display:block}
+.map text{font:500 12px var(--font);fill:var(--body)}
+.map .you text{fill:var(--on-accent);font-weight:700}
+.key{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin:10px 6px 4px}
+.key span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--k)}
+/* skills list */
+.seg{display:inline-flex;background:var(--card);border-radius:14px;padding:3px;margin:0 0 14px}
+.seg button{all:unset;cursor:pointer;padding:7px 14px;border-radius:11px;color:var(--body);font-weight:600;font-size:13.5px}
+.seg button[aria-pressed="true"]{background:var(--raise);color:var(--ink)}
+.sk{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 4px;border-top:1px solid var(--line)}
+.sk:first-of-type{border-top:0}
+.sk b{font-weight:500}
+.sk small{display:block;color:var(--muted);font-size:12.5px}
+.state{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:var(--body)}
+.state::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--sc)}
+.addsk{display:flex;gap:8px;margin-top:12px}
+.addsk input{flex:1;background:var(--raise);border:0;border-radius:13px;padding:11px 13px;color:var(--ink)}
+.check{display:none;background:var(--raise);border-radius:18px;padding:14px 16px;margin:6px 0 10px}
+.check.on{display:block;animation:fi .25s ease}
+.check p{margin:0 0 10px;color:var(--body)}
+.check .opts{display:grid;gap:6px}
+.check .opts button{all:unset;cursor:pointer;background:var(--card);border-radius:12px;padding:10px 12px;font-size:14px}
+.check .opts button:hover{background:var(--raise2)}
+/* route stack */
+.stack{display:flex;flex-direction:column-reverse;gap:8px}
+.step{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--card);border-radius:20px;padding:14px 16px}
+.step .n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--raise2);color:var(--body);font-weight:600;font-size:13px}
+.step.done .n{background:var(--ok);color:#0b2a17}
+.step.now{outline:1.5px solid var(--accent)}
+.step.now .n{background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent)}
+.step b{font-weight:600}
+.step p{margin:2px 0 0;color:var(--body);font-size:13.5px}
+.found{background:var(--raise);border-radius:20px;padding:14px 16px;color:var(--body)}
+.found b{color:var(--ink)}
+/* learn */
+.stages{display:grid;gap:8px}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 160px auto;gap:14px;align-items:center;background:var(--card);border-radius:20px;padding:14px 16px}
+.bar{height:6px;border-radius:4px;background:var(--raise2);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.stage small{color:var(--muted)}
+/* explore */
+.search{width:100%;background:var(--card);border:0;border-radius:16px;padding:13px 16px;color:var(--ink);margin:0 0 14px}
+.role{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:16px;align-items:center;background:var(--card);border-radius:20px;padding:14px 16px;margin-bottom:8px}
+.role span{color:var(--muted);font-size:13px}
+.up{color:var(--ok)}.down{color:var(--muted)}
+.note{max-width:1280px;margin:0 auto;padding:0 40px 40px 96px;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<nav class="rail" aria-label="Site"><span>/d</span><span><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/></svg></span><span class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.6 2.4 3.9 5.2 3.9 8.5s-1.3 6.1-3.9 8.5c-2.6-2.4-3.9-5.2-3.9-8.5s1.3-6.1 3.9-8.5z"/></svg></span><span><svg viewBox="0 0 24 24"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/></svg></span></nav>
+<div class="atlas">
+  <aside class="nav" aria-label="Atlas">
+    <p class="eb">Your way through the market</p>
+    <h1>Atlas</h1>
+    <h3>You</h3>
+    <button data-p="over">Overview</button>
+    <button data-p="map">Your map</button>
+    <button data-p="skills">Your skills <small>9 checked</small></button>
+    <button data-p="route">Your route <small>step 3 of 5</small></button>
+    <h3>Grow</h3>
+    <button data-p="learn">Learn</button>
+    <button data-p="practice">Today's question <small>new</small></button>
+    <button data-p="audit">The audit</button>
+    <h3>Explore</h3>
+    <button data-p="roles">Roles and skills</button>
+    <button data-p="market">This week's market</button>
+    <button data-p="gloss">Glossary</button>
+  </aside>
+  <main id="main"></main>
+</div>
+<p class="note">Sketch for D167 / D169: Atlas as its own product, with its own navigation (You · Grow · Explore) beside the site's dock. Sections drawn from what's planned under Atlas; the owner adds, removes or renames them.</p>
+<script>
+(function () {
+  var main = document.getElementById("main");
+  var SK = [
+    ["Python", "built", "proof: the draft crawler", true], ["SQL", "checked", "passed its quick check", true], ["Spark", "checked", "on your résumé · passed", true],
+    ["Airflow", "claimed", "not on your résumé yet", false], ["Kafka", "claimed", "not on your résumé yet", false], ["dbt", "claimed", "no questions yet: add proof", false]
+  ];
+  var P = {
+    over: function () { return '<p class="eyebrow">Where you stand</p><h2>Data Engineer, mid-level</h2><p class="lead">Your skills against what 1,240 open Data Engineer roles ask for this week, and the next step on your route.</p>' +
+      '<div class="stats"><div class="st"><b>9 of 14</b><span>skills checked for your target</span></div><div class="st"><b>38</b><span>open roles you match now</span></div><div class="st"><b>Step 3</b><span>of 5 on your route</span></div><div class="st"><b>4 days</b><span>practice streak</span></div></div>' +
+      '<div class="two"><div class="card"><h4>Next step: streaming with Kafka</h4><p>Asked by 61% of senior Data Engineer roles. One Learn deck, then a small build.</p><div class="row" style="margin-top:14px"><button class="btn p" data-go="route">Open your route</button><button class="quiet" data-go="learn">Go to Learn</button></div></div>' +
+      '<div class="card"><h4>Today\'s question · 2 minutes</h4><p>Late-arriving events in a daily job: what do you change?</p><div class="row" style="margin-top:14px"><button class="btn" data-go="practice">Answer it</button></div></div></div>'; },
+    map: function () {
+      var nodes = [["You", 300, 190, "you"], ["Python", 170, 110, "have"], ["SQL", 150, 230, "have"], ["Spark", 300, 70, "have"], ["Airflow", 440, 110, "gap"], ["Kafka", 470, 240, "gap"], ["dbt", 330, 310, "gap"], ["Data Engineer", 560, 170, "role"], ["Analytics Engineer", 120, 330, "role"]];
+      var col = { you: "var(--accent)", have: "var(--ok)", gap: "var(--raise2)", role: "var(--card)" };
+      var svg = '<svg viewBox="0 0 680 380" role="img" aria-label="Your skills against the market">';
+      nodes.slice(1).forEach(function (n) { svg += '<line x1="300" y1="190" x2="' + n[1] + '" y2="' + n[2] + '" stroke="var(--line)" stroke-width="1.5"/>'; });
+      nodes.forEach(function (n) { var r = n[3] === "you" ? 30 : n[3] === "role" ? 0 : 22; if (n[3] === "role") svg += '<g><rect x="' + (n[1] - 64) + '" y="' + (n[2] - 16) + '" width="128" height="32" rx="16" fill="var(--raise)"/><text x="' + n[1] + '" y="' + (n[2] + 4) + '" text-anchor="middle">' + n[0] + '</text></g>'; else svg += '<g class="' + (n[3] === "you" ? "you" : "") + '"><circle cx="' + n[1] + '" cy="' + n[2] + '" r="' + r + '" fill="' + col[n[3]] + '"/><text x="' + n[1] + '" y="' + (n[2] + (n[3] === "you" ? 4 : r + 16)) + '" text-anchor="middle">' + n[0] + '</text></g>'; });
+      svg += "</svg>";
+      return '<p class="eyebrow">Your map</p><h2>Your skills, against the market</h2><p class="lead">What you have, what sits next to it, and what your target asks for. Larger gaps open more roles.</p><div class="map">' + svg + '<div class="key"><span style="--k:var(--ok)">you have it</span><span style="--k:var(--raise2)">a gap for your target</span><span style="--k:var(--accent)">you</span></div></div>'; },
+    skills: function () {
+      return '<p class="eyebrow">Your skills</p><h2>What you can show</h2><p class="lead">Each skill is matched to the Atlas. A skill that isn\'t on your résumé goes into a tailored résumé only once it\'s proven.</p>' +
+        '<div class="seg" role="group" aria-label="View"><button aria-pressed="true">List</button><button data-go="map">Map</button></div><div class="card">' +
+        SK.map(function (s, i) { var c = s[1] === "built" ? "var(--ok)" : s[1] === "checked" ? "var(--accent)" : "var(--muted)"; return '<div class="sk"><div><b>' + s[0] + '</b><small>' + s[2] + '</small></div><span class="state" style="--sc:' + c + '">' + s[1] + '</span>' + (s[1] === "claimed" ? '<button class="quiet" data-chk="' + i + '">' + (s[2].indexOf("no questions") === 0 ? "Add proof" : "Check it · 1 min") + '</button>' : '<span></span>') + '</div><div class="check" id="chk' + i + '"><p>Quick check for ' + s[0] + ', question 1 of 3: which delivery guarantee does an idempotent consumer give you on top of at-least-once?</p><div class="opts"><button>Exactly-once in effect</button><button>At-most-once</button><button>None, it just retries</button></div></div>'; }).join("") +
+        '<div class="addsk"><input placeholder="Add a skill, for example Terraform" aria-label="Add a skill"><button class="btn">Add</button></div></div>'; },
+    route: function () {
+      var st = [["Batch pipelines you can trust", "Idempotent jobs and backfills", "done"], ["Modelling for analytics", "Grain, star schemas, slowly changing dimensions", "done"], ["Streaming with Kafka", "Consumers, ordering, exactly-once in effect", "now"], ["Orchestration at scale", "Airflow, retries, data contracts", ""], ["Interview-ready", "SQL and pipeline design rounds", ""]];
+      return '<p class="eyebrow">Your route · Senior Data Engineer</p><h2>One tier on top of what you have</h2><p class="lead">Your foundation at the bottom, the steps above it. Each step opens its decks, a build and its questions.</p><div class="stack"><div class="found"><b>Your 3 years:</b> Python · SQL · Spark · AWS</div>' +
+        st.map(function (s, i) { return '<div class="step ' + s[2] + '"><span class="n">' + (i + 1) + '</span><div><b>' + s[0] + '</b><p>' + s[1] + '</p></div>' + (s[2] === "now" ? '<button class="btn p">Continue</button>' : s[2] === "done" ? '<span class="state" style="--sc:var(--ok)">done</span>' : '<span></span>') + '</div>'; }).join("") + '</div>'; },
+    learn: function () {
+      var g = [["Foundations", 100, "8 of 8 decks"], ["Building blocks", 62, "5 of 8"], ["Patterns", 20, "1 of 7"], ["Case studies", 0, "0 of 6"], ["Specialisation: streaming", 0, "0 of 5"], ["Interview", 0, "0 of 4"]];
+      return '<p class="eyebrow">Learn · Data engineering</p><h2>The pathway</h2><p class="lead">Five-slide decks in order: what you need first, then what the market asks for most.</p><div class="stages">' +
+        g.map(function (s) { return '<div class="stage"><div><b>' + s[0] + '</b> <small>' + s[2] + '</small></div><div class="bar"><i style="width:' + s[1] + '%"></i></div>' + (s[1] > 0 && s[1] < 100 ? '<button class="btn">Continue</button>' : s[1] === 100 ? '<span class="state" style="--sc:var(--ok)">done</span>' : '<button class="quiet">Start</button>') + '</div>'; }).join("") + '</div>'; },
+    practice: function () { return '<p class="eyebrow">Today\'s question · picked from your route</p><h2>Late events keep changing yesterday\'s revenue</h2><p class="lead">Your daily job runs at 00:30, events arrive up to 48 hours late, and finance\'s numbers keep moving. What do you change?</p>' +
+      '<div class="card"><div class="check on" style="background:transparent;padding:0;margin:0"><div class="opts"><button>Move the job to 03:00</button><button>Aggregate by event time and reprocess the last two days, idempotently</button><button>Drop the late events</button><button>Aggregate by arrival time</button></div></div><p style="margin-top:14px;color:var(--muted);font-size:13.5px">4-day streak · one review due tomorrow</p></div>'; },
+    audit: function () { return '<p class="eyebrow">The 3-minute audit</p><h2>Do you clear the bar?</h2><p class="lead">Your last audit: Senior Data Engineer, 4 of 6. Take it again for another role, or share the result.</p><div class="row"><button class="btn p">Take the audit</button><button class="btn">Share your result</button></div>'; },
+    roles: function () {
+      var r = [["Data Engineer", "1,240 open", "+18%", "up"], ["Analytics Engineer", "420 open", "+6%", "up"], ["ML Engineer", "860 open", "+22%", "up"], ["Data Analyst", "980 open", "−4%", "down"]];
+      return '<p class="eyebrow">Explore</p><h2>Roles and skills</h2><p class="lead">Every role and skill on the board: what it asks for, what it pays, and how it\'s moving.</p><input class="search" placeholder="Search a role or a skill" aria-label="Search roles and skills">' +
+        r.map(function (x) { return '<div class="role"><div><b>' + x[0] + '</b><br><span>' + x[1] + '</span></div><span class="' + x[3] + '">' + x[2] + ' this month</span><button class="quiet">Open</button></div>'; }).join(""); },
+    gloss: function () {
+      var G = [["Backfill", "Re-running a pipeline over past dates to fill or fix history.", 412], ["Data contract", "An agreed, enforced shape for data passed between teams, so a change upstream can't silently break you.", 188], ["Feature flag", "A switch that turns code on or off for some users without a new deploy.", 903], ["Idempotent", "Safe to run twice: doing it again leaves the same result.", 655], ["SLO", "A reliability target, such as 99.9% of requests under 300 ms, that alerts are built around.", 540], ["Watermark", "In streaming, how late an event may arrive and still be counted in its window.", 121]];
+      return '<p class="eyebrow">Glossary</p><h2>The words the market uses</h2><p class="lead">Every term in the Atlas, in plain words, with how often postings use it. Hover an underlined term anywhere in draft to see the same definition.</p><input class="search" placeholder="Search a term" aria-label="Search the glossary">' +
+        G.map(function (g) { return '<div class="role"><div><b>' + g[0] + '</b><br><span style="color:var(--body);font-size:14px">' + g[1] + '</span></div><span>' + g[2] + ' postings</span><button class="quiet">Open in Atlas</button></div>'; }).join(""); },
+    market: function () { return '<p class="eyebrow">This week\'s market · data and ML</p><h2>What moved this week</h2><p class="lead">From 52,681 open postings, the week of 2 November.</p>' +
+      '<div class="stats"><div class="st"><b>+18%</b><span>Data Engineer postings</span></div><div class="st"><b>Kafka</b><span>rising fastest toward senior</span></div><div class="st"><b>725</b><span>new roles this week</span></div><div class="st"><b>1 in 9</b><span>postings likely not hiring</span></div></div><button class="quiet">See the full week</button>'; }
+  };
+  var current = "over";
+  function show(p) {
+    current = p;
+    document.querySelectorAll(".nav [data-p]").forEach(function (b) { if (b.getAttribute("data-p") === p) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    main.innerHTML = '<div class="panel">' + P[p]() + "</div>";
+    main.querySelectorAll("[data-go]").forEach(function (b) { b.addEventListener("click", function () { show(b.getAttribute("data-go")); }); });
+    main.querySelectorAll("[data-chk]").forEach(function (b) { b.addEventListener("click", function () { var c = document.getElementById("chk" + b.getAttribute("data-chk")); c.classList.toggle("on"); }); });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  document.querySelectorAll(".nav [data-p]").forEach(function (b) { b.addEventListener("click", function () { show(b.getAttribute("data-p")); }); });
+  show("over");
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft — the ATS panel, three options (sketch)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark;
+  --bg:#1B1B1B;--card:#262626;--raise:#2F2F2F;--raise2:#363636;--line:#363636;--ink:#FFFFFF;--body:#A3A3A3;--muted:#7A7A7A;
+  --accent:#FBD3C4;--accent2:#F2C2B2;--on-accent:#1B1B1B;--glow:rgba(251,211,196,.16);--brand:#FD4600;--ok:#8FD6A8;
+  --font:"Inter Tight",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--serif:"Instrument Serif",Georgia,serif}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--raise2:#E9E2DC;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--ok:#1E7A43}}
+:root[data-theme="light"]{color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--raise2:#E9E2DC;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--ok:#1E7A43}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15.5px/1.55 var(--font);-webkit-font-smoothing:antialiased;min-height:100vh}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.ctl{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;padding:12px;background:rgba(27,27,27,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);font-size:13px}
+.ctl span{color:var(--muted);padding:0 6px}
+.ctl button{all:unset;cursor:pointer;padding:6px 12px;border-radius:10px;color:var(--body)}
+.ctl button[aria-pressed="true"]{background:var(--raise);color:var(--ink)}
+.desc{max-width:1100px;margin:16px auto 0;padding:0 20px;color:var(--body);font-size:14.5px}
+.desc b{color:var(--ink);font-weight:600}
+.wrap{max-width:1100px;margin:18px auto 60px;padding:0 20px}
+/* the posting panel (D147 / D152) */
+.panel{background:var(--card);border-radius:28px;padding:24px;max-width:640px;margin:0 auto;transition:max-width .4s ease}
+.wrap.split .panel{max-width:1100px}
+.co{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.who{display:flex;gap:12px;align-items:center}
+.lg{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:700;background:linear-gradient(155deg,rgba(255,255,255,.28),rgba(255,255,255,0) 45%),#E8542C}
+.who b{display:block;font-weight:600}
+.who span{display:block;color:var(--muted);font-size:13.5px}
+.close{all:unset;cursor:pointer;color:var(--muted);font-size:13.5px;font-weight:600;padding:6px 10px;border-radius:10px;background:var(--raise)}
+.title{font:400 34px/1.06 var(--serif);margin:16px 0 12px}
+.facts{display:flex;background:var(--raise);border-radius:18px;overflow:hidden;margin:0 0 18px}
+.facts > div{padding:13px 16px;border-left:1px solid var(--line)}
+.facts > div:first-child{border-left:0}
+.facts b{display:block;font-weight:500;font-size:16px}
+.facts span{display:block;color:var(--muted);font-size:12.5px}
+.facts .mbox{margin-left:auto;cursor:pointer;text-align:center;background:var(--raise2);min-width:96px}
+.facts .mbox b{color:var(--accent);font-size:23px;letter-spacing:-.02em}
+.facts .mbox:hover{filter:brightness(1.08)}
+.facts .mbox[aria-expanded="true"]{outline:1.5px solid var(--accent);outline-offset:-1.5px}
+.cols{display:grid;grid-template-columns:1fr;gap:24px}
+.wrap.split .cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:860px){.wrap.split .cols{grid-template-columns:1fr}}
+.jd .eyebrow{margin-top:4px}
+.jd p,.jd li{color:var(--body)}
+.jd em{font-style:normal;color:var(--ink)}
+.jd ul{padding-left:18px;margin:6px 0 12px}
+.acts{display:grid;grid-template-columns:1fr 1fr 1.4fr auto;gap:10px;margin-top:18px}
+.btn{border:0;border-radius:16px;padding:14px;font-weight:600;cursor:pointer;background:var(--raise);color:var(--ink)}
+.btn.p{background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent);box-shadow:0 12px 30px var(--glow)}
+.eyebrow{color:var(--accent);font-size:14px;margin:0 0 8px}
+/* the match (the existing ATS report's content, restyled) */
+.match{display:none}
+.match.on{display:block;animation:in .35s ease}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.match.on{animation:none}.flipper{transition:none!important}}
+.inline .match{background:var(--raise);border-radius:22px;padding:20px;margin:0 0 20px}
+.split .match{background:var(--raise);border-radius:22px;padding:20px;align-self:start;position:sticky;top:70px}
+.match h3{font-weight:500;font-size:30px;line-height:1.08;letter-spacing:-.03em;margin:0 0 8px}
+.match .sub{color:var(--body);margin:0 0 14px}
+.bar{display:flex;height:6px;border-radius:4px;overflow:hidden;background:var(--line);margin:0 0 6px}
+.bar i{display:block;height:100%}
+.bar .have{background:var(--ok)}.bar .claim{background:var(--accent)}
+.key{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin:0 0 18px}
+.key span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:var(--k)}
+.tabs{display:flex;gap:6px;margin:0 0 14px}
+.tabs button{all:unset;cursor:pointer;padding:7px 12px;border-radius:11px;font-weight:600;font-size:13.5px;color:var(--body);background:var(--card)}
+.tabs button[aria-pressed="true"]{color:var(--ink);outline:1px solid var(--accent)}
+.claims{display:grid;gap:0}
+.cl{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.cl:first-child{border-top:0}
+.cl b{font-weight:500}
+.cl small{color:var(--muted);margin-left:8px;font-size:12.5px}
+.cl button{all:unset;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--accent);padding:6px 10px;border-radius:10px}
+.cl button:hover{background:var(--card)}
+.cl.done b{color:var(--ink)}
+.cl.done button{color:var(--muted)}
+.fine{color:var(--muted);font-size:12.5px;margin-top:14px}
+.hist p{color:var(--body);margin:0 0 8px}
+.hist em{font-style:normal;color:var(--ink)}
+/* option C: the back of the card */
+.scene{perspective:1600px;max-width:640px;margin:0 auto}
+.flipper{position:relative;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.flipper.flipped{transform:rotateY(180deg)}
+.face{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.back{position:absolute;inset:0;transform:rotateY(180deg);background:var(--card);border-radius:28px;padding:24px;overflow:auto}
+.back .match{display:block}
+.backtop{display:flex;justify-content:space-between;align-items:center;margin:0 0 14px}
+</style>
+</head>
+<body>
+<div class="ctl" role="group" aria-label="Option"><span>ATS panel:</span><button data-o="inline">A · Opens inside the posting</button><button data-o="split">B · Opens beside the posting</button><button data-o="flip">C · The back of the card</button></div>
+<p class="desc" id="desc"></p>
+<div class="wrap" id="wrap"></div>
+<script>
+(function () {
+  var CLAIMS = [["OpenTofu", "skill"], ["Pulumi", "skill"], ["Google Cloud Platform", "skill"], ["Microservice architecture", "skill"], ["Multi-tenant clusters", "skill"], ["Infrastructure cost optimisation", "skill"], ["Production migrations", "skill"], ["Led", "verb"]];
+  var D = {
+    inline: "<b>A · Inside the posting.</b> Press the match box and your match opens right under the facts, pushing the posting down. One panel, nothing over the page. Press it again to fold it.",
+    split: "<b>B · Beside the posting.</b> Press the match box and the panel widens: the posting on the left, your match on the right, both readable at once. On phones it opens in place, like A.",
+    flip: "<b>C · The back of the card.</b> Press the match box and the panel turns over like a card: your match is on the back. Back to the posting turns it again. It echoes the deck."
+  };
+  function matchHTML(withClose) {
+    return '<div class="match on" id="match">' + (withClose ? '<div class="backtop"><p class="eyebrow" style="margin:0">Your résumé against this job</p><button class="close" id="back">Back to the posting</button></div>' : '<p class="eyebrow">Your résumé against this job</p>') +
+      '<h3>28 of 40 things this posting asks for</h3><p class="sub">A 66% match. The score is still being tuned, so read it with the count.</p>' +
+      '<div class="bar" aria-hidden="true"><i class="have" style="width:70%"></i><i class="claim" id="claimbar" style="width:0%"></i></div>' +
+      '<div class="key"><span style="--k:var(--ok)">on your résumé</span><span style="--k:var(--accent)">claimed by you</span><span style="--k:var(--line)">missing</span></div>' +
+      '<div class="tabs" role="group" aria-label="Show"><button data-t="claim" aria-pressed="true">You could claim · 12</button><button data-t="hist">History</button></div>' +
+      '<div id="tclaim"><p class="sub" style="margin-bottom:6px">The posting asks for these and your résumé doesn\'t show them. Claim only the ones that are true of you.</p><div class="claims">' +
+      CLAIMS.map(function (c, i) { return '<div class="cl" data-i="' + i + '"><span><b>' + c[0] + '</b><small>' + c[1] + '</small></span><button>That\'s true of me</button></div>'; }).join("") +
+      '</div><p class="fine">Claiming says it\'s true of you: it counts toward this score and where jobs rank, and it\'s used in résumés made from now on. It never rewrites one you already have, and you can withdraw it any time.</p></div>' +
+      '<div id="thist" class="hist" style="display:none"><p><em>First posted</em> 10 hours ago. Not reposted.</p><p><em>Your score</em> went from 61% to 66% after you added Terraform on Oct 30.</p></div></div>';
+  }
+  var jd = '<div class="jd"><p class="eyebrow">The posting</p><p>At Seeq we build advanced analytics for industrial companies. As a Platform Software Engineer, you will build the internal platform that our engineering teams use to deploy and operate software.</p><p><em>What you\'ll do</em></p><ul><li>Design and run multi-tenant infrastructure on cloud platforms</li><li>Own migrations and the cost of the platform</li><li>Work with product and security on reliable releases</li></ul><p><em>What you\'ll bring</em></p><ul><li>8+ years building production platforms</li><li>Infrastructure as code (Terraform, OpenTofu or Pulumi)</li><li>Kubernetes at scale</li></ul></div>';
+  function front(showMatchInline) {
+    return '<div class="co"><div class="who"><span class="lg">S</span><div><b>Seeq</b><span>Remote</span></div></div><button class="close">Close</button></div>' +
+      '<div class="title">Platform Software Engineer – Staff / Principal</div>' +
+      '<div class="facts"><div><b>8+ years</b><span>experience</span></div><div><b>Staff</b><span>level</span></div><div><b>10 hours</b><span>posted</span></div><div class="mbox" id="mbox" role="button" tabindex="0" aria-expanded="false"><b>66%</b><span>match</span></div></div>' +
+      (showMatchInline ? '<div id="slot"></div>' : "");
+  }
+  var acts = '<div class="acts"><button class="btn">Pass</button><button class="btn">Save</button><button class="btn p">Draft</button><button class="btn">More</button></div>';
+  var O = "inline", wrap = document.getElementById("wrap");
+  function render() {
+    document.querySelectorAll("[data-o]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-o") === O)); });
+    document.getElementById("desc").innerHTML = D[O];
+    wrap.className = "wrap " + (O === "split" ? "split" : O === "inline" ? "inline" : "");
+    if (O === "inline") wrap.innerHTML = '<div class="panel">' + front(true) + jd + acts + "</div>";
+    if (O === "split") wrap.innerHTML = '<div class="panel">' + front(false) + '<div class="cols"><div>' + jd + acts + '</div><div id="slot"></div></div></div>';
+    if (O === "flip") wrap.innerHTML = '<div class="scene"><div class="flipper" id="flipper"><div class="face panel">' + front(false) + jd + acts + '</div><div class="back">' + matchHTML(true) + "</div></div></div>";
+    wire();
+  }
+  function wireMatch(root) {
+    var n = 0;
+    root.querySelectorAll(".cl").forEach(function (r) { var b = r.querySelector("button"); b.addEventListener("click", function () { var on = !r.classList.contains("done"); r.classList.toggle("done", on); b.textContent = on ? "Claimed · undo" : "That's true of me"; n += on ? 1 : -1; var cb = root.querySelector("#claimbar"); if (cb) cb.style.width = (n * 2.5) + "%"; }); });
+    root.querySelectorAll("[data-t]").forEach(function (b) { b.addEventListener("click", function () { var t = b.getAttribute("data-t"); root.querySelectorAll("[data-t]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); root.querySelector("#tclaim").style.display = t === "claim" ? "" : "none"; root.querySelector("#thist").style.display = t === "hist" ? "" : "none"; }); });
+  }
+  function wire() {
+    var mbox = wrap.querySelector("#mbox");
+    function toggle() {
+      if (O === "flip") { var f = document.getElementById("flipper"); f.classList.toggle("flipped"); mbox.setAttribute("aria-expanded", String(f.classList.contains("flipped"))); return; }
+      var slot = wrap.querySelector("#slot"), open = mbox.getAttribute("aria-expanded") === "true";
+      if (open) { slot.innerHTML = ""; mbox.setAttribute("aria-expanded", "false"); if (O === "split") wrap.classList.remove("split"); }
+      else { if (O === "split") wrap.classList.add("split"); slot.innerHTML = matchHTML(false); wireMatch(slot); mbox.setAttribute("aria-expanded", "true"); }
+    }
+    mbox.addEventListener("click", toggle);
+    mbox.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+    if (O === "split") wrap.classList.remove("split");
+    if (O === "flip") { var back = wrap.querySelector(".back"); wireMatch(back); back.querySelector("#back").addEventListener("click", toggle);
+      var f = document.getElementById("flipper"), face = f.querySelector(".face"); f.style.minHeight = face.offsetHeight + "px"; }
+  }
+  document.querySelectorAll("[data-o]").forEach(function (b) { b.addEventListener("click", function () { O = b.getAttribute("data-o"); render(); }); });
+  render();
+})();
+</script>
+</body>
+</html>

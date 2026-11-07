@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft — the trial, start to finish (sketch)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark;
+  --bg:#121213;--surface:#1E1F21;--card:#1A1A1B;--well:#26282B;--ink:#ECEAE6;--muted:#A8A39B;--line:#34363A;--accent:#FD4600;--ok:#62C98A;--miss:#6E6A63;--serif:"Instrument Serif",Georgia,serif}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){color-scheme:light;--bg:#F2F0EB;--surface:#FFF;--card:#FFF;--well:#EFEDE8;--ink:#1B1A18;--muted:#5F5B54;--line:#D3CEC4;--ok:#1E7A43;--miss:#9A958C}}
+:root[data-theme="light"]{color-scheme:light;--bg:#F2F0EB;--surface:#FFF;--card:#FFF;--well:#EFEDE8;--ink:#1B1A18;--muted:#5F5B54;--line:#D3CEC4;--ok:#1E7A43;--miss:#9A958C}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:980px;margin:0 auto;padding:16px 18px 50px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.mark{display:flex;align-items:center;gap:8px;font-weight:800;font-style:italic;font-size:20px}
+.slash{display:inline-block;width:8px;height:22px;background:var(--accent);transform:skewX(-20deg)}
+.steps{display:flex;gap:4px;flex-wrap:wrap;font-size:12px}
+.steps span{padding:3px 8px;border-radius:6px;border:1px solid var(--line);color:var(--muted)}
+.steps span.on{background:var(--accent);border-color:var(--accent);color:#000;font-weight:800}
+h1{font:400 40px/1.05 var(--serif);margin:10px 0 4px}
+.sub{color:var(--muted);margin:0 0 16px}
+.btn{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 16px;font-weight:800;min-height:48px}
+.btn.p{background:var(--accent);border-color:#B43200;color:#000}
+.btn:disabled{opacity:.45;cursor:default}
+kbd{font:800 11px/1 system-ui;border:1.5px solid currentColor;border-radius:5px;padding:2px 5px;margin-left:8px;opacity:.8}
+/* samples */
+.samples{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.sample{all:unset;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.sample:hover{border-color:var(--accent)}
+.sample b{font-size:17px}
+.sample small{color:var(--muted)}
+.tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:var(--muted);align-self:flex-start}
+/* deck */
+.deckhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.counter{font-weight:800}
+.counter b{color:var(--accent)}
+.deck{position:relative;height:360px;margin:6px 0 14px}
+.card{position:absolute;left:50%;top:0;width:min(640px,94%);transform-origin:50% 900px;border-radius:24px;border:1px solid var(--line);background:linear-gradient(170deg,var(--well),var(--card) 55%);padding:20px 22px;box-shadow:0 20px 50px rgba(0,0,0,.35);transition:transform .45s cubic-bezier(.2,.9,.3,1),opacity .35s,filter .35s}
+.chead{display:flex;gap:12px;align-items:center}
+.logo{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;color:#fff;font:400 24px/1 var(--serif);flex:none}
+.chead b{display:block}
+.chead small{color:var(--muted)}
+.ctitle{font:400 32px/1.08 var(--serif);margin:10px 0 8px}
+.match{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.ring{--p:80;width:62px;height:62px;border-radius:50%;background:conic-gradient(var(--ok) calc(var(--p)*1%),var(--line) 0);display:grid;place-items:center;flex:none}
+.ring i{width:48px;height:48px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:15px}
+.why{display:flex;flex-direction:column;gap:5px;min-width:0}
+.why .w{font-size:13.5px}
+.why .w b{color:var(--ok)}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chips span{font-size:12px;font-weight:700;border-radius:7px;padding:2px 8px;border:1px solid var(--ok);color:var(--ok)}
+.chips span.m{border-color:var(--miss);color:var(--miss)}
+.facts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;font-size:12.5px}
+.facts span{border:1px solid var(--line);border-radius:7px;padding:2px 8px;color:var(--muted)}
+.drafted{position:absolute;right:16px;top:16px;background:var(--accent);color:#000;font-weight:800;font-size:12px;border-radius:7px;padding:3px 8px}
+.acts{display:grid;grid-template-columns:auto 1fr 1fr 1fr auto;gap:10px;align-items:center}
+@media (max-width:620px){.acts{grid-template-columns:1fr 1fr 1fr}.acts .nav{display:none}.deck{height:400px}.ctitle{font-size:26px}}
+.caption{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:12px 0;font-size:14.5px}
+.caption b{color:var(--accent)}
+/* draft house replay */
+.demo{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:var(--well);border:1px solid var(--line);border-radius:6px;padding:2px 8px;color:var(--muted)}
+.runs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.runs{grid-template-columns:1fr}}
+.run{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.run h3{margin:0;font:400 22px/1.1 var(--serif)}
+.st{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:start;font-size:14px;color:var(--muted)}
+.st i{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);margin-top:3px}
+.st.on{color:var(--ink)} .st.on i{border-color:var(--accent);background:radial-gradient(var(--accent) 45%,transparent 50%)}
+.st.done{color:var(--ink)} .st.done i{border-color:var(--ok);background:var(--ok)}
+.changed{font-size:13px;border-left:3px solid var(--ok);padding:4px 10px;background:var(--well);border-radius:0 8px 8px 0}
+.changed s{color:var(--miss)}
+.form{display:grid;gap:6px;font-size:13px}
+.form div{display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:center}
+.form em{font-style:normal;background:var(--well);border:1px solid var(--line);border-radius:6px;padding:3px 8px;min-height:26px;color:var(--ink)}
+.consent{display:flex;gap:8px;align-items:center;font-size:13.5px;border:1.5px dashed var(--accent);border-radius:8px;padding:8px 10px}
+.consent button{all:unset;cursor:pointer;width:20px;height:20px;border-radius:5px;border:2px solid var(--accent);display:grid;place-items:center;font-weight:800}
+.consent button.on{background:var(--accent);color:#000}
+/* table */
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:10px;flex-wrap:wrap}
+.row b{font-size:16px}
+.sent{color:var(--ok);font-weight:800;font-size:13px}
+.mail{font-size:13px;color:var(--muted)}
+/* explore */
+.locked{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.pop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:50}
+.pop.on{display:grid}
+.pop .box{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;max-width:360px;text-align:center}
+.note{font-size:12.5px;color:var(--muted);margin-top:22px;border-top:1px dashed var(--line);padding-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><span class="mark"><span class="slash"></span>draft</span><div class="steps" id="steps"></div></div>
+  <div id="view"></div>
+  <p class="note">Sketch of the trial for the agent to build. Companies and numbers are illustrative; the build uses real postings from the board for each sample, the real ATS reading, and real tailored résumés generated in advance. The run in Draft House is a replay and says so.</p>
+</div>
+<div class="pop" id="pop" role="dialog" aria-label="Coming soon"><div class="box"><h3 style="margin:0 0 6px">Coming soon</h3><p style="margin:0 0 14px;color:var(--muted)">draft is opening soon. We'll email you at <b>you@example.com</b> when your account is ready.</p><button class="btn p" id="popok">OK</button></div></div>
+<script>
+(function () {
+  var STEPS = ["Pick a résumé", "Choose 2 jobs", "Watch it apply", "Your tracker", "Survey", "Explore"];
+  var SAMPLES = [["A", "New-grad software engineer", "Python, Java, React, SQL · 2 internships"], ["B", "Mid-level ML / data engineer", "PyTorch, Spark, AWS · 4 years"], ["C", "Mechanical engineer", "SolidWorks, FEA, GD&T · 5 years"], ["D", "Early-career electrical engineer", "PCB design, MATLAB, embedded C"], ["E", "Business / financial analyst", "Excel, SQL, Tableau, modelling"], ["F", "Project / operations manager", "Agile, Jira, budgeting, vendors"]];
+  var COS = [["Northwind", "#2B59C3"], ["Halcyon", "#7A2E8E"], ["Quanta", "#1F7A4D"], ["Lumen", "#C2410C"], ["Vireo", "#0E7490"], ["Basalt", "#374151"], ["Kestrel", "#9D174D"], ["Orchard", "#4D7C0F"], ["Tessel", "#5B21B6"], ["Ferro", "#B45309"]];
+  var TITLES = ["Software Engineer I", "Backend Engineer, New Grad", "Full Stack Engineer", "Software Engineer, Platform", "Associate Software Engineer", "Frontend Engineer", "Software Engineer, Data", "Junior Software Developer", "Software Engineer, Payments", "Software Engineer, Tools"];
+  var SKILLS = ["Python", "Java", "React", "SQL", "REST APIs", "Git", "Docker", "AWS", "TypeScript", "Kubernetes", "Go", "GraphQL"];
+  var JOBS = TITLES.map(function (t, i) { var sc = 92 - i * 4 - (i % 3); var tot = 18 + (i % 5) * 2, m = Math.round(tot * sc / 100);
+    return { co: COS[i][0], col: COS[i][1], t: t, loc: ["Boston, MA", "Remote (US)", "New York, NY", "Seattle, WA", "Austin, TX"][i % 5], pay: ["$110k–$140k", "$120k–$150k", "", "$130k–$165k", "$100k–$125k"][i % 5], sc: sc, m: m, tot: tot,
+      hit: SKILLS.slice(i % 4, i % 4 + 4), miss: SKILLS.slice(8 + (i % 3), 10 + (i % 3)), lvl: "Entry level, matches yours", fresh: (i % 4 + 1) + "d ago, first posting", sp: ["Sponsors often", "Sponsors sometimes", "No record", "Sponsors often"][i % 4] }; });
+  var S = { step: 0, sample: null, idx: 0, drafted: [], consent: {}, explore: false };
+  function steps() { document.getElementById("steps").innerHTML = STEPS.map(function (s, i) { return '<span class="' + (i === S.step ? "on" : "") + '">' + (i + 1) + ". " + s + "</span>"; }).join(""); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (m) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]; }); }
+  var V = document.getElementById("view");
+
+  function pickSample() {
+    S.step = 0; steps();
+    V.innerHTML = '<h1>Pick a résumé to try draft with</h1><p class="sub">Each is a sample person. We\'ll find jobs for them, then you choose 2 and watch draft apply.</p><div class="samples">' +
+      SAMPLES.map(function (s) { return '<button class="sample" data-s="' + s[0] + '"><span class="tag">Sample</span><b>' + s[1] + "</b><small>" + s[2] + "</small></button>"; }).join("") + "</div>";
+    V.querySelectorAll("[data-s]").forEach(function (b) { b.addEventListener("click", function () { S.sample = b.getAttribute("data-s"); deck(true); }); });
+  }
+
+  function cardHtml(j, i) {
+    return '<div class="card" data-i="' + i + '">' + (S.drafted.indexOf(i) >= 0 ? '<span class="drafted">Drafted</span>' : "") +
+      '<div class="chead"><span class="logo" style="background:' + j.col + '">' + j.co[0] + "</span><div><b>" + j.co + "</b><small>" + j.loc + (j.pay ? " · " + j.pay : "") + "</small></div></div>" +
+      '<div class="ctitle">' + esc(j.t) + "</div>" +
+      '<div class="match"><span class="ring" style="--p:' + j.sc + '"><i>' + j.sc + '%</i></span><div class="why"><span class="w"><b>' + j.m + " of " + j.tot + "</b> skills this job asks for are on the résumé</span>" +
+      '<span class="chips">' + j.hit.map(function (h) { return "<span>✓ " + h + "</span>"; }).join("") + j.miss.map(function (h) { return '<span class="m">' + h + "</span>"; }).join("") + "</span></div></div>" +
+      '<div class="facts"><span>' + j.lvl + "</span><span>" + j.fresh + "</span><span>" + j.sp + "</span></div></div>";
+  }
+  function deck(first) {
+    S.step = 1; steps();
+    V.innerHTML = '<div class="deckhead"><div><h1 style="margin:0">10 jobs for this résumé</h1><span class="sub">Best match first. The ring is how well the résumé fits; the chips show which skills match and which are missing.</span></div><span class="counter" id="cnt"></span></div>' +
+      '<div class="caption" id="cap"></div><div class="deck" id="deck">' + JOBS.map(cardHtml).join("") + "</div>" +
+      '<div class="acts"><button class="btn nav" id="prev" aria-label="Previous">‹</button><button class="btn" id="pass">Pass<kbd>X</kbd></button><button class="btn" id="save">Save<kbd>S</kbd></button><button class="btn p" id="draft">Draft<kbd>D</kbd></button><button class="btn nav" id="next" aria-label="Next">›</button></div>';
+    var dk = document.getElementById("deck"), reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function lay() {
+      dk.querySelectorAll(".card").forEach(function (c) { var i = +c.getAttribute("data-i"), o = i - S.idx, a = Math.abs(o);
+        c.style.transform = "translateX(-50%) rotate(" + (o * 5) + "deg) translateY(" + (a ? 10 : 0) + "px)"; c.style.opacity = a > 3 ? 0 : (a ? .55 - a * .1 : 1); c.style.filter = a ? "blur(" + a + "px)" : "none"; c.style.zIndex = 50 - a; c.style.pointerEvents = a ? "none" : ""; });
+      document.getElementById("cnt").innerHTML = "Card " + (S.idx + 1) + " of 10 · Drafted <b>" + S.drafted.length + "</b> of 2";
+      document.getElementById("draft").disabled = S.drafted.indexOf(S.idx) >= 0;
+    }
+    function cap(t) { document.getElementById("cap").innerHTML = t; }
+    function go(d) { S.idx = Math.max(0, Math.min(9, S.idx + d)); lay(); }
+    document.getElementById("prev").addEventListener("click", function () { go(-1); });
+    document.getElementById("next").addEventListener("click", function () { go(1); });
+    document.getElementById("pass").addEventListener("click", function () { go(1); });
+    document.getElementById("save").addEventListener("click", function () { go(1); });
+    document.getElementById("draft").addEventListener("click", function () { if (S.drafted.indexOf(S.idx) < 0) S.drafted.push(S.idx); dk.innerHTML = JOBS.map(cardHtml).join(""); lay(); if (S.drafted.length >= 2) { cap("<b>Two drafted.</b> Now watch draft apply to them."); setTimeout(house, 1100); } else go(1); });
+    dk.addEventListener("wheel", function (e) { e.preventDefault(); go(e.deltaY > 0 ? 1 : -1); }, { passive: false });
+    document.onkeydown = function (e) { if (S.step !== 1) return; if (e.key === "ArrowRight" || e.key.toLowerCase() === "x" || e.key.toLowerCase() === "s") go(1); else if (e.key === "ArrowLeft") go(-1); else if (e.key.toLowerCase() === "d") document.getElementById("draft").click(); };
+    if (first && !reduce) { S.idx = 9; lay(); cap("Dealing your 10 matches…"); var t = setInterval(function () { S.idx--; lay(); if (S.idx <= 0) { clearInterval(t); cap("<b>Look through your 10 picks</b> with the arrows or the scroll wheel. Press <b>Draft</b> on the 2 you'd send."); } }, 500); }
+    else { S.idx = 0; lay(); cap("<b>Look through your 10 picks</b> with the arrows or the scroll wheel. Press <b>Draft</b> on the 2 you'd send."); }
+  }
+
+  function house() {
+    S.step = 2; steps();
+    var picks = S.drafted.map(function (i) { return JOBS[i]; });
+    V.innerHTML = '<h1>Watch draft apply <span class="demo">Demonstration</span></h1><p class="sub">For each job, draft reads the posting, tailors the résumé, and fills out the application. You only tick the agreement yourself.</p><div class="runs">' +
+      picks.map(function (j, k) { return '<div class="run" id="run' + k + '"><div class="chead"><span class="logo" style="background:' + j.col + '">' + j.co[0] + '</span><div><b>' + j.co + "</b><small>" + esc(j.t) + "</small></div></div>" +
+        ["Reading the job", "Tailoring the résumé", "Filling out the application", "Your agreement", "Sent", "Confirmation received"].map(function (s, i) { return '<div class="st" data-k="' + k + '" data-i="' + i + '"><i></i><span>' + s + '<div class="slot"></div></span></div>'; }).join("") + "</div>"; }).join("") + "</div>";
+    picks.forEach(function (j, k) { play(j, k); });
+  }
+  function play(j, k) {
+    var i = 0, el = function (n) { return V.querySelector('.st[data-k="' + k + '"][data-i="' + n + '"]'); };
+    function mark(n, cls) { var e = el(n); if (e) e.className = "st " + cls; }
+    function slot(n, h) { var e = el(n); if (e) e.querySelector(".slot").innerHTML = h; }
+    function step() {
+      if (i > 0) mark(i - 1, "done");
+      if (i === 6) { if (k === 0) setTimeout(table, 1400); return; }
+      mark(i, "on");
+      if (i === 1) slot(1, '<div class="changed">' + j.hit.slice(0, 2).join(" and ") + ' now lead the Skills line.<br><s>Worked on web features</s> → Built REST APIs in ' + j.hit[0] + ' for a feature used by 3 teams<br>Nothing added that isn\'t on the résumé.</div>');
+      if (i === 2) { slot(2, '<div class="form" id="f' + k + '"></div>'); var fields = [["Name", "Sample Person"], ["Email", "sample@example.com"], ["Résumé", "tailored-" + j.co.toLowerCase() + ".pdf"], ["Work authorisation", "Authorised, no sponsorship"], ["Years with " + j.hit[0], "2 (from the résumé)"], ["Why " + j.co + "?", "Written from the résumé and the job"]], f = 0, fe = document.getElementById("f" + k);
+        var ft = setInterval(function () { if (f >= fields.length) { clearInterval(ft); i++; step(); return; } fe.insertAdjacentHTML("beforeend", "<div><span>" + fields[f][0] + "</span><em>" + fields[f][1] + "</em></div>"); f++; }, 450); return; }
+      if (i === 3) { slot(3, '<div class="consent"><button id="c' + k + '" aria-label="Tick the agreement">' + "" + '</button><span>I agree to ' + j.co + "'s privacy policy. <b>draft never ticks this for you.</b></span></div>"); var c = document.getElementById("c" + k); c.addEventListener("click", function () { c.classList.add("on"); c.textContent = "✓"; i++; setTimeout(step, 400); }); return; }
+      if (i === 5) slot(5, '<span class="mail">"Thanks for applying to ' + j.co + '" arrived in your inbox.</span>');
+      i++; setTimeout(step, i === 1 ? 900 : 1200);
+    }
+    setTimeout(step, 300 + k * 600);
+  }
+
+  function table() {
+    if (S.step >= 3) return;
+    S.step = 3; steps();
+    V.innerHTML = '<h1>Your application tracker</h1><p class="sub">Every application lands here, with replies and interview invites as they come in.</p>' +
+      S.drafted.map(function (i) { var j = JOBS[i]; return '<div class="row"><div><b>' + j.co + "</b><div class=\"mail\">" + esc(j.t) + '</div></div><div style="text-align:right"><div class="sent">Sent · today</div><div class="mail">Confirmation received</div></div></div>'; }).join("") +
+      '<div class="caption">Next: two minutes of questions. Your answers decide what we build next.</div>';
+    setTimeout(survey, 4000);
+  }
+  function survey() {
+    S.step = 4; steps();
+    V.innerHTML = '<h1>Two minutes of questions</h1><p class="sub">In the build, the survey (trial-survey.html, FINAL v2) opens here automatically.</p><button class="btn p" id="done">Pretend I sent my answers</button>';
+    document.getElementById("done").addEventListener("click", thanks);
+  }
+  function thanks() {
+    S.step = 5; steps();
+    V.innerHTML = '<h1>Thank you</h1><p class="sub">That genuinely helps. draft is opening soon.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn p" id="ex">Explore draft</button><button class="btn" id="bye">Let me know when it\'s ready</button></div>';
+    document.getElementById("ex").addEventListener("click", explore);
+    document.getElementById("bye").addEventListener("click", function () { V.innerHTML = '<h1>We\'ll be in touch</h1><p class="sub">We\'ll email you when your account is ready.</p>'; });
+  }
+  function explore() {
+    V.innerHTML = '<h1>Explore draft</h1><p class="sub">Look around everything. Anything that would act for you shows "Coming soon" for now.</p><div class="locked">' +
+      ["Draft a job", "Turn on Apply for me", "Upload my résumé", "Change auto settings", "Save a job", "Approve and send", "Add a skill to my profile", "Start a course piece"].map(function (a) { return '<button class="btn lock">' + a + "</button>"; }).join("") + "</div>";
+    V.querySelectorAll(".lock").forEach(function (b) { b.addEventListener("click", function () { document.getElementById("pop").classList.add("on"); }); });
+  }
+  document.getElementById("popok").addEventListener("click", function () { document.getElementById("pop").classList.remove("on"); });
+  pickSample(); steps();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,532 @@
+{
+ "version": 1,
+ "note": "Drafted by the chat assistant 11-05 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'software', stage 'foundations': 8 five-slide decks. 'questions' are bank item ids shown on the deck's last slide; 'newQuestions' are items that don't exist yet and enter the bank as drafts. Nothing is live until approved.",
+ "decks": [
+  {
+   "id": "sw-f-01",
+   "pathway": "software",
+   "stage": "foundations",
+   "title": "How a program runs",
+   "skills": [
+    "memory",
+    "processes",
+    "threads"
+   ],
+   "pieces": [
+    "o1",
+    "o3"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "A program in motion",
+     "points": [
+      "A program is instructions plus data. When you run it, the operating system creates a process for it: its own memory, its open files, and at least one thread carrying out the instructions.",
+      "The rest of this deck is about how those three pieces behave."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Stack, heap, process, thread",
+     "points": [
+      "The stack holds each function call's local variables. It's fast and freed automatically when the call returns, but it's small.",
+      "The heap holds data that outlives a single call, like objects you create and keep. It's freed by you, or by a garbage collector.",
+      "A process has its own memory, so one crashing process can't corrupt another.",
+      "A thread is one path of execution inside a process. Threads in the same process share its memory."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Sharing is cheap, and risky",
+     "points": [
+      "Threads share memory, so they pass data instantly, but two threads changing the same data at once can corrupt it. That's a race condition.",
+      "Processes are isolated, so they're safer, but talking between them (pipes, sockets, queues) costs more.",
+      "Garbage collection prevents many memory bugs but adds pauses; managing memory yourself gives control but risks leaks and crashes."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Web servers either run several processes (often one per CPU core), each with a pool of threads, or one process with an event loop that never waits on slow input and output.",
+      "A stack overflow means calls nested too deeply. An out-of-memory error usually means the heap kept growing, often from a cache or list that never shrinks."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "sw-f-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "sw-f-02",
+   "pathway": "software",
+   "stage": "foundations",
+   "title": "Data structures",
+   "skills": [
+    "data-structures"
+   ],
+   "pieces": [
+    "d3"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Choosing how to hold your data",
+     "points": [
+      "A data structure arranges data so the operations you need most are fast. The same data can be held many ways; the right one depends on what you do with it."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "The ones you'll use most",
+     "points": [
+      "Arrays keep items side by side: instant access by position, slow to insert in the middle.",
+      "Linked lists point from item to item: cheap inserts, slow to reach the n-th item.",
+      "Hash maps find a value by its key in constant time on average.",
+      "Stacks are last in, first out; queues are first in, first out.",
+      "Trees keep data ordered; heaps keep the top item ready to take."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Fast here, slower there",
+     "points": [
+      "Every structure makes some operations fast by making others slower, or by using more memory.",
+      "Hash maps are fast for lookups but don't keep order; balanced trees keep order at O(log n) per operation.",
+      "Arrays are compact and friendly to the CPU's cache; pointer-based structures scatter data across memory."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "Pick by the operations",
+     "points": [
+      "List what you'll do most (look up by id, keep things sorted, take the smallest, check membership) and choose the structure that makes those cheap.",
+      "Most everyday code uses arrays and hash maps. The others solve specific problems: a heap for scheduling, a trie for prefix search."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "Two questions",
+     "points": [
+      "Match the structures to their jobs, then a quick scenario."
+     ]
+    }
+   ],
+   "questions": [
+    "prac-m-02",
+    "aud-swe-03"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "sw-f-03",
+   "pathway": "software",
+   "stage": "foundations",
+   "title": "Algorithms and complexity",
+   "skills": [
+    "algorithms",
+    "complexity"
+   ],
+   "pieces": [
+    "g1"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "How work grows with input",
+     "points": [
+      "An algorithm is a step-by-step method. Its complexity describes how the time or memory it needs grows as the input grows, written in Big-O notation."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "The common growth rates",
+     "points": [
+      "O(1) is constant, like a hash-map lookup.",
+      "O(log n) halves the problem each step, like binary search.",
+      "O(n) looks at each item once.",
+      "O(n log n) is what efficient sorting costs.",
+      "O(n²) compares every pair: fine for hundreds of items, hopeless for millions."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Memory for time",
+     "points": [
+      "You can often trade memory for time: a hash set of the items you've seen turns an O(n²) pair check into O(n), at the cost of storing the set.",
+      "Big-O ignores constant factors, so on small inputs a 'slower' algorithm can be faster in practice."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "Estimate before you build",
+     "points": [
+      "A million items compared pairwise is around a trillion steps: minutes to hours. A million hash lookups take milliseconds.",
+      "Many interview problems come down to spotting the pattern that cuts the complexity: two pointers, a sliding window, hashing, binary search, or a graph search."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "A classic case of trading memory for time."
+     ]
+    }
+   ],
+   "questions": [
+    "aud-swe-03"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "sw-f-04",
+   "pathway": "software",
+   "stage": "foundations",
+   "title": "Git",
+   "skills": [
+    "git",
+    "version-control"
+   ],
+   "pieces": [
+    "c5"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "History you can trust",
+     "points": [
+      "Git records a project as a series of snapshots called commits. Branches let you work on changes in parallel without disturbing the main line."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Commits, branches, merges, remotes",
+     "points": [
+      "A commit is a snapshot, a message, and a pointer to the commit before it.",
+      "A branch is just a movable name that points at a commit.",
+      "Merging joins two lines of work; rebasing replays your commits on top of another branch.",
+      "A remote, such as GitHub, is a shared copy: you push your commits and pull everyone else's."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Merge or rebase",
+     "points": [
+      "Merging keeps the true history but can be noisy. Rebasing gives a clean line but rewrites commits, so never rebase work other people have already pulled.",
+      "Small, frequent commits are easy to review and to undo; large ones hide mistakes."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "The everyday loop",
+     "points": [
+      "Branch from main, commit your change with its tests, open a pull request, address the review, and merge when CI passes.",
+      "To undo safely on a shared branch, use git revert, which adds a commit that undoes an old one. Keep reset, which rewrites history, for your own local work."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "Two questions",
+     "points": [
+      "A commit in the wrong place, then the review loop in order."
+     ]
+    }
+   ],
+   "questions": [
+    "aud-swe-02",
+    "prac-o-05"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "sw-f-05",
+   "pathway": "software",
+   "stage": "foundations",
+   "title": "Testing",
+   "skills": [
+    "testing"
+   ],
+   "pieces": [
+    "c3"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Proof that it still works",
+     "points": [
+      "Tests are code that checks your code. They catch mistakes early and let you change things without fear."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "The kinds of tests",
+     "points": [
+      "Unit tests check one small piece on its own, quickly.",
+      "Integration tests check that pieces work together, such as your code and a real database.",
+      "End-to-end tests drive the whole system the way a user would.",
+      "The testing pyramid: many unit tests, fewer integration tests, a handful of end-to-end tests."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Realistic or fast",
+     "points": [
+      "End-to-end tests catch the most realistic problems but are slow and brittle; unit tests are fast but can miss how the pieces fit together.",
+      "Mocks make tests fast and focused, but they can drift away from how the real dependency behaves."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "Habits that pay off",
+     "points": [
+      "Write the failing test first, then make it pass.",
+      "Test behaviour, not implementation details, so refactoring doesn't break the tests.",
+      "Keep tests independent (each sets up its own data) and deterministic (control time and randomness), or they'll turn flaky."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "Two questions",
+     "points": [
+      "A flaky test, then a suite that's too slow."
+     ]
+    }
+   ],
+   "questions": [
+    "aud-swe-05",
+    "aud-qa-01"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "sw-f-06",
+   "pathway": "software",
+   "stage": "foundations",
+   "title": "Debugging",
+   "skills": [
+    "debugging"
+   ],
+   "pieces": [
+    "c3"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "From symptom to cause",
+     "points": [
+      "Debugging is a method for getting from a symptom to its cause, then proving the fix."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Four steps",
+     "points": [
+      "Reproduce it reliably, ideally as a failing test.",
+      "Isolate it: shrink the input or the code until the bug still appears.",
+      "Test one hypothesis at a time.",
+      "Verify the fix, and keep the test so the bug can't come back."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Quick or thorough",
+     "points": [
+      "Print statements are quick but scattered; a debugger shows everything but takes setting up.",
+      "Guessing a fix under pressure feels fast and often makes things worse."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "Where to look first",
+     "points": [
+      "Read the error message and the stack trace first; they usually point to the line.",
+      "git bisect finds the commit that introduced a bug by binary-searching through history.",
+      "In production, logs carrying request ids, plus metrics, tell you where to look before you touch any code."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "Two questions",
+     "points": [
+      "A bug you can reproduce, then a release that went wrong."
+     ]
+    }
+   ],
+   "questions": [
+    "aud-swe-01",
+    "aud-swe-06"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "sw-f-07",
+   "pathway": "software",
+   "stage": "foundations",
+   "title": "The web: DNS, TCP, TLS and HTTP",
+   "skills": [
+    "networking",
+    "http"
+   ],
+   "pieces": [
+    "w1",
+    "w2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "What happens when you open a page",
+     "points": [
+      "Opening a page chains four protocols: DNS finds the server, TCP connects to it, TLS encrypts the connection, and HTTP carries the request and the response."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "One job each",
+     "points": [
+      "DNS turns a name like example.com into an IP address, with caching at every step.",
+      "TCP gives a reliable, ordered stream of bytes between two machines.",
+      "TLS proves the server's identity with a certificate, then encrypts everything after.",
+      "HTTP is the request (method, path, headers, body) and the response (status code, headers, body)."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Round trips cost time",
+     "points": [
+      "Every new connection costs round trips for TCP and TLS, so reusing connections and HTTP/2's multiplexing make pages faster.",
+      "Caching in the browser, a CDN or the server saves round trips, but risks serving stale content."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "Reading the signs",
+     "points": [
+      "Status codes tell the story: 2xx success, 3xx redirect, 4xx the client's mistake, 5xx the server's.",
+      "When a site is slow, the browser's developer tools show where the time goes: looking up the name, connecting, waiting for the server, or downloading."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "Two questions",
+     "points": [
+      "The steps in order, then the status codes."
+     ]
+    }
+   ],
+   "questions": [
+    "prac-o-01",
+    "prac-m-01"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "sw-f-08",
+   "pathway": "software",
+   "stage": "foundations",
+   "title": "SQL basics",
+   "skills": [
+    "sql",
+    "databases"
+   ],
+   "pieces": [
+    "b1"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Asking a database questions",
+     "points": [
+      "SQL is the language for storing and querying data in tables. You describe what you want; the database works out how to get it."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "The pieces",
+     "points": [
+      "Tables have rows and columns, and a primary key identifies each row.",
+      "SELECT … FROM … WHERE filters rows; ORDER BY sorts them.",
+      "JOIN combines tables on a matching key; GROUP BY with COUNT or SUM summarises them.",
+      "An index is a lookup structure that makes filtering and joining fast."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Joins or copies, reads or writes",
+     "points": [
+      "Normalised tables avoid duplicated data but need joins; denormalised ones read faster but must be kept in sync.",
+      "Indexes speed up reads, slow down writes, and take space."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "Habits that save you",
+     "points": [
+      "Know each table's grain (what one row means) before you join, or rows multiply.",
+      "Use parameterised queries, never string concatenation, to stay safe from SQL injection.",
+      "When a query is slow, read its plan with EXPLAIN before adding hardware."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "Three questions",
+     "points": [
+      "Joins, a total that came out too high, and an injection."
+     ]
+    }
+   ],
+   "questions": [
+    "prac-m-03",
+    "aud-ae-02",
+    "aud-sec-01"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "sw-f-01-q1",
+   "type": "scenario",
+   "role": "Software Engineer",
+   "level": "entry",
+   "skills": [
+    "threads",
+    "concurrency"
+   ],
+   "pieces": [
+    "o3"
+   ],
+   "stem": "Two threads each add 1 to a shared counter 1,000 times. The final value is sometimes below 2,000. Why?",
+   "choices": [
+    "The CPU is too slow to keep up with two threads",
+    "Threads always run one after the other, so it should be exactly 2,000",
+    "Each increment is a read, an add and a write; when both threads read the same value before either writes, one update is lost",
+    "Integers overflow at 2,000"
+   ],
+   "correct": 2,
+   "why": [
+    "Speed doesn't lose updates; the order of the steps does.",
+    "Threads can interleave at any point unless you coordinate them.",
+    "That's a race condition. A lock or an atomic increment makes the three steps happen as one.",
+    "Integers can hold far larger numbers; this isn't overflow."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}

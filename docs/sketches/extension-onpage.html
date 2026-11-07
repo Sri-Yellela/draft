@@ -120,13 +120,13 @@ let S={theme:'charcoal-dark',view:'panel',collapsed:false,open:{need:true,chk:tr
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const SITE=`<div class="site"><div class="steps"><span>My Information</span><span>My Experience</span><span>Application Questions</span><span>Voluntary Disclosures</span><span>Review</span></div><div class="form"><h3>My Information</h3>
  <label>Country<em>*</em></label><div class="f">United States of America</div>
- <label>First Name<em>*</em></label><div class="f">Sri</div><label>Last Name<em>*</em></label><div class="f">Yellela</div>
+ <label>First Name<em>*</em></label><div class="f">Jordan</div><label>Last Name<em>*</em></label><div class="f">Rivera</div>
  <label>Address Line 1<em>*</em></label><div class="f e"></div><label>City<em>*</em></label><div class="f">Boston</div>
  <label>State<em>*</em></label><div class="f e">Select One</div><label>Postal Code<em>*</em></label><div class="f">02125</div></div>`;
 function rowsBefore(){return `<div class="ov"><div class="ovh"><span class="lg"><b>/</b><span>draft</span></span></div><div class="ovt">Review before you submit</div>
  <div style="padding:0 14px 8px;color:var(--muted);font-size:11.5px">4 field(s) filled. Draft never submits for you.</div><div class="sc">
  <div class="gh" style="cursor:default">Worth checking</div>
- ${[['First Name*','Sri'],['Last Name*','Yellela'],['Postal Code*','02125']].map(r=>`<div class="rw chk"><div class="l">${r[0]} <span class="src g">guessed field</span></div><div class="v">${r[1]}</div><div class="acts"><button class="mb">edit</button><button class="mb">acknowledge</button></div></div>`).join('')}
+ ${[['First Name*','Jordan'],['Last Name*','Rivera'],['Postal Code*','02125']].map(r=>`<div class="rw chk"><div class="l">${r[0]} <span class="src g">guessed field</span></div><div class="v">${r[1]}</div><div class="acts"><button class="mb">edit</button><button class="mb">acknowledge</button></div></div>`).join('')}
  <div style="padding:6px 12px;color:var(--faint)">▸ 1 more, resolved exactly</div></div>
  <div class="ft"><div class="st no">Not ready — 1 guess(es) still to acknowledge.</div>Submit the form yourself when you are happy with it.<div style="margin-top:8px"><button class="mb">I submitted it</button></div></div></div>`;}
 function panelAfter(){
@@ -135,7 +135,7 @@ function panelAfter(){
  if(S.typed.addr) ok.push(['Address Line 1','"'+esc(S.typed.addr)+'"','t','you typed']); else need.push(['addr','Address Line 1','nothing in your profile yet']);
  ok.push(['State','Massachusetts','p','your profile · dropdown']);
  if(S.typed.phone) ok.push(['Phone','"'+esc(S.typed.phone)+'"','t','you typed']); else need.push(['phone','Phone number','nothing in your profile yet']);
- [['fn','First Name','Sri'],['ln','Last Name','Yellela'],['pc','Postal Code','02125']].forEach(([k,l,v])=>{ if(S.ack[k]) ok.push([l,v,'t','you acknowledged']); else chk.push([k,l,v]); });
+ [['fn','First Name','Jordan'],['ln','Last Name','Rivera'],['pc','Postal Code','02125']].forEach(([k,l,v])=>{ if(S.ack[k]) ok.push([l,v,'t','you acknowledged']); else chk.push([k,l,v]); });
  ok.push(['Country','United States of America','p','your profile · dropdown'],['City','Boston','p','your profile']);
  const total=need.length+chk.length+ok.length, filled=ok.length+chk.length;
  const ready=need.length===0&&chk.length===0&&filled>0;
@@ -156,8 +156,8 @@ function panelView(){
  <div data-theme="${S.theme}" style="position:relative">${SITE}${panelAfter()}</div></div>
  <div class="why"><b>What changed:</b><ul><li><b>Collapse</b> to a slim bar that still says what needs you; <b>Close</b> and Esc.</li><li><b>Every field is listed</b> — Needs you · Check · Filled — with its <b>source</b> (profile · saved · you typed · matched loosely), so nothing is silent.</li><li><b>Type or acknowledge once, it is remembered:</b> a typed address becomes a saved answer, shown with "remembered for next time" and offered in the Copy sheet and the next autofill. <b>Eligibility and voluntary-disclosure answers are saved only on an explicit tick each time.</b></li><li><b>"Ready" means ready:</b> nothing needs you <b>and</b> at least one field was filled; with 0 filled it says so.</li><li><b>Required labels like "First Name*"</b> match exactly — the asterisk is ignored — so they are no longer "guessed".</li></ul></div>`;}
 function popupView(){
- const first=`<div class="pop" data-theme="${S.theme}"><span class="lg" style="font:800 italic 20px var(--logo)"><b style="color:var(--accent)">/</b><span style="color:var(--accentInk)">draft</span></span><div class="id">Signed in as <b>sriyellela</b></div><div class="zero">Nothing on this page is read until you press it.<br>No answers prepared yet.</div><div class="prep"><button class="bx p">Read this page</button></div></div>`;
- const remembered=`<div class="pop" data-theme="${S.theme}"><span class="lg" style="font:800 italic 20px var(--logo)"><b style="color:var(--accent)">/</b><span style="color:var(--accentInk)">draft</span></span><div class="id">Signed in as <b>sriyellela</b></div>
+ const first=`<div class="pop" data-theme="${S.theme}"><span class="lg" style="font:800 italic 20px var(--logo)"><b style="color:var(--accent)">/</b><span style="color:var(--accentInk)">draft</span></span><div class="id">Signed in as <b>jordanrivera</b></div><div class="zero">Nothing on this page is read until you press it.<br>No answers prepared yet.</div><div class="prep"><button class="bx p">Read this page</button></div></div>`;
+ const remembered=`<div class="pop" data-theme="${S.theme}"><span class="lg" style="font:800 italic 20px var(--logo)"><b style="color:var(--accent)">/</b><span style="color:var(--accentInk)">draft</span></span><div class="id">Signed in as <b>jordanrivera</b></div>
   <div style="font:800 italic 13px var(--logo)">Software Engineer · Zoom</div><div class="tl"><div class="done">Captured<small>10:41 · on your board</small></div><div class="done">Page read<small>10:42 · My Information</small></div><div class="done">Answers prepared<small>10:42</small></div><div class="now">Filled — 14 of 18<small>2 need you</small></div><div>Reviewed</div><div>Submitted</div></div>
   <div class="prep"><button class="bx p">Open the panel</button><button class="bx">Copy sheet</button><button class="bx">Read again</button></div>
   <div class="ip"><h5>In progress</h5><div><span>Software Engineer · Zoom</span><b>14 of 18</b></div><div><span>Staff SDE · Zscaler</span><b>Prepared</b></div><div><span>Backend · Atria</span><b>Captured</b></div></div></div>`;
