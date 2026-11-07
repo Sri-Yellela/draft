@@ -27,6 +27,7 @@ import { OverviewPanel, YourSkillsSlot, YourRoutePanel, LearnStages, TodaysQuest
 import { panelFor, isPanelSlug, PANEL_LABEL, ATLAS_NAV, panelHref, courseIdOf } from "./atlasPanels.js";
 import { LibraryShelf, CoursePage } from "./LibraryPanel.jsx";
 import YourRun from "./YourRun.jsx";
+import TrackBoard from "./TrackBoard.jsx";
 import {
   KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
   WIKI_LICENCE, YOU_LABEL, YOU_MARK, LEVEL_READ_LABEL, shareText, stepTitle, stepEmptyLine, roleBoardParts, nodePanes, nodeHeadline,
@@ -401,9 +402,16 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
       {panelOnly && panel === "overview" && <OverviewPanel base={base} />}
       {panel === "your-map" && !familyKey && (
         <div className="atl-pan" data-atlas-panel-body="your-map">
-          <PanelHead eyebrow="Your map" title="Your skills, against the market"
-            lead="What you have, what sits next to it, and what your target asks for. Larger gaps open more roles." />
-          <YourMap base={base} parts={{ navigator: false, explore: false, families: true, recent: false }} />
+          {/* ⭐ D172 (4): the map as a track board first — from you to your goal; the market tree below, on demand. */}
+          {signedIn && <PanelHead eyebrow="Your map" title="A clear picture of where you are"
+            lead="From what you have to where you're going." />}
+          <TrackBoard base={base} signedIn={signedIn} />
+          <details className="atl-more" data-atlas-market-tree="" open={!signedIn}>
+            <summary className="atl__link">See the whole market around you</summary>
+            <PanelHead eyebrow="Your map" title="Your skills, against the market"
+              lead="What you have, what sits next to it, and what your target asks for. Larger gaps open more roles." />
+            <YourMap base={base} parts={{ navigator: false, explore: false, families: true, recent: false }} />
+          </details>
         </div>
       )}
       {panel === "your-skills" && <YourSkillsSlot signedIn={signedIn} base={base} />}

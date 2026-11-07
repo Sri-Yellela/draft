@@ -1,0 +1,36 @@
+/* ⭐ D172 (4) · the track board (atlas-redesign-sketch.html → Your map). Theme tokens only; dots are perfect circles (D60). */
+.trk-board { margin: 8px 0 20px; }
+.trk-board__svg { width: 100%; height: auto; display: block; }
+.trk-board__wash { fill: var(--c-surface-tint); }
+.trk-board__dot { fill: var(--c-border); }
+.trk-board__track { fill: none; stroke: var(--c-border-strong); stroke-width: 14; stroke-linecap: round; }
+.trk-board__track--walked { stroke: var(--c-accent); }
+.trk-board__you { fill: var(--c-surface); stroke: var(--c-accent); stroke-width: 2; }
+.trk-board__you-t { fill: var(--c-ink); font: 700 17px/1 var(--font-body); }
+.trk-stop__dot { fill: var(--c-surface); stroke: var(--c-border-strong); stroke-width: 4; }
+.trk-stop--done .trk-stop__dot { fill: var(--c-success); stroke: var(--c-success); }
+.trk-stop--next .trk-stop__dot { fill: var(--c-accent); stroke: var(--c-accent); }
+.trk-stop__tick { fill: none; stroke: var(--c-surface); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+.trk-stop__pulse { fill: var(--c-accent); opacity: 0.25; transform-box: fill-box; transform-origin: center; animation: trk-pulse 1.8s ease-in-out infinite; }
+.trk-stop__name { fill: var(--c-ink); font: 700 17px/1 var(--font-body); }
+.trk-stop__state { fill: var(--c-ink-muted); font: 500 14px/1 var(--font-body); }
+.trk-stop:focus-visible .trk-stop__dot, .trk-stop:hover .trk-stop__dot { stroke: var(--c-accent); }
+.trk-board__pole { stroke: var(--c-ink); stroke-width: 3; }
+.trk-board__flag { fill: var(--c-accent); }
+.trk-board__goal { fill: var(--c-ink); font: 700 19px/1 var(--font-display); }
+.trk-board__goal-n { fill: var(--c-ink-muted); font: 500 14px/1 var(--font-body); }
+.trk-board__list { display: none; margin: 0; padding-left: 20px; }
+.trk-board__list li { margin: 6px 0; }
+.trk-board__list li[data-station-state="done"] { color: var(--c-success); }
+.trk-board__foot { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: baseline; margin-top: 10px; }
+.trk-board__start { font-weight: 700; }
+@keyframes trk-pulse { 0%, 100% { transform: scale(0.8); opacity: 0.35; } 50% { transform: scale(1.15); opacity: 0.1; } }
+@media (prefers-reduced-motion: reduce) { .trk-stop__pulse { animation: none; } }
+@media (max-width: 640px) {
+  .trk-board__svg { display: none; }
+  .trk-board__list { display: block; }
+}
+
+/* D172 (4): the market tree under the track board, on demand. */
+.atl-more { margin-top: 18px; }
+.atl-more > summary { cursor: pointer; font-weight: 700; margin-bottom: 10px; }
