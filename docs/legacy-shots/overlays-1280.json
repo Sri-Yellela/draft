@@ -1,0 +1,28 @@
+[
+  {
+    "name": "tracker-review-all",
+    "note": "Tracker timeline → Review all (the Apply Runs Review modal)",
+    "fullScreenOverlay": 1,
+    "scrim": "rgba(0, 0, 0, 0.55)",
+    "blur": "none",
+    "words": [
+      "No signal",
+      "HELD ON PURPOSE"
+    ],
+    "rawUrls": 0,
+    "headline": ""
+  },
+  {
+    "name": "tracker-settings-drawer",
+    "note": "Tracker → Settings (AutoSettingsDrawer, D148)",
+    "fullScreenOverlay": 2,
+    "scrim": "color(srgb 0.105882 0.105882 0.105882 / 0.65)",
+    "blur": "blur(1px)",
+    "words": [
+      "No signal",
+      "HELD ON PURPOSE"
+    ],
+    "rawUrls": 0,
+    "headline": ""
+  }
+]
