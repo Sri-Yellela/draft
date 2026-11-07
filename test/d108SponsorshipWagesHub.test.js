@@ -262,7 +262,9 @@ test("D108 P3 · Atlas role pages: 'Sponsors who hire this role' — computed fr
   assert.deepEqual(sponsorsForRole(db, "data-engineer"), [], "a draft node shows nothing");
   assert.match(read("routes/atlas.js"), /node\.kind === "role" \? \(\(\) => \{ try \{ return sponsorsForRole\(db, node\.slug\);/);
   // D121 P3 renamed it: "Companies hiring <role> that sponsor", each with the ONE signal's chip.
-  assert.match(read("client/src/pages/atlas/AtlasPage.jsx"), /Companies hiring {node.name} that sponsor/);
+  // ⭐ D172 (changed on purpose): the section is the role card's "Companies that sponsor" pane (one card, on demand).
+  assert.match(read("client/src/pages/atlas/AtlasPage.jsx"), /data-atlas-sponsors=\{p\.id === "sponsors" \? "" : undefined\}/);
+  assert.match(read("client/src/pages/atlas/atlasModel.js"), /sponsors: "Companies that sponsor"/);
 });
 
 test("D108 · migration 187 is byte-identical in server.js and scripts/migrations.js, appended, additive", () => {

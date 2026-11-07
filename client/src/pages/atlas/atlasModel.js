@@ -180,3 +180,40 @@ export function roleBoardParts(rb) {
     nextLevel: Array.isArray(rb.nextLevel) && rb.nextLevel.length > 0,
   };
 }
+
+// ⭐ D172 (owner APPROVED 11-06, docs/sketches/atlas-redesign-sketch.html) · A SKILL OR ROLE PAGE IS ONE CARD: the name, the
+// definition, one number from the board, your standing and the two actions — then each of the old sections on demand,
+// one at a time. Nothing is dropped (D147's rule): every section D105–D116 drew is a pane here, offered only when it has
+// something to show. Unknowns are left out (D152 7): no trend line until the board keeps one.
+export const NODE_PANE_LABEL = Object.freeze({
+  board: "On the board", map: "Role map", next: "To reach the next level", sponsors: "Companies that sponsor",
+  roles: "Roles that ask for it", related: "Related skills", pay: "Pay range", resources: "Resources", wikipedia: "From Wikipedia",
+});
+
+/** The panes a node has, in the card's order: [{ id, label }]. Pure. */
+export function nodePanes(node = {}) {
+  const stats = node.onTheBoard || null;
+  const rb = node.kind === "role" ? node.roleBoard || null : null;
+  const out = [];
+  const add = (id, ok) => { if (ok) out.push({ id, label: NODE_PANE_LABEL[id] }); };
+  if (node.kind === "role") {
+    add("board", !!rb || !!stats);
+    add("map", true);
+    add("next", !!(rb && roleBoardParts(rb).nextLevel));
+    add("sponsors", (node.sponsors?.length ?? 0) > 0);
+  } else {
+    add("roles", (stats?.topRoles?.length ?? 0) > 0);
+    add("pay", !!payLine(stats?.pay));
+  }
+  add("related", relatedGroups(node.related).length > 0 || (node.kind !== "role" && (stats?.topSkills?.length ?? 0) > 0));
+  add("resources", orderedResources(node.resources || []).length > 0 || !!node.learn);
+  add("wikipedia", !!node.wikipedia?.extract);
+  return out;
+}
+
+/** The card's one number: "1,240 open postings ask for it" / "… for this role"; null before the board is computed. */
+export function nodeHeadline(node = {}) {
+  const n = node.onTheBoard?.postings;
+  if (!Number.isFinite(n)) return null;
+  return { value: n.toLocaleString("en-US"), words: `open posting${n === 1 ? "" : "s"} ${node.kind === "role" ? "for this role" : "ask for it"}` };
+}

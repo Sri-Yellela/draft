@@ -3,6 +3,7 @@
 // extended time, or untimed practice (never penalised) — whose clock is the server's; then an awareness summary by
 // concept. ⛔ Not a grade, not a certificate: nothing here is shared. GET /api/readiness, POST /api/readiness/checks.
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { api } from "../../lib/api.js";
 
 const MODES = [
@@ -32,6 +33,8 @@ export default function ReadinessCheck({ signedIn = true }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const top = useRef(null);
+  // ⭐ D172: a skill page's "Prove it" lands here with ?prove=<skill> — that skill is listed first and marked.
+  const prove = (new URLSearchParams(useLocation().search).get("prove") || "").trim().toLowerCase();
   const load = () => api("/api/readiness").then(r => setSkills(r.skills)).catch(() => setSkills([]));
   useEffect(() => { if (signedIn) load(); }, [signedIn]);
 
@@ -112,8 +115,8 @@ export default function ReadinessCheck({ signedIn = true }) {
             <h2 className="atl-nav__h">Your skills</h2>
             {skills == null ? <p className="atl__quiet">Loading…</p> : !skills.length ? <p className="atl__quiet">Add skills to your Profile to check them.</p> : (
               <ul className="atl-nav__steps">
-                {skills.map(s => (
-                  <li key={s.key} data-skill-state={s.state}>
+                {(prove ? [...skills].sort((a, b) => (b.skill.toLowerCase() === prove) - (a.skill.toLowerCase() === prove)) : skills).map(s => (
+                  <li key={s.key} data-skill-state={s.state} data-prove-target={prove && s.skill.toLowerCase() === prove ? "" : undefined}>
                     <strong>{s.skill}</strong> · {STATE_WORDS[s.state]}{s.lastCheck?.line ? ` — ${s.lastCheck.line}` : ""}{" "}
                     {s.checkAvailable
                       ? <button type="button" className="atl-nav__link" disabled={busy} onClick={() => start(s.skill)}>{s.state === "claimed" ? "Check it" : "Check again"}</button>

@@ -236,7 +236,8 @@ test("D115 P4b · d115StepLinkOnNode — a node the path teaches carries 'Learn 
     assert.equal((await s.call("GET", "/api/atlas/peek/kubernetes")).json.learnStep.stepId, st.stepId, "D114's popup goes to the step");
   } finally { await s.close(); }
   const page = read("client/src/pages/atlas/AtlasPage.jsx");
-  const res = page.slice(at(page, '<h2 className="atl__h2" id="atl-res">Resources</h2>'));
+  // ⭐ D172 (changed on purpose): Resources is the node card's pane — its body starts at `resources: (`.
+  const res = page.slice(at(page, "    resources: ("));
   assert.ok(res.indexOf("node.learn &&") < res.indexOf("resources.map(r =>"), "above Wikidata's links");
   assert.match(res, /Learn it: \{node\.learn\.label\}/);
   assert.equal(learnStepForNode(db, { name: "Zzqx", term: "zzqx" }), null);

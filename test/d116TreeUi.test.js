@@ -285,7 +285,8 @@ test("D116 M7 · d116TreeRoleAndFamilyPages — the same component, centred on a
   for (const b of ["CORE · 50 %+", "COMMON", "SPECIALIST"]) assert.ok(u.tree(fam).includes(b), b);
   // The pages mount: a role page carries RoleMap; /atlas/family/<key> is FamilyMap.
   const page = read("client/src/pages/atlas/AtlasPage.jsx");
-  assert.match(page, /\{node\.kind === "role" && <RoleMap base=\{base\} slug=\{node\.slug\} \/>\}/);
+  // ⭐ D172 (changed on purpose): the role map is the role card's "Role map" pane; nodePanes offers it to roles only.
+  assert.match(page, /map: <RoleMap base=\{base\} slug=\{node\.slug\} \/>/);
   assert.match(page, /\{familyKey && <FamilyMap base=\{base\} familyKey=\{familyKey\} \/>\}/);
   assert.match(read("client/src/pages/atlas/YourMap.jsx"), /api\(`\/api\/atlas\/tree\/family\/\$\{encodeURIComponent\(familyKey\)\}`\)/);
 });
