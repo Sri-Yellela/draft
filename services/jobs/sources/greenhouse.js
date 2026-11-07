@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { normalizeJob } from '../schema.js';
 import { htmlToText, fullDescriptionText, JOB_DESCRIPTION_MAX_LENGTH, JOB_DESCRIPTION_TAIL_LENGTH } from '../htmlToText.js';
-import { collectCompanyJobs } from './base.js';
+import { collectCompanyJobs, normalizeEach, withRetry, settleWithLimit, envInt } from './base.js';
 
 const BASE_URL = 'https://boards-api.greenhouse.io/v1/boards';
 
@@ -86,16 +86,22 @@ function normalizeGreenhouseJob(job, companyName) {
 // so every row lands with a NULL description and enrichJob.js then reads an empty posting and
 // extracts nothing. It returns descriptions for the whole board in the SAME request, so this
 // costs no extra round-trips — only a larger response body.
-async function fetchCompanyJobs(slug, companyName, words) {
+// ⭐ D170 (4), as Lever: two retries with backoff on a transient failure (a timeout, a dropped connection, 429, 5xx —
+// never a 404 / 403), at most GREENHOUSE_CONCURRENCY companies in flight (search below), and one posting that fails to
+// normalise is skipped and counted, not the company. Production 11-06: Greenhouse ARIVE "failed" on one HTTP error and
+// its board answered 200 an hour later — one request, no retry, every company fired at once.
+const GREENHOUSE_TIMEOUT_MS = () => envInt('GREENHOUSE_TIMEOUT_MS', 15000);
+const GREENHOUSE_CONCURRENCY = () => envInt('GREENHOUSE_CONCURRENCY', 8);
+
+async function fetchCompanyJobs(slug, companyName, words, { http = axios, retry = {} } = {}) {
   // pay_transparency=true adds `pay_input_ranges` to every job. Without it the field is omitted
   // from the response, so the structured salary is unavailable no matter how the payload is parsed.
   // Same round-trip, slightly larger body — the same trade content=true already makes.
   const url = `${BASE_URL}/${encodeURIComponent(slug)}/jobs?content=true&pay_transparency=true`;
-  const response = await axios.get(url, { timeout: 15000 });
+  const response = await withRetry(() => http.get(url, { timeout: GREENHOUSE_TIMEOUT_MS() }), retry);
   const raw = response.data?.jobs || [];
-  return raw
-    .filter(j => titleMatchesQuery(j.title || '', words))
-    .map(j => normalizeGreenhouseJob(j, companyName));
+  return normalizeEach(raw.filter(j => titleMatchesQuery(j.title || '', words)),
+    j => normalizeGreenhouseJob(j, companyName), { source: 'greenhouse', company: companyName });
 }
 
 const greenhousePlugin = {
@@ -111,14 +117,11 @@ const greenhousePlugin = {
     // which silently dropped every company past the 900th posting — see collectCompanyJobs.
     const PER_COMPANY_MAX = pageSize * 3;
 
-    const results = await Promise.allSettled(
-      _companies.map(({ ats_slug, company }) =>
-        fetchCompanyJobs(ats_slug, company, words).catch(err => {
-          console.warn(`[greenhouse] Failed to fetch jobs for "${company}" (${ats_slug}):`, err.message);
-          return [];
-        })
-      )
-    );
+    const results = await settleWithLimit(_companies, GREENHOUSE_CONCURRENCY(), ({ ats_slug, company }) =>
+      fetchCompanyJobs(ats_slug, company, words).catch(err => {
+        console.warn(`[greenhouse] Failed to fetch jobs for "${company}" (${ats_slug}):`, err.message);
+        return [];
+      }));
 
     const jobs = collectCompanyJobs(results, PER_COMPANY_MAX);
 

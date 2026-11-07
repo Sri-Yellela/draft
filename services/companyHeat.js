@@ -34,9 +34,21 @@ export function heatReport(db, { now = Math.floor(Date.now() / 1000) } = {}) {
                AND NOT EXISTS (SELECT 1 FROM rejected_jobs r WHERE r.job_id = sj.job_id AND r.reason = 'out_of_scope')) AS last_new_at,
            (SELECT COUNT(*) FROM scraped_jobs sj
              WHERE sj.source = c.ats_type AND lower(sj.company) = lower(c.company)
-               AND sj.discovered_at >= ? AND sj.is_active = 1) AS new_30d
+               AND sj.discovered_at >= ? AND sj.is_active = 1) AS new_30d,
+           (SELECT COUNT(*) FROM scraped_jobs sj
+             WHERE sj.source = c.ats_type AND lower(sj.company) = lower(c.company) AND sj.is_active = 1) AS active_rows
       FROM company_ats_list c WHERE c.active = 1 ORDER BY c.company COLLATE NOCASE`).all(now - HOT_DAYS * DAY);
+  // ⭐ D170 (4) (owner 11-06: "Intel: all 213 postings outside the US … keep or deactivate"): a board that works and
+  // returns ONLY postings the US-only gate holds out is a decision about the company, not a dead slug — proposed too,
+  // with its own reason. The same reading as pipeline health's out_of_market (routes/adminDb.js): no active row, and
+  // rows held out as out_of_market:*. A database with no rejected_jobs proposes none of these.
+  const heldOut = new Map();
+  try {
+    for (const h of db.prepare(`SELECT source, lower(company) AS company, COUNT(*) AS n FROM rejected_jobs
+        WHERE reason LIKE 'out_of_market:%' GROUP BY source, lower(company)`).all()) heldOut.set(`${h.source}|${h.company}`, h.n);
+  } catch { /* no rejected_jobs */ }
   const companies = rows.map((r) => ({ ...r, heat: heatOf(r, now),
+    heldOutsideUs: (r.active_rows || 0) === 0 ? (heldOut.get(`${r.ats_type}|${String(r.company).toLowerCase()}`) || 0) : 0,
     daysSinceNew: r.last_new_at == null ? null : Math.floor((now - r.last_new_at) / DAY) }));
   const count = (h) => companies.filter((c) => c.heat === h).length;
   const judged = companies.filter((c) => c.heat !== "probation").length;
@@ -45,9 +57,11 @@ export function heatReport(db, { now = Math.floor(Date.now() / 1000) } = {}) {
     now, hotDays: HOT_DAYS, dormantDays: DORMANT_DAYS, target: TARGET_HOT_SHARE,
     summary: { active: companies.length, hot: count("hot"), warm: count("warm"), dormant: count("dormant"), probation: count("probation"),
                hotShare, meetsTarget: hotShare == null ? null : hotShare >= TARGET_HOT_SHARE },
-    proposals: companies.filter((c) => c.heat === "dormant")
+    proposals: companies.filter((c) => c.heat === "dormant" || c.heldOutsideUs > 0)
       .map((c) => ({ id: c.id, company: c.company, board: `${c.ats_type}:${c.ats_slug}`, daysSinceNew: c.daysSinceNew,
-                     why: c.daysSinceNew == null ? "no in-scope posting ever seen" : `no new in-scope posting for ${c.daysSinceNew} days` })),
+                     kind: c.heldOutsideUs > 0 ? "outside_us" : "dormant",
+                     why: c.heldOutsideUs > 0 ? `every posting it returns (${c.heldOutsideUs}) is outside the US`
+                       : c.daysSinceNew == null ? "no in-scope posting ever seen" : `no new in-scope posting for ${c.daysSinceNew} days` })),
     companies,
   };
 }
