@@ -50,9 +50,20 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
         </div>
         <div className="run-card__stats">
           <p className="run-stat" data-run-streak={run.streak}><b>{run.streak}</b><span>{l.streak}</span></p>
+          {run.best > 0 && <p className="run-stat run-stat--best" data-run-best={run.best}><span>Best: {run.best} day{run.best === 1 ? "" : "s"}</span></p>}
           <p className="run-stat" data-run-week={run.week}><b>+{run.week}</b><span>this week</span></p>
         </div>
       </div>
+      {/* ⭐ D178-4 (owner's pick, Idea B): a month of lit squares — a day with proof is lit, the week's rest day dashed, today outlined. */}
+      {Array.isArray(run.month) && (
+        <section className="run-month" aria-label="The last four weeks" data-run-month="">
+          <ol className="run-month__grid">
+            {run.month.map(d => <li key={d.day} className={`run-sq${d.lit ? " is-lit" : ""}${d.rest ? " is-rest" : ""}${d.today ? " is-today" : ""}`}
+              title={d.lit ? "proof that day" : d.rest ? "the week's rest day" : d.today ? "today" : ""} data-day={d.day} />)}
+          </ol>
+          <p className="atl__quiet">A day lights when you prove something — a check passed, an idea explained in your own words, a build. One rest day a week keeps the streak.</p>
+        </section>
+      )}
       <section className="run-today" aria-labelledby="run-today-h">
         <h2 className="atl__h2" id="run-today-h">{l.today}</h2>
         {run.quests.length === 0
@@ -72,6 +83,37 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
             </ol>
           )}
       </section>
+      {/* ⭐ D178-4: the reward that matters most — proven skills go into your tailored résumés (D169's rule). */}
+      {run.proven?.length > 0 && (
+        <section className="run-proven" data-run-proven="">
+          <p><b>Proven:</b> {run.proven.slice(0, 4).map(s => s.name).join(", ")}{run.proven.length > 4 ? ` and ${run.proven.length - 4} more` : ""} — {run.proven.length === 1 ? "it goes" : "they go"} into your tailored résumés now.</p>
+          <Link to={`${base}/your-skills`} className="atl__link">See your skills</Link>
+        </section>
+      )}
+      {/* ⭐ D178-4: marks, earned for wholes — a module finished; the next ones with how far along they are. */}
+      {run.marks && (run.marks.earned.length > 0 || run.marks.next.length > 0) && (
+        <section className="lrc run-marks" aria-labelledby="run-marks-h" data-run-marks="">
+          <h2 className="atl__h2" id="run-marks-h">Marks</h2>
+          <ul className="run-marks__shelf">
+            {run.marks.earned.map(m => (
+              <li key={`e${m.module}`} className={`run-mark is-earned lrc__part--${m.module}`} data-mark={m.module}><span className="run-mark__seal" aria-hidden="true">{m.module}</span><span>{m.title}</span></li>
+            ))}
+            {run.marks.next.map(m => (
+              <li key={`n${m.module}`} className={`run-mark lrc__part--${m.module}`} data-mark-next={m.module}><MarkRing pct={m.pct} /><span>{m.title}</span><small>{m.done} of {m.total}</small></li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
+  );
+}
+
+function MarkRing({ pct }) {
+  const r = 16, c = 2 * Math.PI * r;
+  return (
+    <svg className="run-mark__ring" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+      <circle cx="20" cy="20" r={r} className="run-mark__track" />
+      {pct > 0 && <circle cx="20" cy="20" r={r} className="run-mark__fill" strokeDasharray={`${(c * pct) / 100} ${c}`} transform="rotate(-90 20 20)" />}
+    </svg>
   );
 }

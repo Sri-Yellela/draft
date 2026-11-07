@@ -13,7 +13,7 @@
 // idempotent). Every number below is defined here and nowhere else (D173 (4)).
 import { learnContent } from "../learn/learnContent.js";
 import { earnedMarks, explanationTimes } from "../learn/learnEarned.js";
-import { stepState, checkpointId } from "../../shared/learnStepState.js";
+import { stepState, checkpointId, buildId, itemsToOpen, buildRequired } from "../../shared/learnStepState.js";
 import { listYourSkills } from "../yourSkills.js";
 
 export const POINTS = Object.freeze({ explained: 10, learn_build: 60, skill_checked: 40, skill_built: 60 });
@@ -61,14 +61,56 @@ export function levelOf(total) {
     pct: next ? Math.floor(((total - cur.at) / (next.at - cur.at)) * 100) : 100 };
 }
 
-/** Days in a row with proof, ending today or yesterday (UTC days). Pure: `days` = a Set of day numbers. */
-export function streakOf(days, now = Math.floor(Date.now() / 1000)) {
-  const today = Math.floor(now / DAY);
-  let d = days.has(today) ? today : days.has(today - 1) ? today - 1 : null;
-  if (d == null) return 0;
-  let n = 0;
-  while (days.has(d)) { n++; d--; }
-  return n;
+/**
+ * ⭐ D178-4 · THE STREAK COUNTS DAYS WITH PROOF, NOT VISITS — and ONE REST DAY A WEEK is automatic: a single day without
+ * proof in a (Monday–Sunday, UTC) week does not break it; a second one does. Today still open does not break it either.
+ * Pure: `days` = a Set of UTC day numbers with proof. @returns { count (proof days in the streak), rest: Set of rest days }
+ */
+const weekOf = (d) => Math.floor((d + 3) / 7);   // day 0 (1970-01-01) was a Thursday → weeks start on Monday
+export function streakRun(days, endDay) {
+  const rest = new Set();
+  let d = endDay, n = 0;
+  if (!days.has(d)) d--;                         // today isn't over: start from yesterday
+  for (; ; d--) {
+    if (days.has(d)) { n++; continue; }
+    const w = weekOf(d);
+    if ([...rest].some(r => weekOf(r) === w)) break;
+    if (!days.has(d - 1)) break;                  // a rest day sits between two proof days
+    rest.add(d);
+  }
+  return { count: n, rest };
+}
+export function streakOf(days, now = Math.floor(Date.now() / 1000)) { return streakRun(days, Math.floor(now / DAY)).count; }
+/** The longest streak ever (the same rule), for "Best: N days" — never shames a broken one. */
+export function bestStreak(days) {
+  let best = 0;
+  for (const d of days) best = Math.max(best, streakRun(days, d).count);   // the best run ending at any proof day
+  return best;
+}
+/** The month on Your run: the last 28 days, oldest first — { day, lit, rest, today }. */
+export function monthOf(days, now = Math.floor(Date.now() / 1000)) {
+  const today = Math.floor(now / DAY), { rest } = streakRun(days, today);
+  return Array.from({ length: 28 }, (_, i) => { const d = today - 27 + i; return { day: d, lit: days.has(d), rest: rest.has(d), today: d === today }; });
+}
+
+/**
+ * ⭐ D178-4 · MARKS, EARNED FOR WHOLES — never for clicks: finishing a whole MODULE (every lesson complete by the one earned
+ * rule) earns its mark, dated by the last piece of proof that finished it. Pure over the Learn document and the person's
+ * earned marks (id → time). @returns { earned: [{ module, title, at }] newest first, next: [{ module, title, done, total, pct }] }
+ */
+export function marksFrom(doc, marks = {}) {
+  const earned = [], next = [];
+  (doc?.PARTS || []).forEach((part, pi) => {
+    const steps = (part.phases || []).flatMap(ph => ph.steps || []);
+    if (!steps.length) return;
+    const done = steps.filter(st => stepState(st, marks).complete).length;
+    const title = String(part.t || "").replace(/^Part\s+\d+\s*:\s*/i, "");
+    if (done === steps.length) {
+      const ids = steps.flatMap(st => [...itemsToOpen(st).map(it => it.id), ...(st.c || []).map((_, i) => checkpointId(st.id, i)), ...(buildRequired(st) ? [buildId(st.id)] : [])]);
+      earned.push({ module: pi + 1, title, at: Math.max(0, ...ids.map(id => Number(marks[id]) || 0)) });
+    } else next.push({ module: pi + 1, title, done, total: steps.length, pct: Math.floor((done / steps.length) * 100) });
+  });
+  return { earned: earned.sort((a, b2) => b2.at - a.at), next: next.sort((a, b2) => b2.pct - a.pct).slice(0, 3) };
 }
 
 /** The first idea not yet explained, in the path's order — the "explain one idea" quest. */
@@ -106,6 +148,11 @@ export function yourRun(db, userId, { now = Math.floor(Date.now() / 1000) } = {}
     skill: skill.name, points: POINTS.skill_checked, minutes: 1, done: earnedToday("skill_checked") });
   return {
     total, level: levelOf(total), streak: streakOf(days, now),
+    // ⭐ D178-4: the best streak, the month of lit squares, the marks, and what proof has unlocked for the résumé.
+    best: bestStreak(days), month: monthOf(days, now),
+    marks: safe(() => marksFrom(learnContent(db), earnedMarks(db, userId)), { earned: [], next: [] }),
+    proven: safe(() => listYourSkills(db, userId).skills.filter(s => (s.state === "checked" || s.state === "built") && !s.onResume)
+      .map(s => ({ name: s.name, state: s.state })), []),
     week: rows.filter(r => r.at >= weekStart).reduce((a, r) => a + r.points, 0),
     latest: rows.slice(0, 5),
     quests,
