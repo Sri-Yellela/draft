@@ -102,3 +102,13 @@
 .atl-check__timer { font: 800 15px/1 var(--font-body); color: var(--c-accent-ink); }
 .atl-course__ring { max-width: 520px; margin: 0 auto; }
 .atl-course__next { margin: 8px 0 0; font-size: 14px; color: var(--c-ink); }
+
+/* ⭐ D172 · a skill or role page is ONE CARD (atlas-redesign-sketch.html → Kafka): the facts row, Learn it / Prove it,
+   then the older sections on demand, one at a time. Theme tokens only; no capsules (D60). */
+.atl-card__facts { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: baseline; margin: 4px 0 14px; }
+.atl-card__fact { margin: 0; }
+.atl-card__facts .atl__big b { font-family: var(--font-display); font-size: 34px; }
+.atl-card__acts { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 18px; }
+.atl-card__panes { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 14px; border-top: 1px solid var(--c-border); }
+.atl-card__pane { margin-top: 14px; }
+.atl-card__pane[hidden] { display: none; }

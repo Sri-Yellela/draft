@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>draft — Atlas, redesigned (sketch)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark;
+  --bg:#1B1B1B;--card:#262626;--raise:#2F2F2F;--raise2:#363636;--line:#363636;--ink:#FFFFFF;--body:#A3A3A3;--muted:#777777;
+  --accent:#FBD3C4;--accent2:#F2C2B2;--on-accent:#1B1B1B;--glow:rgba(251,211,196,.16);--ok:#8FD6A8;
+  --font:"Inter Tight",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--serif:"Instrument Serif",Georgia,serif}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--raise2:#E9E2DC;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--ok:#1E7A43}}
+:root[data-theme="light"]{color-scheme:light;--bg:#F7F3F0;--card:#FFFFFF;--raise:#F1ECE8;--raise2:#E9E2DC;--line:#E6DED8;--ink:#1B1B1B;--body:#55504C;--muted:#8A837D;--accent:#C2593A;--accent2:#AD4C30;--on-accent:#FFFFFF;--glow:rgba(194,89,58,.16);--ok:#1E7A43}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased;min-height:100vh}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.tint{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+/* the site's dock, collapsed, for context */
+.rail{position:fixed;left:12px;top:50%;transform:translateY(-50%);width:60px;background:var(--card);border-radius:22px;padding:8px;display:grid;gap:6px;z-index:5}
+.rail span{height:44px;border-radius:14px;display:grid;place-items:center;color:var(--accent);font:800 italic 18px/1 var(--font)}
+.rail span.on{background:var(--raise)}
+.rail svg{width:26px;height:26px;stroke:var(--accent);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+/* Atlas: its own navigation + panels, one centred group */
+.atlas{display:grid;grid-template-columns:232px minmax(0,1fr);gap:clamp(20px,3vw,40px);max-width:1280px;margin:0 auto;padding:32px clamp(16px,3vw,40px) 80px 96px}
+@media (max-width:900px){.atlas{grid-template-columns:1fr;padding-left:84px}}
+.nav{position:sticky;top:28px;align-self:start;background:var(--card);border-radius:28px;padding:20px 12px 16px}
+.nav .eb{color:var(--accent);font-size:13px;margin:0 10px 4px}
+.nav h1{font:400 34px/1 var(--serif);margin:0 10px 16px}
+.nav h3{font:500 12px/1 var(--font);color:var(--muted);margin:14px 10px 6px}
+.nav button{all:unset;cursor:pointer;display:flex;justify-content:space-between;align-items:center;width:100%;box-sizing:border-box;padding:9px 10px;border-radius:13px;color:var(--body);font-size:14.5px}
+.nav button:hover{background:var(--raise);color:var(--ink)}
+.nav button[aria-current="page"]{background:var(--raise);color:var(--ink)}
+.nav button small{color:var(--muted);font-size:12px}
+.nav button[aria-current="page"] small{color:var(--accent)}
+@media (max-width:900px){.nav{position:static}}
+.panel{animation:fi .3s ease;min-width:0}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.eyebrow{color:var(--accent);font-size:14px;margin:4px 0 8px}
+h2{font-weight:500;font-size:44px;line-height:1.02;letter-spacing:-.035em;margin:0 0 10px}
+.lead{color:var(--body);font-size:17px;margin:0 0 24px;max-width:60ch}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:0 0 22px}
+.st{background:var(--card);border-radius:22px;padding:18px}
+.st b{display:block;color:var(--accent);font-size:32px;font-weight:500;letter-spacing:-.03em;line-height:1.1}
+.st span{color:var(--body);font-size:13.5px}
+.card{background:var(--card);border-radius:28px;padding:22px;margin:0 0 14px}
+.card h4{margin:0 0 6px;font-weight:600;font-size:16px}
+.card p{margin:0;color:var(--body)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:14px;padding:11px 16px;font-weight:600;cursor:pointer;background:var(--raise);color:var(--ink)}
+.btn:hover{background:var(--raise2)}
+.btn.p{background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent);box-shadow:0 10px 26px var(--glow)}
+.quiet{all:unset;cursor:pointer;color:var(--accent);font-weight:600;font-size:14px}
+.two{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px}
+@media (max-width:1100px){.two{grid-template-columns:1fr}}
+/* the map */
+.map{background:var(--card);border-radius:28px;padding:10px;overflow:hidden}
+.map svg{width:100%;height:auto;display:block}
+.map text{font:500 12px var(--font);fill:var(--body)}
+.map .you text{fill:var(--on-accent);font-weight:700}
+.key{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin:10px 6px 4px}
+.key span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--k)}
+/* skills list */
+.seg{display:inline-flex;background:var(--card);border-radius:14px;padding:3px;margin:0 0 14px}
+.seg button{all:unset;cursor:pointer;padding:7px 14px;border-radius:11px;color:var(--body);font-weight:600;font-size:13.5px}
+.seg button[aria-pressed="true"]{background:var(--raise);color:var(--ink)}
+.sk{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 4px;border-top:1px solid var(--line)}
+.sk:first-of-type{border-top:0}
+.sk b{font-weight:500}
+.sk small{display:block;color:var(--muted);font-size:12.5px}
+.state{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:var(--body)}
+.state::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--sc)}
+.addsk{display:flex;gap:8px;margin-top:12px}
+.addsk input{flex:1;background:var(--raise);border:0;border-radius:13px;padding:11px 13px;color:var(--ink)}
+.check{display:none;background:var(--raise);border-radius:18px;padding:14px 16px;margin:6px 0 10px}
+.check.on{display:block;animation:fi .25s ease}
+.check p{margin:0 0 10px;color:var(--body)}
+.check .opts{display:grid;gap:6px}
+.check .opts button{all:unset;cursor:pointer;background:var(--card);border-radius:12px;padding:10px 12px;font-size:14px}
+.check .opts button:hover{background:var(--raise2)}
+/* route stack */
+.stack{display:flex;flex-direction:column-reverse;gap:8px}
+.step{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--card);border-radius:20px;padding:14px 16px}
+.step .n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--raise2);color:var(--body);font-weight:600;font-size:13px}
+.step.done .n{background:var(--ok);color:#0b2a17}
+.step.now{outline:1.5px solid var(--accent)}
+.step.now .n{background:linear-gradient(180deg,var(--accent),var(--accent2));color:var(--on-accent)}
+.step b{font-weight:600}
+.step p{margin:2px 0 0;color:var(--body);font-size:13.5px}
+.found{background:var(--raise);border-radius:20px;padding:14px 16px;color:var(--body)}
+.found b{color:var(--ink)}
+/* learn */
+.stages{display:grid;gap:8px}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 160px auto;gap:14px;align-items:center;background:var(--card);border-radius:20px;padding:14px 16px}
+.bar{height:6px;border-radius:4px;background:var(--raise2);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.stage small{color:var(--muted)}
+/* explore */
+.search{width:100%;background:var(--card);border:0;border-radius:16px;padding:13px 16px;color:var(--ink);margin:0 0 14px}
+.role{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:16px;align-items:center;background:var(--card);border-radius:20px;padding:14px 16px;margin-bottom:8px}
+.role span{color:var(--muted);font-size:13px}
+.up{color:var(--ok)}.down{color:var(--muted)}
+.note{max-width:1280px;margin:0 auto;padding:0 40px 40px 96px;color:var(--muted);font-size:12.5px}
+
+/* the colourways for covers and concept cards come from the theme (tokens), not literals in components */
+:root{--cv1:#3E6B5A;--cv2:#4B3FA8;--cv3:#B4532A;--cv4:#1F3A63;--cv5:#6A3E73;--cv6:#2F6B7A;--cv7:#7A5A2A;--cv8:#5A5F2E}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--cv1:#8DB8A3;--cv2:#A59BE6;--cv3:#EBA384;--cv4:#93AED6;--cv5:#C9A3D3;--cv6:#8FC5CF;--cv7:#E2C48F;--cv8:#C6CB8E}}
+.xp{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;background:var(--card);border-radius:28px;padding:20px 22px;margin:0 0 14px}
+.ring{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--accent) var(--p),var(--raise2) 0);position:relative}
+.ring::after{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--card)}
+.ring b{position:relative;z-index:1;font-size:22px;font-weight:600}
+.lvl{color:var(--accent);font-size:13px}
+.xp h3{margin:2px 0 4px;font-weight:500;font-size:26px;letter-spacing:-.02em}
+.xp p{margin:0;color:var(--body);font-size:14px}
+.streak{text-align:center}
+.streak b{display:block;font-size:30px;font-weight:600;color:var(--accent);line-height:1}
+.streak span{color:var(--muted);font-size:12px}
+.quest{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
+@media (max-width:900px){.quest{grid-template-columns:1fr}}
+.q{background:var(--card);border-radius:22px;padding:16px;display:grid;gap:6px;cursor:pointer;transition:transform .2s cubic-bezier(.22,1,.36,1)}
+.q:hover{transform:translateY(-3px)}
+.q .t{color:var(--muted);font-size:12.5px}
+.q b{font-weight:600}
+.q .xpb{color:var(--accent);font-weight:600;font-size:13px}
+.q.done{opacity:.55}
+.q.done .xpb::before{content:"✓ ";color:var(--ok)}
+.pod{background:var(--card);border-radius:22px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0 0 14px}
+.pod p{margin:0;color:var(--body)}
+.pod b{color:var(--ink)}
+/* the map: a winding path from you to the goal (ByteByteGo's picture, our labels) */
+.path{background:var(--card);border-radius:28px;padding:14px;overflow:hidden}
+.path svg{width:100%;height:auto;display:block}
+.path .lbl{font:600 13px var(--font);fill:var(--ink)}
+.path .sub{font:500 11px var(--font);fill:var(--muted)}
+.path .now rect{animation:glow 1.8s ease-in-out infinite}
+@keyframes glow{50%{filter:drop-shadow(0 0 10px var(--accent))}}
+/* the library: a colourway grid of book-like covers */
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.book{background:var(--card);border-radius:22px;padding:12px 12px 14px;display:grid;gap:10px;cursor:pointer;transition:transform .22s cubic-bezier(.22,1,.36,1)}
+.book:hover{transform:translateY(-4px) rotate(-.4deg)}
+.cover{position:relative;aspect-ratio:4/3;border-radius:6px 14px 14px 6px;background:linear-gradient(135deg,color-mix(in srgb,var(--cv) 100%,#fff 0%),color-mix(in srgb,var(--cv) 70%,#000));overflow:hidden;box-shadow:inset 6px 0 0 color-mix(in srgb,var(--cv) 60%,#000),0 10px 24px rgba(0,0,0,.25)}
+.cover::before{content:"";position:absolute;top:-10%;right:-10%;width:70%;height:70%;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,#fff 22%,transparent),transparent 70%)}
+.cover i{position:absolute;left:16px;bottom:12px;right:12px;font:400 26px/1.02 var(--serif);font-style:normal;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.25)}
+.cover em{position:absolute;top:10px;right:10px;font-style:normal;font-size:11px;font-weight:700;letter-spacing:.06em;color:#fff;background:rgba(0,0,0,.25);border-radius:8px;padding:3px 7px}
+.book ul{margin:0;padding-left:16px;color:var(--body);font-size:13px}
+.book .ft{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12.5px}
+.book .ft b{color:var(--accent);font-weight:600}
+.bar2{height:5px;border-radius:3px;background:var(--raise2);overflow:hidden}
+.bar2 i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.ladder{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 18px}
+@media (max-width:1000px){.ladder{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.rung{border-radius:20px;overflow:hidden;background:var(--card)}
+.rung .top{background:var(--cv);padding:14px;color:#fff}
+.rung .top small{display:block;opacity:.85;font-size:11.5px}
+.rung .top b{font:400 21px/1.05 var(--serif)}
+.rung ol{margin:0;padding:12px 14px 12px 32px;color:var(--body);font-size:13px}
+.rung.locked{opacity:.6}
+/* the practical breakdown: stacked concept cards with a drawn flow */
+.concept{display:grid;grid-template-columns:110px minmax(0,1fr);gap:14px;align-items:center;border-radius:20px;padding:14px;background:color-mix(in srgb,var(--cv) 22%,var(--card));margin:0 0 10px}
+.concept .ic{border-radius:16px;background:color-mix(in srgb,var(--cv) 55%,var(--card));aspect-ratio:1;display:grid;place-items:center;text-align:center;font-weight:700;font-size:13px;color:#fff;padding:8px}
+.flow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+.flow span{background:var(--card);border-radius:10px;padding:7px 10px}
+.flow i{font-style:normal;color:var(--muted)}
+/* compete */
+.lb{background:var(--card);border-radius:24px;padding:8px 14px}
+.lr{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 4px;border-top:1px solid var(--line)}
+.lr:first-child{border-top:0}
+.lr.me{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:12px;padding:10px 8px}
+.lr .r{color:var(--muted);font-weight:600}
+.lr .x{color:var(--accent);font-weight:600}
+.promo{text-align:center;color:var(--ok);font-size:11.5px;letter-spacing:.12em;padding:6px 0;border-top:1px dashed var(--ok)}
+.live2{display:inline-flex;gap:8px;align-items:center;color:var(--body);font-size:13px;background:var(--card);border-radius:999px;padding:6px 12px}
+.live2::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.chal{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:14px 0}
+.chal .c{border-radius:22px;padding:18px;background:color-mix(in srgb,var(--cv) 30%,var(--card))}
+.chal .c b{display:block;font-size:17px;margin-bottom:4px}
+.chal .c p{margin:0 0 12px;color:var(--body);font-size:13.5px}
+/* a skill, as one card */
+.node{background:var(--card);border-radius:28px;padding:24px}
+.node .def{color:var(--body);font-size:16px;margin:0 0 16px;max-width:62ch}
+.mtabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0 10px}
+.mtabs button{all:unset;cursor:pointer;padding:7px 12px;border-radius:11px;background:var(--raise);font-size:13px;font-weight:600;color:var(--body)}
+.mtabs button[aria-pressed="true"]{color:var(--ink);outline:1px solid var(--accent)}
+
+
+/* the map, 11-06 (2): a tinted board, a looping track with stations, stop cards with icons, a flag at the goal */
+.board{border-radius:28px;padding:10px;background:color-mix(in srgb,var(--cv1) 16%,var(--card));overflow:hidden}
+.board svg{width:100%;height:auto;display:block}
+.board .t{font:600 13px var(--font);fill:var(--ink)}
+.board .s{font:500 11px var(--font);fill:var(--muted)}
+.board .pulse{animation:pls 1.8s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pls{0%{opacity:.7;transform:scale(1)}100%{opacity:0;transform:scale(2.2)}}
+@media (prefers-reduced-motion:reduce){.board .pulse{animation:none;opacity:0}}
+/* covers with a drawing that says what the course is */
+.cover svg.art{position:absolute;inset:0;width:100%;height:100%;opacity:.9}
+.cover i{z-index:1}
+/* a course, opened: modules → lessons → a deck, the curated links, a check */
+.course-h{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px;align-items:center;margin:0 0 18px}
+.course-h .cover{aspect-ratio:4/3}
+.mod{background:var(--card);border-radius:22px;padding:14px 16px;margin:0 0 10px}
+.mod h4{display:flex;justify-content:space-between;margin:0 0 8px;font-weight:600}
+.mod h4 small{color:var(--muted);font-weight:500}
+.les{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}
+.les:first-of-type{border-top:0}
+.les b{font-weight:500}
+.links{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.links a{font-size:12.5px;color:var(--body);background:var(--raise);border-radius:9px;padding:4px 8px;text-decoration:none}
+.links a::before{content:attr(data-k) " · ";color:var(--accent);font-weight:600}
+.les .ok2{color:var(--ok);font-size:13px}
+
+/* the league, 11-06: a tier badge, a podium, movement, the promotion line, a live feed of proof */
+.lg-top{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;border-radius:28px;padding:18px 20px;margin:0 0 14px;background:color-mix(in srgb,var(--cv7) 22%,var(--card))}
+.badge{width:74px;height:84px}
+.lg-top h3{margin:0 0 4px;font-weight:500;font-size:26px;letter-spacing:-.02em}
+.lg-top p{margin:0;color:var(--body);font-size:14px}
+.reset{text-align:center}
+.reset b{display:block;font:600 22px/1 var(--font);font-variant-numeric:tabular-nums}
+.reset span{color:var(--muted);font-size:12px}
+.podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:10px;align-items:end;margin:0 0 14px}
+.pd{border-radius:22px 22px 10px 10px;padding:14px 10px 12px;text-align:center;background:color-mix(in srgb,var(--cv) 26%,var(--card))}
+.pd .av{width:52px;height:52px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;font-weight:700;color:#fff;background:var(--cv);box-shadow:0 0 0 3px var(--card)}
+.pd.first .av{width:64px;height:64px;box-shadow:0 0 0 3px var(--accent),0 10px 28px var(--glow)}
+.pd b{display:block;font-weight:600}
+.pd .pts{color:var(--accent);font-weight:600;font-size:14px}
+.pd .place{display:block;font:400 30px/1 var(--serif);color:var(--ink);margin-top:6px}
+.pd.first{padding-top:22px}
+.mv{font-size:12px;font-weight:600}
+.mv.up{color:var(--ok)}.mv.dn{color:var(--muted)}
+.lr .who{display:flex;gap:10px;align-items:center}
+.lr .mini{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;background:var(--cv)}
+.togo{margin:10px 4px 2px}
+.togo p{margin:0 0 6px;color:var(--body);font-size:13.5px}
+.feed{background:var(--card);border-radius:22px;padding:12px 16px;margin-top:14px}
+.feed h4{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:500}
+.fi{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13.5px;color:var(--body);animation:fi .4s ease}
+.fi:first-of-type{border-top:0}
+.fi b{color:var(--ink);font-weight:600}
+.fi .x{color:var(--accent);font-weight:600}
+.lgfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<nav class="rail" aria-label="Site"><span>/d</span><span><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/></svg></span><span class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.6 2.4 3.9 5.2 3.9 8.5s-1.3 6.1-3.9 8.5c-2.6-2.4-3.9-5.2-3.9-8.5s1.3-6.1 3.9-8.5z"/></svg></span><span><svg viewBox="0 0 24 24"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/></svg></span></nav>
+<div class="atlas">
+  <aside class="nav" aria-label="Atlas">
+    <p class="eb">Your way through the market</p>
+    <h1>Atlas</h1>
+    <h3>You</h3>
+    <button data-p="run">Your run <small>Level 2</small></button>
+    <button data-p="map">Your map</button>
+    <button data-p="skills">Your skills <small>9 proven</small></button>
+    <h3>Grow</h3>
+    <button data-p="lib">Library</button>
+    <button data-p="how">How it works</button>
+    <h3>Compete</h3>
+    <button data-p="league">This week's league <small>#6</small></button>
+    <button data-p="chal">Challenges</button>
+    <h3>Explore</h3>
+    <button data-p="node">Roles and skills</button>
+    <button data-p="market">This week's market</button>
+    <button data-p="gloss">Glossary</button>
+  </aside>
+  <main id="main"></main>
+</div>
+<p class="note">Redesign sketch (11-06): the approved Atlas, turned into something you come back to. Points only for proof (checked, built, defended), never for clicking; leagues are opt-in with handles. The library is a colourway shelf of book covers; the map is a path from you to your goal; "How it works" draws each idea as a small flow.</p>
+<script>
+(function () {
+  var main = document.getElementById("main");
+  var P = {
+    run: function () { return '<p class="eyebrow">Your run · Senior Data Engineer</p><h2>Level 2: Building blocks</h2>' +
+      '<div class="xp"><div class="ring" style="--p:64%"><b>64%</b></div><div><span class="lvl">340 of 530 points to Level 3</span><h3>Streaming is next</h3><p>Points come only from proof: a skill checked, a build finished, an answer defended.</p></div><div class="streak"><b>4</b><span>day streak</span></div></div>' +
+      '<p class="eyebrow" style="margin-top:18px">Today · about 5 minutes</p><div class="quest">' +
+      '<div class="q done"><span class="t">Daily question</span><b>Late events and watermarks</b><span class="xpb">+10 points</span></div>' +
+      '<div class="q"><span class="t">One deck · 5 slides</span><b>Kafka in one picture</b><span class="xpb">+15 points</span></div>' +
+      '<div class="q"><span class="t">Prove it · 1 minute</span><b>Check Airflow</b><span class="xpb">+40 points</span></div></div>' +
+      '<div class="pod"><p><b>#6 in your Northeastern · Data pod</b> this week · 40 points to move up</p><button class="btn" data-go="league">See the league</button></div>' +
+      '<span class="live2">38 people practising data engineering right now</span>'; },
+    map: function () {
+      var IC = { db: '<ellipse cx="0" cy="-6" rx="8" ry="3"/><path d="M-8 -6v12c0 1.7 3.6 3 8 3s8-1.3 8-3v-12"/><path d="M-8 0c0 1.7 3.6 3 8 3s8-1.3 8-3"/>', pipe: '<path d="M-9 -4h7a3 3 0 0 1 3 3v2a3 3 0 0 0 3 3h5"/><circle cx="-9" cy="-4" r="2"/><circle cx="9" cy="4" r="2"/>', wave: '<path d="M-9 0c3-6 6-6 9 0s6 6 9 0"/><path d="M-9 -6h18" opacity=".5"/><path d="M-9 6h18" opacity=".5"/>', flow: '<rect x="-9" y="-8" width="7" height="6" rx="1.5"/><rect x="2" y="2" width="7" height="6" rx="1.5"/><path d="M-5.5 -2v4h7.5"/>', doc: '<rect x="-7" y="-9" width="14" height="18" rx="2"/><path d="M-3 -3h6M-3 1h6M-3 5h4"/>', mic: '<rect x="-3" y="-9" width="6" height="11" rx="3"/><path d="M-7 0a7 7 0 0 0 14 0M0 7v3"/>' };
+      var S = [[230, 110, "SQL and modelling", "proven", "db", "done", "--cv1"], [470, 110, "Batch pipelines", "proven", "pipe", "done", "--cv2"], [710, 110, "Streaming", "next · 2 decks, 1 build", "wave", "now", "--cv3"], [710, 300, "Orchestration", "Airflow, retries", "flow", "", "--cv6"], [470, 300, "Data contracts", "schemas you can trust", "doc", "", "--cv5"], [230, 300, "Interview-ready", "SQL and design rounds", "mic", "", "--cv4"]];
+      var track = "M110 110 H 860 A 95 95 0 0 1 860 300 H 110";
+      var g = '<svg viewBox="0 0 1000 410" role="img" aria-label="Your path to Senior Data Engineer"><defs><pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.3" fill="var(--line)"/></pattern></defs><rect width="1000" height="410" fill="url(#dots)" opacity=".7"/>' +
+        '<path d="' + track + '" fill="none" stroke="var(--raise2)" stroke-width="16" stroke-linecap="round"/><path d="M110 110 H 710" fill="none" stroke="var(--accent)" stroke-width="16" stroke-linecap="round"/>' +
+        '<g><rect x="34" y="88" width="120" height="44" rx="22" fill="var(--ink)"/><text x="94" y="115" text-anchor="middle" class="t" style="fill:var(--bg)">You · 3 yrs</text></g>' +
+        '<g><circle cx="94" cy="300" r="30" fill="var(--ink)"/><path d="M86 314v-30l18 8-18 8" fill="none" stroke="var(--bg)" stroke-width="2.4" stroke-linejoin="round"/><text x="94" y="352" text-anchor="middle" class="t">Senior Data Engineer</text><text x="94" y="369" text-anchor="middle" class="s">1,240 open roles</text></g>';
+      S.forEach(function (n) { var x = n[0], y = n[1], up = y < 200, cy = up ? y - 70 : y + 70;
+        g += (n[5] === "now" ? '<circle cx="' + x + '" cy="' + y + '" r="14" fill="var(--accent)" class="pulse"/>' : '') +
+          '<circle cx="' + x + '" cy="' + y + '" r="13" fill="' + (n[5] === "done" ? "var(--ok)" : n[5] === "now" ? "var(--accent)" : "var(--card)") + '" stroke="' + (n[5] ? "none" : "var(--raise2)") + '" stroke-width="3"/>' +
+          (n[5] === "done" ? '<path d="M' + (x - 5) + ' ' + y + 'l3.5 3.5 6.5-7" fill="none" stroke="#0b2a17" stroke-width="2.4" stroke-linecap="round"/>' : '') +
+          '<line x1="' + x + '" y1="' + (up ? y - 14 : y + 14) + '" x2="' + x + '" y2="' + (up ? cy + 26 : cy - 26) + '" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 4"/>' +
+          '<g><rect x="' + (x - 98) + '" y="' + (cy - 26) + '" width="196" height="52" rx="16" fill="var(--card)" ' + (n[5] === "now" ? 'stroke="var(--accent)" stroke-width="2"' : '') + '/>' +
+          '<rect x="' + (x - 88) + '" y="' + (cy - 17) + '" width="34" height="34" rx="10" fill="var(' + n[6] + ')"/><g transform="translate(' + (x - 71) + ' ' + cy + ')" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + IC[n[4]] + '</g>' +
+          '<text x="' + (x - 44) + '" y="' + (cy - 2) + '" class="t">' + n[2] + '</text><text x="' + (x - 44) + '" y="' + (cy + 14) + '" class="s">' + n[3] + '</text></g>'; });
+      g += "</svg>";
+      return '<p class="eyebrow">Your map</p><h2>A clear picture of where you are</h2><p class="lead">From what you have to where you\'re going. Green is proven, the pulsing stop is next.</p><div class="board">' + g + '</div><div class="row" style="margin-top:14px"><button class="btn p">Start: streaming</button><button class="quiet">See the whole market around you</button></div>'; },
+    skills: function () { return '<p class="eyebrow">Your skills</p><h2>9 proven, 3 claimed</h2><p class="lead">Prove a claimed skill to use it in your résumés. Each proof earns points.</p><div class="card"><p>Python · built · SQL · checked · Spark · checked · Airflow · claimed → <button class="quiet">Check it · 1 min · +40</button></p></div>'; },
+    lib: function () {
+      var ART = {
+        ai: '<g fill="none" stroke="#fff" stroke-width="1.4" opacity=".85"><circle cx="40" cy="40" r="5"/><circle cx="40" cy="80" r="5"/><circle cx="40" cy="120" r="5"/><circle cx="100" cy="55" r="5"/><circle cx="100" cy="105" r="5"/><circle cx="160" cy="80" r="6"/><path d="M45 40L95 55M45 40L95 105M45 80L95 55M45 80L95 105M45 120L95 55M45 120L95 105M105 55L154 80M105 105L154 80"/></g>',
+        data: '<g fill="none" stroke="#fff" stroke-width="1.5" opacity=".85"><ellipse cx="45" cy="45" rx="20" ry="7"/><path d="M25 45v30c0 4 9 7 20 7s20-3 20-7V45"/><path d="M70 62h40" stroke-dasharray="4 4"/><path d="M104 56l8 6-8 6"/><rect x="118" y="44" width="46" height="36" rx="6"/><path d="M126 56h30M126 66h20"/><path d="M141 84v20" stroke-dasharray="4 4"/><ellipse cx="141" cy="114" rx="18" ry="6"/></g>',
+        sys: '<g fill="none" stroke="#fff" stroke-width="1.5" opacity=".85"><rect x="20" y="30" width="44" height="28" rx="5"/><path d="M64 44h26"/><path d="M90 30l18 14-18 14z"/><path d="M108 44h14"/><rect x="122" y="18" width="50" height="24" rx="5"/><rect x="122" y="50" width="50" height="24" rx="5"/><path d="M147 74v18"/><ellipse cx="147" cy="100" rx="22" ry="7"/><path d="M125 100v14c0 4 10 7 22 7s22-3 22-7v-14"/></g>',
+        math: '<g fill="none" stroke="#fff" stroke-width="1.5" opacity=".85"><path d="M24 120H176M30 126V22"/><path d="M30 100c18 0 22-60 40-60s22 70 40 70 22-50 40-50 14 20 26 20"/><text x="132" y="44" fill="#fff" stroke="none" font-family="Georgia,serif" font-size="30" opacity=".9">&#931;</text></g>',
+        sec: '<g fill="none" stroke="#fff" stroke-width="1.6" opacity=".85"><path d="M100 18l48 18v34c0 32-22 52-48 62-26-10-48-30-48-62V36z"/><circle cx="100" cy="70" r="10"/><path d="M100 80v18"/></g>',
+        mgmt: '<g fill="none" stroke="#fff" stroke-width="1.5" opacity=".85"><circle cx="100" cy="32" r="12"/><path d="M100 44v18M50 62h100M50 62v14M100 62v14M150 62v14"/><circle cx="50" cy="88" r="10"/><circle cx="100" cy="88" r="10"/><circle cx="150" cy="88" r="10"/><path d="M38 120c2-10 8-14 12-14s10 4 12 14M88 120c2-10 8-14 12-14s10 4 12 14M138 120c2-10 8-14 12-14s10 4 12 14"/></g>'
+      };
+      var B = [["AI engineering", "--cv6", "ai", ["See inside the model", "Make it fast and cheap", "Ship agents that hold up"], "21 lessons", 30, ""], ["Data engineering", "--cv1", "data", ["Batch and streaming", "Modelling at scale", "Pipelines you can trust"], "34 lessons", 64, ""], ["System design", "--cv8", "sys", ["The building blocks", "Classic designs, drawn", "Interview rounds"], "27 lessons", 10, ""], ["Maths for ML", "--cv7", "math", ["Probability, plainly", "Linear algebra you use", "Gradients by hand"], "18 lessons", 0, ""], ["Security", "--cv3", "sec", ["The common attacks", "Threat modelling", "Incident response"], "", 0, "SOON"], ["Engineering management", "--cv5", "mgmt", ["One-to-ones", "Hiring well", "Delivery"], "", 0, "SOON"]];
+      var L = [["Level 1", "Foundations", "--cv1", ["How a program runs", "Data and algorithms", "Git and testing", "The web, end to end"], 0], ["Level 2", "Building blocks", "--cv2", ["APIs and auth", "Caching and queues", "Databases in depth", "Containers"], 0], ["Level 3", "Grow past senior", "--cv3", ["What the job really is", "Design reviews", "Leading without the title", "Your promotion case"], 1], ["Level 4", "Lead", "--cv4", ["Strategy you can defend", "Hiring and growing people", "Running incidents", "Your first year leading"], 1]];
+      window.__ART = ART;
+      return '<p class="eyebrow">Library</p><h2>Guides and courses</h2><p class="lead">Your level\'s guide first, then the shelves. Every lesson is a five-slide deck, the best material we found on it, and a quick check.</p>' +
+        '<div class="ladder">' + L.map(function (l) { return '<div class="rung' + (l[4] ? " locked" : "") + '" style="--cv:var(' + l[2] + ')"><div class="top"><small>' + l[0] + '</small><b>' + l[1] + '</b></div><ol>' + l[3].map(function (x) { return "<li>" + x + "</li>"; }).join("") + '</ol></div>'; }).join("") + '</div>' +
+        '<div class="shelf">' + B.map(function (b) { return '<div class="book" style="--cv:var(' + b[1] + ')"' + (b[6] ? '' : ' data-course="' + b[0] + '"') + '><div class="cover"><svg class="art" viewBox="0 0 200 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + ART[b[2]] + '</svg><i>' + b[0] + '</i>' + (b[6] ? '<em>' + b[6] + '</em>' : '') + '</div><ul>' + b[3].map(function (x) { return "<li>" + x + "</li>"; }).join("") + '</ul>' + (b[6] ? '<div class="ft"><span>Coming soon</span><span></span></div>' : '<div class="bar2"><i style="width:' + b[5] + '%"></i></div><div class="ft"><span>' + b[4] + '</span><b>' + (b[5] ? "Continue →" : "Open →") + '</b></div>') + '</div>'; }).join("") + '</div>'; },
+    course: function () {
+      var ART = window.__ART || {};
+      var M = [["Module 1 · Foundations", "8 of 8", [["SQL in depth", 1, [["Read", "PostgreSQL docs: queries · 15 min"], ["Try", "10 practice queries · 20 min"]]], ["Data modelling: grain and star schemas", 1, [["Read", "a modelling primer · 12 min"], ["Watch", "a conference talk · 25 min"]]]]],
+        ["Module 2 · Building blocks", "5 of 8", [["Batch and streaming", 1, [["Read", "Kafka docs: introduction · 10 min"], ["Watch", "streaming explained · 18 min"]]], ["Kafka in one picture", 0, [["Read", "the log, explained · 14 min"], ["Try", "a tiny producer and consumer · 30 min"], ["Watch", "partitions and offsets · 12 min"]]], ["Orchestration with Airflow", 0, [["Read", "Airflow docs: concepts · 15 min"], ["Try", "your first DAG · 30 min"]]]]]];
+      return '<div class="course-h"><div class="cover" style="--cv:var(--cv1)"><svg class="art" viewBox="0 0 200 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + (ART.data || "") + '</svg></div><div><p class="eyebrow">Course · 6 modules · 34 lessons</p><h2 style="margin-bottom:6px">Data engineering</h2><p class="lead" style="margin:0">64% done · each lesson: a deck, the best material we found, a quick check.</p></div></div>' +
+        M.map(function (m) { return '<div class="mod"><h4>' + m[0] + '<small>' + m[1] + '</small></h4>' + m[2].map(function (l) { return '<div class="les"><div><b>' + l[0] + '</b><div class="links"><a href="#" data-k="Deck">5 slides</a>' + l[2].map(function (k) { return '<a href="#" data-k="' + k[0] + '">' + k[1] + '</a>'; }).join("") + '</div></div>' + (l[1] ? '<span class="ok2">✓ checked</span>' : '<button class="btn">Check · +40</button>') + '</div>'; }).join("") + '</div>'; }).join("") + '<button class="quiet" data-go="lib">← Back to the library</button>'; },
+    how: function () { var C = [["Kafka", "--cv2", ["Producer", "Topic · 3 partitions", "Consumer group", "Offsets"]], ["Retrieval (RAG)", "--cv6", ["Your question", "Search your docs", "Top passages", "The model answers"]], ["An agent", "--cv3", ["Think", "Pick a tool", "Act", "Look at the result", "Done"]]];
+      return '<p class="eyebrow">How it works</p><h2>Each idea, drawn in one picture</h2><p class="lead">The practical breakdown before the words: what goes in, what happens, what comes out.</p>' + C.map(function (c) { return '<div class="concept" style="--cv:var(' + c[1] + ')"><div class="ic">' + c[0] + '</div><div class="flow">' + c[2].map(function (x, i) { return (i ? "<i>→</i>" : "") + "<span>" + x + "</span>"; }).join("") + '</div></div>'; }).join(""); },
+    league: function () {
+      var R = [["4", "mo_builds", "430", "--cv4", "up", "▲ 2"], ["5", "dev_5d4d", "400", "--cv6", "dn", "▼ 1"]];
+      var badge = '<svg class="badge" viewBox="0 0 74 84" aria-hidden="true"><path d="M37 4l30 11v24c0 20-13 33-30 41C20 72 7 59 7 39V15z" fill="var(--cv7)"/><path d="M37 12l22 8v19c0 15-9 25-22 31-13-6-22-16-22-31V20z" fill="color-mix(in srgb,var(--cv7) 70%,#000)"/><path d="M37 26l4.2 8.6 9.4 1.3-6.8 6.6 1.6 9.4L37 47.5l-8.4 4.4 1.6-9.4-6.8-6.6 9.4-1.3z" fill="#fff" opacity=".92"/></svg>';
+      var podium = [["2", "kayla.de", "480", "--cv2", "K"], ["1", "dev_a7f9", "520", "--cv3", "A"], ["3", "dev_0b6d", "455", "--cv1", "D"]];
+      return '<p class="eyebrow">This week\'s league</p><div class="lg-top">' + badge + '<div><h3>Bronze · Northeastern Data pod</h3><p>30 people. Points from proof only. The top five move up to Silver on Monday.</p></div><div class="reset"><b id="cd">2d 14h</b><span>until the reset</span></div></div>' +
+        '<div class="podium">' + podium.map(function (p) { return '<div class="pd' + (p[0] === "1" ? " first" : "") + '" style="--cv:var(' + p[3] + ')"><div class="av">' + p[4] + '</div><b>' + p[1] + '</b><span class="pts">' + p[2] + ' points</span><span class="place">' + p[0] + '</span></div>'; }).join("") + '</div>' +
+        '<div class="lb">' + R.map(function (r) { return '<div class="lr"><span class="r">' + r[0] + '</span><span class="who"><span class="mini" style="--cv:var(' + r[3] + ')">' + r[1].charAt(0).toUpperCase() + '</span><b>' + r[1] + '</b> <span class="mv ' + r[4] + '">' + r[5] + '</span></span><span class="x">' + r[2] + '</span></div>'; }).join("") +
+        '<div class="promo">PROMOTION LINE</div><div class="lr me"><span class="r">6</span><span class="who"><span class="mini" style="--cv:var(--cv5)">S</span><b>you · sri_y</b> <span class="mv up">▲ 3</span></span><span class="x">360</span></div>' +
+        '<div class="togo"><p><b style="color:var(--ink)">40 points to the promotion line.</b> Prove Airflow (+40) and you\'re in.</p><div class="bar2"><i style="width:90%"></i></div></div></div>' +
+        '<div class="row" style="margin-top:12px"><button class="btn p">Prove Airflow · +40</button><button class="btn" data-go="chal">Challenge someone</button></div>' +
+        '<div class="feed" aria-live="polite"><h4>In your pod, just now</h4><div id="feed"></div></div>' +
+        '<div class="lgfoot"><span>You\'re in the league because you joined it. Your handle is all anyone sees.</span><button class="quiet">Leave the league</button></div>'; },
+    chal: function () { return '<p class="eyebrow">Challenges</p><h2>Quick rounds, real bragging rights</h2><div class="chal"><div class="c" style="--cv:var(--cv3)"><b>Beat the bar</b><p>6 scenario questions for your target. Share your score.</p><button class="btn p">Play · 3 min</button></div><div class="c" style="--cv:var(--cv2)"><b>Time attack</b><p>10 quick ones, 10 seconds each. Extended time if you need it.</p><button class="btn">Play · 2 min</button></div><div class="c" style="--cv:var(--cv1)"><b>Friday duel</b><p>The same 5 questions as someone in your pod. Best score wins.</p><button class="btn">Find a match</button></div></div>'; },
+    node: function () { return '<p class="eyebrow">Skill · data engineering</p><h2>Kafka</h2><div class="node"><p class="def">A log that many systems write to and read from, in order, so data moves reliably between services.</p><div class="stats"><div class="st"><b>61%</b><span>of senior Data Engineer roles ask for it</span></div><div class="st"><b>+9%</b><span>this month</span></div><div class="st"><b>Claimed</b><span>prove it to use it in résumés</span></div></div><div class="row"><button class="btn p">Learn it · 2 decks</button><button class="btn">Prove it · 1 min</button></div><div class="mtabs" role="group" aria-label="More"><button aria-pressed="true">Roles that ask for it</button><button>Related skills</button><button>Resources</button><button>From Wikipedia</button></div><p style="color:var(--body);margin:0">Data Engineer · Platform Engineer · Backend Engineer · ML Engineer</p></div>'; },
+    market: function () { return '<p class="eyebrow">This week\'s market</p><h2>What moved this week</h2><div class="stats"><div class="st"><b>+18%</b><span>Data Engineer postings</span></div><div class="st"><b>Kafka</b><span>rising fastest toward senior</span></div><div class="st"><b>725</b><span>new roles</span></div></div>'; },
+    gloss: function () { return '<p class="eyebrow">Glossary</p><h2>The words the market uses</h2><input class="search" placeholder="Search a term"><div class="role"><div><b>Idempotent</b><br><span style="color:var(--body);font-size:14px">Safe to run twice: doing it again leaves the same result.</span></div><span>655 postings</span><button class="quiet">Open</button></div>'; }
+  };
+  function show(p) {
+    document.querySelectorAll(".nav [data-p]").forEach(function (b) { if (b.getAttribute("data-p") === (p === "course" ? "lib" : p)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    main.innerHTML = '<div class="panel">' + P[p]() + "</div>";
+    main.querySelectorAll("[data-go]").forEach(function (b) { b.addEventListener("click", function () { show(b.getAttribute("data-go")); }); });
+    main.querySelectorAll(".mtabs").forEach(function (g) { g.querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { g.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); }); }); });
+    if (p === "league") { var F = [["kayla.de", "proved Spark", "+40"], ["mo_builds", "finished a build: a tiny Kafka consumer", "+60"], ["dev_0b6d", "answered today\'s question", "+10"], ["dev_a7f9", "defended a bullet", "+30"]], fe = document.getElementById("feed"), k = 0, gen = (window.__fg = (window.__fg || 0) + 1);
+      function push() { if (!document.getElementById("feed") || gen !== window.__fg) return; var f = F[k % F.length]; k++; var d = document.createElement("div"); d.className = "fi"; d.innerHTML = "<span><b>" + f[0] + "</b> " + f[1] + "</span><span class=\"x\">" + f[2] + "</span>"; fe.insertBefore(d, fe.firstChild); while (fe.children.length > 3) fe.removeChild(fe.lastChild); setTimeout(push, 2600); }
+      push(); push(); }
+    main.querySelectorAll("[data-course]").forEach(function (b) { b.addEventListener("click", function () { show("course"); }); });
+    main.querySelectorAll(".q:not(.done)").forEach(function (q) { q.addEventListener("click", function () { q.classList.add("done"); }); });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  document.querySelectorAll(".nav [data-p]").forEach(function (b) { b.addEventListener("click", function () { show(b.getAttribute("data-p")); }); });
+  show("run");
+})();
+</script>
+</body>
+</html>

@@ -27,7 +27,7 @@ import { OverviewPanel, YourSkillsSlot, YourRoutePanel, LearnStages, TodaysQuest
 import { panelFor, isPanelSlug, PANEL_LABEL, ATLAS_NAV, panelHref } from "./atlasPanels.js";
 import {
   KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
-  WIKI_LICENCE, YOU_LABEL, YOU_MARK, LEVEL_READ_LABEL, shareText, stepTitle, stepEmptyLine, roleBoardParts,
+  WIKI_LICENCE, YOU_LABEL, YOU_MARK, LEVEL_READ_LABEL, shareText, stepTitle, stepEmptyLine, roleBoardParts, nodePanes, nodeHeadline,
 } from "./atlasModel.js";
 import { SponsorshipChip } from "../../components/SponsorshipSignal.jsx";
 import ResourceTile, { ResourceGrid } from "../../components/ResourceTile.jsx";
@@ -193,7 +193,7 @@ function RoleNextLevel({ base, steps }) {
 }
 
 /** /atlas/:slug — one page. */
-export function AtlasNodeView({ base, node, from, onWalk }) {
+export function AtlasNodeView({ base, node, from, onWalk, signedIn = false }) {
   const stats = node.onTheBoard;
   const groups = relatedGroups(node.related);
   const resources = orderedResources(node.resources || []);
@@ -201,8 +201,90 @@ export function AtlasNodeView({ base, node, from, onWalk }) {
   const href = (slug) => `${base}/${encodeURIComponent(slug)}`;
   // ⭐ D105 P12: a role's page is the board's own data; its definition, when one exists, stays on top.
   const rb = node.kind === "role" ? node.roleBoard || null : null;
+  // ⭐ D172 (owner APPROVED 11-06, atlas-redesign-sketch.html → Kafka): ONE CARD — the name, the definition, one number, your
+  // standing, Learn it / Prove it — and every older section on demand, one at a time (atlasModel.js nodePanes). The panes
+  // not shown stay in the page, `hidden`: the public page keeps its whole text for search engines and screen readers.
+  const panes = nodePanes(node);
+  const [pane, setPane] = useState(null);
+  useEffect(() => { setPane(null); }, [node.slug]);
+  const headline = nodeHeadline(node);
+  // The readiness check covers the skills and tools on a Profile — never a role, a concept or a pattern.
+  const canProve = signedIn && (node.kind === "skill" || node.kind === "tool");
+  const navigate = useNavigate();
+  const learnHref = node.learn ? `${base}/learn#step-${encodeURIComponent(node.learn.stepId)}` : null;
+  const proveHref = `${base}/your-skills?prove=${encodeURIComponent(node.name)}`;
+  const body = {
+    board: (
+      <>
+        {rb ? <RoleBoard base={base} rb={rb} payText={payLine(rb.pay)} /> : null}
+        {stats && <p className="atl__quiet" data-atlas-computed="">{computedLine(stats)}</p>}
+      </>
+    ),
+    map: <RoleMap base={base} slug={node.slug} />,
+    next: rb && roleBoardParts(rb).nextLevel ? <RoleNextLevel base={base} steps={rb.nextLevel} /> : null,
+    sponsors: node.sponsors?.length > 0 && (
+      <>
+        <ul className="atl__links">
+          {node.sponsors.map(s => (
+            <li key={s.company} data-atlas-sponsor-level={s.level || undefined}>
+              <b>{s.company}</b>{s.signal ? <> <SponsorshipChip signal={s.signal} needed /></> : null}
+              {" "}· {s.titleLine || s.text} · {s.postings} open posting{s.postings === 1 ? "" : "s"}
+            </li>
+          ))}
+        </ul>
+        <p className="atl__quiet">
+          Companies with open postings for this role and certified LCAs on record ·{" "}
+          {node.sponsors[0].source?.url
+            ? <a href={node.sponsors[0].source.url} target="_blank" rel="noopener noreferrer">{node.sponsors[0].source.name}</a>
+            : node.sponsors[0].source?.name}
+          {node.sponsors[0].source?.through ? `, through ${node.sponsors[0].source.through}` : ""}. A record of filings, not a promise about any posting.
+        </p>
+      </>
+    ),
+    roles: stats?.topRoles?.length > 0 && (
+      <>
+        <LinkList base={base} items={stats.topRoles} />
+        <p className="atl__quiet" data-atlas-computed="">{computedLine(stats)}</p>
+      </>
+    ),
+    pay: pay && <p className="atl__pay" data-atlas-pay="">{pay}<br /><span className="atl__quiet">from {stats.pay.n} posting{stats.pay.n === 1 ? "" : "s"} that state pay</span></p>,
+    related: (
+      <div className="atl__related">
+        <div className="atl__cols">
+          {node.kind !== "role" && stats?.topSkills?.length > 0 && <div data-edge-group="seen-with"><h3 className="atl__h3">Seen with it most</h3><LinkList base={base} items={stats.topSkills} /></div>}
+          {groups.map(g => <div key={g.title} data-edge-group={g.type}><h3 className="atl__h3">{g.title}</h3><LinkList base={base} items={g.items} /></div>)}
+        </div>
+        {groups.length > 0 && <AtlasGraph node={node} hrefFor={href} onWalk={onWalk} />}
+      </div>
+    ),
+    resources: (
+      <>
+        {node.learn && (
+          <ul className="atl__res">
+            {/* ⭐ D115 P4(b): the step of the owner's learning path that teaches it — first, above Wikidata's links. */}
+            <li data-atlas-learn={node.learn.stepId}>
+              <Link to={`${base}/learn#step-${encodeURIComponent(node.learn.stepId)}`} className="atl__link atl__res-learn">Learn it: {node.learn.label}</Link>
+              <div className="atl__quiet">{node.learn.title} · From silicon to software</div>
+            </li>
+          </ul>
+        )}
+        {/* ⭐ D119: the resources as tiles — the one ResourceTile, each with its stored picture (or what it is, in type). */}
+        {resources.length > 0 && (
+          <ResourceGrid>
+            {resources.map(r => (
+              <li key={r.url} data-resource-cost={r.cost || ""}>
+                <ResourceTile item={{ id: null, k: r.format ? r.format.charAt(0).toUpperCase() + r.format.slice(1) : "Article", u: r.url, t: r.title, s: resourceMeta(r).join(" · ") }}
+                  thumb={r.thumb || null} extra={r.cost === "free" ? <span className="mark mark--ok">Free</span> : null} />
+              </li>
+            ))}
+          </ResourceGrid>
+        )}
+      </>
+    ),
+    wikipedia: <WikipediaBlock wiki={node.wikipedia} />,
+  };
   return (
-    <article className="atl__node" data-atlas-node={node.slug}>
+    <article className="atl__node atl-card" data-atlas-node={node.slug} data-atlas-card="">
       <header className="atl__head">
         <p className="atl__kicker"><Link to={base} className="atl__link">The Atlas</Link> · <span className="mark mark--accent">{KIND_LABEL[node.kind] || node.kind}</span></p>
         <h1 className="atl__title">{node.name}</h1>
@@ -210,16 +292,6 @@ export function AtlasNodeView({ base, node, from, onWalk }) {
           <p className="atl__quiet" data-atlas-from="">“{from.q}” is another name for {node.name}.</p>
         )}
         {node.aliases?.length > 0 && <p className="atl__aliases" data-atlas-aliases="">Also called: {node.aliases.join(", ")}</p>}
-        {node.you && (
-          <div className="atl__you" data-atlas-you={node.you.status}>
-            <span className={`mark ${YOU_MARK[node.you.status] || "mark--dim"}`}>{YOU_LABEL[node.you.status] || node.you.status}</span>
-            {node.you.have?.length > 0 && <span className="atl__quiet"> Have: {node.you.have.map(h => h.name).join(", ")}.</span>}
-            {node.you.missing?.length > 0 && (
-              <span className="atl__quiet"> Missing: {node.you.missing.map((m, i) => (
-                <span key={m.slug}>{i ? ", " : ""}<Link to={href(m.slug)} className="atl__link">{m.name}</Link></span>))}.</span>
-            )}
-          </div>
-        )}
       </header>
 
       {(node.definition || !rb) && (
@@ -230,89 +302,47 @@ export function AtlasNodeView({ base, node, from, onWalk }) {
         </section>
       )}
 
-      <section className="atl__section" data-atlas-board="" aria-labelledby="atl-board">
-        <h2 className="atl__h2" id="atl-board">On the board</h2>
-        {!stats ? <p className="atl__quiet">Not computed yet — the numbers come from the board's active postings after the nightly crawl.</p> : (
-          <>
-            <p className="atl__big"><b>{stats.postings}</b> open posting{stats.postings === 1 ? "" : "s"} {node.kind === "role" ? "for this role" : "ask for it"}</p>
-            {rb ? <RoleBoard base={base} rb={rb} payText={payLine(rb.pay)} /> : (
-              <div className="atl__cols">
-                {stats.topSkills?.length > 0 && <div><h3 className="atl__h3">Seen with it most</h3><LinkList base={base} items={stats.topSkills} /></div>}
-                {stats.topRoles?.length > 0 && <div><h3 className="atl__h3">Roles that ask for it</h3><LinkList base={base} items={stats.topRoles} /></div>}
-                {pay && <div><h3 className="atl__h3">Pay range</h3><p className="atl__pay" data-atlas-pay="">{pay}<br /><span className="atl__quiet">from {stats.pay.n} posting{stats.pay.n === 1 ? "" : "s"} that state pay</span></p></div>}
-              </div>
+      <div className="atl-card__facts" data-atlas-board="">
+        {headline
+          ? <p className="atl-card__fact atl__big"><b>{headline.value}</b> {headline.words}</p>
+          : <p className="atl__quiet">Not computed yet — the numbers come from the board's active postings after the nightly crawl.</p>}
+        {node.you && (
+          <div className="atl__you atl-card__fact" data-atlas-you={node.you.status}>
+            <span className={`mark ${YOU_MARK[node.you.status] || "mark--dim"}`}>{YOU_LABEL[node.you.status] || node.you.status}</span>
+            {node.you.have?.length > 0 && <span className="atl__quiet"> Have: {node.you.have.map(h => h.name).join(", ")}.</span>}
+            {node.you.missing?.length > 0 && (
+              <span className="atl__quiet"> Missing: {node.you.missing.map((m, i) => (
+                <span key={m.slug}>{i ? ", " : ""}<Link to={href(m.slug)} className="atl__link">{m.name}</Link></span>))}.</span>
             )}
-            <p className="atl__quiet" data-atlas-computed="">{computedLine(stats)}</p>
-          </>
-        )}
-        {node.fewOpenPostings && <p className="atl__quiet" data-atlas-few="">{FEW_POSTINGS_LINE}</p>}
-      </section>
-
-      {/* ⭐ D116 M7 · the same tree as Your map, centred on the role (its top skills; distance = the share asking). */}
-      {node.kind === "role" && <RoleMap base={base} slug={node.slug} />}
-
-      {rb && roleBoardParts(rb).nextLevel && <RoleNextLevel base={base} steps={rb.nextLevel} />}
-
-      {node.kind === "role" && node.sponsors?.length > 0 && (
-        <section className="atl__section" data-atlas-sponsors="" aria-labelledby="atl-sponsors">
-          <h2 className="atl__h2" id="atl-sponsors">Companies hiring {node.name} that sponsor</h2>
-          <ul className="atl__links">
-            {node.sponsors.map(s => (
-              <li key={s.company} data-atlas-sponsor-level={s.level || undefined}>
-                <b>{s.company}</b>{s.signal ? <> <SponsorshipChip signal={s.signal} needed /></> : null}
-                {" "}· {s.titleLine || s.text} · {s.postings} open posting{s.postings === 1 ? "" : "s"}
-              </li>
-            ))}
-          </ul>
-          <p className="atl__quiet">
-            Companies with open postings for this role and certified LCAs on record ·{" "}
-            {node.sponsors[0].source?.url
-              ? <a href={node.sponsors[0].source.url} target="_blank" rel="noopener noreferrer">{node.sponsors[0].source.name}</a>
-              : node.sponsors[0].source?.name}
-            {node.sponsors[0].source?.through ? `, through ${node.sponsors[0].source.through}` : ""}. A record of filings, not a promise about any posting.
-          </p>
-        </section>
-      )}
-
-      {groups.length > 0 && (
-        <section className="atl__section" data-atlas-related="" aria-labelledby="atl-related">
-          <h2 className="atl__h2" id="atl-related">Related</h2>
-          <div className="atl__related">
-            <div className="atl__cols">
-              {groups.map(g => <div key={g.title} data-edge-group={g.type}><h3 className="atl__h3">{g.title}</h3><LinkList base={base} items={g.items} /></div>)}
-            </div>
-            <AtlasGraph node={node} hrefFor={href} onWalk={onWalk} />
           </div>
-        </section>
+        )}
+      </div>
+      {node.fewOpenPostings && <p className="atl__quiet" data-atlas-few="">{FEW_POSTINGS_LINE}</p>}
+
+      {(node.learn || canProve) && (
+        <div className="atl-card__acts" data-atlas-card-actions="">
+          {/* The one depth box (A93): DepthButton, navigating in the app; data-href names where each goes. */}
+          {learnHref && <span data-atlas-learn-it="" data-href={learnHref}><DepthButton primary onClick={() => navigate(learnHref)}>Learn it</DepthButton></span>}
+          {canProve && <span data-atlas-prove-it="" data-href={proveHref}><DepthButton onClick={() => navigate(proveHref)}>Prove it · 1 min</DepthButton></span>}
+        </div>
       )}
 
-      {(resources.length > 0 || node.learn) && (
-        <section className="atl__section" data-atlas-resources="" aria-labelledby="atl-res">
-          <h2 className="atl__h2" id="atl-res">Resources</h2>
-          <ul className="atl__res">
-            {/* ⭐ D115 P4(b): the step of the owner's learning path that teaches it — first, above Wikidata's links. */}
-            {node.learn && (
-              <li data-atlas-learn={node.learn.stepId}>
-                <Link to={`${base}/learn#step-${encodeURIComponent(node.learn.stepId)}`} className="atl__link atl__res-learn">Learn it: {node.learn.label}</Link>
-                <div className="atl__quiet">{node.learn.title} · From silicon to software</div>
-              </li>
-            )}
-          </ul>
-          {/* ⭐ D119: the resources as tiles — the one ResourceTile, each with its stored picture (or what it is, in type). */}
-          {resources.length > 0 && (
-            <ResourceGrid>
-              {resources.map(r => (
-                <li key={r.url} data-resource-cost={r.cost || ""}>
-                  <ResourceTile item={{ id: null, k: r.format ? r.format.charAt(0).toUpperCase() + r.format.slice(1) : "Article", u: r.url, t: r.title, s: resourceMeta(r).join(" · ") }}
-                    thumb={r.thumb || null} extra={r.cost === "free" ? <span className="mark mark--ok">Free</span> : null} />
-                </li>
-              ))}
-            </ResourceGrid>
-          )}
-        </section>
+      {panes.length > 0 && (
+        <div className="atl-card__panes" role="group" aria-label="Show" data-atlas-panes="">
+          {panes.map(p => (
+            <DepthButton key={p.id} pressed={pane === p.id} onClick={() => setPane(pane === p.id ? null : p.id)}>
+              <span data-atlas-pane-btn={p.id}>{p.label}</span>
+            </DepthButton>
+          ))}
+        </div>
       )}
-
-      <WikipediaBlock wiki={node.wikipedia} />
+      {panes.map(p => (
+        <section key={p.id} className="atl__section atl-card__pane" data-atlas-pane={p.id} hidden={pane !== p.id} aria-label={p.label}
+          data-atlas-related={p.id === "related" ? "" : undefined} data-atlas-resources={p.id === "resources" ? "" : undefined}
+          data-atlas-sponsors={p.id === "sponsors" ? "" : undefined} data-atlas-role-pane={p.id === "board" ? "" : undefined}>
+          {body[p.id]}
+        </section>
+      ))}
     </article>
   );
 }
@@ -393,7 +423,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
             <p className="atl__quiet" role="status" data-atlas-missing="">There is no published Atlas page by that name. <Link to={base} className="atl__link">Search the Atlas</Link></p>
           )}
           {page.status === "done" && page.node && (
-            <AtlasNodeView base={base} node={page.node} from={location.state?.from ? { q: location.state.from, via: location.state.via } : null}
+            <AtlasNodeView base={base} node={page.node} signedIn={signedIn} from={location.state?.from ? { q: location.state.from, via: location.state.via } : null}
               onWalk={(s) => navigate(`${base}/${encodeURIComponent(s)}`)} />
           )}
         </>
