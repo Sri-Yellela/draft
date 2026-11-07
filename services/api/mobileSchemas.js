@@ -496,6 +496,7 @@ export const RESPONSE_SCHEMAS = Object.freeze({
     fields: {
       question: "string", answered: "boolean", eligibility: "boolean|null",
       draft: "string|null", template: "string|null", needsOwnWords: "boolean|null",
+      salary: "boolean", scope: "string|null", scopeSeveral: "boolean|null",
       blocking: "$BlockingJob[]",
     },
     fieldNotes: {

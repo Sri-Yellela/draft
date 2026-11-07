@@ -13,7 +13,7 @@ import {
 } from "../services/customAnswers.js";
 import { normaliseQuestion, workHistoryCompanies } from "../shared/savedAnswers.js";
 import { lifecycleInputs } from "../services/answerLifecycle.js";
-import { isSalaryQuestion, jobAnswerScope, readScoped, rememberScoped, resolveScoped, scopedResolves, withScopedAnswers } from "../services/scopedAnswers.js";
+import { isSalaryQuestion, jobAnswerScope, readScoped, rememberScoped, resolveScoped, scopedResolves, scopePhrase, withScopedAnswers } from "../services/scopedAnswers.js";
 import { atsScorePair } from "../shared/resumeScores.js";
 import { getKnownLogoUrl } from "../shared/companyLogos.js";
 import {
@@ -5056,6 +5056,22 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         }
         entry.blocking.push({ jobId: row.job_id, runId: row.run_id, title: row.title, company: row.company });
       }
+    }
+    // ⭐ D165 (5): a salary question says so, and names the scope its answer will be saved under (the scopes of the
+    // jobs blocked on it — exactly what the save route uses), so the inline box can read "Use this for similar jobs
+    // (engineering, US) next time". Every other question is saved globally and carries salary: false.
+    const scopeByJob = new Map();
+    for (const entry of byQuestion.values()) {
+      entry.salary = isSalaryQuestion(entry.question);
+      if (!entry.salary) continue;
+      const scopes = entry.blocking.map(b => {
+        const k = String(b.jobId);
+        if (!scopeByJob.has(k)) scopeByJob.set(k, jobAnswerScope(db, b.jobId));
+        return scopeByJob.get(k);
+      });
+      const { phrase, several } = scopePhrase(scopes);
+      entry.scope = phrase;
+      entry.scopeSeveral = several;
     }
     const questions = [...byQuestion.values()];
     res.json({

@@ -440,6 +440,9 @@ export interface OpenQuestion {
   /** The system will never write this one for the candidate, however full the answer store gets. `draft` is a starting point to edit, not an answer to send. */
   needsOwnWords: boolean | null;
   question: string;
+  salary: boolean;
+  scope: string | null;
+  scopeSeveral: boolean | null;
   template: string | null;
 }
 

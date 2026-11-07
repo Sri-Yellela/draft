@@ -24,7 +24,7 @@ import AutoSettingsDrawer from "../components/AutoSettingsDrawer.jsx";
 import DraftHouseTree, { Branch, RunCard } from "../components/DraftHouseTree.jsx";
 // ⭐ D146 · the one tracker: the table (and its opened row), what each row says, and The Table's full sheet behind View.
 import ApplicationTracker, { RowOpen, TrackerCounts, TrackerFilters, DEFAULT_SORT } from "../components/ApplicationTracker.jsx";
-import { heldHeadline, runSteps, answerSource, earlierAttempts } from "../lib/heldApplication.js";
+import { heldHeadline, runSteps, answerSource, earlierAttempts, saveForNextTimeLabel } from "../lib/heldApplication.js";
 import {
   trackerRows, trackerView, trackerCounts, sortRows, stageActions, readyToSend, sendAllConfirmText, TRACKER_PERIODS,
 } from "../lib/trackerRows.js";
@@ -925,11 +925,12 @@ export function AutoApplyPanel({ user = null } = {}) {
               <div className="dht-ask" data-inline-question="">
                 <input aria-label={ask.question} value={inlineAnswerStart(ask, questionDrafts?.[ask.question])}
                   onChange={(e) => setQuestionDrafts(prev => ({ ...prev, [ask.question]: e.target.value }))} />
-                {/* D55 (f): "Save this answer for next time" — ticked keeps it for every employer. */}
-                <label data-save-for-next-time="">
+                {/* D55 (f) + D165 (5): ticked keeps it — a salary for the scope the server names ("Use this for similar
+                    jobs (engineering, US) next time"), any other answer for every employer. */}
+                <label data-save-for-next-time="" data-save-scope={ask.salary ? (ask.scope || "open") : "all"}>
                   <input type="checkbox" checked={questionRemember[ask.question] !== false}
                     onChange={(e) => setQuestionRemember?.(prev => ({ ...prev, [ask.question]: e.target.checked }))} />
-                  Save this answer for next time
+                  {saveForNextTimeLabel(ask)}
                 </label>
                 {answersMsg && <span className="dh-fold__quiet" role="status">{answersMsg}</span>}
               </div>
@@ -1624,7 +1625,7 @@ export function AutoApplyPanel({ user = null } = {}) {
                           <input type="checkbox"
                             checked={questionRemember[q.question] !== false}
                             onChange={e => setQuestionRemember?.(prev => ({ ...prev, [q.question]: e.target.checked }))}/>
-                          Save this answer for next time
+                          {saveForNextTimeLabel(q)}
                           {questionRemember[q.question] === false && (q.blocking || []).length > 0 && (
                             <span style={{ color:theme.textDim }}>
                               — only for {[...new Set(q.blocking.map(b => b.company).filter(Boolean))].join(", ") || "this employer"}
