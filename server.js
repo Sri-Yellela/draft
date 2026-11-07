@@ -41,6 +41,7 @@ import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
 import { runAutoTick, runPicksFollowUps } from "./services/autoScheduler.js";
 import { sweepTestingRecords } from "./services/testingRecords.js";
+import { runCanaryCheck } from "./services/fullAutoCanary.js";
 import { startedByMiddleware, withStartedBy, SCHEDULER_STARTED } from "./services/startedByContext.js";
 import { requestIdMiddleware } from "./services/requestContext.js";
 import { prodKeyOutsideProduction } from "./services/modelUsage.js";
@@ -7631,6 +7632,11 @@ cron.schedule("40 3 * * *", () => {
     const r = sweepTestingRecords(db);
     console.log(`[testing-records] swept before ${new Date(r.cutoff * 1000).toISOString().slice(0, 10)}: ${Object.entries(r.deleted).map(([t, n]) => `${t} ${n}`).join(" · ")} (survey answers kept)`);
   } catch (e) { console.error("[testing-records] sweep failed:", e.message); }
+});
+// ⛔ D175 FA2 · the FULL AUTO canary: each test account in Apply for me on a sample résumé (its sends go to draft's
+// practice form, never an employer) — its last 36 h run read step by step; a red step is a line in pipeline health.
+cron.schedule("20 12 * * *", () => {
+  try { runCanaryCheck(db); } catch (e) { console.error("[canary] check failed:", e.message); }
 });
 
 // Refresh ATS job cache daily at 04:00 ET

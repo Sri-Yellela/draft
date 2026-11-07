@@ -17,6 +17,7 @@
 import { readAutoSettings, PAUSE_DAYS, COMPANY_WINDOW_DAYS } from "../shared/autoSettings.js";
 import { companyNameKey } from "../shared/companyIdentity.js";
 import { userHeld } from "./applyUserHold.js";
+import { canaryRefusal } from "./fullAutoCanary.js";
 import { fullAutoDisabled } from "./appSettings.js";
 import { eligibilityForJob, userEligibilityInputs } from "./jobEligibility.js";
 import { livenessFor, isStale } from "./jobs/jobHistory.js";
@@ -189,6 +190,9 @@ export async function runAutoTick(db, { nowSec = Math.floor(Date.now() / 1000), 
     } catch { /* no picks tables in this schema */ }
     if (!runDue(nowSec, settings, { lastRunAt: u.auto_last_run_at, savedAt })) { out.push({ userId: u.id, skipped: "not_due" }); continue; }
     if (userHeld(db, u.id)) { out.push({ userId: u.id, skipped: "held" }); continue; }
+    // ⛔ D175 FA2: a TEST account runs only on a sample résumé (its sends go to draft's practice form, never an employer).
+    const canaryNo = canaryRefusal(db, u.id);
+    if (canaryNo) { out.push({ userId: u.id, skipped: "canary_not_sample", error: canaryNo }); continue; }
     // The slot is spent whatever happens next, so a failing board does not retry every tick.
     db.prepare(`UPDATE users SET auto_last_run_at = ? WHERE id = ?`).run(nowSec, u.id);
     const slotAt = lastSlotAt(nowSec, settings);

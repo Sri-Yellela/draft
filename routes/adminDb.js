@@ -27,6 +27,7 @@ import { deriveProfileFilters } from "../services/jobs/profileFilterBridge.js";
 import { profileTitleSql } from "../services/profileTitleFilter.js";
 import { loadSimpleApplyProfile } from "../services/simpleApplyProfile.js";
 import { costAlarmStatus } from "../services/modelUsage.js";
+import { canaryAlerts } from "../services/fullAutoCanary.js";
 
 // A source that hasn't written in this long is treated as stale. Ashby stopped writing on
 // 2026-08-07 and nobody noticed for three days because nothing anywhere asserted freshness.
@@ -665,6 +666,9 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
           `$${c.spentUsd.toFixed(2)} spent on models today (UTC), over the $${c.thresholdUsd.toFixed(2)} alarm — ` +
           c.byKey.map(k => `${k.keyLabel} $${k.costUsd.toFixed(2)}`).join(" · "));
       } catch (e) { console.warn("[pipeline-health] model cost alarm unavailable:", e.message); }
+      // ⛔ D175 FA2: the nightly FULL AUTO canary — a red step (critical when a send missed the practice form).
+      try { for (const a of canaryAlerts(db, { nowSec: now })) push(a.severity, "full_auto_canary", a.subject, a.detail); }
+      catch (e) { console.warn("[pipeline-health] full-auto canary unavailable:", e.message); }
       // A44: an alert when enrichment has STOPPED. The checks below fire on a failed run and the
       // coverage loop on exactly 0%; neither fires when runs simply cease, which is how local
       // enrichment stopped on 2026-08-24 with nothing raised — and A48 found that unenriched rows are
