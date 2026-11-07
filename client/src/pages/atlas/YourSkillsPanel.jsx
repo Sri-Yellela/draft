@@ -141,6 +141,14 @@ export default function YourSkillsPanel({ signedIn = true, base = "/app/atlas", 
   const load = () => api("/api/your-skills").then(r => { setList(r); onCounts?.(r.counts); }).catch(e => setError(e.message || "Your skills could not be read."));
   const loadMap = () => api("/api/your-skills/map").then(setMap).catch(e => setError(e.message || "The map could not be read."));
   useEffect(() => { if (signedIn) load(); }, [signedIn]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ⭐ D172 (3): a skill card's "Prove it" and Your run's quest arrive with ?prove=<skill> — that skill's own quick check
+  // (or its proof form) opens, once, as soon as the list is read.
+  useEffect(() => {
+    if (!list || openKey) return;
+    const want = (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("prove") : "")?.trim().toLowerCase();
+    const s = want ? list.skills.find(x => x.name.toLowerCase() === want && x.action) : null;
+    if (s) setOpenKey(s.key);
+  }, [list]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (signedIn && view === "map") loadMap(); }, [signedIn, view]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!signedIn) return <section className="ysk" data-your-skills=""><p className="ysk__quiet">Sign in to add, check and prove your skills.</p></section>;

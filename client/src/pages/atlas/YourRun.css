@@ -1,0 +1,29 @@
+/* ⭐ D172 (3) · Your run (atlas-redesign-sketch.html). Theme tokens only; the ring is a perfect circle (D60 allows rings). */
+.run-card { display: grid; grid-template-columns: 128px minmax(0, 1fr) auto; gap: 20px; align-items: center; padding: 20px;
+  border: 1px solid var(--c-border); border-radius: 14px; background: var(--c-surface); margin: 10px 0 20px; }
+.run-ring { width: 128px; height: 128px; }
+.run-ring__track { fill: none; stroke: var(--c-border); stroke-width: 10; }
+.run-ring__fill { fill: none; stroke: var(--c-accent); stroke-width: 10; stroke-linecap: round; }
+.run-ring__pct { fill: var(--c-ink); font: 700 22px/1 var(--font-body); }
+.run-card__level { margin: 0; font-size: clamp(26px, 2.6vw, 36px); line-height: 1.1; overflow-wrap: normal; word-break: normal; hyphens: none; }
+.run-card__next { margin: 6px 0; font-weight: 600; color: var(--c-ink); }
+.run-card__stats { display: flex; flex-direction: column; gap: 10px; max-width: 170px; }
+.run-stat { margin: 0; display: flex; flex-direction: column; align-items: flex-end; }
+.run-stat b { font-family: var(--font-display); font-size: 30px; line-height: 1; color: var(--c-ink); white-space: nowrap; }
+.run-stat span { font-size: 13px; color: var(--c-ink-muted); text-align: right; }
+.run-quests { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 10px; }
+.run-quest { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center; padding: 14px 16px;
+  border: 1px solid var(--c-border); border-radius: 12px; background: var(--c-surface); }
+.run-quest[data-quest-done] { opacity: 0.7; }
+.run-quest__main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.run-quest__main .atl__quiet { overflow-wrap: anywhere; }
+.run-quest__pts { font-weight: 700; color: var(--c-accent-ink); white-space: nowrap; }
+.run-quest__go { white-space: nowrap; }
+@media (max-width: 640px) {
+  .run-card { grid-template-columns: 96px 1fr; }
+  .run-ring { width: 96px; height: 96px; }
+  .run-card__stats { grid-column: 1 / -1; flex-direction: row; justify-content: flex-start; gap: 24px; max-width: none; }
+  .run-stat { align-items: flex-start; flex: 1 1 0; min-width: 0; }
+  .run-stat span { text-align: left; }
+  .run-quest { grid-template-columns: 1fr; gap: 6px; }
+}

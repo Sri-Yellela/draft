@@ -26,6 +26,7 @@ import { OverviewPanel, YourSkillsSlot, YourRoutePanel, LearnStages, TodaysQuest
   PanelHead } from "./AtlasPanels.jsx";
 import { panelFor, isPanelSlug, PANEL_LABEL, ATLAS_NAV, panelHref, courseIdOf } from "./atlasPanels.js";
 import { LibraryShelf, CoursePage } from "./LibraryPanel.jsx";
+import YourRun from "./YourRun.jsx";
 import {
   KIND_LABEL, relatedGroups, resolveSearch, loadNode, payLine, computedLine, orderedResources, resourceMeta, FEW_POSTINGS_LINE,
   WIKI_LICENCE, YOU_LABEL, YOU_MARK, LEVEL_READ_LABEL, shareText, stepTitle, stepEmptyLine, roleBoardParts, nodePanes, nodeHeadline,
@@ -417,6 +418,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
       {panel === "glossary" && <GlossaryPanel base={base} />}
       {learning && <LearnView signedIn={base.startsWith("/app")} />}
       {familyKey && <FamilyMap base={base} familyKey={familyKey} />}
+      {panel === "your-run" && <YourRun base={base} signedIn={signedIn} />}
       {panel === "library" && panelOnly && <LibraryShelf base={base} signedIn={signedIn} />}
       {courseId && <CoursePage base={base} id={courseId} signedIn={signedIn} />}
       {slug && !learning && !checking && !familyKey && !courseId && !panelOnly && (

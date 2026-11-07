@@ -84,7 +84,8 @@ function mapWorld() {
 
 test("D167 · d167AtlasHasOwnNav — the card: the eyebrow, the serif headline, three groups in the sketch's order", async () => {
   assert.deepEqual(ATLAS_NAV.map(g => [g.group, g.panels.map(p => p.label)]), [
-    ["You", ["Overview", "Your map", "Your skills", "Your route"]],
+    // ⭐ D172 (3) (changed on purpose): Your run, first in You, as the approved sketch draws it.
+    ["You", ["Your run", "Overview", "Your map", "Your skills", "Your route"]],
     // ⭐ D172 (2) (changed on purpose): the Library, first in Grow, as the approved sketch draws it.
     ["Grow", ["Library", "Learn", "Today's question", "The audit"]],
     ["Explore", ["Roles and skills", "This week's market", "Glossary"]],

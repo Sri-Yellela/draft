@@ -38,6 +38,15 @@ function openable(pieces) {
  * The user's earned marks, in the shape the one rule reads: { [itemId | "<step>#c<n>" | "<step>#build"]: at }.
  * ⛔ learn_progress (the old ticks) is never read here.
  */
+/**
+ * ⭐ D172 (3) · WHEN each idea was first explained — the checkpoint and the time, NEVER the words (points from proof,
+ * services/atlas/points.js). learn_explanations stays read in this one file (d117ExplanationsPrivate).
+ */
+export function explanationTimes(db, userId) {
+  try { return db.prepare(`SELECT checkpoint_id AS ref, created_at AS at FROM learn_explanations WHERE user_id = ?`).all(userId); }
+  catch { return []; }
+}
+
 export function earnedMarks(db, userId) {
   const marks = {};
   if (userId == null) return marks;
