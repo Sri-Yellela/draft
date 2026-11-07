@@ -1,5 +1,5 @@
 // REVAMP v1 — App.jsx
-import { useState, useEffect, useLayoutEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { api, setAuthContext }   from "./lib/api.js";
 import { adoptAccountTheme }     from "./styles/colorTokens.js";
@@ -434,10 +434,18 @@ function AppDashboard({ authUser, setAuthUser }) {
     [monetisationEnabled],
   );
 
-  const handleLogout = useCallback(async () => {
-    try { await api("/api/auth/logout", { method:"POST" }); } catch {}
-    setAuthContext("");
-    setAuthUser(null);
+  // ⛔ A138 (45h): ONE sign-out, however many callers. A session that expires under a page with N requests in flight gets
+  // N 401s; api.js fires "rm:session-expired" for each, and each used to POST /api/auth/logout — 20 in 25 ms on
+  // production (11-06 21:26:28Z). Callers within the same moment share the one in flight; it re-arms 2 s after it ends.
+  const logoutInFlight = useRef(null);
+  const handleLogout = useCallback(() => {
+    if (logoutInFlight.current) return logoutInFlight.current;
+    logoutInFlight.current = (async () => {
+      try { await api("/api/auth/logout", { method:"POST" }); } catch {}
+      setAuthContext("");
+      setAuthUser(null);
+    })().finally(() => { setTimeout(() => { logoutInFlight.current = null; }, 2000); });
+    return logoutInFlight.current;
   }, [setAuthUser]);
 
   // AH2: the ONE tab -> path mapping, read by both the click handler below and by the href the tab
