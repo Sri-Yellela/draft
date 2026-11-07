@@ -2,7 +2,7 @@
 // scripts/d145ClutterAudit.mjs — ⭐ D145 STEP 1 · THE CLUTTER AUDIT, read-only, in a real Chrome against a LOCAL draft.
 //
 // Boot draft on a COPY of a migrated database with the synthetic reviewer account seeded (services/reviewerDemo.js), e.g.
-//   RM_DATA_DIR=<copy dir> PORT=3961 DRAFT_TRIAL=on node server.js
+//   RM_DATA_DIR=<copy dir> PORT=3961 node server.js
 //   DRAFT_REVIEWER_PASSWORD=… node scripts/reviewerDemo.mjs --db <copy dir>/resume_master.db seed
 // then: DRAFT_REVIEWER_PASSWORD=… node scripts/d145ClutterAudit.mjs [--base http://localhost:3961] [--out docs/clutter-shots]
 //
@@ -87,9 +87,6 @@ const SCREENS = [
   { id: "account", name: "Account", path: "/app/account" },
   { id: "job-page", name: "The job page (public)", path: "JOBPAGE" },
   { id: "landing", name: "Landing (signed out)", path: "/", signedOut: true },
-  { id: "try", name: "Trial — /try (signed out)", path: "/try", signedOut: true },
-  { id: "try-samples", name: "Trial — choose a sample", path: "/try", trial: true },
-  { id: "try-tour", name: "Trial — the tour's first step", path: "/try", trial: true, pickSample: true },
 ];
 
 async function measure(page) {
@@ -155,16 +152,6 @@ async function signIn(page) {
     return r.status;
   }, USER, PASS);
 }
-async function trialSignUp(page, tag) {
-  return page.evaluate(async (u) => {
-    localStorage.setItem("draft.trialIntent", "1");
-    const r = await fetch("/api/auth/register", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: u, password: "Audit-Pass-2026!x", profile: { email: `${u}@example.com`, first_name: "Audit", last_name: "Tester" } }) });
-    const j = await r.json().catch(() => ({}));
-    if (j.authContext) sessionStorage.setItem("rm_auth_context", j.authContext);
-    return r.status;
-  }, `d145audit${Date.now().toString(36)}${tag}`);
-}
 
 // a public job page: the first /jobs/ URL in the sitemap
 let JOBPAGE = "/jobs";
@@ -181,19 +168,13 @@ try {
       const errors = [];
       page.on("pageerror", e => errors.push(e.message.slice(0, 120)));
       await page.setViewport({ width: w, height: h, isMobile: w < 500, hasTouch: w < 500 });
-      // The guided tour and first-visit prompts are part of what a person sees; nothing is dismissed.
+      // First-visit prompts are part of what a person sees; nothing is dismissed.
       await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
       let note = "";
-      if (s.trial) note = `sign-up ${await trialSignUp(page, w)}`;
-      else if (!s.signedOut) note = `sign-in ${await signIn(page)}`;
+      if (!s.signedOut) note = `sign-in ${await signIn(page)}`;
       const target = s.path === "JOBPAGE" ? JOBPAGE : s.path;
       await page.goto(`${BASE}${target}`, { waitUntil: "networkidle2", timeout: 60000 }).catch(e => errors.push("goto " + e.message.slice(0, 80)));
       await settle(1500);
-      if (s.pickSample) {
-        const ok = await page.waitForSelector(`[data-trial-choice="A"] button`, { timeout: 30000 }).then(() => true).catch(() => false);
-        if (ok) { await page.click(`[data-trial-choice="A"] button`); await page.waitForSelector("[data-guided-tour]", { timeout: 40000 }).catch(() => {}); await settle(2500); }
-        note += ok ? " · sample A" : " · NO SAMPLE OFFERED";
-      }
       let opened = null;
       if (s.open) { opened = await page.evaluate(s.open).catch(e => "ERR " + e.message.slice(0, 60)); await settle(1800); }
       const m = await measure(page);

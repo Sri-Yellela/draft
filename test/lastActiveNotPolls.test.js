@@ -12,7 +12,9 @@ const server = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
 
 test("lastActiveIgnoresBackgroundReads: polls and the admin page keep a credential alive but never move last active", () => {
   const set = server.slice(at(server, "const BACKGROUND_READS = new Set(["), at(server, "function bindAuthContext("));
-  for (const p of ["/api/trial/state", "/api/auth/me", "/api/sync/events"]) assert.ok(set.includes(`"${p}"`), p);
+  for (const p of ["/api/auth/me", "/api/sync/events"]) assert.ok(set.includes(`"${p}"`), p);
+  // 11-07: the D124 trial (and its /api/trial/state poll) was removed — the route no longer exists to be listed.
+  assert.ok(!set.includes('"/api/trial/state"'), "the removed trial poll is not listed");
   assert.match(set, /req\.method !== "GET"\) return false/, "a write is always activity");
   assert.match(set, /p\.startsWith\("\/api\/admin\/"\)/, "the admin page's reads are not the user's activity");
   const bind = server.slice(at(server, "function bindAuthContext("), at(server, '"[auth-context] bind failed:"', at(server, "function bindAuthContext(")));
@@ -22,10 +24,12 @@ test("lastActiveIgnoresBackgroundReads: polls and the admin page keep a credenti
   assert.match(server, /if \(uid && req\.sessionID && !isBackgroundRead\(req\) && Date\.now\(\)/, "the session registry too");
 });
 
-test("adminTrialRefreshesLive: every Admin → Trial panel re-reads on a timer while visible, not only on mount", () => {
-  const src = fs.readFileSync("client/src/panels/adminTrial.jsx", "utf8");
+// 11-07: Admin → Trial was removed with the trial; its two research panels (both surveys, People & questions) moved to
+// Admin → Testers' details (panels/adminTesterDetails.jsx) and keep the live re-read.
+test("adminTrialRefreshesLive: every Admin → Testers details panel re-reads on a timer while visible, not only on mount", () => {
+  const src = fs.readFileSync("client/src/panels/adminTesterDetails.jsx", "utf8");
   assert.match(src, /const LIVE_MS = 30_000;/);
   assert.match(src, /document\.visibilityState === "visible"/);
-  assert.equal((src.match(/useLive\(load\);/g) || []).length, 4, "the three panels + 44b People & questions");
+  assert.equal((src.match(/useLive\(load\);/g) || []).length, 2, "both surveys + 44b People & questions");
   assert.doesNotMatch(src, /useEffect\(\(\) => \{ load\(\); \}, \[load\]\);/);
 });

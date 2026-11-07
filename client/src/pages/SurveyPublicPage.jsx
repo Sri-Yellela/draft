@@ -1,7 +1,7 @@
 // ⭐ D130 (owner 11-01) · jobsviadraft.com/survey — THE STANDALONE SURVEY, for people who can't try the app: no sign-in,
 // no account, no résumé, no tour; the ONE form (SurveyForm) with the standalone questions from the server (name and
 // email first — their only identity; questions about the idea, not our screens). A hidden honeypot rides along; the
-// server limits each address to 5 an hour and keeps one response per email. The thank-you offers /try.
+// server limits each address to 5 an hour and keeps one response per email. The thank-you offers sign-up (/register).
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SurveyForm, { surveyPage, surveyCard } from "../components/SurveyForm.jsx";
@@ -33,8 +33,8 @@ export default function SurveyPublicPage() {
       <div style={surveyPage} data-survey-public="sent">
         <div style={{ ...surveyCard, textAlign: "center", padding: 22 }}>
           <h2 style={{ margin: "0 0 6px" }}>Thanks!</h2>
-          <p style={{ margin: "0 0 14px", color: "var(--color-text-muted)" }}>Want to see it? Try draft in about 8 minutes.</p>
-          <DepthButton primary onClick={() => navigate("/try")} data-survey-try="">Try draft</DepthButton>
+          <p style={{ margin: "0 0 14px", color: "var(--color-text-muted)" }}>Want to see it? Make an account and try draft.</p>
+          <DepthButton primary onClick={() => navigate("/register")} data-survey-try="">Try draft</DepthButton>
         </div>
       </div>
       </>

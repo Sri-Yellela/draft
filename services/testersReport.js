@@ -7,7 +7,7 @@
 // standalone answer whose email is one of those accounts' or an admin's. No names on the page; the export carries names
 // and emails only when asked (?contact=1, owner 11-02).
 
-import { SURVEY, STANDALONE_SURVEY, RATED, MID_MINUTES, MID_PER_WEEK } from "./trial.js";
+import { SURVEY, STANDALONE_SURVEY, RATED, MID_MINUTES, MID_PER_WEEK } from "./survey.js";
 import { HIDDEN_TAGS } from "./userAdmin.js";
 import { TOUR_STEPS } from "../shared/trialTour.js";
 

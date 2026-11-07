@@ -64,7 +64,7 @@ try {
     await page.setViewport({ width: w, height: h });
     await page.setCookie({ name: ADMIN_COOKIE, value: token, url: BASE });
     if (ADMIN_THEME) await page.evaluateOnNewDocument((t) => { try { localStorage.setItem("draft-theme", `system;admin=${t}`); } catch {} }, ADMIN_THEME);
-    await page.goto(`${BASE}/admin?g=people&s=trial`, { waitUntil: "networkidle2" });
+    await page.goto(`${BASE}/admin?g=people&s=testers`, { waitUntil: "networkidle2" });
     const ok = await page.waitForSelector("[data-admin-testers] [data-testers-headline='people']", { timeout: 20000 }).then(() => true).catch(() => false);
     check(`${name}: the Testers page renders`, ok, errors.join(" | "));
     if (!ok) continue;

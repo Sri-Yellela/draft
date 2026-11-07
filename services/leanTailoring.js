@@ -49,19 +49,18 @@ export const PLACEMENTS_MAX = 30;
 export const LEAN_LEDGER_RENAME = Object.freeze({ resume_tailor: "resume_generate" });
 
 /**
- * "lean" or "full" for one generation. DRAFT_TAILORING=lean turns it on for everyone; a trial account (D124) is lean
- * by default. Anything else is "full" — the request as it was before D123.
+ * The tailoring strategy for one generation: the admin's row, then the deploy's DRAFT_TAILORING, then "lean".
+ * The same for every account (the D124 trial, which once had its own default, was removed 11-07).
  */
-export function tailoringFor({ db = null, env = process.env, isTrial = false } = {}) {
+export function tailoringFor({ db = null, env = process.env } = {}) {
   // Owner 11-01: "switch the prompt between lean or the payload from the admin panel" — the admin's row first, for
-  // everyone (trial accounts included); then the deploy's DRAFT_TAILORING; then the trial default.
+  // everyone; then the deploy's DRAFT_TAILORING; then the default.
   const row = db ? String(getSetting(db, TAILORING_KEY) || "").trim().toLowerCase() : "";
   if (TAILORINGS.includes(row)) return row;
   const set = String(env.DRAFT_TAILORING || "").trim().toLowerCase();
   if (TAILORINGS.includes(set)) return set;
   // ⛔ Owner 11-07: a tailored résumé is a STRATEGY (lean · payload) paired with a model — lean when nothing is set,
-  // for everyone (it was "full" outside the trial). `isTrial` no longer changes it.
-  void isTrial;
+  // for everyone.
   return "lean";
 }
 
@@ -70,7 +69,7 @@ export function tailoringState(db, env = process.env) {
   const override = getSetting(db, TAILORING_KEY);
   const envRaw = env?.DRAFT_TAILORING ?? null;
   const known = (v) => TAILORINGS.includes(String(v || "").trim().toLowerCase());
-  return { mode: tailoringFor({ db, env }), trialMode: tailoringFor({ db, env, isTrial: true }), aPlusOverride: aPlusOverride(db),
+  return { mode: tailoringFor({ db, env }), aPlusOverride: aPlusOverride(db),
            source: known(override) ? "override" : known(envRaw) ? "env" : "default",
            override, envRaw, modes: [...TAILORINGS] };
 }

@@ -3,21 +3,22 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
-import { STANDALONE_SURVEY, SURVEY, saveStandaloneSurvey, standaloneCsv, surveySources, clearSurveyRateLimit, saveSurvey, startTrial,
-         SHARED_KEYS, STANDALONE_PER_HOUR } from "../services/trial.js";
+import { STANDALONE_SURVEY, SURVEY, saveStandaloneSurvey, standaloneCsv, surveySources, clearSurveyRateLimit,
+         SHARED_KEYS, STANDALONE_PER_HOUR } from "../services/survey.js";
 import { at } from "../test-support/sourceAnchors.js";
 
 // ⭐ D130 (owner 11-01): jobsviadraft.com/survey — the same form, no sign-in, no account; name and email; questions about
-// the idea; one response per email; both sources side by side in Admin → Trial. Synthetic people only.
+// the idea; one response per email; both sources side by side in Admin → Testers. Synthetic people only.
+// 11-07 (owner, changed on purpose): the D124 trial and its in-app survey were removed; the answers trial testers already
+// gave (trial_surveys) are still read beside the standalone ones, so a fixture writes such a row directly.
 
-process.env.DRAFT_TRIAL = "on";
 const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 function db0() { const db = new Database(":memory:"); for (const m of MIGRATIONS) db.exec(m.sql); return db; }
 const OK = { name: "Ana Example", email: "ana@example.com", search_stage: "Actively applying", field: "Data, ML and AI",
   time_per_app: "1 to 2 hours", interested: "Maybe", interested_why: "the price" };
 
 test("d130NoSigninNoAccount: the form and the answer are public routes, and an answer creates no account", () => {
-  const routes = read("routes/trial.js");
+  const routes = read("routes/survey.js");
   assert.match(routes, /app\.get\("\/api\/survey\/form", \(_req, res\) =>/, "no requireAuth on the form");
   assert.match(routes, /app\.post\("\/api\/survey", \(req, res\) =>/, "no requireAuth on the answer");
   const db = db0();
@@ -28,10 +29,10 @@ test("d130NoSigninNoAccount: the form and the answer are public routes, and an a
   assert.match(read("client/src/App.jsx"), /<Route path="\/survey"\s+element=\{<SurveyPublicPage\/>\}\/>/);
 });
 
-test("d130SameFormComponent: the trial's survey and /survey render the ONE SurveyForm", () => {
-  assert.match(read("client/src/components/TrialDock.jsx"), /<SurveyForm questions=\{survey\}/);
+test("d130SameFormComponent: /survey renders the ONE SurveyForm (the trial's in-app survey went with the trial)", () => {
   assert.match(read("client/src/pages/SurveyPublicPage.jsx"), /<SurveyForm questions=\{questions\} honeypot/);
-  assert.doesNotMatch(read("client/src/components/TrialDock.jsx"), /function Stars|function Question/, "not a second copy");
+  assert.doesNotMatch(read("client/src/pages/SurveyPublicPage.jsx"), /function Stars|function Question/, "not a second copy");
+  assert.equal(fs.existsSync("client/src/components/TrialDock.jsx"), false);
 });
 
 test("d130NoFeatureSpecificQuestions: no question rates our screens; D129's 1–7 are asked unchanged; the field not prefilled", () => {
@@ -70,8 +71,10 @@ test("d130AdminSideBySide: every shared question split trial · standalone · co
   const db = db0();
   clearSurveyRateLimit();
   db.prepare("INSERT INTO users (id, username, password_hash) VALUES (1, 't1', 'x')").run();
-  startTrial(db, 1);
-  saveSurvey(db, 1, { interested: "Maybe", rate_matches: 4, compared: "Much better", time_per_app: "30 minutes to 1 hour", apps_per_week: "6 to 15 a week" });
+  // A trial tester's answers, as the removed trial stored them (users.trial_at, trial_surveys).
+  db.prepare("UPDATE users SET trial_at = unixepoch(), trial_resume = 'A' WHERE id = 1").run();
+  db.prepare("INSERT INTO trial_surveys (user_id, answers) VALUES (1, ?)").run(JSON.stringify({ interested: "Maybe", rate_matches: 4,
+    compared: "Much better", time_per_app: "30 minutes to 1 hour", apps_per_week: "6 to 15 a week" }));
   saveStandaloneSurvey(db, { ...OK, idea_useful: 5, paid_before: "Yes, $20 to $100", apps_per_week: "1 to 5 a week" }, { ip: "198.51.100.4" });
   const s = surveySources(db);
   assert.deepEqual(s.responses, { trial: 1, standalone: 1, combined: 2 });
@@ -85,7 +88,7 @@ test("d130AdminSideBySide: every shared question split trial · standalone · co
   assert.equal(s.yc.betterThanToday.percent, 100);
   assert.equal(s.yc.interested.percent, 0);
   assert.equal(s.yc.stars.idea_useful, 5);
-  assert.match(read("client/src/panels/adminTrial.jsx"), /<Tally title="Trial" counts=\{v\.trial\}\/><Tally title="Standalone" counts=\{v\.standalone\}\/><Tally title="Combined" counts=\{v\.combined\}\/>/);
+  assert.match(read("client/src/panels/adminTesterDetails.jsx"), /<Tally title="Trial" counts=\{v\.trial\}\/><Tally title="Standalone" counts=\{v\.standalone\}\/><Tally title="Combined" counts=\{v\.combined\}\/>/);
 });
 
 test("d130ExportContactOnlyWithToggle: name and email only when asked; the friend's email likewise", () => {
@@ -96,7 +99,7 @@ test("d130ExportContactOnlyWithToggle: name and email only when asked; the frien
   assert.doesNotMatch(plain, /ana@example\.com|Ana Example|friend@example\.com/);
   const full = standaloneCsv(db, { includeContact: true });
   assert.match(full, /Ana Example,ana@example\.com/);
-  assert.match(read("routes/trial.js"), /standaloneCsv\(db, \{ includeContact: req\.query\.contact === "1" \}\)/);
+  assert.match(read("routes/survey.js"), /standaloneCsv\(db, \{ includeContact: req\.query\.contact === "1" \}\)/);
 });
 
 test("d130HoneypotAndRateLimit: a filled honeypot stores nothing; a sixth answer from one address in an hour is refused", () => {
@@ -110,10 +113,12 @@ test("d130HoneypotAndRateLimit: a filled honeypot stores nothing; a sixth answer
   assert.match(read("client/src/components/SurveyForm.jsx"), /name="website"/);
 });
 
-test("d130ThankYouLinksTry: the thank-you offers the trial in about 8 minutes", () => {
+// 11-07 (changed on purpose): /try was the trial's link; with the trial removed the thank-you offers sign-up.
+test("d130ThankYouLinksTry: the thank-you offers an account (sign-up), not the removed trial", () => {
   const page = read("client/src/pages/SurveyPublicPage.jsx");
-  assert.match(page, /Want to see it\? Try draft in about 8 minutes\./);
-  assert.match(page, /onClick=\{\(\) => navigate\("\/try"\)\}/);
+  assert.match(page, /Want to see it\? Make an account and try draft\./);
+  assert.match(page, /onClick=\{\(\) => navigate\("\/register"\)\}/);
+  assert.doesNotMatch(page, /navigate\("\/try"\)/);
   assert.match(read("client/src/pages/marketing/PrivacyPage.jsx"), /The survey at jobsviadraft\.com\/survey needs no account/);
 });
 

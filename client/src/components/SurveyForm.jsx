@@ -1,5 +1,5 @@
-// ⭐ THE ONE SURVEY FORM (D129 FINAL v2 + D130, owner 11-01) — the trial's ending and the standalone page
-// (jobsviadraft.com/survey) render THIS, with their own questions from the server: a plain, Google-Form-like page — a
+// ⭐ THE ONE SURVEY FORM (D129 FINAL v2 + D130, owner 11-01) — the standalone page (jobsviadraft.com/survey) renders
+// THIS (the trial's in-app survey, its other user, was removed 11-07), with their own questions from the server: a plain, Google-Form-like page — a
 // header with a progress line, section headings, a card per question, native dropdowns, labelled 5-star ratings,
 // follow-ups only when they apply ("what would make it 5 stars?" below 5), the required ones asked for before sending.
 import { useState } from "react";
@@ -68,7 +68,7 @@ function Question({ q, answers, set, missing }) {
 
 /**
  * @param questions  the server's list (SURVEY or STANDALONE_SURVEY)
- * @param initial    prefilled answers (the trial's field)
+ * @param initial    prefilled answers
  * @param title, intro  the header
  * @param onSubmit   async (answers) => void; a thrown error's message is shown
  * @param honeypot   D130: a hidden field a person never fills (a bot does); sent as `website`

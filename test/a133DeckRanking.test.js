@@ -25,14 +25,14 @@ const job = (id, score, extra = {}) => ({ id, title: `Engineer ${id}`, company: 
 const boardOf = (jobs) => async () => ({ ok: true, jobs, nextCursor: null });
 const scoresOf = (jobs) => { const m = new Map(jobs.map(j => [j.id, j.matchScore])); return (id) => m.get(id) ?? null; };
 
-test("a133DeckNotFrozenForUsers: the deal reads the board by ATS, the trial's frozen deck stays behind its gate, and the deck differs day to day", async () => {
+test("a133DeckNotFrozenForUsers: the deal reads the board by ATS, no account is dealt a frozen deck, and the deck differs day to day", async () => {
   const src = fs.readFileSync("server.js", "utf8");
   const route = src.slice(at(src, 'app.get("/api/draft/today"'), at(src, "// GET /api/company-logo/:key"));
   assert.match(route, /query: \{ pageSize: "50", sort: "atsScore", \.\.\.\(cursor \? \{ cursor \} : \{\}\) \}/, "candidates are the board's top BY ATS");
-  assert.match(route, /const trialSample = trialSampleOf\(db, req\.user\.id\);\s*\n\s*if \(trialSample\) return res\.json\(await trialDeckResponse/,
-    "the frozen sample deck is served only when the account IS a sample trial");
-  const trial = fs.readFileSync("services/trialDeck.js", "utf8");
-  assert.match(trial, /export function trialSampleOf\(db, userId\) \{\s*\n\s*if \(!isTrial\(db, userId\)\) return null;/);
+  // 11-07: the D124 trial's frozen sample deck (services/trialDeck.js) was removed with the trial — every account,
+  // a former trial account included, is dealt from the board.
+  assert.doesNotMatch(route, /trialSampleOf|trialDeckResponse/, "no frozen sample deck");
+  assert.equal(fs.existsSync("services/trialDeck.js"), false);
 
   // 20 equally good postings, deck of 10: yesterday's undecided ten rotate down, so today's deal is different.
   const jobs = Array.from({ length: 20 }, (_, i) => job(`j${i}`, 70));
@@ -97,4 +97,18 @@ test("a133DealRankingBlend: ATS 50 + best bets 30 + role similarity 20 over the 
   assert.equal(ranked[0].signals.similarity, 1);
   // Yesterday's card gives way to an equal fresh one.
   assert.deepEqual(rankDeal(pool, { scoreFor: () => 70, shownBefore: new Map([["a", 1]]) }).map(c => c.job.id), ["b", "a"]);
+});
+
+// Moved from test/tourFix.test.js (its tour went with the D124 trial, 11-07): the deck card's match is the card's own
+// stored score, for every account (A117), shown at its top right (D145 Step 3).
+test("deckCardShowsScore: every account's card carries its stored score, drawn as the card's top-right match", () => {
+  const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
+  const deck = read("client/src/panels/DeckView.jsx");
+  assert.match(deck, /<button type="button" data-deck-signal-row="" data-deck-signal="" data-deck-match=/);
+  assert.match(deck, /\{ "data-deck-score": parseInt\(facts\.match\.value, 10\) \}/);
+  assert.match(deck, /facts\.why\.matched\.map\(\(t\) => <span key=\{`m-\$\{t\}`\} data-chip="matched"/);
+  assert.match(deck, /facts\.why\.missing\.map\(\(t\) => <span key=\{`x-\$\{t\}`\} data-chip="missing"/);
+  assert.match(read("client/src/lib/deckCardFacts.js"), /value: `\$\{Math\.max\(0, Math\.min\(100, Math\.round\(card\.score\)\)\)\}%`, word: "résumé match"/);
+  assert.doesNotMatch(deck, /Drafted \$\{tally\.drafted\}/);
+  assert.match(read("server.js"), /\n    deck\.cards = deck\.cards\.map\(c => \(\{ \.\.\.c, score: scoreFor\(c\.job\.id\) \}\)\);/);
 });

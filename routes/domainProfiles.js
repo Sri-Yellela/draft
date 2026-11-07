@@ -25,7 +25,7 @@ import {
 } from "../services/profileSignalAggregator.js";
 import { mergeUniqueSignalLabels } from "../shared/profileSignals.js";
 import { startFromResume } from "../services/resumeOnboarding.js";
-import { sampleRoleFamily, sampleIdForText, activeSampleId } from "../services/trial.js";
+import { sampleRoleFamily, sampleIdForText, activeSampleId } from "../services/sampleResumes.js";
 import { readProfile } from "../services/structuredProfile.js";
 import { DATA_CLASS } from "../services/modelCall.js";
 // D162 G1: the feature names its task; the gateway picks the model (shared/modelTasks.js profile.domain_chips).
@@ -89,7 +89,6 @@ export const BUILTIN_REGISTRY = {
 // Try to load from the JSON file (preferred — easier to update).
 // Fall back to BUILTIN_REGISTRY if the file can't be read on the deployment host.
 let _registry = null;
-// A111: exported so the trial's own-résumé reading (routes/trial.js) infers the field from the SAME registry the onboarding uses.
 export function getRegistry() {
   if (_registry) return _registry;
   const candidates = [

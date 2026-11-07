@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { scoreAtsLocally } from "../services/localAtsScorer.js";
-import { samples } from "../services/trial.js";
+import { samples } from "../services/sampleResumes.js";
 import { BUILTIN_REGISTRY } from "../routes/domainProfiles.js";
 
 // ⭐ D126 P3 (owner 11-01): THE ATS FOR EVERY DISCIPLINE. Measured 11-01: the scorer extracted 0 terms from a mechanical
