@@ -7,6 +7,8 @@ data/
 # `data/` above is unanchored, so it also swallowed packages/ats-scorer/data — the scorer's
 # registries — and the package would have committed without them (A1, 2026-09-27).
 !packages/ats-scorer/data/
+# D151 Rule 5: the scale fixtures (scripts/scaleFixture.mjs) — 450 MB at 100k, ≈ 2.3 GB at 500k; always rebuilt, never committed.
+tmp/scale-*/
 env.sh
 
 
