@@ -255,19 +255,18 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
 export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, profile = null }) {
   const navigate = useNavigate();
   const [wide, setWide] = useState(false);      // the dock, expanded to its names (hover / focus / M)
-  const [open, setOpen] = useState(false);      // the menu's side panel
   const [peekOpen, setPeekOpen] = useState(false);
   const [peekPos, setPeekPos] = useState({ top: 0, left: 80 });
   const [askOpen, setAskOpen] = useState(false);
-  const dockRef = useRef(null), menuBtnRef = useRef(null), panelRef = useRef(null);
+  const dockRef = useRef(null);
   const profRef = useRef(null), peekRef = useRef(null), askRef = useRef(null), askBtnRef = useRef(null), peekTimer = useRef(null);
   const closePeek = useCallback(() => { clearTimeout(peekTimer.current); setPeekOpen(false); }, []);
   const go = useCallback((id, href) => {
-    setOpen(false); setWide(false); closePeek();
+    setWide(false); closePeek();
     if (id === "interview" && !hrefForTab?.(id)) { navigate(href || INTERVIEW_PATH); return; }
     onTabChange?.(id);
   }, [onTabChange, hrefForTab, navigate, closePeek]);
-  const goPath = useCallback((path) => { setOpen(false); setWide(false); closePeek(); navigate(path); }, [navigate, closePeek]);
+  const goPath = useCallback((path) => { setWide(false); closePeek(); navigate(path); }, [navigate, closePeek]);
 
   // A touch screen has no hover: a tap goes straight to the page (the icons carry their names for assistive tech).
   const canHover = typeof window === "undefined" || !window.matchMedia || window.matchMedia("(hover: hover)").matches;
@@ -357,27 +356,23 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
     return () => document.removeEventListener("pointerdown", onDown);
   }, [wide, peekOpen, closePeek]);
 
-  // The menu: Esc closes; M toggles — only while the Menu button is the navigation on screen (CSS decides), and never
-  // while typing. With the dock, M expands / folds it and Esc folds it (the peek first, then Ask draft).
+  // ⛔ 45n (owner 11-08, decision (10)): the side Menu is RETIRED — the dock is the one navigation. M expands / folds the
+  // dock (never while typing); Esc folds it (the peek first, then Ask draft).
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === "Escape" && open) { setOpen(false); menuBtnRef.current?.focus({ preventScroll: true }); return; }
       if (e.key === "Escape" && peekOpen) { closePeek(); profRef.current?.focus({ preventScroll: true }); return; }
       if (e.key === "Escape" && askOpen) { setAskOpen(false); askBtnRef.current?.focus?.({ preventScroll: true }); return; }
       if (e.key === "Escape") { setWide(false); return; }
       if ((e.key === "m" || e.key === "M") && !e.metaKey && !e.ctrlKey && !e.altKey) {
         const el = e.target;
         if (el?.closest?.("input,textarea,select,[contenteditable=''],[contenteditable='true']")) return;
-        const btn = menuBtnRef.current;
-        if (btn && getComputedStyle(btn).display !== "none") { e.preventDefault(); setOpen((o) => !o); return; }
         const dock = dockRef.current;
         if (dock && getComputedStyle(dock).display !== "none") { e.preventDefault(); setWide((u) => !u); }
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, peekOpen, askOpen, closePeek]);
-  useEffect(() => { if (open) panelRef.current?.querySelector("a,button")?.focus({ preventScroll: true }); }, [open]);
+  }, [peekOpen, askOpen, closePeek]);
   useEffect(() => () => clearTimeout(peekTimer.current), []);
 
   // ⭐ D167: the peek follows the dock — BESIDE a side dock (its middle on the picture's, its left past the open dock's
@@ -411,15 +406,11 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
     showPeek();
     requestAnimationFrame(() => peekRef.current?.querySelector("a,button:not([disabled])")?.focus({ preventScroll: true }));
   };
-  const pressAsk = (e) => { askBtnRef.current = e.currentTarget; setOpen(false); setWide(false); closePeek(); setAskOpen((o) => !o); };
+  const pressAsk = (e) => { askBtnRef.current = e.currentTarget; setWide(false); closePeek(); setAskOpen((o) => !o); };
 
   const body = typeof document !== "undefined" ? document.body : null;
   return (
     <>
-      <button type="button" ref={menuBtnRef} className="appnav-menu-btn" data-nav-menu-button=""
-        aria-haspopup="true" aria-expanded={open} aria-controls="appnav-panel" aria-keyshortcuts="M" onClick={() => setOpen((o) => !o)}>
-        Menu
-      </button>
       {body && createPortal(
         <>
           <nav aria-label="Main" ref={dockRef} className="appnav-dock" data-nav-dock="" data-open={dockOpen ? "true" : "false"} data-place={place}
@@ -436,15 +427,6 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
           <ProfilePeek open={peekOpen} profile={profile} pos={peekPos} onGo={goPath} onClose={closePeek}
             onEnter={canHover ? onPeekEnter : undefined} onLeave={canHover ? onPeekLeave : undefined} peekRef={peekRef} />
           <AskDraftPanel open={askOpen} panelRef={askRef} onClose={() => { setAskOpen(false); askBtnRef.current?.focus?.({ preventScroll: true }); }} />
-          <div className="appnav-scrim" data-open={open ? "true" : "false"} aria-hidden="true" onClick={() => setOpen(false)} />
-          <nav aria-label="Main menu" id="appnav-panel" ref={panelRef} className="appnav-panel" data-nav-panel="" data-open={open ? "true" : "false"}
-            {...(open ? null : { inert: "", "aria-hidden": true })}>
-            <button type="button" className="appnav-close" onClick={() => { setOpen(false); menuBtnRef.current?.focus({ preventScroll: true }); }}>Close</button>
-            <NavItems tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onGo={go} />
-            <ProfileItem profile={profile} onPress={() => { setOpen(false); profile?.onOpen?.(); }} />
-            <span className="appnav-sep" aria-hidden="true" />
-            <AskItem open={askOpen} onPress={pressAsk} />
-          </nav>
         </>, body)}
     </>
   );

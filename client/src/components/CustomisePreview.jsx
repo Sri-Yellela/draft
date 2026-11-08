@@ -14,8 +14,8 @@ import "./AppNav.css";
 import { ts } from "../themes/shapes.js";
 import "./FullHouse.css";
 
-// ⭐ D145 · the Navigation option's picture: the bar with its Menu button, and the Dock under it — drawn with AppNav's
-// real classes, so the carrier's data-navigation decides which of the two shows (as it does in the app).
+// ⭐ D145 · the preview's bar and the Dock under it — drawn with AppNav's real classes. (45n: the Menu button and the
+// Navigation option are retired; the dock is the one navigation.)
 const NAV = [["Daily Deck", "today's jobs"], ["Full House", "every job"], ["Home", "in progress"], ["The Table", "applied"], ["Atlas", "your skills"]];
 
 function Navigation() {
@@ -24,7 +24,6 @@ function Navigation() {
       <div className="cz-pv__bar">
         <StampLogo size="nav" />
         <span style={{ flex: 1 }} />
-        <span className="appnav-menu-btn">Menu</span>
       </div>
       <div className="appnav-dock cz-pv__dock">
         {NAV.map(([n, p], i) => (
@@ -82,7 +81,7 @@ export default function CustomisePreview({ part = "all", values }) {
   const attrs = Object.fromEntries(Object.entries(LAYOUT_OPTION_IDS).map(([k, o]) => [o.attribute, values?.[k] || o.default]));
   return (
     <div ref={ref} aria-hidden="true" className="cz-pv" data-part={part} data-customise-preview={part} {...attrs}>
-      {(part === "all" || part === "navigation") && <Navigation />}
+      {part === "all" && <Navigation />}
       {part === "text" && <TextSample />}
       {(part === "all" || part === "sentence") && (
         <div className="fh cz-pv__fh">
