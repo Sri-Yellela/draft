@@ -573,23 +573,23 @@
           "topics": [
             {
               "title": "a fraud model",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-c-01",
+              "status": "draft"
             },
             {
               "title": "search ranking",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-c-02",
+              "status": "draft"
             },
             {
               "title": "a support assistant with retrieval",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-c-03",
+              "status": "draft"
             },
             {
               "title": "an agent with tools",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-c-04",
+              "status": "draft"
             }
           ]
         },
@@ -599,18 +599,19 @@
           "topics": [
             {
               "title": "ML system design",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-iv-01",
+              "status": "draft"
             },
             {
               "title": "model debugging",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-iv-02",
+              "status": "draft"
             },
             {
               "title": "AI-enabled coding",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-iv-04",
+              "status": "draft",
+              "reused": true
             }
           ]
         }
@@ -642,8 +643,9 @@
             },
             {
               "title": "Git",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-f-04",
+              "status": "approved",
+              "reused": true
             }
           ]
         },
@@ -653,8 +655,9 @@
           "topics": [
             {
               "title": "containers",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-b-08",
+              "status": "draft",
+              "reused": true
             },
             {
               "title": "Kubernetes",
@@ -689,8 +692,9 @@
             },
             {
               "title": "observability",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-p-05",
+              "status": "draft",
+              "reused": true
             },
             {
               "title": "incident response and postmortems",
@@ -826,8 +830,9 @@
             },
             {
               "title": "authentication and sessions",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-b-02",
+              "status": "draft",
+              "reused": true
             }
           ]
         },
@@ -1388,8 +1393,9 @@
             },
             {
               "title": "accessibility",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-fe-03",
+              "status": "draft",
+              "reused": true
             },
             {
               "title": "the portfolio",
