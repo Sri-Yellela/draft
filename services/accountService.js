@@ -339,6 +339,8 @@ export const MERGE_PLAN = Object.freeze({
   a140_trial_cleaned: "keepInto",
   // D179 P4b / D159 T1 (237): the companies a person follows — one row per (user, company); a merged person follows both lists.
   company_follows: "keepInto",
+  // D154 P1 (240): one daily question per (user, day) — INTO's day stands on a clash; FROM's fill the rest.
+  daily_questions: "keepInto",
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */

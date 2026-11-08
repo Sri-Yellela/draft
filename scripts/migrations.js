@@ -6547,4 +6547,23 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_audit_sessions_created ON audit_sessions(claimed_at, created_at);
       `,
     },
+    {
+      // ⭐ D154 P1 (45l): the daily question — one per person per (their local) day, the item, WHY it was picked (review ·
+      // audit · aim · any), and the answer once given (services/learn/dailyQuestion.js). Merge plan: keepInto. Only ADDS.
+      id: "240_daily_questions",
+      sql: `
+        CREATE TABLE IF NOT EXISTS daily_questions (
+          user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          day          TEXT NOT NULL,
+          question_id  TEXT NOT NULL,
+          reason       TEXT NOT NULL,
+          chosen       INTEGER,
+          correct      INTEGER,
+          ms           INTEGER,
+          answered_at  INTEGER,
+          created_at   INTEGER NOT NULL,
+          PRIMARY KEY (user_id, day)
+        );
+      `,
+    },
   ];
