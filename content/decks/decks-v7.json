@@ -1,0 +1,1022 @@
+{
+ "version": 7,
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'data', stages 'foundations' (5) and 'building-blocks' (6), in Part C's order. Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "da-f-01",
+   "pathway": "data",
+   "stage": "foundations",
+   "title": "SQL in depth",
+   "skills": [
+    "sql",
+    "window functions",
+    "joins"
+   ],
+   "pieces": [
+    "b2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "The language of data work",
+     "points": [
+      "SQL is how you ask a database questions: filter, join, group, sort.",
+      "Past the basics, data work leans on joins done right, aggregation and window functions."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Joins, groups, windows",
+     "points": [
+      "An inner join keeps matching rows; a left join keeps every row on the left, with NULLs where nothing matches.",
+      "GROUP BY collapses rows into one per group; HAVING filters groups, WHERE filters rows before grouping.",
+      "Window functions compute across related rows without collapsing them: ROW_NUMBER, running totals, LAG to compare with the previous row.",
+      "Common table expressions (WITH …) name steps, so a long query reads top to bottom."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Correct before fast",
+     "points": [
+      "Joining on a key that isn't unique multiplies rows silently, inflating sums.",
+      "NULL never equals anything, NULL included; use IS NULL, and remember COUNT(column) skips NULLs.",
+      "A clever single query can be harder to check than three clear steps."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "'Latest row per customer' is ROW_NUMBER() OVER (PARTITION BY customer ORDER BY updated_at DESC) = 1.",
+      "Check row counts before and after every join.",
+      "Read the query plan when a query is slow (see Indexes and query plans)."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-f-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-f-02",
+   "pathway": "data",
+   "stage": "foundations",
+   "title": "Data modelling: grain and star schemas",
+   "skills": [
+    "data modelling",
+    "star schema",
+    "dimensional modelling"
+   ],
+   "pieces": [
+    "b2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Shaping data so questions are easy",
+     "points": [
+      "A data model decides which tables exist, what one row means, and how tables relate.",
+      "Analytics usually uses dimensional models: facts (events, measurements) and dimensions (who, what, where)."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Grain first",
+     "points": [
+      "The grain is what one row of a fact table represents: one order line, one page view, one day per store. Decide it before anything else.",
+      "Fact tables hold numbers to add up (amount, quantity) and keys to dimensions.",
+      "Dimension tables hold descriptive attributes (customer name, product category) to filter and group by.",
+      "A star schema is one fact table with dimensions around it, joined by keys."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Easy to query, more to build",
+     "points": [
+      "Star schemas duplicate some data (denormalisation) to make queries simple and fast.",
+      "Mixing grains in one table (orders and order lines) leads to double counting.",
+      "Wide, flat tables are easy for one report and hard to reuse for the next."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A fact_orders table at one row per order line, with dim_customer, dim_product and dim_date.",
+      "Surrogate keys in dimensions, so history can be tracked (see slowly changing dimensions).",
+      "Every table documented with its grain in one sentence."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-f-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-f-03",
+   "pathway": "data",
+   "stage": "foundations",
+   "title": "Python for data",
+   "skills": [
+    "python",
+    "pandas"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "The glue of data work",
+     "points": [
+      "Python with pandas (or Polars) loads, cleans, joins and reshapes tabular data, and connects to almost everything.",
+      "Notebooks (Jupyter) mix code, results and notes for exploring."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "DataFrames, vectorising, types",
+     "points": [
+      "A DataFrame is a table in memory; operations apply to whole columns at once (vectorised), which is far faster than looping over rows.",
+      "Watch types: dates as datetime, money as decimals or integers of cents, categories as category.",
+      "merge is a SQL join; groupby + agg is GROUP BY; check row counts after each.",
+      "Missing values are NaN or None; decide per column whether to drop, fill or flag them."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Notebook to production",
+     "points": [
+      "Everything in memory is fast until the data doesn't fit; then push work into the database or a distributed engine.",
+      "Notebooks run cells in any order, so results may not be reproducible; turn finished work into scripts or modules with tests.",
+      "Row-by-row loops are easy to write and slow."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Pinned dependencies (a lock file) so a pipeline runs the same next month.",
+      "Reading Parquet rather than CSV: typed, compressed, columnar.",
+      "Small reusable functions for cleaning steps, each with a test."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-f-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-f-04",
+   "pathway": "data",
+   "stage": "foundations",
+   "title": "Statistics basics",
+   "skills": [
+    "statistics",
+    "distributions"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Reasoning with uncertainty",
+     "points": [
+      "Statistics tells you what data can and can't support: what's typical, how spread out it is, and whether a difference is real or noise.",
+      "Most data mistakes are statistical, not technical."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Centre, spread, samples",
+     "points": [
+      "Mean, median and mode describe the centre; with skewed data (incomes, latencies) the median is more representative.",
+      "Standard deviation and percentiles describe spread.",
+      "A sample estimates the whole population; bigger samples give narrower confidence intervals.",
+      "Correlation measures how two things move together; it doesn't show that one causes the other."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Simple numbers hide shapes",
+     "points": [
+      "An average can describe nobody: half the users at 1 and half at 9 average 5.",
+      "Outliers can dominate a mean; decide whether they're errors or the most important rows.",
+      "Testing many things at once makes some 'significant' by chance."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Plot the distribution before quoting any single number.",
+      "Report a range or interval, not just a point estimate.",
+      "Ask how the sample was collected; a biased sample can't be fixed with more rows."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-f-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-f-05",
+   "pathway": "data",
+   "stage": "foundations",
+   "title": "Data quality",
+   "skills": [
+    "data quality",
+    "testing"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Can you trust the numbers?",
+     "points": [
+      "Data quality is whether data is complete, correct, consistent, unique and on time.",
+      "A dashboard is only as good as the rows behind it."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Test data like code",
+     "points": [
+      "Checks for: nulls where values are required, duplicate keys, values out of range, broken references between tables.",
+      "Freshness: did today's data arrive? Volume: is the row count far from normal?",
+      "Run checks in the pipeline and stop or flag bad data before it reaches reports.",
+      "Each dataset has an owner who is told when its checks fail."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Strict or available",
+     "points": [
+      "Stopping a pipeline on a failed check protects reports but leaves them stale.",
+      "Too many noisy checks get ignored; start with the ones that would really hurt.",
+      "Fixing data downstream hides the problem; fix it at the source when you can."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "dbt tests or Great Expectations alongside each model.",
+      "Alerts on freshness and on sudden drops in volume.",
+      "A short note on each dashboard: where the data comes from and when it was last updated."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-f-05-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-b-01",
+   "pathway": "data",
+   "stage": "building-blocks",
+   "title": "Batch and streaming",
+   "skills": [
+    "batch processing",
+    "streaming"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Process later, or process now",
+     "points": [
+      "Batch processing handles data in chunks on a schedule (every night, every hour).",
+      "Streaming processes each event as it arrives, within seconds."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Windows and time",
+     "points": [
+      "Batch jobs read a bounded set (yesterday's files) and can simply be rerun.",
+      "Streams are unbounded; aggregates are computed over windows (per minute, per session).",
+      "Event time (when it happened) and processing time (when it arrived) differ; late events need handling.",
+      "Engines: Spark for batch; Flink, Kafka Streams or Spark Structured Streaming for streams."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Freshness against simplicity",
+     "points": [
+      "Streaming gives fresher results and is harder to build, test, debug and backfill.",
+      "Many 'real-time' needs are met by hourly batches.",
+      "Running both (a fast stream and a corrective batch) doubles the logic to maintain."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Start with batch; stream only where minutes matter (fraud, alerts, live dashboards).",
+      "Store raw events so any job can be rerun from the start.",
+      "Watch lag: how far behind real time the stream is."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-b-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-b-02",
+   "pathway": "data",
+   "stage": "building-blocks",
+   "title": "Orchestration",
+   "skills": [
+    "orchestration",
+    "airflow",
+    "pipelines"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Running steps in the right order",
+     "points": [
+      "An orchestrator schedules pipeline steps, runs them in dependency order, retries failures and shows what ran.",
+      "Airflow, Dagster and Prefect are common choices."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Graphs of tasks",
+     "points": [
+      "A pipeline is a directed acyclic graph (DAG): each task runs after the tasks it depends on.",
+      "Each run is for a logical date or partition, so reruns and backfills target a specific day.",
+      "Tasks should be idempotent: rerunning a day replaces that day's output instead of adding to it.",
+      "Sensors or events start work when data arrives, not just at a clock time."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Control against complexity",
+     "points": [
+      "An orchestrator adds a system to run and learn, which pays off once there are many dependent jobs.",
+      "Heavy work belongs in the engines (warehouse, Spark); the orchestrator should coordinate, not compute.",
+      "Too many tiny tasks make the graph hard to read and slow to schedule."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Alerts on failure and on runs that take far longer than usual.",
+      "Backfills run one partition at a time, with limits on parallel runs.",
+      "Pipelines kept in version control and reviewed like code."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-b-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-b-03",
+   "pathway": "data",
+   "stage": "building-blocks",
+   "title": "Warehouses and lakes",
+   "skills": [
+    "data warehouse",
+    "data lake",
+    "columnar storage"
+   ],
+   "pieces": [
+    "b2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Where analytical data lives",
+     "points": [
+      "A data warehouse (Snowflake, BigQuery, Redshift) stores structured tables tuned for large analytical queries.",
+      "A data lake stores files (often Parquet) in cheap object storage; a lakehouse adds table features on top (Delta, Iceberg)."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Columns and partitions",
+     "points": [
+      "Columnar storage keeps each column together, so a query reading 3 of 100 columns reads little, and similar values compress well.",
+      "Partitioning splits a table by a column (usually date); filtering on it skips whole partitions.",
+      "Clustering or sorting within partitions narrows reads further.",
+      "Compute and storage are separate in most cloud warehouses: you pay for what queries scan."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Cost follows what you scan",
+     "points": [
+      "SELECT * on a wide, unpartitioned table can cost real money every run.",
+      "Too many small partitions or files slow everything down; too few skip too little.",
+      "Lakes are flexible and cheap but need discipline to stay queryable."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Tables partitioned by event date; queries always filter on it.",
+      "Raw, cleaned and modelled layers (sometimes called bronze, silver, gold).",
+      "Cost dashboards showing which queries scan the most."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-b-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-b-04",
+   "pathway": "data",
+   "stage": "building-blocks",
+   "title": "dbt and testing",
+   "skills": [
+    "dbt",
+    "analytics engineering",
+    "testing"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "SQL models with software habits",
+     "points": [
+      "dbt turns SELECT statements into tables and views in the warehouse, in dependency order.",
+      "It brings version control, tests, documentation and code review to SQL transformations."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Models, refs, tests",
+     "points": [
+      "Each model is a SELECT in a file; ref('other_model') declares a dependency, so dbt builds a graph.",
+      "Tests check models: unique, not_null, accepted values, relationships, plus custom SQL tests.",
+      "Incremental models add only new rows instead of rebuilding the whole table.",
+      "Documentation and lineage are generated from the project."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Structure helps until it sprawls",
+     "points": [
+      "Hundreds of models with unclear layers become as hard to follow as the scripts they replaced.",
+      "Incremental models are faster and need care with late or updated rows.",
+      "Tests that always fail get ignored; fix them or remove them."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Layers: staging (clean the source), intermediate, marts (what reports read).",
+      "Every pull request builds and tests the changed models (CI).",
+      "Primary keys tested unique and not null on every model."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-b-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-b-05",
+   "pathway": "data",
+   "stage": "building-blocks",
+   "title": "Change data capture",
+   "skills": [
+    "change data capture",
+    "cdc",
+    "replication"
+   ],
+   "pieces": [
+    "b2",
+    "x1"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Following every change in a database",
+     "points": [
+      "Change data capture (CDC) reads a database's own change log and emits each insert, update and delete as an event.",
+      "It keeps a warehouse or another service in step with the source, in near real time."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Logs, not queries",
+     "points": [
+      "Log-based CDC (Debezium, for example) reads the write-ahead log or binlog, so it sees every change, deletes included, without loading the source.",
+      "Query-based extraction ('WHERE updated_at > last run') misses deletes and rows whose timestamp wasn't updated.",
+      "Each event has the before and after values and a position in the log, so consumers can resume where they stopped.",
+      "Events usually flow through Kafka to the warehouse or other services."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Fresh and complete, more to run",
+     "points": [
+      "CDC needs access to database logs and careful handling of schema changes.",
+      "Consumers must apply events in order per row and cope with duplicates.",
+      "A full initial snapshot is needed before the stream of changes makes sense."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A replica of a production table in the warehouse, minutes behind.",
+      "Soft deletes or a deleted flag in the warehouse, so history isn't lost.",
+      "Alerts when the CDC connector falls behind the log."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-b-05-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-b-06",
+   "pathway": "data",
+   "stage": "building-blocks",
+   "title": "Kafka",
+   "skills": [
+    "kafka",
+    "event streaming"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "A durable log of events",
+     "points": [
+      "Kafka stores streams of events in topics, keeps them for a set time, and lets many consumers read them independently.",
+      "It's the backbone between services and pipelines in many companies."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Topics, partitions, offsets, groups",
+     "points": [
+      "A topic is split into partitions; events with the same key go to the same partition, which keeps their order.",
+      "Each consumer tracks its offset (position) per partition, so it can stop and resume.",
+      "A consumer group shares the partitions among its members; adding consumers (up to the partition count) adds throughput.",
+      "Events are kept for a retention period whether or not anyone read them, so new consumers can replay history."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Scale and order, at a price",
+     "points": [
+      "Order is guaranteed only within a partition, not across a topic.",
+      "The partition count limits parallelism and is awkward to change later.",
+      "Delivery is at least once by default; consumers must handle duplicates (exactly-once needs extra setup)."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Keys chosen by what must stay in order (an account id, an order id).",
+      "Schemas for messages kept in a schema registry, changed compatibly.",
+      "Consumer lag watched as the main health signal."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-b-06-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "da-f-01-q1",
+   "type": "scenario",
+   "role": "Data Analyst",
+   "level": "entry",
+   "skills": [
+    "sql",
+    "joins"
+   ],
+   "pieces": [
+    "b2"
+   ],
+   "stem": "After joining orders to a payments table, total revenue doubles. What's the most likely cause?",
+   "choices": [
+    "Some orders have more than one payment row, so the join repeats each order",
+    "SUM is broken for large numbers",
+    "The left join dropped rows",
+    "The database cached an old result"
+   ],
+   "correct": 0,
+   "why": [
+    "A one-to-many join repeats the order's amount once per matching payment.",
+    "SUM is fine; the rows are duplicated.",
+    "Dropping rows would lower the total.",
+    "A cache wouldn't double it."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-f-02-q1",
+   "type": "scenario",
+   "role": "Analytics Engineer",
+   "level": "entry",
+   "skills": [
+    "data modelling"
+   ],
+   "pieces": [
+    "b2"
+   ],
+   "stem": "A table has one row per order, and the order's total, but someone adds a column per product in the order. Why is this a problem?",
+   "choices": [
+    "The grain is no longer clear; product facts belong in a separate table at one row per order line",
+    "Too many columns slow SQL down",
+    "Products should be stored as text",
+    "It isn't a problem"
+   ],
+   "correct": 0,
+   "why": [
+    "Mixing the order grain with the line grain invites double counting and missing data.",
+    "Width is the smaller issue.",
+    "That loses structure.",
+    "It breaks every product-level question."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-f-03-q1",
+   "type": "scenario",
+   "role": "Data Analyst",
+   "level": "entry",
+   "skills": [
+    "python",
+    "pandas"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A pandas script loops over 5 million rows with iterrows() to compute price × quantity, and takes 20 minutes. What's the fix?",
+   "choices": [
+    "Compute it as a vectorised column operation: df['total'] = df['price'] * df['quantity']",
+    "Use a faster laptop",
+    "Split the file into 100 CSVs",
+    "Convert the columns to strings first"
+   ],
+   "correct": 0,
+   "why": [
+    "Vectorised operations run in optimised native code over whole columns.",
+    "It shaves time but keeps the slow pattern.",
+    "That adds work without fixing the loop.",
+    "Strings make arithmetic impossible."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-f-04-q1",
+   "type": "scenario",
+   "role": "Data Analyst",
+   "level": "entry",
+   "skills": [
+    "statistics"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "stem": "Average time on site rose from 3 to 6 minutes after a change, but most users' time barely moved. What should you check first?",
+   "choices": [
+    "The distribution: a few extreme sessions (or bots) can pull the mean up; compare medians and percentiles",
+    "Nothing, the average doubled",
+    "The colour of the new design",
+    "Whether the change was popular on social media"
+   ],
+   "correct": 0,
+   "why": [
+    "Means are pulled by outliers; the median shows the typical user.",
+    "The mean alone can mislead.",
+    "Not related to the measurement.",
+    "Not evidence about time on site."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-f-05-q1",
+   "type": "scenario",
+   "role": "Data Engineer",
+   "level": "entry",
+   "skills": [
+    "data quality"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Yesterday's sales dashboard showed a 40 % drop. It turned out half the stores' data hadn't arrived. Which check would have caught it?",
+   "choices": [
+    "A volume or completeness check: row counts per store per day compared with normal, failing loudly when far off",
+    "A check that sales are positive",
+    "A spell-check on store names",
+    "A faster dashboard"
+   ],
+   "correct": 0,
+   "why": [
+    "Missing stores show up as a sudden drop in rows and in stores reporting.",
+    "The rows that arrived were valid.",
+    "Not related.",
+    "Speed doesn't detect missing data."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-b-01-q1",
+   "type": "scenario",
+   "role": "Data Engineer",
+   "level": "entry",
+   "skills": [
+    "streaming",
+    "batch processing"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "stem": "A team wants a streaming pipeline for a revenue report that finance reads once each morning. What's the better choice?",
+   "choices": [
+    "A daily batch job: simpler, cheaper and easier to rerun, and fresh enough for a morning report",
+    "Streaming, because it's more modern",
+    "A pipeline that runs every second",
+    "Manual exports"
+   ],
+   "correct": 0,
+   "why": [
+    "Match freshness to the need; the morning report doesn't need seconds.",
+    "Newer isn't a requirement.",
+    "That's streaming's cost without its need.",
+    "Manual work is error-prone."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-b-02-q1",
+   "type": "scenario",
+   "role": "Data Engineer",
+   "level": "entry",
+   "skills": [
+    "orchestration",
+    "idempotency"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "stem": "Rerunning yesterday's pipeline after a fix doubled yesterday's rows in the output table. What design prevents this?",
+   "choices": [
+    "Make each run replace its own date partition (overwrite or delete-then-insert for that day) instead of appending",
+    "Never rerun pipelines",
+    "Add a DISTINCT to every report",
+    "Run the pipeline twice to check"
+   ],
+   "correct": 0,
+   "why": [
+    "Idempotent writes per partition make reruns safe.",
+    "Reruns are how you fix bad data.",
+    "That hides the duplication everywhere.",
+    "It makes the duplication worse."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-b-03-q1",
+   "type": "scenario",
+   "role": "Data Engineer",
+   "level": "entry",
+   "skills": [
+    "columnar storage",
+    "partitioning"
+   ],
+   "pieces": [
+    "b2"
+   ],
+   "stem": "A daily query scans a 4-year events table to get yesterday's numbers, and it's slow and expensive. What helps most?",
+   "choices": [
+    "Partition the table by event date and filter on that date, so only yesterday's partition is read",
+    "Add more columns",
+    "Export it to CSV first",
+    "Run it at night"
+   ],
+   "correct": 0,
+   "why": [
+    "Partition pruning skips almost all of the data.",
+    "That increases what's stored.",
+    "CSV is slower and larger.",
+    "It's still a full scan."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-b-04-q1",
+   "type": "scenario",
+   "role": "Analytics Engineer",
+   "level": "entry",
+   "skills": [
+    "dbt",
+    "testing"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A dbt model's primary key suddenly has duplicates after an upstream change, and dashboards double-count. Which practice catches this before it ships?",
+   "choices": [
+    "unique and not_null tests on the model's key, run in CI on every change",
+    "Reviewing dashboards weekly",
+    "Making the model a view",
+    "Adding DISTINCT in the dashboard"
+   ],
+   "correct": 0,
+   "why": [
+    "The test fails as soon as the key duplicates, before reports use it.",
+    "Too late, and by eye.",
+    "Materialisation doesn't change uniqueness.",
+    "That hides the bug in one place only."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-b-05-q1",
+   "type": "scenario",
+   "role": "Data Engineer",
+   "level": "entry",
+   "skills": [
+    "change data capture"
+   ],
+   "pieces": [
+    "b2"
+   ],
+   "stem": "Your nightly extract uses WHERE updated_at > :last_run, and the warehouse still shows customers who were deleted weeks ago. Why?",
+   "choices": [
+    "Deleted rows no longer exist to be selected, so the query never sees the deletion; log-based CDC captures deletes",
+    "The warehouse is caching",
+    "updated_at is in the wrong time zone",
+    "Deleted customers come back automatically"
+   ],
+   "correct": 0,
+   "why": [
+    "A query can only return rows that exist; the delete only appears in the database's log.",
+    "Caching isn't the cause.",
+    "Time zones can skew windows but don't explain missing deletes.",
+    "They don't."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-b-06-q1",
+   "type": "scenario",
+   "role": "Data Engineer",
+   "level": "entry",
+   "skills": [
+    "kafka"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "stem": "Events for the same order are sometimes processed out of order. The producer sends them with a random key. What fixes it?",
+   "choices": [
+    "Use the order id as the message key, so all of an order's events go to one partition and keep their order",
+    "Add more partitions",
+    "Add more consumers",
+    "Increase retention"
+   ],
+   "correct": 0,
+   "why": [
+    "Kafka keeps order within a partition; the key decides the partition.",
+    "More partitions spread them further.",
+    "More consumers don't change the ordering rule.",
+    "Retention is about how long events are kept."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}
