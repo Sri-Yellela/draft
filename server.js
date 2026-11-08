@@ -89,6 +89,7 @@ import { readPolicy as readBoardPolicy, setPolicy as setBoardPolicy, sweepAged }
 import { sweepScope } from "./services/jobs/boardScope.js";
 import { createClassifyBacklog } from "./services/jobs/classifyBacklog.js";
 import { createCompanyLinker, companyReviewQueue, decideCompanyReview, companyRecordStats } from "./services/companies/companyRecords.js";
+import { stripSampleProfiles } from "./services/sampleProfileStrip.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
@@ -15428,6 +15429,9 @@ app.listen(PORT, () => {
   }, Number(process.env.BOARD_FIT_BOOT_DELAY_MS ?? 30000)).unref?.()).then(() => {
     // ⛔⛔ D153 (3): the backlog classification walk, from READY (never inside the warm-up; it yields between pages).
     // On the same ready as the board-fit pass — the warm-up is started once (test/a123BoardFitReconcile A123 (7)).
+    // ⛔ A140 (1): the removed trial's fictional sample details out of every profile — small (one row per account),
+    // idempotent, once per boot on ready.
+    try { stripSampleProfiles(db); } catch (e) { console.warn("[a140] sample strip:", e.message); }
     const classified = classifyBacklog.run("boot");
     // ⭐ D179 P4a: the company records walk after the classify walk (one background walk on the loop at a time).
     if (process.env.COMPANY_RECORDS !== "off") Promise.resolve(classified).then(() => companyLinker.run("boot"));

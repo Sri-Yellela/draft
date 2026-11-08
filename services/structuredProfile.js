@@ -20,6 +20,8 @@ import { readAutoSettings } from "../shared/autoSettings.js";
 import { degreeKey } from "../shared/eligibility.js";
 import { evidenceMap, evidenceKey, rekeyEvidence } from "./proofLinks.js";
 import { markBacking } from "./resumeClaimGuard.js";
+// ⛔ A140 (owner 11-08): a fictional sample résumé (the removed trial's) never fills or is offered as the person's profile.
+import { activeSampleId } from "./sampleResumes.js";
 
 // ── Application defaults: the groups, the keys, what each accepts ─────────────────────────────
 const YES_NO = ["yes", "no"];
@@ -360,15 +362,16 @@ export function readProfile(db, userId) {
   let s = readSections(db, userId);
   const firstOpen = !db.prepare(`SELECT 1 FROM profile_sections WHERE user_id = ?`).get(userId);
   let suggestion = null;
+  const sample = !!activeSampleId(db, userId);   // ⛔ A140: a sample is not the person — nothing filled or offered from it
   if (firstOpen) {
-    const parsed = profileFromResume(db, userId);
+    const parsed = sample ? null : profileFromResume(db, userId);
     if (parsed?.ok) writeSections(db, userId, parsed, "resume");
     else db.prepare(`INSERT OR IGNORE INTO profile_sections (user_id) VALUES (?)`).run(userId);
     importStatedDefaults(db, userId);
     s = readSections(db, userId);
   } else {
     const basis = payloadBasis(db, userId);
-    if (basis && basis !== s.importedBasis) {
+    if (!sample && basis && basis !== s.importedBasis) {
       const parsed = profileFromResume(db, userId);
       if (parsed?.ok) suggestion = { basis, summary: parsed.summary, experience: parsed.experience, education: parsed.education,
         skills: parsed.skills, links: parsed.links };
@@ -382,6 +385,7 @@ export function readProfile(db, userId) {
 
 /** "Your résumé says X — use it?" — one press replaces the sections with the new parse. */
 export function useResumeSuggestion(db, userId) {
+  if (activeSampleId(db, userId)) return false;   // ⛔ A140
   const parsed = profileFromResume(db, userId);
   if (!parsed?.ok) return false;
   writeSections(db, userId, parsed, "resume");

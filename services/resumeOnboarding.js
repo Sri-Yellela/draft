@@ -147,8 +147,66 @@ export function startFromResume(db, userId, { content, name }, deps) {
     return Number(r.lastInsertRowid);
   })();
   deps.saveBaseResume(id, text, name || "resume.txt");
-  const filled = fillEmptyProfileFields(db, userId, text);
+  // ⛔ A140 (owner 11-08): a fictional sample never fills the person's contact fields.
+  const filled = sampleFamily ? [] : fillEmptyProfileFields(db, userId, text);
   const profile = deps.readProfile(db, userId);
   try { deps.onProfileWrite?.(id); } catch { /* the board re-scores on its next read */ }
   return { profileId: id, inferred, filled, completeness: profile?.completeness || null };
+}
+
+// ── ⛔ A140 (owner 11-08) · A NEW RÉSUMÉ, OR NEW SEARCH TERMS, MOVE WHAT THE PROFILE SEARCHES FOR ──────────────────
+// The owner swapped a software résumé for a construction project manager's and changed the search terms by hand, and
+// the board still showed software postings. The board RANKS by the job profile's declared role (domain_profiles
+// role_family → the role_key rank, "the declared role leads") and its target titles (CC1) — and both were written ONCE,
+// by the first onboarding (startFromResume). A later base résumé only re-extracted the signal lists; a hand edit of the
+// search terms changed the q terms but never the declared role. Name / phone / email moved only because the A33 prefill
+// offered them on the page.
+
+/** Re-read the job profile from a résumé (or from search terms): role, domain, level, titles, keywords, verbs, tools. */
+export function followProfileText(db, profileId, text, { registry, sampleRoleFamily = null, keepName = false } = {}) {
+  const inferred = inferProfileFromResume(text, registry);
+  const fam = sampleRoleFamily?.(text);
+  if (fam) inferred.roleFamily = fam;
+  if (inferred.domain === "general" && inferred.score < 3) return { changed: false, inferred };   // nothing readable: keep it
+  const before = db.prepare("SELECT profile_name, role_family, domain, target_titles FROM domain_profiles WHERE id = ?").get(profileId);
+  if (!before) return { changed: false, inferred };
+  // The profile's NAME follows only when it is still a registry label (the onboarding's own name), never one the person typed.
+  const labels = new Set(Object.values(registry || {}).map(e => e?.label).filter(Boolean).concat(["My job profile", "General"]));
+  const name = !keepName && labels.has(before.profile_name) ? inferred.profileName : before.profile_name;
+  db.prepare(`UPDATE domain_profiles SET profile_name = ?, role_family = ?, domain = ?, seniority = ?, target_titles = ?,
+      selected_keywords = ?, selected_verbs = ?, selected_tools = ? WHERE id = ?`)
+    .run(name, inferred.roleFamily, inferred.domain, inferred.seniority, JSON.stringify(inferred.titles),
+      JSON.stringify(inferred.keywords), JSON.stringify(inferred.verbs), JSON.stringify(inferred.tools), profileId);
+  return { changed: before.role_family !== inferred.roleFamily || before.domain !== inferred.domain
+    || before.target_titles !== JSON.stringify(inferred.titles), inferred, from: { roleFamily: before.role_family, domain: before.domain } };
+}
+
+/**
+ * A NEW résumé moves the contact / education fields that still hold what the OLD résumé said (or are empty); a field the
+ * person typed themselves (its value is not in the old résumé) is kept. Returns the fields written.
+ */
+export function followResumeFields(db, userId, oldText, newText) {
+  const proposals = prefillFromResumeText(newText);
+  db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
+  const row = db.prepare("SELECT * FROM user_profile WHERE user_id = ?").get(userId) || {};
+  const old = lower(oldText).replace(/\s+/g, " ");
+  const written = [];
+  for (const field of PREFILL_FIELDS) {
+    if (!(field in row)) continue;
+    const v = proposals[field]?.value;
+    if (!v) continue;
+    const cur = row[field] == null ? "" : String(row[field]).trim();
+    const fromOld = cur && old && old.includes(lower(cur).replace(/\s+/g, " "));
+    if (cur && !fromOld) continue;                 // typed by the person — kept
+    if (cur === String(v)) continue;
+    db.prepare(`UPDATE user_profile SET ${field} = ? WHERE user_id = ?`).run(String(v), userId);
+    written.push(field);
+  }
+  // The one-line location the fill also reads, kept in step with a city / state the résumé moved.
+  if (written.includes("city") || written.includes("state")) {
+    const r = db.prepare("SELECT city, state FROM user_profile WHERE user_id = ?").get(userId) || {};
+    const loc = [r.city, r.state].filter(Boolean).join(", ");
+    if (loc && "location" in row) db.prepare("UPDATE user_profile SET location = ? WHERE user_id = ?").run(loc, userId);
+  }
+  return written;
 }

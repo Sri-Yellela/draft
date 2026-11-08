@@ -24,9 +24,9 @@ import {
   syncSelectedSkillSuggestions,
 } from "../services/profileSignalAggregator.js";
 import { mergeUniqueSignalLabels } from "../shared/profileSignals.js";
-import { startFromResume } from "../services/resumeOnboarding.js";
+import { startFromResume, followProfileText, followResumeFields } from "../services/resumeOnboarding.js";
 import { sampleRoleFamily, sampleIdForText, activeSampleId } from "../services/sampleResumes.js";
-import { readProfile } from "../services/structuredProfile.js";
+import { readProfile, useResumeSuggestion } from "../services/structuredProfile.js";
 import { DATA_CLASS } from "../services/modelCall.js";
 // D162 G1: the feature names its task; the gateway picks the model (shared/modelTasks.js profile.domain_chips).
 import { callTask } from "../services/modelGateway.js";
@@ -402,8 +402,25 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
     if (!profile) return res.status(404).json({ error: "Profile not found" });
     const { content, name } = req.body || {};
     if (content === undefined) return res.status(400).json({ error: "content required" });
+    // ⛔ A140 (owner 11-08): the résumé before this one — what "still holds the old résumé's value" is measured against.
+    const oldText = db.prepare("SELECT content FROM profile_base_resumes WHERE profile_id = ? AND user_id = ?").get(profile.id, req.user.id)?.content || "";
     saveBaseResumeRecord(db, { userId: req.user.id, profileId: profile.id }, content, name || "resume.txt");
-    const roleTitles = JSON.parse(profile.target_titles || "[]");
+    // ⛔ A140: a NEW résumé moves what the profile SEARCHES for (the declared role, domain, level, target titles —
+    // the board ranks by them), the contact / education fields that still hold the old résumé's values, and — on the
+    // active profile — the experience / education / skills sections (an explicit upload is the person's own act; the
+    // D101 offer stays for every other case). A fictional sample résumé moves nothing about the person.
+    const isSample = !!sampleIdForText(content);
+    const changedText = String(content || "").trim() !== String(oldText || "").trim();
+    let followed = { changed: false }, fields = [], sections = false;
+    if (changedText && String(content || "").trim().length >= 200) {
+      try { followed = followProfileText(db, profile.id, content, { registry: getRegistry(), sampleRoleFamily }); } catch (e) { console.warn("[a140] profile follow:", e.message); }
+      if (!isSample) {
+        try { fields = followResumeFields(db, req.user.id, oldText, content); } catch (e) { console.warn("[a140] fields follow:", e.message); }
+        if (profile.is_active) { try { sections = useResumeSuggestion(db, req.user.id); } catch (e) { console.warn("[a140] sections follow:", e.message); } }
+      }
+    }
+    const fresh = db.prepare("SELECT target_titles FROM domain_profiles WHERE id = ?").get(profile.id);
+    const roleTitles = JSON.parse(fresh?.target_titles || profile.target_titles || "[]");
     const signals = upsertSimpleApplyProfile(
       db,
       { userId: req.user.id, profileId: profile.id },
@@ -412,9 +429,14 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
     );
     // P1 (10-02): a new résumé re-extracts the lists, exactly as /signals/refresh does — so it says so
     // in the same words, rather than a bare ok:true over replaced hand edits.
+    const moved = [followed.changed ? `your job search now follows it (${followed.inferred?.profileName || followed.inferred?.domain})` : null,
+      fields.length ? `contact details updated (${fields.join(", ").replace(/_/g, " ")})` : null,
+      sections ? "your experience, education and skills replaced from it" : null].filter(Boolean);
     res.json({ ok: true, profileId: profile.id, signals, replaced: "extracted", preserved: "claims",
+      followed: { profile: !!followed.changed, roleFamily: followed.inferred?.roleFamily ?? null, fields, sections },
       notice: "Re-extracted from your new resume. Any hand edits to these lists were replaced. "
-            + "Terms you claimed are stored separately and were not affected." });
+            + "Terms you claimed are stored separately and were not affected."
+            + (moved.length ? ` Also: ${moved.join("; ")}.` : "") });
   });
 
   router.get("/:id/signals", (req, res) => {
@@ -536,7 +558,19 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
       next.structuredFacts.clearanceLevel || null,
       next.structuredFacts.degreeLevel || null,
     );
-    res.json(next);
+    // ⛔ A140 (owner 11-08): search terms typed by hand also move the declared role the board ranks by — read from the
+    // terms + titles the same way a résumé is read; nothing changes when they name no field the registry knows.
+    let followed = null;
+    const termsChanged = req.body?.searchTerms !== undefined
+      && JSON.stringify(next.searchTerms) !== JSON.stringify(cleanStringArray(current.searchTerms, 12).map(v => v.toLowerCase()));
+    if (termsChanged && next.searchTerms.length) {
+      try {
+        const text = [...next.searchTerms, ...next.searchTerms, ...next.titles].join(" · ");
+        const f = followProfileText(db, profile.id, text, { registry: getRegistry() });
+        if (f.changed) followed = { roleFamily: f.inferred.roleFamily, domain: f.inferred.domain, titles: f.inferred.titles };
+      } catch (e) { console.warn("[a140] search terms follow:", e.message); }
+    }
+    res.json(followed ? { ...next, followed } : next);
   });
 
   router.get("/:id/suggestions", (req, res) => {
