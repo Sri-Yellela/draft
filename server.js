@@ -158,6 +158,7 @@ import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { roleReadiness } from "./services/atlas/roleReadiness.js";
 import { practiceProgress } from "./services/learn/practiceProgress.js";
+import { stackExposure } from "./services/learn/stackExposure.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
 import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes, jobsSitemapPageCount, companiesSitemapRoutes, jobPath, atlasLinksFor } from "./services/jobs/publicJobPage.js";
@@ -12732,6 +12733,11 @@ app.get("/api/learn/today", requireAuth, (req, res) => {
 // ⭐ D154 P6 + P7 (45n) · the quiet progress card — per-skill accuracy, the level from proof, the forgiving streak.
 app.get("/api/learn/progress", requireAuth, (req, res) => {
   try { res.set("Cache-Control", "no-store").json(practiceProgress(db, req.user.id, /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.day || "")) ? String(req.query.day) : null)); }
+  catch (e) { auditFail(res, e); }
+});
+// ⭐ D154 P9 (45n) · "how exposed is my stack" — the person's technologies across OUR open postings, with the trend.
+app.get("/api/learn/stack-exposure", requireAuth, (req, res) => {
+  try { res.set("Cache-Control", "private, no-store").json(stackExposure(db, req.user.id)); }
   catch (e) { auditFail(res, e); }
 });
 // ⭐ D154 P1 (45m) · the reminder — OFF until the person turns it on, at the hour they choose (their local hour).
