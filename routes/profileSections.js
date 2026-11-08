@@ -11,10 +11,19 @@
 // PUT  /api/profile/proof-page             D109 P3 · { enabled, handle }
 // PUT  /api/profile/education-override       D112 d2 · { degree, field, school, year } — the Change override for a form
 //                                             that needs something else; all empty clears it (the section speaks again)
+// ⭐ D183 P1 · PROFILE = YOUR PAGE (services/profilePage.js):
+// GET    /api/profile/page                     the owner's page: header, source, sections, skills in two columns, where
+//                                             you fit, achievements, links, and who can see each (DEFAULT only you)
+// GET    /api/profile/page?as=public|connection  ⛔ the SAME filter the public page uses — hidden sections are never sent
+// PUT    /api/profile/page/visibility          { page } · { section, level|null } · { searchable } · { openToWork } ·
+//                                             { referrals } · { headline }
+// POST   /api/profile/page/achievements        { title, detail?, year? } — one added by hand
+// DELETE /api/profile/page/achievements/:id
 // services/structuredProfile.js holds the rules; these routes only expose them.
 import { readProfile, saveSection, useResumeSuggestion, setDefault, readDefaults, profileLogosToResolve, setEducationOverride } from "../services/structuredProfile.js";
 import { resolveCaptureLogo } from "../services/jobs/companyLogoStore.js";
 import { setEvidence, readProofPage, setProofPage } from "../services/proofLinks.js";
+import { profilePage, viewFor, setVisibility, addAchievement, removeAchievement } from "../services/profilePage.js";
 
 /** @param opts.resolveLogo(db, { company }) — the logo lookup (injectable for tests); never awaited by a read. */
 export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo = resolveCaptureLogo } = {}) {
@@ -50,6 +59,23 @@ export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo
   app.put("/api/profile/education-override", requireAuth, (req, res) => {
     try { setEducationOverride(db, req.user.id, req.body || {}); res.json(readProfile(db, req.user.id)); }
     catch (e) { fail(res, e); }
+  });
+  // ⭐ D183 P1 · the page. `as` previews a visitor's view through the server's own filter (View as the public).
+  const pageView = (req) => {
+    const as = String(req.query?.as || "owner");
+    return viewFor(profilePage(db, req.user.id), as === "public" ? "public" : as === "connection" ? "connection" : "owner");
+  };
+  app.get("/api/profile/page", requireAuth, (req, res) => {
+    try { res.json(pageView(req)); lookUpLogos(req.user.id); } catch (e) { fail(res, e); }
+  });
+  app.put("/api/profile/page/visibility", requireAuth, (req, res) => {
+    try { setVisibility(db, req.user.id, req.body || {}); res.json(profilePage(db, req.user.id)); } catch (e) { fail(res, e); }
+  });
+  app.post("/api/profile/page/achievements", requireAuth, (req, res) => {
+    try { addAchievement(db, req.user.id, req.body || {}); res.json(profilePage(db, req.user.id)); } catch (e) { fail(res, e); }
+  });
+  app.delete("/api/profile/page/achievements/:id", requireAuth, (req, res) => {
+    try { removeAchievement(db, req.user.id, req.params.id); res.json(profilePage(db, req.user.id)); } catch (e) { fail(res, e); }
   });
   app.put("/api/profile/defaults/:key", requireAuth, (req, res) => {
     if (!req.body || !("value" in req.body)) return res.status(400).json({ error: "value_required", message: 'PUT {"value": "…"} or {"value": null} to clear.' });
