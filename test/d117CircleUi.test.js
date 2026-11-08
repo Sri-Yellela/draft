@@ -113,9 +113,9 @@ test("D117 C7 · d117EntryOpensPiece — an entry from anywhere lands on #step-<
   assert.match(read("client/src/pages/atlas/YourMap.jsx"), /\/learn#step-\$\{encodeURIComponent\(c\.step\)\}/);
   const view = read("client/src/pages/atlas/LearnView.jsx");
   assert.match(view, /const \[entry, setEntry\] = useState\(\(\) => entryFromHash\(location\.hash\)\);/);
-  assert.match(view, /const jump = useCallback\(\(id\) => \{ setEntry\(id\); setTab\("circle"\); \}, \[\]\);/);
+  // ⭐ D178 (changed on purpose): Learn is the circle only (its tabs retired), so an entry just selects the piece.
+  assert.match(view, /useEffect\(\(\) => \{ const id = entryFromHash\(location\.hash\); if \(id\) setEntry\(id\); \}, \[location\.hash\]\);/);
   assert.match(view, /<LearnCircle key=\{entry \|\| "start"\}[^>]*initialSel=\{entry \|\| next\?\.id\}/);
-  assert.match(view, /const \[tab, setTab\] = useState\("circle"\);/, "the circle is the default view");
 });
 
 test("D117 C7 · d117UnlockToastAndMap — the write that finishes a piece names what it unlocked; the toast says it; the piece's chips fill (D116 M8 colours the map)", async () => {

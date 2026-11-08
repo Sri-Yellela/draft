@@ -62,22 +62,6 @@ export const learnStepHref = (base, stepId) => `${base}/library/silicon-to-softw
 /** A panel's address under a mount. Overview is the mount itself (/atlas/overview works too). */
 export const panelHref = (base, id) => (id === "overview" ? base : `${base}/${id}`);
 
-/** The Learn panel's stages: one per part of the path, with its EARNED progress (the one stepState rule). */
-export function learnStages(steps, stateOf) {
-  const parts = [];
-  for (const s of steps) {
-    if (!parts.length || parts[parts.length - 1].index !== s.partIndex) parts.push({ index: s.partIndex, title: s.part, steps: [] });
-    parts[parts.length - 1].steps.push(s);
-  }
-  return parts.map(p => {
-    const done = p.steps.filter(s => stateOf(s).complete).length;
-    const next = p.steps.find(s => !stateOf(s).complete) || p.steps[0];
-    const started = p.steps.some(s => { const st = stateOf(s); return st.started || st.complete; });
-    return { index: p.index, title: p.title, done, total: p.steps.length, pct: p.steps.length ? Math.round((done / p.steps.length) * 100) : 0,
-      state: done === p.steps.length && done > 0 ? "done" : started ? "started" : "new", nextId: next?.id || null };
-  });
-}
-
 /** Overview's stat cards — only numbers that exist (no practice streak until D154 records one). */
 export function overviewStats({ readiness = null, nav = null } = {}) {
   const out = [];

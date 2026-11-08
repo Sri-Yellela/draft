@@ -219,7 +219,7 @@ export function CoursePage({ base, id, signedIn = false }) {
           <LessonDeck base={base} lessons={course.modules.find(m => m.n === sel)?.lessons || []} marks={marks} circle={circle} titles={titles} />
         </section>
       )}
-      <p className="atl__quiet"><Link to={`${base}/learn`} className="atl__link" data-course-circle="">The whole course as a circle →</Link></p>
+      <p className="atl__quiet"><Link to={`${base}/library/${course.id}?view=circle`} className="atl__link" data-course-circle="">The whole course as a circle →</Link></p>
       <h2 className="atl__h2">All modules</h2>
       {course.modules.map(m => {
         const mp = progress.modules.find(x => x.n === m.n);
@@ -237,7 +237,7 @@ export function CoursePage({ base, id, signedIn = false }) {
                   return (
                     <li key={l.id} className="lib-lesson" data-lesson={l.id} data-lesson-state={st.complete ? "checked" : st.started ? "started" : "new"}>
                       <div className="lib-lesson__main">
-                        <Link to={`${base}/learn#step-${encodeURIComponent(l.id)}`} className="lib-lesson__t">{l.title}</Link>
+                        <Link to={learnStepHref(base, l.id)} className="lib-lesson__t">{l.title}</Link>
                         <ul className="lib-links">
                           {l.links.filter(x => !x.optional).map(x => (
                             <li key={x.id} data-link-type={x.type} data-link-source={x.source?.id || ""}>
@@ -249,7 +249,7 @@ export function CoursePage({ base, id, signedIn = false }) {
                       <span className="lib-lesson__check" data-lesson-check="">
                         {st.complete
                           ? <span className="mark mark--ok">✓ checked</span>
-                          : <Link to={`${base}/learn#step-${encodeURIComponent(l.id)}`} className="atl__link">Check · {l.checks.length} question{l.checks.length === 1 ? "" : "s"}</Link>}
+                          : <Link to={learnStepHref(base, l.id)} className="atl__link">Check · {l.checks.length} question{l.checks.length === 1 ? "" : "s"}</Link>}
                       </span>
                     </li>
                   );

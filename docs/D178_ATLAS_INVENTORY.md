@@ -35,17 +35,17 @@ circle and the navigator's extras were never unreachable, which is the thing D17
 | `/atlas/this-weeks-market` | This week's market | stays — Explore; gains Overview's market numbers | — |
 | `/atlas/glossary` | the glossary | stays — Explore; gains the **concept index** | — |
 
-## Learn's four views (tabs inside `/atlas/learn`)
+## Learn's four views (the tabs that were inside `/atlas/learn`) — ✅ all four in their homes (45j); the tabs are retired
 
 | View (`data-learn-tab`) | What it is | Its home (D178) |
 |---|---|---|
-| `circle` | The circle — 108 pieces, guided routes, the piece card | **The circle view of the course** (the same record as the module list); the piece card → **the lesson card** |
-| `path` | Learning path — Step 1 → 108 | **= the Modules view** (built: `/atlas/library/silicon-to-software`) |
-| `patterns` | LeetCode pattern atlas | **Its own course on the shelf** (*Coding interview patterns*), linked from Interview → Practise |
-| `concepts` | Concept index | **Merges into Explore → Glossary**, each concept keeping its lesson links |
+| `circle` | The circle — 108 pieces, guided routes, the piece card | ✅ **The circle view of the course** (`/atlas/library/silicon-to-software?view=circle`) — LearnView is now the circle only |
+| `path` | Learning path — Step 1 → 108 | ✅ **= the Modules view** (`/atlas/library/silicon-to-software`) |
+| `patterns` | LeetCode pattern atlas | ✅ **Its own course on the shelf** (`/atlas/library/coding-interview-patterns`), linked from Interview → Drills |
+| `concepts` | Concept index | ✅ **Merged into Explore → Glossary** (`/atlas/glossary`), each concept keeping its lesson link (*Learn it*) |
 
 Inside the circle: **guided routes** → routes on the course page; **"Make sense of …" / Make a route** → an ask to
-D177; **"Fly my route to senior …"** → *Your map*'s track-board animation.
+D177; **"Fly my route to senior …"** → *Your map*'s track-board animation (✅ 45j, *Fly my route*).
 
 ## Reader-facing APIs (unchanged by the move; each keeps serving its new home)
 
