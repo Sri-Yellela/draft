@@ -1331,6 +1331,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [emptyReason, setEmptyReason] = useState(null);
   // A126 (7): postings this view would show once matched to the résumé (server: the match queue is scoring them).
   const [beingMatched, setBeingMatched] = useState(() => BOARD_LAST?.beingMatched || 0);
+  // ⭐ D151 Rule 4 (11-08): the server stops at 2,000 and says there are more — the line reads "2,000+".
+  const [beingMatchedMore, setBeingMatchedMore] = useState(() => !!BOARD_LAST?.beingMatchedMore);
 
   // UI state
   const [scraping,    setScraping]    = useState(false);  // a live refresh is running
@@ -2746,7 +2748,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         viewCacheSet(viewCacheRef.current, key, { jobs: incoming, total: d.total || 0, totalPages: d.totalPages || 0 });
         setAnsweredKey(key);
         BOARD_LAST = { key, profileKey: requestProfileKey, jobs: incoming, total: d.total || 0, totalPages: d.totalPages || 0,
-                       beingMatched: Number(d.beingMatched) || 0 };
+                       beingMatched: Number(d.beingMatched) || 0, beingMatchedMore: !!d.beingMatchedMore };
         // ⛔ A126 (4) (hotfix 11-05) · D45's idle prefetch of the other three views (★ · /d · +) is OFF. It was cheap while
         // the board was its own tab; since D152 / D156 put the board on Home under the deck, it made every Home visit four
         // whole-board reads (All 14 s, ★ 2.4 s, /d 7.6 s, + 18 s on the 18k copy; 12–35 s each on production 11-05 17:39Z)
@@ -2759,7 +2761,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       setCuration(d.curation || null);
       setBoardReason(d.reason || null);
       setEmptyReason(d.emptyReason || null);
-      if (!mergeMode) setBeingMatched(Number(d.beingMatched) || 0);
+      if (!mergeMode) { setBeingMatched(Number(d.beingMatched) || 0); setBeingMatchedMore(!!d.beingMatchedMore); }
       console.log(`[board] profile:${requestProfileKey} sort:${buildParams(page).match(/sort=([^&]+)/)?.[1]||"?"} page:${page} total:${d.total||0} returned:${incoming.length} source:${mergeMode?"merge":"replace"}`);
       setProfileCache?.(requestProfileKey, makeProfileSnapshot({
         jobs: mergeMode
@@ -4245,7 +4247,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               savedTab={boardTab === "saved"}
               importedTab={boardTab === "imported"}
               boardLoading={boardLoading}
-              beingMatched={beingMatched}
+              beingMatched={beingMatched} beingMatchedMore={beingMatchedMore}
               cardTier={1}
             />
             {/* The mobile "editor" pane is gone: the PDF sandbox is a popup panel now and renders
@@ -4332,7 +4334,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               savedTab={boardTab === "saved"}
               importedTab={boardTab === "imported"}
               boardLoading={boardLoading}
-              beingMatched={beingMatched}
+              beingMatched={beingMatched} beingMatchedMore={beingMatchedMore}
               cardTier={effectiveTier}
               containerRef={jobsPanelElementRef}
             />
@@ -4488,7 +4490,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       searchActive = false, profileName = null,
                       curation = null, curateOff = false, onToggleCurate, boardReason = null,
                       emptyReason = null, canRankByFit = true, onAddResume, resumeReadState = "ready", onRetryResume,
-                      savedTab = false, importedTab = false, boardLoading = false, beingMatched = 0,
+                      savedTab = false, importedTab = false, boardLoading = false, beingMatched = 0, beingMatchedMore = false,
                       cardTier = 1, containerRef }) {
   // ⛔ D45: never while the current view is still loading — "nothing here" when the truth is "not here yet"
   // is silence reported as success.
@@ -4539,7 +4541,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
       {/* A126 (7): the postings held back until they are matched — said, never silently missing. */}
       {!boardLoading && beingMatched > 0 && (
         <p data-being-matched="" style={{ margin:"4px 2px 10px", fontSize:12.5, color:theme.textMuted }}>
-          {beingMatched.toLocaleString()} more {beingMatched === 1 ? "posting is" : "postings are"} being matched to your résumé — they appear here as they're scored.
+          {beingMatched.toLocaleString()}{beingMatchedMore ? "+" : ""} more {beingMatched === 1 && !beingMatchedMore ? "posting is" : "postings are"} being matched to your résumé — they appear here as they're scored.
         </p>
       )}
       {boardLoading ? (

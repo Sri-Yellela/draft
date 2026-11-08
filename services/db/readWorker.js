@@ -44,7 +44,8 @@ if (!isMainThread && workerData?.__draftReadWorker) {
         if (ms >= slowMs) {
           let plan = "";
           try { plan = conn.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...params).map(r => r.detail).join(" | "); } catch { /* the plan is a hint only */ }
-          console.log(`[read-slow] ${ms} ms · ${sql.replace(/\s+/g, " ").slice(0, 400)} · PLAN ${plan.slice(0, 600)}`);
+          const full = process.env.READ_SLOW_FULL === "1";   // the whole statement and plan (still never the parameters)
+          console.log(`[read-slow] ${ms} ms · ${full ? sql.replace(/\s+/g, " ") : sql.replace(/\s+/g, " ").slice(0, 400)} · PLAN ${full ? plan : plan.slice(0, 600)}`);
         }
       }
       parentPort.postMessage({ id, ok: true, value });
