@@ -19,6 +19,7 @@ import { ghostLine } from "../../shared/ghostScore.js";
 import { salaryLabel, workstyleOf } from "../../shared/postingFacts.js";
 import { formatPosting } from "../../shared/postingFormat.js";
 import { sponsorshipSignal } from "../kb/sponsorshipSignal.js";
+import { ogUrl, ogImageMeta } from "../ogImage.js";
 
 export const JOBS_SITEMAP_MAX = 50000;   // the sitemap protocol's per-file limit
 const SLUG_PART_MAX = 60;
@@ -259,6 +260,7 @@ export function renderPublicJobPage(db, row, { base, open, now = Math.floor(Date
 <link rel="canonical" href="${esc(canonical)}">
 ${open ? "" : `<meta name="robots" content="noindex">`}
 <meta property="og:title" content="${esc(titleText)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:type" content="website">
+${ogImageMeta(ogUrl(new URL(canonical).origin, { eyebrow: row.company || "Job", title: row.title || titleText, line: open ? "Open now · apply on the employer's site" : "This posting has closed" }), titleText)}
 <style>${STYLE}</style>
 ${open ? jsonLdScript(jobPostingJsonLd(row, { base })) : ""}
 </head><body><div class="wrap">

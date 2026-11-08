@@ -8,6 +8,7 @@
 // (/sitemap-landing.xml, in the jobs sitemap index). The page's links go to the postings' own pages (D128) and to /jobs
 // with the same filter, where the rest is browsable.
 import { PUBLIC_OPEN_SQL, jobPath, esc, STYLE } from "./publicJobPage.js";
+import { ogUrl, ogImageMeta } from "../ogImage.js";
 import { taxonomy } from "./taxonomyClassify.js";
 import { TECHNOLOGIES } from "../../shared/techVocabulary.js";
 import { PLACES } from "../../shared/jobTagVocabulary.js";
@@ -87,6 +88,7 @@ export function renderLandingPage(db, kind, key, { base }) {
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${esc(canonical)}">
 <meta property="og:title" content="${esc(d.title)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:type" content="website">
+${ogImageMeta(ogUrl(new URL(canonical).origin, { eyebrow: "Jobs", title: d.title, line: `${d.total.toLocaleString("en-US")} open · the newest first` }), d.title)}
 <style>${STYLE}</style>
 <script type="application/ld+json">${JSON.stringify(itemList).replace(/</g, "\\u003c")}</script>
 </head><body><div class="wrap">
