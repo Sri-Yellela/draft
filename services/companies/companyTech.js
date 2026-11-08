@@ -191,3 +191,21 @@ export function createCompanyTech(db, { pageRows = PAGE_ROWS, writeChunk = WRITE
   const self = { run, get running() { return !!running; }, status: () => ({ ...status }) };
   return self;
 }
+
+/**
+ * ⭐ D179 (owner 11-07: the card gains "Works with" — the team's stack). The technologies each of these postings names
+ * (job_tech, read once per content by the walk above): job_id → up to `max` names, languages and frameworks first.
+ * One IN read for the jobs on screen; a posting the walk has not read yet has none (never guessed).
+ */
+const GROUP_RANK = { languages: 0, frameworks: 1, data: 2, cloud: 3, devops: 4, "ml-ai": 5, tools: 6 };
+export function techForJobs(db, jobIds, { max = 6 } = {}) {
+  const ids = [...new Set((jobIds || []).map(String).filter(Boolean))].slice(0, 200);
+  const out = new Map();
+  if (!ids.length) return out;
+  let rows = [];
+  try { rows = db.prepare(`SELECT job_id, tech FROM job_tech WHERE job_id IN (${ids.map(() => "?").join(",")})`).all(...ids); }
+  catch { return out; }
+  for (const r of rows) { if (!out.has(r.job_id)) out.set(r.job_id, []); out.get(r.job_id).push(r.tech); }
+  for (const [k, list] of out) out.set(k, list.sort((a, b) => (GROUP_RANK[TECH_GROUP_OF[a]] ?? 9) - (GROUP_RANK[TECH_GROUP_OF[b]] ?? 9) || a.localeCompare(b)).slice(0, max));
+  return out;
+}
