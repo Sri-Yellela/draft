@@ -6344,4 +6344,16 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_scraped_jobs_active_recency ON scraped_jobs(COALESCE(posted_at, discovered_at) DESC) WHERE is_active = 1;
       `,
     },
+    {
+      // ⛔ A140 (1) (45l): the trial accounts cleaned of the sample résumé's details ONCE — services/sampleProfileStrip.js
+      // records each account here, so a boot never re-reads (and overwrites) a profile the person has edited since. Only ADDS.
+      // (Numbered 234 on purpose: 230–233 are taken by work not yet shipped; the runner applies by id, so the gap is harmless.)
+      id: "234_a140_trial_cleaned",
+      sql: `
+        CREATE TABLE IF NOT EXISTS a140_trial_cleaned (
+          user_id     INTEGER PRIMARY KEY,
+          cleaned_at  INTEGER NOT NULL
+        );
+      `,
+    },
   ];

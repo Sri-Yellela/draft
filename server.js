@@ -97,7 +97,7 @@ import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHo
 import { readGauge, projectTranche, trancheGate, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "./services/diskGauge.js";
 import { checkDiskAlert, CHECK_EVERY_MS as DISK_ALERT_EVERY_MS } from "./services/diskAlert.js";
 import { createJobTagsRouter } from "./routes/jobTags.js";
-import { createDomainProfilesRouter } from "./routes/domainProfiles.js";
+import { createDomainProfilesRouter, getRegistry as getDomainRegistry } from "./routes/domainProfiles.js";
 import { createImportJobRouter } from "./routes/importJob.js";
 import { extensionStatusHandler } from "./routes/extensionStatus.js";
 import { formReportHandler, purgeExpiredFormReports } from "./services/formReports.js";
@@ -6897,6 +6897,18 @@ let classifyBacklog = null;
       id: "229_scraped_jobs_active_recency",
       sql: `
         CREATE INDEX IF NOT EXISTS idx_scraped_jobs_active_recency ON scraped_jobs(COALESCE(posted_at, discovered_at) DESC) WHERE is_active = 1;
+      `,
+    },
+    {
+      // ⛔ A140 (1) (45l): the trial accounts cleaned of the sample résumé's details ONCE — services/sampleProfileStrip.js
+      // records each account here, so a boot never re-reads (and overwrites) a profile the person has edited since. Only ADDS.
+      // (Numbered 234 on purpose: 230–233 are taken by work not yet shipped; the runner applies by id, so the gap is harmless.)
+      id: "234_a140_trial_cleaned",
+      sql: `
+        CREATE TABLE IF NOT EXISTS a140_trial_cleaned (
+          user_id     INTEGER PRIMARY KEY,
+          cleaned_at  INTEGER NOT NULL
+        );
       `,
     },
   ];
@@ -15349,7 +15361,7 @@ app.listen(PORT, () => {
     // On the same ready as the board-fit pass — the warm-up is started once (test/a123BoardFitReconcile A123 (7)).
     // ⛔ A140 (1): the removed trial's fictional sample details out of every profile — small (one row per account),
     // idempotent, once per boot on ready.
-    try { stripSampleProfiles(db); } catch (e) { console.warn("[a140] sample strip:", e.message); }
+    try { stripSampleProfiles(db, { registry: getDomainRegistry() }); } catch (e) { console.warn("[a140] sample strip:", e.message); }
     classifyBacklog.run("boot");
   });
 });
