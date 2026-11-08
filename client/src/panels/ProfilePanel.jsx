@@ -348,6 +348,9 @@ function CustomAnswerRow({ question, answer, overrides, onRename, onAnswer, onDe
 
 // ⭐ D183 P1: `resumeView={false}` — the Profile page draws the résumé view itself (pages/profile/YourProfile.jsx, with the
 // same ProfileSections editors) and mounts this panel under "Behind your profile" for the private machinery only.
+// ⭐ D183 P2: fired after a base résumé is saved or uploaded here — Your profile (pages/profile/YourProfile.jsx) listens.
+export const RESUME_REPLACED_EVENT = "draft:resume-replaced";
+
 export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, resumeView = true }) {
   const { theme } = useTheme();
   // ⭐ D167: Profile has its own navigation now (pages/profile/ProfilePage.jsx) and this page is drawn in three of its
@@ -687,6 +690,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
         body: JSON.stringify({ content: resumeDraft, name: resumeName || "resume.txt" }),
       });
       setResumeStatus("Saved profile resume");
+      window.dispatchEvent(new Event(RESUME_REPLACED_EVENT));   // ⭐ D183 P2: Your profile re-reads and shows What changed
       setTimeout(() => setResumeStatus(""), 2500);
       await refreshSignals();
       loadProfiles();
@@ -791,6 +795,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
         searchTerms: joinChipText(nextSignals?.searchTerms),
         yearsExperience: nextSignals?.yearsExperience ?? "",
       });
+      window.dispatchEvent(new Event(RESUME_REPLACED_EVENT));   // ⭐ D183 P2: Your profile re-reads and shows What changed
       // P1: say what the re-extraction replaced, as the refresh does.
       setResumeStatus(nextSignals?.notice || "Uploaded. Titles, keywords and skills were re-extracted — hand edits to them were replaced; claimed terms were kept.");
       setTimeout(() => setResumeStatus(""), 9000);   // long enough to read what was replaced

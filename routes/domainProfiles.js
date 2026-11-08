@@ -26,7 +26,8 @@ import {
 import { mergeUniqueSignalLabels } from "../shared/profileSignals.js";
 import { startFromResume, followProfileText, followResumeFields } from "../services/resumeOnboarding.js";
 import { sampleRoleFamily, sampleIdForText, activeSampleId } from "../services/sampleResumes.js";
-import { readProfile, useResumeSuggestion } from "../services/structuredProfile.js";
+import { readProfile } from "../services/structuredProfile.js";
+import { snapshotForReplace, pageDigest, refillFromResume, whatChanged, recordReplacement } from "../services/profileReplace.js";
 import { DATA_CLASS } from "../services/modelCall.js";
 // D162 G1: the feature names its task; the gateway picks the model (shared/modelTasks.js profile.domain_chips).
 import { callTask } from "../services/modelGateway.js";
@@ -403,7 +404,17 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
     const { content, name } = req.body || {};
     if (content === undefined) return res.status(400).json({ error: "content required" });
     // ⛔ A140 (owner 11-08): the résumé before this one — what "still holds the old résumé's value" is measured against.
-    const oldText = db.prepare("SELECT content FROM profile_base_resumes WHERE profile_id = ? AND user_id = ?").get(profile.id, req.user.id)?.content || "";
+    const oldRow = db.prepare("SELECT content, name FROM profile_base_resumes WHERE profile_id = ? AND user_id = ?").get(profile.id, req.user.id);
+    const oldText = oldRow?.content || "";
+    // ⭐ D183 P2: replacing the ACTIVE profile's résumé (not a first upload, not a sample) is undoable for 30 days — the
+    // snapshot and the page's reading are taken BEFORE anything moves (services/profileReplace.js).
+    const replacing = !!profile.is_active && !sampleIdForText(content) && oldText.trim().length > 0
+      && String(content || "").trim() !== oldText.trim() && String(content || "").trim().length >= 200;
+    let snap = null, digestBefore = null;
+    if (replacing) {
+      try { snap = snapshotForReplace(db, req.user.id, profile.id, { content: oldText, name: oldRow?.name || null }); digestBefore = pageDigest(db, req.user.id); }
+      catch (e) { console.warn("[d183] snapshot:", e.message); snap = null; }
+    }
     saveBaseResumeRecord(db, { userId: req.user.id, profileId: profile.id }, content, name || "resume.txt");
     // ⛔ A140: a NEW résumé moves what the profile SEARCHES for (the declared role, domain, level, target titles —
     // the board ranks by them), the contact / education fields that still hold the old résumé's values, and — on the
@@ -411,13 +422,24 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
     // D101 offer stays for every other case). A fictional sample résumé moves nothing about the person.
     const isSample = !!sampleIdForText(content);
     const changedText = String(content || "").trim() !== String(oldText || "").trim();
-    let followed = { changed: false }, fields = [], sections = false;
+    let followed = { changed: false }, fields = [], sections = false, refill = null;
     if (changedText && String(content || "").trim().length >= 200) {
       try { followed = followProfileText(db, profile.id, content, { registry: getRegistry(), sampleRoleFamily }); } catch (e) { console.warn("[a140] profile follow:", e.message); }
       if (!isSample) {
         try { fields = followResumeFields(db, req.user.id, oldText, content); } catch (e) { console.warn("[a140] fields follow:", e.message); }
-        if (profile.is_active) { try { sections = useResumeSuggestion(db, req.user.id); } catch (e) { console.warn("[a140] sections follow:", e.message); } }
+        // ⭐ D183 P2: EVERY section re-fills, keeping hand edits and proven skills (was useResumeSuggestion, which replaced all).
+        if (profile.is_active) { try { refill = refillFromResume(db, req.user.id); sections = !!refill.ok; } catch (e) { console.warn("[d183] sections refill:", e.message); } }
       }
+    }
+    // ⭐ D183 P2: What changed — recorded with the snapshot, shown on Your profile with Looks right · Undo · Review each change.
+    let replacement = null;
+    if (snap && sections) {
+      try {
+        const handAchievements = db.prepare("SELECT COUNT(*) FROM profile_achievements WHERE user_id = ?").pluck().get(req.user.id) || 0;
+        const projects = db.prepare("SELECT COUNT(*) FROM profile_projects WHERE user_id = ?").pluck().get(req.user.id) || 0;
+        const changes = whatChanged(digestBefore, pageDigest(db, req.user.id), refill?.kept, { handAchievements, projects });
+        replacement = { id: Number(recordReplacement(db, req.user.id, profile.id, snap, changes, { name: name || "resume.txt" })), ...changes };
+      } catch (e) { console.warn("[d183] what changed:", e.message); }
     }
     const fresh = db.prepare("SELECT target_titles FROM domain_profiles WHERE id = ?").get(profile.id);
     const roleTitles = JSON.parse(fresh?.target_titles || profile.target_titles || "[]");
@@ -432,7 +454,7 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
     const moved = [followed.changed ? `your job search now follows it (${followed.inferred?.profileName || followed.inferred?.domain})` : null,
       fields.length ? `contact details updated (${fields.join(", ").replace(/_/g, " ")})` : null,
       sections ? "your experience, education and skills replaced from it" : null].filter(Boolean);
-    res.json({ ok: true, profileId: profile.id, signals, replaced: "extracted", preserved: "claims",
+    res.json({ ok: true, profileId: profile.id, signals, replaced: "extracted", preserved: "claims", replacement,
       followed: { profile: !!followed.changed, roleFamily: followed.inferred?.roleFamily ?? null, fields, sections },
       notice: "Re-extracted from your new resume. Any hand edits to these lists were replaced. "
             + "Terms you claimed are stored separately and were not affected."

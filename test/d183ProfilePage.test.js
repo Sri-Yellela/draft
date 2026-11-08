@@ -119,3 +119,83 @@ test("d183 achievements, merge plan and export", () => {
   assert.equal(MERGE_PLAN.profile_page, "keepInto");
   assert.equal(MERGE_PLAN.profile_achievements, "ifIntoEmpty");
 });
+
+// ── P2 · replacing the résumé ──────────────────────────────────────────────────────────────────────
+import { snapshotForReplace, pageDigest, refillFromResume, whatChanged, recordReplacement, undoReplacement, latestReplacement, keepReplacement, UNDO_DAYS } from "../services/profileReplace.js";
+import { readProfile } from "../services/structuredProfile.js";
+
+const R1 = ["Dana Example", "SUMMARY", "Data engineer building pipelines.", "EXPERIENCE",
+  "Data Engineer, Northwind Analytics    Jan 2023 - Present", "• Moved order events to Kafka streams", "• Rebuilt the warehouse in dbt",
+  "EDUCATION", "Northeastern University, MS Computer Science, 2021", "SKILLS", "Kafka, dbt, SQL, Excel"].join("\n");
+const R2 = R1.replace("Data Engineer, Northwind Analytics    Jan 2023 - Present",
+  "Senior Data Engineer, Kestrel Payments    Jan 2025 - Present\n• Built Flink jobs\nData Engineer, Northwind Analytics    Jan 2023 - Dec 2024")
+  .replace("Kafka, dbt, SQL, Excel", "Kafka, dbt, SQL, Flink, Snowflake");
+
+function resumeDb() {
+  const db = new Database(":memory:");
+  db.pragma("foreign_keys = ON");
+  for (const m of MIGRATIONS) db.exec(m.sql);
+  db.prepare("INSERT INTO users (id,username,password_hash) VALUES (1,'dana','x')").run();
+  db.prepare("INSERT INTO user_profile (user_id, full_name) VALUES (1, 'Dana Example')").run();
+  db.prepare("INSERT INTO base_resume (user_id, name, content) VALUES (1, 'r1.txt', ?)").run(R1);
+  readProfile(db, 1);   // the first open fills the sections from R1
+  return db;
+}
+function replaceWith(db, text) {
+  const snap = snapshotForReplace(db, 1, null, { content: db.prepare("SELECT content FROM base_resume WHERE user_id=1").pluck().get(), name: "r1.txt" });
+  const before = pageDigest(db, 1);
+  db.prepare("UPDATE base_resume SET content = ?, name = 'r2.txt' WHERE user_id = 1").run(text);
+  const refill = refillFromResume(db, 1);
+  const changes = whatChanged(before, pageDigest(db, 1), refill.kept);
+  return { id: recordReplacement(db, 1, null, snap, changes, { name: "r2.txt" }), changes, refill };
+}
+const skillNames = (db) => db.prepare("SELECT name FROM profile_skills WHERE user_id = 1 ORDER BY position").pluck().all();
+
+test("d183ReplaceRefillsEverySection — a new résumé re-fills the sections and says what changed", () => {
+  const db = resumeDb();
+  const { changes, refill } = replaceWith(db, R2);
+  assert.equal(refill.ok, true);
+  assert.ok(skillNames(db).includes("Flink") && !skillNames(db).includes("Excel"));
+  assert.ok(changes.lines.some(l => l.what === "skills" && l.kind === "added" && /Flink/.test(l.text)));
+  assert.ok(changes.lines.some(l => l.what === "skills" && l.kind === "removed" && /Excel/.test(l.text)));
+  assert.ok(changes.lines.some(l => l.what === "experience" && l.kind === "added"));
+  assert.match(changes.untouched, /applications already sent/);
+  assert.ok(latestReplacement(db, 1));
+  assert.match(lf("routes/domainProfiles.js"), /refill = refillFromResume\(db, req\.user\.id\)/);
+});
+
+test("d183HandEditsSurviveReplace — an item the person added or changed is kept; unchanged items keep their résumé mark", () => {
+  const db = resumeDb();
+  const cur = readProfile(db, 1).sections;
+  saveSection(db, 1, "skills", { items: [...cur.skills.map(s => ({ name: s.name, category: s.category })), { name: "Rust" }] });
+  const src = Object.fromEntries(db.prepare("SELECT name, source FROM profile_skills WHERE user_id = 1").all().map(r => [r.name, r.source]));
+  assert.equal(src.Rust, "user");
+  assert.equal(src.Kafka, "resume", "saved unchanged → still the résumé's");
+  saveSection(db, 1, "summary", { summary: "My own words." });
+  replaceWith(db, R2);
+  assert.ok(skillNames(db).includes("Rust"));
+  assert.equal(db.prepare("SELECT summary FROM profile_sections WHERE user_id = 1").pluck().get(), "My own words.");
+});
+
+test("d183UndoRestores — Undo puts the old résumé's sections back, once, within 30 days", () => {
+  const db = resumeDb();
+  const before = skillNames(db);
+  const { id } = replaceWith(db, R2);
+  undoReplacement(db, 1, id);
+  assert.deepEqual(skillNames(db), before);
+  assert.throws(() => undoReplacement(db, 1, id), /already undone/);
+  const late = replaceWith(db, R2).id;
+  db.prepare("UPDATE profile_replacements SET created_at = created_at - ? WHERE id = ?").run((UNDO_DAYS + 1) * 86400, late);
+  assert.throws(() => undoReplacement(db, 1, late), /30 days/);
+  const k = replaceWith(db, R1).id;
+  keepReplacement(db, 1, k);
+  assert.equal(latestReplacement(db, 1), null, "Looks right puts the summary away");
+});
+
+test("d183ProvenNeverReverts — a skill proven in Atlas stays on the list when the new résumé drops it", () => {
+  const db = resumeDb();
+  db.prepare("INSERT INTO skill_proofs (user_id, skill_key, skill, state, via) VALUES (1, 'excel', 'Excel', 'checked', 'check')").run();
+  const { refill } = replaceWith(db, R2);
+  assert.ok(skillNames(db).includes("Excel"));
+  assert.deepEqual(refill.kept.proven, ["Excel"]);
+});

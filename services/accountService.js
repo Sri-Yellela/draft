@@ -210,7 +210,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D172 (3) (226): the points each piece of proof earned.
   "proof_points",
   // D183 P1 (243): who can see the profile page, and the achievements added by hand.
-  "profile_page", "profile_achievements"];
+  "profile_page", "profile_achievements",
+  // D183 P2 (244): each résumé replace and what it changed (its snapshot holds the person's own earlier résumé).
+  "profile_replacements"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -346,6 +348,8 @@ export const MERGE_PLAN = Object.freeze({
   // D183 P1 (243): who can see the profile page — one row per user; INTO's setting stands (the safer, its own choice);
   // FROM's fills an INTO that has none. Hand-added achievements are a person's LIST, like D101's — FROM's fill an empty INTO.
   profile_page: "keepInto", profile_achievements: "ifIntoEmpty",
+  // D183 P2 (244): a replace's undo record holds the snapshot of FROM's own profile rows — meaningless for INTO; dropped.
+  profile_replacements: "drop",
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */
