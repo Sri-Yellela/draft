@@ -39,16 +39,32 @@ test("d155PathwaysPlanShown: a topic links to a deck only by pathway + stage + p
       { id: "sw-f-03", pathway: "software", stage: "foundations", title: "C", status: "draft", slides: [], questions: [] }] }));
     const r = pathwaysPlan({ dir });
     assert.deepEqual(r.pathways[0].stages[0].topics.map(t => t.deck), ["sw-f-01", null, null]);
-    assert.deepEqual([r.written, r.planned], [1, 2]);
+    assert.equal(r.pathways[0].stages[0].topics[2].drafted, true, "a drafted deck says so, unlinked");
+    assert.deepEqual([r.written, r.drafted, r.planned], [1, 1, 1]);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   const live = pathwaysPlan();
-  assert.ok(live.written >= 8 && live.written + live.planned === buildPlan().pathways.flatMap(p => p.stages.flatMap(s => s.topics)).length);
+  assert.ok(live.written >= 8 && live.written + live.drafted + live.planned === buildPlan().pathways.flatMap(p => p.stages.flatMap(s => s.topics)).length);
 });
 
 test("d155PathwaysPlanShown: served at GET /api/learn/pathways and drawn on the Library page", () => {
   assert.match(read("routes/learn.js"), /router\.get\("\/pathways", \(_req, res\) => \{ res\.set\("Cache-Control", LEARN_CACHE\); res\.json\(pathwaysPlan\(\)\); \}\);/);
   const ui = read("client/src/pages/atlas/LibraryGuides.jsx");
   assert.match(ui, /\{t\.deck \? <Link className="atl__link" to=\{`\$\{base\}\/library\/\$\{t\.deck\}`\}>\{t\.title\}<\/Link> : <span>\{t\.title\}<\/span>\}/);
-  assert.match(ui, /\{!t\.deck && <span className="atl__quiet"> · planned<\/span>\}/);
+  assert.match(ui, /\{!t\.deck && <span className="atl__quiet"> · \{t\.drafted \? "drafted, waiting for review" : "planned"\}<\/span>\}/);
   assert.match(read("client/src/pages/atlas/LibraryPanel.jsx"), /<PathwaysPlan base=\{base\} \/>/);
+});
+
+test("d155PathwaysPlanShown: decks-v2 (software Building blocks) is a DRAFT batch — in the plan as drafted, not served", () => {
+  const v2 = JSON.parse(read("content/decks/decks-v2.json"));
+  assert.deepEqual(v2.decks.map(d => d.id), ["sw-b-01", "sw-b-02", "sw-b-03", "sw-b-04", "sw-b-05", "sw-b-06", "sw-b-07", "sw-b-08"]);
+  assert.ok(v2.decks.every(d => d.status === "draft" && d.pathway === "software" && d.stage === "building-blocks" && d.slides.length === 5));
+  assert.ok(v2.decks.every(d => d.slides.map(s => s.tag).join("|") === "What it is|Core ideas|The trade-offs|In practice|Check yourself"), "D154 P4's five slides");
+  assert.ok(v2.newQuestions.every(q => q.status === "draft" && q.choices[q.correct] && q.why.length === q.choices.length));
+  assert.deepEqual(v2.decks.map(d => d.questions[0]), v2.newQuestions.map(q => q.id));
+  const plan = pathwaysPlan();
+  const bb = plan.pathways[0].stages.find(s => s.id === "building-blocks");
+  assert.ok(bb.topics.every(t => t.drafted && t.deck === null), "drafted, never linked until approved");
+  // the review copy is generated from the same source
+  const md = read("content/decks/decks-v2.md");
+  for (const d of v2.decks) assert.ok(md.includes(`## ${d.id} · ${d.title}`));
 });

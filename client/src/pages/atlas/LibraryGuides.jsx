@@ -55,11 +55,11 @@ export function PathwaysPlan({ base }) {
   const [open, setOpen] = useState("software");
   useEffect(() => { let live = true; api("/api/learn/pathways").then(r => live && setPlan(r)).catch(() => live && setPlan({ pathways: [] })); return () => { live = false; }; }, []);
   if (!plan?.pathways?.length) return null;
-  const total = plan.written + plan.planned;
+  const total = plan.written + (plan.drafted || 0) + plan.planned;
   return (
     <section className="lib-plan" aria-labelledby="lib-plan-h" data-pathways-plan="">
       <h2 className="atl__h2" id="lib-plan-h">Every pathway</h2>
-      <p className="atl__quiet" data-pathways-count="">{plan.written} of {total} decks written · the rest are planned, in this order</p>
+      <p className="atl__quiet" data-pathways-count="">{plan.written} of {total} decks written{plan.drafted ? ` · ${plan.drafted} drafted, waiting for review` : ""} · the rest are planned, in this order</p>
       {plan.pathways.map(p => {
         const isOpen = open === p.id;
         const n = p.stages.reduce((a, s) => a + s.topics.length, 0), w = p.stages.reduce((a, s) => a + s.topics.filter(t => t.deck).length, 0);
@@ -76,9 +76,9 @@ export function PathwaysPlan({ base }) {
                     <h3 className="lib-plan__h">{s.title}</h3>
                     <ul className="lib-plan__topics">
                       {s.topics.map((t, i) => (
-                        <li key={i} data-topic-state={t.deck ? "written" : "planned"}>
+                        <li key={i} data-topic-state={t.deck ? "written" : t.drafted ? "drafted" : "planned"}>
                           {t.deck ? <Link className="atl__link" to={`${base}/library/${t.deck}`}>{t.title}</Link> : <span>{t.title}</span>}
-                          {!t.deck && <span className="atl__quiet"> · planned</span>}
+                          {!t.deck && <span className="atl__quiet"> · {t.drafted ? "drafted, waiting for review" : "planned"}</span>}
                         </li>
                       ))}
                     </ul>
