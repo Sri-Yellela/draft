@@ -7259,6 +7259,16 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // ⭐ D162 G6 (45n) · where a stored résumé's words came from — the model's source tag, so a Claude-written (or any
+      // model's) output can never be taken for training data (D160 rule 1, services/trainingData.js). JSON
+      // { provider, model, task, claude } or 'byo_model' / 'human'; NULL = written before this column. Only ADDS.
+      id: "247_model_source",
+      sql: `
+        ALTER TABLE resume_versions ADD COLUMN model_source TEXT;
+        ALTER TABLE resumes ADD COLUMN model_source TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -14295,6 +14305,9 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
       baseAtsScore: atsScoreBefore,
       atsCacheKey, promptVersion: ATS_SCORE_PROMPT_VERSION, domainProfileId: activeDomainProfile?.id ?? null,
       userJobProfileId: resolveUserJobDomainProfileId(userId, String(jobId)),
+      // ⭐ D162 G6 (45n): the source tag of the words — the tools service's usage names the model that wrote them.
+      modelSource: (() => { const m = (generated?.usage || []).map(u => u?.model).filter(Boolean).pop() || null;
+        return { provider: m && /^claude/i.test(m) ? "anthropic" : (m ? "tools-service" : null), model: m, task: "resume.generate", claude: !!(m && /^claude/i.test(m)) }; })(),
     });
   } catch (e) {
     const refunded = refundGeneration(db, usageEventId);
@@ -14387,6 +14400,7 @@ function byomDeps() {
         userId, jobId: String(jobId), job, tool: "byo_model", mode: "BYO_MODEL", html, atsScore, atsReport, baseAtsScore,
         atsCacheKey: buildAtsCacheKey(html, job), promptVersion: ATS_SCORE_PROMPT_VERSION, domainProfileId,
         userJobProfileId: resolveUserJobDomainProfileId(userId, String(jobId)),
+        modelSource: "byo_model",   // D162 G6: the person's own model wrote it — never draft's training data either
       });
       try { markPending(db, userId, jobId, "generated"); } catch (e) { console.warn("[byom] pending:", e.message); }
       try { applyLine.prepareManualPacket({ userId, jobId: String(jobId), via: "generate", toolType: "byo_model" }); }
@@ -14971,6 +14985,9 @@ app.post("/api/resumes/:jobId/keep", requireAuth, (req, res) => {
     apply_mode=excluded.apply_mode,html=excluded.html,ats_score=excluded.ats_score,ats_report=excluded.ats_report,
     ats_cache_key=excluded.ats_cache_key,ats_prompt_version=excluded.ats_prompt_version,updated_at=excluded.updated_at`)
     .run(req.user.id, req.params.jobId, row.company, row.role, row.category, mode, row.html, row.ats_score, row.ats_report, row.ats_cache_key, row.ats_prompt_version);
+  // D162 G6: keeping a version keeps its source tag.
+  try { db.prepare("UPDATE resumes SET model_source = ? WHERE user_id = ? AND job_id = ?").run(row.model_source ?? null, req.user.id, req.params.jobId); }
+  catch (e) { if (!/no such column/.test(String(e?.message))) throw e; }
   res.json({ ok:true, tool, version: row.version, applyMode: mode });
 });
 app.post("/api/export-pdf", requireAuth, (_req, res) => {

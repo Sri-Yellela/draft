@@ -6678,4 +6678,14 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D162 G6 (45n) · where a stored résumé's words came from — the model's source tag, so a Claude-written (or any
+      // model's) output can never be taken for training data (D160 rule 1, services/trainingData.js). JSON
+      // { provider, model, task, claude } or 'byo_model' / 'human'; NULL = written before this column. Only ADDS.
+      id: "247_model_source",
+      sql: `
+        ALTER TABLE resume_versions ADD COLUMN model_source TEXT;
+        ALTER TABLE resumes ADD COLUMN model_source TEXT;
+      `,
+    },
   ];
