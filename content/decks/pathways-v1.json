@@ -146,33 +146,33 @@
           "topics": [
             {
               "title": "a URL shortener",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-c-01",
+              "status": "draft"
             },
             {
               "title": "chat and message ordering",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-c-02",
+              "status": "draft"
             },
             {
               "title": "a news feed",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-c-03",
+              "status": "draft"
             },
             {
               "title": "notifications",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-c-04",
+              "status": "draft"
             },
             {
               "title": "payments and webhooks",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-c-05",
+              "status": "draft"
             },
             {
               "title": "search",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-c-06",
+              "status": "draft"
             }
           ]
         },
