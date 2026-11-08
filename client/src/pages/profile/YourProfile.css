@@ -79,3 +79,7 @@
   .yp__headrow { margin-top: -32px; }
   .yp__avatar { width: 72px; height: 72px; }
 }
+/* D113 consent (45n): asked once before a profile becomes visible to anyone but its owner. */
+.yp__consent { border: 1px solid var(--c-border); border-radius: 11px; padding: 10px 14px; background: var(--c-canvas); }
+.yp__consent p { margin: 0 0 8px; font-size: 13px; }
+.yp__row { display: flex; gap: 10px; flex-wrap: wrap; }
