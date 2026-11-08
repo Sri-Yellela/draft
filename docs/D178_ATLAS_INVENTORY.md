@@ -5,25 +5,27 @@ address, panel, tab and reader-facing API of the Atlas as it stands on 2026-11-0
 in the redesign (D178's translation table). `test/d178EveryOldAddressRedirects.test.js` fails when an address, a
 panel, a Learn view or a reader-facing route is missing from this file, or when an address stops resolving.
 
-**Today, nothing is loose:** every row's address still opens its feature. **The redirects** (*Your route* → *Your
-map*, *Overview* → *Your run*, *Learn* → the course's circle view) **move with D178-3**, when each new home exists.
-Redirecting earlier would leave the circle and the navigator's extras unreachable, which is the thing D178 forbids.
+**Today, nothing is loose:** every row's address still opens its feature. ✅ **The redirects are in (45j, the nav
+regrouped):** *Your route* → *Your map* (an alias; the navigator is drawn inside Your map, under the track board),
+*Overview* → *Your run* when signed in (signed out, Overview stays Atlas's front page), *Learn* → the course's circle
+view (`/atlas/library/silicon-to-software?view=circle`, the `#step-<id>` carried). They waited for D178-3 so that the
+circle and the navigator's extras were never unreachable, which is the thing D178 forbids.
 
 ## Addresses and panels (`/atlas/…` and `/app/atlas/…`)
 
 | Address | What it is today | Its home in the redesign (D178) | Redirect |
 |---|---|---|---|
-| `/atlas` (`overview`) | Overview panel | **Folded into Your run** (Atlas's front page); market numbers → This week's market | D178-3 |
+| `/atlas` (`overview`) | Overview panel | **Folded into Your run** (Atlas's front page); market numbers → This week's market | ✅ signed in → Your run; signed out, the front page (45j) |
 | `/atlas/your-run` | Your run (D172 (3)) | stays — You · first | — |
 | `/atlas/your-map` | the track board (D172 (4)) + the market tree under *See the whole market around you* | stays — the tree moves to **Your skills → Map view**, full width, three states | D178-3 (the tree) |
 | `/atlas/your-skills` (`check` alias) | D169's list + map, D142's readiness check | stays; its Map view becomes the radial tree's home | — |
-| `/atlas/your-route` | the navigator (D143): aim, route, bridges, progress, elsewhere | **Folded into Your map** (the map IS the route drawn) | D178-3 |
+| `/atlas/your-route` (`your-route` alias) | the navigator (D143): aim, route, bridges, progress, elsewhere | **Folded into Your map** (the map IS the route drawn) | ✅ → Your map, the navigator under the track board (45j) |
 | `/atlas/library` | the ladder of guides + the course shelf (D172 (2), (2b)) | stays — Grow · first | — |
 | `/atlas/library/<course>` | a course: modules → lessons | stays; gains **The circle** view and routes (D178-3) | — |
 | `/atlas/library/<guide>` | a guide (a level): its decks | stays | — |
 | `/atlas/library/<deck>` | a deck, one slide at a time | stays; the lesson card's deck gesture (D178-3) | — |
-| `/atlas/learn` | Learn: four views (below) | **Retired** → the course in the Library, circle view, same piece | D178-3 |
-| `/atlas/learn#step-<id>` | a piece, opened in the circle | → the course's circle view with that piece selected | D178-3 |
+| `/atlas/learn` | Learn: four views (below) | **Retired** → the course in the Library, circle view, same piece | ✅ → `/atlas/library/silicon-to-software?view=circle` (45j) |
+| `/atlas/learn#step-<id>` | a piece, opened in the circle | → the course's circle view with that piece selected | ✅ the hash carried (45j) |
 | `/atlas/todays-question` | Today's question (not built, D154) | stays — Grow | — |
 | `/atlas/the-audit` | the audit (D150) | stays — Grow | — |
 | `/atlas/roles-and-skills` | roles and skills + search | stays — Explore | — |

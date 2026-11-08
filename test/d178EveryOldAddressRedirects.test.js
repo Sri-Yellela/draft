@@ -32,13 +32,20 @@ test("d178NoOldFeatureUnreachable: every reader-facing Atlas and Learn route is 
 });
 
 test("d178EveryOldAddressRedirects: today, every old address still resolves to its own feature (nothing 404s)", () => {
-  for (const id of PANEL_IDS) assert.equal(panelFor(id === "overview" ? "" : id), id, id);
+  for (const id of PANEL_IDS) assert.equal(panelFor(id), id, id);
   assert.equal(panelFor("check"), "your-skills");
   assert.equal(panelFor("family/data"), "your-map");
   assert.equal(panelFor("kafka"), "roles-and-skills");
   assert.equal(panelFor("", "kafka"), "roles-and-skills");
   assert.equal(courseIdOf("library/silicon-to-software"), "silicon-to-software");
-  assert.ok(isPanelSlug("learn"), "/atlas/learn still opens Learn until its redirect (D178-3)");
+  // ⭐ D178 (45j, changed on purpose): the redirects are in — each old address resolves to its new home.
+  assert.ok(isPanelSlug("learn") && isPanelSlug("overview") && isPanelSlug("your-route"), "the old slugs stay reserved");
+  assert.equal(panelFor("learn"), "library", "/atlas/learn → the course's circle view");
+  assert.equal(panelFor("your-route"), "your-map", "/atlas/your-route → Your map");
+  assert.equal(panelFor("overview"), "overview");
+  const page = read("client/src/pages/atlas/AtlasPage.jsx");
+  assert.ok(page.includes('{learning && <Navigate replace to={`${base}/library/silicon-to-software?view=circle${location.hash || ""}`} />}'), "Learn's redirect keeps #step-<id>");
+  assert.ok(page.includes('const panel = panelFor(slug, q) === "overview" && signedIn ? "your-run" : panelFor(slug, q);'), "signed in, Atlas opens on Your run");
   const route = /^atlas(?:\/(?:family|library))?(?:\/[^/]+)?$/;
   assert.ok(read("client/src/App.jsx").includes(String.raw`const atlasRoute = /^atlas(?:\/(?:family|library))?(?:\/[^/]+)?$/.test(routeKey);`), "App.jsx's route rule is the one tested here");
   for (const a of ["atlas", "atlas/your-route", "atlas/learn", "atlas/family/data", "atlas/library/sw-f-01", "atlas/kafka"]) assert.match(a, route, `/app/${a} is not bounced`);

@@ -13,16 +13,15 @@
 // then "To reach the next level"; its definition shows on top when one exists, and no "not written yet" line otherwise.
 // Every colour is a theme token (AtlasPage.css); no pills — marks and depth boxes (D60).
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import DepthButton from "../../components/DepthButton.jsx";
 import { BRAND } from "../../../../shared/brand.js";
 import AtlasGraph from "./AtlasGraph.jsx";
-import LearnView from "./LearnView.jsx";
 import YourMap, { RoleMap, FamilyMap } from "./YourMap.jsx";
 import PlaceNav from "../../components/PlaceNav.jsx";
-import { OverviewPanel, YourSkillsSlot, YourRoutePanel, LearnStages, TodaysQuestionPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
+import { OverviewPanel, YourSkillsSlot, YourRoutePanel, TodaysQuestionPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
   PanelHead } from "./AtlasPanels.jsx";
 import { panelFor, isPanelSlug, PANEL_LABEL, ATLAS_NAV, panelHref, courseIdOf } from "./atlasPanels.js";
 import { LibraryShelf, CoursePage, COURSES } from "./LibraryPanel.jsx";
@@ -387,8 +386,9 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   // panel it opens. Every address lights the panel it belongs to (atlasPanels.js panelFor); the older addresses keep
   // working — a node page and a search open in Roles and skills, a family in Your map, /learn in Learn, /check in Your
   // skills. docs/D167_ATLAS_MAP.md maps every surface that existed to its panel.
-  const panel = panelFor(slug, q);
   const signedIn = base.startsWith("/app");
+  // ⭐ D178: signed in, Atlas opens on Your run (Overview is the signed-out front page).
+  const panel = panelFor(slug, q) === "overview" && signedIn ? "your-run" : panelFor(slug, q);
   const panelOnly = !slug ? !q : (isPanelSlug(slug) && !learning && !checking);
   const body = (
     <main className={`atl atl--panels${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : checking ? "check" : familyKey ? "family" : courseId ? "course" : panelOnly ? "panel" : slug ? "node" : "search"}
@@ -401,12 +401,16 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
           pages are Roles and skills', the navigator is Your route's. A query is the search page as before. */}
       {!slug && q && <AtlasSearch base={base} q={q} />}
       {panelOnly && panel === "overview" && <OverviewPanel base={base} />}
+      {/* ⭐ D178: Learn's address → the course's circle view, the same piece selected (#step-<id> carried). */}
+      {learning && <Navigate replace to={`${base}/library/silicon-to-software?view=circle${location.hash || ""}`} />}
       {panel === "your-map" && !familyKey && (
         <div className="atl-pan" data-atlas-panel-body="your-map">
           {/* ⭐ D172 (4): the map as a track board first — from you to your goal; the market tree below, on demand. */}
           {signedIn && <PanelHead eyebrow="Your map" title="A clear picture of where you are"
             lead="From what you have to where you're going." />}
           <TrackBoard base={base} signedIn={signedIn} />
+          {/* ⭐ D178: Your route folded in — the aim, the route in order, the roles to apply to meanwhile (D143's navigator). */}
+          {signedIn && <section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base={base} signedIn={signedIn} /></section>}
           <details className="atl-more" data-atlas-market-tree="" open={!signedIn}>
             <summary className="atl__link">See the whole market around you</summary>
             <PanelHead eyebrow="Your map" title="Your skills, against the market"
@@ -416,8 +420,6 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
         </div>
       )}
       {panel === "your-skills" && <YourSkillsSlot signedIn={signedIn} base={base} />}
-      {panel === "your-route" && <YourRoutePanel base={base} signedIn={signedIn} />}
-      {learning && <LearnStages base={base} signedIn={signedIn} />}
       {panel === "todays-question" && <TodaysQuestionPanel base={base} />}
       {panel === "the-audit" && <AuditPanel base={base} />}
       {panel === "roles-and-skills" && panelOnly && (
@@ -425,7 +427,6 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
       )}
       {panel === "this-weeks-market" && <MarketPanel base={base} />}
       {panel === "glossary" && <GlossaryPanel base={base} />}
-      {learning && <LearnView signedIn={base.startsWith("/app")} />}
       {familyKey && <FamilyMap base={base} familyKey={familyKey} />}
       {panel === "your-run" && <YourRun base={base} signedIn={signedIn} />}
       {panel === "library" && panelOnly && <LibraryShelf base={base} signedIn={signedIn} />}

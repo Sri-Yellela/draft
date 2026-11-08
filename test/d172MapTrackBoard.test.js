@@ -34,7 +34,8 @@ test("d172MapTrackBoardWithStations: the loop — top row left to right, the tur
 
 test("d172MapTrackBoardWithStations: wired — Your map leads with the board; the tree is kept, on demand; the navigator sends the stations", () => {
   const page = read("client/src/pages/atlas/AtlasPage.jsx");
-  assert.match(page, /<TrackBoard base=\{base\} signedIn=\{signedIn\} \/>\n\s*<details className="atl-more" data-atlas-market-tree="" open=\{!signedIn\}>/);
+  // ⭐ D178 (changed on purpose): Your route's navigator sits between the board and the tree.
+  assert.match(page, /<TrackBoard base=\{base\} signedIn=\{signedIn\} \/>\n[\s\S]{0,400}<YourRoutePanel base=\{base\} signedIn=\{signedIn\} \/><\/section>\}\n\s*<details className="atl-more" data-atlas-market-tree="" open=\{!signedIn\}>/);
   assert.match(page, /<summary className="atl__link">See the whole market around you<\/summary>/);
   assert.match(read("services/navigator.js"), /route: route \? \{ \.\.\.route, stations, openRoles: aimReading\?\.role\?\.postings \?\? null \} : null/);
   const css = read("client/src/pages/atlas/TrackBoard.css");
