@@ -23,6 +23,8 @@ const USERS = Number(arg("--users", 20));
 const SECONDS = Number(arg("--seconds", 60));
 const PORT = Number(arg("--port", 3991));
 const SETTLE_MS = Number(arg("--settle-ms", 600000));
+// ⭐ 45j: --cpu-prof <dir> → a main-thread CPU profile of the server over the load window (test-support/scaleCpuProf.mjs).
+const PROF_DIR = arg("--cpu-prof", null) ? path.resolve(arg("--cpu-prof")) : null;
 const JSON_OUT = arg("--json", null);
 const PASSWORD = "Scale-Fixture-2026!x";
 const ADMIN_EMAIL = "scale-admin@example.com";
@@ -48,7 +50,8 @@ const check = (name, ok, detail) => { if (!ok) failures.push(name); console.log(
 const env = { ...process.env, RM_DATA_DIR: RUN, PORT: String(PORT), ANTHROPIC_KEY: "", NODE_ENV: "development",
   COOKIE_ENCRYPTION_KEY: crypto.randomBytes(32).toString("hex"), SCALE_LOOP_FILE: LOOP };
 const t0 = Date.now();
-const child = spawn(process.execPath, ["--import", "./test-support/scaleLoopProbe.mjs", "server.js"], { env, stdio: ["ignore", "pipe", "pipe"] });
+if (PROF_DIR) { fs.mkdirSync(PROF_DIR, { recursive: true }); for (const f of ["start", "stop", "stopped", "main.cpuprofile"]) fs.rmSync(path.join(PROF_DIR, f), { force: true }); env.SCALE_PROF_DIR = PROF_DIR; }
+const child = spawn(process.execPath, ["--import", "./test-support/scaleLoopProbe.mjs", ...(PROF_DIR ? ["--import", "./test-support/scaleCpuProf.mjs"] : []), "server.js"], { env, stdio: ["ignore", "pipe", "pipe"] });
 let log = ""; const keep = (d) => { log += d; if (log.length > 4e6) log = log.slice(-2e6); };
 child.stdout.on("data", keep); child.stderr.on("data", keep);
 const stop = async () => { if (child.exitCode == null) { child.kill("SIGTERM"); await Promise.race([new Promise(r => child.once("exit", r)), wait(10000)]); if (child.exitCode == null) child.kill("SIGKILL"); } };
@@ -123,12 +126,18 @@ try {
   const time = async (name, f) => { const a = performance.now(); const r = await f().catch(e => ({ status: 0, e })); const ms = performance.now() - a;
     try { await r.arrayBuffer?.(); } catch {} times[name].push(ms); statuses[`${name} ${r.status}`] = (statuses[`${name} ${r.status}`] || 0) + 1; };
   fs.writeFileSync(`${LOOP}.reset`, "1"); await wait(800);
+  if (PROF_DIR) fs.writeFileSync(path.join(PROF_DIR, "start"), "1");
   const end = Date.now() + SECONDS * 1000;
   await Promise.all([
     ...sessions.map(async (s, u) => { let k = u; while (Date.now() < end) for (const [name, f] of SCREENS) { if (Date.now() >= end) break; await time(name, () => f(s.headers, k++)); } }),
     (async () => { while (Date.now() < end) { await time("Admin → Testers", () => fetch(`${base}/api/admin/testers/people`, { headers: adminHeaders })); await wait(1000); } })(),
   ]);
   await wait(700);
+  if (PROF_DIR) {
+    fs.writeFileSync(path.join(PROF_DIR, "stop"), "1");
+    for (let i = 0; i < 100 && !fs.existsSync(path.join(PROF_DIR, "stopped")); i++) await wait(200);
+    console.log(`cpu profile: ${path.join(PROF_DIR, "main.cpuprofile")}`);
+  }
   const loop = JSON.parse(fs.readFileSync(LOOP, "utf8"));
   const pct = (a, p) => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); return Math.round(s[Math.min(s.length - 1, Math.ceil(p / 100 * s.length) - 1)]); };
   const table = {};
@@ -139,6 +148,15 @@ try {
   const bad = Object.entries(statuses).filter(([k]) => !/ 200$/.test(k));
   check("every request answered 200", bad.length === 0, bad.length ? JSON.stringify(Object.fromEntries(bad)) : `${Object.values(statuses).reduce((a, b) => a + b, 0)} requests`);
   check(`event-loop p99 ≤ 100 ms under ${USERS} users`, loop.p99 <= BUDGETS.loopP99Ms, `p99 ${loop.p99} ms, p50 ${loop.p50}, max ${loop.max}`);
+  // ⭐ 45j: each stall over 1 s (the probe's .stalls file), with the server's lines logged in the 3 s before it ended.
+  try {
+    const stalls = fs.readFileSync(`${LOOP}.stalls`, "utf8").trim().split(/\r?\n/).filter(Boolean).map(l => JSON.parse(l));
+    const lines = log.split(/\r?\n/).map(l => ({ t: Number((l.match(/^\[t=(\d+)\]/) || [])[1]), l })).filter(x => Number.isFinite(x.t));
+    for (const st of stalls.slice(-5)) {
+      console.log(`stall ${st.ms} ms ending at t=${st.end}:`);
+      for (const x of lines.filter(x => x.t >= st.end - st.ms - 3000 && x.t <= st.end + 200).slice(-12)) console.log(`   ${x.l.slice(0, 220)}`);
+    }
+  } catch { /* no stalls recorded */ }
   const v1 = await version();
   check("the read pool never fell back", (v1.readPool?.fallback || 0) === 0, JSON.stringify({ served: v1.readPool?.served, fallback: v1.readPool?.fallback }));
   const slices = { "classify page": v1.classify?.maxPageMs, "classify write": v1.classify?.maxWriteMs, "classify read": v1.classify?.maxReadMs };
