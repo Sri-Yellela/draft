@@ -20,7 +20,7 @@ import SkillsListAndMap from "./YourSkillsPanel.jsx";   // D169
 import { ExploreByRole, Recent, directionLine, useAtlasMe } from "./YourMap.jsx";
 import { KIND_LABEL } from "./atlasModel.js";
 import { flatSteps, stepState } from "./learnModel.js";
-import { learnStages, overviewStats, panelHref } from "./atlasPanels.js";
+import { learnStages, overviewStats, panelHref, learnStepHref } from "./atlasPanels.js";
 import "./AtlasPanels.css";
 import RoleReadiness from "./RoleReadiness.jsx";
 import CompareRoles from "./CompareRoles.jsx";
@@ -355,19 +355,29 @@ export function searchGlossary(terms, q) {
   return hits.sort((a, b) => a.rank - b.rank || a.t.name.localeCompare(b.t.name)).map(h => h.t);
 }
 
+/**
+ * ⭐ D178 · the Glossary's rows: the Atlas terms (each with its lesson when the path teaches it) and the concept index's
+ * other concepts as rows of their own — one list, by name. Pure.
+ */
+export function glossaryRows(terms = [], concepts = []) {
+  const rows = [...terms, ...concepts.map(c => ({ slug: null, concept: true, name: c.name, kind: "concept", meaning: c.meaning, postings: null, learn: c.learn }))];
+  return rows.sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
+}
+
 /** The glossary drawn from GET /api/atlas/glossary — pure (the tests render it). */
-export function GlossaryView({ base, terms, q = "", onQ = () => {}, shown = GLOSSARY_PAGE, onMore = () => {} }) {
-  const hits = searchGlossary(terms, q);
+export function GlossaryView({ base, terms, concepts = [], q = "", onQ = () => {}, shown = GLOSSARY_PAGE, onMore = () => {} }) {
+  const all = useMemo(() => glossaryRows(terms, concepts), [terms, concepts]);
+  const hits = searchGlossary(all, q);
   return (
     <div className="atl-pan" data-atlas-panel-body="glossary">
       <PanelHead eyebrow="Glossary" title="The words the market uses"
-        lead="Every term in the Atlas, in plain words, with how many open postings use it. Hover a linked term in a posting to see the same definition." />
+        lead="Every term in the Atlas and every idea the course teaches, in plain words — with how many open postings use it, and the lesson that teaches it. Hover a linked term in a posting to see the same definition." />
       <input className="atl__input atl-pan__search" type="search" value={q} onChange={(e) => onQ(e.target.value)} maxLength={80}
         aria-label="Search the glossary" placeholder="Search a term" data-glossary-search="" />
-      <p className="atl__quiet" role="status" data-glossary-count="">{q.trim() ? `${num(hits.length)} of ${num(terms.length)} terms` : `${num(terms.length)} terms`}</p>
+      <p className="atl__quiet" role="status" data-glossary-count="">{q.trim() ? `${num(hits.length)} of ${num(all.length)} terms` : `${num(all.length)} terms`}</p>
       <ul className="atl-pan__gloss" data-glossary="">
         {hits.slice(0, shown).map(t => (
-          <li key={t.slug} className="atl-pan__term" data-glossary-term={t.slug}>
+          <li key={t.slug || `concept:${t.name}`} className="atl-pan__term" data-glossary-term={t.slug || undefined} data-glossary-concept={t.concept ? t.name : undefined}>
             <div className="atl-pan__term-t">
               <b>{t.name}</b> <span className="mark mark--dim">{KIND_LABEL[t.kind] || t.kind}</span>
               <p className="atl-pan__meaning" data-glossary-meaning="">
@@ -375,8 +385,14 @@ export function GlossaryView({ base, terms, q = "", onQ = () => {}, shown = GLOS
                 {t.fromWikipedia && <span className="atl__quiet"> — From <a href={t.wikipediaUrl || "https://en.wikipedia.org"} target="_blank" rel="noopener noreferrer">Wikipedia</a> (CC BY-SA)</span>}
               </p>
             </div>
-            <span className="atl__count" data-glossary-postings={t.postings}>{num(t.postings)} posting{t.postings === 1 ? "" : "s"}</span>
-            <Link className="atl__link" to={nodeHref(base, t.slug)} data-glossary-open="">Open in Atlas</Link>
+            {t.postings != null
+              ? <span className="atl__count" data-glossary-postings={t.postings}>{num(t.postings)} posting{t.postings === 1 ? "" : "s"}</span>
+              : <span />}
+            <span className="atl-pan__term-go">
+              {t.slug && <Link className="atl__link" to={nodeHref(base, t.slug)} data-glossary-open="">Open in Atlas</Link>}
+              {/* ⭐ D178: the concept index's link — the lesson that teaches it, in the course's circle view. */}
+              {t.learn && <Link className="atl__link" to={learnStepHref(base, t.learn.stepId)} data-glossary-learn={t.learn.stepId} title={t.learn.label}>Learn it</Link>}
+            </span>
           </li>
         ))}
       </ul>
@@ -387,15 +403,16 @@ export function GlossaryView({ base, terms, q = "", onQ = () => {}, shown = GLOS
 
 export function GlossaryPanel({ base }) {
   const [terms, setTerms] = useState(null);
+  const [concepts, setConcepts] = useState([]);
   const [q, setQ] = useState("");
   const [shown, setShown] = useState(GLOSSARY_PAGE);
   useEffect(() => {
     let live = true;
-    api("/api/atlas/glossary").then(r => live && setTerms(r.terms || [])).catch(() => live && setTerms(false));
+    api("/api/atlas/glossary").then(r => { if (live) { setTerms(r.terms || []); setConcepts(r.concepts || []); } }).catch(() => live && setTerms(false));
     return () => { live = false; };
   }, []);
   useEffect(() => { setShown(GLOSSARY_PAGE); }, [q]);
   if (terms === null) return <p className="atl__quiet" role="status">Opening…</p>;
   if (terms === false) return <p className="atl__quiet" role="alert">The glossary could not be reached just now.</p>;
-  return <GlossaryView base={base} terms={terms} q={q} onQ={setQ} shown={shown} onMore={() => setShown(n => n + GLOSSARY_PAGE)} />;
+  return <GlossaryView base={base} terms={terms} concepts={concepts} q={q} onQ={setQ} shown={shown} onMore={() => setShown(n => n + GLOSSARY_PAGE)} />;
 }

@@ -56,6 +56,9 @@ export function panelFor(slug, q = "") {
 /** Is this address a panel itself (not a node, a family or a search inside one)? */
 export const isPanelSlug = (slug) => PANEL_IDS.includes(String(slug || "")) || !!PANEL_ALIASES[String(slug || "")] || RESERVED_PANELS.includes(String(slug || ""));
 
+/** ⭐ D178 · a Learn piece's address: the course's circle view with that piece selected (Learn's one home now). */
+export const learnStepHref = (base, stepId) => `${base}/library/silicon-to-software?view=circle#step-${encodeURIComponent(stepId)}`;
+
 /** A panel's address under a mount. Overview is the mount itself (/atlas/overview works too). */
 export const panelHref = (base, id) => (id === "overview" ? base : `${base}/${id}`);
 

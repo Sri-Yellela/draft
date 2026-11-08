@@ -3,6 +3,8 @@
 // with the route's skills as stations on it. Green = done, the first not-done = next (it pulses), empty rings ahead; the
 // walked part of the track is drawn in the accent. Geometry in a 1000 × 420 board; the component only draws it.
 
+import { learnStepHref } from "./atlasPanels.js";
+
 export const BOARD = Object.freeze({ w: 1000, h: 420, top: 110, bottom: 310, left: 110, right: 860, turnR: 100 });
 
 /** The stations' states: done · next (the first not done) · ahead. */
@@ -43,7 +45,7 @@ export function layoutTrack(stations = []) {
 
 /** A station's Learn piece (the course's circle view, D178) or its Atlas page. */
 export function stationHref(base, s) {
-  return s?.learn?.stepId ? `${base}/library/silicon-to-software?view=circle#step-${encodeURIComponent(s.learn.stepId)}` : `${base}/${encodeURIComponent(s?.slug || "")}`;
+  return s?.learn?.stepId ? learnStepHref(base, s.learn.stepId) : `${base}/${encodeURIComponent(s?.slug || "")}`;
 }
 
 const STATE_SAID = { done: "you have it", next: "next", ahead: "ahead" };
