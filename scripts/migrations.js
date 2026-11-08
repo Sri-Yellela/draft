@@ -6344,4 +6344,16 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_scraped_jobs_active_recency ON scraped_jobs(COALESCE(posted_at, discovered_at) DESC) WHERE is_active = 1;
       `,
     },
+    {
+      // ⭐ D151 (45l): atlas_changes moves on every write to atlas_nodes and skill_synonyms (D118 P2 (b)) but NOT on
+      // atlas_edges — so nothing keyed on it could keep the `requires` map (Your map's branches rebuilt it from every
+      // edge on every call: 3.0 s of main-thread time in 45k's 20-user profile). The same three triggers on atlas_edges,
+      // so the user-independent Atlas pieces can be kept until the Atlas really changes. Only ADDS. After 229.
+      id: "230_atlas_edges_changes",
+      sql: `
+        CREATE TRIGGER IF NOT EXISTS atlas_edges_changed_ins AFTER INSERT ON atlas_edges BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+        CREATE TRIGGER IF NOT EXISTS atlas_edges_changed_upd AFTER UPDATE ON atlas_edges BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+        CREATE TRIGGER IF NOT EXISTS atlas_edges_changed_del AFTER DELETE ON atlas_edges BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
+      `,
+    },
   ];

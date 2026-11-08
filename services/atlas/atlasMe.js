@@ -19,7 +19,7 @@
 // pass one pass of its own counts it. The user half is computed on every read, so a profile change shows at once.
 
 import { postingMatcher, roleLevelsOfBoard } from "./atlasStats.js";
-import { liveRoleLevels, atlasPostingsChanged } from "./atlasLive.js";
+import { liveRoleLevels, atlasPostingsChanged, liveStamp, LIVE_CACHE_MS } from "./atlasLive.js";
 import { haveTerms, KINDS, termOf, aliasesOf } from "./atlasStore.js";
 import { yourSkillStates } from "../yourSkills.js";
 const safeRead = (fn, d) => { try { return fn(); } catch { return d; } };
@@ -173,7 +173,31 @@ export function userBandLabel(db, userId) {
   return b < 0 ? null : LEVEL_BANDS[b].label;
 }
 
-export function atlasIndex(db) {
+// ⭐ D151 (45l): the user-independent Atlas pieces — the node index and the role → required-skills map — were rebuilt
+// on EVERY Your map call (45k's profile: atlasIndex 0.6–1.0 s, branchesSection 3.0 s of main-thread time over 588
+// calls). They are kept now, per database, under a stamp that moves with: the live counts' version (liveStamp), every
+// write to atlas_nodes / skill_synonyms / atlas_edges (atlas_changes — the edges' triggers are migration 230), and the
+// stats table's own cheap key (a nightly stats rebuild writes atlas_node_stats without moving either). Never past
+// LIVE_CACHE_MS. ⛔ The kept objects are SHARED between requests — callers read them, never mutate them.
+const sharedAtlas = new WeakMap();   // db → Map(key → { stamp, at, value })
+function statsKey(db) {
+  try { return db.prepare(`SELECT COUNT(*) || ':' || COALESCE(MAX(computed_at), 0) || ':' || COALESCE(SUM(postings), 0) FROM atlas_node_stats`).pluck().get(); }
+  catch { return "-"; }
+}
+function keptAtlas(db, key, compute, now = Date.now()) {
+  let c = sharedAtlas.get(db);
+  if (!c) sharedAtlas.set(db, c = new Map());
+  const stamp = `${liveStamp(db)}|${statsKey(db)}`;
+  const hit = c.get(key);
+  if (hit && hit.stamp === stamp && now - hit.at < LIVE_CACHE_MS) return hit.value;
+  const value = compute();
+  c.set(key, { stamp, at: now, value });
+  return value;
+}
+
+export function atlasIndex(db) { return keptAtlas(db, "index", () => buildAtlasIndex(db)); }
+
+function buildAtlasIndex(db) {
   const nodes = db.prepare(`SELECT n.id, n.slug, n.kind, n.name, n.term, n.status, n.family, COALESCE(s.postings, 0) AS postings, s.top_skills_json
     FROM atlas_nodes n LEFT JOIN atlas_node_stats s ON s.node_id = n.id`).all();
   const byId = new Map(nodes.map(n => [n.id, n]));
@@ -315,14 +339,22 @@ function adjacentSection(db, { idx, have, haveIds }, all) {
   return capped(items, all);
 }
 
+/** Published role → its published required skills (the `requires` edges), kept under the shared stamp (D151, 45l). */
+function requiresByRole(db, idx) {
+  return keptAtlas(db, "requires", () => {
+    const req = new Map();
+    for (const e of db.prepare(`SELECT from_id, to_id FROM atlas_edges WHERE type = 'requires'`).all()) {
+      const role = idx.byId.get(e.from_id), n = idx.byId.get(e.to_id);
+      if (role?.kind !== "role" || !idx.published(role.id) || !n || n.kind === "role" || !idx.published(n.id)) continue;
+      if (!req.has(role.id)) req.set(role.id, new Set());
+      req.get(role.id).add(n.id);
+    }
+    return req;
+  });
+}
+
 function branchesSection(db, { idx, rollup, haveIds, targets }, all) {
-  const req = new Map();
-  for (const e of db.prepare(`SELECT from_id, to_id FROM atlas_edges WHERE type = 'requires'`).all()) {
-    const role = idx.byId.get(e.from_id), n = idx.byId.get(e.to_id);
-    if (role?.kind !== "role" || !idx.published(role.id) || !n || n.kind === "role" || !idx.published(n.id)) continue;
-    if (!req.has(role.id)) req.set(role.id, new Set());
-    req.get(role.id).add(n.id);
-  }
+  const req = requiresByRole(db, idx);
   const items = [];
   for (const [roleId, needIds] of req) {
     if (targets.includes(roleId)) continue;
