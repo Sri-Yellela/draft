@@ -36,6 +36,36 @@ export function auditFunnel(rows) {
   };
 }
 
+// ⭐ D173 (9) (45n) · THE APPLY FUNNEL AS ONE CHAIN (Stripe's checkout → fraud → authorisation, for applications):
+// dealt → kept → tailored → attempted → submitted → replied → interview, each stage's count in a window and its step
+// from the stage before, this 30 days beside the 30 before — and a WARNING when submissions rose while the reply rate
+// fell (never raise volume at the cost of replies). Counts only, no person named.
+const DAY = 86400;
+const STAGES = [
+  ["dealt", "Dealt on a deck", `SELECT COUNT(*) FROM daily_drafts WHERE dealt_at >= ? AND dealt_at < ?`],
+  ["kept", "Starred or drafted", `SELECT COUNT(*) FROM user_jobs WHERE (starred = 1 OR applied = 1) AND updated_at >= ? AND updated_at < ?`],
+  ["tailored", "Résumé tailored", `SELECT COUNT(*) FROM resume_versions WHERE created_at >= ? AND created_at < ?`],
+  ["attempted", "Application attempted", `SELECT COUNT(*) FROM apply_run_jobs WHERE started_at >= ? AND started_at < ?`],
+  ["submitted", "Submitted", `SELECT COUNT(*) FROM job_applications WHERE applied_at >= ? AND applied_at < ?`],
+  ["replied", "Replied", `SELECT COUNT(*) FROM job_applications WHERE response_outcome IS NOT NULL AND applied_at >= ? AND applied_at < ?`],
+  ["interview", "Interview or assessment", `SELECT COUNT(*) FROM job_applications WHERE response_outcome IN ('interview', 'assessment', 'offer') AND applied_at >= ? AND applied_at < ?`],
+];
+/** Pure: the chain from two windows' counts { stage → n }. */
+export function chainFrom(now, before) {
+  const stages = STAGES.map(([id, label], i) => {
+    const prev = i ? STAGES[i - 1][0] : null;
+    return { id, label, n: now[id] ?? null, before: before[id] ?? null, fromPrevious: prev && now[prev] ? shareText(now[id] ?? 0, now[prev]) : "—" };
+  });
+  const rate = (w) => (w.submitted ? (w.replied || 0) / w.submitted : null);
+  const warn = now.submitted > (before.submitted || 0) && rate(before) != null && rate(now) != null && rate(now) < rate(before)
+    ? `Submissions rose (${before.submitted || 0} → ${now.submitted}) while the reply rate fell (${Math.round(rate(before) * 100)} % → ${Math.round(rate(now) * 100)} %) — volume is costing replies.` : null;
+  return { stages, warning: warn };
+}
+export function applyChain(db, { nowSec = Math.floor(Date.now() / 1000), days = 30 } = {}) {
+  const w = (from, to) => Object.fromEntries(STAGES.map(([id, , sql]) => [id, safe(() => db.prepare(sql).pluck().get(from, to), null)]));
+  return { days, ...chainFrom(w(nowSec - days * DAY, nowSec), w(nowSec - 2 * days * DAY, nowSec - days * DAY)) };
+}
+
 export function phase1Measures(db) {
   const sessions = safe(() => db.prepare(`SELECT role_slug, item_ids_json, answers_json, claimed_by FROM audit_sessions`).all(), []);
   const surfaces = safe(() => db.prepare(`SELECT surface, COUNT(*) AS answers, SUM(correct) AS right FROM learn_question_answers GROUP BY surface ORDER BY answers DESC`).all(), [])
@@ -47,6 +77,7 @@ export function phase1Measures(db) {
     bank: { surfaces },
     debriefs: { interviews, debriefs, perInterview: interviews ? `${debriefs} for ${interviews} interviews` : "—",
       verdict: interviews < SMALL_N ? "too few to judge" : debriefs / interviews >= PHASE1_TARGETS.debriefsPerInterview ? "on target" : "under target" },
+    applyChain: applyChain(db),
     notBuilt: ["T11 market pages' visits", "T14 review returns", "T15 stack opens"],
     targets: { auditFinish: "≥ 60 %", claimAfterFinish: "≥ 20 %", debriefs: "≥ 1 in 3 interviews" },
     smallN: SMALL_N,

@@ -38,6 +38,11 @@ export function Phase1Tab() {
           <b>Debriefs</b>
           <Line label="Debriefs per interview" value={m.debriefs.perInterview} note={`${m.debriefs.verdict} (target ${m.targets.debriefs})`} />
         </div>
+        {m.applyChain && <div style={{ ...sub, marginTop: 8 }} data-apply-chain="">
+          <b>The apply funnel, last {m.applyChain.days} days</b> <span style={quiet}>(the {m.applyChain.days} before in brackets; each step from the stage above)</span>
+          {m.applyChain.stages.map(s => <Line key={s.id} label={s.label} value={`${s.n ?? "—"} (${s.before ?? "—"})`} note={s.fromPrevious !== "—" ? `${s.fromPrevious} of the stage above` : null} />)}
+          {m.applyChain.warning && <div role="alert">⚠ {m.applyChain.warning}</div>}
+        </div>}
         <div style={{ ...quiet, marginTop: 8 }}>Not built yet, so not measured: {m.notBuilt.join(" · ")}.</div>
       </>}
     </Panel>
