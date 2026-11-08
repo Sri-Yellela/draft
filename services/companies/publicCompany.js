@@ -14,6 +14,7 @@
 import { stackFor } from "./companyTech.js";
 import { companyAbout } from "./companyFacts.js";
 import { companyGithub } from "./companyGithub.js";
+import { companyWebSignals } from "./companyWebSignals.js";
 import { sponsorshipFactFor } from "../kb/sponsorshipFacts.js";
 import { PUBLIC_OPEN_SQL, jobPath, atlasLinksFor } from "../jobs/publicJobPage.js";
 import { taxonomy } from "../jobs/taxonomyClassify.js";
@@ -96,6 +97,8 @@ export function publicCompany(db, slug, { now = Date.now() } = {}) {
     about: (() => { try { return companyAbout(db, co); } catch { return null; } })(),
     // ⭐ D179 P5b: the public GitHub organisation's languages (matched by its own site); null when none.
     github: (() => { try { return companyGithub(db, co.id); } catch { return null; } })(),
+    // ⭐ D179 P5c: light signals from their own homepage — labelled, never mixed into the postings' evidence.
+    website: (() => { try { return companyWebSignals(db, co.id); } catch { return null; } })(),
   };
   pageCache.set(s, { at: now, value });
   if (pageCache.size > 5000) pageCache.clear();
