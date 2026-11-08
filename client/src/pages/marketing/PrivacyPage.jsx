@@ -136,6 +136,12 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // ⚠ MATERIAL (a new kind of message, and a tap that sends). EFFECTIVE_DATE is NOT moved here: the convention is "the date
 // of the push that applies it", and this lane does not push. ⛔ The push that ships D113 must set EFFECTIVE_DATE to that
 // day — and, if any user is registered by then, give the advance notice this policy commits to before it takes effect.
+// D183 (owner 11-08 — Profile = your page, services/profilePage.js, routes/publicProfile.js): the profile paragraph says
+// the page is PRIVATE unless the person makes it public; what a public page shows and never shows (contact details,
+// application defaults, job profiles, saved answers); search engines only when they switch it on; a replace of the
+// résumé re-fills the page and can be undone for 30 days; anyone can report a public page. ⚠ MATERIAL (a new way
+// information becomes visible to others, always by the person's own choice). EFFECTIVE_DATE is NOT moved here (the
+// convention: the date of the push that applies it) — ⛔ the push that ships D183 sets it.
 const EFFECTIVE_DATE = 'October 31, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
@@ -750,6 +756,17 @@ export function PrivacyPage() {
             <Strong>Application defaults</Strong> hold the answers you set for common questions (work
             authorisation, sponsorship, relocation, start date, voluntary self-identification); an answer you
             have not set is left blank and draft asks you, rather than assuming one.
+          </P>
+          {/* ⭐ D183 (owner 11-08) — services/profilePage.js, routes/publicProfile.js. */}
+          <P>
+            <Strong>Your profile is private unless you make it public.</Strong> You choose who can see it — only you
+            (the setting every account starts with), your connections, or the public — and each section can be kept
+            narrower. A public profile has its own address; it never shows your contact details, application
+            defaults, job profiles or saved answers, whatever you choose, and search engines are asked not to list it
+            unless you switch that on. Replacing your résumé re-fills your profile from the new one, keeps what you
+            added yourself, and can be undone for 30 days. Anyone can report a public profile to draft's moderators;
+            a report records the reason given, and the person reported is not told who sent it. No AI model reads
+            your profile for anyone but you.
           </P>
 
           <H3>Usage Data</H3>

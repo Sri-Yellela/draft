@@ -80,6 +80,15 @@ export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo
     try { removeAchievement(db, req.user.id, req.params.id); res.json(profilePage(db, req.user.id)); } catch (e) { fail(res, e); }
   });
   // ⭐ D183 P2 · What changed after a résumé replace: the newest one waiting for "Looks right"; keep it; or Undo (30 days).
+  // ⭐ D183 P3 · the public link's handle (one per person, unique, reserved words refused) — kept in proof_pages, so a
+  // D109 address keeps working (it redirects to /in/<handle>). The proof page's old on / off is not changed here.
+  app.put("/api/profile/page/handle", requireAuth, (req, res) => {
+    try {
+      const cur = readProofPage(db, req.user.id);
+      setProofPage(db, req.user.id, { handle: req.body?.handle, enabled: cur.enabled });
+      res.json(profilePage(db, req.user.id));
+    } catch (e) { fail(res, e); }
+  });
   app.get("/api/profile/replacements/latest", requireAuth, (req, res) => {
     try { res.json({ replacement: latestReplacement(db, req.user.id) }); } catch (e) { fail(res, e); }
   });

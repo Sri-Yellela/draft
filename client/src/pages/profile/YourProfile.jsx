@@ -109,9 +109,30 @@ function WhoCanSee({ vis, onSet }) {
   );
 }
 
-function Header({ page, avatarUrl, editing, onEdit, onSet, onPreview, previewing }) {
+/** ⭐ P3 · the public link's handle — chosen once, editable, unique (the server refuses a taken or reserved one). */
+function HandleEditor({ handle, onSaved }) {
+  const [v, setV] = useState(handle || "");
+  const [msg, setMsg] = useState("");
+  useEffect(() => { setV(handle || ""); }, [handle]);
+  const save = async (e) => {
+    e.preventDefault(); setMsg("");
+    try { onSaved(await api("/api/profile/page/handle", { method: "PUT", body: JSON.stringify({ handle: v.trim().toLowerCase() }) })); setMsg("Saved."); }
+    catch (x) { setMsg(x.message || "Not saved."); }
+  };
+  return (
+    <form className="yp__hedit" onSubmit={save} data-handle-editor="">
+      <label>Your public link <span className="yp__handle">{window.location.host}/in/<input value={v} maxLength={30} pattern="[a-z0-9][a-z0-9-]{1,28}[a-z0-9]"
+        onChange={e => setV(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} placeholder="jordan-rivera" aria-label="Your handle" /></span></label>
+      <button type="submit" className="pf__btn" disabled={!v || v === handle}>Save link</button>
+      {msg && <span className="yp__muted" role="status">{msg}</span>}
+    </form>
+  );
+}
+
+function Header({ page, avatarUrl, editing, onEdit, onSet, onPreview, previewing, onPage }) {
   const h = page.header;
   const p = h.placement;
+  const isPublic = page.visibility.page === "public";
   const [headline, setHeadline] = useState(h.headline || "");
   useEffect(() => { setHeadline(h.headline || ""); }, [h.headline]);
   const publicUrl = h.handle ? `${window.location.origin}/in/${h.handle}` : null;
@@ -142,9 +163,12 @@ function Header({ page, avatarUrl, editing, onEdit, onSet, onPreview, previewing
           <button type="submit" className="pf__btn">Save</button>
         </form>
       ) : <p className="yp__headline">{h.headline || <span className="yp__muted">No headline yet — Edit to add one.</span>}</p>}
+      {(editing || !h.handle) && <HandleEditor handle={h.handle} onSaved={onPage} />}
       <p className="yp__muted">
         {[h.location, h.years != null ? `${h.years} year${h.years === 1 ? "" : "s"}` : null].filter(Boolean).join(" · ")}
-        {publicUrl && <>{h.location || h.years != null ? " · " : ""}<span data-public-link="">{publicUrl.replace(/^https?:\/\//, "")}</span></>}
+        {publicUrl && <>{h.location || h.years != null ? " · " : ""}{isPublic
+          ? <a href={publicUrl} target="_blank" rel="noopener noreferrer" data-public-link="">{publicUrl.replace(/^https?:\/\//, "")}</a>
+          : <span data-public-link="" title="Only you can see your profile — this link shows “This profile is private.”">{publicUrl.replace(/^https?:\/\//, "")}</span>}</>}
       </p>
       {p && (
         <p className="yp__fits" data-placement="">
@@ -405,7 +429,7 @@ export default function YourProfile({ behind = null }) {
       {err && <p role="alert" className="yp__err">{err}</p>}
       {replaced && <WhatChanged r={replaced} onKeep={keepChange} onUndo={undoChange} busy={changeBusy} />}
       <Header page={page} avatarUrl={avatarUrl} editing={editing} onEdit={() => setEditing(x => !x)} onSet={set}
-        onPreview={togglePreview} previewing={!!preview} />
+        onPreview={togglePreview} previewing={!!preview} onPage={setPage} />
       {preview ? <PublicPreview view={preview.view} avatarUrl={avatarUrl} /> : (
         <>
           <SourceLine source={page.source} onReplace={replace} />

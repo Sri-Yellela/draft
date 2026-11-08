@@ -6636,4 +6636,31 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_profile_replacements_user ON profile_replacements(user_id, created_at DESC);
       `,
     },
+    {
+      // ⭐ D183 P3 (owner 11-08): the public page /in/<handle>. (1) Report this profile → the moderation queue (built with
+      // this, as D183 says — D180 will read the same table). (2) A person who had turned the D109 proof page ON keeps
+      // that earlier yes for those two things only: the page starts PUBLIC with projects and skills showing and every
+      // other section at Only you. INSERT OR IGNORE — a person who already set their page is never changed.
+      id: "245_profile_public_page",
+      sql: `
+        CREATE TABLE IF NOT EXISTS profile_reports (
+          id               INTEGER PRIMARY KEY AUTOINCREMENT,
+          reported_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          handle           TEXT NOT NULL,
+          reason           TEXT NOT NULL,
+          details          TEXT,
+          reporter_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          reporter_hash    TEXT,
+          status           TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'dismissed', 'actioned')),
+          created_at       INTEGER NOT NULL DEFAULT (unixepoch()),
+          resolved_at      INTEGER,
+          resolved_note    TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_profile_reports_status ON profile_reports(status, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_profile_reports_hash ON profile_reports(reporter_hash, created_at);
+        INSERT OR IGNORE INTO profile_page (user_id, page_level, sections_json)
+          SELECT user_id, 'public', '{"about":"only_me","experience":"only_me","fit":"only_me","achievements":"only_me","education":"only_me","links":"only_me"}'
+          FROM proof_pages WHERE enabled = 1;
+      `,
+    },
   ];

@@ -9,8 +9,7 @@
 // ⛔ DRAFT CERTIFIES NOTHING: the page says the links are supplied by the candidate (PROOF_PAGE_NOTE), and nothing on it
 //    claims draft checked them (d109NoCertifyWording).
 // Server-rendered HTML with no script, so the page works where the client bundle never loads; every value escaped.
-import { proofPageFor, PROOF_PAGE_NOTE } from "../services/proofLinks.js";
-import { learningProof } from "../services/atlas/points.js";
+import { PROOF_PAGE_NOTE, HANDLE_RE } from "../services/proofLinks.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -81,13 +80,15 @@ export function renderProofPage(page) {
 </html>`;
 }
 
+// ⭐ D183 P3 (owner 11-08): /p/<handle> REDIRECTS (301) to the profile's public page /in/<handle> — its projects and
+// "Proven in Atlas" are the public page's Projects and Skills sections now, and a person who had this page ON starts
+// Public for those two sections (migration 245). renderProofPage stays for the tests that pin what it never shows.
 export default function proofPageRoutes(app, db) {
   app.get("/p/:handle", (req, res) => {
-    let page = null;
-    try { page = proofPageFor(db, req.params.handle, { learningOf: learningProof }); } catch { page = null; }
-    res.set("Cache-Control", "no-store");
+    const h = String(req.params.handle || "").trim().toLowerCase();
+    if (HANDLE_RE.test(h)) return res.redirect(301, `/in/${h}`);
     res.set("X-Robots-Tag", "noindex");
-    if (!page) return res.status(404).type("html").send(`<!doctype html><meta charset="utf-8"><title>Not found</title><p>There is no page at this address.</p>`);
-    res.type("html").send(renderProofPage(page));
+    return res.status(404).type("html").send(`<!doctype html><meta charset="utf-8"><title>Not found</title><p>There is no page at this address.</p>`);
   });
 }
+
