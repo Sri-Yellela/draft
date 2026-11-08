@@ -189,6 +189,8 @@ function teachIndex(db) {
 export const teachesByStep = (db) => teachIndex(db).byStep;
 /** The pieces that teach a node (by its id), from the stored terms. */
 export const stepsTeachingNodeId = (db, nodeId) => teachIndex(db).byNode.get(nodeId) || [];
+/** Map(node id → [piece]) — the whole index once, for a caller that asks for every node (atlasTree.nodeLearnStates). */
+export const stepsTeachingByNode = (db) => teachIndex(db).byNode;
 /** The terms no Atlas node answers — reported on import and in Admin → Learn. */
 export const unresolvedTerms = (db) => teachIndex(db).unresolved;
 

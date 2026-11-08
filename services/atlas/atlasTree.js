@@ -26,7 +26,7 @@ import { liveReadings, atlasPostingsChanged } from "./atlasLive.js";
 import { postingMatcher, ACTIVE_POSTINGS_WHERE, POSTING_TEXT_SQL, levelReadColumn } from "./atlasStats.js";
 import { profileTerms } from "./atlasStore.js";
 import { learnStepForNode, learnStepPath, learnStepInfo } from "../learn/learnLinks.js";
-import { stepsTeachingNodeId } from "../learn/learnCircle.js";
+import { stepsTeachingNodeId, stepsTeachingByNode } from "../learn/learnCircle.js";
 import { learnContent, stepsOf } from "../learn/learnContent.js";
 import { earnedMarks } from "../learn/learnEarned.js";
 import { stepState } from "../../shared/learnStepState.js";
@@ -86,8 +86,11 @@ export function closenessCounts(readings, mineIds) {
  * teaches_derived) resolve to it through the one resolver, then D115 P4b's step pointer (the tracker's concept index and
  * patterns) where no piece names it. This is the one place the tree reads them.
  */
-export function stepsTeaching(db, node, learn) {
-  const out = node.id != null ? stepsTeachingNodeId(db, node.id).map(id => learnStepInfo(learn, id)).filter(Boolean) : [];
+// ⭐ D151 (45k): `byNode` (stepsTeachingByNode, read once) for a caller that loops over every node — measured on the 100k
+// suite, teachIndex's per-call key check (three statements) × every published node was ≈ 10 s of a 61 s main-thread window.
+export function stepsTeaching(db, node, learn, byNode = null) {
+  const ids = node.id == null ? [] : byNode ? (byNode.get(node.id) || []) : stepsTeachingNodeId(db, node.id);
+  const out = ids.map(id => learnStepInfo(learn, id)).filter(Boolean);
   if (!out.length) {
     const s = learnStepForNode(db, { name: node.name, term: node.term }, learn);
     if (s) out.push(s);
@@ -106,9 +109,10 @@ export function nodeLearnStates(db, userId, idx = atlasIndex(db)) {
   const stepById = new Map(stepsOf(learn).map(s => [s.id, s]));
   // ⭐ D117 C8 / D116 M8: learned uses THE earned rule — opened from draft, explained in writing, the build linked.
   const marks = earnedMarks(db, userId);
+  const byNode = stepsTeachingByNode(db);
   for (const n of idx.nodes) {
     if (n.kind === "role" || n.status !== "published") continue;
-    const steps = stepsTeaching(db, n, learn).filter(s => stepById.has(s.stepId));
+    const steps = stepsTeaching(db, n, learn, byNode).filter(s => stepById.has(s.stepId));
     if (!steps.length) continue;
     const states = steps.map(s => stepState(stepById.get(s.stepId), marks));
     const done = states.reduce((a, s) => a + s.done, 0), total = states.reduce((a, s) => a + s.total, 0);
