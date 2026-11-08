@@ -105,38 +105,38 @@
           "topics": [
             {
               "title": "idempotency and retries",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-p-01",
+              "status": "draft"
             },
             {
               "title": "rate limiting",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-p-02",
+              "status": "draft"
             },
             {
               "title": "pagination",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-p-03",
+              "status": "draft"
             },
             {
               "title": "feature flags and safe releases",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-p-04",
+              "status": "draft"
             },
             {
               "title": "observability",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-p-05",
+              "status": "draft"
             },
             {
               "title": "timeouts and circuit breakers",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-p-06",
+              "status": "draft"
             },
             {
               "title": "schema migrations (expand and contract)",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-p-07",
+              "status": "draft"
             }
           ]
         },
