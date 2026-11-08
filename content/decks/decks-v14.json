@@ -1,0 +1,652 @@
+{
+ "version": 14,
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'cloud', stages 'reliability' (SLOs, incidents, capacity and cost, disaster recovery; observability reuses sw-p-05) and 'security-for-operations' (secrets, least privilege, supply chain). Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "cl-r-01",
+   "pathway": "cloud",
+   "stage": "reliability",
+   "title": "SLOs and alerting",
+   "skills": [
+    "slo",
+    "sre",
+    "alerting"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Deciding how reliable is reliable enough",
+     "points": [
+      "A service-level objective (SLO) is a target for what users experience: '99.9 % of checkout requests succeed in under 500 ms, over 30 days'.",
+      "It turns 'is it up?' into a number the team agrees to defend."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "SLIs, SLOs, error budgets",
+     "points": [
+      "A service-level indicator (SLI) is the measurement: the share of good requests.",
+      "The error budget is what the SLO allows to fail: 99.9 % over 30 days is about 43 minutes of bad time.",
+      "Spending the budget slowly is fine; burning it fast pages someone.",
+      "When the budget is gone, reliability work takes priority over new features."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Not 100 %",
+     "points": [
+      "Every extra nine costs much more and users rarely notice it.",
+      "Alerting on causes (CPU high) pages people for things users don't feel; alert on symptoms (the SLI).",
+      "Too many alerts and people stop responding."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Burn-rate alerts: page when the budget would run out in hours, ticket when in days.",
+      "Every page actionable, with a runbook link.",
+      "SLOs reviewed with product, not set by operations alone."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-r-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-r-03",
+   "pathway": "cloud",
+   "stage": "reliability",
+   "title": "Incident response and postmortems",
+   "skills": [
+    "incident response",
+    "postmortems"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "When things break, and after",
+     "points": [
+      "Incident response is how a team restores service quickly when something goes wrong.",
+      "A postmortem afterwards finds why it happened and how to stop it recurring."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Roles, mitigation, learning",
+     "points": [
+      "Clear roles: an incident commander coordinates, others investigate, one person communicates.",
+      "Mitigate first (roll back, fail over, turn off a feature); find the root cause later.",
+      "A timeline is written as it happens.",
+      "Blameless postmortems ask how the system allowed the mistake, and produce owned action items."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Speed against understanding",
+     "points": [
+      "Debugging the root cause while users are down extends the outage.",
+      "Blame makes people hide mistakes, so the same failure returns.",
+      "Postmortem actions that never get done waste the lesson; track them."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Severity levels that decide who's paged and how often status is updated.",
+      "A status page updated in plain language.",
+      "Rollback as the first move when an incident follows a deploy."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-r-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-r-04",
+   "pathway": "cloud",
+   "stage": "reliability",
+   "title": "Capacity and cost",
+   "skills": [
+    "capacity planning",
+    "finops",
+    "autoscaling"
+   ],
+   "pieces": [
+    "o4"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Enough to serve, not more than needed",
+     "points": [
+      "Capacity planning makes sure systems can handle the load, including peaks and growth.",
+      "In the cloud, every unit of spare capacity is money, so capacity and cost are one conversation."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Measure, scale, right-size",
+     "points": [
+      "Know the limits: load-test to find where latency rises and errors start.",
+      "Autoscaling adds and removes capacity with demand, based on a metric (CPU, queue depth, requests).",
+      "Right-size: most servers run far below their size; smaller instances or fewer replicas save money.",
+      "Commitments (reserved instances, savings plans) cut prices for steady load; spot instances are cheap and can be taken away."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Headroom against waste",
+     "points": [
+      "Too little headroom fails at a peak; too much burns money every hour.",
+      "Autoscaling reacts with a delay; sudden spikes need some spare capacity.",
+      "Cost cutting that hurts reliability is a false saving."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Cost per team and per service from resource tags.",
+      "Alerts on unusual spend, like any other incident.",
+      "Idle resources (unattached disks, old snapshots, empty clusters) cleaned up regularly."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-r-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-r-05",
+   "pathway": "cloud",
+   "stage": "reliability",
+   "title": "Disaster recovery and multi-region",
+   "skills": [
+    "disaster recovery",
+    "multi-region",
+    "backups"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Surviving the big failures",
+     "points": [
+      "Disaster recovery (DR) is the plan for losing a database, a data centre or a whole region.",
+      "Two numbers define it: RPO (how much data you can lose) and RTO (how long you can be down)."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Backups, replicas, regions",
+     "points": [
+      "Backups protect against deletion and corruption; replicas protect against a machine failing. You need both.",
+      "Backups count only if restoring them is tested regularly.",
+      "Multi-region options range from backups copied to another region (cheap, slow) to active-active (expensive, fast).",
+      "Failover must be practised, or it fails when it matters."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Cost against recovery time",
+     "points": [
+      "Lower RPO and RTO cost more: continuous replication, warm standby, duplicate infrastructure.",
+      "Active-active across regions brings data-consistency problems.",
+      "A replica faithfully copies a mistaken delete; only backups undo it."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Restore drills on a schedule, timed against the RTO.",
+      "Backups in another account, so one compromised account can't delete both.",
+      "Game days: a failure simulated on purpose."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-r-05-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-s-01",
+   "pathway": "cloud",
+   "stage": "security-for-operations",
+   "title": "Secrets",
+   "skills": [
+    "secrets management",
+    "security"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Keys, passwords and tokens kept safe",
+     "points": [
+      "Secrets are credentials: database passwords, API keys, signing keys, tokens.",
+      "Leaked secrets are one of the most common causes of breaches."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Store, deliver, rotate",
+     "points": [
+      "Keep secrets in a secrets manager (Vault, AWS Secrets Manager, Azure Key Vault), not in code, config files or images.",
+      "Deliver them at run time to the service that needs them, with access logged.",
+      "Rotate regularly and immediately after any suspected leak.",
+      "Scan repositories and CI logs for secrets that slipped in."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Convenience is the enemy",
+     "points": [
+      "Environment variables are simple and can leak through logs and crash dumps.",
+      "Long-lived keys are easy and dangerous; short-lived credentials are safer and need tooling.",
+      "A secret removed from the latest commit is still in git history; rotate it."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Pre-commit hooks and CI scanners that block commits containing keys.",
+      "Separate secrets per environment.",
+      "Workload identity so services get credentials without stored keys."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-s-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-s-02",
+   "pathway": "cloud",
+   "stage": "security-for-operations",
+   "title": "Least privilege",
+   "skills": [
+    "iam",
+    "least privilege",
+    "access control"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Only the access you need",
+     "points": [
+      "Least privilege gives each person and service the minimum permissions for its job.",
+      "It limits the damage of mistakes, leaked credentials and compromised services."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Narrow, temporary, reviewed",
+     "points": [
+      "Grant specific actions on specific resources, not wildcards ('*').",
+      "Roles for services and people, assumed as needed; no shared accounts.",
+      "Just-in-time elevation: admin rights for an hour, approved and logged, instead of permanently.",
+      "Review access regularly and remove what's unused."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Safety against friction",
+     "points": [
+      "Tight permissions slow people down when they hit a wall; make requesting access quick.",
+      "Broad permissions are convenient until a credential leaks.",
+      "Permissions drift upward over time unless someone prunes them."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Production access through single sign-on with multi-factor authentication.",
+      "Policies as code, reviewed like any change.",
+      "Access analysers that flag unused or overly broad permissions."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-s-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-s-03",
+   "pathway": "cloud",
+   "stage": "security-for-operations",
+   "title": "The software supply chain",
+   "skills": [
+    "supply chain security",
+    "dependencies",
+    "sbom"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Everything your software is built from",
+     "points": [
+      "Your software includes open-source packages, base images, build tools and CI systems.",
+      "An attack on any of them reaches you: a poisoned package, a compromised build step."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Know, pin, verify",
+     "points": [
+      "Keep an inventory of dependencies (a software bill of materials, SBOM).",
+      "Pin versions with lock files; update deliberately, with automated pull requests and tests.",
+      "Scan dependencies and images for known vulnerabilities.",
+      "Sign build artifacts and verify signatures before deploying; protect the CI system like production."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Up to date against stable",
+     "points": [
+      "Updating often fixes vulnerabilities and occasionally brings breakage.",
+      "Every new dependency adds attack surface; prefer fewer, well-maintained ones.",
+      "Scanners report many low-risk findings; triage by whether the vulnerable code is actually used."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Dependabot or Renovate opening update pull requests.",
+      "Base images rebuilt regularly from trusted sources.",
+      "Typosquatting checks: a package name one letter off from a popular one."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-s-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "cl-r-01-q1",
+   "type": "scenario",
+   "role": "Site Reliability Engineer",
+   "level": "mid",
+   "skills": [
+    "slo",
+    "alerting"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "stem": "The on-call engineer is paged at night whenever CPU passes 80 %, though users see no problems. What's the better approach?",
+   "choices": [
+    "Alert on user-facing symptoms (SLO burn rate on errors and latency), and keep CPU as a dashboard signal",
+    "Raise the CPU threshold to 95 %",
+    "Add more on-call engineers",
+    "Turn off alerting at night"
+   ],
+   "correct": 0,
+   "why": [
+    "Pages should mean users are affected, or soon will be.",
+    "Still a cause-based page, just later.",
+    "More people woken for nothing.",
+    "Real incidents would be missed."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-r-03-q1",
+   "type": "scenario",
+   "role": "Site Reliability Engineer",
+   "level": "mid",
+   "skills": [
+    "incident response"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Errors spike five minutes after a deploy. The team starts reading code to find the bug while users keep failing. What should happen first?",
+   "choices": [
+    "Roll back the deploy to restore service, then investigate",
+    "Keep debugging until the root cause is found",
+    "Wait to see if it recovers",
+    "Write the postmortem"
+   ],
+   "correct": 0,
+   "why": [
+    "Mitigation first; the bug can be found once users are safe.",
+    "Users stay broken meanwhile.",
+    "Hoping isn't a plan.",
+    "That comes after the incident."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-r-04-q1",
+   "type": "scenario",
+   "role": "Cloud Engineer",
+   "level": "mid",
+   "skills": [
+    "capacity planning",
+    "cost"
+   ],
+   "pieces": [
+    "o4"
+   ],
+   "stem": "A service runs 20 large instances around the clock, but traffic is high only 9 a.m.–6 p.m. on weekdays. What's the usual saving?",
+   "choices": [
+    "Autoscale on load (with a sensible minimum), and right-size the instances after measuring",
+    "Turn the service off at night",
+    "Buy three-year commitments for all 20",
+    "Move to bigger instances"
+   ],
+   "correct": 0,
+   "why": [
+    "Capacity follows demand, with headroom kept for spikes.",
+    "Users at night would get nothing.",
+    "That locks in paying for idle capacity.",
+    "That raises the cost."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-r-05-q1",
+   "type": "scenario",
+   "role": "Site Reliability Engineer",
+   "level": "mid",
+   "skills": [
+    "disaster recovery"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "stem": "Someone accidentally deletes a production table. The database has a live replica in another zone. Does the replica help?",
+   "choices": [
+    "No: the delete replicated too; you need point-in-time backups (restore tested) to recover",
+    "Yes, promote the replica",
+    "Yes, the replica keeps deleted rows",
+    "Only if it's in another region"
+   ],
+   "correct": 0,
+   "why": [
+    "Replicas copy every change, mistakes included; backups let you go back in time.",
+    "The table is gone there as well.",
+    "It doesn't.",
+    "Distance doesn't change replication."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-s-01-q1",
+   "type": "scenario",
+   "role": "DevOps Engineer",
+   "level": "mid",
+   "skills": [
+    "secrets management"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "An API key was committed to a public repository an hour ago and removed in the next commit. What must you do?",
+   "choices": [
+    "Revoke and rotate the key now, and check its usage logs; removing it from the latest commit doesn't remove it from history",
+    "Nothing; it's been removed",
+    "Make the repository private",
+    "Rewrite history and keep the key"
+   ],
+   "correct": 0,
+   "why": [
+    "Public keys are scraped within minutes; only revocation makes it useless.",
+    "It's still in the history and may already be copied.",
+    "It may already be copied.",
+    "The key is already exposed."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-s-02-q1",
+   "type": "scenario",
+   "role": "Cloud Engineer",
+   "level": "mid",
+   "skills": [
+    "least privilege"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "A reporting service only reads one database, but its role has full administrator rights 'to avoid permission errors'. What's the risk?",
+   "choices": [
+    "If the service is compromised, the attacker gets administrator access to everything; scope the role to read that database only",
+    "None, it's internal",
+    "It runs slower",
+    "It costs more"
+   ],
+   "correct": 0,
+   "why": [
+    "The blast radius of a compromise equals the permissions granted.",
+    "Internal services get compromised too.",
+    "Permissions don't affect speed.",
+    "Not a cost issue."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-s-03-q1",
+   "type": "scenario",
+   "role": "DevOps Engineer",
+   "level": "mid",
+   "skills": [
+    "supply chain security"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "A popular package your app depends on publishes a new version containing malicious code. Your builds install 'latest' each time. What would have protected you?",
+   "choices": [
+    "Pinned versions in a lock file, with updates reviewed and tested before merging",
+    "Faster builds",
+    "More unit tests of your own code",
+    "Running builds at night"
+   ],
+   "correct": 0,
+   "why": [
+    "The malicious version would only arrive through a reviewed update.",
+    "Speed doesn't matter.",
+    "Your tests may never touch the malicious code.",
+    "Timing doesn't matter."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}
