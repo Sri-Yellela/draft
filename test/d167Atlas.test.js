@@ -16,7 +16,7 @@ import { MIGRATIONS } from "../scripts/migrations.js";
 import { upsertNode, setStatus } from "../services/atlas/atlasStore.js";
 import { peekNode, glossaryTerms, meaningOf } from "../services/atlas/atlasLinks.js";
 import { createAtlasRouter } from "../routes/atlas.js";
-import { ATLAS_NAV, PANEL_IDS, panelFor, isPanelSlug, panelHref, learnStages, overviewStats } from "../client/src/pages/atlas/atlasPanels.js";
+import { ATLAS_NAV, PANEL_IDS, panelFor, isPanelSlug, panelHref, overviewStats } from "../client/src/pages/atlas/atlasPanels.js";
 import { slugOf } from "../services/atlas/atlasStore.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
 import { computeYourMap } from "../services/atlas/atlasMe.js";
@@ -34,14 +34,13 @@ async function loadUi() {
         import { MemoryRouter } from "react-router-dom";
         import AtlasPage from ${abs("pages/atlas/AtlasPage.jsx")};
         import { AtlasHome } from ${abs("pages/atlas/YourMap.jsx")};
-        import { GlossaryView, OverviewView, LearnStagesView, MarketView, AuditCard, searchGlossary } from ${abs("pages/atlas/AtlasPanels.jsx")};
+        import { GlossaryView, OverviewView, MarketView, AuditCard, searchGlossary } from ${abs("pages/atlas/AtlasPanels.jsx")};
         export { searchGlossary };
         const at = (url, el) => renderToStaticMarkup(h(MemoryRouter, { initialEntries: [url] }, el));
         export const page = (url, base = "/atlas") => at(url, h(AtlasPage, { base }));
         export const home = (me, parts) => at("/atlas/your-map", h(AtlasHome, { me, base: "/atlas", parts, course: h("div", { "data-course": "" }) }));
         export const glossary = (terms, q = "", concepts = []) => at("/atlas/glossary", h(GlossaryView, { base: "/atlas", terms, q, concepts }));
         export const overview = (props) => at("/atlas", h(OverviewView, { base: "/atlas", ...props }));
-        export const stages = (stages, signedIn = true) => at("/atlas/learn", h(LearnStagesView, { base: "/atlas", stages, signedIn }));
         export const market = (roles, cards) => at("/atlas/this-weeks-market", h(MarketView, { base: "/atlas", roles, cards }));
         export const card = (c) => at("/atlas/the-audit", h(AuditCard, { base: "/atlas", card: c }));`,
       resolveDir: CLIENT, loader: "jsx" },
@@ -253,16 +252,8 @@ test("D167 · panels whose feature is not built say so, and draw only numbers th
   assert.match(c, /<b>31<\/b> open postings · <b>4<\/b> new in the last 7 days/);
   assert.match(c, /Pay is shown once at least 20/);
   assert.match(c, /href="\/atlas\/sql"[^>]*>SQL<\/a><span class="atl__count"> · 71 % of its postings/);
-  // Learn as sketched: one stage per part, earned progress, Continue / Start / done.
-  const steps = [{ id: "a", partIndex: 1, part: "Part 1: Foundations" }, { id: "b", partIndex: 1, part: "Part 1: Foundations" }, { id: "c", partIndex: 2, part: "Part 2: Machine" }, { id: "d", partIndex: 3, part: "Part 3: Theory" }];
-  const done = new Set(["a", "b"]), begun = new Set(["c"]);
-  const st = learnStages(steps, (s) => ({ complete: done.has(s.id), started: begun.has(s.id) }));
-  assert.deepEqual(st.map(s => [s.title, s.done, s.total, s.pct, s.state, s.nextId]),
-    [["Part 1: Foundations", 2, 2, 100, "done", "a"], ["Part 2: Machine", 0, 1, 0, "started", "c"], ["Part 3: Theory", 0, 1, 0, "new", "d"]]);
-  const html = u.stages(st);
-  assert.match(html, /<span class="mark mark--ok">done<\/span>/);
-  assert.match(html, /href="\/atlas\/learn#step-c"[^>]*>Continue<\/a>/);
-  assert.match(html, /href="\/atlas\/learn#step-d"[^>]*>Start<\/a>/);
+  // ⭐ D178 (retired on purpose): the Learn panel's stages left with the Learn nav item — the course page's half ring and
+  // modules show a module's earned progress now (d178CoursePage).
 });
 
 // ── d167GlossaryOneSourceWithPopups ──────────────────────────────────────────────────────────────

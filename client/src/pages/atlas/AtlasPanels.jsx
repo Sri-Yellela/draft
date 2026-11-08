@@ -19,8 +19,7 @@ import ReadinessCheck from "./ReadinessCheck.jsx";
 import SkillsListAndMap from "./YourSkillsPanel.jsx";   // D169
 import { ExploreByRole, Recent, directionLine, useAtlasMe } from "./YourMap.jsx";
 import { KIND_LABEL } from "./atlasModel.js";
-import { flatSteps, stepState } from "./learnModel.js";
-import { learnStages, overviewStats, panelHref, learnStepHref } from "./atlasPanels.js";
+import { overviewStats, panelHref, learnStepHref } from "./atlasPanels.js";
 import "./AtlasPanels.css";
 import RoleReadiness from "./RoleReadiness.jsx";
 import CompareRoles from "./CompareRoles.jsx";
@@ -159,44 +158,6 @@ export function YourRoutePanel({ base, signedIn }) {
         : <SignInLine what="your route" />}
     </div>
   );
-}
-
-// ── Grow · Learn ─────────────────────────────────────────────────────────────────────────────────
-
-/** The pathway's stages — pure (the tests render it). */
-export function LearnStagesView({ base, stages, signedIn }) {
-  if (!stages.length) return null;
-  return (
-    <section className="atl__section atl-pan__stages" data-atlas-learn-stages="" aria-labelledby="atl-stages">
-      <p className="atl-pan__eyebrow">Learn · From silicon to software</p>
-      <h2 className="atl__h2" id="atl-stages">The pathway</h2>
-      <p className="atl__quiet">{signedIn ? "Each part's steps, in order — progress is earned by opening, explaining and building." : "Sign in and your progress is kept as you go."}</p>
-      <ol className="atl-pan__stagelist">
-        {stages.map(s => (
-          <li key={s.index} className="atl-pan__stage" data-learn-stage={s.index} data-stage-state={s.state}>
-            <div className="atl-pan__stage-t"><b>{s.title}</b> <span className="atl__count">{s.done} of {s.total} steps</span></div>
-            <div className="atl-pan__bar" role="img" aria-label={`${s.pct} % done`}><i style={{ width: `${s.pct}%` }} /></div>
-            {s.state === "done"
-              ? <span className="mark mark--ok">done</span>
-              : <Link className={s.state === "started" ? "dbx-depth atl-home__go" : "atl__link"} to={`${base}/learn#step-${encodeURIComponent(s.nextId)}`}>
-                  {s.state === "started" ? "Continue" : "Start"}</Link>}
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-export function LearnStages({ base, signedIn }) {
-  const [data, setData] = useState(null);
-  useEffect(() => {
-    let live = true;
-    Promise.all([api("/api/learn"), signedIn ? api("/api/learn/earned").catch(() => ({ marks: {} })) : Promise.resolve({ marks: {} })])
-      .then(([learn, earned]) => live && setData({ learn, marks: earned?.marks || {} })).catch(() => live && setData(false));
-    return () => { live = false; };
-  }, [signedIn]);
-  const stages = useMemo(() => (data ? learnStages(flatSteps(data.learn), (s) => stepState(s, data.marks)) : []), [data]);
-  return <LearnStagesView base={base} stages={stages} signedIn={signedIn} />;
 }
 
 // ── Grow · Today's question ──────────────────────────────────────────────────────────────────────

@@ -13,10 +13,15 @@ const inv = read("docs/D178_ATLAS_INVENTORY.md");
 test("d178NoOldFeatureUnreachable: every panel, alias and Learn view is in the inventory with a home", () => {
   for (const id of PANEL_IDS) assert.ok(inv.includes(id === "overview" ? "`/atlas` (`overview`)" : `\`/atlas/${id}\``), `panel ${id}`);
   for (const a of Object.keys(PANEL_ALIASES)) assert.ok(inv.includes(`(\`${a}\` alias)`), `alias ${a}`);
+  // ⭐ D178 (45j, changed on purpose): the tabs are retired — LearnView is the circle only — and each old view is in the
+  // inventory with the address of its home, which resolves.
   const learn = read("client/src/pages/atlas/LearnView.jsx");
-  const tabs = [...learn.slice(at(learn, "const TABS = ["), at(learn, "];", at(learn, "const TABS = ["))).matchAll(/\["([a-z]+)", "/g)].map(m => m[1]);
-  assert.deepEqual(tabs, ["circle", "path", "patterns", "concepts"]);
-  for (const t of tabs) assert.match(inv, new RegExp(`\| \`${t}\` \|`), `Learn view ${t}`);
+  assert.ok(!learn.includes("const TABS = ["), "Learn's tabs are retired");
+  for (const [t, home] of [["circle", "/atlas/library/silicon-to-software?view=circle"], ["path", "/atlas/library/silicon-to-software"],
+    ["patterns", "/atlas/library/coding-interview-patterns"], ["concepts", "/atlas/glossary"]]) {
+    assert.match(inv, new RegExp(`\\| \`${t}\` \\|[^\\n]*\`${home.replace(/[?]/g, "\\?")}\``), `Learn view ${t} → ${home}`);
+    assert.ok(isPanelSlug(home.slice("/atlas/".length).split("?")[0]) || courseIdOf(home.slice("/atlas/".length).split("?")[0]), `${home} resolves`);
+  }
   for (const a of ["`/atlas/learn#step-<id>`", "`/atlas/family/<key>`", "`/atlas/<node slug>`", "`/atlas?q=…`", "`/atlas/library/<course>`"]) assert.ok(inv.includes(a), a);
 });
 
