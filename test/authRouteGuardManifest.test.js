@@ -208,6 +208,8 @@ const AUTHENTICATED = new Set([
   "GET /api/companies/:slug/match",
   "POST /api/companies/:slug/follow",
   "POST /api/audit/:token/claim",   // D150 T07: keep the result — signed in
+  "GET /api/learn/today",           // D154 P1: today's question
+  "POST /api/learn/today/answer",
   // 11-07: the D124 trial's /api/trial/* routes were removed with it. The sample résumés' practice form stays at
   // /try/practice/:jobId (routes/survey.js), outside /api, behind an HMAC naming one (account, posting).
   // D115 P3: a learner's own progress marks.

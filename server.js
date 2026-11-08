@@ -99,6 +99,7 @@ import { createCompanyGithub } from "./services/companies/companyGithub.js";
 import { createCompanyWebSignals } from "./services/companies/companyWebSignals.js";
 import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landingPages.js";
 import { startAudit, answerAudit, auditResult, claimAudit } from "./services/audit/auditSession.js";
+import { todaysQuestion, answerToday } from "./services/learn/dailyQuestion.js";
 import { setAim as setNavigatorAim } from "./services/navigator.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
@@ -7119,6 +7120,25 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_audit_sessions_created ON audit_sessions(claimed_at, created_at);
       `,
     },
+    {
+      // ⭐ D154 P1 (45l): the daily question — one per person per (their local) day, the item, WHY it was picked (review ·
+      // audit · aim · any), and the answer once given (services/learn/dailyQuestion.js). Merge plan: keepInto. Only ADDS.
+      id: "240_daily_questions",
+      sql: `
+        CREATE TABLE IF NOT EXISTS daily_questions (
+          user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          day          TEXT NOT NULL,
+          question_id  TEXT NOT NULL,
+          reason       TEXT NOT NULL,
+          chosen       INTEGER,
+          correct      INTEGER,
+          ms           INTEGER,
+          answered_at  INTEGER,
+          created_at   INTEGER NOT NULL,
+          PRIMARY KEY (user_id, day)
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -12580,6 +12600,17 @@ app.post("/api/audit/:token/answer", publicLimit, (req, res) => {
 });
 app.get("/api/audit/:token/result", publicLimit, (req, res) => {
   try { res.set("Cache-Control", "no-store").json(auditResult(db, req.params.token, { atlasLinksFor })); }
+  catch (e) { auditFail(res, e); }
+});
+// ⭐ D154 P1 · today's question — the person's local day comes from the client (?day=YYYY-MM-DD).
+app.get("/api/learn/today", requireAuth, (req, res) => {
+  try {
+    let aimRole = null; try { aimRole = aimRoleFor(db, req.user.id)?.name || null; } catch { aimRole = null; }
+    res.set("Cache-Control", "no-store").json(todaysQuestion(db, req.user.id, String(req.query.day || ""), { aimRole }));
+  } catch (e) { auditFail(res, e); }
+});
+app.post("/api/learn/today/answer", requireAuth, (req, res) => {
+  try { res.json(answerToday(db, req.user.id, String(req.body?.day || ""), { chosen: Number(req.body?.chosen), ms: Number(req.body?.ms) || null })); }
   catch (e) { auditFail(res, e); }
 });
 app.post("/api/audit/:token/claim", requireAuth, (req, res) => {

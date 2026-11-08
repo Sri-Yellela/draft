@@ -1,0 +1,118 @@
+// services/learn/dailyQuestion.js — ⭐ D154 P1 / P3 (45l) · ONE QUESTION A DAY, PICKED FROM YOUR OWN GAPS.
+//
+// One live item from the owner-approved bank (learn_questions) per person per day (their local day — the client sends it),
+// picked in D154's order and the REASON stored with it:
+//   1 · review   — a question they answered before whose review is due (D150's spaced review: 1 → 3 → 7 → 21 days after
+//                  the last answer, by how many times in a row they have now got it right; a miss resets to 1 day)
+//   2 · audit    — a skill they missed in an audit they kept (D150 T07)
+//   3 · aim      — a question for the role they aim at (D143's destination)
+//   4 · any      — the bank's next item they have never seen
+// (D154's "a skill the ATS shows missing in the jobs they save" is not read yet.) Answer → judged on the server (the bank's
+// recordAnswer, surface 'daily') → the WHY of the chosen choice and of the right one → GO TO LESSON (the item's pieces[] →
+// the Learn piece, P3). A quiet streak: consecutive days answered, ending today or yesterday. Nothing is shown on Home
+// but one line (D145). ⛔ D17: no model.
+import { questions, servedQuestion, recordAnswer } from "./learnQuestions.js";
+import { learnContent } from "./learnContent.js";
+import { learnStepInfo, learnStepPath } from "./learnLinks.js";
+
+export const REVIEW_DAYS = Object.freeze([1, 3, 7, 21]);
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const bad = (status, code, message) => Object.assign(new Error(message), { status, code });
+const dayOf = (sec) => new Date(sec * 1000).toISOString().slice(0, 10);
+const daysBetween = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
+
+/** The person's answer history per question: { id → { last (day), streak (right in a row, newest first) } }. */
+function history(db, userId) {
+  const rows = db.prepare(`SELECT question_id, correct, answered_at FROM learn_question_answers WHERE user_id = ? ORDER BY answered_at DESC`).all(userId);
+  const h = new Map();
+  for (const r of rows) {
+    const e = h.get(r.question_id);
+    if (!e) h.set(r.question_id, { last: dayOf(r.answered_at), streak: r.correct ? 1 : 0, open: !!r.correct });
+    else if (e.open) { if (r.correct) e.streak++; else e.open = false; }
+  }
+  return h;
+}
+
+/** The pick for `day`, with its reason, or null when the bank has nothing. Pure over the database. */
+export function pickDaily(db, userId, day, { aimRole = null } = {}) {
+  const live = questions(db, {});
+  if (!live.length) return null;
+  const byId = new Map(live.map(q => [q.id, q]));
+  const h = history(db, userId);
+  // 1 · a due review — the most overdue first, a miss (streak 0) before a right answer.
+  const due = [...h].filter(([id]) => byId.has(id)).map(([id, e]) => ({ id, over: daysBetween(e.last, day) - REVIEW_DAYS[Math.min(e.streak, REVIEW_DAYS.length - 1)], streak: e.streak }))
+    .filter(x => x.over >= 0).sort((a, b) => a.streak - b.streak || b.over - a.over);
+  if (due.length) return { item: byId.get(due[0].id), reason: "review" };
+  const unseen = live.filter(q => !h.has(q.id));
+  // 2 · a skill missed in a kept audit.
+  let missed = new Set();
+  try {
+    for (const s of db.prepare(`SELECT item_ids_json, answers_json FROM audit_sessions WHERE claimed_by = ?`).all(userId)) {
+      for (const a of JSON.parse(s.answers_json || "[]")) if (!a.correct) for (const sk of byId.get(a.id)?.skills || []) missed.add(sk);
+    }
+  } catch { missed = new Set(); }
+  const fromAudit = unseen.find(q => q.skills.some(s => missed.has(s)));
+  if (fromAudit) return { item: fromAudit, reason: "audit" };
+  // 3 · the aim's role.
+  const forAim = aimRole ? unseen.find(q => String(q.role || "").toLowerCase() === String(aimRole).toLowerCase()) : null;
+  if (forAim) return { item: forAim, reason: "aim" };
+  // 4 · anything new.
+  if (unseen.length) return { item: unseen[0], reason: "any" };
+  return null;
+}
+
+const REASON_WORDS = { review: "a review that's due", audit: "a skill your audit flagged", aim: "your aim's role", any: "something new" };
+
+function lessonsFor(db, item) {
+  let learn = null; try { learn = learnContent(db); } catch { learn = null; }
+  return (item.pieces || []).map(p => {
+    let info = null; try { info = learn ? learnStepInfo(learn, p) : null; } catch { info = null; }
+    return info ? { label: info.title || info.label || p, stepId: p, path: learnStepPath(p) } : null;
+  }).filter(Boolean);
+}
+
+/** Consecutive days with an answered daily question, ending today or yesterday. */
+export function streakFor(db, userId, day) {
+  const days = db.prepare(`SELECT day FROM daily_questions WHERE user_id = ? AND answered_at IS NOT NULL ORDER BY day DESC LIMIT 400`).all(userId).map(r => r.day);
+  if (!days.length) return 0;
+  let n = 0, expect = days[0] === day ? day : (daysBetween(days[0], day) === 1 ? days[0] : null);
+  if (!expect) return 0;
+  for (const d of days) { if (d !== expect) break; n++; expect = dayOf(Date.parse(`${expect}T00:00:00Z`) / 1000 - 86400); }
+  return n;
+}
+
+/** Today's question: { day, reason, reasonWords, question (served), answered?, result?, streak }. */
+export function todaysQuestion(db, userId, day, { aimRole = null } = {}) {
+  if (!DAY_RE.test(String(day || ""))) throw bad(400, "bad_day", "Which day is it for you?");
+  let row = db.prepare(`SELECT * FROM daily_questions WHERE user_id = ? AND day = ?`).get(userId, day);
+  if (!row) {
+    const pick = pickDaily(db, userId, day, { aimRole });
+    if (!pick) return { day, question: null, streak: streakFor(db, userId, day) };
+    db.prepare(`INSERT OR IGNORE INTO daily_questions (user_id, day, question_id, reason, created_at) VALUES (?, ?, ?, ?, unixepoch())`)
+      .run(userId, day, pick.item.id, pick.reason);
+    row = db.prepare(`SELECT * FROM daily_questions WHERE user_id = ? AND day = ?`).get(userId, day);
+  }
+  const [item] = questions(db, { ids: [row.question_id] });
+  if (!item) return { day, question: null, streak: streakFor(db, userId, day) };
+  const out = { day, reason: row.reason, reasonWords: REASON_WORDS[row.reason] || null, question: servedQuestion(item), streak: streakFor(db, userId, day) };
+  if (row.answered_at) out.result = resultOf(db, item, row.chosen, !!row.correct);
+  return out;
+}
+
+function resultOf(db, item, chosen, correct) {
+  return { chosen, correct, correctIndex: item.correct, why: { chosen: item.why[chosen] || null, right: correct ? null : item.why[item.correct] || null, rightChoice: correct ? null : item.choices[item.correct] },
+    lessons: lessonsFor(db, item) };
+}
+
+/** Answer today's question — once. */
+export function answerToday(db, userId, day, { chosen, ms = null }) {
+  if (!DAY_RE.test(String(day || ""))) throw bad(400, "bad_day", "Which day is it for you?");
+  const row = db.prepare(`SELECT * FROM daily_questions WHERE user_id = ? AND day = ?`).get(userId, day);
+  if (!row) throw bad(404, "no_question", "Open today's question first.");
+  if (row.answered_at) throw bad(409, "answered", "You've answered today's question — come back tomorrow.");
+  const { correct } = recordAnswer(db, { questionId: row.question_id, userId, surface: "daily", chosen: Number(chosen), ms });
+  db.prepare(`UPDATE daily_questions SET chosen = ?, correct = ?, ms = ?, answered_at = unixepoch() WHERE user_id = ? AND day = ?`)
+    .run(Number(chosen), correct ? 1 : 0, Number.isFinite(ms) ? Math.round(ms) : null, userId, day);
+  const [item] = questions(db, { ids: [row.question_id] });
+  return { ...resultOf(db, item, Number(chosen), correct), streak: streakFor(db, userId, day) };
+}

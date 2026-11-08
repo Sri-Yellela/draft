@@ -1132,6 +1132,8 @@ export function AutoApplyPanel({ user = null } = {}) {
           {/* ⭐ D149 (11-03): the sketch's .ph3 — the serif at 44 / 1 over its line in body grey (DraftHouse.css). */}
           <h1 style={{ ...TYPE.PAGE_TITLE, ...DH_TITLE }}>Home</h1>
           <p className="dh-head__say" data-house-line="">Every application, from draft to reply.</p>
+          {/* ⭐ D154 P1: Home shows ONE line for the daily question — never a panel (D145). */}
+          <p className="dh-head__say" data-daily-line=""><a href="/app/atlas/todays-question">Today's question · 2 minutes</a></p>
         </div>
         {/* The sketch's .tools3: the mode (.seg2), three quiet buttons, and Send all ready in the accent. */}
         <div className="dh-head__ctl">

@@ -83,8 +83,9 @@ export function OverviewView({ base, me, nav = null, readiness = null }) {
         </section>
         <section className="atl__section" data-atlas-overview-question="">
           <h2 className="atl__h2">Today's question</h2>
-          <p className="atl__quiet">The daily question is not built yet. Meanwhile, check a skill you claim.</p>
-          <p className="atl-pan__actions"><Link className="dbx-depth atl-home__go" to={panelHref(base, "your-skills")}>Check a skill</Link></p>
+          {/* ⭐ D154 P1 (45l): built — one question a day, picked from your own gaps. */}
+          <p className="atl__quiet">One question a day, about two minutes, picked from your own gaps.</p>
+          <p className="atl-pan__actions"><Link className="dbx-depth atl-home__go" to={panelHref(base, "todays-question")}>Today's question</Link></p>
         </section>
       </div>
       {!signedIn && (
@@ -163,14 +164,49 @@ export function YourRoutePanel({ base, signedIn }) {
 
 // ── Grow · Today's question ──────────────────────────────────────────────────────────────────────
 
+// ⭐ D154 P1 / P3 (45l): one question a day, picked from the person's own gaps (services/learn/dailyQuestion.js) — the why
+// after the answer, then "Go to lesson" (the item's Learn pieces), and a quiet streak. Their LOCAL day is sent.
+const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 export function TodaysQuestionPanel({ base }) {
+  const [t, setT] = useState(null);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const day = localDay();
+  useEffect(() => { api(`/api/learn/today?day=${day}`).then(setT).catch(e => setErr(e?.status === 401 ? "Sign in to get a question a day, picked from your own gaps." : (e.message || "Today's question couldn't load."))); }, [day]);
+  const answer = async (i) => {
+    if (busy || t?.result) return;
+    setBusy(true);
+    try { const r = await api("/api/learn/today/answer", { method: "POST", body: JSON.stringify({ day, chosen: i }) }); setT({ ...t, result: r, streak: r.streak }); }
+    catch (e) { setErr(e.message || "That answer didn't save."); } finally { setBusy(false); }
+  };
+  const q = t?.question, r = t?.result;
   return (
     <div className="atl-pan" data-atlas-panel-body="todays-question">
-      <PanelHead eyebrow="Today's question · picked from your route" title="One question a day"
-        lead="A short question from your route each day, with a review when you miss one." />
-      <NotYet>The daily question is not built yet (D154). The question bank already serves D142's check: pick a skill you claim
-        and answer a few questions on it.</NotYet>
-      <p className="atl-pan__actions"><Link className="dbx-depth atl-home__go" to={panelHref(base, "your-skills")}>Check a skill</Link></p>
+      <PanelHead eyebrow={t?.reasonWords ? `Picked for you · ${t.reasonWords}` : "Picked from your route"} title="One question a day"
+        lead={t?.streak ? `${t.streak} day${t.streak === 1 ? "" : "s"} in a row.` : "About two minutes. A review comes back when you miss one."} />
+      {err && <p className="atl__quiet" role="alert">{err}</p>}
+      {!t && !err && <p className="atl__quiet" role="status">Picking today's question…</p>}
+      {t && !q && <NotYet>No question to ask yet — the bank has nothing new for you today.</NotYet>}
+      {q && (
+        <div className="atl-dq" data-daily-question={q.id}>
+          <p className="atl__quiet">{(q.skills || []).map(s => String(s).replace(/-/g, " ")).join(" · ")}</p>
+          <h3 className="atl__h2">{q.stem}</h3>
+          <div className="atl-dq__choices" role="group" aria-label="Choices">
+            {q.choices.map((c, i) => (
+              <button key={i} type="button" className="atl-dq__choice" disabled={!!r || busy} onClick={() => answer(i)}
+                data-state={r ? (i === r.correctIndex ? "right" : i === r.chosen ? "wrong" : "") : ""}>{c}</button>
+            ))}
+          </div>
+          {r && (
+            <div className="atl-dq__why" data-daily-why="" role="status">
+              <p><b>{r.correct ? "Right." : "Not quite."}</b> {r.why.chosen}</p>
+              {!r.correct && r.why.right && <p><b>The stronger move:</b> {r.why.rightChoice} — {r.why.right}</p>}
+              {r.lessons?.length > 0 && <p>Go to lesson: {r.lessons.map((l, i) => <span key={l.path}>{i ? " · " : ""}<Link className="atl__link" to={learnStepHref(base, l.stepId)}>{l.label}</Link></span>)}</p>}
+              <p className="atl__quiet">Come back tomorrow for the next one.</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -111,6 +111,8 @@ export default function AuditPage({ signedIn = false }) {
             const text = `${result.share} ${shareUrl}`;
             if (navigator.share) navigator.share({ text, url: shareUrl }).catch(() => {}); else navigator.clipboard?.writeText(text).then(() => setMsg("Copied — your answers are never in it.")).catch(() => {});
           }}>Share</button>
+          {/* ⭐ D154 P5: the audit leads into the habit — its misses seed the daily question. */}
+          <Link className="au__btn" to={signedIn ? "/app/atlas/todays-question" : "/register?returnTo=%2Fapp%2Fatlas%2Ftodays-question"} data-audit-daily="">Start your daily question · about 5 minutes a day</Link>
           <button type="button" className="au__btn" onClick={() => { setResult(null); setKept(false); }}>Try another role</button>
           <Link className="au__btn" to={`${signedIn ? "/app" : ""}/jobs`}>See the open roles</Link>
         </section>

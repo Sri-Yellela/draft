@@ -47,3 +47,11 @@
 .atl-pan__term-go { display: flex; gap: 14px; justify-content: flex-end; flex-wrap: wrap; }
 .atl-pan__meaning { margin: 4px 0 0; font-size: 14px; line-height: 1.55; color: var(--c-ink-muted); }
 @media (max-width: 560px) { .atl-pan__term { grid-template-columns: minmax(0, 1fr) auto; } .atl-pan__term-t { grid-column: 1 / -1; } }
+/* ⭐ D154 P1 · today's question. */
+.atl-dq__choices { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.atl-dq__choice { text-align: left; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); font: inherit; cursor: pointer; }
+.atl-dq__choice:hover:not(:disabled) { background: var(--c-hover); }
+.atl-dq__choice[data-state="right"] { border-color: var(--c-success); }
+.atl-dq__choice[data-state="wrong"] { border-color: var(--c-danger); }
+.atl-dq__why { padding: 12px 14px; border-radius: 12px; background: var(--c-surface-2); }
+.atl-dq__why p { margin: 0 0 8px; }

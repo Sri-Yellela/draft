@@ -234,14 +234,14 @@ test("D167 · panels whose feature is not built say so, and draw only numbers th
   assert.deepEqual(stats.map(s => [s.value, s.panel]), [["2 of 3", "your-skills"], ["2", "your-map"], ["3", "your-map"]]);
   const out = u.overview({ me: { signedIn: false } });
   assert.doesNotMatch(out, /data-atlas-overview-stats/);
-  assert.match(out, /The daily question is not built yet/);
+  assert.match(out, /One question a day, about two minutes/);   // D154 P1 (45l, on purpose): built
   assert.doesNotMatch(out, /streak/i);
   const signed = u.overview({ me: { signedIn: true, map: true, targetRoles: [{ name: "Data Engineer" }] }, readiness: [{ state: "checked" }], nav: { ready: true, next: { text: "Next up: Kafka" }, bridges: [], route: null } });
   assert.match(signed, /<h1 class="atl__title">Data Engineer<\/h1>/);
   assert.match(signed, /Next up: Kafka/);
   assert.match(signed, /data-atlas-stat="skills"[^>]*><b>1 of 1<\/b>/);
   // Today's question and the market say they are not built.
-  assert.match(u.page("/atlas/todays-question"), /data-atlas-not-yet="">The daily question is not built yet \(D154\)/);
+  assert.match(u.page("/atlas/todays-question"), /data-atlas-panel-body="todays-question"/);   // D154 P1 (45l, on purpose): built
   const m = u.market([{ slug: "data-engineer", title: "Data Engineer", openPostings: 120 }], { "data-engineer": { openThisWeek: 120, newThisWeek: 17 } });
   assert.match(m, /The weekly market read \(D150 T09\) is not built yet/);
   assert.match(m, /<b>17<\/b><span>new Data Engineer postings in 7 days · 120 open<\/span>/);
