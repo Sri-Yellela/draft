@@ -971,18 +971,18 @@
           "topics": [
             {
               "title": "memory pools and fragmentation",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-p-01",
+              "status": "draft"
             },
             {
               "title": "watchdogs and field diagnostics",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-p-02",
+              "status": "draft"
             },
             {
               "title": "safe firmware updates",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-p-03",
+              "status": "draft"
             }
           ]
         },
@@ -992,18 +992,18 @@
           "topics": [
             {
               "title": "Linux internals and drivers",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-s-01",
+              "status": "draft"
             },
             {
               "title": "performance profiling",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-s-02",
+              "status": "draft"
             },
             {
               "title": "hardware debugging",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-s-03",
+              "status": "draft"
             }
           ]
         },
@@ -1013,18 +1013,18 @@
           "topics": [
             {
               "title": "low-level coding",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-iv-01",
+              "status": "draft"
             },
             {
               "title": "debugging scenarios",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-iv-02",
+              "status": "draft"
             },
             {
               "title": "design of a device's firmware",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-iv-03",
+              "status": "draft"
             }
           ]
         }
