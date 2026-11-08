@@ -158,6 +158,7 @@ function BoardSearchBar(props) {
       onSubmit={params => applyBarFilters(params, { fields: ["query"] })}
       // ⭐ D179 (a): a role picked from the search box's Roles sets the sentence's role (the domain word).
       onPickRole={boardHeadline?.onPatch ? (r) => boardHeadline.onPatch({ subcategory: r.id, category: r.categoryId }) : undefined}
+      onPickTech={boardHeadline?.onPatch ? (t) => boardHeadline.onPatch({ tech: t.name }) : undefined}
     />
   );
 }
@@ -174,7 +175,8 @@ function BoardHeadlineSlot() {
   return (
     <>
       <BoardHeadline params={params} defaultDomain={defaultDomain} nothingMatches={nothingMatches}
-        open={boardPanel} onToggle={(key) => setBoardPanel(current => nextBoardPanel(current, key))} />
+        open={boardPanel} onToggle={(key) => setBoardPanel(current => nextBoardPanel(current, key))}
+        onClearTech={() => onPatch?.({ tech: "" })} />
       <WordPanel open={boardPanel} params={params} defaultDomain={defaultDomain}
         facets={facets} facetsStatus={facetsStatus} otherFilterCount={otherFilterCount}
         onPatch={onPatch} onOpen={(key) => setBoardPanel(key)} onClose={() => setBoardPanel(null)}

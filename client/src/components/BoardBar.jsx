@@ -42,7 +42,7 @@ export function ViewSegment({ views, value, counts = {}, onChange }) {
 
 /** The search field: the board's keyword, Enter commits it (A74: one press, one search). ⭐ D156 (5): `children` sit
  *  inside the field at its right end — the sort icon. */
-export function BoardSearch({ onSubmit, onPickRole, children = null }) {
+export function BoardSearch({ onSubmit, onPickRole, onPickTech, children = null }) {
   const [q, setQ] = useState("");
   // ⛔ (owner 11-06: "after search it doesnt go back to all jobs. its stuck on searched term results") — the board's
   // query is committed on Enter, so emptying the field (deleting the text) left the last search in force. The term
@@ -54,7 +54,7 @@ export function BoardSearch({ onSubmit, onPickRole, children = null }) {
   return (
     <div className="fh-srch" role="search" aria-label="Job search">
       {/* ⭐ D149 (fullhouse-declutter.html `.sbar`): the field alone — no magnifier — and the sketch's words. */}
-      <UsbSuggest field="title" value={q} onChange={change} onPickRole={onPickRole}>
+      <UsbSuggest field="title" value={q} onChange={change} onPickRole={onPickRole} onPickTech={onPickTech}>
         {sugg => (
           <input {...sugg} type="search" enterKeyHint="search"
             placeholder="Search a company, title or skill" aria-label="Search jobs"

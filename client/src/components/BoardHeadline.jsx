@@ -26,7 +26,7 @@ import "./FullHouse.css";
 export const SENTENCE_ID = "fh-sentence";
 export const PANEL_ID = "fh-panel";
 
-export default function BoardHeadline({ params = {}, defaultDomain = null, nothingMatches = false, open = null, onToggle }) {
+export default function BoardHeadline({ params = {}, defaultDomain = null, nothingMatches = false, open = null, onToggle, onClearTech }) {
   const { verb, slots } = sentenceParts(params, { defaultDomain, nothingMatches });
   return (
     <h1 className="bh" id={SENTENCE_ID} data-board-headline data-nothing-matches={nothingMatches ? "true" : "false"}>
@@ -49,6 +49,10 @@ export default function BoardHeadline({ params = {}, defaultDomain = null, nothi
           </Fragment>
         );
       })}
+      {/* ⭐ D179 (a) (45l): "using [Go]" — the technology the board is narrowed to (the search box's Technologies set it);
+          pressing the word clears it. */}
+      {params.tech ? <>{" using "}<button type="button" className="tok" data-slot="tech" aria-pressed="true"
+        title={`Technology — press to clear ${params.tech}`} onClick={() => onClearTech?.()}>{params.tech}</button></> : null}
       .
     </h1>
   );

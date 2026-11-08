@@ -545,6 +545,14 @@ function buildJobFilters(params = {}, opts = {}) {
     if (!strict) established.push({ key: 'job_functions', sql: `${FUNCTION_SQL} IS NULL` });
   }
 
+  // ⭐ D179 (45l) · "USING [technology]" — the postings that name it (job_tech, read from each posting's own text, D179 P5a).
+  // HARD: a posting is "using Go" only when its text says Go. Up to five, ANY of them.
+  const techs = toArray(params.tech).map(v => String(v).trim()).filter(v => v && v.length <= 40).slice(0, 5);
+  if (techs.length) {
+    clauses.push(`EXISTS (SELECT 1 FROM job_tech jtk WHERE jtk.job_id = sj.job_id AND jtk.tech IN (${techs.map(() => '?').join(',')}))`);
+    args.push(...techs);
+  }
+
   // ⭐ D179 (45l) · THE TAXONOMY'S ROLE — Category → Subcategory (job_taxonomy, D179 P2). A HARD filter: a posting is in
   // the role only when it was classified into it (an unclassified posting is in no role, as D153 (2)'s counts say).
   // Ids are matched against a closed pattern; the subcategory wins over its category when both are set.

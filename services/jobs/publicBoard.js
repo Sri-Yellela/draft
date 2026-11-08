@@ -20,7 +20,7 @@ export const PAGE_SIZE = 30, MAX_PAGE = 200, PAGE_TTL_MS = 60_000, FACETS_TTL_MS
 const OPEN = PUBLIC_OPEN_SQL.replace(/\b(is_active|duplicate_of|board_category)\b/g, "sj.$1");
 // The board's own filter keys a signed-out visitor may set (nothing profile-derived, nothing personal).
 export const PUBLIC_PARAMS = Object.freeze(["q", "places", "work_models", "experience_levels", "employment_types", "posted_after",
-  "sponsorship_friendly", "company_sponsorship", "salary_min_usd", "hide_ghost", "truly_entry"]);
+  "sponsorship_friendly", "company_sponsorship", "salary_min_usd", "hide_ghost", "truly_entry", "tech"]);
 const ID_RE = /^[a-z0-9][a-z0-9.-]{0,60}$/;
 
 const cache = new Map();   // key → { at, value }

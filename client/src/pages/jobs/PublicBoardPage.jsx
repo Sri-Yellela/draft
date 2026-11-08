@@ -11,7 +11,7 @@ import UsbSuggest from "../../components/UsbSuggest.jsx";
 import "../../components/UnifiedSearchBar.css";
 import "./PublicBoardPage.css";
 
-const KEYS = ["q", "category", "subcategory", "places", "work_models", "experience_levels", "page"];
+const KEYS = ["q", "category", "subcategory", "tech", "places", "work_models", "experience_levels", "page"];
 const salary = (min, max) => {
   const k = (v) => `$${Math.round(v / 1000)}k`;
   return min && max ? `${k(min)}–${k(max)}` : min ? `from ${k(min)}` : max ? `up to ${k(max)}` : null;
@@ -80,7 +80,7 @@ export default function PublicBoardPage() {
           <UsbSuggest field="title" value={text} onChange={setText}
             onAccept={(v) => set({ q: v })}
             onPickRole={(r) => set({ subcategory: r.id, category: r.categoryId, q: "" })}
-            onPickTech={(t) => set({ q: t.name })}>
+            onPickTech={(t) => set({ tech: t.name })}>
             {(sugg) => (
               <input {...sugg} type="search" enterKeyHint="search" placeholder="Search a company, role, technology or title"
                 aria-label="Search jobs" className="pb__input"
@@ -91,7 +91,8 @@ export default function PublicBoardPage() {
         <button type="button" className="pb__role dbx-depth" aria-expanded={picker} onClick={() => setPicker((o) => !o)} data-role-picker="">
           {roleWord || "Any role"} ▾
         </button>
-        {(params.category || params.q) && <button type="button" className="pb__clear" onClick={() => set({ category: null, subcategory: null, q: null })}>Clear</button>}
+        {params.tech && <button type="button" className="pb__role dbx-depth" onClick={() => set({ tech: null })} title="Clear the technology">using {params.tech} ×</button>}
+        {(params.category || params.q || params.tech) && <button type="button" className="pb__clear" onClick={() => set({ category: null, subcategory: null, q: null, tech: null })}>Clear</button>}
       </div>
 
       {picker && (

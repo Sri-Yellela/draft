@@ -769,6 +769,8 @@ test("every authenticated route taking an id from the request derives the owner 
   const REVIEWED = new Set([
     "server.js: GET /api/domain-metadata/:key",                    // a static registry file
     "server.js: GET /api/audit/role/:slug",                        // D150 T04: a role's board aggregates, public, no owner
+    "server.js: GET /api/public/companies/:slug",                  // D179 P4b: a company's public page, no owner
+    "server.js: GET /sitemap-jobs-:n.xml",                         // D179 P7: a numbered public sitemap file, no owner
     "server.js: POST /api/auth/provider/:provider",                // pre-auth, by definition
     // Retired: answers 410 and reads nothing at all, so there is no owner to scope to.
     "routes/apply.js: GET /api/apply/session/:domain",
