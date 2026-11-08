@@ -111,7 +111,13 @@ export function QuestionBankTab() {
           </button>
           {open === q.id && !editing && (
             <div data-question-open="">
-              <ol type="A" style={{ margin: "6px 0", paddingLeft: 22 }}>
+              {/* ⭐ D154 P2: a match / order item shows its key read-only (edit it in the content file). */}
+              {q.type === "match" && <ol style={{ margin: "6px 0", paddingLeft: 22 }} data-question-key="match">{q.left.map((l, i) => (
+                <li key={i} style={{ marginBottom: 6 }}><div><b>{l}</b> → {q.right[q.answer[i]]}</div><div style={quiet}>Why: {q.why[i]}</div></li>))}</ol>}
+              {q.type === "order" && <ol style={{ margin: "6px 0", paddingLeft: 22 }} data-question-key="order">{q.answer.map((si, k) => (
+                <li key={k} style={{ marginBottom: 6 }}><div>{q.steps[si]}</div>{Array.isArray(q.why) && <div style={quiet}>Why: {q.why[si]}</div>}</li>))}
+                {typeof q.why === "string" && <div style={quiet}>Why: {q.why}</div>}</ol>}
+              {Array.isArray(q.choices) && <ol type="A" style={{ margin: "6px 0", paddingLeft: 22 }}>
                 {q.choices.map((c, i) => (
                   <li key={i} style={{ marginBottom: 6 }}>
                     <div style={{ fontWeight: i === q.correct ? 800 : 400 }}>{c}{i === q.correct ? "  ← the answer key" : ""}</div>
@@ -119,13 +125,13 @@ export function QuestionBankTab() {
                     {q.stats.answered > 0 && <div style={quiet}>Picked by {q.stats.choices[i]} ({pct(q.stats.choices[i] / q.stats.answered)})</div>}
                   </li>
                 ))}
-              </ol>
+              </ol>}
               <div style={quiet}>Skills: {q.skills.join(", ") || "—"} · Learn pieces: {q.pieces.join(", ") || "—"}
                 {q.stats.medianMs != null ? ` · median ${(q.stats.medianMs / 1000).toFixed(1)} s` : ""}
                 {q.reviewedBy ? ` · last reviewed by ${q.reviewedBy}` : ""}</div>
               <div style={{ ...row, marginTop: 8 }}>
                 {q.status !== "live" && <DepthButton onClick={() => review(q.id, "approve")}>Approve — make it live</DepthButton>}
-                <DepthButton onClick={() => setEditing(true)}>Edit</DepthButton>
+                {Array.isArray(q.choices) && <DepthButton onClick={() => setEditing(true)}>Edit</DepthButton>}
                 {q.status !== "retired" && <DepthButton onClick={() => review(q.id, "retire")}>Retire</DepthButton>}
               </div>
             </div>

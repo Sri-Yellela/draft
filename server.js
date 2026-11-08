@@ -7154,6 +7154,14 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_atlas_taxonomy_roles_node ON atlas_taxonomy_roles(node_id);
       `,
     },
+    {
+      // ⭐ D154 P2 (45l): a match / order daily answer keeps its full response (the pairs / the order given), so the
+      // result can be shown again per pair / position on a later visit the same day.
+      id: "242_daily_question_response",
+      sql: `
+        ALTER TABLE daily_questions ADD COLUMN response_json TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -12625,7 +12633,7 @@ app.get("/api/learn/today", requireAuth, (req, res) => {
   } catch (e) { auditFail(res, e); }
 });
 app.post("/api/learn/today/answer", requireAuth, (req, res) => {
-  try { res.json(answerToday(db, req.user.id, String(req.body?.day || ""), { chosen: Number(req.body?.chosen), ms: Number(req.body?.ms) || null })); }
+  try { res.json(answerToday(db, req.user.id, String(req.body?.day || ""), { chosen: Number(req.body?.chosen), response: Array.isArray(req.body?.response) ? req.body.response.slice(0, 8) : null, ms: Number(req.body?.ms) || null })); }
   catch (e) { auditFail(res, e); }
 });
 app.post("/api/audit/:token/claim", requireAuth, (req, res) => {

@@ -19,11 +19,18 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { LEARN_DIR, learnContent, stepsOf } from "./learnContent.js";
 
-export const QUESTION_TYPES = Object.freeze(["scenario", "recall", "explain"]);
+// ⭐ D154 P2: MATCH (left[i] ↔ right[answer[i]]; why[] one per pair) and ORDER (steps[answer[0]] first …; why one line or
+// one per step). Stored in the same columns: choices_json = { left, right } | { steps }, correct = 0, why_json = { answer, why }
+// — an MC item's content (and so its hash) is unchanged.
+export const STRUCTURED_TYPES = Object.freeze(["match", "order"]);
+export const QUESTION_TYPES = Object.freeze(["scenario", "recall", "explain", ...STRUCTURED_TYPES]);
+export const isStructured = (q) => STRUCTURED_TYPES.includes(q?.type);
 export const QUESTION_STATUSES = Object.freeze(["draft", "live", "retired"]);
 export const QUESTION_LEVELS = Object.freeze(["entry", "early", "mid", "senior", "staff"]);
-export const QUESTION_FILE_PATTERN = /^audit-questions-v\d+\.json$/;
-const ITEM_FIELDS = new Set(["id", "role", "level", "type", "skills", "pieces", "role_families", "stem", "choices", "correct", "why", "source", "status"]);
+export const QUESTION_FILE_PATTERN = /^(audit|practice)-questions-v\d+\.json$/;
+const ITEM_FIELDS = new Set(["id", "role", "level", "type", "skills", "pieces", "role_families", "stem", "choices", "correct", "why", "source", "status",
+  "left", "right", "steps", "answer"]);
+const isPermutation = (a, n) => Array.isArray(a) && a.length === n && a.every(Number.isInteger) && new Set(a).size === n && a.every(i => i >= 0 && i < n);
 const FILE_FIELDS = new Set(["version", "note", "items"]);
 /** T02's flags: after this many answers a correct share above / below these is suspicious; a median under MIN_MEDIAN_MS too. */
 export const FLAG_RULES = Object.freeze({ MIN_ANSWERS: 30, TOO_EASY: 0.95, TOO_HARD: 0.15, MIN_MEDIAN_MS: 2000 });
@@ -41,29 +48,65 @@ export function itemProblems(item) {
   if (item.level != null && !QUESTION_LEVELS.includes(item.level)) out.push(`level: one of ${QUESTION_LEVELS.join(" | ")}`);
   if (item.role != null && (typeof item.role !== "string" || !item.role.trim())) out.push("role: a name");
   if (typeof item.stem !== "string" || item.stem.trim().length < 10) out.push("stem: the question, in words");
+  for (const k of ["skills", "pieces", "role_families"]) if (item[k] != null && !(Array.isArray(item[k]) && item[k].every(s => typeof s === "string"))) out.push(`${k}: a list of ids`);
+  if (item.status != null && !QUESTION_STATUSES.includes(item.status)) out.push(`status: one of ${QUESTION_STATUSES.join(" | ")}`);
+  if (item.type === "match") {
+    for (const k of ["choices", "correct", "steps"]) if (item[k] != null) out.push(`${k}: not used by a match item`);
+    const n = Array.isArray(item.left) ? item.left.length : 0;
+    if (!strings(item.left) || n < 2 || n > 6) out.push("left: 2 to 6, each in words");
+    if (!strings(item.right) || item.right.length !== n) out.push("right: one for each left");
+    if (!isPermutation(item.answer, n)) out.push("answer: for each left, the index of its right (each once)");
+    if (!strings(item.why) || item.why.length !== n) out.push("why: one explanation for EVERY pair");
+    return out;
+  }
+  if (item.type === "order") {
+    for (const k of ["choices", "correct", "left", "right"]) if (item[k] != null) out.push(`${k}: not used by an order item`);
+    const n = Array.isArray(item.steps) ? item.steps.length : 0;
+    if (!strings(item.steps) || n < 3 || n > 8) out.push("steps: 3 to 8, each in words");
+    if (!isPermutation(item.answer, n)) out.push("answer: the steps' indexes in the right order (each once)");
+    if (!((typeof item.why === "string" && item.why.trim()) || (strings(item.why) && item.why.length === n))) out.push("why: one line, or one for EVERY step");
+    return out;
+  }
+  for (const k of ["left", "right", "steps", "answer"]) if (item[k] != null) out.push(`${k}: only for match / order items`);
   if (!strings(item.choices) || item.choices.length < 2 || item.choices.length > 6) out.push("choices: 2 to 6, each in words");
   const n = Array.isArray(item.choices) ? item.choices.length : 0;
   if (!Number.isInteger(item.correct) || item.correct < 0 || item.correct >= n) out.push("correct: the index of one choice");
   if (!strings(item.why) || item.why.length !== n) out.push("why: one explanation for EVERY choice");
-  for (const k of ["skills", "pieces", "role_families"]) if (item[k] != null && !(Array.isArray(item[k]) && item[k].every(s => typeof s === "string"))) out.push(`${k}: a list of ids`);
-  if (item.status != null && !QUESTION_STATUSES.includes(item.status)) out.push(`status: one of ${QUESTION_STATUSES.join(" | ")}`);
   return out;
 }
 
-const contentOf = (it) => ({
-  role: it.role ?? null, level: it.level ?? null, type: it.type, skills: it.skills || [], pieces: it.pieces || [],
-  role_families: it.role_families || [], stem: it.stem, choices: it.choices, correct: it.correct, why: it.why, source: it.source ?? null,
-});
+const contentOf = (it) => {
+  const base = { role: it.role ?? null, level: it.level ?? null, type: it.type, skills: it.skills || [], pieces: it.pieces || [],
+    role_families: it.role_families || [], stem: it.stem };
+  if (it.type === "match") return { ...base, choices: { left: it.left, right: it.right }, correct: 0, why: { answer: it.answer, why: it.why }, source: it.source ?? null };
+  if (it.type === "order") return { ...base, choices: { steps: it.steps }, correct: 0, why: { answer: it.answer, why: it.why }, source: it.source ?? null };
+  return { ...base, choices: it.choices, correct: it.correct, why: it.why, source: it.source ?? null };
+};
+/** The editable fields of a stored item (the reviewer's edit starts from these). */
+const fieldsOf = (q) => {
+  const { id: _i, status: _s, version: _v, reviewedBy: _b, reviewedAt: _a, ...rest } = q;
+  return rest;
+};
 const hashOf = (it) => crypto.createHash("sha1").update(JSON.stringify(contentOf(it))).digest("hex").slice(0, 16);
 
 /** A row → the item every consumer reads. */
 function itemOf(r) {
-  return {
+  const base = {
     id: r.id, role: r.role, level: r.level, type: r.type,
-    skills: JSON.parse(r.skills_json), pieces: JSON.parse(r.pieces_json), role_families: JSON.parse(r.families_json),
-    stem: r.stem, choices: JSON.parse(r.choices_json), correct: r.correct, why: JSON.parse(r.why_json),
-    source: r.source, status: r.status, version: r.version, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at,
+    skills: JSON.parse(r.skills_json), pieces: JSON.parse(r.pieces_json), role_families: JSON.parse(r.families_json), stem: r.stem,
   };
+  const tail = { source: r.source, status: r.status, version: r.version, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at };
+  const choices = JSON.parse(r.choices_json), why = JSON.parse(r.why_json);
+  if (r.type === "match") return { ...base, left: choices.left, right: choices.right, answer: why.answer, why: why.why, ...tail };
+  if (r.type === "order") return { ...base, steps: choices.steps, answer: why.answer, why: why.why, ...tail };
+  return { ...base, choices, correct: r.correct, why, ...tail };
+}
+
+// A stable shuffle by the item's id (the same order for everyone, never the answer's order when it can be avoided).
+function shuffled(id, n) {
+  const key = (i) => crypto.createHash("sha1").update(`${id}:${i}`).digest("hex");
+  const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => key(a).localeCompare(key(b)));
+  return order;
 }
 
 /**
@@ -82,7 +125,28 @@ export function questions(db, { role = null, level = null, type = null, skills =
 }
 
 /** A question as a person sees it before answering — no correct choice, no explanations. */
-export const servedQuestion = (q) => ({ id: q.id, role: q.role, level: q.level, type: q.type, skills: q.skills, stem: q.stem, choices: q.choices });
+export const servedQuestion = (q) => {
+  const base = { id: q.id, role: q.role, level: q.level, type: q.type, skills: q.skills, stem: q.stem };
+  // Structured: the parts carry their stored index (i) — the response names those — shuffled so the order gives nothing away.
+  if (q.type === "match") return { ...base, left: q.left, right: shuffled(q.id, q.right.length).map(i => ({ i, text: q.right[i] })) };
+  if (q.type === "order") {
+    let order = shuffled(q.id, q.steps.length);
+    if (order.every((v, k) => v === q.answer[k])) order = [...order.slice(1), order[0]];
+    return { ...base, steps: order.map(i => ({ i, text: q.steps[i] })) };
+  }
+  return { ...base, choices: q.choices };
+};
+
+/**
+ * ⭐ D154 P2 · judge a match / order response. match: response[i] = the right index paired with left[i]; order: the step
+ * indexes in the order given. → { correct, complete, parts: [bool per pair / position], answer, why }.
+ */
+export function judgeStructured(q, response) {
+  const n = q.type === "match" ? q.left.length : q.steps.length;
+  const complete = isPermutation(response, n);
+  const parts = Array.from({ length: n }, (_, k) => complete && response[k] === q.answer[k]);
+  return { correct: complete && parts.every(Boolean), complete, parts, answer: q.answer, why: q.why };
+}
 
 /**
  * Validate a file, diff it against the bank by id, and (apply) write it. Nothing is written if any item is refused.
@@ -149,25 +213,32 @@ export function unknownPieces(db) {
 }
 
 /** One answer, judged here (the correct choice never leaves the server before the answer). */
-export function recordAnswer(db, { questionId, userId = null, surface, chosen, ms = null, now = Math.floor(Date.now() / 1000) }) {
-  const q = db.prepare(`SELECT correct, choices_json, status FROM learn_questions WHERE id = ?`).get(questionId);
-  if (!q || q.status !== "live") throw bad(404, "no_question", "That question is not available.");
-  const n = JSON.parse(q.choices_json).length;
-  if (!Number.isInteger(chosen) || chosen < 0 || chosen >= n) throw bad(400, "bad_choice", "Choose one of the answers.");
+export function recordAnswer(db, { questionId, userId = null, surface, chosen, response = null, ms = null, now = Math.floor(Date.now() / 1000) }) {
+  const r = db.prepare(`SELECT * FROM learn_questions WHERE id = ?`).get(questionId);
+  if (!r || r.status !== "live") throw bad(404, "no_question", "That question is not available.");
   if (typeof surface !== "string" || !surface) throw bad(400, "bad_surface", "Which surface asked it.");
-  const correct = chosen === q.correct ? 1 : 0;
-  db.prepare(`INSERT INTO learn_question_answers (question_id, user_id, surface, chosen, correct, ms, answered_at) VALUES (?,?,?,?,?,?,?)`)
-    .run(questionId, userId, surface, chosen, correct, Number.isFinite(ms) ? Math.max(0, Math.round(ms)) : null, now);
-  return { correct: !!correct };
+  const save = (ch, ok) => db.prepare(`INSERT INTO learn_question_answers (question_id, user_id, surface, chosen, correct, ms, answered_at) VALUES (?,?,?,?,?,?,?)`)
+    .run(questionId, userId, surface, ch, ok ? 1 : 0, Number.isFinite(ms) ? Math.max(0, Math.round(ms)) : null, now);
+  if (STRUCTURED_TYPES.includes(r.type)) {
+    const judged = judgeStructured(itemOf(r), Array.isArray(response) ? response.map(Number) : null);
+    if (!judged.complete) throw bad(400, "incomplete", r.type === "match" ? "Pair every item first." : "Place every step first.");
+    save(-1, judged.correct);   // chosen -1: a structured answer has no single choice
+    return judged;
+  }
+  const n = JSON.parse(r.choices_json).length;
+  if (!Number.isInteger(chosen) || chosen < 0 || chosen >= n) throw bad(400, "bad_choice", "Choose one of the answers.");
+  const correct = chosen === r.correct;
+  save(chosen, correct);
+  return { correct };
 }
 
 /** answered · correct share · median time · how many chose each choice. */
 export function questionStats(db, id) {
   const q = db.prepare(`SELECT choices_json FROM learn_questions WHERE id = ?`).get(id);
-  const n = q ? JSON.parse(q.choices_json).length : 0;
+  const n = q ? (JSON.parse(q.choices_json).length || 0) : 0;   // a match / order item has no single choices
   const rows = db.prepare(`SELECT chosen, correct, ms FROM learn_question_answers WHERE question_id = ?`).all(id);
   const choices = Array.from({ length: n }, () => 0);
-  for (const r of rows) if (r.chosen < n) choices[r.chosen]++;
+  for (const r of rows) if (r.chosen >= 0 && r.chosen < n) choices[r.chosen]++;
   const times = rows.map(r => r.ms).filter(Number.isFinite).sort((a, b) => a - b);
   const median = times.length ? (times.length % 2 ? times[times.length >> 1] : Math.round((times[times.length / 2 - 1] + times[times.length / 2]) / 2)) : null;
   return { answered: rows.length, correctShare: rows.length ? rows.filter(r => r.correct).length / rows.length : null, medianMs: median, choices };
@@ -206,8 +277,7 @@ export function reviewQuestion(db, id, { action, reviewer, edits = null, now = M
   } else if (action === "retire") {
     db.prepare(`UPDATE learn_questions SET status = 'retired', reviewed_by = ?, reviewed_at = ?, updated_at = ? WHERE id = ?`).run(reviewer, now, now, id);
   } else if (action === "edit") {
-    const next = { ...contentOf(itemOf(r)), id, type: r.type, ...(edits || {}) };
-    delete next.status;
+    const next = { ...fieldsOf(itemOf(r)), id, type: r.type, ...(edits || {}) };
     const problems = itemProblems(next);
     if (problems.length) throw bad(400, "bad_item", problems.join("; "));
     const c = contentOf(next);

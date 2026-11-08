@@ -311,8 +311,8 @@ export function seedLearnContentIfEmpty(db, { dir = LEARN_DIR, now = Math.floor(
   const out = { seeded: [], skipped: [], kept: 0 };
   // ⭐ D117 C9: d117-data.json is the circle's data (links, terms, P5 items), not a tracker — it goes in by its own
   // idempotent import (services/learn/learnCircle.js seedCircleData), never as a learn_content row.
-  // D150 T01: audit-questions-vN.json are the question bank's files (services/learn/learnQuestions.js), not trackers.
-  const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith(".json") && f !== CIRCLE_FILE_NAME && !/^audit-questions-v\d+\.json$/.test(f)).sort() : [];
+  // D150 T01 / D154 P2: audit- and practice-questions-vN.json are the question bank's files (services/learn/learnQuestions.js), not trackers.
+  const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith(".json") && f !== CIRCLE_FILE_NAME && !/^(audit|practice)-questions-v\d+\.json$/.test(f)).sort() : [];
   const put = db.prepare(`INSERT OR IGNORE INTO learn_content (id, data, version, imported_at, imported_by) VALUES (?, ?, 1, ?, ?)`);
   db.transaction(() => {
     for (const f of files) {

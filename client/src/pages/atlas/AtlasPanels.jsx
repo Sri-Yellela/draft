@@ -173,10 +173,10 @@ export function TodaysQuestionPanel({ base }) {
   const [busy, setBusy] = useState(false);
   const day = localDay();
   useEffect(() => { api(`/api/learn/today?day=${day}`).then(setT).catch(e => setErr(e?.status === 401 ? "Sign in to get a question a day, picked from your own gaps." : (e.message || "Today's question couldn't load."))); }, [day]);
-  const answer = async (i) => {
+  const answer = async (i, response = null) => {
     if (busy || t?.result) return;
     setBusy(true);
-    try { const r = await api("/api/learn/today/answer", { method: "POST", body: JSON.stringify({ day, chosen: i }) }); setT({ ...t, result: r, streak: r.streak }); }
+    try { const r = await api("/api/learn/today/answer", { method: "POST", body: JSON.stringify(response ? { day, response } : { day, chosen: i }) }); setT({ ...t, result: r, streak: r.streak }); }
     catch (e) { setErr(e.message || "That answer didn't save."); } finally { setBusy(false); }
   };
   const q = t?.question, r = t?.result;
@@ -191,13 +191,15 @@ export function TodaysQuestionPanel({ base }) {
         <div className="atl-dq" data-daily-question={q.id}>
           <p className="atl__quiet">{(q.skills || []).map(s => String(s).replace(/-/g, " ")).join(" · ")}</p>
           <h3 className="atl__h2">{q.stem}</h3>
-          <div className="atl-dq__choices" role="group" aria-label="Choices">
+          {q.type === "match" && <MatchAnswer q={q} r={r} busy={busy} onAnswer={(resp) => answer(null, resp)} />}
+          {q.type === "order" && <OrderAnswer q={q} r={r} busy={busy} onAnswer={(resp) => answer(null, resp)} />}
+          {Array.isArray(q.choices) && <div className="atl-dq__choices" role="group" aria-label="Choices">
             {q.choices.map((c, i) => (
               <button key={i} type="button" className="atl-dq__choice" disabled={!!r || busy} onClick={() => answer(i)}
                 data-state={r ? (i === r.correctIndex ? "right" : i === r.chosen ? "wrong" : "") : ""}>{c}</button>
             ))}
-          </div>
-          {r && (
+          </div>}
+          {r && Array.isArray(q.choices) && (
             <div className="atl-dq__why" data-daily-why="" role="status">
               <p><b>{r.correct ? "Right." : "Not quite."}</b> {r.why.chosen}</p>
               {!r.correct && r.why.right && <p><b>The stronger move:</b> {r.why.rightChoice} — {r.why.right}</p>}
@@ -205,8 +207,91 @@ export function TodaysQuestionPanel({ base }) {
               <p className="atl__quiet">Come back tomorrow for the next one.</p>
             </div>
           )}
+          {r && !Array.isArray(q.choices) && (
+            <div className="atl-dq__why" data-daily-why="" role="status">
+              <p><b>{r.correct ? "Right." : `${(r.parts || []).filter(Boolean).length} of ${(r.parts || []).length} in place.`}</b>{typeof r.why === "string" ? ` ${r.why}` : ""}</p>
+              {r.lessons?.length > 0 && <p>Go to lesson: {r.lessons.map((l, i) => <span key={l.path}>{i ? " · " : ""}<Link className="atl__link" to={learnStepHref(base, l.stepId)}>{l.label}</Link></span>)}</p>}
+              <p className="atl__quiet">Come back tomorrow for the next one.</p>
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ⭐ D154 P2 · MATCH: tap an item on the left, then its partner on the right (buttons, so Tab / Enter / Space work too);
+// tap a paired left item again to undo. After the answer each pair shows right or wrong, the right partner, and its why.
+function MatchAnswer({ q, r, busy, onAnswer }) {
+  const [pick, setPick] = useState(null);            // the left index waiting for a partner
+  const [pairs, setPairs] = useState({});            // left index → right's stored index
+  const used = new Set(Object.values(pairs));
+  const rightText = (i) => q.right.find(x => x.i === i)?.text || "";
+  const done = Object.keys(pairs).length === q.left.length;
+  if (r) {
+    const resp = r.response || [];
+    return (
+      <ol className="atl-dq__pairs" data-daily-match-result="">
+        {q.left.map((l, k) => (
+          <li key={k} className="atl-dq__pair" data-state={r.parts?.[k] ? "right" : "wrong"}>
+            <b>{l}</b> → {rightText(resp[k])}
+            {!r.parts?.[k] && <span> · the match: {rightText(r.answer?.[k])}</span>}
+            {Array.isArray(r.why) && r.why[k] && <span className="atl__quiet"> — {r.why[k]}</span>}
+          </li>
+        ))}
+      </ol>
+    );
+  }
+  return (
+    <div className="atl-dq__match" data-daily-match="">
+      <div className="atl-dq__choices" role="group" aria-label="Items">
+        {q.left.map((l, k) => (
+          <button key={k} type="button" className="atl-dq__choice" aria-pressed={pick === k} data-state={pick === k ? "picked" : ""}
+            onClick={() => { if (pairs[k] != null) { const n = { ...pairs }; delete n[k]; setPairs(n); setPick(k); } else setPick(pick === k ? null : k); }}>
+            {l}{pairs[k] != null && <span className="atl__quiet"> → {rightText(pairs[k])}</span>}
+          </button>
+        ))}
+      </div>
+      <div className="atl-dq__choices" role="group" aria-label="Partners">
+        {q.right.map((x) => (
+          <button key={x.i} type="button" className="atl-dq__choice" disabled={pick == null || used.has(x.i)}
+            onClick={() => { setPairs({ ...pairs, [pick]: x.i }); setPick(null); }}>{x.text}</button>
+        ))}
+      </div>
+      <button type="button" className="atl-dq__choice atl-dq__go" disabled={!done || busy} onClick={() => onAnswer(q.left.map((_, k) => pairs[k]))}>Check my pairs</button>
+    </div>
+  );
+}
+
+// ⭐ D154 P2 · ORDER: move each step up or down (buttons — keyboard reachable), then check. After the answer each position
+// shows right or wrong, and the right order is listed.
+function OrderAnswer({ q, r, busy, onAnswer }) {
+  const [order, setOrder] = useState(() => q.steps.map(s => s.i));
+  const text = (i) => q.steps.find(s => s.i === i)?.text || "";
+  const move = (k, d) => { const n = [...order]; const j = k + d; if (j < 0 || j >= n.length) return; [n[k], n[j]] = [n[j], n[k]]; setOrder(n); };
+  if (r) {
+    const resp = r.response || order;
+    return (
+      <div data-daily-order-result="">
+        <ol className="atl-dq__pairs">{resp.map((i, k) => <li key={k} className="atl-dq__pair" data-state={r.parts?.[k] ? "right" : "wrong"}>{text(i)}</li>)}</ol>
+        {!r.correct && <><p className="atl__quiet">The order:</p><ol className="atl-dq__pairs">{(r.answer || []).map((i, k) => <li key={k} className="atl-dq__pair">{text(i)}{Array.isArray(r.why) && r.why[i] ? <span className="atl__quiet"> — {r.why[i]}</span> : null}</li>)}</ol></>}
+      </div>
+    );
+  }
+  return (
+    <div data-daily-order="">
+      <ol className="atl-dq__pairs">
+        {order.map((i, k) => (
+          <li key={i} className="atl-dq__pair atl-dq__step">
+            <span>{text(i)}</span>
+            <span className="atl-dq__moves">
+              <button type="button" className="atl-dq__move" disabled={k === 0} aria-label={`Move "${text(i)}" up`} onClick={() => move(k, -1)}>↑</button>
+              <button type="button" className="atl-dq__move" disabled={k === order.length - 1} aria-label={`Move "${text(i)}" down`} onClick={() => move(k, 1)}>↓</button>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <button type="button" className="atl-dq__choice atl-dq__go" disabled={busy} onClick={() => onAnswer(order)}>Check my order</button>
     </div>
   );
 }

@@ -96,11 +96,11 @@ test("D150 · t02FlagsComputed — too easy, too hard, a dead choice, too fast; 
   assert.throws(() => recordAnswer(db, { questionId: "f-1", surface: "audit", chosen: 7 }), /Choose one/);
 });
 
-test("D150 · T03 — the four content files import as 90 drafts, idempotently, and every cited Learn piece exists", () => {
+test("D150 · T03 / D154 P2 — the five content files (four audit + the match / order practice file) import as 102 drafts, idempotently, and every cited Learn piece exists", () => {
   const db = fresh();
   const first = importQuestionFiles(db);
-  assert.deepEqual(first.map(r => r.error || r.refused.length), [0, 0, 0, 0], JSON.stringify(first.map(r => r.refused)));
-  assert.equal(db.prepare("SELECT COUNT(*) FROM learn_questions WHERE status = 'draft'").pluck().get(), 90);
+  assert.deepEqual(first.map(r => r.error || r.refused.length), [0, 0, 0, 0, 0], JSON.stringify(first.map(r => r.refused)));
+  assert.equal(db.prepare("SELECT COUNT(*) FROM learn_questions WHERE status = 'draft'").pluck().get(), 102);
   assert.ok(importQuestionFiles(db).every(r => !r.added.length && !r.changed.length));
   assert.deepEqual(unknownPieces(db), []);
   assert.deepEqual(questions(db), [], "imported, none live");
@@ -111,7 +111,7 @@ test("D150 T02 · the wiring — boot import, the admin routes, the desk, the tr
   assert.match(s, /for \(const r of importQuestionFiles\(db\)\)/);
   assert.match(s, /app\.get\("\/api\/admin\/questions", requireAdmin/);
   assert.match(s, /app\.post\("\/api\/admin\/questions\/:id\/review", requireAdmin/);
-  assert.ok(read("services/learn/learnImport.js").includes("!/^audit-questions-v\\d+\\.json$/.test(f)"), "the tracker importer skips the bank's files");
+  assert.ok(read("services/learn/learnImport.js").includes("!/^(audit|practice)-questions-v\\d+\\.json$/.test(f)"), "the tracker importer skips the bank's files");
   assert.match(read("client/src/panels/adminMap.js"), /\["questions", "Question bank"\]/);
   assert.match(read("client/src/panels/AdminPanel.jsx"), /\{at\("data", "questions"\) && <QuestionBankTab\/>\}/);
   const desk = read("client/src/panels/adminQuestions.jsx");

@@ -127,12 +127,12 @@ const proven = (p) => p?.state === "checked" || p?.state === "built";
 /** The live, auto-gradable items of D150's bank that evidence this Atlas node (explain items are never auto-graded). */
 export function quickPool(db, slug) {
   if (!slug) return [];
-  return safe(() => questions(db, { skills: [slug] }), []).filter(q => q.type !== "explain");
+  return safe(() => questions(db, { skills: [slug] }), []).filter(q => q.type !== "explain" && q.type !== "match" && q.type !== "order");
 }
 function liveCountsBySlug(db) {
   const out = new Map();
   for (const q of safe(() => questions(db, {}), [])) {
-    if (q.type === "explain") continue;
+    if (q.type === "explain" || q.type === "match" || q.type === "order") continue;
     for (const s of q.skills) out.set(s, (out.get(s) || 0) + 1);
   }
   return out;

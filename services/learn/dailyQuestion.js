@@ -11,7 +11,7 @@
 // recordAnswer, surface 'daily') → the WHY of the chosen choice and of the right one → GO TO LESSON (the item's pieces[] →
 // the Learn piece, P3). A quiet streak: consecutive days answered, ending today or yesterday. Nothing is shown on Home
 // but one line (D145). ⛔ D17: no model.
-import { questions, servedQuestion, recordAnswer } from "./learnQuestions.js";
+import { questions, servedQuestion, recordAnswer, isStructured, judgeStructured } from "./learnQuestions.js";
 import { learnContent } from "./learnContent.js";
 import { learnStepInfo, learnStepPath } from "./learnLinks.js";
 
@@ -95,24 +95,31 @@ export function todaysQuestion(db, userId, day, { aimRole = null } = {}) {
   const [item] = questions(db, { ids: [row.question_id] });
   if (!item) return { day, question: null, streak: streakFor(db, userId, day) };
   const out = { day, reason: row.reason, reasonWords: REASON_WORDS[row.reason] || null, question: servedQuestion(item), streak: streakFor(db, userId, day) };
-  if (row.answered_at) out.result = resultOf(db, item, row.chosen, !!row.correct);
+  if (row.answered_at) out.result = resultOf(db, item, row.chosen, !!row.correct, row.response_json ? JSON.parse(row.response_json) : null);
   return out;
 }
 
-function resultOf(db, item, chosen, correct) {
+function resultOf(db, item, chosen, correct, response = null) {
+  // ⭐ D154 P2: a match / order answer → per pair / position right or not, the key, and the why.
+  if (isStructured(item)) {
+    const j = response ? judgeStructured(item, response) : { parts: [], answer: item.answer, why: item.why };
+    return { correct, response, parts: j.parts, answer: item.answer, why: item.why, lessons: lessonsFor(db, item) };
+  }
   return { chosen, correct, correctIndex: item.correct, why: { chosen: item.why[chosen] || null, right: correct ? null : item.why[item.correct] || null, rightChoice: correct ? null : item.choices[item.correct] },
     lessons: lessonsFor(db, item) };
 }
 
 /** Answer today's question — once. */
-export function answerToday(db, userId, day, { chosen, ms = null }) {
+export function answerToday(db, userId, day, { chosen, response = null, ms = null }) {
   if (!DAY_RE.test(String(day || ""))) throw bad(400, "bad_day", "Which day is it for you?");
   const row = db.prepare(`SELECT * FROM daily_questions WHERE user_id = ? AND day = ?`).get(userId, day);
   if (!row) throw bad(404, "no_question", "Open today's question first.");
   if (row.answered_at) throw bad(409, "answered", "You've answered today's question — come back tomorrow.");
-  const { correct } = recordAnswer(db, { questionId: row.question_id, userId, surface: "daily", chosen: Number(chosen), ms });
-  db.prepare(`UPDATE daily_questions SET chosen = ?, correct = ?, ms = ?, answered_at = unixepoch() WHERE user_id = ? AND day = ?`)
-    .run(Number(chosen), correct ? 1 : 0, Number.isFinite(ms) ? Math.round(ms) : null, userId, day);
+  const resp = Array.isArray(response) ? response.map(Number) : null;
+  const { correct } = recordAnswer(db, { questionId: row.question_id, userId, surface: "daily", chosen: resp ? -1 : Number(chosen), response: resp, ms });
+  const ch = resp ? -1 : Number(chosen);
+  db.prepare(`UPDATE daily_questions SET chosen = ?, correct = ?, ms = ?, response_json = ?, answered_at = unixepoch() WHERE user_id = ? AND day = ?`)
+    .run(ch, correct ? 1 : 0, Number.isFinite(ms) ? Math.round(ms) : null, resp ? JSON.stringify(resp) : null, userId, day);
   const [item] = questions(db, { ids: [row.question_id] });
-  return { ...resultOf(db, item, Number(chosen), correct), streak: streakFor(db, userId, day) };
+  return { ...resultOf(db, item, ch, correct, resp), streak: streakFor(db, userId, day) };
 }
