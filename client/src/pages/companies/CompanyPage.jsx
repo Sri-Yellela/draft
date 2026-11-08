@@ -23,7 +23,15 @@ const monthWord = (ym) => new Date(`${ym}-01T00:00:00Z`).toLocaleString("en-US",
 export default function CompanyPage({ slug, base = "/companies", inApp = false }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [match, setMatch] = useState(null);   // D179: Your match — signed in (inside the shell) only
   const navigate = useNavigate();
+  useEffect(() => {
+    if (!inApp) return undefined;
+    let live = true;
+    setMatch(null);
+    api(`/api/companies/${encodeURIComponent(slug)}/match`).then((m) => { if (live) setMatch(m); }).catch(() => {});
+    return () => { live = false; };
+  }, [slug, inApp]);
   useEffect(() => {
     let live = true;
     setData(null); setError(null);
@@ -94,6 +102,18 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
           <h2>On GitHub</h2>
           <p>{github.languages.map((l) => `${l.language} (${l.repos} repo${l.repos === 1 ? "" : "s"})`).join(" · ")}</p>
           <p className="co__lead">Their public repositories active in the last year — <a href={github.url} target="_blank" rel="noopener noreferrer">github.com/{github.org}</a>.</p>
+        </section>
+      )}
+
+      {match && match.of > 0 && (
+        <section className="co__sec" data-company-match="">
+          <h2>Your match</h2>
+          <p>You've proven <b>{match.proven.length}</b> of their top {match.of}{match.proven.length ? `: ${match.proven.join(", ")}` : ""}.
+            {match.listed.length > 0 && <> Listed but not yet proven: {match.listed.join(", ")}.</>}</p>
+          {match.missing.length > 0 && (
+            <p className="co__lead">Not on your skills yet: {match.missing.map((m, i) => <span key={m.tech}>{i ? ", " : ""}{m.atlasSlug
+              ? <Link to={`/app/atlas/${m.atlasSlug}`}>{m.tech}</Link> : m.tech}</span>)} — <Link to="/app/atlas/your-skills">check and prove your skills</Link>.</p>
+          )}
         </section>
       )}
 
