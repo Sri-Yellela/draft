@@ -687,8 +687,8 @@
           "topics": [
             {
               "title": "SLOs and alerting",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-r-01",
+              "status": "draft"
             },
             {
               "title": "observability",
@@ -698,18 +698,18 @@
             },
             {
               "title": "incident response and postmortems",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-r-03",
+              "status": "draft"
             },
             {
               "title": "capacity and cost",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-r-04",
+              "status": "draft"
             },
             {
               "title": "disaster recovery and multi-region",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-r-05",
+              "status": "draft"
             }
           ]
         },
@@ -719,18 +719,18 @@
           "topics": [
             {
               "title": "secrets",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-s-01",
+              "status": "draft"
             },
             {
               "title": "least privilege",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-s-02",
+              "status": "draft"
             },
             {
               "title": "the software supply chain",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-s-03",
+              "status": "draft"
             }
           ]
         },
@@ -847,8 +847,9 @@
             },
             {
               "title": "secrets",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-s-01",
+              "status": "draft",
+              "reused": true
             },
             {
               "title": "detection and logging",
