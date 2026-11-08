@@ -199,3 +199,83 @@ test("d183ProvenNeverReverts — a skill proven in Atlas stays on the list when 
   assert.ok(skillNames(db).includes("Excel"));
   assert.deepEqual(refill.kept.proven, ["Excel"]);
 });
+
+// ── P3 · the public page /in/<handle> ────────────────────────────────────────────────────────────────
+import express from "express";
+import publicProfileRoutes, { publicViewFor, renderPublicProfile, indexable, fileReport, REPORTS_PER_DAY } from "../routes/publicProfile.js";
+import proofPageRoutes from "../routes/proofPage.js";
+import { setProofPage } from "../services/proofLinks.js";
+
+async function serve(db, mount) {
+  const app = express();
+  mount(app);
+  const server = app.listen(0);
+  const base = `http://127.0.0.1:${server.address().port}`;
+  return { base, close: () => server.close() };
+}
+
+test("d183PublicNoindexByDefault — private says so; public is noindex until the person switches search engines on", async () => {
+  const db = freshDb();
+  setProofPage(db, 1, { handle: "dana-example", enabled: false });
+  const s = await serve(db, (app) => publicProfileRoutes(app, db, {}));
+  try {
+    let r = await fetch(`${s.base}/in/dana-example`); let html = await r.text();
+    assert.equal(r.status, 200);
+    assert.match(html, /This profile is private\./);
+    assert.ok(!html.includes("Data engineer who builds"), "nothing of a private page is sent");
+    setVisibility(db, 1, { page: "public" });
+    r = await fetch(`${s.base}/in/dana-example`); html = await r.text();
+    assert.match(html, /<meta name="robots" content="noindex">/);
+    assert.equal(r.headers.get("x-robots-tag"), "noindex");
+    for (const secret of ["dana@example.test", "617-555-0142", "12 Elm St"]) assert.ok(!html.includes(secret), secret);
+    assert.match(html, /data-link-mark="github"/);
+    assert.match(html, /not a certification/);
+    setVisibility(db, 1, { searchable: true });
+    r = await fetch(`${s.base}/in/dana-example`); html = await r.text();
+    assert.ok(!/noindex/.test(html) && r.headers.get("x-robots-tag") == null, "indexed only on the person's yes");
+    assert.equal((await fetch(`${s.base}/in/nobody-here`)).status, 404);
+  } finally { s.close(); }
+  assert.equal(indexable({ private: true, searchable: true }), false);
+});
+
+test("d183ProofPageRedirects — /p/<handle> answers 301 to /in/<handle>; a proof-page user starts Public for projects + skills only", async () => {
+  const db = freshDb();
+  const s = await serve(db, (app) => proofPageRoutes(app, db));
+  try {
+    const r = await fetch(`${s.base}/p/dana-example`, { redirect: "manual" });
+    assert.equal(r.status, 301);
+    assert.equal(r.headers.get("location"), "/in/dana-example");
+  } finally { s.close(); }
+  const m = MIGRATIONS.find(x => x.id === "245_profile_public_page");
+  assert.ok(m, "migration 245");
+  const db2 = new Database(":memory:");
+  for (const x of MIGRATIONS) {
+    if (x.id === m.id) {
+      db2.prepare("INSERT INTO users (id,username,password_hash) VALUES (7,'eli','x')").run();
+      db2.prepare("INSERT INTO proof_pages (user_id, handle, enabled) VALUES (7, 'eli-ex', 1)").run();
+    }
+    db2.exec(x.sql);
+  }
+  const v = readVisibility(db2, 7);
+  assert.equal(v.page, "public");
+  assert.equal(v.effective.projects, "public");
+  assert.equal(v.effective.skills, "public");
+  for (const id of ["about", "experience", "fit", "achievements", "education", "links"]) assert.equal(v.effective[id], "only_me", id);
+});
+
+test("d183ReportReachesQueue — a report lands in profile_reports, rate-limited per sender a day", async () => {
+  const db = freshDb();
+  setProofPage(db, 1, { handle: "dana-example", enabled: false });
+  setVisibility(db, 1, { page: "public" });
+  const s = await serve(db, (app) => publicProfileRoutes(app, db, {}));
+  try {
+    const r = await fetch(`${s.base}/in/dana-example/report`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "reason=spam&details=selling+things" });
+    assert.equal(r.status, 200);
+    const row = db.prepare("SELECT reported_user_id, reason, details, status FROM profile_reports").get();
+    assert.deepEqual(row, { reported_user_id: 1, reason: "spam", details: "selling things", status: "open" });
+  } finally { s.close(); }
+  for (let i = 0; i < REPORTS_PER_DAY + 2; i++) fileReport(db, { userId: 1, handle: "dana-example", reason: "fake", reporterHash: "same" });
+  assert.equal(db.prepare("SELECT COUNT(*) FROM profile_reports WHERE reporter_hash = 'same'").pluck().get(), REPORTS_PER_DAY);
+  assert.match(renderPublicProfile(publicViewFor(db, "dana-example")), /Report this profile/);
+});

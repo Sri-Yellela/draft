@@ -164,7 +164,8 @@ export function evidenceForRequest(db, userId) {
 
 // ── P3 · the public proof page ───────────────────────────────────────────────────────────────────────
 export const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/;
-const RESERVED = new Set(["admin", "api", "app", "draft", "help", "login", "logout", "new", "p", "privacy", "proof", "root",
+// D183 P3: "in" (the public profile's own path) is reserved too.
+const RESERVED = new Set(["admin", "api", "app", "draft", "help", "in", "login", "logout", "new", "p", "privacy", "proof", "root",
   "settings", "signup", "support", "terms", "www"]);
 
 // ⭐ D178-4: proof_pages.show_learning (migration 227) — a database before 227 has no such column; read it as OFF.
