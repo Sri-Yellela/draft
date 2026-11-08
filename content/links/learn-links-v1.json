@@ -9,7 +9,7 @@
    "title": "Code: The Hidden Language of Computer Hardware and Software",
    "url": "https://openlibrary.org/works/OL1972516W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Open Library: 'Code' by Charles Petzold (first published 1999, 7 editions)"
   },
   {
@@ -28,7 +28,7 @@
    "title": "The Innovators",
    "url": "https://openlibrary.org/works/OL17074268W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Open Library: 'The Innovators' by Walter Isaacson (2014, 18 editions)"
   },
   {
@@ -55,7 +55,7 @@
    "title": "The Universal Computer: The Road from Leibniz to Turing",
    "url": "https://openlibrary.org/works/OL2056706W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Open Library: 'The Universal Computer' by Martin Davis (2000)",
    "note": "Other OL works exist for later editions (OL25193372W, 2018 'Universal Computer')"
   },
@@ -120,7 +120,7 @@
    "title": "The Elements of Computing Systems",
    "url": "https://openlibrary.org/works/OL21015000W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Open Library: 'Elements of Computing Systems' by Noam Nisan, Shimon Schocken (2008, 4 editions)",
    "note": "OL has duplicate works (OL19550033W 'The Elements of Computing Systems', 2005, 1 edition); chose the one with most editions"
   },
@@ -130,7 +130,7 @@
    "title": "Practical Electronics for Inventors",
    "url": "https://openlibrary.org/works/OL222976W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Open Library: 'Practical Electronics for Inventors' by Paul Scherz (2000, 4 editions)",
    "note": "OL lists only Scherz as author; Simon Monk co-authored later editions"
   },
@@ -169,7 +169,7 @@
    "title": "The Feynman Lectures on Computation",
    "url": "https://openlibrary.org/works/OL514615W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Open Library: 'Feynman lectures on computation' by Richard Phillips Feynman (1996, 3 editions)",
    "note": "OL also has OL25241008W (2018 reissue)"
   },
@@ -197,7 +197,7 @@
    "title": "The Idea Factory",
    "url": "https://openlibrary.org/works/OL16184356W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Open Library: 'The Idea Factory' by 'Jon Gernter' (2012, 4 editions)",
    "note": "OL misspells the author as 'Gernter'; it is Jon Gertner's book"
   },
@@ -244,7 +244,7 @@
    "title": "Chip War",
    "url": "https://openlibrary.org/works/OL27846746W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Open Library: 'Chip War' by Chris Miller (2022, 8 editions)"
   },
   {
@@ -262,7 +262,7 @@
    "title": "Computer Systems: A Programmer’s Perspective, chapters 1 to 6",
    "url": "https://openlibrary.org/works/OL12343250W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Open Library: 'Computer systems' by Randal E. Bryant, David R. O'Hallaron (2002, 10 editions)",
    "note": "OL also has a separate 3rd-edition work OL19545341W"
   },
@@ -350,7 +350,7 @@
    "title": "Computer Organization and Design: RISC-V Edition",
    "url": "https://openlibrary.org/works/OL20842376W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Computer Organization and Design RISC-V Edition | David A. Patterson, John L. Hennessy (2017)"
   },
   {
@@ -422,7 +422,7 @@
    "title": "Digital Design and Computer Architecture",
    "url": "https://openlibrary.org/works/OL20834231W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Digital Design and Computer Architecture | Sarah Harris, David Money Harris (2010)"
   },
   {
@@ -453,7 +453,7 @@
    "title": "How to Solve It",
    "url": "https://openlibrary.org/works/OL4569830W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "How to solve it | George Pólya (1945, 38 editions)"
   },
   {
@@ -462,7 +462,7 @@
    "title": "Grokking Algorithms",
    "url": "https://openlibrary.org/works/OL25919119W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Grokking Algorithms | Aditya Y. Bhargava (2016, 3 editions)",
    "note": "Second edition is a separate work: OL37769525W"
   },
@@ -520,7 +520,7 @@
    "title": "The Algorithm Design Manual",
    "url": "https://openlibrary.org/works/OL2677499W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "The algorithm design manual | Steven S. Skiena (1998, 7 editions)"
   },
   {
@@ -617,7 +617,7 @@
    "title": "The Dream Machine",
    "url": "https://openlibrary.org/works/OL4300550W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "The Dream Machine | M. Mitchell Waldrop (2001)"
   },
   {
@@ -782,7 +782,7 @@
    "title": "Designing Data-Intensive Applications",
    "url": "https://openlibrary.org/works/OL19293745W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Designing Data-Intensive Applications — Martin Kleppmann (2017)"
   },
   {
@@ -829,7 +829,7 @@
    "title": "The Code Book",
    "url": "https://openlibrary.org/works/OL31157W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "The Code Book — Simon Singh (1999)"
   },
   {
@@ -858,7 +858,7 @@
    "title": "Sandworm",
    "url": "https://openlibrary.org/works/OL20806093W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Sandworm — Andy Greenberg (2019)"
   },
   {
@@ -895,7 +895,7 @@
    "title": "American Kingpin",
    "url": "https://openlibrary.org/works/OL18203067W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "American Kingpin — Nick Bilton (2017)"
   },
   {
@@ -966,7 +966,7 @@
    "title": "Flash Boys",
    "url": "https://openlibrary.org/works/OL16816775W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Flash Boys — Michael Lewis (2014)"
   },
   {
@@ -994,7 +994,7 @@
    "title": "The Pragmatic Programmer",
    "url": "https://openlibrary.org/works/OL5748544W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "The Pragmatic Programmer — Andy Hunt, Dave Thomas (1999)"
   },
   {
@@ -1073,7 +1073,7 @@
    "title": "Making Embedded Systems",
    "url": "https://openlibrary.org/works/OL17470690W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Making Embedded Systems — Elecia White (2011)"
   },
   {
@@ -1161,7 +1161,7 @@
    "title": "Feedback Systems",
    "url": "https://openlibrary.org/works/OL21524220W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Feedback Systems — Karl Johan Astrom, Richard M. Murray (Open Library, 2009)",
    "note": "The free online copy (fbswiki.org / Caltech) returned HTTP 500 / certificate errors and could not be verified, so the Open Library work is given"
   },
@@ -1411,7 +1411,7 @@
    "title": "Countdown to Zero Day",
    "url": "https://openlibrary.org/works/OL19323198W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Countdown to Zero Day: Stuxnet and the Launch of the World's First Digital Weapon — Kim Zetter"
   },
   {
@@ -1535,7 +1535,7 @@
    "title": "The Car Hacker’s Handbook",
    "url": "https://openlibrary.org/works/OL20022418W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "The Car Hacker's Handbook — Smith, Craig (Reverse engineer)"
   },
   {
@@ -1632,7 +1632,7 @@
    "title": "The Hardware Hacking Handbook",
    "url": "https://openlibrary.org/works/OL27740875W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "The Hardware Hacking Handbook | Colin O'Flynn, Jasper van Woudenberg (2021)",
    "note": "Publisher page also verified: https://nostarch.com/hardwarehacking"
   },
@@ -1721,7 +1721,7 @@
    "title": "Hands-On Machine Learning",
    "url": "https://openlibrary.org/works/OL20709638W",
    "type": "book",
-   "verified": "Open Library search API (title + author), by the research agent",
+   "verified": "Open Library works API (title + author), re-checked by the agent 2026-11-08",
    "evidence": "Hands-On Machine Learning with Scikit-Learn, Keras, and TensorFlow | Aurélien Géron (2019)",
    "note": "Other editions are separate works: Scikit-Learn and TensorFlow (OL19543288W, 2017); Scikit-Learn and PyTorch (OL44325799W, 2025)."
   },
