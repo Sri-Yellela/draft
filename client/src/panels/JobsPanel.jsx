@@ -1795,6 +1795,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // ⭐ D179 (a) (45l) · THE ROLE — the taxonomy's Category → Subcategory, chosen in the domain word's panel (or the search
   // box's Roles); sent as `category` / `subcategory` (jobQuery's hard taxonomy filter), counted by the facets' `role`.
   const [taxRole,        setTaxRole]        = useState({ category: "", subcategory: "" });
+  // ⭐ D179 (a) · "using [technology]" — set from the search box's Technologies, cleared from its sentence word.
+  const [techFilter,     setTechFilter]     = useState("");
   const [places,         setPlaces]         = useState([]);
   const [sectors,        setSectors]        = useState([]);
   const [strictTags,     setStrictTags]     = useState(false);
@@ -2504,6 +2506,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (jobFunctions.length)   p.set(JOB_FUNCTIONS.param, jobFunctions.join(","));
     if (taxRole.subcategory)   p.set("subcategory", taxRole.subcategory);   // D179 (a)
     else if (taxRole.category) p.set("category", taxRole.category);
+    if (techFilter)            p.set("tech", techFilter);   // D179 (a)
     if (places.length)         p.set(PLACES.param,      places.join(","));
     // D42: the company sector (drawer) and the strict toggle (the panels' "only known" pill).
     if (sectors.length)        p.set(SECTORS.param,     sectors.join(","));
@@ -2525,7 +2528,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       // callback's OLD closure, so toggling either sent the previous querystring.
       companySponsors, hideEligibility, trulyEntry, hideGhost,
       sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, curateOff, fitBands,
-      jobFunctions, places, sectors, strictTags, taxRole]);
+      jobFunctions, places, sectors, strictTags, taxRole, techFilter]);
 
   // FE-2: opt-in facet counts for the panel currently being edited — requested against the
   // CURRENTLY-COMMITTED filters (buildParams(1)), not the still-being-staged pendingFilters, so
@@ -2588,7 +2591,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     ...Object.fromEntries(SENTENCE_CLAUSES.map(c => [c.dim.param, clauseState[c.key]?.[0]])),
     [STRICT_PARAM]: strictTags ? "1" : "",
     // D179 (a): the role travels with the clauses (the domain word reads it; its panel sets it).
-    category: taxRole.category, subcategory: taxRole.subcategory,
+    category: taxRole.category, subcategory: taxRole.subcategory, tech: techFilter,
   };
 
   const applyClausePatch = (patch) => {
@@ -2600,6 +2603,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if ("subcategory" in patch || "category" in patch) {
       setTaxRole({ category: String(patch.category || ""), subcategory: String(patch.subcategory || "") });
     }
+    if ("tech" in patch) setTechFilter(String(patch.tech || ""));   // D179 (a)
     setCurrentPage(1);
   };
   // The header holds these across renders; the ref keeps them pointed at THIS render's closures.
