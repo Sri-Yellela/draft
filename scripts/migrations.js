@@ -6437,4 +6437,23 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_company_tech_tech ON company_tech(tech, postings);
       `,
     },
+    {
+      // ⭐ D179 P2 (45l): CATEGORY → SUBCATEGORY per posting, from the approved taxonomy (content/taxonomy/roles-v1.json;
+      // services/jobs/taxonomyClassify.js). Its own small table (no scraped_jobs row rewrites — A132), with the taxonomy
+      // version each answer was read at, so a new version re-reads and an unchanged one never does. Only ADDS.
+      id: "233_job_taxonomy",
+      sql: `
+        CREATE TABLE IF NOT EXISTS job_taxonomy (
+          job_id         TEXT PRIMARY KEY,
+          category       TEXT,
+          subcategory    TEXT,
+          confidence     REAL,
+          reason         TEXT,
+          version        TEXT NOT NULL,
+          classified_at  INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_job_taxonomy_sub ON job_taxonomy(subcategory);
+        CREATE INDEX IF NOT EXISTS idx_job_taxonomy_cat ON job_taxonomy(category);
+      `,
+    },
   ];
