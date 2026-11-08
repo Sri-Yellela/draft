@@ -98,6 +98,8 @@ import { createCompanyFacts } from "./services/companies/companyFacts.js";
 import { createCompanyGithub } from "./services/companies/companyGithub.js";
 import { createCompanyWebSignals } from "./services/companies/companyWebSignals.js";
 import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landingPages.js";
+import { startAudit, answerAudit, auditResult, claimAudit } from "./services/audit/auditSession.js";
+import { setAim as setNavigatorAim } from "./services/navigator.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
@@ -151,7 +153,7 @@ import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
-import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes, jobsSitemapPageCount, companiesSitemapRoutes, jobPath } from "./services/jobs/publicJobPage.js";
+import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes, jobsSitemapPageCount, companiesSitemapRoutes, jobPath, atlasLinksFor } from "./services/jobs/publicJobPage.js";
 import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
 import { runRegisterLinkCheck } from "./services/atlas/sourceRegistry.js";
 import { autoPublish, runAtlasAutoPipeline } from "./services/atlas/atlasPublish.js";
@@ -7097,6 +7099,26 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // ⭐ D150 T05–T07 (45l): the 3-minute audit's anonymous sessions — a random token is the only key (no account, nothing
+      // personal); the six item ids, the answers given; claimed_by / claimed_at once a signed-in person keeps it (T07, once).
+      // Unclaimed sessions are deleted after 30 days (services/audit/auditSession.js purgeUnclaimed). Only ADDS.
+      id: "239_audit_sessions",
+      sql: `
+        CREATE TABLE IF NOT EXISTS audit_sessions (
+          token          TEXT PRIMARY KEY,
+          role_slug      TEXT NOT NULL,
+          bank_role      TEXT NOT NULL,
+          level          TEXT,
+          item_ids_json  TEXT NOT NULL,
+          answers_json   TEXT NOT NULL DEFAULT '[]',
+          created_at     INTEGER NOT NULL,
+          claimed_by     INTEGER,
+          claimed_at     INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_audit_sessions_created ON audit_sessions(claimed_at, created_at);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -12542,6 +12564,24 @@ app.get("/api/audit/role/:slug", (req, res) => {
     if (!card) return res.status(404).json({ error: "not_found", message: "We can't audit that role yet." });
     res.json(card);
   } catch (e) { res.status(500).json({ error: "audit_card_failed", message: e.message }); }
+});
+// ⭐ D150 T05–T07 (45l) · THE 3-MINUTE AUDIT — public and anonymous (a random token), then kept once by a signed-in person.
+const auditFail = (res, e) => res.status(e.status || 500).json({ error: e.code || "audit_failed", message: e.message });
+app.post("/api/audit/start", publicLimit, (req, res) => {
+  try { res.json(startAudit(db, { slug: String(req.body?.role || ""), level: req.body?.level ? String(req.body.level) : null })); }
+  catch (e) { auditFail(res, e); }
+});
+app.post("/api/audit/:token/answer", publicLimit, (req, res) => {
+  try { res.json(answerAudit(db, req.params.token, { questionId: String(req.body?.questionId || ""), chosen: Number(req.body?.chosen), ms: Number(req.body?.ms) || null })); }
+  catch (e) { auditFail(res, e); }
+});
+app.get("/api/audit/:token/result", publicLimit, (req, res) => {
+  try { res.set("Cache-Control", "no-store").json(auditResult(db, req.params.token, { atlasLinksFor })); }
+  catch (e) { auditFail(res, e); }
+});
+app.post("/api/audit/:token/claim", requireAuth, (req, res) => {
+  try { res.json(claimAudit(db, req.params.token, req.user.id, { setAim: setNavigatorAim, atlasLinksFor })); }
+  catch (e) { auditFail(res, e); }
 });
 app.post("/api/admin/questions/:id/review", requireAdmin, (req, res) => {
   try { res.json(reviewLearnQuestion(db, String(req.params.id), { action: req.body?.action, edits: req.body?.edits || null,

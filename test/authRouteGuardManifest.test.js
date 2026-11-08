@@ -33,6 +33,10 @@ const PUBLIC = new Set([
   "GET /api/public/jobs/facets",
   "GET /api/public/companies/:slug",
   "GET /api/public/suggest",
+  // D150 T05–T06 (45l): the 3-minute audit — anonymous by design (a random token), nothing personal.
+  "POST /api/audit/start",
+  "POST /api/audit/:token/answer",
+  "GET /api/audit/:token/result",
   "GET /api/health",
   // D151 Rule 1: liveness / readiness for Railway's healthcheck — no session, no user data.
   "GET /api/health/live",
@@ -203,6 +207,7 @@ const AUTHENTICATED = new Set([
   // D179 P4b (45l): Your match on a company page — the person's own skills, signed in.
   "GET /api/companies/:slug/match",
   "POST /api/companies/:slug/follow",
+  "POST /api/audit/:token/claim",   // D150 T07: keep the result — signed in
   // 11-07: the D124 trial's /api/trial/* routes were removed with it. The sample résumés' practice form stays at
   // /try/practice/:jobId (routes/survey.js), outside /api, behind an HMAC naming one (account, posting).
   // D115 P3: a learner's own progress marks.
@@ -775,6 +780,8 @@ test("every authenticated route taking an id from the request derives the owner 
     "server.js: GET /api/public/companies/:slug",                  // D179 P4b: a company's public page, no owner
     "server.js: GET /sitemap-jobs-:n.xml",                         // D179 P7: a numbered public sitemap file, no owner
     "server.js: GET /jobs/role/:id",                               // D179 P7: a public landing page, no owner
+    "server.js: POST /api/audit/:token/answer",                    // D150 T05: an anonymous token, no owner
+    "server.js: GET /api/audit/:token/result",                     // D150 T06: an anonymous token, no owner
     "server.js: GET /jobs/role/:id/in/:metro",                     // D179 P7: a public landing page, no owner
     "server.js: GET /jobs/tech/:slug",                             // D179 P7: a public landing page, no owner
     "server.js: POST /api/auth/provider/:provider",                // pre-auth, by definition
