@@ -6467,4 +6467,22 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D179 P4b (45l): a company record's public facts (Wikidata, CC0, matched by the company's OWN website) — the
+      // company page's "About" is written from these in draft's own words (services/companies/companyFacts.js). status:
+      // ok · none (no item has that site) · failed; re-read after 90 days. Only ADDS.
+      id: "235_company_facts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS company_facts (
+          company_id   INTEGER PRIMARY KEY,
+          wikidata_id  TEXT,
+          industry     TEXT,
+          hq           TEXT,
+          founded      INTEGER,
+          employees    INTEGER,
+          status       TEXT NOT NULL,
+          fetched_at   INTEGER NOT NULL
+        );
+      `,
+    },
   ];

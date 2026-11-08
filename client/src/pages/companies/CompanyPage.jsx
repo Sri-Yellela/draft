@@ -38,7 +38,7 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
   if (error) return <main className="co co--empty" role="alert"><p>This page couldn't load just now — try again in a moment.</p></main>;
   if (!data) return <main className="co co--empty" aria-busy="true"><p>Loading…</p></main>;
 
-  const { company: c, openJobs, byCategory, hiringTrend, stack, sponsorship, locations, jobs } = data;
+  const { company: c, openJobs, byCategory, hiringTrend, stack, sponsorship, locations, jobs, about } = data;
   const jobsHref = (cat) => `${inApp ? "/app/jobs" : "/jobs"}?q=${encodeURIComponent(c.name)}${cat ? `&category=${encodeURIComponent(cat)}` : ""}`;
   const trendMax = Math.max(1, ...hiringTrend.map((t) => t.postings));
   const groups = stack ? GROUP_ORDER.filter((g) => stack.groups?.[g]?.length) : [];
@@ -59,6 +59,14 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
         </div>
         {c.careersUrl && <a className="co__btn dbx-depth" href={c.careersUrl} target="_blank" rel="noopener noreferrer">Careers site</a>}
       </header>
+
+      {about && (
+        <section className="co__sec" data-company-about="">
+          <h2>About</h2>
+          <p>{about.line}</p>
+          <p className="co__lead">From public facts: {about.sources.map((s, i) => <span key={s.url}>{i ? ", " : ""}<a href={s.url} target="_blank" rel="noopener noreferrer">{s.name}</a></span>)}.</p>
+        </section>
+      )}
 
       {groups.length > 0 && (
         <section className="co__sec" data-company-stack="">
