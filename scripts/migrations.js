@@ -6579,4 +6579,12 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_atlas_taxonomy_roles_node ON atlas_taxonomy_roles(node_id);
       `,
     },
+    {
+      // ⭐ D154 P2 (45l): a match / order daily answer keeps its full response (the pairs / the order given), so the
+      // result can be shown again per pair / position on a later visit the same day.
+      id: "242_daily_question_response",
+      sql: `
+        ALTER TABLE daily_questions ADD COLUMN response_json TEXT;
+      `,
+    },
   ];

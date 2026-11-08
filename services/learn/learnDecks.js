@@ -68,7 +68,7 @@ export function guides({ dir } = {}) {
 export function deckOf(db, id, { dir } = {}) {
   const d = approvedDecks(dir).find(x => x.id === id);
   if (!d) return null;
-  const live = db ? safe(() => questions(db, { ids: d.questions || [] }), []) : [];
+  const live = db ? safe(() => questions(db, { ids: d.questions || [] }), []).filter(q => Array.isArray(q.choices)) : [];
   const level = (d.pathway || "software") === "software" ? (LADDER.find(l => l.stage === d.stage) || null) : null;
   return { id: d.id, title: d.title, skills: d.skills || [], guide: level ? { id: level.id, name: level.name, level: level.level } : null,
     slides: (d.slides || []).map(s => ({ tag: s.tag, title: s.title, points: s.points || [] })),

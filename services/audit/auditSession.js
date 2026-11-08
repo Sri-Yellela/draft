@@ -14,7 +14,7 @@
 // ⛔ D17: no model. ⛔ Copy: "strong / to work on", never a score out of 100 or a pass / fail.
 import crypto from "node:crypto";
 import { auditRoles, roleCard } from "./auditRoleCard.js";
-import { questions, servedQuestion, recordAnswer } from "../learn/learnQuestions.js";
+import { questions, servedQuestion, recordAnswer, isStructured } from "../learn/learnQuestions.js";
 import { learnContent } from "../learn/learnContent.js";
 import { learnStepInfo, learnStepPath } from "../learn/learnLinks.js";
 import { skillKey } from "../yourSkills.js";
@@ -30,7 +30,7 @@ export function purgeUnclaimed(db, now = Math.floor(Date.now() / 1000)) {
 
 /** Six live items for the role: the level's first, then any level; at most two per skill so the six cover the role. */
 export function pickItems(db, bankRole, level, { seed = "", count = AUDIT.QUESTIONS } = {}) {
-  const all = questions(db, { role: bankRole });
+  const all = questions(db, { role: bankRole }).filter(q => !isStructured(q));   // the audit asks four-choice items only (D154 P2)
   const rank = (q) => crypto.createHash("sha1").update(`${seed}:${q.id}`).digest("hex");
   const ordered = [...all].sort((a, b) => (Number(b.level === level) - Number(a.level === level)) || rank(a).localeCompare(rank(b)));
   const perSkill = new Map(), out = [];
