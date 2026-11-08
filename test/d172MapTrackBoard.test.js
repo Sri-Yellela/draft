@@ -40,6 +40,7 @@ test("d172MapTrackBoardWithStations: wired — Your map leads with the board; th
   assert.match(read("services/navigator.js"), /route: route \? \{ \.\.\.route, stations, openRoles: aimReading\?\.role\?\.postings \?\? null \} : null/);
   const css = read("client/src/pages/atlas/TrackBoard.css");
   assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i, "tokens only");
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.trk-stop__pulse \{ animation: none; \} \}/);
+  // ⭐ D178 (changed on purpose): Fly my route's camera and drawing also stop under reduced motion.
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.trk-stop__pulse \{ animation: none; \}/);
   assert.match(css, /@media \(max-width: 640px\) \{\n  \.trk-board__svg \{ display: none; \}\n  \.trk-board__list \{ display: block; \}/, "a phone gets the ordered list");
 });

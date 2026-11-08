@@ -37,7 +37,39 @@ export function layoutTrack(stations = []) {
       : `M ${a.x} ${a.y} L ${b.x} ${b.y}`;
     segments.push({ d, walked: i <= walkedTo });
   }
-  return { start, flag, stops, segments };
+  // ⭐ D178 Fly my route: how many segments lead up to each stop (the anchor's index), so a flight draws the track to it.
+  return { start, flag, stops: stops.map(s => ({ ...s, seg: anchors.indexOf(s) })), segments };
+}
+
+/** A station's Learn piece (the course's circle view, D178) or its Atlas page. */
+export function stationHref(base, s) {
+  return s?.learn?.stepId ? `${base}/library/silicon-to-software?view=circle#step-${encodeURIComponent(s.learn.stepId)}` : `${base}/${encodeURIComponent(s?.slug || "")}`;
+}
+
+const STATE_SAID = { done: "you have it", next: "next", ahead: "ahead" };
+/**
+ * ⭐ D178 · FLY MY ROUTE (owner 11-07: "the track draws from You to the goal and the camera walks the stations"). Pure:
+ * one frame per stop — You, each station in order, the goal — with how many segments are drawn by then (`drawn`), where
+ * the camera looks (x, y) and the line it reads ("2 of 5 · Streaming · next"). Nothing invented: the stations, their
+ * states and the goal's open roles are the route's own.
+ */
+export function flightPlan(layout, role = "", openRoles = null) {
+  const { start, flag, stops, segments } = layout;
+  const n = stops.length;
+  return [
+    { kind: "start", x: start.x + 60, y: start.y, drawn: 0, text: `You · ${n} ${n === 1 ? "stop" : "stops"} to ${role}` },
+    ...stops.map((s, i) => ({ kind: "station", slug: s.slug, x: s.x, y: s.y, drawn: s.seg, text: `${i + 1} of ${n} · ${s.name} · ${STATE_SAID[s.state]}` })),
+    { kind: "goal", x: flag.x + 60, y: flag.y - 30, drawn: segments.length,
+      text: `${role}${Number.isFinite(openRoles) ? ` · ${openRoles.toLocaleString("en-US")} open roles` : ""}` },
+  ];
+}
+
+/** The camera: centre (x, y) at `zoom`, clamped so the board always fills the frame. A CSS transform for the board's group. */
+export function cameraFor(x, y, zoom = 1.8) {
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const tx = clamp(BOARD.w / 2 - x * zoom, BOARD.w - BOARD.w * zoom, 0);
+  const ty = clamp(BOARD.h / 2 - y * zoom, BOARD.h - BOARD.h * zoom, 0);
+  return `translate(${Math.round(tx)}px, ${Math.round(ty)}px) scale(${zoom})`;
 }
 
 /** The line under the board: "Start: Streaming" (the next station) — null when every station is done. */

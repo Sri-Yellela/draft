@@ -24,8 +24,16 @@
 .trk-board__list li[data-station-state="done"] { color: var(--c-success); }
 .trk-board__foot { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: baseline; margin-top: 10px; }
 .trk-board__start { font-weight: 700; }
+/* ⭐ D178 Fly my route: the camera glides between stops; the track draws itself; the stop in view is ringed. */
+.trk-cam { transform-origin: 0 0; transition: transform 0.9s ease-in-out; }
+.trk-board__fly { fill: none; stroke: var(--c-accent); stroke-width: 14; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 0.9s ease-in-out; }
+.trk-board__fly.is-drawn { stroke-dashoffset: 0; }
+.trk-board__here { fill: none; stroke: var(--c-accent); stroke-width: 3; }
+.trk-board__caption { min-height: 1.5em; margin: 8px 0 0; font-weight: 700; }
+.trk-board__list li.is-here { font-weight: 700; color: var(--c-accent-ink); }
+.trk-board.is-still .trk-cam, .trk-board.is-still .trk-board__fly { transition: none; }
 @keyframes trk-pulse { 0%, 100% { transform: scale(0.8); opacity: 0.35; } 50% { transform: scale(1.15); opacity: 0.1; } }
-@media (prefers-reduced-motion: reduce) { .trk-stop__pulse { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .trk-stop__pulse { animation: none; } .trk-cam, .trk-board__fly { transition: none; } }
 @media (max-width: 640px) {
   .trk-board__svg { display: none; }
   .trk-board__list { display: block; }
