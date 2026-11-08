@@ -11327,7 +11327,10 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
     // this fix: starred=1 returned 27 of 27 rows for a user with zero starred rows. `uj` is already
     // LEFT JOINed per (user, profile) below, so this reads that user's own flag and nobody else's.
     // Any value other than '1' emits nothing, so the default board querystring is unchanged.
-    const starredSql = savedTab ? `AND uj.starred = 1` : '';
+    // ⭐ D151 Rule 4 (11-08): the person's starred set as a driving IN-list (a necessary condition — the same rows), so the
+    // ★ view starts from their few user_jobs rows, not every posting (the 20-user suite: the facets' view totals).
+    const starUid = Number.isSafeInteger(Number(req.user.id)) ? Number(req.user.id) : -1;
+    const starredSql = savedTab ? `AND uj.starred = 1 AND sj.job_id IN (SELECT s.job_id FROM user_jobs s WHERE s.user_id = ${starUid} AND s.starred = 1)` : '';
 
     // Applied — the search bar's Status > "Applied". Reads uj.applied, the per-(user, profile) flag
     // on the LEFT JOIN already in place, for the same reason starredSql reads uj.starred and not
@@ -11684,10 +11687,15 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // ⭐ A91 · /d IS ALL RESTRICTED BY ONE PREDICATE — the board's search, sentence and drawer filters
       // now apply to it exactly as to ALL (it used to be /api/jobs/pending, a query of its own).
       const pendingTab = pending === '1';
-      const pendingSql = pendingTab ? `AND ${pendingMembershipSql(ownUid)}` : '';
+      // ⭐ D151 Rule 4 (11-08): /d's membership needs a résumé or an application record of this person's — that union,
+      // as a driving IN-list (a necessary condition; the predicate still decides), so /d starts from their few rows.
+      const pendingSql = pendingTab ? `AND ${pendingMembershipSql(ownUid)}
+          AND sj.job_id IN (SELECT pr.job_id FROM resumes pr WHERE pr.user_id = ${ownUid} UNION SELECT ar.job_id FROM application_records ar WHERE ar.user_id = ${ownUid})` : '';
       if (pendingTab) { try { movePendingExpired(db, { userId: ownUid }); } catch { /* D112 c2: the sweep catches up */ } }
+      // ⭐ D151 Rule 4 (11-08): + also names the captured set as a driving IN-list (migration 228's index), the same rows.
       const importedSql = importedTab
-        ? `AND EXISTS (SELECT 1 FROM job_captures jc WHERE jc.job_id = sj.job_id AND jc.user_id = ${ownUid})` : '';
+        ? `AND EXISTS (SELECT 1 FROM job_captures jc WHERE jc.job_id = sj.job_id AND jc.user_id = ${ownUid})
+          AND sj.job_id IN (SELECT c.job_id FROM job_captures c WHERE c.user_id = ${ownUid})` : '';
       const roleSql = (savedTab || boardSearch || functionChosen) ? '' : `AND (
             jrm.role_key IS NOT NULL${scopeExtraSql ? `
             OR ${scopeExtraSql}` : ''}

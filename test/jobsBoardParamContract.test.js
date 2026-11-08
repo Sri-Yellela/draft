@@ -122,7 +122,7 @@ test("the Saved tab's starred param is bound to the requesting user's own flag",
   // exempts the tab from the role_key join, profileTitleSql and the profile bridge — one name, so
   // the four cannot drift apart. The invariant asserted here is unchanged: uj.starred, not sj.*.
   assert.match(server, /const savedTab = starred === '1';/);
-  assert.match(server, /const starredSql = savedTab \? `AND uj\.starred = 1` : '';/);
+  assert.match(server, /const starredSql = savedTab \? `AND uj\.starred = 1 AND sj\.job_id IN \(SELECT s\.job_id FROM user_jobs s WHERE s\.user_id = \$\{starUid\} AND s\.starred = 1\)` : '';/ /* ⭐ D151 Rule 4 (11-08, changed on purpose) */);
   assert.match(server, /\$\{starredSql\}/, "starredSql is built but never spliced into the WHERE clause");
   // It binds no parameter, which is why it can sit anywhere in the clause without shifting baseArgs.
   assert.ok(!/starredArgs/.test(server), "starredSql must stay parameterless or baseArgs ordering shifts");

@@ -30,7 +30,7 @@ test("D40 · the bar has exactly FOUR views, + last — and no standalone import
 });
 
 test("D40 · + is ALL restricted by ONE predicate — the same statement, with ★'s one labelled exception", () => {
-  assert.match(server, /const importedSql = importedTab\s+\? `AND EXISTS \(SELECT 1 FROM job_captures jc WHERE jc\.job_id = sj\.job_id AND jc\.user_id = \$\{ownUid\}\)` : '';/);
+  assert.match(server, /const importedSql = importedTab\s+\? `AND EXISTS \(SELECT 1 FROM job_captures jc WHERE jc\.job_id = sj\.job_id AND jc\.user_id = \$\{ownUid\}\)\s+AND sj\.job_id IN \(SELECT c\.job_id FROM job_captures c WHERE c\.user_id = \$\{ownUid\}\)` : '';/ /* ⭐ D151 Rule 4 (11-08, changed on purpose) */);
   assert.match(server, /\$\{starredSql\}\s+\$\{importedSql\}/, "the predicate sits beside ★'s in the one WHERE");
   assert.match(server, /WHERE \$\{\(savedTab \|\| importedTab\) \? '1 = 1' : 'sj\.is_active = 1'\}/,
     "a capture whose listing closed stays in + labelled, as a save does in ★");
