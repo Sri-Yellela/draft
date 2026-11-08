@@ -11706,8 +11706,14 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         && !savedTab && !importedTab && !pendingTab && req.query.curate !== 'off';
       let gateBasis = null;
       if (scoreGateOn) { try { gateBasis = atsBasisForProfile(req.user.id, sessionActiveProfile)?.basisHash ?? null; } catch { gateBasis = null; } }
+      // ⭐ D151 Rule 4 (11-08): the gate also names the person's scored set as an IN-list, so SQLite starts from those
+      // ≈ hundreds of ats_only_reports rows (their (user, profile, job) index) and looks each posting up by job_id —
+      // instead of scanning every active posting to keep the scored ones (the 20-user suite at 100k: read-pool throughput).
+      // Same rows as before (aor already required that score); the ids are integers and the hash is hex-checked above.
+      const gateProfileId = Number.isSafeInteger(Number(sessionActiveProfile?.id)) ? Number(sessionActiveProfile.id) : -1;
       const scoreGateSql = scoreGateOn && typeof gateBasis === "string" && /^[0-9a-f]{8,128}$/.test(gateBasis)
-        ? `AND aor.id IS NOT NULL AND aor.basis_hash = '${gateBasis}'` : '';
+        ? `AND aor.id IS NOT NULL AND aor.basis_hash = '${gateBasis}'
+          AND sj.job_id IN (SELECT r.job_id FROM ats_only_reports r WHERE r.user_id = ${ownUid} AND r.domain_profile_id IS ${gateProfileId} AND r.basis_hash = '${gateBasis}')` : '';
       const whereClauseFor = (rich, { gate = true } = {}) => `
         WHERE ${(savedTab || importedTab) ? '1 = 1' : 'sj.is_active = 1'}
           ${roleSql}
