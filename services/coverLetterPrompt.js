@@ -40,7 +40,8 @@ REQUIREMENTS:
 - Begin directly with "Dear Hiring Manager," unless a name appears in the job description
 - Every claim about the candidate comes from the resume above; no link, email address or phone number that is not in it
 - Plain text output only — no markdown, no bullet points`;
-  return { system: COVER_LETTER_SYSTEM, messages: [{ role: "user", content: prompt }], untrusted: jd };
+  // untrustedAbsent: with no posting there is nothing to fence — said explicitly to callTask (D173 (1) tail).
+  return { system: COVER_LETTER_SYSTEM, messages: [{ role: "user", content: prompt }], untrusted: jd, untrustedAbsent: jd ? [] : ["posting"] };
 }
 
 /** The letter's check (D173 (1)). `ok: false` → the letter is withheld with code `untrusted_output_violation`. */

@@ -46,6 +46,10 @@ const route = (model, params, { fallback = null, b } = {}) => Object.freeze({
 
 const task = (t) => Object.freeze({ ...t, purposes: Object.freeze([...(t.purposes || [])]) });
 
+// ⛔ D173 (1) tail (45n) · `untrusted` — the kinds of text the task reads that draft did not write and the person did
+// not type as an instruction (a posting, an email, a retrieved page, an uploaded file). services/modelGateway.js callTask
+// REFUSES such a task unless its messages carry each kind inside services/untrustedText.js's fence (<untrusted_KIND>) —
+// so the assistant, an inbox reader or any later reader cannot ship unfenced. A task that reads none says [].
 // `purposes` are the usage_events.purpose names the task is recorded under. They are KEPT as they were before D162:
 // limitEnforcer, the admin cost panel and ~14 readers of 'resume_generate' key on them, so a task maps onto them rather
 // than renaming them. The first purpose is the task's default; a call site may pick another from the same list.
@@ -67,7 +71,7 @@ export const TASKS = Object.freeze({
 
   // ── made by draft itself ──
   "cover_letter.write": task({ runsIn: "draft", status: "live", evalSet: "writing.owner-blind-check",
-    purposes: ["cover_letter", "cover_letter_apply"], dataClass: "candidate",
+    purposes: ["cover_letter", "cover_letter_apply"], dataClass: "candidate", untrusted: ["posting"],
     what: "a cover letter from the résumé and the posting (/api/cover-letter/generate, the apply path)",
     defaultRoute: route(MODEL_HAIKU, { max_tokens: 800 }, { b: budget(0.01, 8_000, 20_000) }) }),
   "profile.domain_chips": task({ runsIn: "draft", status: "live", evalSet: "structured.owner-check",
@@ -75,15 +79,15 @@ export const TASKS = Object.freeze({
     what: "suggested keyword / verb / tool chips for a domain profile (A80 V3, still a known D17 violation)",
     defaultRoute: route(MODEL_HAIKU, { max_tokens: 600 }, { b: budget(0.005, 5_000, 15_000) }) }),
   "answers.routine": task({ runsIn: "draft", status: "planned", evalSet: "writing.owner-blind-check",
-    purposes: ["answers_routine"], dataClass: "candidate", what: "routine application answers (D123 P7)",
+    purposes: ["answers_routine"], dataClass: "candidate", untrusted: ["posting"], what: "routine application answers (D123 P7)",
     defaultRoute: route(MODEL_HAIKU, { max_tokens: 600 }, { b: budget(0.005, 6_000, 15_000) }) }),
 
   // ── the assistant (T5) ──
   "assistant.chat": task({ runsIn: "draft", status: "planned", evalSet: "assistant.retrieval-and-safety",
-    purposes: ["assistant_chat"], dataClass: "candidate", what: "the in-platform assistant's answer, from retrieval",
+    purposes: ["assistant_chat"], dataClass: "candidate", untrusted: ["question", "retrieved"], what: "the in-platform assistant's answer, from retrieval",
     defaultRoute: route(MODEL_HAIKU, { max_tokens: 1000 }, { fallback: MODEL_SONNET, b: budget(0.01, 4_000, 12_000) }) }),
   "assistant.plan_action": task({ runsIn: "draft", status: "planned", evalSet: "assistant.retrieval-and-safety",
-    purposes: ["assistant_plan_action"], dataClass: "candidate",
+    purposes: ["assistant_plan_action"], dataClass: "candidate", untrusted: ["question"],
     what: "the action the assistant proposes (always confirmed by the user before it runs)",
     defaultRoute: route(MODEL_HAIKU, { max_tokens: 600 }, { fallback: MODEL_SONNET, b: budget(0.01, 4_000, 12_000) }) }),
 
