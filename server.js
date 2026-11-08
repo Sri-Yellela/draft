@@ -90,7 +90,7 @@ import { sweepScope } from "./services/jobs/boardScope.js";
 import { createClassifyBacklog } from "./services/jobs/classifyBacklog.js";
 import { createCompanyLinker, companyReviewQueue, decideCompanyReview, companyRecordStats } from "./services/companies/companyRecords.js";
 import { stripSampleProfiles } from "./services/sampleProfileStrip.js";
-import { createCompanyTech, stackFor } from "./services/companies/companyTech.js";
+import { createCompanyTech, stackFor, techForJobs } from "./services/companies/companyTech.js";
 import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyBackfill.js";
 import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/jobs/publicBoard.js";
 import { publicCompany, publicSuggest } from "./services/companies/publicCompany.js";
@@ -147,7 +147,7 @@ import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
-import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes, jobsSitemapPageCount, companiesSitemapRoutes } from "./services/jobs/publicJobPage.js";
+import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes, jobsSitemapPageCount, companiesSitemapRoutes, jobPath } from "./services/jobs/publicJobPage.js";
 import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
 import { runRegisterLinkCheck } from "./services/atlas/sourceRegistry.js";
 import { autoPublish, runAtlasAutoPipeline } from "./services/atlas/atlasPublish.js";
@@ -12147,6 +12147,8 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // chip and the job page's block draw it; `sponsorshipNeeded` (the user's own Application defaults) only sets how
       // prominent the chip is.
       const sponsorshipNeeded = boardEligInputs?.defaults?.sponsorship_now === "yes" || boardEligInputs?.defaults?.sponsorship_later === "yes";
+      // ⭐ D179 (45l): each row's "Works with" — the technologies its posting names (job_tech), one IN read for the page.
+      const worksWith = techForJobs(db, pageRows.map(j => j.job_id));
       const responseBody = {
         success:    true,
         // ⛔ A52 · A STORED SCORE IS SHOWN ONLY WHILE IT IS STILL ABOUT THIS POSTING AND THIS BASIS.
@@ -12158,6 +12160,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
                                      scrapedAt: j.scraped_at,
                                      ...(ineligible.get(j.job_id) ? { eligibility: { status: "ineligible", reasons: ineligible.get(j.job_id) } } : {}),
                                      ...(liveness.has(String(j.job_id)) ? { liveness: liveness.get(String(j.job_id)) } : {}),
+                                     ...(worksWith.has(String(j.job_id)) ? { worksWith: worksWith.get(String(j.job_id)) } : {}),
                                      ...(ghost.has(String(j.job_id)) ? { ghost: ghost.get(String(j.job_id)) } : {}),
                                      ...(levelOfRow(j) ? { levelRead: levelOfRow(j) } : {}),
                                      ...(sponsorship.get(j.company) ? { sponsorshipFact: sponsorship.get(j.company) } : {}),
@@ -12528,7 +12531,16 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
     // off the client; a TRIAL account's cards carried their stored score. ⭐ A117 (owner 11-03, "number for everyone"):
     // EVERY account's card carries its own stored score now — D145's card shows it at the top right. The frozen snapshot
     // still holds no number (G5, services/dailyDraft.js); the score is the caller's own, read here at serve time.
-    deck.cards = deck.cards.map(c => ({ ...c, score: scoreFor(c.job.id) }));
+    // ⭐ D179 (45l): each card's "Works with" — the technologies its posting names (job_tech), one IN read for the deal.
+    const worksWith = techForJobs(db, deck.cards.map(c => c.job?.id));
+    // ⭐ D179 (owner 11-07: the deck's fourth action, Send): each card's PUBLIC page (D128) — what Send shares.
+    const pub = new Map();
+    try {
+      const ids = deck.cards.map(c => String(c.job?.id || "")).filter(Boolean);
+      if (ids.length) for (const r of db.prepare(`SELECT id, job_id, company, title FROM scraped_jobs WHERE job_id IN (${ids.map(() => "?").join(",")})`).all(...ids)) pub.set(String(r.job_id), jobPath(r));
+    } catch { /* no public path: Send hides */ }
+    deck.cards = deck.cards.map(c => ({ ...c, score: scoreFor(c.job.id),
+      job: { ...c.job, worksWith: worksWith.get(String(c.job?.id)) || [], publicPath: pub.get(String(c.job?.id)) || null } }));
     res.json(deck);
   } catch (e) {
     console.error("[GET /api/draft/today]", e.message);

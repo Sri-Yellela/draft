@@ -309,6 +309,11 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
         </div>
       )}
 
+      {/* ⭐ D179 (owner 11-07): "Works with" — the team's stack, from the posting's own text (useful, new: D182 keeps it). */}
+      {job.worksWith?.length > 0 && (
+        <div data-works-with="" style={{ color: C.INK_MUTED, fontSize: ts(13), margin: "8px 0 0" }}>Works with {job.worksWith.join(", ")}</div>
+      )}
+
       {card.error && (
         <div role="alert" style={{ background: C.DANGER_QUIET, color: C.DANGER, padding: "10px 14px", borderRadius: 12,
                                    fontSize: 13.5, fontWeight: 600, margin: "14px 0 0" }}>
@@ -440,7 +445,12 @@ function HomeCardFace({ card, headingRef, isFront, onSignal, onOpenPost, size, l
       {job.title}
     </h2>
   );
-  const info = facts.info.length > 0 && (
+  // ⭐ D179: "Works with" under the info row (the team's stack, from the posting's own text).
+  const worksWith = job.worksWith?.length > 0 && (
+    <div data-works-with="" style={{ color: C.INK_MUTED, fontSize: ts(12), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+      Works with {job.worksWith.join(", ")}</div>
+  );
+  const infoRow = facts.info.length > 0 && (
     <div data-deck-info="" style={{ display: "flex", gap: small ? 12 : 16, flexWrap: "wrap", overflow: "hidden", maxHeight: small ? 40 : 44 }}>
       {facts.info.map((f) => (
         <div key={f.key} data-deck-info-item={f.key} style={{ flex: "none", minWidth: 0 }}>
@@ -450,6 +460,7 @@ function HomeCardFace({ card, headingRef, isFront, onSignal, onOpenPost, size, l
       ))}
     </div>
   );
+  const info = (infoRow || worksWith) ? <>{infoRow}{worksWith}</> : false;
   const stats = facts.homeStats.length > 0 && (
     <dl data-deck-stats="" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: 0,
                                     ...(landscape ? { flex: 1, gridAutoRows: "1fr" } : null) }}>
@@ -701,6 +712,20 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   const [state, dispatch] = useReducer((st, a) => (a.type === "__replace" ? a.state : deckReducer(st, a)), null, () => initialDeck(null));
   const [dealing, setDealing] = useState(false);
   const [toast, setToast] = useState(null);
+  // ⭐ D179 (owner 11-07): the deck's fourth action, SEND — the posting's public page (D128), shared or copied. Sending to
+  // a connection inside draft arrives with D180's Network; this is the "Copy public link" half the sketch draws.
+  const [sent, setSent] = useState(null);
+  const sendTop = useCallback(async () => {
+    const top = stateRef.current?.cards?.[stateRef.current?.index];
+    const path = top?.job?.publicPath;
+    if (!path) { setSent("This job has no public page yet"); setTimeout(() => setSent(null), 2500); return; }
+    const url = `${window.location.origin}${path}`;
+    try {
+      if (navigator.share) { await navigator.share({ title: `${top.job.title} — ${top.job.company}`, url }); setSent("Shared"); }
+      else { await navigator.clipboard.writeText(url); setSent("Link copied"); }
+    } catch { return; }
+    setTimeout(() => setSent(null), 2500);
+  }, []);
   const [live, setLive] = useState("");
   const [legend, setLegend] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -1246,7 +1271,9 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                                               marginTop: home ? (landscape ? HOME_WIDE.below : HOME_CARD.below) : vertical ? 18 : 22, maxWidth: size.width, marginLeft: home ? 0 : "auto", marginRight: "auto" }}>
                 <ActionButton label="Pass" ariaKeys="X ArrowLeft" compact={vertical} onClick={() => decide(DECISIONS.PASSED)} />
                 <ActionButton label="Save" ariaKeys="S" compact={vertical} onClick={() => decide(DECISIONS.SAVED)} />
+                <ActionButton label="Send" compact={vertical} onClick={sendTop} />
                 <ActionButton label="Draft" ariaKeys="D ArrowRight" compact={vertical} primary onClick={() => decide(DECISIONS.DRAFTED)} />
+                {sent && <span role="status" data-deck-sent="" style={{ alignSelf: "center", fontSize: ts(13), color: C.INK_MUTED }}>{sent}</span>}
               </div>
             </div>
         )}
