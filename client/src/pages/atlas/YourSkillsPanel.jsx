@@ -154,7 +154,6 @@ export default function YourSkillsPanel({ signedIn = true, base = "/app/atlas", 
   if (!signedIn) return <section className="ysk" data-your-skills=""><p className="ysk__quiet">Sign in to add, check and prove your skills.</p></section>;
   return (
     <section className="ysk" data-your-skills="" data-skills-view={view}>
-      <p className="ysk__eyebrow">Your skills</p>
       <h2 className="ysk__h2">What you can show</h2>
       <p className="ysk__lead">Each skill is matched to the Atlas. A skill that isn't on your résumé goes into a tailored résumé only once it's proven.</p>
       <div className="ysk__seg" role="group" aria-label="View">

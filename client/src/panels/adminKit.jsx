@@ -1,7 +1,7 @@
 // ⭐ D83 · THE ADMIN KIT — the parts every rebuilt admin panel is made of, built once (A93): the ? that holds project
 // codes (rule 1), the number box (rule 2), the numbered step (rule 4), the confirm dialog that states what changes
 // (rule 5) and the panel styles. First built for Admin → Enrichment (D83 BUILD 1); moved here at the map (39d).
-import { useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { C } from "../styles/colorTokens.js";
 import { markStyle, LOGO_FACE } from "../styles/mark.js";
 import DepthButton from "../components/DepthButton.jsx";
@@ -91,12 +91,19 @@ export function Dialog({ title, children, onCancel, confirmLabel, onConfirm, bus
   );
 }
 
+/** The selected admin tab's label (AdminPanel provides it) — D182: a Panel titled the same draws no heading. */
+export const AdminSection = createContext("");
+
 /** The panel shell: a title, one sentence of purpose (codes behind the ?), then the numbers, then the work. */
 export function Panel({ title, purpose, code, numbers, children, ...rest }) {
+  const tab = useContext(AdminSection);
+  // ⭐ D182 (45n, owner 11-08): a heading equal to the selected tab above it is not drawn; its Help tip moves first.
+  const repeats = typeof title === "string" && !!tab && title.trim().toLowerCase() === String(tab).trim().toLowerCase();
   return (
-    <section style={panel} {...rest}>
-      <h2 style={h2}>{title}{code && <Help tip={code}/>}</h2>
-      <p style={what}>{purpose}</p>
+    <section style={panel} aria-label={repeats ? title : undefined} {...rest}>
+      {repeats
+        ? <p style={{ ...what, marginTop: 0 }}>{code && <><Help tip={code}/>{" "}</>}{purpose}</p>
+        : <><h2 style={h2}>{title}{code && <Help tip={code}/>}</h2><p style={what}>{purpose}</p></>}
       {numbers?.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 18 }}>
           {numbers.map(([value, label, good]) => <NumberBox key={label} value={value} label={label} good={good}/>)}
