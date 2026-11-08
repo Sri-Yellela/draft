@@ -7109,8 +7109,14 @@ if (String(process.env.ROLE_MAP_BACKFILL || "").toLowerCase() === "off") {
 // and the same pass held the loop every 10 minutes. Now a slice reads JOB_TAG_SLICE_ROWS consecutive rowids, a 50 ms
 // yield between slices; a range whose tag or level limit was reached is read again (the rest of its stale rows) before
 // the walk moves on, at most JOB_TAG_RANGE_REPEATS times. One walk at a time: an interval that finds one running skips.
+// ⛔ D151 Rule 3 (11-08, measured on the 100k fixture with a main-thread profile): a slice of 200 tags + 100 levels held
+// the loop ≈ 0.5 s (readLevel ≈ 3.5 ms a posting — 816 ms of a 4 s profile, the tag walk 1.5 s), five times the 100 ms
+// slice budget (D151 Rule 5), and a board load waited behind it. A slice is now ≈ 50 ms of work: 50 tags + 15 levels;
+// a range is re-read up to 60 times (was 10), so a backlog still clears in the same walk — in more, shorter slices.
 const JOB_TAG_SLICE_ROWS = 500;
-const JOB_TAG_RANGE_REPEATS = 10;
+const JOB_TAG_SLICE_TAGS = 50;
+const JOB_TAG_SLICE_LEVELS = 15;
+const JOB_TAG_RANGE_REPEATS = 60;
 let jobTagWalk = null;
 function runJobTagPassSliced(trigger) {
   if (jobTagWalk) return;
@@ -7148,17 +7154,17 @@ function runJobTagPass(trigger, { descriptions = true, range = null } = {}) {
     console.error(`[description] (${trigger}) normalising failed (readers fall back to the stored description):`, e.message);
   }
   try {
-    const r = tagStaleJobs(db, { limit: 200, range });
+    const r = tagStaleJobs(db, { limit: JOB_TAG_SLICE_TAGS, range });
     if (r.tagged > 0) worked = true;
-    if (r.tagged >= 200) full = true;
+    if (r.tagged >= JOB_TAG_SLICE_TAGS) full = true;
     if (r.tagged > 0) console.log(`[tags] (${trigger}) tagged ${r.tagged} of ${r.scanned} posting(s)`);
   } catch (e) {
     console.error(`[tags] (${trigger}) tagging failed (untagged rows read as unknown and stay visible):`, e.message);
   }
   try {
-    const l = readStaleLevels(db, { limit: 100, range });
+    const l = readStaleLevels(db, { limit: JOB_TAG_SLICE_LEVELS, range });
     if (l.read > 0) { worked = true; console.log(`[level] (${trigger}) read the asked level of ${l.read} of ${l.scanned} posting(s)`); }
-    if (l.read >= 100) full = true;
+    if (l.read >= JOB_TAG_SLICE_LEVELS) full = true;
   } catch (e) {
     console.error(`[level] (${trigger}) reading levels failed (an unread posting has no level line):`, e.message);
   }
