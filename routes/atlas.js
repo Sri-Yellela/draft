@@ -72,7 +72,7 @@ import { loadRegistry, registrySummary, lastLinkCheck, runRegisterLinkCheck } fr
 import { probeWikipedia, wikiMatchSummary } from "../services/atlas/atlasWikidata.js";
 import { wikiCandidates, pickWikiTitle, redirectPreview, acceptPicks } from "../services/atlas/atlasWikiFind.js";
 import { atlasTermsForPosting, peekNode, countLinkEvent, glossaryTerms } from "../services/atlas/atlasLinks.js";
-import { learnStepForNode } from "../services/learn/learnLinks.js";
+import { learnStepForNode, glossaryConcepts } from "../services/learn/learnLinks.js";
 import { servedLearnContent } from "../services/learn/learnContent.js";
 import { learnSourceSummary } from "../services/atlas/learnSources.js";
 import { yourRun } from "../services/atlas/points.js";
@@ -143,10 +143,11 @@ export function createAtlasRouter(db) {
   });
   // ⭐ D167 · the Atlas's Glossary: every published term in plain words + its postings — the SAME meaning as the popup
   // (services/atlas/atlasLinks.js meaningOf), kept like the popup at most LIVE_CACHE_MS. The same for everyone.
+  // ⭐ D178: the concept index joins it — a term the path teaches carries its lesson; the other concepts are rows of their own.
   router.get("/glossary", (_req, res) => {
-    const terms = liveCached(db, "glossary", () => glossaryTerms(db));
+    const g = liveCached(db, "glossary", () => glossaryConcepts(glossaryTerms(db), servedLearnContent(db)));
     res.set("Cache-Control", `public, max-age=${LIVE_CACHE_MS / 1000}`);
-    res.json({ terms, total: terms.length });
+    res.json({ terms: g.terms, concepts: g.concepts, total: g.terms.length + g.concepts.length });
   });
   // ⭐ D172 (3) · Your run: the reader's points from proof, level, streak and today's quests. Signed in only; private.
   router.get("/run", (req, res) => {

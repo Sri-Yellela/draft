@@ -39,7 +39,7 @@ async function loadUi() {
         const at = (url, el) => renderToStaticMarkup(h(MemoryRouter, { initialEntries: [url] }, el));
         export const page = (url, base = "/atlas") => at(url, h(AtlasPage, { base }));
         export const home = (me, parts) => at("/atlas/your-map", h(AtlasHome, { me, base: "/atlas", parts, course: h("div", { "data-course": "" }) }));
-        export const glossary = (terms, q = "") => at("/atlas/glossary", h(GlossaryView, { base: "/atlas", terms, q }));
+        export const glossary = (terms, q = "", concepts = []) => at("/atlas/glossary", h(GlossaryView, { base: "/atlas", terms, q, concepts }));
         export const overview = (props) => at("/atlas", h(OverviewView, { base: "/atlas", ...props }));
         export const stages = (stages, signedIn = true) => at("/atlas/learn", h(LearnStagesView, { base: "/atlas", stages, signedIn }));
         export const market = (roles, cards) => at("/atlas/this-weeks-market", h(MarketView, { base: "/atlas", roles, cards }));
@@ -321,11 +321,15 @@ test("D167 · d167GlossaryOneSourceWithPopups — every published term, and each
   try {
     const r = await s.get("/api/atlas/glossary");
     assert.equal(r.status, 200);
-    assert.equal(r.json.total, 4);
+    // ⭐ D178 (changed on purpose): the concept index joins the Glossary — the Atlas's terms (each with its lesson when the
+    // path teaches it) plus the course's other concepts; the terms keep exactly the popup's words.
+    assert.equal(r.json.total, r.json.terms.length + r.json.concepts.length);
+    assert.equal(r.json.terms.length, 4);
+    assert.ok(r.json.concepts.length > 300, "the course's concepts");
     assert.match(r.headers.get("cache-control"), /^public, max-age=60$/);
-    assert.deepEqual(r.json.terms, JSON.parse(JSON.stringify(terms)));
+    assert.deepEqual(r.json.terms.map(({ learn, ...t }) => t), JSON.parse(JSON.stringify(terms)));
     setStatus(db, slugs.z, "draft");
-    assert.equal((await s.get("/api/atlas/glossary")).json.total, 3, "an unpublished term leaves the glossary at once");
+    assert.equal((await s.get("/api/atlas/glossary")).json.terms.length, 3, "an unpublished term leaves the glossary at once");
   } finally { await s.close(); }
 });
 
@@ -339,6 +343,13 @@ test("D167 · d167GlossaryOneSourceWithPopups — the panel: plain words, postin
   assert.match(html, /data-glossary-count="">4 terms</);
   assert.match(html, new RegExp(`data-glossary-term="${slugs.k}"[\\s\\S]*?Kubernetes is an orchestration system\\.[\\s\\S]*?From <a href="https://en\\.wikipedia\\.org/wiki/Kubernetes"[^>]*>Wikipedia</a> \\(CC BY-SA\\)[\\s\\S]*?data-glossary-postings="312">312 postings<[\\s\\S]*?href="/atlas/${slugs.k}"[^>]*>Open in Atlas</a>`));
   assert.match(html, /No plain-words definition yet\./);
+  // ⭐ D178: the concept index joins — a concept is a row of its own, by name among the terms, with Learn it and no count.
+  const withConcepts = u.glossary(terms, "", [{ name: "Cache", meaning: "A fast copy kept close.", learn: { stepId: "s9", label: "Part 1 · Step 9" } }]);
+  assert.match(withConcepts, /data-glossary-count="">5 terms</);
+  assert.match(withConcepts, /data-glossary-concept="Cache"[\s\S]*?A fast copy kept close\.[\s\S]*?data-glossary-learn="s9"[^>]*href="\/atlas\/library\/silicon-to-software\?view=circle#step-s9"/);
+  const names = [...withConcepts.matchAll(/<b>([^<]+)<\/b>/g)].map(m => m[1]);
+  assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" })), "one list, by name");
+  assert.doesNotMatch(withConcepts.slice(withConcepts.indexOf('data-glossary-concept="Cache"'), withConcepts.indexOf("</li>", withConcepts.indexOf('data-glossary-concept="Cache"'))), /data-glossary-postings|data-glossary-open/);
   // The search is the ONE normaliser: a prefix, a typo, then a word of the meaning.
   assert.deepEqual(u.searchGlossary(terms, "kube").map(t => t.slug), [slugs.k]);
   assert.deepEqual(u.searchGlossary(terms, "terrafrom").map(t => t.slug), [slugs.t]);

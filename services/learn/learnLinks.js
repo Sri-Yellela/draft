@@ -38,6 +38,31 @@ export function learnStepForNode(db, node, learn = learnContent(db)) {
   return null;
 }
 
+/**
+ * ⭐ D178 · THE CONCEPT INDEX JOINS THE GLOSSARY (the translation table: "Concept index tab → merges into Explore →
+ * Glossary: each concept keeps its links to the lessons that teach it"). Pure over the Glossary's terms and the Learn
+ * document: a concept with the same name as an Atlas term (the ONE normaliser) gives that term its lesson (`learn`);
+ * every other concept becomes its own row — its words, its lesson. Nothing dropped: a concept whose step is gone keeps
+ * its meaning with `learn: null`.
+ * @returns {{ terms: [{ ...term, learn? }], concepts: [{ name, meaning, learn }] }}
+ */
+export function glossaryConcepts(terms, learn) {
+  const { steps } = indexes(learn);
+  const step = (id) => { const s = steps.get(id); return s ? { stepId: s.stepId, label: s.label } : null; };
+  const byKey = new Map();
+  for (const c of learn.INDEX || []) for (const k of [searchKey(c.term), searchKey(bare(c.term))]) if (k && !byKey.has(k)) byKey.set(k, c);
+  const used = new Set();
+  const out = (terms || []).map(t => {
+    const c = byKey.get(searchKey(t.name));
+    if (!c) return t;
+    used.add(c);
+    const s = step(c.st);
+    return s ? { ...t, learn: s } : t;
+  });
+  const concepts = (learn.INDEX || []).filter(c => !used.has(c)).map(c => ({ name: c.term, meaning: c.def || "", learn: step(c.st) }));
+  return { terms: out, concepts };
+}
+
 /** A step by its id, in the same shape — { stepId, part, phase, step, title, label } — or null. */
 export function learnStepInfo(learn, stepId) {
   return indexes(learn).steps.get(stepId) || null;

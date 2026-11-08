@@ -11,6 +11,7 @@ import { api } from "../../lib/api.js";
 import { courseProgress, firstOpenModule, lessonState, linkLine } from "./libraryModel.js";
 import { GuideLadder, useGuides } from "./LibraryGuides.jsx";
 import { HalfRing, LessonDeck } from "./LessonDeck.jsx";
+import { learnStepHref } from "./atlasPanels.js";
 import "./LibraryPanel.css";
 
 // ⭐ D178: the LeetCode pattern atlas is its own course (kind "patterns": no earned progress — a pattern has no check yet).
@@ -121,7 +122,7 @@ export function PatternCoursePage({ base, id }) {
   const [open, setOpen] = useState(1);
   if (error) return <p className="atl__quiet" role="alert" data-course-missing="">{error} <Link to={`${base}/library`} className="atl__link">Back to the library</Link></p>;
   if (!course) return <p className="atl__quiet" role="status">Opening the course…</p>;
-  const stepHref = (stepId) => `${base}/library/silicon-to-software?view=circle#step-${encodeURIComponent(stepId)}`;
+  const stepHref = (stepId) => learnStepHref(base, stepId);
   return (
     <article className="lib-course" data-course-page={course.id}>
       <header className="lib-chead">
