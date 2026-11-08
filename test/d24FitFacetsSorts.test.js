@@ -432,13 +432,23 @@ test("④ one statement for the headline and ONE per clause — never one per op
   assert.equal(res.status, 200);
   // D35: + one COUNT each for the ALL and ★ views (the /d count is countPending's, absent here).
   // D40: + adds one view count (ALL · ★ · + measured, /d is its own query) — 4 before the clauses.
-  assert.equal(calls.length, 5 + sentence.SENTENCE_CLAUSES.length);   // A91: + the /d view count
-  assert.equal(prepares, 5 + sentence.SENTENCE_CLAUSES.length);
+  // ⭐ D151 (45k): a clause whose base set IS the headline's (the request sets none of its params, it adds no base) rides
+  // in the headline's statement, and the ALL view (no view param set) IS the headline's total — here location and
+  // sponsorship (unset) and ALL: three fewer measures. Their counts are still the board's own (the "④ ⭐ every facet
+  // count" test above checks every option against the board).
+  const FOLDED = ["location", "sponsorship"];
+  const own = sentence.SENTENCE_CLAUSES.filter(c => !FOLDED.includes(c.key));
+  assert.equal(calls.length, 4 + own.length);   // head · ★ · + · /d (A91) · the unfolded clauses
+  assert.equal(prepares, 4 + own.length + 1);   // + the location clause's place read, on the head's bindings
   // Paging and the cursor are never forwarded (a list cursor must not 400 a facets call).
   for (const q of calls) { assert.ok(!("page" in q) && !("cursor" in q)); }
   // Each clause's base set drops exactly its own params — both of the age control's. (D30: six
   // clauses, so the calls are found by clause key, in SENTENCE_CLAUSES' order after the headline.)
-  const callFor = (key) => calls[5 + sentence.SENTENCE_CLAUSES.findIndex(c => c.key === key)];
+  const callFor = (key) => calls[4 + own.findIndex(c => c.key === key)];
+  // Nothing set: every clause without a base of its own folds — the head, ★, +, /d and the domain dial.
+  const bare = [];
+  await boardFacetsResponse({ query: {}, nowSec: NOW, measureBoard: async (q, m) => { bare.push(q); return { status: 200, body: { measured: true, value: await m({ db, ...boardSql(q) }) } }; } });
+  assert.equal(bare.length, 5);
   assert.deepEqual(Object.keys(callFor("level")).sort(), ["ageFilter", "fit_bands", "posted_after", "work_models"]);
   assert.deepEqual(Object.keys(callFor("posted")).sort(), ["experience_levels", "fit_bands", "work_models"]);
   assert.deepEqual(Object.keys(callFor("fit")).sort(), ["ageFilter", "experience_levels", "posted_after", "work_models"]);

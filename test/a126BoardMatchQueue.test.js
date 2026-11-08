@@ -77,7 +77,10 @@ test("A126 (7) · server.js: discovery views are gated on a current-basis score;
     "★ / + / /d and curate=off are the person's own lists — never gated");
   assert.match(src, /AND aor\.id IS NOT NULL AND aor\.basis_hash = '\$\{gateBasis\}'/);
   assert.match(src, /\$\{gate \? scoreGateSql : ''\}/, "the gate is one predicate of the board's own WHERE — the list, its count and facets agree");
-  assert.match(src, /enqueueBoardMatch\(req\.user\.id, sessionActiveProfile, held\.map\(r => r\.id\)\)/);
+  // D151 (45k): the held read is kept per user + statement (heldCountCache.js); a miss or a refresh reads and queues.
+  assert.match(src, /enqueueBoardMatch\(req\.user\.id, heldProfile, held\.map\(r => r\.id\)\)/);
+  assert.match(src, /await heldCounts\.get\(heldKey\(req\.user\.id, heldStatement, baseArgs\)/);
+  assert.match(src, /heldCounts\.clearUser\(userId\); emitToUser\(userId, \{ type: "board_scored"/);
   assert.match(src, /\.\.\.\(beingMatched \? \{ beingMatched \} : \{\}\)/);
   assert.match(src, /emitToUser\(userId, \{ type: "board_scored"/);
 });

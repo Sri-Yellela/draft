@@ -340,7 +340,7 @@ test("D167 · d167GlossaryOneSourceWithPopups — the panel: plain words, postin
   assert.match(withConcepts, /data-glossary-concept="Cache"[\s\S]*?A fast copy kept close\.[\s\S]*?data-glossary-learn="s9"[^>]*href="\/atlas\/library\/silicon-to-software\?view=circle#step-s9"/);
   const names = [...withConcepts.matchAll(/<b>([^<]+)<\/b>/g)].map(m => m[1]);
   assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" })), "one list, by name");
-  assert.doesNotMatch(withConcepts.slice(withConcepts.indexOf('data-glossary-concept="Cache"'), withConcepts.indexOf("</li>", withConcepts.indexOf('data-glossary-concept="Cache"'))), /data-glossary-postings|data-glossary-open/);
+  assert.doesNotMatch(withConcepts.slice(at(withConcepts, 'data-glossary-concept="Cache"'), at(withConcepts, "</li>", at(withConcepts, 'data-glossary-concept="Cache"'))), /data-glossary-postings|data-glossary-open/);
   // The search is the ONE normaliser: a prefix, a typo, then a word of the meaning.
   assert.deepEqual(u.searchGlossary(terms, "kube").map(t => t.slug), [slugs.k]);
   assert.deepEqual(u.searchGlossary(terms, "terrafrom").map(t => t.slug), [slugs.t]);
