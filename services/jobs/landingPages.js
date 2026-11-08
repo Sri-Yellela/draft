@@ -10,6 +10,13 @@
 import { PUBLIC_OPEN_SQL, jobPath, esc, STYLE } from "./publicJobPage.js";
 import { taxonomy } from "./taxonomyClassify.js";
 import { TECHNOLOGIES } from "../../shared/techVocabulary.js";
+import { PLACES } from "../../shared/jobTagVocabulary.js";
+
+// ⭐ D179 P7 · a role IN A METRO ("Backend jobs in Boston"): /jobs/role/<id>/in/<metro> — the metro as the place tags store
+// it (job_tag_places.metro: boston, sf_bay_area …), its words from the place vocabulary ("the Bay Area").
+const METRO = new Map(PLACES.options.filter(o => String(o.value).startsWith("metro:")).map(o => [String(o.value).slice(6), o.label]));
+export const metroSlug = (m) => String(m || "").replace(/_/g, "-");
+const metroOf = (slug) => { const m = String(slug || "").toLowerCase().replace(/-/g, "_"); return METRO.has(m) ? { id: m, label: METRO.get(m) } : null; };
 
 export const MIN_JOBS = 10;
 export const SHOWN = 40;
@@ -37,6 +44,19 @@ export function landingData(db, kind, key) {
     const rows = db.prepare(`SELECT sj.id, sj.title, sj.company, sj.location, sj.posted_at ${where} ORDER BY COALESCE(sj.posted_at, sj.discovered_at) DESC LIMIT ?`).all(role.id, SHOWN);
     return { kind, title: `${role.name} jobs`, heading: `${role.name} jobs`, lead: `${role.category} · ${role.name}`, total, rows,
       path: `/jobs/role/${role.id}`, boardHref: `/jobs?category=${encodeURIComponent(role.categoryId)}&subcategory=${encodeURIComponent(role.id)}` };
+  }
+  if (kind === "role-metro") {
+    const role = roleOf(String(key?.role || "").toLowerCase());
+    const metro = metroOf(key?.metro);
+    if (!role || !metro) return null;
+    const where = `FROM scraped_jobs sj JOIN job_taxonomy jt ON jt.job_id = sj.job_id
+      WHERE ${OPEN} AND jt.subcategory = ? AND EXISTS (SELECT 1 FROM job_tag_places p WHERE p.job_id = sj.job_id AND p.metro = ?)`;
+    const total = db.prepare(`SELECT COUNT(*) ${where}`).pluck().get(role.id, metro.id);
+    const rows = db.prepare(`SELECT sj.id, sj.title, sj.company, sj.location, sj.posted_at ${where} ORDER BY COALESCE(sj.posted_at, sj.discovered_at) DESC LIMIT ?`).all(role.id, metro.id, SHOWN);
+    const place = /^the /.test(metro.label) ? metro.label : metro.label;
+    return { kind, title: `${role.name} jobs in ${place}`, heading: `${role.name} jobs in ${place}`, lead: `${role.category} · ${role.name} · ${place}`, total, rows,
+      path: `/jobs/role/${role.id}/in/${metroSlug(metro.id)}`,
+      boardHref: `/jobs?category=${encodeURIComponent(role.categoryId)}&subcategory=${encodeURIComponent(role.id)}&places=${encodeURIComponent(`metro:${metro.id}`)}` };
   }
   if (kind === "tech") {
     const name = TECH_BY_SLUG.get(String(key || "").toLowerCase());
@@ -97,5 +117,12 @@ export function landingSitemapRoutes(db) {
       out.push({ path: `/jobs/tech/${techSlug(r.t)}`, changefreq: "daily", priority: "0.7" });
     }
   } catch { /* no extraction yet */ }
+  try {
+    for (const r of db.prepare(`SELECT jt.subcategory AS id, p.metro AS m, COUNT(DISTINCT sj.job_id) AS n FROM scraped_jobs sj
+        JOIN job_taxonomy jt ON jt.job_id = sj.job_id JOIN job_tag_places p ON p.job_id = sj.job_id
+        WHERE ${OPEN} AND jt.subcategory IS NOT NULL AND p.metro IS NOT NULL GROUP BY jt.subcategory, p.metro HAVING n >= ?`).all(MIN_JOBS)) {
+      if (roleOf(r.id) && METRO.has(r.m)) out.push({ path: `/jobs/role/${r.id}/in/${metroSlug(r.m)}`, changefreq: "daily", priority: "0.7" });
+    }
+  } catch { /* no place tags */ }
   return out;
 }

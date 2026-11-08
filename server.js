@@ -9892,6 +9892,10 @@ app.get("/jobs/role/:id", (req, res) => {
   const page = renderLandingPage(db, "role", req.params.id, { base: appBaseUrl(req) });
   res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
 });
+app.get("/jobs/role/:id/in/:metro", (req, res) => {
+  const page = renderLandingPage(db, "role-metro", { role: req.params.id, metro: req.params.metro }, { base: appBaseUrl(req) });
+  res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
+});
 app.get("/jobs/tech/:slug", (req, res) => {
   const page = renderLandingPage(db, "tech", req.params.slug, { base: appBaseUrl(req) });
   res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
