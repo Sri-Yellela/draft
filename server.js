@@ -91,6 +91,7 @@ import { createClassifyBacklog } from "./services/jobs/classifyBacklog.js";
 import { createCompanyLinker, companyReviewQueue, decideCompanyReview, companyRecordStats } from "./services/companies/companyRecords.js";
 import { stripSampleProfiles } from "./services/sampleProfileStrip.js";
 import { createCompanyTech, stackFor } from "./services/companies/companyTech.js";
+import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyBackfill.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
@@ -565,6 +566,7 @@ const scorePool = createScorePool({
 // D153 (3) · the backlog classification walk — created inside the migration block below, used by /api/version and the
 // listen callback, so it is declared out here.
 let classifyBacklog = null;
+let taxonomyBackfill = null;   // ⭐ D179 P2 (45l)
 let companyTech = null;     // ⭐ D179 P5a (45l) — assigned beside companyLinker
 let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration runner's block, like classifyBacklog
 
@@ -6996,6 +6998,25 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_company_tech_tech ON company_tech(tech, postings);
       `,
     },
+    {
+      // ⭐ D179 P2 (45l): CATEGORY → SUBCATEGORY per posting, from the approved taxonomy (content/taxonomy/roles-v1.json;
+      // services/jobs/taxonomyClassify.js). Its own small table (no scraped_jobs row rewrites — A132), with the taxonomy
+      // version each answer was read at, so a new version re-reads and an unchanged one never does. Only ADDS.
+      id: "233_job_taxonomy",
+      sql: `
+        CREATE TABLE IF NOT EXISTS job_taxonomy (
+          job_id         TEXT PRIMARY KEY,
+          category       TEXT,
+          subcategory    TEXT,
+          confidence     REAL,
+          reason         TEXT,
+          version        TEXT NOT NULL,
+          classified_at  INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_job_taxonomy_sub ON job_taxonomy(subcategory);
+        CREATE INDEX IF NOT EXISTS idx_job_taxonomy_cat ON job_taxonomy(category);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7097,6 +7118,9 @@ setInterval(() => classifyBacklog.run("interval"), 6 * 60 * 60 * 1000).unref();
 companyLinker = createCompanyLinker(db);
 // ⭐ D179 P5a: each company's stack from its own postings (services/companies/companyTech.js), after the linker. Kill switch: COMPANY_TECH=off.
 companyTech = createCompanyTech(db);
+// ⭐ D179 P2: every active posting to Category → Subcategory (the approved taxonomy), after the classify walk. TAXONOMY_BACKFILL=off.
+taxonomyBackfill = createTaxonomyBackfill(db);
+if (process.env.TAXONOMY_BACKFILL !== "off") setInterval(() => taxonomyBackfill.run("interval"), 6 * 60 * 60 * 1000).unref();
 if (process.env.COMPANY_RECORDS !== "off") setInterval(() => companyLinker.run("interval")
   .then(() => (process.env.COMPANY_TECH !== "off" ? companyTech.run("interval") : null)), 6 * 60 * 60 * 1000).unref();
 
@@ -10340,6 +10364,10 @@ app.get("/api/admin/companies", requireAdmin, (req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 // ⭐ D179 P5a: one company's Tech stack as its page will show it (≥ 2 postings, 180 days), for checking before P4b.
+// ⭐ D179 P2: the taxonomy over the active board — counts per category / subcategory, the general and unclassified shares.
+app.get("/api/admin/board/taxonomy", requireAdmin, (_req, res) => {
+  try { res.json({ walk: taxonomyBackfill?.status() ?? null, ...taxonomyStats(db) }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
 app.get("/api/admin/companies/:id/stack", requireAdmin, (req, res) => {
   try { res.json(stackFor(db, Number(req.params.id))); } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -15378,6 +15406,7 @@ app.get("/api/version", (_req, res) => {
     classify: classifyBacklog.status(),
     companies: companyLinker ? companyLinker.status() : null,   // ⭐ D179 P4a
     companyTech: companyTech ? companyTech.status() : null,     // ⭐ D179 P5a
+    taxonomy: taxonomyBackfill ? taxonomyBackfill.status() : null,   // ⭐ D179 P2
     // ⭐ D151 Rule 1: the last boot's timeline — start → listen, → ready, and each warm-up step's duration.
     boot: BOOT.snapshot(),
     monetisationEnabled: monetisationEnabled(),
@@ -15478,7 +15507,8 @@ app.listen(PORT, () => {
     const classified = classifyBacklog.run("boot");
     // ⭐ D179 P4a: the company records walk after the classify walk (one background walk on the loop at a time).
     if (process.env.COMPANY_RECORDS !== "off") Promise.resolve(classified).then(() => companyLinker.run("boot"))
-      .then(() => (process.env.COMPANY_TECH !== "off" ? companyTech.run("boot") : null));
+      .then(() => (process.env.COMPANY_TECH !== "off" ? companyTech.run("boot") : null))
+      .then(() => (process.env.TAXONOMY_BACKFILL !== "off" ? taxonomyBackfill.run("boot") : null));
   });
 });
 

@@ -1,0 +1,3983 @@
+{
+ "version": "labelled-v1",
+ "taxonomy": "1",
+ "created": "2026-11-08",
+ "source": "300 of 400 random production job pages (jobsviadraft.com sitemap, 11-08), title + description from each page's JobPosting JSON-LD",
+ "how": "PROPOSED by services/jobs/taxonomyClassify.js (rules over the approved taxonomy's aliases and signals) — NOT ground truth until reviewed. The owner spot-checks the 50 in `spotCheck`: write the right subcategory id in `owner` where the proposal is wrong, or \"ok\".",
+ "counts": {
+  "sales-cs": 53,
+  "(unclassified)": 52,
+  "software-engineering": 37,
+  "business-finance": 37,
+  "marketing": 17,
+  "project-program-management": 16,
+  "operations-supply-chain": 12,
+  "people-hr": 11,
+  "product-management": 10,
+  "mechanical-manufacturing": 9,
+  "science-research": 9,
+  "cloud-infra-it": 6,
+  "writing-communications": 6,
+  "design": 5,
+  "security": 5,
+  "electrical-hardware": 4,
+  "legal": 4,
+  "civil-construction": 4,
+  "data-ai": 2,
+  "process-industrial": 1
+ },
+ "spotCheck": [
+  1,
+  2,
+  3,
+  6,
+  7,
+  8,
+  9,
+  12,
+  13,
+  14,
+  20,
+  24,
+  27,
+  32,
+  37,
+  45,
+  71,
+  72,
+  129,
+  149,
+  28,
+  18,
+  4,
+  29,
+  10,
+  17,
+  11,
+  16,
+  85,
+  15,
+  30,
+  31,
+  76,
+  34,
+  41,
+  51,
+  243,
+  155,
+  208,
+  89,
+  19,
+  5,
+  48,
+  35,
+  93,
+  39,
+  21,
+  118,
+  22,
+  57
+ ],
+ "rows": [
+  {
+   "n": 1,
+   "url": "https://jobsviadraft.com/jobs/orca-bio-manager-quality-assurance-east-coast-princeton-nj-162647",
+   "title": "Manager, Quality Assurance - East Coast (Princeton, NJ)",
+   "company": "Orca Bio",
+   "proposed": {
+    "category": "mechanical-manufacturing",
+    "subcategory": "me.general",
+    "confidence": 0.4,
+    "reason": "category-words:mechanical-manufacturing"
+   },
+   "owner": null
+  },
+  {
+   "n": 2,
+   "url": "https://jobsviadraft.com/jobs/percepta-product-engineer-145393",
+   "title": "Product Engineer",
+   "company": "Percepta",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.fullstack",
+    "confidence": 0.83,
+    "reason": "alias:product engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 3,
+   "url": "https://jobsviadraft.com/jobs/eliseai-product-solutions-analyst-housing-138245",
+   "title": "Product Solutions Analyst | Housing",
+   "company": "EliseAI",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:analyst"
+   },
+   "owner": null
+  },
+  {
+   "n": 4,
+   "url": "https://jobsviadraft.com/jobs/covista-processing-analyst-i-167482",
+   "title": "Processing Analyst I",
+   "company": "Covista",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:analyst"
+   },
+   "owner": null
+  },
+  {
+   "n": 5,
+   "url": "https://jobsviadraft.com/jobs/eurofins-billing-and-collections-specialist-eurofins-environment-test-195903",
+   "title": "Billing & Collections Specialist, Eurofins Environment Testing Southwest, Calscience, Tustin, CA",
+   "company": "Eurofins",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 6,
+   "url": "https://jobsviadraft.com/jobs/cielo-manufacturing-recruiter-bilingual-english-and-spanish-limite-158466",
+   "title": "Manufacturing Recruiter (Bilingual, English and Spanish) - Limited Term Employee",
+   "company": "Cielo",
+   "proposed": {
+    "category": "people-hr",
+    "subcategory": "hr.recruiting",
+    "confidence": 0.8,
+    "reason": "alias:recruiter"
+   },
+   "owner": null
+  },
+  {
+   "n": 7,
+   "url": "https://jobsviadraft.com/jobs/city-of-new-york-cycling-and-greenway-maintenance-coordinator-cycling-and-mic-155431",
+   "title": "Cycling & Greenway Maintenance Coordinator, Cycling & Micromobility Unit",
+   "company": "City of New York",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 8,
+   "url": "https://jobsviadraft.com/jobs/match-group-user-experience-research-intern-208294",
+   "title": "User Experience Research Intern",
+   "company": "Match Group",
+   "proposed": {
+    "category": "design",
+    "subcategory": "des.general",
+    "confidence": 0.4,
+    "reason": "category-words:design"
+   },
+   "owner": null
+  },
+  {
+   "n": 9,
+   "url": "https://jobsviadraft.com/jobs/xometry-sourcing-supervisor-197683",
+   "title": "Sourcing Supervisor",
+   "company": "Xometry",
+   "proposed": {
+    "category": "operations-supply-chain",
+    "subcategory": "ops.general",
+    "confidence": 0.4,
+    "reason": "category-words:operations-supply-chain"
+   },
+   "owner": null
+  },
+  {
+   "n": 10,
+   "url": "https://jobsviadraft.com/jobs/thinking-machines-lab-research-tinker-rl-systems-138510",
+   "title": "Research, Tinker, RL Systems",
+   "company": "Thinking Machines Lab",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 11,
+   "url": "https://jobsviadraft.com/jobs/gdit-planning-coordinator-210796",
+   "title": "Planning Coordinator",
+   "company": "GDIT",
+   "proposed": {
+    "category": "operations-supply-chain",
+    "subcategory": "ops.general",
+    "confidence": 0.4,
+    "reason": "category-words:operations-supply-chain"
+   },
+   "owner": null
+  },
+  {
+   "n": 12,
+   "url": "https://jobsviadraft.com/jobs/klaviyo-lead-technical-project-manager-gtm-systems-189281",
+   "title": "Lead Technical Project Manager, GTM Systems",
+   "company": "Klaviyo",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.technical",
+    "confidence": 0.87,
+    "reason": "alias:technical project manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 13,
+   "url": "https://jobsviadraft.com/jobs/delart-battery-failure-analysis-engineer-161761",
+   "title": "Battery Failure Analysis Engineer",
+   "company": "Delart",
+   "proposed": {
+    "category": "electrical-hardware",
+    "subcategory": "ee.general",
+    "confidence": 0.4,
+    "reason": "category-words:electrical-hardware"
+   },
+   "owner": null
+  },
+  {
+   "n": 14,
+   "url": "https://jobsviadraft.com/jobs/wander-smb-business-development-representative-188768",
+   "title": "SMB Business Development Representative",
+   "company": "Wander",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 15,
+   "url": "https://jobsviadraft.com/jobs/cornerstone-building-brands-sales-support-coordinator-157809",
+   "title": "Sales Support Coordinator",
+   "company": "Cornerstone Building Brands",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 16,
+   "url": "https://jobsviadraft.com/jobs/bgbx-senior-project-manager-commercial-strategy-and-innovation-110719",
+   "title": "Senior Project Manager, Commercial Strategy & Innovation",
+   "company": "BGBx",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.general",
+    "confidence": 0.83,
+    "reason": "alias:project manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 17,
+   "url": "https://jobsviadraft.com/jobs/eudia-product-designer-123602",
+   "title": "Product Designer",
+   "company": "Eudia",
+   "proposed": {
+    "category": "design",
+    "subcategory": "des.product",
+    "confidence": 0.9,
+    "reason": "alias:product designer,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 18,
+   "url": "https://jobsviadraft.com/jobs/archer-aviation-staff-software-engineer-android-205158",
+   "title": "Staff Software Engineer, Android",
+   "company": "Archer Aviation",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 19,
+   "url": "https://jobsviadraft.com/jobs/tribalscale-forward-deployed-engineer-washington-d-c-125436",
+   "title": "Forward Deployed Engineer (Washington, D.C.)",
+   "company": "TribalScale",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.4,
+    "reason": "category-words:software-engineering"
+   },
+   "owner": null
+  },
+  {
+   "n": 20,
+   "url": "https://jobsviadraft.com/jobs/dealpath-senior-product-manager-commercial-real-estate-198450",
+   "title": "Senior Product Manager, Commercial Real Estate",
+   "company": "Dealpath",
+   "proposed": {
+    "category": "product-management",
+    "subcategory": "pm.core",
+    "confidence": 0.9,
+    "reason": "alias:product manager,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 21,
+   "url": "https://jobsviadraft.com/jobs/horace-mann-agent-opportunities-insurance-producer-rockford-il-183399",
+   "title": "Insurance Producer - Rockford, IL",
+   "company": "Horace Mann - Agent Opportunities",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.media",
+    "confidence": 0.8,
+    "reason": "alias:producer"
+   },
+   "owner": null
+  },
+  {
+   "n": 22,
+   "url": "https://jobsviadraft.com/jobs/qualitate-account-executive-healthcare-162673",
+   "title": "Account Executive - Healthcare",
+   "company": "Qualitate",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.87,
+    "reason": "alias:account executive,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 23,
+   "url": "https://jobsviadraft.com/jobs/secretariat-senior-associate-damages-and-valuations-111211",
+   "title": "Senior Associate, Damages & Valuations",
+   "company": "Secretariat",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 24,
+   "url": "https://jobsviadraft.com/jobs/lisinski-law-firm-immigration-attorney-california-court-180573",
+   "title": "Immigration Attorney - California Court",
+   "company": "Lisinski Law Firm",
+   "proposed": {
+    "category": "legal",
+    "subcategory": "law.general",
+    "confidence": 0.8,
+    "reason": "alias:attorney"
+   },
+   "owner": null
+  },
+  {
+   "n": 25,
+   "url": "https://jobsviadraft.com/jobs/apexanalytix-key-account-sales-executive-171409",
+   "title": "Key Account Sales Executive",
+   "company": "Apexanalytix",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 26,
+   "url": "https://jobsviadraft.com/jobs/aevex-program-finance-analyst-109448",
+   "title": "Program Finance Analyst",
+   "company": "AEVEX",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:analyst"
+   },
+   "owner": null
+  },
+  {
+   "n": 27,
+   "url": "https://jobsviadraft.com/jobs/endor-labs-senior-platform-engineer-118622",
+   "title": "Senior Platform Engineer",
+   "company": "Endor Labs",
+   "proposed": {
+    "category": "cloud-infra-it",
+    "subcategory": "infra.platform-devops",
+    "confidence": 0.93,
+    "reason": "alias:platform engineer,signals:3"
+   },
+   "owner": null
+  },
+  {
+   "n": 28,
+   "url": "https://jobsviadraft.com/jobs/relling-mechatronics-engineering-intern-144609",
+   "title": "Mechatronics Engineering Intern",
+   "company": "Relling",
+   "proposed": {
+    "category": "mechanical-manufacturing",
+    "subcategory": "me.general",
+    "confidence": 0.4,
+    "reason": "category-words:mechanical-manufacturing"
+   },
+   "owner": null
+  },
+  {
+   "n": 29,
+   "url": "https://jobsviadraft.com/jobs/chaos-industries-employee-relations-investigator-197454",
+   "title": "Employee Relations Investigator",
+   "company": "Chaos Industries",
+   "proposed": {
+    "category": "people-hr",
+    "subcategory": "hr.general",
+    "confidence": 0.4,
+    "reason": "category-words:people-hr"
+   },
+   "owner": null
+  },
+  {
+   "n": 30,
+   "url": "https://jobsviadraft.com/jobs/liberate-group-agent-product-manager-126329",
+   "title": "Group Agent Product Manager",
+   "company": "Liberate",
+   "proposed": {
+    "category": "product-management",
+    "subcategory": "pm.core",
+    "confidence": 0.83,
+    "reason": "alias:product manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 31,
+   "url": "https://jobsviadraft.com/jobs/stedi-general-counsel-146090",
+   "title": "General Counsel",
+   "company": "Stedi",
+   "proposed": {
+    "category": "legal",
+    "subcategory": "law.general",
+    "confidence": 0.8,
+    "reason": "alias:counsel"
+   },
+   "owner": null
+  },
+  {
+   "n": 32,
+   "url": "https://jobsviadraft.com/jobs/axle-health-communications-manager-182469",
+   "title": "Health Communications Manager",
+   "company": "Axle",
+   "proposed": {
+    "category": "writing-communications",
+    "subcategory": "comm.pr",
+    "confidence": 0.83,
+    "reason": "alias:communications manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 33,
+   "url": "https://jobsviadraft.com/jobs/petra-funds-group-management-company-accounting-manager-119843",
+   "title": "Management Company - Accounting Manager",
+   "company": "Petra Funds Group",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 34,
+   "url": "https://jobsviadraft.com/jobs/twenty-director-communications-199459",
+   "title": "Director, Communications",
+   "company": "Twenty",
+   "proposed": {
+    "category": "writing-communications",
+    "subcategory": "comm.general",
+    "confidence": 0.4,
+    "reason": "category-words:writing-communications"
+   },
+   "owner": null
+  },
+  {
+   "n": 35,
+   "url": "https://jobsviadraft.com/jobs/dh-pace-manager-trainee-206368",
+   "title": "Manager Trainee",
+   "company": "DH Pace",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 36,
+   "url": "https://jobsviadraft.com/jobs/godaddy-senior-manager-product-partnerships-175098",
+   "title": "Senior Manager - Product Partnerships",
+   "company": "GoDaddy",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 37,
+   "url": "https://jobsviadraft.com/jobs/alphabe-insight-inc-marketing-specialist-157048",
+   "title": "Marketing Specialist",
+   "company": "Alphabe Insight Inc",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.general",
+    "confidence": 0.83,
+    "reason": "alias:marketing specialist"
+   },
+   "owner": null
+  },
+  {
+   "n": 38,
+   "url": "https://jobsviadraft.com/jobs/hardrockdigital-senior-analyst-internal-controls-167942",
+   "title": "Senior Analyst - Internal Controls",
+   "company": "Hardrockdigital",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:analyst"
+   },
+   "owner": null
+  },
+  {
+   "n": 39,
+   "url": "https://jobsviadraft.com/jobs/havocai-mission-operations-specialist-149862",
+   "title": "Mission Operations Specialist",
+   "company": "HavocAI",
+   "proposed": {
+    "category": "operations-supply-chain",
+    "subcategory": "ops.general",
+    "confidence": 0.83,
+    "reason": "alias:operations specialist"
+   },
+   "owner": null
+  },
+  {
+   "n": 40,
+   "url": "https://jobsviadraft.com/jobs/onx-transformation-manager-112103",
+   "title": "Transformation Manager",
+   "company": "onX",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 41,
+   "url": "https://jobsviadraft.com/jobs/alphabe-insight-inc-marketing-strategy-coordinator-157096",
+   "title": "Marketing Strategy Coordinator",
+   "company": "Alphabe Insight Inc",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.general",
+    "confidence": 0.45,
+    "reason": "category-name:Marketing"
+   },
+   "owner": null
+  },
+  {
+   "n": 42,
+   "url": "https://jobsviadraft.com/jobs/niural-events-coordinator-192009",
+   "title": "Events Coordinator",
+   "company": "Niural",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.general",
+    "confidence": 0.4,
+    "reason": "category-words:marketing"
+   },
+   "owner": null
+  },
+  {
+   "n": 43,
+   "url": "https://jobsviadraft.com/jobs/pebl-manager-software-engineering-145852",
+   "title": "Manager, Software Engineering",
+   "company": "Pebl",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.45,
+    "reason": "category-name:Software engineering"
+   },
+   "owner": null
+  },
+  {
+   "n": 44,
+   "url": "https://jobsviadraft.com/jobs/boeing-associate-software-engineer-192812",
+   "title": "Associate Software Engineer",
+   "company": "Boeing",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 45,
+   "url": "https://jobsviadraft.com/jobs/avalere-health-research-scientist-i-evidence-and-strategy-208333",
+   "title": "Research Scientist I, Evidence & Strategy",
+   "company": "Avalere Health",
+   "proposed": {
+    "category": "science-research",
+    "subcategory": "sci.general",
+    "confidence": 0.8,
+    "reason": "alias:scientist"
+   },
+   "owner": null
+  },
+  {
+   "n": 46,
+   "url": "https://jobsviadraft.com/jobs/dv-trading-portfolio-manager-110150",
+   "title": "Portfolio Manager",
+   "company": "DV Trading",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 47,
+   "url": "https://jobsviadraft.com/jobs/crb-project-manager-construction-156382",
+   "title": "Project Manager - Construction",
+   "company": "CRB",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.general",
+    "confidence": 0.83,
+    "reason": "alias:project manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 48,
+   "url": "https://jobsviadraft.com/jobs/equus-talent-development-specialist-157356",
+   "title": "Talent Development Specialist",
+   "company": "Equus",
+   "proposed": {
+    "category": "people-hr",
+    "subcategory": "hr.general",
+    "confidence": 0.4,
+    "reason": "category-words:people-hr"
+   },
+   "owner": null
+  },
+  {
+   "n": 49,
+   "url": "https://jobsviadraft.com/jobs/ontra-staff-software-engineer-147654",
+   "title": "Staff Software Engineer",
+   "company": "Ontra",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 50,
+   "url": "https://jobsviadraft.com/jobs/snap-mobile-inc-account-executive-119955",
+   "title": "Account Executive",
+   "company": "Snap! Mobile, Inc.",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.87,
+    "reason": "alias:account executive,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 51,
+   "url": "https://jobsviadraft.com/jobs/telix-pharmaceuticals-amer-theranostics-specialist-northeast-new-england-nyc-and-long-i-110549",
+   "title": "Theranostics Specialist - Northeast (New England, NYC & Long Island, Eastern PA, NJ)",
+   "company": "Telix Pharmaceuticals (AMER)",
+   "proposed": {
+    "category": "science-research",
+    "subcategory": "sci.general",
+    "confidence": 0.4,
+    "reason": "category-words:science-research"
+   },
+   "owner": null
+  },
+  {
+   "n": 52,
+   "url": "https://jobsviadraft.com/jobs/bisnow-director-of-recruitment-commercial-brokerage-135174",
+   "title": "Director of Recruitment (Commercial Brokerage)",
+   "company": "Bisnow",
+   "proposed": {
+    "category": "people-hr",
+    "subcategory": "hr.general",
+    "confidence": 0.4,
+    "reason": "category-words:people-hr"
+   },
+   "owner": null
+  },
+  {
+   "n": 53,
+   "url": "https://jobsviadraft.com/jobs/pendo-software-engineer-ai-122765",
+   "title": "Software Engineer (AI)",
+   "company": "Pendo",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 54,
+   "url": "https://jobsviadraft.com/jobs/ghj-human-resources-specialist-134732",
+   "title": "Human Resources Specialist",
+   "company": "GHJ",
+   "proposed": {
+    "category": "people-hr",
+    "subcategory": "hr.general",
+    "confidence": 0.4,
+    "reason": "category-words:people-hr"
+   },
+   "owner": null
+  },
+  {
+   "n": 55,
+   "url": "https://jobsviadraft.com/jobs/fortitude-re-assistant-vice-president-investment-accounting-124899",
+   "title": "Assistant Vice President, Investment Accounting",
+   "company": "Fortitude Re",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 56,
+   "url": "https://jobsviadraft.com/jobs/ensco-inc-senior-business-development-manager-111576",
+   "title": "Senior Business Development Manager",
+   "company": "ENSCO, Inc.",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 57,
+   "url": "https://jobsviadraft.com/jobs/blue-river-technology-sr-product-manager-large-ag-autonomy-125736",
+   "title": "Sr Product Manager, Large Ag Autonomy",
+   "company": "Blue River Technology",
+   "proposed": {
+    "category": "product-management",
+    "subcategory": "pm.core",
+    "confidence": 0.83,
+    "reason": "alias:product manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 58,
+   "url": "https://jobsviadraft.com/jobs/may-mobility-senior-integration-test-engineer-119718",
+   "title": "Senior Integration Test Engineer",
+   "company": "May Mobility",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.4,
+    "reason": "category-words:software-engineering"
+   },
+   "owner": null
+  },
+  {
+   "n": 59,
+   "url": "https://jobsviadraft.com/jobs/olema-oncology-director-commercial-insights-and-analytics-124039",
+   "title": "Director, Commercial Insights and Analytics",
+   "company": "Olema Oncology",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 60,
+   "url": "https://jobsviadraft.com/jobs/b-and-s-international-junior-purchase-manager-167758",
+   "title": "Junior Purchase Manager",
+   "company": "B&S International",
+   "proposed": {
+    "category": "operations-supply-chain",
+    "subcategory": "ops.general",
+    "confidence": 0.4,
+    "reason": "category-words:operations-supply-chain"
+   },
+   "owner": null
+  },
+  {
+   "n": 61,
+   "url": "https://jobsviadraft.com/jobs/mews-account-executive-127802",
+   "title": "Account Executive",
+   "company": "Mews",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.87,
+    "reason": "alias:account executive,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 62,
+   "url": "https://jobsviadraft.com/jobs/la28-web-senior-manager-energy-design-engineering-122571",
+   "title": "Senior Manager, Energy Design Engineering",
+   "company": "LA28 (Web)",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 63,
+   "url": "https://jobsviadraft.com/jobs/llr-partners-2027-analyst-investment-team-199136",
+   "title": "2027 Analyst, Investment Team",
+   "company": "LLR Partners",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:analyst"
+   },
+   "owner": null
+  },
+  {
+   "n": 64,
+   "url": "https://jobsviadraft.com/jobs/cogent-security-mid-market-account-executive-san-francisco-137921",
+   "title": "Mid-Market Account Executive, San Francisco",
+   "company": "Cogent Security",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.9,
+    "reason": "alias:account executive,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 65,
+   "url": "https://jobsviadraft.com/jobs/slide-account-manager-148602",
+   "title": "Account Manager",
+   "company": "Slide",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.am",
+    "confidence": 0.87,
+    "reason": "alias:account manager,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 66,
+   "url": "https://jobsviadraft.com/jobs/nexcess-software-engineering-manager-networking-products-171543",
+   "title": "Software Engineering Manager - Networking Products",
+   "company": "Nexcess",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.45,
+    "reason": "category-name:Software engineering"
+   },
+   "owner": null
+  },
+  {
+   "n": 67,
+   "url": "https://jobsviadraft.com/jobs/trace-robotics-engineering-intern-hardware-and-software-150249",
+   "title": "Robotics Engineering Intern — Hardware & Software",
+   "company": "Trace",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 68,
+   "url": "https://jobsviadraft.com/jobs/boyd-gaming-assistant-director-of-sales-180333",
+   "title": "Assistant Director of Sales",
+   "company": "Boyd Gaming",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 69,
+   "url": "https://jobsviadraft.com/jobs/shipbob-inc-onsite-warehouse-support-specialist-125337",
+   "title": "Onsite Warehouse Support Specialist",
+   "company": "ShipBob, Inc.",
+   "proposed": {
+    "category": "operations-supply-chain",
+    "subcategory": "ops.general",
+    "confidence": 0.4,
+    "reason": "category-words:operations-supply-chain"
+   },
+   "owner": null
+  },
+  {
+   "n": 70,
+   "url": "https://jobsviadraft.com/jobs/kira-head-of-deployment-strategy-209115",
+   "title": "Head of Deployment Strategy",
+   "company": "Kira",
+   "proposed": {
+    "category": "operations-supply-chain",
+    "subcategory": "ops.general",
+    "confidence": 0.4,
+    "reason": "category-words:operations-supply-chain"
+   },
+   "owner": null
+  },
+  {
+   "n": 71,
+   "url": "https://jobsviadraft.com/jobs/bohler-civil-engineering-intern-land-development-summer-2027-168099",
+   "title": "Civil Engineering Intern - Land Development, Summer 2027",
+   "company": "Bohler",
+   "proposed": {
+    "category": "civil-construction",
+    "subcategory": "civ.general",
+    "confidence": 0.4,
+    "reason": "category-words:civil-construction"
+   },
+   "owner": null
+  },
+  {
+   "n": 72,
+   "url": "https://jobsviadraft.com/jobs/trm-labs-forward-deployed-engineer-us-national-security-137417",
+   "title": "Forward Deployed Engineer - US National Security",
+   "company": "TRM Labs",
+   "proposed": {
+    "category": "security",
+    "subcategory": "sec.general",
+    "confidence": 0.45,
+    "reason": "category-name:Security"
+   },
+   "owner": null
+  },
+  {
+   "n": 73,
+   "url": "https://jobsviadraft.com/jobs/schrodinger-computational-chemist-119042",
+   "title": "Computational Chemist",
+   "company": "Schrödinger",
+   "proposed": {
+    "category": "science-research",
+    "subcategory": "sci.chemistry",
+    "confidence": 0.8,
+    "reason": "alias:chemist"
+   },
+   "owner": null
+  },
+  {
+   "n": 74,
+   "url": "https://jobsviadraft.com/jobs/zenoti-product-specialist-saas-implementation-and-onboarding-125553",
+   "title": "Product Specialist (SaaS Implementation and Onboarding)",
+   "company": "Zenoti",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 75,
+   "url": "https://jobsviadraft.com/jobs/plenful-senior-full-stack-engineer-144921",
+   "title": "Senior Full-Stack Engineer",
+   "company": "Plenful",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.fullstack",
+    "confidence": 0.83,
+    "reason": "alias:full stack engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 76,
+   "url": "https://jobsviadraft.com/jobs/age-solutions-senior-network-engineer-conus-161041",
+   "title": "Senior Network Engineer - CONUS",
+   "company": "AGE Solutions",
+   "proposed": {
+    "category": "cloud-infra-it",
+    "subcategory": "infra.network",
+    "confidence": 0.87,
+    "reason": "alias:network engineer,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 77,
+   "url": "https://jobsviadraft.com/jobs/motivo-director-of-business-development-171519",
+   "title": "Director of Business Development",
+   "company": "Motivo",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 78,
+   "url": "https://jobsviadraft.com/jobs/ambient-ai-technical-recruiter-145625",
+   "title": "Technical Recruiter",
+   "company": "Ambient.ai",
+   "proposed": {
+    "category": "people-hr",
+    "subcategory": "hr.recruiting",
+    "confidence": 0.87,
+    "reason": "alias:technical recruiter,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 79,
+   "url": "https://jobsviadraft.com/jobs/spoton-territory-sales-representative-restaurant-specialist-elmhurs-147776",
+   "title": "Territory Sales Representative / Restaurant Specialist - Elmhurst, IL",
+   "company": "SpotOn",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.83,
+    "reason": "alias:sales representative"
+   },
+   "owner": null
+  },
+  {
+   "n": 80,
+   "url": "https://jobsviadraft.com/jobs/ema-senior-manager-accounting-148145",
+   "title": "Senior Manager, Accounting",
+   "company": "Ema",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 81,
+   "url": "https://jobsviadraft.com/jobs/peregrine-technologies-head-of-revenue-accounting-182342",
+   "title": "Head of Revenue Accounting",
+   "company": "Peregrine Technologies",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 82,
+   "url": "https://jobsviadraft.com/jobs/armorcode-inc-regional-sales-manager-tola-128455",
+   "title": "Regional Sales Manager - TOLA",
+   "company": "ArmorCode Inc.",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.83,
+    "reason": "alias:sales manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 83,
+   "url": "https://jobsviadraft.com/jobs/code-metal-staff-software-engineer-in-test-compiler-and-systems-validat-140619",
+   "title": "Staff Software Engineer in Test, Compiler & Systems Validation",
+   "company": "Code Metal",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.qa",
+    "confidence": 0.87,
+    "reason": "alias:software engineer in test"
+   },
+   "owner": null
+  },
+  {
+   "n": 84,
+   "url": "https://jobsviadraft.com/jobs/horace-mann-agent-opportunities-insurance-producer-charlotte-nc-130736",
+   "title": "Insurance Producer - Charlotte, NC",
+   "company": "Horace Mann - Agent Opportunities",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.media",
+    "confidence": 0.8,
+    "reason": "alias:producer"
+   },
+   "owner": null
+  },
+  {
+   "n": 85,
+   "url": "https://jobsviadraft.com/jobs/marvell-sr-staff-engineer-dft-194147",
+   "title": "Sr Staff Engineer-DFT",
+   "company": "Marvell",
+   "proposed": {
+    "category": "electrical-hardware",
+    "subcategory": "ee.general",
+    "confidence": 0.4,
+    "reason": "category-words:electrical-hardware"
+   },
+   "owner": null
+  },
+  {
+   "n": 86,
+   "url": "https://jobsviadraft.com/jobs/celea-therapeutics-clinical-scientist-director-130297",
+   "title": "Clinical Scientist, Director",
+   "company": "Celea Therapeutics",
+   "proposed": {
+    "category": "science-research",
+    "subcategory": "sci.general",
+    "confidence": 0.8,
+    "reason": "alias:scientist"
+   },
+   "owner": null
+  },
+  {
+   "n": 87,
+   "url": "https://jobsviadraft.com/jobs/stellar-development-foundation-full-stack-engineer-wallets-147834",
+   "title": "Full-Stack Engineer, Wallets",
+   "company": "Stellar Development Foundation",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.fullstack",
+    "confidence": 0.83,
+    "reason": "alias:full stack engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 88,
+   "url": "https://jobsviadraft.com/jobs/everdriven-strategic-account-executive-198956",
+   "title": "Strategic Account Executive",
+   "company": "EverDriven",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.93,
+    "reason": "alias:account executive,signals:3"
+   },
+   "owner": null
+  },
+  {
+   "n": 89,
+   "url": "https://jobsviadraft.com/jobs/applied-intuition-application-engineer-trucking-136304",
+   "title": "Application Engineer - Trucking",
+   "company": "Applied Intuition",
+   "proposed": {
+    "category": "mechanical-manufacturing",
+    "subcategory": "me.general",
+    "confidence": 0.4,
+    "reason": "category-words:mechanical-manufacturing"
+   },
+   "owner": null
+  },
+  {
+   "n": 90,
+   "url": "https://jobsviadraft.com/jobs/lumimeds-fractional-creative-strategist-126361",
+   "title": "Fractional Creative Strategist",
+   "company": "Lumimeds",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.general",
+    "confidence": 0.4,
+    "reason": "category-words:marketing"
+   },
+   "owner": null
+  },
+  {
+   "n": 91,
+   "url": "https://jobsviadraft.com/jobs/construction-resources-senior-financial-analyst-206999",
+   "title": "Senior Financial Analyst",
+   "company": "Construction Resources",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.fpa",
+    "confidence": 0.83,
+    "reason": "alias:financial analyst"
+   },
+   "owner": null
+  },
+  {
+   "n": 92,
+   "url": "https://jobsviadraft.com/jobs/veracode-senior-website-manager-125488",
+   "title": "Senior Website Manager",
+   "company": "Veracode",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.general",
+    "confidence": 0.4,
+    "reason": "category-words:marketing"
+   },
+   "owner": null
+  },
+  {
+   "n": 93,
+   "url": "https://jobsviadraft.com/jobs/take-command-health-senior-product-designer-131567",
+   "title": "Senior Product Designer",
+   "company": "Take Command Health",
+   "proposed": {
+    "category": "design",
+    "subcategory": "des.product",
+    "confidence": 0.9,
+    "reason": "alias:product designer,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 94,
+   "url": "https://jobsviadraft.com/jobs/talkspace-clinical-recruiter-122944",
+   "title": "Clinical Recruiter",
+   "company": "Talkspace",
+   "proposed": {
+    "category": "people-hr",
+    "subcategory": "hr.recruiting",
+    "confidence": 0.83,
+    "reason": "alias:recruiter,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 95,
+   "url": "https://jobsviadraft.com/jobs/learnupon-sales-development-representative-125036",
+   "title": "Sales Development Representative",
+   "company": "LearnUpon",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.sdr",
+    "confidence": 0.93,
+    "reason": "alias:sales development representative,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 96,
+   "url": "https://jobsviadraft.com/jobs/the-athletic-media-company-senior-ios-engineer-remote-135924",
+   "title": "Senior iOS Engineer (Remote)",
+   "company": "The Athletic Media Company",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.ios",
+    "confidence": 0.83,
+    "reason": "alias:iOS engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 97,
+   "url": "https://jobsviadraft.com/jobs/penske-media-corp-pmc-senior-director-business-development-161417",
+   "title": "PMC: Senior Director, Business Development",
+   "company": "Penske Media Corp.",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 98,
+   "url": "https://jobsviadraft.com/jobs/dungarvin-mental-health-program-manager-mhpd-up-to-5000-sign-on-bonus-157219",
+   "title": "Mental Health Program Manager (MHPD) * Up to $5000 sign on bonus *",
+   "company": "Dungarvin",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.program",
+    "confidence": 0.83,
+    "reason": "alias:program manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 99,
+   "url": "https://jobsviadraft.com/jobs/express-oil-change-and-tire-engineers-management-training-program-158624",
+   "title": "Management Training Program",
+   "company": "Express Oil Change & Tire Engineers",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 100,
+   "url": "https://jobsviadraft.com/jobs/tlingit-haida-tribal-business-corporation-sr-lead-network-engineer-must-be-cleared-secret-175543",
+   "title": "Sr./Lead Network Engineer (MUST BE CLEARED SECRET)",
+   "company": "Tlingit Haida Tribal Business Corporation",
+   "proposed": {
+    "category": "cloud-infra-it",
+    "subcategory": "infra.network",
+    "confidence": 0.83,
+    "reason": "alias:network engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 101,
+   "url": "https://jobsviadraft.com/jobs/ziprecruiter-senior-software-engineer-big-data-tech-enablement-174059",
+   "title": "Senior Software Engineer, Big Data, Tech Enablement",
+   "company": "ZipRecruiter",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 102,
+   "url": "https://jobsviadraft.com/jobs/toyota-na-software-engineering-lead-211600",
+   "title": "Software Engineering Lead",
+   "company": "Toyota NA",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.45,
+    "reason": "category-name:Software engineering"
+   },
+   "owner": null
+  },
+  {
+   "n": 103,
+   "url": "https://jobsviadraft.com/jobs/aquatic-capital-management-software-engineer-core-data-125649",
+   "title": "Software Engineer, Core Data",
+   "company": "Aquatic Capital Management",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 104,
+   "url": "https://jobsviadraft.com/jobs/florence-healthcare-us-customer-success-manager-162088",
+   "title": "Customer Success Manager",
+   "company": "Florence Healthcare - US",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.cs",
+    "confidence": 0.93,
+    "reason": "alias:customer success manager,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 105,
+   "url": "https://jobsviadraft.com/jobs/rtx-intern-quality-engineering-summer-2027-200724",
+   "title": "Intern: Quality Engineering (Summer 2027)",
+   "company": "RTX",
+   "proposed": {
+    "category": "mechanical-manufacturing",
+    "subcategory": "me.general",
+    "confidence": 0.4,
+    "reason": "category-words:mechanical-manufacturing"
+   },
+   "owner": null
+  },
+  {
+   "n": 106,
+   "url": "https://jobsviadraft.com/jobs/xdof-member-of-technical-staff-robotics-infrastructure-146581",
+   "title": "Member of Technical Staff, Robotics Infrastructure",
+   "company": "XDOF",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.87,
+    "reason": "alias:member of technical staff"
+   },
+   "owner": null
+  },
+  {
+   "n": 107,
+   "url": "https://jobsviadraft.com/jobs/unitedmasters-translation-business-director-190711",
+   "title": "Business Director",
+   "company": "UnitedMasters | Translation",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 108,
+   "url": "https://jobsviadraft.com/jobs/experian-senior-product-manager-clearinghouse-connectivity-and-remitt-213314",
+   "title": "Senior Product Manager, Clearinghouse Connectivity & Remittance",
+   "company": "Experian",
+   "proposed": {
+    "category": "product-management",
+    "subcategory": "pm.core",
+    "confidence": 0.83,
+    "reason": "alias:product manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 109,
+   "url": "https://jobsviadraft.com/jobs/vts-product-marketing-manager-125502",
+   "title": "Product Marketing Manager",
+   "company": "VTS",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.product-brand",
+    "confidence": 0.95,
+    "reason": "alias:product marketing manager,signals:3"
+   },
+   "owner": null
+  },
+  {
+   "n": 110,
+   "url": "https://jobsviadraft.com/jobs/incident-iq-site-reliability-engineer-129069",
+   "title": "Site Reliability Engineer",
+   "company": "Incident IQ",
+   "proposed": {
+    "category": "cloud-infra-it",
+    "subcategory": "infra.sre",
+    "confidence": 0.95,
+    "reason": "alias:site reliability engineer,signals:3"
+   },
+   "owner": null
+  },
+  {
+   "n": 111,
+   "url": "https://jobsviadraft.com/jobs/new-era-technology-service-delivery-manager-118939",
+   "title": "Service Delivery Manager",
+   "company": "New Era Technology",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.agile",
+    "confidence": 0.83,
+    "reason": "alias:delivery manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 112,
+   "url": "https://jobsviadraft.com/jobs/tread-ai-finance-operations-manager-149441",
+   "title": "AI Finance Operations Manager",
+   "company": "Tread",
+   "proposed": {
+    "category": "operations-supply-chain",
+    "subcategory": "ops.general",
+    "confidence": 0.83,
+    "reason": "alias:operations manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 113,
+   "url": "https://jobsviadraft.com/jobs/coherus-oncology-oncology-account-manager-125857",
+   "title": "Oncology Account Manager",
+   "company": "Coherus Oncology",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.am",
+    "confidence": 0.83,
+    "reason": "alias:account manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 114,
+   "url": "https://jobsviadraft.com/jobs/ubiquiti-regulatory-test-engineer-162180",
+   "title": "Regulatory Test Engineer",
+   "company": "Ubiquiti",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 115,
+   "url": "https://jobsviadraft.com/jobs/dlc-accounting-supervisor-140667",
+   "title": "Accounting Supervisor",
+   "company": "DLC",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 116,
+   "url": "https://jobsviadraft.com/jobs/nectar-social-senior-engineering-manager-143851",
+   "title": "Senior Engineering Manager",
+   "company": "Nectar Social",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 117,
+   "url": "https://jobsviadraft.com/jobs/seamless-director-gtm-sales-development-172378",
+   "title": "Director, GTM Sales Development",
+   "company": "Seamless",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 118,
+   "url": "https://jobsviadraft.com/jobs/crb-automation-engineer-i-156326",
+   "title": "Automation Engineer I",
+   "company": "CRB",
+   "proposed": {
+    "category": "electrical-hardware",
+    "subcategory": "ee.controls",
+    "confidence": 0.83,
+    "reason": "alias:automation engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 119,
+   "url": "https://jobsviadraft.com/jobs/t1-energy-equipment-engineer-wet-process-162734",
+   "title": "Equipment Engineer, Wet Process",
+   "company": "T1 Energy",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 120,
+   "url": "https://jobsviadraft.com/jobs/function-health-senior-software-engineer-fullstack-168613",
+   "title": "Senior Software Engineer - Fullstack",
+   "company": "Function Health",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 121,
+   "url": "https://jobsviadraft.com/jobs/mks2-technologies-contract-manager-123921",
+   "title": "Contract Manager",
+   "company": "MKS2 Technologies",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 122,
+   "url": "https://jobsviadraft.com/jobs/reformation-ecommerce-producer-125239",
+   "title": "Ecommerce Producer",
+   "company": "Reformation",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.media",
+    "confidence": 0.83,
+    "reason": "alias:producer,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 123,
+   "url": "https://jobsviadraft.com/jobs/fluidstack-controls-engineer-commissioning-automation-136060",
+   "title": "Controls Engineer, Commissioning Automation",
+   "company": "Fluidstack",
+   "proposed": {
+    "category": "electrical-hardware",
+    "subcategory": "ee.controls",
+    "confidence": 0.87,
+    "reason": "alias:controls engineer,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 124,
+   "url": "https://jobsviadraft.com/jobs/la28-web-senior-manager-cad-development-122570",
+   "title": "Senior Manager, CAD Development",
+   "company": "LA28 (Web)",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 125,
+   "url": "https://jobsviadraft.com/jobs/omninet-property-management-leasing-consultant-170021",
+   "title": "Leasing Consultant",
+   "company": "Omninet Property Management",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 126,
+   "url": "https://jobsviadraft.com/jobs/radiant-industries-indirect-procurement-associate-137841",
+   "title": "Indirect Procurement Associate",
+   "company": "Radiant Industries",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 127,
+   "url": "https://jobsviadraft.com/jobs/quantum-space-manufacturing-engineer-207233",
+   "title": "Manufacturing Engineer",
+   "company": "Quantum Space",
+   "proposed": {
+    "category": "mechanical-manufacturing",
+    "subcategory": "me.manufacturing",
+    "confidence": 0.87,
+    "reason": "alias:manufacturing engineer,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 128,
+   "url": "https://jobsviadraft.com/jobs/true-anomaly-technical-program-manager-on-orbit-tests-181814",
+   "title": "Technical Program Manager, On-Orbit Tests",
+   "company": "True Anomaly",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.program",
+    "confidence": 0.87,
+    "reason": "alias:technical program manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 129,
+   "url": "https://jobsviadraft.com/jobs/icarus-quality-engineer-208122",
+   "title": "Quality Engineer",
+   "company": "Icarus",
+   "proposed": {
+    "category": "process-industrial",
+    "subcategory": "proc.quality",
+    "confidence": 0.87,
+    "reason": "alias:quality engineer,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 130,
+   "url": "https://jobsviadraft.com/jobs/grassroots-analytics-campaigns-account-management-intern-spring-2027-127480",
+   "title": "Campaigns Account Management Intern | Spring 2027",
+   "company": "Grassroots Analytics",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.5,
+    "reason": "category-only:name:Account management"
+   },
+   "owner": null
+  },
+  {
+   "n": 131,
+   "url": "https://jobsviadraft.com/jobs/netpreme-member-of-technical-staff-performance-modeling-163303",
+   "title": "Member of Technical Staff, Performance Modeling",
+   "company": "Netpreme",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.87,
+    "reason": "alias:member of technical staff"
+   },
+   "owner": null
+  },
+  {
+   "n": 132,
+   "url": "https://jobsviadraft.com/jobs/ibotta-technical-sales-enablement-specialist-138841",
+   "title": "Technical Sales Enablement Specialist",
+   "company": "Ibotta",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 133,
+   "url": "https://jobsviadraft.com/jobs/nerdwallet-staff-data-product-manager-machine-learning-191720",
+   "title": "Staff Data Product Manager (Machine Learning)",
+   "company": "NerdWallet",
+   "proposed": {
+    "category": "product-management",
+    "subcategory": "pm.general",
+    "confidence": 0.6,
+    "reason": "tie-within:pm.core|pm.ai-data"
+   },
+   "owner": null
+  },
+  {
+   "n": 134,
+   "url": "https://jobsviadraft.com/jobs/summit-therapeutics-executive-oncology-account-manager-sacramento-174799",
+   "title": "Executive Oncology Account Manager (Sacramento)",
+   "company": "Summit Therapeutics",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.am",
+    "confidence": 0.83,
+    "reason": "alias:account manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 135,
+   "url": "https://jobsviadraft.com/jobs/pacvue-sr-customer-success-manager-126503",
+   "title": "Sr. Customer Success Manager",
+   "company": "Pacvue",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.cs",
+    "confidence": 0.87,
+    "reason": "alias:customer success manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 136,
+   "url": "https://jobsviadraft.com/jobs/boom-supersonic-principal-manufacturing-engineer-machining-171083",
+   "title": "Principal Manufacturing Engineer, Machining",
+   "company": "Boom Supersonic",
+   "proposed": {
+    "category": "mechanical-manufacturing",
+    "subcategory": "me.manufacturing",
+    "confidence": 0.87,
+    "reason": "alias:manufacturing engineer,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 137,
+   "url": "https://jobsviadraft.com/jobs/marick-mechanical-pm-sales-representative-198837",
+   "title": "PM Sales Representative",
+   "company": "Marick Mechanical",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.83,
+    "reason": "alias:sales representative"
+   },
+   "owner": null
+  },
+  {
+   "n": 138,
+   "url": "https://jobsviadraft.com/jobs/northrop-grumman-2027-spring-co-op-software-engineer-intern-mcclellan-ca-192266",
+   "title": "2027 Spring Co-op Software Engineer Intern – McClellan CA",
+   "company": "Northrop Grumman",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 139,
+   "url": "https://jobsviadraft.com/jobs/headlands-research-clinical-research-assistant-198673",
+   "title": "Clinical Research Assistant",
+   "company": "Headlands Research",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 140,
+   "url": "https://jobsviadraft.com/jobs/eve-product-engineer-120433",
+   "title": "Product Engineer",
+   "company": "Eve",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.fullstack",
+    "confidence": 0.83,
+    "reason": "alias:product engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 141,
+   "url": "https://jobsviadraft.com/jobs/writer-ai-research-scientist-183678",
+   "title": "AI research scientist",
+   "company": "Writer",
+   "proposed": {
+    "category": "science-research",
+    "subcategory": "sci.general",
+    "confidence": 0.8,
+    "reason": "alias:scientist"
+   },
+   "owner": null
+  },
+  {
+   "n": 142,
+   "url": "https://jobsviadraft.com/jobs/abundant-member-of-technical-staff-research-intern-147236",
+   "title": "Member of Technical Staff, Research (Intern)",
+   "company": "Abundant",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.87,
+    "reason": "alias:member of technical staff"
+   },
+   "owner": null
+  },
+  {
+   "n": 143,
+   "url": "https://jobsviadraft.com/jobs/bvnk-account-manager-127105",
+   "title": "Account Manager",
+   "company": "BVNK",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.am",
+    "confidence": 0.9,
+    "reason": "alias:account manager,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 144,
+   "url": "https://jobsviadraft.com/jobs/vendelux-customer-success-manager-mid-market-176227",
+   "title": "Customer Success Manager (Mid-Market)",
+   "company": "Vendelux",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.cs",
+    "confidence": 0.95,
+    "reason": "alias:customer success manager,signals:3"
+   },
+   "owner": null
+  },
+  {
+   "n": 145,
+   "url": "https://jobsviadraft.com/jobs/abbvie-associate-director-business-analytics-trade-195842",
+   "title": "Associate Director, Business Analytics - Trade",
+   "company": "AbbVie",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 146,
+   "url": "https://jobsviadraft.com/jobs/gradial-product-marketing-manager-122437",
+   "title": "Product Marketing Manager",
+   "company": "Gradial",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.product-brand",
+    "confidence": 0.95,
+    "reason": "alias:product marketing manager,signals:3"
+   },
+   "owner": null
+  },
+  {
+   "n": 147,
+   "url": "https://jobsviadraft.com/jobs/abc-legal-services-docketly-court-coverage-specialist-120208",
+   "title": "Docketly-Court Coverage Specialist",
+   "company": "ABC Legal Services",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 148,
+   "url": "https://jobsviadraft.com/jobs/perry-ellis-international-customs-entry-writer-122774",
+   "title": "customs entry writer",
+   "company": "Perry Ellis International",
+   "proposed": {
+    "category": "writing-communications",
+    "subcategory": "comm.general",
+    "confidence": 0.8,
+    "reason": "alias:writer"
+   },
+   "owner": null
+  },
+  {
+   "n": 149,
+   "url": "https://jobsviadraft.com/jobs/turing-staff-research-engineer-frontier-data-109895",
+   "title": "Staff Research Engineer, Frontier Data",
+   "company": "Turing",
+   "proposed": {
+    "category": "data-ai",
+    "subcategory": "data.research",
+    "confidence": 0.87,
+    "reason": "alias:research engineer,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 150,
+   "url": "https://jobsviadraft.com/jobs/charles-river-associates-2027-bachelor-s-master-s-graduates-management-advisory-analy-119297",
+   "title": "(2027 Bachelor's/Master's graduates) Management Advisory Analyst/Associate",
+   "company": "Charles River Associates",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 151,
+   "url": "https://jobsviadraft.com/jobs/sailor-health-care-strategy-and-operations-lead-director-141262",
+   "title": "Care Strategy & Operations (Lead / Director)",
+   "company": "Sailor Health",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 152,
+   "url": "https://jobsviadraft.com/jobs/kastle-senior-product-manager-147491",
+   "title": "Senior Product Manager",
+   "company": "Kastle",
+   "proposed": {
+    "category": "product-management",
+    "subcategory": "pm.core",
+    "confidence": 0.9,
+    "reason": "alias:product manager,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 153,
+   "url": "https://jobsviadraft.com/jobs/empower-pharmacy-director-quality-control-503a-503b-123578",
+   "title": "Director, Quality Control 503A - 503B",
+   "company": "Empower Pharmacy",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 154,
+   "url": "https://jobsviadraft.com/jobs/corporate-synergies-employee-benefits-account-manager-162248",
+   "title": "Employee Benefits Account Manager",
+   "company": "Corporate Synergies",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.am",
+    "confidence": 0.87,
+    "reason": "alias:account manager,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 155,
+   "url": "https://jobsviadraft.com/jobs/opal-security-security-and-compliance-lead-147993",
+   "title": "Security & Compliance Lead",
+   "company": "Opal Security",
+   "proposed": {
+    "category": "security",
+    "subcategory": "sec.general",
+    "confidence": 0.45,
+    "reason": "category-name:Security"
+   },
+   "owner": null
+  },
+  {
+   "n": 156,
+   "url": "https://jobsviadraft.com/jobs/sweed-account-executive-southern-california-146511",
+   "title": "Account Executive (Southern California)",
+   "company": "Sweed",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.9,
+    "reason": "alias:account executive,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 157,
+   "url": "https://jobsviadraft.com/jobs/marqeta-senior-director-credit-risk-148349",
+   "title": "Senior Director, Credit Risk",
+   "company": "Marqeta",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 158,
+   "url": "https://jobsviadraft.com/jobs/traba-staff-software-engineer-ai-agents-176333",
+   "title": "Staff Software Engineer (AI Agents)",
+   "company": "Traba",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 159,
+   "url": "https://jobsviadraft.com/jobs/weka-sales-development-representative-119162",
+   "title": "Sales Development Representative",
+   "company": "WEKA",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.sdr",
+    "confidence": 0.95,
+    "reason": "alias:sales development representative,signals:3"
+   },
+   "owner": null
+  },
+  {
+   "n": 160,
+   "url": "https://jobsviadraft.com/jobs/d-a-davidson-managed-assets-operations-associate-135543",
+   "title": "Managed Assets Operations Associate",
+   "company": "D.A. Davidson",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 161,
+   "url": "https://jobsviadraft.com/jobs/m9-solutions-full-stack-developer-206824",
+   "title": "Full Stack Developer",
+   "company": "M9 Solutions",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.fullstack",
+    "confidence": 0.83,
+    "reason": "alias:full-stack developer"
+   },
+   "owner": null
+  },
+  {
+   "n": 162,
+   "url": "https://jobsviadraft.com/jobs/dlr-group-communications-coordinator-197693",
+   "title": "Communications Coordinator",
+   "company": "DLR Group",
+   "proposed": {
+    "category": "writing-communications",
+    "subcategory": "comm.general",
+    "confidence": 0.4,
+    "reason": "category-words:writing-communications"
+   },
+   "owner": null
+  },
+  {
+   "n": 163,
+   "url": "https://jobsviadraft.com/jobs/alphabe-insight-inc-marketing-coordinator-157018",
+   "title": "Marketing Coordinator",
+   "company": "Alphabe Insight Inc",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.general",
+    "confidence": 0.45,
+    "reason": "category-name:Marketing"
+   },
+   "owner": null
+  },
+  {
+   "n": 164,
+   "url": "https://jobsviadraft.com/jobs/ride-mobility-ride-canada-sales-manager-128039",
+   "title": "RIDE Canada-Sales Manager",
+   "company": "RIDE Mobility",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.83,
+    "reason": "alias:sales manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 165,
+   "url": "https://jobsviadraft.com/jobs/revivn-hr-generalist-operations-124213",
+   "title": "HR Generalist, Operations",
+   "company": "Revivn",
+   "proposed": {
+    "category": "people-hr",
+    "subcategory": "hr.general",
+    "confidence": 0.83,
+    "reason": "alias:HR generalist"
+   },
+   "owner": null
+  },
+  {
+   "n": 166,
+   "url": "https://jobsviadraft.com/jobs/fashion-nova-brand-marketing-manager-sports-120469",
+   "title": "Brand Marketing Manager, Sports",
+   "company": "Fashion Nova",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.general",
+    "confidence": 0.83,
+    "reason": "alias:marketing manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 167,
+   "url": "https://jobsviadraft.com/jobs/agentio-head-of-creator-media-145599",
+   "title": "Head of Creator Media",
+   "company": "Agentio",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 168,
+   "url": "https://jobsviadraft.com/jobs/index-exchange-account-manager-169218",
+   "title": "Account Manager",
+   "company": "Index Exchange",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.am",
+    "confidence": 0.83,
+    "reason": "alias:account manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 169,
+   "url": "https://jobsviadraft.com/jobs/alphabe-insight-inc-public-relations-assistant-157003",
+   "title": "Public Relations Assistant",
+   "company": "Alphabe Insight Inc",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 170,
+   "url": "https://jobsviadraft.com/jobs/posh-account-executive-149286",
+   "title": "Account Executive",
+   "company": "Posh",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.9,
+    "reason": "alias:account executive,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 171,
+   "url": "https://jobsviadraft.com/jobs/quindar-cleared-it-infrastructure-engineer-143937",
+   "title": "Cleared IT Infrastructure Engineer",
+   "company": "Quindar",
+   "proposed": {
+    "category": "cloud-infra-it",
+    "subcategory": "infra.platform-devops",
+    "confidence": 0.87,
+    "reason": "alias:infrastructure engineer,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 172,
+   "url": "https://jobsviadraft.com/jobs/kiniksa-pharmaceuticals-clinical-operations-senior-manager-129200",
+   "title": "Clinical Operations Senior Manager",
+   "company": "Kiniksa Pharmaceuticals",
+   "proposed": {
+    "category": "operations-supply-chain",
+    "subcategory": "ops.general",
+    "confidence": 0.83,
+    "reason": "alias:operations manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 173,
+   "url": "https://jobsviadraft.com/jobs/lynx-software-technologies-principal-software-engineer-170936",
+   "title": "Principal Software Engineer",
+   "company": "Lynx Software Technologies",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 174,
+   "url": "https://jobsviadraft.com/jobs/astra-senior-platform-engineer-147270",
+   "title": "Senior Platform Engineer",
+   "company": "Astra",
+   "proposed": {
+    "category": "cloud-infra-it",
+    "subcategory": "infra.platform-devops",
+    "confidence": 0.9,
+    "reason": "alias:platform engineer,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 175,
+   "url": "https://jobsviadraft.com/jobs/anchorage-digital-regulatory-and-licensing-counsel-trading-and-derivatives-135943",
+   "title": "Regulatory & Licensing Counsel (Trading & Derivatives)",
+   "company": "Anchorage Digital",
+   "proposed": {
+    "category": "legal",
+    "subcategory": "law.general",
+    "confidence": 0.8,
+    "reason": "alias:counsel"
+   },
+   "owner": null
+  },
+  {
+   "n": 176,
+   "url": "https://jobsviadraft.com/jobs/commonwealth-fusion-systems-intern-electrical-electromechanical-engineer-spring-2027-134602",
+   "title": "Intern - Electrical/Electromechanical Engineer - Spring 2027",
+   "company": "Commonwealth Fusion Systems",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 177,
+   "url": "https://jobsviadraft.com/jobs/charles-river-associates-2027-graduates-senior-associate-management-advisory-energy-p-119298",
+   "title": "(2027 Graduates) Senior Associate - Management Advisory (Energy Practice)",
+   "company": "Charles River Associates",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 178,
+   "url": "https://jobsviadraft.com/jobs/netwrix-corporation-talent-acquisition-partner-6-month-contract-214124",
+   "title": "Talent Acquisition Partner (6 Month Contract)",
+   "company": "Netwrix Corporation",
+   "proposed": {
+    "category": "people-hr",
+    "subcategory": "hr.recruiting",
+    "confidence": 0.93,
+    "reason": "alias:talent acquisition partner,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 179,
+   "url": "https://jobsviadraft.com/jobs/evolve-sales-development-representative-121258",
+   "title": "Sales Development Representative",
+   "company": "Evolve",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.sdr",
+    "confidence": 0.93,
+    "reason": "alias:sales development representative,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 180,
+   "url": "https://jobsviadraft.com/jobs/graymatter-robotics-program-manager-145756",
+   "title": "Program Manager",
+   "company": "GrayMatter Robotics",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.program",
+    "confidence": 0.83,
+    "reason": "alias:program manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 181,
+   "url": "https://jobsviadraft.com/jobs/raisin-digital-designer-growth-128005",
+   "title": "Digital Designer, Growth",
+   "company": "Raisin",
+   "proposed": {
+    "category": "design",
+    "subcategory": "des.general",
+    "confidence": 0.8,
+    "reason": "alias:designer"
+   },
+   "owner": null
+  },
+  {
+   "n": 182,
+   "url": "https://jobsviadraft.com/jobs/fanduel-customer-marketing-associate-promotional-strategy-205861",
+   "title": "Customer Marketing Associate, Promotional Strategy",
+   "company": "FanDuel",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 183,
+   "url": "https://jobsviadraft.com/jobs/serc-physical-therapy-patient-care-coordinator-lenexa-east-clinic-124265",
+   "title": "Patient Care Coordinator- Lenexa East clinic",
+   "company": "SERC Physical Therapy",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 184,
+   "url": "https://jobsviadraft.com/jobs/nexxen-senior-account-executive-sales-director-channel-partnerships-139760",
+   "title": "Senior Account Executive /Sales Director (Channel Partnerships)",
+   "company": "Nexxen",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.9,
+    "reason": "alias:account executive,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 185,
+   "url": "https://jobsviadraft.com/jobs/clear-street-associate-middle-office-and-digital-operations-123439",
+   "title": "Associate - Middle Office & Digital Operations",
+   "company": "Clear Street",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 186,
+   "url": "https://jobsviadraft.com/jobs/typeface-staff-cloud-security-engineer-128203",
+   "title": "Staff Cloud Security Engineer",
+   "company": "Typeface",
+   "proposed": {
+    "category": "security",
+    "subcategory": "sec.cloud",
+    "confidence": 0.87,
+    "reason": "alias:cloud security engineer,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 187,
+   "url": "https://jobsviadraft.com/jobs/lantern-director-of-commercial-enablement-122347",
+   "title": "Director of Commercial Enablement",
+   "company": "Lantern",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 188,
+   "url": "https://jobsviadraft.com/jobs/creatoriq-manager-platform-services-199514",
+   "title": "Manager, Platform Services",
+   "company": "CreatorIQ",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 189,
+   "url": "https://jobsviadraft.com/jobs/entrusted-contracting-business-development-apprentice-169293",
+   "title": "Business Development Apprentice",
+   "company": "Entrusted Contracting",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 190,
+   "url": "https://jobsviadraft.com/jobs/k-l-scott-and-associates-web-content-developer-129219",
+   "title": "Web Content Developer",
+   "company": "K.L. Scott & Associates",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.8,
+    "reason": "alias:developer"
+   },
+   "owner": null
+  },
+  {
+   "n": 191,
+   "url": "https://jobsviadraft.com/jobs/raslegalgroup-title-support-specialist-169617",
+   "title": "Title Support Specialist",
+   "company": "Raslegalgroup",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 192,
+   "url": "https://jobsviadraft.com/jobs/walden-robotics-program-manager-business-operations-169980",
+   "title": "Program Manager, Business Operations",
+   "company": "Walden Robotics",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.program",
+    "confidence": 0.87,
+    "reason": "alias:program manager,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 193,
+   "url": "https://jobsviadraft.com/jobs/eola-power-senior-quality-service-engineer-198955",
+   "title": "Senior Quality Service Engineer",
+   "company": "EOLA Power",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 194,
+   "url": "https://jobsviadraft.com/jobs/rtx-technical-writer-200760",
+   "title": "Technical Writer",
+   "company": "RTX",
+   "proposed": {
+    "category": "writing-communications",
+    "subcategory": "comm.technical",
+    "confidence": 0.83,
+    "reason": "alias:technical writer"
+   },
+   "owner": null
+  },
+  {
+   "n": 195,
+   "url": "https://jobsviadraft.com/jobs/medtronic-senior-principal-advanced-manufacturing-engineer-laser-proce-194714",
+   "title": "Senior Principal Advanced Manufacturing Engineer, Laser Processing & Precision Joining – NMPH – Fridley, MN (Onsite)",
+   "company": "Medtronic",
+   "proposed": {
+    "category": "mechanical-manufacturing",
+    "subcategory": "me.manufacturing",
+    "confidence": 0.83,
+    "reason": "alias:manufacturing engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 196,
+   "url": "https://jobsviadraft.com/jobs/blue-link-wireless-an-authorized-retailer-of-at-and-t-bilingual-wireless-retail-sales-representative-125714",
+   "title": "Bilingual Wireless Retail Sales Representative",
+   "company": "Blue Link Wireless an Authorized Retailer of AT&T",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.83,
+    "reason": "alias:sales representative"
+   },
+   "owner": null
+  },
+  {
+   "n": 197,
+   "url": "https://jobsviadraft.com/jobs/access-destination-services-senior-creative-associate-148864",
+   "title": "Senior Creative Associate",
+   "company": "Access Destination Services",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 198,
+   "url": "https://jobsviadraft.com/jobs/rectangle-health-sales-manager-129539",
+   "title": "Sales Manager",
+   "company": "Rectangle Health",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.83,
+    "reason": "alias:sales manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 199,
+   "url": "https://jobsviadraft.com/jobs/buzz-solutions-customer-success-manager-southeast-123375",
+   "title": "Customer Success Manager (Southeast)",
+   "company": "Buzz Solutions",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.cs",
+    "confidence": 0.93,
+    "reason": "alias:customer success manager,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 200,
+   "url": "https://jobsviadraft.com/jobs/advertising-specialty-institute-manager-business-and-hris-platforms-161893",
+   "title": "Manager, Business and HRIS Platforms",
+   "company": "Advertising Specialty Institute",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 201,
+   "url": "https://jobsviadraft.com/jobs/boyd-gaming-it-software-engineer-ii-157531",
+   "title": "IT Software Engineer II",
+   "company": "Boyd Gaming",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 202,
+   "url": "https://jobsviadraft.com/jobs/kraken-senior-software-engineer-agent-systems-141031",
+   "title": "Senior Software Engineer – Agent Systems",
+   "company": "Kraken",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 203,
+   "url": "https://jobsviadraft.com/jobs/ana-business-systems-analyst-135490",
+   "title": "Business Systems Analyst",
+   "company": "ANA",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0.3,
+    "reason": "tie:infra.enterprise-apps|biz.analysis"
+   },
+   "owner": null
+  },
+  {
+   "n": 204,
+   "url": "https://jobsviadraft.com/jobs/enova-international-head-of-partnerships-and-affiliate-marketing-hybrid-120403",
+   "title": "Head of Partnerships and Affiliate Marketing (Hybrid)",
+   "company": "Enova International",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.general",
+    "confidence": 0.45,
+    "reason": "category-name:Marketing"
+   },
+   "owner": null
+  },
+  {
+   "n": 205,
+   "url": "https://jobsviadraft.com/jobs/bunkerhill-health-forward-deployed-product-lead-148074",
+   "title": "Forward Deployed Product Lead",
+   "company": "Bunkerhill Health",
+   "proposed": {
+    "category": "product-management",
+    "subcategory": "pm.general",
+    "confidence": 0.83,
+    "reason": "alias:product lead"
+   },
+   "owner": null
+  },
+  {
+   "n": 206,
+   "url": "https://jobsviadraft.com/jobs/lightspeed-systems-account-manager-127759",
+   "title": "Account Manager",
+   "company": "Lightspeed Systems",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.am",
+    "confidence": 0.9,
+    "reason": "alias:account manager,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 207,
+   "url": "https://jobsviadraft.com/jobs/northrop-grumman-program-cost-control-analyst-200029",
+   "title": "Program Cost Control Analyst",
+   "company": "Northrop Grumman",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:analyst"
+   },
+   "owner": null
+  },
+  {
+   "n": 208,
+   "url": "https://jobsviadraft.com/jobs/fanatics-inc-applied-ai-engineer-118638",
+   "title": "Applied AI Engineer",
+   "company": "Fanatics Inc.",
+   "proposed": {
+    "category": "data-ai",
+    "subcategory": "data.ai-apps",
+    "confidence": 0.87,
+    "reason": "alias:applied AI engineer,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 209,
+   "url": "https://jobsviadraft.com/jobs/mysten-labs-senior-security-engineer-defi-146360",
+   "title": "Senior Security Engineer, DeFi",
+   "company": "Mysten Labs",
+   "proposed": {
+    "category": "security",
+    "subcategory": "sec.general",
+    "confidence": 0.83,
+    "reason": "alias:security engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 210,
+   "url": "https://jobsviadraft.com/jobs/inizio-ignite-putnam-senior-consultant-122854",
+   "title": "Senior Consultant",
+   "company": "Inizio Ignite | Putnam",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 211,
+   "url": "https://jobsviadraft.com/jobs/anysignal-contracts-specialist-140077",
+   "title": "Contracts Specialist",
+   "company": "AnySignal",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 212,
+   "url": "https://jobsviadraft.com/jobs/bamboohr-agentic-engineering-manager-110686",
+   "title": "Agentic Engineering Manager",
+   "company": "BambooHR",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 213,
+   "url": "https://jobsviadraft.com/jobs/jane-software-development-manager-growth-148300",
+   "title": "Software Development Manager - Growth",
+   "company": "Jane",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.general",
+    "confidence": 0.4,
+    "reason": "category-words:marketing"
+   },
+   "owner": null
+  },
+  {
+   "n": 214,
+   "url": "https://jobsviadraft.com/jobs/underscore-marketing-contractor-marketing-analytics-and-data-visualization-129880",
+   "title": "Contractor, Marketing Analytics & Data Visualization",
+   "company": "Underscore Marketing",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.general",
+    "confidence": 0.45,
+    "reason": "category-name:Marketing"
+   },
+   "owner": null
+  },
+  {
+   "n": 215,
+   "url": "https://jobsviadraft.com/jobs/aecom-construction-program-management-director-203469",
+   "title": "Construction Program Management Director",
+   "company": "AECOM",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.general",
+    "confidence": 0.5,
+    "reason": "category-only:name:Construction"
+   },
+   "owner": null
+  },
+  {
+   "n": 216,
+   "url": "https://jobsviadraft.com/jobs/spoton-territory-sales-representative-restaurant-specialist-plymout-147768",
+   "title": "Territory Sales Representative / Restaurant Specialist - Plymouth, MA",
+   "company": "SpotOn",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.83,
+    "reason": "alias:sales representative"
+   },
+   "owner": null
+  },
+  {
+   "n": 217,
+   "url": "https://jobsviadraft.com/jobs/overwatch-director-mechanical-ofci-engineering-and-technical-delivery-168356",
+   "title": "Director Mechanical OFCI Engineering & Technical Delivery",
+   "company": "Overwatch",
+   "proposed": {
+    "category": "mechanical-manufacturing",
+    "subcategory": "me.general",
+    "confidence": 0.4,
+    "reason": "category-words:mechanical-manufacturing"
+   },
+   "owner": null
+  },
+  {
+   "n": 218,
+   "url": "https://jobsviadraft.com/jobs/anrok-enterprise-account-manager-148043",
+   "title": "Enterprise Account Manager",
+   "company": "Anrok",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.am",
+    "confidence": 0.87,
+    "reason": "alias:account manager,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 219,
+   "url": "https://jobsviadraft.com/jobs/greenhouse-manager-enterprise-sales-198897",
+   "title": "Manager, Enterprise Sales",
+   "company": "Greenhouse",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 220,
+   "url": "https://jobsviadraft.com/jobs/novartis-senior-clinical-research-associate-195767",
+   "title": "Senior Clinical Research Associate",
+   "company": "Novartis",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 221,
+   "url": "https://jobsviadraft.com/jobs/titan-software-engineer-applied-ai-149411",
+   "title": "Software Engineer - Applied AI",
+   "company": "Titan",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 222,
+   "url": "https://jobsviadraft.com/jobs/abc-legal-services-docketly-court-coverage-specialist-120201",
+   "title": "Docketly-Court Coverage Specialist",
+   "company": "ABC Legal Services",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 223,
+   "url": "https://jobsviadraft.com/jobs/optery-inc-performance-marketing-manager-163069",
+   "title": "Performance Marketing Manager",
+   "company": "Optery, Inc.",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.performance",
+    "confidence": 0.93,
+    "reason": "alias:performance marketing manager,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 224,
+   "url": "https://jobsviadraft.com/jobs/eurofins-associate-scientist-solid-state-characterization-195915",
+   "title": "Associate Scientist – Solid State Characterization",
+   "company": "Eurofins",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0.3,
+    "reason": "tie:biz.general|sci.general"
+   },
+   "owner": null
+  },
+  {
+   "n": 225,
+   "url": "https://jobsviadraft.com/jobs/horace-mann-agent-opportunities-insurance-producer-irving-tx-130787",
+   "title": "Insurance Producer - Irving, TX",
+   "company": "Horace Mann - Agent Opportunities",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.media",
+    "confidence": 0.8,
+    "reason": "alias:producer"
+   },
+   "owner": null
+  },
+  {
+   "n": 226,
+   "url": "https://jobsviadraft.com/jobs/oscar-health-process-management-associate-provider-operations-181903",
+   "title": "Process Management Associate, Provider Operations",
+   "company": "Oscar Health",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 227,
+   "url": "https://jobsviadraft.com/jobs/lancedb-senior-product-manager-147504",
+   "title": "Senior Product Manager",
+   "company": "LanceDB",
+   "proposed": {
+    "category": "product-management",
+    "subcategory": "pm.core",
+    "confidence": 0.87,
+    "reason": "alias:product manager,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 228,
+   "url": "https://jobsviadraft.com/jobs/eurofins-asbestos-analyst-eurofins-built-environment-testing-tustin-c-156445",
+   "title": "Asbestos Analyst - Eurofins Built Environment Testing - Tustin, CA",
+   "company": "Eurofins",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:analyst"
+   },
+   "owner": null
+  },
+  {
+   "n": 229,
+   "url": "https://jobsviadraft.com/jobs/delve-underground-senior-staff-civil-geotechnical-engineer-170487",
+   "title": "Senior Staff Civil/Geotechnical Engineer",
+   "company": "Delve Underground",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 230,
+   "url": "https://jobsviadraft.com/jobs/philips-manufacturing-project-engineer-212377",
+   "title": "Manufacturing Project Engineer",
+   "company": "Philips",
+   "proposed": {
+    "category": "mechanical-manufacturing",
+    "subcategory": "me.general",
+    "confidence": 0.4,
+    "reason": "category-words:mechanical-manufacturing"
+   },
+   "owner": null
+  },
+  {
+   "n": 231,
+   "url": "https://jobsviadraft.com/jobs/david-ai-chief-of-staff-to-the-ceo-146221",
+   "title": "Chief of Staff to the CEO",
+   "company": "David AI",
+   "proposed": {
+    "category": "operations-supply-chain",
+    "subcategory": "ops.bizops",
+    "confidence": 0.83,
+    "reason": "alias:chief of staff"
+   },
+   "owner": null
+  },
+  {
+   "n": 232,
+   "url": "https://jobsviadraft.com/jobs/eurofins-scientist-i-adme-tox-156421",
+   "title": "Scientist I - ADME Tox",
+   "company": "Eurofins",
+   "proposed": {
+    "category": "science-research",
+    "subcategory": "sci.general",
+    "confidence": 0.8,
+    "reason": "alias:scientist"
+   },
+   "owner": null
+  },
+  {
+   "n": 233,
+   "url": "https://jobsviadraft.com/jobs/bgbx-talent-acquisition-partner-110720",
+   "title": "Talent Acquisition Partner",
+   "company": "BGBx",
+   "proposed": {
+    "category": "people-hr",
+    "subcategory": "hr.recruiting",
+    "confidence": 0.93,
+    "reason": "alias:talent acquisition partner,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 234,
+   "url": "https://jobsviadraft.com/jobs/shield-ai-senior-staff-systems-security-engineer-program-protection-tx-183520",
+   "title": "Senior Staff Systems Security Engineer, Program Protection (TX/DC/Sea) (R6515)",
+   "company": "Shield AI",
+   "proposed": {
+    "category": "security",
+    "subcategory": "sec.general",
+    "confidence": 0.83,
+    "reason": "alias:security engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 235,
+   "url": "https://jobsviadraft.com/jobs/agoda-strategic-account-manager-hotel-programs-122056",
+   "title": "Strategic Account Manager, Hotel Programs",
+   "company": "Agoda",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.am",
+    "confidence": 0.83,
+    "reason": "alias:account manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 236,
+   "url": "https://jobsviadraft.com/jobs/allen-integrated-solutions-logistics-technical-planner-integrator-944-198399",
+   "title": "Logistics Technical Planner/Integrator - #944",
+   "company": "Allen Integrated Solutions",
+   "proposed": {
+    "category": "operations-supply-chain",
+    "subcategory": "ops.general",
+    "confidence": 0.4,
+    "reason": "category-words:operations-supply-chain"
+   },
+   "owner": null
+  },
+  {
+   "n": 237,
+   "url": "https://jobsviadraft.com/jobs/payoneer-solutions-and-implementation-manager-127932",
+   "title": "Solutions & Implementation Manager",
+   "company": "Payoneer",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.technical",
+    "confidence": 0.83,
+    "reason": "alias:implementation manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 238,
+   "url": "https://jobsviadraft.com/jobs/hi-marley-account-manager-126195",
+   "title": "Account Manager",
+   "company": "Hi Marley",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.am",
+    "confidence": 0.87,
+    "reason": "alias:account manager,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 239,
+   "url": "https://jobsviadraft.com/jobs/alloy-channel-operations-manager-110671",
+   "title": "Channel Operations Manager",
+   "company": "Alloy",
+   "proposed": {
+    "category": "operations-supply-chain",
+    "subcategory": "ops.general",
+    "confidence": 0.83,
+    "reason": "alias:operations manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 240,
+   "url": "https://jobsviadraft.com/jobs/upside-strategic-account-manager-146001",
+   "title": "Strategic Account Manager",
+   "company": "Upside",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.am",
+    "confidence": 0.87,
+    "reason": "alias:account manager,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 241,
+   "url": "https://jobsviadraft.com/jobs/tarsus-pharmaceuticals-director-formulation-development-126711",
+   "title": "Director, Formulation Development",
+   "company": "Tarsus Pharmaceuticals",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 242,
+   "url": "https://jobsviadraft.com/jobs/datarails-account-executive-128745",
+   "title": "Account Executive",
+   "company": "Datarails",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.93,
+    "reason": "alias:account executive,signals:3"
+   },
+   "owner": null
+  },
+  {
+   "n": 243,
+   "url": "https://jobsviadraft.com/jobs/orion-innovation-lead-ai-architect-agentic-sdlc-191054",
+   "title": "Lead AI Architect ( Agentic SDLC )",
+   "company": "Orion Innovation",
+   "proposed": {
+    "category": "civil-construction",
+    "subcategory": "civ.architecture",
+    "confidence": 0.8,
+    "reason": "alias:architect"
+   },
+   "owner": null
+  },
+  {
+   "n": 244,
+   "url": "https://jobsviadraft.com/jobs/place-corporate-senior-software-engineer-122816",
+   "title": "Senior Software Engineer",
+   "company": "PLACE Corporate",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 245,
+   "url": "https://jobsviadraft.com/jobs/ghj-senior-property-accountant-134743",
+   "title": "Senior Property Accountant",
+   "company": "GHJ",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.accounting",
+    "confidence": 0.8,
+    "reason": "alias:accountant"
+   },
+   "owner": null
+  },
+  {
+   "n": 246,
+   "url": "https://jobsviadraft.com/jobs/cortland-manager-technology-strategy-and-transformation-atlanta-ga-122274",
+   "title": "Manager, Technology Strategy and Transformation - Atlanta, GA",
+   "company": "Cortland",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 247,
+   "url": "https://jobsviadraft.com/jobs/third-party-job-posts-senior-software-engineer-183374",
+   "title": "Senior Software Engineer",
+   "company": "Third-Party Job Posts",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 248,
+   "url": "https://jobsviadraft.com/jobs/shipbob-inc-senior-merchant-success-manager-125343",
+   "title": "Senior Merchant Success Manager",
+   "company": "ShipBob, Inc.",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 249,
+   "url": "https://jobsviadraft.com/jobs/datavant-health-information-specialist-i-110041",
+   "title": "Health Information Specialist I",
+   "company": "Datavant",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 250,
+   "url": "https://jobsviadraft.com/jobs/the-boring-company-operations-coordinator-168586",
+   "title": "Operations Coordinator",
+   "company": "The Boring Company",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 251,
+   "url": "https://jobsviadraft.com/jobs/aecom-civil-construction-engineer-2-years-of-experience-required-195868",
+   "title": "Civil Construction Engineer (2 years of experience required)",
+   "company": "AECOM",
+   "proposed": {
+    "category": "civil-construction",
+    "subcategory": "civ.construction",
+    "confidence": 0.83,
+    "reason": "alias:construction engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 252,
+   "url": "https://jobsviadraft.com/jobs/sprout-social-account-executive-mid-market-118203",
+   "title": "Account Executive, Mid Market",
+   "company": "Sprout Social",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.87,
+    "reason": "alias:account executive,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 253,
+   "url": "https://jobsviadraft.com/jobs/gdit-devsecops-engineer-210791",
+   "title": "DevSecOps Engineer",
+   "company": "GDIT",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 254,
+   "url": "https://jobsviadraft.com/jobs/applied-intuition-senior-software-engineer-frontend-platform-183752",
+   "title": "Senior Software Engineer - Frontend Platform",
+   "company": "Applied Intuition",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 255,
+   "url": "https://jobsviadraft.com/jobs/arbor-energy-assistant-controller-123242",
+   "title": "Assistant Controller",
+   "company": "Arbor Energy",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 256,
+   "url": "https://jobsviadraft.com/jobs/cornerstone-building-brands-glass-specialist-157823",
+   "title": "Glass Specialist",
+   "company": "Cornerstone Building Brands",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 257,
+   "url": "https://jobsviadraft.com/jobs/b-and-s-site-development-project-engineer-162222",
+   "title": "Project Engineer",
+   "company": "B&S Site Development",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 258,
+   "url": "https://jobsviadraft.com/jobs/on-board-experiential-senior-designer-124030",
+   "title": "Senior Designer",
+   "company": "On Board Experiential",
+   "proposed": {
+    "category": "design",
+    "subcategory": "des.general",
+    "confidence": 0.8,
+    "reason": "alias:designer"
+   },
+   "owner": null
+  },
+  {
+   "n": 259,
+   "url": "https://jobsviadraft.com/jobs/banyan-software-growth-marketing-specialist-122120",
+   "title": "Growth Marketing Specialist",
+   "company": "Banyan Software",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.general",
+    "confidence": 0.83,
+    "reason": "alias:marketing specialist"
+   },
+   "owner": null
+  },
+  {
+   "n": 260,
+   "url": "https://jobsviadraft.com/jobs/horace-mann-agent-opportunities-insurance-producer-fort-smith-ar-130761",
+   "title": "Insurance Producer - Fort Smith, AR",
+   "company": "Horace Mann - Agent Opportunities",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.media",
+    "confidence": 0.8,
+    "reason": "alias:producer"
+   },
+   "owner": null
+  },
+  {
+   "n": 261,
+   "url": "https://jobsviadraft.com/jobs/reformation-temporary-operations-associate-part-time-design-district-125280",
+   "title": "Temporary Operations Associate, Part Time - Design District",
+   "company": "Reformation",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 262,
+   "url": "https://jobsviadraft.com/jobs/grvty-financial-reporting-senior-accountant-hybrid-182093",
+   "title": "Financial Reporting Senior Accountant - Hybrid",
+   "company": "GRVTY",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.accounting",
+    "confidence": 0.87,
+    "reason": "alias:accountant,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 263,
+   "url": "https://jobsviadraft.com/jobs/backbase-senior-enterprise-account-executive-agentic-banking-125533",
+   "title": "Senior Enterprise Account Executive, Agentic Banking",
+   "company": "Backbase",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.93,
+    "reason": "alias:enterprise account executive,signals:2"
+   },
+   "owner": null
+  },
+  {
+   "n": 264,
+   "url": "https://jobsviadraft.com/jobs/verifone-field-operations-associate-129926",
+   "title": "Field Operations Associate",
+   "company": "Verifone",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 265,
+   "url": "https://jobsviadraft.com/jobs/ghx-software-engineer-iii-developer-platform-and-ai-enablement-110879",
+   "title": "Software Engineer III – Developer Platform & AI Enablement",
+   "company": "GHX",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 266,
+   "url": "https://jobsviadraft.com/jobs/city-of-new-york-assistant-director-of-strategic-engagement-155352",
+   "title": "Assistant Director of Strategic Engagement",
+   "company": "City of New York",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 267,
+   "url": "https://jobsviadraft.com/jobs/cantina-managing-editor-146713",
+   "title": "Managing Editor",
+   "company": "Cantina",
+   "proposed": {
+    "category": "writing-communications",
+    "subcategory": "comm.editorial",
+    "confidence": 0.8,
+    "reason": "alias:editor"
+   },
+   "owner": null
+  },
+  {
+   "n": 268,
+   "url": "https://jobsviadraft.com/jobs/hillpointe-real-estate-paralegal-129034",
+   "title": "Real Estate Paralegal",
+   "company": "Hillpointe",
+   "proposed": {
+    "category": "legal",
+    "subcategory": "law.paralegal",
+    "confidence": 0.8,
+    "reason": "alias:paralegal"
+   },
+   "owner": null
+  },
+  {
+   "n": 269,
+   "url": "https://jobsviadraft.com/jobs/eisen-head-of-finance-163134",
+   "title": "Head of Finance",
+   "company": "Eisen",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 270,
+   "url": "https://jobsviadraft.com/jobs/aiprise-performance-marketing-manager-148033",
+   "title": "Performance Marketing Manager",
+   "company": "AiPrise",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.performance",
+    "confidence": 0.9,
+    "reason": "alias:performance marketing manager,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 271,
+   "url": "https://jobsviadraft.com/jobs/walden-robotics-senior-manager-data-collections-operations-169989",
+   "title": "Senior Manager, Data Collections Operations",
+   "company": "Walden Robotics",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.4,
+    "reason": "category-words:business-finance"
+   },
+   "owner": null
+  },
+  {
+   "n": 272,
+   "url": "https://jobsviadraft.com/jobs/clera-senior-optical-engineer-r-and-d-208593",
+   "title": "Senior Optical Engineer, R&D",
+   "company": "Clera",
+   "proposed": {
+    "category": "science-research",
+    "subcategory": "sci.physics",
+    "confidence": 0.87,
+    "reason": "alias:optical engineer,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 273,
+   "url": "https://jobsviadraft.com/jobs/dirty-hands-territory-sales-manager-cincinnati-oh-171623",
+   "title": "Territory Sales Manager- Cincinnati, OH",
+   "company": "Dirty Hands",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.83,
+    "reason": "alias:sales manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 274,
+   "url": "https://jobsviadraft.com/jobs/city-of-new-york-organizational-change-management-business-specialist-187924",
+   "title": "Organizational Change Management Business Specialist",
+   "company": "City of New York",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 275,
+   "url": "https://jobsviadraft.com/jobs/horizon3-senior-account-executive-sled-dc-dmv-191453",
+   "title": "Senior Account Executive, SLED - DC/DMV",
+   "company": "Horizon3",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.93,
+    "reason": "alias:account executive,signals:3"
+   },
+   "owner": null
+  },
+  {
+   "n": 276,
+   "url": "https://jobsviadraft.com/jobs/commonwealth-fusion-systems-intern-structural-engineer-summer-2027-134613",
+   "title": "Intern - Structural Engineer - Summer 2027",
+   "company": "Commonwealth Fusion Systems",
+   "proposed": {
+    "category": "civil-construction",
+    "subcategory": "civ.structural",
+    "confidence": 0.83,
+    "reason": "alias:structural engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 277,
+   "url": "https://jobsviadraft.com/jobs/dexcom-staff-scientist-sensor-design-lead-202550",
+   "title": "Staff Scientist - Sensor Design Lead",
+   "company": "Dexcom",
+   "proposed": {
+    "category": "science-research",
+    "subcategory": "sci.general",
+    "confidence": 0.8,
+    "reason": "alias:scientist"
+   },
+   "owner": null
+  },
+  {
+   "n": 278,
+   "url": "https://jobsviadraft.com/jobs/opengov-sr-manager-field-marketing-138184",
+   "title": "Sr. Manager, Field Marketing",
+   "company": "OpenGov",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.general",
+    "confidence": 0.45,
+    "reason": "category-name:Marketing"
+   },
+   "owner": null
+  },
+  {
+   "n": 279,
+   "url": "https://jobsviadraft.com/jobs/caci-information-technology-manager-200843",
+   "title": "Information Technology Manager",
+   "company": "CACI",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 280,
+   "url": "https://jobsviadraft.com/jobs/integrity-rehab-group-patient-care-coordinator-126254",
+   "title": "Patient Care Coordinator",
+   "company": "Integrity Rehab Group",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 281,
+   "url": "https://jobsviadraft.com/jobs/obviant-lead-data-and-bi-automation-analyst-145825",
+   "title": "Lead Data & BI Automation Analyst",
+   "company": "Obviant",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:analyst"
+   },
+   "owner": null
+  },
+  {
+   "n": 282,
+   "url": "https://jobsviadraft.com/jobs/horace-mann-agent-opportunities-insurance-producer-texarkana-tx-130851",
+   "title": "Insurance Producer - Texarkana, TX",
+   "company": "Horace Mann - Agent Opportunities",
+   "proposed": {
+    "category": "project-program-management",
+    "subcategory": "proj.media",
+    "confidence": 0.8,
+    "reason": "alias:producer"
+   },
+   "owner": null
+  },
+  {
+   "n": 283,
+   "url": "https://jobsviadraft.com/jobs/city-of-new-york-community-coordinator-for-the-emergency-operations-and-enhan-155419",
+   "title": "Community Coordinator for the Emergency Operations and Enhanced Enforcement Division (EOD)",
+   "company": "City of New York",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 284,
+   "url": "https://jobsviadraft.com/jobs/crb-sr-field-operations-manager-156275",
+   "title": "Sr. Field Operations Manager",
+   "company": "CRB",
+   "proposed": {
+    "category": "operations-supply-chain",
+    "subcategory": "ops.general",
+    "confidence": 0.83,
+    "reason": "alias:operations manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 285,
+   "url": "https://jobsviadraft.com/jobs/universalagi-recruiting-coordinator-143691",
+   "title": "Recruiting Coordinator",
+   "company": "UniversalAGI",
+   "proposed": {
+    "category": "people-hr",
+    "subcategory": "hr.general",
+    "confidence": 0.4,
+    "reason": "category-words:people-hr"
+   },
+   "owner": null
+  },
+  {
+   "n": 286,
+   "url": "https://jobsviadraft.com/jobs/reformation-sales-supervisor-full-time-beverly-hills-ca-125256",
+   "title": "Sales Supervisor, Full Time - Beverly Hills, CA",
+   "company": "Reformation",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 287,
+   "url": "https://jobsviadraft.com/jobs/barnes-and-thornburg-llp-life-science-patent-prosecution-associate-137219",
+   "title": "Life Science Patent Prosecution Associate",
+   "company": "Barnes & Thornburg LLP",
+   "proposed": {
+    "category": "business-finance",
+    "subcategory": "biz.general",
+    "confidence": 0.8,
+    "reason": "alias:associate"
+   },
+   "owner": null
+  },
+  {
+   "n": 288,
+   "url": "https://jobsviadraft.com/jobs/knowtex-senior-software-engineer-web-163146",
+   "title": "Senior Software Engineer, Web",
+   "company": "Knowtex",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 289,
+   "url": "https://jobsviadraft.com/jobs/qualitate-lead-research-analyst-biotech-and-biopharma-162677",
+   "title": "Lead Research Analyst - Biotech & Biopharma",
+   "company": "Qualitate",
+   "proposed": {
+    "category": "science-research",
+    "subcategory": "sci.social",
+    "confidence": 0.83,
+    "reason": "alias:research analyst"
+   },
+   "owner": null
+  },
+  {
+   "n": 290,
+   "url": "https://jobsviadraft.com/jobs/goodleap-senior-contact-center-manager-162616",
+   "title": "Senior Contact Center Manager",
+   "company": "GoodLeap",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 291,
+   "url": "https://jobsviadraft.com/jobs/blue-origin-director-fluids-systems-new-glenn-lsa-210319",
+   "title": "Director, Fluids Systems - New Glenn LSA",
+   "company": "Blue Origin",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 292,
+   "url": "https://jobsviadraft.com/jobs/brinc-senior-backend-software-engineer-liveops-145654",
+   "title": "Senior Backend Software Engineer, LiveOps",
+   "company": "BRINC",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 293,
+   "url": "https://jobsviadraft.com/jobs/aquant-senior-enterprise-account-executive-ma-149517",
+   "title": "Senior Enterprise Account Executive -MA",
+   "company": "Aquant",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.ae",
+    "confidence": 0.9,
+    "reason": "alias:enterprise account executive,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 294,
+   "url": "https://jobsviadraft.com/jobs/caci-software-engineer-185291",
+   "title": "Software Engineer",
+   "company": "CACI",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  },
+  {
+   "n": 295,
+   "url": "https://jobsviadraft.com/jobs/zip-senior-principal-product-manager-contract-orchestration-138540",
+   "title": "Senior / Principal Product Manager, Contract Orchestration",
+   "company": "Zip",
+   "proposed": {
+    "category": "product-management",
+    "subcategory": "pm.core",
+    "confidence": 0.83,
+    "reason": "alias:product manager"
+   },
+   "owner": null
+  },
+  {
+   "n": 296,
+   "url": "https://jobsviadraft.com/jobs/xcimer-energy-director-infrastructure-utilities-and-support-systems-engine-134858",
+   "title": "Director, Infrastructure, Utilities & Support Systems Engineering",
+   "company": "Xcimer Energy",
+   "proposed": {
+    "category": null,
+    "subcategory": null,
+    "confidence": 0,
+    "reason": "unsure"
+   },
+   "owner": null
+  },
+  {
+   "n": 297,
+   "url": "https://jobsviadraft.com/jobs/liquibase-director-of-enterprise-sales-remote-us-based-161840",
+   "title": "Director of Enterprise Sales (Remote, US-based)",
+   "company": "Liquibase",
+   "proposed": {
+    "category": "sales-cs",
+    "subcategory": "sales.general",
+    "confidence": 0.4,
+    "reason": "category-words:sales-cs"
+   },
+   "owner": null
+  },
+  {
+   "n": 298,
+   "url": "https://jobsviadraft.com/jobs/letter-ai-product-marketing-manager-letter-compass-169073",
+   "title": "Product Marketing Manager, Letter Compass",
+   "company": "Letter Ai",
+   "proposed": {
+    "category": "marketing",
+    "subcategory": "mkt.product-brand",
+    "confidence": 0.95,
+    "reason": "alias:product marketing manager,signals:3"
+   },
+   "owner": null
+  },
+  {
+   "n": 299,
+   "url": "https://jobsviadraft.com/jobs/strive-health-director-clinical-product-management-111294",
+   "title": "Director, Clinical Product Management",
+   "company": "Strive Health",
+   "proposed": {
+    "category": "product-management",
+    "subcategory": "pm.general",
+    "confidence": 0.5,
+    "reason": "category-only:name:Product management,signals:1"
+   },
+   "owner": null
+  },
+  {
+   "n": 300,
+   "url": "https://jobsviadraft.com/jobs/horizon3-senior-software-engineer-pentest-experience-191454",
+   "title": "Senior Software Engineer, Pentest Experience",
+   "company": "Horizon3",
+   "proposed": {
+    "category": "software-engineering",
+    "subcategory": "swe.general",
+    "confidence": 0.83,
+    "reason": "alias:software engineer"
+   },
+   "owner": null
+  }
+ ]
+}

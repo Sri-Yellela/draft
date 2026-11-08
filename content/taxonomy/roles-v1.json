@@ -1,0 +1,230 @@
+{
+"version": 1,
+"status": "APPROVED by the owner 2026-11-07 (D179 P1) — changes from here are versioned (ids stable)",
+"updated": "2026-11-07",
+"rules": [
+ "A subcategory exists only where the work, and so the skills, meaningfully differ — that is what lets Atlas reuse it as a role node with its own skill set.",
+ "Every category has a 'general' subcategory: category clear, specialisation unsure → shown at category level, never held (D127's hold applies to the category only).",
+ "Level is a facet, not a subcategory: intern · junior · mid · senior · staff · principal · manager · director · executive. People-management roles sit in their function's category at a manager / director level (an engineering manager is Software engineering · Manager).",
+ "Industry is a company facet (from the company page), not a job category: 'Backend at a fintech' = Software engineering › Backend + the company's industry.",
+ "Classification reads the posting's content, not only its title; aliases are hints for title normalisation.",
+ "soc = 2018 US SOC codes (D127 compatibility). family = the Atlas family the subcategory belongs to; 'NEW: …' marks a family Atlas doesn't have yet.",
+ "Ids are stable: a rename keeps its id; a split or merge is a new version with a mapping from old ids."
+],
+"facets": {
+ "level": ["intern","junior","mid","senior","staff","principal","manager","director","executive"],
+ "workMode": ["onsite","hybrid","remote"],
+ "industry": "from the company record (D179 (4))",
+ "technology": "from the posting's extracted technologies (D179 (5))"
+},
+"categories": [
+{"id":"software-engineering","name":"Software engineering","d127":"15","subcategories":[
+ {"id":"swe.backend","name":"Backend","soc":["15-1252"],"family":"Backend","aliases":["backend engineer","server-side engineer","API engineer","SDE backend"],"signals":["APIs","databases","services","queues"]},
+ {"id":"swe.frontend","name":"Frontend","soc":["15-1254","15-1252"],"family":"NEW: Frontend","aliases":["frontend engineer","UI engineer","web developer","React developer"],"signals":["JavaScript / TypeScript","React / Vue","CSS","accessibility","web performance"]},
+ {"id":"swe.fullstack","name":"Full-stack","soc":["15-1252","15-1254"],"family":"Backend","aliases":["full stack engineer","full-stack developer","product engineer"],"signals":["frontend + backend in one role"]},
+ {"id":"swe.ios","name":"Mobile · iOS","soc":["15-1252"],"family":"NEW: Mobile","aliases":["iOS engineer","Swift developer"],"signals":["Swift","SwiftUI / UIKit","App Store"]},
+ {"id":"swe.android","name":"Mobile · Android","soc":["15-1252"],"family":"NEW: Mobile","aliases":["Android engineer","Kotlin developer"],"signals":["Kotlin","Jetpack / Compose","Play Store"]},
+ {"id":"swe.mobile-cross","name":"Mobile · cross-platform","soc":["15-1252"],"family":"NEW: Mobile","aliases":["React Native developer","Flutter developer","mobile engineer"],"signals":["React Native","Flutter"]},
+ {"id":"swe.embedded","name":"Embedded and firmware","soc":["15-1252","17-2061"],"family":"Systems","aliases":["embedded software engineer","firmware engineer","embedded C developer"],"signals":["C / C++","RTOS","microcontrollers","drivers"]},
+ {"id":"swe.systems","name":"Systems software (OS, compilers, databases)","soc":["15-1252"],"family":"Systems","aliases":["systems engineer (software)","kernel engineer","compiler engineer","database engineer"],"signals":["C / C++ / Rust","kernels","compilers","storage engines"]},
+ {"id":"swe.distributed","name":"Distributed systems and storage","soc":["15-1252"],"family":"Systems","aliases":["distributed systems engineer","storage engineer","infrastructure software engineer"],"signals":["consensus","replication","large-scale storage","performance"]},
+ {"id":"swe.game","name":"Game development","soc":["15-1252"],"family":"NEW: Game and graphics","aliases":["game programmer","gameplay engineer","Unity / Unreal developer"],"signals":["Unity","Unreal","C++ / C#","gameplay systems"]},
+ {"id":"swe.graphics","name":"Graphics and rendering","soc":["15-1252"],"family":"NEW: Game and graphics","aliases":["graphics engineer","rendering engineer","GPU engineer"],"signals":["OpenGL / Vulkan / Metal","shaders","GPU"]},
+ {"id":"swe.qa","name":"QA and test automation (SDET)","soc":["15-1253"],"family":"NEW: QA","aliases":["SDET","QA engineer","test automation engineer","software engineer in test"],"signals":["Selenium / Playwright / Cypress","test strategy","CI"]},
+ {"id":"swe.general","name":"Software engineering · general","soc":["15-1252"],"family":"Backend","aliases":["software engineer","SWE","SDE","SDE II","software development engineer","member of technical staff","developer"],"signals":[]}
+]},
+{"id":"data-ai","name":"Data and AI","d127":"15","subcategories":[
+ {"id":"data.engineering","name":"Data engineering","soc":["15-1243","15-1252"],"family":"Data","aliases":["data engineer","big data engineer","ETL developer"],"signals":["SQL","Spark","Airflow","Kafka","warehouses"]},
+ {"id":"data.analytics-eng","name":"Analytics engineering","soc":["15-1243"],"family":"Data","aliases":["analytics engineer"],"signals":["dbt","SQL","semantic layer","data modelling"]},
+ {"id":"data.analysis-bi","name":"Data analysis and BI","soc":["15-2051","13-1111"],"family":"Data","aliases":["data analyst","BI analyst","business intelligence developer","reporting analyst"],"signals":["SQL","Tableau / Power BI / Looker","Excel","stakeholder reporting"]},
+ {"id":"data.science","name":"Data science","soc":["15-2051"],"family":"ML","aliases":["data scientist","product data scientist","decision scientist"],"signals":["statistics","experimentation","Python / R","modelling"]},
+ {"id":"data.ml-eng","name":"Machine learning engineering and MLOps","soc":["15-2051","15-1252"],"family":"ML","aliases":["ML engineer","machine learning engineer","MLOps engineer"],"signals":["model training","feature pipelines","serving","PyTorch / TensorFlow"]},
+ {"id":"data.ai-apps","name":"Applied AI and LLM engineering","soc":["15-1252","15-2051"],"family":"ML","aliases":["AI engineer","LLM engineer","generative AI engineer","applied AI engineer"],"signals":["LLM APIs","retrieval (RAG)","evaluation","agents"]},
+ {"id":"data.research","name":"ML research","soc":["15-1221"],"family":"ML","aliases":["research scientist (ML)","research engineer","AI researcher"],"signals":["publications","deep learning theory","novel models"]},
+ {"id":"data.vision","name":"Computer vision","soc":["15-1221","15-2051"],"family":"ML","aliases":["computer vision engineer","perception engineer","CV researcher"],"signals":["OpenCV","CNNs","detection / segmentation","cameras / lidar"]},
+ {"id":"data.nlp-speech","name":"NLP and speech","soc":["15-1221","15-2051"],"family":"ML","aliases":["NLP engineer","speech engineer","conversational AI engineer"],"signals":["transformers","ASR / TTS","text pipelines"]},
+ {"id":"data.quant","name":"Quantitative research and statistics","soc":["15-2041","15-2031"],"family":"NEW: Quant","aliases":["quantitative researcher","quant analyst","statistician","operations research analyst"],"signals":["probability","time series","optimisation","C++ / Python"]},
+ {"id":"data.general","name":"Data and AI · general","soc":["15-2051"],"family":"Data","aliases":["data specialist"],"signals":[]}
+]},
+{"id":"cloud-infra-it","name":"Cloud, infrastructure and IT","d127":"15","subcategories":[
+ {"id":"infra.cloud","name":"Cloud engineering and architecture","soc":["15-1241","15-1299"],"family":"Infra","aliases":["cloud engineer","cloud architect","solutions architect (cloud)","AWS engineer"],"signals":["AWS / Azure / GCP","infrastructure as code","networking"]},
+ {"id":"infra.platform-devops","name":"Platform and DevOps","soc":["15-1244","15-1252"],"family":"Infra","aliases":["DevOps engineer","platform engineer","build and release engineer","infrastructure engineer"],"signals":["Kubernetes","CI/CD","Terraform","containers"]},
+ {"id":"infra.sre","name":"Site reliability (SRE)","soc":["15-1244","15-1252"],"family":"Infra","aliases":["SRE","site reliability engineer","production engineer"],"signals":["SLOs","observability","incident response","on-call"]},
+ {"id":"infra.sysadmin","name":"Systems administration","soc":["15-1244"],"family":"Infra","aliases":["systems administrator","Linux administrator","Windows administrator"],"signals":["Linux / Windows Server","scripting","patching"]},
+ {"id":"infra.network","name":"Network engineering","soc":["15-1241","15-1244"],"family":"Infra","aliases":["network engineer","network architect"],"signals":["routing / switching","firewalls","Cisco / Juniper"]},
+ {"id":"infra.dba","name":"Database administration","soc":["15-1242"],"family":"Data","aliases":["database administrator","DBA"],"signals":["backup / recovery","tuning","PostgreSQL / Oracle / SQL Server"]},
+ {"id":"infra.it-support","name":"IT support and end-user computing","soc":["15-1232","15-1231"],"family":"NEW: IT","aliases":["IT support specialist","help desk","desktop support","IT technician"],"signals":["ticketing","device management","Active Directory"]},
+ {"id":"infra.enterprise-apps","name":"Enterprise applications (ERP, CRM)","soc":["15-1211"],"family":"NEW: IT","aliases":["Salesforce administrator","SAP consultant","ERP analyst","ServiceNow developer","systems analyst"],"signals":["Salesforce","SAP","Workday","ServiceNow"]},
+ {"id":"infra.general","name":"Cloud, infrastructure and IT · general","soc":["15-1299"],"family":"Infra","aliases":["IT engineer"],"signals":[]}
+]},
+{"id":"security","name":"Security","d127":"15","subcategories":[
+ {"id":"sec.appsec","name":"Application and product security","soc":["15-1212"],"family":"NEW: Security","aliases":["application security engineer","product security engineer","AppSec"],"signals":["secure code review","threat modelling","OWASP"]},
+ {"id":"sec.cloud","name":"Cloud and infrastructure security","soc":["15-1212"],"family":"NEW: Security","aliases":["cloud security engineer","infrastructure security engineer"],"signals":["IAM","CSPM","Kubernetes security"]},
+ {"id":"sec.ops","name":"Security operations and incident response","soc":["15-1212"],"family":"NEW: Security","aliases":["SOC analyst","security analyst","incident responder","detection engineer"],"signals":["SIEM","detection rules","forensics"]},
+ {"id":"sec.offensive","name":"Offensive security","soc":["15-1212"],"family":"NEW: Security","aliases":["penetration tester","red team","security researcher"],"signals":["pentesting","exploitation","OSCP"]},
+ {"id":"sec.identity","name":"Identity and access","soc":["15-1212"],"family":"NEW: Security","aliases":["IAM engineer","identity engineer"],"signals":["SSO / SAML / OIDC","Okta / Entra"]},
+ {"id":"sec.grc","name":"Governance, risk and compliance (GRC)","soc":["15-1212","13-1041"],"family":"NEW: Security","aliases":["GRC analyst","security compliance analyst","IT auditor"],"signals":["SOC 2","ISO 27001","risk assessments","NIST"]},
+ {"id":"sec.general","name":"Security · general","soc":["15-1212"],"family":"NEW: Security","aliases":["security engineer","cybersecurity engineer"],"signals":[]}
+]},
+{"id":"electrical-hardware","name":"Electrical and hardware engineering","d127":"17","subcategories":[
+ {"id":"ee.power","name":"Power systems","soc":["17-2071"],"family":"Electrical & hardware","aliases":["power systems engineer","electrical engineer (power)","substation engineer"],"signals":["grid","protection","ETAP / PSS/E"]},
+ {"id":"ee.electronics","name":"Electronics and PCB design","soc":["17-2072"],"family":"Electrical & hardware","aliases":["electronics engineer","hardware engineer","PCB designer"],"signals":["schematics","PCB layout","Altium","signal integrity"]},
+ {"id":"ee.asic","name":"Chip design and verification (ASIC)","soc":["17-2061","17-2072"],"family":"Electrical & hardware","aliases":["ASIC design engineer","RTL engineer","design verification engineer","physical design engineer"],"signals":["Verilog / SystemVerilog","UVM","synthesis","timing"]},
+ {"id":"ee.fpga","name":"FPGA","soc":["17-2061"],"family":"Electrical & hardware","aliases":["FPGA engineer","FPGA developer"],"signals":["VHDL / Verilog","Vivado / Quartus"]},
+ {"id":"ee.analog-rf","name":"Analog, mixed-signal and RF","soc":["17-2072"],"family":"Electrical & hardware","aliases":["analog design engineer","RF engineer","mixed-signal engineer"],"signals":["circuit design","SPICE","RF / antennas"]},
+ {"id":"ee.power-electronics","name":"Power electronics","soc":["17-2071","17-2072"],"family":"Electrical & hardware","aliases":["power electronics engineer"],"signals":["converters / inverters","motor drives","magnetics"]},
+ {"id":"ee.controls","name":"Controls and automation","soc":["17-2071","17-2199"],"family":"Electrical & hardware","aliases":["controls engineer","automation engineer","PLC engineer"],"signals":["PLC","SCADA","control theory","MATLAB / Simulink"]},
+ {"id":"ee.test","name":"Hardware test and validation","soc":["17-2072","17-2061"],"family":"Electrical & hardware","aliases":["hardware test engineer","validation engineer","test engineer (electronics)"],"signals":["lab equipment","test automation","compliance testing"]},
+ {"id":"ee.general","name":"Electrical and hardware · general","soc":["17-2071"],"family":"Electrical & hardware","aliases":["electrical engineer"],"signals":[]}
+]},
+{"id":"mechanical-manufacturing","name":"Mechanical and manufacturing engineering","d127":"17","subcategories":[
+ {"id":"me.design","name":"Mechanical design","soc":["17-2141"],"family":"Mechanical","aliases":["mechanical design engineer","product design engineer","CAD engineer"],"signals":["SolidWorks / Creo / NX","GD&T","tolerance analysis"]},
+ {"id":"me.thermal-fluids","name":"Thermal, fluids and simulation (CFD / FEA)","soc":["17-2141"],"family":"Mechanical","aliases":["thermal engineer","CFD engineer","simulation engineer","FEA analyst"],"signals":["CFD","FEA","ANSYS / Abaqus / OpenFOAM","heat transfer"]},
+ {"id":"me.manufacturing","name":"Manufacturing and process","soc":["17-2141","17-2112"],"family":"Process & industrial","aliases":["manufacturing engineer","process engineer (manufacturing)","production engineer"],"signals":["DFM","lean","fixtures / tooling","CNC"]},
+ {"id":"me.robotics","name":"Robotics and mechatronics","soc":["17-2199","17-2141"],"family":"NEW: Robotics","aliases":["robotics engineer","mechatronics engineer","automation engineer (robotics)"],"signals":["ROS","kinematics","sensors / actuators","motion control"]},
+ {"id":"me.automotive","name":"Automotive and EV","soc":["17-2141"],"family":"Mechanical","aliases":["automotive engineer","vehicle engineer","battery engineer","powertrain engineer"],"signals":["vehicle systems","battery packs","powertrain"]},
+ {"id":"me.hvac-mep","name":"HVAC and building systems (MEP)","soc":["17-2141"],"family":"Mechanical","aliases":["HVAC engineer","MEP engineer","mechanical engineer (buildings)"],"signals":["HVAC design","Revit MEP","energy modelling"]},
+ {"id":"me.general","name":"Mechanical and manufacturing · general","soc":["17-2141"],"family":"Mechanical","aliases":["mechanical engineer"],"signals":[]}
+]},
+{"id":"civil-construction","name":"Civil, structural and architecture","d127":"17","subcategories":[
+ {"id":"civ.structural","name":"Structural","soc":["17-2051"],"family":"Civil & structural","aliases":["structural engineer","bridge engineer"],"signals":["structural analysis","SAP2000 / ETABS","steel / concrete design"]},
+ {"id":"civ.geotech","name":"Geotechnical","soc":["17-2051"],"family":"Civil & structural","aliases":["geotechnical engineer"],"signals":["soil mechanics","foundations","site investigation"]},
+ {"id":"civ.transport","name":"Transportation","soc":["17-2051"],"family":"Civil & structural","aliases":["transportation engineer","traffic engineer","highway engineer"],"signals":["traffic analysis","roadway design","Civil 3D"]},
+ {"id":"civ.water-env","name":"Water and environmental","soc":["17-2051","17-2081"],"family":"Civil & structural","aliases":["water resources engineer","environmental engineer","hydraulic engineer"],"signals":["hydrology","stormwater","permitting"]},
+ {"id":"civ.construction","name":"Construction engineering","soc":["17-2051","11-9021"],"family":"Civil & structural","aliases":["construction engineer","field engineer","site engineer"],"signals":["means and methods","scheduling","site supervision"]},
+ {"id":"civ.architecture","name":"Architecture","soc":["17-1011"],"family":"NEW: Architecture","aliases":["architect","architectural designer","project architect"],"signals":["Revit","design development","codes"]},
+ {"id":"civ.geospatial","name":"Surveying and geospatial (GIS)","soc":["17-1022","15-1299"],"family":"NEW: Geospatial","aliases":["GIS analyst","surveyor","geospatial engineer","lidar analyst"],"signals":["ArcGIS / QGIS","lidar","remote sensing"]},
+ {"id":"civ.general","name":"Civil and structural · general","soc":["17-2051"],"family":"Civil & structural","aliases":["civil engineer"],"signals":[]}
+]},
+{"id":"aerospace","name":"Aerospace","d127":"17","subcategories":[
+ {"id":"aero.structures","name":"Structures and stress","soc":["17-2011"],"family":"Aerospace","aliases":["stress engineer","aerostructures engineer"],"signals":["composites","FEA","fatigue"]},
+ {"id":"aero.propulsion","name":"Propulsion","soc":["17-2011"],"family":"Aerospace","aliases":["propulsion engineer","engine engineer"],"signals":["combustion","turbomachinery","rocket propulsion"]},
+ {"id":"aero.gnc-avionics","name":"GNC and avionics","soc":["17-2011","17-2072"],"family":"Aerospace","aliases":["GNC engineer","avionics engineer","flight software engineer"],"signals":["guidance / navigation / control","DO-178C","Kalman filters"]},
+ {"id":"aero.aero","name":"Aerodynamics","soc":["17-2011"],"family":"Aerospace","aliases":["aerodynamics engineer","aerodynamicist"],"signals":["CFD","wind tunnel","flight dynamics"]},
+ {"id":"aero.systems","name":"Systems engineering and integration","soc":["17-2011","17-2199"],"family":"Aerospace","aliases":["systems engineer (aerospace)","integration engineer","test and evaluation engineer"],"signals":["requirements","MBSE","verification"]},
+ {"id":"aero.general","name":"Aerospace · general","soc":["17-2011"],"family":"Aerospace","aliases":["aerospace engineer"],"signals":[]}
+]},
+{"id":"process-industrial","name":"Process, chemical and industrial engineering","d127":"17","subcategories":[
+ {"id":"proc.chemical","name":"Chemical process","soc":["17-2041"],"family":"Process & industrial","aliases":["chemical engineer","process engineer (chemical)"],"signals":["unit operations","Aspen","process safety"]},
+ {"id":"proc.industrial","name":"Industrial engineering","soc":["17-2112"],"family":"Process & industrial","aliases":["industrial engineer","continuous improvement engineer"],"signals":["lean / six sigma","time studies","simulation"]},
+ {"id":"proc.materials","name":"Materials","soc":["17-2131"],"family":"Process & industrial","aliases":["materials engineer","metallurgist"],"signals":["characterisation","failure analysis","metals / polymers"]},
+ {"id":"proc.quality","name":"Quality and reliability","soc":["17-2112","17-2199"],"family":"Process & industrial","aliases":["quality engineer","reliability engineer","supplier quality engineer"],"signals":["FMEA","SPC","root cause","ISO 9001"]},
+ {"id":"proc.ehs","name":"Environment, health and safety (EHS)","soc":["17-2111"],"family":"Process & industrial","aliases":["EHS engineer","safety engineer","health and safety specialist"],"signals":["OSHA","risk assessment","permits"]},
+ {"id":"proc.energy","name":"Energy and utilities","soc":["17-2199","17-2171","17-2161"],"family":"Process & industrial","aliases":["energy engineer","renewable energy engineer","nuclear engineer","petroleum engineer"],"signals":["solar / wind","energy modelling","reactor / reservoir"]},
+ {"id":"proc.general","name":"Process and industrial · general","soc":["17-2199"],"family":"Process & industrial","aliases":["process engineer"],"signals":[]}
+]},
+{"id":"biomedical","name":"Biomedical engineering","d127":"17","subcategories":[
+ {"id":"bio.devices","name":"Medical devices","soc":["17-2031"],"family":"Biomedical","aliases":["medical device engineer","R&D engineer (devices)"],"signals":["design controls","ISO 13485","verification and validation"]},
+ {"id":"bio.clinical-eng","name":"Clinical engineering","soc":["17-2031"],"family":"Biomedical","aliases":["clinical engineer","biomedical equipment engineer"],"signals":["hospital equipment","maintenance programmes"]},
+ {"id":"bio.bioinformatics","name":"Bioinformatics and computational biology","soc":["19-1029","15-2051"],"family":"NEW: Bioinformatics","aliases":["bioinformatician","computational biologist","bioinformatics engineer"],"signals":["sequencing pipelines","Python / R","genomics"]},
+ {"id":"bio.regulatory","name":"Regulatory affairs (devices and life sciences)","soc":["13-1041"],"family":"Biomedical","aliases":["regulatory affairs specialist","regulatory engineer"],"signals":["FDA 510(k)","EU MDR","submissions"]},
+ {"id":"bio.general","name":"Biomedical · general","soc":["17-2031"],"family":"Biomedical","aliases":["biomedical engineer"],"signals":[]}
+]},
+{"id":"product-management","name":"Product management","d127":"11","subcategories":[
+ {"id":"pm.core","name":"Product management","soc":["11-2021","11-3021"],"family":"Product management","aliases":["product manager","PM","product owner"],"signals":["roadmaps","discovery","prioritisation","metrics"]},
+ {"id":"pm.technical","name":"Technical and platform product","soc":["11-3021"],"family":"Product management","aliases":["technical product manager","platform product manager","API product manager"],"signals":["APIs","developer experience","system design literacy"]},
+ {"id":"pm.growth","name":"Growth product","soc":["11-2021"],"family":"Product management","aliases":["growth product manager","growth PM"],"signals":["experimentation","funnels","activation / retention"]},
+ {"id":"pm.ai-data","name":"AI and data product","soc":["11-3021"],"family":"Product management","aliases":["AI product manager","data product manager","ML product manager"],"signals":["model evaluation","data platforms","AI UX"]},
+ {"id":"pm.ops","name":"Product operations","soc":["13-1111"],"family":"Product management","aliases":["product operations manager","product ops"],"signals":["process","tooling","launch readiness"]},
+ {"id":"pm.general","name":"Product management · general","soc":["11-2021"],"family":"Product management","aliases":["product lead"],"signals":[]}
+]},
+{"id":"project-program-management","name":"Project and program management","d127":"13","subcategories":[
+ {"id":"proj.construction","name":"Construction","soc":["11-9021","13-1082"],"family":"Project & program management","aliases":["construction project manager","project engineer (construction)","superintendent"],"signals":["bids / estimating","subcontractors","Procore","safety"]},
+ {"id":"proj.media","name":"Media and creative production","soc":["13-1082","27-2012"],"family":"Project & program management","aliases":["producer","production manager","creative project manager","content production manager"],"signals":["production schedules","budgets","vendors / crews"]},
+ {"id":"proj.technical","name":"Technical and IT","soc":["13-1082","11-3021"],"family":"Project & program management","aliases":["IT project manager","technical project manager","implementation manager"],"signals":["SDLC","Jira","system rollouts","vendor management"]},
+ {"id":"proj.agile","name":"Agile delivery","soc":["13-1082"],"family":"Project & program management","aliases":["scrum master","agile coach","delivery manager"],"signals":["Scrum / Kanban","facilitation","team flow"]},
+ {"id":"proj.program","name":"Program management","soc":["13-1082","11-1021"],"family":"Project & program management","aliases":["program manager","technical program manager","TPM"],"signals":["cross-team planning","dependencies","executive reporting"]},
+ {"id":"proj.pmo","name":"Portfolio and PMO","soc":["13-1082"],"family":"Project & program management","aliases":["PMO analyst","portfolio manager (projects)","project coordinator"],"signals":["portfolio reporting","governance","resource planning"]},
+ {"id":"proj.general","name":"Project management · general","soc":["13-1082"],"family":"Project & program management","aliases":["project manager"],"signals":[]}
+]},
+{"id":"design","name":"Design and UX","d127":"27","subcategories":[
+ {"id":"des.product","name":"Product and UX design","soc":["15-1255"],"family":"Design & UX","aliases":["product designer","UX designer","UI/UX designer","interaction designer"],"signals":["Figma","prototyping","user flows","design systems"]},
+ {"id":"des.research","name":"UX research","soc":["13-1161","19-3022"],"family":"Design & UX","aliases":["UX researcher","user researcher","design researcher"],"signals":["interviews","usability testing","synthesis"]},
+ {"id":"des.visual","name":"Visual and graphic design","soc":["27-1024"],"family":"Design & UX","aliases":["graphic designer","visual designer","brand designer"],"signals":["Adobe CC","typography","brand identity"]},
+ {"id":"des.motion","name":"Motion and animation","soc":["27-1014"],"family":"Design & UX","aliases":["motion designer","animator","3D artist"],"signals":["After Effects","Cinema 4D / Blender"]},
+ {"id":"des.industrial","name":"Industrial design","soc":["27-1021"],"family":"Design & UX","aliases":["industrial designer","product designer (physical)"],"signals":["sketching","CAD","materials / CMF"]},
+ {"id":"des.content","name":"Content design and UX writing","soc":["27-3043"],"family":"Design & UX","aliases":["content designer","UX writer"],"signals":["microcopy","content strategy","voice and tone"]},
+ {"id":"des.general","name":"Design · general","soc":["15-1255","27-1024"],"family":"Design & UX","aliases":["designer"],"signals":[]}
+]},
+{"id":"marketing","name":"Marketing","d127":"marketing","subcategories":[
+ {"id":"mkt.performance","name":"Digital and performance marketing","soc":["13-1161"],"family":"Digital marketing","aliases":["performance marketing manager","paid media specialist","digital marketing manager","SEM specialist"],"signals":["Google Ads","paid social","attribution","CAC / ROAS"]},
+ {"id":"mkt.seo","name":"SEO","soc":["13-1161"],"family":"Digital marketing","aliases":["SEO specialist","SEO manager"],"signals":["technical SEO","keyword research","search console"]},
+ {"id":"mkt.product-brand","name":"Product and brand marketing","soc":["11-2021","13-1161"],"family":"Brand & product marketing","aliases":["product marketing manager","PMM","brand manager"],"signals":["positioning","launches","messaging","competitive analysis"]},
+ {"id":"mkt.content-lifecycle","name":"Content and lifecycle marketing","soc":["13-1161"],"family":"Content & lifecycle marketing","aliases":["content marketing manager","lifecycle marketing manager","email marketing manager","CRM marketing manager"],"signals":["email","segmentation","content strategy","HubSpot / Braze"]},
+ {"id":"mkt.social","name":"Social media and community","soc":["13-1161","27-3031"],"family":"Content & lifecycle marketing","aliases":["social media manager","community manager"],"signals":["social channels","community programmes","creators"]},
+ {"id":"mkt.ops-analytics","name":"Marketing operations and analytics","soc":["13-1161"],"family":"Digital marketing","aliases":["marketing operations manager","marketing analyst","marketing data analyst"],"signals":["marketing automation","dashboards","attribution models"]},
+ {"id":"mkt.general","name":"Marketing · general","soc":["13-1161","11-2021"],"family":"Digital marketing","aliases":["marketing manager","marketing specialist"],"signals":[]}
+]},
+{"id":"sales-cs","name":"Sales and customer success","d127":"41","subcategories":[
+ {"id":"sales.ae","name":"Account executive","soc":["41-3091","41-4011"],"family":"Sales","aliases":["account executive","AE","enterprise account executive"],"signals":["quota","pipeline","negotiation","Salesforce"]},
+ {"id":"sales.sdr","name":"Sales development (SDR / BDR)","soc":["41-3091"],"family":"Sales","aliases":["SDR","BDR","sales development representative"],"signals":["outbound","prospecting","sequences"]},
+ {"id":"sales.solutions","name":"Solutions and sales engineering","soc":["41-9031"],"family":"Sales","aliases":["sales engineer","solutions engineer","pre-sales engineer","solutions consultant"],"signals":["demos","technical discovery","proofs of concept"]},
+ {"id":"sales.cs","name":"Customer success","soc":["41-3091","43-4051"],"family":"Sales","aliases":["customer success manager","CSM","onboarding manager"],"signals":["retention","adoption","renewals"]},
+ {"id":"sales.am","name":"Account management","soc":["41-3091"],"family":"Sales","aliases":["account manager","key account manager"],"signals":["expansion","relationship management"]},
+ {"id":"sales.revops","name":"Sales and revenue operations","soc":["13-1111"],"family":"Sales","aliases":["revenue operations manager","sales operations analyst","RevOps"],"signals":["CRM administration","forecasting","territory planning"]},
+ {"id":"sales.general","name":"Sales · general","soc":["41-3091"],"family":"Sales","aliases":["sales representative","sales manager"],"signals":[]}
+]},
+{"id":"business-finance","name":"Business and finance","d127":"13","subcategories":[
+ {"id":"biz.analysis","name":"Business analysis","soc":["13-1111","15-1211"],"family":"Business analysis","aliases":["business analyst","business systems analyst","requirements analyst"],"signals":["requirements","process mapping","SQL / Excel"]},
+ {"id":"biz.accounting","name":"Accounting and audit","soc":["13-2011"],"family":"Accounting & audit","aliases":["accountant","staff accountant","auditor","senior associate (audit)"],"signals":["GAAP","close process","audit","CPA"]},
+ {"id":"biz.tax","name":"Tax","soc":["13-2011","13-2082"],"family":"Accounting & audit","aliases":["tax analyst","tax associate","tax accountant"],"signals":["tax compliance","provisions"]},
+ {"id":"biz.fpa","name":"FP&A and corporate finance","soc":["13-2051","11-3031"],"family":"Finance & FP&A","aliases":["FP&A analyst","financial analyst","finance manager"],"signals":["forecasting","budgeting","financial modelling"]},
+ {"id":"biz.investment","name":"Investment banking and investing","soc":["13-2051","41-3031"],"family":"Finance & FP&A","aliases":["investment banking analyst","equity research analyst","private equity associate","investment analyst"],"signals":["valuation","DCF","M&A","pitch books"]},
+ {"id":"biz.risk","name":"Risk and financial compliance","soc":["13-2054","13-1041","13-2041"],"family":"Finance & FP&A","aliases":["risk analyst","credit analyst","AML analyst","compliance analyst"],"signals":["credit risk","AML / KYC","regulatory reporting"]},
+ {"id":"biz.actuarial","name":"Actuarial","soc":["15-2011"],"family":"NEW: Quant","aliases":["actuary","actuarial analyst"],"signals":["SOA / CAS exams","pricing","reserving"]},
+ {"id":"biz.consulting","name":"Consulting and strategy","soc":["13-1111"],"family":"Consulting & strategy","aliases":["management consultant","strategy analyst","business consultant","corporate strategy"],"signals":["case work","market sizing","executive presentations"]},
+ {"id":"biz.general","name":"Business and finance · general","soc":["13-1111","13-2051"],"family":"Business analysis","aliases":["analyst","associate"],"signals":[]}
+]},
+{"id":"operations-supply-chain","name":"Operations and supply chain","d127":"13","subcategories":[
+ {"id":"ops.planning","name":"Supply chain planning","soc":["13-1081"],"family":"Operations & supply chain","aliases":["supply chain planner","demand planner","S&OP analyst"],"signals":["forecasting","inventory","SAP / Oracle SCM"]},
+ {"id":"ops.procurement","name":"Procurement and sourcing","soc":["13-1023","13-1020"],"family":"Operations & supply chain","aliases":["buyer","procurement specialist","strategic sourcing manager"],"signals":["supplier negotiation","RFPs","spend analysis"]},
+ {"id":"ops.logistics","name":"Logistics and transportation","soc":["13-1081","11-3071"],"family":"Operations & supply chain","aliases":["logistics analyst","logistics manager","transportation planner","warehouse operations manager"],"signals":["distribution","freight","WMS / TMS"]},
+ {"id":"ops.manufacturing","name":"Manufacturing operations","soc":["11-3051"],"family":"Operations & supply chain","aliases":["operations manager (plant)","production manager","plant manager"],"signals":["throughput","OEE","workforce scheduling"]},
+ {"id":"ops.bizops","name":"Business operations","soc":["11-1021","13-1111"],"family":"Operations & supply chain","aliases":["business operations manager","bizops","operations analyst","chief of staff"],"signals":["process improvement","metrics","cross-functional projects"]},
+ {"id":"ops.general","name":"Operations · general","soc":["11-1021"],"family":"Operations & supply chain","aliases":["operations manager","operations specialist"],"signals":[]}
+]},
+{"id":"people-hr","name":"People and HR","d127":"13","subcategories":[
+ {"id":"hr.recruiting","name":"Recruiting and talent acquisition","soc":["13-1071"],"family":"People & HR","aliases":["recruiter","technical recruiter","talent acquisition partner","sourcer"],"signals":["sourcing","ATS","interview process"]},
+ {"id":"hr.hrbp","name":"HR business partner","soc":["13-1071","11-3121"],"family":"People & HR","aliases":["HRBP","HR business partner","people partner"],"signals":["employee relations","org design","performance"]},
+ {"id":"hr.comp-benefits","name":"Compensation and benefits","soc":["13-1141"],"family":"People & HR","aliases":["compensation analyst","benefits specialist","total rewards"],"signals":["pay bands","benchmarking","benefits administration"]},
+ {"id":"hr.ld","name":"Learning and development","soc":["13-1151"],"family":"People & HR","aliases":["L&D specialist","training specialist","instructional designer (corporate)"],"signals":["programme design","facilitation","LMS"]},
+ {"id":"hr.analytics-ops","name":"People operations and analytics","soc":["13-1071"],"family":"People & HR","aliases":["people operations specialist","HRIS analyst","people analytics analyst"],"signals":["HRIS (Workday)","reporting","onboarding"]},
+ {"id":"hr.general","name":"People and HR · general","soc":["13-1071","11-3121"],"family":"People & HR","aliases":["HR generalist","HR manager"],"signals":[]}
+]},
+{"id":"legal","name":"Legal and compliance","d127":"23","subcategories":[
+ {"id":"law.corporate","name":"Corporate and commercial","soc":["23-1011"],"family":"Legal practice","aliases":["corporate counsel","commercial counsel","corporate associate"],"signals":["contracts","M&A","governance"]},
+ {"id":"law.ip","name":"Intellectual property","soc":["23-1011"],"family":"Legal practice","aliases":["patent attorney","IP counsel","patent agent"],"signals":["patents","trademarks","licensing"]},
+ {"id":"law.litigation","name":"Litigation","soc":["23-1011"],"family":"Legal practice","aliases":["litigation associate","litigator"],"signals":["discovery","motions","trial"]},
+ {"id":"law.privacy","name":"Privacy and data protection","soc":["23-1011","13-1041"],"family":"Legal practice","aliases":["privacy counsel","privacy analyst","data protection officer"],"signals":["GDPR / CCPA","privacy programmes","DPIAs"]},
+ {"id":"law.compliance","name":"Regulatory compliance","soc":["13-1041"],"family":"Legal practice","aliases":["compliance manager","compliance officer"],"signals":["policies","regulatory monitoring","investigations"]},
+ {"id":"law.paralegal","name":"Paralegal and contracts","soc":["23-2011"],"family":"Legal practice","aliases":["paralegal","contracts manager","legal operations"],"signals":["contract lifecycle","filings","legal research"]},
+ {"id":"law.general","name":"Legal · general","soc":["23-1011"],"family":"Legal practice","aliases":["attorney","lawyer","counsel"],"signals":[]}
+]},
+{"id":"writing-communications","name":"Writing and communications","d127":"27","subcategories":[
+ {"id":"comm.technical","name":"Technical writing","soc":["27-3042"],"family":"Writing & communications","aliases":["technical writer","documentation engineer","API writer"],"signals":["docs-as-code","API documentation","information architecture"]},
+ {"id":"comm.copy","name":"Copywriting","soc":["27-3043"],"family":"Writing & communications","aliases":["copywriter","content writer"],"signals":["campaign copy","brand voice"]},
+ {"id":"comm.editorial","name":"Editorial and journalism","soc":["27-3041","27-3023"],"family":"Writing & communications","aliases":["editor","content editor","journalist","reporter"],"signals":["editing","fact-checking","publishing"]},
+ {"id":"comm.pr","name":"Communications and PR","soc":["27-3031","11-2032"],"family":"Writing & communications","aliases":["communications manager","PR manager","internal communications"],"signals":["media relations","messaging","crisis communications"]},
+ {"id":"comm.general","name":"Writing and communications · general","soc":["27-3043"],"family":"Writing & communications","aliases":["writer"],"signals":[]}
+]},
+{"id":"science-research","name":"Science and research","d127":"19","subcategories":[
+ {"id":"sci.life","name":"Life sciences","soc":["19-1029","19-1042"],"family":"NEW: Science","aliases":["research scientist (biology)","biologist","scientist (life sciences)"],"signals":["lab techniques","assay development","cell / molecular biology"]},
+ {"id":"sci.chemistry","name":"Chemistry","soc":["19-2031"],"family":"NEW: Science","aliases":["chemist","analytical chemist","formulation scientist"],"signals":["HPLC / GC-MS","synthesis","analytical methods"]},
+ {"id":"sci.physics","name":"Physics and optics","soc":["19-2012"],"family":"NEW: Science","aliases":["physicist","optical engineer","photonics scientist"],"signals":["optics","modelling","experimental physics"]},
+ {"id":"sci.economics","name":"Economics","soc":["19-3011"],"family":"NEW: Science","aliases":["economist","economic analyst"],"signals":["econometrics","policy analysis","Stata / R"]},
+ {"id":"sci.social","name":"Social and survey research","soc":["19-3022","19-3099"],"family":"NEW: Science","aliases":["survey researcher","social scientist","research analyst"],"signals":["survey design","qualitative methods","statistics"]},
+ {"id":"sci.general","name":"Science and research · general","soc":["19-1029"],"family":"NEW: Science","aliases":["scientist","researcher"],"signals":[]}
+]},
+{"id":"healthcare","name":"Healthcare (HELD — D127: excluded until the owner decides)","d127":"29","held":true,"subcategories":[
+ {"id":"hc.nursing","name":"Nursing","soc":["29-1141"],"family":"NEW: Healthcare","aliases":["registered nurse","RN","nurse practitioner"],"signals":["patient care","licensure"]},
+ {"id":"hc.allied","name":"Allied health","soc":["29-1120","29-2000"],"family":"NEW: Healthcare","aliases":["physical therapist","respiratory therapist","medical technologist"],"signals":["clinical practice","licensure"]},
+ {"id":"hc.admin","name":"Healthcare administration","soc":["11-9111"],"family":"NEW: Healthcare","aliases":["practice manager","health services manager"],"signals":["operations","compliance (HIPAA)"]},
+ {"id":"hc.general","name":"Healthcare · general","soc":["29-0000"],"family":"NEW: Healthcare","aliases":[],"signals":[]}
+]},
+{"id":"education","name":"Education (HELD — D127: excluded until the owner decides)","d127":"25","held":true,"subcategories":[
+ {"id":"edu.teaching","name":"Teaching","soc":["25-2000","25-1000"],"family":"NEW: Education","aliases":["teacher","lecturer","instructor"],"signals":["curriculum","classroom"]},
+ {"id":"edu.instructional","name":"Instructional design","soc":["25-9031"],"family":"NEW: Education","aliases":["instructional designer","learning experience designer"],"signals":["course design","LMS"]},
+ {"id":"edu.general","name":"Education · general","soc":["25-0000"],"family":"NEW: Education","aliases":[],"signals":[]}
+]}
+]
+}
