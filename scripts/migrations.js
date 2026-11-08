@@ -6688,4 +6688,20 @@ export const MIGRATIONS = [
         ALTER TABLE resumes ADD COLUMN model_source TEXT;
       `,
     },
+    {
+      // ⭐ D150 T09 (45n) · "Your market this week" — one row per D127 field and ISO week (services/market/marketWeek.js):
+      // the numbers as computed by method `method_version`, each with its n; never a posting named. Only ADDS.
+      id: "248_market_weeks",
+      sql: `
+        CREATE TABLE IF NOT EXISTS market_weeks (
+          field          TEXT NOT NULL,
+          iso_week       TEXT NOT NULL,
+          week_start     INTEGER NOT NULL,
+          metrics_json   TEXT NOT NULL,
+          method_version INTEGER NOT NULL,
+          computed_at    INTEGER NOT NULL,
+          PRIMARY KEY (field, iso_week, method_version)
+        );
+      `,
+    },
   ];

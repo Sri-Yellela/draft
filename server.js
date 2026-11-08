@@ -161,6 +161,7 @@ import { ogPng, cardFromQuery, ogUrl, ogImageMeta } from "./services/ogImage.js"
 import { practiceProgress } from "./services/learn/practiceProgress.js";
 import { stackExposure } from "./services/learn/stackExposure.js";
 import { phase1Measures } from "./services/admin/phase1Measures.js";
+import { runMarketWeek, marketWeekFor } from "./services/market/marketWeek.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
 import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes, jobsSitemapPageCount, companiesSitemapRoutes, jobPath, atlasLinksFor } from "./services/jobs/publicJobPage.js";
@@ -7270,6 +7271,22 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         ALTER TABLE resumes ADD COLUMN model_source TEXT;
       `,
     },
+    {
+      // ⭐ D150 T09 (45n) · "Your market this week" — one row per D127 field and ISO week (services/market/marketWeek.js):
+      // the numbers as computed by method `method_version`, each with its n; never a posting named. Only ADDS.
+      id: "248_market_weeks",
+      sql: `
+        CREATE TABLE IF NOT EXISTS market_weeks (
+          field          TEXT NOT NULL,
+          iso_week       TEXT NOT NULL,
+          week_start     INTEGER NOT NULL,
+          metrics_json   TEXT NOT NULL,
+          method_version INTEGER NOT NULL,
+          computed_at    INTEGER NOT NULL,
+          PRIMARY KEY (field, iso_week, method_version)
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -11315,6 +11332,12 @@ cron.schedule("0 5 * * 1", () => {
       (h.proposals.length ? ` · PROPOSED for deactivation: ${h.proposals.map((p) => `${p.company} (${p.why})`).join("; ")}` : ""));
   } catch (e) { console.error("[company-heat] failed:", e.message); }
 });
+// ⭐ D150 T09 (45n): "Your market this week" — Mondays 06:00 New York time, the week just ended, one row per field;
+// idempotent (a week already written is skipped). MARKET_WEEK=off stops it.
+cron.schedule("0 6 * * 1", () => {
+  if (String(process.env.MARKET_WEEK || "").toLowerCase() === "off") return;
+  runMarketWeek(db).catch((e) => console.error("[market-week] failed:", e.message));
+}, { timezone: "America/New_York" });
 // ⛔ D82 B/C: company DISCOVERY — HN "Who is hiring?" weekly (Mondays 06:00, after the crawl and the heat line) and the
 // read-only probe of new candidates nightly (06:30, 25 a night, ≥ 1 s between boards). Both write ONLY the candidate
 // pool (company_candidates) and a pipeline_runs row; adding a company stays the owner's approval in Admin → Companies →
@@ -12763,6 +12786,12 @@ app.get("/api/learn/today", requireAuth, (req, res) => {
     const aimGaps = () => (aimRole ? (roleReadiness(db, req.user.id, aimRole).moves || []).map(m => m.slug).filter(Boolean) : []);
     res.set("Cache-Control", "no-store").json(todaysQuestion(db, req.user.id, String(req.query.day || ""), { aimRole, aimGaps }));
   } catch (e) { auditFail(res, e); }
+});
+// ⭐ D150 T09 (45n) · the stored market week for a field (admin read until T10 / T11's pages are sketched).
+app.get("/api/admin/market-week", requireAdmin, (req, res) => {
+  const field = typeof req.query.field === "string" ? req.query.field.slice(0, 80) : "";
+  if (!field) return res.json({ fields: db.prepare(`SELECT field, MAX(iso_week) AS week FROM market_weeks GROUP BY field ORDER BY field`).all() });
+  res.json(marketWeekFor(db, field, typeof req.query.week === "string" ? req.query.week.slice(0, 10) : null) || { found: false });
 });
 // ⭐ D150 T16 (45n) · Admin → Today → Phase 1 — the milestones measured (counts only; no person named).
 app.get("/api/admin/phase1", requireAdmin, (_req, res) => {
