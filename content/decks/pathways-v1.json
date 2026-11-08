@@ -532,38 +532,38 @@
           "topics": [
             {
               "title": "how LLMs work",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-ai-01",
+              "status": "draft"
             },
             {
               "title": "prompting and structured output",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-ai-02",
+              "status": "draft"
             },
             {
               "title": "retrieval (RAG)",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-ai-03",
+              "status": "draft"
             },
             {
               "title": "tools and agents",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-ai-04",
+              "status": "draft"
             },
             {
               "title": "evaluation",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-ai-05",
+              "status": "draft"
             },
             {
               "title": "serving and cost (quantisation, KV cache, batching)",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-ai-06",
+              "status": "draft"
             },
             {
               "title": "safety and guardrails",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-ai-07",
+              "status": "draft"
             }
           ]
         },
