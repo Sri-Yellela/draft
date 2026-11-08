@@ -421,23 +421,23 @@
           "topics": [
             {
               "title": "a revenue pipeline",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-c-01",
+              "status": "draft"
             },
             {
               "title": "product event analytics",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-c-02",
+              "status": "draft"
             },
             {
               "title": "a churn model",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-c-03",
+              "status": "draft"
             },
             {
               "title": "recommendations basics",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-c-04",
+              "status": "draft"
             }
           ]
         },
@@ -447,23 +447,23 @@
           "topics": [
             {
               "title": "SQL rounds",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-iv-01",
+              "status": "draft"
             },
             {
               "title": "data-modelling rounds",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-iv-02",
+              "status": "draft"
             },
             {
               "title": "experiment-design rounds",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-iv-03",
+              "status": "draft"
             },
             {
               "title": "case presentations",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-iv-04",
+              "status": "draft"
             }
           ]
         }
