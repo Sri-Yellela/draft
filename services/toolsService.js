@@ -76,6 +76,9 @@ export function createToolsServiceClient({
   const base = String(baseUrl || "").replace(/\/+$/, "");
   const configured = !!(base && token);
 
+  // ⭐ D162 G6 (45n): the task name travels to the tools service on every call (it logs it beside its own usage record).
+  const TASK_BY_PATH = { "/v1/resumes/generate": TOOLS_SERVICE_TASKS.generate, "/v1/resumes/enhance": TOOLS_SERVICE_TASKS.enhance,
+    "/v1/resumes/parse-pdf": TOOLS_SERVICE_TASKS.parsePdf, "/v1/resumes/gists": TOOLS_SERVICE_TASKS.gists };
   async function call(method, path, body, timeoutKey = "default") {
     if (!configured) {
       throw new ToolsServiceError("The résumé tools service is not configured on this server",
@@ -90,7 +93,8 @@ export function createToolsServiceClient({
         method,
         // ⛔ D173 (5): the work's id travels on — the tools service logs it as `rid` (docs/SERVICES.md).
         headers: { "content-type": "application/json", authorization: `Bearer ${token}`,
-          ...(currentRequestId() ? { [REQUEST_ID_HEADER]: currentRequestId() } : {}) },
+          ...(currentRequestId() ? { [REQUEST_ID_HEADER]: currentRequestId() } : {}),
+          ...(TASK_BY_PATH[path] ? { "x-draft-task": TASK_BY_PATH[path] } : {}) },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       });

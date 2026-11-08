@@ -68,6 +68,7 @@ export function storeGeneratedResume(db, {
   userId, jobId, job = {}, tool = "generate", mode = "TAILORED", html, atsScore = null, atsReport = null,
   baseAtsScore = null, atsCacheKey = null, promptVersion = null, domainProfileId = null, userJobProfileId = null,
   baseUploadId = undefined,
+  modelSource = null,
 }) {
   const id = String(jobId);
   // ⭐ D90: the upload this version is made from — the profile's base right now, unless the caller says otherwise.
@@ -84,6 +85,14 @@ export function storeGeneratedResume(db, {
       VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?,?)`)
       .run(userId, id, job.company ?? null, job.title ?? null, job.category ?? null, html, atsScore, report, tool, version,
            atsCacheKey, promptVersion, scoreOrNull(baseAtsScore)).lastInsertRowid;
+    // ⭐ D162 G6: the words' source (the model's tag), on the version and on the job's current résumé.
+    if (modelSource != null) {
+      const src = typeof modelSource === "string" ? modelSource : JSON.stringify(modelSource);
+      try {
+        db.prepare("UPDATE resume_versions SET model_source = ? WHERE id = ?").run(src, versionId);
+        db.prepare("UPDATE resumes SET model_source = ? WHERE user_id = ? AND job_id = ?").run(src, userId, id);
+      } catch (e) { if (!/no such column/.test(String(e?.message))) throw e; }
+    }
     if (baseUpload != null) {
       try { db.prepare("UPDATE resume_versions SET base_upload_id = ? WHERE id = ?").run(baseUpload, versionId); }
       catch (e) { if (!/no such column/.test(String(e?.message))) throw e; }
