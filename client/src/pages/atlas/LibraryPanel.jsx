@@ -9,7 +9,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import LearnView from "./LearnView.jsx";
 import { api } from "../../lib/api.js";
 import { courseProgress, firstOpenModule, lessonState, linkLine } from "./libraryModel.js";
-import { GuideLadder, useGuides } from "./LibraryGuides.jsx";
+import { GuideLadder, PathwaysPlan, useGuides } from "./LibraryGuides.jsx";
 import { HalfRing, LessonDeck } from "./LessonDeck.jsx";
 import { learnStepHref } from "./atlasPanels.js";
 import "./LibraryPanel.css";
@@ -92,6 +92,8 @@ export function LibraryShelf({ base, signedIn = false }) {
             </li>
           : <CourseCover key={c.id} base={base} c={c} />))}
       </ul>
+      {/* ⭐ D155 Part C: the whole approved plan — every pathway's stages and topics, written or planned. */}
+      <PathwaysPlan base={base} />
     </div>
   );
 }

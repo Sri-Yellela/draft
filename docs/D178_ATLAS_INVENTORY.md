@@ -55,7 +55,7 @@ D177; **"Fly my route to senior …"** → *Your map*'s track-board animation (�
 `GET /api/atlas/node/:slug`
 
 `GET /api/learn/` · `GET /api/learn/circle` · `GET /api/learn/circle/my-route` · `GET /api/learn/course/:id` ·
-`GET /api/learn/guides` · `GET /api/learn/deck/:id` · `POST /api/learn/deck/:id/answer` · `GET /api/learn/earned` ·
+`GET /api/learn/guides` · `GET /api/learn/pathways` (D155 Part C, 45j) · `GET /api/learn/deck/:id` · `POST /api/learn/deck/:id/answer` · `GET /api/learn/earned` ·
 `POST /api/learn/opened` · `PUT /api/learn/explained` · `PUT /api/learn/built` · `GET /api/learn/progress` ·
 `PUT /api/learn/progress` · `POST /api/learn/progress/import`
 

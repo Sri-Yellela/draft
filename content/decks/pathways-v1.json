@@ -1,0 +1,1404 @@
+{
+  "version": 1,
+  "source": "docs/research/PLAYBOOK.md Part C (approved by the owner 2026-11-05)",
+  "pathways": [
+    {
+      "id": "software",
+      "title": "Software engineering — general, backend, full-stack",
+      "later": false,
+      "stages": [
+        {
+          "id": "foundations",
+          "title": "Foundations",
+          "topics": [
+            {
+              "title": "how a program runs (memory, processes, threads)",
+              "deck": "sw-f-01",
+              "status": "approved"
+            },
+            {
+              "title": "data structures",
+              "deck": "sw-f-02",
+              "status": "approved"
+            },
+            {
+              "title": "algorithms and complexity",
+              "deck": "sw-f-03",
+              "status": "approved"
+            },
+            {
+              "title": "Git",
+              "deck": "sw-f-04",
+              "status": "approved"
+            },
+            {
+              "title": "testing",
+              "deck": "sw-f-05",
+              "status": "approved"
+            },
+            {
+              "title": "debugging",
+              "deck": "sw-f-06",
+              "status": "approved"
+            },
+            {
+              "title": "the web (DNS, TCP, TLS, HTTP)",
+              "deck": "sw-f-07",
+              "status": "approved"
+            },
+            {
+              "title": "SQL basics",
+              "deck": "sw-f-08",
+              "status": "approved"
+            }
+          ]
+        },
+        {
+          "id": "building-blocks",
+          "title": "Building blocks",
+          "topics": [
+            {
+              "title": "APIs (REST, gRPC)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "authentication and sessions",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "caching",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "queues and background work",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "concurrency",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "indexes and query plans",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "transactions and isolation",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "containers",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "patterns",
+          "title": "Patterns",
+          "topics": [
+            {
+              "title": "idempotency and retries",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "rate limiting",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "pagination",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "feature flags and safe releases",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "observability",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "timeouts and circuit breakers",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "schema migrations (expand and contract)",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "case-studies",
+          "title": "Case studies",
+          "topics": [
+            {
+              "title": "a URL shortener",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "chat and message ordering",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "a news feed",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "notifications",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "payments and webhooks",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "search",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "specialisation-frontend",
+          "title": "Specialisation, frontend",
+          "topics": [
+            {
+              "title": "the DOM and rendering",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "CSS layout",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "accessibility",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "state management",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "performance (bundles, layout shift)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "web security (XSS, CSP)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "testing interfaces",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "specialisation-mobile",
+          "title": "Specialisation, mobile",
+          "topics": [
+            {
+              "title": "the app lifecycle",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "offline and sync",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "main-thread performance and images",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "staged releases and old versions",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "push and background work",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "platform guidelines",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "interview",
+          "title": "Interview",
+          "topics": [
+            {
+              "title": "coding patterns (linking out to LeetCode-style practice)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "system design rounds",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "behavioural (situation, action, result)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "AI-enabled coding",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "data",
+      "title": "Data — data engineer, analytics engineer, data scientist",
+      "later": false,
+      "stages": [
+        {
+          "id": "foundations",
+          "title": "Foundations",
+          "topics": [
+            {
+              "title": "SQL in depth",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "data modelling (grain, star schemas)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "Python for data",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "statistics basics",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "data quality",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "building-blocks",
+          "title": "Building blocks",
+          "topics": [
+            {
+              "title": "batch and streaming",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "orchestration",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "warehouses and lakes (partitioning, columnar storage)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "dbt and testing",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "change data capture",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "Kafka",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "patterns",
+          "title": "Patterns",
+          "topics": [
+            {
+              "title": "idempotent pipelines and backfills",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "late data and watermarks",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "slowly changing dimensions",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "data contracts",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "metrics and the semantic layer",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "data-science-track",
+          "title": "Data science track",
+          "topics": [
+            {
+              "title": "experiments (A/B tests, peeking)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "causal thinking",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "regression and classification",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "evaluation metrics",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "explaining results",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "case-studies",
+          "title": "Case studies",
+          "topics": [
+            {
+              "title": "a revenue pipeline",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "product event analytics",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "a churn model",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "recommendations basics",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "interview",
+          "title": "Interview",
+          "topics": [
+            {
+              "title": "SQL rounds",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "data-modelling rounds",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "experiment-design rounds",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "case presentations",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ml-ai",
+      "title": "ML and AI engineering",
+      "later": false,
+      "stages": [
+        {
+          "id": "foundations",
+          "title": "Foundations",
+          "topics": [
+            {
+              "title": "the maths you need (probability, linear algebra, gradients)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "training, validation and test sets",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "overfitting and leakage",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "metrics",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "building-blocks",
+          "title": "Building blocks",
+          "topics": [
+            {
+              "title": "feature pipelines",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "training at scale",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "model serving",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "monitoring and drift",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "ai-engineering",
+          "title": "AI engineering",
+          "topics": [
+            {
+              "title": "how LLMs work",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "prompting and structured output",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "retrieval (RAG)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "tools and agents",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "evaluation",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "serving and cost (quantisation, KV cache, batching)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "safety and guardrails",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "case-studies",
+          "title": "Case studies",
+          "topics": [
+            {
+              "title": "a fraud model",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "search ranking",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "a support assistant with retrieval",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "an agent with tools",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "interview",
+          "title": "Interview",
+          "topics": [
+            {
+              "title": "ML system design",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "model debugging",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "AI-enabled coding",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cloud",
+      "title": "Cloud, DevOps, SRE, platform",
+      "later": false,
+      "stages": [
+        {
+          "id": "foundations",
+          "title": "Foundations",
+          "topics": [
+            {
+              "title": "Linux",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "networking (TCP/IP, DNS, load balancers)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "scripting",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "Git",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "building-blocks",
+          "title": "Building blocks",
+          "topics": [
+            {
+              "title": "containers",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "Kubernetes",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "infrastructure as code",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "CI/CD",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "cloud building blocks (compute, storage, identity)",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "reliability",
+          "title": "Reliability",
+          "topics": [
+            {
+              "title": "SLOs and alerting",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "observability",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "incident response and postmortems",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "capacity and cost",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "disaster recovery and multi-region",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "security-for-operations",
+          "title": "Security for operations",
+          "topics": [
+            {
+              "title": "secrets",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "least privilege",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "the software supply chain",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "case-studies",
+          "title": "Case studies",
+          "topics": [
+            {
+              "title": "deploys without downtime",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "surviving a region outage",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "cutting the cloud bill",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "interview",
+          "title": "Interview",
+          "topics": [
+            {
+              "title": "troubleshooting rounds",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "infrastructure design",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "on-call scenarios",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "title": "Security",
+      "later": false,
+      "stages": [
+        {
+          "id": "foundations",
+          "title": "Foundations",
+          "topics": [
+            {
+              "title": "networking",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "operating-system internals",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "cryptography basics",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "how the web works",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "application-security",
+          "title": "Application security",
+          "topics": [
+            {
+              "title": "common vulnerabilities (OWASP)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "secure code review",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "threat modelling",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "authentication and sessions",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "cloud-and-infrastructure-security",
+          "title": "Cloud and infrastructure security",
+          "topics": [
+            {
+              "title": "identity and access",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "secrets",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "detection and logging",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "offence-and-defence",
+          "title": "Offence and defence",
+          "topics": [
+            {
+              "title": "penetration-testing basics",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "red and blue teams",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "incident response and forensics",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "governance",
+          "title": "Governance",
+          "topics": [
+            {
+              "title": "risk and compliance basics",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "interview",
+          "title": "Interview",
+          "topics": [
+            {
+              "title": "threat-modelling rounds",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "incident scenarios",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "code-review exercises",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "embedded",
+      "title": "Embedded and systems",
+      "later": false,
+      "stages": [
+        {
+          "id": "foundations",
+          "title": "Foundations",
+          "topics": [
+            {
+              "title": "C and memory",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "computer architecture",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "operating-system basics",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "building-blocks",
+          "title": "Building blocks",
+          "topics": [
+            {
+              "title": "interrupts and concurrency",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "real-time operating systems and scheduling",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "peripherals and protocols (I2C, SPI, UART)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "power management",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "patterns",
+          "title": "Patterns",
+          "topics": [
+            {
+              "title": "memory pools and fragmentation",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "watchdogs and field diagnostics",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "safe firmware updates",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "specialisation",
+          "title": "Specialisation",
+          "topics": [
+            {
+              "title": "Linux internals and drivers",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "performance profiling",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "hardware debugging",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "interview",
+          "title": "Interview",
+          "topics": [
+            {
+              "title": "low-level coding",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "debugging scenarios",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "design of a device's firmware",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qa",
+      "title": "QA and SDET",
+      "later": false,
+      "stages": [
+        {
+          "id": "foundations",
+          "title": "Foundations",
+          "topics": [
+            {
+              "title": "the testing pyramid",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "test design",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "bug reports that get fixed",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "building-blocks",
+          "title": "Building blocks",
+          "topics": [
+            {
+              "title": "automation frameworks",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "test data and isolation",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "CI quality gates",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "patterns",
+          "title": "Patterns",
+          "topics": [
+            {
+              "title": "flaky tests",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "contract testing",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "performance testing",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "accessibility testing",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "specialisation",
+          "title": "Specialisation",
+          "topics": [
+            {
+              "title": "risk-based test strategy",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "exploratory testing",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "interview",
+          "title": "Interview",
+          "topics": [
+            {
+              "title": "test-design rounds",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "automation exercises",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "management",
+      "title": "Engineering management",
+      "later": false,
+      "stages": [
+        {
+          "id": "foundations",
+          "title": "Foundations",
+          "topics": [
+            {
+              "title": "one-to-ones",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "feedback",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "delegation",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "building-blocks",
+          "title": "Building blocks",
+          "topics": [
+            {
+              "title": "hiring and interviewing",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "planning and estimation",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "stakeholder management",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "patterns",
+          "title": "Patterns",
+          "topics": [
+            {
+              "title": "delivery and execution",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "performance management",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "team health",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "leading through incidents",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "specialisation",
+          "title": "Specialisation",
+          "topics": [
+            {
+              "title": "technical strategy",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "growing managers",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "interview",
+          "title": "Interview",
+          "topics": [
+            {
+              "title": "people scenarios",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "execution scenarios",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "strategy discussions",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "beyond",
+      "title": "Beyond computing",
+      "later": true,
+      "stages": [
+        {
+          "id": "mechanical",
+          "title": "Mechanical",
+          "topics": [
+            {
+              "title": "statics and materials",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "CAD and GD&T",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "simulation (FEA)",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "manufacturing processes",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "design for manufacture",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "electrical",
+          "title": "Electrical",
+          "topics": [
+            {
+              "title": "circuits",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "PCB design",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "signals",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "power electronics",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "embedded control",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "business-and-financial-analysis",
+          "title": "Business and financial analysis",
+          "topics": [
+            {
+              "title": "spreadsheets and SQL",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "financial modelling",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "KPIs",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "presenting findings",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "product-and-project-management",
+          "title": "Product and project management",
+          "topics": [
+            {
+              "title": "discovery",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "prioritisation",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "metrics",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "roadmaps",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "launches",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "design",
+          "title": "Design",
+          "topics": [
+            {
+              "title": "research",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "interaction design",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "visual systems",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "accessibility",
+              "deck": null,
+              "status": "planned"
+            },
+            {
+              "title": "the portfolio",
+              "deck": null,
+              "status": "planned"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

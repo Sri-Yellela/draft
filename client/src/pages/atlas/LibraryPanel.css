@@ -9,6 +9,12 @@
 .lib-art__core { fill: var(--c-accent); opacity: 0.35; }
 .lib-art__pin { stroke: var(--c-ink-muted); stroke-width: 2; }
 .lib-art__code { stroke: var(--c-accent); stroke-width: 3; stroke-linecap: round; }
+/* ⭐ D155 Part C · every pathway: stages and their topics. */
+.lib-plan { margin-top: 24px; }
+.lib-plan__stages { padding: 4px 16px 12px; }
+.lib-plan__h { font: 700 15px/1.3 var(--font-body); margin: 12px 0 4px; }
+.lib-plan__topics { margin: 0; padding-left: 20px; list-style: disc; }
+.lib-plan__topics li { margin: 2px 0; }
 .lib-art__window { fill: none; stroke: var(--c-accent); stroke-width: 2; stroke-dasharray: 4 3; }
 .lib-pattern__goal { font-weight: 700; margin: 4px 0 8px; }
 .lib-pattern__where { margin: 0 0 8px; padding-left: 20px; list-style: disc; }
