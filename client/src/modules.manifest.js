@@ -39,7 +39,8 @@ export const MODULES = Object.freeze({
       "components/CustomisePreview.jsx"] },
   searchBar: { why: "the search bar and its suggest — the landing page's, and the board's well (BoardBar)",
     css: ["components/UnifiedSearchBar.css"],
-    members: ["components/UnifiedSearchBar.jsx", "components/UsbSelect.jsx", "components/UsbSuggest.jsx", "components/BoardBar.jsx", "pages/LandingPage.jsx"] },
+    members: ["components/UnifiedSearchBar.jsx", "components/UsbSelect.jsx", "components/UsbSuggest.jsx", "components/BoardBar.jsx", "pages/LandingPage.jsx",
+      "pages/jobs/PublicBoardPage.jsx"] },   // D179 P3: the open board's one search box
   // ⭐ D93 · the Customise page — Appearance (moved off Account) and the layout options, with its live preview.
   // App.jsx is a member for ContrastOffer, the prefers-contrast banner the shell mounts.
   customise: { why: "the Customise page (D93) — theme, shape cues and the layout options", css: ["components/Customise.css"],
@@ -75,6 +76,8 @@ export const MODULES = Object.freeze({
     css: ["pages/profile/ProfilePage.css"], members: ["App.jsx", "pages/profile/ProfilePage.jsx", "pages/profile/profilePanels.js"] },
   interview: { why: "Interview (D167) — Coming up, Prepare, Practise, After; D110's prep, bank and debriefs",
     css: ["pages/interview/InterviewPage.css"], members: ["App.jsx", "pages/interview/InterviewPage.jsx", "pages/interview/interviewModel.js"] },
+  publicBoard: { why: "D179 P3 — the open board, /jobs signed out", css: ["pages/jobs/PublicBoardPage.css"],
+    members: ["App.jsx", "pages/jobs/PublicBoardPage.jsx"] },
   companies: { why: "D179 P4b — a page for every company, public at /companies/<slug> and inside the shell at /app/companies/<slug>",
     css: ["pages/companies/CompanyPage.css"], members: ["App.jsx", "pages/companies/CompanyPage.jsx"] },
 });

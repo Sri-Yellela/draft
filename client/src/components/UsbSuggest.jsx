@@ -9,6 +9,7 @@
 // onChange, and search BEHAVIOUR is untouched — accepting a suggestion only fills the box. What
 // happens next is still the bar's double-click local->live pattern.
 import { useState, useEffect, useRef, useId, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getAuthContext } from "../lib/api.js";
 import { DockPortal } from "./DockPortal.jsx";
 import { Z } from "../styles/zLayers.js";
@@ -60,11 +61,25 @@ async function fetchSuggestions(field, q) {
   return { suggestions: Array.isArray(d?.suggestions) ? d.suggestions : [] };
 }
 
+// ⭐ D179 (owner 11-07, override (2)): "no companies page label, it should be a search return as suggestions as a dropdown
+// to select from" — the TITLE box suggests, in one list grouped by kind: Companies (with open jobs) · Roles (the taxonomy's
+// subcategories) · Technologies · Titles. GET /api/public/suggest answers signed in and signed out alike (no session, no
+// 401). A company opens its page; a role or a technology goes to the caller (onPickRole / onPickTech) or, with none,
+// fills the box like a title; a title fills the box exactly as before.
+async function fetchGrouped(q) {
+  const r = await fetch(`/api/public/suggest?q=${encodeURIComponent(q)}`, { headers: { Accept: "application/json" } });
+  if (!r.ok) return null;
+  return r.json().catch(() => null);
+}
+const GROUP_WORD = { company: "Companies", role: "Roles", tech: "Technologies", title: "Titles" };
+
 export default function UsbSuggest({
   field,            // "title" | "location"
   value,
   onChange,
   onAccept,         // optional: called after a suggestion is committed
+  onPickRole,       // D179: optional ({ id, name, categoryId }) — a role picked from the grouped list
+  onPickTech,       // D179: optional ({ name }) — a technology picked from the grouped list
   children,         // render prop: (inputProps) => <input {...inputProps}/>
 }) {
   const [items, setItems]   = useState([]);
@@ -86,20 +101,33 @@ export default function UsbSuggest({
   // nothing to suggest and nothing will change that while the component is mounted, so stop
   // asking rather than spending a request per word for the whole visit.
   const unauthorised = useRef(false);
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const grouped = field === "title";
 
   useEffect(() => {
     if (selfEdit.current) { selfEdit.current = false; return; }
-    if (unauthorised.current) return;
     const q = (value || "").trim();
     if (q.length < MIN_CHARS) { setItems([]); setOpen(false); setActive(-1); return; }
+    if (unauthorised.current && !grouped) return;
 
     const mine = ++seq.current;
     const timer = setTimeout(async () => {
       try {
-        const d = await fetchSuggestions(field, q);
+        const [d, g] = await Promise.all([
+          unauthorised.current ? { suggestions: [] } : fetchSuggestions(field, q),
+          grouped && q.length >= 2 ? fetchGrouped(q).catch(() => null) : null,
+        ]);
         if (mine !== seq.current) return;               // a newer keystroke already won
-        if (d.unauthorised) { unauthorised.current = true; setItems([]); setOpen(false); return; }
-        const next = d.suggestions;
+        if (d.unauthorised) unauthorised.current = true;
+        // Titles: the signed-in board's own (scoped to the person's role) when there are any, else the open board's.
+        const titleList = d.suggestions.length ? d.suggestions : (g?.titles || []).map((x) => x.value);
+        const next = [
+          ...(g?.companies || []).map((x) => ({ kind: "company", key: `c:${x.slug}`, label: x.name, sub: `${x.openJobs} open`, item: x })),
+          ...(g?.roles || []).map((x) => ({ kind: "role", key: `r:${x.id}`, label: x.name, sub: x.category, item: x })),
+          ...(g?.technologies || []).map((x) => ({ kind: "tech", key: `t:${x.name}`, label: x.name, item: x })),
+          ...titleList.map((s) => ({ kind: "title", key: `s:${s}`, label: s })),
+        ];
         setItems(next);
         if (next.length) setRect(boxRef.current?.getBoundingClientRect() || null);
         // Zero suggestions is a normal state: show NOTHING. Not an error, not an empty box.
@@ -129,12 +157,20 @@ export default function UsbSuggest({
     };
   }, [open, dismiss]);
 
-  const accept = (text) => {
-    selfEdit.current = true;
-    onChange(text);
+  const accept = (row) => {
+    const text = typeof row === "string" ? row : row.label;
     setItems([]);
     setOpen(false);
     setActive(-1);
+    if (row.kind === "company") {
+      // Inside the app the page opens in the shell; anywhere else, the public page.
+      navigate(`${pathname.startsWith("/app") ? "/app" : ""}/companies/${row.item.slug}`);
+      return;
+    }
+    if (row.kind === "role" && onPickRole) { onPickRole(row.item); return; }
+    if (row.kind === "tech" && onPickTech) { onPickTech(row.item); return; }
+    selfEdit.current = true;
+    onChange(text);
     onAccept?.(text);
   };
 
@@ -210,21 +246,28 @@ export default function UsbSuggest({
           <ul className="usb__suggest-list" id={listId} role="listbox" aria-label={
             field === "location" ? "Location suggestions" : "Job title suggestions"
           }>
-            {items.map((s, i) => (
-              <li
-                key={s}
-                id={`${listId}-${i}`}
-                role="option"
-                aria-selected={i === active}
-                className={"usb__suggest-item" + (i === active ? " usb__suggest-item--active" : "")}
-                // pointerdown, not click: the input's blur fires first on a click and would unmount
-                // the row out from under it.
-                onPointerDown={e => { e.preventDefault(); accept(s); }}
-                onMouseMove={() => setActive(i)}
-              >
-                {s}
-              </li>
-            ))}
+            {items.map((s, i) => {
+              const row = typeof s === "string" ? { kind: "title", key: s, label: s } : s;
+              const head = grouped && (i === 0 || (items[i - 1]?.kind || "title") !== row.kind)
+                && items.some((x) => (x?.kind || "title") !== "title");
+              return [
+                head ? <li key={`h:${row.kind}`} role="presentation" className="usb__suggest-group" data-suggest-group={row.kind}>{GROUP_WORD[row.kind]}</li> : null,
+                <li
+                  key={row.key}
+                  id={`${listId}-${i}`}
+                  role="option"
+                  aria-selected={i === active}
+                  data-suggest-kind={row.kind}
+                  className={"usb__suggest-item" + (i === active ? " usb__suggest-item--active" : "")}
+                  // pointerdown, not click: the input's blur fires first on a click and would unmount
+                  // the row out from under it.
+                  onPointerDown={e => { e.preventDefault(); accept(row); }}
+                  onMouseMove={() => setActive(i)}
+                >
+                  {row.label}{row.sub ? <span className="usb__suggest-sub"> · {row.sub}</span> : null}
+                </li>,
+              ];
+            })}
           </ul>
         </DockPortal>
       )}

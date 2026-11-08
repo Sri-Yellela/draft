@@ -27,6 +27,7 @@ import ProfilePage               from "./pages/profile/ProfilePage.jsx";
 import { profilePanelFor, profilePath, LEGACY_PROFILE_ROUTES } from "./pages/profile/profilePanels.js";
 import InterviewPage             from "./pages/interview/InterviewPage.jsx";
 import CompanyPage               from "./pages/companies/CompanyPage.jsx";   // D179 P4b
+import PublicBoardPage           from "./pages/jobs/PublicBoardPage.jsx";    // D179 P3
 import { interviewPanelFor, interviewPath } from "./pages/interview/interviewModel.js";
 import { PlansPanel }            from "./panels/PlansPanel.jsx";
 import DeckView                  from "./panels/DeckView.jsx";
@@ -699,6 +700,13 @@ function ToApp() {
 }
 
 /** D105 P4: a signed-in person opening a public /atlas link lands on the same page inside the app. */
+/** D179 P3 · a server-rendered page (/jobs/<slug>) reached by the client router: load it from the server, once. */
+function FromServer() {
+  const { pathname, search } = useLocation();
+  useEffect(() => { window.location.replace(`${pathname}${search}`); }, [pathname, search]);
+  return null;
+}
+
 /** D179 P4b · /companies/:slug signed out — the company page under the marketing nav. */
 function PublicCompanyRoute() {
   const { slug } = useParams();
@@ -855,6 +863,16 @@ function AppRouter() {
             ? <AtlasInApp/>
             : <AtlasPage base="/atlas" publicChrome/>
         }/>
+
+        {/* ⭐ D179 P3 · THE OPEN BOARD — /jobs for everyone; a signed-in reader is sent to their own board. A posting's own
+            page (/jobs/<slug>, D128) is SERVER-rendered: reached inside the app (a return after sign-up), it is reloaded
+            from the server rather than drawn as "not found". */}
+        <Route path="/jobs" element={
+          authStatus === "authenticated" && authUser && !authUser.isAdmin
+            ? <Navigate to="/app/jobs" replace/>
+            : <>{navBar}<PublicBoardPage/></>
+        }/>
+        <Route path="/jobs/:slug" element={<FromServer/>}/>
 
         {/* ⭐ D179 P4b · a page for every company — PUBLIC (no sign-in); a signed-in reader gets it inside the app. */}
         <Route path="/companies/:slug" element={
