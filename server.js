@@ -94,6 +94,7 @@ import { createCompanyTech, stackFor, techForJobs } from "./services/companies/c
 import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyBackfill.js";
 import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/jobs/publicBoard.js";
 import { publicCompany, publicSuggest } from "./services/companies/publicCompany.js";
+import { createCompanyFacts } from "./services/companies/companyFacts.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
@@ -568,6 +569,7 @@ const scorePool = createScorePool({
 // D153 (3) · the backlog classification walk — created inside the migration block below, used by /api/version and the
 // listen callback, so it is declared out here.
 let classifyBacklog = null;
+let companyFacts = null;      // ⭐ D179 P4b (45l)
 let taxonomyBackfill = null;   // ⭐ D179 P2 (45l)
 let companyTech = null;     // ⭐ D179 P5a (45l) — assigned beside companyLinker
 let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration runner's block, like classifyBacklog
@@ -7030,6 +7032,24 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // ⭐ D179 P4b (45l): a company record's public facts (Wikidata, CC0, matched by the company's OWN website) — the
+      // company page's "About" is written from these in draft's own words (services/companies/companyFacts.js). status:
+      // ok · none (no item has that site) · failed; re-read after 90 days. Only ADDS.
+      id: "235_company_facts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS company_facts (
+          company_id   INTEGER PRIMARY KEY,
+          wikidata_id  TEXT,
+          industry     TEXT,
+          hq           TEXT,
+          founded      INTEGER,
+          employees    INTEGER,
+          status       TEXT NOT NULL,
+          fetched_at   INTEGER NOT NULL
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7133,6 +7153,9 @@ companyLinker = createCompanyLinker(db);
 companyTech = createCompanyTech(db);
 // ⭐ D179 P2: every active posting to Category → Subcategory (the approved taxonomy), after the classify walk. TAXONOMY_BACKFILL=off.
 taxonomyBackfill = createTaxonomyBackfill(db);
+// ⭐ D179 P4b: each company's public facts (Wikidata, by its own site) for the page's About — 150 a run, 1.5 s apart, daily.
+companyFacts = createCompanyFacts(db);
+if (process.env.COMPANY_FACTS !== "off") setInterval(() => companyFacts.run("interval"), 24 * 60 * 60 * 1000).unref();
 if (process.env.TAXONOMY_BACKFILL !== "off") setInterval(() => taxonomyBackfill.run("interval"), 6 * 60 * 60 * 1000).unref();
 if (process.env.COMPANY_RECORDS !== "off") setInterval(() => companyLinker.run("interval")
   .then(() => (process.env.COMPANY_TECH !== "off" ? companyTech.run("interval") : null)), 6 * 60 * 60 * 1000).unref();
@@ -15476,6 +15499,7 @@ app.get("/api/version", (_req, res) => {
     companies: companyLinker ? companyLinker.status() : null,   // ⭐ D179 P4a
     companyTech: companyTech ? companyTech.status() : null,     // ⭐ D179 P5a
     taxonomy: taxonomyBackfill ? taxonomyBackfill.status() : null,   // ⭐ D179 P2
+    companyFacts: companyFacts ? companyFacts.status() : null,       // ⭐ D179 P4b
     // ⭐ D151 Rule 1: the last boot's timeline — start → listen, → ready, and each warm-up step's duration.
     boot: BOOT.snapshot(),
     monetisationEnabled: monetisationEnabled(),
@@ -15577,7 +15601,8 @@ app.listen(PORT, () => {
     // ⭐ D179 P4a: the company records walk after the classify walk (one background walk on the loop at a time).
     if (process.env.COMPANY_RECORDS !== "off") Promise.resolve(classified).then(() => companyLinker.run("boot"))
       .then(() => (process.env.COMPANY_TECH !== "off" ? companyTech.run("boot") : null))
-      .then(() => (process.env.TAXONOMY_BACKFILL !== "off" ? taxonomyBackfill.run("boot") : null));
+      .then(() => (process.env.TAXONOMY_BACKFILL !== "off" ? taxonomyBackfill.run("boot") : null))
+      .then(() => (process.env.COMPANY_FACTS !== "off" ? companyFacts.run("boot") : null));
   });
 });
 

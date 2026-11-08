@@ -12,6 +12,7 @@
 // suggestions as a dropdown"): grouped Companies (with open jobs) · Roles (the taxonomy's subcategories) · Technologies
 // (shared/techVocabulary.js) · Titles (the open board's own, by frequency). Signed out it works the same.
 import { stackFor } from "./companyTech.js";
+import { companyAbout } from "./companyFacts.js";
 import { sponsorshipFactFor } from "../kb/sponsorshipFacts.js";
 import { PUBLIC_OPEN_SQL, jobPath } from "../jobs/publicJobPage.js";
 import { taxonomy } from "../jobs/taxonomyClassify.js";
@@ -84,7 +85,8 @@ export function publicCompany(db, slug, { now = Date.now() } = {}) {
     hiringTrend: trendRows.map(t => ({ month: t.month, postings: t.n })),
     stack, sponsorship: sponsorship ? { ...sponsorship, note: "A record of the employer's past filings — not a promise to sponsor you." } : null,
     jobs,
-    about: null,   // ⛔ not built yet: "About in draft's own words" from public facts (Wikidata, the company's site) — D179 (4)
+    // ⭐ D179 P4b: one sentence in draft's own words from the company's public facts (Wikidata, CC0, by its own site); null when none.
+    about: (() => { try { return companyAbout(db, co); } catch { return null; } })(),
   };
   pageCache.set(s, { at: now, value });
   if (pageCache.size > 5000) pageCache.clear();
