@@ -292,28 +292,28 @@
           "topics": [
             {
               "title": "SQL in depth",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-f-01",
+              "status": "draft"
             },
             {
               "title": "data modelling (grain, star schemas)",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-f-02",
+              "status": "draft"
             },
             {
               "title": "Python for data",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-f-03",
+              "status": "draft"
             },
             {
               "title": "statistics basics",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-f-04",
+              "status": "draft"
             },
             {
               "title": "data quality",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-f-05",
+              "status": "draft"
             }
           ]
         },
@@ -323,33 +323,33 @@
           "topics": [
             {
               "title": "batch and streaming",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-b-01",
+              "status": "draft"
             },
             {
               "title": "orchestration",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-b-02",
+              "status": "draft"
             },
             {
               "title": "warehouses and lakes (partitioning, columnar storage)",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-b-03",
+              "status": "draft"
             },
             {
               "title": "dbt and testing",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-b-04",
+              "status": "draft"
             },
             {
               "title": "change data capture",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-b-05",
+              "status": "draft"
             },
             {
               "title": "Kafka",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-b-06",
+              "status": "draft"
             }
           ]
         },
