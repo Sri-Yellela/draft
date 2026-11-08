@@ -162,6 +162,7 @@ import { practiceProgress } from "./services/learn/practiceProgress.js";
 import { stackExposure } from "./services/learn/stackExposure.js";
 import { phase1Measures } from "./services/admin/phase1Measures.js";
 import { runMarketWeek, marketWeekFor } from "./services/market/marketWeek.js";
+import { createLastGood } from "./services/jobs/lastGood.js";
 import { timingMiddleware, startLoopMonitor, checkpointWal, growthSnapshot, diagnostics, issueDiagToken, diagTokenValid } from "./services/ops/systemHealth.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
@@ -12689,6 +12690,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
 // (eligibility, won't sponsor, closed, already drafted / applied), then the signals in shared/bestBets.js. ⛔ A ranked
 // score from signals — never a probability until P3's calibration has 500 outcomes. ?size= (3–20) else Auto settings'
 // bestBets (default 5).
+const BEST_BETS_CACHE = createLastGood({ ttlMs: 15 * 60 * 1000 });
 app.get("/api/best-bets", requireAuth, async (req, res) => {
   try {
     const profile = getOrRepairActiveProfile(req.user.id);
@@ -12701,7 +12703,13 @@ app.get("/api/best-bets", requireAuth, async (req, res) => {
     };
     // ⛔ D151 · the board pages read through boardPageResponse (its list and counts in the read-worker pool, A126); the
     // cards' company velocity through the pool too (`read`) — the cold-cache job_history walk off the event loop.
-    res.json(await bestBetsFor(db, { userId: req.user.id, profileId: profile.id, size, fetchBoardPage, read: readPool }));
+    // ⭐ D153 (6) / D151 Rule 2 (45n): worked out ONCE per person + profile + size and kept as the last good result
+    // (15 min); a stale one is served at once with its asOf while one refresh runs behind it — never a re-render's wait.
+    // the person's own newest change (a pass, a star, an application) is part of the key — their own action never waits 15 min.
+    let mine = 0; try { mine = db.prepare("SELECT MAX(updated_at) FROM user_jobs WHERE user_id = ?").pluck().get(req.user.id) || 0; } catch { mine = 0; }
+    const r = await BEST_BETS_CACHE.get(`${req.user.id}:${profile.id}:${size}:${mine}`,
+      () => bestBetsFor(db, { userId: req.user.id, profileId: profile.id, size, fetchBoardPage, read: readPool }));
+    res.json({ ...r.value, asOf: r.asOf, stale: r.stale });
   } catch (e) {
     console.error("[best-bets]", e.message);
     res.status(500).json({ error: "best_bets_failed", message: "Best bets could not be worked out. Try again." });
