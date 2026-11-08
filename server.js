@@ -100,6 +100,8 @@ import { createCompanyWebSignals } from "./services/companies/companyWebSignals.
 import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landingPages.js";
 import { startAudit, answerAudit, auditResult, claimAudit } from "./services/audit/auditSession.js";
 import { todaysQuestion, answerToday } from "./services/learn/dailyQuestion.js";
+import { seedTaxonomyRoles } from "./services/atlas/taxonomyRoleNodes.js";
+import { TAXONOMY_FILE } from "./services/jobs/taxonomyClassify.js";
 import { setAim as setNavigatorAim } from "./services/navigator.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
@@ -7137,6 +7139,19 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
           created_at   INTEGER NOT NULL,
           PRIMARY KEY (user_id, day)
         );
+      `,
+    },
+    {
+      // ⭐ D179 P6 (owner 11-08: "create the 134 roles as drafts"): each taxonomy subcategory ↔ its Atlas role node (a draft
+      // for the Atlas desk, or an existing role of that name) — services/atlas/taxonomyRoleNodes.js, seeded on boot. Only ADDS.
+      id: "241_atlas_taxonomy_roles",
+      sql: `
+        CREATE TABLE IF NOT EXISTS atlas_taxonomy_roles (
+          subcategory  TEXT PRIMARY KEY,
+          node_id      INTEGER NOT NULL REFERENCES atlas_nodes(id) ON DELETE CASCADE,
+          category     TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_atlas_taxonomy_roles_node ON atlas_taxonomy_roles(node_id);
       `,
     },
   ];
@@ -15763,6 +15778,8 @@ app.listen(PORT, () => {
     try { stripSampleProfiles(db, { registry: getDomainRegistry() }); } catch (e) { console.warn("[a140] sample strip:", e.message); }
     const classified = classifyBacklog.run("boot");
     // ⭐ D179 P4a: the company records walk after the classify walk (one background walk on the loop at a time).
+    // (after the classify walk starts — the d153 ready-distance pin) ⭐ D179 P6 (owner 11-08): the taxonomy's subcategories as Atlas role DRAFTS for the desk — idempotent.
+    try { seedTaxonomyRoles(db, JSON.parse(fs.readFileSync(TAXONOMY_FILE, "utf8"))); } catch (e) { console.warn("[atlas] taxonomy roles:", e.message); }
     if (process.env.COMPANY_RECORDS !== "off") Promise.resolve(classified).then(() => companyLinker.run("boot"))
       .then(() => (process.env.COMPANY_TECH !== "off" ? companyTech.run("boot") : null))
       .then(() => (process.env.TAXONOMY_BACKFILL !== "off" ? taxonomyBackfill.run("boot") : null))
