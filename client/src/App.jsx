@@ -68,6 +68,7 @@ import { ConnectorDocsPage } from "./pages/marketing/ConnectorDocsPage.jsx";
 import AtlasPage       from "./pages/atlas/AtlasPage.jsx";
 import { Toaster }         from "./components/ui/toaster.jsx";
 import ResumeEditorHost     from "./components/ResumeEditorHost.jsx";
+import { REOPEN_KEY } from "./lib/resumeEditor.js";
 import SurveyPublicPage from "./pages/SurveyPublicPage.jsx";
 import { oauthNext }       from "./lib/oauthNext.js";
 import { loginHref, currentReturnPath, returnToFromSearch } from "./lib/signInReturn.js";
@@ -699,6 +700,14 @@ function AppDashboard({ authUser, setAuthUser }) {
 
 /** ⭐ D167: /profile… and /interview… are in-app places — forwarded under /app, the query and the #panel kept (the app's
  *  own gate signs a signed-out reader in first). */
+/** ⭐ D157 (i) (45n) · /draft/resume/<job> — the editor's own address: the jobs page with that résumé open (signed in). */
+function EditorAddress({ signedIn }) {
+  const { jobId } = useParams();
+  if (!signedIn) return <Navigate to="/" replace/>;
+  try { sessionStorage.setItem(REOPEN_KEY, jobId); } catch { /* the jobs page opens without it */ }
+  return <Navigate to="/app/jobs" replace/>;
+}
+
 function ToApp() {
   const { pathname, search, hash } = useLocation();
   return <Navigate to={`/app${pathname}${search}${hash}`} replace/>;
@@ -890,6 +899,7 @@ function AppRouter() {
 
         {/* ⭐ D167 · /profile/<panel> and /interview/<panel> without /app — the in-app place, for a signed-in reader. */}
         <Route path="/profile/*" element={<ToApp/>}/>
+        <Route path="/draft/resume/:jobId" element={<EditorAddress signedIn={authStatus === "authenticated" && !!authUser && !authUser.isAdmin}/>}/>
         <Route path="/interview/*" element={<ToApp/>}/>
 
         {/* New public pages with NavBar */}
