@@ -6527,4 +6527,24 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D150 T05–T07 (45l): the 3-minute audit's anonymous sessions — a random token is the only key (no account, nothing
+      // personal); the six item ids, the answers given; claimed_by / claimed_at once a signed-in person keeps it (T07, once).
+      // Unclaimed sessions are deleted after 30 days (services/audit/auditSession.js purgeUnclaimed). Only ADDS.
+      id: "239_audit_sessions",
+      sql: `
+        CREATE TABLE IF NOT EXISTS audit_sessions (
+          token          TEXT PRIMARY KEY,
+          role_slug      TEXT NOT NULL,
+          bank_role      TEXT NOT NULL,
+          level          TEXT,
+          item_ids_json  TEXT NOT NULL,
+          answers_json   TEXT NOT NULL DEFAULT '[]',
+          created_at     INTEGER NOT NULL,
+          claimed_by     INTEGER,
+          claimed_at     INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_audit_sessions_created ON audit_sessions(claimed_at, created_at);
+      `,
+    },
   ];
