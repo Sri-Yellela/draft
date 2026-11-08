@@ -1,0 +1,31 @@
+/* ⭐ D179 P4b · the company page. Colours from tokens only (D149 / D181); no capsule shapes (D60). */
+.co { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; color: var(--c-ink); box-sizing: border-box; }
+.co--empty { text-align: center; color: var(--c-ink-muted); }
+.co__back { background: none; border: none; color: var(--c-accent-ink); font: inherit; font-size: 14px; cursor: pointer; padding: 0; margin-bottom: 16px; }
+.co__head { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 28px; }
+.co__tile { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  background: var(--c-surface-2); border: 1px solid var(--c-border); font-size: 24px; font-weight: 700; color: var(--c-ink-muted); flex: none; }
+.co__headtext { flex: 1; min-width: 220px; }
+.co__name { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 4vw, 42px); line-height: 1.1; margin: 0; }
+.co__facts { margin: 6px 0 0; color: var(--c-ink-muted); font-size: 14px; }
+.co__facts a, .co a { color: var(--c-accent-ink); }
+.co__btn { padding: 10px 16px; border-radius: 10px; background: var(--c-surface-solid); border: 1px solid var(--c-border);
+  color: var(--c-ink); text-decoration: none; font-weight: 600; font-size: 14px; }
+.co__sec { background: var(--c-surface-solid); border: 1px solid var(--c-border); border-radius: 16px; padding: 18px 22px; margin-bottom: 18px; }
+.co__sec h2 { font-size: 18px; margin: 0 0 6px; font-weight: 600; }
+.co__sec h3 { font-size: 13px; margin: 14px 0 6px; color: var(--c-ink-muted); font-weight: 600; }
+.co__lead { margin: 4px 0 10px; color: var(--c-ink-muted); font-size: 13px; }
+.co__techs, .co__roles, .co__jobs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.co__techs li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.co__evidence, .co__where, .co__subs { color: var(--c-ink-muted); font-size: 13px; }
+.co__new { color: var(--c-accent-ink); font-size: 12px; }
+.co__roles li { display: flex; flex-direction: column; gap: 2px; }
+.co__roles a { text-decoration: none; color: var(--c-ink); }
+.co__count { color: var(--c-ink-muted); font-weight: 400; margin-left: 6px; }
+.co__bars { display: flex; gap: 10px; align-items: flex-end; height: 140px; padding-top: 18px; }
+.co__bar { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative; }
+.co__barfill { width: 100%; max-width: 48px; background: var(--c-accent); border-radius: 6px 6px 0 0; }
+.co__barn { position: absolute; top: 0; font-size: 12px; color: var(--c-ink-muted); }
+.co__barm { font-size: 12px; color: var(--c-ink-muted); margin-top: 6px; }
+.co__foot { margin-top: 28px; color: var(--c-ink-muted); font-size: 13px; }
+@media (max-width: 600px) { .co { padding: 20px 16px 48px; } .co__sec { padding: 16px; } }
