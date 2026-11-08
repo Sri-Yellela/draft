@@ -1,0 +1,1100 @@
+{
+ "version": 22,
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'management': 'building-blocks' (3), 'patterns' (4), 'specialisation' (2), 'interview' (3), in Part C's order. Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "mg-b-01",
+   "pathway": "management",
+   "stage": "building-blocks",
+   "title": "Hiring and interviewing",
+   "skills": [
+    "hiring",
+    "interviewing"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Building the team on purpose",
+     "points": [
+      "Hiring decides who joins, which shapes everything the team can do for years.",
+      "A good process is fair, consistent and predictive of the job."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Define, structure, decide",
+     "points": [
+      "Write down what the role needs before interviewing: skills, level, what success looks like at six months.",
+      "Structured interviews: each interviewer covers set areas with set questions and a scoring guide.",
+      "Work-like exercises predict better than puzzles.",
+      "Decide on evidence against the criteria, not on 'gut feel' or likeability."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Speed against rigour",
+     "points": [
+      "Slow processes lose good candidates; rushed ones hire mistakes.",
+      "Hiring for 'culture fit' can quietly mean hiring people like you; hire for values and what the team lacks.",
+      "Too many rounds exhaust candidates without improving decisions."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Interview training and calibration sessions.",
+      "Debriefs where each interviewer writes feedback before discussion.",
+      "A candidate experience survey."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-b-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-b-02",
+   "pathway": "management",
+   "stage": "building-blocks",
+   "title": "Planning and estimation",
+   "skills": [
+    "planning",
+    "estimation"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Saying what we'll do, and roughly when",
+     "points": [
+      "Planning chooses what the team works on; estimation gives a sense of size and time so others can plan too.",
+      "Estimates are forecasts with uncertainty, not promises."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Slice, size, forecast",
+     "points": [
+      "Break work into small, shippable slices; small things are easier to estimate and deliver.",
+      "Size relatively (this is bigger than that) rather than in exact hours.",
+      "Use past throughput to forecast: how many slices the team actually finishes per week.",
+      "Give ranges and confidence ('likely 4–6 weeks'), and update as you learn."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Certainty is expensive",
+     "points": [
+      "Detailed up-front plans go stale; rolling plans adapt.",
+      "Padding hides risk; naming risks is better.",
+      "Committing to scope, date and quality all at once rarely works; choose which flexes."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Quarterly goals with monthly check-ins.",
+      "Risks listed next to the plan.",
+      "Scope cut, not quality, when dates are fixed."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-b-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-b-03",
+   "pathway": "management",
+   "stage": "building-blocks",
+   "title": "Stakeholder management",
+   "skills": [
+    "stakeholder management",
+    "communication"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Keeping the people around the team aligned",
+     "points": [
+      "Stakeholders are the people affected by or able to affect your team's work: product, other teams, leaders, customers.",
+      "Managing them is mostly communication and expectations."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Know them, inform them, involve them",
+     "points": [
+      "Map who cares about what, and how much influence they have.",
+      "Share progress and risks regularly, in their terms, before they ask.",
+      "Bring bad news early, with options.",
+      "Agree decisions and who makes them, in writing."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Everyone can't get everything",
+     "points": [
+      "Saying yes to everyone overloads the team; say no with reasons and alternatives.",
+      "Too many updates are noise; too few breed surprises.",
+      "Escalating is sometimes right; doing it without warning burns trust."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A short regular update: done, next, risks, asks.",
+      "Decision logs.",
+      "Roadmap conversations that start from goals, not feature lists."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-b-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-p-01",
+   "pathway": "management",
+   "stage": "patterns",
+   "title": "Delivery and execution",
+   "skills": [
+    "execution",
+    "delivery"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Getting the right things finished",
+     "points": [
+      "Execution is turning plans into shipped results, repeatedly, without burning out the team.",
+      "Most delivery problems are too much work in progress and unclear priorities."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Focus, flow, feedback",
+     "points": [
+      "Limit work in progress: finishing beats starting.",
+      "One clear priority order the whole team knows.",
+      "Remove blockers daily; that's much of a manager's job.",
+      "Measure flow (cycle time, throughput), not hours or busyness."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Busy isn't productive",
+     "points": [
+      "Starting many things at once makes everything late.",
+      "Process added to fix one slip often slows everything.",
+      "Heroics hide problems and burn people out."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A visible board with WIP limits.",
+      "Short check-ins focused on blockers.",
+      "Retrospectives that produce one or two real changes."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-p-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-p-02",
+   "pathway": "management",
+   "stage": "patterns",
+   "title": "Performance management",
+   "skills": [
+    "performance management",
+    "growth"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Helping people do their best work",
+     "points": [
+      "Performance management sets expectations, gives feedback, supports growth, and deals with problems fairly.",
+      "Nothing in a review should be a surprise."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Expectations, evidence, support",
+     "points": [
+      "Clear expectations for each level (a career ladder) and each person's goals.",
+      "Regular feedback with examples, so reviews summarise rather than reveal.",
+      "Growth plans with real opportunities, not just advice.",
+      "Underperformance addressed early, with a specific plan, support and timeline."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Kind isn't avoiding",
+     "points": [
+      "Delaying hard conversations is unkind to the person and the team.",
+      "Ratings invite gaming; focus on impact and behaviour.",
+      "Bias creeps in; calibrate across managers and use evidence."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Calibration sessions across teams.",
+      "Written growth plans reviewed in one-to-ones.",
+      "Documented performance plans when needed."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-p-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-p-03",
+   "pathway": "management",
+   "stage": "patterns",
+   "title": "Team health",
+   "skills": [
+    "team health",
+    "psychological safety"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "A team that works well together, sustainably",
+     "points": [
+      "A healthy team shares information, disagrees openly, learns from mistakes and doesn't burn out.",
+      "Psychological safety, the belief that you can speak up without being punished, underlies it."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Safety, clarity, sustainability",
+     "points": [
+      "Make it safe to say 'I don't know', 'I made a mistake' and 'I disagree'.",
+      "Clear roles and goals reduce friction.",
+      "Watch for burnout signs: long hours, cynicism, withdrawal.",
+      "Run retrospectives and act on them."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Comfort isn't the goal",
+     "points": [
+      "Safe doesn't mean conflict-free; it means conflict about ideas is fine.",
+      "Surveys measure some things and miss others; talk to people.",
+      "Protecting the team sometimes means saying no upward."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Blameless postmortems.",
+      "A sustainable on-call rotation.",
+      "Managers who admit their own mistakes first."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-p-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-p-04",
+   "pathway": "management",
+   "stage": "patterns",
+   "title": "Leading through incidents",
+   "skills": [
+    "incident leadership",
+    "management"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "The manager's role when things break",
+     "points": [
+      "During a serious incident, managers protect the responders, coordinate, and communicate upward and outward.",
+      "Afterwards, they make sure the lessons turn into change."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Shield, support, follow up",
+     "points": [
+      "Don't take over the technical response; support the incident commander.",
+      "Keep executives and customers informed so engineers can focus.",
+      "Watch for fatigue; rotate people on long incidents.",
+      "Make sure postmortem actions get time and owners."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Presence without pressure",
+     "points": [
+      "Hovering over responders slows them down.",
+      "Pushing for a cause before the fire is out costs time.",
+      "Promising 'never again' without investment rings hollow."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A communications lead role separate from the technical lead.",
+      "Food, breaks and handovers on long incidents.",
+      "Postmortem actions tracked in planning."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-p-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-s-01",
+   "pathway": "management",
+   "stage": "specialisation",
+   "title": "Technical strategy",
+   "skills": [
+    "technical strategy",
+    "architecture"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Choosing technical direction for the long term",
+     "points": [
+      "Technical strategy decides where the systems should go over the next years and why: platforms, architecture, build or buy.",
+      "Good strategy is a few clear choices, explained."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Diagnosis, policy, actions",
+     "points": [
+      "Diagnose the real problem (slow delivery, outages, cost), with evidence.",
+      "Set guiding choices ('one way to run services', 'buy, don't build, for non-core needs').",
+      "Plan concrete steps, with milestones and owners.",
+      "Write it down and share it, so teams make consistent decisions."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Choices mean saying no",
+     "points": [
+      "A strategy that allows everything guides nothing.",
+      "Big rewrites rarely pay off; incremental migration usually wins.",
+      "Strategy without investment is a wish."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Architecture decision records.",
+      "Tech radar or standards documents.",
+      "Strategy reviewed yearly against what happened."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-s-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-s-02",
+   "pathway": "management",
+   "stage": "specialisation",
+   "title": "Growing managers",
+   "skills": [
+    "management development",
+    "leadership"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Developing the next leaders",
+     "points": [
+      "As organisations grow, senior managers spend more time growing managers than managing engineers directly.",
+      "New managers need support; the job changes more than most expect."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Transition, coaching, practice",
+     "points": [
+      "The switch from engineer to manager changes how success is measured: through the team, not personal output.",
+      "Coach rather than solve: ask questions that help them find their answer.",
+      "Give them real responsibility with a safety net.",
+      "Peer groups and training help new managers learn from each other."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Not everyone should manage",
+     "points": [
+      "Promoting the best engineer into management can lose a great engineer and gain an unhappy manager.",
+      "A parallel senior engineering track keeps strong engineers growing.",
+      "Too much hand-holding slows their growth; too little sets them up to fail."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Manager onboarding plans.",
+      "Regular skip-level conversations.",
+      "Trial periods for engineers trying management."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-s-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-iv-01",
+   "pathway": "management",
+   "stage": "interview",
+   "title": "People scenarios",
+   "skills": [
+    "management interview",
+    "people"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "'What would you do if…?' about people",
+     "points": [
+      "Manager interviews ask about conflicts, low performance, a resignation, a burnt-out engineer.",
+      "They're scoring empathy, directness and judgement."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Listen, clarify, act",
+     "points": [
+      "Start by understanding: what's really happening, from each side.",
+      "Be direct about expectations and kind in how you say them.",
+      "Act with a plan and follow up.",
+      "Use real examples from your own experience."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Neither soft nor harsh",
+     "points": [
+      "Avoiding the issue fails the team; punishing first fails the person.",
+      "Fairness and consistency matter more than being liked.",
+      "Know when to involve HR."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "How to prepare",
+     "points": [
+      "Prepare stories: a conflict, a performance issue, a time you supported someone.",
+      "Practise the situation, actions, result structure.",
+      "Say what you learned."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-iv-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-iv-02",
+   "pathway": "management",
+   "stage": "interview",
+   "title": "Execution scenarios",
+   "skills": [
+    "management interview",
+    "execution"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "'The project is slipping; what do you do?'",
+     "points": [
+      "Execution questions test how you deliver: slipping projects, unclear priorities, dependencies on other teams.",
+      "They want concrete steps and trade-offs."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Diagnose before fixing",
+     "points": [
+      "Find the cause: scope growth, unclear requirements, technical debt, staffing, dependencies.",
+      "Options: cut scope, move dates, add focus (not just people), remove blockers.",
+      "Communicate the trade-off to stakeholders.",
+      "Learn from it for the next plan."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Adding people isn't free",
+     "points": [
+      "Adding engineers late often slows a project down at first.",
+      "Overtime fixes a week, not a quarter.",
+      "Hiding a slip makes it worse."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "How to prepare",
+     "points": [
+      "Have a real story of a project you rescued or a slip you managed.",
+      "Know a few delivery metrics.",
+      "Show how you communicated."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-iv-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-iv-03",
+   "pathway": "management",
+   "stage": "interview",
+   "title": "Strategy discussions",
+   "skills": [
+    "management interview",
+    "strategy"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Thinking beyond the next sprint",
+     "points": [
+      "Senior manager interviews include strategy: how you'd set direction, build a roadmap, or decide build versus buy.",
+      "They want structured thinking tied to business goals."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Goals, options, choices",
+     "points": [
+      "Start from the business goal and the current situation.",
+      "Lay out options with costs, risks and benefits.",
+      "Make a recommendation and say what you'd measure.",
+      "Explain how you'd bring the team and stakeholders along."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Clarity over completeness",
+     "points": [
+      "Listing every option without choosing doesn't show judgement.",
+      "Ignoring people and change management makes strategy fail.",
+      "Admit uncertainty and how you'd reduce it."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "How to prepare",
+     "points": [
+      "Prepare a story of a strategic decision you drove.",
+      "Practise build-versus-buy reasoning.",
+      "Know the company's business well enough to connect to it."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-iv-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "mg-b-01-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "entry",
+   "skills": [
+    "hiring"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "In a debrief, the first interviewer says 'strong hire', and everyone agrees. Some had doubts. What process prevents this?",
+   "choices": [
+    "Each interviewer submits written feedback against the criteria before the debrief, then discusses evidence",
+    "Let the most senior person decide",
+    "Hire everyone who's liked",
+    "Skip debriefs"
+   ],
+   "correct": 0,
+   "why": [
+    "Independent written feedback avoids anchoring and groupthink.",
+    "One voice isn't evidence.",
+    "Likeability isn't the criteria.",
+    "Removes the check."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-b-02-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "entry",
+   "skills": [
+    "estimation"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A stakeholder asks for an exact delivery date for a large, unclear project. What's the most honest response?",
+   "choices": [
+    "Give a range based on what's known, name the biggest unknowns, and commit to updating it as the first slices ship",
+    "Promise a date to keep them happy",
+    "Refuse to estimate",
+    "Double your guess and say it's exact"
+   ],
+   "correct": 0,
+   "why": [
+    "Ranges with risks are honest and useful; updates keep trust.",
+    "Sets up a broken promise.",
+    "Unhelpful.",
+    "Still false precision."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-b-03-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "entry",
+   "skills": [
+    "stakeholder management"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Your team will miss a date another team depends on. When should you tell them?",
+   "choices": [
+    "As soon as you know, with the reason, the new estimate and options to reduce their impact",
+    "On the due date",
+    "Only if they ask",
+    "After you've finished"
+   ],
+   "correct": 0,
+   "why": [
+    "Early bad news lets them adapt; late news costs them.",
+    "Too late to adjust.",
+    "They're relying on you.",
+    "Far too late."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-p-01-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "mid",
+   "skills": [
+    "execution"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A team has 14 projects in progress for 6 engineers, and everything is late. What's the first lever?",
+   "choices": [
+    "Cut work in progress: finish the top few before starting more",
+    "Ask everyone to work weekends",
+    "Add a daily status report",
+    "Start more projects to show progress"
+   ],
+   "correct": 0,
+   "why": [
+    "Fewer things at once means each finishes sooner.",
+    "Burns people out, doesn't fix flow.",
+    "Reporting doesn't create time.",
+    "Makes it worse."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-p-02-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "mid",
+   "skills": [
+    "performance management"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "An engineer gets a 'below expectations' rating with no earlier feedback about it. What went wrong?",
+   "choices": [
+    "Feedback wasn't given along the way; reviews should summarise known feedback, not surprise",
+    "The rating scale",
+    "The engineer should have guessed",
+    "Nothing"
+   ],
+   "correct": 0,
+   "why": [
+    "Surprises in reviews mean feedback failed earlier.",
+    "The scale isn't the issue.",
+    "Expectations must be stated.",
+    "It damages trust."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-p-03-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "mid",
+   "skills": [
+    "psychological safety"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "After a manager criticised an engineer publicly for an outage, people stopped reporting small mistakes. What's the fix?",
+   "choices": [
+    "Rebuild safety: own the mistake publicly, move to blameless reviews, and thank people for raising problems",
+    "Punish anyone who hides mistakes",
+    "Add more monitoring only",
+    "Ignore it"
+   ],
+   "correct": 0,
+   "why": [
+    "Speaking up returns when it's safe and valued.",
+    "Fear deepens hiding.",
+    "Helps, but the culture problem remains.",
+    "Problems will grow unseen."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-p-04-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "mid",
+   "skills": [
+    "incident leadership"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "During a major outage, a director keeps joining the response channel asking engineers for updates every few minutes. What should the manager do?",
+   "choices": [
+    "Set up a separate channel with regular updates from a comms lead, so responders can focus",
+    "Ask engineers to answer faster",
+    "Remove the director",
+    "Pause the response to brief them"
+   ],
+   "correct": 0,
+   "why": [
+    "Separating communication from response protects focus and keeps leaders informed.",
+    "Adds pressure, slows the fix.",
+    "Not necessary with a better channel.",
+    "Delays recovery."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-s-01-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "senior",
+   "skills": [
+    "technical strategy"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Teams use five different ways to deploy services, causing outages and slow onboarding. What's a strategic response?",
+   "choices": [
+    "Choose one supported way, explain why, and plan an incremental migration with support for teams",
+    "Rewrite all services at once",
+    "Let each team keep choosing",
+    "Ban deployments"
+   ],
+   "correct": 0,
+   "why": [
+    "A clear choice with a migration path reduces cost and risk.",
+    "Big-bang rewrites are risky.",
+    "That's the cause.",
+    "Not workable."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-s-02-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "senior",
+   "skills": [
+    "management development"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A new manager keeps doing the hardest technical work themselves and their team is stalling. How do you coach them?",
+   "choices": [
+    "Help them see their impact now comes through the team: delegate the hard work with support, and spend their time unblocking and growing people",
+    "Tell them to code more",
+    "Take over their team",
+    "Ignore it"
+   ],
+   "correct": 0,
+   "why": [
+    "The core transition is from doing to enabling.",
+    "Deepens the problem.",
+    "Removes their chance to learn.",
+    "The team keeps stalling."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-iv-01-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "mid",
+   "skills": [
+    "management interview"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Asked how you'd handle two senior engineers in open conflict about a design, what's a strong answer?",
+   "choices": [
+    "Meet each to understand their views, then bring them together on the shared goal and decision criteria, and make sure a decision gets made and supported",
+    "Pick the more senior one",
+    "Ignore it; seniors sort it out",
+    "Move one to another team immediately"
+   ],
+   "correct": 0,
+   "why": [
+    "Understanding, shared criteria and a clear decision resolve it fairly.",
+    "Authority isn't reasoning.",
+    "Conflict festers.",
+    "Drastic without understanding."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-iv-02-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "mid",
+   "skills": [
+    "execution"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A project is a month behind with six weeks left. The director suggests adding four engineers. What do you say?",
+   "choices": [
+    "New people need onboarding and slow the team at first; look at cutting scope and removing blockers first, and add people only where work can split cleanly",
+    "Yes, more people always helps",
+    "Ask for ten engineers",
+    "Promise to catch up with overtime"
+   ],
+   "correct": 0,
+   "why": [
+    "Late additions often slow delivery; scope and focus are faster levers.",
+    "Not this late.",
+    "Even worse.",
+    "Not sustainable for six weeks."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-iv-03-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "senior",
+   "skills": [
+    "strategy"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Asked whether to build an internal tool or buy one, what's the strongest approach?",
+   "choices": [
+    "Compare total cost, time to value, how core it is to the business, and risks; recommend one and say what would change your mind",
+    "Always build; engineers like building",
+    "Always buy; it's faster",
+    "Ask the team to vote"
+   ],
+   "correct": 0,
+   "why": [
+    "Structured reasoning tied to the business shows judgement.",
+    "Bias, not analysis.",
+    "Also bias.",
+    "Avoids the decision."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}
