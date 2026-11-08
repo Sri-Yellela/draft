@@ -182,38 +182,38 @@
           "topics": [
             {
               "title": "the DOM and rendering",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-fe-01",
+              "status": "draft"
             },
             {
               "title": "CSS layout",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-fe-02",
+              "status": "draft"
             },
             {
               "title": "accessibility",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-fe-03",
+              "status": "draft"
             },
             {
               "title": "state management",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-fe-04",
+              "status": "draft"
             },
             {
               "title": "performance (bundles, layout shift)",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-fe-05",
+              "status": "draft"
             },
             {
               "title": "web security (XSS, CSP)",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-fe-06",
+              "status": "draft"
             },
             {
               "title": "testing interfaces",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-fe-07",
+              "status": "draft"
             }
           ]
         },
