@@ -17,4 +17,19 @@ if (file) {
     } catch { /* a probe never breaks the server */ }
   }, 500);
   t.unref();
+  // ⭐ 45j (11-08): name a long stall. Every console line gets a [t=<ms since start>] prefix, and a stall over 1 s (a 50 ms
+  // timer that fired late) is appended to $SCALE_LOOP_FILE.stalls as { end, ms } — the suite prints each with the server's
+  // lines from just before it ended. Test support only; the server's code carries no hook.
+  const t0 = Date.now();
+  for (const k of ["log", "warn", "error"]) {
+    const orig = console[k].bind(console);
+    console[k] = (...a) => orig(`[t=${Date.now() - t0}]`, ...a);
+  }
+  let last = Date.now();
+  const s = setInterval(() => {
+    const now = Date.now(), gap = now - last - 50;
+    last = now;
+    if (gap > 1000) { try { fs.appendFileSync(`${file}.stalls`, JSON.stringify({ end: now - t0, ms: gap }) + "\n"); } catch { /* never breaks the server */ } }
+  }, 50);
+  s.unref();
 }
