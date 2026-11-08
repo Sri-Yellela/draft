@@ -1792,6 +1792,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const [tiersExclude,   setTiersExclude]   = useState([]);
   const [fitBands,       setFitBands]       = useState([]);
   const [jobFunctions,   setJobFunctions]   = useState([]);
+  // ⭐ D179 (a) (45l) · THE ROLE — the taxonomy's Category → Subcategory, chosen in the domain word's panel (or the search
+  // box's Roles); sent as `category` / `subcategory` (jobQuery's hard taxonomy filter), counted by the facets' `role`.
+  const [taxRole,        setTaxRole]        = useState({ category: "", subcategory: "" });
   const [places,         setPlaces]         = useState([]);
   const [sectors,        setSectors]        = useState([]);
   const [strictTags,     setStrictTags]     = useState(false);
@@ -2499,6 +2502,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     if (fitBands.length)       p.set(FIT_BANDS.param,   fitBands.join(","));
     // D30: the domain and location dials, by the contract's param names (D29's tag dimensions).
     if (jobFunctions.length)   p.set(JOB_FUNCTIONS.param, jobFunctions.join(","));
+    if (taxRole.subcategory)   p.set("subcategory", taxRole.subcategory);   // D179 (a)
+    else if (taxRole.category) p.set("category", taxRole.category);
     if (places.length)         p.set(PLACES.param,      places.join(","));
     // D42: the company sector (drawer) and the strict toggle (the panels' "only known" pill).
     if (sectors.length)        p.set(SECTORS.param,     sectors.join(","));
@@ -2520,7 +2525,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       // callback's OLD closure, so toggling either sent the previous querystring.
       companySponsors, hideEligibility, trulyEntry, hideGhost,
       sourcesInclude, sourcesExclude, tiersInclude, tiersExclude, curateOff, fitBands,
-      jobFunctions, places, sectors, strictTags]);
+      jobFunctions, places, sectors, strictTags, taxRole]);
 
   // FE-2: opt-in facet counts for the panel currently being edited — requested against the
   // CURRENTLY-COMMITTED filters (buildParams(1)), not the still-being-staged pendingFilters, so
@@ -2582,6 +2587,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const clauseParams = {
     ...Object.fromEntries(SENTENCE_CLAUSES.map(c => [c.dim.param, clauseState[c.key]?.[0]])),
     [STRICT_PARAM]: strictTags ? "1" : "",
+    // D179 (a): the role travels with the clauses (the domain word reads it; its panel sets it).
+    category: taxRole.category, subcategory: taxRole.subcategory,
   };
 
   const applyClausePatch = (patch) => {
@@ -2589,6 +2596,10 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       if (Object.prototype.hasOwnProperty.call(patch, c.dim.param)) clauseState[c.key]?.[1](patch[c.dim.param]);
     }
     if (Object.prototype.hasOwnProperty.call(patch, STRICT_PARAM)) setStrictTags(!!patch[STRICT_PARAM]);
+    // D179 (a): a role picked (or cleared) in the domain word's panel.
+    if ("subcategory" in patch || "category" in patch) {
+      setTaxRole({ category: String(patch.category || ""), subcategory: String(patch.subcategory || "") });
+    }
     setCurrentPage(1);
   };
   // The header holds these across renders; the ref keeps them pointed at THIS render's closures.
@@ -2622,7 +2633,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   const clauseParamsKey = JSON.stringify(clauseParams);
   const nothingMatches = !bgLoading && !!activeDomainProfile && boardTab === "all" && totalJobs === 0 && jobs.length === 0;
   useEffect(() => {
-    setBoardHeadline?.({ params: clauseParams, defaultDomain, nothingMatches,
+    // D179 (a): the chosen role's own words for the sentence, from the facets' role options.
+    const roleOpt = (facets.data?.clauses?.role || []).find(o => o.value === taxRole.subcategory)
+      || (taxRole.category ? (facets.data?.clauses?.role || []).find(o => o.groupId === taxRole.category) : null);
+    const roleLabel = taxRole.subcategory ? (roleOpt?.label || null) : taxRole.category ? (roleOpt?.group || null) : null;
+    setBoardHeadline?.({ params: { ...clauseParams, role_label: roleLabel }, defaultDomain, nothingMatches,
       facets: facets.data, facetsStatus: facets.status, otherFilterCount,
       onPatch: onClausePatch, onMoreFilters });
   }, [clauseParamsKey, defaultDomain, nothingMatches, facets, otherFilterCount, onClausePatch, onMoreFilters]); // eslint-disable-line react-hooks/exhaustive-deps

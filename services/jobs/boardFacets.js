@@ -36,6 +36,19 @@ import { fitBandsSql, FIT_SCORE_SQL } from "./jobCursor.js";
 // D30 · the two open-set dials, over the D29 tag layer.
 import { JOB_FUNCTIONS, PLACES } from "../../shared/jobTagVocabulary.js";
 import { placesFilterSql, placeFacetCounts, LEVEL_SQL, WORKPLACE_SQL, EMPLOYMENT_SQL } from "./tagFilters.js";
+import { taxonomy } from "./taxonomyClassify.js";
+
+// ⭐ D179 (a) (45l) · THE ROLE — the approved taxonomy's subcategories (not the held categories, not the "general" ones), each
+// with its category as `group`. Read once; a missing / unapproved taxonomy gives no role options (counts stay honest).
+let _roleOptions = null;
+function roleOptions() {
+  if (_roleOptions) return _roleOptions;
+  try {
+    _roleOptions = taxonomy().categories.filter(c => !c.held).flatMap(c => c.subs.filter(s => !s.general)
+      .map(s => ({ value: s.id, label: s.name, group: c.name, groupId: c.id })));
+  } catch { _roleOptions = []; }
+  return _roleOptions;
+}
 
 // Paging and cursor are about WHICH SLICE of the board, never about how many rows it holds, and a
 // facets request must not 400 on a cursor issued for a list. Projection params change no count.
@@ -135,6 +148,23 @@ export function facetClauses({ nowSec, visitSinceSec = null }) {
         return { value: o.value, label: o.label, count: p, known: p };
       }),
     },
+    // ⭐ D179 (a) (45l) · THE ROLE, Category → Subcategory (job_taxonomy, D179 P2) — the facets' one clause that is not a
+    // sentence clause of its own (the domain word reads it). HARD: a posting counts under a role only when it was classified
+    // into it (known === count). Counted in ONE grouped read over the board's own bindings. Last, after the sentence's.
+    {
+      key: "role",
+      remove: ["category", "subcategory"],
+      options: roleOptions(),
+      compute: async (ctx) => {
+        const opts = roleOptions();
+        if (!opts.length) return {};
+        const { joinClause, whereClause, baseArgs } = ctx;
+        const rows = await readerOf(ctx).all(`SELECT jtr.subcategory AS s, COUNT(*) AS n ${joinClause}
+            JOIN job_taxonomy jtr ON jtr.job_id = sj.job_id ${whereClause} GROUP BY jtr.subcategory`, baseArgs);
+        const by = new Map(rows.map(r => [r.s, r.n]));
+        return Object.fromEntries(opts.flatMap((o, i) => [[`c${i}`, by.get(o.value) || 0], [`k${i}`, by.get(o.value) || 0]]));
+      },
+    },
   ];
 }
 
@@ -196,6 +226,7 @@ function optionColumns(clause, ctx, prefix = "") {
 }
 const optionsFrom = (clause, row, prefix = "") => clause.options.map((o, i) => ({
   value: o.value, label: o.label, count: row[`${prefix}c${i}`], known: row[`${prefix}k${i}`],
+  ...(o.group ? { group: o.group, groupId: o.groupId } : {}),   // D179 (a): a role's category
 }));
 
 /**

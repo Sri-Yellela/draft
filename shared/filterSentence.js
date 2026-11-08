@@ -151,6 +151,8 @@ export function slotText(clause, params = {}, { defaultDomain = null } = {}) {
   let text;
   switch (clause.key) {
     case "domain": {
+      // ⭐ D179 (a) (45l): a chosen ROLE (Category → Subcategory) is what the domain word reads — "discovering Backend roles".
+      if (params.role_label) return { key: clause.key, text: String(params.role_label), active: true };
       const all = clause.dim.options.every(o => chosen.includes(o.value));
       text = !active ? clause.any
         : all ? "all" : or(chosen.map(v => optionOf(v)?.sentence ?? v));

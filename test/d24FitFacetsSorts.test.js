@@ -362,7 +362,8 @@ test("④ ⭐ every facet count IS the board's count with that option chosen —
     assert.equal(status, 200);
     // Exactly the FacetsResponse shape (D35 added `coverage` and `views`, additively).
     assert.deepEqual(Object.keys(body).sort(), ["clauses", "coverage", "known", "total", "unscored", "views"]);
-    assert.deepEqual(Object.keys(body.clauses), sentence.SENTENCE_CLAUSES.map(c => c.key));
+    // D179 (a) (45l, on purpose): + the role (Category → Subcategory), the facets' one clause the domain word reads.
+    assert.deepEqual(Object.keys(body.clauses), [...sentence.SENTENCE_CLAUSES.map(c => c.key), "role"]);
     // Headline: the board as it stands.
     assert.equal(body.total, boardCount(db, query), `total ${JSON.stringify(query)}`);
     const b = boardSql(query);
@@ -439,7 +440,8 @@ test("④ one statement for the headline and ONE per clause — never one per op
   const FOLDED = ["location", "sponsorship"];
   const own = sentence.SENTENCE_CLAUSES.filter(c => !FOLDED.includes(c.key));
   assert.equal(calls.length, 4 + own.length);   // head · ★ · + · /d (A91) · the unfolded clauses
-  assert.equal(prepares, 4 + own.length + 1);   // + the location clause's place read, on the head's bindings
+  // + the location clause's place read and (D179 (a), on purpose) the role clause's one grouped read, both on the head's bindings
+  assert.equal(prepares, 4 + own.length + 2);
   // Paging and the cursor are never forwarded (a list cursor must not 400 a facets call).
   for (const q of calls) { assert.ok(!("page" in q) && !("cursor" in q)); }
   // Each clause's base set drops exactly its own params — both of the age control's. (D30: six
@@ -470,7 +472,7 @@ test("④ same params, same validation: an unknown value is the board's own 400;
   assert.ok(Object.values(none.body.clauses).every(list => list.length && list.every(o => o.count === 0 && o.known === 0)));
   // facetClauses' options are the contract's dims, in their order, with their labels.
   const cl = facetClauses({ nowSec: NOW });
-  assert.deepEqual(cl.map(c => c.key), sentence.SENTENCE_CLAUSES.map(c => c.key));
+  assert.deepEqual(cl.map(c => c.key), [...sentence.SENTENCE_CLAUSES.map(c => c.key), "role"]);   // D179 (a), on purpose
   assert.deepEqual(cl.find(c => c.key === "fit").options.map(o => o.label), FIT_BANDS.options.map(o => o.label));
 });
 
