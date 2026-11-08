@@ -700,6 +700,20 @@ export function TailoringAdminSection({ theme }) {
         <div style={quiet}>{s.aPlusOverride
           ? "A+ is ON: every A+ request (PRO accounts, apply runs) calls the full A+ route on Sonnet — about 6¢ a résumé."
           : "A+ is off the default path: an A+ request is served with the strategy and model above. Turn it on to test A+."} Audited.</div>
+        {/* ⭐ A137 (45n, owner 11-08 ↺): while A+ is on, a base already scoring ≥ the minimum goes as a lean Generate. */}
+        {s.aPlusLean && <>
+          <div style={what}>A+ when the base is already strong</div>
+          <div style={row}>
+            <Btn theme={theme} primary={s.aPlusLean.on} disabled={busy} data-aplus-lean={s.aPlusLean.on ? "on" : "off"}
+              title="On: while A+ is on, a base résumé that already scores at least the minimum against the posting is sent as a lean Generate instead (cheaper; it skips A+'s company rules)."
+              onClick={() => send("PUT", { aPlusLean: !s.aPlusLean.on })}>{s.aPlusLean.on ? "✓ Lean when strong" : "Lean when strong: off"}</Btn>
+            <label style={quiet}>Minimum score{" "}
+              <input type="number" min={1} max={100} defaultValue={s.aPlusLean.min} disabled={busy} style={{ width: 64 }} aria-label="A137 minimum score"
+                onBlur={e => { const v = Number(e.target.value); if (Number.isInteger(v) && v >= 1 && v <= 100 && v !== s.aPlusLean.min) send("PUT", { aPlusLeanMin: v }); }} />
+            </label>
+          </div>
+          <div style={quiet}>Only acts while A+ is on. The minimum is your 72; the board's Strong band starts at 44 (shared/atsBands.js). Audited.</div>
+        </>}
         <div style={quiet}>"open" works only when the tools service has RM_OPENAI_COMPAT_BASE_URL, RM_OPENAI_COMPAT_API_KEY and RM_OPEN_MODEL; otherwise
           a Generate
           that asks for it fails with the service's refusal (nothing is spent) — configure it there before offering it. A résumé sent to another provider must be named in the privacy policy first.</div>

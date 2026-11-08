@@ -33,6 +33,22 @@ export const APLUS_OVERRIDE_KEY = "tailoring_aplus_override";
 export function aPlusOverride(db) {
   try { return String(getSetting(db, APLUS_OVERRIDE_KEY) || "").trim().toLowerCase() === "on"; } catch { return false; }
 }
+/**
+ * ⭐ A137 option (a) (owner 11-08, decision (2) ↺ REVISIT) · while A+ is served (the override above), a base résumé that
+ * ALREADY scores at least the minimum against the posting is sent as a lean GENERATE instead of a full A+ call — cheap,
+ * and it drops A+'s own rules (company selection / exclusions), which is why it is a switch, OFF unless the admin turns it
+ * on. The minimum is the owner's 72 (⚠ shared/atsBands.js puts Strong at 44 — "72" there is a posting count; the owner
+ * may move it: app_settings tailoring_aplus_lean_min).
+ */
+export const APLUS_LEAN_KEY = "tailoring_aplus_lean_when_strong";
+export const APLUS_LEAN_MIN_KEY = "tailoring_aplus_lean_min";
+export const APLUS_LEAN_MIN_DEFAULT = 72;
+export function aPlusLeanWhenStrong(db) {
+  let on = false, min = APLUS_LEAN_MIN_DEFAULT;
+  try { on = String(getSetting(db, APLUS_LEAN_KEY) || "").trim().toLowerCase() === "on"; } catch { on = false; }
+  try { const m = Number(getSetting(db, APLUS_LEAN_MIN_KEY)); if (Number.isFinite(m) && m > 0 && m <= 100) min = m; } catch { /* default */ }
+  return { on, min };
+}
 /** The prompt mode a request is SERVED with: A_PLUS only while the owner's override is on. */
 export function servedPromptMode(db, tool) {
   return tool === "a_plus_resume" && aPlusOverride(db) ? "A_PLUS" : "GENERATE";
@@ -69,7 +85,7 @@ export function tailoringState(db, env = process.env) {
   const override = getSetting(db, TAILORING_KEY);
   const envRaw = env?.DRAFT_TAILORING ?? null;
   const known = (v) => TAILORINGS.includes(String(v || "").trim().toLowerCase());
-  return { mode: tailoringFor({ db, env }), aPlusOverride: aPlusOverride(db),
+  return { mode: tailoringFor({ db, env }), aPlusOverride: aPlusOverride(db), aPlusLean: aPlusLeanWhenStrong(db),
            source: known(override) ? "override" : known(envRaw) ? "env" : "default",
            override, envRaw, modes: [...TAILORINGS] };
 }
