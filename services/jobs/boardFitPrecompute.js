@@ -205,6 +205,9 @@ export function createBoardFitPrecompute({
   // profile during three board loads. Optional: without it, or when it throws or answers the wrong length, the batch is
   // scored here exactly as before (time-sliced, yielding).
   scoreBatch = null,
+  // ⭐ D151 Rule 3/4 (11-08): the A126 read pool ({ all(sql, params), get(sql, params) } -> Promise). With it the plan's
+  // pages are read AND judged in a worker thread (planSliced). Without it, the plan runs here exactly as before.
+  read = null,
   // ⭐ 43y (11-01): (userId, profile) -> job ids to score FIRST for a profile with no scores at all (its own category,
   // newest first). Without it a new tester's deck waited for the whole board — measured 320 s for 2,411 postings.
   primeFor = null,
@@ -259,7 +262,31 @@ export function createBoardFitPrecompute({
     ORDER BY sj.job_id
     LIMIT ?
   `);
-  const activeCountStmt = db.prepare(`SELECT COUNT(*) AS n FROM scraped_jobs sj WHERE sj.is_active = 1${SCOPE_SQL}`);
+  const ACTIVE_COUNT_SQL = `SELECT COUNT(*) AS n FROM scraped_jobs sj WHERE sj.is_active = 1${SCOPE_SQL}`;
+  const activeCountStmt = db.prepare(ACTIVE_COUNT_SQL);
+  // ⭐ D151 Rule 3/4 (11-08) · THE PLAN OFF THE EVENT LOOP. With `read` (server.js: the A126 read pool), planSliced's
+  // pages are read in a worker thread, and the posting-side check runs THERE too — the same atsJobInputHash, called
+  // through the SQL function registerScoreFreshness registers on every connection (the read worker's included), so a
+  // page comes back as (job_id, why) and the main thread only counts it. Same keyset pages, same order, same scope,
+  // same answer as planStmt + tally (test/d151BoardFitPlanOffLoop.test.js compares the two).
+  const PLAN_OFF_LOOP_SQL = `
+    SELECT sj.job_id AS job_id,
+           CASE WHEN aor.id IS NULL THEN 'missing'
+                WHEN aor.basis_hash IS NOT ? OR ? = 1 THEN 'stale'
+                WHEN aor.job_hash IS NOT ${ATS_INPUT_HASH_FN}(${[
+                  ...ATS_JOB_INPUT_FIELDS.map(c => `sj.${c}`),
+                  ...(hasPostingText ? POSTING_TEXT_COLUMNS.map(c => `sj.${c}`) : POSTING_TEXT_COLUMNS.map(() => "NULL")),
+                ].join(", ")}) THEN 'changed'
+                ELSE 'fresh' END AS why
+    FROM scraped_jobs sj
+    LEFT JOIN ats_only_reports aor
+      ON aor.job_id = sj.job_id AND aor.user_id = ? AND aor.domain_profile_id IS ?
+    WHERE sj.is_active = 1${SCOPE_SQL} AND sj.job_id > ?
+    ORDER BY sj.job_id
+    LIMIT ?
+  `;
+  // The pool falls back to the main connection when it cannot answer; the function must exist there too.
+  if (read) registerScoreFreshness(db);
   const inFlight = new Map();   // "user:profile" -> { promise, rerun }
 
   /**
@@ -279,12 +306,12 @@ export function createBoardFitPrecompute({
     for (const r of rows) {
       if (r.why === "missing") { acc.missing++; acc.jobIds.push(r.job_id); continue; }
       if (r.why === "stale") { acc.stale++; acc.jobIds.push(r.job_id); continue; }
+      if (r.why === "fresh") continue;   // the off-loop page judged the posting side already
       // The basis matches: the row is fresh only if the POSTING is still the one that was scored.
-      if (r.stored_job_hash !== atsJobInputHash(r)) { acc.stale++; acc.postingChanged++; acc.jobIds.push(r.job_id); }
+      if (r.why === "changed" || r.stored_job_hash !== atsJobInputHash(r)) { acc.stale++; acc.postingChanged++; acc.jobIds.push(r.job_id); }
     }
   }
-  function finishPlan(acc, scope) {
-    const active = activeCountStmt.get(...scope).n;
+  function finishPlan(acc, scope, active = activeCountStmt.get(...scope).n) {
     const { missing, stale, postingChanged, jobIds } = acc;
     return { active, missing, stale, postingChanged, fresh: active - jobIds.length, jobIds };
   }
@@ -307,14 +334,20 @@ export function createBoardFitPrecompute({
     let pages = 0, longestPageMs = 0;
     for (let after = ""; ;) {
       const t0 = now();
-      const rows = planPageRows({ userId, profileId, basisHash, force, scope, after });
+      // D151: off the loop when there is a read pool (longestPlanPageMs is then the page's wall time, mostly the
+      // worker's); the pool answers on the main connection when it cannot, which is planStmt's work, once.
+      const rows = read
+        ? await read.all(PLAN_OFF_LOOP_SQL, [basisHash, force ? 1 : 0, userId, profileId ?? null, ...scope, after, planPage])
+        : planPageRows({ userId, profileId, basisHash, force, scope, after });
       tally(acc, rows);
       pages++; longestPageMs = Math.max(longestPageMs, now() - t0);
       if (rows.length < planPage) break;
       after = rows[rows.length - 1].job_id;
+      // Kept with the pool too: a pool that fell back answered synchronously, and the loop is still handed back.
       await yieldToEventLoop();
     }
-    return { ...finishPlan(acc, scope), planPages: pages, longestPlanPageMs: Math.round(longestPageMs) };
+    const done = read ? finishPlan(acc, scope, (await read.get(ACTIVE_COUNT_SQL, scope)).n) : finishPlan(acc, scope);
+    return { ...done, planPages: pages, longestPlanPageMs: Math.round(longestPageMs), offLoop: !!read };
   }
 
   const saidNoBaseResume = new Set();
