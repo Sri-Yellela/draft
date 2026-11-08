@@ -18,15 +18,20 @@ import studioLight from "./studio-light.js";
 import studioDark from "./studio-dark.js";
 import duskLight from "./dusk-light.js";
 import duskDark from "./dusk-dark.js";
+import plainLight from "./plain-light.js";
+import plainDark from "./plain-dark.js";
 import { installShapeVars } from "./shapes.js";
 import { LAYOUT_OPTION_IDS, LAYOUT_KEYS, LAYOUT_DEFAULTS, parseLayoutFlags, formatLayoutFlags } from "../../../shared/appearance.js";
 
-export const THEME_LIST = Object.freeze([paperLight, charcoalDark, contrastLight, contrastDark, studioLight, studioDark, duskLight, duskDark]);
+export const THEME_LIST = Object.freeze([paperLight, charcoalDark, contrastLight, contrastDark, studioLight, studioDark, duskLight, duskDark, plainLight, plainDark]);
 // ⭐ D133 · Studio is offered to users only when the owner turns it on (Admin → System → Appearance); the admin can
 // always choose it, per surface. A user who already chose it keeps it.
 export const STUDIO_IDS = Object.freeze([studioLight.id, studioDark.id]);
 // ⭐ D144 · Dusk likewise: offered to users only when the owner switches it on (its own switch, Admin → System → Appearance).
 export const DUSK_IDS = Object.freeze([duskLight.id, duskDark.id]);
+// ⭐ D181 (owner 11-07) · PLAIN: neutral backgrounds, one accent, no tints — offered to everyone (no switch), with "Match my
+// device" as the pair "plain".
+export const PLAIN_IDS = Object.freeze([plainLight.id, plainDark.id]);
 export const THEMES = Object.freeze(Object.fromEntries(THEME_LIST.map((t) => [t.id, t])));
 // ⭐ D149 (owner 11-03): DUSK IS THE DEFAULT for every user and every surface — Dusk Dark or Dusk Light following the
 // device. A device / account with NO stored choice opens in it; an explicit choice (any theme id or pair, "system"
@@ -46,9 +51,10 @@ const PAIRS = Object.freeze({
   contrast: { light: contrastLight.id, dark: contrastDark.id },
   studio:   { light: studioLight.id,   dark: studioDark.id },
   dusk:     { light: duskLight.id,     dark: duskDark.id },
+  plain:    { light: plainLight.id,    dark: plainDark.id },
 });
 const LEGACY = Object.freeze({ light: paperLight.id, dark: charcoalDark.id });
-export const THEME_PREFERENCES = Object.freeze(["system", "light", "dark", "contrast", "studio", "dusk", ...THEME_LIST.map((t) => t.id)]);
+export const THEME_PREFERENCES = Object.freeze(["system", "light", "dark", "contrast", "studio", "dusk", "plain", ...THEME_LIST.map((t) => t.id)]);
 
 // ⭐ D133 · PER SURFACE. The admin can give the Admin pages their own look ("admin=<pref>" in the same stored value — no
 // new storage key, §5); every other page is "the app" and uses the ordinary preference. Resolved once at load, like
@@ -102,7 +108,7 @@ export function resolve(pref = surfacePreference(), matchMedia = defaultMM()) { 
 /** The SCHEME a preference resolves to — "light" or "dark" (the name older callers know). */
 export function resolveTheme(pref = themePreference(), matchMedia = defaultMM()) { return resolve(pref, matchMedia).scheme; }
 /** The pair preference a theme belongs to ("follow my system" from a chosen card). */
-export function pairPreference(theme) { return STUDIO_IDS.includes(theme.id) ? "studio" : DUSK_IDS.includes(theme.id) ? "dusk" : theme.contrast === "aaa" ? "contrast" : "system"; }
+export function pairPreference(theme) { return STUDIO_IDS.includes(theme.id) ? "studio" : DUSK_IDS.includes(theme.id) ? "dusk" : PLAIN_IDS.includes(theme.id) ? "plain" : theme.contrast === "aaa" ? "contrast" : "system"; }
 
 export function setAppearance({ pref, cues }, { reload = () => location.reload() } = {}) {
   const cur = parseRaw(readRaw());
