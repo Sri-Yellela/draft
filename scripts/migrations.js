@@ -6500,4 +6500,18 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D179 P4b / D159 T1 (45l): Follow a company — one row per person and company record (D179 P4a). The alerts that
+      // follow from it (new fitting postings at companies you follow) are D159's, not built here. Only ADDS.
+      id: "237_company_follows",
+      sql: `
+        CREATE TABLE IF NOT EXISTS company_follows (
+          user_id     INTEGER NOT NULL,
+          company_id  INTEGER NOT NULL,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, company_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_company_follows_company ON company_follows(company_id);
+      `,
+    },
   ];
