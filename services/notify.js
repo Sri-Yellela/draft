@@ -45,6 +45,10 @@ export const NOTIFY_EVENTS = Object.freeze({
     url: "/app/auto-apply", defaults: { push: true, email: true }, throttle: 0 },
   pick_question: { label: "A question on a job you applied to", what: "A job you tapped Apply on stopped on a question only you can answer.",
     url: "/app/auto-apply", defaults: { push: true, email: true }, throttle: 0 },
+  // ⭐ D154 P1 (45m): the daily question's gentle reminder — OFF by default (both channels), sent once a day at the hour
+  // the person chose, and only when today's question is still unanswered (services/learn/dailyReminder.js).
+  daily_question: { label: "Today's question", what: "A reminder at the time you choose, only on days you haven't answered yet.",
+    url: "/app/atlas/todays-question", defaults: { push: false, email: false }, throttle: 0 },
 });
 export const CHANNELS = Object.freeze(["push", "email"]);
 
@@ -70,6 +74,8 @@ export function eventText(event, data = {}) {
         + (n("needYou") ? ` ${n("needYou")} more need you to sign in.` : "") };
     case "pick_question":
       return { title: "A question for you", body: "A job you applied to has a question only you can answer." };
+    case "daily_question":
+      return { title: "Today's question", body: "Today's question is waiting — about two minutes." };
     default:
       return { title: "draft", body: "Something changed in draft." };
   }

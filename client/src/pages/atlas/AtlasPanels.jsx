@@ -167,6 +167,38 @@ export function YourRoutePanel({ base, signedIn }) {
 // ⭐ D154 P1 / P3 (45l): one question a day, picked from the person's own gaps (services/learn/dailyQuestion.js) — the why
 // after the answer, then "Go to lesson" (the item's Learn pieces), and a quiet streak. Their LOCAL day is sent.
 const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+// ⭐ D154 P1 (45m) · the gentle reminder — OFF until the person turns it on; their own hour (local), push or email.
+const HOURS = Array.from({ length: 24 }, (_, h) => h);
+const hourWord = (h) => new Date(2000, 0, 1, h).toLocaleTimeString([], { hour: "numeric" });
+function DailyReminderRow() {
+  const [r, setR] = useState(null);
+  const [msg, setMsg] = useState("");
+  useEffect(() => { api("/api/learn/today/reminder").then(setR).catch(() => setR(null)); }, []);
+  if (!r) return null;
+  const save = async (body) => {
+    setMsg("");
+    try { setR(await api("/api/learn/today/reminder", { method: "PUT", body: JSON.stringify(body) })); }
+    catch (e) { setMsg(e.message || "Not saved."); }
+  };
+  const on = (patch = {}) => save({ on: true, hour: r.hour, tzOffsetMin: new Date().getTimezoneOffset(), channel: r.email && !r.push ? "email" : "push", ...patch });
+  return (
+    <div className="atl-dq__remind" data-daily-reminder={r.on ? "on" : "off"}>
+      <label className="atl__quiet">
+        <input type="checkbox" checked={r.on} onChange={e => (e.target.checked ? on() : save({ on: false }))} /> Remind me each day at{" "}
+        <select value={r.hour} aria-label="Reminder time" onChange={e => (r.on ? on({ hour: Number(e.target.value) }) : setR({ ...r, hour: Number(e.target.value) }))}>
+          {HOURS.map(h => <option key={h} value={h}>{hourWord(h)}</option>)}
+        </select>{" "}by{" "}
+        <select value={r.email && !r.push ? "email" : "push"} aria-label="Reminder by" onChange={e => (r.on ? save({ on: false }).then(() => on({ channel: e.target.value })) : setR({ ...r, push: e.target.value === "push", email: e.target.value === "email" }))}>
+          <option value="push">notification</option>
+          <option value="email">email</option>
+        </select>
+      </label>
+      <span className="atl__quiet"> · only on days you haven't answered.</span>
+      {msg && <span className="atl__quiet" role="alert"> {msg}</span>}
+    </div>
+  );
+}
+
 export function TodaysQuestionPanel({ base }) {
   const [t, setT] = useState(null);
   const [err, setErr] = useState("");
@@ -187,6 +219,7 @@ export function TodaysQuestionPanel({ base }) {
       {err && <p className="atl__quiet" role="alert">{err}</p>}
       {!t && !err && <p className="atl__quiet" role="status">Picking today's question…</p>}
       {t && !q && <NotYet>No question to ask yet — the bank has nothing new for you today.</NotYet>}
+      {t && <DailyReminderRow />}
       {q && (
         <div className="atl-dq" data-daily-question={q.id}>
           <p className="atl__quiet">{(q.skills || []).map(s => String(s).replace(/-/g, " ")).join(" · ")}</p>

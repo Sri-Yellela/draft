@@ -6663,4 +6663,19 @@ export const MIGRATIONS = [
           FROM proof_pages WHERE enabled = 1;
       `,
     },
+    {
+      // ⭐ D154 P1 (45m): the daily question's reminder — the hour the person chose (their local hour, with the browser's
+      // offset from UTC when they chose it) and the last local day it was sent. No row = no time chosen; the switches
+      // themselves are notification_prefs' daily_question (OFF by default). Only ADDS.
+      id: "246_daily_reminders",
+      sql: `
+        CREATE TABLE IF NOT EXISTS daily_reminders (
+          user_id        INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          hour           INTEGER NOT NULL CHECK (hour BETWEEN 0 AND 23),
+          tz_offset_min  INTEGER NOT NULL DEFAULT 0,
+          last_sent_day  TEXT,
+          updated_at     INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];

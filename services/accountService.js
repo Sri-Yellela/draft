@@ -212,7 +212,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D183 P1 (243): who can see the profile page, and the achievements added by hand.
   "profile_page", "profile_achievements",
   // D183 P2 (244): each résumé replace and what it changed (its snapshot holds the person's own earlier résumé).
-  "profile_replacements"];
+  "profile_replacements",
+  // D154 P1 (246): the hour the daily question's reminder is sent at.
+  "daily_reminders"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -350,6 +352,8 @@ export const MERGE_PLAN = Object.freeze({
   profile_page: "keepInto", profile_achievements: "ifIntoEmpty",
   // D183 P2 (244): a replace's undo record holds the snapshot of FROM's own profile rows — meaningless for INTO; dropped.
   profile_replacements: "drop",
+  // D154 P1 (246): the daily question's reminder time — one row per user; INTO's own time stands.
+  daily_reminders: "keepInto",
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */
