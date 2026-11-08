@@ -1,0 +1,922 @@
+{
+ "version": 20,
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'qa', stages 'foundations' (3), 'building-blocks' (3) and 'patterns' (4), in Part C's order. Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "qa-f-01",
+   "pathway": "qa",
+   "stage": "foundations",
+   "title": "The testing pyramid",
+   "skills": [
+    "testing strategy",
+    "unit tests",
+    "integration tests"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "How many of each kind of test",
+     "points": [
+      "The testing pyramid says: many fast unit tests at the base, fewer integration tests in the middle, a few end-to-end tests at the top.",
+      "It balances confidence, speed and maintenance."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Three layers",
+     "points": [
+      "Unit tests check small pieces of logic in isolation, in milliseconds.",
+      "Integration tests check that pieces work together: code with a real database, two services over an API.",
+      "End-to-end tests drive the whole system like a user; they catch the most and break the most.",
+      "Each bug found is best pinned at the lowest layer that can catch it."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Shapes that go wrong",
+     "points": [
+      "An 'ice-cream cone' (mostly end-to-end, few unit tests) is slow and flaky.",
+      "Only unit tests can pass while the parts don't fit together.",
+      "Some teams prefer a 'trophy' with more integration tests; the point is a deliberate mix."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Unit and integration tests on every commit; end-to-end on merge or nightly.",
+      "Test run times watched like product performance.",
+      "Each production bug gets a test at the right layer."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-f-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-f-02",
+   "pathway": "qa",
+   "stage": "foundations",
+   "title": "Test design",
+   "skills": [
+    "test design",
+    "boundary values",
+    "equivalence partitioning"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Choosing which cases to test",
+     "points": [
+      "You can't test every input. Test design picks the few cases most likely to find bugs.",
+      "A handful of well-chosen cases beats hundreds of random ones."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Partitions, boundaries, combinations",
+     "points": [
+      "Equivalence partitioning: group inputs that should behave the same, and test one from each group.",
+      "Boundary values: bugs cluster at edges, so test just below, at and just above each limit.",
+      "Decision tables and state transitions cover rules and workflows systematically.",
+      "Pairwise testing covers combinations of options without testing every one."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Coverage against effort",
+     "points": [
+      "Too few cases miss bugs; too many slow the suite and hide intent.",
+      "Code coverage shows what ran, not whether the checks were meaningful.",
+      "Negative cases (invalid input, failures) are often forgotten."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Test cases written from requirements before the code is done.",
+      "Edge cases listed explicitly in tickets.",
+      "Reviews of tests, not just code."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-f-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-f-03",
+   "pathway": "qa",
+   "stage": "foundations",
+   "title": "Bug reports that get fixed",
+   "skills": [
+    "bug reporting",
+    "communication"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Making a bug easy to fix",
+     "points": [
+      "A good bug report lets someone else reproduce the problem quickly and understand why it matters.",
+      "Vague reports get bounced back or ignored."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Steps, expected, actual, impact",
+     "points": [
+      "A clear title naming the symptom and where it happens.",
+      "Exact steps to reproduce, from a known starting state.",
+      "Expected result versus actual result, with screenshots, logs or a recording.",
+      "Environment (version, browser, device, account type) and impact (who's affected, how badly)."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Detail against time",
+     "points": [
+      "Minimising the steps takes effort and saves developers far more.",
+      "Severity (how bad) and priority (how soon) are different; say both.",
+      "One bug per report, so each can be tracked and closed."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A bug template in the tracker.",
+      "Intermittent bugs reported with how often they happen and what was tried.",
+      "Retesting after the fix, then closing."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-f-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-b-01",
+   "pathway": "qa",
+   "stage": "building-blocks",
+   "title": "Automation frameworks",
+   "skills": [
+    "test automation",
+    "playwright",
+    "selenium"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Tests that run themselves",
+     "points": [
+      "Automation frameworks drive applications through code: browsers (Playwright, Cypress, Selenium), APIs, mobile apps.",
+      "They turn repeated manual checks into fast, repeatable ones."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Stable, readable, maintainable",
+     "points": [
+      "Locate elements by role, label or test id, not by fragile CSS paths.",
+      "Wait for conditions (an element visible, a request done), never fixed sleeps.",
+      "Page objects or helpers keep tests readable and changes in one place.",
+      "API tests check logic faster and more reliably than UI tests where possible."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Automation isn't free",
+     "points": [
+      "Every automated test needs maintenance as the product changes.",
+      "Automating unstable features wastes effort.",
+      "Some checks (look and feel, exploratory) still need people."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Tests in the same repository as the code, reviewed with it.",
+      "Runs in CI with screenshots and traces on failure.",
+      "A rule for what gets automated and what stays manual."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-b-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-b-02",
+   "pathway": "qa",
+   "stage": "building-blocks",
+   "title": "Test data and isolation",
+   "skills": [
+    "test data",
+    "test isolation"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Each test starts from a known state",
+     "points": [
+      "Tests that share data or depend on order fail unpredictably.",
+      "Isolation means each test sets up what it needs and leaves nothing behind."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Create, use, clean up",
+     "points": [
+      "Create test data in the test (factories, fixtures) rather than relying on whatever's in a shared database.",
+      "Use unique names or ids so parallel tests don't collide.",
+      "Reset state between tests: transactions rolled back, containers recreated, or data deleted.",
+      "Never use real customer data; generate synthetic data."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Speed against independence",
+     "points": [
+      "Fresh data for every test is slower; sharing read-only reference data is often fine.",
+      "Mocks make tests fast and can drift from the real dependency.",
+      "Production-like data finds more bugs but brings privacy risk."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Database containers per test run (Testcontainers).",
+      "Seeded, synthetic datasets for staging.",
+      "Tests that pass in any order and in parallel."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-b-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-b-03",
+   "pathway": "qa",
+   "stage": "building-blocks",
+   "title": "CI quality gates",
+   "skills": [
+    "ci",
+    "quality gates"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Checks a change must pass to merge",
+     "points": [
+      "Quality gates in CI stop changes that break tests, lower coverage on new code, add vulnerabilities or fail linting.",
+      "They make quality automatic instead of a final phase."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Fast, meaningful, enforced",
+     "points": [
+      "Required checks on every pull request: build, unit and integration tests, linters, security scans.",
+      "Gate on new code (coverage of changed lines), not on legacy totals.",
+      "Keep the required set fast; run slow suites on merge or nightly.",
+      "A failed gate blocks the merge; bypassing needs a recorded reason."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Strict against productive",
+     "points": [
+      "Too many slow gates push people to batch changes or bypass.",
+      "Flaky gates teach people to rerun until green; fix flakiness quickly.",
+      "Metrics like coverage can be gamed; review the tests too."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Branch protection rules with required checks.",
+      "Dashboards of pipeline time and failure causes.",
+      "Ownership for each gate."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-b-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-p-01",
+   "pathway": "qa",
+   "stage": "patterns",
+   "title": "Flaky tests",
+   "skills": [
+    "flaky tests",
+    "test reliability"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Tests that fail without a real bug",
+     "points": [
+      "A flaky test passes and fails on the same code.",
+      "Flakiness erodes trust: people stop believing red builds, and real bugs slip through."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Common causes",
+     "points": [
+      "Timing: fixed sleeps, race conditions, animations, slow responses.",
+      "Shared state and order dependence between tests.",
+      "External dependencies: real networks, third-party services, time and dates.",
+      "Randomness without a fixed seed."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Retry or fix",
+     "points": [
+      "Automatic retries hide flakiness and real intermittent bugs alike.",
+      "Quarantining keeps the build green while the test is fixed, but must be temporary.",
+      "Sometimes the flakiness is a real product race condition worth fixing."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Flaky-test reports from CI history.",
+      "Clock and network faked in tests.",
+      "An owner and a deadline for each quarantined test."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-p-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-p-02",
+   "pathway": "qa",
+   "stage": "patterns",
+   "title": "Contract testing",
+   "skills": [
+    "contract testing",
+    "pact",
+    "microservices"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Checking services agree, without running them all",
+     "points": [
+      "Contract tests check that a provider (an API) still gives what each consumer expects.",
+      "They catch breaking changes between services earlier and faster than full end-to-end tests."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Consumer-driven contracts",
+     "points": [
+      "Each consumer records the requests it makes and the responses it relies on (a contract).",
+      "The provider's CI replays those contracts against its own code.",
+      "A change that breaks a consumer's contract fails the provider's build.",
+      "Tools like Pact manage contracts and versions."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Narrow but fast",
+     "points": [
+      "Contracts check shape and key behaviour, not whole business flows.",
+      "Keeping contracts up to date takes discipline from both teams.",
+      "They don't replace a few end-to-end tests of critical journeys."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A contract broker showing which versions are compatible.",
+      "Deploys blocked when a contract isn't verified.",
+      "Schema checks (OpenAPI) as a lighter alternative."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-p-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-p-03",
+   "pathway": "qa",
+   "stage": "patterns",
+   "title": "Performance testing",
+   "skills": [
+    "performance testing",
+    "load testing"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Will it hold up under load?",
+     "points": [
+      "Performance tests measure response times and capacity under realistic and extreme load.",
+      "They find bottlenecks before users do."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Load, stress, soak",
+     "points": [
+      "Load test: expected traffic, checking latency percentiles against targets.",
+      "Stress test: beyond expected, to find the breaking point and how it fails.",
+      "Soak test: steady load for hours, finding memory leaks and slow degradation.",
+      "Use production-like data volumes; small data hides slow queries."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Realism costs effort",
+     "points": [
+      "Unrealistic scripts (one endpoint hammered) give misleading results.",
+      "Testing shared environments disturbs other teams.",
+      "Averages hide the slow tail; report p95 and p99."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "k6, Gatling, Locust or JMeter scripts in version control.",
+      "Performance budgets checked before big releases.",
+      "Results compared with the previous run to catch regressions."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-p-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-p-04",
+   "pathway": "qa",
+   "stage": "patterns",
+   "title": "Accessibility testing",
+   "skills": [
+    "accessibility testing",
+    "wcag"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Checking the product works for everyone",
+     "points": [
+      "Accessibility testing checks that people using keyboards, screen readers, magnification or voice can use the product.",
+      "It combines automated checks with manual testing."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Automated plus manual",
+     "points": [
+      "Automated tools (axe, Lighthouse) catch missing labels, low contrast and invalid ARIA, about a third of issues.",
+      "Keyboard testing: every action reachable with Tab, Enter and Space, with visible focus.",
+      "Screen-reader testing (VoiceOver, NVDA): content announced sensibly, in order.",
+      "Zoom to 200 % and large text sizes without breaking layouts."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Early is cheap",
+     "points": [
+      "Fixing accessibility late means rework; test components as they're built.",
+      "Passing automated checks doesn't mean usable.",
+      "Testing with disabled users finds what experts miss."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "axe checks in component and end-to-end tests.",
+      "An accessibility checklist in the definition of done.",
+      "Issues ranked by WCAG level and impact."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-p-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "qa-f-01-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "entry",
+   "skills": [
+    "testing strategy"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A team's suite is 400 end-to-end browser tests that take 90 minutes and often fail randomly. What change helps most?",
+   "choices": [
+    "Move most checks down to unit and integration tests, keeping a few end-to-end tests for critical journeys",
+    "Add more end-to-end tests",
+    "Run the suite less often",
+    "Delete all tests"
+   ],
+   "correct": 0,
+   "why": [
+    "Lower layers are faster and steadier; keep the top thin.",
+    "Makes it slower and flakier.",
+    "Bugs get found later.",
+    "Loses all safety."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-f-02-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "entry",
+   "skills": [
+    "boundary values"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A field accepts ages 18 to 65 inclusive. Which set of test values is strongest?",
+   "choices": [
+    "17, 18, 65, 66 (plus one typical value like 40)",
+    "20, 30, 40",
+    "1 to 100, every value",
+    "Only 18"
+   ],
+   "correct": 0,
+   "why": [
+    "Boundaries and just beyond are where off-by-one bugs live.",
+    "Misses the edges.",
+    "Wasteful and slow.",
+    "Misses the upper limit and invalid values."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-f-03-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "entry",
+   "skills": [
+    "bug reporting"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Which bug report is most likely to get fixed quickly?",
+   "choices": [
+    "'Checkout: Pay button does nothing on Safari 17 (macOS). Steps: … Expected: payment page. Actual: no response; console error attached. Affects all Safari users.'",
+    "'Checkout is broken'",
+    "'Payments don't work sometimes, please fix ASAP'",
+    "'Same as the other bug'"
+   ],
+   "correct": 0,
+   "why": [
+    "It's reproducible, specific and shows impact.",
+    "No steps or details.",
+    "No steps, environment or evidence.",
+    "Not traceable."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-b-01-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "mid",
+   "skills": [
+    "test automation"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "UI tests break every time designers change CSS classes. What's the more robust way to find elements?",
+   "choices": [
+    "Use roles, accessible labels or dedicated test ids instead of styling selectors",
+    "Use longer CSS paths",
+    "Use pixel coordinates",
+    "Stop changing the design"
+   ],
+   "correct": 0,
+   "why": [
+    "These reflect meaning and stay stable when styles change.",
+    "Even more fragile.",
+    "Breaks on any layout change.",
+    "Not realistic."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-b-02-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "mid",
+   "skills": [
+    "test isolation"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Tests pass when run one by one but fail when run in parallel. What's the most likely cause?",
+   "choices": [
+    "Tests share data or state (same user, same record); give each test its own data",
+    "The CI machine is too slow",
+    "Parallel runs are always unreliable",
+    "The tests are too short"
+   ],
+   "correct": 0,
+   "why": [
+    "Shared state makes results depend on timing and order.",
+    "Speed doesn't create collisions.",
+    "They're reliable when isolated.",
+    "Length isn't the cause."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-b-03-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "mid",
+   "skills": [
+    "quality gates"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Developers routinely click 're-run' until a flaky CI check turns green. What's the right response?",
+   "choices": [
+    "Quarantine and fix the flaky tests, and track flakiness so the gate stays trustworthy",
+    "Remove CI",
+    "Make the check optional forever",
+    "Add more retries automatically"
+   ],
+   "correct": 0,
+   "why": [
+    "A gate is only useful if failures mean something.",
+    "Loses all protection.",
+    "Silently drops the check.",
+    "Hides real failures too."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-p-01-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "mid",
+   "skills": [
+    "flaky tests"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A test checks a 'created today' label and fails every night just after midnight UTC. What's the cause and fix?",
+   "choices": [
+    "It depends on the real clock and time zone; control the clock in the test (inject or fake the date)",
+    "The server is slow at night",
+    "Tests shouldn't run at night",
+    "The label is wrong"
+   ],
+   "correct": 0,
+   "why": [
+    "Tests that read the real clock change behaviour by time of day.",
+    "Not about speed.",
+    "Avoids rather than fixes.",
+    "The product may be fine."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-p-02-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "mid",
+   "skills": [
+    "contract testing"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A backend team renames a response field and two frontend apps break in production. How would contract testing have helped?",
+   "choices": [
+    "The consumers' contracts would fail in the backend's CI before the change merged",
+    "It would rename the field automatically",
+    "It would make the apps faster",
+    "It wouldn't help"
+   ],
+   "correct": 0,
+   "why": [
+    "The provider learns it breaks a consumer before shipping.",
+    "It doesn't change code.",
+    "Unrelated.",
+    "This is exactly what it catches."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-p-03-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "mid",
+   "skills": [
+    "load testing"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A load test against a database with 1,000 rows shows great response times. Production has 10 million rows. What's the concern?",
+   "choices": [
+    "Queries that are fast on tiny data can be slow at production size; test with production-like volumes",
+    "None; the code is the same",
+    "The test ran too long",
+    "Load tests should use no data"
+   ],
+   "correct": 0,
+   "why": [
+    "Data size changes query plans and timings.",
+    "Data volume matters a lot.",
+    "Not the issue.",
+    "Unrealistic."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-p-04-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "mid",
+   "skills": [
+    "accessibility testing"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Automated accessibility checks report zero issues. Is the page accessible?",
+   "choices": [
+    "Not necessarily: automated tools catch only some issues; test with a keyboard and a screen reader too",
+    "Yes, zero issues means accessible",
+    "Only if it's also fast",
+    "Only on mobile"
+   ],
+   "correct": 0,
+   "why": [
+    "Much of accessibility needs human judgement.",
+    "Tools miss many problems.",
+    "Unrelated.",
+    "Unrelated."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}
