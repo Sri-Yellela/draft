@@ -100,7 +100,7 @@ import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHo
 import { readGauge, projectTranche, trancheGate, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "./services/diskGauge.js";
 import { checkDiskAlert, CHECK_EVERY_MS as DISK_ALERT_EVERY_MS } from "./services/diskAlert.js";
 import { createJobTagsRouter } from "./routes/jobTags.js";
-import { createDomainProfilesRouter } from "./routes/domainProfiles.js";
+import { createDomainProfilesRouter, getRegistry as getDomainRegistry } from "./routes/domainProfiles.js";
 import { createImportJobRouter } from "./routes/importJob.js";
 import { extensionStatusHandler } from "./routes/extensionStatus.js";
 import { formReportHandler, purgeExpiredFormReports } from "./services/formReports.js";
@@ -7015,6 +7015,17 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
         CREATE INDEX IF NOT EXISTS idx_job_taxonomy_sub ON job_taxonomy(subcategory);
         CREATE INDEX IF NOT EXISTS idx_job_taxonomy_cat ON job_taxonomy(category);
+      `,
+    },
+    {
+      // ⛔ A140 (1) (45l): the trial accounts cleaned of the sample résumé's details ONCE — services/sampleProfileStrip.js
+      // records each account here, so a boot never re-reads (and overwrites) a profile the person has edited since. Only ADDS.
+      id: "234_a140_trial_cleaned",
+      sql: `
+        CREATE TABLE IF NOT EXISTS a140_trial_cleaned (
+          user_id     INTEGER PRIMARY KEY,
+          cleaned_at  INTEGER NOT NULL
+        );
       `,
     },
   ];
@@ -15505,7 +15516,7 @@ app.listen(PORT, () => {
     // On the same ready as the board-fit pass — the warm-up is started once (test/a123BoardFitReconcile A123 (7)).
     // ⛔ A140 (1): the removed trial's fictional sample details out of every profile — small (one row per account),
     // idempotent, once per boot on ready.
-    try { stripSampleProfiles(db); } catch (e) { console.warn("[a140] sample strip:", e.message); }
+    try { stripSampleProfiles(db, { registry: getDomainRegistry() }); } catch (e) { console.warn("[a140] sample strip:", e.message); }
     const classified = classifyBacklog.run("boot");
     // ⭐ D179 P4a: the company records walk after the classify walk (one background walk on the loop at a time).
     if (process.env.COMPANY_RECORDS !== "off") Promise.resolve(classified).then(() => companyLinker.run("boot"))
