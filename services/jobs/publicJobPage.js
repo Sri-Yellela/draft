@@ -204,7 +204,7 @@ export function renderMissingJobPage() {
  * The page.
  * @returns {{ status: number, html: string }}
  */
-export function renderPublicJobPage(db, row, { base, open, now = Math.floor(Date.now() / 1000), ctaHref = "/try" }) {
+export function renderPublicJobPage(db, row, { base, open, now = Math.floor(Date.now() / 1000), ctaHref = null }) {
   const job = mapJobRow(row);
   const canonical = `${base}${jobPath(row)}`;
   const original = safeHref(job.url) || safeHref(job.applyUrl);
@@ -249,7 +249,7 @@ ${open ? "" : `<div class="card closed" role="status"><strong>This posting has c
 <h1>${esc(job.title)}</h1>
 <p class="facts">${facts.map(esc).join(" · ")}</p>
 <p class="small">Posted by ${esc(job.company)} on their careers site${original ? ` · <a href="${esc(original)}" rel="noopener nofollow">View the original posting</a>` : ""}</p>
-${open ? `<p><a class="cta" href="${esc(ctaHref)}">Draft this job</a> <span class="small">a résumé tailored to it, and the application filled in</span></p>` : ""}
+${open ? `<p><a class="cta" href="${esc(ctaHref || `/register?returnTo=${encodeURIComponent(jobPath(row))}`)}">Draft this job</a> <span class="small">a résumé tailored to it, and the application filled in</span></p>` : ""}
 ${reading ? `<section class="card"><h2>draft's reading</h2>\n${reading}\n</section>` : ""}
 ${atlas.length ? `<section class="card"><h2>In the Atlas</h2><p>${atlas.map(a => `<a class="mark" href="/atlas/${encodeURIComponent(a.slug)}">${esc(a.name)}</a>`).join("")}</p></section>` : ""}
 <section class="card posting"><h2>The posting, as ${esc(job.company)} wrote it</h2>
