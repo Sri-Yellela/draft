@@ -1,0 +1,651 @@
+{
+ "version": 13,
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'cloud', stages 'foundations' (Linux, networking, scripting; Git reuses sw-f-04) and 'building-blocks' (Kubernetes, IaC, CI/CD, cloud building blocks; containers reuses sw-b-08). Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "cl-f-01",
+   "pathway": "cloud",
+   "stage": "foundations",
+   "title": "Linux",
+   "skills": [
+    "linux",
+    "shell"
+   ],
+   "pieces": [
+    "o4",
+    "s3x"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "The operating system most servers run",
+     "points": [
+      "Almost every cloud server and container runs Linux. Working comfortably in its shell is the base skill for operations work.",
+      "Everything is a file or a process, and small tools combine through pipes."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Processes, files, permissions, services",
+     "points": [
+      "Processes: ps, top, kill; each has a PID, an owner and limits.",
+      "Files and permissions: owner, group, others; read, write, execute; root can do anything, so avoid working as root.",
+      "Services run under systemd (systemctl status, journalctl -u for logs).",
+      "Pipes chain tools: grep, awk, sort, uniq, tail -f turn logs into answers."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Power and sharp edges",
+     "points": [
+      "A single command can delete everything; check paths, especially with rm -rf and variables.",
+      "Changes made by hand on a server are lost or forgotten; write them as code (see infrastructure as code).",
+      "Distributions differ (Debian/Ubuntu apt, Red Hat dnf), in package names and paths."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Disk full: df -h, then du to find what grew (often logs).",
+      "High load: top, then which process, then why.",
+      "SSH keys, not passwords, and sudo for the few commands that need root."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-f-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-f-02",
+   "pathway": "cloud",
+   "stage": "foundations",
+   "title": "Networking for operations",
+   "skills": [
+    "networking",
+    "dns",
+    "load balancers"
+   ],
+   "pieces": [
+    "w2",
+    "sec1"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "How requests find your servers",
+     "points": [
+      "Every request crosses DNS, IP routing, ports, TLS and usually a load balancer before reaching your code.",
+      "Most 'the site is down' incidents are a broken link in that chain."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "IP, ports, DNS, balancers",
+     "points": [
+      "IP addresses identify machines; ports identify services on them (443 for HTTPS); private networks (10.x, 192.168.x) aren't reachable from the internet.",
+      "TCP gives reliable ordered connections; UDP is lighter and unordered.",
+      "DNS maps names to addresses; records are cached for their TTL, so changes take time to spread.",
+      "Load balancers spread traffic across healthy servers and remove ones failing health checks."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Layers to debug",
+     "points": [
+      "Firewalls and security groups block by default; a missing rule looks like a timeout.",
+      "Long DNS TTLs reduce lookups and slow down emergency changes.",
+      "Layer 4 balancers are fast and simple; layer 7 balancers can route by path and header."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "dig or nslookup for DNS; curl -v for the whole request; nc or telnet to test a port.",
+      "A timeout usually means something blocked or nothing listening; 'connection refused' means the host answered and nothing listens on that port.",
+      "Lower the DNS TTL a day before planned changes."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-f-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-f-03",
+   "pathway": "cloud",
+   "stage": "foundations",
+   "title": "Scripting",
+   "skills": [
+    "bash",
+    "python",
+    "automation"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Automating the boring parts",
+     "points": [
+      "Scripts in Bash or Python automate repeated tasks: deployments, backups, clean-ups, checks.",
+      "A task done by hand twice is a candidate for a script."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Safe scripts",
+     "points": [
+      "In Bash, start with set -euo pipefail so errors stop the script instead of continuing silently.",
+      "Quote variables (\"$file\") so spaces don't split them.",
+      "Python is better once there's logic, data parsing or an API to call.",
+      "Make scripts idempotent: running twice does no harm."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Quick script or real tool",
+     "points": [
+      "Bash is everywhere and fast to write, and gets unreadable past a page.",
+      "A script that only one person understands is a risk; keep it in version control with a short usage note.",
+      "Hard-coded secrets in scripts leak; read them from the environment or a secrets manager."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A --dry-run flag that shows what would change.",
+      "Logs of what the script did, with timestamps.",
+      "shellcheck run on every Bash script."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-f-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-b-02",
+   "pathway": "cloud",
+   "stage": "building-blocks",
+   "title": "Kubernetes",
+   "skills": [
+    "kubernetes",
+    "orchestration"
+   ],
+   "pieces": [
+    "o4"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Running containers at scale",
+     "points": [
+      "Kubernetes runs containers across a cluster of machines, keeping the number you asked for running and replacing ones that fail.",
+      "You describe the desired state; Kubernetes works to make reality match."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Pods, deployments, services",
+     "points": [
+      "A pod is one or more containers scheduled together on a node.",
+      "A deployment keeps N replicas of a pod running and rolls out new versions gradually.",
+      "A service gives pods a stable address and load-balances between them; an ingress routes outside traffic in.",
+      "Liveness and readiness probes tell Kubernetes when to restart a container and when to send it traffic."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Powerful and heavy",
+     "points": [
+      "Kubernetes is a lot to run and learn; a managed service (EKS, GKE, AKS) or a simpler platform may be enough.",
+      "Resource requests and limits must be set, or pods get evicted or starve neighbours.",
+      "YAML grows fast; templates (Helm, Kustomize) help and add their own complexity."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "kubectl get pods, describe, logs: the first three commands in any incident.",
+      "CrashLoopBackOff: the container keeps exiting; read its logs and recent changes.",
+      "Rolling updates with readiness probes, so traffic only reaches pods that are ready."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-b-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-b-03",
+   "pathway": "cloud",
+   "stage": "building-blocks",
+   "title": "Infrastructure as code",
+   "skills": [
+    "infrastructure as code",
+    "terraform"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Servers and networks written as code",
+     "points": [
+      "Infrastructure as code (IaC) describes cloud resources in files (Terraform, Pulumi, CloudFormation) that a tool applies.",
+      "The same review, history and repeatability you have for application code, applied to infrastructure."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Declare, plan, apply",
+     "points": [
+      "You declare what should exist; the tool compares it with what does and plans the changes.",
+      "Always read the plan before applying: it shows what will be created, changed or destroyed.",
+      "State records what the tool manages; keep it remote, locked and backed up.",
+      "Modules package repeated patterns (a standard service, a network)."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Discipline pays, drift hurts",
+     "points": [
+      "Changes made by hand in the console drift from the code and get overwritten or cause surprises.",
+      "Some changes replace a resource (destroy and recreate); the plan says so, so read it.",
+      "Very large single configurations get slow and risky; split by area."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Plans posted on pull requests; applies run from CI, not laptops.",
+      "Separate environments (staging, production) with the same modules.",
+      "Prevent-destroy protection on databases and storage."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-b-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-b-04",
+   "pathway": "cloud",
+   "stage": "building-blocks",
+   "title": "CI/CD",
+   "skills": [
+    "ci/cd",
+    "pipelines",
+    "deployment"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "From commit to production, automatically",
+     "points": [
+      "Continuous integration builds and tests every change; continuous delivery makes every passing change ready to deploy, and continuous deployment ships it.",
+      "The goal is small, frequent, boring releases."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Build once, promote",
+     "points": [
+      "Every push runs the pipeline: build, test, scan, package.",
+      "Build one artifact (an image) and promote that same artifact through staging to production.",
+      "Deploy gradually (canary, blue-green) with automatic rollback on bad health.",
+      "Pipelines are code, kept with the application."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Speed against safety",
+     "points": [
+      "Long pipelines slow everyone down; cache dependencies and run tests in parallel.",
+      "Flaky tests erode trust in the pipeline; fix or quarantine them.",
+      "Secrets in pipelines are a favourite target; scope and rotate them."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "GitHub Actions, GitLab CI, Jenkins or a cloud service.",
+      "Main always deployable; changes merged small and often.",
+      "Deployment frequency and change failure rate tracked (DORA metrics)."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-b-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-b-05",
+   "pathway": "cloud",
+   "stage": "building-blocks",
+   "title": "Cloud building blocks",
+   "skills": [
+    "aws",
+    "cloud",
+    "iam"
+   ],
+   "pieces": [
+    "o4"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "The services every cloud offers",
+     "points": [
+      "AWS, Azure and Google Cloud offer the same core pieces under different names: compute, storage, networking, databases and identity.",
+      "Knowing the categories transfers between providers."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Compute, storage, identity",
+     "points": [
+      "Compute: virtual machines (EC2), containers (ECS, GKE), functions (Lambda) — less to manage as you go right, and less control.",
+      "Storage: object storage (S3) for files, block storage for disks, managed databases for data.",
+      "Networking: virtual private clouds, subnets, security groups, load balancers.",
+      "Identity (IAM): who or what may do which action on which resource; roles for services, not long-lived keys."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Managed or self-run",
+     "points": [
+      "Managed services save operations work and cost more per unit, and tie you to the provider.",
+      "Serverless scales to zero and has cold starts and limits.",
+      "Everything is billed by use; forgotten resources cost money forever."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Accounts or projects separated by environment.",
+      "Tags on every resource for cost and ownership.",
+      "No access keys on laptops; short-lived credentials through single sign-on."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "cl-b-05-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "cl-f-01-q1",
+   "type": "scenario",
+   "role": "DevOps Engineer",
+   "level": "entry",
+   "skills": [
+    "linux"
+   ],
+   "pieces": [
+    "o4"
+   ],
+   "stem": "A server's application stops writing logs and errors say 'No space left on device'. What do you check first?",
+   "choices": [
+    "df -h to see which filesystem is full, then du to find what grew (often old logs), and set up log rotation",
+    "Restart the server",
+    "Add more RAM",
+    "Reinstall the application"
+   ],
+   "correct": 0,
+   "why": [
+    "Find what filled the disk, free it, and stop it recurring.",
+    "It may come back up full.",
+    "Memory isn't disk.",
+    "The disk is still full."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-f-02-q1",
+   "type": "scenario",
+   "role": "DevOps Engineer",
+   "level": "entry",
+   "skills": [
+    "networking"
+   ],
+   "pieces": [
+    "w2"
+   ],
+   "stem": "A new service is unreachable: curl to its port hangs until it times out, but the process is running and listening. What's the likeliest cause?",
+   "choices": [
+    "A firewall or security group isn't allowing traffic to that port",
+    "DNS is cached",
+    "The service is listening on the wrong port number",
+    "TLS certificates expired"
+   ],
+   "correct": 0,
+   "why": [
+    "A silent drop (hang then timeout) points at a firewall; a wrong port usually gives 'connection refused'.",
+    "DNS would give the wrong address or fail to resolve.",
+    "That usually gives an immediate refusal.",
+    "TLS errors appear after connecting."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-f-03-q1",
+   "type": "scenario",
+   "role": "DevOps Engineer",
+   "level": "entry",
+   "skills": [
+    "bash"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A Bash clean-up script runs `rm -rf $DIR/*`. One day DIR is empty because an earlier command failed. What happens, and what prevents it?",
+   "choices": [
+    "It deletes from / (the root); use set -euo pipefail, quote variables, and check DIR is set (for example ${DIR:?})",
+    "Nothing; an empty variable is skipped",
+    "It deletes only DIR",
+    "It asks for confirmation"
+   ],
+   "correct": 0,
+   "why": [
+    "An empty $DIR turns the path into /*; failing fast and guarding the variable stop it.",
+    "Bash expands it to an empty string.",
+    "DIR is empty, so there's no DIR in the path.",
+    "rm -rf never asks."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-b-02-q1",
+   "type": "scenario",
+   "role": "Platform Engineer",
+   "level": "entry",
+   "skills": [
+    "kubernetes"
+   ],
+   "pieces": [
+    "o4"
+   ],
+   "stem": "During a rolling update, users get errors for a few seconds as each new pod starts. What's usually missing?",
+   "choices": [
+    "A readiness probe, so traffic goes to a pod only once it can serve",
+    "More replicas of the old version",
+    "A bigger node",
+    "A longer liveness timeout"
+   ],
+   "correct": 0,
+   "why": [
+    "Without readiness, Kubernetes sends traffic as soon as the container starts.",
+    "It doesn't stop traffic reaching unready pods.",
+    "Size isn't the issue.",
+    "Liveness decides restarts, not traffic."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-b-03-q1",
+   "type": "scenario",
+   "role": "DevOps Engineer",
+   "level": "entry",
+   "skills": [
+    "terraform"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A Terraform plan for a small change shows the production database will be 'destroyed and recreated'. What do you do?",
+   "choices": [
+    "Stop: find which attribute forces replacement, change the approach (or protect the resource), and never apply a plan that destroys data unexpectedly",
+    "Apply it; Terraform knows best",
+    "Apply it at night",
+    "Delete the state file"
+   ],
+   "correct": 0,
+   "why": [
+    "Replacement of a database loses its data; the plan is warning you.",
+    "The tool does what the code says, not what you meant.",
+    "Timing doesn't save the data.",
+    "That makes Terraform forget what it manages, which is worse."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-b-04-q1",
+   "type": "scenario",
+   "role": "DevOps Engineer",
+   "level": "entry",
+   "skills": [
+    "ci/cd"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Staging passes, but production behaves differently because the image was rebuilt for production with newer dependencies. What principle fixes this?",
+   "choices": [
+    "Build once and promote the same artifact through every environment",
+    "Test more in production",
+    "Rebuild for staging too",
+    "Pin nothing and hope"
+   ],
+   "correct": 0,
+   "why": [
+    "The thing tested is the thing shipped.",
+    "That moves the risk to users.",
+    "Two rebuilds can differ in the same way.",
+    "That's the cause."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "cl-b-05-q1",
+   "type": "scenario",
+   "role": "Cloud Engineer",
+   "level": "entry",
+   "skills": [
+    "iam"
+   ],
+   "pieces": [
+    "o4"
+   ],
+   "stem": "An application on a cloud VM needs to read one storage bucket. How should it get access?",
+   "choices": [
+    "Attach a role to the VM that allows reading only that bucket",
+    "Put an administrator's access key in the app's config file",
+    "Make the bucket public",
+    "Share a team password"
+   ],
+   "correct": 0,
+   "why": [
+    "Short-lived role credentials with least privilege; no keys to leak.",
+    "A leaked admin key compromises everything.",
+    "Anyone could read the data.",
+    "Not how cloud access works, and unsafe."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}

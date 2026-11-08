@@ -628,18 +628,18 @@
           "topics": [
             {
               "title": "Linux",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-f-01",
+              "status": "draft"
             },
             {
               "title": "networking (TCP/IP, DNS, load balancers)",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-f-02",
+              "status": "draft"
             },
             {
               "title": "scripting",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-f-03",
+              "status": "draft"
             },
             {
               "title": "Git",
@@ -661,23 +661,23 @@
             },
             {
               "title": "Kubernetes",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-b-02",
+              "status": "draft"
             },
             {
               "title": "infrastructure as code",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-b-03",
+              "status": "draft"
             },
             {
               "title": "CI/CD",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-b-04",
+              "status": "draft"
             },
             {
               "title": "cloud building blocks (compute, storage, identity)",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-b-05",
+              "status": "draft"
             }
           ]
         },
