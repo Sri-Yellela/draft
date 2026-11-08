@@ -97,7 +97,9 @@ export function injectionSignals(text) {
   return SIGNALS.filter(([, re]) => re.test(t)).map(([k]) => k);
 }
 
-export const UNTRUSTED_KINDS = Object.freeze(["posting", "email", "resume_upload", "page"]);
+// ⭐ 45n: "question" (a question typed to the assistant — data, not a command to the assistant) and "retrieved" (the
+// lesson text retrieval brings back), for T5 / D177.
+export const UNTRUSTED_KINDS = Object.freeze(["posting", "email", "resume_upload", "page", "question", "retrieved"]);
 
 /**
  * The rule every model call that carries untrusted text sends as (part of) its system prompt. Kept short and fixed:

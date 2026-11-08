@@ -14745,6 +14745,7 @@ async function generateCoverLetterForApply(userId, jobId) {
       dataClass: DATA_CLASS.CANDIDATE,
       system: clReq.system,
       messages: clReq.messages,
+      untrustedAbsent: clReq.untrustedAbsent,
     });
     const text = message.content?.[0]?.text || '';
     if (!text) return { error: 'empty_response' };
@@ -15774,6 +15775,7 @@ app.post("/api/cover-letter/generate", requireAuth, async (req, res) => {
       dataClass: DATA_CLASS.CANDIDATE,
       system: clReq.system,
       messages: clReq.messages,
+      untrustedAbsent: clReq.untrustedAbsent,
     });
     const text = message.content?.[0]?.text || "";
     const check = checkCoverLetter(text, { resumeText: resumeTrimmed, untrusted: clReq.untrusted });

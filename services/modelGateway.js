@@ -199,6 +199,17 @@ export async function callTask({ task, anthropic, db, userId = SYSTEM_USER_ID, p
   const t = taskOf(task);
   if (t.runsIn !== "draft") throw new Error(`callTask(${task}): this task runs in the ${t.runsIn} — ask it there`);
   if ("model" in rest) throw new Error(`callTask(${task}): a feature does not name a model (D162 G1) — configure the task's route instead`);
+  // ⛔ D173 (1) tail (45n): a task that reads untrusted text sends it fenced, or not at all.
+  if (Array.isArray(t.untrusted) && t.untrusted.length) {
+    const sent = JSON.stringify([rest.system ?? null, rest.messages ?? null]);
+    const missing = t.untrusted.filter(kind => !sent.includes(`<untrusted_${kind}`));
+    // a kind the call does not carry this time is fine only when its text is absent altogether; the caller says so with
+    // `untrustedAbsent: [kinds]` (e.g. a cover letter with no posting) — never silently.
+    const absent = new Set(Array.isArray(rest.untrustedAbsent) ? rest.untrustedAbsent : []);
+    const unfenced = missing.filter(k => !absent.has(k));
+    if (unfenced.length) throw Object.assign(new Error(`callTask(${task}): untrusted ${unfenced.join(", ")} must be fenced (services/untrustedText.js fenceUntrusted) — D173 (1)`), { code: "unfenced_untrusted" });
+  }
+  delete rest.untrustedAbsent;
   const ledger = purpose ?? t.purposes[0];
   if (!t.purposes.includes(ledger)) throw new Error(`callTask(${task}): purpose "${ledger}" is not one of the task's (${t.purposes.join(", ")})`);
 
