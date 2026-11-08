@@ -18,6 +18,7 @@ import { questions, servedQuestion, recordAnswer, isStructured, judgeStructured 
 import { learnContent } from "./learnContent.js";
 import { learnStepInfo, learnStepPath } from "./learnLinks.js";
 import { forgivingStreak } from "./practiceProgress.js";
+import { approvedDecks } from "./learnDecks.js";
 
 export const REVIEW_DAYS = Object.freeze([1, 3, 7, 21]);
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -117,6 +118,18 @@ function lessonsFor(db, item) {
   }).filter(Boolean);
 }
 
+/**
+ * ⭐ 45n (owner 11-08, decision (6): "D155's decks ARE P4's mini-lessons") · the approved five-slide decks for this item —
+ * a deck whose check IS this question first, then decks sharing one of its skills; at most two.
+ */
+function decksFor(item) {
+  let decks = []; try { decks = approvedDecks(); } catch { decks = []; }
+  const skills = new Set(item.skills || []);
+  const own = decks.filter(d => (d.questions || []).includes(item.id));
+  const near = decks.filter(d => !own.includes(d) && (d.skills || []).some(s => skills.has(s)));
+  return [...own, ...near].slice(0, 2).map(d => ({ id: d.id, title: d.title }));
+}
+
 /** Days in a row with an answered daily question — ⭐ 45n (D154 P7) FORGIVING: one missed day in any seven is a rest day. */
 export function streakFor(db, userId, day) {
   const days = db.prepare(`SELECT day FROM daily_questions WHERE user_id = ? AND answered_at IS NOT NULL ORDER BY day DESC LIMIT 400`).all(userId).map(r => r.day);
@@ -145,10 +158,10 @@ function resultOf(db, item, chosen, correct, response = null) {
   // ⭐ D154 P2: a match / order answer → per pair / position right or not, the key, and the why.
   if (isStructured(item)) {
     const j = response ? judgeStructured(item, response) : { parts: [], answer: item.answer, why: item.why };
-    return { correct, response, parts: j.parts, answer: item.answer, why: item.why, lessons: lessonsFor(db, item) };
+    return { correct, response, parts: j.parts, answer: item.answer, why: item.why, lessons: lessonsFor(db, item), decks: decksFor(item) };
   }
   return { chosen, correct, correctIndex: item.correct, why: { chosen: item.why[chosen] || null, right: correct ? null : item.why[item.correct] || null, rightChoice: correct ? null : item.choices[item.correct] },
-    lessons: lessonsFor(db, item) };
+    lessons: lessonsFor(db, item), decks: decksFor(item) };
 }
 
 /** Answer today's question — once. */
