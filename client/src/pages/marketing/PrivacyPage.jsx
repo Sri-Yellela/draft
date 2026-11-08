@@ -142,6 +142,9 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // résumé re-fills the page and can be undone for 30 days; anyone can report a public page. ⚠ MATERIAL (a new way
 // information becomes visible to others, always by the person's own choice). EFFECTIVE_DATE is NOT moved here (the
 // convention: the date of the push that applies it) — ⛔ the push that ships D183 sets it.
+// 45n (owner 11-08, decision (5)): the two approved lines added — Google sign-in (Account Information) and the crawl's
+// sources (the job-boards recipient). ⛔ EFFECTIVE_DATE = the day the push carrying D183 goes live; the agent sets it IN
+// that push (the owner's word), not before — it is still the 10-31 date until then.
 const EFFECTIVE_DATE = 'October 31, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
@@ -191,7 +194,10 @@ export function PrivacyPage() {
             When you create an account, we collect your email address and a hashed password
             (we never store plaintext passwords). If you sign in with LinkedIn OAuth, we receive
             your name and email address only — no LinkedIn profile data, posts, connections,
-            or activity.
+            or activity.{" "}
+            {/* ⭐ A138 (owner-approved line, 11-08): Google sign-in in the shared sign-in panel. */}
+            If you sign in with Google, we receive your name, email address and profile picture from
+            Google to create and secure your account. We don't receive your Google password.
           </P>
 
           <H3>Resume Data</H3>
@@ -990,7 +996,11 @@ export function PrivacyPage() {
               SmartRecruiters, Workable and Recruitee. When you run a job search we query these
               boards' public APIs, which means your search terms and filters reach them. No
               personal data is included, and nothing about your resume, profile or saved jobs is
-              sent.
+              sent.{" "}
+              {/* ⭐ owner-approved line, 11-08: the crawl's sources. */}
+              We collect public job postings from employers' career sites and job boards, including
+              Greenhouse, Lever, Ashby, BambooHR, Gem and Rippling. We don't send your information to
+              these boards unless you apply to a job through them.
             </LI>
             <LI>
               <Strong>DuckDuckGo Icons</Strong> — company logo images. We build a logo address

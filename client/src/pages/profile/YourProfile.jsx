@@ -87,7 +87,19 @@ function Eye({ id, vis, onSet }) {
   );
 }
 
+// ⭐ D113 consent wording for public profiles (owner 11-08, decision (5): the agent's draft built on D183's line).
+// Choosing Connections or Public asks once, in words, before anything becomes visible to anyone but the person.
+const PUBLIC_CONSENT = {
+  public: "Your profile is private unless you make it public. Making it public lets anyone with its link see the sections you leave visible. Your contact details and everything under Behind your profile stay private. You can make it private again at any time, and the link stops showing it at once.",
+  connections: "Your profile is private unless you choose otherwise. Connections lets the people you connect with on draft see the sections you leave visible. Your contact details and everything under Behind your profile stay private. You can change this at any time.",
+};
+
 function WhoCanSee({ vis, onSet }) {
+  const [asking, setAsking] = useState(null);
+  const choose = (k) => {
+    if (vis.page === k) return;
+    if (RANK[k] > RANK[vis.page] && PUBLIC_CONSENT[k]) setAsking(k); else onSet({ page: k });
+  };
   return (
     <section className="yp__who" data-who-can-see="" aria-label="Who can see your profile">
       <div className="yp__whohead">
@@ -95,10 +107,20 @@ function WhoCanSee({ vis, onSet }) {
         <div className="yp__seg" role="group" aria-label="Who can see your profile">
           {LEVELS.map(([k, w]) => (
             <button key={k} type="button" className="yp__segb dbx-depth" aria-pressed={vis.page === k} data-page-level={k}
-              onClick={() => vis.page !== k && onSet({ page: k })}>{w}</button>
+              onClick={() => choose(k)}>{w}</button>
           ))}
         </div>
       </div>
+      {asking && (
+        <div className="yp__consent" role="alertdialog" aria-label={`Make your profile ${WORD[asking].toLowerCase()}`} data-visibility-consent={asking}>
+          <p>{PUBLIC_CONSENT[asking]}</p>
+          <div className="yp__row">
+            <button type="button" className="dbx-depth" data-consent-yes="" onClick={() => { onSet({ page: asking }); setAsking(null); }}>
+              {asking === "public" ? "Make it public" : "Show it to connections"}</button>
+            <button type="button" className="dbx-depth" data-consent-no="" onClick={() => setAsking(null)}>Keep it as it is</button>
+          </div>
+        </div>
+      )}
       <p className="yp__muted">Each section can be narrower (the eye on it). Contact details and everything under <b>Behind your profile</b> are never public.</p>
       <label className="yp__check">
         <input type="checkbox" checked={!!vis.searchable} disabled={vis.page !== "public"} data-searchable=""
