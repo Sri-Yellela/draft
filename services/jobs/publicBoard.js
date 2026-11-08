@@ -65,7 +65,8 @@ export function publicBoardPage(read, query = {}) {
   return cached(key, PAGE_TTL_MS, async () => {
     const w = whereOf(params);
     const rows = await read.all(`SELECT sj.id, sj.job_id, sj.title, sj.company, sj.location, sj.tag_workplace AS workplace,
-        sj.salary_min_usd, sj.salary_max_usd, sj.posted_at, sj.discovered_at, jt.category, jt.subcategory, co.slug AS company_slug
+        sj.salary_min_usd, sj.salary_max_usd, sj.posted_at, sj.discovered_at, sj.company_icon_url, sj.employment_type,
+        jt.category, jt.subcategory, co.slug AS company_slug
       ${FROM} ${w.sql}
       ORDER BY COALESCE(sj.posted_at, sj.discovered_at) DESC LIMIT ? OFFSET ?`, [...w.args, PAGE_SIZE + 1, (page - 1) * PAGE_SIZE]);
     const total = (await read.get(`SELECT COUNT(*) AS n ${FROM} ${w.sql}`, w.args))?.n ?? null;
@@ -75,6 +76,9 @@ export function publicBoardPage(read, query = {}) {
         id: r.id, title: r.title, company: r.company, companySlug: r.company_slug || null, location: r.location || null,
         workplace: r.workplace || null, salaryMinUsd: r.salary_min_usd ?? null, salaryMaxUsd: r.salary_max_usd ?? null,
         postedAt: r.posted_at || null, category: r.category || null, subcategory: r.subcategory || null, path: jobPath(r),
+        // D179: the deck card's own fields (the signed-out /jobs draws the same card)
+        jobId: r.job_id, companyIconUrl: r.company_icon_url && /^https:\/\//.test(r.company_icon_url) ? r.company_icon_url : null,
+        employmentType: r.employment_type || null,
       })),
       params,
     };

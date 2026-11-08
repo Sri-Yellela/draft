@@ -238,7 +238,8 @@ function CollapseButton({ onCollapse, controls }) {
 // and the FULL POSTING stays one press away ("The full posting ↓" — the old expansion, unchanged, with the report beside
 // it on a wide screen). What each depth says is lib/deckCardFacts.js — one function, nothing said twice.
 // ⛔ No coloured labels or boxes on the card (the old band mark, the ring, the green chips); never "ATS".
-function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, onCollapse, onReport, onSignal, orientation }) {
+// ⭐ D179 (45l): exported for the signed-out /jobs deck (pages/jobs/PublicBoardPage.jsx) — the same card, no decisions.
+export function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, onCollapse, onReport, onSignal, orientation }) {
   const { job } = card;
   const facts = cardFacts(card);
   const titleId = `deck-title-${job.id}`;
