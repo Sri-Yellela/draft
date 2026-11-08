@@ -7287,6 +7287,30 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // ⭐ D150 T12 (45n) · company guides from debriefs people CHOSE to share (services/interview/companyGuides.js):
+      // a debrief gains its company (by its application's job), level, topics and the explicit pool_consent (0 by
+      // default; the form does not offer it until the privacy wording and counsel's answers are in); company_guides
+      // holds a guide per company + level only once >= 3 distinct people shared (k-anonymity), never a name or a date
+      // narrower than the month. Only ADDS.
+      id: "249_company_guides",
+      sql: `
+        ALTER TABLE interview_debriefs ADD COLUMN company_key TEXT;
+        ALTER TABLE interview_debriefs ADD COLUMN level TEXT;
+        ALTER TABLE interview_debriefs ADD COLUMN topics_json TEXT NOT NULL DEFAULT '[]';
+        ALTER TABLE interview_debriefs ADD COLUMN pool_consent INTEGER NOT NULL DEFAULT 0;
+        CREATE INDEX IF NOT EXISTS idx_interview_debriefs_pool ON interview_debriefs(company_key, pool_consent);
+        CREATE TABLE IF NOT EXISTS company_guides (
+          company_key    TEXT NOT NULL,
+          level          TEXT NOT NULL,
+          guide_json     TEXT NOT NULL,
+          contributors   INTEGER NOT NULL,
+          updated_month  TEXT NOT NULL,
+          updated_at     INTEGER NOT NULL,
+          PRIMARY KEY (company_key, level)
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
