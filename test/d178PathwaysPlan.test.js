@@ -68,3 +68,23 @@ test("d155PathwaysPlanShown: decks-v2 (software Building blocks) is a DRAFT batc
   const md = read("content/decks/decks-v2.md");
   for (const d of v2.decks) assert.ok(md.includes(`## ${d.id} · ${d.title}`));
 });
+
+test("d155PathwaysPlanShown: every deck batch holds the format — five slides, an answerable question, a place in the plan", () => {
+  const files = fs.readdirSync("content/decks").filter(f => /^decks-v\d+\.json$/.test(f));
+  const plan = buildPlan().pathways;
+  const ids = new Set();
+  for (const f of files) {
+    const b = JSON.parse(read(`content/decks/${f}`));
+    const qs = new Map((b.newQuestions || []).map(q => [q.id, q]));
+    for (const d of b.decks) {
+      assert.ok(!ids.has(d.id), `${d.id} once`); ids.add(d.id);
+      assert.ok(["draft", "approved"].includes(d.status), `${f} ${d.id} status`);
+      assert.equal(d.slides.map(s => s.tag).join("|"), "What it is|Core ideas|The trade-offs|In practice|Check yourself", `${d.id} slides`);
+      const stage = plan.find(p => p.id === d.pathway)?.stages.find(s => s.id === d.stage);
+      assert.ok(stage, `${d.id}: ${d.pathway} / ${d.stage} is in Part C`);
+      const pos = Number(d.id.match(/-(\d+)$/)[1]);
+      assert.equal(stage.topics[pos - 1]?.deck, d.id, `${d.id} covers topic ${pos} of ${d.stage}`);
+      for (const qid of d.questions || []) { const q = qs.get(qid); if (q) assert.ok(q.choices[q.correct] && q.why.length === q.choices.length, qid); }
+    }
+  }
+});
