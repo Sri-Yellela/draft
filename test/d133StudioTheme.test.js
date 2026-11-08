@@ -92,7 +92,7 @@ test("d133FourExistingThemesUnchanged: Paper, Charcoal and the Contrast pair are
     "contrast-light": "de93f28d8dbc1402efa1c4008203e16aaec10a1dbf2519210cbba16c7e96da76",
     "contrast-dark": "2ed8b244967883b5e4ff4e359f2cb6c7ec37c6c8d0ec6e8088a357c50d901f0f",
   });
-  assert.equal(THEME_LIST.length, 8, "6 + D144's Dusk pair");
+  assert.equal(THEME_LIST.length, 10, "6 + D144's Dusk pair + D181's Plain pair (45l, on purpose)");
 });
 
 test("d133ContrastAA: every declared pair passes AA in both Studio themes", () => {

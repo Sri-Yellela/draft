@@ -674,6 +674,8 @@ export const EXT_THEMES = Object.freeze({
   "studio-dark": Object.freeze({ scheme: "dark", tokens: C_STUDIO_DARK }),
   "dusk-light": Object.freeze({ scheme: "light", tokens: C_DUSK_LIGHT }),
   "dusk-dark": Object.freeze({ scheme: "dark", tokens: C_DUSK_DARK }),
+  "plain-light": Object.freeze({ scheme: "light", tokens: C_PLAIN_LIGHT }),
+  "plain-dark": Object.freeze({ scheme: "dark", tokens: C_PLAIN_DARK }),
 });
 
 export const cssVarName = (name) => `--c-${name.toLowerCase().replace(/_/g, "-")}`;

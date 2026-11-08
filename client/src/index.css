@@ -66,6 +66,12 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
+/* ⭐ D181 · PLAIN: no serif display — Inter Tight only (the face Dusk already loads), as the body and the headlines. */
+:root[data-theme="plain-light"], :root[data-theme="plain-dark"] {
+  --font-display: 'Inter Tight', 'DM Sans', system-ui, sans-serif;
+  --shape-font-ui: 'Inter Tight', 'DM Sans', system-ui, sans-serif;
+}
+
 @keyframes fade-rise {
   from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: translateY(0); }

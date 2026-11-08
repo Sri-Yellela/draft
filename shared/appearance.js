@@ -17,8 +17,8 @@
 // client/src/themes/layoutOptions.js adds the labels and test/d93Customise.test.js holds the two equal.
 export const LEGACY_THEME_PREFERENCES = Object.freeze(["system", "light", "dark"]);
 export const APPEARANCE_THEMES = Object.freeze([
-  "system", "light", "dark", "contrast", "studio", "dusk", "paper-light", "charcoal-dark", "contrast-light", "contrast-dark", "studio-light", "studio-dark",
-  "dusk-light", "dusk-dark",
+  "system", "light", "dark", "contrast", "studio", "dusk", "plain", "paper-light", "charcoal-dark", "contrast-light", "contrast-dark", "studio-light", "studio-dark",
+  "dusk-light", "dusk-dark", "plain-light", "plain-dark",   // D181
 ]);
 
 /** D93: each layout option — the <html> attribute it drives, its values, and the default (the recommendation). */

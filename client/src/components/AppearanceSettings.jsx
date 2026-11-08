@@ -42,7 +42,7 @@ function Preview({ t }) {
 /** The Theme card: the four themes (from the registry) and "follow my system". */
 export function ThemeSection() {
   const cur = appearance();
-  const [follow, setFollow] = useState(cur.pref === "system" || cur.pref === "contrast" || cur.pref === "studio" || cur.pref === "dusk");
+  const [follow, setFollow] = useState(cur.pref === "system" || cur.pref === "contrast" || cur.pref === "studio" || cur.pref === "dusk" || cur.pref === "plain");
   // ⭐ D133: the Studio pair is offered once the owner turns it on (the app's one /api/config read); a person already
   // on Studio always sees it, so their own choice never disappears from the list.
   const studioOn = useStudioForUsers() || STUDIO_IDS.includes(ACTIVE_THEME.id);

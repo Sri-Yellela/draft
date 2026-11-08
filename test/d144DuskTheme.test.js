@@ -97,7 +97,7 @@ test("d144ExistingThemesUnchanged: the six themes before Dusk are value for valu
   // The four D133 measured (test/d133StudioTheme.test.js), unchanged by D144.
   assert.equal(h(THEMES["paper-light"]), "b0460711d9592670ab80ff36e1a440cf42d914d4d23c0c08d388b2401fbf5911");
   assert.equal(h(THEMES["charcoal-dark"]), "245e41bae8565047444098f2cb17a41b3821a94704f7e5bf421dc8b3b01d17f8");
-  assert.equal(THEME_LIST.length, 8);
+  assert.equal(THEME_LIST.length, 10);   // D181 (45l, on purpose): + Plain Light / Plain Dark
   assert.deepEqual(Object.keys(SHAPE_SETS).sort(), ["dusk-dark", "dusk-light"], "corners + type are OFF for every other theme");
   for (const id of Object.keys(SHAPE_SETS)) assert.deepEqual(Object.keys(SHAPE_SETS[id]).sort(), [...SHAPE_KEYS].sort());
   // Off = today's value, through the fallback in var().

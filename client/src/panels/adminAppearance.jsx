@@ -10,7 +10,7 @@ import DepthButton from "../components/DepthButton.jsx";
 import { THEME_LIST, ACTIVE_THEME, adminSurfaceTheme, setAdminSurfaceTheme } from "../themes/index.js";
 import { Panel, row, quiet } from "./adminKit.jsx";
 
-const PAIRS = [["dusk", "Dusk · follow the system"], ["studio", "Studio · follow the system"], ["system", "Paper / Charcoal · follow the system"], ["contrast", "Contrast · follow the system"]];
+const PAIRS = [["dusk", "Dusk · follow the system"], ["plain", "Plain · follow the system"], ["studio", "Studio · follow the system"], ["system", "Paper / Charcoal · follow the system"], ["contrast", "Contrast · follow the system"]];
 
 export function AppearanceTab() {
   const mine = adminSurfaceTheme();

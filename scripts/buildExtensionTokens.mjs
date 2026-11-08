@@ -116,7 +116,8 @@ export async function renderExtensionTokens() {
     if (lacking.length) throw new Error(`themes/${t.id}.js lacks ${lacking.join(", ")}`);
   }
   const constOf = { "paper-light": "C_LIGHT", "charcoal-dark": "C_DARK", "contrast-light": "C_CONTRAST_LIGHT", "contrast-dark": "C_CONTRAST_DARK",
-    "studio-light": "C_STUDIO_LIGHT", "studio-dark": "C_STUDIO_DARK", "dusk-light": "C_DUSK_LIGHT", "dusk-dark": "C_DUSK_DARK" };
+    "studio-light": "C_STUDIO_LIGHT", "studio-dark": "C_STUDIO_DARK", "dusk-light": "C_DUSK_LIGHT", "dusk-dark": "C_DUSK_DARK",
+    "plain-light": "C_PLAIN_LIGHT", "plain-dark": "C_PLAIN_DARK" };   // D181
   const unknown = THEME_LIST.map((t) => t.id).filter((id) => !constOf[id]);
   if (unknown.length) throw new Error(`a theme the extension does not carry yet: ${unknown.join(", ")} — add it to constOf`);
   const js =
