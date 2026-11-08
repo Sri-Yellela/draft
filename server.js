@@ -265,6 +265,8 @@ import {
 // D24 · GET /api/jobs/facets — the sentence's counts, measured through boardPageResponse itself.
 import { boardFacetsResponse } from "./services/jobs/boardFacets.js";
 import { createFacetsCache, facetsKey } from "./services/jobs/facetsCache.js";
+// ⭐ D151 (45k) · the board's held read ("N more being matched"), kept per user + statement, refreshed behind the answer.
+import { createHeldCountCache, heldKey } from "./services/jobs/heldCountCache.js";
 import { mapJobRow } from "./services/jobs/mapJobRow.js";
 import { describeEmptyBoard, activeFilterNames } from "./services/jobs/emptyBoardReason.js";
 // Board ordering AND keyset pagination, generated from one key-list declaration so the ORDER BY
@@ -9496,6 +9498,8 @@ const BOARD_MATCH_BATCH = 2000;
 const BOARD_MATCH_MAX = 6000;
 const BOARD_MATCH_CHUNK = 250;
 const _boardMatch = new Map();   // "user:profile" -> { ids: Set, running: boolean, profile }
+// ⭐ D151 (45k) · the held read's kept answers (services/jobs/heldCountCache.js); dropped when the person's scoring lands.
+const heldCounts = createHeldCountCache();
 function enqueueBoardMatch(userId, profile, jobIds) {
   if (!boardFitAutomationEnabled() || !userId || !profile?.id || !jobIds?.length) return;
   const key = `${userId}:${profile.id}`;
@@ -9511,7 +9515,7 @@ function enqueueBoardMatch(userId, profile, jobIds) {
         const chunk = [...q.ids].slice(0, BOARD_MATCH_CHUNK);
         for (const id of chunk) q.ids.delete(id);
         const r = await boardFit().scoreIds({ userId, profile: q.profile, jobIds: chunk, reason: "board-queue" });
-        if (r?.scored) emitToUser(userId, { type: "board_scored", profileId: profile.id, scored: r.scored, waiting: q.ids.size });
+        if (r?.scored) { heldCounts.clearUser(userId); emitToUser(userId, { type: "board_scored", profileId: profile.id, scored: r.scored, waiting: q.ids.size }); }
         if (r?.status === "no_basis" || r?.status === "skipped" || r?.status === "failed") { q.ids.clear(); break; }
       }
     } catch (e) {
@@ -11844,12 +11848,19 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
           // ⭐ D151 Rule 4 (11-08): ONE read, not a COUNT over the whole board plus this list. Newest first through
           // migration 229's partial recency index, stopping at BOARD_MATCH_BATCH + 1: fewer is the exact number, one
           // more means "2,000+" (measured on the 100k copy: the COUNT 0.4 s + the list 4.9 s → the list 0.16 s).
-          const rows = await readPool.all(
-            `SELECT sj.job_id AS id ${joinClause} ${heldSql} ORDER BY COALESCE(sj.posted_at, sj.discovered_at) DESC LIMIT ${BOARD_MATCH_BATCH + 1}`, baseArgs);
-          beingMatchedMore = rows.length > BOARD_MATCH_BATCH;
-          const held = rows.slice(0, BOARD_MATCH_BATCH);
-          beingMatched = held.length;
-          if (beingMatched) enqueueBoardMatch(req.user.id, sessionActiveProfile, held.map(r => r.id));
+          // ⭐ D151 (45k): KEPT per user + this exact statement (heldCountCache.js) — fresh for 20 s, then answered at once
+          // while one refresh runs behind it; the read (and the re-queue) happens only on a miss or a refresh. Measured:
+          // this statement was 203 of the 204 slow reads in the 20-user suite, asked by every first page.
+          const heldStatement = `SELECT sj.job_id AS id ${joinClause} ${heldSql} ORDER BY COALESCE(sj.posted_at, sj.discovered_at) DESC LIMIT ${BOARD_MATCH_BATCH + 1}`;
+          const heldProfile = sessionActiveProfile;
+          const { value: heldNow } = await heldCounts.get(heldKey(req.user.id, heldStatement, baseArgs), async () => {
+            const rows = await readPool.all(heldStatement, baseArgs);
+            const held = rows.slice(0, BOARD_MATCH_BATCH);
+            if (held.length) enqueueBoardMatch(req.user.id, heldProfile, held.map(r => r.id));
+            return { count: held.length, more: rows.length > BOARD_MATCH_BATCH };
+          });
+          beingMatchedMore = heldNow.more;
+          beingMatched = heldNow.count;
         } catch (e) { console.warn("[board-match] count / queue:", e.message); }
       }
       const totalPages = Math.ceil(total / ps);
@@ -12021,16 +12032,28 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // set, using the identical joinClause/whereClause/baseArgs as the main query.
       if (facetDims.length) {
         const facets = {};
-        for (const dim of facetDims) {
-          if (dim === 'skills') continue; // computed separately below (JSON column, not a plain GROUP BY)
-          const { column } = FACET_DIMENSIONS[dim];
+        // ⭐ D151 (45k) · ONE GROUP BY over every asked dimension, not one statement each: the board's WHERE runs once and
+        // each dimension's expression (tag-layer lookups for level / workplace / employment) is evaluated once per row.
+        // The cross-tab's rows are summed per dimension in JS — the same per-value counts a GROUP BY of that dimension
+        // alone gives (each board row is in exactly one cross-tab row), in the same ascending value order. Before: five
+        // whole-result statements per Full House load, each a full pass over the board (the 20-user suite's worst p95).
+        const plainDims = facetDims.filter(dim => dim !== 'skills');   // skills: computed separately below (JSON column)
+        if (plainDims.length) {
           // ⛔ D151 · whole-result GROUP BYs — in the read-worker pool (A126), off the event loop.
           const facetRows = await readPool.all(`
-            SELECT ${column} as value, COUNT(*) as count
+            SELECT ${plainDims.map((dim, i) => `${FACET_DIMENSIONS[dim].column} AS f${i}`).join(', ')}, COUNT(*) as count
             ${joinClause} ${whereClause}
-            GROUP BY ${column}
+            GROUP BY ${plainDims.map((_d, i) => `f${i}`).join(', ')}
           `, baseArgs);
-          facets[dim] = facetRows.filter(r => r.value != null).map(r => ({ value: r.value, count: r.count }));
+          plainDims.forEach((dim, i) => {
+            const byValue = new Map();
+            for (const r of facetRows) {
+              const v = r[`f${i}`];
+              if (v != null) byValue.set(v, (byValue.get(v) || 0) + r.count);
+            }
+            const ordered = [...byValue.entries()].sort(([a], [b]) => (typeof a === typeof b ? (a < b ? -1 : a > b ? 1 : 0) : typeof a === 'number' ? -1 : 1));
+            facets[dim] = ordered.map(([value, count]) => ({ value, count }));
+          });
         }
         if (facetDims.includes('skills')) {
           const skillsRows = await readPool.all(`SELECT sj.skills_json as skills_json ${joinClause} ${whereClause}`, baseArgs);

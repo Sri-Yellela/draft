@@ -26,6 +26,8 @@ const SETTLE_MS = Number(arg("--settle-ms", 600000));
 // ⭐ 45j: --cpu-prof <dir> → a main-thread CPU profile of the server over the load window (test-support/scaleCpuProf.mjs).
 const PROF_DIR = arg("--cpu-prof", null) ? path.resolve(arg("--cpu-prof")) : null;
 const JSON_OUT = arg("--json", null);
+// ⭐ D151 (45k): --server-log <file> → the server's whole stdout / stderr written there at the end (READ_SLOW_MS lines included).
+const SERVER_LOG = arg("--server-log", null);
 const PASSWORD = "Scale-Fixture-2026!x";
 const ADMIN_EMAIL = "scale-admin@example.com";
 export const BUDGETS = { listenMs: 3000, readyMs: 30000, p95Ms: 300, loopP99Ms: 100, sliceMs: 100 };
@@ -168,6 +170,7 @@ try {
   failures.push(`error: ${e.message}`); console.error(e.message);
 } finally {
   await stop();
+  if (SERVER_LOG) try { fs.writeFileSync(SERVER_LOG, log); } catch {}
   try { fs.rmSync(RUN, { recursive: true, force: true }); } catch {}
 }
 console.log(failures.length ? `\n${failures.length} budget(s) FAILED: ${failures.join(" · ")}` : "\nall budgets met");
