@@ -90,6 +90,7 @@ import { sweepScope } from "./services/jobs/boardScope.js";
 import { createClassifyBacklog } from "./services/jobs/classifyBacklog.js";
 import { createCompanyLinker, companyReviewQueue, decideCompanyReview, companyRecordStats } from "./services/companies/companyRecords.js";
 import { stripSampleProfiles } from "./services/sampleProfileStrip.js";
+import { createCompanyTech, stackFor } from "./services/companies/companyTech.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
@@ -564,6 +565,7 @@ const scorePool = createScorePool({
 // D153 (3) · the backlog classification walk — created inside the migration block below, used by /api/version and the
 // listen callback, so it is declared out here.
 let classifyBacklog = null;
+let companyTech = null;     // ⭐ D179 P5a (45l) — assigned beside companyLinker
 let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration runner's block, like classifyBacklog
 
 // ── Inline migration runner (additive only — never drops data) ─
@@ -6961,6 +6963,39 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_company_review_open ON company_review(status, created_at);
       `,
     },
+    {
+      // ⭐ D179 P5a (45l): TECHNOGRAPHICS FROM THE COMPANY'S OWN POSTINGS. job_tech = the technologies each posting names
+      // (shared/techVocabulary.js — technologies only, with aliases), read once per content (job_tech_scan holds the
+      // content hash it was read at); company_tech = each company record's stack (P4a) with its evidence — postings,
+      // first / last seen, teams — rebuilt from those small rows, never from the descriptions again. The old
+      // company_technographics (by name, soft skills mixed in, no writer) stays until P4b moves its readers. Only ADDS.
+      id: "232_company_tech",
+      sql: `
+        CREATE TABLE IF NOT EXISTS job_tech (
+          job_id  TEXT NOT NULL,
+          tech    TEXT NOT NULL,
+          PRIMARY KEY (job_id, tech)
+        ) WITHOUT ROWID;
+        CREATE INDEX IF NOT EXISTS idx_job_tech_tech ON job_tech(tech);
+        CREATE TABLE IF NOT EXISTS job_tech_scan (
+          job_id        TEXT PRIMARY KEY,
+          content_hash  TEXT,
+          scanned_at    INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS company_tech (
+          company_id   INTEGER NOT NULL,
+          tech         TEXT NOT NULL,
+          grp          TEXT NOT NULL,
+          postings     INTEGER NOT NULL,
+          first_seen   INTEGER,
+          last_seen    INTEGER,
+          teams_json   TEXT,
+          computed_at  INTEGER NOT NULL,
+          PRIMARY KEY (company_id, tech)
+        );
+        CREATE INDEX IF NOT EXISTS idx_company_tech_tech ON company_tech(tech, postings);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7060,7 +7095,10 @@ setInterval(() => classifyBacklog.run("interval"), 6 * 60 * 60 * 1000).unref();
 // rowid walk as the classify backlog (small pages, writes in chunks, a yield between), after it on ready and every 6 h
 // for postings crawled since. Kill switch: COMPANY_RECORDS=off.
 companyLinker = createCompanyLinker(db);
-if (process.env.COMPANY_RECORDS !== "off") setInterval(() => companyLinker.run("interval"), 6 * 60 * 60 * 1000).unref();
+// ⭐ D179 P5a: each company's stack from its own postings (services/companies/companyTech.js), after the linker. Kill switch: COMPANY_TECH=off.
+companyTech = createCompanyTech(db);
+if (process.env.COMPANY_RECORDS !== "off") setInterval(() => companyLinker.run("interval")
+  .then(() => (process.env.COMPANY_TECH !== "off" ? companyTech.run("interval") : null)), 6 * 60 * 60 * 1000).unref();
 
 // Populate migration 078's automation_tier for rows written before it existed. This is here
 // rather than inside the migration because the derivation is JavaScript
@@ -10300,6 +10338,10 @@ app.post("/api/company/:company/consistency-check", requireAuth, (req, res) => {
 app.get("/api/admin/companies", requireAdmin, (req, res) => {
   try { res.json({ stats: companyRecordStats(db), walk: companyLinker?.status() ?? null, review: companyReviewQueue(db, { limit: req.query?.limit }) }); }
   catch (e) { res.status(500).json({ error: e.message }); }
+});
+// ⭐ D179 P5a: one company's Tech stack as its page will show it (≥ 2 postings, 180 days), for checking before P4b.
+app.get("/api/admin/companies/:id/stack", requireAdmin, (req, res) => {
+  try { res.json(stackFor(db, Number(req.params.id))); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.post("/api/admin/companies/review/:id", requireAdmin, (req, res) => {
   const out = decideCompanyReview(db, Number(req.params.id), String(req.body?.decision || ""), { adminId: req.user?.id ?? null });
@@ -15335,6 +15377,7 @@ app.get("/api/version", (_req, res) => {
     // active board; share of the shown board with a kind of work). Counts only, nothing user-scoped.
     classify: classifyBacklog.status(),
     companies: companyLinker ? companyLinker.status() : null,   // ⭐ D179 P4a
+    companyTech: companyTech ? companyTech.status() : null,     // ⭐ D179 P5a
     // ⭐ D151 Rule 1: the last boot's timeline — start → listen, → ready, and each warm-up step's duration.
     boot: BOOT.snapshot(),
     monetisationEnabled: monetisationEnabled(),
@@ -15434,7 +15477,8 @@ app.listen(PORT, () => {
     try { stripSampleProfiles(db); } catch (e) { console.warn("[a140] sample strip:", e.message); }
     const classified = classifyBacklog.run("boot");
     // ⭐ D179 P4a: the company records walk after the classify walk (one background walk on the loop at a time).
-    if (process.env.COMPANY_RECORDS !== "off") Promise.resolve(classified).then(() => companyLinker.run("boot"));
+    if (process.env.COMPANY_RECORDS !== "off") Promise.resolve(classified).then(() => companyLinker.run("boot"))
+      .then(() => (process.env.COMPANY_TECH !== "off" ? companyTech.run("boot") : null));
   });
 });
 

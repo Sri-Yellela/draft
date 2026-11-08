@@ -6404,4 +6404,37 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_company_review_open ON company_review(status, created_at);
       `,
     },
+    {
+      // ⭐ D179 P5a (45l): TECHNOGRAPHICS FROM THE COMPANY'S OWN POSTINGS. job_tech = the technologies each posting names
+      // (shared/techVocabulary.js — technologies only, with aliases), read once per content (job_tech_scan holds the
+      // content hash it was read at); company_tech = each company record's stack (P4a) with its evidence — postings,
+      // first / last seen, teams — rebuilt from those small rows, never from the descriptions again. The old
+      // company_technographics (by name, soft skills mixed in, no writer) stays until P4b moves its readers. Only ADDS.
+      id: "232_company_tech",
+      sql: `
+        CREATE TABLE IF NOT EXISTS job_tech (
+          job_id  TEXT NOT NULL,
+          tech    TEXT NOT NULL,
+          PRIMARY KEY (job_id, tech)
+        ) WITHOUT ROWID;
+        CREATE INDEX IF NOT EXISTS idx_job_tech_tech ON job_tech(tech);
+        CREATE TABLE IF NOT EXISTS job_tech_scan (
+          job_id        TEXT PRIMARY KEY,
+          content_hash  TEXT,
+          scanned_at    INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS company_tech (
+          company_id   INTEGER NOT NULL,
+          tech         TEXT NOT NULL,
+          grp          TEXT NOT NULL,
+          postings     INTEGER NOT NULL,
+          first_seen   INTEGER,
+          last_seen    INTEGER,
+          teams_json   TEXT,
+          computed_at  INTEGER NOT NULL,
+          PRIMARY KEY (company_id, tech)
+        );
+        CREATE INDEX IF NOT EXISTS idx_company_tech_tech ON company_tech(tech, postings);
+      `,
+    },
   ];
