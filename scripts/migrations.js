@@ -6356,4 +6356,52 @@ export const MIGRATIONS = [
         CREATE TRIGGER IF NOT EXISTS atlas_edges_changed_del AFTER DELETE ON atlas_edges BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
       `,
     },
+    {
+      // ⭐ D179 P4a (45l): ONE COMPANY = ONE RECORD. A company was a free-text scraped_jobs.company and three normalisers
+      // each decided "the same company" on their own. companies = one row per employer (slug for /companies/<slug>, its
+      // own site, a parent link set only by an admin — subsidiaries linked, never merged); company_aliases = every key
+      // that resolves to it with its evidence (ats:<provider>:<tenant> · domain:<site> · name:<normalised>); job_company
+      // = posting → company in its OWN small table (an UPDATE on scraped_jobs rewrites the whole posting row — A132);
+      // company_review = the unsure pairs for Admin, never merged automatically. services/companies/companyRecords.js.
+      // Only ADDS. After 230.
+      id: "231_company_records",
+      sql: `
+        CREATE TABLE IF NOT EXISTS companies (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          slug        TEXT NOT NULL UNIQUE,
+          name        TEXT NOT NULL,
+          domain      TEXT,
+          parent_id   INTEGER REFERENCES companies(id) ON DELETE SET NULL,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at  INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_companies_domain ON companies(domain);
+        CREATE TABLE IF NOT EXISTS company_aliases (
+          alias_key   TEXT PRIMARY KEY,
+          company_id  INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+          evidence    TEXT NOT NULL,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_company_aliases_company ON company_aliases(company_id);
+        CREATE TABLE IF NOT EXISTS job_company (
+          job_id      TEXT PRIMARY KEY,
+          company_id  INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+          linked_at   INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_job_company_company ON job_company(company_id);
+        CREATE TABLE IF NOT EXISTS company_review (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          a_id        INTEGER NOT NULL,
+          b_id        INTEGER NOT NULL,
+          reason      TEXT,
+          status      TEXT NOT NULL DEFAULT 'open',
+          decision    TEXT,
+          decided_by  INTEGER,
+          decided_at  INTEGER,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          UNIQUE(a_id, b_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_company_review_open ON company_review(status, created_at);
+      `,
+    },
   ];
