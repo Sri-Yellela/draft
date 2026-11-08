@@ -223,33 +223,33 @@
           "topics": [
             {
               "title": "the app lifecycle",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-mo-01",
+              "status": "draft"
             },
             {
               "title": "offline and sync",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-mo-02",
+              "status": "draft"
             },
             {
               "title": "main-thread performance and images",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-mo-03",
+              "status": "draft"
             },
             {
               "title": "staged releases and old versions",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-mo-04",
+              "status": "draft"
             },
             {
               "title": "push and background work",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-mo-05",
+              "status": "draft"
             },
             {
               "title": "platform guidelines",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-mo-06",
+              "status": "draft"
             }
           ]
         },
@@ -259,23 +259,23 @@
           "topics": [
             {
               "title": "coding patterns (linking out to LeetCode-style practice)",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-iv-01",
+              "status": "draft"
             },
             {
               "title": "system design rounds",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-iv-02",
+              "status": "draft"
             },
             {
               "title": "behavioural (situation, action, result)",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-iv-03",
+              "status": "draft"
             },
             {
               "title": "AI-enabled coding",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-iv-04",
+              "status": "draft"
             }
           ]
         }
