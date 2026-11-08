@@ -231,7 +231,8 @@ export function AuditPanel({ base }) {
               </select>
             </label>
             <AuditCard base={base} card={card} />
-            <NotYet>The audit's questions and its result are not built yet (D150); the role card above is.</NotYet>
+            {/* ⭐ D150 T05: the audit itself — six questions, about three minutes. */}
+            <p><a className="atl__link" href={`/audit?role=${encodeURIComponent(pick)}`} data-audit-take="">Take the 3-minute audit</a></p>
           </>
         )}
     </div>
