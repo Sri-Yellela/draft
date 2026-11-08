@@ -1109,13 +1109,13 @@
           "topics": [
             {
               "title": "risk-based test strategy",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-s-01",
+              "status": "draft"
             },
             {
               "title": "exploratory testing",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-s-02",
+              "status": "draft"
             }
           ]
         },
@@ -1125,13 +1125,13 @@
           "topics": [
             {
               "title": "test-design rounds",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-iv-01",
+              "status": "draft"
             },
             {
               "title": "automation exercises",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-iv-02",
+              "status": "draft"
             }
           ]
         }
@@ -1148,18 +1148,18 @@
           "topics": [
             {
               "title": "one-to-ones",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-f-01",
+              "status": "draft"
             },
             {
               "title": "feedback",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-f-02",
+              "status": "draft"
             },
             {
               "title": "delegation",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-f-03",
+              "status": "draft"
             }
           ]
         },

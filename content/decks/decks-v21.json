@@ -1,0 +1,642 @@
+{
+ "version": 21,
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'qa': 'specialisation' (2) and 'interview' (2); pathway 'management': 'foundations' (3). Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "qa-s-01",
+   "pathway": "qa",
+   "stage": "specialisation",
+   "title": "Risk-based test strategy",
+   "skills": [
+    "test strategy",
+    "risk"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Testing where failure would hurt most",
+     "points": [
+      "There's never time to test everything equally. A risk-based strategy spends effort where the likelihood and impact of failure are highest.",
+      "It turns 'test everything' into a plan people can agree on."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Likelihood × impact",
+     "points": [
+      "List features and changes; rate how likely each is to break (new, complex, changed often) and how bad that would be (money, safety, data, reputation).",
+      "High-risk areas get deep testing at several layers; low-risk ones get a light check.",
+      "Revisit the ratings as the product and incidents change.",
+      "Share the plan with product and engineering, including what won't be tested."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Explicit gaps",
+     "points": [
+      "Writing down what isn't tested feels uncomfortable and is honest.",
+      "Ratings are judgement calls; use incident history and data where you can.",
+      "Low-risk areas still break sometimes; monitoring in production backs up testing."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A risk matrix in the release plan.",
+      "Payments, sign-in and data deletion always in the high-risk group.",
+      "Exploratory sessions aimed at the riskiest changes."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-s-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-s-02",
+   "pathway": "qa",
+   "stage": "specialisation",
+   "title": "Exploratory testing",
+   "skills": [
+    "exploratory testing"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Learning, designing and testing at once",
+     "points": [
+      "Exploratory testing is skilled, unscripted investigation: the tester uses what each step reveals to choose the next.",
+      "It finds bugs scripted tests weren't written to look for."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Charters and time boxes",
+     "points": [
+      "A charter gives a focus: 'Explore checkout with unusual addresses to find data-handling problems.'",
+      "A time box (60–90 minutes) keeps sessions focused.",
+      "Notes record what was tried, what was found and questions raised.",
+      "Heuristics guide ideas: boundaries, interruptions, odd data, different devices, going back and forth."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Depth against repeatability",
+     "points": [
+      "Exploration finds surprising bugs but isn't repeatable like automation.",
+      "It depends on the tester's skill and knowledge of the product.",
+      "Its findings should become automated checks where useful."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Session-based test management with debriefs.",
+      "Bug bashes before big releases.",
+      "Exploration paired with developers on new features."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-s-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-iv-01",
+   "pathway": "qa",
+   "stage": "interview",
+   "title": "Test-design rounds",
+   "skills": [
+    "test design interview"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "'How would you test this?'",
+     "points": [
+      "Interviewers name something (a login page, a lift, a search box) and ask how you'd test it.",
+      "They're scoring structure, coverage and prioritisation."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "A structure to follow",
+     "points": [
+      "Clarify requirements and users first.",
+      "Cover functional cases, edge and negative cases, then non-functional ones: performance, security, accessibility, usability.",
+      "Use named techniques (boundaries, partitions, state transitions).",
+      "Prioritise: what you'd test first and what you'd automate."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Breadth with judgement",
+     "points": [
+      "Listing 50 cases without priority shows less than 10 well-chosen ones.",
+      "Ask questions; assumptions change the answer.",
+      "Mention how you'd know it works in production."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "How to prepare",
+     "points": [
+      "Practise on everyday objects and simple web features.",
+      "Know a few techniques by name and example.",
+      "End with risks and what you'd automate."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-iv-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-iv-02",
+   "pathway": "qa",
+   "stage": "interview",
+   "title": "Automation exercises",
+   "skills": [
+    "automation interview"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Write a working test, live",
+     "points": [
+      "SDET interviews often ask you to automate a scenario: a UI flow with Playwright or Selenium, or an API test.",
+      "They're checking clean code, stable selectors, waits and assertions."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "What good looks like",
+     "points": [
+      "Clear arrange-act-assert structure.",
+      "Robust locators and condition-based waits.",
+      "Meaningful assertions on outcomes, not on implementation details.",
+      "Independent tests with their own data, and readable names."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Done and right",
+     "points": [
+      "A working simple test beats an unfinished framework.",
+      "Explain what you'd add with more time (page objects, data setup, CI).",
+      "Avoid sleeps; say why."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "How to prepare",
+     "points": [
+      "Write a few tests against a public demo app.",
+      "Practise API tests with assertions on status and body.",
+      "Talk while coding."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "qa-iv-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-f-01",
+   "pathway": "management",
+   "stage": "foundations",
+   "title": "One-to-ones",
+   "skills": [
+    "one-to-ones",
+    "management"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Regular time for each person",
+     "points": [
+      "A one-to-one is a recurring private conversation between a manager and each report, usually weekly or every two weeks.",
+      "It's the report's meeting more than the manager's."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Their agenda, consistently",
+     "points": [
+      "Let them bring topics first: blockers, concerns, ideas, career.",
+      "Keep it regular; cancelling often tells people they don't matter.",
+      "Ask open questions, listen more than you talk, and follow up on what you promised.",
+      "Use some sessions for longer-term topics: growth, goals, feedback both ways."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Not a status meeting",
+     "points": [
+      "Turning one-to-ones into project updates wastes the one private channel.",
+      "Too rigid an agenda stifles; no structure drifts.",
+      "Some people need prompting to raise concerns; ask directly."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A shared running doc of topics and actions.",
+      "Thirty minutes, protected on the calendar.",
+      "Early warning of problems because people trust the space."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-f-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-f-02",
+   "pathway": "management",
+   "stage": "foundations",
+   "title": "Feedback",
+   "skills": [
+    "feedback",
+    "management"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Helping people see what works and what doesn't",
+     "points": [
+      "Feedback is specific information about someone's behaviour and its effect, given so they can keep doing it or change.",
+      "Frequent small feedback beats a big annual surprise."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Situation, behaviour, impact",
+     "points": [
+      "Describe the situation, the specific behaviour, and its impact ('In Tuesday's review, you interrupted Sam twice; Sam stopped sharing ideas').",
+      "Give positive feedback as specifically as corrective feedback.",
+      "Give it soon, in private for corrections, and ask for their view.",
+      "Ask for feedback on yourself, and act on it."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Kind and clear",
+     "points": [
+      "Softening too much hides the message; harshness shuts people down.",
+      "Feedback about personality ('you're careless') can't be acted on; behaviour can.",
+      "Saving feedback for reviews makes it stale and surprising."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Feedback in one-to-ones as a habit, not an event.",
+      "Peer feedback gathered before reviews.",
+      "Follow-up to see whether things changed."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-f-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-f-03",
+   "pathway": "management",
+   "stage": "foundations",
+   "title": "Delegation",
+   "skills": [
+    "delegation",
+    "management"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Giving work away well",
+     "points": [
+      "Delegation hands ownership of work to someone else, with the context and authority to do it.",
+      "Managers who don't delegate become the bottleneck and stop their team growing."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Outcome, context, authority",
+     "points": [
+      "Describe the outcome and why it matters, not every step.",
+      "Share constraints and the decisions they can make alone.",
+      "Agree check-in points matched to their experience.",
+      "Match the task to their growth: stretch, with support."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Short-term speed against long-term capacity",
+     "points": [
+      "Doing it yourself is faster this week and slower forever.",
+      "Delegating without context sets people up to fail.",
+      "Taking work back at the first problem teaches people not to try."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Clear owners for projects and decisions.",
+      "Regular check-ins rather than surprise reviews at the end.",
+      "Credit given publicly to the person who did the work."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "mg-f-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "qa-s-01-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "mid",
+   "skills": [
+    "test strategy"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A release changes the payment flow and the 'About us' page. You have one day. How do you split testing?",
+   "choices": [
+    "Most effort on the payment flow (high impact, complex change), a quick check of the About page",
+    "Equal time on both",
+    "Only the About page, it's quicker",
+    "Skip testing and monitor production"
+   ],
+   "correct": 0,
+   "why": [
+    "Effort follows risk: money paths first.",
+    "Ignores very different risks.",
+    "Inverts the priorities.",
+    "Too risky for payments."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-s-02-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "mid",
+   "skills": [
+    "exploratory testing"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Which is a good exploratory testing charter?",
+   "choices": [
+    "'Explore the file upload with large, empty and oddly named files to find failures in validation and error messages' (90 minutes)",
+    "'Test everything'",
+    "'Run the regression suite'",
+    "'Click around'"
+   ],
+   "correct": 0,
+   "why": [
+    "Focused area, technique and goal, time-boxed.",
+    "No focus.",
+    "That's scripted testing.",
+    "No direction or goal."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-iv-01-q1",
+   "type": "scenario",
+   "role": "QA Engineer",
+   "level": "entry",
+   "skills": [
+    "test design interview"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Asked 'How would you test a login page?', what's the strongest opening?",
+   "choices": [
+    "Ask about requirements (password rules, lockout, SSO, 2FA, who uses it), then cover functional, negative, security and accessibility cases by priority",
+    "Start typing test cases immediately",
+    "Say login pages are simple",
+    "Only mention automation tools"
+   ],
+   "correct": 0,
+   "why": [
+    "Clarifying and structuring show test thinking.",
+    "Misses context.",
+    "Misses the risks.",
+    "Tools aren't test design."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "qa-iv-02-q1",
+   "type": "scenario",
+   "role": "SDET",
+   "level": "entry",
+   "skills": [
+    "automation interview"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "In a live automation exercise you add `sleep(5000)` before clicking a button. What will the interviewer likely say?",
+   "choices": [
+    "Use a wait for the button to be visible and enabled instead; fixed sleeps are slow and still flaky",
+    "Good, it's safe",
+    "Use sleep(10000)",
+    "Remove all waits"
+   ],
+   "correct": 0,
+   "why": [
+    "Condition-based waits are faster and reliable.",
+    "It's neither fast nor reliable.",
+    "Worse.",
+    "Then it fails on slow loads."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-f-01-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "entry",
+   "skills": [
+    "one-to-ones"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A new manager uses one-to-ones to go through each report's ticket status. What's being lost?",
+   "choices": [
+    "The private space for the report's concerns, growth and feedback; status belongs in the team's tools or stand-ups",
+    "Nothing, status is the point",
+    "Too much time on careers",
+    "Meetings are too long"
+   ],
+   "correct": 0,
+   "why": [
+    "One-to-ones are where trust and early warnings come from.",
+    "Status has other channels.",
+    "It's the opposite.",
+    "Length isn't the issue."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-f-02-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "entry",
+   "skills": [
+    "feedback"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Which is the most useful corrective feedback?",
+   "choices": [
+    "'In yesterday's incident call, you started changing production without telling the commander; two fixes clashed. Next time, announce changes first.'",
+    "'You're reckless.'",
+    "'Be better in incidents.'",
+    "Nothing until the annual review"
+   ],
+   "correct": 0,
+   "why": [
+    "Specific behaviour, impact, and what to do next.",
+    "A label, not a behaviour.",
+    "Too vague to act on.",
+    "Too late to help."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "mg-f-03-q1",
+   "type": "scenario",
+   "role": "Engineering Manager",
+   "level": "entry",
+   "skills": [
+    "delegation"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A manager delegates a project but then rewrites the person's design doc without discussion. What's the likely effect?",
+   "choices": [
+    "The person loses ownership and motivation, and stops bringing their best thinking; discuss changes instead",
+    "The project goes faster",
+    "The person learns more",
+    "Nothing"
+   ],
+   "correct": 0,
+   "why": [
+    "Taking work back undermines delegation and trust.",
+    "Short-term at best.",
+    "They learn not to try.",
+    "It has an effect."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}
