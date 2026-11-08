@@ -1041,18 +1041,18 @@
           "topics": [
             {
               "title": "the testing pyramid",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-f-01",
+              "status": "draft"
             },
             {
               "title": "test design",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-f-02",
+              "status": "draft"
             },
             {
               "title": "bug reports that get fixed",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-f-03",
+              "status": "draft"
             }
           ]
         },
@@ -1062,18 +1062,18 @@
           "topics": [
             {
               "title": "automation frameworks",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-b-01",
+              "status": "draft"
             },
             {
               "title": "test data and isolation",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-b-02",
+              "status": "draft"
             },
             {
               "title": "CI quality gates",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-b-03",
+              "status": "draft"
             }
           ]
         },
@@ -1083,23 +1083,23 @@
           "topics": [
             {
               "title": "flaky tests",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-p-01",
+              "status": "draft"
             },
             {
               "title": "contract testing",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-p-02",
+              "status": "draft"
             },
             {
               "title": "performance testing",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-p-03",
+              "status": "draft"
             },
             {
               "title": "accessibility testing",
-              "deck": null,
-              "status": "planned"
+              "deck": "qa-p-04",
+              "status": "draft"
             }
           ]
         },
