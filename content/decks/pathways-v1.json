@@ -842,8 +842,8 @@
           "topics": [
             {
               "title": "identity and access",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-ci-01",
+              "status": "draft"
             },
             {
               "title": "secrets",
@@ -853,8 +853,8 @@
             },
             {
               "title": "detection and logging",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-ci-03",
+              "status": "draft"
             }
           ]
         },
@@ -864,18 +864,18 @@
           "topics": [
             {
               "title": "penetration-testing basics",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-o-01",
+              "status": "draft"
             },
             {
               "title": "red and blue teams",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-o-02",
+              "status": "draft"
             },
             {
               "title": "incident response and forensics",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-o-03",
+              "status": "draft"
             }
           ]
         },
@@ -885,8 +885,8 @@
           "topics": [
             {
               "title": "risk and compliance basics",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-g-01",
+              "status": "draft"
             }
           ]
         },
@@ -896,18 +896,18 @@
           "topics": [
             {
               "title": "threat-modelling rounds",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-iv-01",
+              "status": "draft"
             },
             {
               "title": "incident scenarios",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-iv-02",
+              "status": "draft"
             },
             {
               "title": "code-review exercises",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-iv-03",
+              "status": "draft"
             }
           ]
         }
