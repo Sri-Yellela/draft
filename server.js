@@ -93,7 +93,7 @@ import { stripSampleProfiles } from "./services/sampleProfileStrip.js";
 import { createCompanyTech, stackFor, techForJobs } from "./services/companies/companyTech.js";
 import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyBackfill.js";
 import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/jobs/publicBoard.js";
-import { publicCompany, publicSuggest } from "./services/companies/publicCompany.js";
+import { publicCompany, publicSuggest, companyMatchFor } from "./services/companies/publicCompany.js";
 import { createCompanyFacts } from "./services/companies/companyFacts.js";
 import { createCompanyGithub } from "./services/companies/companyGithub.js";
 import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landingPages.js";
@@ -127,7 +127,7 @@ import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
 // ⭐ D169: Your skills in Atlas — and the gate: a skill not on the résumé goes into a tailored one only once proven.
 import { createYourSkillsRouter, createYourSkillsAdminRouter } from "./routes/yourSkills.js";
-import { gateClaimsForResume, gatedDomainProfile } from "./services/yourSkills.js";
+import { gateClaimsForResume, gatedDomainProfile, yourSkillStates } from "./services/yourSkills.js";
 import { createThumbsRouter, createThumbsAdminRouter, resourceItems } from "./routes/thumbs.js";
 import surveyRoutes from "./routes/survey.js";
 import atsCalibrationRoutes from "./routes/atsCalibration.js";
@@ -9883,6 +9883,14 @@ app.get("/api/public/companies/:slug", publicLimit, (req, res) => {
     if (!page) return res.status(404).json({ error: "no_such_company" });
     res.set("Cache-Control", "public, max-age=300").json(page);
   } catch (e) { console.error("[public/companies]", e.message); res.status(500).json({ error: "company_unavailable" }); }
+});
+// ⭐ D179 P4b · Your match on a company page — the signed-in person's proven / listed / missing among its top technologies.
+app.get("/api/companies/:slug/match", requireAuth, (req, res) => {
+  try {
+    const m = companyMatchFor(db, req.params.slug, req.user.id, { yourSkillStates });
+    if (!m) return res.status(404).json({ error: "no_such_company" });
+    res.json(m);
+  } catch (e) { console.error("[companies/match]", e.message); res.status(500).json({ error: "match_unavailable" }); }
 });
 app.get("/api/public/suggest", publicLimit, async (req, res) => {
   try { res.json(await publicSuggest(db, readPool, String(req.query?.q || ""))); }

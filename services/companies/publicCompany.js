@@ -147,3 +147,25 @@ export async function publicSuggest(db, read, q, { limit = 5 } = {}) {
   try { titleHits = (await titleIndex(read)).filter(t => starts(t.lc, query)).slice(0, limit).map(({ value, count }) => ({ value, count })); } catch { titleHits = []; }
   return { companies, roles: roles.slice(0, limit), technologies, titles: titleHits };
 }
+
+/**
+ * ⭐ D179 P4b · YOUR MATCH (signed in) — of the company's top technologies (its stack, ≥ 2 postings, 180 days), which the
+ * person has PROVEN (D169's Your skills: checked or built), which they only list (claimed), and which are missing — each
+ * missing one with its Atlas page when it has one ("learn what they use"). The page never shows this signed out.
+ */
+export function companyMatchFor(db, slug, userId, { yourSkillStates, top = 12 } = {}) {
+  const page = publicCompany(db, slug);
+  if (!page) return null;
+  const techs = Object.values(page.stack?.groups || {}).flat().sort((a, b) => b.postings - a.postings).slice(0, top);
+  if (!techs.length) return { of: 0, proven: [], listed: [], missing: [] };
+  const mine = new Map();
+  try { for (const s of yourSkillStates(db, userId)) mine.set(String(s.name).toLowerCase(), s.state); } catch { /* no skills */ }
+  const proven = [], listed = [], missing = [];
+  for (const t of techs) {
+    const st = mine.get(String(t.tech).toLowerCase());
+    if (st === "checked" || st === "built") proven.push(t.tech);
+    else if (st) listed.push(t.tech);
+    else missing.push({ tech: t.tech, atlasSlug: t.atlasSlug || null });
+  }
+  return { of: techs.length, proven, listed, missing };
+}

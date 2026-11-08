@@ -200,6 +200,8 @@ const ADMIN = new Set([
 
 // ── AUTHENTICATED: requires a signed-in session, any role ────────────────────────────────────
 const AUTHENTICATED = new Set([
+  // D179 P4b (45l): Your match on a company page — the person's own skills, signed in.
+  "GET /api/companies/:slug/match",
   // 11-07: the D124 trial's /api/trial/* routes were removed with it. The sample résumés' practice form stays at
   // /try/practice/:jobId (routes/survey.js), outside /api, behind an HMAC naming one (account, posting).
   // D115 P3: a learner's own progress marks.
