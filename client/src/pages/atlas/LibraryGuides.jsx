@@ -46,6 +46,53 @@ export function GuideLadder({ base, guides }) {
   );
 }
 
+/**
+ * ⭐ D155 Part C · EVERY PATHWAY — the whole approved plan on the Library page: each role family, its stages and topics.
+ * A written (approved) topic opens its deck; the rest say "planned", never a fake link. One pathway open at a time.
+ */
+export function PathwaysPlan({ base }) {
+  const [plan, setPlan] = useState(null);
+  const [open, setOpen] = useState("software");
+  useEffect(() => { let live = true; api("/api/learn/pathways").then(r => live && setPlan(r)).catch(() => live && setPlan({ pathways: [] })); return () => { live = false; }; }, []);
+  if (!plan?.pathways?.length) return null;
+  const total = plan.written + plan.planned;
+  return (
+    <section className="lib-plan" aria-labelledby="lib-plan-h" data-pathways-plan="">
+      <h2 className="atl__h2" id="lib-plan-h">Every pathway</h2>
+      <p className="atl__quiet" data-pathways-count="">{plan.written} of {total} decks written · the rest are planned, in this order</p>
+      {plan.pathways.map(p => {
+        const isOpen = open === p.id;
+        const n = p.stages.reduce((a, s) => a + s.topics.length, 0), w = p.stages.reduce((a, s) => a + s.topics.filter(t => t.deck).length, 0);
+        return (
+          <section key={p.id} className="lib-module" data-pathway={p.id}>
+            <button type="button" className="lib-module__head" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : p.id)}>
+              <span className="lib-module__t">{p.title}{p.later ? " · once these fields are on the board" : ""}</span>
+              <span className="lib-module__n">{w} of {n} written</span>
+            </button>
+            {isOpen && (
+              <div className="lib-plan__stages">
+                {p.stages.map(s => (
+                  <div key={s.id} className="lib-plan__stage" data-stage={s.id}>
+                    <h3 className="lib-plan__h">{s.title}</h3>
+                    <ul className="lib-plan__topics">
+                      {s.topics.map((t, i) => (
+                        <li key={i} data-topic-state={t.deck ? "written" : "planned"}>
+                          {t.deck ? <Link className="atl__link" to={`${base}/library/${t.deck}`}>{t.title}</Link> : <span>{t.title}</span>}
+                          {!t.deck && <span className="atl__quiet"> · planned</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })}
+    </section>
+  );
+}
+
 /** /atlas/library/<guide> — the guide: its decks in order. */
 export function GuidePage({ base, guide }) {
   return (

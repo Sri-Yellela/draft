@@ -43,6 +43,8 @@ const PUBLIC = new Set([
   "GET /api/learn/course/:id",
   // D172 (2b): the Library's guides and a deck — the approved decks' own words; a check question served without its answer.
   "GET /api/learn/guides",
+  // ⭐ D155 Part C: the approved plan of pathways and topics — public, like the guides (no person's data).
+  "GET /api/learn/pathways",
   "GET /api/learn/deck/:id",
   // A deck's check answer: public like the deck (recorded with no user when signed out, as the audit's answers are); no points.
   "POST /api/learn/deck/:id/answer",

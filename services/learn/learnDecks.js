@@ -32,6 +32,22 @@ export function approvedDecks(dir = DECKS_DIR) {
 }
 
 /** The ladder: each level with its decks (titles only) — or none, "not written yet". */
+/**
+ * ⭐ D155 Part C · THE WHOLE PLAN — every approved pathway (software, data, ML and AI, cloud, security, embedded, QA,
+ * management; the fields beyond computing marked "later"), its stages and their topics, from content/decks/pathways-v1.json
+ * (generated from PLAYBOOK.md Part C — scripts/pathwaysFromPlaybook.mjs). A topic links to its deck only when that deck
+ * is APPROVED and served; every other topic reads as planned. Nothing invented: the topics are the approved list.
+ */
+export function pathwaysPlan({ dir = DECKS_DIR } = {}) {
+  const plan = safe(() => JSON.parse(fs.readFileSync(path.join(dir, "pathways-v1.json"), "utf8")), null);
+  if (!plan) return { pathways: [], written: 0, planned: 0 };
+  const live = new Set(approvedDecks(dir).map(d => d.id));
+  let written = 0, planned = 0;
+  const pathways = (plan.pathways || []).map(p => ({ id: p.id, title: p.title, later: !!p.later, stages: p.stages.map(s => ({ id: s.id, title: s.title,
+    topics: s.topics.map(t => { const deck = t.deck && live.has(t.deck) ? t.deck : null; if (deck) written++; else planned++; return { title: t.title, deck }; }) })) }));
+  return { pathways, written, planned };
+}
+
 export function guides({ dir } = {}) {
   const decks = approvedDecks(dir);
   return LADDER.map(l => {
