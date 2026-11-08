@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { api, setAuthContext } from "../lib/api.js";
-
-const OAUTH_PROVIDERS = ["google", "linkedin", "github"];
+// ⭐ A138: the provider buttons are the ONE shared block (Continue with Google first), returning here.
+import SignInProviders from "./SignInProviders.jsx";
+import { currentReturnPath } from "../lib/signInReturn.js";
 
 export default function InlineLoginPopover({ trigger, onLogin, align = "end", sideOffset = 8 }) {
   const [open, setOpen] = useState(false);
@@ -10,12 +11,6 @@ export default function InlineLoginPopover({ trigger, onLogin, align = "end", si
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [oauthStatus, setOauthStatus] = useState(null);
-
-  useEffect(() => {
-    if (!open) return;
-    api("/api/auth/oauth/status").then(setOauthStatus).catch(() => {});
-  }, [open]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,10 +35,6 @@ export default function InlineLoginPopover({ trigger, onLogin, align = "end", si
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleOAuth = (provider) => {
-    window.location.href = `/api/auth/oauth/${provider}/start`;
   };
 
   return (
@@ -84,25 +75,18 @@ export default function InlineLoginPopover({ trigger, onLogin, align = "end", si
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
-          {oauthStatus && OAUTH_PROVIDERS.some(p => oauthStatus[p]?.configured) && (
-            <>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10,
-                color: "var(--color-text-faint)", textTransform: "uppercase",
-                letterSpacing: "0.1em", marginBottom: 10 }}>
-                <div style={{ flex: 1, height: 1, background: "var(--border-glass)" }}/>
-                or
-                <div style={{ flex: 1, height: 1, background: "var(--border-glass)" }}/>
-              </div>
-              {OAUTH_PROVIDERS.filter(p => oauthStatus[p]?.configured).map(p => (
-                <button key={p} onClick={() => handleOAuth(p)} type="button"
-                  className="liquid-glass dbx-depth"
-                  style={{ width: "100%", height: 36, fontSize: 12, fontWeight: 500,
-                    cursor: "pointer", color: "var(--color-text)", marginBottom: 6,
-                    textTransform: "capitalize", border: "none" }}>
-                  Continue with {p}
-                </button>
-              ))}
-            </>
+          {open && (
+            <SignInProviders returnTo={currentReturnPath()}
+              buttonStyle={{ height: 36, fontSize: 12, marginBottom: 6 }}
+              divider={
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10,
+                  color: "var(--color-text-faint)", textTransform: "uppercase",
+                  letterSpacing: "0.1em", marginBottom: 10 }}>
+                  <div style={{ flex: 1, height: 1, background: "var(--border-glass)" }}/>
+                  or
+                  <div style={{ flex: 1, height: 1, background: "var(--border-glass)" }}/>
+                </div>
+              }/>
           )}
           <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 12, textAlign: "center" }}>
             No account?{" "}

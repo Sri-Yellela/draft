@@ -7,6 +7,7 @@ import InlineLoginPopover from './InlineLoginPopover.jsx';
 import { useMonetisationEnabled } from '../lib/monetisation.jsx';
 import './NavBar.css';
 import { BRAND } from '../../../shared/brand.js';
+import { loginHref } from "../lib/signInReturn.js";   // A138: back to this page after sign-in
 
 // The FOURTH nav carrying a Pricing link, and the one the 404 page renders — which is how it was
 // caught: with the lever off, /pricing correctly fell through to NotFoundPage, and the nav above
@@ -107,7 +108,7 @@ export default function NavBar({ user = null, onLogout, onLogin }) {
             </>
           ) : (
             <>
-              <Link to="/login"    className="navbar__drawer-link"
+              <Link to={loginHref()}    className="navbar__drawer-link"
                     onClick={() => setOpen(false)}>Sign In</Link>
               <Link to="/register" className="navbar__drawer-link"
                     onClick={() => setOpen(false)}>Create Account</Link>

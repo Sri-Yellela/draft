@@ -17,16 +17,16 @@ test("auth entry exposes Google, LinkedIn and GitHub provider login options", ()
   assert.match(auth, /provider === "linkedin" \? "LinkedIn"/);
   assert.match(auth, /provider === "github" \? "GitHub"/);
   assert.match(auth, /: "Google"/);
-  assert.match(auth, /Continue with \{label\}/);
-  assert.match(auth, /api\("\/api\/auth\/oauth\/status"\)/);
-  // An unconfigured provider is now HIDDEN rather than rendered with a "not configured for this
-  // deployment" note — the button returns null once readiness says it isn't configured. Asserting
-  // that gate, since it is the behaviour that replaced the copy.
-  assert.match(auth, /oauthStatus !== null && !readiness\?\.configured\) return null/);
-  // The button now links to the short /auth/:provider alias rather than building the long
-  // /api/auth/oauth/${provider}/start URL — which is precisely why that alias is registered
-  // server-side (asserted in the route test below, and relied on by the extension popup too).
-  assert.match(auth, /href=\{`\/auth\/\$\{provider\}`\}/);
+  // ⭐ A138 (45l): the buttons moved into THE shared block, SignInProviders.jsx, which both /login and the
+  // nav's popover render — so the button, the status read, the hide-when-unconfigured gate and the
+  // short /auth/:provider alias are asserted there now (changed on purpose).
+  const block = fs.readFileSync("client/src/components/SignInProviders.jsx", "utf8");
+  const ret = fs.readFileSync("client/src/lib/signInReturn.js", "utf8");
+  assert.match(auth, /<SignInProviders/);
+  assert.match(block, /Continue with \{LABEL\[p\]\}/);
+  assert.match(block, /api\("\/api\/auth\/oauth\/status"\)/);
+  assert.match(block, /!!providers\[p\]\?\.configured/);
+  assert.match(ret, /`\/auth\/\$\{encodeURIComponent\(provider\)\}\?returnTo=/);
   assert.doesNotMatch(auth, /Provider ID \(optional\)/);
 });
 

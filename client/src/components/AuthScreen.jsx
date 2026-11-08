@@ -11,6 +11,8 @@ import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
 import DealBackdrop from "./DealBackdrop.jsx";
 import SignupAtsHook from "./SignupAtsHook.jsx";
+import SignInProviders from "./SignInProviders.jsx";
+import { returnToFromSearch } from "../lib/signInReturn.js";
 
 // ── AtomEmblem — keep this exported, TopBar imports it ────────
 function tiltedEllipsePath(cx, cy, rx, ry, angleDeg) {
@@ -108,7 +110,6 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [reset,   setReset]   = useState({ email:"", otp:"", password:"", confirmPassword:"", token:"" });
   const [resetSent, setResetSent] = useState(false);
-  const [oauthStatus, setOauthStatus] = useState(null);
   const [error,   setError]   = useState("");
   const [notice,  setNotice]  = useState("");
   const [loading, setLoading] = useState(false);
@@ -140,12 +141,6 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
     setResetSent(true);
   }, []);
 
-  useEffect(() => {
-    api("/api/auth/oauth/status")
-      .then(d => setOauthStatus(d.providers || {}))
-      .catch(() => setOauthStatus({}));
-  }, []);
-
   // Warn before tab close while on step 2 (data would be lost)
   useEffect(() => {
     if (tab !== "register" || regStep !== 2) return;
@@ -164,18 +159,11 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
     setLoading(false);
   };
 
-  const providerButton = (provider) => {
-    const readiness = oauthStatus?.[provider];
-    if (oauthStatus !== null && !readiness?.configured) return null;
-    const label = oauthLabel(provider);
-    const brand = provider === "linkedin" ? C.PROVIDER_LINKEDIN : provider === "github" ? C.PROVIDER_GITHUB : C.PROVIDER_GOOGLE;
-    return (
-      <a className="dbx-depth" href={`/auth/${provider}`} title={`Continue with ${label}`}
-        style={{ ...providerButtonStyle, background:brand, color:C.ON_PROVIDER, border:"none", textDecoration:"none" }}>
-        Continue with {label}
-      </a>
-    );
-  };
+  // ⭐ A138: the ONE shared provider block (Google first), returning to the page /login was opened from.
+  const providers = () => (
+    <SignInProviders returnTo={returnToFromSearch(window.location.search) || "/app"}
+      buttonStyle={{ height:providerButtonStyle.height, fontSize:providerButtonStyle.fontSize, fontWeight:providerButtonStyle.fontWeight }}/>
+  );
 
   const handleStep1 = e => {
     e.preventDefault(); setError(""); setNotice("");
@@ -304,9 +292,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
           <div style={{ display:"flex", alignItems:"center", gap:8, color:theme.textDim, fontSize:11 }}>
             <span style={{ flex:1, height:1, background:theme.border }}/><span>or</span><span style={{ flex:1, height:1, background:theme.border }}/>
           </div>
-          {providerButton("google")}
-          {providerButton("linkedin")}
-          {providerButton("github")}
+          {providers()}
         </form>
 
       ) : tab === "forgot" ? (
@@ -381,9 +367,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
           <div style={{ display:"flex", alignItems:"center", gap:8, color:theme.textDim, fontSize:11 }}>
             <span style={{ flex:1, height:1, background:theme.border }}/><span>or</span><span style={{ flex:1, height:1, background:theme.border }}/>
           </div>
-          {providerButton("google")}
-          {providerButton("linkedin")}
-          {providerButton("github")}
+          {providers()}
         </form>
 
       ) : (

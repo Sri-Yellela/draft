@@ -23,6 +23,7 @@ import { overviewStats, panelHref, learnStepHref } from "./atlasPanels.js";
 import "./AtlasPanels.css";
 import RoleReadiness from "./RoleReadiness.jsx";
 import CompareRoles from "./CompareRoles.jsx";
+import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
 
 const nodeHref = (base, slug) => `${base}/${encodeURIComponent(slug)}`;
 const num = (n) => Number(n || 0).toLocaleString("en-US");
@@ -43,7 +44,7 @@ function NotYet({ children }) {
 }
 
 function SignInLine({ what }) {
-  return <p className="atl__quiet" data-atlas-sign-in="">Sign in to see {what}. <Link to="/login" className="atl__link">Sign in</Link></p>;
+  return <p className="atl__quiet" data-atlas-sign-in="">Sign in to see {what}. <Link to={loginHref()} className="atl__link">Sign in</Link></p>;
 }
 
 // ── You · Overview ───────────────────────────────────────────────────────────────────────────────
