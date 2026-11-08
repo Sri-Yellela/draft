@@ -95,6 +95,7 @@ import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyB
 import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/jobs/publicBoard.js";
 import { publicCompany, publicSuggest } from "./services/companies/publicCompany.js";
 import { createCompanyFacts } from "./services/companies/companyFacts.js";
+import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landingPages.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
@@ -9875,7 +9876,7 @@ app.get("/sitemap-jobs.xml", (req, res) => {
   if (req.query?.flat === "1") return res.type("application/xml").send(sitemapXml(appBaseUrl(req), jobsSitemapRoutes(db)));   // the first file, as before
   const base = appBaseUrl(req);
   const pages = jobsSitemapPageCount(db);
-  const files = [...Array.from({ length: pages }, (_, i) => `/sitemap-jobs-${i + 1}.xml`), "/sitemap-companies.xml"];
+  const files = [...Array.from({ length: pages }, (_, i) => `/sitemap-jobs-${i + 1}.xml`), "/sitemap-companies.xml", "/sitemap-landing.xml"];
   res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${files.map(f => `  <sitemap><loc>${xmlEscape(`${base}${f}`)}</loc></sitemap>`).join("\n")}
@@ -9885,6 +9886,18 @@ app.get("/sitemap-jobs-:n.xml", (req, res) => {
   const n = Number(req.params.n);
   if (!Number.isInteger(n) || n < 1 || n > jobsSitemapPageCount(db)) return res.status(404).type("text/plain").send("No such sitemap.");
   res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), jobsSitemapRoutes(db, { page: n })));
+});
+// ⭐ D179 P7 (45l): landing pages per role and per technology — server-rendered, a real 404 under ten open jobs.
+app.get("/jobs/role/:id", (req, res) => {
+  const page = renderLandingPage(db, "role", req.params.id, { base: appBaseUrl(req) });
+  res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
+});
+app.get("/jobs/tech/:slug", (req, res) => {
+  const page = renderLandingPage(db, "tech", req.params.slug, { base: appBaseUrl(req) });
+  res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
+});
+app.get("/sitemap-landing.xml", (req, res) => {
+  res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), landingSitemapRoutes(db)));
 });
 app.get("/sitemap-companies.xml", (req, res) => {
   res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), companiesSitemapRoutes(db)));
