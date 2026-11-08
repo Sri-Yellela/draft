@@ -13,6 +13,7 @@
 // (shared/techVocabulary.js) · Titles (the open board's own, by frequency). Signed out it works the same.
 import { stackFor } from "./companyTech.js";
 import { companyAbout } from "./companyFacts.js";
+import { companyGithub } from "./companyGithub.js";
 import { sponsorshipFactFor } from "../kb/sponsorshipFacts.js";
 import { PUBLIC_OPEN_SQL, jobPath, atlasLinksFor } from "../jobs/publicJobPage.js";
 import { taxonomy } from "../jobs/taxonomyClassify.js";
@@ -93,6 +94,8 @@ export function publicCompany(db, slug, { now = Date.now() } = {}) {
     jobs,
     // ⭐ D179 P4b: one sentence in draft's own words from the company's public facts (Wikidata, CC0, by its own site); null when none.
     about: (() => { try { return companyAbout(db, co); } catch { return null; } })(),
+    // ⭐ D179 P5b: the public GitHub organisation's languages (matched by its own site); null when none.
+    github: (() => { try { return companyGithub(db, co.id); } catch { return null; } })(),
   };
   pageCache.set(s, { at: now, value });
   if (pageCache.size > 5000) pageCache.clear();
