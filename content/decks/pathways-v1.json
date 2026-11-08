@@ -740,18 +740,18 @@
           "topics": [
             {
               "title": "deploys without downtime",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-c-01",
+              "status": "draft"
             },
             {
               "title": "surviving a region outage",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-c-02",
+              "status": "draft"
             },
             {
               "title": "cutting the cloud bill",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-c-03",
+              "status": "draft"
             }
           ]
         },
@@ -761,18 +761,18 @@
           "topics": [
             {
               "title": "troubleshooting rounds",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-iv-01",
+              "status": "draft"
             },
             {
               "title": "infrastructure design",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-iv-02",
+              "status": "draft"
             },
             {
               "title": "on-call scenarios",
-              "deck": null,
-              "status": "planned"
+              "deck": "cl-iv-03",
+              "status": "draft"
             }
           ]
         }
