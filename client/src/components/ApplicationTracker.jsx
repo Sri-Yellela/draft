@@ -167,7 +167,7 @@ export function RowOpen({ row, pane = null, onPane, paneBody, actions = [], onCl
     // window listener, and here for a key pressed inside the row).
     <div className="trk-o" data-row-detail={row.key} data-order={stepsFirst ? "held" : undefined}
       onKeyDown={(e) => { if (e.key === "Escape") onClose?.(); }}>
-      <p className="trk-o__eyebrow">{held?.eyebrow || row.eyebrow}</p>
+      {(held ? held.eyebrow : row.eyebrow) && <p className="trk-o__eyebrow">{held ? held.eyebrow : row.eyebrow}</p>}
       <h3 className="trk-o__headline" data-row-headline="">{held?.title || row.headline}</h3>
       {held?.lead && <p className="trk-o__lead" data-held-lead={held.state}>{held.lead}</p>}
       {!stepsFirst && panes}

@@ -9,11 +9,21 @@
 // ⭐ A136: Atlas's card is this one too (its own AtlasNav.jsx was a second implementation): ↑ / ↓ (wrapping) and Home / End
 // move focus between the card's links, for every place. `fill`: the place sits inside a page that already pads it, and
 // its panel takes the rest of the width (Atlas's map is wider than a settings panel).
-import { useRef } from "react";
+import { createContext, useContext, useRef } from "react";
 import { Link } from "react-router-dom";
 import "./PlaceNav.css";
 
 const MOVE = { ArrowDown: 1, ArrowUp: -1, Home: "first", End: "last" };
+
+// ⭐ D182 (45n, owner 11-08) · the panel's eyebrow never repeats the nav: the card beside it already shows the current
+// item (and its group) in bold, so a PlaceHead / Atlas PanelHead eyebrow equal to either is not drawn.
+const PlaceCurrent = createContext(null);
+const norm = (s) => String(s || "").trim().toLowerCase();
+/** true when `eyebrow` only repeats the current nav item's label or its group's label. */
+export function useRepeatsNav(eyebrow) {
+  const cur = useContext(PlaceCurrent);
+  return !!cur && !!eyebrow && (norm(eyebrow) === norm(cur.label) || norm(eyebrow) === norm(cur.group));
+}
 
 /** The nav card + the panel. `groups`: [{ label, items: [{ id, label, meta? }] }]. */
 export default function PlaceNav({ name, eyebrow, title, groups, current, hrefFor, children, place, fill = false, panelId }) {
@@ -27,6 +37,8 @@ export default function PlaceNav({ name, eyebrow, title, groups, current, hrefFo
     const k = MOVE[e.key];
     links[k === "first" ? 0 : k === "last" ? links.length - 1 : (i + k + links.length) % links.length]?.focus();
   };
+  const group = groups.find((g) => g.items.some((i) => i.id === current));
+  const here = { label: labelOf(groups, current), group: group?.label || "" };
   return (
     <div className={fill ? "pl pl--fill" : "pl"} data-place={place || name}>
       <aside className="pl__nav" aria-label={name || title} data-place-nav="" ref={ref} onKeyDown={onKeyDown}>
@@ -45,8 +57,8 @@ export default function PlaceNav({ name, eyebrow, title, groups, current, hrefFo
           </div>
         ))}
       </aside>
-      <section className="pl__panel" data-place-panel={current} key={current} id={panelId} aria-label={labelOf(groups, current)}>
-        {children}
+      <section className="pl__panel" data-place-panel={current} key={current} id={panelId} aria-label={here.label}>
+        <PlaceCurrent.Provider value={here}>{children}</PlaceCurrent.Provider>
       </section>
     </div>
   );
@@ -56,9 +68,10 @@ const labelOf = (groups, id) => groups.flatMap((g) => g.items).find((i) => i.id 
 
 /** A panel's head: the accent eyebrow, the headline, one line of lead (any of them optional). */
 export function PlaceHead({ eyebrow, title, lead }) {
+  const repeats = useRepeatsNav(eyebrow);
   return (
     <header className="pl__head" data-place-head="">
-      {eyebrow && <p className="pl__peb">{eyebrow}</p>}
+      {eyebrow && !repeats && <p className="pl__peb">{eyebrow}</p>}
       {title && <h2 className="pl__h">{title}</h2>}
       {lead && <p className="pl__lead">{lead}</p>}
     </header>

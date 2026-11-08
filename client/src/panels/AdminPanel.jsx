@@ -10,6 +10,7 @@ import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, Notices
          BoardPolicySection, KillSwitchSection, FullAutoPrerequisitesSection, TailoringAdminSection, BoardFitSection, JobDataSection, CompaniesSection, SlugHarvestSection,
          ToolsServiceSection } from "./adminOps.jsx";
 import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
+import { AdminSection } from "./adminKit.jsx";
 import { EnrichmentTab } from "./adminEnrichment.jsx";
 import { EmailHealthTab } from "./adminEmail.jsx";
 import { ModelUsageTab } from "./adminUsage.jsx";
@@ -692,6 +693,7 @@ export function AdminPanel() {
           </button>
         ))}
       </div>
+      <AdminSection.Provider value={group.sections.find(([id]) => id === place.s)?.[1] || ""}>
 
       {/* Today — what needs me? */}
       {at("today", "glance") && <GlanceTab theme={theme}/>}
@@ -887,6 +889,7 @@ export function AdminPanel() {
               </motion.div>
             )}
           </AnimatePresence>
+      </AdminSection.Provider>
     </div>
   );
 }

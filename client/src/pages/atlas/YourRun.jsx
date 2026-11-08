@@ -33,7 +33,6 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
   }, [signedIn]);
   if (!signedIn) return (
     <div className="atl-pan" data-atlas-panel-body="your-run">
-      <p className="atl__kicker">Your run</p>
       <p className="atl__quiet" data-run-signed-out="">Sign in to start your run. Points come only from proof — an idea explained in your own words, a build, a skill checked.</p>
     </div>
   );
@@ -42,7 +41,6 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
   const l = runLines(run);
   return (
     <div className="atl-pan run" data-atlas-panel-body="your-run" data-run-total={run.total}>
-      <p className="atl__kicker">Your run</p>
       <div className="run-card" data-run-level={run.level.n}>
         <Ring pct={run.level.pct} />
         <div className="run-card__body">

@@ -35,25 +35,25 @@ export const TRACKER_PERIODS = Object.freeze([["any", "Any time", null], ["7", "
 
 /**
  * Every stage: its filter (exactly one), the word the Status column says, the ring its dot is drawn in, the eyebrow
- * of the opened row, and the stage's own actions (ids the panel wires — lib order is the order shown).
+ * of the opened row (D182: null where it would only repeat the status word), and the stage's own actions (ids the panel wires — lib order is the order shown).
  */
 export const STAGES = Object.freeze({
   question:     { filter: "needs",    word: "Needs you",      ring: "need",   eyebrow: "Only you can answer this", actions: ["answer", "skip"] },
   needs:        { filter: "needs",    word: "Needs you",      ring: "need",   eyebrow: "Waiting for you",          actions: ["open", "signin", "prepare", "again", "check", "yourself", "skip"] },
-  ready:        { filter: "needs",    word: "Ready to send",  ring: "review", eyebrow: "Ready to send",            actions: ["approve", "edit", "form", "reject", "skip"] },
+  ready:        { filter: "needs",    word: "Ready to send",  ring: "review", eyebrow: null,                       actions: ["approve", "edit", "form", "reject", "skip"] },
   picked:       { filter: "needs",    word: "Picked",         ring: "pick",   eyebrow: "Picked for you",           actions: ["apply", "pass"] },
   working:      { filter: "progress", word: "Filling",        ring: "work",   eyebrow: "Working on it",            actions: ["stop"] },
   waiting:      { filter: "progress", word: "Waiting in line", ring: "work",  eyebrow: "In line",                  actions: ["remove"] },
   pending_self: { filter: "progress", word: "Did you apply?", ring: "pick",   eyebrow: "You opened it to apply",   actions: ["record", "did_not_apply"] },
-  sent:         { filter: "sent",     word: "Sent",           ring: "sent",   eyebrow: "Sent",                     actions: ["heard", "reply_ask", "withdraw"] },
-  interview:    { filter: "replies",  word: "Interview",      ring: "reply",  eyebrow: "Interview",                actions: ["prepare_interview", "date", "withdraw"] },
-  assessment:   { filter: "replies",  word: "Assessment",     ring: "reply",  eyebrow: "Assessment",               actions: ["prepare_interview", "date", "withdraw"] },
+  sent:         { filter: "sent",     word: "Sent",           ring: "sent",   eyebrow: null,                       actions: ["heard", "reply_ask", "withdraw"] },
+  interview:    { filter: "replies",  word: "Interview",      ring: "reply",  eyebrow: null,                       actions: ["prepare_interview", "date", "withdraw"] },
+  assessment:   { filter: "replies",  word: "Assessment",     ring: "reply",  eyebrow: null,                       actions: ["prepare_interview", "date", "withdraw"] },
   offer:        { filter: "replies",  word: "Offer",          ring: "reply",  eyebrow: "An offer",                 actions: ["open_reply", "withdraw"] },
   rejected:     { filter: "replies",  word: "Not selected",   ring: "reply",  eyebrow: "They said no",             actions: ["note"] },
-  no_reply:     { filter: "sent",     word: "No reply",       ring: "sent",   eyebrow: "No reply",                 actions: ["reply_ask"] },
+  no_reply:     { filter: "sent",     word: "No reply",       ring: "sent",   eyebrow: null,                       actions: ["reply_ask"] },
   withdrawn:    { filter: "stopped",  word: "Withdrawn",      ring: "stop",   eyebrow: "Closed",                   actions: [] },
-  not_applied:  { filter: "stopped",  word: "Not applied",    ring: "stop",   eyebrow: "Not applied",              actions: ["restore"] },
-  stopped:      { filter: "stopped",  word: "Stopped",        ring: "stop",   eyebrow: "Stopped",                  actions: ["again", "check", "log", "yourself", "skip"] },
+  not_applied:  { filter: "stopped",  word: "Not applied",    ring: "stop",   eyebrow: null,                       actions: ["restore"] },
+  stopped:      { filter: "stopped",  word: "Stopped",        ring: "stop",   eyebrow: null,                       actions: ["again", "check", "log", "yourself", "skip"] },
 });
 
 const s = (v) => (v == null ? "" : String(v));

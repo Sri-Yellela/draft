@@ -12,13 +12,10 @@
 //     While the Google app is in Testing mode, a test user's grant lasts seven days — the note says so.
 import { useCallback, useEffect, useState } from "react";
 import { api, authContextQuery } from "../lib/api.js";
-import { C } from "../styles/colorTokens.js";
-import { markStyle } from "../styles/mark.js";
 
+// D182 (45n): a message carries no category mark — its "File as [category]" select already says it.
 const LABEL = { applied: "Applied", verification: "Verification", interview: "Interview", assessment: "Assessment",
   recruiter: "Recruiter", reminder: "Reminder", offer: "Offer", rejection: "Rejection", other: "Other" };
-const COLOUR = { interview: C.SUCCESS, offer: C.SUCCESS, assessment: C.WARNING, rejection: C.DANGER,
-  verification: C.INFO, applied: C.INK_MUTED };
 
 // ⭐ D112 · the Gmail connection: connect (a navigation to Google's consent), the connected state, Disconnect.
 // ⭐ D167: exported — Profile → Connections draws this same control (pages/profile/ProfilePage.jsx).
@@ -154,7 +151,6 @@ export default function ApplicationInbox({ theme }) {
           <li key={m.id} data-inbox-message={m.id} style={{ padding: "10px 12px", borderRadius: 12, background: theme.surface,
             border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: 6 }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <span style={markStyle(COLOUR[m.category] || C.INK_FAINT)}>{LABEL[m.category] || m.category}</span>
               <b style={{ fontSize: 13, color: theme.text, flex: "1 1 200px", minWidth: 0 }}>{m.subject || "(no subject)"}</b>
               <span style={muted}>{when(m.receivedAt)}</span>
             </div>
