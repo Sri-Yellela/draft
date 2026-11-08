@@ -27,6 +27,7 @@ import { deriveProfileFilters } from "../services/jobs/profileFilterBridge.js";
 import { profileTitleSql } from "../services/profileTitleFilter.js";
 import { loadSimpleApplyProfile } from "../services/simpleApplyProfile.js";
 import { costAlarmStatus } from "../services/modelUsage.js";
+import { loopAlert, growthAlarm } from "../services/ops/systemHealth.js";
 import { canaryAlerts } from "../services/fullAutoCanary.js";
 
 // A source that hasn't written in this long is treated as stale. Ashby stopped writing on
@@ -666,6 +667,9 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
           `$${c.spentUsd.toFixed(2)} spent on models today (UTC), over the $${c.thresholdUsd.toFixed(2)} alarm — ` +
           c.byKey.map(k => `${k.keyLabel} $${k.costUsd.toFixed(2)}`).join(" · "));
       } catch (e) { console.warn("[pipeline-health] model cost alarm unavailable:", e.message); }
+      // ⭐ D151 Rules 3 / 6 (45n): the event loop held for minutes, and a day's runaway growth.
+      try { const a = loopAlert(); if (a) push("warn", "event_loop", a.subject, a.detail); } catch (e) { console.warn("[pipeline-health] loop alert unavailable:", e.message); }
+      try { const g = growthAlarm(db); if (g) push("warn", "growth", g.subject, g.detail); } catch (e) { console.warn("[pipeline-health] growth alarm unavailable:", e.message); }
       // ⛔ D175 FA2: the nightly FULL AUTO canary — a red step (critical when a send missed the practice form).
       try { for (const a of canaryAlerts(db, { nowSec: now })) push(a.severity, "full_auto_canary", a.subject, a.detail); }
       catch (e) { console.warn("[pipeline-health] full-auto canary unavailable:", e.message); }

@@ -162,6 +162,7 @@ import { practiceProgress } from "./services/learn/practiceProgress.js";
 import { stackExposure } from "./services/learn/stackExposure.js";
 import { phase1Measures } from "./services/admin/phase1Measures.js";
 import { runMarketWeek, marketWeekFor } from "./services/market/marketWeek.js";
+import { timingMiddleware, startLoopMonitor, checkpointWal, growthSnapshot, diagnostics, issueDiagToken, diagTokenValid } from "./services/ops/systemHealth.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
 import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes, jobsSitemapPageCount, companiesSitemapRoutes, jobPath, atlasLinksFor } from "./services/jobs/publicJobPage.js";
@@ -9980,6 +9981,8 @@ app.set("trust proxy", 1);
 // at the model call / the run's insert, after the session and the admin binder have run.
 // ⛔ D173 (5): and before it, the request's id (x-request-id in and out) — sent on to the tools service (docs/SERVICES.md).
 app.use(requestIdMiddleware);
+// ⭐ D151 Rule 6 (45n): every /api request timed by its route pattern (services/ops/systemHealth.js; bounded memory).
+app.use(timingMiddleware());
 app.use(startedByMiddleware);
 app.use(cors({ origin:corsOrigin, credentials:true }));
 // ⛔ D75: the crawler worker's doors come BEFORE the JSON parser — a result's HMAC is over its exact bytes.
@@ -11355,6 +11358,13 @@ cron.schedule("0 5 * * 1", () => {
       `${s.hotShare == null ? "—" : Math.round(s.hotShare * 100) + "%"} with a new in-scope posting in ${h.hotDays} days (target ${Math.round(h.target * 100)}%)` +
       (h.proposals.length ? ` · PROPOSED for deactivation: ${h.proposals.map((p) => `${p.company} (${p.why})`).join("; ")}` : ""));
   } catch (e) { console.error("[company-heat] failed:", e.message); }
+});
+// ⭐ D151 Rule 4 (45n): a PASSIVE WAL checkpoint every 15 minutes (never blocks a writer); the WAL's size is in
+// Diagnostics. ⭐ Rule 6: the growth snapshot once a day (04:40 UTC) — active postings +50 % or the database +1 GB in a
+// day is an alert (logged now, and in pipeline health until the next snapshot).
+cron.schedule("*/15 * * * *", () => { checkpointWal(db); });
+cron.schedule("40 4 * * *", () => {
+  try { const a = growthSnapshot(db, DB_PATH); if (a) console.warn(`[growth] ALARM: ${a.detail}`); } catch (e) { console.error("[growth] snapshot failed:", e.message); }
 });
 // ⭐ D150 T09 (45n): "Your market this week" — Mondays 06:00 New York time, the week just ended, one row per field;
 // idempotent (a week already written is skipped). MARKET_WEEK=off stops it.
@@ -15774,6 +15784,22 @@ app.post("/api/cover-letter/generate", requireAuth, async (req, res) => {
 // HEALTH + SPA
 // ═══════════════════════════════════════════════════════════════
 app.get("/api/health", (_req,res) => res.json({ ok:true, time:new Date().toISOString() }));
+// ⭐ D151 Rule 6 (45n) · Admin → System → Diagnostics — boot, loop delay, the slowest endpoints, the board's counts, the
+// database and WAL size, the crawler's last runs, the growth alarm. Also readable with a 24-hour token the owner issues
+// (only its hash stored; scoped to this one read) — never production shell access.
+app.get("/api/admin/system/diagnostics", requireAdmin, (_req, res) => {
+  res.set("Cache-Control", "no-store").json(diagnostics(db, { dbPath: DB_PATH, boot: BOOT.snapshot() }));
+});
+app.post("/api/admin/system/diag-token", requireAdmin, (req, res) => {
+  const t = issueDiagToken(db, { by: actorRef(req) });
+  try { writeAudit(db, { actor: actorOf(req), action: "diag_token_issued", target: "d151_diag_token", before: null, after: { expires: t.expires } }); }
+  catch (e) { console.warn("[diag] the audit row was not written:", e.message); }
+  res.set("Cache-Control", "no-store").json({ ...t, url: `/api/diag?token=${t.token}`, note: "Read-only, this one endpoint, expires in 24 hours. Issuing a new one ends the old." });
+});
+app.get("/api/diag", (req, res) => {
+  if (!diagTokenValid(db, req.query.token)) return res.status(404).json({ error: "not_found" });
+  res.set("Cache-Control", "no-store").json(diagnostics(db, { dbPath: DB_PATH, boot: BOOT.snapshot() }));
+});
 // ⛔⛔ D151 Rule 1: /live = the process is up (answers the moment the port binds); /ready = the database answers AND the
 // boot warm-up has run — Railway's healthcheck (railway.toml), so a deploy takes traffic only when ready, never mid-warm-up.
 app.get("/api/health/live", (_req, res) => res.json({ ok: true, state: BOOT.state, uptimeMs: Math.round(process.uptime() * 1000) }));
@@ -15998,6 +16024,8 @@ process.on("unhandledRejection", (reason) => {
 
 console.log(`[boot] binding HTTP listener on :${PORT}`);
 app.listen(PORT, () => {
+  // ⭐ D151 Rule 3 (45n): the event loop's delay, sampled each minute (Admin → System → Diagnostics; pipeline health alerts).
+  try { startLoopMonitor(); } catch (e) { console.warn("[loop] monitor not started:", e.message); }
   BOOT.listening();
   console.log(`[server] ${BRAND} v5 on :${PORT} (listening ${BOOT.snapshot().listenMs} ms after start)`);
   // Warm up browser availability probe in background so /api/integrations/status
