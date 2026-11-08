@@ -27,7 +27,12 @@ test("d176LearnItemsHaveSource: the register still validates, and every row D176
   assert.ok(v.ok, v.problems.join(" · "));
   const added = reg.sources.filter(x => /by D176-3/.test(x.notes || ""));
   assert.ok(added.length >= 180);
-  for (const x of added) assert.equal(x.licenceClass, "to-verify", `${x.id} is link-only until its licence is read`);
+  // D176-1 (11-08): a row leaves to-verify only with the page's own wording quoted in its notes, the page, and the date.
+  for (const x of added) {
+    if (x.licenceClass === "to-verify") continue;
+    assert.match(x.verified, /^\d{4}-\d{2}-\d{2}$/, `${x.id}: a checked licence records its date`);
+    assert.match(x.notes, /D176-1 \(\d{4}-\d{2}-\d{2}\): [a-z-]+, read at https:\/\/\S+[^"]*: "[^"]{8,}/, `${x.id}: the licence page's wording is quoted`);
+  }
   assert.ok(reg.sources.some(x => x.id === OWN_SOURCE && x.licenceClass === "open-reuse"), "draft's own tasks are a row");
   const ids = reg.sources.map(x => x.id);
   assert.equal(new Set(ids).size, ids.length, "unique ids");
