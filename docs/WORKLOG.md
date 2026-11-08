@@ -33,6 +33,8 @@ state, decisions, done, and the doc directory — is the handover document.
 
 ---
 
+⛔ **RULE FOR 45l (owner 11-08, end of 45k): NO checks and NO full suites during the session — the OWNER tests everything; ONE combined full suite at the VERY END, after every open item is built.** *"no need for checks or full suites this time, everything shall be tested by me, and the full suite at the very end."* So: no per-task real-Chrome walks, boot smokes or scale-suite runs, and the 12 leftover batches from 45k fold into that one final suite. A TECH note still says what was changed and that it is UNTESTED, waiting on the owner's test.
+
 ⛔ **RULE (owner 11-08, 45k): "the log" means ALL the open items in the log — never one block.** *"when i meant the log, all the open items in the log, not a particular block."* "Pick up / finish the log" = every open item in NOW and the queues (D, A, O rows), worked in the TRACK ORDER, skipping only what needs the owner (logged as such). A session's ▶▶▶ NEXT SESSION queue line is a starting point, not the scope; never report the log finished while any open item is undone. 45k broke this: it finished its six-item queue line and reported the log done with A138, D179, D182, D181, D180, D154, D176-1 open.
 
 ⭐ **RULE (owner 11-05, 44w): every completed or in-progress task in this log carries a `TECH:` note** — 2–5 lines, plain words: *what was wrong, the mechanism (which code path, why it produced the symptom), what changed, how it was verified, what is still unknown.* The agent pastes the same note into the chat when it writes it. A row without a `TECH:` note is not finished.
@@ -211,8 +213,8 @@ stale **eight times**, twice about their own headline. Re-derive before trusting
   - **D154 [T3] daily practice** — gated on D150's audit being live (T04 → T08 not done); its 12 match / order drafts (`practice-questions-v1.json`) wait on the owner's approval.
   - **D176-1** — 305 register rows still to-verify (link-only meanwhile).
   - **D151** — the Atlas pieces under an edges-aware stamp, then deck / Full House / facets p95 + loop p99; re-run the suite.
-  - **The combined suite's remaining 12 batches + a boot smoke** against what is live (`5c63b34`).
-- **Queue (agent) for 45l, in the track order:** the suite's 12 batches → A138 (build + tests; the walk once the owner names a test Google account) → D151's next step → D179 P0 → D179 step 2 (P4a, P5a, D153 (2)) → P2 → D182's inventory → D181 → D176-1 batches; D180 after D179 step 4; D154 after the audit.
+  - **The combined suite's remaining 12 batches + a boot smoke** against what is live (`5c63b34`) — ⛔ owner 11-08: folded into the ONE full suite at the very end of 45l; the owner tests meanwhile.
+- **Queue (agent) for 45l, in the track order** (⛔ owner 11-08: no checks / suites during the session — the owner tests; ONE full suite at the very end): A138 (build + tests; the walk once the owner names a test Google account) → D151's next step → D179 P0 → D179 step 2 (P4a, P5a, D153 (2)) → P2 → D182's inventory → D181 → D176-1 batches; D180 after D179 step 4; D154 after the audit → **then, at the very end, the one combined full suite.**
 
 **▶▶▶ 45k's START (was NEXT SESSION (45k)) — 45j ENDED 11-08 ≈ 07:00Z on the owner's "push whatever is committed or ready to commit and stop at a clean point and update log to start a new session" (the four parallel lanes had all stopped at the account's 5-hour limit):**
 - **Measured at the end of 45j:** production `/api/version` = **`a564177`** (started 06:41:33Z), migrations latest **229_scraped_jobs_active_recency**, readPool 2 / 2, **scorePool 1 / 1, 0 rejected**; `/api/learn/pathways` **207 written · 0 drafted · 0 planned**. `main` = `origin/main` (nothing unpushed). The uncommitted `docs/fidelity-shots/` PNGs in the checkout are test-walk output — leave or regenerate, never commit by accident.
