@@ -217,7 +217,8 @@ test("D115 P3 · d115LocalWhenSignedOut — ⭐ D117 C8 (changed on purpose): si
   assert.equal(nextStep(steps, all).id, steps[1].id);
   const firstAdv = steps.find(s => s.lv === "a");
   assert.notEqual(nextStep(steps.filter(s => s.n >= firstAdv.n), {}, { basicsOnly: true }).lv, "a", "Basics first skips advanced steps");
-  assert.match(read("client/src/pages/atlas/AtlasPage.jsx"), /\{learning && <LearnView signedIn=\{base\.startsWith\("\/app"\)\} \/>\}/);
+  // ⭐ D178 (changed on purpose): the Learn view lives in the course page's circle view; /atlas/learn redirects there.
+  assert.ok(read("client/src/pages/atlas/LibraryPanel.jsx").includes("<LearnView signedIn={signedIn} />"));
   // The Concepts view's search is the one normaliser.
   assert.equal(searchConcepts(LEARN.INDEX, "logic gates")[0].term, "Logic gate");
 });

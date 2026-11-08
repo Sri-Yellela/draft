@@ -13,15 +13,12 @@ export const ATLAS_NAV = Object.freeze([
   { group: "You", panels: [
     // ⭐ D172 (3): Your run — your level, points from proof, streak and today's quests.
     { id: "your-run", label: "Your run" },
-    { id: "overview", label: "Overview" },
     { id: "your-map", label: "Your map" },
     { id: "your-skills", label: "Your skills" },
-    { id: "your-route", label: "Your route" },
   ] },
   { group: "Grow", panels: [
     // ⭐ D172 (2): the Library — the courses as a shelf; /atlas/library/<course> is a course's page.
     { id: "library", label: "Library" },
-    { id: "learn", label: "Learn" },
     { id: "todays-question", label: "Today's question" },
     { id: "the-audit", label: "The audit" },
   ] },
@@ -35,7 +32,11 @@ export const ATLAS_NAV = Object.freeze([
 export const PANEL_IDS = Object.freeze(ATLAS_NAV.flatMap(g => g.panels.map(p => p.id)));
 export const PANEL_LABEL = Object.freeze(Object.fromEntries(ATLAS_NAV.flatMap(g => g.panels.map(p => [p.id, p.label]))));
 /** Older reserved addresses that now open a panel. */
-export const PANEL_ALIASES = Object.freeze({ check: "your-skills" });
+// ⭐ D178 (the nav regrouped, owner 11-07): Your route is folded into Your map (the map IS the route drawn) — its address
+// opens Your map. Overview is Atlas's signed-OUT front page (signed in, the mount opens Your run); Learn's address
+// redirects to the course's circle view (AtlasPage). Both stay reserved slugs, so no node can take them.
+export const PANEL_ALIASES = Object.freeze({ check: "your-skills", "your-route": "your-map" });
+export const RESERVED_PANELS = Object.freeze(["overview", "learn"]);
 
 /** The panel an Atlas address belongs to. `slug` is the path after the mount ("" for the mount itself). */
 export function panelFor(slug, q = "") {
@@ -43,13 +44,17 @@ export function panelFor(slug, q = "") {
   if (!s) return q ? "roles-and-skills" : "overview";
   if (PANEL_IDS.includes(s)) return s;
   if (PANEL_ALIASES[s]) return PANEL_ALIASES[s];
+  // ⭐ D178: the reserved slugs light their home — /atlas/overview is the front page; /atlas/learn (redirecting to the
+  // course's circle view) lights the Library, never Roles and skills.
+  if (s === "overview") return "overview";
+  if (s === "learn") return "library";
   if (s.startsWith("family/")) return "your-map";
   if (s.startsWith("library/")) return "library";
   return "roles-and-skills";
 }
 
 /** Is this address a panel itself (not a node, a family or a search inside one)? */
-export const isPanelSlug = (slug) => PANEL_IDS.includes(String(slug || "")) || !!PANEL_ALIASES[String(slug || "")];
+export const isPanelSlug = (slug) => PANEL_IDS.includes(String(slug || "")) || !!PANEL_ALIASES[String(slug || "")] || RESERVED_PANELS.includes(String(slug || ""));
 
 /** A panel's address under a mount. Overview is the mount itself (/atlas/overview works too). */
 export const panelHref = (base, id) => (id === "overview" ? base : `${base}/${id}`);
@@ -78,8 +83,8 @@ export function overviewStats({ readiness = null, nav = null } = {}) {
     out.push({ id: "skills", value: `${proven} of ${readiness.length}`, label: "skills checked or built", panel: "your-skills" });
   }
   if (nav?.ready) {
-    if (Array.isArray(nav.bridges)) out.push({ id: "bridges", value: String(nav.bridges.length), label: "roles you cover enough to apply to now", panel: "your-route" });
-    if (nav.route?.skills?.length) out.push({ id: "route", value: String(nav.route.skills.length), label: `skills on your route${nav.route.role ? ` to ${nav.route.role}` : ""}`, panel: "your-route" });
+    if (Array.isArray(nav.bridges)) out.push({ id: "bridges", value: String(nav.bridges.length), label: "roles you cover enough to apply to now", panel: "your-map" });
+    if (nav.route?.skills?.length) out.push({ id: "route", value: String(nav.route.skills.length), label: `skills on your route${nav.route.role ? ` to ${nav.route.role}` : ""}`, panel: "your-map" });
   }
   return out;
 }

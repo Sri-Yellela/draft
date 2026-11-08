@@ -85,9 +85,11 @@ function mapWorld() {
 test("D167 · d167AtlasHasOwnNav — the card: the eyebrow, the serif headline, three groups in the sketch's order", async () => {
   assert.deepEqual(ATLAS_NAV.map(g => [g.group, g.panels.map(p => p.label)]), [
     // ⭐ D172 (3) (changed on purpose): Your run, first in You, as the approved sketch draws it.
-    ["You", ["Your run", "Overview", "Your map", "Your skills", "Your route"]],
+    // ⭐ D178 (changed on purpose, the nav regrouped): Overview is the signed-out front page; Your route is in Your map.
+    ["You", ["Your run", "Your map", "Your skills"]],
     // ⭐ D172 (2) (changed on purpose): the Library, first in Grow, as the approved sketch draws it.
-    ["Grow", ["Library", "Learn", "Today's question", "The audit"]],
+    // ⭐ D178 (changed on purpose): Learn is the course's circle view, inside the Library.
+    ["Grow", ["Library", "Today's question", "The audit"]],
     ["Explore", ["Roles and skills", "This week's market", "Glossary"]],
   ]);
   const u = await loadUi();
@@ -147,7 +149,10 @@ test("D167 · d167AtlasKeepsEverySurface — every older address still opens, an
   assert.equal(panelFor("kubernetes"), "roles-and-skills", "a node's page");
   assert.equal(panelFor("data-engineer"), "roles-and-skills", "a role's page");
   assert.equal(panelFor("family/data"), "your-map", "a family's page");
-  assert.equal(panelFor("learn"), "learn");
+  // ⭐ D178 (changed on purpose): /atlas/learn redirects to the course's circle view and lights the Library.
+  assert.equal(panelFor("learn"), "library");
+  assert.equal(panelFor("your-route"), "your-map", "D178: Your route is folded into Your map");
+  assert.equal(panelFor("overview"), "overview", "D178: /atlas/overview is still the front page");
   assert.equal(panelFor("check"), "your-skills", "D142's check");
   assert.ok(isPanelSlug("check") && isPanelSlug("glossary") && !isPanelSlug("kubernetes") && !isPanelSlug("family/data"));
   const u = await loadUi();
@@ -173,8 +178,11 @@ test("D167 · d167AtlasKeepsEverySurface — each existing surface is mounted by
   assert.match(page, /\{!slug && q && <AtlasSearch base=\{base\} q=\{q\} \/>\}/);
   assert.match(page, /<AtlasNodeView base=\{base\} node=\{page\.node\}/);
   assert.match(page, /\{familyKey && <FamilyMap base=\{base\} familyKey=\{familyKey\} \/>\}/);
-  assert.match(page, /\{learning && <LearnView signedIn=\{base\.startsWith\("\/app"\)\} \/>\}/);
-  assert.match(page, /\{learning && <LearnStages base=\{base\} signedIn=\{signedIn\} \/>\}/, "Learn: the sketch's stages, then the full view");
+  // ⭐ D178 (changed on purpose): Learn's address redirects to the course's circle view, which mounts the full Learn view.
+  assert.ok(page.includes('{learning && <Navigate replace to={`${base}/library/silicon-to-software?view=circle${location.hash || ""}`} />}'));
+  assert.ok(read("client/src/pages/atlas/LibraryPanel.jsx").includes('{view === "circle" && <div data-course-circle-view=""><LearnView signedIn={signedIn} /></div>}'));
+  // ⭐ D178: Your route's navigator is drawn inside Your map.
+  assert.ok(page.includes('{signedIn && <section className="atl__section" data-atlas-route-in-map=""><YourRoutePanel base={base} signedIn={signedIn} /></section>}'));
   // 5, 8, 10, 12 · Your map: the tree, the course, the sections, the families (and the signed-out line + course).
   assert.match(page, /\{panel === "your-map" && !familyKey && \(/);
   assert.match(page, /<YourMap base=\{base\} parts=\{\{ navigator: false, explore: false, families: true, recent: false \}\} \/>/);
@@ -224,7 +232,7 @@ test("D167 · panels whose feature is not built say so, and draw only numbers th
   // Overview: stat cards only from the readiness record and the navigator; no streak, no invented count.
   assert.deepEqual(overviewStats({}), []);
   const stats = overviewStats({ readiness: [{ state: "checked" }, { state: "built" }, { state: "claimed" }], nav: { ready: true, bridges: [{}, {}], route: { role: "Data Engineer", skills: [{}, {}, {}] } } });
-  assert.deepEqual(stats.map(s => [s.value, s.panel]), [["2 of 3", "your-skills"], ["2", "your-route"], ["3", "your-route"]]);
+  assert.deepEqual(stats.map(s => [s.value, s.panel]), [["2 of 3", "your-skills"], ["2", "your-map"], ["3", "your-map"]]);
   const out = u.overview({ me: { signedIn: false } });
   assert.doesNotMatch(out, /data-atlas-overview-stats/);
   assert.match(out, /The daily question is not built yet/);

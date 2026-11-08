@@ -6,8 +6,11 @@ build (lane `d167-atlas`, 45b) from the code as it stood at `3c74cead`, and `tes
 (`d167AtlasKeepsEverySurface`) holds the code to it.
 
 The navigation (`client/src/pages/atlas/atlasPanels.js` `ATLAS_NAV`, drawn by `AtlasNav.jsx`, the panels in
-`AtlasPanels.jsx`): **You** — Your run · Overview · Your map · Your skills · Your route — **Grow** — Library · Learn · Today's question · The
-audit — **Explore** — Roles and skills · This week's market · Glossary. Each panel is addressable: `/atlas/<panel>`
+`AtlasPanels.jsx`): **You** — Your run · Your map · Your skills — **Grow** — Library · Today's question · The
+audit — **Explore** — Roles and skills · This week's market · Glossary. ⭐ **D178 (45j, the nav regrouped):** Your route is
+an alias of Your map (the navigator drawn under the track board); Overview is the signed-out front page (signed in, the
+mount opens Your run); `/atlas/learn` redirects to the course's circle view (`/atlas/library/silicon-to-software?view=circle`,
+`#step-<id>` kept) — see `docs/D178_ATLAS_INVENTORY.md`. Each panel is addressable: `/atlas/<panel>`
 (public) and `/app/atlas/<panel>` (signed in); Overview is `/atlas` itself (and `/atlas/overview`).
 
 ## The mapping

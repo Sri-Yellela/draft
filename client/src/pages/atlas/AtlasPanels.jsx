@@ -77,8 +77,8 @@ export function OverviewView({ base, me, nav = null, readiness = null }) {
           {next ? <p className="atl-pan__line">{next.text}</p>
             : <p className="atl__quiet">{signedIn ? "Your next step appears once your map has your skills." : "Sign in with a résumé and the Atlas points the way."}</p>}
           <p className="atl-pan__actions">
-            <Link className="dbx-depth atl-home__go" to={panelHref(base, "your-route")}>Open your route</Link>
-            <Link className="atl__link" to={panelHref(base, "learn")}>Go to Learn</Link>
+            <Link className="dbx-depth atl-home__go" to={panelHref(base, "your-map")}>Open your route</Link>
+            <Link className="atl__link" to={panelHref(base, "library")}>Go to the Library</Link>
           </p>
         </section>
         <section className="atl__section" data-atlas-overview-question="">

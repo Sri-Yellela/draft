@@ -5,7 +5,8 @@
 // Honest by construction: one course exists (the owner's path), so the shelf shows one cover — no "Soon" covers for
 // courses nobody has planned; no "5 slides" or minutes until a lesson has a deck or a length; progress is EARNED.
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import LearnView from "./LearnView.jsx";
 import { api } from "../../lib/api.js";
 import { courseProgress, firstOpenModule, lessonState, linkLine } from "./libraryModel.js";
 import { GuideLadder, useGuides } from "./LibraryGuides.jsx";
@@ -85,6 +86,12 @@ export function CoursePage({ base, id, signedIn = false }) {
   useEffect(() => { if (course) { const m = firstOpenModule(course, marks); setOpen(m); setSel(s => s ?? m); } }, [course, marks]);
   useEffect(() => { let live = true; api("/api/learn/circle").then(c => live && setCircle(c)).catch(() => {}); return () => { live = false; }; }, []);
   const titles = useMemo(() => new Map((course?.modules || []).flatMap(m => m.lessons.map(l => [l.id, l.title]))), [course]);
+  // ⭐ D178: two views of the one course — Modules (the half ring, the deck, the list) and The circle (the whole course at a
+  // glance: Learn's circle, its path, patterns and concept index, until each moves to its own home). ?view=circle#step-<id>.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const view = new URLSearchParams(location.search).get("view") === "circle" ? "circle" : "modules";
+  const setView = (v) => navigate({ search: v === "circle" ? "?view=circle" : "", hash: location.hash }, { replace: true });
   if (error) return <p className="atl__quiet" role="alert" data-course-missing="">{/no_such_course|404/.test(error) ? "There is no course by that name." : error} <Link to={`${base}/library`} className="atl__link">Back to the library</Link></p>;
   if (!course) return <p className="atl__quiet" role="status">Opening the course…</p>;
   return (
@@ -100,6 +107,12 @@ export function CoursePage({ base, id, signedIn = false }) {
           <p className="atl__quiet" data-course-lit="">{progress.done} of {progress.total} lit{signedIn ? "" : " · sign in to light them"}</p>
         </div>
       </header>
+      <div className="rr-tabs lib-views" role="tablist" aria-label="View the course" data-course-views="">
+        <button type="button" role="tab" aria-selected={view === "modules"} aria-pressed={view === "modules"} onClick={() => setView("modules")} data-course-view="modules">Modules</button>
+        <button type="button" role="tab" aria-selected={view === "circle"} aria-pressed={view === "circle"} onClick={() => setView("circle")} data-course-view="circle">The circle</button>
+      </div>
+      {view === "circle" && <div data-course-circle-view=""><LearnView signedIn={signedIn} /></div>}
+      {view === "modules" && <>
       {/* ⭐ D178-3 (owner's pick: Idea C) — the half ring picks the module; its lessons are a deck. */}
       {sel != null && <HalfRing course={course} marks={marks} progress={progress} module={sel} onModule={setSel} />}
       {sel != null && (
@@ -148,6 +161,7 @@ export function CoursePage({ base, id, signedIn = false }) {
           </section>
         );
       })}
+      </>}
       <p><Link to={`${base}/library`} className="atl__link" data-course-back="">← Back to the library</Link></p>
     </article>
   );
