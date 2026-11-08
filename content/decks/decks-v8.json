@@ -1,0 +1,926 @@
+{
+ "version": 8,
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'data', stages 'patterns' (5) and 'data-science-track' (5), in Part C's order. Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "da-p-01",
+   "pathway": "data",
+   "stage": "patterns",
+   "title": "Idempotent pipelines and backfills",
+   "skills": [
+    "idempotency",
+    "backfills",
+    "pipelines"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Rerun anything, safely",
+     "points": [
+      "An idempotent pipeline produces the same output however many times a run is repeated.",
+      "A backfill reruns a pipeline over past dates, after a bug fix or a new column."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Partitions in, partitions out",
+     "points": [
+      "Each run processes a defined slice (a date) and replaces exactly that slice of the output.",
+      "Write to a temporary location, then swap it in, so readers never see half a day.",
+      "Inputs are read as they were (raw data kept unchanged), so a rerun sees the same input.",
+      "Avoid 'now()' inside the logic; use the run's logical date."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Correctness costs a little more",
+     "points": [
+      "Replacing partitions rewrites data that may not have changed.",
+      "Backfilling years at once can overload the warehouse; run slices with limited parallelism.",
+      "Downstream tables must be rebuilt too, in dependency order."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "MERGE or delete-then-insert by partition key, never blind INSERT.",
+      "Backfills planned like a release: scope, order, cost, who's told.",
+      "A row count and a sum compared before and after."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-p-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-p-02",
+   "pathway": "data",
+   "stage": "patterns",
+   "title": "Late data and watermarks",
+   "skills": [
+    "late data",
+    "watermarks",
+    "streaming"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Events that arrive after you counted",
+     "points": [
+      "Phones go offline and send events hours later; partners resend files. Data arrives after the window it belongs to.",
+      "A watermark is the point up to which a system assumes it has seen everything."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Event time and allowed lateness",
+     "points": [
+      "Count by event time (when it happened), not arrival time, or late events land in the wrong window.",
+      "A watermark trails the newest event time by a margin; windows close once the watermark passes them.",
+      "Allowed lateness keeps a window open a little longer, updating its result when stragglers arrive.",
+      "Events later than that go to a side output to be handled separately."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Fast or complete",
+     "points": [
+      "A short wait gives fast, sometimes incomplete numbers; a long wait gives complete, slow ones.",
+      "Updating results after they were published means consumers must accept corrections.",
+      "In batch, the same problem shows up as reprocessing the last few days each run."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Daily batch jobs that recompute the last 3 days to catch late rows.",
+      "Dashboards marked 'preliminary' for the most recent day.",
+      "Metrics on how late events typically arrive, to set the margin."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-p-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-p-03",
+   "pathway": "data",
+   "stage": "patterns",
+   "title": "Slowly changing dimensions",
+   "skills": [
+    "slowly changing dimensions",
+    "scd",
+    "data modelling"
+   ],
+   "pieces": [
+    "b2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Keeping history of descriptive data",
+     "points": [
+      "Dimension attributes change: a customer moves country, a product changes category.",
+      "Slowly changing dimension (SCD) types decide whether old reports show the old value or the new one."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Type 1 and Type 2",
+     "points": [
+      "Type 1 overwrites: the dimension only knows the current value, and history is restated.",
+      "Type 2 adds a new row per change, with valid_from, valid_to and a current flag.",
+      "Facts join to the dimension row that was valid when the fact happened, through a surrogate key.",
+      "Snapshot tables (one row per entity per day) are a simpler alternative when storage is cheap."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Truth then or truth now",
+     "points": [
+      "Type 2 keeps history exactly but makes tables bigger and joins more careful.",
+      "Type 1 is simple and rewrites the past; past reports change.",
+      "Choose per attribute: a typo fix is Type 1, a region move is often Type 2."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "dbt snapshots producing Type 2 tables.",
+      "Point-in-time joins: fact.date BETWEEN dim.valid_from AND dim.valid_to.",
+      "A clear note on which attributes keep history."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-p-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-p-04",
+   "pathway": "data",
+   "stage": "patterns",
+   "title": "Data contracts",
+   "skills": [
+    "data contracts",
+    "schemas"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "An agreement about the data",
+     "points": [
+      "A data contract is an explicit agreement between a team producing data and the teams using it: the schema, meanings, freshness and who owns it.",
+      "It turns 'someone renamed a column and broke the dashboard' into a reviewed change."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Schema, meaning, guarantees",
+     "points": [
+      "The schema: field names and types, required or optional.",
+      "Semantics: what each field means and its units.",
+      "Service levels: how fresh, how complete, how quickly problems are fixed.",
+      "Changes follow rules: additive changes are fine; breaking ones need a new version and notice."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Stability against speed",
+     "points": [
+      "Producers lose the freedom to change data on a whim.",
+      "Consumers get stability, and must state what they actually rely on.",
+      "Contracts on everything is bureaucracy; start with the data that feeds important decisions."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Schemas checked in CI on the producer's side; a breaking change fails the build.",
+      "A schema registry for event streams.",
+      "An owner and a channel named for each contracted dataset."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-p-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-p-05",
+   "pathway": "data",
+   "stage": "patterns",
+   "title": "Metrics and the semantic layer",
+   "skills": [
+    "metrics",
+    "semantic layer"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "One definition per number",
+     "points": [
+      "A metric is a number the business steers by: revenue, active users, conversion.",
+      "A semantic layer defines each metric once, so every dashboard and tool computes it the same way."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Define once, query anywhere",
+     "points": [
+      "A metric definition names the measure (SUM of amount), filters (completed orders only), time grain and allowed dimensions.",
+      "Tools query the metric by name; the layer writes the SQL.",
+      "Ratios are computed after aggregation (sum of numerator / sum of denominator), not as an average of ratios.",
+      "Every metric has an owner and a written definition."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Consistency against flexibility",
+     "points": [
+      "Analysts lose some freedom to write their own SQL for official numbers.",
+      "Without it, two dashboards show two 'revenue' numbers and trust erodes.",
+      "Definitions change over time; record when and why."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "dbt's semantic layer, LookML or Cube for definitions.",
+      "A metrics catalogue people can search.",
+      "'Active user' defined precisely: who, what action, which window."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-p-05-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-ds-01",
+   "pathway": "data",
+   "stage": "data-science-track",
+   "title": "Experiments: A/B tests",
+   "skills": [
+    "ab testing",
+    "experiments",
+    "statistics"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Measuring what a change causes",
+     "points": [
+      "An A/B test randomly splits people between the current version (A) and a change (B), then compares an outcome.",
+      "Randomisation is what lets you say the change caused the difference."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Power, significance, one decision",
+     "points": [
+      "Choose the primary metric and the smallest effect worth detecting before starting.",
+      "Compute the sample size needed (power analysis), and run until you reach it.",
+      "A p-value is how surprising the result would be if there were no real effect; it isn't the chance B is better.",
+      "Check guardrail metrics (errors, latency, refunds) so a 'win' doesn't hide damage."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Peeking and many metrics",
+     "points": [
+      "Checking results daily and stopping at the first significant day inflates false positives (peeking); use a fixed horizon or sequential methods.",
+      "Testing many metrics or segments finds some 'wins' by chance.",
+      "Novelty effects fade; short tests can overstate a change."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "An experiment plan written before launch: hypothesis, metric, sample size, duration.",
+      "Sample ratio mismatch checks (did the split come out 50/50?).",
+      "Results reported with confidence intervals, not just 'significant'."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-ds-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-ds-02",
+   "pathway": "data",
+   "stage": "data-science-track",
+   "title": "Causal thinking",
+   "skills": [
+    "causal inference",
+    "confounding"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Correlation is not causation, so what is?",
+     "points": [
+      "Causal thinking asks what would have happened without the change, not just what moved together.",
+      "When you can't run an experiment, you have to argue for causes carefully."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Confounders and counterfactuals",
+     "points": [
+      "A confounder affects both the cause and the outcome: users who enable a feature may already be the most engaged.",
+      "Selection bias: who ended up in a group isn't random.",
+      "Methods for observational data: difference-in-differences, matching, regression discontinuity, instrumental variables.",
+      "Draw the causal diagram (what affects what) before choosing a method."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Assumptions everywhere",
+     "points": [
+      "Every observational method rests on assumptions you can't fully test; state them.",
+      "Controlling for the wrong variable (one caused by the treatment) can create bias.",
+      "An experiment, when possible, beats clever analysis."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "'Users of feature X retain better' — check whether X users were different beforehand.",
+      "A rollout by region used as a natural experiment, with difference-in-differences.",
+      "Findings worded as 'associated with' unless the design supports 'caused'."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-ds-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-ds-03",
+   "pathway": "data",
+   "stage": "data-science-track",
+   "title": "Regression and classification",
+   "skills": [
+    "regression",
+    "classification",
+    "machine learning"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Predicting numbers and categories",
+     "points": [
+      "Regression predicts a number (a price, a delivery time); classification predicts a category (churn or not, spam or not).",
+      "Linear and logistic regression are the starting points, and often good enough."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Fit, features, holdout",
+     "points": [
+      "A model learns weights for features from training data and is judged on data it hasn't seen (a test set).",
+      "Logistic regression outputs a probability; a threshold turns it into a decision.",
+      "Tree-based models (random forests, gradient boosting) capture non-linear patterns and interactions with little tuning.",
+      "Feature engineering — turning raw data into useful inputs — often matters more than the algorithm."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Accuracy against understanding",
+     "points": [
+      "Simple models are easy to explain and debug; complex ones may predict better and explain less.",
+      "Overfitting: great on training data, poor on new data.",
+      "Leakage: a feature that wouldn't be known at prediction time makes results look impossibly good."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A simple baseline first; anything fancier must beat it.",
+      "Time-based splits for anything that changes over time.",
+      "scikit-learn pipelines that apply the same preprocessing in training and prediction."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-ds-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-ds-04",
+   "pathway": "data",
+   "stage": "data-science-track",
+   "title": "Evaluation metrics",
+   "skills": [
+    "evaluation",
+    "precision",
+    "recall"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Measuring a model the right way",
+     "points": [
+      "The metric decides what 'better' means; the wrong one rewards the wrong model.",
+      "Pick it from the decision the model supports, not from habit."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Beyond accuracy",
+     "points": [
+      "Precision: of the cases flagged, how many were right. Recall: of the real cases, how many were flagged.",
+      "With rare events, accuracy misleads: flagging nothing is 99 % accurate if 1 % are positive.",
+      "ROC AUC and PR AUC summarise across thresholds; PR AUC is more telling for rare positives.",
+      "Regression: MAE (typical error), RMSE (punishes big errors), and checking errors by segment."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Which mistake costs more",
+     "points": [
+      "Raising the threshold improves precision and lowers recall; the business decides the balance.",
+      "Calibration matters when probabilities are used directly (a 70 % score should be right about 70 % of the time).",
+      "A model can score well overall and badly for one group; check segments."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A confusion matrix at the chosen threshold, with the cost of each cell.",
+      "Offline metrics confirmed by an online test.",
+      "Monitoring the same metric after launch, as data drifts."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-ds-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-ds-05",
+   "pathway": "data",
+   "stage": "data-science-track",
+   "title": "Explaining results",
+   "skills": [
+    "communication",
+    "data storytelling"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Analysis only matters if it changes a decision",
+     "points": [
+      "Explaining results means turning analysis into a clear recommendation people can act on.",
+      "Most of the audience reads the first sentence and the chart."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Answer first",
+     "points": [
+      "Lead with the answer and the recommendation, then the evidence.",
+      "One chart per point, titled with the takeaway ('Mobile checkout drops after step 2'), not the axis names.",
+      "State uncertainty plainly: a range, and what would change the conclusion.",
+      "Say what you didn't check."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Simple without being wrong",
+     "points": [
+      "Simplifying too far misleads; too much detail buries the point.",
+      "A confident tone without caveats spends trust you'll need later.",
+      "Different audiences need different depth: a summary for leaders, an appendix for analysts."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A one-page memo: question, answer, evidence, risks, next step.",
+      "Charts with honest axes (starting at zero for bars).",
+      "Numbers reproducible from saved queries or notebooks."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "da-ds-05-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "da-p-01-q1",
+   "type": "scenario",
+   "role": "Data Engineer",
+   "level": "mid",
+   "skills": [
+    "backfills",
+    "idempotency"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "stem": "A pipeline uses CURRENT_DATE inside its SQL to pick 'yesterday'. A backfill of last March produces wrong data. Why?",
+   "choices": [
+    "Every rerun computes 'yesterday' from today, not from the date being backfilled; use the run's logical date",
+    "March had 31 days",
+    "The warehouse caches CURRENT_DATE",
+    "Backfills always produce wrong data"
+   ],
+   "correct": 0,
+   "why": [
+    "Wall-clock time makes the output depend on when it ran.",
+    "Not the issue.",
+    "It isn't cached; it's simply today.",
+    "They don't, when the logic uses the run's date."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-p-02-q1",
+   "type": "scenario",
+   "role": "Data Engineer",
+   "level": "mid",
+   "skills": [
+    "late data"
+   ],
+   "pieces": [
+    "x1"
+   ],
+   "stem": "Yesterday's mobile event count rises by 5 % over the next two days as offline phones sync. How should the daily job handle it?",
+   "choices": [
+    "Count by event time and recompute the last few days on each run (or mark recent days as preliminary)",
+    "Count by arrival time so yesterday never changes",
+    "Drop events more than an hour late",
+    "Ignore it"
+   ],
+   "correct": 0,
+   "why": [
+    "Late events belong to the day they happened; reprocessing a short window catches them.",
+    "That puts events on the wrong day.",
+    "That loses real data.",
+    "Reports would undercount consistently."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-p-03-q1",
+   "type": "scenario",
+   "role": "Analytics Engineer",
+   "level": "mid",
+   "skills": [
+    "slowly changing dimensions"
+   ],
+   "pieces": [
+    "b2"
+   ],
+   "stem": "A customer moved from the US to Canada in March. Finance wants January's revenue still reported under the US. Which model does that?",
+   "choices": [
+    "A Type 2 customer dimension, with orders joined to the row valid on the order date",
+    "Overwrite the country (Type 1)",
+    "Delete the customer and re-add them",
+    "Store the country only in the orders table"
+   ],
+   "correct": 0,
+   "why": [
+    "Each order points at the customer as they were then.",
+    "January would move to Canada.",
+    "That breaks every past reference.",
+    "It works for country only and duplicates data everywhere."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-p-04-q1",
+   "type": "scenario",
+   "role": "Data Engineer",
+   "level": "mid",
+   "skills": [
+    "data contracts"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "An app team renames `user_id` to `account_id` in their events, and three pipelines break overnight. What would a data contract have changed?",
+   "choices": [
+    "The rename would be a breaking change, caught in the app team's CI and shipped as a new version with notice",
+    "Nothing; renames are always safe",
+    "The pipelines would rename automatically",
+    "Only the dashboard would break"
+   ],
+   "correct": 0,
+   "why": [
+    "A contract makes the break visible before it ships.",
+    "Renames break every consumer.",
+    "No pipeline can guess a rename.",
+    "Everything downstream breaks."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-p-05-q1",
+   "type": "scenario",
+   "role": "Analytics Engineer",
+   "level": "mid",
+   "skills": [
+    "metrics"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Conversion is computed as the average of each day's conversion rate, and it disagrees with total orders ÷ total visits. Which is right for the month?",
+   "choices": [
+    "Total orders ÷ total visits: aggregate first, then divide; averaging daily rates gives quiet days too much weight",
+    "The average of daily rates",
+    "Either; they're the same",
+    "Neither; use the median"
+   ],
+   "correct": 0,
+   "why": [
+    "A ratio of sums weights each visit equally.",
+    "A day with 10 visits counts as much as a day with 10,000.",
+    "They differ whenever daily volumes differ.",
+    "The median isn't the conversion rate."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-ds-01-q1",
+   "type": "scenario",
+   "role": "Data Scientist",
+   "level": "mid",
+   "skills": [
+    "ab testing"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "stem": "An experiment planned for 2 weeks shows p < 0.05 on day 3, and the team wants to stop and ship. What's the risk?",
+   "choices": [
+    "Peeking: stopping at the first significant look inflates the false-positive rate; run to the planned size (or use a sequential test)",
+    "None; significance is significance",
+    "The test ran too long",
+    "p-values only work on Mondays"
+   ],
+   "correct": 0,
+   "why": [
+    "Many looks give many chances to see a fluke.",
+    "Repeated looks change what the threshold means.",
+    "It's the opposite.",
+    "Not a thing."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-ds-02-q1",
+   "type": "scenario",
+   "role": "Data Scientist",
+   "level": "mid",
+   "skills": [
+    "causal inference"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "stem": "Users who turned on notifications retain 30 % better. A manager says notifications cause retention. What's the main concern?",
+   "choices": [
+    "Confounding: more engaged users may be the ones who turn notifications on; test it with an experiment",
+    "The sample is too big",
+    "30 % is too round a number",
+    "Retention can't be measured"
+   ],
+   "correct": 0,
+   "why": [
+    "The groups differ before the feature does anything.",
+    "Size isn't the problem.",
+    "Not a reason to doubt it.",
+    "It can."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-ds-03-q1",
+   "type": "scenario",
+   "role": "Data Scientist",
+   "level": "mid",
+   "skills": [
+    "machine learning",
+    "leakage"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "stem": "A churn model scores 99 % accuracy. One feature is 'cancellation_reason'. What's wrong?",
+   "choices": [
+    "Leakage: the reason exists only after someone churns, so it won't be known when predicting",
+    "Nothing; 99 % is excellent",
+    "The model is too simple",
+    "Accuracy is always 99 %"
+   ],
+   "correct": 0,
+   "why": [
+    "The model is reading the answer.",
+    "Results that good usually mean a mistake.",
+    "Complexity isn't the issue.",
+    "It isn't."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-ds-04-q1",
+   "type": "scenario",
+   "role": "Data Scientist",
+   "level": "mid",
+   "skills": [
+    "evaluation"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "stem": "A fraud model is 99.5 % accurate on data where 0.5 % of transactions are fraud. What should you check?",
+   "choices": [
+    "Precision and recall on the fraud class; a model that flags nothing also scores 99.5 % accuracy",
+    "Nothing; it's excellent",
+    "Training time",
+    "The number of features"
+   ],
+   "correct": 0,
+   "why": [
+    "Accuracy is meaningless when one class is tiny.",
+    "It may catch no fraud at all.",
+    "Not about quality.",
+    "Not about quality."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "da-ds-05-q1",
+   "type": "scenario",
+   "role": "Data Analyst",
+   "level": "mid",
+   "skills": [
+    "communication"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "You've found that a pricing change probably raised revenue 3–6 %. How should the summary open?",
+   "choices": [
+    "With the answer and the recommendation: 'The new pricing likely raised revenue 3–6 %; keep it, and watch refunds.'",
+    "With the data sources and methods",
+    "With a table of every metric",
+    "With the question restated three ways"
+   ],
+   "correct": 0,
+   "why": [
+    "Readers get the decision first, with its uncertainty.",
+    "Methods belong after the answer.",
+    "That buries the point.",
+    "That delays it."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}
