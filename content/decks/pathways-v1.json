@@ -359,28 +359,28 @@
           "topics": [
             {
               "title": "idempotent pipelines and backfills",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-p-01",
+              "status": "draft"
             },
             {
               "title": "late data and watermarks",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-p-02",
+              "status": "draft"
             },
             {
               "title": "slowly changing dimensions",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-p-03",
+              "status": "draft"
             },
             {
               "title": "data contracts",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-p-04",
+              "status": "draft"
             },
             {
               "title": "metrics and the semantic layer",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-p-05",
+              "status": "draft"
             }
           ]
         },
@@ -390,28 +390,28 @@
           "topics": [
             {
               "title": "experiments (A/B tests, peeking)",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-ds-01",
+              "status": "draft"
             },
             {
               "title": "causal thinking",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-ds-02",
+              "status": "draft"
             },
             {
               "title": "regression and classification",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-ds-03",
+              "status": "draft"
             },
             {
               "title": "evaluation metrics",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-ds-04",
+              "status": "draft"
             },
             {
               "title": "explaining results",
-              "deck": null,
-              "status": "planned"
+              "deck": "da-ds-05",
+              "status": "draft"
             }
           ]
         },
