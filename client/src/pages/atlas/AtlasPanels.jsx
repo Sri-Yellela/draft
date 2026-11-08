@@ -277,6 +277,7 @@ export function TodaysQuestionPanel({ base }) {
               <p><b>{r.correct ? "Right." : "Not quite."}</b> {r.why.chosen}</p>
               {!r.correct && r.why.right && <p><b>The stronger move:</b> {r.why.rightChoice} — {r.why.right}</p>}
               {r.lessons?.length > 0 && <p>Go to lesson: {r.lessons.map((l, i) => <span key={l.path}>{i ? " · " : ""}<Link className="atl__link" to={learnStepHref(base, l.stepId)}>{l.label}</Link></span>)}</p>}
+              {r.decks?.length > 0 && <p data-daily-decks="">Mini-lesson: {r.decks.map((d, i) => <span key={d.id}>{i ? " · " : ""}<Link className="atl__link" to={`${base}/library/${d.id}`}>{d.title}</Link></span>)}</p>}
               <p className="atl__quiet">Come back tomorrow for the next one.</p>
             </div>
           )}
@@ -284,6 +285,7 @@ export function TodaysQuestionPanel({ base }) {
             <div className="atl-dq__why" data-daily-why="" role="status">
               <p><b>{r.correct ? "Right." : `${(r.parts || []).filter(Boolean).length} of ${(r.parts || []).length} in place.`}</b>{typeof r.why === "string" ? ` ${r.why}` : ""}</p>
               {r.lessons?.length > 0 && <p>Go to lesson: {r.lessons.map((l, i) => <span key={l.path}>{i ? " · " : ""}<Link className="atl__link" to={learnStepHref(base, l.stepId)}>{l.label}</Link></span>)}</p>}
+              {r.decks?.length > 0 && <p data-daily-decks="">Mini-lesson: {r.decks.map((d, i) => <span key={d.id}>{i ? " · " : ""}<Link className="atl__link" to={`${base}/library/${d.id}`}>{d.title}</Link></span>)}</p>}
               <p className="atl__quiet">Come back tomorrow for the next one.</p>
             </div>
           )}
