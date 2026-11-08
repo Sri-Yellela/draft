@@ -7,7 +7,8 @@
 //   2 · audit    — a skill they missed in an audit they kept (D150 T07)
 //   3 · ats      — ⭐ 45m: a skill the ATS shows MISSING in the jobs they saved (starred) or applied to — the reports'
 //                  tier1_missing, most-asked first (D152 8's "you could claim")
-//   4 · aim      — a question for the role they aim at (D143's destination)
+//   4 · aim      — ⭐ 45n: a gap on Your map for their aim (its unproven skills, most-demanded first), else a question
+//                  for the role they aim at (D143's destination)
 //   5 · any      — the bank's next item they have never seen
 // Answer → judged on the server (the bank's
 // recordAnswer, surface 'daily') → the WHY of the chosen choice and of the right one → GO TO LESSON (the item's pieces[] →
@@ -60,7 +61,7 @@ export function atsMissingTerms(db, userId) {
 }
 
 /** The pick for `day`, with its reason, or null when the bank has nothing. Pure over the database. */
-export function pickDaily(db, userId, day, { aimRole = null } = {}) {
+export function pickDaily(db, userId, day, { aimRole = null, aimGaps = null } = {}) {
   const live = questions(db, {});
   if (!live.length) return null;
   const byId = new Map(live.map(q => [q.id, q]));
@@ -87,7 +88,16 @@ export function pickDaily(db, userId, day, { aimRole = null } = {}) {
       .filter(x => Number.isFinite(x.r)).sort((a, b) => a.r - b.r)[0];
     if (best) return { item: best.q, reason: "ats" };
   }
-  // 4 · the aim's role.
+  // 4 · the aim — ⭐ 45n (D154 P1 step 3): first a GAP on Your map for the aim (the aim role's skills not yet proven, the
+  // most-demanded first — roleReadiness's moves, the same reading Your map shows), then any question for the aim's role.
+  // aimGaps may be a function — read only when the pick reaches this step (roleReadiness reads the Atlas).
+  let gaps = null; try { gaps = typeof aimGaps === "function" ? aimGaps() : aimGaps; } catch { gaps = null; }
+  if (gaps?.length) {
+    const rank = new Map(gaps.map((s, i) => [skillWords(s), i]));
+    const best = unseen.map(q => ({ q, r: Math.min(...q.skills.map(s => rank.get(skillWords(s)) ?? Infinity)) }))
+      .filter(x => Number.isFinite(x.r)).sort((a, b) => a.r - b.r)[0];
+    if (best) return { item: best.q, reason: "aim_gap" };
+  }
   const forAim = aimRole ? unseen.find(q => String(q.role || "").toLowerCase() === String(aimRole).toLowerCase()) : null;
   if (forAim) return { item: forAim, reason: "aim" };
   // 5 · anything new.
@@ -96,7 +106,7 @@ export function pickDaily(db, userId, day, { aimRole = null } = {}) {
 }
 
 const REASON_WORDS = { review: "a review that's due", audit: "a skill your audit flagged", ats: "a skill your saved jobs ask for",
-  aim: "your aim's role", any: "something new" };
+  aim: "your aim's role", aim_gap: "a gap on your map for your aim", any: "something new" };
 
 function lessonsFor(db, item) {
   let learn = null; try { learn = learnContent(db); } catch { learn = null; }
@@ -117,11 +127,11 @@ export function streakFor(db, userId, day) {
 }
 
 /** Today's question: { day, reason, reasonWords, question (served), answered?, result?, streak }. */
-export function todaysQuestion(db, userId, day, { aimRole = null } = {}) {
+export function todaysQuestion(db, userId, day, { aimRole = null, aimGaps = null } = {}) {
   if (!DAY_RE.test(String(day || ""))) throw bad(400, "bad_day", "Which day is it for you?");
   let row = db.prepare(`SELECT * FROM daily_questions WHERE user_id = ? AND day = ?`).get(userId, day);
   if (!row) {
-    const pick = pickDaily(db, userId, day, { aimRole });
+    const pick = pickDaily(db, userId, day, { aimRole, aimGaps });
     if (!pick) return { day, question: null, streak: streakFor(db, userId, day) };
     db.prepare(`INSERT OR IGNORE INTO daily_questions (user_id, day, question_id, reason, created_at) VALUES (?, ?, ?, ?, unixepoch())`)
       .run(userId, day, pick.item.id, pick.reason);

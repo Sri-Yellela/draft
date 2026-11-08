@@ -156,6 +156,7 @@ import { seedAtlasFamilies } from "./services/atlas/atlasFamilies.js";
 import { seedDraftedDefinitions } from "./services/atlas/atlasDefinitions.js";
 import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
+import { roleReadiness } from "./services/atlas/roleReadiness.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
 import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes, jobsSitemapPageCount, companiesSitemapRoutes, jobPath, atlasLinksFor } from "./services/jobs/publicJobPage.js";
@@ -12722,7 +12723,9 @@ app.get("/api/audit/:token/result", publicLimit, (req, res) => {
 app.get("/api/learn/today", requireAuth, (req, res) => {
   try {
     let aimRole = null; try { aimRole = aimRoleFor(db, req.user.id)?.name || null; } catch { aimRole = null; }
-    res.set("Cache-Control", "no-store").json(todaysQuestion(db, req.user.id, String(req.query.day || ""), { aimRole }));
+    // ⭐ 45n (D154 P1 step 3): the aim's gaps on Your map — its unproven skills, most-demanded first (read only if reached).
+    const aimGaps = () => (aimRole ? (roleReadiness(db, req.user.id, aimRole).moves || []).map(m => m.slug).filter(Boolean) : []);
+    res.set("Cache-Control", "no-store").json(todaysQuestion(db, req.user.id, String(req.query.day || ""), { aimRole, aimGaps }));
   } catch (e) { auditFail(res, e); }
 });
 // ⭐ D154 P1 (45m) · the reminder — OFF until the person turns it on, at the hour they choose (their local hour).
