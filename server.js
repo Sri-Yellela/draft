@@ -10359,7 +10359,9 @@ app.post("/api/company/:company/consistency-check", requireAuth, (req, res) => {
 // migrations here are additive-only — but nothing writes to it any more.
 // ⭐ D179 P4a (45l): ONE COMPANY = ONE RECORD — the counts and the unsure pairs (never merged automatically); an admin
 // merges, keeps apart, or links a subsidiary to its parent. No UI yet (D179 step 2 is groundwork); Admin → Board reads these.
-app.get("/api/admin/companies", requireAdmin, (req, res) => {
+// ⛔ Under /api/admin/company-records — NOT /api/admin/companies, which is the crawler's company list (routes/companies.js,
+// mounted later; a route here at that path would answer before it and hide the list).
+app.get("/api/admin/company-records", requireAdmin, (req, res) => {
   try { res.json({ stats: companyRecordStats(db), walk: companyLinker?.status() ?? null, review: companyReviewQueue(db, { limit: req.query?.limit }) }); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -10368,10 +10370,10 @@ app.get("/api/admin/companies", requireAdmin, (req, res) => {
 app.get("/api/admin/board/taxonomy", requireAdmin, (_req, res) => {
   try { res.json({ walk: taxonomyBackfill?.status() ?? null, ...taxonomyStats(db) }); } catch (e) { res.status(500).json({ error: e.message }); }
 });
-app.get("/api/admin/companies/:id/stack", requireAdmin, (req, res) => {
+app.get("/api/admin/company-records/:id/stack", requireAdmin, (req, res) => {
   try { res.json(stackFor(db, Number(req.params.id))); } catch (e) { res.status(500).json({ error: e.message }); }
 });
-app.post("/api/admin/companies/review/:id", requireAdmin, (req, res) => {
+app.post("/api/admin/company-records/review/:id", requireAdmin, (req, res) => {
   const out = decideCompanyReview(db, Number(req.params.id), String(req.body?.decision || ""), { adminId: req.user?.id ?? null });
   res.status(out.ok ? 200 : 400).json(out);
 });
