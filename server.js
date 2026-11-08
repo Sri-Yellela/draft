@@ -147,7 +147,7 @@ import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
-import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes } from "./services/jobs/publicJobPage.js";
+import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes, jobsSitemapPageCount, companiesSitemapRoutes } from "./services/jobs/publicJobPage.js";
 import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
 import { runRegisterLinkCheck } from "./services/atlas/sourceRegistry.js";
 import { autoPublish, runAtlasAutoPipeline } from "./services/atlas/atlasPublish.js";
@@ -9846,8 +9846,25 @@ app.get("/api/public/suggest", publicLimit, async (req, res) => {
 });
 
 // ⭐ D128 P1 · every OPEN public posting (a shown category, not a duplicate); a closed one leaves the same day.
+// ⭐ D179 P7 (45l): /sitemap-jobs.xml is a sitemap INDEX (the protocol caps a file at 50,000 — 11-08: 50,000 of 80,167
+// listed) over /sitemap-jobs-<n>.xml, plus the company pages' sitemap. Kept for an hour: a crawler re-reads it often.
 app.get("/sitemap-jobs.xml", (req, res) => {
-  res.type("application/xml").send(sitemapXml(appBaseUrl(req), jobsSitemapRoutes(db)));
+  if (req.query?.flat === "1") return res.type("application/xml").send(sitemapXml(appBaseUrl(req), jobsSitemapRoutes(db)));   // the first file, as before
+  const base = appBaseUrl(req);
+  const pages = jobsSitemapPageCount(db);
+  const files = [...Array.from({ length: pages }, (_, i) => `/sitemap-jobs-${i + 1}.xml`), "/sitemap-companies.xml"];
+  res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${files.map(f => `  <sitemap><loc>${xmlEscape(`${base}${f}`)}</loc></sitemap>`).join("\n")}
+</sitemapindex>`);
+});
+app.get("/sitemap-jobs-:n.xml", (req, res) => {
+  const n = Number(req.params.n);
+  if (!Number.isInteger(n) || n < 1 || n > jobsSitemapPageCount(db)) return res.status(404).type("text/plain").send("No such sitemap.");
+  res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), jobsSitemapRoutes(db, { page: n })));
+});
+app.get("/sitemap-companies.xml", (req, res) => {
+  res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), companiesSitemapRoutes(db)));
 });
 
 // ⭐ D128 P1 · a public, server-rendered page per posting (services/jobs/publicJobPage.js): no sign-in, the
@@ -9864,6 +9881,7 @@ app.get("/sitemap.xml", (req, res) => {
   const base = appBaseUrl(req);
   const routes = [
     { path: "/", changefreq: "weekly", priority: "1.0" },
+    { path: "/jobs", changefreq: "hourly", priority: "0.9" },   // D179 P3: the open board
     { path: "/login", changefreq: "monthly", priority: "0.8" },
     { path: "/features", changefreq: "monthly", priority: "0.6" },
     { path: "/pricing", changefreq: "monthly", priority: "0.6" },

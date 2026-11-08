@@ -82,13 +82,32 @@ function epochOf(v) {
 }
 
 /** Open public postings only — a closed posting leaves the sitemap the moment it closes. */
-export function jobsSitemapRoutes(db, { max = JOBS_SITEMAP_MAX } = {}) {
+// ⭐ D179 P7 (45l): the jobs sitemap was ONE file capped at the protocol's 50,000 — measured 11-08 (P0): 50,000 listed of
+// 80,167 shown, so ≈ 30k open postings were in no sitemap. Now /sitemap-jobs.xml is a sitemap INDEX over numbered files of
+// at most JOBS_SITEMAP_MAX each (`page` 1, 2, …), newest first.
+export function jobsSitemapRoutes(db, { max = JOBS_SITEMAP_MAX, page = 1 } = {}) {
   let rows = [];
   try {
     rows = db.prepare(`SELECT id, company, title, COALESCE(updated_at, discovered_at) AS t FROM scraped_jobs
-      WHERE ${PUBLIC_OPEN_SQL} ORDER BY id DESC LIMIT ?`).all(max);
+      WHERE ${PUBLIC_OPEN_SQL} ORDER BY id DESC LIMIT ? OFFSET ?`).all(max, Math.max(0, (Number(page) || 1) - 1) * max);
   } catch { rows = []; }
   return rows.map(r => ({ path: jobPath(r), changefreq: "daily", priority: "0.7", ...(isoDay(r.t) ? { lastmod: isoDay(r.t) } : {}) }));
+}
+
+/** D179 P7 · how many numbered jobs sitemap files the open board needs (at least 1). */
+export function jobsSitemapPageCount(db, { max = JOBS_SITEMAP_MAX } = {}) {
+  let n = 0;
+  try { n = db.prepare(`SELECT COUNT(*) FROM scraped_jobs WHERE ${PUBLIC_OPEN_SQL}`).pluck().get() || 0; } catch { n = 0; }
+  return Math.max(1, Math.ceil(n / max));
+}
+
+/** D179 P7 · company pages with at least one open posting (P4b's /companies/<slug>). */
+export function companiesSitemapRoutes(db, { max = JOBS_SITEMAP_MAX } = {}) {
+  try {
+    return db.prepare(`SELECT co.slug FROM companies co WHERE EXISTS (SELECT 1 FROM job_company jc JOIN scraped_jobs sj ON sj.job_id = jc.job_id
+        WHERE jc.company_id = co.id AND sj.${PUBLIC_OPEN_SQL.replace(/ AND /g, " AND sj.")}) ORDER BY co.id LIMIT ?`).all(max)
+      .map(r => ({ path: `/companies/${r.slug}`, changefreq: "weekly", priority: "0.6" }));
+  } catch { return []; }
 }
 
 // ── JSON-LD (Google's JobPosting) ──────────────────────────────────────────────────────────────────────────────────
