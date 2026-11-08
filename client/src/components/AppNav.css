@@ -5,9 +5,9 @@
  * computer, the menu on a phone (narrow, or a touch screen with no hover).                                          */
 /* ⭐ D152 (4): "auto" is the dock everywhere now. The corner mark (TopBar.css .tbar-group) shows only with the Menu.
    ⭐ D156 (3): the dock is an always-visible rail of icons (no edge handle, no embossed logo). */
-[data-navigation="auto"] { --appnav-dock: flex; --appnav-menu: none; --appnav-mark: none; }
-[data-navigation="dock"] { --appnav-dock: flex; --appnav-menu: none; --appnav-mark: none; }
-[data-navigation="menu"] { --appnav-dock: none; --appnav-menu: inline-flex; --appnav-mark: flex; }
+/* ⛔ 45n (owner 11-08, decision (10)): the side Menu is RETIRED — the dock is the one navigation, everywhere; the
+   Navigation option and its data-navigation attribute are gone (a stored "navigation=menu" is ignored). */
+:root { --appnav-dock: flex; --appnav-mark: none; }
 
 /* ── one button — the dock's and the panel's are the SAME (section name + a small plain line; the current raised) ── */
 .appnav-item {
@@ -105,8 +105,8 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
    measured to fit it open; otherwise it goes to the top, and the page starts one gap below it (--appnav-top-reserve). */
 [data-app-shell] { transition: padding-right .38s cubic-bezier(.22, 1, .36, 1); }
 /* (a spacer, not padding: the shell's padding-top is its inline chrome height — App.jsx) */
-:root:not([data-navigation="menu"])[data-dock-place="top"] [data-app-shell]::before,
-:root:not([data-navigation="menu"])[data-dock-place="phone"] [data-app-shell]::before {
+:root[data-dock-place="top"] [data-app-shell]::before,
+:root[data-dock-place="phone"] [data-app-shell]::before {
   content: ""; display: block; flex: none; height: var(--appnav-top-reserve, 0px);
 }
 
@@ -136,14 +136,7 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 :root[data-dock-place="phone"] .appnav-dock[data-nav-dock] .appnav-ico--mark [data-draft-mark] { transform: none; transition: none; }
 :root[data-dock-place="phone"] .appnav-dock[data-nav-dock] .appnav-ico--mark [data-draft-raft] { display: none; }
 
-/* ── the Menu: a button at the top right, a side panel from the right with the dock's buttons ── */
-.appnav-menu-btn {
-  display: var(--appnav-menu, none); align-items: center; margin-right: 6px; cursor: pointer;
-  padding: 9px 14px; border-radius: var(--shape-radius-control, 12px); border: 1px solid var(--c-border);
-  background: var(--c-surface-solid); color: var(--c-ink); font: inherit; font-weight: 600; font-size: calc(14px * var(--type-scale, 1));
-}
-.appnav-menu-btn:hover { background: var(--c-hover); }
-.appnav-menu-btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+/* ── the side panel (the Menu's, retired 45n) — kept for the Profile panel (TopBar.jsx), which wears these classes ── */
 .appnav-scrim { position: fixed; inset: 0; z-index: 800; /* Z.MODAL_SCRIM */ background: var(--c-scrim); display: none; }
 .appnav-scrim[data-open="true"] { display: block; }
 .appnav-panel {

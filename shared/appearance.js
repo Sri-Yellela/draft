@@ -29,10 +29,9 @@ export const LAYOUT_OPTION_IDS = Object.freeze({
   // ⭐ D114 P3 (owner 10-31, "yes to all three") · the Atlas terms in a posting: quiet at rest (the owner's call), or
   // a faint dotted underline at rest for anyone who wants to see them without pointing (accessibility).
   learning: Object.freeze({ attribute: "data-learning-links", values: Object.freeze(["quiet", "shown"]), default: "quiet" }),
-  // ⭐ D145 Step 3 (owner 11-03, declutter-v7) · how the sections are reached: a Dock at the bottom that rises when the
-  // pointer nears the edge, or a Menu button at the top right opening a side panel with the dock's buttons. "auto" (the
-  // default) is the row's own default — Dock on a computer, Menu on a phone — resolved by the client from the screen.
-  navigation: Object.freeze({ attribute: "data-navigation", values: Object.freeze(["auto", "dock", "menu"]), default: "auto" }),
+  // ⛔ 45n (owner 11-08, D145 / D152 decision (10)): `navigation` (Automatic / Dock / Menu) is RETIRED — the dock (D167) is
+  // the one navigation. A stored ";navigation=menu" reads as an unknown flag and is ignored, so anyone who chose the Menu
+  // gets the dock (parseLayoutFlags), as `nav` was retired in D145.
   // ⭐ D145 · text size — the whole type scale × 0.9 · 1 · 1.12 · 1.25 (client/src/themes/shapes.js TEXT_SCALE).
   text: Object.freeze({ attribute: "data-text-size", values: Object.freeze(["smaller", "default", "larger", "largest"]), default: "default" }),
 });

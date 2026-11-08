@@ -37,19 +37,8 @@ export const LAYOUT_OPTIONS = Object.freeze([
         description: "A faint dotted line under every learning link, all the time — so you can see them without pointing." },
     ],
   },
-  {
-    // ⭐ D145 Step 3 · styled in components/AppNav.css under [data-navigation="…"].
-    id: "navigation", label: "Navigation", attribute: LAYOUT_OPTION_IDS.navigation.attribute,
-    description: "How you move between Daily Deck, Full House, Home, The Table and Atlas.",
-    values: [
-      { id: "auto", label: "Automatic", ...def("navigation", "auto"),
-        description: "The dock on a computer, the menu on a phone." },
-      { id: "dock", label: "Dock", ...def("navigation", "dock"),
-        description: "A bar at the bottom of the screen. It rises when your pointer nears the bottom edge." },
-      { id: "menu", label: "Menu", ...def("navigation", "menu"),
-        description: "A Menu button at the top right opens a panel from the side with the same buttons." },
-    ],
-  },
+  // ⛔ 45n (owner 11-08, decision (10)): the Navigation option (Automatic / Dock / Menu) is RETIRED — the dock is the one
+  // navigation. A stored "navigation=…" flag reads as unknown and is ignored (shared/appearance.js parseLayoutFlags).
   {
     // ⭐ D145 · styled in index.css under [data-text-size="…"] (the --type-scale every scaled size multiplies).
     id: "text", label: "Text size", attribute: LAYOUT_OPTION_IDS.text.attribute,
