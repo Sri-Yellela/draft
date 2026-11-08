@@ -31,10 +31,22 @@ if (!isMainThread && workerData?.__draftReadWorker) {
     if (!s) { s = conn.prepare(sql); if (stmts.size > 500) stmts.clear(); stmts.set(sql, s); }
     return s;
   };
+  // ⭐ D151 Rule 4 · an opt-in slow-read log (READ_SLOW_MS=<ms>): a read slower than that prints its time, the statement's
+  // first 400 characters and its EXPLAIN QUERY PLAN — never its parameters (they can carry a person's search). Off by default.
+  const slowMs = Number(process.env.READ_SLOW_MS) || 0;
   parentPort.on("message", ({ id, op, sql, params }) => {
     try {
       const s = prep(sql);
+      const t0 = slowMs ? performance.now() : 0;
       const value = op === "get" ? s.get(...params) : s.all(...params);
+      if (slowMs) {
+        const ms = Math.round(performance.now() - t0);
+        if (ms >= slowMs) {
+          let plan = "";
+          try { plan = conn.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...params).map(r => r.detail).join(" | "); } catch { /* the plan is a hint only */ }
+          console.log(`[read-slow] ${ms} ms · ${sql.replace(/\s+/g, " ").slice(0, 400)} · PLAN ${plan.slice(0, 600)}`);
+        }
+      }
       parentPort.postMessage({ id, ok: true, value });
     } catch (err) {
       parentPort.postMessage({ id, ok: false, sqlError: true, message: err.message, code: err.code });
