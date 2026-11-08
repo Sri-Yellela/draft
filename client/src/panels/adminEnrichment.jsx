@@ -240,9 +240,9 @@ export function EnrichmentTab() {
         onChange={async (e) => { const f = e.target.files?.[0]; if (f) { setFile(await f.text(), f.name); setRedo(""); } e.target.value = ""; }}/>
 
       {/* ── the panel: purpose, numbers, coverage ── */}
-      <div style={panel}>
-        <h2 style={h2}>Enrichment</h2>
-        <p style={what}>
+      {/* D182 (45n): no "Enrichment" heading — the selected tab above says it. */}
+      <div style={panel} role="region" aria-label="Enrichment">
+        <p style={{ ...what, marginTop: 0 }}>
           Fills in the skills, level and other facts the board is missing, so new postings can be scored. <b>No AI runs
           inside draft</b><Help tip="You fill the file with a model or by hand OUTSIDE the product, then import it. draft only checks and imports it (design rule D17)."/> — you
           fill the file outside, then import it back, and every import can be undone.
