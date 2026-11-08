@@ -175,7 +175,7 @@ export const jsonLdScript = (obj) => `<script type="application/ld+json">${JSON.
 
 // ── the page ───────────────────────────────────────────────────────────────────────────────────────────────────────
 
-function esc(v) {
+export function esc(v) {
   return String(v ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 }
 const safeHref = (u) => (/^https?:\/\//i.test(String(u || "")) ? String(u) : null);
@@ -191,7 +191,7 @@ function atlasLinksFor(db, skills) {
   } catch { return []; }
 }
 
-const STYLE = `
+export const STYLE = `
 :root{--bg:#f7f5f0;--card:#fffdf8;--ink:#1d1b18;--muted:#6b665d;--line:#e2ddd2;--accent:#2f5d50;--accent-ink:#fff;--warn:#8a4b14;--warn-bg:#fbf0e3}
 @media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1d1c1a;--ink:#ece8df;--muted:#a39e93;--line:#34322e;--accent:#7fb8a6;--accent-ink:#10201b;--warn:#f0b37a;--warn-bg:#2b2117}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
