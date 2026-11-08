@@ -1260,28 +1260,28 @@
           "topics": [
             {
               "title": "statics and materials",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-me-01",
+              "status": "draft"
             },
             {
               "title": "CAD and GD&T",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-me-02",
+              "status": "draft"
             },
             {
               "title": "simulation (FEA)",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-me-03",
+              "status": "draft"
             },
             {
               "title": "manufacturing processes",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-me-04",
+              "status": "draft"
             },
             {
               "title": "design for manufacture",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-me-05",
+              "status": "draft"
             }
           ]
         },
@@ -1291,28 +1291,28 @@
           "topics": [
             {
               "title": "circuits",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-ee-01",
+              "status": "draft"
             },
             {
               "title": "PCB design",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-ee-02",
+              "status": "draft"
             },
             {
               "title": "signals",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-ee-03",
+              "status": "draft"
             },
             {
               "title": "power electronics",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-ee-04",
+              "status": "draft"
             },
             {
               "title": "embedded control",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-ee-05",
+              "status": "draft"
             }
           ]
         },
