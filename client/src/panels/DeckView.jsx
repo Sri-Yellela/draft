@@ -41,6 +41,7 @@ import { AtsBandCard, fromDeckReport } from "../components/AtsReport.jsx";
 import PostingPanel from "../components/PostingPanel.jsx";
 import { PairLinkProvider } from "../lib/pairLink.js";
 import CompanyLogo from "../components/CompanyLogo.jsx";
+import { companyPath } from "../lib/companySlug.js";   // D179: the company name opens its page
 import CardBack, { CardBackDefs } from "../components/CardBack.jsx";
 import { useViewport } from "../hooks/useViewport.js";
 import { CHROME_HEIGHT_VAR } from "../hooks/useChromeHeight.js";
@@ -265,7 +266,8 @@ function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onExpand, o
         <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
           <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={52} radius={16} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: ts(17), fontWeight: 600, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.company}</div>
+            <div style={{ fontSize: ts(17), fontWeight: 600, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{/* D179: the name opens the company's page */}{companyPath(job.company) ? <Link to={companyPath(job.company)} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}
+              data-company-link="" style={{ color: "inherit", textDecoration: "none" }}>{job.company}</Link> : job.company}</div>
             {/* ⛔ LOCATION ONLY — "posted … ago" lives in the stats (D145). */}
             {job.location && <div data-deck-location="" style={{ fontSize: ts(14), color: C.INK_MUTED, marginTop: 1 }}>{job.location}</div>}
           </div>
@@ -411,7 +413,8 @@ function HomeCardFace({ card, headingRef, isFront, onSignal, onOpenPost, size, l
       <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
         <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={small ? 36 : 42} radius={small ? 11 : 13} />
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: ts(small ? 14 : 15), fontWeight: 600, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.company}</div>
+          <div style={{ fontSize: ts(small ? 14 : 15), fontWeight: 600, color: C.INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{companyPath(job.company) ? <Link to={companyPath(job.company)} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}
+              data-company-link="" style={{ color: "inherit", textDecoration: "none" }}>{job.company}</Link> : job.company}</div>
           {job.location && <div data-deck-location="" style={{ fontSize: ts(small ? 12 : 13), color: C.INK_MUTED, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.location}</div>}
         </div>
       </div>
