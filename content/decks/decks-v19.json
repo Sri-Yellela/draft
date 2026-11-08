@@ -1,6 +1,6 @@
 {
  "version": 19,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'embedded', stages 'patterns' (3), 'specialisation' (3) and 'interview' (3), in Part C's order. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'embedded', stages 'patterns' (3), 'specialisation' (3) and 'interview' (3), in Part C's order. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "em-p-01",
@@ -63,7 +63,7 @@
     "em-p-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-p-02",
@@ -127,7 +127,7 @@
     "em-p-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-p-03",
@@ -191,7 +191,7 @@
     "em-p-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-s-01",
@@ -255,7 +255,7 @@
     "em-s-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-s-02",
@@ -318,7 +318,7 @@
     "em-s-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-s-03",
@@ -382,7 +382,7 @@
     "em-s-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-iv-01",
@@ -445,7 +445,7 @@
     "em-iv-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-iv-02",
@@ -507,7 +507,7 @@
     "em-iv-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-iv-03",
@@ -569,7 +569,7 @@
     "em-iv-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -599,7 +599,7 @@
     "Unrelated."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-p-02-q1",
@@ -627,7 +627,7 @@
     "Unrelated."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-p-03-q1",
@@ -655,7 +655,7 @@
     "Power still fails at night."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-s-01-q1",
@@ -683,7 +683,7 @@
     "Unrelated."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-s-02-q1",
@@ -711,7 +711,7 @@
     "Risky and unmeasured."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-s-03-q1",
@@ -739,7 +739,7 @@
     "Unlikely to be the problem."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-iv-01-q1",
@@ -767,7 +767,7 @@
     "That clears everything."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-iv-02-q1",
@@ -795,7 +795,7 @@
     "Not useful."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-iv-03-q1",
@@ -823,7 +823,7 @@
     "Costs power and flash."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

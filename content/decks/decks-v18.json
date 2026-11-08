@@ -1,6 +1,6 @@
 {
  "version": 18,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'embedded', stages 'foundations' (3) and 'building-blocks' (4), in Part C's order. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'embedded', stages 'foundations' (3) and 'building-blocks' (4), in Part C's order. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "em-f-01",
@@ -64,7 +64,7 @@
     "em-f-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-f-02",
@@ -128,7 +128,7 @@
     "em-f-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-f-03",
@@ -191,7 +191,7 @@
     "em-f-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-b-01",
@@ -255,7 +255,7 @@
     "em-b-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-b-02",
@@ -319,7 +319,7 @@
     "em-b-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-b-03",
@@ -383,7 +383,7 @@
     "em-b-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "em-b-04",
@@ -447,7 +447,7 @@
     "em-b-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -478,7 +478,7 @@
     "It can, through pointers."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-f-02-q1",
@@ -506,7 +506,7 @@
     "That adds load."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-f-03-q1",
@@ -534,7 +534,7 @@
     "Makes it worse."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-b-01-q1",
@@ -562,7 +562,7 @@
     "The handler length is the cause."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-b-02-q1",
@@ -590,7 +590,7 @@
     "In real-time systems they do."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-b-03-q1",
@@ -618,7 +618,7 @@
     "Pull-ups belong to I2C."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "em-b-04-q1",
@@ -646,7 +646,7 @@
     "Speed isn't the issue in sleep."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

@@ -1,6 +1,6 @@
 {
  "version": 6,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'software', stages 'specialisation-mobile' (6) and 'interview' (4), in Part C's order. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'software', stages 'specialisation-mobile' (6) and 'interview' (4), in Part C's order. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "sw-mo-01",
@@ -64,7 +64,7 @@
     "sw-mo-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-mo-02",
@@ -128,7 +128,7 @@
     "sw-mo-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-mo-03",
@@ -191,7 +191,7 @@
     "sw-mo-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-mo-04",
@@ -254,7 +254,7 @@
     "sw-mo-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-mo-05",
@@ -317,7 +317,7 @@
     "sw-mo-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-mo-06",
@@ -381,7 +381,7 @@
     "sw-mo-06-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-iv-01",
@@ -444,7 +444,7 @@
     "sw-iv-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-iv-02",
@@ -506,7 +506,7 @@
     "sw-iv-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-iv-03",
@@ -569,7 +569,7 @@
     "sw-iv-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-iv-04",
@@ -632,7 +632,7 @@
     "sw-iv-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -662,7 +662,7 @@
     "Breaking navigation doesn't stop the OS freeing memory."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-mo-02-q1",
@@ -690,7 +690,7 @@
     "That gives up a feature people need."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-mo-03-q1",
@@ -718,7 +718,7 @@
     "That moves the delay to launch and wastes memory."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-mo-04-q1",
@@ -746,7 +746,7 @@
     "Timing doesn't change who breaks."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-mo-05-q1",
@@ -774,7 +774,7 @@
     "Few people will find it there."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-mo-06-q1",
@@ -803,7 +803,7 @@
     "Images of text don't scale and aren't read by screen readers."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-iv-01-q1",
@@ -831,7 +831,7 @@
     "The interviewer can't score thinking they can't hear."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-iv-02-q1",
@@ -859,7 +859,7 @@
     "It's a design round."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-iv-03-q1",
@@ -887,7 +887,7 @@
     "Too short leaves no evidence."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-iv-04-q1",
@@ -915,7 +915,7 @@
     "That doesn't check correctness."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

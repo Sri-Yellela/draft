@@ -1,6 +1,6 @@
 # Decks v4 — software engineering, Case studies (for your review)
 
-Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 6 five-slide decks; each ends with one new question (drafts for the bank). **Nothing is live until you approve** — say "approve decks-v4" (or name the decks to change).
+Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 6 five-slide decks, each with one new question. **APPROVED by the owner 2026-11-08** — served in the Library; the questions are live in the bank.
 
 ## sw-c-01 · A URL shortener
 *Skills:* system design, hashing, caching · *Check yourself:* sw-c-01-q1

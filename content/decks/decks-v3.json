@@ -1,6 +1,6 @@
 {
  "version": 3,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'software', stage 'patterns': 7 five-slide decks in Part C's order. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'software', stage 'patterns': 7 five-slide decks in Part C's order. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "sw-p-01",
@@ -63,7 +63,7 @@
     "sw-p-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-p-02",
@@ -126,7 +126,7 @@
     "sw-p-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-p-03",
@@ -189,7 +189,7 @@
     "sw-p-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-p-04",
@@ -253,7 +253,7 @@
     "sw-p-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-p-05",
@@ -318,7 +318,7 @@
     "sw-p-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-p-06",
@@ -382,7 +382,7 @@
     "sw-p-06-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-p-07",
@@ -445,7 +445,7 @@
     "sw-p-07-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -476,7 +476,7 @@
     "The customer was still charged twice; fixing it later isn't prevention."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-p-02-q1",
@@ -504,7 +504,7 @@
     "Attackers can get cookies; real first visits have none."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-p-03-q1",
@@ -532,7 +532,7 @@
     "Re-fetching repeats the same shifting problem."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-p-04-q1",
@@ -561,7 +561,7 @@
     "By then many orders have already failed."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-p-05-q1",
@@ -590,7 +590,7 @@
     "Useful context, but it doesn't locate the delay."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-p-06-q1",
@@ -619,7 +619,7 @@
     "That's what's causing the outage."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-p-07-q1",
@@ -647,7 +647,7 @@
     "Two sources of truth drift apart."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

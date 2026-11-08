@@ -1,6 +1,6 @@
 {
  "version": 4,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'software', stage 'case-studies': 6 five-slide decks in Part C's order, each a common system-design case. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'software', stage 'case-studies': 6 five-slide decks in Part C's order, each a common system-design case. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "sw-c-01",
@@ -65,7 +65,7 @@
     "sw-c-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-c-02",
@@ -130,7 +130,7 @@
     "sw-c-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-c-03",
@@ -194,7 +194,7 @@
     "sw-c-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-c-04",
@@ -258,7 +258,7 @@
     "sw-c-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-c-05",
@@ -322,7 +322,7 @@
     "sw-c-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-c-06",
@@ -387,7 +387,7 @@
     "sw-c-06-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -417,7 +417,7 @@
     "A 404 tells browsers and search engines the link is broken."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-c-02-q1",
@@ -446,7 +446,7 @@
     "That's not an order anyone meant."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-c-03-q1",
@@ -475,7 +475,7 @@
     "Followers want those posts now."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-c-04-q1",
@@ -504,7 +504,7 @@
     "That lets anyone reset anyone's password."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-c-05-q1",
@@ -533,7 +533,7 @@
     "Manual checks don't scale and miss things."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-c-06-q1",
@@ -562,7 +562,7 @@
     "The scan is still a scan."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

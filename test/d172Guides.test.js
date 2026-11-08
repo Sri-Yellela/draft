@@ -17,7 +17,9 @@ const read = (p) => fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 test("d172GuidesFromApprovedDecks: decks-v1 (approved 11-07) is the Level 1 guide, Foundations; the ladder matches Your run's levels", () => {
   _resetDecks();
   const g = guides();
-  assert.deepEqual(g.map(x => [x.level, x.name, x.written]), [[1, "Foundations", true], [2, "Building blocks", false], [3, "Grow past senior", false], [4, "Lead", false]]);
+  assert.deepEqual(g.map(x => [x.level, x.name, x.written]), [[1, "Foundations", true], [2, "Building blocks", true], [3, "Grow past senior", false], [4, "Lead", false]]);
+  // ⭐ D155 (11-08, changed on purpose): decks-v2 approved — Building blocks is written; the ladder reads software decks only.
+  assert.equal(g[1].lessons.length, 8);
   assert.deepEqual(g[0].lessons.map(l => l.title).slice(0, 4), ["How a program runs", "Data structures", "Algorithms and complexity", "Git"]);
   assert.equal(g[0].lessons.length, 8);
   assert.deepEqual(LADDER.map(l => l.name), LEVELS.map(l => l.name), "one ladder: the guides' levels are Your run's levels");

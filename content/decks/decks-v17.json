@@ -1,6 +1,6 @@
 {
  "version": 17,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'security': 'cloud-and-infrastructure-security' (identity and access, detection and logging; secrets reuses cl-s-01), 'offence-and-defence' (3), 'governance' (1), 'interview' (3). Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'security': 'cloud-and-infrastructure-security' (identity and access, detection and logging; secrets reuses cl-s-01), 'offence-and-defence' (3), 'governance' (1), 'interview' (3). Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "se-ci-01",
@@ -64,7 +64,7 @@
     "se-ci-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-ci-03",
@@ -128,7 +128,7 @@
     "se-ci-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-o-01",
@@ -191,7 +191,7 @@
     "se-o-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-o-02",
@@ -255,7 +255,7 @@
     "se-o-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-o-03",
@@ -318,7 +318,7 @@
     "se-o-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-g-01",
@@ -382,7 +382,7 @@
     "se-g-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-iv-01",
@@ -444,7 +444,7 @@
     "se-iv-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-iv-02",
@@ -506,7 +506,7 @@
     "se-iv-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-iv-03",
@@ -568,7 +568,7 @@
     "se-iv-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -598,7 +598,7 @@
     "Unrelated."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-ci-03-q1",
@@ -626,7 +626,7 @@
     "Not a record."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-o-01-q1",
@@ -654,7 +654,7 @@
     "Never."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-o-02-q1",
@@ -682,7 +682,7 @@
     "Not useful."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-o-03-q1",
@@ -710,7 +710,7 @@
     "Loses evidence and doesn't find other compromised systems."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-g-01-q1",
@@ -738,7 +738,7 @@
     "They can."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-iv-01-q1",
@@ -766,7 +766,7 @@
     "Not a method."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-iv-02-q1",
@@ -794,7 +794,7 @@
     "The laptop may not be involved at all."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-iv-03-q1",
@@ -822,7 +822,7 @@
     "Changing columns doesn't fix injection."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

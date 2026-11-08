@@ -1,6 +1,6 @@
 # Decks v2 — software engineering, Building blocks (for your review)
 
-Drafted by the agent on 2026-11-08, in the approved pathway order (D155 Part C), in decks-v1's format. Eight five-slide decks; each ends with one new question (drafts for the bank). **Nothing is live until you approve** — say "approve decks-v2" (or name the decks to change).
+Drafted by the agent on 2026-11-08, in the approved pathway order (D155 Part C), in decks-v1's format. Eight five-slide decks, each with one new question. **APPROVED by the owner 2026-11-08** — served in the Library; the questions are live in the bank.
 
 ## sw-b-01 · APIs: REST and gRPC
 *Skills:* rest, grpc, api design · *Check yourself:* sw-b-01-q1

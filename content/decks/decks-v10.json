@@ -1,6 +1,6 @@
 {
  "version": 10,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'ml-ai', stages 'foundations' (4) and 'building-blocks' (4), in Part C's order. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'ml-ai', stages 'foundations' (4) and 'building-blocks' (4), in Part C's order. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "ml-f-01",
@@ -64,7 +64,7 @@
     "ml-f-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-f-02",
@@ -127,7 +127,7 @@
     "ml-f-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-f-03",
@@ -191,7 +191,7 @@
     "ml-f-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-f-04",
@@ -255,7 +255,7 @@
     "ml-f-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-b-01",
@@ -318,7 +318,7 @@
     "ml-b-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-b-02",
@@ -381,7 +381,7 @@
     "ml-b-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-b-03",
@@ -445,7 +445,7 @@
     "ml-b-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-b-04",
@@ -508,7 +508,7 @@
     "ml-b-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -538,7 +538,7 @@
     "It can help a little, but the step size is the usual cause."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-f-02-q1",
@@ -566,7 +566,7 @@
     "Size of the test set doesn't inflate scores."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-f-03-q1",
@@ -594,7 +594,7 @@
     "Size doesn't change."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-f-04-q1",
@@ -622,7 +622,7 @@
     "Not an evaluation metric."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-b-01-q1",
@@ -650,7 +650,7 @@
     "It's a bug."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-b-02-q1",
@@ -678,7 +678,7 @@
     "It affects learning, not utilisation."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-b-03-q1",
@@ -706,7 +706,7 @@
     "Self-selected users aren't representative."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-b-04-q1",
@@ -734,7 +734,7 @@
     "That would cause errors, not a slow drift."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

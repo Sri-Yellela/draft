@@ -1,6 +1,6 @@
 {
  "version": 23,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C C.9 — the fields beyond computing, to go live once those fields are on the board, D127; D154 P4 format). Stages 'mechanical' (5) and 'electrical' (5). Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C C.9 — the fields beyond computing, to go live once those fields are on the board, D127; D154 P4 format). Stages 'mechanical' (5) and 'electrical' (5). Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "bx-me-01",
@@ -64,7 +64,7 @@
     "bx-me-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-me-02",
@@ -128,7 +128,7 @@
     "bx-me-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-me-03",
@@ -191,7 +191,7 @@
     "bx-me-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-me-04",
@@ -255,7 +255,7 @@
     "bx-me-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-me-05",
@@ -318,7 +318,7 @@
     "bx-me-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-ee-01",
@@ -382,7 +382,7 @@
     "bx-ee-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-ee-02",
@@ -446,7 +446,7 @@
     "bx-ee-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-ee-03",
@@ -511,7 +511,7 @@
     "bx-ee-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-ee-04",
@@ -575,7 +575,7 @@
     "bx-ee-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-ee-05",
@@ -639,7 +639,7 @@
     "bx-ee-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -669,7 +669,7 @@
     "It isn't random."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-me-02-q1",
@@ -697,7 +697,7 @@
     "It wastes money."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-me-03-q1",
@@ -725,7 +725,7 @@
     "It's behaving as the maths says."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-me-04-q1",
@@ -753,7 +753,7 @@
     "Not repeatable."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-me-05-q1",
@@ -781,7 +781,7 @@
     "Not relevant."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-ee-01-q1",
@@ -809,7 +809,7 @@
     "Wrong calculation."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-ee-02-q1",
@@ -837,7 +837,7 @@
     "Makes it worse."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-ee-03-q1",
@@ -865,7 +865,7 @@
     "It doesn't."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-ee-04-q1",
@@ -893,7 +893,7 @@
     "Worse."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-ee-05-q1",
@@ -921,7 +921,7 @@
     "Slower loops usually worsen stability."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

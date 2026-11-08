@@ -1,6 +1,6 @@
 {
  "version": 21,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'qa': 'specialisation' (2) and 'interview' (2); pathway 'management': 'foundations' (3). Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'qa': 'specialisation' (2) and 'interview' (2); pathway 'management': 'foundations' (3). Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "qa-s-01",
@@ -63,7 +63,7 @@
     "qa-s-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "qa-s-02",
@@ -125,7 +125,7 @@
     "qa-s-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "qa-iv-01",
@@ -187,7 +187,7 @@
     "qa-iv-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "qa-iv-02",
@@ -249,7 +249,7 @@
     "qa-iv-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-f-01",
@@ -312,7 +312,7 @@
     "mg-f-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-f-02",
@@ -375,7 +375,7 @@
     "mg-f-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-f-03",
@@ -438,7 +438,7 @@
     "mg-f-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -468,7 +468,7 @@
     "Too risky for payments."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "qa-s-02-q1",
@@ -496,7 +496,7 @@
     "No direction or goal."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "qa-iv-01-q1",
@@ -524,7 +524,7 @@
     "Tools aren't test design."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "qa-iv-02-q1",
@@ -552,7 +552,7 @@
     "Then it fails on slow loads."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-f-01-q1",
@@ -580,7 +580,7 @@
     "Length isn't the issue."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-f-02-q1",
@@ -608,7 +608,7 @@
     "Too late to help."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-f-03-q1",
@@ -636,7 +636,7 @@
     "It has an effect."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

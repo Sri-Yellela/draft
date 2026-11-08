@@ -1,6 +1,6 @@
 # Decks v18 — embedded and systems, Foundations and Building blocks (for your review)
 
-Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 7 five-slide decks; each ends with one new question (drafts for the bank). **Nothing is live until you approve** — say "approve decks-v18" (or name the decks to change).
+Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 7 five-slide decks, each with one new question. **APPROVED by the owner 2026-11-08** — served in the Library; the questions are live in the bank.
 
 ## em-f-01 · C and memory
 *Skills:* c, pointers, memory · *Check yourself:* em-f-01-q1

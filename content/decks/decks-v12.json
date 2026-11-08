@@ -1,6 +1,6 @@
 {
  "version": 12,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'ml-ai', stages 'case-studies' (4) and 'interview' (2; 'AI-enabled coding' reuses sw-iv-04). Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'ml-ai', stages 'case-studies' (4) and 'interview' (2; 'AI-enabled coding' reuses sw-iv-04). Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "ml-c-01",
@@ -63,7 +63,7 @@
     "ml-c-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-c-02",
@@ -126,7 +126,7 @@
     "ml-c-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-c-03",
@@ -190,7 +190,7 @@
     "ml-c-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-c-04",
@@ -253,7 +253,7 @@
     "ml-c-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-iv-01",
@@ -315,7 +315,7 @@
     "ml-iv-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-iv-02",
@@ -377,7 +377,7 @@
     "ml-iv-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -407,7 +407,7 @@
     "They're the most reliable label, just slow."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-c-02-q1",
@@ -435,7 +435,7 @@
     "Not the cause."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-c-03-q1",
@@ -464,7 +464,7 @@
     "Unhelpful and frustrating."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-c-04-q1",
@@ -492,7 +492,7 @@
     "They often do, at that rate about half the time."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-iv-01-q1",
@@ -520,7 +520,7 @@
     "Implementation detail too early."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-iv-02-q1",
@@ -548,7 +548,7 @@
     "Doesn't address a sudden drop."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

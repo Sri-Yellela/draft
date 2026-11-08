@@ -1,6 +1,6 @@
 # Decks v10 — ML and AI engineering, Foundations and Building blocks (for your review)
 
-Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 8 five-slide decks; each ends with one new question (drafts for the bank). **Nothing is live until you approve** — say "approve decks-v10" (or name the decks to change).
+Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 8 five-slide decks, each with one new question. **APPROVED by the owner 2026-11-08** — served in the Library; the questions are live in the bank.
 
 ## ml-f-01 · The maths you need
 *Skills:* probability, linear algebra, gradients · *Check yourself:* ml-f-01-q1
