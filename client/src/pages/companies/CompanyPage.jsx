@@ -46,7 +46,7 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
   if (error) return <main className="co co--empty" role="alert"><p>This page couldn't load just now — try again in a moment.</p></main>;
   if (!data) return <main className="co co--empty" aria-busy="true"><p>Loading…</p></main>;
 
-  const { company: c, openJobs, byCategory, hiringTrend, stack, sponsorship, locations, jobs, about, github } = data;
+  const { company: c, openJobs, byCategory, hiringTrend, stack, sponsorship, locations, jobs, about, github, website } = data;
   const jobsHref = (cat) => `${inApp ? "/app/jobs" : "/jobs"}?q=${encodeURIComponent(c.name)}${cat ? `&category=${encodeURIComponent(cat)}` : ""}`;
   const trendMax = Math.max(1, ...hiringTrend.map((t) => t.postings));
   const groups = stack ? GROUP_ORDER.filter((g) => stack.groups?.[g]?.length) : [];
@@ -108,6 +108,14 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
           <h2>On GitHub</h2>
           <p>{github.languages.map((l) => `${l.language} (${l.repos} repo${l.repos === 1 ? "" : "s"})`).join(" · ")}</p>
           <p className="co__lead">Their public repositories active in the last year — <a href={github.url} target="_blank" rel="noopener noreferrer">github.com/{github.org}</a>.</p>
+        </section>
+      )}
+
+      {website && (
+        <section className="co__sec" data-company-website="">
+          <h2>From their website</h2>
+          <p>{website.signals.join(" · ")}</p>
+          <p className="co__lead">Light signals read from {c.domain}'s own homepage — what the site runs on, not necessarily the product team's stack.</p>
         </section>
       )}
 

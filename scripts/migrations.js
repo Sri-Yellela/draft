@@ -6514,4 +6514,17 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_company_follows_company ON company_follows(company_id);
       `,
     },
+    {
+      // ⭐ D179 P5c (45l): light signals from a company's own homepage (headers, a framework's or host's own markers) —
+      // shown labelled as such, never mixed into the postings' evidence (services/companies/companyWebSignals.js). Only ADDS.
+      id: "238_company_web_signals",
+      sql: `
+        CREATE TABLE IF NOT EXISTS company_web_signals (
+          company_id    INTEGER PRIMARY KEY,
+          signals_json  TEXT,
+          status        TEXT NOT NULL,
+          fetched_at    INTEGER NOT NULL
+        );
+      `,
+    },
   ];

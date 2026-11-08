@@ -96,6 +96,7 @@ import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/
 import { publicCompany, publicSuggest, companyMatchFor, companyIdForSlug } from "./services/companies/publicCompany.js";
 import { createCompanyFacts } from "./services/companies/companyFacts.js";
 import { createCompanyGithub } from "./services/companies/companyGithub.js";
+import { createCompanyWebSignals } from "./services/companies/companyWebSignals.js";
 import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landingPages.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
@@ -573,6 +574,7 @@ const scorePool = createScorePool({
 let classifyBacklog = null;
 let companyFacts = null;      // ⭐ D179 P4b (45l)
 let companyGithub = null;     // ⭐ D179 P5b (45l)
+let companyWeb = null;        // ⭐ D179 P5c (45l)
 let taxonomyBackfill = null;   // ⭐ D179 P2 (45l)
 let companyTech = null;     // ⭐ D179 P5a (45l) — assigned beside companyLinker
 let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration runner's block, like classifyBacklog
@@ -7082,6 +7084,19 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_company_follows_company ON company_follows(company_id);
       `,
     },
+    {
+      // ⭐ D179 P5c (45l): light signals from a company's own homepage (headers, a framework's or host's own markers) —
+      // shown labelled as such, never mixed into the postings' evidence (services/companies/companyWebSignals.js). Only ADDS.
+      id: "238_company_web_signals",
+      sql: `
+        CREATE TABLE IF NOT EXISTS company_web_signals (
+          company_id    INTEGER PRIMARY KEY,
+          signals_json  TEXT,
+          status        TEXT NOT NULL,
+          fetched_at    INTEGER NOT NULL
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7189,6 +7204,9 @@ taxonomyBackfill = createTaxonomyBackfill(db);
 companyFacts = createCompanyFacts(db);
 // ⭐ D179 P5b: public GitHub languages, matched by the organisation's own site — 15 companies an hour (GitHub's unauthenticated limit).
 companyGithub = createCompanyGithub(db);
+// ⭐ D179 P5c: light signals from each company's own homepage — 100 a day, 1.5 s apart.
+companyWeb = createCompanyWebSignals(db);
+if (process.env.COMPANY_WEB_SIGNALS !== "off") setInterval(() => companyWeb.run("interval"), 24 * 60 * 60 * 1000).unref();
 if (process.env.COMPANY_GITHUB !== "off") setInterval(() => companyGithub.run("interval"), 60 * 60 * 1000).unref();
 if (process.env.COMPANY_FACTS !== "off") setInterval(() => companyFacts.run("interval"), 24 * 60 * 60 * 1000).unref();
 if (process.env.TAXONOMY_BACKFILL !== "off") setInterval(() => taxonomyBackfill.run("interval"), 6 * 60 * 60 * 1000).unref();
@@ -15571,6 +15589,7 @@ app.get("/api/version", (_req, res) => {
     taxonomy: taxonomyBackfill ? taxonomyBackfill.status() : null,   // ⭐ D179 P2
     companyFacts: companyFacts ? companyFacts.status() : null,       // ⭐ D179 P4b
     companyGithub: companyGithub ? companyGithub.status() : null,    // ⭐ D179 P5b
+    companyWeb: companyWeb ? companyWeb.status() : null,             // ⭐ D179 P5c
     // ⭐ D151 Rule 1: the last boot's timeline — start → listen, → ready, and each warm-up step's duration.
     boot: BOOT.snapshot(),
     monetisationEnabled: monetisationEnabled(),
