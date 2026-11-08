@@ -20,7 +20,7 @@ import { readProgress } from "../services/learn/learnProgress.js";
 import { circleOf } from "../services/learn/learnCircle.js";
 import { readEarned, recordOpened, saveExplanation, saveBuild } from "../services/learn/learnEarned.js";
 import { mapRouteFor } from "../services/learn/learnMapRoute.js";
-import { courseOf, COURSE_ID } from "../services/learn/learnCourse.js";
+import { courseOf, COURSE_ID, patternCourseOf, PATTERN_COURSE_ID } from "../services/learn/learnCourse.js";
 import { guides, deckOf } from "../services/learn/learnDecks.js";
 import { questions, recordAnswer } from "../services/learn/learnQuestions.js";
 import { loadRegistry } from "../services/atlas/sourceRegistry.js";
@@ -40,6 +40,8 @@ export function createLearnRouter(db, { requireAuth }) {
   // ⭐ D172 (2) · the path as a COURSE: modules (parts) → lessons (steps), each lesson's links with their type and their
   // source from the register (D176-3) and its check. Public, like the tracker; progress is the reader's own /earned.
   router.get("/course/:id", (req, res) => {
+    // ⭐ D178: the pattern atlas is its own course (no register sources — its links are LeetCode's own problem pages).
+    if (req.params.id === PATTERN_COURSE_ID) { res.set("Cache-Control", LEARN_CACHE); return res.json(patternCourseOf(servedLearnContent(db))); }
     if (req.params.id !== COURSE_ID) return res.status(404).json({ error: "no_such_course" });
     let reg = { sources: [] };
     try { reg = loadRegistry(); } catch { /* an unreadable register leaves every source unnamed, never a 500 */ }

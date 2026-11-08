@@ -230,6 +230,9 @@ export default function InterviewPage({ panel = "upcoming" }) {
   else if (panel === "drills") body = (
     <Coming id="drills" eyebrow="Drills" title="Quick rounds to stay sharp" lead="Check a skill in a few minutes — timed, with extended time, or untimed practice that never counts against you.">
       <div className="iv__row"><Link className="iv__btn iv__btn--p" to="/app/atlas/check" data-open-check="">Start a check</Link></div>
+      {/* ⭐ D178: the coding-interview patterns are their own course in the Library (they left Learn's tabs). */}
+      <p className="iv__p">For coding rounds: the patterns behind most interview problems — the idea, how to spot it, and problems to practise.</p>
+      <div className="iv__row"><Link className="iv__btn" to="/app/atlas/library/coding-interview-patterns" data-open-patterns="">Coding interview patterns</Link></div>
     </Coming>
   );
   else if (panel === "defend") body = (
