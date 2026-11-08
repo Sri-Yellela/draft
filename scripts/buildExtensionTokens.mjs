@@ -136,6 +136,9 @@ export async function renderExtensionTokens() {
     `// ⭐ D144: the registry's Dusk pair (client/src/themes/dusk-*.js), so an account on Dusk sees it in the dock too.\n` +
     `export const C_DUSK_LIGHT = ${obj(byId["dusk-light"].tokens)};\n\n` +
     `export const C_DUSK_DARK = ${obj(byId["dusk-dark"].tokens)};\n\n` +
+    // D181 (45l): the Plain pair — constOf named them but nothing emitted them (C_PLAIN_LIGHT is not defined).
+    `export const C_PLAIN_LIGHT = ${obj(byId["plain-light"].tokens)};\n\n` +
+    `export const C_PLAIN_DARK = ${obj(byId["plain-dark"].tokens)};\n\n` +
     `/** Every theme of the registry, by id: its scheme and its palette. */\n` +
     `export const EXT_THEMES = Object.freeze({\n` +
     THEME_LIST.map((t) => `  ${JSON.stringify(t.id)}: Object.freeze({ scheme: ${JSON.stringify(t.scheme)}, tokens: ${constOf[t.id]} }),`).join("\n") +
