@@ -59,43 +59,43 @@
           "topics": [
             {
               "title": "APIs (REST, gRPC)",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-b-01",
+              "status": "draft"
             },
             {
               "title": "authentication and sessions",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-b-02",
+              "status": "draft"
             },
             {
               "title": "caching",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-b-03",
+              "status": "draft"
             },
             {
               "title": "queues and background work",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-b-04",
+              "status": "draft"
             },
             {
               "title": "concurrency",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-b-05",
+              "status": "draft"
             },
             {
               "title": "indexes and query plans",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-b-06",
+              "status": "draft"
             },
             {
               "title": "transactions and isolation",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-b-07",
+              "status": "draft"
             },
             {
               "title": "containers",
-              "deck": null,
-              "status": "planned"
+              "deck": "sw-b-08",
+              "status": "draft"
             }
           ]
         },

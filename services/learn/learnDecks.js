@@ -40,12 +40,18 @@ export function approvedDecks(dir = DECKS_DIR) {
  */
 export function pathwaysPlan({ dir = DECKS_DIR } = {}) {
   const plan = safe(() => JSON.parse(fs.readFileSync(path.join(dir, "pathways-v1.json"), "utf8")), null);
-  if (!plan) return { pathways: [], written: 0, planned: 0 };
+  if (!plan) return { pathways: [], written: 0, drafted: 0, planned: 0 };
   const live = new Set(approvedDecks(dir).map(d => d.id));
-  let written = 0, planned = 0;
+  let written = 0, drafted = 0, planned = 0;
+  // A topic whose deck is drafted (in a decks file, not yet approved) says so — never linked, never served as a lesson.
   const pathways = (plan.pathways || []).map(p => ({ id: p.id, title: p.title, later: !!p.later, stages: p.stages.map(s => ({ id: s.id, title: s.title,
-    topics: s.topics.map(t => { const deck = t.deck && live.has(t.deck) ? t.deck : null; if (deck) written++; else planned++; return { title: t.title, deck }; }) })) }));
-  return { pathways, written, planned };
+    topics: s.topics.map(t => {
+      const deck = t.deck && live.has(t.deck) ? t.deck : null;
+      const isDraft = !deck && !!t.deck && t.status === "draft";
+      if (deck) written++; else if (isDraft) drafted++; else planned++;
+      return isDraft ? { title: t.title, deck: null, drafted: true } : { title: t.title, deck };
+    }) })) }));
+  return { pathways, written, drafted, planned };
 }
 
 export function guides({ dir } = {}) {
