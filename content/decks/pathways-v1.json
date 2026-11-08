@@ -1169,18 +1169,18 @@
           "topics": [
             {
               "title": "hiring and interviewing",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-b-01",
+              "status": "draft"
             },
             {
               "title": "planning and estimation",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-b-02",
+              "status": "draft"
             },
             {
               "title": "stakeholder management",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-b-03",
+              "status": "draft"
             }
           ]
         },
@@ -1190,23 +1190,23 @@
           "topics": [
             {
               "title": "delivery and execution",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-p-01",
+              "status": "draft"
             },
             {
               "title": "performance management",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-p-02",
+              "status": "draft"
             },
             {
               "title": "team health",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-p-03",
+              "status": "draft"
             },
             {
               "title": "leading through incidents",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-p-04",
+              "status": "draft"
             }
           ]
         },
@@ -1216,13 +1216,13 @@
           "topics": [
             {
               "title": "technical strategy",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-s-01",
+              "status": "draft"
             },
             {
               "title": "growing managers",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-s-02",
+              "status": "draft"
             }
           ]
         },
@@ -1232,18 +1232,18 @@
           "topics": [
             {
               "title": "people scenarios",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-iv-01",
+              "status": "draft"
             },
             {
               "title": "execution scenarios",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-iv-02",
+              "status": "draft"
             },
             {
               "title": "strategy discussions",
-              "deck": null,
-              "status": "planned"
+              "deck": "mg-iv-03",
+              "status": "draft"
             }
           ]
         }
