@@ -17,6 +17,7 @@
 import { questions, servedQuestion, recordAnswer, isStructured, judgeStructured } from "./learnQuestions.js";
 import { learnContent } from "./learnContent.js";
 import { learnStepInfo, learnStepPath } from "./learnLinks.js";
+import { forgivingStreak } from "./practiceProgress.js";
 
 export const REVIEW_DAYS = Object.freeze([1, 3, 7, 21]);
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -116,14 +117,10 @@ function lessonsFor(db, item) {
   }).filter(Boolean);
 }
 
-/** Consecutive days with an answered daily question, ending today or yesterday. */
+/** Days in a row with an answered daily question — ⭐ 45n (D154 P7) FORGIVING: one missed day in any seven is a rest day. */
 export function streakFor(db, userId, day) {
   const days = db.prepare(`SELECT day FROM daily_questions WHERE user_id = ? AND answered_at IS NOT NULL ORDER BY day DESC LIMIT 400`).all(userId).map(r => r.day);
-  if (!days.length) return 0;
-  let n = 0, expect = days[0] === day ? day : (daysBetween(days[0], day) === 1 ? days[0] : null);
-  if (!expect) return 0;
-  for (const d of days) { if (d !== expect) break; n++; expect = dayOf(Date.parse(`${expect}T00:00:00Z`) / 1000 - 86400); }
-  return n;
+  return forgivingStreak(days, day).days;
 }
 
 /** Today's question: { day, reason, reasonWords, question (served), answered?, result?, streak }. */

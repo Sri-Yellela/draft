@@ -69,3 +69,8 @@
 .atl-dq__moves { display: inline-flex; gap: 4px; vertical-align: middle; }
 .atl-dq__move { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); cursor: pointer; font: inherit; }
 .atl-dq__move:disabled { opacity: .4; cursor: default; }
+/* D154 P6 + P7 (45n): the quiet progress card. */
+.atl-dq__progress { margin: 8px 0; }
+.atl-dq__progress summary { cursor: pointer; }
+.atl-dq__acc { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; }
+.atl-dq__acc li { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }

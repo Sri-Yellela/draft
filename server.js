@@ -157,6 +157,7 @@ import { seedDraftedDefinitions } from "./services/atlas/atlasDefinitions.js";
 import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { roleReadiness } from "./services/atlas/roleReadiness.js";
+import { practiceProgress } from "./services/learn/practiceProgress.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
 import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes, jobsSitemapPageCount, companiesSitemapRoutes, jobPath, atlasLinksFor } from "./services/jobs/publicJobPage.js";
@@ -12727,6 +12728,11 @@ app.get("/api/learn/today", requireAuth, (req, res) => {
     const aimGaps = () => (aimRole ? (roleReadiness(db, req.user.id, aimRole).moves || []).map(m => m.slug).filter(Boolean) : []);
     res.set("Cache-Control", "no-store").json(todaysQuestion(db, req.user.id, String(req.query.day || ""), { aimRole, aimGaps }));
   } catch (e) { auditFail(res, e); }
+});
+// ⭐ D154 P6 + P7 (45n) · the quiet progress card — per-skill accuracy, the level from proof, the forgiving streak.
+app.get("/api/learn/progress", requireAuth, (req, res) => {
+  try { res.set("Cache-Control", "no-store").json(practiceProgress(db, req.user.id, /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.day || "")) ? String(req.query.day) : null)); }
+  catch (e) { auditFail(res, e); }
 });
 // ⭐ D154 P1 (45m) · the reminder — OFF until the person turns it on, at the hour they choose (their local hour).
 app.get("/api/learn/today/reminder", requireAuth, (req, res) => {
