@@ -37,6 +37,7 @@ export const ADMIN_GROUPS = Object.freeze([
   { id: "system", label: "System", question: "Is it set up right?", sections: [
     ["switches", "Feature switches"],   // #6 + D86's plugin
     ["tools", "Tools service"],         // #11
+    ["diagnostics", "Diagnostics"],     // D151 Rule 6 — loop delay, slowest endpoints, counts, DB / WAL size, growth; a 24 h read token
     ["usage", "Model usage"],           // D171 FIX 2 — every model call by hour, key and who started it; the daily cost alarm
     ["notices", "Notices"],             // D73 §B
     ["email", "Email health"],          // D94 — the Resend webhook's failed sends, suppressions, domain status
