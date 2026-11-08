@@ -88,6 +88,7 @@ import { runSchedule as runCrawlerSchedule } from "./services/crawlerQueue.js";
 import { readPolicy as readBoardPolicy, setPolicy as setBoardPolicy, sweepAged } from "./services/jobs/boardAge.js";
 import { sweepScope } from "./services/jobs/boardScope.js";
 import { createClassifyBacklog } from "./services/jobs/classifyBacklog.js";
+import { createCompanyLinker, companyReviewQueue, decideCompanyReview, companyRecordStats } from "./services/companies/companyRecords.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
@@ -562,6 +563,7 @@ const scorePool = createScorePool({
 // D153 (3) · the backlog classification walk — created inside the migration block below, used by /api/version and the
 // listen callback, so it is declared out here.
 let classifyBacklog = null;
+let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration runner's block, like classifyBacklog
 
 // ── Inline migration runner (additive only — never drops data) ─
 {
@@ -6910,6 +6912,54 @@ let classifyBacklog = null;
         CREATE TRIGGER IF NOT EXISTS atlas_edges_changed_del AFTER DELETE ON atlas_edges BEGIN UPDATE atlas_changes SET n = n + 1 WHERE id = 1; END;
       `,
     },
+    {
+      // ⭐ D179 P4a (45l): ONE COMPANY = ONE RECORD. A company was a free-text scraped_jobs.company and three normalisers
+      // each decided "the same company" on their own. companies = one row per employer (slug for /companies/<slug>, its
+      // own site, a parent link set only by an admin — subsidiaries linked, never merged); company_aliases = every key
+      // that resolves to it with its evidence (ats:<provider>:<tenant> · domain:<site> · name:<normalised>); job_company
+      // = posting → company in its OWN small table (an UPDATE on scraped_jobs rewrites the whole posting row — A132);
+      // company_review = the unsure pairs for Admin, never merged automatically. services/companies/companyRecords.js.
+      // Only ADDS. After 230.
+      id: "231_company_records",
+      sql: `
+        CREATE TABLE IF NOT EXISTS companies (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          slug        TEXT NOT NULL UNIQUE,
+          name        TEXT NOT NULL,
+          domain      TEXT,
+          parent_id   INTEGER REFERENCES companies(id) ON DELETE SET NULL,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          updated_at  INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_companies_domain ON companies(domain);
+        CREATE TABLE IF NOT EXISTS company_aliases (
+          alias_key   TEXT PRIMARY KEY,
+          company_id  INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+          evidence    TEXT NOT NULL,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_company_aliases_company ON company_aliases(company_id);
+        CREATE TABLE IF NOT EXISTS job_company (
+          job_id      TEXT PRIMARY KEY,
+          company_id  INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+          linked_at   INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_job_company_company ON job_company(company_id);
+        CREATE TABLE IF NOT EXISTS company_review (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          a_id        INTEGER NOT NULL,
+          b_id        INTEGER NOT NULL,
+          reason      TEXT,
+          status      TEXT NOT NULL DEFAULT 'open',
+          decision    TEXT,
+          decided_by  INTEGER,
+          decided_at  INTEGER,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          UNIQUE(a_id, b_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_company_review_open ON company_review(status, created_at);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7005,6 +7055,11 @@ BOOT.add("index: scraped_jobs (job_id, is_active)", () => {
 // defined" (found by the 44z boot smoke; the wiring test read the source, not a booted server).
 classifyBacklog = createClassifyBacklog(db);
 setInterval(() => classifyBacklog.run("interval"), 6 * 60 * 60 * 1000).unref();
+// ⭐ D179 P4a (45l): every active posting linked to ONE company record (services/companies/companyRecords.js) — the same
+// rowid walk as the classify backlog (small pages, writes in chunks, a yield between), after it on ready and every 6 h
+// for postings crawled since. Kill switch: COMPANY_RECORDS=off.
+companyLinker = createCompanyLinker(db);
+if (process.env.COMPANY_RECORDS !== "off") setInterval(() => companyLinker.run("interval"), 6 * 60 * 60 * 1000).unref();
 
 // Populate migration 078's automation_tier for rows written before it existed. This is here
 // rather than inside the migration because the derivation is JavaScript
@@ -10239,6 +10294,17 @@ app.post("/api/company/:company/consistency-check", requireAuth, (req, res) => {
 // 410 rather than deletion, following the /api/scrape precedent: a caller that still exists learns
 // what happened instead of getting an ambiguous 404. imported_jobs itself is left in place —
 // migrations here are additive-only — but nothing writes to it any more.
+// ⭐ D179 P4a (45l): ONE COMPANY = ONE RECORD — the counts and the unsure pairs (never merged automatically); an admin
+// merges, keeps apart, or links a subsidiary to its parent. No UI yet (D179 step 2 is groundwork); Admin → Board reads these.
+app.get("/api/admin/companies", requireAdmin, (req, res) => {
+  try { res.json({ stats: companyRecordStats(db), walk: companyLinker?.status() ?? null, review: companyReviewQueue(db, { limit: req.query?.limit }) }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post("/api/admin/companies/review/:id", requireAdmin, (req, res) => {
+  const out = decideCompanyReview(db, Number(req.params.id), String(req.body?.decision || ""), { adminId: req.user?.id ?? null });
+  res.status(out.ok ? 200 : 400).json(out);
+});
+
 app.all("/api/extension/save-job",
   cors({ origin: corsOriginExtension, credentials: true }),
   (_req, res) => {
@@ -15267,6 +15333,7 @@ app.get("/api/version", (_req, res) => {
     // ⛔⛔ D153 (3): the backlog classification walk — state, writes, and the coverage it measured (shown share of the
     // active board; share of the shown board with a kind of work). Counts only, nothing user-scoped.
     classify: classifyBacklog.status(),
+    companies: companyLinker ? companyLinker.status() : null,   // ⭐ D179 P4a
     // ⭐ D151 Rule 1: the last boot's timeline — start → listen, → ready, and each warm-up step's duration.
     boot: BOOT.snapshot(),
     monetisationEnabled: monetisationEnabled(),
@@ -15361,7 +15428,9 @@ app.listen(PORT, () => {
   }, Number(process.env.BOARD_FIT_BOOT_DELAY_MS ?? 30000)).unref?.()).then(() => {
     // ⛔⛔ D153 (3): the backlog classification walk, from READY (never inside the warm-up; it yields between pages).
     // On the same ready as the board-fit pass — the warm-up is started once (test/a123BoardFitReconcile A123 (7)).
-    classifyBacklog.run("boot");
+    const classified = classifyBacklog.run("boot");
+    // ⭐ D179 P4a: the company records walk after the classify walk (one background walk on the loop at a time).
+    if (process.env.COMPANY_RECORDS !== "off") Promise.resolve(classified).then(() => companyLinker.run("boot"));
   });
 });
 
