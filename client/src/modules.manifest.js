@@ -76,6 +76,7 @@ export const MODULES = Object.freeze({
     css: ["pages/profile/ProfilePage.css"], members: ["App.jsx", "pages/profile/ProfilePage.jsx", "pages/profile/profilePanels.js"] },
   interview: { why: "Interview (D167) — Coming up, Prepare, Practise, After; D110's prep, bank and debriefs",
     css: ["pages/interview/InterviewPage.css"], members: ["App.jsx", "pages/interview/InterviewPage.jsx", "pages/interview/interviewModel.js"] },
+  audit: { why: "D150 T05–T08 — the 3-minute audit, /audit", css: ["pages/audit/AuditPage.css"], members: ["App.jsx", "pages/audit/AuditPage.jsx"] },
   publicBoard: { why: "D179 P3 — the open board, /jobs signed out", css: ["pages/jobs/PublicBoardPage.css"],
     members: ["App.jsx", "pages/jobs/PublicBoardPage.jsx"] },
   companies: { why: "D179 P4b — a page for every company, public at /companies/<slug> and inside the shell at /app/companies/<slug>",

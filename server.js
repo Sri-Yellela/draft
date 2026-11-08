@@ -10015,6 +10015,7 @@ app.get("/sitemap.xml", (req, res) => {
   const routes = [
     { path: "/", changefreq: "weekly", priority: "1.0" },
     { path: "/jobs", changefreq: "hourly", priority: "0.9" },   // D179 P3: the open board
+    { path: "/audit", changefreq: "weekly", priority: "0.8" },  // D150 T08: the 3-minute audit
     { path: "/login", changefreq: "monthly", priority: "0.8" },
     { path: "/features", changefreq: "monthly", priority: "0.6" },
     { path: "/pricing", changefreq: "monthly", priority: "0.6" },
@@ -10023,6 +10024,8 @@ app.get("/sitemap.xml", (req, res) => {
     // ⭐ D105: /atlas and every PUBLISHED Atlas page — never a draft (d105SitemapPublishedOnly).
     ...atlasSitemapRoutes(db),
   ];
+  // ⭐ D150 T08: each auditable role's own audit page.
+  try { for (const r of auditRoles(db)) routes.push({ path: `/audit?role=${encodeURIComponent(r.slug)}`, changefreq: "weekly", priority: "0.6" }); } catch { /* no bank */ }
   res.type("application/xml").send(sitemapXml(base, routes));
 });
 

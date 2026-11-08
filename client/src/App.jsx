@@ -28,6 +28,7 @@ import { profilePanelFor, profilePath, LEGACY_PROFILE_ROUTES } from "./pages/pro
 import InterviewPage             from "./pages/interview/InterviewPage.jsx";
 import CompanyPage               from "./pages/companies/CompanyPage.jsx";   // D179 P4b
 import PublicBoardPage           from "./pages/jobs/PublicBoardPage.jsx";    // D179 P3
+import AuditPage                 from "./pages/audit/AuditPage.jsx";         // D150 T05–T08
 import { interviewPanelFor, interviewPath } from "./pages/interview/interviewModel.js";
 import { PlansPanel }            from "./panels/PlansPanel.jsx";
 import DeckView                  from "./panels/DeckView.jsx";
@@ -877,6 +878,8 @@ function AppRouter() {
             : <>{navBar}<PublicBoardPage/></>
         }/>
         <Route path="/jobs/:slug" element={<FromServer/>}/>
+        {/* ⭐ D150 T05–T08 · the 3-minute audit — public; a signed-in reader keeps the result at once. */}
+        <Route path="/audit" element={<>{navBar}<AuditPage signedIn={authStatus === "authenticated" && !!authUser && !authUser.isAdmin}/></>}/>
 
         {/* ⭐ D179 P4b · a page for every company — PUBLIC (no sign-in); a signed-in reader gets it inside the app. */}
         <Route path="/companies/:slug" element={
