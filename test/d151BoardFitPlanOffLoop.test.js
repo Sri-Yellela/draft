@@ -40,8 +40,9 @@ function boardFile(n) {
   })();
   return { dir, file, db };
 }
+// Replaces like the real store (storeAtsReportForProfile upserts) — a re-score of a stale row is an overwrite.
 const store = (db) => ({ userId, profileId, jobId, report, basisHash, jobHash }) => db.prepare(`
-  INSERT INTO ats_only_reports (user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash, job_hash)
+  INSERT OR REPLACE INTO ats_only_reports (user_id, domain_profile_id, job_id, ats_report, ats_score, scorer_version, scored_at, basis_hash, job_hash)
   VALUES (?, ?, ?, ?, ?, 'v', 1, ?, ?)`).run(userId, profileId, jobId, JSON.stringify(report), report.score, basisHash, jobHash);
 const make = (db, extra = {}) => createBoardFitPrecompute({
   db, log: quiet, planPage: 4, store: store(db),

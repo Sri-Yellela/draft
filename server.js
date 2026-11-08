@@ -9356,6 +9356,9 @@ function boardFit() {
       db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: storeAtsReportForProfile,
       // D151 Rule 3: the batches go to the score worker; scoreJob stays the fallback (and the panel's path).
       scoreBatch: scoreBatchForBasis,
+      // ⭐ D151 (45k): the plan's keyset pages are read AND judged in the A126 read workers (15.2 s of the 100k suite's
+      // main-thread window was planPageRows); the pool answers on the main connection when it cannot.
+      read: readPool,
       // 43y: a new profile's first scores — its own category (D127), newest first — written within seconds.
       primeFor: (_userId, profile) => {
         const cat = profileCategory(profile || {});
