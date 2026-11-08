@@ -213,7 +213,7 @@ export function ProfilePeek({ open, profile, pos = { top: 0, left: 80 }, onGo, o
         <Avatar url={url} name={profile.name} className="appnav-peek__pic" />
         <div><b data-peek-name="">{profile.name || "You"}</b>{profile.email && <span data-peek-email="">{profile.email}</span>}</div>
       </div>
-      {link("about", "About you and your résumé")}   {/* A140: one panel */}
+      {link("about", "About you")}   {/* A140: About you + Your résumés, one panel */}
       {link("answers", "Saved answers")}
       <div className="appnav-peek__sep" aria-hidden="true" />
       <div className="appnav-peek__seg" role="group" aria-label="Auto-apply" data-peek-mode="">
