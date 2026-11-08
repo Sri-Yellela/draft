@@ -303,6 +303,7 @@ import { loadConfirmedSynonyms } from "./services/kb/skillSynonyms.js";
 // A72 — the board's ranked local search (tiers, whole words, the same synonym map).
 import { registerBoardSearch, boardSearchSql, searchVariants } from "./services/jobs/boardSearch.js";
 import { createReadPool } from "./services/db/readWorker.js";
+import { createScorePool } from "./services/jobs/scoreWorker.js";
 // Y2B — the SAME fetcher and the SAME writer the enrichment pass uses. One implementation, two
 // triggers: the background pass buys descriptions for rows it is about to enrich, and this buys
 // one for a job a user actually opened. See services/jobs/detailFetch.js.
@@ -548,6 +549,12 @@ const readPool = createReadPool({
   dbPath: DB_PATH, fallbackDb: db,
   enabled: String(process.env.DRAFT_READ_WORKERS || "on").toLowerCase() !== "off",
   size: Math.max(1, Math.min(4, Number(process.env.DRAFT_READ_WORKERS_SIZE) || 2)),
+});
+// ⭐ D151 Rule 3 (11-08) · board-fit scoring in a worker thread (services/jobs/scoreWorker.js): the precompute's batches
+// are scored off the event loop; any failure scores them here as before. DRAFT_SCORE_WORKER=off turns it off.
+const scorePool = createScorePool({
+  enabled: String(process.env.DRAFT_SCORE_WORKER || "on").toLowerCase() !== "off",
+  size: Math.max(1, Math.min(2, Number(process.env.DRAFT_SCORE_WORKER_SIZE) || 1)),
 });
 // D153 (3) · the backlog classification walk — created inside the migration block below, used by /api/version and the
 // listen callback, so it is declared out here.
@@ -9232,6 +9239,24 @@ function scoreJobForBasis(job, runtimeBasis) {
   job = withPostingText(job);
   return scoreAtsLocally({ job, runtimeBasis, termWeights: atsTermWeightsForJob(job), synonyms: atsSynonyms() });
 }
+/**
+ * ⭐ D151 Rule 3 · THE SAME CALL, A BATCH AT A TIME, IN THE SCORE WORKER: exactly scoreJobForBasis's inputs — the
+ * normalised posting (withPostingText), its role family's term weights (atsTermWeightsForJob — sent once per family, not
+ * per posting), the synonyms once — scored by the worker's import of the same scoreAtsLocally. Rejects when the pool
+ * cannot answer; the precompute then scores the batch here (boardFitPrecompute scoreMany).
+ */
+function scoreBatchForBasis(jobs, runtimeBasis) {
+  const weights = {};
+  const items = jobs.map((raw) => {
+    const job = withPostingText(raw);
+    let fam = null;
+    try { fam = roleFamilyForTitle(job?.normalized_title || job?.title || ""); } catch { fam = null; }
+    const wk = fam || "__none__";
+    if (!(wk in weights)) weights[wk] = atsTermWeightsForJob(job);
+    return { job, wk };
+  });
+  return scorePool.score({ items, weights, synonyms: atsSynonyms(), runtimeBasis });
+}
 
 /**
  * CC5 · THE ONE PLACE A COMPUTED ATS REPORT IS STORED, and it is keyed by whose résumé produced it.
@@ -9316,6 +9341,8 @@ function boardFit() {
   if (!_boardFit) {
     _boardFit = createBoardFitPrecompute({
       db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: storeAtsReportForProfile,
+      // D151 Rule 3: the batches go to the score worker; scoreJob stays the fallback (and the panel's path).
+      scoreBatch: scoreBatchForBasis,
       // 43y: a new profile's first scores — its own category (D127), newest first — written within seconds.
       primeFor: (_userId, profile) => {
         const cat = profileCategory(profile || {});
@@ -15167,6 +15194,7 @@ app.get("/api/version", (_req, res) => {
     atlasQueue: atlasQueueLength(db),
     // A126 · the board's read workers: ready / served / fallback — fallback climbing means the workers are not serving.
     readPool: readPool.status(),
+    scorePool: scorePool.status(),
     // ⛔⛔ D153 (3): the backlog classification walk — state, writes, and the coverage it measured (shown share of the
     // active board; share of the shown board with a kind of work). Counts only, nothing user-scoped.
     classify: classifyBacklog.status(),

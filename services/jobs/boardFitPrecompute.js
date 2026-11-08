@@ -200,6 +200,11 @@ const yieldToEventLoop = () => new Promise(resolve => setImmediate(resolve));
  */
 export function createBoardFitPrecompute({
   db, basisFor, scoreJob, store,
+  // ⭐ D151 Rule 3 (11-08): (jobs, runtimeBasis) -> Promise<[{ report } | { error }]> — the same scorer, run OFF the
+  // event loop (server.js: a worker thread). Measured on the 100k fixture: scoring was ≈ 3.8 s of a 4.5 s main-thread
+  // profile during three board loads. Optional: without it, or when it throws or answers the wrong length, the batch is
+  // scored here exactly as before (time-sliced, yielding).
+  scoreBatch = null,
   // ⭐ 43y (11-01): (userId, profile) -> job ids to score FIRST for a profile with no scores at all (its own category,
   // newest first). Without it a new tester's deck waited for the whole board — measured 320 s for 2,411 postings.
   primeFor = null,
@@ -355,7 +360,8 @@ export function createBoardFitPrecompute({
       emit("log", r); return r;
     }
 
-    let failed = 0, gone = 0, yields = 0, longestSliceMs = 0;
+    let failed = 0, gone = 0;
+    const st = { yields: 0, longestSliceMs: 0 };
     const errors = [];
     const results = [];
     const writeChunk = db.transaction((items) => {
@@ -375,11 +381,9 @@ export function createBoardFitPrecompute({
       if (want.length) {
         const jobs = db.prepare(`SELECT * FROM scraped_jobs WHERE is_active = 1 AND job_id IN (${want.map(() => "?").join(",")})`).all(...want);
         const first = [];
-        let sliceStart = now();
-        for (const job of jobs) {
-          try { first.push({ jobId: job.job_id, report: scoreJob(job, basis.runtimeBasis), jobHash: atsJobInputHash(job) }); }
-          catch (e) { failed++; if (errors.length < 5) errors.push(`${job.job_id}: ${e.message}`); }
-          if (now() - sliceStart >= sliceMs) { yields++; await yieldToEventLoop(); sliceStart = now(); }
+        for (const it of await scoreMany(jobs, basis.runtimeBasis, st)) {
+          if (it.report) first.push({ jobId: it.job.job_id, report: it.report, jobHash: atsJobInputHash(it.job) });
+          else { failed++; if (errors.length < 5) errors.push(`${it.job.job_id}: ${it.error}`); }
         }
         try { writeChunk(first); primed = new Set(first.map(x => x.jobId)); }
         catch (e) { if (errors.length < 5) errors.push(`prime commit: ${e.message}`); }
@@ -397,23 +401,11 @@ export function createBoardFitPrecompute({
         `SELECT * FROM scraped_jobs WHERE is_active = 1 AND job_id IN (${ids.map(() => "?").join(",")})`,
       ).all(...ids);
       gone += ids.length - jobs.length;
-      let sliceStart = now();
-      for (const job of jobs) {
-        try {
-          results.push({ jobId: job.job_id, report: scoreJob(job, basis.runtimeBasis), jobHash: atsJobInputHash(job) });
-        } catch (e) {
-          failed++;
-          if (errors.length < 5) errors.push(`${job.job_id}: ${e.message}`);
-        }
-        if (now() - sliceStart >= sliceMs) {
-          longestSliceMs = Math.max(longestSliceMs, now() - sliceStart);
-          yields++;
-          await yieldToEventLoop();
-          sliceStart = now();
-        }
+      for (const it of await scoreMany(jobs, basis.runtimeBasis, st)) {
+        if (it.report) results.push({ jobId: it.job.job_id, report: it.report, jobHash: atsJobInputHash(it.job) });
+        else { failed++; if (errors.length < 5) errors.push(`${it.job.job_id}: ${it.error}`); }
       }
-      longestSliceMs = Math.max(longestSliceMs, now() - sliceStart);
-      yields++;
+      st.yields++;
       await yieldToEventLoop();
     }
 
@@ -449,7 +441,7 @@ export function createBoardFitPrecompute({
 
     const r = {
       ...base, status: scored > 0 ? "scored" : "failed", ...counts,
-      scored, failed, gone, yields, longestSliceMs: Math.round(longestSliceMs),
+      scored, failed, gone, yields: st.yields, longestSliceMs: Math.round(st.longestSliceMs), offLoop: st.offLoop || 0,
       commits, commitMs: Math.round(commitMs), longestCommitMs: Math.round(longestCommitMs),
       ms: Math.round(now() - started),
       ...(errors.length ? { errors } : {}),
@@ -525,6 +517,36 @@ export function createBoardFitPrecompute({
    * here. Same scorer, same store, same slices and yields as runFor; written in commit chunks after scoring (runFor's
    * reason: a sort key moving mid-page). Ids already scored against the current basis are skipped.
    */
+  /**
+   * Score a batch: through `scoreBatch` (off the loop) when it is given and answers in full, else here in slices of
+   * `sliceMs` with a yield between. @returns [{ job, report } | { job, error }] in the jobs' order.
+   */
+  async function scoreMany(jobs, runtimeBasis, st) {
+    if (scoreBatch && jobs.length) {
+      try {
+        const out = await scoreBatch(jobs, runtimeBasis);
+        if (Array.isArray(out) && out.length === jobs.length) {
+          st.offLoop = (st.offLoop || 0) + jobs.length;
+          return jobs.map((job, i) => (out[i] && out[i].report ? { job, report: out[i].report } : { job, error: out[i]?.error || "no report" }));
+        }
+      } catch { /* the worker could not answer: score here, as before */ }
+      st.fallback = (st.fallback || 0) + 1;
+    }
+    const res = [];
+    let sliceStart = now();
+    for (const job of jobs) {
+      try { res.push({ job, report: scoreJob(job, runtimeBasis) }); } catch (e) { res.push({ job, error: e.message }); }
+      if (now() - sliceStart >= sliceMs) {
+        st.longestSliceMs = Math.max(st.longestSliceMs || 0, now() - sliceStart);
+        st.yields++;
+        await yieldToEventLoop();
+        sliceStart = now();
+      }
+    }
+    st.longestSliceMs = Math.max(st.longestSliceMs || 0, now() - sliceStart);
+    return res;
+  }
+
   const scoredStmtFor = (n) => db.prepare(`SELECT job_id FROM ats_only_reports
       WHERE user_id = ? AND domain_profile_id IS ? AND basis_hash = ? AND job_id IN (${Array(n).fill("?").join(",")})`);
   async function scoreIds({ userId, profile, jobIds, reason = "board-queue" }) {
@@ -536,20 +558,19 @@ export function createBoardFitPrecompute({
     try { basis = basisFor(userId, profile); } catch (e) { return { ...base, status: "failed", error: `basis: ${e.message}` }; }
     if (!basis?.runtimeBasis || !basis.basisHash) return { ...base, status: "no_basis", scored: 0 };
     const results = [];
-    let failed = 0, yields = 0;
+    let failed = 0;
+    const st = { yields: 0, longestSliceMs: 0 };
     for (let i = 0; i < jobIds.length; i += batchSize) {
       const ids = jobIds.slice(i, i + batchSize);
       const done = new Set(scoredStmtFor(ids.length).pluck().all(userId, profile.id, basis.basisHash, ...ids));
       const want = ids.filter(id => !done.has(id));
       if (!want.length) continue;
       const jobs = db.prepare(`SELECT * FROM scraped_jobs WHERE is_active = 1 AND job_id IN (${want.map(() => "?").join(",")})`).all(...want);
-      let sliceStart = now();
-      for (const job of jobs) {
-        try { results.push({ jobId: job.job_id, report: scoreJob(job, basis.runtimeBasis), jobHash: atsJobInputHash(job) }); }
-        catch { failed++; }
-        if (now() - sliceStart >= sliceMs) { yields++; await yieldToEventLoop(); sliceStart = now(); }
+      for (const it of await scoreMany(jobs, basis.runtimeBasis, st)) {
+        if (it.report) results.push({ jobId: it.job.job_id, report: it.report, jobHash: atsJobInputHash(it.job) });
+        else failed++;
       }
-      yields++; await yieldToEventLoop();
+      st.yields++; await yieldToEventLoop();
     }
     const writeChunk = db.transaction((items) => {
       for (const it of items) store({ userId, profileId: profile.id, jobId: it.jobId, report: it.report, basisHash: basis.basisHash, jobHash: it.jobHash });
@@ -560,7 +581,7 @@ export function createBoardFitPrecompute({
       catch { failed += Math.min(commitChunk, results.length - i); }
       await yieldToEventLoop();
     }
-    const r = { ...base, status: scored ? "scored" : "nothing_to_do", asked: jobIds.length, scored, failed, yields, ms: Math.round(now() - started) };
+    const r = { ...base, status: scored ? "scored" : "nothing_to_do", asked: jobIds.length, scored, failed, yields: st.yields, offLoop: st.offLoop || 0, ms: Math.round(now() - started) };
     emit(failed ? "warn" : "log", r);
     return r;
   }
