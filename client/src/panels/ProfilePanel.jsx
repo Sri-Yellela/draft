@@ -819,6 +819,14 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null }) {
       <form onSubmit={save}>
 
         {on("about") && <>
+        {/* ⛔ A140 (owner 11-08: "we had updated the profile section to have resume like UI with company logos … with
+            inline editing, instead of the traditional text fields, cannot see it now"): the résumé-like view
+            (ProfileSections — summary, experience with company logos, projects, education, skills, each edited in
+            place) LEADS About you. It was mounted below three blocks of text fields and read as missing. The contact,
+            address and visa fields the form-filler needs fold into one closed section under it. */}
+        <ProfileSections theme={theme}/>
+        <details data-contact-fields="" style={{ marginBottom: 20 }} open={!!resumeDraft}>
+          <summary className="rm-section-label" style={{ cursor: "pointer", marginBottom: 12 }}>Contact details for application forms</summary>
         {/* ── Personal ── */}
         <PSec title="Personal" theme={theme}>
           {/* ── A33: FILL FROM YOUR RÉSUMÉ — proposed, never auto-accepted ─────────────────────────
@@ -959,7 +967,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null }) {
           </PRow>
         </PSec>
 
-        <ProfileSections theme={theme}/>
+        </details>
 
         {/* ── Application Extras ── */}
         <PSec title="Application Extras" theme={theme}>
