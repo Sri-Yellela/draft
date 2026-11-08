@@ -46,13 +46,11 @@ export function publicParams(query = {}) {
   return { params: out, page };
 }
 
-function whereOf(params, { withTaxonomy = true } = {}) {
+// The taxonomy's category / subcategory are the board's own filter keys now (jobQuery.buildJobFilters, D179) — one
+// definition for the signed-in board and this one.
+function whereOf(params) {
   const f = buildJobFilters(params);
-  let sql = `WHERE ${OPEN} ${f.sql}`;
-  const args = [...f.params];
-  if (withTaxonomy && params.subcategory) { sql += " AND jt.subcategory = ?"; args.push(params.subcategory); }
-  else if (withTaxonomy && params.category) { sql += " AND jt.category = ?"; args.push(params.category); }
-  return { sql, args };
+  return { sql: `WHERE ${OPEN} ${f.sql}`, args: [...f.params] };
 }
 
 const FROM = `FROM scraped_jobs sj
@@ -92,7 +90,7 @@ export function publicBoardFacets(read, query = {}) {
   const { category, subcategory, ...rest } = params;
   const key = `facets:${JSON.stringify(rest)}`;
   return cached(key, FACETS_TTL_MS, async () => {
-    const w = whereOf(rest, { withTaxonomy: false });
+    const w = whereOf(rest);
     const rows = await read.all(`SELECT jt.category, jt.subcategory, COUNT(*) AS n ${FROM} ${w.sql} GROUP BY jt.category, jt.subcategory`, w.args);
     let tax = null; try { tax = taxonomy(); } catch { tax = null; }
     const name = (cid) => tax?.byId.get(cid)?.name || cid;

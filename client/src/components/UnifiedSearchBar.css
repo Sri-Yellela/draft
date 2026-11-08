@@ -304,3 +304,7 @@
   animation: card-up 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: calc(var(--ci, 0) * 48ms);
 }
+
+/* ⭐ D179 · the grouped dropdown (Companies · Roles · Technologies · Titles): a quiet heading per kind, a muted second part. */
+.usb__suggest-group { padding: 8px 10px 2px; font-size: 11px; font-weight: 600; color: var(--c-ink-faint); list-style: none; cursor: default; }
+.usb__suggest-sub { color: var(--c-ink-muted); font-size: 12px; }

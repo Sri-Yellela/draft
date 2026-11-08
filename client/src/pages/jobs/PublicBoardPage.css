@@ -1,0 +1,32 @@
+/* ⭐ D179 P3 · the open board. Colours from tokens only (D149 / D181); no capsule shapes (D60). */
+.pb { max-width: 920px; margin: 0 auto; padding: 32px 24px 64px; color: var(--c-ink); box-sizing: border-box; }
+.pb__head h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 4vw, 40px); margin: 0; }
+.pb__lead { color: var(--c-ink-muted); margin: 6px 0 20px; font-size: 14px; }
+.pb a { color: var(--c-accent-ink); }
+.pb__bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.pb__search { flex: 1; min-width: 240px; }
+.pb__input { width: 100%; box-sizing: border-box; height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--c-border);
+  background: var(--c-surface-solid); color: var(--c-ink); font: inherit; font-size: 15px; }
+.pb__role { height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--c-border); background: var(--c-surface-solid);
+  color: var(--c-ink); font: inherit; font-size: 14px; cursor: pointer; }
+.pb__clear, .pb__link { background: none; border: none; color: var(--c-accent-ink); font: inherit; font-size: 14px; cursor: pointer; padding: 0 4px; }
+.pb__picker { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(220px, 1.3fr); gap: 12px; background: var(--c-surface-solid);
+  border: 1px solid var(--c-border); border-radius: 16px; padding: 12px; margin-bottom: 16px; }
+.pb__cats, .pb__subs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 360px; overflow-y: auto; }
+.pb__cats button, .pb__subs button { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 8px; padding: 7px 10px;
+  border: none; border-radius: 8px; background: none; color: var(--c-ink); font: inherit; font-size: 14px; cursor: pointer; }
+.pb__cats button:hover, .pb__subs button:hover, .pb__cats button[aria-pressed="true"], .pb__subs button[aria-pressed="true"] { background: var(--c-hover); }
+.pb__n { color: var(--c-ink-muted); font-variant-numeric: tabular-nums; }
+.pb__note { color: var(--c-ink-faint); font-size: 12px; padding: 6px 10px; }
+.pb__msg { color: var(--c-ink-muted); padding: 24px 0; }
+.pb__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.pb__row { background: var(--c-surface-solid); border: 1px solid var(--c-border); border-radius: 14px; padding: 14px 18px; }
+.pb__title { font-size: 16px; font-weight: 600; text-decoration: none; color: var(--c-ink) !important; }
+.pb__title:hover { text-decoration: underline; }
+.pb__meta { color: var(--c-ink-muted); font-size: 13px; margin-top: 4px; }
+.pb__acts { display: flex; gap: 14px; margin-top: 8px; font-size: 13px; }
+.pb__act { text-decoration: none; }
+.pb__signup { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--c-surface-2); color: var(--c-ink); font-size: 14px; }
+.pb__pages { display: flex; gap: 16px; justify-content: center; align-items: center; margin-top: 20px; color: var(--c-ink-muted); }
+.pb__pages button { background: none; border: 1px solid var(--c-border); border-radius: 10px; padding: 8px 14px; color: var(--c-ink); font: inherit; cursor: pointer; }
+@media (max-width: 640px) { .pb { padding: 20px 16px 48px; } .pb__picker { grid-template-columns: 1fr; } }

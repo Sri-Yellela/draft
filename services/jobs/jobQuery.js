@@ -545,6 +545,19 @@ function buildJobFilters(params = {}, opts = {}) {
     if (!strict) established.push({ key: 'job_functions', sql: `${FUNCTION_SQL} IS NULL` });
   }
 
+  // ⭐ D179 (45l) · THE TAXONOMY'S ROLE — Category → Subcategory (job_taxonomy, D179 P2). A HARD filter: a posting is in
+  // the role only when it was classified into it (an unclassified posting is in no role, as D153 (2)'s counts say).
+  // Ids are matched against a closed pattern; the subcategory wins over its category when both are set.
+  const taxSub = String(params.subcategory || '').toLowerCase();
+  const taxCat = String(params.category || '').toLowerCase();
+  if (/^[a-z0-9][a-z0-9.-]{0,60}$/.test(taxSub)) {
+    clauses.push('EXISTS (SELECT 1 FROM job_taxonomy jtx WHERE jtx.job_id = sj.job_id AND jtx.subcategory = ?)');
+    args.push(taxSub);
+  } else if (/^[a-z0-9][a-z0-9-]{0,60}$/.test(taxCat)) {
+    clauses.push('EXISTS (SELECT 1 FROM job_taxonomy jtx WHERE jtx.job_id = sj.job_id AND jtx.category = ?)');
+    args.push(taxCat);
+  }
+
   // ⭐ D42 · THE COMPANY'S SECTOR — a different dimension from the job's domain (owner, 10-06: "a
   // finance job at OpenAI is more of a finance job the user cares about than an SDE role at
   // Fidelity"). Read from the company name through shared/companySectors.js, never from the posting's
