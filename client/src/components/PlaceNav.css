@@ -36,5 +36,14 @@
   .pl { grid-template-columns: 1fr; padding: 16px 16px 56px; gap: 16px; }
   .pl--fill { padding: 0; }
   .pl__nav { position: static; }
+  /* ⭐ 45n (owner 11-08, decision (4) ↺): on a phone every place's nav WRAPS — its items flow in rows (two lines for the
+     usual five to eight), not one long stacked list; the group labels fold away, the groups' order kept. */
+  .pl__nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 12px; border-radius: 16px; }
+  .pl__eb, .pl__title { flex: 0 0 100%; }
+  .pl__title { margin: 0 6px 8px; font-size: 26px; }
+  .pl__eb { margin: 0 6px 2px; }
+  .pl__group { display: contents; }
+  .pl__glabel { display: none; }
+  .pl__item { flex: 0 1 auto; min-height: 36px; padding: 6px 10px; gap: 6px; }
 }
 @media (prefers-reduced-motion: reduce) { .pl__panel { animation: none; } }
