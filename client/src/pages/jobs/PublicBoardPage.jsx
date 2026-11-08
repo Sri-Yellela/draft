@@ -8,10 +8,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import UsbSuggest from "../../components/UsbSuggest.jsx";
+// ⭐ D179 (owner 11-07 override (f)): signed out, the SAME page — the deck's own card, without the personal parts.
+import { CardFace } from "../../panels/DeckView.jsx";
 import "../../components/UnifiedSearchBar.css";
 import "./PublicBoardPage.css";
 
-const KEYS = ["q", "category", "subcategory", "tech", "places", "work_models", "experience_levels", "page"];
+const KEYS = ["q", "category", "subcategory", "tech", "places", "work_models", "experience_levels", "page", "view"];
 const salary = (min, max) => {
   const k = (v) => `$${Math.round(v / 1000)}k`;
   return min && max ? `${k(min)}–${k(max)}` : min ? `from ${k(min)}` : max ? `up to ${k(max)}` : null;
@@ -39,6 +41,9 @@ export default function PublicBoardPage() {
   const [error, setError] = useState(null);
   const [picker, setPicker] = useState(false);
   const [pickCat, setPickCat] = useState(params.category || null);
+  const view = params.view === "list" ? "list" : "deck";   // the deck first, as signed in
+  const [at, setAt] = useState(0);
+  useEffect(() => { setAt(0); }, [board]);
 
   const set = (patch) => {
     const next = { ...params, ...patch };
@@ -126,6 +131,37 @@ export default function PublicBoardPage() {
       {board && board.jobs.length === 0 && <p className="pb__msg">Nothing open matches that. <button type="button" className="pb__link" onClick={() => set({ category: null, subcategory: null, q: null })}>See every job</button></p>}
 
       {board && board.jobs.length > 0 && (
+        <div className="pb__views" role="group" aria-label="View">
+          <button type="button" aria-pressed={view === "deck"} onClick={() => set({ view: null })}>Deck</button>
+          <button type="button" aria-pressed={view === "list"} onClick={() => set({ view: "list" })}>List</button>
+        </div>
+      )}
+
+      {board && board.jobs.length > 0 && view === "deck" && (() => {
+        const j = board.jobs[Math.min(at, board.jobs.length - 1)];
+        const card = { job: { id: j.jobId || String(j.id), title: j.title, company: j.company, companyIconUrl: j.companyIconUrl, location: j.location,
+          salaryMin: j.salaryMinUsd, salaryMax: j.salaryMaxUsd, postedAt: j.postedAt, tagWorkplace: j.workplace, contractType: j.employmentType },
+          band: null, score: null, why: {}, report: null };
+        const next = () => { if (at + 1 < board.jobs.length) setAt(at + 1); else if (board.more) set({ page: String(page + 1) }); };
+        return (
+          <section className="pb__deck" data-public-deck="" aria-label="Open jobs, one at a time">
+            <div className="pb__card">
+              <CardFace card={card} isFront expanded={false} why={false} orientation="horizontal"
+                onWhy={() => {}} onExpand={() => {}} onCollapse={() => {}} onReport={() => {}} onSignal={() => {}} />
+            </div>
+            <div className="pb__deckacts">
+              <button type="button" onClick={() => setAt(Math.max(0, at - 1))} disabled={at === 0 && page === 1}>‹</button>
+              <button type="button" onClick={next}>Pass</button>
+              <Link to={`/register?returnTo=${encodeURIComponent(j.path)}`}>Save</Link>
+              <a href={j.path}>Read it</a>
+              <Link className="pb__primary" to={`/register?returnTo=${encodeURIComponent(j.path)}`}>Draft</Link>
+              <span className="pb__n">{(page - 1) * board.pageSize + at + 1} of {board.total?.toLocaleString("en-US")}</span>
+            </div>
+          </section>
+        );
+      })()}
+
+      {board && board.jobs.length > 0 && view === "list" && (
         <ol className="pb__list" start={(page - 1) * board.pageSize + 1}>
           {board.jobs.map((j, i) => (
             <li key={j.id} className="pb__row" data-public-job={j.id}>
