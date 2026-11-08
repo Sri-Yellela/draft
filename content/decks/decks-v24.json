@@ -1,0 +1,1192 @@
+{
+ "version": 24,
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C C.9, to go live once those fields are on the board, D127; D154 P4 format). Stages 'business-and-financial-analysis' (4), 'product-and-project-management' (5), 'design' (4; accessibility reuses sw-fe-03). Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "bx-ba-01",
+   "pathway": "beyond",
+   "stage": "business-and-financial-analysis",
+   "title": "Spreadsheets and SQL",
+   "skills": [
+    "excel",
+    "sql",
+    "analysis"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "The analyst's two main tools",
+     "points": [
+      "Spreadsheets handle quick models and small data; SQL pulls and summarises large data from databases.",
+      "Most business analysis uses both."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Clean structure, traceable logic",
+     "points": [
+      "Keep raw data, calculations and outputs on separate sheets.",
+      "Use lookups (XLOOKUP), pivot tables and named ranges instead of hard-typed numbers.",
+      "In SQL: filter, join, group and aggregate before exporting, so the spreadsheet stays small.",
+      "Every number should be traceable back to its source."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Quick against reliable",
+     "points": [
+      "Spreadsheets are fast to build and easy to break silently (a pasted value over a formula).",
+      "Large data in spreadsheets gets slow and error-prone; query it instead.",
+      "Shared spreadsheets without version control drift."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A data tab refreshed from a saved query.",
+      "Checks: totals that must match the source.",
+      "Colour conventions: inputs one colour, formulas another."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-ba-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-ba-02",
+   "pathway": "beyond",
+   "stage": "business-and-financial-analysis",
+   "title": "Financial modelling",
+   "skills": [
+    "financial modelling",
+    "forecasting"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Numbers that describe a business's future",
+     "points": [
+      "A financial model projects revenue, costs and cash from assumptions, to support a decision: a price, a hire, an investment.",
+      "Its value is in clear assumptions and scenarios."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Drivers, statements, scenarios",
+     "points": [
+      "Start from drivers (customers, price, churn, cost per unit), not from last year's totals plus a percentage.",
+      "Link the three statements: income statement, balance sheet, cash flow.",
+      "Build scenarios (base, downside, upside) and sensitivity tables for key assumptions.",
+      "Cash matters more than profit for survival."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Detail against usefulness",
+     "points": [
+      "Too much detail hides the few assumptions that matter.",
+      "Precise-looking outputs from guessed inputs mislead.",
+      "Models need owners and dated versions."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "An assumptions sheet up front.",
+      "Sensitivity tables showing which input moves the result most.",
+      "Monthly comparison of actuals with the model."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-ba-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-ba-03",
+   "pathway": "beyond",
+   "stage": "business-and-financial-analysis",
+   "title": "KPIs",
+   "skills": [
+    "kpis",
+    "metrics"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "The few numbers that track what matters",
+     "points": [
+      "Key performance indicators (KPIs) measure progress toward a goal: revenue growth, retention, cost per acquisition.",
+      "Good KPIs drive decisions; bad ones drive gaming."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Leading and lagging",
+     "points": [
+      "Lagging indicators show results (revenue); leading indicators predict them (qualified pipeline).",
+      "Each KPI has a precise definition, a source, an owner and a target.",
+      "Pair a KPI with a counter-metric to prevent gaming (speed with quality).",
+      "Few KPIs per team; if everything is key, nothing is."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "What gets measured gets managed",
+     "points": [
+      "A target can distort behaviour (closing tickets fast but badly).",
+      "Vanity metrics (page views) look good and drive nothing.",
+      "Definitions change; record when and why."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A one-page dashboard per team.",
+      "Weekly reviews of trends, not single points.",
+      "Definitions documented in a shared glossary."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-ba-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-ba-04",
+   "pathway": "beyond",
+   "stage": "business-and-financial-analysis",
+   "title": "Presenting findings",
+   "skills": [
+    "presentation",
+    "communication"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Turning analysis into a decision",
+     "points": [
+      "Analysis is only useful if decision-makers understand it and act.",
+      "Presenting well means leading with the answer."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Answer, evidence, ask",
+     "points": [
+      "Start with the conclusion and the recommendation.",
+      "Support it with two or three pieces of evidence, each with one clear chart.",
+      "State assumptions and risks plainly.",
+      "End with the decision or action you need."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Simple without misleading",
+     "points": [
+      "Too much detail loses the audience; too little loses credibility. Keep an appendix.",
+      "Charts with truncated axes exaggerate; keep them honest.",
+      "Tailor depth to the audience."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "One-page memos before meetings.",
+      "Chart titles that state the takeaway.",
+      "A clear owner and date for the next step."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-ba-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-pm-01",
+   "pathway": "beyond",
+   "stage": "product-and-project-management",
+   "title": "Discovery",
+   "skills": [
+    "product discovery",
+    "user research"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Finding the right problem before building",
+     "points": [
+      "Discovery works out what problem is worth solving and whether a solution will work, before committing to build it.",
+      "It reduces the risk of building something nobody needs."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Talk, test, learn",
+     "points": [
+      "Interview users about their real behaviour and problems, not their opinions of your idea.",
+      "Frame opportunities from evidence; generate several solutions.",
+      "Test the riskiest assumption cheaply first: a prototype, a fake door, a concierge test.",
+      "Decide with evidence: build, change or drop."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Learning against shipping",
+     "points": [
+      "Too little discovery builds the wrong thing; too much never ships.",
+      "Users can't always say what they want; watch what they do.",
+      "Confirmation bias: seek evidence that could prove you wrong."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Weekly customer conversations by the product trio (product, design, engineering).",
+      "Assumption maps and experiment logs.",
+      "Prototypes tested before specs are written."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-pm-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-pm-02",
+   "pathway": "beyond",
+   "stage": "product-and-project-management",
+   "title": "Prioritisation",
+   "skills": [
+    "prioritisation",
+    "product strategy"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Choosing what to do first",
+     "points": [
+      "There's always more to do than capacity allows. Prioritisation decides what goes first, and what doesn't happen.",
+      "Saying no is most of it."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Value, effort, confidence",
+     "points": [
+      "Tie priorities to goals: what moves the outcome the team owns?",
+      "Frameworks like RICE (reach, impact, confidence, effort) make reasoning comparable.",
+      "Consider risk and dependencies, not just value.",
+      "Revisit priorities as evidence changes."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Frameworks help, judgement decides",
+     "points": [
+      "Scores can give false precision; use them to discuss, not to decide alone.",
+      "The loudest stakeholder isn't the most important customer.",
+      "Too many top priorities means none."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A ranked list, not tiers of 'high'.",
+      "Clear 'not now' decisions communicated with reasons.",
+      "Quarterly reprioritisation against goals."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-pm-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-pm-03",
+   "pathway": "beyond",
+   "stage": "product-and-project-management",
+   "title": "Product metrics",
+   "skills": [
+    "product metrics",
+    "analytics"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Measuring whether the product works for people",
+     "points": [
+      "Product metrics track how people find, use and stay with a product: activation, engagement, retention, conversion.",
+      "They show whether changes actually help."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "A north star and its inputs",
+     "points": [
+      "A north-star metric captures the value users get (for example, weekly active teams collaborating).",
+      "Input metrics are the levers that drive it (sign-ups activated, features adopted).",
+      "Funnels show where people drop off; cohorts show whether they stay.",
+      "Experiments prove whether a change moved the metric."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Measuring what matters",
+     "points": [
+      "Easy-to-measure metrics (clicks) can mislead about value.",
+      "Short-term gains can hurt long-term retention.",
+      "Too many metrics dilute focus."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A metrics tree from the north star to team-level inputs.",
+      "Retention curves by cohort.",
+      "Every launch with a success metric defined in advance."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-pm-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-pm-04",
+   "pathway": "beyond",
+   "stage": "product-and-project-management",
+   "title": "Roadmaps",
+   "skills": [
+    "roadmaps",
+    "planning"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Communicating direction over time",
+     "points": [
+      "A roadmap shows what a team plans to work on and why, over the coming months.",
+      "Good roadmaps communicate outcomes and priorities, not fixed promises."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Now, next, later",
+     "points": [
+      "Organise by problems or outcomes rather than feature lists.",
+      "Use time horizons: now (committed), next (likely), later (exploring).",
+      "Tie each item to a goal, so trade-offs are visible.",
+      "Update regularly and share what changed."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Clarity against flexibility",
+     "points": [
+      "Date-heavy roadmaps become broken promises.",
+      "Vague roadmaps leave sales and partners unable to plan.",
+      "Different audiences need different detail."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A public roadmap with themes, an internal one with detail.",
+      "Quarterly reviews of what shipped and what moved.",
+      "Clear language about confidence levels."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-pm-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-pm-05",
+   "pathway": "beyond",
+   "stage": "product-and-project-management",
+   "title": "Launches",
+   "skills": [
+    "product launch",
+    "release management"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Getting a product into people's hands well",
+     "points": [
+      "A launch coordinates engineering, marketing, sales, support and operations so a release reaches the right people and works.",
+      "Many good features fail through poor launches."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Ready, gradual, measured",
+     "points": [
+      "Readiness: documentation, support training, sales materials, monitoring.",
+      "Release gradually (beta, percentage rollout) where possible.",
+      "Define success metrics and watch them from day one.",
+      "Have a rollback plan and an owner for launch day."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Big splash against safe rollout",
+     "points": [
+      "A big-bang launch gets attention and concentrates risk.",
+      "Launching too quietly means nobody finds the feature.",
+      "Delaying for perfection loses momentum and learning."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A launch checklist and go/no-go meeting.",
+      "Internal dogfooding before public release.",
+      "A post-launch review at two to four weeks."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-pm-05-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-de-01",
+   "pathway": "beyond",
+   "stage": "design",
+   "title": "Design research",
+   "skills": [
+    "user research",
+    "ux research"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Understanding people before designing for them",
+     "points": [
+      "Design research studies users' needs, behaviours and contexts so designs solve real problems.",
+      "It ranges from interviews to usability tests to analytics."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Methods for questions",
+     "points": [
+      "Generative research (interviews, field studies) explores needs.",
+      "Evaluative research (usability tests) checks whether a design works.",
+      "Five users in a usability test reveal most major problems.",
+      "Synthesise findings into insights the team can act on."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Rigour against speed",
+     "points": [
+      "Small studies are fast and directional, not statistically conclusive.",
+      "Recruiting the wrong participants gives misleading answers.",
+      "Research that isn't shared changes nothing."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Research plans with clear questions.",
+      "Recorded sessions and highlight reels for the team.",
+      "Insight repositories."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-de-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-de-02",
+   "pathway": "beyond",
+   "stage": "design",
+   "title": "Interaction design",
+   "skills": [
+    "interaction design",
+    "ux"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "How people and products talk to each other",
+     "points": [
+      "Interaction design shapes how a product responds to people: flows, controls, feedback and states.",
+      "Good interaction design feels obvious."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Clarity, feedback, forgiveness",
+     "points": [
+      "Make the next action clear; one primary action per screen.",
+      "Give immediate feedback for every action (pressed, loading, done, failed).",
+      "Design every state: empty, loading, error, partial, success.",
+      "Let people undo and recover from mistakes."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Simple against powerful",
+     "points": [
+      "More options give power and add confusion.",
+      "Novel interactions can delight and confuse; familiar patterns are learned already.",
+      "Hiding things declutters and can make them undiscoverable."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "User flows and wireframes before visual design.",
+      "Prototypes tested with users.",
+      "Design system components for consistent behaviour."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-de-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-de-03",
+   "pathway": "beyond",
+   "stage": "design",
+   "title": "Visual systems",
+   "skills": [
+    "visual design",
+    "design systems"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Consistent look across a product",
+     "points": [
+      "A visual system defines type, colour, spacing, icons and components so every screen looks and feels like one product.",
+      "It speeds design and building, and improves accessibility."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Tokens, scale, components",
+     "points": [
+      "Design tokens name values (colours, spacing, type sizes) used everywhere.",
+      "A type scale and spacing scale give rhythm and hierarchy.",
+      "Colour with purpose and sufficient contrast; never colour alone to convey meaning.",
+      "Reusable components with documented usage."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Consistency against expression",
+     "points": [
+      "A rigid system can feel bland; a loose one fragments.",
+      "Systems need maintenance and ownership.",
+      "Adoption matters more than completeness."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A shared component library in design tools and code.",
+      "Light and dark themes from the same tokens.",
+      "Contribution guidelines for new components."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-de-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-de-05",
+   "pathway": "beyond",
+   "stage": "design",
+   "title": "The portfolio",
+   "skills": [
+    "design portfolio",
+    "career"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Showing how you think, not just what you made",
+     "points": [
+      "A design portfolio is the main evidence hiring teams use to judge a designer.",
+      "They want to see process and impact, not only polished screens."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Case studies that tell a story",
+     "points": [
+      "Three or four strong case studies beat many thin ones.",
+      "Each: the problem, your role, the process (research, options, trade-offs), the result.",
+      "Show decisions and what you learned, including what didn't work.",
+      "Quantify impact where you can."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Depth against skimmability",
+     "points": [
+      "Reviewers skim; lead each case with a short summary.",
+      "Confidential work needs anonymising; never share what you can't.",
+      "Concept projects are fine if framed honestly."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A portfolio walkthrough round in interviews.",
+      "A one-page summary per case study.",
+      "Updated after each significant project."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "bx-de-05-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "bx-ba-01-q1",
+   "type": "scenario",
+   "role": "Business Analyst",
+   "level": "entry",
+   "skills": [
+    "excel"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A forecast spreadsheet has numbers typed directly into formulas, like =B4*1.07. What's the problem?",
+   "choices": [
+    "The 7 % assumption is hidden and can't be changed in one place; put it in a labelled input cell and reference it",
+    "Nothing; it's compact",
+    "Formulas should never multiply",
+    "It needs more decimal places"
+   ],
+   "correct": 0,
+   "why": [
+    "Hard-coded assumptions are hard to find, check and update.",
+    "Compact but fragile.",
+    "Not a rule.",
+    "Precision isn't the issue."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-ba-02-q1",
+   "type": "scenario",
+   "role": "Financial Analyst",
+   "level": "entry",
+   "skills": [
+    "financial modelling"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A model shows a profitable year, but the company runs out of cash in month 7. How?",
+   "choices": [
+    "Profit isn't cash: customers pay late, inventory and upfront costs use cash before revenue arrives; model cash flow",
+    "The model has a typo",
+    "Profit always equals cash",
+    "Taxes are zero"
+   ],
+   "correct": 0,
+   "why": [
+    "Timing of cash in and out can sink a profitable business.",
+    "Possible, but the pattern is a classic cash-timing gap.",
+    "It doesn't.",
+    "Not the explanation."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-ba-03-q1",
+   "type": "scenario",
+   "role": "Business Analyst",
+   "level": "entry",
+   "skills": [
+    "kpis"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A support team's KPI is 'tickets closed per day'. Closures rise, and customer satisfaction falls. What's missing?",
+   "choices": [
+    "A counter-metric such as reopened tickets or satisfaction, so speed doesn't replace quality",
+    "A higher target",
+    "Fewer tickets",
+    "Nothing; closures are up"
+   ],
+   "correct": 0,
+   "why": [
+    "Pairing metrics stops one being gamed at the expense of the goal.",
+    "Worsens the gaming.",
+    "Not controllable.",
+    "The real goal is worse."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-ba-04-q1",
+   "type": "scenario",
+   "role": "Business Analyst",
+   "level": "entry",
+   "skills": [
+    "presentation"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "You have five minutes with an executive. How should you open?",
+   "choices": [
+    "With the recommendation and the one number that supports it",
+    "With your methodology",
+    "With a history of the project",
+    "With a table of all the data"
+   ],
+   "correct": 0,
+   "why": [
+    "Executives decide on the answer first, then probe.",
+    "Belongs in the appendix.",
+    "Uses up the time.",
+    "Buries the point."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-pm-01-q1",
+   "type": "scenario",
+   "role": "Product Manager",
+   "level": "entry",
+   "skills": [
+    "product discovery"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "In user interviews, which question gives more reliable evidence?",
+   "choices": [
+    "'Tell me about the last time you did this. What happened?'",
+    "'Would you use a feature that does X?'",
+    "'Do you like our idea?'",
+    "'How much would you pay for it in the future?'"
+   ],
+   "correct": 0,
+   "why": [
+    "Past behaviour reveals real needs; hypothetical answers are unreliable.",
+    "People say yes to hypotheticals.",
+    "Politeness bias.",
+    "Future intent is a poor predictor."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-pm-02-q1",
+   "type": "scenario",
+   "role": "Product Manager",
+   "level": "entry",
+   "skills": [
+    "prioritisation"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Every item on the backlog is labelled 'P1'. What's the fix?",
+   "choices": [
+    "Force-rank the items against the goal, so there's one order and an explicit cut line",
+    "Add a 'P0' label",
+    "Work on all of them at once",
+    "Let engineers pick"
+   ],
+   "correct": 0,
+   "why": [
+    "A single ranked order makes trade-offs explicit.",
+    "Same problem, new label.",
+    "Everything slows down.",
+    "Abdicates the decision."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-pm-03-q1",
+   "type": "scenario",
+   "role": "Product Manager",
+   "level": "entry",
+   "skills": [
+    "product metrics"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A redesign increases clicks on the home page by 30 %, but monthly retention drops. Was it a success?",
+   "choices": [
+    "Probably not: retention reflects lasting value; investigate why people engage more but stay less",
+    "Yes, clicks rose",
+    "Retention doesn't matter",
+    "Clicks and retention are the same"
+   ],
+   "correct": 0,
+   "why": [
+    "The north-star outcome got worse; clicks may show confusion.",
+    "A shallow metric.",
+    "It's central.",
+    "They measure different things."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-pm-04-q1",
+   "type": "scenario",
+   "role": "Product Manager",
+   "level": "entry",
+   "skills": [
+    "roadmaps"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Sales keeps promising customers features from the 'later' column with specific dates. What would help?",
+   "choices": [
+    "Make confidence explicit (committed / likely / exploring), keep dates only on committed work, and align with sales on what can be promised",
+    "Remove the roadmap",
+    "Put dates on everything",
+    "Ignore sales"
+   ],
+   "correct": 0,
+   "why": [
+    "Clear confidence levels prevent false promises.",
+    "Leaves them guessing.",
+    "Creates more broken promises.",
+    "They need to plan too."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-pm-05-q1",
+   "type": "scenario",
+   "role": "Product Manager",
+   "level": "entry",
+   "skills": [
+    "product launch"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "On launch day, support is flooded with questions they can't answer about the new feature. What was missed?",
+   "choices": [
+    "Readiness: support should have been trained and given docs before launch",
+    "The feature was bad",
+    "Too many users",
+    "Marketing worked too well"
+   ],
+   "correct": 0,
+   "why": [
+    "Launch readiness includes the people who answer customers.",
+    "Not necessarily.",
+    "Users are the goal.",
+    "Demand isn't the problem."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-de-01-q1",
+   "type": "scenario",
+   "role": "UX Designer",
+   "level": "entry",
+   "skills": [
+    "user research"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "You want to know whether people can complete checkout in the new design. Which method fits best?",
+   "choices": [
+    "A usability test: watch representative users try the task and note where they struggle",
+    "A survey asking if they like the colours",
+    "Ask the team to vote",
+    "Look only at page views"
+   ],
+   "correct": 0,
+   "why": [
+    "Observing real attempts shows whether the design works.",
+    "Preference isn't usability.",
+    "The team isn't the user.",
+    "Views don't show struggle."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-de-02-q1",
+   "type": "scenario",
+   "role": "Product Designer",
+   "level": "entry",
+   "skills": [
+    "interaction design"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A form shows no response after 'Submit' while the server works for three seconds, so users click again and submit twice. What's missing?",
+   "choices": [
+    "Immediate feedback: a loading state and a disabled button while it submits",
+    "A bigger button",
+    "A different colour",
+    "Fewer fields"
+   ],
+   "correct": 0,
+   "why": [
+    "Feedback tells users their action registered and prevents repeats.",
+    "Size doesn't communicate state.",
+    "Colour alone doesn't.",
+    "Not the cause."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-de-03-q1",
+   "type": "scenario",
+   "role": "Product Designer",
+   "level": "entry",
+   "skills": [
+    "visual design"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Error states are shown only by turning text red. What's the accessibility problem and fix?",
+   "choices": [
+    "Colour alone isn't perceivable by everyone; add an icon and a text message",
+    "Red is too bright",
+    "Errors should be green",
+    "Nothing"
+   ],
+   "correct": 0,
+   "why": [
+    "People with colour vision deficiencies may miss it; text and icons don't rely on colour.",
+    "Brightness isn't the issue.",
+    "Still colour alone.",
+    "It excludes users."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "bx-de-05-q1",
+   "type": "scenario",
+   "role": "Product Designer",
+   "level": "entry",
+   "skills": [
+    "design portfolio"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "Which portfolio case study is strongest?",
+   "choices": [
+    "One that states the problem, your role, the options you considered, why you chose one, and the measured result",
+    "A gallery of final screens with no text",
+    "Twenty small projects with one image each",
+    "Only award logos"
+   ],
+   "correct": 0,
+   "why": [
+    "Reviewers judge thinking and impact.",
+    "Shows output, not process.",
+    "Too thin to judge.",
+    "Not evidence of your work."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}

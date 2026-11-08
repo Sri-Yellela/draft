@@ -1322,23 +1322,23 @@
           "topics": [
             {
               "title": "spreadsheets and SQL",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-ba-01",
+              "status": "draft"
             },
             {
               "title": "financial modelling",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-ba-02",
+              "status": "draft"
             },
             {
               "title": "KPIs",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-ba-03",
+              "status": "draft"
             },
             {
               "title": "presenting findings",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-ba-04",
+              "status": "draft"
             }
           ]
         },
@@ -1348,28 +1348,28 @@
           "topics": [
             {
               "title": "discovery",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-pm-01",
+              "status": "draft"
             },
             {
               "title": "prioritisation",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-pm-02",
+              "status": "draft"
             },
             {
               "title": "metrics",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-pm-03",
+              "status": "draft"
             },
             {
               "title": "roadmaps",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-pm-04",
+              "status": "draft"
             },
             {
               "title": "launches",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-pm-05",
+              "status": "draft"
             }
           ]
         },
@@ -1379,18 +1379,18 @@
           "topics": [
             {
               "title": "research",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-de-01",
+              "status": "draft"
             },
             {
               "title": "interaction design",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-de-02",
+              "status": "draft"
             },
             {
               "title": "visual systems",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-de-03",
+              "status": "draft"
             },
             {
               "title": "accessibility",
@@ -1400,8 +1400,8 @@
             },
             {
               "title": "the portfolio",
-              "deck": null,
-              "status": "planned"
+              "deck": "bx-de-05",
+              "status": "draft"
             }
           ]
         }
