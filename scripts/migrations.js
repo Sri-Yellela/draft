@@ -6456,4 +6456,15 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_job_taxonomy_cat ON job_taxonomy(category);
       `,
     },
+    {
+      // ⛔ A140 (1) (45l): the trial accounts cleaned of the sample résumé's details ONCE — services/sampleProfileStrip.js
+      // records each account here, so a boot never re-reads (and overwrites) a profile the person has edited since. Only ADDS.
+      id: "234_a140_trial_cleaned",
+      sql: `
+        CREATE TABLE IF NOT EXISTS a140_trial_cleaned (
+          user_id     INTEGER PRIMARY KEY,
+          cleaned_at  INTEGER NOT NULL
+        );
+      `,
+    },
   ];
