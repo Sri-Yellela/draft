@@ -14,6 +14,10 @@
 //   fallback(),                            the opener's own preview, when the editor can't load
 // }
 export const RESUME_EDITOR_EVENT = "draft:resume-editor";
+// ⭐ D157 (i) (45n) · the editor's OWN ADDRESS — /draft/resume/<job>. Opening a job's résumé shows it in the address bar;
+// a reload (or a shared link to yourself) lands on the jobs page with that résumé open again (REOPEN_KEY → the host).
+export const editorPath = (jobId) => `/draft/resume/${encodeURIComponent(jobId)}`;
+export const REOPEN_KEY = "draft:reopen-editor";
 
 export function openResumeEditor(request) {
   if (!request || typeof window === "undefined") return false;

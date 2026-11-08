@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api, authHeaders, printResume } from "../lib/api.js";
-import { RESUME_EDITOR_EVENT, changedLines, themeTokens } from "../lib/resumeEditor.js";
+import { RESUME_EDITOR_EVENT, changedLines, themeTokens, editorPath, REOPEN_KEY, openResumeEditor } from "../lib/resumeEditor.js";
 import { Z } from "../styles/zLayers.js";
 import "./ResumeEditorHost.css";
 
@@ -74,7 +74,9 @@ export default function ResumeEditorHost() {
       setInset(insetFromDock());
       if (!pushedRef.current) {
         // The browser's Back closes the view. The router's own state is kept, so it sees no navigation.
-        window.history.pushState({ ...(window.history.state || {}), rmEditor: 1 }, "");
+        // ⭐ D157 (i): a job's own (editable) résumé gets its own address; a read-only attempt keeps the page's.
+        const own = r.jobId && !r.readOnly ? editorPath(r.jobId) : undefined;
+        window.history.pushState({ ...(window.history.state || {}), rmEditor: 1 }, "", own);
         pushedRef.current = true;
       }
       editorConfig().then(c => {
@@ -86,6 +88,16 @@ export default function ResumeEditorHost() {
     window.addEventListener(RESUME_EDITOR_EVENT, onOpen);
     return () => window.removeEventListener(RESUME_EDITOR_EVENT, onOpen);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ⭐ D157 (i): arriving from /draft/resume/<job> (App.jsx's EditorAddress), open that job's stored résumé again.
+  useEffect(() => {
+    let jobId = null;
+    try { jobId = sessionStorage.getItem(REOPEN_KEY); sessionStorage.removeItem(REOPEN_KEY); } catch { jobId = null; }
+    if (!jobId) return;
+    api(`/api/resumes/${encodeURIComponent(jobId)}`).then(r => {
+      if (r?.html) openResumeEditor({ html: r.html, jobId, company: r.company, title: r.role, tool: r.toolType || r.tool, version: r.version });
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const onPop = () => { if (pushedRef.current && !window.history.state?.rmEditor) close(true); };
