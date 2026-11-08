@@ -6485,4 +6485,19 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D179 P5b (45l): a company record's public GitHub organisation — matched only when the organisation's own site names
+      // the company's (services/companies/companyGithub.js) — and its repositories' languages. status ok / none / failed;
+      // re-read after 30 days. Only ADDS.
+      id: "236_company_github",
+      sql: `
+        CREATE TABLE IF NOT EXISTS company_github (
+          company_id      INTEGER PRIMARY KEY,
+          org             TEXT,
+          languages_json  TEXT,
+          status          TEXT NOT NULL,
+          fetched_at      INTEGER NOT NULL
+        );
+      `,
+    },
   ];

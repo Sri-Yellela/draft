@@ -95,6 +95,7 @@ import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyB
 import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/jobs/publicBoard.js";
 import { publicCompany, publicSuggest } from "./services/companies/publicCompany.js";
 import { createCompanyFacts } from "./services/companies/companyFacts.js";
+import { createCompanyGithub } from "./services/companies/companyGithub.js";
 import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landingPages.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
@@ -571,6 +572,7 @@ const scorePool = createScorePool({
 // listen callback, so it is declared out here.
 let classifyBacklog = null;
 let companyFacts = null;      // ⭐ D179 P4b (45l)
+let companyGithub = null;     // ⭐ D179 P5b (45l)
 let taxonomyBackfill = null;   // ⭐ D179 P2 (45l)
 let companyTech = null;     // ⭐ D179 P5a (45l) — assigned beside companyLinker
 let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration runner's block, like classifyBacklog
@@ -7051,6 +7053,21 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // ⭐ D179 P5b (45l): a company record's public GitHub organisation — matched only when the organisation's own site names
+      // the company's (services/companies/companyGithub.js) — and its repositories' languages. status ok / none / failed;
+      // re-read after 30 days. Only ADDS.
+      id: "236_company_github",
+      sql: `
+        CREATE TABLE IF NOT EXISTS company_github (
+          company_id      INTEGER PRIMARY KEY,
+          org             TEXT,
+          languages_json  TEXT,
+          status          TEXT NOT NULL,
+          fetched_at      INTEGER NOT NULL
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7156,6 +7173,9 @@ companyTech = createCompanyTech(db);
 taxonomyBackfill = createTaxonomyBackfill(db);
 // ⭐ D179 P4b: each company's public facts (Wikidata, by its own site) for the page's About — 150 a run, 1.5 s apart, daily.
 companyFacts = createCompanyFacts(db);
+// ⭐ D179 P5b: public GitHub languages, matched by the organisation's own site — 15 companies an hour (GitHub's unauthenticated limit).
+companyGithub = createCompanyGithub(db);
+if (process.env.COMPANY_GITHUB !== "off") setInterval(() => companyGithub.run("interval"), 60 * 60 * 1000).unref();
 if (process.env.COMPANY_FACTS !== "off") setInterval(() => companyFacts.run("interval"), 24 * 60 * 60 * 1000).unref();
 if (process.env.TAXONOMY_BACKFILL !== "off") setInterval(() => taxonomyBackfill.run("interval"), 6 * 60 * 60 * 1000).unref();
 if (process.env.COMPANY_RECORDS !== "off") setInterval(() => companyLinker.run("interval")
@@ -15517,6 +15537,7 @@ app.get("/api/version", (_req, res) => {
     companyTech: companyTech ? companyTech.status() : null,     // ⭐ D179 P5a
     taxonomy: taxonomyBackfill ? taxonomyBackfill.status() : null,   // ⭐ D179 P2
     companyFacts: companyFacts ? companyFacts.status() : null,       // ⭐ D179 P4b
+    companyGithub: companyGithub ? companyGithub.status() : null,    // ⭐ D179 P5b
     // ⭐ D151 Rule 1: the last boot's timeline — start → listen, → ready, and each warm-up step's duration.
     boot: BOOT.snapshot(),
     monetisationEnabled: monetisationEnabled(),
