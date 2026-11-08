@@ -218,6 +218,23 @@ function PracticeProgressCard({ day, refresh }) {
   );
 }
 
+// ⭐ D154 P9 (45n) · how exposed is my stack — honestly, from our own open postings (services/learn/stackExposure.js).
+function StackExposureCard() {
+  const [s, setS] = useState(null);
+  useEffect(() => { api("/api/learn/stack-exposure").then(setS).catch(() => setS(null)); }, []);
+  if (!s) return null;
+  return (
+    <details className="atl-dq__progress" data-stack-exposure="">
+      <summary className="atl__quiet"><b>Your stack on the board</b> · {s.scope}</summary>
+      {s.unmatched ? <p className="atl__quiet">{s.unmatched}</p>
+        : <ul className="atl-dq__acc">{s.stack.map(t => (
+            <li key={t.tech} data-stack-tech={t.tech} data-trend={t.trend}><span>{t.tech}</span>
+              <span className="atl__quiet">{t.open.toLocaleString()} open ({t.share}%) · {t.words}</span></li>))}</ul>}
+      <p className="atl__quiet">From postings draft has read, not the whole market: the last {s.windowDays} days against the {s.windowDays} before.</p>
+    </details>
+  );
+}
+
 export function TodaysQuestionPanel({ base }) {
   const [t, setT] = useState(null);
   const [err, setErr] = useState("");
@@ -240,6 +257,7 @@ export function TodaysQuestionPanel({ base }) {
       {t && !q && <NotYet>No question to ask yet — the bank has nothing new for you today.</NotYet>}
       {t && <DailyReminderRow />}
       {t && <PracticeProgressCard day={day} refresh={r ? 1 : 0} />}
+      {t && <StackExposureCard />}
       {q && (
         <div className="atl-dq" data-daily-question={q.id}>
           <p className="atl__quiet">{(q.skills || []).map(s => String(s).replace(/-/g, " ")).join(" · ")}</p>
