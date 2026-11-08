@@ -1,0 +1,652 @@
+{
+ "version": 18,
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'embedded', stages 'foundations' (3) and 'building-blocks' (4), in Part C's order. Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "em-f-01",
+   "pathway": "embedded",
+   "stage": "foundations",
+   "title": "C and memory",
+   "skills": [
+    "c",
+    "pointers",
+    "memory"
+   ],
+   "pieces": [
+    "s3x"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "The language closest to the hardware",
+     "points": [
+      "Most firmware is written in C (or C++), because it maps directly to memory and registers with predictable cost.",
+      "That closeness is also why its bugs are dangerous."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Pointers, layout, lifetimes",
+     "points": [
+      "A pointer holds an address; dereferencing it reads or writes that memory, with no checks.",
+      "Variables live in static memory (globals), on the stack (locals) or on the heap (malloc); each has a different lifetime.",
+      "volatile tells the compiler a value can change outside the program (a hardware register), so it must re-read it every time.",
+      "Fixed-width types (uint8_t, int32_t) say exactly how many bits a value has."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Control without a safety net",
+     "points": [
+      "Out-of-bounds writes, use-after-free and uninitialised reads corrupt memory silently.",
+      "Undefined behaviour lets the compiler do surprising things; enable warnings and sanitisers.",
+      "Many embedded projects ban heap allocation after start-up to avoid fragmentation."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "MISRA C or a similar coding standard in safety work.",
+      "Static analysis and compiler warnings treated as errors.",
+      "Register access through volatile pointers or vendor headers."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "em-f-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "em-f-02",
+   "pathway": "embedded",
+   "stage": "foundations",
+   "title": "Computer architecture",
+   "skills": [
+    "computer architecture",
+    "microcontrollers"
+   ],
+   "pieces": [
+    "s3x",
+    "a3"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "What's inside the chip",
+     "points": [
+      "A microcontroller combines a CPU core, flash for code, RAM for data and peripherals (timers, ADCs, serial ports) on one chip.",
+      "Knowing the pieces explains timing, memory limits and power."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Core, memory map, buses",
+     "points": [
+      "The CPU fetches, decodes and executes instructions; clock speed sets how many per second.",
+      "Memory-mapped I/O: peripherals appear as addresses; writing a register configures hardware.",
+      "Flash is large and slow to write; RAM is small and fast; caches (on bigger chips) speed access.",
+      "Buses connect the core, memory and peripherals; DMA moves data without the CPU."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Small, cheap, low-power",
+     "points": [
+      "Kilobytes of RAM shape every design decision.",
+      "Higher clock speeds cost power; many devices run slow and sleep often.",
+      "Choosing a chip trades cost, peripherals, power and toolchain support."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Datasheets and reference manuals read constantly.",
+      "Linker maps checked for flash and RAM use.",
+      "ARM Cortex-M, RISC-V and vendor families (STM32, ESP32, nRF)."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "em-f-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "em-f-03",
+   "pathway": "embedded",
+   "stage": "foundations",
+   "title": "Operating-system basics",
+   "skills": [
+    "operating systems",
+    "scheduling"
+   ],
+   "pieces": [
+    "s3x"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Bare metal or an OS",
+     "points": [
+      "Small devices often run 'bare metal': one main loop plus interrupts. Larger ones run a real-time OS or Linux.",
+      "Either way you need the ideas of tasks, scheduling and shared resources."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Tasks, scheduling, shared state",
+     "points": [
+      "A super-loop runs each job in turn; simple, but one slow job delays the rest.",
+      "An OS splits work into tasks (threads) and a scheduler decides which runs.",
+      "Pre-emptive scheduling lets a higher-priority task interrupt a lower one.",
+      "Shared data needs protection: mutexes, disabling interrupts briefly, or message queues."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Simplicity against structure",
+     "points": [
+      "Bare metal is small and predictable until the logic grows tangled.",
+      "An OS adds memory use and new failure modes (deadlock, priority inversion).",
+      "Linux gives drivers, networking and files, but isn't real-time by default."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "FreeRTOS or Zephyr on microcontrollers; embedded Linux on bigger systems.",
+      "Task stack sizes measured, not guessed.",
+      "State machines to keep main loops readable."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "em-f-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "em-b-01",
+   "pathway": "embedded",
+   "stage": "building-blocks",
+   "title": "Interrupts and concurrency",
+   "skills": [
+    "interrupts",
+    "concurrency",
+    "isr"
+   ],
+   "pieces": [
+    "s3x"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Responding to the outside world at once",
+     "points": [
+      "An interrupt makes the CPU pause normal code and run a handler (ISR) when hardware needs attention.",
+      "It's how devices react within microseconds, and a classic source of race conditions."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Short handlers, shared data",
+     "points": [
+      "Keep ISRs short: record the event, maybe copy data, set a flag, and leave.",
+      "Do the slow work later in the main loop or a task.",
+      "Data shared between ISR and main code must be volatile and accessed atomically (or with interrupts briefly disabled).",
+      "Interrupt priorities decide which can pre-empt which."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Responsive but tricky",
+     "points": [
+      "Long ISRs delay other interrupts and can miss events.",
+      "Disabling interrupts protects data and adds latency; keep it brief.",
+      "Ring buffers are a common lock-free way to pass data from ISR to main code."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "No printf, malloc or blocking calls inside ISRs.",
+      "Interrupt latency measured with a logic analyser or GPIO toggles.",
+      "Bugs that appear only under load, from unprotected shared state."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "em-b-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "em-b-02",
+   "pathway": "embedded",
+   "stage": "building-blocks",
+   "title": "RTOS and scheduling",
+   "skills": [
+    "rtos",
+    "scheduling",
+    "priority inversion"
+   ],
+   "pieces": [
+    "sc1"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Meeting deadlines on purpose",
+     "points": [
+      "A real-time operating system schedules tasks so time-critical work meets its deadline, every time.",
+      "Real-time means predictable, not necessarily fast."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Priorities, blocking, inversion",
+     "points": [
+      "Each task has a priority; the highest-priority ready task runs.",
+      "Tasks block on queues, semaphores or delays, freeing the CPU for others.",
+      "Priority inversion: a low-priority task holding a lock blocks a high-priority one while a medium task runs; priority inheritance fixes it.",
+      "Worst-case execution time, not average time, decides whether deadlines are met."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Predictable needs discipline",
+     "points": [
+      "Too many tasks waste RAM on stacks and complicate reasoning.",
+      "Dynamic allocation in tasks risks fragmentation; allocate up front.",
+      "Debugging timing issues needs tracing tools."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "FreeRTOS, Zephyr or a vendor RTOS.",
+      "Trace tools (SEGGER SystemView, Tracealyzer) showing task timing.",
+      "Stack high-water marks checked for every task."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "em-b-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "em-b-03",
+   "pathway": "embedded",
+   "stage": "building-blocks",
+   "title": "Peripherals and protocols: I2C, SPI, UART",
+   "skills": [
+    "i2c",
+    "spi",
+    "uart"
+   ],
+   "pieces": [
+    "em4"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "How chips talk to each other",
+     "points": [
+      "Sensors, displays, memory and radios connect to the microcontroller over simple serial buses.",
+      "Choosing and debugging these buses is daily embedded work."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Three common buses",
+     "points": [
+      "UART: two wires (TX, RX), no clock, both sides agree on a baud rate; good for debug consoles and modules.",
+      "I2C: two wires (clock, data) shared by many devices, each with an address; slower, needs pull-up resistors.",
+      "SPI: a clock, two data lines and a chip-select per device; fast and simple, more wires.",
+      "Each device's datasheet defines the register map and timing."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Wires against speed",
+     "points": [
+      "I2C saves pins but a stuck device can hang the whole bus.",
+      "SPI is fast but needs a select line per device.",
+      "UART needs both sides on matching settings; a wrong baud rate gives garbage."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A logic analyser to see what's actually on the wire.",
+      "Bus recovery code for stuck I2C devices.",
+      "Drivers that check every transaction's result."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "em-b-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "em-b-04",
+   "pathway": "embedded",
+   "stage": "building-blocks",
+   "title": "Power management",
+   "skills": [
+    "low power",
+    "sleep modes",
+    "battery"
+   ],
+   "pieces": [
+    "em4"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Making a battery last",
+     "points": [
+      "Many devices run for months or years on a battery, so most of their life is spent asleep.",
+      "Power management decides when and how deeply to sleep, and what wakes the device."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Sleep, wake, measure",
+     "points": [
+      "Sleep modes trade wake-up time for current: light sleep wakes fast; deep sleep draws microamps but loses more state.",
+      "Wake sources: timers, pin changes, radio events.",
+      "Turn off peripherals and clocks that aren't in use.",
+      "Average current = time-weighted mix of active and sleep currents; measure it, don't guess."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Responsiveness against battery life",
+     "points": [
+      "Waking more often feels responsive and drains the battery.",
+      "Radios are often the biggest consumer; send less, less often.",
+      "A floating input pin or a leaky circuit can dominate sleep current."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Current measured with a power profiler over a full cycle.",
+      "Battery-life estimates from measured profiles.",
+      "Firmware that batches work into short active bursts."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "em-b-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "em-f-01-q1",
+   "type": "scenario",
+   "role": "Embedded Engineer",
+   "level": "entry",
+   "skills": [
+    "c",
+    "volatile"
+   ],
+   "pieces": [
+    "s3x"
+   ],
+   "stem": "A loop waits for a hardware status bit: while (!(*STATUS & READY)) {}. With optimisation on, it hangs forever. Why?",
+   "choices": [
+    "STATUS isn't declared volatile, so the compiler reads it once and loops on the cached value",
+    "The bit is never set by hardware",
+    "The loop is too fast",
+    "C can't read registers"
+   ],
+   "correct": 0,
+   "why": [
+    "volatile forces a fresh read each time, as hardware can change it.",
+    "It works without optimisation, so the hardware does set it.",
+    "Speed isn't the issue.",
+    "It can, through pointers."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "em-f-02-q1",
+   "type": "scenario",
+   "role": "Embedded Engineer",
+   "level": "entry",
+   "skills": [
+    "dma"
+   ],
+   "pieces": [
+    "s3x"
+   ],
+   "stem": "Reading a fast sensor stream byte by byte in an interrupt uses most of the CPU. What hardware feature usually helps?",
+   "choices": [
+    "DMA: let the peripheral move data into a buffer directly, interrupting only when the buffer is full",
+    "A faster clock only",
+    "More flash",
+    "Printing each byte"
+   ],
+   "correct": 0,
+   "why": [
+    "DMA offloads the copying from the CPU.",
+    "Helps a little, costs power, keeps the waste.",
+    "Flash doesn't affect CPU load.",
+    "That adds load."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "em-f-03-q1",
+   "type": "scenario",
+   "role": "Embedded Engineer",
+   "level": "entry",
+   "skills": [
+    "scheduling"
+   ],
+   "pieces": [
+    "s3x"
+   ],
+   "stem": "In a super-loop, a slow SD-card write delays the button handling so presses are missed. What's a common fix?",
+   "choices": [
+    "Handle the button in an interrupt or a higher-priority task, and make the SD write non-blocking or chunked",
+    "Press the button longer",
+    "Remove the SD card",
+    "Add a bigger delay in the loop"
+   ],
+   "correct": 0,
+   "why": [
+    "Time-critical work must not wait behind slow work.",
+    "Pushes the problem onto users.",
+    "Removes the feature.",
+    "Makes it worse."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "em-b-01-q1",
+   "type": "scenario",
+   "role": "Embedded Engineer",
+   "level": "entry",
+   "skills": [
+    "interrupts"
+   ],
+   "pieces": [
+    "s3x"
+   ],
+   "stem": "An ISR formats a log message with printf and writes it over UART. Other interrupts start getting missed. Why?",
+   "choices": [
+    "The ISR is too slow; set a flag or push raw data to a buffer, and format and send it outside the interrupt",
+    "UART is broken",
+    "printf is too fast",
+    "There are too many interrupts in general"
+   ],
+   "correct": 0,
+   "why": [
+    "Slow ISRs block other interrupts; defer the work.",
+    "It's working, just slowly.",
+    "It's the opposite.",
+    "The handler length is the cause."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "em-b-02-q1",
+   "type": "scenario",
+   "role": "Embedded Engineer",
+   "level": "entry",
+   "skills": [
+    "priority inversion"
+   ],
+   "pieces": [
+    "sc1"
+   ],
+   "stem": "A high-priority task sometimes misses its deadline while waiting for a mutex held by a low-priority task, as medium-priority tasks keep running. What's this and the usual fix?",
+   "choices": [
+    "Priority inversion; use a mutex with priority inheritance",
+    "A memory leak; restart the device",
+    "Too few tasks; add more",
+    "Normal; deadlines don't matter"
+   ],
+   "correct": 0,
+   "why": [
+    "Inheritance raises the lock holder's priority so it finishes quickly.",
+    "Not a leak.",
+    "More tasks make it worse.",
+    "In real-time systems they do."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "em-b-03-q1",
+   "type": "scenario",
+   "role": "Embedded Engineer",
+   "level": "entry",
+   "skills": [
+    "uart"
+   ],
+   "pieces": [
+    "em4"
+   ],
+   "stem": "A UART debug console prints garbled characters. What's the first thing to check?",
+   "choices": [
+    "That the baud rate and frame settings (data bits, parity, stop bits) match on both sides",
+    "That the CPU is fast enough",
+    "That the code has comments",
+    "That I2C pull-ups are fitted"
+   ],
+   "correct": 0,
+   "why": [
+    "Mismatched settings are the classic cause of garbage.",
+    "Not usually the cause.",
+    "Unrelated.",
+    "Pull-ups belong to I2C."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "em-b-04-q1",
+   "type": "scenario",
+   "role": "Embedded Engineer",
+   "level": "entry",
+   "skills": [
+    "low power"
+   ],
+   "pieces": [
+    "em4"
+   ],
+   "stem": "A sensor node should last a year but drains in a month. Sleep current measures 900 µA instead of the expected 5 µA. What's likely?",
+   "choices": [
+    "Something stays powered during sleep: a peripheral, a sensor, a floating pin or a debug interface left on",
+    "The battery is the wrong colour",
+    "The radio sends too rarely",
+    "The CPU is too slow"
+   ],
+   "correct": 0,
+   "why": [
+    "Sleep current that high means a part isn't shutting down.",
+    "Not relevant.",
+    "Sending rarely saves power.",
+    "Speed isn't the issue in sleep."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}
