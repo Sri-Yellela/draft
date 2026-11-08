@@ -27,7 +27,12 @@
 //   node scripts/d123CompareModels.mjs --out <dir outside the repo> [--dry]
 //        [--routes full,lean:haiku,payload:haiku,payload:sonnet,code] [--resumes owner,A,B] [--jobs id,…]
 //        [--pairs full,payload:haiku] [--limit-pairs 20] [--seed 123] [--owner-user 15] [--db data/resume_master.db]
-//        [--rm ../resume-master]
+//        [--rm ../resume-master] [--max-cost 3]
+//
+// ⭐ D171 FIX 5 (45n, owner 11-08 decision (3): "the paid harness run, capped at $3, the cost estimate printed before
+// spending") · --max-cost (USD, default 3): the ESTIMATE (calls × each route's typical cost) is printed before the first
+// call, and the loop STOPS before any call whose typical cost would take the spend past the cap (spent = the measured
+// cost of the calls so far). A dry run spends nothing and ignores the cap.
 import path from "node:path";
 import fs from "node:fs";
 import { pathToFileURL, fileURLToPath } from "node:url";
@@ -246,6 +251,16 @@ export async function runCompare(opts = {}) {
     return !why;
   });
 
+  // ⭐ D171 FIX 5 · the cap and the estimate — typical cost per call by route (D170 (2): the full A+ / Generate call on
+  // Sonnet ≈ 6¢; a lean / payload edit on Haiku ≈ 1¢, on Sonnet ≈ 3¢; code calls no model), gists ≈ 3¢ a résumé.
+  const maxCost = Number(opts.maxCost ?? 3);
+  const typical = (rt) => (rt.tailoring === "code" ? 0 : rt.tailoring === "full" ? 0.06 : rt.model === "sonnet" ? 0.03 : 0.01);
+  const estimate = resumes.length * jobs.length * runnable.reduce((a, rt) => a + typical(rt), 0)
+    + (runnable.some(rt => rt.tailoring === "payload") ? resumes.length * 0.03 : 0);
+  log(`ESTIMATE: ${resumes.length} résumés × ${jobs.length} postings × ${runnable.map(r => r.name).join(" + ")} ≈ $${estimate.toFixed(2)}` +
+      (dry ? " (dry — nothing spent)" : ` · cap $${maxCost.toFixed(2)}${estimate > maxCost ? " — the cap will stop it early" : ""}`));
+  let spent = 0, capped = false;
+
   fs.mkdirSync(outDir, { recursive: true });
   const results = [];
   const docs = new Map();          // `${resume}|${job}` → { route: html } — for the blind pairs only, never written raw
@@ -265,10 +280,12 @@ export async function runCompare(opts = {}) {
       }
     }
     for (const job of jobs) {
+      if (capped) break;
       const atsBefore = ats(job, r.text, r.dp);
       let rep = null;
       try { rep = report(job, r); } catch { rep = null; }
       for (const rt of runnable) {
+        if (!dry && spent + typical(rt) > maxCost) { capped = true; log(`⛔ cap: $${spent.toFixed(2)} spent, the next ${rt.name} call would pass $${maxCost.toFixed(2)} — stopping`); break; }
         let keywords = null;
         if (rt.tailoring !== "full" && rep) {
           try {
@@ -310,6 +327,7 @@ export async function runCompare(opts = {}) {
         }
         row.ms = Date.now() - t0;
         row.cost = costOfAll(row.usage, costOf);
+        if (row.cost != null) spent += row.cost;
         row.usage = row.usage.map(u => ({ purpose: u.purpose, model: u.model, input_tokens: u.input_tokens, output_tokens: u.output_tokens,
           cache_creation_input_tokens: u.cache_creation_input_tokens, cache_read_input_tokens: u.cache_read_input_tokens, attempts: u.attempts }));
         results.push(row);
@@ -320,8 +338,9 @@ export async function runCompare(opts = {}) {
       }
     }
   }
-  fs.writeFileSync(path.join(outDir, "results.json"), JSON.stringify({ dry, gistCosts, skipped, results }, null, 1));
+  fs.writeFileSync(path.join(outDir, "results.json"), JSON.stringify({ dry, gistCosts, skipped, results, spent, maxCost, capped }, null, 1));
   fs.writeFileSync(path.join(outDir, "summary.md"), summaryMd(results, gistCosts, skipped, dry));
+  log(`SPENT: $${spent.toFixed(2)}${dry ? " (dry)" : ` of the $${maxCost.toFixed(2)} cap${capped ? " — stopped by the cap" : ""}`}`);
 
   // ── the blind pairs ─────────────────────────────────────────────────────────────────────────
   const [a, b] = pairRoutes;
@@ -368,6 +387,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const o = args(process.argv.slice(2));
   console.warn("⚠ the blind pairs carry résumé text: --out must be a directory OUTSIDE the repository.");
   runCompare({ out: o.out, dry: o.dry === true, routes: list(o.routes), resumes: list(o.resumes), jobs: list(o.jobs), pairs: list(o.pairs),
-               limitPairs: o["limit-pairs"], seed: o.seed, ownerUser: o["owner-user"], dbPath: o.db, rm: o.rm, allowInRepo: o["allow-in-repo"] === true })
+               limitPairs: o["limit-pairs"], maxCost: o["max-cost"], seed: o.seed, ownerUser: o["owner-user"], dbPath: o.db, rm: o.rm, allowInRepo: o["allow-in-repo"] === true })
     .catch(e => { console.error(e.message); process.exit(2); });
 }
