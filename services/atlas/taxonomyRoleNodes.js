@@ -16,6 +16,9 @@ import { upsertNode } from "./atlasStore.js";
 import { FAMILIES } from "../../shared/atlasFamilies.js";
 
 const FAMILY_BY_NAME = new Map(FAMILIES.map(f => [f.name.toLowerCase(), f.key]));
+// ⭐ 45n: the taxonomy writes a new family as "NEW: Security" — the families now exist (shared/atlasFamilies.js).
+const familyFor = (s) => FAMILY_BY_NAME.get(String(s.family || "").replace(/^NEW:\s*/i, "").trim().toLowerCase()) || null;
+export const TAXONOMY_PUBLISHER = "owner 11-08 (D179 decision 7)";
 // Title case, but a word that already carries capitals ("iOS", "ML", "FPGA") is left as written.
 const title = (s) => String(s || "").trim().split(/(\s+)/).map(w => (/[A-Z]/.test(w) || /^\s+$/.test(w) ? w
   : /^(and|of|for|the|in|on|to)$/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1))).join("");
@@ -27,7 +30,7 @@ export function roleNameFor(sub) {
 }
 
 export function seedTaxonomyRoles(db, taxonomyJson, { log = console } = {}) {
-  const out = { created: 0, linked: 0, skipped: 0 };
+  const out = { created: 0, linked: 0, skipped: 0, familied: 0, published: 0 };
   if (!taxonomyJson?.categories || !/^APPROVED/i.test(String(taxonomyJson.status || ""))) return out;
   const linked = new Set(db.prepare(`SELECT subcategory FROM atlas_taxonomy_roles`).all().map(r => r.subcategory));
   db.transaction(() => {
@@ -35,7 +38,12 @@ export function seedTaxonomyRoles(db, taxonomyJson, { log = console } = {}) {
       if (c.held) continue;
       for (const s of c.subcategories || []) {
         if (/\.general$/.test(s.id)) continue;
-        if (linked.has(s.id)) { out.skipped++; continue; }
+        if (linked.has(s.id)) {
+          // ⭐ 45n: a draft made before its family existed gets it now (only while it has none — the desk's choice wins).
+          const fam = familyFor(s);
+          if (fam) { try { out.familied += db.prepare(`UPDATE atlas_nodes SET family = ?, family_by = 'taxonomy' WHERE id = (SELECT node_id FROM atlas_taxonomy_roles WHERE subcategory = ?) AND family IS NULL AND source = 'taxonomy'`).run(fam, s.id).changes; } catch { /* no family column */ } }
+          out.skipped++; continue;
+        }
         const name = roleNameFor(s);
         const signals = (s.signals || []).slice(0, 5);
         const definition = `${c.name} › ${s.name}.${signals.length ? ` The work centres on ${signals.join(", ")}.` : ""}`;
@@ -44,14 +52,23 @@ export function seedTaxonomyRoles(db, taxonomyJson, { log = console } = {}) {
         const node = db.prepare(`SELECT id, kind FROM atlas_nodes WHERE id = ?`).get(id);
         if (!node || node.kind !== "role") { out.skipped++; continue; }   // a SKILL by that name exists — never turned into a role
         if (created) {
-          const fam = FAMILY_BY_NAME.get(String(s.family || "").toLowerCase()) || null;
+          const fam = familyFor(s);
           if (fam) { try { db.prepare(`UPDATE atlas_nodes SET family = ?, family_by = 'taxonomy' WHERE id = ?`).run(fam, id); } catch { /* no family column */ } }
           out.created++;
         } else out.linked++;
         db.prepare(`INSERT OR IGNORE INTO atlas_taxonomy_roles (subcategory, node_id, category) VALUES (?, ?, ?)`).run(s.id, id, c.id);
       }
     }
+    // ⭐ 45n (owner 11-08, decision (7): "publish the 134 role drafts") · the taxonomy's role drafts are published — once
+    // each: one the desk unpublished (unpublished_by set) stays unpublished. The 50 spot-checks do not hold this up.
+    const now = Math.floor(Date.now() / 1000);
+    try {
+      out.published = db.prepare(`UPDATE atlas_nodes SET status = 'published', published_at = ?, published_by = ?, updated_at = ?
+        WHERE kind = 'role' AND source = 'taxonomy' AND status = 'draft' AND unpublished_by IS NULL
+          AND id IN (SELECT node_id FROM atlas_taxonomy_roles)`).run(now, TAXONOMY_PUBLISHER, now).changes;
+    } catch (e) { log.warn?.(`[atlas] taxonomy roles: publish skipped (${e.message})`); }
   })();
+  if (out.published || out.familied) log.log?.(`[atlas] taxonomy roles: ${out.published} published, ${out.familied} given their new family`);
   if (out.created || out.linked) log.log?.(`[atlas] taxonomy roles: ${out.created} drafts created, ${out.linked} linked to existing roles`);
   return out;
 }
