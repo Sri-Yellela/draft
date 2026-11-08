@@ -39,7 +39,10 @@ export function publicCompany(db, slug, { now = Date.now() } = {}) {
   if (!SLUG_RE.test(s)) return null;
   const hit = pageCache.get(s);
   if (hit && now - hit.at < PAGE_TTL_MS) return hit.value;
-  const co = db.prepare(`SELECT id, slug, name, domain, parent_id FROM companies WHERE slug = ?`).get(s);
+  // The board links by the normalised name (client lib/companySlug.js); a slug that took a "-2" is found by its name alias.
+  const co = db.prepare(`SELECT id, slug, name, domain, parent_id FROM companies WHERE slug = ?`).get(s)
+    || db.prepare(`SELECT c.id, c.slug, c.name, c.domain, c.parent_id FROM company_aliases a JOIN companies c ON c.id = a.company_id
+         WHERE a.alias_key = ?`).get(`name:${s}`);
   if (!co) return null;
   const parent = co.parent_id ? db.prepare(`SELECT slug, name FROM companies WHERE id = ?`).get(co.parent_id) : null;
   const subsidiaries = db.prepare(`SELECT slug, name FROM companies WHERE parent_id = ? ORDER BY name LIMIT 20`).all(co.id);
