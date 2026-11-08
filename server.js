@@ -6885,6 +6885,16 @@ let classifyBacklog = null;
         CREATE INDEX IF NOT EXISTS idx_job_captures_user_job ON job_captures(user_id, job_id);
       `,
     },
+    {
+      // ⭐ D151 Rule 4 (measured 11-08 on the 100k fixture): the board's "being matched" read — the newest postings not yet
+      // scored for the person, ORDER BY COALESCE(posted_at, discovered_at) DESC LIMIT 2000 — sorted the whole active board
+      // to pick 2,000 (4.9 s on a copy; SCAN sj). A partial index on that recency, active postings only, lets it walk
+      // newest-first and stop (160 ms). The expression is the board's own, character for character. Only ADDS. After 228.
+      id: "229_scraped_jobs_active_recency",
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_active_recency ON scraped_jobs(COALESCE(posted_at, discovered_at) DESC) WHERE is_active = 1;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -11806,15 +11816,19 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // ⛔ A126 (7) · what the gate held back: counted (the board says "N more being matched") and queued, newest first.
       // First page only — paging the same board must not re-queue it.
       let beingMatched = 0;
+      let beingMatchedMore = false;
       if (scoreGateSql && pg === 1 && !rawCursor) {
         try {
           const heldSql = `${whereClauseFor(richFilters, { gate: false })} AND (aor.id IS NULL OR aor.basis_hash IS NOT '${gateBasis}')`;
-          beingMatched = (await readPool.get(`SELECT COUNT(*) AS n ${joinClause} ${heldSql}`, baseArgs))?.n || 0;
-          if (beingMatched) {
-            const held = await readPool.all(
-              `SELECT sj.job_id AS id ${joinClause} ${heldSql} ORDER BY COALESCE(sj.posted_at, sj.discovered_at) DESC LIMIT ${BOARD_MATCH_BATCH}`, baseArgs);
-            enqueueBoardMatch(req.user.id, sessionActiveProfile, held.map(r => r.id));
-          }
+          // ⭐ D151 Rule 4 (11-08): ONE read, not a COUNT over the whole board plus this list. Newest first through
+          // migration 229's partial recency index, stopping at BOARD_MATCH_BATCH + 1: fewer is the exact number, one
+          // more means "2,000+" (measured on the 100k copy: the COUNT 0.4 s + the list 4.9 s → the list 0.16 s).
+          const rows = await readPool.all(
+            `SELECT sj.job_id AS id ${joinClause} ${heldSql} ORDER BY COALESCE(sj.posted_at, sj.discovered_at) DESC LIMIT ${BOARD_MATCH_BATCH + 1}`, baseArgs);
+          beingMatchedMore = rows.length > BOARD_MATCH_BATCH;
+          const held = rows.slice(0, BOARD_MATCH_BATCH);
+          beingMatched = held.length;
+          if (beingMatched) enqueueBoardMatch(req.user.id, sessionActiveProfile, held.map(r => r.id));
         } catch (e) { console.warn("[board-match] count / queue:", e.message); }
       }
       const totalPages = Math.ceil(total / ps);
@@ -11934,6 +11948,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         paging: rawCursor ? 'cursor' : 'offset',
         // A126 (7): postings this board would show once matched — queued now; the board refreshes on `board_scored`.
         ...(beingMatched ? { beingMatched } : {}),
+        ...(beingMatchedMore ? { beingMatchedMore: true } : {}),
       };
 
       // Curation disclosure — now a statement about ORDER, not about a withheld remainder.

@@ -6334,4 +6334,14 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_job_captures_user_job ON job_captures(user_id, job_id);
       `,
     },
+    {
+      // ⭐ D151 Rule 4 (measured 11-08 on the 100k fixture): the board's "being matched" read — the newest postings not yet
+      // scored for the person, ORDER BY COALESCE(posted_at, discovered_at) DESC LIMIT 2000 — sorted the whole active board
+      // to pick 2,000 (4.9 s on a copy; SCAN sj). A partial index on that recency, active postings only, lets it walk
+      // newest-first and stop (160 ms). The expression is the board's own, character for character. Only ADDS. After 228.
+      id: "229_scraped_jobs_active_recency",
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_active_recency ON scraped_jobs(COALESCE(posted_at, discovered_at) DESC) WHERE is_active = 1;
+      `,
+    },
   ];
