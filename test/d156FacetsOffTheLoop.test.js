@@ -74,7 +74,8 @@ const ctx = { db: { prepare: () => ({ get: () => zeroRow, all: () => [] }) }, jo
 test("d156FacetsYieldBetweenAggregates: the loop is given back before each view count and each clause", async () => {
   const order = [];
   let measures = 0, breaths = 0;
-  const measureBoard = async (_q, fn) => { measures++; order.push("m"); return { status: 200, body: { measured: true, value: fn(ctx) } }; };
+  // The stub awaits the aggregate like the real measureBoard (45k: before, an un-awaited Promise spread into {} unnoticed).
+  const measureBoard = async (_q, fn) => { measures++; order.push("m"); return { status: 200, body: { measured: true, value: await fn(ctx) } }; };
   const r = await boardFacetsResponse({ query: {}, nowSec: 1_800_000_000, measureBoard, breathe: async () => { breaths++; order.push("b"); } });
   assert.equal(r.status, 200);
   assert.equal(breaths, measures - 1, "one breath before every aggregate after the head");
@@ -83,7 +84,7 @@ test("d156FacetsYieldBetweenAggregates: the loop is given back before each view 
   // With the real yield, something queued meanwhile (a health check) runs between the aggregates.
   const seen = [];
   let k = 0;
-  const measureReal = async (_q, fn) => { seen.push(`m${k++}`); if (k === 1) setImmediate(() => seen.push("other")); return { status: 200, body: { measured: true, value: fn(ctx) } }; };
+  const measureReal = async (_q, fn) => { seen.push(`m${k++}`); if (k === 1) setImmediate(() => seen.push("other")); return { status: 200, body: { measured: true, value: await fn(ctx) } }; };
   await boardFacetsResponse({ query: {}, nowSec: 1_800_000_000, measureBoard: measureReal });
   assert.equal(seen.indexOf("other"), 1, `the waiting work ran right after the head aggregate (${seen.slice(0, 4)})`);
 });

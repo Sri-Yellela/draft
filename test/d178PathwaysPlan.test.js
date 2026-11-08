@@ -7,6 +7,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { at } from "../test-support/sourceAnchors.js";
 import { pathwaysFrom, withDecks, buildPlan } from "../scripts/pathwaysFromPlaybook.mjs";
 import { pathwaysPlan } from "../services/learn/learnDecks.js";
 
@@ -20,7 +21,7 @@ test("d155PathwaysPlanShown: the plan file is Part C, current (scripts/pathwaysF
   assert.deepEqual(p.map(x => x.id), ["software", "data", "ml-ai", "cloud", "security", "embedded", "qa", "management", "beyond"]);
   assert.equal(p.at(-1).later, true, "the fields beyond computing wait for the board");
   // Every "- **Stage:** a · b" line of Part C is a stage, and every topic is kept in order.
-  const partC = md.slice(md.indexOf("## Part C"), md.indexOf("\n## Part", md.indexOf("## Part C") + 5));
+  const partC = md.slice(at(md, "## Part C"), at(md, "\n## Part", at(md, "## Part C") + 5));
   const lines = partC.split("\n").filter(l => /^- \*\*.+?:\*\* /.test(l));
   assert.equal(p.reduce((a, x) => a + x.stages.length, 0), lines.length);
   assert.deepEqual(p.flatMap(x => x.stages.flatMap(s => s.topics)), lines.flatMap(l => l.replace(/^- \*\*.+?:\*\* /, "").split(" · ").map(t => t.trim())));

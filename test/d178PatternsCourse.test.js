@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import express from "express";
 import Database from "better-sqlite3";
+import { at } from "../test-support/sourceAnchors.js";
 import { patternCourseOf, PATTERN_COURSE_ID } from "../services/learn/learnCourse.js";
 import { learnContent, LEARN_FILE } from "../services/learn/learnContent.js";
 
@@ -69,7 +70,7 @@ test("d178PatternsOwnCourse: GET /api/learn/course/coding-interview-patterns ser
 test("d178PatternsOwnCourse: on the shelf, its own page (no progress shown), and linked from Interview → drills", () => {
   const lib = read("client/src/pages/atlas/LibraryPanel.jsx");
   assert.match(lib, /\{ id: "coding-interview-patterns", title: "Coding interview patterns", art: "patterns", kind: "patterns" \}/);
-  const page = lib.slice(lib.indexOf("export function PatternCoursePage"), lib.indexOf("export function CoursePage"));
+  const page = lib.slice(at(lib, "export function PatternCoursePage"), at(lib, "export function CoursePage"));
   assert.doesNotMatch(page, /lessonState|courseProgress|\blit\b|% done|✓/, "no progress on the pattern course");
   assert.match(page, /data-course-no-progress=""/);
   assert.match(page, /to=\{stepHref\(m\.taughtIn\.stepId\)\}/);

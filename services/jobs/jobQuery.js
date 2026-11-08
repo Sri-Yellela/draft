@@ -982,8 +982,27 @@ function computeSkillsFacet(skillsJsonList) {
     .map(([value, count]) => ({ value, count }));
 }
 
+// ⭐ D151 (45k) · ONE GROUP BY over every asked dimension (a cross-tab: one row per distinct combination, each board row
+// in exactly one), summed per dimension here — the same per-value counts a GROUP BY of that dimension alone gives, NULL
+// dropped, in SQLite's ascending order (numbers before text). `rows` carry the dimensions as f0, f1, … and `count`.
+function facetsFromCrossTab(dims, rows) {
+  const out = {};
+  dims.forEach((dim, i) => {
+    const byValue = new Map();
+    for (const r of rows) {
+      const v = r[`f${i}`];
+      if (v != null) byValue.set(v, (byValue.get(v) || 0) + r.count);
+    }
+    const ordered = [...byValue.entries()].sort(([a], [b]) =>
+      (typeof a === typeof b ? (a < b ? -1 : a > b ? 1 : 0) : typeof a === 'number' ? -1 : 1));
+    out[dim] = ordered.map(([value, count]) => ({ value, count }));
+  });
+  return out;
+}
+
 export {
   buildJobFilters,
+  facetsFromCrossTab,
   buildSelectColumns,
   resolveFacetDimensions,
   computeSkillsFacet,

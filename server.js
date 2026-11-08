@@ -260,7 +260,7 @@ import { searchJobs, cacheJobs, reconcileFingerprint } from "./services/jobs/agg
 import { isResumeRelevant } from "./services/jobs/relevanceFilter.js";
 import {
   buildJobFilters, buildSelectColumns, resolveFacetDimensions, computeSkillsFacet,
-  FACET_DIMENSIONS, postedSinceSql, roleScopeExtraSql,
+  FACET_DIMENSIONS, facetsFromCrossTab, postedSinceSql, roleScopeExtraSql,
 } from "./services/jobs/jobQuery.js";
 // D24 · GET /api/jobs/facets — the sentence's counts, measured through boardPageResponse itself.
 import { boardFacetsResponse } from "./services/jobs/boardFacets.js";
@@ -12045,15 +12045,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
             ${joinClause} ${whereClause}
             GROUP BY ${plainDims.map((_d, i) => `f${i}`).join(', ')}
           `, baseArgs);
-          plainDims.forEach((dim, i) => {
-            const byValue = new Map();
-            for (const r of facetRows) {
-              const v = r[`f${i}`];
-              if (v != null) byValue.set(v, (byValue.get(v) || 0) + r.count);
-            }
-            const ordered = [...byValue.entries()].sort(([a], [b]) => (typeof a === typeof b ? (a < b ? -1 : a > b ? 1 : 0) : typeof a === 'number' ? -1 : 1));
-            facets[dim] = ordered.map(([value, count]) => ({ value, count }));
-          });
+          Object.assign(facets, facetsFromCrossTab(plainDims, facetRows));
         }
         if (facetDims.includes('skills')) {
           const skillsRows = await readPool.all(`SELECT sj.skills_json as skills_json ${joinClause} ${whereClause}`, baseArgs);
