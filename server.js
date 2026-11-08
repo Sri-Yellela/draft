@@ -160,6 +160,7 @@ import { roleReadiness } from "./services/atlas/roleReadiness.js";
 import { ogPng, cardFromQuery, ogUrl, ogImageMeta } from "./services/ogImage.js";
 import { practiceProgress } from "./services/learn/practiceProgress.js";
 import { stackExposure } from "./services/learn/stackExposure.js";
+import { phase1Measures } from "./services/admin/phase1Measures.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
 import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes, jobsSitemapPageCount, companiesSitemapRoutes, jobPath, atlasLinksFor } from "./services/jobs/publicJobPage.js";
@@ -12762,6 +12763,10 @@ app.get("/api/learn/today", requireAuth, (req, res) => {
     const aimGaps = () => (aimRole ? (roleReadiness(db, req.user.id, aimRole).moves || []).map(m => m.slug).filter(Boolean) : []);
     res.set("Cache-Control", "no-store").json(todaysQuestion(db, req.user.id, String(req.query.day || ""), { aimRole, aimGaps }));
   } catch (e) { auditFail(res, e); }
+});
+// ⭐ D150 T16 (45n) · Admin → Today → Phase 1 — the milestones measured (counts only; no person named).
+app.get("/api/admin/phase1", requireAdmin, (_req, res) => {
+  try { res.set("Cache-Control", "no-store").json(phase1Measures(db)); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // ⭐ D154 P6 + P7 (45n) · the quiet progress card — per-skill accuracy, the level from proof, the forgiving streak.
 app.get("/api/learn/progress", requireAuth, (req, res) => {

@@ -23,6 +23,7 @@ import { CalibrateTab } from "./adminCalibrate.jsx";
 import { ReadinessTab } from "./adminReadiness.jsx";
 import { QuestionBankTab } from "./adminQuestions.jsx";
 import { ProfileReportsTab } from "./adminReports.jsx";
+import { Phase1Tab } from "./adminPhase1.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
@@ -717,6 +718,8 @@ export function AdminPanel() {
       {/* D88 P3: the support queue; a ticket links to the person's page. */}
       {at("people", "support") && <SupportQueue theme={theme} onOpenPerson={openPerson}/>}
       {at("people", "messages") && <ContactMessagesSection theme={theme}/>}
+      {/* D150 T16: the Phase 1 milestones, measured. */}
+      {at("today", "phase1") && <Phase1Tab/>}
       {/* D183: the public profiles' report queue. */}
       {at("people", "reports") && <ProfileReportsTab/>}
       {/* D131: Testers — the readable page on top; both surveys and People & questions folded beneath it (the D124
