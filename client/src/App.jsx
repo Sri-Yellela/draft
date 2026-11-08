@@ -1,6 +1,6 @@
 // REVAMP v1 — App.jsx
 import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, setAuthContext }   from "./lib/api.js";
 import { adoptAccountTheme }     from "./styles/colorTokens.js";
 import { ContrastOffer }         from "./components/AppearanceSettings.jsx";
@@ -26,6 +26,7 @@ import { JobProfilesPanel }      from "./panels/JobProfilesPanel.jsx";
 import ProfilePage               from "./pages/profile/ProfilePage.jsx";
 import { profilePanelFor, profilePath, LEGACY_PROFILE_ROUTES } from "./pages/profile/profilePanels.js";
 import InterviewPage             from "./pages/interview/InterviewPage.jsx";
+import CompanyPage               from "./pages/companies/CompanyPage.jsx";   // D179 P4b
 import { interviewPanelFor, interviewPath } from "./pages/interview/interviewModel.js";
 import { PlansPanel }            from "./panels/PlansPanel.jsx";
 import DeckView                  from "./panels/DeckView.jsx";
@@ -377,11 +378,13 @@ function AppDashboard({ authUser, setAuthUser }) {
   // ⭐ D116 M7: and /app/atlas/family/:key, a family's page.
   // ⭐ D172 (2): and /app/atlas/library/:course, a course page.
   const atlasRoute = /^atlas(?:\/(?:family|library))?(?:\/[^/]+)?$/.test(routeKey);
+  // ⭐ D179 P4b · /app/companies/<slug> — a company's page inside the shell (the dock stays; Back returns).
+  const companyRoute = /^companies\/([a-z0-9][a-z0-9-]*)$/.exec(routeKey);
   // ⭐ D167 · /app/profile/<panel> and /app/interview/<panel> (pages/profile/profilePanels.js, pages/interview/interviewModel.js);
   // the bare /app/profile and /app/interview read a #<panel> hash. undefined = not that place; null = an unknown panel.
   const profilePanel = profilePanelFor(routeKey, location.hash);
   const interviewPanel = interviewPanelFor(routeKey, location.hash);
-  const activeTab = jobRoute ? "job" : atlasRoute ? "atlas"
+  const activeTab = jobRoute ? "job" : companyRoute ? "company" : atlasRoute ? "atlas"
     : profilePanel !== undefined ? "profile" : interviewPanel !== undefined ? "interview"
     : routeKey === CONSOLE_ROUTE || LEGACY_CONSOLE_ROUTES.has(routeKey)
     ? "console" : routeKey === "" ? "today" : routeKey;
@@ -655,6 +658,7 @@ function AppDashboard({ authUser, setAuthUser }) {
             {activeTab === "job-profiles" && <JobProfilesPanel/>}
             {activeTab === "recruiter"    && <RecruiterPanel/>}
             {activeTab === "atlas"        && <AtlasPage base="/app/atlas"/>}
+            {activeTab === "company" && companyRoute && <CompanyPage slug={companyRoute[1]} base="/app/companies" inApp/>}
           </main>
 
           {/* JobDetailPanel moved into JobsPanel, which is where the PDF and ATS panels live and
@@ -695,6 +699,12 @@ function ToApp() {
 }
 
 /** D105 P4: a signed-in person opening a public /atlas link lands on the same page inside the app. */
+/** D179 P4b · /companies/:slug signed out — the company page under the marketing nav. */
+function PublicCompanyRoute() {
+  const { slug } = useParams();
+  return <CompanyPage slug={String(slug || "").toLowerCase()} base="/companies"/>;
+}
+
 function AtlasInApp() {
   const { pathname, search } = useLocation();
   return <Navigate to={`/app${pathname}${search}`} replace/>;
@@ -844,6 +854,13 @@ function AppRouter() {
           authStatus === "authenticated" && authUser && !authUser.isAdmin
             ? <AtlasInApp/>
             : <AtlasPage base="/atlas" publicChrome/>
+        }/>
+
+        {/* ⭐ D179 P4b · a page for every company — PUBLIC (no sign-in); a signed-in reader gets it inside the app. */}
+        <Route path="/companies/:slug" element={
+          authStatus === "authenticated" && authUser && !authUser.isAdmin
+            ? <AtlasInApp/>
+            : <>{navBar}<PublicCompanyRoute/></>
         }/>
 
         {/* ⭐ D167 · /profile/<panel> and /interview/<panel> without /app — the in-app place, for a signed-in reader. */}

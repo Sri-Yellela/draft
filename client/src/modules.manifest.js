@@ -75,6 +75,8 @@ export const MODULES = Object.freeze({
     css: ["pages/profile/ProfilePage.css"], members: ["App.jsx", "pages/profile/ProfilePage.jsx", "pages/profile/profilePanels.js"] },
   interview: { why: "Interview (D167) — Coming up, Prepare, Practise, After; D110's prep, bank and debriefs",
     css: ["pages/interview/InterviewPage.css"], members: ["App.jsx", "pages/interview/InterviewPage.jsx", "pages/interview/interviewModel.js"] },
+  companies: { why: "D179 P4b — a page for every company, public at /companies/<slug> and inside the shell at /app/companies/<slug>",
+    css: ["pages/companies/CompanyPage.css"], members: ["App.jsx", "pages/companies/CompanyPage.jsx"] },
 });
 
 // ── SHARED: every file under components/, styles/, lib/, hooks/, contexts/, themes/, consoles/.
