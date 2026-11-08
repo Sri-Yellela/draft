@@ -490,7 +490,7 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
           fields={[{ k: "kind", label: "Kind (LinkedIn, GitHub, website)" }, { k: "url", label: "Address (https://…)", type: "url" }]}
           onSave={(items) => saveSection("links", { items })}
           render={(x) => (renderLink ? renderLink(x)
-            : <span style={{ fontSize: 13, color: theme.text }}><a href={x.url} target="_blank" rel="noreferrer">{x.url}</a></span>)} />
+            : <span style={{ fontSize: 13, color: theme.text }}>{x.kind}: <a href={x.url} target="_blank" rel="noreferrer">{x.url}</a></span>)} />
       </Box>}
 
       {part("defaults") && <Box title="Application defaults" theme={theme}

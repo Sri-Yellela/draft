@@ -76,8 +76,7 @@ export function foldValues(s, { notify = null, held = false, accounts = null, li
   };
 }
 
-// A fold: its one line (a button that opens it in place), and — open — the headline, the controls, Done (D182: no
-// eyebrow repeating the fold's title — the headline says what it is).
+// A fold: its one line (a button that opens it in place), and — open — the eyebrow, the headline, the controls, Done.
 // ⭐ D149 (11-03): the sketch's .gq — .top (the line), .body (eyebrow · h3 · controls · .done2); Done is the sketch's
 // accent button, not the old depth box.
 function Fold({ id, title, value, headline, open, onOpen, onDone, children }) {
@@ -88,6 +87,7 @@ function Fold({ id, title, value, headline, open, onOpen, onDone, children }) {
       </button>
       {open && (
         <div className="dh-fold2__body" id={`dh-fb-${id}`}>
+          <p className="dh-fold2__eyebrow">{title}</p>
           <h3 className="dh-fold2__h">{headline}</h3>
           {children}
           <button type="button" className="dh-fold2__done" onClick={onDone} data-fold-done={id}>Done</button>

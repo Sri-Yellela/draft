@@ -2,6 +2,7 @@
    ⛔ No capsules (D60 / D152 (7b)): a state is a 6px dot + a plain word; buttons are depth boxes or quiet words; the
    map's dots are perfect circles. Phone width: rows wrap, nothing scrolls sideways. */
 .ysk { min-width: 0; color: var(--c-ink); font-family: var(--font-body); overflow-wrap: anywhere; }
+.ysk__eyebrow { margin: 4px 0 8px; color: var(--c-accent-ink); font-size: 14px; }
 .ysk__h2 { margin: 0 0 10px; font-weight: 500; font-size: clamp(30px, 5vw, 44px); line-height: 1.02; letter-spacing: -.035em; }
 .ysk__lead { margin: 0 0 22px; max-width: 60ch; color: var(--c-ink-muted); font-size: 16px; line-height: 1.5; }
 .ysk__quiet { margin: 6px 0; font-size: 12.5px; line-height: 1.5; color: var(--c-ink-faint); }

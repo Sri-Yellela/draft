@@ -117,8 +117,8 @@ function PanelMasthead({ job, experience, vtTitle, matchBox, matchPanel = null }
         <dl className="posting__strip" data-posting-strip>
           {all.map(c => {
             const inner = (<>
-              {/* D182 (45n, owner 11-08): Salary and Workstyle read for themselves — their labels are for screen readers only. */}
-              <dt className={c.labelHidden || c.key === "salary" ? "posting__k--sr" : undefined}>{c.label}</dt>
+              {/* D149: every cell shows its label here (the sketch labels Workstyle too). */}
+              <dt>{c.label}</dt>
               <dd>{c.value ?? <span className="posting__ns">{c.missing === "unread" ? COULD_NOT_READ : NOT_STATED}</span>}</dd>
               {c.sub && c.key !== "workstyle" && <dd className="posting__sub" data-cell-sub="">{c.sub}</dd>}
             </>);
@@ -170,7 +170,7 @@ export function PostingLiveness({ liveness }) {
   if (!liveness?.label) return null;
   return (
     <p className="posting__details" data-posting-liveness={liveness.kind}>
-      {liveness.label}
+      <span className="posting__details-k">History</span> {liveness.label}
     </p>
   );
 }
@@ -184,7 +184,7 @@ export function PostingGhost({ ghost }) {
   if (!line) return null;
   return (
     <p className="posting__details" data-posting-ghost={ghost.level}>
-      {line}.
+      <span className="posting__details-k">Hiring?</span> {line}.
     </p>
   );
 }
@@ -195,7 +195,7 @@ export function PostingLevel({ levelRead }) {
   if (!d) return null;
   return (
     <p className="posting__details" data-posting-level={d.direction}>
-      {d.text}
+      <span className="posting__details-k">Level</span> {d.text}
     </p>
   );
 }
@@ -207,7 +207,7 @@ export function PostingApplyLine({ job }) {
   if (!line) return null;
   return (
     <p className="posting__details" data-apply-line={line.verdict}>
-      {line.text}
+      <span className="posting__details-k">In short</span> {line.text}
     </p>
   );
 }

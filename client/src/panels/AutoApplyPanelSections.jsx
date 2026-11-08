@@ -91,8 +91,7 @@ export function ApplicationObstacleCard({
   app, theme, artifactUrl, onResolve, resolveLabel, resolveTitle, onDetails, onRerun, packet,
   onGenerateResume, plan = null, onGroupAction, detailsLabel, children,
 }) {
-  const sub = [app.attempts > 1 ? `${app.attempts} attempts` : null,
-    app.when ? new Date(app.when).toLocaleDateString() : null].filter(Boolean).join(" · ");
+  const many = app.reasons.length > 1;
   const tone = app.postingGone ? C.INK_FAINT : app.protective ? C.WARNING : C.DANGER;
   const stale = packet?.stale;
 
@@ -124,9 +123,13 @@ export function ApplicationObstacleCard({
               <span style={{ fontSize: 10, color: theme.textDim, fontWeight: 600 }}> · {app.jobId}</span>
             )}
           </div>
-          {/* D182 (45n): no "One application · N things to resolve" — the card is the one application and the big
-              N "to resolve" beside it is the count. Only the attempts and the date are said here. */}
-          {sub && <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>{sub}</div>}
+          {/* "1 application, 3 things to resolve" — the honest count. Three cards each saying
+              "1 APPLICATION" made three jobs' worth of work out of one. */}
+          <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>
+            One application · {app.reasons.length} thing{many ? "s" : ""} to resolve
+            {app.attempts > 1 && ` · ${app.attempts} attempts`}
+            {app.when ? ` · ${new Date(app.when).toLocaleDateString()}` : ""}
+          </div>
         </div>
         {/* The count is of OBSTACLES here, not applications: this card IS one application, and a
             big "1" beside it was the number that made three cards look like three jobs. */}
@@ -164,6 +167,10 @@ export function ApplicationObstacleCard({
                                textTransform: "uppercase", color: theme.textDim }}>unblocked</span>
               </div>
               <div style={{ flex: 1, minWidth: 160 }}>
+                <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.08em",
+                              textTransform: "uppercase", color: C.INFO, marginBottom: 2 }}>
+                  one action, {item.unblocks} applications
+                </div>
                 <div style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.45 }}>
                   {item.headline}
                 </div>
