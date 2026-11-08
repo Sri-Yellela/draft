@@ -189,7 +189,7 @@ import { recordAtsOutcome } from "./services/usageTracker.js";
 // A4 — generation, the A+ rewrite and PDF parsing belong to the résumé tools service; draft calls it as a client.
 import { createToolsServiceClient, recordToolsServiceUsage, httpErrorFor, ToolsServiceError, isFundingFailure } from "./services/toolsService.js";
 import { generateRequest as toolsGenerateRequest } from "./services/toolsServiceRequests.js";
-import { aPlusOverride, servedPromptMode, APLUS_OVERRIDE_KEY } from "./services/leanTailoring.js";
+import { aPlusOverride, servedPromptMode, APLUS_OVERRIDE_KEY, aPlusLeanWhenStrong, APLUS_LEAN_KEY, APLUS_LEAN_MIN_KEY } from "./services/leanTailoring.js";
 import { tailoringFor, tailoringState, leanJobKeywords, payloadJobKeywords, fullPostingText, LEAN_LEDGER_RENAME, TAILORINGS, TAILORING_KEY,
          MODEL_CHOICES, MODEL_LABELS, MODEL_DEFAULT_KEY, MODELS_OFFERED_KEY, modelSettings, modelFor, userModelChoice } from "./services/leanTailoring.js";
 import { cleanLinkPath } from "./services/linkPunctuation.js";
@@ -10992,8 +10992,10 @@ app.delete("/api/admin/full-auto", requireAdmin, (req, res) => {
 const tailoringAdminView = () => ({ ...tailoringState(db), models: { ...modelSettings(db), choices: [...MODEL_CHOICES], labels: MODEL_LABELS } });
 app.get("/api/admin/tailoring", requireAdmin, (_req, res) => res.json(tailoringAdminView()));
 app.put("/api/admin/tailoring", requireAdmin, (req, res) => {
-  const { mode, modelDefault, modelsOffered, aPlus } = req.body || {};
+  const { mode, modelDefault, modelsOffered, aPlus, aPlusLean, aPlusLeanMin } = req.body || {};
   if (aPlus !== undefined && typeof aPlus !== "boolean") return res.status(400).json({ error: "aPlus must be true or false" });
+  if (aPlusLean !== undefined && typeof aPlusLean !== "boolean") return res.status(400).json({ error: "aPlusLean must be true or false" });
+  if (aPlusLeanMin !== undefined && !(Number.isInteger(aPlusLeanMin) && aPlusLeanMin >= 1 && aPlusLeanMin <= 100)) return res.status(400).json({ error: "aPlusLeanMin must be a whole number 1–100" });
   if (mode !== undefined && !TAILORINGS.includes(mode)) return res.status(400).json({ error: `mode must be one of ${TAILORINGS.join(", ")}` });
   if (modelDefault !== undefined && modelDefault !== "service" && !MODEL_CHOICES.includes(modelDefault)) {
     return res.status(400).json({ error: `modelDefault must be service or one of ${MODEL_CHOICES.join(", ")}` });
@@ -11009,6 +11011,14 @@ app.put("/api/admin/tailoring", requireAdmin, (req, res) => {
     if (aPlus) setSetting(db, APLUS_OVERRIDE_KEY, "on"); else clearSetting(db, APLUS_OVERRIDE_KEY);
     try { writeAudit(db, { actor: actorOf(req), action: "tailoring_aplus_override", target: APLUS_OVERRIDE_KEY, before: { on: before }, after: { on: aPlus } }); }
     catch (e) { console.warn("[tailoring] the A+ override's audit row was not written:", e.message); }
+  }
+  // ⭐ A137 (45n): the lean-when-strong switch (OFF by default) and its minimum, audited like the override.
+  if (aPlusLean !== undefined || aPlusLeanMin !== undefined) {
+    const before = aPlusLeanWhenStrong(db);
+    if (aPlusLean !== undefined) { if (aPlusLean) setSetting(db, APLUS_LEAN_KEY, "on"); else clearSetting(db, APLUS_LEAN_KEY); }
+    if (aPlusLeanMin !== undefined) setSetting(db, APLUS_LEAN_MIN_KEY, String(aPlusLeanMin));
+    try { writeAudit(db, { actor: actorOf(req), action: "tailoring_aplus_lean", target: APLUS_LEAN_KEY, before, after: aPlusLeanWhenStrong(db) }); }
+    catch (e) { console.warn("[tailoring] the A137 audit row was not written:", e.message); }
   }
   const view = tailoringAdminView();
   console.warn(`[tailoring] mode ${view.mode} (${view.source}), model default ${view.models.default}, offered ${view.models.offered.join(",") || "none"}, A+ override ${view.aPlusOverride ? "ON" : "off"} — set by ${actorRef(req)}`);
@@ -14060,8 +14070,8 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   // ⛔ Owner 11-07: A+ is off the default path — an A+ request is served as a Generate with the admin's strategy × model
   // unless the owner's override (Admin → Ops → Tailoring) is on. The artifact keeps the tool that was asked — its
   // lookups key on it; the ledger says what was actually served.
-  const promptMode   = servedPromptMode(db, tool);
-  const eventSubtype = promptMode;
+  let promptMode     = servedPromptMode(db, tool);
+  let eventSubtype   = promptMode;
 
   const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {};
   const activeDomainProfile = db.prepare(
@@ -14098,7 +14108,23 @@ async function coreGenerateResume({ userId, jobId, job, tool, resumeText = "", e
   // D123 (11-01): Admin → Ops → Tailoring's switch (app_settings) wins over DRAFT_TAILORING; "payload" adds the job block
   // and the per-employer gists (built once per résumé), "code" calls no model (P6d). The model is the person's pick while
   // the admin offers it, else the admin's default (services/leanTailoring.js modelFor).
-  const tailoring = promptMode === "GENERATE" ? tailoringFor({ db, env: process.env }) : "full";
+  // ⭐ A137 (a) (45n, owner 11-08 ↺): while A+ is served and the switch is on, a base that already scores ≥ the minimum
+  // against this posting goes as a lean GENERATE (services/leanTailoring.js aPlusLeanWhenStrong; OFF by default).
+  let aPlusLeaned = false;
+  if (promptMode === "A_PLUS") {
+    const a137 = aPlusLeanWhenStrong(db);
+    if (a137.on) {
+      try {
+        const p0 = getOrRepairActiveProfile(userId);
+        const s0 = scoreAtsLocally({ job: { ...job, description: fullPostingText(job) },
+          runtimeBasis: buildRuntimeAtsBasis({ resumeText: authoritativeResumeText,
+            signalProfile: p0 ? loadOrCreateSimpleApplyProfile(db, { userId, profileId: p0.id }) : null, domainProfile: p0, claims: atsClaims(p0) }),
+          termWeights: atsTermWeightsForJob(job), synonyms: atsSynonyms() }).score;
+        if (Number.isFinite(s0) && s0 >= a137.min) { promptMode = "GENERATE"; eventSubtype = "GENERATE"; aPlusLeaned = true; }
+      } catch (e) { console.warn("[generate] A137: could not score the base, keeping A+:", e.message); }
+    }
+  }
+  const tailoring = aPlusLeaned ? "lean" : promptMode === "GENERATE" ? tailoringFor({ db, env: process.env }) : "full";
   let leanKeywords = null;
   let tailorGists = null;
   if (tailoring !== "full") {
