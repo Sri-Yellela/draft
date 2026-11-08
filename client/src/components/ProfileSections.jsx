@@ -323,7 +323,15 @@ export function BoldTerms({ text, re }) {
   return parts.map((part, i) => (i % 2 === 1 ? <b key={i} data-term="">{part}</b> : part));
 }
 
-export default function ProfileSections({ theme, highlight = [] }) {
+// ⭐ D183 P1 · THE PROFILE PAGE DRAWS ITS SECTIONS WITH THESE SAME EDITORS (pages/profile/YourProfile.jsx) — nothing is built
+// twice. `parts` picks what this mount draws (status · summary · experience · projects · proofpage · education · skills ·
+// links · defaults; all when omitted), `titles` renames a box (Summary → About), `eyeFor(id)` puts the section's eye in
+// its box's corner, `slots` puts the page's own sections between them (Skills + Where you fit after Experience,
+// Achievements after Projects), `renderLink` draws a link (GitHub / LinkedIn as their marks), and `onChanged` tells the
+// page a section was saved (its header and skills re-read).
+export default function ProfileSections({ theme, highlight = [], parts = null, titles = {}, eyeFor = null, slots = {}, renderLink = null, onChanged = null }) {
+  const part = (x) => !parts || parts.includes(x);
+  const eye = (id) => (eyeFor ? eyeFor(id) : null);
   const [p, setP] = useState(null);
   const [msg, setMsg] = useState("");
   const [busyKey, setBusyKey] = useState(null);
@@ -336,7 +344,7 @@ export default function ProfileSections({ theme, highlight = [] }) {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const saveSection = async (section, body) => setP(await api(`/api/profile/sections/${section}`, { method: "PUT", body: JSON.stringify(body) }));
+  const saveSection = async (section, body) => { setP(await api(`/api/profile/sections/${section}`, { method: "PUT", body: JSON.stringify(body) })); onChanged?.(); };
   const setDefault = async (key, value) => {
     setBusyKey(key); setMsg("");
     try {
@@ -345,7 +353,7 @@ export default function ProfileSections({ theme, highlight = [] }) {
     } catch (e) { setMsg(e.message || "Not saved."); } finally { setBusyKey(null); }
   };
   const useResume = async () => {
-    try { setP(await api("/api/profile/sections/use-resume", { method: "POST" })); } catch (e) { setMsg(e.message || "Could not use it."); }
+    try { setP(await api("/api/profile/sections/use-resume", { method: "POST" })); onChanged?.(); } catch (e) { setMsg(e.message || "Could not use it."); }
   };
 
   if (!p) return <p style={{ fontSize: 12, color: theme.textMuted }}>{msg || "Loading your profile…"}</p>;
@@ -358,7 +366,7 @@ export default function ProfileSections({ theme, highlight = [] }) {
   const muted = { fontSize: 12, color: theme.textMuted };
   return (
     <div data-profile-sections="">
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
+      {part("status") && <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
         <span data-completeness="" style={markStyle(p.completeness.done === p.completeness.of ? C.SUCCESS : C.INFO)}>
           {p.completeness.done} of {p.completeness.of} complete</span>
         {p.suggestion && (
@@ -367,10 +375,10 @@ export default function ProfileSections({ theme, highlight = [] }) {
             <button className="rm-btn rm-btn-primary rm-btn-sm" onClick={useResume}>Use it</button>
           </span>
         )}
-      </div>
+      </div>}
       {msg && <p role="alert" style={{ ...muted, color: C.DANGER }}>{msg}</p>}
 
-      <Box title="Summary" theme={theme}>
+      {part("summary") && <Box title={titles.summary || "Summary"} right={eye("about")} theme={theme}>
         {summary == null ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <span style={{ fontSize: 13, color: theme.text, whiteSpace: "pre-wrap" }}>{s.summary || <span style={muted}>No summary yet.</span>}</span>
@@ -388,9 +396,9 @@ export default function ProfileSections({ theme, highlight = [] }) {
             </div>
           </div>
         )}
-      </Box>
+      </Box>}
 
-      <Box title="Your experience" theme={theme}>
+      {part("experience") && <Box title={titles.experience || "Your experience"} right={eye("experience")} theme={theme}>
         <ListEditor theme={theme} items={s.experience} addLabel="+ Add a role"
           blank={{ company: "", title: "", location: "", start: "", end: "", current: false, bullets: [] }}
           fields={[{ k: "company", label: "Company" }, { k: "title", label: "Title" }, { k: "location", label: "Location" },
@@ -418,15 +426,17 @@ export default function ProfileSections({ theme, highlight = [] }) {
               </div>
             </div>
           )} />
-      </Box>
+      </Box>}
 
-      {unsaid.length > 0 && (
+      {part("experience") && unsaid.length > 0 && (
         <p data-terms-unsaid="" style={{ ...muted, margin: "-8px 0 20px", lineHeight: 1.7 }}>
           Also on your résumé: {unsaid.map((term, i) => <span key={term}>{i ? ", " : ""}<b style={{ color: theme.text }}>{term}</b></span>)}
         </p>
       )}
 
-      <Box title="Projects" theme={theme}>
+      {slots.afterExperience || null}
+
+      {part("projects") && <Box title={titles.projects || "Projects"} right={eye("projects")} theme={theme}>
         <ListEditor theme={theme} items={s.projects || []} addLabel="+ Add a project" blank={{ name: "", description: "" }}
           fields={[{ k: "name", label: "Project" }, { k: "description", label: "What it is (optional)", wide: true }]}
           onSave={(items) => saveSection("projects", { items: items.map(x => ({ name: x.name, description: x.description })) })}
@@ -439,13 +449,15 @@ export default function ProfileSections({ theme, highlight = [] }) {
               <EvidenceLinks theme={theme} target="project" claim={x.name} links={x.evidence || []} onSaved={setP} />
             </div>
           )} />
-      </Box>
+      </Box>}
 
-      <Box title="Proof page" theme={theme}>
+      {slots.afterProjects || null}
+
+      {part("proofpage") && <Box title="Proof page" theme={theme}>
         <ProofPageSetting theme={theme} />
-      </Box>
+      </Box>}
 
-      <Box title="Education" theme={theme}>
+      {part("education") && <Box title={titles.education || "Education"} right={eye("education")} theme={theme}>
         <HighestDegree theme={theme} education={p.education} onSaved={setP} />
         <ListEditor theme={theme} items={s.education} addLabel="+ Add a school"
           blank={{ school: "", degree: "", field: "", start: "", end: "" }}
@@ -458,11 +470,11 @@ export default function ProfileSections({ theme, highlight = [] }) {
               <div style={muted}>{[x.degree, x.field].filter(Boolean).join(", ")}{x.end ? ` · ${ymLabel(x.end)}` : ""}</div>
             </div>
           )} />
-      </Box>
+      </Box>}
 
       {/* A140: the Skills list is no longer its own section — its skills are bold in the experience above (or listed under
           it); the list stays editable here, folded. */}
-      <details data-skills-edit="" style={{ marginBottom: 20 }}>
+      {part("skills") && <details data-skills-edit="" style={{ marginBottom: 20 }}>
         <summary style={{ ...muted, cursor: "pointer", marginBottom: 10 }}>Edit your skills ({(s.skills || []).length})</summary>
         <ListEditor theme={theme} items={s.skills} addLabel="+ Add a skill" blank={{ name: "", category: "" }}
           fields={[{ k: "name", label: "Skill" }, { k: "category", label: "Group (optional)" }]}
@@ -471,16 +483,17 @@ export default function ProfileSections({ theme, highlight = [] }) {
             ? <a href={atlasHref(atlasSlugs[String(x.name ?? "").trim()])} target="_blank" rel="noopener noreferrer" data-atlas-link=""
                 title={`About ${x.name} in the Atlas`} style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 2 }}>{x.name}</a>
             : x.name}</span>} />
-      </details>
+      </details>}
 
-      <Box title="Links" theme={theme}>
+      {part("links") && <Box title={titles.links || "Links"} right={eye("links")} theme={theme}>
         <ListEditor theme={theme} items={s.links} addLabel="+ Add a link" blank={{ kind: "website", url: "" }}
           fields={[{ k: "kind", label: "Kind (LinkedIn, GitHub, website)" }, { k: "url", label: "Address (https://…)", type: "url" }]}
           onSave={(items) => saveSection("links", { items })}
-          render={(x) => <span style={{ fontSize: 13, color: theme.text }}>{x.kind}: <a href={x.url} target="_blank" rel="noreferrer">{x.url}</a></span>} />
-      </Box>
+          render={(x) => (renderLink ? renderLink(x)
+            : <span style={{ fontSize: 13, color: theme.text }}>{x.kind}: <a href={x.url} target="_blank" rel="noreferrer">{x.url}</a></span>)} />
+      </Box>}
 
-      <Box title="Application defaults" theme={theme}
+      {part("defaults") && <Box title="Application defaults" theme={theme}
         right={<span style={muted}>Saved as you change them</span>}>
         <p style={{ ...muted, margin: "0 0 12px", lineHeight: 1.6 }} data-defaults-rule="">
           What draft answers when a form asks. <b>Not set</b> is never answered for you — the question waits for you in
@@ -494,7 +507,7 @@ export default function ProfileSections({ theme, highlight = [] }) {
             </div>
           </div>
         ))}
-      </Box>
+      </Box>}
     </div>
   );
 }

@@ -208,7 +208,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D169 (223): what proved each skill, the quick checks taken, and the skills held for the Atlas's curator.
   "skill_proofs", "skill_quick_checks", "atlas_skill_holds",
   // D172 (3) (226): the points each piece of proof earned.
-  "proof_points"];
+  "proof_points",
+  // D183 P1 (243): who can see the profile page, and the achievements added by hand.
+  "profile_page", "profile_achievements"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -341,6 +343,9 @@ export const MERGE_PLAN = Object.freeze({
   company_follows: "keepInto",
   // D154 P1 (240): one daily question per (user, day) — INTO's day stands on a clash; FROM's fill the rest.
   daily_questions: "keepInto",
+  // D183 P1 (243): who can see the profile page — one row per user; INTO's setting stands (the safer, its own choice);
+  // FROM's fills an INTO that has none. Hand-added achievements are a person's LIST, like D101's — FROM's fill an empty INTO.
+  profile_page: "keepInto", profile_achievements: "ifIntoEmpty",
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */

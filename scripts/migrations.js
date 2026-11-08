@@ -6587,4 +6587,32 @@ export const MIGRATIONS = [
         ALTER TABLE daily_questions ADD COLUMN response_json TEXT;
       `,
     },
+    {
+      // ⭐ D183 P1 (owner 11-08, TOP PRIORITY): Profile = your page. Who can see it (page level, DEFAULT only_me; each
+      // section's own eye in sections_json, never wider than the page), search engines (off), Open to work / referrals,
+      // the headline; and the achievements added by hand. services/profilePage.js. Only ADDS.
+      id: "243_profile_page",
+      sql: `
+        CREATE TABLE IF NOT EXISTS profile_page (
+          user_id       INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          page_level    TEXT NOT NULL DEFAULT 'only_me' CHECK (page_level IN ('only_me', 'connections', 'public')),
+          sections_json TEXT NOT NULL DEFAULT '{}',
+          searchable    INTEGER NOT NULL DEFAULT 0,
+          open_to_work  INTEGER NOT NULL DEFAULT 0,
+          referrals     INTEGER NOT NULL DEFAULT 0,
+          headline      TEXT,
+          updated_at    INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS profile_achievements (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          title      TEXT NOT NULL,
+          detail     TEXT,
+          year       INTEGER,
+          position   INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_profile_achievements_user ON profile_achievements(user_id, position);
+      `,
+    },
   ];

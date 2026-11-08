@@ -15,7 +15,7 @@ export const PROFILE_BASE = "/app/profile";
 /** The nav, in the sketch's order: three groups, nine panels. `id` is the address; the labels are the sketch's. */
 export const PROFILE_GROUPS = Object.freeze([
   { label: "You", items: [
-    { id: "about", label: "About you" },   // ⭐ A140 (owner 11-08): About you + Your résumés, one panel
+    { id: "about", label: "Your profile" },   // ⭐ A140: About you + Your résumés, one panel · ⭐ D183 P1: "Your profile" (spec nav)
     { id: "answers", label: "Saved answers" },
   ] },
   { label: "Applying", items: [

@@ -32,6 +32,7 @@ import { SavedAnswersPanel } from "../../panels/SavedAnswersPanel.jsx";
 import { IntegrationsPanel } from "../../panels/IntegrationsPanel.jsx";
 import { AccountPanel } from "../../panels/AccountPanel.jsx";
 import CustomisePanel from "../../panels/CustomisePanel.jsx";
+import YourProfile from "./YourProfile.jsx";
 import { EXTENSION_PAGE } from "../../../../shared/extension.js";
 import { PROFILE_GROUPS, profilePath } from "./profilePanels.js";
 import "./ProfilePage.css";
@@ -44,15 +45,6 @@ export const ACCOUNT_CARDS = Object.freeze({
   privacy: ["data", "delete"],
   account: ["profile", "email", "security", "sessions", "merge", "allowance", "help", "signout"],
 });
-
-function SkillsLine() {
-  return (
-    <div className="pf__link" data-skills-in-atlas="">
-      <p><b>Your skills now live in Atlas,</b> next to your map, where you can check and prove them.</p>
-      <Link className="pf__btn" to="/app/atlas/your-skills" data-open-your-skills="">Open your skills</Link>
-    </div>
-  );
-}
 
 function ProfileAutoApply() {
   const { runBar = null, setApplyMode, holdBusy = false, setStopEverything } = useAutoApply() || {};
@@ -134,13 +126,19 @@ export default function ProfilePage({ panel = "about", onSignedOut }) {
   // fields and extras; Your résumés' job profiles, the base résumé (upload, text, enhance), its extracted titles / years /
   // search terms / structured facts / ATS suggestions (the skills and keywords editors folded), and Account's "How your
   // résumés are tailored". /app/profile/resumes lands here (profilePanels.profilePanelFor).
+  // ⭐ D183 P1 (owner 11-08, TOP PRIORITY): About you becomes YOUR PROFILE — one page from the résumé, private by default
+  // (pages/profile/YourProfile.jsx). Everything A140's panel held is still here: the résumé view's sections are the page's
+  // sections (the same editors), and the private machinery — contact fields, the job profiles, the base résumé and its
+  // signals, How your résumés are tailored — sits folded under "Behind your profile" (ProfilePanel without its résumé view).
+  // The old "Your skills now live in Atlas" line is the Skills section's own link now.
   if (panel === "about") body = (
     <>
-      <PlaceHead eyebrow="About you" title="You and your résumé"
-        lead="What draft uses to fill applications, tailor your résumé and pick your jobs. Only what you've told us is shown." />
-      <SkillsLine />
-      <ProfilePanel section={["about", "resumes"]} onOpenJobProfiles={() => navigate("/app/job-profiles")} />
-      <AccountPanel only={ACCOUNT_CARDS.about} />
+      <PlaceHead eyebrow="Your profile" title="Your page, from your résumé"
+        lead="Only you can see it until you choose otherwise. Each section has its own eye." />
+      <YourProfile behind={<>
+        <ProfilePanel section={["about", "resumes"]} resumeView={false} onOpenJobProfiles={() => navigate("/app/job-profiles")} />
+        <AccountPanel only={ACCOUNT_CARDS.about} />
+      </>} />
     </>
   );
   else if (panel === "answers") body = (

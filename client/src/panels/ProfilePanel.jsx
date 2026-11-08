@@ -346,7 +346,9 @@ function CustomAnswerRow({ question, answer, overrides, onRename, onAnswer, onDe
   );
 }
 
-export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null }) {
+// ⭐ D183 P1: `resumeView={false}` — the Profile page draws the résumé view itself (pages/profile/YourProfile.jsx, with the
+// same ProfileSections editors) and mounts this panel under "Behind your profile" for the private machinery only.
+export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, resumeView = true }) {
   const { theme } = useTheme();
   // ⭐ D167: Profile has its own navigation now (pages/profile/ProfilePage.jsx) and this page is drawn in three of its
   // panels — About you ("about"), Your résumés ("resumes"), Saved answers ("answers"). `section` picks the part; with no
@@ -826,7 +828,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null }) {
             place) LEADS About you. It was mounted below three blocks of text fields and read as missing. The contact,
             address and visa fields the form-filler needs fold into one closed section under it. */}
         {/* A140: the job profile's extracted skills and keywords are drawn bold in the experience (no separate section). */}
-        <ProfileSections theme={theme} highlight={[...splitChipText(signalsForm.keywords), ...splitChipText(signalsForm.skills)]}/>
+        {resumeView && <ProfileSections theme={theme} highlight={[...splitChipText(signalsForm.keywords), ...splitChipText(signalsForm.skills)]}/>}
         <details data-contact-fields="" style={{ marginBottom: 20 }} open={!!resumeDraft}>
           <summary className="rm-section-label" style={{ cursor: "pointer", marginBottom: 12 }}>Contact details for application forms</summary>
         {/* ── Personal ── */}
