@@ -24,6 +24,8 @@ import { readProfile, saveSection, useResumeSuggestion, setDefault, readDefaults
 import { resolveCaptureLogo } from "../services/jobs/companyLogoStore.js";
 import { setEvidence, readProofPage, setProofPage } from "../services/proofLinks.js";
 import { profilePage, viewFor, setVisibility, addAchievement, removeAchievement } from "../services/profilePage.js";
+import { latestReplacement, keepReplacement, undoReplacement } from "../services/profileReplace.js";
+import { saveBaseResumeRecord, upsertSimpleApplyProfile } from "../services/simpleApplyProfile.js";
 
 /** @param opts.resolveLogo(db, { company }) — the logo lookup (injectable for tests); never awaited by a read. */
 export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo = resolveCaptureLogo } = {}) {
@@ -76,6 +78,25 @@ export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo
   });
   app.delete("/api/profile/page/achievements/:id", requireAuth, (req, res) => {
     try { removeAchievement(db, req.user.id, req.params.id); res.json(profilePage(db, req.user.id)); } catch (e) { fail(res, e); }
+  });
+  // ⭐ D183 P2 · What changed after a résumé replace: the newest one waiting for "Looks right"; keep it; or Undo (30 days).
+  app.get("/api/profile/replacements/latest", requireAuth, (req, res) => {
+    try { res.json({ replacement: latestReplacement(db, req.user.id) }); } catch (e) { fail(res, e); }
+  });
+  app.post("/api/profile/replacements/:id/keep", requireAuth, (req, res) => {
+    try { keepReplacement(db, req.user.id, req.params.id); res.json({ ok: true }); } catch (e) { fail(res, e); }
+  });
+  app.post("/api/profile/replacements/:id/undo", requireAuth, (req, res) => {
+    try {
+      const back = undoReplacement(db, req.user.id, req.params.id);
+      // The old résumé is the base again, and its signals are re-extracted from it (as an upload does).
+      if (back.profileId != null && back.content) {
+        saveBaseResumeRecord(db, { userId: req.user.id, profileId: back.profileId }, back.content, back.name || "resume.txt");
+        const titles = JSON.parse(db.prepare("SELECT target_titles FROM domain_profiles WHERE id = ?").pluck().get(back.profileId) || "[]");
+        try { upsertSimpleApplyProfile(db, { userId: req.user.id, profileId: back.profileId }, back.content, titles); } catch (e) { console.warn("[d183] undo signals:", e.message); }
+      }
+      res.json({ ok: true, page: profilePage(db, req.user.id) });
+    } catch (e) { fail(res, e); }
   });
   app.put("/api/profile/defaults/:key", requireAuth, (req, res) => {
     if (!req.body || !("value" in req.body)) return res.status(400).json({ error: "value_required", message: 'PUT {"value": "…"} or {"value": null} to clear.' });

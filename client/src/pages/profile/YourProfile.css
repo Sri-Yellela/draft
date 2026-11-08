@@ -63,6 +63,14 @@
 .yp__behind[open] > summary { margin-bottom: 10px; }
 .yp__behind > p { margin-bottom: 12px; }
 
+/* ⭐ P2 · What changed */
+.yp__changed { background: var(--c-surface-solid); border: 1px solid var(--c-accent); border-radius: 16px; padding: 14px 18px;
+  display: flex; flex-direction: column; gap: 8px; }
+.yp__changed p { margin: 0; font-size: 13.5px; color: var(--c-ink); }
+.yp__chlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--c-ink); }
+.yp__chlist li { display: flex; gap: 8px; align-items: baseline; }
+.yp__chmark { display: inline-block; width: 16px; text-align: center; font-weight: 700; color: var(--c-accent-ink); }
+
 @media (max-width: 700px) {
   .yp__cols { grid-template-columns: 1fr; }
   .yp__headrow { margin-top: -32px; }

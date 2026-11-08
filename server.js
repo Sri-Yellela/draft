@@ -7190,6 +7190,27 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_profile_achievements_user ON profile_achievements(user_id, position);
       `,
     },
+    {
+      // ⭐ D183 P2 (owner 11-08): replacing the résumé re-fills every section, says what changed, and can be undone for
+      // 30 days. A hand-edited summary / link is marked so a replace keeps it (the list sections already carry `source`);
+      // each replace keeps a snapshot of what it changed (services/profileReplace.js). Only ADDS.
+      id: "244_profile_replacements",
+      sql: `
+        ALTER TABLE profile_sections ADD COLUMN summary_source TEXT;
+        ALTER TABLE profile_links ADD COLUMN source TEXT;
+        CREATE TABLE IF NOT EXISTS profile_replacements (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          profile_id    INTEGER,
+          status        TEXT NOT NULL DEFAULT 'applied' CHECK (status IN ('applied', 'kept', 'undone')),
+          snapshot_json TEXT NOT NULL,
+          changes_json  TEXT NOT NULL,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          settled_at    INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_profile_replacements_user ON profile_replacements(user_id, created_at DESC);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");

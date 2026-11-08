@@ -13,6 +13,9 @@
 //                    the D101 editors (components/ProfileSections.jsx) draw About, Experience, Projects, Education and
 //                    Links, so every section is still edited in place by the same code; this page adds the rest.
 //   BEHIND YOUR PROFILE  always private, folded — the private machinery, nothing removed (`behind`, from ProfilePage).
+//   ⭐ P2 WHAT CHANGED   after a résumé replace (every section re-filled straight away, hand edits and proven skills
+//                    kept — services/profileReplace.js), a card at the top: each change, Kept, Untouched, then Looks right ·
+//                    Undo — back to the old résumé (30 days) · Review each change.
 // ⛔ What a visitor sees is decided on the server (GET /api/profile/page?as=public — services/profilePage.js viewFor);
 // View as the public draws exactly that answer, never a client-side filter of the owner's page.
 import { useCallback, useEffect, useState } from "react";
@@ -21,6 +24,7 @@ import { api } from "../../lib/api.js";
 import { useTheme } from "../../styles/theme.jsx";
 import { useAccountAvatar } from "../../lib/accountAvatar.js";
 import { openResumeEditor } from "../../lib/resumeEditor.js";
+import { RESUME_REPLACED_EVENT } from "../../panels/ProfilePanel.jsx";
 import ProfileSections from "../../components/ProfileSections.jsx";
 import "./YourProfile.css";
 
@@ -279,6 +283,33 @@ function Achievements({ items, eye, onAdd, onRemove }) {
   );
 }
 
+const MARK = { added: "+", removed: "−", changed: "↻" };
+
+/** ⭐ D183 P2 · What changed — the replace already happened; this is so nothing changes silently. */
+function WhatChanged({ r, onKeep, onUndo, busy }) {
+  const [review, setReview] = useState(false);
+  const shown = review ? r.lines : r.lines.slice(0, 6);
+  return (
+    <section className="yp__changed" data-what-changed="" aria-live="polite">
+      <p className="yp__chhead"><b>New résumé{r.name ? ` · ${r.name}` : ""}</b> · read {day(r.at)} — <b>your profile now follows it</b></p>
+      {r.lines.length ? (
+        <ul className="yp__chlist">{shown.map((l, i) => (
+          <li key={i} data-change={l.kind}><span className="yp__chmark" aria-hidden="true">{MARK[l.kind] || "·"}</span>
+            <span>{l.text}{l.was ? <span className="yp__muted"> · was: {l.was}</span> : null}{l.detail ? <span className="yp__muted"> · {l.detail}</span> : null}</span></li>
+        ))}</ul>
+      ) : <p className="yp__muted">Nothing on your page changed — the new résumé reads the same.</p>}
+      {r.kept?.length > 0 && <p data-change-kept=""><span className="yp__chmark" aria-hidden="true">✓</span> Kept: {r.kept.join(", ")}</p>}
+      <p data-change-untouched=""><span className="yp__chmark" aria-hidden="true">✓</span> Untouched: {r.untouched}</p>
+      <div className="yp__acts">
+        <button type="button" className="pf__btn" onClick={onKeep} disabled={busy} data-change-keep="">Looks right</button>
+        {r.undoable && <button type="button" className="pf__btn" onClick={onUndo} disabled={busy} data-change-undo="">Undo — back to the old résumé</button>}
+        {r.lines.length > 6 && !review && <button type="button" className="pf__btn" onClick={() => setReview(true)}>Review each change</button>}
+      </div>
+      <p className="yp__muted">Applied straight away — this summary is so nothing changes silently. Undo works for 30 days.</p>
+    </section>
+  );
+}
+
 /** View as the public — exactly the server's answer for a signed-out visitor (GET /api/profile/page?as=public). */
 function PublicPreview({ view, avatarUrl }) {
   if (!view) return <p className="yp__muted">Loading the public view…</p>;
@@ -325,8 +356,28 @@ export default function YourProfile({ behind = null }) {
   const [preview, setPreview] = useState(null);   // null = your view; { view } = the public view
   const [behindOpen, setBehindOpen] = useState(false);
 
+  const [replaced, setReplaced] = useState(null);
+  const [changeBusy, setChangeBusy] = useState(false);
+  const [round, setRound] = useState(0);   // remounts the section editors after a replace / undo so they re-read
   const load = useCallback(() => api("/api/profile/page").then(setPage).catch(e => setErr(e.message || "Your profile could not be read.")), []);
-  useEffect(() => { load(); }, [load]);
+  const loadChange = useCallback(() => api("/api/profile/replacements/latest").then(r => setReplaced(r?.replacement || null)).catch(() => {}), []);
+  useEffect(() => { load(); loadChange(); }, [load, loadChange]);
+  // A résumé saved or uploaded under Behind your profile: re-read the page and its What changed.
+  useEffect(() => {
+    const on = () => { load(); loadChange(); setRound(x => x + 1); };
+    window.addEventListener(RESUME_REPLACED_EVENT, on);
+    return () => window.removeEventListener(RESUME_REPLACED_EVENT, on);
+  }, [load, loadChange]);
+  const keepChange = async () => {
+    setChangeBusy(true);
+    try { await api(`/api/profile/replacements/${replaced.id}/keep`, { method: "POST" }); setReplaced(null); }
+    catch (e) { setErr(e.message || "Not saved."); } finally { setChangeBusy(false); }
+  };
+  const undoChange = async () => {
+    setChangeBusy(true);
+    try { const r = await api(`/api/profile/replacements/${replaced.id}/undo`, { method: "POST" }); setReplaced(null); if (r?.page) setPage(r.page); setRound(x => x + 1); }
+    catch (e) { setErr(e.message || "Not undone."); } finally { setChangeBusy(false); }
+  };
 
   const set = async (body) => {
     setErr("");
@@ -352,12 +403,13 @@ export default function YourProfile({ behind = null }) {
     <div className="yp" data-your-profile="">
       <WhoCanSee vis={vis} onSet={set} />
       {err && <p role="alert" className="yp__err">{err}</p>}
+      {replaced && <WhatChanged r={replaced} onKeep={keepChange} onUndo={undoChange} busy={changeBusy} />}
       <Header page={page} avatarUrl={avatarUrl} editing={editing} onEdit={() => setEditing(x => !x)} onSet={set}
         onPreview={togglePreview} previewing={!!preview} />
       {preview ? <PublicPreview view={preview.view} avatarUrl={avatarUrl} /> : (
         <>
           <SourceLine source={page.source} onReplace={replace} />
-          <ProfileSections theme={theme} highlight={page.highlight || []} onChanged={load}
+          <ProfileSections key={`page-${round}`} theme={theme} highlight={page.highlight || []} onChanged={load}
             parts={["summary", "experience", "projects", "education", "links"]}
             titles={{ summary: "About", experience: "Experience" }} eyeFor={eyeFor}
             renderLink={(x) => <LinkMark url={x.url} name={page.header.name} />}

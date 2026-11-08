@@ -305,6 +305,7 @@ export const COMPOSITIONS = Object.freeze([
   { from: "panels/DatabasePanel.jsx", to: "panels/JobWorkspacePanel.jsx", why: "D102 P5: on a wide screen The Table shows an opened application beside History" },
   { from: "pages/jobs/PublicBoardPage.jsx", to: "panels/DeckView.jsx", why: "D179 (f): the signed-out /jobs draws the deck's own card (CardFace), no decisions" },
   { from: "pages/profile/ProfilePage.jsx", to: "panels/ProfilePanel.jsx", why: "D167: About you / Your résumés / Saved answers are the Profile page's own parts (`section`)" },
+  { from: "pages/profile/YourProfile.jsx", to: "panels/ProfilePanel.jsx", why: "D183 P2: Your profile listens for the base-résumé save / upload that ProfilePanel fires (RESUME_REPLACED_EVENT) to show What changed" },
   { from: "pages/profile/ProfilePage.jsx", to: "panels/SavedAnswersPanel.jsx", why: "D167: Profile → Saved answers is the saved-answer bank, whole (its own API)" },
   { from: "pages/profile/ProfilePage.jsx", to: "panels/IntegrationsPanel.jsx", why: "D167: Profile → Connections holds Integrations, whole (`embedded`)" },
   { from: "pages/profile/ProfilePage.jsx", to: "panels/AccountPanel.jsx", why: "D167: Account's cards spread over Notifications, Privacy, Account, Résumés and Connections (`only`)" },

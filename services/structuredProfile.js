@@ -405,13 +405,26 @@ function checkDates(x, label, nowSec) {
 const str = (v, n = 300) => (v == null || String(v).trim() === "" ? null : String(v).trim().slice(0, n));
 
 /** Replace one section with what the drawer sent. Validated whole; nothing half-stored. */
+// ⭐ D183 P2 · HAND EDITS ARE MARKED, PER ITEM. The editors save a whole list, so a save used to mark EVERY item 'user'.
+// Now an item saved exactly as it was keeps its source (a résumé item stays 'resume'); only an added or changed item
+// becomes 'user' — the mark a résumé replace reads to keep the person's own work (services/profileReplace.js).
+const sig = (o) => JSON.stringify(o);
+function keptSource(beforeRows, toSig) {
+  const pool = new Map();
+  for (const r of beforeRows) { const k = toSig(r); if (!pool.has(k)) pool.set(k, []); pool.get(k).push(r.source || "resume"); }
+  return (item) => { const k = toSig(item); const q = pool.get(k); return q && q.length ? q.shift() : "user"; };
+}
+
 export function saveSection(db, userId, section, body, nowSec = Math.floor(Date.now() / 1000)) {
   const fail = (m) => Object.assign(new Error(m), { status: 400, code: "bad_section" });
   const list = (v) => { if (!Array.isArray(v) || v.length > 60) throw fail("A section is a list of up to 60 items."); return v; };
   db.prepare(`INSERT OR IGNORE INTO profile_sections (user_id) VALUES (?)`).run(userId);
   if (section === "summary") {
     const t = str(body?.summary, 3000);
+    const was = db.prepare(`SELECT summary FROM profile_sections WHERE user_id = ?`).pluck().get(userId);
     db.prepare(`UPDATE profile_sections SET summary = ?, updated_at = unixepoch() WHERE user_id = ?`).run(t, userId);
+    // D183 P2: a summary the person changed is theirs — a résumé replace keeps it (migration 244; absent before it).
+    if ((was ?? null) !== (t ?? null)) { try { db.prepare(`UPDATE profile_sections SET summary_source = 'user' WHERE user_id = ?`).run(userId); } catch { /* before 244 */ } }
     return;
   }
   if (section === "experience") {
@@ -426,11 +439,14 @@ export function saveSection(db, userId, section, body, nowSec = Math.floor(Date.
     const slots = (company, bullets) => bullets.map((text, j) => ({ slot: `${String(company || "").trim().toLowerCase()}#${j}`, text }));
     const before = db.prepare(`SELECT company, bullets_json FROM profile_experience WHERE user_id = ? ORDER BY position, id`).all(userId)
       .flatMap(r => { let b = []; try { b = JSON.parse(r.bullets_json || "[]"); } catch { b = []; } return slots(r.company, b); });
+    const srcOf = keptSource(db.prepare(`SELECT * FROM profile_experience WHERE user_id = ? ORDER BY position, id`).all(userId)
+      .map(r => ({ company: r.company, title: r.title, location: r.location, start: r.start_ym, end: r.end_ym, current: !!r.is_current, bullets: JSON.parse(r.bullets_json || "[]"), source: r.source })),
+      (x) => sig([x.company, x.title, x.location, x.start, x.current ? null : x.end, !!x.current, x.bullets]));
     db.transaction(() => {
       rekeyEvidence(db, userId, "bullet", before, items.flatMap(x => slots(x.company, x.bullets)));
       db.prepare(`DELETE FROM profile_experience WHERE user_id = ?`).run(userId);
       items.forEach((x, i) => db.prepare(`INSERT INTO profile_experience (user_id, company, title, location, start_ym, end_ym, is_current, bullets_json, position, source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'user')`).run(userId, x.company, x.title, x.location, x.start, x.end, x.current ? 1 : 0, JSON.stringify(x.bullets), i));
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(userId, x.company, x.title, x.location, x.start, x.end, x.current ? 1 : 0, JSON.stringify(x.bullets), i, srcOf(x)));
     })();
     return;
   }
@@ -441,18 +457,22 @@ export function saveSection(db, userId, section, body, nowSec = Math.floor(Date.
       checkDates(it, `Education ${i + 1}`, nowSec);
       return it;
     });
+    const srcOf = keptSource(db.prepare(`SELECT school, degree, field, start_ym AS start, end_ym AS end, source FROM profile_education WHERE user_id = ? ORDER BY position, id`).all(userId),
+      (x) => sig([x.school, x.degree, x.field, x.start, x.end]));
     db.transaction(() => {
       db.prepare(`DELETE FROM profile_education WHERE user_id = ?`).run(userId);
-      items.forEach((x, i) => db.prepare(`INSERT INTO profile_education (user_id, school, degree, field, start_ym, end_ym, position, source) VALUES (?, ?, ?, ?, ?, ?, ?, 'user')`)
-        .run(userId, x.school, x.degree, x.field, x.start, x.end, i));
+      items.forEach((x, i) => db.prepare(`INSERT INTO profile_education (user_id, school, degree, field, start_ym, end_ym, position, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+        .run(userId, x.school, x.degree, x.field, x.start, x.end, i, srcOf(x)));
     })();
     return;
   }
   if (section === "skills") {
     const items = list(body?.items).map(x => ({ name: str(typeof x === "string" ? x : x?.name, 60), category: str(x?.category, 60) })).filter(x => x.name);
+    const srcOf = keptSource(db.prepare(`SELECT name, category, source FROM profile_skills WHERE user_id = ? ORDER BY position, id`).all(userId),
+      (x) => sig([String(x.name || "").toLowerCase(), x.category || null]));
     db.transaction(() => {
       db.prepare(`DELETE FROM profile_skills WHERE user_id = ?`).run(userId);
-      items.forEach((x, i) => db.prepare(`INSERT INTO profile_skills (user_id, name, category, position, source) VALUES (?, ?, ?, ?, 'user')`).run(userId, x.name, x.category, i));
+      items.forEach((x, i) => db.prepare(`INSERT INTO profile_skills (user_id, name, category, position, source) VALUES (?, ?, ?, ?, ?)`).run(userId, x.name, x.category, i, srcOf(x)));
     })();
     return;
   }
@@ -462,9 +482,15 @@ export function saveSection(db, userId, section, body, nowSec = Math.floor(Date.
       if (!url || !/^https?:\/\/[^\s]+$/i.test(url)) throw fail(`Link ${i + 1}: a full https:// address.`);
       return { kind: str(x?.kind, 30) || "website", url };
     });
+    // D183 P2: a link keeps its source when saved unchanged (migration 244's column; a database before it has none).
+    const hasSrc = !!db.prepare(`SELECT 1 FROM pragma_table_info('profile_links') WHERE name = 'source'`).get();
+    const srcOf = hasSrc ? keptSource(db.prepare(`SELECT kind, url, source FROM profile_links WHERE user_id = ? ORDER BY position, id`).all(userId),
+      (x) => sig([x.kind, x.url])) : null;
     db.transaction(() => {
       db.prepare(`DELETE FROM profile_links WHERE user_id = ?`).run(userId);
-      items.forEach((x, i) => db.prepare(`INSERT INTO profile_links (user_id, kind, url, position) VALUES (?, ?, ?, ?)`).run(userId, x.kind, x.url, i));
+      items.forEach((x, i) => (hasSrc
+        ? db.prepare(`INSERT INTO profile_links (user_id, kind, url, position, source) VALUES (?, ?, ?, ?, ?)`).run(userId, x.kind, x.url, i, srcOf(x))
+        : db.prepare(`INSERT INTO profile_links (user_id, kind, url, position) VALUES (?, ?, ?, ?)`).run(userId, x.kind, x.url, i)));
     })();
     return;
   }
@@ -479,11 +505,13 @@ export function saveSection(db, userId, section, body, nowSec = Math.floor(Date.
     if (new Set(keys).size !== keys.length) throw fail("Two projects have the same name — each needs its own.");
     const before = db.prepare(`SELECT name FROM profile_projects WHERE user_id = ? ORDER BY position, id`).pluck().all(userId)
       .map((text, i) => ({ slot: String(i), text }));
+    const srcOf = keptSource(db.prepare(`SELECT name, description, source FROM profile_projects WHERE user_id = ? ORDER BY position, id`).all(userId),
+      (x) => sig([x.name, x.description || null]));
     db.transaction(() => {
       rekeyEvidence(db, userId, "project", before, items.map((x, i) => ({ slot: String(i), text: x.name })));
       db.prepare(`DELETE FROM profile_projects WHERE user_id = ?`).run(userId);
-      items.forEach((x, i) => db.prepare(`INSERT INTO profile_projects (user_id, name, description, position, source) VALUES (?, ?, ?, ?, 'user')`)
-        .run(userId, x.name, x.description, i));
+      items.forEach((x, i) => db.prepare(`INSERT INTO profile_projects (user_id, name, description, position, source) VALUES (?, ?, ?, ?, ?)`)
+        .run(userId, x.name, x.description, i, srcOf(x)));
     })();
     return;
   }
