@@ -241,7 +241,7 @@ test("d167ProfilePeekBasics (real Chrome): beside the dock, the person, the link
     assert.ok(p.left >= p.dockRight + 8, `${s}: never covers the dock (${p.left} vs ${p.dockRight})`);
     assert.equal(p.name, "Ada Lovelace"); assert.equal(p.email, "ada@example.invalid");
     assert.deepEqual(p.links.map(([, h]) => h), ["about", "answers", "connections", "appearance", "notifications"].map((x) => `/app/profile/${x}`).concat("/app/profile"));
-    assert.deepEqual(p.links.map(([l]) => l), ["About you", "Your résumés", "Saved answers", "Connections", "AppearanceDusk", "Notifications", "Open Profile"]);
+    assert.deepEqual(p.links.map(([l]) => l), ["About you", "Saved answers", "Connections", "AppearanceDusk", "Notifications", "Open Profile"]);
     assert.deepEqual(p.mode.map(([l, pr]) => [l, pr]), [["Ask me first", "true"], ["Apply for me", "false"]]);
     assert.deepEqual(d.modeAfterApplyForMe, ["false", "true"], `${s}: Apply for me sets the auto-apply mode (the server's answer)`);
     assert.equal(p.signOut, true);
