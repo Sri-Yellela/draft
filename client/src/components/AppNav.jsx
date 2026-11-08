@@ -55,7 +55,7 @@ export const INTERVIEW_PATH = "/app/interview";
 import { DOCK_OPEN_PX, DOCK_GAP_PX, DOCK_TOP_GAP_PX, PHONE_MAX_PX, dockPlace } from "./dockPlace.js";
 export { DOCK_OPEN_PX, DOCK_GAP_PX, DOCK_TOP_GAP_PX, PHONE_MAX_PX, dockPlace };
 // The Profile page's panels (the d167-profile lane builds them): one helper, so every link here says the same thing.
-export const PROFILE_PANELS = Object.freeze(["about", "resumes", "answers", "autoapply", "connections", "appearance", "notifications", "privacy", "account"]);
+export const PROFILE_PANELS = Object.freeze(["about", "answers", "autoapply", "connections", "appearance", "notifications", "privacy", "account"]);
 // ⭐ D167: Profile's panels live at /app/profile/<id> (pages/profile/profilePanels.js profilePath — a profile-module
 // file the shell may not import, A93; the ids above are its PROFILE_PANEL_IDS, pinned equal by test/d167Profile).
 export const profileHref = (panel) => (panel ? `/app/profile/${panel}` : "/app/profile");
@@ -213,8 +213,7 @@ export function ProfilePeek({ open, profile, pos = { top: 0, left: 80 }, onGo, o
         <Avatar url={url} name={profile.name} className="appnav-peek__pic" />
         <div><b data-peek-name="">{profile.name || "You"}</b>{profile.email && <span data-peek-email="">{profile.email}</span>}</div>
       </div>
-      {link("about", "About you")}
-      {link("resumes", "Your résumés")}
+      {link("about", "About you and your résumé")}   {/* A140: one panel */}
       {link("answers", "Saved answers")}
       <div className="appnav-peek__sep" aria-hidden="true" />
       <div className="appnav-peek__seg" role="group" aria-label="Auto-apply" data-peek-mode="">

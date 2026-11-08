@@ -306,7 +306,24 @@ function HighestDegree({ education, onSaved, theme }) {
   );
 }
 
-export default function ProfileSections({ theme }) {
+// ⭐ A140 (owner 11-08: "make the skills and keywords bold in the work experience extracted instead of the separate
+// sections"): every skill / keyword on file — the Skills section's own and the job profile's extracted skills + keywords
+// (`highlight`, from ProfilePanel) — is drawn BOLD where a bullet says it. Nothing is dropped: a term no bullet says is
+// listed once under the experience, and the Skills list stays editable inside a closed fold.
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export function termsRegex(terms) {
+  const list = [...new Set((terms || []).map((x) => String(x || "").trim()).filter((x) => x.length >= 2))]
+    .sort((a, b) => b.length - a.length).slice(0, 300);
+  if (!list.length) return null;
+  return new RegExp(`(?<![A-Za-z0-9+#])(${list.map(escRe).join("|")})(?![A-Za-z0-9+#])`, "gi");
+}
+export function BoldTerms({ text, re }) {
+  if (!re || !text) return text || null;
+  const parts = String(text).split(re);
+  return parts.map((part, i) => (i % 2 === 1 ? <b key={i} data-term="">{part}</b> : part));
+}
+
+export default function ProfileSections({ theme, highlight = [] }) {
   const [p, setP] = useState(null);
   const [msg, setMsg] = useState("");
   const [busyKey, setBusyKey] = useState(null);
@@ -333,6 +350,11 @@ export default function ProfileSections({ theme }) {
 
   if (!p) return <p style={{ fontSize: 12, color: theme.textMuted }}>{msg || "Loading your profile…"}</p>;
   const s = p.sections;
+  // A140: the terms to bold — the Skills section's + the job profile's extracted skills and keywords.
+  const allTerms = [...new Set([...(s.skills || []).map((x) => String(x?.name || "").trim()), ...highlight.map((x) => String(x || "").trim())].filter(Boolean))];
+  const termRe = termsRegex(allTerms);
+  const bulletText = (s.experience || []).flatMap((x) => [x.title || "", ...(x.bullets || [])]).join(" · ");
+  const unsaid = allTerms.filter((term) => { const r = termsRegex([term]); return !(r && r.test(bulletText)); });
   const muted = { fontSize: 12, color: theme.textMuted };
   return (
     <div data-profile-sections="">
@@ -386,7 +408,7 @@ export default function ProfileSections({ theme }) {
                     {x.bullets.map((b, bi) => (
                       <li key={bi} data-bullet="" style={{ fontSize: 13, color: theme.text }}>
                         <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
-                          <span>{b}</span><BackingMark backed={!!x.marks?.[bi]?.backed} />
+                          <span><BoldTerms text={b} re={termRe} /></span><BackingMark backed={!!x.marks?.[bi]?.backed} />
                         </div>
                         <EvidenceLinks theme={theme} target="bullet" claim={b} links={x.evidence?.[bi] || []} onSaved={setP} />
                       </li>
@@ -397,6 +419,12 @@ export default function ProfileSections({ theme }) {
             </div>
           )} />
       </Box>
+
+      {unsaid.length > 0 && (
+        <p data-terms-unsaid="" style={{ ...muted, margin: "-8px 0 20px", lineHeight: 1.7 }}>
+          Also on your résumé: {unsaid.map((term, i) => <span key={term}>{i ? ", " : ""}<b style={{ color: theme.text }}>{term}</b></span>)}
+        </p>
+      )}
 
       <Box title="Projects" theme={theme}>
         <ListEditor theme={theme} items={s.projects || []} addLabel="+ Add a project" blank={{ name: "", description: "" }}
@@ -432,7 +460,10 @@ export default function ProfileSections({ theme }) {
           )} />
       </Box>
 
-      <Box title="Skills" theme={theme}>
+      {/* A140: the Skills list is no longer its own section — its skills are bold in the experience above (or listed under
+          it); the list stays editable here, folded. */}
+      <details data-skills-edit="" style={{ marginBottom: 20 }}>
+        <summary style={{ ...muted, cursor: "pointer", marginBottom: 10 }}>Edit your skills ({(s.skills || []).length})</summary>
         <ListEditor theme={theme} items={s.skills} addLabel="+ Add a skill" blank={{ name: "", category: "" }}
           fields={[{ k: "name", label: "Skill" }, { k: "category", label: "Group (optional)" }]}
           onSave={(items) => saveSection("skills", { items })}
@@ -440,7 +471,7 @@ export default function ProfileSections({ theme }) {
             ? <a href={atlasHref(atlasSlugs[String(x.name ?? "").trim()])} target="_blank" rel="noopener noreferrer" data-atlas-link=""
                 title={`About ${x.name} in the Atlas`} style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 2 }}>{x.name}</a>
             : x.name}</span>} />
-      </Box>
+      </details>
 
       <Box title="Links" theme={theme}>
         <ListEditor theme={theme} items={s.links} addLabel="+ Add a link" blank={{ kind: "website", url: "" }}
