@@ -35,6 +35,19 @@
   --atree-eng_process: var(--c-warning);
   --atree-eng_aerospace: var(--c-info);
   --atree-eng_biomedical: var(--c-danger);
+  /* D179 (45n): the twelve new families */
+  --atree-frontend: var(--c-info);
+  --atree-mobile: var(--c-teal);
+  --atree-game_graphics: var(--c-violet);
+  --atree-qa: var(--c-warning);
+  --atree-quant: var(--c-danger);
+  --atree-it: var(--c-ink-muted);
+  --atree-security: var(--c-danger);
+  --atree-robotics: var(--c-teal);
+  --atree-architecture: var(--c-warning);
+  --atree-geospatial: var(--c-info);
+  --atree-bioinformatics: var(--c-violet);
+  --atree-science: var(--c-teal);
   --atree-workplace_tools: var(--c-ink-muted);
 }
 .atree-map { min-width: 0; }
@@ -70,6 +83,18 @@
 .atree__wp--eng_process { box-shadow: inset 0 -3px 0 var(--atree-eng_process); }
 .atree__wp--eng_aerospace { box-shadow: inset 0 -3px 0 var(--atree-eng_aerospace); }
 .atree__wp--eng_biomedical { box-shadow: inset 0 -3px 0 var(--atree-eng_biomedical); }
+.atree__wp--frontend { box-shadow: inset 0 -3px 0 var(--atree-frontend); }
+.atree__wp--mobile { box-shadow: inset 0 -3px 0 var(--atree-mobile); }
+.atree__wp--game_graphics { box-shadow: inset 0 -3px 0 var(--atree-game_graphics); }
+.atree__wp--qa { box-shadow: inset 0 -3px 0 var(--atree-qa); }
+.atree__wp--quant { box-shadow: inset 0 -3px 0 var(--atree-quant); }
+.atree__wp--it { box-shadow: inset 0 -3px 0 var(--atree-it); }
+.atree__wp--security { box-shadow: inset 0 -3px 0 var(--atree-security); }
+.atree__wp--robotics { box-shadow: inset 0 -3px 0 var(--atree-robotics); }
+.atree__wp--architecture { box-shadow: inset 0 -3px 0 var(--atree-architecture); }
+.atree__wp--geospatial { box-shadow: inset 0 -3px 0 var(--atree-geospatial); }
+.atree__wp--bioinformatics { box-shadow: inset 0 -3px 0 var(--atree-bioinformatics); }
+.atree__wp--science { box-shadow: inset 0 -3px 0 var(--atree-science); }
 .atree__wp--workplace_tools { box-shadow: inset 0 -3px 0 var(--atree-workplace_tools); }
 
 .atree__top { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); min-width: 0; }
@@ -146,6 +171,18 @@
 .atree__br--eng_process { stroke: var(--atree-eng_process); }
 .atree__br--eng_aerospace { stroke: var(--atree-eng_aerospace); }
 .atree__br--eng_biomedical { stroke: var(--atree-eng_biomedical); }
+.atree__br--frontend { stroke: var(--atree-frontend); }
+.atree__br--mobile { stroke: var(--atree-mobile); }
+.atree__br--game_graphics { stroke: var(--atree-game_graphics); }
+.atree__br--qa { stroke: var(--atree-qa); }
+.atree__br--quant { stroke: var(--atree-quant); }
+.atree__br--it { stroke: var(--atree-it); }
+.atree__br--security { stroke: var(--atree-security); }
+.atree__br--robotics { stroke: var(--atree-robotics); }
+.atree__br--architecture { stroke: var(--atree-architecture); }
+.atree__br--geospatial { stroke: var(--atree-geospatial); }
+.atree__br--bioinformatics { stroke: var(--atree-bioinformatics); }
+.atree__br--science { stroke: var(--atree-science); }
 .atree__br--workplace_tools { stroke: var(--atree-workplace_tools); }
 .atree__br--hot { stroke: var(--c-accent); stroke-width: 3.6; opacity: 1; }
 .atree__br--dim { opacity: .18; }
@@ -185,6 +222,18 @@
 .atree__sq--eng_process { fill: var(--atree-eng_process); background: var(--atree-eng_process); }
 .atree__sq--eng_aerospace { fill: var(--atree-eng_aerospace); background: var(--atree-eng_aerospace); }
 .atree__sq--eng_biomedical { fill: var(--atree-eng_biomedical); background: var(--atree-eng_biomedical); }
+.atree__sq--frontend { fill: var(--atree-frontend); background: var(--atree-frontend); }
+.atree__sq--mobile { fill: var(--atree-mobile); background: var(--atree-mobile); }
+.atree__sq--game_graphics { fill: var(--atree-game_graphics); background: var(--atree-game_graphics); }
+.atree__sq--qa { fill: var(--atree-qa); background: var(--atree-qa); }
+.atree__sq--quant { fill: var(--atree-quant); background: var(--atree-quant); }
+.atree__sq--it { fill: var(--atree-it); background: var(--atree-it); }
+.atree__sq--security { fill: var(--atree-security); background: var(--atree-security); }
+.atree__sq--robotics { fill: var(--atree-robotics); background: var(--atree-robotics); }
+.atree__sq--architecture { fill: var(--atree-architecture); background: var(--atree-architecture); }
+.atree__sq--geospatial { fill: var(--atree-geospatial); background: var(--atree-geospatial); }
+.atree__sq--bioinformatics { fill: var(--atree-bioinformatics); background: var(--atree-bioinformatics); }
+.atree__sq--science { fill: var(--atree-science); background: var(--atree-science); }
 .atree__sq--workplace_tools { fill: var(--atree-workplace_tools); background: var(--atree-workplace_tools); }
 .atree__sq--off { fill: var(--c-off); background: var(--c-off); }
 .atree__gloss { fill: var(--c-surface-solid); opacity: .22; pointer-events: none; }

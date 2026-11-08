@@ -37,6 +37,19 @@ export const FAMILIES = Object.freeze([
   fam("eng_process", "Process & industrial", "engineering"),
   fam("eng_aerospace", "Aerospace", "engineering"),
   fam("eng_biomedical", "Biomedical", "engineering"),
+  // ⭐ D179 (45n, owner 11-08 decision (7) ↺): the taxonomy's twelve "NEW: …" families, added as it implies.
+  fam("frontend", "Frontend", "computing"),
+  fam("mobile", "Mobile", "computing"),
+  fam("game_graphics", "Game and graphics", "computing"),
+  fam("qa", "QA", "computing"),
+  fam("quant", "Quant", "computing"),
+  fam("it", "IT", "computing"),
+  fam("security", "Security", "computing"),
+  fam("robotics", "Robotics", "engineering"),
+  fam("architecture", "Architecture", "engineering"),
+  fam("geospatial", "Geospatial", "engineering"),
+  fam("bioinformatics", "Bioinformatics", "science"),
+  fam("science", "Science", "science"),
   fam("workplace_tools", "Workplace tools", null),
 ]);
 
