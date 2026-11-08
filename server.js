@@ -157,6 +157,7 @@ import { seedDraftedDefinitions } from "./services/atlas/atlasDefinitions.js";
 import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { roleReadiness } from "./services/atlas/roleReadiness.js";
+import { ogPng, cardFromQuery } from "./services/ogImage.js";
 import { practiceProgress } from "./services/learn/practiceProgress.js";
 import { stackExposure } from "./services/learn/stackExposure.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
@@ -10137,6 +10138,18 @@ app.get("/sitemap-landing.xml", (req, res) => {
 });
 app.get("/sitemap-companies.xml", (req, res) => {
   res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), companiesSitemapRoutes(db)));
+});
+
+// ⭐ D179 (45n, owner 11-08 decision (7)) · the share picture of a public page — a 1200 × 630 PNG drawn from a SIGNED payload
+// (services/ogImage.js: only the words the page itself carries; an unsigned or altered request is 404). Cached a day.
+app.get("/og.png", async (req, res) => {
+  const card = cardFromQuery(req.query.d, req.query.s);
+  if (!card) return res.status(404).type("text/plain").send("not found");
+  try {
+    const png = await ogPng(card);
+    if (!png) return res.status(404).type("text/plain").send("not found");
+    res.set("Cache-Control", "public, max-age=86400, immutable").set("X-Content-Type-Options", "nosniff").type("png").send(png);
+  } catch (e) { console.warn("[og]", e.message); res.status(500).type("text/plain").send("error"); }
 });
 
 // ⭐ D128 P1 · a public, server-rendered page per posting (services/jobs/publicJobPage.js): no sign-in, the
