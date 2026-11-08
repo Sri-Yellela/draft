@@ -101,6 +101,7 @@ import { createCompanyWebSignals } from "./services/companies/companyWebSignals.
 import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landingPages.js";
 import { startAudit, answerAudit, auditResult, claimAudit } from "./services/audit/auditSession.js";
 import { todaysQuestion, answerToday } from "./services/learn/dailyQuestion.js";
+import { readReminder, setReminder, runDailyReminders } from "./services/learn/dailyReminder.js";
 import { seedTaxonomyRoles } from "./services/atlas/taxonomyRoleNodes.js";
 import { TAXONOMY_FILE } from "./services/jobs/taxonomyClassify.js";
 import { setAim as setNavigatorAim } from "./services/navigator.js";
@@ -7239,6 +7240,21 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
           FROM proof_pages WHERE enabled = 1;
       `,
     },
+    {
+      // ⭐ D154 P1 (45m): the daily question's reminder — the hour the person chose (their local hour, with the browser's
+      // offset from UTC when they chose it) and the last local day it was sent. No row = no time chosen; the switches
+      // themselves are notification_prefs' daily_question (OFF by default). Only ADDS.
+      id: "246_daily_reminders",
+      sql: `
+        CREATE TABLE IF NOT EXISTS daily_reminders (
+          user_id        INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          hour           INTEGER NOT NULL CHECK (hour BETWEEN 0 AND 23),
+          tz_offset_min  INTEGER NOT NULL DEFAULT 0,
+          last_sent_day  TEXT,
+          updated_at     INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -12709,6 +12725,21 @@ app.get("/api/learn/today", requireAuth, (req, res) => {
     res.set("Cache-Control", "no-store").json(todaysQuestion(db, req.user.id, String(req.query.day || ""), { aimRole }));
   } catch (e) { auditFail(res, e); }
 });
+// ⭐ D154 P1 (45m) · the reminder — OFF until the person turns it on, at the hour they choose (their local hour).
+app.get("/api/learn/today/reminder", requireAuth, (req, res) => {
+  try { res.json(readReminder(db, req.user.id)); } catch (e) { auditFail(res, e); }
+});
+app.put("/api/learn/today/reminder", requireAuth, (req, res) => {
+  try { res.json(setReminder(db, req.user.id, { on: req.body?.on === true ? true : req.body?.on === false ? false : undefined,
+    hour: req.body?.hour, tzOffsetMin: req.body?.tzOffsetMin ?? 0, channel: req.body?.channel || "push" })); }
+  catch (e) { auditFail(res, e); }
+});
+// Every 10 minutes: at most one reminder a person a local day, only while today's question is unanswered.
+if (process.env.DAILY_REMINDERS !== "off") setInterval(() => {
+  runDailyReminders(db, (userId, event, data) => notifyEvent(userId, event, data))
+    .then(n => { if (n) console.log(`[daily] reminders sent: ${n}`); })
+    .catch(e => console.warn(`[daily] reminders: ${e.message}`));
+}, 10 * 60 * 1000).unref();
 app.post("/api/learn/today/answer", requireAuth, (req, res) => {
   try { res.json(answerToday(db, req.user.id, String(req.body?.day || ""), { chosen: Number(req.body?.chosen), response: Array.isArray(req.body?.response) ? req.body.response.slice(0, 8) : null, ms: Number(req.body?.ms) || null })); }
   catch (e) { auditFail(res, e); }

@@ -5,9 +5,11 @@
 //   1 · review   — a question they answered before whose review is due (D150's spaced review: 1 → 3 → 7 → 21 days after
 //                  the last answer, by how many times in a row they have now got it right; a miss resets to 1 day)
 //   2 · audit    — a skill they missed in an audit they kept (D150 T07)
-//   3 · aim      — a question for the role they aim at (D143's destination)
-//   4 · any      — the bank's next item they have never seen
-// (D154's "a skill the ATS shows missing in the jobs they save" is not read yet.) Answer → judged on the server (the bank's
+//   3 · ats      — ⭐ 45m: a skill the ATS shows MISSING in the jobs they saved (starred) or applied to — the reports'
+//                  tier1_missing, most-asked first (D152 8's "you could claim")
+//   4 · aim      — a question for the role they aim at (D143's destination)
+//   5 · any      — the bank's next item they have never seen
+// Answer → judged on the server (the bank's
 // recordAnswer, surface 'daily') → the WHY of the chosen choice and of the right one → GO TO LESSON (the item's pieces[] →
 // the Learn piece, P3). A quiet streak: consecutive days answered, ending today or yesterday. Nothing is shown on Home
 // but one line (D145). ⛔ D17: no model.
@@ -33,6 +35,30 @@ function history(db, userId) {
   return h;
 }
 
+// A bank skill is an Atlas slug ("apache-kafka"); an ATS term is the posting's word ("Apache Kafka") — compared as words.
+const skillWords = (s) => String(s || "").toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+export const ATS_JOBS_READ = 50;
+
+/**
+ * ⭐ 45m (D154 P1 (4)) · the skills the ATS shows MISSING in the jobs the person saved (starred) or applied to — the stored
+ * reports' tier1_missing for their newest ATS_JOBS_READ such jobs, counted across them, most-asked first (as words).
+ * Never the whole board: the board's precompute scores every posting, and those are not "their" jobs.
+ */
+export function atsMissingTerms(db, userId) {
+  const count = new Map();
+  try {
+    const rows = db.prepare(`SELECT r.ats_report FROM ats_only_reports r
+        JOIN (SELECT job_id, MAX(updated_at) AS at FROM user_jobs WHERE user_id = ? AND (starred = 1 OR applied = 1) GROUP BY job_id
+              ORDER BY at DESC LIMIT ?) j ON j.job_id = r.job_id
+      WHERE r.user_id = ?`).all(userId, ATS_JOBS_READ, userId);
+    for (const r of rows) {
+      let rep = null; try { rep = JSON.parse(r.ats_report); } catch { rep = null; }
+      for (const t of new Set((rep?.tier1_missing || []).map(skillWords).filter(Boolean))) count.set(t, (count.get(t) || 0) + 1);
+    }
+  } catch { return []; }
+  return [...count].sort((a, b) => b[1] - a[1]).map(([t]) => t);
+}
+
 /** The pick for `day`, with its reason, or null when the bank has nothing. Pure over the database. */
 export function pickDaily(db, userId, day, { aimRole = null } = {}) {
   const live = questions(db, {});
@@ -53,15 +79,24 @@ export function pickDaily(db, userId, day, { aimRole = null } = {}) {
   } catch { missed = new Set(); }
   const fromAudit = unseen.find(q => q.skills.some(s => missed.has(s)));
   if (fromAudit) return { item: fromAudit, reason: "audit" };
-  // 3 · the aim's role.
+  // 3 · a skill the ATS shows missing in the jobs they saved or applied to — the most-asked first.
+  const ats = atsMissingTerms(db, userId);
+  if (ats.length) {
+    const rank = new Map(ats.map((t, i) => [t, i]));
+    const best = unseen.map(q => ({ q, r: Math.min(...q.skills.map(s => rank.get(skillWords(s)) ?? Infinity)) }))
+      .filter(x => Number.isFinite(x.r)).sort((a, b) => a.r - b.r)[0];
+    if (best) return { item: best.q, reason: "ats" };
+  }
+  // 4 · the aim's role.
   const forAim = aimRole ? unseen.find(q => String(q.role || "").toLowerCase() === String(aimRole).toLowerCase()) : null;
   if (forAim) return { item: forAim, reason: "aim" };
-  // 4 · anything new.
+  // 5 · anything new.
   if (unseen.length) return { item: unseen[0], reason: "any" };
   return null;
 }
 
-const REASON_WORDS = { review: "a review that's due", audit: "a skill your audit flagged", aim: "your aim's role", any: "something new" };
+const REASON_WORDS = { review: "a review that's due", audit: "a skill your audit flagged", ats: "a skill your saved jobs ask for",
+  aim: "your aim's role", any: "something new" };
 
 function lessonsFor(db, item) {
   let learn = null; try { learn = learnContent(db); } catch { learn = null; }
