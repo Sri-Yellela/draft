@@ -62,7 +62,7 @@ function Upcoming() {
               <b>{it.company || "An application"}</b>
               <span>{[it.title, KIND_WORDS[it.kind] || "Interview",
                 it.date ? `${when}${it.date.ymd ? ` · ${it.date.ymd}` : ""}${it.date.time ? ` ${it.date.time}` : ""}` : "no date yet — add it in Prepare"].filter(Boolean).join(" · ")}</span>
-              {it.subject && <small>From your Inbox: “{it.subject}”</small>}
+              {it.subject && <small>“{it.subject}”</small>}
             </div>
             <Link className="iv__btn iv__btn--p" to={`/app/job/${it.applicationId}?tab=prep`} data-prepare={it.applicationId}>Prepare</Link>
           </div>
@@ -78,8 +78,7 @@ function Guides() {
       <PlaceHead eyebrow="Company guides" title="Guides are coming"
         lead="How each company interviews, by level: the stages, what people were asked, and where it came from." />
       <div className="iv__card" data-coming="guides">
-        <p className="iv__p">Company guides are not built yet — they will be grown from debriefs people choose to share, with their sources and when
-          they were checked. Until then, every interview's Prepare reads its posting: the skills it asks for against yours, and the rounds it
+        <p className="iv__p">They will be grown from debriefs people choose to share, with their sources and when they were checked. Until then, every interview's Prepare reads its posting: the skills it asks for against yours, and the rounds it
           likely has.</p>
         <div className="iv__row"><Link className="iv__btn" to={interviewPath("upcoming")}>Your interviews</Link></div>
       </div>

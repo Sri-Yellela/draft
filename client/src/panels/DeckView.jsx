@@ -298,13 +298,12 @@ export function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onEx
         {job.title}
       </h2>
 
-      {/* ⭐ ONE minimal info row: each a white value over a small grey label. */}
+      {/* ⭐ ONE minimal info row: each a white value (D182: no label under it — the value says what it is). */}
       {facts.info.length > 0 && (
         <div data-deck-info="" style={{ display: "flex", gap: 26, flexWrap: "wrap", margin: "4px 0 2px" }}>
           {facts.info.map((f) => (
             <div key={f.key} data-deck-info-item={f.key}>
               <b style={{ display: "block", fontWeight: 500, fontSize: ts(18), letterSpacing: "-0.01em", color: C.INK }}>{f.value}</b>
-              <span style={{ display: "block", color: C.INK_MUTED, fontSize: ts(13) }}>{f.label}</span>
             </div>
           ))}
         </div>
@@ -408,6 +407,7 @@ export function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onEx
 // homeStats — skills matched · experience · level · since posted · sponsorship, at most four) as a 2 × 2 grid, and on the
 // landscape card filling the right column as larger cells (22 px values); and "Open the posting", which turns the card
 // into the long post IN PLACE (no reason line, no "Why this job", no separate posting panel — D156 (1c)).
+const SR_ONLY = { position: "absolute", width: 1, height: 1, margin: -1, padding: 0, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 };
 function HomeCardFace({ card, headingRef, isFront, onSignal, onOpenPost, size, landscape }) {
   const { job } = card;
   const facts = cardFacts(card);
@@ -456,7 +456,6 @@ function HomeCardFace({ card, headingRef, isFront, onSignal, onOpenPost, size, l
       {facts.info.map((f) => (
         <div key={f.key} data-deck-info-item={f.key} style={{ flex: "none", minWidth: 0 }}>
           <b style={{ display: "block", fontWeight: 500, fontSize: ts(small ? 13 : 14.5), letterSpacing: "-0.01em", color: C.INK, whiteSpace: "nowrap" }}>{f.value}</b>
-          <span style={{ display: "block", color: C.INK_MUTED, fontSize: ts(12), whiteSpace: "nowrap" }}>{f.label}</span>
         </div>
       ))}
     </div>
@@ -466,9 +465,9 @@ function HomeCardFace({ card, headingRef, isFront, onSignal, onOpenPost, size, l
     <dl data-deck-stats="" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: 0,
                                     ...(landscape ? { flex: 1, gridAutoRows: "1fr" } : null) }}>
       {facts.homeStats.map((st) => (
-        <div key={st.key} data-deck-stat={st.key} style={{ display: "flex", flexDirection: "column-reverse", justifyContent: "center", background: C.SURFACE_2, borderRadius: 14,
+        <div key={st.key} data-deck-stat={st.key} style={{ position: "relative", display: "flex", flexDirection: "column-reverse", justifyContent: "center", background: C.SURFACE_2, borderRadius: 14,
                                                             padding: landscape ? "12px 14px" : small ? "8px 10px" : "10px 12px", minWidth: 0 }}>
-          <dt style={{ margin: 0, fontSize: ts(11.5), color: C.INK_MUTED, lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{st.label}</dt>
+          <dt style={st.labelHidden ? SR_ONLY : { margin: 0, fontSize: ts(11.5), color: C.INK_MUTED, lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{st.label}</dt>
           <dd style={{ margin: 0, fontSize: ts(landscape ? 22 : small ? 15 : 17), fontWeight: 500, color: C.ACCENT_INK, letterSpacing: "-0.02em", lineHeight: 1.2,
                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{st.value}</dd>
         </div>

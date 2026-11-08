@@ -37,6 +37,8 @@ export function sincePosted(job, now = Date.now()) {
 
 // ⭐ D156 (1b) · Home's card: its stats' short labels, and how many fit.
 export const HOME_STATS_MAX = 4;
+// D182 (45n): the "level" caption is for screen readers only — "Senior" says it; the level stat is dropped when the title
+// already carries the word.
 const HOME_STAT_LABEL = { experience: "experience", level: "level", posted: "since posted", sponsorship: "sponsorship" };
 
 const levelWord = (job) => EXPERIENCE_LEVELS.options.find((o) => o.value === job?.tagLevel)?.label || null;
@@ -55,11 +57,11 @@ export function cardFacts(card, now = Date.now()) {
     ? { value: `${Math.max(0, Math.min(100, Math.round(card.score)))}%`, word: "résumé match", numeric: true }
     : bandWord ? { value: bandWord, word: "résumé match", numeric: false } : null;
 
-  // The ONE info row — salary · job type · work mode, only those on file.
+  // The ONE info row — salary · job type · work mode, only those on file. D182 (45n): values only — each says what it is.
   const info = [
-    { key: "salary", value: salaryLabel(job), label: "salary" },
-    { key: "type", value: jobTypeOf(job), label: "job type" },
-    { key: "mode", value: workstyleOf(job) || (job.remote ? "Remote" : null), label: "work mode" },
+    { key: "salary", value: salaryLabel(job) },
+    { key: "type", value: jobTypeOf(job) },
+    { key: "mode", value: workstyleOf(job) || (job.remote ? "Remote" : null) },
   ].filter((f) => f.value);
 
   // Hover: at most two soft facts, both things the stats never say.
@@ -100,7 +102,8 @@ export function cardFacts(card, now = Date.now()) {
   // posted · sponsorship, the known ones only, AT MOST FOUR (so they fit the card; nothing scrolls inside it).
   const homeStats = [
     total > 0 ? { key: "skills", value: `${mTotal} of ${total}`, label: "skills matched" } : null,
-    ...stats.map((st) => ({ key: st.key, value: st.value, label: HOME_STAT_LABEL[st.key] })),
+    ...stats.filter((st) => !(st.key === "level" && new RegExp(`\\b${st.value}\\b`, "i").test(job.title || "")))
+      .map((st) => ({ key: st.key, value: st.value, label: HOME_STAT_LABEL[st.key], labelHidden: st.key === "level" })),
   ].filter(Boolean).slice(0, HOME_STATS_MAX);
 
   return { match, info, chips, homeStats, why: { headline, matched: matched.slice(0, 6), missing: missing.slice(0, 4), lead }, stats };

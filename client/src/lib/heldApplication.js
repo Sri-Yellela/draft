@@ -39,7 +39,7 @@ export function heldHeadline(node) {
       lead: "Nothing was sent, and nothing is left for you to fill. Try again, or pick another base résumé." };
     case "ready": return { state, eyebrow: "Ready for you", title: "Everything is filled. Submit when you're happy.",
       lead: "Check the résumé and the answers if you like." };
-    case "sent": return { state, eyebrow: "Sent", title: `Applied to ${company}`,
+    case "sent": return { state, eyebrow: null, title: `Applied to ${company}`,   // D182: the status column says Sent
       lead: "Replies will show here." };
     default: return null;
   }
