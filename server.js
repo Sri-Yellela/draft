@@ -92,6 +92,8 @@ import { createCompanyLinker, companyReviewQueue, decideCompanyReview, companyRe
 import { stripSampleProfiles } from "./services/sampleProfileStrip.js";
 import { createCompanyTech, stackFor } from "./services/companies/companyTech.js";
 import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyBackfill.js";
+import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/jobs/publicBoard.js";
+import { publicCompany, publicSuggest } from "./services/companies/publicCompany.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
@@ -9818,6 +9820,30 @@ function xmlEscape(value) {
     '"': "&quot;",
   }[ch]));
 }
+
+// ⭐ D179 step 4 (45l) · THE OPEN BOARD, COMPANY PAGES AND THE SEARCH DROPDOWN — signed out, read-only, no user data.
+// Every read through the A126 read pool (publicBoard) or one small indexed read per company (publicCompany), each behind
+// a short cache; 120 requests a minute per IP. robots.txt already keeps crawlers off /api/ — these feed the pages.
+const publicLimit = publicRateLimit({ limit: 120, windowMs: 60_000 });
+app.get("/api/public/jobs", publicLimit, async (req, res) => {
+  try { res.set("Cache-Control", "public, max-age=60").json(await publicBoardPage(readPool, req.query || {})); }
+  catch (e) { console.error("[public/jobs]", e.message); res.status(500).json({ error: "board_unavailable" }); }
+});
+app.get("/api/public/jobs/facets", publicLimit, async (req, res) => {
+  try { res.set("Cache-Control", "public, max-age=300").json(await publicBoardFacets(readPool, req.query || {})); }
+  catch (e) { console.error("[public/jobs/facets]", e.message); res.status(500).json({ error: "facets_unavailable" }); }
+});
+app.get("/api/public/companies/:slug", publicLimit, (req, res) => {
+  try {
+    const page = publicCompany(db, req.params.slug);
+    if (!page) return res.status(404).json({ error: "no_such_company" });
+    res.set("Cache-Control", "public, max-age=300").json(page);
+  } catch (e) { console.error("[public/companies]", e.message); res.status(500).json({ error: "company_unavailable" }); }
+});
+app.get("/api/public/suggest", publicLimit, async (req, res) => {
+  try { res.json(await publicSuggest(db, readPool, String(req.query?.q || ""))); }
+  catch (e) { console.error("[public/suggest]", e.message); res.json({ companies: [], roles: [], technologies: [], titles: [] }); }
+});
 
 // ⭐ D128 P1 · every OPEN public posting (a shown category, not a duplicate); a closed one leaves the same day.
 app.get("/sitemap-jobs.xml", (req, res) => {

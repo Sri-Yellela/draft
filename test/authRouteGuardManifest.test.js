@@ -28,6 +28,11 @@ const SERVER = fs.readFileSync("server.js", "utf8");
 // Every entry here is a decision. A route joins this list only if an unauthenticated stranger
 // SHOULD be able to call it.
 const PUBLIC = new Set([
+  // D179 step 4 (45l): the open board, company pages and the search dropdown — signed out by design, read-only, no user data.
+  "GET /api/public/jobs",
+  "GET /api/public/jobs/facets",
+  "GET /api/public/companies/:slug",
+  "GET /api/public/suggest",
   "GET /api/health",
   // D151 Rule 1: liveness / readiness for Railway's healthcheck — no session, no user data.
   "GET /api/health/live",
@@ -101,6 +106,11 @@ const PUBLIC = new Set([
 
 // ── ADMIN: requires an admin session ─────────────────────────────────────────────────────────
 const ADMIN = new Set([
+  // D179 P4a / P5a / P2 (45l): the company records, a company's stack, the review decisions, the taxonomy counts.
+  "GET /api/admin/company-records",
+  "GET /api/admin/company-records/:id/stack",
+  "POST /api/admin/company-records/review/:id",
+  "GET /api/admin/board/taxonomy",
   // 11-07: the D124 trial and Admin → Trial were removed; the research routes below live in routes/survey.js.
   "GET /api/admin/appearance",           // D133: whether users are offered the Studio theme
   "POST /api/admin/appearance",
