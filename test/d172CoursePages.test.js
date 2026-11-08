@@ -102,7 +102,9 @@ async function loadUi() {
 test("d172ShelfCoversFromTokens: one cover per course that exists, drawn, its colours from theme tokens", async () => {
   const { shelf } = await loadUi();
   const html = shelf();
-  assert.equal(html.match(/data-course="/g).length, 1, "one course exists — no 'Soon' covers for courses nobody has planned");
+  // ⭐ D178 (changed on purpose): two courses exist — the path and the coding-interview patterns; still no 'Soon' covers.
+  assert.equal(html.match(/data-course="/g).length, 2, "one cover per course that exists");
+  assert.match(html, /href="\/app\/atlas\/library\/coding-interview-patterns"/);
   assert.match(html, /href="\/app\/atlas\/library\/silicon-to-software"/);
   assert.match(html, /<svg class="lib-cover__art"/);
   const css = read("client/src/pages/atlas/LibraryPanel.css");

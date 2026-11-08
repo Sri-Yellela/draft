@@ -2,8 +2,8 @@
 // the courses as a shelf of covers (each with its own drawing, colours from theme tokens), and a COURSE PAGE —
 // modules → lessons, each lesson its curated links (Read · Watch · Try, with the source the register names — D176-3) and
 // its check; a lesson opens its Learn page (#step-<id>), where the links are opened and the check is answered.
-// Honest by construction: one course exists (the owner's path), so the shelf shows one cover — no "Soon" covers for
-// courses nobody has planned; no "5 slides" or minutes until a lesson has a deck or a length; progress is EARNED.
+// Honest by construction: the shelf shows the courses that exist (the owner's path; D178: the coding-interview patterns) —
+// no "Soon" covers for courses nobody has planned; no "5 slides" or minutes until a lesson has a deck or a length; progress is EARNED.
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import LearnView from "./LearnView.jsx";
@@ -13,7 +13,12 @@ import { GuideLadder, useGuides } from "./LibraryGuides.jsx";
 import { HalfRing, LessonDeck } from "./LessonDeck.jsx";
 import "./LibraryPanel.css";
 
-export const COURSES = Object.freeze([{ id: "silicon-to-software", title: "From silicon to software", art: "chip" }]);
+// ⭐ D178: the LeetCode pattern atlas is its own course (kind "patterns": no earned progress — a pattern has no check yet).
+export const COURSES = Object.freeze([
+  { id: "silicon-to-software", title: "From silicon to software", art: "chip" },
+  { id: "coding-interview-patterns", title: "Coding interview patterns", art: "patterns", kind: "patterns" },
+]);
+export const courseKind = (id) => COURSES.find(c => c.id === id)?.kind || "path";
 
 /** The cover's drawing: a chip whose pins become lines of code. Theme tokens only (d172ShelfCoversFromTokens). */
 function ChipArt() {
@@ -28,6 +33,21 @@ function ChipArt() {
     </svg>
   );
 }
+
+/** ⭐ D178 · the patterns cover: two pointers closing in on an array, and a window over it. Theme tokens only. */
+function PatternsArt() {
+  const cells = [0, 1, 2, 3, 4, 5, 6];
+  return (
+    <svg className="lib-cover__art" viewBox="0 0 120 100" aria-hidden="true" focusable="false">
+      {cells.map(i => <rect key={i} x={11 + i * 14} y="42" width="12" height="16" rx="2" className={i >= 2 && i <= 4 ? "lib-art__core" : "lib-art__body"} />)}
+      <rect x="37" y="36" width="46" height="28" rx="4" className="lib-art__window" />
+      <path d="M 17 26 v 12 m -4 -4 l 4 4 l 4 -4" className="lib-art__code" />
+      <path d="M 101 26 v 12 m -4 -4 l 4 4 l 4 -4" className="lib-art__code" />
+      <text x="60" y="84" textAnchor="middle" className="lib-art__glyph">O(n)</text>
+    </svg>
+  );
+}
+const ART = { chip: ChipArt, patterns: PatternsArt };
 
 function useCourse(id, signedIn) {
   const [s, setS] = useState({ course: null, marks: {}, error: null });
@@ -59,19 +79,96 @@ export function LibraryShelf({ base, signedIn = false }) {
       <GuideLadder base={base} guides={guides} />
       <h2 className="atl__h2">Courses</h2>
       <ul className="lib-shelf" data-library-shelf="">
-        {COURSES.map(c => (
-          <li key={c.id} className="lib-cover" data-course={c.id}>
-            <Link to={`${base}/library/${c.id}`} className="lib-cover__link">
-              <ChipArt />
-              <span className="lib-cover__title">{c.title}</span>
-              {course && <span className="lib-cover__meta">{course.counts.modules} modules · {course.counts.lessons} lessons</span>}
-              {signedIn && p && <span className="lib-cover__meta" data-course-progress={p.pct}>{p.pct}% done</span>}
-              <span className="lib-cover__go">{signedIn && p?.done ? "Continue →" : "Open →"}</span>
-            </Link>
-          </li>
-        ))}
+        {COURSES.map((c, i) => (i === 0
+          ? <li key={c.id} className="lib-cover" data-course={c.id}>
+              <Link to={`${base}/library/${c.id}`} className="lib-cover__link">
+                <ChipArt />
+                <span className="lib-cover__title">{c.title}</span>
+                {course && <span className="lib-cover__meta">{course.counts.modules} modules · {course.counts.lessons} lessons</span>}
+                {signedIn && p && <span className="lib-cover__meta" data-course-progress={p.pct}>{p.pct}% done</span>}
+                <span className="lib-cover__go">{signedIn && p?.done ? "Continue →" : "Open →"}</span>
+              </Link>
+            </li>
+          : <CourseCover key={c.id} base={base} c={c} />))}
       </ul>
     </div>
+  );
+}
+
+/** ⭐ D178 · a further course's cover — its own counts; progress only where the course has earned progress. */
+function CourseCover({ base, c }) {
+  const { course } = useCourse(c.id, false);
+  const Art = ART[c.art] || ChipArt;
+  return (
+    <li className="lib-cover" data-course={c.id}>
+      <Link to={`${base}/library/${c.id}`} className="lib-cover__link">
+        <Art />
+        <span className="lib-cover__title">{c.title}</span>
+        {course && <span className="lib-cover__meta">{course.counts.modules} modules · {course.counts.lessons} {c.kind === "patterns" ? "patterns" : "lessons"}</span>}
+        <span className="lib-cover__go">Open →</span>
+      </Link>
+    </li>
+  );
+}
+
+/**
+ * ⭐ D178 · /atlas/library/coding-interview-patterns — the LeetCode pattern atlas as its own course. Modules are the path's
+ * steps that teach the patterns; each pattern: the idea, why it matters, where it runs, how to spot it, practice problems
+ * (open on LeetCode) and the step that teaches it (the course's circle view). No progress: nothing is earned here yet.
+ */
+export function PatternCoursePage({ base, id }) {
+  const { course, error } = useCourse(id, false);
+  const [open, setOpen] = useState(1);
+  if (error) return <p className="atl__quiet" role="alert" data-course-missing="">{error} <Link to={`${base}/library`} className="atl__link">Back to the library</Link></p>;
+  if (!course) return <p className="atl__quiet" role="status">Opening the course…</p>;
+  const stepHref = (stepId) => `${base}/library/silicon-to-software?view=circle#step-${encodeURIComponent(stepId)}`;
+  return (
+    <article className="lib-course" data-course-page={course.id}>
+      <header className="lib-chead">
+        <div className="lib-chead__cover" aria-hidden="true"><PatternsArt /></div>
+        <div className="lib-chead__body">
+          <p className="atl__kicker">Course · {course.counts.modules} modules · {course.counts.lessons} patterns</p>
+          <h1 className="atl__title">{course.title}</h1>
+          <p className="atl__lede">{course.intro}</p>
+          <p className="atl__quiet" data-course-no-progress="">Nothing is counted here yet: a pattern has no check of its own. Practise on LeetCode; the step that teaches each pattern is where you earn it.</p>
+        </div>
+      </header>
+      <h2 className="atl__h2">Modules</h2>
+      {course.modules.map(m => {
+        const isOpen = open === m.n;
+        return (
+          <section key={m.n} className="lib-module" data-module={m.n}>
+            <button type="button" className="lib-module__head" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : m.n)}>
+              <span className="lib-module__t">Module {m.n} · {m.title}</span>
+              <span className="lib-module__n">{m.lessons.length} {m.lessons.length === 1 ? "pattern" : "patterns"}</span>
+            </button>
+            {isOpen && (
+              <ol className="lib-lessons">
+                {m.lessons.map(l => (
+                  <li key={l.id} className="lib-lesson lib-pattern" data-pattern={l.id}>
+                    <div className="lib-lesson__main">
+                      <h3 className="lib-lesson__t">{l.title}</h3>
+                      {l.goal && <p className="lib-pattern__goal">{l.goal}</p>}
+                      {l.idea && <p><b>The idea.</b> {l.idea}</p>}
+                      {l.why && <p><b>Why it matters.</b> {l.why}</p>}
+                      {l.where.length > 0 && <><p><b>Where it runs.</b></p><ul className="lib-pattern__where">{l.where.map((w, i) => <li key={i}>{w}</li>)}</ul></>}
+                      {l.spot && <p><b>How to spot it.</b> {l.spot}</p>}
+                      {l.links.length > 0 && (
+                        <ul className="lib-links" aria-label={`Practice: ${l.title}`}>
+                          {l.links.map(x => <li key={x.id} data-link-type={x.type}><a href={x.url} target="_blank" rel="noopener noreferrer">{linkLine(x)}</a></li>)}
+                        </ul>
+                      )}
+                      {m.taughtIn && <p className="atl__quiet">Taught in <Link className="atl__link" to={stepHref(m.taughtIn.stepId)} data-pattern-step={m.taughtIn.stepId}>Step {m.taughtIn.n}: {m.taughtIn.title}</Link></p>}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        );
+      })}
+      <p><Link to={`${base}/library`} className="atl__link" data-course-back="">← Back to the library</Link></p>
+    </article>
   );
 }
 

@@ -53,3 +53,46 @@ export function courseOf(doc, reg) {
   }));
   return { id: COURSE_ID, title: COURSE_TITLE, modules, counts: { modules: modules.length, lessons, links } };
 }
+
+// ⭐ D178 · CODING INTERVIEW PATTERNS — its own course on the shelf (the translation table: "LeetCode pattern atlas tab →
+// its own course, linked from Interview → Practise → drills. Not a tab inside another course."). The same 28 patterns the
+// tab showed (the Learn document's ATLAS), nothing added: each pattern a LESSON with its idea, why it matters, where it
+// runs, how to spot it, its practice problems (Try · LeetCode) and the path's step that teaches it. The MODULES are those
+// teaching steps, in the path's order — a grouping the content already has, not one invented here. A pattern whose step
+// is gone still appears, under "More patterns". No progress: a pattern has no checkpoint, so nothing is earned here yet
+// (`earned: false`), and the page says so rather than counting opened links.
+export const PATTERN_COURSE_ID = "coding-interview-patterns";
+export const PATTERN_COURSE_TITLE = "Coding interview patterns";
+
+export function patternCourseOf(doc) {
+  const steps = [];
+  (doc?.PARTS || []).forEach(part => (part.phases || []).forEach(ph => (ph.steps || []).forEach(st => steps.push(st))));
+  const order = new Map(steps.map((st, i) => [st.id, i]));
+  const byStep = new Map();
+  for (const p of doc?.ATLAS || []) {
+    const key = order.has(p.st) ? p.st : null;
+    if (!byStep.has(key)) byStep.set(key, []);
+    byStep.get(key).push(p);
+  }
+  const keys = [...byStep.keys()].sort((a, b) => (a == null) - (b == null) || (order.get(a) ?? 0) - (order.get(b) ?? 0));
+  let lessons = 0, links = 0;
+  const modules = keys.map((k, mi) => {
+    const st = k == null ? null : steps[order.get(k)];
+    return {
+      n: mi + 1,
+      title: st ? st.t : "More patterns",
+      taughtIn: st ? { stepId: st.id, title: st.t, n: order.get(k) + 1 } : null,
+      lessons: byStep.get(k).map(p => {
+        lessons++;
+        const practice = (p.pr || []).map(([title, slug], i) => {
+          links++;
+          return { id: `pattern-${p.id}#pr${i}`, type: "Try", kind: "Practice", title, by: "LeetCode", url: `https://leetcode.com/problems/${slug}/`, optional: false };
+        });
+        return { id: `pattern-${p.id}`, title: p.n, goal: p.line || "", idea: p.idea || "", why: p.why || "", where: p.where || [], spot: p.spot || "",
+          links: practice, checks: [], build: null, toOpen: [] };
+      }),
+    };
+  });
+  return { id: PATTERN_COURSE_ID, title: PATTERN_COURSE_TITLE, kind: "patterns", earned: false, intro: doc?.copy?.intros?.patterns || "",
+    modules, counts: { modules: modules.length, lessons, links } };
+}
