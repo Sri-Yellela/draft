@@ -182,12 +182,12 @@ const safeHref = (u) => (/^https?:\/\//i.test(String(u || "")) ? String(u) : nul
 const LEVEL_WORDS = Object.freeze({ entry: "Entry level", early: "Early career", mid: "Mid level", senior: "Senior" });
 
 /** Published Atlas pages for the posting's skills (exact term match, case-insensitive). */
-function atlasLinksFor(db, skills) {
+export function atlasLinksFor(db, skills, max = ATLAS_LINKS_MAX) {
   const terms = [...new Set(skills.map(s => String(s).trim().toLowerCase()).filter(Boolean))].slice(0, 40);
   if (!terms.length) return [];
   try {
     return db.prepare(`SELECT slug, name FROM atlas_nodes WHERE status = 'published' AND (lower(term) IN (${terms.map(() => "?").join(",")})
-      OR lower(name) IN (${terms.map(() => "?").join(",")})) ORDER BY name LIMIT ?`).all(...terms, ...terms, ATLAS_LINKS_MAX);
+      OR lower(name) IN (${terms.map(() => "?").join(",")})) ORDER BY name LIMIT ?`).all(...terms, ...terms, max);
   } catch { return []; }
 }
 

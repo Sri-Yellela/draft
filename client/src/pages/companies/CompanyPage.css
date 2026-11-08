@@ -29,3 +29,4 @@
 .co__barm { font-size: 12px; color: var(--c-ink-muted); margin-top: 6px; }
 .co__foot { margin-top: 28px; color: var(--c-ink-muted); font-size: 13px; }
 @media (max-width: 600px) { .co { padding: 20px 16px 48px; } .co__sec { padding: 16px; } }
+.co__learn { font-size: 13px; text-decoration: none; }   /* D179 P6: what they use → learn it */
