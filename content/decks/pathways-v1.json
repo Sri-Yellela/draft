@@ -789,23 +789,23 @@
           "topics": [
             {
               "title": "networking",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-f-01",
+              "status": "draft"
             },
             {
               "title": "operating-system internals",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-f-02",
+              "status": "draft"
             },
             {
               "title": "cryptography basics",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-f-03",
+              "status": "draft"
             },
             {
               "title": "how the web works",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-f-04",
+              "status": "draft"
             }
           ]
         },
@@ -815,18 +815,18 @@
           "topics": [
             {
               "title": "common vulnerabilities (OWASP)",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-a-01",
+              "status": "draft"
             },
             {
               "title": "secure code review",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-a-02",
+              "status": "draft"
             },
             {
               "title": "threat modelling",
-              "deck": null,
-              "status": "planned"
+              "deck": "se-a-03",
+              "status": "draft"
             },
             {
               "title": "authentication and sessions",

@@ -1,0 +1,653 @@
+{
+ "version": 16,
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'security', stages 'foundations' (4) and 'application-security' (3; authentication and sessions reuses sw-b-02). Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "se-f-01",
+   "pathway": "security",
+   "stage": "foundations",
+   "title": "Networking for security",
+   "skills": [
+    "networking",
+    "tcp/ip",
+    "firewalls"
+   ],
+   "pieces": [
+    "sec1",
+    "w2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Seeing traffic the way an attacker does",
+     "points": [
+      "Security work starts with how data moves: addresses, ports, protocols, and what can reach what.",
+      "Most attacks cross a network, so most defences sit on one."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Layers, ports, segmentation",
+     "points": [
+      "Packets carry source and destination addresses and ports; TCP sets up a connection with a handshake, UDP doesn't.",
+      "Firewalls and security groups allow or deny by address, port and protocol; default deny is the safe stance.",
+      "Segmentation splits networks so a compromised machine can't reach everything.",
+      "TLS encrypts traffic in transit; without it, anyone on the path can read and change it."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Perimeters aren't enough",
+     "points": [
+      "A strong outer firewall with a flat inside lets one breach spread everywhere.",
+      "Zero trust assumes the network is hostile and checks identity on every request.",
+      "More rules mean more mistakes; review and simplify them."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Wireshark or tcpdump to see what's actually on the wire.",
+      "nmap to see which ports a host exposes (only on systems you're authorised to test).",
+      "Internal services reachable only from the networks that need them."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-f-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-f-02",
+   "pathway": "security",
+   "stage": "foundations",
+   "title": "Operating-system internals",
+   "skills": [
+    "operating systems",
+    "privileges",
+    "processes"
+   ],
+   "pieces": [
+    "s3x"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Where attacks land",
+     "points": [
+      "Attacks end up running code on a machine, so knowing how an operating system manages users, processes, memory and files explains what an attacker can do next.",
+      "Privilege, isolation and persistence are the key ideas."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Users, privileges, memory",
+     "points": [
+      "Processes run as a user; root (Linux) or SYSTEM/Administrator (Windows) can do anything.",
+      "Privilege escalation turns a foothold as a normal user into admin, through misconfigurations or vulnerable software.",
+      "Memory protections (ASLR, non-executable stacks) make memory-corruption exploits harder.",
+      "Persistence: attackers add services, scheduled tasks, startup entries or keys to survive a reboot."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Usability against hardening",
+     "points": [
+      "Running everything as admin is convenient and makes every bug critical.",
+      "Patching closes known holes and needs testing and restarts.",
+      "Disabling features reduces attack surface and sometimes breaks workflows."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Services run as dedicated low-privilege users.",
+      "Endpoint detection watching for new services, odd parent processes and credential dumping.",
+      "Regular patching with a known schedule."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-f-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-f-03",
+   "pathway": "security",
+   "stage": "foundations",
+   "title": "Cryptography basics",
+   "skills": [
+    "cryptography",
+    "encryption",
+    "hashing"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Keeping data secret and genuine",
+     "points": [
+      "Cryptography protects confidentiality (only the right people can read), integrity (nobody changed it) and authenticity (it came from who it says).",
+      "You'll use well-tested libraries, never your own algorithms."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Symmetric, asymmetric, hashes, signatures",
+     "points": [
+      "Symmetric encryption (AES) uses one shared key: fast, but the key must be shared safely.",
+      "Asymmetric encryption (RSA, elliptic curves) uses a public and a private key; TLS uses it to agree a symmetric key.",
+      "A hash (SHA-256) is a fixed-size fingerprint; it can't be reversed. Passwords use slow, salted hashes (bcrypt, Argon2).",
+      "A digital signature proves who signed and that nothing changed since."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "The maths is rarely the weak point",
+     "points": [
+      "Keys leak, get reused or never rotate; key management is the hard part.",
+      "Old algorithms (MD5, SHA-1, DES) are broken; replace them.",
+      "Encrypting data at rest doesn't help if the attacker gets the application's access too."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "TLS everywhere, with certificates renewed automatically.",
+      "Keys in a key-management service, not in code.",
+      "Libraries' high-level APIs, configured with safe defaults."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-f-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-f-04",
+   "pathway": "security",
+   "stage": "foundations",
+   "title": "How the web works, for security",
+   "skills": [
+    "web security",
+    "http",
+    "browsers"
+   ],
+   "pieces": [
+    "w2",
+    "w4"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "The browser's rules of trust",
+     "points": [
+      "Web security rests on how browsers handle origins, cookies and scripts.",
+      "Most web attacks trick the browser or the server into trusting the wrong thing."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Origins, cookies, requests",
+     "points": [
+      "The same-origin policy stops a page from one origin (scheme, host, port) reading another's data.",
+      "Cookies are sent automatically with requests to their site; flags (HttpOnly, Secure, SameSite) limit them.",
+      "CORS lets a server allow specific other origins to read its responses.",
+      "Every input from the client can be forged: headers, cookies, hidden fields, prices."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Convenience opens doors",
+     "points": [
+      "Loose CORS ('allow any origin with credentials') undoes the same-origin protection.",
+      "Automatically sent cookies make cross-site request forgery possible unless SameSite or tokens stop it.",
+      "Client-side checks help users; only server-side checks protect anything."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Browser developer tools and an intercepting proxy (Burp, ZAP) to see and change requests.",
+      "Security headers reviewed on every app.",
+      "Prices and permissions recomputed on the server, never trusted from the client."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-f-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-a-01",
+   "pathway": "security",
+   "stage": "application-security",
+   "title": "Common vulnerabilities (OWASP)",
+   "skills": [
+    "owasp",
+    "injection",
+    "access control"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "The usual ways applications break",
+     "points": [
+      "The OWASP Top 10 lists the most common serious web application risks, updated every few years.",
+      "Knowing them by example is the baseline for builders and testers."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "The big ones",
+     "points": [
+      "Broken access control: a user can see or change another user's data by changing an id (insecure direct object references).",
+      "Injection: input becomes part of a query or command (SQL injection); parameterised queries prevent it.",
+      "Cryptographic failures: sensitive data unencrypted, weak algorithms, exposed keys.",
+      "Security misconfiguration, vulnerable components, and server-side request forgery (SSRF) round out the common list."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Frameworks help, until bypassed",
+     "points": [
+      "Modern frameworks prevent many classes by default; raw queries and custom auth bring them back.",
+      "Automated scanners find injection better than access-control bugs; those need a person thinking about who should see what.",
+      "Fixing one instance leaves the pattern elsewhere; fix the pattern."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Authorization checked on the server for every object, not just at login.",
+      "Parameterised queries everywhere; linters flag string-built SQL.",
+      "Dependency scanning in CI."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-a-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-a-02",
+   "pathway": "security",
+   "stage": "application-security",
+   "title": "Secure code review",
+   "skills": [
+    "code review",
+    "secure coding"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Reading code for what could go wrong",
+     "points": [
+      "Secure code review looks at changes for security flaws before they ship.",
+      "It's cheaper to catch a vulnerability in review than after a breach."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Follow the data",
+     "points": [
+      "Trace untrusted input (requests, files, headers) to where it's used: queries, commands, HTML, file paths, redirects.",
+      "Check every access decision: who is allowed, and is it checked on the server?",
+      "Look for secrets, unsafe defaults, disabled checks, and error messages that leak internals.",
+      "Static analysis (SAST) finds patterns at scale; people find logic flaws."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Depth against flow",
+     "points": [
+      "Reviewing everything deeply slows delivery; focus deep review on risky areas (auth, payments, uploads, parsing).",
+      "Tool findings need triage; noisy tools get ignored.",
+      "A checklist helps consistency; thinking like an attacker finds what checklists miss."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Security champions in each team.",
+      "A short secure-review checklist in the pull-request template.",
+      "SAST and secret scanning in CI, with findings triaged."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-a-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-a-03",
+   "pathway": "security",
+   "stage": "application-security",
+   "title": "Threat modelling",
+   "skills": [
+    "threat modelling",
+    "stride"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Thinking about attacks before they happen",
+     "points": [
+      "Threat modelling asks, for a system or feature: what are we building, what can go wrong, what will we do about it, and did we do a good job?",
+      "It's most useful at design time, when changes are cheap."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Draw, ask, decide",
+     "points": [
+      "Draw the data flow: users, services, data stores, and the trust boundaries between them.",
+      "At each boundary, ask what could go wrong; STRIDE is a prompt: spoofing, tampering, repudiation, information disclosure, denial of service, elevation of privilege.",
+      "Rank threats by likelihood and impact.",
+      "Decide per threat: mitigate, accept, transfer or avoid, and record it."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Enough, not perfect",
+     "points": [
+      "A one-hour session on a key feature beats a perfect model nobody finishes.",
+      "Models go stale as the system changes; revisit them with big changes.",
+      "Involve the builders; a model written only by security rarely changes the design."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "A threat-model section in design documents.",
+      "Diagrams with trust boundaries marked.",
+      "Mitigations turned into tickets with owners."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-a-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "se-f-01-q1",
+   "type": "scenario",
+   "role": "Security Analyst",
+   "level": "entry",
+   "skills": [
+    "networking",
+    "segmentation"
+   ],
+   "pieces": [
+    "sec1"
+   ],
+   "stem": "An attacker compromises one web server and can then connect directly to the payroll database. What control was missing?",
+   "choices": [
+    "Network segmentation: the web tier shouldn't be able to reach the payroll database at all",
+    "A stronger web server password",
+    "A faster firewall",
+    "More logging only"
+   ],
+   "correct": 0,
+   "why": [
+    "Segmentation limits how far one compromise spreads.",
+    "Helpful, but the path to payroll shouldn't exist.",
+    "Speed isn't the issue.",
+    "Logging records the attack; it doesn't block it."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-f-02-q1",
+   "type": "scenario",
+   "role": "Security Analyst",
+   "level": "entry",
+   "skills": [
+    "privileges"
+   ],
+   "pieces": [
+    "s3x"
+   ],
+   "stem": "A web application runs as root. An attacker finds a file-upload bug that lets them run code. Why does running as root matter?",
+   "choices": [
+    "Their code runs with full control of the machine; as a low-privilege user, the damage would be contained",
+    "It doesn't; the bug is the problem",
+    "Root processes run faster",
+    "Root hides the attack from logs"
+   ],
+   "correct": 0,
+   "why": [
+    "The process's privileges are the attacker's privileges.",
+    "Both matter: the bug opens the door, privileges decide the room.",
+    "Not the point.",
+    "Not inherently, though it can alter logs."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-f-03-q1",
+   "type": "scenario",
+   "role": "Security Engineer",
+   "level": "entry",
+   "skills": [
+    "hashing"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "A system stores passwords as plain SHA-256 hashes. After a breach, many are cracked within hours. Why, and what's the fix?",
+   "choices": [
+    "Fast unsalted hashes can be guessed billions of times a second and matched with precomputed tables; use a slow, salted password hash (bcrypt, scrypt, Argon2)",
+    "SHA-256 is reversible",
+    "The passwords were stored encrypted",
+    "Hashes should be longer"
+   ],
+   "correct": 0,
+   "why": [
+    "Password hashing must be deliberately slow and salted.",
+    "It isn't reversible; it's guessable.",
+    "They weren't encrypted.",
+    "Length doesn't fix speed."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-f-04-q1",
+   "type": "scenario",
+   "role": "Security Analyst",
+   "level": "entry",
+   "skills": [
+    "web security"
+   ],
+   "pieces": [
+    "w4"
+   ],
+   "stem": "A checkout form sends the price in a hidden field, and the server charges whatever price arrives. What's the vulnerability?",
+   "choices": [
+    "The client controls the price; the server must look up prices itself",
+    "Hidden fields are encrypted, so it's safe",
+    "It's only a problem without HTTPS",
+    "Browsers block edited hidden fields"
+   ],
+   "correct": 0,
+   "why": [
+    "Anything from the client can be changed with a proxy or dev tools.",
+    "They're plain text.",
+    "HTTPS doesn't stop the user changing their own request.",
+    "They don't."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-a-01-q1",
+   "type": "scenario",
+   "role": "Application Security Engineer",
+   "level": "mid",
+   "skills": [
+    "access control"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "Changing /api/invoices/1001 to /api/invoices/1002 shows another customer's invoice. What's the flaw and the fix?",
+   "choices": [
+    "Broken access control (an insecure direct object reference); check on the server that the invoice belongs to the signed-in user",
+    "Invoices need longer ids",
+    "The URL should be encrypted",
+    "Add a captcha"
+   ],
+   "correct": 0,
+   "why": [
+    "Every object access needs an ownership or permission check.",
+    "Hard-to-guess ids slow attackers; they don't fix the missing check.",
+    "Encryption doesn't add authorization.",
+    "Unrelated."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-a-02-q1",
+   "type": "scenario",
+   "role": "Application Security Engineer",
+   "level": "mid",
+   "skills": [
+    "code review"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "Reviewing a change, you see `os.system('convert ' + uploaded_filename + ' out.png')`. What's the concern?",
+   "choices": [
+    "Command injection: a crafted filename can run arbitrary commands; use a library call or pass arguments as a list without a shell",
+    "The image might be large",
+    "PNG is the wrong format",
+    "os.system is slow"
+   ],
+   "correct": 0,
+   "why": [
+    "User input reaches a shell; argument lists avoid shell parsing.",
+    "Size isn't the security issue.",
+    "Not the problem.",
+    "Speed isn't the issue."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-a-03-q1",
+   "type": "scenario",
+   "role": "Security Engineer",
+   "level": "mid",
+   "skills": [
+    "threat modelling"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "When is a threat model most useful for a new feature?",
+   "choices": [
+    "During design, before it's built, when changing the design is cheap",
+    "After launch, during an incident",
+    "Only once a year for the whole company",
+    "Never; scanners are enough"
+   ],
+   "correct": 0,
+   "why": [
+    "Design-time changes are cheapest and fix whole classes of problems.",
+    "Too late for cheap fixes.",
+    "Too coarse and too rare.",
+    "Scanners miss design flaws."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}
