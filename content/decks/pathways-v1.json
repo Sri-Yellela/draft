@@ -480,23 +480,23 @@
           "topics": [
             {
               "title": "the maths you need (probability, linear algebra, gradients)",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-f-01",
+              "status": "draft"
             },
             {
               "title": "training, validation and test sets",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-f-02",
+              "status": "draft"
             },
             {
               "title": "overfitting and leakage",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-f-03",
+              "status": "draft"
             },
             {
               "title": "metrics",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-f-04",
+              "status": "draft"
             }
           ]
         },
@@ -506,23 +506,23 @@
           "topics": [
             {
               "title": "feature pipelines",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-b-01",
+              "status": "draft"
             },
             {
               "title": "training at scale",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-b-02",
+              "status": "draft"
             },
             {
               "title": "model serving",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-b-03",
+              "status": "draft"
             },
             {
               "title": "monitoring and drift",
-              "deck": null,
-              "status": "planned"
+              "deck": "ml-b-04",
+              "status": "draft"
             }
           ]
         },
