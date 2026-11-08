@@ -113,6 +113,37 @@ export function marksFrom(doc, marks = {}) {
   return { earned: earned.sort((a, b2) => b2.at - a.at), next: next.sort((a, b2) => b2.pct - a.pct).slice(0, 3) };
 }
 
+/**
+ * ⭐ D178-4 · THE PROOF PAGE'S LEARNING — what the person finished and proved in Atlas, each with its date, for their
+ * public page (D109 P3, only when they switch it on: proof_pages.show_learning, migration 227). Proof only, never clicks:
+ * the modules finished (marksFrom — a whole module by the one earned rule), the skills passed in a quick check or backed
+ * by a proof link (skill_proofs, the first of each), and the builds (learn_builds, the link they supplied). No points, no
+ * level, no streak — those are the person's own motivation, not evidence. Nothing here is a certificate.
+ * @returns { modules: [{ title, at }], skills: [{ name, how, at, url }], builds: [{ lesson, url, at }] } — newest first
+ */
+export function learningProof(db, userId) {
+  const doc = safe(() => learnContent(db), null);
+  const titles = new Map();
+  for (const p of doc?.PARTS || []) for (const ph of p.phases || []) for (const st of ph.steps || []) titles.set(st.id, st.t);
+  const modules = safe(() => marksFrom(doc, earnedMarks(db, userId)).earned, []).map(m => ({ title: m.title, at: m.at }));
+  const skills = safe(() => db.prepare(`SELECT skill, state, MIN(created_at) AS at,
+      (SELECT url FROM skill_proofs s2 WHERE s2.user_id = s.user_id AND s2.skill_key = s.skill_key AND s2.state = 'built' AND s2.via = 'link'
+        ORDER BY created_at LIMIT 1) AS url
+      FROM skill_proofs s WHERE user_id = ? AND ((state = 'checked' AND via = 'check') OR (state = 'built' AND via = 'link'))
+      GROUP BY skill_key, state ORDER BY at DESC`).all(userId), [])
+    .map(r => ({ name: r.skill, how: r.state === "built" ? "built" : "checked", at: r.at, url: r.state === "built" ? r.url || null : null }));
+  // A skill both checked and built shows once, as built (the stronger proof), dated by its first proof.
+  const byName = new Map();
+  for (const s of skills) {
+    const cur = byName.get(s.name);
+    if (!cur) byName.set(s.name, s);
+    else byName.set(s.name, s.how === "built" ? { ...s, at: Math.min(s.at, cur.at) } : { ...cur, at: Math.min(s.at, cur.at) });
+  }
+  const builds = safe(() => db.prepare(`SELECT step_id, url, created_at AS at FROM learn_builds WHERE user_id = ? ORDER BY created_at DESC`).all(userId), [])
+    .map(r => ({ lesson: titles.get(r.step_id) || null, url: r.url, at: r.at })).filter(b => b.lesson);
+  return { modules, skills: [...byName.values()].sort((a, b) => b.at - a.at), builds };
+}
+
 /** The first idea not yet explained, in the path's order — the "explain one idea" quest. */
 function nextExplain(db, userId) {
   const doc = safe(() => learnContent(db), null);

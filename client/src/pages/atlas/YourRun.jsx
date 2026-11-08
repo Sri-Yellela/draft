@@ -23,10 +23,12 @@ function Ring({ pct }) {
 export default function YourRun({ base = "/app/atlas", signedIn = false }) {
   const [run, setRun] = useState(null);
   const [error, setError] = useState("");
+  const [proofPage, setProofPage] = useState(null);
   useEffect(() => {
     let live = true;
     if (!signedIn) return undefined;
     api("/api/atlas/run").then(r => live && setRun(r)).catch(e => live && setError(e.message || "Your run could not be read."));
+    api("/api/profile/proof-page").then(r => live && setProofPage(r)).catch(() => {});
     return () => { live = false; };
   }, [signedIn]);
   if (!signedIn) return (
@@ -88,6 +90,14 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
         <section className="run-proven" data-run-proven="">
           <p><b>Proven:</b> {run.proven.slice(0, 4).map(s => s.name).join(", ")}{run.proven.length > 4 ? ` and ${run.proven.length - 4} more` : ""} — {run.proven.length === 1 ? "it goes" : "they go"} into your tailored résumés now.</p>
           <Link to={`${base}/your-skills`} className="atl__link">See your skills</Link>
+        </section>
+      )}
+      {/* ⭐ D178-4: the proof page — what you finished and proved, with dates, at an address you can link. Never a certificate. */}
+      {run.total > 0 && proofPage && (
+        <section className="run-proven" data-run-proof-page={proofPage.enabled && proofPage.showLearning ? "on" : "off"}>
+          {proofPage.enabled && proofPage.showLearning && proofPage.handle
+            ? <p><b>Your proof page</b> lists what you've finished and proven, with dates: <a className="atl__link" href={`/p/${proofPage.handle}`} target="_blank" rel="noopener noreferrer">{`/p/${proofPage.handle}`}</a></p>
+            : <p>Want to link what you've proven from an application? Turn on your proof page and tick <i>Also show what you've proven in Atlas</i> in <Link className="atl__link" to="/app/profile">Profile → Proof page</Link>.</p>}
         </section>
       )}
       {/* ⭐ D178-4: marks, earned for wholes — a module finished; the next ones with how far along they are. */}

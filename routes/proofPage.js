@@ -13,6 +13,28 @@ import { proofPageFor, PROOF_PAGE_NOTE } from "../services/proofLinks.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+const day = (t) => (Number(t) > 0 ? new Date(Number(t) * 1000).toISOString().slice(0, 10) : "");
+// Only an http(s) address becomes a link (the write paths validate them too — this page never trusts that alone).
+const link = (url, label) => (/^https?:\/\//i.test(String(url || "")) ? `<a href="${esc(url)}" rel="nofollow noopener noreferrer" target="_blank">${esc(label)}</a>` : "");
+
+/**
+ * ⭐ D178-4 · what they proved in Atlas (only when they switched it on — page.learning is null otherwise). Proof with dates:
+ * modules finished, skills passed in a quick check or shown with a build, builds linked. No points, no level, no badge.
+ */
+export function renderLearning(l) {
+  if (!l) return "";
+  const rows = [];
+  if (l.modules.length) rows.push(`<h3>Modules finished</h3><ul>${l.modules.map(m => `<li>${esc(m.title)} <span class="kind">${day(m.at)}</span></li>`).join("")}</ul>`);
+  if (l.skills.length) rows.push(`<h3>Skills</h3><ul>${l.skills.map(s => `<li>${esc(s.name)} <span class="kind">· ${s.how === "built" ? "shown with a build" : "passed a one-minute quick check"} · ${day(s.at)}</span>${s.url ? ` ${link(s.url, "the build")}` : ""}</li>`).join("")}</ul>`);
+  if (l.builds.length) rows.push(`<h3>Builds</h3><ul>${l.builds.map(b => `<li>${esc(b.lesson)} <span class="kind">· ${day(b.at)}</span> ${link(b.url, "the build")}</li>`).join("")}</ul>`);
+  return `
+    <section class="project" data-proof-learning="">
+      <h2>Proven in Atlas</h2>
+      <p class="none">What they finished and practised in draft's Atlas, each with its date: a module counts when every lesson in it is done; a skill when they passed its quick check or linked a build.</p>
+      ${rows.length ? rows.join("") : `<p class="none">Nothing finished in Atlas yet.</p>`}
+    </section>`;
+}
+
 /** The page's HTML for a proofPageFor() result. Exported for the tests. */
 export function renderProofPage(page) {
   const title = page.name ? `${page.name} — projects` : "Projects";
@@ -38,6 +60,7 @@ export function renderProofPage(page) {
   main { max-width: 720px; margin: 0 auto; padding: 32px 16px 48px; }
   h1 { font-size: 24px; margin: 0 0 4px; }
   h2 { font-size: 17px; margin: 0 0 6px; }
+  h3 { font-size: 14px; margin: 12px 0 2px; }
   .project { border-top: 1px solid var(--line); padding: 16px 0; }
   ul { margin: 6px 0 0; padding-left: 18px; }
   a { color: var(--accent); word-break: break-word; }
@@ -50,6 +73,7 @@ export function renderProofPage(page) {
 <main>
   <h1>${esc(title)}</h1>
   ${projects}
+  ${renderLearning(page.learning)}
   <footer data-proof-note="">${esc(PROOF_PAGE_NOTE)}</footer>
 </main>
 </body>

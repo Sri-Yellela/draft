@@ -128,9 +128,9 @@ function ProofPageSetting({ theme }) {
   useEffect(() => {
     api("/api/profile/proof-page").then(r => { setS(r); setHandle(r.handle || ""); }).catch(e => setErr(e.message || "Could not load."));
   }, []);
-  const send = async (enabled) => {
+  const send = async (enabled, extra = {}) => {
     setErr("");
-    try { const r = await api("/api/profile/proof-page", { method: "PUT", body: JSON.stringify({ enabled, handle: handle.trim() || null }) }); setS(r); setHandle(r.handle || ""); }
+    try { const r = await api("/api/profile/proof-page", { method: "PUT", body: JSON.stringify({ enabled, handle: handle.trim() || null, ...extra }) }); setS(r); setHandle(r.handle || ""); }
     catch (e) { setErr(e.message || "Not saved."); }
   };
   const muted = { fontSize: 12, color: theme.textMuted };
@@ -153,6 +153,14 @@ function ProofPageSetting({ theme }) {
           : <button className="rm-btn rm-btn-primary rm-btn-sm" onClick={() => send(true)} disabled={!handle.trim()}>Turn on</button>}
       </div>
       {s.enabled && url && <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13 }}>{url}</a>}
+      {/* ⭐ D178-4: what you proved in Atlas is its own yes — OFF until ticked, even with the page on. */}
+      {s.enabled && (
+        <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13 }} data-proof-page-learning={s.showLearning ? "on" : "off"}>
+          <input type="checkbox" checked={!!s.showLearning} onChange={e => send(true, { showLearning: e.target.checked })} />
+          <span>Also show what you've proven in Atlas — the modules you finished, the skills you passed a quick check in or
+            showed with a build, and your builds, each with its date. No points or levels.</span>
+        </label>
+      )}
       {err && <span role="alert" style={{ fontSize: 12, color: C.DANGER }}>{err}</span>}
     </div>
   );

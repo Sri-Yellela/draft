@@ -6858,6 +6858,17 @@ let classifyBacklog = null;
         CREATE INDEX IF NOT EXISTS idx_proof_points_earned ON proof_points(earned_at, user_id);
       `,
     },
+    {
+      // ⭐ D178-4 · THE PROOF PAGE SHOWS WHAT WAS PROVEN IN ATLAS — only when the person says so. The public page (D109 P3,
+      // /p/<handle>) is opt-in already, but people who turned it on agreed to their projects, not their learning: a
+      // second switch, OFF for every existing and new page. When on, the page adds the modules finished, the skills
+      // passed in a quick check or backed by a proof link, and the builds — each with its date
+      // (services/atlas/points.js learningProof). Only ADDS a column. After 226.
+      id: "227_proof_page_learning",
+      sql: `
+        ALTER TABLE proof_pages ADD COLUMN show_learning INTEGER NOT NULL DEFAULT 0;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
