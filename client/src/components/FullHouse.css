@@ -410,3 +410,6 @@
   .home { grid-template-columns: minmax(0, 1fr); gap: 34px; padding: 24px 16px 80px; }
   .home__deck { position: static; margin: 0 auto; width: min(330px, 100%); }
 }
+
+/* ⭐ D179 (a) · the domain panel's role picker: categories, then the open category's subcategories. */
+.fh-role { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }

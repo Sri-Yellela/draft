@@ -151,11 +151,13 @@ export function SignedInElsewhere({ user, admin = false }) {
 // so a search never overwrites the sentence's filters. D35: it is the condensed bar's middle (no
 // Search button; the landing page keeps UnifiedSearchBar).
 function BoardSearchBar(props) {
-  const { applyBarFilters } = useJobBoard();
+  const { applyBarFilters, boardHeadline } = useJobBoard();
   return (
     <BoardSearch
       {...props}
       onSubmit={params => applyBarFilters(params, { fields: ["query"] })}
+      // ⭐ D179 (a): a role picked from the search box's Roles sets the sentence's role (the domain word).
+      onPickRole={boardHeadline?.onPatch ? (r) => boardHeadline.onPatch({ subcategory: r.id, category: r.categoryId }) : undefined}
     />
   );
 }

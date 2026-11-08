@@ -118,7 +118,60 @@ function ClauseOptions({ clause, params, facets, defaultDomain, find, setFind, o
           placeholder={findLabel} aria-label={findLabel} />
       )}
       <PanelOptions clause={clause} rows={rows} params={params} onPatch={onPatch} openSet={openSet} noteId={noteId} />
+      {clause.key === "domain" && <RolePicker params={params} facets={facets} onPatch={onPatch} />}
     </>
+  );
+}
+
+/**
+ * ⭐ D179 (a) (45l) · THE ROLE — Category → Subcategory with the board's own counts (GET /api/jobs/facets' `role`: a posting
+ * counts under a role only when it was classified into it). A category opens its subcategories; picking one sets the
+ * board's role and the domain word reads it; "Any role" clears it. Pure but for which category is open.
+ */
+export function RolePicker({ params = {}, facets = null, onPatch }) {
+  const opts = facets?.clauses?.role || [];
+  const groups = useMemo(() => {
+    const m = new Map();
+    for (const o of opts) {
+      const g = m.get(o.groupId) || { id: o.groupId, name: o.group, count: 0, subs: [] };
+      g.count += o.count || 0;
+      g.subs.push(o);
+      m.set(o.groupId, g);
+    }
+    return [...m.values()].filter(g => g.count > 0).sort((a, b) => b.count - a.count)
+      .map(g => ({ ...g, subs: g.subs.filter(s => s.count > 0).sort((a, b) => b.count - a.count) }));
+  }, [opts]);
+  const [openCat, setOpenCat] = useState(params.category || null);
+  if (!groups.length) return null;
+  const chosen = params.subcategory || "";
+  const shown = groups.find(g => g.id === openCat) || null;
+  return (
+    <div className="fh-role" data-role-picker="">
+      <span className="fh-k" id={`${PANEL_ID}-role`}>By role</span>
+      <div className="fh-opts fh-opts--open" role="group" aria-labelledby={`${PANEL_ID}-role`}>
+        <button type="button" className="fh-op" aria-checked={!chosen && !params.category} role="radio"
+          onClick={() => onPatch?.({ category: "", subcategory: "" })}>Any role</button>
+        {groups.map(g => (
+          <button key={g.id} type="button" className="fh-op" role="radio" data-role-group={g.id}
+            aria-checked={params.category === g.id && !chosen} aria-expanded={shown?.id === g.id}
+            onClick={() => setOpenCat(c => (c === g.id ? null : g.id))}>
+            {g.name}<span className="n">{g.count}</span>
+          </button>
+        ))}
+      </div>
+      {shown && (
+        <div className="fh-opts fh-opts--open" role="group" aria-label={shown.name} data-role-subs={shown.id}>
+          <button type="button" className="fh-op" role="radio" aria-checked={params.category === shown.id && !chosen}
+            onClick={() => onPatch?.({ category: shown.id, subcategory: "" })}>All of {shown.name}<span className="n">{shown.count}</span></button>
+          {shown.subs.map(s => (
+            <button key={s.value} type="button" className="fh-op" role="radio" data-role={s.value} aria-checked={chosen === s.value}
+              onClick={() => onPatch?.({ category: shown.id, subcategory: s.value })}>
+              {s.label}<span className="n">{s.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
