@@ -21,7 +21,7 @@ const PREDICATE_OF = (uid) => server.slice(at(server, OPEN) + OPEN.length, at(se
 const PREDICATE = PREDICATE_OF(1);
 
 test("A91 · /d is the board's statement plus ONE predicate, shared with the legacy route", () => {
-  assert.match(server, /const pendingSql = pendingTab \? `AND \$\{pendingMembershipSql\(ownUid\)\}` : '';/);
+  assert.match(server, /const pendingSql = pendingTab \? `AND \$\{pendingMembershipSql\(ownUid\)\}\s+AND sj\.job_id IN \(SELECT pr\.job_id FROM resumes pr WHERE pr\.user_id = \$\{ownUid\} UNION SELECT ar\.job_id FROM application_records ar WHERE ar\.user_id = \$\{ownUid\}\)` : '';/ /* ⭐ D151 Rule 4 (11-08, changed on purpose): + a driving IN-list, the same rows */);
   assert.match(server, /\$\{importedSql\}\s+\$\{pendingSql\}/, "beside ★'s and +'s predicates, in the one WHERE");
   const legacy = server.slice(at(server, "function pendingJobsQuery"), at(server, 'app.get("/api/categories"'));
   assert.match(legacy, /AND \$\{pendingMembershipSql\(/, "the legacy route reads the same membership");

@@ -142,7 +142,7 @@ test("D41(a) · a capture does NOT star, and ALL admits the user's own rows what
   assert.match(server, /const ownRowsSql = `uj\.starred = 1\s+OR uj\.resume_generated = 1\s+OR EXISTS \(SELECT 1 FROM job_captures jc WHERE jc\.job_id = sj\.job_id AND jc\.user_id = \$\{ownUid\}\)/);
   assert.match(server, /OR NOT EXISTS \(SELECT 1 FROM job_role_map m WHERE m\.job_id = sj\.job_id\)\s+OR \$\{ownRowsSql\}/);
   // ★ is ALL plus its predicate — the same statement, one more clause.
-  assert.match(server, /const starredSql = savedTab \? `AND uj\.starred = 1` : '';/);
+  assert.match(server, /const starredSql = savedTab \? `AND uj\.starred = 1 AND sj\.job_id IN \(SELECT s\.job_id FROM user_jobs s WHERE s\.user_id = \$\{starUid\} AND s\.starred = 1\)` : '';/ /* ⭐ D151 Rule 4 (11-08, changed on purpose) */);
   // /d no longer hides a drafted job behind the role bucket or the title filter.
   const pending = server.slice(at(server, "function pendingJobsQuery"), at(server, 'app.get("/api/categories"'));
   assert.doesNotMatch(pending, /JOIN job_role_map|profileTitleSql/);

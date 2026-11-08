@@ -48,7 +48,7 @@ const seedCrawled = (d, { id, location = "Austin, TX", active = 1 } = {}) => {
 
 test("the ★ Saved predicate this file models is still the board's own", () => {
   assert.match(SERVER, /LEFT JOIN user_jobs uj\s+ON uj\.job_id = sj\.job_id AND uj\.user_id = \? AND uj\.domain_profile_id = \?/);
-  assert.match(SERVER, /const starredSql = savedTab \? `AND uj\.starred = 1` : '';/);
+  assert.match(SERVER, /const starredSql = savedTab \? `AND uj\.starred = 1 AND sj\.job_id IN \(SELECT s\.job_id FROM user_jobs s WHERE s\.user_id = \$\{starUid\} AND s\.starred = 1\)` : '';/ /* ⭐ D151 Rule 4 (11-08, changed on purpose) */);
   assert.match(SERVER, /AND \(uj\.disliked IS NULL OR uj\.disliked = 0\)/);
 });
 
