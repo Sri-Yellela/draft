@@ -79,6 +79,7 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
                 {stack.groups[g].map((t) => (
                   <li key={t.tech} data-tech={t.tech}>
                     <b>{t.tech}</b>{t.newThisQuarter && <span className="co__new"> new this quarter</span>}
+                    {t.atlasSlug && <Link className="co__learn" to={`${inApp ? "/app" : ""}/atlas/${t.atlasSlug}`} data-learn-tech={t.tech}>Learn it</Link>}
                     <span className="co__evidence">in {t.postings} of {t.of} postings · last seen {ago(t.lastSeen)}{t.teams?.length ? ` · ${t.teams.slice(0, 3).join(", ")}` : ""}</span>
                   </li>
                 ))}

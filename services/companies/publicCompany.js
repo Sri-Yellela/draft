@@ -14,7 +14,7 @@
 import { stackFor } from "./companyTech.js";
 import { companyAbout } from "./companyFacts.js";
 import { sponsorshipFactFor } from "../kb/sponsorshipFacts.js";
-import { PUBLIC_OPEN_SQL, jobPath } from "../jobs/publicJobPage.js";
+import { PUBLIC_OPEN_SQL, jobPath, atlasLinksFor } from "../jobs/publicJobPage.js";
 import { taxonomy } from "../jobs/taxonomyClassify.js";
 import { TECHNOLOGIES } from "../../shared/techVocabulary.js";
 import { canonicalTitle } from "../jobs/searchSuggestions.js";
@@ -76,6 +76,12 @@ export function publicCompany(db, slug, { now = Date.now() } = {}) {
     .map(r => ({ id: r.id, title: r.title, location: r.location || null, postedAt: r.posted_at || null, subcategory: r.subcategory || null, path: jobPath(r) }));
   let sponsorship = null; try { sponsorship = sponsorshipFactFor(db, co.name); } catch { sponsorship = null; }
   let stack = null; try { stack = stackFor(db, co.id, nowSec); } catch { stack = null; }
+  // ⭐ D179 P6 (45l): "what they use → learn it" — each technology with a published Atlas page links to it.
+  if (stack?.groups) {
+    const names = Object.values(stack.groups).flat().map(t => t.tech);
+    const bySlug = new Map(); try { for (const a of atlasLinksFor(db, names, 40)) bySlug.set(String(a.name).toLowerCase(), a.slug); } catch { /* no Atlas */ }
+    for (const g of Object.values(stack.groups)) for (const t of g) { const s = bySlug.get(String(t.tech).toLowerCase()); if (s) t.atlasSlug = s; }
+  }
 
   const value = {
     company: { slug: co.slug, name: co.name, domain: co.domain || null, ats: provider ? ATS_NAME[provider] || provider : null, careersUrl: careers,
