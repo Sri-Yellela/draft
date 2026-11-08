@@ -16,8 +16,6 @@
 //    The marks say "Evidence linked" / "No evidence linked" — never a word that claims draft checked anything
 //    (d109NoCertifyWording).
 import { scrubContact } from "./byom/resumePatch.js";
-// ⭐ D178-4: the proof page's learning section (a call-time import; points.js reaches back here only through learnEarned).
-import { learningProof } from "./atlas/points.js";
 
 export const EVIDENCE_KINDS = Object.freeze([
   { kind: "repository", label: "Repository" },
@@ -207,7 +205,9 @@ export function setProofPage(db, userId, { enabled, handle, showLearning } = {})
  * with their links. No email, phone, address, location, experience or anything from Application defaults; a project's
  * description is scrubbed of anything shaped like an email address, phone number or link.
  */
-export function proofPageFor(db, handle) {
+// ⭐ D178-4: `learningOf(db, userId)` (services/atlas/points.js learningProof) is passed in by the page's route — a static
+// import here closed an import cycle (points → learnEarned → learnCircle → learnImport → … → here) and broke the boot order.
+export function proofPageFor(db, handle, { learningOf = null } = {}) {
   const h = String(handle ?? "").trim().toLowerCase();
   if (!HANDLE_RE.test(h)) return null;
   let page;
@@ -220,7 +220,7 @@ export function proofPageFor(db, handle) {
     .map(r => ({ name: scrubContact(r.name), description: r.description ? scrubContact(r.description) : null,
       links: (ev.get(`project:${evidenceKey(r.name)}`) || []).map(x => ({ kind: x.kind, kindLabel: KIND_LABEL.get(x.kind) || x.kind, label: x.label, url: x.url })) }));
   // ⭐ D178-4: what they proved in Atlas — only when they said yes to it (show_learning), never by default.
-  const learning = page.show_learning ? learningProof(db, page.user_id) : null;
+  const learning = page.show_learning && typeof learningOf === "function" ? learningOf(db, page.user_id) : null;
   return { handle: page.handle, name: scrubContact(name) || null, projects, learning };
 }
 
