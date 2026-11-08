@@ -82,6 +82,16 @@ export function PathwaysPlan({ base }) {
                         </li>
                       ))}
                     </ul>
+                    {/* ⭐ D154 P8 (45n): the stage's approved BUILDS — proven by a link on the skill (D169 'built'). */}
+                    {s.builds?.map(b => (
+                      <details key={b.id} className="lib-plan__build" data-build={b.id}>
+                        <summary><b>Build it:</b> {b.title}</summary>
+                        <p>{b.brief}</p>
+                        <ol>{b.steps.map((st, i) => <li key={i}>{st}</li>)}</ol>
+                        <p className="atl__quiet"><b>To prove it:</b> {b.show} Add the link as proof on the skill in <Link className="atl__link" to={`${base}/your-skills`}>Your skills</Link> — it then counts as built.</p>
+                        {b.decks.length > 0 && <p className="atl__quiet">Read first: {b.decks.map((d, i) => <span key={d}>{i ? " · " : ""}<Link className="atl__link" to={`${base}/library/${d}`}>{d}</Link></span>)}</p>}
+                      </details>
+                    ))}
                   </div>
                 ))}
               </div>
