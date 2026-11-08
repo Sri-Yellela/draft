@@ -351,7 +351,8 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null }) {
   // ⭐ D167: Profile has its own navigation now (pages/profile/ProfilePage.jsx) and this page is drawn in three of its
   // panels — About you ("about"), Your résumés ("resumes"), Saved answers ("answers"). `section` picks the part; with no
   // section the whole page draws as before. One state, one save: each part is the same form, nothing copied.
-  const on = (part) => !section || section === part;
+  // ⭐ A140 (owner 11-08): About you and Your résumés are ONE panel — `section` may name several parts.
+  const on = (part) => !section || (Array.isArray(section) ? section.includes(part) : section === part);
 
   const BLANK = {
     full_name:"", email:"", phone:"",
@@ -824,7 +825,8 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null }) {
             (ProfileSections — summary, experience with company logos, projects, education, skills, each edited in
             place) LEADS About you. It was mounted below three blocks of text fields and read as missing. The contact,
             address and visa fields the form-filler needs fold into one closed section under it. */}
-        <ProfileSections theme={theme}/>
+        {/* A140: the job profile's extracted skills and keywords are drawn bold in the experience (no separate section). */}
+        <ProfileSections theme={theme} highlight={[...splitChipText(signalsForm.keywords), ...splitChipText(signalsForm.skills)]}/>
         <details data-contact-fields="" style={{ marginBottom: 20 }} open={!!resumeDraft}>
           <summary className="rm-section-label" style={{ cursor: "pointer", marginBottom: 12 }}>Contact details for application forms</summary>
         {/* ── Personal ── */}
@@ -1384,6 +1386,11 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null }) {
                   onChange={e => setSignalsForm(f => ({ ...f, yearsExperience: e.target.value }))}/>
               </PRow>
             </div>
+            {/* ⭐ A140 (owner 11-08): no separate Keywords / Skills sections — both are drawn bold in "Your experience" above
+                (or listed under it). They still rank the board's jobs, so they stay editable here, folded. */}
+            <details data-signal-terms-edit="" style={{ marginBottom: 16 }}>
+              <summary style={{ fontSize: 12, color: theme.textMuted, cursor: "pointer", marginBottom: 10 }}>
+                Edit the skills and keywords read from your résumé</summary>
             <PRow label="Keywords — from your résumé" theme={theme}>
               <textarea className="rm-input" rows={4} value={signalsForm.keywords}
                 onChange={e => setSignalsForm(f => ({ ...f, keywords: e.target.value }))}/>
@@ -1392,6 +1399,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null }) {
               <textarea className="rm-input" rows={3} value={signalsForm.skills}
                 onChange={e => setSignalsForm(f => ({ ...f, skills: e.target.value }))}/>
             </PRow>
+            </details>
             <div style={{ marginBottom:16 }}>
               <div style={{ ...labelStyle, color:theme.textMuted, marginBottom:8 }}>Inactive ATS-Suggested Skills</div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>

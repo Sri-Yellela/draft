@@ -66,10 +66,12 @@ const navItems = (html) => [...html.matchAll(/<a [^>]*data-place-item="([^"]+)"[
 
 // ── PROFILE ─────────────────────────────────────────────────────────────────────────────────────────
 
-test("d167ProfileHasOwnNav · a nav card beside the dock: three groups, the nine panels at /app/profile/<id>, the current one marked", async () => {
-  assert.deepEqual(PROFILE_PANEL_IDS, ["about", "resumes", "answers", "autoapply", "connections", "appearance", "notifications", "privacy", "account"]);
+test("d167ProfileHasOwnNav · a nav card beside the dock: three groups, the eight panels at /app/profile/<id>, the current one marked", async () => {
+  // A140 (45l, on purpose): About you and Your résumés are one panel; /app/profile/resumes lands on About you.
+  assert.equal(profilePanelFor("profile/resumes"), "about");
+  assert.deepEqual(PROFILE_PANEL_IDS, ["about", "answers", "autoapply", "connections", "appearance", "notifications", "privacy", "account"]);
   assert.deepEqual(PROFILE_GROUPS.map(g => g.label), ["You", "Applying", "You and draft"]);
-  assert.deepEqual(PROFILE_GROUPS.flatMap(g => g.items.map(i => i.label)), ["About you", "Your résumés", "Saved answers", "Auto-apply", "Connections",
+  assert.deepEqual(PROFILE_GROUPS.flatMap(g => g.items.map(i => i.label)), ["About you", "Saved answers", "Auto-apply", "Connections",
     "Appearance", "Notifications", "Privacy and your data", "Account"], "the sketch's names");
   const { profile } = await loadUi();
   for (const id of PROFILE_PANEL_IDS) {
@@ -138,10 +140,10 @@ test("d167ExperienceWithLogosFromResume · About you keeps the work history with
   assert.deepEqual([exp.find(e => e.company === "Contoso").logo, exp.find(e => e.company === "Contoso").initial], [null, "C"]);
   // the client: About you mounts the Profile's "about" part, which holds the D101 sections; the box is "Your experience"
   // with its logo tiles, its design unchanged
-  assert.match(PAGE, /<ProfilePanel section="about" onOpenJobProfiles=/);
+  assert.match(PAGE, /<ProfilePanel section=\{\["about", "resumes"\]\} onOpenJobProfiles=/);   // A140: one panel
   const PANEL = read("client/src/panels/ProfilePanel.jsx");
   const about = PANEL.slice(at(PANEL, '{on("about") && <>'), at(PANEL, '{on("answers") && <>'));
-  assert.match(about, /<ProfileSections theme=\{theme\}\/>/, "the sections are in About you");
+  assert.match(about, /<ProfileSections theme=\{theme\} highlight=\{/, "the sections are in About you (A140: the extracted skills / keywords bold in them)");
   const SECTIONS = read("client/src/components/ProfileSections.jsx");
   assert.match(SECTIONS, /<Box title="Your experience" theme=\{theme\}>\n\s+<ListEditor theme=\{theme\} items=\{s\.experience\}/);
   assert.match(SECTIONS, /<LogoTile logo=\{x\.logo\} initial=\{x\.initial\} theme=\{theme\} \/>/);
@@ -176,7 +178,7 @@ test("d167ProfileKeepsEverySetting · every old settings page and card has a pan
   const { profile } = await loadUi();
   assert.match(profile("answers"), /data-saved-answers-panel=""/, "the saved-answer bank (its existing API)");
   assert.match(profile("answers"), /Custom Answers/);
-  assert.match(profile("resumes"), /Job Profiles/);
+  assert.match(profile("about"), /Job Profiles/);   // A140: the résumés part is in About you
   assert.match(profile("autoapply"), /data-profile-autoapply=""/, "the tracker's settings drawer, drawn in the page");
   assert.match(PAGE, /<AutoSettingsDrawer key=\{round\} open inline=\{host\}/);
   const conn = profile("connections");

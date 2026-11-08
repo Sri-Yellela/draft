@@ -95,7 +95,7 @@ test("d167DockSideOnlyWhenMarginFitsOpen (pure) / d167AskDraftPushesNeverOverlay
 });
 
 test("d167ProfilePeekBasics (pure): the peek's items link to Profile's panels; the switch is the auto-apply mode", () => {
-  for (const id of ["about", "resumes", "answers", "connections", "appearance", "notifications"]) assert.ok(NAV.includes(`link("${id}", `), id);
+  for (const id of ["about", "answers", "connections", "appearance", "notifications"]) assert.ok(NAV.includes(`link("${id}", `), id);   // A140: résumés merged into about
   assert.match(NAV, /export const profileHref = \(panel\) => \(panel \? `\/app\/profile\/\$\{panel\}` : "\/app\/profile"\);/);
   assert.match(NAV, /const \{ runBar, setApplyMode, holdBusy \} = useAutoApply\(\);/);
   assert.match(NAV, /onClick=\{\(\) => \{ if \(fullAuto\) setApplyMode\?\.\("semi"\); \}\}>Ask me first<\/button>/);
@@ -240,7 +240,7 @@ test("d167ProfilePeekBasics (real Chrome): beside the dock, the person, the link
     assert.equal(p.dockOpen, "true");
     assert.ok(p.left >= p.dockRight + 8, `${s}: never covers the dock (${p.left} vs ${p.dockRight})`);
     assert.equal(p.name, "Ada Lovelace"); assert.equal(p.email, "ada@example.invalid");
-    assert.deepEqual(p.links.map(([, h]) => h), ["about", "resumes", "answers", "connections", "appearance", "notifications"].map((x) => `/app/profile/${x}`).concat("/app/profile"));
+    assert.deepEqual(p.links.map(([, h]) => h), ["about", "answers", "connections", "appearance", "notifications"].map((x) => `/app/profile/${x}`).concat("/app/profile"));
     assert.deepEqual(p.links.map(([l]) => l), ["About you", "Your résumés", "Saved answers", "Connections", "AppearanceDusk", "Notifications", "Open Profile"]);
     assert.deepEqual(p.mode.map(([l, pr]) => [l, pr]), [["Ask me first", "true"], ["Apply for me", "false"]]);
     assert.deepEqual(d.modeAfterApplyForMe, ["false", "true"], `${s}: Apply for me sets the auto-apply mode (the server's answer)`);

@@ -100,7 +100,7 @@ test("a non-EEO field holding the decline text is not treated as a decline", () 
 test("Application defaults offer the decline as its OWN choice for all four self-ID answers, and blank says 'Not set'", () => {
   const src = fs.readFileSync("client/src/components/ProfileSections.jsx", "utf8").replace(/\r\n/g, "\n");
   const panel = fs.readFileSync("client/src/panels/ProfilePanel.jsx", "utf8");
-  assert.match(panel, /<ProfileSections theme=\{theme\}\/>/);
+  assert.match(panel, /<ProfileSections theme=\{theme\} highlight=\{/);   // A140 (on purpose)
   assert.doesNotMatch(panel, /Voluntary Self-Identification \(EEO\)/, "one place sets these answers, not two");
   // The four self-ID keys each get the decline first, then the usual words.
   for (const key of ["gender", "ethnicity", "veteran", "disability"]) assert.match(src, new RegExp(`\\b${key}: \\[`), key);
