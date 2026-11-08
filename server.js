@@ -157,7 +157,7 @@ import { seedDraftedDefinitions } from "./services/atlas/atlasDefinitions.js";
 import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
 import { computeAtlasStats } from "./services/atlas/atlasStats.js";
 import { roleReadiness } from "./services/atlas/roleReadiness.js";
-import { ogPng, cardFromQuery } from "./services/ogImage.js";
+import { ogPng, cardFromQuery, ogUrl, ogImageMeta } from "./services/ogImage.js";
 import { practiceProgress } from "./services/learn/practiceProgress.js";
 import { stackExposure } from "./services/learn/stackExposure.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
@@ -15888,6 +15888,25 @@ app.get("/api/debug/verify-isolation", requireAuth, (req, res) => {
 // ⛔ D75: the page the crawler's User-Agent names — what it is, what it reads, and how to be excluded.
 app.get("/crawler", (_req, res) => {
   res.type("html").send(CRAWLER_PAGE_HTML);
+});
+// ⭐ D150 T08 (45n) · /audit?role=<slug> carries its own share card ("Do you clear the <role> bar?") — the SPA's index.html
+// with og:title / og:image written into its head; the role's name only (no person's answers). Any other /audit falls through.
+let AUDIT_INDEX = null;
+app.get("/audit", (req, res, next) => {
+  const slug = typeof req.query.role === "string" ? req.query.role.slice(0, 120) : "";
+  if (!slug) return next();
+  let role = null;
+  try { role = auditRoles(db).find(r => r.slug === slug) || null; } catch { role = null; }
+  if (!role) return next();
+  try {
+    if (!AUDIT_INDEX) AUDIT_INDEX = fs.readFileSync(path.join(CLIENT_DIST, "index.html"), "utf8");
+    const base = appBaseUrl(req);
+    const title = `Do you clear the ${role.title} bar?`;
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+    const meta = `<meta property="og:title" content="${esc(title)}"><meta property="og:url" content="${esc(`${base}/audit?role=${encodeURIComponent(slug)}`)}"><meta property="og:type" content="website">`
+      + ogImageMeta(ogUrl(base, { eyebrow: "The 3-minute audit", title, line: `${role.openPostings.toLocaleString("en-US")} open ${role.title} postings this week` }), title);
+    res.type("html").send(AUDIT_INDEX.replace("</head>", `${meta}</head>`));
+  } catch { next(); }
 });
 app.get("*", (_req, res) => {
   res.sendFile(path.join(CLIENT_DIST, "index.html"));
