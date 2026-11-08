@@ -76,7 +76,11 @@ import { learnStepForNode, glossaryConcepts } from "../services/learn/learnLinks
 import { servedLearnContent } from "../services/learn/learnContent.js";
 import { learnSourceSummary } from "../services/atlas/learnSources.js";
 import { yourRun } from "../services/atlas/points.js";
-import { roleReadiness, compareRoles } from "../services/atlas/roleReadiness.js";
+import { roleReadiness, compareRoles, subcategoryReadiness, setSubcategoryDeps } from "../services/atlas/roleReadiness.js";
+import { taxonomy } from "../services/jobs/taxonomyClassify.js";
+import { atlasLinksFor } from "../services/jobs/publicJobPage.js";
+// ⭐ D179 P6 (45l): the subcategory readings read the taxonomy and the Atlas link lookup.
+setSubcategoryDeps({ taxonomy, atlasLinksFor });
 import { aimRoleFor } from "../services/navigator.js";
 import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts } from "../services/atlas/atlasDefinitions.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
@@ -189,9 +193,22 @@ export function createAtlasRouter(db) {
     let role = String(req.query.role ?? "").slice(0, 120) || null;
     if (!role) { try { role = aimRoleFor(db, req.user.id)?.name || null; } catch { role = null; } }
     if (!role) return res.status(404).json({ found: false, reason: "no_role", message: "Choose a role to see how ready you are for it." });
-    const r = roleReadiness(db, req.user.id, role);
+    // ⭐ D179 P6: "sub:<id>" — a taxonomy subcategory as the role, its demand read from its own open postings.
+    const r = /^sub:/.test(role) ? subcategoryReadiness(db, req.user.id, role.slice(4)) : roleReadiness(db, req.user.id, role);
     if (!r.found) return res.status(404).json(r);
     res.json(r);
+  });
+  // ⭐ D179 P6 · the taxonomy's subcategories that have enough live postings to read readiness for — the For a role picker.
+  router.get("/subcategory-roles", (_req, res) => {
+    let tax = null; try { tax = taxonomy(); } catch { return res.json({ roles: [] }); }
+    let counts = new Map();
+    try {
+      counts = new Map(db.prepare(`SELECT jt.subcategory AS s, COUNT(*) AS n FROM scraped_jobs sj JOIN job_taxonomy jt ON jt.job_id = sj.job_id
+        WHERE sj.is_active = 1 AND sj.duplicate_of IS NULL AND jt.subcategory IS NOT NULL GROUP BY jt.subcategory`).all().map(r => [r.s, r.n]));
+    } catch { counts = new Map(); }
+    const roles = tax.categories.filter(c => !c.held).flatMap(c => c.subs.filter(s => !s.general && (counts.get(s.id) || 0) >= 30)
+      .map(s => ({ value: `sub:${s.id}`, name: s.name, category: c.name, postings: counts.get(s.id) })));
+    res.set("Cache-Control", "private, max-age=300").json({ roles });
   });
   router.get("/role-fit", (req, res) => {
     const role = String(req.query.role ?? "").slice(0, 120) || null;
