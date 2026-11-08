@@ -22,6 +22,7 @@ import crypto from "node:crypto";
 import { searchNodes, readNode, profileTerms, termOf, aliasesOf } from "./atlas/atlasStore.js";
 import { untrustedText } from "./byom/untrusted.js";
 import { listMessages } from "./inbox.js";
+import { companyOfApplication, rebuildCompanyGuide } from "./interview/companyGuides.js";
 
 const now = () => Math.floor(Date.now() / 1000);
 const parse = (s, fb) => { if (s == null) return fb; try { return JSON.parse(s); } catch { return fb; } };
@@ -449,13 +450,22 @@ export function addDebrief(db, userId, body = {}) {
     if (q.text.length > LIMITS.question || q.notes.length > LIMITS.notes) throw err(400, "too_long", `A question is at most ${LIMITS.question} characters.`);
     if (q.went != null && !WENT.includes(q.went)) throw err(400, "bad_went", `How it went is one of: ${WENT.join(", ")}.`);
   }
-  return db.transaction(() => {
+  // ⭐ D150 T12 (45n): topics (≤ 10 short words), the company + level by its application, and the EXPLICIT pool consent
+  // (only a literal true; never assumed) — a consented debrief rebuilds that company's guide (k ≥ 3 people).
+  const topics = (Array.isArray(body.topics) ? body.topics : []).map(t => String(t).trim().slice(0, 60)).filter(Boolean).slice(0, 10);
+  const poolConsent = body.poolConsent === true ? 1 : 0;
+  const { companyKey, level } = companyOfApplication(db, userId, applicationId);
+  const saved = db.transaction(() => {
     const id = Number(db.prepare(`INSERT INTO interview_debriefs (user_id, application_id, round, held_on, went, notes) VALUES (?, ?, ?, ?, ?, ?)`)
       .run(userId, applicationId, round, heldOn, went, notes.trim()).lastInsertRowid);
+    try { db.prepare(`UPDATE interview_debriefs SET company_key = ?, level = ?, topics_json = ?, pool_consent = ? WHERE id = ?`).run(companyKey, level, JSON.stringify(topics), poolConsent, id); }
+    catch (e) { if (!/no such column/.test(String(e?.message))) throw e; }
     const qi = db.prepare(`INSERT INTO interview_questions (user_id, debrief_id, round, question, went, notes) VALUES (?, ?, ?, ?, ?, ?)`);
     for (const q of qs) qi.run(userId, id, round, q.text, q.went, q.notes);
     return readDebrief(db, userId, id);
   })();
+  if (poolConsent && companyKey) { try { rebuildCompanyGuide(db, companyKey); } catch (e) { console.warn("[company-guides]", e.message); } }
+  return saved;
 }
 
 export function readDebrief(db, userId, debriefId) {
