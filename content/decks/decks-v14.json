@@ -1,6 +1,6 @@
 {
  "version": 14,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'cloud', stages 'reliability' (SLOs, incidents, capacity and cost, disaster recovery; observability reuses sw-p-05) and 'security-for-operations' (secrets, least privilege, supply chain). Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'cloud', stages 'reliability' (SLOs, incidents, capacity and cost, disaster recovery; observability reuses sw-p-05) and 'security-for-operations' (secrets, least privilege, supply chain). Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "cl-r-01",
@@ -64,7 +64,7 @@
     "cl-r-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "cl-r-03",
@@ -127,7 +127,7 @@
     "cl-r-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "cl-r-04",
@@ -191,7 +191,7 @@
     "cl-r-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "cl-r-05",
@@ -255,7 +255,7 @@
     "cl-r-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "cl-s-01",
@@ -318,7 +318,7 @@
     "cl-s-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "cl-s-02",
@@ -382,7 +382,7 @@
     "cl-s-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "cl-s-03",
@@ -446,7 +446,7 @@
     "cl-s-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -477,7 +477,7 @@
     "Real incidents would be missed."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-r-03-q1",
@@ -505,7 +505,7 @@
     "That comes after the incident."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-r-04-q1",
@@ -534,7 +534,7 @@
     "That raises the cost."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-r-05-q1",
@@ -562,7 +562,7 @@
     "Distance doesn't change replication."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-s-01-q1",
@@ -590,7 +590,7 @@
     "The key is already exposed."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-s-02-q1",
@@ -618,7 +618,7 @@
     "Not a cost issue."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-s-03-q1",
@@ -646,7 +646,7 @@
     "Timing doesn't matter."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

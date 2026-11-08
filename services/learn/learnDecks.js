@@ -8,7 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { questions, servedQuestion } from "./learnQuestions.js";
+import { questions, servedQuestion, importQuestions } from "./learnQuestions.js";
 
 export const DECKS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../content/decks");
 /** The ladder (the Library's levels — the same names as Your run's levels, services/atlas/points.js LEVELS). */
@@ -55,7 +55,9 @@ export function pathwaysPlan({ dir = DECKS_DIR } = {}) {
 }
 
 export function guides({ dir } = {}) {
-  const decks = approvedDecks(dir);
+  // ⭐ D155 (11-08): the ladder is the SOFTWARE career ladder (decks-v1's levels) — with every pathway approved, a stage
+  // alone would mix software, data and mechanical Foundations in one guide. Other pathways are reached through the plan.
+  const decks = approvedDecks(dir).filter(d => (d.pathway || "software") === "software");
   return LADDER.map(l => {
     const own = decks.filter(d => d.stage === l.stage);
     return { ...l, written: own.length > 0, lessons: own.map(d => ({ id: d.id, title: d.title, skills: d.skills || [], slides: (d.slides || []).length })) };
@@ -67,10 +69,41 @@ export function deckOf(db, id, { dir } = {}) {
   const d = approvedDecks(dir).find(x => x.id === id);
   if (!d) return null;
   const live = db ? safe(() => questions(db, { ids: d.questions || [] }), []) : [];
-  const level = LADDER.find(l => l.stage === d.stage) || null;
+  const level = (d.pathway || "software") === "software" ? (LADDER.find(l => l.stage === d.stage) || null) : null;
   return { id: d.id, title: d.title, skills: d.skills || [], guide: level ? { id: level.id, name: level.name, level: level.level } : null,
     slides: (d.slides || []).map(s => ({ tag: s.tag, title: s.title, points: s.points || [] })),
     check: live.length ? { question: servedQuestion(live[0]) } : { waiting: (d.questions || []).length > 0 } };
+}
+
+/**
+ * ⭐ D155 (11-08) · A DECK BATCH'S CHECK QUESTIONS INTO THE BANK — every decks-vN.json's `newQuestions`, through the bank's
+ * own importer (validated, idempotent; new items arrive as drafts). For a batch the owner approved
+ * (content/decks/approvals.json) each question still UNTOUCHED since its first import (version 1, never reviewed) goes live,
+ * reviewed by the owner on the approval's date — the questions were in the batch's review copy with every answer and its
+ * why. An edited or re-imported question (version > 1) or one already reviewed is never flipped: it stays on the desk.
+ */
+export function importDeckQuestions(db, { dir = DECKS_DIR, now = Math.floor(Date.now() / 1000) } = {}) {
+  const approvals = safe(() => JSON.parse(fs.readFileSync(path.join(dir, "approvals.json"), "utf8")).approved || {}, {});
+  const files = safe(() => fs.readdirSync(dir).filter(f => /^decks-v\d+\.json$/.test(f)).sort(), []);
+  const out = [];
+  for (const f of files) {
+    const b = safe(() => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")), null);
+    const items = (b?.newQuestions || []).map(({ status, ...q }) => q);
+    if (!items.length) continue;
+    try {
+      const r = importQuestions(db, { version: b.version, note: `content/decks/${f}`, items }, { apply: true, from: `content/decks/${f}`, now });
+      let live = 0;
+      const ok = approvals[String(b.version)];
+      if (ok && !r.refused.length) {
+        const at = Math.floor(Date.parse(`${ok.at}T12:00:00Z`) / 1000) || now;
+        const flip = db.prepare(`UPDATE learn_questions SET status = 'live', reviewed_by = ?, reviewed_at = ?, updated_at = ?
+          WHERE id = ? AND status = 'draft' AND reviewed_at IS NULL AND version = 1`);
+        db.transaction(() => { for (const q of items) live += flip.run(`${ok.by} (decks-v${b.version} review)`, at, now, q.id).changes; })();
+      }
+      out.push({ file: f, ...r, live });
+    } catch (e) { out.push({ file: f, error: e.message }); }
+  }
+  return out;
 }
 
 /** Tests: forget the cached files. */

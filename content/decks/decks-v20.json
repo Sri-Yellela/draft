@@ -1,6 +1,6 @@
 {
  "version": 20,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'qa', stages 'foundations' (3), 'building-blocks' (3) and 'patterns' (4), in Part C's order. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'qa', stages 'foundations' (3), 'building-blocks' (3) and 'patterns' (4), in Part C's order. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "qa-f-01",
@@ -64,7 +64,7 @@
     "qa-f-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "qa-f-02",
@@ -128,7 +128,7 @@
     "qa-f-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "qa-f-03",
@@ -191,7 +191,7 @@
     "qa-f-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "qa-b-01",
@@ -255,7 +255,7 @@
     "qa-b-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "qa-b-02",
@@ -318,7 +318,7 @@
     "qa-b-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "qa-b-03",
@@ -381,7 +381,7 @@
     "qa-b-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "qa-p-01",
@@ -444,7 +444,7 @@
     "qa-p-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "qa-p-02",
@@ -508,7 +508,7 @@
     "qa-p-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "qa-p-03",
@@ -571,7 +571,7 @@
     "qa-p-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "qa-p-04",
@@ -634,7 +634,7 @@
     "qa-p-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -664,7 +664,7 @@
     "Loses all safety."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "qa-f-02-q1",
@@ -692,7 +692,7 @@
     "Misses the upper limit and invalid values."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "qa-f-03-q1",
@@ -720,7 +720,7 @@
     "Not traceable."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "qa-b-01-q1",
@@ -748,7 +748,7 @@
     "Not realistic."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "qa-b-02-q1",
@@ -776,7 +776,7 @@
     "Length isn't the cause."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "qa-b-03-q1",
@@ -804,7 +804,7 @@
     "Hides real failures too."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "qa-p-01-q1",
@@ -832,7 +832,7 @@
     "The product may be fine."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "qa-p-02-q1",
@@ -860,7 +860,7 @@
     "This is exactly what it catches."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "qa-p-03-q1",
@@ -888,7 +888,7 @@
     "Unrealistic."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "qa-p-04-q1",
@@ -916,7 +916,7 @@
     "Unrelated."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

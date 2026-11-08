@@ -4,6 +4,7 @@
 // approves: every deck and question is status "draft". Writes content/decks/decks-v2.json and the review copy decks-v2.md
 // from this one source:   node scripts/decks/decksV2.mjs
 import fs from "node:fs";
+import { approvalOf } from "./deckKit.mjs";
 
 const CHECK = { tag: "Check yourself", title: "One question", points: ["Answer it, then read the why."] };
 const deck = (n, title, skills, pieces, slides, q) => ({
@@ -207,6 +208,8 @@ const DECKS = [
       "Every container start would then take minutes, and might not be reproducible.", "That makes every build slow on purpose."])),
 ];
 
+const ok2 = approvalOf(2);
+if (ok2) for (const d of DECKS) { d.status = "approved"; d._q.status = "live"; }
 const out = {
   version: 2,
   note: "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format — as decks-v1). Pathway 'software', stage 'building-blocks': 8 five-slide decks in Part C's order. 'questions' are the bank item ids shown on the deck's last slide; 'newQuestions' enter the bank as drafts. Nothing is live until approved (status: draft).",
@@ -218,7 +221,7 @@ fs.writeFileSync("content/decks/decks-v2.json", JSON.stringify(out, null, 1) + "
 const md = [
   "# Decks v2 — software engineering, Building blocks (for your review)",
   "",
-  "Drafted by the agent on 2026-11-08, in the approved pathway order (D155 Part C), in decks-v1's format. Eight five-slide decks; each ends with one new question (drafts for the bank). **Nothing is live until you approve** — say \"approve decks-v2\" (or name the decks to change).",
+  (ok2 ? "Drafted by the agent on 2026-11-08, in the approved pathway order (D155 Part C), in decks-v1's format. Eight five-slide decks, each with one new question. **APPROVED by the owner 2026-11-08** — served in the Library; the questions are live in the bank." : "Drafted by the agent on 2026-11-08, in the approved pathway order (D155 Part C), in decks-v1's format. Eight five-slide decks; each ends with one new question (drafts for the bank). **Nothing is live until you approve** — say \"approve decks-v2\" (or name the decks to change)."),
   "",
   ...DECKS.flatMap(d => [
     `## ${d.id} · ${d.title}`,

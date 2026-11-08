@@ -65,7 +65,7 @@
     "sw-b-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-b-02",
@@ -130,7 +130,7 @@
     "sw-b-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-b-03",
@@ -195,7 +195,7 @@
     "sw-b-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-b-04",
@@ -260,7 +260,7 @@
     "sw-b-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-b-05",
@@ -324,7 +324,7 @@
     "sw-b-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-b-06",
@@ -388,7 +388,7 @@
     "sw-b-06-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-b-07",
@@ -452,7 +452,7 @@
     "sw-b-07-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "sw-b-08",
@@ -515,7 +515,7 @@
     "sw-b-08-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -546,7 +546,7 @@
     "Breaking clients on purpose isn't a migration plan."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-b-02-q1",
@@ -575,7 +575,7 @@
     "The thief has the laptop, not the person."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-b-03-q1",
@@ -603,7 +603,7 @@
     "A browser cache is even harder to invalidate."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-b-04-q1",
@@ -632,7 +632,7 @@
     "Acknowledging first means a crash loses the email entirely."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-b-05-q1",
@@ -661,7 +661,7 @@
     "GC pauses are short; this is the parse itself."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-b-06-q1",
@@ -690,7 +690,7 @@
     "An OR across columns usually can't use one composite index."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-b-07-q1",
@@ -719,7 +719,7 @@
     "A cached value is even more likely to be stale."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "sw-b-08-q1",
@@ -748,7 +748,7 @@
     "That makes every build slow on purpose."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

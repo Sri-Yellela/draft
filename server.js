@@ -128,6 +128,7 @@ import { createLearnAdminRouter } from "./routes/learnAdmin.js";
 import { seedLearnContentIfEmpty } from "./services/learn/learnImport.js";
 import { importQuestionFiles, reviewList, unknownPieces, reviewQuestion as reviewLearnQuestion,
   QUESTION_LEVELS, QUESTION_TYPES, QUESTION_STATUSES } from "./services/learn/learnQuestions.js";
+import { importDeckQuestions } from "./services/learn/learnDecks.js";
 import { auditRoles, roleCard } from "./services/audit/auditRoleCard.js";
 import { seedCircleData, checkExtraItems } from "./services/learn/learnCircle.js";
 import { seedAtlasFromRegistry } from "./services/atlas/atlasSeed.js";
@@ -10864,6 +10865,12 @@ try {
     if (r.error) console.warn(`[questions] ${r.file} NOT imported — ${r.error}`);
     else if (r.refused.length) console.warn(`[questions] ${r.file} NOT imported — ${r.refused.length} item(s) refused: ${r.refused.slice(0, 3).map(x => `${x.id}: ${x.problems.join(", ")}`).join("; ")}`);
     else if (r.added.length || r.changed.length || r.requeued.length) console.log(`[questions] ${r.file}: ${r.added.length} added, ${r.changed.length} changed, ${r.requeued.length} back to review`);
+  }
+  // ⭐ D155 (11-08): the deck batches' check questions (content/decks/decks-vN.json); an owner-approved batch's go live.
+  for (const r of importDeckQuestions(db)) {
+    if (r.error) console.warn(`[questions] ${r.file} NOT imported — ${r.error}`);
+    else if (r.refused.length) console.warn(`[questions] ${r.file} NOT imported — ${r.refused.length} item(s) refused: ${r.refused.slice(0, 3).map(x => `${x.id}: ${x.problems.join(", ")}`).join("; ")}`);
+    else if (r.added.length || r.changed.length || r.live) console.log(`[questions] ${r.file}: ${r.added.length} added, ${r.changed.length} changed, ${r.live} live (owner-approved batch)`);
   }
   const drafts = db.prepare(`SELECT COUNT(*) FROM learn_questions WHERE status = 'draft'`).pluck().get();
   if (drafts) console.log(`[questions] ${drafts} drafted question(s) await review (Admin → Data → Question bank)`);

@@ -54,19 +54,19 @@ test("d155PathwaysPlanShown: served at GET /api/learn/pathways and drawn on the 
   assert.match(read("client/src/pages/atlas/LibraryPanel.jsx"), /<PathwaysPlan base=\{base\} \/>/);
 });
 
-test("d155PathwaysPlanShown: decks-v2 (software Building blocks) is a DRAFT batch — in the plan as drafted, not served", () => {
+test("d155PathwaysPlanShown: decks-v2 … v24 APPROVED by the owner 11-08 (changed on purpose) — served, linked, the ladder software's", () => {
+  const ap = JSON.parse(read("content/decks/approvals.json")).approved;
+  for (let v = 1; v <= 24; v++) assert.ok(ap[String(v)], `decks-v${v} approved`);
   const v2 = JSON.parse(read("content/decks/decks-v2.json"));
   assert.deepEqual(v2.decks.map(d => d.id), ["sw-b-01", "sw-b-02", "sw-b-03", "sw-b-04", "sw-b-05", "sw-b-06", "sw-b-07", "sw-b-08"]);
-  assert.ok(v2.decks.every(d => d.status === "draft" && d.pathway === "software" && d.stage === "building-blocks" && d.slides.length === 5));
-  assert.ok(v2.decks.every(d => d.slides.map(s => s.tag).join("|") === "What it is|Core ideas|The trade-offs|In practice|Check yourself"), "D154 P4's five slides");
-  assert.ok(v2.newQuestions.every(q => q.status === "draft" && q.choices[q.correct] && q.why.length === q.choices.length));
-  assert.deepEqual(v2.decks.map(d => d.questions[0]), v2.newQuestions.map(q => q.id));
+  assert.ok(v2.decks.every(d => d.status === "approved" && d.pathway === "software" && d.stage === "building-blocks" && d.slides.length === 5));
+  assert.ok(v2.newQuestions.every(q => q.status === "live" && q.choices[q.correct] && q.why.length === q.choices.length));
   const plan = pathwaysPlan();
+  assert.deepEqual([plan.written, plan.drafted, plan.planned], [207, 0, 0]);
   const bb = plan.pathways[0].stages.find(s => s.id === "building-blocks");
-  assert.ok(bb.topics.every(t => t.drafted && t.deck === null), "drafted, never linked until approved");
-  // the review copy is generated from the same source
-  const md = read("content/decks/decks-v2.md");
-  for (const d of v2.decks) assert.ok(md.includes(`## ${d.id} · ${d.title}`));
+  assert.ok(bb.topics.every(t => typeof t.deck === "string"), "linked once approved");
+  // the review copy says it is approved
+  assert.match(read("content/decks/decks-v2.md"), /\*\*APPROVED by the owner 2026-11-08\*\*/);
 });
 
 test("d155PathwaysPlanShown: every deck batch holds the format — five slides, an answerable question, a place in the plan", () => {
@@ -99,5 +99,5 @@ test("d155PathwaysPlanShown: a shared topic is written once and reused (Part C),
     { title: "metrics", deck: null, status: "planned" }]);
   const live = JSON.parse(read("content/decks/pathways-v1.json")).pathways;
   const ml = live.find(p => p.id === "ml-ai").stages.find(s => s.id === "interview").topics;
-  assert.deepEqual(ml.at(-1), { title: "AI-enabled coding", deck: "sw-iv-04", status: "draft", reused: true });
+  assert.deepEqual(ml.at(-1), { title: "AI-enabled coding", deck: "sw-iv-04", status: "approved", reused: true });   // ⭐ approved 11-08
 });

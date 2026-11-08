@@ -1,6 +1,6 @@
 {
  "version": 22,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'management': 'building-blocks' (3), 'patterns' (4), 'specialisation' (2), 'interview' (3), in Part C's order. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'management': 'building-blocks' (3), 'patterns' (4), 'specialisation' (2), 'interview' (3), in Part C's order. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "mg-b-01",
@@ -63,7 +63,7 @@
     "mg-b-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-b-02",
@@ -126,7 +126,7 @@
     "mg-b-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-b-03",
@@ -189,7 +189,7 @@
     "mg-b-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-p-01",
@@ -252,7 +252,7 @@
     "mg-p-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-p-02",
@@ -315,7 +315,7 @@
     "mg-p-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-p-03",
@@ -378,7 +378,7 @@
     "mg-p-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-p-04",
@@ -441,7 +441,7 @@
     "mg-p-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-s-01",
@@ -504,7 +504,7 @@
     "mg-s-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-s-02",
@@ -567,7 +567,7 @@
     "mg-s-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-iv-01",
@@ -630,7 +630,7 @@
     "mg-iv-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-iv-02",
@@ -693,7 +693,7 @@
     "mg-iv-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "mg-iv-03",
@@ -756,7 +756,7 @@
     "mg-iv-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -786,7 +786,7 @@
     "Removes the check."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-b-02-q1",
@@ -814,7 +814,7 @@
     "Still false precision."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-b-03-q1",
@@ -842,7 +842,7 @@
     "Far too late."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-p-01-q1",
@@ -870,7 +870,7 @@
     "Makes it worse."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-p-02-q1",
@@ -898,7 +898,7 @@
     "It damages trust."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-p-03-q1",
@@ -926,7 +926,7 @@
     "Problems will grow unseen."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-p-04-q1",
@@ -954,7 +954,7 @@
     "Delays recovery."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-s-01-q1",
@@ -982,7 +982,7 @@
     "Not workable."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-s-02-q1",
@@ -1010,7 +1010,7 @@
     "The team keeps stalling."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-iv-01-q1",
@@ -1038,7 +1038,7 @@
     "Drastic without understanding."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-iv-02-q1",
@@ -1066,7 +1066,7 @@
     "Not sustainable for six weeks."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "mg-iv-03-q1",
@@ -1094,7 +1094,7 @@
     "Avoids the decision."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

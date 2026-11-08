@@ -1,6 +1,6 @@
 {
  "version": 24,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C C.9, to go live once those fields are on the board, D127; D154 P4 format). Stages 'business-and-financial-analysis' (4), 'product-and-project-management' (5), 'design' (4; accessibility reuses sw-fe-03). Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C C.9, to go live once those fields are on the board, D127; D154 P4 format). Stages 'business-and-financial-analysis' (4), 'product-and-project-management' (5), 'design' (4; accessibility reuses sw-fe-03). Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "bx-ba-01",
@@ -64,7 +64,7 @@
     "bx-ba-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-ba-02",
@@ -127,7 +127,7 @@
     "bx-ba-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-ba-03",
@@ -190,7 +190,7 @@
     "bx-ba-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-ba-04",
@@ -253,7 +253,7 @@
     "bx-ba-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-pm-01",
@@ -316,7 +316,7 @@
     "bx-pm-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-pm-02",
@@ -379,7 +379,7 @@
     "bx-pm-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-pm-03",
@@ -442,7 +442,7 @@
     "bx-pm-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-pm-04",
@@ -505,7 +505,7 @@
     "bx-pm-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-pm-05",
@@ -568,7 +568,7 @@
     "bx-pm-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-de-01",
@@ -631,7 +631,7 @@
     "bx-de-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-de-02",
@@ -694,7 +694,7 @@
     "bx-de-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-de-03",
@@ -757,7 +757,7 @@
     "bx-de-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "bx-de-05",
@@ -820,7 +820,7 @@
     "bx-de-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -850,7 +850,7 @@
     "Precision isn't the issue."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-ba-02-q1",
@@ -878,7 +878,7 @@
     "Not the explanation."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-ba-03-q1",
@@ -906,7 +906,7 @@
     "The real goal is worse."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-ba-04-q1",
@@ -934,7 +934,7 @@
     "Buries the point."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-pm-01-q1",
@@ -962,7 +962,7 @@
     "Future intent is a poor predictor."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-pm-02-q1",
@@ -990,7 +990,7 @@
     "Abdicates the decision."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-pm-03-q1",
@@ -1018,7 +1018,7 @@
     "They measure different things."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-pm-04-q1",
@@ -1046,7 +1046,7 @@
     "They need to plan too."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-pm-05-q1",
@@ -1074,7 +1074,7 @@
     "Demand isn't the problem."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-de-01-q1",
@@ -1102,7 +1102,7 @@
     "Views don't show struggle."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-de-02-q1",
@@ -1130,7 +1130,7 @@
     "Not the cause."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-de-03-q1",
@@ -1158,7 +1158,7 @@
     "It excludes users."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "bx-de-05-q1",
@@ -1186,7 +1186,7 @@
     "Not evidence of your work."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

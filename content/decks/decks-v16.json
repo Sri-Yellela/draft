@@ -1,6 +1,6 @@
 {
  "version": 16,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'security', stages 'foundations' (4) and 'application-security' (3; authentication and sessions reuses sw-b-02). Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'security', stages 'foundations' (4) and 'application-security' (3; authentication and sessions reuses sw-b-02). Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "se-f-01",
@@ -65,7 +65,7 @@
     "se-f-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-f-02",
@@ -129,7 +129,7 @@
     "se-f-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-f-03",
@@ -193,7 +193,7 @@
     "se-f-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-f-04",
@@ -258,7 +258,7 @@
     "se-f-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-a-01",
@@ -322,7 +322,7 @@
     "se-a-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-a-02",
@@ -385,7 +385,7 @@
     "se-a-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "se-a-03",
@@ -448,7 +448,7 @@
     "se-a-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -479,7 +479,7 @@
     "Logging records the attack; it doesn't block it."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-f-02-q1",
@@ -507,7 +507,7 @@
     "Not inherently, though it can alter logs."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-f-03-q1",
@@ -535,7 +535,7 @@
     "Length doesn't fix speed."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-f-04-q1",
@@ -563,7 +563,7 @@
     "They don't."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-a-01-q1",
@@ -591,7 +591,7 @@
     "Unrelated."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-a-02-q1",
@@ -619,7 +619,7 @@
     "Speed isn't the issue."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "se-a-03-q1",
@@ -647,7 +647,7 @@
     "Scanners miss design flaws."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

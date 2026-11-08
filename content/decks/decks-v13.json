@@ -1,6 +1,6 @@
 {
  "version": 13,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'cloud', stages 'foundations' (Linux, networking, scripting; Git reuses sw-f-04) and 'building-blocks' (Kubernetes, IaC, CI/CD, cloud building blocks; containers reuses sw-b-08). Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'cloud', stages 'foundations' (Linux, networking, scripting; Git reuses sw-f-04) and 'building-blocks' (Kubernetes, IaC, CI/CD, cloud building blocks; containers reuses sw-b-08). Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "cl-f-01",
@@ -64,7 +64,7 @@
     "cl-f-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "cl-f-02",
@@ -129,7 +129,7 @@
     "cl-f-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "cl-f-03",
@@ -193,7 +193,7 @@
     "cl-f-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "cl-b-02",
@@ -256,7 +256,7 @@
     "cl-b-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "cl-b-03",
@@ -319,7 +319,7 @@
     "cl-b-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "cl-b-04",
@@ -383,7 +383,7 @@
     "cl-b-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "cl-b-05",
@@ -447,7 +447,7 @@
     "cl-b-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -477,7 +477,7 @@
     "The disk is still full."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-f-02-q1",
@@ -505,7 +505,7 @@
     "TLS errors appear after connecting."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-f-03-q1",
@@ -533,7 +533,7 @@
     "rm -rf never asks."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-b-02-q1",
@@ -561,7 +561,7 @@
     "Liveness decides restarts, not traffic."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-b-03-q1",
@@ -589,7 +589,7 @@
     "That makes Terraform forget what it manages, which is worse."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-b-04-q1",
@@ -617,7 +617,7 @@
     "That's the cause."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "cl-b-05-q1",
@@ -645,7 +645,7 @@
     "Not how cloud access works, and unsafe."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

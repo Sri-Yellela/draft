@@ -1,6 +1,6 @@
 {
  "version": 11,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'ml-ai', stage 'ai-engineering' (7), in Part C's order. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'ml-ai', stage 'ai-engineering' (7), in Part C's order. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "ml-ai-01",
@@ -64,7 +64,7 @@
     "ml-ai-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-ai-02",
@@ -128,7 +128,7 @@
     "ml-ai-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-ai-03",
@@ -192,7 +192,7 @@
     "ml-ai-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-ai-04",
@@ -256,7 +256,7 @@
     "ml-ai-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-ai-05",
@@ -319,7 +319,7 @@
     "ml-ai-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-ai-06",
@@ -384,7 +384,7 @@
     "ml-ai-06-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "ml-ai-07",
@@ -448,7 +448,7 @@
     "ml-ai-07-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -478,7 +478,7 @@
     "Same problem: no facts provided."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-02-q1",
@@ -506,7 +506,7 @@
     "Brittle and still fails."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-03-q1",
@@ -534,7 +534,7 @@
     "Randomness doesn't add facts."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-04-q1",
@@ -563,7 +563,7 @@
     "It followed the wrong source."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-05-q1",
@@ -591,7 +591,7 @@
     "That changes another variable."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-06-q1",
@@ -620,7 +620,7 @@
     "That doubles cost."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "ml-ai-07-q1",
@@ -648,7 +648,7 @@
     "Speed isn't safety."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

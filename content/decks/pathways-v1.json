@@ -60,42 +60,42 @@
             {
               "title": "APIs (REST, gRPC)",
               "deck": "sw-b-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "authentication and sessions",
               "deck": "sw-b-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "caching",
               "deck": "sw-b-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "queues and background work",
               "deck": "sw-b-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "concurrency",
               "deck": "sw-b-05",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "indexes and query plans",
               "deck": "sw-b-06",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "transactions and isolation",
               "deck": "sw-b-07",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "containers",
               "deck": "sw-b-08",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -106,37 +106,37 @@
             {
               "title": "idempotency and retries",
               "deck": "sw-p-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "rate limiting",
               "deck": "sw-p-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "pagination",
               "deck": "sw-p-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "feature flags and safe releases",
               "deck": "sw-p-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "observability",
               "deck": "sw-p-05",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "timeouts and circuit breakers",
               "deck": "sw-p-06",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "schema migrations (expand and contract)",
               "deck": "sw-p-07",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -147,32 +147,32 @@
             {
               "title": "a URL shortener",
               "deck": "sw-c-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "chat and message ordering",
               "deck": "sw-c-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "a news feed",
               "deck": "sw-c-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "notifications",
               "deck": "sw-c-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "payments and webhooks",
               "deck": "sw-c-05",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "search",
               "deck": "sw-c-06",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -183,37 +183,37 @@
             {
               "title": "the DOM and rendering",
               "deck": "sw-fe-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "CSS layout",
               "deck": "sw-fe-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "accessibility",
               "deck": "sw-fe-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "state management",
               "deck": "sw-fe-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "performance (bundles, layout shift)",
               "deck": "sw-fe-05",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "web security (XSS, CSP)",
               "deck": "sw-fe-06",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "testing interfaces",
               "deck": "sw-fe-07",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -224,32 +224,32 @@
             {
               "title": "the app lifecycle",
               "deck": "sw-mo-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "offline and sync",
               "deck": "sw-mo-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "main-thread performance and images",
               "deck": "sw-mo-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "staged releases and old versions",
               "deck": "sw-mo-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "push and background work",
               "deck": "sw-mo-05",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "platform guidelines",
               "deck": "sw-mo-06",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -260,22 +260,22 @@
             {
               "title": "coding patterns (linking out to LeetCode-style practice)",
               "deck": "sw-iv-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "system design rounds",
               "deck": "sw-iv-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "behavioural (situation, action, result)",
               "deck": "sw-iv-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "AI-enabled coding",
               "deck": "sw-iv-04",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         }
@@ -293,27 +293,27 @@
             {
               "title": "SQL in depth",
               "deck": "da-f-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "data modelling (grain, star schemas)",
               "deck": "da-f-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "Python for data",
               "deck": "da-f-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "statistics basics",
               "deck": "da-f-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "data quality",
               "deck": "da-f-05",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -324,32 +324,32 @@
             {
               "title": "batch and streaming",
               "deck": "da-b-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "orchestration",
               "deck": "da-b-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "warehouses and lakes (partitioning, columnar storage)",
               "deck": "da-b-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "dbt and testing",
               "deck": "da-b-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "change data capture",
               "deck": "da-b-05",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "Kafka",
               "deck": "da-b-06",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -360,27 +360,27 @@
             {
               "title": "idempotent pipelines and backfills",
               "deck": "da-p-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "late data and watermarks",
               "deck": "da-p-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "slowly changing dimensions",
               "deck": "da-p-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "data contracts",
               "deck": "da-p-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "metrics and the semantic layer",
               "deck": "da-p-05",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -391,27 +391,27 @@
             {
               "title": "experiments (A/B tests, peeking)",
               "deck": "da-ds-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "causal thinking",
               "deck": "da-ds-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "regression and classification",
               "deck": "da-ds-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "evaluation metrics",
               "deck": "da-ds-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "explaining results",
               "deck": "da-ds-05",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -422,22 +422,22 @@
             {
               "title": "a revenue pipeline",
               "deck": "da-c-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "product event analytics",
               "deck": "da-c-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "a churn model",
               "deck": "da-c-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "recommendations basics",
               "deck": "da-c-04",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -448,22 +448,22 @@
             {
               "title": "SQL rounds",
               "deck": "da-iv-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "data-modelling rounds",
               "deck": "da-iv-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "experiment-design rounds",
               "deck": "da-iv-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "case presentations",
               "deck": "da-iv-04",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         }
@@ -481,22 +481,22 @@
             {
               "title": "the maths you need (probability, linear algebra, gradients)",
               "deck": "ml-f-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "training, validation and test sets",
               "deck": "ml-f-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "overfitting and leakage",
               "deck": "ml-f-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "metrics",
               "deck": "ml-f-04",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -507,22 +507,22 @@
             {
               "title": "feature pipelines",
               "deck": "ml-b-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "training at scale",
               "deck": "ml-b-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "model serving",
               "deck": "ml-b-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "monitoring and drift",
               "deck": "ml-b-04",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -533,37 +533,37 @@
             {
               "title": "how LLMs work",
               "deck": "ml-ai-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "prompting and structured output",
               "deck": "ml-ai-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "retrieval (RAG)",
               "deck": "ml-ai-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "tools and agents",
               "deck": "ml-ai-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "evaluation",
               "deck": "ml-ai-05",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "serving and cost (quantisation, KV cache, batching)",
               "deck": "ml-ai-06",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "safety and guardrails",
               "deck": "ml-ai-07",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -574,22 +574,22 @@
             {
               "title": "a fraud model",
               "deck": "ml-c-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "search ranking",
               "deck": "ml-c-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "a support assistant with retrieval",
               "deck": "ml-c-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "an agent with tools",
               "deck": "ml-c-04",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -600,17 +600,17 @@
             {
               "title": "ML system design",
               "deck": "ml-iv-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "model debugging",
               "deck": "ml-iv-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "AI-enabled coding",
               "deck": "sw-iv-04",
-              "status": "draft",
+              "status": "approved",
               "reused": true
             }
           ]
@@ -629,17 +629,17 @@
             {
               "title": "Linux",
               "deck": "cl-f-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "networking (TCP/IP, DNS, load balancers)",
               "deck": "cl-f-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "scripting",
               "deck": "cl-f-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "Git",
@@ -656,28 +656,28 @@
             {
               "title": "containers",
               "deck": "sw-b-08",
-              "status": "draft",
+              "status": "approved",
               "reused": true
             },
             {
               "title": "Kubernetes",
               "deck": "cl-b-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "infrastructure as code",
               "deck": "cl-b-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "CI/CD",
               "deck": "cl-b-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "cloud building blocks (compute, storage, identity)",
               "deck": "cl-b-05",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -688,28 +688,28 @@
             {
               "title": "SLOs and alerting",
               "deck": "cl-r-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "observability",
               "deck": "sw-p-05",
-              "status": "draft",
+              "status": "approved",
               "reused": true
             },
             {
               "title": "incident response and postmortems",
               "deck": "cl-r-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "capacity and cost",
               "deck": "cl-r-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "disaster recovery and multi-region",
               "deck": "cl-r-05",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -720,17 +720,17 @@
             {
               "title": "secrets",
               "deck": "cl-s-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "least privilege",
               "deck": "cl-s-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "the software supply chain",
               "deck": "cl-s-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -741,17 +741,17 @@
             {
               "title": "deploys without downtime",
               "deck": "cl-c-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "surviving a region outage",
               "deck": "cl-c-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "cutting the cloud bill",
               "deck": "cl-c-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -762,17 +762,17 @@
             {
               "title": "troubleshooting rounds",
               "deck": "cl-iv-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "infrastructure design",
               "deck": "cl-iv-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "on-call scenarios",
               "deck": "cl-iv-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         }
@@ -790,22 +790,22 @@
             {
               "title": "networking",
               "deck": "se-f-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "operating-system internals",
               "deck": "se-f-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "cryptography basics",
               "deck": "se-f-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "how the web works",
               "deck": "se-f-04",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -816,22 +816,22 @@
             {
               "title": "common vulnerabilities (OWASP)",
               "deck": "se-a-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "secure code review",
               "deck": "se-a-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "threat modelling",
               "deck": "se-a-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "authentication and sessions",
               "deck": "sw-b-02",
-              "status": "draft",
+              "status": "approved",
               "reused": true
             }
           ]
@@ -843,18 +843,18 @@
             {
               "title": "identity and access",
               "deck": "se-ci-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "secrets",
               "deck": "cl-s-01",
-              "status": "draft",
+              "status": "approved",
               "reused": true
             },
             {
               "title": "detection and logging",
               "deck": "se-ci-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -865,17 +865,17 @@
             {
               "title": "penetration-testing basics",
               "deck": "se-o-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "red and blue teams",
               "deck": "se-o-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "incident response and forensics",
               "deck": "se-o-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -886,7 +886,7 @@
             {
               "title": "risk and compliance basics",
               "deck": "se-g-01",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -897,17 +897,17 @@
             {
               "title": "threat-modelling rounds",
               "deck": "se-iv-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "incident scenarios",
               "deck": "se-iv-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "code-review exercises",
               "deck": "se-iv-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         }
@@ -925,17 +925,17 @@
             {
               "title": "C and memory",
               "deck": "em-f-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "computer architecture",
               "deck": "em-f-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "operating-system basics",
               "deck": "em-f-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -946,22 +946,22 @@
             {
               "title": "interrupts and concurrency",
               "deck": "em-b-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "real-time operating systems and scheduling",
               "deck": "em-b-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "peripherals and protocols (I2C, SPI, UART)",
               "deck": "em-b-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "power management",
               "deck": "em-b-04",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -972,17 +972,17 @@
             {
               "title": "memory pools and fragmentation",
               "deck": "em-p-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "watchdogs and field diagnostics",
               "deck": "em-p-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "safe firmware updates",
               "deck": "em-p-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -993,17 +993,17 @@
             {
               "title": "Linux internals and drivers",
               "deck": "em-s-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "performance profiling",
               "deck": "em-s-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "hardware debugging",
               "deck": "em-s-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1014,17 +1014,17 @@
             {
               "title": "low-level coding",
               "deck": "em-iv-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "debugging scenarios",
               "deck": "em-iv-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "design of a device's firmware",
               "deck": "em-iv-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         }
@@ -1042,17 +1042,17 @@
             {
               "title": "the testing pyramid",
               "deck": "qa-f-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "test design",
               "deck": "qa-f-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "bug reports that get fixed",
               "deck": "qa-f-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1063,17 +1063,17 @@
             {
               "title": "automation frameworks",
               "deck": "qa-b-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "test data and isolation",
               "deck": "qa-b-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "CI quality gates",
               "deck": "qa-b-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1084,22 +1084,22 @@
             {
               "title": "flaky tests",
               "deck": "qa-p-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "contract testing",
               "deck": "qa-p-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "performance testing",
               "deck": "qa-p-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "accessibility testing",
               "deck": "qa-p-04",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1110,12 +1110,12 @@
             {
               "title": "risk-based test strategy",
               "deck": "qa-s-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "exploratory testing",
               "deck": "qa-s-02",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1126,12 +1126,12 @@
             {
               "title": "test-design rounds",
               "deck": "qa-iv-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "automation exercises",
               "deck": "qa-iv-02",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         }
@@ -1149,17 +1149,17 @@
             {
               "title": "one-to-ones",
               "deck": "mg-f-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "feedback",
               "deck": "mg-f-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "delegation",
               "deck": "mg-f-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1170,17 +1170,17 @@
             {
               "title": "hiring and interviewing",
               "deck": "mg-b-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "planning and estimation",
               "deck": "mg-b-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "stakeholder management",
               "deck": "mg-b-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1191,22 +1191,22 @@
             {
               "title": "delivery and execution",
               "deck": "mg-p-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "performance management",
               "deck": "mg-p-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "team health",
               "deck": "mg-p-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "leading through incidents",
               "deck": "mg-p-04",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1217,12 +1217,12 @@
             {
               "title": "technical strategy",
               "deck": "mg-s-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "growing managers",
               "deck": "mg-s-02",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1233,17 +1233,17 @@
             {
               "title": "people scenarios",
               "deck": "mg-iv-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "execution scenarios",
               "deck": "mg-iv-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "strategy discussions",
               "deck": "mg-iv-03",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         }
@@ -1261,27 +1261,27 @@
             {
               "title": "statics and materials",
               "deck": "bx-me-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "CAD and GD&T",
               "deck": "bx-me-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "simulation (FEA)",
               "deck": "bx-me-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "manufacturing processes",
               "deck": "bx-me-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "design for manufacture",
               "deck": "bx-me-05",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1292,27 +1292,27 @@
             {
               "title": "circuits",
               "deck": "bx-ee-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "PCB design",
               "deck": "bx-ee-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "signals",
               "deck": "bx-ee-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "power electronics",
               "deck": "bx-ee-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "embedded control",
               "deck": "bx-ee-05",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1323,22 +1323,22 @@
             {
               "title": "spreadsheets and SQL",
               "deck": "bx-ba-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "financial modelling",
               "deck": "bx-ba-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "KPIs",
               "deck": "bx-ba-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "presenting findings",
               "deck": "bx-ba-04",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1349,27 +1349,27 @@
             {
               "title": "discovery",
               "deck": "bx-pm-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "prioritisation",
               "deck": "bx-pm-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "metrics",
               "deck": "bx-pm-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "roadmaps",
               "deck": "bx-pm-04",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "launches",
               "deck": "bx-pm-05",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         },
@@ -1380,28 +1380,28 @@
             {
               "title": "research",
               "deck": "bx-de-01",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "interaction design",
               "deck": "bx-de-02",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "visual systems",
               "deck": "bx-de-03",
-              "status": "draft"
+              "status": "approved"
             },
             {
               "title": "accessibility",
               "deck": "sw-fe-03",
-              "status": "draft",
+              "status": "approved",
               "reused": true
             },
             {
               "title": "the portfolio",
               "deck": "bx-de-05",
-              "status": "draft"
+              "status": "approved"
             }
           ]
         }

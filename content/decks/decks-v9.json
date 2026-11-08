@@ -1,6 +1,6 @@
 {
  "version": 9,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'data', stages 'case-studies' (4) and 'interview' (4), in Part C's order. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'data', stages 'case-studies' (4) and 'interview' (4), in Part C's order. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "da-c-01",
@@ -64,7 +64,7 @@
     "da-c-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-c-02",
@@ -128,7 +128,7 @@
     "da-c-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-c-03",
@@ -192,7 +192,7 @@
     "da-c-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-c-04",
@@ -255,7 +255,7 @@
     "da-c-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-iv-01",
@@ -317,7 +317,7 @@
     "da-iv-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-iv-02",
@@ -379,7 +379,7 @@
     "da-iv-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-iv-03",
@@ -442,7 +442,7 @@
     "da-iv-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-iv-04",
@@ -505,7 +505,7 @@
     "da-iv-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -535,7 +535,7 @@
     "That hides the problem."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-c-02-q1",
@@ -563,7 +563,7 @@
     "That would raise the analytics count too."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-c-03-q1",
@@ -591,7 +591,7 @@
     "You'd lose the targeting without learning anything."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-c-04-q1",
@@ -619,7 +619,7 @@
     "That isn't relevance."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-iv-01-q1",
@@ -647,7 +647,7 @@
     "That loses the order."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-iv-02-q1",
@@ -675,7 +675,7 @@
     "That comes much later."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-iv-03-q1",
@@ -703,7 +703,7 @@
     "It can."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-iv-04-q1",
@@ -731,7 +731,7 @@
     "The analysis is yours to own."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

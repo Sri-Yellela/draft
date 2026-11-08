@@ -1,6 +1,6 @@
 # Decks v23 — beyond computing, Mechanical and Electrical (for your review)
 
-Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 10 five-slide decks; each ends with one new question (drafts for the bank). **Nothing is live until you approve** — say "approve decks-v23" (or name the decks to change).
+Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 10 five-slide decks, each with one new question. **APPROVED by the owner 2026-11-08** — served in the Library; the questions are live in the bank.
 
 ## bx-me-01 · Statics and materials
 *Skills:* statics, materials, stress · *Check yourself:* bx-me-01-q1

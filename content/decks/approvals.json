@@ -1,0 +1,29 @@
+{
+  "note": "The owner's approvals of deck batches (content/decks/decks-vN.json). A batch listed here is served (status approved), and its new check questions go live in the bank on import — they were in the batch's review copy (decks-vN.md) with every answer and its why. A question edited or re-imported with different content after this goes back to review (D150). scripts/decks/deckKit.mjs reads this file, so regenerating a batch never reverts it to draft.",
+  "approved": {
+    "1": { "by": "owner", "at": "2026-11-07", "words": "approved decks-v1 (45i)" },
+    "2": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "3": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "4": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "5": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "6": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "7": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "8": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "9": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "10": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "11": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "12": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "13": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "14": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "15": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "16": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "17": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "18": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "19": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "20": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "21": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "22": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "23": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" },
+    "24": { "by": "owner", "at": "2026-11-08", "words": "I have reviewed and approving all decks" }
+  }
+}

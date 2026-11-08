@@ -1,6 +1,6 @@
 # Decks v17 — security, Cloud and infrastructure security, Offence and defence, Governance, Interview (for your review)
 
-Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 9 five-slide decks; each ends with one new question (drafts for the bank). **Nothing is live until you approve** — say "approve decks-v17" (or name the decks to change).
+Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 9 five-slide decks, each with one new question. **APPROVED by the owner 2026-11-08** — served in the Library; the questions are live in the bank.
 
 ## se-ci-01 · Identity and access
 *Skills:* iam, mfa, zero trust · *Check yourself:* se-ci-01-q1

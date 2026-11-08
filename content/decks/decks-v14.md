@@ -1,6 +1,6 @@
 # Decks v14 — cloud, DevOps and SRE, Reliability and Security for operations (for your review)
 
-Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 7 five-slide decks; each ends with one new question (drafts for the bank). **Nothing is live until you approve** — say "approve decks-v14" (or name the decks to change).
+Drafted by the agent, in the approved pathway order (D155 Part C), in decks-v1's format. 7 five-slide decks, each with one new question. **APPROVED by the owner 2026-11-08** — served in the Library; the questions are live in the bank.
 
 ## cl-r-01 · SLOs and alerting
 *Skills:* slo, sre, alerting · *Check yourself:* cl-r-01-q1

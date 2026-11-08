@@ -1,6 +1,6 @@
 {
  "version": 7,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'data', stages 'foundations' (5) and 'building-blocks' (6), in Part C's order. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'data', stages 'foundations' (5) and 'building-blocks' (6), in Part C's order. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "da-f-01",
@@ -64,7 +64,7 @@
     "da-f-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-f-02",
@@ -128,7 +128,7 @@
     "da-f-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-f-03",
@@ -191,7 +191,7 @@
     "da-f-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-f-04",
@@ -254,7 +254,7 @@
     "da-f-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-f-05",
@@ -317,7 +317,7 @@
     "da-f-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-b-01",
@@ -380,7 +380,7 @@
     "da-b-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-b-02",
@@ -444,7 +444,7 @@
     "da-b-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-b-03",
@@ -508,7 +508,7 @@
     "da-b-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-b-04",
@@ -572,7 +572,7 @@
     "da-b-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-b-05",
@@ -637,7 +637,7 @@
     "da-b-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-b-06",
@@ -700,7 +700,7 @@
     "da-b-06-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -731,7 +731,7 @@
     "A cache wouldn't double it."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-f-02-q1",
@@ -759,7 +759,7 @@
     "It breaks every product-level question."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-f-03-q1",
@@ -788,7 +788,7 @@
     "Strings make arithmetic impossible."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-f-04-q1",
@@ -816,7 +816,7 @@
     "Not evidence about time on site."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-f-05-q1",
@@ -844,7 +844,7 @@
     "Speed doesn't detect missing data."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-b-01-q1",
@@ -873,7 +873,7 @@
     "Manual work is error-prone."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-b-02-q1",
@@ -902,7 +902,7 @@
     "It makes the duplication worse."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-b-03-q1",
@@ -931,7 +931,7 @@
     "It's still a full scan."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-b-04-q1",
@@ -960,7 +960,7 @@
     "That hides the bug in one place only."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-b-05-q1",
@@ -988,7 +988,7 @@
     "They don't."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-b-06-q1",
@@ -1016,7 +1016,7 @@
     "Retention is about how long events are kept."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }

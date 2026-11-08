@@ -1,6 +1,6 @@
 {
  "version": 8,
- "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'data', stages 'patterns' (5) and 'data-science-track' (5), in Part C's order. Nothing is live until approved (status: draft).",
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'data', stages 'patterns' (5) and 'data-science-track' (5), in Part C's order. Nothing is live until approved (status: draft). APPROVED by the owner 2026-11-08 (\"I have reviewed and approving all decks\").",
  "decks": [
   {
    "id": "da-p-01",
@@ -64,7 +64,7 @@
     "da-p-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-p-02",
@@ -128,7 +128,7 @@
     "da-p-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-p-03",
@@ -192,7 +192,7 @@
     "da-p-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-p-04",
@@ -255,7 +255,7 @@
     "da-p-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-p-05",
@@ -318,7 +318,7 @@
     "da-p-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-ds-01",
@@ -382,7 +382,7 @@
     "da-ds-01-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-ds-02",
@@ -445,7 +445,7 @@
     "da-ds-02-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-ds-03",
@@ -509,7 +509,7 @@
     "da-ds-03-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-ds-04",
@@ -573,7 +573,7 @@
     "da-ds-04-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   },
   {
    "id": "da-ds-05",
@@ -636,7 +636,7 @@
     "da-ds-05-q1"
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "approved"
   }
  ],
  "newQuestions": [
@@ -667,7 +667,7 @@
     "They don't, when the logic uses the run's date."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-p-02-q1",
@@ -695,7 +695,7 @@
     "Reports would undercount consistently."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-p-03-q1",
@@ -723,7 +723,7 @@
     "It works for country only and duplicates data everywhere."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-p-04-q1",
@@ -751,7 +751,7 @@
     "Everything downstream breaks."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-p-05-q1",
@@ -779,7 +779,7 @@
     "The median isn't the conversion rate."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-ds-01-q1",
@@ -807,7 +807,7 @@
     "Not a thing."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-ds-02-q1",
@@ -835,7 +835,7 @@
     "It can."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-ds-03-q1",
@@ -864,7 +864,7 @@
     "It isn't."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-ds-04-q1",
@@ -892,7 +892,7 @@
     "Not about quality."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   },
   {
    "id": "da-ds-05-q1",
@@ -920,7 +920,7 @@
     "That delays it."
    ],
    "source": "drafted-for-review",
-   "status": "draft"
+   "status": "live"
   }
  ]
 }
