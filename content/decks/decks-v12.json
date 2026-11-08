@@ -1,0 +1,554 @@
+{
+ "version": 12,
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'ml-ai', stages 'case-studies' (4) and 'interview' (2; 'AI-enabled coding' reuses sw-iv-04). Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "ml-c-01",
+   "pathway": "ml-ai",
+   "stage": "case-studies",
+   "title": "A fraud model",
+   "skills": [
+    "fraud detection",
+    "imbalanced data"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Catching the few bad transactions",
+     "points": [
+      "A fraud model scores each transaction's risk so the riskiest can be blocked or reviewed.",
+      "Fraud is rare, fast-changing and adversarial: people actively try to get past the model."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Features, labels, decisions",
+     "points": [
+      "Features: amount, merchant, device, location, how this compares with the customer's usual behaviour, velocity (how many in the last hour).",
+      "Labels arrive late (chargebacks take weeks), so training data lags reality.",
+      "Rare positives: use PR AUC, class weights or resampling, and judge precision and recall at the operating threshold.",
+      "Scores become actions: approve, step-up check, manual review, block."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Losses against friction",
+     "points": [
+      "Blocking more stops more fraud and annoys more honest customers.",
+      "Fraudsters adapt, so performance decays; retrain often and monitor.",
+      "Rules and models together: rules for known patterns, the model for the rest."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What it looks like",
+     "points": [
+      "Real-time scoring under tight latency (tens of milliseconds).",
+      "A review queue sized to the team's capacity.",
+      "Feedback from reviewers fed back as labels."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "ml-c-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "ml-c-02",
+   "pathway": "ml-ai",
+   "stage": "case-studies",
+   "title": "Search ranking",
+   "skills": [
+    "learning to rank",
+    "search"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Putting the best result first",
+     "points": [
+      "Search ranking orders the results a search engine retrieves, so the most useful appear at the top.",
+      "It's usually a model trained on what people clicked, bought or applied to."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Retrieve, then rank",
+     "points": [
+      "Retrieval finds candidates fast (keyword and vector search); ranking scores a few hundred carefully.",
+      "Features: text match, freshness, popularity, personal signals, quality.",
+      "Learning-to-rank models (gradient-boosted trees, neural rankers) optimise the order, measured by NDCG or precision at k.",
+      "Clicks are biased by position: people click the top more because it's at the top."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Relevance, freshness, fairness",
+     "points": [
+      "Optimising clicks can reward clickbait; use stronger signals (purchases, long dwell).",
+      "Personalisation helps relevance and narrows what people see.",
+      "Offline gains need online A/B tests to confirm."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What it looks like",
+     "points": [
+      "Logged impressions with positions, so position bias can be corrected.",
+      "Human-rated query sets for offline evaluation.",
+      "Business rules after ranking (no unavailable items)."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "ml-c-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "ml-c-03",
+   "pathway": "ml-ai",
+   "stage": "case-studies",
+   "title": "A support assistant with retrieval",
+   "skills": [
+    "rag",
+    "customer support",
+    "llm"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Answering customers from your own help content",
+     "points": [
+      "A support assistant answers questions using the help centre, policies and the customer's own account, and hands off to people when it should.",
+      "It's a RAG system with permissions, tone and escalation."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Ground, cite, escalate",
+     "points": [
+      "Retrieve from approved help articles, filtered by product and region.",
+      "Account data (orders, plan) comes through tools that only see that customer's records.",
+      "Answers cite their sources; with no good source, say so and offer a person.",
+      "Escalate on frustration, money, legal or safety topics, or low confidence."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Deflection against trust",
+     "points": [
+      "Answering more questions automatically saves cost and risks confident wrong answers.",
+      "Stale help articles produce stale answers; content needs owners.",
+      "Customers need to know they're talking to AI and how to reach a person."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What it looks like",
+     "points": [
+      "An eval set built from real tickets, with correct answers.",
+      "Resolution rate and escalation rate tracked together, not deflection alone.",
+      "Human review of a sample of conversations each week."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "ml-c-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "ml-c-04",
+   "pathway": "ml-ai",
+   "stage": "case-studies",
+   "title": "An agent with tools",
+   "skills": [
+    "agents",
+    "tool use"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "A model that completes a task in steps",
+     "points": [
+      "An agent uses tools (search, a calendar, a database) in a loop to finish a multi-step task, such as 'find three suitable flights and draft an email'.",
+      "Its value and its risk both come from acting, not just answering."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Plan, act, check",
+     "points": [
+      "Give a clear goal, a few well-described tools, and limits (steps, budget, time).",
+      "The loop: choose a tool, run it, read the result, decide the next step.",
+      "Check progress against the goal; stop when done or stuck.",
+      "Irreversible actions wait for a person's confirmation."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Autonomy against reliability",
+     "points": [
+      "Each step can fail; a ten-step task with 95 % per-step success fails often.",
+      "Long runs cost more and are harder to debug.",
+      "Narrower agents (one job, few tools) are far more reliable than general ones."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What it looks like",
+     "points": [
+      "Every step traced, so failures can be replayed.",
+      "Evals on whole tasks, measuring success rate, cost and steps.",
+      "Fallback to a person when the agent stops making progress."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "ml-c-04-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "ml-iv-01",
+   "pathway": "ml-ai",
+   "stage": "interview",
+   "title": "ML system design rounds",
+   "skills": [
+    "ml system design interview"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Design an ML-powered product feature",
+     "points": [
+      "You're asked to design something like a feed ranker, a spam filter or a recommendation system end to end.",
+      "They score how you frame the problem, the data, the model, evaluation and serving — not just the algorithm."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "A structure to follow",
+     "points": [
+      "Clarify the goal and how success is measured, online and offline.",
+      "Data: sources, labels, how fresh, how biased.",
+      "Model: a simple baseline first, then what you'd add; features and how they're computed.",
+      "Serving and monitoring: latency, scale, drift, feedback loops."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Practical over fancy",
+     "points": [
+      "Jumping to a deep model before discussing data and metrics loses points.",
+      "Say what you'd ship first and how you'd learn from it.",
+      "Name risks: leakage, cold start, bias, feedback loops."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "How to prepare",
+     "points": [
+      "Practise four or five classic ML designs out loud.",
+      "Always define the metric before the model.",
+      "Draw the data flow from raw events to predictions and back."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "ml-iv-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "ml-iv-02",
+   "pathway": "ml-ai",
+   "stage": "interview",
+   "title": "Model debugging rounds",
+   "skills": [
+    "model debugging"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Something is wrong with a model; find it",
+     "points": [
+      "You're told a model behaves badly (great offline, poor online; suddenly worse; unfair to a group) and asked how you'd investigate.",
+      "They're checking for a methodical approach."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Data first",
+     "points": [
+      "Check the data pipeline: did inputs change, break or go missing?",
+      "Compare training and production feature distributions (skew, drift).",
+      "Look for leakage that inflated offline results.",
+      "Slice errors by segment to find where it fails."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Hypotheses, not guesses",
+     "points": [
+      "Retraining immediately can hide the cause and repeat it.",
+      "Most model problems are data problems.",
+      "Say what evidence would confirm or rule out each hypothesis."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "How to prepare",
+     "points": [
+      "Practise a checklist: data, features, labels, split, metric, serving.",
+      "Prepare a story of a real model you debugged.",
+      "Talk through the cheapest checks first."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "ml-iv-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "ml-c-01-q1",
+   "type": "scenario",
+   "role": "ML Engineer",
+   "level": "mid",
+   "skills": [
+    "fraud detection"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "stem": "Your fraud model is trained on last year's chargebacks. Labels for the last six weeks aren't in yet. What's the risk?",
+   "choices": [
+    "The newest fraud patterns aren't in training; monitor recent performance and use faster signals (reviewer decisions, customer reports) as interim labels",
+    "None; a year is plenty",
+    "The model will overfit to six weeks",
+    "Chargebacks are always wrong"
+   ],
+   "correct": 0,
+   "why": [
+    "Fraud changes quickly; delayed labels mean the model learns old tactics.",
+    "Recency matters more than volume here.",
+    "It's missing them, not overfitting to them.",
+    "They're the most reliable label, just slow."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "ml-c-02-q1",
+   "type": "scenario",
+   "role": "ML Engineer",
+   "level": "mid",
+   "skills": [
+    "learning to rank"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "stem": "A ranking model trained on clicks keeps promoting whatever is already at the top. Why?",
+   "choices": [
+    "Position bias: top results get more clicks because of their position; correct for it (randomised slots, inverse propensity weighting)",
+    "The model is too small",
+    "Clicks are always random",
+    "There are too many results"
+   ],
+   "correct": 0,
+   "why": [
+    "Without correcting for position, the model learns 'being on top earns clicks'.",
+    "Size doesn't remove the bias.",
+    "They aren't random; they're biased.",
+    "Not the cause."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "ml-c-03-q1",
+   "type": "scenario",
+   "role": "AI Engineer",
+   "level": "mid",
+   "skills": [
+    "rag",
+    "escalation"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "stem": "A customer asks the support assistant to reverse a large charge. Policy for refunds over a threshold isn't in the help centre. What should the assistant do?",
+   "choices": [
+    "Say it can't decide that, and hand the customer to a person with the context so far",
+    "Approve the refund to keep the customer happy",
+    "Invent a policy that sounds reasonable",
+    "Ignore the question"
+   ],
+   "correct": 0,
+   "why": [
+    "Money decisions without a source belong with a person, and the hand-off saves the customer repeating themselves.",
+    "It has no authority or policy for that.",
+    "That's a hallucinated commitment.",
+    "Unhelpful and frustrating."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "ml-c-04-q1",
+   "type": "scenario",
+   "role": "AI Engineer",
+   "level": "mid",
+   "skills": [
+    "agents"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "stem": "An agent succeeds at each step 95 % of the time and needs 12 steps per task. Roughly how often does a whole task succeed, and what helps?",
+   "choices": [
+    "About 54 % (0.95¹²); fewer, more reliable steps and checks between them help",
+    "95 %, the same as one step",
+    "Almost 100 %, because steps average out",
+    "0 %, agents never finish"
+   ],
+   "correct": 0,
+   "why": [
+    "Errors compound; shortening the chain and verifying steps raises task success.",
+    "Each step is another chance to fail.",
+    "Failures multiply, they don't average out.",
+    "They often do, at that rate about half the time."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "ml-iv-01-q1",
+   "type": "scenario",
+   "role": "ML Engineer",
+   "level": "mid",
+   "skills": [
+    "ml system design interview"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "stem": "In an ML system design round for a spam filter, what should come before choosing a model?",
+   "choices": [
+    "The goal and metrics (which mistakes cost more), the data and labels, and how predictions will be used",
+    "Picking the deepest neural network",
+    "Choosing a GPU type",
+    "Writing the training loop"
+   ],
+   "correct": 0,
+   "why": [
+    "Framing decides everything else and is a big part of the score.",
+    "Model choice without framing looks naive.",
+    "Hardware comes far later.",
+    "Implementation detail too early."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "ml-iv-02-q1",
+   "type": "scenario",
+   "role": "ML Engineer",
+   "level": "mid",
+   "skills": [
+    "model debugging"
+   ],
+   "pieces": [
+    "s9"
+   ],
+   "stem": "A model's online accuracy dropped sharply yesterday. What do you check first?",
+   "choices": [
+    "The input data: a broken upstream pipeline, missing or changed features, a new data source",
+    "The model's architecture",
+    "The choice of optimiser",
+    "Whether to add more layers"
+   ],
+   "correct": 0,
+   "why": [
+    "A sudden drop with no model change usually means the inputs changed.",
+    "It didn't change yesterday.",
+    "Training detail, not a sudden online change.",
+    "Doesn't address a sudden drop."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}

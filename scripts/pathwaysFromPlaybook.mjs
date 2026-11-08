@@ -47,9 +47,25 @@ export function withDecks(pathways, decks) {
     const m = String(d.id || "").match(/-(\d+)$/);
     if (m) byKey.set(`${d.pathway}|${d.stage}|${Number(m[1])}`, d);
   }
-  return pathways.map(p => ({ ...p, stages: p.stages.map(s => ({ ...s, topics: s.topics.map((t, i) => {
+  const placed = pathways.map(p => ({ ...p, stages: p.stages.map(s => ({ ...s, topics: s.topics.map((t, i) => {
     const d = byKey.get(`${p.id}|${s.id}|${i + 1}`);
     return d ? { title: t, deck: d.id, status: d.status } : { title: t, deck: null, status: "planned" };
+  }) })) }));
+  // Part C: "Shared decks (for example 'Git' or 'Containers') are written once and reused across roles." A topic with
+  // the same title (case-insensitive) as a topic another stage already covers points at that deck, marked `reused`.
+  // A title that names DIFFERENT things in different pathways is never shared: product management's "metrics" are
+  // business metrics, not ML evaluation metrics.
+  const NOT_SHARED = new Set(["metrics"]);
+  const byTitle = new Map();
+  for (const p of placed) for (const s of p.stages) for (const t of s.topics) {
+    const k = t.title.toLowerCase().trim();
+    if (t.deck && !byTitle.has(k)) byTitle.set(k, { deck: t.deck, status: t.status });
+  }
+  return placed.map(p => ({ ...p, stages: p.stages.map(s => ({ ...s, topics: s.topics.map(t => {
+    if (t.deck) return t;
+    const k = t.title.toLowerCase().trim();
+    const r = NOT_SHARED.has(k) ? null : byTitle.get(k);
+    return r ? { title: t.title, deck: r.deck, status: r.status, reused: true } : t;
   }) })) }));
 }
 

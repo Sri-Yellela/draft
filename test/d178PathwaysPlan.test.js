@@ -88,3 +88,16 @@ test("d155PathwaysPlanShown: every deck batch holds the format — five slides, 
     }
   }
 });
+
+test("d155PathwaysPlanShown: a shared topic is written once and reused (Part C), except a title meaning different things", () => {
+  const plan = [
+    { id: "software", title: "S", stages: [{ id: "foundations", title: "F", topics: ["Git", "metrics"] }] },
+    { id: "cloud", title: "C", stages: [{ id: "foundations", title: "F", topics: ["Linux", "git", "metrics"] }] },
+  ];
+  const m = withDecks(plan, [{ id: "sw-f-01", pathway: "software", stage: "foundations", status: "draft" }, { id: "sw-f-02", pathway: "software", stage: "foundations", status: "draft" }]);
+  assert.deepEqual(m[1].stages[0].topics, [{ title: "Linux", deck: null, status: "planned" }, { title: "git", deck: "sw-f-01", status: "draft", reused: true },
+    { title: "metrics", deck: null, status: "planned" }]);
+  const live = JSON.parse(read("content/decks/pathways-v1.json")).pathways;
+  const ml = live.find(p => p.id === "ml-ai").stages.find(s => s.id === "interview").topics;
+  assert.deepEqual(ml.at(-1), { title: "AI-enabled coding", deck: "sw-iv-04", status: "draft", reused: true });
+});
