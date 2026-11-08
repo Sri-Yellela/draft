@@ -924,18 +924,18 @@
           "topics": [
             {
               "title": "C and memory",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-f-01",
+              "status": "draft"
             },
             {
               "title": "computer architecture",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-f-02",
+              "status": "draft"
             },
             {
               "title": "operating-system basics",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-f-03",
+              "status": "draft"
             }
           ]
         },
@@ -945,23 +945,23 @@
           "topics": [
             {
               "title": "interrupts and concurrency",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-b-01",
+              "status": "draft"
             },
             {
               "title": "real-time operating systems and scheduling",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-b-02",
+              "status": "draft"
             },
             {
               "title": "peripherals and protocols (I2C, SPI, UART)",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-b-03",
+              "status": "draft"
             },
             {
               "title": "power management",
-              "deck": null,
-              "status": "planned"
+              "deck": "em-b-04",
+              "status": "draft"
             }
           ]
         },
