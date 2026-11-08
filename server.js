@@ -9852,7 +9852,8 @@ app.get(["/api/auth/oauth/:provider/start", "/auth/:provider"], (req, res) => {
     res.redirect(authUrl.toString());
   } catch(e) {
     console.warn(`[oauth:${provider}] start blocked:`, e.message);
-    const target = oauthReturnUrl(req, mode !== "login" ? returnTo : "/login", { oauthError: e.message, oauthProvider: provider });
+    // ⭐ A138: a failed sign-in goes to /login still carrying where to come back to.
+    const target = oauthReturnUrl(req, mode !== "login" ? returnTo : "/login", { oauthError: e.message, oauthProvider: provider, ...(mode === "login" ? { returnTo } : {}) });
     res.redirect(target);
   }
 });
@@ -9862,8 +9863,10 @@ app.get(["/api/auth/oauth/:provider/callback", "/auth/:provider/callback"], asyn
   const state = String(req.query?.state || "");
   const code = String(req.query?.code || "");
   const stored = req.session.oauthStates?.[state];
+  // ⭐ A138: a failed LOGIN goes to /login carrying the page it was started from, so a retry comes back there.
   const fail = (message, returnTo = stored?.mode === "link" || stored?.mode === "merge" ? stored.returnTo : "/login") =>
-    res.redirect(oauthReturnUrl(req, returnTo, { oauthError: message, oauthProvider: provider }));
+    res.redirect(oauthReturnUrl(req, returnTo, { oauthError: message, oauthProvider: provider,
+      ...(returnTo === "/login" && stored?.returnTo ? { returnTo: stored.returnTo } : {}) }));
 
   if (!OAUTH_PROVIDERS.includes(provider)) return fail("Unsupported auth provider.");
   if (req.query?.error) {

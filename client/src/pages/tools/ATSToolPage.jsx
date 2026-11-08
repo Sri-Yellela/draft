@@ -11,6 +11,7 @@ import { Footer } from "../../components/Footer.jsx";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { C } from "../../styles/colorTokens.js";
 import { AtsReport, fromStandaloneResult } from "../../components/AtsReport.jsx";
+import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
 
 // ⛔ NO SCORE DONUT (09-30). It printed a Haiku model's own 0–100 on a ≥75/≥50 ramp — a different
 // number, on a different scale, from the one the product ranks by. The route now runs the same v4
@@ -173,7 +174,7 @@ export function ATSToolPage() {
               </div>
             ))}
           </div>
-          <Link to="/login">
+          <Link to={loginHref()}>
             <button style={{ padding: "10px 28px", borderRadius: 6, border: "none",
                              background: theme.accent, color: C.ON_ACCENT, fontWeight: 700, cursor: "pointer" }}>
               Get full access →

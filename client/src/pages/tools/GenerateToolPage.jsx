@@ -9,6 +9,7 @@ import { Footer } from "../../components/Footer.jsx";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { atsBandLabel } from "../../../../shared/atsBands.js";
 import { C } from "../../styles/colorTokens.js";
+import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
 
 const RESUME_PAGE_WIDTH  = 794;
 const RESUME_PAGE_HEIGHT = 1123;
@@ -173,7 +174,7 @@ export function GenerateToolPage() {
               </div>
             ))}
           </div>
-          <Link to="/login">
+          <Link to={loginHref()}>
             <button style={{ padding: "10px 28px", borderRadius: 6, border: "none",
                              background: theme.accent, color: C.ON_ACCENT, fontWeight: 700, cursor: "pointer" }}>
               Get full access →

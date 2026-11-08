@@ -6,6 +6,7 @@ import { Footer } from "../../components/Footer.jsx";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { C } from "../../styles/colorTokens.js";
 import { markStyle } from "../../styles/mark.js";
+import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
 
 export function ApplyToolPage() {
   const { theme } = useTheme();
@@ -56,7 +57,7 @@ export function ApplyToolPage() {
           <div style={{ fontSize: 14, color: theme.textMuted, maxWidth: 360 }}>
             Drafting applications and generating résumés need a free account. ATS scoring does not.
           </div>
-          <Link to="/login">
+          <Link to={loginHref()}>
             <button style={{ padding: "10px 28px", borderRadius: 6, border: "none",
                              background: theme.accent, color: C.ON_ACCENT, fontWeight: 700, cursor: "pointer", fontSize: 14 }}>
               Sign in or register free →
@@ -186,7 +187,7 @@ export function ApplyToolPage() {
               </div>
             ))}
           </div>
-          <Link to="/login">
+          <Link to={loginHref()}>
             <button style={{ padding: "10px 28px", borderRadius: 6, border: "none",
                              background: theme.accent, color: C.ON_ACCENT, fontWeight: 700, cursor: "pointer" }}>
               Get full access →

@@ -67,6 +67,7 @@ import { Toaster }         from "./components/ui/toaster.jsx";
 import ResumeEditorHost     from "./components/ResumeEditorHost.jsx";
 import SurveyPublicPage from "./pages/SurveyPublicPage.jsx";
 import { oauthNext }       from "./lib/oauthNext.js";
+import { loginHref, currentReturnPath, returnToFromSearch } from "./lib/signInReturn.js";
 
 const CONSOLE_ROUTE = "jobs";
 const LEGACY_CONSOLE_ROUTES = new Set(["simple-apply", "tailored", "custom-sampler"]);
@@ -89,7 +90,8 @@ function AuthBootstrapScreen({ theme }) {
 
 function UserRouteGate({ authStatus, authUser, children }) {
   if (authStatus === "unknown") return null;
-  if (authStatus !== "authenticated" || !authUser) return <Navigate to="/login" replace/>;
+  // ⭐ A138: signed out on a signed-in page → /login, carrying where to come back to.
+  if (authStatus !== "authenticated" || !authUser) return <Navigate to={loginHref(currentReturnPath())} replace/>;
   if (authUser.isAdmin) return <Navigate to="/admin" replace/>;
   return children;
 }
@@ -117,7 +119,9 @@ function PublicLoginRoute({ authStatus, authUser, children, admin = false, admin
     // A tab arriving at the OTHER kind's sign-in page signs that account in here and leaves the first tab
     // alone — so it is shown the form, and told plainly whose session this browser already has.
     if (admin) return authUser.isAdmin ? <Navigate to="/admin" replace/> : <><SignedInElsewhere user={authUser} admin/>{children}</>;
-    return authUser.isAdmin ? <><SignedInElsewhere user={authUser}/>{children}</> : <Navigate to="/app" replace/>;
+    // ⭐ A138: a sign-in started elsewhere comes back to that page, not /app.
+    return authUser.isAdmin ? <><SignedInElsewhere user={authUser}/>{children}</>
+      : <Navigate to={(typeof window !== "undefined" && returnToFromSearch(window.location.search)) || "/app"} replace/>;
   }
   return children;
 }
