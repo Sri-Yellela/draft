@@ -6325,4 +6325,13 @@ export const MIGRATIONS = [
         ALTER TABLE proof_pages ADD COLUMN show_learning INTEGER NOT NULL DEFAULT 0;
       `,
     },
+    {
+      // ⭐ D151 Rule 4 (measured 11-08 on the 100k fixture: the board's COUNT and id page show "SCAN jc" inside a correlated
+      // subquery per posting) · job_captures had no index for (user_id, job_id) — the board's "my captures" EXISTS, the +
+      // view, the capture lookups in autoCapture / captureOutcome all filter on exactly that. One index; only ADDS. After 227.
+      id: "228_job_captures_user_job",
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_job_captures_user_job ON job_captures(user_id, job_id);
+      `,
+    },
   ];
