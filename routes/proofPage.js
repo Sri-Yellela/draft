@@ -10,6 +10,7 @@
 //    claims draft checked them (d109NoCertifyWording).
 // Server-rendered HTML with no script, so the page works where the client bundle never loads; every value escaped.
 import { proofPageFor, PROOF_PAGE_NOTE } from "../services/proofLinks.js";
+import { learningProof } from "../services/atlas/points.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -83,7 +84,7 @@ export function renderProofPage(page) {
 export default function proofPageRoutes(app, db) {
   app.get("/p/:handle", (req, res) => {
     let page = null;
-    try { page = proofPageFor(db, req.params.handle); } catch { page = null; }
+    try { page = proofPageFor(db, req.params.handle, { learningOf: learningProof }); } catch { page = null; }
     res.set("Cache-Control", "no-store");
     res.set("X-Robots-Tag", "noindex");
     if (!page) return res.status(404).type("html").send(`<!doctype html><meta charset="utf-8"><title>Not found</title><p>There is no page at this address.</p>`);

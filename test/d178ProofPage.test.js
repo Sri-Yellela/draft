@@ -10,6 +10,7 @@ import { MIGRATIONS } from "../scripts/migrations.js";
 import { renderProofPage, renderLearning } from "../routes/proofPage.js";
 import { readProofPage, setProofPage, proofPageFor } from "../services/proofLinks.js";
 import { learningProof } from "../services/atlas/points.js";
+const withLearning = { learningOf: learningProof };
 import { learnContent, stepsOf, LEARN_FILE } from "../services/learn/learnContent.js";
 import { at, lastAt } from "../test-support/sourceAnchors.js";
 
@@ -40,19 +41,19 @@ test("d178ProofPageLearning: a page turned on shows NO learning until its own sw
   db.prepare("INSERT INTO skill_proofs (user_id, skill_key, skill, state, via, created_at) VALUES (1, 'kafka', 'Kafka', 'checked', 'check', ?)").run(T);
   setProofPage(db, 1, { enabled: true, handle: "jordan-example" });
   assert.deepEqual(readProofPage(db, 1), { enabled: true, handle: "jordan-example", showLearning: false });
-  const off = proofPageFor(db, "jordan-example");
+  const off = proofPageFor(db, "jordan-example", withLearning);
   assert.equal(off.learning, null);
   assert.doesNotMatch(renderProofPage(off), /data-proof-learning|Kafka/);
   // ticked: the section appears
   setProofPage(db, 1, { enabled: true, showLearning: true });
   assert.equal(readProofPage(db, 1).showLearning, true);
-  assert.match(renderProofPage(proofPageFor(db, "jordan-example")), /data-proof-learning=""[\s\S]*Kafka/);
+  assert.match(renderProofPage(proofPageFor(db, "jordan-example", withLearning)), /data-proof-learning=""[\s\S]*Kafka/);
   // a later save that does not mention it leaves it as it is
   setProofPage(db, 1, { enabled: true, handle: "jordan-example" });
   assert.equal(readProofPage(db, 1).showLearning, true);
   // the page off: the same 404 as no page, learning or not
   setProofPage(db, 1, { enabled: false });
-  assert.equal(proofPageFor(db, "jordan-example"), null);
+  assert.equal(proofPageFor(db, "jordan-example", withLearning), null);
 });
 
 test("d178ProofPageLearning: skills (checked / built, once each, the stronger kept) and builds, each with its date — proof only", () => {
@@ -98,8 +99,13 @@ test("d178ProofPageLearning: a database before 227 reads the switch as OFF and s
     CREATE TABLE profile_projects (user_id INTEGER, name TEXT, description TEXT, position INTEGER, id INTEGER);
     CREATE TABLE profile_evidence (user_id INTEGER, target TEXT, kind TEXT, label TEXT, url TEXT, position INTEGER, id INTEGER);`);
   assert.deepEqual(setProofPage(db, 1, { enabled: true, handle: "casey-example", showLearning: true }), { enabled: true, handle: "casey-example", showLearning: false });
-  const page = proofPageFor(db, "casey-example");
+  const page = proofPageFor(db, "casey-example", withLearning);
   assert.equal(page?.learning ?? null, null);
+});
+
+test("d178ProofPageLearning: the route passes the learning reader in (no static import cycle from proofLinks)", () => {
+  assert.doesNotMatch(read("services/proofLinks.js"), /^import .*atlas\/points\.js/m);
+  assert.match(read("routes/proofPage.js"), /proofPageFor\(db, req\.params\.handle, \{ learningOf: learningProof \}\)/);
 });
 
 test("d178ProofPageLearning: the Profile asks separately; Your run points to the page", () => {
