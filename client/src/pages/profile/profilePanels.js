@@ -15,8 +15,7 @@ export const PROFILE_BASE = "/app/profile";
 /** The nav, in the sketch's order: three groups, nine panels. `id` is the address; the labels are the sketch's. */
 export const PROFILE_GROUPS = Object.freeze([
   { label: "You", items: [
-    { id: "about", label: "About you" },
-    { id: "resumes", label: "Your résumés" },
+    { id: "about", label: "About you" },   // ⭐ A140 (owner 11-08): About you + Your résumés, one panel
     { id: "answers", label: "Saved answers" },
   ] },
   { label: "Applying", items: [
@@ -52,6 +51,7 @@ export const profilePath = (id) => `${PROFILE_BASE}/${PROFILE_PANEL_IDS.includes
 export function profilePanelFor(routeKey, hash = "") {
   const m = /^profile(?:\/([^/]+))?\/?$/.exec(String(routeKey || ""));
   if (!m) return undefined;
+  if (m[1] === "resumes") return "about";   // ⭐ A140: Your résumés merged into About you — old links land there
   if (m[1]) return PROFILE_PANEL_IDS.includes(m[1]) ? m[1] : null;
   const h = String(hash || "").replace(/^#/, "");
   return PROFILE_PANEL_IDS.includes(h) ? h : PROFILE_DEFAULT;

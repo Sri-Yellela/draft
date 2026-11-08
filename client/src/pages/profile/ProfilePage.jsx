@@ -38,7 +38,7 @@ import "./ProfilePage.css";
 
 /** The cards of Account each panel draws (AccountPanel `only`). */
 export const ACCOUNT_CARDS = Object.freeze({
-  resumes: ["tailoring"],
+  about: ["tailoring"],   // A140: "How your résumés are tailored" — in the merged About you
   connections: ["warmpaths"],
   notifications: ["news", "notifications"],
   privacy: ["data", "delete"],
@@ -128,20 +128,19 @@ export default function ProfilePage({ panel = "about", onSignedOut }) {
   useEffect(() => { window.scrollTo?.({ top: 0 }); }, [panel]);
 
   let body = null;
+  // ⭐ A140 (owner 11-08: "merge about you and your resume section … make sure all fields are accounted for"): ONE panel.
+  // Everything the two drew is here: About you's résumé view (summary, experience with logos and the skills / keywords
+  // bold in it, projects, proof page, education, skills, links, application defaults), its contact / address / visa
+  // fields and extras; Your résumés' job profiles, the base résumé (upload, text, enhance), its extracted titles / years /
+  // search terms / structured facts / ATS suggestions (the skills and keywords editors folded), and Account's "How your
+  // résumés are tailored". /app/profile/resumes lands here (profilePanels.profilePanelFor).
   if (panel === "about") body = (
     <>
-      <PlaceHead eyebrow="About you" title="What draft knows about you"
-        lead="What draft uses to fill applications and pick your jobs. Only what you've told us is shown." />
+      <PlaceHead eyebrow="About you" title="You and your résumé"
+        lead="What draft uses to fill applications, tailor your résumé and pick your jobs. Only what you've told us is shown." />
       <SkillsLine />
-      <ProfilePanel section="about" onOpenJobProfiles={() => navigate("/app/job-profiles")} />
-    </>
-  );
-  else if (panel === "resumes") body = (
-    <>
-      <PlaceHead eyebrow="Your résumés" title="What draft tailors from"
-        lead="Your base résumé for each job profile, and the job profiles that pick which one fits which jobs." />
-      <ProfilePanel section="resumes" onOpenJobProfiles={() => navigate("/app/job-profiles")} />
-      <AccountPanel only={ACCOUNT_CARDS.resumes} />
+      <ProfilePanel section={["about", "resumes"]} onOpenJobProfiles={() => navigate("/app/job-profiles")} />
+      <AccountPanel only={ACCOUNT_CARDS.about} />
     </>
   );
   else if (panel === "answers") body = (
