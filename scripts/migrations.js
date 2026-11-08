@@ -6566,4 +6566,17 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D179 P6 (owner 11-08: "create the 134 roles as drafts"): each taxonomy subcategory ↔ its Atlas role node (a draft
+      // for the Atlas desk, or an existing role of that name) — services/atlas/taxonomyRoleNodes.js, seeded on boot. Only ADDS.
+      id: "241_atlas_taxonomy_roles",
+      sql: `
+        CREATE TABLE IF NOT EXISTS atlas_taxonomy_roles (
+          subcategory  TEXT PRIMARY KEY,
+          node_id      INTEGER NOT NULL REFERENCES atlas_nodes(id) ON DELETE CASCADE,
+          category     TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_atlas_taxonomy_roles_node ON atlas_taxonomy_roles(node_id);
+      `,
+    },
   ];
