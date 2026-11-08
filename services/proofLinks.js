@@ -16,6 +16,8 @@
 //    The marks say "Evidence linked" / "No evidence linked" — never a word that claims draft checked anything
 //    (d109NoCertifyWording).
 import { scrubContact } from "./byom/resumePatch.js";
+// ⭐ D178-4: the proof page's learning section (a call-time import; points.js reaches back here only through learnEarned).
+import { learningProof } from "./atlas/points.js";
 
 export const EVIDENCE_KINDS = Object.freeze([
   { kind: "repository", label: "Repository" },
@@ -167,16 +169,19 @@ export const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/;
 const RESERVED = new Set(["admin", "api", "app", "draft", "help", "login", "logout", "new", "p", "privacy", "proof", "root",
   "settings", "signup", "support", "terms", "www"]);
 
-/** The user's page setting: { enabled, handle } — no row is { enabled: false, handle: null } (OFF by default). */
+// ⭐ D178-4: proof_pages.show_learning (migration 227) — a database before 227 has no such column; read it as OFF.
+const hasShowLearning = (db) => { try { return db.prepare(`SELECT 1 FROM pragma_table_info('proof_pages') WHERE name = 'show_learning'`).get() != null; } catch { return false; } };
+
+/** The user's page setting: { enabled, handle, showLearning } — no row is all off (OFF by default). */
 export function readProofPage(db, userId) {
   try {
-    const r = db.prepare(`SELECT handle, enabled FROM proof_pages WHERE user_id = ?`).get(userId);
-    return { enabled: !!r?.enabled, handle: r?.handle ?? null };
-  } catch { return { enabled: false, handle: null }; }
+    const r = db.prepare(`SELECT handle, enabled${hasShowLearning(db) ? ", show_learning" : ""} FROM proof_pages WHERE user_id = ?`).get(userId);
+    return { enabled: !!r?.enabled, handle: r?.handle ?? null, showLearning: !!r?.show_learning };
+  } catch { return { enabled: false, handle: null, showLearning: false }; }
 }
 
 /** Turn the page on / off and set its handle. A handle is 3–30 of a–z, 0–9 and inner hyphens; taken or reserved → refused. */
-export function setProofPage(db, userId, { enabled, handle } = {}) {
+export function setProofPage(db, userId, { enabled, handle, showLearning } = {}) {
   const cur = readProofPage(db, userId);
   const h = handle == null ? cur.handle : String(handle).trim().toLowerCase();
   const on = enabled === true;
@@ -189,6 +194,9 @@ export function setProofPage(db, userId, { enabled, handle } = {}) {
     db.prepare(`INSERT INTO proof_pages (user_id, handle, enabled, updated_at) VALUES (?, ?, ?, unixepoch())
       ON CONFLICT(user_id) DO UPDATE SET handle = excluded.handle, enabled = excluded.enabled, updated_at = excluded.updated_at`)
       .run(userId, h, on ? 1 : 0);
+    // ⭐ D178-4: the learning section is its own yes — unchanged unless sent; OFF for everyone until they turn it on.
+    if (typeof showLearning === "boolean" && hasShowLearning(db))
+      db.prepare(`UPDATE proof_pages SET show_learning = ? WHERE user_id = ?`).run(showLearning ? 1 : 0, userId);
   }
   return readProofPage(db, userId);
 }
@@ -203,7 +211,7 @@ export function proofPageFor(db, handle) {
   const h = String(handle ?? "").trim().toLowerCase();
   if (!HANDLE_RE.test(h)) return null;
   let page;
-  try { page = db.prepare(`SELECT user_id, handle FROM proof_pages WHERE handle = ? AND enabled = 1`).get(h); } catch { return null; }
+  try { page = db.prepare(`SELECT user_id, handle${hasShowLearning(db) ? ", show_learning" : ""} FROM proof_pages WHERE handle = ? AND enabled = 1`).get(h); } catch { return null; }
   if (!page) return null;
   const p = db.prepare(`SELECT full_name, first_name, last_name FROM user_profile WHERE user_id = ?`).get(page.user_id) || {};
   const name = String(p.full_name || [p.first_name, p.last_name].filter(Boolean).join(" ") || "").trim();
@@ -211,7 +219,9 @@ export function proofPageFor(db, handle) {
   const projects = db.prepare(`SELECT name, description FROM profile_projects WHERE user_id = ? ORDER BY position, id`).all(page.user_id)
     .map(r => ({ name: scrubContact(r.name), description: r.description ? scrubContact(r.description) : null,
       links: (ev.get(`project:${evidenceKey(r.name)}`) || []).map(x => ({ kind: x.kind, kindLabel: KIND_LABEL.get(x.kind) || x.kind, label: x.label, url: x.url })) }));
-  return { handle: page.handle, name: scrubContact(name) || null, projects };
+  // ⭐ D178-4: what they proved in Atlas — only when they said yes to it (show_learning), never by default.
+  const learning = page.show_learning ? learningProof(db, page.user_id) : null;
+  return { handle: page.handle, name: scrubContact(name) || null, projects, learning };
 }
 
 export const PROOF_PAGE_NOTE = "Links supplied by the candidate. draft does not open, check or vouch for them.";

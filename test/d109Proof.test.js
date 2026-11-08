@@ -165,7 +165,7 @@ test("D109 · d109TailoringPrefersBacked — the guard marks backed / unbacked, 
 test("D109 · d109ProofPageOffByDefault — no page until turned on; then projects and links only, nothing private", async () => {
   const db = freshDb();
   setEvidence(db, 1, { target: "project", claim: "Tidewatch", items: [{ kind: "repository", label: "Source", url: "https://code.example/dana/tidewatch" }] });
-  assert.deepEqual(readProofPage(db, 1), { enabled: false, handle: null }, "OFF by default");
+  assert.deepEqual(readProofPage(db, 1), { enabled: false, handle: null, showLearning: false }, "OFF by default");   // ⭐ D178-4 (changed on purpose): + the learning switch, OFF too
   assert.equal(db.prepare("SELECT dflt_value FROM pragma_table_info('proof_pages') WHERE name = 'enabled'").pluck().get(), "0");
 
   const app = express();
