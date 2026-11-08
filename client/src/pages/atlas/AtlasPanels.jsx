@@ -199,6 +199,25 @@ function DailyReminderRow() {
   );
 }
 
+// ⭐ D154 P6 + P7 (45n) · the quiet progress card (services/learn/practiceProgress.js): the level read from PROOF (checked
+// or built skills — answering more never raises it), the share right per skill (3+ answers, the last 20), no curve.
+function PracticeProgressCard({ day, refresh }) {
+  const [p, setP] = useState(null);
+  useEffect(() => { api(`/api/learn/progress?day=${day}`).then(setP).catch(() => setP(null)); }, [day, refresh]);
+  if (!p) return null;
+  return (
+    <details className="atl-dq__progress" data-practice-progress="">
+      <summary className="atl__quiet"><b>{p.level.level}</b> · {p.level.line}{p.level.next ? ` · ${p.level.next.more} more for “${p.level.next.word}”` : ""}</summary>
+      {p.streak.rests > 0 && <p className="atl__quiet">Your streak counts {p.streak.rests} rest day{p.streak.rests === 1 ? "" : "s"} — one missed day in any seven doesn't break it.</p>}
+      {p.accuracy.skills.length === 0
+        ? <p className="atl__quiet">Answer three questions on a skill to see how you're doing on it.</p>
+        : <ul className="atl-dq__acc">{p.accuracy.skills.slice(0, 12).map(s => (
+            <li key={s.skill} data-skill-accuracy={s.skill}><span>{String(s.skill).replace(/-/g, " ")}</span> <span className="atl__quiet">{s.right} of {s.answered} right</span></li>))}</ul>}
+      <p className="atl__quiet">Your level rises when you prove a skill — a quick check or something you built — not with the number of questions.</p>
+    </details>
+  );
+}
+
 export function TodaysQuestionPanel({ base }) {
   const [t, setT] = useState(null);
   const [err, setErr] = useState("");
@@ -220,6 +239,7 @@ export function TodaysQuestionPanel({ base }) {
       {!t && !err && <p className="atl__quiet" role="status">Picking today's question…</p>}
       {t && !q && <NotYet>No question to ask yet — the bank has nothing new for you today.</NotYet>}
       {t && <DailyReminderRow />}
+      {t && <PracticeProgressCard day={day} refresh={r ? 1 : 0} />}
       {q && (
         <div className="atl-dq" data-daily-question={q.id}>
           <p className="atl__quiet">{(q.skills || []).map(s => String(s).replace(/-/g, " ")).join(" · ")}</p>
