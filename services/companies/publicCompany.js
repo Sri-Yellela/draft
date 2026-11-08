@@ -169,3 +169,13 @@ export function companyMatchFor(db, slug, userId, { yourSkillStates, top = 12 } 
   }
   return { of: techs.length, proven, listed, missing };
 }
+
+/** A company record's id from its page slug (or its name alias, as publicCompany resolves it), or null. */
+export function companyIdForSlug(db, slug) {
+  const s = String(slug || "").toLowerCase();
+  if (!SLUG_RE.test(s)) return null;
+  try {
+    return db.prepare(`SELECT id FROM companies WHERE slug = ?`).pluck().get(s)
+      ?? db.prepare(`SELECT company_id FROM company_aliases WHERE alias_key = ?`).pluck().get(`name:${s}`) ?? null;
+  } catch { return null; }
+}

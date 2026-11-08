@@ -93,7 +93,7 @@ import { stripSampleProfiles } from "./services/sampleProfileStrip.js";
 import { createCompanyTech, stackFor, techForJobs } from "./services/companies/companyTech.js";
 import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyBackfill.js";
 import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/jobs/publicBoard.js";
-import { publicCompany, publicSuggest, companyMatchFor } from "./services/companies/publicCompany.js";
+import { publicCompany, publicSuggest, companyMatchFor, companyIdForSlug } from "./services/companies/publicCompany.js";
 import { createCompanyFacts } from "./services/companies/companyFacts.js";
 import { createCompanyGithub } from "./services/companies/companyGithub.js";
 import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landingPages.js";
@@ -7068,6 +7068,20 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // ⭐ D179 P4b / D159 T1 (45l): Follow a company — one row per person and company record (D179 P4a). The alerts that
+      // follow from it (new fitting postings at companies you follow) are D159's, not built here. Only ADDS.
+      id: "237_company_follows",
+      sql: `
+        CREATE TABLE IF NOT EXISTS company_follows (
+          user_id     INTEGER NOT NULL,
+          company_id  INTEGER NOT NULL,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, company_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_company_follows_company ON company_follows(company_id);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -9889,8 +9903,19 @@ app.get("/api/companies/:slug/match", requireAuth, (req, res) => {
   try {
     const m = companyMatchFor(db, req.params.slug, req.user.id, { yourSkillStates });
     if (!m) return res.status(404).json({ error: "no_such_company" });
-    res.json(m);
+    // D159 T1: whether the person follows this company, answered with the match (one request for the page).
+    const co = companyIdForSlug(db, req.params.slug);
+    const following = co ? !!db.prepare(`SELECT 1 FROM company_follows WHERE user_id = ? AND company_id = ?`).get(req.user.id, co) : false;
+    res.json({ ...m, following });
   } catch (e) { console.error("[companies/match]", e.message); res.status(500).json({ error: "match_unavailable" }); }
+});
+// ⭐ D179 P4b / D159 T1 · Follow a company (signed in): { on: true | false }.
+app.post("/api/companies/:slug/follow", requireAuth, (req, res) => {
+  const co = companyIdForSlug(db, req.params.slug);
+  if (!co) return res.status(404).json({ error: "no_such_company" });
+  if (req.body?.on === false) db.prepare(`DELETE FROM company_follows WHERE user_id = ? AND company_id = ?`).run(req.user.id, co);
+  else db.prepare(`INSERT OR IGNORE INTO company_follows (user_id, company_id) VALUES (?, ?)`).run(req.user.id, co);
+  res.json({ following: req.body?.on !== false });
 });
 app.get("/api/public/suggest", publicLimit, async (req, res) => {
   try { res.json(await publicSuggest(db, readPool, String(req.query?.q || ""))); }

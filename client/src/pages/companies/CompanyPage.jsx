@@ -65,6 +65,12 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
             {c.parent && <> · part of <Link to={`${base}/${c.parent.slug}`}>{c.parent.name}</Link></>}
           </p>
         </div>
+        {inApp && match && (
+          <button type="button" className="co__btn dbx-depth" aria-pressed={!!match.following} data-company-follow=""
+            onClick={() => api(`/api/companies/${encodeURIComponent(slug)}/follow`, { method: "POST", body: JSON.stringify({ on: !match.following }) })
+              .then((r) => setMatch((m) => ({ ...m, following: !!r.following }))).catch(() => {})}>
+            {match.following ? "Following" : "Follow"}</button>
+        )}
         {c.careersUrl && <a className="co__btn dbx-depth" href={c.careersUrl} target="_blank" rel="noopener noreferrer">Careers site</a>}
       </header>
 
