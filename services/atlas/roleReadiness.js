@@ -90,3 +90,31 @@ export function compareFrom(readings = []) {
 export function compareRoles(db, userId, roles = []) {
   return compareFrom([...new Set(roles.map(r => String(r || "").trim()).filter(Boolean))].slice(0, 4).map(r => roleReadiness(db, userId, r)));
 }
+
+/**
+ * ⭐ D179 P6 (45l) · READINESS FOR A SUBCATEGORY — each subcategory of the approved taxonomy is a role here. Its demand is
+ * read from its own open postings: each technology's share = the postings that name it (job_tech) of the subcategory's open
+ * postings (job_taxonomy); a technology with an Atlas page carries that page's slug, so the person's proven states (D169)
+ * apply to it exactly as to an Atlas role. Same MIN_POSTINGS, same tiers, same "only proven counts".
+ */
+export function subcategoryReadiness(db, userId, subId, { top = 15 } = {}) {
+  let tax = null; try { tax = deps.taxonomy(); } catch { return { found: false, reason: "unknown_role" }; }
+  let role = null;
+  for (const c of tax.categories) { if (c.held) continue; const s = c.subs.find(x => x.id === subId && !x.general); if (s) { role = { id: s.id, name: s.name, category: c.name }; break; } }
+  if (!role) return { found: false, reason: "unknown_role" };
+  const OPEN = "sj.is_active = 1 AND sj.duplicate_of IS NULL AND sj.board_category IS NOT NULL AND sj.board_category <> 'held'";
+  const postings = safe(() => db.prepare(`SELECT COUNT(*) FROM scraped_jobs sj JOIN job_taxonomy jt ON jt.job_id = sj.job_id WHERE ${OPEN} AND jt.subcategory = ?`).pluck().get(subId), 0) || 0;
+  const scope = { postings, level: "all levels", line: `from ${postings} live posting${postings === 1 ? "" : "s"} for ${role.name}, all levels` };
+  const base = { found: true, role: { slug: `sub:${role.id}`, name: role.name, postings, page: false, category: role.category }, scope };
+  if (postings < READINESS.MIN_POSTINGS) return { ...base, thin: true, line: "Not enough postings yet to say how ready you are." };
+  const rows = safe(() => db.prepare(`SELECT jk.tech AS tech, COUNT(*) AS n FROM scraped_jobs sj JOIN job_taxonomy jt ON jt.job_id = sj.job_id
+      JOIN job_tech jk ON jk.job_id = sj.job_id WHERE ${OPEN} AND jt.subcategory = ? GROUP BY jk.tech ORDER BY n DESC LIMIT ?`).all(subId, top), []);
+  const slugs = new Map(safe(() => deps.atlasLinksFor(db, rows.map(r => r.tech), 40), []).map(a => [String(a.name).toLowerCase(), a.slug]));
+  const topSkills = rows.map(r => ({ slug: slugs.get(String(r.tech).toLowerCase()) || `tech:${String(r.tech).toLowerCase()}`, name: r.tech,
+    share: Math.round((r.n / postings) * 100) }));
+  const r = readinessOf(topSkills, statesBySlug(db, userId));
+  return { ...base, thin: false, ...r, line: `${r.ready}% ready for ${role.name}${r.waiting ? ` · +${r.waiting}% waiting in skills you've claimed` : ""}` };
+}
+// Injected so this module keeps no import of the jobs layer at load (set by routes/atlas.js).
+const deps = { taxonomy: () => { throw new Error("no taxonomy"); }, atlasLinksFor: () => [] };
+export function setSubcategoryDeps(d) { Object.assign(deps, d); }

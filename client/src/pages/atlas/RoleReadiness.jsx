@@ -28,6 +28,14 @@ export default function RoleReadiness({ base = "/app/atlas" }) {
   const [asked, setAsked] = useState(null);   // null = the aim on Your route
   const [r, setR] = useState(null);
   const [error, setError] = useState("");
+  // ⭐ D179 P6 (45l): the taxonomy's subcategories with enough live postings — each a role to read readiness for.
+  const [boardRoles, setBoardRoles] = useState([]);
+  useEffect(() => {
+    let live = true;
+    api("/api/atlas/subcategory-roles").then(x => live && setBoardRoles(x.roles || [])).catch(() => {});
+    return () => { live = false; };
+  }, []);
+  const groups = boardRoles.reduce((m, r) => { (m[r.category] ||= []).push(r); return m; }, {});
   useEffect(() => {
     let live = true;
     setR(null); setError("");
@@ -40,6 +48,15 @@ export default function RoleReadiness({ base = "/app/atlas" }) {
       <label className="atl__quiet" htmlFor="rr-role">Role</label>
       <input id="rr-role" className="rr-pick__in" value={role} maxLength={80} placeholder={r?.role?.name || "e.g. Data Engineer"} onChange={e => setRole(e.target.value)} />
       <button type="submit" className="atl__link rr-pick__go">Show</button>
+      {boardRoles.length > 0 && (
+        <select className="rr-pick__in" aria-label="Or a role on the board" data-rr-board-roles="" value={asked && asked.startsWith("sub:") ? asked : ""}
+          onChange={e => { if (e.target.value) { setRole(""); setAsked(e.target.value); } }}>
+          <option value="">or a role on the board…</option>
+          {Object.entries(groups).map(([cat, list]) => (
+            <optgroup key={cat} label={cat}>{list.map(r => <option key={r.value} value={r.value}>{r.name} ({r.postings})</option>)}</optgroup>
+          ))}
+        </select>
+      )}
     </form>
   );
   if (error) return <section className="rr" data-role-readiness="">{picker}<p className="atl__quiet" role="status" data-rr-none="">{/no_role|Choose a role/i.test(error) ? "Choose a role to see how ready you are for it." : /unknown_role|404/.test(error) ? "There is no role by that name on the Atlas yet." : error}</p></section>;
