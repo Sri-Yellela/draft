@@ -334,6 +334,11 @@ export const MERGE_PLAN = Object.freeze({
   proof_points: "keepInto",
   user_profile: "fill",
   auth_contexts: "drop", password_reset_tokens: "drop", email_codes: "drop", user_sessions: "drop", apply_idempotency: "drop",
+  // ⛔ A140 (1) (236→234, 45l): "this account's trial details were already cleaned" — one row per user; INTO's stands. MISSING
+  // when 234 shipped (410e77e): every account merge refused with merge_plan_incomplete until this line.
+  a140_trial_cleaned: "keepInto",
+  // D179 P4b / D159 T1 (237): the companies a person follows — one row per (user, company); a merged person follows both lists.
+  company_follows: "keepInto",
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */
