@@ -43,15 +43,22 @@ export function pathwaysPlan({ dir = DECKS_DIR } = {}) {
   if (!plan) return { pathways: [], written: 0, drafted: 0, planned: 0 };
   const live = new Set(approvedDecks(dir).map(d => d.id));
   let written = 0, drafted = 0, planned = 0;
+  // ⭐ D154 P8 (45n) · each stage's BUILDS (content/decks/builds-v1.json) — served only when approved; a drafted one is counted.
+  const builds = safe(() => JSON.parse(fs.readFileSync(path.join(dir, "builds-v1.json"), "utf8")).builds, []) || [];
+  const buildsDrafted = builds.filter(b => b.status !== "approved").length;
+  const buildsFor = (p, s) => builds.filter(b => b.status === "approved" && b.pathway === p && b.stage === s)
+    .map(b => ({ id: b.id, title: b.title, brief: b.brief, steps: b.steps || [], show: b.show, skills: b.skills || [],
+      decks: (b.decks || []).filter(d => live.has(d)) }));
   // A topic whose deck is drafted (in a decks file, not yet approved) says so — never linked, never served as a lesson.
   const pathways = (plan.pathways || []).map(p => ({ id: p.id, title: p.title, later: !!p.later, stages: p.stages.map(s => ({ id: s.id, title: s.title,
+    builds: buildsFor(p.id, s.id),
     topics: s.topics.map(t => {
       const deck = t.deck && live.has(t.deck) ? t.deck : null;
       const isDraft = !deck && !!t.deck && t.status === "draft";
       if (deck) written++; else if (isDraft) drafted++; else planned++;
       return isDraft ? { title: t.title, deck: null, drafted: true } : { title: t.title, deck };
     }) })) }));
-  return { pathways, written, drafted, planned };
+  return { pathways, written, drafted, planned, buildsDrafted };
 }
 
 export function guides({ dir } = {}) {

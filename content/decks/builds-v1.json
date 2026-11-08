@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "source": "D154 P8 (45n) — the AI-engineering route's BUILDS, drafted by the agent for the owner's review. A build is proven the D169 way: a public link (repository or write-up) added as proof on the skill, which makes it 'built'. Nothing here is served until its status is 'approved'.",
+  "builds": [
+    {
+      "id": "ml-ai-build-01",
+      "pathway": "ml-ai",
+      "stage": "foundations",
+      "status": "draft",
+      "title": "A leak-free baseline",
+      "brief": "Take a public tabular dataset, split it into training, validation and test sets the right way, and train one simple model. Show its metric on the test set once, at the end.",
+      "steps": [
+        "Pick a public dataset with a clear target (a churn, fraud or price dataset).",
+        "Split before you look: training, validation, test. If rows share a person or a time, split by person or by time.",
+        "Train a baseline (logistic regression or a small tree) and choose its settings on the validation set only.",
+        "Report the test metric once, with the metric you chose and why it fits the problem.",
+        "Write down one leak you checked for and how you checked."
+      ],
+      "show": "A repository with the notebook or script, and a README that names the split, the metric and the leak check.",
+      "skills": ["machine-learning", "python", "statistics"],
+      "decks": ["ml-f-02", "ml-f-03", "ml-f-04"]
+    },
+    {
+      "id": "ml-ai-build-02",
+      "pathway": "ml-ai",
+      "stage": "building-blocks",
+      "status": "draft",
+      "title": "Serve a model and watch it drift",
+      "brief": "Put the baseline behind a small HTTP endpoint, log what it is asked, and add one drift check that compares this week's inputs with the training data.",
+      "steps": [
+        "Wrap the model in a small service (FastAPI or similar) with one predict endpoint.",
+        "Log each request's inputs and the prediction (no personal data).",
+        "Add a drift check: compare one input's distribution this week with training (a population stability index or a simple histogram distance).",
+        "Say what you would do when the check fires."
+      ],
+      "show": "A repository that runs with one command, and a README showing a request, its log line and the drift check's output.",
+      "skills": ["model-serving", "mlops", "python"],
+      "decks": ["ml-b-03", "ml-b-04"]
+    },
+    {
+      "id": "ml-ai-build-03",
+      "pathway": "ml-ai",
+      "stage": "ai-engineering",
+      "status": "draft",
+      "title": "Retrieval over your own documents, with an evaluation",
+      "brief": "Build a small question-answering tool over a set of documents you are allowed to use, and measure it: a fixed set of questions with expected answers, scored before and after one change.",
+      "steps": [
+        "Choose 20–50 documents you may use (your notes, a project's public docs under an open licence).",
+        "Split them into chunks, embed them, and retrieve the top few for a question.",
+        "Ask a model to answer only from what was retrieved, and to say when the answer isn't there.",
+        "Write 20 questions with the expected answer and the document it comes from.",
+        "Score retrieval (was the right document retrieved?) and the answer (right, wrong, or 'not there'), change one thing (chunk size, number retrieved), and score again."
+      ],
+      "show": "A repository with the evaluation set, both scores, and one paragraph on what the change did.",
+      "skills": ["retrieval-augmented-generation", "large-language-models", "evaluation"],
+      "decks": ["ml-ai-03", "ml-ai-05"]
+    },
+    {
+      "id": "ml-ai-build-04",
+      "pathway": "ml-ai",
+      "stage": "ai-engineering",
+      "status": "draft",
+      "title": "An agent with two tools and a limit",
+      "brief": "Give a model two tools (for example a calculator and a search over your documents), return structured output, and stop it safely: a step limit, a cost limit and a refusal it can give.",
+      "steps": [
+        "Define two tools with clear input schemas.",
+        "Ask for structured output (JSON with a schema) and reject anything that does not parse.",
+        "Add a step limit and a cost limit, and log every tool call.",
+        "Write five tasks it should finish and two it should refuse, and record what it did."
+      ],
+      "show": "A repository with the tool definitions, the logs of the seven tasks and what each one cost.",
+      "skills": ["ai-agents", "large-language-models", "prompt-engineering"],
+      "decks": ["ml-ai-02", "ml-ai-04", "ml-ai-07"]
+    },
+    {
+      "id": "ml-ai-build-05",
+      "pathway": "ml-ai",
+      "stage": "case-studies",
+      "status": "draft",
+      "title": "A support assistant, end to end",
+      "brief": "Combine the retrieval build and the agent build into one assistant for a made-up product's help pages, with an evaluation, a cost per answer, and a guardrail for questions it must hand to a person.",
+      "steps": [
+        "Write or gather 30 help pages for a made-up product.",
+        "Answer from retrieval; hand off billing and account questions to a person instead of answering.",
+        "Measure accuracy on 30 questions, the hand-off rate, and the cost and time per answer.",
+        "Write a one-page design note: what you would change before real users saw it."
+      ],
+      "show": "A repository and the one-page design note with the measured numbers.",
+      "skills": ["retrieval-augmented-generation", "ai-agents", "evaluation"],
+      "decks": ["ml-c-03", "ml-ai-06"]
+    }
+  ]
+}
