@@ -1,0 +1,828 @@
+{
+ "version": 17,
+ "note": "Drafted by the agent 2026-11-08 for the owner's review (D155 Part C, approved; D154 P4 format). Pathway 'security': 'cloud-and-infrastructure-security' (identity and access, detection and logging; secrets reuses cl-s-01), 'offence-and-defence' (3), 'governance' (1), 'interview' (3). Nothing is live until approved (status: draft).",
+ "decks": [
+  {
+   "id": "se-ci-01",
+   "pathway": "security",
+   "stage": "cloud-and-infrastructure-security",
+   "title": "Identity and access",
+   "skills": [
+    "iam",
+    "mfa",
+    "zero trust"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Who can do what, everywhere",
+     "points": [
+      "Identity and access management (IAM) decides which people and services can use which systems and data.",
+      "Most breaches involve stolen or misused credentials, so this is the front door."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Authenticate strongly, authorise narrowly",
+     "points": [
+      "Single sign-on gives one strong identity per person, with multi-factor authentication (passkeys or app-based codes, not SMS where avoidable).",
+      "Roles and groups grant access; nobody gets permissions one at a time by hand.",
+      "Least privilege and just-in-time elevation keep standing access small.",
+      "Joiner, mover, leaver: access changes the day someone's role changes or they leave."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Friction against risk",
+     "points": [
+      "Strong authentication adds steps; phishing-resistant methods (passkeys) add little friction.",
+      "Shared accounts are convenient and make every action anonymous.",
+      "Service accounts outnumber people and are often the weakest; give them owners."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Quarterly access reviews by each system's owner.",
+      "Alerts on new admin grants and on sign-ins from unusual places.",
+      "Break-glass accounts locked away, monitored and tested."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-ci-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-ci-03",
+   "pathway": "security",
+   "stage": "cloud-and-infrastructure-security",
+   "title": "Detection and logging",
+   "skills": [
+    "siem",
+    "logging",
+    "detection"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Noticing an attack in progress",
+     "points": [
+      "Prevention eventually fails; detection finds attackers before they finish.",
+      "It depends on collecting the right logs and turning them into alerts people act on."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Collect, correlate, alert",
+     "points": [
+      "Collect security-relevant logs: sign-ins, admin actions, cloud API calls, network flows, endpoint events.",
+      "Send them to a central store (a SIEM) where they're kept, searched and correlated.",
+      "Detections are rules or models for suspicious patterns: impossible travel, mass downloads, new admin users.",
+      "Every alert needs a response plan; unreviewed alerts are noise."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Coverage against noise and cost",
+     "points": [
+      "Logging everything is expensive; prioritise what attackers touch.",
+      "Too many low-quality alerts bury the real one; tune continuously.",
+      "Attackers delete local logs, so ship them off the machine quickly."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Detections mapped to MITRE ATT&CK techniques to find gaps.",
+      "Log retention long enough to investigate an intrusion found months later.",
+      "Regular tests: simulate an attack and check it's detected."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-ci-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-o-01",
+   "pathway": "security",
+   "stage": "offence-and-defence",
+   "title": "Penetration-testing basics",
+   "skills": [
+    "penetration testing",
+    "ethical hacking"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Attacking your own systems, with permission",
+     "points": [
+      "A penetration test is an authorised, scoped attempt to break into systems, to find weaknesses before real attackers do.",
+      "Written permission and a clear scope come before any testing."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Recon, exploit, report",
+     "points": [
+      "Reconnaissance: map what's exposed (hosts, ports, apps, people).",
+      "Find and confirm vulnerabilities; exploit carefully to show real impact without damage.",
+      "Pivot: from one foothold, see what else is reachable.",
+      "Report: each finding with evidence, risk, and a fix, written for the people who must fix it."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Snapshot, not guarantee",
+     "points": [
+      "A test covers a scope at a moment; new code brings new bugs.",
+      "Automated scanners are broad and shallow; manual testing is narrow and deep.",
+      "Testing production finds real issues and risks real disruption; agree the rules first."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Rules of engagement signed before starting.",
+      "Burp Suite, nmap and common tools, used only within scope.",
+      "Retests to confirm fixes."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-o-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-o-02",
+   "pathway": "security",
+   "stage": "offence-and-defence",
+   "title": "Red and blue teams",
+   "skills": [
+    "red team",
+    "blue team",
+    "purple team"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Practising attack and defence together",
+     "points": [
+      "A red team simulates a real adversary against the organisation; a blue team defends and detects.",
+      "Purple teaming puts them side by side to improve detection quickly."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Goals, not just bugs",
+     "points": [
+      "Red teams pursue an objective (reach the customer database) by any realistic path, often quietly over weeks.",
+      "Blue teams monitor, detect, respond and harden.",
+      "Exercises are measured by detection and response: how fast was it spotted, and contained?",
+      "Findings feed new detections and fixes."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Realism against cost",
+     "points": [
+      "Full red-team exercises are expensive and need mature defences to be worth it.",
+      "Secret exercises test real response but can cause alarm; leadership must know.",
+      "Purple exercises improve faster and test less realistically."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Attack paths described with MITRE ATT&CK.",
+      "Tabletop exercises for leadership.",
+      "Detection gaps tracked to closure."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-o-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-o-03",
+   "pathway": "security",
+   "stage": "offence-and-defence",
+   "title": "Incident response and forensics",
+   "skills": [
+    "incident response",
+    "forensics"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Handling a breach",
+     "points": [
+      "Security incident response contains an attack, removes the attacker, recovers systems and learns from it.",
+      "Forensics gathers evidence of what happened, carefully enough to rely on."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Prepare, contain, eradicate, recover",
+     "points": [
+      "Prepare: plans, contacts, logging and tools in place before anything happens.",
+      "Contain: isolate affected systems and disable compromised accounts, without destroying evidence.",
+      "Eradicate the attacker's access everywhere, then recover from known-good state.",
+      "Preserve evidence (disk and memory images, logs) with a record of who handled it."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Speed against evidence",
+     "points": [
+      "Wiping a machine stops the attacker there and destroys evidence of how far they got.",
+      "Acting before you know the full scope can tip off the attacker.",
+      "Legal and notification duties start early; involve legal and communications."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "An incident retainer with outside responders.",
+      "Playbooks for common cases: ransomware, account takeover, data leak.",
+      "Credentials reset broadly after a confirmed intrusion."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-o-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-g-01",
+   "pathway": "security",
+   "stage": "governance",
+   "title": "Risk and compliance basics",
+   "skills": [
+    "risk management",
+    "compliance",
+    "soc 2"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Security as a managed business risk",
+     "points": [
+      "Governance decides which risks matter, who owns them and what's done about them.",
+      "Compliance frameworks (SOC 2, ISO 27001, PCI DSS, GDPR) set requirements customers and laws expect."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Risks, controls, evidence",
+     "points": [
+      "A risk register lists risks with likelihood, impact, owner and treatment.",
+      "Controls are the measures that reduce risk: access reviews, encryption, backups, training.",
+      "Audits check that controls exist and work, using evidence.",
+      "Policies say what must happen; procedures say how."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Compliant isn't the same as secure",
+     "points": [
+      "Passing an audit shows controls on paper; attackers test them in practice.",
+      "Too much process slows teams and pushes work around controls.",
+      "Automating evidence (from systems, not screenshots) makes audits cheaper and more honest."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "What you'll see at work",
+     "points": [
+      "Security questionnaires from customers before they buy.",
+      "Annual audits with continuous evidence collection.",
+      "Data protection duties: knowing what personal data you hold and why."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-g-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-iv-01",
+   "pathway": "security",
+   "stage": "interview",
+   "title": "Threat-modelling rounds",
+   "skills": [
+    "threat modelling interview"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Find the risks in a design, live",
+     "points": [
+      "You're shown a system (a file-sharing app, a payments flow) and asked what could go wrong and what you'd do about it.",
+      "They're scoring structure and prioritisation."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "A method out loud",
+     "points": [
+      "Clarify the system and draw the data flow with trust boundaries.",
+      "Walk the boundaries with STRIDE or similar prompts.",
+      "Rank threats by impact and likelihood; don't list 40 equally.",
+      "Propose practical mitigations and say what you'd accept."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Breadth against depth",
+     "points": [
+      "Listing every possible threat runs out the clock; go deep on the top few.",
+      "Mitigations that break the product won't be adopted; balance them.",
+      "Say your assumptions; the interviewer may change them."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "How to prepare",
+     "points": [
+      "Practise on three common systems with a timer.",
+      "Know the usual mitigations for each STRIDE category.",
+      "Bring a real example from your own work."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-iv-01-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-iv-02",
+   "pathway": "security",
+   "stage": "interview",
+   "title": "Incident scenarios",
+   "skills": [
+    "incident response interview"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "'An alert fires; walk us through it'",
+     "points": [
+      "Interviewers describe an incident (a suspicious login, ransomware on a laptop) and ask what you'd do step by step.",
+      "They're scoring calm, order, and knowing when to escalate."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Triage to recovery",
+     "points": [
+      "Triage: is it real, how severe, what's affected?",
+      "Contain with minimal evidence loss; escalate and involve the right people.",
+      "Investigate scope: other accounts, other machines, data accessed.",
+      "Recover, then improve detections and controls."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Act fast, but in order",
+     "points": [
+      "Overreacting (shutting down everything) has costs; underreacting lets it spread.",
+      "Communicating clearly to non-technical people is part of the job.",
+      "Say what evidence you'd look at and why."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "How to prepare",
+     "points": [
+      "Practise with common scenarios: phishing, credential theft, ransomware, data exfiltration.",
+      "Know a framework (NIST or SANS phases) to structure answers.",
+      "Have one real incident story ready."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-iv-02-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-iv-03",
+   "pathway": "security",
+   "stage": "interview",
+   "title": "Code-review exercises",
+   "skills": [
+    "secure code review interview"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "slides": [
+    {
+     "tag": "What it is",
+     "title": "Find the bugs in a snippet",
+     "points": [
+      "You're given code (often a small web endpoint) and asked to find security issues and propose fixes.",
+      "They're checking that you can spot real vulnerabilities and explain them."
+     ]
+    },
+    {
+     "tag": "Core ideas",
+     "title": "Trace input to sinks",
+     "points": [
+      "Identify untrusted inputs: parameters, headers, cookies, uploaded files.",
+      "Follow them to dangerous sinks: queries, shell commands, HTML output, file paths, redirects, deserialisation.",
+      "Check authentication and authorisation on every action.",
+      "Propose a specific fix and explain why it works."
+     ]
+    },
+    {
+     "tag": "The trade-offs",
+     "title": "Real issues over style",
+     "points": [
+      "Commenting on naming wastes time; focus on exploitable flaws.",
+      "Rank findings by severity.",
+      "Explain impact in plain words: what an attacker could actually do."
+     ]
+    },
+    {
+     "tag": "In practice",
+     "title": "How to prepare",
+     "points": [
+      "Practise on deliberately vulnerable apps (OWASP Juice Shop, WebGoat).",
+      "Know the fix for each common class.",
+      "Read real security advisories for familiar libraries."
+     ]
+    },
+    {
+     "tag": "Check yourself",
+     "title": "One question",
+     "points": [
+      "Answer it, then read the why."
+     ]
+    }
+   ],
+   "questions": [
+    "se-iv-03-q1"
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ],
+ "newQuestions": [
+  {
+   "id": "se-ci-01-q1",
+   "type": "scenario",
+   "role": "Security Engineer",
+   "level": "mid",
+   "skills": [
+    "iam"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "An employee left three months ago, and their account still signed in yesterday. What process failed?",
+   "choices": [
+    "Leaver deprovisioning: access should be removed the day someone leaves, ideally automatically from the HR system",
+    "Password rotation",
+    "Firewall rules",
+    "Backups"
+   ],
+   "correct": 0,
+   "why": [
+    "Offboarding must remove access promptly and completely.",
+    "Rotation doesn't remove the account.",
+    "Unrelated to identity lifecycle.",
+    "Unrelated."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-ci-03-q1",
+   "type": "scenario",
+   "role": "Security Analyst",
+   "level": "mid",
+   "skills": [
+    "detection"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "Investigating a breach, you find the attacker was inside for four months, but logs are only kept for 30 days. What should change?",
+   "choices": [
+    "Keep security logs centrally for long enough to investigate slow intrusions (often a year), off the affected machines",
+    "Delete logs faster to save money",
+    "Log less",
+    "Rely on memory of the team"
+   ],
+   "correct": 0,
+   "why": [
+    "Long-dwell attacks need long retention to reconstruct.",
+    "Makes it worse.",
+    "Fewer logs means less to investigate with.",
+    "Not a record."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-o-01-q1",
+   "type": "scenario",
+   "role": "Penetration Tester",
+   "level": "entry",
+   "skills": [
+    "penetration testing"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "You find a system outside the agreed scope that looks vulnerable during a test. What do you do?",
+   "choices": [
+    "Stop, don't test it, and report it to the client to decide whether to add it to scope",
+    "Test it quickly since it's vulnerable",
+    "Ignore it entirely",
+    "Post about it publicly"
+   ],
+   "correct": 0,
+   "why": [
+    "Testing outside written scope is unauthorised access.",
+    "Being vulnerable doesn't make it authorised.",
+    "Reporting it helps the client.",
+    "Never."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-o-02-q1",
+   "type": "scenario",
+   "role": "Security Analyst",
+   "level": "entry",
+   "skills": [
+    "blue team"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "After a red-team exercise, what's the most valuable output for the blue team?",
+   "choices": [
+    "A timeline of the attack steps with what was and wasn't detected, turned into new detections and fixes",
+    "A score out of ten",
+    "A list of tools the red team used",
+    "A certificate"
+   ],
+   "correct": 0,
+   "why": [
+    "Detection gaps mapped to steps are directly actionable.",
+    "A score says little about what to fix.",
+    "Useful context, but not the main value.",
+    "Not useful."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-o-03-q1",
+   "type": "scenario",
+   "role": "Incident Responder",
+   "level": "mid",
+   "skills": [
+    "incident response"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "A server shows signs of compromise. A teammate wants to reinstall it immediately. What should happen first?",
+   "choices": [
+    "Isolate it from the network and capture evidence (memory and disk image, logs) before rebuilding",
+    "Reinstall it right away",
+    "Leave it running normally to watch",
+    "Turn it off and throw it away"
+   ],
+   "correct": 0,
+   "why": [
+    "Isolation stops spread; evidence shows how they got in and what else they reached.",
+    "Destroys evidence of scope.",
+    "The attacker keeps working.",
+    "Loses evidence and doesn't find other compromised systems."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-g-01-q1",
+   "type": "scenario",
+   "role": "GRC Analyst",
+   "level": "entry",
+   "skills": [
+    "risk management"
+   ],
+   "pieces": [
+    "l2"
+   ],
+   "stem": "A company passed its SOC 2 audit, then suffered a breach through an unpatched server. What does this show?",
+   "choices": [
+    "Compliance shows controls exist on paper at audit time; security needs them to work continuously (patching, monitoring)",
+    "The audit was fake",
+    "SOC 2 prevents breaches",
+    "Servers can't be patched"
+   ],
+   "correct": 0,
+   "why": [
+    "Audits sample controls; they don't guarantee them.",
+    "Not necessarily.",
+    "It doesn't guarantee that.",
+    "They can."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-iv-01-q1",
+   "type": "scenario",
+   "role": "Security Engineer",
+   "level": "entry",
+   "skills": [
+    "threat modelling interview"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "In a threat-modelling round you've listed 25 threats in 10 minutes. What's the better next move?",
+   "choices": [
+    "Rank them and go deep on the top few: why they matter, how likely, and specific mitigations",
+    "List 25 more",
+    "Stop and wait for questions",
+    "Pick one at random"
+   ],
+   "correct": 0,
+   "why": [
+    "Prioritising shows judgement, which is what's being scored.",
+    "Volume isn't insight.",
+    "Lead the discussion.",
+    "Not a method."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-iv-02-q1",
+   "type": "scenario",
+   "role": "Security Analyst",
+   "level": "entry",
+   "skills": [
+    "incident response interview"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "Scenario: a user reports they entered their password on a fake login page an hour ago. What are your first steps?",
+   "choices": [
+    "Reset their password and sessions, check sign-in logs for use of the account, and look for the same phishing email sent to others",
+    "Tell them to be more careful next time",
+    "Wait for suspicious activity",
+    "Wipe their laptop immediately"
+   ],
+   "correct": 0,
+   "why": [
+    "Contain the credential, check for misuse, and find other victims.",
+    "Doesn't contain anything.",
+    "The attacker may already be in.",
+    "The laptop may not be involved at all."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  },
+  {
+   "id": "se-iv-03-q1",
+   "type": "scenario",
+   "role": "Application Security Engineer",
+   "level": "entry",
+   "skills": [
+    "secure code review interview"
+   ],
+   "pieces": [
+    "k2"
+   ],
+   "stem": "A snippet builds a SQL query with f\"SELECT * FROM users WHERE name = '{name}'\". What do you say?",
+   "choices": [
+    "SQL injection: user input becomes SQL; use a parameterised query with the name as a bound parameter",
+    "It's fine if the name is short",
+    "Escape quotes by hand",
+    "Use SELECT name instead of SELECT *"
+   ],
+   "correct": 0,
+   "why": [
+    "Parameters keep data separate from code.",
+    "Length doesn't stop injection.",
+    "Hand-escaping is easy to get wrong.",
+    "Changing columns doesn't fix injection."
+   ],
+   "source": "drafted-for-review",
+   "status": "draft"
+  }
+ ]
+}
