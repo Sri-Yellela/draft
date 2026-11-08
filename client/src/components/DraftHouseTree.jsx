@@ -93,14 +93,17 @@ export function RunCard({ run, lines = [], onClose, onChangeFilters, onSeeLeftOu
   return (
     <div className="dht-node">
       <div className="dht-card" data-run-card="">
-        {/* D182 (45n): no "{day}, {time} · Looked at N" here — the run's own line just above says both. */}
         <div className="dht-card__head">
+          <div className="dht-card__who">
+            <h3>{run.day}, {run.time}</h3>
+            <span>Looked at {run.seen} new postings</span>
+          </div>
           <button type="button" className="dht-x" aria-label="Close" onClick={onClose}>×</button>
         </div>
         <p className="dht-say">Picked {run.picked}, left out {run.leftOutTotal}.</p>
         {lines.length > 0 && (
           <div className="dht-why" data-left-out-reasons="">
-            {lines.map(l => <div key={l.reason} data-reason={l.reason}><b>{l.n}</b><span>{l.label}</span></div>)}
+            {lines.map(l => <div key={l.reason} data-reason={l.reason}><b>{l.n}</b><span>left out: {l.label}</span></div>)}
           </div>
         )}
         <div className="dht-acts">

@@ -100,7 +100,7 @@ function joinChipText(value) {
 function PSec({ title, children, theme }) {
   return (
     <div style={{ marginBottom:20 }}>
-      {title && <div className="rm-section-label">{title}</div>}
+      <div className="rm-section-label">{title}</div>
       <div style={{ background:theme.surface, border:`1px solid ${theme.border}`,
                     borderRadius:16, padding:"20px 24px",
                     boxShadow:theme.shadowSm }}>
@@ -964,8 +964,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
             (components/ProfileSections.jsx) — the one place the fill reads them (withApplicationDefaults). The old
             Work Authorization and EEO selects here wrote user_profile columns that the fill no longer reads after the
             first import, so an edit there was silently ignored (A105 finding 1). Visa type is not a default and stays. ── */}
-        {/* D182 (45n): no section title — the one field's own label says it. */}
-        <PSec theme={theme}>
+        <PSec title="Visa status" theme={theme}>
           <PRow label="Visa / Immigration Status" theme={theme}>
             <select style={selStyle} value={form.visa_type}
               onChange={e => set("visa_type", e.target.value)}>

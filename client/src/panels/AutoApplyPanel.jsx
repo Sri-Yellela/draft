@@ -1034,10 +1034,10 @@ export function AutoApplyPanel({ user = null } = {}) {
        sub && `${sub.used} of ${settings?.dailyCap ?? sub.limit} sent today.`,
        fullAuto ? "Good matches are sent for you." : picksOn ? "You tap Apply on each pick." : "Nothing is submitted until you approve it."]
       .filter(Boolean).join(" ");
-  // ⭐ D146 · the timeline's head: "Auto-apply · Runs at 9 AM and 6 PM" (D182: the mode words left), the sentence, Pause.
+  // ⭐ D146 · the timeline's head: "Auto-apply · Ask me first · runs at 9 AM and 6 PM", the sentence, Pause.
   const runAt = (t) => { const [h, m] = t.split(":").map(Number); return `${h % 12 || 12}${m ? `:${String(m).padStart(2, "0")}` : ""} ${h < 12 ? "AM" : "PM"}`; };
   const runTimes = (Array.isArray(settings?.runTimes) ? settings.runTimes : []).filter(t => /^\d\d:\d\d$/.test(t)).map(runAt);
-  const runsWord = !runTimes.length ? "" : `Runs at ${runTimes.length > 1 ? `${runTimes.slice(0, -1).join(", ")} and ${runTimes[runTimes.length - 1]}` : runTimes[0]}`;
+  const runsWord = !runTimes.length ? "" : ` · runs at ${runTimes.length > 1 ? `${runTimes.slice(0, -1).join(", ")} and ${runTimes[runTimes.length - 1]}` : runTimes[0]}`;
   const timelineHead = (
     // ⭐ D149 (11-03) · the sketch's .tl head: "Auto-apply" (15 / 600) over "Ask me first · runs at 9 AM and 6 PM". The
     // running sentence is not on the sketch (shown only while paused). Pause — the safety stop — stays here as one
@@ -1050,8 +1050,7 @@ export function AutoApplyPanel({ user = null } = {}) {
           {held ? "Resume" : "Pause"}
         </button>
       </div>
-      {/* D182 (45n): no mode words here — the header's mode switch already shows Ask me first / Apply for me. */}
-      {runsWord && <p className="dht-head__sub">{runsWord}</p>}
+      <p className="dht-head__sub">{fullAuto ? "Apply for me" : "Ask me first"}{runsWord}</p>
       {held && <p className="dht-head__say" data-house-sentence="">{sentence}</p>}
     </div>
   );
@@ -1132,6 +1131,7 @@ export function AutoApplyPanel({ user = null } = {}) {
         <div className="dh-head__text">
           {/* ⭐ D149 (11-03): the sketch's .ph3 — the serif at 44 / 1 over its line in body grey (DraftHouse.css). */}
           <h1 style={{ ...TYPE.PAGE_TITLE, ...DH_TITLE }}>Home</h1>
+          <p className="dh-head__say" data-house-line="">Every application, from draft to reply.</p>
           {/* ⭐ D154 P1: Home shows ONE line for the daily question — never a panel (D145). */}
           <p className="dh-head__say" data-daily-line=""><a href="/app/atlas/todays-question">Today's question · 2 minutes</a></p>
         </div>
@@ -1758,6 +1758,10 @@ export function AutoApplyPanel({ user = null } = {}) {
                         {attemptsOpen && (
                           <div style={{ display:"flex", flexDirection:"column", gap:6,
                                         borderTop:`1px solid ${theme.border}`, paddingTop:8 }}>
+                            <div style={{ fontSize:9, fontWeight:800, letterSpacing:"0.08em",
+                                          textTransform:"uppercase", color:theme.textDim }}>
+                              Every attempt at this application
+                            </div>
                             {app.rows.map(row => (
                               <AttemptRow key={row.id} job={row} theme={theme}
                                 artifactUrl={artifactUrl} packetFor={handoffPacketFor}

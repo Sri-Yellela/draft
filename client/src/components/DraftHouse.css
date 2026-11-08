@@ -159,6 +159,9 @@
 .dht-card { padding: 14px; border-radius: 16px; background: var(--c-fh-well); }
 
 .dht-card__head { display: flex; gap: 10px; align-items: center; }
+.dht-card__who { min-width: 0; display: flex; flex-direction: column; }
+.dht-card__who h3 { margin: 0; font: 600 calc(15px * var(--type-scale, 1))/1.25 var(--shape-font-ui, var(--font-body)); color: var(--c-ink); }
+.dht-card__who span { font-size: 12.5px; color: var(--c-ink-muted); }
 .dht-x { margin-left: auto; border: 0; background: transparent; color: var(--c-ink-muted); font-size: 20px; line-height: 1; cursor: pointer; }
 .dht-say { margin: 8px 0 0; font-size: 15px; line-height: 1.4; color: var(--c-ink); }
 .dht-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
@@ -246,6 +249,7 @@
 .dh-fold2__top span { color: var(--c-ink-muted); font-size: calc(14px * var(--type-scale, 1)); text-align: right; }
 .dh-fold2[data-open="true"] .dh-fold2__top { display: none; }
 .dh-fold2__body { padding: 20px 18px; }
+.dh-fold2__eyebrow { color: var(--c-accent-ink); font-size: calc(14px * var(--type-scale, 1)); margin: 0 0 6px; }
 .dh-fold2__h { font-family: inherit; font-weight: 500; font-size: calc(30px * var(--type-scale, 1)); line-height: 1.08; letter-spacing: -.03em; margin: 0 0 14px; }
 .dh-fold2__lead { color: var(--c-ink-muted); font-size: calc(15px * var(--type-scale, 1)); margin: 0 0 14px; }
 .dh-fold2__lead--after { margin-top: 12px; }

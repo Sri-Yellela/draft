@@ -13,7 +13,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api.js";
-import { useRepeatsNav } from "../../components/PlaceNav.jsx";
 import { matchCandidate } from "../../../../shared/atlasSearchNormalize.js";
 import Navigator from "./Navigator.jsx";
 import ReadinessCheck from "./ReadinessCheck.jsx";
@@ -30,10 +29,9 @@ const nodeHref = (base, slug) => `${base}/${encodeURIComponent(slug)}`;
 const num = (n) => Number(n || 0).toLocaleString("en-US");
 
 export function PanelHead({ eyebrow, title, lead = null }) {
-  const repeats = useRepeatsNav(eyebrow);   // D182: an eyebrow equal to the nav card's current item is not drawn
   return (
     <header className="atl__head atl-pan__head">
-      {eyebrow && !repeats && <p className="atl-pan__eyebrow">{eyebrow}</p>}
+      {eyebrow && <p className="atl-pan__eyebrow">{eyebrow}</p>}
       <h1 className="atl__title">{title}</h1>
       {lead && <p className="atl__lede">{lead}</p>}
     </header>
@@ -154,7 +152,7 @@ export function YourSkillsSlot({ signedIn, base = "/app/atlas" }) {
 export function YourRoutePanel({ base, signedIn }) {
   return (
     <div className="atl-pan" data-atlas-panel-body="your-route">
-      <PanelHead title="One tier on top of what you have"
+      <PanelHead eyebrow="Your route" title="One tier on top of what you have"
         lead="Where you're headed, the skills in order with the Learn piece for each, and the roles to apply to while you learn." />
       {signedIn
         ? <Navigator base={base} fallback={<NotYet>Your route appears once your job profile names your current role and your résumé's skills are read.
@@ -252,7 +250,7 @@ export function TodaysQuestionPanel({ base }) {
   const q = t?.question, r = t?.result;
   return (
     <div className="atl-pan" data-atlas-panel-body="todays-question">
-      <PanelHead eyebrow={t?.reasonWords ? `Picked for you · ${t.reasonWords}` : null} title="One question a day"
+      <PanelHead eyebrow={t?.reasonWords ? `Picked for you · ${t.reasonWords}` : "Picked from your route"} title="One question a day"
         lead={t?.streak ? `${t.streak} day${t.streak === 1 ? "" : "s"} in a row.` : "About two minutes. A review comes back when you miss one."} />
       {err && <p className="atl__quiet" role="alert">{err}</p>}
       {!t && !err && <p className="atl__quiet" role="status">Picking today's question…</p>}
@@ -412,7 +410,7 @@ export function AuditPanel({ base }) {
   }, [pick]);
   return (
     <div className="atl-pan" data-atlas-panel-body="the-audit">
-      <PanelHead title="Do you clear the bar?"
+      <PanelHead eyebrow="The 3-minute audit" title="Do you clear the bar?"
         lead="The role's card from the board's own postings: how many are open, what they pay, what they ask for most." />
       {roles == null ? <p className="atl__quiet" role="status">Opening…</p> : !roles.length
         ? <NotYet>No role can be audited yet: a role needs reviewed questions in the bank and at least 30 open postings.</NotYet>

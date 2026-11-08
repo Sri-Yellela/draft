@@ -72,6 +72,7 @@ export function LibraryShelf({ base, signedIn = false }) {
   return (
     <div className="atl-pan" data-atlas-panel-body="library">
       <header className="atl__head">
+        <p className="atl__kicker">Library</p>
         <h1 className="atl__title">Guides and courses</h1>
         <p className="atl__lede">Your level's guide first, then the shelf. Each lesson is the best material we found on it and a quick check.</p>
       </header>
