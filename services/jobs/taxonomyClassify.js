@@ -68,7 +68,33 @@ export const TITLE_ALIAS = 6, TITLE_NAME = 4, SIGNAL = 1, SIGNAL_CAP = 4, HINT =
  * Classify one posting. `boardCategory` = D127's stored category ('held' keeps it held). Returns
  * { category, subcategory, confidence (0–1), reason, version } — category / subcategory null when nothing is clear.
  */
-export function classifyPosting({ title, description = "", boardCategory = null }, tax = taxonomy()) {
+export function classifyPosting(posting, tax = taxonomy()) {
+  const r = classifyTitle(posting, tax);
+  // ⭐ A141 (45q): a posting that reached only its category's GENERAL bucket ("Software Engineer") is placed in a specific
+  // subcategory when the DESCRIPTION clearly says which — that sub's own signal terms, at least DESC_MIN distinct ones and
+  // DESC_MARGIN more than any sibling. Same category only (the title already decided that); a close race stays general.
+  if (r.category && r.subcategory && /\.general$/.test(r.subcategory) && posting?.description) {
+    const pick = descriptionPick(tax.byId.get(r.category), norm(String(posting.description).slice(0, 6000)));
+    if (pick) return { ...r, subcategory: pick.id, confidence: 0.55, reason: `${r.reason},desc-signals:${pick.id}:${pick.n}` };
+  }
+  return r;
+}
+
+export const DESC_MIN = 4, DESC_MARGIN = 3;   // measured 45q: 3 / 2 placed "Software Engineer - C++" in frontend
+/** A signal like "React / Vue" or "frontend + backend in one role" is several terms; each counts once when present. */
+const signalTerms = (s) => String(s || "").split(/\s*(?:\/|\+|,)\s*/).map(x => x.trim()).filter(x => x.length > 1);
+export function descriptionPick(cat, d) {
+  if (!cat || !d.trim()) return null;
+  const scored = cat.subs.filter(s => !s.general).map(s => {
+    const terms = new Set(s.signals.flatMap(signalTerms).map(x => x.toLowerCase()));
+    return { id: s.id, n: [...terms].filter(x => has(d, x)).length };
+  }).sort((a, b) => b.n - a.n);
+  const [a, b2] = scored;
+  if (!a || a.n < DESC_MIN || (b2 && a.n - b2.n < DESC_MARGIN)) return null;
+  return a;
+}
+
+function classifyTitle({ title, description = "", boardCategory = null }, tax = taxonomy()) {
   const out = (category, subcategory, confidence, reason) => ({ category, subcategory, confidence, reason, version: tax.version });
   if (boardCategory === HELD) return out(null, null, 0, "held:d127");
   const t = norm(String(title || "").replace(LEVEL_WORDS, " "));
@@ -104,9 +130,11 @@ export function classifyPosting({ title, description = "", boardCategory = null 
   // its generic alias ("software engineer") while a SPECIFIC sibling's own name ("Frontend") was in the title too. The
   // specific one is what the title says; it wins when it is sure on its own.
   if (best?.s.general) {
-    const spec = cands.filter(x => x.c.id === best.c.id && !x.s.general && x.why.some(w => w.startsWith("name:")) && x.score >= SURE)
+    // ⭐ A141 (45q): the sibling's own NAME in the title is enough ("Software Engineer, Android" · "Staff Software Engineer, iOS")
+    // — it scored TITLE_NAME (4) under SURE, so the general alias kept winning; the title says which, so it wins.
+    const spec = cands.filter(x => x.c.id === best.c.id && !x.s.general && x.why.some(w => w.startsWith("name:")) && x.score >= TITLE_NAME)
       .sort((a, b) => b.score - a.score)[0];
-    if (spec) { best = { ...spec, why: [...spec.why, `over-general:${best.s.id}`] }; second = null; }
+    if (spec) { best = { ...spec, score: Math.max(spec.score, SURE), why: [...spec.why, `over-general:${best.s.id}`] }; second = null; }
   }
   if (best && best.score >= SURE) {
     // Two subcategories in two categories tied on the title: the category is unsure — hint decides, else unclassified.

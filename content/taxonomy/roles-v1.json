@@ -1,5 +1,5 @@
 {
-"version": 1,
+"version": 2,
 "status": "APPROVED by the owner 2026-11-07 (D179 P1) — changes from here are versioned (ids stable)",
 "updated": "2026-11-07",
 "registryMap": {
@@ -26,12 +26,12 @@
 {"id":"software-engineering","name":"Software engineering","d127":"15","subcategories":[
  {"id":"swe.backend","name":"Backend","soc":["15-1252"],"family":"Backend","aliases":["backend engineer","server-side engineer","API engineer","SDE backend"],"signals":["APIs","databases","services","queues"]},
  {"id":"swe.frontend","name":"Frontend","soc":["15-1254","15-1252"],"family":"NEW: Frontend","aliases":["frontend engineer","UI engineer","web developer","React developer"],"signals":["JavaScript / TypeScript","React / Vue","CSS","accessibility","web performance"]},
- {"id":"swe.fullstack","name":"Full-stack","soc":["15-1252","15-1254"],"family":"Backend","aliases":["full stack engineer","full-stack developer","product engineer"],"signals":["frontend + backend in one role"]},
+ {"id":"swe.fullstack","name":"Full-stack","soc":["15-1252","15-1254"],"family":"Backend","aliases":["full stack engineer","full-stack developer","product engineer","full stack software engineer","fullstack engineer","fullstack software engineer","full-stack software engineer","full-stack engineer"],"signals":["frontend + backend in one role"]},
  {"id":"swe.ios","name":"Mobile · iOS","soc":["15-1252"],"family":"NEW: Mobile","aliases":["iOS engineer","Swift developer"],"signals":["Swift","SwiftUI / UIKit","App Store"]},
  {"id":"swe.android","name":"Mobile · Android","soc":["15-1252"],"family":"NEW: Mobile","aliases":["Android engineer","Kotlin developer"],"signals":["Kotlin","Jetpack / Compose","Play Store"]},
  {"id":"swe.mobile-cross","name":"Mobile · cross-platform","soc":["15-1252"],"family":"NEW: Mobile","aliases":["React Native developer","Flutter developer","mobile engineer"],"signals":["React Native","Flutter"]},
  {"id":"swe.embedded","name":"Embedded and firmware","soc":["15-1252","17-2061"],"family":"Systems","aliases":["embedded software engineer","firmware engineer","embedded C developer"],"signals":["C / C++","RTOS","microcontrollers","drivers"]},
- {"id":"swe.systems","name":"Systems software (OS, compilers, databases)","soc":["15-1252"],"family":"Systems","aliases":["systems engineer (software)","kernel engineer","compiler engineer","database engineer"],"signals":["C / C++ / Rust","kernels","compilers","storage engines"]},
+ {"id":"swe.systems","name":"Systems software (OS, compilers, databases)","soc":["15-1252"],"family":"Systems","aliases":["systems engineer (software)","kernel engineer","compiler engineer","database engineer","systems software engineer","operating systems engineer"],"signals":["C / C++ / Rust","kernels","compilers","storage engines"]},
  {"id":"swe.distributed","name":"Distributed systems and storage","soc":["15-1252"],"family":"Systems","aliases":["distributed systems engineer","storage engineer","infrastructure software engineer"],"signals":["consensus","replication","large-scale storage","performance"]},
  {"id":"swe.game","name":"Game development","soc":["15-1252"],"family":"NEW: Game and graphics","aliases":["game programmer","gameplay engineer","Unity / Unreal developer"],"signals":["Unity","Unreal","C++ / C#","gameplay systems"]},
  {"id":"swe.graphics","name":"Graphics and rendering","soc":["15-1252"],"family":"NEW: Game and graphics","aliases":["graphics engineer","rendering engineer","GPU engineer"],"signals":["OpenGL / Vulkan / Metal","shaders","GPU"]},
@@ -58,14 +58,14 @@
  {"id":"infra.sysadmin","name":"Systems administration","soc":["15-1244"],"family":"Infra","aliases":["systems administrator","Linux administrator","Windows administrator"],"signals":["Linux / Windows Server","scripting","patching"]},
  {"id":"infra.network","name":"Network engineering","soc":["15-1241","15-1244"],"family":"Infra","aliases":["network engineer","network architect"],"signals":["routing / switching","firewalls","Cisco / Juniper"]},
  {"id":"infra.dba","name":"Database administration","soc":["15-1242"],"family":"Data","aliases":["database administrator","DBA"],"signals":["backup / recovery","tuning","PostgreSQL / Oracle / SQL Server"]},
- {"id":"infra.it-support","name":"IT support and end-user computing","soc":["15-1232","15-1231"],"family":"NEW: IT","aliases":["IT support specialist","help desk","desktop support","IT technician"],"signals":["ticketing","device management","Active Directory"]},
+ {"id":"infra.it-support","name":"IT support and end-user computing","soc":["15-1232","15-1231"],"family":"NEW: IT","aliases":["IT support specialist","help desk","desktop support","IT technician","IT support engineer"],"signals":["ticketing","device management","Active Directory"]},
  {"id":"infra.enterprise-apps","name":"Enterprise applications (ERP, CRM)","soc":["15-1211"],"family":"NEW: IT","aliases":["Salesforce administrator","SAP consultant","ERP analyst","ServiceNow developer","systems analyst"],"signals":["Salesforce","SAP","Workday","ServiceNow"]},
  {"id":"infra.general","name":"Cloud, infrastructure and IT · general","soc":["15-1299"],"family":"Infra","aliases":["IT engineer"],"signals":[]}
 ]},
 {"id":"security","name":"Security","d127":"15","subcategories":[
  {"id":"sec.appsec","name":"Application and product security","soc":["15-1212"],"family":"NEW: Security","aliases":["application security engineer","product security engineer","AppSec"],"signals":["secure code review","threat modelling","OWASP"]},
  {"id":"sec.cloud","name":"Cloud and infrastructure security","soc":["15-1212"],"family":"NEW: Security","aliases":["cloud security engineer","infrastructure security engineer"],"signals":["IAM","CSPM","Kubernetes security"]},
- {"id":"sec.ops","name":"Security operations and incident response","soc":["15-1212"],"family":"NEW: Security","aliases":["SOC analyst","security analyst","incident responder","detection engineer"],"signals":["SIEM","detection rules","forensics"]},
+ {"id":"sec.ops","name":"Security operations and incident response","soc":["15-1212"],"family":"NEW: Security","aliases":["SOC analyst","security analyst","incident responder","detection engineer","security operations engineer","security operations analyst"],"signals":["SIEM","detection rules","forensics"]},
  {"id":"sec.offensive","name":"Offensive security","soc":["15-1212"],"family":"NEW: Security","aliases":["penetration tester","red team","security researcher"],"signals":["pentesting","exploitation","OSCP"]},
  {"id":"sec.identity","name":"Identity and access","soc":["15-1212"],"family":"NEW: Security","aliases":["IAM engineer","identity engineer"],"signals":["SSO / SAML / OIDC","Okta / Entra"]},
  {"id":"sec.grc","name":"Governance, risk and compliance (GRC)","soc":["15-1212","13-1041"],"family":"NEW: Security","aliases":["GRC analyst","security compliance analyst","IT auditor"],"signals":["SOC 2","ISO 27001","risk assessments","NIST"]},
@@ -126,7 +126,7 @@
  {"id":"bio.general","name":"Biomedical · general","soc":["17-2031"],"family":"Biomedical","aliases":["biomedical engineer"],"signals":[]}
 ]},
 {"id":"product-management","name":"Product management","d127":"11","subcategories":[
- {"id":"pm.core","name":"Product management","soc":["11-2021","11-3021"],"family":"Product management","aliases":["product manager","PM","product owner"],"signals":["roadmaps","discovery","prioritisation","metrics"]},
+ {"id":"pm.core","name":"Product management","soc":["11-2021","11-3021"],"family":"Product management","aliases":["product manager","PM","product owner","director of product","head of product"],"signals":["roadmaps","discovery","prioritisation","metrics"]},
  {"id":"pm.technical","name":"Technical and platform product","soc":["11-3021"],"family":"Product management","aliases":["technical product manager","platform product manager","API product manager"],"signals":["APIs","developer experience","system design literacy"]},
  {"id":"pm.growth","name":"Growth product","soc":["11-2021"],"family":"Product management","aliases":["growth product manager","growth PM"],"signals":["experimentation","funnels","activation / retention"]},
  {"id":"pm.ai-data","name":"AI and data product","soc":["11-3021"],"family":"Product management","aliases":["AI product manager","data product manager","ML product manager"],"signals":["model evaluation","data platforms","AI UX"]},
@@ -144,7 +144,7 @@
 ]},
 {"id":"design","name":"Design and UX","d127":"27","subcategories":[
  {"id":"des.product","name":"Product and UX design","soc":["15-1255"],"family":"Design & UX","aliases":["product designer","UX designer","UI/UX designer","interaction designer"],"signals":["Figma","prototyping","user flows","design systems"]},
- {"id":"des.research","name":"UX research","soc":["13-1161","19-3022"],"family":"Design & UX","aliases":["UX researcher","user researcher","design researcher"],"signals":["interviews","usability testing","synthesis"]},
+ {"id":"des.research","name":"UX research","soc":["13-1161","19-3022"],"family":"Design & UX","aliases":["UX researcher","user researcher","design researcher","user experience researcher","user experience research"],"signals":["interviews","usability testing","synthesis"]},
  {"id":"des.visual","name":"Visual and graphic design","soc":["27-1024"],"family":"Design & UX","aliases":["graphic designer","visual designer","brand designer"],"signals":["Adobe CC","typography","brand identity"]},
  {"id":"des.motion","name":"Motion and animation","soc":["27-1014"],"family":"Design & UX","aliases":["motion designer","animator","3D artist"],"signals":["After Effects","Cinema 4D / Blender"]},
  {"id":"des.industrial","name":"Industrial design","soc":["27-1021"],"family":"Design & UX","aliases":["industrial designer","product designer (physical)"],"signals":["sketching","CAD","materials / CMF"]},
@@ -152,9 +152,9 @@
  {"id":"des.general","name":"Design · general","soc":["15-1255","27-1024"],"family":"Design & UX","aliases":["designer"],"signals":[]}
 ]},
 {"id":"marketing","name":"Marketing","d127":"marketing","subcategories":[
- {"id":"mkt.performance","name":"Digital and performance marketing","soc":["13-1161"],"family":"Digital marketing","aliases":["performance marketing manager","paid media specialist","digital marketing manager","SEM specialist"],"signals":["Google Ads","paid social","attribution","CAC / ROAS"]},
+ {"id":"mkt.performance","name":"Digital and performance marketing","soc":["13-1161"],"family":"Digital marketing","aliases":["performance marketing manager","paid media specialist","digital marketing manager","SEM specialist","growth marketing manager"],"signals":["Google Ads","paid social","attribution","CAC / ROAS"]},
  {"id":"mkt.seo","name":"SEO","soc":["13-1161"],"family":"Digital marketing","aliases":["SEO specialist","SEO manager"],"signals":["technical SEO","keyword research","search console"]},
- {"id":"mkt.product-brand","name":"Product and brand marketing","soc":["11-2021","13-1161"],"family":"Brand & product marketing","aliases":["product marketing manager","PMM","brand manager"],"signals":["positioning","launches","messaging","competitive analysis"]},
+ {"id":"mkt.product-brand","name":"Product and brand marketing","soc":["11-2021","13-1161"],"family":"Brand & product marketing","aliases":["product marketing manager","PMM","brand manager","partner marketing manager"],"signals":["positioning","launches","messaging","competitive analysis"]},
  {"id":"mkt.content-lifecycle","name":"Content and lifecycle marketing","soc":["13-1161"],"family":"Content & lifecycle marketing","aliases":["content marketing manager","lifecycle marketing manager","email marketing manager","CRM marketing manager"],"signals":["email","segmentation","content strategy","HubSpot / Braze"]},
  {"id":"mkt.social","name":"Social media and community","soc":["13-1161","27-3031"],"family":"Content & lifecycle marketing","aliases":["social media manager","community manager"],"signals":["social channels","community programmes","creators"]},
  {"id":"mkt.ops-analytics","name":"Marketing operations and analytics","soc":["13-1161"],"family":"Digital marketing","aliases":["marketing operations manager","marketing analyst","marketing data analyst"],"signals":["marketing automation","dashboards","attribution models"]},
@@ -162,7 +162,7 @@
 ]},
 {"id":"sales-cs","name":"Sales and customer success","d127":"41","subcategories":[
  {"id":"sales.ae","name":"Account executive","soc":["41-3091","41-4011"],"family":"Sales","aliases":["account executive","AE","enterprise account executive"],"signals":["quota","pipeline","negotiation","Salesforce"]},
- {"id":"sales.sdr","name":"Sales development (SDR / BDR)","soc":["41-3091"],"family":"Sales","aliases":["SDR","BDR","sales development representative"],"signals":["outbound","prospecting","sequences"]},
+ {"id":"sales.sdr","name":"Sales development (SDR / BDR)","soc":["41-3091"],"family":"Sales","aliases":["SDR","BDR","sales development representative","business development representative","sales development rep"],"signals":["outbound","prospecting","sequences"]},
  {"id":"sales.solutions","name":"Solutions and sales engineering","soc":["41-9031"],"family":"Sales","aliases":["sales engineer","solutions engineer","pre-sales engineer","solutions consultant"],"signals":["demos","technical discovery","proofs of concept"]},
  {"id":"sales.cs","name":"Customer success","soc":["41-3091","43-4051"],"family":"Sales","aliases":["customer success manager","CSM","onboarding manager"],"signals":["retention","adoption","renewals"]},
  {"id":"sales.am","name":"Account management","soc":["41-3091"],"family":"Sales","aliases":["account manager","key account manager"],"signals":["expansion","relationship management"]},
@@ -175,7 +175,7 @@
  {"id":"biz.tax","name":"Tax","soc":["13-2011","13-2082"],"family":"Accounting & audit","aliases":["tax analyst","tax associate","tax accountant"],"signals":["tax compliance","provisions"]},
  {"id":"biz.fpa","name":"FP&A and corporate finance","soc":["13-2051","11-3031"],"family":"Finance & FP&A","aliases":["FP&A analyst","financial analyst","finance manager"],"signals":["forecasting","budgeting","financial modelling"]},
  {"id":"biz.investment","name":"Investment banking and investing","soc":["13-2051","41-3031"],"family":"Finance & FP&A","aliases":["investment banking analyst","equity research analyst","private equity associate","investment analyst"],"signals":["valuation","DCF","M&A","pitch books"]},
- {"id":"biz.risk","name":"Risk and financial compliance","soc":["13-2054","13-1041","13-2041"],"family":"Finance & FP&A","aliases":["risk analyst","credit analyst","AML analyst","compliance analyst"],"signals":["credit risk","AML / KYC","regulatory reporting"]},
+ {"id":"biz.risk","name":"Risk and financial compliance","soc":["13-2054","13-1041","13-2041"],"family":"Finance & FP&A","aliases":["risk analyst","credit analyst","AML analyst","compliance analyst","underwriting analyst","underwriter"],"signals":["credit risk","AML / KYC","regulatory reporting"]},
  {"id":"biz.actuarial","name":"Actuarial","soc":["15-2011"],"family":"NEW: Quant","aliases":["actuary","actuarial analyst"],"signals":["SOA / CAS exams","pricing","reserving"]},
  {"id":"biz.consulting","name":"Consulting and strategy","soc":["13-1111"],"family":"Consulting & strategy","aliases":["management consultant","strategy analyst","business consultant","corporate strategy"],"signals":["case work","market sizing","executive presentations"]},
  {"id":"biz.general","name":"Business and finance · general","soc":["13-1111","13-2051"],"family":"Business analysis","aliases":["analyst","associate"],"signals":[]}
@@ -189,15 +189,15 @@
  {"id":"ops.general","name":"Operations · general","soc":["11-1021"],"family":"Operations & supply chain","aliases":["operations manager","operations specialist"],"signals":[]}
 ]},
 {"id":"people-hr","name":"People and HR","d127":"13","subcategories":[
- {"id":"hr.recruiting","name":"Recruiting and talent acquisition","soc":["13-1071"],"family":"People & HR","aliases":["recruiter","technical recruiter","talent acquisition partner","sourcer"],"signals":["sourcing","ATS","interview process"]},
- {"id":"hr.hrbp","name":"HR business partner","soc":["13-1071","11-3121"],"family":"People & HR","aliases":["HRBP","HR business partner","people partner"],"signals":["employee relations","org design","performance"]},
+ {"id":"hr.recruiting","name":"Recruiting and talent acquisition","soc":["13-1071"],"family":"People & HR","aliases":["recruiter","technical recruiter","talent acquisition partner","sourcer","recruiting coordinator","director of recruitment","recruitment coordinator"],"signals":["sourcing","ATS","interview process"]},
+ {"id":"hr.hrbp","name":"HR business partner","soc":["13-1071","11-3121"],"family":"People & HR","aliases":["HRBP","HR business partner","people partner","employee relations business partner"],"signals":["employee relations","org design","performance"]},
  {"id":"hr.comp-benefits","name":"Compensation and benefits","soc":["13-1141"],"family":"People & HR","aliases":["compensation analyst","benefits specialist","total rewards"],"signals":["pay bands","benchmarking","benefits administration"]},
  {"id":"hr.ld","name":"Learning and development","soc":["13-1151"],"family":"People & HR","aliases":["L&D specialist","training specialist","instructional designer (corporate)"],"signals":["programme design","facilitation","LMS"]},
  {"id":"hr.analytics-ops","name":"People operations and analytics","soc":["13-1071"],"family":"People & HR","aliases":["people operations specialist","HRIS analyst","people analytics analyst"],"signals":["HRIS (Workday)","reporting","onboarding"]},
  {"id":"hr.general","name":"People and HR · general","soc":["13-1071","11-3121"],"family":"People & HR","aliases":["HR generalist","HR manager"],"signals":[]}
 ]},
 {"id":"legal","name":"Legal and compliance","d127":"23","subcategories":[
- {"id":"law.corporate","name":"Corporate and commercial","soc":["23-1011"],"family":"Legal practice","aliases":["corporate counsel","commercial counsel","corporate associate"],"signals":["contracts","M&A","governance"]},
+ {"id":"law.corporate","name":"Corporate and commercial","soc":["23-1011"],"family":"Legal practice","aliases":["corporate counsel","commercial counsel","corporate associate","product counsel","legal counsel"],"signals":["contracts","M&A","governance"]},
  {"id":"law.ip","name":"Intellectual property","soc":["23-1011"],"family":"Legal practice","aliases":["patent attorney","IP counsel","patent agent"],"signals":["patents","trademarks","licensing"]},
  {"id":"law.litigation","name":"Litigation","soc":["23-1011"],"family":"Legal practice","aliases":["litigation associate","litigator"],"signals":["discovery","motions","trial"]},
  {"id":"law.privacy","name":"Privacy and data protection","soc":["23-1011","13-1041"],"family":"Legal practice","aliases":["privacy counsel","privacy analyst","data protection officer"],"signals":["GDPR / CCPA","privacy programmes","DPIAs"]},
