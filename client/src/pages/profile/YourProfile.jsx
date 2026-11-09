@@ -537,6 +537,9 @@ export default function YourProfile({ behind = null }) {
   const replaceRef = useRef(null);
   const [replacing, setReplacing] = useState(false);
   const [choice, setChoice] = useState(null);   // D186-3: { text, name, preview } — a résumé from another family
+  const [replaceErr, setReplaceErr] = useState("");
+  const replaceNoteRef = useRef(null);
+  const showNote = () => setTimeout(() => replaceNoteRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }), 60);
   const replace = () => {
     // ⭐ D186-3/-7: with no job profile yet, the upload MAKES one (the pipeline: placement, name, titles, sentence, picks).
     if (replaceRef.current) { replaceRef.current.click(); return; }
@@ -549,7 +552,7 @@ export default function YourProfile({ behind = null }) {
   };
   const replaceWith = async (file) => {
     if (!file) return;
-    setReplacing(true); setErr("");
+    setReplacing(true); setErr(""); setReplaceErr(""); setChoice(null);
     try {
       const form = new FormData(); form.append("file", file);
       const parsed = await api("/api/parse-pdf", { method: "POST", body: form });
@@ -560,22 +563,22 @@ export default function YourProfile({ behind = null }) {
       } else {
         // ⭐ D186-3: a résumé from ANOTHER family asks first — its own job profile (the default) or a replace.
         const preview = await api("/api/domain-profiles/resume-preview", { method: "POST", body: JSON.stringify({ content: text }) }).catch(() => null);
-        if (preview && !preview.sameFamily && !preview.sample) { setChoice({ text, name: file.name, preview }); return; }
+        if (preview && !preview.sameFamily && !preview.sample) { setChoice({ text, name: file.name, preview }); showNote(); return; }
         await replaceInto(page.activeProfileId, text, file.name);
       }
       window.dispatchEvent(new Event(RESUME_REPLACED_EVENT));
-    } catch (e) { setErr(e.message || "The résumé could not be replaced."); }
+    } catch (e) { setReplaceErr(e.message || "The résumé could not be replaced."); showNote(); }
     finally { setReplacing(false); if (replaceRef.current) replaceRef.current.value = ""; }
   };
   const chooseNew = async () => {
     setReplacing(true);
     try { await api("/api/domain-profiles/from-resume", { method: "POST", body: JSON.stringify({ content: choice.text, name: choice.name, asNew: true }) }); setChoice(null); window.dispatchEvent(new Event(RESUME_REPLACED_EVENT)); }
-    catch (e) { setErr(e.message || "The job profile could not be made."); } finally { setReplacing(false); }
+    catch (e) { setReplaceErr(e.message || "The job profile could not be made."); showNote(); } finally { setReplacing(false); }
   };
   const chooseReplace = async () => {
     setReplacing(true);
     try { await replaceInto(page.activeProfileId, choice.text, choice.name); setChoice(null); window.dispatchEvent(new Event(RESUME_REPLACED_EVENT)); }
-    catch (e) { setErr(e.message || "The résumé could not be replaced."); } finally { setReplacing(false); }
+    catch (e) { setReplaceErr(e.message || "The résumé could not be replaced."); showNote(); } finally { setReplacing(false); }
   };
 
   if (!page) return <p className="yp__muted">{err || "Loading your profile…"}</p>;
@@ -588,7 +591,6 @@ export default function YourProfile({ behind = null }) {
       <WhoCanSee vis={vis} onSet={set} />
       {err && <p role="alert" className="yp__err">{err}</p>}
       {replaced && <ReplaceWhatChanged r={replaced} onKeep={keepChange} onUndo={undoChange} busy={changeBusy} onPage={setPage} />}
-      {choice && <SecondFamilyChoice preview={choice.preview} busy={replacing} onNew={chooseNew} onReplace={chooseReplace} onCancel={() => { setChoice(null); setReplacing(false); }} />}
       {/* ⭐ D186-2: only what a résumé can't tell us — once, each skippable. */}
       {page.activeProfileId && <FourThingsCard onChanged={load} />}
       <Header page={page} avatarUrl={avatarUrl} editing={editing} onEdit={() => setEditing(x => !x)} onSet={set}
@@ -599,6 +601,13 @@ export default function YourProfile({ behind = null }) {
           <input ref={replaceRef} type="file" accept="application/pdf,.pdf" hidden data-replace-file=""
             onChange={(e) => replaceWith(e.target.files?.[0])} />
           {replacing && <p className="yp__muted" role="status" data-replacing="">Reading your new résumé and re-filling every section…</p>}
+          {/* ⛔ 45s (owner 11-09: "just tried replace resume and it failed, ntg happened"): the choice and the upload's error were
+              drawn at the TOP of the page, above the header, while the Replace control sits here — so a person who pressed it
+              saw nothing. They are drawn here now, and scrolled into view. */}
+          <div ref={replaceNoteRef} data-replace-note="">
+            {replaceErr && <p role="alert" className="yp__err" data-replace-error="">{replaceErr}</p>}
+            {choice && <SecondFamilyChoice preview={choice.preview} busy={replacing} onNew={chooseNew} onReplace={chooseReplace} onCancel={() => { setChoice(null); setReplacing(false); }} />}
+          </div>
           <ProfileSections key={`page-${round}`} theme={theme} highlight={page.highlight || []} onChanged={load}
             parts={["summary", "experience", "projects", "education", "links"]}
             titles={{ summary: "About", experience: "Experience" }} eyeFor={eyeFor}
