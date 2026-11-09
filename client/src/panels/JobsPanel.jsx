@@ -1818,10 +1818,13 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // through the same setters the sentence's words use. Once per placement, so the person's own edits win until the next.
     const next = sentenceFromResume({ category: p.placement_category, subcategory: p.placement_subcategory, level: p.placement_level,
       location: p.resume_location || null });
-    const mine = { key: String(p.id), next };
+    // ⭐ D186-5: the placement's "also fits" rides with the role (searched beside it); any role the person picks drops it.
+    let also = ""; try { also = (typeof p.placement_also === "string" ? JSON.parse(p.placement_also) : p.placement_also)?.subcategory || ""; } catch { also = ""; }
+    if (!next.subcategory) also = "";
+    const mine = { key: String(p.id), next: { ...next, also } };
     placementSentenceRef.current = mine;
     requestAnimationFrame(() => { if (placementSentenceRef.current === mine) placementSentenceRef.current = null; });   // only a restore from this same moment
-    setTaxRole({ category: next.category, subcategory: next.subcategory });
+    setTaxRole({ category: next.category, subcategory: next.subcategory, also });
     setExperienceLevels(next.experience_levels);
     setWorkModels(next.work_models);
     setPlaces(next.places);
@@ -2081,7 +2084,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     const placed = placementSentenceRef.current;
     if (placed && profileKey != null && placed.key === String(profileKey)) {
       placementSentenceRef.current = null;
-      setTaxRole({ category: placed.next.category, subcategory: placed.next.subcategory });
+      setTaxRole({ category: placed.next.category, subcategory: placed.next.subcategory, also: placed.next.also || "" });
       setExperienceLevels(placed.next.experience_levels);
       setWorkModels(placed.next.work_models);
       setPlaces(placed.next.places);
@@ -2545,6 +2548,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // D30: the domain and location dials, by the contract's param names (D29's tag dimensions).
     if (jobFunctions.length)   p.set(JOB_FUNCTIONS.param, jobFunctions.join(","));
     if (taxRole.subcategory)   p.set("subcategory", taxRole.subcategory);   // D179 (a)
+    if (taxRole.subcategory && taxRole.also) p.set("also_subcategory", taxRole.also);   // D186-5: the résumé's "also fits"
     else if (taxRole.category) p.set("category", taxRole.category);
     if (techFilter)            p.set("tech", techFilter);   // D179 (a)
     if (places.length)         p.set(PLACES.param,      places.join(","));
@@ -3297,7 +3301,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // ⛔ 45r: D179 (a)'s role and technology (45l, bb13d510) were saved and never restored — a saved search came back
     // wider. The subcategory is enough for the board (buildParams sends it alone); a category-only role shares the
     // ?category name with the older category filter and is restored through setCatFilter above, as before.
-    setTaxRole({ category: "", subcategory: p.get("subcategory") || "" });
+    setTaxRole({ category: "", subcategory: p.get("subcategory") || "", also: p.get("also_subcategory") || "" });   // D186-5: + also fits
     setTechFilter(p.get("tech") || "");
     setCurrentPage(1);
   }, [activeDomainProfile]);

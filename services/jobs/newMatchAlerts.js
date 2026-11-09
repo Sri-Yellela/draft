@@ -78,9 +78,12 @@ export function setMatchAlertSettings(db, userId, { mode, hour, tzOffsetMin } = 
 
 // ── who, when ─────────────────────────────────────────────────────────────────────────────────
 
+// ⭐ D186-5 (45s): the placement's "also fits" subcategory is searched beside the primary (the primary's own counts first).
+const alsoOf = (p) => { try { const a = typeof p.placement_also === "string" ? JSON.parse(p.placement_also) : p.placement_also; return a?.subcategory && !/\.general$/.test(a.subcategory) ? a.subcategory : null; } catch { return null; } };
+
 /** The people with a placed active job profile and a base résumé, and at least one channel on for new matches. */
 export function alertAudience(db) {
-  const rows = safe(() => db.prepare(`SELECT dp.user_id, dp.id AS profile_id, dp.placement_subcategory, dp.placement_level, dp.placed_at,
+  const rows = safe(() => db.prepare(`SELECT dp.user_id, dp.id AS profile_id, dp.placement_subcategory, dp.placement_level, dp.placed_at, dp.placement_also,
         br.content, br.updated_at AS resume_at, s.mode, s.hour, s.tz_offset_min, s.last_digest_day, s.cursor_at,
         up.sponsorship_need, up.requires_sponsorship
       FROM domain_profiles dp
@@ -136,12 +139,12 @@ export async function topTierCandidates(read, person, { skills, nowSec, limit })
         CASE WHEN ${sponsorSql} THEN 1 ELSE 0 END AS sponsor
       FROM job_taxonomy jx
       JOIN scraped_jobs sj ON sj.job_id = jx.job_id
-     WHERE jx.subcategory = ? AND sj.is_active = 1 AND sj.duplicate_of IS NULL AND sj.retired_at IS NULL
+     WHERE jx.subcategory IN (?, ?) AND sj.is_active = 1 AND sj.duplicate_of IS NULL AND sj.retired_at IS NULL
        AND (sj.ghost_level IS NULL OR sj.ghost_level < 2)
        AND sj.discovered_at > ?
        AND NOT EXISTS (SELECT 1 FROM match_alerts ma WHERE ma.user_id = ? AND ma.job_id = sj.job_id)
      ORDER BY ${sponsorFirst ? "sponsor DESC," : ""} matched DESC, sj.discovered_at DESC
-     LIMIT 200`, [...skills, person.placement_subcategory, since, person.user_id]);
+     LIMIT 200`, [...skills, person.placement_subcategory, alsoOf(person) || person.placement_subcategory, since, person.user_id]);
   return (rows || []).filter(r => Number(r.matched) >= min).slice(0, limit);
 }
 

@@ -18,7 +18,7 @@
 //   fourThings / setFourThing        the card (D186-2)
 //   isTestAccount(db, userId)        D186-6: only test accounts may be filled from a fictional sample résumé
 import { taxonomy } from "./jobs/taxonomyClassify.js";
-import { storedPlacement } from "./placement.js";
+import { storedPlacement, ownRoles } from "./placement.js";
 import { yearsOfWork } from "./resumeOnboarding.js";
 
 const safe = (fn, d) => { try { return fn(); } catch { return d; } };
@@ -37,7 +37,10 @@ export const isTestAccount = (db, userId) => safe(() => db.prepare(`SELECT test_
 /** What a résumé tells us beyond A33's prefill. Values only where the résumé states them. */
 export function resumeExtras(db, userId, text) {
   const out = {};
-  const cur = safe(() => db.prepare(`SELECT company, title FROM profile_experience WHERE user_id = ? AND is_current = 1 ORDER BY position, id LIMIT 1`).get(userId), null);
+  // the résumé's own "Title — Company" line marked Present (the profile's experience parse can swap the two on some layouts),
+  // else the profile's current experience row
+  const own = safe(() => ownRoles(text).find(r => r.current), null);
+  const cur = own || safe(() => db.prepare(`SELECT company, title FROM profile_experience WHERE user_id = ? AND is_current = 1 ORDER BY position, id LIMIT 1`).get(userId), null);
   if (cur?.title) out.current_job_title = String(cur.title).trim();
   if (cur?.company) out.current_company = String(cur.company).trim();
   const years = safe(() => yearsOfWork(text), null);
@@ -123,25 +126,31 @@ export function nameAndTitlesFromPlacement(db, profileId, { userId, previousName
 }
 
 // ── D186-2 · the four things a résumé can't tell us ──────────────────────────────────────────────────────────────
-const skipped = (db, userId) => safe(() => JSON.parse(db.prepare(`SELECT four_things_skipped_json FROM user_profile WHERE user_id = ?`).pluck().get(userId) || "[]"), []);
+// four_things_skipped_json = { skipped: [key], answered: [key] } — "answered" because willing_to_relocate defaults to 0, so a
+// stored 0 can't tell "never asked" from "said no".
+const asked = (db, userId) => { const v = safe(() => JSON.parse(db.prepare(`SELECT four_things_skipped_json FROM user_profile WHERE user_id = ?`).pluck().get(userId) || "{}"), {});
+  return Array.isArray(v) ? { skipped: v, answered: [] } : { skipped: v.skipped || [], answered: v.answered || [] }; };
+const saveAsked = (db, userId, a) => db.prepare(`UPDATE user_profile SET four_things_skipped_json = ? WHERE user_id = ?`).run(JSON.stringify(a), userId);
 /** { items: [{ key, label, why, set, skipped }], open } — open = any not set and not skipped. */
 export function fourThings(db, userId) {
   const row = safe(() => db.prepare(`SELECT * FROM user_profile WHERE user_id = ?`).get(userId), null) || {};
-  const sk = new Set(skipped(db, userId));
-  const items = FOUR_THINGS.map(t => ({ ...t, set: row[t.key] != null && String(row[t.key]).trim() !== "", skipped: sk.has(t.key), value: row[t.key] ?? null }));
+  const a = asked(db, userId), sk = new Set(a.skipped), done = new Set(a.answered);
+  const isSet = (t) => t.key === "willing_to_relocate" ? done.has(t.key) || row[t.key] === 1 : row[t.key] != null && String(row[t.key]).trim() !== "";
+  const items = FOUR_THINGS.map(t => ({ ...t, set: isSet(t), skipped: sk.has(t.key), value: row[t.key] ?? null }));
   return { items, open: items.some(i => !i.set && !i.skipped) };
 }
 /** Answer one ({ key, value }) or skip it ({ key, skip: true }). The person's own words — saved as given. */
 export function setFourThing(db, userId, { key, value = null, skip = false } = {}) {
   if (!FOUR_THINGS.some(t => t.key === key)) throw Object.assign(new Error("Not one of the four."), { status: 400, code: "bad_key" });
   db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
+  const a = asked(db, userId);
   if (skip) {
-    const next = [...new Set([...skipped(db, userId), key])];
-    db.prepare(`UPDATE user_profile SET four_things_skipped_json = ? WHERE user_id = ?`).run(JSON.stringify(next), userId);
+    saveAsked(db, userId, { ...a, skipped: [...new Set([...a.skipped, key])] });
   } else {
     const v = key === "willing_to_relocate" ? (value === true || value === "yes" || value === 1 || value === "1" ? 1 : 0) : String(value ?? "").trim().slice(0, 120);
     if (v === "") throw Object.assign(new Error("Type an answer, or skip it."), { status: 400, code: "empty" });
     db.prepare(`UPDATE user_profile SET ${key} = ? WHERE user_id = ?`).run(v, userId);
+    saveAsked(db, userId, { skipped: a.skipped.filter(k => k !== key), answered: [...new Set([...a.answered, key])] });
     clearFilled(db, userId, [key]);
   }
   return fourThings(db, userId);
