@@ -1,0 +1,8 @@
+/* ⭐ D180 P2 (45o) · Send a job — the picker. Tokens only; depth boxes, never capsules (D60). */
+.sjp { margin-top: 10px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); max-width: 420px; }
+.sjp__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.sjp__close { background: none; border: 0; color: var(--c-ink-muted); font: inherit; font-size: 13px; cursor: pointer; }
+.sjp__quiet { color: var(--c-ink-muted); font-size: 13px; }
+.sjp__list { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; font-size: 14px; }
+.sjp__note { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); font: inherit; margin-bottom: 8px; }
+.sjp__row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

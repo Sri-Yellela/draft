@@ -17,3 +17,31 @@
 .net__note { width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); font: inherit; margin: 6px 0 10px; }
 .net__row { display: flex; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 600px) { .net { padding: 20px 16px 48px; } .net__sec { padding: 14px; } }
+/* ⭐ D180 P2 (45o): the tabs, the conversation list, a conversation, a job card, the report box. */
+.net__tabs { display: flex; gap: 6px; margin: 14px 0 4px; }
+.net__tabs button { font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink-muted); cursor: pointer; }
+.net__tabs button[aria-selected="true"] { color: var(--c-ink); border-color: var(--c-accent); font-weight: 600; }
+.net__back { background: none; border: 0; color: var(--c-accent-ink); font: inherit; font-size: 14px; cursor: pointer; padding: 0; }
+.msg-row { width: 100%; display: flex; gap: 12px; align-items: center; text-align: left; background: none; border: 0; padding: 6px 0; font: inherit; color: var(--c-ink); cursor: pointer; }
+.msg-row__meta { flex: none; font-size: 12px; color: var(--c-ink-muted); display: inline-flex; gap: 6px; align-items: center; }
+.msg-row__n { min-width: 20px; height: 20px; border-radius: 6px; background: var(--c-accent); color: var(--c-on-accent, var(--c-surface-solid)); font-size: 11px; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; }
+.msg-thread { background: var(--c-surface-solid); border: 1px solid var(--c-border); border-radius: 16px; padding: 16px 20px; margin: 16px 0; }
+.msg-thread__head { display: flex; align-items: center; gap: 12px; }
+.msg-thread__who { flex: 1; font-weight: 600; color: var(--c-ink); text-decoration: none; }
+.msg-thread__menu { position: relative; }
+.msg-menu { position: absolute; right: 0; top: 110%; z-index: 5; display: flex; flex-direction: column; min-width: 200px; background: var(--c-surface-solid); border: 1px solid var(--c-border); border-radius: 12px; padding: 6px; }
+.msg-menu button { text-align: left; background: none; border: 0; padding: 8px 10px; border-radius: 8px; font: inherit; color: var(--c-ink); cursor: pointer; }
+.msg-menu button:hover { background: var(--c-hover); }
+.msg-req { border: 1px dashed var(--c-border); border-radius: 12px; padding: 10px 12px; margin: 10px 0; font-size: 14px; }
+.msg-list { list-style: none; margin: 10px 0; padding: 0; display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; }
+.msg { align-self: flex-start; max-width: 80%; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 12px; padding: 8px 12px; }
+.msg--mine { align-self: flex-end; border-color: var(--c-accent); }
+.msg__text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+.msg__meta { display: block; font-size: 11px; color: var(--c-ink-faint); margin-top: 4px; }
+.msg__act { background: none; border: 0; padding: 0; font: inherit; color: var(--c-ink-faint); cursor: pointer; text-decoration: underline; }
+.msg-job { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); text-decoration: none; font-size: 13px; }
+.msg-job__go { color: var(--c-accent-ink); }
+.msg-job--gone { color: var(--c-ink-muted); }
+.msg-report { margin: 8px 0; font-size: 14px; display: flex; flex-direction: column; gap: 8px; }
+.msg-compose { display: flex; gap: 8px; align-items: flex-end; }
+.msg-compose textarea { flex: 1; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); font: inherit; resize: vertical; }

@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import DepthButton from "../../components/DepthButton.jsx";
+import MessagesPane from "./MessagesPane.jsx";   // D180 P2
 import "./NetworkPage.css";
 
 function Person({ p, children }) {
@@ -32,6 +33,18 @@ export default function NetworkPage() {
   const [said, setSaid] = useState("");
   const [asking, setAsking] = useState(null);   // { handle, relation } from ?connect=
   const [note, setNote] = useState("");
+  // ⭐ D180 P2 (45o): People · Messages (?tab=messages; ?thread=<id> opens one); Message a connection from People.
+  const params = new URLSearchParams(location.search);
+  const tab = params.get("tab") === "messages" ? "messages" : "people";
+  const setTab = (t) => navigate(t === "messages" ? "/app/network?tab=messages" : "/app/network");
+  const [writing, setWriting] = useState(null);   // a connection's handle
+  const [draft, setDraft] = useState("");
+  const writeTo = async (handle) => {
+    try {
+      const r = await api("/api/network/messages", { method: "POST", body: JSON.stringify({ to: handle, text: draft }) });
+      setWriting(null); setDraft(""); navigate(`/app/network?tab=messages&thread=${r.threadId}`);
+    } catch (e) { setSaid(e.message || "The message didn't go through."); }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -75,6 +88,12 @@ export default function NetworkPage() {
         <p className="net__quiet">People you know on draft. A request stays a request until they accept; you can block anyone, any time.</p>
       </header>
       {said && <p className="net__said" role="status">{said}</p>}
+      <div className="net__tabs" role="tablist" aria-label="Network" data-net-tabs="">
+        <button type="button" role="tab" aria-selected={tab === "people"} onClick={() => setTab("people")}>People</button>
+        <button type="button" role="tab" aria-selected={tab === "messages"} onClick={() => setTab("messages")}>Messages</button>
+      </div>
+      {tab === "messages" && <MessagesPane key={params.get("thread") || "list"} initialThread={params.get("thread") ? Number(params.get("thread")) : null} />}
+      {tab === "people" && <>
 
       {asking && (
         <section className="net__sec net__ask" data-net-ask={asking.handle}>
@@ -109,6 +128,7 @@ export default function NetworkPage() {
         {net.connections.length === 0 ? <p className="net__quiet">No connections yet. People you may know are below, and anyone's public page has Connect.</p> : (
           <ul className="net__list">{net.connections.map(p => (
             <Person key={p.handle} p={p}>
+              <DepthButton primary onClick={() => { setWriting(p.handle); setDraft(""); }}>Message</DepthButton>
               <DepthButton onClick={() => act(p.handle, "remove", "Removed.")}>Remove</DepthButton>
               <DepthButton onClick={() => act(p.handle, "block", "Blocked.")}>Block</DepthButton>
             </Person>))}</ul>
@@ -133,6 +153,13 @@ export default function NetworkPage() {
         )}
         <p className="net__quiet">Suggestions come only from public pages that share your workplace or school — never from an address book.</p>
       </section>
+      {writing && (
+        <section className="net__sec" data-net-writing={writing}>
+          <h2>Message {writing}</h2>
+          <textarea className="net__note" rows={3} maxLength={4000} value={draft} onChange={e => setDraft(e.target.value)} placeholder="Write a message" aria-label="Write a message" />
+          <div className="net__row"><DepthButton primary onClick={() => writeTo(writing)}>Send</DepthButton><DepthButton onClick={() => setWriting(null)}>Cancel</DepthButton></div>
+        </section>
+      )}
 
       {net.blocked.length > 0 && (
         <section className="net__sec" data-net-blocked="">
@@ -141,6 +168,7 @@ export default function NetworkPage() {
             <Person key={p.handle} p={p}><DepthButton onClick={() => act(p.handle, "unblock", "Unblocked.")}>Unblock</DepthButton></Person>))}</ul>
         </section>
       )}
+      </>}
     </main>
   );
 }

@@ -31,7 +31,12 @@ export default function networkRoutes(app, db, { requireAuth, requireAdmin, box 
   const idOf = (db2, handle) => db2.prepare(`SELECT user_id FROM proof_pages WHERE handle = ?`).pluck().get(String(handle || "").toLowerCase()) ?? null;
 
   // The dock asks whether to draw Network at all — the one network route that answers while the switch is off.
-  app.get("/api/network/status", requireAuth, (_req, res) => { res.set("Cache-Control", "private, no-store").json({ enabled: networkEnabled(db) }); });
+  app.get("/api/network/status", requireAuth, (req, res) => {
+    const enabled = networkEnabled(db);
+    let unread = 0;
+    if (enabled && box) { try { unread = myThreads(db, box, req.user.id).unread; } catch { unread = 0; } }   // D180 P2: the dock's badge
+    res.set("Cache-Control", "private, no-store").json({ enabled, unread });
+  });
   app.get("/api/network", requireAuth, gate, (req, res) => {
     try { res.set("Cache-Control", "private, no-store").json(myNetwork(db, req.user.id)); } catch (e) { fail(res, e); }
   });
