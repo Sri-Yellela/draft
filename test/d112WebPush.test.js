@@ -129,7 +129,8 @@ test("D112 · nothing offered without the env — unset, half-set, mismatched or
     const base = `http://127.0.0.1:${off.address().port}`;
     const st = await (await fetch(`${base}/api/notify/settings`)).json();
     assert.deepEqual([st.push.offered, st.push.publicKey, st.email.offered], [false, null, false]);
-    assert.equal(st.events.length, Object.keys(NOTIFY_EVENTS).length);
+    // 45s (on purpose): a Network event (messages_unread) is listed only while the network is on — off here.
+    assert.equal(st.events.length, Object.values(NOTIFY_EVENTS).filter(e => !e.network).length);
     const sub = await fetch(`${base}/api/push/subscribe`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(testBrowser().sub) });
     assert.equal(sub.status, 404);
     assert.equal(db.prepare("SELECT COUNT(*) FROM push_subscriptions").pluck().get(), 0);
