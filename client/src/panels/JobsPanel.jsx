@@ -3111,13 +3111,26 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
 
   // Multi-session sync — reflect changes from other tabs/devices without full reload
   const boardScoredTimerRef = useRef(null);
+  // ⭐ 45s: an EMPTY page whose postings are still being matched re-asks every 5 s (≤ 4 minutes) — the live event is the fast
+  // path; this is the one that never misses.
+  const matchingPollRef = useRef({ started: 0 });
+  useEffect(() => {
+    if (!(jobs.length === 0 && beingMatched > 0 && currentPage <= 1)) { matchingPollRef.current.started = 0; return undefined; }
+    if (!matchingPollRef.current.started) matchingPollRef.current.started = Date.now();
+    if (Date.now() - matchingPollRef.current.started > 4 * 60 * 1000) return undefined;
+    const t = setTimeout(() => { fetchJobsRef.current?.(1).catch(() => {}); }, 5000);
+    return () => clearTimeout(t);
+  }, [jobs.length, beingMatched, currentPage]);
   useEffect(() => () => clearTimeout(boardScoredTimerRef.current), []);
   useSyncEvents({
     // ⭐ A126 (7): the match queue scored a chunk of this board's held-back postings — refetch the view on screen so they
     // land in the current sort. Debounced (one refresh per 4 s at most); page 1 only, so a person paging is not moved.
+    // ⛔ 45s (owner 11-09: "its not matching me any jobs for construction pm"): a THROTTLE now, not a debounce — the queue
+    // sends one of these every ~4 s while it scores, and resetting the timer on each one put the refresh off until the
+    // whole queue had drained, so a board held back after a new résumé stayed empty for minutes.
     board_scored: () => {
-      clearTimeout(boardScoredTimerRef.current);
-      boardScoredTimerRef.current = setTimeout(() => { if (currentPage <= 1) fetchJobsRef.current?.(1).catch(() => {}); }, 4000);
+      if (boardScoredTimerRef.current) return;   // one refresh already on its way
+      boardScoredTimerRef.current = setTimeout(() => { boardScoredTimerRef.current = null; if (currentPage <= 1) fetchJobsRef.current?.(1).catch(() => {}); }, 4000);
     },
     job_flag: ({ jobId, starred, disliked }) => {
       setJobs(prev => prev.map(j =>
@@ -4623,7 +4636,13 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
         // D45: the card's own geometry from the first frame, until this view answers.
         <JobBubbleRows jobs={SKELETON_CARDS}>{(_, i) => <JobBubbleSkeleton key={i} />}</JobBubbleRows>
       ) : shouldShowEmptyState ? (
-        pagingProblem
+        // ⭐ 45s: held back because they are being matched — never "nothing matches your filters" (they DO match).
+        beingMatched > 0 ? (
+          <div data-matching-empty="" style={{ padding:"28px 6px", color:theme.textMuted, fontSize:14, lineHeight:1.5 }}>
+            <b style={{ color:theme.text }}>Matching {beingMatched.toLocaleString()}{beingMatchedMore ? "+" : ""} {beingMatched === 1 && !beingMatchedMore ? "job" : "jobs"} to your résumé…</b>
+            <div>They appear here as each one is scored — usually within a minute of a new résumé.</div>
+          </div>
+        ) : pagingProblem
           ? <PagingEmptyState theme={theme} reason={pagingProblem} onFirstPage={() => goPage(1)}/>
           : emptyBecauseNoPool
           ? <NoPoolEmptyState theme={theme}/>
