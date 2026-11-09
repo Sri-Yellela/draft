@@ -16,6 +16,8 @@ import { setSetting } from "../services/appSettings.js";
 import { auditActorColumns } from "../services/actor.js";
 import { sendMessage, myThreads, readThread, answerRequest, hideMessage, muteThread, report, reportQueue, resolveReport }
   from "../services/network/messages.js";   // D180 P2
+import { myFeed, createPost, setHelpful, listComments, addComment, removeOwn, sharePrefs, setSharePref } from "../services/network/feed.js";   // D180 P3
+import { connectionsAt, referralTemplate } from "../services/network/referrals.js";   // D180 P4
 
 const ACTIONS = new Set(["accept", "decline", "withdraw", "remove", "block", "unblock"]);
 
@@ -91,6 +93,52 @@ export default function networkRoutes(app, db, { requireAuth, requireAdmin, box 
   app.post("/api/network/report", requireAuth, gate, (req, res) => {
     try { res.json(report(db, req.user.id, req.body || {})); } catch (e) { fail(res, e); }
   });
+  // ⭐ D180 P3 (45r) · the feed — connections only, chronological, helpful + comments, proof moments only as opted in.
+  // GET  /api/network/feed?before=<id>            my posts and my connections', newest first
+  // POST /api/network/feed                        { text?, link?, jobId? }
+  // POST /api/network/feed/:id/helpful            { on }
+  // GET  /api/network/feed/:id/comments           POST { text }
+  // POST /api/network/feed/:kind/:id/remove       kind = post | comment — the author's own
+  // GET  /api/network/share                       PUT { key, on } — What you share (every kind OFF until turned on)
+  const noStore = (res) => res.set("Cache-Control", "private, no-store");
+  app.get("/api/network/feed", requireAuth, gate, (req, res) => {
+    try { noStore(res).json(myFeed(db, req.user.id, { before: req.query?.before ?? null })); } catch (e) { fail(res, e); }
+  });
+  app.post("/api/network/feed", requireAuth, gate, (req, res) => {
+    try { res.json(createPost(db, req.user.id, { text: req.body?.text ?? null, link: req.body?.link ?? null, jobId: req.body?.jobId ?? null })); } catch (e) { fail(res, e); }
+  });
+  app.post("/api/network/feed/:id/helpful", requireAuth, gate, (req, res) => {
+    try { res.json(setHelpful(db, req.user.id, req.params.id, req.body?.on !== false)); } catch (e) { fail(res, e); }
+  });
+  app.get("/api/network/feed/:id/comments", requireAuth, gate, (req, res) => {
+    try { noStore(res).json({ comments: listComments(db, req.user.id, req.params.id) }); } catch (e) { fail(res, e); }
+  });
+  app.post("/api/network/feed/:id/comments", requireAuth, gate, (req, res) => {
+    try { res.json({ comments: addComment(db, req.user.id, req.params.id, req.body?.text) }); } catch (e) { fail(res, e); }
+  });
+  app.post("/api/network/feed/:kind/:id/remove", requireAuth, gate, (req, res) => {
+    try { res.json(removeOwn(db, req.user.id, req.params.kind, req.params.id)); } catch (e) { fail(res, e); }
+  });
+  app.get("/api/network/share", requireAuth, gate, (req, res) => {
+    try { noStore(res).json(sharePrefs(db, req.user.id)); } catch (e) { fail(res, e); }
+  });
+  app.put("/api/network/share", requireAuth, gate, (req, res) => {
+    try { res.json(setSharePref(db, req.user.id, String(req.body?.key || ""), req.body?.on === true)); } catch (e) { fail(res, e); }
+  });
+
+  // ⭐ D180 P4 (45r) · connections who show they work at a company → Ask for a referral (a template the person edits).
+  // GET /api/network/at-company?name=<company>&job=<board id>   { count, people: [{ handle, name, title, openToReferrals, template }] }
+  app.get("/api/network/at-company", requireAuth, gate, (req, res) => {
+    try {
+      const company = String(req.query?.name || "").slice(0, 200);
+      const jobId = Number(req.query?.job) || null;
+      const jobTitle = jobId ? db.prepare(`SELECT title FROM scraped_jobs WHERE id = ?`).pluck().get(jobId) || null : null;
+      const myName = db.prepare(`SELECT name FROM people_index WHERE user_id = ?`).pluck().get(req.user.id) || null;
+      const out = connectionsAt(db, req.user.id, company);
+      noStore(res).json({ ...out, people: out.people.map(p => ({ ...p, template: referralTemplate({ name: p.name, company, jobTitle, myName }) })) });
+    } catch (e) { fail(res, e); }
+  });
+
   // The moderation queue (Admin). Reading a REPORTED message is the one read of a message anyone but its two people makes.
   app.get("/api/admin/network/reports", requireAdmin, (req, res) => {
     if (!needBox(res)) return;
