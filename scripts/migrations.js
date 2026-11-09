@@ -6878,4 +6878,20 @@ export const MIGRATIONS = [
         ALTER TABLE domain_profiles ADD COLUMN apply_paused_from TEXT;
       `,
     },
+    {
+      // D185-1 (45q, owner 11-09) · THE APPLICATION-SCHEMA READER — a posting's real application questions, read from the
+      // ATS's documented public endpoint (services/jobs/applicationSchema.js), cached per posting for the fill and tailoring.
+      // status: ok | unsupported | not_found | error. Only ADDS.
+      id: "257_posting_application_schemas",
+      sql: `
+        CREATE TABLE IF NOT EXISTS posting_application_schemas (
+          job_id      TEXT PRIMARY KEY,
+          ats         TEXT,
+          status      TEXT NOT NULL,
+          fields_json TEXT NOT NULL DEFAULT '[]',
+          error       TEXT,
+          fetched_at  INTEGER NOT NULL
+        );
+      `,
+    },
   ];

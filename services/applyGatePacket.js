@@ -152,6 +152,9 @@ function toPacketAnswer(a) {
  * @param {string}   opts.gateReason       'login_required' | 'captcha_required'
  * @returns {{ expectedOrigin, applyUrl, answers, unresolved, source, ... }}
  */
+const CANONICAL_HANDLER_BY_NAME = new Map(CANONICAL_GATE_FIELDS.map(f => [f.name, f.handler_type]));
+function canonicalHandlerOf(name) { return CANONICAL_HANDLER_BY_NAME.get(name) ?? null; }
+
 export function buildGatePacket({
   resolvedAnswers = [],
   autofillPayload = {},
@@ -163,6 +166,7 @@ export function buildGatePacket({
   gateReason = "login_required",
   entries = null,                 // D55 (b): buildPacketEntries(); absent on an older caller
   baseResume = null,              // ⭐ T18: buildStructuredResume() of the BASE résumé — its facts fill what the profile left empty
+  atsQuestions = null,            // ⭐ D185-1: the posting's real questions from its ATS (applicationSchema.schemaFieldsForFill)
 } = {}) {
   const expectedOrigin = originOf(applyUrl);
   if (!expectedOrigin) {
@@ -179,9 +183,18 @@ export function buildGatePacket({
   const real = (Array.isArray(resolvedAnswers) ? resolvedAnswers : [])
     .filter(a => a && !a.skipped && a.value !== null && a.value !== undefined && a.value !== "");
   const usedCanonical = real.length === 0;
-  const answers = usedCanonical
-    ? buildAnswers(CANONICAL_GATE_FIELDS, autofillPayload)
-    : real;
+  // ⭐ D185-1: when the ATS published the form, its OWN questions are resolved too (by the same buildAnswers), and the
+  // canonical set still answers what the ATS's list did not name — a schema never makes a packet smaller.
+  const schemaFields = usedCanonical && Array.isArray(atsQuestions) ? atsQuestions.filter(f => f && f.group !== "compliance") : [];
+  let answers = usedCanonical ? buildAnswers(CANONICAL_GATE_FIELDS, autofillPayload) : real;
+  if (schemaFields.length) {
+    const haveKeys = new Set(answers.filter(a => a && !a.skipped && a.value != null && a.value !== "")
+      .map(a => a.handler_type ?? canonicalHandlerOf(a.name)).filter(Boolean));
+    const extra = buildAnswers(schemaFields.filter(f => !f.handler_type || !haveKeys.has(f.handler_type)), autofillPayload)
+      .map(a => ({ ...a, handler_type: a.handler_type ?? schemaFields.find(f => f.name === a.name)?.handler_type ?? null,
+        is_required: a.is_required ?? schemaFields.find(f => f.name === a.name)?.is_required ?? false, from_schema: true }));
+    answers = [...answers, ...extra];
+  }
 
   const required = new Map(CANONICAL_GATE_FIELDS.map(f => [f.name, f.is_required]));
   // ⭐ T18: a canonical answer keeps its question's handler type — the key the extension's field vocabulary meets it by
@@ -222,6 +235,14 @@ export function buildGatePacket({
       handler_type: f.handler_type,
       eligibility: isEligibilityAnswer(f),
     }));
+  // ⭐ D185-1: the ATS's own questions nothing answered, in the employer's wording — "this one will ask you two
+  // questions" with the questions named. Files (résumé / cover letter) are the run's to attach, not unresolved.
+  for (const f of schemaFields) {
+    if (f.type === "file" || answeredNames.has(f.name) || (f.handler_type && answeredKeys.has(f.handler_type))) continue;
+    if (unresolved.some(u => u.handler_type && u.handler_type === f.handler_type)) continue;
+    unresolved.push({ field: f.label, name: f.name, type: f.type, is_required: !!f.is_required,
+      handler_type: f.handler_type ?? null, eligibility: isEligibilityAnswer(f), from_schema: true });
+  }
 
   return {
     version: 1,
@@ -237,6 +258,8 @@ export function buildGatePacket({
     // Named so a consumer can tell a form-matched packet from a profile-only one without guessing
     // from the provenance mix. G3's overlay reads differently in each case.
     source: usedCanonical ? "canonical_profile" : "discovered_form",
+    // ⭐ D185-1: whether the posting's ATS form was known before the page opened (a count, so the panel can say so).
+    ...(schemaFields.length ? { atsSchema: { questions: schemaFields.length } } : {}),
     answers: packetAnswers,
     unresolved,
     // D55 (b). Only when there is something in it, so a packet from a profile with no history looks

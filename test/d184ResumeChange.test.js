@@ -3,6 +3,7 @@
 //   one skill less at a time · S-1 the three samples (content/samples/resumes/SAMPLES.md) are the test set.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { at } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -154,7 +155,7 @@ test("b7SentenceFromResume: each sample's sentence — its role, its level, all 
 
 test("b7PersonEditsWinUntilNextResume: the board applies the résumé's sentence once per placement, through the sentence's own setters", () => {
   const jp = read("client/src/panels/JobsPanel.jsx");
-  const eff = jp.slice(jp.indexOf("const key = `draft.placementSeen.${p.id}`"), jp.indexOf("}, [activeDomainProfile?.id, activeDomainProfile?.placed_at]"));
+  const eff = jp.slice(at(jp, "const key = `draft.placementSeen.${p.id}`"), at(jp, "}, [activeDomainProfile?.id, activeDomainProfile?.placed_at]"));
   assert.ok(eff.length > 0);
   assert.match(eff, /if \(String\(seen\) === String\(p\.placed_at\)\) return;/, "already applied for this placement → the person's own edits stand");
   assert.match(eff, /sentenceFromResume\(/);

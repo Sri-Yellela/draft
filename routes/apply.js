@@ -29,6 +29,7 @@ import {
   recordFormSchema, formSchemaSummary, hostOf,
 } from "../services/kb/formSchemaLayer.js";
 import { probeBrowserAvailability } from "../services/browserLauncher.js";
+import { cachedApplicationSchema, schemaFieldsForFill, warmApplicationSchema } from "../services/jobs/applicationSchema.js";
 // AH5: the one definition of "is this stored resume still the right one". Shared with server.js's
 // generateResumeForApply so the two reuse sites cannot drift apart again.
 import { artifactCurrency, currencySentence } from "../services/resumeCurrency.js";
@@ -1247,6 +1248,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         // that a sign-in clears it.
         gateReason: reasonCode || result.reasonCode || "login_required",
         entries,
+        // ⭐ D185-1: the posting's ATS form, when its documented endpoint published one (cache only — never a fetch here).
+        atsQuestions: schemaFieldsForFill(cachedApplicationSchema(db, jobId)),
       });
     } catch (e) {
       // buildGatePacket refuses in exactly two cases, and both leave the run held with no packet —
@@ -1339,6 +1342,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   function prepareManualPacket({ userId, jobId, via = "extension", toolType = "generate" }) {
     const job = db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(String(jobId));
     if (!job) return { ok: false, error: "job_not_found", message: "draft no longer has this posting." };
+    // ⭐ D185-1: read (or refresh) the posting's ATS form in the background — the next packet for it carries the questions.
+    warmApplicationSchema(db, job);
     const cur = artifactCurrency(db, { userId, jobId, tool: toolType });
     // ⭐ D66: base-résumé-only — the packet carries the base résumé, not a tailored one.
     const baseOnly = baseResumeOnlyState(db, userId).on;
@@ -1364,6 +1369,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         resumeArtifactId: artifactId, gateReason: PREPARED_REASON,
         entries,
         baseResume: baseResumeParsed(userId),
+        atsQuestions: schemaFieldsForFill(cachedApplicationSchema(db, jobId)),
       });
     } catch (e) {
       return { ok: false, error: e.reasonCode || "prepare_failed",
