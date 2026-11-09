@@ -38,6 +38,9 @@
 .run-sq.is-today { outline: 2px solid var(--c-ink); outline-offset: 1px; }
 .run-proven { margin: 18px 0 0; padding: 14px 16px; border: 1px solid var(--c-border); border-radius: 12px; background: var(--c-surface-tint); }
 .run-proven p { margin: 0 0 6px; color: var(--c-ink); }
+/* D185-4: the jobs a proven skill unlocks — a plain list under the Proven line. */
+.run-unlocks { margin: 10px 0 0; }
+.run-unlocks__list { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 4px; }
 .run-marks { margin-top: 18px; }
 .run-marks__shelf { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px; }
 .run-mark { display: grid; justify-items: center; gap: 4px; width: 110px; text-align: center; font-size: 13px; color: var(--c-ink-muted); }

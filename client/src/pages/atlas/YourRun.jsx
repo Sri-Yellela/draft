@@ -27,6 +27,7 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
   const [proofPage, setProofPage] = useState(null);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const [unlocks, setUnlocks] = useState(null);
   useEffect(() => {
     let live = true;
     if (!signedIn) return undefined;
@@ -34,6 +35,14 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
     api("/api/profile/proof-page").then(r => live && setProofPage(r)).catch(() => {});
     return () => { live = false; };
   }, [signedIn]);
+  // ⭐ D185-4: what the first proven skill unlocks (one read, on the server's workers).
+  const firstProven = run?.proven?.[0]?.name || null;
+  useEffect(() => {
+    let live = true;
+    if (!firstProven) { setUnlocks(null); return undefined; }
+    api(`/api/atlas/unlocks?skill=${encodeURIComponent(firstProven)}`).then(r => live && setUnlocks(r)).catch(() => live && setUnlocks(null));
+    return () => { live = false; };
+  }, [firstProven]);
   if (!signedIn) return (
     <div className="atl-pan" data-atlas-panel-body="your-run">
       <p className="atl__quiet" data-run-signed-out="">Sign in to start your run. Points come only from proof — an idea explained in your own words, a build, a skill checked.</p>
@@ -114,6 +123,18 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
               in your profile's skills (the résumé's own list); nothing is added that you haven't proven. */}
           <span data-run-add-proven=""><DepthButton primary onClick={addProven} disabled={adding}>{adding ? "Adding…" : `Add ${run.proven.length === 1 ? "it" : "them"} to your résumé`}</DepthButton></span>
           {added && <span className="atl__quiet" role="status"> Added to your profile's skills.</span>}
+          {/* ⭐ D185-4 (45q): the reward loop — the open jobs this proven skill moves you up a tier on, before → after. */}
+          {unlocks?.total > 0 && (
+            <div className="run-unlocks" data-run-unlocks={unlocks.total}>
+              <p><b>{unlocks.total} open job{unlocks.total === 1 ? "" : "s"}</b> in your role ask for {unlocks.skill}{unlocks.intoTop ? ` — ${unlocks.intoTop} move into your top matches` : ""}.</p>
+              <ul className="run-unlocks__list">
+                {unlocks.jobs.map(j => (
+                  <li key={j.job_id}><Link className="atl__link" to={`/app/jobs?job=${encodeURIComponent(j.job_id)}`}>{j.title}</Link>
+                    <span className="atl__quiet"> · {j.company} · asks for {j.before} → {j.after} of your {j.of} top skills</span></li>
+                ))}
+              </ul>
+            </div>
+          )}
           <Link to={`${base}/your-skills`} className="atl__link">See your skills</Link>
         </section>
       )}
