@@ -45,3 +45,13 @@
 .msg-report { margin: 8px 0; font-size: 14px; display: flex; flex-direction: column; gap: 8px; }
 .msg-compose { display: flex; gap: 8px; align-items: flex-end; }
 .msg-compose textarea { flex: 1; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); font: inherit; resize: vertical; }
+/* ⭐ D180 P3 (45r): the feed — a post, its proof line, its actions, its comments, What you share. Tokens only; no capsules (D60). */
+.feed-list { gap: 14px; }
+.feed-post { background: var(--c-surface-solid); border: 1px solid var(--c-border); border-radius: 16px; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; }
+.feed-proof { margin: 0; font-size: 14px; font-weight: 600; color: var(--c-ink); }
+.feed-link { overflow-wrap: anywhere; }
+.feed-acts { align-items: center; }
+.feed-comments { border-top: 1px solid var(--c-border); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.feed-comment { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.feed-comment a { font-weight: 600; color: var(--c-ink); text-decoration: none; }
+.feed-share__row { display: flex; gap: 8px; align-items: center; font-size: 14px; padding: 4px 0; }

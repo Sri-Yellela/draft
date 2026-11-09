@@ -16,6 +16,56 @@ import CompanyLogo from "../../components/CompanyLogo.jsx";   // A149: the compa
 import SendJobPicker from "../../components/SendJobPicker.jsx";   // (11) 45q: D180's Send on the open jobs
 import "./CompanyPage.css";
 
+/**
+ * ⭐ D180 P4 (45r) · "1 connection works here" → Ask for a referral. Only the signed-in person's connections who SHOW their
+ * experience, at this same company (the server decides — GET /api/network/at-company). The ask is a message they edit,
+ * then send (sealed, like any message); the job they opened goes with it as a card. Nothing is drawn when no one works here.
+ */
+function WorksHere({ company, job }) {
+  const [r, setR] = useState(null);
+  const [asking, setAsking] = useState(null);   // { handle, name, text }
+  const [said, setSaid] = useState("");
+  useEffect(() => {
+    let live = true;
+    api(`/api/network/at-company?name=${encodeURIComponent(company)}${job?.id ? `&job=${encodeURIComponent(job.id)}` : ""}`)
+      .then((x) => { if (live) setR(x); }).catch(() => {});
+    return () => { live = false; };
+  }, [company, job?.id]);
+  if (!r || !r.count) return null;
+  const send = async () => {
+    try {
+      const sent = await api("/api/network/messages", { method: "POST", body: JSON.stringify({ to: asking.handle, text: asking.text }) });
+      if (job?.id) await api("/api/network/messages", { method: "POST", body: JSON.stringify({ to: asking.handle, jobId: job.id }) }).catch(() => {});
+      setAsking(null); setSaid(`Sent to ${asking.name} — it's in your Messages.`);
+      return sent;
+    } catch (e) { setSaid(e.message || "That didn't go through."); return null; }
+  };
+  return (
+    <div className="co__works" data-company-works-here={r.count}>
+      <p className="co__focus-k">{r.count === 1 ? "1 connection works here" : `${r.count} connections work here`}</p>
+      <ul className="co__jobs">
+        {r.people.map((p) => (
+          <li key={p.handle}>
+            <a href={`/in/${encodeURIComponent(p.handle)}`}>{p.name}</a>{p.title ? <span className="co__where"> · {p.title}</span> : null}
+            {p.openToReferrals && <span className="co__where"> · open to referrals</span>}
+            {" "}<button type="button" className="co__send" data-ask-referral={p.handle} onClick={() => setAsking({ handle: p.handle, name: p.name, text: p.template })}>Ask for a referral</button>
+          </li>
+        ))}
+      </ul>
+      {asking && (
+        <div className="co__ask" data-referral-ask={asking.handle}>
+          <textarea rows={4} maxLength={4000} value={asking.text} onChange={(e) => setAsking({ ...asking, text: e.target.value })} aria-label={`Your message to ${asking.name}`} />
+          <p>
+            <button type="button" className="co__send" onClick={send}>Send to {asking.name}</button>{" "}
+            <button type="button" className="co__send" onClick={() => setAsking(null)}>Cancel</button>
+          </p>
+        </div>
+      )}
+      {said && <p role="status">{said}</p>}
+    </div>
+  );
+}
+
 const GROUP_WORD = { languages: "Languages", frameworks: "Frameworks", data: "Data", cloud: "Cloud", devops: "DevOps", "ml-ai": "ML / AI", tools: "Tools" };
 const GROUP_ORDER = ["languages", "frameworks", "data", "cloud", "devops", "ml-ai", "tools"];
 const ago = (sec) => {
@@ -34,7 +84,7 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
   const { search } = useLocation();
   const cameFrom = new URLSearchParams(search).get("job") || null;
   // ⭐ (11) 45q · Send a job from the company page — inside the shell (signed in) and only while the network is on.
-  const [networkOn, setNetworkOn] = useState(false);
+  const [networkOn, setNetworkOn] = useState(false);   // (also D180 P4's "works here", 45r)
   const [sending, setSending] = useState(null);
   useEffect(() => {
     if (!inApp) return undefined;
@@ -226,6 +276,7 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
               {focus.applyUrl && <ApplyLink href={focus.applyUrl} jobId={focus.jobId} company={c.name} size="panel" className="co__apply" onOpen={applyOpen}>Apply at {c.name} ↗</ApplyLink>}
             </div>
           )}
+          {networkOn && <WorksHere company={c.name} job={focus || null} />}
           <h2>Newest open jobs</h2>
           <ul className="co__jobs">
             {jobs.filter((j) => !focus || j.jobId !== focus.jobId).map((j) => (

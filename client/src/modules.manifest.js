@@ -86,7 +86,7 @@ export const MODULES = Object.freeze({
     // ⛔ A157 (45q, owner 11-09): the Companies tab (CompaniesView) is removed — search and the company's name reach a page.
     css: ["pages/companies/CompanyPage.css"], members: ["App.jsx", "pages/companies/CompanyPage.jsx"] },
   network: { why: "D180 P1 — the Network place (People: connections, requests, suggestions, blocked), behind the network switch",
-    css: ["pages/network/NetworkPage.css"], members: ["App.jsx", "pages/network/NetworkPage.jsx", "pages/network/MessagesPane.jsx"] },
+    css: ["pages/network/NetworkPage.css"], members: ["App.jsx", "pages/network/NetworkPage.jsx", "pages/network/MessagesPane.jsx", "pages/network/FeedPane.jsx"] },
 });
 
 // ── SHARED: every file under components/, styles/, lib/, hooks/, contexts/, themes/, consoles/.
