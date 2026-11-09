@@ -20,6 +20,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { profilePage, viewFor } from "../services/profilePage.js";
+import { experienceEntities } from "../services/entities.js";   // (12) 45q · D184 B-6 on the public page too
 import { HANDLE_RE } from "../services/proofLinks.js";
 import { sniffImage } from "../services/accountService.js";
 
@@ -137,6 +138,20 @@ function reportForm(handle) {
 }
 
 /** The page's HTML for a publicViewFor() result. Exported for the tests. */
+/**
+ * (12) 45q · D184 B-6 on the PUBLIC page: an experience row's employer is the shared company object — a link to its PUBLIC
+ * company page (/companies/<slug>), and the stack its own postings show with what this row names ("used React, TypeScript
+ * there"). An employer with no record stays plain text, no stack — never a guess.
+ */
+export function companyLine(x) {
+  const r = x?.companyRef;
+  if (!r?.slug) return esc(x?.company || "");
+  const used = (r.used || []).slice(0, 4);
+  const stack = (r.stack || []).slice(0, 6);
+  return `<a href="/companies/${encodeURIComponent(r.slug)}" data-company-link="">${esc(x.company || r.name)}</a>`
+    + (stack.length ? `<div class="muted" data-company-stack="">${esc(r.name)} works with ${esc(stack.join(", "))}${used.length ? ` — used ${esc(used.join(", "))} there` : ""}</div>` : "");
+}
+
 export function renderPublicProfile({ view, handle }, { origin = "", connect = false } = {}) {
   if (view.private) {
     return shell({ title: "Private profile", index: false,
@@ -158,7 +173,7 @@ export function renderPublicProfile({ view, handle }, { origin = "", connect = f
 </section>`);
   if (s.about?.summary) parts.push(`<section class="card" data-section="about"><h2>About</h2><p>${esc(s.about.summary)}</p></section>`);
   if (s.experience?.items?.length) parts.push(`<section class="card" data-section="experience"><h2>Experience</h2>${s.experience.items.map(x => `
-  <div class="role">${x.logo ? `<img class="logo" src="${esc(x.logo)}" alt="">` : ""}<b>${esc(x.title || "")}</b><div>${esc(x.company)}</div>
+  <div class="role">${x.logo ? `<img class="logo" src="${esc(x.logo)}" alt="">` : ""}<b>${esc(x.title || "")}</b><div>${companyLine(x)}</div>
     <div class="muted">${[ymLabel(x.start), x.current ? "now" : ymLabel(x.end)].filter(Boolean).join(" – ")}${durationLabel(x.start, x.current ? null : x.end) ? ` · ${esc(durationLabel(x.start, x.current ? null : x.end))}` : ""}${x.location ? ` · ${esc(x.location)}` : ""}</div>
     ${(x.bullets || []).length ? `<ul>${x.bullets.map(b => `<li>${esc(b)}</li>`).join("")}</ul>` : ""}</div>`).join("")}</section>`);
   if (s.skills) parts.push(`<section class="card" data-section="skills"><h2>Skills</h2><div class="cols">
@@ -196,6 +211,8 @@ export default function publicProfileRoutes(app, db, { requireAdmin, dataDir, ap
     res.set("Cache-Control", "no-store");
     if (out.status === 404) { res.set("X-Robots-Tag", "noindex"); return notFound(res); }
     if (!indexable(out.view)) res.set("X-Robots-Tag", "noindex");
+    // (12) 45q · the employers as company objects (links + stack); a failure keeps the plain names.
+    try { if (out.view?.sections?.experience?.items?.length) out.view.sections.experience.items = experienceEntities(db, out.view.sections.experience.items); } catch { /* plain names */ }
     // ⭐ D180 P1 (45o): Connect — only while the network is on, never on your own page. It opens the app, which asks first.
     res.type("html").send(renderPublicProfile(out, { origin: appBaseUrl(req), connect: networkEnabled(db) && out.userId !== (req.user?.id ?? null) }));
   });
