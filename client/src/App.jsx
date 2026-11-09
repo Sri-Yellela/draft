@@ -577,11 +577,13 @@ function AppDashboard({ authUser, setAuthUser }) {
     // "Auto Apply" to appTabs was not enough for either of them: the tab rendered and did nothing
     // because handlePanelChange had never heard of it, and typing /app/auto-apply bounced straight
     // back to the board because THIS guard had not either. Two lists, both silent when wrong.
-    if (!jobRoute && !atlasRoute && profilePanel === undefined && interviewPanel === undefined
+    // ⛔ 45s: + companyRoute — without it every /app/companies/<slug> (A157: a company's name, its logo, a search pick)
+    // bounced straight to the board for a signed-in person, so the company page never opened inside the app.
+    if (!jobRoute && !atlasRoute && !companyRoute && profilePanel === undefined && interviewPanel === undefined
         && routeKey !== CONSOLE_ROUTE && !NAVIGABLE_TABS.has(routeKey)) {
       navigate(consolePath, { replace:true });
     }
-  }, [routeKey, consolePath, navigate, NAVIGABLE_TABS, atlasRoute, location.search, profilePanel, interviewPanel]);
+  }, [routeKey, consolePath, navigate, NAVIGABLE_TABS, atlasRoute, companyRoute, location.search, profilePanel, interviewPanel]);
 
   useEffect(() => {
     const handleVisibility = async () => {
