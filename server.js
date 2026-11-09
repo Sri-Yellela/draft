@@ -96,6 +96,7 @@ import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyB
 import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/jobs/publicBoard.js";
 import { publicCompany, publicSuggest, companyMatchFor, companyIdForSlug } from "./services/companies/publicCompany.js";
 import { companyDirectory } from "./services/companies/companyDirectory.js";   // A144 (45o): the Companies tab
+import { publicEntry } from "./services/jobs/publicEntry.js";                     // A147 (45o): the signed-out /jobs entry
 import { createCompanyFacts } from "./services/companies/companyFacts.js";
 import { createCompanyGithub } from "./services/companies/companyGithub.js";
 import { createCompanyWebSignals } from "./services/companies/companyWebSignals.js";
@@ -10146,6 +10147,11 @@ app.get("/api/public/jobs", publicLimit, async (req, res) => {
 app.get("/api/public/jobs/facets", publicLimit, async (req, res) => {
   try { res.set("Cache-Control", "public, max-age=300").json(await publicBoardFacets(readPool, req.query || {})); }
   catch (e) { console.error("[public/jobs/facets]", e.message); res.status(500).json({ error: "facets_unavailable" }); }
+});
+// ⭐ A147 (45o) · the signed-out /jobs entry: live totals, hiring by technology, companies hiring now (read workers, 10 min).
+app.get("/api/public/jobs/entry", publicLimit, async (req, res) => {
+  try { res.set("Cache-Control", "public, max-age=300").json(await publicEntry(readPool)); }
+  catch (e) { console.error("[public/jobs/entry]", e.message); res.status(500).json({ error: "entry_unavailable" }); }
 });
 // ⭐ A144 (45o) · the Companies tab: every company with open jobs — search, industry, technology, hiring now, sponsorship
 // (true counts). One snapshot built on the read workers, 10 minutes; each request filters it in memory.

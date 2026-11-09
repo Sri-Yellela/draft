@@ -32,6 +32,66 @@ async function getJson(url) {
   return r.json();
 }
 
+/**
+ * ⭐ A147 · the browse board. Role cards from the open board's own facets (true counts; a ".general" bucket is not a role
+ * of its own); popular role pages = the largest subcategories with a landing page (≥ 10 open jobs, D179 P7); technologies
+ * and companies from GET /api/public/jobs/entry. A card narrows the board below in place; a popular link opens its page.
+ */
+function EntryBoard({ cats, entry, set }) {
+  const roles = cats.slice(0, 8).map((c) => ({ ...c, top: c.subcategories.filter((s) => !/.general$/.test(s.id)).slice(0, 3) }));
+  const popular = cats.flatMap((c) => c.subcategories.filter((s) => !/.general$/.test(s.id) && s.count >= 10))
+    .sort((a, b) => b.count - a.count).slice(0, 8);
+  return (
+    <div className="pb__entry" data-public-entry="">
+      {popular.length > 0 && (
+        <nav className="pb__popular" aria-label="Popular roles">
+          {popular.map((s) => <a key={s.id} href={`/jobs/role/${s.id}`}>{s.name}</a>)}
+        </nav>
+      )}
+      {roles.length > 0 && (
+        <section className="pb__sec" data-entry-roles="">
+          <h2>Browse by role</h2>
+          <ul className="pb__cards">
+            {roles.map((c) => (
+              <li key={c.id} className="pb__cardrole">
+                <button type="button" className="pb__cardhead" onClick={() => set({ category: c.id, subcategory: null })}>
+                  {c.name} <span className="pb__n">{c.count.toLocaleString("en-US")}</span></button>
+                {c.top.map((s) => (
+                  <button key={s.id} type="button" className="pb__cardsub" onClick={() => set({ category: c.id, subcategory: s.id })}>
+                    {s.name} <span className="pb__n">{s.count.toLocaleString("en-US")}</span></button>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {entry?.technologies?.length > 0 && (
+        <section className="pb__sec" data-entry-tech="">
+          <h2>Hiring by technology</h2>
+          <div className="pb__chips">
+            {entry.technologies.map((t) => (
+              <button key={t.name} type="button" className="pb__tech dbx-depth" onClick={() => set({ tech: t.name })}>
+                {t.name} <span className="pb__n">{t.count.toLocaleString("en-US")}</span></button>
+            ))}
+          </div>
+        </section>
+      )}
+      {entry?.companies?.length > 0 && (
+        <section className="pb__sec" data-entry-companies="">
+          <h2>Companies hiring now</h2>
+          <ul className="pb__cos">
+            {entry.companies.map((c) => (
+              <li key={c.slug}><Link to={`/companies/${c.slug}`}>{c.name}</Link>
+                <span className="pb__n"> · {c.openJobs.toLocaleString("en-US")} open{c.newThisWeek ? ` · ${c.newThisWeek} new this week` : ""}</span></li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <h2 className="pb__every">Every open job</h2>
+    </div>
+  );
+}
+
 export default function PublicBoardPage() {
   const [sp, setSp] = useSearchParams();
   const params = useMemo(() => Object.fromEntries(KEYS.filter((k) => sp.get(k)).map((k) => [k, sp.get(k)])), [sp]);
@@ -72,11 +132,23 @@ export default function PublicBoardPage() {
     ? cats.flatMap((c) => c.subcategories).find((s) => s.id === params.subcategory)?.name
     : params.category ? cats.find((c) => c.id === params.category)?.name : null;
   const page = Number(params.page || 1);
+  // ⭐ A147 (45o, owner 11-08: "On /jobs, board below"): with nothing searched or narrowed, /jobs opens on the browse board
+  // (live totals, Browse by role, Hiring by technology, Companies hiring now — the D179 sketch's (3)); the deck / list
+  // follow it. Any search or filter goes straight to the jobs.
+  const entryShown = !params.q && !params.category && !params.subcategory && !params.tech && page === 1;
+  const [entry, setEntry] = useState(null);
+  useEffect(() => {
+    if (!entryShown || entry) return undefined;
+    let live = true;
+    getJson("/api/public/jobs/entry").then((d) => { if (live) setEntry(d); }).catch(() => {});
+    return () => { live = false; };
+  }, [entryShown, entry]);
 
   return (
     <main className="pb" data-public-board="">
       <header className="pb__head">
         <h1>{board?.total != null ? `${board.total.toLocaleString("en-US")} open jobs` : "Open jobs"}{roleWord ? ` in ${roleWord}` : ""}</h1>
+        {entryShown && entry?.newThisWeek > 0 && <p className="pb__live" data-entry-new="">{entry.newThisWeek.toLocaleString("en-US")} new this week</p>}
         <p className="pb__lead">Every job on draft, open to read. <Link to="/register">Sign up</Link> to save one, draft your résumé for it, or apply.</p>
       </header>
 
@@ -125,6 +197,8 @@ export default function PublicBoardPage() {
           )}
         </div>
       )}
+
+      {entryShown && <EntryBoard cats={cats} entry={entry} set={set} />}
 
       {error && <p className="pb__msg" role="alert">{error === "busy" ? "A lot of searches at once — try again in a minute." : "The board couldn't load just now — try again in a moment."}</p>}
       {!board && !error && <p className="pb__msg" aria-busy="true">Loading…</p>}
