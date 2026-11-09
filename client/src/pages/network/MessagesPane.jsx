@@ -1,10 +1,12 @@
 // ⭐ D180 P2 (45o) · MESSAGES — conversations, Requests (people you aren't connected to: one message until you accept),
 // the ones you sent that wait, and one conversation with its job cards. ⋯ = mute · report · block. Text is drawn as text:
-// no link is made clickable (a stranger's link stays plain words — the spec). Polled every 15 s while open (real time later).
+// no link is made clickable (a stranger's link stays plain words — the spec). Real time on the sync stream (45r: a
+// network_message event re-reads the list / the open conversation); polled every 15 s as the fallback.
 // "No AI reads this conversation unless you ask" — and nothing here asks.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api.js";
 import DepthButton from "../../components/DepthButton.jsx";
+import { useSyncEvents } from "../../hooks/useSyncEvents.js";   // D180 (45r): real time; the poll below stays the fallback
 
 const POLL_MS = 15_000;
 const when = (s) => new Date(s * 1000).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -30,6 +32,8 @@ function Thread({ id, onBack, onChanged }) {
   const end = useRef(null);
   const load = useCallback(() => api(`/api/network/messages/${id}`).then(setT).catch(e => setSaid(e.message)), [id]);
   useEffect(() => { load(); const iv = setInterval(load, POLL_MS); return () => clearInterval(iv); }, [load]);
+  // ⭐ D180 (45r): real time — the sync stream says THIS conversation changed (never its words); read it again now.
+  useSyncEvents({ network_message: (e) => { if (!e?.threadId || Number(e.threadId) === Number(id)) load(); } });
   useEffect(() => { end.current?.scrollIntoView?.({ block: "end" }); }, [t?.messages?.length]);
   if (!t) return <p className="net__quiet" role="status">{said || "Opening the conversation…"}</p>;
 
@@ -123,6 +127,7 @@ export default function MessagesPane({ initialThread = null }) {
   const [said, setSaid] = useState("");
   const load = useCallback(() => api("/api/network/messages").then(setBox).catch(e => setSaid(e.message)), []);
   useEffect(() => { load(); const iv = setInterval(load, POLL_MS); return () => clearInterval(iv); }, [load]);
+  useSyncEvents({ network_message: () => load() });   // D180 (45r): a new message → the list (and its unread counts) now
   if (open) return <Thread id={open} onBack={() => { setOpen(null); load(); }} onChanged={load} />;
   if (!box) return <p className="net__quiet" role="status">{said || "Opening your messages…"}</p>;
   const row = (t) => (

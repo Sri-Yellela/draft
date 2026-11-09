@@ -215,7 +215,7 @@ export function subscribeSyncEvents(handlersRef) {
  * useSyncEvents — subscribes to the origin's single /api/sync/events stream.
  *
  * handlers: { [eventType]: (payload) => void }
- *   Supported types: job_flag, resume_generated, profile_switched, scrape_complete
+ *   Supported types: job_flag, resume_generated, profile_switched, scrape_complete, network_message (D180, 45r: { threadId })
  *
  * The stream reconnects automatically on network failure, moves to another tab when the tab holding
  * it closes, and is closed once the last subscriber unmounts.
