@@ -78,6 +78,7 @@ export function classifyPosting({ title, description = "", boardCategory = null 
 
   let best = null, second = null;
   const catScore = new Map();
+  const cands = [];
   for (const c of tax.categories) {
     if (c.held) continue;
     for (const s of c.subs) {
@@ -93,11 +94,20 @@ export function classifyPosting({ title, description = "", boardCategory = null 
       if (!score) continue;
       catScore.set(c.id, Math.max(catScore.get(c.id) || 0, score));
       const cand = { c, s, score, why };
+      cands.push(cand);
       if (!best || score > best.score) { second = best; best = cand; }
       else if (!second || score > second.score) second = cand;
     }
   }
 
+  // ⭐ D184 (45p): "Frontend Software Engineer" / "Software Engineer II, Frontend" — the category's GENERAL subcategory won on
+  // its generic alias ("software engineer") while a SPECIFIC sibling's own name ("Frontend") was in the title too. The
+  // specific one is what the title says; it wins when it is sure on its own.
+  if (best?.s.general) {
+    const spec = cands.filter(x => x.c.id === best.c.id && !x.s.general && x.why.some(w => w.startsWith("name:")) && x.score >= SURE)
+      .sort((a, b) => b.score - a.score)[0];
+    if (spec) { best = { ...spec, why: [...spec.why, `over-general:${best.s.id}`] }; second = null; }
+  }
   if (best && best.score >= SURE) {
     // Two subcategories in two categories tied on the title: the category is unsure — hint decides, else unclassified.
     if (second && second.score === best.score && second.c.id !== best.c.id) {

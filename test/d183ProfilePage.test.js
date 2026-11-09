@@ -106,7 +106,7 @@ test("d183LinksRenderAsLogos — GitHub and LinkedIn as their marks, with an ari
 test("d183BoldSkillsKept — the page draws its sections with the A140 editors and passes the job profile's terms", () => {
   // (pin brought to the code in 45o: the sections re-mount after a replace — `key` per round)
   assert.match(PAGE_UI, /<ProfileSections key=\{`page-\$\{round\}`\} theme=\{theme\} highlight=\{page\.highlight \|\| \[\]\}/);
-  assert.match(SECTIONS_UI, /<BoldTerms text=\{b\} re=\{termRe\} \/>/);
+  assert.match(SECTIONS_UI, /<BoldTerms text=\{b\} re=\{termRe\} linkTech \/>/);   // D184 B-6: a technology term links to its jobs
   assert.match(lf("client/src/panels/ProfilePanel.jsx"), /\{resumeView && <ProfileSections/);
 });
 

@@ -304,8 +304,9 @@ import { describeEmptyBoard, activeFilterNames } from "./services/jobs/emptyBoar
 // and the cursor's resume predicate cannot disagree. See services/jobs/jobCursor.js.
 import {
   buildOrderKeys, orderByClause, cursorProjection, cursorPredicate, encodeCursor, decodeCursor,
-  ordersByFit, ordersByScore, fitBandsSql,
+  ordersByFit, ordersByScore, fitBandsSql, SORT_KEYS,
 } from "./services/jobs/jobCursor.js";
+import { tierSkills, skillTierKey } from "./services/jobs/skillTiers.js";   // D184 B-8
 // The board's fit precompute. It holds no scoring code — server.js injects the panel's own
 // basis builder and scorer call (atsBasisForProfile / scoreJobForBasis).
 import { createBoardFitPrecompute, atsBasisHash, atsJobInputHash, storedScoreSql, presentedScore, registerScoreFreshness, currentScoreSql } from "./services/jobs/boardFitPrecompute.js";
@@ -12296,9 +12297,19 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // ⭐ D137 · postings scored Likely not hiring go to the end of the board — only when there are any (one indexed
       // probe), so a board with none keeps its order and its cursors exactly as before.
       const boardHasGhosts = (() => { try { return !!db.prepare("SELECT 1 FROM scraped_jobs WHERE ghost_level IS NOT NULL AND ghost_level >= 2 AND is_active = 1 LIMIT 1").get(); } catch { return false; } })();
+      // ⭐ D184 B-8 (45p): the résumé's top skills (weighted by their share of postings for the placement, cached per résumé +
+      // placement, read on the workers) — the default order leads with jobs asking for all of them, then one fewer …
+      let boardSkillTier = null;
+      if (fitRequested && !boardSearch?.sql && !SORT_KEYS[sort] && sessionActiveProfile?.id) {
+        try {
+          const rr = db.prepare("SELECT content, updated_at FROM profile_base_resumes WHERE profile_id = ? AND user_id = ?").get(sessionActiveProfile.id, req.user.id);
+          const pp = db.prepare("SELECT id, placement_subcategory, placement_level, placed_at FROM domain_profiles WHERE id = ?").get(sessionActiveProfile.id);
+          if (rr?.content && pp) boardSkillTier = skillTierKey(await tierSkills(readPool, pp, rr.content, rr.updated_at));
+        } catch { boardSkillTier = null; }
+      }
       const orderKeys = buildOrderKeys(sort, richFilters.rank.keys,
         { fit: fitRequested, search: boardSearch, established: richFilters.established.keys,
-          ineligible: ineligibleOrderKey(boardEligInputs.defaults), ghost: boardHasGhosts });
+          ineligible: ineligibleOrderKey(boardEligInputs.defaults), ghost: boardHasGhosts, skillTier: boardSkillTier });
       const fitApplied = ordersByFit(orderKeys);
       // The fit keys sort on scores a precompute pass can rewrite while this user pages, so the
       // cursor is signed with an EPOCH that moves whenever their scores do: the newest report row

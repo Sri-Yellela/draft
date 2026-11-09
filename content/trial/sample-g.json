@@ -1,0 +1,27 @@
+{
+  "id": "G",
+  "label": "Sample G · mid frontend software engineer (D184)",
+  "fictional": "Sample — a fictional person (D184, made 2026-11-08). The name, email (@example.com), phone (555) and profile links (-sample) are invented; the employers are real Boston-area companies on purpose, so experience rows resolve to company records.",
+  "candidate": {
+    "fullName": "Maya Chen",
+    "email": "maya.chen@example.com",
+    "phone": "(617) 555-0134",
+    "location": "Boston, MA",
+    "linkedinUrl": "https://www.linkedin.com/in/maya-chen-sample",
+    "githubUrl": "https://github.com/maya-chen-sample",
+    "yearsOfExperience": 4
+  },
+  "seniority": "mid",
+  "roleFamily": "engineering",
+  "category": "Software engineering",
+  "targetTitle": "Frontend Software Engineer",
+  "domain": "software_engineering",
+  "expected": {
+    "category": "Software engineering",
+    "subcategory": "Frontend",
+    "level": "mid",
+    "sentence": "discovering frontend software engineering roles at mid levels and all workstyles in Boston"
+  },
+  "pdfKeywords": "draft-sample, fictional, test",
+  "resumeText": "Maya Chen\nBoston, MA · maya.chen@example.com · (617) 555-0134 · github.com/maya-chen-sample · linkedin.com/in/maya-chen-sample\n\nSUMMARY\nFrontend software engineer with 4 years building fast, accessible React applications. Shipped design-system\ncomponents used across 12 product teams and cut page load times by a third on a high-traffic checkout.\n\nSKILLS\nLanguages: TypeScript, JavaScript (ES2022), HTML5, CSS3, SQL\nFrontend: React, Next.js, Redux Toolkit, React Query, Tailwind CSS, Storybook, Webpack, Vite\nTesting: Jest, React Testing Library, Cypress, Playwright\nOther: GraphQL, REST APIs, Node.js, Web accessibility (WCAG 2.1 AA), Core Web Vitals, Git, GitHub Actions, Figma\n\nEXPERIENCE\nSoftware Engineer II, Frontend — Toast\nBoston, MA · Mar 2023 – Present\n• Rebuilt the online-ordering checkout in React and TypeScript with Next.js server rendering; Largest Contentful Paint fell from 3.1 s to 2.0 s.\n• Led migration of 140 components into the shared Storybook design system; adopted by 12 product teams.\n• Raised React Testing Library and Cypress coverage of checkout flows from 41% to 82%; release rollbacks dropped by half.\n• Fixed 60+ WCAG 2.1 AA issues and added automated axe checks to the GitHub Actions pipeline.\n\nAssociate Software Engineer — HubSpot\nCambridge, MA · Jul 2021 – Feb 2023\n• Built React dashboards for the marketing analytics product, consuming GraphQL APIs with React Query caching.\n• Moved the team's build from Webpack 4 to Vite; local dev server start time went from 48 s to 6 s.\n• Paired with designers in Figma to ship a responsive email editor used by 30,000+ customers.\n\nEDUCATION\nNortheastern University — B.S., Computer Science · Boston, MA · 2021\n\nPROJECTS\na11y-lint-bot — a GitHub App that comments accessibility issues on pull requests (TypeScript, Node.js, axe-core)."
+}

@@ -23,6 +23,7 @@
 import { pickPlacement, answerFamilyMove } from "../services/placement.js";   // (B)-1, (B)-3
 import { dealAgain as dealAgainFor } from "../services/profileReplace.js";   // (B)-3: Change back deals again
 import { getRegistry } from "./domainProfiles.js";   // (B)-1: the D101 registry the map points into
+import { experienceEntities } from "../services/entities.js";   // D184 B-6
 import { readProfile, saveSection, useResumeSuggestion, setDefault, readDefaults, profileLogosToResolve, setEducationOverride } from "../services/structuredProfile.js";
 import { resolveCaptureLogo } from "../services/jobs/companyLogoStore.js";
 import { setEvidence, readProofPage, setProofPage } from "../services/proofLinks.js";
@@ -39,6 +40,12 @@ export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo
     if (req.method !== "GET") res.on("finish", () => { if (res.statusCode < 400 && req.user?.id != null) setImmediate(() => refreshPerson(db, req.user.id)); });
     next();
   });
+  // ⭐ D184 B-6 (45p): each experience row carries its company OBJECT (services/entities.js — the one resolver): the
+  // company page's slug, its stack from the DB, and which of it the row's bullets say. No record → null (letter logo, no stack).
+  const withEntities = (p) => {
+    try { if (p?.sections?.experience) p.sections.experience = experienceEntities(db, p.sections.experience); } catch { /* the rows stand without */ }
+    return p;
+  };
   const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "error", message: e.message });
   // D101 P1: the experience section's logos — looked up in the background; the next read shows them.
   const lookUpLogos = (userId) => {
@@ -48,18 +55,18 @@ export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo
   };
 
   app.get("/api/profile/sections", requireAuth, (req, res) => {
-    try { res.json(readProfile(db, req.user.id)); lookUpLogos(req.user.id); } catch (e) { fail(res, e); }
+    try { res.json(withEntities(readProfile(db, req.user.id))); lookUpLogos(req.user.id); } catch (e) { fail(res, e); }
   });
   app.post("/api/profile/sections/use-resume", requireAuth, (req, res) => {
     if (!useResumeSuggestion(db, req.user.id)) return res.status(409).json({ error: "nothing_to_use", message: "Your base résumé could not be read." });
-    res.json(readProfile(db, req.user.id));
+    res.json(withEntities(readProfile(db, req.user.id)));
   });
   app.put("/api/profile/sections/:section", requireAuth, (req, res) => {
-    try { saveSection(db, req.user.id, req.params.section, req.body || {}); res.json(readProfile(db, req.user.id)); }
+    try { saveSection(db, req.user.id, req.params.section, req.body || {}); res.json(withEntities(readProfile(db, req.user.id))); }
     catch (e) { fail(res, e); }
   });
   app.put("/api/profile/evidence", requireAuth, (req, res) => {
-    try { setEvidence(db, req.user.id, req.body || {}); res.json(readProfile(db, req.user.id)); }
+    try { setEvidence(db, req.user.id, req.body || {}); res.json(withEntities(readProfile(db, req.user.id))); }
     catch (e) { fail(res, e); }
   });
   app.get("/api/profile/proof-page", requireAuth, (req, res) => {
@@ -69,7 +76,7 @@ export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo
     try { res.json(setProofPage(db, req.user.id, req.body || {})); } catch (e) { fail(res, e); }
   });
   app.put("/api/profile/education-override", requireAuth, (req, res) => {
-    try { setEducationOverride(db, req.user.id, req.body || {}); res.json(readProfile(db, req.user.id)); }
+    try { setEducationOverride(db, req.user.id, req.body || {}); res.json(withEntities(readProfile(db, req.user.id))); }
     catch (e) { fail(res, e); }
   });
   // ⭐ D183 P1 · the page. `as` previews a visitor's view through the server's own filter (View as the public).

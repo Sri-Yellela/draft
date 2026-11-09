@@ -14,7 +14,15 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Six samples by category — A software, B ML / data, C mechanical, D electrical, E business / financial analyst,
 // F project / operations manager. All stay loaded so a profile made from any of them is still known as a sample.
-export const SAMPLE_IDS = Object.freeze(["A", "B", "C", "D", "E", "F"]);
+// ⭐ D184 S-1 (45p): + G · H · I — the owner's TEST SET (content/samples/resumes/SAMPLES.md: Maya Chen frontend, Daniel Okafor
+// construction PM, Elena Marsh FP&A; fictional people, REAL employers on purpose so experience rows resolve to company records).
+export const SAMPLE_IDS = Object.freeze(["A", "B", "C", "D", "E", "F", "G", "H", "I"]);
+// The two kinds. A–F are the removed trial's samples: "a sample is not the person" (A140) — nothing about the person is
+// filled from them and the boot strips what they left. G–I are the TEST SET: they run the FULL person flow (the profile
+// fills from them, a replace is undoable and says What changed — the M-7 walk), because testing that flow is their job.
+// ⛔ BOTH kinds keep the safety rule: an account whose active résumé is any sample sends only to the practice form.
+export const TEST_SET_IDS = Object.freeze(["G", "H", "I"]);
+export const isTestSetId = (id) => TEST_SET_IDS.includes(id);
 
 let _samples = null;
 /** The fictional résumés (content/trial/sample-*.json). */
@@ -23,7 +31,8 @@ export function samples() {
     _samples = Object.fromEntries(SAMPLE_IDS.map(id => {
       const j = JSON.parse(fs.readFileSync(path.join(ROOT, "content/trial", `sample-${id.toLowerCase()}.json`), "utf8"));
       return [id, { id, label: j.label, fictional: j.fictional, candidate: j.candidate, resumeText: j.resumeText, roleFamily: j.roleFamily || null,
-        category: j.category || null, seniority: j.seniority || "mid", targetTitle: j.targetTitle || null }];
+        category: j.category || null, seniority: j.seniority || "mid", targetTitle: j.targetTitle || null, expected: j.expected || null,
+        testSet: isTestSetId(id) }];
     }));
   }
   return _samples;
@@ -42,10 +51,27 @@ export function sampleIdForText(text) {
   return null;
 }
 
-/** D123 P6e (R10): a sample's own role family, so its job profile names it and the tools service never classifies. */
+/** D123 P6e (R10): a sample's own role family, so its job profile names it and the tools service never classifies. The
+ *  test set is placed like any résumé (B-1), so it names none. */
 export function sampleRoleFamily(text) {
-  const id = sampleIdForText(text);
+  const id = trialSampleIdForText(text);
   return id ? samples()[id].roleFamily : null;
+}
+
+/** A140's question — "is this a TRIAL sample, not the person?" — false for the D184 test set. */
+export function trialSampleIdForText(text) {
+  const id = sampleIdForText(text);
+  return id && !isTestSetId(id) ? id : null;
+}
+/** The trial samples only (the strip's list). */
+export function trialSamples() {
+  return Object.fromEntries(Object.entries(samples()).filter(([id]) => !isTestSetId(id)));
+}
+
+/** The TRIAL sample the user's active résumé is (A140's "not the person"), or null — never the D184 test set. */
+export function activeTrialSampleId(db, userId) {
+  const id = activeSampleId(db, userId);
+  return id && !isTestSetId(id) ? id : null;
 }
 
 /** The sample the user's ACTIVE base résumé is, or null — the safety rule's one question. */

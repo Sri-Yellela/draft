@@ -21,6 +21,8 @@ import { markStyle } from "../styles/mark.js";
 import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 import { EEO_DECLINE } from "../../../shared/savedAnswers.js";
 import { durationLabel } from "../../../shared/durationLabel.js";   // A153: "2 yrs 4 mos"
+import { technologiesIn } from "../../../shared/techVocabulary.js";   // D184 B-6: the one technology vocabulary
+import { requestBoardSearch } from "../lib/boardSearch.js";            // D184 B-6: a technology opens the jobs asking for it
 
 const NOT_SET = "Not set — I'll answer on each form";
 // The words a self-ID question is usually answered in; the stored value is the text, so the fill matches the form's own.
@@ -336,10 +338,40 @@ export function termsRegex(terms) {
   if (!list.length) return null;
   return new RegExp(`(?<![A-Za-z0-9+#])(${list.map(escRe).join("|")})(?![A-Za-z0-9+#])`, "gi");
 }
-export function BoldTerms({ text, re }) {
+// ⭐ D184 B-6 (45p): a bold term that is a TECHNOLOGY is the shared technology object (shared/techVocabulary.js — the
+// vocabulary postings, the "using [tech]" clause and company stacks all use): it links to the jobs that ask for it.
+export function techOf(term) {
+  const hits = technologiesIn(String(term || ""));
+  return hits.length === 1 ? hits[0].name : null;   // one technology, named (k8s → Kubernetes); a phrase naming two is not one
+}
+export function openJobsFor(tech) {
+  requestBoardSearch({ tech: { name: tech } });
+}
+export function BoldTerms({ text, re, linkTech = false }) {
   if (!re || !text) return text || null;
   const parts = String(text).split(re);
-  return parts.map((part, i) => (i % 2 === 1 ? <b key={i} data-term="">{part}</b> : part));
+  return parts.map((part, i) => {
+    if (i % 2 !== 1) return part;
+    const tech = linkTech ? techOf(part) : null;
+    return tech
+      ? <b key={i} data-term="" data-tech={tech}><a href="/app/jobs" onClick={() => openJobsFor(tech)} title={`Jobs asking for ${tech}`}
+          style={{ color: "inherit", textDecoration: "underline", textDecorationThickness: 1, textUnderlineOffset: 2 }}>{part}</a></b>
+      : <b key={i} data-term="">{part}</b>;
+  });
+}
+
+// ⭐ D184 B-6: the company's line under an experience row — only from the company's own record (services/entities.js):
+// "Toast works with React, TypeScript, Kafka … — you used React and TypeScript there". Nothing when it has no stack.
+function CompanyStackLine({ company: r, theme }) {
+  if (!r?.stack?.length) return null;
+  const used = r.used || [];
+  const list = (xs) => xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
+  return (
+    <div data-company-stack="" style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>
+      {r.name} works with {r.stack.slice(0, 6).join(", ")}{r.stack.length > 6 ? " …" : ""}
+      {used.length ? ` — you used ${list(used)} there` : ""}
+    </div>
+  );
 }
 
 // ⭐ D183 P1 · THE PROFILE PAGE DRAWS ITS SECTIONS WITH THESE SAME EDITORS (pages/profile/YourProfile.jsx) — nothing is built
@@ -435,7 +467,10 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
             <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
               <LogoTile logo={x.logo} initial={x.initial} theme={theme} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.title || "—"} · {x.company}<EditedMark source={x.source} theme={theme} /></div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.title || "—"} · {x.companyRef?.href
+                  ? <a href={x.companyRef.href} data-company-link={x.companyRef.slug} style={{ color: "inherit" }}>{x.company}</a>
+                  : x.company}<EditedMark source={x.source} theme={theme} /></div>
+                <CompanyStackLine company={x.companyRef} theme={theme} />
                 <div style={muted}>{[ymLabel(x.start), x.current ? "Present" : ymLabel(x.end)].filter(Boolean).join(" – ")}
                   {durationLabel(x.start, x.current ? null : x.end) ? <span data-duration=""> · {durationLabel(x.start, x.current ? null : x.end)}</span> : null}
                   {x.location ? ` · ${x.location}` : ""}</div>
@@ -444,7 +479,7 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
                     {x.bullets.map((b, bi) => (
                       <li key={bi} data-bullet="" style={{ fontSize: 13, color: theme.text }}>
                         <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
-                          <span><BoldTerms text={b} re={termRe} /></span><BackingMark backed={!!x.marks?.[bi]?.backed} />
+                          <span><BoldTerms text={b} re={termRe} linkTech /></span><BackingMark backed={!!x.marks?.[bi]?.backed} />
                         </div>
                         <EvidenceLinks theme={theme} target="bullet" claim={b} links={x.evidence?.[bi] || []} onSaved={setP} />
                       </li>
