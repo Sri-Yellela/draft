@@ -139,6 +139,12 @@
 /* D42 · "+ add" left the sentence: what can still be added is the panel's last row. */
 .fh-addrow { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--c-fh-line); }
 .fh-addrow .fh-k { display: block; margin-bottom: 8px; }
+/* ⭐ A146 (45o): "All filters" — the word after the sentence, and its panel's sections (every clause at once). */
+.bh__all { font: inherit; font-size: 0.55em; vertical-align: middle; margin-left: 6px; padding: 4px 10px; border-radius: 8px;
+  border: 1px solid var(--c-fh-line); background: transparent; color: var(--c-ink-muted); cursor: pointer; }
+.bh__all[aria-expanded="true"] { color: var(--c-ink); border-color: var(--c-accent); }
+.fh-all { display: flex; flex-direction: column; gap: 14px; }
+.fh-all__sec .fh-k { display: block; margin-bottom: 6px; }
 /* D42 · the strict toggle reads as a setting, not a value: dashed until it is on. */
 .fh-op--strict { border-style: dashed; }
 .fh-op--strict[aria-checked="true"] { border-style: solid; }

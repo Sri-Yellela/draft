@@ -3,7 +3,7 @@ import {
   sentenceClauses, isOpenSet, isWordPanel, panelKey, panelRows, panelPress, panelNote, addRows,
   BOARD_PANEL, facetsUsable, TECHNOLOGY,
 } from "../lib/filterSentenceModel.js";
-import { SENTENCE_ID, PANEL_ID } from "./BoardHeadline.jsx";
+import { SENTENCE_ID, PANEL_ID, ALL_FILTERS_ID } from "./BoardHeadline.jsx";
 import "./FullHouse.css";
 
 /** A145: how many technologies the panel shows before the find box is used. */
@@ -46,6 +46,7 @@ export function panelFocusTarget(root) {
 /** The word that opened `open` — its own token, or "+ add" for a clause not yet in the sentence. */
 export function openerSlot(open, doc = typeof document !== "undefined" ? document : null) {
   const sentence = doc?.getElementById?.(SENTENCE_ID);
+  if (open === BOARD_PANEL.ALL) return doc?.getElementById?.(ALL_FILTERS_ID) || null;   // A146: outside the sentence
   return sentence?.querySelector?.(`[data-slot="${open}"]`)
     || sentence?.querySelector?.(`[data-slot="${BOARD_PANEL.MORE}"]`) || null;
 }
@@ -76,13 +77,16 @@ function PanelBody({ open, params = {}, facets = null, facetsStatus = "idle", de
           <span className="fh-k" id={`${PANEL_ID}-key`}>{panelKey(open)}</span>
           <button type="button" className="fh-cl" onClick={close}>Close ×</button>
         </div>
-        {clause
+        {open === BOARD_PANEL.ALL
+          ? <AllFilters params={params} facets={usable} defaultDomain={defaultDomain} onPatch={onPatch}
+              otherFilterCount={otherFilterCount} onMoreFilters={() => { onClose?.(); onMoreFilters?.(); }} />
+          : clause
           ? <ClauseOptions clause={clause} params={params} facets={usable} defaultDomain={defaultDomain}
               find={find} setFind={setFind} onPatch={onPatch} noteId={note ? noteId : undefined} />
           : <AddOptions params={params} otherFilterCount={otherFilterCount} noteId={note ? noteId : undefined} onOpen={onOpen}
               onMoreFilters={() => { onClose?.(); onMoreFilters?.(); }} />}
         {note && <p className="fh-cov" id={noteId}>{note}</p>}
-        {noCounts && clause && (
+        {noCounts && (clause || open === BOARD_PANEL.ALL) && (
           <p className="fh-cov">Counts aren't available right now — these still filter the board.</p>
         )}
         {/* ⭐ D42 (owner, 10-06): "+ add" LEFT THE SENTENCE. What can still be added — posted, fit,
@@ -96,6 +100,33 @@ function PanelBody({ open, params = {}, facets = null, facetsStatus = "idle", de
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * ⭐ A146 (45o, the D179 sketch's (b): "the sketch's filter rail becomes All filters — a panel that opens in place from
+ * the sentence (same counts, every facet), never a permanent column"). Every clause — the sentence's four, then the
+ * optional ones (technology, posted, fit, sponsorship) — each with its own heading and ITS OWN panel's options, so a count
+ * here is the same number its word's panel shows (D153 (2): known matches only). Each open set keeps its own find box.
+ * Salary & more stays one press away (the drawer it always opened).
+ */
+export function AllFilters({ params, facets, defaultDomain, onPatch, otherFilterCount = 0, onMoreFilters }) {
+  const [finds, setFinds] = useState({});
+  return (
+    <div className="fh-all" data-all-filters="">
+      {sentenceClauses().map(c => (
+        <div key={c.key} className="fh-all__sec" data-all-clause={c.key}>
+          <span className="fh-k">{c.label}</span>
+          <ClauseOptions clause={c} params={params} facets={facets} defaultDomain={defaultDomain}
+            find={finds[c.key] || ""} setFind={(v) => setFinds(f => ({ ...f, [c.key]: v }))} onPatch={onPatch} />
+        </div>
+      ))}
+      <div className="fh-all__sec">
+        <button type="button" className="fh-op" data-all-more="" onClick={() => onMoreFilters?.()}>
+          {otherFilterCount > 0 ? `Salary & more · ${otherFilterCount} on` : "Salary & more"}
+        </button>
+      </div>
+    </div>
   );
 }
 

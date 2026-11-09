@@ -25,6 +25,7 @@ import "./FullHouse.css";
 // Props: params, defaultDomain, nothingMatches, open (the board's one panel value), onToggle(key)
 export const SENTENCE_ID = "fh-sentence";
 export const PANEL_ID = "fh-panel";
+export const ALL_FILTERS_ID = "fh-all-filters";   // A146: the word after the sentence
 
 export default function BoardHeadline({ params = {}, defaultDomain = null, nothingMatches = false, open = null, onToggle }) {
   const { verb, slots } = sentenceParts(params, { defaultDomain, nothingMatches });
