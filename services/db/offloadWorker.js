@@ -27,6 +27,7 @@ if (!isMainThread && workerData?.__draftOffload) {
     import("../jobs/publicJobPage.js"), import("../jobs/landingPages.js"), import("../jobs/taxonomyBackfill.js"),
   ]);
   const { publicOpenRange } = await import("../jobs/publicOpenJobs.js");
+  const { readAggregate } = await import("../companies/companyTech.js");   // ⛔ A159
   registerBoardSearch(conn); registerScoreFreshness(conn); registerDescriptionBasis(conn);
   const TASKS = {
     sitemapCompanies: () => pub.companiesSitemapRoutes(conn),
@@ -36,6 +37,7 @@ if (!isMainThread && workerData?.__draftOffload) {
     landingPage: ({ kind, key, base }) => landing.renderLandingPage(conn, kind, key, { base }),
     taxonomyRange: ({ from, rows }) => tax.classifyRange(conn, from, rows),
     publicOpenRange: ({ from, rows }) => publicOpenRange(conn, from, rows),
+    companyTechAgg: ({ from, to, nowSec }) => readAggregate(conn, from, to, nowSec),
   };
   parentPort.on("message", ({ id, task, args }) => {
     try {

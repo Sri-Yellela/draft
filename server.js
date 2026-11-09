@@ -7728,7 +7728,7 @@ setInterval(() => classifyBacklog.run("interval"), 6 * 60 * 60 * 1000).unref();
 // for postings crawled since. Kill switch: COMPANY_RECORDS=off.
 companyLinker = createCompanyLinker(db);
 // ⭐ D179 P5a: each company's stack from its own postings (services/companies/companyTech.js), after the linker. Kill switch: COMPANY_TECH=off.
-companyTech = createCompanyTech(db);
+companyTech = createCompanyTech(db, { offloadAgg: (args) => offload.run("companyTechAgg", args) });   // ⛔ A159 (45r): the aggregate's read off the loop
 // ⭐ D179 P2: every active posting to Category → Subcategory (the approved taxonomy), after the classify walk. TAXONOMY_BACKFILL=off.
 // ⛔ A158 (45r): its read + classify half runs on the offload worker; only the short writes run here.
 taxonomyBackfill = createTaxonomyBackfill(db, { offload: (args) => offload.run("taxonomyRange", args) });
