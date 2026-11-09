@@ -437,11 +437,11 @@ test("④ one statement for the headline and ONE per clause — never one per op
   // in the headline's statement, and the ALL view (no view param set) IS the headline's total — here location and
   // sponsorship (unset) and ALL: three fewer measures. Their counts are still the board's own (the "④ ⭐ every facet
   // count" test above checks every option against the board).
-  const FOLDED = ["location", "sponsorship"];
+  const FOLDED = ["location", "sponsorship", "tech"];   // A145 (45o): tech, unset, rides in the head
   const own = sentence.SENTENCE_CLAUSES.filter(c => !FOLDED.includes(c.key));
   assert.equal(calls.length, 4 + own.length);   // head · ★ · + · /d (A91) · the unfolded clauses
   // + the location clause's place read and (D179 (a), on purpose) the role clause's one grouped read, both on the head's bindings
-  assert.equal(prepares, 4 + own.length + 2);
+  assert.equal(prepares, 4 + own.length + 3);   // A145 (45o, on purpose): + tech's one grouped read (job_tech)
   // Paging and the cursor are never forwarded (a list cursor must not 400 a facets call).
   for (const q of calls) { assert.ok(!("page" in q) && !("cursor" in q)); }
   // Each clause's base set drops exactly its own params — both of the age control's. (D30: six

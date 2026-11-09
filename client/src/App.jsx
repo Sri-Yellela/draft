@@ -193,8 +193,7 @@ function BoardHeadlineSlot() {
   return (
     <>
       <BoardHeadline params={params} defaultDomain={defaultDomain} nothingMatches={nothingMatches}
-        open={boardPanel} onToggle={(key) => setBoardPanel(current => nextBoardPanel(current, key))}
-        onClearTech={() => onPatch?.({ tech: "" })} />
+        open={boardPanel} onToggle={(key) => setBoardPanel(current => nextBoardPanel(current, key))} />
       <WordPanel open={boardPanel} params={params} defaultDomain={defaultDomain}
         facets={facets} facetsStatus={facetsStatus} otherFilterCount={otherFilterCount}
         onPatch={onPatch} onOpen={(key) => setBoardPanel(key)} onClose={() => setBoardPanel(null)}
