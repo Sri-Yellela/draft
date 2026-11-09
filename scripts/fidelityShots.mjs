@@ -674,7 +674,7 @@ const STYLE_PROBES = {
     const eb = jobs?.querySelector(".dh-fold2__eyebrow"), h = jobs?.querySelector(".dh-fold2__h"), tg = jobs?.querySelectorAll(".dh-tg")[1];
     const on = jobs?.querySelector('.dh-swb[aria-checked="true"]');
     const done = jobs?.querySelector("[data-fold-done]");
-    out.jobs = jobs && { eyebrowColor: cs(eb).color, eyebrowSize: cs(eb).fontSize, hFamily: cs(h).fontFamily, hSize: cs(h).fontSize, hWeight: cs(h).fontWeight, hLetter: cs(h).letterSpacing, hLine: cs(h).lineHeight,
+    out.jobs = jobs && { eyebrow: !!eb, /* 45s: D182 (45n) removed the fold eyebrow that repeated its title */ hFamily: cs(h).fontFamily, hSize: cs(h).fontSize, hWeight: cs(h).fontWeight, hLetter: cs(h).letterSpacing, hLine: cs(h).lineHeight,
                          rowPadding: cs(tg).padding, rowBorder: `${cs(tg).borderTopWidth} ${cs(tg).borderTopColor}`, smallColor: cs(tg.querySelector("small")).color, smallSize: cs(tg.querySelector("small")).fontSize,
                          switchOn: on && { role: on.getAttribute("role"), tag: on.tagName, box: box(on), radius: cs(on).borderTopLeftRadius, bg: cs(on).backgroundColor, knobBg: cs(on, "::after").backgroundColor, knobLeft: cs(on, "::after").left, knobSize: cs(on, "::after").width },
                          done: done && { bg: cs(done).backgroundImage, color: cs(done).color, radius: cs(done).borderTopLeftRadius, padding: cs(done).padding, weight: cs(done).fontWeight } };
@@ -704,7 +704,7 @@ const STYLE_PROBES = {
       dock: (() => { const e = document.querySelector("[data-nav-dock]"); if (!e) return null; const r = e.getBoundingClientRect(); return { place: document.documentElement.getAttribute("data-dock-place"), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), reserve: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--appnav-top-reserve")) || 0 }; })(),   // D167: where the dock sits, and the room the page leaves under a top one
       canvas: cs(document.documentElement).getPropertyValue("--c-canvas").trim(),
       title: { ...font(title), ...box(title) },
-      line: font(q("[data-house-line]")),
+      line: font(q("[data-house-header] .dh-head__say")),   /* 45s: D182 (45n) removed the [data-house-line] sentence; the line under the title is the daily question's */
       mode: fill(q(".dh-head__ctl .dh-mode")), modeOn: { ...fill(q('[data-mode][aria-pressed="true"]')), ...font(q('[data-mode][aria-pressed="true"]')) },
       quiet: { ...fill(q("[data-settings-open]")), ...font(q("[data-settings-open]")) },
       send: { ...fill(q("[data-send-all-ready]")), ...font(q("[data-send-all-ready]")) },

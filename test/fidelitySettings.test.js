@@ -54,7 +54,8 @@ test("fidelity · the settings drawer (settings-declutter.html): drawer, title, 
     assert.deepEqual([d.howmany.btn, d.howmany.btnRadius, d.howmany.btnBg], [{ w: 44, h: 44 }, "14px", RAISE]);
     assert.deepEqual([d.howmany.nSize, d.howmany.nWeight, d.howmany.nColor], ["44px", "500", ACCENT]);
     // .eyebrow, h3, .tg
-    assert.deepEqual([d.jobs.eyebrowColor, d.jobs.eyebrowSize], [ACCENT, "14px"], `${size}: the accent eyebrow`);
+    // D182 (45n, owner 11-08 decision (8), changed on purpose): the accent eyebrow repeated the fold's own title — removed.
+    assert.equal(d.jobs.eyebrow, false, `${size}: no eyebrow restating the title`);
     assert.match(d.jobs.hFamily, /^"Inter Tight"/, `${size}: the headline in the interface face, not the serif`);
     assert.deepEqual([d.jobs.hSize, d.jobs.hWeight, d.jobs.hLetter, d.jobs.hLine], ["30px", "500", "-0.9px", "32.4px"], `${size}: 500 30px/1.08, -.03em`);
     assert.deepEqual([d.jobs.rowPadding, d.jobs.rowBorder, d.jobs.smallColor, d.jobs.smallSize], ["12px 0px", `1px ${LINE}`, MUTED, "13px"]);
