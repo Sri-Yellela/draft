@@ -86,7 +86,7 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
       {(run.pod || run.live) && (
         <div className="run-social" data-run-social="">
           {run.pod && <Link className="atl__link" to={`${base}/league`} data-run-pod={run.pod.place}>{run.pod.line}</Link>}
-          {run.live && <p className="atl__quiet run-live" data-run-live={run.live.n}><span className="run-live__dot" aria-hidden="true" />{run.live.line}</p>}
+          {run.live && <p className="atl__quiet run-live" data-run-live={run.live.n}>{run.live.line}</p>}
         </div>
       )}
       {/* ⭐ D178-4 (owner's pick, Idea B): a month of lit squares — a day with proof is lit, the week's rest day dashed, today outlined. */}

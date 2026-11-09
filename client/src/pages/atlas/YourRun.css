@@ -56,5 +56,4 @@
 
 /* A154 (45s) · Your run's pod line and live count (only when their switch is on). */
 .run-social { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; margin: -8px 0 18px; }
-.run-live { margin: 0; display: inline-flex; align-items: center; gap: 8px; }
-.run-live__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-success); }
+.run-live { margin: 0; }
