@@ -347,7 +347,8 @@ try {
       return A.$("[data-dock-search] input.appnav-search__input"); };
     let box = await open();
     await box.type("data engineer", { delay: 30 }); await sleep(900);
-    await A.keyboard.press("Escape"); await sleep(400);
+    // the first Esc closes the suggestion list (the typed words stay), the second closes the search (UsbSuggest / DockSearch)
+    await A.keyboard.press("Escape"); await sleep(300); await A.keyboard.press("Escape"); await sleep(400);
     const escClosed = await A.evaluate(() => !document.querySelector("[data-dock-search]"));
     say("a158dx", escClosed && /\/app\/atlas\/your-run/.test(A.url()), `Esc closes the search and stays put (${A.url().replace(BASE, "")})`);
     box = await open();
