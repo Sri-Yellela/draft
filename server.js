@@ -7547,6 +7547,14 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // D185-7 (45q, owner 11-09) · "How did you hear about us?" → "draft", only when the person agreed (and only for jobs
+      // they found on draft — routes/apply.js withHowHeard). NULL / 0 = off: never answered for them by default. Only ADDS.
+      id: "260_user_credit_draft",
+      sql: `
+        ALTER TABLE user_profile ADD COLUMN credit_draft INTEGER;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -13184,6 +13192,21 @@ app.get("/api/admin/atlas-backlog/item", requireAdmin, (req, res) => {
 app.post("/api/admin/atlas-backlog/:id/review", requireAdmin, (req, res) => {
   try { res.json(reviewOutline(db, req.params.id, { status: req.body?.status, by: req.user?.username || req.admin?.email || null })); }
   catch (e) { res.status(e.status || 500).json({ error: e.code || "review_failed", message: e.message }); }
+});
+// ⭐ D185-7 (45q) · the person's own choice: answer "How did you hear about us?" with draft — off until they turn it on.
+app.get("/api/profile/credit-draft", requireAuth, (req, res) => {
+  try {
+    const v = db.prepare("SELECT credit_draft FROM user_profile WHERE user_id=?").pluck().get(req.user.id);
+    res.set("Cache-Control", "private, no-store").json({ on: v === 1 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put("/api/profile/credit-draft", requireAuth, (req, res) => {
+  try {
+    if (typeof req.body?.on !== "boolean") return res.status(400).json({ error: "bad_value", message: "On or off." });
+    db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(req.user.id);
+    db.prepare("UPDATE user_profile SET credit_draft = ? WHERE user_id = ?").run(req.body.on ? 1 : 0, req.user.id);
+    res.json({ on: req.body.on });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // ⭐ D185-5 (45q) · outcomes — interviews / offers per application and per active person, by week (read workers).
 app.get("/api/admin/outcomes", requireAdmin, async (req, res) => {

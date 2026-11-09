@@ -35,6 +35,7 @@ import {
 import { isOptInQuestion, workedHereAnswer, COMPANY_TOKEN, isEeoDecline } from "../shared/savedAnswers.js";
 import { skillsOfStructured, PARSE_FAILED_MESSAGE } from "./payloadResume.js";
 import { packetLifecycleAnswers } from "./answerLifecycle.js";
+import { questionLabelKey } from "../shared/answerKey.js";
 
 /** handler_map's EEO keys (buildAutofillPayload) — what an eeoDeclines entry may name. */
 export const EEO_DECLINE_HANDLERS = Object.freeze(["gender", "ethnicity", "veteran", "disability"]);
@@ -290,6 +291,14 @@ export function packetSavedAnswers(autofillPayload = {}) {
     records: autofillPayload?.saved_answer_records || [],
     legacyAcknowledgedAt: autofillPayload?.saved_answers_legacy_at ?? null,
   });
+  // ⭐ D185-7: "How did you hear about us?" → "draft" — ONLY when the person agreed and found this job on draft (the caller
+  // decides both: shared/sourceAttribution.js howHeardAnswers). The person's own saved answer to the question wins.
+  const have = new Set(saved.map(s => s.questionKey));
+  for (const h of Array.isArray(autofillPayload?.how_heard) ? autofillPayload.how_heard : []) {
+    const k = questionLabelKey(h.question);
+    if (have.has(k)) continue;
+    saved.push({ ...h, questionKey: k, acknowledgedAt: null, widgetKind: "any", options: null, attesting: false });
+  }
   if (saved.length) out.savedAnswers = saved;
   const wh = autofillPayload?.worked_here;
   if (wh?.company) {

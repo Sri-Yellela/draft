@@ -35,6 +35,7 @@ import CustomisePanel from "../../panels/CustomisePanel.jsx";
 import YourProfile from "./YourProfile.jsx";
 import { EXTENSION_PAGE } from "../../../../shared/extension.js";
 import { PROFILE_GROUPS, profilePath } from "./profilePanels.js";
+import { api } from "../../lib/api.js";
 import "./ProfilePage.css";
 
 /** The cards of Account each panel draws (AccountPanel `only`). */
@@ -45,6 +46,23 @@ export const ACCOUNT_CARDS = Object.freeze({
   privacy: ["data", "delete"],
   account: ["profile", "email", "security", "sessions", "merge", "allowance", "help", "signout"],
 });
+
+// ⭐ D185-7 (45q): the person's own choice — when an application asks how they heard about the job, answer "draft", and only
+// for jobs they found on draft (a job they brought in themselves is never credited). Off until they turn it on.
+function CreditDraftChoice() {
+  const [on, setOn] = useState(null);
+  useEffect(() => { api("/api/profile/credit-draft").then(r => setOn(!!r.on)).catch(() => setOn(null)); }, []);
+  if (on === null) return null;
+  const set = async (v) => { try { setOn((await api("/api/profile/credit-draft", { method: "PUT", body: JSON.stringify({ on: v }) })).on); } catch { /* left as it was */ } };
+  return (
+    <label className="pp-credit" data-credit-draft={on ? "on" : "off"} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 16, fontSize: 13 }}>
+      <input type="checkbox" role="switch" checked={on} aria-checked={on} onChange={e => set(e.target.checked)} />
+      <span>When an application asks <i>How did you hear about us?</i>, answer <b>draft</b>
+        <span style={{ display: "block", color: "var(--color-text-muted)", fontSize: 12 }}>Only for jobs you found on draft — never for a job you brought in yourself. Your own saved answer to that question always wins.</span>
+      </span>
+    </label>
+  );
+}
 
 function ProfileAutoApply() {
   const { runBar = null, setApplyMode, holdBusy = false, setStopEverything } = useAutoApply() || {};
@@ -149,6 +167,7 @@ export default function ProfilePage({ panel = "about", onSignedOut }) {
         lead="The answers you gave during applications. draft reuses them; it never makes up salary, eligibility or legal answers." />
       <ProfilePanel section="answers" onOpenJobProfiles={() => navigate("/app/job-profiles")} />
       <SavedAnswersPanel />
+      <CreditDraftChoice />
     </>
   );
   else if (panel === "autoapply") body = <ProfileAutoApply />;
