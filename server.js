@@ -107,10 +107,11 @@ import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landing
 import { startAudit, answerAudit, auditResult, claimAudit } from "./services/audit/auditSession.js";
 import { todaysQuestion, answerToday } from "./services/learn/dailyQuestion.js";
 import { readReminder, setReminder, runDailyReminders } from "./services/learn/dailyReminder.js";
-import { readMatchAlertSettings, setMatchAlertSettings, runMatchAlerts, matchAlertTimings } from "./services/jobs/newMatchAlerts.js";
+import { readMatchAlertSettings, setMatchAlertSettings, runMatchAlertsSlice, matchAlertTimings } from "./services/jobs/newMatchAlerts.js";
 import { outcomeMetrics, gatherOutcomeApps } from "./services/outcomeMetrics.js";
 import { unlocksFor, activeProfileFor } from "./services/jobs/skillUnlocks.js";
 import { contentBacklog, draftOutline, reviewOutline, readBacklogItem } from "./services/atlas/risingSkills.js";
+import { enqueue as enqueueJob, registerHandler as registerJob, startWorker as startJobWorker, pruneJobs, queueStats } from "./services/ops/jobQueue.js";
 import { seedTaxonomyRoles } from "./services/atlas/taxonomyRoleNodes.js";
 import { TAXONOMY_FILE } from "./services/jobs/taxonomyClassify.js";
 import { setAim as setNavigatorAim } from "./services/navigator.js";
@@ -7555,6 +7556,32 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         ALTER TABLE user_profile ADD COLUMN credit_draft INTEGER;
       `,
     },
+    {
+      // D151 RULE 2 (45q) · ONE BACKGROUND JOB SYSTEM (services/ops/jobQueue.js): whole-board work leaves the request path
+      // and runs as leased, time-budgeted slices with retries and a recorded duration. ONE pending / running job per
+      // (kind, key) — the partial unique index is the dedupe. Only ADDS.
+      id: "261_bg_jobs",
+      sql: `
+        CREATE TABLE IF NOT EXISTS bg_jobs (
+          id           INTEGER PRIMARY KEY AUTOINCREMENT,
+          kind         TEXT NOT NULL,
+          key          TEXT NOT NULL DEFAULT '',
+          status       TEXT NOT NULL CHECK (status IN ('pending', 'running', 'done', 'failed')),
+          run_after    INTEGER NOT NULL,
+          lease_until  INTEGER,
+          attempts     INTEGER NOT NULL DEFAULT 0,
+          slices       INTEGER NOT NULL DEFAULT 0,
+          payload_json TEXT,
+          last_error   TEXT,
+          duration_ms  INTEGER NOT NULL DEFAULT 0,
+          created_at   INTEGER NOT NULL,
+          started_at   INTEGER,
+          finished_at  INTEGER
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_bg_jobs_one_live ON bg_jobs(kind, key) WHERE status IN ('pending', 'running');
+        CREATE INDEX IF NOT EXISTS idx_bg_jobs_due ON bg_jobs(status, run_after);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -13229,11 +13256,24 @@ app.get("/api/admin/match-alerts", requireAdmin, (req, res) => {
   try { res.json(matchAlertTimings(db, { days: Math.min(90, Math.max(1, Number(req.query?.days) || 30)) })); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
-if (process.env.MATCH_ALERTS !== "off") setInterval(() => {
-  runMatchAlerts(db, readPool, (userId, event, data) => notifyEvent(userId, event, data), { appUrl: APP_BASE_ORIGIN || "" })
-    .then(n => { if (n) console.log(`[alerts] new-match messages sent: ${n}`); })
-    .catch(e => console.warn(`[alerts] new matches: ${e.message}`));
-}, 10 * 60 * 1000).unref();
+// ⭐ D151 Rule 2 (45q): the sweep is the job system's first kind — enqueued every 10 minutes (one live job per kind + key),
+// run by the worker in ≤ 200 ms slices of people, resumed from the last person, retried with backoff on a throw.
+registerJob("match_alerts", async ({ payload, deadline }) => {
+  const r = await runMatchAlertsSlice(db, readPool, (userId, event, data) => notifyEvent(userId, event, data),
+    { appUrl: APP_BASE_ORIGIN || "", afterUserId: Number(payload?.after) || 0, deadline, nowSec: Number(payload?.at) || undefined });
+  if (r.sent) console.log(`[alerts] new-match messages sent: ${r.sent}`);
+  return r.done ? { done: true } : { done: false, payload: { after: r.lastUserId, at: payload?.at } };
+});
+if (process.env.BG_JOBS !== "off") {
+  startJobWorker(db, { everyMs: 1000, budgetMs: 200 });
+  setInterval(() => { try { pruneJobs(db); } catch { /* next day */ } }, 6 * 60 * 60 * 1000).unref();
+  if (process.env.MATCH_ALERTS !== "off") setInterval(() => {
+    try { enqueueJob(db, "match_alerts", "sweep", { payload: { at: Math.floor(Date.now() / 1000) } }); } catch (e) { console.warn(`[alerts] enqueue: ${e.message}`); }
+  }, 10 * 60 * 1000).unref();
+}
+app.get("/api/admin/jobs", requireAdmin, (req, res) => {
+  try { res.json({ kinds: queueStats(db) }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
 app.post("/api/learn/today/answer", requireAuth, (req, res) => {
   try { res.json(answerToday(db, req.user.id, String(req.body?.day || ""), { chosen: Number(req.body?.chosen), response: Array.isArray(req.body?.response) ? req.body.response.slice(0, 8) : null, ms: Number(req.body?.ms) || null })); }
   catch (e) { auditFail(res, e); }

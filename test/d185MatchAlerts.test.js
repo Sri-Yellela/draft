@@ -135,7 +135,7 @@ test("d185AlertsBeachhead: a person who needs sponsorship sees sponsors first, a
 
 test("d185 alerts: wired — the sweep on the read workers, the routes, the merge plan, migration 258 in both runners", () => {
   const server = fs.readFileSync(new URL("../server.js", import.meta.url), "utf8");
-  assert.ok(server.includes("runMatchAlerts(db, readPool,"), "the candidates are read on the workers (A126)");
+  assert.ok(server.includes("runMatchAlertsSlice(db, readPool,"), "the candidates are read on the workers (A126), as job-system slices (D151 Rule 2)");
   assert.ok(server.includes('app.put("/api/alerts/matches/settings", requireAuth'));
   assert.ok(server.includes('app.get("/api/admin/match-alerts", requireAdmin'));
   assert.equal(MERGE_PLAN.match_alerts, "keepInto"); assert.equal(MERGE_PLAN.match_alert_settings, "keepInto");

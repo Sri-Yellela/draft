@@ -21,6 +21,8 @@ for (const k of ["ANTHROPIC_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_WORKSPACE_ID"]
 
 // D185-1: the application-schema reader's background warm-up never calls a live ATS from the suite.
 if (!process.env.DRAFT_SCHEMA_READER) process.env.DRAFT_SCHEMA_READER = "off";
+// D151 Rule 2: a booted server in a test runs no background worker (the queue is tested directly, d151Jobs*).
+if (!process.env.BG_JOBS) process.env.BG_JOBS = "off";
 
 if (!process.env.USAGE_FAILURE_SINK_PATH) {
   process.env.USAGE_FAILURE_SINK_PATH = path.join(os.tmpdir(), `draft-test-sink-${process.pid}.jsonl`);

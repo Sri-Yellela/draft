@@ -162,6 +162,7 @@ const ADMIN = new Set([
   "DELETE /api/admin/tailoring",
   "GET /api/admin/match-alerts",   // D185-2: time from posting to alert, per source
   "GET /api/admin/outcomes",
+  "GET /api/admin/jobs",                // D151 Rule 2: the background job queue per kind
   "GET /api/admin/atlas-backlog",       // D185-3: rising skills → the Atlas content backlog
   "POST /api/admin/atlas-backlog/draft",
   "GET /api/admin/atlas-backlog/item",
