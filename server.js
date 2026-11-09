@@ -200,6 +200,7 @@ import { callTask } from "./services/modelGateway.js";
 // ⛔ D173 (1): untrusted text (postings) reaches a model only fenced, and the output is checked.
 import { buildCoverLetterRequest, checkCoverLetter } from "./services/coverLetterPrompt.js";
 import { describeViolations } from "./services/untrustedText.js";
+import { extractPdfText } from "./services/pdfText.js";   // 45s: PDF text with a current pdf.js fallback
 import { rankTerms, removedTerms } from "./services/keywordTerms.js";   // D186-4
 import { answerDraftsEnabled, ANSWER_DRAFTS_SETTING, draftableQuestion, buildAnswerDraftRequest, checkAnswerDraft } from "./services/applicationAnswerDraft.js";   // D185-1 (45s)
 import { cachedApplicationSchema as cachedSchemaForDraft } from "./services/jobs/applicationSchema.js";
@@ -14783,9 +14784,10 @@ app.post("/api/parse-pdf", requireAuth, upload.single("file"), async (req, res) 
   // in its own section; the table layout comes out row-interleaved (sections mixed — the model's
   // "preserve section structure" could untangle that); a scan has no text layer at all (the model
   // read images). Neither of those is guessed at: a scan is refused with what to do instead.
+  // ⭐ 45s (owner 11-09, "Could not read this PDF??"): services/pdfText.js — pdf-parse, then the current pdf.js when it refuses.
   try {
-    const { default: pdfParse } = await import("pdf-parse/lib/pdf-parse.js");
-    const text = ((await pdfParse(req.file.buffer)).text || "").trim();
+    const { text, errors } = await extractPdfText(req.file.buffer);
+    if (!text && errors.length) throw new Error(errors.join(" | "));
     if (text.length < 50) {
       return res.status(422).json({ error: "This PDF has no readable text — it looks like a scan or an image",
         code: "pdf_no_text_layer", retryable: false,
