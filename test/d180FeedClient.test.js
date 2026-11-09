@@ -27,7 +27,8 @@ test("d180FeedClient: a member's link is plain words, What you share is drawn, d
 
 test("d180FeedClient: the company page asks the server who works here, only while the network is on", () => {
   const src = read("pages/companies/CompanyPage.jsx");
-  assert.match(src, /\{networkOn && <WorksHere company=\{c\.name\} job=\{focus \|\| null\} \/>\}/);
-  assert.match(src, /\/api\/network\/at-company\?name=/);
-  assert.match(src, /if \(!r \|\| !r\.count\) return null;/, "nothing drawn when no one works here");
+  // 45s (on purpose): WorksHere is one shared component now (components/WorksHere.jsx) — the company page mounts it with the switch known.
+  assert.match(src, /\{networkOn && <WorksHere company=\{c\.name\} job=\{focus \|\| null\} enabled \/>\}/);
+  assert.match(fs.readFileSync("client/src/components/WorksHere.jsx", "utf8"), /\/api\/network\/at-company\?name=/);
+  assert.match(fs.readFileSync("client/src/components/WorksHere.jsx", "utf8"), /if \(!r \|\| !r\.count\) return null;/, "nothing drawn when no one works here");
 });

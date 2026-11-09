@@ -29,6 +29,7 @@ import { resolveCaptureLogo } from "../services/jobs/companyLogoStore.js";
 import { setEvidence, readProofPage, setProofPage } from "../services/proofLinks.js";
 import { profilePage, viewFor, setVisibility, addAchievement, removeAchievement } from "../services/profilePage.js";
 import { refreshPerson } from "../services/peopleSearch.js";
+import { currentRoles, noteNewRole } from "../services/network/feed.js";   // D180 (4) (45s): *started a new role*, opt-in
 import { latestReplacement, keepReplacement, undoReplacement } from "../services/profileReplace.js";
 import { saveBaseResumeRecord, upsertSimpleApplyProfile } from "../services/simpleApplyProfile.js";
 
@@ -62,7 +63,12 @@ export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo
     res.json(withEntities(readProfile(db, req.user.id)));
   });
   app.put("/api/profile/sections/:section", requireAuth, (req, res) => {
-    try { saveSection(db, req.user.id, req.params.section, req.body || {}); res.json(withEntities(readProfile(db, req.user.id))); }
+    try {
+      const before = req.params.section === "experience" ? currentRoles(db, req.user.id) : null;
+      saveSection(db, req.user.id, req.params.section, req.body || {});
+      if (before) { try { noteNewRole(db, req.user.id, before); } catch { /* the save stands without the post */ } }
+      res.json(withEntities(readProfile(db, req.user.id)));
+    }
     catch (e) { fail(res, e); }
   });
   app.put("/api/profile/evidence", requireAuth, (req, res) => {
