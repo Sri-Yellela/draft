@@ -38,7 +38,9 @@ test("A153 part 2 · photo on the profile, the page's own replace, edited marks,
   assert.match(yp, /function PhotoUpload\(\{ has \}\)/);
   assert.match(yp, /await api\("\/api\/account\/avatar", \{ method: "POST", body: form \}\);\s*announceAccountChanged\(\);/, "the account's one picture");
   assert.match(yp, /await api\("\/api\/parse-pdf", \{ method: "POST", body: form \}\);/);
-  assert.match(yp, /\/api\/domain-profiles\/\$\{page\.activeProfileId\}\/base-resume/);
+  // D186-3 (45s, on purpose): the replace goes through replaceInto(profileId, …) — with no profile the upload MAKES one.
+  assert.match(yp, /\/api\/domain-profiles\/\$\{profileId\}\/base-resume/);
+  assert.match(yp, /await replaceInto\(page\.activeProfileId, text, file\.name\);/);
   assert.match(yp, /window\.dispatchEvent\(new Event\(RESUME_REPLACED_EVENT\)\);/, "then What changed (P2)");
   for (const id of ["contact", "defaults", "resumes", "skills", "tailoring", "proofpage"]) assert.ok(yp.includes(`<BehindRow id="${id}"`), id);
   assert.match(yp, /\{mounted \? children : null\}/, "a row mounts its editor only once opened");
