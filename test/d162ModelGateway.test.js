@@ -14,6 +14,7 @@ import { callTask, resolveRoute, effectiveRoute, applyRouteChange, rollbackRoute
 import { recordEval, passRule, canTakeTask, EVAL_SETS } from "../services/modelEvals.js";
 import { assertTrainingRows, trainingRefusal } from "../services/trainingData.js";
 import { recordToolsServiceUsage, TOOLS_SERVICE_TASKS } from "../services/toolsService.js";
+import { fenceUntrusted } from "../services/untrustedText.js";
 
 const TASK = "cover_letter.write";
 const ADMIN = { kind: "admin", ref: "admin:adm_test", userId: null, adminId: 1 };
@@ -61,7 +62,9 @@ function stubAnthropic({ failModels = [], failWith = "overloaded_error" } = {}) 
   };
 }
 
-const msgs = [{ role: "user", content: "Write a cover letter for Pat Example." }];
+// 45n D173 (1) tail (e398a3f0): cover_letter.write declares the posting untrusted, and callTask refuses it unfenced — the
+// fixture now sends its posting fenced, as the real call sites do (fixture moved on purpose; the refusal is the gateway's).
+const msgs = [{ role: "user", content: `Write a cover letter for Pat Example.\n${fenceUntrusted("posting", "Data Engineer at Northwind.")}` }];
 const passingMetrics = { sampleSize: 25, errorRate: 0, blindWinOrTieRate: 0.6, costPerCallUsd: 0.004, latencyP50Ms: 3000, latencyP95Ms: 9000 };
 const NOENV = {};
 

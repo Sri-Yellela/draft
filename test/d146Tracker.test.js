@@ -302,8 +302,10 @@ test("d146TimelineBesideDesktop — the table, and the timeline card beside it a
   assert.ok(at(mainJsx, "<ApplicationTracker rows={shownRows}") < at(mainJsx, "<DraftHouseTree view={view}"), "the table, then the timeline");
   // D149 (11-03) changed this on purpose: the sketch's head is two lines — "Auto-apply", then the mode and run times.
   assert.match(panel, />Auto-apply<\/h3>/);
-  assert.match(panel, /<p className="dht-head__sub">\{fullAuto \? "Apply for me" : "Ask me first"\}\{runsWord\}<\/p>/);
-  assert.match(panel, /` · runs at \$\{runTimes\.length > 1 \?/);
+  // 45n D182 (18d82c2c): the mode words left this line (the header's mode switch shows them); the run times stay,
+  // as their own sentence (pins moved on purpose).
+  assert.match(panel, /\{runsWord && <p className="dht-head__sub">\{runsWord\}<\/p>\}/);
+  assert.match(panel, /`Runs at \$\{runTimes\.length > 1 \?/);
   assert.match(tree, /data-timeline=""/);
   // ... and "why these" only when the run looked at something (the sketch's empty run: "0 looked at · 0 picked").
   assert.match(tree, /\{run\.seen\} looked at · \{run\.picked\} picked\s*\{\(run\.seen > 0 \|\| run\.picked > 0 \|\| runOpen\) && /);
