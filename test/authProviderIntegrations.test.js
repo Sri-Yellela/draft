@@ -22,7 +22,9 @@ test("auth entry exposes Google, LinkedIn and GitHub provider login options", ()
   // short /auth/:provider alias are asserted there now (changed on purpose).
   const block = fs.readFileSync("client/src/components/SignInProviders.jsx", "utf8");
   const ret = fs.readFileSync("client/src/lib/signInReturn.js", "utf8");
-  assert.match(auth, /<SignInProviders/);
+  // 45r: this regex held a literal BACKSPACE byte (0x08) where `\b` was meant — written through a shell that ate the
+  // escape (1d9e31f5, A138) — so it could never match; restored to `\b`.
+  assert.match(auth, /<SignInProviders\b/);
   assert.match(block, /Continue with \{LABEL\[p\]\}/);
   assert.match(block, /api\("\/api\/auth\/oauth\/status"\)/);
   assert.match(block, /!!providers\[p\]\?\.configured/);

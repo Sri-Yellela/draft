@@ -110,5 +110,7 @@ test("deckCardShowsScore: every account's card carries its stored score, drawn a
   assert.match(deck, /facts\.why\.missing\.map\(\(t\) => <span key=\{`x-\$\{t\}`\} data-chip="missing"/);
   assert.match(read("client/src/lib/deckCardFacts.js"), /value: `\$\{Math\.max\(0, Math\.min\(100, Math\.round\(card\.score\)\)\)\}%`, word: "résumé match"/);
   assert.doesNotMatch(deck, /Drafted \$\{tally\.drafted\}/);
-  assert.match(read("server.js"), /\n    deck\.cards = deck\.cards\.map\(c => \(\{ \.\.\.c, score: scoreFor\(c\.job\.id\) \}\)\);/);
+  // 45l D179 (cdd72637): the same map now also carries the card's Works with and public path — the score still rides
+  // on every card (pin moved on purpose).
+  assert.match(read("server.js"), /\n    deck\.cards = deck\.cards\.map\(c => \(\{ \.\.\.c, score: scoreFor\(c\.job\.id\),/);
 });
