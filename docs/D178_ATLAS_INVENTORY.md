@@ -26,6 +26,7 @@ circle and the navigator's extras were never unreachable, which is the thing D17
 | `/atlas/library/<deck>` | a deck, one slide at a time | stays; the lesson card's deck gesture (D178-3) | — |
 | `/atlas/learn` | Learn: four views (below) | **Retired** → the course in the Library, circle view, same piece | ✅ → `/atlas/library/silicon-to-software?view=circle` (45j) |
 | `/atlas/learn#step-<id>` | a piece, opened in the circle | → the course's circle view with that piece selected | ✅ the hash carried (45j) |
+| `/atlas/how-it-works` | How it works (A154, 45o — the D172 sketch: each idea as one flow) | new — Grow | — |
 | `/atlas/todays-question` | Today's question (not built, D154) | stays — Grow | — |
 | `/atlas/the-audit` | the audit (D150) | stays — Grow | — |
 | `/atlas/roles-and-skills` | roles and skills + search | stays — Explore | — |
@@ -50,12 +51,12 @@ D177; **"Fly my route to senior …"** → *Your map*'s track-board animation (�
 ## Reader-facing APIs (unchanged by the move; each keeps serving its new home)
 
 `GET /api/atlas/search` · `GET /api/atlas/resolve` · `GET /api/atlas/terms/:jobId` · `GET /api/atlas/peek/:slug` ·
-`GET /api/atlas/glossary` · `GET /api/atlas/run` · `GET /api/atlas/readiness` (D178-3) · `GET /api/atlas/readiness/compare` (D178-3, Idea E) · `GET /api/atlas/me` · `GET /api/atlas/role-fit` ·
+`GET /api/atlas/glossary` · `GET /api/atlas/run` · `PUT /api/atlas/prefs` (A155, 45o: weekdays only) · `GET /api/atlas/subcategory-roles` (D179 P6, 45l — listed 45o) · `GET /api/atlas/readiness` (D178-3) · `GET /api/atlas/readiness/compare` (D178-3, Idea E) · `GET /api/atlas/me` · `GET /api/atlas/role-fit` ·
 `GET /api/atlas/tree/role/:key` · `GET /api/atlas/tree/family/:key` · `POST /api/atlas/link-event` ·
 `GET /api/atlas/node/:slug`
 
 `GET /api/learn/` · `GET /api/learn/circle` · `GET /api/learn/circle/my-route` · `GET /api/learn/course/:id` ·
-`GET /api/learn/guides` · `GET /api/learn/pathways` (D155 Part C, 45j) · `GET /api/learn/deck/:id` · `POST /api/learn/deck/:id/answer` · `GET /api/learn/earned` ·
+`GET /api/learn/guides` · `GET /api/learn/pathways` (D155 Part C, 45j) · `GET /api/learn/how-it-works` (A154, 45o) · `GET /api/learn/deck/:id` · `POST /api/learn/deck/:id/answer` · `GET /api/learn/earned` ·
 `POST /api/learn/opened` · `PUT /api/learn/explained` · `PUT /api/learn/built` · `GET /api/learn/progress` ·
 `PUT /api/learn/progress` · `POST /api/learn/progress/import`
 

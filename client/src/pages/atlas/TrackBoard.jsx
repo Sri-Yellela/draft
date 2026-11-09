@@ -11,6 +11,17 @@ import { BOARD, layoutTrack, stationStates, startLine, stationHref, flightPlan, 
 import "./TrackBoard.css";
 
 const STATE_WORD = { done: "✓ you have it", next: "next", ahead: "" };
+// ⭐ A154 (45o, the D172 sketch's stop card: "an icon tile in that stop's colourway + the skill + one short line (proven /
+// next · 2 decks, 1 build)", joined to its station by a dotted stem). The counts are the navigator's real ones (decks that
+// teach the skill; its Learn lesson). Pure, so a test reads the line.
+export function stopLine(s) {
+  if (s.state === "done") return "proven";
+  const parts = [s.decks > 0 ? `${s.decks} deck${s.decks === 1 ? "" : "s"}` : null, s.learn ? "1 lesson" : null].filter(Boolean);
+  if (s.state === "next") return parts.length ? `next · ${parts.join(", ")}` : "next";
+  return parts.join(", ");
+}
+const CARD = { w: 132, h: 46, gap: 30 };
+const short = (t, n = 17) => (String(t).length > n ? `${String(t).slice(0, n - 1)}…` : String(t));
 // ⭐ D178 Fly my route: one frame per stop; the last one holds a moment, then the board returns to rest.
 const FRAME_MS = 1100, HOLD_MS = 1600;
 const reducedMotion = () => { try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } };
@@ -66,7 +77,9 @@ export default function TrackBoard({ base = "/app/atlas", signedIn = false }) {
         {frame && segments.map((s, i) => <path key={`f${i}`} d={s.d} pathLength="1" className={`trk-board__fly${i < frame.drawn ? " is-drawn" : ""}`} data-fly-seg={i < frame.drawn ? "drawn" : ""} />)}
         <g data-track-start="">
           <rect x={start.x - 46} y={start.y - 20} width="92" height="40" rx="12" className="trk-board__you" />
-          <text x={start.x} y={start.y + 6} textAnchor="middle" className="trk-board__you-t">You</text>
+          {/* A154: the sketch's "You" pill carries your years (the profile's own figure, when known). */}
+          <text x={start.x} y={start.y + (Number.isFinite(route.youYears) ? 0 : 6)} textAnchor="middle" className="trk-board__you-t">You</text>
+          {Number.isFinite(route.youYears) && <text x={start.x} y={start.y + 14} textAnchor="middle" className="trk-board__you-y" data-track-years={route.youYears}>{route.youYears} yr{route.youYears === 1 ? "" : "s"}</text>}
         </g>
         {stops.map(s => (
           <g key={s.slug} className={`trk-stop trk-stop--${s.state}`} data-station={s.slug} data-station-state={s.state}
@@ -74,8 +87,21 @@ export default function TrackBoard({ base = "/app/atlas", signedIn = false }) {
             {s.state === "next" && <circle cx={s.x} cy={s.y} r="26" className="trk-stop__pulse" />}
             <circle cx={s.x} cy={s.y} r="16" className="trk-stop__dot" />
             {s.state === "done" && <path d={`M ${s.x - 7} ${s.y} l 5 5 l 9 -10`} className="trk-stop__tick" />}
-            <text x={s.x} y={s.row === "top" ? s.y - 34 : s.y + 46} textAnchor="middle" className="trk-stop__name">{s.name}</text>
-            {STATE_WORD[s.state] && <text x={s.x} y={s.row === "top" ? s.y - 52 : s.y + 64} textAnchor="middle" className="trk-stop__state">{STATE_WORD[s.state]}</text>}
+            {(() => {
+              // A154: the stop's card, above a top-row station and below a bottom-row one, on a dotted stem.
+              const cy = s.row === "top" ? s.y - 16 - CARD.gap - CARD.h : s.y + 16 + CARD.gap, cx = s.x - CARD.w / 2;
+              const line = stopLine(s);
+              return (
+                <g className={`trk-card${s.state === "next" ? " is-next" : ""}`} data-stop-card={s.slug}>
+                  <line x1={s.x} y1={s.row === "top" ? s.y - 16 : s.y + 16} x2={s.x} y2={s.row === "top" ? cy + CARD.h : cy} className="trk-card__stem" />
+                  <rect x={cx} y={cy} width={CARD.w} height={CARD.h} rx="10" className="trk-card__box" />
+                  <rect x={cx + 8} y={cy + 9} width="28" height="28" rx="8" className="trk-card__tile" />
+                  <text x={cx + 22} y={cy + 28} textAnchor="middle" className="trk-card__ini">{String(s.name).trim().charAt(0).toUpperCase()}</text>
+                  <text x={cx + 44} y={cy + (line ? 20 : 28)} className="trk-stop__name">{short(s.name)}</text>
+                  {line && <text x={cx + 44} y={cy + 36} className="trk-stop__state" data-stop-line="">{line}</text>}
+                </g>
+              );
+            })()}
           </g>
         ))}
         <g data-track-flag="">

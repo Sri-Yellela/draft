@@ -21,7 +21,7 @@ import { BRAND } from "../../../../shared/brand.js";
 import AtlasGraph from "./AtlasGraph.jsx";
 import YourMap, { RoleMap, FamilyMap } from "./YourMap.jsx";
 import PlaceNav from "../../components/PlaceNav.jsx";
-import { OverviewPanel, YourSkillsSlot, YourRoutePanel, TodaysQuestionPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
+import { OverviewPanel, YourSkillsSlot, YourRoutePanel, TodaysQuestionPanel, HowItWorksPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
   PanelHead } from "./AtlasPanels.jsx";
 import { panelFor, isPanelSlug, PANEL_LABEL, ATLAS_NAV, panelHref, courseIdOf } from "./atlasPanels.js";
 import { LibraryShelf, CoursePage, PatternCoursePage, COURSES, courseKind } from "./LibraryPanel.jsx";
@@ -421,6 +421,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
       )}
       {panel === "your-skills" && <YourSkillsSlot signedIn={signedIn} base={base} />}
       {panel === "todays-question" && <TodaysQuestionPanel base={base} />}
+      {panel === "how-it-works" && <HowItWorksPanel base={base} />}
       {panel === "the-audit" && <AuditPanel base={base} />}
       {panel === "roles-and-skills" && panelOnly && (
         <RolesPanel base={base} search={<section className="atl__section" data-atlas-home-search=""><h2 className="atl__h2">Search the Atlas</h2><SearchBox base={base} /></section>} />

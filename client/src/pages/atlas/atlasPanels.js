@@ -19,6 +19,8 @@ export const ATLAS_NAV = Object.freeze([
   { group: "Grow", panels: [
     // ⭐ D172 (2): the Library — the courses as a shelf; /atlas/library/<course> is a course's page.
     { id: "library", label: "Library" },
+    // ⭐ A154 (45o, the D172 sketch): How it works — each idea as one picture (its flow), from the decks.
+    { id: "how-it-works", label: "How it works" },
     { id: "todays-question", label: "Today's question" },
     { id: "the-audit", label: "The audit" },
   ] },

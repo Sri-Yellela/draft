@@ -71,6 +71,24 @@ export function guides({ dir } = {}) {
   });
 }
 
+/**
+ * ⭐ A154 (45o, the D172 sketch's "How it works — each idea drawn as one picture: a coloured card per concept with an icon
+ * tile and its flow"). Each APPROVED deck's flow is read from its own "Core ideas" slide title, which names its parts in
+ * order ("Stack, heap, process, thread"; "Producer, topic, consumer group, offsets") — nothing is written for it. A deck
+ * whose title doesn't split into 2–6 parts is left out (no flow invented). Same order as the plan (pathway, then file).
+ */
+export function flowOf(deck) {
+  const core = (deck?.slides || []).find(s => /core ideas/i.test(String(s.tag || "")));
+  const t = String(core?.title || "").trim();
+  if (!t) return null;
+  const parts = t.split(/\s*(?:→|->|,|;|\band\b|\bthen\b)\s*/i).map(x => x.trim()).filter(Boolean);
+  return parts.length >= 2 && parts.length <= 6 && parts.every(p => p.length <= 40) ? parts : null;
+}
+export function howItWorks({ dir } = {}) {
+  return approvedDecks(dir).map(d => ({ id: d.id, title: d.title, pathway: d.pathway || "software", stage: d.stage || null, flow: flowOf(d) }))
+    .filter(d => d.flow);
+}
+
 /** One deck with its slides; its check is the bank question, served only when live. */
 export function deckOf(db, id, { dir } = {}) {
   const d = approvedDecks(dir).find(x => x.id === id);

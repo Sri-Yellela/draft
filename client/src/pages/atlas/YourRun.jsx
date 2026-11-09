@@ -98,7 +98,8 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
                     <b>{q.title}</b>
                     <span className="atl__quiet">{q.detail}{q.lesson ? ` · ${q.lesson}` : ""}</span>
                   </div>
-                  <span className="run-quest__pts">{q.done ? "✓ done today" : `+${q.points} points`}</span>
+                  {/* A154: the daily question and a deck earn no points (points come only from proof) — they say what they do. */}
+                  <span className="run-quest__pts">{q.done ? "✓ done today" : q.points != null ? `+${q.points} points` : `about ${q.minutes} min`}</span>
                   {!q.done && <Link className="atl__link run-quest__go" to={questHref(base, q)}>Start →</Link>}
                 </li>
               ))}

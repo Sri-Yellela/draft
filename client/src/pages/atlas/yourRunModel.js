@@ -17,5 +17,8 @@ export function runLines(run) {
 export function questHref(base, q) {
   if (q.id === "explain") return `${base}/learn#step-${encodeURIComponent(q.stepId)}`;
   if (q.id === "prove") return `${base}/your-skills?prove=${encodeURIComponent(q.skill)}`;
+  // ⭐ A154 (45o): the daily question and one deck.
+  if (q.id === "today") return `${base}/todays-question`;
+  if (q.id === "deck") return `${base}/library/${encodeURIComponent(q.deckId)}`;
   return base;
 }

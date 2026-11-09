@@ -42,3 +42,12 @@
 /* D172 (4): the market tree under the track board, on demand. */
 .atl-more { margin-top: 18px; }
 .atl-more > summary { cursor: pointer; font-weight: 700; margin-bottom: 10px; }
+/* A154 (45o): each stop's card on a dotted stem; the next one outlined in the accent; the You pill's years. Tokens only. */
+.trk-card__stem { stroke: var(--c-ink-faint); stroke-width: 1.5; stroke-dasharray: 2 4; }
+.trk-card__box { fill: var(--c-surface-solid); stroke: var(--c-border); stroke-width: 1; }
+.trk-card.is-next .trk-card__box { stroke: var(--c-accent); stroke-width: 2; }
+.trk-card__tile { fill: var(--c-surface-2); stroke: var(--c-border); }
+.trk-card__ini { font-size: 13px; font-weight: 700; fill: var(--c-accent-ink); }
+.trk-card .trk-stop__name { text-anchor: start; }
+.trk-card .trk-stop__state { text-anchor: start; }
+.trk-board__you-y { font-size: 11px; fill: var(--c-ink-muted); }

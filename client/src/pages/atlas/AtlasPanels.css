@@ -74,3 +74,15 @@
 .atl-dq__progress summary { cursor: pointer; }
 .atl-dq__acc { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; }
 .atl-dq__acc li { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+/* A154 (45o): How it works — one card per idea, its parts as boxes joined by arrows. Tokens only; depth boxes, no capsules (D60). */
+.hiw__find { width: 100%; max-width: 420px; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); font: inherit; margin: 0 0 14px; }
+.hiw { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.hiw__card { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 14px; border: 1px solid var(--c-border); background: var(--c-surface-solid); }
+.hiw__tile { flex: none; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; background: var(--c-surface-2); color: var(--c-accent-ink); border: 1px solid var(--c-border); }
+.hiw__body { min-width: 0; }
+.hiw__t { font-weight: 600; color: var(--c-ink); text-decoration: none; }
+.hiw__t:hover { color: var(--c-accent-ink); }
+.hiw__flow { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; }
+.hiw__flow li { display: inline-flex; align-items: center; gap: 6px; }
+.hiw__step { padding: 3px 8px; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-surface-2); color: var(--c-ink); }
+.hiw__arrow { color: var(--c-ink-faint); }
