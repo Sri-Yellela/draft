@@ -47,3 +47,6 @@
 .run-mark__track { fill: none; stroke: var(--c-border); stroke-width: 4; }
 .run-mark__fill { fill: none; stroke: var(--lrc-c); stroke-width: 4; stroke-linecap: round; }
 @media (max-width: 640px) { .run-month__grid { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+/* A155 (45o): a weekend that is not counted (weekdays only), and the choice itself. */
+.run-sq.is-off { opacity: 0.35; }
+.run-weekdays { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--c-ink-muted); margin-top: 6px; cursor: pointer; }

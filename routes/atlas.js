@@ -75,7 +75,7 @@ import { atlasTermsForPosting, peekNode, countLinkEvent, glossaryTerms } from ".
 import { learnStepForNode, glossaryConcepts } from "../services/learn/learnLinks.js";
 import { servedLearnContent } from "../services/learn/learnContent.js";
 import { learnSourceSummary } from "../services/atlas/learnSources.js";
-import { yourRun } from "../services/atlas/points.js";
+import { yourRun, setAtlasPrefs } from "../services/atlas/points.js";
 import { roleReadiness, compareRoles, subcategoryReadiness, setSubcategoryDeps } from "../services/atlas/roleReadiness.js";
 import { taxonomy } from "../services/jobs/taxonomyClassify.js";
 import { atlasLinksFor } from "../services/jobs/publicJobPage.js";
@@ -158,6 +158,11 @@ export function createAtlasRouter(db) {
     res.set("Cache-Control", "private, no-store");
     if (req.user?.id == null) return res.status(401).json({ error: "sign_in", message: "Sign in to see your run." });
     res.json(yourRun(db, req.user.id));
+  });
+  // ⭐ A155 (45o) · Atlas's own choices — { weekdaysOnly } (the streak counts weekdays only). Signed in; the person's own row.
+  router.put("/prefs", (req, res) => {
+    if (req.user?.id == null) return res.status(401).json({ error: "sign_in", message: "Sign in to change this." });
+    res.json(setAtlasPrefs(db, req.user.id, req.body || {}));
   });
   // ⭐ D116 · computed from THIS reader's profile only (req.user, when signed in) — never stored, never cached shared.
   router.get("/me", (req, res) => {

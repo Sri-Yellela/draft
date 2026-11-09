@@ -246,14 +246,15 @@ export function TodaysQuestionPanel({ base }) {
   const answer = async (i, response = null) => {
     if (busy || t?.result) return;
     setBusy(true);
-    try { const r = await api("/api/learn/today/answer", { method: "POST", body: JSON.stringify(response ? { day, response } : { day, chosen: i }) }); setT({ ...t, result: r, streak: r.streak }); }
+    try { const r = await api("/api/learn/today/answer", { method: "POST", body: JSON.stringify(response ? { day, response } : { day, chosen: i }) }); setT({ ...t, result: r, streak: r.streak, atlasStreak: r.atlasStreak }); }
     catch (e) { setErr(e.message || "That answer didn't save."); } finally { setBusy(false); }
   };
   const q = t?.question, r = t?.result;
   return (
     <div className="atl-pan" data-atlas-panel-body="todays-question">
       <PanelHead eyebrow={t?.reasonWords ? `Picked for you · ${t.reasonWords}` : null} title="One question a day"
-        lead={t?.streak ? `${t.streak} day${t.streak === 1 ? "" : "s"} in a row.` : "About two minutes. A review comes back when you miss one."} />
+        // ⭐ A155 (45o): ONE streak — answering lights the day on Your run; this says that streak (the old per-question count only when the run's is absent).
+        lead={(t?.atlasStreak ?? t?.streak) ? `Your Atlas streak: ${t.atlasStreak ?? t.streak} day${(t.atlasStreak ?? t.streak) === 1 ? "" : "s"} — answering lights today.` : "About two minutes. A review comes back when you miss one."} />
       {err && <p className="atl__quiet" role="alert">{err}</p>}
       {!t && !err && <p className="atl__quiet" role="status">Picking today's question…</p>}
       {t && !q && <NotYet>No question to ask yet — the bank has nothing new for you today.</NotYet>}

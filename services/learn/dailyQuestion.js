@@ -19,6 +19,8 @@ import { learnContent } from "./learnContent.js";
 import { learnStepInfo, learnStepPath } from "./learnLinks.js";
 import { forgivingStreak } from "./practiceProgress.js";
 import { approvedDecks } from "./learnDecks.js";
+import { atlasStreak } from "../atlas/points.js";   // A155: the ONE streak
+const oneStreak = (db, userId) => { try { return atlasStreak(db, userId); } catch { return null; } };
 
 export const REVIEW_DAYS = Object.freeze([1, 3, 7, 21]);
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -130,7 +132,9 @@ function decksFor(item) {
   return [...own, ...near].slice(0, 2).map(d => ({ id: d.id, title: d.title }));
 }
 
-/** Days in a row with an answered daily question — ⭐ 45n (D154 P7) FORGIVING: one missed day in any seven is a rest day. */
+/** Days in a row with an answered daily question — ⭐ 45n (D154 P7) FORGIVING: one missed day in any seven is a rest day.
+ *  ⭐ A155 (45o): kept for the progress card's rest-day count; what the person SEES as their streak is the ONE Atlas streak
+ *  (services/atlas/points.js atlasStreak — this question's answers light it too), sent beside it as `atlasStreak`. */
 export function streakFor(db, userId, day) {
   const days = db.prepare(`SELECT day FROM daily_questions WHERE user_id = ? AND answered_at IS NOT NULL ORDER BY day DESC LIMIT 400`).all(userId).map(r => r.day);
   return forgivingStreak(days, day).days;
@@ -149,7 +153,8 @@ export function todaysQuestion(db, userId, day, { aimRole = null, aimGaps = null
   }
   const [item] = questions(db, { ids: [row.question_id] });
   if (!item) return { day, question: null, streak: streakFor(db, userId, day) };
-  const out = { day, reason: row.reason, reasonWords: REASON_WORDS[row.reason] || null, question: servedQuestion(item), streak: streakFor(db, userId, day) };
+  const out = { day, reason: row.reason, reasonWords: REASON_WORDS[row.reason] || null, question: servedQuestion(item), streak: streakFor(db, userId, day),
+    atlasStreak: oneStreak(db, userId) };
   if (row.answered_at) out.result = resultOf(db, item, row.chosen, !!row.correct, row.response_json ? JSON.parse(row.response_json) : null);
   return out;
 }
@@ -176,5 +181,5 @@ export function answerToday(db, userId, day, { chosen, response = null, ms = nul
   db.prepare(`UPDATE daily_questions SET chosen = ?, correct = ?, ms = ?, response_json = ?, answered_at = unixepoch() WHERE user_id = ? AND day = ?`)
     .run(ch, correct ? 1 : 0, Number.isFinite(ms) ? Math.round(ms) : null, resp ? JSON.stringify(resp) : null, userId, day);
   const [item] = questions(db, { ids: [row.question_id] });
-  return { ...resultOf(db, item, ch, correct, resp), streak: streakFor(db, userId, day) };
+  return { ...resultOf(db, item, ch, correct, resp), streak: streakFor(db, userId, day), atlasStreak: oneStreak(db, userId) };
 }
