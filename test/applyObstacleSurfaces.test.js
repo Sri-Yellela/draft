@@ -339,7 +339,10 @@ test("a row with no job id is its own card, never merged into an `undefined` buc
 test("the card names the application, and counts OBSTACLES rather than applications", () => {
   // A big "1" beside three separate cards is what made one job look like three.
   assert.match(sections, /export function ApplicationObstacleCard/);
-  assert.match(sections, /One application · \{app\.reasons\.length\} thing\{many \? "s" : ""\} to resolve/);
+  // 45n D182 (18d82c2c, owner 11-08 decision (8)) removed the "One application · N things to resolve" line as a label
+  // restating the screen — the count beside the card is still of OBSTACLES (pin moved on purpose).
+  assert.doesNotMatch(sections, /One application · \{app\.reasons\.length\}/);
+  assert.match(sections, /color: tone \}\}>\{app\.reasons\.length\}<\/span>/);
   assert.match(sections, /\{companyLabel\(app\.company\)\}/);
   assert.match(sections, /to resolve\s*\n\s*<\/span>/);
   // Every obstacle is listed INSIDE the card. AC2 put a `plan` in front of this list — the same

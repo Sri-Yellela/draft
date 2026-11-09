@@ -123,7 +123,8 @@ test("A′: a browser token carries its sign-in time; a session-less one does no
 
 test("A′: a tab arriving at the other kind's sign-in page is shown the form and told whose session the browser has", () => {
   const app = fs.readFileSync("client/src/App.jsx", "utf8");
-  assert.match(app, /authUser\.isAdmin \? <><SignedInElsewhere user=\{authUser\}\/>\{children\}<\/> : <Navigate to="\/app" replace\/>/);
+  // 45l A138 (1d9e31f5): a user already signed in is sent to the page the sign-in started from, else /app (pin moved on purpose).
+  assert.match(app, /authUser\.isAdmin \? <><SignedInElsewhere user=\{authUser\}\/>\{children\}<\/>\s*: <Navigate to=\{\(typeof window !== "undefined" && returnToFromSearch\(window\.location\.search\)\) \|\| "\/app"\} replace\/>/);
   assert.match(app, /<SignedInElsewhere user=\{authUser\} admin\/>\{children\}/);
   assert.match(app, /that tab stays signed in/);
 });

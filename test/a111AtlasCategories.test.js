@@ -144,7 +144,15 @@ test("A111 P3 · a111AtlasSeedsEveryCategory — every categorised registry doma
   for (const c of Object.keys(CATEGORIES)) assert.ok(familiesOfCategory(c).length >= 1, `${c} has a family`);
   assert.deepEqual(FAMILY_KEYS.slice(0, 5), ["ml", "systems", "infra", "data", "backend"], "computing's tree unchanged, first");
   const file = readFamilyMapping();
-  for (const f of FAMILY_KEYS) assert.ok([...file.values()].includes(f), `families.json lists members of ${f}`);
+  // 45n D179 (2b37211d): twelve taxonomy families were added to shared/atlasFamilies.js with NO reviewed members in
+  // content/atlas/families.json yet — exempt until the owner reviews their members (never invented here). Every
+  // family that existed before 45n must still list members.
+  const AWAITING_REVIEW_45N = new Set(["frontend", "mobile", "game_graphics", "qa", "quant", "it", "security",
+    "robotics", "architecture", "geospatial", "bioinformatics", "science"]);
+  for (const f of FAMILY_KEYS) {
+    if (AWAITING_REVIEW_45N.has(f)) continue;
+    assert.ok([...file.values()].includes(f), `families.json lists members of ${f}`);
+  }
   assert.equal(familyCategory("workplace_tools"), null, "Excel / Jira are no category's");
   // Every family is drawable: a colour token and a square, a branch and a waypoint rule (tokens only, no literal).
   const css = read("client/src/pages/atlas/AtlasTree.css");

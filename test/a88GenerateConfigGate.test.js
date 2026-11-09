@@ -29,8 +29,10 @@ const coreGenerate = server.slice(at(server, "async function coreGenerateResume(
 const coverRoute = server.slice(at(server, 'app.post("/api/cover-letter/generate"'), at(server, "const message = await callTask({", at(server, 'app.post("/api/cover-letter/generate"')));
 
 test("A88 · /api/generate makes no model call of its own — generation goes through the tools service", () => {
+  // 45n D162 G6 (b4a873d4): the kernel stamps the output's source, `provider: … ? "anthropic" : …` — a provider LABEL
+  // in a string, not a client. The quoted word is dropped before the check; any bare `anthropic` use still fails.
   for (const [name, region] of [["the route", generateRoute], ["coreGenerateResume", coreGenerate]]) {
-    assert.doesNotMatch(code(region), /\bcallModel\(|\banthropic\b|messages\.create\(/, `${name} must not call a model directly`);
+    assert.doesNotMatch(code(region).replace(/"anthropic"/g, '""'), /\bcallModel\(|\banthropic\b|messages\.create\(/, `${name} must not call a model directly`);
   }
   assert.match(code(generateRoute), /await coreGenerateResume\(/);
   assert.match(code(coreGenerate), /await toolsService\.generate\(/);

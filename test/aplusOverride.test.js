@@ -37,9 +37,12 @@ test("aPlusStrategyTimesModel: a served Generate takes the admin's strategy and 
   // The generation kernel decides the served mode, and only a GENERATE gets a strategy (A+ stays the full call).
   const s = read("server.js");
   const kernel = s.slice(at(s, "async function coreGenerateResume("), at(s, "const generateBody = toolsGenerateRequest("));
-  assert.match(kernel, /const promptMode   = servedPromptMode\(db, tool\);/);
-  assert.match(kernel, /const eventSubtype = promptMode;/, "the ledger says what was served");
-  assert.match(kernel, /const tailoring = promptMode === "GENERATE" \? tailoringFor\(/);
+  // 45n A137 option (a) (a23f2bec): promptMode / eventSubtype became `let` — an A+ request whose base already scores
+  // >= the minimum is served as a lean GENERATE — so the tailoring line leads with that case (pins moved on purpose).
+  assert.match(kernel, /let promptMode     = servedPromptMode\(db, tool\);/);
+  assert.match(kernel, /let eventSubtype   = promptMode;/, "the ledger says what was served");
+  assert.match(kernel, /promptMode = "GENERATE"; eventSubtype = "GENERATE"; aPlusLeaned = true;/, "a leaned A+ is recorded as the Generate it was");
+  assert.match(kernel, /const tailoring = aPlusLeaned \? "lean" : promptMode === "GENERATE" \? tailoringFor\(/);
 });
 
 test("aPlusOverrideIsTheOwners: set from Admin → Ops → Tailoring, behind requireAdmin, with an audit row", () => {

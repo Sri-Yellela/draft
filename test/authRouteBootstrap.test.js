@@ -54,7 +54,8 @@ test("user app guard remains role-aware and sends admins to admin, not jobs", ()
   assert.match(userAppBlock, /<UserRouteGate authStatus=\{authStatus\} authUser=\{authUser\}>/);
   assert.match(app, /function UserRouteGate\(\{ authStatus, authUser, children \}\)/);
   assert.match(app, /if \(authStatus === "unknown"\) return null/);
-  assert.match(app, /if \(authStatus !== "authenticated" \|\| !authUser\) return <Navigate to="\/login" replace\/>/);
+  // 45l A138 (1d9e31f5): a signed-out visit still goes to /login, now carrying the page it came from (pin moved on purpose).
+  assert.match(app, /if \(authStatus !== "authenticated" \|\| !authUser\) return <Navigate to=\{loginHref\(currentReturnPath\(\)\)\} replace\/>/);
   assert.match(userAppBlock, /<AppDashboard authUser=\{authUser\}/);
 });
 

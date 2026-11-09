@@ -104,7 +104,7 @@ test("owner 10-07 (36) · the posting panel's Draft button IS the logo — the o
   assert.match(acts, /className="pp__btn pp__btn--logo" data-decision="draft"/, "Draft");
   assert.match(acts, /\{draft\.kind === "idle" \? <StampLogo size="mini" \/> : draft\.label\}/, "the mark at rest, the word for a state");
   assert.match(acts, /aria-label=\{draft\.kind === "idle" \? "Draft" : undefined\}/, "named Draft, not \"/draft\"");
-  assert.doesNotMatch(acts, /pp__btn--p/, "not on the accent fill, where the slash would vanish");
+  assert.doesNotMatch(acts, /pp__btn--p\b/, "not on the accent fill, where the slash would vanish");
   assert.match(jd, /import \{ StampLogo \} from "\.\/StampLogo\.jsx";/, "reused, never redrawn");
   // D147: the /d square went with the icon squares — Draft is the one labelled /draft box in the row.
   assert.match(db, /import \{ StampLogo \} from "\.\/StampLogo\.jsx";/, "reused, never redrawn");
