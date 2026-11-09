@@ -37,7 +37,8 @@ test("d172MapTrackBoardWithStations: wired — Your map leads with the board; th
   // ⭐ D178 (changed on purpose): Your route's navigator sits between the board and the tree.
   assert.match(page, /<TrackBoard base=\{base\} signedIn=\{signedIn\} \/>\n[\s\S]{0,400}<YourRoutePanel base=\{base\} signedIn=\{signedIn\} \/><\/section>\}\n\s*<details className="atl-more" data-atlas-market-tree="" open=\{!signedIn\}>/);
   assert.match(page, /<summary className="atl__link">See the whole market around you<\/summary>/);
-  assert.match(read("services/navigator.js"), /route: route \? \{ \.\.\.route, stations, openRoles: aimReading\?\.role\?\.postings \?\? null \} : null/);
+  // ⭐ A154 (45o, on purpose): + the You pill's years.
+  assert.match(read("services/navigator.js"), /route: route \? \{ \.\.\.route, stations, openRoles: aimReading\?\.role\?\.postings \?\? null, youYears \} : null/);
   const css = read("client/src/pages/atlas/TrackBoard.css");
   assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i, "tokens only");
   // ⭐ D178 (changed on purpose): Fly my route's camera and drawing also stop under reduced motion.

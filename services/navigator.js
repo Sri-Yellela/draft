@@ -22,6 +22,7 @@ import { categoryIndex, roleCategory, registryCached } from "./atlas/atlasCatego
 import { targetRoleIds } from "./atlas/atlasMe.js";
 import { postingMatcher } from "./atlas/postingMatcher.js";
 import { learnStepForNode, learnStepPath } from "./learn/learnLinks.js";
+import { approvedDecks } from "./learn/learnDecks.js";   // A154: each stop's "2 decks"
 
 const DAY = 86400;
 const safe = (fn, fallback) => { try { return fn(); } catch { return fallback; } };
@@ -252,11 +253,19 @@ export function navigatorFor(db, userId, { now = Math.floor(Date.now() / 1000), 
   const doneNow = route ? start.filter(s => route.covered.includes(s)).length : 0;
   // ⭐ D172 (4) · the map as a track board: every skill on the route as it was first stored, in order — done when the
   // person has it now — with its Learn piece; and the goal's open roles (the flag).
+  // ⭐ A154 (45o, the D172 sketch's stop card: "the skill + one short line (proven / next · 2 decks, 1 build)"): each stop
+  // counts the approved decks that teach it (a deck's skills naming its slug or name) — real counts, never a target.
+  let deckSkills = [];
+  try { deckSkills = approvedDecks().map(d => (d.skills || []).map(k => String(k).toLowerCase())); } catch { deckSkills = []; }
+  const decksFor = (slug, name) => deckSkills.filter(ks => ks.includes(String(slug).toLowerCase()) || ks.includes(String(name).toLowerCase())).length;
   const stations = route ? start.map(s => {
     const sk = route.skills.find(x => x.slug === s);
     const node = sk ? null : nodeBySlug(db, s);
-    return { slug: s, name: sk?.name || node?.name || s, done: route.covered.includes(s), learn: sk?.learn || null };
+    const name = sk?.name || node?.name || s;
+    return { slug: s, name, done: route.covered.includes(s), learn: sk?.learn || null, decks: decksFor(s, name) };
   }) : [];
+  // A154: the "You" marker's years (the profile's own figure; none when unknown).
+  const youYears = (() => { try { const y = db.prepare(`SELECT years_of_experience FROM user_profile WHERE user_id = ?`).pluck().get(userId); return y == null || y === "" || !Number.isFinite(Number(y)) ? null : Number(y); } catch { return null; } })();
   const progress = { applications: apps, replies, routeSkills: start.length, routeDone: doneNow,
     line: `This week: ${apps} application${apps === 1 ? "" : "s"} sent · ${replies} repl${replies === 1 ? "y" : "ies"} · ${doneNow} of ${start.length} route skills done` };
 
@@ -289,7 +298,7 @@ export function navigatorFor(db, userId, { now = Math.floor(Date.now() / 1000), 
     ready: true,
     current: { slug: current.slug, name: current.name },
     destination: { aim, recommended: recommended.map(pick), alternatives: alternatives.map(pick) },
-    route: route ? { ...route, stations, openRoles: aimReading?.role?.postings ?? null } : null, bridges, progress,
+    route: route ? { ...route, stations, openRoles: aimReading?.role?.postings ?? null, youYears } : null, bridges, progress,
     changes: kept, suggest,
     elsewhere, changer,
     next: route?.skills?.[0] ? { slug: route.skills[0].slug, name: route.skills[0].name, learn: route.skills[0].learn,

@@ -21,7 +21,7 @@ import { circleOf } from "../services/learn/learnCircle.js";
 import { readEarned, recordOpened, saveExplanation, saveBuild } from "../services/learn/learnEarned.js";
 import { mapRouteFor } from "../services/learn/learnMapRoute.js";
 import { courseOf, COURSE_ID, patternCourseOf, PATTERN_COURSE_ID } from "../services/learn/learnCourse.js";
-import { guides, deckOf, pathwaysPlan } from "../services/learn/learnDecks.js";
+import { guides, deckOf, pathwaysPlan, howItWorks } from "../services/learn/learnDecks.js";
 import { questions, recordAnswer } from "../services/learn/learnQuestions.js";
 import { loadRegistry } from "../services/atlas/sourceRegistry.js";
 
@@ -53,6 +53,8 @@ export function createLearnRouter(db, { requireAuth }) {
   router.get("/guides", (_req, res) => { res.set("Cache-Control", LEARN_CACHE); res.json({ guides: guides() }); });
   // ⭐ D155 Part C · the whole approved plan: every pathway, stage and topic; a topic links to its deck once approved.
   router.get("/pathways", (_req, res) => { res.set("Cache-Control", LEARN_CACHE); res.json(pathwaysPlan()); });
+  // ⭐ A154 (45o) · How it works — each approved deck's idea as one flow (its "Core ideas" slide). Public, like the decks.
+  router.get("/how-it-works", (_req, res) => { res.set("Cache-Control", LEARN_CACHE); res.json({ ideas: howItWorks() }); });
   router.get("/deck/:id", (req, res) => {
     const d = deckOf(db, String(req.params.id).slice(0, 40));
     if (!d) return res.status(404).json({ error: "no_such_deck" });

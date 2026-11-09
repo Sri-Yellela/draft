@@ -88,7 +88,8 @@ test("D167 · d167AtlasHasOwnNav — the card: the eyebrow, the serif headline, 
     ["You", ["Your run", "Your map", "Your skills"]],
     // ⭐ D172 (2) (changed on purpose): the Library, first in Grow, as the approved sketch draws it.
     // ⭐ D178 (changed on purpose): Learn is the course's circle view, inside the Library.
-    ["Grow", ["Library", "Today's question", "The audit"]],
+    // ⭐ A154 (45o, on purpose): How it works — the D172 sketch's panel, second in Grow.
+    ["Grow", ["Library", "How it works", "Today's question", "The audit"]],
     ["Explore", ["Roles and skills", "This week's market", "Glossary"]],
   ]);
   const u = await loadUi();

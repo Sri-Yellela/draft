@@ -6,7 +6,7 @@ build (lane `d167-atlas`, 45b) from the code as it stood at `3c74cead`, and `tes
 (`d167AtlasKeepsEverySurface`) holds the code to it.
 
 The navigation (`client/src/pages/atlas/atlasPanels.js` `ATLAS_NAV`, drawn by `AtlasNav.jsx`, the panels in
-`AtlasPanels.jsx`): **You** — Your run · Your map · Your skills — **Grow** — Library · Today's question · The
+`AtlasPanels.jsx`): **You** — Your run · Your map · Your skills — **Grow** — Library · How it works (A154, 45o: each approved deck's idea as one flow) · Today's question · The
 audit — **Explore** — Roles and skills · This week's market · Glossary. ⭐ **D178 (45j, the nav regrouped):** Your route is
 an alias of Your map (the navigator drawn under the track board); Overview is the signed-out front page (signed in, the
 mount opens Your run); `/atlas/learn` redirects to the course's circle view (`/atlas/library/silicon-to-software?view=circle`,
@@ -51,6 +51,7 @@ mount opens Your run); `/atlas/learn` redirects to the course's circle view (`/a
 | Overview | the practice streak (D154) | stat cards only from data that exists: skills checked or built (D142), roles you cover enough to apply to now and skills on your route (D143); the next step; Today's question points to the check |
 | Your skills | D169's List + Map panel | D142's check (the slot) |
 | Your route | the sketch's stacked tiers (D150 P5) | the navigator (D143), or what it needs before it can point the way |
+| How it works | each approved deck's idea as one flow (A154, 45o — the D172 sketch) | one card per idea, its parts in order, opening its deck |
 | Today's question | the daily question (D154) | an honest line and *Check a skill* (D142 serves the bank today) |
 | The audit | the audit's questions and result (D150) | the role picker and the role card (D150 T04) |
 | This week's market | the weekly read (D150 T09–T11) | the auditable roles' open postings and new-in-7-days counts (the role card's own numbers) |

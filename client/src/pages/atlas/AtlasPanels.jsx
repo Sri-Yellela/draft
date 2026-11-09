@@ -576,3 +576,38 @@ export function GlossaryPanel({ base }) {
   if (terms === false) return <p className="atl__quiet" role="alert">The glossary could not be reached just now.</p>;
   return <GlossaryView base={base} terms={terms} concepts={concepts} q={q} onQ={setQ} shown={shown} onMore={() => setShown(n => n + GLOSSARY_PAGE)} />;
 }
+
+/**
+ * ⭐ A154 (45o, the D172 sketch: "How it works — each idea drawn as one picture: a coloured card per concept with an icon
+ * tile and its flow"). One card per approved deck whose Core ideas slide names its parts in order (GET /api/learn/how-it-works);
+ * the parts drawn as boxes joined by arrows; the card opens its deck. A find box narrows by title or part. Colours from tokens.
+ */
+const PATHWAY_WORD = { software: "Software", data: "Data", ai: "AI", "ml-ai": "AI", security: "Security", design: "Design", mechanical: "Mechanical" };
+export function HowItWorksPanel({ base }) {
+  const [ideas, setIdeas] = useState(null);
+  const [q, setQ] = useState("");
+  useEffect(() => { let live = true; api("/api/learn/how-it-works").then(r => live && setIdeas(r.ideas || [])).catch(() => live && setIdeas([])); return () => { live = false; }; }, []);
+  const needle = q.trim().toLowerCase();
+  const shown = (ideas || []).filter(d => !needle || d.title.toLowerCase().includes(needle) || d.flow.some(p => p.toLowerCase().includes(needle)));
+  return (
+    <div className="atl-pan" data-atlas-panel-body="how-it-works">
+      <PanelHead eyebrow="How it works" title="Each idea as one picture" lead="The parts of an idea in the order they work — open one for its five-slide deck." />
+      <input className="hiw__find" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Find an idea (Kafka, threads, RAG)" aria-label="Find an idea" data-hiw-find="" />
+      {!ideas && <p className="atl__quiet" role="status">Reading the ideas…</p>}
+      {ideas && shown.length === 0 && <p className="atl__quiet" data-hiw-none="">{ideas.length ? `Nothing matches “${q.trim()}”.` : "No idea is drawn yet."}</p>}
+      <ul className="hiw" data-hiw="">
+        {shown.map(d => (
+          <li key={d.id} className={`hiw__card hiw__card--${d.pathway}`} data-hiw-idea={d.id}>
+            <span className="hiw__tile" aria-hidden="true">{(PATHWAY_WORD[d.pathway] || d.pathway).slice(0, 2)}</span>
+            <div className="hiw__body">
+              <Link to={`${base}/library/${encodeURIComponent(d.id)}`} className="hiw__t">{d.title}</Link>
+              <ol className="hiw__flow" aria-label={`${d.title}, in order`}>
+                {d.flow.map((p, i) => <li key={i}>{i > 0 && <span className="hiw__arrow" aria-hidden="true">→</span>}<span className="hiw__step">{p}</span></li>)}
+              </ol>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

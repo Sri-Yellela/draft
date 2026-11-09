@@ -15,6 +15,7 @@ import { learnContent } from "../learn/learnContent.js";
 import { earnedMarks, explanationTimes } from "../learn/learnEarned.js";
 import { stepState, checkpointId, buildId, itemsToOpen, buildRequired } from "../../shared/learnStepState.js";
 import { listYourSkills } from "../yourSkills.js";
+import { approvedDecks } from "../learn/learnDecks.js";   // A154: the run's "one deck" quest
 
 export const POINTS = Object.freeze({ explained: 10, learn_build: 60, skill_checked: 40, skill_built: 60 });
 /** The Library's ladder (the sketch: "Level 2: Building blocks · 340 of 530 points to Level 3"). */
@@ -210,6 +211,14 @@ export function yourRun(db, userId, { now = Math.floor(Date.now() / 1000) } = {}
   const today = dayOf(now);
   const earnedToday = (kind) => rows.some(r => r.kind === kind && dayOf(r.at) === today);
   const quests = [];
+  // ⭐ A154 (45o, the D172 sketch: "Today · about 5 minutes as three quest cards (the daily question · one deck · prove it in
+  // a minute)"). The daily question and a deck light the day / teach, but earn no POINTS — points stay proof-only (D172).
+  const answeredToday = safe(() => !!db.prepare(`SELECT 1 FROM daily_questions WHERE user_id = ? AND answered_at >= ? LIMIT 1`).get(userId, today * DAY), false);
+  quests.push({ id: "today", title: "Today's question", detail: "About two minutes — answering lights today.", points: null, minutes: 2, done: answeredToday });
+  const mine = new Set(safe(() => listYourSkills(db, userId).skills.map(s => String(s.name).toLowerCase()), []));
+  const decks = safe(() => approvedDecks(), []);
+  const deck = decks.find(d => (d.skills || []).some(k => mine.has(String(k).toLowerCase()))) || decks[0] || null;
+  if (deck) quests.push({ id: "deck", title: "Read one deck", detail: deck.title, deckId: deck.id, points: null, minutes: 5, done: false });
   const ex = nextExplain(db, userId);
   if (ex) quests.push({ id: "explain", title: "Explain one idea", detail: ex.idea, lesson: ex.lesson, stepId: ex.stepId, points: POINTS.explained,
     minutes: 2, done: earnedToday("explained") });
