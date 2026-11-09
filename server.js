@@ -344,6 +344,7 @@ import { loadConfirmedSynonyms } from "./services/kb/skillSynonyms.js";
 // A72 — the board's ranked local search (tiers, whole words, the same synonym map).
 import { registerBoardSearch, boardSearchSql, searchVariants } from "./services/jobs/boardSearch.js";
 import { createReadPool } from "./services/db/readWorker.js";
+import { createOffload, offloadCache } from "./services/db/offloadWorker.js";   // ⛔ A158 (45r)
 import { createScorePool } from "./services/jobs/scoreWorker.js";
 // Y2B — the SAME fetcher and the SAME writer the enrichment pass uses. One implementation, two
 // triggers: the background pass buys descriptions for rows it is about to enrich, and this buys
@@ -591,6 +592,13 @@ const readPool = createReadPool({
   enabled: String(process.env.DRAFT_READ_WORKERS || "on").toLowerCase() !== "off",
   size: Math.max(1, Math.min(4, Number(process.env.DRAFT_READ_WORKERS_SIZE) || 2)),
 });
+// ⛔ A158 (45r, 11-09) · whole-board work that is not a person's request — the taxonomy re-read, the sitemaps, the landing
+// pages — runs on ONE more worker thread with its own read-only connection (services/db/offloadWorker.js). It never falls
+// back to this connection: a sitemap / landing page it cannot answer is a 503 + Retry-After, the taxonomy walk drops to
+// small paced slices here. DRAFT_OFFLOAD=off turns the worker off (those fallbacks then apply).
+const offload = createOffload({ dbPath: DB_PATH, enabled: String(process.env.DRAFT_OFFLOAD || "on").toLowerCase() !== "off" });
+const offloadSitemaps = offloadCache({ ttlMs: 60 * 60 * 1000 });
+const offloadLanding = offloadCache({ ttlMs: 30 * 60 * 1000 });
 // ⭐ D151 Rule 3 (11-08) · board-fit scoring in a worker thread (services/jobs/scoreWorker.js): the precompute's batches
 // are scored off the event loop; any failure scores them here as before. DRAFT_SCORE_WORKER=off turns it off.
 const scorePool = createScorePool({
@@ -7685,7 +7693,8 @@ companyLinker = createCompanyLinker(db);
 // ⭐ D179 P5a: each company's stack from its own postings (services/companies/companyTech.js), after the linker. Kill switch: COMPANY_TECH=off.
 companyTech = createCompanyTech(db);
 // ⭐ D179 P2: every active posting to Category → Subcategory (the approved taxonomy), after the classify walk. TAXONOMY_BACKFILL=off.
-taxonomyBackfill = createTaxonomyBackfill(db);
+// ⛔ A158 (45r): its read + classify half runs on the offload worker; only the short writes run here.
+taxonomyBackfill = createTaxonomyBackfill(db, { offload: (args) => offload.run("taxonomyRange", args) });
 // ⭐ D179 P4b: each company's public facts (Wikidata, by its own site) for the page's About — 150 a run, 1.5 s apart, daily.
 companyFacts = createCompanyFacts(db);
 // ⭐ D179 P5b: public GitHub languages, matched by the organisation's own site — 15 companies an hour (GitHub's unauthenticated limit).
@@ -10449,48 +10458,54 @@ app.get("/api/public/suggest", publicLimit, async (req, res) => {
 // ⭐ D128 P1 · every OPEN public posting (a shown category, not a duplicate); a closed one leaves the same day.
 // ⭐ D179 P7 (45l): /sitemap-jobs.xml is a sitemap INDEX (the protocol caps a file at 50,000 — 11-08: 50,000 of 80,167
 // listed) over /sitemap-jobs-<n>.xml, plus the company pages' sitemap. Kept for an hour: a crawler re-reads it often.
-app.get("/sitemap-jobs.xml", (req, res) => {
-  if (req.query?.flat === "1") return res.type("application/xml").send(sitemapXml(appBaseUrl(req), jobsSitemapRoutes(db)));   // the first file, as before
+// ⛔ A158 (45r): every answer below is a whole-board read — computed on the offload worker (never this thread), kept for
+// its TTL, made once however many crawlers ask at the same time; when the worker can't answer, 503 + Retry-After.
+const offloadBusy = (res) => res.set("Retry-After", "120").status(503).type("text/plain").send("Busy — try again shortly.");
+const sitemapPart = (key, task, args = {}) => offloadSitemaps(key, () => offload.run(task, args));
+app.get("/sitemap-jobs.xml", async (req, res) => {
+  let pages;
+  try {
+    if (req.query?.flat === "1") return res.type("application/xml").send(sitemapXml(appBaseUrl(req), await sitemapPart("jobs:1", "sitemapJobsPage", { page: 1 })));   // the first file, as before
+    pages = await sitemapPart("jobs:count", "sitemapJobsCount");
+  } catch { return offloadBusy(res); }
   const base = appBaseUrl(req);
-  const pages = jobsSitemapPageCount(db);
   const files = [...Array.from({ length: pages }, (_, i) => `/sitemap-jobs-${i + 1}.xml`), "/sitemap-companies.xml", "/sitemap-landing.xml"];
   res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${files.map(f => `  <sitemap><loc>${xmlEscape(`${base}${f}`)}</loc></sitemap>`).join("\n")}
 </sitemapindex>`);
 });
-app.get("/sitemap-jobs-:n.xml", (req, res) => {
+app.get("/sitemap-jobs-:n.xml", async (req, res) => {
   const n = Number(req.params.n);
-  if (!Number.isInteger(n) || n < 1 || n > jobsSitemapPageCount(db)) return res.status(404).type("text/plain").send("No such sitemap.");
-  res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), jobsSitemapRoutes(db, { page: n })));
+  let routes;
+  try {
+    if (!Number.isInteger(n) || n < 1 || n > await sitemapPart("jobs:count", "sitemapJobsCount")) return res.status(404).type("text/plain").send("No such sitemap.");
+    routes = await sitemapPart(`jobs:${n}`, "sitemapJobsPage", { page: n });
+  } catch { return offloadBusy(res); }
+  res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), routes));
 });
+// ⛔ A158: a landing page, rendered on the offload worker (its counts are whole-board reads), cached per page + base.
+const landingRoute = (kind, keyOf) => async (req, res) => {
+  const key = keyOf(req.params), base = appBaseUrl(req);
+  let page;
+  try { page = await offloadLanding(`${kind}|${JSON.stringify(key)}|${base}`, () => offload.run("landingPage", { kind, key, base })); }
+  catch { return offloadBusy(res); }
+  res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
+};
 // ⭐ D179 P7 (45l): landing pages per role and per technology — server-rendered, a real 404 under ten open jobs.
-app.get("/jobs/role/:id", (req, res) => {
-  const page = renderLandingPage(db, "role", req.params.id, { base: appBaseUrl(req) });
-  res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
-});
-app.get("/jobs/role/:id/in/:metro", (req, res) => {
-  const page = renderLandingPage(db, "role-metro", { role: req.params.id, metro: req.params.metro }, { base: appBaseUrl(req) });
-  res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
-});
+app.get("/jobs/role/:id", landingRoute("role", (p) => p.id));
+app.get("/jobs/role/:id/in/:metro", landingRoute("role-metro", (p) => ({ role: p.id, metro: p.metro })));
 // ⭐ D185-6 (45q) · the beachhead's pages: a role (in a metro) at employers with certified H-1B filings, with their DOL history.
-app.get("/jobs/sponsor-h1b/:id", (req, res) => {
-  const page = renderLandingPage(db, "sponsor", { role: req.params.id }, { base: appBaseUrl(req) });
-  res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
+app.get("/jobs/sponsor-h1b/:id", landingRoute("sponsor", (p) => ({ role: p.id })));
+app.get("/jobs/sponsor-h1b/:id/in/:metro", landingRoute("sponsor-metro", (p) => ({ role: p.id, metro: p.metro })));
+app.get("/jobs/tech/:slug", landingRoute("tech", (p) => p.slug));
+app.get("/sitemap-landing.xml", async (req, res) => {
+  let routes; try { routes = await sitemapPart("landing", "sitemapLanding"); } catch { return offloadBusy(res); }
+  res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), routes));
 });
-app.get("/jobs/sponsor-h1b/:id/in/:metro", (req, res) => {
-  const page = renderLandingPage(db, "sponsor-metro", { role: req.params.id, metro: req.params.metro }, { base: appBaseUrl(req) });
-  res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
-});
-app.get("/jobs/tech/:slug", (req, res) => {
-  const page = renderLandingPage(db, "tech", req.params.slug, { base: appBaseUrl(req) });
-  res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
-});
-app.get("/sitemap-landing.xml", (req, res) => {
-  res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), landingSitemapRoutes(db)));
-});
-app.get("/sitemap-companies.xml", (req, res) => {
-  res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), companiesSitemapRoutes(db)));
+app.get("/sitemap-companies.xml", async (req, res) => {
+  let routes; try { routes = await sitemapPart("companies", "sitemapCompanies"); } catch { return offloadBusy(res); }
+  res.set("Cache-Control", "public, max-age=3600").type("application/xml").send(sitemapXml(appBaseUrl(req), routes));
 });
 
 // ⭐ D179 (45n, owner 11-08 decision (7)) · the share picture of a public page — a 1200 × 630 PNG drawn from a SIGNED payload

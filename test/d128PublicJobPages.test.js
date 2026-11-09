@@ -128,7 +128,8 @@ test("d128SitemapAndRobots: robots.txt allows /jobs/ and names the jobs sitemap;
   assert.doesNotMatch(robots, /"Disallow: \/jobs"/);
   assert.match(robots, /"Allow: \/jobs\/"/);
   assert.match(robots, /Sitemap: \$\{base\}\/sitemap-jobs\.xml/);
-  assert.match(server, /app\.get\("\/sitemap-jobs\.xml"[\s\S]{0,200}jobsSitemapRoutes\(db\)/);
+  // ⛔ A158 (45r): the jobs sitemap is read on the offload worker (never jobsSitemapRoutes(db) on the main thread).
+  assert.match(server, /app\.get\("\/sitemap-jobs\.xml"[\s\S]{0,400}sitemapPart\("jobs:1", "sitemapJobsPage"/);
   const route = at(server, 'app.get("/jobs/:slug"');
   assert.ok(route < at(server, 'app.get("*"'), "the page is served before the SPA's catch-all");
   assert.ok(route > at(server, "app.use(express.static(CLIENT_DIST))"));
