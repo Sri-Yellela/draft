@@ -31,8 +31,22 @@ export const ATLAS_NAV = Object.freeze([
   ] },
 ]);
 
+// ⭐ A154 / D172 (4) (45s, owner 11-08: "build league and challenges, can merge them later") · COMPETE — its own group, drawn
+// only when the owner has turned its switch on (GET /api/atlas/compete). Its ids are reserved slugs whether or not it shows,
+// so no node can take them; with the switch off the address opens Your run's place, never a node page.
+export const COMPETE_NAV = Object.freeze({ group: "Compete", panels: Object.freeze([
+  { id: "league", label: "This week's league", needs: "league" },
+  { id: "challenges", label: "Challenges", needs: "challenges" },
+]) });
+export const COMPETE_PANEL_IDS = Object.freeze(COMPETE_NAV.panels.map(p => p.id));
+/** The nav's groups for this reader: the three, plus Compete with only the panels whose switch is on. Pure. */
+export function navGroups(compete = null) {
+  const shown = COMPETE_NAV.panels.filter(p => !!compete?.[p.needs]);
+  return shown.length ? [...ATLAS_NAV, { group: COMPETE_NAV.group, panels: shown }] : [...ATLAS_NAV];
+}
+
 export const PANEL_IDS = Object.freeze(ATLAS_NAV.flatMap(g => g.panels.map(p => p.id)));
-export const PANEL_LABEL = Object.freeze(Object.fromEntries(ATLAS_NAV.flatMap(g => g.panels.map(p => [p.id, p.label]))));
+export const PANEL_LABEL = Object.freeze(Object.fromEntries([...ATLAS_NAV, COMPETE_NAV].flatMap(g => g.panels.map(p => [p.id, p.label]))));
 /** Older reserved addresses that now open a panel. */
 // ⭐ D178 (the nav regrouped, owner 11-07): Your route is folded into Your map (the map IS the route drawn) — its address
 // opens Your map. Overview is Atlas's signed-OUT front page (signed in, the mount opens Your run); Learn's address
@@ -45,6 +59,7 @@ export function panelFor(slug, q = "") {
   const s = String(slug || "");
   if (!s) return q ? "roles-and-skills" : "overview";
   if (PANEL_IDS.includes(s)) return s;
+  if (COMPETE_PANEL_IDS.includes(s)) return s;   // A154: shown only with its switch on (AtlasPage)
   if (PANEL_ALIASES[s]) return PANEL_ALIASES[s];
   // ⭐ D178: the reserved slugs light their home — /atlas/overview is the front page; /atlas/learn (redirecting to the
   // course's circle view) lights the Library, never Roles and skills.
@@ -56,7 +71,7 @@ export function panelFor(slug, q = "") {
 }
 
 /** Is this address a panel itself (not a node, a family or a search inside one)? */
-export const isPanelSlug = (slug) => PANEL_IDS.includes(String(slug || "")) || !!PANEL_ALIASES[String(slug || "")] || RESERVED_PANELS.includes(String(slug || ""));
+export const isPanelSlug = (slug) => PANEL_IDS.includes(String(slug || "")) || COMPETE_PANEL_IDS.includes(String(slug || "")) ||!!PANEL_ALIASES[String(slug || "")] || RESERVED_PANELS.includes(String(slug || ""));
 
 /** ⭐ D178 · a Learn piece's address: the course's circle view with that piece selected (Learn's one home now). */
 export const learnStepHref = (base, stepId) => `${base}/library/silicon-to-software?view=circle#step-${encodeURIComponent(stepId)}`;

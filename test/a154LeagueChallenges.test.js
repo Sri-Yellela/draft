@@ -198,3 +198,23 @@ test("Wiring: migration 264 in both runners; the merge plan and export know both
   assert.match(acct, /"league_members", "challenge_runs"\]/);
   assert.match(read("routes/atlas.js"), /pod = podRank\(db, req\.user\.id\)[\s\S]*live = liveCount\(db, req\.user\.id\)[\s\S]*res\.json\(\{ \.\.\.run, pod, live \}\)/);
 });
+
+test("Client: Compete is drawn only for the switches that are on; its ids are reserved slugs; the words are the model's", async () => {
+  const { navGroups, panelFor, isPanelSlug, ATLAS_NAV } = await import("../client/src/pages/atlas/atlasPanels.js");
+  const { resetWords, moveOf } = await import("../client/src/pages/atlas/competeModel.js");
+  assert.deepEqual(navGroups(null).map(g => g.group), ATLAS_NAV.map(g => g.group), "off: no Compete group");
+  assert.deepEqual(navGroups({ league: true, challenges: false }).at(-1), { group: "Compete", panels: [{ id: "league", label: "This week's league", needs: "league" }] });
+  assert.equal(navGroups({ league: true, challenges: true }).at(-1).panels.length, 2);
+  assert.equal(panelFor("league"), "league"); assert.equal(panelFor("challenges"), "challenges");
+  assert.ok(isPanelSlug("league") && isPanelSlug("challenges"), "never a node page");
+  assert.equal(resetWords(2 * 86400 + 4 * 3600 + 5), "Resets in 2 days 4 hours");
+  assert.equal(resetWords(3600 + 600), "Resets in 1 hour 10 minutes");
+  assert.equal(resetWords(30), "Resets in 1 minute");
+  assert.deepEqual([moveOf(2).words, moveOf(-1).words, moveOf(0).words, moveOf(null).words], ["▲ 2", "▼ 1", "–", ""]);
+  const page = read("client/src/pages/atlas/AtlasPage.jsx");
+  assert.match(page, /panel === "league" && \(compete\?\.league \? <LeaguePanel/);
+  assert.match(page, /panel === "challenges" && \(compete\?\.challenges \? <ChallengesPanel/);
+  const ui = read("client/src/pages/atlas/CompetePanels.jsx");
+  assert.match(ui, /Leave the league/); assert.match(ui, /Challenge someone/);
+  assert.doesNotMatch(ui, /behind you|falling behind/i, "nobody is named as behind");
+});

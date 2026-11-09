@@ -304,7 +304,8 @@ test("D105 P4 · Admin → Data → Atlas lists the drafts and publishes them; t
   assert.ok(data.sections.some(([id, label]) => id === "atlas" && label === "Atlas"));
   const panel = read("client/src/panels/AdminPanel.jsx");
   // 45q D185-3 (pin moved on purpose): the Atlas tab now also draws the content backlog beside it.
-  assert.match(panel, /\{at\("data", "atlas"\) && <><AtlasTab\/><AtlasBacklogSection\/><\/>\}/);
+  // A154 (45s): + the Compete switches (changed on purpose).
+  assert.match(panel, /\{at\("data", "atlas"\) && <><AtlasTab\/><AtlasBacklogSection\/><AtlasCompeteSection\/><\/>\}/);
   const tab = read("client/src/panels/adminAtlas.jsx");
   assert.match(tab, /api\(`\/api\/admin\/atlas\$\{status \? `\?status=\$\{status\}` : ""\}`\)/);
   assert.match(tab, /`\/api\/admin\/atlas\/\$\{encodeURIComponent\(r\.slug\)\}\/status`, \{ method: "POST", body: JSON\.stringify\(\{ status: next \}\) \}/);
@@ -316,8 +317,8 @@ test("D105 P4 · Admin → Data → Atlas lists the drafts and publishes them; t
       "pages/atlas/AtlasTree.jsx", "pages/atlas/YourMap.jsx", "pages/atlas/atlasTreeLayout.js", "pages/atlas/atlasTreeModel.js",
       "pages/atlas/LearnCircle.jsx", "pages/atlas/LearnWheel.jsx", "pages/atlas/learnWheel.js", "pages/atlas/YourCourse.jsx",
       "pages/atlas/Navigator.jsx", "pages/atlas/ReadinessCheck.jsx",
-      "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js", "pages/atlas/LibraryPanel.jsx", "pages/atlas/PathwayArt.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/RoleReadiness.jsx", "pages/atlas/roleReadinessModel.js", "pages/atlas/LessonDeck.jsx", "pages/atlas/CompareRoles.jsx"].sort());   // + D172 (2) the Library, + D115 Learn, + D116 the tree, + D117 the circle, + D120 the course on the home, + D117 C12 the deck, + D143 the navigator, + D142 the check, + D167 its own navigation
-  assert.deepEqual(MODULES.atlas.css, ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasPanels.css", "pages/atlas/LibraryPanel.css", "pages/atlas/YourRun.css", "pages/atlas/TrackBoard.css", "pages/atlas/RoleReadiness.css"]);   // ⭐ A136: the nav card is components/PlaceNav.jsx   // + D115 Learn, + D117 the circle, + D116 the tree, + D167 the nav
+      "pages/atlas/AtlasPanels.jsx", "pages/atlas/atlasPanels.js", "pages/atlas/CompetePanels.jsx", "pages/atlas/competeModel.js", "pages/atlas/LibraryPanel.jsx", "pages/atlas/PathwayArt.jsx", "pages/atlas/libraryModel.js", "pages/atlas/YourRun.jsx", "pages/atlas/yourRunModel.js", "pages/atlas/TrackBoard.jsx", "pages/atlas/trackModel.js", "pages/atlas/LibraryGuides.jsx", "pages/atlas/RoleReadiness.jsx", "pages/atlas/roleReadinessModel.js", "pages/atlas/LessonDeck.jsx", "pages/atlas/CompareRoles.jsx"].sort());   // + D172 (2) the Library, + D115 Learn, + D116 the tree, + D117 the circle, + D120 the course on the home, + D117 C12 the deck, + D143 the navigator, + D142 the check, + D167 its own navigation
+  assert.deepEqual(MODULES.atlas.css, ["pages/atlas/AtlasPage.css", "pages/atlas/LearnView.css", "pages/atlas/LearnCircle.css", "pages/atlas/AtlasTree.css", "pages/atlas/AtlasPanels.css", "pages/atlas/LibraryPanel.css", "pages/atlas/YourRun.css", "pages/atlas/TrackBoard.css", "pages/atlas/RoleReadiness.css", "pages/atlas/CompetePanels.css"]);   // ⭐ A136: the nav card is components/PlaceNav.jsx   // + D115 Learn, + D117 the circle, + D116 the tree, + D167 the nav
   assert.ok(MODULES.admin.members.includes("panels/adminAtlas.jsx"));
   for (const f of [...MODULES.atlas.members, ...MODULES.atlas.css]) assert.ok(fs.existsSync(`client/src/${f}`), f);
 });
