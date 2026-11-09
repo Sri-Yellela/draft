@@ -9,6 +9,7 @@ import { LEGACY_THEME_PREFERENCES, APPEARANCE_THEMES, LAYOUT_OPTION_IDS, LAYOUT_
 import { baseResumeOnlyState, activeBaseResume } from "../services/baseResumeOnly.js";
 // Shared with server.js's OAuth upsert, which called it without a binding until 09-30.
 import { saveIntegrationSecret } from "../services/secretBox.js";
+import { resumeFilledFields, clearFilled } from "../services/resumeSetup.js";   // D186-1
 
 // One lever, live read through the one shared parser. ⛔ See shared/monetisation.js before
 // flipping it: ON obliges a Chrome Web Store trader-declaration update in the same change.
@@ -360,6 +361,7 @@ export function createAccountRouter({
       "SELECT custom_answers, custom_answer_overrides, highest_degree, field_of_study, university, graduation_year FROM user_profile WHERE user_id=?"
     ).get(req.user.id) || {};
     const prior = readAnswerStore(existing);
+    const before = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(req.user.id) || {};   // D186: what changed by hand
     const isMap = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
     // Re-read through the same cleaner that the resolver uses, so what is stored and what is
     // resolved can never disagree about shape.
@@ -404,6 +406,12 @@ export function createAccountRouter({
       JSON.stringify(nextStore.answers), JSON.stringify(nextStore.overrides),
       req.user.id
     );
+    // ⭐ D186-1: a field the person CHANGED is theirs now — it leaves the "from your résumé" list (an untouched one keeps it).
+    try {
+      const after = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(req.user.id) || {};
+      const changed = resumeFilledFields(db, req.user.id).filter(k => String(before[k] ?? "") !== String(after[k] ?? ""));
+      if (changed.length) clearFilled(db, req.user.id, changed);
+    } catch { /* the save stands */ }
     res.json({ ok: true });
   });
 

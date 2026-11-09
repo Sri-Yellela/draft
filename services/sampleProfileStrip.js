@@ -102,6 +102,8 @@ export function stripSampleProfiles(db, { registry = null, log = console } = {})
   const mark = (userId) => { try { db.prepare("INSERT OR IGNORE INTO a140_trial_cleaned (user_id, cleaned_at) VALUES (?, unixepoch())").run(userId); } catch {} };
   for (const userId of users) {
     if (cleaned.has(userId)) continue;
+    // ⭐ D186-6: a TEST account (users.test_account = 1, the owner's canary) may carry a sample's fictional details on purpose.
+    if (tryGet(db, "SELECT test_account FROM users WHERE id = ?", userId)?.test_account === 1) continue;
     const row = tryGet(db, "SELECT * FROM user_profile WHERE user_id = ?", userId);
     const s = trialSample(db, userId, facts, row);
     if (!s) continue;

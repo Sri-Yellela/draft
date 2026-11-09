@@ -1,6 +1,8 @@
 // SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
 // routes/domainProfiles.js — Domain profile CRUD + chip generation
-import { pauseOnFamilyMove } from "../services/placement.js";   // (B)-3
+import { profileNameFromPlacement, nameAndTitlesFromPlacement, fillExtras } from "../services/resumeSetup.js";   // D186
+import { pauseOnFamilyMove, storedPlacement, placeText } from "../services/placement.js";   // (B)-3 · D186
+import { taxonomy } from "../services/jobs/taxonomyClassify.js";   // D186-3: the preview's names
 import { Router }        from "express";
 import Anthropic         from "@anthropic-ai/sdk";
 import { createRequire } from "module";
@@ -25,7 +27,7 @@ import {
   syncSelectedSkillSuggestions,
 } from "../services/profileSignalAggregator.js";
 import { mergeUniqueSignalLabels } from "../shared/profileSignals.js";
-import { startFromResume, followProfileText, followResumeFields } from "../services/resumeOnboarding.js";
+import { startFromResume, followProfileText, followResumeFields, inferProfileFromResume } from "../services/resumeOnboarding.js";
 import { sampleRoleFamily, trialSampleIdForText as sampleIdForText, activeTrialSampleId as activeSampleId } from "../services/sampleResumes.js";   // D184: the TEST SET runs the full flow
 import { readProfile } from "../services/structuredProfile.js";
 import { prefillFromResumeText } from "../shared/resumePrefill.js";   // D184 B-7: the résumé's city for the sentence
@@ -247,8 +249,25 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
   // The résumé starts the profile: { content, name } → the first job profile (domain, level, titles, keywords read
   // from the résumé — services/resumeOnboarding.js), its base résumé and signals, the person profile's sections and
   // stated defaults, and empty contact fields. 409 when a job profile exists (a second one is the wizard's).
+  // ⭐ D186-3 · where would this résumé place, and is it the active job profile's family? (no write) — the Profile page asks
+  // "Make this its own job profile" (default) or "Replace the current one" only when the family differs.
+  router.post("/resume-preview", (req, res) => {
+    const text = String(req.body?.content || "");
+    if (text.trim().length < 200) return res.status(400).json({ error: "resume_too_short", message: "That résumé has too little text to read." });
+    const active = db.prepare("SELECT id, profile_name, placement_category FROM domain_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1").get(req.user.id) || null;
+    let p = null; try { p = placeText(text, { titles: inferProfileFromResume(text, getRegistry()).titles }); } catch { p = null; }
+    const tax = (() => { try { return taxonomy(); } catch { return null; } })();
+    const cat = p?.category ? tax?.byId?.get(p.category) : null;
+    const sub = cat?.subs?.find(s => s.id === p.subcategory) || null;
+    res.json({ placed: !!p?.placed, category: p?.category || null, categoryName: cat?.name || null, subName: sub?.name || null, level: p?.level || null,
+      active: active ? { id: active.id, name: active.profile_name, category: active.placement_category } : null,
+      sameFamily: !active || !active.placement_category || !p?.category || active.placement_category === p.category,
+      sample: !!sampleIdForText(text) });
+  });
+
   router.post("/from-resume", (req, res) => {
     const { content, name } = req.body || {};
+    const asNew = req.body?.asNew === true;   // D186-3: "Make this its own job profile"
     try {
       const out = startFromResume(db, req.user.id, { content, name }, {
         registry: getRegistry(),
@@ -260,6 +279,7 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
         readProfile,
         sampleRoleFamily,
         isSampleSwap: (text) => !!sampleIdForText(text) && !!activeSampleId(db, req.user.id),
+        asNew,
         onProfileWrite: (profileId) => onProfileWrite?.(req.user.id, profileId, "POST /from-resume"),
       });
       const row = db.prepare("SELECT * FROM domain_profiles WHERE id=?").get(out.profileId);
@@ -434,7 +454,10 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
     const changedText = String(content || "").trim() !== String(oldText || "").trim();
     let followed = { changed: false }, fields = [], sections = false, refill = null, familyPause = { paused: false };
     if (changedText && String(content || "").trim().length >= 200) {
+      const nameBefore = profileNameFromPlacement(storedPlacement(db, req.user.id));   // D186-3: the old placement's own name
       try { followed = followProfileText(db, profile.id, content, { registry: getRegistry(), sampleRoleFamily }); } catch (e) { console.warn("[a140] profile follow:", e.message); }
+      // ⭐ D186-3: an automatically named profile takes its new placement's name; titles gain the subcategory's aliases.
+      if (!isSample) { try { nameAndTitlesFromPlacement(db, profile.id, { userId: req.user.id, previousName: nameBefore }); } catch (e) { console.warn("[d186] name:", e.message); } }
       // ⭐ (B)-2 (45o): a placement that moved (or a first placement) deals today's picks again from it — now, not tomorrow.
       if (followed?.placement) { try { dealAgain(db, req.user.id, profile.id); } catch { /* the deal follows tomorrow anyway */ } }
       // ⭐ (B)-3 (45o): a CATEGORY move pauses Apply for me on this profile (Keep · Change back in What changed).
@@ -443,6 +466,8 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
         try { fields = followResumeFields(db, req.user.id, oldText, content); } catch (e) { console.warn("[a140] fields follow:", e.message); }
         // ⭐ D183 P2: EVERY section re-fills, keeping hand edits and proven skills (was useResumeSuggestion, which replaced all).
         if (profile.is_active) { try { refill = refillFromResume(db, req.user.id); sections = !!refill.ok; } catch (e) { console.warn("[d183] sections refill:", e.message); } }
+        // ⭐ D186-1: current title / company, years, country, portfolio — under the same never-overwrite-a-typed-value rule.
+        try { fields = [...fields, ...fillExtras(db, req.user.id, content, { oldText })]; } catch (e) { console.warn("[d186] extras:", e.message); }
       }
     }
     // ⭐ D183 P2: What changed — recorded with the snapshot, shown on Your profile with Looks right · Undo · Review each change.

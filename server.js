@@ -7754,6 +7754,16 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // ⭐ D186 (owner 11-09, "one résumé sets up everything") · which contact / form fields the résumé filled (shown
+      // "from your résumé"; a field the person saves leaves the list) and the four things a résumé can't tell us that the
+      // person chose to skip (visa status · desired salary · start date · relocate). JSON on the person's own row. Only ADDS.
+      id: "266_resume_filled_fields",
+      sql: `
+        ALTER TABLE user_profile ADD COLUMN resume_filled_json TEXT;
+        ALTER TABLE user_profile ADD COLUMN four_things_skipped_json TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");

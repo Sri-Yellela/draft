@@ -20,6 +20,7 @@
 // POST   /api/profile/page/achievements        { title, detail?, year? } — one added by hand
 // DELETE /api/profile/page/achievements/:id
 // services/structuredProfile.js holds the rules; these routes only expose them.
+import { fourThings, setFourThing, resumeFilledFields } from "../services/resumeSetup.js";   // D186
 import { pickPlacement, answerFamilyMove } from "../services/placement.js";   // (B)-1, (B)-3
 import { dealAgain as dealAgainFor } from "../services/profileReplace.js";   // (B)-3: Change back deals again
 import { getRegistry } from "./domainProfiles.js";   // (B)-1: the D101 registry the map points into
@@ -55,6 +56,15 @@ export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo
     }
   };
 
+  // ⭐ D186-2 · the four things a résumé can't tell us (visa status · desired salary · start date · relocate) — asked once,
+  // each skippable; never inferred. { items: [{ key, label, set, skipped }], open }. Also what the résumé filled (D186-1).
+  app.get("/api/profile/four-things", requireAuth, (req, res) => {
+    try { res.set("Cache-Control", "private, no-store").json({ ...fourThings(db, req.user.id), filled: resumeFilledFields(db, req.user.id) }); } catch (e) { fail(res, e); }
+  });
+  app.put("/api/profile/four-things", requireAuth, (req, res) => {
+    try { res.json(setFourThing(db, req.user.id, { key: String(req.body?.key || ""), value: req.body?.value ?? null, skip: req.body?.skip === true })); }
+    catch (e) { fail(res, e); }
+  });
   app.get("/api/profile/sections", requireAuth, (req, res) => {
     try { res.json(withEntities(readProfile(db, req.user.id))); lookUpLogos(req.user.id); } catch (e) { fail(res, e); }
   });
