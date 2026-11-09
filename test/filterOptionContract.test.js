@@ -404,7 +404,9 @@ test("GET /api/jobs validates every enumerated dimension, under every param it a
   // 400 is RETURNED as boardReply(400, …) and the route sends whatever status it returns.
   assert.match(handler.slice(guardAt, guardAt + 400), /res\.status\(400\)|boardReply\(400,/,
     "an unknown filter value does not produce a 400");
-  assert.match(handler.slice(0, 300), /const \{ status, body \} = await boardPageResponse\(req\);\s*res\.status\(status\)\.json\(body\)/,
+  // 45s (changed on purpose): 45q's (11) adds each row's public path between the two (only on a 200), so the pin reads the
+  // handler to its end: the board's status is still what goes out.
+  assert.match(handler.slice(0, handler.search(/\r?\n\}\);/) + 6), /const \{ status, body \} = await boardPageResponse\(req\);[\s\S]*?if \(status === 200 &&[\s\S]*res\.status\(status\)\.json\(body\);\r?\n\}\);/,
     "the route no longer forwards the board's status — a 400 would go out as 200");
   // Every param name, including the exclude and legacy aliases — sources_exclude=LinkedIn has to
   // be caught as surely as sources_include=LinkedIn.
