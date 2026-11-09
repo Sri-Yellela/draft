@@ -159,7 +159,7 @@ test("b7PersonEditsWinUntilNextResume: the board applies the résumé's sentence
   assert.ok(eff.length > 0);
   assert.match(eff, /if \(String\(seen\) === String\(p\.placed_at\)\) return;/, "already applied for this placement → the person's own edits stand");
   assert.match(eff, /sentenceFromResume\(/);
-  assert.match(eff, /setTaxRole\(\{ category: next\.category, subcategory: next\.subcategory \}\)/);
+  assert.match(eff, /setTaxRole\(\{ category: next\.category, subcategory: next\.subcategory, also \}\)/);   // D186-5 (45s): + also fits
   for (const set of ["setExperienceLevels", "setWorkModels", "setPlaces"]) assert.match(eff, new RegExp(`${set}\\(next\\.`));
   assert.match(read("routes/domainProfiles.js"), /resume_location: cityOf\(r\.id\)/, "each profile carries its résumé's city");
   assert.match(read("services/profileReplace.js"), /the sentence follows the résumé/, "What changed says the sentence moved");

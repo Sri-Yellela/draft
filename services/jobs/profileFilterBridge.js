@@ -32,6 +32,8 @@ const LEVEL_ORDER = EXPERIENCE_LEVEL_ORDER;
 
 const MAX_DERIVED_Q_TERMS = 8;
 const MAX_DERIVED_SKILLS  = 6;
+const MAX_ALIAS_EXTRA     = 4;    // D186-4: aliases of the résumé's skills, after its own six
+const MAX_RELATED_TERMS   = 10;
 
 function bucketYearsExperience(years) {
   if (years == null || !Number.isFinite(years) || years < 0) return null;
@@ -119,7 +121,15 @@ function deriveProfileFilters(activeProfile, simpleApplyProfile, opts = {}) {
   if (qTerms.length) derived.q = qTerms.join(' ');
 
   const skills = cleanStringList(simpleApplyProfile?.skills, MAX_DERIVED_SKILLS);
-  if (skills.length) derived.skills_include = skills;
+  // ⭐ D186-4 (45s): the semantic layer's weighted terms (services/keywordTerms.js rankTerms) — the exact / alias ones join
+  // the skills tier after the résumé's own (which keep their place first); the related ones are their own, lower tier.
+  const primary = Array.isArray(opts.rankTerms?.primary) ? opts.rankTerms.primary : [];
+  const related = Array.isArray(opts.rankTerms?.related) ? opts.rankTerms.related : [];
+  const removed = new Set((opts.rankTerms?.removed || []).map(s => String(s).toLowerCase()));
+  const merged = cleanStringList([...skills.filter(s => !removed.has(String(s).toLowerCase())), ...primary], MAX_DERIVED_SKILLS + MAX_ALIAS_EXTRA);
+  if (merged.length) derived.skills_include = primary.length || removed.size ? merged : skills;
+  const relatedTerms = cleanStringList(related, MAX_RELATED_TERMS);
+  if (relatedTerms.length) derived.skills_related = relatedTerms;
 
   const bucket = bucketYearsExperience(simpleApplyProfile?.yearsExperience);
   if (bucket) derived.experience_levels = relevanceBand(bucket);

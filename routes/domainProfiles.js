@@ -1,5 +1,6 @@
 // SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
 // routes/domainProfiles.js — Domain profile CRUD + chip generation
+import { keywordTerms, removedTerms, setTermRemoved, WEIGHTS } from "../services/keywordTerms.js";   // D186-4
 import { profileNameFromPlacement, nameAndTitlesFromPlacement, fillExtras } from "../services/resumeSetup.js";   // D186
 import { pauseOnFamilyMove, storedPlacement, placeText } from "../services/placement.js";   // (B)-3 · D186
 import { taxonomy } from "../services/jobs/taxonomyClassify.js";   // D186-3: the preview's names
@@ -251,6 +252,20 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
   // stated defaults, and empty contact fields. 409 when a job profile exists (a second one is the wizard's).
   // ⭐ D186-3 · where would this résumé place, and is it the active job profile's family? (no write) — the Profile page asks
   // "Make this its own job profile" (default) or "Replace the current one" only when the family differs.
+  // ⭐ D186-4 · the terms that rank this job profile's board, weighted (exact 3 · alias 2 · related 1), each with its source;
+  // a removed term stays removed across résumé replaces. Related terms rank only — never the person's skills.
+  router.get("/:id/keywords", (req, res) => {
+    const p = db.prepare("SELECT id FROM domain_profiles WHERE id = ? AND user_id = ?").get(req.params.id, req.user.id);
+    if (!p) return res.status(404).json({ error: "Profile not found" });
+    res.set("Cache-Control", "private, no-store").json({ terms: keywordTerms(db, p.id, { useCache: false }), removed: removedTerms(db, p.id), weights: WEIGHTS });
+  });
+  router.put("/:id/keywords", (req, res) => {
+    const p = db.prepare("SELECT id FROM domain_profiles WHERE id = ? AND user_id = ?").get(req.params.id, req.user.id);
+    if (!p) return res.status(404).json({ error: "Profile not found" });
+    try { res.json(setTermRemoved(db, p.id, req.body?.term, req.body?.removed !== false)); }
+    catch (e) { res.status(e.status || 500).json({ error: e.code || "error", message: e.message }); }
+  });
+
   router.post("/resume-preview", (req, res) => {
     const text = String(req.body?.content || "");
     if (text.trim().length < 200) return res.status(400).json({ error: "resume_too_short", message: "That résumé has too little text to read." });

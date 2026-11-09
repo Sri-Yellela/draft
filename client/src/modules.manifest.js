@@ -76,8 +76,8 @@ export const MODULES = Object.freeze({
   // ⭐ D167 (owner 11-06) · Profile and Interview, each a place with its own navigation (components/PlaceNav.jsx), like Atlas.
   profile: { why: "Profile (D167) — About you, résumés, saved answers, auto-apply, connections, appearance, notifications, privacy, account",
     // ⭐ D183 P1: Your profile — the page from the résumé, its visibility, Behind your profile.
-    css: ["pages/profile/ProfilePage.css", "pages/profile/YourProfile.css"], members: ["App.jsx", "pages/profile/ProfilePage.jsx", "pages/profile/profilePanels.js",
-      "pages/profile/YourProfile.jsx"] },
+    css: ["pages/profile/ProfilePage.css", "pages/profile/YourProfile.css", "pages/profile/ResumeSetup.css"], members: ["App.jsx", "pages/profile/ProfilePage.jsx", "pages/profile/profilePanels.js",
+      "pages/profile/YourProfile.jsx", "pages/profile/ResumeSetup.jsx"] },
   interview: { why: "Interview (D167) — Coming up, Prepare, Practise, After; D110's prep, bank and debriefs",
     css: ["pages/interview/InterviewPage.css"], members: ["App.jsx", "pages/interview/InterviewPage.jsx", "pages/interview/interviewModel.js"] },
   audit: { why: "D150 T05–T08 — the 3-minute audit, /audit", css: ["pages/audit/AuditPage.css"], members: ["App.jsx", "pages/audit/AuditPage.jsx"] },

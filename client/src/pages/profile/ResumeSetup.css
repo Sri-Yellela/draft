@@ -1,0 +1,12 @@
+/* D186 · the four things, the ranking terms, the second-family choice (pages/profile/ResumeSetup.jsx). Theme tokens only. */
+.rs-four { margin: 0 0 18px; padding: 16px 18px; border: 1px solid var(--c-border); border-radius: 12px; background: var(--c-surface); }
+.rs-four__h { margin: 0 0 4px; font-size: 18px; color: var(--c-ink); }
+.rs-four__lead { margin: 0 0 10px; color: var(--c-ink-muted); }
+.rs-four__why { color: var(--c-ink-muted); font-size: 13px; }
+.rs-four__list, .rs-terms__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.rs-four__list li { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.rs-four__label { display: grid; gap: 4px; flex: 1 1 260px; color: var(--c-ink); font-weight: 600; }
+.rs-four__label input, .rs-four__label select { font: inherit; font-weight: 400; padding: 7px 10px; border: 1px solid var(--c-border-strong); border-radius: 8px; background: var(--c-surface-solid); color: var(--c-ink); }
+.rs-btn { border: 1px solid var(--c-border); border-radius: 8px; background: var(--c-surface-tint); color: var(--c-ink); font: inherit; font-size: 13px; padding: 6px 12px; cursor: pointer; }
+.rs-btn--quiet { background: transparent; }
+.rs-terms__list li { color: var(--c-ink); }

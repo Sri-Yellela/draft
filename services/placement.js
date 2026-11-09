@@ -48,6 +48,31 @@ export function ownTitles(text, max = 4) {
   return out;
 }
 
+/**
+ * ⭐ D186-1 (45s): the résumé's own roles, most recent first — { title, company, current } from its "Title — Company" (or
+ * "Title at Company") lines; current when that line or the next names Present / Current / Now. Pure.
+ */
+export function ownRoles(text, max = 4) {
+  const out = [];
+  let inExp = false;
+  const lines = String(text || "").split(/\r?\n/).map(l => l.trim());
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (SECTION.test(line)) { inExp = true; continue; }
+    if (OTHER_SECTION.test(line)) { inExp = false; continue; }
+    if (!inExp || /^[•\-*]/.test(line)) continue;
+    const m = /^(.+?)\s+[—–]\s+(.+)$/.exec(line) || /^(.+?)\s+at\s+([A-Z].+)$/.exec(line);
+    if (!m) continue;
+    const titleFirst = ROLE_WORD.test(m[1]), companyFirst = !titleFirst && ROLE_WORD.test(m[2]);
+    if (!titleFirst && !companyFirst) continue;
+    const title = (titleFirst ? m[1] : m[2]).trim(), company = (titleFirst ? m[2] : m[1]).trim().replace(/\s*[·|].*$/, "");
+    const current = /\b(present|current|now)\b/i.test(line + " " + (lines[i + 1] || ""));
+    out.push({ title, company, current });
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
 /** Classify a résumé: its OWN titles first, then the given ones (each once), the text as their context. Pure over the taxonomy. */
 export function placeText(text, { titles = [], years = null } = {}, tax = safe(() => taxonomy(), null)) {
   if (!tax) return { placed: false, confidence: 0, reason: "no_taxonomy" };

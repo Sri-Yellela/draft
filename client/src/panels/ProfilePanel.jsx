@@ -1,6 +1,6 @@
 // SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
 // client/src/panels/ProfilePanel.jsx — Design System v4
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import DomainProfileWizard from "../components/DomainProfileWizard.jsx";
@@ -115,12 +115,22 @@ const labelStyle = {
   letterSpacing:"0.05em", display:"block", marginBottom:4,
 };
 
-const PRow = ({ label, children, theme }) => (
-  <div style={{ display:"flex", flexDirection:"column", marginBottom:12 }}>
-    <span style={{ ...labelStyle, color:theme.textMuted }}>{label}</span>
-    {children}
-  </div>
-);
+// ⭐ D186-1 (45s): a contact / form field the résumé filled says so — quietly, beside its label; it stays editable, and a
+// value the person saves is theirs (the server drops it from the list). Keyed by the row's label (CONTACT_FIELD_OF).
+const ResumeFilledCtx = createContext(new Set());
+const CONTACT_FIELD_OF = { "Full Name": "full_name", "Email": "email", "Phone": "phone", "LinkedIn URL": "linkedin_url", "GitHub URL": "github_url",
+  "City": "city", "State": "state", "Country": "country", "Website URL": "website_url", "Portfolio URL": "portfolio_url",
+  "Current Job Title": "current_job_title", "Current Company": "current_company" };
+const PRow = ({ label, children, theme }) => {
+  const filled = useContext(ResumeFilledCtx);
+  const fromResume = filled.has(CONTACT_FIELD_OF[label]) || (label === "Years of Experience" && filled.has("years_of_experience"));
+  return (
+    <div style={{ display:"flex", flexDirection:"column", marginBottom:12 }}>
+      <span style={{ ...labelStyle, color:theme.textMuted }}>{label}{fromResume && <span data-from-resume="" style={{ fontWeight:400, marginLeft:6, opacity:0.8 }}>· from your résumé</span>}</span>
+      {children}
+    </div>
+  );
+};
 
 const PHint = ({ children, theme }) => (
   <span style={{ fontSize:10, color:theme.textDim, marginTop:3, lineHeight:1.4, display:"block" }}>
@@ -484,6 +494,8 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
     } catch {}
   }, []);
 
+  // D186-1: the fields the résumé filled (GET /api/profile carries resume_filled_json).
+  const filledFromResume = useMemo(() => { try { return new Set(JSON.parse(form.resume_filled_json || "[]")); } catch { return new Set(); } }, [form.resume_filled_json]);
   useEffect(() => {
     api("/api/profile")
       .then(d => setForm(f => ({
@@ -595,6 +607,8 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
     try {
       await api("/api/profile", { method:"POST", body:JSON.stringify(cleaned) });
       setForm(cleaned);
+      // D186-1: a field changed by hand is no longer "from your résumé" — the server's list, read back.
+      api("/api/profile").then(d => setForm(f => ({ ...f, resume_filled_json: d.resume_filled_json }))).catch(() => {});
       setUnsaved(false);
       setStatus("✓ Saved");
       setTimeout(() => setStatus(""), 3000);
@@ -826,6 +840,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
       )}
       <form onSubmit={save}>
 
+        <ResumeFilledCtx.Provider value={filledFromResume}>
         {on("about") && <>
         {/* ⛔ A140 (owner 11-08: "we had updated the profile section to have resume like UI with company logos … with
             inline editing, instead of the traditional text fields, cannot see it now"): the résumé-like view
@@ -1044,6 +1059,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
         {/* D112 d2: the old Education block is gone — the Education SECTION (ProfileSections, above) is the source of
             the degree, with its own Change override. Migration 179 moved the block's values into it. */}
 
+        </ResumeFilledCtx.Provider>
         {on("answers") && <>
         {/* ── Custom Answers ── */}
         <PSec title="Custom Answers" theme={theme}>
@@ -1137,12 +1153,21 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
         <PSec title="Job Profiles" theme={theme}>
           {/* D112 e2: a profile made from a résumé — the same wizard, everything filled. */}
           <RefineJobProfile profiles={profiles} activeId={activeProfileId} onRefined={() => loadProfiles()} />
-          <div style={{ fontSize:12, color:theme.textMuted, lineHeight:1.5, marginBottom:14 }}>
-            Job profile creation, editing, switching, and deletion now live in the dedicated Job Profiles section.
-            Profile-specific resume and signal editing remains below for the active profile.
-          </div>
-          <div style={{ fontSize:12, color:theme.textMuted, marginBottom:16 }}>
-            Active profile: <strong style={{ color:theme.text }}>{activeProfile?.profile_name || "None selected"}</strong>
+          {/* ⭐ D186-3 (owner 11-09): the dead end ("Active profile: None selected · Open Job Profiles") is gone — the pipeline
+              makes the job profile from the first résumé; here is its name, a switch between profiles and the manual section. */}
+          <div data-active-job-profile={activeProfile ? activeProfile.id : "none"} style={{ fontSize:12, color:theme.textMuted, marginBottom:16, display:"flex", flexWrap:"wrap", gap:10, alignItems:"center" }}>
+            {activeProfile
+              ? <>Active job profile: <strong style={{ color:theme.text }}>{activeProfile.profile_name}</strong>
+                  {profiles.length > 1 && (
+                    <select aria-label="Switch job profile" value={activeProfileId || ""} onChange={(e) => activateProfile(Number(e.target.value))}
+                      data-switch-job-profile="" style={{ font:"inherit", fontSize:12, padding:"3px 6px", borderRadius:6, border:`1px solid ${theme.border}`, background:theme.bg, color:theme.text }}>
+                      {profiles.map(p => <option key={p.id} value={p.id}>{p.profile_name}</option>)}
+                    </select>
+                  )}
+                  <button type="button" onClick={onOpenJobProfiles} data-manage-job-profiles=""
+                    style={{ font:"inherit", fontSize:12, padding:"3px 8px", borderRadius:6, border:`1px solid ${theme.border}`, background:"transparent", color:theme.text, cursor:"pointer" }}>Manage</button></>
+              : <>No job profile yet — upload your résumé on Your profile and one is made for you. Or <button type="button" onClick={onOpenJobProfiles}
+                  style={{ font:"inherit", fontSize:12, padding:0, border:"none", background:"transparent", color:theme.text, textDecoration:"underline", cursor:"pointer" }}>make one by hand</button>.</>}
           </div>
           <div style={{ display:"none", flexWrap:"wrap", gap:10, marginBottom:16 }}>
             {profiles.map(profile => (

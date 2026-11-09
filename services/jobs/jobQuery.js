@@ -211,7 +211,7 @@ function buildQSql(q) {
 // "Backend Engineer" and "Software Engineer" indistinguishable to a user who asked for the latter.
 const DERIVED_RANK_ORDER = [
   'q', 'role_key', 'target_title_exact', 'target_title_role',
-  'experience_levels', 'skills_include', 'sponsorship_friendly', 'company_sponsorship',
+  'experience_levels', 'skills_include', 'skills_related', 'sponsorship_friendly', 'company_sponsorship',
 ];
 
 /**
@@ -558,7 +558,13 @@ function buildJobFilters(params = {}, opts = {}) {
   // Ids are matched against a closed pattern; the subcategory wins over its category when both are set.
   const taxSub = String(params.subcategory || '').toLowerCase();
   const taxCat = String(params.category || '').toLowerCase();
-  if (/^[a-z0-9][a-z0-9.-]{0,60}$/.test(taxSub)) {
+  // ⭐ D186-5 (45s): the placement's "also fits" (also_subcategory) is searched WITH the primary — the person's résumé fits
+  // both; the sentence still names the primary. Only beside a subcategory, and only a well-formed id.
+  const taxAlso = String(params.also_subcategory || '').toLowerCase();
+  if (/^[a-z0-9][a-z0-9.-]{0,60}$/.test(taxSub) && taxAlso !== taxSub && /^[a-z0-9][a-z0-9.-]{0,60}$/.test(taxAlso)) {
+    clauses.push('EXISTS (SELECT 1 FROM job_taxonomy jtx WHERE jtx.job_id = sj.job_id AND jtx.subcategory IN (?, ?))');
+    args.push(taxSub, taxAlso);
+  } else if (/^[a-z0-9][a-z0-9.-]{0,60}$/.test(taxSub)) {
     clauses.push('EXISTS (SELECT 1 FROM job_taxonomy jtx WHERE jtx.job_id = sj.job_id AND jtx.subcategory = ?)');
     args.push(taxSub);
   } else if (/^[a-z0-9][a-z0-9-]{0,60}$/.test(taxCat)) {
@@ -764,6 +770,14 @@ function buildJobFilters(params = {}, opts = {}) {
       args.push(...skillMatch.params);
       established.push({ key: 'skills_include', sql: SKILLS_UNKNOWN_SQL });
     }
+  }
+  // ⭐ D186-4 (45s) · RELATED TERMS — Atlas's neighbours of the résumé's skills. DERIVED ONLY and a rank BELOW skills_include:
+  // among postings the exact / alias tier ranked alike, one asking for a related skill comes first. Never a filter (an
+  // explicit value is ignored), never a claim (services/keywordTerms.js).
+  const skillsRelated = toArray(params.skills_related);
+  if (skillsRelated.length && isDerived('skills_related')) {
+    const rel = skillsIncludeSql(skillsRelated);
+    ranks.skills_related = { sql: `CASE WHEN ${SKILLS_UNKNOWN_SQL} THEN ${RANK_UNKNOWN} WHEN (${rel.sql}) THEN ${RANK_MATCH} ELSE ${RANK_MISS} END`, params: rel.params };
   }
   // skills_exclude is ALWAYS explicit (the bridge never derives it) and stays an exclusion. It
   // gets the same two corrections: '[]' counts as unknown, and the term is matched as a whole word

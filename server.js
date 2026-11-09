@@ -200,6 +200,7 @@ import { callTask } from "./services/modelGateway.js";
 // ⛔ D173 (1): untrusted text (postings) reaches a model only fenced, and the output is checked.
 import { buildCoverLetterRequest, checkCoverLetter } from "./services/coverLetterPrompt.js";
 import { describeViolations } from "./services/untrustedText.js";
+import { rankTerms, removedTerms } from "./services/keywordTerms.js";   // D186-4
 import { answerDraftsEnabled, ANSWER_DRAFTS_SETTING, draftableQuestion, buildAnswerDraftRequest, checkAnswerDraft } from "./services/applicationAnswerDraft.js";   // D185-1 (45s)
 import { cachedApplicationSchema as cachedSchemaForDraft } from "./services/jobs/applicationSchema.js";
 import { activeBaseResume as baseResumeForDraft } from "./services/baseResumeOnly.js";
@@ -7757,11 +7758,13 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
     {
       // ⭐ D186 (owner 11-09, "one résumé sets up everything") · which contact / form fields the résumé filled (shown
       // "from your résumé"; a field the person saves leaves the list) and the four things a résumé can't tell us that the
-      // person chose to skip (visa status · desired salary · start date · relocate). JSON on the person's own row. Only ADDS.
+      // person chose to skip (visa status · desired salary · start date · relocate), and the ranking terms a person removed
+      // from a job profile (D186-4 — kept removed across résumé replaces). JSON on the person's own rows. Only ADDS.
       id: "266_resume_filled_fields",
       sql: `
         ALTER TABLE user_profile ADD COLUMN resume_filled_json TEXT;
         ALTER TABLE user_profile ADD COLUMN four_things_skipped_json TEXT;
+        ALTER TABLE domain_profiles ADD COLUMN keyword_removed_json TEXT;
       `,
     },
   ];
@@ -12235,6 +12238,8 @@ const boardReply = (status, body) => ({ status, body });
 // bindings and its value is returned as { measured: true, value }. One board, two readers: a count the
 // list cannot reproduce is not possible when both are the same statement's WHERE. `opts.nowSec` pins
 // the ageFilter cutoff so a facets response's options and its base sets read one clock.
+// ⭐ D186-4 (45s): the job profile's weighted semantic terms for the board's ranking (services/keywordTerms.js; cached).
+const boardRankTerms = (profile) => { if (!profile?.id) return null; try { return { ...rankTerms(db, profile.id), removed: removedTerms(db, profile.id) }; } catch { return null; } };
 async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
   try {
     // Validate the enumerated filter vocabularies BEFORE any work — a bad value must not reach the
@@ -12536,7 +12541,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       : signals;
     const derivedFilters = (req.query.curate === 'off' || savedTab)
       ? {}
-      : deriveProfileFilters(sessionActiveProfile, curationSignals);
+      : deriveProfileFilters(sessionActiveProfile, curationSignals, { rankTerms: boardRankTerms(sessionActiveProfile) });
     const filterParams = { ...baseFilterParams };
     // D29 · the legacy location text, resolved above, joins the place set / the workplace.
     if (locationPlace) {

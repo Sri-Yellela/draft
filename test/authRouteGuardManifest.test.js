@@ -477,6 +477,9 @@ const AUTHENTICATED = new Set([
   "GET /api/domain-profiles/:id/base-resume",
   "POST /api/domain-profiles/:id/base-resume",
   "GET /api/domain-profiles/:id/signals",
+  // D186 (45s): the weighted ranking terms, where a résumé would place, and the four things.
+  "GET /api/domain-profiles/:id/keywords", "PUT /api/domain-profiles/:id/keywords", "POST /api/domain-profiles/resume-preview",
+  "GET /api/profile/four-things", "PUT /api/profile/four-things",
   "POST /api/domain-profiles/:id/signals/refresh",
   "PUT /api/domain-profiles/:id/signals",
   "GET /api/domain-profiles/:id/suggestions",

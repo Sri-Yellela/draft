@@ -26,6 +26,7 @@ import { useAccountAvatar, announceAccountChanged } from "../../lib/accountAvata
 import { openResumeEditor } from "../../lib/resumeEditor.js";
 import { RESUME_REPLACED_EVENT } from "../../panels/ProfilePanel.jsx";
 import ProfileSections from "../../components/ProfileSections.jsx";
+import { FourThingsCard, RankingTerms, SecondFamilyChoice } from "./ResumeSetup.jsx";   // D186
 import "./YourProfile.css";
 
 const LEVELS = [["only_me", "Only you"], ["connections", "Connections"], ["public", "Public"]];
@@ -535,22 +536,46 @@ export default function YourProfile({ behind = null }) {
   // changed (RESUME_REPLACED_EVENT, P2). With no job profile yet, the old form behind the fold is the way in.
   const replaceRef = useRef(null);
   const [replacing, setReplacing] = useState(false);
+  const [choice, setChoice] = useState(null);   // D186-3: { text, name, preview } — a résumé from another family
   const replace = () => {
-    if (page?.activeProfileId && replaceRef.current) { replaceRef.current.click(); return; }
+    // ⭐ D186-3/-7: with no job profile yet, the upload MAKES one (the pipeline: placement, name, titles, sentence, picks).
+    if (replaceRef.current) { replaceRef.current.click(); return; }
     setBehindOpen(true); setBehindRow("resumes");
     setTimeout(() => document.querySelector('[data-behind-row="resumes"]')?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
+  const replaceInto = async (profileId, text, name) => {
+    await api(`/api/domain-profiles/${profileId}/base-resume`, { method: "POST", body: JSON.stringify({ content: text, name }) });
+    await api(`/api/domain-profiles/${profileId}/signals/refresh`, { method: "POST" });
+  };
   const replaceWith = async (file) => {
-    if (!file || !page?.activeProfileId) return;
+    if (!file) return;
     setReplacing(true); setErr("");
     try {
       const form = new FormData(); form.append("file", file);
       const parsed = await api("/api/parse-pdf", { method: "POST", body: form });
-      await api(`/api/domain-profiles/${page.activeProfileId}/base-resume`, { method: "POST", body: JSON.stringify({ content: parsed?.text || "", name: file.name }) });
-      await api(`/api/domain-profiles/${page.activeProfileId}/signals/refresh`, { method: "POST" });
+      const text = parsed?.text || "";
+      if (!page?.activeProfileId) {
+        // ⭐ D186-3: the first résumé creates the job profile — no Job Profiles step first.
+        await api("/api/domain-profiles/from-resume", { method: "POST", body: JSON.stringify({ content: text, name: file.name }) });
+      } else {
+        // ⭐ D186-3: a résumé from ANOTHER family asks first — its own job profile (the default) or a replace.
+        const preview = await api("/api/domain-profiles/resume-preview", { method: "POST", body: JSON.stringify({ content: text }) }).catch(() => null);
+        if (preview && !preview.sameFamily && !preview.sample) { setChoice({ text, name: file.name, preview }); return; }
+        await replaceInto(page.activeProfileId, text, file.name);
+      }
       window.dispatchEvent(new Event(RESUME_REPLACED_EVENT));
     } catch (e) { setErr(e.message || "The résumé could not be replaced."); }
     finally { setReplacing(false); if (replaceRef.current) replaceRef.current.value = ""; }
+  };
+  const chooseNew = async () => {
+    setReplacing(true);
+    try { await api("/api/domain-profiles/from-resume", { method: "POST", body: JSON.stringify({ content: choice.text, name: choice.name, asNew: true }) }); setChoice(null); window.dispatchEvent(new Event(RESUME_REPLACED_EVENT)); }
+    catch (e) { setErr(e.message || "The job profile could not be made."); } finally { setReplacing(false); }
+  };
+  const chooseReplace = async () => {
+    setReplacing(true);
+    try { await replaceInto(page.activeProfileId, choice.text, choice.name); setChoice(null); window.dispatchEvent(new Event(RESUME_REPLACED_EVENT)); }
+    catch (e) { setErr(e.message || "The résumé could not be replaced."); } finally { setReplacing(false); }
   };
 
   if (!page) return <p className="yp__muted">{err || "Loading your profile…"}</p>;
@@ -563,6 +588,9 @@ export default function YourProfile({ behind = null }) {
       <WhoCanSee vis={vis} onSet={set} />
       {err && <p role="alert" className="yp__err">{err}</p>}
       {replaced && <ReplaceWhatChanged r={replaced} onKeep={keepChange} onUndo={undoChange} busy={changeBusy} onPage={setPage} />}
+      {choice && <SecondFamilyChoice preview={choice.preview} busy={replacing} onNew={chooseNew} onReplace={chooseReplace} onCancel={() => { setChoice(null); setReplacing(false); }} />}
+      {/* ⭐ D186-2: only what a résumé can't tell us — once, each skippable. */}
+      {page.activeProfileId && <FourThingsCard onChanged={load} />}
       <Header page={page} avatarUrl={avatarUrl} editing={editing} onEdit={() => setEditing(x => !x)} onSet={set}
         onPreview={togglePreview} previewing={!!preview} onPage={setPage} />
       {preview ? <PublicPreview view={preview.view} avatarUrl={avatarUrl} /> : (
@@ -596,7 +624,9 @@ export default function YourProfile({ behind = null }) {
             <BehindRow id="resumes" title="Base résumés and job profiles" summary="Your résumé per kind of job, its titles, years and search terms, and the facts read from it"
               open={behindRow} onOpen={setBehindRow}>{behind?.resumes || null}</BehindRow>
             <BehindRow id="skills" title="Skills and keywords that rank your board" summary="What the board reads to rank your jobs"
-              open={behindRow} onOpen={setBehindRow}><ProfileSections theme={theme} parts={["skills"]} onChanged={load} /></BehindRow>
+              open={behindRow} onOpen={setBehindRow}><ProfileSections theme={theme} parts={["skills"]} onChanged={load} />
+              {/* ⭐ D186-4: the weighted terms (from your résumé · alias · related), each removable. */}
+              <RankingTerms profileId={page.activeProfileId} /></BehindRow>
             <BehindRow id="tailoring" title="How your résumés are tailored" summary="The rules a tailored résumé follows for you"
               open={behindRow} onOpen={setBehindRow}>{behind?.tailoring || null}</BehindRow>
             <BehindRow id="proofpage" title="Proof page" summary="What you've proven in Atlas, on your public page"

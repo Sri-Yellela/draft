@@ -58,7 +58,8 @@ test("b2SentenceFilterFollows · the board's role word follows a NEW placement (
   // D184 B-7 (45p): the role comes through sentenceFromResume (a .general placement narrows to its category there —
   // shared/resumeSentence.js, pinned by d184ResumeChange's b7SentenceFromResume) with the level, workstyles and city.
   assert.match(ui, /const next = sentenceFromResume\(\{ category: p\.placement_category, subcategory: p\.placement_subcategory/);
-  assert.match(ui, /setTaxRole\(\{ category: next\.category, subcategory: next\.subcategory \}\);/);
+  // D186-5 (45s, on purpose): + the placement's "also fits", searched beside the role.
+  assert.match(ui, /setTaxRole\(\{ category: next\.category, subcategory: next\.subcategory, also \}\);/);
   const before = { headline: null, experience: [], fromResume: [], proven: [], placement: { path: "Software engineering › Backend", level: "Senior" } };
   const after = { ...before, placement: { path: "Project and program management › Construction", level: "Senior" } };
   const line = whatChanged(before, after).lines.find(l => l.what === "fit");
