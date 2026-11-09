@@ -108,6 +108,7 @@ import { startAudit, answerAudit, auditResult, claimAudit } from "./services/aud
 import { todaysQuestion, answerToday } from "./services/learn/dailyQuestion.js";
 import { readReminder, setReminder, runDailyReminders } from "./services/learn/dailyReminder.js";
 import { readMatchAlertSettings, setMatchAlertSettings, runMatchAlerts, matchAlertTimings } from "./services/jobs/newMatchAlerts.js";
+import { outcomeMetrics, gatherOutcomeApps } from "./services/outcomeMetrics.js";
 import { seedTaxonomyRoles } from "./services/atlas/taxonomyRoleNodes.js";
 import { TAXONOMY_FILE } from "./services/jobs/taxonomyClassify.js";
 import { setAim as setNavigatorAim } from "./services/navigator.js";
@@ -13123,6 +13124,13 @@ app.get("/api/alerts/matches/settings", requireAuth, (req, res) => {
 app.put("/api/alerts/matches/settings", requireAuth, (req, res) => {
   try { res.json(setMatchAlertSettings(db, req.user.id, { mode: req.body?.mode, hour: req.body?.hour, tzOffsetMin: req.body?.tzOffsetMin })); }
   catch (e) { auditFail(res, e); }
+});
+// ⭐ D185-5 (45q) · outcomes — interviews / offers per application and per active person, by week (read workers).
+app.get("/api/admin/outcomes", requireAdmin, async (req, res) => {
+  try {
+    const weeks = Math.min(52, Math.max(1, Number(req.query?.weeks) || 12));
+    res.json(outcomeMetrics(await gatherOutcomeApps(readPool, { weeks }), { weeks }));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.get("/api/admin/match-alerts", requireAdmin, (req, res) => {
   try { res.json(matchAlertTimings(db, { days: Math.min(90, Math.max(1, Number(req.query?.days) || 30)) })); }
