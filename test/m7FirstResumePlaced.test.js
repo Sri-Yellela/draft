@@ -31,7 +31,7 @@ test("m7FirstResumePlaced: the board's first upload places the job profile (role
   assert.equal(p.categoryName, maya.expected.category);
   assert.equal(p.subName, maya.expected.subcategory);
   assert.equal(p.level, maya.expected.level);
-  assert.match(read("services/resumeOnboarding.js"), /deps\.saveBaseResume\(id, text, name \|\| "resume\.txt"\);\n  if \(!sampleFamily\) placeFirstResume\(db, id, text, inferred, deps\.registry\);/);
+  assert.match(read("services/resumeOnboarding.js"), /deps\.saveBaseResume\(id, text, name \|\| "resume\.txt"\);\n  if \(!sampleFamily\) \{\n    placeFirstResume\(db, id, text, inferred, deps\.registry\);/);
 });
 
 test("m7SentenceSurvivesTheRestore: the résumé's sentence applied for a profile is re-applied after that profile's snapshot restore", () => {

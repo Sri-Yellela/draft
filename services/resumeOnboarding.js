@@ -11,7 +11,8 @@
 //      holds every attestation out); a field the user typed is never overwritten.
 // The wizard stays, as "Refine your job profile", pre-filled with what was read here.
 
-import { placeText, writePlacement } from "./placement.js";   // (B)-1: one placement, one source
+import { placeText, writePlacement } from "./placement.js";
+import { recordFilled, fillExtras, nameAndTitlesFromPlacement, isTestAccount } from "./resumeSetup.js";   // D186   // (B)-1: one placement, one source
 import { prefillFromResumeText, PREFILL_FIELDS } from "../shared/resumePrefill.js";
 
 const SKIP_DOMAINS = new Set(["other_profile_request", "general"]);
@@ -101,6 +102,7 @@ export function fillEmptyProfileFields(db, userId, text) {
       .run(String(v), userId);
     if (r.changes) written.push(field);
   }
+  recordFilled(db, userId, written);   // D186: shown "from your résumé"
   return written;
 }
 
@@ -118,7 +120,9 @@ export function startFromResume(db, userId, { content, name }, deps) {
   // Owner 11-02 ("none of the samples work"): a trial account whose profile was made from one sample, picking another,
   // has that profile switched to the new sample — not the 409 that stranded every later pick. Any other résumé is refused.
   const swapSample = !!existing && !!deps.isSampleSwap?.(text);
-  if (existing && !swapSample) {
+  // ⭐ D186-3: a second résumé in ANOTHER family may become its own job profile (the person chose "Make this its own job
+  // profile"); it is made active and the others step back — replacing stays the profile page's own upload.
+  if (existing && !swapSample && !deps.asNew) {
     throw Object.assign(new Error("You already have a job profile — upload a résumé to it from Job profiles."), { status: 409, code: "has_profile" });
   }
   const inferred = inferProfileFromResume(text, deps.registry);
@@ -142,6 +146,7 @@ export function startFromResume(db, userId, { content, name }, deps) {
       .run(userId, inferred.profileName, inferred.roleFamily, inferred.domain, inferred.seniority,
         JSON.stringify(inferred.titles), JSON.stringify(inferred.keywords), JSON.stringify(inferred.verbs), JSON.stringify(inferred.tools));
     db.prepare("UPDATE users SET domain_profile_complete = 1 WHERE id = ?").run(userId);
+    if (deps.asNew) db.prepare("UPDATE domain_profiles SET is_active = 0 WHERE user_id = ? AND id <> ?").run(userId, r.lastInsertRowid);
     // D112 e2: made from a résumé — the profile shows "Refine your job profile" until the wizard is saved for it (179).
     if (db.prepare("PRAGMA table_info(domain_profiles)").all().some(c => c.name === "made_from_resume")) {
       db.prepare("UPDATE domain_profiles SET made_from_resume = 1 WHERE id = ?").run(r.lastInsertRowid);
@@ -149,10 +154,19 @@ export function startFromResume(db, userId, { content, name }, deps) {
     return Number(r.lastInsertRowid);
   })();
   deps.saveBaseResume(id, text, name || "resume.txt");
-  if (!sampleFamily) placeFirstResume(db, id, text, inferred, deps.registry);   // a TRIAL sample keeps its own family (D123 P6e)
-  // ⛔ A140 (owner 11-08): a fictional sample never fills the person's contact fields.
-  const filled = sampleFamily ? [] : fillEmptyProfileFields(db, userId, text);
+  if (!sampleFamily) {
+    placeFirstResume(db, id, text, inferred, deps.registry);   // a TRIAL sample keeps its own family (D123 P6e)
+    // ⭐ D186-3: the pipeline names the job profile from its placement ("Frontend software engineering · mid") and adds the
+    // subcategory's title aliases to the résumé's own titles.
+    try { nameAndTitlesFromPlacement(db, id, { userId, autoNames: [inferred.profileName] }); } catch (e) { console.warn("[d186] name:", e.message); }
+  }
+  // ⛔ A140 (owner 11-08): a fictional sample never fills the person's contact fields — ⭐ D186-6: except on a TEST account
+  // (users.test_account = 1, the owner's canary), where the sample IS the test.
+  const mayFill = !sampleFamily || isTestAccount(db, userId);
+  const filled = mayFill ? fillEmptyProfileFields(db, userId, text) : [];
   const profile = deps.readProfile(db, userId);
+  // ⭐ D186-1: what the sections (just written by the first read) and the text tell us beyond A33's prefill.
+  if (mayFill) { try { filled.push(...fillExtras(db, userId, text)); } catch (e) { console.warn("[d186] extras:", e.message); } }
   try { deps.onProfileWrite?.(id); } catch { /* the board re-scores on its next read */ }
   return { profileId: id, inferred, filled, completeness: profile?.completeness || null };
 }
@@ -226,6 +240,7 @@ export function followResumeFields(db, userId, oldText, newText) {
     db.prepare(`UPDATE user_profile SET ${field} = ? WHERE user_id = ?`).run(String(v), userId);
     written.push(field);
   }
+  recordFilled(db, userId, written);   // D186
   // The one-line location the fill also reads, kept in step with a city / state the résumé moved.
   if (written.includes("city") || written.includes("state")) {
     const r = db.prepare("SELECT city, state FROM user_profile WHERE user_id = ?").get(userId) || {};
