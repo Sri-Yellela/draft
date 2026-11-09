@@ -274,7 +274,13 @@ const SCREENS = {
           dock: { left: d.left, right: d.right, top: d.top, bottom: d.bottom, width: d.width, height: d.height }, content,
           namesShown: ink, raftShown: !!raft && getComputedStyle(raft).display !== "none" && getComputedStyle(raft).clipPath === "none",
           shellPadLeft: getComputedStyle(document.querySelector("[data-app-shell]")).paddingLeft,
-          scrollW: document.documentElement.scrollWidth };
+          scrollW: document.documentElement.scrollWidth,
+          // 45o: what sticks out past the right edge when the page scrolls sideways (names the culprit in a failure).
+          wide: document.documentElement.scrollWidth > document.documentElement.clientWidth
+            ? [...document.querySelectorAll("body *")].filter((el) => el.getBoundingClientRect().right > document.documentElement.clientWidth + 1
+                && getComputedStyle(el).position !== "fixed").slice(0, 6)
+                .map((el) => `${el.tagName.toLowerCase()}.${String(el.className || "").split(" ")[0]} ${Math.round(el.getBoundingClientRect().right)}`)
+            : [] };
       });
       const out = { rest: await read() };
       // a side dock opens evenly from its centre, never over the content
