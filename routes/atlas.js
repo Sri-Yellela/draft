@@ -142,7 +142,8 @@ export function createAtlasRouter(db) {
     const slug = String(req.params.slug);
     const p = uid != null ? peekNode(db, slug, uid) : liveCached(db, `peek:${slug}`, () => peekNode(db, slug, null));
     if (!p) return res.status(404).json({ error: "not_found" });
-    res.set("Cache-Control", `${uid != null ? "private" : "public"}, max-age=${LIVE_CACHE_MS / 1000}`);
+    // A148: a signed-in peek carries the person's own marks — never cached under the one URL every account shares.
+    res.set("Cache-Control", uid != null ? "private, no-store" : `public, max-age=${LIVE_CACHE_MS / 1000}`);
     res.json(p);
   });
   // ⭐ D167 · the Atlas's Glossary: every published term in plain words + its postings — the SAME meaning as the popup

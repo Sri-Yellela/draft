@@ -135,6 +135,8 @@ export function accountSummary(db, userId) {
     id: u.id, username: u.username, displayName: p.full_name || [p.first_name, p.last_name].filter(Boolean).join(" ") || null,
     email: p.email || null, emailVerified: !!u.email_verified_at, createdAt: u.created_at,
     hasAvatar: !!u.avatar_path, providerPicture,
+    // ⛔ A148: the picture's own URL — per user, versioned by the stored file, so no two accounts (and no two uploads) share one.
+    avatarUrl: u.avatar_path ? `/api/account/avatar/${u.id}?v=${avatarVersion(u.avatar_path)}` : null,
     signInMethods: signInMethods(u),
   };
 }
@@ -153,6 +155,10 @@ const IMAGE_SIGNATURES = [
   { type: "image/webp", ext: "webp", test: (b) => b.length > 12 && b.toString("latin1", 0, 4) === "RIFF" && b.toString("latin1", 8, 12) === "WEBP" },
 ];
 export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+/** A148: a short, stable version of a stored picture (its path is new on every upload). */
+export function avatarVersion(rel) {
+  return crypto.createHash("sha256").update(String(rel || "")).digest("hex").slice(0, 12);
+}
 /** The image's real type, from its BYTES — never the filename or the client's claimed type. */
 export function sniffImage(buf) {
   if (!Buffer.isBuffer(buf) || !buf.length) fail(400, "no_image", "Choose an image.");
@@ -359,6 +365,9 @@ export const MERGE_PLAN = Object.freeze({
   // 45n (250): a cache of the public page for search — rebuilt from INTO's page after a merge, never carried over.
   people_index: "drop",
   atlas_prefs: "drop",   // A155: a preference only — the surviving account keeps its own
+  // D180 P2 (253): a read mark / mute per Network thread. FROM's threads are keyed by its id (low_id / high_id), not
+  // user_id, and go with FROM's row by cascade — so its read marks go too. (45p: merge refused every merge without it.)
+  network_reads: "drop",
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */

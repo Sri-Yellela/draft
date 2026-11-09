@@ -462,6 +462,7 @@ const AUTHENTICATED = new Set([
   "POST /api/account/reauth",
   "PATCH /api/account/profile",
   "POST /api/account/avatar",
+  "GET /api/account/avatar/:userId",   // A148: answers only the signed-in person's own id (another → 404)
   "GET /api/account/avatar",
   "DELETE /api/account/avatar",
   "GET /api/account/sessions",

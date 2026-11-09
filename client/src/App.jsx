@@ -2,6 +2,7 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, setAuthContext }   from "./lib/api.js";
+import { notePerson, onPersonChangedElsewhere } from "./lib/personalState.js";   // A148
 import { adoptAccountTheme }     from "./styles/colorTokens.js";
 import { ContrastOffer }         from "./components/AppearanceSettings.jsx";
 import { useTheme }              from "./styles/theme.jsx";
@@ -795,6 +796,18 @@ function AppRouter() {
   const { theme } = useTheme();
   const [authUser,    setAuthUser]    = useState(null);
   const [authStatus,  setAuthStatus]  = useState("unknown");
+  // ⛔ A148 (45p): when the signed-in person changes (every sign-out path ends in setAuthUser(null); a sign-in as someone
+  // else), this browser forgets the last person — picture, stored keys, session store — and the other tabs follow.
+  const personRef = useRef(undefined);
+  useEffect(() => {
+    if (authStatus === "unknown") return;
+    const id = authUser?.id ?? null;
+    notePerson(personRef.current, id);
+    personRef.current = id;
+  }, [authUser?.id, authStatus]);
+  useEffect(() => onPersonChangedElsewhere((id) => {
+    if (String(personRef.current ?? "") !== String(id ?? "")) window.location.reload();
+  }), []);
   // ⛔ D95: the admin's own session, separate from the person's — never the same state, never the same cookie.
   const [adminSession, setAdminSession] = useState(null);
   const loadAdminSession = useCallback(() => {
