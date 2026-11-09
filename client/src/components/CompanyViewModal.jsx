@@ -5,6 +5,7 @@ import { api } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { StackSection, OrgSection, HiringSection, SponsorshipSection } from "./CompanyKbSections.jsx";
 import { C } from "../styles/colorTokens.js";
+import { companyPath } from "../lib/companySlug.js";   // A149: the company's own page
 
 export default function CompanyViewModal({ company, onClose }) {
   const { theme } = useTheme();
@@ -72,7 +73,17 @@ export default function CompanyViewModal({ company, onClose }) {
           )}
         </div>
         {/* FE-6: same KB reference, plus the recruiter's candidate-claim consistency check */}
-        <div style={{ padding: "10px 18px", borderTop: `1px solid ${theme.border}`, flexShrink: 0 }}>
+        <div style={{ padding: "10px 18px", borderTop: `1px solid ${theme.border}`, flexShrink: 0, display: "flex", gap: 18, flexWrap: "wrap" }}>
+          {/* ⭐ A149 (45o): every company reached from a card or row reaches its PAGE (D179 P4b) — the logo keeps opening
+              this hiring-data view (D147, unchanged) and this is one press on. */}
+          {companyPath(company) && (
+            <button type="button" data-open-company-page=""
+              onClick={() => { onClose(); navigate(companyPath(company)); }}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0,
+                       color: theme.accentText, fontSize: 12, fontWeight: 700 }}>
+              Open {company}'s page →
+            </button>
+          )}
           <button
             onClick={() => { onClose(); navigate(`/app/recruiter?company=${encodeURIComponent(company)}`); }}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 0,

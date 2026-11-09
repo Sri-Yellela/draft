@@ -3,8 +3,6 @@
 .co--empty { text-align: center; color: var(--c-ink-muted); }
 .co__back { background: none; border: none; color: var(--c-accent-ink); font: inherit; font-size: 14px; cursor: pointer; padding: 0; margin-bottom: 16px; }
 .co__head { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 28px; }
-.co__tile { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-  background: var(--c-surface-2); border: 1px solid var(--c-border); font-size: 24px; font-weight: 700; color: var(--c-ink-muted); flex: none; }
 .co__headtext { flex: 1; min-width: 220px; }
 .co__name { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 4vw, 42px); line-height: 1.1; margin: 0; }
 .co__facts { margin: 6px 0 0; color: var(--c-ink-muted); font-size: 14px; }
@@ -30,3 +28,8 @@
 .co__foot { margin-top: 28px; color: var(--c-ink-muted); font-size: 13px; }
 @media (max-width: 600px) { .co { padding: 20px 16px 48px; } .co__sec { padding: 16px; } }
 .co__learn { font-size: 13px; text-decoration: none; }   /* D179 P6: what they use → learn it */
+/* A149 (45o): the logo, and your marks on their stack (a plain word — D152 (7b): no box, no tint). */
+.co__logo { flex: none; }
+.co__mine { font-size: 12px; }
+.co__mine--proven { color: var(--c-accent-ink); }
+.co__mine--listed { color: var(--c-ink-muted); }

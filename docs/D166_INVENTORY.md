@@ -64,11 +64,16 @@ The signed-in app is one route, `/app/*`; its tabs are the rows below.
 removal) · `*` (the 404 page). Each has its `<route>-1280.png`. These keep the marketing look (LandingPage styles),
 not D145's app look. Whether to bring them in line is a T2 question for the owner, not a defect.
 
+⭐ **Added 45o (routes from 45l–45n, never listed until the inventory guard ran):** `/jobs` (the open board; signed out it opens on the
+browse board, A147) · `/jobs/:slug` (a posting's public page, server-rendered, D128) · `/companies/:slug` (a company's
+page, D179 P4b; inside the shell at `/app/companies/<slug>`) · `/audit` (the 3-minute audit, D150) · `/draft/resume/:jobId`
+(the résumé editor's own address, D157 (i)). All current pattern — no legacy markers.
+
 ## Admin (rank A; not shot, admin sign-in)
 
 `/admin/login` · `/admin/set-password` · `/admin` (`AdminPanel` and its tabs: `adminAdmins` · `adminAppearance` ·
 `adminAtlas` · `adminCalibrate` · `adminEmail` · `adminEnrichment` · `adminLearnCircle` · `adminLearnImport` ·
-`adminOps` · `adminPeople` · `adminQuestions` · `adminReadiness` · `adminTesterDetails` · `adminTesters` · `adminUsage`;
+`adminOps` · `adminPeople` · `adminQuestions` · `adminReadiness` · `adminTesterDetails` · `adminTesters` · `adminUsage` · `adminReports` (D183 profile reports) · `adminDiagnostics` (D151 Rule 6) · `adminPhase1` (D150 T16);
 shared `adminKit`, `adminMap`, `adminLearnSandbox`) · `/admin/db` (`DBInspector`). The admin look is its own; only
 L10's dialogs are listed as legacy.
 

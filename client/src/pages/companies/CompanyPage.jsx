@@ -5,10 +5,13 @@
 // there is something to say: the header (name, site, the ATS, Careers site) · Tech stack with its evidence · open jobs by
 // role · hiring trend · visa sponsorship history · locations · the newest open jobs · corrections.
 // ⛔ D182: no label restates what the row already says; no taxonomy chips. ⛔ D60: no pills. Colours from tokens only.
-// ⚠ Not built yet (said on the page only by their absence): About in draft's words (Wikidata facts), Follow, Your match.
+// ⭐ A149 (45o — the probe's company-page gaps against the sketch's FIRST version): the logo (CompanyLogo, D61), industry ·
+// HQ in the header (About's facts), proven / on-your-résumé marks on the stack (signed in, from Your match), and "What they
+// ask for most" (their most-posted technologies with the share of postings and the Atlas page to learn each).
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../lib/api.js";
+import CompanyLogo from "../../components/CompanyLogo.jsx";   // A149: the company's own mark (D61)
 import "./CompanyPage.css";
 
 const GROUP_WORD = { languages: "Languages", frameworks: "Frameworks", data: "Data", cloud: "Cloud", devops: "DevOps", "ml-ai": "ML / AI", tools: "Tools" };
@@ -50,17 +53,22 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
   const jobsHref = (cat) => `${inApp ? "/app/jobs" : "/jobs"}?q=${encodeURIComponent(c.name)}${cat ? `&category=${encodeURIComponent(cat)}` : ""}`;
   const trendMax = Math.max(1, ...hiringTrend.map((t) => t.postings));
   const groups = stack ? GROUP_ORDER.filter((g) => stack.groups?.[g]?.length) : [];
+  // A149: signed in, each technology says whether YOU have it — proven (checked / built) or only on your résumé.
+  const markOf = (tech) => !match ? null : match.proven?.includes(tech) ? { kind: "proven", word: "you've proven it" }
+    : match.listed?.includes(tech) ? { kind: "listed", word: "on your résumé" } : null;
+  // A149: "What they ask for most" — the most-posted technologies across every group, with their share of the postings.
+  const asked = stack ? Object.values(stack.groups || {}).flat().sort((a, b) => b.postings - a.postings).slice(0, 6) : [];
 
   return (
     <main className="co" data-company-page={c.slug}>
       {inApp && <button type="button" className="co__back" onClick={() => navigate(-1)} data-company-back="">‹ Back</button>}
 
       <header className="co__head">
-        <div className="co__tile" aria-hidden="true">{(c.name || "?").slice(0, 1).toUpperCase()}</div>
+        <div className="co__logo" aria-hidden="true"><CompanyLogo company={c.name} size={56} radius={12} /></div>
         <div className="co__headtext">
           <h1 className="co__name">{c.name}</h1>
           <p className="co__facts">
-            {[c.domain, openJobs ? `${openJobs.toLocaleString("en-US")} open job${openJobs === 1 ? "" : "s"}` : "no open jobs right now", c.ats && `hires through ${c.ats}`]
+            {[about?.facts?.industry, about?.facts?.hq, c.domain, openJobs ? `${openJobs.toLocaleString("en-US")} open job${openJobs === 1 ? "" : "s"}` : "no open jobs right now", c.ats && `hires through ${c.ats}`]
               .filter(Boolean).join(" · ")}
             {c.parent && <> · part of <Link to={`${base}/${c.parent.slug}`}>{c.parent.name}</Link></>}
           </p>
@@ -93,6 +101,7 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
                 {stack.groups[g].map((t) => (
                   <li key={t.tech} data-tech={t.tech}>
                     <b>{t.tech}</b>{t.newThisQuarter && <span className="co__new"> new this quarter</span>}
+                    {markOf(t.tech) && <span className={`co__mine co__mine--${markOf(t.tech).kind}`} data-mine={markOf(t.tech).kind}>{markOf(t.tech).word}</span>}
                     {t.atlasSlug && <Link className="co__learn" to={`${inApp ? "/app" : ""}/atlas/${t.atlasSlug}`} data-learn-tech={t.tech}>Learn it</Link>}
                     <span className="co__evidence">in {t.postings} of {t.of} postings · last seen {ago(t.lastSeen)}{t.teams?.length ? ` · ${t.teams.slice(0, 3).join(", ")}` : ""}</span>
                   </li>
@@ -128,6 +137,20 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
             <p className="co__lead">Not on your skills yet: {match.missing.map((m, i) => <span key={m.tech}>{i ? ", " : ""}{m.atlasSlug
               ? <Link to={`/app/atlas/${m.atlasSlug}`}>{m.tech}</Link> : m.tech}</span>)} — <Link to="/app/atlas/your-skills">check and prove your skills</Link>.</p>
           )}
+        </section>
+      )}
+
+      {asked.length > 0 && (
+        <section className="co__sec" data-company-asked="">
+          <h2>What they ask for most</h2>
+          <ul className="co__techs">
+            {asked.map((t) => (
+              <li key={t.tech}><b>{t.tech}</b>
+                <span className="co__evidence">{Math.round((100 * t.postings) / Math.max(1, t.of))}% of their postings</span>
+                {t.atlasSlug && <Link className="co__learn" to={`${inApp ? "/app" : ""}/atlas/${t.atlasSlug}`}>Learn it in Atlas</Link>}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
