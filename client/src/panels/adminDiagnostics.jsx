@@ -52,3 +52,23 @@ export function DiagnosticsTab() {
     </Panel>
   );
 }
+
+// ⭐ D151 Rule 4 (45s) · the nightly archive of closed postings — OFF until turned on here (audited). A closed posting older
+// than 120 days that no person's history names moves to the archive whole; restorePosting brings one back.
+export function PostingArchiveSection() {
+  const [s, setS] = useState(null);
+  const [err, setErr] = useState("");
+  useEffect(() => { api("/api/admin/posting-archive").then(setS).catch(e => setErr(e.message)); }, []);
+  const flip = async () => { try { setS(await api("/api/admin/posting-archive", { method: "PUT", body: JSON.stringify({ enabled: !s.enabled }) })); } catch (e) { setErr(e.message); } };
+  return (
+    <Panel title="Archive of closed postings" data-admin-posting-archive=""
+      purpose={`Nightly at 04:50 UTC: closed postings older than ${s?.afterDays ?? 120} days that no application, résumé, pick, packet or message points at move to the archive, in slices of 500. Off until you turn it on.`}>
+      {err && <div style={quiet} role="alert">{err}</div>}
+      {s && <div style={row} data-archive-state={s.enabled ? "on" : "off"}>
+        <b>{s.enabled ? "On" : "Off"}</b>
+        <DepthButton primary={!s.enabled} onClick={flip}>{s.enabled ? "Turn off" : "Turn on"}</DepthButton>
+        <span style={quiet}>{s.archived} archived so far{s.lastRun ? ` · last run ${s.lastRun.status}, ${s.lastRun.slices || 0} slices, ${s.lastRun.duration_ms || 0} ms, ${when(s.lastRun.finished_at)}` : ""}</span>
+      </div>}
+    </Panel>
+  );
+}

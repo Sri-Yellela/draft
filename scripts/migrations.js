@@ -7127,4 +7127,17 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_learn_question_answers_at ON learn_question_answers(answered_at);
       `,
     },
+    {
+      // ⭐ D151 RULE 4 (45s) · THE NIGHTLY ARCHIVE OF CLOSED POSTINGS — a closed posting older than 120 days that no person's
+      // history names moves here whole (its row as JSON, so the archive never breaks when scraped_jobs gains a column) and
+      // its derived rows go (services/jobs/postingArchive.js). Behind posting_archive_enabled (OFF). Only ADDS.
+      id: "265_posting_archive",
+      sql: `
+        CREATE TABLE IF NOT EXISTS scraped_jobs_archive (
+          job_id       TEXT    PRIMARY KEY,
+          archived_at  INTEGER NOT NULL,
+          row_json     TEXT    NOT NULL
+        );
+      `,
+    },
   ];
