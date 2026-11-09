@@ -13,6 +13,7 @@
 // then "To reach the next level"; its definition shows on top when one exists, and no "not written yet" line otherwise.
 // Every colour is a theme token (AtlasPage.css); no pills — marks and depth boxes (D60).
 import { useEffect, useState } from "react";
+import { api } from "../../lib/api.js";   // A154 (45s): the Compete switches
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
@@ -23,7 +24,8 @@ import YourMap, { RoleMap, FamilyMap } from "./YourMap.jsx";
 import PlaceNav from "../../components/PlaceNav.jsx";
 import { OverviewPanel, YourSkillsSlot, YourRoutePanel, TodaysQuestionPanel, HowItWorksPanel, AuditPanel, RolesPanel, MarketPanel, GlossaryPanel,
   PanelHead } from "./AtlasPanels.jsx";
-import { panelFor, isPanelSlug, PANEL_LABEL, ATLAS_NAV, panelHref, courseIdOf } from "./atlasPanels.js";
+import { panelFor, isPanelSlug, PANEL_LABEL, navGroups, panelHref, courseIdOf } from "./atlasPanels.js";
+import { LeaguePanel, ChallengesPanel, SharedBar } from "./CompetePanels.jsx";   // A154 / D172 (4) (45s): behind their switches
 import { LibraryShelf, CoursePage, PatternCoursePage, COURSES, courseKind } from "./LibraryPanel.jsx";
 import { LibraryItem } from "./LibraryGuides.jsx";
 import YourRun from "./YourRun.jsx";
@@ -360,7 +362,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   useEffect(() => {
     let live = true;
     // ⭐ D167: a panel's address (/atlas/<panel>) is never a node — "learn" and "check" were the first reserved slugs.
-    if (!slug || slug === "learn" || slug === "check" || isPanelSlug(slug) || slug.startsWith("family/") || courseIdOf(slug)) { setPage({ status: "idle", node: null }); return undefined; }
+    if (!slug || slug === "learn" || slug === "check" || isPanelSlug(slug) || slug.startsWith("family/") || slug.startsWith("bar/") || courseIdOf(slug)) { setPage({ status: "idle", node: null }); return undefined; }
     setPage({ status: "loading", node: null });
     loadNode(slug).then(n => live && setPage({ status: n ? "done" : "missing", node: n }))
       .catch(e => live && setPage({ status: "error", node: null, error: e.message }));
@@ -387,6 +389,16 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
   // working — a node page and a search open in Roles and skills, a family in Your map, /learn in Learn, /check in Your
   // skills. docs/D167_ATLAS_MAP.md maps every surface that existed to its panel.
   const signedIn = base.startsWith("/app");
+  // ⭐ A154 / D172 (4) (45s): Compete shows only the panels whose switch the owner turned on (GET /api/atlas/compete).
+  const [compete, setCompete] = useState(null);
+  useEffect(() => {
+    let live = true;
+    if (!signedIn) return undefined;
+    api("/api/atlas/compete").then(r => live && setCompete(r)).catch(() => live && setCompete(null));
+    return () => { live = false; };
+  }, [signedIn]);
+  // ⭐ A154: /atlas/bar/<code> is a shared Beat-the-bar score (a node slug never holds a "/").
+  const barCode = slug && slug.startsWith("bar/") ? slug.slice("bar/".length) : null;
   // ⭐ D178: signed in, Atlas opens on Your run (Overview is the signed-out front page).
   const panel = panelFor(slug, q) === "overview" && signedIn ? "your-run" : panelFor(slug, q);
   const panelOnly = !slug ? !q : (isPanelSlug(slug) && !learning && !checking);
@@ -394,7 +406,7 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
     <main className={`atl atl--panels${wide ? " atl--wide" : ""}`} data-atlas-page={learning ? "learn" : checking ? "check" : familyKey ? "family" : courseId ? "course" : panelOnly ? "panel" : slug ? "node" : "search"}
       data-atlas-panel={panel}>
      <PlaceNav place="atlas" name="Atlas" eyebrow="Your way through the market" title="Atlas" fill panelId="atlas-panel"
-       groups={ATLAS_NAV.map(g => ({ label: g.group, items: g.panels }))} current={panel} hrefFor={(id) => panelHref(base, id)}>
+       groups={navGroups(compete).map(g => ({ label: g.group, items: g.panels }))} current={panel} hrefFor={(id) => panelHref(base, id)}>
       {/* ⭐ D120 P2 · THE HOME IS YOUR MAP (owner 10-31: "very text rich with no direction"): signed in, the direction
           line, the tree, the course and the five sections, with the families in a side column; signed out (or no
           résumé), Learn (the full circle). ⭐ D167: it is the Your map panel now; search, Explore by role and the recent
@@ -430,12 +442,16 @@ export default function AtlasPage({ base = "/atlas", publicChrome = false }) {
       {panel === "glossary" && <GlossaryPanel base={base} />}
       {familyKey && <FamilyMap base={base} familyKey={familyKey} />}
       {panel === "your-run" && <YourRun base={base} signedIn={signedIn} />}
+      {/* ⭐ A154 / D172 (4): Compete — drawn only with its switch on; off, the address says so (the server 404s too). */}
+      {panel === "league" && (compete?.league ? <LeaguePanel base={base} /> : <p className="atl__quiet" role="status" data-compete-off="league">{compete ? "This isn't available yet." : signedIn ? "Opening…" : "Sign in to see this week's league."}</p>)}
+      {panel === "challenges" && (compete?.challenges ? <ChallengesPanel base={base} /> : <p className="atl__quiet" role="status" data-compete-off="challenges">{compete ? "This isn't available yet." : signedIn ? "Opening…" : "Sign in to see the challenges."}</p>)}
+      {barCode && <SharedBar base={base} code={barCode} />}
       {panel === "library" && panelOnly && <LibraryShelf base={base} signedIn={signedIn} />}
       {/* ⭐ D172 (2b): /atlas/library/<id> is a course, a guide (a level) or a deck. */}
       {courseId && (COURSES.some(c => c.id === courseId)
         ? (courseKind(courseId) === "patterns" ? <PatternCoursePage base={base} id={courseId} /> : <CoursePage base={base} id={courseId} signedIn={signedIn} />)
         : <LibraryItem base={base} id={courseId} />)}
-      {slug && !learning && !checking && !familyKey && !courseId && !panelOnly && (
+      {slug && !learning && !checking && !familyKey && !courseId && !barCode && !panelOnly && (
         <>
           <SearchBox base={base} />
           {page.status === "loading" && <p className="atl__quiet" role="status">Opening…</p>}

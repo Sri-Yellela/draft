@@ -1,8 +1,8 @@
 // ⭐ D172 (3) (owner APPROVED 11-06, docs/sketches/atlas-redesign-sketch.html → Your run) · YOUR RUN: your level as a ring,
 // the points to the next one, your streak, this week, and today's quests — about five minutes. Points come ONLY from
 // proof (services/atlas/points.js: an idea explained in your own words, a build, a skill checked or built); a quest is
-// shown only when its thing exists (no daily question until D154; no deck until the decks are wired; no pod or live
-// count until the owner decides the league's networking). Reads GET /api/atlas/run.
+// shown only when its thing exists (no daily question until D154; no deck until the decks are wired; the pod's rank and the live
+// count only when their switch is on, A154 45s). Reads GET /api/atlas/run.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api.js";
@@ -81,6 +81,14 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
           <p className="run-stat" data-run-week={run.week}><b>+{run.week}</b><span>this week</span></p>
         </div>
       </div>
+      {/* ⭐ A154 (45s): your pod's rank and the live count — only when their switch is on and they exist (the server sends null
+          otherwise: not in the league, or fewer than the minimum practising — never a made-up number). */}
+      {(run.pod || run.live) && (
+        <div className="run-social" data-run-social="">
+          {run.pod && <Link className="atl__link" to={`${base}/league`} data-run-pod={run.pod.place}>{run.pod.line}</Link>}
+          {run.live && <p className="atl__quiet run-live" data-run-live={run.live.n}><span className="run-live__dot" aria-hidden="true" />{run.live.line}</p>}
+        </div>
+      )}
       {/* ⭐ D178-4 (owner's pick, Idea B): a month of lit squares — a day with proof is lit, the week's rest day dashed, today outlined. */}
       {Array.isArray(run.month) && (
         <section className="run-month" aria-label="The last four weeks" data-run-month="">

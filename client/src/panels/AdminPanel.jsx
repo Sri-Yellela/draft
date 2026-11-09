@@ -15,7 +15,7 @@ import { EnrichmentTab } from "./adminEnrichment.jsx";
 import { EmailHealthTab } from "./adminEmail.jsx";
 import { ModelUsageTab } from "./adminUsage.jsx";
 import { AdminsTab } from "./adminAdmins.jsx";
-import { AtlasTab, AtlasBacklogSection } from "./adminAtlas.jsx";
+import { AtlasTab, AtlasBacklogSection, AtlasCompeteSection } from "./adminAtlas.jsx";
 import { TesterDetails } from "./adminTesterDetails.jsx";
 import { TestersTab } from "./adminTesters.jsx";
 import { AppearanceTab } from "./adminAppearance.jsx";
@@ -763,7 +763,7 @@ export function AdminPanel() {
       )}
 
       {/* D105 P4: the Atlas's nodes — every page starts a draft; publishing here is what makes /atlas/<slug> public. */}
-      {at("data", "atlas") && <><AtlasTab/><AtlasBacklogSection/></>}
+      {at("data", "atlas") && <><AtlasTab/><AtlasBacklogSection/><AtlasCompeteSection/></>}
 
       {/* System — is it set up right? */}
       {at("system", "switches") && <><KillSwitchSection theme={theme}/><FullAutoPrerequisitesSection theme={theme}/><TailoringAdminSection theme={theme}/><PluginTab theme={theme}/></>}

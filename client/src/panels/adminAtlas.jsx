@@ -468,6 +468,41 @@ function AtlasSources({ say }) {
 // ⭐ D185-3 (45q) · RISING SKILLS → THE CONTENT BACKLOG. What the market is starting to ask for, by role, ranked up where
 // Atlas has no lesson and where people hold the skill; "Draft an outline" writes a brief (steps + the register's sources,
 // adapt or link-only) as a DRAFT for review here. Nothing is published from this panel — lessons are built in the editor.
+// ⭐ A154 / D172 (4) (45s, owner 11-08: "build league and challenges, can merge them later") · the three Compete switches —
+// each OFF until the owner turns it on; while off, its routes answer 404 and Atlas draws nothing of it. Audited.
+const COMPETE_SWITCHES = [["league", "This week's league", "opt-in pods by school and field, handles only, the pod's rank on Your run"],
+  ["challenges", "Challenges", "Beat the bar (a kept audit's score as a link), Time attack, the Friday duel (needs the league)"],
+  ["liveCount", "Live count", `"N people practising <field> right now" on Your run — a real count, shown only at 10 or more`]];
+export function AtlasCompeteSection() {
+  const [s, setS] = useState(null);
+  const [err, setErr] = useState(null);
+  const load = useCallback(() => { api("/api/admin/atlas-compete").then(setS).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  const { ask, dialog } = useConfirm();
+  const flip = async (k, on) => {
+    if (on && !(await ask({ title: "Turn this on for everyone?", label: "Turn on", body: "Everyone signed in will see it in Atlas." }))) return;
+    try { setS(await api("/api/admin/atlas-compete", { method: "PUT", body: JSON.stringify({ [k]: on }) })); } catch (e) { setErr(e.message); }
+  };
+  return (
+    <Panel title="Compete — league, challenges, live count" data-admin-atlas-compete=""
+      code="A154: services/atlas/league.js + challenges.js, routes/atlasCompete.js; league_members / challenge_runs (migration 264)."
+      purpose="Each switch is OFF until you turn it on. Points stay proof-only; challenges earn none."
+      numbers={s?.counts ? [[String(s.counts.members ?? 0), "in the league"], [String(s.counts.pods ?? 0), "pods"], [String(s.counts.challengesFinished ?? 0), "challenges finished"], [String(s.counts.barsShared ?? 0), "scores shared"]] : []}>
+      {dialog}
+      {err && <div style={callout}>{err}</div>}
+      <div style={{ display: "grid", gap: 8 }}>
+        {COMPETE_SWITCHES.map(([k, label, what]) => (
+          <div key={k} style={row} data-compete-switch={k} data-compete-state={s?.[k] ? "on" : "off"}>
+            <b>{label}</b> <span style={quiet}>{what}</span>
+            <span><b>{s ? (s[k] ? "On" : "Off") : "…"}</b></span>
+            {s && <DepthButton primary={!s[k]} onClick={() => flip(k, !s[k])}>{s[k] ? "Turn off" : "Turn on"}</DepthButton>}
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
 export function AtlasBacklogSection() {
   const [s, setS] = useState(null);
   const [err, setErr] = useState(null);

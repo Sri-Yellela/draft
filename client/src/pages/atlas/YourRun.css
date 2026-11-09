@@ -53,3 +53,8 @@
 /* A155 (45o): a weekend that is not counted (weekdays only), and the choice itself. */
 .run-sq.is-off { opacity: 0.35; }
 .run-weekdays { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--c-ink-muted); margin-top: 6px; cursor: pointer; }
+
+/* A154 (45s) · Your run's pod line and live count (only when their switch is on). */
+.run-social { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; margin: -8px 0 18px; }
+.run-live { margin: 0; display: inline-flex; align-items: center; gap: 8px; }
+.run-live__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-success); }
