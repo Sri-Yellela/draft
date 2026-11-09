@@ -20,7 +20,8 @@
 // POST   /api/profile/page/achievements        { title, detail?, year? } — one added by hand
 // DELETE /api/profile/page/achievements/:id
 // services/structuredProfile.js holds the rules; these routes only expose them.
-import { pickPlacement } from "../services/placement.js";   // (B)-1
+import { pickPlacement, answerFamilyMove } from "../services/placement.js";   // (B)-1, (B)-3
+import { dealAgain as dealAgainFor } from "../services/profileReplace.js";   // (B)-3: Change back deals again
 import { getRegistry } from "./domainProfiles.js";   // (B)-1: the D101 registry the map points into
 import { readProfile, saveSection, useResumeSuggestion, setDefault, readDefaults, profileLogosToResolve, setEducationOverride } from "../services/structuredProfile.js";
 import { resolveCaptureLogo } from "../services/jobs/companyLogoStore.js";
@@ -77,6 +78,12 @@ export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo
     return viewFor(profilePage(db, req.user.id), as === "public" ? "public" : as === "connection" ? "connection" : "owner");
   };
   // ⭐ (B)-1 (45o): "we couldn't place you — pick your role": the pick becomes the job profile's placement (one source).
+  // ⭐ (B)-3 (45o): Apply for me's new family — Keep (it follows) or Change back (the role and placement return).
+  app.post("/api/profile/apply-for-me/:answer", requireAuth, (req, res) => {
+    const a = req.params.answer;
+    if (a !== "keep" && a !== "change-back") return res.status(404).json({ error: "no_such_answer" });
+    try { const r = answerFamilyMove(db, req.user.id, a === "keep"); if (a !== "keep") dealAgainFor(db, req.user.id, r.profileId); res.json({ ...r, page: profilePage(db, req.user.id) }); } catch (e) { fail(res, e); }
+  });
   app.put("/api/profile/placement", requireAuth, (req, res) => {
     try { pickPlacement(db, req.user.id, String(req.body?.subcategory || ""), getRegistry()); res.json(profilePage(db, req.user.id)); } catch (e) { fail(res, e); }
   });

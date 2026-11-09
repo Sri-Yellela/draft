@@ -88,3 +88,7 @@
 .yp__row > summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
 .yp__row[open] > summary { margin-bottom: 10px; }
 .yp__photo { display: inline-flex; align-items: center; gap: 6px; }
+
+/* (B)-3 (45o): Apply for me's new family waits for Keep / Change back */
+.yp__decision { border: 1px solid var(--c-accent); border-radius: 12px; padding: 10px 12px; display: grid; gap: 6px; }
+.yp__decision .yp__acts { margin: 0; }

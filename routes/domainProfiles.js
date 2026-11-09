@@ -1,5 +1,6 @@
 // SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
 // routes/domainProfiles.js — Domain profile CRUD + chip generation
+import { pauseOnFamilyMove } from "../services/placement.js";   // (B)-3
 import { Router }        from "express";
 import Anthropic         from "@anthropic-ai/sdk";
 import { createRequire } from "module";
@@ -422,11 +423,13 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
     // D101 offer stays for every other case). A fictional sample résumé moves nothing about the person.
     const isSample = !!sampleIdForText(content);
     const changedText = String(content || "").trim() !== String(oldText || "").trim();
-    let followed = { changed: false }, fields = [], sections = false, refill = null;
+    let followed = { changed: false }, fields = [], sections = false, refill = null, familyPause = { paused: false };
     if (changedText && String(content || "").trim().length >= 200) {
       try { followed = followProfileText(db, profile.id, content, { registry: getRegistry(), sampleRoleFamily }); } catch (e) { console.warn("[a140] profile follow:", e.message); }
       // ⭐ (B)-2 (45o): a placement that moved (or a first placement) deals today's picks again from it — now, not tomorrow.
       if (followed?.placement) { try { dealAgain(db, req.user.id, profile.id); } catch { /* the deal follows tomorrow anyway */ } }
+      // ⭐ (B)-3 (45o): a CATEGORY move pauses Apply for me on this profile (Keep · Change back in What changed).
+      if (snap?.domainProfile) { try { familyPause = pauseOnFamilyMove(db, req.user.id, profile.id, snap.domainProfile); } catch (e) { console.warn("[b3] pause:", e.message); } }
       if (!isSample) {
         try { fields = followResumeFields(db, req.user.id, oldText, content); } catch (e) { console.warn("[a140] fields follow:", e.message); }
         // ⭐ D183 P2: EVERY section re-fills, keeping hand edits and proven skills (was useResumeSuggestion, which replaced all).
@@ -440,6 +443,12 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
         const handAchievements = db.prepare("SELECT COUNT(*) FROM profile_achievements WHERE user_id = ?").pluck().get(req.user.id) || 0;
         const projects = db.prepare("SELECT COUNT(*) FROM profile_projects WHERE user_id = ?").pluck().get(req.user.id) || 0;
         const changes = whatChanged(digestBefore, pageDigest(db, req.user.id), refill?.kept, { handAchievements, projects });
+        // ⭐ (B)-3: the one change that waits for the person — Apply for me's new family.
+        if (familyPause?.paused) {
+          const to = pageDigest(db, req.user.id)?.placement?.path || "a new kind of job";
+          changes.lines.unshift({ kind: "decision", what: "apply_for_me", text: `Apply for me will now look for ${to} jobs`,
+            detail: "Apply for me is paused for this profile until you choose — Keep, or Change back to what it looked for before." });
+        }
         replacement = { id: Number(recordReplacement(db, req.user.id, profile.id, snap, changes, { name: name || "resume.txt" })), ...changes };
       } catch (e) { console.warn("[d183] what changed:", e.message); }
     }

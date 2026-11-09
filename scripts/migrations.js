@@ -6868,4 +6868,14 @@ export const MIGRATIONS = [
         ALTER TABLE domain_profiles ADD COLUMN placed_at INTEGER;
       `,
     },
+    {
+      // ⭐ FIRST PRIORITY (B)-3 (45o, owner 11-08) · APPLY FOR ME NEVER JUMPS FAMILY SILENTLY — when a new résumé moves the
+      // job profile's CATEGORY, Apply for me pauses for that profile until the person says Keep or Change back. The role it
+      // moved FROM is kept (JSON: domain, role_family, the placement) so Change back can restore it. Only ADDS.
+      id: "256_job_profile_apply_pause",
+      sql: `
+        ALTER TABLE domain_profiles ADD COLUMN apply_paused_at INTEGER;
+        ALTER TABLE domain_profiles ADD COLUMN apply_paused_from TEXT;
+      `,
+    },
   ];

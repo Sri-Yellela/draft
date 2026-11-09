@@ -243,6 +243,7 @@ const AUTHENTICATED = new Set([
   "GET /api/profile/page",
   "PUT /api/profile/page/visibility",
   "PUT /api/profile/placement",   // (B)-1 (45o): the person's own role pick, their active job profile
+  "POST /api/profile/apply-for-me/:answer",   // (B)-3 (45o): Keep / Change back on Apply for me's new family, their active profile
   "PUT /api/profile/page/handle",
   "POST /api/profile/page/achievements",
   "DELETE /api/profile/page/achievements/:id",

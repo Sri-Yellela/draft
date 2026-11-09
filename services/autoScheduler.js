@@ -14,6 +14,7 @@
 // The decisions are pure functions so a test can drive them with a clock; runAutoTick wires them to
 // the database and takes the board and startRun as arguments (server.js passes boardPageResponse and
 // routes/apply.js's startAutoRun).
+import { applyPausedForFamily } from "./placement.js";   // (B)-3
 import { readAutoSettings, PAUSE_DAYS, COMPANY_WINDOW_DAYS } from "../shared/autoSettings.js";
 import { companyNameKey } from "../shared/companyIdentity.js";
 import { userHeld } from "./applyUserHold.js";
@@ -198,6 +199,8 @@ export async function runAutoTick(db, { nowSec = Math.floor(Date.now() / 1000), 
     } catch { /* no picks tables in this schema */ }
     if (!runDue(nowSec, settings, { lastRunAt: u.auto_last_run_at, savedAt })) { out.push({ userId: u.id, skipped: "not_due" }); continue; }
     if (userHeld(db, u.id)) { out.push({ userId: u.id, skipped: "held" }); continue; }
+    // ⭐ (B)-3 (45o): a new résumé moved the family — Apply for me waits for Keep / Change back (Ask me first just follows).
+    if (mode === "apply" && applyPausedForFamily(db, u.id)) { out.push({ userId: u.id, skipped: "family_changed" }); continue; }
     // ⛔ D175 FA2: a TEST account runs only on a sample résumé (its sends go to draft's practice form, never an employer).
     const canaryNo = canaryRefusal(db, u.id);
     if (canaryNo) { out.push({ userId: u.id, skipped: "canary_not_sample", error: canaryNo }); continue; }

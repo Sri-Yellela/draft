@@ -27,7 +27,8 @@ const hasCol = (db, t, c) => safe(() => !!db.prepare(`SELECT 1 FROM pragma_table
 
 // ⭐ (B)-2 (45o): + the placement (migration 255) — Undo puts the role, the level AND the placement back together.
 const DP_BASE = ["profile_name", "role_family", "domain", "seniority", "target_titles", "selected_keywords", "selected_verbs", "selected_tools"];
-const DP_PLACEMENT = ["placement_category", "placement_subcategory", "placement_level", "placement_also", "placement_confidence", "placed_at"];
+const DP_PLACEMENT = ["placement_category", "placement_subcategory", "placement_level", "placement_also", "placement_confidence", "placed_at",
+  "apply_paused_at", "apply_paused_from"];   // (B)-3: Undo lifts a family pause with the rest
 const dpFields = (db) => DP_BASE.concat(DP_PLACEMENT.filter(c => hasCol(db, "domain_profiles", c)));
 
 /** Everything a replace may change, as it is NOW — what Undo puts back. */
