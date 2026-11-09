@@ -110,6 +110,7 @@ import { readReminder, setReminder, runDailyReminders } from "./services/learn/d
 import { readMatchAlertSettings, setMatchAlertSettings, runMatchAlerts, matchAlertTimings } from "./services/jobs/newMatchAlerts.js";
 import { outcomeMetrics, gatherOutcomeApps } from "./services/outcomeMetrics.js";
 import { unlocksFor, activeProfileFor } from "./services/jobs/skillUnlocks.js";
+import { contentBacklog, draftOutline, reviewOutline, readBacklogItem } from "./services/atlas/risingSkills.js";
 import { seedTaxonomyRoles } from "./services/atlas/taxonomyRoleNodes.js";
 import { TAXONOMY_FILE } from "./services/jobs/taxonomyClassify.js";
 import { setAim as setNavigatorAim } from "./services/navigator.js";
@@ -7525,6 +7526,27 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_match_alerts_user ON match_alerts(user_id, alerted_at);
       `,
     },
+    {
+      // D185-3 (45q, owner 11-09) · THE ATLAS CONTENT BACKLOG (services/atlas/risingSkills.js): one row per (rising skill,
+      // subcategory) a person asked to outline — the market signal, the draft outline (steps + the register's sources, each
+      // adapt or link-only) and its review. status: draft | accepted | rejected. Never a lesson, never published. Only ADDS.
+      id: "259_atlas_backlog",
+      sql: `
+        CREATE TABLE IF NOT EXISTS atlas_backlog (
+          id           INTEGER PRIMARY KEY AUTOINCREMENT,
+          term         TEXT NOT NULL,
+          subcategory  TEXT NOT NULL,
+          signal_json  TEXT,
+          outline_json TEXT,
+          status       TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'accepted', 'rejected')),
+          drafted_by   TEXT,
+          drafted_at   INTEGER,
+          reviewed_by  TEXT,
+          reviewed_at  INTEGER,
+          UNIQUE (term, subcategory)
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -13142,6 +13164,26 @@ app.get("/api/atlas/unlocks", requireAuth, async (req, res) => {
     if (!skill) return res.status(400).json({ error: "skill_required", message: "Name a skill." });
     res.set("Cache-Control", "private, no-store").json(await unlocksFor(readPool, activeProfileFor(db, req.user.id), skill));
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// ⭐ D185-3 (45q) · rising skills → the Atlas content backlog; a draft outline for a person's review — never a publish.
+app.get("/api/admin/atlas-backlog", requireAdmin, async (req, res) => {
+  try { res.json(await contentBacklog(db, readPool)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post("/api/admin/atlas-backlog/draft", requireAdmin, async (req, res) => {
+  try {
+    const tech = String(req.body?.tech || ""), subcategory = String(req.body?.subcategory || "");
+    const row = (await contentBacklog(db, readPool, { limit: 500 })).rows.find(r => r.tech === tech && r.subcategory === subcategory);
+    if (!row) return res.status(404).json({ error: "not_rising", message: "That skill is not on the rising list for that role." });
+    res.json(draftOutline(db, row, { by: req.user?.username || req.admin?.email || null }));
+  } catch (e) { res.status(e.status || 500).json({ error: e.code || "draft_failed", message: e.message }); }
+});
+app.get("/api/admin/atlas-backlog/item", requireAdmin, (req, res) => {
+  try { res.json(readBacklogItem(db, String(req.query?.term || ""), String(req.query?.subcategory || "")) || null); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post("/api/admin/atlas-backlog/:id/review", requireAdmin, (req, res) => {
+  try { res.json(reviewOutline(db, req.params.id, { status: req.body?.status, by: req.user?.username || req.admin?.email || null })); }
+  catch (e) { res.status(e.status || 500).json({ error: e.code || "review_failed", message: e.message }); }
 });
 // ⭐ D185-5 (45q) · outcomes — interviews / offers per application and per active person, by week (read workers).
 app.get("/api/admin/outcomes", requireAdmin, async (req, res) => {

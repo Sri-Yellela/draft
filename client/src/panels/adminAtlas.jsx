@@ -465,6 +465,61 @@ function AtlasSources({ say }) {
   );
 }
 
+// ⭐ D185-3 (45q) · RISING SKILLS → THE CONTENT BACKLOG. What the market is starting to ask for, by role, ranked up where
+// Atlas has no lesson and where people hold the skill; "Draft an outline" writes a brief (steps + the register's sources,
+// adapt or link-only) as a DRAFT for review here. Nothing is published from this panel — lessons are built in the editor.
+export function AtlasBacklogSection() {
+  const [s, setS] = useState(null);
+  const [err, setErr] = useState(null);
+  const [open, setOpen] = useState(null);
+  const [busy, setBusy] = useState(null);
+  const load = useCallback(() => { api("/api/admin/atlas-backlog").then(setS).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { load(); }, [load]);
+  const draft = async (r) => {
+    setBusy(`${r.subcategory}|${r.tech}`); setErr(null);
+    try { setOpen(await api("/api/admin/atlas-backlog/draft", { method: "POST", body: JSON.stringify({ tech: r.tech, subcategory: r.subcategory }) })); load(); }
+    catch (e) { setErr(e.message); } finally { setBusy(null); }
+  };
+  const review = async (id, status) => {
+    try { await api(`/api/admin/atlas-backlog/${id}/review`, { method: "POST", body: JSON.stringify({ status }) }); setOpen(null); load(); }
+    catch (e) { setErr(e.message); }
+  };
+  return (
+    <Panel title="Rising skills → content backlog" data-admin-atlas-backlog=""
+      code="D185-3: services/atlas/risingSkills.js — job_tech share of new postings (last 30 days vs the 90 before) by subcategory; atlas_backlog (migration 259) holds draft outlines."
+      purpose="What the market is starting to ask for that Atlas should teach next. A draft outline is a brief for review — accepting it publishes nothing."
+      numbers={s ? [[String(s.rows.length), "rising skills"], [String(s.rows.filter(r => !r.hasLesson).length), "with no lesson yet"]] : []}>
+      {err && <div style={callout}>{err}</div>}
+      {s && !s.rows.length && <div style={quiet}>Nothing is rising past the minimums yet ({s.minimums.recent} postings asking, {s.minimums.subcategory} new postings in the role in each window).</div>}
+      {s?.rows?.length > 0 && (
+        <div style={{ display: "grid", gap: 6 }}>
+          {s.rows.map(r => (
+            <div key={`${r.subcategory}|${r.tech}`} style={row} data-backlog-row={r.tech}>
+              <b>{r.tech}</b>
+              <span style={quiet}>{r.subcategoryName} · {r.baselineShare}% → {r.recentShare}% of new postings · {r.recent} asking{r.peopleHolding ? ` · ${r.peopleHolding} people hold it` : ""}{r.hasLesson ? " · has a lesson" : " · no lesson yet"}</span>
+              {r.draft ? <Mark>{`outline ${r.draft.status}`}</Mark> : null}
+              <DepthButton onClick={() => draft(r)} disabled={busy === `${r.subcategory}|${r.tech}`}>{r.draft ? "Redraft the outline" : "Draft an outline"}</DepthButton>
+            </div>
+          ))}
+        </div>
+      )}
+      {open?.outline && (
+        <div style={{ marginTop: 12 }} data-backlog-outline={open.status}>
+          <div style={sub}>{open.outline.title} — draft</div>
+          <div style={quiet}>{open.outline.why}</div>
+          <ol>{open.outline.steps.map((x, i) => <li key={i}>{x}</li>)}</ol>
+          <ul>{open.outline.sources.map(src => <li key={src.id}>{src.publisher} {src.name} — {src.use === "adapt" ? `adapt (${src.licenceClass}, with attribution)` : "link only"}</li>)}</ul>
+          <div style={quiet}>{open.outline.note}</div>
+          <div style={row}>
+            <DepthButton onClick={() => review(open.id, "accepted")}>Accept as a brief</DepthButton>
+            <DepthButton onClick={() => review(open.id, "rejected")}>Reject</DepthButton>
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
 export function AtlasTab() {
   const [status, setStatus] = useState("draft");
   const [kind, setKind] = useState("");
