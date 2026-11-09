@@ -123,6 +123,7 @@ const ADMIN = new Set([
   "POST /api/admin/system/diag-token",
   // D179 P4a / P5a / P2 (45l): the company records, a company's stack, the review decisions, the taxonomy counts.
   "GET /api/admin/company-records",
+  "GET /api/admin/company-records/health",   // A142 (45o)
   "GET /api/admin/company-records/:id/stack",
   "POST /api/admin/company-records/review/:id",
   "GET /api/admin/board/taxonomy",

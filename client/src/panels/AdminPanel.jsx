@@ -23,6 +23,7 @@ import { CalibrateTab } from "./adminCalibrate.jsx";
 import { ReadinessTab } from "./adminReadiness.jsx";
 import { QuestionBankTab } from "./adminQuestions.jsx";
 import { ProfileReportsTab } from "./adminReports.jsx";
+import { CompanyRecordsTab } from "./adminCompanyRecords.jsx";   // A142
 import { Phase1Tab } from "./adminPhase1.jsx";
 import { DiagnosticsTab } from "./adminDiagnostics.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
@@ -725,6 +726,7 @@ export function AdminPanel() {
       {at("today", "phase1") && <Phase1Tab/>}
       {/* D183: the public profiles' report queue. */}
       {at("people", "reports") && <ProfileReportsTab/>}
+      {at("board", "records") && <CompanyRecordsTab/>}
       {/* D131: Testers — the readable page on top; both surveys and People & questions folded beneath it (the D124
           trial's own tables went with the trial, 11-07). */}
       {at("people", "testers") && <>
