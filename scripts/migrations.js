@@ -6985,4 +6985,39 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_bg_jobs_due ON bg_jobs(status, run_after);
       `,
     },
+    {
+      // A158 (45r) · THE OPEN PUBLIC BOARD AS ITS OWN NARROW TABLE. Every whole-board public read (the sitemaps first) filtered
+      // scraped_jobs on is_active / duplicate_of / board_category, which sit AFTER description in the row: on production's
+      // volume one such scan ran for minutes and, on the main thread, froze the site (11-09). This table holds one small row
+      // per OPEN public posting, kept by triggers on every write that can change it; the rows already there are copied in by
+      // a paced walk (services/jobs/publicOpenJobs.js), never here. Only ADDS.
+      id: "262_public_open_jobs",
+      sql: `
+        CREATE TABLE IF NOT EXISTS public_open_jobs (
+          job_id   TEXT PRIMARY KEY,
+          id       INTEGER NOT NULL,
+          company  TEXT,
+          title    TEXT,
+          t        INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_public_open_jobs_id ON public_open_jobs(id);
+        CREATE TRIGGER IF NOT EXISTS public_open_ins AFTER INSERT ON scraped_jobs
+          WHEN NEW.is_active = 1 AND NEW.duplicate_of IS NULL AND NEW.board_category IS NOT NULL AND NEW.board_category <> 'held'
+        BEGIN
+          INSERT OR REPLACE INTO public_open_jobs (job_id, id, company, title, t)
+            VALUES (NEW.job_id, NEW.id, NEW.company, NEW.title, COALESCE(NEW.updated_at, NEW.discovered_at));
+        END;
+        CREATE TRIGGER IF NOT EXISTS public_open_upd AFTER UPDATE OF is_active, duplicate_of, board_category, title, company, job_id ON scraped_jobs
+        BEGIN
+          DELETE FROM public_open_jobs WHERE job_id = OLD.job_id;
+          INSERT OR REPLACE INTO public_open_jobs (job_id, id, company, title, t)
+            SELECT NEW.job_id, NEW.id, NEW.company, NEW.title, COALESCE(NEW.updated_at, NEW.discovered_at)
+             WHERE NEW.is_active = 1 AND NEW.duplicate_of IS NULL AND NEW.board_category IS NOT NULL AND NEW.board_category <> 'held';
+        END;
+        CREATE TRIGGER IF NOT EXISTS public_open_del AFTER DELETE ON scraped_jobs
+        BEGIN
+          DELETE FROM public_open_jobs WHERE job_id = OLD.job_id;
+        END;
+      `,
+    },
   ];

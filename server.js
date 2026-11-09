@@ -345,6 +345,7 @@ import { loadConfirmedSynonyms } from "./services/kb/skillSynonyms.js";
 import { registerBoardSearch, boardSearchSql, searchVariants } from "./services/jobs/boardSearch.js";
 import { createReadPool } from "./services/db/readWorker.js";
 import { createOffload, offloadCache } from "./services/db/offloadWorker.js";   // ⛔ A158 (45r)
+import { createPublicOpenBackfill } from "./services/jobs/publicOpenJobs.js";   // ⛔ A158 (45r)
 import { createScorePool } from "./services/jobs/scoreWorker.js";
 // Y2B — the SAME fetcher and the SAME writer the enrichment pass uses. One implementation, two
 // triggers: the background pass buys descriptions for rows it is about to enrich, and this buys
@@ -612,6 +613,7 @@ let companyFacts = null;      // ⭐ D179 P4b (45l)
 let companyGithub = null;     // ⭐ D179 P5b (45l)
 let companyWeb = null;        // ⭐ D179 P5c (45l)
 let taxonomyBackfill = null;   // ⭐ D179 P2 (45l)
+let publicOpenBackfill = null;   // ⛔ A158 (45r)
 let companyTech = null;     // ⭐ D179 P5a (45l) — assigned beside companyLinker
 let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration runner's block, like classifyBacklog
 
@@ -7591,6 +7593,41 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_bg_jobs_due ON bg_jobs(status, run_after);
       `,
     },
+    {
+      // A158 (45r) · THE OPEN PUBLIC BOARD AS ITS OWN NARROW TABLE. Every whole-board public read (the sitemaps first) filtered
+      // scraped_jobs on is_active / duplicate_of / board_category, which sit AFTER description in the row: on production's
+      // volume one such scan ran for minutes and, on the main thread, froze the site (11-09). This table holds one small row
+      // per OPEN public posting, kept by triggers on every write that can change it; the rows already there are copied in by
+      // a paced walk (services/jobs/publicOpenJobs.js), never here. Only ADDS.
+      id: "262_public_open_jobs",
+      sql: `
+        CREATE TABLE IF NOT EXISTS public_open_jobs (
+          job_id   TEXT PRIMARY KEY,
+          id       INTEGER NOT NULL,
+          company  TEXT,
+          title    TEXT,
+          t        INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_public_open_jobs_id ON public_open_jobs(id);
+        CREATE TRIGGER IF NOT EXISTS public_open_ins AFTER INSERT ON scraped_jobs
+          WHEN NEW.is_active = 1 AND NEW.duplicate_of IS NULL AND NEW.board_category IS NOT NULL AND NEW.board_category <> 'held'
+        BEGIN
+          INSERT OR REPLACE INTO public_open_jobs (job_id, id, company, title, t)
+            VALUES (NEW.job_id, NEW.id, NEW.company, NEW.title, COALESCE(NEW.updated_at, NEW.discovered_at));
+        END;
+        CREATE TRIGGER IF NOT EXISTS public_open_upd AFTER UPDATE OF is_active, duplicate_of, board_category, title, company, job_id ON scraped_jobs
+        BEGIN
+          DELETE FROM public_open_jobs WHERE job_id = OLD.job_id;
+          INSERT OR REPLACE INTO public_open_jobs (job_id, id, company, title, t)
+            SELECT NEW.job_id, NEW.id, NEW.company, NEW.title, COALESCE(NEW.updated_at, NEW.discovered_at)
+             WHERE NEW.is_active = 1 AND NEW.duplicate_of IS NULL AND NEW.board_category IS NOT NULL AND NEW.board_category <> 'held';
+        END;
+        CREATE TRIGGER IF NOT EXISTS public_open_del AFTER DELETE ON scraped_jobs
+        BEGIN
+          DELETE FROM public_open_jobs WHERE job_id = OLD.job_id;
+        END;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -7695,6 +7732,8 @@ companyTech = createCompanyTech(db);
 // ⭐ D179 P2: every active posting to Category → Subcategory (the approved taxonomy), after the classify walk. TAXONOMY_BACKFILL=off.
 // ⛔ A158 (45r): its read + classify half runs on the offload worker; only the short writes run here.
 taxonomyBackfill = createTaxonomyBackfill(db, { offload: (args) => offload.run("taxonomyRange", args) });
+// ⛔ A158 (45r): the open public board's narrow table (migration 262) — the postings open before it existed, copied once.
+publicOpenBackfill = createPublicOpenBackfill(db, { offload: (args) => offload.run("publicOpenRange", args) });
 // ⭐ D179 P4b: each company's public facts (Wikidata, by its own site) for the page's About — 150 a run, 1.5 s apart, daily.
 companyFacts = createCompanyFacts(db);
 // ⭐ D179 P5b: public GitHub languages, matched by the organisation's own site — 15 companies an hour (GitHub's unauthenticated limit).
@@ -16389,6 +16428,7 @@ app.get("/api/version", (_req, res) => {
     companies: companyLinker ? companyLinker.status() : null,   // ⭐ D179 P4a
     companyTech: companyTech ? companyTech.status() : null,     // ⭐ D179 P5a
     taxonomy: taxonomyBackfill ? taxonomyBackfill.status() : null,   // ⭐ D179 P2
+    offload: offload.status(), publicOpen: publicOpenBackfill ? publicOpenBackfill.status() : null,   // ⛔ A158 (45r)
     companyFacts: companyFacts ? companyFacts.status() : null,       // ⭐ D179 P4b
     companyGithub: companyGithub ? companyGithub.status() : null,    // ⭐ D179 P5b
     companyWeb: companyWeb ? companyWeb.status() : null,             // ⭐ D179 P5c
@@ -16527,6 +16567,8 @@ app.listen(PORT, () => {
     // idempotent, once per boot on ready.
     try { stripSampleProfiles(db, { registry: getDomainRegistry() }); } catch (e) { console.warn("[a140] sample strip:", e.message); }
     const classified = classifyBacklog.run("boot");
+    // ⛔ A158 (45r): the sitemaps' narrow table, copied once (off the loop; it is done after the first boot).
+    try { publicOpenBackfill?.run("boot"); } catch (e) { console.warn("[public-open]", e.message); }
     // ⭐ D179 P4a: the company records walk after the classify walk (one background walk on the loop at a time).
     // (after the classify walk starts — the d153 ready-distance pin) ⭐ D179 P6 (owner 11-08): the taxonomy's subcategories as Atlas role DRAFTS for the desk — idempotent.
     try { seedTaxonomyRoles(db, JSON.parse(fs.readFileSync(TAXONOMY_FILE, "utf8"))); } catch (e) { console.warn("[atlas] taxonomy roles:", e.message); }
