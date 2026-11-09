@@ -1804,6 +1804,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         const [, applySettled] = await Promise.allSettled([genPromise, browserPromise]);
         result = applySettled.status === "fulfilled" ? applySettled.value : { status: "awaiting_user", fieldsFilled: 0 };
         db.prepare(`UPDATE apply_run_jobs SET status='held_review', reason_code='manual_review', finished_at=unixepoch() WHERE id=?`).run(runJobId);
+        // ⭐ (A)-1 (45o): run-job 16 — a semi run whose generation failed kept no reason on its row (the reason_code above
+        // overwrites it). Say why there is no résumé, so the attempt offers "Generate it" with the reason instead of a 404 loop.
+        if (usedArtifactId == null) {
+          const why = genFailure ? `generation_failed: ${genFailure.reasonCode} — ${String(genFailure.detail || "").slice(0, 300)}` : (docFailure ? `pdf_failed: ${String(docFailure.detail || "").slice(0, 300)}` : "not_made: the run ended before a résumé was generated");
+          try { db.prepare(`UPDATE apply_run_jobs SET resume_missing_reason=? WHERE id=? AND resume_artifact_id IS NULL`).run(why, runJobId); } catch { /* pre-254 schema */ }
+        }
 
         // This branch used to return here, before the audit block below — so a manual-review run
         // discarded everything it had just produced: the resolved answers WITH their provenance,
@@ -3672,6 +3678,30 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * checks the flag immediately before the click — and the run reports what it observed rather than
    * assuming. Everything before that point is guaranteed not to submit.
    */
+  // ⭐ (A)-1 (45o) · "No résumé was made for this one — Generate it": ONE press makes the run job's résumé with the run's
+  // own generator (generateResumeForApply — base résumé + this posting, the tool the run used), attaches it, and clears
+  // the missing reason. No retries, no loop: a failure says why and is recorded. A sent application is never changed.
+  app.post("/api/apply/run-jobs/:runJobId/generate-resume", requireAuth, async (req, res) => {
+    const rj = ownedRunJob(req.params.runJobId, req.user.id);
+    if (!rj) return res.status(404).json({ error: "not_found" });
+    const row = db.prepare(`SELECT rj.*, r.tool_type FROM apply_run_jobs rj JOIN apply_runs r ON r.id = rj.run_id WHERE rj.id = ? AND rj.user_id = ?`).get(rj.id, req.user.id);
+    if (row.submitted_by != null || String(row.status) === "submitted") return res.status(409).json({ error: "sent", message: "This application was sent — its résumé is kept as it went out." });
+    if (row.resume_artifact_id != null) return res.json({ ok: true, resumeArtifactId: row.resume_artifact_id, already: true });
+    try {
+      const gen = await generateResumeForApply(req.user.id, row.job_id, row.tool_type || "generate");
+      if (!gen?.html || gen.resumeId == null) {
+        const why = `generation_failed: ${gen?.errorCode || "generation_failed"} — ${String(gen?.errorDetail || gen?.error || "no HTML").slice(0, 300)}`;
+        try { db.prepare(`UPDATE apply_run_jobs SET resume_missing_reason=? WHERE id=?`).run(why, rj.id); } catch { /* pre-254 */ }
+        return res.status(502).json({ error: "generation_failed", message: "The résumé couldn't be made just now.", reason: why });
+      }
+      db.prepare(`UPDATE apply_run_jobs SET resume_artifact_id=?, resume_ats_score=?, resume_missing_reason=NULL WHERE id=? AND resume_artifact_id IS NULL`)
+        .run(gen.resumeId, gen.atsScore ?? null, rj.id);
+      res.json({ ok: true, resumeArtifactId: gen.resumeId });
+    } catch (e) {
+      res.status(500).json({ error: "generation_failed", message: "The résumé couldn't be made just now." });
+    }
+  });
+
   app.post("/api/apply/run-jobs/:runJobId/abort", requireAuth, (req, res) => {
     const rj = ownedRunJob(req.params.runJobId, req.user.id);
     if (!rj) return res.status(404).json({ error: "not_found" });

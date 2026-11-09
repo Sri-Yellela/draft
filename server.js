@@ -7433,6 +7433,16 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_network_reports_status ON network_reports(status, created_at);
       `,
     },
+    {
+      // ⭐ FIRST PRIORITY (A)-1 (45o, owner 11-08: "a run job never opens without its résumé") · WHY a run job has no
+      // résumé. Run-job 16 (the 11-07 semi run) ended with none and NO reason: a semi run's generation failure was logged as
+      // an event while its row's reason_code was overwritten with 'manual_review'. Written wherever a run job ends without a
+      // résumé; the résumé route also derives one for older rows (the generation_failed event, or the hold). Only ADDS.
+      id: "254_run_job_resume_missing_reason",
+      sql: `
+        ALTER TABLE apply_run_jobs ADD COLUMN resume_missing_reason TEXT;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
