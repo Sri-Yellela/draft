@@ -167,9 +167,20 @@ export function alertMessage(items, { appUrl = "", nowSec, sponsorFirst = false 
  * One sweep (every 10 minutes, server.js). For each due person: their top skills → the new top-tier postings → claim the
  * rows → ONE message. Returns how many messages went out.
  */
-export async function runMatchAlerts(db, read, notify, { nowSec = nowS(), appUrl = "", log = console } = {}) {
-  let sent = 0;
-  for (const person of alertAudience(db)) {
+export async function runMatchAlerts(db, read, notify, opts = {}) {
+  return (await runMatchAlertsSlice(db, read, notify, opts)).sent;
+}
+
+/**
+ * ⭐ D151 Rule 2 (45q): the sweep as SLICES — people in user-id order after `afterUserId`, stopping at `deadline` (ms);
+ * { sent, lastUserId, done }. The job system (services/ops/jobQueue.js, kind 'match_alerts') runs it one slice a tick.
+ */
+export async function runMatchAlertsSlice(db, read, notify, { nowSec = nowS(), appUrl = "", log = console, afterUserId = 0, deadline = Infinity, clock = Date.now } = {}) {
+  let sent = 0, lastUserId = afterUserId;
+  const people = alertAudience(db).filter(p => p.user_id > afterUserId).sort((a, b) => a.user_id - b.user_id);
+  for (const person of people) {
+    if (clock() >= deadline) return { sent, lastUserId, done: false };
+    lastUserId = person.user_id;
     try {
       const tz = person.tz_offset_min || 0;
       const used = usedToday(db, person.user_id, localNow(nowSec, tz).day, tz);
@@ -199,7 +210,7 @@ export async function runMatchAlerts(db, read, notify, { nowSec = nowS(), appUrl
       sent += 1;
     } catch (e) { log?.warn?.(`[alerts] user ${person.user_id}: ${e.message}`); }
   }
-  return sent;
+  return { sent, lastUserId, done: true };
 }
 
 // ── Admin: time from posting to alert, per source ─────────────────────────────────────────────

@@ -6959,4 +6959,30 @@ export const MIGRATIONS = [
         ALTER TABLE user_profile ADD COLUMN credit_draft INTEGER;
       `,
     },
+    {
+      // D151 RULE 2 (45q) · ONE BACKGROUND JOB SYSTEM (services/ops/jobQueue.js): whole-board work leaves the request path
+      // and runs as leased, time-budgeted slices with retries and a recorded duration. ONE pending / running job per
+      // (kind, key) — the partial unique index is the dedupe. Only ADDS.
+      id: "261_bg_jobs",
+      sql: `
+        CREATE TABLE IF NOT EXISTS bg_jobs (
+          id           INTEGER PRIMARY KEY AUTOINCREMENT,
+          kind         TEXT NOT NULL,
+          key          TEXT NOT NULL DEFAULT '',
+          status       TEXT NOT NULL CHECK (status IN ('pending', 'running', 'done', 'failed')),
+          run_after    INTEGER NOT NULL,
+          lease_until  INTEGER,
+          attempts     INTEGER NOT NULL DEFAULT 0,
+          slices       INTEGER NOT NULL DEFAULT 0,
+          payload_json TEXT,
+          last_error   TEXT,
+          duration_ms  INTEGER NOT NULL DEFAULT 0,
+          created_at   INTEGER NOT NULL,
+          started_at   INTEGER,
+          finished_at  INTEGER
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_bg_jobs_one_live ON bg_jobs(kind, key) WHERE status IN ('pending', 'running');
+        CREATE INDEX IF NOT EXISTS idx_bg_jobs_due ON bg_jobs(status, run_after);
+      `,
+    },
   ];
