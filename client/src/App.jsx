@@ -27,6 +27,7 @@ import ProfilePage               from "./pages/profile/ProfilePage.jsx";
 import { profilePanelFor, profilePath, LEGACY_PROFILE_ROUTES } from "./pages/profile/profilePanels.js";
 import InterviewPage             from "./pages/interview/InterviewPage.jsx";
 import CompanyPage               from "./pages/companies/CompanyPage.jsx";   // D179 P4b
+import CompaniesView             from "./pages/companies/CompaniesView.jsx"; // A144 (45o): the Companies tab
 import PublicBoardPage           from "./pages/jobs/PublicBoardPage.jsx";    // D179 P3
 import AuditPage                 from "./pages/audit/AuditPage.jsx";         // D150 T05–T08
 import { interviewPanelFor, interviewPath } from "./pages/interview/interviewModel.js";
@@ -262,7 +263,24 @@ const BOARD_TABS = [
   ["saved",    "Starred",  "Starred jobs"],
   // ⭐ D40 (owner, 10-06): the jobs you imported, on the board's own card.
   ["imported", "Imported", "Imported jobs"],
+  // ⭐ A144 (45o, owner 11-08: "the companies tab wasnt supposed to be omitted"): every company with open jobs.
+  ["companies", "Companies", "Companies hiring"],
 ];
+
+// ⭐ A144 · the Companies view swaps the board's own parts (the sentence, the bar, the counts, the jobs) for the company
+// list; the board stays MOUNTED (hidden; `display: contents` while shown, so the bar stays sticky in the column) so its scroll, filters and open posting are where they were on return.
+function BoardOrCompanies({ head, views, board }) {
+  const { boardTab } = useJobBoard();
+  const co = boardTab === "companies";
+  return (
+    <>
+      <div style={{ display: co ? "none" : "contents" }}>{head}</div>
+      {views}
+      {co && <CompaniesView />}
+      <div style={{ display: co ? "none" : "contents" }} data-board-hidden={co ? "" : undefined}>{board}</div>
+    </>
+  );
+}
 // ⛔ D156 (4) (owner 11-05: "we dont need the drafted panel now"): the Pending / Drafted view is not offered on Home — the
 // tracker (Draft House) holds every application. ?view=pending still reads (JobBoardContext's BOARD_VIEWS).
 
@@ -654,17 +672,22 @@ function AppDashboard({ authUser, setAuthUser }) {
                   <DeckView canUseAPlusResume={canUseAPlusResumeHere} home/>
                 </section>
                 <section className="home__board" aria-label="Every job" data-home-board="">
-                  <header className="fh" data-fh-d147="">
-                    <BoardHeadlineSlot />
-                  </header>
-                  <StickyBar top="var(--app-chrome-height, 74px)" className="fh fh--bar-row" data-board-sticky="">
-                    <BoardBar />
-                  </StickyBar>
-                  <BoardViews onImported={() => setJobBoardRefreshKey(k => k + 1)} />
-                  <BoardCounts />
-                  <ExtensionFirstRunPrompt />
-                  <JobsConsole user={authUser} onUserChange={setAuthUser}
-                    refreshKey={jobBoardRefreshKey} isActive={home}/>
+                  <BoardOrCompanies
+                    head={<>
+                      <header className="fh" data-fh-d147="">
+                        <BoardHeadlineSlot />
+                      </header>
+                      <StickyBar top="var(--app-chrome-height, 74px)" className="fh fh--bar-row" data-board-sticky="">
+                        <BoardBar />
+                      </StickyBar>
+                    </>}
+                    views={<BoardViews onImported={() => setJobBoardRefreshKey(k => k + 1)} />}
+                    board={<>
+                      <BoardCounts />
+                      <ExtensionFirstRunPrompt />
+                      <JobsConsole user={authUser} onUserChange={setAuthUser}
+                        refreshKey={jobBoardRefreshKey} isActive={home}/>
+                    </>} />
                 </section>
               </div>
             )}

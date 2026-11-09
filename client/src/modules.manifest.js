@@ -40,7 +40,8 @@ export const MODULES = Object.freeze({
   searchBar: { why: "the search bar and its suggest — the landing page's, and the board's well (BoardBar)",
     css: ["components/UnifiedSearchBar.css"],
     members: ["components/UnifiedSearchBar.jsx", "components/UsbSelect.jsx", "components/UsbSuggest.jsx", "components/BoardBar.jsx", "pages/LandingPage.jsx",
-      "pages/jobs/PublicBoardPage.jsx"] },   // D179 P3: the open board's one search box
+      "pages/jobs/PublicBoardPage.jsx",   // D179 P3: the open board's one search box
+      "components/AppNav.jsx"] },   // 45n: the dock's search (DockSearch) is the SAME suggest, built once
   // ⭐ D93 · the Customise page — Appearance (moved off Account) and the layout options, with its live preview.
   // App.jsx is a member for ContrastOffer, the prefers-contrast banner the shell mounts.
   customise: { why: "the Customise page (D93) — theme, shape cues and the layout options", css: ["components/Customise.css"],
@@ -82,7 +83,8 @@ export const MODULES = Object.freeze({
   publicBoard: { why: "D179 P3 — the open board, /jobs signed out", css: ["pages/jobs/PublicBoardPage.css"],
     members: ["App.jsx", "pages/jobs/PublicBoardPage.jsx"] },
   companies: { why: "D179 P4b — a page for every company, public at /companies/<slug> and inside the shell at /app/companies/<slug>",
-    css: ["pages/companies/CompanyPage.css"], members: ["App.jsx", "pages/companies/CompanyPage.jsx"] },
+    // ⭐ A144 (45o): + the Companies tab (CompaniesView — the board's fourth view, mounted by App beside the board).
+    css: ["pages/companies/CompanyPage.css", "pages/companies/CompaniesView.css"], members: ["App.jsx", "pages/companies/CompanyPage.jsx", "pages/companies/CompaniesView.jsx"] },
 });
 
 // ── SHARED: every file under components/, styles/, lib/, hooks/, contexts/, themes/, consoles/.

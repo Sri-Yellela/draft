@@ -332,7 +332,7 @@ function Achievements({ items, eye, onAdd, onRemove }) {
 const MARK = { added: "+", removed: "−", changed: "↻" };
 
 /** ⭐ D183 P2 · What changed — the replace already happened; this is so nothing changes silently. */
-function WhatChanged({ r, onKeep, onUndo, busy }) {
+function ReplaceWhatChanged({ r, onKeep, onUndo, busy }) {   // A93: SponsorshipSignal has its own WhatChanged
   const [review, setReview] = useState(false);
   const shown = review ? r.lines : r.lines.slice(0, 6);
   return (
@@ -449,7 +449,7 @@ export default function YourProfile({ behind = null }) {
     <div className="yp" data-your-profile="">
       <WhoCanSee vis={vis} onSet={set} />
       {err && <p role="alert" className="yp__err">{err}</p>}
-      {replaced && <WhatChanged r={replaced} onKeep={keepChange} onUndo={undoChange} busy={changeBusy} />}
+      {replaced && <ReplaceWhatChanged r={replaced} onKeep={keepChange} onUndo={undoChange} busy={changeBusy} />}
       <Header page={page} avatarUrl={avatarUrl} editing={editing} onEdit={() => setEditing(x => !x)} onSet={set}
         onPreview={togglePreview} previewing={!!preview} onPage={setPage} />
       {preview ? <PublicPreview view={preview.view} avatarUrl={avatarUrl} /> : (
