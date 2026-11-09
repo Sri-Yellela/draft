@@ -34,7 +34,8 @@ test("d178OneCourseOneRecord: the deck gesture — one flick turns one card, end
   const page = read("client/src/pages/atlas/LibraryPanel.jsx");
   assert.match(page, /<HalfRing course=\{course\} marks=\{marks\} progress=\{progress\} module=\{sel\} onModule=\{setSel\} \/>/);
   assert.match(page, /<LessonDeck base=\{base\} lessons=/);
-  assert.match(page, /<h2 className="atl__h2">All modules<\/h2>/, "the modules list is kept below");
+  // ⭐ A155 (45o, on purpose): the heading names a chosen guided route; with none it is still "All modules".
+  assert.match(page, /<h2 className="atl__h2">\{route \? `\$\{route\.name\} — \$\{route\.list\.length\} lessons` : "All modules"\}<\/h2>/, "the modules list is kept below");
   assert.match(read("client/src/pages/atlas/LessonDeck.jsx"), /deckWheelHandler\(/);
   assert.match(read("client/src/panels/DeckView.jsx"), /deckWheelHandler\(/, "the same gesture as the jobs page's deck");
 });

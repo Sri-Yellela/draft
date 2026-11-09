@@ -36,6 +36,9 @@ export default function TrackBoard({ base = "/app/atlas", signedIn = false }) {
     return () => clearTimeout(timer.current);
   }, [fly, frames.length]);
   const startFlight = () => { setStill(reducedMotion()); setFly(0); };
+  // ⭐ A155 (45o): arriving with ?fly=1 (Your skills' "Aim here and fly my route") starts the flight once the route is read.
+  const flyAsked = useRef(typeof window !== "undefined" && new URLSearchParams(window.location.search).get("fly") === "1");
+  useEffect(() => { if (flyAsked.current && frames.length) { flyAsked.current = false; startFlight(); } }, [frames.length]);   // eslint-disable-line react-hooks/exhaustive-deps
   const stopFlight = () => { clearTimeout(timer.current); setFly(null); };
   if (!signedIn || !nav) return null;
   const route = nav.ready ? nav.route : null;

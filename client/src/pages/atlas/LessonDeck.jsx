@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import DepthButton from "../../components/DepthButton.jsx";
 import { deckWheelHandler } from "../../lib/deckWheel.js";
-import { HALF, halfRingLayout, lessonState, lessonStateLine, linkLine } from "./libraryModel.js";
+import { HALF, halfRingLayout, lessonState, lessonStateLine, linkLine, earnChecklist, wholeModules } from "./libraryModel.js";
 
 export function HalfRing({ course, marks, progress, module, onModule }) {
   const ticks = useMemo(() => halfRingLayout(course), [course]);
@@ -22,6 +22,21 @@ export function HalfRing({ course, marks, progress, module, onModule }) {
     return () => el.removeEventListener("wheel", onWheel);
   }, [module, n, onModule]);
   const lit = new Set(course.modules.flatMap(m => m.lessons.filter(l => lessonState(l, marks).complete).map(l => l.id)));
+  // ⭐ A155 (45o, the D178 picks: "lighting a whole part animates that arc of the circle once"): a module that became whole
+  // since this browser last saw the course draws its arc lighting up, once; then it is remembered (per course, this
+  // browser). Reduced motion: no animation (the CSS turns it off).
+  const [fresh, setFresh] = useState(() => new Set());
+  useEffect(() => {
+    const whole = wholeModules(course, marks).map(m => m.n);
+    if (!whole.length) return;
+    const key = `atlas.wholeSeen.${course.id}`;
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem(key) || "[]"); } catch { seen = []; }
+    const now = whole.filter(n => !seen.includes(n));
+    if (!now.length) return;
+    setFresh(new Set(now));
+    try { localStorage.setItem(key, JSON.stringify([...new Set([...seen, ...whole])])); } catch { /* private mode: it may play again */ }
+  }, [course, marks]);
   const sel = course.modules.find(m => m.n === module);
   const mp = progress.modules.find(m => m.n === module);
   return (
@@ -30,7 +45,8 @@ export function HalfRing({ course, marks, progress, module, onModule }) {
       <svg className="lib-half__svg" viewBox={`0 0 ${HALF.w} ${HALF.h}`} aria-hidden="true" focusable="false">
         {ticks.map(t => (
           <line key={t.id} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
-            className={`lib-half__tick lrc__part--${t.module}${lit.has(t.id) ? " is-lit" : ""}${t.module === module ? " is-sel" : ""}`}
+            className={`lib-half__tick lrc__part--${t.module}${lit.has(t.id) ? " is-lit" : ""}${t.module === module ? " is-sel" : ""}${fresh.has(t.module) ? " is-new-whole" : ""}`}
+            style={fresh.has(t.module) ? { animationDelay: `${(t.i ?? 0) * 40}ms` } : undefined}
             onClick={() => onModule(t.module)} />
         ))}
         <text x={HALF.cx} y={HALF.cy - 70} textAnchor="middle" className="lib-half__big">{progress.done} of {progress.total} lit</text>
@@ -90,6 +106,12 @@ export function LessonDeck({ base, lessons, marks, circle, titles }) {
               {off === 0 && (
                 <>
                   {l.goal && <p className="lib-lcard__goal">{l.goal}</p>}
+                  {/* ⭐ A155 (45o, the D178 picks): how you earn ✓ — the one rule's own counts. */}
+                  {earnChecklist(st).length > 0 && (
+                    <ul className="lib-earn" aria-label="How you earn the check" data-lesson-earn="">
+                      {earnChecklist(st).map(r => <li key={r.key} className={r.done ? "is-done" : ""} data-earn={r.key}>{r.done ? "✓ " : ""}{r.text}</li>)}
+                    </ul>
+                  )}
                   <ul className="lib-links">
                     {l.links.filter(x => !x.optional).slice(0, 4).map(x => (
                       <li key={x.id}>{x.url ? <a href={x.url} target="_blank" rel="noopener noreferrer">{linkLine(x)}</a> : <span>{linkLine(x)}</span>}</li>
