@@ -24,11 +24,18 @@ import { readProfile, saveSection, useResumeSuggestion, setDefault, readDefaults
 import { resolveCaptureLogo } from "../services/jobs/companyLogoStore.js";
 import { setEvidence, readProofPage, setProofPage } from "../services/proofLinks.js";
 import { profilePage, viewFor, setVisibility, addAchievement, removeAchievement } from "../services/profilePage.js";
+import { refreshPerson } from "../services/peopleSearch.js";
 import { latestReplacement, keepReplacement, undoReplacement } from "../services/profileReplace.js";
 import { saveBaseResumeRecord, upsertSimpleApplyProfile } from "../services/simpleApplyProfile.js";
 
 /** @param opts.resolveLogo(db, { company }) — the logo lookup (injectable for tests); never awaited by a read. */
 export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo = resolveCaptureLogo } = {}) {
+  // ⭐ 45n · people search: any successful change under /api/profile re-reads the person's PUBLIC page into the index
+  // (or drops them when it is not public) — after the response, never in its way.
+  app.use("/api/profile", (req, res, next) => {
+    if (req.method !== "GET") res.on("finish", () => { if (res.statusCode < 400 && req.user?.id != null) setImmediate(() => refreshPerson(db, req.user.id)); });
+    next();
+  });
   const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "error", message: e.message });
   // D101 P1: the experience section's logos — looked up in the background; the next read shows them.
   const lookUpLogos = (userId) => {

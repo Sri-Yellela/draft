@@ -35,6 +35,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { DraftMark } from "./DraftMark.jsx";
+import UsbSuggest from "./UsbSuggest.jsx";
+import { requestBoardSearch } from "../lib/boardSearch.js";
 import { useAccountAvatar } from "../lib/accountAvatar.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { autoToggle } from "../lib/draftHouseExceptions.js";
@@ -83,6 +85,47 @@ function MicIcon() {
     </svg>
   );
 }
+function SearchIcon() {
+  return (
+    <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <circle cx="10.5" cy="10.5" r="6" /><path d="M15 15l5 5" />
+    </svg>
+  );
+}
+
+// ⭐ 45n (owner 11-08) · THE DOCK'S SEARCH — the icon turns the dock into one search bar in the dock's own place: companies,
+// people (public profiles, with workplace · school), roles, technologies and titles, the one grouped list (UsbSuggest).
+// A company or a person opens its page; a role, a technology or typed words (Enter) search the jobs board
+// (lib/boardSearch.js). Esc, the ✕ or leaving it empty and pressing outside puts the dock back.
+function DockSearch({ onClose }) {
+  const [q, setQ] = useState("");
+  const navigate = useNavigate();
+  const inputRef = useRef(null);
+  useEffect(() => { inputRef.current?.focus({ preventScroll: true }); }, []);
+  const toBoard = (detail) => { requestBoardSearch(detail); onClose(); navigate("/app/jobs"); };
+  return (
+    <div className="appnav-search" role="search" aria-label="Search draft" data-dock-search="">
+      <UsbSuggest field="title" value={q} onChange={setQ}
+        onPickRole={(r) => toBoard({ role: { id: r.id, categoryId: r.categoryId } })}
+        onPickTech={(t) => toBoard({ tech: { name: t.name } })}
+        onAccept={(text) => toBoard({ query: text })}>
+        {(sugg) => (
+          <input {...sugg} ref={(el) => { inputRef.current = el; if (typeof sugg.ref === "function") sugg.ref(el); else if (sugg.ref) sugg.ref.current = el; }}
+            type="search" enterKeyHint="search" className="appnav-search__input"
+            placeholder="Search people, companies, jobs" aria-label="Search people, companies and jobs"
+            onKeyDown={(e) => {
+              sugg.onKeyDown?.(e);
+              if (e.defaultPrevented) return;
+              if (e.key === "Enter" && q.trim()) toBoard({ query: q.trim() });
+              else if (e.key === "Escape") { e.preventDefault(); onClose(); }
+            }} />
+        )}
+      </UsbSuggest>
+      <button type="button" className="appnav-search__close" aria-label="Close the search" onClick={onClose}>✕</button>
+    </div>
+  );
+}
+
 function BubbleIcon() {
   return (
     <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -258,6 +301,7 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
   const [peekOpen, setPeekOpen] = useState(false);
   const [peekPos, setPeekPos] = useState({ top: 0, left: 80 });
   const [askOpen, setAskOpen] = useState(false);
+  const [searching, setSearching] = useState(false);   // ⭐ 45n: the dock is the search bar
   const dockRef = useRef(null);
   const profRef = useRef(null), peekRef = useRef(null), askRef = useRef(null), askBtnRef = useRef(null), peekTimer = useRef(null);
   const closePeek = useCallback(() => { clearTimeout(peekTimer.current); setPeekOpen(false); }, []);
@@ -413,16 +457,23 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
     <>
       {body && createPortal(
         <>
-          <nav aria-label="Main" ref={dockRef} className="appnav-dock" data-nav-dock="" data-open={dockOpen ? "true" : "false"} data-place={place}
+          <nav aria-label="Main" ref={dockRef} className="appnav-dock" data-nav-dock="" data-open={dockOpen || searching ? "true" : "false"} data-place={place}
+            data-searching={searching ? "true" : "false"}
             aria-keyshortcuts="M"
             onMouseEnter={canHover ? () => setWide(true) : undefined}
             onMouseLeave={canHover ? () => { if (!dockRef.current?.contains(document.activeElement)) setWide(false); } : undefined}
             onFocus={(e) => { if (canHover || e.target.matches?.(":focus-visible")) setWide(true); }}
             onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setWide(false); }}>
+            {searching ? <DockSearch onClose={() => { setSearching(false); setWide(false); }} /> : <>
+            <button type="button" className="appnav-item" data-nav-item="search" aria-label="Search" onClick={() => { closePeek(); setSearching(true); }}>
+              <span className="appnav-ico" data-nav-icon="search"><SearchIcon /></span>
+              <span className="appnav-words"><span className="appnav-name">Search</span></span>
+            </button>
             <NavItems tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onGo={go} dock />
             <ProfileItem profile={profile} dock itemRef={profRef} peek={canHover ? peekHover : { open: peekOpen }} onPress={pressProfile} />
             <span className="appnav-sep" aria-hidden="true" />
             <AskItem dock open={askOpen} onPress={pressAsk} />
+            </>}
           </nav>
           <ProfilePeek open={peekOpen} profile={profile} pos={peekPos} onGo={goPath} onClose={closePeek}
             onEnter={canHover ? onPeekEnter : undefined} onLeave={canHover ? onPeekLeave : undefined} peekRef={peekRef} />

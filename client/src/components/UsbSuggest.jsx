@@ -71,7 +71,8 @@ async function fetchGrouped(q) {
   if (!r.ok) return null;
   return r.json().catch(() => null);
 }
-const GROUP_WORD = { company: "Companies", role: "Roles", tech: "Technologies", title: "Titles" };
+// ⭐ 45n: People — public profiles only (services/peopleSearch.js), each with workplace · school so two of one name differ.
+const GROUP_WORD = { company: "Companies", person: "People", role: "Roles", tech: "Technologies", title: "Titles" };
 
 export default function UsbSuggest({
   field,            // "title" | "location"
@@ -124,6 +125,7 @@ export default function UsbSuggest({
         const titleList = d.suggestions.length ? d.suggestions : (g?.titles || []).map((x) => x.value);
         const next = [
           ...(g?.companies || []).map((x) => ({ kind: "company", key: `c:${x.slug}`, label: x.name, sub: `${x.openJobs} open`, item: x })),
+          ...(g?.people || []).map((x) => ({ kind: "person", key: `p:${x.path}`, label: x.name, sub: x.label || "", item: x })),
           ...(g?.roles || []).map((x) => ({ kind: "role", key: `r:${x.id}`, label: x.name, sub: x.category, item: x })),
           ...(g?.technologies || []).map((x) => ({ kind: "tech", key: `t:${x.name}`, label: x.name, item: x })),
           ...titleList.map((s) => ({ kind: "title", key: `s:${s}`, label: s })),
@@ -167,6 +169,8 @@ export default function UsbSuggest({
       navigate(`${pathname.startsWith("/app") ? "/app" : ""}/companies/${row.item.slug}`);
       return;
     }
+    // A person's page is server-rendered (/in/<handle>, D183 P3): a full load, not a client route.
+    if (row.kind === "person") { window.location.assign(row.item.path); return; }
     if (row.kind === "role" && onPickRole) { onPickRole(row.item); return; }
     if (row.kind === "tech" && onPickTech) { onPickTech(row.item); return; }
     selfEdit.current = true;

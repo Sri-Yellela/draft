@@ -69,6 +69,7 @@ import AtlasPage       from "./pages/atlas/AtlasPage.jsx";
 import { Toaster }         from "./components/ui/toaster.jsx";
 import ResumeEditorHost     from "./components/ResumeEditorHost.jsx";
 import { REOPEN_KEY } from "./lib/resumeEditor.js";
+import { BOARD_SEARCH_EVENT, takePendingBoardSearch } from "./lib/boardSearch.js";
 import SurveyPublicPage from "./pages/SurveyPublicPage.jsx";
 import { oauthNext }       from "./lib/oauthNext.js";
 import { loginHref, currentReturnPath, returnToFromSearch } from "./lib/signInReturn.js";
@@ -154,6 +155,20 @@ export function SignedInElsewhere({ user, admin = false }) {
 // Search button; the landing page keeps UnifiedSearchBar).
 function BoardSearchBar(props) {
   const { applyBarFilters, boardHeadline } = useJobBoard();
+  // ⭐ 45n: a search handed over by the dock (lib/boardSearch.js) — waiting when the board mounts, or announced while it is up.
+  const applyHanded = useRef(null);
+  applyHanded.current = (d) => {
+    if (!d) return;
+    if (d.query != null) applyBarFilters({ query: String(d.query) }, { fields: ["query"] });
+    else if (d.role && boardHeadline?.onPatch) boardHeadline.onPatch({ subcategory: d.role.id, category: d.role.categoryId });
+    else if (d.tech && boardHeadline?.onPatch) boardHeadline.onPatch({ tech: d.tech.name });
+  };
+  useEffect(() => {
+    applyHanded.current(takePendingBoardSearch());
+    const on = (e) => { takePendingBoardSearch(); applyHanded.current(e.detail); };
+    window.addEventListener(BOARD_SEARCH_EVENT, on);
+    return () => window.removeEventListener(BOARD_SEARCH_EVENT, on);
+  }, []);
   return (
     <BoardSearch
       {...props}

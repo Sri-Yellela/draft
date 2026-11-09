@@ -238,6 +238,7 @@ export const SHARED = Object.freeze({
   "lib/companySlug.js":                { what: "D179 — a company page's address from its name (the server records' own rule)" },
   "lib/signInReturn.js":               { what: "A138 — the one rule for where a sign-in returns to (the page it was started from)" },
   "lib/openPosting.js":                 { what: "THE way a posting is opened — handed to the extension when it is here (D99 J11)" },
+  "lib/boardSearch.js":                { what: "45n — a search started outside the jobs page (the dock's search) handed to the board; one way in" },
   "lib/resumeEditor.js":                { what: "THE way the résumé editor is opened, from anywhere; its change list and draft's live theme tokens (D157)" },
   "lib/boardPaging.js":                 { what: "the board's paging" },
   "lib/boardViewCache.js":              { what: "the board's view cache (D45)" },

@@ -769,7 +769,7 @@ export function PrivacyPage() {
             (the setting every account starts with), your connections, or the public — and each section can be kept
             narrower. A public profile has its own address; it never shows your contact details, application
             defaults, job profiles or saved answers, whatever you choose, and search engines are asked not to list it
-            unless you switch that on. Replacing your résumé re-fills your profile from the new one, keeps what you
+            unless you switch that on. A public profile can also be found by name in draft's own search, shown with the workplace and school it already displays; making it private removes it from the search. Replacing your résumé re-fills your profile from the new one, keeps what you
             added yourself, and can be undone for 30 days. Anyone can report a public profile to draft's moderators;
             a report records the reason given, and the person reported is not told who sent it. No AI model reads
             your profile for anyone but you.
