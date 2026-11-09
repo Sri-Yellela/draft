@@ -11,7 +11,7 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import {
-  AccountError, AVATAR_MAX_BYTES, PROVIDERS, RECENT_AUTH_MS, accountSummary, changePassword, consumeEmailCode,
+  AccountError, AVATAR_MAX_BYTES, PROVIDERS, avatarVersion, RECENT_AUTH_MS, accountSummary, changePassword, consumeEmailCode,
   deleteAccount, exportAccount, forgetSessions, issueEmailCode, listAppTokens, listSessions, mergeAccounts,
   mergePreview, requireRecentAuth, revokeAppToken, setDisplayName, setVerifiedEmail, sidsToRevoke, sniffImage,
   unlinkProvider, validEmail,
@@ -121,17 +121,29 @@ export function createAccountManagementRouter({
     });
   });
 
-  router.get("/api/account/avatar", requireAuth, h((req, res) => {
+  // ⛔ A148 (45p): the picture lives at a PER-USER, VERSIONED URL (/api/account/avatar/<userId>?v=<version>, named by
+  // accountSummary's avatarUrl). The old one-URL-for-everyone with `private, max-age=86400` let the browser hand the
+  // previous account's picture to the next account signed in on the same browser for a day. Only the owner of the
+  // picture is ever answered (another id → 404, never their picture); `private, no-cache` + an ETag revalidates every time.
+  const sendAvatar = (req, res) => {
     const rel = db.prepare("SELECT avatar_path FROM users WHERE id = ?").get(req.user.id)?.avatar_path;
     if (!rel) return res.status(404).json({ error: "no_avatar", message: "No picture." });
     const abs = path.resolve(dataDir, rel);
     if (!abs.startsWith(path.resolve(dataDir) + path.sep) || !fs.existsSync(abs)) return res.status(404).json({ error: "no_avatar", message: "No picture." });
+    const etag = `"${avatarVersion(rel)}"`;
+    res.set({ "Cache-Control": "private, no-cache", ETag: etag, Vary: "Cookie" });
+    if (req.get("If-None-Match") === etag) return res.status(304).end();
     const buf = fs.readFileSync(abs);
     const kind = sniffImage(buf);   // served as what the bytes are, never what a name says
-    res.set({ "Content-Type": kind.type, "X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=86400",
-              "Content-Security-Policy": "default-src 'none'" });
+    res.set({ "Content-Type": kind.type, "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'" });
     res.send(buf);
+  };
+  router.get("/api/account/avatar/:userId", requireAuth, h((req, res) => {
+    if (String(req.params.userId) !== String(req.user.id)) return res.status(404).json({ error: "no_avatar", message: "No picture." });
+    sendAvatar(req, res);
   }));
+  // The old path, kept for a client still loaded from before A148 — never cached.
+  router.get("/api/account/avatar", requireAuth, h((req, res) => { sendAvatar(req, res); }));
 
   router.delete("/api/account/avatar", requireAuth, h((req, res) => {
     const rel = db.prepare("SELECT avatar_path FROM users WHERE id = ?").get(req.user.id)?.avatar_path;

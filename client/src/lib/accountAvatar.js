@@ -9,13 +9,15 @@ import { api, authHeaders } from "./api.js";
 
 let cached = null;          // { url, objectUrl } | null
 let inflight = null;
+let generation = 0;          // A148: a load started for the previous account never lands after a reset
 const listeners = new Set();
 
 async function resolve() {
   const account = await api("/api/account");
   let url = null, objectUrl = null;
   if (account.hasAvatar) {
-    const r = await fetch("/api/account/avatar", { credentials: "include", headers: authHeaders() });
+    // ⛔ A148: the per-user, versioned URL (never one URL shared by every account — the browser served the last account's).
+    const r = await fetch(account.avatarUrl || "/api/account/avatar", { credentials: "include", headers: authHeaders(), cache: "no-cache" });
     if (r.ok) url = objectUrl = URL.createObjectURL(await r.blob());
   }
   if (!url && account.providerPicture) url = account.providerPicture;
@@ -25,8 +27,12 @@ async function resolve() {
 export function refreshAccount() {
   if (cached?.objectUrl) URL.revokeObjectURL(cached.objectUrl);
   cached = null;
-  inflight = resolve().then((v) => { cached = v; listeners.forEach((fn) => fn(v)); return v; })
-    .catch(() => { cached = { url: null, objectUrl: null, account: null }; listeners.forEach((fn) => fn(cached)); return cached; })
+  const gen = generation;
+  inflight = resolve().then((v) => {
+      if (gen !== generation) { if (v.objectUrl) URL.revokeObjectURL(v.objectUrl); return null; }
+      cached = v; listeners.forEach((fn) => fn(v)); return v;
+    })
+    .catch(() => { if (gen !== generation) return null; cached = { url: null, objectUrl: null, account: null }; listeners.forEach((fn) => fn(cached)); return cached; })
     .finally(() => { inflight = null; });
   return inflight;
 }
@@ -44,6 +50,15 @@ export function useAccountAvatar(enabled = true) {
     return () => { listeners.delete(setState); window.removeEventListener("rm:account-changed", onChange); };
   }, [enabled]);
   return state || { url: null, account: null };
+}
+
+/** ⛔ A148: forget the signed-in person's picture and account — called whenever the signed-in user changes or signs out. */
+export function resetAccountAvatar() {
+  if (cached?.objectUrl) URL.revokeObjectURL(cached.objectUrl);
+  cached = null;
+  inflight = null;
+  generation += 1;
+  listeners.forEach((fn) => fn(null));
 }
 
 export const announceAccountChanged = () => window.dispatchEvent(new Event("rm:account-changed"));

@@ -10138,6 +10138,10 @@ app.set("trust proxy", 1);
 // at the model call / the run's insert, after the session and the admin binder have run.
 // ⛔ D173 (5): and before it, the request's id (x-request-id in and out) — sent on to the tools service (docs/SERVICES.md).
 app.use(requestIdMiddleware);
+// ⛔ A148 (45p, owner 11-08: the tester account showed the OWNER's picture): every /api answer is `private, no-store` unless
+// its route says otherwise — a person's data must never be served from the browser's cache to the next account that signs
+// in on the same browser. A route that is really public (or wants a short private cache) sets its own header after this.
+app.use("/api", (req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); });
 // ⭐ D151 Rule 6 (45n): every /api request timed by its route pattern (services/ops/systemHealth.js; bounded memory).
 app.use(timingMiddleware());
 app.use(startedByMiddleware);
@@ -13839,7 +13843,7 @@ app.get("/api/jobs/:jobId/sponsorship", requireAuth, (req, res) => {
   const needed = d.sponsorship_now === "yes" || d.sponsorship_later === "yes";
   let signal = null;
   try { signal = sponsorshipSignal(db, row.company, { title: row.title, posting: row }); } catch { signal = null; }
-  res.set("Cache-Control", "private, max-age=300");
+  res.set("Cache-Control", "private, no-store");   // A148: the person's own answers decide `needed`
   res.json({ sponsorship: signal ? { ...signal, needed } : null });
 });
 app.get("/api/jobs/by-id/:jobId", requireAuth, (req, res) => {
