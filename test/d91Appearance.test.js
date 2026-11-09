@@ -19,7 +19,8 @@ test("the server and the client know the same preferences — and the legacy rou
   assert.deepEqual([...APPEARANCE_THEMES].sort(), [...THEME_PREFERENCES].sort());
   assert.deepEqual([...LEGACY_THEME_PREFERENCES], ["system", "light", "dark"]);
   // D93 extends the answer ADDITIVELY with the layout options, at their defaults when nothing is stored.
-  const D = { sentence: "marked", learning: "quiet", navigation: "auto", text: "default" };   // ⭐ D145: `nav` retired with the tab row; navigation + text size added   // D114 P3 adds learning links, quiet by default
+  // 45n D145 / D152 decision (10) (d85ed150): the Menu is retired, so `navigation` left the stored options (pin moved on purpose).
+  const D = { sentence: "marked", learning: "quiet", text: "default" };   // ⭐ D145: `nav` retired with the tab row; navigation + text size added   // D114 P3 adds learning links, quiet by default
   assert.deepEqual(parseStoredAppearance("contrast-dark;cues"), { theme: "contrast-dark", cues: true, ...D });
   assert.deepEqual(parseStoredAppearance("dark"), { theme: "dark", cues: false, ...D });
   assert.deepEqual(parseStoredAppearance("neon"), { theme: null, cues: false, ...D });

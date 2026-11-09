@@ -164,7 +164,8 @@ test("TEST A QUESTION: which saved answer matches and why — or 'no match: it w
 test("Settings → Saved answers is reachable, and the panel has all four tools", () => {
   const app = fs.readFileSync("client/src/App.jsx", "utf8").replace(/\r\n/g, "\n");
   // (D93 added "customise" after it, with its comment line.)
-  assert.match(app, /"account",\n(?:\s*\/\/.*\n)*\s*"saved-answers",\n(?:\s*\/\/.*\n)*(?:\s*"customise",\n)?\s*\.\.\.ROUTE_ONLY_TABS\]\)/, "saved-answers is navigable");
+  // 45o D180 P1 (b007d429) added "network" (with its comment) after customise (pin moved on purpose).
+  assert.match(app, /"account",\n(?:\s*\/\/.*\n)*\s*"saved-answers",\n(?:\s*\/\/.*\n)*(?:\s*"customise",\n)?(?:\s*\/\/.*\n)*(?:\s*"network",\n)?\s*\.\.\.ROUTE_ONLY_TABS\]\)/, "saved-answers is navigable");
   // ⭐ D167 (changed on purpose): Saved answers is Profile → Saved answers — /app/saved-answers lands on /app/profile/answers.
   assert.match(fs.readFileSync("client/src/pages/profile/profilePanels.js", "utf8"), /"saved-answers": "answers",/);
   assert.match(fs.readFileSync("client/src/pages/profile/ProfilePage.jsx", "utf8"), /<ProfilePanel section="answers"[^\n]*\/>\r?\n\s+<SavedAnswersPanel \/>/);

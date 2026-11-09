@@ -52,10 +52,12 @@ test("d145MatchTopRightNoAts: the match is the header's right-hand side — a nu
 
 test("d145InfoRowSalaryTypeMode: one info row — salary · job type · work mode, each a value over a grey label, only those on file", () => {
   const f = cardFacts(CARD, NOW);
+  // 45n D182 (18d82c2c, owner 11-08 decision (8)): values only — each value says what it is, the grey labels were
+  // removed as restating the screen (pin moved on purpose).
   assert.deepEqual(f.info, [
-    { key: "salary", value: "$165k–$190k", label: "salary" },
-    { key: "type", value: "Full-time", label: "job type" },
-    { key: "mode", value: "Hybrid", label: "work mode" },
+    { key: "salary", value: "$165k–$190k" },
+    { key: "type", value: "Full-time" },
+    { key: "mode", value: "Hybrid" },
   ]);
   assert.deepEqual(cardFacts({ ...CARD, job: { ...CARD.job, salaryMin: null, salaryMax: null, contractType: null } }, NOW).info.map(i => i.key), ["mode"]);
   assert.equal(jobTypeOf({ postingFields: { employment: "Contract to hire" } }), "Contract");
@@ -117,17 +119,15 @@ test("d145ScrollExpandsAndFolds → D168: the wheel never opens or folds 'Why th
   assert.match(face, /data-deck-why-button="" aria-expanded=\{!!why\}/);
 });
 
-test("d145NavDockOrMenuSetting: Settings → Appearance → Navigation is Automatic · Dock · Menu; CSS shows exactly one", () => {
-  assert.deepEqual(LAYOUT_OPTION_IDS.navigation, { attribute: "data-navigation", values: ["auto", "dock", "menu"], default: "auto" });
-  // ⭐ D152 (4), changed on purpose: Automatic is the dock at every width (a phone opens it from the edge handle); the
-  // corner mark shows only with the Menu (the dock carries the logo).
-  assert.match(navCss, /\[data-navigation="auto"\] \{ --appnav-dock: flex; --appnav-menu: none; --appnav-mark: none; \}/, "Automatic: the dock");
-  assert.match(navCss, /\[data-navigation="dock"\] \{ --appnav-dock: flex; --appnav-menu: none; --appnav-mark: none; \}/);
-  assert.match(navCss, /\[data-navigation="menu"\] \{ --appnav-dock: none; --appnav-menu: inline-flex; --appnav-mark: flex; \}/);
+// ⛔ 45n D145 / D152 decision (10) (d85ed150, owner 11-08): the side MENU is RETIRED — the dock (D167) is the one
+// navigation. The Automatic · Dock · Menu option and its data-navigation switch are gone; these two tests now guard that
+// the retirement holds and the dock stays the navigation everywhere (pins moved on purpose).
+test("d145NavDockOrMenuSetting → 45n: no Navigation option; the dock is the one navigation at every width", () => {
+  assert.equal(LAYOUT_OPTION_IDS.navigation, undefined, "the Navigation option is retired");
+  assert.doesNotMatch(navCss.replace(/\/\*[\s\S]*?\*\//g, ""), /\[data-navigation=/, "a style still switches on data-navigation");
+  assert.match(navCss, /:root \{ --appnav-dock: flex; --appnav-mark: none; \}/, "the dock, everywhere");
   assert.match(navCss, /\.appnav-dock \{\s*display: var\(--appnav-dock, flex\);/);
-  assert.match(navCss, /\.appnav-menu-btn \{\s*display: var\(--appnav-menu, none\);/);
-  // ⭐ D152 (4) slid the dock in at the left edge; ⭐ D156 (3) changed it on purpose: an always-visible rail of icons at
-  // the left edge that expands on hover / focus — no edge reveal, no handle (test/d156Home.test.js).
+  // ⭐ D156 (3): an always-visible rail of icons at the left edge that expands on hover / focus — no edge reveal, no handle.
   assert.doesNotMatch(nav, /DOCK_REVEAL_PX|appnav-handle/);
   assert.match(nav, /onMouseEnter=\{canHover \? \(\) => setWide\(true\) : undefined\}/);
   // The old tab row is gone from the top bar.
@@ -136,22 +136,17 @@ test("d145NavDockOrMenuSetting: Settings → Appearance → Navigation is Automa
   assert.match(top, /<AppNav tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onTabChange=\{onTabChange\}\s+profile=/);   // D149: + the Profile entry
 });
 
-test("d145MenuPanelMatchesDock: the side panel's buttons are EXACTLY the dock's — one component, one list; Close, outside, Esc, M", () => {
-  // ⭐ D156 (3): the dock draws the same list as icons (`dock`); the panel as words.
-  const items = [...nav.matchAll(/<NavItems tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onGo=\{go\}( dock)? \/>/g)];
-  assert.equal(items.length, 2, "the dock and the panel each render the one NavItems");
-  assert.deepEqual(items.map(m => !!m[1]), [true, false]);
-  assert.match(nav, />Close<\/button>/);
-  assert.match(nav, /className="appnav-scrim"[^>]*onClick=\{\(\) => setOpen\(false\)\}/);
-  assert.match(nav, /if \(e\.key === "Escape" && open\)/);
+test("d145MenuPanelMatchesDock → 45n: the Menu's panel is gone; the dock draws the one NavItems list; Esc and M work the dock", () => {
+  const items = [...nav.matchAll(/<NavItems tabs=\{tabs\} activeTab=\{activeTab\} hrefForTab=\{hrefForTab\} onGo=\{go\}( dock)?[^>]*\/>/g)];
+  assert.equal(items.length, 1, "only the dock renders NavItems (the Menu's panel is retired)");
+  assert.ok(items[0][1], "… as the dock");
+  assert.doesNotMatch(nav, /className="appnav-menu-btn"|className="appnav-scrim"/, "the Menu button / scrim came back");
+  assert.match(nav, /if \(e\.key === "Escape"\) \{ setWide\(false\); return; \}/);
   assert.match(nav, /\(e\.key === "m" \|\| e\.key === "M"\)/);
-  // ⭐ D152 (4), changed on purpose: M toggles the Menu while it is the navigation, else the dock.
-  assert.match(nav, /if \(btn && getComputedStyle\(btn\)\.display !== "none"\) \{ e\.preventDefault\(\); setOpen\(\(o\) => !o\); return; \}/, "M opens the Menu while it is the navigation");
-  assert.match(nav, /if \(dock && getComputedStyle\(dock\)\.display !== "none"\) \{ e\.preventDefault\(\); setWide\(\(u\) => !u\); \}/, "… else the dock (D156: expands it)");
-  // ⭐ D167 (owner 11-06, changed on purpose): names only — no plain line under a name (D145 Step 2 rule 5's line is removed); the panel and the dock
-  // also share Profile, the divider and Ask draft.
+  assert.match(nav, /if \(dock && getComputedStyle\(dock\)\.display !== "none"\) \{ e\.preventDefault\(\); setWide\(\(u\) => !u\); \}/, "M expands the dock (D156)");
+  // ⭐ D167 (owner 11-06, changed on purpose): names only — no plain line under a name.
   assert.doesNotMatch(nav, /NAV_PLAIN|today's picks and every job/);
-  assert.equal((nav.match(/<AskItem /g) || []).length, 2, "Ask draft in the dock and in the panel");
+  assert.equal((nav.match(/<AskItem /g) || []).length, 1, "Ask draft in the dock");
 });
 
 // ⭐ D156 (3) changed this on purpose (owner 11-05: "use symbols for the menu dock: a home, a globe like atlas icon, draft
@@ -164,7 +159,8 @@ test("d145NoNavSymbols → d156: icons only in the Dock (house · /d · globe ·
   assert.match(items, /\{dock && jobs && <span className="appnav-ico appnav-ico--mark"/);
   assert.match(nav, /\{dock && \(\n\s+<span className="appnav-ico appnav-ico--me"/);
   assert.doesNotMatch(items, /[☰≡★⏳✦→←↑↓]/u);
-  assert.doesNotMatch(nav.slice(at(nav, 'className="appnav-menu-btn"')), /<svg|<img|[☰≡]/u, "the Menu button is a word");
+  // 45n D145 / D152 decision (10) (d85ed150): the Menu button is retired, so there is no word button to check (pin moved on purpose).
+  assert.doesNotMatch(nav, /className="appnav-menu-btn"/, "the Menu button came back");
 });
 
 test("d145TextSizeScalesAll: Smaller · Default · Larger · Largest — one --type-scale the type tokens, the root and the redesigned screens multiply", () => {
