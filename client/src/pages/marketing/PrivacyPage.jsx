@@ -145,7 +145,9 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // 45n (owner 11-08, decision (5)): the two approved lines added — Google sign-in (Account Information) and the crawl's
 // sources (the job-boards recipient). ⛔ EFFECTIVE_DATE = the day the push carrying D183 goes live; the agent sets it IN
 // that push (the owner's word), not before — it is still the 10-31 date until then.
-const EFFECTIVE_DATE = 'October 31, 2026';
+// ⭐ 45n push (owner 11-08, decision (5)): the push carrying D183's profile lines, the Google sign-in and crawl-sources
+// lines, and people search (a public profile findable by name) — effective the day it goes live.
+const EFFECTIVE_DATE = 'November 8, 2026';
 const CONTACT_EMAIL  = PRIVACY_CONTACT_EMAIL;
 
 export function PrivacyPage() {
