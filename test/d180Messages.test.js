@@ -126,3 +126,20 @@ test("d180NoAiReadsMessagesUnasked · nothing in services/network calls a model;
     assert.doesNotMatch(fs.readFileSync(f, "utf8"), /network_messages|network_threads/, `${f} never mixes people's messages into employer mail`);
   }
 });
+
+test("the client: Messages with Requests and job cards, Send from the deck (only while on), the moderation queue, the dock's unread", async () => {
+  const pane = fs.readFileSync("client/src/pages/network/MessagesPane.jsx", "utf8");
+  assert.match(pane, /No AI reads this conversation unless you ask\./);
+  assert.match(pane, /links here aren't clickable/, "a stranger's request says its links are plain words");
+  assert.doesNotMatch(pane, /dangerouslySetInnerHTML|linkify/i, "message text is drawn as text");
+  for (const a of ["Report the conversation", "Block ", "Delete for me", "Accept", "Decline"]) assert.ok(pane.includes(a), a);
+  const { boardIdOf } = await import("../client/src/components/SendJobPicker.jsx").catch(() => ({}));
+  const picker = fs.readFileSync("client/src/components/SendJobPicker.jsx", "utf8");
+  assert.ok(picker.includes("export const boardIdOf = (path) =>"), "the job id from its public page");
+  assert.match(picker, /Copy public link/);
+  const deck = fs.readFileSync("client/src/panels/DeckView.jsx", "utf8");
+  assert.match(deck, /if \(networkOn && top\?\.job\) \{ setPicking/, "Send opens the picker only while the network is on");
+  assert.match(fs.readFileSync("client/src/panels/adminNetwork.jsx", "utf8"), /function ReportsQueue\(\)/);
+  assert.match(fs.readFileSync("routes/network.js", "utf8"), /unread = myThreads\(db, box, req\.user\.id\)\.unread/);
+  void boardIdOf;
+});

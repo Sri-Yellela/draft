@@ -86,7 +86,7 @@ export const MODULES = Object.freeze({
     // ⭐ A144 (45o): + the Companies tab (CompaniesView — the board's fourth view, mounted by App beside the board).
     css: ["pages/companies/CompanyPage.css", "pages/companies/CompaniesView.css"], members: ["App.jsx", "pages/companies/CompanyPage.jsx", "pages/companies/CompaniesView.jsx"] },
   network: { why: "D180 P1 — the Network place (People: connections, requests, suggestions, blocked), behind the network switch",
-    css: ["pages/network/NetworkPage.css"], members: ["App.jsx", "pages/network/NetworkPage.jsx"] },
+    css: ["pages/network/NetworkPage.css"], members: ["App.jsx", "pages/network/NetworkPage.jsx", "pages/network/MessagesPane.jsx"] },
 });
 
 // ── SHARED: every file under components/, styles/, lib/, hooks/, contexts/, themes/, consoles/.
@@ -123,6 +123,8 @@ export const SHARED = Object.freeze({
   "components/SponsorshipSignal.jsx":   { what: "D121 · the ONE sponsorship block (the expanded posting panel) and chip (the Atlas role page's sponsors; A109 took it off each post), drawn from the server's signal" },
   "components/SponsorshipSignal.css":   { what: "their look", owner: "components/SponsorshipSignal.jsx" },
   "components/DepthButton.jsx":         { what: "THE depth box (D1/D48)" },
+  "components/SendJobPicker.jsx":       { what: "D180 P2 — Send a job: connections + a note, or Copy public link (only while the network is on)" },
+  "components/SendJobPicker.css":       { what: "the Send-a-job picker's look", owner: "components/SendJobPicker.jsx" },
   "components/DepthButton.css":         { what: "the depth box, the .dbx-depth skin and the .mark (D60) — loaded app-wide by main.jsx", owner: "components/DepthButton.jsx", alsoBy: ["main.jsx"] },
   "components/DockPortal.jsx":          { what: "the portalled dropdown surface" },
   "components/PanelShell.jsx":          { what: "the overlay panel frame — every peer panel in the board's dock" },

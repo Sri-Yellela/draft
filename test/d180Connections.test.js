@@ -40,7 +40,8 @@ test("the network is OFF by default and every person-facing route is gated by it
   const r = fs.readFileSync("routes/network.js", "utf8");
   const personRoutes = [...r.matchAll(/app\.(get|post|put)\("(\/api\/network[^"]*)", ([^)]*?)\(req/g)];
   assert.ok(personRoutes.length >= 5);
-  for (const m of personRoutes) assert.match(m[3], /requireAuth, gate,/, `${m[2]} is behind the switch`);
+  // /status is the one that answers while off — it IS the switch's answer (whether the dock draws Network).
+  for (const m of personRoutes.filter(m => m[2] !== "/api/network/status")) assert.match(m[3], /requireAuth, gate,/, `${m[2]} is behind the switch`);
   assert.match(fs.readFileSync("server.js", "utf8"), /networkRoutes\(app, db, \{ requireAuth, requireAdmin, box: SECRET_BOX \}\);/);
 });
 

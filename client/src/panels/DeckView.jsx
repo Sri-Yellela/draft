@@ -58,6 +58,7 @@ import { readDeckOrder } from "../lib/deckOrder.js";
 import { postingClick } from "../lib/openPosting.js";
 import { cardFacts } from "../lib/deckCardFacts.js";
 import { shape, ts, TYPE_SCALE_VAR } from "../themes/shapes.js";
+import SendJobPicker from "../components/SendJobPicker.jsx";   // D180 P2: Send to a connection
 
 const SWIPE_COMMIT_PX = 80;          // the same commit distance as Android's SOFT_OFFSET
 const TOAST_MS = DECISION_TOAST_MS;
@@ -715,8 +716,13 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
   // ⭐ D179 (owner 11-07): the deck's fourth action, SEND — the posting's public page (D128), shared or copied. Sending to
   // a connection inside draft arrives with D180's Network; this is the "Copy public link" half the sketch draws.
   const [sent, setSent] = useState(null);
+  // ⭐ D180 P2 (45o): with the network on, Send opens the picker (connections + a note, or Copy public link); off, as before.
+  const [networkOn, setNetworkOn] = useState(false);
+  const [picking, setPicking] = useState(null);   // the job being sent
+  useEffect(() => { let live = true; api("/api/network/status").then(r => live && setNetworkOn(!!r?.enabled)).catch(() => {}); return () => { live = false; }; }, []);
   const sendTop = useCallback(async () => {
     const top = stateRef.current?.cards?.[stateRef.current?.index];
+    if (networkOn && top?.job) { setPicking(p => (p ? null : top.job)); return; }
     const path = top?.job?.publicPath;
     if (!path) { setSent("This job has no public page yet"); setTimeout(() => setSent(null), 2500); return; }
     const url = `${window.location.origin}${path}`;
@@ -725,7 +731,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
       else { await navigator.clipboard.writeText(url); setSent("Link copied"); }
     } catch { return; }
     setTimeout(() => setSent(null), 2500);
-  }, []);
+  }, [networkOn]);
   const [live, setLive] = useState("");
   const [legend, setLegend] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -1275,6 +1281,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
                 <ActionButton label="Draft" ariaKeys="D ArrowRight" compact={vertical} primary onClick={() => decide(DECISIONS.DRAFTED)} />
                 {sent && <span role="status" data-deck-sent="" style={{ alignSelf: "center", fontSize: ts(13), color: C.INK_MUTED }}>{sent}</span>}
               </div>
+              {picking && <SendJobPicker job={picking} onClose={() => setPicking(null)} />}
             </div>
         )}
 

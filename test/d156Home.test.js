@@ -130,7 +130,8 @@ test("d156FoldedCardFillsSpace (pure): the title centred, the stats 2 × 2 (larg
   assert.match(face, /gridTemplateColumns: "1fr 1fr", gap: 8/);
   assert.match(face, /fontSize: ts\(landscape \? 22 : small \? 15 : 17\)/);
   assert.match(face, /data-deck-open-posting="" [^>]*\n\s+onClick=\{\(e\) => \{ e\.stopPropagation\(\); onOpenPost\?\.\(\); \}\}/);
-  assert.doesNotMatch(face, /<Link /, "Open the posting turns the card, it does not navigate");
+  // D179 (45l; brought to the code in 45o): the company NAME is a link to its page (b2c50d3); Open the posting still turns the card.
+  assert.doesNotMatch(face.replace(/<Link to=\{companyPath\(job\.company\)\}/g, ""), /<Link /, "Open the posting turns the card, it does not navigate");
 });
 
 test("d156FilterSentenceOriginalStyle (pure): the marked look and the sentence type restored from 67be9da", () => {
@@ -150,9 +151,11 @@ test("d156DockIconsSameSizeThemeAccent / d156ShortLogoInDock (pure): 30 px icons
   assert.match(NAVCSS, /\.appnav-svg \{[^}]*stroke: var\(--c-accent\);/, "the house and the globe in the theme's accent");
   // ⭐ (1c): swapped — the jobs page is "/d · draft", the tracker is the house, "Home".
   // ⭐ D167 (owner 11-06, changed on purpose): + Interview (the microphone); the jobs' icon is the drawing-out wordmark (<DraftMark drawOut />); names only.
-  assert.match(NAV, /const ICONS = \{ atlas: \(\) => <GlobeIcon \/>, "auto-apply" ?: \(\) => <HouseIcon \/>, interview: \(\) => <MicIcon \/> \};/);
+  // D180 P1 (45o, on purpose): + network (drawn only while the network switch is on).
+  assert.match(NAV, /const ICONS = \{ atlas: \(\) => <GlobeIcon \/>, "auto-apply" ?: \(\) => <HouseIcon \/>, interview: \(\) => <MicIcon \/>, network: \(\) => <PeopleIcon \/> \};/);
   assert.match(NAV, /<DraftMark drawOut \/>/);
-  assert.match(NAV, /export const DOCK_NAMES = Object\.freeze\(\{ today: "draft", "auto-apply" ?: "Home", atlas: "Atlas", interview: "Interview" \}\);/, "slash for short, draft for long — the jobs");
+  // D180 P1 (45o, on purpose): + network.
+  assert.match(NAV, /export const DOCK_NAMES = Object\.freeze\(\{ today: "draft", "auto-apply" ?: "Home", atlas: "Atlas", interview: "Interview", network: "Network" \}\);/, "slash for short, draft for long — the jobs");
   assert.match(NAV, /\{url \? <img src=\{url\} alt="" \/> : <span className="appnav-initials" aria-hidden="true">\{initialsOf\(profile\.name\)\}<\/span>\}/);
   assert.doesNotMatch(NAV, /appnav-emboss|appnav-handle|DOCK_REVEAL_PX/, "D152 (4)'s embossed logo, edge handle and edge reveal are gone");
 });
@@ -167,8 +170,8 @@ test("d156DockPushesPage → D167 (pure): the dock never pushes the page", () =>
 
 test("d156StarredImportedViews / d156ImportAJobInline / d156SortIconInSearch (pure)", () => {
   const tabs = APP.slice(at(APP, "const BOARD_TABS = ["), at(APP, "];", at(APP, "const BOARD_TABS = [")));
-  assert.deepEqual([...tabs.matchAll(/\["(\w+)",\s+"([^"]+)"/g)].map(m => [m[1], m[2]]), [["all", "All jobs"], ["saved", "Starred"], ["imported", "Imported"]],
-    "no Drafted / Pending view");
+  assert.deepEqual([...tabs.matchAll(/\["(\w+)",\s+"([^"]+)"/g)].map(m => [m[1], m[2]]), [["all", "All jobs"], ["saved", "Starred"], ["imported", "Imported"], ["companies", "Companies"]],
+    "no Drafted / Pending view (A144, 45o, on purpose: + Companies)");
   assert.match(APP, /<BoardViews onImported=\{\(\) => setJobBoardRefreshKey\(k => k \+ 1\)\} \/>/);
   assert.match(APP, /onImported=\{\(\) => \{ setBoardTab\?\.\("imported"\); onImported\?\.\(\); \}\}/);
   assert.match(BAR, /await api\("\/api\/import\/job", \{ method: "POST", body: JSON\.stringify\(isLink \? \{ url: v \} : \{ text: v \}\) \}\)/,
@@ -273,7 +276,8 @@ test("d156 real Chrome (1440 · 1280 · 390): the card, the flip, the dock, the 
     // d156DockIconsSameSizeThemeAccent / d156ShortLogoInDock / ⭐ (1c) d156DockDraftIsJobsHomeIsDashboard
     const k = d.dock;
     // ⭐ D167 (owner 11-06, changed on purpose): six places — + Interview, and Ask draft after the divider.
-    assert.deepEqual(k.items, ["today", "auto-apply", "atlas", "interview", "profile", "ask"]);
+    // 45n (pin brought to the code in 45o): the dock's search icon comes first.
+    assert.deepEqual(k.items, ["search", "today", "auto-apply", "atlas", "interview", "profile", "ask"]);
     // ⭐ D167 (owner 11-06, changed on purpose): THE DOCK GOES WHERE THE SPACE IS — at 1440 / 1280 it is a top row, on a
     // phone a top row of icons; its form, motion, placement and the peek are test/d167Dock's. What D156 asked still holds:
     // every line icon one size and in the theme's accent, the person's initials in a circle, no emboss and no edge handle.
@@ -287,7 +291,8 @@ test("d156 real Chrome (1440 · 1280 · 390): the card, the flip, the dock, the 
     assert.equal(k.rest.coversPage, false, `${size}: the dock never covers the page`);
     // d156StarredImportedViews
     assert.equal(d.views.below, true, `${size}: the views sit under the search`);
-    assert.deepEqual(d.views.buttons.map(b => b.text), ["All jobs746", "Starred12", "Imported0"], `${size}: with their counts`);
+    // A144 (45o, on purpose): + Companies (its count is the tab's own list, not drawn on the button).
+    assert.deepEqual(d.views.buttons.map(b => b.text), ["All jobs746", "Starred12", "Imported0", "Companies"], `${size}: with their counts`);
     // d156ImportAJobInline
     assert.equal(d.views.importButton, "Import a job");
     assert.deepEqual([d.importBox.shown, d.importBox.inBoard, d.importBox.overlay], [true, true, false], `${size}: inline, not a dialog`);

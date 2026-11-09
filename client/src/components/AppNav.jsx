@@ -160,7 +160,7 @@ function Badge({ n, label }) {
 }
 
 // The tabs App hands over (today · auto-apply · atlas), with Interview after Atlas when App does not route it yet.
-function placesOf(tabs, network = false) {
+function placesOf(tabs, network = false, netUnread = 0) {
   const list = (tabs || []).filter((t) => t.id !== "console");
   if (!list.some((t) => t.id === "interview")) {
     const i = list.findIndex((t) => t.id === "atlas");
@@ -170,13 +170,13 @@ function placesOf(tabs, network = false) {
   // on — with it off (the default) the dock is exactly as before.
   if (network && !list.some((t) => t.id === "network")) {
     const i = list.findIndex((t) => t.id === "interview");
-    list.splice(i < 0 ? list.length : i + 1, 0, { id: "network", label: "Network" });
+    list.splice(i < 0 ? list.length : i + 1, 0, { id: "network", label: "Network", badge: netUnread || 0, badgeLabel: netUnread ? `${netUnread} unread` : undefined });
   }
   return list;
 }
 
-function NavItems({ tabs, activeTab, hrefForTab, onGo, dock = false, network = false }) {
-  return placesOf(tabs, network).map((t) => {
+function NavItems({ tabs, activeTab, hrefForTab, onGo, dock = false, network = false, netUnread = 0 }) {
+  return placesOf(tabs, network, netUnread).map((t) => {
     const Icon = ICONS[t.id];
     const name = DOCK_NAMES[t.id] || t.label;
     const href = hrefForTab?.(t.id) || (t.id === "interview" ? INTERVIEW_PATH : t.id === "network" ? NETWORK_PATH : undefined);
@@ -328,7 +328,13 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
   const [searching, setSearching] = useState(false);   // ⭐ 45n: the dock is the search bar
   // ⭐ D180 P1 (45o): is the network on? (GET /api/network/status — false on any failure: the dock stays as it was.)
   const [network, setNetwork] = useState(false);
-  useEffect(() => { let live = true; api("/api/network/status").then(r => live && setNetwork(!!r?.enabled)).catch(() => {}); return () => { live = false; }; }, []);
+  const [netUnread, setNetUnread] = useState(0);   // D180 P2: unread messages on the dock's Network
+  useEffect(() => {
+    let live = true;
+    const ask = () => api("/api/network/status").then(r => { if (!live) return; setNetwork(!!r?.enabled); setNetUnread(Number(r?.unread) || 0); }).catch(() => {});
+    ask(); const iv = setInterval(ask, 60_000);
+    return () => { live = false; clearInterval(iv); };
+  }, []);
   const dockRef = useRef(null);
   const profRef = useRef(null), peekRef = useRef(null), askRef = useRef(null), askBtnRef = useRef(null), peekTimer = useRef(null);
   const closePeek = useCallback(() => { clearTimeout(peekTimer.current); setPeekOpen(false); }, []);
@@ -497,7 +503,7 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
               <span className="appnav-ico" data-nav-icon="search"><SearchIcon /></span>
               <span className="appnav-words"><span className="appnav-name">Search</span></span>
             </button>
-            <NavItems tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onGo={go} dock network={network} />
+            <NavItems tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onGo={go} dock network={network} netUnread={netUnread} />
             <ProfileItem profile={profile} dock itemRef={profRef} peek={canHover ? peekHover : { open: peekOpen }} onPress={pressProfile} />
             <span className="appnav-sep" aria-hidden="true" />
             <AskItem dock open={askOpen} onPress={pressAsk} />
