@@ -20,7 +20,7 @@ import duskLight from "./dusk-light.js";
 import duskDark from "./dusk-dark.js";
 import plainLight from "./plain-light.js";
 import plainDark from "./plain-dark.js";
-import { installShapeVars } from "./shapes.js";
+import { installShapeVars, installFaceVars, FACE_SETS, FACE_VARS } from "./shapes.js";
 import { LAYOUT_OPTION_IDS, LAYOUT_KEYS, LAYOUT_DEFAULTS, parseLayoutFlags, formatLayoutFlags } from "../../../shared/appearance.js";
 
 export const THEME_LIST = Object.freeze([paperLight, charcoalDark, contrastLight, contrastDark, studioLight, studioDark, duskLight, duskDark, plainLight, plainDark]);
@@ -208,6 +208,7 @@ export function installColorVars(doc = typeof document !== "undefined" ? documen
     if (REDUCED_TRANSPARENCY) d.transparency = "reduced"; else delete d.transparency;
   }
   installShapeVars(ACTIVE_THEME.id, doc.documentElement);   // D144: the corners + type set — only Dusk has one
+  installFaceVars(ACTIVE_THEME.id, doc.documentElement);    // D181: Plain's one face (after the shape set: it may set FONT_UI)
   applyLayout(layout(), doc);
   doc.documentElement.style.setProperty("color-scheme", THEME);
 }
@@ -226,10 +227,12 @@ export function prePaintScript() {
   // D93: each layout option's attribute, its values and its default — set before first paint, so a chosen
   // layout never flashes the default first.
   const L = Object.fromEntries(LAYOUT_KEYS.map((k) => [k, [LAYOUT_OPTION_IDS[k].attribute, LAYOUT_OPTION_IDS[k].values, LAYOUT_OPTION_IDS[k].default]]));
-  return `(function(){try{var T=${JSON.stringify(themes)},A=${JSON.stringify(alias)},L=${JSON.stringify(L)},r="";try{r=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)})||""}catch(e){}` +
+  // D181: a theme's own faces (Plain) — before first paint, so its headlines never flash the serif.
+  const F = Object.fromEntries(Object.entries(FACE_SETS).map(([id, set]) => [id, Object.entries(FACE_VARS).map(([k, v]) => [v, set[k]])]));
+  return `(function(){try{var T=${JSON.stringify(themes)},A=${JSON.stringify(alias)},L=${JSON.stringify(L)},F=${JSON.stringify(F)},r="";try{r=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)})||""}catch(e){}` +
     `var f=r.split(";"),p=f[0],P=(typeof location!=="undefined"&&location.pathname)||"";if(P.indexOf("/admin")===0&&(P.length===6||P.charAt(6)==="/")){for(var j=1;j<f.length;j++){if(f[j].indexOf("admin=")===0&&(T[f[j].slice(6)]||A[f[j].slice(6)]))p=f[j].slice(6)}}var id=T[p]?p:null;if(!id){var a=A[p]||A[${JSON.stringify(DEFAULT_PREFERENCE)}];id=typeof a==="string"?a:a[window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?1:0]}` +
     `var t=T[id],d=document.documentElement;d.setAttribute("data-theme",id);d.setAttribute("data-contrast",t[0]);if(f.indexOf("cues")>0)d.setAttribute("data-cues","shape");` +
-    `d.style.setProperty("color-scheme",t[1]);d.style.setProperty("--c-canvas",t[2]);` +
+    `d.style.setProperty("color-scheme",t[1]);d.style.setProperty("--c-canvas",t[2]);if(F[id])for(var q=0;q<F[id].length;q++)d.style.setProperty(F[id][q][0],F[id][q][1]);` +
     `for(var k in L){var v=L[k][2];for(var i=1;i<f.length;i++){var kv=f[i].split("=");if(kv[0]===k&&L[k][1].indexOf(kv[1])>-1)v=kv[1]}d.setAttribute(L[k][0],v)}}catch(e){}})();`;
 }
 

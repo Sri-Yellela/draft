@@ -26,7 +26,9 @@ test("d176LinkOnlyNeverCopied: only open-reuse / share-alike may be adapted; to-
   assert.equal(mayAdapt({ licenceClass: "open-reuse" }), true);
   assert.equal(mayAdapt({ licenceClass: "share-alike" }), true);
   for (const s of reg.sources.filter(x => mayAdapt(x))) {
-    assert.ok(s.licence && s.licence.length > 3, `${s.id}: an adaptable source names its licence`);
+    // 45n D176-1 hand read (4b09edf0) recorded three repositories' licence as "MIT" — a real licence name of three
+    // letters; the guard's length floor was one too high (moved on purpose).
+    assert.ok(s.licence && s.licence.trim().length >= 3, `${s.id}: an adaptable source names its licence`);
   }
 });
 

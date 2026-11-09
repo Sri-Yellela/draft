@@ -24,6 +24,25 @@ export const SHAPE_SETS = Object.freeze({
     HEADLINE_WEIGHT: "500", HEADLINE_TRACKING: "-0.035em",
   }),
 });
+// ⭐ D181 · PLAIN: no serif display — Inter Tight only (the face Dusk already loads), as the body and the headlines.
+// ⛔ 45r: this was a [data-theme="plain-*"] rule in index.css — a second file deciding by theme, which
+// test/inkPairD32's one-decider rule forbids. The faces live here as data; themes/index.js (the decider) publishes them
+// on <html>, in its pre-paint script and at load. Not a SHAPE_SET: Plain keeps today's corners and weights.
+export const FACE_SETS = Object.freeze({
+  "plain-light": Object.freeze({ FONT_DISPLAY: "'Inter Tight', 'DM Sans', system-ui, sans-serif", FONT_UI: "'Inter Tight', 'DM Sans', system-ui, sans-serif" }),
+  "plain-dark":  Object.freeze({ FONT_DISPLAY: "'Inter Tight', 'DM Sans', system-ui, sans-serif", FONT_UI: "'Inter Tight', 'DM Sans', system-ui, sans-serif" }),
+});
+/** The custom properties a face set publishes (--font-display is index.css's own default face). */
+export const FACE_VARS = Object.freeze({ FONT_DISPLAY: "--font-display", FONT_UI: "--shape-font-ui" });
+export function installFaceVars(themeId, el) {
+  if (!el?.style) return;
+  const set = FACE_SETS[themeId];
+  for (const [k, v] of Object.entries(FACE_VARS)) {
+    if (set) el.style.setProperty(v, set[k]);
+    // FONT_UI is also a shape key: leave it to installShapeVars when this theme has no face set.
+    else if (k !== "FONT_UI") el.style.removeProperty?.(v);
+  }
+}
 export const SHAPE_KEYS = Object.freeze(["RADIUS_CARD", "RADIUS_CONTROL", "RADIUS_SMALL", "FONT_UI", "HEADLINE_WEIGHT", "HEADLINE_TRACKING"]);
 /** Today's values — what every theme without a set draws (the fallbacks in var()). */
 export const SHAPE_DEFAULTS = Object.freeze({
