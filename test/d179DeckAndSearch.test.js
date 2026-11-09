@@ -39,7 +39,7 @@ test("d179SearchSuggestsCompaniesRolesTech · one box, grouped: companies (with 
   db.prepare(`INSERT INTO scraped_jobs VALUES (1, 'a', 'Python Developer', NULL, 1, NULL, 'software-engineering'), (2, 'b', 'Python Developer', NULL, 0, NULL, 'software-engineering')`).run();
   db.prepare(`INSERT INTO job_company VALUES ('a', 1), ('b', 2)`).run();
   const r = await publicSuggest(db, { all: async (sql, p) => db.prepare(sql).all(...p) }, "py");
-  assert.deepEqual(r.companies.map((c) => [c.slug, c.openJobs, c.path]), [["pyrite-labs", 1, "/companies/pyrite-labs"]], "a company with no open job is not suggested");
+  assert.deepEqual(r.companies.map((c) => [c.slug, c.openJobs, c.path]), [["pyrite-labs", 1, "/pyrite-labs"]], "a company with no open job is not suggested (A157: its own address)");
   assert.ok(r.technologies.some((t) => t.name === "Python"));
   assert.ok(Array.isArray(r.roles) && Array.isArray(r.people) && Array.isArray(r.titles));
   const ui = read("client/src/components/UsbSuggest.jsx");

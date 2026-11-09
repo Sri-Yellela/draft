@@ -39,7 +39,7 @@ test("D38(a) · no underline and no arrow at rest — and a NON-COLOUR cue on ho
   assert.match(css, /font-style: italic; font-weight: 800;/, "the logo face");
   assert.doesNotMatch(read("client/src/components/CompanyLink.jsx"), /↗/);
   const panel = read("client/src/components/JobDetailPanel.jsx");
-  assert.match(panel, /<CompanyLink company=\{selectedJob\.company\} href=\{postingUrl \|\| null\} jobId=\{jobId\} size="panel" onOpen=\{openedPosting\} \/>/);
+  assert.match(panel, /<CompanyLink company=\{selectedJob\.company\} jobId=\{jobId\} size="panel" \/>/);
   assert.doesNotMatch(panel, /\{selectedJob\.company\} ↗/, "the posting panel's name is underlined with an arrow again");
 });
 
@@ -53,7 +53,9 @@ test("D38(c) · ONE company link: no surface builds its own", () => {
   }
   assert.deepEqual(offenders, []);
   for (const f of ["client/src/components/JobBubble.jsx", "client/src/components/JobCard.jsx",
-                   "client/src/components/JobDetailPanel.jsx", "client/src/components/PendingApplications.jsx"]) {
+                   "client/src/components/JobDetailPanel.jsx"]) {
     assert.match(read(f), /<CompanyLink /, `${f} no longer uses the one company link`);
   }
+  // ⭐ A157 (45q): the Pending list re-opens the employer's form — the ONE apply link, from the same file.
+  assert.match(read("client/src/components/PendingApplications.jsx"), /<ApplyLink /);
 });

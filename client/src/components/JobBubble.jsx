@@ -19,6 +19,8 @@ import CompanyLogo from "./CompanyLogo.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import { jobDetailHref } from "../lib/jobUrl.js";
 import CompanyLink from "./CompanyLink.jsx";
+import { useNavigate } from "react-router-dom";
+import { companyPath } from "../lib/companySlug.js";   // A157
 import { ATS_NUMBER_SHOWN } from "../../../shared/atsBands.js";
 import { salaryLabel, workstyleOf } from "../../../shared/postingFacts.js";
 import { ghostLine } from "../../../shared/ghostScore.js";
@@ -52,6 +54,7 @@ export default function JobBubble({ job, score = null, selected = false, saved =
                                     onOpen, onSave, onDraft, onViewDraft = null, draftBlocked = null,
                                     onExplainDraft = null, draftSlots = null, onSend = null }) {
   const [companyView, setCompanyView] = useState(false);
+  const navigate = useNavigate();   // A157: the logo opens the company's page
   const draft = draftButtonState({ drafted, drafting, block: draftBlocked, canView: !!onViewDraft, slots: draftSlots });
   const id = job.jobId || job.id;
   const applyHref = job.applyUrl || job.url;
@@ -70,8 +73,8 @@ export default function JobBubble({ job, score = null, selected = false, saved =
   return (
     <div className="jb" data-job-bubble={id} data-selected={selected ? "true" : undefined}
       data-dim={job.disliked ? "passed" : job.visited ? "visited" : undefined} onClick={open}>
-      <button type="button" className="jb__logo" onClick={stop(() => setCompanyView(true))}
-        aria-label={`${job.company} — company profile`}>
+      <button type="button" className="jb__logo" onClick={stop(() => (companyPath(job.company, { job: id }) ? navigate(companyPath(job.company, { job: id })) : setCompanyView(true)))}
+        aria-label={`${job.company} — the company's page`}>
         <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={36} radius={11} />
       </button>
 
@@ -84,7 +87,8 @@ export default function JobBubble({ job, score = null, selected = false, saved =
         </a>
         <span className="jb__sub">
           {/* ⭐ A63: APPLY IS THE COMPANY NAME — D38: the ONE company link, sized to its text (in the line's own type). */}
-          <CompanyLink company={job.company} href={applyHref || null} jobId={id} size="row" className="jb__company" />
+          {/* ⭐ A157 (owner 11-09): the name opens the company's page (the job first, with its Apply link there). */}
+          <CompanyLink company={job.company} jobId={id} size="row" className="jb__company" />
           {job.location ? <span className="jb__loc"> · {job.location}</span> : null}
         </span>
         {meta.length > 0 && (

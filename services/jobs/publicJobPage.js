@@ -20,6 +20,7 @@ import { salaryLabel, workstyleOf } from "../../shared/postingFacts.js";
 import { formatPosting } from "../../shared/postingFormat.js";
 import { sponsorshipSignal } from "../kb/sponsorshipSignal.js";
 import { ogUrl, ogImageMeta } from "../ogImage.js";
+import { jobPagePath, companyPagePathFromSlug, boardIdFromPath } from "../../shared/companyPaths.js";   // A157 (45q)
 
 export const JOBS_SITEMAP_MAX = 50000;   // the sitemap protocol's per-file limit
 const SLUG_PART_MAX = 60;
@@ -35,9 +36,10 @@ const kebab = (s) => String(s || "").normalize("NFKD").replace(/[\u0300-\u036f]/
   .replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, SLUG_PART_MAX).replace(/-+$/g, "");
 
 /** `/jobs/<company>-<title>-<id>` — the id is scraped_jobs.id, the words are only for people. */
+// ⭐ A157 (45q, owner 11-09: "route jobs through this companies path, and use the job id to make them distinct"): a
+// posting lives UNDER its company — /<company>/<id> (shared/companyPaths.js). The old /jobs/<words>-<id> answers 301.
 export function jobPath(row) {
-  const words = [kebab(row.company), kebab(row.title)].filter(Boolean).join("-");
-  return `/jobs/${words ? `${words}-` : ""}${Number(row.id)}`;
+  return jobPagePath(row.company, row.id);
 }
 
 /** The id at the end of a slug, or null. The words before it are not trusted (the canonical path is re-derived). */
@@ -51,7 +53,7 @@ export function idFromSlug(slug) {
  * The posting behind a slug.
  * @returns {null | { kind: "redirect", path } | { kind: "page", row, open }}
  */
-export function publicJobFor(db, slug) {
+export function publicJobFor(db, slug, { requested = null } = {}) {
   const id = idFromSlug(slug);
   if (id == null) return null;
   let row = null;
@@ -64,7 +66,7 @@ export function publicJobFor(db, slug) {
     if (canon) return { kind: "redirect", path: jobPath(canon) };
   }
   const canonical = jobPath(row);
-  if (`/jobs/${slug}` !== canonical) return { kind: "redirect", path: canonical };
+  if ((requested ?? `/jobs/${slug}`) !== canonical) return { kind: "redirect", path: canonical };
   return { kind: "page", row, open: row.is_active === 1 && row.duplicate_of == null };
 }
 
@@ -107,7 +109,7 @@ export function companiesSitemapRoutes(db, { max = JOBS_SITEMAP_MAX } = {}) {
   try {
     return db.prepare(`SELECT co.slug FROM companies co WHERE EXISTS (SELECT 1 FROM job_company jc JOIN scraped_jobs sj ON sj.job_id = jc.job_id
         WHERE jc.company_id = co.id AND sj.${PUBLIC_OPEN_SQL.replace(/ AND /g, " AND sj.")}) ORDER BY co.id LIMIT ?`).all(max)
-      .map(r => ({ path: `/companies/${r.slug}`, changefreq: "weekly", priority: "0.6" }));
+      .map(r => ({ path: companyPagePathFromSlug(r.slug), changefreq: "weekly", priority: "0.6" }));   // A157: /<company>
   } catch { return []; }
 }
 

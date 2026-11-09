@@ -247,7 +247,7 @@ test("the board: the company name is the apply link; no Apply button; slots said
   const panel = fs.readFileSync("client/src/components/JobDetailPanel.jsx", "utf8");
   // D38: the panel's company name is the ONE CompanyLink — to the posting, tagging Pending on open, and
   // (A78's treatment) no ↗.
-  assert.match(panel, /<CompanyLink company=\{selectedJob\.company\} href=\{postingUrl \|\| null\} jobId=\{jobId\} size="panel" onOpen=\{openedPosting\} \/>/);
+  assert.match(panel, /<CompanyLink company=\{selectedJob\.company\} jobId=\{jobId\} size="panel" \/>/);
   assert.doesNotMatch(panel, /\{selectedJob\.company\} ↗/);
   assert.doesNotMatch(panel, /api\("\/api\/apply"/, "the old Apply call is gone");
   assert.doesNotMatch(panel, /handleAutoApply|semiActive|"Opening…"/);

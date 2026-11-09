@@ -35,3 +35,9 @@
 .co__mine--listed { color: var(--c-ink-muted); }
 /* (11) 45q · D180 Send on an open job — a quiet text button beside the row (D60: a box, never a capsule). */
 .co__send { margin-left: 8px; border: 1px solid var(--c-border); border-radius: 6px; background: transparent; color: var(--c-ink); font: inherit; font-size: 12px; padding: 1px 8px; cursor: pointer; }
+/* A157 (45q) · the job the reader opened, first, with the employer's apply link; and Apply beside each open job. */
+.co__focus { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--c-border); border-radius: 10px; }
+.co__focus p { margin: 0 0 6px; }
+.co__focus-k { color: var(--c-ink-muted); font-size: 12px; }
+.co__apply { font-style: normal; }
+.co__apply-row { font-size: 12px; font-style: normal; font-weight: 700; margin-left: 6px; }

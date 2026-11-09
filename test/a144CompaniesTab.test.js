@@ -84,14 +84,13 @@ test("A144 · filters combine; each facet's count is what pressing it shows (tru
   assert.equal(queryDirectory(rows, { industry: "Banking", tech: "Go" }).total, 0);
 });
 
-test("A144 · the tab sits beside All jobs · Starred · Imported; the board is not asked while it shows; the route is public", () => {
+test("A157 (45q, owner 11-09) · the Companies TAB is gone — a company is reached by search or its name; the directory API stays", () => {
   const app = fs.readFileSync("client/src/App.jsx", "utf8");
-  assert.match(app, /\["companies", "Companies", "Companies hiring"\]/);
-  assert.match(app, /\{co && <CompaniesView \/>\}/);
-  assert.match(fs.readFileSync("client/src/panels/JobsPanel.jsx", "utf8"), /if \(!user \|\| boardTab === "companies"\) return;/);
+  assert.doesNotMatch(app, /\["companies", "Companies"/, "no Companies tab beside All jobs · Starred · Imported");
+  assert.doesNotMatch(app, /CompaniesView/);
+  assert.ok(!fs.existsSync("client/src/pages/companies/CompaniesView.jsx"), "the tab's view is deleted, not left dead");
+  assert.doesNotMatch(fs.readFileSync("client/src/contexts/JobBoardContext.jsx", "utf8"), /"companies"\]/, "?view=companies reads as the default");
   const server = fs.readFileSync("server.js", "utf8");
   assert.match(server, /app\.get\("\/api\/public\/companies", publicLimit, async/);
   assert.ok(server.indexOf('app.get("/api/public/companies", ') < server.indexOf('app.get("/api/public/companies/:slug"'));
-  const view = fs.readFileSync("client/src/pages/companies/CompaniesView.jsx", "utf8");
-  assert.match(view, /navigate\(`\$\{base\}\/\$\{c\.slug\}`\)/, "a company opens its page inside the shell");
 });

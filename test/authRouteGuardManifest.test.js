@@ -851,6 +851,8 @@ test("every authenticated route taking an id from the request derives the owner 
     "server.js: GET /jobs/role/:id/in/:metro",                     // D179 P7: a public landing page, no owner
     "server.js: GET /jobs/tech/:slug",                             // D179 P7: a public landing page, no owner
     "server.js: GET /jobs/sponsor-h1b/:id",                        // D185-6: a public landing page, no owner
+    "server.js: GET /companies/:slug",                             // A157: a 301 to the company's own address, no owner
+    "server.js: GET /:company/:id",                                // A157: a public posting page under its company, no owner
     "server.js: GET /jobs/sponsor-h1b/:id/in/:metro",              // D185-6: a public landing page, no owner
     "server.js: POST /api/auth/provider/:provider",                // pre-auth, by definition
     // Retired: answers 410 and reads nothing at all, so there is no owner to scope to.

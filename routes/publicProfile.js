@@ -20,7 +20,8 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { profilePage, viewFor } from "../services/profilePage.js";
-import { experienceEntities } from "../services/entities.js";   // (12) 45q · D184 B-6 on the public page too
+import { experienceEntities } from "../services/entities.js";
+import { companyPagePathFromSlug } from "../shared/companyPaths.js";   // A157: /<company>   // (12) 45q · D184 B-6 on the public page too
 import { HANDLE_RE } from "../services/proofLinks.js";
 import { sniffImage } from "../services/accountService.js";
 
@@ -148,7 +149,7 @@ export function companyLine(x) {
   if (!r?.slug) return esc(x?.company || "");
   const used = (r.used || []).slice(0, 4);
   const stack = (r.stack || []).slice(0, 6);
-  return `<a href="/companies/${encodeURIComponent(r.slug)}" data-company-link="">${esc(x.company || r.name)}</a>`
+  return `<a href="${companyPagePathFromSlug(r.slug)}" data-company-link="">${esc(x.company || r.name)}</a>`
     + (stack.length ? `<div class="muted" data-company-stack="">${esc(r.name)} works with ${esc(stack.join(", "))}${used.length ? ` — used ${esc(used.join(", "))} there` : ""}</div>` : "");
 }
 

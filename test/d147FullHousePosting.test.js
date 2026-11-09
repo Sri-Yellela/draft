@@ -135,13 +135,13 @@ test("d147NoSymbolCounts · ALL · ★ · /d · + are words, not symbols (⭐ D1
 });
 
 test("d147CompanyNameOpensOriginal · the company name is the one CompanyLink to the original posting, the location under it", () => {
-  assert.match(header, /<CompanyLink company=\{selectedJob\.company\} href=\{postingUrl \|\| null\} jobId=\{jobId\} size="panel" onOpen=\{openedPosting\} \/>/);
+  assert.match(header, /<CompanyLink company=\{selectedJob\.company\} jobId=\{jobId\} size="panel" \/>/);
   assert.match(jd, /const postingUrl = selectedJob\?\.applyUrl \|\| selectedJob\?\.url \|\| null;/);
   assert.match(header, /<span className="pp__loc" data-posting-location="">\{selectedJob\.location\}<\/span>/);
 });
 
 test("d147LogoShowsHiringData · the company bubble opens the company's hiring data (CompanyViewModal, unchanged)", () => {
-  assert.match(header, /<button type="button" className="pp__logo" onClick=\{\(\) => setShowCompanyView\(true\)\} title=\{`Hiring at \$\{selectedJob\.company\}`\}/);
+  assert.match(header, /<button type="button" className="pp__logo" onClick=\{\(\) => \(companyPath\(selectedJob\.company, \{ job: jobId \}\) \? navigate\(companyPath\(selectedJob\.company, \{ job: jobId \}\)\) : setShowCompanyView\(true\)\)\} title=\{`Hiring at \$\{selectedJob\.company\}`\}/);
   assert.match(jd, /<CompanyViewModal company=\{selectedJob\.company\} onClose=\{\(\) => setShowCompanyView\(false\)\} \/>/);
   const modal = read("client/src/components/CompanyViewModal.jsx");
   for (const s of ["<StackSection", "<HiringSection", "<SponsorshipSection"]) assert.ok(modal.includes(s), s);

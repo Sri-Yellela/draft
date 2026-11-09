@@ -82,9 +82,9 @@ export const MODULES = Object.freeze({
   audit: { why: "D150 T05–T08 — the 3-minute audit, /audit", css: ["pages/audit/AuditPage.css"], members: ["App.jsx", "pages/audit/AuditPage.jsx"] },
   publicBoard: { why: "D179 P3 — the open board, /jobs signed out", css: ["pages/jobs/PublicBoardPage.css"],
     members: ["App.jsx", "pages/jobs/PublicBoardPage.jsx"] },
-  companies: { why: "D179 P4b — a page for every company, public at /companies/<slug> and inside the shell at /app/companies/<slug>",
-    // ⭐ A144 (45o): + the Companies tab (CompaniesView — the board's fourth view, mounted by App beside the board).
-    css: ["pages/companies/CompanyPage.css", "pages/companies/CompaniesView.css"], members: ["App.jsx", "pages/companies/CompanyPage.jsx", "pages/companies/CompaniesView.jsx"] },
+  companies: { why: "D179 P4b / A157 — a page for every company, public at /<company> (its postings at /<company>/<id>) and inside the shell at /app/companies/<slug>",
+    // ⛔ A157 (45q, owner 11-09): the Companies tab (CompaniesView) is removed — search and the company's name reach a page.
+    css: ["pages/companies/CompanyPage.css"], members: ["App.jsx", "pages/companies/CompanyPage.jsx"] },
   network: { why: "D180 P1 — the Network place (People: connections, requests, suggestions, blocked), behind the network switch",
     css: ["pages/network/NetworkPage.css"], members: ["App.jsx", "pages/network/NetworkPage.jsx", "pages/network/MessagesPane.jsx"] },
 });
