@@ -170,8 +170,8 @@ test("d156DockPushesPage → D167 (pure): the dock never pushes the page", () =>
 
 test("d156StarredImportedViews / d156ImportAJobInline / d156SortIconInSearch (pure)", () => {
   const tabs = APP.slice(at(APP, "const BOARD_TABS = ["), at(APP, "];", at(APP, "const BOARD_TABS = [")));
-  assert.deepEqual([...tabs.matchAll(/\["(\w+)",\s+"([^"]+)"/g)].map(m => [m[1], m[2]]), [["all", "All jobs"], ["saved", "Starred"], ["imported", "Imported"], ["companies", "Companies"]],
-    "no Drafted / Pending view (A144, 45o, on purpose: + Companies)");
+  assert.deepEqual([...tabs.matchAll(/\["(\w+)",\s+"([^"]+)"/g)].map(m => [m[1], m[2]]), [["all", "All jobs"], ["saved", "Starred"], ["imported", "Imported"]],
+    "no Drafted / Pending view, no Companies tab (A157, 45q, owner 11-09)");
   assert.match(APP, /<BoardViews onImported=\{\(\) => setJobBoardRefreshKey\(k => k \+ 1\)\} \/>/);
   assert.match(APP, /onImported=\{\(\) => \{ setBoardTab\?\.\("imported"\); onImported\?\.\(\); \}\}/);
   assert.match(BAR, /await api\("\/api\/import\/job", \{ method: "POST", body: JSON\.stringify\(isLink \? \{ url: v \} : \{ text: v \}\) \}\)/,
@@ -291,8 +291,8 @@ test("d156 real Chrome (1440 · 1280 · 390): the card, the flip, the dock, the 
     assert.equal(k.rest.coversPage, false, `${size}: the dock never covers the page`);
     // d156StarredImportedViews
     assert.equal(d.views.below, true, `${size}: the views sit under the search`);
-    // A144 (45o, on purpose): + Companies (its count is the tab's own list, not drawn on the button).
-    assert.deepEqual(d.views.buttons.map(b => b.text), ["All jobs746", "Starred12", "Imported0", "Companies"], `${size}: with their counts`);
+    // ⛔ A157 (45q, owner 11-09): the Companies tab is removed.
+    assert.deepEqual(d.views.buttons.map(b => b.text), ["All jobs746", "Starred12", "Imported0"], `${size}: with their counts`);
     // d156ImportAJobInline
     assert.equal(d.views.importButton, "Import a job");
     assert.deepEqual([d.importBox.shown, d.importBox.inBoard, d.importBox.overlay], [true, true, false], `${size}: inline, not a dialog`);

@@ -9,6 +9,7 @@ import CoverLetterModal from "./CoverLetterModal.jsx";
 import CompanyViewModal from "./CompanyViewModal.jsx";
 import PanelShell from "./PanelShell.jsx";
 import CompanyLink from "./CompanyLink.jsx";
+import { companyPath } from "../lib/companySlug.js";   // A157
 import CompanyLogo from "./CompanyLogo.jsx";
 import { StampLogo } from "./StampLogo.jsx";
 import { AtsNumberBox } from "./AtsNumberBox.jsx";
@@ -468,12 +469,13 @@ export default function JobDetailPanel({
                 behaviour it always had) · the company name = the original posting (A63 / D38's ONE CompanyLink, unchanged)
                 with the location under it · a small Close at the top right. The match box moved to the facts box's end. */}
             <div className="pp__hd" data-posting-header="">
-              <button type="button" className="pp__logo" onClick={() => setShowCompanyView(true)} title={`Hiring at ${selectedJob.company}`}
+              <button type="button" className="pp__logo" onClick={() => (companyPath(selectedJob.company, { job: jobId }) ? navigate(companyPath(selectedJob.company, { job: jobId })) : setShowCompanyView(true))} title={`Hiring at ${selectedJob.company}`}
                 aria-label={`Hiring at ${selectedJob.company}`} data-company-hiring="">
                 <CompanyLogo company={selectedJob.company} iconUrl={selectedJob.companyIconUrl} size={36} radius={11}/>
               </button>
               <div className="pp__who">
-                <div className="pp__co"><CompanyLink company={selectedJob.company} href={postingUrl || null} jobId={jobId} size="panel" onOpen={openedPosting} /></div>
+                {/* ⭐ A157 (owner 11-09): the name opens the company's page — this job first there, with its Apply link. */}
+                <div className="pp__co"><CompanyLink company={selectedJob.company} jobId={jobId} size="panel" /></div>
                 {selectedJob.location && <span className="pp__loc" data-posting-location="">{selectedJob.location}</span>}
               </div>
               <span className="pp__sp" />

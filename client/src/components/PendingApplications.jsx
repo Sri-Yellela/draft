@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
-import CompanyLink from "./CompanyLink.jsx";
+import { ApplyLink } from "./CompanyLink.jsx";   // A157: here re-opening the employer's form is the point
 
 const NO_TAG = () => {};   // this row IS the Pending list — opening the posting does not tag it again
 
@@ -47,7 +47,7 @@ export function NotAppliedList({ rows = [], theme, onRestore, busyId, moveDays =
           style={{ border: `1px solid ${theme.border}`, borderRadius: 10, padding: "10px 12px",
                    display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <CompanyLink company={row.company || row.jobId} href={row.applyUrl || null} jobId={row.jobId} onOpen={NO_TAG} size="row" />
+            <ApplyLink company={row.company || row.jobId} href={row.applyUrl || null} jobId={row.jobId} onOpen={NO_TAG} size="row">{row.company || row.jobId}</ApplyLink>
             <span style={{ fontSize: 12, color: theme.textMuted }}> · {row.title || "Untitled role"}</span>
           </div>
           <span style={markStyle(C.INK_FAINT)}>
@@ -187,7 +187,7 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
               <div style={{ flex: 1, minWidth: 200 }}>
                 {/* D38: the ONE company link. No Pending tag here — this row IS the Pending list (onOpen does nothing);
                     the job id is for D99 J11 — the extension opens the posting bound to it. */}
-                <CompanyLink company={row.company || row.jobId} href={row.applyUrl || null} jobId={row.jobId} onOpen={NO_TAG} size="row" />
+                <ApplyLink company={row.company || row.jobId} href={row.applyUrl || null} jobId={row.jobId} onOpen={NO_TAG} size="row">{row.company || row.jobId}</ApplyLink>
                 <span style={{ fontSize: 12, color: theme.textMuted }}> · {row.title || "Untitled role"}</span>
               </div>
               <span style={{ fontSize: 11, color: theme.textMuted }}>{ORIGIN[row.origin] || row.origin}</span>

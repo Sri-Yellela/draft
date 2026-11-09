@@ -28,7 +28,6 @@ import ProfilePage               from "./pages/profile/ProfilePage.jsx";
 import { profilePanelFor, profilePath, LEGACY_PROFILE_ROUTES } from "./pages/profile/profilePanels.js";
 import InterviewPage             from "./pages/interview/InterviewPage.jsx";
 import CompanyPage               from "./pages/companies/CompanyPage.jsx";   // D179 P4b
-import CompaniesView             from "./pages/companies/CompaniesView.jsx"; // A144 (45o): the Companies tab
 import NetworkPage               from "./pages/network/NetworkPage.jsx";      // D180 P1 (45o): behind the network switch
 import PublicBoardPage           from "./pages/jobs/PublicBoardPage.jsx";    // D179 P3
 import AuditPage                 from "./pages/audit/AuditPage.jsx";         // D150 T05–T08
@@ -54,6 +53,7 @@ import NavBar         from "./components/NavBar.jsx";
 import ProductsPage   from "./pages/ProductsPage.jsx";
 import BlogPage       from "./pages/BlogPage.jsx";
 import NotFoundPage   from "./pages/NotFoundPage.jsx";
+import { isReserved as isReservedPath } from "../../shared/companyPaths.js";   // A157 (45q)
 import { MonetisationProvider, useMonetisationEnabled } from "./lib/monetisation.jsx";
 
 // Marketing pages (lazy-loaded is fine but direct imports work too)
@@ -269,23 +269,13 @@ const BOARD_TABS = [
   ["saved",    "Starred",  "Starred jobs"],
   // ⭐ D40 (owner, 10-06): the jobs you imported, on the board's own card.
   ["imported", "Imported", "Imported jobs"],
-  // ⭐ A144 (45o, owner 11-08: "the companies tab wasnt supposed to be omitted"): every company with open jobs.
-  ["companies", "Companies", "Companies hiring"],
+  // ⛔ A157 (45q, owner 11-09): the Companies tab is GONE — "they are only reachable by search or clicking on the company
+  // name". A company is reached from the search dropdown's Companies group, or its name / logo on a card (its own page).
 ];
 
-// ⭐ A144 · the Companies view swaps the board's own parts (the sentence, the bar, the counts, the jobs) for the company
-// list; the board stays MOUNTED (hidden; `display: contents` while shown, so the bar stays sticky in the column) so its scroll, filters and open posting are where they were on return.
+// ⛔ A157 (45q): the board's parts in order — the Companies view that once swapped them out is gone (no Companies tab).
 function BoardOrCompanies({ head, views, board }) {
-  const { boardTab } = useJobBoard();
-  const co = boardTab === "companies";
-  return (
-    <>
-      <div style={{ display: co ? "none" : "contents" }}>{head}</div>
-      {views}
-      {co && <CompaniesView />}
-      <div style={{ display: co ? "none" : "contents" }} data-board-hidden={co ? "" : undefined}>{board}</div>
-    </>
-  );
+  return (<>{head}{views}{board}</>);
 }
 // ⛔ D156 (4) (owner 11-05: "we dont need the drafted panel now"): the Pending / Drafted view is not offered on Home — the
 // tracker (Draft House) holds every application. ?view=pending still reads (JobBoardContext's BOARD_VIEWS).
@@ -771,7 +761,33 @@ function FromServer() {
 /** D179 P4b · /companies/:slug signed out — the company page under the marketing nav. */
 function PublicCompanyRoute() {
   const { slug } = useParams();
-  return <CompanyPage slug={String(slug || "").toLowerCase()} base="/companies"/>;
+  const { search } = useLocation();
+  const s = String(slug || "").toLowerCase();
+  // ⭐ A157: the company's own address is /<company>; /companies/<slug> stays only for a reserved word.
+  if (s && !isReservedPath(s)) return <Navigate to={`/${s}${search}`} replace/>;
+  return <CompanyPage slug={s} base="/companies"/>;
+}
+
+/** A157 · /<company> — the company page under the marketing nav; a reserved word or a bad slug is the 404 page. */
+function PublicCompanyAtRoot({ navBar }) {
+  const { companySlug: s } = useParams();
+  const slug = String(s || "").toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]{0,119}$/.test(slug) || isReservedPath(slug)) return <>{navBar}<NotFoundPage/></>;
+  return <>{navBar}<CompanyPage slug={slug} base=""/></>;
+}
+/** A157 · /<company> signed in — the same page inside the shell (the dock stays). */
+function CompanyInApp() {
+  const { companySlug: s } = useParams();
+  const { search } = useLocation();
+  const slug = String(s || "").toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]{0,119}$/.test(slug) || isReservedPath(slug)) return <Navigate to="/app" replace/>;
+  return <Navigate to={`/app/companies/${slug}${search}`} replace/>;
+}
+/** A157 · /<company>/<id> — a posting under its company: the server renders it (a full load); anything else is a 404. */
+function CompanyJobRoute({ navBar }) {
+  const { jobId } = useParams();
+  if (!/^\d{1,12}$/.test(String(jobId || ""))) return <>{navBar}<NotFoundPage/></>;
+  return <FromServer/>;
 }
 
 function AtlasInApp() {
@@ -955,6 +971,14 @@ function AppRouter() {
             ? <AtlasInApp/>
             : <>{navBar}<PublicCompanyRoute/></>
         }/>
+        {/* ⭐ A157 (45q, owner 11-09) · a company's OWN address, /<company>, and its postings under it, /<company>/<id> (the
+            server renders the posting). Every route of draft's own above wins; a reserved word is never a company. */}
+        <Route path="/:companySlug" element={
+          authStatus === "authenticated" && authUser && !authUser.isAdmin
+            ? <CompanyInApp/>
+            : <PublicCompanyAtRoot navBar={navBar}/>
+        }/>
+        <Route path="/:companySlug/:jobId" element={<CompanyJobRoute navBar={navBar}/>}/>
 
         {/* ⭐ D167 · /profile/<panel> and /interview/<panel> without /app — the in-app place, for a signed-in reader. */}
         <Route path="/profile/*" element={<ToApp/>}/>

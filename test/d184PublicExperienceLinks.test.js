@@ -7,7 +7,7 @@ import { companyLine, renderPublicProfile } from "../routes/publicProfile.js";
 
 test("d184PublicExperienceLinks: a known employer links to /companies/<slug> with its stack and what the row used; unknown stays plain", () => {
   const known = companyLine({ company: "Toast", companyRef: { slug: "toast", name: "Toast", stack: ["React", "TypeScript", "Apache Kafka"], used: ["React", "TypeScript"] } });
-  assert.match(known, /<a href="\/companies\/toast" data-company-link="">Toast<\/a>/);
+  assert.match(known, /<a href="\/toast" data-company-link="">Toast<\/a>/);
   assert.match(known, /Toast works with React, TypeScript, Apache Kafka — used React, TypeScript there/);
   assert.equal(companyLine({ company: "Suffolk <Construction>", companyRef: null }), "Suffolk &lt;Construction&gt;", "escaped, no link, no stack");
   const noStack = companyLine({ company: "Acme", companyRef: { slug: "acme", name: "Acme", stack: [], used: [] } });

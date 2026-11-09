@@ -9,7 +9,8 @@
 // HQ in the header (About's facts), proven / on-your-résumé marks on the stack (signed in, from Your match), and "What they
 // ask for most" (their most-posted technologies with the share of postings and the Atlas page to learn each).
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { ApplyLink } from "../../components/CompanyLink.jsx";   // A157: the employer's apply link lives here now
 import { api } from "../../lib/api.js";
 import CompanyLogo from "../../components/CompanyLogo.jsx";   // A149: the company's own mark (D61)
 import SendJobPicker from "../../components/SendJobPicker.jsx";   // (11) 45q: D180's Send on the open jobs
@@ -29,6 +30,9 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
   const [error, setError] = useState(null);
   const [match, setMatch] = useState(null);   // D179: Your match — signed in (inside the shell) only
   const navigate = useNavigate();
+  // ⭐ A157 (45q): the posting the reader came from (?job=<board job id>) — first, with its Apply link.
+  const { search } = useLocation();
+  const cameFrom = new URLSearchParams(search).get("job") || null;
   // ⭐ (11) 45q · Send a job from the company page — inside the shell (signed in) and only while the network is on.
   const [networkOn, setNetworkOn] = useState(false);
   const [sending, setSending] = useState(null);
@@ -48,18 +52,20 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
   useEffect(() => {
     let live = true;
     setData(null); setError(null);
-    api(`/api/public/companies/${encodeURIComponent(slug)}`)
+    api(`/api/public/companies/${encodeURIComponent(slug)}${cameFrom ? `?job=${encodeURIComponent(cameFrom)}` : ""}`)
       .then((d) => { if (live) setData(d); })
       .catch((e) => { if (live) setError(e?.status === 404 || /no_such_company/.test(String(e?.message)) ? "missing" : "failed"); });
     return () => { live = false; };
-  }, [slug]);
+  }, [slug, cameFrom]);
 
   if (error === "missing") return <main className="co co--empty" data-company-missing=""><h1>We don't have a page for this company.</h1>
     <p><Link to={inApp ? "/app" : "/jobs"}>Browse open jobs</Link></p></main>;
   if (error) return <main className="co co--empty" role="alert"><p>This page couldn't load just now — try again in a moment.</p></main>;
   if (!data) return <main className="co co--empty" aria-busy="true"><p>Loading…</p></main>;
 
-  const { company: c, openJobs, byCategory, hiringTrend, stack, sponsorship, locations, jobs, about, github, website } = data;
+  const { company: c, openJobs, byCategory, hiringTrend, stack, sponsorship, locations, jobs, about, github, website, focus } = data;
+  // Signed out there is no Pending list to tag — the link just opens the employer's posting.
+  const applyOpen = inApp ? undefined : () => {};
   const jobsHref = (cat) => `${inApp ? "/app/jobs" : "/jobs"}?q=${encodeURIComponent(c.name)}${cat ? `&category=${encodeURIComponent(cat)}` : ""}`;
   const trendMax = Math.max(1, ...hiringTrend.map((t) => t.postings));
   const groups = stack ? GROUP_ORDER.filter((g) => stack.groups?.[g]?.length) : [];
@@ -213,10 +219,19 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
 
       {jobs.length > 0 && (
         <section className="co__sec" data-company-jobs="">
+          {focus && (
+            <div className="co__focus" data-company-focus={focus.jobId}>
+              <p className="co__focus-k">The job you opened</p>
+              <p><a href={focus.path}>{focus.title}</a>{focus.location ? <span className="co__where"> · {focus.location}</span> : null}</p>
+              {focus.applyUrl && <ApplyLink href={focus.applyUrl} jobId={focus.jobId} company={c.name} size="panel" className="co__apply" onOpen={applyOpen}>Apply at {c.name} ↗</ApplyLink>}
+            </div>
+          )}
           <h2>Newest open jobs</h2>
           <ul className="co__jobs">
-            {jobs.map((j) => (
+            {jobs.filter((j) => !focus || j.jobId !== focus.jobId).map((j) => (
               <li key={j.id}><a href={j.path}>{j.title}</a>{j.location ? <span className="co__where"> · {j.location}</span> : null}
+                {/* ⭐ A157: the employer's own apply link, beside each job (it tags Pending when signed in). */}
+                {j.applyUrl && <> <ApplyLink href={j.applyUrl} jobId={j.jobId} company={c.name} className="co__apply-row" onOpen={applyOpen}>Apply ↗</ApplyLink></>}
                 {/* ⭐ (11) 45q · D180 Send, only while the network is on and someone is signed in. */}
                 {networkOn && <button type="button" className="co__send" data-company-send="" onClick={() => setSending({ title: j.title, publicPath: j.path })}>Send</button>}
               </li>

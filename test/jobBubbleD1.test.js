@@ -37,7 +37,7 @@ test("⛔ A78: the company name is a link with NO underline and NO ↗ — and a
   assert.match(css, /a\.jb__company:hover, a\.jb__company:focus-visible \{ text-decoration: underline; \}/);
   // D38: the card's link IS the shared CompanyLink, and the A63 / A78 rules are asserted on it.
   // D149 (11-03) changed this on purpose: the link sits in the row's quiet "company · location" line, in that line's type.
-  assert.match(jsx, /<CompanyLink company=\{job\.company\} href=\{applyHref \|\| null\} jobId=\{id\} size="row" className="jb__company" \/>/);
+  assert.match(jsx, /<CompanyLink company=\{job\.company\} jobId=\{id\} size="row" className="jb__company" \/>/);
   const companyLink = read("client/src/components/CompanyLink.jsx");
   assert.doesNotMatch(companyLink, /↗/);
   assert.match(companyLink, /\/api\/applications\/pending/, "A63: opening the posting still tags the job Pending");

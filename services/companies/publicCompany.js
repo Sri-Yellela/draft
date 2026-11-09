@@ -17,6 +17,7 @@ import { companyGithub } from "./companyGithub.js";
 import { companyWebSignals } from "./companyWebSignals.js";
 import { sponsorshipFactFor } from "../kb/sponsorshipFacts.js";
 import { PUBLIC_OPEN_SQL, jobPath, atlasLinksFor } from "../jobs/publicJobPage.js";
+import { companyPagePathFromSlug } from "../../shared/companyPaths.js";   // A157 (45q): /<company>
 import { taxonomy } from "../jobs/taxonomyClassify.js";
 import { TECHNOLOGIES } from "../../shared/techVocabulary.js";
 import { canonicalTitle } from "../jobs/searchSuggestions.js";
@@ -38,6 +39,22 @@ const ATS_NAME = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby", wor
 const pageCache = new Map();
 
 /** The company page's data, or null when no such company. */
+/**
+ * ⭐ A157 (45q) · the posting a reader came from (?job=<board job id>), when it is THIS company's and still public — the page
+ * puts it first with its employer's apply link. Outside the page cache (one indexed read). null otherwise.
+ */
+export function focusJob(db, companyId, jobId) {
+  if (!jobId || companyId == null) return null;
+  try {
+    const r = db.prepare(`SELECT sj.id, sj.job_id, sj.title, sj.location, sj.company, sj.apply_url, sj.url, sj.is_active FROM job_company jc
+        JOIN scraped_jobs sj ON sj.job_id = jc.job_id WHERE jc.company_id = ? AND sj.job_id = ? AND ${PUBLIC_OPEN_SQL.replace(/\b(is_active|duplicate_of|board_category)\b/g, "sj.$1")}`)
+      .get(companyId, String(jobId));
+    if (!r) return null;
+    return { id: r.id, jobId: r.job_id, title: r.title, location: r.location || null, path: jobPath(r),
+      applyUrl: /^https?:\/\//i.test(String(r.apply_url || r.url || "")) ? (r.apply_url || r.url) : null };
+  } catch { return null; }
+}
+
 export function publicCompany(db, slug, { now = Date.now() } = {}) {
   const s = String(slug || "").toLowerCase();
   if (!SLUG_RE.test(s)) return null;
@@ -73,10 +90,13 @@ export function publicCompany(db, slug, { now = Date.now() } = {}) {
   const nowSec = Math.floor(now / 1000), since = nowSec - 183 * 86400;
   const trendRows = db.prepare(`SELECT strftime('%Y-%m', ${SEC("sj.discovered_at")}, 'unixepoch') AS month, COUNT(*) AS n FROM job_company jc
       JOIN scraped_jobs sj ON sj.job_id = jc.job_id WHERE jc.company_id = ? AND ${SEC("sj.discovered_at")} >= ? GROUP BY month ORDER BY month`).all(co.id, since);
-  const jobs = db.prepare(`SELECT sj.id, sj.title, sj.location, sj.company, sj.posted_at, jt.category, jt.subcategory FROM job_company jc
+  // ⭐ A157 (45q, owner 11-09: "move the direct apply link into the company page"): each job carries its employer's own
+  // apply link and its board job id (the Pending tag + the extension's hand-off use it), so the company page applies.
+  const jobs = db.prepare(`SELECT sj.id, sj.job_id, sj.title, sj.location, sj.company, sj.posted_at, sj.apply_url, sj.url, jt.category, jt.subcategory FROM job_company jc
       JOIN scraped_jobs sj ON sj.job_id = jc.job_id LEFT JOIN job_taxonomy jt ON jt.job_id = sj.job_id
       WHERE jc.company_id = ? AND ${OPEN} ORDER BY COALESCE(sj.posted_at, sj.discovered_at) DESC LIMIT 20`).all(co.id)
-    .map(r => ({ id: r.id, title: r.title, location: r.location || null, postedAt: r.posted_at || null, subcategory: r.subcategory || null, path: jobPath(r) }));
+    .map(r => ({ id: r.id, jobId: r.job_id, title: r.title, location: r.location || null, postedAt: r.posted_at || null, subcategory: r.subcategory || null, path: jobPath(r),
+      applyUrl: /^https?:\/\//i.test(String(r.apply_url || r.url || "")) ? (r.apply_url || r.url) : null }));
   let sponsorship = null; try { sponsorship = sponsorshipFactFor(db, co.name); } catch { sponsorship = null; }
   let stack = null; try { stack = stackFor(db, co.id, nowSec); } catch { stack = null; }
   // ⭐ D179 P6 (45l): "what they use → learn it" — each technology with a published Atlas page links to it.
@@ -144,7 +164,7 @@ export async function publicSuggest(db, read, q, { limit = 5, kind = null } = {}
         (SELECT COUNT(*) FROM job_company jc JOIN scraped_jobs sj ON sj.job_id = jc.job_id WHERE jc.company_id = co.id AND ${OPEN}) AS open
       FROM companies co WHERE LOWER(co.name) LIKE ? ESCAPE '\\' OR LOWER(co.name) LIKE ? ESCAPE '\\'
       ORDER BY (LOWER(co.name) LIKE ? ESCAPE '\\') DESC, LENGTH(co.name) LIMIT 25`).all(`${like}%`, `% ${like}%`, `${like}%`)
-    .filter(c => c.open > 0).slice(0, limit).map(c => ({ slug: c.slug, name: c.name, openJobs: c.open, path: `/companies/${c.slug}` }));
+    .filter(c => c.open > 0).slice(0, limit).map(c => ({ slug: c.slug, name: c.name, openJobs: c.open, path: companyPagePathFromSlug(c.slug) }));
   let tax = null; try { tax = taxonomy(); } catch { tax = null; }
   const roles = [];
   for (const c of want("role") ? tax?.categories || [] : []) {

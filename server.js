@@ -95,7 +95,7 @@ import { stripSampleProfiles } from "./services/sampleProfileStrip.js";
 import { createCompanyTech, stackFor, techForJobs } from "./services/companies/companyTech.js";
 import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyBackfill.js";
 import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/jobs/publicBoard.js";
-import { publicCompany, publicSuggest, companyMatchFor, companyIdForSlug } from "./services/companies/publicCompany.js";
+import { publicCompany, publicSuggest, companyMatchFor, companyIdForSlug, focusJob } from "./services/companies/publicCompany.js";
 import { companyDirectory } from "./services/companies/companyDirectory.js";   // A144 (45o): the Companies tab
 import { publicEntry } from "./services/jobs/publicEntry.js";                     // A147 (45o): the signed-out /jobs entry
 import { companyHealth } from "./services/companies/companyHealth.js";            // A142 (45o): Admin → Board → Company records
@@ -177,6 +177,7 @@ import { refreshAllPeople } from "./services/peopleSearch.js";
 import { timingMiddleware, startLoopMonitor, checkpointWal, growthSnapshot, diagnostics, issueDiagToken, diagTokenValid } from "./services/ops/systemHealth.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
+import { isReserved as isReservedPath } from "./shared/companyPaths.js";   // A157 (45q)
 import { publicJobFor, renderPublicJobPage, renderMissingJobPage, jobsSitemapRoutes, jobsSitemapPageCount, companiesSitemapRoutes, jobPath, atlasLinksFor } from "./services/jobs/publicJobPage.js";
 import { checkAtlasLinks } from "./services/atlas/atlasLinkCheck.js";
 import { runRegisterLinkCheck } from "./services/atlas/sourceRegistry.js";
@@ -10413,8 +10414,10 @@ app.get("/api/public/companies", publicLimit, async (req, res) => {
 });
 app.get("/api/public/companies/:slug", publicLimit, (req, res) => {
   try {
-    const page = publicCompany(db, req.params.slug);
+    let page = publicCompany(db, req.params.slug);
     if (!page) return res.status(404).json({ error: "no_such_company" });
+    // ⭐ A157: the posting the reader came from, first, with its apply link (not cached with the page).
+    if (req.query?.job) { const focus = focusJob(db, companyIdForSlug(db, req.params.slug), String(req.query.job).slice(0, 200)); if (focus) page = { ...page, focus }; }
     res.set("Cache-Control", "public, max-age=300").json(page);
   } catch (e) { console.error("[public/companies]", e.message); res.status(500).json({ error: "company_unavailable" }); }
 });
@@ -10506,7 +10509,7 @@ app.get("/og.png", async (req, res) => {
 // employer credited and linked, JobPosting JSON-LD while open; closed → says so, noindex, no structured data.
 app.get("/jobs/:slug", (req, res) => {
   let found = null;
-  try { found = publicJobFor(db, req.params.slug); } catch { found = null; }
+  try { found = publicJobFor(db, req.params.slug); } catch { found = null; }   // A157: always a 301 to /<company>/<id> now
   if (found?.kind === "redirect") return res.redirect(301, found.path);
   const page = found ? renderPublicJobPage(db, found.row, { base: appBaseUrl(req), open: found.open }) : renderMissingJobPage();
   res.set("Cache-Control", "public, max-age=600").status(page.status).type("html").send(page.html);
@@ -16430,6 +16433,22 @@ app.get("/audit", (req, res, next) => {
       + ogImageMeta(ogUrl(base, { eyebrow: "The 3-minute audit", title, line: `${role.openPostings.toLocaleString("en-US")} open ${role.title} postings this week` }), title);
     res.type("html").send(AUDIT_INDEX.replace("</head>", `${meta}</head>`));
   } catch { next(); }
+});
+// ⭐ A157 (45q, owner 11-09) · a company's own address and its jobs under it — LAST before the app's fallback, so every
+// route of draft's own wins; a reserved first word (shared/companyPaths.js) is never a company. /companies/<slug> → 301.
+app.get("/companies/:slug", (req, res, next) => {
+  const s = String(req.params.slug || "").toLowerCase();
+  if (!/^[a-z0-9-]{1,120}$/.test(s) || isReservedPath(s)) return next();
+  res.redirect(301, `/${s}${req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`);
+});
+app.get(["/:company/:id(\\d{1,12})", "/companies/:company/:id(\\d{1,12})"], (req, res, next) => {
+  const c = String(req.params.company || "").toLowerCase();
+  if (!/^[a-z0-9-]{1,120}$/.test(c) || (isReservedPath(c) && !req.path.startsWith("/companies/"))) return next();
+  let found = null;
+  try { found = publicJobFor(db, String(req.params.id), { requested: req.path }); } catch { found = null; }
+  if (found?.kind === "redirect") return res.redirect(301, found.path);
+  const page = found ? renderPublicJobPage(db, found.row, { base: appBaseUrl(req), open: found.open }) : renderMissingJobPage();
+  res.set("Cache-Control", "public, max-age=600").status(page.status).type("html").send(page.html);
 });
 app.get("*", (_req, res) => {
   res.sendFile(path.join(CLIENT_DIST, "index.html"));

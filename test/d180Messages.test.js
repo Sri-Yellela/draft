@@ -84,7 +84,7 @@ test("d180SendJobCardRenders · a job arrives as a card of the open board; a clo
   const m = readThread(db, box, 2, r.threadId).messages[0];
   assert.equal(m.kind, "job");
   assert.deepEqual([m.job.title, m.job.company], ["Data Engineer", "Northwind"]);
-  assert.match(m.job.path, /^\/jobs\/northwind-data-engineer-77$/);
+  assert.match(m.job.path, /^\/northwind\/77$/);   // A157: /<company>/<id>
   assert.equal(m.text, "This one looks like you");
   db.exec("UPDATE scraped_jobs SET is_active = 0 WHERE id = 77");
   assert.throws(() => sendMessage(db, box, 1, { to: "ben-example", jobId: 77 }), (e) => e.code === "no_such_job");

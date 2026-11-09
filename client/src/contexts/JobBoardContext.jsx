@@ -4,7 +4,8 @@ const JobBoardContext = createContext(null);
 
 // ⭐ D40 · THE FOUR VIEWS of the one board: ALL is the whole set; ★, /d and + are ALL restricted by a
 // predicate (D41(a)). A link may open one by name — /app/jobs?view=imported, from the extension page.
-export const BOARD_VIEWS = Object.freeze(["all", "saved", "pending", "imported", "companies"]);   // A144 (45o): ?view=companies
+// ⛔ A157 (45q): ?view=companies is gone with the tab — an old link reads as the default view.
+export const BOARD_VIEWS = Object.freeze(["all", "saved", "pending", "imported"]);
 /** The view a URL names, or null. */
 export function viewFromUrl(search = typeof window !== "undefined" ? window.location.search : "") {
   try {

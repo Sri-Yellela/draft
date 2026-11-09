@@ -6,9 +6,11 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import DepthButton from "./DepthButton.jsx";
 import "./SendJobPicker.css";
+import { boardIdFromPath } from "../../../shared/companyPaths.js";
 
 /** The board id at the end of a public posting path (/jobs/<company>-<title>-<id>), or null. Pure. */
-export const boardIdOf = (path) => { const m = /-(\d+)$/.exec(String(path || "")); return m ? Number(m[1]) : null; };
+// A157 (45q): /<company>/<id> now, /jobs/<words>-<id> before — one rule (shared/companyPaths.js).
+export const boardIdOf = (path) => boardIdFromPath(path);
 
 export default function SendJobPicker({ job, onClose }) {
   const [people, setPeople] = useState(null);

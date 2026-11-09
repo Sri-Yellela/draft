@@ -677,9 +677,8 @@ export default function JobCard({
                   gone; the name links to the posting and opening it tags the job Pending — it stays
                   Pending until the submission is recorded and verified (Database → Pending). */}
               {/* D38: the ONE company link (CompanyLink.jsx) — no underline, no ↗, sized to its text. */}
-              <CompanyLink company={job.company} size="panel"
-                href={!isLoggedOut && (job.applyUrl || job.url) ? (job.applyUrl || job.url) : null}
-                jobId={job.jobId || job.id} />
+              {/* ⭐ A157 (owner 11-09): the name opens the company's page; the Apply link lives there now. */}
+              <CompanyLink company={job.company} size="panel" jobId={job.jobId || job.id} inApp={!isLoggedOut} />
               {job.alreadyApplied && (
                 <span title="Applied" style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>✓APPLIED</span>
               )}
