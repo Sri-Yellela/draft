@@ -9,6 +9,7 @@ export const ADMIN_GROUPS = Object.freeze([
     ["disk", "Disk and backups"],       // #4 + #15b
     ["costs", "Costs & quotas"],        // cost visibility + #12 (+ #16's figures)
     ["activity", "Activity"],           // #16's live parts: users, résumés, postings
+    ["outcomes", "Outcomes"],           // D185-5 (45q): interviews per application and per active person, by week
     ["phase1", "Phase 1 measures"],     // D150 T16 — the audit funnel, the bank's answers, debriefs, each against its target
   ] },
   { id: "board", label: "The board", question: "What is on it, and why?", sections: [

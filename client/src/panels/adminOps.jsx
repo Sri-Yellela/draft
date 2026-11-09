@@ -637,6 +637,70 @@ export function FullAutoPrerequisitesSection({ theme }) {
   );
 }
 
+// ── D185-5 Outcomes — GET /api/admin/outcomes ──────────────────────────────────────────────────
+// The north star (D185): interviews per application and per active user, by the week the applications were sent. Counts
+// only — "6 of 40", never a bare percent (D111). One series (interviews per week, bars on one axis), a hover title on each
+// bar, and the same numbers as a table beneath — the chart is never the only way to read it.
+function OutcomeBars({ theme, weeks }) {
+  const W = 560, H = 120, pad = 18, n = weeks.length || 1;
+  const max = Math.max(1, ...weeks.map(w => w.all.interviews));
+  const bw = Math.max(6, (W - pad * 2) / n - 2);
+  return (
+    <svg viewBox={`0 0 ${W} ${H + 22}`} width="100%" role="img" aria-label="Interviews by the week applications were sent" data-outcome-chart="">
+      <line x1={pad} x2={W - pad} y1={H} y2={H} stroke={theme.border} strokeWidth="1"/>
+      {weeks.map((w, i) => {
+        const h = Math.round((w.all.interviews / max) * (H - 12));
+        const x = pad + i * ((W - pad * 2) / n) + 1;
+        return (
+          <g key={w.week}>
+            <rect x={x - 2} y={0} width={bw + 4} height={H} fill="transparent">
+              <title>{`Week of ${w.week}: ${w.all.interviews} interviews of ${w.all.resolved} resolved applications (${w.all.sent} sent) · ${w.all.interviewedUsers} of ${w.all.activeUsers} active people interviewed`}</title>
+            </rect>
+            {h > 0 && <rect x={x} y={H - h} width={bw} height={h} rx="2" fill={C.ACCENT} pointerEvents="none"/>}
+            {(i === 0 || i === n - 1) && <text x={x + bw / 2} y={H + 15} textAnchor="middle" fontSize="10" fill={theme.textMuted}>{w.week.slice(5)}</text>}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+const of = (k, n) => `${k} of ${n}`;
+export function OutcomesSection({ theme }) {
+  const [s, setS] = useState(null);
+  const [err, setErr] = useState(null);
+  useEffect(() => { api("/api/admin/outcomes").then(setS).catch(e => setErr(e.message)); }, []);
+  const t = s?.totals;
+  return (
+    <Panel title="Outcomes" data-admin-outcomes=""
+      code="D185-5: services/outcomeMetrics.js — job_applications' marks (the ladder) + the D103 inbox's categories, through D111's answerOf; resolved = a reply, or 30 days old with none."
+      purpose="Do draft's applicants get interviews? Interviews per resolved application and per active person, by the week the applications were sent — for the applications draft sent and the ones people sent themselves. The employer pilot waits on these numbers."
+      numbers={t ? [[of(t.all.interviews, t.all.resolved), "resolved applications got an interview"],
+        [of(t.all.interviewedUsers, t.all.activeUsers), "active people got one"], [String(t.all.offers), "offers"]] : []}>
+      <Err msg={err}/>
+      {s && <>
+        <OutcomeBars theme={theme} weeks={s.weeks}/>
+        <Table theme={theme} empty="No applications in the window."
+          cols={[
+            { key: "who", label: "Sent by" },
+            { key: "sent", label: "Sent", right: true },
+            { key: "resolved", label: "Resolved", right: true },
+            { key: "replied", label: "Replied", right: true },
+            { key: "interviews", label: "Interviews", right: true },
+            { key: "offers", label: "Offers", right: true },
+            { key: "people", label: "People interviewed", right: true },
+          ]}
+          rows={[["All", t.all], ["draft", t.draft], ["Themselves", t.self]].map(([who, b]) => ({ who, sent: b.sent, resolved: b.resolved,
+            replied: of(b.replied, b.resolved), interviews: of(b.interviews, b.resolved), offers: b.offers, people: of(b.interviewedUsers, b.activeUsers) }))}/>
+        <div style={quiet}>How it is known: {s.knownBy.inbox} from the inbox, {s.knownBy.mark} from people's own marks. Last {s.window.weeks} weeks.</div>
+        <Table theme={theme} empty=""
+          cols={[{ key: "week", label: "Week of" }, { key: "sent", label: "Sent", right: true }, { key: "res", label: "Interviews", right: true },
+            { key: "ppl", label: "People", right: true }]}
+          rows={s.weeks.map(w => ({ week: w.week, sent: w.all.sent, res: of(w.all.interviews, w.all.resolved), ppl: of(w.all.interviewedUsers, w.all.activeUsers) }))}/>
+      </>}
+    </Panel>
+  );
+}
+
 // ── D185-2 New-match alerts — GET /api/admin/match-alerts ─────────────────────────────────────
 // How fast a new posting reaches the people it fits: per source, minutes from the posting's own date to the alert, and
 // from when draft first saw it (draft's own lag). Read-only. D185: don't market "first to know" until this says so.

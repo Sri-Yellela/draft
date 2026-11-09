@@ -7,7 +7,7 @@ import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
 import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, NoticesTab, CostsTab, DeploymentsPanel, DiskPanel, ReviewerAccount,
-         BoardPolicySection, KillSwitchSection, FullAutoPrerequisitesSection, TailoringAdminSection, MatchAlertsSection, BoardFitSection, JobDataSection, CompaniesSection, SlugHarvestSection,
+         BoardPolicySection, KillSwitchSection, FullAutoPrerequisitesSection, TailoringAdminSection, MatchAlertsSection, OutcomesSection, BoardFitSection, JobDataSection, CompaniesSection, SlugHarvestSection,
          ToolsServiceSection } from "./adminOps.jsx";
 import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
 import { AdminSection } from "./adminKit.jsx";
@@ -726,6 +726,7 @@ export function AdminPanel() {
       {/* D151 Rule 6: the server's health without shell access. */}
       {at("system", "diagnostics") && <DiagnosticsTab/>}
       {/* D150 T16: the Phase 1 milestones, measured. */}
+      {at("today", "outcomes") && <OutcomesSection theme={theme}/>}
       {at("today", "phase1") && <Phase1Tab/>}
       {/* D183: the public profiles' report queue. */}
       {at("people", "network") && <NetworkTab/>}
