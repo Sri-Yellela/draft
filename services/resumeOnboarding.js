@@ -131,7 +131,7 @@ export function startFromResume(db, userId, { content, name }, deps) {
         JSON.stringify(inferred.keywords), JSON.stringify(inferred.verbs), JSON.stringify(inferred.tools), existing.id);
     db.prepare("UPDATE domain_profiles SET is_active = 0 WHERE user_id = ? AND id <> ?").run(userId, existing.id);
     deps.saveBaseResume(existing.id, text, name || "resume.txt");
-    placeFirstResume(db, existing.id, text, inferred, deps.registry);
+    if (!sampleFamily) placeFirstResume(db, existing.id, text, inferred, deps.registry);
     const profile = deps.readProfile(db, userId);
     try { deps.onProfileWrite?.(existing.id); } catch { /* the board re-scores on its next read */ }
     return { profileId: existing.id, inferred, filled: [], completeness: profile?.completeness || null, swapped: true };
@@ -149,7 +149,7 @@ export function startFromResume(db, userId, { content, name }, deps) {
     return Number(r.lastInsertRowid);
   })();
   deps.saveBaseResume(id, text, name || "resume.txt");
-  placeFirstResume(db, id, text, inferred, deps.registry);
+  if (!sampleFamily) placeFirstResume(db, id, text, inferred, deps.registry);   // a TRIAL sample keeps its own family (D123 P6e)
   // ⛔ A140 (owner 11-08): a fictional sample never fills the person's contact fields.
   const filled = sampleFamily ? [] : fillEmptyProfileFields(db, userId, text);
   const profile = deps.readProfile(db, userId);
