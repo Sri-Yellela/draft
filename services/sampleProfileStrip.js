@@ -22,7 +22,7 @@
 // ONCE per account: a cleaned account is recorded in a140_trial_cleaned (migration 234) and never re-read again, so a
 // later hand edit of the profile is never overwritten by a boot. Idempotent besides. The sample résumé itself is not deleted (the practice-form safety rule keys on
 // it); a person still on a sample is left with empty details, to fill or to replace with their own résumé.
-import { samples, sampleIdForText } from "./sampleResumes.js";
+import { trialSamples as samples, trialSampleIdForText as sampleIdForText } from "./sampleResumes.js";   // D184: never the test set
 import { parseBasis } from "./payloadResume.js";
 import { followProfileText, fillEmptyProfileFields } from "./resumeOnboarding.js";
 import { useResumeSuggestion } from "./structuredProfile.js";

@@ -1,0 +1,27 @@
+{
+  "id": "I",
+  "label": "Sample I · senior FP&A analyst (D184)",
+  "fictional": "Sample — a fictional person (D184, made 2026-11-08). The name, email (@example.com), phone (555) and profile links (-sample) are invented; the employers are real Boston-area companies on purpose, so experience rows resolve to company records.",
+  "candidate": {
+    "fullName": "Elena Marsh",
+    "email": "elena.marsh@example.com",
+    "phone": "(617) 555-0151",
+    "location": "Boston, MA",
+    "linkedinUrl": "https://www.linkedin.com/in/elena-marsh-sample",
+    "githubUrl": null,
+    "yearsOfExperience": 5
+  },
+  "seniority": "senior",
+  "roleFamily": "business",
+  "category": "Business and finance",
+  "targetTitle": "Senior FP&A Analyst",
+  "domain": "finance",
+  "expected": {
+    "category": "Business and finance",
+    "subcategory": "FP&A and corporate finance",
+    "level": "senior",
+    "sentence": "discovering FP&A and corporate finance roles at senior levels and all workstyles in Boston"
+  },
+  "pdfKeywords": "draft-sample, fictional, test",
+  "resumeText": "Elena Marsh\nBoston, MA · elena.marsh@example.com · (617) 555-0151 · linkedin.com/in/elena-marsh-sample\n\nSUMMARY\nFP&A analyst with 5 years in forecasting, budgeting and variance analysis for high-growth consumer and\nfinancial-services businesses. Builds driver-based models that leadership actually uses.\n\nSKILLS\nPlanning and analysis: Forecasting, annual operating plan, variance analysis, driver-based modelling, unit economics, scenario planning\nTools: Excel (advanced: INDEX/MATCH, Power Query), SQL, Adaptive Insights, Anaplan, NetSuite, Tableau, PowerPoint\nCorporate finance: Three-statement modelling, DCF, budgeting, board reporting\n\nEXPERIENCE\nSenior FP&A Analyst — DraftKings\nBoston, MA · Apr 2023 – Present\n• Owned the monthly forecast for a $600M marketing budget; built a driver-based model in Adaptive Insights that cut forecast error from 9% to 3%.\n• Wrote SQL against the data warehouse to automate cohort revenue reporting; saved 2 days per month-end close.\n• Prepared variance analysis and Tableau dashboards for the CFO and quarterly board materials.\n\nFinancial Analyst — State Street\nBoston, MA · Jul 2020 – Mar 2023\n• Supported the annual operating plan for a $1.2B operations cost centre; reconciled actuals in NetSuite and Excel.\n• Built a headcount and vendor-spend model in Anaplan used by 8 department heads.\n• Produced monthly variance commentary and scenario analyses for senior leadership.\n\nEDUCATION\nBoston College — B.S., Finance, Carroll School of Management · Chestnut Hill, MA · 2020\n\nCERTIFICATIONS\nCFA Level II candidate · Financial Modeling & Valuation Analyst (FMVA)"
+}

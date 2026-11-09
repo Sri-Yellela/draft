@@ -302,7 +302,10 @@ const CURATED_TAIL = Object.freeze([...NEWEST, ...COMPANY_AZ, BY_ID]);
 // posting goes to the end of the board, not of its page. null (nothing set) adds no key, so the order is unchanged.
 // ⭐ D137 · `ghost`: true when the board holds any posting scored Likely not hiring — those are RANKED DOWN (after the
 // eligible-first key, before everything else), never removed. false adds no key, so the order is unchanged.
-function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, established = [], ineligible = null, ghost = false } = {}) {
+// ⭐ D184 B-8 (45p): `skillTier` = services/jobs/skillTiers.js's key (jobs asking for more of the résumé's top skills first).
+// It applies to the DEFAULT order only, with fit on, after the rank keys and before fit — so inside a tier the order is
+// ATS match, then recency. Never under a search (the search's own relevance tier leads) or an explicit sort.
+function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, established = [], ineligible = null, ghost = false, skillTier = null } = {}) {
   const lead = ineligible?.sql ? [KEY(ineligible.sql, "ASC", ineligible.params || [])] : [];
   if (ghost) lead.push(KEY(GHOST_LAST_SQL, "ASC"));
   const sortIsDefault = !SORT_KEYS[sort];
@@ -316,7 +319,8 @@ function buildOrderKeys(sort, rankKeys = [], { fit = false, search = null, estab
     ? rankKeys.map(k => KEY(`(${k.sql})`, "ASC", k.params || []))
     : [];
   const fitKeys = sortIsDefault && fit ? FIT_KEYS : [];
-  return assertTotalOrder([...lead, ...known, ...prefix, ...fitKeys, ...chosen], sort || "dateDesc");
+  const tier = sortIsDefault && fit && skillTier?.sql ? [KEY(skillTier.sql, "ASC", skillTier.params || [])] : [];
+  return assertTotalOrder([...lead, ...known, ...prefix, ...tier, ...fitKeys, ...chosen], sort || "dateDesc");
 }
 
 /**

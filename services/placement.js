@@ -12,7 +12,7 @@
 //                                        the confidence is written (the role is left as it was, and the page asks).
 //   storedPlacement(db, userId)        — the ACTIVE job profile's placement, the one the profile page shows.
 import { taxonomy, classifyPosting } from "./jobs/taxonomyClassify.js";
-import { seniorityOf } from "./resumeOnboarding.js";
+import { seniorityOf, yearsOfWork } from "./resumeOnboarding.js";
 
 export const PLACE_MIN_CONFIDENCE = 0.45;   // at least the category named in a title (taxonomyClassify: 0.45 category-name)
 const safe = (fn, d) => { try { return fn(); } catch { return d; } };
@@ -25,18 +25,53 @@ export function registryKeyFor(category, subcategory, tax = safe(() => taxonomy(
   return (subcategory && map.subcategories?.[subcategory]) || (category && map.categories?.[category]) || null;
 }
 
-/** Classify a résumé: its titles first (each once), the text as their context. Pure over the taxonomy. */
+// ⭐ D184 S-1 (45p): the résumé's OWN job titles — "Software Engineer II, Frontend — Toast" → "Software Engineer II, Frontend".
+// Before, only the role registry's suggested titles FOUND in the text were classified ("Software Engineer"), so a frontend
+// engineer was placed in "Software engineering · general". Most recent first (the résumé's order).
+const ROLE_WORD = /\b(engineer|developer|manager|analyst|designer|scientist|director|lead|specialist|consultant|associate|coordinator|architect|administrator|officer|accountant|technician|nurse|teacher|recruiter|researcher|superintendent|estimator|planner|controller|intern|head|vp|president|product owner|strategist|writer|editor)\b/i;
+const SECTION = /^\s*(experience|work experience|professional experience|employment|work history)\s*$/i;
+const OTHER_SECTION = /^\s*(education|skills|projects|certifications?|summary|publications|awards|volunteer\w*|interests|languages)\s*$/i;
+export function ownTitles(text, max = 4) {
+  const out = [];
+  let inExp = false;
+  for (const raw of String(text || "").split(/\r?\n/)) {
+    const line = raw.trim();
+    if (SECTION.test(line)) { inExp = true; continue; }
+    if (OTHER_SECTION.test(line)) { inExp = false; continue; }
+    if (!inExp || /^[•\-*]/.test(line)) continue;
+    const m = /^(.+?)\s+[—–]\s+(.+)$/.exec(line) || /^(.+?)\s+at\s+([A-Z].+)$/.exec(line);
+    if (!m) continue;
+    const title = ROLE_WORD.test(m[1]) ? m[1] : ROLE_WORD.test(m[2]) ? m[2] : null;
+    if (title && !out.includes(title.trim())) out.push(title.trim());
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+/** Classify a résumé: its OWN titles first, then the given ones (each once), the text as their context. Pure over the taxonomy. */
 export function placeText(text, { titles = [], years = null } = {}, tax = safe(() => taxonomy(), null)) {
   if (!tax) return { placed: false, confidence: 0, reason: "no_taxonomy" };
   const desc = plain(text).slice(0, 6000);
+  const own = ownTitles(text);
+  if (years == null) years = safe(() => yearsOfWork(text), null);   // D184: Daniel's 7 years were never passed → "mid"
   const seen = [];
-  for (const t of titles.map(x => String(x || "").trim()).filter(Boolean)) {
+  for (const t of [...own, ...titles].map(x => String(x || "").trim()).filter(Boolean)) {
     const r = safe(() => classifyPosting({ title: t, description: desc }, tax), null);
     if (r?.category && !seen.some(x => x.subcategory === r.subcategory)) seen.push(r);
     if (seen.length >= 2) break;
   }
-  const best = seen.sort((a, b) => b.confidence - a.confidence)[0] || null;
-  const level = safe(() => seniorityOf(text, years), null);
+  // D184: the person's LATEST own title leads when it places on its own (a frontend engineer's "Software Engineer II,
+  // Frontend" over an older "Associate Software Engineer"); otherwise the most confident reading.
+  const latest = own.length ? safe(() => classifyPosting({ title: own[0], description: desc }, tax), null) : null;
+  // A latest title that only reaches its category's GENERAL bucket ("Project Manager") gives way to a specific reading in
+  // the same category ("Construction Project Manager" from the text).
+  const isGeneral = (r) => !!r && tax.byId?.get?.(r.category)?.general === r.subcategory;
+  let best = (latest?.category && latest.confidence >= PLACE_MIN_CONFIDENCE ? seen.find(x => x.subcategory === latest.subcategory) : null)
+    || seen.sort((a, b) => b.confidence - a.confidence)[0] || null;
+  if (isGeneral(best)) best = seen.find(x => x.category === best.category && !isGeneral(x)) || best;
+  // D184: the level's words are read from the person's OWN latest title when there is one — "dashboards for the CFO" in a
+  // bullet made an FP&A analyst "executive".
+  const level = safe(() => seniorityOf(own.length ? own[0] : text, years), null);
   if (!best || best.confidence < PLACE_MIN_CONFIDENCE) {
     return { placed: false, confidence: best ? best.confidence : 0, level, reason: best ? best.reason : "no_title" };
   }

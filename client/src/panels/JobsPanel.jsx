@@ -63,6 +63,7 @@ import { openPosting } from "../lib/openPosting.js";
 import { rememberBoardFilters } from "../lib/boardFilterMemory.js";
 import StartFromResume from "../components/StartFromResume.jsx";
 import { openResumeEditor } from "../lib/resumeEditor.js";
+import { sentenceFromResume } from "../../../shared/resumeSentence.js";   // D184 B-7
 
 // The three extension-bridge stubs that stood here (getLinkedInExtensionInstallUrl,
 // isLinkedInExtensionInstalled, sendExtensionRequest) are gone with cleanup 5.3. They returned
@@ -1807,8 +1808,14 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     let seen = null; try { seen = localStorage.getItem(key); } catch { seen = null; }
     if (String(seen) === String(p.placed_at)) return;
     try { localStorage.setItem(key, String(p.placed_at)); } catch { /* private mode: it may apply again */ }
-    const general = /\.general$/.test(String(p.placement_subcategory || ""));
-    setTaxRole({ category: p.placement_category, subcategory: general ? "" : String(p.placement_subcategory || "") });
+    // ⭐ D184 B-7 (45p): the WHOLE sentence inherits the résumé — role, level, workstyles (all unless set), the résumé's city —
+    // through the same setters the sentence's words use. Once per placement, so the person's own edits win until the next.
+    const next = sentenceFromResume({ category: p.placement_category, subcategory: p.placement_subcategory, level: p.placement_level,
+      location: p.resume_location || null });
+    setTaxRole({ category: next.category, subcategory: next.subcategory });
+    setExperienceLevels(next.experience_levels);
+    setWorkModels(next.work_models);
+    setPlaces(next.places);
   }, [activeDomainProfile?.id, activeDomainProfile?.placed_at]); // eslint-disable-line react-hooks/exhaustive-deps
   // ⭐ D179 (a) · "using [technology]" — set from the search box's Technologies, cleared from its sentence word.
   const [techFilter,     setTechFilter]     = useState("");

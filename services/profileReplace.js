@@ -152,7 +152,7 @@ export function whatChanged(before, after, kept = {}, { handAchievements = 0, pr
     lines.push({ kind: "changed", what: "fit",
       text: `Where you fit: ${ap ? `${ap.path} · ${bp && bp.level !== ap.level ? `${bp.level} → ${ap.level}` : ap.level}` : "not placed"}`,
       // ⭐ (B)-2 (45o): what followed, said plainly (all of it undone by Undo).
-      detail: ap ? `your board now shows ${ap.path} jobs · today's picks are dealt again from it · best fit re-scores against the new résumé · Atlas's target follows (unless you set your own aim) · Apply for me looks for the same` : "your job profiles, search terms and the board follow it" });
+      detail: ap ? `your board now shows ${ap.path} jobs · the sentence follows the résumé (its role, level and city; all workstyles unless you set them — your own later edits win until the next résumé) · today's picks are dealt again from it · best fit re-scores against the new résumé · Atlas's target follows (unless you set your own aim) · Apply for me looks for the same` : "your job profiles, search terms and the board follow it" });
   }
   const keptParts = [];
   const proven = [...new Set([...(after.proven || []), ...(kept.proven || [])])];

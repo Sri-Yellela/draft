@@ -26,8 +26,9 @@ import {
 } from "../services/profileSignalAggregator.js";
 import { mergeUniqueSignalLabels } from "../shared/profileSignals.js";
 import { startFromResume, followProfileText, followResumeFields } from "../services/resumeOnboarding.js";
-import { sampleRoleFamily, sampleIdForText, activeSampleId } from "../services/sampleResumes.js";
+import { sampleRoleFamily, trialSampleIdForText as sampleIdForText, activeTrialSampleId as activeSampleId } from "../services/sampleResumes.js";   // D184: the TEST SET runs the full flow
 import { readProfile } from "../services/structuredProfile.js";
+import { prefillFromResumeText } from "../shared/resumePrefill.js";   // D184 B-7: the résumé's city for the sentence
 import { snapshotForReplace, pageDigest, refillFromResume, whatChanged, recordReplacement, dealAgain } from "../services/profileReplace.js";
 import { DATA_CLASS } from "../services/modelCall.js";
 // D162 G1: the feature names its task; the gateway picks the model (shared/modelTasks.js profile.domain_chips).
@@ -196,7 +197,15 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
     } else {
       try { db.prepare("UPDATE users SET domain_profile_complete=? WHERE id=?").run(rows.length ? 1 : 0, req.user.id); } catch {}
     }
-    res.json(rows.map(parseProfileRow));
+    // ⭐ D184 B-7: each profile's résumé city ({ city, state } from its own base résumé) — the sentence's location follows it.
+    const cityOf = (id) => {
+      try {
+        const t = db.prepare("SELECT content FROM profile_base_resumes WHERE profile_id = ? AND user_id = ?").pluck().get(id, req.user.id);
+        const p = t ? prefillFromResumeText(t) : {};
+        return p.city?.value ? { city: p.city.value, state: p.state?.value || null } : null;
+      } catch { return null; }
+    };
+    res.json(rows.map(r => ({ ...parseProfileRow(r), resume_location: cityOf(r.id) })));
   });
 
   // ── POST /api/domain-profiles ─────────────────────────────────

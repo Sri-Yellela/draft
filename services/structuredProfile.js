@@ -21,7 +21,7 @@ import { degreeKey } from "../shared/eligibility.js";
 import { evidenceMap, evidenceKey, rekeyEvidence } from "./proofLinks.js";
 import { markBacking } from "./resumeClaimGuard.js";
 // ⛔ A140 (owner 11-08): a fictional sample résumé (the removed trial's) never fills or is offered as the person's profile.
-import { activeSampleId } from "./sampleResumes.js";
+import { activeTrialSampleId } from "./sampleResumes.js";
 
 // ── Application defaults: the groups, the keys, what each accepts ─────────────────────────────
 const YES_NO = ["yes", "no"];
@@ -365,7 +365,7 @@ export function readProfile(db, userId) {
   let s = readSections(db, userId);
   const firstOpen = !db.prepare(`SELECT 1 FROM profile_sections WHERE user_id = ?`).get(userId);
   let suggestion = null;
-  const sample = !!activeSampleId(db, userId);   // ⛔ A140: a sample is not the person — nothing filled or offered from it
+  const sample = !!activeTrialSampleId(db, userId);   // ⛔ A140: a TRIAL sample is not the person (D184's test set is)
   if (firstOpen) {
     const parsed = sample ? null : profileFromResume(db, userId);
     if (parsed?.ok) writeSections(db, userId, parsed, "resume");
@@ -388,7 +388,7 @@ export function readProfile(db, userId) {
 
 /** "Your résumé says X — use it?" — one press replaces the sections with the new parse. */
 export function useResumeSuggestion(db, userId) {
-  if (activeSampleId(db, userId)) return false;   // ⛔ A140
+  if (activeTrialSampleId(db, userId)) return false;   // ⛔ A140 (trial samples only)
   const parsed = profileFromResume(db, userId);
   if (!parsed?.ok) return false;
   writeSections(db, userId, parsed, "resume");

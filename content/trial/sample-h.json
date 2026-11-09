@@ -1,0 +1,27 @@
+{
+  "id": "H",
+  "label": "Sample H · senior construction project manager (D184)",
+  "fictional": "Sample — a fictional person (D184, made 2026-11-08). The name, email (@example.com), phone (555) and profile links (-sample) are invented; the employers are real Boston-area companies on purpose, so experience rows resolve to company records.",
+  "candidate": {
+    "fullName": "Daniel Okafor",
+    "email": "daniel.okafor@example.com",
+    "phone": "(617) 555-0178",
+    "location": "Boston, MA",
+    "linkedinUrl": "https://www.linkedin.com/in/daniel-okafor-sample",
+    "githubUrl": null,
+    "yearsOfExperience": 7
+  },
+  "seniority": "senior",
+  "roleFamily": "operations",
+  "category": "Project and program management",
+  "targetTitle": "Construction Project Manager",
+  "domain": "pm_construction",
+  "expected": {
+    "category": "Project and program management",
+    "subcategory": "Construction",
+    "level": "senior",
+    "sentence": "discovering construction project management roles at senior levels and all workstyles in Boston"
+  },
+  "pdfKeywords": "draft-sample, fictional, test",
+  "resumeText": "Daniel Okafor\nBoston, MA · daniel.okafor@example.com · (617) 555-0178 · linkedin.com/in/daniel-okafor-sample\n\nSUMMARY\nConstruction project manager with 7 years delivering commercial and lab projects up to $48M. Runs schedules,\nbudgets and subcontractors in Procore and Primavera P6; known for closing out on time with clean punch lists.\n\nSKILLS\nProject controls: Procore, Primavera P6, Microsoft Project, Bluebeam Revu, Autodesk Construction Cloud, Excel\nDelivery: Budgeting and cost control, scheduling, RFIs and submittals, change orders, subcontractor management, owner reporting, closeout\nSafety and certifications: OSHA 30, PMP, LEED Green Associate\n\nEXPERIENCE\nProject Manager — Suffolk Construction\nBoston, MA · Jun 2021 – Present\n• Managed a $48M lab and office fit-out from preconstruction to closeout; delivered 2 weeks early and 1.8% under budget.\n• Ran RFIs, submittals, daily logs and change orders in Procore across 34 subcontractors; RFI turnaround fell from 9 to 4 days.\n• Built and maintained the Primavera P6 baseline schedule; recovered a 3-week steel delay through resequencing.\n• Held weekly owner and architect meetings with Procore cost reports and a 3-week look-ahead.\n\nAssistant Project Manager — Shawmut Design and Construction\nBoston, MA · Aug 2018 – May 2021\n• Supported PMs on $12–25M healthcare and retail projects; owned submittal logs and buyout of 15 trade packages.\n• Tracked budgets and forecasts in Excel and Procore; flagged $400K of scope gaps before buyout.\n• Marked up drawings in Bluebeam Revu for coordination meetings and punch lists.\n\nEDUCATION\nWentworth Institute of Technology — B.S., Construction Management · Boston, MA · 2018\n\nCERTIFICATIONS\nProject Management Professional (PMP), 2023 · OSHA 30-Hour Construction · LEED Green Associate"
+}
