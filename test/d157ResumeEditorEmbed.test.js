@@ -97,7 +97,9 @@ test("d157OpensFullScreenAndReturns: one host in the app shell; Back, Esc and th
   const app = read("client/src/App.jsx");
   assert.equal((app.match(/<ResumeEditorHost \/>/g) || []).length, 1);
   const host = read("client/src/components/ResumeEditorHost.jsx");
-  assert.match(host, /window\.history\.pushState\(\{ \.\.\.\(window\.history\.state \|\| \{\}\), rmEditor: 1 \}, ""\)/, "the browser's Back closes it, the router's state kept");
+  // 45n D157 (i) (63215ace): the pushed entry now carries the editor's own address (/draft/resume/<job>) for an editable
+  // résumé — still one entry, the router's state kept, so Back still closes it (pin moved on purpose).
+  assert.match(host, /window\.history\.pushState\(\{ \.\.\.\(window\.history\.state \|\| \{\}\), rmEditor: 1 \}, "", own\)/, "the browser's Back closes it, the router's state kept");
   assert.match(host, /addEventListener\("popstate", onPop\)/);
   assert.match(host, /if \(e\.key === "Escape"\)/);
   assert.match(host, /m\.type === "close"/, "the editor's own Esc closes it");
