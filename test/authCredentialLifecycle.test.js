@@ -149,7 +149,9 @@ test("no client call site reaches /api without the tab auth context", () => {
 
   // Reviewed: the standalone tool pages are the anonymous surface. They have no signed-in identity
   // to carry, and their endpoints are in the PUBLIC list of authRouteGuardManifest.test.js.
-  const REVIEWED = /\/api\/standalone\//;
+  // ⭐ 45o (A148): /api/public/* is anonymous BY DESIGN (the open board, company pages, the search's grouped suggest) —
+  // no identity to carry; every such route is in authRouteGuardManifest's PUBLIC list.
+  const REVIEWED = /\/api\/(standalone|public)\//;
 
   const offenders = [];
   for (const file of files) {

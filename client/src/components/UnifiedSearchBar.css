@@ -308,3 +308,9 @@
 /* ⭐ D179 · the grouped dropdown (Companies · Roles · Technologies · Titles): a quiet heading per kind, a muted second part. */
 .usb__suggest-group { padding: 8px 10px 2px; font-size: 11px; font-weight: 600; color: var(--c-ink-faint); list-style: none; cursor: default; }
 .usb__suggest-sub { color: var(--c-ink-muted); font-size: 12px; }
+/* A148 (45o): the scope labels heading the dropdown — depth boxes, never capsules (D60). */
+.usb__scopes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 6px 8px; border-bottom: 1px solid var(--c-border); }
+.usb__scopes-lead { font-size: 11px; font-weight: 600; color: var(--c-ink-faint); margin-right: 2px; }
+.usb__scope { font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 8px; cursor: pointer; color: var(--c-ink); }
+.usb__scope[aria-pressed="true"] { outline: 2px solid var(--c-accent); outline-offset: 0; }
+.usb__scopes-hint { margin: 0; padding: 8px 10px; font-size: 12px; color: var(--c-ink-muted); }

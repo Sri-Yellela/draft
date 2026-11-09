@@ -10180,7 +10180,8 @@ app.post("/api/companies/:slug/follow", requireAuth, (req, res) => {
   res.json({ following: req.body?.on !== false });
 });
 app.get("/api/public/suggest", publicLimit, async (req, res) => {
-  try { res.json(await publicSuggest(db, readPool, String(req.query?.q || ""))); }
+  // A148 (45o): ?kind=person|company|role|tech — the search's scope label; only that group is read.
+  try { res.json(await publicSuggest(db, readPool, String(req.query?.q || ""), { kind: String(req.query?.kind || "") || null })); }
   catch (e) { console.error("[public/suggest]", e.message); res.json({ companies: [], roles: [], technologies: [], titles: [], people: [] }); }
 });
 

@@ -66,13 +66,19 @@ async function fetchSuggestions(field, q) {
 // subcategories) · Technologies · Titles. GET /api/public/suggest answers signed in and signed out alike (no session, no
 // 401). A company opens its page; a role or a technology goes to the caller (onPickRole / onPickTech) or, with none,
 // fills the box like a title; a title fills the box exactly as before.
-async function fetchGrouped(q) {
-  const r = await fetch(`/api/public/suggest?q=${encodeURIComponent(q)}`, { headers: { Accept: "application/json" } });
+async function fetchGrouped(q, scope = null) {
+  const r = await fetch(`/api/public/suggest?q=${encodeURIComponent(q)}${scope ? `&kind=${scope}` : ""}`, { headers: { Accept: "application/json" } });
   if (!r.ok) return null;
   return r.json().catch(() => null);
 }
 // ⭐ 45n: People — public profiles only (services/peopleSearch.js), each with workplace · school so two of one name differ.
 const GROUP_WORD = { company: "Companies", person: "People", role: "Roles", tech: "Technologies", title: "Titles" };
+// ⭐ A148 (45o, owner 11-08): "a label system that users can click on to ask what they are searching for … say people,
+// company, role, stack/skill". The labels head the dropdown from the moment the box has focus; one pressed = the search
+// asks the server for ONLY that kind (`kind=`, one query, up to 10 rows; titles are not asked). Pressing it again — or
+// Backspace in an empty box — clears it.
+export const SEARCH_SCOPES = Object.freeze([["person", "People"], ["company", "Company"], ["role", "Role"], ["tech", "Stack / Skill"]]);
+const SCOPE_NOUN = { person: "people", company: "companies", role: "roles", tech: "technologies or skills" };
 
 export default function UsbSuggest({
   field,            // "title" | "location"
@@ -105,19 +111,23 @@ export default function UsbSuggest({
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const grouped = field === "title";
+  const [scope, setScope] = useState(null);     // A148: null = every kind
+  const focused = useRef(false);
 
   useEffect(() => {
     if (selfEdit.current) { selfEdit.current = false; return; }
     const q = (value || "").trim();
-    if (q.length < MIN_CHARS) { setItems([]); setOpen(false); setActive(-1); return; }
+    // A148: an empty box with focus still shows the labels (the dropdown opens on them).
+    if (q.length < MIN_CHARS) { setItems([]); setOpen(grouped && focused.current); setActive(-1); return; }
     if (unauthorised.current && !grouped) return;
 
     const mine = ++seq.current;
     const timer = setTimeout(async () => {
       try {
         const [d, g] = await Promise.all([
-          unauthorised.current ? { suggestions: [] } : fetchSuggestions(field, q),
-          grouped && q.length >= 2 ? fetchGrouped(q).catch(() => null) : null,
+          // A148: a scope asks only the grouped endpoint, for that one kind.
+          unauthorised.current || (grouped && scope) ? { suggestions: [] } : fetchSuggestions(field, q),
+          grouped && q.length >= 2 ? fetchGrouped(q, scope).catch(() => null) : null,
         ]);
         if (mine !== seq.current) return;               // a newer keystroke already won
         if (d.unauthorised) unauthorised.current = true;
@@ -133,15 +143,17 @@ export default function UsbSuggest({
         setItems(next);
         if (next.length) setRect(boxRef.current?.getBoundingClientRect() || null);
         // Zero suggestions is a normal state: show NOTHING. Not an error, not an empty box.
-        setOpen(next.length > 0);
+        // A148: the title box keeps its labels open while it has focus (a scope with no match says so in one line).
+        if (grouped && !next.length && focused.current) setRect(boxRef.current?.getBoundingClientRect() || null);
+        setOpen(next.length > 0 || (grouped && focused.current));
         setActive(-1);
       } catch {
         // A convenience that cannot answer is a convenience that stays quiet.
-        if (mine === seq.current) { setItems([]); setOpen(false); setActive(-1); }
+        if (mine === seq.current) { setItems([]); setOpen(grouped && focused.current); setActive(-1); }
       }
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [value, field]);
+  }, [value, field, scope]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const dismiss = useCallback(() => { setOpen(false); setActive(-1); }, []);
 
@@ -179,6 +191,8 @@ export default function UsbSuggest({
   };
 
   function onKeyDown(e) {
+    // A148: Backspace in an empty box drops the scope label before anything else.
+    if (e.key === "Backspace" && grouped && scope && !(value || "").length) { e.preventDefault(); setScope(null); return; }
     // TAB. Accepts the highlighted suggestion — and ONLY then. With nothing highlighted this does
     // not run at all, so Tab keeps its normal meaning and moves focus to the next field. A
     // typeahead that swallows Tab unconditionally makes the bar impossible to tab through.
@@ -213,7 +227,8 @@ export default function UsbSuggest({
     }
   }
 
-  const showList = open && items.length > 0 && !!rect;
+  const showList = open && (items.length > 0 || grouped) && !!rect;
+  const typed = (value || "").trim();
 
   return (
     <div className="usb__suggest" ref={boxRef}>
@@ -223,12 +238,14 @@ export default function UsbSuggest({
         onKeyDown,
         // Rows commit on pointerdown with preventDefault, so the input never loses focus to them and
         // this cannot close the list out from under a click.
-        onBlur: () => dismiss(),
+        onBlur: () => { focused.current = false; dismiss(); },
         onFocus: () => {
-          if (!items.length) return;
+          focused.current = true;
+          if (!items.length && !grouped) return;   // A148: the title box opens on its labels
           setRect(boxRef.current?.getBoundingClientRect() || null);
           setOpen(true);
         },
+        "data-search-scope": grouped && scope ? scope : undefined,
         role: "combobox",
         "aria-expanded": showList,
         "aria-controls": showList ? listId : undefined,
@@ -247,6 +264,25 @@ export default function UsbSuggest({
           tier={Z.SEARCH_DROPDOWN}
           style={{ minWidth: Math.max(240, Math.round(rect.width)), maxWidth: 360, padding: 6 }}
         >
+          {grouped && (
+            // A148: the scope labels. pointerdown + preventDefault, like the rows: the box keeps focus.
+            <div className="usb__scopes" role="group" aria-label="Search for" data-search-scopes="">
+              <span className="usb__scopes-lead">Search for</span>
+              {SEARCH_SCOPES.map(([k, word]) => (
+                <button key={k} type="button" className="usb__scope dbx-depth" aria-pressed={scope === k} data-scope={k}
+                  onPointerDown={(e) => { e.preventDefault(); setScope((s) => (s === k ? null : k)); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setScope((s) => (s === k ? null : k)); } }}>
+                  {word}
+                </button>
+              ))}
+            </div>
+          )}
+          {grouped && !items.length && (
+            <p className="usb__scopes-hint" data-search-hint="">
+              {typed.length >= 2 ? `No ${scope ? SCOPE_NOUN[scope] : "matches"} for “${typed}”.`
+                : scope ? `Type a name to search ${SCOPE_NOUN[scope]} only.` : "Pick one to search only that, or just type."}
+            </p>
+          )}
           <ul className="usb__suggest-list" id={listId} role="listbox" aria-label={
             field === "location" ? "Location suggestions" : "Job title suggestions"
           }>
