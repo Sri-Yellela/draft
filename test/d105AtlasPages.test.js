@@ -303,7 +303,8 @@ test("D105 P4 · Admin → Data → Atlas lists the drafts and publishes them; t
   const data = ADMIN_GROUPS.find(g => g.id === "data");
   assert.ok(data.sections.some(([id, label]) => id === "atlas" && label === "Atlas"));
   const panel = read("client/src/panels/AdminPanel.jsx");
-  assert.match(panel, /\{at\("data", "atlas"\) && <AtlasTab\/>\}/);
+  // 45q D185-3 (pin moved on purpose): the Atlas tab now also draws the content backlog beside it.
+  assert.match(panel, /\{at\("data", "atlas"\) && <><AtlasTab\/><AtlasBacklogSection\/><\/>\}/);
   const tab = read("client/src/panels/adminAtlas.jsx");
   assert.match(tab, /api\(`\/api\/admin\/atlas\$\{status \? `\?status=\$\{status\}` : ""\}`\)/);
   assert.match(tab, /`\/api\/admin\/atlas\/\$\{encodeURIComponent\(r\.slug\)\}\/status`, \{ method: "POST", body: JSON\.stringify\(\{ status: next \}\) \}/);
