@@ -248,12 +248,18 @@ try {
       say("cpage", r.ok, `a board row's company name → ${r.u} (still there after 3 s: ${r.ok})`);
       await shot(A, "cpage-from-row");
     }
-    // the deck card's company name (the front card)
-    await A.goto(`${BASE}/app/jobs`, { waitUntil: "networkidle2", timeout: 60000 });
-    await A.waitForSelector("[data-deck-head] a[data-company-link]", { timeout: 20000 }).catch(() => {});
-    const deckCo = await A.evaluate(() => { const a = document.querySelector("[data-deck-head] a[data-company-link]"); if (!a) return null; const t = a.textContent.trim(); a.click(); return t; });
-    if (!deckCo) say("cpage", false, "no company link on the deck card");
-    else { await sleep(3000); const u = A.url().replace(BASE, ""); say("cpage", /^\/app\/companies\//.test(u), `the deck card's company name (${deckCo}) → ${u} (still there after 3 s)`); await shot(A, "cpage-from-deck"); }
+    // the deck card's company name (the front card)
+
+    await A.goto(`${BASE}/app/jobs`, { waitUntil: "networkidle2", timeout: 60000 });
+
+    await A.waitForSelector("[data-deck-head] a[data-company-link]", { timeout: 20000 }).catch(() => {});
+
+    const deckCo = await A.evaluate(() => { const a = document.querySelector("[data-deck-head] a[data-company-link]"); if (!a) return null; const t = a.textContent.trim(); a.click(); return t; });
+
+    if (!deckCo) say("cpage", false, "no company link on the deck card");
+
+    else { await sleep(3000); const u = A.url().replace(BASE, ""); say("cpage", /^\/app\/companies\//.test(u), `the deck card's company name (${deckCo}) → ${u} (still there after 3 s)`); await shot(A, "cpage-from-deck"); }
+
     // the board box's scope labels: Company → type → only companies suggested → Enter opens the page
     await A.goto(`${BASE}/app/jobs`, { waitUntil: "networkidle2", timeout: 60000 }); await sleep(1200);
     const box = await A.$(".fh-srch input");
@@ -272,6 +278,38 @@ try {
       say("cpage", r.ok, `Enter with the Company label → ${r.u} (still there after 3 s: ${r.ok})`);
       await shot(A, "cpage-from-scoped-enter");
     }
+  }
+
+  // ── D186 · the owner's walk, rehearsed: a test account, Maya's résumé → the profile fills itself, the job profile exists ──
+  if (want("d186")) {
+    const C = await pageOf(await browser.createBrowserContext());
+    await register(C, "canary");
+    db.prepare(`UPDATE users SET test_account = 1 WHERE username = 'walk-canary'`).run();
+    const maya = JSON.parse(fs.readFileSync("content/trial/sample-g.json", "utf8"));
+    const up = await api(C, "/api/domain-profiles/from-resume", "POST", { content: maya.resumeText, name: "sample-frontend-swe-maya-chen.pdf" });
+    const prof = (await api(C, "/api/profile")).body || {};
+    const filled = JSON.parse(prof.resume_filled_json || "[]");
+    say("d186", up.status === 200 && prof.full_name === "Maya Chen" && /maya-chen-sample/.test(prof.linkedin_url || "") && prof.city === "Boston"
+      && /Software Engineer II/.test(prof.current_job_title || "") && prof.current_company === "Toast" && Number(prof.years_of_experience) > 0,
+      `filled: ${prof.full_name} · ${prof.email} · ${prof.phone} · ${prof.city}, ${prof.state} · ${prof.current_job_title} at ${prof.current_company} · ${prof.years_of_experience} yrs (${filled.length} marked from your résumé)`);
+    say("d186", [prof.visa_type, prof.desired_salary, prof.available_start_date].every(v => v == null || v === ""), "visa / salary / start date never inferred");
+    const jp = db.prepare(`SELECT profile_name, is_active FROM domain_profiles WHERE user_id = (SELECT id FROM users WHERE username = 'walk-canary')`).all();
+    say("d186", jp.length === 1 && jp[0].is_active === 1 && jp[0].profile_name === "Frontend software engineering · mid", `the job profile: ${JSON.stringify(jp)}`);
+    await C.goto(`${BASE}/app/profile/about`, { waitUntil: "networkidle2", timeout: 60000 }); await sleep(2000);
+    const t = await text(C);
+    say("d186", /4 things your résumé can't tell us/.test(t), `the four-things card on Profile: ${/4 things your résumé can't tell us/.test(t)}`);
+    await shot(C, "d186-profile");
+    await C.evaluate(() => { const d = document.querySelector("details"); if (d) d.open = true; document.querySelector('[data-behind-row="contact"] button, [data-behind-row="contact"] summary')?.click(); });
+    await sleep(1500);
+    const marks = await C.$$eval("[data-from-resume]", els => els.length);
+    say("d186", marks >= 5, `Behind your profile → contact: ${marks} fields marked "from your résumé"`);
+    await shot(C, "d186-contact");
+    await C.evaluate(() => document.querySelector('[data-behind-row="resumes"] button, [data-behind-row="resumes"] summary')?.click());
+    await sleep(1500);
+    const act = await C.evaluate(() => document.querySelector("[data-active-job-profile]")?.innerText || "");
+    say("d186", /Frontend software engineering · mid/.test(act) && !/None selected/.test(act), `the active job profile line: "${act.slice(0, 90)}"`);
+    const kw = await api(C, `/api/domain-profiles/${db.prepare(`SELECT id FROM domain_profiles WHERE user_id = (SELECT id FROM users WHERE username = 'walk-canary')`).pluck().get()}/keywords`);
+    say("d186", (kw.body?.terms || []).some(x => /react/i.test(x.term) && x.source === "exact"), `Skills and keywords: ${(kw.body?.terms || []).slice(0, 6).map(x => `${x.term} (${x.source} ${x.weight})`).join(", ")}`);
   }
 
   // ── M-7 · the three-sample walk (D184's test set G–I), as a rehearsal: Maya → Daniel → Elena → Undo back to Daniel ──────

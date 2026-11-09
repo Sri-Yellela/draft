@@ -1,7 +1,7 @@
 // SCRAPING — SCHEDULED FOR REMOVAL AFTER MIGRATION
 // routes/domainProfiles.js — Domain profile CRUD + chip generation
 import { keywordTerms, removedTerms, setTermRemoved, WEIGHTS } from "../services/keywordTerms.js";   // D186-4
-import { profileNameFromPlacement, nameAndTitlesFromPlacement, fillExtras } from "../services/resumeSetup.js";   // D186
+import { profileNameFromPlacement, nameAndTitlesFromPlacement, fillExtras, fillSampleOnTestAccount } from "../services/resumeSetup.js";   // D186
 import { pauseOnFamilyMove, storedPlacement, placeText } from "../services/placement.js";   // (B)-3 · D186
 import { taxonomy } from "../services/jobs/taxonomyClassify.js";   // D186-3: the preview's names
 import { Router }        from "express";
@@ -483,6 +483,9 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
         if (profile.is_active) { try { refill = refillFromResume(db, req.user.id); sections = !!refill.ok; } catch (e) { console.warn("[d183] sections refill:", e.message); } }
         // ⭐ D186-1: current title / company, years, country, portfolio — under the same never-overwrite-a-typed-value rule.
         try { fields = [...fields, ...fillExtras(db, req.user.id, content, { oldText })]; } catch (e) { console.warn("[d186] extras:", e.message); }
+      }
+      // ⭐ D186-6: on a test account a sample re-upload shows the sample's own details (real accounts: never).
+      { try { fields = [...fields, ...fillSampleOnTestAccount(db, req.user.id, content)]; } catch (e) { console.warn("[d186] test sample:", e.message); }
       }
     }
     // ⭐ D183 P2: What changed — recorded with the snapshot, shown on Your profile with Looks right · Undo · Review each change.

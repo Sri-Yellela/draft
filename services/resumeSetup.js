@@ -20,6 +20,8 @@
 import { taxonomy } from "./jobs/taxonomyClassify.js";
 import { storedPlacement, ownRoles } from "./placement.js";
 import { yearsOfWork } from "./resumeOnboarding.js";
+import { prefillFromResumeText, PREFILL_FIELDS } from "../shared/resumePrefill.js";
+import { sampleIdForText } from "./sampleResumes.js";
 
 const safe = (fn, d) => { try { return fn(); } catch { return d; } };
 const lower = (s) => String(s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -87,6 +89,32 @@ export function fillExtras(db, userId, text, { oldText = null } = {}) {
     if (cur === String(v)) continue;
     db.prepare(`UPDATE user_profile SET ${f} = ? WHERE user_id = ?`).run(String(v), userId);
     written.push(f);
+  }
+  recordFilled(db, userId, written);
+  return written;
+}
+
+/**
+ * ⭐ D186-6 (owner 11-09: "the canary can test it"): on a TEST account (users.test_account = 1) a recognised sample résumé
+ * (D184's — fictional people) REPLACES the contact and form fields, even ones already set at sign-up, so the owner's canary
+ * shows the sample's own details after a re-upload. Every other account keeps A140's rule (a typed value is never
+ * overwritten; a trial sample fills nothing). → fields written
+ */
+export function fillSampleOnTestAccount(db, userId, text) {
+  if (!isTestAccount(db, userId) || !sampleIdForText(text)) return [];
+  db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
+  const row = db.prepare("SELECT * FROM user_profile WHERE user_id = ?").get(userId) || {};
+  const p = prefillFromResumeText(text), ex = resumeExtras(db, userId, text);
+  const written = [];
+  for (const f of [...PREFILL_FIELDS, ...EXTRA_FIELDS]) {
+    const v = p[f]?.value ?? ex[f];
+    if (!v || !(f in row) || String(row[f] ?? "") === String(v)) continue;
+    db.prepare(`UPDATE user_profile SET ${f} = ? WHERE user_id = ?`).run(String(v), userId);
+    written.push(f);
+  }
+  if (written.includes("city") || written.includes("state")) {
+    const r = db.prepare("SELECT city, state FROM user_profile WHERE user_id = ?").get(userId) || {};
+    if ("location" in row) db.prepare("UPDATE user_profile SET location = ? WHERE user_id = ?").run([r.city, r.state].filter(Boolean).join(", "), userId);
   }
   recordFilled(db, userId, written);
   return written;
