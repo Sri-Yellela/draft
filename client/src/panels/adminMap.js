@@ -13,6 +13,7 @@ export const ADMIN_GROUPS = Object.freeze([
   ] },
   { id: "board", label: "The board", question: "What is on it, and why?", sections: [
     ["companies", "Companies and candidates"], // #9
+    ["records", "Company records"],            // A142 (45o): counts, postings with no record, likely duplicates, the review queue
     ["scope", "Scope and age"],                // #5
     ["crawler", "Crawler"],                    // #14
     ["harvest", "Slug harvest"],               // #10
