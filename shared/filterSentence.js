@@ -14,6 +14,10 @@ import { EXPERIENCE_LEVELS, WORK_MODELS, POSTING_AGE, COMPANY_SPONSORSHIP } from
 // D30 · the two open-set dimensions, over the D29 tag layer.
 import { JOB_FUNCTIONS, PLACES } from "./jobTagVocabulary.js";
 import { ATS_BAND, ATS_BAND_LABELS } from "./atsBands.js";
+// ⭐ A145 (45o): the technology clause's options — the posting scanner's own vocabulary (job_tech is written from it).
+import { TECHNOLOGIES } from "./techVocabulary.js";
+export const TECHNOLOGY = Object.freeze({ param: "tech", multi: false,
+  options: Object.freeze(TECHNOLOGIES.map(([name]) => Object.freeze({ value: name, label: name }))) });
 
 // ── The fit filter — a new dimension ────────────────────────────────────────────────────────────
 //
@@ -73,11 +77,23 @@ export const SENTENCE_CLAUSES = Object.freeze([
   { key: "fit",      dim: FIT_BANDS,         label: "Fit",       permanent: false, any: "any fit", panelAny: "any fit" },
   // ⭐ A109 (owner 11-01): sponsorship as a filter — optional, appended only when set, like posted and fit.
   { key: "sponsorship", dim: COMPANY_SPONSORSHIP, label: "Sponsorship", permanent: false, any: "any employer", panelAny: "any employer" },
+  // ⭐ A145 (45o, the D179 sketch's (a)): "using [Go]" — optional, appended when set; its panel is the technologies with
+  // true counts (the facets' `tech` clause: a posting counts only when its own text names it — job_tech).
+  { key: "tech", dim: TECHNOLOGY, label: "Technology", permanent: false, any: "any technology", panelAny: "any technology" },
 ]);
 /** D37 · the verb, lower-case like the wordmark. */
 export const SENTENCE_VERB = Object.freeze({ showing: "discovering", nothing: "nothing matches" });
 // The four closed sets cycle or open an inline list; the two OPEN sets need a picker (D30).
-export const OPEN_SET_CLAUSES = Object.freeze(["domain", "location"]);
+/**
+ * ⭐ A145 (45o) · the role word as the D179 sketch draws it: "Backend · Software engineering" (subcategory · category). A
+ * subcategory whose name already carries its category ("Software engineering · general") reads alone. null when none.
+ */
+export function roleWord(opt) {
+  if (!opt?.label) return null;
+  if (!opt.group || opt.label.toLowerCase().includes(String(opt.group).toLowerCase())) return opt.label;
+  return `${opt.label} · ${opt.group}`;
+}
+export const OPEN_SET_CLAUSES = Object.freeze(["domain", "location", "tech"]);   // A145: + the technologies (a find box)
 
 // The words each value reads as IN THE SENTENCE (labels are for the dials). Keyed by the dimension's
 // own values, so a value added to a dimension without a word here is caught by the D30 test.
@@ -87,7 +103,8 @@ export const SENTENCE_WORDS = Object.freeze({
   posted: { "1d": "posted today", "2d": "posted in the last 2 days", "3d": "posted in the last 3 days",
             "1w": "posted this week", "1m": "posted this month", visit: "new since your last visit" },
   fit: { [ATS_BAND.STRONG]: "strong", [ATS_BAND.MODERATE]: "moderate", [ATS_BAND.WEAK]: "weak" },
-  sponsorship: { filed: "at employers with H-1B filings", 1: "hiding employers with no H-1B record" },
+  // ⭐ A145 (45o): the sketch's words — "at companies that [have sponsored H-1B]" (the same filter: H-1B filings on record).
+  sponsorship: { filed: "at companies that have sponsored H-1B", 1: "hiding employers with no H-1B record" },
 });
 
 // ⛔ D153 (2) · REMOTE (US) IN THE LOCATION PANEL: the workplace option a remote posting with no city is counted under,
@@ -180,6 +197,10 @@ export function slotText(clause, params = {}, { defaultDomain = null } = {}) {
     case "sponsorship":
       text = !active ? clause.any : (SENTENCE_WORDS.sponsorship[chosen[0]] ?? chosen[0]);
       break;
+    case "tech":
+      // A145: the token is the technology alone; "using" is the connective before it.
+      text = !active ? clause.any : (optionOf(chosen[0])?.label ?? chosen[0]);
+      break;
     default:
       text = active ? or(chosen) : clause.any;
   }
@@ -192,9 +213,10 @@ export function slotText(clause, params = {}, { defaultDomain = null } = {}) {
  * reader can see which one to loosen (D30) — "this board has emptied four times".
  */
 // D37 · the sentence's own order — domain, level, workplace, location — then the optional two.
-export const SENTENCE_ORDER = Object.freeze(["domain", "level", "where", "location", "posted", "fit", "sponsorship"]);
+// ⭐ A145 (45o): "…in [Boston], using [Go], at companies that have sponsored H-1B" — the sketch's order.
+export const SENTENCE_ORDER = Object.freeze(["domain", "level", "where", "location", "tech", "posted", "fit", "sponsorship"]);
 // The words BEFORE each slot (after the verb), and after it — its noun, from slotNoun.
-const LEAD = Object.freeze({ domain: " ", level: " at ", where: " and ", location: " in ", posted: ", ", fit: ", ", sponsorship: ", " });
+const LEAD = Object.freeze({ domain: " ", level: " at ", where: " and ", location: " in ", tech: ", using ", posted: ", ", fit: ", ", sponsorship: ", " });
 
 export function sentenceParts(params = {}, { defaultDomain = null, nothingMatches = false } = {}) {
   const byKey = Object.fromEntries(SENTENCE_CLAUSES.map(c => [c.key, c]));

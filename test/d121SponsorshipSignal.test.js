@@ -267,7 +267,7 @@ test("A109 · sponsorship is a board FILTER (the sentence's optional clause, cou
   const clause = SENTENCE_CLAUSES.find(c => c.key === "sponsorship");
   assert.ok(clause && !clause.permanent, "optional: appended only when set");
   assert.equal(sentenceText({ company_sponsorship: "filed" }),
-    "discovering all roles at all career levels and all workstyles in the United States, at employers with H-1B filings.");
+    "discovering all roles at all career levels and all workstyles in the United States, at companies that have sponsored H-1B.");   // A145 (45o, on purpose): the D179 sketch's words
   assert.equal(sentenceText({}), "discovering all roles at all career levels and all workstyles in the United States.", "unset: not in the sentence");
   assert.equal(panelWord(clause, "filed"), "employers with H-1B filings");
   assert.ok(isValid(COMPANY_SPONSORSHIP, "filed") && isValid(COMPANY_SPONSORSHIP, "1"), "the older value still accepted");

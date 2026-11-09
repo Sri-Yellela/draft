@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   sentenceClauses, isOpenSet, isWordPanel, panelKey, panelRows, panelPress, panelNote, addRows,
-  BOARD_PANEL, facetsUsable,
+  BOARD_PANEL, facetsUsable, TECHNOLOGY,
 } from "../lib/filterSentenceModel.js";
 import { SENTENCE_ID, PANEL_ID } from "./BoardHeadline.jsx";
 import "./FullHouse.css";
+
+/** A145: how many technologies the panel shows before the find box is used. */
+export const TECH_SHOWN = 40;
 
 // ── D35 · THE ONE PANEL A FILTER WORD OPENS — directly beneath the sentence ──────────────────────────
 //
@@ -108,16 +111,38 @@ function ClauseOptions({ clause, params, facets, defaultDomain, find, setFind, o
     const opts = all.filter(r => r.kind === "option")
       .sort((a, b) => (b.selected - a.selected) || ((b.count ?? 0) - (a.count ?? 0)));
     const q = find.trim().toLowerCase();
-    return [...head, ...(q ? opts.filter(r => r.label.toLowerCase().includes(q)) : opts), ...tail];
+    // ⭐ A145 (45o): the technologies are ~180 — unsearched, the TECH_SHOWN most-posted (and the chosen one) show; the find
+    // box reaches every one. A zero still sinks and dims.
+    const found = q ? opts.filter(r => r.label.toLowerCase().includes(q))
+      : clause.dim === TECHNOLOGY ? opts.filter((r, i) => r.selected || i < TECH_SHOWN) : opts;
+    return [...head, ...found, ...tail];
   }, [clause, params, facets, defaultDomain, openSet, find]);
-  const findLabel = clause.key === "location" ? "Find a city or state" : "Find a kind of work";
-  return (
+  const findLabel = clause.key === "location" ? "Find a city or state" : clause.dim === TECHNOLOGY ? "Find a technology" : "Find a kind of work";
+  const options = (
     <>
       {openSet && (
         <input className="fh-find" type="search" value={find} onChange={e => setFind(e.target.value)}
           placeholder={findLabel} aria-label={findLabel} />
       )}
       <PanelOptions clause={clause} rows={rows} params={params} onPatch={onPatch} openSet={openSet} noteId={noteId} />
+    </>
+  );
+  // ⭐ A145 (45o, the D179 sketch's (a): "the role part is the Category → Subcategory picker with true counts"): in the
+  // domain word's panel the ROLE picker comes first; the older kinds of work stay below it (extends, never replaces).
+  if (clause.key === "domain" && (facets?.clauses?.role || []).some(o => o.count > 0)) {
+    return (
+      <>
+        <RolePicker params={params} facets={facets} onPatch={onPatch} />
+        <div className="fh-addrow" data-domain-kinds="">
+          <span className="fh-k">Or by kind of work</span>
+          {options}
+        </div>
+      </>
+    );
+  }
+  return (
+    <>
+      {options}
       {clause.key === "domain" && <RolePicker params={params} facets={facets} onPatch={onPatch} />}
     </>
   );

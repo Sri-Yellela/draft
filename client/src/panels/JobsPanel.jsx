@@ -13,6 +13,7 @@ import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { DECISIONS, DECISION_SURFACES, DECISION_TOAST_MS, commitDecision, undoDecision, undoFlagsFor, flagsFor, isDrafted, draftBlock } from "../lib/jobDecisions.js";
 import { PREREQUISITE_LABELS } from "../lib/applyObstacles.js";
 import { companyRows, companyNotice, matchCompany } from "../../../shared/companyIdentity.js";
+import { roleWord } from "../../../shared/filterSentence.js";   // A145: "Backend · Software engineering"
 import { eligibilityNotice, statedEligibility } from "../../../shared/postingRequirements.js";
 import DecisionToast from "../components/DecisionToast.jsx";
 import { useTheme } from "../styles/theme.jsx";
@@ -2640,7 +2641,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // D179 (a): the chosen role's own words for the sentence, from the facets' role options.
     const roleOpt = (facets.data?.clauses?.role || []).find(o => o.value === taxRole.subcategory)
       || (taxRole.category ? (facets.data?.clauses?.role || []).find(o => o.groupId === taxRole.category) : null);
-    const roleLabel = taxRole.subcategory ? (roleOpt?.label || null) : taxRole.category ? (roleOpt?.group || null) : null;
+    const roleLabel = taxRole.subcategory ? roleWord(roleOpt) : taxRole.category ? (roleOpt?.group || null) : null;
     setBoardHeadline?.({ params: { ...clauseParams, role_label: roleLabel }, defaultDomain, nothingMatches,
       facets: facets.data, facetsStatus: facets.status, otherFilterCount,
       onPatch: onClausePatch, onMoreFilters });

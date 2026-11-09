@@ -37,6 +37,7 @@ import { fitBandsSql, FIT_SCORE_SQL } from "./jobCursor.js";
 import { JOB_FUNCTIONS, PLACES } from "../../shared/jobTagVocabulary.js";
 import { placesFilterSql, placeFacetCounts, LEVEL_SQL, WORKPLACE_SQL, EMPLOYMENT_SQL } from "./tagFilters.js";
 import { taxonomy } from "./taxonomyClassify.js";
+import { TECHNOLOGY } from "../../shared/filterSentence.js";   // A145: the technology clause's options
 
 // ⭐ D179 (a) (45l) · THE ROLE — the approved taxonomy's subcategories (not the held categories, not the "general" ones), each
 // with its category as `group`. Read once; a missing / unapproved taxonomy gives no role options (counts stay honest).
@@ -147,6 +148,24 @@ export function facetClauses({ nowSec, visitSinceSec = null }) {
         const p = { sql: `(${signalSql("sj").filed})`, params: [] };
         return { value: o.value, label: o.label, count: p, known: p };
       }),
+    },
+    // ⭐ A145 (45o, the D179 sketch's "using [Go]") · THE TECHNOLOGY — job_tech (the technologies each posting's own text
+    // names; D179 P5a). HARD like the role: a posting counts under a technology only when it names it (known === count).
+    // ONE grouped read over the board's own bindings, whatever the vocabulary's size.
+    {
+      key: "tech",
+      remove: [TECHNOLOGY.param],
+      options: TECHNOLOGY.options,
+      compute: async (ctx) => {
+        const { joinClause, whereClause, baseArgs } = ctx;
+        let rows = [];
+        try {
+          rows = await readerOf(ctx).all(`SELECT jtt.tech AS t, COUNT(*) AS n ${joinClause}
+              JOIN job_tech jtt ON jtt.job_id = sj.job_id ${whereClause} GROUP BY jtt.tech`, baseArgs);
+        } catch { rows = []; }   // no job_tech yet (an old copy): every technology counts 0, never a guess
+        const by = new Map(rows.map(r => [r.t, r.n]));
+        return Object.fromEntries(TECHNOLOGY.options.flatMap((o, i) => [[`c${i}`, by.get(o.value) || 0], [`k${i}`, by.get(o.value) || 0]]));
+      },
     },
     // ⭐ D179 (a) (45l) · THE ROLE, Category → Subcategory (job_taxonomy, D179 P2) — the facets' one clause that is not a
     // sentence clause of its own (the domain word reads it). HARD: a posting counts under a role only when it was classified

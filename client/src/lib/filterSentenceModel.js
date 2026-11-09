@@ -15,11 +15,11 @@
 // footer drops its number, and nothing is dimmed or warned about — "unknown" is never drawn as zero.
 import {
   SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, wouldEmpty, activeClauseCount,
-  OPEN_SET_CLAUSES, chosenValues, slotText, sentenceParts, sentenceText, panelWord, panelAnyWord, LOCATION_REMOTE,
+  OPEN_SET_CLAUSES, chosenValues, slotText, sentenceParts, sentenceText, panelWord, panelAnyWord, LOCATION_REMOTE, TECHNOLOGY,
 } from "../../../shared/filterSentence.js";
 import { SORTS, POSTING_AGE } from "../../../shared/jobFilterOptions.js";
 
-export { SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, activeClauseCount, OPEN_SET_CLAUSES, slotText, sentenceParts, sentenceText };
+export { SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, activeClauseCount, OPEN_SET_CLAUSES, slotText, sentenceParts, sentenceText, TECHNOLOGY };
 
 // ── D35 · ONE PANEL, OPENED BY A WORD ────────────────────────────────────────────────────────────
 //

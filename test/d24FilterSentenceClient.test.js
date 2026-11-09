@@ -203,9 +203,10 @@ test("D24: NO FACETS ANSWER, NO NUMBERS — a 404 draws no counts, no dims, no w
 
 test("D30 → D35: THE SENTENCE IS A PROJECTION — four permanent words, posted/fit append only when set, same words when nothing matches", async () => {
   // ⭐ A109 (owner 11-01): sponsorship joins as an optional clause, appended only when set, like posted and fit.
-  assert.deepEqual(SENTENCE_CLAUSES.map(c => c.key), ["domain", "level", "location", "where", "posted", "fit", "sponsorship"]);
+  // ⭐ A145 (45o, on purpose): + tech ("using [Go]"), optional like posted / fit / sponsorship.
+  assert.deepEqual(SENTENCE_CLAUSES.map(c => c.key), ["domain", "level", "location", "where", "posted", "fit", "sponsorship", "tech"]);
   assert.equal(SENTENCE_CLAUSES.filter(c => c.permanent).length, SENTENCE_CAP, "four permanent slots");
-  assert.equal(sentenceClauses().length, 7);
+  assert.equal(sentenceClauses().length, 8);
   // ⭐ D37 (owner, 10-06): the sentence, verbatim — the connectives do the commas' work, the `d` is
   // lower-case like the wordmark.
   assert.equal(sentenceText({}), "discovering all roles at all career levels and all workstyles in the United States.");
