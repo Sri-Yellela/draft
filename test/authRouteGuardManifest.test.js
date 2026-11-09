@@ -126,6 +126,8 @@ const ADMIN = new Set([
   "GET /api/admin/company-records/health",   // A142 (45o)
   "GET /api/admin/network",   // D180 P1 (45o): the network switch + counts
   "PUT /api/admin/network",
+  "GET /api/admin/network/reports",   // D180 P2: the moderation queue
+  "POST /api/admin/network/reports/:id",
   "GET /api/admin/company-records/:id/stack",
   "POST /api/admin/company-records/review/:id",
   "GET /api/admin/board/taxonomy",
@@ -226,6 +228,14 @@ const AUTHENTICATED = new Set([
   "GET /api/network/relation/:handle",
   "POST /api/network/request",
   "POST /api/network/:handle/:action",
+  // D180 P2: messages — requireAuth + the switch; a thread / message id is read only as the signed-in person's own
+  // (services/network/messages.js threadFor: not one of its two people → 404).
+  "GET /api/network/messages",
+  "POST /api/network/messages",
+  "GET /api/network/messages/:threadId",
+  "POST /api/network/messages/:threadId/:action",
+  "POST /api/network/message/:messageId/hide",
+  "POST /api/network/report",
   // 45l–45n (classified 45o): D183 the profile page + replace / undo, D154 P9 stack exposure + the daily reminder — requireAuth,
   // every one scoped by req.user.id (an :id another person owns is not found under this user).
   "GET /api/profile/page",

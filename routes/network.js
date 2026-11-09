@@ -14,10 +14,12 @@ import { networkEnabled, NETWORK_SETTING, requestConnection, respond, removeConn
   from "../services/network/connections.js";
 import { setSetting } from "../services/appSettings.js";
 import { auditActorColumns } from "../services/actor.js";
+import { sendMessage, myThreads, readThread, answerRequest, hideMessage, muteThread, report, reportQueue, resolveReport }
+  from "../services/network/messages.js";   // D180 P2
 
 const ACTIONS = new Set(["accept", "decline", "withdraw", "remove", "block", "unblock"]);
 
-export default function networkRoutes(app, db, { requireAuth, requireAdmin }) {
+export default function networkRoutes(app, db, { requireAuth, requireAdmin, box = null }) {
   // The switch is an admin action, recorded like every other (admin_audit_log).
   const audit = (req, action, after) => {
     const a = auditActorColumns(req.user?.id ?? null);
@@ -56,12 +58,55 @@ export default function networkRoutes(app, db, { requireAuth, requireAdmin }) {
     } catch (e) { fail(res, e); }
   });
 
+  // ⭐ D180 P2 (45o) · messages — sealed at rest (box), strangers in Requests, report on everything. Behind the switch.
+  const needBox = (res) => { if (!box) { res.status(503).json({ error: "no_box", message: "Messages aren't available." }); return false; } return true; };
+  app.get("/api/network/messages", requireAuth, gate, (req, res) => {
+    if (!needBox(res)) return;
+    try { res.set("Cache-Control", "private, no-store").json(myThreads(db, box, req.user.id)); } catch (e) { fail(res, e); }
+  });
+  app.post("/api/network/messages", requireAuth, gate, (req, res) => {
+    if (!needBox(res)) return;
+    try { res.json(sendMessage(db, box, req.user.id, { to: req.body?.to, text: req.body?.text ?? null, jobId: req.body?.jobId ?? null })); } catch (e) { fail(res, e); }
+  });
+  app.get("/api/network/messages/:threadId", requireAuth, gate, (req, res) => {
+    if (!needBox(res)) return;
+    try { res.set("Cache-Control", "private, no-store").json(readThread(db, box, req.user.id, req.params.threadId, { before: req.query?.before ?? null })); } catch (e) { fail(res, e); }
+  });
+  app.post("/api/network/messages/:threadId/:action", requireAuth, gate, (req, res) => {
+    const a = req.params.action;
+    try {
+      if (a === "accept" || a === "decline") return res.json(answerRequest(db, req.user.id, req.params.threadId, a === "accept"));
+      if (a === "mute" || a === "unmute") return res.json(muteThread(db, req.user.id, req.params.threadId, a === "mute"));
+      return res.status(404).json({ error: "no_such_action" });
+    } catch (e) { fail(res, e); }
+  });
+  app.post("/api/network/message/:messageId/hide", requireAuth, gate, (req, res) => {
+    try { res.json(hideMessage(db, req.user.id, req.params.messageId)); } catch (e) { fail(res, e); }
+  });
+  app.post("/api/network/report", requireAuth, gate, (req, res) => {
+    try { res.json(report(db, req.user.id, req.body || {})); } catch (e) { fail(res, e); }
+  });
+  // The moderation queue (Admin). Reading a REPORTED message is the one read of a message anyone but its two people makes.
+  app.get("/api/admin/network/reports", requireAdmin, (req, res) => {
+    if (!needBox(res)) return;
+    try { res.set("Cache-Control", "no-store").json({ reports: reportQueue(db, box, { status: req.query?.status }) }); } catch (e) { fail(res, e); }
+  });
+  app.post("/api/admin/network/reports/:id", requireAdmin, (req, res) => {
+    try {
+      const out = resolveReport(db, req.params.id, { status: req.body?.status, note: req.body?.note ?? null, removeMessage: req.body?.removeMessage === true });
+      try { audit(req, "network_report", { report: Number(req.params.id), status: req.body?.status, removeMessage: req.body?.removeMessage === true }); } catch { /* resolved either way */ }
+      res.json(out);
+    } catch (e) { fail(res, e); }
+  });
+
   app.get("/api/admin/network", requireAdmin, (_req, res) => {
     const one = (sql) => { try { return db.prepare(sql).pluck().get(); } catch { return null; } };
     res.json({ enabled: networkEnabled(db), counts: {
       connections: one(`SELECT COUNT(*) FROM network_connections WHERE status = 'accepted'`),
       pending: one(`SELECT COUNT(*) FROM network_connections WHERE status = 'pending'`),
       blocks: one(`SELECT COUNT(*) FROM network_blocks`),
+      threads: one(`SELECT COUNT(*) FROM network_threads`),
+      reportsOpen: one(`SELECT COUNT(*) FROM network_reports WHERE status = 'open'`),
     } });
   });
   app.put("/api/admin/network", requireAdmin, (req, res) => {

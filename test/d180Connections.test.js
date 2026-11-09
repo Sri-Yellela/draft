@@ -41,7 +41,7 @@ test("the network is OFF by default and every person-facing route is gated by it
   const personRoutes = [...r.matchAll(/app\.(get|post|put)\("(\/api\/network[^"]*)", ([^)]*?)\(req/g)];
   assert.ok(personRoutes.length >= 5);
   for (const m of personRoutes) assert.match(m[3], /requireAuth, gate,/, `${m[2]} is behind the switch`);
-  assert.match(fs.readFileSync("server.js", "utf8"), /networkRoutes\(app, db, \{ requireAuth, requireAdmin \}\);/);
+  assert.match(fs.readFileSync("server.js", "utf8"), /networkRoutes\(app, db, \{ requireAuth, requireAdmin, box: SECRET_BOX \}\);/);
 });
 
 test("d180PrivateByDefault · a private page can't be asked (it reads as no one there)", () => {

@@ -7375,6 +7375,64 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // ⭐ D180 P2 (45o) · 1:1 MESSAGES, A JOB AS A CARD, REQUESTS, MUTE, REPORT — the safety pieces WITH messages, not after
+      // (the spec). Behind the network switch (OFF). A body is SEALED at rest (secretBox, AES-256-GCM: enc / iv / tag); a
+      // thread between two people who aren't connected is a REQUEST until the one asked accepts. Reports keep only a hash
+      // of the reporter (as D183's profile reports). ON DELETE CASCADE from the people — deleting an account removes its
+      // threads and messages (D180: "account deletion removes their content"). Only ADDS.
+      id: "253_network_messages",
+      sql: `
+        CREATE TABLE IF NOT EXISTS network_threads (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          low_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          high_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          status        TEXT    NOT NULL CHECK (status IN ('open', 'request')),
+          requester_id  INTEGER NOT NULL,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          last_at       INTEGER NOT NULL DEFAULT (unixepoch()),
+          UNIQUE (low_id, high_id),
+          CHECK (low_id < high_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_network_threads_high ON network_threads(high_id);
+        CREATE TABLE IF NOT EXISTS network_messages (
+          id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          thread_id      INTEGER NOT NULL REFERENCES network_threads(id) ON DELETE CASCADE,
+          sender_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          kind           TEXT    NOT NULL CHECK (kind IN ('text', 'job')),
+          body_enc       TEXT,
+          body_iv        TEXT,
+          body_tag       TEXT,
+          job_id         INTEGER,
+          removed        INTEGER NOT NULL DEFAULT 0,
+          hidden_sender  INTEGER NOT NULL DEFAULT 0,
+          hidden_other   INTEGER NOT NULL DEFAULT 0,
+          created_at     INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_network_messages_thread ON network_messages(thread_id, id);
+        CREATE TABLE IF NOT EXISTS network_reads (
+          thread_id     INTEGER NOT NULL REFERENCES network_threads(id) ON DELETE CASCADE,
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          last_read_id  INTEGER NOT NULL DEFAULT 0,
+          muted         INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (thread_id, user_id)
+        );
+        CREATE TABLE IF NOT EXISTS network_reports (
+          id                INTEGER PRIMARY KEY AUTOINCREMENT,
+          reporter_hash     TEXT    NOT NULL,
+          reported_user_id  INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          target_kind       TEXT    NOT NULL CHECK (target_kind IN ('message', 'thread', 'profile')),
+          target_id         INTEGER,
+          reason            TEXT    NOT NULL,
+          details           TEXT,
+          status            TEXT    NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'actioned', 'dismissed')),
+          note              TEXT,
+          created_at        INTEGER NOT NULL DEFAULT (unixepoch()),
+          resolved_at       INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_network_reports_status ON network_reports(status, created_at);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -15450,7 +15508,7 @@ proofPageRoutes(app, db);
 // ⭐ D183 P3: the public profile /in/<handle> — private unless the person made it public; noindex unless they said yes.
 publicProfileRoutes(app, db, { requireAdmin, dataDir: DATA_DIR, appBaseUrl });
 // ⭐ D180 P1 (45o): connections — every person-facing route 404s until the owner turns the network on (after counsel).
-networkRoutes(app, db, { requireAuth, requireAdmin });
+networkRoutes(app, db, { requireAuth, requireAdmin, box: SECRET_BOX });
 // ⭐ D113 P3: the picks confirm page /p/confirm/<token> (a GET never acts; the POST does, once) and the picks API.
 picksConfirmRoutes(app, db, requireAuth, { secret: PICKS_SECRET, startPickRun: applyLine.startPickRun, saveAnswers: applyLine.saveAnswers,
   generateResume: generateResumeForApply });
