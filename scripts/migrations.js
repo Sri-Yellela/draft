@@ -7088,4 +7088,43 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_network_reports_status ON network_reports(status, created_at);
       `,
     },
+    {
+      // ⭐ D172 (4) / A154 (45s, owner 11-08: "build league and challenges, can merge them later") · THIS WEEK'S LEAGUE and
+      // CHALLENGES, each behind its own switch (app_settings atlas_league_enabled / atlas_challenges_enabled, OFF). A
+      // league_members row exists only because the person joined (opt-in), holds their anonymous handle and pod (school ×
+      // field × tier), and is DELETED when they leave. challenge_runs: a time attack, a Friday duel (ref = pod#tier#week, the
+      // same five questions for the pod) or a kept audit's share link (beat_the_bar, ref = the audit token). Points stay
+      // proof-only (proof_points); nothing here pays any. The live count reads answers by time, so they get an index. Only ADDS.
+      id: "264_atlas_league",
+      sql: `
+        CREATE TABLE IF NOT EXISTS league_members (
+          user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          handle     TEXT    NOT NULL UNIQUE,
+          school     TEXT,
+          field      TEXT,
+          pod_key    TEXT    NOT NULL,
+          tier       INTEGER NOT NULL DEFAULT 1 CHECK (tier BETWEEN 1 AND 3),
+          joined_at  INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_league_members_pod ON league_members(pod_key, tier);
+        CREATE TABLE IF NOT EXISTS challenge_runs (
+          id              INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          kind            TEXT    NOT NULL CHECK (kind IN ('time_attack', 'friday_duel', 'beat_the_bar')),
+          ref             TEXT,
+          questions_json  TEXT    NOT NULL,
+          answers_json    TEXT    NOT NULL DEFAULT '[]',
+          mode            TEXT    NOT NULL DEFAULT 'timed' CHECK (mode IN ('timed', 'extended', 'untimed')),
+          score           INTEGER,
+          total           INTEGER,
+          served_at       INTEGER,
+          started_at      INTEGER NOT NULL DEFAULT (unixepoch()),
+          finished_at     INTEGER,
+          share_code      TEXT UNIQUE
+        );
+        CREATE INDEX IF NOT EXISTS idx_challenge_runs_user ON challenge_runs(user_id, kind, finished_at);
+        CREATE INDEX IF NOT EXISTS idx_challenge_runs_ref ON challenge_runs(kind, ref);
+        CREATE INDEX IF NOT EXISTS idx_learn_question_answers_at ON learn_question_answers(answered_at);
+      `,
+    },
   ];
