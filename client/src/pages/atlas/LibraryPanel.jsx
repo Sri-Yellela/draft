@@ -14,6 +14,7 @@ import { routesFor } from "./learnModel.js";   // A155: the circle's guided rout
 import { GuideLadder, PathwaysPlan, useGuides } from "./LibraryGuides.jsx";
 import { HalfRing, LessonDeck } from "./LessonDeck.jsx";
 import { learnStepHref } from "./atlasPanels.js";
+import { artForPathway } from "./PathwayArt.jsx";   // A154: a drawing per pathway
 import "./LibraryPanel.css";
 
 // ⭐ D178: the LeetCode pattern atlas is its own course (kind "patterns": no earned progress — a pattern has no check yet).
@@ -52,6 +53,35 @@ function PatternsArt() {
 }
 const ART = { chip: ChipArt, patterns: PatternsArt };
 
+/** ⭐ A154 (45o) · the pathways' covers — each with its drawing (PathwayArt), its stages and how many decks are written;
+ *  pressing one opens its plan below. Real counts from GET /api/learn/pathways (the plan's own). */
+function PathwayShelf({ onPick }) {
+  const [plan, setPlan] = useState(null);
+  useEffect(() => { let live = true; api("/api/learn/pathways").then(r => live && setPlan(r)).catch(() => live && setPlan({ pathways: [] })); return () => { live = false; }; }, []);
+  if (!plan?.pathways?.length) return null;
+  return (
+    <>
+      <h2 className="atl__h2">Pathways</h2>
+      <ul className="lib-shelf" data-pathway-shelf="">
+        {plan.pathways.map(p => {
+          const Art = artForPathway(p.id);
+          const n = p.stages.reduce((a, s) => a + s.topics.length, 0), w = p.stages.reduce((a, s) => a + s.topics.filter(t => t.deck).length, 0);
+          return (
+            <li key={p.id} className="lib-cover" data-pathway-cover={p.id}>
+              <button type="button" className="lib-cover__link" onClick={() => onPick(p.id)}>
+                <Art />
+                <span className="lib-cover__title">{String(p.title).split(" — ")[0]}</span>
+                <span className="lib-cover__meta">{p.stages.length} stages · {w} of {n} decks written</span>
+                <span className="lib-cover__go">See the pathway →</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+}
+
 function useCourse(id, signedIn) {
   const [s, setS] = useState({ course: null, marks: {}, error: null });
   useEffect(() => {
@@ -71,6 +101,7 @@ export function LibraryShelf({ base, signedIn = false }) {
   const { course, marks } = useCourse(COURSES[0].id, signedIn);
   const p = course ? courseProgress(course, marks) : null;
   const guides = useGuides();
+  const [wantPathway, setWantPathway] = useState(null);   // A154: a pathway's cover opens its plan
   return (
     <div className="atl-pan" data-atlas-panel-body="library">
       <header className="atl__head">
@@ -93,8 +124,9 @@ export function LibraryShelf({ base, signedIn = false }) {
             </li>
           : <CourseCover key={c.id} base={base} c={c} />))}
       </ul>
+      <PathwayShelf onPick={(id) => setWantPathway({ id, at: Date.now() })} />
       {/* ⭐ D155 Part C: the whole approved plan — every pathway's stages and topics, written or planned. */}
-      <PathwaysPlan base={base} />
+      <PathwaysPlan base={base} want={wantPathway} />
     </div>
   );
 }
