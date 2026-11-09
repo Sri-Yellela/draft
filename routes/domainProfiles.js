@@ -27,7 +27,7 @@ import { mergeUniqueSignalLabels } from "../shared/profileSignals.js";
 import { startFromResume, followProfileText, followResumeFields } from "../services/resumeOnboarding.js";
 import { sampleRoleFamily, sampleIdForText, activeSampleId } from "../services/sampleResumes.js";
 import { readProfile } from "../services/structuredProfile.js";
-import { snapshotForReplace, pageDigest, refillFromResume, whatChanged, recordReplacement } from "../services/profileReplace.js";
+import { snapshotForReplace, pageDigest, refillFromResume, whatChanged, recordReplacement, dealAgain } from "../services/profileReplace.js";
 import { DATA_CLASS } from "../services/modelCall.js";
 // D162 G1: the feature names its task; the gateway picks the model (shared/modelTasks.js profile.domain_chips).
 import { callTask } from "../services/modelGateway.js";
@@ -425,6 +425,8 @@ export function createDomainProfilesRouter(db, anthropic, emitToUser = () => {},
     let followed = { changed: false }, fields = [], sections = false, refill = null;
     if (changedText && String(content || "").trim().length >= 200) {
       try { followed = followProfileText(db, profile.id, content, { registry: getRegistry(), sampleRoleFamily }); } catch (e) { console.warn("[a140] profile follow:", e.message); }
+      // ⭐ (B)-2 (45o): a placement that moved (or a first placement) deals today's picks again from it — now, not tomorrow.
+      if (followed?.placement) { try { dealAgain(db, req.user.id, profile.id); } catch { /* the deal follows tomorrow anyway */ } }
       if (!isSample) {
         try { fields = followResumeFields(db, req.user.id, oldText, content); } catch (e) { console.warn("[a140] fields follow:", e.message); }
         // ⭐ D183 P2: EVERY section re-fills, keeping hand edits and proven skills (was useResumeSuggestion, which replaced all).
