@@ -99,6 +99,7 @@ import { publicCompany, publicSuggest, companyMatchFor, companyIdForSlug } from 
 import { companyDirectory } from "./services/companies/companyDirectory.js";   // A144 (45o): the Companies tab
 import { publicEntry } from "./services/jobs/publicEntry.js";                     // A147 (45o): the signed-out /jobs entry
 import { companyHealth } from "./services/companies/companyHealth.js";            // A142 (45o): Admin → Board → Company records
+import { listRuns, runTrace } from "./services/admin/runTrace.js";                 // (A)-2 (45o): Admin → System → Runs
 import { createCompanyFacts } from "./services/companies/companyFacts.js";
 import { createCompanyGithub } from "./services/companies/companyGithub.js";
 import { createCompanyWebSignals } from "./services/companies/companyWebSignals.js";
@@ -10904,6 +10905,15 @@ app.post("/api/company/:company/consistency-check", requireAuth, (req, res) => {
 // mounted later; a route here at that path would answer before it and hide the list).
 app.get("/api/admin/company-records", requireAdmin, (req, res) => {
   try { res.json({ stats: companyRecordStats(db), walk: companyLinker?.status() ?? null, review: companyReviewQueue(db, { limit: req.query?.limit }) }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+// ⭐ (A)-2 (45o, owner 11-08 FIRST PRIORITY): the run trace — FA1 without database access. Read-only.
+app.get("/api/admin/runs", requireAdmin, (req, res) => {
+  try { res.set("Cache-Control", "no-store").json({ runs: listRuns(db, { userId: req.query?.user ?? null, limit: req.query?.limit }) }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get("/api/admin/runs/:id", requireAdmin, (req, res) => {
+  try { const t = runTrace(db, req.params.id); if (!t) return res.status(404).json({ error: "no_such_run" }); res.set("Cache-Control", "no-store").json(t); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 // ⭐ A142 (45o): what the stats lacked — postings with no record, records sharing a domain / a name. Read workers, 10 min.

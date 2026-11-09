@@ -73,7 +73,7 @@ page, D179 P4b; inside the shell at `/app/companies/<slug>`) · `/audit` (the 3-
 
 `/admin/login` · `/admin/set-password` · `/admin` (`AdminPanel` and its tabs: `adminAdmins` · `adminAppearance` ·
 `adminAtlas` · `adminCalibrate` · `adminEmail` · `adminEnrichment` · `adminLearnCircle` · `adminLearnImport` ·
-`adminOps` · `adminPeople` · `adminQuestions` · `adminReadiness` · `adminTesterDetails` · `adminTesters` · `adminUsage` · `adminReports` (D183 profile reports) · `adminCompanyRecords` (A142) · `adminNetwork` (D180 P1) · `adminDiagnostics` (D151 Rule 6) · `adminPhase1` (D150 T16);
+`adminOps` · `adminPeople` · `adminQuestions` · `adminReadiness` · `adminTesterDetails` · `adminTesters` · `adminUsage` · `adminReports` (D183 profile reports) · `adminCompanyRecords` (A142) · `adminNetwork` (D180 P1) · `adminRuns` ((A)-2) · `adminDiagnostics` (D151 Rule 6) · `adminPhase1` (D150 T16);
 shared `adminKit`, `adminMap`, `adminLearnSandbox`) · `/admin/db` (`DBInspector`). The admin look is its own; only
 L10's dialogs are listed as legacy.
 

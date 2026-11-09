@@ -124,6 +124,8 @@ const ADMIN = new Set([
   // D179 P4a / P5a / P2 (45l): the company records, a company's stack, the review decisions, the taxonomy counts.
   "GET /api/admin/company-records",
   "GET /api/admin/company-records/health",   // A142 (45o)
+  "GET /api/admin/runs",   // (A)-2 (45o): the run trace
+  "GET /api/admin/runs/:id",
   "GET /api/admin/network",   // D180 P1 (45o): the network switch + counts
   "PUT /api/admin/network",
   "GET /api/admin/network/reports",   // D180 P2: the moderation queue
