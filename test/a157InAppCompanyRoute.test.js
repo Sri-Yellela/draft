@@ -8,10 +8,12 @@ import fs from "node:fs";
 const app = fs.readFileSync("client/src/App.jsx", "utf8").replace(/\r\n/g, "\n");
 
 test("a157InAppCompanyRoute: every routed place the shell draws is excused from the bounce-to-board guard", () => {
-  const guard = app.match(/if \((!jobRoute[^)]*?)\)\s*\{\s*navigate\(consolePath, \{ replace:true \}\);/);
-  assert.ok(guard, "the guard is where it was");
+  const at = (a, from = 0) => { const i = app.indexOf(a, from); assert.ok(i >= 0, `anchor missing: ${a}`); return i; };
+  const from = at("if (!jobRoute && ");
+  const guard = app.slice(from, at("navigate(consolePath, { replace:true });", from));
+  assert.ok(guard.length > 0 && guard.length < 400);
   for (const r of ["!jobRoute", "!atlasRoute", "!companyRoute", "profilePanel === undefined", "interviewPanel === undefined"])
-    assert.ok(guard[1].includes(r), `the guard excuses ${r}`);
+    assert.ok(guard.includes(r), `the guard excuses ${r}`);
   assert.match(app, /activeTab === "company" && companyRoute && <CompanyPage/);
   assert.match(app, /\}, \[routeKey, consolePath, navigate, NAVIGABLE_TABS, atlasRoute, companyRoute,/);
 });
