@@ -20,6 +20,8 @@
 // POST   /api/profile/page/achievements        { title, detail?, year? } — one added by hand
 // DELETE /api/profile/page/achievements/:id
 // services/structuredProfile.js holds the rules; these routes only expose them.
+import { pickPlacement } from "../services/placement.js";   // (B)-1
+import { getRegistry } from "./domainProfiles.js";   // (B)-1: the D101 registry the map points into
 import { readProfile, saveSection, useResumeSuggestion, setDefault, readDefaults, profileLogosToResolve, setEducationOverride } from "../services/structuredProfile.js";
 import { resolveCaptureLogo } from "../services/jobs/companyLogoStore.js";
 import { setEvidence, readProofPage, setProofPage } from "../services/proofLinks.js";
@@ -74,6 +76,10 @@ export default function profileSectionRoutes(app, db, requireAuth, { resolveLogo
     const as = String(req.query?.as || "owner");
     return viewFor(profilePage(db, req.user.id), as === "public" ? "public" : as === "connection" ? "connection" : "owner");
   };
+  // ⭐ (B)-1 (45o): "we couldn't place you — pick your role": the pick becomes the job profile's placement (one source).
+  app.put("/api/profile/placement", requireAuth, (req, res) => {
+    try { pickPlacement(db, req.user.id, String(req.body?.subcategory || ""), getRegistry()); res.json(profilePage(db, req.user.id)); } catch (e) { fail(res, e); }
+  });
   app.get("/api/profile/page", requireAuth, (req, res) => {
     try { res.json(pageView(req)); lookUpLogos(req.user.id); } catch (e) { fail(res, e); }
   });

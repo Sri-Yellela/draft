@@ -57,7 +57,8 @@ export function taxonomy(file = TAXONOMY_FILE) {
   const categories = raw.categories.map(c => ({ id: c.id, name: c.name, d127: String(c.d127), held: !!c.held,
     general: c.subcategories.find(s => /\.general$/.test(s.id))?.id || null,
     subs: c.subcategories.map(s => ({ id: s.id, name: s.name, aliases: s.aliases || [], signals: s.signals || [], general: /\.general$/.test(s.id) })) }));
-  _tax = { file, version: String(raw.version), categories, byId: new Map(categories.map(c => [c.id, c])) };
+  // ⭐ B-1 (45o): the D101 registry onto taxonomy ids travels with the taxonomy (services/placement.js registryKeyFor).
+  _tax = { file, version: String(raw.version), categories, byId: new Map(categories.map(c => [c.id, c])), registryMap: raw.registryMap || null };
   return _tax;
 }
 
