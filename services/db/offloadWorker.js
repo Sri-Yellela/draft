@@ -26,6 +26,7 @@ if (!isMainThread && workerData?.__draftOffload) {
     import("../jobs/boardSearch.js"), import("../jobs/boardFitPrecompute.js"), import("../jobs/descriptionText.js"),
     import("../jobs/publicJobPage.js"), import("../jobs/landingPages.js"), import("../jobs/taxonomyBackfill.js"),
   ]);
+  const { publicOpenRange } = await import("../jobs/publicOpenJobs.js");
   registerBoardSearch(conn); registerScoreFreshness(conn); registerDescriptionBasis(conn);
   const TASKS = {
     sitemapCompanies: () => pub.companiesSitemapRoutes(conn),
@@ -34,6 +35,7 @@ if (!isMainThread && workerData?.__draftOffload) {
     sitemapLanding: () => landing.landingSitemapRoutes(conn),
     landingPage: ({ kind, key, base }) => landing.renderLandingPage(conn, kind, key, { base }),
     taxonomyRange: ({ from, rows }) => tax.classifyRange(conn, from, rows),
+    publicOpenRange: ({ from, rows }) => publicOpenRange(conn, from, rows),
   };
   parentPort.on("message", ({ id, task, args }) => {
     try {

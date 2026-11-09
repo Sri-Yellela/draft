@@ -188,6 +188,9 @@ test("d153 wiring: started from READY in the listen callback, every 6 h, reporte
 // `writeChunk` rows with a yield between chunks; the shown postings left unknown are counted by category.
 test("a132ClassifyWritesChunked: at most writeChunk rows per transaction, a yield between chunks, the same result", async () => {
   const db = board();
+  // ⛔ A158 (45r): migration 262's triggers write public_open_jobs on a board_category change; total_changes() counts
+  // trigger rows too, so they are dropped here — this test measures the walk's own rows per transaction.
+  for (const t of ["public_open_ins", "public_open_upd", "public_open_del"]) db.exec(`DROP TRIGGER IF EXISTS ${t}`);
   const sizes = [];
   const realTx = db.transaction.bind(db);
   db.transaction = (fn) => { const t = realTx(fn); return (...a) => { let n = 0; const before = db.prepare("SELECT total_changes()").pluck().get(); const r = t(...a); n = db.prepare("SELECT total_changes()").pluck().get() - before; sizes.push(n); return r; }; };
