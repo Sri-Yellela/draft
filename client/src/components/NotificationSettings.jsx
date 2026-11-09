@@ -119,7 +119,40 @@ export default function NotificationSettings({ say }) {
           }}>Send a test notification</button>
         </div>
       )}
+      <MatchAlertChoice say={say} />
       <div style={{ ...muted, marginTop: 8 }}>Notifications never name a company or show your answers — only what happened.</div>
     </SettingsSection>
+  );
+}
+
+// ⭐ D185-2 (45q): how "New jobs that fit you" arrives — a daily digest at the hour chosen (the default), as they arrive
+// (at most three messages a day), or off. Either way at most 10 jobs a day. The server holds the rule
+// (services/jobs/newMatchAlerts.js); this asks and shows the answer. A native select (D60: no capsule).
+const MATCH_MODES = [["digest", "Daily digest"], ["instant", "As they arrive"], ["off", "Off"]];
+function MatchAlertChoice({ say }) {
+  const [s, setS] = useState(null);
+  useEffect(() => { api("/api/alerts/matches/settings").then(setS).catch(() => setS(null)); }, []);
+  if (!s) return null;
+  const save = async (patch) => {
+    try { setS(await api("/api/alerts/matches/settings", { method: "PUT",
+      body: JSON.stringify({ ...patch, tzOffsetMin: new Date().getTimezoneOffset() }) })); }
+    catch (e) { say?.("error", e.message || "Could not save that."); }
+  };
+  const label = { fontSize: 13, color: "var(--color-text)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" };
+  const sel = { border: `1px solid ${C.BORDER_CONTROL}`, borderRadius: 8, background: "transparent", color: "var(--color-text)", padding: "6px 8px", fontSize: 12 };
+  return (
+    <div data-match-alerts="" style={{ marginTop: 12, display: "grid", gap: 6 }}>
+      <label style={label}>New jobs that fit you
+        <select style={sel} data-match-alert-mode="" value={s.mode} onChange={e => save({ mode: e.target.value })}>
+          {MATCH_MODES.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+        </select>
+        {s.mode === "digest" && (
+          <select style={sel} data-match-alert-hour="" aria-label="Digest hour" value={s.hour} onChange={e => save({ hour: Number(e.target.value) })}>
+            {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{`${String(h).padStart(2, "0")}:00`}</option>)}
+          </select>
+        )}
+      </label>
+      <div style={muted}>Only postings that ask for most of your résumé's top skills, still open, from employers that look like they are hiring. At most {s.dailyCap} a day.</div>
+    </div>
   );
 }

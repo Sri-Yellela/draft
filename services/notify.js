@@ -49,6 +49,10 @@ export const NOTIFY_EVENTS = Object.freeze({
   // the person chose, and only when today's question is still unanswered (services/learn/dailyReminder.js).
   daily_question: { label: "Today's question", what: "A reminder at the time you choose, only on days you haven't answered yet.",
     url: "/app/atlas/todays-question", defaults: { push: false, email: false }, throttle: 0 },
+  // ⭐ D185-2 (45q, owner 11-09): new jobs that fit the résumé — top-tier matches only, a daily digest by default (email:
+  // the owner's "digest default"; push stays off until the person turns it on), capped per day (services/jobs/newMatchAlerts.js).
+  new_match: { label: "New jobs that fit you", what: "New postings that ask for most of your résumé's top skills — a daily digest, or as they arrive. At most 10 a day.",
+    url: "/app/jobs", defaults: { push: false, email: true }, throttle: 0 },
 });
 export const CHANNELS = Object.freeze(["push", "email"]);
 
@@ -76,6 +80,8 @@ export function eventText(event, data = {}) {
       return { title: "A question for you", body: "A job you applied to has a question only you can answer." };
     case "daily_question":
       return { title: "Today's question", body: "Today's question is waiting — about two minutes." };
+    case "new_match":
+      return { title: "New jobs that fit you", body: `${s("count", "new job fits", "new jobs fit")} your résumé.` };
     default:
       return { title: "draft", body: "Something changed in draft." };
   }
@@ -108,6 +114,25 @@ export function eventEmail(event, data = {}, appUrl = "") {
     return { subject: "draft · a question on a job you applied to",
       text: [`${data.title || "A job you applied to"}${data.company ? ` — ${data.company}` : ""} stopped on ${qs.length === 1 ? "a question" : `${qs.length} questions`} only you can answer:`,
         "", ...qs.map(q => `- ${q}`), "", `Answer here: ${data.answer}`, "", "Nothing was sent. It continues once you answer.", ...foot].join("\n") };
+  }
+  if (event === "new_match") {
+    const items = Array.isArray(data.items) ? data.items.slice(0, 25) : [];
+    if (!items.length) return null;
+    // ⭐ D185 (a) the beachhead: for a person who needs sponsorship, the sponsors lead and the message says so.
+    const lead = data.sponsorFirst && items.some(it => it.sponsor)
+      ? "New jobs that fit your résumé — companies with an H-1B filing record first."
+      : "New jobs that fit your résumé.";
+    const lines = [lead, ""];
+    items.forEach((it, i) => {
+      lines.push(`${i + 1}. ${it.title}${it.company ? ` — ${it.company}` : ""}`);
+      const facts = [it.ago ? `posted ${it.ago}` : null, it.of ? `asks for ${it.matched} of your ${it.of} top skills` : null,
+        it.sponsor ? "has filed H-1B petitions before" : null].filter(Boolean);
+      if (facts.length) lines.push(`   ${facts.join(" · ")}`);
+      lines.push(`   ${it.url}`, "");
+    });
+    if (items.some(it => it.sponsor)) lines.push("A filing record is history, not a promise — confirm with the employer. Not legal advice.", "");
+    lines.push("Daily digest, or as they arrive: draft → Account → Notifications.");
+    return { subject: `draft · ${items.length === 1 ? "1 new job fits you" : `${items.length} new jobs fit you`}`, text: [...lines, ...foot].join("\n") };
   }
   if (event === "picks_summary") {
     const t = eventText(event, data);
