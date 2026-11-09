@@ -129,7 +129,8 @@ test("D92 · THE SEAM TEST — no hard step where no boundary is intended: 4 the
     const worst = (vals) => worstAt(vals)[0];
     const THRESHOLD = 3;   // in 0–255 luminance, per 4px — a hairline or a hard band edge is 10–40
     for (const t of THEME_LIST) for (const [vp, size] of [["desktop", { width: 1440, height: 760 }], ["phone", { width: 390, height: 760 }]])
-      for (const nav of LAYOUT_OPTION_IDS.navigation.values) for (const sentence of LAYOUT_OPTION_IDS.sentence.values) for (const stuck of ["false", "true"]) {
+      // 45s: 45n retired the navigation option (the dock, D167, is the one navigation) — LAYOUT_OPTION_IDS.navigation is gone.
+      for (const nav of ["dock"]) for (const sentence of LAYOUT_OPTION_IDS.sentence.values) for (const stuck of ["false", "true"]) {
         await page.setViewport(size);
         await page.setContent(page0(t, nav, sentence, stuck), { waitUntil: "load" });
         const g = await page.evaluate(() => {
