@@ -87,8 +87,17 @@ export function writeExtraction(db, rows, c = { postings: 0, mentions: 0 }) {
 
 /** Rebuild company_tech for company ids (from, to]. */
 export function aggregateRange(db, from, to, nowSec = Math.floor(Date.now() / 1000)) {
+  return writeAggregate(db, from, to, readAggregate(db, from, to, nowSec));
+}
+
+/** ⛔ A159 (45r): the aggregate's READ half — the three-way join — which the offload worker runs (writes nothing). */
+export function readAggregate(db, from, to, nowSec = Math.floor(Date.now() / 1000)) {
+  return db.prepare(AGG_SQL).all(nowSec, from, to, nowSec - FRESH_DAYS * 86400);
+}
+
+/** ⛔ A159: the WRITE half — company_tech for ids (from, to] replaced from the read's rows, one short transaction. */
+export function writeAggregate(db, from, to, rows) {
   const s = stmts(db);
-  const rows = s.agg.all(nowSec, from, to, nowSec - FRESH_DAYS * 86400);
   db.transaction(() => {
     s.clearRange.run(from, to);
     for (const r of rows) {
@@ -118,7 +127,11 @@ export function stackFor(db, companyId, nowSec = Math.floor(Date.now() / 1000)) 
 }
 
 /** The background job: extract, then aggregate. One run at a time; resolves with the status. */
-export function createCompanyTech(db, { pageRows = PAGE_ROWS, writeChunk = WRITE_CHUNK, schedule = (fn) => setImmediate(fn), log = console } = {}) {
+/**
+ * ⛔ A159 (45r): `offloadAgg({ from, to, nowSec })` runs readAggregate on the offload worker; only writeAggregate runs here.
+ * When it rejects, that range is read here as before (the walk never stops).
+ */
+export function createCompanyTech(db, { pageRows = PAGE_ROWS, writeChunk = WRITE_CHUNK, schedule = (fn) => setImmediate(fn), log = console, offloadAgg = null } = {}) {
   let status = { state: "idle", runs: 0, phase: null, pages: 0, postings: 0, mentions: 0, companies: 0, stackRows: 0,
     startedAt: null, finishedAt: null, error: null, maxReadMs: 0, maxWriteMs: 0, pageRows };
   let running = null;
@@ -140,15 +153,18 @@ export function createCompanyTech(db, { pageRows = PAGE_ROWS, writeChunk = WRITE
       // ── 2 · aggregate, a range of company ids per slice ──
       let cFrom = 0, cMax = 0;
       const aggregate = () => {
-        try {
+        const to = cFrom + COMPANY_RANGE, nowSec = Math.floor(Date.now() / 1000);
+        const read = offloadAgg
+          ? offloadAgg({ from: cFrom, to, nowSec }).catch(() => readAggregate(db, cFrom, to, nowSec))
+          : Promise.resolve().then(() => readAggregate(db, cFrom, to, nowSec));
+        read.then((rows) => {
           const tw = Date.now();
-          const to = cFrom + COMPANY_RANGE;
-          const n = aggregateRange(db, cFrom, to);
+          const n = writeAggregate(db, cFrom, to, rows);
           status = { ...status, companies: status.companies + 1, stackRows: status.stackRows + n, maxWriteMs: Math.max(status.maxWriteMs, Date.now() - tw) };
           cFrom = to;
           if (cFrom >= cMax) return finish(null);
           schedule(aggregate);
-        } catch (e) { finish(e); }
+        }).catch((e) => finish(e));
       };
       // ── 1 · extract, rowid pages ──
       const step = () => {
