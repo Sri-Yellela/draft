@@ -208,7 +208,8 @@ test("the tab row moved into the top bar, whole, and from appTabs — ⭐ D145: 
   assert.match(nav, /<nav aria-label="Main"/);
   // ⭐ D167 (owner 11-06, changed on purpose): through placesOf(tabs) — the given tabs, plus Interview's place when the tabs don't carry it yet.
   assert.match(nav, /const list = \(tabs \|\| \[\]\)\.filter\(\(t\) => t\.id !== "console"\);/);
-  assert.match(nav, /return placesOf\(tabs\)\.map\(\(t\) => \{/);
+  // D180 P1 (45o, changed on purpose): + the Network place and its unread badge, only while the network is on.
+  assert.match(nav, /return placesOf\(tabs, network, netUnread\)\.map\(\(t\) => \{/);
   assert.match(nav, /aria-current=\{activeTab === t\.id \? "page" : undefined\}/);
   assert.ok(!/id: "console"|id: "auto-apply"|id: "database"/.test(topBarCode + nav),
     "TopBar / AppNav grew its own tab list — that is the fourth copy, and the previous three all drifted");
