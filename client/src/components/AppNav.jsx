@@ -61,6 +61,9 @@ export const PROFILE_PANELS = Object.freeze(["about", "answers", "autoapply", "c
 // ⭐ D167: Profile's panels live at /app/profile/<id> (pages/profile/profilePanels.js profilePath — a profile-module
 // file the shell may not import, A93; the ids above are its PROFILE_PANEL_IDS, pinned equal by test/d167Profile).
 export const profileHref = (panel) => (panel ? `/app/profile/${panel}` : "/app/profile");
+// ⭐ A151 (45o, owner 11-08: "we should be able to click on our username to go to an about section, a seperate about you is
+// not needed"): the name opens the profile at its About section (ProfileSections' ABOUT_ANCHOR).
+export const ABOUT_HREF = "/app/profile/about#profile-about";
 
 // The house, the globe, the microphone and the speech bubble: line drawings in the theme's accent (AppNav.css strokes
 // them with --c-accent).
@@ -254,9 +257,14 @@ export function ProfilePeek({ open, profile, pos = { top: 0, left: 80 }, onGo, o
       {...(open ? null : { inert: "", "aria-hidden": true })}>
       <div className="appnav-peek__head">
         <Avatar url={url} name={profile.name} className="appnav-peek__pic" />
-        <div><b data-peek-name="">{profile.name || "You"}</b>{profile.email && <span data-peek-email="">{profile.email}</span>}</div>
+        <div>
+          <a href={ABOUT_HREF} className="appnav-peek__name" data-peek-name="" title="Your About section"
+            onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return; e.preventDefault(); onGo(ABOUT_HREF); }}>
+            <b>{profile.name || "You"}</b></a>
+          {profile.email && <span data-peek-email="">{profile.email}</span>}
+        </div>
       </div>
-      {link("about", "About you")}   {/* A140: About you + Your résumés, one panel */}
+      {/* A151 (45o): the separate "About you" link is gone — the name above opens the About section. */}
       {link("answers", "Saved answers")}
       <div className="appnav-peek__sep" aria-hidden="true" />
       <div className="appnav-peek__seg" role="group" aria-label="Auto-apply" data-peek-mode="">

@@ -71,7 +71,8 @@ test("d167ProfileHasOwnNav · a nav card beside the dock: three groups, the eigh
   assert.equal(profilePanelFor("profile/resumes"), "about");
   assert.deepEqual(PROFILE_PANEL_IDS, ["about", "answers", "autoapply", "connections", "appearance", "notifications", "privacy", "account"]);
   assert.deepEqual(PROFILE_GROUPS.map(g => g.label), ["You", "Applying", "You and draft"]);
-  assert.deepEqual(PROFILE_GROUPS.flatMap(g => g.items.map(i => i.label)), ["About you", "Saved answers", "Auto-apply", "Connections",
+  // D183 P1 (45l; pin brought to the code in 45o): the first panel is "Your profile" (the spec's nav).
+  assert.deepEqual(PROFILE_GROUPS.flatMap(g => g.items.map(i => i.label)), ["Your profile", "Saved answers", "Auto-apply", "Connections",
     "Appearance", "Notifications", "Privacy and your data", "Account"], "the sketch's names");
   const { profile } = await loadUi();
   for (const id of PROFILE_PANEL_IDS) {
@@ -140,18 +141,20 @@ test("d167ExperienceWithLogosFromResume · About you keeps the work history with
   assert.deepEqual([exp.find(e => e.company === "Contoso").logo, exp.find(e => e.company === "Contoso").initial], [null, "C"]);
   // the client: About you mounts the Profile's "about" part, which holds the D101 sections; the box is "Your experience"
   // with its logo tiles, its design unchanged
-  assert.match(PAGE, /<ProfilePanel section=\{\["about", "resumes"\]\} onOpenJobProfiles=/);   // A140: one panel
+  assert.match(PAGE, /<ProfilePanel section=\{\["about", "resumes"\]\} resumeView=\{false\} onOpenJobProfiles=/);   // A140: one panel (D183 P1: resumeView off — the page draws it)
   const PANEL = read("client/src/panels/ProfilePanel.jsx");
   const about = PANEL.slice(at(PANEL, '{on("about") && <>'), at(PANEL, '{on("answers") && <>'));
   assert.match(about, /<ProfileSections theme=\{theme\} highlight=\{/, "the sections are in About you (A140: the extracted skills / keywords bold in them)");
   const SECTIONS = read("client/src/components/ProfileSections.jsx");
-  assert.match(SECTIONS, /<Box title="Your experience" theme=\{theme\}>\n\s+<ListEditor theme=\{theme\} items=\{s\.experience\}/);
+  // D183 P1 (45l; pin brought to the code in 45o): the box takes the page's own title and its visibility eye.
+  assert.match(SECTIONS, /<Box title=\{titles\.experience \|\| "Your experience"\} right=\{eye\("experience"\)\} theme=\{theme\}>\r?\n\s+<ListEditor theme=\{theme\} items=\{s\.experience\}/);
   assert.match(SECTIONS, /<LogoTile logo=\{x\.logo\} initial=\{x\.initial\} theme=\{theme\} \/>/);
   // and the line pointing to the skills' new home (D169)
-  const { profile } = await loadUi();
-  const aboutHtml = profile("about");
-  assert.match(aboutHtml, /<b>Your skills now live in Atlas,<\/b>/);
-  assert.match(aboutHtml, /<a [^>]*data-open-your-skills=""[^>]*href="\/app\/atlas\/your-skills"[^>]*>Open your skills<\/a>/);
+  // ⭐ D183 P1 (45l; pin brought to the code in 45o): the old "Your skills now live in Atlas" line is the Skills section's
+  // own link now — each résumé skill offers "Prove it", and the section links the skills map.
+  const YP = read("client/src/pages/profile/YourProfile.jsx");
+  assert.match(YP, /<Link className="yp__quiet" to="\/app\/atlas\/your-skills">Your skills map in Atlas<\/Link>/);
+  assert.match(YP, /to=\{`\/app\/atlas\/your-skills\?prove=\$\{encodeURIComponent\(s\.name\)\}`\}>Prove it · 5 min<\/Link>/);
 });
 
 test("d167ProfileKeepsEverySetting · every old settings page and card has a panel — nothing dropped", async () => {
@@ -170,7 +173,10 @@ test("d167ProfileKeepsEverySetting · every old settings page and card has a pan
   // the Profile page's parts: every section of the old page is in one of three panels
   const PANEL = read("client/src/panels/ProfilePanel.jsx");
   const part = (a, b) => PANEL.slice(at(PANEL, `{on("${a}") && <>`), b ? at(PANEL, `{on("${b}") && <>`) : at(PANEL, "data-profile-savebar"));
-  for (const t of ["Personal", "Address (for autofill)", "Visa status", "Application Extras"]) assert.ok(part("about", "answers").includes(`<PSec title="${t}"`), `${t} → About you`);
+  // D182 (45n, decision (8); pin brought to the code in 45o): the "Visa status" heading restated its one field — removed;
+  // the field itself stays in About you.
+  for (const t of ["Personal", "Address (for autofill)", "Application Extras"]) assert.ok(part("about", "answers").includes(`<PSec title="${t}"`), `${t} → About you`);
+  assert.ok(part("about", "answers").includes('<PRow label="Visa / Immigration Status"'), "the visa field → About you");
   assert.ok(part("answers", "resumes").includes('<PSec title="Custom Answers"'), "Custom Answers → Saved answers");
   for (const t of ["Job Profiles", "Profile Resume and Signals"]) assert.ok(part("resumes").includes(`<PSec title="${t}"`), `${t} → Your résumés`);
   assert.match(PANEL, /\{\(on\("about"\) \|\| on\("answers"\)\) && \(\n\s+<div data-profile-savebar=""/, "the one Save, wherever the form is");
@@ -178,7 +184,9 @@ test("d167ProfileKeepsEverySetting · every old settings page and card has a pan
   const { profile } = await loadUi();
   assert.match(profile("answers"), /data-saved-answers-panel=""/, "the saved-answer bank (its existing API)");
   assert.match(profile("answers"), /Custom Answers/);
-  assert.match(profile("about"), /Job Profiles/);   // A140: the résumés part is in About you
+  // A140: the résumés part is in About you — ⭐ D183 P1 (45l; pin brought to the code in 45o): behind the page's
+  // "Behind your profile" fold, which mounts it once the page has loaded (so a first render does not hold it).
+  assert.match(read("client/src/pages/profile/YourProfile.jsx"), /\{behind\}\s*<\/details>/);
   assert.match(profile("autoapply"), /data-profile-autoapply=""/, "the tracker's settings drawer, drawn in the page");
   assert.match(PAGE, /<AutoSettingsDrawer key=\{round\} open inline=\{host\}/);
   const conn = profile("connections");

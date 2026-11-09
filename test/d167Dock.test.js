@@ -95,7 +95,9 @@ test("d167DockSideOnlyWhenMarginFitsOpen (pure) / d167AskDraftPushesNeverOverlay
 });
 
 test("d167ProfilePeekBasics (pure): the peek's items link to Profile's panels; the switch is the auto-apply mode", () => {
-  for (const id of ["about", "answers", "connections", "appearance", "notifications"]) assert.ok(NAV.includes(`link("${id}", `), id);   // A140: résumés merged into about
+  // ⭐ A151 (45o, on purpose): "about" is the NAME's link now (ABOUT_HREF), not a separate About you row.
+  for (const id of ["answers", "connections", "appearance", "notifications"]) assert.ok(NAV.includes(`link("${id}", `), id);   // A140: résumés merged into about
+  assert.match(NAV, /<a href={ABOUT_HREF} className="appnav-peek__name"/);
   assert.match(NAV, /export const profileHref = \(panel\) => \(panel \? `\/app\/profile\/\$\{panel\}` : "\/app\/profile"\);/);
   assert.match(NAV, /const \{ runBar, setApplyMode, holdBusy \} = useAutoApply\(\);/);
   assert.match(NAV, /onClick=\{\(\) => \{ if \(fullAuto\) setApplyMode\?\.\("semi"\); \}\}>Ask me first<\/button>/);
@@ -109,9 +111,10 @@ test("d167DockSixPlaces / d167NoDescriptionsUnderNames (real Chrome): six places
   const out = measured(t); if (!out) return;
   for (const s of SIZES) {
     const r = out[s].dock.rest;
-    assert.deepEqual(r.places, ["today", "auto-apply", "atlas", "interview", "profile", "|", "ask"], s);
-    assert.deepEqual(r.labels, ["draft", "Home", "Atlas", "Interview", "Profile", "Ask draft"], s);
-    assert.deepEqual(r.names, ["Home", "Atlas", "Interview", "Profile", "Ask draft"], `${s}: the jobs' name is the wordmark itself`);
+    // 45n (pin brought to the code in 45o): the dock's search icon comes first.
+    assert.deepEqual(r.places, ["search", "today", "auto-apply", "atlas", "interview", "profile", "|", "ask"], s);
+    assert.deepEqual(r.labels, ["Search", "draft", "Home", "Atlas", "Interview", "Profile", "Ask draft"], s);
+    assert.deepEqual(r.names, ["Search", "Home", "Atlas", "Interview", "Profile", "Ask draft"], `${s}: the jobs' name is the wordmark itself`);
     assert.equal(r.smalls, 0, `${s}: no description under a name`);
   }
 });
@@ -196,7 +199,7 @@ test("d167DockSideOnlyWhenMarginFitsOpen / d167DockTopCentredOtherwise / d167Doc
       assert.ok(Math.abs(o.left - (r.content.left - o.right)) <= 2, `${s}: equal gaps open (${o.left} / ${r.content.left - o.right})`);
     } else {
       assert.ok(Math.abs(mid - r.vw / 2) <= 1, `${s}: centred at the top (${mid} vs ${r.vw / 2})`);
-      if (want === "top") { assert.equal(r.namesShown.length, 5, `${s}: icons and names`); assert.equal(r.raftShown, true, `${s}: the whole /draft`); }
+      if (want === "top") { assert.equal(r.namesShown.length, 6, `${s}: icons and names (45n: + Search)`); assert.equal(r.raftShown, true, `${s}: the whole /draft`); }
       else { assert.equal(r.namesShown.length, 0, "phone: icons only"); assert.equal(r.raftShown, false, "phone: the short /d"); }
     }
   }
@@ -240,8 +243,9 @@ test("d167ProfilePeekBasics (real Chrome): beside the dock, the person, the link
     assert.equal(p.dockOpen, "true");
     assert.ok(p.left >= p.dockRight + 8, `${s}: never covers the dock (${p.left} vs ${p.dockRight})`);
     assert.equal(p.name, "Ada Lovelace"); assert.equal(p.email, "ada@example.invalid");
-    assert.deepEqual(p.links.map(([, h]) => h), ["about", "answers", "connections", "appearance", "notifications"].map((x) => `/app/profile/${x}`).concat("/app/profile"));
-    assert.deepEqual(p.links.map(([l]) => l), ["About you", "Saved answers", "Connections", "AppearanceDusk", "Notifications", "Open Profile"]);
+    // ⭐ A151 (45o, on purpose): the name opens About (#profile-about) — the separate "About you" link is gone.
+    assert.deepEqual(p.links.map(([, h]) => h), ["/app/profile/about#profile-about", ...["answers", "connections", "appearance", "notifications"].map((x) => `/app/profile/${x}`), "/app/profile"]);
+    assert.deepEqual(p.links.map(([l]) => l), ["Ada Lovelace", "Saved answers", "Connections", "AppearanceDusk", "Notifications", "Open Profile"]);
     assert.deepEqual(p.mode.map(([l, pr]) => [l, pr]), [["Ask me first", "true"], ["Apply for me", "false"]]);
     assert.deepEqual(d.modeAfterApplyForMe, ["false", "true"], `${s}: Apply for me sets the auto-apply mode (the server's answer)`);
     assert.equal(p.signOut, true);

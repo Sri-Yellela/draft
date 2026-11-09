@@ -21,6 +21,8 @@ import { api } from "../lib/api.js";
 import { StampLogo } from "./StampLogo.jsx";
 import ProfileSelectorDropdown from "./ProfileSelectorDropdown.jsx";
 import { Z } from "../styles/zLayers.js";
+import { useNavigate } from "react-router-dom";
+import { ABOUT_HREF } from "./AppNav.jsx";   // A151: the username opens the About section
 import { C } from "../styles/colorTokens.js";
 import { ACTIVE_THEME, appearance, setAppearance } from "../themes/index.js";
 import AppNav from "./AppNav.jsx";
@@ -214,6 +216,7 @@ function QuickScheme() {
 function ProfileMenuPanel({ open, onClose, theme, user, onLogout, onTabChange, profiles, onActivateProfile, onDeleteProfile,
                         notifs, unread, markAll }) {
   const monetisationEnabled = useMonetisationEnabled();
+  const navigate = useNavigate();   // A151
   const panelRef = useRef(null);
   const planTier = user?.planTier || "BASIC";
   const planLabel = planTier === "PRO" ? "Pro" : planTier === "PLUS" ? "Plus" : "Basic";
@@ -254,9 +257,13 @@ function ProfileMenuPanel({ open, onClose, theme, user, onLogout, onTabChange, p
               onMouseLeave={e => e.currentTarget.style.color = theme.text}>
               Profile
             </button>
-            <div style={{ fontSize: 10, color: theme.textDim, marginTop: 2 }}>
+            {/* ⭐ A151 (45o): the username opens the profile's About section. */}
+            <button type="button" data-username-about="" onClick={() => { onClose(); navigate(ABOUT_HREF); }}
+              title="Your About section"
+              style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", font: "inherit",
+                fontSize: 10, color: theme.textDim, marginTop: 2, textAlign: "left" }}>
               {user?.username} - {user?.isAdmin ? "Administrator" : "Member"}
-            </div>
+            </button>
           </div>
 
           <NotificationsSection theme={theme} notifs={notifs} unread={unread} markAll={markAll}/>

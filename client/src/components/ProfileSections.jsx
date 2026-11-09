@@ -34,9 +34,12 @@ const WORDS = { yes: "Yes", no: "No", hybrid_only: "Hybrid only", none: "None", 
   top_secret: "Top Secret", ts_sci: "TS/SCI", can_obtain: "Can obtain one" };
 const SOURCE = { resume: "from your résumé", user: "", needs_you: "answered in Needs you", imported: "from your profile" };
 
-function Box({ title, right, children, theme }) {
+// ⭐ A151 (45o): the About (summary) box is the address the username opens — /app/profile/about#profile-about.
+export const ABOUT_ANCHOR = "profile-about";
+
+function Box({ title, right, children, theme, id }) {
   return (
-    <section style={{ marginBottom: 20 }}>
+    <section id={id} style={{ marginBottom: 20, scrollMarginTop: 96 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
         <div className="rm-section-label" style={{ flex: 1 }}>{title}</div>{right}
       </div>
@@ -343,6 +346,13 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
     try { setP(await api("/api/profile/sections")); } catch (e) { setMsg(e.message || "Could not load your profile."); }
   }, []);
   useEffect(() => { load(); }, [load]);
+  // A151: arriving by the username's link, the page opens at the About box once the sections are drawn (once).
+  const aboutLanded = useState(() => ({ done: false }))[0];
+  useEffect(() => {
+    if (!p || aboutLanded.done || typeof window === "undefined" || window.location.hash !== `#${ABOUT_ANCHOR}`) return;
+    aboutLanded.done = true;
+    document.getElementById(ABOUT_ANCHOR)?.scrollIntoView?.({ block: "start" });
+  }, [p, aboutLanded]);
 
   const saveSection = async (section, body) => { setP(await api(`/api/profile/sections/${section}`, { method: "PUT", body: JSON.stringify(body) })); onChanged?.(); };
   const setDefault = async (key, value) => {
@@ -378,7 +388,7 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
       </div>}
       {msg && <p role="alert" style={{ ...muted, color: C.DANGER }}>{msg}</p>}
 
-      {part("summary") && <Box title={titles.summary || "Summary"} right={eye("about")} theme={theme}>
+      {part("summary") && <Box id={ABOUT_ANCHOR} title={titles.summary || "Summary"} right={eye("about")} theme={theme}>
         {summary == null ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <span style={{ fontSize: 13, color: theme.text, whiteSpace: "pre-wrap" }}>{s.summary || <span style={muted}>No summary yet.</span>}</span>

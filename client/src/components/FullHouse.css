@@ -379,6 +379,8 @@
 .fh.fh-viewrow { padding-top: 0; padding-bottom: 14px; font-family: var(--shape-font-ui, var(--font-body)); }
 .fh-viewrow__line { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; }
 .fh-viewrow .fh-views { padding: 0; margin: 0; border: 0; gap: 4px; }
+/* A144 (45o): four views (+ Companies) — the row wraps on a narrow screen instead of widening the page (390 px read 399). */
+.fh-viewrow .fh-views { flex-wrap: wrap; min-width: 0; max-width: 100%; }
 .fh-viewrow .fh-views button {
   font: 500 calc(14px * var(--type-scale, 1))/1.3 var(--shape-font-ui, var(--font-body)); color: var(--c-ink-muted);
   padding: 7px 12px; border-radius: 10px;
