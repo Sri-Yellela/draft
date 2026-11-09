@@ -83,3 +83,8 @@
 .yp__consent { border: 1px solid var(--c-border); border-radius: 11px; padding: 10px 14px; background: var(--c-canvas); }
 .yp__consent p { margin: 0 0 8px; font-size: 13px; }
 .yp__row { display: flex; gap: 10px; flex-wrap: wrap; }
+/* A153 (45o): Behind your profile's folded rows; the photo control under the picture. */
+.yp__row { border-top: 1px solid var(--c-border); padding: 10px 0; }
+.yp__row > summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.yp__row[open] > summary { margin-bottom: 10px; }
+.yp__photo { display: inline-flex; align-items: center; gap: 6px; }

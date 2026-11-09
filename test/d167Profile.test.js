@@ -141,7 +141,9 @@ test("d167ExperienceWithLogosFromResume · About you keeps the work history with
   assert.deepEqual([exp.find(e => e.company === "Contoso").logo, exp.find(e => e.company === "Contoso").initial], [null, "C"]);
   // the client: About you mounts the Profile's "about" part, which holds the D101 sections; the box is "Your experience"
   // with its logo tiles, its design unchanged
-  assert.match(PAGE, /<ProfilePanel section=\{\["about", "resumes"\]\} resumeView=\{false\} onOpenJobProfiles=/);   // A140: one panel (D183 P1: resumeView off — the page draws it)
+  // A140: one panel → ⭐ A153 (45o, on purpose): Behind your profile is folded rows, so the two parts mount as two rows.
+  assert.match(PAGE, /contact: <ProfilePanel section="about" resumeView=\{false\} onOpenJobProfiles=/);
+  assert.match(PAGE, /resumes: <ProfilePanel section="resumes" resumeView=\{false\} onOpenJobProfiles=/);
   const PANEL = read("client/src/panels/ProfilePanel.jsx");
   const about = PANEL.slice(at(PANEL, '{on("about") && <>'), at(PANEL, '{on("answers") && <>'));
   assert.match(about, /<ProfileSections theme=\{theme\} highlight=\{/, "the sections are in About you (A140: the extracted skills / keywords bold in them)");
@@ -186,7 +188,7 @@ test("d167ProfileKeepsEverySetting · every old settings page and card has a pan
   assert.match(profile("answers"), /Custom Answers/);
   // A140: the résumés part is in About you — ⭐ D183 P1 (45l; pin brought to the code in 45o): behind the page's
   // "Behind your profile" fold, which mounts it once the page has loaded (so a first render does not hold it).
-  assert.match(read("client/src/pages/profile/YourProfile.jsx"), /\{behind\}\s*<\/details>/);
+  assert.match(read("client/src/pages/profile/YourProfile.jsx"), /<BehindRow id="resumes" title="Base résumés and job profiles"[\s\S]*?>\{behind\?\.resumes \|\| null\}<\/BehindRow>/);
   assert.match(profile("autoapply"), /data-profile-autoapply=""/, "the tracker's settings drawer, drawn in the page");
   assert.match(PAGE, /<AutoSettingsDrawer key=\{round\} open inline=\{host\}/);
   const conn = profile("connections");
