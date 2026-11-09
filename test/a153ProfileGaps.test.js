@@ -32,3 +32,25 @@ test("A153 · schools carry logos like employers; the public header offers Get s
   assert.doesNotMatch(run, /href=\{`\/p\/\$\{/, "no link to the retired /p/ address");
   assert.match(run, /href=\{`\/in\/\$\{proofPage\.handle\}`\}/);
 });
+
+test("A153 part 2 · photo on the profile, the page's own replace, edited marks, counts as proof, Behind as folded rows", () => {
+  const yp = fs.readFileSync("client/src/pages/profile/YourProfile.jsx", "utf8");
+  assert.match(yp, /function PhotoUpload\(\{ has \}\)/);
+  assert.match(yp, /await api\("\/api\/account\/avatar", \{ method: "POST", body: form \}\);\s*announceAccountChanged\(\);/, "the account's one picture");
+  assert.match(yp, /await api\("\/api\/parse-pdf", \{ method: "POST", body: form \}\);/);
+  assert.match(yp, /\/api\/domain-profiles\/\$\{page\.activeProfileId\}\/base-resume/);
+  assert.match(yp, /window\.dispatchEvent\(new Event\(RESUME_REPLACED_EVENT\)\);/, "then What changed (P2)");
+  for (const id of ["contact", "defaults", "resumes", "skills", "tailoring", "proofpage"]) assert.ok(yp.includes(`<BehindRow id="${id}"`), id);
+  assert.match(yp, /\{mounted \? children : null\}/, "a row mounts its editor only once opened");
+  assert.match(fs.readFileSync("services/profilePage.js", "utf8"), /activeProfileId: safe\(\(\) => db\.prepare\(`SELECT id FROM domain_profiles WHERE user_id = \? AND is_active = 1 LIMIT 1`\)/);
+  const ps = fs.readFileSync("client/src/components/ProfileSections.jsx", "utf8");
+  assert.match(ps, /source === "user" \? <span data-edited-by-you=""/);
+  assert.equal((ps.match(/<EditedMark source=\{x\.source\} theme=\{theme\} \/>/g) || []).length, 3, "experience, projects, education");
+  // provesSkills, run from the component's own source: whole words, your skills, only with a proof link
+  const start = ps.indexOf("export function provesSkills("), end = ps.indexOf("\nfunction Box(", start);
+  const provesSkills = new Function(`${ps.slice(start, end).replace("export function", "function")}; return provesSkills;`)();
+  const sk = [{ name: "Kafka" }, { name: "Go" }, { name: "C++" }, { name: "Java" }];
+  assert.deepEqual(provesSkills({ backed: true, name: "Tidewatch", description: "A Kafka pipeline in Go, C++ core" }, sk), ["Kafka", "Go", "C++"]);
+  assert.deepEqual(provesSkills({ backed: true, name: "JavaScript app", description: "good stuff" }, sk), [], "Java is not JavaScript; Go is not good");
+  assert.deepEqual(provesSkills({ backed: false, name: "Kafka" }, sk), [], "no proof link, no claim");
+});

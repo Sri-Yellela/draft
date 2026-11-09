@@ -135,10 +135,12 @@ export default function ProfilePage({ panel = "about", onSignedOut }) {
     <>
       <PlaceHead eyebrow="Your profile" title="Your page, from your résumé"
         lead="Only you can see it until you choose otherwise. Each section has its own eye." />
-      <YourProfile behind={<>
-        <ProfilePanel section={["about", "resumes"]} resumeView={false} onOpenJobProfiles={() => navigate("/app/job-profiles")} />
-        <AccountPanel only={ACCOUNT_CARDS.about} />
-      </>} />
+      {/* ⭐ A153 (45o): Behind your profile is folded rows (YourProfile's BehindRow) — the private parts by key. */}
+      <YourProfile behind={{
+        contact: <ProfilePanel section="about" resumeView={false} onOpenJobProfiles={() => navigate("/app/job-profiles")} />,
+        resumes: <ProfilePanel section="resumes" resumeView={false} onOpenJobProfiles={() => navigate("/app/job-profiles")} />,
+        tailoring: <AccountPanel only={ACCOUNT_CARDS.about} />,
+      }} />
     </>
   );
   else if (panel === "answers") body = (

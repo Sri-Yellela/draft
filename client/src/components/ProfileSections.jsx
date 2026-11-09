@@ -38,6 +38,21 @@ const SOURCE = { resume: "from your résumé", user: "", needs_you: "answered in
 // ⭐ A151 (45o): the About (summary) box is the address the username opens — /app/profile/about#profile-about.
 export const ABOUT_ANCHOR = "profile-about";
 
+// ⭐ A153 (45o, the D183 sketch): a row you changed by hand says so (D183 P2 already keeps it through a résumé replace —
+// item source 'user'); nothing is drawn for a row from the résumé.
+function EditedMark({ source, theme }) {
+  return source === "user" ? <span data-edited-by-you="" style={{ fontSize: 11, color: theme.textDim }}> · edited by you</span> : null;
+}
+// ⭐ A153: a project with its proof attached COUNTS as proof for the skills it names (the sketch's "counts as proof for Kafka").
+// Your own skills only, matched as whole words in the project's name or description; nothing when it has no proof link.
+export function provesSkills(project, skills = []) {
+  if (!project?.backed) return [];
+  const text = ` ${project.name || ""} ${project.description || ""} `.toLowerCase();
+  const esc = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return [...new Set(skills.map((k) => String(k?.name || "").trim()).filter(Boolean))]
+    .filter((n) => new RegExp(`(^|[^a-z0-9+#])${esc(n.toLowerCase())}($|[^a-z0-9+#])`).test(text)).slice(0, 4);
+}
+
 function Box({ title, right, children, theme, id }) {
   return (
     <section id={id} style={{ marginBottom: 20, scrollMarginTop: 96 }}>
@@ -420,7 +435,7 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
             <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
               <LogoTile logo={x.logo} initial={x.initial} theme={theme} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.title || "—"} · {x.company}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.title || "—"} · {x.company}<EditedMark source={x.source} theme={theme} /></div>
                 <div style={muted}>{[ymLabel(x.start), x.current ? "Present" : ymLabel(x.end)].filter(Boolean).join(" – ")}
                   {durationLabel(x.start, x.current ? null : x.end) ? <span data-duration=""> · {durationLabel(x.start, x.current ? null : x.end)}</span> : null}
                   {x.location ? ` · ${x.location}` : ""}</div>
@@ -456,9 +471,10 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
           render={(x) => (
             <div data-project="">
               <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.name}</span><BackingMark backed={!!x.backed} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.name}</span><BackingMark backed={!!x.backed} /><EditedMark source={x.source} theme={theme} />
               </div>
               {x.description && <div style={muted}>{x.description}</div>}
+              {provesSkills(x, s.skills).length > 0 && <div data-counts-as-proof="" style={{ ...muted, color: theme.text }}>Counts as proof for {provesSkills(x, s.skills).join(", ")}</div>}
               <EvidenceLinks theme={theme} target="project" claim={x.name} links={x.evidence || []} onSaved={setP} />
             </div>
           )} />
@@ -482,7 +498,7 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
               {/* A153 (45o, the D183 sketch): the school's logo, as an employer's (LogoTile; the initial when none). */}
               <LogoTile logo={x.logo} initial={x.initial || String(x.school || "?").charAt(0).toUpperCase()} theme={theme} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.school}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.school}<EditedMark source={x.source} theme={theme} /></div>
                 <div style={muted}>{[x.degree, x.field].filter(Boolean).join(", ")}{x.end ? ` · ${ymLabel(x.end)}` : ""}</div>
               </div>
             </div>

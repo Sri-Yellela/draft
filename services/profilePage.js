@@ -277,6 +277,8 @@ export function profilePage(db, userId, { now = new Date() } = {}) {
     header: { name, headline, location, years, avatar: !!account.avatar_path, handle: proofPage.handle || null,
       placement, openToWork: vis.openToWork, referrals: vis.referrals },
     source: src ? { name: src.name || "your résumé", at: src.at || null } : null,
+    // ⭐ A153 (45o): the job profile a replace writes to — the page's own Replace résumé (the old form's same three steps).
+    activeProfileId: safe(() => db.prepare(`SELECT id FROM domain_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1`).pluck().get(userId), null) ?? null,
     highlight,
     sections: {
       about: { summary: s.summary || null },

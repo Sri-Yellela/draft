@@ -18,11 +18,11 @@
 //                    Undo — back to the old résumé (30 days) · Review each change.
 // ⛔ What a visitor sees is decided on the server (GET /api/profile/page?as=public — services/profilePage.js viewFor);
 // View as the public draws exactly that answer, never a client-side filter of the owner's page.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { useTheme } from "../../styles/theme.jsx";
-import { useAccountAvatar } from "../../lib/accountAvatar.js";
+import { useAccountAvatar, announceAccountChanged } from "../../lib/accountAvatar.js";
 import { openResumeEditor } from "../../lib/resumeEditor.js";
 import { RESUME_REPLACED_EVENT } from "../../panels/ProfilePanel.jsx";
 import ProfileSections from "../../components/ProfileSections.jsx";
@@ -151,6 +151,47 @@ function HandleEditor({ handle, onSaved }) {
   );
 }
 
+/**
+ * A153 · one row of Behind your profile: its title and a one-line summary, folded; the editor mounts the first time it is
+ * opened and stays mounted (an open form keeps what you typed). `open` names a row the page asks to open (the replace's
+ * fallback opens "resumes").
+ */
+function BehindRow({ id, title, summary, open, onOpen, children }) {
+  const [shown, setShown] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { if (open === id) { setShown(true); setMounted(true); } }, [open, id]);
+  return (
+    <details className="yp__row" data-behind-row={id} open={shown}
+      onToggle={(e) => { const o = e.currentTarget.open; setShown(o); if (o) setMounted(true); else if (open === id) onOpen?.(null); }}>
+      <summary><b>{title}</b> <span className="yp__muted">{summary}</span></summary>
+      {mounted ? children : null}
+    </details>
+  );
+}
+
+function PhotoUpload({ has }) {
+  const ref = useRef(null);
+  const [msg, setMsg] = useState("");
+  const send = async (file) => {
+    if (!file) return;
+    setMsg("Uploading…");
+    try {
+      const form = new FormData(); form.append("avatar", file);
+      await api("/api/account/avatar", { method: "POST", body: form });
+      announceAccountChanged();
+      setMsg("");
+    } catch (e) { setMsg(e.message || "The picture could not be uploaded."); }
+    finally { if (ref.current) ref.current.value = ""; }
+  };
+  return (
+    <span className="yp__photo">
+      <button type="button" className="pf__btn" onClick={() => ref.current?.click()} data-photo-upload="">{has ? "Change photo" : "Add a photo"}</button>
+      <input ref={ref} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => send(e.target.files?.[0])} />
+      {msg && <span className="yp__muted" role="status"> {msg}</span>}
+    </span>
+  );
+}
+
 function Header({ page, avatarUrl, editing, onEdit, onSet, onPreview, previewing, onPage }) {
   const h = page.header;
   const p = h.placement;
@@ -170,6 +211,8 @@ function Header({ page, avatarUrl, editing, onEdit, onSet, onPreview, previewing
       <div className="yp__headrow">
         {avatarUrl ? <img className="yp__avatar" src={avatarUrl} alt="" referrerPolicy="no-referrer" />
           : <span className="yp__avatar yp__avatar--letter" aria-hidden="true">{initial}</span>}
+        {/* ⭐ A153 (45o, the D183 sketch): the photo is changed ON the profile — the account's own avatar upload (one picture). */}
+        <PhotoUpload has={!!avatarUrl} />
         <div className="yp__acts">
           <button type="button" className="pf__btn" onClick={onPreview} aria-pressed={previewing} data-view-as-public="">
             {previewing ? "Back to your view" : "View as the public"}</button>
@@ -401,6 +444,7 @@ export default function YourProfile({ behind = null }) {
   const [editing, setEditing] = useState(false);
   const [preview, setPreview] = useState(null);   // null = your view; { view } = the public view
   const [behindOpen, setBehindOpen] = useState(false);
+  const [behindRow, setBehindRow] = useState(null);   // A153: the row the page asks to open
 
   const [replaced, setReplaced] = useState(null);
   const [changeBusy, setChangeBusy] = useState(false);
@@ -435,9 +479,27 @@ export default function YourProfile({ behind = null }) {
     setPreview({ view: null });
     try { setPreview({ view: await api("/api/profile/page?as=public") }); } catch (e) { setErr(e.message || "The public view could not be read."); setPreview(null); }
   };
+  // ⭐ A153 (45o, the D183 sketch's replace): the page's OWN Replace résumé — pick a file and the page does what the old form
+  // did (read the PDF → save it as the job profile's base résumé → re-extract the signals), then re-reads and shows What
+  // changed (RESUME_REPLACED_EVENT, P2). With no job profile yet, the old form behind the fold is the way in.
+  const replaceRef = useRef(null);
+  const [replacing, setReplacing] = useState(false);
   const replace = () => {
-    setBehindOpen(true);
-    setTimeout(() => document.querySelector("[data-profile-behind]")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    if (page?.activeProfileId && replaceRef.current) { replaceRef.current.click(); return; }
+    setBehindOpen(true); setBehindRow("resumes");
+    setTimeout(() => document.querySelector('[data-behind-row="resumes"]')?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+  const replaceWith = async (file) => {
+    if (!file || !page?.activeProfileId) return;
+    setReplacing(true); setErr("");
+    try {
+      const form = new FormData(); form.append("file", file);
+      const parsed = await api("/api/parse-pdf", { method: "POST", body: form });
+      await api(`/api/domain-profiles/${page.activeProfileId}/base-resume`, { method: "POST", body: JSON.stringify({ content: parsed?.text || "", name: file.name }) });
+      await api(`/api/domain-profiles/${page.activeProfileId}/signals/refresh`, { method: "POST" });
+      window.dispatchEvent(new Event(RESUME_REPLACED_EVENT));
+    } catch (e) { setErr(e.message || "The résumé could not be replaced."); }
+    finally { setReplacing(false); if (replaceRef.current) replaceRef.current.value = ""; }
   };
 
   if (!page) return <p className="yp__muted">{err || "Loading your profile…"}</p>;
@@ -455,6 +517,9 @@ export default function YourProfile({ behind = null }) {
       {preview ? <PublicPreview view={preview.view} avatarUrl={avatarUrl} /> : (
         <>
           <SourceLine source={page.source} onReplace={replace} />
+          <input ref={replaceRef} type="file" accept="application/pdf,.pdf" hidden data-replace-file=""
+            onChange={(e) => replaceWith(e.target.files?.[0])} />
+          {replacing && <p className="yp__muted" role="status" data-replacing="">Reading your new résumé and re-filling every section…</p>}
           <ProfileSections key={`page-${round}`} theme={theme} highlight={page.highlight || []} onChanged={load}
             parts={["summary", "experience", "projects", "education", "links"]}
             titles={{ summary: "About", experience: "Experience" }} eyeFor={eyeFor}
@@ -470,10 +535,21 @@ export default function YourProfile({ behind = null }) {
             }} />
           <details className="yp__behind" data-profile-behind="" open={behindOpen} onToggle={e => setBehindOpen(e.currentTarget.open)}>
             <summary><b>Behind your profile</b> <span className="yp__muted">Only you · used to apply and to rank your jobs · never public</span></summary>
-            <p className="yp__muted">Contact details for application forms · Application defaults · Base résumés and job profiles · Titles, years and search terms ·
-              Skills and keywords that rank your board · Structured facts and ATS suggestions · How your résumés are tailored.</p>
-            <ProfileSections theme={theme} parts={["status", "defaults", "skills", "proofpage"]} onChanged={load} />
-            {behind}
+            {/* ⭐ A153 (45o, the D183 sketch): one folded row per part, each with its one-line summary — a row mounts its
+                editor only when opened (the old blocks were stacked in one fold, all mounted at once). `behind` is
+                ProfilePage's parts by key: contact, resumes, tailoring. */}
+            <BehindRow id="contact" title="Contact details for application forms" summary="Name, email, phone, address, work authorisation — filled into forms, never shown on your page"
+              open={behindRow} onOpen={setBehindRow}>{behind?.contact || null}</BehindRow>
+            <BehindRow id="defaults" title="Application defaults" summary="The answers forms ask every time — each set or not set"
+              open={behindRow} onOpen={setBehindRow}><ProfileSections theme={theme} parts={["status", "defaults"]} onChanged={load} /></BehindRow>
+            <BehindRow id="resumes" title="Base résumés and job profiles" summary="Your résumé per kind of job, its titles, years and search terms, and the facts read from it"
+              open={behindRow} onOpen={setBehindRow}>{behind?.resumes || null}</BehindRow>
+            <BehindRow id="skills" title="Skills and keywords that rank your board" summary="What the board reads to rank your jobs"
+              open={behindRow} onOpen={setBehindRow}><ProfileSections theme={theme} parts={["skills"]} onChanged={load} /></BehindRow>
+            <BehindRow id="tailoring" title="How your résumés are tailored" summary="The rules a tailored résumé follows for you"
+              open={behindRow} onOpen={setBehindRow}>{behind?.tailoring || null}</BehindRow>
+            <BehindRow id="proofpage" title="Proof page" summary="What you've proven in Atlas, on your public page"
+              open={behindRow} onOpen={setBehindRow}><ProfileSections theme={theme} parts={["proofpage"]} onChanged={load} /></BehindRow>
           </details>
         </>
       )}
