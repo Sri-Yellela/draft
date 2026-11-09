@@ -76,6 +76,7 @@ import { learnStepForNode, glossaryConcepts } from "../services/learn/learnLinks
 import { servedLearnContent } from "../services/learn/learnContent.js";
 import { learnSourceSummary } from "../services/atlas/learnSources.js";
 import { yourRun, setAtlasPrefs } from "../services/atlas/points.js";
+import { podRank, liveCount } from "../services/atlas/league.js";   // A154 (45s): each behind its own switch
 import { roleReadiness, compareRoles, subcategoryReadiness, setSubcategoryDeps } from "../services/atlas/roleReadiness.js";
 import { taxonomy } from "../services/jobs/taxonomyClassify.js";
 import { atlasLinksFor } from "../services/jobs/publicJobPage.js";
@@ -158,7 +159,12 @@ export function createAtlasRouter(db) {
   router.get("/run", (req, res) => {
     res.set("Cache-Control", "private, no-store");
     if (req.user?.id == null) return res.status(401).json({ error: "sign_in", message: "Sign in to see your run." });
-    res.json(yourRun(db, req.user.id));
+    // A154 (45s): the pod's rank and the live count join the run only when their switch is on (else null, never drawn).
+    const run = yourRun(db, req.user.id);
+    let pod = null, live = null;
+    try { pod = podRank(db, req.user.id); } catch { pod = null; }
+    try { live = liveCount(db, req.user.id); } catch { live = null; }
+    res.json({ ...run, pod, live });
   });
   // ⭐ A155 (45o) · Atlas's own choices — { weekdaysOnly } (the streak counts weekdays only). Signed in; the person's own row.
   router.put("/prefs", (req, res) => {

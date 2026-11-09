@@ -224,7 +224,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // 45n (250): the person's entry in people search — only what their public page shows.
   "people_index", "atlas_prefs",
   // D185-2 (258): the new-match alerts choice, and each job alerted (with when it was posted and when it was sent).
-  "match_alert_settings", "match_alerts"];
+  "match_alert_settings", "match_alerts",
+  // A154 / D172 (4) (264): the person's league membership (their handle and pod) and their challenges.
+  "league_members", "challenge_runs"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -376,6 +378,9 @@ export const MERGE_PLAN = Object.freeze({
   // D180 P3 (263): a merged person's helpful marks stay (one per post — INTO's own on a clash); What you share is a
   // preference — INTO's stands. Posts and comments are keyed by author_id and go with FROM's row by cascade, like threads.
   network_post_helpful: "keepInto", network_share_prefs: "keepInto",
+  // A154 / D172 (4) (264): one league membership per person — INTO's (its handle, its pod) stands; FROM's fills in only when
+  // INTO never joined. FROM's challenges (time attacks, duels, share links) are its history and move.
+  league_members: "keepInto", challenge_runs: "move",
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */
