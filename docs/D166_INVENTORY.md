@@ -68,6 +68,10 @@ not D145's app look. Whether to bring them in line is a T2 question for the owne
 browse board, A147) · `/jobs/:slug` (a posting's public page, server-rendered, D128) · `/companies/:slug` (a company's
 page, D179 P4b; inside the shell at `/app/companies/<slug>`) · `/audit` (the 3-minute audit, D150) · `/draft/resume/:jobId`
 (the résumé editor's own address, D157 (i)). All current pattern — no legacy markers.
+⭐ **Added 45r (45q's A157, found by the inventory guard):** `/:companySlug` (a company's own address, e.g. `/stripe`; a slug
+that is one of draft's own words lives at `/companies/<slug>`, shared/companyPaths.js) · `/:companySlug/:jobId` (a posting
+under its company, the board id keeps two same-titled jobs apart; the old `/companies/<slug>` and `/jobs/<words>-<id>` answer
+301). Both are the LAST routes before the app's fallback, so every route of draft's own wins.
 
 ## Admin (rank A; not shot, admin sign-in)
 
