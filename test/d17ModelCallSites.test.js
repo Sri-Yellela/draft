@@ -27,6 +27,10 @@ import { TASKS } from "../shared/modelTasks.js";
 const ALLOWED = new Set([
   "cover_letter",        // /api/cover-letter/generate — the generation family
   "cover_letter_apply",  // the apply path's cover letter — the generation family
+  // 45s · D185-1 (owner-approved 11-09) / D123 P7's answers.routine: a DRAFTED answer to a posting's own free-text question,
+  // written from the résumé like the cover letter — the generation family. On demand only, behind answer_drafts_enabled
+  // (OFF), checked before it is shown, saved only by the person (POST /api/apply/questions/:jobId/draft).
+  "answers_routine",
 ]);
 
 // Each entry names its A80 item. Delete the entry in the same commit that removes the call.
