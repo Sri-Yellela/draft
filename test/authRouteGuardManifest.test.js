@@ -33,6 +33,7 @@ const PUBLIC = new Set([
   "GET /api/diag",
   // D179 step 4 (45l): the open board, company pages and the search dropdown — signed out by design, read-only, no user data.
   "GET /api/public/jobs",
+  "GET /api/public/jobs/entry",   // A147 (45o): the signed-out /jobs entry — open-board aggregates only
   "GET /api/public/jobs/facets",
   "GET /api/public/companies",   // A144 (45o): the Companies tab's list — public facts only
   "GET /api/public/companies/:slug",
