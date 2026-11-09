@@ -15905,7 +15905,7 @@ proofPageRoutes(app, db);
 // ⭐ D183 P3: the public profile /in/<handle> — private unless the person made it public; noindex unless they said yes.
 publicProfileRoutes(app, db, { requireAdmin, dataDir: DATA_DIR, appBaseUrl });
 // ⭐ D180 P1 (45o): connections — every person-facing route 404s until the owner turns the network on (after counsel).
-networkRoutes(app, db, { requireAuth, requireAdmin, box: SECRET_BOX });
+networkRoutes(app, db, { requireAuth, requireAdmin, box: SECRET_BOX, emit: emitToUser });   // D180 (45r): emit = a message in real time (the sync stream)
 // ⭐ D113 P3: the picks confirm page /p/confirm/<token> (a GET never acts; the POST does, once) and the picks API.
 picksConfirmRoutes(app, db, requireAuth, { secret: PICKS_SECRET, startPickRun: applyLine.startPickRun, saveAnswers: applyLine.saveAnswers,
   generateResume: generateResumeForApply });

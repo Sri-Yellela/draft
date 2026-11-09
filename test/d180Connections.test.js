@@ -42,7 +42,8 @@ test("the network is OFF by default and every person-facing route is gated by it
   assert.ok(personRoutes.length >= 5);
   // /status is the one that answers while off — it IS the switch's answer (whether the dock draws Network).
   for (const m of personRoutes.filter(m => m[2] !== "/api/network/status")) assert.match(m[3], /requireAuth, gate,/, `${m[2]} is behind the switch`);
-  assert.match(fs.readFileSync("server.js", "utf8"), /networkRoutes\(app, db, \{ requireAuth, requireAdmin, box: SECRET_BOX \}\);/);
+  // 45r: emit (the sync stream) joined the options on purpose — a message reaches the other person's open tabs in real time.
+  assert.match(fs.readFileSync("server.js", "utf8"), /networkRoutes\(app, db, \{ requireAuth, requireAdmin, box: SECRET_BOX, emit: emitToUser \}\);/);
 });
 
 test("d180PrivateByDefault · a private page can't be asked (it reads as no one there)", () => {

@@ -21,7 +21,11 @@ import { connectionsAt, referralTemplate } from "../services/network/referrals.j
 
 const ACTIONS = new Set(["accept", "decline", "withdraw", "remove", "block", "unblock"]);
 
-export default function networkRoutes(app, db, { requireAuth, requireAdmin, box = null }) {
+export default function networkRoutes(app, db, { requireAuth, requireAdmin, box = null, emit = null }) {
+  // ⭐ D180 (45r) · real time: a sent message tells the other person's open tabs on the sync stream (/api/sync/events) —
+  // only that a conversation changed (its id), never the words; the client then reads the thread as itself. Polling stays
+  // the fallback. A failed emit never fails the send.
+  const tell = (userId, event) => { try { if (emit && userId != null) emit(userId, event); } catch { /* polling covers it */ } };
   // The switch is an admin action, recorded like every other (admin_audit_log).
   const audit = (req, action, after) => {
     const a = auditActorColumns(req.user?.id ?? null);
@@ -73,7 +77,11 @@ export default function networkRoutes(app, db, { requireAuth, requireAdmin, box 
   });
   app.post("/api/network/messages", requireAuth, gate, (req, res) => {
     if (!needBox(res)) return;
-    try { res.json(sendMessage(db, box, req.user.id, { to: req.body?.to, text: req.body?.text ?? null, jobId: req.body?.jobId ?? null })); } catch (e) { fail(res, e); }
+    try {
+      const out = sendMessage(db, box, req.user.id, { to: req.body?.to, text: req.body?.text ?? null, jobId: req.body?.jobId ?? null });
+      tell(idOf(db, req.body?.to), { type: "network_message", threadId: out?.threadId ?? null });
+      res.json(out);
+    } catch (e) { fail(res, e); }
   });
   app.get("/api/network/messages/:threadId", requireAuth, gate, (req, res) => {
     if (!needBox(res)) return;
