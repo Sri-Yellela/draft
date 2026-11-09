@@ -23,6 +23,7 @@ import { viewKey, viewCacheGet, viewCacheSet } from "../lib/boardViewCache.js";
 import { SavedEmptyState, useExtensionStatus } from "../components/ExtensionPrompt.jsx";
 import { EXTENSION_PAGE, EXTENSION_STORE_URL } from "../../../shared/extension.js";
 import JobDetailPanel from "../components/JobDetailPanel.jsx";
+import SendJobPicker from "../components/SendJobPicker.jsx";   // (11) 45q: D180's Send on the list rows
 import SandboxPanel, { cleanDocHtml } from "./SandboxPanel.jsx";
 import { PanelScrim, PanelDock, PANEL_TOP_INSET, PANEL_BOTTOM_INSET } from "../components/PanelShell.jsx";
 import { usePanelHost } from "../hooks/usePanelHost.js";
@@ -4534,6 +4535,10 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                       emptyReason = null, canRankByFit = true, onAddResume, resumeReadState = "ready", onRetryResume,
                       savedTab = false, importedTab = false, boardLoading = false, beingMatched = 0, beingMatchedMore = false,
                       cardTier = 1, containerRef }) {
+  // ⭐ (11) 45q · D180's Send on the list rows — only while the network is on (the deck's own rule), through the ONE picker.
+  const [networkOn, setNetworkOn] = useState(false);
+  const [sending, setSending] = useState(null);
+  useEffect(() => { let live = true; api("/api/network/status").then(r => live && setNetworkOn(!!r?.enabled)).catch(() => {}); return () => { live = false; }; }, []);
   // ⛔ D45: never while the current view is still loading — "nothing here" when the truth is "not here yet"
   // is silence reported as success.
   const shouldShowEmptyState = jobs.length === 0 && !scraping && !boardLoading;
@@ -4667,10 +4672,12 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
                 onDraft={() => decideJob?.(job, DECISIONS.DRAFTED)}
                 onViewDraft={draftControls?.onView} draftBlocked={draftControls?.block} draftSlots={draftControls?.slots}
                 onExplainDraft={(reason) => draftControls?.onExplain(job, reason)}
+                onSend={networkOn && job.publicPath ? () => setSending(job) : null}
               />
             );
           }}
           </JobBubbleRows>
+          {sending && <SendJobPicker job={sending} onClose={() => setSending(null)} />}
 
           {/* ⭐ D147 · scrolling, not page numbers: the next page loads as the list's end comes into view. */}
           {jobs.length > 0 && totalPages > 0 && (

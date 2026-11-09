@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import CompanyLogo from "../../components/CompanyLogo.jsx";   // A149: the company's own mark (D61)
+import SendJobPicker from "../../components/SendJobPicker.jsx";   // (11) 45q: D180's Send on the open jobs
 import "./CompanyPage.css";
 
 const GROUP_WORD = { languages: "Languages", frameworks: "Frameworks", data: "Data", cloud: "Cloud", devops: "DevOps", "ml-ai": "ML / AI", tools: "Tools" };
@@ -28,6 +29,15 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
   const [error, setError] = useState(null);
   const [match, setMatch] = useState(null);   // D179: Your match — signed in (inside the shell) only
   const navigate = useNavigate();
+  // ⭐ (11) 45q · Send a job from the company page — inside the shell (signed in) and only while the network is on.
+  const [networkOn, setNetworkOn] = useState(false);
+  const [sending, setSending] = useState(null);
+  useEffect(() => {
+    if (!inApp) return undefined;
+    let live = true;
+    api("/api/network/status").then(r => live && setNetworkOn(!!r?.enabled)).catch(() => {});
+    return () => { live = false; };
+  }, [inApp]);
   useEffect(() => {
     if (!inApp) return undefined;
     let live = true;
@@ -206,9 +216,13 @@ export default function CompanyPage({ slug, base = "/companies", inApp = false }
           <h2>Newest open jobs</h2>
           <ul className="co__jobs">
             {jobs.map((j) => (
-              <li key={j.id}><a href={j.path}>{j.title}</a>{j.location ? <span className="co__where"> · {j.location}</span> : null}</li>
+              <li key={j.id}><a href={j.path}>{j.title}</a>{j.location ? <span className="co__where"> · {j.location}</span> : null}
+                {/* ⭐ (11) 45q · D180 Send, only while the network is on and someone is signed in. */}
+                {networkOn && <button type="button" className="co__send" data-company-send="" onClick={() => setSending({ title: j.title, publicPath: j.path })}>Send</button>}
+              </li>
             ))}
           </ul>
+          {sending && <SendJobPicker job={sending} onClose={() => setSending(null)} />}
           {openJobs > jobs.length && <p><Link to={jobsHref(null)}>All {openJobs.toLocaleString("en-US")} open jobs</Link></p>}
         </section>
       )}
