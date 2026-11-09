@@ -160,6 +160,8 @@ const ADMIN = new Set([
   "GET /api/admin/tailoring",      // D123: the tailoring mode, default model and models offered
   "PUT /api/admin/tailoring",
   "DELETE /api/admin/tailoring",
+  "GET /api/admin/match-alerts",   // D185-2: time from posting to alert, per source
+  "GET /api/admin/outcomes",       // D185-5: interviews per application and per active person
   "GET /api/admin/backups",
   "POST /api/admin/backups",
   "POST /api/admin/backups/restore",
@@ -253,6 +255,8 @@ const AUTHENTICATED = new Set([
   "GET /api/learn/stack-exposure",
   "GET /api/learn/today/reminder",
   "PUT /api/learn/today/reminder",
+  "GET /api/alerts/matches/settings",   // D185-2: the person's own new-match alert choice
+  "PUT /api/alerts/matches/settings",
   // D179 P4b (45l): Your match on a company page — the person's own skills, signed in.
   "GET /api/companies/:slug/match",
   "POST /api/companies/:slug/follow",
@@ -838,6 +842,8 @@ test("every authenticated route taking an id from the request derives the owner 
     "server.js: GET /api/audit/:token/result",                     // D150 T06: an anonymous token, no owner
     "server.js: GET /jobs/role/:id/in/:metro",                     // D179 P7: a public landing page, no owner
     "server.js: GET /jobs/tech/:slug",                             // D179 P7: a public landing page, no owner
+    "server.js: GET /jobs/sponsor-h1b/:id",                        // D185-6: a public landing page, no owner
+    "server.js: GET /jobs/sponsor-h1b/:id/in/:metro",              // D185-6: a public landing page, no owner
     "server.js: POST /api/auth/provider/:provider",                // pre-auth, by definition
     // Retired: answers 410 and reads nothing at all, so there is no owner to scope to.
     "routes/apply.js: GET /api/apply/session/:domain",

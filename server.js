@@ -10412,6 +10412,15 @@ app.get("/jobs/role/:id/in/:metro", (req, res) => {
   const page = renderLandingPage(db, "role-metro", { role: req.params.id, metro: req.params.metro }, { base: appBaseUrl(req) });
   res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
 });
+// ⭐ D185-6 (45q) · the beachhead's pages: a role (in a metro) at employers with certified H-1B filings, with their DOL history.
+app.get("/jobs/sponsor-h1b/:id", (req, res) => {
+  const page = renderLandingPage(db, "sponsor", { role: req.params.id }, { base: appBaseUrl(req) });
+  res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
+});
+app.get("/jobs/sponsor-h1b/:id/in/:metro", (req, res) => {
+  const page = renderLandingPage(db, "sponsor-metro", { role: req.params.id, metro: req.params.metro }, { base: appBaseUrl(req) });
+  res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
+});
 app.get("/jobs/tech/:slug", (req, res) => {
   const page = renderLandingPage(db, "tech", req.params.slug, { base: appBaseUrl(req) });
   res.set("Cache-Control", "public, max-age=1800").status(page.status).type("html").send(page.html);
