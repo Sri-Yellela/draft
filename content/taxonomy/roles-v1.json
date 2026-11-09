@@ -2,6 +2,11 @@
 "version": 1,
 "status": "APPROVED by the owner 2026-11-07 (D179 P1) — changes from here are versioned (ids stable)",
 "updated": "2026-11-07",
+"registryMap": {
+ "why": "B-1 (45o, owner 11-08 first priority): D101's role registry onto taxonomy ids — ONE table, so a placement writes the job profile's role and the two can never disagree. A subcategory's entry wins over its category's.",
+ "categories": {"software-engineering":"engineering","data-ai":"data","cloud-infra-it":"engineering","security":"engineering","electrical-hardware":"electrical_engineering","mechanical-manufacturing":"mechanical_engineering","civil-construction":"civil_engineering","aerospace":"aerospace_engineering","process-industrial":"chemical_engineering","biomedical":"biomedical_engineering","product-management":"pm_general","project-program-management":"project_management","design":"design","marketing":"marketing","sales-cs":"sales","business-finance":"finance","operations-supply-chain":"operations","people-hr":"hr","legal":"legal","writing-communications":"writing_content","science-research":"life_sciences_research","healthcare":"healthcare","education":"general"},
+ "subcategories": {"swe.embedded":"engineering_embedded_firmware","swe.systems":"engineering_systems_low_level","proc.industrial":"industrial_engineering","proj.construction":"pm_construction","proj.technical":"pm_it","ops.procurement":"procurement_purchasing","sci.chemistry":"laboratory_chemistry_qc","sci.economics":"economics_research","ee.asic":"hardware_engineering","ee.fpga":"hardware_engineering","biz.accounting":"accounting_audit","biz.tax":"accounting_audit","biz.fpa":"financial_analysis","biz.investment":"financial_analysis","biz.consulting":"consulting_strategy","biz.analysis":"business_analysis","law.compliance":"compliance_risk","des.visual":"graphic_visual_design","mkt.performance":"digital_marketing","mkt.seo":"digital_marketing","mkt.social":"digital_marketing","comm.pr":"public_relations_communications"}
+},
 "rules": [
  "A subcategory exists only where the work, and so the skills, meaningfully differ — that is what lets Atlas reuse it as a role node with its own skill set.",
  "Every category has a 'general' subcategory: category clear, specialisation unsure → shown at category level, never held (D127's hold applies to the category only).",

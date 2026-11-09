@@ -169,6 +169,32 @@ function BehindRow({ id, title, summary, open, onOpen, children }) {
   );
 }
 
+/** ⭐ (B)-1 (45o): "we couldn't place you — pick your role" — the taxonomy's roles (the open board's own list), and the pick
+ *  becomes the job profile's placement (PUT /api/profile/placement). Never a guess. */
+function PickRole({ onPage }) {
+  const [cats, setCats] = useState(null);
+  const [sub, setSub] = useState("");
+  const [msg, setMsg] = useState("");
+  useEffect(() => { let live = true; fetch("/api/public/jobs/facets").then(r => r.json()).then(d => live && setCats(d.categories || [])).catch(() => live && setCats([])); return () => { live = false; }; }, []);
+  const save = async () => {
+    try { onPage?.(await api("/api/profile/placement", { method: "PUT", body: JSON.stringify({ subcategory: sub }) })); setMsg(""); }
+    catch (e) { setMsg(e.message || "That didn't save."); }
+  };
+  return (
+    <p className="yp__fits" data-placement-asks="">
+      We couldn't place you from your résumé — pick your role:{" "}
+      <select value={sub} onChange={e => setSub(e.target.value)} aria-label="Your role" data-pick-role="">
+        <option value="">Choose…</option>
+        {(cats || []).map(c => (
+          <optgroup key={c.id} label={c.name}>{c.subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+        ))}
+      </select>{" "}
+      <button type="button" className="pf__btn" disabled={!sub} onClick={save}>Save</button>
+      {msg && <span className="yp__muted" role="status"> {msg}</span>}
+    </p>
+  );
+}
+
 function PhotoUpload({ has }) {
   const ref = useRef(null);
   const [msg, setMsg] = useState("");
@@ -235,11 +261,13 @@ function Header({ page, avatarUrl, editing, onEdit, onSet, onPreview, previewing
           ? <a href={publicUrl} target="_blank" rel="noopener noreferrer" data-public-link="">{publicUrl.replace(/^https?:\/\//, "")}</a>
           : <span data-public-link="" title="Only you can see your profile — this link shows “This profile is private.”">{publicUrl.replace(/^https?:\/\//, "")}</span>}</>}
       </p>
-      {p && (
+      {p && !p.asks && (
         <p className="yp__fits" data-placement="">
           Fits <b>{p.subName}</b> · {p.levelLabel}{p.also ? <> · also <b>{p.also.subName}</b></> : null}
         </p>
       )}
+      {/* ⭐ (B)-1 (45o): below the confidence line the placement is never a guess — the person picks the role. */}
+      {p?.asks && <PickRole onPage={onPage} />}
       <div className="yp__open" data-open-to-work="">
         {editing ? (
           <>

@@ -11,6 +11,7 @@
 //      holds every attestation out); a field the user typed is never overwritten.
 // The wizard stays, as "Refine your job profile", pre-filled with what was read here.
 
+import { placeText, writePlacement } from "./placement.js";   // (B)-1: one placement, one source
 import { prefillFromResumeText, PREFILL_FIELDS } from "../shared/resumePrefill.js";
 
 const SKIP_DOMAINS = new Set(["other_profile_request", "general"]);
@@ -177,8 +178,18 @@ export function followProfileText(db, profileId, text, { registry, sampleRoleFam
       selected_keywords = ?, selected_verbs = ?, selected_tools = ? WHERE id = ?`)
     .run(name, inferred.roleFamily, inferred.domain, inferred.seniority, JSON.stringify(inferred.titles),
       JSON.stringify(inferred.keywords), JSON.stringify(inferred.verbs), JSON.stringify(inferred.tools), profileId);
-  return { changed: before.role_family !== inferred.roleFamily || before.domain !== inferred.domain
-    || before.target_titles !== JSON.stringify(inferred.titles), inferred, from: { roleFamily: before.role_family, domain: before.domain } };
+  // ⭐ (B)-1 (45o): ONE PLACEMENT, ONE SOURCE — the taxonomy's placement of this résumé writes the role (domain / role_family
+  // through roles-v1.json's registryMap) over the registry's own keyword guess; below the confidence line the role is left
+  // as the inference said and the placement records that it couldn't place (the page asks the person).
+  let placement = null;
+  try {
+    placement = placeText(text, { titles: inferred.titles });
+    writePlacement(db, profileId, placement, registry || {});
+  } catch { placement = null; }
+  const now = db.prepare("SELECT role_family, domain FROM domain_profiles WHERE id = ?").get(profileId) || {};
+  return { changed: before.role_family !== now.role_family || before.domain !== now.domain
+    || before.target_titles !== JSON.stringify(inferred.titles), inferred, placement,
+    from: { roleFamily: before.role_family, domain: before.domain }, to: { roleFamily: now.role_family, domain: now.domain } };
 }
 
 /**

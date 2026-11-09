@@ -242,6 +242,7 @@ const AUTHENTICATED = new Set([
   // every one scoped by req.user.id (an :id another person owns is not found under this user).
   "GET /api/profile/page",
   "PUT /api/profile/page/visibility",
+  "PUT /api/profile/placement",   // (B)-1 (45o): the person's own role pick, their active job profile
   "PUT /api/profile/page/handle",
   "POST /api/profile/page/achievements",
   "DELETE /api/profile/page/achievements/:id",

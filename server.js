@@ -7444,6 +7444,21 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         ALTER TABLE apply_run_jobs ADD COLUMN resume_missing_reason TEXT;
       `,
     },
+    {
+      // ⭐ FIRST PRIORITY (B)-1 (45o, owner 11-08) · ONE PLACEMENT, ONE SOURCE — the job profile keeps the résumé's placement
+      // in D179's taxonomy (category → subcategory, level, one 'also fits', the classifier's confidence); it writes the
+      // profile's domain / role_family through roles-v1.json's registryMap. placed_at NULL = never placed; a placed_at with
+      // no category = 'we couldn't place you — pick your role'. Only ADDS.
+      id: "255_job_profile_placement",
+      sql: `
+        ALTER TABLE domain_profiles ADD COLUMN placement_category TEXT;
+        ALTER TABLE domain_profiles ADD COLUMN placement_subcategory TEXT;
+        ALTER TABLE domain_profiles ADD COLUMN placement_level TEXT;
+        ALTER TABLE domain_profiles ADD COLUMN placement_also TEXT;
+        ALTER TABLE domain_profiles ADD COLUMN placement_confidence REAL;
+        ALTER TABLE domain_profiles ADD COLUMN placed_at INTEGER;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");

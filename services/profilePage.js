@@ -22,6 +22,7 @@ import { learningProof } from "./atlas/points.js";
 import { subcategoryReadiness } from "./atlas/roleReadiness.js";
 import { classifyPosting, taxonomy } from "./jobs/taxonomyClassify.js";
 import { yearsOfWork, seniorityOf } from "./resumeOnboarding.js";
+import { storedPlacement } from "./placement.js";   // (B)-1
 import { readProofPage } from "./proofLinks.js";
 
 export const PAGE_LEVELS = Object.freeze(["only_me", "connections", "public"]);
@@ -229,7 +230,10 @@ export function profilePage(db, userId, { now = new Date() } = {}) {
     ? Number(row.years_of_experience) : safe(() => yearsOfWork(plain(text), now.getUTCFullYear()), null);
   const exp = (s.experience || []).map(x => ({ ...x, duration: durationLabel(x.start, x.current ? null : x.end, now) }));
   const titles = exp.map(x => x.title).concat(row.current_job_title ? [row.current_job_title] : []);
-  const placement = text.trim() ? placementFromResume({ titles, text, years }) : null;
+  // ⭐ (B)-1 (45o): the job profile's STORED placement is the one source; the résumé is read only for a profile never placed.
+  const stored = safe(() => storedPlacement(db, userId), null);
+  const placement = stored && !stored.asks ? { ...stored, levelLabel: LEVEL_LABEL[stored.level] || stored.level }
+    : stored?.asks ? { asks: true } : text.trim() ? placementFromResume({ titles, text, years }) : null;
   const name = String(row.full_name || [row.first_name, row.last_name].filter(Boolean).join(" ") || account.display_name || "").trim() || null;
   const location = String(row.location || [row.city, row.state].filter(Boolean).join(", ") || "").trim() || null;
   const headline = vis.headline || row.current_job_title || exp[0]?.title || null;
