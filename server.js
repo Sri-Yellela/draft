@@ -122,6 +122,7 @@ import { profileCategory, categoryOf as categoryOfPosting } from "./services/job
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport } from "./services/companyHeat.js";
 import { runHnDiscovery, runCandidateProbe } from "./services/companyCandidates.js";
+import { importSeedCandidates } from "./services/seedCandidates.js";   // 45s: the non-tech employer seed
 import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHook.js";
 import { readGauge, projectTranche, trancheGate, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "./services/diskGauge.js";
 import { checkDiskAlert, CHECK_EVERY_MS as DISK_ALERT_EVERY_MS } from "./services/diskAlert.js";
@@ -11897,6 +11898,12 @@ cron.schedule("0 6 * * 1", () => {
     `${r.candidates} companies from ${r.threads} threads (${r.requests} requests) → ${r.inserted} new candidate(s), ${r.refreshed} seen again`}`))
     .catch((e) => console.error("[discovery:hn] failed:", e.message));
 });
+// ⭐ 45s (owner 11-09, "boost crawlers to boost coverage and volume"): the probed NON-TECH employer list joins the pool once
+// at boot (services/seedCandidates.js — poolCandidates' own dedup and guards; idempotent; nothing is added). DISCOVERY_PAUSED=1 skips it.
+if (process.env.DISCOVERY_PAUSED !== "1") setTimeout(() => {
+  try { const r = importSeedCandidates(db); if (r.items) console.log(`[discovery:seed] ${r.items} non-tech employer(s) → ${r.inserted} new candidate(s), ${r.refreshed} seen again, skipped ${JSON.stringify(r.skipped)}`); }
+  catch (e) { console.warn("[discovery:seed] failed:", e.message); }
+}, 90 * 1000).unref();
 cron.schedule("30 6 * * *", () => {
   runCandidateProbe(db).then((r) => console.log(`[discovery:probe] ${r.ran === false ? `skipped (${r.reason})` : r.failed ? `FAILED: ${r.error}` :
     `probed ${r.probed} of ${r.considered} candidate(s), ${r.errored} errored`}`))

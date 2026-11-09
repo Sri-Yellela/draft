@@ -1,0 +1,32 @@
+// services/seedCandidates.js — 45s (owner 11-09: "start boosting crawlers to boost coverage and volume") · a committed list of
+// probed NON-TECH employers (content/companies/candidates-nontech-45s.json, made by scripts/seedNonTechCandidates.mjs) goes
+// into the candidate POOL once — through D82's own poolCandidates, so every guard holds: deduped against configured,
+// held and rejected pairs, the deny-list and the never-sources (portfolio / VC boards, staffing agencies). ⛔ Nothing is
+// ADDED: the nightly probe re-probes each, and the owner approves a ranked batch (D82's trust ladder, L1).
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { poolCandidates } from "./companyCandidates.js";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+export const SEED_FILE = path.join(ROOT, "content", "companies", "candidates-nontech-45s.json");
+export const SEED_SOURCE = "seed-nontech-45s";
+const BOARD_URL = {
+  greenhouse: (s) => `https://boards.greenhouse.io/${s}`, lever: (s) => `https://jobs.lever.co/${s}`, ashby: (s) => `https://jobs.ashbyhq.com/${s}`,
+  smartrecruiters: (s) => `https://jobs.smartrecruiters.com/${s}`, workable: (s) => `https://apply.workable.com/${s}`,
+};
+
+/** The seed file as pool items ({ company, ats: { atsType, slug, url }, … }). */
+export function seedItems(file = SEED_FILE) {
+  if (!fs.existsSync(file)) return [];
+  const found = JSON.parse(fs.readFileSync(file, "utf8")).found || [];
+  return found.filter(f => BOARD_URL[f.atsType] && f.slug).map(f => ({ company: f.company, ats: { atsType: f.atsType, slug: f.slug, url: BOARD_URL[f.atsType](f.slug) },
+    sources: [SEED_SOURCE], header: `${f.industry} · probed ${f.evidence?.probedAt || ""}: ${f.evidence?.us ?? "?"} US roles, ${f.evidence?.inScope ?? "?"} in scope` }));
+}
+
+/** Import once (idempotent: a pair already in the pool is only refreshed, a rejected one stays rejected). */
+export function importSeedCandidates(db, { file = SEED_FILE } = {}) {
+  const items = seedItems(file);
+  if (!items.length) return { inserted: 0, refreshed: 0, skipped: {}, items: 0 };
+  return { ...poolCandidates(db, items, { source: SEED_SOURCE }), items: items.length };
+}
