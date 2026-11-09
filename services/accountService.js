@@ -222,7 +222,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D154 P1 (246): the hour the daily question's reminder is sent at.
   "daily_reminders",
   // 45n (250): the person's entry in people search — only what their public page shows.
-  "people_index", "atlas_prefs"];
+  "people_index", "atlas_prefs",
+  // D185-2 (258): the new-match alerts choice, and each job alerted (with when it was posted and when it was sent).
+  "match_alert_settings", "match_alerts"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -368,6 +370,9 @@ export const MERGE_PLAN = Object.freeze({
   // D180 P2 (253): a read mark / mute per Network thread. FROM's threads are keyed by its id (low_id / high_id), not
   // user_id, and go with FROM's row by cascade — so its read marks go too. (45p: merge refused every merge without it.)
   network_reads: "drop",
+  // D185-2 (258): INTO's alert choice stands; FROM's alerted jobs fill in (one row per person and job — INTO's wins a clash),
+  // so a job FROM was already told about is not mailed again to the merged person.
+  match_alert_settings: "keepInto", match_alerts: "keepInto",
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */

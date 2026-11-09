@@ -107,6 +107,7 @@ import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landing
 import { startAudit, answerAudit, auditResult, claimAudit } from "./services/audit/auditSession.js";
 import { todaysQuestion, answerToday } from "./services/learn/dailyQuestion.js";
 import { readReminder, setReminder, runDailyReminders } from "./services/learn/dailyReminder.js";
+import { readMatchAlertSettings, setMatchAlertSettings, runMatchAlerts, matchAlertTimings } from "./services/jobs/newMatchAlerts.js";
 import { seedTaxonomyRoles } from "./services/atlas/taxonomyRoleNodes.js";
 import { TAXONOMY_FILE } from "./services/jobs/taxonomyClassify.js";
 import { setAim as setNavigatorAim } from "./services/navigator.js";
@@ -7486,6 +7487,42 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // D185-2 (45q, owner 11-09) · NEW-MATCH ALERTS (services/jobs/newMatchAlerts.js). match_alert_settings: the person's
+      // choice (digest | instant | off), their local hour, the sweep's cursor and the last digest day. match_alerts: ONE row per
+      // (person, posting) alerted — claimed before the message (at most once) and the record Admin reads time-to-alert from.
+      // Only ADDS.
+      id: "258_match_alerts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS match_alert_settings (
+          user_id         INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          mode            TEXT NOT NULL DEFAULT 'digest',
+          hour            INTEGER NOT NULL DEFAULT 9,
+          tz_offset_min   INTEGER NOT NULL DEFAULT 0,
+          cursor_at       INTEGER,
+          last_digest_day TEXT,
+          updated_at      INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS match_alerts (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id        TEXT NOT NULL,
+          profile_id    INTEGER,
+          source        TEXT,
+          posted_at     INTEGER,
+          discovered_at INTEGER,
+          matched       INTEGER,
+          of_skills     INTEGER,
+          sponsor       INTEGER NOT NULL DEFAULT 0,
+          mode          TEXT,
+          batch         TEXT,
+          alerted_at    INTEGER NOT NULL,
+          UNIQUE (user_id, job_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_match_alerts_alerted ON match_alerts(alerted_at);
+        CREATE INDEX IF NOT EXISTS idx_match_alerts_user ON match_alerts(user_id, alerted_at);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -13077,6 +13114,24 @@ if (process.env.DAILY_REMINDERS !== "off") setInterval(() => {
   runDailyReminders(db, (userId, event, data) => notifyEvent(userId, event, data))
     .then(n => { if (n) console.log(`[daily] reminders sent: ${n}`); })
     .catch(e => console.warn(`[daily] reminders: ${e.message}`));
+}, 10 * 60 * 1000).unref();
+// ⭐ D185-2 (45q) · new jobs that fit the résumé — top tier only, live and not a ghost; a daily digest by default, instant as
+// an opt-in, at most 10 jobs a day. The candidate query runs on the read workers (A126).
+app.get("/api/alerts/matches/settings", requireAuth, (req, res) => {
+  try { res.set("Cache-Control", "private, no-store").json(readMatchAlertSettings(db, req.user.id)); } catch (e) { auditFail(res, e); }
+});
+app.put("/api/alerts/matches/settings", requireAuth, (req, res) => {
+  try { res.json(setMatchAlertSettings(db, req.user.id, { mode: req.body?.mode, hour: req.body?.hour, tzOffsetMin: req.body?.tzOffsetMin })); }
+  catch (e) { auditFail(res, e); }
+});
+app.get("/api/admin/match-alerts", requireAdmin, (req, res) => {
+  try { res.json(matchAlertTimings(db, { days: Math.min(90, Math.max(1, Number(req.query?.days) || 30)) })); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+if (process.env.MATCH_ALERTS !== "off") setInterval(() => {
+  runMatchAlerts(db, readPool, (userId, event, data) => notifyEvent(userId, event, data), { appUrl: APP_BASE_ORIGIN || "" })
+    .then(n => { if (n) console.log(`[alerts] new-match messages sent: ${n}`); })
+    .catch(e => console.warn(`[alerts] new matches: ${e.message}`));
 }, 10 * 60 * 1000).unref();
 app.post("/api/learn/today/answer", requireAuth, (req, res) => {
   try { res.json(answerToday(db, req.user.id, String(req.body?.day || ""), { chosen: Number(req.body?.chosen), response: Array.isArray(req.body?.response) ? req.body.response.slice(0, 8) : null, ms: Number(req.body?.ms) || null })); }

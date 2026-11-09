@@ -6894,4 +6894,40 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // D185-2 (45q, owner 11-09) · NEW-MATCH ALERTS (services/jobs/newMatchAlerts.js). match_alert_settings: the person's
+      // choice (digest | instant | off), their local hour, the sweep's cursor and the last digest day. match_alerts: ONE row per
+      // (person, posting) alerted — claimed before the message (at most once) and the record Admin reads time-to-alert from.
+      // Only ADDS.
+      id: "258_match_alerts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS match_alert_settings (
+          user_id         INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          mode            TEXT NOT NULL DEFAULT 'digest',
+          hour            INTEGER NOT NULL DEFAULT 9,
+          tz_offset_min   INTEGER NOT NULL DEFAULT 0,
+          cursor_at       INTEGER,
+          last_digest_day TEXT,
+          updated_at      INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS match_alerts (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id        TEXT NOT NULL,
+          profile_id    INTEGER,
+          source        TEXT,
+          posted_at     INTEGER,
+          discovered_at INTEGER,
+          matched       INTEGER,
+          of_skills     INTEGER,
+          sponsor       INTEGER NOT NULL DEFAULT 0,
+          mode          TEXT,
+          batch         TEXT,
+          alerted_at    INTEGER NOT NULL,
+          UNIQUE (user_id, job_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_match_alerts_alerted ON match_alerts(alerted_at);
+        CREATE INDEX IF NOT EXISTS idx_match_alerts_user ON match_alerts(user_id, alerted_at);
+      `,
+    },
   ];

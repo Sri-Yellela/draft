@@ -637,6 +637,35 @@ export function FullAutoPrerequisitesSection({ theme }) {
   );
 }
 
+// ── D185-2 New-match alerts — GET /api/admin/match-alerts ─────────────────────────────────────
+// How fast a new posting reaches the people it fits: per source, minutes from the posting's own date to the alert, and
+// from when draft first saw it (draft's own lag). Read-only. D185: don't market "first to know" until this says so.
+const minText = (m) => (m == null ? "—" : m < 120 ? `${m} min` : `${Math.round(m / 60)} h`);
+export function MatchAlertsSection({ theme }) {
+  const [s, setS] = useState(null);
+  const [err, setErr] = useState(null);
+  useEffect(() => { api("/api/admin/match-alerts").then(setS).catch(e => setErr(e.message)); }, []);
+  return (
+    <Panel title="New-match alerts" data-admin-match-alerts=""
+      code="D185-2: services/jobs/newMatchAlerts.js — match_alerts (migration 258), one row per person and job alerted; the sweep runs every 10 minutes on the read workers."
+      purpose="How quickly a new job that fits someone reaches them, by where the job came from. Top-tier matches only, live and not a ghost; a daily digest by default, at most 10 jobs a day."
+      numbers={s ? [[String(s.total), `alerts in ${s.days} days`], [String(s.people), "people"]] : []}>
+      <Err msg={err}/>
+      {s && <Table theme={theme} empty="No alerts sent yet."
+        cols={[
+          { key: "source", label: "Source" },
+          { key: "alerts", label: "Alerts", right: true },
+          { key: "people", label: "People", right: true },
+          { key: "p50", label: "Posted → alert (median)", right: true, render: r => minText(r.postingToAlertMin.p50) },
+          { key: "p90", label: "Posted → alert (90%)", right: true, render: r => minText(r.postingToAlertMin.p90) },
+          { key: "s50", label: "Seen → alert (median)", right: true, render: r => minText(r.seenToAlertMin.p50) },
+          { key: "nodate", label: "No posting date", right: true, render: r => String(r.noPostingDate) },
+        ]}
+        rows={s.sources}/>}
+    </Panel>
+  );
+}
+
 // ── D123 Tailoring — GET / PUT / DELETE /api/admin/tailoring ───────────────────────────────────
 // Owner 11-01: "switch the prompt between lean or the payload from the admin panel, or the model being used from the
 // users side". The mode wins over DRAFT_TAILORING (Clear follows the deploy again); the model default and the list a
