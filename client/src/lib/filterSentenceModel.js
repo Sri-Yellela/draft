@@ -28,7 +28,8 @@ export { SENTENCE_CLAUSES, SENTENCE_CAP, SORT_PANEL, activeClauseCount, OPEN_SET
 // bar. ⛔ ONE value holds which is open — null | a clause key | "more" (the sentence's "+ add") |
 // "sort" — so two open panels is not a state the board can hold, and the sentence never jumps as
 // panels stack. Pressing the open one closes it; pressing another swaps.
-export const BOARD_PANEL = Object.freeze({ SORT: "sort", MORE: "more" });
+// ⭐ A146 (45o, the D179 sketch's (b)): ALL = "All filters" — every clause's options at once, in place under the sentence.
+export const BOARD_PANEL = Object.freeze({ SORT: "sort", MORE: "more", ALL: "all" });
 export const BOARD_PANEL_DEFAULT = null;
 /** ⭐ D42 · THE STRICT TOGGLE's param: "only jobs known to be in Boston" — known matches, no unknowns. */
 export const STRICT_PARAM = "strict_tags";
@@ -36,7 +37,7 @@ export const isStrict = (params = {}) => ["1", "true", true, 1].includes(params[
 export const nextBoardPanel = (current, pressed) => (current === pressed ? null : pressed);
 /** Is this panel one the SENTENCE opens (a clause's, or "+ add"'s) — rendered beneath the sentence? */
 export const isWordPanel = (panel) =>
-  panel === BOARD_PANEL.MORE || SENTENCE_CLAUSES.some(c => c.key === panel);
+  panel === BOARD_PANEL.MORE || panel === BOARD_PANEL.ALL || SENTENCE_CLAUSES.some(c => c.key === panel);
 
 // ── D30 · The dials ─────────────────────────────────────────────────────────────────────────────
 //
@@ -153,7 +154,8 @@ export function coverageShare(facets, tag) {
 // header.html's panel: a key (LEVEL), "Close ×", the options as boxed pills with their counts, and one
 // line of coverage under them. Every word, count and coverage figure is derived here.
 export const panelKey = (panel) =>
-  panel === BOARD_PANEL.MORE ? "Add a filter" : (SENTENCE_CLAUSES.find(c => c.key === panel)?.label ?? "");
+  panel === BOARD_PANEL.MORE ? "Add a filter" : panel === BOARD_PANEL.ALL ? "All filters"
+    : (SENTENCE_CLAUSES.find(c => c.key === panel)?.label ?? "");
 
 /**
  * The pills of a clause's panel. FIRST the clause's "nothing chosen" pill — location's is the United

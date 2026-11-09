@@ -36,7 +36,7 @@ import DeckView                  from "./panels/DeckView.jsx";
 import { routeCommitted, transitionTo } from "./lib/viewTransitions.js";
 import { RecruiterPanel }        from "./panels/RecruiterPanel.jsx";
 import { JobsConsole }            from "./consoles/PlanConsoles.jsx";
-import BoardHeadline             from "./components/BoardHeadline.jsx";
+import BoardHeadline, { ALL_FILTERS_ID } from "./components/BoardHeadline.jsx";   // A146: the All filters word
 import WordPanel                 from "./components/WordPanel.jsx";
 import SortPanel                 from "./components/SortPanel.jsx";
 import { ViewSegment, BoardSearch, SortIcon, ImportJobBox } from "./components/BoardBar.jsx";
@@ -194,6 +194,11 @@ function BoardHeadlineSlot() {
     <>
       <BoardHeadline params={params} defaultDomain={defaultDomain} nothingMatches={nothingMatches}
         open={boardPanel} onToggle={(key) => setBoardPanel(current => nextBoardPanel(current, key))} />
+      {/* ⭐ A146 (45o, the D179 sketch's (b)): "All filters" — every facet at once, in the same one panel beneath. Beside the
+          sentence, never inside it: the heading is the sentence alone (D34 / D35). */}
+      <button type="button" className="bh__all" id={ALL_FILTERS_ID} data-slot={BOARD_PANEL.ALL}
+        aria-expanded={boardPanel === BOARD_PANEL.ALL} aria-controls={boardPanel === BOARD_PANEL.ALL ? "fh-panel" : undefined}
+        onClick={() => setBoardPanel(current => nextBoardPanel(current, BOARD_PANEL.ALL))}>All filters</button>
       <WordPanel open={boardPanel} params={params} defaultDomain={defaultDomain}
         facets={facets} facetsStatus={facetsStatus} otherFilterCount={otherFilterCount}
         onPatch={onPatch} onOpen={(key) => setBoardPanel(key)} onClose={() => setBoardPanel(null)}
