@@ -21,7 +21,23 @@ import { at } from "../test-support/sourceAnchors.js";
 // ⭐ D113 (owner 10-31) · REMOTE AUTO-APPLY: picks arrive by message, one tap sends. Synthetic people, companies and postings.
 
 const DAY = 86400;
-const NOW = Math.floor(Date.UTC(2026, 10, 2, 14, 30) / 1000); // 09:30 in New York (EST) — the 09:00 run is due
+// 09:30 in New York on a Monday — the 09:00 run is due. ⛔ 45r: this was the FIXED 2026-11-02, and on 11-09 the two tap tests
+// went red: the apply gate (routes/apply.js pickAuthorisesSend) rightly measures a tap's 7-day authority on the REAL clock,
+// so a fixture tap older than TAP_AUTHORITY_DAYS was refused (403 full_auto_not_chosen). The fixture's Monday is now the
+// most recent one, so a tap is always fresh; everything else in this file is relative to NOW.
+const NOW = (() => {
+  const nyHour = (t) => Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", hour12: false }).format(new Date(t * 1000)));
+  const nyDay = (t) => new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short" }).format(new Date(t * 1000));
+  const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+  for (let back = 0; back < 8; back++) {
+    const day = Math.floor(today.getTime() / 1000) - back * 86400;
+    for (const utcHour of [13, 14]) {   // 09:30 New York is 13:30 UTC in summer time, 14:30 in winter time
+      const t = day + utcHour * 3600 + 30 * 60;
+      if (nyHour(t) === 9 && nyDay(t) === "Mon" && t <= Date.now() / 1000) return t;
+    }
+  }
+  throw new Error("no recent Monday 09:30 New York");
+})();
 const SECRET = pickSecret("test-session-secret");
 const quiet = { warn() {}, log() {} };
 const CITIZEN_ONLY = "MUST BE A US CITIZEN. NO H1B or Green card holders. Active TS clearance required.\nAbout the role: build mission software.";
