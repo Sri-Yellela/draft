@@ -607,9 +607,9 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
     try {
       await api("/api/profile", { method:"POST", body:JSON.stringify(cleaned) });
       setForm(cleaned);
+      setUnsaved(false);
       // D186-1: a field changed by hand is no longer "from your résumé" — the server's list, read back.
       api("/api/profile").then(d => setForm(f => ({ ...f, resume_filled_json: d.resume_filled_json }))).catch(() => {});
-      setUnsaved(false);
       setStatus("✓ Saved");
       setTimeout(() => setStatus(""), 3000);
     } catch { setStatus("✗ Save failed"); }

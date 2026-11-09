@@ -137,7 +137,8 @@ test("the board's bridge sees claimed skills, and they lead the derived list", (
     "the board must load claims");
   assert.match(server, /skills: \[\.\.\.boardClaims\.skills, \.\.\.\(signals\?\.skills \|\| \[\]\)\]/,
     "claims must be PREPENDED, or the 6-term cap drops them");
-  assert.match(server, /deriveProfileFilters\(sessionActiveProfile, curationSignals\)/,
+  // D186-4 (45s, on purpose): + the semantic layer's weighted terms as the bridge's options.
+  assert.match(server, /deriveProfileFilters\(sessionActiveProfile, curationSignals(?:, \{ rankTerms: boardRankTerms\(sessionActiveProfile\) \})?\)/,
     "and the bridge must receive the merged object, not the raw signals");
   // ⛔ `signals` has another reader (the YoE constraint), so it must not be mutated in place.
   assert.doesNotMatch(server, /signals\.skills\s*=/,
