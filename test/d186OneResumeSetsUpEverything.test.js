@@ -185,3 +185,16 @@ test("d186SampleFillsOnlyOnTestAccounts: a trial sample fills the form only on a
   }
   assert.match(read("services/sampleProfileStrip.js"), /SELECT test_account FROM users WHERE id = \?", userId\)\?\.test_account === 1\) continue;/);
 });
+
+test("d186-6 the canary: on a TEST account a sample re-upload shows the sample's own details, even over sign-up values; a real account keeps its own", async () => {
+  for (const isTest of [true, false]) {
+    const w = world({ test: isTest });
+    try {
+      w.db.prepare("UPDATE user_profile SET full_name = 'Signup Name', email = 'signup@example.invalid' WHERE user_id = 1").run();
+      await w.call("POST", "/from-resume", { content: MAYA.resumeText, name: "maya.pdf" });
+      const up = profileRow(w.db);
+      if (isTest) { assert.equal(up.full_name, "Maya Chen"); assert.equal(up.email, "maya.chen@example.com"); assert.equal(up.current_company, "Toast"); }
+      else { assert.equal(up.full_name, "Signup Name"); assert.equal(up.email, "signup@example.invalid"); }
+    } finally { w.stop(); }
+  }
+});

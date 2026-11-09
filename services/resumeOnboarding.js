@@ -12,7 +12,7 @@
 // The wizard stays, as "Refine your job profile", pre-filled with what was read here.
 
 import { placeText, writePlacement } from "./placement.js";
-import { recordFilled, fillExtras, nameAndTitlesFromPlacement, isTestAccount } from "./resumeSetup.js";   // D186   // (B)-1: one placement, one source
+import { recordFilled, fillExtras, nameAndTitlesFromPlacement, isTestAccount, fillSampleOnTestAccount } from "./resumeSetup.js";   // D186   // (B)-1: one placement, one source
 import { prefillFromResumeText, PREFILL_FIELDS } from "../shared/resumePrefill.js";
 
 const SKIP_DOMAINS = new Set(["other_profile_request", "general"]);
@@ -168,6 +168,7 @@ export function startFromResume(db, userId, { content, name }, deps) {
   const profile = deps.readProfile(db, userId);
   // ⭐ D186-1: what the sections (just written by the first read) and the text tell us beyond A33's prefill.
   if (mayFill) { try { filled.push(...fillExtras(db, userId, text)); } catch (e) { console.warn("[d186] extras:", e.message); } }
+  try { filled.push(...fillSampleOnTestAccount(db, userId, text)); } catch (e) { console.warn("[d186] test sample:", e.message); }   // D186-6
   try { deps.onProfileWrite?.(id); } catch { /* the board re-scores on its next read */ }
   return { profileId: id, inferred, filled, completeness: profile?.completeness || null };
 }
