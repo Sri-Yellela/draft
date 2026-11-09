@@ -215,3 +215,14 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 
 /* ⭐ D149 · the Profile panel (TopBar AccountPanel): the Menu panel's surface, the old account menu's width. */
 .acct-panel { width: min(360px, 92vw); gap: 0; padding: 64px 4px 20px; }
+
+/* ⭐ 45n · the dock's search: the dock becomes one search bar in its own place (open width; a top dock spans its row). */
+.appnav-dock[data-searching="true"] { justify-content: flex-start; }
+.appnav-search { display: flex; align-items: center; gap: 6px; width: 100%; }
+.appnav-search > :first-child { flex: 1 1 auto; min-width: 0; }
+.appnav-search__input { width: 100%; box-sizing: border-box; min-height: 38px; padding: 8px 10px; font: inherit; font-size: calc(14px * var(--type-scale, 1));
+  color: var(--c-ink); background: var(--c-surface-input, var(--c-surface-solid)); border: 1px solid var(--c-border); border-radius: var(--shape-radius-control, 12px); }
+.appnav-search__input:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 1px; }
+.appnav-search__close { flex: none; width: 32px; height: 32px; border: 0; border-radius: 10px; background: transparent; color: var(--c-ink-muted); cursor: pointer; font: inherit; }
+.appnav-search__close:hover { background: var(--c-hover); color: var(--c-ink); }
+:root[data-dock-place="top"] .appnav-dock[data-searching="true"], :root[data-dock-place="phone"] .appnav-dock[data-searching="true"] { width: min(640px, calc(100vw - 32px)); }

@@ -20,6 +20,7 @@ import { PUBLIC_OPEN_SQL, jobPath, atlasLinksFor } from "../jobs/publicJobPage.j
 import { taxonomy } from "../jobs/taxonomyClassify.js";
 import { TECHNOLOGIES } from "../../shared/techVocabulary.js";
 import { canonicalTitle } from "../jobs/searchSuggestions.js";
+import { searchPeople } from "../peopleSearch.js";
 
 const OPEN = PUBLIC_OPEN_SQL.replace(/\b(is_active|duplicate_of|board_category)\b/g, "sj.$1");
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,120}$/;
@@ -126,7 +127,9 @@ const starts = (hay, q) => hay.startsWith(q) || hay.includes(` ${q}`);
 /** The grouped dropdown for `q` (≥ 2 characters): { companies, roles, technologies, titles }. */
 export async function publicSuggest(db, read, q, { limit = 5 } = {}) {
   const query = String(q || "").trim().toLowerCase().slice(0, 80);
-  if (query.length < 2) return { companies: [], roles: [], technologies: [], titles: [] };
+  if (query.length < 2) return { companies: [], roles: [], technologies: [], titles: [], people: [] };
+  // ⭐ 45n: people — public pages only, labelled by workplace · school so two of one name can be told apart.
+  const people = searchPeople(db, query, { limit });
   const like = query.replace(/[%_\\]/g, (c) => `\\${c}`);
   const companies = db.prepare(`SELECT co.slug, co.name,
         (SELECT COUNT(*) FROM job_company jc JOIN scraped_jobs sj ON sj.job_id = jc.job_id WHERE jc.company_id = co.id AND ${OPEN}) AS open
@@ -148,7 +151,7 @@ export async function publicSuggest(db, read, q, { limit = 5 } = {}) {
     .slice(0, limit).map(([name, group]) => ({ name, group }));
   let titleHits = [];
   try { titleHits = (await titleIndex(read)).filter(t => starts(t.lc, query)).slice(0, limit).map(({ value, count }) => ({ value, count })); } catch { titleHits = []; }
-  return { companies, roles: roles.slice(0, limit), technologies, titles: titleHits };
+  return { companies, roles: roles.slice(0, limit), technologies, titles: titleHits, people };
 }
 
 /**

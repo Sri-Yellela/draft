@@ -163,6 +163,7 @@ import { stackExposure } from "./services/learn/stackExposure.js";
 import { phase1Measures } from "./services/admin/phase1Measures.js";
 import { runMarketWeek, marketWeekFor } from "./services/market/marketWeek.js";
 import { createLastGood } from "./services/jobs/lastGood.js";
+import { refreshAllPeople } from "./services/peopleSearch.js";
 import { timingMiddleware, startLoopMonitor, checkpointWal, growthSnapshot, diagnostics, issueDiagToken, diagTokenValid } from "./services/ops/systemHealth.js";
 import { liveVersion, atlasPostingsChanged, startAtlasDrainer, atlasQueueLength } from "./services/atlas/atlasLive.js";
 import { atlasSitemapRoutes } from "./services/atlas/atlasSitemap.js";
@@ -7313,6 +7314,24 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // ⭐ 45n (owner 11-08) · people in the one search — only PUBLIC pages, only what that public page shows (name,
+      // headline, workplace, school, handle; services/peopleSearch.js). A page that stops being public is dropped. Only ADDS.
+      id: "250_people_index",
+      sql: `
+        CREATE TABLE IF NOT EXISTS people_index (
+          user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          name       TEXT NOT NULL,
+          name_key   TEXT NOT NULL,
+          headline   TEXT,
+          workplace  TEXT,
+          school     TEXT,
+          handle     TEXT NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_people_index_name ON people_index(name_key);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -10155,7 +10174,7 @@ app.post("/api/companies/:slug/follow", requireAuth, (req, res) => {
 });
 app.get("/api/public/suggest", publicLimit, async (req, res) => {
   try { res.json(await publicSuggest(db, readPool, String(req.query?.q || ""))); }
-  catch (e) { console.error("[public/suggest]", e.message); res.json({ companies: [], roles: [], technologies: [], titles: [] }); }
+  catch (e) { console.error("[public/suggest]", e.message); res.json({ companies: [], roles: [], technologies: [], titles: [], people: [] }); }
 });
 
 // ⭐ D128 P1 · every OPEN public posting (a shown category, not a duplicate); a closed one leaves the same day.
@@ -11364,6 +11383,8 @@ cron.schedule("0 5 * * 1", () => {
 // Diagnostics. ⭐ Rule 6: the growth snapshot once a day (04:40 UTC) — active postings +50 % or the database +1 GB in a
 // day is an alert (logged now, and in pipeline health until the next snapshot).
 cron.schedule("*/15 * * * *", () => { checkpointWal(db); });
+// ⭐ 45n · people search: every public page re-read nightly (03:50 UTC) for changes made outside /api/profile.
+cron.schedule("50 3 * * *", () => { try { const r = refreshAllPeople(db); console.log(`[people] index: ${r.kept} public, ${r.dropped} dropped`); } catch (e) { console.error("[people] refresh failed:", e.message); } });
 cron.schedule("40 4 * * *", () => {
   try { const a = growthSnapshot(db, DB_PATH); if (a) console.warn(`[growth] ALARM: ${a.detail}`); } catch (e) { console.error("[growth] snapshot failed:", e.message); }
 });

@@ -214,7 +214,9 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D183 P2 (244): each résumé replace and what it changed (its snapshot holds the person's own earlier résumé).
   "profile_replacements",
   // D154 P1 (246): the hour the daily question's reminder is sent at.
-  "daily_reminders"];
+  "daily_reminders",
+  // 45n (250): the person's entry in people search — only what their public page shows.
+  "people_index"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -354,6 +356,8 @@ export const MERGE_PLAN = Object.freeze({
   profile_replacements: "drop",
   // D154 P1 (246): the daily question's reminder time — one row per user; INTO's own time stands.
   daily_reminders: "keepInto",
+  // 45n (250): a cache of the public page for search — rebuilt from INTO's page after a merge, never carried over.
+  people_index: "drop",
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */

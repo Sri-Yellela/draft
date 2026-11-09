@@ -90,7 +90,7 @@ function Eye({ id, vis, onSet }) {
 // ⭐ D113 consent wording for public profiles (owner 11-08, decision (5): the agent's draft built on D183's line).
 // Choosing Connections or Public asks once, in words, before anything becomes visible to anyone but the person.
 const PUBLIC_CONSENT = {
-  public: "Your profile is private unless you make it public. Making it public lets anyone with its link see the sections you leave visible. Your contact details and everything under Behind your profile stay private. You can make it private again at any time, and the link stops showing it at once.",
+  public: "Your profile is private unless you make it public. Making it public lets anyone with its link see the sections you leave visible, and lets people find it by your name in draft's search — shown with your workplace and school when those sections are visible. Your contact details and everything under Behind your profile stay private. You can make it private again at any time, and the link stops showing it at once.",
   connections: "Your profile is private unless you choose otherwise. Connections lets the people you connect with on draft see the sections you leave visible. Your contact details and everything under Behind your profile stay private. You can change this at any time.",
 };
 

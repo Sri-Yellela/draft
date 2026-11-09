@@ -6728,4 +6728,22 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ 45n (owner 11-08) · people in the one search — only PUBLIC pages, only what that public page shows (name,
+      // headline, workplace, school, handle; services/peopleSearch.js). A page that stops being public is dropped. Only ADDS.
+      id: "250_people_index",
+      sql: `
+        CREATE TABLE IF NOT EXISTS people_index (
+          user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          name       TEXT NOT NULL,
+          name_key   TEXT NOT NULL,
+          headline   TEXT,
+          workplace  TEXT,
+          school     TEXT,
+          handle     TEXT NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_people_index_name ON people_index(name_key);
+      `,
+    },
   ];
