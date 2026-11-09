@@ -16,7 +16,12 @@ test("d178StreakCountsProofOnly: only days with proof count; today still open do
   assert.equal(streakOf(days(1, 2), now), 2, "nothing yet today: the streak still stands");
   assert.equal(streakOf(new Set(), now), 0);
   const src = read("services/atlas/points.js");
-  assert.match(src, /const days = new Set\(rows\.map\(r => dayOf\(r\.at\)\)\);/, "the days are proof_points' days — proof, not visits");
+  // ⭐ A155 (45o, on purpose — the D178 picks' own list): proof_points' days + Today's question answered + a proof link
+  // added. Still proof, never visits: no page view or sign-in lights a day.
+  assert.match(src, /const days = proofDays\(db, userId, rows\);/, "the days are proof days — proof, not visits");
+  assert.match(src, /SELECT day FROM daily_questions WHERE user_id = \? AND answered_at IS NOT NULL/);
+  assert.match(src, /SELECT created_at AS at FROM profile_evidence WHERE user_id = \?/);
+  assert.doesNotMatch(src.slice(src.indexOf("export function proofDays("), src.indexOf("export function atlasPrefs(")), /sessions|visits|last_seen|page_views/);
   assert.equal(bestStreak(days(0, 1, 10, 11, 12, 13, 20)), 4, "the best streak is kept");
 });
 

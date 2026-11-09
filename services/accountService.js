@@ -216,7 +216,7 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   // D154 P1 (246): the hour the daily question's reminder is sent at.
   "daily_reminders",
   // 45n (250): the person's entry in people search — only what their public page shows.
-  "people_index"];
+  "people_index", "atlas_prefs"];
 export function exportAccount(db, userId) {
   const scrub = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !SECRET_COLUMNS.has(k)));
   const u = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -358,6 +358,7 @@ export const MERGE_PLAN = Object.freeze({
   daily_reminders: "keepInto",
   // 45n (250): a cache of the public page for search — rebuilt from INTO's page after a merge, never carried over.
   people_index: "drop",
+  atlas_prefs: "drop",   // A155: a preference only — the surviving account keeps its own
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */

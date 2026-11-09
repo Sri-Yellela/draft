@@ -67,12 +67,17 @@ export function levelOf(total) {
  * Pure: `days` = a Set of UTC day numbers with proof. @returns { count (proof days in the streak), rest: Set of rest days }
  */
 const weekOf = (d) => Math.floor((d + 3) / 7);   // day 0 (1970-01-01) was a Thursday → weeks start on Monday
-export function streakRun(days, endDay) {
+// ⭐ A155 (45o, the D178 picks: "the person can also choose weekdays only"): with it on, a Saturday or Sunday without proof
+// neither breaks the streak nor uses the week's rest day — it is simply not a day that counts. A weekend day WITH proof
+// still lights and counts.
+export const isWeekend = (d) => { const w = (d + 4) % 7; return w === 0 || w === 6; };   // 0 = Sunday, 6 = Saturday
+export function streakRun(days, endDay, { weekdaysOnly = false } = {}) {
   const rest = new Set();
   let d = endDay, n = 0;
   if (!days.has(d)) d--;                         // today isn't over: start from yesterday
-  for (; ; d--) {
+  for (let guard = 0; guard < 4000; d--, guard++) {
     if (days.has(d)) { n++; continue; }
+    if (weekdaysOnly && isWeekend(d)) continue;
     const w = weekOf(d);
     if ([...rest].some(r => weekOf(r) === w)) break;
     if (!days.has(d - 1)) break;                  // a rest day sits between two proof days
@@ -80,17 +85,18 @@ export function streakRun(days, endDay) {
   }
   return { count: n, rest };
 }
-export function streakOf(days, now = Math.floor(Date.now() / 1000)) { return streakRun(days, Math.floor(now / DAY)).count; }
+export function streakOf(days, now = Math.floor(Date.now() / 1000), opts = {}) { return streakRun(days, Math.floor(now / DAY), opts).count; }
 /** The longest streak ever (the same rule), for "Best: N days" — never shames a broken one. */
-export function bestStreak(days) {
+export function bestStreak(days, opts = {}) {
   let best = 0;
-  for (const d of days) best = Math.max(best, streakRun(days, d).count);   // the best run ending at any proof day
+  for (const d of days) best = Math.max(best, streakRun(days, d, opts).count);   // the best run ending at any proof day
   return best;
 }
 /** The month on Your run: the last 28 days, oldest first — { day, lit, rest, today }. */
-export function monthOf(days, now = Math.floor(Date.now() / 1000)) {
-  const today = Math.floor(now / DAY), { rest } = streakRun(days, today);
-  return Array.from({ length: 28 }, (_, i) => { const d = today - 27 + i; return { day: d, lit: days.has(d), rest: rest.has(d), today: d === today }; });
+export function monthOf(days, now = Math.floor(Date.now() / 1000), opts = {}) {
+  const today = Math.floor(now / DAY), { rest } = streakRun(days, today, opts);
+  return Array.from({ length: 28 }, (_, i) => { const d = today - 27 + i;
+    return { day: d, lit: days.has(d), rest: rest.has(d), today: d === today, off: !!opts.weekdaysOnly && isWeekend(d) && !days.has(d) }; });
 }
 
 /**
@@ -158,6 +164,38 @@ function nextExplain(db, userId) {
 }
 
 /**
+ * ⭐ A155 (45o, the D178 picks: "a day is lit when you do one real thing: pass a check, explain a checkpoint in your own
+ * words, answer Today's question, finish a build, add a proof link") — ONE set of proof days for ONE streak: the proof
+ * points' days + the days Today's question was answered (its own local day) + the days a proof link was added.
+ */
+export function proofDays(db, userId, pointRows = null) {
+  const rows = pointRows || safe(() => db.prepare(`SELECT earned_at AS at FROM proof_points WHERE user_id = ?`).all(userId), []);
+  const days = new Set(rows.map(r => Math.floor(r.at / DAY)));
+  for (const r of safe(() => db.prepare(`SELECT day FROM daily_questions WHERE user_id = ? AND answered_at IS NOT NULL`).all(userId), [])) {
+    const t = Date.parse(`${r.day}T00:00:00Z`);
+    if (Number.isFinite(t)) days.add(Math.floor(t / 86400000));
+  }
+  for (const r of safe(() => db.prepare(`SELECT created_at AS at FROM profile_evidence WHERE user_id = ?`).all(userId), [])) days.add(Math.floor(r.at / DAY));
+  return days;
+}
+/** A155 · Atlas's own choices (migration 251; no row = the defaults). */
+export function atlasPrefs(db, userId) {
+  const r = safe(() => db.prepare(`SELECT weekdays_only FROM atlas_prefs WHERE user_id = ?`).get(userId), null);
+  return { weekdaysOnly: !!r?.weekdays_only };
+}
+export function setAtlasPrefs(db, userId, body = {}) {
+  const w = body.weekdaysOnly === true ? 1 : 0;
+  db.prepare(`INSERT INTO atlas_prefs (user_id, weekdays_only, updated_at) VALUES (?, ?, unixepoch())
+    ON CONFLICT(user_id) DO UPDATE SET weekdays_only = excluded.weekdays_only, updated_at = excluded.updated_at`).run(userId, w);
+  return atlasPrefs(db, userId);
+}
+/** A155 · the ONE streak (the run's), for any surface that shows a streak — Today's question included. */
+export function atlasStreak(db, userId, now = Math.floor(Date.now() / 1000)) {
+  const prefs = atlasPrefs(db, userId);
+  return streakOf(proofDays(db, userId), now, prefs);
+}
+
+/**
  * The person's run: points, level, streak, this week, the latest proof, and today's quests (each from real data —
  * a quest whose thing does not exist is left out, never invented). Syncs first.
  */
@@ -166,7 +204,8 @@ export function yourRun(db, userId, { now = Math.floor(Date.now() / 1000) } = {}
   const rows = safe(() => db.prepare(`SELECT kind, ref, points, earned_at AS at FROM proof_points WHERE user_id = ? ORDER BY earned_at DESC`).all(userId), []);
   const total = rows.reduce((a, r) => a + r.points, 0);
   const dayOf = (t) => Math.floor(t / DAY);
-  const days = new Set(rows.map(r => dayOf(r.at)));
+  const days = proofDays(db, userId, rows);   // A155: every real act lights the day — one streak
+  const prefs = atlasPrefs(db, userId);
   const weekStart = now - 7 * DAY;
   const today = dayOf(now);
   const earnedToday = (kind) => rows.some(r => r.kind === kind && dayOf(r.at) === today);
@@ -178,9 +217,9 @@ export function yourRun(db, userId, { now = Math.floor(Date.now() / 1000) } = {}
   if (skill) quests.push({ id: "prove", title: `Check ${skill.name}`, detail: "A one-minute quick check — pass it and the skill counts as proven.",
     skill: skill.name, points: POINTS.skill_checked, minutes: 1, done: earnedToday("skill_checked") });
   return {
-    total, level: levelOf(total), streak: streakOf(days, now),
+    total, level: levelOf(total), streak: streakOf(days, now, prefs), weekdaysOnly: prefs.weekdaysOnly,
     // ⭐ D178-4: the best streak, the month of lit squares, the marks, and what proof has unlocked for the résumé.
-    best: bestStreak(days), month: monthOf(days, now),
+    best: bestStreak(days, prefs), month: monthOf(days, now, prefs),
     marks: safe(() => marksFrom(learnContent(db), earnedMarks(db, userId)), { earned: [], next: [] }),
     proven: safe(() => listYourSkills(db, userId).skills.filter(s => (s.state === "checked" || s.state === "built") && !s.onResume)
       .map(s => ({ name: s.name, state: s.state })), []),

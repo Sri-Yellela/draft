@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api.js";
+import DepthButton from "../../components/DepthButton.jsx";   // A155: the one-button add
 import { runLines, questHref } from "./yourRunModel.js";
 import "./YourRun.css";
 
@@ -24,6 +25,8 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
   const [run, setRun] = useState(null);
   const [error, setError] = useState("");
   const [proofPage, setProofPage] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
   useEffect(() => {
     let live = true;
     if (!signedIn) return undefined;
@@ -37,6 +40,21 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
     </div>
   );
   if (error) return <div className="atl-pan" data-atlas-panel-body="your-run"><p className="atl__quiet" role="alert">{error}</p></div>;
+  // A155 · the weekdays-only choice (PUT /api/atlas/prefs) and the one-button add of proven skills to the profile's skills.
+  const setWeekdays = async (on) => {
+    try { await api("/api/atlas/prefs", { method: "PUT", body: JSON.stringify({ weekdaysOnly: on }) }); setRun(await api("/api/atlas/run")); } catch { /* left as it was */ }
+  };
+  const addProven = async () => {
+    setAdding(true);
+    try {
+      const cur = await api("/api/profile/sections");
+      const items = cur?.sections?.skills || [];
+      const have = new Set(items.map(x => String(x.name || "").toLowerCase()));
+      const more = (run.proven || []).filter(s => !have.has(String(s.name).toLowerCase())).map(s => ({ name: s.name }));
+      if (more.length) await api("/api/profile/sections/skills", { method: "PUT", body: JSON.stringify({ items: [...items, ...more] }) });
+      setAdded(true); setRun(await api("/api/atlas/run"));
+    } catch { /* the button stays */ } finally { setAdding(false); }
+  };
   if (!run) return <div className="atl-pan" data-atlas-panel-body="your-run"><p className="atl__quiet" role="status">Opening your run…</p></div>;
   const l = runLines(run);
   return (
@@ -58,10 +76,14 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
       {Array.isArray(run.month) && (
         <section className="run-month" aria-label="The last four weeks" data-run-month="">
           <ol className="run-month__grid">
-            {run.month.map(d => <li key={d.day} className={`run-sq${d.lit ? " is-lit" : ""}${d.rest ? " is-rest" : ""}${d.today ? " is-today" : ""}`}
-              title={d.lit ? "proof that day" : d.rest ? "the week's rest day" : d.today ? "today" : ""} data-day={d.day} />)}
+            {run.month.map(d => <li key={d.day} className={`run-sq${d.lit ? " is-lit" : ""}${d.rest ? " is-rest" : ""}${d.off ? " is-off" : ""}${d.today ? " is-today" : ""}`}
+              title={d.lit ? "proof that day" : d.rest ? "the week's rest day" : d.off ? "a weekend — not counted" : d.today ? "today" : ""} data-day={d.day} />)}
           </ol>
-          <p className="atl__quiet">A day lights when you prove something — a check passed, an idea explained in your own words, a build. One rest day a week keeps the streak.</p>
+          {/* ⭐ A155 (45o, the D178 picks): every real act lights a day — Today's question and a proof link too (one streak). */}
+          <p className="atl__quiet">A day lights when you do one real thing — a check passed, an idea explained in your own words, Today's question answered, a build, a proof link added. One rest day a week keeps the streak.</p>
+          <label className="run-weekdays" data-run-weekdays={run.weekdaysOnly ? "on" : "off"}>
+            <input type="checkbox" checked={!!run.weekdaysOnly} onChange={(e) => setWeekdays(e.target.checked)} /> Weekdays only — weekends never break it
+          </label>
         </section>
       )}
       <section className="run-today" aria-labelledby="run-today-h">
@@ -86,7 +108,11 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
       {/* ⭐ D178-4: the reward that matters most — proven skills go into your tailored résumés (D169's rule). */}
       {run.proven?.length > 0 && (
         <section className="run-proven" data-run-proven="">
-          <p><b>Proven:</b> {run.proven.slice(0, 4).map(s => s.name).join(", ")}{run.proven.length > 4 ? ` and ${run.proven.length - 4} more` : ""} — {run.proven.length === 1 ? "it goes" : "they go"} into your tailored résumés now.</p>
+          <p><b>Proven:</b> you can add {run.proven.slice(0, 4).map(s => s.name).join(", ")}{run.proven.length > 4 ? ` and ${run.proven.length - 4} more` : ""} to your résumé.</p>
+          {/* ⭐ A155 (45o, the D178 picks: "Proven: you can add Kafka to your résumé — with one button"): the button puts them
+              in your profile's skills (the résumé's own list); nothing is added that you haven't proven. */}
+          <span data-run-add-proven=""><DepthButton primary onClick={addProven} disabled={adding}>{adding ? "Adding…" : `Add ${run.proven.length === 1 ? "it" : "them"} to your résumé`}</DepthButton></span>
+          {added && <span className="atl__quiet" role="status"> Added to your profile's skills.</span>}
           <Link to={`${base}/your-skills`} className="atl__link">See your skills</Link>
         </section>
       )}

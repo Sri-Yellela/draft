@@ -7334,6 +7334,18 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_people_index_name ON people_index(name_key);
       `,
     },
+    {
+      // ⭐ A155 (45o, the D178 picks: "the person can also choose weekdays only") · Atlas's own per-person choices. One row
+      // per person who changed one; no row = the defaults (weekdays_only 0: every day counts, one rest day a week). Only ADDS.
+      id: "251_atlas_prefs",
+      sql: `
+        CREATE TABLE IF NOT EXISTS atlas_prefs (
+          user_id       INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          weekdays_only INTEGER NOT NULL DEFAULT 0 CHECK (weekdays_only IN (0, 1)),
+          updated_at    INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
