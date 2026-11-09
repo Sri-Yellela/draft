@@ -68,7 +68,9 @@ test("the rail: two 52px squares, zero width until hover / focus-within, one mot
   assert.match(css, /@media \(hover: none\) \{\n  \.jb__rail \{ max-width: 196px; opacity: 1; margin-left: 4px; visibility: visible; \}/);
   // ⛔ GENERATE and APPLY are off the card.
   const rail = jsx.slice(at(jsx, '<div className="jb__rail">', 0, "rail"), at(jsx, "{companyView &&", 0, "end"));
-  assert.equal((rail.match(/<button /g) || []).length, 2);
+  // Save + Draft always; (11) 45q: a third, D180's Send, only when the caller offers it (the network on — off today).
+  assert.equal((rail.match(/<button /g) || []).length, 3);
+  assert.match(rail, /\{onSend && \(/, "Send is drawn only when offered");
   assert.doesNotMatch(rail, /Generate|onGenerate|onVisit|↗/);
   // D6: the mark is DraftMark.jsx — the one implementation the top bar's Draft tab renders too.
   assert.match(rail, />\s*<DraftMark \/>\s*<\/button>/, "Draft is the mark");

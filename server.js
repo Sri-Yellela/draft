@@ -11977,6 +11977,16 @@ function rejectInvalidFilterValues(query) {
 app.get("/api/jobs", requireAuth, async (req, res) => {
   touchBoardVisit(db, req.user.id);   // D74 P1: a board load is a visit (never in boardPageResponse — see boardVisit.js)
   const { status, body } = await boardPageResponse(req);
+  // ⭐ (11) 45q · Send a job from the board's list rows: each row's public posting path (D128), so the Send picker has the
+  // posting's board id and a link to copy. One indexed read for the page's rows, on the read workers (A126).
+  if (status === 200 && Array.isArray(body?.jobs) && body.jobs.length) {
+    try {
+      const ids = body.jobs.map(j => String(j?.id ?? "")).filter(Boolean).slice(0, 200);
+      const rows = ids.length ? await readPool.all(`SELECT id, job_id, company, title FROM scraped_jobs WHERE job_id IN (${ids.map(() => "?").join(",")})`, ids) : [];
+      const pub = new Map((rows || []).map(r => [String(r.job_id), jobPath(r)]));
+      body.jobs = body.jobs.map(j => (j && pub.has(String(j.id)) ? { ...j, publicPath: pub.get(String(j.id)) } : j));
+    } catch { /* the rows stay as they were; Send then says the job has no public page */ }
+  }
   res.status(status).json(body);
 });
 

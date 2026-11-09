@@ -39,9 +39,18 @@ function StarMark({ filled }) {
   );
 }
 
+/** (11) 45q · the Send mark — a plain arrow out of a box, drawn in the rail's own ink. */
+function SendMark() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 2h5v5" /><path d="M14 2 7 9" /><path d="M12 9.5V13a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3.5" />
+    </svg>
+  );
+}
+
 export default function JobBubble({ job, score = null, selected = false, saved = false, drafted = false, drafting = false, resumeReady = false,
                                     onOpen, onSave, onDraft, onViewDraft = null, draftBlocked = null,
-                                    onExplainDraft = null, draftSlots = null }) {
+                                    onExplainDraft = null, draftSlots = null, onSend = null }) {
   const [companyView, setCompanyView] = useState(false);
   const draft = draftButtonState({ drafted, drafting, block: draftBlocked, canView: !!onViewDraft, slots: draftSlots });
   const id = job.jobId || job.id;
@@ -112,6 +121,12 @@ export default function JobBubble({ job, score = null, selected = false, saved =
               : draft.action === "explain" ? () => onExplainDraft?.(draft.title) : null)}
             aria-label={draft.title} title={draft.title}>
             <DraftMark />
+          </button>
+        )}
+        {/* ⭐ (11) 45q · D180 Send — only when the caller offers it (the network on, a public page for the posting). */}
+        {onSend && (
+          <button type="button" className="jb__sq jb__sq--send" data-bubble-send="" onClick={stop(onSend)} aria-label="Send" title="Send to a connection, or copy its link">
+            <SendMark />
           </button>
         )}
       </div>
