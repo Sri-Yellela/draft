@@ -37,6 +37,7 @@ export const ADMIN_GROUPS = Object.freeze([
     ["atlas", "Atlas"],                 // D105 P4 — the Atlas's drafts, published here so the public pages exist
   ] },
   { id: "system", label: "System", question: "Is it set up right?", sections: [
+    ["runs", "Runs"],                   // (A)-2 (45o): the run trace — every pick, résumé, answer and its source, what was sent
     ["switches", "Feature switches"],   // #6 + D86's plugin
     ["tools", "Tools service"],         // #11
     ["diagnostics", "Diagnostics"],     // D151 Rule 6 — loop delay, slowest endpoints, counts, DB / WAL size, growth; a 24 h read token

@@ -25,6 +25,7 @@ import { QuestionBankTab } from "./adminQuestions.jsx";
 import { ProfileReportsTab } from "./adminReports.jsx";
 import { CompanyRecordsTab } from "./adminCompanyRecords.jsx";   // A142
 import { NetworkTab } from "./adminNetwork.jsx";   // D180 P1
+import { RunsTab } from "./adminRuns.jsx";   // (A)-2
 import { Phase1Tab } from "./adminPhase1.jsx";
 import { DiagnosticsTab } from "./adminDiagnostics.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
@@ -727,6 +728,7 @@ export function AdminPanel() {
       {at("today", "phase1") && <Phase1Tab/>}
       {/* D183: the public profiles' report queue. */}
       {at("people", "network") && <NetworkTab/>}
+      {at("system", "runs") && <RunsTab/>}
       {at("people", "reports") && <ProfileReportsTab/>}
       {at("board", "records") && <CompanyRecordsTab/>}
       {/* D131: Testers — the readable page on top; both surveys and People & questions folded beneath it (the D124
