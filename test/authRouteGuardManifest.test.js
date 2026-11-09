@@ -28,9 +28,13 @@ const SERVER = fs.readFileSync("server.js", "utf8");
 // Every entry here is a decision. A route joins this list only if an unauthenticated stranger
 // SHOULD be able to call it.
 const PUBLIC = new Set([
+  // D151 Rule 6 (45n; classified 45o): /api/diag answers ONLY a valid, unexpired 24-hour token (its hash stored, audited);
+  // anything else is a 404. Public by route, gated by the token — the support read without an admin session.
+  "GET /api/diag",
   // D179 step 4 (45l): the open board, company pages and the search dropdown — signed out by design, read-only, no user data.
   "GET /api/public/jobs",
   "GET /api/public/jobs/facets",
+  "GET /api/public/companies",   // A144 (45o): the Companies tab's list — public facts only
   "GET /api/public/companies/:slug",
   "GET /api/public/suggest",
   // D150 T05–T06 (45l): the 3-minute audit — anonymous by design (a random token), nothing personal.
@@ -110,6 +114,11 @@ const PUBLIC = new Set([
 
 // ── ADMIN: requires an admin session ─────────────────────────────────────────────────────────
 const ADMIN = new Set([
+  // 45n (classified 45o): D150 T09 market week, T16 Phase 1 measures, D151 Rule 6 diagnostics + its 24 h token — requireAdmin.
+  "GET /api/admin/market-week",
+  "GET /api/admin/phase1",
+  "GET /api/admin/system/diagnostics",
+  "POST /api/admin/system/diag-token",
   // D179 P4a / P5a / P2 (45l): the company records, a company's stack, the review decisions, the taxonomy counts.
   "GET /api/admin/company-records",
   "GET /api/admin/company-records/:id/stack",
@@ -204,6 +213,19 @@ const ADMIN = new Set([
 
 // ── AUTHENTICATED: requires a signed-in session, any role ────────────────────────────────────
 const AUTHENTICATED = new Set([
+  // 45l–45n (classified 45o): D183 the profile page + replace / undo, D154 P9 stack exposure + the daily reminder — requireAuth,
+  // every one scoped by req.user.id (an :id another person owns is not found under this user).
+  "GET /api/profile/page",
+  "PUT /api/profile/page/visibility",
+  "PUT /api/profile/page/handle",
+  "POST /api/profile/page/achievements",
+  "DELETE /api/profile/page/achievements/:id",
+  "GET /api/profile/replacements/latest",
+  "POST /api/profile/replacements/:id/keep",
+  "POST /api/profile/replacements/:id/undo",
+  "GET /api/learn/stack-exposure",
+  "GET /api/learn/today/reminder",
+  "PUT /api/learn/today/reminder",
   // D179 P4b (45l): Your match on a company page — the person's own skills, signed in.
   "GET /api/companies/:slug/match",
   "POST /api/companies/:slug/follow",

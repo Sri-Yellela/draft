@@ -95,6 +95,7 @@ import { createCompanyTech, stackFor, techForJobs } from "./services/companies/c
 import { createTaxonomyBackfill, taxonomyStats } from "./services/jobs/taxonomyBackfill.js";
 import { publicBoardPage, publicBoardFacets, publicRateLimit } from "./services/jobs/publicBoard.js";
 import { publicCompany, publicSuggest, companyMatchFor, companyIdForSlug } from "./services/companies/publicCompany.js";
+import { companyDirectory } from "./services/companies/companyDirectory.js";   // A144 (45o): the Companies tab
 import { createCompanyFacts } from "./services/companies/companyFacts.js";
 import { createCompanyGithub } from "./services/companies/companyGithub.js";
 import { createCompanyWebSignals } from "./services/companies/companyWebSignals.js";
@@ -10145,6 +10146,12 @@ app.get("/api/public/jobs", publicLimit, async (req, res) => {
 app.get("/api/public/jobs/facets", publicLimit, async (req, res) => {
   try { res.set("Cache-Control", "public, max-age=300").json(await publicBoardFacets(readPool, req.query || {})); }
   catch (e) { console.error("[public/jobs/facets]", e.message); res.status(500).json({ error: "facets_unavailable" }); }
+});
+// ⭐ A144 (45o) · the Companies tab: every company with open jobs — search, industry, technology, hiring now, sponsorship
+// (true counts). One snapshot built on the read workers, 10 minutes; each request filters it in memory.
+app.get("/api/public/companies", publicLimit, async (req, res) => {
+  try { res.set("Cache-Control", "public, max-age=120").json(await companyDirectory(readPool, req.query || {})); }
+  catch (e) { console.error("[public/companies]", e.message); res.status(500).json({ error: "companies_unavailable" }); }
 });
 app.get("/api/public/companies/:slug", publicLimit, (req, res) => {
   try {

@@ -2908,7 +2908,8 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // Re-fetch when server-side filters/sort/tab change (background — board stays visible)
   // Note: localSearch is NOT in this dep array — it has its own debounced effect below
   useEffect(() => {
-    if (!user) return;
+    // ⭐ A144 (45o): the Companies view lists companies, not jobs — the board is not asked while it shows.
+    if (!user || boardTab === "companies") return;
     const page = nextFetchPageRef.current || 1;
     nextFetchPageRef.current = 1;
     fetchJobs(page).catch(() => {});   // A73: fetchJobs puts the failure on the board itself

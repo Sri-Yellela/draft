@@ -20,7 +20,7 @@ const panel = read("client/src/panels/JobsPanel.jsx");
 test("D40 · the bar has exactly FOUR views, + last — and no standalone import control remains", () => {
   const tabs = app.slice(at(app, "const BOARD_TABS = ["), at(app, "];", at(app, "const BOARD_TABS = [")));
   // ⭐ D156 (4) (changed on purpose): All jobs · Starred · Imported — the Pending (Drafted) view is not needed now.
-  assert.deepEqual([...tabs.matchAll(/^\s*\["(\w+)",/gm)].map(m => m[1]), ["all", "saved", "imported"]);
+  assert.deepEqual([...tabs.matchAll(/^\s*\["(\w+)",/gm)].map(m => m[1]), ["all", "saved", "imported", "companies"]);   // ⭐ A144 (45o, changed on purpose): + Companies
   // D147 (11-03): the view is the word "Imported" now (inside the Sort / view panel).
   assert.match(tabs, /\["imported", "Imported", "Imported jobs"\]/);
   assert.doesNotMatch(app, /<AddSquare\b/);
@@ -77,6 +77,6 @@ test("D40 · the /extension page stops listing captures and points at the + view
   assert.doesNotMatch(page, /RecentCaptures|data-recent-captures/);
   assert.match(page, /<Link to="\/app\/jobs\?view=imported">/);
   const ctx = read("client/src/contexts/JobBoardContext.jsx");
-  assert.match(ctx, /export const BOARD_VIEWS = Object\.freeze\(\["all", "saved", "pending", "imported"\]\);/);
+  assert.match(ctx, /export const BOARD_VIEWS = Object\.freeze\(\["all", "saved", "pending", "imported", "companies"]\);/);
   assert.match(ctx, /useState\(\(\) => viewFromUrl\(\) \|\| "all"\)/, "the link opens the + view");
 });

@@ -1,0 +1,25 @@
+/* ⭐ A144 (45o) · the Companies tab. Colours from tokens only; no capsule shapes (D60). */
+.cov { color: var(--c-ink); margin-top: 8px; }
+.cov__bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.cov__search { flex: 1 1 220px; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--c-border);
+  background: var(--c-surface-solid); color: var(--c-ink); font: inherit; font-size: 14px; }
+.cov__sel { padding: 9px 10px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-surface-solid);
+  color: var(--c-ink); font: inherit; font-size: 14px; max-width: 100%; }
+.cov__tog { padding: 9px 12px; border-radius: 10px; font: inherit; font-size: 14px; cursor: pointer; display: inline-flex; gap: 6px; align-items: baseline; }
+.cov__tog[aria-pressed="true"] { outline: 2px solid var(--c-accent); outline-offset: 0; }
+.cov__n, .cov__meta, .cov__total, .cov__msg { color: var(--c-ink-muted); font-size: 13px; }
+.cov__total { margin: 0 0 8px; }
+.cov__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cov__row { width: 100%; display: flex; gap: 14px; align-items: center; text-align: left; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); font: inherit; cursor: pointer; }
+.cov__row:hover, .cov__row:focus-visible { border-color: var(--c-accent); }
+.cov__tile { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex: none;
+  background: var(--c-surface-2); border: 1px solid var(--c-border); font-weight: 700; color: var(--c-ink-muted); }
+.cov__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cov__name { font-weight: 600; font-size: 15px; }
+.cov__meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cov__jobs { flex: none; text-align: right; font-size: 13px; color: var(--c-ink-muted); display: flex; flex-direction: column; gap: 2px; }
+.cov__jobs b { color: var(--c-ink); font-size: 15px; }
+.cov__fresh { color: var(--c-accent-ink); }
+.cov__more { margin: 14px auto 0; display: block; padding: 10px 16px; border-radius: 10px; font: inherit; cursor: pointer; }
+@media (max-width: 600px) { .cov__row { flex-wrap: wrap; } .cov__jobs { text-align: left; width: 100%; padding-left: 54px; } }
