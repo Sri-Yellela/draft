@@ -220,6 +220,56 @@ try {
       await shot(A, "a158d-after-back");
     }
   }
+
+  // ── M-7 · the three-sample walk (D184's test set G–I), as a rehearsal: Maya → Daniel → Elena → Undo back to Daniel ──────
+  if (want("m7")) {
+    const M = await pageOf(await browser.createBrowserContext());
+    await register(M, "maya");
+    const uid = db.prepare(`SELECT id FROM users WHERE username = 'walk-maya'`).pluck().get();
+    db.prepare(`UPDATE users SET send_mode = 'auto' WHERE id = ?`).run(uid);   // Apply for me on, so a family move must pause it
+    const sample = (k) => JSON.parse(fs.readFileSync(`content/trial/sample-${k}.json`, "utf8"));
+    const sentence = async () => {
+      await M.goto(`${BASE}/app/jobs`, { waitUntil: "networkidle2", timeout: 60000 }); await sleep(1200);
+      return M.evaluate(() => (document.querySelector("[data-board-headline]")?.innerText || "").replace(/\s+/g, " ").trim());
+    };
+    // The substance of SAMPLES.md's sentence — its role, its level, Boston. (Its exact words differ from the board's approved
+    // D37 / A145 words — the owner's open choice — and this copy has only one company's postings open, so it reads "nothing matches".)
+    const fits = (text, s) => { const t = text.toLowerCase(); const sub = String(s.expected.subcategory).toLowerCase();
+      return t.includes(sub) && t.includes(`${s.expected.level} career level`) && t.includes("in boston") && !t.includes("all roles"); };
+    let pid = null;
+    const upload = async (k) => {
+      const s = sample(k);
+      // the first résumé goes in as the board's Upload your résumé sends it (StartFromResume → /from-resume); a later one is a
+      // REPLACE on the job profile (the Profile page's upload → /:id/base-resume), which is what snapshots and pauses
+      const r = pid == null
+        ? await api(M, "/api/domain-profiles/from-resume", "POST", { content: s.resumeText, name: `${s.candidate.fullName}.txt` })
+        : await api(M, `/api/domain-profiles/${pid}/base-resume`, "POST", { content: s.resumeText, name: `${s.candidate.fullName}.txt` });
+      if (pid == null) pid = (await api(M, "/api/profile/page")).body?.activeProfileId ?? null;
+      await api(M, `/api/domain-profiles/${pid}/signals/refresh`, "POST");
+      return { s, r };
+    };
+    const g = await upload("g");
+    const sg = await sentence();
+    say("m7", fits(sg, g.s), `Maya (${g.r.status}): "${sg}" — expected "${g.s.expected.sentence}"`);
+    await shot(M, "m7-maya");
+    const h = await upload("h");
+    const sh = await sentence();
+    const changed = await api(M, "/api/profile/replacements/latest");
+    say("m7", fits(sh, h.s), `Daniel replaces Maya (${h.r.status}): "${sh}" — expected "${h.s.expected.sentence}"`);
+    const lines = changed.body?.replacement?.lines || [];
+    const decision = lines.find(l => l.kind === "decision" && l.what === "apply_for_me");
+    const paused = db.prepare(`SELECT apply_paused_at FROM domain_profiles WHERE id = ?`).pluck().get(pid);
+    say("m7", lines.length > 0 && !!decision && !!paused, `What changed: ${lines.length} lines (${lines.slice(0, 3).map(l => l.text).join(" | ")}) · Apply for me paused: ${!!paused} · decision line: ${decision?.text || "none"}`);
+    await shot(M, "m7-daniel");
+    const i = await upload("i");
+    const si = await sentence();
+    say("m7", fits(si, i.s), `Elena replaces Daniel (${i.r.status}): "${si}" — expected "${i.s.expected.sentence}"`);
+    const last = await api(M, "/api/profile/replacements/latest");
+    const undo = last.body?.replacement ? await api(M, `/api/profile/replacements/${last.body.replacement.id}/undo`, "POST") : { status: 0 };
+    const su = await sentence();
+    say("m7", undo.status === 200 && fits(su, h.s), `Undo (${undo.status}) returns to Daniel: "${su}"`);
+    await shot(M, "m7-undo");
+  }
 } catch (e) {
   say("harness", false, `threw: ${e.stack?.split("\n").slice(0, 3).join(" | ")}`);
 } finally {

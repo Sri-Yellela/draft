@@ -131,6 +131,7 @@ export function startFromResume(db, userId, { content, name }, deps) {
         JSON.stringify(inferred.keywords), JSON.stringify(inferred.verbs), JSON.stringify(inferred.tools), existing.id);
     db.prepare("UPDATE domain_profiles SET is_active = 0 WHERE user_id = ? AND id <> ?").run(userId, existing.id);
     deps.saveBaseResume(existing.id, text, name || "resume.txt");
+    placeFirstResume(db, existing.id, text, inferred, deps.registry);
     const profile = deps.readProfile(db, userId);
     try { deps.onProfileWrite?.(existing.id); } catch { /* the board re-scores on its next read */ }
     return { profileId: existing.id, inferred, filled: [], completeness: profile?.completeness || null, swapped: true };
@@ -148,6 +149,7 @@ export function startFromResume(db, userId, { content, name }, deps) {
     return Number(r.lastInsertRowid);
   })();
   deps.saveBaseResume(id, text, name || "resume.txt");
+  placeFirstResume(db, id, text, inferred, deps.registry);
   // ⛔ A140 (owner 11-08): a fictional sample never fills the person's contact fields.
   const filled = sampleFamily ? [] : fillEmptyProfileFields(db, userId, text);
   const profile = deps.readProfile(db, userId);
@@ -190,6 +192,17 @@ export function followProfileText(db, profileId, text, { registry, sampleRoleFam
   return { changed: before.role_family !== now.role_family || before.domain !== now.domain
     || before.target_titles !== JSON.stringify(inferred.titles), inferred, placement,
     from: { roleFamily: before.role_family, domain: before.domain }, to: { roleFamily: now.role_family, domain: now.domain } };
+}
+
+/**
+ * ⛔ 45s (the M-7 walk): the FIRST résumé is placed too. (B)-1's "one placement, one source" was wired into
+ * followProfileText (a later résumé) only, so a person's first upload — the board's Upload your résumé — left the job
+ * profile unplaced: the board's sentence never took their role, level or city, Profile had no "Fits …", and their next
+ * résumé was read as a FIRST placement, so a family move never paused Apply for me. Same placeText → writePlacement.
+ */
+function placeFirstResume(db, profileId, text, inferred, registry) {
+  try { writePlacement(db, profileId, placeText(text, { titles: inferred.titles }), registry || {}); }
+  catch (e) { console.warn("[placement] first résumé:", e.message); }
 }
 
 /**

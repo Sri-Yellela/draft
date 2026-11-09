@@ -1802,6 +1802,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // profile's placement is NEW (placed_at moved — an upload, a replace, a pick, an Undo), the sentence's role word follows
   // it: "discovering [Backend] roles …". A ".general" placement narrows to its CATEGORY (never to the thin general bucket).
   // Remembered per profile in this browser, so a choice the person makes on the board isn't overridden by an old placement.
+  // ⛔ 45s (the M-7 walk): the profile-key effect further down restores the profile's cached / default board snapshot on a
+  // profile's first arrival — AFTER this effect in the same commit — and that restore reset the levels and places this
+  // effect had just set (the role survived only because the snapshot doesn't carry it): "at all career levels … in the
+  // United States" for every résumé. What this effect applies is remembered here, and the restore re-applies it once.
+  const placementSentenceRef = useRef(null);
   useEffect(() => {
     const p = activeDomainProfile;
     if (!p?.placed_at || !p.placement_category) return;
@@ -1813,6 +1818,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // through the same setters the sentence's words use. Once per placement, so the person's own edits win until the next.
     const next = sentenceFromResume({ category: p.placement_category, subcategory: p.placement_subcategory, level: p.placement_level,
       location: p.resume_location || null });
+    const mine = { key: String(p.id), next };
+    placementSentenceRef.current = mine;
+    requestAnimationFrame(() => { if (placementSentenceRef.current === mine) placementSentenceRef.current = null; });   // only a restore from this same moment
     setTaxRole({ category: next.category, subcategory: next.subcategory });
     setExperienceLevels(next.experience_levels);
     setWorkModels(next.work_models);
@@ -2069,6 +2077,15 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     applyFilterSnapshot(snapshot);
     setPendingFilters({ ...defaultFilterSnapshot(), ...snapshot });
     setSelectedJob(snapshot.selectedJob || null);
+    // 45s: a résumé's sentence applied for THIS profile in the same moment wins over the restored snapshot (once).
+    const placed = placementSentenceRef.current;
+    if (placed && profileKey != null && placed.key === String(profileKey)) {
+      placementSentenceRef.current = null;
+      setTaxRole({ category: placed.next.category, subcategory: placed.next.subcategory });
+      setExperienceLevels(placed.next.experience_levels);
+      setWorkModels(placed.next.work_models);
+      setPlaces(placed.next.places);
+    }
   }, [setBoardTab, setLocalSearch, setSortBy, applyFilterSnapshot]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fileRef        = useRef();
