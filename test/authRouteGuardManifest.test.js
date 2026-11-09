@@ -124,6 +124,8 @@ const ADMIN = new Set([
   // D179 P4a / P5a / P2 (45l): the company records, a company's stack, the review decisions, the taxonomy counts.
   "GET /api/admin/company-records",
   "GET /api/admin/company-records/health",   // A142 (45o)
+  "GET /api/admin/network",   // D180 P1 (45o): the network switch + counts
+  "PUT /api/admin/network",
   "GET /api/admin/company-records/:id/stack",
   "POST /api/admin/company-records/review/:id",
   "GET /api/admin/board/taxonomy",
@@ -216,6 +218,13 @@ const ADMIN = new Set([
 
 // ── AUTHENTICATED: requires a signed-in session, any role ────────────────────────────────────
 const AUTHENTICATED = new Set([
+  // D180 P1 (45o): connections — requireAuth AND the network switch (404 while off); every one scoped to req.user.id;
+  // :handle is the OTHER person, acted on only as the signed-in person's own relation to them.
+  "GET /api/network",
+  "GET /api/network/suggestions",
+  "GET /api/network/relation/:handle",
+  "POST /api/network/request",
+  "POST /api/network/:handle/:action",
   // 45l–45n (classified 45o): D183 the profile page + replace / undo, D154 P9 stack exposure + the daily reminder — requireAuth,
   // every one scoped by req.user.id (an :id another person owns is not found under this user).
   "GET /api/profile/page",
@@ -666,6 +675,7 @@ function collect() {
     ...directRoutes(fs.readFileSync("routes/pipeline.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/applyWorker.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/profileSections.js", "utf8")),
+    ...directRoutes(fs.readFileSync("routes/network.js", "utf8")),   // D180 P1 (45o)
     ...directRoutes(fs.readFileSync("routes/inbox.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/interview.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/picksConfirm.js", "utf8")),
