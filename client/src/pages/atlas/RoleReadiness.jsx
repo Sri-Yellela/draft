@@ -5,7 +5,8 @@
 // beside it, each skill with what it adds and its next step. Reads GET /api/atlas/readiness. Pick another role → the tree
 // regrows. ⛔ Never "expertise", never a guarantee: "ready", from this week's postings, the scope shown.
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import DepthButton from "../../components/DepthButton.jsx";   // A155: Aim here and fly my route
 import { api } from "../../lib/api.js";
 import { dialArcs, TIER_LABEL } from "./roleReadinessModel.js";
 import "./RoleReadiness.css";
@@ -24,6 +25,7 @@ export function Dial({ ready, waiting }) {
 }
 
 export default function RoleReadiness({ base = "/app/atlas" }) {
+  const navigate = useNavigate();
   const [role, setRole] = useState("");
   const [asked, setAsked] = useState(null);   // null = the aim on Your route
   const [r, setR] = useState(null);
@@ -70,6 +72,12 @@ export default function RoleReadiness({ base = "/app/atlas" }) {
           <h3 className="rr-head__role">{r.role.page ? <Link to={`${base}/${encodeURIComponent(r.role.slug)}`} className="atl__link">{r.role.name}</Link> : r.role.name}</h3>
           <p className="rr-head__line" data-rr-line="">{r.line}</p>
           <p className="atl__quiet" data-rr-scope="">{r.thin ? r.scope.line : `${r.scope.line} · only proven skills count — a quick check or a build proves one`}</p>
+          {/* ⭐ A155 (45o, the D178 picks: "Fly my route to this role"): the route on Your map is the AIM's — so this says so:
+              it makes this role your aim (the navigator's own PUT /aim) and flies the route there. */}
+          <p data-rr-fly=""><DepthButton size="compact" onClick={async () => {
+            try { await api("/api/navigator/aim", { method: "PUT", body: JSON.stringify({ slug: r.role.slug }) }); } catch { /* the map still opens */ }
+            navigate(`${base}/your-map?fly=1`);
+          }}>Aim here and fly my route</DepthButton></p>
         </div>
       </div>
       {!r.thin && (

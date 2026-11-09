@@ -46,10 +46,10 @@ export function halfRingLayout(course) {
   let a = Math.PI;                                      // start at the left, go over the top
   mods.forEach((m, mi) => {
     if (mi) a += HALF.gap;
-    for (const l of m.lessons) {
+    for (const [li, l] of m.lessons.entries()) {
       const t = a + per / 2;
       const c = Math.cos(t), s = Math.sin(t);
-      ticks.push({ id: l.id, module: m.n, x1: HALF.cx + HALF.r * c, y1: HALF.cy + HALF.r * s, x2: HALF.cx + (HALF.r - HALF.len) * c, y2: HALF.cy + (HALF.r - HALF.len) * s });
+      ticks.push({ id: l.id, module: m.n, i: li, x1: HALF.cx + HALF.r * c, y1: HALF.cy + HALF.r * s, x2: HALF.cx + (HALF.r - HALF.len) * c, y2: HALF.cy + (HALF.r - HALF.len) * s });
       a += per;
     }
   });
@@ -62,3 +62,22 @@ export function lessonStateLine(st) {
   if (st.started) return { state: "started", text: `In progress · ${st.done} of ${st.total}` };
   return { state: "new", text: "Not started" };
 }
+
+// ⭐ A155 (45o, the D178 picks: the lesson card's "how you earn ✓" — "links opened, checkpoints explained in your own words,
+// the build — exactly what the agent already uses for ✓"). Read from the ONE rule's own counts (stepState), so the list
+// and the ✓ can never disagree. Rows with nothing to do are left out.
+export function earnChecklist(st) {
+  const rows = [];
+  if (st.toOpen > 0) rows.push({ key: "opened", text: `Open the material · ${st.opened} of ${st.toOpen}`, done: st.opened === st.toOpen });
+  if (st.checkpoints > 0) rows.push({ key: "explained", text: `Explain each idea in your own words · ${st.explained} of ${st.checkpoints}`, done: st.explained === st.checkpoints });
+  if (st.build) rows.push({ key: "built", text: "Do the build", done: !!st.built });
+  return rows;
+}
+/** ⭐ A155 · the course page's marks: one per WHOLE module (every lesson ✓ by the one rule) — earned for wholes, not clicks. */
+export function wholeModules(course, marks = {}) {
+  return (course?.modules || []).filter(m => m.lessons.length > 0 && m.lessons.every(l => lessonState(l, marks).complete))
+    .map(m => ({ n: m.n, title: m.title }));
+}
+/** ⭐ A155 · the course's lessons as the route builder's pieces (the circle's own needs), in course order. */
+export const coursePieces = (course, circle) => (course?.modules || []).flatMap(m => m.lessons)
+  .map(l => ({ id: l.id, needs: circle?.pieces?.[l.id]?.needs || [] }));

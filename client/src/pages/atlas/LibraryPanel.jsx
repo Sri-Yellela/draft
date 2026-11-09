@@ -8,7 +8,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import LearnView from "./LearnView.jsx";
 import { api } from "../../lib/api.js";
-import { courseProgress, firstOpenModule, lessonState, linkLine } from "./libraryModel.js";
+import DepthButton from "../../components/DepthButton.jsx";   // A155: the guided routes
+import { courseProgress, firstOpenModule, lessonState, linkLine, wholeModules, coursePieces } from "./libraryModel.js";
+import { routesFor } from "./learnModel.js";   // A155: the circle's guided routes, in the Modules view too
 import { GuideLadder, PathwaysPlan, useGuides } from "./LibraryGuides.jsx";
 import { HalfRing, LessonDeck } from "./LessonDeck.jsx";
 import { learnStepHref } from "./atlasPanels.js";
@@ -185,6 +187,12 @@ export function CoursePage({ base, id, signedIn = false }) {
   useEffect(() => { if (course) { const m = firstOpenModule(course, marks); setOpen(m); setSel(s => s ?? m); } }, [course, marks]);
   useEffect(() => { let live = true; api("/api/learn/circle").then(c => live && setCircle(c)).catch(() => {}); return () => { live = false; }; }, []);
   const titles = useMemo(() => new Map((course?.modules || []).flatMap(m => m.lessons.map(l => [l.id, l.title]))), [course]);
+  // ⭐ A155 (45o, the D178 picks: "routes highlighted in both views, list filtered to the route"): the same guided routes
+  // as the circle (routesFor over the circle's own needs); one chosen keeps only its lessons in the modules list.
+  const routes = useMemo(() => (course && circle ? routesFor(circle, coursePieces(course, circle), null).filter(r => r.id !== "all") : []), [course, circle]);
+  const [routeId, setRouteId] = useState(null);
+  const route = routes.find(r => r.id === routeId) || null;
+  const onRoute = route ? new Set(route.list) : null;
   // ⭐ D178: two views of the one course — Modules (the half ring, the deck, the list) and The circle (the whole course at a
   // glance: Learn's circle, its path, patterns and concept index, until each moves to its own home). ?view=circle#step-<id>.
   const location = useLocation();
@@ -221,8 +229,25 @@ export function CoursePage({ base, id, signedIn = false }) {
         </section>
       )}
       <p className="atl__quiet"><Link to={`${base}/library/${course.id}?view=circle`} className="atl__link" data-course-circle="">The whole course as a circle →</Link></p>
-      <h2 className="atl__h2">All modules</h2>
-      {course.modules.map(m => {
+      {/* ⭐ A155 (45o, the D178 picks): marks on the course page — one per whole module (Your run has the same marks). */}
+      {signedIn && wholeModules(course, marks).length > 0 && (
+        <section className="lib-marks" aria-labelledby="lib-marks-h" data-course-marks="">
+          <h2 className="atl__h2" id="lib-marks-h">Marks</h2>
+          <ul className="lib-marks__shelf">
+            {wholeModules(course, marks).map(m => <li key={m.n} className={`lib-mark lrc__part--${m.n}`} data-course-mark={m.n}><span className="lib-mark__seal" aria-hidden="true">{m.n}</span>{m.title}</li>)}
+          </ul>
+        </section>
+      )}
+      {routes.length > 0 && (
+        <div className="lib-routes" role="group" aria-label="Guided routes" data-course-routes="">
+          <span className="atl__quiet">Guided routes:</span>
+          {routes.map(r => <DepthButton key={r.id} size="compact" primary={route?.id === r.id} pressed={route?.id === r.id}
+            onClick={() => setRouteId(route?.id === r.id ? null : r.id)} data-course-route={r.id}>{r.name}</DepthButton>)}
+          {route && <DepthButton size="compact" onClick={() => setRouteId(null)}>Clear</DepthButton>}
+        </div>
+      )}
+      <h2 className="atl__h2">{route ? `${route.name} — ${route.list.length} lessons` : "All modules"}</h2>
+      {course.modules.filter(m => !onRoute || m.lessons.some(l => onRoute.has(l.id))).map(m => {
         const mp = progress.modules.find(x => x.n === m.n);
         const isOpen = open === m.n;
         return (
@@ -233,7 +258,7 @@ export function CoursePage({ base, id, signedIn = false }) {
             </button>
             {isOpen && (
               <ol className="lib-lessons">
-                {m.lessons.map(l => {
+                {m.lessons.filter(l => !onRoute || onRoute.has(l.id)).map(l => {
                   const st = lessonState(l, marks);
                   return (
                     <li key={l.id} className="lib-lesson" data-lesson={l.id} data-lesson-state={st.complete ? "checked" : st.started ? "started" : "new"}>

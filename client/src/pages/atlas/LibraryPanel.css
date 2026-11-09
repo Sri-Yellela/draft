@@ -121,3 +121,16 @@ a.lib-rung__link:hover, a.lib-rung__link:focus-visible { border-color: var(--c-a
   .lib-ldeck__row { min-height: 420px; }
 }
 .lib-lcard__peek { margin: 0; font-size: 13px; color: var(--c-ink-muted); }
+
+/* ⭐ A155 (45o): how you earn ✓ on the lesson card; the course's marks; guided routes in the Modules view; a whole module's
+   arc lighting once (none with reduced motion). Depth boxes only — never capsules (D60). */
+.lib-earn { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--c-ink-muted); }
+.lib-earn .is-done { color: var(--c-ink); }
+.lib-marks__shelf { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.lib-mark { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
+.lib-mark__seal { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid var(--lrc-c, var(--c-accent)); font-weight: 700; font-size: 12px; }
+.lib-routes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 12px; }
+@keyframes lib-whole-light { from { opacity: 0.22; stroke-width: 4.5; } 60% { opacity: 1; stroke-width: 7; } to { opacity: 1; stroke-width: 4.5; } }
+.lib-half__tick.is-new-whole { animation: lib-whole-light 900ms ease-out both; }
+@media (prefers-reduced-motion: reduce) { .lib-half__tick.is-new-whole { animation: none; } }
