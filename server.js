@@ -109,6 +109,7 @@ import { todaysQuestion, answerToday } from "./services/learn/dailyQuestion.js";
 import { readReminder, setReminder, runDailyReminders } from "./services/learn/dailyReminder.js";
 import { readMatchAlertSettings, setMatchAlertSettings, runMatchAlerts, matchAlertTimings } from "./services/jobs/newMatchAlerts.js";
 import { outcomeMetrics, gatherOutcomeApps } from "./services/outcomeMetrics.js";
+import { unlocksFor, activeProfileFor } from "./services/jobs/skillUnlocks.js";
 import { seedTaxonomyRoles } from "./services/atlas/taxonomyRoleNodes.js";
 import { TAXONOMY_FILE } from "./services/jobs/taxonomyClassify.js";
 import { setAim as setNavigatorAim } from "./services/navigator.js";
@@ -13133,6 +13134,14 @@ app.get("/api/alerts/matches/settings", requireAuth, (req, res) => {
 app.put("/api/alerts/matches/settings", requireAuth, (req, res) => {
   try { res.json(setMatchAlertSettings(db, req.user.id, { mode: req.body?.mode, hour: req.body?.hour, tzOffsetMin: req.body?.tzOffsetMin })); }
   catch (e) { auditFail(res, e); }
+});
+// ⭐ D185-4 (45q) · the reward loop — the open jobs a proven skill moves the person up a tier on (read workers).
+app.get("/api/atlas/unlocks", requireAuth, async (req, res) => {
+  try {
+    const skill = String(req.query?.skill || "").slice(0, 80);
+    if (!skill) return res.status(400).json({ error: "skill_required", message: "Name a skill." });
+    res.set("Cache-Control", "private, no-store").json(await unlocksFor(readPool, activeProfileFor(db, req.user.id), skill));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // ⭐ D185-5 (45q) · outcomes — interviews / offers per application and per active person, by week (read workers).
 app.get("/api/admin/outcomes", requireAdmin, async (req, res) => {
