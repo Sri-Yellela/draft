@@ -13,6 +13,7 @@
 //     (the moderation queue; at most REPORTS_PER_DAY from one sender a day). Admin reads / resolves it at
 //     /api/admin/profile-reports.
 //   · /p/<handle> (D109's proof page) answers 301 → /in/<handle> (routes/proofPage.js).
+import { profileViewerFor } from "../services/network/connections.js";   // D180 P1: a connection's view
 import { durationLabel } from "../shared/durationLabel.js";   // A153 (45o): "2 yrs 4 mos" on the public page too
 import express from "express";
 import crypto from "node:crypto";
@@ -52,10 +53,13 @@ export function userForHandle(db, handle) {
 }
 
 /** What /in/<handle> shows: { status: 404 | 200, view?, handle } — view.private when the page is not public. */
-export function publicViewFor(db, handle) {
+export function publicViewFor(db, handle, { viewerId = null } = {}) {
   const row = userForHandle(db, handle);
   if (!row) return { status: 404 };
-  const view = viewFor(profilePage(db, row.user_id), "public");
+  // ⭐ D180 P1 (45o): a CONNECTED signed-in viewer sees the page's Connections sections (D183's level) — only while the
+  // network is on; everyone else (and the owner here) gets exactly the public view, as before.
+  const who = profileViewerFor(db, viewerId, row.user_id);
+  const view = viewFor(profilePage(db, row.user_id), who === "connection" ? "connection" : "public");
   return { status: 200, view, handle: row.handle, userId: row.user_id };
 }
 
@@ -187,7 +191,7 @@ export default function publicProfileRoutes(app, db, { requireAdmin, dataDir, ap
 
   app.get("/in/:handle", (req, res) => {
     let out;
-    try { out = publicViewFor(db, req.params.handle); } catch (e) { console.warn("[d183] public page:", e.message); out = { status: 404 }; }
+    try { out = publicViewFor(db, req.params.handle, { viewerId: req.user?.id ?? null }); } catch (e) { console.warn("[d183] public page:", e.message); out = { status: 404 }; }
     res.set("Cache-Control", "no-store");
     if (out.status === 404) { res.set("X-Robots-Tag", "noindex"); return notFound(res); }
     if (!indexable(out.view)) res.set("X-Robots-Tag", "noindex");

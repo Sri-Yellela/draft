@@ -37,6 +37,7 @@ import { withApplicationDefaults } from "./services/structuredProfile.js";
 import { backedBulletKeys, evidenceKey, evidenceForRequest } from "./services/proofLinks.js";
 import proofPageRoutes from "./routes/proofPage.js";
 import publicProfileRoutes from "./routes/publicProfile.js";
+import networkRoutes from "./routes/network.js";   // D180 P1 (45o): connections, behind the network switch (OFF)
 import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow, ineligibleOrderKey } from "./services/jobEligibility.js";
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
@@ -7344,6 +7345,33 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
           user_id       INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
           weekdays_only INTEGER NOT NULL DEFAULT 0 CHECK (weekdays_only IN (0, 1)),
           updated_at    INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
+    {
+      // ⭐ D180 P1 (45o, owner 11-08: "build it now; counsel reviews before it ships") · CONNECTIONS — mutual (request →
+      // accept), one row per pair (low_id < high_id), and blocks. Behind the network switch (app_settings network_enabled,
+      // OFF by default): nothing here is reachable until the owner turns it on. ON DELETE CASCADE on both people — a
+      // deleted account takes its connections and blocks with it (D180: "account deletion removes their content"). Only ADDS.
+      id: "252_network_connections",
+      sql: `
+        CREATE TABLE IF NOT EXISTS network_connections (
+          low_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          high_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          requester_id  INTEGER NOT NULL,
+          status        TEXT    NOT NULL CHECK (status IN ('pending', 'accepted')),
+          note          TEXT,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          responded_at  INTEGER,
+          PRIMARY KEY (low_id, high_id),
+          CHECK (low_id < high_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_network_connections_high ON network_connections(high_id);
+        CREATE TABLE IF NOT EXISTS network_blocks (
+          blocker_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          blocked_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (blocker_id, blocked_id)
         );
       `,
     },
@@ -15421,6 +15449,8 @@ profileSectionRoutes(app, db, requireAuth);
 proofPageRoutes(app, db);
 // ⭐ D183 P3: the public profile /in/<handle> — private unless the person made it public; noindex unless they said yes.
 publicProfileRoutes(app, db, { requireAdmin, dataDir: DATA_DIR, appBaseUrl });
+// ⭐ D180 P1 (45o): connections — every person-facing route 404s until the owner turns the network on (after counsel).
+networkRoutes(app, db, { requireAuth, requireAdmin });
 // ⭐ D113 P3: the picks confirm page /p/confirm/<token> (a GET never acts; the POST does, once) and the picks API.
 picksConfirmRoutes(app, db, requireAuth, { secret: PICKS_SECRET, startPickRun: applyLine.startPickRun, saveAnswers: applyLine.saveAnswers,
   generateResume: generateResumeForApply });

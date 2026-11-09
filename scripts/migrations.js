@@ -6758,4 +6758,31 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ D180 P1 (45o, owner 11-08: "build it now; counsel reviews before it ships") · CONNECTIONS — mutual (request →
+      // accept), one row per pair (low_id < high_id), and blocks. Behind the network switch (app_settings network_enabled,
+      // OFF by default): nothing here is reachable until the owner turns it on. ON DELETE CASCADE on both people — a
+      // deleted account takes its connections and blocks with it (D180: "account deletion removes their content"). Only ADDS.
+      id: "252_network_connections",
+      sql: `
+        CREATE TABLE IF NOT EXISTS network_connections (
+          low_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          high_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          requester_id  INTEGER NOT NULL,
+          status        TEXT    NOT NULL CHECK (status IN ('pending', 'accepted')),
+          note          TEXT,
+          created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+          responded_at  INTEGER,
+          PRIMARY KEY (low_id, high_id),
+          CHECK (low_id < high_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_network_connections_high ON network_connections(high_id);
+        CREATE TABLE IF NOT EXISTS network_blocks (
+          blocker_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          blocked_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (blocker_id, blocked_id)
+        );
+      `,
+    },
   ];
