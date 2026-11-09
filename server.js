@@ -114,6 +114,7 @@ import { outcomeMetrics, gatherOutcomeApps } from "./services/outcomeMetrics.js"
 import { unlocksFor, activeProfileFor } from "./services/jobs/skillUnlocks.js";
 import { contentBacklog, draftOutline, reviewOutline, readBacklogItem } from "./services/atlas/risingSkills.js";
 import { enqueue as enqueueJob, registerHandler as registerJob, startWorker as startJobWorker, pruneJobs, queueStats } from "./services/ops/jobQueue.js";
+import { archiveSlice, archiveEnabled, archiveState, ARCHIVE_SETTING } from "./services/jobs/postingArchive.js";   // D151 Rule 4 (45s)
 import { seedTaxonomyRoles } from "./services/atlas/taxonomyRoleNodes.js";
 import { TAXONOMY_FILE } from "./services/jobs/taxonomyClassify.js";
 import { setAim as setNavigatorAim } from "./services/navigator.js";
@@ -7740,6 +7741,19 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE INDEX IF NOT EXISTS idx_learn_question_answers_at ON learn_question_answers(answered_at);
       `,
     },
+    {
+      // ⭐ D151 RULE 4 (45s) · THE NIGHTLY ARCHIVE OF CLOSED POSTINGS — a closed posting older than 120 days that no person's
+      // history names moves here whole (its row as JSON, so the archive never breaks when scraped_jobs gains a column) and
+      // its derived rows go (services/jobs/postingArchive.js). Behind posting_archive_enabled (OFF). Only ADDS.
+      id: "265_posting_archive",
+      sql: `
+        CREATE TABLE IF NOT EXISTS scraped_jobs_archive (
+          job_id       TEXT    PRIMARY KEY,
+          archived_at  INTEGER NOT NULL,
+          row_json     TEXT    NOT NULL
+        );
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -13458,6 +13472,29 @@ if (process.env.BG_JOBS !== "off") {
     try { enqueueJob(db, "match_alerts", "sweep", { payload: { at: Math.floor(Date.now() / 1000) } }); } catch (e) { console.warn(`[alerts] enqueue: ${e.message}`); }
   }, 10 * 60 * 1000).unref();
 }
+// ⭐ D151 Rule 4 (45s) · the nightly archive of closed postings — a job kind, slices of ≤ 100 rows (the 200 ms budget) in one short transaction
+// each, resumed from the last row id; enqueued once a night (04:50 UTC) only while posting_archive_enabled is on.
+registerJob("posting_archive", async ({ payload, deadline }) => {
+  if (!archiveEnabled(db)) return { done: true };
+  const r = archiveSlice(db, { afterId: Number(payload?.after) || 0, now: Number(payload?.at) || undefined, deadline });
+  if (r.moved) console.log(`[archive] moved ${r.moved} closed postings (after id ${payload?.after || 0})`);
+  return r.done ? { done: true } : { done: false, payload: { after: r.lastId, at: payload?.at } };
+});
+if (process.env.BG_JOBS !== "off") setInterval(() => {
+  const d = new Date();
+  if (d.getUTCHours() !== 4 || d.getUTCMinutes() < 50 || !archiveEnabled(db)) return;
+  try { enqueueJob(db, "posting_archive", `nightly:${d.toISOString().slice(0, 10)}`, { payload: { at: Math.floor(Date.now() / 1000) } }); }
+  catch (e) { console.warn(`[archive] enqueue: ${e.message}`); }
+}, 5 * 60 * 1000).unref();
+app.get("/api/admin/posting-archive", requireAdmin, (_req, res) => res.json(archiveState(db)));
+app.put("/api/admin/posting-archive", requireAdmin, (req, res) => {
+  if (typeof req.body?.enabled !== "boolean") return res.status(400).json({ error: "enabled must be true or false" });
+  const before = archiveEnabled(db);
+  setSetting(db, ARCHIVE_SETTING, req.body.enabled);
+  try { writeAudit(db, { actor: actorOf(req), action: "posting_archive_switch", target: ARCHIVE_SETTING, before: { on: before }, after: { on: req.body.enabled } }); }
+  catch (e) { console.warn("[archive] the audit row was not written:", e.message); }
+  res.json(archiveState(db));
+});
 app.get("/api/admin/jobs", requireAdmin, (req, res) => {
   try { res.json({ kinds: queueStats(db) }); } catch (e) { res.status(500).json({ error: e.message }); }
 });

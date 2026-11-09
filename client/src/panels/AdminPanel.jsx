@@ -27,7 +27,7 @@ import { CompanyRecordsTab } from "./adminCompanyRecords.jsx";   // A142
 import { NetworkTab } from "./adminNetwork.jsx";   // D180 P1
 import { RunsTab } from "./adminRuns.jsx";   // (A)-2
 import { Phase1Tab } from "./adminPhase1.jsx";
-import { DiagnosticsTab } from "./adminDiagnostics.jsx";
+import { DiagnosticsTab, PostingArchiveSection } from "./adminDiagnostics.jsx";
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
@@ -724,7 +724,7 @@ export function AdminPanel() {
       {at("people", "messages") && <ContactMessagesSection theme={theme}/>}
       {at("people", "alerts") && <MatchAlertsSection theme={theme}/>}
       {/* D151 Rule 6: the server's health without shell access. */}
-      {at("system", "diagnostics") && <DiagnosticsTab/>}
+      {at("system", "diagnostics") && <><DiagnosticsTab/><PostingArchiveSection/></>}
       {/* D150 T16: the Phase 1 milestones, measured. */}
       {at("today", "outcomes") && <OutcomesSection theme={theme}/>}
       {at("today", "phase1") && <Phase1Tab/>}

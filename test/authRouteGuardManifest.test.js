@@ -128,7 +128,8 @@ const ADMIN = new Set([
   "GET /api/admin/runs",   // (A)-2 (45o): the run trace
   "GET /api/admin/runs/:id",
   "GET /api/admin/network",   // D180 P1 (45o): the network switch + counts
-  "GET /api/admin/atlas-compete", "PUT /api/admin/atlas-compete",   // A154 (45s): the league / challenges / live count switches
+  "GET /api/admin/atlas-compete", "PUT /api/admin/atlas-compete",
+  "GET /api/admin/posting-archive", "PUT /api/admin/posting-archive",   // D151 Rule 4 (45s): the archive's switch + numbers   // A154 (45s): the league / challenges / live count switches
   "PUT /api/admin/network",
   "GET /api/admin/network/reports",   // D180 P2: the moderation queue
   "POST /api/admin/network/reports/:id",
