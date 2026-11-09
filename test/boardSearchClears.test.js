@@ -15,7 +15,8 @@ test("boardSearchOneClearButton: the browser's own clear button on the search fi
 test("boardSearchEmptiedBringsBackAllJobs: emptying the field while a search is in force commits the empty search", () => {
   const s = read("client/src/components/BoardBar.jsx");
   assert.match(s, /const change = \(v\) => \{ setQ\(v\); if \(!String\(v\)\.trim\(\) && committed\.current\) commit\(""\); \};/);
-  assert.match(s, /<UsbSuggest field="title" value=\{q\} onChange=\{change\}>/, "every edit goes through it");
+  // D179 (45l; pin brought to the code in 45o): the role / technology picks ride on the same suggest.
+  assert.match(s, /<UsbSuggest field="title" value=\{q\} onChange=\{change\} onPickRole=\{onPickRole\} onPickTech=\{onPickTech\}>/, "every edit goes through it");
   assert.match(s, /else if \(e\.key === "Escape" && q\) \{ e\.preventDefault\(\); change\(""\); \}/, "Esc clears");
   assert.match(s, /onClick=\{\(\) => \{ setQ\(""\); commit\(""\); \}\}/, "the ✕ clears");
 });

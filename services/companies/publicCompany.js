@@ -124,21 +124,30 @@ async function titleIndex(read, now = Date.now()) {
 
 const starts = (hay, q) => hay.startsWith(q) || hay.includes(` ${q}`);
 
-/** The grouped dropdown for `q` (≥ 2 characters): { companies, roles, technologies, titles }. */
-export async function publicSuggest(db, read, q, { limit = 5 } = {}) {
+// ⭐ A148 (45o, owner 11-08): SEARCH SCOPE LABELS — "a label system that users can click on to ask what they are searching
+// for, this would significantly make our search faster and efficient. say people, company, role, stack/skill". With `kind`
+// set, only that group is read (one query, not five) and it gets SCOPED_LIMIT rows; every other group comes back empty.
+export const SUGGEST_KINDS = Object.freeze(["person", "company", "role", "tech"]);
+export const SCOPED_LIMIT = 10;
+
+/** The grouped dropdown for `q` (≥ 2 characters): { companies, roles, technologies, titles, people }. */
+export async function publicSuggest(db, read, q, { limit = 5, kind = null } = {}) {
   const query = String(q || "").trim().toLowerCase().slice(0, 80);
   if (query.length < 2) return { companies: [], roles: [], technologies: [], titles: [], people: [] };
+  const only = SUGGEST_KINDS.includes(kind) ? kind : null;
+  if (only) limit = SCOPED_LIMIT;
+  const want = (k) => !only || only === k;
   // ⭐ 45n: people — public pages only, labelled by workplace · school so two of one name can be told apart.
-  const people = searchPeople(db, query, { limit });
+  const people = want("person") ? searchPeople(db, query, { limit }) : [];
   const like = query.replace(/[%_\\]/g, (c) => `\\${c}`);
-  const companies = db.prepare(`SELECT co.slug, co.name,
+  const companies = !want("company") ? [] : db.prepare(`SELECT co.slug, co.name,
         (SELECT COUNT(*) FROM job_company jc JOIN scraped_jobs sj ON sj.job_id = jc.job_id WHERE jc.company_id = co.id AND ${OPEN}) AS open
       FROM companies co WHERE LOWER(co.name) LIKE ? ESCAPE '\\' OR LOWER(co.name) LIKE ? ESCAPE '\\'
       ORDER BY (LOWER(co.name) LIKE ? ESCAPE '\\') DESC, LENGTH(co.name) LIMIT 25`).all(`${like}%`, `% ${like}%`, `${like}%`)
     .filter(c => c.open > 0).slice(0, limit).map(c => ({ slug: c.slug, name: c.name, openJobs: c.open, path: `/companies/${c.slug}` }));
   let tax = null; try { tax = taxonomy(); } catch { tax = null; }
   const roles = [];
-  for (const c of tax?.categories || []) {
+  for (const c of want("role") ? tax?.categories || [] : []) {
     if (c.held) continue;
     for (const s of c.subs) {
       if (s.general) continue;
@@ -147,10 +156,10 @@ export async function publicSuggest(db, read, q, { limit = 5 } = {}) {
       if (hitName || hitAlias) roles.push({ id: s.id, name: s.name, category: c.name, categoryId: c.id, matched: hitAlias || null });
     }
   }
-  const technologies = TECHNOLOGIES.filter(([name, , ...aliases]) => starts(name.toLowerCase(), query) || aliases.some(a => starts(a.toLowerCase(), query)))
+  const technologies = !want("tech") ? [] : TECHNOLOGIES.filter(([name, , ...aliases]) => starts(name.toLowerCase(), query) || aliases.some(a => starts(a.toLowerCase(), query)))
     .slice(0, limit).map(([name, group]) => ({ name, group }));
   let titleHits = [];
-  try { titleHits = (await titleIndex(read)).filter(t => starts(t.lc, query)).slice(0, limit).map(({ value, count }) => ({ value, count })); } catch { titleHits = []; }
+  if (!only) try { titleHits = (await titleIndex(read)).filter(t => starts(t.lc, query)).slice(0, limit).map(({ value, count }) => ({ value, count })); } catch { titleHits = []; }
   return { companies, roles: roles.slice(0, limit), technologies, titles: titleHits, people };
 }
 

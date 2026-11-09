@@ -227,7 +227,8 @@ test("input is debounced and stale responses cannot overwrite fresh ones", () =>
 
 test("zero suggestions renders nothing at all", () => {
   // Not an error, not an empty box: the list element is not in the tree.
-  assert.match(suggestUi, /const showList = open && items\.length > 0 && !!rect;/);
+  // ⭐ A148 (45o, changed on purpose): the TITLE box (grouped) opens on its scope labels; any other box still draws nothing.
+  assert.match(suggestUi, /const showList = open && \(items\.length > 0 \|\| grouped\) && !!rect;/);
   assert.match(suggestUi, /\{showList && \(/);
 });
 
@@ -269,8 +270,9 @@ test("a suggestion request can never force-log-out the app", () => {
     "the typeahead is back on lib/api.js's api(), which force-logs-out on 401");
   assert.match(suggestUi, /if \(r\.status === 401\) return \{ unauthorised: true, suggestions: \[\] \}/);
   // And once told 401, it stops asking — otherwise a logged-out visit spends a request per word.
-  assert.match(suggestUi, /if \(unauthorised\.current\) return;/);
-  assert.match(suggestUi, /if \(d\.unauthorised\) \{ unauthorised\.current = true;/);
+  // D179 (45l; pin brought to the code in 45o): the grouped endpoint is public, so a 401 stops only the signed-in title suggest.
+  assert.match(suggestUi, /if \(unauthorised\.current && !grouped\) return;/);
+  assert.match(suggestUi, /if \(d\.unauthorised\) unauthorised\.current = true;/);
   // Any other failure is silent too.
   assert.match(suggestUi, /if \(!r\.ok\) return \{ suggestions: \[\] \}/);
 });
