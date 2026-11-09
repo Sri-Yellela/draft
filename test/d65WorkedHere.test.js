@@ -102,10 +102,13 @@ test("D65 residual · every packet build derives the answer from its own entries
   const src = fs.readFileSync("routes/apply.js", "utf8").replace(/\r\n/g, "\n");
   const create = src.slice(at(src, "function createGatePacket("), at(src, "const PREPARED_REASON"));
   // D96 §4 (J8) wraps both in withSavedAnswerRecords — the work history is still carried from the packet's own entries.
-  assert.match(create, /autofillPayload: withSavedAnswerRecords\(userId, withCarriedWorkHistory\(userId, autofillPayload, entries\)\),/);
+  // D185-7 (45q, changed on purpose): + withHowHeard outside — the work history is still carried from the packets own entries.
+  assert.match(create, /autofillPayload: withHowHeard\(userId, jobId, withSavedAnswerRecords\(userId, withCarriedWorkHistory\(userId, autofillPayload, entries\)\)\),/);
   const prepared = src.slice(at(src, "function prepareManualPacket("), at(src, "async function processRunJob("));
   // ⭐ D165 (3) (changed on purpose): the payload is built for THIS job (its role + location pick the scoped salary answer).
-  assert.match(prepared, /autofillPayload: withSavedAnswerRecords\(userId, withCarriedWorkHistory\(userId, buildAutofillPayload\(profile, "APPLY", job\.company, jobId\), entries\)\),/);
+  assert.match(prepared, /autofillPayload: withHowHeard\(userId, jobId, withSavedAnswerRecords\(userId, withCarriedWorkHistory\(userId, buildAutofillPayload\(profile, "APPLY", job\.company, jobId\), entries\)\)\),/);
+  // 45s: the apply workers payload is the same build, How did you hear included.
+  assert.match(src, /return withHowHeard\(userId, jobId, withSavedAnswerRecords\(userId, withCarriedWorkHistory\(userId, buildAutofillPayload\(profile, "APPLY", company, jobId\), entries\)\)\);/);
   const attach = src.slice(at(src, "async function attachPacketResume("), at(src, "function packetEntriesFor("));
   assert.equal((attach.match(/refreshPacketWorkedHere\(packetId, userId, entries\)/g) || []).length, 2,
     "both the tailored attach and the base-only branch");

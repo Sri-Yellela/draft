@@ -5456,7 +5456,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {};
     const company = db.prepare("SELECT company FROM scraped_jobs WHERE job_id=?").pluck().get(String(jobId)) ?? null;
     const entries = packetEntriesFor(userId, resumeArtifactId);
-    return withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", company, jobId), entries));
+    // 45s: + the opt-in How did you hear (D185-7) — the worker's fill was missing it, so a remote run never credited draft.
+    return withHowHeard(userId, jobId, withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", company, jobId), entries)));
   };
   const workerResumePdf = async ({ userId, resumeArtifactId }) => {
     const artifact = db.prepare("SELECT html FROM resumes WHERE id=? AND user_id=?").get(resumeArtifactId, userId);
