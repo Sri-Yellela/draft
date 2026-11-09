@@ -16,11 +16,12 @@ import { openResumeEditor } from "../lib/resumeEditor.js";
 const SENT_NOTE = "Sent — this is the résumé that went out";
 
 async function loadDoc({ runJobId, recordId, jobId, company, title, sent }) {
+  let missing = null;   // ⭐ (A)-1: the attempt's own answer when it has no résumé — { reason, canGenerate }
   if (runJobId != null) {
     try {
       const d = await api(`/api/apply/run-jobs/${encodeURIComponent(runJobId)}/resume-doc`);
       if (d?.html) return { ...d, readOnly: !!d.readOnly || !!sent };
-    } catch { /* no résumé on this attempt — try the next source */ }
+    } catch (e) { missing = { reason: e?.payload?.reason || null, canGenerate: e?.payload?.canGenerate ?? !sent }; }
   }
   if (recordId != null) {
     const r = await fetch(`/api/applications/${encodeURIComponent(recordId)}/resume?inline=1`, { credentials: "include", headers: authHeaders() });
@@ -30,13 +31,14 @@ async function loadDoc({ runJobId, recordId, jobId, company, title, sent }) {
     const d = await api(`/api/resumes/${encodeURIComponent(jobId)}`).catch(() => null);
     if (d?.html) return { html: d.html, jobId, company: company || d.company, title: title || d.role, readOnly: !!sent };
   }
-  throw new Error("No résumé is stored for this application.");
+  throw Object.assign(new Error("No résumé was made for this one."), { missing: runJobId != null ? (missing || { reason: null, canGenerate: !sent }) : null });
 }
 
 export default function AttemptResume({ runJobId = null, recordId = null, jobId = null, sent = false, company = "", title = "",
   artifactUrl = null, className, style, label = "Résumé" }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [missing, setMissing] = useState(null);   // ⭐ (A)-1: { reason, canGenerate } when the attempt has no résumé
   const pdfUrl = runJobId != null && artifactUrl ? artifactUrl(runJobId, "resume") : null;
   const download = pdfUrl ? `${pdfUrl}${pdfUrl.includes("?") ? "&" : "?"}download=1` : null;
 
@@ -53,7 +55,21 @@ export default function AttemptResume({ runJobId = null, recordId = null, jobId 
         fallback: () => { if (pdfUrl) window.open(pdfUrl, "_blank", "noopener"); },
       });
     } catch (err) {
-      setError(err?.message || "The résumé couldn't be opened.");
+      if (err?.missing) setMissing(err.missing);
+      else setError(err?.message || "The résumé couldn't be opened.");
+    } finally { setBusy(false); }
+  }
+  // ⭐ (A)-1 (45o, owner 11-08): "No résumé was made for this one — Generate it" — ONE press, no retries: the run job's own
+  // generator makes it and attaches it, then it opens. A failure says why (and is recorded on the run job).
+  async function generate(e) {
+    e.stopPropagation();
+    setBusy(true); setError("");
+    try {
+      await api(`/api/apply/run-jobs/${encodeURIComponent(runJobId)}/generate-resume`, { method: "POST", body: "{}" });
+      setMissing(null);
+      await open(e);
+    } catch (err) {
+      setError(err?.payload?.reason ? `It couldn't be made: ${String(err.payload.reason).replace(/^[a-z_]+: /, "")}` : (err?.message || "It couldn't be made just now."));
     } finally { setBusy(false); }
   }
 
@@ -64,6 +80,13 @@ export default function AttemptResume({ runJobId = null, recordId = null, jobId 
       {download && (
         <a className={className} style={{ ...style, textDecoration: "none" }} href={download} download
           onClick={e => e.stopPropagation()} data-attempt-resume="pdf" title="Download the résumé as a PDF">PDF ↓</a>
+      )}
+      {missing && (
+        <span role="status" data-attempt-resume="missing" style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+          No résumé was made for this one{missing.canGenerate ? " — " : "."}
+          {missing.canGenerate && <button type="button" className={className} style={style} onClick={generate} disabled={busy} data-attempt-resume="generate">{busy ? "Making it…" : "Generate it"}</button>}
+          {missing.reason && <span title={missing.reason}> ({String(missing.reason).replace(/^[a-z_]+: /, "").slice(0, 80)})</span>}
+        </span>
       )}
       {error && <span role="alert" style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>{error}</span>}
     </>

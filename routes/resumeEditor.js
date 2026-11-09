@@ -39,18 +39,30 @@ export function createResumeEditorRouter({ db, requireAuth, env = process.env })
     res.json({ available: !!origin, origin, url: origin ? `${origin}/editor/` : null, contract: EDITOR_CONTRACT });
   });
 
+  // ⭐ (A)-1 (45o) · why a run job has no résumé: the stored reason (254), else the run's own generation_failed event, else
+  // the hold it ended on — never nothing.
+  const missingReason = (db2, rj) => {
+    try { const r = db2.prepare("SELECT resume_missing_reason FROM apply_run_jobs WHERE id = ?").pluck().get(rj.id); if (r) return r; } catch { /* pre-254 */ }
+    try {
+      const ev = db2.prepare("SELECT message FROM apply_job_logs WHERE run_job_id = ? AND event = 'generation_failed' ORDER BY id DESC LIMIT 1").pluck().get(rj.id);
+      if (ev) return `generation_failed: ${ev}`;
+    } catch { /* no log table */ }
+    return rj.reason_code ? `not_made: the run stopped at ${rj.reason_code} before a résumé was generated` : "not_made: no résumé was generated for this application";
+  };
   router.get("/api/apply/run-jobs/:runJobId/resume-doc", requireAuth, (req, res) => {
     const id = Number(req.params.runJobId);
     if (!Number.isInteger(id) || id <= 0) return res.status(404).json({ error: "not_found" });
     // The posting as stored when the application was made (posting_*), else the live one.
     const rj = db.prepare(`
-      SELECT rj.id, rj.job_id, rj.status, rj.submitted_by, rj.finished_at, rj.resume_artifact_id,
+      SELECT rj.id, rj.job_id, rj.status, rj.submitted_by, rj.finished_at, rj.resume_artifact_id, rj.reason_code,
              COALESCE(rj.posting_title, sj.title) AS title, COALESCE(rj.posting_company, sj.company) AS company
       FROM apply_run_jobs rj LEFT JOIN scraped_jobs sj ON sj.job_id = rj.job_id
       WHERE rj.id = ? AND rj.user_id = ?`).get(id, req.user.id);
     if (!rj) return res.status(404).json({ error: "not_found" });
     if (rj.resume_artifact_id == null) {
-      return res.status(404).json({ error: "no_resume_artifact", message: "No résumé was recorded for this application." });
+      // ⭐ (A)-1 (45o): say WHY, and whether one press can make it (never for a sent application).
+      return res.status(404).json({ error: "no_resume_artifact", message: "No résumé was made for this one.",
+        reason: missingReason(db, rj), canGenerate: !(SENT.has(String(rj.status)) || rj.submitted_by != null) });
     }
     // Ownership is checked on the artifact itself, not trusted from the foreign key.
     const r = db.prepare("SELECT job_id, company, role, html FROM resumes WHERE id = ? AND user_id = ?").get(rj.resume_artifact_id, req.user.id);

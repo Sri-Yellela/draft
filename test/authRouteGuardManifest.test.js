@@ -588,6 +588,7 @@ const AUTHENTICATED = new Set([
   "GET /api/apply/run-jobs/:runJobId/resume",
   "GET /api/apply/run-jobs/:runJobId/screenshot",
   "POST /api/apply/run-jobs/:runJobId/abort",
+  "POST /api/apply/run-jobs/:runJobId/generate-resume",   // (A)-1 (45o): ownedRunJob — the signed-in person's own run job
   "DELETE /api/apply/run-jobs/:runJobId",
   // D53: the 7-day bin — the user's own cleared items, bulk clear, restore, delete now.
   "POST /api/apply/bin/clear",
