@@ -66,11 +66,8 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
-/* ⭐ D181 · PLAIN: no serif display — Inter Tight only (the face Dusk already loads), as the body and the headlines. */
-:root[data-theme="plain-light"], :root[data-theme="plain-dark"] {
-  --font-display: 'Inter Tight', 'DM Sans', system-ui, sans-serif;
-  --shape-font-ui: 'Inter Tight', 'DM Sans', system-ui, sans-serif;
-}
+/* ⭐ D181 · PLAIN's one face (Inter Tight, no serif) is published by themes/index.js from themes/shapes.js FACE_SETS —
+   45r: no stylesheet selects on the theme (test/inkPairD32's one decider). */
 
 @keyframes fade-rise {
   from { opacity: 0; transform: translateY(24px); }

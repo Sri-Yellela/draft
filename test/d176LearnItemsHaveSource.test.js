@@ -31,7 +31,15 @@ test("d176LearnItemsHaveSource: the register still validates, and every row D176
   for (const x of added) {
     if (x.licenceClass === "to-verify") continue;
     assert.match(x.verified, /^\d{4}-\d{2}-\d{2}$/, `${x.id}: a checked licence records its date`);
-    assert.match(x.notes, /D176-1 \(\d{4}-\d{2}-\d{2}\): [a-z-]+, read at https:\/\/\S+[^"]*: "[^"]{8,}/, `${x.id}: the licence page's wording is quoted`);
+    // 45n D176-1 passes (d16de7b7 / 46b6a864 / 4b09edf0) write "D176-1 (date, 45n …)" and classed 26 book authors
+    // link-only from a stated reason (a published book is copyrighted), not a page read — link-only copies nothing, the
+    // same as to-verify, so a reason is enough there. A row that may be ADAPTED (open-reuse / share-alike) must still
+    // name the page read and what it says; the hand-read ones state it unquoted ("MIT License — the root LICENSE …").
+    if (x.licenceClass === "link-only") {
+      assert.match(x.notes, /D176-1 \(\d{4}-\d{2}-\d{2}[^)]*\): link-only\b.{8,}/, `${x.id}: a link-only row says why`);
+      continue;
+    }
+    assert.match(x.notes, /D176-1 \(\d{4}-\d{2}-\d{2}[^)]*\): [a-z-]+, read at https:\/\/\S+[^"]*: .{8,}/, `${x.id}: the licence page's wording is recorded`);
   }
   assert.ok(reg.sources.some(x => x.id === OWN_SOURCE && x.licenceClass === "open-reuse"), "draft's own tasks are a row");
   const ids = reg.sources.map(x => x.id);

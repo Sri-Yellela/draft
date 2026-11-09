@@ -64,7 +64,7 @@ db.exec(`
     screenshot_path TEXT, submit_verified INTEGER, submit_evidence TEXT,
     posting_title TEXT, posting_company TEXT, posting_url TEXT, posting_location TEXT, blanks_json TEXT,
     corrections_json TEXT, gate_review_json TEXT,
-    fields_discovered INTEGER, hidden_at INTEGER, posting_description TEXT, UNIQUE(run_id, job_id));
+    fields_discovered INTEGER, hidden_at INTEGER, resume_missing_reason TEXT, posting_description TEXT, UNIQUE(run_id, job_id));
   CREATE TABLE apply_job_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, run_job_id INTEGER,
     user_id INTEGER, job_id TEXT, level TEXT, event TEXT, message TEXT, details_json TEXT,
     created_at INTEGER DEFAULT (unixepoch()));
