@@ -312,6 +312,34 @@ try {
     say("d186", (kw.body?.terms || []).some(x => /react/i.test(x.term) && x.source === "exact"), `Skills and keywords: ${(kw.body?.terms || []).slice(0, 6).map(x => `${x.term} (${x.source} ${x.weight})`).join(", ")}`);
   }
 
+  // ── 45s · the owner's report: "just tried replace resume and it failed, ntg happened" — the Replace control on Your profile,
+  // with a résumé from ANOTHER family: the choice must appear at the control, in view ─────────────────────────────────────
+  if (want("replace")) {
+    const R = await pageOf(await browser.createBrowserContext());
+    await register(R, "replacer");
+    await api(R, "/api/domain-profiles/from-resume", "POST", { content: JSON.parse(fs.readFileSync("content/trial/sample-g.json", "utf8")).resumeText, name: "maya.pdf" });
+    const daniel = JSON.parse(fs.readFileSync("content/trial/sample-h.json", "utf8")).resumeText;
+    const P = await pageOf(await browser.createBrowserContext());
+    await P.setContent(`<pre style="font:12px sans-serif;white-space:pre-wrap">${daniel.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>`);
+    const pdfPath = path.join(DIR, "daniel.pdf"); await P.pdf({ path: pdfPath, format: "Letter" }); await P.close();
+    await R.goto(`${BASE}/app/profile/about`, { waitUntil: "networkidle2", timeout: 60000 }); await sleep(1500);
+    const input = await R.$("input[data-replace-file]");
+    if (!input) say("replace", false, "no Replace file input on Your profile");
+    else {
+      await input.uploadFile(pdfPath);
+      await R.waitForSelector("[data-second-family]", { timeout: 20000 }).catch(() => {});
+      await sleep(900);
+      const seen = await R.evaluate(() => { const e = document.querySelector("[data-second-family]"); if (!e) return null; const r = e.getBoundingClientRect(); return { inView: r.top >= 0 && r.bottom <= window.innerHeight, text: e.innerText.slice(0, 120) }; });
+      say("replace", !!seen && seen.inView, `after choosing a PDF from another family: ${seen ? `the choice is shown, in view: ${seen.inView} — "${seen.text.replace(/\s+/g, " ")}"` : "NOTHING shown"}`);
+      await shot(R, "replace-choice");
+      if (seen) {
+        await R.click("[data-second-family-new]"); await sleep(2500);
+        const rows = db.prepare(`SELECT profile_name, is_active FROM domain_profiles WHERE user_id = (SELECT id FROM users WHERE username = 'walk-replacer') ORDER BY id`).all();
+        say("replace", rows.length === 2 && rows[1].is_active === 1, `Make this its own job profile → ${JSON.stringify(rows)}`);
+      }
+    }
+  }
+
   // ── M-7 · the three-sample walk (D184's test set G–I), as a rehearsal: Maya → Daniel → Elena → Undo back to Daniel ──────
   if (want("m7")) {
     const M = await pageOf(await browser.createBrowserContext());
