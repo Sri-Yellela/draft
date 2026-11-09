@@ -13,6 +13,7 @@
 //     (the moderation queue; at most REPORTS_PER_DAY from one sender a day). Admin reads / resolves it at
 //     /api/admin/profile-reports.
 //   · /p/<handle> (D109's proof page) answers 301 → /in/<handle> (routes/proofPage.js).
+import { durationLabel } from "../shared/durationLabel.js";   // A153 (45o): "2 yrs 4 mos" on the public page too
 import express from "express";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -99,7 +100,7 @@ ${index ? "" : `<meta name="robots" content="noindex">\n`}<title>${esc(title)}</
 </style>
 </head>
 <body>
-<header class="top"><a href="/">draft</a><nav><a href="/jobs">Jobs</a><a href="/atlas">Atlas</a><a href="/login">Sign in</a></nav></header>
+<header class="top"><a href="/">draft</a><nav><a href="/jobs">Jobs</a><a href="/atlas">Atlas</a><a href="/login">Sign in</a><a href="/register" data-get-started="">Get started</a></nav></header>
 <main>
 ${body}
 </main>
@@ -153,7 +154,7 @@ export function renderPublicProfile({ view, handle }, { origin = "" } = {}) {
   if (s.about?.summary) parts.push(`<section class="card" data-section="about"><h2>About</h2><p>${esc(s.about.summary)}</p></section>`);
   if (s.experience?.items?.length) parts.push(`<section class="card" data-section="experience"><h2>Experience</h2>${s.experience.items.map(x => `
   <div class="role">${x.logo ? `<img class="logo" src="${esc(x.logo)}" alt="">` : ""}<b>${esc(x.title || "")}</b><div>${esc(x.company)}</div>
-    <div class="muted">${[ymLabel(x.start), x.current ? "now" : ymLabel(x.end)].filter(Boolean).join(" – ")}${x.location ? ` · ${esc(x.location)}` : ""}</div>
+    <div class="muted">${[ymLabel(x.start), x.current ? "now" : ymLabel(x.end)].filter(Boolean).join(" – ")}${durationLabel(x.start, x.current ? null : x.end) ? ` · ${esc(durationLabel(x.start, x.current ? null : x.end))}` : ""}${x.location ? ` · ${esc(x.location)}` : ""}</div>
     ${(x.bullets || []).length ? `<ul>${x.bullets.map(b => `<li>${esc(b)}</li>`).join("")}</ul>` : ""}</div>`).join("")}</section>`);
   if (s.skills) parts.push(`<section class="card" data-section="skills"><h2>Skills</h2><div class="cols">
   <div><b>Proven on draft</b>${s.skills.proven.length ? `<ul>${s.skills.proven.map(p => `<li>${esc(p.name)} <span class="muted">· ${p.how === "built" ? "built something" : "passed a skill check"}${href(p.url) ? ` · <a href="${href(p.url)}" rel="nofollow noopener noreferrer" target="_blank">see it</a>` : ""}${p.at ? ` · ${day(p.at)}` : ""}</span></li>`).join("")}</ul>` : `<p class="muted">Nothing proven on draft yet.</p>`}</div>
@@ -162,7 +163,7 @@ export function renderPublicProfile({ view, handle }, { origin = "" } = {}) {
   if (s.fit && !s.fit.thin && s.fit.ready != null) parts.push(`<section class="card" data-section="fit"><h2>Where they fit</h2><p>${esc(s.fit.ready)}% ready for ${esc(s.fit.role)}</p><p class="muted">${esc(s.fit.scope || "")}</p></section>`);
   if (s.projects?.items?.length) parts.push(`<section class="card" data-section="projects"><h2>Projects</h2><ul>${s.projects.items.map(p => `<li><b>${esc(p.name)}</b>${p.description ? ` — ${esc(p.description)}` : ""}${(p.evidence || []).map(e => href(e.url) ? ` · <a href="${href(e.url)}" rel="nofollow noopener noreferrer" target="_blank">${esc(e.label || e.url)}</a>` : "").join("")}</li>`).join("")}</ul></section>`);
   if (s.achievements?.items?.length) parts.push(`<section class="card" data-section="achievements"><h2>Achievements</h2><ul>${s.achievements.items.map(a => `<li>${esc(a.title)}${a.year ? ` · ${esc(a.year)}` : a.at ? ` · ${day(a.at)}` : ""}${a.source === "atlas" ? ` <span class="muted">· finished on draft</span>` : ""}</li>`).join("")}</ul></section>`);
-  if (s.education?.items?.length) parts.push(`<section class="card" data-section="education"><h2>Education</h2><ul>${s.education.items.map(e => `<li><b>${esc(e.school)}</b>${[e.degree, e.field].filter(Boolean).length ? ` — ${esc([e.degree, e.field].filter(Boolean).join(", "))}` : ""}${e.end ? ` · ${esc(ymLabel(e.end))}` : ""}</li>`).join("")}</ul></section>`);
+  if (s.education?.items?.length) parts.push(`<section class="card" data-section="education"><h2>Education</h2><ul>${s.education.items.map(e => `<li>${e.logo ? `<img class="logo" src="${esc(e.logo)}" alt="">` : ""}<b>${esc(e.school)}</b>${[e.degree, e.field].filter(Boolean).length ? ` — ${esc([e.degree, e.field].filter(Boolean).join(", "))}` : ""}${e.end ? ` · ${esc(ymLabel(e.end))}` : ""}</li>`).join("")}</ul></section>`);
   if (s.links?.items?.length) parts.push(`<section class="card links" data-section="links"><h2>Links</h2>${s.links.items.map(l => linkMark(l.url, name)).join("")}</section>`);
   parts.push(`<section class="card" data-not-shown=""><b>Not shown to the public</b><p class="muted">Contact details, readiness for a role, job profiles, saved answers and application defaults — ${esc(name.split(" ")[0])} chose who sees each section.</p></section>`);
   parts.push(reportForm(handle));

@@ -177,7 +177,9 @@ test("D112 · d112dOldBlockGone — Profile has no old Education block; the sect
   assert.match(hd, /api\("\/api\/profile\/education-override", \{ method: "PUT"/);
   assert.match(hd, />Change</);
   assert.match(hd, /Use the section/);
-  assert.match(sections.slice(at(sections, '<Box title="Education"')), /^<Box title="Education" theme=\{theme\}>\s*<HighestDegree /);
+  // D183 P1 (45l; brought to the code in 45o): the box takes the page's own title and its visibility eye.
+  assert.match(sections.slice(at(sections, '<Box title={titles.education || "Education"}')),
+    /^<Box title=\{titles\.education \|\| "Education"\} right=\{eye\("education"\)\} theme=\{theme\}>\s*<HighestDegree /);
 
   // The server no longer reads the old column for eligibility, and the POST keeps an absent column as stored.
   const elig = fs.readFileSync("services/jobEligibility.js", "utf8");

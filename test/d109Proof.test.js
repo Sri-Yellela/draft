@@ -171,22 +171,25 @@ test("D109 · d109ProofPageOffByDefault — no page until turned on; then projec
   const app = express();
   proofPageRoutes(app, db);
   const server = app.listen(0);
-  const get = (h) => fetch(`http://127.0.0.1:${server.address().port}/p/${h}`).then(async r => ({ status: r.status, text: await r.text() }));
+  // ⭐ D183 P3 (45m; brought to the code in 45o): /p/<handle> is a 301 to the public profile /in/<handle> — the SAME answer
+  // whatever the handle's state, so the old address reveals nothing. What the page shows is pinned through the renderer the
+  // route keeps for exactly this (proofPageFor → renderProofPage).
+  const get = (h) => fetch(`http://127.0.0.1:${server.address().port}/p/${h}`, { redirect: "manual" }).then(r => ({ status: r.status, to: r.headers.get("location") }));
+  const page = (h) => { const pg = proofPageFor(db, h); return pg ? renderProofPage(pg) : null; };
   try {
-    assert.equal((await get("dana-example")).status, 404, "no row → no page");
+    assert.equal(page("dana-example"), null, "no row → no page");
     setProofPage(db, 1, { enabled: false, handle: "dana-example" });
-    const off = await get("dana-example");
-    assert.equal(off.status, 404, "a handle that is turned off is not shown");
-    assert.equal(off.text, (await get("nobody-here")).text, "off and absent answer the same");
+    assert.equal(page("dana-example"), null, "a handle that is turned off is not shown");
+    assert.deepEqual(await get("dana-example"), { status: 301, to: "/in/dana-example" });
+    assert.deepEqual(await get("nobody-here"), { status: 301, to: "/in/nobody-here" }, "off and absent answer the same");
 
     setProofPage(db, 1, { enabled: true, handle: "Dana-Example" });
-    const on = await get("dana-example");
-    assert.equal(on.status, 200);
-    assert.match(on.text, /Tidewatch/);
-    assert.match(on.text, /https:\/\/code\.example\/dana\/tidewatch/);
-    assert.match(on.text, /Links supplied by the candidate/);
+    const on = page("dana-example");
+    assert.match(on, /Tidewatch/);
+    assert.match(on, /https:\/\/code\.example\/dana\/tidewatch/);
+    assert.match(on, /Links supplied by the candidate/);
     for (const priv of ["dana@example.test", "617-555-0142", "Elm St", "Boston", "linkedin.com", "Northwind", "Built a queue"]) {
-      assert.ok(!on.text.includes(priv), `the page shows nothing private or off-topic: ${priv}`);
+      assert.ok(!on.includes(priv), `the page shows nothing private or off-topic: ${priv}`);
     }
     // a handle cannot be taken twice; a bad or reserved one is refused
     const code = (fn) => { try { fn(); } catch (e) { return e.code; } return null; };
@@ -196,9 +199,9 @@ test("D109 · d109ProofPageOffByDefault — no page until turned on; then projec
     assert.equal(code(() => setProofPage(db, 2, { enabled: true })), "bad_handle", "on needs an address");
     // escaped: a project named like markup renders as text
     saveSection(db, 1, "projects", { items: [{ name: "<script>x</script>" }] });
-    assert.ok(!(await get("dana-example")).text.includes("<script>x"));
+    assert.ok(!page("dana-example").includes("<script>x"));
     setProofPage(db, 1, { enabled: false });
-    assert.equal((await get("dana-example")).status, 404, "turned off again → gone");
+    assert.equal(page("dana-example"), null, "turned off again → gone");
   } finally { server.close(); }
   assert.match(SERVER, /proofPageRoutes\(app, db\);/, "the page is mounted");
   const mount = at(SERVER, "proofPageRoutes(app, db);");

@@ -20,6 +20,7 @@ import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import { useAtlasSlugs, atlasHref } from "../lib/atlasLinks.js";
 import { EEO_DECLINE } from "../../../shared/savedAnswers.js";
+import { durationLabel } from "../../../shared/durationLabel.js";   // A153: "2 yrs 4 mos"
 
 const NOT_SET = "Not set — I'll answer on each form";
 // The words a self-ID question is usually answered in; the stored value is the text, so the fill matches the form's own.
@@ -420,7 +421,9 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
               <LogoTile logo={x.logo} initial={x.initial} theme={theme} />
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.title || "—"} · {x.company}</div>
-                <div style={muted}>{[ymLabel(x.start), x.current ? "Present" : ymLabel(x.end)].filter(Boolean).join(" – ")}{x.location ? ` · ${x.location}` : ""}</div>
+                <div style={muted}>{[ymLabel(x.start), x.current ? "Present" : ymLabel(x.end)].filter(Boolean).join(" – ")}
+                  {durationLabel(x.start, x.current ? null : x.end) ? <span data-duration=""> · {durationLabel(x.start, x.current ? null : x.end)}</span> : null}
+                  {x.location ? ` · ${x.location}` : ""}</div>
                 {x.bullets.length > 0 && (
                   <ul style={{ margin: "6px 0 0", paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
                     {x.bullets.map((b, bi) => (
@@ -475,9 +478,13 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
             { k: "start", label: "Start", type: "month" }, { k: "end", label: "End", type: "month" }]}
           onSave={(items) => saveSection("education", { items })}
           render={(x) => (
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.school}</div>
-              <div style={muted}>{[x.degree, x.field].filter(Boolean).join(", ")}{x.end ? ` · ${ymLabel(x.end)}` : ""}</div>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }} data-education-row="">
+              {/* A153 (45o, the D183 sketch): the school's logo, as an employer's (LogoTile; the initial when none). */}
+              <LogoTile logo={x.logo} initial={x.initial || String(x.school || "?").charAt(0).toUpperCase()} theme={theme} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.school}</div>
+                <div style={muted}>{[x.degree, x.field].filter(Boolean).join(", ")}{x.end ? ` · ${ymLabel(x.end)}` : ""}</div>
+              </div>
             </div>
           )} />
       </Box>}

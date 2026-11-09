@@ -174,7 +174,8 @@ const shape = (r, now) => r && {
 export function latestReplacement(db, userId, now = Math.floor(Date.now() / 1000)) {
   const r = safe(() => db.prepare(`SELECT * FROM profile_replacements WHERE user_id = ? AND status = 'applied' AND created_at >= ? ORDER BY created_at DESC, id DESC LIMIT 1`)
     .get(userId, now - UNDO_DAYS * DAY), null);
-  return shape(r, now);
+  // 45o: `.get()` answers undefined for no row — the route's JSON then had no `replacement` key at all; null says "none".
+  return r ? shape(r, now) : null;
 }
 
 /** "Looks right" — the summary is put away; Undo is still offered from the replace's own record until the window ends. */

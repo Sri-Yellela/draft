@@ -228,7 +228,9 @@ function readSections(db, userId) {
       bullets: JSON.parse(r.bullets_json || "[]"), logo: logoOf(r.company), initial: r.company.trim().charAt(0).toUpperCase(), source: r.source }))
       .map(x => ({ ...x, evidence: x.bullets.map(b => linksOf("bullet", b)), marks: markBacking(x.bullets, b => linksOf("bullet", b).length) })),
     education: db.prepare(`SELECT * FROM profile_education WHERE user_id = ? ORDER BY position, id`).all(userId).map(r => ({
-      id: r.id, school: r.school, degree: r.degree, field: r.field, start: r.start_ym, end: r.end_ym, source: r.source })),
+      id: r.id, school: r.school, degree: r.degree, field: r.field, start: r.start_ym, end: r.end_ym, source: r.source,
+      // ⭐ A153 (45o, the D183 sketch): the school's logo from the same first-party store as an employer's (looked up by name).
+      logo: logoOf(r.school), initial: String(r.school || "?").trim().charAt(0).toUpperCase() })),
     skills: db.prepare(`SELECT id, name, category, source FROM profile_skills WHERE user_id = ? ORDER BY position, id`).all(userId),
     links: db.prepare(`SELECT id, kind, url FROM profile_links WHERE user_id = ? ORDER BY position, id`).all(userId),
     projects,
@@ -243,7 +245,8 @@ function readSections(db, userId) {
  */
 export function profileLogosToResolve(db, userId, nowSec = Math.floor(Date.now() / 1000), limit = 10) {
   const out = [];
-  for (const company of db.prepare(`SELECT DISTINCT company FROM profile_experience WHERE user_id = ?`).pluck().all(userId)) {
+  // A153 (45o): + the schools — the Education section draws their logos the same way.
+  for (const company of db.prepare(`SELECT company FROM profile_experience WHERE user_id = ? UNION SELECT school FROM profile_education WHERE user_id = ? AND TRIM(COALESCE(school, '')) <> ''`).pluck().all(userId, userId)) {
     const key = companyKey(company);
     if (!key) continue;
     const row = db.prepare(`SELECT status, checked_at FROM company_logos WHERE company_key = ?`).get(key);
