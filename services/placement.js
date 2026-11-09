@@ -94,3 +94,40 @@ export function pickPlacement(db, userId, subcategory, registry = {}, tax = safe
   const p = { placed: true, category: cat.id, subcategory, level: prof.seniority || null, confidence: 1, also: null, registryKey: registryKeyFor(cat.id, subcategory, tax) };
   return writePlacement(db, prof.id, p, registry);
 }
+
+// ── ⭐ (B)-3 (45o) · Apply for me never jumps family silently ──────────────────────────────────────────────────────────
+/** Did the placement move FAMILY (the category)? A level-only or within-category move is not one. A first placement isn't. Pure. */
+export const familyMoved = (before, after) => !!(before?.placement_category && after?.placement_category && before.placement_category !== after.placement_category);
+
+/** After a replace: pause Apply for me on THIS profile when the family moved and the person uses Apply for me (semi never sends,
+ *  so it just follows). Keeps where it came from. Returns { paused, from, to } or { paused: false }. */
+export function pauseOnFamilyMove(db, userId, profileId, before) {
+  const after = db.prepare(`SELECT domain, role_family, placement_category, placement_subcategory, placement_level FROM domain_profiles WHERE id = ? AND user_id = ?`).get(profileId, userId);
+  if (!familyMoved(before, after)) return { paused: false };
+  const mode = safe(() => db.prepare(`SELECT send_mode FROM users WHERE id = ?`).pluck().get(userId), null);
+  if (mode !== "auto") return { paused: false, moved: true };
+  const from = { domain: before.domain, role_family: before.role_family, placement_category: before.placement_category,
+    placement_subcategory: before.placement_subcategory ?? null, placement_level: before.placement_level ?? null,
+    placement_also: before.placement_also ?? null, placement_confidence: before.placement_confidence ?? null };
+  db.prepare(`UPDATE domain_profiles SET apply_paused_at = unixepoch(), apply_paused_from = ? WHERE id = ?`).run(JSON.stringify(from), profileId);
+  return { paused: true, moved: true, from, to: after };
+}
+
+/** Is Apply for me paused for the person's ACTIVE profile (the one the scheduler runs on)? */
+export function applyPausedForFamily(db, userId) {
+  return !!safe(() => db.prepare(`SELECT apply_paused_at FROM domain_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1`).pluck().get(userId), null);
+}
+
+/** Keep: Apply for me follows the new family. Change back: the profile's role and placement go back to where they were. */
+export function answerFamilyMove(db, userId, keep) {
+  const p = db.prepare(`SELECT id, apply_paused_at, apply_paused_from FROM domain_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1`).get(userId);
+  if (!p?.apply_paused_at) throw Object.assign(new Error("Nothing is waiting for your answer."), { status: 404, code: "not_paused" });
+  if (!keep) {
+    const f = safe(() => JSON.parse(p.apply_paused_from || "null"), null);
+    if (f) db.prepare(`UPDATE domain_profiles SET domain = ?, role_family = ?, placement_category = ?, placement_subcategory = ?, placement_level = ?,
+        placement_also = ?, placement_confidence = ?, placed_at = unixepoch() WHERE id = ?`)
+      .run(f.domain, f.role_family, f.placement_category, f.placement_subcategory, f.placement_level, f.placement_also, f.placement_confidence, p.id);
+  }
+  db.prepare(`UPDATE domain_profiles SET apply_paused_at = NULL, apply_paused_from = NULL WHERE id = ?`).run(p.id);
+  return { profileId: p.id, kept: !!keep };
+}

@@ -403,14 +403,37 @@ function Achievements({ items, eye, onAdd, onRemove }) {
 const MARK = { added: "+", removed: "−", changed: "↻" };
 
 /** ⭐ D183 P2 · What changed — the replace already happened; this is so nothing changes silently. */
-function ReplaceWhatChanged({ r, onKeep, onUndo, busy }) {   // A93: SponsorshipSignal has its own WhatChanged
+/** ⭐ (B)-3 (45o): the one What changed line that waits for the person — Apply for me's new family. */
+function FamilyDecision({ line, onPage }) {
+  const [done, setDone] = useState(null);
+  const answer = async (a) => {
+    try { const r = await api(`/api/profile/apply-for-me/${a}`, { method: "POST", body: "{}" }); setDone(a); if (r?.page) onPage?.(r.page); }
+    catch (e) { setDone(`error: ${e.message}`); }
+  };
+  return (
+    <div className="yp__decision" data-family-decision="">
+      <b>{line.text}</b>
+      <p className="yp__muted">{line.detail}</p>
+      {done ? <p className="yp__muted" role="status">{done === "keep" ? "Kept — Apply for me follows your new résumé." : done === "change-back" ? "Changed back — Apply for me looks for what it did before." : done}</p> : (
+        <div className="yp__acts">
+          <button type="button" className="pf__btn" onClick={() => answer("keep")} data-family-keep="">Keep</button>
+          <button type="button" className="pf__btn" onClick={() => answer("change-back")} data-family-change-back="">Change back</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReplaceWhatChanged({ r, onKeep, onUndo, busy, onPage }) {   // A93: SponsorshipSignal has its own WhatChanged
   const [review, setReview] = useState(false);
   const shown = review ? r.lines : r.lines.slice(0, 6);
   return (
     <section className="yp__changed" data-what-changed="" aria-live="polite">
       <p className="yp__chhead"><b>New résumé{r.name ? ` · ${r.name}` : ""}</b> · read {day(r.at)} — <b>your profile now follows it</b></p>
       {r.lines.length ? (
-        <ul className="yp__chlist">{shown.map((l, i) => (
+        <ul className="yp__chlist">{shown.map((l, i) => l.what === "apply_for_me" ? (
+          <li key={i} data-change="decision"><FamilyDecision line={l} onPage={onPage} /></li>
+        ) : (
           <li key={i} data-change={l.kind}><span className="yp__chmark" aria-hidden="true">{MARK[l.kind] || "·"}</span>
             <span>{l.text}{l.was ? <span className="yp__muted"> · was: {l.was}</span> : null}{l.detail ? <span className="yp__muted"> · {l.detail}</span> : null}</span></li>
         ))}</ul>
@@ -539,7 +562,7 @@ export default function YourProfile({ behind = null }) {
     <div className="yp" data-your-profile="">
       <WhoCanSee vis={vis} onSet={set} />
       {err && <p role="alert" className="yp__err">{err}</p>}
-      {replaced && <ReplaceWhatChanged r={replaced} onKeep={keepChange} onUndo={undoChange} busy={changeBusy} />}
+      {replaced && <ReplaceWhatChanged r={replaced} onKeep={keepChange} onUndo={undoChange} busy={changeBusy} onPage={setPage} />}
       <Header page={page} avatarUrl={avatarUrl} editing={editing} onEdit={() => setEditing(x => !x)} onSet={set}
         onPreview={togglePreview} previewing={!!preview} onPage={setPage} />
       {preview ? <PublicPreview view={preview.view} avatarUrl={avatarUrl} /> : (
