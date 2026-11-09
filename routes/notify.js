@@ -8,6 +8,7 @@
 //   POST   /api/push/test           one test push to the person's browsers (so they can see it works)
 import { NOTIFY_EVENTS, channelsOffered, readPrefs, setPref, saveSubscription, removeSubscription, subscriptionCount, pushToUser } from "../services/notify.js";
 import { vapidConfig } from "../services/webPush.js";
+import { networkEnabled } from "../services/network/connections.js";   // D180 (45s): a Network event is listed only while it is on
 
 export default function notifyRoutes(app, db, requireAuth, { env = process.env, fetchImpl = fetch } = {}) {
   const settings = (userId) => {
@@ -16,7 +17,8 @@ export default function notifyRoutes(app, db, requireAuth, { env = process.env, 
     return {
       push: { offered: offered.push, publicKey: offered.publicKey, devices: offered.push ? subscriptionCount(db, userId) : 0 },
       email: { offered: offered.email },
-      events: Object.entries(NOTIFY_EVENTS).map(([key, e]) => ({ key, label: e.label, what: e.what, ...prefs[key] })),
+      events: Object.entries(NOTIFY_EVENTS).filter(([, e]) => !e.network || networkEnabled(db))
+        .map(([key, e]) => ({ key, label: e.label, what: e.what, ...prefs[key] })),
     };
   };
   const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "failed", message: e.status ? e.message : "Could not save that." });

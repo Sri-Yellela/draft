@@ -39,8 +39,6 @@
 .co__focus { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--c-border); border-radius: 10px; }
 .co__focus p { margin: 0 0 6px; }
 /* ⭐ D180 P4 (45r): connections who work here + the referral ask. Tokens only; no capsules (D60). */
-.co__works { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--c-border); border-radius: 10px; }
-.co__ask textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); font: inherit; margin: 6px 0; }
 .co__focus-k { color: var(--c-ink-muted); font-size: 12px; }
 .co__apply { font-style: normal; }
 .co__apply-row { font-size: 12px; font-style: normal; font-weight: 700; margin-left: 6px; }

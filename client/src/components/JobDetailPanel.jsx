@@ -10,6 +10,7 @@ import CompanyViewModal from "./CompanyViewModal.jsx";
 import PanelShell from "./PanelShell.jsx";
 import CompanyLink from "./CompanyLink.jsx";
 import { companyPath } from "../lib/companySlug.js";   // A157
+import WorksHere from "./WorksHere.jsx";   // D180 P4 (45s)
 import CompanyLogo from "./CompanyLogo.jsx";
 import { StampLogo } from "./StampLogo.jsx";
 import { AtsNumberBox } from "./AtsNumberBox.jsx";
@@ -572,6 +573,9 @@ export default function JobDetailPanel({
               {/* ⭐ D138 · who the user knows at this company — after the posting now (D147: nothing between the facts
                   and the description). The applicant count, when a source gives one, is a quiet line beside it. */}
               <WarmPathsBlock jobId={selectedJob.id ?? selectedJob.jobId} />
+              {/* ⭐ D180 P4 (45s): "1 connection works here" → Ask for a referral, here and on the deck (one component; the
+                  network off or no one there → nothing drawn). */}
+              <WorksHere company={selectedJob.company} job={{ id: selectedJob.id ?? selectedJob.jobId }} />
               {selectedJob.applicantCount != null && (
                 <p className="pp__applicants" data-applicant-count="">
                   {selectedJob.applicantCount > 200 ? "200+" : selectedJob.applicantCount} applicants

@@ -149,6 +149,27 @@ export function recordProofMoment(db, userId, kind, label) {
     .run(userId, proofKind, String(label || "").slice(0, 200)).lastInsertRowid);
 }
 
+// ⭐ D180 (4) (45s): *started a new role* — the proof moment's hook. A save of the Experience section that ADDS a current role
+// (a company + title marked current that was not current before) becomes one post, only when the person turned *new role*
+// on (recordProofMoment checks). Editing a bullet, a date or an old job never posts.
+const roleKey = (r) => `${String(r.company || "").trim().toLowerCase()}|${String(r.title || "").trim().toLowerCase()}`;
+/** The person's current roles as rows { company, title } (the profile's own table). */
+export function currentRoles(db, userId) {
+  try { return db.prepare(`SELECT company, title FROM profile_experience WHERE user_id = ? AND is_current = 1 ORDER BY position, id`).all(userId); }
+  catch { return []; }
+}
+/** PURE. The first current role in `after` that was not current in `before`, or null. */
+export function newRoleOf(before = [], after = []) {
+  const had = new Set(before.map(roleKey));
+  return after.find(r => r.company && !had.has(roleKey(r))) || null;
+}
+/** After an Experience save: post *started as <title> at <company>* when a new current role appeared (and the switch is on). */
+export function noteNewRole(db, userId, before) {
+  const role = newRoleOf(before, currentRoles(db, userId));
+  if (!role) return null;
+  return recordProofMoment(db, userId, "new_role", role.title ? `started as ${role.title} at ${role.company}` : `started at ${role.company}`);
+}
+
 /** The reported post / comment for the moderation queue, and who wrote it (messages.js report / reportQueue). */
 export function feedTarget(db, kind, id) {
   if (kind === "post") {

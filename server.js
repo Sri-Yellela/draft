@@ -108,6 +108,7 @@ import { renderLandingPage, landingSitemapRoutes } from "./services/jobs/landing
 import { startAudit, answerAudit, auditResult, claimAudit } from "./services/audit/auditSession.js";
 import { todaysQuestion, answerToday } from "./services/learn/dailyQuestion.js";
 import { readReminder, setReminder, runDailyReminders } from "./services/learn/dailyReminder.js";
+import { runUnreadDigests } from "./services/network/unreadDigest.js";   // D180 (3) (45s): the opt-in unread digest
 import { readMatchAlertSettings, setMatchAlertSettings, runMatchAlertsSlice, matchAlertTimings } from "./services/jobs/newMatchAlerts.js";
 import { outcomeMetrics, gatherOutcomeApps } from "./services/outcomeMetrics.js";
 import { unlocksFor, activeProfileFor } from "./services/jobs/skillUnlocks.js";
@@ -13359,6 +13360,13 @@ if (process.env.DAILY_REMINDERS !== "off") setInterval(() => {
   runDailyReminders(db, (userId, event, data) => notifyEvent(userId, event, data))
     .then(n => { if (n) console.log(`[daily] reminders sent: ${n}`); })
     .catch(e => console.warn(`[daily] reminders: ${e.message}`));
+}, 10 * 60 * 1000).unref();
+// ⭐ D180 (3) (45s) · the unread-messages digest — OFF until the person turns it on, and only while the network is on; at most
+// one a day, counts only (services/network/unreadDigest.js).
+if (process.env.NETWORK_DIGEST !== "off") setInterval(() => {
+  runUnreadDigests(db, SECRET_BOX, (userId, event, data) => notifyEvent(userId, event, data))
+    .then(n => { if (n) console.log(`[network] unread digests sent: ${n}`); })
+    .catch(e => console.warn(`[network] unread digests: ${e.message}`));
 }, 10 * 60 * 1000).unref();
 // ⭐ D185-2 (45q) · new jobs that fit the résumé — top tier only, live and not a ghost; a daily digest by default, instant as
 // an opt-in, at most 10 jobs a day. The candidate query runs on the read workers (A126).

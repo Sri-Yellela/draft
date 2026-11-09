@@ -53,6 +53,10 @@ export const NOTIFY_EVENTS = Object.freeze({
   // the owner's "digest default"; push stays off until the person turns it on), capped per day (services/jobs/newMatchAlerts.js).
   new_match: { label: "New jobs that fit you", what: "New postings that ask for most of your résumé's top skills — a daily digest, or as they arrive. At most 10 a day.",
     url: "/app/jobs", defaults: { push: false, email: true }, throttle: 0 },
+  // ⭐ D180 (3) (45s): "an email digest only if switched on" — once a day while a message waits in Network: how many, never
+  // who or what. OFF on both channels; listed only while the network is on (routes/notify.js). services/network/unreadDigest.js.
+  messages_unread: { label: "Unread messages", what: "Once a day, when a message is waiting for you in Network — how many, never who or what it says.",
+    url: "/app/network?tab=messages", defaults: { push: false, email: false }, throttle: 0, network: true },
 });
 export const CHANNELS = Object.freeze(["push", "email"]);
 
@@ -82,6 +86,8 @@ export function eventText(event, data = {}) {
       return { title: "Today's question", body: "Today's question is waiting — about two minutes." };
     case "new_match":
       return { title: "New jobs that fit you", body: `${s("count", "new job fits", "new jobs fit")} your résumé.` };
+    case "messages_unread":
+      return { title: "Unread messages", body: `${s("count", "message is", "messages are")} waiting for you in Network.` };
     default:
       return { title: "draft", body: "Something changed in draft." };
   }
