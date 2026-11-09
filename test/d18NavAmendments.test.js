@@ -36,7 +36,9 @@ test("D18: NO symbol on any tab — the Draft House count rides on the button as
   // ⭐ D145 (changed on purpose): the count and its sentence are data on the tab, not a decorated label.
   assert.match(fn, /t\.id === "auto-apply" \? \{ \.\.\.t, badge: needsAttentionCount, badgeLabel: attention \} : t/);
   const nav = read("client/src/components/AppNav.jsx");
-  for (const tag of ["<nav aria-label=\"Main\"", "<nav aria-label=\"Main menu\""]) {
+  // 45n D145 / D152 decision (10) (d85ed150): the Menu's "Main menu" panel is retired — only the dock's nav is left (pin moved on purpose).
+  assert.doesNotMatch(nav, /<nav aria-label="Main menu"/);
+  for (const tag of ["<nav aria-label=\"Main\""]) {
     const row = nav.slice(at(nav, tag), at(nav, "</nav>", at(nav, tag)));
     assert.ok(row.length > 20, tag);
     assert.doesNotMatch(row, /<DraftMark|<svg|<img/);
@@ -82,7 +84,8 @@ test("O56e → D145: the phone's tab row is gone — the Menu (or the dock, chos
   // dock at every width now — on a touch screen it opens from the left-edge handle (d152Home's real-Chrome walk at 390).
   assert.doesNotMatch(topBar, /tabsMore|TAB_ROW_FADE|className="tbar-nav"/);
   const css = read("client/src/components/AppNav.css");
-  assert.match(css, /\[data-navigation="auto"\] \{ --appnav-dock: flex; --appnav-menu: none; --appnav-mark: none; \}/);
+  // 45n D145 / D152 decision (10) (d85ed150): the Menu and data-navigation are retired — the dock at every width (pin moved on purpose).
+  assert.match(css, /:root \{ --appnav-dock: flex; --appnav-mark: none; \}/);
   // ⭐ D156 (3), changed on purpose: the dock is an always-visible rail of icons (no edge handle) — a phone keeps it, slimmer.
   // ⭐ D163, changed on purpose: no `top` of its own — the rail is vertically centred at every width (test/d163UseTheSpace).
   // ⭐ D167 (owner 11-06, changed on purpose): phones always put the dock AT THE TOP, centred, icons only (data-dock-place="phone").
