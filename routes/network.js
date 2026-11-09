@@ -28,6 +28,8 @@ export default function networkRoutes(app, db, { requireAuth, requireAdmin }) {
   const fail = (res, e) => res.status(e.status || 500).json({ error: e.code || "network_failed", message: e.message });
   const idOf = (db2, handle) => db2.prepare(`SELECT user_id FROM proof_pages WHERE handle = ?`).pluck().get(String(handle || "").toLowerCase()) ?? null;
 
+  // The dock asks whether to draw Network at all — the one network route that answers while the switch is off.
+  app.get("/api/network/status", requireAuth, (_req, res) => { res.set("Cache-Control", "private, no-store").json({ enabled: networkEnabled(db) }); });
   app.get("/api/network", requireAuth, gate, (req, res) => {
     try { res.set("Cache-Control", "private, no-store").json(myNetwork(db, req.user.id)); } catch (e) { fail(res, e); }
   });

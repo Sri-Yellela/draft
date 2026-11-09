@@ -34,6 +34,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { api } from "../lib/api.js";   // D180 P1: the network switch
 import { DraftMark } from "./DraftMark.jsx";
 import UsbSuggest from "./UsbSuggest.jsx";
 import { requestBoardSearch } from "../lib/boardSearch.js";
@@ -47,9 +48,10 @@ import "./AppNav.css";
 export const DOCK_ICON_PX = 30;
 // ⭐ D167: the names, and nothing under them. The jobs are "draft" (the mark draws out into /draft); the tracker is the
 // house, "Home"; Interview is the new page (/app/interview — the d167-profile lane builds the page and its route).
-export const DOCK_NAMES = Object.freeze({ today: "draft", "auto-apply" : "Home", atlas: "Atlas", interview: "Interview" });   // (the id, spaced for the D6 guard)
+export const DOCK_NAMES = Object.freeze({ today: "draft", "auto-apply" : "Home", atlas: "Atlas", interview: "Interview", network: "Network" });   // (the id, spaced for the D6 guard)
 // The six places, in the dock's order (D167). Profile and Ask draft are not tabs: they are drawn by ProfileItem and
 // AskItem after the tabs (and the divider).
+export const NETWORK_PATH = "/app/network";   // D180 P1
 export const DOCK_PLACES = Object.freeze(["today", "auto-apply", "atlas", "interview", "profile", "ask"]);
 export const INTERVIEW_PATH = "/app/interview";
 // ⭐ D167 · the open dock's width, the gaps and where the dock goes — one pure module (dockPlace.js), so the rule is
@@ -85,6 +87,14 @@ function MicIcon() {
   return (
     <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <rect x="9" y="3.5" width="6" height="11" rx="3" /><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" /><path d="M12 18v2.5" />
+    </svg>
+  );
+}
+// ⭐ D180 P1 (45o): Network — two people (the spec's icon).
+function PeopleIcon() {
+  return (
+    <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <circle cx="9" cy="8.5" r="3.2" /><path d="M3.5 19a5.5 5.5 0 0 1 11 0" /><circle cx="16.5" cy="9.5" r="2.6" /><path d="M15.5 14.2a4.6 4.6 0 0 1 5 4.8" />
     </svg>
   );
 }
@@ -136,7 +146,7 @@ function BubbleIcon() {
     </svg>
   );
 }
-const ICONS = { atlas: () => <GlobeIcon />, "auto-apply" : () => <HouseIcon />, interview: () => <MicIcon /> };   // (the id, spaced for the D6 guard)
+const ICONS = { atlas: () => <GlobeIcon />, "auto-apply" : () => <HouseIcon />, interview: () => <MicIcon />, network: () => <PeopleIcon /> };   // (the id, spaced for the D6 guard)
 // The jobs' entry is the mark itself — "/d" at rest, "/draft" open (the wordmark IS its name, so no separate word).
 const isJobs = (id) => id === "today" || id === "console";
 
@@ -150,20 +160,26 @@ function Badge({ n, label }) {
 }
 
 // The tabs App hands over (today · auto-apply · atlas), with Interview after Atlas when App does not route it yet.
-function placesOf(tabs) {
+function placesOf(tabs, network = false) {
   const list = (tabs || []).filter((t) => t.id !== "console");
   if (!list.some((t) => t.id === "interview")) {
     const i = list.findIndex((t) => t.id === "atlas");
     list.splice(i < 0 ? list.length : i + 1, 0, { id: "interview", label: "Interview" });
   }
+  // ⭐ D180 P1 (45o, the spec: "a new dock item, Network, between Interview and Profile"): ONLY while the network switch is
+  // on — with it off (the default) the dock is exactly as before.
+  if (network && !list.some((t) => t.id === "network")) {
+    const i = list.findIndex((t) => t.id === "interview");
+    list.splice(i < 0 ? list.length : i + 1, 0, { id: "network", label: "Network" });
+  }
   return list;
 }
 
-function NavItems({ tabs, activeTab, hrefForTab, onGo, dock = false }) {
-  return placesOf(tabs).map((t) => {
+function NavItems({ tabs, activeTab, hrefForTab, onGo, dock = false, network = false }) {
+  return placesOf(tabs, network).map((t) => {
     const Icon = ICONS[t.id];
     const name = DOCK_NAMES[t.id] || t.label;
-    const href = hrefForTab?.(t.id) || (t.id === "interview" ? INTERVIEW_PATH : undefined);
+    const href = hrefForTab?.(t.id) || (t.id === "interview" ? INTERVIEW_PATH : t.id === "network" ? NETWORK_PATH : undefined);
     const jobs = isJobs(t.id);
     return (
       <a key={t.id} className="appnav-item" href={href} data-nav-item={t.id} {...(dock && jobs ? { "data-nav-brand": "" } : null)}
@@ -310,12 +326,16 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
   const [peekPos, setPeekPos] = useState({ top: 0, left: 80 });
   const [askOpen, setAskOpen] = useState(false);
   const [searching, setSearching] = useState(false);   // ⭐ 45n: the dock is the search bar
+  // ⭐ D180 P1 (45o): is the network on? (GET /api/network/status — false on any failure: the dock stays as it was.)
+  const [network, setNetwork] = useState(false);
+  useEffect(() => { let live = true; api("/api/network/status").then(r => live && setNetwork(!!r?.enabled)).catch(() => {}); return () => { live = false; }; }, []);
   const dockRef = useRef(null);
   const profRef = useRef(null), peekRef = useRef(null), askRef = useRef(null), askBtnRef = useRef(null), peekTimer = useRef(null);
   const closePeek = useCallback(() => { clearTimeout(peekTimer.current); setPeekOpen(false); }, []);
   const go = useCallback((id, href) => {
     setWide(false); closePeek();
     if (id === "interview" && !hrefForTab?.(id)) { navigate(href || INTERVIEW_PATH); return; }
+    if (id === "network") { navigate(href || NETWORK_PATH); return; }   // D180 P1
     onTabChange?.(id);
   }, [onTabChange, hrefForTab, navigate, closePeek]);
   const goPath = useCallback((path) => { setWide(false); closePeek(); navigate(path); }, [navigate, closePeek]);
@@ -477,7 +497,7 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
               <span className="appnav-ico" data-nav-icon="search"><SearchIcon /></span>
               <span className="appnav-words"><span className="appnav-name">Search</span></span>
             </button>
-            <NavItems tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onGo={go} dock />
+            <NavItems tabs={tabs} activeTab={activeTab} hrefForTab={hrefForTab} onGo={go} dock network={network} />
             <ProfileItem profile={profile} dock itemRef={profRef} peek={canHover ? peekHover : { open: peekOpen }} onPress={pressProfile} />
             <span className="appnav-sep" aria-hidden="true" />
             <AskItem dock open={askOpen} onPress={pressAsk} />

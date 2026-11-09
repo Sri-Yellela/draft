@@ -220,6 +220,7 @@ const ADMIN = new Set([
 const AUTHENTICATED = new Set([
   // D180 P1 (45o): connections — requireAuth AND the network switch (404 while off); every one scoped to req.user.id;
   // :handle is the OTHER person, acted on only as the signed-in person's own relation to them.
+  "GET /api/network/status",   // whether the dock draws Network — the only one answering while off
   "GET /api/network",
   "GET /api/network/suggestions",
   "GET /api/network/relation/:handle",

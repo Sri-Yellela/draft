@@ -23,6 +23,7 @@ export const ADMIN_GROUPS = Object.freeze([
     ["users", "Users"],                 // #15a + #17
     ["support", "Support"],             // D88 P3 — tickets
     ["messages", "Messages"],           // #19 — was under every tab
+    ["network", "Network"],             // D180 P1 (45o): the switch (OFF) and the counts
     ["reports", "Profile reports"],     // D183 — reports sent from a public profile (/in/<handle>): dismiss, action, re-open
     ["testers", "Testers"],             // D131: the trial testers' answers + both surveys as one readable page (the D124 trial removed 11-07)
   ] },

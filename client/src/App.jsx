@@ -28,6 +28,7 @@ import { profilePanelFor, profilePath, LEGACY_PROFILE_ROUTES } from "./pages/pro
 import InterviewPage             from "./pages/interview/InterviewPage.jsx";
 import CompanyPage               from "./pages/companies/CompanyPage.jsx";   // D179 P4b
 import CompaniesView             from "./pages/companies/CompaniesView.jsx"; // A144 (45o): the Companies tab
+import NetworkPage               from "./pages/network/NetworkPage.jsx";      // D180 P1 (45o): behind the network switch
 import PublicBoardPage           from "./pages/jobs/PublicBoardPage.jsx";    // D179 P3
 import AuditPage                 from "./pages/audit/AuditPage.jsx";         // D150 T05–T08
 import { interviewPanelFor, interviewPath } from "./pages/interview/interviewModel.js";
@@ -481,6 +482,8 @@ function AppDashboard({ authUser, setAuthUser }) {
                    "saved-answers",
                    // ⭐ D93: Customise — theme, shape cues and the layout options, from the avatar menu.
                    "customise",
+                   // ⭐ D180 P1 (45o): Network — the page says "not available yet" while the switch is off.
+                   "network",
                    ...ROUTE_ONLY_TABS]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [monetisationEnabled],
@@ -708,6 +711,7 @@ function AppDashboard({ authUser, setAuthUser }) {
             {activeTab === "recruiter"    && <RecruiterPanel/>}
             {activeTab === "atlas"        && <AtlasPage base="/app/atlas"/>}
             {activeTab === "company" && companyRoute && <CompanyPage slug={companyRoute[1]} base="/app/companies" inApp/>}
+            {activeTab === "network" && <NetworkPage/>}
           </main>
 
           {/* JobDetailPanel moved into JobsPanel, which is where the PDF and ATS panels live and
