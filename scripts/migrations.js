@@ -6951,4 +6951,12 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // D185-7 (45q, owner 11-09) · "How did you hear about us?" → "draft", only when the person agreed (and only for jobs
+      // they found on draft — routes/apply.js withHowHeard). NULL / 0 = off: never answered for them by default. Only ADDS.
+      id: "260_user_credit_draft",
+      sql: `
+        ALTER TABLE user_profile ADD COLUMN credit_draft INTEGER;
+      `,
+    },
   ];

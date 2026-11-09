@@ -259,6 +259,8 @@ const AUTHENTICATED = new Set([
   "GET /api/learn/stack-exposure",
   "GET /api/learn/today/reminder",
   "PUT /api/learn/today/reminder",
+  "GET /api/profile/credit-draft",      // D185-7: the person's own "how did you hear" choice
+  "PUT /api/profile/credit-draft",
   "GET /api/atlas/unlocks",             // D185-4: the jobs a proven skill moves THIS person up a tier on
   "GET /api/alerts/matches/settings",   // D185-2: the person's own new-match alert choice
   "PUT /api/alerts/matches/settings",

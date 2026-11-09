@@ -30,6 +30,8 @@ import {
 } from "../services/kb/formSchemaLayer.js";
 import { probeBrowserAvailability } from "../services/browserLauncher.js";
 import { cachedApplicationSchema, schemaFieldsForFill, warmApplicationSchema } from "../services/jobs/applicationSchema.js";
+import { attributeApplyUrl, attributionFamily, tokenFor, howHeardAnswers } from "../shared/sourceAttribution.js";
+import { getSetting } from "../services/appSettings.js";
 // AH5: the one definition of "is this stored resume still the right one". Shared with server.js's
 // generateResumeForApply so the two reuse sites cannot drift apart again.
 import { artifactCurrency, currencySentence } from "../services/resumeCurrency.js";
@@ -1222,6 +1224,31 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         WHERE id=? AND user_id=? AND consumed_at IS NULL`).run(JSON.stringify(wh), packetId, userId);
   }
 
+  // ⭐ D185-7 · the employer-issued tokens (app_settings ats_source_tokens) and the link they apply to.
+  function attributedUrl(job, url) {
+    if (!url) return url;
+    let tokens = null;
+    try { tokens = JSON.parse(getSetting(db, "ats_source_tokens") || "null"); } catch { tokens = null; }
+    return attributeApplyUrl(url, { token: tokenFor(tokens, job?.company, attributionFamily(url)) });
+  }
+  // ⭐ D185-7 · "How did you hear about us?" → "draft", only when it is TRUE (the person did not bring this job to draft
+  // themselves — no capture of theirs) and they AGREED (user_profile.credit_draft = 1; off until they turn it on).
+  function withHowHeard(userId, jobId, payload) {
+    let agreed = false, foundOnDraft = false;
+    try { agreed = db.prepare("SELECT credit_draft FROM user_profile WHERE user_id=?").pluck().get(userId) === 1; } catch { agreed = false; }
+    if (agreed) {
+      try { foundOnDraft = !db.prepare("SELECT 1 FROM job_captures WHERE user_id=? AND job_id=? LIMIT 1").get(userId, String(jobId)); }
+      catch { foundOnDraft = true; }
+    }
+    const answers = howHeardAnswers({ agreed, foundOnDraft });
+    if (!answers.length) return payload;
+    // The packet's saved answers (the extension's fill) AND the server's own fill (buildAnswers' custom_answers, exact
+    // question match first) — the person's own answer to any of these phrasings is kept.
+    const custom = { ...(payload?.custom_answers || {}) };
+    for (const a of answers) if (!(a.question in custom)) custom[a.question] = a.answer;
+    return { ...payload, how_heard: answers, custom_answers: custom };
+  }
+
   function createGatePacket({ runId, runJobId, userId, jobId, result, autofillPayload, resumeArtifactId,
                              reasonCode, jobUrl, toolType = "generate" }) {
     // Where the human has to go, most-specific first:
@@ -1237,7 +1264,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const entries = packetEntriesFor(userId, resumeArtifactId);
       packet = buildGatePacket({
         resolvedAnswers: result.answers,
-        autofillPayload: withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, autofillPayload, entries)),
+        autofillPayload: withHowHeard(userId, jobId, withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, autofillPayload, entries))),
         baseResume: baseResumeParsed(userId),
         applyUrl,
         jobId, runId, runJobId,
@@ -1364,7 +1391,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     try {
       const entries = packetEntriesFor(userId, artifactId);
       packet = buildGatePacket({
-        autofillPayload: withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", job.company, jobId), entries)),
+        autofillPayload: withHowHeard(userId, jobId, withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", job.company, jobId), entries))),
         applyUrl: job.apply_url || job.url, jobId: String(jobId),
         resumeArtifactId: artifactId, gateReason: PREPARED_REASON,
         entries,
@@ -1521,7 +1548,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // ⛔ D124 · THE SAFETY RULE: a sample résumé (a fictional person) never reaches a real employer — its run fills draft's
       // practice form for this posting instead (services/sampleResumes.js). Keyed on the active résumé, never on an account flag.
       const practiceUrl = practiceSendUrl(db, { userId, jobId: String(jobId), baseUrl: practiceBaseUrl(), secret: practiceSecret() });
-      const jobUrl = practiceUrl || job.apply_url || job.url;
+      // ⭐ D185-7: draft's credit on the link, only the way the posting's ATS documents it (Lever's job-board parameters; a
+      // Greenhouse / Ashby token only when the employer issued one). A practice form is never touched.
+      const jobUrl = practiceUrl || attributedUrl(job, job.apply_url || job.url);
       if (!jobUrl) { setJobStatus("failed", "no_job_url", "Job has no apply URL"); return; }
       if (practiceUrl) logEvent(runId, runJobId, userId, jobId, "practice_form", "A sample résumé: this Draft goes to draft's practice form, never to the employer.");
 
@@ -1639,7 +1668,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
       const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
       // The employer is passed so `{company}`-templated custom answers resolve for THIS company.
-      const autofillPayload = buildAutofillPayload(profile, "APPLY", job?.company, jobId);
+      const autofillPayload = withHowHeard(userId, jobId, buildAutofillPayload(profile, "APPLY", job?.company, jobId));   // ⭐ D185-7
 
       /**
        * AF5's correction record. A semi run returns while the browser is still open, so the human's
