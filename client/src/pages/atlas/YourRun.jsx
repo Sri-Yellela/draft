@@ -94,8 +94,10 @@ export default function YourRun({ base = "/app/atlas", signedIn = false }) {
       {run.total > 0 && proofPage && (
         <section className="run-proven" data-run-proof-page={proofPage.enabled && proofPage.showLearning ? "on" : "off"}>
           {proofPage.enabled && proofPage.showLearning && proofPage.handle
-            ? <p><b>Your proof page</b> lists what you've finished and proven, with dates: <a className="atl__link" href={`/p/${proofPage.handle}`} target="_blank" rel="noopener noreferrer">{`/p/${proofPage.handle}`}</a></p>
-            : <p>Want to link what you've proven from an application? Turn on your proof page and tick <i>Also show what you've proven in Atlas</i> in <Link className="atl__link" to="/app/profile">Profile → Proof page</Link>.</p>}
+            // ⭐ A153 (45o): D183 P3 made the public profile the proof page — /p/<handle> redirects to /in/<handle> — so the
+            // address and the place to change it are the profile's own.
+            ? <p><b>Your public profile</b> lists what you've finished and proven, with dates: <a className="atl__link" href={`/in/${proofPage.handle}`} target="_blank" rel="noopener noreferrer">{`/in/${proofPage.handle}`}</a></p>
+            : <p>Want to link what you've proven from an application? Show it on your profile in <Link className="atl__link" to="/app/profile/about">Your profile → Behind your profile</Link>.</p>}
         </section>
       )}
       {/* ⭐ D178-4: marks, earned for wholes — a module finished; the next ones with how far along they are. */}

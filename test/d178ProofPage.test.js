@@ -105,7 +105,8 @@ test("d178ProofPageLearning: a database before 227 reads the switch as OFF and s
 
 test("d178ProofPageLearning: the route passes the learning reader in (no static import cycle from proofLinks)", () => {
   assert.doesNotMatch(read("services/proofLinks.js"), /^import .*atlas\/points\.js/m);
-  assert.match(read("routes/proofPage.js"), /proofPageFor\(db, req\.params\.handle, \{ learningOf: learningProof \}\)/);
+  // D183 P3 (45m; brought to the code in 45o): the /p/ route is a 301 to /in/<handle> — it no longer builds the page.
+  assert.match(read("routes/proofPage.js"), /if \(HANDLE_RE\.test\(h\)\) return res\.redirect\(301, `\/in\/\$\{h\}`\);/);
 });
 
 test("d178ProofPageLearning: the Profile asks separately; Your run points to the page", () => {
@@ -114,6 +115,7 @@ test("d178ProofPageLearning: the Profile asks separately; Your run points to the
   assert.doesNotMatch(ui.slice(at(ui, "function ProofPageSetting"), at(ui, "const ymLabel")).replace(/^\s*\/\/.*$/gm, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, ""), CERTIFY);
   const run = read("client/src/pages/atlas/YourRun.jsx");
   assert.match(run, /api\("\/api\/profile\/proof-page"\)\.then\(r => live && setProofPage\(r\)\)/);
-  assert.match(run, /href=\{`\/p\/\$\{proofPage\.handle\}`\}/);
-  assert.match(run, /<Link className="atl__link" to="\/app\/profile">Profile → Proof page<\/Link>/);
+  // ⭐ A153 (45o, on purpose): D183 P3 made /in/<handle> the page; Your run links it and the profile's own place.
+  assert.match(run, /href=\{`\/in\/\$\{proofPage\.handle\}`\}/);
+  assert.match(run, /<Link className="atl__link" to="\/app\/profile\/about">Your profile → Behind your profile<\/Link>/);
 });
