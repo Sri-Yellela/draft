@@ -18,6 +18,37 @@ const PAGE_SQL = `
    WHERE sj.is_active = 1 AND sj.rowid > ? AND sj.rowid <= ?
      AND (jt.job_id IS NULL OR jt.version IS NOT ?)`;
 
+// ⛔ A158 (45r): the walk's READ + CLASSIFY half, separated from its write so it can run on the offload worker's own
+// read-only connection (services/db/offloadWorker.js). Pure over (db, range): returns the answers as plain rows — the main
+// thread only writes them. Production's 45q deploy froze with both halves on the one thread.
+export function classifyRange(db, from, rows, tax = taxonomy()) {
+  const t0 = Date.now();
+  const range = nextRowidRange(db, from, rows);
+  const found = range.to > from ? db.prepare(PAGE_SQL).all(range.from, range.to, tax.version) : [];
+  const readMs = Date.now() - t0;
+  const results = found.map(r => {
+    const v = classifyPosting({ title: r.title, description: r.description, boardCategory: r.board_category }, tax);
+    return [r.job_id, v.category, v.subcategory, v.confidence, String(v.reason || "").slice(0, 200), v.version];
+  });
+  return { from: range.from, to: range.to, more: range.more, readMs, classifyMs: Date.now() - t0 - readMs, version: tax.version, results };
+}
+
+/** The write half: answers from classifyRange, upserted in one short transaction. */
+export function writeClassified(db, results, c = { classified: 0, specific: 0, general: 0, unclassified: 0 }) {
+  const put = db.prepare(`INSERT INTO job_taxonomy (job_id, category, subcategory, confidence, reason, version, classified_at)
+    VALUES (?, ?, ?, ?, ?, ?, unixepoch())
+    ON CONFLICT(job_id) DO UPDATE SET category = excluded.category, subcategory = excluded.subcategory, confidence = excluded.confidence,
+      reason = excluded.reason, version = excluded.version, classified_at = excluded.classified_at`);
+  db.transaction(() => {
+    for (const r of results) {
+      put.run(...r);
+      c.classified++;
+      if (!r[1]) c.unclassified++; else if (/\.general$/.test(r[2] || "")) c.general++; else c.specific++;
+    }
+  })();
+  return c;
+}
+
 export function writeTaxonomy(db, rows, tax, c = { classified: 0, specific: 0, general: 0, unclassified: 0 }) {
   const put = db.prepare(`INSERT INTO job_taxonomy (job_id, category, subcategory, confidence, reason, version, classified_at)
     VALUES (?, ?, ?, ?, ?, ?, unixepoch())
@@ -56,9 +87,20 @@ export function taxonomyStats(db) {
     generalShare: total ? Math.round(1000 * list.reduce((s, c) => s + c.general, 0) / total) / 10 : null, categories: list };
 }
 
-export function createTaxonomyBackfill(db, { pageRows = PAGE_ROWS, writeChunk = WRITE_CHUNK, schedule = (fn) => setImmediate(fn), log = console } = {}) {
+// ⛔ A158 (45r): the main-thread fallback (no offload worker) classifies at most this many postings per slice — ≈ 0.6 ms
+// each measured on a dev machine (A141's classifier), so a slice stays ≈ 10–20 ms — and pauses between pages.
+export const INLINE_WRITE_CHUNK = 20, PAGE_PAUSE_MS = 25;
+
+/**
+ * @param {object} [o]
+ * @param {(args: {from: number, rows: number}) => Promise<ReturnType<typeof classifyRange>>} [o.offload]
+ *   ⛔ A158: runs classifyRange off the loop (the offload worker). The main thread then only writes. When it rejects, the
+ *   walk carries on in its small-slice main-thread mode (never stops, never blocks).
+ */
+export function createTaxonomyBackfill(db, { pageRows = PAGE_ROWS, writeChunk = WRITE_CHUNK, schedule = (fn) => setImmediate(fn), log = console,
+  offload = null, pauseMs = PAGE_PAUSE_MS } = {}) {
   let status = { state: "idle", runs: 0, pages: 0, classified: 0, specific: 0, general: 0, unclassified: 0, version: null,
-    startedAt: null, finishedAt: null, error: null, maxReadMs: 0, maxWriteMs: 0, pageRows };
+    startedAt: null, finishedAt: null, error: null, maxReadMs: 0, maxWriteMs: 0, pageRows, mode: offload ? "offload" : "inline", offloadErrors: 0 };
   let running = null;
   function run(trigger = "manual") {
     if (running) return running;
@@ -66,9 +108,42 @@ export function createTaxonomyBackfill(db, { pageRows = PAGE_ROWS, writeChunk = 
     try { tax = taxonomy(); } catch (e) { status = { ...status, state: "skipped", error: e.message }; return Promise.resolve(self.status()); }
     status = { ...status, state: "running", trigger, runs: status.runs + 1, pages: 0, classified: 0, specific: 0, general: 0, unclassified: 0,
       version: tax.version, startedAt: new Date().toISOString(), finishedAt: null, error: null, maxReadMs: 0, maxWriteMs: 0 };
+    let useOffload = !!offload;
     running = new Promise((resolve) => {
       const page = db.prepare(PAGE_SQL);
       let from = 0, rows = Math.min(pageRows, MIN_PAGE_ROWS);
+      const pause = (fn) => (pauseMs > 0 ? setTimeout(fn, pauseMs) : schedule(fn));
+      // ⛔ A158: the offload path — read + classify on the worker, write here in short transactions.
+      const offStep = () => {
+        offload({ from, rows: pageRows }).then((r) => {
+          if (r.version !== tax.version) throw new Error(`worker read taxonomy v${r.version}, main v${tax.version}`);
+          status = { ...status, pages: status.pages + 1, maxReadMs: Math.max(status.maxReadMs, r.readMs), mode: "offload" };
+          const done = !r.more || r.to <= from;
+          from = r.to;
+          let i = 0;
+          const chunk = () => {
+            try {
+              const tw = Date.now();
+              const c = { classified: 0, specific: 0, general: 0, unclassified: 0 };
+              const part = r.results.slice(i, i + writeChunk);
+              if (part.length) writeClassified(db, part, c);
+              i += part.length;
+              status = { ...status, classified: status.classified + c.classified, specific: status.specific + c.specific,
+                general: status.general + c.general, unclassified: status.unclassified + c.unclassified, maxWriteMs: Math.max(status.maxWriteMs, Date.now() - tw) };
+              if (i < r.results.length) return schedule(chunk);
+              if (done) return finish(null);
+              pause(offStep);
+            } catch (e) { finish(e); }
+          };
+          chunk();
+        }).catch((e) => {
+          // The worker could not answer: carry on here, in small slices (from the same rowid — nothing is skipped).
+          status = { ...status, offloadErrors: status.offloadErrors + 1, mode: "inline", error: `offload: ${e.message}` };
+          log.warn?.(`[taxonomy] offload unavailable (${e.message}) — continuing on the main thread in small slices`);
+          useOffload = false; writeChunk = Math.min(writeChunk, INLINE_WRITE_CHUNK);
+          pause(step);
+        });
+      };
       const finish = (error) => {
         status = { ...status, state: error ? "failed" : "done", finishedAt: new Date().toISOString(), error: error ? error.message : null };
         running = null;
@@ -99,13 +174,14 @@ export function createTaxonomyBackfill(db, { pageRows = PAGE_ROWS, writeChunk = 
                 general: status.general + c.general, unclassified: status.unclassified + c.unclassified, maxWriteMs: Math.max(status.maxWriteMs, Date.now() - tw) };
               if (i < found.length) return schedule(chunk);
               if (done) return finish(null);
-              schedule(step);
+              pause(step);
             } catch (e) { finish(e); }
           };
           chunk();
         } catch (e) { finish(e); }
       };
-      schedule(step);
+      if (useOffload) pause(offStep);
+      else { writeChunk = Math.min(writeChunk, INLINE_WRITE_CHUNK); schedule(step); }
     });
     return running;
   }
