@@ -28,6 +28,7 @@ const SERVER = fs.readFileSync("server.js", "utf8");
 // Every entry here is a decision. A route joins this list only if an unauthenticated stranger
 // SHOULD be able to call it.
 const PUBLIC = new Set([
+  "GET /api/atlas/bar/:code",   // A154 (45s): a SHARED Beat-the-bar score — the person chose to share a link; it carries the score line and the role, nothing about who
   // D151 Rule 6 (45n; classified 45o): /api/diag answers ONLY a valid, unexpired 24-hour token (its hash stored, audited);
   // anything else is a 404. Public by route, gated by the token — the support read without an admin session.
   "GET /api/diag",
@@ -127,6 +128,7 @@ const ADMIN = new Set([
   "GET /api/admin/runs",   // (A)-2 (45o): the run trace
   "GET /api/admin/runs/:id",
   "GET /api/admin/network",   // D180 P1 (45o): the network switch + counts
+  "GET /api/admin/atlas-compete", "PUT /api/admin/atlas-compete",   // A154 (45s): the league / challenges / live count switches
   "PUT /api/admin/network",
   "GET /api/admin/network/reports",   // D180 P2: the moderation queue
   "POST /api/admin/network/reports/:id",
@@ -232,6 +234,12 @@ const AUTHENTICATED = new Set([
   // D180 P1 (45o): connections — requireAuth AND the network switch (404 while off); every one scoped to req.user.id;
   // :handle is the OTHER person, acted on only as the signed-in person's own relation to them.
   "GET /api/network/status",   // whether the dock draws Network — the only one answering while off
+  // A154 / D172 (4) (45s): Atlas → Compete, each 404 while its switch is off.
+  "GET /api/atlas/compete", "GET /api/atlas/league", "POST /api/atlas/league/join", "DELETE /api/atlas/league",
+  "GET /api/atlas/challenges", "POST /api/atlas/challenges/time-attack", "POST /api/atlas/challenges/duel",
+  "POST /api/atlas/challenges/:runId/answer", "POST /api/atlas/challenges/bar/:token/share",
+  // D185-1 (45s): the posting's own questions the person hasn't answered yet, and a drafted answer (switch, OFF).
+  "GET /api/apply/questions/:jobId", "POST /api/apply/questions/:jobId/draft",
   "GET /api/network",
   "GET /api/network/suggestions",
   "GET /api/network/relation/:handle",
@@ -717,6 +725,7 @@ function collect() {
     ...directRoutes(fs.readFileSync("routes/applyWorker.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/profileSections.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/network.js", "utf8")),   // D180 P1 (45o)
+    ...directRoutes(fs.readFileSync("routes/atlasCompete.js", "utf8")),   // A154 (45s)
     ...directRoutes(fs.readFileSync("routes/inbox.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/interview.js", "utf8")),
     ...directRoutes(fs.readFileSync("routes/picksConfirm.js", "utf8")),

@@ -1,0 +1,7 @@
+/* D185-1 (45s) · the posting's own application questions draft can't answer yet (components/ApplicationQuestions.jsx). */
+.aq { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--c-border); border-radius: 10px; }
+.aq__k { margin: 0 0 6px; color: var(--c-ink-muted); font-size: 12px; }
+.aq__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; color: var(--c-ink); }
+.aq__req, .aq__said { color: var(--c-ink-muted); font-size: 13px; }
+.aq__btn { margin-left: 8px; border: 1px solid var(--c-border); border-radius: 6px; background: transparent; color: var(--c-ink); font: inherit; font-size: 12px; padding: 1px 8px; cursor: pointer; }
+.aq__draft textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); font: inherit; margin: 6px 0 0; }
