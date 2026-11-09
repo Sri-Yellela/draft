@@ -50,10 +50,16 @@ export function GuideLadder({ base, guides }) {
  * ⭐ D155 Part C · EVERY PATHWAY — the whole approved plan on the Library page: each role family, its stages and topics.
  * A written (approved) topic opens its deck; the rest say "planned", never a fake link. One pathway open at a time.
  */
-export function PathwaysPlan({ base }) {
+export function PathwaysPlan({ base, want = null }) {
   const [plan, setPlan] = useState(null);
   const [open, setOpen] = useState("software");
   useEffect(() => { let live = true; api("/api/learn/pathways").then(r => live && setPlan(r)).catch(() => live && setPlan({ pathways: [] })); return () => { live = false; }; }, []);
+  // ⭐ A154 (45o): a pathway's cover on the shelf asks for it — open it here and bring it into view.
+  useEffect(() => {
+    if (!want?.id) return;
+    setOpen(want.id);
+    setTimeout(() => document.querySelector('[data-pathway="' + want.id + '"]')?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 30);
+  }, [want]);
   if (!plan?.pathways?.length) return null;
   const total = plan.written + (plan.drafted || 0) + plan.planned;
   return (

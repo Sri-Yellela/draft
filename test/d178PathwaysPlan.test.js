@@ -52,7 +52,8 @@ test("d155PathwaysPlanShown: served at GET /api/learn/pathways and drawn on the 
   const ui = read("client/src/pages/atlas/LibraryGuides.jsx");
   assert.match(ui, /\{t\.deck \? <Link className="atl__link" to=\{`\$\{base\}\/library\/\$\{t\.deck\}`\}>\{t\.title\}<\/Link> : <span>\{t\.title\}<\/span>\}/);
   assert.match(ui, /\{!t\.deck && <span className="atl__quiet"> · \{t\.drafted \? "drafted, waiting for review" : "planned"\}<\/span>\}/);
-  assert.match(read("client/src/pages/atlas/LibraryPanel.jsx"), /<PathwaysPlan base=\{base\} \/>/);
+  // ⭐ A154 (45o, on purpose): the pathways' covers above it ask the plan to open one.
+  assert.match(read("client/src/pages/atlas/LibraryPanel.jsx"), /<PathwaysPlan base=\{base\} want=\{wantPathway\} \/>/);
 });
 
 test("d155PathwaysPlanShown: decks-v2 … v24 APPROVED by the owner 11-08 (changed on purpose) — served, linked, the ladder software's", () => {
