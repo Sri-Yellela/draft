@@ -6930,4 +6930,25 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_match_alerts_user ON match_alerts(user_id, alerted_at);
       `,
     },
+    {
+      // D185-3 (45q, owner 11-09) · THE ATLAS CONTENT BACKLOG (services/atlas/risingSkills.js): one row per (rising skill,
+      // subcategory) a person asked to outline — the market signal, the draft outline (steps + the register's sources, each
+      // adapt or link-only) and its review. status: draft | accepted | rejected. Never a lesson, never published. Only ADDS.
+      id: "259_atlas_backlog",
+      sql: `
+        CREATE TABLE IF NOT EXISTS atlas_backlog (
+          id           INTEGER PRIMARY KEY AUTOINCREMENT,
+          term         TEXT NOT NULL,
+          subcategory  TEXT NOT NULL,
+          signal_json  TEXT,
+          outline_json TEXT,
+          status       TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'accepted', 'rejected')),
+          drafted_by   TEXT,
+          drafted_at   INTEGER,
+          reviewed_by  TEXT,
+          reviewed_at  INTEGER,
+          UNIQUE (term, subcategory)
+        );
+      `,
+    },
   ];

@@ -161,7 +161,11 @@ const ADMIN = new Set([
   "PUT /api/admin/tailoring",
   "DELETE /api/admin/tailoring",
   "GET /api/admin/match-alerts",   // D185-2: time from posting to alert, per source
-  "GET /api/admin/outcomes",       // D185-5: interviews per application and per active person
+  "GET /api/admin/outcomes",
+  "GET /api/admin/atlas-backlog",       // D185-3: rising skills → the Atlas content backlog
+  "POST /api/admin/atlas-backlog/draft",
+  "GET /api/admin/atlas-backlog/item",
+  "POST /api/admin/atlas-backlog/:id/review",       // D185-5: interviews per application and per active person
   "GET /api/admin/backups",
   "POST /api/admin/backups",
   "POST /api/admin/backups/restore",
