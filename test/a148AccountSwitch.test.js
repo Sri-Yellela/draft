@@ -8,6 +8,7 @@
 // change, Google's sub unique per account, and an uploaded picture never replaced by Google's.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { at } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -111,7 +112,7 @@ test("a148AvatarPerUserUrl: each account's picture has its own versioned URL, an
 
 test("a148PersonalResponsesNoStore: every /api answer defaults to private, no-store; no per-person route keeps a private max-age", () => {
   const server = read("server.js");
-  const mw = server.indexOf(`app.use("/api", (req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); });`);
+  const mw = at(server, `app.use("/api", (req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); });`);
   assert.ok(mw > 0, "the /api default is in server.js");
   const firstRoute = server.search(/\napp\.(get|post|put|patch|delete)\("\/api\//);
   assert.ok(firstRoute > mw, "it runs before the first /api route");
@@ -181,7 +182,7 @@ test("a148GoogleSubUnique: one Google account links to one draft account", () =>
   assert.throws(() => db.prepare("UPDATE users SET google_auth_id = 'sub-owner' WHERE id = 11").run(), /UNIQUE/);
   // Linking a Google sign-in that already belongs to another account is refused (Merge accounts is the only way).
   const server = read("server.js");
-  const fn = server.slice(server.indexOf("async function findOrCreateOAuthUser("), server.indexOf("function completeProviderAuth("));
+  const fn = server.slice(at(server, "async function findOrCreateOAuthUser("), at(server, "function completeProviderAuth("));
   assert.match(fn, /existing && existing\.id !== linkUserId[\s\S]{0,200}status = 409/);
 });
 
@@ -196,7 +197,7 @@ test("a148GoogleNeverOverwritesSetPhoto: an uploaded picture wins over Google's;
   const avatar = read("client/src/lib/accountAvatar.js");
   assert.match(avatar, /if \(!url && account\.providerPicture\)/, "Google's picture is only the fallback");
   const server = read("server.js");
-  const fn = server.slice(server.indexOf("async function findOrCreateOAuthUser("), server.indexOf("function completeProviderAuth("));
+  const fn = server.slice(at(server, "async function findOrCreateOAuthUser("), at(server, "function completeProviderAuth("));
   assert.doesNotMatch(fn, /avatar_path/, "a Google sign-in never touches the uploaded picture");
   // The tester has no picture and no Google link: their summary carries nothing of the owner's.
   const t11 = accountSummary(db, 11);

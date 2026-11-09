@@ -2,6 +2,7 @@
 // d178StreakCountsProofOnly · d178RestDayKeepsStreak · d178MarksOnlyForWholes. Pure rules + the panel's wiring.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { at } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 import { streakRun, streakOf, bestStreak, monthOf, marksFrom } from "../services/atlas/points.js";
 import { itemsToOpen, checkpointId, buildId, buildRequired } from "../shared/learnStepState.js";
@@ -21,7 +22,7 @@ test("d178StreakCountsProofOnly: only days with proof count; today still open do
   assert.match(src, /const days = proofDays\(db, userId, rows\);/, "the days are proof days — proof, not visits");
   assert.match(src, /SELECT day FROM daily_questions WHERE user_id = \? AND answered_at IS NOT NULL/);
   assert.match(src, /SELECT created_at AS at FROM profile_evidence WHERE user_id = \?/);
-  assert.doesNotMatch(src.slice(src.indexOf("export function proofDays("), src.indexOf("export function atlasPrefs(")), /sessions|visits|last_seen|page_views/);
+  assert.doesNotMatch(src.slice(at(src, "export function proofDays("), at(src, "export function atlasPrefs(")), /sessions|visits|last_seen|page_views/);
   assert.equal(bestStreak(days(0, 1, 10, 11, 12, 13, 20)), 4, "the best streak is kept");
 });
 

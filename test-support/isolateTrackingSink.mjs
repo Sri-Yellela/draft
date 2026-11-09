@@ -19,6 +19,9 @@ import path from "node:path";
 // test/d171TestsNeverCallLiveModels.test.js pins this.
 for (const k of ["ANTHROPIC_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_WORKSPACE_ID"]) process.env[k] = "";
 
+// D185-1: the application-schema reader's background warm-up never calls a live ATS from the suite.
+if (!process.env.DRAFT_SCHEMA_READER) process.env.DRAFT_SCHEMA_READER = "off";
+
 if (!process.env.USAGE_FAILURE_SINK_PATH) {
   process.env.USAGE_FAILURE_SINK_PATH = path.join(os.tmpdir(), `draft-test-sink-${process.pid}.jsonl`);
 }
