@@ -12,6 +12,7 @@ import { ogUrl, ogImageMeta } from "../ogImage.js";
 import { taxonomy } from "./taxonomyClassify.js";
 import { TECHNOLOGIES } from "../../shared/techVocabulary.js";
 import { PLACES } from "../../shared/jobTagVocabulary.js";
+import { signalSql, NOT_LEGAL_ADVICE } from "../kb/sponsorshipSignal.js";
 
 // ⭐ D179 P7 · a role IN A METRO ("Backend jobs in Boston"): /jobs/role/<id>/in/<metro> — the metro as the place tags store
 // it (job_tag_places.metro: boston, sf_bay_area …), its words from the place vocabulary ("the Bay Area").
@@ -59,6 +60,31 @@ export function landingData(db, kind, key) {
       path: `/jobs/role/${role.id}/in/${metroSlug(metro.id)}`,
       boardHref: `/jobs?category=${encodeURIComponent(role.categoryId)}&subcategory=${encodeURIComponent(role.id)}&places=${encodeURIComponent(`metro:${metro.id}`)}` };
   }
+  // ⭐ D185-6 (45q, owner 11-09 — the beachhead: international / visa-dependent job seekers) · "<role> jobs at companies that
+  // sponsor H-1B" and "… in <city>": the same open postings, only at employers with certified H-1B filings (D121's ONE
+  // signal, signalSql().filed — the board's own sponsorship filter), each page carrying the employers' DOL filing history.
+  // The same minimum real-job count as every landing page (MIN_JOBS — a real 404 below it).
+  if (kind === "sponsor" || kind === "sponsor-metro") {
+    const role = roleOf(String(key?.role || "").toLowerCase());
+    const metro = kind === "sponsor-metro" ? metroOf(key?.metro) : null;
+    if (!role || (kind === "sponsor-metro" && !metro)) return null;
+    const filed = signalSql("sj").filed;
+    const where = `FROM scraped_jobs sj JOIN job_taxonomy jt ON jt.job_id = sj.job_id
+      WHERE ${OPEN} AND jt.subcategory = ? AND ${filed}${metro ? " AND EXISTS (SELECT 1 FROM job_tag_places p WHERE p.job_id = sj.job_id AND p.metro = ?)" : ""}`;
+    const args = metro ? [role.id, metro.id] : [role.id];
+    const total = db.prepare(`SELECT COUNT(*) ${where}`).pluck().get(...args);
+    const rows = db.prepare(`SELECT sj.id, sj.title, sj.company, sj.location, sj.posted_at ${where} ORDER BY COALESCE(sj.posted_at, sj.discovered_at) DESC LIMIT ?`).all(...args, SHOWN);
+    // The employers on the page, with their filing history (certified LCAs, the latest period on file) — DOL's own data.
+    const history = db.prepare(`SELECT sj.company AS company, COUNT(*) AS open, cl.certified_total AS certified, cl.latest_period AS latest
+        ${where.replace("FROM scraped_jobs sj JOIN job_taxonomy jt ON jt.job_id = sj.job_id", "FROM scraped_jobs sj JOIN job_taxonomy jt ON jt.job_id = sj.job_id JOIN company_lca_sponsorship cl ON cl.company = sj.company")}
+        GROUP BY sj.company ORDER BY open DESC, certified DESC LIMIT 12`).all(...args);
+    const place = metro ? ` in ${metro.label}` : "";
+    const sentence = `${role.name} jobs at companies that sponsor H-1B${place}`;
+    return { kind, title: sentence, heading: sentence, lead: `${role.category} · ${role.name}${place} · employers with certified H-1B filings`,
+      total, rows, history, sponsor: true,
+      path: metro ? `/jobs/sponsor-h1b/${role.id}/in/${metroSlug(metro.id)}` : `/jobs/sponsor-h1b/${role.id}`,
+      boardHref: `/jobs?category=${encodeURIComponent(role.categoryId)}&subcategory=${encodeURIComponent(role.id)}&company_sponsorship=filed${metro ? `&places=${encodeURIComponent(`metro:${metro.id}`)}` : ""}` };
+  }
   if (kind === "tech") {
     const name = TECH_BY_SLUG.get(String(key || "").toLowerCase());
     if (!name) return null;
@@ -99,9 +125,19 @@ ${ogImageMeta(ogUrl(new URL(canonical).origin, { eyebrow: "Jobs", title: d.title
 <p><a class="cta" href="${esc(d.boardHref)}">Browse and filter all ${esc(d.total.toLocaleString("en-US"))}</a></p>
 <section class="card"><h2>The newest</h2>
 <ul>${d.rows.map(r => `<li><a href="${esc(jobPath(r))}">${esc(r.title)}</a> <span class="small">· ${esc(r.company)}${r.location ? ` · ${esc(r.location)}` : ""}</span></li>`).join("\n")}</ul>
-</section>
+</section>${d.sponsor ? sponsorHistoryHtml(d.history) : ""}
 </main></div></body></html>`;
   return { status: 200, html };
+}
+
+/** D185-6: the employers' filing history, from the U.S. Department of Labor's LCA disclosure data — and what it is not. */
+function sponsorHistoryHtml(history = []) {
+  if (!history.length) return "";
+  return `
+<section class="card"><h2>Their H-1B filing history</h2>
+<ul>${history.map(h => `<li>${esc(h.company)} <span class="small">· ${esc(Number(h.certified || 0).toLocaleString("en-US"))} certified H-1B filings${h.latest ? ` · latest ${esc(h.latest)}` : ""} · ${esc(String(h.open))} open here</span></li>`).join("\n")}</ul>
+<p class="small">From the U.S. Department of Labor's public LCA disclosure data. A filing record is history, not a promise that a role is sponsored. ${esc(NOT_LEGAL_ADVICE)}</p>
+</section>`;
 }
 
 /** The landing pages that pass MIN_JOBS — for /sitemap-landing.xml. One grouped read per kind. */
@@ -126,5 +162,20 @@ export function landingSitemapRoutes(db) {
       if (roleOf(r.id) && METRO.has(r.m)) out.push({ path: `/jobs/role/${r.id}/in/${metroSlug(r.m)}`, changefreq: "daily", priority: "0.7" });
     }
   } catch { /* no place tags */ }
+  // ⭐ D185-6: the sponsorship pages that pass MIN_JOBS — by role, and by role in a metro.
+  const filed = signalSql("sj").filed;
+  try {
+    for (const r of db.prepare(`SELECT jt.subcategory AS id, COUNT(*) AS n FROM scraped_jobs sj JOIN job_taxonomy jt ON jt.job_id = sj.job_id
+        WHERE ${OPEN} AND jt.subcategory IS NOT NULL AND ${filed} GROUP BY jt.subcategory HAVING n >= ?`).all(MIN_JOBS)) {
+      if (roleOf(r.id)) out.push({ path: `/jobs/sponsor-h1b/${r.id}`, changefreq: "daily", priority: "0.8" });
+    }
+  } catch { /* no sponsorship records */ }
+  try {
+    for (const r of db.prepare(`SELECT jt.subcategory AS id, p.metro AS m, COUNT(DISTINCT sj.job_id) AS n FROM scraped_jobs sj
+        JOIN job_taxonomy jt ON jt.job_id = sj.job_id JOIN job_tag_places p ON p.job_id = sj.job_id
+        WHERE ${OPEN} AND jt.subcategory IS NOT NULL AND p.metro IS NOT NULL AND ${filed} GROUP BY jt.subcategory, p.metro HAVING n >= ?`).all(MIN_JOBS)) {
+      if (roleOf(r.id) && METRO.has(r.m)) out.push({ path: `/jobs/sponsor-h1b/${r.id}/in/${metroSlug(r.m)}`, changefreq: "daily", priority: "0.7" });
+    }
+  } catch { /* no place tags or records */ }
   return out;
 }
