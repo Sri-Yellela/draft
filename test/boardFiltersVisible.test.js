@@ -62,7 +62,8 @@ test("⭐ in SQLite: Remote shows the remote rows FIRST, the unclassified after,
 
 test("the board passes the keys and discloses the unclassified count", () => {
   const src = fs.readFileSync("server.js", "utf8");
-  assert.match(src, /established: richFilters\.established\.keys,\s*ineligible: ineligibleOrderKey\(boardEligInputs\.defaults\), ghost: boardHasGhosts \}\);/);
+  // 45p D184 B-8 (789145a8): the order also takes skillTier (skills matched, one less at a time) after ghost (pin moved on purpose).
+  assert.match(src, /established: richFilters\.established\.keys,\s*ineligible: ineligibleOrderKey\(boardEligInputs\.defaults\), ghost: boardHasGhosts, skillTier: boardSkillTier \}\);/);
   assert.match(src, /const unclassifiedSql = richFilters\.established\.unclassifiedSql;/);
   assert.match(src, /\.\.\.\(unclassified \? \{ unclassified \} : \{\}\),/);
 });

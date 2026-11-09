@@ -43,7 +43,10 @@ test("p6eTrialSampleSendsRoleFamily: a sample's job profile takes the sample's f
   for (const s of Object.values(samples())) assert.ok(s.roleFamily, `sample ${s.id} names its role family`);
   assert.equal(sampleRoleFamily("Riley Sample\nnot a sample at all"), null);
 
-  for (const s of Object.values(samples())) {
+  // 45p D184 S-1 (789145a8): G, H and I are the TEST SET — placed like any résumé, so sampleRoleFamily names none for
+  // them on purpose; only the trial samples (A–F) carry their own family into the job profile (pin moved on purpose).
+  for (const s of Object.values(samples()).filter(s => s.testSet)) assert.equal(sampleRoleFamily(s.resumeText), null, `test-set ${s.id} names no family`);
+  for (const s of Object.values(samples()).filter(s => !s.testSet)) {
     const db = new Database(":memory:");
     for (const m of MIGRATIONS) db.exec(m.sql);
     db.prepare("INSERT INTO users (id,username,password_hash) VALUES (1,'tester','x')").run();
