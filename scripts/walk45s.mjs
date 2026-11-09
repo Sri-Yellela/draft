@@ -340,6 +340,33 @@ try {
     }
   }
 
+  // ── A158 (d) · the search's other ways back: free text → Enter, a role, Esc ──────────────────────────────────────────
+  if (want("a158dx")) {
+    const open = async () => { await A.goto(`${BASE}/app/atlas/your-run`, { waitUntil: "networkidle2", timeout: 60000 }); await sleep(800);
+      await A.evaluate(() => document.querySelector("[data-nav-item='search']")?.click()); await sleep(400);
+      return A.$("[data-dock-search] input.appnav-search__input"); };
+    let box = await open();
+    await box.type("data engineer", { delay: 30 }); await sleep(900);
+    await A.keyboard.press("Escape"); await sleep(400);
+    const escClosed = await A.evaluate(() => !document.querySelector("[data-dock-search]"));
+    say("a158dx", escClosed && /\/app\/atlas\/your-run/.test(A.url()), `Esc closes the search and stays put (${A.url().replace(BASE, "")})`);
+    box = await open();
+    await box.type("pipeline reliability", { delay: 20 }); await sleep(900);
+    await A.keyboard.press("Enter"); await sleep(1500);
+    const afterText = A.url().replace(BASE, "");
+    await A.goBack({ waitUntil: "networkidle2" }).catch(() => {}); await sleep(800);
+    say("a158dx", /^\/app\/jobs/.test(afterText) && /\/app\/atlas\/your-run/.test(A.url()), `free text + Enter → ${afterText} → Back → ${A.url().replace(BASE, "")}`);
+    box = await open();
+    await A.evaluate(() => { const b = document.querySelector('[data-scope="role"]'); b?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true })); });
+    await box.type("Front", { delay: 30 }); await sleep(1200);
+    const kinds = await A.$$eval("[data-suggest-kind]", els => els.map(e => e.getAttribute("data-suggest-kind")));
+    await A.keyboard.press("Enter"); await sleep(1500);
+    const afterRole = A.url().replace(BASE, "");
+    await A.goBack({ waitUntil: "networkidle2" }).catch(() => {}); await sleep(800);
+    say("a158dx", kinds.length > 0 && kinds.every(k => k === "role") && /^\/app\/jobs/.test(afterRole) && /\/app\/atlas\/your-run/.test(A.url()),
+      `Role label + "Front": ${kinds.length} role(s) only → Enter → ${afterRole} → Back → ${A.url().replace(BASE, "")}`);
+  }
+
   // ── M-7 · the three-sample walk (D184's test set G–I), as a rehearsal: Maya → Daniel → Elena → Undo back to Daniel ──────
   if (want("m7")) {
     const M = await pageOf(await browser.createBrowserContext());
