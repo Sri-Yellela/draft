@@ -1796,6 +1796,20 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
   // ⭐ D179 (a) (45l) · THE ROLE — the taxonomy's Category → Subcategory, chosen in the domain word's panel (or the search
   // box's Roles); sent as `category` / `subcategory` (jobQuery's hard taxonomy filter), counted by the facets' `role`.
   const [taxRole,        setTaxRole]        = useState({ category: "", subcategory: "" });
+  // ⭐ (B)-2 (45o, owner 11-08: "a new résumé moves your role and family, and the board follows"): when the active job
+  // profile's placement is NEW (placed_at moved — an upload, a replace, a pick, an Undo), the sentence's role word follows
+  // it: "discovering [Backend] roles …". A ".general" placement narrows to its CATEGORY (never to the thin general bucket).
+  // Remembered per profile in this browser, so a choice the person makes on the board isn't overridden by an old placement.
+  useEffect(() => {
+    const p = activeDomainProfile;
+    if (!p?.placed_at || !p.placement_category) return;
+    const key = `draft.placementSeen.${p.id}`;
+    let seen = null; try { seen = localStorage.getItem(key); } catch { seen = null; }
+    if (String(seen) === String(p.placed_at)) return;
+    try { localStorage.setItem(key, String(p.placed_at)); } catch { /* private mode: it may apply again */ }
+    const general = /\.general$/.test(String(p.placement_subcategory || ""));
+    setTaxRole({ category: p.placement_category, subcategory: general ? "" : String(p.placement_subcategory || "") });
+  }, [activeDomainProfile?.id, activeDomainProfile?.placed_at]); // eslint-disable-line react-hooks/exhaustive-deps
   // ⭐ D179 (a) · "using [technology]" — set from the search box's Technologies, cleared from its sentence word.
   const [techFilter,     setTechFilter]     = useState("");
   const [places,         setPlaces]         = useState([]);

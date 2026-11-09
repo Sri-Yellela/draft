@@ -25,13 +25,16 @@ const bad = (status, code, message) => Object.assign(new Error(message), { statu
 const low = (s) => String(s ?? "").trim().toLowerCase();
 const hasCol = (db, t, c) => safe(() => !!db.prepare(`SELECT 1 FROM pragma_table_info('${t}') WHERE name = ?`).get(c), false);
 
-const DP_FIELDS = ["profile_name", "role_family", "domain", "seniority", "target_titles", "selected_keywords", "selected_verbs", "selected_tools"];
+// ⭐ (B)-2 (45o): + the placement (migration 255) — Undo puts the role, the level AND the placement back together.
+const DP_BASE = ["profile_name", "role_family", "domain", "seniority", "target_titles", "selected_keywords", "selected_verbs", "selected_tools"];
+const DP_PLACEMENT = ["placement_category", "placement_subcategory", "placement_level", "placement_also", "placement_confidence", "placed_at"];
+const dpFields = (db) => DP_BASE.concat(DP_PLACEMENT.filter(c => hasCol(db, "domain_profiles", c)));
 
 /** Everything a replace may change, as it is NOW — what Undo puts back. */
 export function snapshotForReplace(db, userId, profileId, { content = "", name = null } = {}) {
   const rows = (t) => safe(() => db.prepare(`SELECT * FROM ${t} WHERE user_id = ? ORDER BY position, id`).all(userId), []);
   const sec = safe(() => db.prepare(`SELECT * FROM profile_sections WHERE user_id = ?`).get(userId), null);
-  const dp = profileId != null ? safe(() => db.prepare(`SELECT ${DP_FIELDS.join(", ")} FROM domain_profiles WHERE id = ? AND user_id = ?`).get(profileId, userId), null) : null;
+  const dp = profileId != null ? safe(() => db.prepare(`SELECT ${dpFields(db).join(", ")} FROM domain_profiles WHERE id = ? AND user_id = ?`).get(profileId, userId), null) : null;
   const up = safe(() => db.prepare(`SELECT * FROM user_profile WHERE user_id = ?`).get(userId), null) || {};
   const contact = Object.fromEntries(PREFILL_FIELDS.filter(f => f in up).map(f => [f, up[f]]).concat("location" in up ? [["location", up.location]] : []));
   return {
@@ -49,7 +52,8 @@ export function pageDigest(db, userId) {
   if (!p) return null;
   return {
     headline: p.header.headline || null,
-    placement: p.header.placement ? { path: `${p.header.placement.categoryName} › ${p.header.placement.subName}`, sub: p.header.placement.subName,
+    placement: p.header.placement && !p.header.placement.asks ? {   // (B)-1: "couldn't place you" is no placement here
+      path: `${p.header.placement.categoryName} › ${p.header.placement.subName}`, sub: p.header.placement.subName,
       level: p.header.placement.levelLabel } : null,
     experience: (p.sections.experience.items || []).map(x => ({ company: x.company, title: x.title, start: x.start, end: x.current ? null : x.end,
       current: !!x.current, bullets: (x.bullets || []).length, logo: !!x.logo })),
@@ -146,7 +150,8 @@ export function whatChanged(before, after, kept = {}, { handAchievements = 0, pr
   if ((bp?.path || "") !== (ap?.path || "") || (bp?.level || "") !== (ap?.level || "")) {
     lines.push({ kind: "changed", what: "fit",
       text: `Where you fit: ${ap ? `${ap.path} · ${bp && bp.level !== ap.level ? `${bp.level} → ${ap.level}` : ap.level}` : "not placed"}`,
-      detail: "your job profiles, search terms and the board follow it" });
+      // ⭐ (B)-2 (45o): what followed, said plainly (all of it undone by Undo).
+      detail: ap ? `your board now shows ${ap.path} jobs · today's picks are dealt again from it · best fit re-scores against the new résumé · Atlas's target follows (unless you set your own aim) · Apply for me looks for the same` : "your job profiles, search terms and the board follow it" });
   }
   const keptParts = [];
   const proven = [...new Set([...(after.proven || []), ...(kept.proven || [])])];
@@ -188,6 +193,13 @@ export function keepReplacement(db, userId, id) {
  * Undo — put back everything the replace changed. Returns { profileId, content, name } so the route re-extracts the
  * signals from the restored text. Refused after UNDO_DAYS, for someone else's record, or twice.
  */
+/** ⭐ (B)-2 · today's picks (daily_drafts) for one profile, cleared so the next read deals them again from the current placement.
+ *  The deal of the last 36 hours only — what was dealt before stays as history. */
+export function dealAgain(db, userId, profileId, now = Math.floor(Date.now() / 1000)) {
+  try { return db.prepare("DELETE FROM daily_drafts WHERE user_id = ? AND profile_id = ? AND dealt_at >= ?").run(userId, profileId, now - 36 * 3600).changes; }
+  catch { return 0; }
+}
+
 export function undoReplacement(db, userId, id, now = Math.floor(Date.now() / 1000)) {
   const r = db.prepare(`SELECT * FROM profile_replacements WHERE id = ? AND user_id = ?`).get(Number(id), userId);
   if (!r) throw bad(404, "not_found", "No such change.");
@@ -213,8 +225,12 @@ export function undoReplacement(db, userId, id, now = Math.floor(Date.now() / 10
       ? db.prepare(`INSERT INTO profile_links (user_id, kind, url, position, source) VALUES (?, ?, ?, ?, ?)`).run(userId, x.kind, x.url, x.position, x.source ?? null)
       : db.prepare(`INSERT INTO profile_links (user_id, kind, url, position) VALUES (?, ?, ?, ?)`).run(userId, x.kind, x.url, x.position)));
     if (s.domainProfile && s.base.profileId != null) {
-      db.prepare(`UPDATE domain_profiles SET ${DP_FIELDS.map(f => `${f} = ?`).join(", ")} WHERE id = ? AND user_id = ?`)
-        .run(...DP_FIELDS.map(f => s.domainProfile[f]), s.base.profileId, userId);
+      // Only the fields the snapshot holds (a snapshot taken before 255 has no placement — it is left as it is).
+      const f = dpFields(db).filter(k => k in s.domainProfile);
+      db.prepare(`UPDATE domain_profiles SET ${f.map(k => `${k} = ?`).join(", ")} WHERE id = ? AND user_id = ?`)
+        .run(...f.map(k => s.domainProfile[k]), s.base.profileId, userId);
+      // ⭐ (B)-2: the board follows the restored placement — today's picks are dealt again from it.
+      dealAgain(db, userId, s.base.profileId);
     }
     const cols = Object.keys(s.contact || {});
     if (cols.length) db.prepare(`UPDATE user_profile SET ${cols.map(c => `${c} = ?`).join(", ")} WHERE user_id = ?`).run(...cols.map(c => s.contact[c]), userId);
