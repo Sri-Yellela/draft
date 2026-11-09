@@ -13,7 +13,7 @@
 //     (the moderation queue; at most REPORTS_PER_DAY from one sender a day). Admin reads / resolves it at
 //     /api/admin/profile-reports.
 //   · /p/<handle> (D109's proof page) answers 301 → /in/<handle> (routes/proofPage.js).
-import { profileViewerFor } from "../services/network/connections.js";   // D180 P1: a connection's view
+import { profileViewerFor, networkEnabled } from "../services/network/connections.js";   // D180 P1: a connection's view
 import { durationLabel } from "../shared/durationLabel.js";   // A153 (45o): "2 yrs 4 mos" on the public page too
 import express from "express";
 import crypto from "node:crypto";
@@ -137,7 +137,7 @@ function reportForm(handle) {
 }
 
 /** The page's HTML for a publicViewFor() result. Exported for the tests. */
-export function renderPublicProfile({ view, handle }, { origin = "" } = {}) {
+export function renderPublicProfile({ view, handle }, { origin = "", connect = false } = {}) {
   if (view.private) {
     return shell({ title: "Private profile", index: false,
       body: `<section class="card" data-private=""><h1>${esc(PRIVATE_LINE)}</h1><p class="muted">Its owner has not made it public.</p></section>` });
@@ -154,6 +154,7 @@ export function renderPublicProfile({ view, handle }, { origin = "" } = {}) {
   ${h.location ? `<div class="muted">${esc(h.location)}</div>` : ""}
   ${open ? `<div class="open">${open}</div>` : ""}
   <p class="muted" data-share="">Share: <a href="/in/${esc(handle)}">${esc(`${origin.replace(/^https?:\/\//, "")}/in/${handle}`)}</a></p>
+  ${connect ? `<p data-connect=""><a href="/app/network?connect=${encodeURIComponent(handle)}">Connect on draft</a> <span class="muted">— a request they can accept or ignore</span></p>` : ""}
 </section>`);
   if (s.about?.summary) parts.push(`<section class="card" data-section="about"><h2>About</h2><p>${esc(s.about.summary)}</p></section>`);
   if (s.experience?.items?.length) parts.push(`<section class="card" data-section="experience"><h2>Experience</h2>${s.experience.items.map(x => `
@@ -195,7 +196,8 @@ export default function publicProfileRoutes(app, db, { requireAdmin, dataDir, ap
     res.set("Cache-Control", "no-store");
     if (out.status === 404) { res.set("X-Robots-Tag", "noindex"); return notFound(res); }
     if (!indexable(out.view)) res.set("X-Robots-Tag", "noindex");
-    res.type("html").send(renderPublicProfile(out, { origin: appBaseUrl(req) }));
+    // ⭐ D180 P1 (45o): Connect — only while the network is on, never on your own page. It opens the app, which asks first.
+    res.type("html").send(renderPublicProfile(out, { origin: appBaseUrl(req), connect: networkEnabled(db) && out.userId !== (req.user?.id ?? null) }));
   });
 
   // The photo — only while the page is visible to the public and the person has one.

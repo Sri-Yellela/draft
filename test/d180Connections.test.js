@@ -114,3 +114,17 @@ test("a connection sees the Connections sections on /in/<handle>; a stranger see
   setSetting(db, "network_enabled", false);
   assert.equal(profileViewerFor(db, 1, 2), "public", "with the network off, nobody is a connection");
 });
+
+test("the client: the dock draws Network only when on; the page says not available while off; Admin holds the switch", () => {
+  const nav = fs.readFileSync("client/src/components/AppNav.jsx", "utf8");
+  assert.match(nav, /if \(network && !list\.some\(\(t\) => t\.id === "network"\)\)/, "Network joins the dock only when on");
+  assert.match(nav, /api\("\/api\/network\/status"\)/);
+  const page = fs.readFileSync("client/src/pages/network/NetworkPage.jsx", "utf8");
+  assert.match(page, /data-network-off=""/);
+  assert.match(page, /This isn't available yet\./);
+  assert.match(page, /Send request/, "a ?connect= link asks first, never a silent request");
+  assert.match(fs.readFileSync("client/src/App.jsx", "utf8"), /\{activeTab === "network" && <NetworkPage\/>\}/);
+  assert.match(fs.readFileSync("client/src/panels/AdminPanel.jsx", "utf8"), /\{at\("people", "network"\) && <NetworkTab\/>\}/);
+  const pub = fs.readFileSync("routes/publicProfile.js", "utf8");
+  assert.match(pub, /connect: networkEnabled\(db\) && out\.userId !== \(req\.user\?\.id \?\? null\)/, "Connect on a public page only while on, never on your own");
+});
