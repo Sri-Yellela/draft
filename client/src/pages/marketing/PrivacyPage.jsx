@@ -102,6 +102,10 @@ import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyPro
 // before the extension ships it). (2) The last capture's result is no longer stored (nothing reads it any more).
 // (3) The popup's places — the account and Disconnect, automatic reading's one-time offer, "Always read here", the Copy
 // sheet, Report this form — are named where they are now: the settings page and draft's panel on the page.
+// November 8, 2026 (owner, 11-08 — 45n, decision (5)): the push that applies D183 (the profile is private unless the person
+// makes it public; what a public page shows; search engines only when switched on; a replaced résumé re-fills it; reports),
+// the Google sign-in and crawl-sources lines, and people search (a public profile can be found by name in draft's search
+// with the workplace and school it shows). ⚠ MATERIAL — a new way information becomes visible, always by the person's choice.
 // October 31, 2026 (owner, 10-30 — D112 item 3, from docs/privacy/PENDING_D100_D103.md): FIVE NEW THINGS, all MATERIAL
 // (draft starts keeping or sending new kinds of data), each only after the user turns it on. (1) D100 · Applying for You —
 // the apply worker (SEMI default / FULL AUTO), sealed portal sessions only the separate apply service can open, portal

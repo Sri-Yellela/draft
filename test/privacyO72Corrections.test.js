@@ -78,7 +78,8 @@ test("O72b·5 — the effective-date comment no longer says PDF reading lives in
   // (T14: a job's page addresses kept locally; T11: an embedded form's frame address sent on a fill) — never back
   // to before the O72(b) corrections.
   // ⭐ D112 item 3 (10-30): + 31 — the apply service, the inbox (180 days), Gmail, the profile sections, global read.
-  assert.match(policy, /const EFFECTIVE_DATE = 'October (5|7|8|9|13|14|15|25|31), 2026'/,
+  // ⭐ 45n (11-08): + November 8 — D183's profile, Google sign-in, crawl sources, people search.
+  assert.match(policy, /const EFFECTIVE_DATE = '(October (5|7|8|9|13|14|15|25|31)|November 8), 2026'/,
     "five user-visible corrections need the effective date moved with them");
 });
 
