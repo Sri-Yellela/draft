@@ -221,6 +221,59 @@ try {
     }
   }
 
+  // ── 45s · the owner's two reports (11-09): "still not able to open company page, just flickers and does nothing" and
+  // "when i search company using the label … i am only expecting the company page to be suggested that leads to it" ────────
+  if (want("cpage")) {
+    const stays = async (p, label) => {
+      await sleep(3000);   // a bounce-back to the board happened within a frame — 3 s later the address must still be the page
+      const u = p.url().replace(BASE, ""); const t = await text(p);
+      return { ok: /^\/app\/companies\/[a-z0-9-]+/.test(u) && t.includes(CO), u };
+    };
+    // a board needs a résumé to show rows — Ada gets the test set's Maya (a frontend engineer; Stripe hires those)
+    await api(A, "/api/domain-profiles/from-resume", "POST", { content: JSON.parse(fs.readFileSync("content/trial/sample-g.json", "utf8")).resumeText, name: "ada.txt" });
+    await A.goto(`${BASE}/app/jobs`, { waitUntil: "networkidle2", timeout: 60000 });
+    await sleep(2000);
+
+    await A.goto(`${BASE}/app/jobs`, { waitUntil: "networkidle2", timeout: 60000 });   // the first visit after an upload re-ranks
+
+    await A.waitForSelector("a[data-company-page-link]", { timeout: 20000 }).catch(() => {});
+    const links = await A.$$eval("a[data-company-page-link]", as => as.map(a => ({ text: a.textContent.trim(), href: a.getAttribute("href") })));
+    const target = links.find(l => l.text === CO);
+    const probe = await A.evaluate(() => { const t = [...document.querySelectorAll("*")].find(e => e.children.length === 0 && /Full Stack Engineer/.test(e.textContent)); let c = t; for (let i = 0; i < 4 && c; i++) c = c.parentElement; return c ? c.outerHTML.slice(0, 900) : "none"; });
+
+    if (!target) say("cpage", false, `no company-name link for ${CO} on the board (${links.length} links) ${JSON.stringify(probe)}`);
+    else {
+      await A.evaluate((co) => [...document.querySelectorAll("a[data-company-page-link]")].find(a => a.textContent.trim() === co)?.click(), CO);
+      const r = await stays(A, "board row");
+      say("cpage", r.ok, `a board row's company name → ${r.u} (still there after 3 s: ${r.ok})`);
+      await shot(A, "cpage-from-row");
+    }
+    // the deck card's company name (the front card)
+    await A.goto(`${BASE}/app/jobs`, { waitUntil: "networkidle2", timeout: 60000 });
+    await A.waitForSelector("[data-deck-head] a[data-company-link]", { timeout: 20000 }).catch(() => {});
+    const deckCo = await A.evaluate(() => { const a = document.querySelector("[data-deck-head] a[data-company-link]"); if (!a) return null; const t = a.textContent.trim(); a.click(); return t; });
+    if (!deckCo) say("cpage", false, "no company link on the deck card");
+    else { await sleep(3000); const u = A.url().replace(BASE, ""); say("cpage", /^\/app\/companies\//.test(u), `the deck card's company name (${deckCo}) → ${u} (still there after 3 s)`); await shot(A, "cpage-from-deck"); }
+    // the board box's scope labels: Company → type → only companies suggested → Enter opens the page
+    await A.goto(`${BASE}/app/jobs`, { waitUntil: "networkidle2", timeout: 60000 }); await sleep(1200);
+    const box = await A.$(".fh-srch input");
+    if (!box) say("cpage", false, "the board's search box is not there");
+    else {
+      await box.click(); await sleep(400);
+      await A.evaluate(() => { const b = document.querySelector('[data-scope="company"]'); b?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true })); });
+      await sleep(300);
+      await box.type(CO.slice(0, 4), { delay: 40 }); await sleep(1500);
+      const kinds = await A.$$eval("[data-suggest-kind]", els => els.map(e => `${e.getAttribute("data-suggest-kind")}:${e.textContent.trim().slice(0, 30)}`));
+      const onlyCo = kinds.length > 0 && kinds.every(k => k.startsWith("company:"));
+      say("cpage", onlyCo, `Company label + "${CO.slice(0, 4)}": ${kinds.length} suggestion(s), all companies: ${onlyCo} (${kinds.slice(0, 4).join(" | ")})`);
+      await shot(A, "cpage-scoped-list");
+      await A.keyboard.press("Enter");
+      const r = await stays(A, "scoped Enter");
+      say("cpage", r.ok, `Enter with the Company label → ${r.u} (still there after 3 s: ${r.ok})`);
+      await shot(A, "cpage-from-scoped-enter");
+    }
+  }
+
   // ── M-7 · the three-sample walk (D184's test set G–I), as a rehearsal: Maya → Daniel → Elena → Undo back to Daniel ──────
   if (want("m7")) {
     const M = await pageOf(await browser.createBrowserContext());
@@ -232,9 +285,12 @@ try {
       await M.goto(`${BASE}/app/jobs`, { waitUntil: "networkidle2", timeout: 60000 }); await sleep(1200);
       return M.evaluate(() => (document.querySelector("[data-board-headline]")?.innerText || "").replace(/\s+/g, " ").trim());
     };
-    // The substance of SAMPLES.md's sentence — its role, its level, Boston. (Its exact words differ from the board's approved
-    // D37 / A145 words — the owner's open choice — and this copy has only one company's postings open, so it reads "nothing matches".)
-    const fits = (text, s) => { const t = text.toLowerCase(); const sub = String(s.expected.subcategory).toLowerCase();
+    // The substance of SAMPLES.md's sentence — its role, its level, Boston. (Its exact words differ from the board's approved
+
+    // D37 / A145 words — the owner's open choice — and this copy has only one company's postings open, so it reads "nothing matches".)
+
+    const fits = (text, s) => { const t = text.toLowerCase(); const sub = String(s.expected.subcategory).toLowerCase();
+
       return t.includes(sub) && t.includes(`${s.expected.level} career level`) && t.includes("in boston") && !t.includes("all roles"); };
     let pid = null;
     const upload = async (k) => {
@@ -256,9 +312,12 @@ try {
     const sh = await sentence();
     const changed = await api(M, "/api/profile/replacements/latest");
     say("m7", fits(sh, h.s), `Daniel replaces Maya (${h.r.status}): "${sh}" — expected "${h.s.expected.sentence}"`);
-    const lines = changed.body?.replacement?.lines || [];
-    const decision = lines.find(l => l.kind === "decision" && l.what === "apply_for_me");
-    const paused = db.prepare(`SELECT apply_paused_at FROM domain_profiles WHERE id = ?`).pluck().get(pid);
+    const lines = changed.body?.replacement?.lines || [];
+
+    const decision = lines.find(l => l.kind === "decision" && l.what === "apply_for_me");
+
+    const paused = db.prepare(`SELECT apply_paused_at FROM domain_profiles WHERE id = ?`).pluck().get(pid);
+
     say("m7", lines.length > 0 && !!decision && !!paused, `What changed: ${lines.length} lines (${lines.slice(0, 3).map(l => l.text).join(" | ")}) · Apply for me paused: ${!!paused} · decision line: ${decision?.text || "none"}`);
     await shot(M, "m7-daniel");
     const i = await upload("i");

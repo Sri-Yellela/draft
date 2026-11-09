@@ -139,7 +139,7 @@ export default function UsbSuggest({
           ...(g?.roles || []).map((x) => ({ kind: "role", key: `r:${x.id}`, label: x.name, sub: x.category, item: x })),
           ...(g?.technologies || []).map((x) => ({ kind: "tech", key: `t:${x.name}`, label: x.name, item: x })),
           ...titleList.map((s) => ({ kind: "title", key: `s:${s}`, label: s })),
-        ];
+        ].filter((row) => !(grouped && scope) || row.kind === scope);   // 45s: a scope shows ONLY its kind
         setItems(next);
         if (next.length) setRect(boxRef.current?.getBoundingClientRect() || null);
         // Zero suggestions is a normal state: show NOTHING. Not an error, not an empty box.
@@ -199,6 +199,15 @@ export default function UsbSuggest({
     if (e.key === "Tab") {
       if (open && active >= 0 && items[active]) { e.preventDefault(); accept(items[active]); }
       else dismiss();
+      return;
+    }
+    // ⛔ 45s (owner 11-09: "when i search company using the label … i am only expecting the company page to be suggested that
+    // leads to the company page"): with a scope label on, Enter never runs the board's text search — it opens the highlighted
+    // row, else the first of that kind; with none yet, it does nothing (the hint says there is no match).
+    if (e.key === "Enter" && grouped && scope) {
+      e.preventDefault();
+      const pick = (active >= 0 && items[active]) || items[0];
+      if (pick) accept(pick);
       return;
     }
     if (e.key === "Escape") {

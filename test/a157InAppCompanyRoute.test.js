@@ -17,3 +17,9 @@ test("a157InAppCompanyRoute: every routed place the shell draws is excused from 
   assert.match(app, /activeTab === "company" && companyRoute && <CompanyPage/);
   assert.match(app, /\}, \[routeKey, consolePath, navigate, NAVIGABLE_TABS, atlasRoute, companyRoute,/);
 });
+
+test("a148ScopedSearchPicksOnlyItsKind (owner 11-09): with a label on, only that kind is listed, and Enter opens it — never a board text search", () => {
+  const u = fs.readFileSync("client/src/components/UsbSuggest.jsx", "utf8").replace(/\r\n/g, "\n");
+  assert.match(u, /\]\.filter\(\(row\) => !\(grouped && scope\) \|\| row\.kind === scope\);/);
+  assert.match(u, /if \(e\.key === "Enter" && grouped && scope\) \{\n      e\.preventDefault\(\);\n      const pick = \(active >= 0 && items\[active\]\) \|\| items\[0\];\n      if \(pick\) accept\(pick\);\n      return;\n    \}/);
+});
