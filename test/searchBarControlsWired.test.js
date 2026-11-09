@@ -80,7 +80,8 @@ test("the bar's wrapper sits inside JobBoardProvider, not above it", () => {
   // Auto Apply needs-review count. Y4 moved the tab row into the top bar, so the decoration moved
   // with it to AppTopBar — which exists for exactly the same reason, one provider down. This wrapper
   // is now only about applyBarFilters.
-  assert.match(app, /function BoardSearchBar\(props\) \{\s+const \{ applyBarFilters \} = useJobBoard\(\);/);
+  // 45l D179 (a) (4f0cf962): the wrapper also reads the board's headline from the same context (pin moved on purpose).
+  assert.match(app, /function BoardSearchBar\(props\) \{\s+const \{ applyBarFilters, boardHeadline \} = useJobBoard\(\);/);
   // The SAME constraint applies to the count, and it is the reason there are two wrappers rather
   // than one: AppDashboard renders AutoApplyProvider too, so it cannot read that context either.
   assert.match(app, /function AppTopBar\(\{ tabs, \.\.\.props \}\) \{\s+const \{ needsAttentionCount = 0 \} = useAutoApply\(\);/);

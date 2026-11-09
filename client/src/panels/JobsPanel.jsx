@@ -2962,6 +2962,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
       jobFunctions, places,
       // D42's sector and strict toggle — and again.
       sectors, strictTags,
+      // ⛔ 45r: D179 (a)'s role (?category / ?subcategory) and "using [technology]" (?tech) fed buildParams from 45l
+      // (bb13d510) and were missing here — picking a role or a technology on page 1 sent nothing. The same reason again.
+      taxRole, techFilter,
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -- The search bar's params land here ------------------------------------------------------
@@ -3274,6 +3277,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
     // D42: the company sector and the strict toggle round-trip the same way.
     setSectors(csv(SECTORS.param));
     setStrictTags(p.get("strict_tags") === "1");
+    // ⛔ 45r: D179 (a)'s role and technology (45l, bb13d510) were saved and never restored — a saved search came back
+    // wider. The subcategory is enough for the board (buildParams sends it alone); a category-only role shares the
+    // ?category name with the older category filter and is restored through setCatFilter above, as before.
+    setTaxRole({ category: "", subcategory: p.get("subcategory") || "" });
+    setTechFilter(p.get("tech") || "");
     setCurrentPage(1);
   }, [activeDomainProfile]);
 
