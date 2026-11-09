@@ -11,6 +11,7 @@ import PanelShell from "./PanelShell.jsx";
 import CompanyLink from "./CompanyLink.jsx";
 import { companyPath } from "../lib/companySlug.js";   // A157
 import WorksHere from "./WorksHere.jsx";   // D180 P4 (45s)
+import ApplicationQuestions from "./ApplicationQuestions.jsx";   // D185-1 (45s)
 import CompanyLogo from "./CompanyLogo.jsx";
 import { StampLogo } from "./StampLogo.jsx";
 import { AtsNumberBox } from "./AtsNumberBox.jsx";
@@ -576,6 +577,8 @@ export default function JobDetailPanel({
               {/* ⭐ D180 P4 (45s): "1 connection works here" → Ask for a referral, here and on the deck (one component; the
                   network off or no one there → nothing drawn). */}
               <WorksHere company={selectedJob.company} job={{ id: selectedJob.id ?? selectedJob.jobId }} />
+              {/* ⭐ D185-1 (45s): the posting's own questions draft can't answer yet (its ATS published the form). */}
+              <ApplicationQuestions jobId={selectedJob.id ?? selectedJob.jobId} company={selectedJob.company} />
               {selectedJob.applicantCount != null && (
                 <p className="pp__applicants" data-applicant-count="">
                   {selectedJob.applicantCount > 200 ? "200+" : selectedJob.applicantCount} applicants

@@ -784,6 +784,14 @@ export function TailoringAdminSection({ theme }) {
               onClick={() => toggleOffered(id)}>{m.offered.includes(id) ? "✓ " : ""}{id}</Btn>
           ))}
         </div>
+        {/* ⭐ D185-1 (45s): Draft an answer on the posting's own free-text questions — from the résumé, checked, the person saves it. */}
+        <div style={what}>Drafted answers to a posting's own questions</div>
+        <div style={row}>
+          <Btn theme={theme} primary={!!s.answerDrafts} disabled={busy} data-answer-drafts={s.answerDrafts ? "on" : "off"}
+            title="On: a posting whose ATS publishes its form offers Draft an answer on its free-text questions (answers.routine, Haiku, on demand)."
+            onClick={() => send("PUT", { answerDrafts: !s.answerDrafts })}>{s.answerDrafts ? "✓ Drafts on" : "Drafts off"}</Btn>
+        </div>
+        <div style={quiet}>A draft comes only from the person's résumé, is checked before they see it, and becomes an answer only when they save it. Audited.</div>
         <div style={what}>A+ (Sonnet) — your override, for testing</div>
         <div style={row}>
           <Btn theme={theme} primary={s.aPlusOverride} disabled={busy} data-aplus-override={s.aPlusOverride ? "on" : "off"}

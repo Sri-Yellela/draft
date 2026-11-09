@@ -128,6 +128,8 @@ export const SHARED = Object.freeze({
   "components/SendJobPicker.css":       { what: "the Send-a-job picker's look", owner: "components/SendJobPicker.jsx" },
   "components/WorksHere.jsx":           { what: "D180 P4 — \"1 connection works here\" → Ask for a referral: the company page, the posting panel and the deck (45s: one component)" },
   "components/WorksHere.css":           { what: "the works-here box's look", owner: "components/WorksHere.jsx" },
+  "components/ApplicationQuestions.jsx": { what: "D185-1 — the posting's own application questions draft can't answer yet, and (switch on) Draft an answer the person saves" },
+  "components/ApplicationQuestions.css": { what: "the application questions box's look", owner: "components/ApplicationQuestions.jsx" },
   "components/DepthButton.css":         { what: "the depth box, the .dbx-depth skin and the .mark (D60) — loaded app-wide by main.jsx", owner: "components/DepthButton.jsx", alsoBy: ["main.jsx"] },
   "components/DockPortal.jsx":          { what: "the portalled dropdown surface" },
   "components/PanelShell.jsx":          { what: "the overlay panel frame — every peer panel in the board's dock" },

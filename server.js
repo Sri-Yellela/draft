@@ -199,6 +199,9 @@ import { callTask } from "./services/modelGateway.js";
 // ⛔ D173 (1): untrusted text (postings) reaches a model only fenced, and the output is checked.
 import { buildCoverLetterRequest, checkCoverLetter } from "./services/coverLetterPrompt.js";
 import { describeViolations } from "./services/untrustedText.js";
+import { answerDraftsEnabled, ANSWER_DRAFTS_SETTING, draftableQuestion, buildAnswerDraftRequest, checkAnswerDraft } from "./services/applicationAnswerDraft.js";   // D185-1 (45s)
+import { cachedApplicationSchema as cachedSchemaForDraft } from "./services/jobs/applicationSchema.js";
+import { activeBaseResume as baseResumeForDraft } from "./services/baseResumeOnly.js";
 import { createModelGatewayAdminRouter } from "./routes/modelGateway.js";
 // AK1: the ONE exception to "server.js does not touch the tracker directly", and it is not a
 // second recording path — recordAtsOutcome only fills ats_score_before/after on a row callModel
@@ -11531,10 +11534,12 @@ app.delete("/api/admin/full-auto", requireAdmin, (req, res) => {
 
 // ── D123 (owner 11-01): "switch the prompt between lean or the payload from the admin panel, or the model being used from
 // the users side". Same three states as the kill switch above: PUT pins a value, DELETE inherits the deploy default.
-const tailoringAdminView = () => ({ ...tailoringState(db), models: { ...modelSettings(db), choices: [...MODEL_CHOICES], labels: MODEL_LABELS } });
+const tailoringAdminView = () => ({ ...tailoringState(db), models: { ...modelSettings(db), choices: [...MODEL_CHOICES], labels: MODEL_LABELS },
+  answerDrafts: answerDraftsEnabled(db) });   // D185-1 (45s): drafted answers to the posting's own questions (OFF)
 app.get("/api/admin/tailoring", requireAdmin, (_req, res) => res.json(tailoringAdminView()));
 app.put("/api/admin/tailoring", requireAdmin, (req, res) => {
-  const { mode, modelDefault, modelsOffered, aPlus, aPlusLean, aPlusLeanMin } = req.body || {};
+  const { mode, modelDefault, modelsOffered, aPlus, aPlusLean, aPlusLeanMin, answerDrafts } = req.body || {};
+  if (answerDrafts !== undefined && typeof answerDrafts !== "boolean") return res.status(400).json({ error: "answerDrafts must be true or false" });
   if (aPlus !== undefined && typeof aPlus !== "boolean") return res.status(400).json({ error: "aPlus must be true or false" });
   if (aPlusLean !== undefined && typeof aPlusLean !== "boolean") return res.status(400).json({ error: "aPlusLean must be true or false" });
   if (aPlusLeanMin !== undefined && !(Number.isInteger(aPlusLeanMin) && aPlusLeanMin >= 1 && aPlusLeanMin <= 100)) return res.status(400).json({ error: "aPlusLeanMin must be a whole number 1–100" });
@@ -11546,6 +11551,13 @@ app.put("/api/admin/tailoring", requireAdmin, (req, res) => {
     return res.status(400).json({ error: `modelsOffered must be a list of ${MODEL_CHOICES.join(", ")}` });
   }
   if (mode !== undefined) setSetting(db, TAILORING_KEY, mode);
+  // ⭐ D185-1 (45s): the drafted answers' switch (OFF by default), audited like the A+ override.
+  if (answerDrafts !== undefined) {
+    const before = answerDraftsEnabled(db);
+    setSetting(db, ANSWER_DRAFTS_SETTING, answerDrafts);
+    try { writeAudit(db, { actor: actorOf(req), action: "answer_drafts_switch", target: ANSWER_DRAFTS_SETTING, before: { on: before }, after: { on: answerDrafts } }); }
+    catch (e) { console.warn("[tailoring] the answer drafts' audit row was not written:", e.message); }
+  }
   if (modelDefault !== undefined) setSetting(db, MODEL_DEFAULT_KEY, modelDefault);
   if (modelsOffered !== undefined) setSetting(db, MODELS_OFFERED_KEY, [...new Set(modelsOffered)].join(","));
   if (aPlus !== undefined) {
@@ -16375,6 +16387,36 @@ app.post("/api/cover-letter/generate", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("[cover-letter] Anthropic error:", err.message);
     res.status(500).json({ error: "Failed to generate cover letter. Please try again." });
+  }
+});
+
+// ⭐ D185-1 (45s) · a DRAFTED answer to one of the posting's own free-text questions — on demand, from the résumé only,
+// checked (D173), never saved here: the person edits it and saves it as their answer. Behind answer_drafts_enabled (OFF).
+app.post("/api/apply/questions/:jobId/draft", requireAuth, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  if (!answerDraftsEnabled(db)) return res.status(404).json({ error: "not_available", message: "This isn't available yet." });
+  const jobId = String(req.params.jobId);
+  const job = db.prepare("SELECT job_id, title, company FROM scraped_jobs WHERE job_id=?").get(jobId);
+  if (!job) return res.status(404).json({ error: "job_not_found", message: "draft no longer has this posting." });
+  const q = draftableQuestion(cachedSchemaForDraft(db, jobId), req.body?.question);
+  if (!q) return res.status(400).json({ error: "not_a_question", message: "That isn't one of this posting's questions." });
+  const resumeText = String(baseResumeForDraft(db, req.user.id)?.content || "").trim();
+  if (resumeText.length < 50) return res.status(409).json({ error: "no_resume", message: "Add your résumé first — the draft is written only from it." });
+  const r = buildAnswerDraftRequest({ resumeText, question: q, title: job.title, company: job.company });
+  try {
+    const message = await callTask({ task: "answers.routine", anthropic, db, userId: req.user.id, company: job.company || null,
+      dataClass: DATA_CLASS.CANDIDATE, system: r.system, messages: r.messages });
+    const text = String(message.content?.[0]?.text || "").trim();
+    const check = checkAnswerDraft(text, { resumeText, untrusted: r.untrusted });
+    if (!text || !check.ok) {
+      if (text) console.warn(`[answer-draft] withheld (D173): ${describeViolations(check.violations)}`);
+      return res.status(422).json({ error: "untrusted_output_violation", retryable: true,
+        message: "This draft was withheld: it carried a link or contact detail that isn't in your résumé, or text the posting asked for. Try again." });
+    }
+    res.json({ question: q.label, draft: text, note: "A draft from your résumé — edit it, then save it as your answer. Nothing is sent." });
+  } catch (e) {
+    console.error("[answer-draft]", e.message);
+    res.status(e.status || 500).json({ error: e.code || "draft_failed", message: "The draft could not be written. Try again." });
   }
 });
 

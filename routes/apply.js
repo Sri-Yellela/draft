@@ -29,7 +29,8 @@ import {
   recordFormSchema, formSchemaSummary, hostOf,
 } from "../services/kb/formSchemaLayer.js";
 import { probeBrowserAvailability } from "../services/browserLauncher.js";
-import { cachedApplicationSchema, schemaFieldsForFill, warmApplicationSchema } from "../services/jobs/applicationSchema.js";
+import { cachedApplicationSchema, schemaFieldsForFill, warmApplicationSchema, schemaQuestionsForTailoring } from "../services/jobs/applicationSchema.js";
+import { answerDraftsEnabled } from "../services/applicationAnswerDraft.js";   // D185-1 (45s): the drafted answers' switch
 import { attributeApplyUrl, attributionFamily, tokenFor, howHeardAnswers } from "../shared/sourceAttribution.js";
 import { getSetting } from "../services/appSettings.js";
 // AH5: the one definition of "is this stored resume still the right one". Shared with server.js's
@@ -337,6 +338,32 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         : "Tagged Pending — record when and how you submitted it, and it moves to Submitted once it verifies.",
     });
   }));
+
+  // ⭐ D185-1 (45s) · "this one will ask you N questions" — the posting's OWN form questions (its ATS published them) that
+  // nothing in the person's profile, saved answers or base résumé answers, in the employer's wording. The CACHE only: a
+  // posting never read is warmed in the background and answers { known: false } this time (never a fetch on the request).
+  // The same payload the manual packet is built from (prepareManualPacket), so the line and the packet can't disagree.
+  app.get("/api/apply/questions/:jobId", requireAuth, (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    const userId = req.user.id, jobId = String(req.params.jobId);
+    const job = db.prepare("SELECT * FROM scraped_jobs WHERE job_id=?").get(jobId);
+    if (!job) return res.status(404).json({ error: "job_not_found", message: "draft no longer has this posting." });
+    const schema = cachedApplicationSchema(db, jobId);
+    if (!schema) { warmApplicationSchema(db, job); return res.json({ known: false, status: "reading" }); }
+    if (schema.status !== "ok") return res.json({ known: false, status: schema.status });
+    try {
+      const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId) || {};
+      const entries = packetEntriesFor(userId, null);
+      const packet = buildGatePacket({
+        autofillPayload: withHowHeard(userId, jobId, withSavedAnswerRecords(userId, withCarriedWorkHistory(userId, buildAutofillPayload(profile, "APPLY", job.company, jobId), entries))),
+        applyUrl: job.apply_url || job.url, jobId, gateReason: PREPARED_REASON, entries, baseResume: baseResumeParsed(userId),
+        atsQuestions: schemaFieldsForFill(schema),
+      });
+      const left = packet.unresolved.filter(u => u.from_schema).map(u => ({ question: u.field, required: !!u.is_required, type: u.type }));
+      const drafts = schemaQuestionsForTailoring(schema).filter(q => left.some(l => l.question === q.label)).map(q => q.label);
+      res.json({ known: true, ats: schema.ats, count: left.length, questions: left, draftable: drafts, drafts: answerDraftsEnabled(db) });
+    } catch { res.json({ known: false, status: "no_packet" }); }
+  });
 
   app.get("/api/apply/status/:jobId", requireAuth, (req, res) => {
     const row = db.prepare("SELECT * FROM job_applications WHERE user_id=? AND job_id=?")
