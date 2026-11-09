@@ -15,6 +15,7 @@ import crypto from "node:crypto";
 import { relation, isBlocked, isConnected } from "./connections.js";
 import { readVisibility } from "../profilePage.js";
 import { jobPath } from "../jobs/publicJobPage.js";
+import { feedTarget, canSee } from "./feed.js";   // D180 P3 (45r): posts and comments are reported into the same queue
 
 export const BODY_MAX = 4000;
 export const NEW_REQUEST_THREADS_PER_DAY = 10;
@@ -160,10 +161,18 @@ export function muteThread(db, me, threadId, muted) {
 
 /** Report a message, a conversation or a profile. Only a hash of the reporter is kept; the reported person isn't told. */
 export function report(db, me, { kind, id = null, handle = null, reason, details = null }) {
-  if (!["message", "thread", "profile"].includes(kind)) throw bad(400, "bad_kind", "Report a message, a conversation or a profile.");
+  if (!["message", "thread", "profile", "post", "comment"].includes(kind)) throw bad(400, "bad_kind", "Report a message, a conversation, a post, a comment or a profile.");
   if (!REPORT_REASONS.includes(reason)) throw bad(400, "bad_reason", `Pick a reason: ${REPORT_REASONS.join(", ")}.`);
   let reported = null, target = null;
   if (kind === "profile") { reported = personByHandle(db, handle); target = reported; }
+  else if (kind === "post" || kind === "comment") {
+    // ⭐ D180 P3 (45r): a post or comment the reporter can see (their own feed's) — same queue, same hash.
+    const t = feedTarget(db, kind, id);
+    const postAuthor = kind === "post" ? t?.authorId
+      : db.prepare(`SELECT p.author_id FROM network_comments c JOIN network_posts p ON p.id = c.post_id WHERE c.id = ?`).pluck().get(Number(id));
+    if (!t || t.removed || t.authorId === me || postAuthor == null || !canSee(db, me, postAuthor)) throw bad(404, `no_such_${kind}`, `There is no such ${kind}.`);
+    reported = t.authorId; target = Number(id);
+  }
   else if (kind === "thread") { const t = threadFor(db, me, id); reported = otherIn(t, me); target = t.id; }
   else {
     const m = db.prepare(`SELECT m.id, m.sender_id, t.low_id, t.high_id FROM network_messages m JOIN network_threads t ON t.id = m.thread_id WHERE m.id = ?`).get(Number(id));
@@ -186,6 +195,9 @@ export function reportQueue(db, box, { status = "open", limit = 100 } = {}) {
     if (r.target_kind === "message") {
       const m = db.prepare(`SELECT * FROM network_messages WHERE id = ?`).get(r.target_id);
       target = m ? { kind: m.kind, removed: !!m.removed, text: m.removed ? null : opened(box, m), job: m.kind === "job" ? jobCard(db, m.job_id) : null } : null;
+    } else if (r.target_kind === "post" || r.target_kind === "comment") {
+      const t = feedTarget(db, r.target_kind, r.target_id);   // D180 P3 (45r)
+      target = t ? { kind: r.target_kind, removed: t.removed, text: t.removed ? null : t.text, link: t.link || null } : null;
     }
     const total = db.prepare(`SELECT COUNT(*) FROM network_reports WHERE reported_user_id = ?`).pluck().get(r.reported_user_id);
     return { id: r.id, kind: r.target_kind, targetId: r.target_id, reason: r.reason, details: r.details, status: r.status, note: r.note,
@@ -201,6 +213,9 @@ export function resolveReport(db, reportId, { status, note = null, removeMessage
   db.transaction(() => {
     db.prepare(`UPDATE network_reports SET status = ?, note = ?, resolved_at = ? WHERE id = ?`).run(status, note == null ? r.note : String(note).slice(0, 1000), status === "open" ? null : Math.floor(Date.now() / 1000), r.id);
     if (removeMessage && r.target_kind === "message") db.prepare(`UPDATE network_messages SET removed = 1, body_enc = NULL, body_iv = NULL, body_tag = NULL WHERE id = ?`).run(r.target_id);
+    // D180 P3 (45r): a removed post / comment is gone for everyone, its words cleared.
+    if (removeMessage && r.target_kind === "post") db.prepare(`UPDATE network_posts SET removed_at = unixepoch(), body = NULL, link_url = NULL WHERE id = ?`).run(r.target_id);
+    if (removeMessage && r.target_kind === "comment") db.prepare(`UPDATE network_comments SET removed_at = unixepoch(), body = '' WHERE id = ?`).run(r.target_id);
   })();
   return { ok: true };
 }

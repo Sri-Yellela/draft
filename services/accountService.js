@@ -373,6 +373,9 @@ export const MERGE_PLAN = Object.freeze({
   // D185-2 (258): INTO's alert choice stands; FROM's alerted jobs fill in (one row per person and job — INTO's wins a clash),
   // so a job FROM was already told about is not mailed again to the merged person.
   match_alert_settings: "keepInto", match_alerts: "keepInto",
+  // D180 P3 (263): a merged person's helpful marks stay (one per post — INTO's own on a clash); What you share is a
+  // preference — INTO's stands. Posts and comments are keyed by author_id and go with FROM's row by cascade, like threads.
+  network_post_helpful: "keepInto", network_share_prefs: "keepInto",
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */

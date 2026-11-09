@@ -7628,6 +7628,74 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         END;
       `,
     },
+    {
+      // D180 P3 (45r, owner 11-08: "build ... and merge later") · THE FEED, behind the network switch (OFF by default).
+      // Posts from connections, CHRONOLOGICAL (no ranking); one reaction (helpful) and comments; proof moments only of the
+      // kinds the person turned on (network_share_prefs, every kind OFF until turned on) — an Atlas check passed becomes a
+      // post by the trigger below only when `checks` is on. Authors' posts and comments go with their account (CASCADE).
+      // network_reports gains 'post' and 'comment' (the table is rebuilt: SQLite can't widen a CHECK in place). Only ADDS
+      // otherwise; the report rows are copied as they are.
+      id: "263_network_feed",
+      sql: `
+        CREATE TABLE IF NOT EXISTS network_posts (
+          id           INTEGER PRIMARY KEY AUTOINCREMENT,
+          author_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          kind         TEXT    NOT NULL CHECK (kind IN ('post', 'job', 'proof')),
+          body         TEXT,
+          link_url     TEXT,
+          job_id       INTEGER,
+          proof_kind   TEXT,
+          proof_label  TEXT,
+          created_at   INTEGER NOT NULL DEFAULT (unixepoch()),
+          removed_at   INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_network_posts_author ON network_posts(author_id, id);
+        CREATE TABLE IF NOT EXISTS network_post_helpful (
+          post_id     INTEGER NOT NULL REFERENCES network_posts(id) ON DELETE CASCADE,
+          user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (post_id, user_id)
+        );
+        CREATE TABLE IF NOT EXISTS network_comments (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          post_id     INTEGER NOT NULL REFERENCES network_posts(id) ON DELETE CASCADE,
+          author_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          body        TEXT    NOT NULL,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          removed_at  INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_network_comments_post ON network_comments(post_id, id);
+        CREATE TABLE IF NOT EXISTS network_share_prefs (
+          user_id     INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          checks      INTEGER NOT NULL DEFAULT 0,
+          new_role    INTEGER NOT NULL DEFAULT 0,
+          updated_at  INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TRIGGER IF NOT EXISTS network_proof_check AFTER INSERT ON skill_proofs
+          WHEN NEW.state = 'checked' AND EXISTS (SELECT 1 FROM network_share_prefs p WHERE p.user_id = NEW.user_id AND p.checks = 1)
+        BEGIN
+          INSERT INTO network_posts (author_id, kind, proof_kind, proof_label) VALUES (NEW.user_id, 'proof', 'check', NEW.skill);
+        END;
+        CREATE TABLE IF NOT EXISTS network_reports_263 (
+          id                INTEGER PRIMARY KEY AUTOINCREMENT,
+          reporter_hash     TEXT    NOT NULL,
+          reported_user_id  INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          target_kind       TEXT    NOT NULL CHECK (target_kind IN ('message', 'thread', 'profile', 'post', 'comment')),
+          target_id         INTEGER,
+          reason            TEXT    NOT NULL,
+          details           TEXT,
+          status            TEXT    NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'actioned', 'dismissed')),
+          note              TEXT,
+          created_at        INTEGER NOT NULL DEFAULT (unixepoch()),
+          resolved_at       INTEGER
+        );
+        INSERT INTO network_reports_263 (id, reporter_hash, reported_user_id, target_kind, target_id, reason, details, status, note, created_at, resolved_at)
+          SELECT id, reporter_hash, reported_user_id, target_kind, target_id, reason, details, status, note, created_at, resolved_at FROM network_reports;
+        DROP TABLE network_reports;
+        ALTER TABLE network_reports_263 RENAME TO network_reports;
+        CREATE INDEX IF NOT EXISTS idx_network_reports_status ON network_reports(status, created_at);
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");

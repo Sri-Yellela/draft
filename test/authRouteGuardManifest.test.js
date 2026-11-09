@@ -245,6 +245,18 @@ const AUTHENTICATED = new Set([
   "POST /api/network/messages/:threadId/:action",
   "POST /api/network/message/:messageId/hide",
   "POST /api/network/report",
+  // D180 P3 (45r): the feed — requireAuth + the switch; a post / comment id is acted on only when the signed-in person can
+  // see it (their own or a connection's, never across a block — services/network/feed.js postFor → 404); remove = own only.
+  "GET /api/network/feed",
+  "POST /api/network/feed",
+  "POST /api/network/feed/:id/helpful",
+  "GET /api/network/feed/:id/comments",
+  "POST /api/network/feed/:id/comments",
+  "POST /api/network/feed/:kind/:id/remove",
+  "GET /api/network/share",
+  "PUT /api/network/share",
+  // D180 P4 (45r): connections at a company — only the signed-in person's own connections who show their experience.
+  "GET /api/network/at-company",
   // 45l–45n (classified 45o): D183 the profile page + replace / undo, D154 P9 stack exposure + the daily reminder — requireAuth,
   // every one scoped by req.user.id (an :id another person owns is not found under this user).
   "GET /api/profile/page",
