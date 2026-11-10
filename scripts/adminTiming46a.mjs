@@ -25,7 +25,7 @@ fs.copyFileSync(SRC, path.join(DIR, "resume_master.db"));
   db.close();
 }
 const env = { ...process.env, RM_DATA_DIR: DIR, PORT: String(PORT), NODE_ENV: "development", SESSION_SECRET: "a163-secret", ADMIN_ACCOUNTS_ENFORCE: "off",
-  DISCOVERY_PAUSED: "1", DRAFT_SCHEMA_READER: "off", MATCH_ALERTS: "off", NETWORK_DIGEST: "off", DAILY_REMINDERS: "off", RESEND_API_KEY: "", ANTHROPIC_API_KEY: "" };
+  DISCOVERY_PAUSED: "1", DRAFT_SCHEMA_READER: "off", MATCH_ALERTS: "off", NETWORK_DIGEST: "off", DAILY_REMINDERS: "off", RESEND_API_KEY: "", ANTHROPIC_API_KEY: "", ANTHROPIC_KEY: "", DOTENV_CONFIG_PATH: "./.no-dotenv-for-local-harness" };
 const server = spawn(process.execPath, ["server.js"], { env, stdio: ["ignore", "pipe", "pipe"] });
 let log = ""; server.stdout.on("data", d => { log += d; }); server.stderr.on("data", d => { log += d; });
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));

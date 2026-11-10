@@ -73,7 +73,7 @@ function resumeText(i, fn) {
 async function bootAndRegister() {
   fs.mkdirSync(OUT, { recursive: true });
   for (const f of fs.readdirSync(OUT)) if (/^resume_master\.db/.test(f)) fs.rmSync(path.join(OUT, f));
-  const env = { ...process.env, RM_DATA_DIR: OUT, PORT: String(PORT), ANTHROPIC_KEY: "", NODE_ENV: "development",
+  const env = { ...process.env, RM_DATA_DIR: OUT, PORT: String(PORT), ANTHROPIC_KEY: "", DOTENV_CONFIG_PATH: "./.no-dotenv-for-local-harness", NODE_ENV: "development",
     COOKIE_ENCRYPTION_KEY: crypto.randomBytes(32).toString("hex") };
   const child = spawn(process.execPath, ["server.js"], { env, stdio: ["ignore", "pipe", "pipe"] });
   let log = ""; child.stdout.on("data", d => { log += d; }); child.stderr.on("data", d => { log += d; });
