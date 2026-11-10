@@ -1,7 +1,7 @@
 // services/hirebase/filter.js — ⭐ HB-8 (D187 HB-INFRA): every Hirebase search body is BUILT from draft's own files, never
 // typed by hand — content/taxonomy/hirebase-category-map.json (which of Hirebase's categories map to draft's non-held
 // categories; `never` is never sent) and content/taxonomy/hirebase-boards.json (the boards draft already crawls →
-// `exclude_job_board` when skipOurBoards is on). US only, agencies hidden, incomplete listings filtered, the RAW
+// `exclude_job_board` when skipOurBoards is on). US only, agencies hidden, incomplete listings KEPT (owner 11-10), the RAW
 // description requested (draft's scoring, tailoring and schema reader read the full ATS text, not the summary).
 import fs from "node:fs";
 import path from "node:path";
@@ -35,7 +35,9 @@ export function buildSearchBody({ categories = null, daysAgo = null, datePosted 
     job_category: cats,
     geo_locations: [{ country: "United States" }],
     hide_recruiting_agencies: "true",
-    filter_incomplete_jobs: "true",
+    // OWNER 11-10 (46d): incomplete listings ARE requested — filter_incomplete_jobs removed ~97 % of the market in the free
+    // estimates (one day of US SWE 2,061 → 65); draft's own pipeline judges completeness, level and category.
+    filter_incomplete_jobs: "false",
     return_raw_description: "true",
     ...(skip && Array.isArray(boards.ourBoards) && boards.ourBoards.length ? { exclude_job_board: [...boards.ourBoards] } : {}),
     ...(daysAgo != null ? { days_ago: Number(daysAgo) } : {}),
