@@ -56,6 +56,10 @@ export default function NetworkPage() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  // ⭐ D183 P4 (46a): /app/network?message=<handle> (the public page's Message) opens the composer for that person — the
+  // server decides: a connection gets the conversation, anyone else a message REQUEST (capped a day, never past a block).
+  const messageTo = new URLSearchParams(location.search).get("message");
+  useEffect(() => { if (messageTo && !off) setWriting(messageTo); }, [messageTo, off]);
   const connectTo = new URLSearchParams(location.search).get("connect");
   useEffect(() => {
     if (!connectTo || off) return;
@@ -160,6 +164,9 @@ export default function NetworkPage() {
       {writing && (
         <section className="net__sec" data-net-writing={writing}>
           <h2>Message {writing}</h2>
+          {!(net.connections || []).some(c => c.handle === writing) && (
+            <p className="net__quiet" data-net-writing-request="">You aren't connected — this arrives as a message request they can accept or decline.</p>
+          )}
           <textarea className="net__note" rows={3} maxLength={4000} value={draft} onChange={e => setDraft(e.target.value)} placeholder="Write a message" aria-label="Write a message" />
           <div className="net__row"><DepthButton primary onClick={() => writeTo(writing)}>Send</DepthButton><DepthButton onClick={() => setWriting(null)}>Cancel</DepthButton></div>
         </section>

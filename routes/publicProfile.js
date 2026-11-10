@@ -9,7 +9,8 @@
 //   · ⛔ Never on it: email, phone, address, application defaults, job profiles, saved answers (they are not sections).
 //   · Skills as "Proven on draft" (with the date, and *see it* for a build) + "Also lists"; the line that says what
 //     proven means — "not a certification". Links as GitHub / LinkedIn marks.
-//   · Connect · Message wait for D180; until then a Share line (the address). Report this profile → profile_reports
+//   · Connect · Message (D180 / D183 P4, 46a) only while the network is on, never on your own page; always a Share line (the address).
+//     Report this profile → profile_reports
 //     (the moderation queue; at most REPORTS_PER_DAY from one sender a day). Admin reads / resolves it at
 //     /api/admin/profile-reports.
 //   · /p/<handle> (D109's proof page) answers 301 → /in/<handle> (routes/proofPage.js).
@@ -170,7 +171,7 @@ export function renderPublicProfile({ view, handle }, { origin = "", connect = f
   ${h.location ? `<div class="muted">${esc(h.location)}</div>` : ""}
   ${open ? `<div class="open">${open}</div>` : ""}
   <p class="muted" data-share="">Share: <a href="/in/${esc(handle)}">${esc(`${origin.replace(/^https?:\/\//, "")}/in/${handle}`)}</a></p>
-  ${connect ? `<p data-connect=""><a href="/app/network?connect=${encodeURIComponent(handle)}">Connect on draft</a> <span class="muted">— a request they can accept or ignore</span></p>` : ""}
+  ${connect ? `<p data-connect=""><a href="/app/network?connect=${encodeURIComponent(handle)}">Connect on draft</a> · <a data-message="" href="/app/network?message=${encodeURIComponent(handle)}">Message</a> <span class="muted">— a request they can accept or ignore</span></p>` : ""}
 </section>`);
   if (s.about?.summary) parts.push(`<section class="card" data-section="about"><h2>About</h2><p>${esc(s.about.summary)}</p></section>`);
   if (s.experience?.items?.length) parts.push(`<section class="card" data-section="experience"><h2>Experience</h2>${s.experience.items.map(x => `
