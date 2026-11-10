@@ -1320,6 +1320,40 @@
     "medianAge": 29,
     "probedAt": "2026-11-10T06:44:43.682Z"
    }
+  },
+  {
+   "company": "PG&E",
+   "atsType": "successfactors",
+   "slug": "careers.pge.com",
+   "industry": "energy",
+   "via": "j1",
+   "evidence": {
+    "fetched": 148,
+    "us": 148,
+    "fresh": 148,
+    "inScope": 73,
+    "cs30": 72,
+    "usPct": 100,
+    "medianAge": 11,
+    "probedAt": "2026-11-10T06:46:36.454Z"
+   }
+  },
+  {
+   "company": "Entergy",
+   "atsType": "successfactors",
+   "slug": "jobs.entergy.com",
+   "industry": "energy",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 146,
+    "fresh": 146,
+    "inScope": 33,
+    "cs30": 33,
+    "usPct": 97,
+    "medianAge": 17,
+    "probedAt": "2026-11-10T06:48:20.150Z"
+   }
   }
  ],
  "dropped": [
@@ -1393,33 +1427,6 @@
    ],
    "urls": [
     "https://wd1.myworkdaysite.com/en-US/recruiting/sutterhealth/SH/login"
-   ]
-  },
-  {
-   "company": "PG&E",
-   "industry": "energy",
-   "vendors": [
-    "successfactors"
-   ],
-   "hosts": [
-    "career4.successfactors.com"
-   ],
-   "urls": [
-    "https://career4.successfactors.com/career"
-   ]
-  },
-  {
-   "company": "Entergy",
-   "industry": "energy",
-   "vendors": [
-    "successfactors"
-   ],
-   "hosts": [
-    "rmkcdn.successfactors.com"
-   ],
-   "urls": [
-    "https://rmkcdn.successfactors.com/7c860e51/9e813328-5d1b-4ed9-a5ed-6.css",
-    "https://rmkcdn.successfactors.com/7c860e51/1cee8c85-5656-4667-bff9-9.jpg"
    ]
   },
   {
