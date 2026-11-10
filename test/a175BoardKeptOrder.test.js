@@ -9,6 +9,7 @@ import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import { at, lastAt } from "../test-support/sourceAnchors.js";
 import { buildOrderKeys, orderByClause } from "../services/jobs/jobCursor.js";
+import { createFacetsCache } from "../services/jobs/facetsCache.js";
 
 const block = (f) => { const s = fs.readFileSync(f, "utf8"); const i = at(s, 'id: "268_scraped_jobs_board_cover"'); return s.slice(lastAt(s, "    {", i), at(s, "    },", i) + 6); };
 const SRC = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
@@ -99,7 +100,7 @@ test("a175: server.js chooses the page by id, reads its columns by id in the pag
   const bind = at(SRC, "app.use(bindAuthContext);");
   const clear = at(SRC, "boardOrderCache.clearUser(req.user.id);");
   assert.ok(clear > bind);
-  assert.match(SRC, /const boardOrderCache = createFacetsCache\(\{ ttlMs: 60_000, max: 300 \}\);/);
+  assert.match(SRC, /const boardOrderCache = createFacetsCache\(\{ ttlMs: 5 \* 60 \* 1000, max: 300, staleMs: 15 \* 60 \* 1000 \}\);/);
   // the columns' read is keyed by an alias the page drops before mapping
   assert.match(BOARD, /\.map\(\(\{ __page_job_id, \.\.\.r \}\) => r\)/);
 });
@@ -116,5 +117,26 @@ test("a177: the order is WARMED after a person's scoring lands and on sign-in; a
   assert.match(SRC, /for \(const query of \[\{\}, \{ sort: "atsScore" \}\]\) await boardPageResponse\(\{ user: \{ id: userId \}, query \}, \{ warmOrder: true \}\);/);
   // the two moments: the match queue's board_scored, and a sign-in
   assert.match(SRC, /emitToUser\(userId, \{ type: "board_scored", profileId: profile\.id, scored: r\.scored, waiting: q\.ids\.size \}\); warmBoardOrder\(userId\); \}/);
-  assert.match(SRC, /setTimeout\(\(\) => warmBoardOrder\(user\.id\), 0\)/);
+  assert.match(SRC, /setTimeout\(\(\) => warmBoardOrder\(user\.id, \{ facets: true \}\), 0\)/);
+});
+
+test("a175 facets: a recount older than the TTL is answered at once (stale) while ONE refresh runs; a write still drops it", async () => {
+  let t = 0, n = 0, release = null;
+  const cache = createFacetsCache({ now: () => t, ttlMs: 100, staleMs: 1000 });
+  const first = await cache.get("7|1|", () => ({ status: 200, body: { total: ++n } }));
+  assert.equal(first.cache, "miss");
+  t = 500;   // past the TTL, inside the stale window
+  const slow = () => new Promise(r => { n++; release = () => r({ status: 200, body: { total: n } }); });
+  const a = await cache.get("7|1|", slow), b = await cache.get("7|1|", slow);
+  assert.deepEqual([a.cache, a.value.body.total, b.cache, n], ["stale", 1, "stale", 2], "answered at once; ONE refresh started");
+  release(); await new Promise(r => setTimeout(r, 0));
+  assert.equal((await cache.get("7|1|", slow)).value.body.total, 2, "the refresh replaced it");
+  cache.clearUser(7);
+  t = 2000;
+  assert.equal((await cache.get("7|1|", () => ({ status: 200, body: { total: 99 } }))).cache, "miss", "their write dropped it");
+  // off by default: no stale answers unless asked for
+  let u = 0; const plain = createFacetsCache({ now: () => u, ttlMs: 100 });
+  await plain.get("1|1|", () => ({ status: 200, body: {} })); u = 500;
+  assert.equal((await plain.get("1|1|", () => ({ status: 200, body: {} }))).cache, "miss");
+  assert.match(SRC, /const facetsCache = createFacetsCache\(\{ ttlMs: 5 \* 60 \* 1000, staleMs: 15 \* 60 \* 1000 \}\);/);
 });
