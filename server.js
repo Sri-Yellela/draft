@@ -8316,14 +8316,14 @@ try {
 
 // ── Seed admin user ───────────────────────────────────────────
 // Cache cleanup — removes scraped_jobs older than 7 days, then re-warms if empty
-function runCacheCleanup() {
+async function runCacheCleanup() {
   try {
     // ⛔ A49 fix 5 — this was a second, UNGUARDED expiry: a bare delete of every scraped_jobs row
     // whose scraped_at was past the cutoff, on a 24h setInterval from boot. It deleted
     // starred and APPLIED rows (which runExpiredJobsCleanup exempts), retired duplicates, and ran
     // with no blast-radius brake and no cleanup_log record — the cleanup_log id-85 shape, unlogged.
     // There is one expiry policy, and this now runs it.
-    runExpiredJobsCleanup();
+    await runExpiredJobsCleanup();
     const remaining = db.prepare("SELECT COUNT(*) as n FROM scraped_jobs WHERE is_active = 1").get()?.n || 0;
     if (remaining === 0) {
       console.log("[Cache] Empty after cleanup — re-warming from ATS...");
@@ -8518,7 +8518,17 @@ function markRollupsRan() {
   } catch { /* the next boot runs them again, as before */ }
 }
 let cleanupRunsThisProcess = 0;   // the first run in a process is the startup one (its BOOT.add step)
+// ⛔ A173 (46c): the expiry DELETE runs in slices that yield to requests. Production 11-10 16:24Z: one statement deleted
+// 2,552 postings in ≈ 18 s on the one thread (≈ 7 ms a row — the triggers and indexes), inside the boot warm-up, so ready
+// moved 5.5 s → 25.9 s while the old container was already stopped (the deploy window is an outage). 25 rows ≈ 200 ms.
+const EXPIRY_SLICE_ROWS = 25;
+let expiryInFlight = null;   // one pass at a time: the 03:00 cron, the boot step and the cache cleanup never overlap
 function runExpiredJobsCleanup() {
+  if (expiryInFlight) return expiryInFlight;
+  expiryInFlight = runExpiredJobsCleanupPass().finally(() => { expiryInFlight = null; });
+  return expiryInFlight;
+}
+async function runExpiredJobsCleanupPass() {
   const cutoff = Math.floor(Date.now()/1000) - 7*24*60*60;
   const startup = cleanupRunsThisProcess++ === 0;
   if (startup && rollupsRanWithin(20 * 3600)) {
@@ -8596,7 +8606,19 @@ function runExpiredJobsCleanup() {
   let brakedRetired = 0;
   if (scope.allowed) {
     if (scope.reason) console.warn(`[cleanup] ${scope.reason}`);
-    deletedJobs = db.prepare(`DELETE FROM scraped_jobs WHERE ${EXPIRED_PREDICATE}`).run(cutoff);
+    // ⛔ A173: the same predicate, ≤ EXPIRY_SLICE_ROWS rows a statement (each its own short write), a yield between, and
+    // never more than the count the brake assessed. A row re-seen by a crawl between slices no longer matches and stays.
+    const expireSlice = db.prepare(`DELETE FROM scraped_jobs WHERE ${EXPIRED_PREDICATE}
+      AND id IN (SELECT id FROM scraped_jobs WHERE ${EXPIRED_PREDICATE} LIMIT ?)`);
+    let slices = 0;
+    const t0 = Date.now();
+    while (deletedJobs.changes < wouldDelete) {
+      const n = expireSlice.run(cutoff, cutoff, Math.min(EXPIRY_SLICE_ROWS, wouldDelete - deletedJobs.changes)).changes;
+      deletedJobs.changes += n; slices++;
+      if (n === 0 || deletedJobs.changes >= wouldDelete) break;
+      await new Promise(r => setImmediate(r));
+    }
+    if (slices > 1) console.log(`[cleanup] expired ${deletedJobs.changes} in ${slices} slices over ${Date.now() - t0} ms`);
   } else {
     // NOT a silent skip. The rows still leave discovery — that part of the policy is correct and
     // unchanged — but the text survives, so the decision stays reversible by anyone who reads this.
@@ -8666,7 +8688,7 @@ function runExpiredJobsCleanup() {
 }
 
 // ── Cron: daily backup 02:00, re-scrape 07:00, cleanup 03:00 ──
-cron.schedule("0 3 * * *", runExpiredJobsCleanup);
+cron.schedule("0 3 * * *", () => runExpiredJobsCleanup().catch(e => console.warn("[cleanup] nightly cleanup failed:", e.message)));
 // ⛔ Owner 11-07 · the early-testing records the privacy page keeps 90 days are deleted after them (survey answers exempt).
 cron.schedule("40 3 * * *", () => {
   try {
@@ -16932,7 +16954,9 @@ app.listen(PORT, () => {
   // (job-history 3.5 s + ghost-score 4.5 s) right AFTER the healthcheck had switched traffic (11-03 23:35Z dial timeouts).
   BOOT.add("startup expired-jobs cleanup", () => {
     console.log("[boot] running startup expired-jobs cleanup");
-    try { runExpiredJobsCleanup(); }
+    // ⛔ A173: NOT awaited — the rollups, the count and the brake run inside this step (until the first slice's yield);
+    // a large expiry's remaining slices finish after ready, answering requests between them.
+    try { runExpiredJobsCleanup().catch(e => console.warn("[cleanup] startup cleanup failed:", e.message)); }
     catch(e) { console.warn("[cleanup] startup cleanup failed:", e.message); }
   });
   // The board's fit, reconciled once after boot. Incremental, so on every boot after the first it
