@@ -59,7 +59,8 @@ let server = null;
 async function startServer() {
   if (await up()) { console.log(`server already listening on :3001`); return; }
   server = spawn(process.execPath, [path.join(ROOT, "server.js")], {
-    cwd: ROOT, env: { ...process.env, NODE_ENV: "development" }, stdio: ["ignore", "pipe", "pipe"],
+    // 46c: the model key blanked and .env kept out (harnessNoLiveKey).
+    cwd: ROOT, env: { ...process.env, NODE_ENV: "development", ANTHROPIC_KEY: "", DOTENV_CONFIG_PATH: "./.no-dotenv-for-local-harness" }, stdio: ["ignore", "pipe", "pipe"],
   });
   for (let i = 0; i < 60; i++) { if (await up()) return; await sleep(500); }
   throw new Error("server did not come up");

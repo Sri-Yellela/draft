@@ -13,7 +13,10 @@ const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => 
 
 test("every script that boots server.js blanks ANTHROPIC_KEY and blocks .env", () => {
   const files = [...walk("scripts"), ...walk("test-support")].filter(f => /\.(m?js)$/.test(f));
-  const booting = files.filter(f => /spawn\(process\.execPath, \[\s*"server\.js"/.test(fs.readFileSync(f, "utf8")));
+  // 46c: any spawn of node whose argument list names server.js — scripts/scaleSuite.mjs puts "--import" flags first and
+  // escaped the earlier `["server.js"` match (it blanked the key but loaded the rest of .env).
+  const booting = files.filter(f => /spawn\(process\.execPath, \[[^;]{0,300}?"server\.js"/.test(fs.readFileSync(f, "utf8")));
+  assert.ok(booting.some(f => /scaleSuite\.mjs$/.test(f)), "the scale suite boots the server too");
   assert.ok(booting.length >= 4, `found ${booting.length} server-booting scripts`);
   for (const f of booting) {
     const s = fs.readFileSync(f, "utf8");

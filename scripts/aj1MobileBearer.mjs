@@ -113,6 +113,7 @@ const server = spawn(process.execPath, [path.join(ROOT, "server.js")], {
     RM_DATA_DIR: DATA_DIR,
     PORT: String(PORT),
     NODE_ENV: "development",
+    ANTHROPIC_KEY: "", DOTENV_CONFIG_PATH: "./.no-dotenv-for-local-harness",   // 46c: harnessNoLiveKey
     // D95: boot creates the admin_accounts row (no password; test-support/d95HarnessAdmin.mjs sets one).
     ...d95AdminEnv(ADMIN_EMAIL),
     SESSION_SECRET: "aj1-harness-secret",
