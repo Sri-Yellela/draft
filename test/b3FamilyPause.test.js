@@ -35,7 +35,7 @@ test("b3FamilyChangePausesApplyForMe · a category move on full auto pauses Appl
   assert.equal(applyPausedForFamily(db, 1), false);
   assert.equal(row(db).domain, "pm_construction", "Keep follows the new family");
   const sched = fs.readFileSync("services/autoScheduler.js", "utf8");
-  assert.match(sched, /if \(mode === "apply" && applyPausedForFamily\(db, u\.id\)\) \{ out\.push\(\{ userId: u\.id, skipped: "family_changed" \}\); continue; \}/);
+  assert.match(sched, /if \(mode === "apply" && applyPausedForFamily\(db, u\.id\)\) \{ res\.push\(\{ userId: u\.id, skipped: "family_changed" \}\); return res; \}/);   // A166: the tick body is runOneUser
 });
 
 test("b3 · Change back restores the old family; Undo of the replace also lifts the pause", () => {

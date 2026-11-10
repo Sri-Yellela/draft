@@ -428,6 +428,7 @@ export function AutoApplyPanel({ user = null } = {}) {
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [rowMsg, setRowMsg] = useState("");
+  const [runNowState, setRunNowState] = useState({ busy: false, msg: "" });   // ⭐ A166 (2) Run now
   const [pickMsg, setPickMsg] = useState("");
   // U4 · "Make it now", per pick: { busy } while it is made, then { ok, message, atsScore }.
   const [madeNow, setMadeNow] = useState({});
@@ -1038,6 +1039,22 @@ export function AutoApplyPanel({ user = null } = {}) {
   const runAt = (t) => { const [h, m] = t.split(":").map(Number); return `${h % 12 || 12}${m ? `:${String(m).padStart(2, "0")}` : ""} ${h < 12 ? "AM" : "PM"}`; };
   const runTimes = (Array.isArray(settings?.runTimes) ? settings.runTimes : []).filter(t => /^\d\d:\d\d$/.test(t)).map(runAt);
   const runsWord = !runTimes.length ? "" : `Runs at ${runTimes.length > 1 ? `${runTimes.slice(0, -1).join(", ")} and ${runTimes[runTimes.length - 1]}` : runTimes[0]}`;
+  // ⭐ A166 (1) (owner 11-10: "the timeline says it runs at 9am, does it mean the auto apply happens at this time regardless
+  // of when i draft it"): the run times are when draft LOOKS for new picks; a Draft you press runs at once. Said plainly.
+  const runsNote = runTimes.length ? "A Draft you press runs right away — these are when draft picks new jobs for you." : "";
+  // ⭐ A166 (2) · Run now: the scheduled batch at once (POST /api/apply/run-now — the same picks, caps and rules).
+  const runNow = async () => {
+    setRunNowState({ busy: true, msg: "" });
+    try {
+      const r = await api("/api/apply/run-now", { method: "POST" });
+      const msg = r?.started ? `Started — ${r.started} application${r.started === 1 ? "" : "s"} in this batch.`
+        : r?.picked ? `${r.picked} pick${r.picked === 1 ? "" : "s"} ready for you.`
+        : r?.skipped === "nothing_new" ? "Nothing new to pick since the last run."
+        : r?.skipped === "daily_cap" ? "Today's limit is already reached."
+        : r?.skipped ? "Nothing was started." : "Done.";
+      setRunNowState({ busy: false, msg });
+    } catch (e) { setRunNowState({ busy: false, msg: e.message || "Couldn't start — try again." }); }
+  };
   const timelineHead = (
     // ⭐ D149 (11-03) · the sketch's .tl head: "Auto-apply" (15 / 600) over "Ask me first · runs at 9 AM and 6 PM". The
     // running sentence is not on the sketch (shown only while paused). Pause — the safety stop — stays here as one
@@ -1052,6 +1069,16 @@ export function AutoApplyPanel({ user = null } = {}) {
       </div>
       {/* D182 (45n): no mode words here — the header's mode switch already shows Ask me first / Apply for me. */}
       {runsWord && <p className="dht-head__sub">{runsWord}</p>}
+      {runsNote && <p className="dht-head__sub" data-runs-note="">{runsNote}</p>}
+      {(fullAuto || picksOn) && !held && (
+        <p className="dht-head__sub" data-run-now-row="">
+          <button type="button" className="dht-link" data-run-now="" disabled={runNowState.busy || !runBar}
+            title="Start the next batch now — the same picks, limits and rules as a run time" onClick={runNow}>
+            {runNowState.busy ? "Starting…" : "Run now"}
+          </button>
+          {runNowState.msg && <span role="status" data-run-now-msg=""> {runNowState.msg}</span>}
+        </p>
+      )}
       {held && <p className="dht-head__say" data-house-sentence="">{sentence}</p>}
     </div>
   );

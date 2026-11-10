@@ -2318,6 +2318,42 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     }
   }
 
+  // ⭐ A166 (3) (owner 11-10: "resumes should also be prepared along at the same time in batches for cache savings").
+  // A scheduled (or Run now) FULL AUTO run used to write each résumé inside its own job, two jobs at a time
+  // (APPLY_WORKER_LIMIT) with a browser fill of minutes between them — so the third job's call came after the 5-minute
+  // prompt cache (the tools service's system prompt + bullet craft, cache_control: ephemeral) had gone cold, and paid
+  // the full input price again. Now the run writes every résumé it WILL use first, back to back, then fills: each job
+  // finds a current artifact (services/resumeCurrency.js → CASE A) and generates nothing.
+  // ⛔ It never writes a résumé a job would not have written: only an unattended run (mode 'auto', approval 'auto' —
+  // a preview defers generation, AL2), only while the kill switch is off and the FA6 safety gate is green, only for a
+  // provider inside v1's scope, only up to the daily cap, and only where no current artifact exists. Any failure here is
+  // ignored — the job's own path generates (or holds) exactly as before. DRAFT_BATCH_RESUMES=off turns it off.
+  const BATCH_PROVIDERS = new Set(["greenhouse", "lever", "ashby"]);
+  const prepareRunResumes = async (run, jobs) => {
+    const report = { prepared: 0, reused: 0, skipped: 0, failed: 0, reason: null };
+    if (String(process.env.DRAFT_BATCH_RESUMES || "").toLowerCase() === "off") return { ...report, reason: "switch_off" };
+    if ((run.mode || "auto") !== "auto" || (run.approval_mode || "auto") !== "auto") return { ...report, reason: "not_unattended" };
+    if (jobs.length < 2) return { ...report, reason: "single_job" };
+    if (userApplyMode(run.user_id) !== "auto") return { ...report, reason: "mode_semi" };   // it would hold full_auto_not_chosen
+    if (fullAutoDisabled() || fullAutoBlocked(db)) return { ...report, reason: "gate_closed" };
+    const toolType = run.tool_type || "generate";
+    let room = Math.max(0, APPLY_DAILY_CAP - submittedLast24h(run.user_id));
+    for (const job of jobs) {
+      if (userHeld(db, run.user_id)) { report.reason = "held"; break; }
+      if (room <= 0) { report.skipped++; continue; }
+      const sj = db.prepare("SELECT apply_url, url FROM scraped_jobs WHERE job_id = ?").get(job.job_id) || {};
+      if (!BATCH_PROVIDERS.has(detectPlatformFromUrl(sj.apply_url || sj.url || ""))) { report.skipped++; continue; }
+      room--;
+      try {
+        if (artifactCurrency(db, { userId: run.user_id, jobId: job.job_id, tool: toolType }).current) { report.reused++; continue; }
+        const gen = await withRequestId(runJobRequestId(run.id, job.id), () => withStartedBy(startedByOfRun(run),
+          () => generateResumeForApply(run.user_id, job.job_id, toolType)));
+        if (gen?.html) report.prepared++; else report.failed++;
+      } catch { report.failed++; }
+    }
+    return report;
+  };
+
   const processRun = async (run) => {
     // D25: set when this run went back to the line because of the user's hold. Such a run must not
     // re-dispatch the line on its way out: if the line's check and this one ever disagreed, that
@@ -2335,6 +2371,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       }
       db.prepare(`UPDATE apply_runs SET status='running', started_at=unixepoch() WHERE id=?`).run(run.id);
       const jobs = db.prepare(`SELECT * FROM apply_run_jobs WHERE run_id=? AND status='queued' ORDER BY id`).all(run.id);
+      // ⭐ A166 (3): the run's résumés first, back to back, while the prompt cache is warm.
+      try {
+        const prep = await prepareRunResumes(run, jobs);
+        if (prep.prepared || prep.reused || prep.failed) console.log(`[apply] run=${run.id} résumés prepared as one batch: ${JSON.stringify(prep)}`);
+      } catch (e) { console.warn(`[apply] run=${run.id} résumé batch skipped: ${e.message}`); }
 
       const runningJobs = [];
       let heldMidRun = false;
