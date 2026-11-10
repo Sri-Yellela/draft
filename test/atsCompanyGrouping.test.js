@@ -28,6 +28,7 @@ const ROWS = [
   { company: "Icimsco",    ats_type: "icims",           ats_slug: "careers-icimsco" },   // A161
   { company: "Oracleco",   ats_type: "oracle",          ats_slug: "fa-x.fa.ocs.oraclecloud.com|CX_1" },   // 46a
   { company: "Taleoco",    ats_type: "taleo",           ats_slug: "taleoco|ex" },   // 46a
+  { company: "Sfco",       ats_type: "successfactors",  ats_slug: "careers.sfco.com" },   // 46b
 ];
 
 test("grouping covers every registered direct-ATS source, not just the original three", () => {

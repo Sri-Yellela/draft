@@ -21,13 +21,14 @@ import { fetchCompanyJobs as rippling } from "./jobs/sources/rippling.js";
 import { fetchCompanyJobs as icims } from "./jobs/sources/icims.js";
 import { fetchCompanyJobs as oracle, parseSlug as parseOracleSlug } from "./jobs/sources/oracle.js";
 import { fetchCompanyJobs as taleo, parseSlug as parseTaleoSlug } from "./jobs/sources/taleo.js";
+import { fetchCompanyJobs as successfactors, isCsbHost } from "./jobs/sources/successfactors.js";
 import { usEligibility } from "./jobs/usLocation.js";
 import { fetchDescription, hasDetailFetcher } from "./jobs/detailFetch.js";
 import { auditActorColumns } from "./actor.js";
 import { boardCounts, countsFor } from "./companyHeat.js";
 import { harvestPairOf } from "./slugHarvest.js";   // 46a: a capture's URL → its full board pair (a call-time use; slugHarvest imports this file too)
 
-export const ATS_FETCHERS = Object.freeze({ greenhouse, lever, ashby, smartrecruiters, workable, recruitee, workday, bamboohr, gem, rippling, icims, oracle, taleo });
+export const ATS_FETCHERS = Object.freeze({ greenhouse, lever, ashby, smartrecruiters, workable, recruitee, workday, bamboohr, gem, rippling, icims, oracle, taleo, successfactors });
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._|-]{0,119}$/;
 // 46a: the boards whose slug has parts — checked with each source's own parser, so the shape and the fetcher never disagree.
 const SLUG_SHAPES = {
@@ -37,6 +38,9 @@ const SLUG_SHAPES = {
     message: "An Oracle Recruiting Cloud board is \"<host>|<site>\" — e.g. fa-xxxx.fa.ocs.oraclecloud.com|CX_1. Paste the careers page URL instead." },
   taleo: { ok: (s) => !!parseTaleoSlug(s),
     message: "A Taleo board is \"<tenant>|<section>\" — e.g. hdr|ex for https://hdr.taleo.net/careersection/ex/jobsearch.ftl. Paste the careers page URL instead." },
+  // 46b: a SuccessFactors Career Site Builder board is the career site's own host (services/jobs/sources/successfactors.js).
+  successfactors: { ok: (s) => isCsbHost(s),
+    message: "A SuccessFactors career site is its host — e.g. careers.bv.com (the site whose postings read /job/<title>/<id>/)." },
 };
 const AUDIT = { ADD: "company_add", ACTIVE: "company_active" };
 

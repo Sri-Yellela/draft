@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { poolCandidates } from "./companyCandidates.js";
+import { isCsbHost } from "./jobs/sources/successfactors.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const SEED_FILE = path.join(ROOT, "content", "companies", "candidates-nontech-45s.json");
@@ -26,6 +27,8 @@ const BOARD_URL = {
   // 46a: Taleo's slug is "<tenant>|<section>" (services/jobs/sources/taleo.js).
   taleo: (s) => { const [t, sec] = String(s).split("|"); return /^[a-z0-9][a-z0-9-]{0,62}$/i.test(t || "") && /^[A-Za-z0-9_-]{1,40}$/.test(sec || "")
     ? `https://${t.toLowerCase()}.taleo.net/careersection/${sec}/jobsearch.ftl` : null; },
+  // 46b: SuccessFactors Career Site Builder — the slug is the career site's own host.
+  successfactors: (s) => (isCsbHost(String(s).toLowerCase()) ? `https://${String(s).toLowerCase()}/` : null),
 };
 
 /** The seed file as pool items ({ company, ats: { atsType, slug, url }, … }). */

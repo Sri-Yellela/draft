@@ -51,6 +51,8 @@ export const ATS_PROVIDER_NAMES = Object.freeze([
   "smartrecruiters", "workable", "bamboohr", "recruitee", "linkedin",
   // A112 (11-02) made Gem and Rippling crawled sources; as with Workday, an employer named exactly so reads as the ATS.
   "gem", "rippling",
+  // 46b: SAP SuccessFactors (Career Site Builder) is crawled — its postings carry the employer's own name.
+  "successfactors",
 ]);
 
 /**

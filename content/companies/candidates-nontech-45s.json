@@ -1252,6 +1252,40 @@
     "medianAge": 3,
     "probedAt": "2026-11-10T02:11:38.355Z"
    }
+  },
+  {
+   "company": "Hensel Phelps",
+   "atsType": "successfactors",
+   "slug": "careers.henselphelps.com",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 146,
+    "fresh": 146,
+    "inScope": 22,
+    "cs30": 22,
+    "usPct": 97,
+    "medianAge": 0,
+    "probedAt": "2026-11-10T06:34:08.900Z"
+   }
+  },
+  {
+   "company": "Black & Veatch",
+   "atsType": "successfactors",
+   "slug": "careers.bv.com",
+   "industry": "engineering services",
+   "via": "j1",
+   "evidence": {
+    "fetched": 118,
+    "us": 114,
+    "fresh": 114,
+    "inScope": 65,
+    "cs30": 65,
+    "usPct": 97,
+    "medianAge": 10,
+    "probedAt": "2026-11-10T06:34:26.667Z"
+   }
   }
  ],
  "dropped": [
@@ -1286,35 +1320,6 @@
    ],
    "urls": [
     "https://jobs.jobvite.com/__assets__/scripts/careersite/public/iframe.js"
-   ]
-  },
-  {
-   "company": "Hensel Phelps",
-   "industry": "construction",
-   "vendors": [
-    "successfactors"
-   ],
-   "hosts": [
-    "performancemanager8.successfactors.com",
-    "rmkcdn.successfactors.com"
-   ],
-   "urls": [
-    "https://performancemanager8.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery.js",
-    "https://performancemanager8.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery-migrate.js",
-    "https://rmkcdn.successfactors.com/9645d618/46f90bff-c8b8-4ffb-a181-8.css"
-   ]
-  },
-  {
-   "company": "Black & Veatch",
-   "industry": "engineering services",
-   "vendors": [
-    "successfactors"
-   ],
-   "hosts": [
-    "career4.successfactors.com"
-   ],
-   "urls": [
-    "https://career4.successfactors.com/careers"
    ]
   },
   {
