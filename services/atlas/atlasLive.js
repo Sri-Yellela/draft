@@ -199,6 +199,20 @@ export function startAtlasDrainer(db, { budgetMs = 100, restMs = 100, idleMs = 5
   return () => { stopped = true; clearTimeout(timer); };
 }
 
+/** Match rows a bounded slice checks for orphans (≈ 20 ms at 4,000 on the 100k copy). */
+export const ORPHAN_SWEEP_ROWS = 4000;
+const orphanCursor = new WeakMap();   // db → the last posting_id swept; wraps to 0 at the end of the table
+/** The next ORPHAN_SWEEP_ROWS match rows after the cursor: those whose posting is gone. Advances (and wraps) the cursor. */
+export function orphanSweepChunk(db, rows = ORPHAN_SWEEP_ROWS) {
+  const after = orphanCursor.get(db) || 0;
+  const ids = db.prepare(`SELECT posting_id FROM atlas_posting_match WHERE posting_id > ? ORDER BY posting_id LIMIT ?`).pluck().all(after, rows);
+  if (!ids.length) { orphanCursor.set(db, 0); return []; }
+  const last = ids[ids.length - 1];
+  orphanCursor.set(db, ids.length < rows ? 0 : last);
+  return db.prepare(`SELECT posting_id FROM atlas_posting_match WHERE posting_id > ? AND posting_id <= ?
+      AND posting_id NOT IN (SELECT id FROM scraped_jobs)`).pluck().all(after, last);
+}
+
 function syncNow(db, now, limit = Infinity) {
   const all = !Number.isFinite(limit);
   const dirty = all
@@ -212,7 +226,13 @@ function syncNow(db, now, limit = Infinity) {
   const getRow = db.prepare(`SELECT * FROM atlas_posting_match WHERE posting_id = ?`);
   // A posting replaced under a new id (INSERT OR REPLACE fires no delete trigger) leaves its old row: swept here — by the
   // slice that empties the queue (the sweep scans every match row, so not on every slice of a backlog).
-  const orphans = pendingAfter ? [] : db.prepare(`SELECT posting_id FROM atlas_posting_match WHERE posting_id NOT IN (SELECT id FROM scraped_jobs)`).pluck().all();
+  // ⛔ A174 (46c): the WHOLE sweep only on an unbounded sync (the nightly pass, scripts); a bounded slice — every write
+  // path, every read and the background drainer — sweeps the next ORPHAN_SWEEP_ROWS match rows from a rolling cursor.
+  // The whole sweep was 0.43 s at 75,900 match rows on the 100k copy, run by EVERY slice that emptied the queue (one
+  // posting written was enough); after A173's 2,552-posting expiry it held the boot's thread 2.8 s.
+  const orphans = pendingAfter ? [] : all
+    ? db.prepare(`SELECT posting_id FROM atlas_posting_match WHERE posting_id NOT IN (SELECT id FROM scraped_jobs)`).pluck().all()
+    : orphanSweepChunk(db);
   const work = new Set([...dirty, ...orphans]);
 
   // 1. The companies touched, adjusted in place: the posting's old sentences out, its new ones in.
