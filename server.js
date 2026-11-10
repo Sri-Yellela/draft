@@ -118,6 +118,9 @@ import { unlocksFor, activeProfileFor } from "./services/jobs/skillUnlocks.js";
 import { contentBacklog, draftOutline, reviewOutline, readBacklogItem } from "./services/atlas/risingSkills.js";
 import { enqueue as enqueueJob, registerHandler as registerJob, startWorker as startJobWorker, pruneJobs, queueStats } from "./services/ops/jobQueue.js";
 import { fillPostingInputHashes } from "./services/jobs/postingInputHashes.js";
+import { createHirebaseClient } from "./services/hirebase/client.js";
+import { runSizing, runSample } from "./services/hirebase/runners.js";
+import { hirebaseState, sizingQueries, setCaps as setCapsHirebase } from "./services/hirebase/admin.js";
 import { completeProfileForApply, contactGaps } from "./services/applyProfileFill.js";
 import { archiveSlice, archiveEnabled, archiveState, ARCHIVE_SETTING } from "./services/jobs/postingArchive.js";   // D151 Rule 4 (45s)
 import { seedTaxonomyRoles } from "./services/atlas/taxonomyRoleNodes.js";
@@ -13835,6 +13838,32 @@ app.put("/api/admin/posting-archive", requireAdmin, (req, res) => {
   try { writeAudit(db, { actor: actorOf(req), action: "posting_archive_switch", target: ARCHIVE_SETTING, before: { on: before }, after: { on: req.body.enabled } }); }
   catch (e) { console.warn("[archive] the audit row was not written:", e.message); }
   res.json(archiveState(db));
+});
+// ⭐ D187 HB-10 · Admin → System → Hirebase (services/hirebase/admin.js): the switches (HIREBASE_ENABLED off, HIREBASE_DRY_RUN
+// on by default — Railway variables, not here), the month / day caps (audited), what is used (Hirebase's own headers), the
+// runs, and the two runs HB-9 makes first: the free sizing estimates and the one-page sample. Every call goes through the
+// client and its spend guard (services/hirebase/client.js); with the switches as they ship, both are DRY RUNS.
+const hirebaseClient = () => createHirebaseClient({ db, fetchImpl: globalThis.fetch });
+app.get("/api/admin/hirebase", requireAdmin, (_req, res) => {
+  try { res.json(hirebaseState(db)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put("/api/admin/hirebase", requireAdmin, (req, res) => {
+  try {
+    const before = hirebaseState(db).caps;
+    const toInt = (v) => (v === undefined || v === null || v === "" ? null : Number(v));
+    const after = setCapsHirebase(db, { month: toInt(req.body?.monthCap), day: toInt(req.body?.dayCap) });
+    try { writeAudit(db, { actor: actorOf(req), action: "hirebase_caps", target: "hirebase_month_cap/hirebase_day_cap", before, after }); }
+    catch (e) { console.warn("[hirebase] the audit row was not written:", e.message); }
+    res.json(hirebaseState(db));
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+app.post("/api/admin/hirebase/sizing", requireAdmin, async (_req, res) => {
+  try { const r = await runSizing(db, hirebaseClient(), sizingQueries()); res.json({ ...r, state: hirebaseState(db) }); }
+  catch (e) { res.status(e.code === "quota_exceeded" ? 429 : 502).json({ error: e.message, code: e.code || null }); }
+});
+app.post("/api/admin/hirebase/sample", requireAdmin, async (_req, res) => {
+  try { const r = await runSample(db, hirebaseClient()); res.json({ ...r, state: hirebaseState(db) }); }
+  catch (e) { res.status(502).json({ error: e.message, code: e.code || null }); }
 });
 app.get("/api/admin/jobs", requireAdmin, (req, res) => {
   try { res.json({ kinds: queueStats(db) }); } catch (e) { res.status(500).json({ error: e.message }); }

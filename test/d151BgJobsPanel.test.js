@@ -13,7 +13,7 @@ test("d151BgJobsPanel: Diagnostics mounts the Background jobs section, which rea
   assert.match(panel, /export function BackgroundJobsSection\(\)/);
   assert.match(panel, /api\("\/api\/admin\/jobs"\)/);
   for (const f of ["waiting", "running", "failedDay", "oldestWaiting", "slowestMs"]) assert.ok(panel.includes(`k.${f}`), `the row shows ${f}`);
-  assert.match(admin, /at\("system", "diagnostics"\) && <><DiagnosticsTab\/><BackgroundJobsSection\/><PostingArchiveSection\/><\/>/);
+  assert.match(admin, /at\("system", "diagnostics"\) && <><DiagnosticsTab\/><BackgroundJobsSection\/><PostingArchiveSection\/>(<HirebaseSection\/>)?<\/>/);   // D187 HB-10 adds Hirebase after
   const server = read("server.js");
   assert.match(server, /app\.get\("\/api\/admin\/jobs", requireAdmin,/);
 });

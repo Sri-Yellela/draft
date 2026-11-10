@@ -94,3 +94,60 @@ export function PostingArchiveSection() {
     </Panel>
   );
 }
+
+// ⭐ D187 HB-10 · Admin → System → Hirebase (GET / PUT /api/admin/hirebase): whether anything can be sent (HIREBASE_ENABLED,
+// HIREBASE_DRY_RUN — Railway variables), the month / day caps and what is used (Hirebase's own Usage headers), the runs with
+// their counts, and the two first runs — the free sizing estimates and the one-page sample (HB-9). Both obey the caps.
+export function HirebaseSection() {
+  const [s, setS] = useState(null);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState("");
+  const [caps, setCaps] = useState({ month: "", day: "" });
+  const load = useCallback(() => api("/api/admin/hirebase").then(r => { setS(r); setCaps({ month: String(r.caps.month), day: String(r.caps.day) }); setErr(""); })
+    .catch(e => setErr(e.message)), []);
+  useEffect(() => { load(); }, [load]);
+  const saveCaps = async () => { try { setS(await api("/api/admin/hirebase", { method: "PUT", body: JSON.stringify({ monthCap: caps.month, dayCap: caps.day }) })); } catch (e) { setErr(e.message); } };
+  const run = async (what) => {
+    setBusy(what); setErr("");
+    try { const r = await api(`/api/admin/hirebase/${what}`, { method: "POST", body: "{}" }); setS(r.state); }
+    catch (e) { setErr(e.message); } finally { setBusy(""); }
+  };
+  const mode = !s ? "" : !s.enabled ? "Off — nothing is sent (HIREBASE_ENABLED)" : s.dryRun ? "Dry run — requests are logged, not sent (HIREBASE_DRY_RUN)" : "Live — requests are sent";
+  return (
+    <Panel title="Hirebase" data-admin-hirebase=""
+      purpose="The job-data feed (D187). Every request states its worst-case cost first and is refused past the caps; the sizing estimates are free, the sample costs up to 100 jobs.">
+      {err && <div style={quiet} role="alert">{err}</div>}
+      {s && <>
+        <div style={row} data-hirebase-mode={!s.enabled ? "off" : s.dryRun ? "dry" : "live"}>
+          <b>{mode}</b>
+          <span style={quiet}>{s.hasKey ? "key set" : "no key"} · our boards {s.skipOurBoards ? "skipped" : "not skipped"} ({s.ourBoards.join(", ")})</span>
+        </div>
+        <div style={{ ...row, marginTop: 8 }}>
+          <span>Used this month <b>{s.used.month}</b> of
+            <input aria-label="Month cap (jobs)" style={{ width: 90, margin: "0 6px" }} value={caps.month} onChange={e => setCaps({ ...caps, month: e.target.value })}/>
+            · today <b>{s.used.day}</b> of
+            <input aria-label="Day cap (jobs)" style={{ width: 70, margin: "0 6px" }} value={caps.day} onChange={e => setCaps({ ...caps, day: e.target.value })}/></span>
+          <DepthButton onClick={saveCaps}>Save caps</DepthButton>
+          <span style={quiet}>{s.used.fromHeaders ? "from Hirebase's own count" : "draft's count (no usage header yet)"}</span>
+        </div>
+        <div style={{ ...row, marginTop: 8 }}>
+          <DepthButton disabled={!!busy} onClick={() => run("sizing")}>{busy === "sizing" ? "Sizing…" : "Run sizing (free)"}</DepthButton>
+          <DepthButton disabled={!!busy} onClick={() => run("sample")}>{busy === "sample" ? "Sampling…" : "Run sample (up to 100 jobs)"}</DepthButton>
+          <DepthButton onClick={load}>Refresh</DepthButton>
+        </div>
+        {s.lastError && <div style={quiet} role="alert">Last error: {s.lastError}</div>}
+        {s.runs.length === 0 ? <div style={{ ...quiet, marginTop: 8 }}>No runs yet.</div>
+          : <table style={{ width: "100%", fontSize: 12, marginTop: 8 }}><thead><tr><th align="left">Run</th><th>Status</th><th>Units</th><th>New</th><th>Merged</th><th>Held</th><th>Dropped</th><th>When</th></tr></thead>
+            <tbody>{s.runs.map(r => <tr key={r.id} data-hirebase-run={r.kind}><td>{r.kind}{r.dry_run ? " (dry)" : ""}</td><td align="center">{r.status}</td>
+              <td align="center">{r.units_used}</td><td align="center">{r.counts?.new ?? "—"}</td><td align="center">{r.counts?.merged ?? "—"}</td>
+              <td align="center">{r.counts?.held ?? "—"}</td><td align="center">{r.counts?.dropped ?? "—"}</td><td>{when(r.started_at)}</td></tr>)}</tbody></table>}
+        {s.runs.find(r => r.kind === "estimate" && r.counts?.estimates) && (
+          <div style={{ ...sub, marginTop: 8 }} data-hirebase-sizing="">
+            <b>Latest sizing</b>
+            {s.runs.find(r => r.kind === "estimate" && r.counts?.estimates).counts.estimates.map(e => <div key={e.label} style={quiet}>{e.label}: {e.count == null ? "— (dry run)" : e.count.toLocaleString()}</div>)}
+          </div>
+        )}
+      </>}
+    </Panel>
+  );
+}
