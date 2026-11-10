@@ -68,11 +68,45 @@ export function jobPostingOf(html) {
   return null;
 }
 
-const places = (d) => (Array.isArray(d?.jobLocation) ? d.jobLocation : d?.jobLocation ? [d.jobLocation] : []).map(l => l?.address || {});
+/**
+ * ⛔ 46a: the page's own "Location" header field (iCIMS_JobHeaderData) — "US-ND-Bismarck", "ND-Bismarck" or "Bismarck, ND" —
+ * as { addressLocality, addressRegion, addressCountry: "US" } when it names a US state, else null. Used only when the
+ * JSON-LD address is all placeholders (CommonSpirit: country, region and city all "UNAVAILABLE").
+ */
+export function headerLocationOf(html) {
+  const text = String(html || '').replace(/\s+/g, ' ').replace(/<[^>]+>/g, '|').replace(/(\| ?)+/g, '|');
+  const m = text.match(/\|Location\|([^|]{2,80})\|/);
+  if (!m) return null;
+  const v = m[1].trim();
+  let st = null, city = null;
+  const dash = v.split('-').map(s => s.trim()).filter(Boolean);
+  if (dash.length >= 2) {
+    const parts = /^(US|USA)$/i.test(dash[0]) ? dash.slice(1) : dash;
+    if (parts.length >= 2 && /^[A-Z]{2}$/.test(parts[0])) { st = parts[0]; city = parts.slice(1).join('-'); }
+  }
+  if (!st) { const c = v.match(/^([^,]{2,60}),\s*([A-Z]{2})$/); if (c) { city = c[1].trim(); st = c[2]; } }
+  return st && US_STATES.has(st) ? { addressLocality: city || null, addressRegion: st, addressCountry: 'US', fromHeader: true } : null;
+}
+
+// ⛔ 46a: tenants fill unknown address parts with a placeholder — CommonSpirit's 5,858 postings all read addressCountry
+// "UNAVAILABLE", and the US filter took that for a foreign country and dropped the whole board. A placeholder is unknown.
+const PLACEHOLDER = /^(unavailable|n\/?a|none|null|undefined|-+)$/i;
+const real = (v) => (v == null || PLACEHOLDER.test(String(v).trim()) || !String(v).trim() ? null : String(v).trim());
+// With the country a placeholder, a US state code AND a US ZIP (or a real city) is the address's own US evidence — the
+// country is filled in as inferred (`_raw.countryInferred`), never from the state code alone.
+const US_STATES = new Set("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY PR".split(" "));
+const places = (d) => (Array.isArray(d?.jobLocation) ? d.jobLocation : d?.jobLocation ? [d.jobLocation] : []).map(l => l?.address || {})
+  .map(a => {
+    const p = { ...a, addressLocality: real(a.addressLocality), addressRegion: real(a.addressRegion), addressCountry: real(a.addressCountry) };
+    if (!p.addressCountry && US_STATES.has(String(p.addressRegion || "").toUpperCase())
+        && (/^\d{5}(-\d{4})?$/.test(String(a.postalCode || "").trim()) || p.addressLocality)) { p.addressCountry = "US"; p.countryInferred = true; }
+    return p;
+  });
 const isRemote = (d) => /TELECOMMUTE/i.test(String(d?.jobLocationType || '')) || /\bremote\b/i.test(String(d?.title || ''));
 function locationText(d) {
   if (isRemote(d) && !places(d).some(a => a.addressLocality)) return 'Remote';
-  const one = (a) => [a.addressLocality, a.addressRegion, a.addressCountry && a.addressCountry !== 'US' ? a.addressCountry : null].filter(Boolean).join(', ');
+  // a US place with no city reads 'ND, United States' (a bare state code is not evidence the board's US gate accepts)
+  const one = (a) => [a.addressLocality, a.addressRegion, a.addressCountry && (a.addressCountry !== 'US' || !a.addressLocality) ? (a.addressCountry === 'US' ? 'United States' : a.addressCountry) : null].filter(Boolean).join(', ');
   const all = [...new Set(places(d).map(one).filter(Boolean))];
   return all.join('; ') || (isRemote(d) ? 'Remote' : 'Not specified');
 }
@@ -113,7 +147,7 @@ export function normalizeIcimsJob(slug, entry, d, companyName, { stamps = new Se
     workplace_type:  remote ? 'remote' : null,
     contract_type:   emp ? String(emp) : null,
     _raw:            { id: entry.id, url: entry.url, datePosted: d.datePosted || null, datePostedUsed: !!posted, occupationalCategory: d.occupationalCategory || null,
-                       countries: [...new Set(places(d).map(a => a.addressCountry).filter(Boolean))] },
+                       countries: [...new Set(places(d).map(a => a.addressCountry).filter(Boolean))], countryInferred: places(d).some(a => a.countryInferred) },
   });
 }
 
@@ -130,7 +164,12 @@ async function fetchCompanyJobs(slug, companyName, words, { get = axios.get } = 
     const batch = await Promise.all(entries.slice(i, i + DETAIL_CONCURRENCY).map(async (e) => {
       try {
         const page = await get(`${e.url}?in_iframe=1`, { timeout: 10000, maxRedirects: 2, responseType: 'text' });
-        const d = jobPostingOf(page.data);
+        let d = jobPostingOf(page.data);
+        // an address that is all placeholders → the page's own Location header (US state + city), when it names one
+        if (d && !places(d).some(a => a.addressLocality || a.addressRegion || a.addressCountry)) {
+          const h = headerLocationOf(page.data);
+          if (h) d = { ...d, jobLocation: [{ '@type': 'Place', address: h }] };
+        }
         return d ? { e, d } : null;
       } catch { return null; }   // one unreadable posting never drops the company
     }));

@@ -58,6 +58,34 @@ test("A161: postings are read from JSON-LD; a board-wide import stamp is NOT a p
   assert.equal(importStamps([{ datePosted: "2026-01-01T00:00:00Z" }, { datePosted: "2026-02-01T00:00:00Z" }]).size, 0, "a small board never reads as stamped");
 });
 
+test("A161 (46a): an address placeholder (\"UNAVAILABLE\") is unknown — not a foreign country, not the location text", async () => {
+  const ids = [["401", "sterile-processing-tech"], ["402", "clinic-receptionist"]];
+  const pages = {
+    401: page({ title: "Sterile Processing Tech", jobLocation: [{ address: { addressCountry: "UNAVAILABLE", addressLocality: "UNAVAILABLE", addressRegion: "ND", postalCode: "58501" } }] }),
+    402: page({ title: "Clinic Receptionist", jobLocation: [{ address: { addressCountry: "UNAVAILABLE", addressLocality: "Bismarck", addressRegion: "ND" } }] }),
+  };
+  const { get } = fakeGet(pages, sitemap(ids));
+  const jobs = await fetchCompanyJobs(SLUG, "Example Health", [], { get });
+  assert.equal(jobs.length, 2, "CommonSpirit's whole board was dropped as non-US before this");
+  const by = Object.fromEntries(jobs.map(j => [j.title, j]));
+  assert.equal(by["Sterile Processing Tech"].location, "ND, United States", "a US state + ZIP is the address's own US evidence");
+  assert.equal(by["Clinic Receptionist"].location, "Bismarck, ND");
+});
+
+test("A161 (46a): an all-placeholder address falls back to the page's own Location header — a US state only", async () => {
+  const header = (v) => `<div class="iCIMS_JobHeaderData"><dt>Location</dt><dd>${v}</dd></div>`;
+  const allUnavailable = { address: { addressCountry: "UNAVAILABLE", addressLocality: "UNAVAILABLE", addressRegion: "UNAVAILABLE", postalCode: "58501" } };
+  const pages = {
+    501: page({ title: "Sterile Tech", jobLocation: [allUnavailable] }).replace("</body>", `${header("ND-Bismarck")}</body>`),
+    502: page({ title: "Nurse Toronto", jobLocation: [allUnavailable] }).replace("</body>", `${header("ON-Toronto")}</body>`),
+  };
+  const { get } = fakeGet(pages, sitemap([["501", "sterile-tech"], ["502", "nurse-toronto"]]));
+  const jobs = await fetchCompanyJobs(SLUG, "Example Health", [], { get });
+  const by = Object.fromEntries(jobs.map(j => [j.title, j]));
+  assert.equal(by["Sterile Tech"].location, "Bismarck, ND", "the header's US state + city");
+  assert.equal(by["Nurse Toronto"].location, "Not specified", "a Canadian province is never read as a US state; the board's US gate decides");
+});
+
 test("A161: a query skips postings by the URL's title before their pages are asked for; one unreadable page never drops the board", async () => {
   const ids = [["301", "project-manager"], ["302", "superintendent"], ["303", "assistant-project-manager"]];
   const pages = { 301: page({ title: "Project Manager", jobLocation: [addr("Boston", "MA")] }) };   // 303 answers 404
