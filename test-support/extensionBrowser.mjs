@@ -286,6 +286,9 @@ export async function launchExtensionBrowser(opts = {}) {
       acceptInsecureCerts: !!opts.insecureCerts,
       args: ['--no-first-run', '--no-default-browser-check',
         `--host-resolver-rules=${[`MAP ${TENANT} 127.0.0.1:${ats.port}`, ...(opts.resolverRules || [])].join(', ')}`,
+        // 46c: Chrome 157 (auto-updated 11-09) turns on HTTPS-First balanced mode by default, which refuses a plain-http
+        // navigation to a public hostname (the mapped tenant) with net::ERR_BLOCKED_BY_CLIENT — every walk failed at open().
+        '--disable-features=HttpsFirstBalancedModeAutoEnable',
         ...(opts.insecureCerts ? ['--ignore-certificate-errors'] : []), ...(opts.chromeArgs || [])],
       defaultViewport: opts.viewport || { width: 1280, height: 900 },
     });
