@@ -27,7 +27,7 @@ test("hbFilterFromTaxonomy: the body is built from draft's files — requestable
   for (const never of categoryMap().never) assert.ok(!cats.includes(never), never);
   const b = buildSearchBody({ categories: ["Software Engineer Jobs"], daysAgo: 1, limit: 100 });
   assert.deepEqual(b.geo_locations, [{ country: "United States" }]);
-  assert.equal(b.return_raw_description, "true"); assert.equal(b.hide_recruiting_agencies, "true"); assert.equal(b.filter_incomplete_jobs, "true");
+  assert.equal(b.return_raw_description, "true"); assert.equal(b.hide_recruiting_agencies, "true"); assert.equal(b.filter_incomplete_jobs, "false", "owner 11-10: incomplete listings are requested");
   assert.equal(b.exclude_job_board, undefined, "skipOurBoards is OFF until the sample measures the overlap");
   assert.deepEqual(buildSearchBody({ skipOurBoards: true }).exclude_job_board, ["greenhouse", "lever", "ashby", "smartrecruiters", "workable"]);
   assert.throws(() => buildSearchBody({ categories: ["Healthcare Services Jobs"] }), /not a requestable category/, "D127's held set is never requested");
