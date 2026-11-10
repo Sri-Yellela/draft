@@ -1286,6 +1286,40 @@
     "medianAge": 10,
     "probedAt": "2026-11-10T06:34:26.667Z"
    }
+  },
+  {
+   "company": "Mass General Brigham",
+   "atsType": "workday",
+   "slug": "1|massgeneralbrigham|MGBExternal",
+   "industry": "healthcare",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 283,
+    "fresh": 283,
+    "inScope": 12,
+    "cs30": 12,
+    "usPct": 94,
+    "medianAge": -1,
+    "probedAt": "2026-11-10T06:43:25.561Z"
+   }
+  },
+  {
+   "company": "Moderna",
+   "atsType": "workday",
+   "slug": "1|modernatx|M_tx",
+   "industry": "biotech",
+   "via": "j1",
+   "evidence": {
+    "fetched": 252,
+    "us": 165,
+    "fresh": 165,
+    "inScope": 44,
+    "cs30": 44,
+    "usPct": 65,
+    "medianAge": 29,
+    "probedAt": "2026-11-10T06:44:43.682Z"
+   }
   }
  ],
  "dropped": [

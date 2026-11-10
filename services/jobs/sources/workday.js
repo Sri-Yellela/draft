@@ -38,13 +38,34 @@ function parsePostedOn(text) {
   return null;
 }
 
+// ⭐ 46b (the WORKLOG's "why Mass General Brigham / Moderna Workday read thin"): a tenant chooses what its list's
+// bulletFields hold. Most put the requisition id first ("R0123"), and that has been the posting's id; Moderna puts the
+// PLACE first ("Cambridge, Massachusetts", then the department, then "R20172") and sends no locationsText — so every
+// Moderna posting read "Not specified" (0 of 252 passed the US gate) and every posting in one city shared one id. The
+// id is the first bullet that looks like a requisition id (unchanged for the tenants that lead with one), else the
+// path's own "_R20172", else the path; the place is locationsText, else a bullet that reads as one.
+const REQ_ID = /^[A-Za-z]{0,6}[-_]?\d{3,}[A-Za-z0-9_-]*$/;
+const looksLikePlace = (s) => /[,]|\s-\s|^remote/i.test(String(s || '')) && !REQ_ID.test(String(s || '').trim());
+export function workdayIdOf(job) {
+  const b = (job.bulletFields || []).map(x => String(x || '').trim());
+  if (b[0] && REQ_ID.test(b[0])) return b[0];
+  const req = b.find(x => REQ_ID.test(x));
+  if (req) return req;
+  const tail = /_([A-Za-z]{0,6}-?\d{3,}[A-Za-z0-9-]*)$/.exec(String(job.externalPath || ''));
+  return tail ? tail[1] : (job.externalPath || b[0] || null);
+}
+export function workdayLocationOf(job) {
+  if (job.locationsText) return job.locationsText;
+  return (job.bulletFields || []).find(looksLikePlace) || 'Not specified';
+}
+
 function normalizeWorkdayJob(job, companyName, baseUrl) {
   return normalizeJob({
-    id:          job.bulletFields?.[0] || job.externalPath,
-    req_id:      job.bulletFields?.[0] || job.externalPath,
+    id:          workdayIdOf(job),
+    req_id:      workdayIdOf(job),
     title:       job.title,
     company:     companyName,
-    location:    job.locationsText || 'Not specified',
+    location:    workdayLocationOf(job),
     url:         job.externalPath ? `${baseUrl}${job.externalPath}` : baseUrl,
     source:      'workday',
     // NULL HERE, AND THE CRAWL LEAVES IT NULL. Workday's CXS SEARCH response carries no job text
