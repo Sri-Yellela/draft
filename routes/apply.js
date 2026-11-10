@@ -667,6 +667,10 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    */
   const ATS_AUTO_APPLY_THRESHOLD = envInt("ATS_AUTO_APPLY_THRESHOLD", 30);
   let activeWorkers = 0;
+  // ⭐ A179 F6 (owner 11-10: "i dont think if it even visited the site and the worker function is operational"): the run
+  // processor's own record — when it last started / finished an application and its last error — so "is it running?" is
+  // answered by GET /api/apply/health (and the panel's banner), never guessed from a held row.
+  const runnerHealth = { lastStartedAt: null, lastFinishedAt: null, lastError: null, lastErrorAt: null, done: 0 };
 
   /**
    * KILL SWITCH (requirement 4). Blocks all full-auto submission; semi mode keeps working.
@@ -2409,6 +2413,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         // during a run starts nothing further. What is already being filled finishes; the rest wait.
         if (userHeld(db, run.user_id)) { heldMidRun = true; break; }
         activeWorkers++;
+        runnerHealth.lastStartedAt = Date.now();
         // D171 FIX 1: the job runs as the run's own starter, long after the request that queued it — so its model calls
         // record who started the run, not "system".
         // ⛔ D173 (5): and inside its own request id, "run<id>-job<id>" — the string to filter both services' logs by.
@@ -2416,8 +2421,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           // ⭐ D112 item 8: the job's outcome, told to the person — Needs you / Ready to approve, or sent (services/notify.js;
           // a job the apply worker took over is told by the worker's report instead).
           .then(() => { notifyRunJobOutcome(db, job.id); })
-          .catch(e => console.error(`[applyRoutes] uncaught job error job=${job.job_id}: ${e.message}`))
-          .finally(() => { activeWorkers--; });
+          .catch(e => { runnerHealth.lastError = e.message; runnerHealth.lastErrorAt = Date.now(); console.error(`[applyRoutes] uncaught job error job=${job.job_id}: ${e.message}`); })
+          .finally(() => { activeWorkers--; runnerHealth.lastFinishedAt = Date.now(); runnerHealth.done++; });
         runningJobs.push(p);
       }
 
@@ -2446,6 +2451,23 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
   // ── Browser readiness ────────────────────────────────────────────────────────
 
+  // ⭐ A179 F6 · is the run processor working for THIS person? `stalled` = an application of theirs has waited in the queue
+  // over HEALTH_STALL_MS and the processor started nothing in that time — the panel shows a banner instead of greens.
+  const HEALTH_STALL_MS = 3 * 60 * 1000;
+  app.get("/api/apply/health", requireAuth, (req, res) => {
+    const now = Date.now();
+    let waiting = 0, oldestWaitMs = null;
+    try {
+      const r = db.prepare(`SELECT COUNT(*) AS n, MIN(created_at) AS oldest FROM apply_run_jobs WHERE user_id = ? AND status = 'queued'`).get(req.user.id);
+      waiting = r?.n || 0;
+      oldestWaitMs = r?.oldest ? now - Number(r.oldest) * 1000 : null;
+    } catch { /* no queue table — nothing waiting */ }
+    const quietMs = runnerHealth.lastStartedAt == null ? null : now - runnerHealth.lastStartedAt;
+    const stalled = waiting > 0 && oldestWaitMs != null && oldestWaitMs > HEALTH_STALL_MS && (quietMs == null || quietMs > HEALTH_STALL_MS);
+    res.json({ inFlight: activeWorkers, limit: APPLY_WORKER_LIMIT, waiting, oldestWaitMs, stalled,
+      lastStartedAt: runnerHealth.lastStartedAt, lastFinishedAt: runnerHealth.lastFinishedAt, done: runnerHealth.done,
+      ...(req.user?.isAdmin || req.user?.is_admin ? { lastError: runnerHealth.lastError, lastErrorAt: runnerHealth.lastErrorAt } : {}) });
+  });
   app.get("/api/apply/readiness", requireAuth, async (_req, res) => {
     try {
       const probe = await probeBrowserAvailability();
@@ -2953,7 +2975,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // ⭐ A179 F1: what the run REPORTED, for the held view's steps — the answers it typed (answers_json is the filled half)
     // over the fields it found (null when it never got to the form), and the base résumé's score beside the tailored one.
     fill: r.fields_discovered == null && r.answers_json == null ? null : {
-      filled: parseJson(r.answers_json, []).filter(a => a && !a.skipped && a.value != null && String(a.value) !== "").length,
+      filled: [parseJson(r.answers_json, [])].flat().filter(a => a && typeof a === "object" && !a.skipped && a.value != null && String(a.value) !== "").length,
       discovered: r.fields_discovered ?? null,
     },
     baseAtsScore: r.base_ats_score ?? null,

@@ -16291,7 +16291,7 @@ app.post("/api/apply/run-now", requireAuth, async (req, res) => {
     const r = await runAutoNow(db, req.user.id, { fetchBoard: autoFetchBoard, startAutoRun: applyLine.startAutoRun,
       notify: (userId, event, data) => notifyEvent(userId, event, data), secret: PICKS_SECRET, appUrl: PICKS_APP_URL });
     if (!r.ok) {
-      const words = { kill_switch: "Automatic applications are paused right now.", no_auto_mode: "Turn on Apply for me or Ask me first first.",
+      const words = { kill_switch: "Automatic applications are paused right now.", no_auto_mode: "Run now starts your daily picks — turn on daily picks in Auto settings (or Apply for me). A job you Draft runs right away.",   // ⭐ A179 F5
         ran_recently: "A run just happened — try again in a few minutes.", no_user: "Not signed in." };
       return res.status(r.error === "ran_recently" ? 429 : 409).json({ error: r.error, message: words[r.error] || r.error, retryAfterSec: r.retryAfterSec ?? null });
     }

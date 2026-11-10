@@ -538,6 +538,7 @@ const AUTHENTICATED = new Set([
   "PATCH /api/apply/applications/:jobId/response",
   "GET /api/apply/response-correlation",
   "GET /api/apply/readiness",
+  "GET /api/apply/health",   // ⭐ A179 F6: the run processor's health for the signed-in person (their own queue only)
   "POST /api/apply/runs",
   "POST /api/apply/run-now",   // A166 (2): the person's own batch, at once
   "GET /api/apply/runs",

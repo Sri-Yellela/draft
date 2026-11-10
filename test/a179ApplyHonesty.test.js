@@ -108,3 +108,39 @@ test("a179HeadingCountsReal: the heading counts the questions waiting; 'everythi
   assert.match(none.lead, /Nothing was filled/);
   assert.doesNotMatch(none.lead, /Everything else is done/);
 });
+
+test("a179RunNowVisible: Run now shows in both modes; every held row can be Run again", () => {
+  const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
+  const head = panel.slice(panel.indexOf("const timelineHead = ("), panel.indexOf("const chooseAsk = async"));
+  assert.match(head, /\{!held && \(\s*<p className="dht-head__sub" data-run-now-row="">/);
+  assert.doesNotMatch(head, /\(fullAuto \|\| picksOn\) && !held/, "no longer hidden in Ask me first");
+  assert.match(panel, /const runAgain = !r\.postingGone \? \[\{ id: "rerun", label: "Run again"/);
+  assert.equal((panel.match(/\.\.\.runAgain/g) || []).length, 3, "on the question, empty and default held rows");
+  assert.match(fs.readFileSync("server.js", "utf8"), /no_auto_mode: "Run now starts your daily picks/);
+});
+
+test("a179WorkerDownBanner: a queue waiting with no start is reported stalled; the panel says so", async () => {
+  const { default: express } = await import("express");
+  const { default: applyRoutes } = await import("../routes/apply.js");
+  const db = new Database(":memory:");
+  for (const m of MIGRATIONS) db.exec(m.sql);
+  db.prepare("INSERT INTO users (id,username,password_hash,plan_tier) VALUES (1,'ada','x','PRO')").run();
+  const app = express();
+  app.use(express.json());
+  app.use((req, _res, next) => { req.user = { id: 1, planTier: "PRO" }; next(); });
+  const noop = async () => ({});
+  applyRoutes(app, db, (req, _res, next) => next(), () => ({ field_map: {}, handler_map: {}, custom_answers: {} }), noop, noop, noop, () => null);
+  const server = app.listen(0);
+  const get = async () => (await fetch(`http://127.0.0.1:${server.address().port}/api/apply/health`)).json();
+  try {
+    assert.equal((await get()).stalled, false, "nothing waiting");
+    const run = db.prepare("INSERT INTO apply_runs (user_id,mode,status,total_jobs,approval_mode) VALUES (1,'auto','queued',1,'required')").run().lastInsertRowid;
+    db.prepare("INSERT INTO apply_run_jobs (run_id,user_id,job_id,status,created_at) VALUES (?,1,'gh::1','queued',?)").run(run, Math.floor(Date.now() / 1000) - 600);
+    const h = await get();
+    assert.equal(h.waiting, 1); assert.equal(h.stalled, true, "10 minutes in the queue, nothing started");
+    assert.equal(h.lastError, undefined, "the error is the admin's to read");
+  } finally { server.close(); }
+  const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
+  assert.match(panel, /api\("\/api\/apply\/health"\)/);
+  assert.match(panel, /\{runnerHealth\?\.stalled && \(/);
+});
