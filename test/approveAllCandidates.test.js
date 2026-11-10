@@ -3,11 +3,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { at } from "../test-support/sourceAnchors.js";
 
 test("Approve all: every probed candidate, through the one dry-run-then-confirm approve path", () => {
   const src = fs.readFileSync("client/src/panels/adminOps.jsx", "utf8");
-  const start = src.indexOf("function DiscoveryCandidates(");
-  const body = src.slice(start, src.indexOf("\nfunction ", start + 10) > 0 ? src.indexOf("\n// ── Slug harvest", start) : undefined);
+  const start = at(src, "function DiscoveryCandidates(");
+  const body = src.slice(start, at(src, "\n// ── Slug harvest", start));   // the region fails loudly if an anchor moves
   assert.match(body, /const probedIds = \(d\?\.candidates \|\| \[\]\)\.filter\(r => r\.status === "probed"\)\.map\(r => r\.id\)/);
   assert.match(body, /data-approve-all="" disabled=\{!probedIds\.length \|\| !!busy\} onClick=\{\(\) => approve\(probedIds\)\}/);
   assert.match(body, /Approve all \$\{probedIds\.length \|\| ""\}…/);
