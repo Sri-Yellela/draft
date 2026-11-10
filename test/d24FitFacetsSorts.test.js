@@ -484,7 +484,7 @@ test("④ server.js: the facets route measures through boardPageResponse — val
   const board = SERVER.slice(at(SERVER, "async function boardPageResponse("));
   const guard = board.indexOf("rejectInvalidFilterValues(req.query)");
   const hook = board.indexOf("if (measure) {");
-  const fetchAt = board.indexOf("const fetched = await readPool.all(");   // A126: the worker pool
+  const fetchAt = board.indexOf("SELECT sj.job_id AS id, COUNT(*) OVER () AS n");   // A126: the worker pool (A175: the kept order, the first page read)
   assert.ok(guard > 0 && hook > guard && fetchAt > hook, "measure must run after validation and before the page fetch");
   assert.match(board.slice(hook - 400, hook), /const baseArgs\s+= argsFor\(richFilters\);/,
     "measure must receive the SAME baseArgs the list and the count use");
