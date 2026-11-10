@@ -121,7 +121,7 @@ import { setAim as setNavigatorAim } from "./services/navigator.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
 import { heatReport, boardCountsVia } from "./services/companyHeat.js";
-import { runHnDiscovery, runCandidateProbe } from "./services/companyCandidates.js";
+import { runHnDiscovery, runCandidateProbe, repairCandidateNames } from "./services/companyCandidates.js";
 import { importSeedCandidates } from "./services/seedCandidates.js";   // 45s: the non-tech employer seed
 import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHook.js";
 import { readGauge, projectTranche, trancheGate, AMBER_AT as DISK_AMBER_AT, RED_AT as DISK_RED_AT } from "./services/diskGauge.js";
@@ -9917,8 +9917,16 @@ function resolveUserJobDomainProfileId(userId, jobId) {
 
 // ── Express ───────────────────────────────────────────────────
 const app = express();
-// A163: any admin write marks the admin report cache stale, so the next admin page shows the numbers after it.
-app.use("/api/admin", (req, _res, next) => { if (req.method !== "GET" && req.method !== "HEAD") adminReports.invalidate(); next(); });
+// A163: an ADMIN's successful write marks the admin report cache stale, so the next admin page shows the numbers after it.
+// ⛔ 46a (the D95 guard caught the first version): it acts only when the finished request was an admin's (mayActAsAdmin —
+// req.admin / the legacy admin, set by the auth middleware that runs later) and succeeded — anyone else's POST to
+// /api/admin is refused by requireAdmin as before and can no longer make every admin page rebuild its report.
+app.use((req, res, next) => {
+  if ((req.method !== "GET" && req.method !== "HEAD") && req.path.startsWith("/api/admin/")) {
+    res.on("finish", () => { if (res.statusCode < 400 && mayActAsAdmin(req)) adminReports.invalidate(); });
+  }
+  next();
+});
 /**
  * AK1 — the corpus term weights that apply to one posting, by its role family.
  *
@@ -11915,6 +11923,13 @@ cron.schedule("0 6 * * 1", () => {
 if (process.env.DISCOVERY_PAUSED !== "1") setTimeout(() => {
   try { const r = importSeedCandidates(db); if (r.items) console.log(`[discovery:seed] ${r.items} non-tech employer(s) → ${r.inserted} new candidate(s), ${r.refreshed} seen again, skipped ${JSON.stringify(r.skipped)}`); }
   catch (e) { console.warn("[discovery:seed] failed:", e.message); }
+  // 46a: candidate names HN's old rule produced ("Location: Seattle OR Arlington, …") — renamed from their own header /
+  // board, or rejected; configured companies with such a name are only reported.
+  try {
+    const n = repairCandidateNames(db);
+    if (n.renamed.length || n.rejected.length) console.log(`[discovery:names] renamed ${n.renamed.length} (${n.renamed.map(x => `${x.from} → ${x.to}`).join("; ").slice(0, 900)}) · rejected ${n.rejected.length} (${n.rejected.map(x => `${x.from}: ${x.why}`).join("; ").slice(0, 600)})`);
+    if (n.configuredSuspect.length) console.warn(`[discovery:names] ${n.configuredSuspect.length} configured compan${n.configuredSuspect.length === 1 ? "y has" : "ies have"} a name that may not be a name (not changed): ${n.configuredSuspect.join("; ").slice(0, 900)}`);
+  } catch (e) { console.warn("[discovery:names] failed:", e.message); }
 }, 90 * 1000).unref();
 cron.schedule("30 6 * * *", () => {
   runCandidateProbe(db).then((r) => console.log(`[discovery:probe] ${r.ran === false ? `skipped (${r.reason})` : r.failed ? `FAILED: ${r.error}` :

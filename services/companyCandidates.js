@@ -17,7 +17,7 @@
 // a per-source CIRCUIT BREAKER opens after BREAKER_AFTER consecutive failures and pauses that source until
 // the owner resets it; DISCOVERY_PAUSED=1 stops every job before it reads anything.
 import axios from "axios";
-import { collectHn, isDeniedHost } from "./jobs/hnDiscovery.js";
+import { collectHn, isDeniedHost, companyFromHeader, looksLikeCompany } from "./jobs/hnDiscovery.js";
 import { probeBoard } from "./companyProbe.js";
 import { addCompany, admitFromProbe, evidenceLine, excludedCompany } from "./companyList.js";
 import { recordPipelineRun } from "./jobs/pipelineRunLog.js";
@@ -169,8 +169,14 @@ export async function runCandidateProbe(db, { env = process.env, probe = probeBo
   const blocked = blockedBy(db, "probe", env);
   if (blocked) return skipRun(db, "probe", blocked, startedAt);
   try {
-    const rows = db.prepare(`SELECT * FROM company_candidates WHERE status = 'new'
-                             ORDER BY probed_at IS NOT NULL, probed_at, first_seen, id LIMIT ?`).all(Math.max(1, Math.min(limit, PROBE_BATCH)));
+    // ⛔ 46a (owner 11-10, Approve all: nearly every candidate "probe_stale"): only 'new' rows were ever probed, so a probed
+    // candidate's evidence aged past PROBE_FRESH_DAYS and was never refreshed — the approval refused it for good. Now: new
+    // rows first, then PROBED rows whose probe is within a day of going stale, oldest first.
+    const refreshBefore = now - (PROBE_FRESH_DAYS - 1) * 86400;
+    const rows = db.prepare(`SELECT * FROM company_candidates
+                             WHERE status = 'new' OR (status = 'probed' AND (probed_at IS NULL OR probed_at < ?))
+                             ORDER BY status = 'probed', probed_at IS NOT NULL, probed_at, first_seen, id LIMIT ?`)
+      .all(refreshBefore, Math.max(1, Math.min(limit, PROBE_BATCH)));
     const configured = db.prepare("SELECT 1 FROM company_ats_list WHERE ats_type = ? AND lower(ats_slug) = lower(?)");
     const save = db.prepare(`UPDATE company_candidates SET evidence_json = ?, rank_score = ?, status = ?, status_reason = ?, probed_at = ? WHERE id = ?`);
     // ⛔ ≤ 1 request a second per host: the detail-page sample is spaced like the boards are.
@@ -185,7 +191,11 @@ export async function runCandidateProbe(db, { env = process.env, probe = probeBo
       try { p = await probe({ atsType: r.ats_type, slug: r.ats_slug, company: r.company }, { now, describe }); }
       catch (e) { p = { state: "error", message: e.message }; }
       const ev = evidenceOf(p, now);
-      if (p.state === "error") { save.run(JSON.stringify(ev), 0, "new", "probe_error", now, r.id); errored++; continue; }
+      if (p.state === "error") {
+        // a re-probe's transient error keeps the probed row and its evidence as they were (it is retried next run)
+        if (r.status !== "probed") save.run(JSON.stringify(ev), 0, "new", "probe_error", now, r.id);
+        errored++; continue;
+      }
       const admit = admitFromProbe({ ...ev, atsType: r.ats_type, slug: r.ats_slug, company: r.company });
       const bar = barOf(ev);
       save.run(JSON.stringify({ ...ev, admit: admit.reason, bar }), rankScore(ev), "probed", admit.reason, now, r.id);
@@ -277,4 +287,33 @@ export function rejectCandidates(db, ids, { adminUserId = null, reason = "owner"
   let n = 0;
   for (const id of (ids || []).map(Number).filter(Number.isInteger)) n += st.run(String(reason).slice(0, 120), now, by.userId, by.ref, id).changes;
   return { rejected: n };
+}
+
+// ⛔ 46a (owner 11-10: a candidate named "Location: Seattle OR Arlington, United States. Hybrid", board
+// workday:5|remitly|Remitly_Careers) · the pool already holds names HN's old first-segment rule produced. At boot, every
+// UNDECIDED row (new / probed / approved) whose name is not a name is re-derived with the new rule from its own stored
+// header and board (services/jobs/hnDiscovery.js companyFromHeader): renamed when that gives one (unless a configured
+// company already has it — then rejected as configured_name), rejected as not_a_company_name otherwise (the row stays, so
+// no sweep re-queues it). Decided rows are left as they are; CONFIGURED companies are only reported — renaming one would
+// split its postings (scraped_jobs carries the old name). Idempotent: a second run finds nothing.
+export function repairCandidateNames(db, { now = nowS() } = {}) {
+  const rows = db.prepare("SELECT id, company, ats_type, ats_slug, source_json FROM company_candidates WHERE status IN ('new','probed','approved')").all();
+  const configured = new Set(db.prepare("SELECT lower(trim(company)) FROM company_ats_list").pluck().all());
+  const rename = db.prepare("UPDATE company_candidates SET company = ? WHERE id = ?");
+  const reject = db.prepare("UPDATE company_candidates SET status = 'rejected', status_reason = ?, decided_at = ?, decided_by_actor = 'system:name-repair' WHERE id = ?");
+  const out = { renamed: [], rejected: [], configuredSuspect: [] };
+  db.transaction(() => {
+    for (const r of rows) {
+      if (looksLikeCompany(r.company)) continue;
+      const header = String(parse(r.source_json)?.header || "");
+      const fixed = companyFromHeader(header ? header.split("|")[0] : r.company, { atsType: r.ats_type, slug: r.ats_slug });
+      if (fixed && configured.has(fixed.toLowerCase())) { reject.run("configured_name", now, r.id); out.rejected.push({ id: r.id, from: r.company, why: "configured_name" }); }
+      else if (fixed) { rename.run(fixed, r.id); out.renamed.push({ id: r.id, from: r.company, to: fixed }); }
+      else { reject.run("not_a_company_name", now, r.id); out.rejected.push({ id: r.id, from: r.company, why: "not_a_company_name" }); }
+    }
+  })();
+  for (const c of db.prepare("SELECT id, company, ats_type, ats_slug FROM company_ats_list").all()) {
+    if (!looksLikeCompany(c.company)) out.configuredSuspect.push(`${c.company} (${c.ats_type}:${c.ats_slug})`);
+  }
+  return out;
 }

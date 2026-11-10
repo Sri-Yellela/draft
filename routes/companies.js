@@ -10,7 +10,7 @@ import { listCompanies, harvestedSuggestions, validateBoard, addCompany, setComp
 import { trancheGate } from "../services/diskGauge.js";
 import { createBackup } from "../scripts/backup.js";       // D82 C: an approved candidate batch is added only after a backup
 import { heatReport, boardCounts, boardCountsVia } from "../services/companyHeat.js";
-import { listCandidates, discoveryStatus, planApproval, approveCandidates, rejectCandidates, resetBreaker } from "../services/companyCandidates.js";
+import { listCandidates, discoveryStatus, planApproval, approveCandidates, rejectCandidates, resetBreaker, runCandidateProbe, PROBE_BATCH } from "../services/companyCandidates.js";
 
 const DEFAULT_DATA_DIR = () => process.env.RM_DATA_DIR || "data";
 
@@ -105,6 +105,18 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
     const { ids = [], reason = "owner" } = req.body || {};
     if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: "ids_required" });
     res.json(rejectCandidates(db, ids, { adminUserId: actorOf(req), reason }));
+  });
+
+  // ⭐ 46a (owner 11-10): "Re-probe stale" — one probe batch NOW (the nightly job's own run: new rows first, then probed rows
+  // about to go stale; ≤ PROBE_BATCH boards, ≥ 1 s apart, read-only). One run at a time; it answers at once and runs behind.
+  let probing = null;
+  router.post("/candidates/probe", (_req, res) => {
+    if (probing) return res.status(409).json({ error: "already_running", message: "A probe batch is already running — look again in a minute." });
+    probing = runCandidateProbe(db, { env })
+      .then((r) => console.log(`[discovery:probe] (admin) considered ${r.considered ?? 0} · probed ${r.probed ?? 0} · errored ${r.errored ?? 0}`))
+      .catch((e) => console.warn("[discovery:probe] (admin) failed:", e.message))
+      .finally(() => { probing = null; });
+    res.status(202).json({ started: true, batch: PROBE_BATCH, note: `Probing up to ${PROBE_BATCH} candidates (new first, then the stale). Refresh in a few minutes.` });
   });
 
   router.post("/candidates/breakers/:source/reset", (req, res) => {

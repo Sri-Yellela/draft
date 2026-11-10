@@ -123,7 +123,7 @@ test("⛔ D77 → D74: enabling a company obeys the gate (507); disabling never 
     assert.equal((await patch(true)).status, 200);
   } finally { server.close(); }
   const src = fs.readFileSync("server.js", "utf8");
-  assert.match(src, /createCompaniesRouter\(db, requireAdmin, \{ dataDir: DATA_DIR \}\)/);
+  assert.match(src, /createCompaniesRouter\(db, requireAdmin, \{ dataDir: DATA_DIR, read: readPool \}\)/);   // A162 (46a) added the read pool
   assert.match(src, /createSlugHarvestRouter\(db, requireAdmin, \{\s*gate: \(companies\) => trancheGate\(db, DATA_DIR, \{ companies \}\) \}\)/);
   assert.match(fs.readFileSync("routes/slugHarvest.js", "utf8"), /if \(plan\.wouldAdd > 0\) \{\s*const disk = gate\(plan\.wouldAdd\);/, "a harvest import that adds companies is gated");
 });
