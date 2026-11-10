@@ -48,8 +48,8 @@ test("a165HeldViewSaysWhyAndLists: the held row's headline is the reason, its le
   assert.equal(heldStateOf(node), "held");
   const h = heldHeadline(node);
   assert.equal(h.eyebrow, "Held — nothing was sent");
-  assert.match(h.title, /safety checks/);
-  assert.equal(h.lead, "3 questions are waiting on you — listed below.");
+  assert.equal(h.title, "Sending without your review waits until draft's safety checks are green, so it was held for you.", "the reason's first sentence");
+  assert.equal(h.lead, "Nothing was sent. Still to pass: A daily cost alarm, and today under it; The kill switch tested on production. 3 questions are waiting on you — listed below.");
   assert.equal(heldQuestionsFor(node).length, 3);
   assert.deepEqual(runSteps(node), [], "a hold before the form claims no steps");
   const quiet = { kind: "held", why: "held", company: "Acme Rails", say: "x", ref: { primary: { row: { reasonCode: "daily_cap_reached", heldReason: "Today's limit." } } } };
