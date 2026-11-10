@@ -185,64 +185,93 @@ export async function runAutoTick(db, { nowSec = Math.floor(Date.now() / 1000), 
   sweepLeftOut(db, nowSec);
   const users = db.prepare(`SELECT id, auto_settings, auto_last_run_at, send_mode FROM users
     WHERE send_mode = 'auto' OR auto_settings LIKE '%"picks":true%'`).all();
-  for (const u of users) {
-    const settings = readAutoSettings(u.auto_settings);
-    const mode = picksMode(u.send_mode, settings);
-    if (!mode) continue;
-    let savedAt = null;
-    try { savedAt = JSON.parse(u.auto_settings || "{}").savedAt ?? null; } catch { savedAt = null; }
-    const deps = { notify, startAutoRun, secret, appUrl, settings };
-    // A run stored but never delivered (a crash between the two) is delivered now — once (deliverRun claims it).
-    try {
-      const pending = db.prepare(`SELECT * FROM picks_runs WHERE user_id = ? AND delivery_claimed_at IS NULL AND expires_at > ?`).all(u.id, nowSec);
-      for (const run of pending) out.push({ userId: u.id, runId: run.id, resumed: true, ...(await deliverRun(db, run, deps, nowSec)) });
-    } catch { /* no picks tables in this schema */ }
-    if (!runDue(nowSec, settings, { lastRunAt: u.auto_last_run_at, savedAt })) { out.push({ userId: u.id, skipped: "not_due" }); continue; }
-    if (userHeld(db, u.id)) { out.push({ userId: u.id, skipped: "held" }); continue; }
-    // ⭐ (B)-3 (45o): a new résumé moved the family — Apply for me waits for Keep / Change back (Ask me first just follows).
-    if (mode === "apply" && applyPausedForFamily(db, u.id)) { out.push({ userId: u.id, skipped: "family_changed" }); continue; }
-    // ⛔ D175 FA2: a TEST account runs only on a sample résumé (its sends go to draft's practice form, never an employer).
-    const canaryNo = canaryRefusal(db, u.id);
-    if (canaryNo) { out.push({ userId: u.id, skipped: "canary_not_sample", error: canaryNo }); continue; }
-    // The slot is spent whatever happens next, so a failing board does not retry every tick.
-    db.prepare(`UPDATE users SET auto_last_run_at = ? WHERE id = ?`).run(nowSec, u.id);
-    const slotAt = lastSlotAt(nowSec, settings);
-    const ctx = userContext(db, u.id, nowSec, settings);
-    let candidates;
-    try { candidates = await fetchBoard(u.id, settings.filters, settings); }
-    catch (e) { out.push({ userId: u.id, skipped: "board_failed", error: e.message }); continue; }
-    // "Each run takes jobs posted since the last" — a job with a known posting time older than the last run is skipped.
-    const isNew = (c) => u.auto_last_run_at == null || !(Number.isFinite(c.postedAt) && c.postedAt < u.auto_last_run_at);
-    const fresh = candidates.filter(isNew);
-    // Outside your filters: the new postings the board WITHOUT the Auto filters has that the filtered board does not.
-    let outsideFilters = 0;
-    if (Object.keys(settings.filters || {}).length) {
-      try {
-        const inFilter = new Set(candidates.map(c => String(c.jobId)));
-        outsideFilters = (await fetchBoard(u.id, {}, settings)).filter(c => isNew(c) && !inFilter.has(String(c.jobId))).length;
-      } catch { outsideFilters = 0; }
-    }
-    const { take, leftOut } = choosePicks(fresh, { ...ctx, settings, preferUnattended: mode === "apply" });
-    const skippedJobs = leftOut.length;
-    let stored;
-    try {
-      stored = storeRun(db, { userId: u.id, slotAt, mode, expiresAt: nextSlotAfter(slotAt, settings, localClock), seen: fresh.length + outsideFilters,
-        take, leftOut, outsideFilters, nowSec, review: settings.showFormBeforeSending === true,
-        // D121: "why this pick" says the sponsorship signal for a user who needs sponsorship
-        lineFor: (c) => withFinish(c, lineForCandidate(c, { eligibility: ctx.eligibilityOf(c.jobId), liveness: ctx.livenessOf(c.jobId),
-          sponsorship: ctx.needsSponsorship ? { ...(ctx.sponsorshipOf(c.jobId) || {}), needed: true } : null })) });
-    } catch (e) { out.push({ userId: u.id, skipped: "store_failed", error: e.message }); continue; }
-    if (!stored.created) { out.push({ userId: u.id, runId: stored.run.id, skipped: "run_exists" }); continue; }
-    const r = await deliverRun(db, stored.run, deps, nowSec);
-    if (!take.length) {
-      out.push(ctx.remaining <= 0 ? { userId: u.id, runId: stored.run.id, skipped: "daily_cap", used: ctx.used }
-        : { userId: u.id, runId: stored.run.id, skipped: "nothing_new", skippedJobs });
-      continue;
-    }
-    if (mode === "apply") out.push({ userId: u.id, runId: stored.run.id, mode, started: r.started ?? 0, status: r.status ?? null, error: r.error ?? null, skippedJobs });
-    else out.push({ userId: u.id, runId: stored.run.id, mode, picked: take.length, messaged: !!r.messaged, skippedJobs });
-  }
+  for (const u of users) out.push(...(await runOneUser(db, u, { notify, startAutoRun, secret, appUrl, fetchBoard }, nowSec)));
   return out;
+}
+
+/**
+ * One user's picks run — the scheduled tick's body. With `now` (A166 (2), "Run now") the run time is not waited for:
+ * the slot is this minute and everything else is the scheduled run's own path (hold, family pause, canary, board,
+ * filters, eligibility, the daily cap, the per-company limit, delivery).
+ */
+export async function runOneUser(db, u, { notify = null, startAutoRun, secret = null, appUrl = "", fetchBoard }, nowSec, { now = false } = {}) {
+  const res = [];
+  const settings = readAutoSettings(u.auto_settings);
+  const mode = picksMode(u.send_mode, settings);
+  if (!mode) return res;
+  let savedAt = null;
+  try { savedAt = JSON.parse(u.auto_settings || "{}").savedAt ?? null; } catch { savedAt = null; }
+  const deps = { notify, startAutoRun, secret, appUrl, settings };
+  // A run stored but never delivered (a crash between the two) is delivered now — once (deliverRun claims it).
+  try {
+    const pending = db.prepare(`SELECT * FROM picks_runs WHERE user_id = ? AND delivery_claimed_at IS NULL AND expires_at > ?`).all(u.id, nowSec);
+    for (const run of pending) res.push({ userId: u.id, runId: run.id, resumed: true, ...(await deliverRun(db, run, deps, nowSec)) });
+  } catch { /* no picks tables in this schema */ }
+  if (!now && !runDue(nowSec, settings, { lastRunAt: u.auto_last_run_at, savedAt })) { res.push({ userId: u.id, skipped: "not_due" }); return res; }
+  if (userHeld(db, u.id)) { res.push({ userId: u.id, skipped: "held" }); return res; }
+  // ⭐ (B)-3 (45o): a new résumé moved the family — Apply for me waits for Keep / Change back (Ask me first just follows).
+  if (mode === "apply" && applyPausedForFamily(db, u.id)) { res.push({ userId: u.id, skipped: "family_changed" }); return res; }
+  // ⛔ D175 FA2: a TEST account runs only on a sample résumé (its sends go to draft's practice form, never an employer).
+  const canaryNo = canaryRefusal(db, u.id);
+  if (canaryNo) { res.push({ userId: u.id, skipped: "canary_not_sample", error: canaryNo }); return res; }
+  // The slot is spent whatever happens next, so a failing board does not retry every tick.
+  db.prepare(`UPDATE users SET auto_last_run_at = ? WHERE id = ?`).run(nowSec, u.id);
+  // ⭐ A166 (2): Run now's slot is this minute — the same picks, caps and rules as the scheduled one.
+  const slotAt = now ? nowSec - (nowSec % 60) : lastSlotAt(nowSec, settings);
+  const ctx = userContext(db, u.id, nowSec, settings);
+  let candidates;
+  try { candidates = await fetchBoard(u.id, settings.filters, settings); }
+  catch (e) { res.push({ userId: u.id, skipped: "board_failed", error: e.message }); return res; }
+  // "Each run takes jobs posted since the last" — a job with a known posting time older than the last run is skipped.
+  const isNew = (c) => u.auto_last_run_at == null || !(Number.isFinite(c.postedAt) && c.postedAt < u.auto_last_run_at);
+  const fresh = candidates.filter(isNew);
+  // Outside your filters: the new postings the board WITHOUT the Auto filters has that the filtered board does not.
+  let outsideFilters = 0;
+  if (Object.keys(settings.filters || {}).length) {
+    try {
+      const inFilter = new Set(candidates.map(c => String(c.jobId)));
+      outsideFilters = (await fetchBoard(u.id, {}, settings)).filter(c => isNew(c) && !inFilter.has(String(c.jobId))).length;
+    } catch { outsideFilters = 0; }
+  }
+  const { take, leftOut } = choosePicks(fresh, { ...ctx, settings, preferUnattended: mode === "apply" });
+  const skippedJobs = leftOut.length;
+  let stored;
+  try {
+    stored = storeRun(db, { userId: u.id, slotAt, mode, expiresAt: nextSlotAfter(slotAt, settings, localClock), seen: fresh.length + outsideFilters,
+      take, leftOut, outsideFilters, nowSec, review: settings.showFormBeforeSending === true,
+      // D121: "why this pick" says the sponsorship signal for a user who needs sponsorship
+      lineFor: (c) => withFinish(c, lineForCandidate(c, { eligibility: ctx.eligibilityOf(c.jobId), liveness: ctx.livenessOf(c.jobId),
+        sponsorship: ctx.needsSponsorship ? { ...(ctx.sponsorshipOf(c.jobId) || {}), needed: true } : null })) });
+  } catch (e) { res.push({ userId: u.id, skipped: "store_failed", error: e.message }); return res; }
+  if (!stored.created) { res.push({ userId: u.id, runId: stored.run.id, skipped: "run_exists" }); return res; }
+  const r = await deliverRun(db, stored.run, deps, nowSec);
+  if (!take.length) {
+    res.push(ctx.remaining <= 0 ? { userId: u.id, runId: stored.run.id, skipped: "daily_cap", used: ctx.used }
+      : { userId: u.id, runId: stored.run.id, skipped: "nothing_new", skippedJobs });
+    return res;
+  }
+  if (mode === "apply") res.push({ userId: u.id, runId: stored.run.id, mode, started: r.started ?? 0, status: r.status ?? null, error: r.error ?? null, skippedJobs });
+  else res.push({ userId: u.id, runId: stored.run.id, mode, picked: take.length, messaged: !!r.messaged, skippedJobs });
+  return res;
+}
+
+const RUN_NOW_GAP = 10 * 60;   // one Run now per 10 minutes — a press twice is not two batches
+
+/**
+ * ⭐ A166 (2) · Run now: the person's scheduled batch, started at once. Refused while the kill switch is on, for a user
+ * with neither Apply for me nor Ask me first, and within 10 minutes of the last run (scheduled or not).
+ * @returns {{ ok: boolean, error?: string, result?: object[] }}
+ */
+export async function runAutoNow(db, userId, deps, { nowSec = Math.floor(Date.now() / 1000), env = process.env } = {}) {
+  if (fullAutoDisabled(db, env)) return { ok: false, error: "kill_switch" };
+  const u = db.prepare(`SELECT id, auto_settings, auto_last_run_at, send_mode FROM users WHERE id = ?`).get(userId);
+  if (!u) return { ok: false, error: "no_user" };
+  if (!picksMode(u.send_mode, readAutoSettings(u.auto_settings))) return { ok: false, error: "no_auto_mode" };
+  if (u.auto_last_run_at != null && nowSec - u.auto_last_run_at < RUN_NOW_GAP) {
+    return { ok: false, error: "ran_recently", retryAfterSec: RUN_NOW_GAP - (nowSec - u.auto_last_run_at) };
+  }
+  const result = await runOneUser(db, u, deps, nowSec, { now: true });
+  return { ok: true, result };
 }
 
 /** ⭐ D113: after the runs — Apply for me's one summary after each run, and the questions that came back. */

@@ -42,7 +42,7 @@ import networkRoutes from "./routes/network.js";   // D180 P1 (45o): connections
 import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow, ineligibleOrderKey } from "./services/jobEligibility.js";
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
-import { runAutoTick, runPicksFollowUps } from "./services/autoScheduler.js";
+import { runAutoTick, runPicksFollowUps, runAutoNow } from "./services/autoScheduler.js";
 import { sweepTestingRecords } from "./services/testingRecords.js";
 import { runCanaryCheck } from "./services/fullAutoCanary.js";
 import { startedByMiddleware, withStartedBy, SCHEDULER_STARTED } from "./services/startedByContext.js";
@@ -16045,6 +16045,25 @@ setInterval(() => withStartedBy(SCHEDULER_STARTED, async () => {   // D171 FIX 1
     // (the 8 pm daily summary was retired 10-31 by the owner — Apply for me gets runPicksFollowUps' summary after each run)
   } catch (e) { console.error(`[auto] tick failed: ${e.message}`); }
 }), AUTO_TICK_MS).unref();
+// ⭐ A166 (2) (owner 11-10: "a run now option that start a batch instantly") — the person's scheduled batch at once: the
+// same picks, caps and rules as a run time (services/autoScheduler.js runOneUser), started by the person (D171 FIX 1).
+app.post("/api/apply/run-now", requireAuth, async (req, res) => {
+  try {
+    const r = await runAutoNow(db, req.user.id, { fetchBoard: autoFetchBoard, startAutoRun: applyLine.startAutoRun,
+      notify: (userId, event, data) => notifyEvent(userId, event, data), secret: PICKS_SECRET, appUrl: PICKS_APP_URL });
+    if (!r.ok) {
+      const words = { kill_switch: "Automatic applications are paused right now.", no_auto_mode: "Turn on Apply for me or Ask me first first.",
+        ran_recently: "A run just happened — try again in a few minutes.", no_user: "Not signed in." };
+      return res.status(r.error === "ran_recently" ? 429 : 409).json({ error: r.error, message: words[r.error] || r.error, retryAfterSec: r.retryAfterSec ?? null });
+    }
+    const first = r.result.find(x => x.runId != null && !x.resumed) || r.result[r.result.length - 1] || {};
+    console.log(`[auto] run now user=${req.user.id} ${JSON.stringify(first)}`);
+    res.json({ ok: true, ...first });
+  } catch (e) {
+    console.error(`[auto] run now failed: ${e.message}`);
+    res.status(500).json({ error: "run_now_failed" });
+  }
+});
 // A63: the Pending table (pending -> verified -> submitted) and the day's Draft slots.
 applicationRecordRoutes(app, db, requireAuth, { capturedAtsAtApply });
 // D102: the pipeline workspace — one row per job, one detail panel (services/pipelineWorkspace.js).
