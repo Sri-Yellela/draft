@@ -32,6 +32,7 @@ export const USER_REF_TABLES = Object.freeze([
 export const DERIVED_TABLES = Object.freeze([
   "job_role_map", "enrichment_batch_rows", "job_tag_places", "job_page_keys", "job_ghost", "job_company", "job_tech", "job_tech_scan",
   "job_taxonomy", "posting_application_schemas", "public_open_jobs",
+  "posting_input_hashes",   // 46d: A176 (migration 269) — the posting's kept A85 input hash
 ]);
 export const DERIVED_BY_ROW_ID = Object.freeze(["atlas_posting_match", "atlas_posting_dirty"]);
 /** Logs that mention a posting and keep their row (the id simply stops resolving). 45s: job_history was first listed as a

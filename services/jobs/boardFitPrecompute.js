@@ -181,10 +181,18 @@ export function registerScoreFreshness(db) {
  */
 export function currentScoreSql(basisHash, jobAlias = "sj", aorAlias = "aor") {
   if (typeof basisHash !== "string" || !/^[0-9a-f]{8,128}$/.test(basisHash)) return "NULL";
-  // D59: positional — the scorer's inputs, then the two columns that decide which text it reads.
-  const inputs = [...ATS_JOB_INPUT_FIELDS, ...POSTING_TEXT_COLUMNS].map(c => `${jobAlias}.${c}`).join(", ");
+  // ⭐ A176: the posting's hash as postingInputHashSql reads it — the kept one (posting_input_hashes, migration 269), else
+  // computed exactly as before. The same answer either way (services/jobs/postingInputHashes.js says why).
   return `(CASE WHEN ${aorAlias}.id IS NOT NULL AND ${aorAlias}.basis_hash = '${basisHash}' ` +
-    `AND ${aorAlias}.job_hash = ${ATS_INPUT_HASH_FN}(${inputs}) THEN ${aorAlias}.ats_score END)`;
+    `AND ${aorAlias}.job_hash = ${postingInputHashSql(jobAlias)} THEN ${aorAlias}.ats_score END)`;
+}
+/**
+ * ⭐ A176 (46d) · the posting's CURRENT input hash in SQL: COALESCE(the kept hash, the computed one). D59: positional — the
+ * scorer's inputs, then the two columns that decide which text it reads. The function must be registered on the connection.
+ */
+export function postingInputHashSql(jobAlias = "sj") {
+  return `COALESCE((SELECT pih.input_hash FROM posting_input_hashes pih WHERE pih.job_id = ${jobAlias}.job_id), ` +
+    `${ATS_INPUT_HASH_FN}(${[...ATS_JOB_INPUT_FIELDS, ...POSTING_TEXT_COLUMNS].map(c => `${jobAlias}.${c}`).join(", ")}))`;
 }
 
 const yieldToEventLoop = () => new Promise(resolve => setImmediate(resolve));
@@ -244,6 +252,9 @@ export function createBoardFitPrecompute({
   // D59: a database without migration 137's columns (a hand-built fixture) hashes the stored description.
   const columns = db.prepare("PRAGMA table_info(scraped_jobs)").all();
   const hasPostingText = columns.some(c => c.name === "description_text");
+  // ⭐ A176: the kept posting hash (migration 269), where the schema has it — the plan's "changed" check then reads it
+  // instead of hashing every posting's description on every pass (the same answer: postingInputHashes.js).
+  const hasKeptHashes = hasPostingText && !!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'posting_input_hashes'").get();
   // A112: the board's own category clause (server.js /api/jobs) — 'held' never, another category not by default.
   const SCOPE_SQL = columns.some(c => c.name === "board_category")
     ? " AND (sj.board_category IS NULL OR (sj.board_category <> 'held' AND (? IS NULL OR sj.board_category = ?)))"
@@ -273,10 +284,10 @@ export function createBoardFitPrecompute({
     SELECT sj.job_id AS job_id,
            CASE WHEN aor.id IS NULL THEN 'missing'
                 WHEN aor.basis_hash IS NOT ? OR ? = 1 THEN 'stale'
-                WHEN aor.job_hash IS NOT ${ATS_INPUT_HASH_FN}(${[
+                WHEN aor.job_hash IS NOT ${hasKeptHashes ? postingInputHashSql("sj") : `${ATS_INPUT_HASH_FN}(${[
                   ...ATS_JOB_INPUT_FIELDS.map(c => `sj.${c}`),
                   ...(hasPostingText ? POSTING_TEXT_COLUMNS.map(c => `sj.${c}`) : POSTING_TEXT_COLUMNS.map(() => "NULL")),
-                ].join(", ")}) THEN 'changed'
+                ].join(", ")})`} THEN 'changed'
                 ELSE 'fresh' END AS why
     FROM scraped_jobs sj
     LEFT JOIN ats_only_reports aor
