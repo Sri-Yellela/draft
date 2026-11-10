@@ -1112,7 +1112,7 @@ export function CompaniesSection({ theme }) {
           <select aria-label="Board type" value={form.atsType} onChange={e => setForm({ ...form, atsType: e.target.value })} style={input}>
             {(d?.atsTypes || ["greenhouse"]).map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          <input aria-label="Board slug" placeholder="board slug" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} style={{ ...input, width: 170 }}/>
+          <input aria-label="Board slug" placeholder="board slug or careers page URL" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} style={{ ...input, width: 170 }}/>
         </div>
         {d?.suggestions?.length > 0 && (
           <div>
@@ -1120,8 +1120,11 @@ export function CompaniesSection({ theme }) {
             <Table theme={theme} rows={d.suggestions} cols={[
               { key: "ats_type", label: "board type" }, { key: "ats_slug", label: "slug" },
               { key: "people", label: "people", right: true }, { key: "captures", label: "captures", right: true },
-              { key: "use", label: "", render: r => <Btn theme={theme}
-                  onClick={() => setForm({ company: form.company || r.ats_slug, atsType: r.ats_type, slug: r.ats_slug })}>Use</Btn> },
+              // 46a: a Workday / Oracle / Taleo slug has parts — the company defaults to its tenant, not the whole slug; a
+              // suggestion whose full board no capture names says to paste the careers URL.
+              { key: "use", label: "", render: r => r.needsUrl ? <span data-needs-url="" style={quiet}>paste its careers URL in the slug field</span> : <Btn theme={theme}
+                  onClick={() => setForm({ company: form.company || (r.ats_type === "workday" ? String(r.ats_slug).split("|")[1] : String(r.ats_slug).split("|")[0]),
+                    atsType: r.ats_type, slug: r.ats_slug })}>Use</Btn> },
             ]}/>
           </div>
         )}
