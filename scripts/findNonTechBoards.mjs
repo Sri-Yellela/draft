@@ -11,6 +11,12 @@ import { createFetcher } from "../crawler/lib/fetcher.js";
 import { findBoard } from "../crawler/lib/j1.js";
 import { harvestPairOf } from "../services/slugHarvest.js";
 import { probeBoard } from "../services/companyProbe.js";
+import { fetchDescription } from "../services/jobs/detailFetch.js";
+
+// The probe's detail sample, exactly as the nightly candidate probe asks it (services/companyCandidates.js — ≥ 1 s apart,
+// no retries). ⛔ 46a: this was a stub answering null, and Workday lists carry no description — so EVERY Workday board
+// read `no_descriptions` (Swinerton 45 in scope, Clark 67) and was dropped as "not live / thin".
+const describe = async (row) => { await new Promise(r => setTimeout(r, 1000)); return fetchDescription(row, { maxRetries: 0, timeoutMs: 10000 }); };
 
 const OUT = "content/companies/candidates-nontech-45s.json";
 const SITES = [
@@ -46,20 +52,26 @@ for (const [company, site, industry] of SITES) {
   let r = null;
   try { r = await findBoard({ baseUrl: site }, fetcher); } catch (e) { r = { status: "error", error: String(e?.message || e).slice(0, 120) }; }
   const urls = [...new Set((r?.evidence || []).map(e => e.url))];
-  const pairs = urls.map(u => ({ u, p: harvestPairOf(u) })).filter(x => x.p);
+  // harvestPairOf answers {atsType, slug} for a crawlable vendor and {unsupported: "icims"} for one with no crawler —
+  // keep them apart, or iCIMS / Oracle links read as "undefined:undefined" pairs and never reach `unsupported`.
+  const harvested = urls.map(u => ({ u, p: harvestPairOf(u) })).filter(x => x.p);
+  // One probe per distinct pair (Clark's site links the same Workday board eight times).
+  const pairs = harvested.filter((x, i, all) => x.p.atsType && x.p.slug && all.findIndex(y => y.p.atsType === x.p.atsType && y.p.slug === x.p.slug) === i);
+  const vendors = [...new Set(harvested.filter(x => x.p.unsupported).map(x => x.p.unsupported))];
   let hit = null;
   for (const { p } of pairs) {
-    if (!["greenhouse", "lever", "ashby", "smartrecruiters", "workable", "workday", "recruitee", "bamboohr", "rippling", "gem"].includes(p.atsType)) continue;
-    let v = null; try { v = await probeBoard({ atsType: p.atsType, slug: p.slug, company }, { describe: async () => null }); } catch { v = null; }
+    if (!["greenhouse", "lever", "ashby", "smartrecruiters", "workable", "workday", "recruitee", "bamboohr", "rippling", "gem", "icims"].includes(p.atsType)) continue;
+    let v = null; try { v = await probeBoard({ atsType: p.atsType, slug: p.slug, company }, { describe }); } catch { v = null; }
     if (v && v.state === "live" && v.us >= 3 && (v.csOpen || 0) >= 3) {
       hit = { company, atsType: p.atsType, slug: p.slug, industry, via: "j1", evidence: { fetched: v.fetched ?? v.jobs, us: v.us, fresh: v.fresh, inScope: v.csOpen, cs30: v.cs30, usPct: v.usPct, medianAge: v.medianAge, probedAt: new Date().toISOString() } };
       break;
     }
   }
   const other = urls.filter(u => !pairs.some(x => x.u === u)).map(u => { try { return new URL(u).hostname; } catch { return u; } });
-  prior.j1[company] = hit ? `${hit.atsType}:${hit.slug}` : pairs.length ? `pairs ${pairs.map(x => `${x.p.atsType}:${x.p.slug}`).join(",")} (not live / thin)` : other.length ? `unsupported ${[...new Set(other)].join(",")}` : (r?.status || "none");
+  prior.j1[company] = hit ? `${hit.atsType}:${hit.slug}` : pairs.length ? `pairs ${pairs.map(x => `${x.p.atsType}:${x.p.slug}`).join(",")} (not live / thin)`
+    : vendors.length ? `unsupported ${vendors.join(",")} (${[...new Set(other)].join(",")})` : other.length ? `other ${[...new Set(other)].join(",")}` : (r?.status || "none");
   if (hit && !have.has(`${hit.atsType}:${hit.slug}`.toLowerCase())) { prior.found.push(hit); have.add(`${hit.atsType}:${hit.slug}`.toLowerCase()); }
-  if (!hit && other.length) prior.unsupported.push({ company, industry, hosts: [...new Set(other)] });
+  if (!hit && (vendors.length || other.length)) prior.unsupported.push({ company, industry, vendors, hosts: [...new Set(other)], urls: urls.slice(0, 5) });
   fs.writeFileSync(OUT, JSON.stringify(prior, null, 1));
   console.log(`${company.padEnd(32)} ${prior.j1[company]}${hit ? `  us ${hit.evidence.us} · in scope ${hit.evidence.inScope}` : ""}`);
 }

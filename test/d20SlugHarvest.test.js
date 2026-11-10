@@ -22,7 +22,7 @@ const read = p => fs.readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 
 const described = { title: "Engineer", location: "Austin, TX", description: "Build things in Austin, TX.", url: "https://x/1", company: "Acme" };
 const liveFetcher = async () => [described];
-const fetchersAll = Object.fromEntries(["greenhouse", "lever", "ashby", "smartrecruiters", "workable", "recruitee", "workday"].map(t => [t, liveFetcher]));
+const fetchersAll = Object.fromEntries(["greenhouse", "lever", "ashby", "smartrecruiters", "workable", "recruitee", "workday", "icims"].map(t => [t, liveFetcher]));
 
 function mount({ search, account = async () => ({ left: 200 }), validate, fetchers = fetchersAll } = {}) {
   const db = new Database(":memory:");
@@ -69,9 +69,10 @@ test("D4's twenty searches pool to the 40 crawlable pairs and 10 adapter-less on
   }
   const by = {};
   for (const p of pairs.values()) by[p.atsType] = (by[p.atsType] || 0) + 1;
-  assert.deepEqual([links, atsLinks, pairs.size], [1031, 52, 40]);
-  assert.deepEqual(by, { workday: 25, ashby: 9, smartrecruiters: 3, lever: 1, workable: 1, recruitee: 1 });
-  assert.equal(Object.values(unsupported).reduce((a, b) => a + b, 0), 10, "icims 4, jazzhr 2, oracle, eightfold, gem, pinpoint");
+  // A161 (46a): iCIMS is crawled now — the doc's 4 adapter-less iCIMS tenants are pairs: 40 + 4 = 44, 10 − 4 = 6.
+  assert.deepEqual([links, atsLinks, pairs.size], [1031, 52, 44]);
+  assert.deepEqual(by, { workday: 25, ashby: 9, icims: 4, smartrecruiters: 3, lever: 1, workable: 1, recruitee: 1 });
+  assert.equal(Object.values(unsupported).reduce((a, b) => a + b, 0), 6, "jazzhr 2, oracle, eightfold, gem, pinpoint (icims 4 before A161)");
   assert.ok(pairs.has("ashby:coder") && pairs.has("workday:5|westernalliancebank|wab"));
 });
 
@@ -80,7 +81,8 @@ test("URLs → pairs: Workday keeps its site (and its case) past a locale, the m
   assert.deepEqual(harvestPairOf("https://wd3.myworkdaysite.com/recruiting/Acme/Careers/job/1"), { atsType: "workday", slug: "3|acme|Careers" });
   assert.deepEqual(harvestPairOf("https://boards.greenhouse.io/embed/job_app?for=anduril&token=1"), { atsType: "greenhouse", slug: "anduril" });
   assert.deepEqual(harvestPairOf("https://jobs.ashbyhq.com/coder/0f6b1c2e-1111-2222-3333-444455556666"), { atsType: "ashby", slug: "coder" });
-  assert.deepEqual(harvestPairOf("https://careers-lmi.icims.com/jobs/1/job"), { unsupported: "icims" });
+  assert.deepEqual(harvestPairOf("https://careers-lmi.icims.com/jobs/1/job"), { atsType: "icims", slug: "careers-lmi" }, "A161: a tenant host is a pair");
+  assert.deepEqual(harvestPairOf("https://www.icims.com/"), { unsupported: "icims" }, "iCIMS's own site names no tenant");
   assert.equal(harvestPairOf("https://www.linkedin.com/jobs/view/1"), null);
   assert.equal(harvestPairOf("not a url"), null);
 });

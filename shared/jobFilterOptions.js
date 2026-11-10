@@ -175,6 +175,7 @@ export const SOURCES = {
     { value: "bamboohr",           label: "BambooHR"        },
     { value: "gem",                label: "Gem"             },
     { value: "rippling",           label: "Rippling"        },
+    { value: "icims",              label: "iCIMS"           },
     { value: "adzuna",             label: "Adzuna"          },
     { value: "serpapi",            label: "Google Jobs"     },
     { value: "linkedin_extension", label: "LinkedIn (Saved)" },

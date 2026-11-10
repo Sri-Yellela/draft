@@ -34,6 +34,7 @@ import { validateBoard, addCompany, setCompanyActive, ATS_FETCHERS } from "./com
 import { probeBoard } from "./companyProbe.js";
 import { HARVEST_QUERY_PLAN } from "./harvestQueryPlan.js";
 import { toActor } from "./actor.js";
+import { isTenantSlug as isIcimsTenant } from "./jobs/sources/icims.js";
 
 export const DAILY_SEARCH_CAP = 8;
 export const EXHAUSTED_AFTER = 3;
@@ -59,11 +60,13 @@ const FAMILY_OF = new Map(HARVEST_QUERIES.map(x => [queryKey(x), x.family]));
 // evidence, and validateBoard proves it before anything is enabled) and Greenhouse's embed form.
 const WORKDAY_HOST_RE = /^([a-z0-9-]+)\.wd(\d+)\.myworkdayjobs\.com$/i;
 const WORKDAY_SITE_HOST_RE = /^wd(\d+)\.myworkdaysite\.com$/i;
+const ICIMS_HOST_RE = /^([a-z0-9-]+)\.icims\.com$/i;
 const LOCALE_RE = /^[a-z]{2}-[a-z]{2}$/i;
 const SITE_RE = /^[A-Za-z0-9_-]{1,80}$/;
 // Vendors that appear in the results but have no crawler: counted, never pooled.
 const UNSUPPORTED_HOSTS = [
-  [/(^|\.)icims\.com$/i, "icims"], [/(^|\.)applytojob\.com$/i, "jazzhr"], [/\.oraclecloud\.com$/i, "oracle"],
+  [/(^|\.)icims\.com$/i, "icims"],   // only a host that names no tenant (www / jobs …) — a tenant host is a pair (A161)
+  [/(^|\.)applytojob\.com$/i, "jazzhr"], [/\.oraclecloud\.com$/i, "oracle"],
   [/\.eightfold\.ai$/i, "eightfold"], [/(^|\.)jobs\.gem\.com$/i, "gem"], [/\.pinpointhq\.com$/i, "pinpoint"],
   [/^jobs\.jobvite\.com$/i, "jobvite"], [/\.bamboohr\.com$/i, "bamboohr"], [/\.taleo\.net$/i, "taleo"],
   [/\.successfactors\.(com|eu)$/i, "successfactors"], [/(^|\.)adp\.com$/i, "adp"], [/\.ultipro\.com$/i, "ukg"],
@@ -86,6 +89,9 @@ export function harvestPairOf(rawUrl) {
   if (m && seg[0] === "recruiting" && seg[1] && seg[2] && SITE_RE.test(seg[2])) {
     return { atsType: "workday", slug: `${m[1]}|${seg[1].toLowerCase()}|${seg[2]}` };
   }
+  // A161 (46a): iCIMS is crawled — the tenant's host label is the slug (careers-acme.icims.com → "careers-acme").
+  m = host.match(ICIMS_HOST_RE);
+  if (m && isIcimsTenant(m[1])) return { atsType: "icims", slug: m[1].toLowerCase() };
   if (/(^|\.)greenhouse\.io$/i.test(host) && seg.join("/") === "embed/job_app") {
     const forSlug = u.searchParams.get("for");
     return forSlug ? { atsType: "greenhouse", slug: forSlug } : null;
