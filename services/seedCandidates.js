@@ -14,13 +14,19 @@ export const SEED_SOURCE = "seed-nontech-45s";
 const BOARD_URL = {
   greenhouse: (s) => `https://boards.greenhouse.io/${s}`, lever: (s) => `https://jobs.lever.co/${s}`, ashby: (s) => `https://jobs.ashbyhq.com/${s}`,
   smartrecruiters: (s) => `https://jobs.smartrecruiters.com/${s}`, workable: (s) => `https://apply.workable.com/${s}`,
+  // 46a (A160): every vendor findNonTechBoards.mjs probes needs a board URL here, or its hits are dropped at import.
+  // Workday's slug is "wdN|tenant|site" (services/jobs/sources/workday.js) → https://<tenant>.wd<N>.myworkdayjobs.com/<site>.
+  workday: (s) => { const [n, tenant, site] = String(s).split("|"); return /^\d+$/.test(n) && tenant && site ? `https://${tenant}.wd${n}.myworkdayjobs.com/${site}` : null; },
+  recruitee: (s) => `https://${s}.recruitee.com`, bamboohr: (s) => `https://${s}.bamboohr.com/careers`,
+  rippling: (s) => `https://ats.rippling.com/${s}/jobs`, gem: (s) => `https://jobs.gem.com/${s}`,
+  icims: (s) => `https://${String(s).toLowerCase()}.icims.com/jobs/search`,   // A161: the slug is the tenant's host label
 };
 
 /** The seed file as pool items ({ company, ats: { atsType, slug, url }, … }). */
 export function seedItems(file = SEED_FILE) {
   if (!fs.existsSync(file)) return [];
   const found = JSON.parse(fs.readFileSync(file, "utf8")).found || [];
-  return found.filter(f => BOARD_URL[f.atsType] && f.slug).map(f => ({ company: f.company, ats: { atsType: f.atsType, slug: f.slug, url: BOARD_URL[f.atsType](f.slug) },
+  return found.filter(f => BOARD_URL[f.atsType] && f.slug && BOARD_URL[f.atsType](f.slug)).map(f => ({ company: f.company, ats: { atsType: f.atsType, slug: f.slug, url: BOARD_URL[f.atsType](f.slug) },
     sources: [SEED_SOURCE], header: `${f.industry} · probed ${f.evidence?.probedAt || ""}: ${f.evidence?.us ?? "?"} US roles, ${f.evidence?.inScope ?? "?"} in scope` }));
 }
 

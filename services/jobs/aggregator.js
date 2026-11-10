@@ -28,6 +28,7 @@ import recruiteePlugin from './sources/recruitee.js';
 import bamboohrPlugin  from './sources/bamboohr.js';
 import gemPlugin       from './sources/gem.js';
 import ripplingPlugin  from './sources/rippling.js';
+import icimsPlugin     from './sources/icims.js';
 import { SOURCES as SOURCES_DIMENSION, labelMap } from '../../shared/jobFilterOptions.js';
 import { userReferencedSql } from './userReferences.js';
 import { atlasPostingsChanged } from '../atlas/atlasLive.js';
@@ -48,6 +49,7 @@ const SOURCES = [
   bamboohrPlugin,
   gemPlugin,
   ripplingPlugin,
+  icimsPlugin,
 ];
 // ─────────────────────────────────────────────────────────────────────────────
 
