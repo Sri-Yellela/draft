@@ -42,11 +42,42 @@ const SITES = [
   ["Thermo Fisher Scientific", "https://www.thermofisher.com", "biotech"], ["Moderna", "https://www.modernatx.com", "biotech"], ["Vertex Pharmaceuticals", "https://www.vrtx.com", "biotech"],
   ["Eversource", "https://www.eversource.com", "energy"], ["National Grid", "https://www.nationalgridus.com", "energy"], ["Dominion Energy", "https://www.dominionenergy.com", "energy"],
 ];
+// 46a: the second batch, by the board's thin families (the worklog's "widen the site list by industry") — health systems,
+// banks / insurers, utilities, aerospace / manufacturing, more contractors and engineering firms, retail / logistics.
+const SITES_46A = [
+  ["HCA Healthcare", "https://hcahealthcare.com", "healthcare"], ["CommonSpirit Health", "https://www.commonspirit.org", "healthcare"],
+  ["Providence", "https://www.providence.org", "healthcare"], ["Advocate Health", "https://www.advocatehealth.org", "healthcare"],
+  ["Intermountain Health", "https://intermountainhealthcare.org", "healthcare"], ["Northwell Health", "https://www.northwell.edu", "healthcare"],
+  ["NYU Langone Health", "https://nyulangone.org", "healthcare"], ["Johns Hopkins Medicine", "https://www.hopkinsmedicine.org", "healthcare"],
+  ["UPMC", "https://www.upmc.com", "healthcare"], ["Sutter Health", "https://www.sutterhealth.org", "healthcare"],
+  ["Baylor Scott & White Health", "https://www.bswhealth.com", "healthcare"], ["CVS Health", "https://www.cvshealth.com", "healthcare"],
+  ["JPMorgan Chase", "https://www.jpmorganchase.com", "finance"], ["Bank of America", "https://www.bankofamerica.com", "finance"],
+  ["Wells Fargo", "https://www.wellsfargo.com", "finance"], ["Citi", "https://www.citigroup.com", "finance"],
+  ["Goldman Sachs", "https://www.goldmansachs.com", "finance"], ["Morgan Stanley", "https://www.morganstanley.com", "finance"],
+  ["Capital One", "https://www.capitalone.com", "finance"], ["Travelers", "https://www.travelers.com", "insurance"],
+  ["Progressive", "https://www.progressive.com", "insurance"], ["Prudential Financial", "https://www.prudential.com", "insurance"],
+  ["MetLife", "https://www.metlife.com", "insurance"], ["Northwestern Mutual", "https://www.northwesternmutual.com", "insurance"],
+  ["Duke Energy", "https://www.duke-energy.com", "energy"], ["NextEra Energy", "https://www.nexteraenergy.com", "energy"],
+  ["Southern Company", "https://www.southerncompany.com", "energy"], ["Exelon", "https://www.exeloncorp.com", "energy"],
+  ["Xcel Energy", "https://www.xcelenergy.com", "energy"], ["PG&E", "https://www.pge.com", "energy"],
+  ["Con Edison", "https://www.coned.com", "energy"], ["Entergy", "https://www.entergy.com", "energy"],
+  ["Boeing", "https://www.boeing.com", "manufacturing"], ["Lockheed Martin", "https://www.lockheedmartin.com", "manufacturing"],
+  ["Northrop Grumman", "https://www.northropgrumman.com", "manufacturing"], ["General Dynamics", "https://www.gd.com", "manufacturing"],
+  ["Honeywell", "https://www.honeywell.com", "manufacturing"], ["Caterpillar", "https://www.caterpillar.com", "manufacturing"],
+  ["John Deere", "https://www.deere.com", "manufacturing"], ["3M", "https://www.3m.com", "manufacturing"],
+  ["Parsons", "https://www.parsons.com", "engineering services"], ["Kimley-Horn", "https://www.kimley-horn.com", "engineering services"],
+  ["Terracon", "https://www.terracon.com", "engineering services"], ["Barton Malow", "https://www.bartonmalow.com", "construction"],
+  ["PCL Construction", "https://www.pcl.com", "construction"], ["Sundt", "https://www.sundt.com", "construction"],
+  ["Brasfield & Gorrie", "https://www.brasfieldgorrie.com", "construction"], ["JE Dunn", "https://www.jedunn.com", "construction"],
+  ["Webcor", "https://www.webcor.com", "construction"], ["Target", "https://corporate.target.com", "retail"],
+  ["The Home Depot", "https://corporate.homedepot.com", "retail"], ["UPS", "https://about.ups.com", "logistics"],
+  ["FedEx", "https://www.fedex.com", "logistics"],
+];
 const prior = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, "utf8")) : { tried: {}, found: [] };
 prior.unsupported ??= [];
 prior.j1 ??= {};
 const have = new Set(prior.found.map(f => `${f.atsType}:${f.slug}`.toLowerCase()));
-for (const [company, site, industry] of SITES) {
+for (const [company, site, industry] of [...SITES, ...SITES_46A]) {
   if (prior.j1[company]) continue;
   const fetcher = createFetcher({ budget: { pages: 25, bytes: 5_000_000, ms: 120_000 }, rateMs: 2000 });
   let r = null;

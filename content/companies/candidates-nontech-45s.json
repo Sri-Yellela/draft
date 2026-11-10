@@ -1014,6 +1014,244 @@
     "medianAge": 6,
     "probedAt": "2026-11-10T01:45:47.411Z"
    }
+  },
+  {
+   "company": "Providence",
+   "atsType": "oracle",
+   "slug": "evac.fa.us2.oraclecloud.com|CX_1",
+   "industry": "healthcare",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 150,
+    "inScope": 3,
+    "cs30": 3,
+    "usPct": 100,
+    "medianAge": 3,
+    "probedAt": "2026-11-10T01:50:36.935Z"
+   }
+  },
+  {
+   "company": "Northwell Health",
+   "atsType": "oracle",
+   "slug": "eppr.fa.us2.oraclecloud.com|CX_2",
+   "industry": "healthcare",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 150,
+    "inScope": 6,
+    "cs30": 6,
+    "usPct": 100,
+    "medianAge": 0,
+    "probedAt": "2026-11-10T01:51:43.923Z"
+   }
+  },
+  {
+   "company": "JPMorgan Chase",
+   "atsType": "oracle",
+   "slug": "jpmc.fa.oraclecloud.com|CX_1001",
+   "industry": "finance",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 150,
+    "inScope": 68,
+    "cs30": 68,
+    "usPct": 100,
+    "medianAge": 0,
+    "probedAt": "2026-11-10T01:54:00.056Z"
+   }
+  },
+  {
+   "company": "Bank of America",
+   "atsType": "workday",
+   "slug": "1|ghr|lateral-us",
+   "industry": "finance",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 51,
+    "fresh": 51,
+    "inScope": 12,
+    "cs30": 12,
+    "usPct": 17,
+    "medianAge": -1,
+    "probedAt": "2026-11-10T01:54:19.653Z"
+   }
+  },
+  {
+   "company": "Citi",
+   "atsType": "workday",
+   "slug": "5|citi|2",
+   "industry": "finance",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 110,
+    "fresh": 110,
+    "inScope": 46,
+    "cs30": 46,
+    "usPct": 37,
+    "medianAge": -1,
+    "probedAt": "2026-11-10T01:54:47.310Z"
+   }
+  },
+  {
+   "company": "Travelers",
+   "atsType": "workday",
+   "slug": "5|travelers|External",
+   "industry": "insurance",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 31,
+    "fresh": 31,
+    "inScope": 13,
+    "cs30": 13,
+    "usPct": 10,
+    "medianAge": 11,
+    "probedAt": "2026-11-10T01:56:03.645Z"
+   }
+  },
+  {
+   "company": "Xcel Energy",
+   "atsType": "workday",
+   "slug": "1|xcelenergy|External",
+   "industry": "energy",
+   "via": "j1",
+   "evidence": {
+    "fetched": 126,
+    "us": 80,
+    "fresh": 80,
+    "inScope": 22,
+    "cs30": 22,
+    "usPct": 63,
+    "medianAge": 5,
+    "probedAt": "2026-11-10T01:57:54.400Z"
+   }
+  },
+  {
+   "company": "Con Edison",
+   "atsType": "oracle",
+   "slug": "ejcu.fa.us6.oraclecloud.com|CX_1033",
+   "industry": "energy",
+   "via": "j1",
+   "evidence": {
+    "fetched": 66,
+    "us": 66,
+    "fresh": 66,
+    "inScope": 29,
+    "cs30": 25,
+    "usPct": 100,
+    "medianAge": 12,
+    "probedAt": "2026-11-10T01:58:11.503Z"
+   }
+  },
+  {
+   "company": "Boeing",
+   "atsType": "workday",
+   "slug": "1|boeing|EXTERNAL_CAREERS",
+   "industry": "manufacturing",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 221,
+    "fresh": 221,
+    "inScope": 113,
+    "cs30": 113,
+    "usPct": 74,
+    "medianAge": 2,
+    "probedAt": "2026-11-10T01:58:32.359Z"
+   }
+  },
+  {
+   "company": "Honeywell",
+   "atsType": "oracle",
+   "slug": "ibqbjb.fa.ocs.oraclecloud.com|Honeywell",
+   "industry": "manufacturing",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 149,
+    "inScope": 55,
+    "cs30": 54,
+    "usPct": 100,
+    "medianAge": 6,
+    "probedAt": "2026-11-10T02:00:37.657Z"
+   }
+  },
+  {
+   "company": "Sundt",
+   "atsType": "oracle",
+   "slug": "eewl.fa.us6.oraclecloud.com|CX",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 108,
+    "inScope": 41,
+    "cs30": 23,
+    "usPct": 100,
+    "medianAge": 12,
+    "probedAt": "2026-11-10T02:06:16.015Z"
+   }
+  },
+  {
+   "company": "Webcor",
+   "atsType": "workday",
+   "slug": "503|webcor|webcor",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 44,
+    "us": 36,
+    "fresh": 36,
+    "inScope": 20,
+    "cs30": 20,
+    "usPct": 82,
+    "medianAge": 20,
+    "probedAt": "2026-11-10T02:06:38.667Z"
+   }
+  },
+  {
+   "company": "Target",
+   "atsType": "workday",
+   "slug": "5|target|targetcareers",
+   "industry": "retail",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 278,
+    "fresh": 278,
+    "inScope": 27,
+    "cs30": 27,
+    "usPct": 93,
+    "medianAge": 3,
+    "probedAt": "2026-11-10T02:07:06.313Z"
+   }
+  },
+  {
+   "company": "CommonSpirit Health",
+   "atsType": "icims",
+   "slug": "careers-commonspirit",
+   "industry": "healthcare",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 133,
+    "inScope": 4,
+    "cs30": 4,
+    "usPct": 100,
+    "medianAge": 3,
+    "probedAt": "2026-11-10T02:11:38.355Z"
+   }
   }
  ],
  "dropped": [
@@ -1092,6 +1330,84 @@
     "https://bostonscientific.eightfold.ai/careers",
     "https://bostonscientific.eightfold.ai/careers/join"
    ]
+  },
+  {
+   "company": "Intermountain Health",
+   "industry": "healthcare",
+   "vendors": [
+    "ukg"
+   ],
+   "hosts": [
+    "recruiting.ultipro.com"
+   ],
+   "urls": [
+    "https://recruiting.ultipro.com/SUR1004SRGY/JobBoard/19c3dcb2-e010-4756-b837-0d47d7545587",
+    "https://imh.wd108.myworkdayjobs.com/IntermountainCareers"
+   ]
+  },
+  {
+   "company": "Sutter Health",
+   "industry": "healthcare",
+   "vendors": [],
+   "hosts": [
+    "wd1.myworkdaysite.com"
+   ],
+   "urls": [
+    "https://wd1.myworkdaysite.com/en-US/recruiting/sutterhealth/SH/login"
+   ]
+  },
+  {
+   "company": "PG&E",
+   "industry": "energy",
+   "vendors": [
+    "successfactors"
+   ],
+   "hosts": [
+    "career4.successfactors.com"
+   ],
+   "urls": [
+    "https://career4.successfactors.com/career"
+   ]
+  },
+  {
+   "company": "Entergy",
+   "industry": "energy",
+   "vendors": [
+    "successfactors"
+   ],
+   "hosts": [
+    "rmkcdn.successfactors.com"
+   ],
+   "urls": [
+    "https://rmkcdn.successfactors.com/7c860e51/9e813328-5d1b-4ed9-a5ed-6.css",
+    "https://rmkcdn.successfactors.com/7c860e51/1cee8c85-5656-4667-bff9-9.jpg"
+   ]
+  },
+  {
+   "company": "Northrop Grumman",
+   "industry": "manufacturing",
+   "vendors": [
+    "eightfold"
+   ],
+   "hosts": [
+    "ngc.eightfold.ai"
+   ],
+   "urls": [
+    "https://ngc.eightfold.ai/careerhub"
+   ]
+  },
+  {
+   "company": "Brasfield & Gorrie",
+   "industry": "construction",
+   "vendors": [],
+   "hosts": [
+    "jobs-brasfieldgorrie.icims.com"
+   ],
+   "urls": [
+    "https://jobs-brasfieldgorrie.icims.com/jobs/10596/login",
+    "https://jobs-brasfieldgorrie.icims.com/jobs/10277/login",
+    "https://jobs-brasfieldgorrie.icims.com/jobs/10728/login"
+   ]
   }
  ],
  "j1": {
@@ -1144,6 +1460,59 @@
   "Structure Tone": "oracle:fa-exrr-saasfaprod1.fa.ocs.oraclecloud.com|stobg",
   "WSP USA": "oracle:emit.fa.ca3.oraclecloud.com|CX_2001",
   "HDR": "taleo:hdr|ex",
-  "Kaiser Permanente": "pairs taleo:kp|external (not live / thin)"
+  "Kaiser Permanente": "pairs taleo:kp|external (not live / thin)",
+  "HCA Healthcare": "none",
+  "Providence": "oracle:evac.fa.us2.oraclecloud.com|CX_1",
+  "Advocate Health": "none",
+  "Intermountain Health": "pairs workday:108|imh|IntermountainCareers (not live / thin)",
+  "Northwell Health": "oracle:eppr.fa.us2.oraclecloud.com|CX_2",
+  "NYU Langone Health": "none",
+  "Johns Hopkins Medicine": "blocked",
+  "UPMC": "none",
+  "Sutter Health": "other wd1.myworkdaysite.com",
+  "Baylor Scott & White Health": "none",
+  "CVS Health": "none",
+  "JPMorgan Chase": "oracle:jpmc.fa.oraclecloud.com|CX_1001",
+  "Bank of America": "workday:1|ghr|lateral-us",
+  "Wells Fargo": "blocked",
+  "Citi": "workday:5|citi|2",
+  "Goldman Sachs": "none",
+  "Morgan Stanley": "error",
+  "Capital One": "none",
+  "Travelers": "workday:5|travelers|External",
+  "Progressive": "none",
+  "Prudential Financial": "none",
+  "MetLife": "none",
+  "Northwestern Mutual": "none",
+  "Duke Energy": "none",
+  "NextEra Energy": "none",
+  "Southern Company": "none",
+  "Exelon": "none",
+  "Xcel Energy": "workday:1|xcelenergy|External",
+  "PG&E": "unsupported successfactors (career4.successfactors.com)",
+  "Con Edison": "oracle:ejcu.fa.us6.oraclecloud.com|CX_1033",
+  "Entergy": "unsupported successfactors (rmkcdn.successfactors.com)",
+  "Boeing": "workday:1|boeing|EXTERNAL_CAREERS",
+  "Lockheed Martin": "error",
+  "Northrop Grumman": "unsupported eightfold (ngc.eightfold.ai)",
+  "General Dynamics": "none",
+  "Honeywell": "oracle:ibqbjb.fa.ocs.oraclecloud.com|Honeywell",
+  "Caterpillar": "error",
+  "John Deere": "none",
+  "3M": "none",
+  "Parsons": "none",
+  "Kimley-Horn": "pairs icims:jobs-kimley-horn (not live / thin)",
+  "Terracon": "none",
+  "Barton Malow": "none",
+  "PCL Construction": "none",
+  "Sundt": "oracle:eewl.fa.us6.oraclecloud.com|CX",
+  "Brasfield & Gorrie": "pairs icims:jobs-brasfieldgorrie (not live / thin)",
+  "JE Dunn": "none",
+  "Webcor": "workday:503|webcor|webcor",
+  "Target": "workday:5|target|targetcareers",
+  "The Home Depot": "none",
+  "UPS": "none",
+  "FedEx": "none",
+  "CommonSpirit Health": "icims:careers-commonspirit"
  }
 }
