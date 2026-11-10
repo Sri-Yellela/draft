@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "about": "D187 HB-8 — the ATS families draft already crawls broadly (its own company_ats_list boards). With skipOurBoards on, every Hirebase search sends them as `exclude_job_board` (Hirebase's exclusion list — docs/research/hirebase-api.md) so draft never pays for a posting it already reads directly. OFF until HB-9's sample has measured the overlap; the owner switches it.",
+  "ourBoards": ["greenhouse", "lever", "ashby", "smartrecruiters", "workable"],
+  "skipOurBoards": false
+}
