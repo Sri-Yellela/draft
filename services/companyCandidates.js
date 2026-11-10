@@ -28,7 +28,7 @@ export const STATUSES = Object.freeze(["new", "probed", "approved", "rejected", 
 export const PROBE_BATCH = 100;              // 46a: was 25 — boards on different hosts now run side by side
 export const PROBE_CONCURRENCY = 6;           // host queues at once; inside one queue, one board at a time
 // One queue per HOST: the shared vendor APIs are one host each; tenant-hosted vendors are one host per tenant.
-const TENANT_HOSTED = new Set(["workday", "icims", "oracle", "taleo", "recruitee", "bamboohr"]);
+const TENANT_HOSTED = new Set(["workday", "icims", "oracle", "taleo", "successfactors", "recruitee", "bamboohr"]);
 export function probeHostKey(r) {
   const t = String(r?.ats_type || ""), s = String(r?.ats_slug || "").toLowerCase();
   if (!TENANT_HOSTED.has(t)) return t;

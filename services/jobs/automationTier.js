@@ -68,6 +68,7 @@ const PLATFORM_TIER = {
   workday:         "account",
   icims:           "account",
   taleo:           "account",
+  successfactors:  "account",   // 46b: SAP SuccessFactors — a candidate profile (sign-in) before the application
   oracle:          "account",   // 46a: Oracle Recruiting Cloud — an email-verified candidate profile before applying
   jobvite:         "account",
   // linkedin is in platformDetector's URL map and is an account + anti-bot challenge, so it is

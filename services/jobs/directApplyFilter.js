@@ -17,7 +17,7 @@ const BLOCKED_URL_PATTERNS = [
 // here as they're onboarded; nothing else needs to change.
 const DIRECT_ATS_SOURCES = new Set([
   'greenhouse', 'lever', 'ashby',
-  'workday', 'smartrecruiters', 'workable', 'recruitee', 'bamboohr', 'gem', 'rippling', 'icims', 'oracle', 'taleo',
+  'workday', 'smartrecruiters', 'workable', 'recruitee', 'bamboohr', 'gem', 'rippling', 'icims', 'oracle', 'taleo', 'successfactors',
 ]);
 
 function isDirectApply(job) {

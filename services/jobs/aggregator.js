@@ -31,6 +31,7 @@ import ripplingPlugin  from './sources/rippling.js';
 import icimsPlugin     from './sources/icims.js';
 import oraclePlugin    from './sources/oracle.js';
 import taleoPlugin     from './sources/taleo.js';
+import successFactorsPlugin from './sources/successfactors.js';
 import { SOURCES as SOURCES_DIMENSION, labelMap } from '../../shared/jobFilterOptions.js';
 import { userReferencedSql } from './userReferences.js';
 import { atlasPostingsChanged } from '../atlas/atlasLive.js';
@@ -54,6 +55,7 @@ const SOURCES = [
   icimsPlugin,
   oraclePlugin,
   taleoPlugin,
+  successFactorsPlugin,
 ];
 // ─────────────────────────────────────────────────────────────────────────────
 

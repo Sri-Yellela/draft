@@ -178,6 +178,7 @@ export const SOURCES = {
     { value: "icims",              label: "iCIMS"           },
     { value: "oracle",             label: "Oracle"          },
     { value: "taleo",              label: "Taleo"           },
+    { value: "successfactors",     label: "SuccessFactors"  },
     { value: "adzuna",             label: "Adzuna"          },
     { value: "serpapi",            label: "Google Jobs"     },
     { value: "linkedin_extension", label: "LinkedIn (Saved)" },
