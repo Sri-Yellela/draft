@@ -611,6 +611,15 @@ const readPool = createReadPool({
   enabled: String(process.env.DRAFT_READ_WORKERS || "on").toLowerCase() !== "off",
   size: Math.max(1, Math.min(4, Number(process.env.DRAFT_READ_WORKERS_SIZE) || 2)),
 });
+// ⭐ A175 (46d, measured with READ_SLOW_MS's round-trip log, 20 users at 100k): the people's reads WAITED behind the
+// board-fit precompute's plan pages — 349 of them in one minute, each ~4.6 s in the queue — because background passes and
+// requests shared the same two workers. Background whole-board reads (the board-fit plan, the logo pass) now have a pool of
+// their own (one worker; DRAFT_BG_READ_WORKERS_SIZE), so a person's board never queues behind scoring.
+const bgReadPool = createReadPool({
+  dbPath: DB_PATH, fallbackDb: db,
+  enabled: String(process.env.DRAFT_READ_WORKERS || "on").toLowerCase() !== "off",
+  size: Math.max(1, Math.min(2, Number(process.env.DRAFT_BG_READ_WORKERS_SIZE) || 1)),
+});
 // ⛔ A158 (45r, 11-09) · whole-board work that is not a person's request — the taxonomy re-read, the sitemaps, the landing
 // pages — runs on ONE more worker thread with its own read-only connection (services/db/offloadWorker.js). It never falls
 // back to this connection: a sitemap / landing page it cannot answer is a 503 + Retry-After, the taxonomy walk drops to
@@ -8371,7 +8380,7 @@ BOOT.add("company logo urls", () => {
 // ⛔ A provider with attempts and no success is NAMED in the log — the line that would have caught Clearbit.
 async function runCompanyLogoPass(trigger) {
   try {
-    const r = await resolveCompanyLogos(db, { limit: 40, read: readPool });   // A126: the company list off the loop
+    const r = await resolveCompanyLogos(db, { limit: 40, read: bgReadPool });   // A126: the company list off the loop (A175: the background pool)
     if (r.scanned) console.log(`[logos] ${trigger}: ${r.ok} stored, ${r.none} without a logo (of ${r.scanned}); providers ${JSON.stringify(r.providers)}`);
     if (r.dead.length) console.error(`[logos] ⛔ provider(s) with attempts and NO success: ${r.dead.join(", ")} — check scripts/a77LogoProvidersLive.mjs`);
   } catch (e) {
@@ -10473,7 +10482,7 @@ function boardFit() {
       scoreBatch: scoreBatchForBasis,
       // ⭐ D151 (45k): the plan's keyset pages are read AND judged in the A126 read workers (15.2 s of the 100k suite's
       // main-thread window was planPageRows); the pool answers on the main connection when it cannot.
-      read: readPool,
+      read: bgReadPool,   // A175: background — never ahead of a person's read
       // 43y: a new profile's first scores — its own category (D127), newest first — written within seconds.
       primeFor: (_userId, profile) => {
         const cat = profileCategory(profile || {});
@@ -10617,7 +10626,9 @@ const BOARD_MATCH_MAX = 6000;
 const BOARD_MATCH_CHUNK = 250;
 const _boardMatch = new Map();   // "user:profile" -> { ids: Set, running: boolean, profile }
 // ⭐ D151 (45k) · the held read's kept answers (services/jobs/heldCountCache.js); dropped when the person's scoring lands.
-const heldCounts = createHeldCountCache();
+// A175 (46d): fresh for 2 minutes (was 20 s) — at 100k each recount is a 0.4–1.5 s read, and 20 people recounting every 20 s
+// kept a read worker busy on its own; new postings still reach the match queue within 2 minutes of being asked for.
+const heldCounts = createHeldCountCache({ freshMs: 120_000 });
 function enqueueBoardMatch(userId, profile, jobIds) {
   if (!boardFitAutomationEnabled() || !userId || !profile?.id || !jobIds?.length) return;
   const key = `${userId}:${profile.id}`;
@@ -10726,25 +10737,38 @@ app.use(passport.session());
 // ⭐ D156 (6) · the facets cache (services/jobs/facetsCache.js): any write by a signed-in user drops their kept counts, so
 // the filter sentence never shows a count from before their own decision, star, import or profile change.
 // (Its middleware runs after bindAuthContext, below — a token-authenticated request's user is bound there.)
-const facetsCache = createFacetsCache();
+// ⭐ A175 (46d): stale-while-revalidate for 10 minutes — a recount older than the TTL is answered at once (X-Facets-Cache: stale)
+// while one refresh runs behind it; the person's own writes still drop theirs (below).
+const facetsCache = createFacetsCache({ ttlMs: 5 * 60 * 1000, staleMs: 15 * 60 * 1000 });   // A175: fresh 5 min, then stale-while-revalidate to 15
 // ⭐ A175 (46d) · the board's kept order (boardPageResponse): the first BOARD_ORDER_KEEP ids + the total per person and board,
 // 60 s, dropped on the person's writes with facetsCache. Measured 46d at 100k (one user, 49k candidates): the page + count
 // were 2.5–13 s a load; a kept order answers a page from 51 rows read by id.
 const BOARD_ORDER_KEEP = 1000;
-const boardOrderCache = createFacetsCache({ ttlMs: 60_000, max: 300 });
+// A175 (46d, later): + stale-while-revalidate for 10 minutes — the key carries the score epoch and the gate's basis, so a
+// stale answer is never one from before a scoring pass or a new résumé; only the board's own churn (a crawl's new or
+// expired postings) can be up to 10 minutes behind, and one refresh runs behind it.
+const boardOrderCache = createFacetsCache({ ttlMs: 5 * 60 * 1000, max: 300, staleMs: 15 * 60 * 1000 });   // A175: the key moves with the scores
 // ⭐ A177 (46d) · a person's FIRST board load was always a miss (1.5–3 s of read-worker time at 100k; 20 users = 20 misses
 // queued on 2 workers). The order is now WARMED in the background — after their scoring lands (the match queue's
 // board_scored, whose refetch then hits) and on sign-in — for the default board and the deck's ATS order, on the read
 // workers, at most one warm in flight per person and one per 30 s. boardPageResponse's warmOrder stops once it is kept.
 const warmingOrder = new Set();
 const warmedOrderAt = new Map();
-function warmBoardOrder(userId) {
+function warmBoardOrder(userId, { facets = false } = {}) {
   const k = String(userId);
   if (warmingOrder.has(k) || Date.now() - (warmedOrderAt.get(k) || 0) < 30_000) return;
   warmingOrder.add(k); warmedOrderAt.set(k, Date.now());
   if (warmedOrderAt.size > 5000) warmedOrderAt.clear();
   (async () => {
     for (const query of [{}, { sort: "atsScore" }]) await boardPageResponse({ user: { id: userId }, query }, { warmOrder: true });
+    // …and on sign-in the default sentence's counts too, under the key GET /api/jobs/facets builds for no filter.
+    if (facets) {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const profileId = (() => { try { return getOrRepairActiveProfile(userId)?.id ?? null; } catch { return null; } })();
+      const key = facetsKey(userId, profileId, { "~visit": visitMark(db, userId) ?? "first" });
+      const req = { user: { id: userId }, query: {} };
+      await facetsCache.get(key, () => facetsAnswer(req, { nowSec, visitSinceSec: visitSince(db, userId, { now: nowSec }) }));
+    }
   })().catch(e => console.warn(`[jobs] warm order user=${k}: ${e.message}`)).finally(() => warmingOrder.delete(k));
 }
 // Account management: every sign-in is STAMPED (sensitive changes need a recent one — see
@@ -10765,7 +10789,7 @@ app.use((req, res, next) => {
         req.session.authAt = Date.now();
         try { recordSession(db, { sid: req.sessionID, userId: user.id, userAgent: req.get("user-agent"), ipHint: ipHint(req) }); } catch {}
         sessionSeen.set(req.sessionID, Date.now());
-        setTimeout(() => warmBoardOrder(user.id), 0).unref?.();   // ⭐ A177: the first board after sign-in finds its order kept
+        setTimeout(() => warmBoardOrder(user.id, { facets: true }), 0).unref?.();   // ⭐ A177: the first board after sign-in finds its order kept
       }
       done?.(err);
     });

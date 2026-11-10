@@ -65,6 +65,7 @@ if (!isMainThread && workerData?.__draftReadWorker) {
  * @param {boolean} [o.enabled]    false → every read runs on the main connection (DRAFT_READ_WORKERS=off)
  */
 export function createReadPool({ dbPath, fallbackDb, size = 2, timeoutMs = 60_000, enabled = true, log = console } = {}) {
+  const waitMs = Number(process.env.READ_SLOW_MS) || 0;   // A175: the round-trip log's threshold (off unless READ_SLOW_MS)
   const workers = [];
   const pending = new Map();
   let nextId = 1, rr = 0, closed = false;
@@ -94,7 +95,13 @@ export function createReadPool({ dbPath, fallbackDb, size = 2, timeoutMs = 60_00
       const p = pending.get(m.id);
       if (!p) return;
       pending.delete(m.id); clearTimeout(p.timer); entry.inflight--;
-      if (m.ok) { stats.served++; p.resolve(m.value); return; }
+      if (m.ok) {
+        stats.served++;
+        // ⭐ A175 (46d) · READ_SLOW_MS also names the reads that WAITED: the whole round trip (queued behind the worker's
+        // other reads + run), beside the worker's own run time it already logs — a busy pool shows up as waits, not runs.
+        if (waitMs && p.at && Date.now() - p.at >= waitMs) log.log?.(`[read-wait] ${Date.now() - p.at} ms round trip (worker ${entry.slot ?? "?"}, ${entry.inflight + 1} in flight) · ${String(p.sql).replace(/\s+/g, " ").slice(0, 120)}`);
+        p.resolve(m.value); return;
+      }
       const e = new Error(m.message); e.code = m.code;
       p.reject(e);
     });
@@ -138,7 +145,7 @@ export function createReadPool({ dbPath, fallbackDb, size = 2, timeoutMs = 60_00
         try { resolve(fallback(op, sql, params)); } catch (e) { reject(e); }
       }, timeoutMs);
       timer.unref?.();
-      pending.set(id, { resolve, reject, timer, entry, op, sql, params });
+      pending.set(id, { resolve, reject, timer, entry, op, sql, params, at: Date.now() });
       entry.inflight++;
       try { entry.w.postMessage({ id, op, sql, params }); }
       catch (err) {

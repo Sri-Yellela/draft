@@ -20,7 +20,10 @@ export function facetsKey(userId, profileId, query = {}) {
   return `${userId}|${profileId ?? ""}|${parts.join("&")}`;
 }
 
-export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTRIES, now = () => Date.now() } = {}) {
+// ⭐ A175 (46d) · `staleMs` (default 0 = off): a kept answer past ttlMs but younger than staleMs is answered AT ONCE
+// (cache "stale", with its asOf) while ONE refresh runs behind it — the person never waits for a recount they had a
+// minute ago. Their own writes still drop it (clearUser), so a stale answer never outlives their own change.
+export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTRIES, now = () => Date.now(), staleMs = 0 } = {}) {
   const done = new Map();       // key → { at, value }
   const flying = new Map();     // key → Promise<value>
   const userOf = (key) => key.slice(0, key.indexOf("|"));
@@ -32,6 +35,16 @@ export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTR
     async get(key, compute) {
       const kept = done.get(key);
       if (kept && now() - kept.at < ttlMs) return { value: kept.value, cache: "hit", asOf: kept.at };
+      if (kept && staleMs > ttlMs && now() - kept.at < staleMs) {
+        if (!flying.has(key)) {
+          const p = (async () => compute())();
+          flying.set(key, p);
+          p.then(value => { if (value?.status === 200 && flying.get(key) === p) done.set(key, { at: now(), value }); })
+            .catch(() => { /* the stale answer stands until the next ask */ })
+            .finally(() => { if (flying.get(key) === p) flying.delete(key); });
+        }
+        return { value: kept.value, cache: "stale", asOf: kept.at };
+      }
       if (kept) done.delete(key);
       if (flying.has(key)) { const value = await flying.get(key); return { value, cache: "shared", asOf: done.get(key)?.at ?? now() }; }
       const started = now();

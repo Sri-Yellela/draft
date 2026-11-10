@@ -125,6 +125,6 @@ test("D151 · server.js hands the precompute the read pool", () => {
   const s = src("server.js");
   const at = s.indexOf("_boardFit = createBoardFitPrecompute({");
   assert.ok(at > 0);
-  assert.match(s.slice(at, at + 600), /read: readPool/, "the plan's pages go to the read workers");
+  assert.match(s.slice(at, at + 600), /read: (bgReadPool|readPool)/, "the plan's pages go to the read workers (A175: the background pool)");
   assert.ok(s.indexOf("const readPool = createReadPool(") < at, "the pool exists before the precompute is made");
 });
