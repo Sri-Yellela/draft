@@ -167,7 +167,7 @@ test("d167ProfileKeepsEverySetting · every old settings page and card has a pan
   // Account's cards: every one is drawn by some panel
   const ACCOUNT = read("client/src/panels/AccountPanel.jsx");
   const cards = [...ACCOUNT.matchAll(/\{has\("([a-z]+)"\) &&/g)].map(m => m[1]);
-  assert.deepEqual(cards.sort(), ["allowance", "data", "delete", "email", "help", "merge", "news", "notifications", "profile", "security", "sessions", "tailoring", "warmpaths"]);
+  assert.deepEqual(cards.sort(), ["allowance", "data", "delete", "email", "help", "merge", "news", "notifications", "plan", "profile", "security", "sessions", "tailoring", "warmpaths"]);
   const { ACCOUNT_CARDS } = await loadUi();
   const drawn = new Set(Object.values(ACCOUNT_CARDS).flat());
   for (const c of cards) assert.ok(drawn.has(c), `Account's "${c}" card has a panel`);

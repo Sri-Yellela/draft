@@ -47,6 +47,9 @@ import { monetisationEnabledFromEnv } from "../shared/monetisation.js";
 import { fullAutoDisabled as sharedFullAutoDisabled } from "../services/appSettings.js";
 import { fullAutoBlocked, HOLD_REASON as FULL_AUTO_PREREQ_HOLD } from "../services/fullAutoGate.js";
 import { heldQuestionsOf, heldReasonWords } from "../services/heldQuestions.js";
+import { applyAllowed, spendTrialDrafts } from "../services/billing/subscriptions.js";
+import { verificationConfig } from "../services/billing/config.js";
+import { accountVerified } from "../services/billing/verification.js";
 import { userHeld, userHoldSince, setUserHold } from "../services/applyUserHold.js";
 import { draftSlots, slotsExhausted } from "../services/draftSlots.js";
 import { atsJobInputHash, ATS_JOB_INPUT_FIELDS } from "../services/jobs/boardFitPrecompute.js";
@@ -2613,6 +2616,22 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       if (slots.used + filtered.length > slots.limit) return respond(429, slotsExhausted(slots, filtered.length));
     }
 
+    // ⭐ A167 (g)(c)(d) · THE ONE THING PHASE 1 GATES: applying through draft (SEMI and FULL AUTO). The whole site stays
+    // open; a run needs a plan or the trial's drafts left (10, one per job — a re-draft of the same posting is free), and,
+    // while sign-up verification is required, an account with both its email and phone proven. All OFF until the owner's
+    // go (BILLING_ENABLED, SIGNUP_VERIFICATION_REQUIRED). An approval / an answers retry continues a Draft already counted.
+    let trialSpend = null;
+    if (resolvedApproval !== "approved" && !retryOfHeld) {
+      if (verificationConfig().required) {
+        const v = accountVerified(db, userId);
+        if (!v.email || !v.phone) return respond(403, { error: "verify_required", needs: { email: !v.email, phone: !v.phone },
+          message: `Confirm your ${!v.email && !v.phone ? "email and phone" : !v.email ? "email" : "phone"} first — it takes a minute, in Settings.` });
+      }
+      const plan = applyAllowed(db, userId, filtered);
+      if (!plan.ok) return respond(402, { error: plan.code, message: plan.message, trialLeft: plan.trialLeft });
+      if (plan.via === "trial") trialSpend = plan.spend;
+    }
+
     // QUEUE CAP. The cost gate: bounds generations, which the submission cap below does not (see
     // queuedLast24h). Checked before it because it is the limit a queue-heavy caller hits first,
     // and refused with the same explicit shape as every other limit here.
@@ -2694,6 +2713,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(userId, resolvedMode, resolvedTool, mustWait ? "waiting" : "queued", filtered.length, resolvedApproval);
     const runId = runResult.lastInsertRowid;
+    // ⭐ A167 (c): the trial's drafts are spent when the run is admitted (one per NEW job; never twice for one posting).
+    if (trialSpend?.length) { try { spendTrialDrafts(db, userId, trialSpend); } catch (e) { console.warn(`[apply] trial spend not recorded: ${e.message}`); } }
     // D171 FIX 1 (migration 224): who started it, on the row. A database without 224 queues the run unrecorded.
     try { db.prepare("UPDATE apply_runs SET started_by = ?, started_by_ref = ? WHERE id = ?").run(who.kind, who.ref, runId); }
     catch { /* before 224 */ }

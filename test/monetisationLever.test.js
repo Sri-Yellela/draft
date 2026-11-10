@@ -87,7 +87,8 @@ test("the client has exactly one reader of the lever and it is served, not built
   // Public on purpose: the pages carrying the commercial copy render logged out.
   // D133 added a second public boolean (studioForUsers); the lever is still read from the server, never built in.
   // ⭐ D144 adds a third (duskForUsers) — still public, still a fact about the product.
-  assert.match(server, /app\.get\("\/api\/config", \(_req, res\) => res\.json\(\{ monetisationEnabled: monetisationEnabled\(\), studioForUsers: studioForUsers\(\), duskForUsers: duskForUsers\(\) \}\)\)/);
+  // A167 (46b): the same one served read now also carries phase 1's switches (billing, sign-up verification, the extension's links).
+  assert.match(server, /app\.get\("\/api\/config", \(_req, res\) => res\.json\(\{ monetisationEnabled: monetisationEnabled\(\), studioForUsers: studioForUsers\(\), duskForUsers: duskForUsers\(\),\r?\n\s+billingEnabled: billingConfig\(\)\.enabled, signupVerification: verificationConfig\(\)\.required, extension: extensionLinks\(\) \}\)\);/);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────

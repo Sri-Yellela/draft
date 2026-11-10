@@ -539,6 +539,7 @@ const AUTHENTICATED = new Set([
   "GET /api/apply/response-correlation",
   "GET /api/apply/readiness",
   "POST /api/apply/runs",
+  "POST /api/apply/run-now",   // A166 (2): the person's own batch, at once
   "GET /api/apply/runs",
   "GET /api/apply/runs/:runId",
   // A59: the user's own line of waiting Drafts — viewed and edited by its owner only.

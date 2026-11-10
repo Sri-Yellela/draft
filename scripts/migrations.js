@@ -7152,4 +7152,75 @@ export const MIGRATIONS = [
         ALTER TABLE domain_profiles ADD COLUMN keyword_removed_json TEXT;
       `,
     },
+    {
+      // ⭐ A167 (owner 11-10) · PHASE 1 MONETISATION — the tables behind it, every one behind BILLING_ENABLED / the signup
+      // verification switch (both OFF): Stripe customers + subscriptions (written only from verified, idempotent webhooks —
+      // billing_events is the ledger of every event id seen), the trial's drafts (10, one per job), the OTP codes (email and
+      // SMS; the code and the target stored only as HMACs), a refused sign-up or phone change (masked hints, for the admin),
+      // one account per phone (a unique index on the verified E.164 number) and the explicit, OFF-by-default consent to share
+      // leads. Only ADDS.
+      id: "267_billing_and_verification",
+      sql: `
+        CREATE TABLE IF NOT EXISTS billing_customers (
+          user_id             INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          stripe_customer_id  TEXT    NOT NULL UNIQUE,
+          livemode            INTEGER NOT NULL DEFAULT 0,
+          created_at          INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS billing_subscriptions (
+          stripe_subscription_id TEXT    PRIMARY KEY,
+          user_id                INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          tier                   TEXT,
+          price_id               TEXT,
+          status                 TEXT    NOT NULL,
+          current_period_end     INTEGER,
+          cancel_at_period_end   INTEGER NOT NULL DEFAULT 0,
+          livemode               INTEGER NOT NULL DEFAULT 0,
+          updated_at             INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_billing_subs_user ON billing_subscriptions(user_id, status);
+        CREATE TABLE IF NOT EXISTS billing_events (
+          stripe_event_id TEXT    PRIMARY KEY,
+          type            TEXT    NOT NULL,
+          livemode        INTEGER NOT NULL DEFAULT 0,
+          received_at     INTEGER NOT NULL DEFAULT (unixepoch()),
+          processed_at    INTEGER,
+          error           TEXT
+        );
+        CREATE TABLE IF NOT EXISTS trial_drafts (
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id     TEXT    NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, job_id)
+        );
+        CREATE TABLE IF NOT EXISTS verify_codes (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          channel     TEXT    NOT NULL CHECK (channel IN ('email', 'sms')),
+          target_hash TEXT    NOT NULL,
+          code_hash   TEXT,
+          provider    TEXT    NOT NULL,
+          attempts    INTEGER NOT NULL DEFAULT 0,
+          expires_at  INTEGER NOT NULL,
+          verified_at INTEGER,
+          ip_hash     TEXT,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_verify_codes_target ON verify_codes(channel, target_hash, created_at);
+        CREATE INDEX IF NOT EXISTS idx_verify_codes_ip ON verify_codes(ip_hash, created_at);
+        CREATE TABLE IF NOT EXISTS signup_refusals (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          reason     TEXT    NOT NULL,
+          stage      TEXT    NOT NULL,
+          phone_hint TEXT,
+          email_hint TEXT,
+          user_id    INTEGER,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        ALTER TABLE users ADD COLUMN phone_e164 TEXT;
+        ALTER TABLE users ADD COLUMN phone_verified_at INTEGER;
+        ALTER TABLE users ADD COLUMN lead_share_consent INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE users ADD COLUMN lead_share_consent_at INTEGER;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_e164 ON users(phone_e164) WHERE phone_e164 IS NOT NULL;
+      `,
+    },
   ];
