@@ -10,7 +10,7 @@ import { listCompanies, harvestedSuggestions, validateBoard, addCompany, setComp
 import { trancheGate } from "../services/diskGauge.js";
 import { createBackup } from "../scripts/backup.js";       // D82 C: an approved candidate batch is added only after a backup
 import { heatReport, boardCounts, boardCountsVia } from "../services/companyHeat.js";
-import { listCandidates, discoveryStatus, planApproval, approveCandidates, rejectCandidates, resetBreaker, runCandidateProbe, PROBE_BATCH } from "../services/companyCandidates.js";
+import { listCandidates, discoveryStatus, planApproval, approveCandidates, rejectCandidates, resetBreaker, runCandidateProbe, probeDue, PROBE_BATCH } from "../services/companyCandidates.js";
 
 const DEFAULT_DATA_DIR = () => process.env.RM_DATA_DIR || "data";
 
@@ -72,7 +72,7 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
   // through addCompany WITH its evidence (D80). Reject keeps the row, so the next sweep never re-queues it.
   router.get("/candidates", (req, res) => {
     const status = typeof req.query.status === "string" && req.query.status ? req.query.status : null;
-    res.json({ ...listCandidates(db, { status }), discovery: discoveryStatus(db, env) });
+    res.json({ ...listCandidates(db, { status }), discovery: discoveryStatus(db, env), probeRun, probeDue: probeDue(db) });
   });
 
   router.post("/candidates/approve", (req, res) => {
@@ -109,14 +109,30 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
 
   // ⭐ 46a (owner 11-10): "Re-probe stale" — one probe batch NOW (the nightly job's own run: new rows first, then probed rows
   // about to go stale; ≤ PROBE_BATCH boards, ≥ 1 s apart, read-only). One run at a time; it answers at once and runs behind.
-  let probing = null;
+  // ⛔ 46a (owner 11-10, after the first presses): a probe takes ~30–60 s a board (the board + 3 sampled postings, ≥ 1 s
+  // apart), so one batch of 25 was ~15 min and 242 candidates ~10 presses. ONE press now works through every candidate that
+  // is due — batch after batch, one board at a time, as politely as the nightly job — and the panel reads its progress from
+  // GET /candidates (`probeRun`). The batches are capped at the count due when it started (+1), so a board that keeps
+  // erroring can never keep the loop alive. ⚠ In memory: a deploy ends a run (the nightly job carries on from there).
+  let probeRun = null;
   router.post("/candidates/probe", (_req, res) => {
-    if (probing) return res.status(409).json({ error: "already_running", message: "A probe batch is already running — look again in a minute." });
-    probing = runCandidateProbe(db, { env })
-      .then((r) => console.log(`[discovery:probe] (admin) considered ${r.considered ?? 0} · probed ${r.probed ?? 0} · errored ${r.errored ?? 0}`))
-      .catch((e) => console.warn("[discovery:probe] (admin) failed:", e.message))
-      .finally(() => { probing = null; });
-    res.status(202).json({ started: true, batch: PROBE_BATCH, note: `Probing up to ${PROBE_BATCH} candidates (new first, then the stale). Refresh in a few minutes.` });
+    if (probeRun?.running) return res.status(409).json({ error: "already_running", message: "Re-probing is already running — its progress is above the list." });
+    const due = probeDue(db);
+    const maxBatches = Math.ceil(due / PROBE_BATCH) + 1;
+    probeRun = { running: true, startedAt: Math.floor(Date.now() / 1000), due, batches: 0, probed: 0, errored: 0, finishedAt: null, error: null };
+    (async () => {
+      try {
+        for (let b = 0; b < maxBatches; b++) {
+          const r = await runCandidateProbe(db, { env });
+          if (r.ran === false || r.failed) { probeRun.error = r.reason || r.error || "stopped"; break; }
+          probeRun.batches++; probeRun.probed += r.probed || 0; probeRun.errored += r.errored || 0;
+          console.log(`[discovery:probe] (admin) batch ${probeRun.batches}/${maxBatches} · probed ${r.probed ?? 0} · errored ${r.errored ?? 0} · ${probeDue(db)} still due`);
+          if (!r.considered || !probeDue(db)) break;
+        }
+      } catch (e) { probeRun.error = e.message; console.warn("[discovery:probe] (admin) failed:", e.message); }
+      probeRun.running = false; probeRun.finishedAt = Math.floor(Date.now() / 1000);
+    })();
+    res.status(202).json({ started: true, due, note: `Re-probing ${due} candidate${due === 1 ? "" : "s"}, one board at a time — about ${Math.max(1, Math.round(due * 40 / 60))} min. Progress shows above the list.` });
   });
 
   router.post("/candidates/breakers/:source/reset", (req, res) => {

@@ -1230,13 +1230,16 @@ function DiscoveryCandidates({ theme, onAdded }) {
     catch (e) { setErr(e.message); }
     setBusy(null);
   };
-  // 46a: one probe batch now (new first, then the stale) — Approve refuses evidence older than 14 days.
+  // 46a: re-probe EVERY candidate that is due (new first, then the stale), batch after batch, on the server — Approve
+  // refuses evidence older than 14 days. While it runs the list re-reads itself every 20 s and the line above it counts.
   const reprobe = async () => {
     setBusy("probe"); setErr(null);
-    try { const r = await api("/api/admin/companies/candidates/probe", { method: "POST", body: "{}" }); setMsg(r.note); }
+    try { const r = await api("/api/admin/companies/candidates/probe", { method: "POST", body: "{}" }); setMsg(r.note); load(); }
     catch (e) { setErr(e.payload?.message || e.message); }
     setBusy(null);
   };
+  const running = !!d?.probeRun?.running;
+  useEffect(() => { if (!running) return undefined; const t = setInterval(load, 20000); return () => clearInterval(t); }, [running, load]);
   const reset = async (source) => {
     if (!await ask({ title: `Restart the ${source} job?`, label: "Restart it", body: "It runs again at its next scheduled time." })) return;
     try { await api(`/api/admin/companies/candidates/breakers/${source}/reset`, { method: "POST", body: "{}" }); load(); }
@@ -1265,8 +1268,16 @@ function DiscoveryCandidates({ theme, onAdded }) {
         <Btn theme={theme} disabled={!ids.length || !!busy} onClick={() => approve(ids)}>{busy === "approve" ? "Checking…" : `Approve ${ids.length || ""}…`}</Btn>
         <Btn theme={theme} data-approve-all="" disabled={!probedIds.length || !!busy} onClick={() => approve(probedIds)}>{busy === "approveAll" ? "Checking…" : `Approve all ${probedIds.length || ""}…`}</Btn>
         <Btn theme={theme} disabled={!ids.length || !!busy} onClick={reject}>{`Reject ${ids.length || ""}…`}</Btn>
-        <Btn theme={theme} data-reprobe="" disabled={!!busy} onClick={reprobe}>{busy === "probe" ? "Starting…" : "Re-probe stale"}</Btn>
+        <Btn theme={theme} data-reprobe="" disabled={!!busy || running || !d?.probeDue} onClick={reprobe}>
+          {busy === "probe" ? "Starting…" : running ? "Re-probing…" : `Re-probe all ${d?.probeDue || ""} due`}</Btn>
       </div>
+      {d?.probeRun && (
+        <div data-probe-progress="" style={{ fontSize: 12, color: d.probeRun.error ? C.WARNING : theme.textMuted, marginBottom: 6 }}>
+          {d.probeRun.running
+            ? `Re-probing: ${d.probeRun.probed} of ${d.probeRun.due} done${d.probeRun.errored ? `, ${d.probeRun.errored} could not be read` : ""} — ${d.probeDue} still due. One board at a time; this list refreshes itself.`
+            : `Last re-probe ${ago(d.probeRun.finishedAt)}: ${d.probeRun.probed} probed${d.probeRun.errored ? `, ${d.probeRun.errored} could not be read` : ""}${d.probeRun.error ? ` — stopped: ${d.probeRun.error}` : ""}.`}
+        </div>
+      )}
       <Err msg={err}/>
       {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 6 }}>{msg}</div>}
       <Table theme={theme} rows={d?.candidates || []} empty="No candidates yet — the discovery job runs weekly." cols={[
