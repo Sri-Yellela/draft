@@ -793,6 +793,159 @@
     "medianAge": 45,
     "probedAt": "2026-11-09T23:10:57.715Z"
    }
+  },
+  {
+   "company": "Suffolk Construction",
+   "atsType": "icims",
+   "slug": "careers-suffolkconstruction",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 150,
+    "inScope": 66,
+    "cs30": 66,
+    "usPct": 100,
+    "medianAge": 0,
+    "probedAt": "2026-11-10T00:37:17.085Z"
+   }
+  },
+  {
+   "company": "Shawmut Design and Construction",
+   "atsType": "icims",
+   "slug": "careers-shawmut",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 98,
+    "us": 87,
+    "fresh": 75,
+    "inScope": 26,
+    "cs30": 6,
+    "usPct": 89,
+    "medianAge": 57,
+    "probedAt": "2026-11-10T00:37:24.404Z"
+   }
+  },
+  {
+   "company": "Gilbane",
+   "atsType": "icims",
+   "slug": "careers-gilbaneco",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 144,
+    "us": 144,
+    "fresh": 144,
+    "inScope": 52,
+    "cs30": 52,
+    "usPct": 100,
+    "medianAge": 0,
+    "probedAt": "2026-11-10T00:38:00.500Z"
+   }
+  },
+  {
+   "company": "DPR Construction",
+   "atsType": "workday",
+   "slug": "5|mydpr|11212017",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 204,
+    "fresh": 204,
+    "inScope": 60,
+    "cs30": 60,
+    "usPct": 68,
+    "medianAge": 19,
+    "probedAt": "2026-11-10T00:38:45.227Z"
+   }
+  },
+  {
+   "company": "Swinerton",
+   "atsType": "workday",
+   "slug": "1|swinerton|Swinerton_External_Career",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 237,
+    "us": 152,
+    "fresh": 152,
+    "inScope": 45,
+    "cs30": 45,
+    "usPct": 64,
+    "medianAge": 29,
+    "probedAt": "2026-11-10T00:39:17.113Z"
+   }
+  },
+  {
+   "company": "Granite Construction",
+   "atsType": "workday",
+   "slug": "1|granite|careers",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 264,
+    "us": 191,
+    "fresh": 191,
+    "inScope": 46,
+    "cs30": 46,
+    "usPct": 72,
+    "medianAge": 29,
+    "probedAt": "2026-11-10T00:41:26.697Z"
+   }
+  },
+  {
+   "company": "Consigli",
+   "atsType": "workable",
+   "slug": "consigli-construction-1",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 401,
+    "us": 401,
+    "fresh": 270,
+    "inScope": 113,
+    "cs30": 33,
+    "usPct": 100,
+    "medianAge": 103,
+    "probedAt": "2026-11-10T00:41:36.458Z"
+   }
+  },
+  {
+   "company": "Clark Construction",
+   "atsType": "workday",
+   "slug": "503|clark|ClarkExternal",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 300,
+    "fresh": 300,
+    "inScope": 67,
+    "cs30": 67,
+    "usPct": 100,
+    "medianAge": 6,
+    "probedAt": "2026-11-10T00:43:04.393Z"
+   }
+  },
+  {
+   "company": "Cleveland Clinic",
+   "atsType": "workday",
+   "slug": "1|ccf|ClevelandClinicCareers",
+   "industry": "healthcare",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 65,
+    "fresh": 65,
+    "inScope": 4,
+    "cs30": 4,
+    "usPct": 22,
+    "medianAge": -1,
+    "probedAt": "2026-11-10T00:47:14.290Z"
+   }
   }
  ],
  "dropped": [
@@ -814,5 +967,185 @@
    "slug": "relativity",
    "why": "board found under the first word only"
   }
- ]
+ ],
+ "unsupported": [
+  {
+   "company": "Mortenson",
+   "industry": "construction",
+   "vendors": [
+    "oracle"
+   ],
+   "hosts": [
+    "fa-esgu-saasfaprod1.fa.ocs.oraclecloud.com"
+   ],
+   "urls": [
+    "https://fa-esgu-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/tc-join"
+   ]
+  },
+  {
+   "company": "McCarthy Building Companies",
+   "industry": "construction",
+   "vendors": [
+    "jobvite"
+   ],
+   "hosts": [
+    "jobs.jobvite.com"
+   ],
+   "urls": [
+    "https://jobs.jobvite.com/__assets__/scripts/careersite/public/iframe.js"
+   ]
+  },
+  {
+   "company": "Hensel Phelps",
+   "industry": "construction",
+   "vendors": [
+    "successfactors"
+   ],
+   "hosts": [
+    "performancemanager8.successfactors.com",
+    "rmkcdn.successfactors.com"
+   ],
+   "urls": [
+    "https://performancemanager8.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery.js",
+    "https://performancemanager8.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery-migrate.js",
+    "https://rmkcdn.successfactors.com/9645d618/46f90bff-c8b8-4ffb-a181-8.css"
+   ]
+  },
+  {
+   "company": "Structure Tone",
+   "industry": "construction",
+   "vendors": [
+    "oracle"
+   ],
+   "hosts": [
+    "fa-exrr-saasfaprod1.fa.ocs.oraclecloud.com"
+   ],
+   "urls": [
+    "https://fa-exrr-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/stobg"
+   ]
+  },
+  {
+   "company": "HDR",
+   "industry": "engineering services",
+   "vendors": [
+    "taleo"
+   ],
+   "hosts": [
+    "hdr.taleo.net"
+   ],
+   "urls": [
+    "https://hdr.taleo.net/careersection/ex/jobsearch.ftl",
+    "https://hdr.taleo.net/careersection/iam/accessmanagement/login.jsf"
+   ]
+  },
+  {
+   "company": "WSP USA",
+   "industry": "engineering services",
+   "vendors": [
+    "oracle"
+   ],
+   "hosts": [
+    "emit.fa.ca3.oraclecloud.com"
+   ],
+   "urls": [
+    "https://emit.fa.ca3.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001/job/96741",
+    "https://emit.fa.ca3.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001/job/98688",
+    "https://emit.fa.ca3.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001/job/99099",
+    "https://emit.fa.ca3.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001/job/99093",
+    "https://emit.fa.ca3.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001/job/99071"
+   ]
+  },
+  {
+   "company": "Black & Veatch",
+   "industry": "engineering services",
+   "vendors": [
+    "successfactors"
+   ],
+   "hosts": [
+    "career4.successfactors.com"
+   ],
+   "urls": [
+    "https://career4.successfactors.com/careers"
+   ]
+  },
+  {
+   "company": "Kaiser Permanente",
+   "industry": "healthcare",
+   "vendors": [
+    "taleo"
+   ],
+   "hosts": [
+    "kp.taleo.net"
+   ],
+   "urls": [
+    "https://kp.taleo.net/careersection/external/mysubmissions.ftl"
+   ]
+  },
+  {
+   "company": "Boston Scientific",
+   "industry": "medtech",
+   "vendors": [
+    "eightfold"
+   ],
+   "hosts": [
+    "bostonscientific.eightfold.ai"
+   ],
+   "urls": [
+    "https://bostonscientific.eightfold.ai/careers",
+    "https://bostonscientific.eightfold.ai/careers/join"
+   ]
+  }
+ ],
+ "j1": {
+  "Suffolk Construction": "icims:careers-suffolkconstruction",
+  "Shawmut Design and Construction": "icims:careers-shawmut",
+  "Turner Construction": "none",
+  "Skanska USA": "none",
+  "Gilbane": "icims:careers-gilbaneco",
+  "Whiting-Turner": "none",
+  "DPR Construction": "workday:5|mydpr|11212017",
+  "Mortenson": "unsupported oracle (fa-esgu-saasfaprod1.fa.ocs.oraclecloud.com)",
+  "McCarthy Building Companies": "unsupported jobvite (jobs.jobvite.com)",
+  "Clayco": "none",
+  "Swinerton": "workday:1|swinerton|Swinerton_External_Career",
+  "Hensel Phelps": "unsupported successfactors (performancemanager8.successfactors.com,rmkcdn.successfactors.com)",
+  "Kiewit": "none",
+  "Granite Construction": "workday:1|granite|careers",
+  "Structure Tone": "unsupported oracle (fa-exrr-saasfaprod1.fa.ocs.oraclecloud.com)",
+  "Consigli": "workable:consigli-construction-1",
+  "Walsh Brothers": "none",
+  "Lendlease": "none",
+  "Bechtel": "none",
+  "Fluor": "none",
+  "Clark Construction": "workday:503|clark|ClarkExternal",
+  "AECOM": "none",
+  "Jacobs": "none",
+  "HDR": "unsupported taleo (hdr.taleo.net)",
+  "Stantec": "error",
+  "WSP USA": "unsupported oracle (emit.fa.ca3.oraclecloud.com)",
+  "Burns & McDonnell": "none",
+  "Black & Veatch": "unsupported successfactors (career4.successfactors.com)",
+  "Tetra Tech": "none",
+  "Mass General Brigham": "pairs workday:1|massgeneralbrigham|MGBExternal (not live / thin)",
+  "Boston Children's Hospital": "none",
+  "Beth Israel Lahey Health": "pairs icims:jobs-joslin (not live / thin)",
+  "Kaiser Permanente": "unsupported taleo (kp.taleo.net)",
+  "Mayo Clinic": "none",
+  "Cleveland Clinic": "workday:1|ccf|ClevelandClinicCareers",
+  "Fidelity Investments": "blocked",
+  "State Street": "none",
+  "Liberty Mutual": "none",
+  "John Hancock": "none",
+  "Wellington Management": "none",
+  "Vanguard": "none",
+  "General Electric": "none",
+  "Raytheon": "blocked",
+  "Boston Scientific": "unsupported eightfold (bostonscientific.eightfold.ai)",
+  "Thermo Fisher Scientific": "none",
+  "Moderna": "pairs workday:1|modernatx|M_tx (not live / thin)",
+  "Vertex Pharmaceuticals": "none",
+  "Eversource": "none",
+  "National Grid": "none",
+  "Dominion Energy": "none"
+ }
 }
