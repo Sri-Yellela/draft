@@ -2124,7 +2124,8 @@ export const GATE_EVIDENCE_SRC = `(() => {
     return {
       selector, tag: el.tagName.toLowerCase(), visible: v.ok, why: v.why,
       w: v.w ?? null, h: v.h ?? null,
-      src: (el.getAttribute('src') || '').slice(0, 160),
+      // A180: 400, not 160 — reCAPTCHA's anchor URL carries size=invisible well past 160 characters.
+      src: (el.getAttribute('src') || '').slice(0, 400),
     };
   };
 
@@ -2186,10 +2187,26 @@ export const EMPTY_GATE_EVIDENCE = Object.freeze({ challenges: [], configured: [
  *   a credential wall, whereas a challenge sitting on the real application form must not stop the
  *   fill (AE2 — that is what produced a handoff packet with nothing in it).
  */
+/**
+ * ⭐ A180 (owner 11-10: "job-boards.greenhouse.io is behind an identity check"; production 21:33Z logged it as
+ * "visible iframe[src*="/recaptcha/"] 256x60" on both Greenhouse holds): INVISIBLE reCAPTCHA's anchor frame is the
+ * "protected by reCAPTCHA" BADGE when it is rendered — 256x60, src …/recaptcha/…/anchor?…&size=invisible — the same
+ * bot-scoring infrastructure AE1 found hidden on Ashby, drawn in the corner instead. No visitor interacts with it; the
+ * challenge a person must answer is the checkbox anchor (size=normal, 304x78 / compact 164x144) or the image frame
+ * (…/bframe). A badge is never a gate.
+ */
+export function isInvisibleCaptchaBadge(c) {
+  if (!c || !/\/recaptcha\//.test(String(c.src || '')) && !/recaptcha/.test(String(c.selector || ''))) return false;
+  const src = String(c.src || '');
+  if (/\/bframe/.test(src)) return false;                       // the image challenge itself
+  if (/[?&]size=invisible\b/.test(src)) return true;
+  return /\/anchor/.test(src) && c.w === 256 && c.h === 60;      // the badge's own box, its URL cut short
+}
+
 export function classifyGateEvidence(evidence, url) {
   const ev = evidence && typeof evidence === 'object' ? evidence : EMPTY_GATE_EVIDENCE;
 
-  const challenge = (ev.challenges || []).find(c => c && c.visible) || null;
+  const challenge = (ev.challenges || []).find(c => c && c.visible && !isInvisibleCaptchaBadge(c)) || null;
 
   // Visible password input, or the two-step sign-in shape. See the asymmetry note above.
   const credential = (ev.credentials || []).find(c => c && (c.visible || (c.formVisible && c.formHasVisibleText))) || null;
@@ -2222,7 +2239,9 @@ export function classifyGateEvidence(evidence, url) {
 export async function gatherGateEvidence(page) {
   const evidence = await page.evaluate(GATE_EVIDENCE_SRC).catch(() => EMPTY_GATE_EVIDENCE);
   const verdict = classifyGateEvidence(evidence, page.url());
-  const rejected = [...(evidence.challenges || []), ...(evidence.configured || [])].filter(c => !c.visible);
+  const rejected = [...(evidence.challenges || []), ...(evidence.configured || [])]
+    .filter(c => !c.visible || isInvisibleCaptchaBadge(c))
+    .map(c => (c.visible && isInvisibleCaptchaBadge(c) ? { ...c, why: 'invisible_captcha_badge' } : c));
   if (verdict.gate || rejected.length) {
     console.log(`[applyAutomation] gate evidence: ${verdict.gate ?? 'none'} — ${verdict.reason}` +
       (rejected.length ? `; not presented: ${rejected.map(r => `${r.selector}(${r.why})`).join(', ')}` : ''));
