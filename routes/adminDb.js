@@ -56,7 +56,7 @@ const ENRICHMENT_COLUMNS = [
 // crawl here too and this cannot drift into the second copy of the list it exists to avoid.
 const CRAWL_SOURCES = new Set(DIRECT_ATS_SOURCES);
 
-export function createAdminDbRouter(db, { dbPath } = {}) {
+export function createAdminDbRouter(db, { dbPath, reports = null } = {}) {
   const router = Router();
 
   // A51: the raw query's own connection, READ-ONLY at the SQLite level and opened lazily. No file
@@ -745,8 +745,9 @@ export function createAdminDbRouter(db, { dbPath } = {}) {
   // Exposed on the router so server.js can schedule delivery without importing this whole file's
   // closure. The route and the cron therefore cannot disagree about what is wrong.
   router.pipelineHealth = pipelineHealth;
-  router.get("/pipeline-health", requireAdmin, (_req, res) => {
-    try { res.json(pipelineHealth()); }
+  router.get("/pipeline-health", requireAdmin, async (_req, res) => {
+    // A163: built on the admin report worker when the server hands one in (12–25 s at 100k postings on the one thread).
+    try { res.json(reports ? await reports.get("pipelineHealth") : pipelineHealth()); }
     catch (e) { res.status(500).json({ error: e.message }); }
   });
 

@@ -188,8 +188,10 @@ test("A50 #3: the glance SELECTS from pipelineHealth() — it refuses to run wit
   assert.doesNotMatch(src, /FROM\s+scraped_jobs|FROM\s+pipeline_runs|FROM\s+source_companies/i,
     "the glance derives ingestion/enrichment itself — that is a second health computation");
   assert.match(code(read("server.js")),
-    /app\.get\("\/api\/admin\/glance", requireAdmin,[\s\S]{0,200}health: adminDbRouter\.pipelineHealth\(\)/,
-    "the glance route must hand buildGlance the SAME pipelineHealth() the nightly alert reads");
+    /app\.get\("\/api\/admin\/glance", requireAdmin,[\s\S]{0,200}health: await adminReports\.get\("pipelineHealth"\)/,
+    "the glance route must hand buildGlance the SAME pipelineHealth() the nightly alert reads (A163: built on the report worker)");
+  assert.match(read("services/admin/reportWorker.js"), /createAdminDbRouter\(conn, \{ dbPath \}\)\.pipelineHealth\(\)/,
+    "A163: the worker builds the report with the SAME function — never a second health computation");
 });
 
 test("A50 #3: every glance section states when it was measured, and today's numbers are today's", () => {

@@ -30,7 +30,7 @@ test("external scraping stays retired and the setup gate still blocks a profilel
   // scrapeJobs's one remaining entry point was POST /api/admin/db/force-scrape. A58 (10-02) removed
   // it — the owner's call (it spent a user's own Apify token, and nothing called it) — so the admin
   // router is no longer handed scrapeJobs. Asserted absent so the wiring cannot quietly come back.
-  assert.match(server, /createAdminDbRouter\(db, \{ dbPath: DB_PATH \}\)/,
+  assert.match(server, /createAdminDbRouter\(db, \{ dbPath: DB_PATH, reports: adminReports \}\)/,   // A163 added only the report worker
     "the admin router no longer receives scrapeJobs: force-scrape is gone");
 
   // The user-facing gate that replaced it is live.

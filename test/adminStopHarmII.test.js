@@ -242,7 +242,7 @@ test("(e) ⛔ the force-scrape route is gone and the admin router is no longer h
   assert.doesNotMatch(routes, /force-scrape/);
   assert.doesNotMatch(routes, /apify_token/, "no admin route may spend a user's own Apify token");
   assert.doesNotMatch(routes, /scrapeJobs/);
-  assert.match(read("server.js"), /createAdminDbRouter\(db, \{ dbPath: DB_PATH \}\)/);
+  assert.match(read("server.js"), /createAdminDbRouter\(db, \{ dbPath: DB_PATH, reports: adminReports \}\)/);   // A163 added only the report worker
   for (const f of ["client/src/pages/admin/DBInspector.jsx", "client/src/panels/AdminPanel.jsx", "client/src/panels/adminOps.jsx"]) {
     assert.doesNotMatch(read(f), /force-scrape/, `${f} calls a route that no longer exists`);
   }
