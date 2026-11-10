@@ -7243,4 +7243,24 @@ export const MIGRATIONS = [
         DROP INDEX IF EXISTS idx_scraped_jobs_active_recency;
       `,
     },
+    {
+      // ⭐ A176 (46d): the posting side of A85's “is this stored score current”, KEPT — the fit facet / filter and the board-fit
+      // plan hashed every candidate's description per row (9–10 s per facets read at 100k). posting_input_hashes holds each
+      // posting's ats_job_input_hash, written only by services/jobs/postingInputHashes.js (one INSERT … SELECT on the writer);
+      // these triggers DROP it on any change to a hash input, any insert (a REPLACE re-insert included) and any delete, so
+      // every writer invalidates it in SQL. The readers take COALESCE(kept, computed) — the same answer. Only ADDS. After 268.
+      id: "269_posting_input_hashes",
+      sql: `
+        CREATE TABLE IF NOT EXISTS posting_input_hashes (
+          job_id     TEXT PRIMARY KEY,
+          input_hash TEXT NOT NULL
+        ) WITHOUT ROWID;
+        CREATE TRIGGER IF NOT EXISTS trg_pih_update AFTER UPDATE OF job_id, title, company, category, description, skills_json, normalized_title, description_text, description_basis ON scraped_jobs
+        BEGIN DELETE FROM posting_input_hashes WHERE job_id IN (OLD.job_id, NEW.job_id); END;
+        CREATE TRIGGER IF NOT EXISTS trg_pih_insert AFTER INSERT ON scraped_jobs
+        BEGIN DELETE FROM posting_input_hashes WHERE job_id = NEW.job_id; END;
+        CREATE TRIGGER IF NOT EXISTS trg_pih_delete AFTER DELETE ON scraped_jobs
+        BEGIN DELETE FROM posting_input_hashes WHERE job_id = OLD.job_id; END;
+      `,
+    },
   ];

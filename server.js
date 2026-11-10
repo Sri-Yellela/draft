@@ -117,6 +117,7 @@ import { outcomeMetrics, gatherOutcomeApps } from "./services/outcomeMetrics.js"
 import { unlocksFor, activeProfileFor } from "./services/jobs/skillUnlocks.js";
 import { contentBacklog, draftOutline, reviewOutline, readBacklogItem } from "./services/atlas/risingSkills.js";
 import { enqueue as enqueueJob, registerHandler as registerJob, startWorker as startJobWorker, pruneJobs, queueStats } from "./services/ops/jobQueue.js";
+import { fillPostingInputHashes } from "./services/jobs/postingInputHashes.js";
 import { archiveSlice, archiveEnabled, archiveState, ARCHIVE_SETTING } from "./services/jobs/postingArchive.js";   // D151 Rule 4 (45s)
 import { seedTaxonomyRoles } from "./services/atlas/taxonomyRoleNodes.js";
 import { TAXONOMY_FILE } from "./services/jobs/taxonomyClassify.js";
@@ -7878,6 +7879,26 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         DROP INDEX IF EXISTS idx_scraped_jobs_active_recency;
       `,
     },
+    {
+      // ⭐ A176 (46d): the posting side of A85's “is this stored score current”, KEPT — the fit facet / filter and the board-fit
+      // plan hashed every candidate's description per row (9–10 s per facets read at 100k). posting_input_hashes holds each
+      // posting's ats_job_input_hash, written only by services/jobs/postingInputHashes.js (one INSERT … SELECT on the writer);
+      // these triggers DROP it on any change to a hash input, any insert (a REPLACE re-insert included) and any delete, so
+      // every writer invalidates it in SQL. The readers take COALESCE(kept, computed) — the same answer. Only ADDS. After 268.
+      id: "269_posting_input_hashes",
+      sql: `
+        CREATE TABLE IF NOT EXISTS posting_input_hashes (
+          job_id     TEXT PRIMARY KEY,
+          input_hash TEXT NOT NULL
+        ) WITHOUT ROWID;
+        CREATE TRIGGER IF NOT EXISTS trg_pih_update AFTER UPDATE OF job_id, title, company, category, description, skills_json, normalized_title, description_text, description_basis ON scraped_jobs
+        BEGIN DELETE FROM posting_input_hashes WHERE job_id IN (OLD.job_id, NEW.job_id); END;
+        CREATE TRIGGER IF NOT EXISTS trg_pih_insert AFTER INSERT ON scraped_jobs
+        BEGIN DELETE FROM posting_input_hashes WHERE job_id = NEW.job_id; END;
+        CREATE TRIGGER IF NOT EXISTS trg_pih_delete AFTER DELETE ON scraped_jobs
+        BEGIN DELETE FROM posting_input_hashes WHERE job_id = OLD.job_id; END;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -13736,6 +13757,20 @@ if (process.env.BG_JOBS !== "off") setInterval(() => {
   try { enqueueJob(db, "posting_archive", `nightly:${d.toISOString().slice(0, 10)}`, { payload: { at: Math.floor(Date.now() / 1000) } }); }
   catch (e) { console.warn(`[archive] enqueue: ${e.message}`); }
 }, 5 * 60 * 1000).unref();
+// ⭐ A176 (46d) · the kept posting hashes (services/jobs/postingInputHashes.js): a job kind walking the active board in job_id
+// order, ≤ 200 ms slices, hashing only the postings with no kept hash (new, or changed since — migration 269's triggers drop
+// it); enqueued every 2 minutes (one live sweep at a time) and once after boot. Readers fall back to computing, so a
+// posting not yet filled is slower, never wrong.
+registerJob("posting_input_hashes", async ({ payload, deadline }) => {
+  const r = fillPostingInputHashes(db, { afterJobId: payload?.after || "", deadline });
+  if (r.filled) console.log(`[posting-hashes] kept ${r.filled} (after ${payload?.after || "the start"})`);
+  return r.done ? { done: true } : { done: false, payload: { after: r.lastJobId } };
+});
+if (process.env.BG_JOBS !== "off") {
+  const enqueueHashes = () => { try { enqueueJob(db, "posting_input_hashes", "sweep"); } catch (e) { console.warn(`[posting-hashes] enqueue: ${e.message}`); } };
+  setTimeout(enqueueHashes, 30_000).unref();
+  setInterval(enqueueHashes, 2 * 60 * 1000).unref();
+}
 app.get("/api/admin/posting-archive", requireAdmin, (_req, res) => res.json(archiveState(db)));
 app.put("/api/admin/posting-archive", requireAdmin, (req, res) => {
   if (typeof req.body?.enabled !== "boolean") return res.status(400).json({ error: "enabled must be true or false" });
