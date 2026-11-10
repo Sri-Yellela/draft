@@ -28,6 +28,7 @@ if (!isMainThread && workerData?.__draftOffload) {
   ]);
   const { publicOpenRange } = await import("../jobs/publicOpenJobs.js");
   const { readAggregate } = await import("../companies/companyTech.js");   // ⛔ A159
+  const { readAtlasPass } = await import("../atlas/atlasStats.js");   // ⛔ A123 (5) (46c)
   registerBoardSearch(conn); registerScoreFreshness(conn); registerDescriptionBasis(conn);
   const TASKS = {
     sitemapCompanies: () => pub.companiesSitemapRoutes(conn),
@@ -38,6 +39,7 @@ if (!isMainThread && workerData?.__draftOffload) {
     taxonomyRange: ({ from, rows }) => tax.classifyRange(conn, from, rows),
     publicOpenRange: ({ from, rows }) => publicOpenRange(conn, from, rows),
     companyTechAgg: ({ from, to, nowSec }) => readAggregate(conn, from, to, nowSec),
+    atlasPass: () => readAtlasPass(conn),   // ⛔ A123 (5): the Atlas baseline / nightly recount's read (≈ 50 s at 100k)
   };
   parentPort.on("message", ({ id, task, args }) => {
     try {
@@ -97,17 +99,18 @@ export function createOffload({ dbPath, timeoutMs = 120_000, enabled = true, log
     while (enabled && !closed && !entry?.ready && Date.now() < until) await new Promise(r => setTimeout(r, 100));
     return enabled && !closed && !!entry?.ready;
   };
-  const run = async (task, args = {}) => {
+  // 46c: a task may ask for its own bound (the Atlas pass: { timeoutMs: 600_000 }); the default stays timeoutMs.
+  const run = async (task, args = {}, { timeoutMs: bound = timeoutMs } = {}) => {
     if (!(await whenReady())) throw new Error("offload worker not ready");
     return new Promise((resolve, reject) => {
       const id = nextId++;
       const timer = setTimeout(() => {
         if (!pending.has(id)) return;
-        pending.delete(id); stats.timeouts++; stats.lastError = `${task}: timeout after ${timeoutMs} ms`;
+        pending.delete(id); stats.timeouts++; stats.lastError = `${task}: timeout after ${bound} ms`;
         reject(new Error(`offload ${task} timed out`));
         // The worker may still be inside a long read: restart it so the next task is not queued behind it.
         try { entry?.w.terminate(); } catch { /* exit handler respawns */ }
-      }, timeoutMs);
+      }, bound);
       timer.unref?.();
       pending.set(id, { resolve, reject, timer, at: Date.now() });
       try { entry.w.postMessage({ id, task, args }); }

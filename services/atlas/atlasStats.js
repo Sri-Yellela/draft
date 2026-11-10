@@ -131,13 +131,36 @@ export function roleLevelsOfBoard(db, nodes) {
  * @returns {{ postings: number, nodes: number, boardEdges: number, drift: { drift, rowsOff, vocabChanged } | null }}
  */
 export function computeAtlasStats(db, { now = Math.floor(Date.now() / 1000), boardEdges = true } = {}) {
-  const nodes = db.prepare(`SELECT id, slug, kind, name, term FROM atlas_nodes ORDER BY id`).all();
-  if (!nodes.length) return { postings: 0, nodes: 0, boardEdges: 0, drift: null };
-  const byId = new Map(nodes.map(n => [n.id, n]));
+  const start = beginAtlasPass(db, { now });
+  if (!start) return { postings: 0, nodes: 0, boardEdges: 0, drift: null };
+  return writeAtlasPass(db, readAtlasPass(db), start, { now, boardEdges });
+}
+
+/**
+ * ⛔ A123 (5) (46c) · the same pass with its read OFF the one thread. The read (every active posting through the matcher —
+ * 49.7 s on the 100k fixture's first baseline, the nightly recount every night) runs on the offload worker's read-only
+ * connection (`offloadRun("atlasPass")`); only the queue drain before it and the writes after it run here. A posting
+ * written while the worker reads stays queued (writeLiveBaseline keeps the ids queued after `drained`).
+ */
+export async function computeAtlasStatsOffloaded(db, offloadRun, { now = Math.floor(Date.now() / 1000), boardEdges = true } = {}) {
+  const start = beginAtlasPass(db, { now });
+  if (!start) return { postings: 0, nodes: 0, boardEdges: 0, drift: null };
+  const pass = await offloadRun("atlasPass", {});
+  return writeAtlasPass(db, pass, start, { now, boardEdges });
+}
+
+/** The main thread's part before the read: the queue drained, what it held, and the live rows as they stand. */
+export function beginAtlasPass(db, { now = Math.floor(Date.now() / 1000) } = {}) {
+  if (!db.prepare(`SELECT 1 FROM atlas_nodes LIMIT 1`).get()) return null;
   try { syncAtlasPostings(db, { now }); } catch (e) { console.warn(`[atlas stats] the live queue could not be drained first: ${e.message}`); }
   let drained = [];
   try { drained = db.prepare(`SELECT posting_id FROM atlas_posting_dirty`).pluck().all(); } catch { drained = []; }
-  const before = liveSnapshot(db);
+  return { drained, before: liveSnapshot(db) };
+}
+
+/** READ ONLY (safe on the offload worker's read-only connection): every active posting read once, the aggregates built. */
+export function readAtlasPass(db) {
+  const nodes = db.prepare(`SELECT id, slug, kind, name, term FROM atlas_nodes ORDER BY id`).all();
   const vocab = liveMatcher(db).key;
   const match = postingMatcher(db, nodes, { bulk: true, live: true });
   const agg = new Map(nodes.map(n => [n.id, { postings: 0, withSkill: new Map(), withRole: new Map(), pay: [] }]));
@@ -169,7 +192,12 @@ export function computeAtlasStats(db, { now = Math.floor(Date.now() / 1000), boa
       if (pay != null) a.pay.push(pay);
     }
   }
+  return { nodes, vocab, agg, rows, postings, roleLevels: rl.result() };
+}
 
+/** The main thread's part after the read: every count rewritten, the live baseline, the board edges. */
+export function writeAtlasPass(db, { nodes, vocab, agg, rows, postings, roleLevels }, { drained, before }, { now = Math.floor(Date.now() / 1000), boardEdges = true } = {}) {
+  const byId = new Map(nodes.map(n => [n.id, n]));
   const write = db.prepare(`INSERT INTO atlas_node_stats (node_id, postings, top_skills_json, top_roles_json, pay_min_usd, pay_median_usd, pay_max_usd, pay_n, computed_at)
     VALUES (?,?,?,?,?,?,?,?,?)`);
   db.transaction(() => {
@@ -180,7 +208,6 @@ export function computeAtlasStats(db, { now = Math.floor(Date.now() / 1000), boa
         a.pay.length, now);
     }
   })();
-  const roleLevels = rl.result();
   const drift = driftBetween(before, snapshotOf(new Map([...agg].map(([id, a]) => [id, a.postings])), roleLevels, vocab));
   let version = null;
   try { version = writeLiveBaseline(db, { rows, roleLevels, vocab, now, drained, drift }); }

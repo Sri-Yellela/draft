@@ -172,7 +172,7 @@ import { importLearnPatterns } from "./services/learn/learnLinks.js";
 import { seedAtlasFamilies } from "./services/atlas/atlasFamilies.js";
 import { seedDraftedDefinitions } from "./services/atlas/atlasDefinitions.js";
 import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
-import { computeAtlasStats } from "./services/atlas/atlasStats.js";
+import { computeAtlasStats, computeAtlasStatsOffloaded } from "./services/atlas/atlasStats.js";
 import { roleReadiness } from "./services/atlas/roleReadiness.js";
 import { ogPng, cardFromQuery, ogUrl, ogImageMeta } from "./services/ogImage.js";
 import { practiceProgress } from "./services/learn/practiceProgress.js";
@@ -611,6 +611,14 @@ const readPool = createReadPool({
 // back to this connection: a sitemap / landing page it cannot answer is a 503 + Retry-After, the taxonomy walk drops to
 // small paced slices here. DRAFT_OFFLOAD=off turns the worker off (those fallbacks then apply).
 const offload = createOffload({ dbPath: DB_PATH, enabled: String(process.env.DRAFT_OFFLOAD || "on").toLowerCase() !== "off" });
+// ⛔ A123 (5) (46c): the Atlas full pass (the first live baseline + the nightly recount) reads every active posting through
+// the matcher — 49.7 s of held thread on the 100k fixture's baseline. Its read runs on the offload worker; a worker that
+// cannot answer skips the pass (logged; tomorrow's runs it) — never a fallback onto this thread, except DRAFT_OFFLOAD=off
+// (the operator's choice: the pass as before).
+function runAtlasPass() {
+  if (String(process.env.DRAFT_OFFLOAD || "on").toLowerCase() === "off") return Promise.resolve().then(() => computeAtlasStats(db));
+  return computeAtlasStatsOffloaded(db, (task, args) => offload.run(task, args, { timeoutMs: 600_000 }));
+}
 // ⛔ A163 (46a) · the admin panel's whole-board reports (the glance's pipeline health, the enrichment overview, the board
 // policy's dry runs) build on their OWN worker thread and read-only connection, cached ~60 s (services/admin/reportWorker.js).
 // Unlike the offload worker above it falls back to this connection (an admin report is never refused); any admin write
@@ -8806,7 +8814,7 @@ cron.schedule("0 4 * * *", async () => {
   // ⭐ P9 (amended 10-31): the same pass rebuilds the 'board' edges; ⭐ P7: then the auto-publish bar is re-checked
   // (≥ 5 postings + a Wikipedia summary or a definition; a person's un-publish wins — services/atlas/atlasPublish.js).
   try {
-    const a = computeAtlasStats(db);
+    const a = await runAtlasPass();
     console.log(`[Cron] atlas stats: ${a.nodes} node(s) over ${a.postings} posting(s), ${a.boardEdges} board edge(s)`);
     // ⭐ D118 P1: the recount is the reconciliation of the live counts — what it corrected, as a number (0 = none missed).
     console.log(`[Cron] atlas drift: ${a.drift ? `${a.drift.drift} (${a.drift.rowsOff} row(s) off${a.drift.vocabChanged ? "; nodes or aliases changed since the last pass" : ""})` : "no live baseline before this pass"}`);
@@ -12185,8 +12193,8 @@ try {
 try {
   if (liveVersion(db) == null && db.prepare(`SELECT 1 FROM atlas_nodes LIMIT 1`).get()) {
     setTimeout(() => {
-      try { const a = computeAtlasStats(db); console.log(`[atlas] live baseline: ${a.nodes} node(s) over ${a.postings} posting(s)`); }
-      catch (e) { console.warn("[atlas] live baseline:", e.message); }
+      runAtlasPass().then(a => console.log(`[atlas] live baseline: ${a.nodes} node(s) over ${a.postings} posting(s)`))
+        .catch(e => console.warn("[atlas] live baseline:", e.message));
     }, 90_000).unref();
   }
 } catch (e) { console.warn("[atlas] live baseline check:", e.message); }
