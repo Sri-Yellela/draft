@@ -120,7 +120,7 @@ import { TAXONOMY_FILE } from "./services/jobs/taxonomyClassify.js";
 import { setAim as setNavigatorAim } from "./services/navigator.js";
 import { profileCategory, categoryOf as categoryOfPosting } from "./services/jobs/professionalScope.js";
 import { touchBoardVisit, visitMark, visitSince, FIRST_SEEN_SQL } from "./services/boardVisit.js";
-import { heatReport } from "./services/companyHeat.js";
+import { heatReport, boardCountsVia } from "./services/companyHeat.js";
 import { runHnDiscovery, runCandidateProbe } from "./services/companyCandidates.js";
 import { importSeedCandidates } from "./services/seedCandidates.js";   // 45s: the non-tech employer seed
 import { createRailwayHookRouter, deployEventsSummary } from "./routes/railwayHook.js";
@@ -11747,7 +11747,7 @@ app.use("/api/admin/enrichment", requireAdmin, createEnrichmentRouter(db, requir
 // A62: the JOBS themselves in and out (NDJSON), through the one gateway; dry by default, revertible.
 app.use("/api/admin/job-data", requireAdmin, createJobDataRouter(db, requireAdmin));
 // A50 step 4: the company list as a surface — probe a board before adding it; enable / disable, logged.
-app.use("/api/admin/companies", requireAdmin, createCompaniesRouter(db, requireAdmin, { dataDir: DATA_DIR }));
+app.use("/api/admin/companies", requireAdmin, createCompaniesRouter(db, requireAdmin, { dataDir: DATA_DIR, read: readPool }));   // A162: the counts off the loop
 // ⭐ D67 (2): the learned origin pairs — hostnames and counts only — and the revoke switch, logged.
 app.get("/api/admin/apply-origins", requireAdmin, (_req, res) => res.json({ pairs: listLearnedPairs(db), promoteAtUsers: PROMOTE_AT_USERS }));
 app.post("/api/admin/apply-origins/:id/revoke", requireAdmin, (req, res) => {
@@ -11865,9 +11865,9 @@ app.post("/api/admin/board-categories/report", requireAdmin, (req, res) => {
 // posting is outside the US — services/companyHeat.js) (container time; BEFORE that day's crawl, which is
 // 04:00 America/New_York = 08:00 UTC — it reads the week through Sunday's crawl). It only REPORTS: dormant companies are
 // proposed in Admin → Companies for the owner to disable; nothing here deactivates anything.
-cron.schedule("0 5 * * 1", () => {
+cron.schedule("0 5 * * 1", async () => {
   try {
-    const h = heatReport(db);
+    const h = heatReport(db, { counts: await boardCountsVia(readPool) });   // A162: the posting pass off the loop
     const s = h.summary;
     console.log(`[company-heat] ${s.active} active · hot ${s.hot} · warm ${s.warm} · dormant ${s.dormant} · probation ${s.probation} · ` +
       `${s.hotShare == null ? "—" : Math.round(s.hotShare * 100) + "%"} with a new in-scope posting in ${h.hotDays} days (target ${Math.round(h.target * 100)}%)` +

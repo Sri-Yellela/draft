@@ -25,19 +25,51 @@ export function heatOf({ last_new_at = null, created_at = null } = {}, now = Mat
   return "dormant";
 }
 
+// ⛔ A162 (46a, owner 11-10: "is the crawling causing the site to freeze … stuck loading") — MEASURED on production
+// 11-10: opening Admin → Companies froze the WHOLE site (00:23:25 → 00:27:29Z every request answered in the same
+// millisecond; again at 00:14 and 00:19 on the container before). This report and listCompanies ran three / two
+// correlated subqueries PER COMPANY on `lower(sj.company) = lower(c.company)` — no index can serve that, so each was a
+// whole scan of scraped_jobs: ~5 full scans × every configured company, synchronously on the one thread. On the 100k
+// copy with only 29 companies: heatReport 21.6 s, listCompanies 13.1 s.
+// Now ONE grouped pass over the postings (per source × lowercased company) answers every company at once, and the
+// admin route runs that pass on the read-worker pool (A126), so the thread never waits on it.
+const BOARD_COUNTS_SQL = `
+  SELECT sj.source AS source, lower(sj.company) AS k,
+         SUM(sj.is_active = 1) AS active_rows,
+         SUM(sj.is_active = 1 AND sj.discovered_at >= ?) AS new_30d,
+         MAX(sj.discovered_at) AS last_any_at,
+         MAX(CASE WHEN NOT EXISTS (SELECT 1 FROM rejected_jobs r WHERE r.job_id = sj.job_id AND r.reason = 'out_of_scope')
+                  THEN sj.discovered_at END) AS last_new_at
+    FROM scraped_jobs sj
+   WHERE sj.source IN (SELECT DISTINCT ats_type FROM company_ats_list)
+   GROUP BY sj.source, lower(sj.company)`;
+const keyOf = (source, k) => `${source}\u0000${k}`;
+const toMap = (rows, since) => Object.assign(new Map(rows.map((r) => [keyOf(r.source, r.k), r])), { since });
+
+/** Every configured company's posting counts in one pass — on this connection. @returns Map keyed by source + lower(company). */
+export function boardCounts(db, { now = Math.floor(Date.now() / 1000) } = {}) {
+  const since = now - HOT_DAYS * DAY;
+  return toMap(db.prepare(BOARD_COUNTS_SQL).all(since), since);
+}
+
+/** The same pass through the read-worker pool (`read.all(sql, params)`) — off the event loop. */
+export async function boardCountsVia(read, { now = Math.floor(Date.now() / 1000) } = {}) {
+  const since = now - HOT_DAYS * DAY;
+  return toMap(await read.all(BOARD_COUNTS_SQL, [since]), since);
+}
+
+/** One company's counts out of a boardCounts map (zeros / nulls when it has no posting). */
+export function countsFor(counts, atsType, lowerCompany) {
+  const r = counts.get(keyOf(atsType, lowerCompany));
+  return { active_rows: r?.active_rows ?? 0, new_30d: r?.new_30d ?? 0, last_new_at: r?.last_new_at ?? null, last_any_at: r?.last_any_at ?? null };
+}
+
 /** Every ACTIVE company with its heat, the summary against the target, and the deactivation proposals. */
-export function heatReport(db, { now = Math.floor(Date.now() / 1000) } = {}) {
-  const rows = db.prepare(`
-    SELECT c.id, c.company, c.ats_type, c.ats_slug, c.created_at,
-           (SELECT MAX(sj.discovered_at) FROM scraped_jobs sj
-             WHERE sj.source = c.ats_type AND lower(sj.company) = lower(c.company)
-               AND NOT EXISTS (SELECT 1 FROM rejected_jobs r WHERE r.job_id = sj.job_id AND r.reason = 'out_of_scope')) AS last_new_at,
-           (SELECT COUNT(*) FROM scraped_jobs sj
-             WHERE sj.source = c.ats_type AND lower(sj.company) = lower(c.company)
-               AND sj.discovered_at >= ? AND sj.is_active = 1) AS new_30d,
-           (SELECT COUNT(*) FROM scraped_jobs sj
-             WHERE sj.source = c.ats_type AND lower(sj.company) = lower(c.company) AND sj.is_active = 1) AS active_rows
-      FROM company_ats_list c WHERE c.active = 1 ORDER BY c.company COLLATE NOCASE`).all(now - HOT_DAYS * DAY);
+export function heatReport(db, { now = Math.floor(Date.now() / 1000), counts = null } = {}) {
+  const board = counts || boardCounts(db, { now });
+  const rows = db.prepare(`SELECT c.id, c.company, lower(c.company) AS k, c.ats_type, c.ats_slug, c.created_at
+      FROM company_ats_list c WHERE c.active = 1 ORDER BY c.company COLLATE NOCASE`).all()
+    .map(({ k, ...c }) => { const n = countsFor(board, c.ats_type, k); return { ...c, last_new_at: n.last_new_at, new_30d: n.new_30d, active_rows: n.active_rows }; });
   // ⭐ D170 (4) (owner 11-06: "Intel: all 213 postings outside the US … keep or deactivate"): a board that works and
   // returns ONLY postings the US-only gate holds out is a decision about the company, not a dead slug — proposed too,
   // with its own reason. The same reading as pipeline health's out_of_market (routes/adminDb.js): no active row, and

@@ -22,21 +22,22 @@ import { fetchCompanyJobs as icims } from "./jobs/sources/icims.js";
 import { usEligibility } from "./jobs/usLocation.js";
 import { fetchDescription, hasDetailFetcher } from "./jobs/detailFetch.js";
 import { auditActorColumns } from "./actor.js";
+import { boardCounts, countsFor } from "./companyHeat.js";
 
 export const ATS_FETCHERS = Object.freeze({ greenhouse, lever, ashby, smartrecruiters, workable, recruitee, workday, bamboohr, gem, rippling, icims });
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._|-]{0,119}$/;
 const AUDIT = { ADD: "company_add", ACTIVE: "company_active" };
 
 /** Every configured company with what the board actually holds from it. */
-export function listCompanies(db) {
+// ⛔ A162 (46a): the per-company correlated subqueries here were whole scans of scraped_jobs each (lower() = lower() —
+// no index), and froze the site whenever Admin → Companies opened. The counts come from ONE grouped pass
+// (services/companyHeat.js boardCounts — the admin route passes the read pool's copy of it).
+export function listCompanies(db, { counts = null } = {}) {
+  const board = counts || boardCounts(db);
   return db.prepare(`
-    SELECT c.id, c.company, c.ats_type, c.ats_slug, c.active, c.bucket_role, c.created_at,
-           (SELECT COUNT(*) FROM scraped_jobs sj WHERE sj.source = c.ats_type AND sj.is_active = 1
-              AND lower(sj.company) = lower(c.company)) AS active_rows,
-           (SELECT MAX(sj.discovered_at) FROM scraped_jobs sj WHERE sj.source = c.ats_type
-              AND lower(sj.company) = lower(c.company)) AS last_new_at
+    SELECT c.id, c.company, lower(c.company) AS k, c.ats_type, c.ats_slug, c.active, c.bucket_role, c.created_at
     FROM company_ats_list c ORDER BY c.active DESC, c.company COLLATE NOCASE
-  `).all();
+  `).all().map(({ k, ...c }) => { const n = countsFor(board, c.ats_type, k); return { ...c, active_rows: n.active_rows, last_new_at: n.last_any_at }; });
 }
 
 /**

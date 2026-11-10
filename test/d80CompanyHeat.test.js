@@ -69,10 +69,38 @@ test("⛔ D80 E: the weekly cron only REPORTS, and Admin shows the proposals bes
   const src = fs.readFileSync("server.js", "utf8").replace(/\r\n/g, "\n");
   const start = at(src, 'cron.schedule("0 5 * * 1"');
   const body = src.slice(start, at(src, "\n});", start));
-  assert.match(body, /heatReport\(db\)/);
+  assert.match(body, /heatReport\(db, \{ counts: await boardCountsVia\(readPool\) \}\)/);   // A162: the posting pass runs on the read pool
   assert.doesNotMatch(body, /setCompanyActive|UPDATE|active\s*=\s*0/, "the cron never deactivates");
   assert.doesNotMatch(fs.readFileSync("services/companyHeat.js", "utf8").replace(/^\s*\/\/.*$/gm, ""), /\b(UPDATE|INSERT|DELETE)\b|\.run\(/, "the heat report never writes");
   const ui = fs.readFileSync("client/src/panels/adminOps.jsx", "utf8");
   assert.match(ui, /data-company-heat/);
   assert.match(ui, /Proposed for deactivation/);
+});
+
+// ⛔ A162 (46a): opening Admin → Companies froze production for minutes — heatReport and listCompanies ran correlated
+// subqueries on lower(company) PER COMPANY, each a whole scan of scraped_jobs. Now ONE grouped pass answers them all.
+test("A162: the heat report and the company list read the postings in ONE pass, whatever the number of companies", async () => {
+  const { boardCounts, boardCountsVia } = await import("../services/companyHeat.js");
+  const { listCompanies } = await import("../services/companyList.js");
+  const db = new Database(":memory:");
+  for (const m of MIGRATIONS) db.exec(m.sql);
+  db.exec("DELETE FROM company_ats_list");
+  const add = db.prepare("INSERT INTO company_ats_list (company, ats_type, ats_slug, active, created_at, evidence) VALUES (?, ?, ?, 1, ?, 'test')");
+  for (let i = 0; i < 40; i++) add.run(`Co ${i}`, "ashby", `co${i}`, NOW - 400 * 86400);
+  posting(db, 'a1', 'CO 1', NOW - 5 * 86400); posting(db, 'a2', 'co 1', NOW - 90 * 86400, 0); posting(db, 'a3', 'Co 2', NOW - 45 * 86400);
+  let scans = 0;
+  const prepare = db.prepare.bind(db);
+  const counting = new Proxy(db, { get: (t, p) => p === "prepare" ? (sql) => { if (/FROM scraped_jobs/.test(sql)) scans++; return prepare(sql); } : (typeof t[p] === "function" ? t[p].bind(t) : t[p]) });
+  const r = heatReport(counting, { now: NOW });
+  assert.equal(scans, 1, "one pass over scraped_jobs for 40 companies");
+  const by = Object.fromEntries(r.companies.map(c => [c.company, c]));
+  assert.deepEqual([by["Co 1"].active_rows, by["Co 1"].new_30d, by["Co 1"].heat], [1, 1, "hot"], "the company name matches case-insensitively, as before");
+  assert.equal(by["Co 2"].heat, "warm"); assert.equal(by["Co 3"].heat, "dormant"); assert.equal(by["Co 3"].active_rows, 0);
+  const counts = boardCounts(db, { now: NOW });
+  const viaPool = await boardCountsVia({ all: async (sql, params) => db.prepare(sql).all(...params) }, { now: NOW });
+  assert.deepEqual([...viaPool.entries()], [...counts.entries()], "the read pool's pass is the same pass");
+  const list = Object.fromEntries(listCompanies(db, { counts }).map(c => [c.company, c]));
+  assert.deepEqual([list["Co 1"].active_rows, list["Co 1"].last_new_at], [1, NOW - 5 * 86400], "the list's last_new_at is the newest row, active or not");
+  const route = fs.readFileSync("routes/companies.js", "utf8");
+  assert.match(route, /await boardCountsVia\(read, \{ now \}\)/, "Admin → Companies runs the pass on the read pool");
 });
