@@ -113,6 +113,8 @@ test("the approve dialog stays on screen: refusals counted by reason, names in a
   assert.match(src, /maxHeight: "32vh", overflowY: "auto"/);
   assert.doesNotMatch(src, /\{refused && <div>Refused: \{refused\}<\/div>\}/, "the inline list of every refusal is gone");
   assert.match(src, /data-reprobe="" /);
+  assert.match(src, /data-probe-progress=""/, "the run shows its progress");
+  assert.ok(src.includes("setInterval(load, 20000)"), "the list refreshes itself while a run goes");
   assert.match(fs.readFileSync("routes/companies.js", "utf8"), /router\.post\("\/candidates\/probe"/);
 });
 
@@ -120,4 +122,27 @@ test("the configured-company report names only labels, places and board titles â
   const { configuredNameSuspect } = await import("../services/companyCandidates.js");
   for (const n of ["Langan Engineering & Environmental Services", "Hello Patient", "Hi Marley", "Flow Engineering", "Coffman Engineers, Inc.", "Stripe"]) assert.equal(configuredNameSuspect(n), false, n);
   for (const n of ["Strategic HR Client Job Openings", "Integra FEC - Internships", "Vestmark Internship Program", "Location: Dallas", "NYC"]) assert.equal(configuredNameSuspect(n), true, n);
+});
+
+test("Re-probe works through EVERY due candidate in one press, capped so an erroring board can't keep it going", async () => {
+  const { probeDue } = await import("../services/companyCandidates.js");
+  const express = (await import("express")).default;
+  const { createCompaniesRouter } = await import("../routes/companies.js");
+  const db = db0();
+  const now = Math.floor(Date.now() / 1000);
+  for (let i = 0; i < 30; i++) cand(db, `Due ${i}`, "greenhouse", `due${i}`, `Due ${i} | SWE`, "probed", now - 20 * 86400);
+  cand(db, "Fresh", "greenhouse", "fresh", "Fresh | SWE", "probed", now - 3600);
+  assert.equal(probeDue(db), 30);
+  const src = fs.readFileSync("routes/companies.js", "utf8");
+  assert.match(src, /const maxBatches = Math\.ceil\(due \/ PROBE_BATCH\) \+ 1;/, "capped at the count due when it started");
+  assert.match(src, /if \(!r\.considered \|\| !probeDue\(db\)\) break;/);
+  assert.match(src, /probeRun, probeDue: probeDue\(db\)/, "GET /candidates carries the progress");
+  const app = express(); app.use((req, _r, n) => { req.user = { id: 1 }; n(); });
+  app.use("/c", createCompaniesRouter(db, (_q, _s, n) => n(), { gate: () => ({ ok: true }) }));
+  const server = app.listen(0);
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const list = await (await fetch(`${base}/c/candidates`)).json();
+    assert.equal(list.probeDue, 30); assert.equal(list.probeRun, null);
+  } finally { server.close(); }
 });

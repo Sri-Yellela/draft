@@ -163,6 +163,14 @@ function evidenceOf(p, now) {
     sample: (p.sample || []).map((s) => s.title).slice(0, 5), probedAt: now };
 }
 
+// The rows a probe run takes: new ones, and probed ones within a day of PROBE_FRESH_DAYS (? = that cut-off). ONE definition
+// for the run and for probeDue's count, so "how many are left" and "what the run reads" never disagree.
+const PROBE_DUE_WHERE = "status = 'new' OR (status = 'probed' AND (probed_at IS NULL OR probed_at < ?))";
+/** How many candidates a probe would take now (new + about-to-be-stale). */
+export function probeDue(db, { now = nowS() } = {}) {
+  return db.prepare(`SELECT COUNT(*) FROM company_candidates WHERE ${PROBE_DUE_WHERE}`).pluck().get(now - (PROBE_FRESH_DAYS - 1) * 86400);
+}
+
 export async function runCandidateProbe(db, { env = process.env, probe = probeBoard, limit = PROBE_BATCH, gapMs = PROBE_GAP_MS,
                                               sleep = sleepMs, now = nowS() } = {}) {
   const startedAt = nowS();
@@ -172,11 +180,9 @@ export async function runCandidateProbe(db, { env = process.env, probe = probeBo
     // ⛔ 46a (owner 11-10, Approve all: nearly every candidate "probe_stale"): only 'new' rows were ever probed, so a probed
     // candidate's evidence aged past PROBE_FRESH_DAYS and was never refreshed — the approval refused it for good. Now: new
     // rows first, then PROBED rows whose probe is within a day of going stale, oldest first.
-    const refreshBefore = now - (PROBE_FRESH_DAYS - 1) * 86400;
-    const rows = db.prepare(`SELECT * FROM company_candidates
-                             WHERE status = 'new' OR (status = 'probed' AND (probed_at IS NULL OR probed_at < ?))
+    const rows = db.prepare(`SELECT * FROM company_candidates WHERE ${PROBE_DUE_WHERE}
                              ORDER BY status = 'probed', probed_at IS NOT NULL, probed_at, first_seen, id LIMIT ?`)
-      .all(refreshBefore, Math.max(1, Math.min(limit, PROBE_BATCH)));
+      .all(now - (PROBE_FRESH_DAYS - 1) * 86400, Math.max(1, Math.min(limit, PROBE_BATCH)));
     const configured = db.prepare("SELECT 1 FROM company_ats_list WHERE ats_type = ? AND lower(ats_slug) = lower(?)");
     const save = db.prepare(`UPDATE company_candidates SET evidence_json = ?, rank_score = ?, status = ?, status_reason = ?, probed_at = ? WHERE id = ?`);
     // ⛔ ≤ 1 request a second per host: the detail-page sample is spaced like the boards are.
