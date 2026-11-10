@@ -1196,13 +1196,23 @@ function DiscoveryCandidates({ theme, onAdded }) {
     setBusy(forIds === probedIds ? "approveAll" : "approve"); setErr(null); setMsg(null);
     try {
       const dry = await api("/api/admin/companies/candidates/approve", { method: "POST", body: JSON.stringify({ ids }) });
-      const refused = dry.refused.map(r => `${r.company || "#" + r.id} (${r.reason})`).join(", ");
-      if (!dry.eligible.length) { setErr(`None can be added: ${refused}`); setBusy(null); return; }
+      // ⛔ 46a (owner 11-10: "a prompt popped up … an out of bounds panel, nothing else i can see"): Approve all listed every
+      // refusal inline — ~200 names pushed the dialog's buttons off the screen. The refusals are now counted by reason, the
+      // names in a closed, scrolling list; the companies to add scroll in their own box.
+      const byReason = {};
+      for (const r of dry.refused) (byReason[r.reason] ||= []).push(r.company || `#${r.id}`);
+      const REASON_WORDS = { probe_stale: "probe older than 14 days — Re-probe stale first", already_configured: "already crawled", status_new: "not probed yet" };
+      const refusedLine = Object.entries(byReason).map(([k, v]) => `${v.length} ${REASON_WORDS[k] || k}`).join(" · ");
+      if (!dry.eligible.length) { setErr(`None can be added — ${refusedLine}`); setBusy(null); return; }
       if (!dry.disk?.ok) { setErr(`The disk gate refuses ${dry.eligible.length}: ${dry.disk?.reason}`); setBusy(null); return; }
+      const scroll = { maxHeight: "32vh", overflowY: "auto", margin: "0 0 8px" };
       if (!await ask({ title: `Add ${dry.eligible.length} compan${dry.eligible.length === 1 ? "y" : "ies"}?`, label: `Add ${dry.eligible.length}`,
         body: <>
-          <ul style={{ margin: "0 0 8px", paddingLeft: 18 }}>{dry.eligible.map(e => <li key={e.id}>{e.company} — {e.cs} in scope (≤ 120 days) of {e.csOpen} open</li>)}</ul>
-          {refused && <div>Refused: {refused}</div>}
+          <ul data-approve-eligible="" style={{ ...scroll, paddingLeft: 18 }}>{dry.eligible.map(e => <li key={e.id}>{e.company} — {e.cs} in scope (≤ 120 days) of {e.csOpen} open</li>)}</ul>
+          {dry.refused.length > 0 && <details data-approve-refused="" style={{ margin: "0 0 8px" }}>
+            <summary>{dry.refused.length} refused: {refusedLine}</summary>
+            <div style={{ ...scroll, fontSize: 12 }}>{Object.entries(byReason).map(([k, v]) => <div key={k}><b>{REASON_WORDS[k] || k}:</b> {v.join(", ")}</div>)}</div>
+          </details>}
           <div>A backup is taken first; each add carries its evidence, and Disable reverses it.</div>
         </> })) { setBusy(null); return; }
       const r = await api("/api/admin/companies/candidates/approve", { method: "POST",
@@ -1218,6 +1228,13 @@ function DiscoveryCandidates({ theme, onAdded }) {
     setBusy("reject"); setErr(null);
     try { const r = await api("/api/admin/companies/candidates/reject", { method: "POST", body: JSON.stringify({ ids }) }); setMsg(`${r.rejected} rejected.`); setPicked(new Set()); load(); }
     catch (e) { setErr(e.message); }
+    setBusy(null);
+  };
+  // 46a: one probe batch now (new first, then the stale) — Approve refuses evidence older than 14 days.
+  const reprobe = async () => {
+    setBusy("probe"); setErr(null);
+    try { const r = await api("/api/admin/companies/candidates/probe", { method: "POST", body: "{}" }); setMsg(r.note); }
+    catch (e) { setErr(e.payload?.message || e.message); }
     setBusy(null);
   };
   const reset = async (source) => {
@@ -1248,6 +1265,7 @@ function DiscoveryCandidates({ theme, onAdded }) {
         <Btn theme={theme} disabled={!ids.length || !!busy} onClick={() => approve(ids)}>{busy === "approve" ? "Checking…" : `Approve ${ids.length || ""}…`}</Btn>
         <Btn theme={theme} data-approve-all="" disabled={!probedIds.length || !!busy} onClick={() => approve(probedIds)}>{busy === "approveAll" ? "Checking…" : `Approve all ${probedIds.length || ""}…`}</Btn>
         <Btn theme={theme} disabled={!ids.length || !!busy} onClick={reject}>{`Reject ${ids.length || ""}…`}</Btn>
+        <Btn theme={theme} data-reprobe="" disabled={!!busy} onClick={reprobe}>{busy === "probe" ? "Starting…" : "Re-probe stale"}</Btn>
       </div>
       <Err msg={err}/>
       {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 6 }}>{msg}</div>}

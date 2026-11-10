@@ -75,7 +75,9 @@ test("A163: the glance, pipeline health, board policy and enrichment overview ro
   assert.match(src, /\.\.\.\(await adminReports\.get\("boardPolicyDryRuns"\)\)/);
   assert.match(src, /createAdminDbRouter\(db, \{ dbPath: DB_PATH, reports: adminReports \}\)/);
   assert.match(src, /createEnrichmentRouter\(db, requireAdmin, \{ anthropic, reports: adminReports \}\)/);
-  assert.ok(src.indexOf("const app = express();") < src.indexOf("adminReports.invalidate(); next();"), "the invalidation middleware is mounted after app exists");
+  assert.ok(src.indexOf("const app = express();") < src.indexOf("if (res.statusCode < 400 && mayActAsAdmin(req)) adminReports.invalidate();"), "the invalidation middleware is mounted after app exists");
+  assert.ok(src.includes('res.on("finish", () => { if (res.statusCode < 400 && mayActAsAdmin(req)) adminReports.invalidate(); })'), "only an admin's successful write invalidates");
+  assert.doesNotMatch(src, /app\.use\("\/api\/admin", \(req, _res, next\) => \{ if \(req\.method !== "GET"/, "no unguarded /api/admin middleware");
   assert.match(fs.readFileSync("routes/adminDb.js", "utf8"), /reports \? await reports\.get\("pipelineHealth"\) : pipelineHealth\(\)/);
   assert.match(fs.readFileSync("routes/enrichment.js", "utf8"), /reports \? await reports\.get\("enrichmentOverview"\) : buildEnrichmentOverview\(db\)/);
 });

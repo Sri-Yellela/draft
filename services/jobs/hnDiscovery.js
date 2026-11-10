@@ -99,6 +99,75 @@ export function cleanCompany(seg) {
   if (!s || s.length > 60 || /^(remote|onsite|hybrid|full[- ]?time|part[- ]?time|contract)\b/i.test(s)) return null;
   return s;
 }
+// ⛔ 46a (owner 11-10: a candidate named "Location: Seattle OR Arlington, United States. Hybrid", board
+// workday:5|remitly|Remitly_Careers). "The header's first | segment is the company" was the whole rule, and HN posters lead
+// with a field label, a role or a sentence: the 11-10 audit (scripts/hnNameAudit46a.mjs, 12 threads, 1,465 candidates)
+// found 89 such names — "Location: Dallas, TX", "Role: Engineering Manager", "Company: AMD", "Senior Software Engineer",
+// "We're hiring at Langfuse", "NYC", "Addepar/ Softare Engineering Manager/ NYC-Hybrid/ Full-time" — 9 with an ATS board,
+// so pooled. companyFromHeader extracts the name from those shapes, refuses what is still not a name, and falls back to
+// the ATS board's own slug ("remitly" → "Remitly"); a post with neither is dropped (a wrong employer is worse than none).
+const NAME_LABEL = /^(?:company|employer|organi[sz]ation|startup|who(?:'s| is) hiring|hiring company)\s*:\s*/i;
+const FIELD_LABEL = /^(?:locations?|role|roles|positions?|title|job|jobs|salary|comp(?:ensation)?|pay|edit|update|note|subject|remote|onsite|on-site|hybrid|visa|type|team|stack|tech(?: stack)?|hiring|apply|contact|email|website|url|about|description|location\/remote)\s*:/i;
+const NOT_A_NAME = /\b(engineers?|engineering|developers?|designers?|scientists?|managers?|director|hiring|positions?|roles?|openings?|full[- ]?time|fulltime|part[- ]?time|contract|intern(?:ship)?s?|senior|staff|principal|lead|founding|swe|devops|cto|filled|vacant|closed|applications?|looking for)\b/i;
+// a lower-case "company" / "startup" is a description ("Audio/Video Collaboration company"); a capitalised one can be a name
+// ("Artificial Intelligence Underwriting Company"). A greeting or a first-person line is never a name.
+const DESCRIPTION = /\b(?:company|startup)\b/;
+// a sentence's first word is never a name's: greetings, first person, prepositions, "Update …", "Backed by …"
+// (lower-case names are real — xAI, alias, vvd, pod network — and so is "The Allen Institute for AI": neither is refused)
+const START_NOT_NAME = /^(?:hey|hi|hello|wow|thanks|note|update|edit|we|we're|we’re|our|i|i'm|i’m|this is|there|by|in|at|for|to|of|and|with|backed|looking|join|come|seeking|in addition)\b/i;
+const US_STATE_CODES = new Set("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY".split(" "));
+const PLACE_ONLY = /^(?:remote|hybrid|onsite|on-site|in[- ]office|worldwide|anywhere|global|us|usa|u\.s\.a?\.?|united states|nyc|new york(?: city)?|sf|san francisco|bay area|sf bay area|seattle|boston|austin|chicago|london|berlin|toronto|europe|emea|americas|north america)$/i;
+/** True when a cleaned name can be an employer's name (not a role, a hiring phrase, a lone place or a work mode). */
+export function looksLikeCompany(name) {
+  const s = String(name || "").trim();
+  if (!s || s.length > 60 || s.length < 2) return false;
+  if (FIELD_LABEL.test(s) || NAME_LABEL.test(s)) return false;
+  if (PLACE_ONLY.test(s) || /\b(united states|remote|hybrid|onsite|on-site)\b/i.test(s)) return false;
+  // "SF or Shenzhen", "NYC / Remote": places joined — every part a place is not a name
+  const parts = s.split(/\s+(?:or|and|&)\s+|\s*\/\s*/i);
+  if (parts.length > 1 && parts.every(p => PLACE_ONLY.test(p.trim()) || /^(shenzhen|beijing|shanghai|tokyo|paris|madrid|amsterdam|dublin|tel aviv|bangalore|bengaluru|singapore|sydney|la|los angeles|dc|washington,? dc)$/i.test(p.trim()))) return false;
+  if (DESCRIPTION.test(s) || START_NOT_NAME.test(s)) return false;
+  if (/^(?:this|that|there|here|it|he|she|they|you|someone|everyone)$/i.test(s)) return false;   // "This is the team at …" → never "This"
+  if (/\.[a-z]{2,}\/\S/i.test(s)) return false;                        // "whitecircle.com/careers" — a link, not a name
+  return !NOT_A_NAME.test(s);
+}
+/** An employer's name from an ATS board's slug ("remitly", "5|remitly|Remitly_Careers" → "Remitly"), or null. */
+export function companyFromSlug(ats) {
+  if (!ats?.slug || ats.atsType === "oracle") return null;   // an Oracle host ("fa-esgu-saasfaprod1…") names no one
+  let s = String(ats.slug);
+  if (ats.atsType === "workday") s = s.split("|")[1] || "";
+  else if (s.includes("|")) s = s.split("|")[0].split(".")[0];
+  s = s.replace(/^(careers|jobs|uscareers)-/i, "").replace(/\d+$/, "").replace(/[-_]+/g, " ").trim();
+  if (!/^[a-z][a-z0-9 ]{1,40}$/i.test(s)) return null;
+  const name = s.split(" ").map(w => (w.length <= 2 ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1))).join(" ");
+  return looksLikeCompany(name) ? name : null;
+}
+/** The employer's name from a post's first header segment, then (only if that fails) from its ATS board's slug. */
+export function companyFromHeader(seg, ats = null) {
+  let s = String(seg || "").replace(URL_RE, " ").replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  s = /^\[[^\]]+\]$/.test(s) ? s.slice(1, -1).trim()                      // "[LiveKit]" → the name
+    : s.replace(/^\[[^\]]*\]\s+(?=\S)/, "");                              // "[BOTH FILLED] Brave Software" → the name after the tag
+  const NAME = "([A-Z0-9][\\w.&'’-]*(?:\\s+[A-Z0-9][\\w.&'’-]*){0,3})";
+  // a label first ("Who is hiring: BuilderBase", "Company: AMD") — before the sentence shapes, which would read "Who"
+  if (NAME_LABEL.test(s)) s = s.replace(NAME_LABEL, "");
+  else if (FIELD_LABEL.test(s)) s = "";
+  else if ((s.match(/^[A-Z][\w .'’-]{1,30},\s*([A-Z]{2})\b/) || [])[1] && US_STATE_CODES.has(s.match(/^[A-Z][\w .'’-]{1,30},\s*([A-Z]{2})\b/)[1])) s = "";   // "Pinehurst, TX" — a place ("Thunder Compute, YC S24" is not)
+  else {
+    const m = s.match(new RegExp(`^(?:hey!?\\s*)?(?:we(?:'|’)?re|we are)\\s+hiring\\b.*?\\bat\\s+${NAME}`, "i"))
+      || s.match(new RegExp(`\\b(?:co-?founder|founder|ceo|cto|recruiter|engineer|manager|lead)\\s+(?:at|@)\\s+${NAME}`, "i"))
+      || s.match(new RegExp(`^${NAME}\\s+(?:is|are)\\s+hiring\\b`))
+      || s.match(new RegExp(`^at\\s+${NAME}`, "i"))                                  // "At SentiLink, we …", "At Tether we're hiring!"
+      || s.match(new RegExp(`^${NAME}\\s+is\\s+(?:the|a|an)\\b`))                    // "SwingVision is the AI tennis …"
+      || s.match(new RegExp(`\\s@\\s*${NAME}`));
+    if (m) s = m[1];
+    else { const tag = s.match(/^([^:]{2,40}):\s+\S/); if (tag) s = tag[1]; }   // "Elide: It's like node …" → the name before its tagline
+  }
+  // "Addepar/ Role/ City", "Qualcomm -- Role", "Krea; Fulltime; …", "Docker Inc, Remote", "Trigger.dev , we are …" → the first part
+  s = s.split(/\s*\/\s+|\s+\/\s*|\s+--?\s+|\s+[–—]\s+|\s*;\s*|\s*,\s*|\s+(?:we(?:'|’)re|we are|is building|are building)\b/i)[0];   // "CloudX we're building a …" → CloudX
+  const name = cleanCompany(String(s || "").replace(/[\s\-–—:;,]+$/, ""));   // "Playit -", "Lite Agent —" → no trailing dash
+  if (name && looksLikeCompany(name)) return name;
+  return companyFromSlug(ats);
+}
 export function ycBatchOf(text) {
   const m = String(text || "").match(/\bYC\s*[-,]?\s*([SWFX]\s?\d{2})\b/i);
   return m ? m[1].replace(/\s/g, "").toUpperCase() : null;
@@ -127,13 +196,14 @@ export function parsePost(html) {
   const text = hnText(html);
   if (!text) return null;
   const header = text.split("\n")[0].slice(0, 240);
-  const company = cleanCompany(header.split("|")[0]);
+  const links = linksOf(urlsIn(text));
+  const company = companyFromHeader(header.split("|")[0], links.ats);   // 46a: never a label, a role or a place
   if (!company) return null;
   const body = text.slice(0, 3000);
   if (!CS_RE.test(body)) return null;
   const usHint = US_RE.test(header);
   if (!usHint && NON_US_RE.test(header)) return null;
-  return { company, header, ...linksOf(urlsIn(text)), remote: /\bremote\b/i.test(header), usHint, yc: ycBatchOf(header) };
+  return { company, header, ...links, remote: /\bremote\b/i.test(header), usHint, yc: ycBatchOf(header) };
 }
 
 /** One jobs-feed ad: "Tasklet (YC S24) Is Hiring a Design Engineer". */
@@ -141,14 +211,16 @@ export function parseJobAd(hit) {
   const title = String(hit?.title || "");
   const m = title.match(/^(.+?)\s*(?:\((?:YC\s*)?[SWFX]\d{2}\))?\s+(?:is|are)\s+hiring\b/i);
   if (!m) return null;
-  const company = cleanCompany(m[1]);
-  if (!company) return null;
   const text = `${title}\n${hnText(hit?.story_text || "")}`;
-  if (!CS_RE.test(text)) return null;
   const urls = [hit?.url, ...urlsIn(text)].filter(Boolean);
+  const links = linksOf(urls);
+  const named = cleanCompany(m[1]);
+  const company = named && looksLikeCompany(named) ? named : companyFromSlug(links.ats);   // 46a: the same check as a post
+  if (!company) return null;
+  if (!CS_RE.test(text)) return null;
   const usHint = US_RE.test(text);
   if (!usHint && NON_US_RE.test(title)) return null;
-  return { company, header: title, ...linksOf(urls), remote: /\bremote\b/i.test(text), usHint, yc: ycBatchOf(title), jobUrl: hit?.url || null };
+  return { company, header: title, ...links, remote: /\bremote\b/i.test(text), usHint, yc: ycBatchOf(title), jobUrl: hit?.url || null };
 }
 
 export const nameKey = (s) => String(s || "").toLowerCase().replace(/\b(inc|llc|ltd|corp|co|labs?|technologies|hq)\b\.?/g, "").replace(/[^a-z0-9]+/g, "");
