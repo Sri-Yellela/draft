@@ -115,6 +115,12 @@ const BY_REASON = {
     action: "Re-read the answers and approve again",
     protective: true, retryable: false,
   },
+  // ⭐ A179 F2: held before the run — the profile had no name or email and the résumé gave none
+  profile_contact_empty: {
+    obstacle: "Your contact details are empty, so nothing was filled",
+    action: "Upload a résumé or fill your name and email in Profile, then Run now",
+    protective: true, retryable: true,
+  },
   login_required: {
     obstacle: "The employer's portal wants you signed in",
     action: "Sign in once — every application on that portal continues",

@@ -25,6 +25,7 @@ import {
 import { buildStructuredResume } from "../services/resumeFormatter.js";
 import { payloadResumeParse } from "../services/payloadResume.js";
 import { baseResumeOnlyState, baseOnlyGeneration, activeBaseResume, baseResumeHtml, BASE_RESUME_LABEL } from "../services/baseResumeOnly.js";
+import { contactGaps } from "../services/applyProfileFill.js";   // ⭐ A179 F2: an empty profile held before the run
 import {
   recordFormSchema, formSchemaSummary, hostOf,
 } from "../services/kb/formSchemaLayer.js";
@@ -1722,6 +1723,19 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
       // The employer is passed so `{company}`-templated custom answers resolve for THIS company.
       const autofillPayload = withHowHeard(userId, jobId, buildAutofillPayload(profile, "APPLY", job?.company, jobId));   // ⭐ D185-7
+      // ⭐ A179 F2 · AN EMPTY PROFILE IS CAUGHT BEFORE THE RUN, never reported field by field: buildAutofillPayload has already
+      // filled what the résumé holds (services/applyProfileFill.js); a payload still without a name or an email would reach
+      // the form with nothing to type (46d: Sailor Health, 24 fields "need you"). Held here — no browser, no résumé made.
+      const gaps = contactGaps({ full_name: autofillPayload?.full_name, first_name: autofillPayload?.field_map?.first_name,
+        last_name: autofillPayload?.field_map?.last_name, email: autofillPayload?.email });
+      if (gaps.length) {
+        logEvent(runId, runJobId, userId, jobId, "profile_contact_empty",
+          `The profile has no ${gaps.map(g => g === "full_name" ? "name" : g).join(" or ")} and the résumé didn't give one — held before the browser`, { gaps });
+        setJobStatus("held_review", "profile_contact_empty",
+          `Your contact details are empty (${gaps.map(g => g === "full_name" ? "name" : g).join(", ")}) — upload a résumé or fill them in Profile`);
+        db.prepare(`UPDATE apply_runs SET held_count=held_count+1 WHERE id=?`).run(runId);
+        return;
+      }
 
       /**
        * AF5's correction record. A semi run returns while the browser is still open, so the human's
@@ -2936,6 +2950,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     reasonCode: r.reason_code ?? null,
     reasonDetail: r.reason_detail ?? null,
     atsScore: r.resume_ats_score ?? null,
+    // ⭐ A179 F1: what the run REPORTED, for the held view's steps — the answers it typed (answers_json is the filled half)
+    // over the fields it found (null when it never got to the form), and the base résumé's score beside the tailored one.
+    fill: r.fields_discovered == null && r.answers_json == null ? null : {
+      filled: parseJson(r.answers_json, []).filter(a => a && !a.skipped && a.value != null && String(a.value) !== "").length,
+      discovered: r.fields_discovered ?? null,
+    },
+    baseAtsScore: r.base_ats_score ?? null,
     // What the review surface needs to offer a link rather than leaving the user guessing whether
     // a resume was ever produced.
     resumeAvailable: r.resume_artifact_id != null,

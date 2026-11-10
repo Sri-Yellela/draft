@@ -61,6 +61,14 @@ const PLATFORM_LABEL_MAPS = {
     "Work Authorization": "work_authorization", "Authorized to Work": "work_authorization",
     "Sponsorship": "requires_sponsorship", "Visa": "visa_type",
     "Clearance": "clearance_level", "Years of Experience": "years_experience",
+    // ⭐ A179 F2 (46d, the real Sailor Health Ashby form with a full profile: "Current Role" and "Alma Mater" left blank while
+    // the profile held both): the common wordings of the résumé facts the profile carries. Multi-word or unambiguous needles
+    // only — they are searched INSIDE a label, so a bare "School" or "Degree" would catch unrelated questions.
+    "Current Role": "current_job_title", "Current Title": "current_job_title", "Current Job Title": "current_job_title",
+    "Current Position": "current_job_title", "Current Company": "current_company", "Current Employer": "current_company",
+    "Alma Mater": "university", "University": "university", "College or University": "university", "School Name": "university",
+    "Field of Study": "field_of_study", "Graduation Year": "graduation_year",
+    "Street Address": "address_line1", "Postal Code": "zip", "Zip Code": "zip", "Portfolio": "portfolio_url",
   },
   icims: {
     "First Name": "first_name", "Last Name": "last_name",
