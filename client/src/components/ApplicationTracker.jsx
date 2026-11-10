@@ -170,6 +170,14 @@ export function RowOpen({ row, pane = null, onPane, paneBody, actions = [], onCl
       {(held ? held.eyebrow : row.eyebrow) && <p className="trk-o__eyebrow">{held ? held.eyebrow : row.eyebrow}</p>}
       <h3 className="trk-o__headline" data-row-headline="">{held?.title || row.headline}</h3>
       {held?.lead && <p className="trk-o__lead" data-held-lead={held.state}>{held.lead}</p>}
+      {/* ⭐ A165: the questions waiting on the person, by name — required first. */}
+      {held?.questions?.length > 0 && (
+        <ul className="trk-o__questions" data-held-questions="" aria-label="Waiting on you">
+          {held.questions.map(q => (
+            <li key={q.question} data-required={q.required ? "true" : "false"}>{q.question}{q.required ? <span className="trk-o__req"> · required</span> : null}</li>
+          ))}
+        </ul>
+      )}
       {!stepsFirst && panes}
       {children}
       {actions.length > 0 && (

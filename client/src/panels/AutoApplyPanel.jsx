@@ -24,7 +24,7 @@ import AutoSettingsDrawer from "../components/AutoSettingsDrawer.jsx";
 import DraftHouseTree, { Branch, RunCard } from "../components/DraftHouseTree.jsx";
 // ⭐ D146 · the one tracker: the table (and its opened row), what each row says, and The Table's full sheet behind View.
 import ApplicationTracker, { RowOpen, TrackerCounts, TrackerFilters, DEFAULT_SORT } from "../components/ApplicationTracker.jsx";
-import { heldHeadline, runSteps, answerSource, earlierAttempts, saveForNextTimeLabel } from "../lib/heldApplication.js";
+import { heldHeadline, runSteps, answerSource, earlierAttempts, saveForNextTimeLabel, heldQuestionsFor } from "../lib/heldApplication.js";
 import {
   trackerRows, trackerView, trackerCounts, sortRows, stageActions, readyToSend, sendAllConfirmText, TRACKER_PERIODS,
 } from "../lib/trackerRows.js";
@@ -909,7 +909,7 @@ export function AutoApplyPanel({ user = null } = {}) {
     if (!h) return null;
     const counts = node.kind === "approval" && Number.isFinite(node.ref?.answerCount)
       ? { filled: node.ref.answerCount, total: node.ref.answerCount + (node.ref.openCount || 0) } : null;
-    return { ...h, steps: runSteps(node, { counts }), earlier: earlierAttempts(rowsOf(node)) };
+    return { ...h, steps: runSteps(node, { counts }), earlier: earlierAttempts(rowsOf(node)), questions: heldQuestionsFor(node) };
   };
   const renderRow = (row) => {
     const node = row.node;

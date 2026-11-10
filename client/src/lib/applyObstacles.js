@@ -73,6 +73,23 @@ const BY_REASON = {
     action: "Draft it again once they are resumed",
     protective: true, retryable: true,
   },
+  // ⭐ A165 (owner 11-10): three holds the server writes that this table never described — they read "Held for you to
+  // look at" and nothing else. The full-auto safety gate (D175 FA6), the daily cap, a provider outside v1's scope.
+  full_auto_prerequisites: {
+    obstacle: "Held for your review: sending on its own waits until draft's safety checks pass — nothing was sent",
+    action: "Read it and send it yourself, or leave it for when full auto is on",
+    protective: true, retryable: true,
+  },
+  daily_cap_reached: {
+    obstacle: "Today's application limit was reached — it waits for tomorrow",
+    action: "Send it yourself now, or let tomorrow's run take it",
+    protective: true, retryable: true,
+  },
+  provider_review_only: {
+    obstacle: "This company's application site isn't one draft sends on by itself yet",
+    action: "Open the prepared application and send it yourself",
+    protective: true, retryable: false,
+  },
   submit_check_failed: {
     obstacle: "We could not confirm it was safe to send, so it was not sent",
     action: "Draft it again",

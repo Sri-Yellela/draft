@@ -46,6 +46,7 @@ import { canUseAPlusResume, normalisePlanTier } from "../services/entitlements.j
 import { monetisationEnabledFromEnv } from "../shared/monetisation.js";
 import { fullAutoDisabled as sharedFullAutoDisabled } from "../services/appSettings.js";
 import { fullAutoBlocked, HOLD_REASON as FULL_AUTO_PREREQ_HOLD } from "../services/fullAutoGate.js";
+import { heldQuestionsOf, heldReasonWords } from "../services/heldQuestions.js";
 import { userHeld, userHoldSince, setUserHold } from "../services/applyUserHold.js";
 import { draftSlots, slotsExhausted } from "../services/draftSlots.js";
 import { atsJobInputHash, ATS_JOB_INPUT_FIELDS } from "../services/jobs/boardFitPrecompute.js";
@@ -2846,7 +2847,20 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     startedBy: r.started_by ?? null,   // D171 FIX 1: user · scheduler · admin · agent · test · system; null = not recorded
   });
 
+  // ⭐ A165: the latest handoff packet for a held run job (its `unresolved` names what the profile could not answer).
+  // Read through the (user_id, job_id, created_at) index, then narrowed to this run job.
+  const latestPacketJson = (r) => {
+    try {
+      return db.prepare(`SELECT answers_json FROM apply_gate_packets WHERE user_id=? AND job_id=? AND (run_job_id=? OR run_job_id IS NULL)
+        ORDER BY (run_job_id = ?) DESC, created_at DESC LIMIT 1`).get(r.user_id, String(r.job_id), r.id, r.id)?.answers_json ?? null;
+    } catch { return null; }
+  };
+  const heldFacts = (r) => (r.status === "held_review" || r.status === "held_gate") ? {
+    heldReason: heldReasonWords(r.reason_code, r.reason_detail),
+    heldQuestions: heldQuestionsOf({ openQuestionsJson: r.open_questions_json, blanksJson: r.blanks_json, packetJson: latestPacketJson(r) }),
+  } : {};
   const publicRunJob = (r) => ({
+    ...heldFacts(r),
     id: r.id,
     runId: r.run_id,
     jobId: r.job_id,
@@ -4918,9 +4932,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
   app.get("/api/apply/pending", requireAuth, (req, res) => {
     const rows = db.prepare(`
-      SELECT rj.id, rj.run_id, rj.job_id, rj.answers_json, rj.resume_artifact_id, rj.resume_ats_score,
-             rj.base_ats_score, rj.base_ats_json,
-             rj.screenshot_path, rj.created_at, r.mode, r.tool_type,
+      SELECT rj.*, r.mode, r.tool_type,
              sj.title, sj.company, sj.apply_url, sj.url
       FROM apply_run_jobs rj
       JOIN apply_runs r ON r.id = rj.run_id
@@ -4966,6 +4978,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           // identical from `available: false` alone, and they need opposite responses from the user.
           generationDeferred: r.resume_artifact_id == null && r.base_ats_json != null,
           screenshotAvailable: !!r.screenshot_path,
+          // ⭐ A165: the questions still open on this filled application, named — not only counted.
+          heldQuestions: heldQuestionsOf({ openQuestionsJson: r.open_questions_json, blanksJson: r.blanks_json, packetJson: latestPacketJson(r) }),
         };
       }),
     });

@@ -75,6 +75,10 @@
 /* ⭐ D165 (5) held-application-sketch.html: the lead, the steps the run took (a dot per step: done filled, now ringed in
    the accent, a failure in the warning colour), and one quiet line for an earlier attempt. */
 .trk-o__lead { margin: -4px 0 16px; max-width: 60ch; color: var(--c-ink-muted); font-size: calc(15px * var(--type-scale, 1)); }
+/* A165: the questions a held application waits on, by name. */
+.trk-o__questions { margin: -8px 0 16px; padding-left: 18px; max-width: 60ch; color: var(--c-ink); font-size: calc(14px * var(--type-scale, 1)); }
+.trk-o__questions li { margin: 2px 0; }
+.trk-o__req { color: var(--c-ink-muted); }
 .trk-steps { list-style: none; margin: 16px 0 14px; padding: 0; display: grid; gap: 2px; max-width: 70ch; }
 .trk-steps li { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center; padding: 9px 0;
   border-top: 1px solid var(--c-border); color: var(--c-ink); font-size: calc(14.5px * var(--type-scale, 1)); }
