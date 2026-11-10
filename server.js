@@ -15475,7 +15475,28 @@ app.get("/api/admin/costs", requireAdmin, (req, res) => {
   const day = Math.floor(Date.now() / 1000) - 86400;
   const today = db.prepare(`SELECT COUNT(*) AS calls, COALESCE(SUM(e.cost_usd), 0) AS costUsd FROM usage_events e
     WHERE ${GENERATION_PURPOSES_SQL} AND e.created_at >= ?`).get(day);
-  res.json({ summary: generationCostSummary(db), last24h: today, recent, fundingAlert: fundingAlert() });
+  // ⭐ 46a (owner 11-10: "$1.40 … no breakdown on what consumed what … we need more specific analytic logs"): this route
+  // counted the GENERATION purposes only, so every other model call was invisible here. `breakdown` is EVERY recorded call
+  // (the tools service's records included) by purpose × model × the key that paid × who started it, for 24 h and 7 days,
+  // with what FAILED calls cost beside it — a call billed for a result that never arrived is spend too.
+  const breakdown = (since) => {
+    try {
+      return db.prepare(`SELECT COALESCE(e.purpose, e.event_type) AS purpose, e.model, e.key_label AS key, e.started_by AS startedBy,
+          COUNT(*) AS calls, SUM(e.success = 0) AS failedCalls,
+          COALESCE(SUM(e.input_tokens), 0) AS inputTokens, COALESCE(SUM(e.output_tokens), 0) AS outputTokens,
+          COALESCE(SUM(e.cache_read_tokens), 0) AS cacheReadTokens, COALESCE(SUM(e.cache_creation_tokens), 0) AS cacheWriteTokens,
+          ROUND(COALESCE(SUM(e.cost_usd), 0), 6) AS costUsd, ROUND(COALESCE(SUM(CASE WHEN e.success = 0 THEN e.cost_usd END), 0), 6) AS failedCostUsd
+        FROM usage_events e WHERE e.created_at >= ?
+        GROUP BY 1, 2, 3, 4 ORDER BY costUsd DESC`).all(since);
+    } catch { return []; }   // a database before migration 224's who / key columns
+  };
+  const byModel = (rows) => Object.values(rows.reduce((m, r) => {
+    const k = r.model || "(unknown)"; m[k] ||= { model: k, calls: 0, costUsd: 0, failedCostUsd: 0 };
+    m[k].calls += r.calls; m[k].costUsd = +(m[k].costUsd + r.costUsd).toFixed(6); m[k].failedCostUsd = +(m[k].failedCostUsd + r.failedCostUsd).toFixed(6);
+    return m; }, {})).sort((a, b) => b.costUsd - a.costUsd);
+  const b24 = breakdown(day), b7 = breakdown(day - 6 * 86400);
+  res.json({ summary: generationCostSummary(db), last24h: today, recent, fundingAlert: fundingAlert(),
+    breakdown: { last24h: { rows: b24, byModel: byModel(b24) }, last7d: { rows: b7, byModel: byModel(b7) } } });
 });
 app.post("/api/admin/costs/funding-alert/clear", requireAdmin, (req, res) => {
   clearFundingAlert();
