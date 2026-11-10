@@ -160,7 +160,11 @@ function classifyTitle({ title, description = "", boardCategory = null }, tax = 
     return out(c.id, c.general, 0.4, `category-words:${c.id}`);
   }
   // D127's PRIMARY group only (the first listed): "marketing" names the marketing category, not product management.
-  const primary = (D127_HINT[boardCategory] || [])[0];
+  // ⛔ A171 (46b): NOT "management". D127's management is SOC 11 — every kind of manager and director — and product
+  // management is the taxonomy's only code-11 category, so this line filed 10,139 production postings (13 % of the board:
+  // a hotel duty manager, a transfer-pricing manager, city deputy directors …) as "Product management · general". A
+  // manager with no other title evidence is left unclassified, never guessed into product management.
+  const primary = boardCategory === "management" ? null : (D127_HINT[boardCategory] || [])[0];
   const hinted = tax.categories.filter(c => !c.held && c.d127 === primary);
   if (hinted.length === 1) return out(hinted[0].id, hinted[0].general, 0.4, `d127-only:${boardCategory}`);
   return out(null, null, 0, boardCategory ? `unsure:d127=${boardCategory}` : "unsure");

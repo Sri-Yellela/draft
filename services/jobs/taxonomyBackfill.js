@@ -16,7 +16,8 @@ const PAGE_SQL = `
     FROM scraped_jobs sj
     LEFT JOIN job_taxonomy jt ON jt.job_id = sj.job_id
    WHERE sj.is_active = 1 AND sj.rowid > ? AND sj.rowid <= ?
-     AND (jt.job_id IS NULL OR jt.version IS NOT ?)`;
+     AND (jt.job_id IS NULL OR jt.version IS NOT ? OR jt.reason LIKE 'd127-only:management%')   -- A171: re-read the misfiled
+  `;
 
 // ⛔ A158 (45r): the walk's READ + CLASSIFY half, separated from its write so it can run on the offload worker's own
 // read-only connection (services/db/offloadWorker.js). Pure over (db, range): returns the answers as plain rows — the main
