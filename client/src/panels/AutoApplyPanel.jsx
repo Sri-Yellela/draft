@@ -429,6 +429,16 @@ export function AutoApplyPanel({ user = null } = {}) {
   const [exporting, setExporting] = useState(false);
   const [rowMsg, setRowMsg] = useState("");
   const [runNowState, setRunNowState] = useState({ busy: false, msg: "" });   // ⭐ A166 (2) Run now
+  // ⭐ A179 F6: the run processor's health for this person (GET /api/apply/health) — a stalled queue is SAID, never shown
+  // as progress. Read on mount and every minute while the panel is open.
+  const [runnerHealth, setRunnerHealth] = useState(null);
+  useEffect(() => {
+    let live = true;
+    const read = () => api("/api/apply/health").then(h => { if (live) setRunnerHealth(h || null); }).catch(() => {});
+    read();
+    const t = setInterval(read, 60 * 1000);
+    return () => { live = false; clearInterval(t); };
+  }, []);
   const [pickMsg, setPickMsg] = useState("");
   // U4 · "Make it now", per pick: { busy } while it is made, then { ok, message, atsScore }.
   const [madeNow, setMadeNow] = useState({});
@@ -552,14 +562,18 @@ export function AutoApplyPanel({ user = null } = {}) {
       ];
       case "held": {
         const row = r.primary?.row || r;
+        // ⭐ A179 F5: every held run can be RUN AGAIN from its own row — a new Draft of the same job (after a profile fix,
+        // a saved answer) — not only from the board.
+        const runAgain = !r.postingGone ? [{ id: "rerun", label: "Run again", title: "Draft this job again now — it uses one of your drafts.",
+          onClick: () => retryJob(row) }] : [];
         if (node.why === "question") return [
           { id: "answer", label: answersSaving ? "Saving…" : "Answer", kind: "primary", disabled: answersSaving, onClick: () => submitApplyAnswers(true) },
-          { ...clearIt(r), label: "Stop this one" },
+          ...runAgain, { ...clearIt(r), label: "Stop this one" },
         ];
         // D53: one word for one act — a posting that is gone is CLEARED like anything else (Restore is in the bin).
         if (node.why === "gone") return [clearIt(r)];
         if (node.why === "empty") return [
-          { id: "answer", label: "Answer them", kind: "primary", onClick: () => openApplicationReview(r) }, ...yourself(row)];
+          { id: "answer", label: "Answer them", kind: "primary", onClick: () => openApplicationReview(r) }, ...runAgain, ...yourself(row)];
         const packet = handoffPacketFor?.(r.primary?.row) || handoffPacketFor?.(r);
         const resumable = !!packet && !packet.postingGone && !packet.stale && !r.postingGone;
         // ⭐ D52: a stale (or never-built) packet is ONE click from fresh — a new Draft of the same job.
@@ -582,7 +596,7 @@ export function AutoApplyPanel({ user = null } = {}) {
             onClick: resumable ? () => openHandoff(packet, r) : () => openApplicationReview(r) },
           // AB4 requirement 5, with its guard: only where the résumé is what is actually wrong.
           ...(r.primary?.resumeBlocked && !r.primary?.row?.resumeAvailable ? [{ id: "resume", label: "Generate résumé", onClick: () => generateResume(row) }] : []),
-          ...yourself(row), clearIt(r),
+          ...runAgain, ...yourself(row), clearIt(r),
         ];
       }
       case "gated": {
@@ -1070,7 +1084,9 @@ export function AutoApplyPanel({ user = null } = {}) {
       {/* D182 (45n): no mode words here — the header's mode switch already shows Ask me first / Apply for me. */}
       {runsWord && <p className="dht-head__sub">{runsWord}</p>}
       {runsNote && <p className="dht-head__sub" data-runs-note="">{runsNote}</p>}
-      {(fullAuto || picksOn) && !held && (
+      {/* ⭐ A179 F5 (owner 11-10: "i cant see run now button anywhere"): shown in BOTH modes — in Ask me first with daily
+          picks off it says what Run now starts and how to turn picks on, instead of not being there at all. */}
+      {!held && (
         <p className="dht-head__sub" data-run-now-row="">
           <button type="button" className="dht-link" data-run-now="" disabled={runNowState.busy || !runBar}
             title="Start the next batch now — the same picks, limits and rules as a run time" onClick={runNow}>
@@ -1080,6 +1096,11 @@ export function AutoApplyPanel({ user = null } = {}) {
         </p>
       )}
       {held && <p className="dht-head__say" data-house-sentence="">{sentence}</p>}
+      {runnerHealth?.stalled && (
+        <p className="dht-head__say" role="alert" data-runner-stalled="">
+          {`${runnerHealth.waiting} of your drafts ${runnerHealth.waiting === 1 ? "is" : "are"} waiting and draft's application runner hasn't started one in ${Math.max(3, Math.round((runnerHealth.oldestWaitMs || 0) / 60000))} minutes — nothing is being filled right now. They start on their own when it recovers.`}
+        </p>
+      )}
     </div>
   );
   const chooseAsk = async () => {
