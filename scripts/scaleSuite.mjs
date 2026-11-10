@@ -43,6 +43,22 @@ if (!fs.existsSync(path.join(FIXTURE, "resume_master.db"))) {
 // ── a throwaway copy, so the fixture stays as built ──
 const RUN = fs.mkdtempSync(path.join(os.tmpdir(), "draft-scale-"));
 fs.copyFileSync(path.join(FIXTURE, "resume_master.db"), path.join(RUN, "resume_master.db"));
+// ⛔ 46c: the copy is RE-SEEN NOW. scripts/scaleFixture.mjs writes scraped_at = now − age (age 0–60 days), but production's
+// scraped_at is when a crawl last SAW the posting (the crawl refreshes it daily; the age is posted_at). Unchanged, the boot's
+// expiry found 92 % of the copy past 7 days and the cleanup brake retired 92,074 of 100,000 (46c's first run) — the
+// budgets were measured on an 8k board with a 92k Atlas queue draining under the load. Each posting is now last seen
+// within the last 6 days (by id, deterministic); posted_at is left as built.
+{
+  const { default: Database } = await import("better-sqlite3");
+  const copy = new Database(path.join(RUN, "resume_master.db"));
+  const reseen = copy.prepare(`UPDATE scraped_jobs SET scraped_at = ? - (id * 7919 % 518400)`).run(Math.floor(Date.now() / 1000)).changes;
+  // …and, like every production deploy, the nightly history + ghost rollups ran within 20 h (server.js rollupsRanWithin):
+  // a boot skips them. --first-boot leaves them to run (a new environment's first boot).
+  if (!has("--first-boot")) copy.prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES ('d151_history_rollup_at', ?, unixepoch())
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value`).run(String(Math.floor(Date.now() / 1000)));
+  copy.close();
+  console.log(`(the copy re-seen: ${reseen} postings last seen within 6 days)`);
+}
 const LOOP = path.join(RUN, "loop.json");
 const base = `http://127.0.0.1:${PORT}`;
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
