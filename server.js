@@ -7900,6 +7900,58 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         BEGIN DELETE FROM posting_input_hashes WHERE job_id = OLD.job_id; END;
       `,
     },
+    {
+      // ⭐ HB-3 (D187 HB-INFRA, owner 11-09: build the Hirebase infrastructure before any call, so not one is wasted): the
+      // landing table (the payload as it may be stored — contact fields and the opaque scores dropped before it is written,
+      // services/hirebase/mapJob.js), the runs (each resumable from its cursor, every one through the spend guard), the
+      // usage per day × meter (from Hirebase's own Usage headers — the guard's totals), and the posting's link to its
+      // source row (source_id = Hirebase's _id, the source ATS's own platform_job_id, first_ingested). Only ADDS. After 269.
+      id: "270_hirebase_ingestion",
+      sql: `
+        CREATE TABLE IF NOT EXISTS hirebase_raw (
+          hb_id          TEXT    PRIMARY KEY,
+          payload_json   TEXT    NOT NULL,
+          first_ingested TEXT,
+          md5_hash       TEXT,
+          fetched_at     INTEGER NOT NULL DEFAULT (unixepoch()),
+          run_id         INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS hirebase_runs (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          kind        TEXT    NOT NULL CHECK (kind IN ('estimate', 'sample', 'backfill', 'incremental', 'expired')),
+          request_json TEXT,
+          status      TEXT    NOT NULL DEFAULT 'pending',
+          dry_run     INTEGER NOT NULL DEFAULT 1,
+          pages_done  INTEGER NOT NULL DEFAULT 0,
+          units_used  INTEGER NOT NULL DEFAULT 0,
+          max_units   INTEGER,
+          cursor_json TEXT,
+          counts_json TEXT,
+          error       TEXT,
+          started_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          finished_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_hirebase_runs_kind ON hirebase_runs(kind, started_at);
+        CREATE TABLE IF NOT EXISTS hirebase_usage (
+          day                TEXT    NOT NULL,
+          meter              TEXT    NOT NULL,
+          units              INTEGER NOT NULL DEFAULT 0,
+          included_limit     INTEGER,
+          included_used      INTEGER,
+          included_remaining INTEGER,
+          overage_used       INTEGER,
+          period_start       TEXT,
+          period_end         TEXT,
+          updated_at         INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (day, meter)
+        );
+        ALTER TABLE scraped_jobs ADD COLUMN source_id TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN platform_job_id TEXT;
+        ALTER TABLE scraped_jobs ADD COLUMN first_ingested TEXT;
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_source_id ON scraped_jobs(source, source_id) WHERE source_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_platform_job ON scraped_jobs(platform_job_id) WHERE platform_job_id IS NOT NULL;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
