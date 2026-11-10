@@ -26,6 +26,7 @@ export const USER_REF_TABLES = Object.freeze([
   "byom_briefs", "mcp_audit", "answer_history", "extension_resume_generations", "resume_pdf_artifacts", "picks",
   "picks_left_out", "practice_submissions", "trial_demo_tailoring", "ats_gold_items", "application_signals", "network_messages",
   "match_alerts", "network_posts", "imported_jobs",
+  "trial_drafts",   // 46c: A167's trial (migration 267) — the jobs a person spent a trial draft on
 ]);
 /** Per-posting rows derived from the posting itself — removed with it (keyed by job_id, or by the row id for the Atlas). */
 export const DERIVED_TABLES = Object.freeze([
