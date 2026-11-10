@@ -92,7 +92,7 @@ test("a175: server.js chooses the page by id, reads its columns by id in the pag
   // a cursor row no longer kept, or a page running past the kept ids of a longer board → the statement answers it
   assert.match(BOARD, /if \(keptOrder && !\(keptFrom >= 0 && \(keptFrom \+ ps \+ 1 <= keptOrder\.ids\.length \|\| keptOrder\.ids\.length === keptOrder\.total\)\)\) keptOrder = null;/);
   // the key: the person + profile + the query without its paging, the score epoch and the gate's basis
-  assert.match(BOARD, /\.\.\.req\.query, page: "", pageSize: "", page_size: "", cursor: "",\n\s*"~epoch": fitEpoch \?\? "", "~gate": gateBasis \?\? "",/);
+  assert.match(BOARD, /\.\.\.req\.query, page: "", pageSize: "", page_size: "", cursor: "", include_fields: "", include_facets: "",\n\s*"~epoch": fitEpoch \?\? "", "~gate": gateBasis \?\? "",/);
   // the total comes with the kept ids — the same statement
   assert.match(BOARD, /const total = keptOrder \? keptOrder\.total : /);
   // dropped on the person's writes, after their auth context is bound (with the facets)
@@ -102,4 +102,19 @@ test("a175: server.js chooses the page by id, reads its columns by id in the pag
   assert.match(SRC, /const boardOrderCache = createFacetsCache\(\{ ttlMs: 60_000, max: 300 \}\);/);
   // the columns' read is keyed by an alias the page drops before mapping
   assert.match(BOARD, /\.map\(\(\{ __page_job_id, \.\.\.r \}\) => r\)/);
+});
+
+test("a177: the order is WARMED after a person's scoring lands and on sign-in; a warm stops before anything a page load does", () => {
+  // the key ignores what only changes a row's projection, so Home's read, the board and the deck's default share one entry
+  assert.match(BOARD, /include_fields: "", include_facets: "",/);
+  // warmOrder returns as soon as the order is kept — before the being-matched read and its queueing (no warm → score → warm loop)
+  const warm = at(BOARD, "if (warmOrder) return boardReply(200, { warmed: !!keptOrder");
+  assert.ok(warm < at(BOARD, "const heldStatement = `SELECT sj.job_id AS id ${joinClause} ${heldSql}"));
+  assert.ok(warm < at(BOARD, "const pageIds = keptOrder ? keptOrder.ids.slice(keptFrom"));
+  // one warm in flight per person, one per 30 s; the default board and the deck's ATS order
+  assert.match(SRC, /if \(warmingOrder\.has\(k\) \|\| Date\.now\(\) - \(warmedOrderAt\.get\(k\) \|\| 0\) < 30_000\) return;/);
+  assert.match(SRC, /for \(const query of \[\{\}, \{ sort: "atsScore" \}\]\) await boardPageResponse\(\{ user: \{ id: userId \}, query \}, \{ warmOrder: true \}\);/);
+  // the two moments: the match queue's board_scored, and a sign-in
+  assert.match(SRC, /emitToUser\(userId, \{ type: "board_scored", profileId: profile\.id, scored: r\.scored, waiting: q\.ids\.size \}\); warmBoardOrder\(userId\); \}/);
+  assert.match(SRC, /setTimeout\(\(\) => warmBoardOrder\(user\.id\), 0\)/);
 });

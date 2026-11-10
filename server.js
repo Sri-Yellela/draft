@@ -10633,7 +10633,7 @@ function enqueueBoardMatch(userId, profile, jobIds) {
         const chunk = [...q.ids].slice(0, BOARD_MATCH_CHUNK);
         for (const id of chunk) q.ids.delete(id);
         const r = await boardFit().scoreIds({ userId, profile: q.profile, jobIds: chunk, reason: "board-queue" });
-        if (r?.scored) { heldCounts.clearUser(userId); emitToUser(userId, { type: "board_scored", profileId: profile.id, scored: r.scored, waiting: q.ids.size }); }
+        if (r?.scored) { heldCounts.clearUser(userId); emitToUser(userId, { type: "board_scored", profileId: profile.id, scored: r.scored, waiting: q.ids.size }); warmBoardOrder(userId); }   // A177: the refetch that event asks for finds its order kept
         if (r?.status === "no_basis" || r?.status === "skipped" || r?.status === "failed") { q.ids.clear(); break; }
       }
     } catch (e) {
@@ -10732,6 +10732,21 @@ const facetsCache = createFacetsCache();
 // were 2.5–13 s a load; a kept order answers a page from 51 rows read by id.
 const BOARD_ORDER_KEEP = 1000;
 const boardOrderCache = createFacetsCache({ ttlMs: 60_000, max: 300 });
+// ⭐ A177 (46d) · a person's FIRST board load was always a miss (1.5–3 s of read-worker time at 100k; 20 users = 20 misses
+// queued on 2 workers). The order is now WARMED in the background — after their scoring lands (the match queue's
+// board_scored, whose refetch then hits) and on sign-in — for the default board and the deck's ATS order, on the read
+// workers, at most one warm in flight per person and one per 30 s. boardPageResponse's warmOrder stops once it is kept.
+const warmingOrder = new Set();
+const warmedOrderAt = new Map();
+function warmBoardOrder(userId) {
+  const k = String(userId);
+  if (warmingOrder.has(k) || Date.now() - (warmedOrderAt.get(k) || 0) < 30_000) return;
+  warmingOrder.add(k); warmedOrderAt.set(k, Date.now());
+  if (warmedOrderAt.size > 5000) warmedOrderAt.clear();
+  (async () => {
+    for (const query of [{}, { sort: "atsScore" }]) await boardPageResponse({ user: { id: userId }, query }, { warmOrder: true });
+  })().catch(e => console.warn(`[jobs] warm order user=${k}: ${e.message}`)).finally(() => warmingOrder.delete(k));
+}
 // Account management: every sign-in is STAMPED (sensitive changes need a recent one — see
 // routes/accountManagement.js) and every signed-in browser is kept in a registry, because the sealed
 // store is keyed by sid alone and cannot answer "where am I signed in?". req.logIn is passport's,
@@ -10750,6 +10765,7 @@ app.use((req, res, next) => {
         req.session.authAt = Date.now();
         try { recordSession(db, { sid: req.sessionID, userId: user.id, userAgent: req.get("user-agent"), ipHint: ipHint(req) }); } catch {}
         sessionSeen.set(req.sessionID, Date.now());
+        setTimeout(() => warmBoardOrder(user.id), 0).unref?.();   // ⭐ A177: the first board after sign-in finds its order kept
       }
       done?.(err);
     });
@@ -12511,7 +12527,7 @@ const boardReply = (status, body) => ({ status, body });
 // the ageFilter cutoff so a facets response's options and its base sets read one clock.
 // ⭐ D186-4 (45s): the job profile's weighted semantic terms for the board's ranking (services/keywordTerms.js; cached).
 const boardRankTerms = (profile) => { if (!profile?.id) return null; try { return { ...rankTerms(db, profile.id), removed: removedTerms(db, profile.id) }; } catch { return null; } };
-async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
+async function boardPageResponse(req, { measure = null, nowSec = null, warmOrder = false } = {}) {
   try {
     // Validate the enumerated filter vocabularies BEFORE any work — a bad value must not reach the
     // query builder and come back as an empty board. 400 rather than 200-with-nothing: the caller
@@ -13201,7 +13217,8 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       let keptOrderCache = "off";   // hit / shared / miss, or off (a page the kept order does not answer) — on the [jobs] line
       if (keepOrder) {
         const orderKey = facetsKey(req.user.id, sessionActiveProfile.id, {
-          ...req.query, page: "", pageSize: "", page_size: "", cursor: "",
+          // include_fields / include_facets change what a row CARRIES, never the order or the total (A177: one entry for both)
+          ...req.query, page: "", pageSize: "", page_size: "", cursor: "", include_fields: "", include_facets: "",
           "~epoch": fitEpoch ?? "", "~gate": gateBasis ?? "", "~named": req.boardProfileId ?? "",
           // The visit lens moves with each board load (touchBoardVisit), so only a board that READS it is keyed on it.
           "~visit": ageFilter === "visit" ? (visitMark(db, req.user.id) ?? "first") : "",
@@ -13216,6 +13233,9 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
           keptOrder = got.value; keptOrderCache = got.cache;
         } catch (e) { console.warn("[jobs] kept order:", e.message); keptOrder = null; }
       }
+      // ⭐ A177 · a WARM (warmBoardOrder) stops here: the order is kept, and nothing a page load does — the being-matched read
+      // and its queueing, the rows, the log line — happens, so warming can never start scoring that would warm again.
+      if (warmOrder) return boardReply(200, { warmed: !!keptOrder, cache: keptOrderCache, total: keptOrder?.total ?? null });
       // Where the page starts in the kept ids: the offset, or just after the cursor's row. Not found, or the page would run
       // past the kept ids while the board has more → the statement below answers it.
       let keptFrom = -1;
