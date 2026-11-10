@@ -25,7 +25,17 @@ export function heldStateOf(node) {
   const row = latestRow(node) || {};
   if ((node.kind === "held" || node.kind === "broke") && RESUME_FAILED.test(s(row.reasonCode))) return "fail";
   if (node.kind === "held" && (node.question || node.why === "question" || node.why === "empty")) return "needs";
+  // ⭐ A165: every other held application still says why — the safety gate, the cap, a provider out of scope, stale answers.
+  if (node.kind === "held" || node.kind === "gated") return "held";
   return null;
+}
+
+/** ⭐ A165: the questions waiting on the person, named (server: services/heldQuestions.js), required first. */
+export function heldQuestionsFor(node) {
+  if (!node) return [];
+  const row = latestRow(node) || {};
+  const list = Array.isArray(row.heldQuestions) ? row.heldQuestions : [];
+  return list.filter(q => q && s(q.question)).map(q => ({ question: s(q.question), required: !!q.required, from: s(q.from) }));
 }
 
 export function heldHeadline(node) {
@@ -41,6 +51,13 @@ export function heldHeadline(node) {
       lead: "Check the résumé and the answers if you like." };
     case "sent": return { state, eyebrow: null, title: `Applied to ${company}`,   // D182: the status column says Sent
       lead: "Replies will show here." };
+    case "held": {
+      const row = latestRow(node) || {};
+      const why = s(row.heldReason) || s(node?.say) || "Held for you to look at.";
+      const n = heldQuestionsFor(node).length;
+      return { state, eyebrow: "Held — nothing was sent", title: why,
+        lead: n ? `${n} question${n === 1 ? "" : "s"} ${n === 1 ? "is" : "are"} waiting on you — listed below.` : "No question is waiting on you; it can be sent as it is." };
+    }
     default: return null;
   }
 }
@@ -51,7 +68,7 @@ export function heldHeadline(node) {
  */
 export function runSteps(node, { counts = null, resumeName = "" } = {}) {
   const state = heldStateOf(node);
-  if (!state) return [];
+  if (!state || state === "held") return [];   // A165: a hold before the form says why; it claims no steps
   const fail = state === "fail";
   const after = (at) => ["needs", "ready", "sent"].indexOf(state) >= ["needs", "ready", "sent"].indexOf(at);
   const filledMeta = counts && Number.isFinite(counts.total) && counts.total > 0 ? `${counts.filled} of ${counts.total}` : "";
