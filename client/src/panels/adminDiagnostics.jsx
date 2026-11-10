@@ -53,6 +53,28 @@ export function DiagnosticsTab() {
   );
 }
 
+// ⭐ D151 Rule 2 (46c) · the background job system's queue (GET /api/admin/jobs → queueStats): one row per kind — what waits,
+// what runs, what failed in the last day, how long the oldest has waited, and the slowest finished job.
+export function BackgroundJobsSection() {
+  const [kinds, setKinds] = useState(null);
+  const [err, setErr] = useState("");
+  const load = useCallback(() => api("/api/admin/jobs").then(r => { setKinds(r.kinds || []); setErr(""); }).catch(e => setErr(e.message)), []);
+  useEffect(() => { load(); }, [load]);
+  const waited = (ms) => (ms ? `${Math.max(0, Math.round((Date.now() - ms) / 1000))} s` : "—");
+  return (
+    <Panel title="Background jobs" data-admin-bg-jobs=""
+      purpose="The one job system: each kind runs in slices of at most 200 ms, one job per kind and key, retried with backoff and marked failed after 5 tries.">
+      {err && <div style={quiet} role="alert">{err}</div>}
+      <div style={{ ...row, marginBottom: 8 }}><DepthButton onClick={load}>Refresh</DepthButton></div>
+      {kinds && (kinds.length === 0 ? <div style={quiet}>No jobs have run yet.</div>
+        : <table style={{ width: "100%", fontSize: 12 }}><thead><tr><th align="left">Kind</th><th>Waiting</th><th>Running</th><th>Failed today</th><th>Oldest waiting</th><th>Slowest</th></tr></thead>
+          <tbody>{kinds.map(k => <tr key={k.kind} data-bg-kind={k.kind}><td>{k.kind}</td><td align="center">{k.waiting ?? 0}</td><td align="center">{k.running ?? 0}</td>
+            <td align="center">{k.failedDay ? <span role="alert">{k.failedDay}</span> : 0}</td><td align="center">{waited(k.oldestWaiting)}</td>
+            <td align="center">{k.slowestMs == null ? "—" : `${k.slowestMs} ms`}</td></tr>)}</tbody></table>)}
+    </Panel>
+  );
+}
+
 // ⭐ D151 Rule 4 (45s) · the nightly archive of closed postings — OFF until turned on here (audited). A closed posting older
 // than 120 days that no person's history names moves to the archive whole; restorePosting brings one back.
 export function PostingArchiveSection() {
@@ -62,7 +84,7 @@ export function PostingArchiveSection() {
   const flip = async () => { try { setS(await api("/api/admin/posting-archive", { method: "PUT", body: JSON.stringify({ enabled: !s.enabled }) })); } catch (e) { setErr(e.message); } };
   return (
     <Panel title="Archive of closed postings" data-admin-posting-archive=""
-      purpose={`Nightly at 04:50 UTC: closed postings older than ${s?.afterDays ?? 120} days that no application, résumé, pick, packet or message points at move to the archive, in slices of 500. Off until you turn it on.`}>
+      purpose={`Nightly at 04:50 UTC: closed postings older than ${s?.afterDays ?? 120} days that no application, résumé, pick, packet or message points at move to the archive, in slices of 100. Off until you turn it on.`}>
       {err && <div style={quiet} role="alert">{err}</div>}
       {s && <div style={row} data-archive-state={s.enabled ? "on" : "off"}>
         <b>{s.enabled ? "On" : "Off"}</b>
