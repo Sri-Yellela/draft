@@ -65,6 +65,7 @@ import { eligibilityForJob, userEligibilityInputs } from "../services/jobEligibi
 // D107 P3: Approve all also leaves out a posting past the user's staleness thresholds (Auto settings).
 import { livenessFor, isStale } from "../services/jobs/jobHistory.js";
 import { readAutoSettings } from "../shared/autoSettings.js";
+import { salaryAnswerFor } from "../shared/salaryAnswer.js";   // 46a: the salary answer the user chose
 import { currentStartedBy, withStartedBy, startedByOfRun, agentRunRefusal } from "../services/startedByContext.js";
 import { withRequestId, runJobRequestId } from "../services/requestContext.js";
 import { isProductionProcess } from "../services/modelUsage.js";
@@ -1260,7 +1261,28 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   }
   // ⭐ D185-7 · "How did you hear about us?" → "draft", only when it is TRUE (the person did not bring this job to draft
   // themselves — no capture of theirs) and they AGREED (user_profile.credit_draft = 1; off until they turn it on).
+  // ⭐ 46a (owner 11-10): the salary answer the user chose in Auto settings (shared/salaryAnswer.js) — the Profile's number
+  // (the default, unchanged), a fixed amount, a point on this posting's own range, or a named point on it. Applied here
+  // because EVERY build of the autofill answers passes through withHowHeard (the manual packet, the run, the apply
+  // worker's payload — D185-7 found the third). A salary the user saved for this kind of job (scoped answers: a role or a
+  // place) is theirs and wins; the choice applies only where the answer is still the Profile's own number. A null answer
+  // (the posting states no range and the user chose "ask") empties the field, so the form stops at Needs you on it.
+  function withSalaryAnswer(userId, jobId, payload) {
+    if (!payload || typeof payload !== "object") return payload;
+    let settings, profileSalary, job;
+    try { settings = readAutoSettings(db.prepare("SELECT auto_settings FROM users WHERE id = ?").pluck().get(userId)).salary; } catch { return payload; }
+    if (!settings || settings.mode === "profile") return payload;
+    try { profileSalary = db.prepare("SELECT desired_salary FROM user_profile WHERE user_id = ?").pluck().get(userId) ?? null; } catch { profileSalary = null; }
+    const own = profileSalary ? String(profileSalary) : "";
+    if ((payload.handler_map?.salary ?? "") !== own) return payload;   // a scoped salary for this kind of job wins
+    try { job = db.prepare("SELECT salary_min_usd, salary_max_usd, salary_period FROM scraped_jobs WHERE job_id = ?").get(String(jobId)) || {}; } catch { job = {}; }
+    const a = salaryAnswerFor(settings, { profileSalary, job });
+    const value = a.value == null ? "" : String(a.value);
+    return { ...payload, salary_answer: { value: a.value, basis: a.basis, period: a.period },
+      field_map: { ...(payload.field_map || {}), desired_salary: value }, handler_map: { ...(payload.handler_map || {}), salary: value } };
+  }
   function withHowHeard(userId, jobId, payload) {
+    payload = withSalaryAnswer(userId, jobId, payload);
     let agreed = false, foundOnDraft = false;
     try { agreed = db.prepare("SELECT credit_draft FROM user_profile WHERE user_id=?").pluck().get(userId) === 1; } catch { agreed = false; }
     if (agreed) {
