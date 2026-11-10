@@ -52,7 +52,13 @@ test("the ONLY predicate the list adds over the count is the cursor", () => {
   // SECOND count — `cacheCount`, over scraped_jobs directly — several hundred lines earlier, and
   // the short form matches THAT one and compares the wrong query. A substring that matches twice
   // is not an anchor.
-  const list  = ROUTE.slice(at(ROUTE, "SELECT ${selectCols}"), at(ROUTE, "ORDER BY ${order.sql}"));
+  // ⭐ A175 (46d): the page is chosen by the id statement (the columns are read after, by those ids) — so the id
+  // statement is the list's question, and it is the one compared with the count.
+  const listStart = at(ROUTE, "SELECT sj.job_id AS id ${joinClause}");
+  const list  = ROUTE.slice(listStart, at(ROUTE.slice(listStart), "ORDER BY ${order.sql}") + listStart);
+  // …and the KEPT order (its ids and total in one statement) asks exactly the count's question: no cursor at all.
+  const keptStart = at(ROUTE, "SELECT sj.job_id AS id, COUNT(*) OVER () AS n ${joinClause}");
+  const kept  = ROUTE.slice(keptStart, at(ROUTE.slice(keptStart), "ORDER BY ${order.sql}") + keptStart);
   const countStart = at(ROUTE, "SELECT COUNT(*) as n ${joinClause}");
   const count = ROUTE.slice(countStart, countStart + 120);
 
@@ -63,6 +69,7 @@ test("the ONLY predicate the list adds over the count is the cursor", () => {
   const listFrags  = new Set(fragmentsOf(list));
   const countFrags = new Set(fragmentsOf(count));
   const extra = [...listFrags].filter(x => !countFrags.has(x));
+  assert.deepEqual([...new Set(fragmentsOf(kept))].sort(), [...countFrags].sort(), "the kept order must be the count's statement, ordered");
   assert.deepEqual(extra, ["cursorSql"],
     `the list interpolates ${JSON.stringify(extra)} that the count does not. Only "cursorSql" may ` +
     `differ, and only because total counts the whole filtered set rather than the remainder`);

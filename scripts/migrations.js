@@ -7223,4 +7223,24 @@ export const MIGRATIONS = [
         CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_e164 ON users(phone_e164) WHERE phone_e164 IS NOT NULL;
       `,
     },
+    {
+      // ⭐ A175 (46d, measured on the 100k fixture): every board read touched scraped_jobs' own row for each candidate — and
+      // every column the board reads (is_active, board_category, the rank keys' title / summary / skills_json, the dates) sits
+      // AFTER description, description_html, description_text and description_full, so each lookup walked the row's overflow
+      // chain (~13 KB a posting). 49k candidates a request: the count 0.85 s, the ordered page 1.4 s (13 s cold). One covering
+      // index over the columns the board and its facets read lets SQLite answer them from the index (count 0.37 s, ordered
+      // ids 0.82 s on a copy, ~55 MB at 100k, ~5 s to build). And the board-fit pass's “active in my category” count scanned
+      // the recency index and read board_category from each row (0.86 s warm, 16 s cold, holding a read worker): a partial
+      // index on board_category over active postings answers it from the index (8 ms). And the board's “being matched” read
+      // (229's recency walk, newest first, until 2,001 unscored) read board_category from every active row the same way
+      // (2.3 s warm, 19 s cold, on each 20-s refresh): 229's index is REPLACED by the same expression carrying job_id and
+      // board_category (0.41 s). Only ADDS, but for that one DROP of an index it supersedes. After 267.
+      id: "268_scraped_jobs_board_cover",
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_board_cover ON scraped_jobs(job_id, is_active, board_category, ghost_level, title, normalized_title, company, skills_json, summary, tag_basis, tag_function, tag_level, tag_workplace, tag_employment, experience_level, workplace_type, employment_type, category, source, automation_tier, min_years_exp, posted_at, discovered_at, scraped_at);
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_active_category ON scraped_jobs(board_category) WHERE is_active = 1;
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_active_recency_cover ON scraped_jobs(COALESCE(posted_at, discovered_at) DESC, job_id, board_category) WHERE is_active = 1;
+        DROP INDEX IF EXISTS idx_scraped_jobs_active_recency;
+      `,
+    },
   ];

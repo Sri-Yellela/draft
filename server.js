@@ -7858,6 +7858,26 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_e164 ON users(phone_e164) WHERE phone_e164 IS NOT NULL;
       `,
     },
+    {
+      // ⭐ A175 (46d, measured on the 100k fixture): every board read touched scraped_jobs' own row for each candidate — and
+      // every column the board reads (is_active, board_category, the rank keys' title / summary / skills_json, the dates) sits
+      // AFTER description, description_html, description_text and description_full, so each lookup walked the row's overflow
+      // chain (~13 KB a posting). 49k candidates a request: the count 0.85 s, the ordered page 1.4 s (13 s cold). One covering
+      // index over the columns the board and its facets read lets SQLite answer them from the index (count 0.37 s, ordered
+      // ids 0.82 s on a copy, ~55 MB at 100k, ~5 s to build). And the board-fit pass's “active in my category” count scanned
+      // the recency index and read board_category from each row (0.86 s warm, 16 s cold, holding a read worker): a partial
+      // index on board_category over active postings answers it from the index (8 ms). And the board's “being matched” read
+      // (229's recency walk, newest first, until 2,001 unscored) read board_category from every active row the same way
+      // (2.3 s warm, 19 s cold, on each 20-s refresh): 229's index is REPLACED by the same expression carrying job_id and
+      // board_category (0.41 s). Only ADDS, but for that one DROP of an index it supersedes. After 267.
+      id: "268_scraped_jobs_board_cover",
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_board_cover ON scraped_jobs(job_id, is_active, board_category, ghost_level, title, normalized_title, company, skills_json, summary, tag_basis, tag_function, tag_level, tag_workplace, tag_employment, experience_level, workplace_type, employment_type, category, source, automation_tier, min_years_exp, posted_at, discovered_at, scraped_at);
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_active_category ON scraped_jobs(board_category) WHERE is_active = 1;
+        CREATE INDEX IF NOT EXISTS idx_scraped_jobs_active_recency_cover ON scraped_jobs(COALESCE(posted_at, discovered_at) DESC, job_id, board_category) WHERE is_active = 1;
+        DROP INDEX IF EXISTS idx_scraped_jobs_active_recency;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -10627,6 +10647,11 @@ app.use(passport.session());
 // the filter sentence never shows a count from before their own decision, star, import or profile change.
 // (Its middleware runs after bindAuthContext, below — a token-authenticated request's user is bound there.)
 const facetsCache = createFacetsCache();
+// ⭐ A175 (46d) · the board's kept order (boardPageResponse): the first BOARD_ORDER_KEEP ids + the total per person and board,
+// 60 s, dropped on the person's writes with facetsCache. Measured 46d at 100k (one user, 49k candidates): the page + count
+// were 2.5–13 s a load; a kept order answers a page from 51 rows read by id.
+const BOARD_ORDER_KEEP = 1000;
+const boardOrderCache = createFacetsCache({ ttlMs: 60_000, max: 300 });
 // Account management: every sign-in is STAMPED (sensitive changes need a recent one — see
 // routes/accountManagement.js) and every signed-in browser is kept in a registry, because the sealed
 // store is keyed by sid alone and cannot answer "where am I signed in?". req.logIn is passport's,
@@ -10661,6 +10686,8 @@ app.use(bindAuthContext);
 // ⭐ D156 (6): any write by a signed-in user (session or auth-context token) drops their kept facets counts.
 app.use((req, _res, next) => {
   if (req.method !== "GET" && req.method !== "HEAD" && req.user?.id != null) facetsCache.clearUser(req.user.id);
+  // ⭐ A175: …and their kept board order.
+  if (req.method !== "GET" && req.method !== "HEAD" && req.user?.id != null) boardOrderCache.clearUser(req.user.id);
   next();
 });
 // ⛔ D95: the admin's own session (the draft_admin cookie, Path=/api/admin) — and no admin credential anywhere else.
@@ -12852,6 +12879,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // A cursor anchors to the last row's own sort VALUES instead of to a position, so deletions
       // behind the anchor cannot move it.
       let cursorClause = { sql: "", params: [] };
+      let cursorAfterId = null;
       if (rawCursor) {
         const decoded = decodeCursor(rawCursor, orderKeys, { epoch: fitEpoch });
         if (!decoded.ok) {
@@ -12869,6 +12897,9 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
           });
         }
         cursorClause = cursorPredicate(orderKeys, decoded.values);
+        // A175: every order ends in sj.job_id (assertTotalOrder), so the cursor's last value names the row it resumes after —
+        // a kept order of the same board (the same epoch: decodeCursor checked it) answers the next page from there.
+        cursorAfterId = decoded.values[decoded.values.length - 1];
       }
       const offset  = (pg - 1) * ps;
 
@@ -13073,7 +13104,51 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       // (rank params) -> LIMIT. Getting this wrong does not throw; it returns plausible wrong rows.
       const cursorSql = cursorClause.sql ? `AND ${cursorClause.sql}` : "";
       // ⛔ A126 · read in the worker pool (readPool), off the event loop — the same statement, the same params.
-      const fetched = await readPool.all(
+      // ⭐ A175 (46d) · THE PAGE IS CHOSEN BY ID FIRST, ITS COLUMNS FETCHED AFTER (a deferred join). The one statement this
+      // was carried `sj.*` (four description copies, ~13 KB a posting) through the sort for EVERY candidate — 49k for one
+      // fixture user: 2.5 s warm, 10–13 s cold. The order and the page are the same statement as before over job_id alone
+      // (the same join / where / cursor / ORDER BY / LIMIT / OFFSET); then the ≤ ps + 1 chosen rows are read by job_id
+      // (UNIQUE) with the same columns and joins, and put back in the page's order.
+      // ⭐ A175 (46d) · …and the board's ORDER is KEPT per person (boardOrderCache, the facets cache's rules): the first
+      // BOARD_ORDER_KEEP ids of this exact board in order, with its total, counted in ONE pass (COUNT(*) OVER () — the same
+      // join / where / ORDER BY, no cursor, no page). A second load, the next offset page, the deal and best bets read it;
+      // the key carries the score epoch and the gate's basis (a scoring pass or a new résumé is a new board), and any write
+      // of the person's drops it (the middleware beside facetsCache's). A cursor page resumes after its row's place in the
+      // kept ids (best bets and the deal page by cursor); a page past the kept ids, or a cursor row no longer in them, reads
+      // as before.
+      const keepOrder = rawCursor ? typeof cursorAfterId === "string" : offset + ps + 1 <= BOARD_ORDER_KEEP;
+      let keptOrder = null;
+      let keptOrderCache = "off";   // hit / shared / miss, or off (a page the kept order does not answer) — on the [jobs] line
+      if (keepOrder) {
+        const orderKey = facetsKey(req.user.id, sessionActiveProfile.id, {
+          ...req.query, page: "", pageSize: "", page_size: "", cursor: "",
+          "~epoch": fitEpoch ?? "", "~gate": gateBasis ?? "", "~named": req.boardProfileId ?? "",
+          // The visit lens moves with each board load (touchBoardVisit), so only a board that READS it is keyed on it.
+          "~visit": ageFilter === "visit" ? (visitMark(db, req.user.id) ?? "first") : "",
+        });
+        try {
+          const got = await boardOrderCache.get(orderKey, async () => {
+            const rows = await readPool.all(
+              `SELECT sj.job_id AS id, COUNT(*) OVER () AS n ${joinClause} ${whereClause} ORDER BY ${order.sql} LIMIT ${BOARD_ORDER_KEEP}`,
+              [...baseArgs, ...order.params]);
+            return { status: 200, ids: rows.map(r => r.id), total: rows[0]?.n ?? 0 };
+          });
+          keptOrder = got.value; keptOrderCache = got.cache;
+        } catch (e) { console.warn("[jobs] kept order:", e.message); keptOrder = null; }
+      }
+      // Where the page starts in the kept ids: the offset, or just after the cursor's row. Not found, or the page would run
+      // past the kept ids while the board has more → the statement below answers it.
+      let keptFrom = -1;
+      if (keptOrder && !rawCursor) keptFrom = offset;
+      else if (keptOrder) { const at = keptOrder.ids.indexOf(cursorAfterId); keptFrom = at >= 0 ? at + 1 : -1; }
+      if (keptOrder && !(keptFrom >= 0 && (keptFrom + ps + 1 <= keptOrder.ids.length || keptOrder.ids.length === keptOrder.total))) keptOrder = null;
+      const pageIds = keptOrder ? keptOrder.ids.slice(keptFrom, keptFrom + ps + 1) : (await readPool.all(
+        `SELECT sj.job_id AS id ${joinClause} ${whereClause} ${cursorSql} ORDER BY ${order.sql} LIMIT ?${rawCursor ? "" : " OFFSET ?"}`,
+        [...baseArgs, ...cursorClause.params, ...order.params, ps + 1, ...(rawCursor ? [] : [offset])],
+      )).map(r => r.id);
+      // The join's own placeholders lead baseArgs (role_key unless ★, then user / profile twice) — see argsFor.
+      const joinArgs = baseArgs.slice(0, savedTab ? 4 : 5);
+      const pageColumns = pageIds.length ? await readPool.all(
         // CC5 · `matchScore` is selected from the CALLER's cache, aliased to the name mapJobRow
         // reads. sj.ats_score is deliberately not selected under that name any more — see the
         // joinClause note.
@@ -13085,17 +13160,12 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         // board but Saved short-circuits on is_active, and the count needs no matching change.
         `SELECT ${selectCols}, uj.visited, uj.applied, uj.starred, uj.disliked,
                 (sj.is_active = 0 AND EXISTS (SELECT 1 FROM rejected_jobs rj WHERE rj.job_id = sj.job_id AND rj.reason LIKE 'out_of_market:%')) AS held_outside_us,
-                aor.ats_score AS matchScore, ${storedScoreSql("sj", "aor")}${cursorCols.sql}
-         ${joinClause} ${whereClause} ${cursorSql} ORDER BY ${order.sql} LIMIT ?${rawCursor ? "" : " OFFSET ?"}`,
-        [
-        ...cursorCols.params,
-        ...baseArgs,
-        ...cursorClause.params,
-        ...order.params,
-        ps + 1,
-        ...(rawCursor ? [] : [offset]),
-        ],
-      );
+                aor.ats_score AS matchScore, ${storedScoreSql("sj", "aor")}${cursorCols.sql}, sj.job_id AS __page_job_id
+         ${joinClause} WHERE sj.job_id IN (${pageIds.map(() => "?").join(",")})`,
+        [...cursorCols.params, ...joinArgs, ...pageIds],
+      ) : [];
+      const pageById = new Map(pageColumns.map(r => [r.__page_job_id, r]));
+      const fetched = pageIds.map(id => pageById.get(id)).filter(Boolean).map(({ __page_job_id, ...r }) => r);
       const hasMore = fetched.length > ps;
       const rows    = hasMore ? fetched.slice(0, ps) : fetched;
       // Issued from the LAST ROW ACTUALLY RETURNED, so it is valid whether the caller paged by
@@ -13118,7 +13188,8 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
       //
       // test/boardCountMatchesList.test.js asserts the two statements are built from these same
       // three variables, so a future edit cannot fork one without failing.
-      const total = (await readPool.get(`SELECT COUNT(*) as n ${joinClause} ${whereClause}`, baseArgs))?.n || 0;
+      // A175: a kept order carries its total — the same statement's COUNT(*) OVER (), so the two still ask one question.
+      const total = keptOrder ? keptOrder.total : ((await readPool.get(`SELECT COUNT(*) as n ${joinClause} ${whereClause}`, baseArgs))?.n || 0);
       // ⛔ A126 (7) · what the gate held back: counted (the board says "N more being matched") and queued, newest first.
       // First page only — paging the same board must not re-queue it.
       let beingMatched = 0;
@@ -13160,7 +13231,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null } = {}) {
         usedCursor: !!rawCursor, activeFilters: activeFilterNames(req.query),
       });
 
-      console.log(JSON.stringify({ msg: '[jobs]', profile: sessionActiveProfile.profile_name, sort, total, returned: rows.length,
+      console.log(JSON.stringify({ msg: '[jobs]', profile: sessionActiveProfile.profile_name, sort, total, returned: rows.length, order: keptOrder ? keptOrderCache : "off",
         ...(emptyReason ? { emptyReason: emptyReason.code } : {}) }));
       // ⛔ A COUNT/LIST DISAGREEMENT IS A DEFECT AND GETS ITS OWN LINE, at error level. Every other
       // empty-board code is an ordinary state a user can cause; this one cannot be reached by any

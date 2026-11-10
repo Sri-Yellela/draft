@@ -83,6 +83,7 @@ test("A126 · server.js reads the board's list and counts through the pool, with
   const src = fs.readFileSync("server.js", "utf8");
   assert.match(src, /const readPool = createReadPool\(\{/);
   assert.match(src, /DRAFT_READ_WORKERS/);
-  assert.match(src, /const fetched = await readPool\.all\(/);
+  assert.match(src, /readPool\.all\(\s*`SELECT sj\.job_id AS id \$\{joinClause\}/);   // A175: the page chosen by id in the pool, its columns after
+  assert.match(src, /readPool\.all\(\s*`SELECT sj\.job_id AS id, COUNT\(\*\) OVER \(\) AS n \$\{joinClause\}/);   // …and the kept order
   assert.match(src, /value: await measure\(\{\s*db, read: readPool,/);
 });
