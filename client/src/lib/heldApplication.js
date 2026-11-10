@@ -54,9 +54,14 @@ export function heldHeadline(node) {
     case "held": {
       const row = latestRow(node) || {};
       const why = s(row.heldReason) || s(node?.say) || "Held for you to look at.";
+      // The headline is the reason's first sentence; the rest (what was sent, the checks still to pass) leads the line
+      // under it — a whole paragraph as the display headline read as a wall (46b walk).
+      const cut = why.search(/\.\s+(?=[A-Z])/);
+      const title = cut > 0 ? why.slice(0, cut + 1) : why;
+      const rest = cut > 0 ? why.slice(cut + 1).trim() : "";
       const n = heldQuestionsFor(node).length;
-      return { state, eyebrow: "Held — nothing was sent", title: why,
-        lead: n ? `${n} question${n === 1 ? "" : "s"} ${n === 1 ? "is" : "are"} waiting on you — listed below.` : "No question is waiting on you; it can be sent as it is." };
+      const count = n ? `${n} question${n === 1 ? "" : "s"} ${n === 1 ? "is" : "are"} waiting on you — listed below.` : "No question is waiting on you; it can be sent as it is.";
+      return { state, eyebrow: "Held — nothing was sent", title, lead: rest ? `${rest} ${count}` : count };
     }
     default: return null;
   }
