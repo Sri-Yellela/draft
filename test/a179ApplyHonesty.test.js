@@ -12,6 +12,7 @@ import { getPlatformLabelMap } from "../services/platformDetector.js";
 import { completeProfileForApply, contactGaps, _resetApplyProfileFill } from "../services/applyProfileFill.js";
 import { runSteps, heldHeadline, resumeStepOf, fillOf } from "../client/src/lib/heldApplication.js";
 import { heldReasonWords } from "../services/heldQuestions.js";
+import { at } from "../test-support/sourceAnchors.js";
 
 const RESUME = `Jordan Rivera
 Boston, MA · jordan.rivera.synthetic@example.com · (617) 555-0199 · linkedin.com/in/jordan-rivera-synthetic
@@ -74,9 +75,9 @@ test("a179EmptyProfileCaughtBeforeRun: nothing to type → held before the brows
   assert.deepEqual(contactGaps({}), ["full_name", "email"]);
   assert.deepEqual(contactGaps({ first_name: "A", last_name: "B", email: "a@b.c" }), []);
   const src = fs.readFileSync("routes/apply.js", "utf8");
-  const at = src.indexOf('setJobStatus("held_review", "profile_contact_empty"');
-  const launch = src.indexOf("await autoApply(jobUrl, autofillPayload");
-  assert.ok(at > 0 && launch > at, "the empty-profile hold comes before any browser launch");
+  const hold = at(src, 'setJobStatus("held_review", "profile_contact_empty"');
+  const launch = at(src, "await autoApply(jobUrl, autofillPayload");
+  assert.ok(launch > hold, "the empty-profile hold comes before any browser launch");
   assert.match(heldReasonWords("profile_contact_empty"), /contact details are empty/);
   const server = fs.readFileSync("server.js", "utf8");
   assert.match(server, /if \(mode !== "CUSTOM_SAMPLER"\) profile = completeProfileForApply\(db, profile\);/);
@@ -111,7 +112,7 @@ test("a179HeadingCountsReal: the heading counts the questions waiting; 'everythi
 
 test("a179RunNowVisible: Run now shows in both modes; every held row can be Run again", () => {
   const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
-  const head = panel.slice(panel.indexOf("const timelineHead = ("), panel.indexOf("const chooseAsk = async"));
+  const head = panel.slice(at(panel, "const timelineHead = ("), at(panel, "const chooseAsk = async"));
   assert.match(head, /\{!held && \(\s*<p className="dht-head__sub" data-run-now-row="">/);
   assert.doesNotMatch(head, /\(fullAuto \|\| picksOn\) && !held/, "no longer hidden in Ask me first");
   assert.match(panel, /const runAgain = !r\.postingGone \? \[\{ id: "rerun", label: "Run again"/);
@@ -143,4 +144,43 @@ test("a179WorkerDownBanner: a queue waiting with no start is reported stalled; t
   const panel = fs.readFileSync("client/src/panels/AutoApplyPanel.jsx", "utf8");
   assert.match(panel, /api\("\/api\/apply\/health"\)/);
   assert.match(panel, /\{runnerHealth\?\.stalled && \(/);
+});
+
+test("a179OnlyNeverListAndDraftsHeld + a179OptionalNotListed: once the form was read, only its real questions are listed", async () => {
+  const { heldQuestionsOf } = await import("../services/heldQuestions.js");
+  const open = JSON.stringify([
+    { question: "Tell us why you are interested in this role", required: true, type: "textarea" },
+    { question: "Pronouns", required: false, type: "text" },
+  ]);
+  const blanks = JSON.stringify([]);
+  const packet = JSON.stringify({ unresolved: [
+    { field: "First Name", is_required: true }, { field: "Email", is_required: true }, { field: "Alma Mater", is_required: false },
+    { field: "Are you legally authorized to work in the US?", is_required: true, eligibility: true },
+    { field: "Proficiency across programming languages", is_required: true, from_schema: true },
+  ] });
+  const qs = heldQuestionsOf({ openQuestionsJson: open, blanksJson: blanks, packetJson: packet }).map(q => q.question);
+  assert.deepEqual(qs.sort(), ["Are you legally authorized to work in the US?", "Proficiency across programming languages",
+    "Tell us why you are interested in this role"].sort());
+  // a hold before the form (nothing read): the packet's REQUIRED canonical fields are what's missing
+  const before = heldQuestionsOf({ packetJson: packet }).map(q => q.question);
+  assert.ok(before.includes("Email") && !before.includes("Alma Mater"), "optional never listed");
+});
+
+test("a179TailoringNotWorse (F4): a tailoring that scored lower than the base is not attached — the base résumé is", async () => {
+  const { default: express } = await import("express");
+  const { default: applyRoutes } = await import("../routes/apply.js");
+  const db = new Database(":memory:");
+  for (const m of MIGRATIONS) db.exec(m.sql);
+  db.prepare("INSERT INTO users (id,username,password_hash,plan_tier) VALUES (1,'ada','x','PRO')").run();
+  db.prepare("INSERT INTO base_resume (user_id, content, name) VALUES (1, ?, 'resume.txt')").run(RESUME);
+  let score = { atsScore: 47, baseAtsScore: 57 };
+  const gen = async () => ({ html: "<p>tailored</p>", resumeId: 9, ...score });
+  const line = applyRoutes(express(), db, (req, _res, next) => next(), () => ({ field_map: {}, handler_map: {} }), gen, async () => ({}), async () => ({}), () => null);
+  const lower = await line.resumeForApply(1, "gh::1", "generate");
+  assert.equal(lower.keptBase, "tailoring_scored_lower");
+  assert.equal(lower.tailoredAtsScore, 47); assert.equal(lower.atsScore, 57);
+  assert.doesNotMatch(lower.html, /tailored/);
+  score = { atsScore: 61, baseAtsScore: 58 };
+  const higher = await line.resumeForApply(1, "gh::1", "generate");
+  assert.equal(higher.html, "<p>tailored</p>"); assert.equal(higher.keptBase, undefined);
 });

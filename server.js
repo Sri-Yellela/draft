@@ -15590,7 +15590,7 @@ function generateResumeForApply(userId, jobId, toolType) {
       console.log(`[generateResumeForApply] job=${jobId}: the résumé was withheld (claim guard) — retrying once`);
       return callOnce();
     })
-    .then(r => ({ html: r.html, atsScore: r.atsScore, resumeId: r.resumeId, fromCache: false }))
+    .then(r => ({ html: r.html, atsScore: r.atsScore, baseAtsScore: r.baseAtsScore ?? null, resumeId: r.resumeId, fromCache: false }))   // A179 F4: the base score travels
     // Keep the upstream failure STRUCTURED. This used to be `{ error: e.message }`, which threw
     // away the HTTP status, the API error type and the request_id — so a 404 on a retired model
     // and a transient 529 overload were the same opaque string to every caller downstream, and

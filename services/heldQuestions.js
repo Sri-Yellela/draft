@@ -28,17 +28,29 @@ export function heldQuestionsOf({ openQuestionsJson = null, blanksJson = null, p
     seen.add(k);
     out.push({ question: s(question), required: !!required, from, ...(eligibility ? { eligibility } : {}) });
   };
-  for (const q of parse(openQuestionsJson) || []) {
+  const open = parse(openQuestionsJson), blanks = parse(blanksJson);
+  // ⭐ A179 F3 (owner 11-10: 24 fields listed — First Name, Email … — and optional ones "as if needed"): when the run READ
+  // the form (its open questions / blanks were recorded), the form is the truth — the packet's CANONICAL contact fields
+  // (which may not even be on this form) are not listed; only its eligibility answers and the employer's own questions
+  // stay. An optional field is never listed: left blank, as the person would.
+  const readTheForm = Array.isArray(open) || Array.isArray(blanks);
+  for (const q of open || []) {
     if (q?.type === "file") continue;   // D165 R1: the résumé is draft's to make, never a question
+    if (q?.required === false && !q?.eligibility) continue;
     push(q?.question || q?.label, q?.required, "form", q?.eligibility);
   }
-  for (const b of parse(blanksJson) || []) {
+  for (const b of blanks || []) {
     if (!b?.required || b?.type === "file") continue;
     push(b.label || b.field, true, "empty");
   }
   const packet = parse(packetJson);
   for (const u of packet?.unresolved || []) {
     if (u?.type === "file") continue;
+    if (readTheForm && !u?.eligibility && !u?.from_schema) continue;
+    if (!u?.is_required && !(u?.eligibility && !readTheForm)) {
+      // an optional item is listed only when it merges into a question already named (the required blank wins)
+      if (!seen.has(norm(u?.field || u?.name))) continue;
+    }
     push(u?.field || u?.name, u?.is_required, u?.from_schema ? "employer" : "profile", u?.eligibility);
   }
   return out.sort((a, b) => Number(b.required) - Number(a.required));

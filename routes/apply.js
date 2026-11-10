@@ -297,7 +297,18 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   const generateResumeForApplyModel = generateResumeForApply;
   generateResumeForApply = async (userId, jobId, toolType) => {
     if (baseResumeOnlyState(db, userId).on) return baseOnlyGeneration(db, userId);
-    return generateResumeForApplyModel(userId, jobId, toolType);
+    const gen = await generateResumeForApplyModel(userId, jobId, toolType);
+    // ⭐ A179 F4 (46d, production: a batch's lean results lifted +0, +0, +0, +3 and once 57 → 47): a tailoring that scored
+    // LOWER than the base résumé is not what an employer gets — the base résumé is attached instead and the run says so
+    // (keptBase). The tailored version stays the job's résumé to read and edit; only the application carries the base.
+    if (gen && !gen.error && Number.isFinite(gen.atsScore) && Number.isFinite(gen.baseAtsScore) && gen.atsScore < gen.baseAtsScore) {
+      const base = baseOnlyGeneration(db, userId);
+      if (!base.error) {
+        console.log(`[apply] A179 F4: job=${jobId} tailored ${gen.atsScore} < base ${gen.baseAtsScore} — the base résumé is attached`);
+        return { ...base, baseOnly: false, keptBase: "tailoring_scored_lower", atsScore: gen.baseAtsScore, baseAtsScore: gen.baseAtsScore, tailoredAtsScore: gen.atsScore };
+      }
+    }
+    return gen;
   };
   const buildAutofillPayloadBase = buildAutofillPayload;
   // ⛔ D165 (3): `jobId` (optional) is the posting the payload fills — its role + location pick the person's SCOPED
