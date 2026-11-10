@@ -946,6 +946,74 @@
     "medianAge": -1,
     "probedAt": "2026-11-10T00:47:14.290Z"
    }
+  },
+  {
+   "company": "Mortenson",
+   "atsType": "oracle",
+   "slug": "fa-esgu-saasfaprod1.fa.ocs.oraclecloud.com|CX_1",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 110,
+    "inScope": 47,
+    "cs30": 38,
+    "usPct": 100,
+    "medianAge": 7,
+    "probedAt": "2026-11-10T01:41:09.886Z"
+   }
+  },
+  {
+   "company": "Structure Tone",
+   "atsType": "oracle",
+   "slug": "fa-exrr-saasfaprod1.fa.ocs.oraclecloud.com|stobg",
+   "industry": "construction",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 140,
+    "inScope": 47,
+    "cs30": 44,
+    "usPct": 100,
+    "medianAge": 5,
+    "probedAt": "2026-11-10T01:41:50.283Z"
+   }
+  },
+  {
+   "company": "WSP USA",
+   "atsType": "oracle",
+   "slug": "emit.fa.ca3.oraclecloud.com|CX_2001",
+   "industry": "engineering services",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 150,
+    "inScope": 82,
+    "cs30": 82,
+    "usPct": 100,
+    "medianAge": 4,
+    "probedAt": "2026-11-10T01:43:49.448Z"
+   }
+  },
+  {
+   "company": "HDR",
+   "atsType": "taleo",
+   "slug": "hdr|ex",
+   "industry": "engineering services",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 150,
+    "inScope": 51,
+    "cs30": 51,
+    "usPct": 100,
+    "medianAge": 6,
+    "probedAt": "2026-11-10T01:45:47.411Z"
+   }
   }
  ],
  "dropped": [
@@ -969,19 +1037,6 @@
   }
  ],
  "unsupported": [
-  {
-   "company": "Mortenson",
-   "industry": "construction",
-   "vendors": [
-    "oracle"
-   ],
-   "hosts": [
-    "fa-esgu-saasfaprod1.fa.ocs.oraclecloud.com"
-   ],
-   "urls": [
-    "https://fa-esgu-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/tc-join"
-   ]
-  },
   {
    "company": "McCarthy Building Companies",
    "industry": "construction",
@@ -1012,50 +1067,6 @@
    ]
   },
   {
-   "company": "Structure Tone",
-   "industry": "construction",
-   "vendors": [
-    "oracle"
-   ],
-   "hosts": [
-    "fa-exrr-saasfaprod1.fa.ocs.oraclecloud.com"
-   ],
-   "urls": [
-    "https://fa-exrr-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/stobg"
-   ]
-  },
-  {
-   "company": "HDR",
-   "industry": "engineering services",
-   "vendors": [
-    "taleo"
-   ],
-   "hosts": [
-    "hdr.taleo.net"
-   ],
-   "urls": [
-    "https://hdr.taleo.net/careersection/ex/jobsearch.ftl",
-    "https://hdr.taleo.net/careersection/iam/accessmanagement/login.jsf"
-   ]
-  },
-  {
-   "company": "WSP USA",
-   "industry": "engineering services",
-   "vendors": [
-    "oracle"
-   ],
-   "hosts": [
-    "emit.fa.ca3.oraclecloud.com"
-   ],
-   "urls": [
-    "https://emit.fa.ca3.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001/job/96741",
-    "https://emit.fa.ca3.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001/job/98688",
-    "https://emit.fa.ca3.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001/job/99099",
-    "https://emit.fa.ca3.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001/job/99093",
-    "https://emit.fa.ca3.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001/job/99071"
-   ]
-  },
-  {
    "company": "Black & Veatch",
    "industry": "engineering services",
    "vendors": [
@@ -1066,19 +1077,6 @@
    ],
    "urls": [
     "https://career4.successfactors.com/careers"
-   ]
-  },
-  {
-   "company": "Kaiser Permanente",
-   "industry": "healthcare",
-   "vendors": [
-    "taleo"
-   ],
-   "hosts": [
-    "kp.taleo.net"
-   ],
-   "urls": [
-    "https://kp.taleo.net/careersection/external/mysubmissions.ftl"
    ]
   },
   {
@@ -1104,14 +1102,12 @@
   "Gilbane": "icims:careers-gilbaneco",
   "Whiting-Turner": "none",
   "DPR Construction": "workday:5|mydpr|11212017",
-  "Mortenson": "unsupported oracle (fa-esgu-saasfaprod1.fa.ocs.oraclecloud.com)",
   "McCarthy Building Companies": "unsupported jobvite (jobs.jobvite.com)",
   "Clayco": "none",
   "Swinerton": "workday:1|swinerton|Swinerton_External_Career",
   "Hensel Phelps": "unsupported successfactors (performancemanager8.successfactors.com,rmkcdn.successfactors.com)",
   "Kiewit": "none",
   "Granite Construction": "workday:1|granite|careers",
-  "Structure Tone": "unsupported oracle (fa-exrr-saasfaprod1.fa.ocs.oraclecloud.com)",
   "Consigli": "workable:consigli-construction-1",
   "Walsh Brothers": "none",
   "Lendlease": "none",
@@ -1120,16 +1116,13 @@
   "Clark Construction": "workday:503|clark|ClarkExternal",
   "AECOM": "none",
   "Jacobs": "none",
-  "HDR": "unsupported taleo (hdr.taleo.net)",
   "Stantec": "error",
-  "WSP USA": "unsupported oracle (emit.fa.ca3.oraclecloud.com)",
   "Burns & McDonnell": "none",
   "Black & Veatch": "unsupported successfactors (career4.successfactors.com)",
   "Tetra Tech": "none",
   "Mass General Brigham": "pairs workday:1|massgeneralbrigham|MGBExternal (not live / thin)",
   "Boston Children's Hospital": "none",
   "Beth Israel Lahey Health": "pairs icims:jobs-joslin (not live / thin)",
-  "Kaiser Permanente": "unsupported taleo (kp.taleo.net)",
   "Mayo Clinic": "none",
   "Cleveland Clinic": "workday:1|ccf|ClevelandClinicCareers",
   "Fidelity Investments": "blocked",
@@ -1146,6 +1139,11 @@
   "Vertex Pharmaceuticals": "none",
   "Eversource": "none",
   "National Grid": "none",
-  "Dominion Energy": "none"
+  "Dominion Energy": "none",
+  "Mortenson": "oracle:fa-esgu-saasfaprod1.fa.ocs.oraclecloud.com|CX_1",
+  "Structure Tone": "oracle:fa-exrr-saasfaprod1.fa.ocs.oraclecloud.com|stobg",
+  "WSP USA": "oracle:emit.fa.ca3.oraclecloud.com|CX_2001",
+  "HDR": "taleo:hdr|ex",
+  "Kaiser Permanente": "pairs taleo:kp|external (not live / thin)"
  }
 }

@@ -90,8 +90,8 @@ test("a missing answer is a miss — it lowers recall, never precision", () => {
 test("a dry run, an error, and an unsupported vendor are misses, each with its reason", () => {
   const r = scoreJ1(K, [row("stripe.com", [], { status: "dry_run", extra: { dryRun: true } }),
                         row("openai.com", [], { status: "error" }),
-                        row("zoox.com", ["https://acme.taleo.net/careersection/2/jobdetail.ftl?job=1"])]);
-  assert.deepEqual(r.companies.map(c => [c.outcome, c.reason]), [["missed", "dry_run"], ["missed", "error"], ["missed", "unsupported:taleo"]]);   // icims until A161 made it a source
+                        row("zoox.com", ["https://career4.successfactors.com/career?company=acme&career_job_req_id=1"])]);
+  assert.deepEqual(r.companies.map(c => [c.outcome, c.reason]), [["missed", "dry_run"], ["missed", "error"], ["missed", "unsupported:successfactors"]]);   // icims until A161, taleo until 46a made them sources
   assert.equal(r.dryRuns, 1);
   assert.match(formatReport(r), /DRY-RUN/);
 });

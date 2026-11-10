@@ -221,14 +221,14 @@ test("D75: a result must be signed; J1 evidence lands in the harvest POOL (never
     await enqueueTask(db, { type: "j2_apply_hop", input: { postingUrl: "https://acme.wd5.myworkdayjobs.com/External/job/X_JR1" }, resolve: async () => ["93.184.216.34"] });
     const companiesBefore = db.prepare("SELECT COUNT(*) n, SUM(active) a FROM company_ats_list").get();
     const t1 = (await (await fetch(`${s.base}/api/crawler/next`, { headers: auth })).json()).task;
-    const r1 = JSON.stringify({ taskId: t1.id, type: t1.type, status: "found", evidence: [{ url: "https://boards.greenhouse.io/acmeco", how: "link" }, { url: "https://acme.taleo.net/careersection/2/jobsearch.ftl", how: "link" }] });
+    const r1 = JSON.stringify({ taskId: t1.id, type: t1.type, status: "found", evidence: [{ url: "https://boards.greenhouse.io/acmeco", how: "link" }, { url: "https://career4.successfactors.com/career?company=acme", how: "link" }] });
     const post = (body, headers) => fetch(`${s.base}/api/crawler/result`, { method: "POST", body, headers: { "content-type": "application/json", ...headers } });
     assert.equal((await post(r1, {})).status, 401, "unsigned");
     assert.equal((await post(r1, sign(r1, "wrong".repeat(10)))).status, 401, "mis-signed");
     assert.equal((await post(r1, sign(r1, TOKEN, Math.floor(Date.now() / 1000) - 3600))).status, 401, "stale (a replay)");
     const ok = await (await post(r1, sign(r1, TOKEN))).json();
     assert.deepEqual(ok.pairs, [{ atsType: "greenhouse", slug: "acmeco", how: "link" }]);
-    assert.deepEqual(ok.unsupported, ["taleo"], "tallied by vendor (icims until A161 made it a source) — the input to the next adapter");
+    assert.deepEqual(ok.unsupported, ["successfactors"], "tallied by vendor (icims until A161, taleo until 46a made them sources) — the input to the next adapter");
     const pool = db.prepare("SELECT ats_type, ats_slug, first_query, decision FROM slug_harvest_pool").all();
     assert.deepEqual(pool, [{ ats_type: "greenhouse", ats_slug: "acmeco", first_query: "crawler:acme.example.com", decision: null }]);
     assert.deepEqual(db.prepare("SELECT COUNT(*) n, SUM(active) a FROM company_ats_list").get(), companiesBefore, "nothing added, nothing enabled");

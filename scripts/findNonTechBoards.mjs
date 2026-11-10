@@ -60,7 +60,7 @@ for (const [company, site, industry] of SITES) {
   const vendors = [...new Set(harvested.filter(x => x.p.unsupported).map(x => x.p.unsupported))];
   let hit = null;
   for (const { p } of pairs) {
-    if (!["greenhouse", "lever", "ashby", "smartrecruiters", "workable", "workday", "recruitee", "bamboohr", "rippling", "gem", "icims"].includes(p.atsType)) continue;
+    if (!["greenhouse", "lever", "ashby", "smartrecruiters", "workable", "workday", "recruitee", "bamboohr", "rippling", "gem", "icims", "oracle", "taleo"].includes(p.atsType)) continue;
     let v = null; try { v = await probeBoard({ atsType: p.atsType, slug: p.slug, company }, { describe }); } catch { v = null; }
     if (v && v.state === "live" && v.us >= 3 && (v.csOpen || 0) >= 3) {
       hit = { company, atsType: p.atsType, slug: p.slug, industry, via: "j1", evidence: { fetched: v.fetched ?? v.jobs, us: v.us, fresh: v.fresh, inScope: v.csOpen, cs30: v.cs30, usPct: v.usPct, medianAge: v.medianAge, probedAt: new Date().toISOString() } };

@@ -14,7 +14,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-import { companyLabel, isAtsHost, UNKNOWN_COMPANY, ATS_HOST_SUFFIXES, ATS_PROVIDER_NAMES }
+import { companyLabel, isAtsHost, UNKNOWN_COMPANY, ATS_HOST_SUFFIXES, ATS_PROVIDER_NAMES, EMPLOYER_NAMED_SOURCES }
   from "../shared/atsHosts.js";
 import { DIRECT_ATS_SOURCES } from "../services/jobs/directApplyFilter.js";
 import { groupByCompany, groupByApplication } from "../client/src/lib/applyObstacles.js";
@@ -44,7 +44,13 @@ test("the host list covers every ATS the pipeline already trusts", () => {
   // Guard on the guard, the same shape as uncoveredDirectAtsSources(): onboarding a provider in
   // directApplyFilter or platformDetector must not leave a hole here. Asserted against those two
   // modules rather than restating their contents, so there is no third list to drift.
+  // 46a: EXCEPT a source whose vendor is also a real employer (Oracle) — named, with its reason, in shared/atsHosts.js;
+  // the exception list must stay exactly that (a new source is never let through by accident).
+  assert.deepEqual([...EMPLOYER_NAMED_SOURCES], ["oracle"]);
+  for (const s of EMPLOYER_NAMED_SOURCES) assert.ok(!ATS_PROVIDER_NAMES.includes(s), `${s} is an employer too — a provider name would hide its postings' company`);
+  assert.equal(isAtsHost("Oracle"), false, "Oracle the employer still renders as a company");
   for (const source of DIRECT_ATS_SOURCES) {
+    if (EMPLOYER_NAMED_SOURCES.includes(source)) continue;
     assert.ok(ATS_PROVIDER_NAMES.includes(source),
       `DIRECT_ATS_SOURCES has '${source}' with no entry in ATS_PROVIDER_NAMES — it could render as a company`);
   }

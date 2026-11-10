@@ -35,6 +35,8 @@ import { probeBoard } from "./companyProbe.js";
 import { HARVEST_QUERY_PLAN } from "./harvestQueryPlan.js";
 import { toActor } from "./actor.js";
 import { isTenantSlug as isIcimsTenant } from "./jobs/sources/icims.js";
+import { isOracleSlug } from "./jobs/sources/oracle.js";
+import { isTaleoSlug } from "./jobs/sources/taleo.js";
 
 export const DAILY_SEARCH_CAP = 8;
 export const EXHAUSTED_AFTER = 3;
@@ -92,6 +94,18 @@ export function harvestPairOf(rawUrl) {
   // A161 (46a): iCIMS is crawled — the tenant's host label is the slug (careers-acme.icims.com → "careers-acme").
   m = host.match(ICIMS_HOST_RE);
   if (m && isIcimsTenant(m[1])) return { atsType: "icims", slug: m[1].toLowerCase() };
+  // 46a: Oracle Recruiting Cloud — /hcmUI/CandidateExperience/<locale>/sites/<site>/… on an oraclecloud.com host → "<host>|<site>".
+  // Any other oraclecloud.com page stays an unsupported "oracle" link below.
+  if (/\.oraclecloud\.com$/i.test(host) && seg[0] === "hcmUI" && seg[1] === "CandidateExperience" && seg[3] === "sites" && seg[4]) {
+    const slug = `${host}|${seg[4]}`;
+    if (isOracleSlug(slug)) return { atsType: "oracle", slug };
+  }
+  // 46a: Taleo — <tenant>.taleo.net/careersection/<section>/… → "<tenant>|<section>" (the shared rest/ and iam/ paths name no section).
+  m = host.match(/^([a-z0-9-]+)\.taleo\.net$/i);
+  if (m && seg[0] === "careersection" && seg[1] && !["rest", "iam", "theme", "sitemap"].includes(seg[1])) {
+    const slug = `${m[1].toLowerCase()}|${seg[1]}`;
+    if (isTaleoSlug(slug)) return { atsType: "taleo", slug };
+  }
   if (/(^|\.)greenhouse\.io$/i.test(host) && seg.join("/") === "embed/job_app") {
     const forSlug = u.searchParams.get("for");
     return forSlug ? { atsType: "greenhouse", slug: forSlug } : null;

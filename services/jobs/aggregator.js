@@ -29,6 +29,8 @@ import bamboohrPlugin  from './sources/bamboohr.js';
 import gemPlugin       from './sources/gem.js';
 import ripplingPlugin  from './sources/rippling.js';
 import icimsPlugin     from './sources/icims.js';
+import oraclePlugin    from './sources/oracle.js';
+import taleoPlugin     from './sources/taleo.js';
 import { SOURCES as SOURCES_DIMENSION, labelMap } from '../../shared/jobFilterOptions.js';
 import { userReferencedSql } from './userReferences.js';
 import { atlasPostingsChanged } from '../atlas/atlasLive.js';
@@ -50,6 +52,8 @@ const SOURCES = [
   gemPlugin,
   ripplingPlugin,
   icimsPlugin,
+  oraclePlugin,
+  taleoPlugin,
 ];
 // ─────────────────────────────────────────────────────────────────────────────
 
