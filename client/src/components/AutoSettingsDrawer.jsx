@@ -30,6 +30,18 @@ import { Z } from "../styles/zLayers.js";
 import { lastBoardFilters, filterLine } from "../lib/boardFilterMemory.js";
 import { capUsage, STOP_DOES, STOP_DOES_NOT } from "../lib/draftHouseExceptions.js";
 import "./DraftHouse.css";
+import { SALARY_DEFAULTS, SALARY_PRESETS, SALARY_PRESET_LABELS, salaryAnswerFor } from "../../../shared/salaryAnswer.js";
+
+// ⭐ 46a (owner 11-10): the salary answer's one line on the fold.
+const usd = (n) => (n == null ? "—" : `$${Math.round(n).toLocaleString("en-US")}`);
+function salaryLine(sal) {
+  const s = { ...SALARY_DEFAULTS, ...(sal || {}) };
+  const noRange = s.whenNoRange === "ask" ? "no range: ask me" : `no range: ${s.amount != null ? usd(s.amount) : "my Profile's number"}`;
+  if (s.mode === "fixed") return `always ${usd(s.amount)}`;
+  if (s.mode === "position") return `${s.position}% up the posted range · ${noRange}`;
+  if (s.mode === "preset") return `${(SALARY_PRESET_LABELS[s.preset] || "").split(" (")[0].toLowerCase()} of the posted range · ${noRange}`;
+  return "my Profile's desired salary";
+}
 
 const CAP_MAX = 150, MAX_TIMES = 4, CAP_MIN = 1;
 const SAVE_AFTER_MS = 500;
@@ -69,6 +81,7 @@ export function foldValues(s, { notify = null, held = false, accounts = null, li
     howmany: `up to ${s.dailyCap} a day`,
     jobs: jobs.length ? jobs.join(" · ") : "every match",
     before: [s.showFormBeforeSending ? "show me the form" : "send when I tap Apply", s.agreeToTerms ? "agree to terms for me" : null].filter(Boolean).join(" · "),
+    salary: salaryLine(s.salary),
     tell: ch == null ? "set in Account → Notifications" : ch.length ? `by ${ch.join(" and ")}` : "off",
     pausing: [held ? "paused now" : null, s.pauseCompanyAfterReply ? "pause after an interview" : "keeps going after an interview"].filter(Boolean).join(" · "),
     accounts: accounts == null ? "" : `${accounts} connected`,
@@ -324,6 +337,68 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
                   : "off — a terms box waits for you in Needs you"}</small></span>
                 {sw(s.agreeToTerms, () => set({ agreeToTerms: !s.agreeToTerms }), { "data-agree-to-terms": "" })}
               </label>
+            </Fold>
+
+            {/* ⭐ 46a (owner 11-10): how an application answers "What salary do you expect?" — shared/salaryAnswer.js decides,
+                on the server, for every application; the example below runs the same function on a sample range. */}
+            <Fold id="salary" title="Salary" value={v.salary} headline="What to answer when a form asks your salary" {...fp("salary")}>
+              {(() => {
+                const sal = { ...SALARY_DEFAULTS, ...(s.salary || {}) };
+                const setSal = (patch) => set({ salary: { ...sal, ...patch } });
+                const sample = { salary_min_usd: 120000, salary_max_usd: 160000, salary_period: "annual" };
+                const ex = salaryAnswerFor(sal, { profileSalary: null, job: sample });
+                const modes = [["profile", "My Profile's desired salary", "the number on your Profile — as before"],
+                  ["fixed", "A fixed amount", "the same number on every application"],
+                  ["position", "A point on the company's range", "a slider from the posting's minimum to its maximum"],
+                  ["preset", "A named point on the range", "lower limit, lower end, midpoint, higher end or upper limit"]];
+                return (<div data-salary-setting="">
+                  {modes.map(([m, label, sub]) => (
+                    <label key={m} className="dh-tg" data-salary-mode={m}>
+                      <span>{label}<small>{sub}</small></span>
+                      <input type="radio" name="dh-salary-mode" checked={sal.mode === m}
+                        onChange={() => setSal({ mode: m, ...(m === "fixed" && sal.amount == null ? { amount: 100000 } : {}) })} />
+                    </label>
+                  ))}
+                  {(sal.mode === "fixed" || sal.whenNoRange === "fixed") && sal.mode !== "profile" && (
+                    <div className="dh-tg"><span><label htmlFor="dh-sal-amount">{sal.mode === "fixed" ? "The amount" : "When the posting states no range"}</label>
+                      <small>a year, in US dollars</small></span>
+                      <input id="dh-sal-amount" type="number" min={1} step={1000} value={sal.amount ?? ""} aria-label="Salary amount"
+                        onChange={(e) => setSal({ amount: e.target.value === "" ? null : Math.max(1, Number(e.target.value) || 0) })} />
+                    </div>
+                  )}
+                  {sal.mode === "position" && (
+                    <div className="dh-tg" data-salary-slider=""><span><label htmlFor="dh-sal-pos">{sal.position}% up the range</label>
+                      <small>0 = the posting's minimum · 100 = its maximum</small></span>
+                      <input id="dh-sal-pos" type="range" min={0} max={100} step={5} value={sal.position} aria-label="Point on the posted range"
+                        onChange={(e) => setSal({ position: Number(e.target.value) })} />
+                    </div>
+                  )}
+                  {sal.mode === "preset" && (
+                    <div className="dh-tg"><span><label htmlFor="dh-sal-preset">Which point</label><small>a posted range is two numbers, so its mean and median are its midpoint</small></span>
+                      <select id="dh-sal-preset" className="dh-select" value={sal.preset} onChange={(e) => setSal({ preset: e.target.value })}>
+                        {Object.keys(SALARY_PRESETS).map(k => <option key={k} value={k}>{SALARY_PRESET_LABELS[k]}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  {(sal.mode === "position" || sal.mode === "preset") && (
+                    <label className="dh-tg" data-salary-no-range=""><span>When the posting states no range<small>{sal.whenNoRange === "ask"
+                      ? "the question waits for you in Needs you" : "answer the amount above (or your Profile's number)"}</small></span>
+                      <select className="dh-select" value={sal.whenNoRange} aria-label="When the posting states no range" onChange={(e) => setSal({ whenNoRange: e.target.value })}>
+                        <option value="fixed">Answer my amount</option><option value="ask">Ask me</option>
+                      </select>
+                    </label>
+                  )}
+                  {sal.mode !== "profile" && (
+                    <div className="dh-tg"><span><label htmlFor="dh-sal-floor">Never below</label><small>{sal.floor != null ? "the answer is raised to this when lower" : "off — no floor"}</small></span>
+                      <input id="dh-sal-floor" type="number" min={1} step={1000} value={sal.floor ?? ""} placeholder="no floor" aria-label="Salary floor"
+                        onChange={(e) => setSal({ floor: e.target.value === "" ? null : Math.max(1, Number(e.target.value) || 0) })} />
+                    </div>
+                  )}
+                  <p className="dh-fold2__lead dh-fold2__lead--after" data-salary-example="">
+                    For a posting that says $120,000–$160,000: {ex.value == null ? "left for you" : usd(ex.value)} ({ex.basis}).
+                    A salary you saved for a kind of job in Application defaults still wins for that kind of job.</p>
+                </div>);
+              })()}
             </Fold>
 
             <Fold id="tell" title="Tell me" value={v.tell} headline="How you hear about new picks" {...fp("tell")}>

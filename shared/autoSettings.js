@@ -13,6 +13,7 @@
 //   profileId                which job profile runs (null = the active one)
 //   staleReposts             D107 P3: skip a posting reposted this many times (null = off), default 3
 //   staleOpenDays            D107 P3: skip a posting open longer than this many days (null = off), default 90
+import { SALARY_DEFAULTS, normaliseSalarySettings } from "./salaryAnswer.js";
 export const AUTO_DEFAULTS = Object.freeze({
   dailyCap: 10,
   runTimes: ["09:00"],
@@ -39,6 +40,9 @@ export const AUTO_DEFAULTS = Object.freeze({
   onlySponsorRecord: false,
   // ⭐ D136 P2 · "This week's best bets" — how many the shortlist shows (3–20); picks draw from the shortlist first.
   bestBets: 5,
+  // ⭐ 46a (owner 11-10) · the salary answer: the Profile's number (default, as before), a fixed amount, a point on the
+  // posting's range (slider), or a named point on it (lower limit … upper limit) — shared/salaryAnswer.js.
+  salary: SALARY_DEFAULTS,
 });
 export const CAP_MIN = 1;
 export const CAP_MAX = 150;
@@ -137,6 +141,12 @@ export function normaliseAutoSettings(input = {}) {
   if ("profileId" in input) {
     if (!(input.profileId === null || Number.isInteger(input.profileId))) return fail("bad_profile", "The job profile is an id, or none for the active one.");
     v.profileId = input.profileId;
+  }
+  // ⭐ 46a (owner 11-10): how an application answers the salary question (shared/salaryAnswer.js).
+  if ("salary" in input) {
+    const r = normaliseSalarySettings(input.salary);
+    if (!r.ok) return r;
+    v.salary = r.value;
   }
   return { ok: true, value: v };
 }

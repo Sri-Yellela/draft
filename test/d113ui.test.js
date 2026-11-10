@@ -321,15 +321,16 @@ test("d113uiOneSettingsDrawer — ONE drawer, three groups in order, D113's swit
   // sending · Tell me · Pausing · Accounts · View — each one line with its value. test/d148SettingsDrawer.test.js holds
   // every setting's new home; this keeps D113's switches and the accounts in the ONE drawer.
   const groups = [...drawer.matchAll(/<Fold id="(\w+)"/g)].map(m => m[1]);
-  assert.deepEqual(groups, ["when", "howmany", "jobs", "before", "tell", "pausing", "accounts", "view"]);
+  // 46a (owner 11-10) added Salary after Before sending, on purpose.
+  assert.deepEqual(groups, ["when", "howmany", "jobs", "before", "salary", "tell", "pausing", "accounts", "view"]);
   const fold = (id, next) => drawer.slice(at(drawer, `<Fold id="${id}"`), next ? at(drawer, `<Fold id="${next}"`) : undefined);
-  assert.match(fold("before", "tell"), /\{sw\(s\.showFormBeforeSending, \(\) => set\(\{ showFormBeforeSending: !s\.showFormBeforeSending \}\)\)\}/);
+  assert.match(fold("before", "salary"), /\{sw\(s\.showFormBeforeSending, \(\) => set\(\{ showFormBeforeSending: !s\.showFormBeforeSending \}\)\)\}/);
   const jobs = fold("jobs", "before");
   // D149 (11-03) changed this on purpose: the per-company switch reads as the sketch's "At most N per company".
   for (const w of ["Use my board filters", "At most {s.perCompanyLimit30d ?? 2} per company", "Skip stale posts", "Job profile"]) assert.ok(jobs.includes(w), w);
   assert.ok(fold("pausing", "accounts").includes("Skip a company after it interviews me"));
   assert.match(fold("accounts", "view"), /<Accounts onState=\{setAcct\} \/>/);
-  assert.match(fold("before", "tell"), /Agree to a job site's terms for me/);
+  assert.match(fold("before", "salary"), /Agree to a job site's terms for me/);
   assert.match(drawer, /Gmail, for codes and replies/);
   // The header's one Settings button and the run card's Change filters open it (at Which jobs).
   assert.match(panel, /onChangeFilters=\{\(e\) => openSettings\("jobs", e\?\.currentTarget\)\}/);
