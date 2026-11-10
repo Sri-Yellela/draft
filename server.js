@@ -118,6 +118,7 @@ import { unlocksFor, activeProfileFor } from "./services/jobs/skillUnlocks.js";
 import { contentBacklog, draftOutline, reviewOutline, readBacklogItem } from "./services/atlas/risingSkills.js";
 import { enqueue as enqueueJob, registerHandler as registerJob, startWorker as startJobWorker, pruneJobs, queueStats } from "./services/ops/jobQueue.js";
 import { fillPostingInputHashes } from "./services/jobs/postingInputHashes.js";
+import { completeProfileForApply, contactGaps } from "./services/applyProfileFill.js";
 import { archiveSlice, archiveEnabled, archiveState, ARCHIVE_SETTING } from "./services/jobs/postingArchive.js";   // D151 Rule 4 (45s)
 import { seedTaxonomyRoles } from "./services/atlas/taxonomyRoleNodes.js";
 import { TAXONOMY_FILE } from "./services/jobs/taxonomyClassify.js";
@@ -9031,6 +9032,9 @@ function normaliseUrl(raw) {
 // ⭐ D101 P2 / D104: every caller gets the payload with its eligibility, preference and self-ID values taken ONLY from the
 // user's Application defaults (services/structuredProfile.js withApplicationDefaults) — a 0 column default is never an answer.
 function buildAutofillPayload(profile, mode, company = null) {
+  // ⭐ A179 F2: an EMPTY profile field is filled from the active base résumé first (D186's rule, written once per résumé),
+  // and the account's email answers an empty profile email — a run never reaches a form with nothing to type.
+  if (mode !== "CUSTOM_SAMPLER") profile = completeProfileForApply(db, profile);
   return withApplicationDefaults(db, profile?.user_id ?? null, buildAutofillPayloadFromProfile(profile, mode, company));
 }
 function buildAutofillPayloadFromProfile(profile, mode, company = null) {

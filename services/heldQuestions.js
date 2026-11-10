@@ -60,6 +60,8 @@ const WORDS = Object.freeze({
   login_required: "The company's site wants you signed in.",
   captcha_required: "The company's site is behind a CAPTCHA or an identity check.",
   answers_changed_since_approval: "The form changed after you approved it.",
+  // ⭐ A179 F2: caught before the run — nothing was opened, typed or sent
+  profile_contact_empty: "Your contact details are empty, so nothing was filled or sent. Upload a résumé or fill your name and email in Profile, then Run now.",
 });
 
 /** One sentence: why this application is held. `detail` names the specifics where the code alone can't (the checks). */

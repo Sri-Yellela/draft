@@ -43,8 +43,18 @@ export function heldHeadline(node) {
   const company = s(node?.company) || "this company";
   const q = node?.question?.question;
   switch (state) {
-    case "needs": return { state, eyebrow: "Only you can answer this", title: q ? s(q).replace(/\s*\??$/, "?") : "One answer only you can give",
-      lead: "Everything else is done. draft never makes up salary, eligibility or legal answers." };
+    case "needs": {
+      // ⭐ A179 F1 (owner 11-10: "One answer only you can give" over 24 fields, "Everything else is done" when nothing was):
+      // the heading counts the questions really waiting, and "everything else is done" is said only when the run filled the rest.
+      const n = heldQuestionsFor(node).length;
+      const fill = fillOf(latestRow(node));
+      const title = n > 1 ? `${n} answers only you can give` : q ? s(q).replace(/\s*\??$/, "?") : "One answer only you can give";
+      const rest = fill && fill.filled === 0 ? "Nothing was filled on the form yet — draft had no answers to type."
+        : fill && fill.filled > 0 ? `draft filled ${fill.filled}${fill.discovered ? ` of ${fill.discovered}` : ""} fields; the rest are yours.`
+        : "Everything else is done.";
+      return { state, eyebrow: "Only you can answer this", title,
+        lead: `${rest} draft never makes up salary, eligibility or legal answers.` };
+    }
     case "fail": return { state, eyebrow: "Something went wrong on our side", title: "The résumé couldn't be made",
       lead: "Nothing was sent, and nothing is left for you to fill. Try again, or pick another base résumé." };
     case "ready": return { state, eyebrow: "Ready for you", title: "Everything is filled. Submit when you're happy.",
@@ -71,17 +81,48 @@ export function heldHeadline(node) {
  * The steps the run took. `counts` = { filled, total } when the answers are read; `resumeName` the attached file's name.
  * Each step: { id, label, state: "done" | "now" | "fail" | "", meta }.
  */
+/** ⭐ A179 F1: what the run REPORTED it typed — { filled, discovered } (routes/apply.js publicRunJob `fill`), or null. */
+export function fillOf(row) {
+  const f = row?.fill;
+  if (!f || !Number.isFinite(Number(f.filled))) return null;
+  return { filled: Number(f.filled), discovered: Number.isFinite(Number(f.discovered)) && f.discovered != null ? Number(f.discovered) : null };
+}
+
+/**
+ * ⭐ A179 F1: the résumé step in plain truth — "Tailored" only when the tailored résumé scored above the base; the same score
+ * is "already fits — kept as is"; a lower one says so. `row` carries atsScore (the attached résumé) and baseAtsScore.
+ */
+export function resumeStepOf(row) {
+  const base = Number(row?.baseAtsScore), got = Number(row?.atsScore);
+  if (row?.baseAtsScore == null || row?.atsScore == null || !Number.isFinite(base) || !Number.isFinite(got)) {
+    return { label: "Tailored your résumé", state: "done", meta: "" };
+  }
+  const meta = `ATS ${base} → ${got}`;
+  if (got > base) return { label: "Tailored your résumé", state: "done", meta };
+  if (got === base) return { label: "Your résumé already fits — tailoring changed no score", state: "done", meta };
+  return { label: "Tailoring scored lower than your base résumé", state: "fail", meta };
+}
+
 export function runSteps(node, { counts = null, resumeName = "" } = {}) {
   const state = heldStateOf(node);
   if (!state || state === "held") return [];   // A165: a hold before the form says why; it claims no steps
   const fail = state === "fail";
   const after = (at) => ["needs", "ready", "sent"].indexOf(state) >= ["needs", "ready", "sent"].indexOf(at);
-  const filledMeta = counts && Number.isFinite(counts.total) && counts.total > 0 ? `${counts.filled} of ${counts.total}` : "";
+  // ⭐ A179 F1: the counts are what the run REPORTED (the approval's answer count, else the row's fill); "Filled the form"
+  // is never green over nothing — 0 typed is a failed step, and a run that never reached the form claims no fill.
+  const row = latestRow(node);
+  const reported = counts && Number.isFinite(counts.filled) ? { filled: counts.filled, discovered: Number.isFinite(counts.total) ? counts.total : null } : fillOf(row);
+  const filledMeta = reported ? (reported.discovered ? `${reported.filled} of ${reported.discovered}` : `${reported.filled}`) : "";
+  // A sent application filled its form (the submission is the evidence) even when no count was kept.
+  const fillState = fail ? "" : state === "sent" && !reported ? "done" : !reported ? "" : reported.filled === 0 ? "fail" : "done";
+  const fillLabel = !fail && reported && reported.filled === 0 ? "Filled the form — nothing was filled"
+    : !fail && !reported && state !== "sent" ? "Filled the form — not reported" : "Filled the form";
+  const resumeStep = fail ? { label: "Tailored your résumé — it couldn't be made", state: "fail", meta: "" } : resumeStepOf(row);
   return [
     { id: "posting", label: "Read the posting", state: "done", meta: "" },
-    { id: "resume", label: fail ? "Tailored your résumé — it couldn't be made" : "Tailored your résumé", state: fail ? "fail" : "done", meta: "" },
+    { id: "resume", label: resumeStep.label, state: resumeStep.state, meta: resumeStep.meta },
     { id: "attached", label: "Attached the résumé", state: fail ? "" : "done", meta: fail ? "waiting" : s(resumeName) },
-    { id: "filled", label: "Filled the form", state: fail ? "" : "done", meta: fail ? "waiting" : filledMeta },
+    { id: "filled", label: fillLabel, state: fillState, meta: fail ? "waiting" : filledMeta },
     { id: "you", label: state === "needs" ? "Waiting for you" : "Your answers", state: fail ? "" : state === "needs" ? "now" : "done", meta: "" },
     { id: "ready", label: "Ready for you to submit", state: fail ? "" : state === "ready" ? "now" : after("sent") ? "done" : "", meta: "" },
     { id: "sent", label: "Sent", state: state === "sent" ? "done" : "", meta: "" },

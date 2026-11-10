@@ -29,9 +29,11 @@ test("d165HeldOpensInPlace: the four states, in the sketch's words", () => {
 test("d165HeldOpensInPlace: every step the run took, each done / now / fail / waiting", () => {
   const st = (n, o) => Object.fromEntries(runSteps(n, o).map(s => [s.id, s.state]));
   assert.deepEqual(runSteps(needs).map(s => s.id), ["posting", "resume", "attached", "filled", "you", "ready", "sent"]);
-  assert.deepEqual(st(needs), { posting: "done", resume: "done", attached: "done", filled: "done", you: "now", ready: "", sent: "" });
+  // ⭐ A179 F1: "Filled the form" is green only on what the run REPORTED (or a sent application) — never claimed blind.
+  assert.deepEqual(st(needs), { posting: "done", resume: "done", attached: "done", filled: "", you: "now", ready: "", sent: "" });
   assert.deepEqual(st(fail), { posting: "done", resume: "fail", attached: "", filled: "", you: "", ready: "", sent: "" });
-  assert.deepEqual(st(ready), { posting: "done", resume: "done", attached: "done", filled: "done", you: "done", ready: "now", sent: "" });
+  assert.deepEqual(st(ready), { posting: "done", resume: "done", attached: "done", filled: "", you: "done", ready: "now", sent: "" });
+  assert.deepEqual(st(ready, { counts: { filled: 15, total: 16 } }).filled, "done");
   assert.deepEqual(st(sent), { posting: "done", resume: "done", attached: "done", filled: "done", you: "done", ready: "done", sent: "done" });
   assert.equal(runSteps(ready, { counts: { filled: 15, total: 16 } }).find(s => s.id === "filled").meta, "15 of 16");
 });
