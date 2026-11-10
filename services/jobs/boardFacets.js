@@ -138,6 +138,16 @@ export function facetClauses({ nowSec, visitSinceSec = null }) {
         // ⛔ HARD: an unscored row is in no band, so known === count (filterSentence.js says so).
         return { value: o.value, label: labelFor(FIT_BANDS, o.value), count: p, known: p };
       }),
+      // ⭐ A176 (46d): COUNTED with the score taken ONCE per row. Folded into the headline, each band's predicate repeated the
+      // current-score expression (A85's posting-hash check) — 15 times a row with "unscored" (8 s warm on the 100k copy).
+      // The same predicates (fitBandsSql), over a derived column instead: one read of the board's own bindings.
+      compute: async (ctx) => {
+        const { joinClause, whereClause, baseArgs } = ctx;
+        const score = ctx?.fitScoreSql ?? FIT_SCORE_SQL;
+        const cols = FIT_BANDS.options.map((o, i) => `COALESCE(SUM(CASE WHEN ${fitBandsSql([o.value], { scoreSql: "fx.s" })} THEN 1 ELSE 0 END), 0) AS c${i}`);
+        const r = await readerOf(ctx).get(`SELECT ${cols.join(", ")} FROM (SELECT ${score} AS s ${joinClause} ${whereClause}) fx`, baseArgs);
+        return Object.fromEntries(FIT_BANDS.options.flatMap((_o, i) => [[`c${i}`, r?.[`c${i}`] ?? 0], [`k${i}`, r?.[`c${i}`] ?? 0]]));
+      },
     },
     // ⭐ A109 · SPONSORSHIP — counted with the board query's own SQL (D121's ONE signal, signalSql): employers with
     // certified H-1B filings. HARD (known === count): an employer we could not match is in no option.
