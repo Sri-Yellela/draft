@@ -174,7 +174,10 @@ export default function AutoSettingsDrawer({ open, onClose, runBar = null, group
     const target = fold ? panel.current?.querySelector(`[data-settings-group="${fold}"] .dh-fold2__body`) : null;
     if (target) target.scrollIntoView?.({ block: "nearest" });
     (target?.querySelector("button, input, select") || panel.current?.querySelector("[data-first]"))?.focus();
-  }, [open, s, fold]);
+    // ⛔ A168 (46b, found by the salary walk): this ran on EVERY change of `s` — each keystroke's save — so typing 145000 into
+    // the floor moved focus to the fold's first control after the "1" and saved floor = 1. It runs when a fold opens (and
+    // once the settings arrive), never while the person types.
+  }, [open, !!s, fold]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => clearTimeout(timer.current), []);
   useEffect(() => () => { if (inline) closeRef.current?.(); }, [inline]);   // D167: leaving the inline panel saves first
 
