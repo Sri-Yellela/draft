@@ -8,6 +8,7 @@ import { actorOf } from "../services/actor.js";
 import express, { Router } from "express";
 import { listCompanies, harvestedSuggestions, validateBoard, addCompany, setCompanyActive, ATS_FETCHERS } from "../services/companyList.js";
 import { trancheGate } from "../services/diskGauge.js";
+import { harvestPairOf } from "../services/slugHarvest.js";
 import { createBackup } from "../scripts/backup.js";       // D82 C: an approved candidate batch is added only after a backup
 import { heatReport, boardCounts, boardCountsVia } from "../services/companyHeat.js";
 import { listCandidates, discoveryStatus, planApproval, approveCandidates, rejectCandidates, resetBreaker, runCandidateProbe, probeDue, PROBE_BATCH } from "../services/companyCandidates.js";
@@ -36,17 +37,27 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
+  // ⭐ 46a (owner 11-10): a careers page URL in the slug field is read with the crawl's one URL parser —
+  // "https://zoom.wd5.myworkdayjobs.com/Zoom" → workday · 5|zoom|Zoom — so a multi-part board need not be typed by hand.
+  const boardOf = (atsType, slug) => {
+    const s = String(slug || "").trim();
+    if (!/^https?:\/\//i.test(s)) return { atsType, slug: s };
+    const p = harvestPairOf(s);
+    return p?.atsType ? { atsType: p.atsType, slug: p.slug, fromUrl: true } : { atsType, slug: s };
+  };
   router.post("/validate", async (req, res) => {
-    const { atsType, slug, company } = req.body || {};
-    res.json(await validateBoard({ atsType, slug, company, fetchers }));
+    const { company } = req.body || {};
+    const b = boardOf(req.body?.atsType, req.body?.slug);
+    res.json({ ...(await validateBoard({ atsType: b.atsType, slug: b.slug, company, fetchers })), ...(b.fromUrl ? { board: { atsType: b.atsType, slug: b.slug } } : {}) });
   });
 
   router.post("/", async (req, res) => {
-    const { company, atsType, slug, bucketRole = null, confirm = false, expectState = null } = req.body || {};
+    const { company, bucketRole = null, confirm = false, expectState = null } = req.body || {};
+    const { atsType, slug } = boardOf(req.body?.atsType, req.body?.slug);   // a pasted careers URL → its pair
     if (!company || !String(company).trim()) return res.status(400).json({ error: "company_required", message: "Name the company." });
     const validation = await validateBoard({ atsType, slug, company, fetchers });
     if (!confirm) {
-      return res.json({ dryRun: true, validation,
+      return res.json({ dryRun: true, validation, board: { atsType, slug },
         note: validation.ok ? `Nothing was added. POST again with confirm: true and expectState: "${validation.state}" to add it.`
                             : "This board cannot be added." });
     }

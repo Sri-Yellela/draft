@@ -19,15 +19,25 @@ import { fetchCompanyJobs as bamboohr } from "./jobs/sources/bamboohr.js";
 import { fetchCompanyJobs as gem } from "./jobs/sources/gem.js";
 import { fetchCompanyJobs as rippling } from "./jobs/sources/rippling.js";
 import { fetchCompanyJobs as icims } from "./jobs/sources/icims.js";
-import { fetchCompanyJobs as oracle } from "./jobs/sources/oracle.js";
-import { fetchCompanyJobs as taleo } from "./jobs/sources/taleo.js";
+import { fetchCompanyJobs as oracle, parseSlug as parseOracleSlug } from "./jobs/sources/oracle.js";
+import { fetchCompanyJobs as taleo, parseSlug as parseTaleoSlug } from "./jobs/sources/taleo.js";
 import { usEligibility } from "./jobs/usLocation.js";
 import { fetchDescription, hasDetailFetcher } from "./jobs/detailFetch.js";
 import { auditActorColumns } from "./actor.js";
 import { boardCounts, countsFor } from "./companyHeat.js";
+import { harvestPairOf } from "./slugHarvest.js";   // 46a: a capture's URL → its full board pair (a call-time use; slugHarvest imports this file too)
 
 export const ATS_FETCHERS = Object.freeze({ greenhouse, lever, ashby, smartrecruiters, workable, recruitee, workday, bamboohr, gem, rippling, icims, oracle, taleo });
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._|-]{0,119}$/;
+// 46a: the boards whose slug has parts — checked with each source's own parser, so the shape and the fetcher never disagree.
+const SLUG_SHAPES = {
+  workday: { ok: (s) => /^\d+\|[A-Za-z0-9-]+\|[A-Za-z0-9_-]+$/.test(s),
+    message: "A Workday board is \"wdN|tenant|site\" — e.g. 5|zoom|Zoom for https://zoom.wd5.myworkdayjobs.com/Zoom. Paste the careers page URL instead and it is read for you." },
+  oracle: { ok: (s) => !!parseOracleSlug(s),
+    message: "An Oracle Recruiting Cloud board is \"<host>|<site>\" — e.g. fa-xxxx.fa.ocs.oraclecloud.com|CX_1. Paste the careers page URL instead." },
+  taleo: { ok: (s) => !!parseTaleoSlug(s),
+    message: "A Taleo board is \"<tenant>|<section>\" — e.g. hdr|ex for https://hdr.taleo.net/careersection/ex/jobsearch.ftl. Paste the careers page URL instead." },
+};
 const AUDIT = { ADD: "company_add", ACTIVE: "company_active" };
 
 /** Every configured company with what the board actually holds from it. */
@@ -47,17 +57,35 @@ export function listCompanies(db, { counts = null } = {}) {
  * from job_captures (A62). Ranked by how many distinct people brought one in.
  */
 export function harvestedSuggestions(db, limit = 50) {
+  let rows;
   try {
-    return db.prepare(`
+    rows = db.prepare(`
       SELECT jc.ats_type, jc.ats_slug, COUNT(*) AS captures, COUNT(DISTINCT jc.user_id) AS people,
-             MAX(jc.created_at) AS last_at
+             MAX(jc.created_at) AS last_at, MAX(jc.url) AS sample_url
       FROM job_captures jc
       WHERE jc.ats_type IS NOT NULL AND jc.ats_slug IS NOT NULL
         AND NOT EXISTS (SELECT 1 FROM company_ats_list c WHERE c.ats_type = jc.ats_type AND lower(c.ats_slug) = lower(jc.ats_slug))
       GROUP BY jc.ats_type, lower(jc.ats_slug)
       ORDER BY people DESC, captures DESC LIMIT ?
-    `).all(limit);
+    `).all(limit * 2);
   } catch { return []; }   // a database without migration 122
+  // ⛔ 46a (owner 11-10: "workday · zoom" → Use → Probe → network error): a capture records Workday's TENANT ("zoom"), but
+  // the board is "wdN|tenant|site" — so the suggestion could never be probed, and the configured check (on the tenant)
+  // never matched a configured "5|zoom|Zoom". The full pair is read from a captured posting's own URL with the crawl's one
+  // URL parser; a suggestion whose full board is configured is left out; one that cannot be completed says so (needsUrl).
+  const configured = new Set(db.prepare("SELECT ats_type || ':' || lower(ats_slug) FROM company_ats_list").pluck().all());
+  const out = [];
+  for (const r of rows) {
+    let slug = r.ats_slug, needsUrl = false;
+    if (SLUG_SHAPES[r.ats_type] && !SLUG_SHAPES[r.ats_type].ok(String(slug))) {
+      const p = r.sample_url ? harvestPairOf(r.sample_url) : null;
+      if (p?.atsType === r.ats_type && SLUG_SHAPES[r.ats_type].ok(p.slug)) slug = p.slug; else needsUrl = true;
+    }
+    if (configured.has(`${r.ats_type}:${String(slug).toLowerCase()}`)) continue;
+    out.push({ ats_type: r.ats_type, ats_slug: slug, captures: r.captures, people: r.people, last_at: r.last_at, ...(needsUrl ? { needsUrl: true } : {}) });
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 /**
@@ -71,6 +99,11 @@ export async function validateBoard({ atsType, slug, company = "", fetchers = AT
   const fetch = fetchers[atsType];
   if (!fetch) return { ok: false, state: "unsupported", message: `No crawler for "${atsType}".` };
   if (!SLUG_RE.test(String(slug || ""))) return { ok: false, state: "invalid", message: "That slug has characters no board slug has." };
+  // ⛔ 46a (owner 11-10: Probe on "workday · zoom" → "could not be read (network error)"): a multi-part slug that is
+  // incomplete built a host that does not exist (zoom.wdundefined.myworkdayjobs.com), and DNS failing read as a network
+  // error. Said plainly now, before anything is fetched — with the shape and where to find it.
+  const shapeMiss = SLUG_SHAPES[atsType] && !SLUG_SHAPES[atsType].ok(String(slug));
+  if (shapeMiss) return { ok: false, state: "invalid", message: SLUG_SHAPES[atsType].message };
   let jobs;
   try {
     jobs = await fetch(slug, company || slug, []);
