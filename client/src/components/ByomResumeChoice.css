@@ -5,11 +5,9 @@
 .byom .byom__car { border-top-left-radius: 0; border-bottom-left-radius: 0; width: 36px; padding: 0; }
 .byom .byom__car svg { width: 15px; height: 15px; }
 .byom--sq .byom__car { height: auto; align-self: stretch; }
-.byom__pop {
-  position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; width: 320px; max-width: calc(100vw - 32px);
-  display: flex; flex-direction: column; padding: 6px;
-  background: var(--c-surface-menu); border: 1px solid var(--c-border-control); border-radius: 6px; box-shadow: var(--c-depth-hover);
-}
+/* 46a: the menu's box is the shared DockPortal (document.body, fixed, clamped to the viewport) — this is only its layout.
+   It used to be absolute, right-aligned, 320 px wide, and ran past a narrow card's edge (Screenshot 2026-11-10 001237). */
+.byom__pop { display: flex; flex-direction: column; }
 .byom__opt {
   display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; text-align: left;
   padding: 9px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--c-ink-muted);
