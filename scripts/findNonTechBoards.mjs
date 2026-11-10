@@ -78,7 +78,8 @@ prior.unsupported ??= [];
 prior.j1 ??= {};
 const have = new Set(prior.found.map(f => `${f.atsType}:${f.slug}`.toLowerCase()));
 for (const [company, site, industry] of [...SITES, ...SITES_46A]) {
-  if (prior.j1[company]) continue;
+  // 46b: RETRY_ERRORS=1 re-tries only the sites a run recorded as "error" (46a: Lockheed, Caterpillar, Morgan Stanley).
+  if (prior.j1[company] && !(process.env.RETRY_ERRORS === "1" && prior.j1[company] === "error")) continue;
   const fetcher = createFetcher({ budget: { pages: 25, bytes: 5_000_000, ms: 120_000 }, rateMs: 2000 });
   let r = null;
   try { r = await findBoard({ baseUrl: site }, fetcher); } catch (e) { r = { status: "error", error: String(e?.message || e).slice(0, 120) }; }
@@ -91,7 +92,7 @@ for (const [company, site, industry] of [...SITES, ...SITES_46A]) {
   const vendors = [...new Set(harvested.filter(x => x.p.unsupported).map(x => x.p.unsupported))];
   let hit = null;
   for (const { p } of pairs) {
-    if (!["greenhouse", "lever", "ashby", "smartrecruiters", "workable", "workday", "recruitee", "bamboohr", "rippling", "gem", "icims", "oracle", "taleo"].includes(p.atsType)) continue;
+    if (!["greenhouse", "lever", "ashby", "smartrecruiters", "workable", "workday", "recruitee", "bamboohr", "rippling", "gem", "icims", "oracle", "taleo", "successfactors"].includes(p.atsType)) continue;
     let v = null; try { v = await probeBoard({ atsType: p.atsType, slug: p.slug, company }, { describe }); } catch { v = null; }
     if (v && v.state === "live" && v.us >= 3 && (v.csOpen || 0) >= 3) {
       hit = { company, atsType: p.atsType, slug: p.slug, industry, via: "j1", evidence: { fetched: v.fetched ?? v.jobs, us: v.us, fresh: v.fresh, inScope: v.csOpen, cs30: v.cs30, usPct: v.usPct, medianAge: v.medianAge, probedAt: new Date().toISOString() } };
