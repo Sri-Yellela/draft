@@ -312,8 +312,18 @@ export function repairCandidateNames(db, { now = nowS() } = {}) {
       else { reject.run("not_a_company_name", now, r.id); out.rejected.push({ id: r.id, from: r.company, why: "not_a_company_name" }); }
     }
   })();
+  // Configured names come from the board itself, where "Langan Engineering …" or "Hello Patient" is a real employer — so the
+  // report names only what is a label, a place or a BOARD's title ("… Job Openings", "… Internships"), not the pool's test.
   for (const c of db.prepare("SELECT id, company, ats_type, ats_slug FROM company_ats_list").all()) {
-    if (!looksLikeCompany(c.company)) out.configuredSuspect.push(`${c.company} (${c.ats_type}:${c.ats_slug})`);
+    if (configuredNameSuspect(c.company)) out.configuredSuspect.push(`${c.company} (${c.ats_type}:${c.ats_slug})`);
   }
   return out;
+}
+
+/** A configured company name that is a field label, a lone place or a board's title — reported only, never changed. */
+export function configuredNameSuspect(name) {
+  const s = String(name || "").trim();
+  return !s || /^[A-Za-z][A-Za-z /&-]{1,30}:\s*\S/.test(s)
+    || /^(remote|hybrid|onsite|nyc|sf|san francisco|new york|seattle|boston|london|united states|usa|us)$/i.test(s)
+    || /\b(job openings?|openings|internships?|intern program|internship program|careers? (?:page|site|board)|job board|positions?|hiring)\b/i.test(s);
 }

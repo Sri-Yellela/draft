@@ -115,3 +115,9 @@ test("the approve dialog stays on screen: refusals counted by reason, names in a
   assert.match(src, /data-reprobe="" /);
   assert.match(fs.readFileSync("routes/companies.js", "utf8"), /router\.post\("\/candidates\/probe"/);
 });
+
+test("the configured-company report names only labels, places and board titles — never a real 'Engineering' / 'Hello' employer", async () => {
+  const { configuredNameSuspect } = await import("../services/companyCandidates.js");
+  for (const n of ["Langan Engineering & Environmental Services", "Hello Patient", "Hi Marley", "Flow Engineering", "Coffman Engineers, Inc.", "Stripe"]) assert.equal(configuredNameSuspect(n), false, n);
+  for (const n of ["Strategic HR Client Job Openings", "Integra FEC - Internships", "Vestmark Internship Program", "Location: Dallas", "NYC"]) assert.equal(configuredNameSuspect(n), true, n);
+});
