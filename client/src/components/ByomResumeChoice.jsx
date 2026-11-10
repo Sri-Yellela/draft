@@ -15,6 +15,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
 import DepthButton, { ICONS } from "./DepthButton.jsx";
+import { DockPortal } from "./DockPortal.jsx";
 import "./ByomResumeChoice.css";
 
 const HOST_URL = {
@@ -87,16 +88,14 @@ export function useByomFlow(job) {
  */
 export default function ByomResumeChoice({ byom, label, square = false, onGenerate, disabled = false, busy = false }) {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  // ⛔ 46a (owner 11-10, Screenshot 2026-11-10 001237: "the box is going out of bounds"): the menu was absolute, right-aligned
+  // to the button and 320 px wide — in the deck's narrow card it ran past the card's left edge and the card's overflow cut
+  // it off. It now opens through the shared DockPortal (document.body, fixed, clamped to the viewport; outside click and Esc
+  // close it there), anchored on the split button's own box.
+  const [anchor, setAnchor] = useState(null);
+  const open = !!anchor;
+  const setOpen = (v) => setAnchor(v && wrap.current ? wrap.current.getBoundingClientRect() : null);
   const wrap = useRef(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (e) => { if (!wrap.current?.contains(e.target)) setOpen(false); };
-    const esc = (e) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("pointerdown", close);
-    document.addEventListener("keydown", esc);
-    return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", esc); };
-  }, [open]);
   if (!byom?.available) return null;
   const { settings, method } = byom;
   const hostLabel = method === "draft" ? null : settings.hosts?.[method]?.label;
@@ -123,6 +122,8 @@ export default function ByomResumeChoice({ byom, label, square = false, onGenera
       <DepthButton size="box" icon={<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>} onClick={() => setOpen(o => !o)}
         title="Choose how to write it" aria-haspopup="menu" aria-expanded={open} aria-label="Choose how to write it" className="byom__car">{null}</DepthButton>
       {open && (
+        <DockPortal anchorRect={anchor} onClose={() => setOpen(false)}
+          style={{ minWidth: 320, width: 320, maxWidth: "calc(100vw - 24px)", padding: 6, borderRadius: 6 }}>
         <div className="byom__pop" role="menu" aria-label="Write the résumé">
           {opt("draft", "Write it with draft", "Uses a draft credit · about 10 seconds", <span className="mark mark--dim">default</span>)}
           {opt("chatgpt", "Write it in ChatGPT", "Free to you · uses your own ChatGPT", hostMark("chatgpt"))}
@@ -131,6 +132,7 @@ export default function ByomResumeChoice({ byom, label, square = false, onGenera
             <button type="button" className="byom__link" onClick={() => { setOpen(false); navigate("/app/integrations"); }}>Turn on Connected apps in Settings</button>
           </div>
         </div>
+        </DockPortal>
       )}
     </span>
   );
