@@ -93,8 +93,10 @@ export function fillOf(row) {
  * is "already fits — kept as is"; a lower one says so. `row` carries atsScore (the attached résumé) and baseAtsScore.
  */
 export function resumeStepOf(row) {
-  const base = Number(row?.baseAtsScore), got = Number(row?.atsScore);
-  if (row?.baseAtsScore == null || row?.atsScore == null || !Number.isFinite(base) || !Number.isFinite(got)) {
+  // the held row's fields, or an approval row's (resume.atsScore, baseAts.score)
+  const baseRaw = row?.baseAtsScore ?? row?.baseAts?.score ?? null, gotRaw = row?.atsScore ?? row?.resume?.atsScore ?? null;
+  const base = Number(baseRaw), got = Number(gotRaw);
+  if (baseRaw == null || gotRaw == null || !Number.isFinite(base) || !Number.isFinite(got)) {
     return { label: "Tailored your résumé", state: "done", meta: "" };
   }
   const meta = `ATS ${base} → ${got}`;
