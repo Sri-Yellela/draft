@@ -61,6 +61,9 @@ const trackingStats = {
   lastPersistError: null,
 };
 
+// The system users row (migration 075; services/modelCall.js SYSTEM_USER_ID — not imported: modelCall imports this file).
+const SYSTEM_USAGE_USER_ID = 0;
+
 /** Recorded vs failed usage inserts for this process. Read by the admin cost endpoint. */
 export function getTrackingStats() {
   return { ...trackingStats };
@@ -141,6 +144,11 @@ export function trackApiCall(db, {
   startedBy = null,
 }) {
   let eventId = null;
+  // ⭐ A170 (46b): a call with NO user (null / undefined — callModel's default only covers an omitted argument) is draft's
+  // own, and is recorded against the system row (id 0, migration 075) — never lost to usage_events.user_id's NOT NULL.
+  if (userId == null) userId = SYSTEM_USAGE_USER_ID;
+  let costForLog = null;
+  try { costForLog = calcCost(model, usage || {}); } catch { costForLog = null; }
   try {
     const cost = calcCost(model, usage || {});
     const cacheReadTokens     = usage?.cache_read_input_tokens || 0;
@@ -268,8 +276,10 @@ export function trackApiCall(db, {
       }
     }
 
+    // ⭐ A170: the line carries what was spent (tokens and dollars), so the log alone can account for it.
     console.error("[usageTracker] FAILED TO RECORD USAGE — spend is happening and is not being " +
-      `logged. model=${model} purpose=${purpose ?? eventType}: ${e.message}` +
+      `logged. model=${model} purpose=${purpose ?? eventType} user=${userId} in=${usage?.input_tokens || 0} out=${usage?.output_tokens || 0} ` +
+      `costUsd=${costForLog == null ? "?" : Number(costForLog).toFixed(6)}: ${e.message}` +
       (trackingStats.lostFailures > 0
         ? " — AND it could not be written to the database or the out-of-process sink, so this log " +
           "line is the only remaining record of it."
