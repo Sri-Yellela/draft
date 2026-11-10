@@ -9,25 +9,31 @@ import express, { Router } from "express";
 import { listCompanies, harvestedSuggestions, validateBoard, addCompany, setCompanyActive, ATS_FETCHERS } from "../services/companyList.js";
 import { trancheGate } from "../services/diskGauge.js";
 import { createBackup } from "../scripts/backup.js";       // D82 C: an approved candidate batch is added only after a backup
-import { heatReport } from "../services/companyHeat.js";
+import { heatReport, boardCounts, boardCountsVia } from "../services/companyHeat.js";
 import { listCandidates, discoveryStatus, planApproval, approveCandidates, rejectCandidates, resetBreaker } from "../services/companyCandidates.js";
 
 const DEFAULT_DATA_DIR = () => process.env.RM_DATA_DIR || "data";
 
 export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHERS, dataDir = DEFAULT_DATA_DIR(),
                                                             gate = (companies) => trancheGate(db, dataDir, { companies }),
-                                                            backup = (label) => createBackup(label), env = process.env } = {}) {
+                                                            backup = (label) => createBackup(label), env = process.env, read = null } = {}) {
   const router = Router();
   router.use(requireAdmin);
   router.use(express.json({ limit: "64kb" }));
 
-  router.get("/", (_req, res) => {
+  router.get("/", async (_req, res) => {
     // D80 E: each active company's hiring heat and the deactivation PROPOSALS — read-only; the owner presses Disable.
-    const heat = heatReport(db);
-    const byId = new Map(heat.companies.map((c) => [c.id, c]));
-    const companies = listCompanies(db).map((c) => ({ ...c, heat: byId.get(c.id)?.heat ?? null, new_30d: byId.get(c.id)?.new_30d ?? null }));
-    res.json({ companies, suggestions: harvestedSuggestions(db), atsTypes: Object.keys(fetchers),
-               heat: { ...heat.summary, hotDays: heat.hotDays, dormantDays: heat.dormantDays, target: heat.target, proposals: heat.proposals } });
+    // ⛔ A162 (46a): the posting counts are ONE grouped pass, run on the read-worker pool when there is one — this tab
+    // used to hold the event loop for minutes (the whole site froze while it loaded).
+    try {
+      const now = Math.floor(Date.now() / 1000);
+      const counts = read ? await boardCountsVia(read, { now }) : boardCounts(db, { now });
+      const heat = heatReport(db, { now, counts });
+      const byId = new Map(heat.companies.map((c) => [c.id, c]));
+      const companies = listCompanies(db, { counts }).map((c) => ({ ...c, heat: byId.get(c.id)?.heat ?? null, new_30d: byId.get(c.id)?.new_30d ?? null }));
+      res.json({ companies, suggestions: harvestedSuggestions(db), atsTypes: Object.keys(fetchers),
+                 heat: { ...heat.summary, hotDays: heat.hotDays, dormantDays: heat.dormantDays, target: heat.target, proposals: heat.proposals } });
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
   router.post("/validate", async (req, res) => {
