@@ -36,3 +36,22 @@ test("seedNonTechCandidates: into the pool as NEW candidates, once; a configured
   assert.equal(db.prepare("SELECT COUNT(*) FROM company_ats_list").pluck().get(), before, "the seed never adds a company");
   assert.match(fs.readFileSync("server.js", "utf8"), /if \(process\.env\.DISCOVERY_PAUSED !== "1"\) setTimeout\(\(\) => \{\r?\n  try \{ const r = importSeedCandidates\(db\);/);
 });
+
+test("seedNonTechCandidates: the Candidates panel lists every undecided row, even past 200 decided / probed ones (owner 11-09)", async () => {
+  const { listCandidates } = await import("../services/companyCandidates.js");
+  const db = new Database(":memory:");
+  for (const m of MIGRATIONS) db.exec(m.sql);
+  importSeedCandidates(db, { file: seedFile(FOUND.slice(0, 2)) });
+  const cols = db.prepare("PRAGMA table_info(company_candidates)").all().map(c => c.name);
+  const ins = db.prepare(`INSERT INTO company_candidates (company, ats_type, ats_slug, status, rank_score, source, first_seen, last_seen)
+                          VALUES (?, 'greenhouse', ?, ?, ?, 'hn', 1, 1)`);
+  assert.ok(cols.includes("rank_score"));
+  for (let i = 0; i < 230; i++) ins.run(`Probed ${i}`, `probed${i}`, "probed", 100 - i / 10);
+  for (let i = 0; i < 230; i++) ins.run(`Gone ${i}`, `gone${i}`, "rejected", 0);
+  const { candidates, counts } = listCandidates(db);
+  assert.equal(counts.new, 2);
+  assert.deepEqual(candidates.filter(c => c.status === "new").map(c => c.company).sort(), ["Example Builders", "Example Health"]);
+  assert.equal(candidates.filter(c => c.status === "probed").length, 230, "no undecided row is cut");
+  assert.equal(candidates.filter(c => c.status === "rejected").length, 200, "decided rows keep the 200 cap");
+  assert.match(fs.readFileSync("client/src/panels/adminOps.jsx", "utf8"), /r\.source === "seed-nontech-45s" \? "non-tech seed \(probed list\)"/);
+});

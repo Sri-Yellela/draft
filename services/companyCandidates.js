@@ -210,7 +210,10 @@ const STATUS_ORDER = "CASE status WHEN 'probed' THEN 0 WHEN 'new' THEN 1 WHEN 'a
 export function listCandidates(db, { status = null, limit = 200 } = {}) {
   const rows = status
     ? db.prepare(`SELECT * FROM company_candidates WHERE status = ? ORDER BY rank_score DESC, last_seen DESC LIMIT ?`).all(status, limit)
-    : db.prepare(`SELECT * FROM company_candidates ORDER BY ${STATUS_ORDER}, rank_score DESC, last_seen DESC LIMIT ?`).all(limit);
+    // 45s (owner 11-09, "i dont see anything in there"): every row still waiting for a decision is listed, however many there
+    // are — the 200-row cap only trims the decided ones (added / rejected), which used to push fresh 'new' rows off the list.
+    : [...db.prepare(`SELECT * FROM company_candidates WHERE status IN ('probed','new','approved') ORDER BY ${STATUS_ORDER}, rank_score DESC, last_seen DESC LIMIT 2000`).all(),
+       ...db.prepare(`SELECT * FROM company_candidates WHERE status NOT IN ('probed','new','approved') ORDER BY ${STATUS_ORDER}, rank_score DESC, last_seen DESC LIMIT ?`).all(limit)];
   const counts = Object.fromEntries(db.prepare("SELECT status, COUNT(*) n FROM company_candidates GROUP BY status").all().map((r) => [r.status, r.n]));
   return { candidates: rows.map((r) => ({ ...r, source_json: undefined, evidence_json: undefined, found: parse(r.source_json), evidence: parse(r.evidence_json) })), counts };
 }
