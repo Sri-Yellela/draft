@@ -1187,8 +1187,13 @@ function DiscoveryCandidates({ theme, onAdded }) {
   useEffect(() => { load(); }, [load]);
   const ids = [...picked];
   const flip = (id) => setPicked(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const approve = async () => {
-    setBusy("approve"); setErr(null); setMsg(null);
+  // ⭐ 46a (owner 11-10: "add a approve all button for the candidates"): Approve all = the same dry-run → confirm → backup
+  // path with every PROBED candidate ticked (a 'new' one has no probe yet and the server would refuse it). The dialog still
+  // lists exactly what would be added and what is refused and why; nothing is added without the confirm.
+  const probedIds = (d?.candidates || []).filter(r => r.status === "probed").map(r => r.id);
+  const approve = async (forIds = ids) => {
+    const ids = forIds;
+    setBusy(forIds === probedIds ? "approveAll" : "approve"); setErr(null); setMsg(null);
     try {
       const dry = await api("/api/admin/companies/candidates/approve", { method: "POST", body: JSON.stringify({ ids }) });
       const refused = dry.refused.map(r => `${r.company || "#" + r.id} (${r.reason})`).join(", ");
@@ -1228,7 +1233,7 @@ function DiscoveryCandidates({ theme, onAdded }) {
     <div data-discovery-candidates style={{ marginTop: 18 }}>
       {dialog}
       <h3 style={{ ...h2, fontSize: 15, margin: "0 0 4px" }}>Candidates<Help tip="D82: found by the weekly Hacker News job and measured by the nightly read-only probe. Nothing is added without Approve."/></h3>
-      <p style={{ ...what, margin: "0 0 10px" }}>Companies found by discovery, not yet crawled, ranked by fresh in-scope roles. Tick the ones to add, then Approve — it shows exactly what would be added first.</p>
+      <p style={{ ...what, margin: "0 0 10px" }}>Companies found by discovery, not yet crawled, ranked by fresh in-scope roles. Tick the ones to add, then Approve — or Approve all for every probed one. Either shows exactly what would be added first.</p>
       <div style={{ fontSize: 12, color: theme.text, marginBottom: 6 }}><b>{num(waiting)}</b> waiting for review
         <span style={{ color: theme.textMuted }}>{Object.entries(d?.counts || {}).map(([k, v]) => ` · ${v} ${k}`).join("")}
         {(disc?.lastRuns || []).map(r => ` · last ${r.source} run ${ago(r.started_at)}: ${r.status}${r.error_text ? ` (${r.error_text})` : ""}`).join("")}</span></div>
@@ -1240,7 +1245,8 @@ function DiscoveryCandidates({ theme, onAdded }) {
         </div>
       ))}
       <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-        <Btn theme={theme} disabled={!ids.length || !!busy} onClick={approve}>{busy === "approve" ? "Checking…" : `Approve ${ids.length || ""}…`}</Btn>
+        <Btn theme={theme} disabled={!ids.length || !!busy} onClick={() => approve(ids)}>{busy === "approve" ? "Checking…" : `Approve ${ids.length || ""}…`}</Btn>
+        <Btn theme={theme} data-approve-all="" disabled={!probedIds.length || !!busy} onClick={() => approve(probedIds)}>{busy === "approveAll" ? "Checking…" : `Approve all ${probedIds.length || ""}…`}</Btn>
         <Btn theme={theme} disabled={!ids.length || !!busy} onClick={reject}>{`Reject ${ids.length || ""}…`}</Btn>
       </div>
       <Err msg={err}/>
