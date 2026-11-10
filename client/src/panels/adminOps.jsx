@@ -1256,7 +1256,7 @@ function DiscoveryCandidates({ theme, onAdded }) {
         { key: "pct120", label: "≤120d", right: true, render: r => pctOf(r.evidence?.pct120) },
         { key: "us", label: "US", right: true, render: r => pctOf(r.evidence?.usPct) },
         { key: "age", label: "median age", right: true, render: r => r.evidence?.medianAge == null ? "—" : `${r.evidence.medianAge}d` },
-        { key: "found", label: "how found", render: r => r.found ? `${r.source} · ${r.found.n_months || 0} mo${r.found.last ? ` (last ${r.found.last})` : ""}${r.found.yc ? ` · YC ${r.found.yc}` : ""}` : r.source },
+        { key: "found", label: "how found", render: r => r.source === "seed-nontech-45s" ? "non-tech seed (probed list)" : r.found ?`${r.source} · ${r.found.n_months || 0} mo${r.found.last ? ` (last ${r.found.last})` : ""}${r.found.yc ? ` · YC ${r.found.yc}` : ""}` : r.source },
         { key: "why", label: "verdict", render: r => r.evidence?.bar ? (r.evidence.bar.meets ? "meets the bar" : r.evidence.bar.misses.join(", ")) : (r.status_reason || "—") },
         { key: "sample", label: "titles", render: r => (r.evidence?.sample || []).slice(0, 3).join(" · ") },
       ]}/>
