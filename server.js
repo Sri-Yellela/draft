@@ -353,6 +353,7 @@ import { loadConfirmedSynonyms } from "./services/kb/skillSynonyms.js";
 // A72 — the board's ranked local search (tiers, whole words, the same synonym map).
 import { registerBoardSearch, boardSearchSql, searchVariants } from "./services/jobs/boardSearch.js";
 import { createReadPool } from "./services/db/readWorker.js";
+import { createAdminReports } from "./services/admin/reportWorker.js";
 import { createOffload, offloadCache } from "./services/db/offloadWorker.js";   // ⛔ A158 (45r)
 import { createPublicOpenBackfill } from "./services/jobs/publicOpenJobs.js";   // ⛔ A158 (45r)
 import { createScorePool } from "./services/jobs/scoreWorker.js";
@@ -607,6 +608,12 @@ const readPool = createReadPool({
 // back to this connection: a sitemap / landing page it cannot answer is a 503 + Retry-After, the taxonomy walk drops to
 // small paced slices here. DRAFT_OFFLOAD=off turns the worker off (those fallbacks then apply).
 const offload = createOffload({ dbPath: DB_PATH, enabled: String(process.env.DRAFT_OFFLOAD || "on").toLowerCase() !== "off" });
+// ⛔ A163 (46a) · the admin panel's whole-board reports (the glance's pipeline health, the enrichment overview, the board
+// policy's dry runs) build on their OWN worker thread and read-only connection, cached ~60 s (services/admin/reportWorker.js).
+// Unlike the offload worker above it falls back to this connection (an admin report is never refused); any admin write
+// marks the cache stale. DRAFT_ADMIN_REPORTS=off builds them here as before.
+const adminReports = createAdminReports({ dbPath: DB_PATH, fallbackDb: db,
+  enabled: String(process.env.DRAFT_ADMIN_REPORTS || "on").toLowerCase() !== "off" });
 const offloadSitemaps = offloadCache({ ttlMs: 60 * 60 * 1000 });
 const offloadLanding = offloadCache({ ttlMs: 30 * 60 * 1000 });
 // ⭐ D151 Rule 3 (11-08) · board-fit scoring in a worker thread (services/jobs/scoreWorker.js): the precompute's batches
@@ -9910,6 +9917,8 @@ function resolveUserJobDomainProfileId(userId, jobId) {
 
 // ── Express ───────────────────────────────────────────────────
 const app = express();
+// A163: any admin write marks the admin report cache stale, so the next admin page shows the numbers after it.
+app.use("/api/admin", (req, _res, next) => { if (req.method !== "GET" && req.method !== "HEAD") adminReports.invalidate(); next(); });
 /**
  * AK1 — the corpus term weights that apply to one posting, by its role family.
  *
@@ -11703,7 +11712,7 @@ app.use("/api/admin/people", requireAdmin, createAdminPeopleRouter({
 }));
 // Captured, not just mounted: the nightly alert delivery calls `adminDbRouter.pipelineHealth()` —
 // the SAME computation this route serves. See the note above that function in routes/adminDb.js.
-const adminDbRouter = createAdminDbRouter(db, { dbPath: DB_PATH });
+const adminDbRouter = createAdminDbRouter(db, { dbPath: DB_PATH, reports: adminReports });
 app.use("/api/admin/db", adminDbRouter);
 // A50 step 3 — the daily glance (docs/ADMIN_PANEL_REVAMP.md §2A). Ingestion and enrichment come
 // from adminDbRouter.pipelineHealth() — the one computation the nightly alert also reads — and are
@@ -11730,10 +11739,10 @@ app.get("/api/admin/tools-service", requireAdmin, async (_req, res) => {
   res.json(out);
 });
 
-app.get("/api/admin/glance", requireAdmin, (_req, res) => {
+app.get("/api/admin/glance", requireAdmin, async (_req, res) => {
   try {
     res.json(buildGlance(db, {
-      health: adminDbRouter.pipelineHealth(),
+      health: await adminReports.get("pipelineHealth"),   // A163: 12–25 s of whole-board aggregates, off the loop
       enrichBudget: enrichBudget(),
       fullAuto: fullAutoState(db),
     }));
@@ -11743,7 +11752,7 @@ app.get("/api/admin/glance", requireAdmin, (_req, res) => {
 // provenance. Enrichment previously had three triggers and all three were automatic, which is how
 // 837 of ~1252 active production rows sat unenriched through the Groq 404 outage with no way to
 // intervene. The router is admin-gated and every spending or writing route is DRY BY DEFAULT.
-app.use("/api/admin/enrichment", requireAdmin, createEnrichmentRouter(db, requireAdmin, { anthropic }));
+app.use("/api/admin/enrichment", requireAdmin, createEnrichmentRouter(db, requireAdmin, { anthropic, reports: adminReports }));
 // A62: the JOBS themselves in and out (NDJSON), through the one gateway; dry by default, revertible.
 app.use("/api/admin/job-data", requireAdmin, createJobDataRouter(db, requireAdmin));
 // A50 step 4: the company list as a surface — probe a board before adding it; enable / disable, logged.
@@ -11801,8 +11810,10 @@ app.get("/api/admin/deploy-events", requireAdmin, (_req, res) => res.json(deploy
 // ⛔ D78 A: the board's age policy and its sweep. GET = the policy + a DRY RUN of the sweep · PUT = change the policy
 // (no redeploy) · POST /sweep = run it — dry unless { apply: true, expectCandidates: <the dry run's count> }. No share
 // ceiling (removed on the owner's word 10-08). Applied postings are always kept; nothing is deleted.
-app.get("/api/admin/board-policy", requireAdmin, (_req, res) => {
-  res.json({ policy: readBoardPolicy(db), dryRun: sweepAged(db, { dryRun: true }), scopeDryRun: sweepScope(db, { dryRun: true }) });
+app.get("/api/admin/board-policy", requireAdmin, async (_req, res) => {
+  // A163: the two whole-board dry runs (7.3 s on the 100k copy) build off the loop; the policy itself is one row.
+  try { res.json({ policy: readBoardPolicy(db), ...(await adminReports.get("boardPolicyDryRuns")) }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.put("/api/admin/board-policy", requireAdmin, (req, res) => {
   try { res.json({ policy: setBoardPolicy(db, req.body || {}, { by: actorOf(req) }) }); }
@@ -11830,23 +11841,24 @@ app.post("/api/admin/board-policy/scope-sweep", requireAdmin, (req, res) => {
 // reasons (stored 'held' rows, and the refusals the enforced gate recorded, re-read for their reason), and a fresh
 // random sample of up to 20 shown postings per category for the spot-check. A wrong category is one press to report:
 // POST …/report writes the audit log (action board_category_report) — the spot-check log the leak rate is read from.
-app.get("/api/admin/board-categories", requireAdmin, (_req, res) => {
-  const all = (sql, ...a) => { try { return db.prepare(sql).all(...a); } catch { return []; } };
-  const byCategory = Object.fromEntries(all(`SELECT COALESCE(board_category, '(not yet)') k, COUNT(*) n FROM scraped_jobs
-    WHERE is_active = 1 GROUP BY k ORDER BY n DESC`).map(r => [r.k, r.n]));
-  const byDiscipline = Object.fromEntries(all(`SELECT discipline k, COUNT(*) n FROM scraped_jobs WHERE is_active = 1
-    AND board_category = 'engineering' GROUP BY k ORDER BY n DESC`).map(r => [r.k || "(none)", r.n]));
+app.get("/api/admin/board-categories", requireAdmin, async (_req, res) => {
+  // A163 (46a): five whole-board reads — 0.76 s of the one thread on the 100k copy — now through the A126 read pool.
+  const all = async (sql, ...a) => { try { return await readPool.all(sql, a); } catch { return []; } };
+  const byCategory = Object.fromEntries((await all(`SELECT COALESCE(board_category, '(not yet)') k, COUNT(*) n FROM scraped_jobs
+    WHERE is_active = 1 GROUP BY k ORDER BY n DESC`)).map(r => [r.k, r.n]));
+  const byDiscipline = Object.fromEntries((await all(`SELECT discipline k, COUNT(*) n FROM scraped_jobs WHERE is_active = 1
+    AND board_category = 'engineering' GROUP BY k ORDER BY n DESC`)).map(r => [r.k || "(none)", r.n]));
   const heldRows = [
-    ...all(`SELECT job_id, title, company, category_reason reason, 'stored' via FROM scraped_jobs WHERE is_active = 1 AND board_category = 'held'`),
-    ...all(`SELECT job_id, title, company, NULL reason, 'refused' via FROM rejected_jobs WHERE reason = 'out_of_scope'
-      ORDER BY rejected_at DESC LIMIT 2000`),
+    ...(await all(`SELECT job_id, title, company, category_reason reason, 'stored' via FROM scraped_jobs WHERE is_active = 1 AND board_category = 'held'`)),
+    ...(await all(`SELECT job_id, title, company, NULL reason, 'refused' via FROM rejected_jobs WHERE reason = 'out_of_scope'
+      ORDER BY rejected_at DESC LIMIT 2000`)),
   ].map(r => ({ ...r, reason: r.reason || categoryOfPosting({ title: r.title, roleKey: null }).reason }));
   const heldByReason = {};
   for (const r of heldRows) heldByReason[r.reason] = (heldByReason[r.reason] || 0) + 1;
-  const sample = Object.fromEntries(Object.keys(byCategory).filter(k => /^[a-z_]+$/.test(k) && k !== "held").map(k => [k,
-    all(`SELECT job_id, title, company, discipline, category_reason reason FROM scraped_jobs WHERE is_active = 1 AND board_category = ?
-      ORDER BY random() LIMIT 20`, k)]));
-  const reports = all(`SELECT at, before_json, after_json FROM admin_audit_log WHERE action = 'board_category_report' ORDER BY id DESC LIMIT 50`);
+  const sample = Object.fromEntries(await Promise.all(Object.keys(byCategory).filter(k => /^[a-z_]+$/.test(k) && k !== "held").map(async k => [k,
+    await all(`SELECT job_id, title, company, discipline, category_reason reason FROM scraped_jobs WHERE is_active = 1 AND board_category = ?
+      ORDER BY random() LIMIT 20`, k)])));
+  const reports = await all(`SELECT at, before_json, after_json FROM admin_audit_log WHERE action = 'board_category_report' ORDER BY id DESC LIMIT 50`);
   res.json({ byCategory, byDiscipline, held: { total: heldRows.length, byReason: heldByReason, recent: heldRows.slice(0, 50) },
              sample, reports });
 });

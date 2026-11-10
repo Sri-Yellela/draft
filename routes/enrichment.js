@@ -67,7 +67,64 @@ const IMPORT_BODY_LIMIT = "32mb";
 // D84 F14: one constant, shared with the page and the CLI (shared/enrichmentRules.js) — 2,000 rows a batch.
 const PRACTICAL_IMPORT_ROWS = IMPORT_ROW_CAP;
 
-export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = {}) {
+// ⛔ A163 (46a): the overview as a value, so the admin report worker (services/admin/reportWorker.js) can build it on its own
+// read-only connection — on the 100k copy selectCandidates 14.9 s + columnCoverage 13.4 s, and the route ran them on the one thread.
+export function buildEnrichmentOverview(db) {
+    const opts = enrichSelectionOptions();
+    const sel = selectCandidates(db, opts);
+    // D84 F8: the backlog leaves out what the enforced board policy will retire — the export does the same.
+    const { keep: toEnrich, retiring } = excludeRetiring(db, sel.candidates);
+    const coverage = columnCoverage(db);
+    // The salary and eligibility bars are "any of the group", which per-column counts cannot give.
+    const g = db.prepare(`SELECT COUNT(*) n,
+        SUM(salary_min_usd IS NOT NULL OR salary_max_usd IS NOT NULL) salary,
+        SUM(is_h1b_sponsor IS NOT NULL OR requires_work_auth IS NOT NULL OR is_clearance_required IS NOT NULL) flags
+      FROM scraped_jobs WHERE is_active = 1`).get();
+    const col = (c) => coverage.columns[c].filled;
+    const groups = [
+      { key: "skills", label: "Skills", columns: ["skills_json"], filled: col("skills_json") },
+      { key: "level", label: "Experience level", columns: ["experience_level"], filled: col("experience_level") },
+      { key: "workplace", label: "Workplace type", columns: ["workplace_type"], filled: col("workplace_type") },
+      { key: "salary", label: "Salary", columns: ["salary_min_usd", "salary_max_usd"], filled: g.salary || 0 },
+      { key: "flags", label: "Eligibility flags", columns: ["is_h1b_sponsor", "requires_work_auth", "is_clearance_required"], filled: g.flags || 0 },
+      { key: "summary", label: "Summary", columns: ["summary"], filled: col("summary") },
+    ].map(x => ({ ...x, total: coverage.total }));
+    // "New postings with a fit score": active postings first seen in the last 7 days that carry a
+    // score in the board's fit cache for at least one user. A posting without skills often scores
+    // "not enough signal" (NULL) — which is what enrichment fixes.
+    const since = Math.floor(Date.now() / 1000) - 7 * 86400;
+    // ⛔ A163 (46a): this was a CORRELATED EXISTS — ats_only_reports' only index leads with user_id, so every fresh posting
+    // scanned the whole table (100k copy: 20,000 × 128,333 rows; the route never answered in 240 s). A non-correlated
+    // IN (…) is built ONCE as a set and probed per posting — the same count.
+    const fresh = db.prepare(`SELECT COUNT(*) n,
+        SUM(j.job_id IN (SELECT a.job_id FROM ats_only_reports a WHERE a.ats_score IS NOT NULL)) scored
+      FROM scraped_jobs j WHERE j.is_active = 1 AND j.discovered_at >= ?`).get(since);
+    const imports = db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(rows_written), 0) written
+      FROM enrichment_batches WHERE source = 'import' AND kind = 'enrichment' AND reverted_at IS NULL`).get();
+    // D84 F1: rows filled from cut text (back in the backlog), and rows whose only text is still cut — held
+    // out of every export until the next crawl stores their full text.
+    const textState = db.prepare(`SELECT
+        SUM(enrichment_partial = 1) partial,
+        SUM(description_full IS NULL AND instr(description, '[…]') > 0) waiting
+      FROM scraped_jobs WHERE is_active = 1`).get();
+    const sources = db.prepare(`SELECT source, COUNT(*) n FROM scraped_jobs
+      WHERE is_active = 1 AND source IS NOT NULL AND TRIM(source) != '' GROUP BY source ORDER BY n DESC`).all();
+    return {
+      backlog: toEnrich.length,
+      retiringExcluded: retiring,
+      freshnessGateDays: opts.maxLastSeenDays,
+      noDescription: sel.noDescription,
+      board: coverage.total,
+      coverage, groups,
+      newPostings: { days: 7, total: fresh.n || 0, scored: fresh.scored || 0 },
+      imports: { count: imports.n, rowsWritten: imports.written },
+      text: { partial: textState.partial || 0, waitingForFullText: textState.waiting || 0 },
+      sources: sources.map(s => ({ value: s.source, count: s.n })),
+      importRowCap: PRACTICAL_IMPORT_ROWS,
+    };
+}
+
+export function createEnrichmentRouter(db, requireAdmin, { anthropic = null, reports = null } = {}) {
   const router = Router();
   router.use(requireAdmin);
 
@@ -364,58 +421,10 @@ export function createEnrichmentRouter(db, requireAdmin, { anthropic = null } = 
   // Read-only. The four number boxes, the per-column coverage bars, the real source list for the
   // export's dropdown, and the importer's own limits — READ here, never copied into the client,
   // so the page cannot drift from the importer. Past imports come from GET /batches?source=import.
-  router.get("/overview", (_req, res) => {
-    try {
-      const opts = enrichSelectionOptions();
-      const sel = selectCandidates(db, opts);
-      // D84 F8: the backlog leaves out what the enforced board policy will retire — the export does the same.
-      const { keep: toEnrich, retiring } = excludeRetiring(db, sel.candidates);
-      const coverage = columnCoverage(db);
-      // The salary and eligibility bars are "any of the group", which per-column counts cannot give.
-      const g = db.prepare(`SELECT COUNT(*) n,
-          SUM(salary_min_usd IS NOT NULL OR salary_max_usd IS NOT NULL) salary,
-          SUM(is_h1b_sponsor IS NOT NULL OR requires_work_auth IS NOT NULL OR is_clearance_required IS NOT NULL) flags
-        FROM scraped_jobs WHERE is_active = 1`).get();
-      const col = (c) => coverage.columns[c].filled;
-      const groups = [
-        { key: "skills", label: "Skills", columns: ["skills_json"], filled: col("skills_json") },
-        { key: "level", label: "Experience level", columns: ["experience_level"], filled: col("experience_level") },
-        { key: "workplace", label: "Workplace type", columns: ["workplace_type"], filled: col("workplace_type") },
-        { key: "salary", label: "Salary", columns: ["salary_min_usd", "salary_max_usd"], filled: g.salary || 0 },
-        { key: "flags", label: "Eligibility flags", columns: ["is_h1b_sponsor", "requires_work_auth", "is_clearance_required"], filled: g.flags || 0 },
-        { key: "summary", label: "Summary", columns: ["summary"], filled: col("summary") },
-      ].map(x => ({ ...x, total: coverage.total }));
-      // "New postings with a fit score": active postings first seen in the last 7 days that carry a
-      // score in the board's fit cache for at least one user. A posting without skills often scores
-      // "not enough signal" (NULL) — which is what enrichment fixes.
-      const since = Math.floor(Date.now() / 1000) - 7 * 86400;
-      const fresh = db.prepare(`SELECT COUNT(*) n,
-          SUM(EXISTS (SELECT 1 FROM ats_only_reports a WHERE a.job_id = j.job_id AND a.ats_score IS NOT NULL)) scored
-        FROM scraped_jobs j WHERE j.is_active = 1 AND j.discovered_at >= ?`).get(since);
-      const imports = db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(rows_written), 0) written
-        FROM enrichment_batches WHERE source = 'import' AND kind = 'enrichment' AND reverted_at IS NULL`).get();
-      // D84 F1: rows filled from cut text (back in the backlog), and rows whose only text is still cut — held
-      // out of every export until the next crawl stores their full text.
-      const textState = db.prepare(`SELECT
-          SUM(enrichment_partial = 1) partial,
-          SUM(description_full IS NULL AND instr(description, '[…]') > 0) waiting
-        FROM scraped_jobs WHERE is_active = 1`).get();
-      const sources = db.prepare(`SELECT source, COUNT(*) n FROM scraped_jobs
-        WHERE is_active = 1 AND source IS NOT NULL AND TRIM(source) != '' GROUP BY source ORDER BY n DESC`).all();
-      res.json({
-        backlog: toEnrich.length,
-        retiringExcluded: retiring,
-        freshnessGateDays: opts.maxLastSeenDays,
-        noDescription: sel.noDescription,
-        board: coverage.total,
-        coverage, groups,
-        newPostings: { days: 7, total: fresh.n || 0, scored: fresh.scored || 0 },
-        imports: { count: imports.n, rowsWritten: imports.written },
-        text: { partial: textState.partial || 0, waitingForFullText: textState.waiting || 0 },
-        sources: sources.map(s => ({ value: s.source, count: s.n })),
-        importRowCap: PRACTICAL_IMPORT_ROWS,
-      });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+  router.get("/overview", async (_req, res) => {
+    // A163: built off the event loop when the server hands in its report worker (cached ~60 s, one build in flight).
+    try { res.json(reports ? await reports.get("enrichmentOverview") : buildEnrichmentOverview(db)); }
+    catch (e) { res.status(500).json({ error: e.message }); }
   });
 
   // ── GET /coverage — the enrichment health signal, per column ──────────────────────────────────

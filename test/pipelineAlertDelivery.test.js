@@ -217,7 +217,8 @@ test("⛔ the cron reads the ROUTE's alerts, not a second implementation", () =>
   const admin = fs.readFileSync("routes/adminDb.js", "utf8");
   assert.match(admin, /function pipelineHealth\(\)/);
   assert.match(admin, /router\.pipelineHealth = pipelineHealth;/);
-  assert.match(admin, /res\.json\(pipelineHealth\(\)\)/, "the route must serve that same function");
+  assert.match(admin, /res\.json\(reports \? await reports\.get\("pipelineHealth"\) : pipelineHealth\(\)\)/, "the route must serve that same function (A163: or the report worker's build of it)");
+  assert.match(fs.readFileSync("services/admin/reportWorker.js", "utf8"), /createAdminDbRouter\(conn, \{ dbPath \}\)\.pipelineHealth\(\)/, "A163: the worker builds that same function");
 
   const server = fs.readFileSync("server.js", "utf8");
   assert.match(server, /readHealth: \(\) => adminDbRouter\.pipelineHealth\(\)/);
