@@ -49,7 +49,8 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 const failures = [];
 const check = (name, ok, detail) => { if (!ok) failures.push(name); console.log(`${ok ? "ok  " : "FAIL"} ${name} — ${detail}`); };
 
-const env = { ...process.env, RM_DATA_DIR: RUN, PORT: String(PORT), ANTHROPIC_KEY: "", NODE_ENV: "development",
+// 46c: .env kept out (its mail and provider keys too, not only the model key) — the fixture's users must never be mailed.
+const env = { ...process.env, RM_DATA_DIR: RUN, PORT: String(PORT), ANTHROPIC_KEY: "", DOTENV_CONFIG_PATH: "./.no-dotenv-for-local-harness", NODE_ENV: "development",
   COOKIE_ENCRYPTION_KEY: crypto.randomBytes(32).toString("hex"), SCALE_LOOP_FILE: LOOP };
 const t0 = Date.now();
 if (PROF_DIR) { fs.mkdirSync(PROF_DIR, { recursive: true }); for (const f of ["start", "stop", "stopped", "main.cpuprofile"]) fs.rmSync(path.join(PROF_DIR, f), { force: true }); env.SCALE_PROF_DIR = PROF_DIR; }
