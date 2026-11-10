@@ -147,6 +147,10 @@ export function classifySegment(seg) {
     const city = m[1].trim().toLowerCase();
     if (STATES[m[2]] && !CODE_COLLISIONS[m[2]]?.test(city)) return "us";
   }
+  // ⭐ 46b: "Waltham-MA" — Workday tenants (Mass General Brigham) write City-ST with a hyphen; the same state-code and
+  // country-collision rules as "City, ST" ("Bangalore-IN" stays India).
+  const dash = /^([\p{L}.' ]{2,40}?)\s*-\s*([A-Z]{2})$/u.exec(s);
+  if (dash && STATES[dash[2]] && !CODE_COLLISIONS[dash[2]]?.test(dash[1].trim().toLowerCase())) return "us";
   if (US_COUNTRY_CS.test(s) || /united states|\bu\.s\.a?\b/i.test(lower)) return "us";
   if (US_PREFIX_RE.test(s)) return "us";
   if (US_REGION_RE.test(lower)) return "us";
