@@ -43,6 +43,9 @@ import { userEligibilityInputs, hasEligibilityInputs, eligibilityForRow, ineligi
 import portalRoutes, { createApplyWorkerRouter } from "./routes/applyWorker.js";
 import { recordSubmissionFromPipeline } from "./services/applicationRecords.js";
 import { runAutoTick, runPicksFollowUps, runAutoNow } from "./services/autoScheduler.js";
+import { createBillingRouters } from "./routes/billing.js";
+import { verificationConfig, billingConfig, extensionLinks } from "./services/billing/config.js";
+import { readProof, identityRefusal, recordRefusal, setVerifiedPhone } from "./services/billing/verification.js";
 import { sweepTestingRecords } from "./services/testingRecords.js";
 import { runCanaryCheck } from "./services/fullAutoCanary.js";
 import { startedByMiddleware, withStartedBy, SCHEDULER_STARTED } from "./services/startedByContext.js";
@@ -7776,6 +7779,77 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         ALTER TABLE domain_profiles ADD COLUMN keyword_removed_json TEXT;
       `,
     },
+    {
+      // ⭐ A167 (owner 11-10) · PHASE 1 MONETISATION — the tables behind it, every one behind BILLING_ENABLED / the signup
+      // verification switch (both OFF): Stripe customers + subscriptions (written only from verified, idempotent webhooks —
+      // billing_events is the ledger of every event id seen), the trial's drafts (10, one per job), the OTP codes (email and
+      // SMS; the code and the target stored only as HMACs), a refused sign-up or phone change (masked hints, for the admin),
+      // one account per phone (a unique index on the verified E.164 number) and the explicit, OFF-by-default consent to share
+      // leads. Only ADDS.
+      id: "267_billing_and_verification",
+      sql: `
+        CREATE TABLE IF NOT EXISTS billing_customers (
+          user_id             INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          stripe_customer_id  TEXT    NOT NULL UNIQUE,
+          livemode            INTEGER NOT NULL DEFAULT 0,
+          created_at          INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE TABLE IF NOT EXISTS billing_subscriptions (
+          stripe_subscription_id TEXT    PRIMARY KEY,
+          user_id                INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          tier                   TEXT,
+          price_id               TEXT,
+          status                 TEXT    NOT NULL,
+          current_period_end     INTEGER,
+          cancel_at_period_end   INTEGER NOT NULL DEFAULT 0,
+          livemode               INTEGER NOT NULL DEFAULT 0,
+          updated_at             INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_billing_subs_user ON billing_subscriptions(user_id, status);
+        CREATE TABLE IF NOT EXISTS billing_events (
+          stripe_event_id TEXT    PRIMARY KEY,
+          type            TEXT    NOT NULL,
+          livemode        INTEGER NOT NULL DEFAULT 0,
+          received_at     INTEGER NOT NULL DEFAULT (unixepoch()),
+          processed_at    INTEGER,
+          error           TEXT
+        );
+        CREATE TABLE IF NOT EXISTS trial_drafts (
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          job_id     TEXT    NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, job_id)
+        );
+        CREATE TABLE IF NOT EXISTS verify_codes (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          channel     TEXT    NOT NULL CHECK (channel IN ('email', 'sms')),
+          target_hash TEXT    NOT NULL,
+          code_hash   TEXT,
+          provider    TEXT    NOT NULL,
+          attempts    INTEGER NOT NULL DEFAULT 0,
+          expires_at  INTEGER NOT NULL,
+          verified_at INTEGER,
+          ip_hash     TEXT,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_verify_codes_target ON verify_codes(channel, target_hash, created_at);
+        CREATE INDEX IF NOT EXISTS idx_verify_codes_ip ON verify_codes(ip_hash, created_at);
+        CREATE TABLE IF NOT EXISTS signup_refusals (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          reason     TEXT    NOT NULL,
+          stage      TEXT    NOT NULL,
+          phone_hint TEXT,
+          email_hint TEXT,
+          user_id    INTEGER,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        ALTER TABLE users ADD COLUMN phone_e164 TEXT;
+        ALTER TABLE users ADD COLUMN phone_verified_at INTEGER;
+        ALTER TABLE users ADD COLUMN lead_share_consent INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE users ADD COLUMN lead_share_consent_at INTEGER;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_e164 ON users(phone_e164) WHERE phone_e164 IS NOT NULL;
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -10484,6 +10558,9 @@ app.use(createInboundHookRouter(db));
 // ⭐ D73 §B: Resend's webhook (Svix-signed over the RAW body) — before the JSON parser, like Railway's.
 const emailRouters = createEmailRouters({ db, requireAuth, requireAdmin });
 app.use(emailRouters.hooksRouter);
+// ⭐ A167 · Stripe's webhook (signed over the RAW body) — before the JSON parser. 404 while BILLING_ENABLED is off.
+const billingRouters = createBillingRouters({ db, requireAuth, requireAdmin, pepper: `a167:${SESSION_SECRET}`, appOrigin: APP_BASE_ORIGIN || "" });
+app.use(billingRouters.hooksRouter);
 // ⛔ D86: bring-your-own-model résumés. The doors a host calls server-to-server (OAuth metadata, register,
 // token, revoke, /mcp) come BEFORE the session and auth-context middleware — an OAuth token is the only
 // credential they read; the consent screen and the settings come after, on the person's session.
@@ -10566,6 +10643,8 @@ app.use(createAdminSessionBinder({ db }));
 app.use(rejectCrossSiteWrites({ allowedOrigins: ALLOWED_CORS_ORIGINS, hasHeaderToken: (req) => !!getRequestAuthContextToken(req) }));
 app.use(byomRouters.sessionRouter);
 app.use(emailRouters.appRouter);
+// ⭐ A167 · the plan, Checkout, the portal, the one-time codes, the phone, the lead-sharing consent (routes/billing.js).
+app.use(billingRouters.apiRouter);
 
 const CLIENT_DIST = path.join(__dirname,"client","dist");
 // 44b: "(jobsviadraft.com/try):" in a message opened `/try):` on a tester's phone and drew the app's 404. A page path
@@ -10796,6 +10875,23 @@ app.post("/api/auth/register", (req, res) => {
   if (!profile.last_name)   return res.status(400).json({ error:"last name is required" });
   // ⛔ D95: an admin account's email is never a user account's — a person who is both has two emails.
   if (emailBelongsToAdmin(db, profile.email)) return res.status(400).json({ error:"This email can't be used to create an account here." });
+  // ⭐ A167 (d)(e) · while SIGNUP_VERIFICATION_REQUIRED is on: the email AND the phone, each proven by a one-time code
+  // (POST /api/verify/start + /check → a proof), and one account per phone and its email. Off: today's sign-up.
+  let provenPhone = null;
+  let provenEmail = null;
+  if (verificationConfig().required) {
+    const pepper = `a167:${SESSION_SECRET}`;
+    provenEmail = readProof(pepper, req.body?.emailProof, "email");
+    provenPhone = readProof(pepper, req.body?.phoneProof, "sms");
+    if (!provenEmail || provenEmail !== String(profile.email).trim().toLowerCase())
+      return res.status(400).json({ error: "Confirm your email with the code we send it.", code: "email_unverified" });
+    if (!provenPhone) return res.status(400).json({ error: "Confirm your phone with the code we text it.", code: "phone_unverified" });
+    const refused = identityRefusal(db, { phone: provenPhone, email: provenEmail });
+    if (refused) {
+      recordRefusal(db, { reason: refused.code, stage: "signup", phone: provenPhone, email: provenEmail });
+      return res.status(409).json({ error: refused.message, code: refused.code });
+    }
+  }
 
   // Build full_name from parts for backwards compat
   const fullName = [
@@ -10835,6 +10931,9 @@ app.post("/api/auth/register", (req, res) => {
     // ⭐ D73 §B 2: product news only when the sign-up box was TICKED (it starts unticked) — never inferred,
     // never bundled with the terms; recorded with when and where.
     if (req.body?.marketingOptIn === true) setMarketingConsent(db, newUser.id, true, "signup");
+    // ⭐ A167: the proofs, stamped (both were checked above; the unique phone index is the last word on a race).
+    if (provenEmail) db.prepare("UPDATE users SET email_verified_at = unixepoch() WHERE id = ?").run(newUser.id);
+    if (provenPhone) setVerifiedPhone(db, newUser.id, provenPhone, { stage: "signup" });
     const sessionUser = { id:newUser.id, username, isAdmin:false, applyMode:"SIMPLE", planTier:"BASIC", domainProfileComplete:false };
     req.logIn(sessionUser, e => {
       if (e) return res.status(500).json({ error:"Account created but login failed. Please sign in." });
@@ -16593,7 +16692,10 @@ const studioForUsers = () => { try { return getSetting(db, STUDIO_FOR_USERS_KEY)
 // ⭐ D144 · Dusk likewise — its own switch, off by default ("Dusk offered to users only when the owner switches it on").
 const DUSK_FOR_USERS_KEY = "dusk_for_users";
 const duskForUsers = () => { try { return getSetting(db, DUSK_FOR_USERS_KEY) === "1"; } catch { return false; } };
-app.get("/api/config", (_req, res) => res.json({ monetisationEnabled: monetisationEnabled(), studioForUsers: studioForUsers(), duskForUsers: duskForUsers() }));
+// ⭐ A167: the client is TOLD the phase-1 switches (never built with its own copy): billing on, sign-up verification
+// required, and where the extension lives (its pop-up panel links them).
+app.get("/api/config", (_req, res) => res.json({ monetisationEnabled: monetisationEnabled(), studioForUsers: studioForUsers(), duskForUsers: duskForUsers(),
+  billingEnabled: billingConfig().enabled, signupVerification: verificationConfig().required, extension: extensionLinks() }));
 app.get("/api/admin/appearance", requireAdmin, (_req, res) => res.json({ studioForUsers: studioForUsers(), duskForUsers: duskForUsers() }));
 app.post("/api/admin/appearance", requireAdmin, (req, res) => {
   // Each switch is changed only when the body names it (an older client sends studioForUsers alone).

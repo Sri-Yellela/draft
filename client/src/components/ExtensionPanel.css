@@ -1,0 +1,8 @@
+/* A167 (h): the extension's pop-up panel — on the posting and in Settings. */
+.ext-panel { position: relative; display: inline-block; }
+.ext-panel__pop { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; width: min(340px, 86vw); padding: 14px;
+  background: var(--c-surface, var(--color-surface)); color: var(--c-ink, var(--color-text)); border: 1px solid var(--c-line, var(--color-border));
+  border-radius: 10px; box-shadow: var(--c-depth-hover, none); display: flex; flex-direction: column; gap: 10px; }
+.ext-panel__t { margin: 0; font-weight: 600; }
+.ext-panel__how { margin: 0; padding-left: 18px; font-size: calc(13px * var(--type-scale, 1)); line-height: 1.5; color: var(--c-ink-muted, var(--color-text-muted)); }
+.ext-panel__links { display: flex; flex-wrap: wrap; gap: 8px; }

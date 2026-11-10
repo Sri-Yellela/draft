@@ -44,7 +44,7 @@ export const ACCOUNT_CARDS = Object.freeze({
   connections: ["warmpaths"],
   notifications: ["news", "notifications"],
   privacy: ["data", "delete"],
-  account: ["profile", "email", "security", "sessions", "merge", "allowance", "help", "signout"],
+  account: ["profile", "email", "plan", "security", "sessions", "merge", "allowance", "help", "signout"],   // A167: "plan" — the plan, phone, lead sharing, extension
 });
 
 // ⭐ D185-7 (45q): the person's own choice — when an application asks how they heard about the job, answer "draft", and only

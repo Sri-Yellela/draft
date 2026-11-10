@@ -13,6 +13,8 @@ import DealBackdrop from "./DealBackdrop.jsx";
 import SignupAtsHook from "./SignupAtsHook.jsx";
 import SignInProviders from "./SignInProviders.jsx";
 import { returnToFromSearch } from "../lib/signInReturn.js";
+import { usePhase1 } from "../lib/monetisation.jsx";
+import OtpVerify from "./OtpVerify.jsx";
 
 // ── AtomEmblem — keep this exported, TopBar imports it ────────
 function tiltedEllipsePath(cx, cy, rx, ry, angleDeg) {
@@ -108,6 +110,9 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
   const [step2,   setStep2]   = useState({ first_name:"", middle_name:"", last_name:"", name_suffix:"", email:"", phone:"" });
   // ⭐ D73 §B 2: product news by email — a separate, OPTIONAL box that starts UNTICKED; never tied to the terms.
   const [marketingOptIn, setMarketingOptIn] = useState(false);
+  // ⭐ A167 (d): while sign-up verification is on, the email AND the phone are each proven by a one-time code first.
+  const { signupVerification } = usePhase1();
+  const [proofs, setProofs] = useState({ email: null, sms: null });
   const [reset,   setReset]   = useState({ email:"", otp:"", password:"", confirmPassword:"", token:"" });
   const [resetSent, setResetSent] = useState(false);
   const [error,   setError]   = useState("");
@@ -174,7 +179,9 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
   };
 
   const handleRegister = async e => {
-    e.preventDefault(); setError(""); setNotice(""); setLoading(true);
+    e.preventDefault(); setError(""); setNotice("");
+    if (signupVerification && (!proofs.email || !proofs.sms)) return setError(!proofs.email ? "Confirm your email with the code we send it." : "Confirm your phone with the code we text it.");
+    setLoading(true);
     try {
       const d = await api("/api/auth/register", { method:"POST", body:JSON.stringify({
         username: step1.username.trim(),
@@ -188,6 +195,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
           phone:       step2.phone.trim() || undefined,
         },
         marketingOptIn: marketingOptIn === true,
+        ...(signupVerification ? { emailProof: proofs.email, phoneProof: proofs.sms } : {}),
       }) });
       if (d.user) { setAuthContext(d.authContext); onLogin(d.user); }
       else setError(d.error || "Registration failed");
@@ -387,9 +395,11 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
               value={step2.name_suffix} onChange={e=>setS2("name_suffix",e.target.value)}/>
           </div>
           <input style={inputStyle} placeholder="Email *" type="email" value={step2.email}
-            onChange={e=>setS2("email",e.target.value)}/>
-          <input style={inputStyle} placeholder="Phone (optional)" type="tel" value={step2.phone}
-            onChange={e=>setS2("phone",e.target.value)}/>
+            onChange={e=>{ setS2("email",e.target.value); setProofs(p => ({ ...p, email: null })); }}/>
+          {signupVerification && <OtpVerify channel="email" target={step2.email} proven={!!proofs.email} onProof={(p) => setProofs(x => ({ ...x, email: p }))} />}
+          <input style={inputStyle} placeholder={signupVerification ? "Phone *" : "Phone (optional)"} type="tel" value={step2.phone}
+            onChange={e=>{ setS2("phone",e.target.value); setProofs(p => ({ ...p, sms: null })); }}/>
+          {signupVerification && <OtpVerify channel="sms" target={step2.phone} proven={!!proofs.sms} onProof={(p) => setProofs(x => ({ ...x, sms: p }))} />}
           <label data-marketing-opt-in="" style={{ display:"flex", gap:8, alignItems:"flex-start", fontSize:12, color:theme.textMuted, lineHeight:1.5, cursor:"pointer" }}>
             <input type="checkbox" checked={marketingOptIn} onChange={e => setMarketingOptIn(e.target.checked)} style={{ marginTop:2 }}/>
             <span>Email me product news (optional). Account emails, like a password reset, come either way. You can switch this off at any time.</span>

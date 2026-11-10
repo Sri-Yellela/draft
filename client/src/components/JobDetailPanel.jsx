@@ -20,6 +20,7 @@ import { atsScorePair } from "../../../shared/resumeScores.js";
 import "./JobDetailPanel.css";
 import { draftButtonState, resumeControlState } from "../lib/jobDecisions.js";
 import ByomResumeChoice, { ByomStatus, useByomFlow } from "./ByomResumeChoice.jsx";
+import ExtensionPanel from "./ExtensionPanel.jsx";
 import { WhatWeChangedLink } from "./ResumeChangesPanel.jsx";
 
 // Layout props (slot, width, focused, fullScreen, resizeMode and the three resize callbacks) come
@@ -243,6 +244,8 @@ export function PostingActions({ job, meta, slots, onCoverLetter, openResume = f
           <button type="button" className="pp__btn" onClick={onCoverLetter} title="Write a cover letter" data-more="cover-letter">Cover letter</button>
           {/* ⭐ D56 / A105 finding 3: the manual route records its own submission, on every posting. */}
           {job?.jobId && <ManualSubmitted jobId={job.jobId} />}
+          {/* ⭐ A167 (h): the extension's pop-up panel — where to get it, how it helps (nothing while no link is configured). */}
+          <ExtensionPanel />
           {/* A63: the shared allowance — D149: under More (the sketch's row carries no line beneath it); Draft's title
               and an out-of-drafts Draft's own label still say it before a press. */}
           {quota && <p className="pp__quota" data-draft-slots data-empty={noSlots ? "true" : "false"}>{quota}</p>}

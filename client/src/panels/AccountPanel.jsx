@@ -7,6 +7,7 @@ import ResumeList, { RESUME_ICONS } from "../components/ResumeList.jsx";
 import SettingsSection from "../components/SettingsSection.jsx";
 import NotificationSettings from "../components/NotificationSettings.jsx";
 import WarmPathsSettings from "../components/WarmPathsSettings.jsx";
+import PlanSettings from "../components/PlanSettings.jsx";
 
 // ── Account (/app/account) ──────────────────────────────────────────────────────────────────────
 // Profile and picture, sign-in and security (password, sign-in methods, where you're signed in),
@@ -150,6 +151,9 @@ export function AccountPanel({ onSignedOut, only = null }) {
         {has("news") && <SettingsSection title="Product news" subtitle="Occasional email about what's new in draft. Account and policy notices come either way — they are about your account.">
           <MarketingSwitch say={say} />
         </SettingsSection>}
+
+        {/* ⭐ A167: the plan + trial, the phone, the lead-sharing consent, the extension — each only while its switch is on. */}
+        {has("plan") && <PlanSettings say={say} />}
 
         {/* ⭐ D112 item 8: which events also reach the person by push (this browser) and email — per event, per channel. */}
         {has("notifications") && <NotificationSettings say={say} />}

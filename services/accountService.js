@@ -213,6 +213,8 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   "learn_question_answers",
   // D169 (223): what proved each skill, the quick checks taken, and the skills held for the Atlas's curator.
   "skill_proofs", "skill_quick_checks", "atlas_skill_holds",
+  // A167 (267): the person's plan and the trial's drafts they used.
+  "billing_subscriptions", "trial_drafts",
   // D172 (3) (226): the points each piece of proof earned.
   "proof_points",
   // D183 P1 (243): who can see the profile page, and the achievements added by hand.
@@ -381,6 +383,10 @@ export const MERGE_PLAN = Object.freeze({
   // A154 / D172 (4) (264): one league membership per person — INTO's (its handle, its pod) stands; FROM's fills in only when
   // INTO never joined. FROM's challenges (time attacks, duels, share links) are its history and move.
   league_members: "keepInto", challenge_runs: "move",
+  // A167 (267): a subscription follows the person (keyed by Stripe's id, its owner changes); one Stripe customer per account —
+  // INTO's stands, FROM's fills an INTO with none; the trial's drafts are one per (person, job) — the merged person's used
+  // drafts are the union (so a merge never GIVES drafts back); a refused sign-up record moves with the account it names.
+  billing_subscriptions: "move", billing_customers: "keepInto", trial_drafts: "keepInto", signup_refusals: "move",
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */
