@@ -176,6 +176,8 @@ export const SOURCES = {
     { value: "gem",                label: "Gem"             },
     { value: "rippling",           label: "Rippling"        },
     { value: "icims",              label: "iCIMS"           },
+    { value: "oracle",             label: "Oracle"          },
+    { value: "taleo",              label: "Taleo"           },
     { value: "adzuna",             label: "Adzuna"          },
     { value: "serpapi",            label: "Google Jobs"     },
     { value: "linkedin_extension", label: "LinkedIn (Saved)" },

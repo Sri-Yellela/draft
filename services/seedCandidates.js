@@ -20,6 +20,12 @@ const BOARD_URL = {
   recruitee: (s) => `https://${s}.recruitee.com`, bamboohr: (s) => `https://${s}.bamboohr.com/careers`,
   rippling: (s) => `https://ats.rippling.com/${s}/jobs`, gem: (s) => `https://jobs.gem.com/${s}`,
   icims: (s) => `https://${String(s).toLowerCase()}.icims.com/jobs/search`,   // A161: the slug is the tenant's host label
+  // 46a: Oracle Recruiting Cloud's slug is "<host>|<site>" (services/jobs/sources/oracle.js) — a bad one is dropped, not guessed.
+  oracle: (s) => { const [host, site] = String(s).split("|"); return /\.oraclecloud\.com$/i.test(host || "") && /^[A-Za-z0-9_-]{1,40}$/.test(site || "")
+    ? `https://${host.toLowerCase()}/hcmUI/CandidateExperience/en/sites/${site}` : null; },
+  // 46a: Taleo's slug is "<tenant>|<section>" (services/jobs/sources/taleo.js).
+  taleo: (s) => { const [t, sec] = String(s).split("|"); return /^[a-z0-9][a-z0-9-]{0,62}$/i.test(t || "") && /^[A-Za-z0-9_-]{1,40}$/.test(sec || "")
+    ? `https://${t.toLowerCase()}.taleo.net/careersection/${sec}/jobsearch.ftl` : null; },
 };
 
 /** The seed file as pool items ({ company, ats: { atsType, slug, url }, … }). */

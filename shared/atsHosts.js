@@ -53,6 +53,13 @@ export const ATS_PROVIDER_NAMES = Object.freeze([
   "gem", "rippling",
 ]);
 
+/**
+ * ⛔ 46a: crawled sources whose vendor is ALSO a real employer, so its name is deliberately NOT a provider name — Oracle
+ * (Oracle Recruiting Cloud) hires on its own boards, and listing "oracle" above would show every Oracle posting as
+ * "Unknown company". The source still never renders as a company: its postings carry the employer's own name.
+ */
+export const EMPLOYER_NAMED_SOURCES = Object.freeze(["oracle"]);
+
 /** What a company with no name is called. Never a hostname, and never blank. */
 export const UNKNOWN_COMPANY = "Unknown company";
 

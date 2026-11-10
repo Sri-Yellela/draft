@@ -26,6 +26,8 @@ const ROWS = [
   { company: "Gemco",      ats_type: "gem",             ats_slug: "gemco" },     // A112
   { company: "Ripco",      ats_type: "rippling",        ats_slug: "ripco" },     // A112
   { company: "Icimsco",    ats_type: "icims",           ats_slug: "careers-icimsco" },   // A161
+  { company: "Oracleco",   ats_type: "oracle",          ats_slug: "fa-x.fa.ocs.oraclecloud.com|CX_1" },   // 46a
+  { company: "Taleoco",    ats_type: "taleo",           ats_slug: "taleoco|ex" },   // 46a
 ];
 
 test("grouping covers every registered direct-ATS source, not just the original three", () => {
@@ -48,10 +50,10 @@ test("a provider with no companies gets an empty array, never undefined", () => 
 test("an ats_type no plugin answers to is dropped, not bucketed under a real provider", () => {
   const map = groupCompaniesByAtsType([
     ...ROWS,
-    { company: "Ghost", ats_type: "taleo", ats_slug: "ghost" },   // was "icims" until A161 made iCIMS a source
+    { company: "Ghost", ats_type: "jobvite", ats_slug: "ghost" },   // was "icims" until A161, "taleo" until 46a made them sources
     { company: "Null",  ats_type: null,    ats_slug: "x" },
   ]);
-  assert.equal(map.taleo, undefined);
+  assert.equal(map.jobvite, undefined);
   const total = Object.values(map).reduce((n, rows) => n + rows.length, 0);
   assert.equal(total, ROWS.length, "the two unroutable rows must not land in any provider's list");
 });

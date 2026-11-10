@@ -219,7 +219,7 @@ function computeFingerprint({ company, title, location }) {
 // company/title/city still keeps its own row. A direct-ATS source keeps the formula it always had,
 // so no stored ATS req_uid changes meaning.
 const DIRECT_ATS_NAMESPACES = new Set([
-  'greenhouse', 'lever', 'ashby', 'workday', 'smartrecruiters', 'workable', 'recruitee', 'bamboohr', 'gem', 'rippling', 'icims',
+  'greenhouse', 'lever', 'ashby', 'workday', 'smartrecruiters', 'workable', 'recruitee', 'bamboohr', 'gem', 'rippling', 'icims', 'oracle', 'taleo',
 ]);
 
 // The posting's identity on the ATS that owns it, read from its URL — or null. Pure, and only
