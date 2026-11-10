@@ -2989,7 +2989,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       filled: [parseJson(r.answers_json, [])].flat().filter(a => a && typeof a === "object" && !a.skipped && a.value != null && String(a.value) !== "").length,
       discovered: r.fields_discovered ?? null,
     },
-    baseAtsScore: r.base_ats_score ?? null,
+    baseAtsScore: baseScoreOf(r),
     // What the review surface needs to offer a link rather than leaving the user guessing whether
     // a resume was ever produced.
     resumeAvailable: r.resume_artifact_id != null,
@@ -5027,6 +5027,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * predates the deferral (nothing was recorded) — which is different from a recorded decline, and
    * both are different from a low score.
    */
+  // A179 F1: the base score of the application's résumé — the run job's own column, else the résumé's stored pair (D58).
+  const baseScoreOf = (r) => {
+    if (r?.base_ats_score != null) return r.base_ats_score;
+    try { return db.prepare("SELECT base_ats_score FROM resumes WHERE user_id = ? AND job_id = ?").pluck().get(r.user_id, String(r.job_id)) ?? null; }
+    catch { return null; }
+  };
   const baseAtsFor = (row) => {
     if (row?.base_ats_json == null) return null;
     const parsed = parseJson(row.base_ats_json, null);
@@ -5082,6 +5088,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           guessCount: filled.filter(a => a.provenance === "label_fuzzy").length,
           resume: { artifactId: r.resume_artifact_id ?? null, atsScore: r.resume_ats_score ?? null,
                     available: r.resume_artifact_id != null },
+          // ⭐ A179 F1 (46d, the canary's production walk: 74 -> 74 shown as "Tailored"): the base résumé's score beside the
+          // tailored one — the run job's own, else the résumé's D58 pair — so the step can say "already fits".
+          baseAtsScore: baseScoreOf(r),
           // AL2 — WHAT THE USER APPROVES ON. With generation deferred there is no artifact yet, so
           // `resume.available` is false and this is the only fit signal on the screen. It is the
           // BASE resume's band: free, computed with no model call, and an honest floor, because

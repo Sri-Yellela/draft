@@ -184,3 +184,12 @@ test("a179TailoringNotWorse (F4): a tailoring that scored lower than the base is
   const higher = await line.resumeForApply(1, "gh::1", "generate");
   assert.equal(higher.html, "<p>tailored</p>"); assert.equal(higher.keptBase, undefined);
 });
+
+test("a179TailoredOnlyWithDelta (approval rows): a Ready-to-approve row's own fields — resume.atsScore beside baseAtsScore", () => {
+  // 46d, the canary's production walk: a 74 -> 74 lift on a Ready-to-approve row must read "already fits", not "Tailored"
+  assert.equal(resumeStepOf({ resume: { atsScore: 74 }, baseAtsScore: 74 }).label, "Your résumé already fits — tailoring changed no score");
+  assert.equal(resumeStepOf({ resume: { atsScore: 80 }, baseAts: { score: 74 } }).label, "Tailored your résumé");
+  const src = fs.readFileSync("routes/apply.js", "utf8");
+  assert.match(src, /baseAtsScore: baseScoreOf\(r\),/);
+  assert.match(src, /SELECT base_ats_score FROM resumes WHERE user_id = \? AND job_id = \?/);
+});
