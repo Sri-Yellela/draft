@@ -94,5 +94,15 @@ test("SuccessFactors: robots.txt is respected; only a public host is a slug; wir
   fs.writeFileSync(f, JSON.stringify({ found: [{ company: "Example Build", atsType: "successfactors", slug: HOST }, { company: "Bad", atsType: "successfactors", slug: "localhost" }] }));
   assert.deepEqual(seedItems(f).map(i => [i.ats.slug, i.ats.url]), [[HOST, `https://${HOST}/`]], "a bad host is dropped, not guessed");
   const real = JSON.parse(fs.readFileSync("content/companies/candidates-nontech-45s.json", "utf8"));
-  assert.deepEqual(real.found.filter(x => x.atsType === "successfactors").map(x => x.slug).sort(), ["careers.bv.com", "careers.henselphelps.com"]);
+  assert.deepEqual(real.found.filter(x => x.atsType === "successfactors").map(x => x.slug).sort(), ["careers.bv.com", "careers.henselphelps.com", "careers.pge.com", "jobs.entergy.com"]);
+});
+
+test("SuccessFactors: a sitemap answered as RSS (<link>), and a template that cuts values to four characters", () => {
+  const rss = `<rss><channel><item><title>Lineworker</title><link>https://${HOST}/job/Gretna-Lineworker-Loui/1442776300/</link></item></channel></rss>`;
+  assert.deepEqual(parseSitemap(rss, HOST).map(e => e.id), ["1442776300"]);
+  const cut = (region) => postingOf(MICRODATA("Lineworker", "Gretna", region, "Un", "2026-10-22T00:00:00Z"));
+  assert.deepEqual(cut("Loui").place, { city: "Gretna", region: "LA", country: "US" }, "'Un' is the US; 'Loui' is only Louisiana");
+  assert.deepEqual(cut("Miss").place, { city: "Gretna", region: "Miss", country: "US" }, "'Miss' is Mississippi or Missouri — left as read");
+  assert.equal(postingOf(MICRODATA("Engineer", "Oxford", "Oxfo", "Uni", "2026-10-22T00:00:00Z")).place.country, "US", "a prefix of United States");
+  assert.equal(postingOf(MICRODATA("Engineer", "Oxford", "Oxon", "GB", "2026-10-22T00:00:00Z")).place.country, "GB");
 });

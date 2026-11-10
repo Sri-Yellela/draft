@@ -45,7 +45,8 @@ export function robotsAllowsJobs(txt) {
 /** The sitemap's postings: [{ id, url, titleHint }] — only this host's own /job/<title>/<id>/ pages. */
 export function parseSitemap(xml, host) {
   const out = [], seen = new Set();
-  for (const m of String(xml || '').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)) {
+  // <loc> in a sitemap, or <link> when the site answers its sitemap as the RSS feed (Entergy, measured 11-10).
+  for (const m of String(xml || '').matchAll(/<(?:loc|link)>\s*([^<\s]+)\s*<\/(?:loc|link)>/gi)) {
     let u; try { u = new URL(m[1].replace(/&amp;/g, '&')); } catch { continue; }
     if (u.protocol !== 'https:' || u.hostname.toLowerCase() !== String(host).toLowerCase()) continue;
     const seg = u.pathname.split('/').filter(Boolean);
@@ -101,6 +102,13 @@ function labelled(html, labels) {
 
 const US_STATES = new Set("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY PR".split(" "));
 const US_WORDS = /^(us|usa|united states( of america)?)$/i;
+const STATE_NAMES = Object.freeze({ AL: "alabama", AK: "alaska", AZ: "arizona", AR: "arkansas", CA: "california", CO: "colorado", CT: "connecticut",
+  DE: "delaware", DC: "district of columbia", FL: "florida", GA: "georgia", HI: "hawaii", ID: "idaho", IL: "illinois", IN: "indiana", IA: "iowa",
+  KS: "kansas", KY: "kentucky", LA: "louisiana", ME: "maine", MD: "maryland", MA: "massachusetts", MI: "michigan", MN: "minnesota",
+  MS: "mississippi", MO: "missouri", MT: "montana", NE: "nebraska", NV: "nevada", NH: "new hampshire", NJ: "new jersey", NM: "new mexico",
+  NY: "new york", NC: "north carolina", ND: "north dakota", OH: "ohio", OK: "oklahoma", OR: "oregon", PA: "pennsylvania", RI: "rhode island",
+  SC: "south carolina", SD: "south dakota", TN: "tennessee", TX: "texas", UT: "utah", VT: "vermont", VA: "virginia", WA: "washington",
+  WV: "west virginia", WI: "wisconsin", WY: "wyoming", PR: "puerto rico" });
 
 /** The posting's facts from its page: { title, html, place: { city, region, country }, datePosted, employmentType, reqId }. */
 export function postingOf(page, entry = {}) {
@@ -115,6 +123,16 @@ export function postingOf(page, entry = {}) {
     if (m) { city = m[1].trim(); region = m[2]; if (US_STATES.has(region)) country = 'US'; }
     else if (loc) city = loc;
   }
+  // ⭐ 46b: Entergy's template cuts each value to four characters — region "Loui", country "Un". A country that is a
+  // prefix of "United States" is the US; then a region that is the prefix of exactly ONE state name is that state.
+  if (country && country.length >= 2 && 'united states'.startsWith(country.toLowerCase()) && country.length < 13) country = 'US';
+  if (US_WORDS.test(String(country || '')) || country === 'US') {
+    const r = String(region || '').trim().toLowerCase();
+    if (r.length >= 3 && !US_STATES.has(r.toUpperCase())) {
+      const hits = Object.entries(STATE_NAMES).filter(([, n]) => n.startsWith(r));
+      if (hits.length === 1) region = hits[0][0];
+    }
+  }
   if (!country && US_STATES.has(String(region || '').toUpperCase()) && city) country = 'US';
   const dateRaw = itemprop(html, 'datePosted') || labelled(html, ['Date', 'Posted Date', 'Posting Date']);
   const t = Date.parse(dateRaw || '');
@@ -126,7 +144,9 @@ const isUs = (p) => US_WORDS.test(String(p.place.country || '')) || p.place.coun
 function locationText(p) {
   const { city, region, country } = p.place;
   if (/\bremote\b/i.test(p.title) && !city) return 'Remote';
-  if (city && region) return `${city}, ${region}`;
+  if (city && region && (US_STATES.has(String(region).toUpperCase()) || !isUs(p))) return `${city}, ${region}`;
+  // a US place whose state is unreadable (Entergy's "Miss" — Mississippi or Missouri) still says the country
+  if (city && isUs(p)) return `${city}, United States`;
   return [city, region, country && (isUs(p) ? 'United States' : country)].filter(Boolean).join(', ') || 'Not specified';
 }
 
