@@ -232,21 +232,41 @@ export const logoPath = (key) => `${LOGO_ROUTE}${encodeURIComponent(key)}`;
 // ⛔ A126 (hotfix 11-05) · `read` (server.js: the read-worker pool) runs the board-wide company list OFF the event loop.
 // Measured on production: this pass starts 20 s after boot, and its GROUP BY over every active posting held the loop
 // ≈ 10 s (18:31:34–44Z, the stall right after every deploy). Without `read` (tests, scripts) it reads `db` as before.
-const COMPANIES_SQL = `
-    SELECT sj.company AS company, GROUP_CONCAT(COALESCE(sj.url, '') || ' ' || COALESCE(sj.apply_url, ''), ' ') AS urls
-    FROM scraped_jobs sj
-    WHERE sj.is_active = 1 AND sj.company IS NOT NULL AND TRIM(sj.company) != ''
-    GROUP BY sj.company`;
+// ⭐ A178 (46d, measured on the 100k copy): that GROUP_CONCAT read url + apply_url for EVERY active posting, and apply_url
+// sits after the four description copies, so each row walked its overflow pages — 0.6 s warm, 13.5 s cold, holding one of
+// the two read workers ~20 s after every boot. Now: the companies and their job ids from the covering index (migration
+// 268; 0.09–0.18 s, no row read), the due ones chosen, and URLs read only for up to URL_SAMPLE postings of each due company.
+const URL_SAMPLE = 50;
+const companyJobsSql = (covered) => `
+    SELECT sj.company AS company, sj.job_id AS job_id
+    FROM scraped_jobs sj${covered ? " INDEXED BY idx_scraped_jobs_board_cover" : ""}
+    WHERE sj.is_active = 1 AND sj.company IS NOT NULL AND TRIM(sj.company) != ''`;
+const hasCover = (db) => { try { return !!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_scraped_jobs_board_cover'").get(); } catch { return false; } };
 export async function resolveCompanyLogos(db, { fetchImpl = globalThis.fetch, limit = 40, now = Math.floor(Date.now() / 1000), read = null } = {}) {
   const stats = {};
-  const companies = read ? await read.all(COMPANIES_SQL, []) : db.prepare(COMPANIES_SQL).all();
+  const sql = companyJobsSql(hasCover(db));
+  const rows = read ? await read.all(sql, []) : db.prepare(sql).all();
+  const jobsOf = new Map();   // company → up to URL_SAMPLE of its job ids
+  for (const r of rows) {
+    const list = jobsOf.get(r.company) || (jobsOf.set(r.company, []), jobsOf.get(r.company));
+    if (list.length < URL_SAMPLE) list.push(r.job_id);
+  }
   const existing = db.prepare("SELECT status, checked_at FROM company_logos WHERE company_key = ?");
-  const due = companies.filter(c => {
-    const key = companyKey(c.company);
+  const dueNames = [...jobsOf.keys()].sort().filter(company => {   // the GROUP BY's order, as before
+    const key = companyKey(company);
     if (!key) return false;
     const row = existing.get(key);
     return !row || (row.status === "none" && now - row.checked_at > RETRY_NONE_DAYS * 86400);
   }).slice(0, limit);
+  // URLs for the due companies only, by job id (the primary key's index), a batch at a time.
+  const urlsOf = new Map(dueNames.map(c => [c, []]));
+  const ids = dueNames.flatMap(c => jobsOf.get(c));
+  for (let i = 0; i < ids.length; i += 500) {
+    const part = ids.slice(i, i + 500);
+    const q = `SELECT company, COALESCE(url, '') || ' ' || COALESCE(apply_url, '') AS u FROM scraped_jobs WHERE job_id IN (${part.map(() => "?").join(",")})`;
+    for (const r of (read ? await read.all(q, part) : db.prepare(q).all(...part))) urlsOf.get(r.company)?.push(r.u);
+  }
+  const due = dueNames.map(company => ({ company, urls: urlsOf.get(company).join(" ") }));
 
   let ok = 0, none = 0;
   for (const c of due) {
