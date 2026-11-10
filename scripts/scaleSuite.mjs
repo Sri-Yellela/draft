@@ -42,6 +42,14 @@ if (!fs.existsSync(path.join(FIXTURE, "resume_master.db"))) {
 
 // ── a throwaway copy, so the fixture stays as built ──
 const RUN = fs.mkdtempSync(path.join(os.tmpdir(), "draft-scale-"));
+// ⛔ 46c: the fixture's WAL folded in first — a boot on the fixture itself (a warm-up) leaves its writes in the -wal file
+// (2.9 GB after 46c's), and copying resume_master.db alone copied the fixture as it was BEFORE them.
+{
+  const { default: Database } = await import("better-sqlite3");
+  const fx = new Database(path.join(FIXTURE, "resume_master.db"));
+  fx.pragma("wal_checkpoint(TRUNCATE)");
+  fx.close();
+}
 fs.copyFileSync(path.join(FIXTURE, "resume_master.db"), path.join(RUN, "resume_master.db"));
 // ⛔ 46c: the copy is RE-SEEN NOW. scripts/scaleFixture.mjs writes scraped_at = now − age (age 0–60 days), but production's
 // scraped_at is when a crawl last SAW the posting (the crawl refreshes it daily; the age is posted_at). Unchanged, the boot's

@@ -60,7 +60,8 @@ test("D105 P7 · d105AutoPublishBar — ≥ 5 postings AND (a Wikipedia summary 
   assert.match(panel, /data-atlas-readiness=/);
   // The nightly cron re-checks the bar right after the stats.
   const src = read("server.js");
-  const cron = src.slice(at(src, "const a = computeAtlasStats(db);"), at(src, "console.error('[Cron] Atlas stats error:'"));
+  // 46c (A123 (5)): the pass's read runs on the offload worker — runAtlasPass(); the bar is still re-checked after it.
+  const cron = src.slice(at(src, "const a = await runAtlasPass();"), at(src, "console.error('[Cron] Atlas stats error:'"));
   assert.match(cron, /autoPublish\(db\)/);
 });
 
