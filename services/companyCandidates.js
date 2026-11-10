@@ -2,7 +2,7 @@
 //
 //   DISCOVER  HN weekly (services/jobs/hnDiscovery.js)                → runHnDiscovery
 //   → POOL    company_candidates (migration 148)                       → poolCandidates
-//   → PROBE   nightly, READ-ONLY, 25 at a time, ≥ 1 s between boards   → runCandidateProbe
+//   → PROBE   nightly, READ-ONLY, 100 a run, one queue per host (≤ 6 at once), ≥ 1 s between a host's boards → runCandidateProbe
 //   → REVIEW  Admin → Companies → Candidates (routes/companies.js)     → listCandidates
 //   → ADD     the owner's approval: backup · disk gate · D80 evidence  → approveCandidates (via addCompany)
 //
@@ -25,7 +25,15 @@ import { fetchDescription } from "./jobs/detailFetch.js";
 import { toActor } from "./actor.js";
 
 export const STATUSES = Object.freeze(["new", "probed", "approved", "rejected", "added", "dormant"]);
-export const PROBE_BATCH = 25;
+export const PROBE_BATCH = 100;              // 46a: was 25 — boards on different hosts now run side by side
+export const PROBE_CONCURRENCY = 6;           // host queues at once; inside one queue, one board at a time
+// One queue per HOST: the shared vendor APIs are one host each; tenant-hosted vendors are one host per tenant.
+const TENANT_HOSTED = new Set(["workday", "icims", "oracle", "taleo", "recruitee", "bamboohr"]);
+export function probeHostKey(r) {
+  const t = String(r?.ats_type || ""), s = String(r?.ats_slug || "").toLowerCase();
+  if (!TENANT_HOSTED.has(t)) return t;
+  return `${t}:${t === "workday" ? (s.split("|")[1] || s) : s.split("|")[0]}`;
+}
 export const PROBE_GAP_MS = 1000;            // ≥ 1 s between boards; the detail sample is spaced the same
 export const PROBE_FRESH_DAYS = 14;          // an approval acts on a probe no older than this
 export const BREAKER_AFTER = 3;
@@ -188,11 +196,10 @@ export async function runCandidateProbe(db, { env = process.env, probe = probeBo
     // ⛔ ≤ 1 request a second per host: the detail-page sample is spaced like the boards are.
     const describe = async (row) => { await sleep(gapMs); return fetchDescription(row, { maxRetries: 0, timeoutMs: 10000 }); };
     let probed = 0, errored = 0, skipped = 0;
-    for (const [i, r] of rows.entries()) {
+    const one = async (r) => {
       if (configured.get(r.ats_type, r.ats_slug)) {           // configured since it was pooled
-        save.run(r.evidence_json, r.rank_score, "rejected", "already_configured", r.probed_at, r.id); skipped++; continue;
+        save.run(r.evidence_json, r.rank_score, "rejected", "already_configured", r.probed_at, r.id); skipped++; return;
       }
-      if (i > 0) await sleep(gapMs);
       let p;
       try { p = await probe({ atsType: r.ats_type, slug: r.ats_slug, company: r.company }, { now, describe }); }
       catch (e) { p = { state: "error", message: e.message }; }
@@ -200,13 +207,26 @@ export async function runCandidateProbe(db, { env = process.env, probe = probeBo
       if (p.state === "error") {
         // a re-probe's transient error keeps the probed row and its evidence as they were (it is retried next run)
         if (r.status !== "probed") save.run(JSON.stringify(ev), 0, "new", "probe_error", now, r.id);
-        errored++; continue;
+        errored++; return;
       }
       const admit = admitFromProbe({ ...ev, atsType: r.ats_type, slug: r.ats_slug, company: r.company });
       const bar = barOf(ev);
       save.run(JSON.stringify({ ...ev, admit: admit.reason, bar }), rankScore(ev), "probed", admit.reason, now, r.id);
       probed++;
-    }
+    };
+    // ⛔ 46a (owner 11-10: "this doesnt work at scale 25 at a time"): the boards were probed ONE AT A TIME across every
+    // vendor, so a run's time grew with the whole pool. The politeness rule is per HOST — so now one queue per host
+    // (a shared vendor API, or a tenant's own host), each strictly serial with gapMs between its boards, and up to
+    // PROBE_CONCURRENCY queues at once. No host is asked faster than before; different hosts no longer wait on each other.
+    const queues = new Map();
+    for (const r of rows) { const k = probeHostKey(r); if (!queues.has(k)) queues.set(k, []); queues.get(k).push(r); }
+    const pending = [...queues.values()];
+    const lane = async () => {
+      for (let q = pending.shift(); q; q = pending.shift()) {
+        for (const [i, r] of q.entries()) { if (i > 0) await sleep(gapMs); await one(r); }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(PROBE_CONCURRENCY, pending.length) }, lane));
     const allFailed = errored > 0 && probed === 0;
     recordPipelineRun(db, { runKind: RUN_KIND, source: "probe", status: allFailed ? "failed" : rows.length ? "ok" : "no_results", startedAt,
       fetched: rows.length, written: probed, failed: errored, skipped, errorText: allFailed ? `all ${errored} probe(s) errored` : null });

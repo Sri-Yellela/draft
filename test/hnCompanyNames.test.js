@@ -146,3 +146,30 @@ test("Re-probe works through EVERY due candidate in one press, capped so an erro
     assert.equal(list.probeDue, 30); assert.equal(list.probeRun, null);
   } finally { server.close(); }
 });
+
+test("the probe runs one queue per HOST at once — never two boards of one host together; different hosts side by side", async () => {
+  const { runCandidateProbe, probeHostKey, PROBE_CONCURRENCY } = await import("../services/companyCandidates.js");
+  assert.equal(probeHostKey({ ats_type: "greenhouse", ats_slug: "a" }), "greenhouse", "a shared vendor API is one host");
+  assert.equal(probeHostKey({ ats_type: "workday", ats_slug: "5|remitly|Remitly_Careers" }), "workday:remitly", "a Workday tenant is its own host");
+  assert.equal(probeHostKey({ ats_type: "icims", ats_slug: "careers-shawmut" }), "icims:careers-shawmut");
+  const db = db0();
+  const now = Math.floor(Date.now() / 1000);
+  const boards = [["greenhouse", "g1"], ["greenhouse", "g2"], ["greenhouse", "g3"], ["ashby", "a1"], ["ashby", "a2"], ["lever", "l1"],
+    ["workday", "5|t1|S"], ["workday", "5|t2|S"]];
+  for (const [t, s] of boards) cand(db, `Co ${s}`, t, s, `Co ${s} | SWE`, "new");
+  const inFlight = new Map(); let peak = 0, peakPerHost = 0, live = 0;
+  const probe = async (b) => {
+    const k = probeHostKey({ ats_type: b.atsType, ats_slug: b.slug });
+    inFlight.set(k, (inFlight.get(k) || 0) + 1); live++;
+    peak = Math.max(peak, live); peakPerHost = Math.max(peakPerHost, inFlight.get(k));
+    await new Promise(r => setTimeout(r, 30));
+    inFlight.set(k, inFlight.get(k) - 1); live--;
+    return { state: "live", jobs: 10, us: 10, cs: 3, csOpen: 3, cs30: 1, pct30: 30, pct120: 90 };
+  };
+  const t0 = Date.now();
+  const r = await runCandidateProbe(db, { env: {}, probe, sleep: async () => {}, gapMs: 0, now });
+  assert.equal(r.probed, boards.length);
+  assert.equal(peakPerHost, 1, "never two boards of one host at once (≤ 1 request a second per host)");
+  assert.ok(peak >= 4 && peak <= PROBE_CONCURRENCY, `hosts side by side (peak ${peak})`);
+  assert.ok(Date.now() - t0 < boards.length * 30, "faster than one board at a time");
+});
