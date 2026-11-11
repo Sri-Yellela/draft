@@ -2,12 +2,13 @@
 import { useTheme } from "../styles/theme.jsx";
 import { AdminPanel } from "../panels/AdminPanel.jsx";
 import { StampLogo } from "./StampLogo.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export default function AdminLayout({ user, onLogout, children }) {
   const { theme } = useTheme();
 
   return (
-    <div style={{ fontFamily:"'DM Sans',system-ui,sans-serif", fontSize:13,
+    <div style={{ fontFamily:"'DM Sans',system-ui,sans-serif", fontSize:ts(13),
                   background:theme.bg, minHeight:"100vh", color:theme.text }}>
       {/* Header */}
       <div style={{
@@ -21,13 +22,13 @@ export default function AdminLayout({ user, onLogout, children }) {
         position:"sticky", top:0, zIndex:100,
       }}>
         <StampLogo size="sm" />
-        <span style={{ fontSize:11, color:theme.textMuted,
+        <span style={{ fontSize:ts(11), color:theme.textMuted,
                        borderLeft:`1px solid ${theme.border}`, paddingLeft:16,
                        fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>
           Admin Panel
         </span>
         <div style={{ flex:1 }}/>
-        <span style={{ fontSize:12, color:theme.textMuted, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+        <span style={{ fontSize:ts(12), color:theme.textMuted, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
           Logged in as{" "}
           <strong style={{ color:theme.text }}>{user?.username}</strong>
         </span>
@@ -36,7 +37,7 @@ export default function AdminLayout({ user, onLogout, children }) {
           style={{
             background:"transparent", border:`1px solid ${theme.border}`,
             padding:"5px 16px", cursor:"pointer",
-            fontSize:12, color:theme.textMuted, fontWeight:600,
+            fontSize:ts(12), color:theme.textMuted, fontWeight:600,
             fontFamily:"'DM Sans',system-ui", transition:"all 0.15s",
           }}
           onMouseEnter={e => {

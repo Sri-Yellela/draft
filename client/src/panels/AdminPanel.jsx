@@ -32,6 +32,7 @@ import { DiagnosticsTab, BackgroundJobsSection, PostingArchiveSection, HirebaseS
 import { PeopleUsers, SupportQueue } from "./adminPeople.jsx";
 import { TYPE } from "../styles/type.js";
 import StatCard from "../components/StatCard.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const ADMIN_ACCENT = C.ACCENT;
 // ADMIN_ACCENT is the orange, which is 2.96:1 on the paper: a FILL only. Text, edges and strokes use the
@@ -72,7 +73,7 @@ function DateRange({ from, to, onFromChange, onToChange }) {
             style={{
               padding:"4px 12px", border:`1px solid ${active ? theme.accent : theme.border}`,
               background: active ? theme.accent : "transparent", color: active ? C.ON_ACCENT : theme.text,
-              fontSize:11, fontWeight:700, cursor:"pointer",
+              fontSize:ts(11), fontWeight:700, cursor:"pointer",
             }}>
             {p.label}
           </button>
@@ -87,7 +88,7 @@ function MiniLineChart({ data, width=300, height=80, color=C.VIOLET }) {
   const { theme } = useTheme();
   if (!data || data.length < 2) return (
     <div style={{ width, height, display:"flex", alignItems:"center", justifyContent:"center",
-                  color:theme.textDim, fontSize:11 }}>No data</div>
+                  color:theme.textDim, fontSize:ts(11) }}>No data</div>
   );
   const values = data.map(d => d.value);
   const maxV = Math.max(...values, 1);
@@ -114,7 +115,7 @@ function MiniBarChart({ data, width=300, height=80, color=C.VIOLET }) {
   const { theme } = useTheme();
   if (!data || data.length === 0) return (
     <div style={{ width, height, display:"flex", alignItems:"center", justifyContent:"center",
-                  color:theme.textDim, fontSize:11 }}>No data</div>
+                  color:theme.textDim, fontSize:ts(11) }}>No data</div>
   );
   const maxV = Math.max(...data.map(d => d.value), 1);
   const pad = 4;
@@ -205,12 +206,12 @@ function UsageTab({ theme }) {
       <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
         <div style={{ flex:1, minWidth:280, background:theme.surface, border:`1px solid ${theme.border}`,
                       borderRadius:12, padding:16 }}>
-          <div style={{ fontSize:12, fontWeight:700, marginBottom:12, color:theme.text }}>Resumes Generated</div>
+          <div style={{ fontSize:ts(12), fontWeight:700, marginBottom:12, color:theme.text }}>Resumes Generated</div>
           <MiniLineChart data={timeseries.resumes || []} width={300} height={90} color={theme.accent}/>
         </div>
         <div style={{ flex:1, minWidth:280, background:theme.surface, border:`1px solid ${theme.border}`,
                       borderRadius:12, padding:16 }}>
-          <div style={{ fontSize:12, fontWeight:700, marginBottom:12, color:theme.text }}>API Cost (USD/day)</div>
+          <div style={{ fontSize:ts(12), fontWeight:700, marginBottom:12, color:theme.text }}>API Cost (USD/day)</div>
           <MiniBarChart data={timeseries.cost || []} width={300} height={90} color={C.DANGER}/>
         </div>
       </div>
@@ -218,17 +219,17 @@ function UsageTab({ theme }) {
       {/* Top event types */}
       {overview.topEventTypes?.length > 0 && (
         <div style={{ background:theme.surface, border:`1px solid ${theme.border}`, borderRadius:12, padding:16 }}>
-          <div style={{ fontSize:12, fontWeight:700, marginBottom:12, color:theme.text }}>Event Breakdown</div>
+          <div style={{ fontSize:ts(12), fontWeight:700, marginBottom:12, color:theme.text }}>Event Breakdown</div>
           <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
             {overview.topEventTypes.map(ev => (
               <div key={ev.event_type} style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <div style={{ width:160, fontSize:12, color:theme.text }}>{ev.event_type}</div>
+                <div style={{ width:160, fontSize:ts(12), color:theme.text }}>{ev.event_type}</div>
                 <div style={{ flex:1, height:6, background:theme.surfaceHigh, borderRadius:2 }}>
                   <div style={{ height:6, borderRadius:2, background:theme.accent,
                                 width: `${Math.min(100, (ev.count / (overview.topEventTypes[0]?.count||1))*100)}%` }}/>
                 </div>
-                <div style={{ width:50, textAlign:"right", fontSize:12, color:theme.textMuted }}>{ev.count}</div>
-                <div style={{ width:70, textAlign:"right", fontSize:11, color:C.DANGER }}>{fmtUsd(ev.cost)}</div>
+                <div style={{ width:50, textAlign:"right", fontSize:ts(12), color:theme.textMuted }}>{ev.count}</div>
+                <div style={{ width:70, textAlign:"right", fontSize:ts(11), color:C.DANGER }}>{fmtUsd(ev.cost)}</div>
               </div>
             ))}
           </div>
@@ -237,7 +238,7 @@ function UsageTab({ theme }) {
 
       {overview.actionCosts?.length > 0 && (
         <div style={{ background:theme.surface, border:`1px solid ${theme.border}`, borderRadius:12, padding:16 }}>
-          <div style={{ fontSize:12, fontWeight:700, marginBottom:12, color:theme.text }}>Cost by Generation Action</div>
+          <div style={{ fontSize:ts(12), fontWeight:700, marginBottom:12, color:theme.text }}>Cost by Generation Action</div>
           <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
             {overview.actionCosts.map((row, idx) => {
               const subtypeLabel = displayEventSubtype(row.event_subtype);
@@ -247,16 +248,16 @@ function UsageTab({ theme }) {
                 + (row.cache_read_tokens || 0) + (row.cache_creation_tokens || 0);
               return (
                 <div key={`${row.event_type}-${row.event_subtype}-${idx}`} style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <div style={{ width:220, fontSize:12, color:theme.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  <div style={{ width:220, fontSize:ts(12), color:theme.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                     {label}
                   </div>
                   <div style={{ flex:1, height:7, background:theme.surfaceHigh, borderRadius:2 }}>
                     <div style={{ height:7, borderRadius:2, background:C.DANGER,
                                   width: `${Math.min(100, (row.cost / maxCost) * 100)}%` }}/>
                   </div>
-                  <div style={{ width:55, textAlign:"right", fontSize:11, color:theme.textMuted }}>{row.calls} calls</div>
-                  <div style={{ width:80, textAlign:"right", fontSize:11, color:theme.textMuted }}>{fmtNum(totalTokens)} tok</div>
-                  <div style={{ width:76, textAlign:"right", fontSize:11, color:C.DANGER }}>{fmtUsd(row.cost)}</div>
+                  <div style={{ width:55, textAlign:"right", fontSize:ts(11), color:theme.textMuted }}>{row.calls} calls</div>
+                  <div style={{ width:80, textAlign:"right", fontSize:ts(11), color:theme.textMuted }}>{fmtNum(totalTokens)} tok</div>
+                  <div style={{ width:76, textAlign:"right", fontSize:ts(11), color:C.DANGER }}>{fmtUsd(row.cost)}</div>
                 </div>
               );
             })}
@@ -266,8 +267,8 @@ function UsageTab({ theme }) {
 
       <div style={{ background:theme.surface, border:`1px solid ${theme.border}`, borderRadius:12, overflow:"hidden" }}>
         <div style={{ padding:"12px 16px", borderBottom:`1px solid ${theme.border}` }}>
-          <div style={{ fontSize:12, fontWeight:700, color:theme.text }}>Generation / Model Call Usage</div>
-          <div style={{ fontSize:11, color:theme.textMuted, marginTop:3 }}>
+          <div style={{ fontSize:ts(12), fontWeight:700, color:theme.text }}>Generation / Model Call Usage</div>
+          <div style={{ fontSize:ts(11), color:theme.textMuted, marginTop:3 }}>
             Most recent tracked model calls. Cache state is derived from stored token fields.
             {/* A50: success / error_text were returned by the route and never drawn, so a run of
                 failing calls (the Groq 404 outage) read as an ordinary list of $0 rows. */}
@@ -284,7 +285,7 @@ function UsageTab({ theme }) {
               display:"grid",
               gridTemplateColumns:LEDGER_COLS,
               gap:8, padding:"9px 14px", background:theme.surfaceHigh,
-              fontSize:10, fontWeight:700, textTransform:"uppercase",
+              fontSize:ts(10), fontWeight:700, textTransform:"uppercase",
               letterSpacing:"0.06em", color:theme.textMuted,
             }}>
               <div>Time</div><div>User</div><div>Action</div><div>Result</div><div>Model</div>
@@ -292,7 +293,7 @@ function UsageTab({ theme }) {
               <div>Cache</div><div>Cost</div>
             </div>
             {modelCalls.length === 0 ? (
-              <div style={{ padding:"18px 16px", fontSize:12, color:theme.textMuted }}>
+              <div style={{ padding:"18px 16px", fontSize:ts(12), color:theme.textMuted }}>
                 No tracked model calls in this date range.
               </div>
             ) : modelCalls.map(call => (
@@ -300,7 +301,7 @@ function UsageTab({ theme }) {
                 display:"grid",
                 gridTemplateColumns:LEDGER_COLS,
                 gap:8, padding:"9px 14px", borderTop:`1px solid ${theme.border}`,
-                fontSize:11, alignItems:"center", color:theme.textMuted,
+                fontSize:ts(11), alignItems:"center", color:theme.textMuted,
                 background: callFailed(call) ? C.DANGER_QUIET : "transparent",
               }}>
                 <div>{fmtDate(call.created_at)}</div>
@@ -374,18 +375,18 @@ function ContactMessagesSection({ theme }) {
     <div style={{ marginBottom: 40 }}>
       {/* Section header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <h2 style={{ fontSize: 14, fontWeight: 800, color: ADMIN_ACCENT_TEXT, margin: 0,
+        <h2 style={{ fontSize: ts(14), fontWeight: 800, color: ADMIN_ACCENT_TEXT, margin: 0,
                       letterSpacing: "0.05em", textTransform: "uppercase" }}>
           Contact Messages
         </h2>
         {unreadCount > 0 && (
-          <span style={{ background: theme.danger, color: "var(--c-surface-solid)", fontSize: 11,
+          <span style={{ background: theme.danger, color: "var(--c-surface-solid)", fontSize: ts(11),
                           fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
             {unreadCount} unread
           </span>
         )}
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-          <label style={{ fontSize: 12, color: theme.textMuted, display: "flex",
+          <label style={{ fontSize: ts(12), color: theme.textMuted, display: "flex",
                            gap: 6, alignItems: "center", cursor: "pointer" }}>
             <input type="checkbox" checked={unreadOnly}
               onChange={e => setUnreadOnly(e.target.checked)}/>
@@ -400,11 +401,11 @@ function ContactMessagesSection({ theme }) {
       <div style={{ background: theme.surface, border: `1px solid ${theme.border}`,
                      borderRadius: 16, overflow: "hidden" }}>
         {loading ? (
-          <div style={{ padding: 32, textAlign: "center", color: theme.textDim, fontSize: 13 }}>
+          <div style={{ padding: 32, textAlign: "center", color: theme.textDim, fontSize: ts(13) }}>
             Loading…
           </div>
         ) : messages.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: theme.textDim, fontSize: 13 }}>
+          <div style={{ padding: 32, textAlign: "center", color: theme.textDim, fontSize: ts(13) }}>
             No messages yet.
           </div>
         ) : (
@@ -412,7 +413,7 @@ function ContactMessagesSection({ theme }) {
             <thead>
               <tr style={{ background: theme.surfaceHigh, borderBottom: `1px solid ${theme.border}` }}>
                 {["Name", "Email", "Subject", "Preview", "Date", ""].map(h => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 11,
+                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: ts(11),
                                         fontWeight: 700, color: theme.textMuted,
                                         textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     {h}
@@ -429,22 +430,22 @@ function ContactMessagesSection({ theme }) {
                                cursor: "pointer",
                                opacity: m.read ? 0.65 : 1 }}
                     onClick={() => setExpanded(expanded === m.id ? null : m.id)}>
-                    <td style={{ padding: "10px 14px", fontSize: 13, color: theme.text,
+                    <td style={{ padding: "10px 14px", fontSize: ts(13), color: theme.text,
                                   fontWeight: m.read ? 400 : 700 }}>
                       {m.name}
                     </td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, color: theme.textMuted }}>
+                    <td style={{ padding: "10px 14px", fontSize: ts(12), color: theme.textMuted }}>
                       {m.email}
                     </td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, color: theme.textMuted }}>
+                    <td style={{ padding: "10px 14px", fontSize: ts(12), color: theme.textMuted }}>
                       {m.subject || "—"}
                     </td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, color: theme.textDim,
+                    <td style={{ padding: "10px 14px", fontSize: ts(12), color: theme.textDim,
                                   maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis",
                                   whiteSpace: "nowrap" }}>
                       {m.message.slice(0, 80)}{m.message.length > 80 ? "…" : ""}
                     </td>
-                    <td style={{ padding: "10px 14px", fontSize: 11, color: theme.textDim,
+                    <td style={{ padding: "10px 14px", fontSize: ts(11), color: theme.textDim,
                                   whiteSpace: "nowrap" }}>
                       {new Date(m.created_at * 1000).toLocaleDateString()}
                     </td>
@@ -461,7 +462,7 @@ function ContactMessagesSection({ theme }) {
                   {expanded === m.id && (
                     <tr key={`exp-${m.id}`} style={{ background: theme.surfaceHigh }}>
                       <td colSpan={6} style={{ padding: "16px 20px" }}>
-                        <div style={{ fontSize: 13, color: theme.textMuted,
+                        <div style={{ fontSize: ts(13), color: theme.textMuted,
                                        lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
                           {m.message}
                         </div>
@@ -507,15 +508,15 @@ function DeleteUserDialog({ preview, onCancel, onDeleted }) {
       <div role="dialog" aria-label={`Delete ${preview.user.username}`}
         style={{ background:theme.surface, borderRadius:16, padding:24, maxWidth:460, width:"90%",
                  maxHeight:"80vh", overflowY:"auto", border:`1px solid ${theme.danger}55` }}>
-        <div style={{ fontSize:16, fontWeight:800, marginBottom:8, color:theme.danger }}>
+        <div style={{ fontSize:ts(16), fontWeight:800, marginBottom:8, color:theme.danger }}>
           Delete {preview.user.username}?
         </div>
-        <div style={{ fontSize:12, color:theme.textMuted, lineHeight:1.6, marginBottom:12 }}>
+        <div style={{ fontSize:ts(12), color:theme.textMuted, lineHeight:1.6, marginBottom:12 }}>
           This permanently removes the account and {preview.totalRows.toLocaleString()} row(s) of their data,
           their screenshots and picture, and signs out every session. It cannot be undone.
         </div>
         {rows.length > 0 ? (
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, marginBottom:14 }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(12), marginBottom:14 }}>
             <tbody>
               {rows.map(([t, n]) => (
                 <tr key={t} style={{ borderBottom:`1px solid ${theme.border}` }}>
@@ -526,25 +527,25 @@ function DeleteUserDialog({ preview, onCancel, onDeleted }) {
             </tbody>
           </table>
         ) : (
-          <div style={{ fontSize:12, color:theme.textMuted, marginBottom:14 }}>No rows outside the account itself.</div>
+          <div style={{ fontSize:ts(12), color:theme.textMuted, marginBottom:14 }}>No rows outside the account itself.</div>
         )}
-        <label style={{ fontSize:11, fontWeight:700, color:theme.textMuted }}>
+        <label style={{ fontSize:ts(11), fontWeight:700, color:theme.textMuted }}>
           Type <span style={{ fontFamily:"monospace", color:theme.text }}>{preview.confirmWith}</span> to confirm
           <input value={typed} onChange={e => setTyped(e.target.value)} autoFocus
             style={{ display:"block", marginTop:4, height:34, padding:"0 10px", borderRadius:8, width:"100%",
                      boxSizing:"border-box", border:`1px solid ${theme.border}`, background:theme.surface,
-                     color:theme.text, fontSize:12 }}/>
+                     color:theme.text, fontSize:ts(12) }}/>
         </label>
-        {err && <div style={{ marginTop:8, fontSize:12, color:theme.danger }}>{err}</div>}
+        {err && <div style={{ marginTop:8, fontSize:ts(12), color:theme.danger }}>{err}</div>}
         <div style={{ display:"flex", gap:8, marginTop:16 }}>
           <button className="dbx-depth" onClick={onCancel} disabled={busy}
             style={{ flex:1, padding:"9px 0", border:`1px solid ${theme.border}`,
-                     background:"transparent", color:theme.text, fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                     background:"transparent", color:theme.text, fontWeight:700, fontSize:ts(13), cursor:"pointer" }}>
             Cancel
           </button>
           <button className="dbx-depth" onClick={doDelete} disabled={!armed}
             style={{ flex:2, padding:"9px 0", border:"none", background:theme.danger,
-                     color:C.ON_ACCENT, fontWeight:800, fontSize:13, cursor:armed ? "pointer" : "not-allowed",
+                     color:C.ON_ACCENT, fontWeight:800, fontSize:ts(13), cursor:armed ? "pointer" : "not-allowed",
                      opacity:armed ? 1 : 0.45 }}>
             {busy ? "Deleting…" : "Delete permanently"}
           </button>
@@ -620,7 +621,7 @@ export function AdminPanel() {
   };
 
   const thStyle = {
-    padding:"10px 14px", textAlign:"left", fontSize:10,
+    padding:"10px 14px", textAlign:"left", fontSize:ts(10),
     fontWeight:700, color:theme.textDim,
     textTransform:"uppercase", letterSpacing:"0.08em",
     borderBottom:`1px solid ${theme.border}`,
@@ -644,7 +645,7 @@ export function AdminPanel() {
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:24 }}>
         {/* A50 step 6: the shared type scale (styles/type.js), not the pre-rebrand Barlow badge.
             A tool, so the title is the section size, not the deck's page size. */}
-        <h1 style={{ ...TYPE.SECTION_TITLE, fontSize: 32 }}>Admin</h1>
+        <h1 style={{ ...TYPE.SECTION_TITLE, fontSize: ts(32) }}>Admin</h1>
         <div style={{ flex:1 }}/>
         {/* DB Inspector shortcut */}
         <a href="/admin/db" style={{ textDecoration:"none" }}>
@@ -656,16 +657,16 @@ export function AdminPanel() {
           }}
           onMouseEnter={e => e.currentTarget.style.borderColor = ADMIN_ACCENT_TEXT}
           onMouseLeave={e => e.currentTarget.style.borderColor = theme.border}>
-            <span style={{ fontSize:18 }}>🔬</span>
+            <span style={{ fontSize:ts(18) }}>🔬</span>
             <div>
-              <div style={{ fontWeight:800, fontSize:12, color:theme.text, letterSpacing:"0.05em" }}>
+              <div style={{ fontWeight:800, fontSize:ts(12), color:theme.text, letterSpacing:"0.05em" }}>
                 DB Inspector
               </div>
-              <div style={{ fontSize:10, color:theme.textMuted }}>
+              <div style={{ fontSize:ts(10), color:theme.textMuted }}>
                 Pipeline Health · Schema · Tables · Trace
               </div>
             </div>
-            <span style={{ fontSize:11, color:ADMIN_ACCENT_TEXT, fontWeight:700, marginLeft:4 }}>→</span>
+            <span style={{ fontSize:ts(11), color:ADMIN_ACCENT_TEXT, fontWeight:700, marginLeft:4 }}>→</span>
           </div>
         </a>
       </div>
@@ -680,9 +681,9 @@ export function AdminPanel() {
             onClick={() => go(g.id)}
             style={{ border:"none", cursor:"pointer", fontFamily:"inherit", padding:"10px 16px", textAlign:"left",
                      background: place.g === g.id ? ADMIN_ACCENT : theme.surface, color: place.g === g.id ? ADMIN_TEXT : theme.text }}>
-            <div style={{ fontWeight:800, fontSize:13 }}>{g.label}</div>
+            <div style={{ fontWeight:800, fontSize:ts(13) }}>{g.label}</div>
             {/* D91 P6: full strength on the orange fill — 0.8 there was 3.95:1 (the matrix's scan). */}
-            <div style={{ fontSize:11, opacity: place.g === g.id ? 1 : 0.8 }}>{g.question}</div>
+            <div style={{ fontSize:ts(11), opacity: place.g === g.id ? 1 : 0.8 }}>{g.question}</div>
           </button>
         ))}
       </nav>
@@ -692,7 +693,7 @@ export function AdminPanel() {
         {group.sections.map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={place.s === id} data-admin-section={id}
             onClick={() => go(group.id, id)}
-            style={{ padding:"8px 14px", border:"none", cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:12,
+            style={{ padding:"8px 14px", border:"none", cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:ts(12),
                      background:"transparent", color: place.s === id ? theme.text : theme.textMuted,
                      borderBottom: place.s === id ? `3px solid ${ADMIN_ACCENT_TEXT}` : "3px solid transparent", marginBottom:-2 }}>
             {label}
@@ -755,8 +756,8 @@ export function AdminPanel() {
       {at("data", "questions") && <QuestionBankTab/>}
       {at("data", "database") && (
         <div className="rm-card" data-admin-database="" style={{ maxWidth:640 }}>
-          <div style={{ fontWeight:700, fontSize:14, color:theme.text, marginBottom:8 }}>The database, read-only</div>
-          <div style={{ fontSize:13, color:theme.textMuted, marginBottom:12 }}>
+          <div style={{ fontWeight:700, fontSize:ts(14), color:theme.text, marginBottom:8 }}>The database, read-only</div>
+          <div style={{ fontSize:ts(13), color:theme.textMuted, marginBottom:12 }}>
             Pipeline health, the schema, any table's rows, one posting's path, a user's pool and a read-only query — on their own page.
           </div>
           <a href="/admin/db" className="rm-btn rm-btn-ghost rm-btn-sm">Open the database inspector →</a>
@@ -779,7 +780,7 @@ export function AdminPanel() {
 
                 {upgradeRequests.filter(r => r.status === "pending").length > 0 && (
                   <div className="rm-card" style={{ marginBottom:24 }}>
-                    <div style={{ fontWeight:700, fontSize:14, color:theme.text, marginBottom:12 }}>
+                    <div style={{ fontWeight:700, fontSize:ts(14), color:theme.text, marginBottom:12 }}>
                       Pending Upgrade Requests
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
@@ -787,7 +788,7 @@ export function AdminPanel() {
                         <div key={r.id} style={{ display:"flex", alignItems:"center", gap:10,
                                                  padding:"8px 10px", border:`1px solid ${theme.border}`,
                                                  borderRadius:8 }}>
-                          <span style={{ flex:1, fontSize:12 }}>
+                          <span style={{ flex:1, fontSize:ts(12) }}>
                             <strong>{r.username}</strong> requests {r.requested_tier}
                           </span>
                           <button className="rm-btn rm-btn-primary rm-btn-sm"
@@ -801,7 +802,7 @@ export function AdminPanel() {
                 )}
                 {profileRequests.filter(r => r.status === "pending").length > 0 && (
                   <div className="rm-card" style={{ marginBottom:24 }}>
-                    <div style={{ fontWeight:700, fontSize:14, color:theme.text, marginBottom:12 }}>
+                    <div style={{ fontWeight:700, fontSize:ts(14), color:theme.text, marginBottom:12 }}>
                       Other Job Profile Requests
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
@@ -809,7 +810,7 @@ export function AdminPanel() {
                         <div key={r.id} style={{ display:"flex", alignItems:"flex-start", gap:10,
                                                  padding:"10px", border:`1px solid ${theme.border}`,
                                                  borderRadius:8 }}>
-                          <span style={{ flex:1, fontSize:12, color:theme.textMuted, lineHeight:1.5 }}>
+                          <span style={{ flex:1, fontSize:ts(12), color:theme.textMuted, lineHeight:1.5 }}>
                             <strong style={{ color:theme.text }}>{r.username}</strong> requests{" "}
                             <strong style={{ color:theme.text }}>{r.desired_title}</strong>
                             {r.role_family ? ` (${r.role_family})` : ""}
@@ -839,7 +840,7 @@ export function AdminPanel() {
                 <div style={{ marginTop:24 }}/>
                 {/* Add an account — a utility, below the list */}
                 <div className="rm-card" style={{ marginBottom:24, maxWidth:440 }}>
-                  <div style={{ fontWeight:700, fontSize:14, color:theme.text, marginBottom:16 }}>
+                  <div style={{ fontWeight:700, fontSize:ts(14), color:theme.text, marginBottom:16 }}>
                     Create User
                   </div>
                   <form onSubmit={createUser} style={{ display:"flex", flexDirection:"column", gap:10 }}>
@@ -854,7 +855,7 @@ export function AdminPanel() {
                         Create
                       </button>
                       {status && (
-                        <span style={{ fontSize:12,
+                        <span style={{ fontSize:ts(12),
                           color:status.startsWith("✓") ? theme.success : theme.danger }}>
                           {status}
                         </span>

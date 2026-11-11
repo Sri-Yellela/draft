@@ -10,6 +10,7 @@ import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, Mark, row, quiet, sub, callout, field } from "./adminKit.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const when = (s) => (s ? new Date(s * 1000).toLocaleString() : "never");
 
@@ -81,7 +82,7 @@ export function EmailHealthTab() {
         {said && <div role="status" style={{ ...callout(said.ok ? C.SUCCESS : C.DANGER), marginTop: 8 }}>{said.text}</div>}
       </div>
 
-      <h3 style={{ fontSize: 14, color: C.INK, margin: "0 0 8px" }}>Suppression list <span style={quiet}>— addresses draft never sends to</span></h3>
+      <h3 style={{ fontSize: ts(14), color: C.INK, margin: "0 0 8px" }}>Suppression list <span style={quiet}>— addresses draft never sends to</span></h3>
       <input aria-label="Search the suppression list" placeholder="Search an address…" value={q} style={{ ...field, width: "100%", maxWidth: 360, marginBottom: 10 }}
         onChange={(e) => { setQ(e.target.value); search(e.target.value); }} />
       {undo && (
@@ -95,7 +96,7 @@ export function EmailHealthTab() {
         <div style={{ display: "grid", gap: 6 }}>
           {rows.map((r) => (
             <div key={r.email} data-suppression={r.email} style={{ ...sub, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <span style={{ flex: "1 1 220px", fontSize: 13, color: C.INK, overflowWrap: "anywhere" }}>{r.email}</span>
+              <span style={{ flex: "1 1 220px", fontSize: ts(13), color: C.INK, overflowWrap: "anywhere" }}>{r.email}</span>
               <Mark tone={r.reason === "complaint" ? C.DANGER : C.INK_MUTED}>{r.reason.replace(/_/g, " ")}</Mark>
               <span style={quiet}>{when(r.createdAt)}</span>
               {removing?.email === r.email ? (

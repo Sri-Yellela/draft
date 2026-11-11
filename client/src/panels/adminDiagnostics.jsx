@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, row, quiet, sub } from "./adminKit.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const mb = (b) => (b == null ? "—" : `${(b / 1024 / 1024).toFixed(1)} MB`);
 const when = (s) => (s ? new Date((s > 1e11 ? s : s * 1000)).toLocaleString() : "—");
@@ -35,7 +36,7 @@ export function DiagnosticsTab() {
         <div style={{ ...sub, marginTop: 8 }}>
           <b>Slowest endpoints, last hour</b>
           {d.slowest.lastHour.length === 0 ? <div style={quiet}>No requests timed yet.</div>
-            : <table style={{ width: "100%", fontSize: 12 }}><thead><tr><th align="left">Endpoint</th><th>Calls</th><th>p50</th><th>p95</th><th>p99</th></tr></thead>
+            : <table style={{ width: "100%", fontSize: ts(12) }}><thead><tr><th align="left">Endpoint</th><th>Calls</th><th>p50</th><th>p95</th><th>p99</th></tr></thead>
               <tbody>{d.slowest.lastHour.map(e => <tr key={e.endpoint}><td>{e.endpoint}</td><td align="center">{e.calls}</td><td align="center">{e.p50}</td><td align="center">{e.p95}</td><td align="center">{e.p99}</td></tr>)}</tbody></table>}
         </div>
         <div style={{ ...sub, marginTop: 8 }}>
@@ -67,7 +68,7 @@ export function BackgroundJobsSection() {
       {err && <div style={quiet} role="alert">{err}</div>}
       <div style={{ ...row, marginBottom: 8 }}><DepthButton onClick={load}>Refresh</DepthButton></div>
       {kinds && (kinds.length === 0 ? <div style={quiet}>No jobs have run yet.</div>
-        : <table style={{ width: "100%", fontSize: 12 }}><thead><tr><th align="left">Kind</th><th>Waiting</th><th>Running</th><th>Failed today</th><th>Oldest waiting</th><th>Slowest</th></tr></thead>
+        : <table style={{ width: "100%", fontSize: ts(12) }}><thead><tr><th align="left">Kind</th><th>Waiting</th><th>Running</th><th>Failed today</th><th>Oldest waiting</th><th>Slowest</th></tr></thead>
           <tbody>{kinds.map(k => <tr key={k.kind} data-bg-kind={k.kind}><td>{k.kind}</td><td align="center">{k.waiting ?? 0}</td><td align="center">{k.running ?? 0}</td>
             <td align="center">{k.failedDay ? <span role="alert">{k.failedDay}</span> : 0}</td><td align="center">{waited(k.oldestWaiting)}</td>
             <td align="center">{k.slowestMs == null ? "—" : `${k.slowestMs} ms`}</td></tr>)}</tbody></table>)}
@@ -137,7 +138,7 @@ export function HirebaseSection() {
         </div>
         {s.lastError && <div style={quiet} role="alert">Last error: {s.lastError}</div>}
         {s.runs.length === 0 ? <div style={{ ...quiet, marginTop: 8 }}>No runs yet.</div>
-          : <table style={{ width: "100%", fontSize: 12, marginTop: 8 }}><thead><tr><th align="left">Run</th><th>Status</th><th>Units</th><th>New</th><th>Merged</th><th>Held</th><th>Dropped</th><th>When</th></tr></thead>
+          : <table style={{ width: "100%", fontSize: ts(12), marginTop: 8 }}><thead><tr><th align="left">Run</th><th>Status</th><th>Units</th><th>New</th><th>Merged</th><th>Held</th><th>Dropped</th><th>When</th></tr></thead>
             <tbody>{s.runs.map(r => <tr key={r.id} data-hirebase-run={r.kind}><td>{r.kind}{r.dry_run ? " (dry)" : ""}</td><td align="center">{r.status}</td>
               <td align="center">{r.units_used}</td><td align="center">{r.counts?.new ?? "—"}</td><td align="center">{r.counts?.merged ?? "—"}</td>
               <td align="center">{r.counts?.held ?? "—"}</td><td align="center">{r.counts?.dropped ?? "—"}</td><td>{when(r.started_at)}</td></tr>)}</tbody></table>}
@@ -183,7 +184,7 @@ export function HirebaseFeedSection() {
           <b>Today</b> <span style={quiet}>budget {b.today} · used {b.usedToday} · left {b.leftToday} · this hour {b.hour} · next window {s.window.after.slice(11, 16)}–{s.window.before.slice(11, 16)} UTC</span>
           <div style={quiet}>Month: used {b.usedMonth.toLocaleString()} of {b.usable.toLocaleString()} usable (reserve {b.reserve.toLocaleString()}) · on track would be {b.onTrackBy.toLocaleString()} · {b.daysLeft} days left</div>
         </div>
-        <table style={{ width: "100%", fontSize: 12, marginTop: 8 }}>
+        <table style={{ width: "100%", fontSize: ts(12), marginTop: 8 }}>
           <thead><tr><th align="left">Family</th><th>Share %</th><th>Today's slice</th><th>Pulled</th><th>New</th><th>Merged</th><th>Held</th><th>Visa</th></tr></thead>
           <tbody>{s.families.map(f => <tr key={f.key} data-feed-family={f.key}><td>{f.label}</td>
             <td align="center"><input aria-label={`${f.label} share`} style={{ width: 44 }} value={edit[f.key] ?? ""} onChange={e => setEdit({ ...edit, [f.key]: e.target.value })}/></td>

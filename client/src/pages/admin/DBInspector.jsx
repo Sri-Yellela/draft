@@ -10,6 +10,7 @@ import { atsBandFor, atsBandLabel } from "../../../../shared/atsBands.js";
 import StatCard from "../../components/StatCard.jsx";
 import IngestFunnel from "../../components/IngestFunnel.jsx";
 import { useConfirm } from "../../panels/adminKit.jsx";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 // A50 step 6: the board's bands, not the v3-era 70/50 ramp (under v4 that ramp painted almost every
 // score red). Admin still sees the number beside the band — it is a diagnostic tool.
 const BAND_COLOR = { strong: C.SUCCESS, moderate: C.WARNING, weak: C.DANGER };
@@ -57,7 +58,7 @@ function Pill({ color, children }) {
     <span style={{
       display:"inline-block", padding:"2px 8px", borderRadius:6,
       // A colour with no quiet fill (INK_FAINT — "NOT ENABLED") takes no tint: it sits on the panel, its proven ground.
-      fontSize:10, fontWeight:700, background:PILL_QUIET.get(color) ?? "transparent", color,
+      fontSize:ts(10), fontWeight:700, background:PILL_QUIET.get(color) ?? "transparent", color,
       border:`1px solid ${color}44`, letterSpacing:"0.05em",
       // nowrap because a wrapped label breaks OUT of the rounded background rather than growing
       // it — two-line "LIVE SEARCH ONLY" and "NOT CONFIGURED" spilled over the pill's own border,
@@ -78,7 +79,7 @@ function Spinner({ theme }) {
         borderTop:`2px solid ${ACCENT_TEXT}`,
         borderRadius:"50%", animation:"spin 0.7s linear infinite",
       }}/>
-      <span style={{ color:theme.textMuted, fontSize:12 }}>Loading…</span>
+      <span style={{ color:theme.textMuted, fontSize:ts(12) }}>Loading…</span>
     </div>
   );
 }
@@ -87,7 +88,7 @@ function ErrBox({ msg, theme }) {
   if (!msg) return null;
   return (
     <div style={{ background:C.DANGER_QUIET, border:`1px solid ${C.DANGER}44`, borderRadius:8,
-                  padding:"10px 14px", color:C.DANGER, fontSize:12, margin:"8px 0" }}>
+                  padding:"10px 14px", color:C.DANGER, fontSize:ts(12), margin:"8px 0" }}>
       {msg}
     </div>
   );
@@ -96,7 +97,7 @@ function ErrBox({ msg, theme }) {
 function KeyValueGrid({ data, theme, highlight }) {
   if (!data) return null;
   return (
-    <div style={{ display:"grid", gridTemplateColumns:"160px 1fr", gap:"2px 8px", fontSize:11 }}>
+    <div style={{ display:"grid", gridTemplateColumns:"160px 1fr", gap:"2px 8px", fontSize:ts(11) }}>
       {Object.entries(data).map(([k, v]) => (
         <div key={k} style={{ display:"contents" }}>
           <div style={{ fontWeight:700, padding:"3px 0",
@@ -180,7 +181,7 @@ function SchemaMapView({ theme }) {
                    background:theme.surfaceHigh, color:theme.text, cursor:"pointer" }}>-</button>
         <button onClick={() => { setScale(1); setOffset({ x:20, y:20 }); }}
           style={{ padding:"4px 9px", borderRadius:6, border:`1px solid ${theme.border}`,
-                   background:theme.surfaceHigh, color:theme.text, cursor:"pointer", fontSize:11 }}>Reset</button>
+                   background:theme.surfaceHigh, color:theme.text, cursor:"pointer", fontSize:ts(11) }}>Reset</button>
       </div>
 
       <div style={{
@@ -221,17 +222,17 @@ function SchemaMapView({ theme }) {
             >
               <div style={{
                 padding:"8px 10px", background:theme.surfaceHigh,
-                borderBottom:`1px solid ${theme.border}`, fontWeight:900, fontSize:12,
+                borderBottom:`1px solid ${theme.border}`, fontWeight:900, fontSize:ts(12),
                 display:"flex", justifyContent:"space-between", gap:8,
               }}>
                 <span>{t.name}</span>
-                <span style={{ color:theme.textMuted, fontSize:10 }}>{fmt(t.rowCount)}</span>
+                <span style={{ color:theme.textMuted, fontSize:ts(10) }}>{fmt(t.rowCount)}</span>
               </div>
               <div style={{ maxHeight:145, overflow:"hidden", padding:"5px 0" }}>
                 {t.columns.slice(0, 8).map(c => (
                   <div key={c.name} style={{
                     display:"grid", gridTemplateColumns:"16px 1fr auto",
-                    gap:5, padding:"2px 10px", fontSize:10,
+                    gap:5, padding:"2px 10px", fontSize:ts(10),
                   }}>
                     <span style={{ color:c.primaryKey ? ACCENT_TEXT : theme.textMuted }}>{c.primaryKey ? "PK" : ""}</span>
                     <span style={{ color:c.primaryKey ? ACCENT_TEXT : theme.text }}>{c.name}</span>
@@ -239,7 +240,7 @@ function SchemaMapView({ theme }) {
                   </div>
                 ))}
                 {t.columns.length > 8 && (
-                  <div style={{ padding:"3px 10px", color:theme.textMuted, fontSize:10 }}>
+                  <div style={{ padding:"3px 10px", color:theme.textMuted, fontSize:ts(10) }}>
                     +{t.columns.length - 8} more
                   </div>
                 )}
@@ -356,13 +357,13 @@ function ScrapeMonitorTab({ theme }) {
   return (
     <div>
       <div style={{ display:"flex", gap:12, alignItems:"center", marginBottom:16, flexWrap:"wrap" }}>
-        <span style={{ fontWeight:800, fontSize:14 }}>Pipeline Health</span>
+        <span style={{ fontWeight:800, fontSize:ts(14) }}>Pipeline Health</span>
         <div style={{ flex:1 }}/>
         <select
           value={filterSource}
           onChange={e => setFilterSource(e.target.value)}
           style={{ background:theme.surfaceHigh, border:`1px solid ${theme.border}`,
-                   borderRadius:6, padding:"5px 10px", color:theme.text, fontSize:11 }}
+                   borderRadius:6, padding:"5px 10px", color:theme.text, fontSize:ts(11) }}
         >
           <option value="">All sources</option>
           {(data?.sources || []).map(s => (
@@ -371,7 +372,7 @@ function ScrapeMonitorTab({ theme }) {
         </select>
         <button onClick={load}
           style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                   padding:"5px 14px", fontWeight:700, fontSize:11, cursor:"pointer" }}>
+                   padding:"5px 14px", fontWeight:700, fontSize:ts(11), cursor:"pointer" }}>
           Refresh
         </button>
       </div>
@@ -389,7 +390,7 @@ function ScrapeMonitorTab({ theme }) {
       {health && (
         alerts.length > 0 ? (
           <div style={{ border:`1px solid ${C.DANGER}`, borderRadius:10, overflow:"hidden", marginBottom:16 }}>
-            <div style={{ padding:"8px 14px", background:C.DANGER_QUIET, fontSize:11,
+            <div style={{ padding:"8px 14px", background:C.DANGER_QUIET, fontSize:ts(11),
                           fontWeight:800, color:C.DANGER, textTransform:"uppercase",
                           letterSpacing:0.4 }}>
               {health.alertCounts.critical} critical
@@ -398,13 +399,13 @@ function ScrapeMonitorTab({ theme }) {
             {alerts.map((a, i) => (
               <div key={`${a.kind}-${a.subject}-${i}`} style={{
                 display:"grid", gridTemplateColumns:"84px 190px 1fr", gap:10,
-                padding:"8px 14px", fontSize:11, alignItems:"baseline",
+                padding:"8px 14px", fontSize:ts(11), alignItems:"baseline",
                 // D91 P6: no stripe — a HOVER wash over the alert box lifted the red "critical" to 5.02:1 in
                 // Contrast Dark (an undeclared pair). The row's own top rule separates the rows.
                 background: "transparent",
                 borderTop:`1px solid ${theme.border}`,
               }}>
-                <span style={{ fontWeight:800, fontSize:9, letterSpacing:0.5,
+                <span style={{ fontWeight:800, fontSize:ts(9), letterSpacing:0.5,
                                textTransform:"uppercase",
                                color: a.severity === "critical" ? C.DANGER : C.WARNING }}>
                   {a.severity}
@@ -418,7 +419,7 @@ function ScrapeMonitorTab({ theme }) {
           </div>
         ) : (
           <div style={{ border:`1px solid ${C.SUCCESS}`, borderRadius:10, marginBottom:16,
-                        padding:"8px 14px", fontSize:11, fontWeight:700, color:C.SUCCESS }}>
+                        padding:"8px 14px", fontSize:ts(11), fontWeight:700, color:C.SUCCESS }}>
             No alerts — every configured source wrote rows, every active company produced them,
             and no enrichment column is empty.
           </div>
@@ -458,7 +459,7 @@ function ScrapeMonitorTab({ theme }) {
           <div style={{
             display:"grid", gridTemplateColumns:"1.1fr 148px 70px 70px 80px 1fr 100px",
             padding:"8px 14px", background:theme.surfaceHigh,
-            fontSize:10, fontWeight:700, textTransform:"uppercase",
+            fontSize:ts(10), fontWeight:700, textTransform:"uppercase",
             letterSpacing:"0.06em", color:theme.textMuted,
           }}>
             <div>Source</div><div>Health</div><div>Active</div><div>No Desc</div>
@@ -469,7 +470,7 @@ function ScrapeMonitorTab({ theme }) {
             return (
               <div key={s.name} style={{
                 display:"grid", gridTemplateColumns:"1.1fr 148px 70px 70px 80px 1fr 100px",
-                padding:"9px 14px", fontSize:12, alignItems:"center",
+                padding:"9px 14px", fontSize:ts(12), alignItems:"center",
                 borderTop:`1px solid ${theme.border}`,
                 background: i%2===0 ? "transparent" : ROW_STRIPE,
               }}>
@@ -479,10 +480,10 @@ function ScrapeMonitorTab({ theme }) {
                 <div style={{ color: s.noDescription > 0 ? C.DANGER : theme.textMuted }}>
                   {s.active ? fmt(s.noDescription) : "—"}
                 </div>
-                <div style={{ color: s.health === "stale" ? C.WARNING : theme.textMuted, fontSize:11 }}>
+                <div style={{ color: s.health === "stale" ? C.WARNING : theme.textMuted, fontSize:ts(11) }}>
                   {ago(s.lastSuccessAt || s.lastActivityAt)}
                 </div>
-                <div style={{ color:theme.textMuted, fontSize:11 }}>
+                <div style={{ color:theme.textMuted, fontSize:ts(11) }}>
                   {s.lastRun
                     ? <span>{s.lastRun.status} · {fmt(s.lastRun.written)} written
                         {/* "ok · 0 written" is what this cell said about two working sources, and
@@ -497,7 +498,7 @@ function ScrapeMonitorTab({ theme }) {
                       </span>
                     : <span style={{ color:theme.textDim, fontStyle:"italic" }}>no run recorded yet</span>}
                 </div>
-                <div style={{ color:theme.textMuted, fontSize:11 }}>{s.companies != null ? fmt(s.companies) : "—"}</div>
+                <div style={{ color:theme.textMuted, fontSize:ts(11) }}>{s.companies != null ? fmt(s.companies) : "—"}</div>
               </div>
             );
           })}
@@ -511,9 +512,9 @@ function ScrapeMonitorTab({ theme }) {
       */}
       {health?.sources?.some(s => s.funnel?.fetched > 0) && (
         <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, padding:"12px 14px", marginBottom:16 }}>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em",
+          <div style={{ fontSize:ts(10), fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em",
                         color:theme.textMuted, marginBottom:4 }}>Last run — where every fetched posting went</div>
-          <div style={{ fontSize:11, color:theme.textMuted, marginBottom:10 }}>
+          <div style={{ fontSize:ts(11), color:theme.textMuted, marginBottom:10 }}>
             {health.sources.find(s => s.funnel)?.funnel.note}
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap:10 }}>
@@ -531,23 +532,23 @@ function ScrapeMonitorTab({ theme }) {
       */}
       {reasons?.available && reasons.rows.length > 0 && (
         <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, overflow:"hidden", marginBottom:16 }}>
-          <div style={{ padding:"8px 14px", background:theme.surfaceHigh, fontSize:10, fontWeight:700,
+          <div style={{ padding:"8px 14px", background:theme.surfaceHigh, fontSize:ts(10), fontWeight:700,
                         textTransform:"uppercase", letterSpacing:"0.06em", color:theme.textMuted }}>
             Held off the board, by reason — distinct postings (rejected_jobs)
           </div>
-          <div style={{ padding:"6px 14px", fontSize:11, color:theme.textMuted }}>
+          <div style={{ padding:"6px 14px", fontSize:ts(11), color:theme.textMuted }}>
             A standing record, not tonight's news: a re-seen posting rewrites its row rather than adding one.
             Not every gate writes here yet — compare with the funnel above.
           </div>
           {Object.entries(reasons.bySource || {}).map(([src, total]) => (
             <div key={src} style={{ borderTop:`1px solid ${theme.border}`, padding:"8px 14px" }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-                <span style={{ fontWeight:700, fontSize:12 }}>{src}</span>
+                <span style={{ fontWeight:700, fontSize:ts(12) }}>{src}</span>
                 <span style={markStyle(C.INK_FAINT)}>{fmt(total)} postings</span>
               </div>
               {reasons.rows.filter(r => r.source === src).map(r => (
                 <div key={r.reason} style={{ display:"grid", gridTemplateColumns:"minmax(0, 1fr) 80px 90px", gap:8,
-                                             fontSize:11, padding:"2px 0" }}>
+                                             fontSize:ts(11), padding:"2px 0" }}>
                   <span style={{ fontFamily:"monospace", color:theme.text, overflowWrap:"anywhere" }}>{r.reason}</span>
                   <span style={{ textAlign:"right", fontWeight:700, color:theme.text }}>{fmt(r.postings)}</span>
                   <span style={{ color:theme.textMuted }} title="when a crawl last wrote this reason">{ago(r.lastAt)}</span>
@@ -573,7 +574,7 @@ function ScrapeMonitorTab({ theme }) {
           <div style={{
             display:"grid", gridTemplateColumns:"1.1fr 1fr 130px 70px 70px 80px 90px",
             padding:"8px 14px", background:theme.surfaceHigh,
-            fontSize:10, fontWeight:700, textTransform:"uppercase",
+            fontSize:ts(10), fontWeight:700, textTransform:"uppercase",
             letterSpacing:"0.06em", color:theme.textMuted,
           }}>
             <div>Company</div><div>Source / Slug</div><div>Health</div><div>Active</div>
@@ -587,12 +588,12 @@ function ScrapeMonitorTab({ theme }) {
             return (
               <div key={`${c.source}/${c.slug}`} style={{
                 display:"grid", gridTemplateColumns:"1.1fr 1fr 130px 70px 70px 80px 90px",
-                padding:"9px 14px", fontSize:12, alignItems:"center",
+                padding:"9px 14px", fontSize:ts(12), alignItems:"center",
                 borderTop:`1px solid ${theme.border}`,
                 background: i%2===0 ? "transparent" : ROW_STRIPE,
               }}>
                 <div style={{ fontWeight:600 }}>{c.company}</div>
-                <div style={{ fontFamily:"monospace", fontSize:11, color:theme.textMuted }}>
+                <div style={{ fontFamily:"monospace", fontSize:ts(11), color:theme.textMuted }}>
                   {c.source}/{c.slug}
                 </div>
                 <div><Pill color={hs.color}>{hs.label}</Pill></div>
@@ -601,7 +602,7 @@ function ScrapeMonitorTab({ theme }) {
                   {c.active ? fmt(c.noDescription) : "—"}
                 </div>
                 <div style={{ color:theme.textMuted }}>{c.active ? fmt(c.enriched) : "—"}</div>
-                <div style={{ color: c.health === "stale" ? C.WARNING : theme.textMuted, fontSize:11 }}
+                <div style={{ color: c.health === "stale" ? C.WARNING : theme.textMuted, fontSize:ts(11) }}
                      title={c.quietHours != null ? `Newest posting first seen ${ago(c.lastRowAt)}` : undefined}>
                   {ago(c.lastSeenAt ?? c.lastRowAt)}
                 </div>
@@ -614,21 +615,21 @@ function ScrapeMonitorTab({ theme }) {
       {/* Enrichment coverage — the panel that would have made the outage obvious. */}
       {health?.enrichment?.coverage?.length > 0 && (
         <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, padding:"14px 16px", marginBottom:16 }}>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em",
+          <div style={{ fontSize:ts(10), fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em",
                         color:theme.textMuted, marginBottom:12 }}>
             Enrichment — {fmt(health.enrichment.activeTotal)} active rows
           </div>
           {/* A48: unenriched rows are the ones that score "not enough signal" (~30% of them; enriched
               rows 0%), so skills_json's share below sets how much of the board can get a band. */}
-          <div style={{ fontSize:11, color:theme.textMuted, marginBottom:10 }}>
+          <div style={{ fontSize:ts(11), color:theme.textMuted, marginBottom:10 }}>
             skills_json is enrichment's read of the posting — rows without it are the ones that score
             “not enough signal”. {fmt(health.enrichment.waitingForEnrichment ?? 0)} active rows wait;
             last enriched {ago(health.enrichment.lastEnrichedAt)}.
           </div>
           {/* D83 audit #20: the per-column coverage bars are Admin → The board → Enrichment's — the third copy is gone. */}
-          <a href="/admin?g=board&s=enrichment" style={{ fontSize:12, color:theme.text }}>Coverage per column → Admin → The board → Enrichment</a>
+          <a href="/admin?g=board&s=enrichment" style={{ fontSize:ts(12), color:theme.text }}>Coverage per column → Admin → The board → Enrichment</a>
           {health.enrichment.recentRuns.length > 0 && (
-            <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${theme.border}`, fontSize:11, color:theme.textMuted }}>
+            <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${theme.border}`, fontSize:ts(11), color:theme.textMuted }}>
               <span style={{ fontWeight:700 }}>Last enrichment run: </span>
               {(() => {
                 const r = health.enrichment.recentRuns[0];
@@ -653,7 +654,7 @@ function ScrapeMonitorTab({ theme }) {
             </div>
           )}
           {!health.hasRunLog && (
-            <div style={{ marginTop:12, fontSize:11, color:C.WARNING }}>
+            <div style={{ marginTop:12, fontSize:ts(11), color:C.WARNING }}>
               pipeline_runs table not present — run migrations to record per-run outcomes.
             </div>
           )}
@@ -670,7 +671,7 @@ function ScrapeMonitorTab({ theme }) {
             display:"grid",
             gridTemplateColumns:"2fr 1.5fr 1fr 70px 70px 60px 90px",
             padding:"8px 14px", background:theme.surfaceHigh,
-            fontSize:10, fontWeight:700, textTransform:"uppercase",
+            fontSize:ts(10), fontWeight:700, textTransform:"uppercase",
             letterSpacing:"0.06em", color:theme.textMuted,
           }}>
             <div>Title</div><div>Company</div><div>Source</div>
@@ -691,23 +692,23 @@ function ScrapeMonitorTab({ theme }) {
                     background: isExp ? theme.surfaceHigh : i%2===0 ? "transparent" : ROW_STRIPE,
                     borderTop:`1px solid ${theme.border}`,
                     transition:"background 0.1s",
-                    fontSize:12,
+                    fontSize:ts(12),
                   }}
                   onMouseEnter={e => e.currentTarget.style.background = theme.surfaceHigh}
                   onMouseLeave={e => e.currentTarget.style.background = isExp ? theme.surfaceHigh : i%2===0 ? "transparent" : ROW_STRIPE}
                 >
                   <div style={{ fontWeight:600 }}>{truncate(job.title, 35)}</div>
                   <div style={{ color:theme.textMuted }}>{truncate(job.company, 25)}</div>
-                  <div style={{ color:theme.textMuted, fontSize:11 }}>{job.source || "—"}</div>
+                  <div style={{ color:theme.textMuted, fontSize:ts(11) }}>{job.source || "—"}</div>
                   {/* Description length, not a boolean: a 40-char "description" is technically
                       present but useless to enrichment, and only the number shows that. */}
-                  <div style={{ color: job.has_description ? theme.textMuted : C.DANGER, fontSize:11 }}>
+                  <div style={{ color: job.has_description ? theme.textMuted : C.DANGER, fontSize:ts(11) }}>
                     {job.has_description ? fmt(job.description_len) : "none"}
                   </div>
-                  <div style={{ color: job.skills_json ? theme.textMuted : theme.textDim, fontSize:11 }}>
+                  <div style={{ color: job.skills_json ? theme.textMuted : theme.textDim, fontSize:ts(11) }}>
                     {job.skills_json ? (() => { try { return JSON.parse(job.skills_json).length; } catch { return "?"; } })() : "—"}
                   </div>
-                  <div style={{ color:theme.textMuted, fontSize:11 }}>{ago(job.discovered_at || job.scraped_at)}</div>
+                  <div style={{ color:theme.textMuted, fontSize:ts(11) }}>{ago(job.discovered_at || job.scraped_at)}</div>
                   <div><Pill color={st.color}>{st.label}</Pill></div>
                 </div>
 
@@ -734,7 +735,7 @@ function ScrapeMonitorTab({ theme }) {
                         alignItems:"center", marginBottom:8,
                       }}>
                         <span style={{
-                          fontSize:11, fontWeight:600, textTransform:"uppercase",
+                          fontSize:ts(11), fontWeight:600, textTransform:"uppercase",
                           letterSpacing:"0.08em", color:theme.textMuted,
                         }}>
                           Job Description
@@ -748,7 +749,7 @@ function ScrapeMonitorTab({ theme }) {
                               setTimeout(() => setCopied(null), 2000);
                             }}
                             style={{
-                              fontSize:11, padding:"3px 10px", borderRadius:6,
+                              fontSize:ts(11), padding:"3px 10px", borderRadius:6,
                               border:`1px solid ${theme.border}`,
                               background: copied === "text" ? C.SUCCESS_QUIET : theme.surface,
                               color: copied === "text" ? C.SUCCESS : theme.textMuted,
@@ -761,7 +762,7 @@ function ScrapeMonitorTab({ theme }) {
 
                       <div style={{
                         maxHeight:200, overflowY:"auto",
-                        fontSize:12, lineHeight:1.6, color:theme.textMuted,
+                        fontSize:ts(12), lineHeight:1.6, color:theme.textMuted,
                         background:theme.bg, borderRadius:8,
                         padding:"10px 12px", whiteSpace:"pre-wrap",
                         fontFamily:"monospace",
@@ -776,7 +777,7 @@ function ScrapeMonitorTab({ theme }) {
                       </div>
 
                       {job.description_truncated && (
-                        <div style={{ fontSize:11, color:C.WARNING, marginTop:4 }}>
+                        <div style={{ fontSize:ts(11), color:C.WARNING, marginTop:4 }}>
                           Description truncated at 10,000 chars. Copy button copies full text.
                         </div>
                       )}
@@ -856,7 +857,7 @@ function SchemaExplorerTab({ theme }) {
             border:`1px solid ${schemaView === v ? ACCENT_TEXT : theme.border}`,
             background:schemaView === v ? ACCENT : theme.surfaceHigh,
             color:schemaView === v ? C.ON_ACCENT : theme.text,
-            cursor:"pointer", fontSize:12, fontWeight:700,
+            cursor:"pointer", fontSize:ts(12), fontWeight:700,
           }}>
           {v === "tables" ? "Tables" : "Map View"}
         </button>
@@ -877,7 +878,7 @@ function SchemaExplorerTab({ theme }) {
           border:`1px solid ${schemaCopied ? `${C.SUCCESS}66` : theme.border}`,
           background: schemaCopied ? C.SUCCESS_QUIET : theme.surfaceHigh,
           color: schemaCopied ? C.SUCCESS : theme.text,
-          cursor:"pointer", fontSize:12, fontWeight:600, transition:"all 0.2s",
+          cursor:"pointer", fontSize:ts(12), fontWeight:600, transition:"all 0.2s",
         }}>
         {schemaCopied ? "✓ Schema Copied!" : "📋 Copy Full Schema"}
       </button>
@@ -899,14 +900,14 @@ function SchemaExplorerTab({ theme }) {
           padding:"6px 14px", borderRadius:8,
           border:`1px solid ${theme.border}`,
           background:theme.surfaceHigh, color:theme.text,
-          cursor:"pointer", fontSize:12,
+          cursor:"pointer", fontSize:ts(12),
         }}>
         ⬇ Download .sql
       </button>
       {/* D83 audit #21: importing enrichment lives in ONE place — Admin → The board → Enrichment (the six steps, Undo on
           every batch). The round trip that used to sit here is retired. */}
       <a href="/admin?g=board&s=enrichment" data-enrichment-moved=""
-        style={{ fontSize:12, color:theme.text, alignSelf:"center" }}>Import enrichment → Admin → The board → Enrichment</a>
+        style={{ fontSize:ts(12), color:theme.text, alignSelf:"center" }}>Import enrichment → Admin → The board → Enrichment</a>
     </div>
     {schemaView === "map" ? <SchemaMapView theme={theme}/> : (
     <div style={{ display:"flex", gap:0, height:"calc(100vh - 260px)", minHeight:400 }}>
@@ -915,7 +916,7 @@ function SchemaExplorerTab({ theme }) {
         width:220, flexShrink:0, borderRight:`1px solid ${theme.border}`,
         overflowY:"auto", paddingRight:0,
       }}>
-        <div style={{ padding:"10px 14px", fontSize:10, fontWeight:700, textTransform:"uppercase",
+        <div style={{ padding:"10px 14px", fontSize:ts(10), fontWeight:700, textTransform:"uppercase",
                       letterSpacing:"0.07em", color:theme.textMuted }}>
           Tables ({data.tables.length})
         </div>
@@ -927,19 +928,19 @@ function SchemaExplorerTab({ theme }) {
               padding:"8px 14px", cursor:"pointer",
               background: selected?.name === t.name ? ACCENT+"22" : "transparent",
               borderLeft: selected?.name === t.name ? `3px solid ${ACCENT_TEXT}` : "3px solid transparent",
-              fontSize:12, transition:"all 0.1s",
+              fontSize:ts(12), transition:"all 0.1s",
             }}
             onMouseEnter={e => { if (selected?.name !== t.name) e.currentTarget.style.background = theme.surfaceHigh; }}
             onMouseLeave={e => { if (selected?.name !== t.name) e.currentTarget.style.background = "transparent"; }}
           >
             <span style={{ fontWeight:selected?.name===t.name ? 700 : 400, color:theme.text }}>{t.name}</span>
-            <span style={{ fontSize:10, color:theme.textMuted, fontWeight:600 }}>{fmt(t.rowCount)}</span>
+            <span style={{ fontSize:ts(10), color:theme.textMuted, fontWeight:600 }}>{fmt(t.rowCount)}</span>
           </div>
         ))}
         <div style={{ padding:"10px 14px", marginTop:8, borderTop:`1px solid ${theme.border}` }}>
-          <div style={{ fontSize:10, color:theme.textMuted, fontWeight:700, textTransform:"uppercase",
+          <div style={{ fontSize:ts(10), color:theme.textMuted, fontWeight:700, textTransform:"uppercase",
                         letterSpacing:"0.07em", marginBottom:4 }}>DB Info</div>
-          <div style={{ fontSize:11, color:theme.textMuted }}>
+          <div style={{ fontSize:ts(11), color:theme.textMuted }}>
             Size: {fmtBytes(data.dbSizeBytes)}<br/>
             WAL: {data.walMode ? "✓ enabled" : "✗ off"}
           </div>
@@ -950,14 +951,14 @@ function SchemaExplorerTab({ theme }) {
       <div style={{ flex:1, overflowY:"auto", padding:"0 0 0 20px" }}>
         {!selected ? (
           <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
-                        height:"100%", color:theme.textMuted, fontSize:13 }}>
+                        height:"100%", color:theme.textMuted, fontSize:ts(13) }}>
             Select a table to inspect
           </div>
         ) : (
           <div>
             <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16 }}>
-              <span style={{ fontSize:16, fontWeight:900 }}>{selected.name}</span>
-              <span style={{ fontSize:11, color:theme.textMuted }}>{fmt(selected.rowCount)} rows</span>
+              <span style={{ fontSize:ts(16), fontWeight:900 }}>{selected.name}</span>
+              <span style={{ fontSize:ts(11), color:theme.textMuted }}>{fmt(selected.rowCount)} rows</span>
               <div style={{ flex:1 }}/>
               {/* A plain <a> navigation cannot carry the X-RM-Auth-Context header, so it would be
                   authenticated by the shared cookie alone — the wrong identity in a browser with a
@@ -965,20 +966,20 @@ function SchemaExplorerTab({ theme }) {
                   to a non-admin. The token goes in the query string, which bindAuthContext accepts
                   for exactly this case. */}
               <a href={`/api/admin/db/export/${selected.name}${authContextQuery() ? `?${authContextQuery()}` : ""}`}
-                style={{ fontSize:11, color:ACCENT_TEXT, textDecoration:"none", fontWeight:700 }}>
+                style={{ fontSize:ts(11), color:ACCENT_TEXT, textDecoration:"none", fontWeight:700 }}>
                 Export CSV ↓
               </a>
             </div>
 
             {/* Columns */}
             <div style={{ marginBottom:20 }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+              <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                             letterSpacing:"0.07em", color:theme.textMuted, marginBottom:8 }}>Columns</div>
               <div style={{ border:`1px solid ${theme.border}`, borderRadius:8, overflow:"hidden" }}>
                 <div style={{
                   display:"grid", gridTemplateColumns:"30px 1.5fr 1fr 60px 80px 50px",
                   padding:"6px 12px", background:theme.surfaceHigh,
-                  fontSize:10, fontWeight:700, textTransform:"uppercase",
+                  fontSize:ts(10), fontWeight:700, textTransform:"uppercase",
                   letterSpacing:"0.06em", color:theme.textMuted,
                 }}>
                   <div>#</div><div>Name</div><div>Type</div>
@@ -987,7 +988,7 @@ function SchemaExplorerTab({ theme }) {
                 {selected.columns.map(col => (
                   <div key={col.cid} style={{
                     display:"grid", gridTemplateColumns:"30px 1.5fr 1fr 60px 80px 50px",
-                    padding:"6px 12px", borderTop:`1px solid ${theme.border}`, fontSize:11,
+                    padding:"6px 12px", borderTop:`1px solid ${theme.border}`, fontSize:ts(11),
                     background: fkCols.has(col.name) ? ACCENT+"11" : "transparent",
                   }}>
                     <div style={{ color:theme.textMuted }}>{col.cid}</div>
@@ -996,7 +997,7 @@ function SchemaExplorerTab({ theme }) {
                     </div>
                     <div style={{ color:theme.textMuted }}>{col.type || "—"}</div>
                     <div style={{ color: col.notnull ? C.SUCCESS : theme.textMuted }}>{col.notnull ? "✓" : "—"}</div>
-                    <div style={{ color:theme.textMuted, fontSize:10 }}>{col.dflt_value ?? "—"}</div>
+                    <div style={{ color:theme.textMuted, fontSize:ts(10) }}>{col.dflt_value ?? "—"}</div>
                     <div style={{ color: col.pk ? ACCENT_TEXT : theme.textMuted }}>{col.pk || "—"}</div>
                   </div>
                 ))}
@@ -1006,14 +1007,14 @@ function SchemaExplorerTab({ theme }) {
             {/* Indexes */}
             {selected.indexes.length > 0 && (
               <div style={{ marginBottom:20 }}>
-                <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+                <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                               letterSpacing:"0.07em", color:theme.textMuted, marginBottom:8 }}>
                   Indexes ({selected.indexes.length})
                 </div>
                 <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
                   {selected.indexes.map(idx => (
                     <div key={idx.name} style={{
-                      display:"flex", gap:10, alignItems:"center", fontSize:11,
+                      display:"flex", gap:10, alignItems:"center", fontSize:ts(11),
                       padding:"5px 10px", background:theme.surfaceHigh, borderRadius:6,
                     }}>
                       {idx.unique && <span style={{ color:ACCENT_TEXT, fontWeight:700 }}>⚡</span>}
@@ -1028,13 +1029,13 @@ function SchemaExplorerTab({ theme }) {
             {/* Foreign Keys */}
             {selected.foreignKeys.length > 0 && (
               <div style={{ marginBottom:20 }}>
-                <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+                <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                               letterSpacing:"0.07em", color:theme.textMuted, marginBottom:8 }}>
                   Foreign Keys
                 </div>
                 <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
                   {selected.foreignKeys.map((fk, i) => (
-                    <div key={i} style={{ fontSize:11, padding:"5px 10px",
+                    <div key={i} style={{ fontSize:ts(11), padding:"5px 10px",
                                           background:theme.surfaceHigh, borderRadius:6 }}>
                       <span style={{ color:C.VIOLET, fontWeight:600 }}>{fk.from}</span>
                       {" → "}
@@ -1047,7 +1048,7 @@ function SchemaExplorerTab({ theme }) {
 
             {/* Recent Rows */}
             <div style={{ marginBottom:20 }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+              <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                             letterSpacing:"0.07em", color:theme.textMuted, marginBottom:8 }}>
                 Recent Rows (last 10)
               </div>
@@ -1056,7 +1057,7 @@ function SchemaExplorerTab({ theme }) {
                 const cols = Object.keys(recentRows[0]);
                 return (
                   <div style={{ overflowX:"auto" }}>
-                    <table style={{ width:"100%", borderCollapse:"collapse", fontSize:10 }}>
+                    <table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(10) }}>
                       <thead>
                         <tr style={{ background:theme.surfaceHigh }}>
                           {cols.map(c => (
@@ -1071,7 +1072,7 @@ function SchemaExplorerTab({ theme }) {
                         {recentRows.map((row, i) => (
                           <tr key={i} style={{ borderBottom:`1px solid ${theme.border}` }}>
                             {cols.map(c => (
-                              <td key={c} style={{ padding:"4px 8px", color:theme.text, fontSize:10,
+                              <td key={c} style={{ padding:"4px 8px", color:theme.text, fontSize:ts(10),
                                                     maxWidth:200, overflow:"hidden", textOverflow:"ellipsis",
                                                     whiteSpace:"nowrap" }}>
                                 {row[c] == null ? <span style={{color:theme.textMuted}}>NULL</span>
@@ -1090,13 +1091,13 @@ function SchemaExplorerTab({ theme }) {
             {/* Migration History */}
             {data.migrations.length > 0 && (
               <div style={{ marginBottom:20 }}>
-                <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+                <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                               letterSpacing:"0.07em", color:theme.textMuted, marginBottom:8 }}>
                   Migration History
                 </div>
                 <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
                   {data.migrations.map(m => (
-                    <div key={m.id} style={{ display:"flex", gap:12, fontSize:11,
+                    <div key={m.id} style={{ display:"flex", gap:12, fontSize:ts(11),
                                              padding:"4px 10px", background:theme.surfaceHigh, borderRadius:5 }}>
                       <span style={{ color:C.SUCCESS, fontWeight:700 }}>✓</span>
                       <span style={{ fontWeight:600 }}>{m.id}</span>
@@ -1154,7 +1155,7 @@ function UserPoolTab({ theme }) {
       <div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:20 }}>
         <select value={selectedUser} onChange={e => { setSelectedUser(e.target.value); loadPool(e.target.value); }}
           style={{ background:theme.surfaceHigh, border:`1px solid ${theme.border}`,
-                   borderRadius:6, padding:"6px 12px", color:theme.text, fontSize:12, minWidth:240 }}>
+                   borderRadius:6, padding:"6px 12px", color:theme.text, fontSize:ts(12), minWidth:240 }}>
           <option value="">Select a user…</option>
           {users.filter(u => !u.is_admin).map(u => (
             <option key={u.id} value={u.id}>{u.username} (id:{u.id})</option>
@@ -1162,7 +1163,7 @@ function UserPoolTab({ theme }) {
         </select>
         <button onClick={() => loadPool(selectedUser)} disabled={!selectedUser || loading}
           style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                   padding:"6px 16px", fontWeight:700, fontSize:11, cursor:"pointer", opacity:!selectedUser?0.5:1 }}>
+                   padding:"6px 16px", fontWeight:700, fontSize:ts(11), cursor:"pointer", opacity:!selectedUser?0.5:1 }}>
           Load
         </button>
       </div>
@@ -1176,11 +1177,11 @@ function UserPoolTab({ theme }) {
           <div>
             {data.activeProfile ? (
               <div style={{ border:`1px solid ${ACCENT_TEXT}44`, borderRadius:10, padding:14, marginBottom:14 }}>
-                <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase",
+                <div style={{ fontSize:ts(10), fontWeight:700, textTransform:"uppercase",
                               letterSpacing:"0.07em", color:ACCENT_TEXT, marginBottom:8 }}>Active Profile</div>
-                <div style={{ fontWeight:800, fontSize:13, marginBottom:4 }}>{data.activeProfile.profile_name}</div>
-                <div style={{ fontSize:11, color:theme.textMuted }}>{data.activeProfile.role_family}</div>
-                <div style={{ fontSize:11, color:theme.textMuted }}>{data.activeProfile.domain}</div>
+                <div style={{ fontWeight:800, fontSize:ts(13), marginBottom:4 }}>{data.activeProfile.profile_name}</div>
+                <div style={{ fontSize:ts(11), color:theme.textMuted }}>{data.activeProfile.role_family}</div>
+                <div style={{ fontSize:ts(11), color:theme.textMuted }}>{data.activeProfile.domain}</div>
                 {data.activeProfile.target_titles && (
                   <div style={{ marginTop:8, display:"flex", flexWrap:"wrap", gap:4 }}>
                     {(() => {
@@ -1193,17 +1194,17 @@ function UserPoolTab({ theme }) {
               </div>
             ) : (
               <div style={{ border:`1px solid ${C.DANGER}44`, borderRadius:10, padding:14, marginBottom:14,
-                            color:C.DANGER, fontSize:12 }}>No active profile</div>
+                            color:C.DANGER, fontSize:ts(12) }}>No active profile</div>
             )}
 
-            <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+            <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                           letterSpacing:"0.07em", color:theme.textMuted, marginBottom:6 }}>All Profiles</div>
             {data.allProfiles.map(p => (
               <div key={p.id} style={{ padding:"6px 10px", borderRadius:6, marginBottom:4,
                                        background: p.is_active ? ACCENT+"22" : theme.surfaceHigh,
-                                       fontSize:11 }}>
+                                       fontSize:ts(11) }}>
                 <span style={{ fontWeight:600 }}>{p.profile_name}</span>
-                {p.is_active && <span style={{ marginLeft:6, color:ACCENT_TEXT, fontSize:10, fontWeight:700 }}>ACTIVE</span>}
+                {p.is_active && <span style={{ marginLeft:6, color:ACCENT_TEXT, fontSize:ts(10), fontWeight:700 }}>ACTIVE</span>}
                 <br/>
                 <span style={{ color:theme.textMuted }}>{p.role_family}</span>
               </div>
@@ -1211,12 +1212,12 @@ function UserPoolTab({ theme }) {
 
             {data.searches.length > 0 && (
               <>
-                <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+                <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                               letterSpacing:"0.07em", color:theme.textMuted, margin:"12px 0 6px" }}>
                   Search Queries
                 </div>
                 {data.searches.map((s, i) => (
-                  <div key={i} style={{ fontSize:11, padding:"4px 10px", background:theme.surfaceHigh,
+                  <div key={i} style={{ fontSize:ts(11), padding:"4px 10px", background:theme.surfaceHigh,
                                          borderRadius:5, marginBottom:3 }}>
                     <span style={{ fontWeight:600 }}>{s.search_query}</span>
                     <span style={{ color:theme.textMuted, float:"right" }}>{ago(s.last_scraped_at)}</span>
@@ -1242,7 +1243,7 @@ function UserPoolTab({ theme }) {
                     padding:"3px 12px", border:`1px solid ${poolFilter===f ? ACCENT_TEXT : theme.border}`,
                     background: poolFilter===f ? ACCENT : "transparent",
                     color: poolFilter===f ? C.ON_ACCENT : theme.text,
-                    fontSize:11, fontWeight:700, cursor:"pointer",
+                    fontSize:ts(11), fontWeight:700, cursor:"pointer",
                   }}>{f}</button>
               ))}
             </div>
@@ -1251,7 +1252,7 @@ function UserPoolTab({ theme }) {
               <div style={{
                 display:"grid", gridTemplateColumns:"2fr 1.5fr 1.5fr 80px",
                 padding:"7px 12px", background:theme.surfaceHigh,
-                fontSize:10, fontWeight:700, textTransform:"uppercase",
+                fontSize:ts(10), fontWeight:700, textTransform:"uppercase",
                 letterSpacing:"0.06em", color:theme.textMuted,
               }}>
                 <div>Title</div><div>Company</div><div>Tagged Profile</div><div>Status</div>
@@ -1264,17 +1265,17 @@ function UserPoolTab({ theme }) {
                 return (
                   <div key={i} style={{
                     display:"grid", gridTemplateColumns:"2fr 1.5fr 1.5fr 80px",
-                    padding:"7px 12px", borderTop:`1px solid ${theme.border}`, fontSize:11,
+                    padding:"7px 12px", borderTop:`1px solid ${theme.border}`, fontSize:ts(11),
                   }}>
                     <div style={{ fontWeight:600 }}>{truncate(job.title,32)}</div>
                     <div style={{ color:theme.textMuted }}>{truncate(job.company,24)}</div>
-                    <div style={{ color:theme.textMuted, fontSize:10 }}>{job.tagged_to_profile || "—"}</div>
+                    <div style={{ color:theme.textMuted, fontSize:ts(10) }}>{job.tagged_to_profile || "—"}</div>
                     <div><Pill color={statusColor}>{statusLabel}</Pill></div>
                   </div>
                 );
               })}
               {filteredJobs.length === 0 && (
-                <div style={{ padding:"20px", textAlign:"center", color:theme.textMuted, fontSize:12 }}>
+                <div style={{ padding:"20px", textAlign:"center", color:theme.textMuted, fontSize:ts(12) }}>
                   No jobs in this category.
                 </div>
               )}
@@ -1314,11 +1315,11 @@ function JobTraceTab({ theme, initialJobId }) {
           onKeyDown={e => e.key === "Enter" && trace()}
           placeholder="Enter Job ID…"
           style={{ background:theme.surfaceHigh, border:`1px solid ${theme.border}`,
-                   borderRadius:6, padding:"7px 12px", color:theme.text, fontSize:12, width:360 }}
+                   borderRadius:6, padding:"7px 12px", color:theme.text, fontSize:ts(12), width:360 }}
         />
         <button onClick={trace} disabled={!jobId.trim() || loading}
           style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                   padding:"7px 20px", fontWeight:700, fontSize:12, cursor:"pointer" }}>
+                   padding:"7px 20px", fontWeight:700, fontSize:ts(12), cursor:"pointer" }}>
           {loading ? "Tracing…" : "Trace"}
         </button>
       </div>
@@ -1332,8 +1333,8 @@ function JobTraceTab({ theme, initialJobId }) {
           <div style={{ background:theme.surfaceHigh, borderRadius:10, padding:14,
                         marginBottom:16, display:"flex", gap:16, alignItems:"flex-start" }}>
             <div style={{ flex:1 }}>
-              <div style={{ fontWeight:900, fontSize:15 }}>{data.scraped_job.title}</div>
-              <div style={{ color:theme.textMuted, fontSize:12, marginTop:2 }}>
+              <div style={{ fontWeight:900, fontSize:ts(15) }}>{data.scraped_job.title}</div>
+              <div style={{ color:theme.textMuted, fontSize:ts(12), marginTop:2 }}>
                 {data.scraped_job.company} · {data.scraped_job.location}
               </div>
               <div style={{ display:"flex", gap:8, marginTop:8, flexWrap:"wrap" }}>
@@ -1352,18 +1353,18 @@ function JobTraceTab({ theme, initialJobId }) {
               records, submitted — in time order, each with the reason the system gave. */}
           {data.lifecycle?.events?.length > 0 && (
             <div data-job-lifecycle style={{ border:`1px solid ${theme.border}`, borderRadius:10, padding:14, marginBottom:14 }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em",
+              <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em",
                             color:theme.textMuted, marginBottom:10 }}>
                 Lifecycle {data.lifecycle.active ? "" : "· not on the board"}
               </div>
-              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(11) }}>
                 <tbody>
                   {data.lifecycle.events.map((e, i) => (
                     <tr key={i} style={{ borderTop:`1px solid ${theme.border}` }}>
                       <td style={{ padding:"5px 8px", whiteSpace:"nowrap", color:theme.textMuted }}>
                         {e.at ? new Date(e.at * 1000).toISOString().replace("T", " ").slice(0, 16) + "Z" : "—"}
                       </td>
-                      <td style={{ padding:"5px 8px", fontWeight:700, textTransform:"uppercase", fontSize:10 }}>{e.stage}</td>
+                      <td style={{ padding:"5px 8px", fontWeight:700, textTransform:"uppercase", fontSize:ts(10) }}>{e.stage}</td>
                       <td style={{ padding:"5px 8px" }}>{e.what}</td>
                       <td style={{ padding:"5px 8px", color: /STALE|Held|Retired|no column/.test(e.detail || e.what) ? C.WARNING : theme.textMuted }}>{e.detail || ""}</td>
                     </tr>
@@ -1378,12 +1379,12 @@ function JobTraceTab({ theme, initialJobId }) {
 
             {/* Card 1: scraped_jobs row */}
             <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, padding:14 }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+              <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                             letterSpacing:"0.07em", color:theme.textMuted, marginBottom:10 }}>
                 scraped_jobs row
               </div>
               <div style={{ marginBottom:8 }}>
-                <span style={{ fontSize:10, color:theme.textMuted }}>domain_profile_id: </span>
+                <span style={{ fontSize:ts(10), color:theme.textMuted }}>domain_profile_id: </span>
                 <Pill color={data.scraped_job.domain_profile_id ? C.SUCCESS : C.DANGER}>
                   {data.scraped_job.domain_profile_id ?? "NULL"}
                 </Pill>
@@ -1414,16 +1415,16 @@ function JobTraceTab({ theme, initialJobId }) {
 
             {/* Card 2: user_jobs rows */}
             <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, padding:14 }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+              <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                             letterSpacing:"0.07em", color:theme.textMuted, marginBottom:10 }}>
                 user_jobs ({data.user_jobs.length} users)
               </div>
               {data.user_jobs.length === 0 && (
-                <div style={{ color:theme.textMuted, fontSize:12 }}>No user_jobs rows for this job.</div>
+                <div style={{ color:theme.textMuted, fontSize:ts(12) }}>No user_jobs rows for this job.</div>
               )}
               {data.user_jobs.map((uj, i) => (
                 <div key={i} style={{ background:theme.surfaceHigh, borderRadius:7, padding:"8px 10px",
-                                       marginBottom:6, fontSize:11 }}>
+                                       marginBottom:6, fontSize:ts(11) }}>
                   <div style={{ fontWeight:700, marginBottom:4 }}>@{uj.username}</div>
                   <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                     <Pill color={uj.applied?C.SUCCESS:C.INK_FAINT}>{uj.applied?"Applied":"Not applied"}</Pill>
@@ -1439,22 +1440,22 @@ function JobTraceTab({ theme, initialJobId }) {
 
             {/* Card 3: Resumes & Applications */}
             <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, padding:14 }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+              <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                             letterSpacing:"0.07em", color:theme.textMuted, marginBottom:10 }}>
                 Resumes & Applications
               </div>
               {data.resumes.length === 0 && data.applications.length === 0 && (
-                <div style={{ color:theme.textMuted, fontSize:12 }}>None generated or submitted.</div>
+                <div style={{ color:theme.textMuted, fontSize:ts(12) }}>None generated or submitted.</div>
               )}
               {data.resumes.map((r, i) => (
                 <div key={i} style={{ background:theme.surfaceHigh, borderRadius:6, padding:"6px 10px",
-                                       marginBottom:4, fontSize:11 }}>
+                                       marginBottom:4, fontSize:ts(11) }}>
                   Resume generated — ATS: {r.ats_score ?? "—"}
                 </div>
               ))}
               {data.applications.map((a, i) => (
                 <div key={i} style={{ background:C.SUCCESS_QUIET, border:`1px solid ${C.SUCCESS}33`,
-                                       borderRadius:6, padding:"6px 10px", marginBottom:4, fontSize:11 }}>
+                                       borderRadius:6, padding:"6px 10px", marginBottom:4, fontSize:ts(11) }}>
                   Applied by @{a.username} — {a.applied_at ? new Date(a.applied_at*1000).toISOString().slice(0,10) : "—"}
                 </div>
               ))}
@@ -1466,7 +1467,7 @@ function JobTraceTab({ theme, initialJobId }) {
               background: d?.isCorrectlyIsolated ? C.SUCCESS_QUIET : C.DANGER_QUIET,
               borderRadius:10, padding:14,
             }}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+              <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                             letterSpacing:"0.07em", color:theme.textMuted, marginBottom:10 }}>
                 Diagnosis
               </div>
@@ -1481,16 +1482,16 @@ function JobTraceTab({ theme, initialJobId }) {
               )}
 
               {d?.usersWithJob?.length > 0 && (
-                <div style={{ fontSize:11, color:theme.textMuted, marginBottom:8 }}>
+                <div style={{ fontSize:ts(11), color:theme.textMuted, marginBottom:8 }}>
                   Appears in pools of: {d.usersWithJob.map(u => `@${u}`).join(", ")}
                 </div>
               )}
 
               {d?.issues?.length > 0 && (
                 <div>
-                  <div style={{ fontSize:11, fontWeight:700, color:C.DANGER, marginBottom:4 }}>Issues:</div>
+                  <div style={{ fontSize:ts(11), fontWeight:700, color:C.DANGER, marginBottom:4 }}>Issues:</div>
                   {d.issues.map((issue, i) => (
-                    <div key={i} style={{ fontSize:11, color:C.DANGER, padding:"3px 0",
+                    <div key={i} style={{ fontSize:ts(11), color:C.DANGER, padding:"3px 0",
                                           borderLeft:`2px solid ${C.DANGER}`, paddingLeft:8, marginBottom:4 }}>
                       {issue}
                     </div>
@@ -1499,7 +1500,7 @@ function JobTraceTab({ theme, initialJobId }) {
               )}
 
               {data.domain_profile && (
-                <div style={{ marginTop:10, fontSize:11, color:theme.textMuted }}>
+                <div style={{ marginTop:10, fontSize:ts(11), color:theme.textMuted }}>
                   Profile owner: @{data.domain_profile.owner_username}<br/>
                   Profile: {data.domain_profile.profile_name}
                 </div>
@@ -1556,7 +1557,7 @@ function QuerySimulatorTab({ theme }) {
       <div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:20 }}>
         <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)}
           style={{ background:theme.surfaceHigh, border:`1px solid ${theme.border}`,
-                   borderRadius:6, padding:"6px 12px", color:theme.text, fontSize:12, minWidth:240 }}>
+                   borderRadius:6, padding:"6px 12px", color:theme.text, fontSize:ts(12), minWidth:240 }}>
           <option value="">Select a user to simulate…</option>
           {users.filter(u => !u.is_admin).map(u => (
             <option key={u.id} value={u.id}>{u.username} (id:{u.id})</option>
@@ -1564,7 +1565,7 @@ function QuerySimulatorTab({ theme }) {
         </select>
         <button onClick={simulate} disabled={!selectedUser || loading}
           style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                   padding:"6px 20px", fontWeight:700, fontSize:12, cursor:"pointer",
+                   padding:"6px 20px", fontWeight:700, fontSize:ts(12), cursor:"pointer",
                    opacity:!selectedUser?0.5:1 }}>
           {loading ? "Simulating…" : "Simulate"}
         </button>
@@ -1597,14 +1598,14 @@ function QuerySimulatorTab({ theme }) {
 
           {/* Conditions */}
           <div style={{ marginBottom:16 }}>
-            <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+            <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                           letterSpacing:"0.07em", color:theme.textMuted, marginBottom:8 }}>
               WHERE Conditions Applied
             </div>
             <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
               {data.conditions.map((c, i) => (
                 <span key={i} style={{
-                  padding:"3px 10px", borderRadius:6, fontSize:10, fontWeight:700,
+                  padding:"3px 10px", borderRadius:6, fontSize:ts(10), fontWeight:700,
                   background:ACCENT+"22", color:ACCENT_TEXT, border:`1px solid ${ACCENT_TEXT}44`,
                 }}>
                   {c}
@@ -1616,7 +1617,7 @@ function QuerySimulatorTab({ theme }) {
           {/* Filter reason breakdown */}
           {Object.keys(data.filterReasonCounts).length > 0 && (
             <div style={{ marginBottom:16, display:"flex", gap:8, flexWrap:"wrap" }}>
-              <div style={{ fontSize:11, fontWeight:700, color:theme.textMuted, alignSelf:"center" }}>
+              <div style={{ fontSize:ts(11), fontWeight:700, color:theme.textMuted, alignSelf:"center" }}>
                 Filtered reasons:
               </div>
               {Object.entries(data.filterReasonCounts).map(([reason, count]) => (
@@ -1631,20 +1632,20 @@ function QuerySimulatorTab({ theme }) {
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:16 }}>
             {/* Would Show */}
             <div>
-              <div style={{ fontSize:11, fontWeight:700, color:C.SUCCESS, marginBottom:8 }}>
+              <div style={{ fontSize:ts(11), fontWeight:700, color:C.SUCCESS, marginBottom:8 }}>
                 Would Show ({data.jobsPassingAllFilters})
               </div>
               <div style={{ border:`1px solid ${C.SUCCESS}44`, borderRadius:8, overflow:"hidden" }}>
                 <div style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 50px",
                               padding:"6px 10px", background:C.SUCCESS_QUIET,
-                              fontSize:10, fontWeight:700, color:theme.textMuted,
+                              fontSize:ts(10), fontWeight:700, color:theme.textMuted,
                               textTransform:"uppercase", letterSpacing:"0.06em" }}>
                   <div>Title</div><div>Company</div><div>ATS</div>
                 </div>
                 {data.sampleResults.map((job, i) => (
                   <div key={i} style={{
                     display:"grid", gridTemplateColumns:"2fr 1.5fr 50px",
-                    padding:"6px 10px", borderTop:`1px solid ${C.SUCCESS}22`, fontSize:11,
+                    padding:"6px 10px", borderTop:`1px solid ${C.SUCCESS}22`, fontSize:ts(11),
                   }}>
                     <div style={{ fontWeight:600 }}>{truncate(job.title,28)}</div>
                     <div style={{ color:theme.textMuted }}>{truncate(job.company,20)}</div>
@@ -1654,7 +1655,7 @@ function QuerySimulatorTab({ theme }) {
                   </div>
                 ))}
                 {data.sampleResults.length === 0 && (
-                  <div style={{ padding:"16px", textAlign:"center", color:C.SUCCESS, fontSize:12 }}>
+                  <div style={{ padding:"16px", textAlign:"center", color:C.SUCCESS, fontSize:ts(12) }}>
                     No jobs would show.
                   </div>
                 )}
@@ -1663,20 +1664,20 @@ function QuerySimulatorTab({ theme }) {
 
             {/* Filtered Out */}
             <div>
-              <div style={{ fontSize:11, fontWeight:700, color:C.DANGER, marginBottom:8 }}>
+              <div style={{ fontSize:ts(11), fontWeight:700, color:C.DANGER, marginBottom:8 }}>
                 Filtered Out (sample)
               </div>
               <div style={{ border:`1px solid ${C.DANGER}44`, borderRadius:8, overflow:"hidden" }}>
                 <div style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 90px",
                               padding:"6px 10px", background:C.DANGER_QUIET,
-                              fontSize:10, fontWeight:700, color:theme.textMuted,
+                              fontSize:ts(10), fontWeight:700, color:theme.textMuted,
                               textTransform:"uppercase", letterSpacing:"0.06em" }}>
                   <div>Title</div><div>Company</div><div>Reason</div>
                 </div>
                 {data.sampleFiltered.map((job, i) => (
                   <div key={i} style={{
                     display:"grid", gridTemplateColumns:"2fr 1.5fr 90px",
-                    padding:"6px 10px", borderTop:`1px solid ${C.DANGER}22`, fontSize:11,
+                    padding:"6px 10px", borderTop:`1px solid ${C.DANGER}22`, fontSize:ts(11),
                   }}>
                     <div style={{ fontWeight:600 }}>{truncate(job.title,28)}</div>
                     <div style={{ color:theme.textMuted }}>{truncate(job.company,20)}</div>
@@ -1684,7 +1685,7 @@ function QuerySimulatorTab({ theme }) {
                   </div>
                 ))}
                 {data.sampleFiltered.length === 0 && (
-                  <div style={{ padding:"16px", textAlign:"center", color:theme.textMuted, fontSize:12 }}>
+                  <div style={{ padding:"16px", textAlign:"center", color:theme.textMuted, fontSize:ts(12) }}>
                     No filtered jobs.
                   </div>
                 )}
@@ -1698,19 +1699,19 @@ function QuerySimulatorTab({ theme }) {
               onClick={() => setShowSql(!showSql)}
               style={{ width:"100%", textAlign:"left", padding:"10px 14px",
                        background:theme.surfaceHigh, border:"none", cursor:"pointer",
-                       color:theme.text, fontSize:11, fontWeight:700 }}>
+                       color:theme.text, fontSize:ts(11), fontWeight:700 }}>
               {showSql ? "▾" : "▸"} Raw SQL Query
             </button>
             {showSql && (
               <div style={{ padding:14 }}>
                 <pre style={{ background:C.SURFACE_SOLID, color:C.INK, padding:14, borderRadius:8,
-                              fontSize:11, overflowX:"auto", margin:0, lineHeight:1.5 }}>
+                              fontSize:ts(11), overflowX:"auto", margin:0, lineHeight:1.5 }}>
                   {data.rawSql}
                 </pre>
                 <button
                   onClick={() => navigator.clipboard.writeText(data.rawSql)}
                   style={{ marginTop:8, background:"transparent", color:theme.text, border:`1px solid ${theme.border}`,
-                           borderRadius:6, padding:"4px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
+                           borderRadius:6, padding:"4px 14px", fontSize:ts(11), fontWeight:700, cursor:"pointer" }}>
                   Copy SQL
                 </button>
               </div>
@@ -1721,8 +1722,8 @@ function QuerySimulatorTab({ theme }) {
 
       {/* Raw Query Sandbox — always visible */}
       <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, padding:16 }}>
-        <div style={{ fontSize:12, fontWeight:800, marginBottom:4 }}>Raw Query Sandbox</div>
-        <div style={{ fontSize:11, color:C.WARNING, marginBottom:10 }}>
+        <div style={{ fontSize:ts(12), fontWeight:800, marginBottom:4 }}>Raw Query Sandbox</div>
+        <div style={{ fontSize:ts(11), color:C.WARNING, marginBottom:10 }}>
           SELECT queries only — max 200 rows returned
         </div>
         <textarea
@@ -1733,14 +1734,14 @@ function QuerySimulatorTab({ theme }) {
             width:"100%", boxSizing:"border-box",
             background:C.SURFACE_SOLID, color:C.INK,
             border:`1px solid ${theme.border}`, borderRadius:8,
-            padding:"10px 12px", fontSize:12, fontFamily:"monospace",
+            padding:"10px 12px", fontSize:ts(12), fontFamily:"monospace",
             lineHeight:1.5, resize:"vertical", marginBottom:8,
           }}
         />
         <div style={{ display:"flex", gap:8, marginBottom:12 }}>
           <button onClick={runRawQuery} disabled={rawLoading}
             style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                     padding:"6px 18px", fontWeight:700, fontSize:11, cursor:"pointer" }}>
+                     padding:"6px 18px", fontWeight:700, fontSize:ts(11), cursor:"pointer" }}>
             {rawLoading ? "Running…" : "Run"}
           </button>
           {rawResults && (
@@ -1758,7 +1759,7 @@ function QuerySimulatorTab({ theme }) {
               URL.revokeObjectURL(url);
             }}
               style={{ background:"transparent", color:ACCENT_TEXT, border:`1px solid ${ACCENT_TEXT}44`,
-                       borderRadius:6, padding:"6px 18px", fontWeight:700, fontSize:11, cursor:"pointer" }}>
+                       borderRadius:6, padding:"6px 18px", fontWeight:700, fontSize:ts(11), cursor:"pointer" }}>
               Export CSV
             </button>
           )}
@@ -1768,12 +1769,12 @@ function QuerySimulatorTab({ theme }) {
 
         {rawResults && (
           <div>
-            <div style={{ fontSize:11, color:theme.textMuted, marginBottom:8 }}>
+            <div style={{ fontSize:ts(11), color:theme.textMuted, marginBottom:8 }}>
               {rawResults.count} row{rawResults.count !== 1 ? "s" : ""} returned
             </div>
             {rawResults.rows?.length > 0 && (
               <div style={{ overflowX:"auto" }}>
-                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:10 }}>
+                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(10) }}>
                   <thead>
                     <tr style={{ background:theme.surfaceHigh }}>
                       {rawResults.columns.map(c => (
@@ -1787,7 +1788,7 @@ function QuerySimulatorTab({ theme }) {
                     {rawResults.rows.map((row, i) => (
                       <tr key={i} style={{ borderBottom:`1px solid ${theme.border}` }}>
                         {rawResults.columns.map(c => (
-                          <td key={c} style={{ padding:"4px 8px", color:theme.text, fontSize:10,
+                          <td key={c} style={{ padding:"4px 8px", color:theme.text, fontSize:ts(10),
                                                maxWidth:200, overflow:"hidden", textOverflow:"ellipsis",
                                                whiteSpace:"nowrap" }}>
                             {row[c] == null ? <span style={{color:theme.textMuted}}>NULL</span>
@@ -1839,7 +1840,7 @@ function TableBrowserTab({ theme }) {
     <div style={{ display:"grid", gridTemplateColumns:"240px 1fr", gap:18 }}>
       <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, overflow:"hidden" }}>
         <div style={{ padding:"10px 12px", background:theme.surfaceHigh,
-                      fontSize:10, fontWeight:800, textTransform:"uppercase",
+                      fontSize:ts(10), fontWeight:800, textTransform:"uppercase",
                       letterSpacing:"0.07em", color:theme.textMuted }}>
           Tables
         </div>
@@ -1851,7 +1852,7 @@ function TableBrowserTab({ theme }) {
                 width:"100%", display:"flex", justifyContent:"space-between",
                 padding:"8px 12px", border:"none", borderTop:`1px solid ${theme.border}`,
                 background:selected === t.name ? ACCENT+"22" : "transparent",
-                color:theme.text, cursor:"pointer", textAlign:"left", fontSize:12,
+                color:theme.text, cursor:"pointer", textAlign:"left", fontSize:ts(12),
               }}>
               <span style={{ fontWeight:selected === t.name ? 800 : 500 }}>{t.name}</span>
               <span style={{ color:theme.textMuted }}>{fmt(t.rowCount)}</span>
@@ -1863,8 +1864,8 @@ function TableBrowserTab({ theme }) {
       <div>
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
           <div>
-            <div style={{ fontSize:18, fontWeight:900 }}>{selected || "Select a table"}</div>
-            {data && <div style={{ fontSize:11, color:theme.textMuted }}>
+            <div style={{ fontSize:ts(18), fontWeight:900 }}>{selected || "Select a table"}</div>
+            {data && <div style={{ fontSize:ts(11), color:theme.textMuted }}>
               {fmt(data.total)} rows · page {data.page} of {data.totalPages || 1}
             </div>}
           </div>
@@ -1888,7 +1889,7 @@ function TableBrowserTab({ theme }) {
         {data && !loading && (
           <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, overflow:"auto",
                         maxHeight:"calc(100vh - 245px)" }}>
-            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(11) }}>
               <thead>
                 <tr style={{ background:theme.surfaceHigh, position:"sticky", top:0 }}>
                   {cols.map(c => (
@@ -2008,18 +2009,18 @@ function JobReviewTab({ theme }) {
                    padding:"7px 14px", fontWeight:700, cursor:"pointer" }}>
           Refresh
         </button>
-        {status && <span style={{ fontSize:12, color:theme.textMuted }}>{status}</span>}
+        {status && <span style={{ fontSize:ts(12), color:theme.textMuted }}>{status}</span>}
         {lastChange && (
           <button onClick={undoLast}
             style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                     padding:"5px 10px", fontWeight:700, cursor:"pointer", fontSize:11 }}>
+                     padding:"5px 10px", fontWeight:700, cursor:"pointer", fontSize:ts(11) }}>
             ↩ Undo last change
           </button>
         )}
       </div>
       <ErrBox msg={error} theme={theme}/>
       <div style={{ border:`1px solid ${theme.border}`, borderRadius:10, overflow:"auto" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:ts(11) }}>
           <thead>
             <tr style={{ background:theme.surfaceHigh }}>
               {["Job", "Current", "Users", "Suggested", "Assign", "Profile", ""].map(h => (
@@ -2122,7 +2123,7 @@ export default function DBInspector() {
 
   return (
     <div style={{
-      fontFamily:"'DM Sans',system-ui,sans-serif", fontSize:13,
+      fontFamily:"'DM Sans',system-ui,sans-serif", fontSize:ts(13),
       background:theme.bg, minHeight:"calc(100vh - 56px)", color:theme.text,
       padding:"20px 24px",
     }}>
@@ -2131,24 +2132,24 @@ export default function DBInspector() {
       {/* Global controls */}
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20, flexWrap:"wrap" }}>
         <a href="/admin"
-          style={{ fontSize:12, color:theme.textMuted, textDecoration:"none", fontWeight:600,
+          style={{ fontSize:ts(12), color:theme.textMuted, textDecoration:"none", fontWeight:600,
                    display:"flex", alignItems:"center", gap:4 }}>
           ← Admin Dashboard
         </a>
         <div style={{ flex:1 }}/>
         {lastUpdated && (
-          <span style={{ fontSize:11, color:theme.textMuted }}>Updated: {lastUpdated}</span>
+          <span style={{ fontSize:ts(11), color:theme.textMuted }}>Updated: {lastUpdated}</span>
         )}
         {/* D83 (39d): a dropdown of the real values — three small toggles drew as capsules (D60). */}
-        <label style={{ fontSize:11, color:theme.textMuted }}>Auto-refresh{" "}
+        <label style={{ fontSize:ts(11), color:theme.textMuted }}>Auto-refresh{" "}
           <select aria-label="Auto-refresh" value={autoRefresh} onChange={e => setAutoRefresh(Number(e.target.value))}
-            style={{ padding:"4px 6px", borderRadius:6, border:`1px solid ${theme.border}`, background:theme.surface, color:theme.text, fontSize:11 }}>
+            style={{ padding:"4px 6px", borderRadius:6, border:`1px solid ${theme.border}`, background:theme.surface, color:theme.text, fontSize:ts(11) }}>
             <option value={0}>off</option><option value={30}>every 30 s</option><option value={60}>every 60 s</option>
           </select>
         </label>
         <button onClick={doRefresh}
           style={{ background:"transparent", color:theme.text, border:`1px solid ${theme.border}`, borderRadius:6,
-                   padding:"5px 14px", fontWeight:700, fontSize:11, cursor:"pointer" }}>
+                   padding:"5px 14px", fontWeight:700, fontSize:ts(11), cursor:"pointer" }}>
           Refresh
         </button>
       </div>
@@ -2161,7 +2162,7 @@ export default function DBInspector() {
           <button key={t.id} onClick={() => setActiveTab(t.id)}
             style={{
               background:"transparent", border:"none", cursor:"pointer",
-              padding:"10px 18px", fontSize:12, fontWeight:800, letterSpacing:"0.05em",
+              padding:"10px 18px", fontSize:ts(12), fontWeight:800, letterSpacing:"0.05em",
               textTransform:"uppercase", color: activeTab===t.id ? theme.text : theme.textMuted,
               borderBottom: activeTab===t.id ? `2px solid ${ACCENT_TEXT}` : "2px solid transparent",
               transition:"all 0.15s", position:"relative", top:1,

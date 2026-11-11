@@ -8,13 +8,14 @@ import { api } from "../lib/api.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, Mark, row, quiet, sub } from "./adminKit.jsx";
 import { C } from "../styles/colorTokens.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const LEVELS = ["entry", "early", "mid", "senior", "staff"];
 const TYPES = ["scenario", "recall", "explain"];
 const STATUS_WORD = { draft: "Waiting for review", live: "Live", retired: "Retired" };
 const letter = (i) => String.fromCharCode(65 + i);
 const pct = (x) => (x == null ? "—" : `${Math.round(x * 100)} %`);
-const fieldBox = { width: "100%", font: "inherit", fontSize: 13, padding: "6px 8px", boxSizing: "border-box" };
+const fieldBox = { width: "100%", font: "inherit", fontSize: ts(13), padding: "6px 8px", boxSizing: "border-box" };
 
 function Editor({ q, onSave, onCancel }) {
   const [stem, setStem] = useState(q.stem);

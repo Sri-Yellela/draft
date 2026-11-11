@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, row, quiet, sub, field } from "./adminKit.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const LABELS = {
   yes: "yes", maybe: "maybe", no: "no", now: "now", within_6_months: "within 6 months",
@@ -129,7 +130,7 @@ function PeopleAndQuestions() {
       code="GET /api/admin/testers/people · /api/admin/testers/people.csv (services/testerContacts.js)"
       numbers={[[d.people.length, "people"], [d.messages, "messages from the dock", d.messages > 0],
                 [d.people.filter(p => p.status === "survey due").length, "survey due"], [d.excluded, "left out (test / admin)"]]}>
-      {d.retention && <p data-testing-retention="" style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: "0 0 10px" }}>{d.retention.text}</p>}
+      {d.retention && <p data-testing-retention="" style={{ fontSize: ts(12.5), color: "var(--color-text-muted)", margin: "0 0 10px" }}>{d.retention.text}</p>}
       <div style={row}>
         <input aria-label="Search names, emails and messages" placeholder="Search names, emails, messages" value={q} onChange={(e) => setQ(e.target.value)} style={{ ...field, minWidth: 240 }}/>
         <label style={{ ...row, gap: 6 }}><input type="checkbox" checked={onlyAsked} onChange={(e) => setOnlyAsked(e.target.checked)}/> Only people who wrote something</label>

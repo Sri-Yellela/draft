@@ -13,6 +13,7 @@ import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import { Panel, Help, Dialog, useConfirm, h2, row, quiet, field, callout } from "./adminKit.jsx";
 import { Btn, Table, Err, KV, ago, stamp, usd, num, UserApplications } from "./adminOps.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const STATUS_TONE = { active: C.SUCCESS, suspended: C.DANGER };
 // ⛔ D95: user accounts only — an admin is not a person on this list, so there is no "Admins" filter.
@@ -40,7 +41,7 @@ function ActionDialog({ action, onDone, onCancel }) {
     <Dialog title={action.title} confirmLabel={action.label} onCancel={onCancel} onConfirm={go} busy={busy} disabled={!ready}>
       <div style={{ marginBottom: 10 }}>{action.body}</div>
       {(action.fields || []).map(f => (
-        <label key={f.key} style={{ display: "block", fontSize: 12, marginBottom: 8 }}>{f.label}
+        <label key={f.key} style={{ display: "block", fontSize: ts(12), marginBottom: 8 }}>{f.label}
           {f.options
             ? <select value={values[f.key]} onChange={e => setValues(v => ({ ...v, [f.key]: e.target.value }))} style={{ ...field, display: "block", marginTop: 4, width: "100%" }}>
                 {f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
@@ -48,7 +49,7 @@ function ActionDialog({ action, onDone, onCancel }) {
                 onChange={e => setValues(v => ({ ...v, [f.key]: e.target.value }))} style={{ ...field, display: "block", marginTop: 4, width: "100%", boxSizing: "border-box" }}/>}
         </label>
       ))}
-      <label style={{ display: "block", fontSize: 12 }}>Why (kept with the change)
+      <label style={{ display: "block", fontSize: ts(12) }}>Why (kept with the change)
         <textarea aria-label="Why" rows={2} value={reason} onChange={e => setReason(e.target.value)} autoFocus
           placeholder="e.g. support ticket 12 — asked for more drafts"
           style={{ ...field, display: "block", marginTop: 4, width: "100%", boxSizing: "border-box" }}/></label>
@@ -78,7 +79,7 @@ export function PeopleList({ theme, onOpen }) {
   }, [q, filter, sort, page, hideTagged]);
   useEffect(() => { const t = setTimeout(load, q ? 250 : 0); return () => clearTimeout(t); }, [load, q]);
   const c = d?.counts;
-  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "6px 9px", fontSize: 12 };
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "6px 9px", fontSize: ts(12) };
   const pages = d ? Math.max(1, Math.ceil(d.total / d.pageSize)) : 1;
   return (
     <Panel title="Users" data-people-list=""
@@ -90,7 +91,7 @@ export function PeopleList({ theme, onOpen }) {
         <input aria-label="Find a person" placeholder="Name, email, username or id" value={q} onChange={e => { setQ(e.target.value); setPage(1); }} style={{ ...input, width: 260 }}/>
         <select aria-label="Show" value={filter} onChange={e => { setFilter(e.target.value); setPage(1); }} style={input}>{FILTERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
         <select aria-label="Sort" value={sort} onChange={e => setSort(e.target.value)} style={input}>{SORTS.map(([v, l]) => <option key={v} value={v}>Sort: {l}</option>)}</select>
-        <label style={{ fontSize: 12, display: "flex", gap: 6, alignItems: "center", color: theme.text }}>
+        <label style={{ fontSize: ts(12), display: "flex", gap: 6, alignItems: "center", color: theme.text }}>
           <input type="checkbox" checked={hideTagged} onChange={e => { setHideTagged(e.target.checked); setPage(1); }}/> Hide internal and test accounts
         </label>
         {hideTagged && d && <span data-people-hidden={d.hidden || 0} style={markStyle(d.hidden ? C.WARNING : C.INK_FAINT)}>{num(d.hidden || 0)} hidden</span>}
@@ -207,12 +208,12 @@ export function PersonPage({ theme, id, onBack, onDelete }) {
         onSave={async (l) => { await api(`/api/admin/analytics/limits/${id}`, { method: "PUT", body: JSON.stringify(l) }); setLimits(null); setMsg("Usage limits saved."); load(); }}/>}
       <div style={{ ...row, marginBottom: 12 }}>
         <Btn theme={theme} onClick={onBack}>← All users</Btn>
-        <h2 style={{ ...h2, fontSize: 24 }}>{who}</h2>
+        <h2 style={{ ...h2, fontSize: ts(24) }}>{who}</h2>
         <span style={markStyle(STATUS_TONE[a.status] || C.INK_FAINT)}>{a.status}</span>
         {(d.tags || []).map(t => <span key={t} data-person-tag={t} style={markStyle(C.INFO)}>{t}</span>)}
       </div>
       <Err msg={err}/>
-      {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 10 }} role="status">{msg}</div>}
+      {msg && <div style={{ fontSize: ts(12), color: C.SUCCESS, marginBottom: 10 }} role="status">{msg}</div>}
 
       <Panel title="Account & status" data-module="account"
         code="Module 1. Shown from an allow-list: no eligibility or EEO answer, phone or address — support needs none of them."
@@ -285,7 +286,7 @@ export function PersonPage({ theme, id, onBack, onDelete }) {
         <textarea aria-label="A note" rows={2} value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. asked for more drafts on 10-09; granted until the 16th"
           style={{ ...field, width: "100%", boxSizing: "border-box" }}/>
         <div style={{ ...row, margin: "6px 0 10px" }}><Btn theme={theme} disabled={!note.trim()} onClick={addNote}>Add the note</Btn></div>
-        {d.notes.map(n => <div key={n.id} style={{ fontSize: 12, borderTop: `1px solid ${theme.border}`, padding: "6px 0" }}>
+        {d.notes.map(n => <div key={n.id} style={{ fontSize: ts(12), borderTop: `1px solid ${theme.border}`, padding: "6px 0" }}>
           <span style={quiet}>{stamp(n.created_at)} · {n.author || "—"}</span><div style={{ whiteSpace: "pre-wrap" }}>{n.body}</div></div>)}
       </Panel>
     </div>
@@ -331,7 +332,7 @@ export function SupportQueue({ theme, onOpenPerson }) {
   };
   if (openId) return <TicketView theme={theme} id={openId} meta={d} onBack={() => open(null)} onOpenPerson={onOpenPerson}/>;
   const c = d?.counts;
-  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "6px 9px", fontSize: 12 };
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "6px 9px", fontSize: ts(12) };
   return (
     <Panel title="Support" data-support-queue=""
       code="D88 P3: tickets opened from Settings → Help. A reply is emailed from support@ with Reply-To support@; an internal note never reaches the user. Due: 2 days from the user's last message; a privacy request 30 days from opening (GDPR's month). Solved tickets are deleted after 24 months."
@@ -388,13 +389,13 @@ function TicketView({ theme, id, meta, onBack, onOpenPerson }) {
     try { await api(`/api/admin/tickets/${id}`, { method: "POST", body: JSON.stringify(patch) }); load(); } catch (e) { setErr(e.message); }
   };
   if (!t) return <div><Btn theme={theme} onClick={onBack}>← The queue</Btn><Err msg={err}/></div>;
-  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "6px 9px", fontSize: 12 };
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "6px 9px", fontSize: ts(12) };
   return (
     <div data-ticket-view={id}>
       {dialog}
       <div style={{ ...row, marginBottom: 12 }}>
         <Btn theme={theme} onClick={onBack}>← The queue</Btn>
-        <h2 style={{ ...h2, fontSize: 22 }}>#{t.id} · {t.subject}</h2>
+        <h2 style={{ ...h2, fontSize: ts(22) }}>#{t.id} · {t.subject}</h2>
         <span style={markStyle(TICKET_TONE[t.status] || C.INK_FAINT)}>{meta?.statuses?.[t.status] || t.status}</span>
       </div>
       <Panel title="The request" data-module="ticket"
@@ -406,10 +407,10 @@ function TicketView({ theme, id, meta, onBack, onOpenPerson }) {
           Their export and delete are in Settings for them; on their page here you can delete the account for them.</div>}
         <div style={{ ...row, marginBottom: 10 }}>
           <Btn theme={theme} onClick={() => onOpenPerson(t.userId)}>Open {t.username}'s page</Btn>
-          <label style={{ fontSize: 12 }}>Status{" "}
+          <label style={{ fontSize: ts(12) }}>Status{" "}
             <select aria-label="Status" value={t.status} onChange={e => setField({ status: e.target.value })} style={input}>
               {Object.entries(meta?.statuses || {}).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-          <label style={{ fontSize: 12 }}>Priority{" "}
+          <label style={{ fontSize: ts(12) }}>Priority{" "}
             <select aria-label="Priority" value={t.priority} onChange={e => setField({ priority: e.target.value })} style={input}>
               {(meta?.priorities || ["low", "normal", "high"]).map(p => <option key={p} value={p}>{p}</option>)}</select></label>
           <span style={quiet}>{t.context?.page ? `opened from ${t.context.page}` : ""}{t.context?.appVersion ? ` · app ${t.context.appVersion}` : ""}</span>
@@ -420,7 +421,7 @@ function TicketView({ theme, id, meta, onBack, onOpenPerson }) {
               style={{ ...(m.internal ? callout(C.WARNING) : { border: `1px solid ${theme.border}`, borderRadius: 10, padding: "8px 11px" }),
                        marginLeft: m.author_type === "admin" ? 40 : 0, marginRight: m.author_type === "admin" ? 0 : 40 }}>
               <div style={quiet}>{m.author_type === "admin" ? (m.author || "admin") : t.username} · {stamp(m.created_at)}{m.internal ? " · internal note — not sent" : ""}</div>
-              <div style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>{m.body}</div>
+              <div style={{ whiteSpace: "pre-wrap", fontSize: ts(13) }}>{m.body}</div>
             </div>
           ))}
         </div>
@@ -429,11 +430,11 @@ function TicketView({ theme, id, meta, onBack, onOpenPerson }) {
         code="Canned replies are a start, never sent as they are — edit them first."
         purpose={internal ? "Only admins see this. Nothing is sent." : `${t.username} gets this by email and in their Settings → Help.`}>
         <Err msg={err}/>
-        {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 8 }} role="status">{msg}</div>}
+        {msg && <div style={{ fontSize: ts(12), color: C.SUCCESS, marginBottom: 8 }} role="status">{msg}</div>}
         <div style={{ ...row, marginBottom: 6 }}>
           <select aria-label="Start from a canned reply" value="" onChange={e => { const c = (meta?.canned || [])[Number(e.target.value)]; if (c) setBody(c[1]); }} style={input}>
             <option value="">Start from a canned reply…</option>{(meta?.canned || []).map(([l], i) => <option key={l} value={i}>{l}</option>)}</select>
-          <label style={{ fontSize: 12, display: "flex", gap: 6, alignItems: "center", color: internal ? C.WARNING : theme.text }}>
+          <label style={{ fontSize: ts(12), display: "flex", gap: 6, alignItems: "center", color: internal ? C.WARNING : theme.text }}>
             <input type="checkbox" checked={internal} onChange={e => setInternal(e.target.checked)}/> internal note (the user never sees it)</label>
         </div>
         <textarea aria-label="Message" rows={5} value={body} onChange={e => setBody(e.target.value)} style={{ ...field, width: "100%", boxSizing: "border-box" }}/>
@@ -475,7 +476,7 @@ export function LimitsModal({ userId, username, initialLimits, onSave, onClose, 
   ];
   const inp = {
     height:36, padding:"0 12px", borderRadius:8, border:`1px solid ${theme.border}`,
-    background:theme.surface, color:theme.text, fontSize:12, outline:"none", width:"100%",
+    background:theme.surface, color:theme.text, fontSize:ts(12), outline:"none", width:"100%",
     boxSizing:"border-box",
   };
   return (
@@ -486,13 +487,13 @@ export function LimitsModal({ userId, username, initialLimits, onSave, onClose, 
       <div style={{ background:theme.surface, borderRadius:16, padding:28,
                     maxWidth:420, width:"90%", maxHeight:"80vh", overflowY:"auto",
                     border:`1px solid ${theme.border}` }}>
-        <div style={{ fontSize:16, fontWeight:800, marginBottom:16, color:theme.text }}>
+        <div style={{ fontSize:ts(16), fontWeight:800, marginBottom:16, color:theme.text }}>
           Limits: {username}
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
           {fields.map(f => (
             <div key={f.key}>
-              <div style={{ fontSize:11, fontWeight:700, color:theme.textMuted, marginBottom:4 }}>
+              <div style={{ fontSize:ts(11), fontWeight:700, color:theme.textMuted, marginBottom:4 }}>
                 {f.label} <span style={{ fontWeight:400 }}>({f.unit}, blank = unlimited)</span>
               </div>
               <input style={inp} type="number" min={0}
@@ -501,7 +502,7 @@ export function LimitsModal({ userId, username, initialLimits, onSave, onClose, 
             </div>
           ))}
           <div>
-            <div style={{ fontSize:11, fontWeight:700, color:theme.textMuted, marginBottom:4 }}>Admin notes</div>
+            <div style={{ fontSize:ts(11), fontWeight:700, color:theme.textMuted, marginBottom:4 }}>Admin notes</div>
             <textarea style={{ ...inp, height:72, padding:"8px 12px", resize:"vertical" }}
               value={limits.notes} onChange={e => setLimits(l => ({ ...l, notes: e.target.value }))}/>
           </div>
@@ -509,7 +510,7 @@ export function LimitsModal({ userId, username, initialLimits, onSave, onClose, 
         <div style={{ display:"flex", gap:8, marginTop:20 }}>
           <button className="dbx-depth" onClick={onClose}
             style={{ flex:1, padding:"10px 0", border:`1px solid ${theme.border}`,
-                     background:"transparent", color:theme.text, fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                     background:"transparent", color:theme.text, fontWeight:700, fontSize:ts(13), cursor:"pointer" }}>
             Cancel
           </button>
           <button className="dbx-depth" disabled={saving} onClick={async () => {
@@ -528,7 +529,7 @@ export function LimitsModal({ userId, username, initialLimits, onSave, onClose, 
             setSaving(false);
           }}
             style={{ flex:2, padding:"10px 0", border:"none",
-                     background:theme.accent, color:C.ON_ACCENT, fontWeight:800, fontSize:13,
+                     background:theme.accent, color:C.ON_ACCENT, fontWeight:800, fontSize:ts(13),
                      cursor:"pointer", opacity:saving?0.7:1 }}>
             {saving ? "Saving…" : "Save Limits"}
           </button>

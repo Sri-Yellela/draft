@@ -24,6 +24,7 @@ import { Panel, Mark, row, quiet, sub, callout, field, useConfirm } from "./admi
 import { AtlasImportContent } from "./adminLearnImport.jsx";
 // ⭐ D117 C9 · Learn → Before-this review — the drafted links accepted, edited or rejected; P5's held links; the routes.
 import { LearnBeforeThisReview, LearnThumbnails } from "./adminLearnCircle.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const KINDS = [["", "All kinds"], ["role", "Roles"], ["skill", "Skills"], ["tool", "Tools"], ["stack", "Stacks"], ["concept", "Concepts"], ["pattern", "Patterns"]];
 const NODE_KINDS = ["role", "skill", "tool", "stack", "concept", "pattern"];
@@ -34,7 +35,7 @@ const COSTS = ["", "free", "freemium", "paid"];
 const STATUS_TONE = { ok: C.SUCCESS, failing: C.WARNING, dead: C.DANGER };
 const enc = encodeURIComponent;
 const send = (path, body, method = "POST") => api(path, { method, body: JSON.stringify(body || {}) });
-const label = { display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: C.INK_MUTED };
+const label = { display: "flex", flexDirection: "column", gap: 3, fontSize: ts(11), color: C.INK_MUTED };
 
 /** Why a row is (not) published — from the server's readiness (services/atlas/atlasPublish.js readiness). */
 function readinessLine(r) {
@@ -75,7 +76,7 @@ function AtlasWikiFind({ node, say, onPicked }) {
     finally { setBusy(false); }
   };
   return (
-    <div data-atlas-find={node.slug} style={{ fontSize: 12, color: C.INK }}>
+    <div data-atlas-find={node.slug} style={{ fontSize: ts(12), color: C.INK }}>
       <span>{node.name} <span style={quiet}>({node.kind})</span></span>{" "}
       {!found && <DepthButton size="compact" disabled={busy} onClick={find} data-atlas-find-open={node.slug}>Find on Wikipedia</DepthButton>}
       {found && (
@@ -113,7 +114,7 @@ function AtlasRedirectGroup({ say, onPicked }) {
   };
   if (!list) return <DepthButton size="compact" disabled={busy} onClick={preview} data-atlas-redirect-preview="">Preview every redirect</DepthButton>;
   return (
-    <div data-atlas-redirect-list="" style={{ display: "grid", gap: 3, fontSize: 12, color: C.INK }}>
+    <div data-atlas-redirect-list="" style={{ display: "grid", gap: 3, fontSize: ts(12), color: C.INK }}>
       {list.map(r => <span key={r.slug} style={{ overflowWrap: "anywhere" }}>{r.name} → {r.title ? <b>{r.title}</b> : <span style={quiet}>no target</span>}{r.extract ? ` — ${r.extract}` : ""}</span>)}
       <div style={row}>
         <DepthButton size="compact" primary disabled={busy || !ready.length} onClick={acceptAll} data-atlas-redirect-accept="">Accept all {ready.length}</DepthButton>
@@ -164,15 +165,15 @@ function AtlasDraftDefinitions({ say, onChanged }) {
   return (
     <div data-atlas-definitions="" style={{ ...sub, marginBottom: 12, display: "grid", gap: 8 }}>
       <div style={{ ...row, justifyContent: "space-between" }}>
-        <b style={{ fontSize: 13, color: C.INK }}>Draft definitions</b>
+        <b style={{ fontSize: ts(13), color: C.INK }}>Draft definitions</b>
         <DepthButton size="compact" disabled={busy} onClick={exportNow} data-atlas-def-export="">Draft definitions</DepthButton>
       </div>
       {out && (
         <div style={{ display: "grid", gap: 6 }}>
           <span style={quiet}>1. Copy this into a Claude chat. 2. Paste its JSON answer below. Definitions that pass the rules publish at once; unpublish any from the list below.</span>
-          <textarea readOnly value={out.text} rows={6} style={{ ...field, fontFamily: "monospace", fontSize: 11 }} aria-label="Items to define" />
+          <textarea readOnly value={out.text} rows={6} style={{ ...field, fontFamily: "monospace", fontSize: ts(11) }} aria-label="Items to define" />
           <div style={row}><DepthButton size="compact" onClick={copy} data-atlas-def-copy="">Copy</DepthButton></div>
-          <textarea value={answer} onChange={e => setAnswer(e.target.value)} rows={5} placeholder='{ "definitions": [ … ] }' style={{ ...field, fontFamily: "monospace", fontSize: 11 }} aria-label="The chat's answer" />
+          <textarea value={answer} onChange={e => setAnswer(e.target.value)} rows={5} placeholder='{ "definitions": [ … ] }' style={{ ...field, fontFamily: "monospace", fontSize: ts(11) }} aria-label="The chat's answer" />
           <div style={row}><DepthButton size="compact" primary disabled={busy || !answer.trim()} onClick={importNow} data-atlas-def-import="">Import and publish</DepthButton></div>
           {errors && <div style={callout(C.DANGER)}>Refused — nothing was saved: {errors.map(e => `${e.slug || "file"}: ${e.reason}`).join(" · ")}</div>}
         </div>
@@ -181,8 +182,8 @@ function AtlasDraftDefinitions({ say, onChanged }) {
         <div data-atlas-def-review="" style={{ display: "grid", gap: 6 }}>
           {drafts.map(d => (
             <div key={d.slug} style={{ display: "grid", gap: 4 }}>
-              <span style={{ fontSize: 12, color: C.INK }}><b>{d.name}</b> <span style={quiet}>{d.kind} · {d.postings} posting(s) · drafted</span></span>
-              <textarea value={edits[d.slug] ?? d.draft} onChange={e => setEdits(x => ({ ...x, [d.slug]: e.target.value }))} rows={2} style={{ ...field, fontSize: 12 }} aria-label={`Definition of ${d.name}`} />
+              <span style={{ fontSize: ts(12), color: C.INK }}><b>{d.name}</b> <span style={quiet}>{d.kind} · {d.postings} posting(s) · drafted</span></span>
+              <textarea value={edits[d.slug] ?? d.draft} onChange={e => setEdits(x => ({ ...x, [d.slug]: e.target.value }))} rows={2} style={{ ...field, fontSize: ts(12) }} aria-label={`Definition of ${d.name}`} />
               <div style={row}>
                 <DepthButton size="compact" primary disabled={busy} onClick={() => accept(d)} data-atlas-def-accept={d.slug}>Accept</DepthButton>
                 <DepthButton size="compact" disabled={busy} onClick={() => reject(d)} data-atlas-def-reject={d.slug}>Reject</DepthButton>
@@ -194,14 +195,14 @@ function AtlasDraftDefinitions({ say, onChanged }) {
       )}
       <div data-atlas-def-recent="" style={{ display: "grid", gap: 6 }}>
         <div style={{ ...row, justifyContent: "space-between" }}>
-          <b style={{ fontSize: 12, color: C.INK }}>Recently published</b>
+          <b style={{ fontSize: ts(12), color: C.INK }}>Recently published</b>
           <DepthButton size="compact" disabled={busy} onClick={spotCheck} data-atlas-def-spot="">This week's spot-check (10)</DepthButton>
         </div>
         {spot && <div style={quiet} data-atlas-def-spot-list="">Week {spot.week}: {spot.items.length ? spot.items.map(i => i.name).join(" · ") : "nothing published yet"}</div>}
         {recent?.length === 0 && <span style={quiet}>Nothing published automatically yet.</span>}
         {(recent || []).map(d => (
           <div key={d.slug} style={{ ...row, alignItems: "flex-start" }}>
-            <span style={{ fontSize: 12, color: C.INK, flex: 1 }}><b>{d.name}</b> <span style={quiet}>{d.kind} · {d.postings} posting(s)</span> — {d.definition}</span>
+            <span style={{ fontSize: ts(12), color: C.INK, flex: 1 }}><b>{d.name}</b> <span style={quiet}>{d.kind} · {d.postings} posting(s)</span> — {d.definition}</span>
             <DepthButton size="compact" disabled={busy} onClick={() => unpublish(d)} data-atlas-def-unpublish={d.slug}>Unpublish</DepthButton>
           </div>
         ))}
@@ -223,7 +224,7 @@ function AtlasAsks({ say }) {
   return (
     <div data-atlas-asks="" style={{ ...sub, marginBottom: 12, display: "grid", gap: 8 }}>
       <div style={{ ...row, justifyContent: "space-between" }}>
-        <b style={{ fontSize: 13, color: C.INK }}>Asks (last {s.days} days)</b>
+        <b style={{ fontSize: ts(13), color: C.INK }}>Asks (last {s.days} days)</b>
         <DepthButton size="compact" onClick={flip} data-assistant-enabled={s.enabled ? "on" : "off"}>{s.enabled ? "Ask draft is open to everyone — close it" : "Open Ask draft to everyone"}</DepthButton>
       </div>
       <span style={quiet}>{s.total} question(s): {s.byCoverage.covered} covered · {s.byCoverage.partial} partly · {s.byCoverage.gap} gaps. Stored without the person's name or contact details; people can switch this off.</span>
@@ -231,7 +232,7 @@ function AtlasAsks({ say }) {
         <div style={{ display: "grid", gap: 4 }} data-atlas-asks-gaps="">
           {s.topGaps.map(g => (
             <div key={g.term} style={row}>
-              <span style={{ fontSize: 12, color: C.INK, flex: 1 }}>{g.term} <span style={quiet}>· asked {g.asks}×</span></span>
+              <span style={{ fontSize: ts(12), color: C.INK, flex: 1 }}>{g.term} <span style={quiet}>· asked {g.asks}×</span></span>
               <DepthButton size="compact" onClick={() => toBacklog(g.term)} data-atlas-asks-backlog={g.term}>Add to backlog</DepthButton>
             </div>
           ))}
@@ -257,14 +258,14 @@ function AtlasWikiAnswers({ reloadKey, say }) {
   return (
     <div data-atlas-wiki-answers="" style={{ ...sub, marginBottom: 12 }}>
       <div style={{ ...row, justifyContent: "space-between" }}>
-        <b style={{ fontSize: 13, color: C.INK }}>Wikipedia's last answer, per node</b>
+        <b style={{ fontSize: ts(13), color: C.INK }}>Wikipedia's last answer, per node</b>
         <DepthButton size="compact" disabled={busy} onClick={runProbe} data-atlas-probe="">Show a real answer</DepthButton>
       </div>
       {!sum ? <p style={quiet}>No answers yet.</p> : (
         <div style={{ display: "grid", gap: 4, marginTop: 6 }}>
           {MATCH_WORDS.map(([c, l]) => (
             <details key={c} data-atlas-class={c}>
-              <summary style={{ fontSize: 12, color: C.INK, cursor: "pointer" }}>{l}: <b>{sum.counts?.[c] ?? 0}</b></summary>
+              <summary style={{ fontSize: ts(12), color: C.INK, cursor: "pointer" }}>{l}: <b>{sum.counts?.[c] ?? 0}</b></summary>
               {c === "matched" ? <p style={{ ...quiet, overflowWrap: "anywhere" }}>{(sum.nodes?.[c] || []).map(n => `${n.name} (${n.kind})`).join(" · ") || "—"}</p> : (
                 <div style={{ display: "grid", gap: 4, margin: "4px 0 6px" }}>
                   {c === "inexact" && (sum.counts?.[c] ?? 0) > 0 && <AtlasRedirectGroup say={say} onPicked={picked} />}
@@ -278,7 +279,7 @@ function AtlasWikiAnswers({ reloadKey, say }) {
         </div>
       )}
       {probe && (
-        <pre data-atlas-probe-out="" style={{ fontSize: 11, maxHeight: 320, overflow: "auto", whiteSpace: "pre-wrap", overflowWrap: "anywhere", color: C.INK }}>
+        <pre data-atlas-probe-out="" style={{ fontSize: ts(11), maxHeight: 320, overflow: "auto", whiteSpace: "pre-wrap", overflowWrap: "anywhere", color: C.INK }}>
           {JSON.stringify(probe, null, 1)}
         </pre>
       )}
@@ -303,7 +304,7 @@ function AtlasAddNode({ onAdded, say }) {
   };
   return (
     <div data-atlas-add="" style={{ ...sub, display: "grid", gap: 8 }}>
-      <b style={{ fontSize: 13, color: C.INK }}>Add a node</b>
+      <b style={{ fontSize: ts(13), color: C.INK }}>Add a node</b>
       <div style={row}>
         <select aria-label="New node's kind" value={kind} onChange={e => setKind(e.target.value)} style={field}>
           {NODE_KINDS.map(k => <option key={k} value={k}>{k}</option>)}
@@ -337,7 +338,7 @@ function AtlasMerge({ onMerged, say }) {
   };
   return (
     <div data-atlas-merge="" style={{ ...sub, display: "grid", gap: 8 }}>
-      <b style={{ fontSize: 13, color: C.INK }}>Merge two nodes</b>
+      <b style={{ fontSize: ts(13), color: C.INK }}>Merge two nodes</b>
       <div style={row}>
         <input aria-label="Keep this node (slug)" placeholder="Keep (slug, e.g. kubernetes)" value={winner} onChange={e => setWinner(e.target.value)} style={{ ...field, flex: "1 1 160px" }} />
         <input aria-label="Merge this node into it (slug)" placeholder="Merge in and delete (slug, e.g. k8s)" value={loser} onChange={e => setLoser(e.target.value)} style={{ ...field, flex: "1 1 160px" }} />
@@ -414,11 +415,11 @@ function AtlasNodeEditor({ slug, say }) {
       </div>
 
       <div data-atlas-edges="" style={{ display: "grid", gap: 6 }}>
-        <b style={{ fontSize: 12, color: C.INK }}>Edges</b>
+        <b style={{ fontSize: ts(12), color: C.INK }}>Edges</b>
         {n.edges.length === 0 && <span style={quiet}>None yet.</span>}
         {n.edges.map(e => (
           <div key={`${e.dir}:${e.type}:${e.slug}`} style={row}>
-            <span style={{ fontSize: 12, color: C.INK, flex: "1 1 220px", overflowWrap: "anywhere" }}>
+            <span style={{ fontSize: ts(12), color: C.INK, flex: "1 1 220px", overflowWrap: "anywhere" }}>
               {e.dir === "out" ? <>{n.name} <i>{e.type.replace(/_/g, " ")}</i> <b>{e.name}</b></> : <><b>{e.name}</b> <i>{e.type.replace(/_/g, " ")}</i> {n.name}</>}
               <span style={quiet}> · {e.source}{e.status !== "published" ? " · draft" : ""}</span>
             </span>
@@ -426,7 +427,7 @@ function AtlasNodeEditor({ slug, say }) {
           </div>
         ))}
         <div style={row}>
-          <span style={{ fontSize: 12, color: C.INK_MUTED }}>{n.name}</span>
+          <span style={{ fontSize: ts(12), color: C.INK_MUTED }}>{n.name}</span>
           <select aria-label="Edge type" value={edge.type} onChange={e => setEdge({ ...edge, type: e.target.value })} style={field}>
             {EDGE_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
@@ -437,7 +438,7 @@ function AtlasNodeEditor({ slug, say }) {
       </div>
 
       <div data-atlas-resources="" style={{ display: "grid", gap: 8 }}>
-        <b style={{ fontSize: 12, color: C.INK }}>Resources</b>
+        <b style={{ fontSize: ts(12), color: C.INK }}>Resources</b>
         {n.resources.length === 0 && <span style={quiet}>None yet.</span>}
         {n.resources.map(r => editing?.id === r.id ? (
           <div key={r.id} style={{ ...sub, display: "grid", gap: 8 }}>
@@ -450,7 +451,7 @@ function AtlasNodeEditor({ slug, say }) {
           </div>
         ) : (
           <div key={r.id} style={row} data-atlas-resource={r.id}>
-            <span style={{ fontSize: 12, color: C.INK, flex: "1 1 220px", overflowWrap: "anywhere" }}>
+            <span style={{ fontSize: ts(12), color: C.INK, flex: "1 1 220px", overflowWrap: "anywhere" }}>
               <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ color: C.ACCENT_INK }}>{r.title}</a>
               <span style={quiet}> · {[r.level, r.format, r.hours != null ? `${r.hours} h` : null, r.cost].filter(Boolean).join(" · ") || "—"}</span>
             </span>
@@ -722,12 +723,12 @@ export function AtlasTab() {
         <div style={{ display: "grid", gap: 6 }}>
           {shown.map(r => (
             <div key={r.slug} data-atlas-row={r.slug} style={{ ...sub, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <span style={{ flex: "1 1 200px", fontSize: 13, color: C.INK, overflowWrap: "anywhere" }}>
+              <span style={{ flex: "1 1 200px", fontSize: ts(13), color: C.INK, overflowWrap: "anywhere" }}>
                 <b>{r.name}</b> <span style={quiet}>{r.kind} · {r.postings} posting{r.postings === 1 ? "" : "s"} · {r.source}</span>
                 {readinessLine(r) && <span style={{ ...quiet, display: "block" }} data-atlas-readiness={r.readiness?.ready ? "ready" : "not-ready"}>{readinessLine(r)}</span>}
               </span>
               <Mark tone={r.status === "published" ? C.SUCCESS : C.INK_MUTED}>{r.status}</Mark>
-              {r.status === "published" && <a href={`/atlas/${encodeURIComponent(r.slug)}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: C.ACCENT_INK }}>Open page</a>}
+              {r.status === "published" && <a href={`/atlas/${encodeURIComponent(r.slug)}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: ts(12), color: C.ACCENT_INK }}>Open page</a>}
               <DepthButton size="compact" primary={r.status !== "published"} disabled={busy === r.slug} onClick={() => flip(r)} data-atlas-flip={r.slug}>
                 {r.status === "published" ? "Unpublish" : "Publish"}
               </DepthButton>

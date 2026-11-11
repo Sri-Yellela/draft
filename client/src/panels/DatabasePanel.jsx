@@ -41,6 +41,7 @@ import { bandMarkStyle, dotCue } from "../styles/mark.js";
 import { atsBandFor, atsBandLabel } from "../../../shared/atsBands.js";
 import { openPosting } from "../lib/openPosting.js";
 import { downloadExcel } from "../lib/tableExport.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // ── Calendar component ────────────────────────────────────────
 //
@@ -123,9 +124,9 @@ function AtsReportDisplay({ report, score, theme }) {
     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
       {sections.map((s, i) => (
         <div key={i} style={{ background:theme.surfaceHigh, borderRadius:12, padding:16 }}>
-          <div style={{ fontWeight:700, fontSize:13, color:theme.text, marginBottom:8 }}>{s.section || s.name || s.title || "Section"}</div>
-          <div style={{ fontSize:12, color:theme.textMuted, lineHeight:1.7 }}>{s.feedback || s.comment || s.description || JSON.stringify(s)}</div>
-          {s.score != null && <div style={{ fontSize:11, color:theme.accentText, marginTop:4, fontWeight:700 }}>Score: {s.score}</div>}
+          <div style={{ fontWeight:700, fontSize:ts(13), color:theme.text, marginBottom:8 }}>{s.section || s.name || s.title || "Section"}</div>
+          <div style={{ fontSize:ts(12), color:theme.textMuted, lineHeight:1.7 }}>{s.feedback || s.comment || s.description || JSON.stringify(s)}</div>
+          {s.score != null && <div style={{ fontSize:ts(11), color:theme.accentText, marginTop:4, fontWeight:700 }}>Score: {s.score}</div>}
         </div>
       ))}
     </div>
@@ -181,12 +182,12 @@ function DetailModal({ modal, onClose, theme }) {
           {/* Title */}
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                          fontSize:22,
+                          fontSize:ts(22),
                           color:theme.text, overflow:"hidden", textOverflow:"ellipsis",
                           whiteSpace:"nowrap" }}>
               {modal.company}
             </div>
-            <div style={{ fontSize:11, color:theme.textMuted }}>{modal.role}</div>
+            <div style={{ fontSize:ts(11), color:theme.textMuted }}>{modal.role}</div>
           </div>
 
           {/* View tabs (Resume / ATS) */}
@@ -200,7 +201,7 @@ function DetailModal({ modal, onClose, theme }) {
                   background: view===id ? theme.accent : theme.surface,
                   color: view===id ? C.ON_ACCENT : (id==="resume"?hasResume:hasAts) ? theme.text : theme.textDim,
                   fontFamily:"inherit", fontWeight:800,
-                  fontSize:12,
+                  fontSize:ts(12),
                   transition:"background 0.15s",
                   borderRight: id==="resume" ? `1px solid ${theme.borderStrong}` : "none",
                 }}>
@@ -224,7 +225,7 @@ function DetailModal({ modal, onClose, theme }) {
                 display:"inline-flex", alignItems:"center", gap:5, flexShrink:0,
                 padding:"6px 16px",
                 fontFamily:"inherit", fontWeight:800,
-                fontSize:12,
+                fontSize:ts(12),
                 background:"transparent", border:`1px solid ${theme.borderStrong}`,
                 color:theme.text, cursor: exporting ? "not-allowed" : "pointer",
                 opacity: exporting ? 0.6 : 1, transition:"border-radius 0.4s ease",
@@ -248,7 +249,7 @@ function DetailModal({ modal, onClose, theme }) {
           {/* Close */}
           <button onClick={onClose}
             style={{ background:"none", border:"none", color:theme.textMuted,
-                     cursor:"pointer", fontSize:20, lineHeight:1, flexShrink:0,
+                     cursor:"pointer", fontSize:ts(20), lineHeight:1, flexShrink:0,
                      padding:"0 4px" }}>✕</button>
         </div>
 
@@ -265,7 +266,7 @@ function DetailModal({ modal, onClose, theme }) {
               {modal.atsReport ? (
                 <AtsReportDisplay report={modal.atsReport} score={modal.atsScore} theme={theme}/>
               ) : (
-                <p style={{ color:theme.textMuted, fontSize:13 }}>No ATS report available for this application.</p>
+                <p style={{ color:theme.textMuted, fontSize:ts(13) }}>No ATS report available for this application.</p>
               )}
             </div>
           )}
@@ -687,7 +688,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
         )}
 
         <div style={{ flex:1 }}/>
-        <span style={{ fontSize:11, color:theme.textMuted, whiteSpace:"nowrap" }}>
+        <span style={{ fontSize:ts(11), color:theme.textMuted, whiteSpace:"nowrap" }}>
           {displayRows.length} of {rows.length} row{rows.length !== 1 ? "s" : ""}
         </span>
       </div>}
@@ -745,7 +746,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
       {/* ── Table (applications / resumes) ── */}
       {isTableSheet && loading ? (
         <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center",
-                      color:theme.textMuted, fontSize:13 }}>
+                      color:theme.textMuted, fontSize:ts(13) }}>
           Loading data…
         </div>
       ) : isTableSheet && displayRows.length === 0 ? (
@@ -756,7 +757,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
             <thead>
               <tr style={{ background:theme.surfaceHigh, borderBottom:`1px solid ${theme.border}`,
                            position:"sticky", top:0, zIndex:5 }}>
-                <th style={{ padding:"10px 14px", textAlign:"left", fontSize:10,
+                <th style={{ padding:"10px 14px", textAlign:"left", fontSize:ts(10),
                              fontWeight:700, color:theme.textDim,
                              textTransform:"uppercase", letterSpacing:"0.08em",
                              borderBottom:`1px solid ${theme.border}`,
@@ -764,7 +765,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                              userSelect:"none", width:36 }}>#</th>
                 {cols.map(c => (
                   <th key={c.key}
-                    style={{ padding:"10px 14px", textAlign:"left", fontSize:10,
+                    style={{ padding:"10px 14px", textAlign:"left", fontSize:ts(10),
                              fontWeight:700, color:theme.textDim,
                              textTransform:"uppercase", letterSpacing:"0.08em",
                              borderBottom:`1px solid ${theme.border}`,
@@ -774,9 +775,9 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                     onClick={() => c.sortable && toggleSort(c.key)}>
                     <div style={{ display:"flex", alignItems:"center", gap:4 }}>
                       {c.label}
-                      {c.editable && <span style={{ fontSize:9, color:theme.textDim }}>✎</span>}
+                      {c.editable && <span style={{ fontSize:ts(9), color:theme.textDim }}>✎</span>}
                       {c.sortable && (
-                        <span style={{ fontSize:9,
+                        <span style={{ fontSize:ts(9),
                           color:sortCol===c.key ? theme.accentText : theme.textDim }}>
                           {sortCol===c.key ? (sortDir==="asc" ? "▲" : "▼") : "⇅"}
                         </span>
@@ -784,7 +785,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                     </div>
                   </th>
                 ))}
-                <th style={{ padding:"10px 14px", textAlign:"left", fontSize:10,
+                <th style={{ padding:"10px 14px", textAlign:"left", fontSize:ts(10),
                              fontWeight:700, color:theme.textDim,
                              borderBottom:`1px solid ${theme.border}`,
                              width:120 }}/>
@@ -803,7 +804,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                       borderBottom:`1px solid ${theme.border}`,
                       outline:isFlash ? `2px solid ${theme.accentText}` : "none",
                     }}>
-                    <td style={{ padding:"12px 14px", fontSize:11,
+                    <td style={{ padding:"12px 14px", fontSize:ts(11),
                                  color:theme.textDim, width:36 }}>{i+1}</td>
 
                     {cols.map(c => {
@@ -816,7 +817,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                           : (typeof raw === "string" && raw.length >= 10 ? raw.slice(0,10) : "");
                         const isCalOpen = calCell?.rowId === rowId;
                         return (
-                          <td key={c.key} style={{ padding:"12px 14px", fontSize:12,
+                          <td key={c.key} style={{ padding:"12px 14px", fontSize:ts(12),
                                                    width:c.width, position:"relative",
                                                    color:theme.text }}>
                             <div ref={isCalOpen ? calRef : null} style={{ position:"relative" }}>
@@ -824,7 +825,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                                 style={{ background:"transparent",
                                          border:`1px ${isoVal ? "solid" : "dashed"} ${isoVal ? "color-mix(in srgb, var(--color-primary) 40%, transparent)" : theme.border}`,
                                          borderRadius:8, color:isoVal ? theme.accentText : theme.textDim,
-                                         fontSize:11, padding:"3px 10px",
+                                         fontSize:ts(11), padding:"3px 10px",
                                          cursor:"pointer", whiteSpace:"nowrap" }}
                                 onClick={e => setCalCell(isCalOpen ? null : {
                                   rowId, rect: e.currentTarget.getBoundingClientRect(),
@@ -857,11 +858,11 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                       }
 
                       if (c.key === "job_url") return (
-                        <td key={c.key} style={{ padding:"12px 14px", fontSize:12,
+                        <td key={c.key} style={{ padding:"12px 14px", fontSize:ts(12),
                                                   width:c.width, color:theme.text }}>
                           {raw ? (
                             <a href={raw} target="_blank" rel="noreferrer"
-                              style={{ color:theme.accentText, fontSize:11,
+                              style={{ color:theme.accentText, fontSize:ts(11),
                                        textDecoration:"none" }}>
                               ↗ Open
                             </a>
@@ -881,11 +882,11 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                         // another score from the same version.
                         const ver = row.ats_scorer_version || null;
                         return (
-                          <td key={c.key} style={{ padding:"12px 14px", fontSize:12,
+                          <td key={c.key} style={{ padding:"12px 14px", fontSize:ts(12),
                                                    width:c.width, color:theme.text }}>
                             {raw != null && raw !== "" ? (
                               <span title={ver ? `Scored by ${ver} at the time of applying` : "Scorer version not recorded"}
-                                style={{ fontFamily:theme.fontMono, fontSize:12, color:theme.textMuted,
+                                style={{ fontFamily:theme.fontMono, fontSize:ts(12), color:theme.textMuted,
                                          background:theme.surfaceHigh, border:`1px solid ${theme.border}`,
                                          borderRadius:6, padding:"2px 8px", whiteSpace:"nowrap" }}>
                                 {raw}
@@ -905,7 +906,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                         const stage  = row.furthest_stage && row.furthest_stage !== raw
                           ? RESPONSE_LABELS[row.furthest_stage]?.label : null;
                         return (
-                          <td key={c.key} style={{ padding:"12px 14px", fontSize:12,
+                          <td key={c.key} style={{ padding:"12px 14px", fontSize:ts(12),
                                                    width:c.width, position:"relative", color:theme.text }}>
                             <div style={{ position:"relative" }}>
                               <button
@@ -915,7 +916,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                                 style={{ background:meta ? "transparent" : "transparent",
                                          border:`1px ${meta ? "solid" : "dashed"} ${meta ? RESPONSE_TONE_COLOUR[meta.tone] : theme.border}`,
                                          borderRadius:8, color:meta ? RESPONSE_TONE_COLOUR[meta.tone] : theme.textDim,
-                                         fontSize:11, padding:"3px 10px", cursor:"pointer",
+                                         fontSize:ts(11), padding:"3px 10px", cursor:"pointer",
                                          whiteSpace:"nowrap", maxWidth:"100%", overflow:"hidden",
                                          textOverflow:"ellipsis" }}
                                 onClick={e => setOutcomeCell(isOpen ? null : {
@@ -944,11 +945,11 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                                                      textAlign:"left", width:"100%",
                                                      background:active ? theme.surfaceHigh : "transparent",
                                                      border:"none", borderRadius:6, cursor:"pointer",
-                                                     padding:"6px 10px", color:theme.text, fontSize:12 }}>
+                                                     padding:"6px 10px", color:theme.text, fontSize:ts(12) }}>
                                             <span style={{ width:7, height:7, borderRadius:"50%",
                                                            background:RESPONSE_TONE_COLOUR[m.tone], flexShrink:0, ...dotCue(RESPONSE_TONE_CUE[m.tone]) }}/>
                                             <span style={{ fontWeight:active ? 700 : 500 }}>{m.label}</span>
-                                            <span style={{ color:theme.textDim, fontSize:10, marginLeft:"auto" }}>
+                                            <span style={{ color:theme.textDim, fontSize:ts(10), marginLeft:"auto" }}>
                                               {m.note}
                                             </span>
                                           </button>
@@ -964,7 +965,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                       }
 
                       if (c.key === "ats_score") return (
-                        <td key={c.key} style={{ padding:"12px 14px", fontSize:12,
+                        <td key={c.key} style={{ padding:"12px 14px", fontSize:ts(12),
                                                   width:c.width, color:theme.text }}>
                           {raw != null && raw !== "" ? (
                             <span className="rm-badge"
@@ -981,7 +982,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                       const display = c.key === "applied_at" ? fmtDate(raw) : c.key === "apply_mode" ? fmtTool(raw) : raw;
                       return (
                         <td key={c.key}
-                          style={{ padding:"12px 14px", fontSize:12,
+                          style={{ padding:"12px 14px", fontSize:ts(12),
                                    color:theme.text, width:c.width, maxWidth:c.width,
                                    overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
                                    cursor:(c.editable && isApps) ? "pointer" : "default",
@@ -1000,7 +1001,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                                        color:theme.text,
                                        border:`1px solid ${theme.accent}`,
                                        borderRadius:6, padding:"3px 8px",
-                                       fontSize:12, outline:"none", boxSizing:"border-box" }}/>
+                                       fontSize:ts(12), outline:"none", boxSizing:"border-box" }}/>
                           ) : (
                             <span style={{ display:"block", overflow:"hidden",
                                            textOverflow:"ellipsis", whiteSpace:"nowrap" }}
@@ -1013,7 +1014,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                       );
                     })}
 
-                    <td style={{ padding:"8px 14px", fontSize:12, color:theme.text, width:120, whiteSpace:"nowrap" }}>
+                    <td style={{ padding:"8px 14px", fontSize:ts(12), color:theme.text, width:120, whiteSpace:"nowrap" }}>
                       <div style={{ display:"flex", gap:4, alignItems:"center" }}>
                         {/* View ATS */}
                         <button
@@ -1022,7 +1023,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                           title="View ATS Report"
                           style={{ background:theme.surfaceHigh, border:`1px solid ${theme.border}`,
                                    color:theme.textMuted, cursor:"pointer",
-                                   fontSize:10, padding:"3px 8px", borderRadius:4,
+                                   fontSize:ts(10), padding:"3px 8px", borderRadius:4,
                                    fontWeight:700, letterSpacing:"0.04em" }}>
                           ATS
                         </button>
@@ -1033,7 +1034,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                           title="View Resume"
                           style={{ background:theme.surfaceHigh, border:`1px solid ${theme.border}`,
                                    color:theme.textMuted, cursor:"pointer",
-                                   fontSize:10, padding:"3px 8px", borderRadius:4,
+                                   fontSize:ts(10), padding:"3px 8px", borderRadius:4,
                                    fontWeight:700, letterSpacing:"0.04em" }}>
                           CV
                         </button>
@@ -1041,7 +1042,7 @@ export function DatabasePanel({ user, embedded = false, sheet = null, focusJobId
                         <button
                           style={{ background:"transparent", border:"none",
                                    color:theme.textDim, cursor:"pointer",
-                                   fontSize:12, padding:"2px 6px", borderRadius:4 }}
+                                   fontSize:ts(12), padding:"2px 6px", borderRadius:4 }}
                           onMouseEnter={e => { e.currentTarget.style.color = theme.danger; }}
                           onMouseLeave={e => { e.currentTarget.style.color = theme.textDim; }}
                           onClick={() => isApps ? deleteApp(rowId) : deleteResume(rowId)}
@@ -1067,9 +1068,9 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
   if (jobs.length === 0) return (
     <div style={{ flex:1, display:"flex", flexDirection:"column",
                   alignItems:"center", justifyContent:"center", gap:12, padding:40 }}>
-      <div style={{ fontSize:40 }}>★</div>
-      <div style={{ fontWeight:700, color:theme.textMuted, fontSize:14 }}>No saved jobs yet</div>
-      <div style={{ fontSize:12, color:theme.textDim, textAlign:"center", maxWidth:300, lineHeight:1.8 }}>
+      <div style={{ fontSize:ts(40) }}>★</div>
+      <div style={{ fontWeight:700, color:theme.textMuted, fontSize:ts(14) }}>No saved jobs yet</div>
+      <div style={{ fontSize:ts(12), color:theme.textDim, textAlign:"center", maxWidth:300, lineHeight:1.8 }}>
         Save jobs on the Daily Deck or Full House and they appear here. Generate and A+ Resume access is controlled by your plan.
       </div>
       <button className="rm-btn rm-btn-secondary rm-btn-sm" onClick={onRefresh}>↻ Refresh</button>
@@ -1083,11 +1084,11 @@ function SavedJobsPane({ jobs, generated, genLoading, applyMode, planTier, hasRe
       <div style={{ padding:"8px 16px", display:"flex", alignItems:"center", gap:8,
                     borderBottom:`1px solid ${theme.border}`, flexShrink:0,
                     background:theme.surface }}>
-        <span style={{ fontSize:12, color:theme.textMuted }}>
+        <span style={{ fontSize:ts(12), color:theme.textMuted }}>
           {jobs.length} saved job{jobs.length !== 1 ? "s" : ""}
         </span>
         {!hasResume && (
-          <span style={{ fontSize:11, color:theme.warning, background:theme.warningMuted,
+          <span style={{ fontSize:ts(11), color:theme.warning, background:theme.warningMuted,
                          border:`1px solid ${theme.warning}33`, borderRadius:4,
                          padding:"2px 10px" }}>
             Upload a base resume in Job Profiles to enable generation
@@ -1173,16 +1174,16 @@ function CallbackRatesCard({ theme }) {
   return (
     <section data-callback-rates="" aria-label="What is working" style={{ flexShrink: 0, margin: "12px 16px 0",
       padding: "12px 14px", background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 6 }}>
-      <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 4 }}>What is working</div>
-      <div style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>{headline.text}</div>
-      <div data-callback-counts="" style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>{headline.detail}</div>
+      <div style={{ fontSize: ts(11), color: theme.textMuted, marginBottom: 4 }}>What is working</div>
+      <div style={{ fontSize: ts(14), fontWeight: 600, color: theme.text }}>{headline.text}</div>
+      <div data-callback-counts="" style={{ fontSize: ts(12), color: theme.textMuted, marginTop: 2 }}>{headline.detail}</div>
       <details style={{ marginTop: 8 }}>
-        <summary style={{ fontSize: 12, color: theme.textMuted, cursor: "pointer" }}>By résumé, role, posting and timing{whyNo?.shown ? ", and why they said no" : ""}</summary>
+        <summary style={{ fontSize: ts(12), color: theme.textMuted, cursor: "pointer" }}>By résumé, role, posting and timing{whyNo?.shown ? ", and why they said no" : ""}</summary>
         {splits.map(s => (
           <div key={s.key} style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: theme.text }}>{s.title}</div>
+            <div style={{ fontSize: ts(12), fontWeight: 600, color: theme.text }}>{s.title}</div>
             {s.groups.map(g => (
-              <div key={g.key} style={{ fontSize: 12, color: g.enough ? theme.text : theme.textMuted, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div key={g.key} style={{ fontSize: ts(12), color: g.enough ? theme.text : theme.textMuted, display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ minWidth: 0, flex: "1 1 180px" }}>{g.label}</span>
                 <span>{g.replies} replied · {g.interviews} interviewed{g.enough ? "" : ` · fewer than ${minCount}, not compared`}</span>
               </div>
@@ -1193,21 +1194,21 @@ function CallbackRatesCard({ theme }) {
             minimum the server sends no pick at all and this says so. */}
         {whyNo?.shown ? (
           <div data-why-no="" style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: theme.text }}>{whyNo.title}</div>
+            <div style={{ fontSize: ts(12), fontWeight: 600, color: theme.text }}>{whyNo.title}</div>
             {[...whyNo.picks, whyNo.noPick].map(p => (
-              <div key={p.key || "none"} style={{ fontSize: 12, color: theme.text, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div key={p.key || "none"} style={{ fontSize: ts(12), color: theme.text, display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ minWidth: 0, flex: "1 1 180px" }}>{p.label}</span>
                 <span>{p.of} rejections</span>
               </div>
             ))}
           </div>
         ) : whyNo?.rejections > 0 ? (
-          <div data-why-no="" style={{ fontSize: 11, color: theme.textMuted, marginTop: 8 }}>
+          <div data-why-no="" style={{ fontSize: ts(11), color: theme.textMuted, marginTop: 8 }}>
             {whyNo.title}: {whyNo.rejections === 1 ? "1 rejection" : `${whyNo.rejections} rejections`}, fewer than {minCount}, not counted yet.
           </div>
         ) : null}
         {notSplit.map(n => (
-          <div key={n.key} style={{ fontSize: 11, color: theme.textMuted, marginTop: 8 }}>{n.title}: {n.reason}</div>
+          <div key={n.key} style={{ fontSize: ts(11), color: theme.textMuted, marginTop: 8 }}>{n.title}: {n.reason}</div>
         ))}
       </details>
     </section>

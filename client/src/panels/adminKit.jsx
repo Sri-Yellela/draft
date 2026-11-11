@@ -5,6 +5,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { C } from "../styles/colorTokens.js";
 import { markStyle, LOGO_FACE } from "../styles/mark.js";
 import DepthButton from "../components/DepthButton.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // ── the parts ──────────────────────────────────────────────────────────────────────────────────
 
@@ -17,10 +18,10 @@ export function Help({ tip }) {
         onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
         style={{ width: 18, height: 18, borderRadius: "50%", border: `1px solid ${C.BORDER_STRONG}`, padding: 0,
-                 background: "transparent", color: C.INK_FAINT, fontWeight: 700, fontSize: 11, lineHeight: 1, cursor: "help" }}>?</button>
+                 background: "transparent", color: C.INK_FAINT, fontWeight: 700, fontSize: ts(11), lineHeight: 1, cursor: "help" }}>?</button>
       {open && (
         <span role="tooltip" style={{ position: "absolute", left: "50%", bottom: "calc(100% + 8px)", transform: "translateX(-50%)",
-          width: 240, background: C.INK, color: C.SURFACE_SOLID, fontWeight: 500, fontSize: 11.5, lineHeight: 1.4, padding: "8px 10px",
+          width: 240, background: C.INK, color: C.SURFACE_SOLID, fontWeight: 500, fontSize: ts(11.5), lineHeight: 1.4, padding: "8px 10px",
           borderRadius: 8, zIndex: 9, textAlign: "left" }}>{tip}</span>
       )}
     </span>
@@ -33,21 +34,21 @@ export function NumberBox({ value, label, good }) {
   return (
     <div style={{ background: C.SURFACE_SOLID, border: `1px solid ${C.BORDER}`, borderRadius: 12, padding: "12px 14px" }}>
       <b style={{ display: "block", font: "400 34px/1 'Instrument Serif', Georgia, serif", color: good ? C.SUCCESS : C.ACCENT_INK }}>{value}</b>
-      <span style={{ fontSize: 11.5, color: C.INK_FAINT }}>{label}</span>
+      <span style={{ fontSize: ts(11.5), color: C.INK_FAINT }}>{label}</span>
     </div>
   );
 }
 
 export const panel = { background: C.SURFACE_SOLID, border: `1px solid ${C.BORDER}`, borderRadius: 16, padding: "18px 20px", marginBottom: 14 };
 export const h2 = { font: `800 italic 20px/1.1 ${LOGO_FACE}`, color: C.INK, margin: 0 };
-export const what = { fontSize: 13, color: C.INK_MUTED, margin: "6px 0 16px", maxWidth: "80ch" };
+export const what = { fontSize: ts(13), color: C.INK_MUTED, margin: "6px 0 16px", maxWidth: "80ch" };
 export const row = { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" };
-export const quiet = { fontSize: 12, color: C.INK_FAINT };
+export const quiet = { fontSize: ts(12), color: C.INK_FAINT };
 export const sub = { border: `1px solid ${C.BORDER}`, borderRadius: 11, padding: "11px 13px", background: C.CANVAS };
 export const callout = (tone) => ({ borderLeft: `3px solid ${tone}`, background: `color-mix(in srgb, ${tone} 10%, transparent)`,
-  borderRadius: "0 9px 9px 0", padding: "8px 11px", fontSize: 12, color: C.INK_MUTED });
+  borderRadius: "0 9px 9px 0", padding: "8px 11px", fontSize: ts(12), color: C.INK_MUTED });
 export const field = { background: C.SURFACE_INPUT, border: `1px solid ${C.BORDER_CONTROL}`, color: C.INK, borderRadius: 9,
-  padding: "8px 10px", fontWeight: 500, fontSize: 12.5 };
+  padding: "8px 10px", fontWeight: 500, fontSize: ts(12.5) };
 
 export function Step({ n, state, title, children }) {
   const active = state === "active", done = state === "done";
@@ -81,7 +82,7 @@ export function Dialog({ title, children, onCancel, confirmLabel, onConfirm, bus
       <div role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
         style={{ background: C.SURFACE_MODAL, border: `1px solid ${C.BORDER}`, borderRadius: 16, padding: 20, maxWidth: 440 }}>
         <h4 style={{ font: `800 italic 17px ${LOGO_FACE}`, color: C.INK, margin: "0 0 8px" }}>{title}</h4>
-        <div style={{ fontSize: 12.5, color: C.INK_MUTED }}>{children}</div>
+        <div style={{ fontSize: ts(12.5), color: C.INK_MUTED }}>{children}</div>
         <div style={{ ...row, marginTop: 14 }}>
           <DepthButton onClick={onCancel}>Go back</DepthButton>
           <DepthButton primary disabled={busy || disabled} onClick={onConfirm} autoFocus>{busy ? "Working…" : confirmLabel}</DepthButton>
