@@ -44,9 +44,10 @@ const dockRules = () => CSS.slice(at(CSS, "/* The rail: 60 px wide at rest"), at
 test("d167DockSixPlaces (pure): the six places in order, the divider before Ask draft, Interview links to /interview", () => {
   assert.match(NAV, /export const DOCK_PLACES = Object\.freeze\(\["today", "auto-apply", "atlas", "interview", "profile", "ask"\]\);/);
   // ⭐ D180 P1 (45o, on purpose): + Network — drawn only while the network switch is on (placesOf's `network`); off by default.
-  assert.match(NAV, /export const DOCK_NAMES = Object\.freeze\(\{ today: "draft", "auto-apply" : "Home", atlas: "Atlas", interview: "Interview", network: "Network" \}\);/);
+  // ⭐ 46f (owner 11-11, on purpose): + Feed and Messages, their own places under the same switch.
+  assert.match(NAV, /export const DOCK_NAMES = Object\.freeze\(\{ today: "draft", "auto-apply" : "Home", atlas: "Atlas", interview: "Interview", network: "Network", feed: "Feed", messages: "Messages" \}\);/);
   assert.match(NAV, /export const INTERVIEW_PATH = "\/app\/interview";/);
-  assert.match(NAV, /const ICONS = \{ atlas: \(\) => <GlobeIcon \/>, "auto-apply" : \(\) => <HouseIcon \/>, interview: \(\) => <MicIcon \/>, network: \(\) => <PeopleIcon \/> \};/);
+  assert.match(NAV, /const ICONS = \{ atlas: \(\) => <GlobeIcon \/>, "auto-apply" : \(\) => <HouseIcon \/>, interview: \(\) => <MicIcon \/>, network: \(\) => <PeopleIcon \/>, feed: \(\) => <FeedIcon \/>, messages: \(\) => <EnvelopeIcon \/> \};/);
   const dock = NAV.slice(at(NAV, '<nav aria-label="Main"'), at(NAV, "</nav>", at(NAV, '<nav aria-label="Main"')));
   const order = ["<NavItems", "<ProfileItem", '<span className="appnav-sep"', "<AskItem"].map((s) => at(dock, s));
   assert.deepEqual([...order].sort((a, b) => a - b), order, "tabs · Profile · divider · Ask draft");

@@ -3,6 +3,8 @@
 // no link is made clickable (a stranger's link stays plain words — the spec). Real time on the sync stream (45r: a
 // network_message event re-reads the list / the open conversation); polled every 15 s as the fallback.
 // "No AI reads this conversation unless you ask" — and nothing here asks.
+// ⭐ 46f (owner 11-11): these are the PARTS of the Messages page (pages/network/MessagesPage.jsx, /app/messages): the
+// list (useInbox + Inbox) and one conversation (Thread). Network keeps only People.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api.js";
 import DepthButton from "../../components/DepthButton.jsx";
@@ -121,18 +123,23 @@ function Thread({ id, onBack, onChanged }) {
   );
 }
 
-export default function MessagesPane({ initialThread = null }) {
+export { Thread };
+
+// ⭐ 46f: the conversation list, read live (sync stream + the 15 s poll) — Messages' page draws it beside the open one.
+export function useInbox() {
   const [box, setBox] = useState(null);
-  const [open, setOpen] = useState(initialThread);
   const [said, setSaid] = useState("");
   const load = useCallback(() => api("/api/network/messages").then(setBox).catch(e => setSaid(e.message)), []);
   useEffect(() => { load(); const iv = setInterval(load, POLL_MS); return () => clearInterval(iv); }, [load]);
   useSyncEvents({ network_message: () => load() });   // D180 (45r): a new message → the list (and its unread counts) now
-  if (open) return <Thread id={open} onBack={() => { setOpen(null); load(); }} onChanged={load} />;
+  return { box, said, load };
+}
+
+export function Inbox({ box, said, openId = null, onOpen }) {
   if (!box) return <p className="net__quiet" role="status">{said || "Opening your messages…"}</p>;
   const row = (t) => (
     <li key={t.id}>
-      <button type="button" className="msg-row" onClick={() => setOpen(t.id)} data-msg-row={t.id}>
+      <button type="button" className="msg-row" onClick={() => onOpen(t.id)} data-msg-row={t.id} aria-current={Number(openId) === Number(t.id) ? "true" : undefined}>
         <span className="net-person__tile" aria-hidden="true">{String(t.with.name || "?").charAt(0).toUpperCase()}</span>
         <span className="net-person__main">
           <b>{t.with.name}</b>
@@ -144,7 +151,6 @@ export default function MessagesPane({ initialThread = null }) {
   );
   return (
     <div data-messages-pane="">
-      <p className="net__quiet">No AI reads your conversations unless you ask. Messages are kept sealed; people who aren't connections land in Requests.</p>
       <section className="net__sec" data-msg-threads="">
         <h2>Messages</h2>
         {box.threads.length === 0 ? <p className="net__quiet">No conversations yet — Send a job from the deck, or write from a connection's page.</p>

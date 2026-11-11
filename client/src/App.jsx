@@ -29,6 +29,8 @@ import { profilePanelFor, profilePath, LEGACY_PROFILE_ROUTES } from "./pages/pro
 import InterviewPage             from "./pages/interview/InterviewPage.jsx";
 import CompanyPage               from "./pages/companies/CompanyPage.jsx";   // D179 P4b
 import NetworkPage               from "./pages/network/NetworkPage.jsx";      // D180 P1 (45o): behind the network switch
+import FeedPage                  from "./pages/network/FeedPage.jsx";         // 46f: the feed's own page
+import MessagesPage              from "./pages/network/MessagesPage.jsx";     // 46f: messages' own page
 import PublicBoardPage           from "./pages/jobs/PublicBoardPage.jsx";    // D179 P3
 import AuditPage                 from "./pages/audit/AuditPage.jsx";         // D150 T05–T08
 import { interviewPanelFor, interviewPath } from "./pages/interview/interviewModel.js";
@@ -475,6 +477,8 @@ function AppDashboard({ authUser, setAuthUser }) {
                    "customise",
                    // ⭐ D180 P1 (45o): Network — the page says "not available yet" while the switch is off.
                    "network",
+                   // ⭐ 46f (owner 11-11): Feed and Messages, each its own page (the same switch; "not available yet" while off).
+                   "feed", "messages",
                    ...ROUTE_ONLY_TABS]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [monetisationEnabled],
@@ -705,6 +709,8 @@ function AppDashboard({ authUser, setAuthUser }) {
             {activeTab === "atlas"        && <AtlasPage base="/app/atlas"/>}
             {activeTab === "company" && companyRoute && <CompanyPage slug={companyRoute[1]} base="/app/companies" inApp/>}
             {activeTab === "network" && <NetworkPage/>}
+            {activeTab === "feed" && <FeedPage/>}
+            {activeTab === "messages" && <MessagesPage/>}
           </main>
 
           {/* JobDetailPanel moved into JobsPanel, which is where the PDF and ATS panels live and

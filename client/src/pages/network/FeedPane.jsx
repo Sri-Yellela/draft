@@ -109,7 +109,7 @@ function Post({ p, onChanged }) {
   );
 }
 
-function WhatYouShare() {
+export function WhatYouShare() {
   const [prefs, setPrefs] = useState(null);
   useEffect(() => { api("/api/network/share").then(setPrefs).catch(() => {}); }, []);
   const set = async (key, on) => { try { setPrefs(await api("/api/network/share", { method: "PUT", body: JSON.stringify({ key, on }) })); } catch { /* unchanged */ } };
@@ -127,7 +127,7 @@ function WhatYouShare() {
   );
 }
 
-export default function FeedPane() {
+export default function FeedPane({ share = true }) {   // 46f: the Feed page draws What you share in its side column
   const [feed, setFeed] = useState(null);
   const [text, setText] = useState("");
   const [link, setLink] = useState("");
@@ -157,7 +157,7 @@ export default function FeedPane() {
         ? <p className="net__quiet">Nothing yet. Posts from your connections show up here, newest first.</p>
         : <ul className="net__list feed-list">{feed.posts.map(p => <Post key={p.id} p={p} onChanged={load} />)}</ul>}
       {feed?.more && <div className="net__row"><DepthButton onClick={more}>Older posts</DepthButton></div>}
-      <WhatYouShare />
+      {share && <WhatYouShare />}
     </div>
   );
 }
