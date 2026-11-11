@@ -57,7 +57,7 @@ function Headline({ h }) {
   return (
     <div style={card} data-testers-headline={h.key}>
       {/* A number reads big; a sentence (the top frustration) at 34 px shouts — it gets the card title's weight at 20 px. */}
-      <div style={{ fontSize: String(h.big).length > 12 ? 20 : 34, fontWeight: 800, letterSpacing: "-.02em", lineHeight: 1.15, overflowWrap: "anywhere" }}>{h.big}</div>
+      <div style={{ fontSize: ts(String(h.big).length > 12 ? 20 : 34), fontWeight: 800, letterSpacing: "-.02em", lineHeight: 1.15, overflowWrap: "anywhere" }}>{h.big}</div>
       <div style={{ fontWeight: 700, margin: "4px 0 2px" }}>{h.label}</div>
       <div style={muted}>{h.what}</div>
       {h.frac != null && (
