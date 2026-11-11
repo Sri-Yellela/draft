@@ -1,4 +1,4 @@
-# Staging — the plan (APPROVED by the owner 11-11; the guard is BUILT `47d3bcd8`; nothing created on Railway yet)
+# Staging — the plan (APPROVED 11-11; guard BUILT `47d3bcd8`; staging CREATED 11-11 21:04Z — see §11)
 
 46g, 2026-11-11 (WORKLOG A188). The owner: *"we would soon need to separate deploys for users and testing and also A/B"* — then *"start with staging, draft it first"*.
 
@@ -96,3 +96,14 @@ The code reads 134 names (`grep env.X` over server.js, routes, services, shared,
 | **total** | | **≈ $20–25 + the $20 model cap** |
 
 RAM dominates; a memory limit on staging's services caps it.
+
+## 11 · What exists (created 11-11, 21:04Z — re-measure with `describe-environment`)
+
+- Environment **`staging`** (`1e452736-7647-4576-adde-86179c1de27a`), made with `railway environment new staging --duplicate production` and every §4 override passed as `--service-config` AT CREATION (the CLI applied it at once — no staged review — which is why nothing was left to change afterwards). New secrets were minted locally and never printed; the tools-service token is `rmk_draft.…` with only its sha256 on the service.
+- All three services deploy from the **`staging`** branch (draft's and resume-master's `staging` branches created from their `main`).
+- Domains: draft `https://draft-staging-a0359db5.up.railway.app`, resume-master `https://resume-master-staging.up.railway.app` (Railway-generated; not under the live domain).
+- Volumes: per-environment instances of `draft-data` and `resume-master-data` — **empty** (staging's first boot applied all 270 migrations to a fresh database, `scraped_jobs empty`).
+- Limits: draft 8 vCPU / 8 GB, resume-master 1 / 1, crawler 1 / 1.
+- Boot checks: draft `[staging] DRAFT_ENV=staging — forced off: …`, `/api/version` env `staging`, `X-Robots-Tag: noindex, nofollow`; resume-master `model: false, modelKey: null, clients: ["draft"]`; crawler `dry-run true`, pointed at staging, `paused by draft — idling`. Production unchanged (`/api/version` env `production`).
+- **No model key** anywhere in staging (owner, 11-11). Staging's public database holds no accounts.
+- **The synthetic fixture** is built INSIDE the staging container under `/tmp/fixture-100k` (100k postings, 20 users, 12 s; `/tmp` is lost on a redeploy — rebuild with `scripts/scaleFixture.mjs`, then re-date `scraped_at` as `scaleSuite` does BEFORE any boot on it, or the expiry retires 88 %). It is never served publicly (its synthetic accounts share a password that is in the repo); the scale suite boots its own private server on a copy, inside the container.
