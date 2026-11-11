@@ -67,3 +67,13 @@ test("b2SentenceFilterFollows · the board's role word follows a NEW placement (
   assert.match(line.detail, /your board now shows Project and program management › Construction jobs · the sentence follows the résumé .* · today's picks are dealt again/);   // D184 B-7
   assert.match(line.detail, /Apply for me looks for the same/);
 });
+
+// ⭐ 46f · B-2's last piece: "— N picks today" on the Where-you-fit line, read from today's deal (the deck's own call) — the
+// count is never written into the line (it cannot be known then) and nothing is claimed while the board is still scoring.
+test("b2PicksTodayOnTheFitLine: What changed reads today's deal and says how many picks it holds", () => {
+  const src = fs.readFileSync("client/src/pages/profile/YourProfile.jsx", "utf8");
+  assert.match(src, /api\(`\/api\/draft\/today\?date=\$\{encodeURIComponent\(localDay\(\)\)\}&order=best`\)/);
+  assert.match(src, /if \(live && d\?\.reason !== "scoring" && Array\.isArray\(d\?\.cards\)\) setN\(d\.cards\.length\);/);
+  assert.match(src, /const picks = usePicksToday\(r\.lines\.some\(l => l\.what === "fit" && l\.detail\)\);/);
+  assert.match(src, /\{l\.what === "fit" && picks != null \? <span data-change-picks=""> — \{picks\} pick\{picks === 1 \? "" : "s"\} today<\/span> : null\}/);
+});
