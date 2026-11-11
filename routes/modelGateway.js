@@ -7,7 +7,7 @@
 //   POST /api/admin/model-gateway/tasks/:task/rollback { reason } — undo the newest change still in force
 //   POST /api/admin/model-gateway/tasks/:task/evals    { provider, model, metrics, baseline?, reason } — record a measured
 //                                                    run; the SERVER applies the pass rule
-// No UI yet (D162 G4's card in Admin → System is a later screen).
+// ⭐ 46f: D162 G4's card — Admin → System → Usage → The model gateway (client/src/panels/adminGateway.jsx).
 import { Router } from "express";
 import { TASKS, TASK_IDS, PROVIDERS } from "../shared/modelTasks.js";
 import { effectiveRoute, validateRoute, applyRouteChange, rollbackRoute, routeHistory, taskTelemetry, ModelRouteError, ROUTE_OPS, STAGES } from "../services/modelGateway.js";
