@@ -121,3 +121,17 @@ test("a181BulkRerunCancel + a181LimitVisibleAndExplained + a181RerunUsesCurrentC
   // a re-run is a NEW run through startRun (the current fill / matcher / tailoring), never a replay of the old result
   assert.match(panel, /const retryJob = \(job\) => \{ draftJob\?\.\(job, companyLabel\(job\.company\)\); \};/);
 });
+
+// ⭐ 46f · A181 (5c) "Re-run selected" (the acceptance's "bulk Re-run selected on 3 held rows"): Choose which lists the held
+// drafts with a tick each (all ticked by default); Re-run / Cancel act on the ticked ones and say "selected" when it isn't
+// every one; none ticked = both off. ⛔ D113 U9: no select mode on the tree — the ticks live in the bulk block.
+test("a181RerunSelected: the bulk acts on the ticked held drafts, all by default, never a select mode on the tree", () => {
+  const panel = read("client/src/panels/AutoApplyPanel.jsx");
+  assert.match(panel, /const \[heldPick, setHeldPick\] = useState\(null\);/, "null = every held draft");
+  assert.match(panel, /const chosenHeldFrom = \(ns\) => \{ const all = heldRerunnableFrom\(ns\); return heldPick \? all\.filter\(h => heldPick\.has\(h\.jobId\)\) : all; \};/);
+  assert.match(panel, /onClick=\{\(\) => rerunHeld\(chosen\)\}>\{bulkBusy \? "Starting…" : `Re-run \$\{chosen\.length\} \$\{some \? "selected" : "held"\} \(free\)`\}/);
+  assert.match(panel, /clearRunJobs\(\{ runJobIds: chosen\.map\(h => h\.runJobId\)\.filter\(Boolean\) \}\)/, "Cancel acts on the chosen ones");
+  assert.match(panel, /disabled=\{bulkBusy \|\| chosen\.length === 0\}/, "none ticked: nothing to run");
+  assert.match(panel, /data-held-pick=""/); assert.match(panel, /data-choose-held=""/);
+  assert.doesNotMatch(read("client/src/components/DraftHouseTree.jsx"), /type="checkbox"/, "D113 U9: the tree has no select mode");
+});

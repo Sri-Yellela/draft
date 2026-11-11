@@ -336,3 +336,7 @@ label.dh-tg, .dh-tg label { cursor: pointer; }
   border: 0; border-radius: 14px; padding: 11px 18px; font-size: inherit;
   background: linear-gradient(180deg, var(--c-accent), var(--c-accent-hover)); color: var(--c-on-accent);
 }
+/* ⭐ 46f · A181 (5c): the held drafts the bulk acts on — a quiet ticked list beside the two buttons (no select mode, D113 U9). */
+.dh-held-pick { border: 1px solid var(--c-border); border-radius: 12px; padding: 8px 12px; margin: 6px 0; display: flex; flex-direction: column; gap: 4px; width: 100%; box-sizing: border-box; }
+.dh-held-pick legend { padding: 0 4px; }
+.dh-held-pick__row { font-size: 14px; color: var(--c-ink); display: flex; gap: 6px; align-items: center; }
