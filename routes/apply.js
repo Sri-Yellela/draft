@@ -25,7 +25,7 @@ import {
 import { buildStructuredResume } from "../services/resumeFormatter.js";
 import { payloadResumeParse } from "../services/payloadResume.js";
 import { baseResumeOnlyState, baseOnlyGeneration, activeBaseResume, baseResumeHtml, BASE_RESUME_LABEL } from "../services/baseResumeOnly.js";
-import { contactGaps } from "../services/applyProfileFill.js";   // ⭐ A179 F2: an empty profile held before the run
+import { contactGaps, completeProfileForApply } from "../services/applyProfileFill.js";   // ⭐ A179 F2: an empty profile held before the run; 46f: filled before the gate
 import {
   recordFormSchema, formSchemaSummary, hostOf,
 } from "../services/kb/formSchemaLayer.js";
@@ -2648,6 +2648,14 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // `missingPrerequisites` off the error payload and renders "Setup needed in Integrations: …".
     // Deliberately narrow: getAutomationReadiness keeps gmail/google in `apply.optional` and
     // scopes linkedin to profile_import, so none of those block a run.
+    // ⭐ A179 F1's other half (46f, found by the local walk scripts/walkA179local.mjs): this gate read the profile ROW only,
+    // so an empty profile with a base résumé that names the person was refused "profile_name" before the run — and the
+    // run is where completeProfileForApply fills that row from the résumé. Fill it first, the same way (empty fields only,
+    // D186's rule, never from a sample résumé on a real account), then judge.
+    try {
+      const row = db.prepare("SELECT * FROM user_profile WHERE user_id = ?").get(userId);
+      if (row) completeProfileForApply(db, row);
+    } catch (e) { console.warn(`[apply] prerequisite backfill: ${e.message}`); }
     const missingPrerequisites = getMissingApplyPrerequisites(getAutomationReadiness(db, userId));
     if (missingPrerequisites.length) {
       return respond(409, {
