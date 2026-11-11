@@ -98,5 +98,7 @@ test("server.js: the route is cached and says so; the user's writes clear it aft
   assert.match(s, /res\.set\("X-Facets-Cache", cache\);\n  res\.set\("X-Facets-As-Of", new Date\(asOf\)\.toISOString\(\)\);/);
   const bind = s.indexOf("app.use(bindAuthContext);"), clear = s.indexOf("facetsCache.clearUser(req.user.id)");
   assert.ok(bind > 0 && clear > bind, "the clear runs after bindAuthContext binds a token's user");
-  assert.match(s, /if \(req\.method !== "GET" && req\.method !== "HEAD" && req\.user\?\.id != null\) facetsCache\.clearUser\(req\.user\.id\);/);
+  // ⭐ A183 (46f, on purpose): every write still clears — except the keywords panel's POST, which clears itself only when it
+  // stores a report (test/a183KeywordsPanelKeepsCaches.test.js).
+  assert.match(s, /const writes = req\.method !== "GET" && req\.method !== "HEAD" && req\.user\?\.id != null && !\(req\.method === "POST" && KEYWORDS_PANEL\.test\(req\.path\)\);\n  if \(writes\) facetsCache\.clearUser\(req\.user\.id\);/);
 });
