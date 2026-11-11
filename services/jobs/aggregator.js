@@ -850,6 +850,12 @@ async function searchJobs({ query = '', location = '', country = 'us', page = 1,
  *   drive whole crawls through the real prune and watermark path (test/d82RetireRule.test.js).
  */
 async function cacheJobs(db, anthropic = null, opts = {}) {
+  // ⛔ A188 (46g): JOB_CRAWL=off — no employer board is crawled (staging forces it: a second crawler doubles every
+  // employer's load, and staging's synthetic companies would hit real ATS hosts). Tests that pass their own sources run.
+  if (!opts.sources && /^(off|0|false|no)$/i.test(String(process.env.JOB_CRAWL || "").trim())) {
+    console.log("[cacheJobs] JOB_CRAWL=off — no employer board is crawled");
+    return 0;
+  }
   try {
     const atsCos = db.prepare("SELECT * FROM company_ats_list WHERE active = 1").all();
     if (!atsCos.length) {
