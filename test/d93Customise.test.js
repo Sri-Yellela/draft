@@ -181,7 +181,8 @@ test("D93 · Account no longer renders Appearance; the menu has Customise, and i
   assert.doesNotMatch(read("client/src/panels/AccountPanel.jsx"), /<AppearanceSettings|<ThemeSection|<AccessibilitySection|id="appearance"|import .*AppearanceSettings/);
   const app = read("client/src/App.jsx");
   // 45o D180 P1 (b007d429) added "network" (with its comment) after customise (pin moved on purpose).
-  assert.match(app, /"customise",\n(?:\s*\/\/.*\n)*(?:\s*"network",\n)?\s*\.\.\.ROUTE_ONLY_TABS\]/, "/app/customise is navigable");
+  // 46f (on purpose): + "feed", "messages" (with its comment) after network.
+  assert.match(app, /"customise",\n(?:\s*\/\/.*\n)*(?:\s*"network",\n)?(?:\s*\/\/.*\n)*(?:\s*"feed", "messages",\n)?\s*\.\.\.ROUTE_ONLY_TABS\]/, "/app/customise is navigable");
   // ⭐ D167 (changed on purpose): Customise is Profile → Appearance now — /app/customise lands on /app/profile/appearance,
   // which draws the Customise screen exactly as it was (test/d167Profile.test.js d167ProfileRetainsCustomiseScreen).
   assert.match(app, /customise: "appearance"|LEGACY_PROFILE_ROUTES\[routeKey\]/);
