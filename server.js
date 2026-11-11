@@ -177,7 +177,7 @@ import { importLearnConcepts, publishLearnConcepts } from "./services/atlas/atla
 import { learnContent } from "./services/learn/learnContent.js";
 import { importLearnPatterns } from "./services/learn/learnLinks.js";
 import { seedAtlasFamilies } from "./services/atlas/atlasFamilies.js";
-import { seedDraftedDefinitions } from "./services/atlas/atlasDefinitions.js";
+import { seedDraftedDefinitions, publishWaitingDrafts } from "./services/atlas/atlasDefinitions.js";
 import { seedBoardRoles } from "./services/atlas/atlasRoles.js";
 import { computeAtlasStats, computeAtlasStatsOffloaded } from "./services/atlas/atlasStats.js";
 import { roleReadiness } from "./services/atlas/roleReadiness.js";
@@ -12334,7 +12334,10 @@ try {
 // wait as DRAFTS for the owner (Admin → Atlas → Drafted definitions); each slug is offered once, so a rejection sticks.
 try {
   const d = seedDraftedDefinitions(db);
-  if (d.drafted.length) console.log(`[atlas] ${d.drafted.length} drafted definition(s) await review (Admin → Atlas)`);
+  if (d.published.length) console.log(`[atlas] ${d.published.length} drafted definition(s) published (Admin → Atlas → Recently published)`);
+  // OWNER 11-10: the accept loop is removed — drafts still waiting publish once (a source-held draft stays).
+  const w = publishWaitingDrafts(db);
+  if (w.published.length) console.log(`[atlas] ${w.published.length} waiting draft definition(s) published`);
   if (d.refused.length) console.warn(`[atlas] drafted definitions refused: ${d.refused.map(r => `${r.slug} (${r.reason})`).join("; ")}`);
 } catch (e) { console.warn("[atlas] drafted definitions:", e.message); }
 // ⭐ D118 P1: the live counts need a baseline — one full pass. A database that has none (the first boot with migration

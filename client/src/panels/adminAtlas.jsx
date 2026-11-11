@@ -133,8 +133,15 @@ function AtlasDraftDefinitions({ say, onChanged }) {
   const [drafts, setDrafts] = useState(null);
   const [edits, setEdits] = useState({});
   const [busy, setBusy] = useState(false);
-  const loadDrafts = useCallback(() => api("/api/admin/atlas/definitions/drafts").then(r => setDrafts(r.drafts)).catch(() => setDrafts([])), []);
+  const [recent, setRecent] = useState(null);
+  const [spot, setSpot] = useState(null);
+  const loadDrafts = useCallback(() => {
+    api("/api/admin/atlas/definitions/drafts").then(r => setDrafts(r.drafts)).catch(() => setDrafts([]));
+    api("/api/admin/atlas/definitions/recent").then(r => setRecent(r.recent)).catch(() => setRecent([]));
+  }, []);
   useEffect(() => { loadDrafts(); }, [loadDrafts]);
+  const unpublish = (d) => act(async () => { await send(`/api/admin/atlas/definitions/${enc(d.slug)}/unpublish`); say({ ok: true, text: `${d.name}: unpublished.` }); loadDrafts(); onChanged(); });
+  const spotCheck = () => act(async () => setSpot(await api("/api/admin/atlas/definitions/spot-check")));
   const act = async (fn) => { setBusy(true); try { await fn(); } catch (e) { say({ ok: false, text: e.message }); } finally { setBusy(false); } };
   const exportNow = () => act(async () => setOut(await api("/api/admin/atlas/definitions/export")));
   const copy = () => { try { navigator.clipboard?.writeText(out.text); say({ ok: true, text: `Copied ${out.nodes.length} item(s) — paste them into a Claude chat.` }); } catch { /* select it by hand */ } };
@@ -143,7 +150,7 @@ function AtlasDraftDefinitions({ say, onChanged }) {
     let r;
     try { r = await send("/api/admin/atlas/definitions/import", { text: answer }); }
     catch (e) { if (e.status === 400) { setErrors(e.payload?.errors || [{ slug: null, reason: "refused" }]); return; } throw e; }
-    say({ ok: true, text: `${r.drafted} definition(s) drafted — read them below, then accept.` }); setAnswer(""); setOut(null); loadDrafts();
+    say({ ok: true, text: `${r.published} definition(s) published${r.drafted ? ` · ${r.drafted} held as drafts (their source)` : ""}.` }); setAnswer(""); setOut(null); loadDrafts(); onChanged();
   });
   const accept = (d) => act(async () => {
     const r = await send(`/api/admin/atlas/definitions/${enc(d.slug)}/accept`, edits[d.slug] != null ? { definition: edits[d.slug] } : {});
@@ -162,11 +169,11 @@ function AtlasDraftDefinitions({ say, onChanged }) {
       </div>
       {out && (
         <div style={{ display: "grid", gap: 6 }}>
-          <span style={quiet}>1. Copy this into a Claude chat. 2. Paste its JSON answer below. Nothing is public until you accept it.</span>
+          <span style={quiet}>1. Copy this into a Claude chat. 2. Paste its JSON answer below. Definitions that pass the rules publish at once; unpublish any from the list below.</span>
           <textarea readOnly value={out.text} rows={6} style={{ ...field, fontFamily: "monospace", fontSize: 11 }} aria-label="Items to define" />
           <div style={row}><DepthButton size="compact" onClick={copy} data-atlas-def-copy="">Copy</DepthButton></div>
           <textarea value={answer} onChange={e => setAnswer(e.target.value)} rows={5} placeholder='{ "definitions": [ … ] }' style={{ ...field, fontFamily: "monospace", fontSize: 11 }} aria-label="The chat's answer" />
-          <div style={row}><DepthButton size="compact" primary disabled={busy || !answer.trim()} onClick={importNow} data-atlas-def-import="">Import as drafts</DepthButton></div>
+          <div style={row}><DepthButton size="compact" primary disabled={busy || !answer.trim()} onClick={importNow} data-atlas-def-import="">Import and publish</DepthButton></div>
           {errors && <div style={callout(C.DANGER)}>Refused — nothing was saved: {errors.map(e => `${e.slug || "file"}: ${e.reason}`).join(" · ")}</div>}
         </div>
       )}
@@ -185,6 +192,20 @@ function AtlasDraftDefinitions({ say, onChanged }) {
           <div style={row}><DepthButton size="compact" disabled={busy} onClick={acceptAll} data-atlas-def-accept-all="">Accept all as written</DepthButton></div>
         </div>
       )}
+      <div data-atlas-def-recent="" style={{ display: "grid", gap: 6 }}>
+        <div style={{ ...row, justifyContent: "space-between" }}>
+          <b style={{ fontSize: 12, color: C.INK }}>Recently published</b>
+          <DepthButton size="compact" disabled={busy} onClick={spotCheck} data-atlas-def-spot="">This week's spot-check (10)</DepthButton>
+        </div>
+        {spot && <div style={quiet} data-atlas-def-spot-list="">Week {spot.week}: {spot.items.length ? spot.items.map(i => i.name).join(" · ") : "nothing published yet"}</div>}
+        {recent?.length === 0 && <span style={quiet}>Nothing published automatically yet.</span>}
+        {(recent || []).map(d => (
+          <div key={d.slug} style={{ ...row, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 12, color: C.INK, flex: 1 }}><b>{d.name}</b> <span style={quiet}>{d.kind} · {d.postings} posting(s)</span> — {d.definition}</span>
+            <DepthButton size="compact" disabled={busy} onClick={() => unpublish(d)} data-atlas-def-unpublish={d.slug}>Unpublish</DepthButton>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
