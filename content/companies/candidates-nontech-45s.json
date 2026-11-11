@@ -1592,6 +1592,210 @@
     "medianAge": 0,
     "probedAt": "2026-11-11T15:53:01.215Z"
    }
+  },
+  {
+   "company": "U.S. Bank",
+   "atsType": "workday",
+   "slug": "1|usbank|US_Bank_Careers",
+   "industry": "finance",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 181,
+    "fresh": 181,
+    "inScope": 35,
+    "cs30": 35,
+    "usPct": 60,
+    "medianAge": 2,
+    "probedAt": "2026-11-11T16:00:33.859Z"
+   }
+  },
+  {
+   "company": "BNY",
+   "atsType": "oracle",
+   "slug": "eofe.fa.us2.oraclecloud.com|BNY-Careers",
+   "industry": "finance",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 119,
+    "inScope": 71,
+    "cs30": 54,
+    "usPct": 100,
+    "medianAge": 9,
+    "probedAt": "2026-11-11T16:01:51.931Z"
+   }
+  },
+  {
+   "company": "T. Rowe Price",
+   "atsType": "workday",
+   "slug": "5|troweprice|TRowePrice",
+   "industry": "finance",
+   "via": "j1",
+   "evidence": {
+    "fetched": 132,
+    "us": 103,
+    "fresh": 103,
+    "inScope": 69,
+    "cs30": 69,
+    "usPct": 78,
+    "medianAge": 19,
+    "probedAt": "2026-11-11T16:02:27.265Z"
+   }
+  },
+  {
+   "company": "Textron",
+   "atsType": "taleo",
+   "slug": "textron|textron",
+   "industry": "manufacturing",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 150,
+    "inScope": 49,
+    "cs30": 49,
+    "usPct": 100,
+    "medianAge": 13,
+    "probedAt": "2026-11-11T16:03:16.579Z"
+   }
+  },
+  {
+   "company": "ConocoPhillips",
+   "atsType": "workday",
+   "slug": "1|conocophillips|External",
+   "industry": "energy",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 105,
+    "fresh": 105,
+    "inScope": 60,
+    "cs30": 60,
+    "usPct": 35,
+    "medianAge": 5,
+    "probedAt": "2026-11-11T16:04:30.041Z"
+   }
+  },
+  {
+   "company": "American Electric Power",
+   "atsType": "workday",
+   "slug": "1|aep|AEPCareerSite",
+   "industry": "energy",
+   "via": "j1",
+   "evidence": {
+    "fetched": 244,
+    "us": 195,
+    "fresh": 195,
+    "inScope": 59,
+    "cs30": 59,
+    "usPct": 80,
+    "medianAge": 6,
+    "probedAt": "2026-11-11T16:05:00.212Z"
+   }
+  },
+  {
+   "company": "Coca-Cola Company",
+   "atsType": "workday",
+   "slug": "1|coke|coca-cola-careers",
+   "industry": "consumer goods",
+   "via": "j1",
+   "evidence": {
+    "fetched": 255,
+    "us": 108,
+    "fresh": 108,
+    "inScope": 29,
+    "cs30": 29,
+    "usPct": 42,
+    "medianAge": 4,
+    "probedAt": "2026-11-11T16:10:59.506Z"
+   }
+  },
+  {
+   "company": "Emerson",
+   "atsType": "oracle",
+   "slug": "hdjq.fa.us2.oraclecloud.com|CX_1",
+   "industry": "manufacturing",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 135,
+    "inScope": 69,
+    "cs30": 57,
+    "usPct": 100,
+    "medianAge": 8,
+    "probedAt": "2026-11-11T16:12:55.491Z"
+   }
+  },
+  {
+   "company": "Otis",
+   "atsType": "workday",
+   "slug": "504|otis|REC_Ext_Gateway",
+   "industry": "manufacturing",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 20,
+    "fresh": 20,
+    "inScope": 5,
+    "cs30": 5,
+    "usPct": 7,
+    "medianAge": 1,
+    "probedAt": "2026-11-11T16:18:27.696Z"
+   }
+  },
+  {
+   "company": "Johnson Controls",
+   "atsType": "workday",
+   "slug": "5|jci|JCI",
+   "industry": "manufacturing",
+   "via": "j1",
+   "evidence": {
+    "fetched": 299,
+    "us": 90,
+    "fresh": 90,
+    "inScope": 27,
+    "cs30": 27,
+    "usPct": 30,
+    "medianAge": 1,
+    "probedAt": "2026-11-11T16:19:01.891Z"
+   }
+  },
+  {
+   "company": "Waste Management",
+   "atsType": "oracle",
+   "slug": "emcm.fa.us2.oraclecloud.com|CX",
+   "industry": "logistics",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 150,
+    "inScope": 20,
+    "cs30": 18,
+    "usPct": 100,
+    "medianAge": 1,
+    "probedAt": "2026-11-11T16:26:00.258Z"
+   }
+  },
+  {
+   "company": "Ryder",
+   "atsType": "workday",
+   "slug": "5|ryder|RyderCareers",
+   "industry": "logistics",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 197,
+    "fresh": 197,
+    "inScope": 46,
+    "cs30": 46,
+    "usPct": 66,
+    "medianAge": 13,
+    "probedAt": "2026-11-11T16:27:06.751Z"
+   }
   }
  ],
  "dropped": [
@@ -1739,6 +1943,49 @@
    ],
    "urls": [
     "https://performancemanager4.successfactors.com/sf/"
+   ]
+  },
+  {
+   "company": "Cedars-Sinai",
+   "industry": "healthcare",
+   "vendors": [
+    "oracle"
+   ],
+   "hosts": [
+    "hdkk.fa.us6.oraclecloud.com"
+   ],
+   "urls": [
+    "https://hdkk.fa.us6.oraclecloud.com/fscmUI/redwood/internalmobility/opportunitymarketplace/search"
+   ]
+  },
+  {
+   "company": "Boston Consulting Group",
+   "industry": "consulting",
+   "vendors": [
+    "eightfold"
+   ],
+   "hosts": [
+    "bcg.eightfold.ai"
+   ],
+   "urls": [
+    "https://bcg.eightfold.ai/careers/join"
+   ]
+  },
+  {
+   "company": "Amtrak",
+   "industry": "transport",
+   "vendors": [
+    "successfactors"
+   ],
+   "hosts": [
+    "performancemanager4.successfactors.com",
+    "rmkcdn.successfactors.com"
+   ],
+   "urls": [
+    "https://performancemanager4.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery.js",
+    "https://performancemanager4.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery-migrate.js",
+    "https://rmkcdn.successfactors.com/4dcf7274/02d513ba-0e47-4f05-824d-2.css",
+    "https://rmkcdn.successfactors.com/4dcf7274/1894a80f-7c85-490f-9210-7.png"
    ]
   }
  ],
@@ -1905,6 +2152,66 @@
   "Tufts University": "error",
   "Brigham and Women's Hospital": "none",
   "Dana-Farber Cancer Institute": "workday:1|massgeneralbrigham|MGBExternal",
-  "Hartford HealthCare": "none"
+  "Hartford HealthCare": "none",
+  "PNC": "none",
+  "U.S. Bank": "workday:1|usbank|US_Bank_Careers",
+  "Truist": "none",
+  "Charles Schwab": "none",
+  "American Express": "error",
+  "BNY": "oracle:eofe.fa.us2.oraclecloud.com|BNY-Careers",
+  "Northern Trust": "error",
+  "T. Rowe Price": "workday:5|troweprice|TRowePrice",
+  "L3Harris": "none",
+  "BAE Systems Inc.": "none",
+  "Textron": "taleo:textron|textron",
+  "Huntington Ingalls Industries": "none",
+  "Chevron": "none",
+  "ExxonMobil": "error",
+  "ConocoPhillips": "workday:1|conocophillips|External",
+  "AES": "none",
+  "American Electric Power": "workday:1|aep|AEPCareerSite",
+  "Avangrid": "error",
+  "Procter & Gamble": "none",
+  "PepsiCo": "none",
+  "Coca-Cola Company": "workday:1|coke|coca-cola-careers",
+  "Nike": "error",
+  "Starbucks": "none",
+  "General Mills": "error",
+  "Kraft Heinz": "none",
+  "Colgate-Palmolive": "none",
+  "Emerson": "oracle:hdjq.fa.us2.oraclecloud.com|CX_1",
+  "Rockwell Automation": "none",
+  "Cummins": "blocked",
+  "Eaton": "error",
+  "Parker Hannifin": "none",
+  "Danaher": "none",
+  "Otis": "workday:504|otis|REC_Ext_Gateway",
+  "Carrier": "none",
+  "Trane Technologies": "none",
+  "Johnson Controls": "workday:5|jci|JCI",
+  "Novartis": "none",
+  "Sanofi": "none",
+  "AstraZeneca": "none",
+  "Takeda": "none",
+  "Ascension": "none",
+  "Trinity Health": "none",
+  "Banner Health": "none",
+  "Mount Sinai Health System": "none",
+  "Cedars-Sinai": "unsupported oracle (hdkk.fa.us6.oraclecloud.com)",
+  "Atrium Health": "none",
+  "Yale University": "none",
+  "Stanford University": "none",
+  "Columbia University": "blocked",
+  "University of Pennsylvania": "none",
+  "Brown University": "pairs workday:5|brown|staff-careers-brown (not live / thin)",
+  "Duke University": "none",
+  "McKinsey & Company": "error",
+  "Boston Consulting Group": "unsupported eightfold (bcg.eightfold.ai)",
+  "Bain & Company": "error",
+  "Gartner": "blocked",
+  "Waste Management": "oracle:emcm.fa.us2.oraclecloud.com|CX",
+  "Ryder": "workday:5|ryder|RyderCareers",
+  "Southwest Airlines": "none",
+  "Amtrak": "unsupported successfactors (performancemanager4.successfactors.com,rmkcdn.successfactors.com)"
  }
 }
