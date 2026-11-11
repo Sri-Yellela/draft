@@ -142,7 +142,7 @@ test("coreGenerateResume is extracted and callable from generateResumeForApply",
   assert.match(server, /applyRoutes\(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,\s*\n\s*scoreBaseResumeForApply(?:\)|, \{)/);
   // The apply routes must accept all as parameters — plus, since D56, an optional options object last
   // (the adapter-table seam a test uses to add the fake ATS's two-origin family; server.js passes none).
-  assert.match(applyRoute, /function applyRoutes\(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,\s*\n\s*scoreBaseResumeForApply(, \{ applyOriginFamilies = APPLY_ORIGIN_FAMILIES \} = \{\})?\)/);
+  assert.match(applyRoute, /function applyRoutes\(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,\s*\n\s*scoreBaseResumeForApply(, \{ applyOriginFamilies = APPLY_ORIGIN_FAMILIES(, draftRunAnswers = null)? \} = \{\})?\)/);   // 46f: + A182's draftRunAnswers
 });
 
 test("generateResumeForApply reuses existing artifact without triggering a new generation", () => {
