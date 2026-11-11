@@ -133,6 +133,8 @@ const ADMIN = new Set([
   // D187 HB-10: Admin → System → Hirebase — the state, the caps, the free sizing and the one-page sample
   "GET /api/admin/hirebase", "PUT /api/admin/hirebase", "POST /api/admin/hirebase/sizing", "POST /api/admin/hirebase/sample",
   "GET /api/admin/hirebase/sample-report", "GET /api/admin/hirebase/feed", "PUT /api/admin/hirebase/feed",
+  // T5: the assistant's admin side — the de-identified asks, a gap to the backlog, the switch for everyone
+  "GET /api/admin/assistant/asks", "POST /api/admin/assistant/asks/backlog", "PUT /api/admin/assistant/enabled",
   "PUT /api/admin/network",
   "GET /api/admin/network/reports",   // D180 P2: the moderation queue
   "POST /api/admin/network/reports/:id",
@@ -244,6 +246,9 @@ const AUTHENTICATED = new Set([
   "POST /api/atlas/challenges/:runId/answer", "POST /api/atlas/challenges/bar/:token/share",
   // D185-1 (45s): the posting's own questions the person hasn't answered yet, and a drafted answer (switch, OFF).
   "GET /api/apply/questions/:jobId", "POST /api/apply/questions/:jobId/draft",
+  // T5: the assistant — the person's own asks, their confirm / cancel of a proposed action, their audit log and switch
+  "GET /api/assistant/status", "POST /api/assistant/ask", "POST /api/assistant/actions/:id/confirm", "POST /api/assistant/actions/:id/cancel",
+  "GET /api/assistant/actions", "PUT /api/assistant/settings",
   "GET /api/network",
   "GET /api/network/suggestions",
   "GET /api/network/relation/:handle",

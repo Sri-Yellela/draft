@@ -426,7 +426,7 @@ const SCREENS = {
         // the page's boxes (main and its first box) — leaves inside them may be clipped by their own overflow
         const leaves = [document.querySelector("[data-app-shell] main"), document.querySelector("[data-app-shell] main")?.firstElementChild].filter(Boolean).map(e => e.getBoundingClientRect().right);
         return { open: p.getAttribute("data-open"), left: r.left, right: r.right, vw: innerWidth, shellPadRight: getComputedStyle(shell).paddingRight,
-          contentRight: Math.max(...leaves), stub: !!p.querySelector("[data-ask-draft-stub]"), html: document.documentElement.getAttribute("data-ask-open") };
+          contentRight: Math.max(...leaves), stub: !!p.querySelector("[data-ask-draft-closed], [data-ask-input]") /* T5: closed notice or the chat */, html: document.documentElement.getAttribute("data-ask-open") };
       });
       await page.screenshot({ type: "png" }).then(b => fs.writeFileSync(path.join(OUT, `dock167-ask-${size}.png`), b));
       await page.keyboard.press("Escape"); await sleep(600);

@@ -300,10 +300,45 @@ export function ProfilePeek({ open, profile, pos = { top: 0, left: 80 }, onGo, o
   );
 }
 
-// ⭐ D167 · ASK DRAFT — the assistant's place. The assistant itself (T5) is not built; until it is, this is the panel it
-// will live in: on the right, and it MOVES THE PAGE OVER (`data-ask-open` → AppNav.css pads the app shell by
-// --appnav-ask-w), never on top of it. It says plainly that it is not ready rather than pretending to answer.
+// ⭐ D167 · ASK DRAFT — the assistant's place: on the right, and it MOVES THE PAGE OVER (`data-ask-open` → AppNav.css pads
+// the app shell by --appnav-ask-w), never on top of it. ⭐ T5 v1 (owner 11-10, "OK ship it"): a short answer, one to three
+// Atlas lessons (only lessons that exist), one next step, and at most one PROPOSED action that runs only when the person
+// presses Confirm (POST /api/assistant/actions/:id/confirm — the server uses this session's user, never the model's say).
+// The conversation lives here only (short-term memory, docs/ASSISTANT.md §2): closing the panel forgets it. Until the
+// assistant is open to everyone (Admin → Atlas → Asks), the panel says so plainly instead of pretending to answer.
 export function AskDraftPanel({ open, onClose, panelRef }) {
+  const [status, setStatus] = useState(null);
+  const [turns, setTurns] = useState([]);
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!open) { setTurns([]); setQ(""); return; }
+    let live = true;
+    api("/api/assistant/status").then(s => { if (live) setStatus(s); }).catch(() => { if (live) setStatus({ available: false }); });
+    return () => { live = false; };
+  }, [open]);
+  const send = async (e) => {
+    e?.preventDefault?.();
+    const question = q.trim();
+    if (!question || busy) return;
+    setBusy(true); setQ("");
+    setTurns(t => [...t, { who: "you", text: question }]);
+    try {
+      const r = await api("/api/assistant/ask", { method: "POST", body: JSON.stringify({ question }) });
+      setTurns(t => [...t, r.ok ? { who: "draft", ...r } : { who: "draft", text: r.message, failed: true }]);
+    } catch (err) { setTurns(t => [...t, { who: "draft", text: err.message || "Ask draft couldn't answer just now.", failed: true }]); }
+    finally { setBusy(false); }
+  };
+  const decide = async (i, action, confirm) => {
+    try {
+      const r = await api(`/api/assistant/actions/${action.id}/${confirm ? "confirm" : "cancel"}`, { method: "POST", body: "{}" });
+      setTurns(t => t.map((x, k) => (k === i ? { ...x, decided: r.status === "done" ? "Done." : "Cancelled." } : x)));
+    } catch (err) { setTurns(t => t.map((x, k) => (k === i ? { ...x, decided: err.message } : x))); }
+  };
+  const toggleImprove = async () => {
+    try { const r = await api("/api/assistant/settings", { method: "PUT", body: JSON.stringify({ improveAtlas: !status.improveAtlas }) }); setStatus(s => ({ ...s, ...r })); }
+    catch { /* unchanged */ }
+  };
   return (
     <aside id="appnav-ask" ref={panelRef} className="appnav-ask" aria-label="Ask draft" data-ask-draft="" data-open={open ? "true" : "false"}
       {...(open ? null : { inert: "", "aria-hidden": true })}>
@@ -311,10 +346,48 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
         <h2>Ask draft</h2>
         <button type="button" className="appnav-close appnav-ask__close" data-ask-close="" onClick={onClose}>Close</button>
       </header>
-      <p className="appnav-ask__say" data-ask-draft-stub="">
-        The assistant is not ready yet. When it is, you will ask it about your jobs, your applications and Atlas here,
-        and it will check with you before it does anything.
-      </p>
+      {status && !status.available && (
+        <p className="appnav-ask__say" data-ask-draft-closed="">
+          Ask draft isn't open yet. Soon you will ask it about your jobs, your applications and Atlas here, and it will check
+          with you before it does anything.
+        </p>
+      )}
+      {status?.available && <>
+        <p className="appnav-ask__say">Ask about a skill, a role or how draft works. It checks with you before it does anything.</p>
+        <div className="appnav-ask__turns" data-ask-turns="" aria-live="polite">
+          {turns.map((t, i) => (
+            <div key={i} className="appnav-ask__turn" data-ask-turn={t.who}>
+              <p className="appnav-ask__text">{t.who === "you" ? <b>You: </b> : null}{t.answer || t.text}</p>
+              {t.lessons?.length > 0 && (
+                <ul className="appnav-ask__lessons" data-ask-lessons="">
+                  {t.lessons.map(l => <li key={l.slug}><a href={l.href} data-ask-lesson={l.slug}>{l.name}</a> <span className="appnav-ask__kind">{l.kind}</span></li>)}
+                </ul>
+              )}
+              {t.next && <p className="appnav-ask__next" data-ask-next=""><b>Next: </b>{t.next}</p>}
+              {t.action && (
+                <div className="appnav-ask__action" data-ask-action={t.action.tool}>
+                  <span>{t.action.summary}?</span>
+                  {t.decided ? <span className="appnav-ask__kind">{t.decided}</span> : <>
+                    <button type="button" className="appnav-ask__btn" data-ask-confirm="" onClick={() => decide(i, t.action, true)}>Confirm</button>
+                    <button type="button" className="appnav-ask__btn" data-ask-cancel="" onClick={() => decide(i, t.action, false)}>Cancel</button>
+                  </>}
+                </div>
+              )}
+            </div>
+          ))}
+          {busy && <p className="appnav-ask__kind" data-ask-busy="">Thinking…</p>}
+        </div>
+        <form className="appnav-ask__form" onSubmit={send}>
+          <textarea className="appnav-ask__input" aria-label="Your question" rows={3} maxLength={600} value={q}
+            onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(e); }}
+            placeholder="What should I learn for a data analyst role?" data-ask-input="" />
+          <button type="submit" className="appnav-ask__btn" disabled={busy || !q.trim()} data-ask-send="">Ask</button>
+        </form>
+        <label className="appnav-ask__opt" data-ask-improve="">
+          <input type="checkbox" checked={!!status.improveAtlas} onChange={toggleImprove} />
+          Use my questions to improve Atlas (stored without your name or contact details)
+        </label>
+      </>}
     </aside>
   );
 }

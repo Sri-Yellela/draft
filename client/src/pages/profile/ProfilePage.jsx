@@ -127,6 +127,36 @@ function ProfileConnections() {
   );
 }
 
+// ⭐ T5 (docs/ASSISTANT.md §1): every action Ask draft took — or proposed and you cancelled — and the "improve Atlas"
+// switch. The person's own rows only (GET /api/assistant/actions).
+function AssistantPrivacy() {
+  const [log, setLog] = useState(null);
+  const [improve, setImprove] = useState(null);
+  useEffect(() => {
+    api("/api/assistant/actions").then(r => setLog(r.actions || [])).catch(() => setLog([]));
+    api("/api/assistant/status").then(r => setImprove(!!r.improveAtlas)).catch(() => setImprove(null));
+  }, []);
+  const flip = async () => { try { const r = await api("/api/assistant/settings", { method: "PUT", body: JSON.stringify({ improveAtlas: !improve }) }); setImprove(r.improveAtlas); } catch { /* unchanged */ } };
+  return (
+    <section className="pf__card" data-assistant-privacy="">
+      <h3>Ask draft</h3>
+      {improve !== null && (
+        <label style={{ display: "flex", gap: 8, alignItems: "flex-start" }} data-assistant-improve="">
+          <input type="checkbox" checked={improve} onChange={flip} />
+          Use my questions to improve Atlas. They are stored without your name or contact details, and never linked to you.
+        </label>
+      )}
+      <p>What Ask draft did for you (each one only after you pressed Confirm):</p>
+      {log?.length === 0 && <p data-assistant-log-empty="">Nothing yet.</p>}
+      {log?.length > 0 && (
+        <ul data-assistant-log="">
+          {log.map(a => <li key={a.id}>{a.summary || a.tool} — {a.status} · {new Date((a.decided_at || a.proposed_at) * 1000).toLocaleString()}</li>)}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export default function ProfilePage({ panel = "about", onSignedOut }) {
   const navigate = useNavigate();
   const { runBar = null } = useAutoApply() || {};
@@ -185,6 +215,7 @@ export default function ProfilePage({ panel = "about", onSignedOut }) {
       <PlaceHead eyebrow="Privacy and your data" title="What we keep, and for how long"
         lead="Application emails in your Inbox are deleted after 6 months. Download everything draft keeps for you, or delete it all." />
       <AccountPanel only={ACCOUNT_CARDS.privacy} onSignedOut={onSignedOut} />
+      <AssistantPrivacy />
     </>
   );
   else if (panel === "account") body = (

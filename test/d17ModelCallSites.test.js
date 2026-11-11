@@ -31,6 +31,9 @@ const ALLOWED = new Set([
   // written from the résumé like the cover letter — the generation family. On demand only, behind answer_drafts_enabled
   // (OFF), checked before it is shown, saved only by the person (POST /api/apply/questions/:jobId/draft).
   "answers_routine",
+  // T5 (owner 11-10: "your rule that only résumé generation calls a model, OK ship it") — the assistant, D17 lifted for it;
+  // through D162's gateway (assistant.chat), fenced (D173 (1)), every action confirmed by the person (services/assistant/assistant.js).
+  "assistant_chat",
 ]);
 
 // Each entry names its A80 item. Delete the entry in the same commit that removes the call.
@@ -179,6 +182,8 @@ test("D17 V6: no résumé classifier in draft — /api/smart-search and services
 const SCRIPT_ALLOWED = new Map([
   // Verifies the tokenized GENERATION round trip on a real Sonnet call — the generation family.
   ["scripts/al5TokenizedGeneration.mjs", "generation — AL5's tokenized round trip"],
+  // T5 (owner 11-10): the assistant's eval set — refuses without --spend; on a database COPY; never boots the server.
+  ["scripts/assistantEval.mjs", "T5 — the assistant.chat eval set (owner-approved assistant)"],
 ]);
 const SCRIPT_KNOWN_VIOLATIONS = new Map([
   // V8 closed 10-05: scripts/a76LlmGradedCorpus.mjs is export → grade → import (A76, 291c906).

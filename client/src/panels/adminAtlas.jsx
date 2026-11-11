@@ -210,6 +210,38 @@ function AtlasDraftDefinitions({ say, onChanged }) {
   );
 }
 
+// ⭐ T5 / D177-3 · ADMIN → ATLAS → ASKS: the assistant's de-identified questions (no user, no contact details), how many the
+// Atlas covered / partly covered / missed, the most-asked gap terms — each one click into the content backlog — and the
+// switch that opens Ask draft to everyone (admins always have it). GET /api/admin/assistant/asks.
+function AtlasAsks({ say }) {
+  const [s, setS] = useState(null);
+  const load = useCallback(() => api("/api/admin/assistant/asks").then(setS).catch(() => setS(null)), []);
+  useEffect(() => { load(); }, [load]);
+  const toBacklog = async (term) => { try { const r = await send("/api/admin/assistant/asks/backlog", { term }); say({ ok: true, text: r.added ? `“${term}” added to the content backlog.` : `“${term}” is already in the backlog.` }); } catch (e) { say({ ok: false, text: e.message }); } };
+  const flip = async () => { try { await send("/api/admin/assistant/enabled", { enabled: !s.enabled }, "PUT"); load(); } catch (e) { say({ ok: false, text: e.message }); } };
+  if (!s) return null;
+  return (
+    <div data-atlas-asks="" style={{ ...sub, marginBottom: 12, display: "grid", gap: 8 }}>
+      <div style={{ ...row, justifyContent: "space-between" }}>
+        <b style={{ fontSize: 13, color: C.INK }}>Asks (last {s.days} days)</b>
+        <DepthButton size="compact" onClick={flip} data-assistant-enabled={s.enabled ? "on" : "off"}>{s.enabled ? "Ask draft is open to everyone — close it" : "Open Ask draft to everyone"}</DepthButton>
+      </div>
+      <span style={quiet}>{s.total} question(s): {s.byCoverage.covered} covered · {s.byCoverage.partial} partly · {s.byCoverage.gap} gaps. Stored without the person's name or contact details; people can switch this off.</span>
+      {s.topGaps.length > 0 && (
+        <div style={{ display: "grid", gap: 4 }} data-atlas-asks-gaps="">
+          {s.topGaps.map(g => (
+            <div key={g.term} style={row}>
+              <span style={{ fontSize: 12, color: C.INK, flex: 1 }}>{g.term} <span style={quiet}>· asked {g.asks}×</span></span>
+              <DepthButton size="compact" onClick={() => toBacklog(g.term)} data-atlas-asks-backlog={g.term}>Add to backlog</DepthButton>
+            </div>
+          ))}
+        </div>
+      )}
+      {s.latest.length > 0 && <div style={quiet}>Latest: {s.latest.slice(0, 8).map(l => `“${l.question}” (${l.coverage})`).join(" · ")}</div>}
+    </div>
+  );
+}
+
 function AtlasWikiAnswers({ reloadKey, say }) {
   const [sum, setSum] = useState(null);
   const [probe, setProbe] = useState(null);
@@ -678,6 +710,7 @@ export function AtlasTab() {
         <AtlasMerge say={setSaid} onMerged={(r) => { setRows(rs => (rs || []).filter(x => x.slug !== r.loser)); setOpen(o => (o === r.loser ? r.winner : o)); }} />
       </div>
       <AtlasWikiAnswers reloadKey={said} say={setSaid} />
+      <AtlasAsks say={setSaid} />
       <AtlasDraftDefinitions say={setSaid} onChanged={load} />
       <AtlasImportContent say={(s) => { setSaid(s); if (s.ok) load(); }} />
       <LearnBeforeThisReview />

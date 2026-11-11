@@ -676,6 +676,18 @@ export function PrivacyPage() {
             days.
           </P>
 
+          {/* ⭐ T5 (owner 11-10) — services/assistant/assistant.js. ⚠ PLACEHOLDER wording until counsel's (owner list 6). */}
+          <H3>Ask draft, the assistant</H3>
+          <P>
+            When you ask Ask draft a question, your question and the parts of Atlas and draft's help that match it are sent to
+            an AI model (Anthropic's Claude) to write the answer, together with your skills and how many applications you have
+            in each state. The conversation is not kept: closing the panel forgets it. If you leave{' '}
+            <Strong>Use my questions to improve Atlas</Strong> on, we keep your question with your name, email addresses,
+            phone numbers and links removed, and <Strong>not linked to your account</Strong>, to find what Atlas is missing;
+            switch it off in Ask draft or in Profile → Privacy and your data. Ask draft never acts on its own: it can suggest
+            an action, and it runs only when you press Confirm. Every action is listed in Profile → Privacy and your data.
+          </P>
+
           {/* ⭐ D103 (owner 10-30) — services/inbox.js, routes/inbox.js; 180 days = INBOX_RETENTION_DEFAULT_DAYS (D112 item 3). */}
           <H3>Your Application Inbox</H3>
           <P>

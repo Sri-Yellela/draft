@@ -217,6 +217,8 @@ const EXPORT_TABLES = ["user_profile", "domain_profiles", "profile_base_resumes"
   "billing_subscriptions", "trial_drafts",
   // D172 (3) (226): the points each piece of proof earned.
   "proof_points",
+  // T5 (271): the assistant's proposed actions and the person's decisions, and their "improve Atlas" switch.
+  "assistant_actions", "assistant_prefs",
   // D183 P1 (243): who can see the profile page, and the achievements added by hand.
   "profile_page", "profile_achievements",
   // D183 P2 (244): each résumé replace and what it changed (its snapshot holds the person's own earlier résumé).
@@ -387,6 +389,9 @@ export const MERGE_PLAN = Object.freeze({
   // INTO's stands, FROM's fills an INTO with none; the trial's drafts are one per (person, job) — the merged person's used
   // drafts are the union (so a merge never GIVES drafts back); a refused sign-up record moves with the account it names.
   billing_subscriptions: "move", billing_customers: "keepInto", trial_drafts: "keepInto", signup_refusals: "move",
+  // T5 (271): what the assistant proposed and what the person decided is their history and moves; INTO's "improve Atlas"
+  // switch stands, FROM's fills an INTO with none. (assistant_asks carries no user — nothing to merge.)
+  assistant_actions: "move", assistant_prefs: "keepInto",
 });
 
 /** What merging FROM into INTO would move, per table — the preview the user confirms. */
