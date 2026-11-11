@@ -503,6 +503,16 @@ export function AutoApplyPanel({ user = null } = {}) {
   const [bannerGone, setBannerGone] = useState(false);
   const heldRerunnableFrom = (ns) => (ns || []).filter(n => n && n.kind === "held" && n.jobId != null && !n.ref?.postingGone)
     .map(n => ({ jobId: n.jobId, company: n.company, title: n.title, runJobId: (n.ref?.primary?.row || n.ref)?.id }));
+  // ⭐ 46f · A181 (5c) "Re-run selected": the bulk acts on the ones ticked in its own list (Choose which), all by default.
+  // ⛔ D113 U9 holds: no select mode on the tree — the ticks live in the bulk block, beside the two buttons they steer.
+  const [heldPick, setHeldPick] = useState(null);   // null = every held draft; a Set of jobIds once the person un-ticks one
+  const [choosingHeld, setChoosingHeld] = useState(false);
+  const chosenHeldFrom = (ns) => { const all = heldRerunnableFrom(ns); return heldPick ? all.filter(h => heldPick.has(h.jobId)) : all; };
+  const toggleHeld = (ns, jobId) => setHeldPick(prev => {
+    const s = new Set(prev || heldRerunnableFrom(ns).map(h => h.jobId));
+    if (s.has(jobId)) s.delete(jobId); else s.add(jobId);
+    return s;
+  });
   const slotLine = slots && Number.isFinite(Number(slots.remaining))
     ? `${slots.remaining} of ${slots.limit} new drafts left in the last 24 hours · running a draft again is free` : "";
   const rerunHeld = async (list) => {
@@ -1248,16 +1258,37 @@ export function AutoApplyPanel({ user = null } = {}) {
         <button onClick={openEverything} type="button" className="dh-btn" data-kind="primary" data-review-all=""
           title="Every application needing review, in one list.">Review all {needsYouCount} →</button>
         {/* ⭐ A181 (5c): bulk — every held draft run again with draft's current fixes (free), or cancelled (credits back). */}
-        {heldRerunnableFrom(nodes).length > 0 && (
-          <button type="button" className="dh-btn" data-rerun-held="" disabled={bulkBusy}
-            title="Run every held draft again with draft's current fixes. Re-runs are free."
-            onClick={() => rerunHeld(heldRerunnableFrom(nodes))}>{bulkBusy ? "Starting…" : `Re-run ${heldRerunnableFrom(nodes).length} held (free)`}</button>
-        )}
-        {heldRerunnableFrom(nodes).length > 0 && (
-          <button type="button" className="dh-btn" data-cancel-held="" disabled={bulkBusy || binBusy}
-            title="Cancel every held draft — they move to Cleared (restore for 7 days); nothing was sent, so their drafts come back."
-            onClick={() => { const hs = heldRerunnableFrom(nodes); if (window.confirm(`Cancel ${hs.length} held drafts? They stay in Cleared for 7 days.`)) clearRunJobs({ runJobIds: hs.map(h => h.runJobId).filter(Boolean) }); }}>Cancel {heldRerunnableFrom(nodes).length} held</button>
-        )}
+        {heldRerunnableFrom(nodes).length > 0 && (() => {
+          const all = heldRerunnableFrom(nodes), chosen = chosenHeldFrom(nodes);
+          const some = chosen.length < all.length;   // the words say "selected" only when it isn't every one
+          return (<>
+            <button type="button" className="dh-btn" data-rerun-held="" disabled={bulkBusy || chosen.length === 0}
+              title="Run the held drafts again with draft's current fixes. Re-runs are free."
+              onClick={() => rerunHeld(chosen)}>{bulkBusy ? "Starting…" : `Re-run ${chosen.length} ${some ? "selected" : "held"} (free)`}</button>
+            <button type="button" className="dh-btn" data-cancel-held="" disabled={bulkBusy || binBusy || chosen.length === 0}
+              title="Cancel the held drafts — they move to Cleared (restore for 7 days); nothing was sent, so their drafts come back."
+              onClick={() => { if (window.confirm(`Cancel ${chosen.length} held draft${chosen.length === 1 ? "" : "s"}? They stay in Cleared for 7 days.`)) { clearRunJobs({ runJobIds: chosen.map(h => h.runJobId).filter(Boolean) }); setHeldPick(null); } }}>Cancel {chosen.length} {some ? "selected" : "held"}</button>
+            {all.length > 1 && (
+              <button type="button" className="dht-step__link" data-choose-held="" aria-expanded={choosingHeld} onClick={() => setChoosingHeld(o => !o)}>
+                {choosingHeld ? "Done choosing" : "Choose which"}</button>
+            )}
+            {choosingHeld && all.length > 1 && (
+              <fieldset className="dh-held-pick" data-held-pick="">
+                <legend className="dh-fold__quiet">Held drafts — the two buttons act on the ticked ones</legend>
+                {all.map(h => (
+                  <label key={h.jobId} className="dh-held-pick__row" data-held-pick-row={h.jobId}>
+                    <input type="checkbox" checked={chosen.some(c => c.jobId === h.jobId)} onChange={() => toggleHeld(nodes, h.jobId)} />
+                    {" "}{[companyLabel(h.company), h.title].filter(Boolean).join(" · ")}
+                  </label>
+                ))}
+                <span className="dh-fold__quiet">
+                  <button type="button" className="dht-step__link" onClick={() => setHeldPick(null)}>All</button>{" · "}
+                  <button type="button" className="dht-step__link" onClick={() => setHeldPick(new Set())}>None</button>
+                </span>
+              </fieldset>
+            )}
+          </>);
+        })()}
         {/* ⭐ A181 (5c): once after an update — the drafts held before it, offered a free re-run with the fixes. */}
         {applySlots?.heldBeforeUpdate > 0 && heldRerunnableFrom(nodes).length > 0 && !bannerGone && (
           <p className="dh-fold__quiet" data-held-before-update="">
