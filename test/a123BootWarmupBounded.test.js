@@ -244,7 +244,7 @@ test("A123 (9) · a123ActiveRowsReadTheIndex: the unmapped / 'general' reads use
   assert.doesNotMatch(general, /SCAN sj(?! USING (COVERING )?INDEX)/, general);
   // ⚠ the class's regression: an (is_active, …) index would win this plan from board_category's
   const cat = planOf(d, "SELECT job_id, title, description, company FROM scraped_jobs WHERE is_active = 1 AND board_category IS NULL LIMIT 100");
-  assert.match(cat, /idx_scraped_jobs_board_category/, cat);
+  assert.match(cat, /idx_scraped_jobs_(board|active)_category/, cat);   // A175 (46d): migration 268's partial index on active rows' category is the same search, narrower
   assert.equal(backfillRoleMap(d).inserted, 30, "the backfill still finds what is unmapped");
   assert.equal(backfillRoleMap(d).scanned, 0);
   d.close();
