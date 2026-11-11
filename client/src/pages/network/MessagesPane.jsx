@@ -32,7 +32,10 @@ function Thread({ id, onBack, onChanged }) {
   const [reporting, setReporting] = useState(null);   // { kind, id }
   const [reason, setReason] = useState("spam");
   const end = useRef(null);
-  const load = useCallback(() => api(`/api/network/messages/${id}`).then(setT).catch(e => setSaid(e.message)), [id]);
+  const load = useCallback(() => api(`/api/network/messages/${id}`).then(r => {
+    setT(r);
+    try { window.dispatchEvent(new Event("rm:network-read")); } catch { /* no window */ }   // 46f: the dock's count follows at once
+  }).catch(e => setSaid(e.message)), [id]);
   useEffect(() => { load(); const iv = setInterval(load, POLL_MS); return () => clearInterval(iv); }, [load]);
   // ⭐ D180 (45r): real time — the sync stream says THIS conversation changed (never its words); read it again now.
   useSyncEvents({ network_message: (e) => { if (!e?.threadId || Number(e.threadId) === Number(id)) load(); } });

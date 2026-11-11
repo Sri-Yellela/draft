@@ -427,7 +427,9 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
     let live = true;
     const ask = () => api("/api/network/status").then(r => { if (!live) return; setNetwork(!!r?.enabled); setNetUnread(Number(r?.unread) || 0); }).catch(() => {});
     ask(); const iv = setInterval(ask, 60_000);
-    return () => { live = false; clearInterval(iv); };
+    // 46f: a conversation just read (MessagesPane's Thread) → the Messages count now, not on the next minute's ask.
+    window.addEventListener("rm:network-read", ask);
+    return () => { live = false; clearInterval(iv); window.removeEventListener("rm:network-read", ask); };
   }, []);
   const dockRef = useRef(null);
   const profRef = useRef(null), peekRef = useRef(null), askRef = useRef(null), askBtnRef = useRef(null), peekTimer = useRef(null);
