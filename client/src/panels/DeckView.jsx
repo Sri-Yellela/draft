@@ -102,7 +102,7 @@ const VERB = DECISION_VERB;
 
 // ── small pieces ────────────────────────────────────────────────────────────────────────────
 const visuallyHidden = { position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" };
-const kbd = { fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 5, border: `1px solid ${C.BORDER_STRONG}`,
+const kbd = { fontSize: ts(11), fontWeight: 700, padding: "1px 6px", borderRadius: 5, border: `1px solid ${C.BORDER_STRONG}`,
               color: C.INK_MUTED, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", lineHeight: "16px" };
 const isInteractive = (el) => !!el?.closest?.("a,button,input,textarea,select,[role=button]");
 
@@ -154,7 +154,7 @@ function FlipButton({ dir, disabled, onFlip }) {
     <button type="button" data-deck-flip={dir > 0 ? "next" : "prev"} disabled={disabled}
       aria-label={dir > 0 ? "Next card" : "Previous card"} aria-keyshortcuts={dir > 0 ? "J ArrowDown" : "K ArrowUp"} onClick={() => onFlip(dir)}
       style={{ width: 34, height: 34, flex: "none", borderRadius: 10, border: "none", background: C.SURFACE_2, color: C.INK, boxShadow: C.DEPTH_REST,
-               fontSize: 18, lineHeight: 1, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.4 : 1, fontFamily: "inherit" }}>
+               fontSize: ts(18), lineHeight: 1, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.4 : 1, fontFamily: "inherit" }}>
       <span aria-hidden="true">{dir > 0 ? "›" : "‹"}</span>
     </button>
   );
@@ -194,7 +194,7 @@ function CollapsedScore({ card, onOpen }) {
       <AtsBandCard report={fromDeckReport(card.report)} band={card.report.scorable ? card.band : ATS_BAND.NOT_ENOUGH_SIGNAL} compact />
       <button type="button" onClick={onOpen}
         style={{ marginTop: 8, padding: 0, background: "transparent", border: "none", cursor: "pointer",
-                 fontSize: 13, fontWeight: 700, color: C.ACCENT_INK }}>
+                 fontSize: ts(13), fontWeight: 700, color: C.ACCENT_INK }}>
         The full report ↑
       </button>
     </div>
@@ -203,7 +203,7 @@ function CollapsedScore({ card, onOpen }) {
 
 function PostingLinks({ job, onReport }) {
   return (
-    <div style={{ display: "flex", gap: 18, marginTop: 16, flexWrap: "wrap", fontSize: 13.5, fontWeight: 700 }}>
+    <div style={{ display: "flex", gap: 18, marginTop: 16, flexWrap: "wrap", fontSize: ts(13.5), fontWeight: 700 }}>
       {(job.applyUrl || job.url) && <a href={job.applyUrl || job.url} target="_blank" rel="noreferrer" onClick={(e) => postingClick(job, e)} style={{ color: C.ACCENT_INK }}>The posting ↗</a>}
       <Link to={jobDetailHref(job.id)} onClick={onReport} style={{ color: C.ACCENT_INK }}>Full report on the board →</Link>
     </div>
@@ -224,7 +224,7 @@ function CollapseButton({ onCollapse, controls }) {
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       // The opaque menu surface: it rides over the posting's text as the reader scrolls.
       style={{ ...glass({ hover: hov, radius: 10 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU,
-               padding: "7px 14px", fontSize: 13, fontWeight: 800, color: C.INK, cursor: "pointer" }}>
+               padding: "7px 14px", fontSize: ts(13), fontWeight: 800, color: C.INK, cursor: "pointer" }}>
       Collapse
     </button>
   );
@@ -317,7 +317,7 @@ export function CardFace({ card, headingRef, isFront, expanded, why, onWhy, onEx
 
       {card.error && (
         <div role="alert" style={{ background: C.DANGER_QUIET, color: C.DANGER, padding: "10px 14px", borderRadius: 12,
-                                   fontSize: 13.5, fontWeight: 600, margin: "14px 0 0" }}>
+                                   fontSize: ts(13.5), fontWeight: 600, margin: "14px 0 0" }}>
           {card.error}
         </div>
       )}
@@ -537,7 +537,7 @@ function FanCard({ entry, orientation, geometry, size, expanded, dimmed, dealing
   const passStamp = useTransform(x, [-SWIPE_COMMIT_PX - 40, -20], [1, 0]);
   const dragged = useRef(false);
   const showFace = Math.abs(offset) <= 1;   // only a card that is, or is about to be, face-up needs one
-  const stamp = { position: "absolute", top: 28, right: 26, padding: "6px 14px", borderRadius: 10, fontWeight: 900, fontSize: 22,
+  const stamp = { position: "absolute", top: 28, right: 26, padding: "6px 14px", borderRadius: 10, fontWeight: 900, fontSize: ts(22),
                   letterSpacing: "0.12em", border: "3px solid", pointerEvents: "none" };
   // The deal arrives from the pivot's side, face-down, one card at a time; the front turns over last.
   const from = orientation === "horizontal" ? { x: 520, y: 40, rotate: 18 } : { x: 60, y: 520, rotate: 14 };
@@ -649,7 +649,7 @@ function EndOfDeck({ s, tally, needsReview, onUndo }) {
           <motion.div {...line(0)} style={{ fontFamily: "var(--font-display)", fontSize: "clamp(34px, 6vw, 46px)", lineHeight: 1, color: C.INK }}>
             That's today's draft.
           </motion.div>
-          <motion.div {...line(1)} style={{ fontSize: 14.5, color: C.INK_MUTED, marginTop: 8 }}>
+          <motion.div {...line(1)} style={{ fontSize: ts(14.5), color: C.INK_MUTED, marginTop: 8 }}>
             {s.size} dealt · {tally.drafted} drafted · {tally.saved} saved · {tally.passed} passed
           </motion.div>
         </div>
@@ -658,7 +658,7 @@ function EndOfDeck({ s, tally, needsReview, onUndo }) {
       {drafted.length > 0 && (
         <motion.ul {...line(2)} aria-label="Drafted today" style={{ listStyle: "none", padding: 0, margin: "0 0 20px", display: "grid", gap: 8 }}>
           {drafted.map(c => (
-            <li key={c.job.id} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 14.5, color: C.INK }}>
+            <li key={c.job.id} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: ts(14.5), color: C.INK }}>
               <CompanyLogo company={c.job.company} iconUrl={c.job.companyIconUrl} size={28} radius={8} />
               <span style={{ minWidth: 0 }}>
                 <strong {...{ [TITLE_ATTR]: c.job.id }} style={{ fontWeight: 700 }}>{c.job.title}</strong>
@@ -669,7 +669,7 @@ function EndOfDeck({ s, tally, needsReview, onUndo }) {
         </motion.ul>
       )}
 
-      <motion.p {...line(3)} style={{ fontSize: 15, color: C.INK_MUTED, lineHeight: 1.6, margin: "0 0 22px" }}>
+      <motion.p {...line(3)} style={{ fontSize: ts(15), color: C.INK_MUTED, lineHeight: 1.6, margin: "0 0 22px" }}>
         {tally.drafted > 0
           ? <>Nothing has been sent. {tally.drafted === 1 ? "That draft waits" : "Each draft waits"} for your review{needsReview > 0 ? <> — <strong style={{ color: C.INK }}>{needsReview}</strong> {needsReview === 1 ? "thing needs" : "things need"} you in the queue now</> : null}.</>
           : <>You drafted nothing today, which is a fine answer when nothing fits.</>}
@@ -1180,18 +1180,18 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
 
         {load.status === "error" && (
           <div role="alert" style={{ ...glass({ radius: 28 }), padding: 36 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: C.INK, marginBottom: 8 }}>Today's draft could not be dealt.</div>
-            <div style={{ fontSize: 14, color: C.INK_MUTED, marginBottom: 18 }}>{load.error}</div>
+            <div style={{ fontSize: ts(18), fontWeight: 700, color: C.INK, marginBottom: 8 }}>Today's draft could not be dealt.</div>
+            <div style={{ fontSize: ts(14), color: C.INK_MUTED, marginBottom: 18 }}>{load.error}</div>
             <button type="button" onClick={fetchDeck} style={{ ...glass({ radius: 12 }), padding: "10px 18px", fontWeight: 800, color: C.INK, cursor: "pointer" }}>Try again</button>
           </div>
         )}
 
         {load.status === "ready" && load.refreshing && !load.stale && (
-          <div role="status" data-deck-refreshing="" style={{ fontSize: 13.5, color: C.INK_MUTED, margin: "0 0 12px" }}>Refreshing today's draft…</div>
+          <div role="status" data-deck-refreshing="" style={{ fontSize: ts(13.5), color: C.INK_MUTED, margin: "0 0 12px" }}>Refreshing today's draft…</div>
         )}
 
         {load.status === "ready" && load.stale && (
-          <div role="status" data-deck-stale style={{ fontSize: 13.5, color: C.INK_MUTED, margin: "0 0 12px", display: "flex", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
+          <div role="status" data-deck-stale style={{ fontSize: ts(13.5), color: C.INK_MUTED, margin: "0 0 12px", display: "flex", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
             <span>Showing today's draft from earlier — {load.stale}</span>
             <button type="button" onClick={fetchDeck} style={{ background: "none", border: 0, padding: 0, fontWeight: 800, color: C.ACCENT_INK, cursor: "pointer" }}>Try again</button>
           </div>
@@ -1215,9 +1215,9 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
           const [title, body, links] = copy || [null, null, []];
           return (
             <div style={{ ...glass({ radius: 28 }), padding: "40px 36px" }} data-deck-empty={s.reason || "empty"}>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 34, color: C.INK, marginBottom: 10 }}>{title || "Nothing strong enough today."}</div>
-              <p style={{ fontSize: 15, color: C.INK_MUTED, lineHeight: 1.6, margin: "0 0 22px" }}>{body}</p>
-              <div style={{ display: "flex", gap: 18, fontWeight: 800, fontSize: 14.5, flexWrap: "wrap" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: ts(34), color: C.INK, marginBottom: 10 }}>{title || "Nothing strong enough today."}</div>
+              <p style={{ fontSize: ts(15), color: C.INK_MUTED, lineHeight: 1.6, margin: "0 0 22px" }}>{body}</p>
+              <div style={{ display: "flex", gap: 18, fontWeight: 800, fontSize: ts(14.5), flexWrap: "wrap" }}>
                 {links.map(([to, label]) => <Link key={to} to={to} style={{ color: C.ACCENT_INK }}>{label}</Link>)}
               </div>
               {s.reason === "no_profile" && (
@@ -1292,7 +1292,7 @@ export default function DeckView({ canUseAPlusResume = true, home = false }) {
 
         {legend && (
           <div role="dialog" aria-label="Keyboard shortcuts" style={{ ...glass({ radius: 18 }), backgroundColor: C.SURFACE_MENU, position: "fixed", right: 24, bottom: 96,
-                                                                    zIndex: Z.NAV, padding: "16px 20px", fontSize: 13.5, color: C.INK }}>
+                                                                    zIndex: Z.NAV, padding: "16px 20px", fontSize: ts(13.5), color: C.INK }}>
             {(home
               // ⭐ D156 (1c): on Home Enter opens the card into its long post, and Esc folds it.
               ? [["D  →", "Draft — queue it for your review"], ["X  ←", "Pass — it won't come back"], ["S", "Save for later"],

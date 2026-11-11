@@ -65,6 +65,7 @@ import { rememberBoardFilters } from "../lib/boardFilterMemory.js";
 import StartFromResume from "../components/StartFromResume.jsx";
 import { openResumeEditor } from "../lib/resumeEditor.js";
 import { sentenceFromResume } from "../../../shared/resumeSentence.js";   // D184 B-7
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // The three extension-bridge stubs that stood here (getLinkedInExtensionInstallUrl,
 // isLinkedInExtensionInstalled, sendExtensionRequest) are gone with cleanup 5.3. They returned
@@ -258,7 +259,7 @@ function LucyBtn({ children, onClick, disabled, accent: accentProp,
               boxShadow: C.SHADOW_GLASS_HOVER }
           : { ...glass({ radius: 10 }), color: C.INK }),
         cursor: disabled ? "not-allowed" : "pointer",
-        padding: "7px 18px", fontWeight: 800, fontSize: 12.5, letterSpacing: "0.02em",
+        padding: "7px 18px", fontWeight: 800, fontSize: ts(12.5), letterSpacing: "0.02em",
         fontFamily: "inherit",
         transition: "background-color 160ms ease, box-shadow 160ms ease",
         whiteSpace: "nowrap", flexShrink: 0,
@@ -460,7 +461,7 @@ function FiltersPanel({
             title={[opt.hint, isIn ? "Included — click to exclude" : isOut ? "Excluded — click to clear" : "Click to include"]
               .filter(Boolean).join(" · ")}
             style={{
-              padding:"5px 12px", fontSize:11, fontWeight:600,
+              padding:"5px 12px", fontSize:ts(11), fontWeight:600,
               cursor:"pointer", border:`1px solid ${border}`, background:bg, color:fg,
               transition:"all 0.15s", textDecoration: isOut ? "line-through" : "none",
             }}>
@@ -475,9 +476,9 @@ function FiltersPanel({
   const selStyle = {
     width:"100%", height:36, padding:"0 10px",
     border:`1px solid ${theme.border}`, borderRadius:4,
-    background:theme.surface, color:theme.text, fontSize:12, outline:"none",
+    background:theme.surface, color:theme.text, fontSize:ts(12), outline:"none",
   };
-  const labelStyle = { fontSize:11, fontWeight:700, color:theme.textMuted,
+  const labelStyle = { fontSize:ts(11), fontWeight:700, color:theme.textMuted,
                         textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 };
   // PORTALLED TO document.body, which is what makes the drawer inertable — see the note on
   // FILTER_DRAWER_TOP above and useBoardLock. This drawer rendered inside JobsPanel, i.e. inside
@@ -514,7 +515,7 @@ function FiltersPanel({
         }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <span style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                          fontSize:26}}>
+                          fontSize:ts(26)}}>
             Filters
           </span>
           {/* A real hit target. With no padding this was the width of the glyph alone — measured at
@@ -525,7 +526,7 @@ function FiltersPanel({
             style={{ width:28, height:28, flexShrink:0, borderRadius:6,
                      display:"flex", alignItems:"center", justifyContent:"center",
                      background:"none", border:"none",
-                     cursor:"pointer", fontSize:18, lineHeight:1, color:theme.textMuted,
+                     cursor:"pointer", fontSize:ts(18), lineHeight:1, color:theme.textMuted,
                      transition:"background 0.15s, color 0.15s" }}
             onMouseEnter={e => { e.currentTarget.style.background = theme.surfaceHigh || C.HOVER;
                                  e.currentTarget.style.color = theme.text; }}
@@ -547,7 +548,7 @@ function FiltersPanel({
               onClick={() => setAgeFilter(ageFilter === "1d" ? "" : "1d")}
               title="Show only jobs posted in the last 24 hours"
               style={{
-                padding:"6px 12px", fontSize:11, fontWeight:700, cursor:"pointer",
+                padding:"6px 12px", fontSize:ts(11), fontWeight:700, cursor:"pointer",
                 border:`1px solid ${ageFilter === "1d" ? theme.accent : theme.border}`,
                 background: ageFilter === "1d" ? theme.accentMuted : "transparent",
                 color: ageFilter === "1d" ? (theme.accentText || theme.text) : theme.textMuted,
@@ -560,7 +561,7 @@ function FiltersPanel({
               disabled={!canSaveSearch}
               title="Save the filter set currently applied to the board"
               style={{
-                padding:"6px 12px", fontSize:11, fontWeight:700,
+                padding:"6px 12px", fontSize:ts(11), fontWeight:700,
                 border:`1px solid ${theme.border}`, background:"transparent",
                 color: canSaveSearch ? theme.text : theme.textDim,
                 cursor: canSaveSearch ? "pointer" : "not-allowed",
@@ -575,7 +576,7 @@ function FiltersPanel({
                 title={trackedSearch.name || "Apply saved search"}
                 style={{
                   flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
-                  padding:"5px 12px", fontSize:11, fontWeight:700, cursor:"pointer",
+                  padding:"5px 12px", fontSize:ts(11), fontWeight:700, cursor:"pointer",
                   border:`1px solid ${theme.accent}`, background:theme.accentMuted || theme.surface,
                   color:theme.accentText || theme.text,
                 }}>
@@ -586,7 +587,7 @@ function FiltersPanel({
                 style={{
                   width:22, height:22, borderRadius:"50%", border:`1px solid ${theme.border}`,
                   background:"transparent", color:theme.textMuted, cursor:"pointer",
-                  fontSize:12, lineHeight:1, flexShrink:0,
+                  fontSize:ts(12), lineHeight:1, flexShrink:0,
                 }}>
                 x
               </button>
@@ -629,7 +630,7 @@ function FiltersPanel({
                     if (next.length > 0) setEmploymentTypePrefs(next);
                   }}
                   style={{
-                    padding:"5px 12px", fontSize:11, fontWeight:600,
+                    padding:"5px 12px", fontSize:ts(11), fontWeight:600,
                     cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
                     background: active ? theme.accentMuted : "transparent",
                     color: active ? theme.accentText : theme.textMuted,
@@ -654,7 +655,7 @@ function FiltersPanel({
                     ? workModels.filter(v => v !== opt.value)
                     : [...workModels, opt.value])}
                   style={{
-                    padding:"5px 12px", fontSize:11, fontWeight:600,
+                    padding:"5px 12px", fontSize:ts(11), fontWeight:600,
                     cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
                     background: active ? theme.accentMuted : "transparent",
                     color: active ? theme.accentText : theme.textMuted,
@@ -665,7 +666,7 @@ function FiltersPanel({
               );
             })}
           </div>
-          <div style={{ fontSize:10, color:theme.textDim, marginTop:4 }}>
+          <div style={{ fontSize:ts(10), color:theme.textDim, marginTop:4 }}>
             Remote / hybrid / onsite as tagged by enrichment. Postings not yet tagged are kept
             rather than hidden, so coverage may lag for very recently-crawled jobs.
           </div>
@@ -683,7 +684,7 @@ function FiltersPanel({
                     ? experienceLevels.filter(v => v !== opt.value)
                     : [...experienceLevels, opt.value])}
                   style={{
-                    padding:"5px 12px", fontSize:11, fontWeight:600,
+                    padding:"5px 12px", fontSize:ts(11), fontWeight:600,
                     cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
                     background: active ? theme.accentMuted : "transparent",
                     color: active ? theme.accentText : theme.textMuted,
@@ -694,7 +695,7 @@ function FiltersPanel({
               );
             })}
           </div>
-          <div style={{ fontSize:10, color:theme.textDim, marginTop:4 }}>
+          <div style={{ fontSize:ts(10), color:theme.textDim, marginTop:4 }}>
             Selecting any level here overrides your profile's derived default for this search.
           </div>
         </div>
@@ -728,7 +729,7 @@ function FiltersPanel({
             included={tiersInclude} setIncluded={setTiersInclude}
             excluded={tiersExclude} setExcluded={setTiersExclude}
           />
-          <div style={{ fontSize:10, color:theme.textDim, marginTop:4 }}>
+          <div style={{ fontSize:ts(10), color:theme.textDim, marginTop:4 }}>
             What the apply page will ask of you. <strong>Unknown</strong> means we have not
             established it — those postings may apply cleanly or may need an account, and are
             neither promised nor ruled out.
@@ -780,7 +781,7 @@ function FiltersPanel({
               value={salaryMax} onChange={e=>setSalaryMax(e.target.value)}
               style={{...selStyle, flex:1}}/>
           </div>
-          <div style={{ fontSize:10, color:theme.textDim, marginTop:4 }}>
+          <div style={{ fontSize:ts(10), color:theme.textDim, marginTop:4 }}>
             Matches jobs whose posted range overlaps this window — postings with no
             salary data are excluded once either bound is set.
           </div>
@@ -814,7 +815,7 @@ function FiltersPanel({
               {skillsInclude.map(skill => (
                 <button className="dbx-depth" key={skill} type="button" onClick={() => setSkillsInclude(skillsInclude.filter(s => s !== skill))}
                   style={{
-                    padding:"4px 10px", fontSize:11, fontWeight:600,
+                    padding:"4px 10px", fontSize:ts(11), fontWeight:600,
                     cursor:"pointer", border:`1px solid ${theme.accent}`,
                     background:theme.accentMuted, color:theme.accentText,
                   }}>
@@ -839,7 +840,7 @@ function FiltersPanel({
               border:`1px solid ${sponsorFriendly ? theme.accent : theme.border}`,
               background: sponsorFriendly ? theme.accent : "transparent",
             }}/>
-            <span style={{ fontSize:12, fontWeight:600 }}>Sponsor-friendly only</span>
+            <span style={{ fontSize:ts(12), fontWeight:600 }}>Sponsor-friendly only</span>
           </button>
         </div>
 
@@ -865,9 +866,9 @@ function FiltersPanel({
               border:`1px solid ${companySponsors === "1" ? theme.accent : theme.border}`,
               background: companySponsors === "1" ? theme.accent : "transparent",
             }}/>
-            <span style={{ fontSize:12, fontWeight:600 }}>Hide employers with no H-1B filings</span>
+            <span style={{ fontSize:ts(12), fontWeight:600 }}>Hide employers with no H-1B filings</span>
           </button>
-          <div style={{ fontSize:10, color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
+          <div style={{ fontSize:ts(10), color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
             From US Department of Labor LCA disclosure data. Removes only employers we matched
             confidently and that filed nothing in the quarters we hold — a company we could not
             identify stays on the board.
@@ -891,9 +892,9 @@ function FiltersPanel({
               border:`1px solid ${hideEligibility ? theme.accent : theme.border}`,
               background: hideEligibility ? theme.accent : "transparent",
             }}/>
-            <span style={{ fontSize:12, fontWeight:600 }}>Hide roles that require clearance or citizenship</span>
+            <span style={{ fontSize:ts(12), fontWeight:600 }}>Hide roles that require clearance or citizenship</span>
           </button>
-          <div style={{ fontSize:10, color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
+          <div style={{ fontSize:ts(10), color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
             Hides postings that state U.S. citizenship, U.S.-person (export control), a security clearance or a
             polygraph. Read from the posting's own words — postings we have not read yet stay on the board.
           </div>
@@ -916,9 +917,9 @@ function FiltersPanel({
               border:`1px solid ${trulyEntry ? theme.accent : theme.border}`,
               background: trulyEntry ? theme.accent : "transparent",
             }}/>
-            <span style={{ fontSize:12, fontWeight:600 }}>Truly entry level</span>
+            <span style={{ fontSize:ts(12), fontWeight:600 }}>Truly entry level</span>
           </button>
-          <div style={{ fontSize:10, color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
+          <div style={{ fontSize:ts(10), color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
             Leaves out postings titled junior or entry that ask for 3+ years, system design or leading others.
             Read from the posting's own words.
           </div>
@@ -941,9 +942,9 @@ function FiltersPanel({
               border:`1px solid ${hideGhost ? theme.accent : theme.border}`,
               background: hideGhost ? theme.accent : "transparent",
             }}/>
-            <span style={{ fontSize:12, fontWeight:600 }}>Hide likely not hiring</span>
+            <span style={{ fontSize:ts(12), fontWeight:600 }}>Hide likely not hiring</span>
           </button>
-          <div style={{ fontSize:10, color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
+          <div style={{ fontSize:ts(10), color:theme.textMuted, marginTop:5, lineHeight:1.45 }}>
             Leaves out postings with strong signs of no current opening — a talent-pool title, many reposts, months
             open, no replies to people who applied. Each one shows its reasons; off, they stay at the end of the board.
           </div>
@@ -963,7 +964,7 @@ function FiltersPanel({
                 <button className="dbx-depth" key={opt.value} type="button" aria-pressed={active}
                   onClick={() => setSectors(active ? sectors.filter(v => v !== opt.value) : [...sectors, opt.value])}
                   style={{
-                    padding:"5px 12px", fontSize:11, fontWeight:600,
+                    padding:"5px 12px", fontSize:ts(11), fontWeight:600,
                     cursor:"pointer", border:`1px solid ${active ? theme.accent : theme.border}`,
                     background: active ? theme.accentMuted : "transparent",
                     color: active ? theme.accentText : theme.textMuted,
@@ -974,7 +975,7 @@ function FiltersPanel({
               );
             })}
           </div>
-          <div style={{ fontSize:10, color:theme.textDim, marginTop:4 }}>
+          <div style={{ fontSize:ts(10), color:theme.textDim, marginTop:4 }}>
             The employer's industry, not the kind of work — pick the kind of work in the sentence above.
             Companies with no sector on file are kept, after the ones we know.
           </div>
@@ -1178,7 +1179,7 @@ function PullToRefresh({ onRefresh, refreshing, theme, children }) {
         transition: pullY === 0 ? "height 0.22s ease" : "none",
       }}>
         {pullY > 12 && (
-          <span style={{ fontSize:11, fontWeight:700, color:theme.accentText }}>
+          <span style={{ fontSize:ts(11), fontWeight:700, color:theme.accentText }}>
             {ready ? "? Release to refresh" : "? Keep pulling…"}
           </span>
         )}
@@ -4103,7 +4104,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               style={{
                 padding:"6px 16px", border:"none", cursor:"pointer",
                 fontFamily:"inherit", fontWeight:800,
-                fontSize:13,
+                fontSize:ts(13),
                 background: boardTab===id ? theme.accent : theme.surface,
                 color: boardTab===id ? C.ON_ACCENT : theme.text,
                 transition:"background 0.15s",
@@ -4140,11 +4141,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             style={{ width:"100%", height:38, paddingLeft:14, paddingRight:14,
                      borderRadius:2, border:`1px solid ${theme.border}`,
                      background:theme.surface, color:theme.text,
-                     fontFamily:"inherit", fontSize:13, outline:"none",
+                     fontFamily:"inherit", fontSize:ts(13), outline:"none",
                      boxSizing:"border-box" }}/>
           {showPreview && (
             <div style={{ position:"absolute", top:"calc(100% + 4px)", left:0,
-              fontSize:10, color:theme.textMuted, background:theme.surface,
+              fontSize:ts(10), color:theme.textMuted, background:theme.surface,
               border:`1px solid ${theme.border}`,
               borderRadius:4, padding:"4px 10px", whiteSpace:"nowrap", zIndex:10 }}>
               Will search as: <span style={{ color:theme.accentText, fontWeight:700 }}>{normalisedPreview}</span>
@@ -4163,9 +4164,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         </LucyBtn>
         </>)}
         {uploadError && (
-          <div style={{ flexBasis:"100%", padding:"4px 0", fontSize:11, color:C.DANGER }}>
+          <div style={{ flexBasis:"100%", padding:"4px 0", fontSize:ts(11), color:C.DANGER }}>
             Error: {uploadError}
-            <button onClick={() => setUploadError("")} style={{ marginLeft:6, background:"none", border:"none", cursor:"pointer", fontSize:11, color:C.DANGER }}>Dismiss</button>
+            <button onClick={() => setUploadError("")} style={{ marginLeft:6, background:"none", border:"none", cursor:"pointer", fontSize:ts(11), color:C.DANGER }}>Dismiss</button>
           </div>
         )}
 
@@ -4197,11 +4198,11 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             {/* Header */}
             <div style={{ padding:"20px 24px 16px", borderBottom:`1px solid ${theme.border}` }}>
               <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                             fontSize:26}}>
+                             fontSize:ts(26)}}>
                 Resume Enhancement
               </div>
               {enhanceResult.delta != null && (
-                <div style={{ fontSize:12, color:theme.textMuted, marginTop:4 }}>
+                <div style={{ fontSize:ts(12), color:theme.textMuted, marginTop:4 }}>
                   ATS score improved by
                   <span style={{ color: enhanceResult.delta > 0 ? C.SUCCESS : C.DANGER,
                                   fontWeight:700, marginLeft:4 }}>
@@ -4214,22 +4215,22 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
             {/* Side-by-side comparison */}
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:0 }}>
               <div style={{ padding:"16px 20px", borderRight:`1px solid ${theme.border}` }}>
-                <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+                <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                                letterSpacing:"0.06em", color:theme.textMuted, marginBottom:8 }}>
                   Original
                 </div>
-                <pre style={{ fontSize:11, color:theme.text, whiteSpace:"pre-wrap",
+                <pre style={{ fontSize:ts(11), color:theme.text, whiteSpace:"pre-wrap",
                                wordBreak:"break-word", maxHeight:340, overflowY:"auto",
                                fontFamily:"monospace", margin:0 }}>
                   {enhanceResult.original?.text}
                 </pre>
               </div>
               <div style={{ padding:"16px 20px" }}>
-                <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase",
+                <div style={{ fontSize:ts(11), fontWeight:700, textTransform:"uppercase",
                                letterSpacing:"0.06em", color:C.SUCCESS, marginBottom:8 }}>
                   Enhanced
                 </div>
-                <pre style={{ fontSize:11, color:theme.text, whiteSpace:"pre-wrap",
+                <pre style={{ fontSize:ts(11), color:theme.text, whiteSpace:"pre-wrap",
                                wordBreak:"break-word", maxHeight:340, overflowY:"auto",
                                fontFamily:"monospace", margin:0 }}>
                   {enhanceResult.enhanced?.text}
@@ -4242,7 +4243,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
               <div style={{ display:"flex", gap:10, width:"100%", justifyContent:"center" }}>
                 <button className="dbx-depth" onClick={handleAdoptEnhanced}
                   style={{
-                    padding:"10px 24px", fontWeight:800, fontSize:13,
+                    padding:"10px 24px", fontWeight:800, fontSize:ts(13),
                     background:theme.accent, color:"var(--c-on-accent)", border:"none", cursor:"pointer",
                     fontFamily:"inherit",
                   }}>
@@ -4250,7 +4251,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
                 </button>
                 <button className="dbx-depth" onClick={() => setEnhanceModalOpen(false)}
                   style={{
-                    padding:"10px 24px", fontWeight:800, fontSize:13,
+                    padding:"10px 24px", fontWeight:800, fontSize:ts(13),
                     background:"transparent", color:theme.textMuted,
                     border:`1px solid ${theme.border}`, cursor:"pointer",
                     fontFamily:"inherit",
@@ -4258,7 +4259,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
                   Keep Original
                 </button>
               </div>
-              <div style={{ fontSize:10, color:theme.textDim, textAlign:"center", maxWidth:480 }}>
+              <div style={{ fontSize:ts(10), color:theme.textDim, textAlign:"center", maxWidth:480 }}>
                 This is your one-time enhancement. Your choice here does not affect whether it has been used.
               </div>
             </div>
@@ -4367,9 +4368,9 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
                   alignItems:"center", gap:2,
                   opacity: enabled ? 1 : 0.4,
                   color: active ? theme.accentText : theme.textMuted,
-                  fontSize:10, fontWeight:700,
+                  fontSize:ts(10), fontWeight:700,
                 }}>
-                <span style={{ fontSize:18 }}>{icon}</span>
+                <span style={{ fontSize:ts(18) }}>{icon}</span>
                 {label}
               </button>
             ))}
@@ -4438,7 +4439,7 @@ export default function JobsPanel({ user, onUserChange, refreshKey = 0, isActive
         <div style={{ padding:"8px 16px", display:"flex", gap:12, flexWrap:"wrap" }}>
           {attribution.map(a => (
             <a key={a.name} href={a.url} target="_blank" rel="noopener noreferrer"
-               style={{ fontSize:11, color:theme.textMuted, textDecoration:"none", opacity:0.7 }}>
+               style={{ fontSize:ts(11), color:theme.textMuted, textDecoration:"none", opacity:0.7 }}>
               Jobs powered by {a.name}
             </a>
           ))}
@@ -4539,17 +4540,17 @@ export function ImportedHeaderView({ theme, status = null }) {
                                            padding:"12px 16px 4px" }}>
       <Link to={EXTENSION_PAGE} className="rm-btn rm-btn-primary rm-btn-sm" data-import-jobs="">Import jobs</Link>
       {connected
-        ? <span data-extension-connected="" style={{ fontSize:13, color:theme.textMuted }}>Capture any posting with ⌃⇧K — it lands here.</span>
+        ? <span data-extension-connected="" style={{ fontSize:ts(13), color:theme.textMuted }}>Capture any posting with ⌃⇧K — it lands here.</span>
         : EXTENSION_STORE_URL
-          ? <a href={EXTENSION_STORE_URL} target="_blank" rel="noopener noreferrer" data-get-extension="" style={{ fontSize:13, color:theme.accentText }}>Get the extension →</a>
-          : <span style={{ fontSize:13, color:theme.textMuted }}>The extension's Web Store listing is not published yet.</span>}
+          ? <a href={EXTENSION_STORE_URL} target="_blank" rel="noopener noreferrer" data-get-extension="" style={{ fontSize:ts(13), color:theme.accentText }}>Get the extension →</a>
+          : <span style={{ fontSize:ts(13), color:theme.textMuted }}>The extension's Web Store listing is not published yet.</span>}
     </div>
   );
 }
 
 export function ImportedEmptyState({ theme }) {
   return (
-    <div data-imported-empty="" style={{ padding:"28px 16px", color:theme.textMuted, fontSize:14, lineHeight:1.6, maxWidth:560 }}>
+    <div data-imported-empty="" style={{ padding:"28px 16px", color:theme.textMuted, fontSize:ts(14), lineHeight:1.6, maxWidth:560 }}>
       <p style={{ margin:"0 0 8px", color:theme.text, fontWeight:700 }}>No imported jobs yet.</p>
       <p style={{ margin:0 }}>
         Open any job posting in Chrome and capture it with the draft extension (⌃⇧K). It lands on your
@@ -4628,7 +4629,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
       {importedTab && <ImportedHeader theme={theme}/>}
       {/* A126 (7): the postings held back until they are matched — said, never silently missing. */}
       {!boardLoading && beingMatched > 0 && (
-        <p data-being-matched="" style={{ margin:"4px 2px 10px", fontSize:12.5, color:theme.textMuted }}>
+        <p data-being-matched="" style={{ margin:"4px 2px 10px", fontSize:ts(12.5), color:theme.textMuted }}>
           {beingMatched.toLocaleString()}{beingMatchedMore ? "+" : ""} more {beingMatched === 1 && !beingMatchedMore ? "posting is" : "postings are"} being matched to your résumé — they appear here as they're scored.
         </p>
       )}
@@ -4638,7 +4639,7 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
       ) : shouldShowEmptyState ? (
         // ⭐ 45s: held back because they are being matched — never "nothing matches your filters" (they DO match).
         beingMatched > 0 ? (
-          <div data-matching-empty="" style={{ padding:"28px 6px", color:theme.textMuted, fontSize:14, lineHeight:1.5 }}>
+          <div data-matching-empty="" style={{ padding:"28px 6px", color:theme.textMuted, fontSize:ts(14), lineHeight:1.5 }}>
             <b style={{ color:theme.text }}>Matching {beingMatched.toLocaleString()}{beingMatchedMore ? "+" : ""} {beingMatched === 1 && !beingMatchedMore ? "job" : "jobs"} to your résumé…</b>
             <div>They appear here as each one is scored — usually within a minute of a new résumé.</div>
           </div>
@@ -4664,20 +4665,20 @@ function JobsColumn({ jobs, scraping, scrapeError, onClearScrapeError,
             <div style={{ margin:"8px 16px 0", padding:"10px 14px", borderRadius:4,
                           background:C.DANGER_QUIET, border:`1px solid ${C.DANGER}`,
                           display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <span style={{ fontSize:12, color:C.DANGER }}>
+              <span style={{ fontSize:ts(12), color:C.DANGER }}>
                 Error: {scrapeError}
               </span>
               <div style={{ display:"flex", gap:8, alignItems:"center" }}>
                 {pollStatus === "error" && onRetryPoll && (
                   <button onClick={onRetryPoll}
                     style={{ background:"none", border:`1px solid ${C.DANGER}`, borderRadius:4,
-                             cursor:"pointer", color:C.DANGER, fontSize:11, padding:"2px 8px",
+                             cursor:"pointer", color:C.DANGER, fontSize:ts(11), padding:"2px 8px",
                              fontWeight:700 }}>
                     Retry
                   </button>
                 )}
                 <button onClick={onClearScrapeError} style={{ background:"none", border:"none",
-                  cursor:"pointer", color:C.DANGER, fontSize:14 }}>x</button>
+                  cursor:"pointer", color:C.DANGER, fontSize:ts(14) }}>x</button>
               </div>
             </div>
           )}
@@ -4756,7 +4757,7 @@ function BoardMore({ shown, total, more, onMore, theme }) {
   const of = Number.isFinite(total) && total > 0 ? ` of ${total.toLocaleString()}` : "";
   return (
     <div ref={ref} data-board-more="" data-more={more ? "true" : "false"}
-      style={{ display:"flex", justifyContent:"center", padding:"18px 20px 26px", fontSize:13.5, color:theme.textMuted }}>
+      style={{ display:"flex", justifyContent:"center", padding:"18px 20px 26px", fontSize:ts(13.5), color:theme.textMuted }}>
       {more
         ? <button type="button" onClick={() => onMore?.()} className="fh-more"
             style={{ background:"none", border:0, font:"inherit", color:"inherit", cursor:"pointer", padding:"6px 10px" }}>
@@ -4810,18 +4811,18 @@ function PagingEmptyState({ theme, reason, onFirstPage }) {
     <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
                   justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
       <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                    fontSize:29, color:th.text,
+                    fontSize:ts(29), color:th.text,
                     textAlign:"center" }}>
         {isBug ? "Something went wrong loading this page" : "You are past the end of the list"}
       </div>
-      <div style={{ fontSize:12, textAlign:"center", color:th.textDim, maxWidth:380, lineHeight:1.8 }}>
+      <div style={{ fontSize:ts(12), textAlign:"center", color:th.textDim, maxWidth:380, lineHeight:1.8 }}>
         {reason?.message}
         {!isBug && reason?.total ? ` There ${reason.total === 1 ? "is" : "are"} ${reason.total} job${reason.total === 1 ? "" : "s"} on this board.` : ""}
       </div>
       {onFirstPage && (
         <button type="button" onClick={onFirstPage}
           style={{ border:"none", borderRadius:6, padding:"8px 16px", background:th.accent,
-                   color:C.ON_ACCENT, fontWeight:800, fontSize:12, cursor:"pointer" }}>
+                   color:C.ON_ACCENT, fontWeight:800, fontSize:ts(12), cursor:"pointer" }}>
           Go to the first page
         </button>
       )}
@@ -4849,12 +4850,12 @@ function FitRankingNotice({ theme, show, failed = false, onRetry, onAddResume })
   // ⛔ D156 (6) · d156FailedReadNeverShownAsMissing: a read that failed says so — never "Add one" to a user who may have one.
   if (failed) return (
     <div role="status" data-resume-read-failed="" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-                  padding: "6px 14px", fontSize: 11, color: th.textDim }}>
+                  padding: "6px 14px", fontSize: ts(11), color: th.textDim }}>
       <span>We couldn't load this profile's résumé — draft didn't answer in time. Sorting by fit waits for it.</span>
       {onRetry && (
         <button type="button" onClick={onRetry}
           style={{ background: "none", border: "none", padding: 0, cursor: "pointer",
-                   color: "var(--c-accent-ink)", fontSize: 11, fontWeight: 700, textDecoration: "underline" }}>
+                   color: "var(--c-accent-ink)", fontSize: ts(11), fontWeight: 700, textDecoration: "underline" }}>
           Try again
         </button>
       )}
@@ -4862,14 +4863,14 @@ function FitRankingNotice({ theme, show, failed = false, onRetry, onAddResume })
   );
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-                  padding: "6px 14px", fontSize: 11, color: th.textDim }}>
+                  padding: "6px 14px", fontSize: ts(11), color: th.textDim }}>
       {/* ⛔ D92: no full-width hairline under it — one line ruled across the whole window is a seam. */}
       <span>Sorting by fit needs this profile's base resume — the rest of the board works without it.</span>
       {onAddResume && (
         <button type="button" onClick={onAddResume}
           style={{ background: "none", border: "none", padding: 0, cursor: "pointer",
                    // the ACCENT_INK text token, not the orange fill (2.41:1 as text — D93's matrix scan)
-                   color: "var(--c-accent-ink)", fontSize: 11, fontWeight: 700, textDecoration: "underline" }}>
+                   color: "var(--c-accent-ink)", fontSize: ts(11), fontWeight: 700, textDecoration: "underline" }}>
           Add one
         </button>
       )}
@@ -4887,18 +4888,18 @@ function FilteredEmptyState({ theme, count, onClearFilters }) {
     <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
                   justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
       <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                    fontSize:29, color:th.text,
+                    fontSize:ts(29), color:th.text,
                     textAlign:"center" }}>
         Your filters exclude all jobs
       </div>
-      <div style={{ fontSize:12, textAlign:"center", color:th.textDim, maxWidth:360, lineHeight:1.8 }}>
+      <div style={{ fontSize:ts(12), textAlign:"center", color:th.textDim, maxWidth:360, lineHeight:1.8 }}>
         {count} filter{count === 1 ? " is" : "s are"} active on this board and nothing matches all
         of them. The postings are still there — widen or clear the filters to see them.
       </div>
       {onClearFilters && (
         <button type="button" onClick={onClearFilters}
           style={{ border:"none", borderRadius:6, padding:"8px 16px", background:th.accent,
-                   color:C.ON_ACCENT, fontWeight:800, fontSize:12, cursor:"pointer" }}>
+                   color:C.ON_ACCENT, fontWeight:800, fontSize:ts(12), cursor:"pointer" }}>
           Clear all filters
         </button>
       )}
@@ -4924,11 +4925,11 @@ function NoPoolEmptyState({ theme }) {
     <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
                   justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
       <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                    fontSize:29, color:th.text,
+                    fontSize:ts(29), color:th.text,
                     textAlign:"center" }}>
         No jobs have been collected yet
       </div>
-      <div style={{ fontSize:12, textAlign:"center", color:th.textDim, maxWidth:380, lineHeight:1.8 }}>
+      <div style={{ fontSize:ts(12), textAlign:"center", color:th.textDim, maxWidth:380, lineHeight:1.8 }}>
         This is not your profile and not your filters — the shared job pool itself is empty, so there
         is nothing for any board to show. It refills on the next scheduled crawl. You can also add a
         posting yourself with the <Link to="/extension" target="_blank" rel="noopener">draft browser extension</Link>.
@@ -4953,11 +4954,11 @@ function RoleScopedEmptyState({ theme, profileName }) {
     <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
                   justifyContent:"center", gap:14, padding:40, color:th.textDim }}>
       <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                    fontSize:29, color:th.text,
+                    fontSize:ts(29), color:th.text,
                     textAlign:"center" }}>
         No jobs in your profile&rsquo;s role
       </div>
-      <div style={{ fontSize:12, textAlign:"center", color:th.textDim, maxWidth:380, lineHeight:1.8 }}>
+      <div style={{ fontSize:ts(12), textAlign:"center", color:th.textDim, maxWidth:380, lineHeight:1.8 }}>
         This board only shows postings matching the role of your active profile
         {profileName ? <> (<strong style={{ color:th.text }}>{profileName}</strong>)</> : null}, and
         no filters are narrowing it — nothing in the pool is classified under that role yet. Switch
@@ -4975,11 +4976,11 @@ function SetupGateNotice({ theme, title, body, actionLabel, onAction, children =
                     background:theme.surface, borderRadius:8, padding:24,
                     boxShadow:C.SHADOW_SM }}>
         <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                      fontSize:29,
+                      fontSize:ts(29),
                       color:theme.text, marginBottom:8 }}>
           {title}
         </div>
-        <div style={{ fontSize:13, lineHeight:1.6, color:theme.textMuted, marginBottom:18 }}>
+        <div style={{ fontSize:ts(13), lineHeight:1.6, color:theme.textMuted, marginBottom:18 }}>
           {body}
         </div>
         {children || (
@@ -5003,11 +5004,11 @@ function SearchIntentDialog({ theme, prompt, onConfirm, onCancel }) {
         background:theme.modalSurface || theme.surface, border:`1px solid ${theme.border}`,
         borderRadius:8, boxShadow:C.SHADOW_SM, padding:22 }}>
         <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                      fontSize:26,
+                      fontSize:ts(26),
                       color:theme.text, marginBottom:8 }}>
           {prompt.title}
         </div>
-        <div style={{ fontSize:13, lineHeight:1.6, color:theme.textMuted, marginBottom:20 }}>
+        <div style={{ fontSize:ts(13), lineHeight:1.6, color:theme.textMuted, marginBottom:20 }}>
           {prompt.body}
         </div>
         <div style={{ display:"flex", justifyContent:"flex-end", gap:10, flexWrap:"wrap" }}>
@@ -5047,31 +5048,31 @@ function CompanyReuseModal({ company, onUseExisting, onGenerateNew, onCancel, th
         border:`1px solid ${theme.border}`,
         display:"flex", flexDirection:"column", gap:16,
       }}>
-        <div style={{ fontSize:18, fontWeight:800, color:theme.text }}>
+        <div style={{ fontSize:ts(18), fontWeight:800, color:theme.text }}>
           Previously applied to {company}
         </div>
-        <div style={{ fontSize:13, color:theme.textMuted, lineHeight:1.6 }}>
+        <div style={{ fontSize:ts(13), color:theme.textMuted, lineHeight:1.6 }}>
           You've already generated a resume for a role at <strong style={{ color:theme.text }}>{company}</strong>.
           Use your existing resume for this role, or generate a new one?
         </div>
         <div style={{ display:"flex", gap:10, flexDirection:"column" }}>
           <button className="dbx-depth" onClick={onUseExisting} style={{
             padding:"10px 0", border:`1px solid ${theme.accent}`,
-            background:theme.accent, color:C.ON_ACCENT, fontWeight:800, fontSize:13,
+            background:theme.accent, color:C.ON_ACCENT, fontWeight:800, fontSize:ts(13),
             cursor:"pointer", fontFamily:"inherit",
           }}>
             Use Existing Resume
           </button>
           <button className="dbx-depth" onClick={onGenerateNew} style={{
             padding:"10px 0", border:`1px solid ${theme.border}`,
-            background:"transparent", color:theme.text, fontWeight:800, fontSize:13,
+            background:"transparent", color:theme.text, fontWeight:800, fontSize:ts(13),
             cursor:"pointer", fontFamily:"inherit",
           }}>
             Generate New
           </button>
           <button onClick={onCancel} style={{
             padding:"6px 0", border:"none", background:"none",
-            color:theme.textMuted, fontSize:12, cursor:"pointer",
+            color:theme.textMuted, fontSize:ts(12), cursor:"pointer",
           }}>
             Cancel
           </button>
