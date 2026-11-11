@@ -193,3 +193,13 @@ test("a179TailoredOnlyWithDelta (approval rows): a Ready-to-approve row's own fi
   assert.match(src, /baseAtsScore: baseScoreOf\(r\),/);
   assert.match(src, /SELECT base_ats_score FROM resumes WHERE user_id = \? AND job_id = \?/);
 });
+
+// ⭐ 46f · A179 F1's other half, found by the local walk (scripts/walkA179local.mjs, 9 / 9): POST /api/apply/runs judged the
+// prerequisites from the profile ROW only, so an empty profile with a base résumé that names the person was refused
+// "profile_name" before the run — and the run is where completeProfileForApply fills that row. It is filled first now.
+test("a179PrerequisitesAfterTheResumeFill: the run-start gate fills an empty profile from the résumé before it judges", () => {
+  const src = fs.readFileSync("routes/apply.js", "utf8").replace(/\r\n/g, "\n");
+  assert.match(src, /import \{ contactGaps, completeProfileForApply \} from "\.\.\/services\/applyProfileFill\.js";/);
+  const fill = src.indexOf('if (row) completeProfileForApply(db, row);'), gate = src.indexOf("const missingPrerequisites = getMissingApplyPrerequisites(getAutomationReadiness(db, userId));");
+  assert.ok(fill > 0 && gate > fill, "the fill runs before the gate reads the profile");
+});
