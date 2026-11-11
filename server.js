@@ -3,6 +3,8 @@
 // server.js — Draft v5
 // ============================================================
 import "dotenv/config";
+import "./services/stagingGuardBoot.js";   // ⛔ A188: a staging deploy with a production credential exits HERE, before any module reads it
+import { isStaging } from "./services/stagingGuard.js";
 import express        from "express";
 import cors           from "cors";
 import cron           from "node-cron";
@@ -10170,6 +10172,8 @@ function resolveUserJobDomainProfileId(userId, jobId) {
 
 // ── Express ───────────────────────────────────────────────────
 const app = express();
+// ⛔ A188: a staging deploy is never indexed beside the live site (robots.txt below says Disallow: / too).
+if (isStaging()) app.use((_req, res, next) => { res.set("X-Robots-Tag", "noindex, nofollow"); next(); });
 // A163: an ADMIN's successful write marks the admin report cache stale, so the next admin page shows the numbers after it.
 // ⛔ 46a (the D95 guard caught the first version): it acts only when the finished request was an admin's (mayActAsAdmin —
 // req.admin / the legacy admin, set by the auth middleware that runs later) and succeeded — anyone else's POST to
@@ -11075,6 +11079,7 @@ ${route.lastmod ? `    <lastmod>${xmlEscape(route.lastmod)}</lastmod>
 }
 
 app.get("/robots.txt", (req, res) => {
+  if (isStaging()) return res.type("text/plain").send("User-agent: *\nDisallow: /\n");   // ⛔ A188
   const base = appBaseUrl(req);
   res.type("text/plain").send([
     "User-agent: *",
@@ -17251,6 +17256,7 @@ app.get("/api/version", (_req, res) => {
 
   res.json({
     ...BUILD_INFO,
+    env: isStaging() ? "staging" : "production",   // ⛔ A188
     contract: CONTRACT_VERSION,
     migrations,
     atsWeights,
