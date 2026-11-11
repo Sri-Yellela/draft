@@ -17,6 +17,7 @@ import { EXTENSION_STORE_URL } from "../../../../shared/extension.js";
 import { CANONICAL_HOST, PRIVACY_POLICY_PATH } from "../../../../shared/brand.js";
 import { api } from "../../lib/api.js";
 import { useExtensionStatus } from "../../components/ExtensionPrompt.jsx";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const STEPS = [
   { title: "Add it to Chrome",
@@ -38,7 +39,7 @@ const FACTS = [
 export function ExtensionInstallButton({ compact = false }) {
   if (!EXTENSION_STORE_URL) {
     return (
-      <p data-extension-unavailable="" style={{ fontSize: 14, color: "var(--color-text-muted)", margin: 0 }}>
+      <p data-extension-unavailable="" style={{ fontSize: ts(14), color: "var(--color-text-muted)", margin: 0 }}>
         The Chrome Web Store link isn't published yet. It will be here.
       </p>
     );
@@ -88,11 +89,11 @@ export function ExtensionStateCard({ status }) {
     const seen = agoWords(status.lastSeenAt ? status.lastSeenAt * 1000 : null);
     return (
       <div data-extension-state="connected" style={card}>
-        <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>Your extension is connected</div>
-        <p style={{ fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.6, margin: "0 0 12px" }}>
+        <div style={{ fontSize: ts(16), fontWeight: 800, marginBottom: 6 }}>Your extension is connected</div>
+        <p style={{ fontSize: ts(14), color: "var(--color-text-muted)", lineHeight: 1.6, margin: "0 0 12px" }}>
           {seen ? `Last used ${seen}. ` : ""}Here's what to do with it:
         </p>
-        <ul style={{ fontSize: 14, lineHeight: 1.7, margin: 0, paddingLeft: 20 }}>
+        <ul style={{ fontSize: ts(14), lineHeight: 1.7, margin: 0, paddingLeft: 20 }}>
           <li><strong>On a job posting</strong> — click the draft icon, or press Ctrl+Shift+K. It says exactly where the job went.</li>
           <li><strong>On an application you drafted</strong> — press Ctrl+Shift+Y to fill it, check every answer, and submit it yourself.</li>
           <li><strong>Not sure which?</strong> — open it and press <em>Read this page</em>; it picks the action that fits.</li>
@@ -103,12 +104,12 @@ export function ExtensionStateCard({ status }) {
   if (status.state === "not_connected") {
     return (
       <div data-extension-state="not_connected" style={card}>
-        <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>Your extension isn't connected</div>
-        <p style={{ fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.6, margin: 0 }}>
+        <div style={{ fontSize: ts(16), fontWeight: 800, marginBottom: 6 }}>Your extension isn't connected</div>
+        <p style={{ fontSize: ts(14), color: "var(--color-text-muted)", lineHeight: 1.6, margin: 0 }}>
           It has been used on this account, but it holds no live key right now. Click the draft icon in your
           browser's toolbar while you're signed in here and it connects by itself — or press <em>Sign in</em> inside it.
         </p>
-        <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "12px 0 0" }}>
+        <p style={{ fontSize: ts(13), color: "var(--color-text-muted)", margin: "12px 0 0" }}>
           Setting it up on a different browser? <ExtensionInstallButton compact/>
         </p>
       </div>
@@ -122,7 +123,7 @@ export function ExtensionStateCard({ status }) {
 // own card. One line points there.
 export function ImportsPointer() {
   return (
-    <p data-imports-pointer="" style={{ fontSize: 14, color: "var(--color-text-muted)", margin: "0 0 48px" }}>
+    <p data-imports-pointer="" style={{ fontSize: ts(14), color: "var(--color-text-muted)", margin: "0 0 48px" }}>
       Jobs you capture are on your board — open the <Link to="/app/jobs?view=imported">+ view on Full House</Link> to see them.
     </p>
   );
@@ -146,7 +147,7 @@ export function ExtensionPage() {
                       fontFamily: "var(--font-display)" }}>
           Add any job to your board
         </h1>
-        <p style={{ fontSize: 16, color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 28, maxWidth: 560 }}>
+        <p style={{ fontSize: ts(16), color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 28, maxWidth: 560 }}>
           The draft browser extension is how a job you find anywhere gets onto Full House. Capture the
           posting you're viewing, and later fill the application — you review every answer and submit
           it yourself.
@@ -155,7 +156,7 @@ export function ExtensionPage() {
           <div style={{ marginBottom: 56 }}>
             <ExtensionInstallButton/>
             {signedIn && (
-              <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "10px 0 0" }}>
+              <p style={{ fontSize: ts(13), color: "var(--color-text-muted)", margin: "10px 0 0" }}>
                 Already installed it? Click it once while you're signed in here and it connects.
               </p>
             )}
@@ -172,12 +173,12 @@ export function ExtensionPage() {
               <div aria-hidden="true" style={{ width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
                              background: "var(--color-primary-muted)", border: "2px solid var(--color-primary)",
                              display: "flex", alignItems: "center", justifyContent: "center",
-                             fontSize: 16, fontWeight: 900, color: "var(--color-primary-text)" }}>
+                             fontSize: ts(16), fontWeight: 900, color: "var(--color-primary-text)" }}>
                 {i + 1}
               </div>
               <div style={{ paddingTop: 4, minWidth: 0 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--color-text)", margin: "0 0 6px" }}>{s.title}</h2>
-                <p style={{ fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.7, margin: 0, maxWidth: 560 }}>{s.body}</p>
+                <h2 style={{ fontSize: ts(18), fontWeight: 800, color: "var(--color-text)", margin: "0 0 6px" }}>{s.title}</h2>
+                <p style={{ fontSize: ts(14), color: "var(--color-text-muted)", lineHeight: 1.7, margin: 0, maxWidth: 560 }}>{s.body}</p>
               </div>
             </li>
           ))}
@@ -187,12 +188,12 @@ export function ExtensionPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
           {FACTS.map(([h, b]) => (
             <div key={h} style={{ border: "1px solid var(--color-border)", borderRadius: 14, padding: 18 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>{h}</div>
-              <div style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.6 }}>{b}</div>
+              <div style={{ fontSize: ts(14), fontWeight: 800, marginBottom: 6 }}>{h}</div>
+              <div style={{ fontSize: ts(13), color: "var(--color-text-muted)", lineHeight: 1.6 }}>{b}</div>
             </div>
           ))}
         </div>
-        <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0 }}>
+        <p style={{ fontSize: ts(13), color: "var(--color-text-muted)", margin: 0 }}>
           What it stores and sends is set out in the <Link to={PRIVACY_POLICY_PATH}>privacy policy</Link>.
         </p>
       </main>

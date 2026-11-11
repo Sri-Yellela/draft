@@ -1,5 +1,6 @@
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 // Shared KB-reference rendering (stack / org / hiring signal) — used by both the seeker-facing
 // CompanyViewModal (FE-4) and the RecruiterPanel (FE-6) so the two surfaces render the exact
 // same evidence-labeled blocks instead of maintaining two copies.
@@ -18,7 +19,7 @@ export function hiringSummaryLine(signal) {
 
 export function SectionLabel({ children, theme }) {
   return (
-    <div style={{ fontSize: 11, fontWeight: 700, color: theme.textMuted, marginBottom: 8,
+    <div style={{ fontSize: ts(11), fontWeight: 700, color: theme.textMuted, marginBottom: 8,
                   textTransform: "uppercase", letterSpacing: "0.06em" }}>
       {children}
     </div>
@@ -36,7 +37,7 @@ export function StackSection({ stack, postings, theme }) {
   return (
     <div>
       <SectionLabel theme={theme}>Stack</SectionLabel>
-      <div style={{ fontSize: 11, color: thin ? C.WARNING : theme.textMuted, marginBottom: 8 }}>
+      <div style={{ fontSize: ts(11), color: thin ? C.WARNING : theme.textMuted, marginBottom: 8 }}>
         Based on {postings} recent posting{postings === 1 ? "" : "s"} — evidence, not confirmation.
         {thin && " Too thin to generalise from."}
       </div>
@@ -45,7 +46,7 @@ export function StackSection({ stack, postings, theme }) {
           <span key={s.skill}
             title={`Seen in ${s.postingCount} posting${s.postingCount === 1 ? "" : "s"}` +
                    (s.fresh ? "" : " — not reinforced by a recent posting")}
-            style={{ fontSize: 11, padding: "3px 9px", borderRadius: 6,
+            style={{ fontSize: ts(11), padding: "3px 9px", borderRadius: 6,
                      background: theme.surfaceHigh, color: s.fresh ? theme.text : theme.textMuted,
                      opacity: s.fresh ? 1 : 0.55, border: `1px solid ${theme.border}`,
                      display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -53,7 +54,7 @@ export function StackSection({ stack, postings, theme }) {
             {/* Per-chip evidence weight: without it a chip seen once is indistinguishable from
                 one seen 201 times, which is the whole difference between the sparse and the
                 well-covered company. */}
-            <span style={{ fontSize: 9, fontWeight: 700, color: theme.textMuted, opacity: 0.8 }}>
+            <span style={{ fontSize: ts(9), fontWeight: 700, color: theme.textMuted, opacity: 0.8 }}>
               {s.postingCount}
             </span>
           </span>
@@ -80,7 +81,7 @@ export function OrgSection({ orgUnits, total, theme }) {
   return (
     <div>
       <SectionLabel theme={theme}>Org</SectionLabel>
-      <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 8 }}>
+      <div style={{ fontSize: ts(11), color: theme.textMuted, marginBottom: 8 }}>
         {total > shown
           ? `Highest-confidence ${shown} of ${total} units seen — `
           : `${shown} unit${shown === 1 ? "" : "s"} seen — `}
@@ -95,7 +96,7 @@ export function OrgSection({ orgUnits, total, theme }) {
           return (
             <div key={u.orgUnit} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <ConfidenceBar confidence={u.confidence} theme={theme} />
-              <span style={{ fontSize: 12, color: theme.text, flex: 1, minWidth: 0,
+              <span style={{ fontSize: ts(12), color: theme.text, flex: 1, minWidth: 0,
                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {u.orgUnit}
               </span>
@@ -182,20 +183,20 @@ export function SponsorshipSection({ lca, theme }) {
     <div>
       <SectionLabel theme={theme}>Sponsorship (H-1B)</SectionLabel>
       {hasFilings ? (
-        <div style={{ fontSize: 12, color: theme.text, marginBottom: 4 }}>
+        <div style={{ fontSize: ts(12), color: theme.text, marginBottom: 4 }}>
           <strong>{entityNames}</strong> had <strong>{lca.certifiedTotal}</strong> H-1B labor
           condition application{lca.certifiedTotal === 1 ? "" : "s"} certified by the US Department
           of Labor across {searched} quarter{searched === 1 ? "" : "s"}{span}
           {lca.latestPeriod ? `, most recently ${formatPeriod(lca.latestPeriod)}` : ""}.
         </div>
       ) : (
-        <div style={{ fontSize: 12, color: theme.text, marginBottom: 4 }}>
+        <div style={{ fontSize: ts(12), color: theme.text, marginBottom: 4 }}>
           No H-1B filings found for <strong>{entityNames}</strong> in {searched} quarter
           {searched === 1 ? "" : "s"} of DOL disclosure data{span}.
         </div>
       )}
       {/* The caveat, immediately under the claim it qualifies — never at the foot of the panel. */}
-      <div style={{ fontSize: 11, color: C.WARNING, marginBottom: 8 }}>
+      <div style={{ fontSize: ts(11), color: C.WARNING, marginBottom: 8 }}>
         {hasFilings
           ? "Evidence about the employer — not confirmation that this role sponsors."
           : "Absence of a filing is evidence, not proof this employer will not sponsor."}
@@ -204,7 +205,7 @@ export function SponsorshipSection({ lca, theme }) {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
           {periods.map(([period, n]) => (
             <span key={period} title={`${n} certified in ${formatPeriod(period)}`}
-              style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6,
+              style={{ fontSize: ts(10), padding: "2px 8px", borderRadius: 6,
                        background: theme.surfaceHigh, color: theme.textMuted,
                        border: `1px solid ${theme.border}` }}>
               {formatPeriod(period)} <strong style={{ color: theme.text }}>{n}</strong>
@@ -213,7 +214,7 @@ export function SponsorshipSection({ lca, theme }) {
         </div>
       )}
       {stale && (
-        <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 8 }}>
+        <div style={{ fontSize: ts(11), color: theme.textMuted, marginBottom: 8 }}>
           Last filing was {lca.quartersSinceFiling} quarter
           {lca.quartersSinceFiling === 1 ? "" : "s"} before the newest data we hold
           {lca.latestCorpusPeriod ? ` (${formatPeriod(lca.latestCorpusPeriod)})` : ""} — this
@@ -224,7 +225,7 @@ export function SponsorshipSection({ lca, theme }) {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
           {lca.topTitles.map(t => (
             <span key={t.title} title={`${t.count} filing${t.count === 1 ? "" : "s"}`}
-              style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6,
+              style={{ fontSize: ts(10), padding: "2px 8px", borderRadius: 6,
                        background: theme.surfaceHigh, color: theme.textMuted,
                        border: `1px solid ${theme.border}` }}>
               {t.title} <strong style={{ color: theme.text }}>{t.count}</strong>
@@ -236,7 +237,7 @@ export function SponsorshipSection({ lca, theme }) {
           turns green at exactly 60 and 0.60 is the LOWEST tier we will render at all. A green bar
           beside "verify the employer" reads as reassurance next to a warning; the colour has to
           agree with the words. The bar itself is left alone — it is OrgSection's too. */}
-      <div style={{ fontSize: 10, color: nameMatched ? C.WARNING : theme.textMuted,
+      <div style={{ fontSize: ts(10), color: nameMatched ? C.WARNING : theme.textMuted,
                     display: "flex", alignItems: "center", gap: 6 }}>
         <ConfidenceBar confidence={lca.matchConfidence} theme={theme} />
         <span>
@@ -257,8 +258,8 @@ export function HiringSection({ signal, theme }) {
   return (
     <div>
       <SectionLabel theme={theme}>Hiring Signal</SectionLabel>
-      <div style={{ fontSize: 12, color: theme.text, marginBottom: 8 }}>{line}</div>
-      <div style={{ display: "flex", gap: 14, fontSize: 11, color: theme.textMuted }}>
+      <div style={{ fontSize: ts(12), color: theme.text, marginBottom: 8 }}>{line}</div>
+      <div style={{ display: "flex", gap: 14, fontSize: ts(11), color: theme.textMuted }}>
         <span><strong style={{ color: theme.text }}>{signal.openCount}</strong> open</span>
         <span><strong style={{ color: C.SUCCESS }}>{signal.newCount}</strong> new</span>
         <span><strong style={{ color: C.DANGER }}>{signal.expiredCount}</strong> expired</span>
@@ -270,7 +271,7 @@ export function HiringSection({ signal, theme }) {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
           {domains.map(([domain, n]) => (
             <span key={domain} title={`${n} of ${signal.openCount} open postings`}
-              style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6,
+              style={{ fontSize: ts(10), padding: "2px 8px", borderRadius: 6,
                        background: theme.surfaceHigh, color: theme.textMuted,
                        border: `1px solid ${theme.border}` }}>
               {domain} <strong style={{ color: theme.text }}>{n}</strong>

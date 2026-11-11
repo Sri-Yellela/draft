@@ -17,6 +17,7 @@ import { useTheme } from "../styles/theme.jsx";
 import { mergeUniqueSignalLabels } from "../../../shared/profileSignals.js";
 import { PROFILE_SENIORITY } from "../../../shared/jobFilterOptions.js";
 import { C } from "../styles/colorTokens.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const STEPS = ["Domain", "Level", "Titles", "Keywords", "Save"];
 
@@ -35,7 +36,7 @@ function Chip({ label, selected, onToggle }) {
       onClick={() => onToggle(label)}
       style={{
         padding: "4px 12px", border: "none",
-        fontSize: 12, fontWeight: 600, cursor: "pointer",
+        fontSize: ts(12), fontWeight: 600, cursor: "pointer",
         background: selected ? theme.accent : theme.surfaceHigh,
         color:      selected ? C.ON_ACCENT    : theme.textMuted,
         transition: "all 0.12s",
@@ -64,13 +65,13 @@ function ChipAddInput({ placeholder, onAdd }) {
         style={{
           flex: 1, padding: "4px 10px", borderRadius: 6,
           border: `1px solid ${theme.border}`, background: theme.bg,
-          color: theme.text, fontSize: 12, outline: "none",
+          color: theme.text, fontSize: ts(12), outline: "none",
         }}
       />
       <button type="button" onClick={submit} style={{
         padding: "4px 12px", borderRadius: 6, border: "none",
         background: theme.accent, color: C.ON_ACCENT,
-        fontSize: 12, fontWeight: 700, cursor: "pointer",
+        fontSize: ts(12), fontWeight: 700, cursor: "pointer",
       }}>+</button>
     </div>
   );
@@ -91,7 +92,7 @@ function StepIndicator({ current, total }) {
           transition: "all 0.2s",
         }}/>
       ))}
-      <span style={{ fontSize: 11, color: theme.textMuted, marginLeft: 4 }}>
+      <span style={{ fontSize: ts(11), color: theme.textMuted, marginLeft: 4 }}>
         {current} of {total}
       </span>
     </div>
@@ -330,12 +331,12 @@ export default function DomainProfileWizard({
           justifyContent: "space-between",
         }}>
           <div>
-            <div style={{ fontWeight: 400, fontSize: 26, color: theme.text,
+            <div style={{ fontWeight: 400, fontSize: ts(26), color: theme.text,
                           fontFamily: "var(--font-display)"}}>
               {isEditMode && refine ? "Refine your job profile" : isEditMode ? "Edit Job Search Profile" : "Create Your Job Search Profile"}
             </div>
             {bannerText && (
-              <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4, maxWidth: 480 }}>
+              <div style={{ fontSize: ts(12), color: theme.textMuted, marginTop: 4, maxWidth: 480 }}>
                 {bannerText}
               </div>
             )}
@@ -343,7 +344,7 @@ export default function DomainProfileWizard({
           {onDismiss && (
             <button type="button" onClick={onDismiss} style={{
               background: "none", border: "none", cursor: "pointer",
-              color: theme.textMuted, fontSize: 18, padding: "0 4px", lineHeight: 1, flexShrink: 0,
+              color: theme.textMuted, fontSize: ts(18), padding: "0 4px", lineHeight: 1, flexShrink: 0,
             }}>✕</button>
           )}
         </div>
@@ -365,15 +366,15 @@ export default function DomainProfileWizard({
           {/* ── STEP 1: Domain ── */}
           {step === 1 && (
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: theme.text }}>
+              <div style={{ fontWeight: 700, fontSize: ts(16), marginBottom: 6, color: theme.text }}>
                 What type of roles are you targeting?
               </div>
-              <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 20 }}>
+              <div style={{ fontSize: ts(12), color: theme.textMuted, marginBottom: 20 }}>
                 Select the domain that best fits your career focus, including software, firmware, embedded, systems, and specialist engineering roles. You can add up to 4 profiles total.
               </div>
               {loadingDomains ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "24px 0",
-                              color: theme.textMuted, fontSize: 13 }}>
+                              color: theme.textMuted, fontSize: ts(13) }}>
                   <div style={{ width: 18, height: 18, border: `2px solid ${theme.border}`,
                                 borderTop: `2px solid ${theme.accent}`, borderRadius: "50%",
                                 animation: "spin 0.8s linear infinite", flexShrink: 0 }}/>
@@ -381,12 +382,12 @@ export default function DomainProfileWizard({
                 </div>
               ) : domainsError ? (
                 <div style={{ padding: "20px 0" }}>
-                  <div style={{ fontSize: 13, color: theme.textMuted, marginBottom: 12 }}>
+                  <div style={{ fontSize: ts(13), color: theme.textMuted, marginBottom: 12 }}>
                     Could not load domain options.
                   </div>
                   <button type="button" onClick={loadDomains} style={{
                     padding: "6px 16px", borderRadius: 6, border: `1px solid ${theme.border}`,
-                    background: theme.bg, color: theme.text, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    background: theme.bg, color: theme.text, fontSize: ts(12), fontWeight: 600, cursor: "pointer",
                   }}>Retry</button>
                 </div>
               ) : (
@@ -399,17 +400,17 @@ export default function DomainProfileWizard({
                         background: domainKey === d.key ? "color-mix(in srgb, var(--color-primary) 10%, transparent)" : theme.bg,
                         textAlign: "left", transition: "all 0.15s",
                       }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: theme.text, marginBottom: 4 }}>
+                        <div style={{ fontWeight: 700, fontSize: ts(13), color: theme.text, marginBottom: 4 }}>
                           {d.label}
                         </div>
-                        <div style={{ fontSize: 11, color: theme.textMuted, lineHeight: 1.4 }}>
+                        <div style={{ fontSize: ts(11), color: theme.textMuted, lineHeight: 1.4 }}>
                           {(d.exampleTitles || []).join(" · ")}
                         </div>
                       </button>
                     ))}
                   </div>
                   {!domainKey && domains.length > 0 && (
-                    <div style={{ marginTop: 12, fontSize: 11, color: theme.textMuted, fontStyle: "italic" }}>
+                    <div style={{ marginTop: 12, fontSize: ts(11), color: theme.textMuted, fontStyle: "italic" }}>
                       Select a domain above to continue.
                     </div>
                   )}
@@ -421,10 +422,10 @@ export default function DomainProfileWizard({
           {/* ── STEP 2: Seniority ── */}
           {step === 2 && (
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: theme.text }}>
+              <div style={{ fontWeight: 700, fontSize: ts(16), marginBottom: 6, color: theme.text }}>
                 What level are you targeting?
               </div>
-              <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 20 }}>
+              <div style={{ fontSize: ts(12), color: theme.textMuted, marginBottom: 20 }}>
                 This shapes which title variants appear in your job search.
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -443,8 +444,8 @@ export default function DomainProfileWizard({
                       flexShrink: 0,
                     }}/>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: theme.text }}>{opt.label}</div>
-                      <div style={{ fontSize: 12, color: theme.textMuted }}>{opt.sub}</div>
+                      <div style={{ fontWeight: 700, fontSize: ts(14), color: theme.text }}>{opt.label}</div>
+                      <div style={{ fontSize: ts(12), color: theme.textMuted }}>{opt.sub}</div>
                     </div>
                   </button>
                 ))}
@@ -455,10 +456,10 @@ export default function DomainProfileWizard({
           {/* ── STEP 3: Target titles ── */}
           {step === 3 && (
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: theme.text }}>
+              <div style={{ fontWeight: 700, fontSize: ts(16), marginBottom: 6, color: theme.text }}>
                 Which roles are you open to?
               </div>
-              <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 20 }}>
+              <div style={{ fontSize: ts(12), color: theme.textMuted, marginBottom: 20 }}>
                 {isOtherProfile
                   ? "Tell us the role you want supported and any title aliases we should search for."
                   : "All pre-selected. Deselect any that don't fit. We'll search for all selected titles."}
@@ -466,7 +467,7 @@ export default function DomainProfileWizard({
               {isOtherProfile && (
                 <div style={{ display: "grid", gap: 12, marginBottom: 18 }}>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>
+                    <div style={{ fontSize: ts(12), fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>
                       Desired role title
                     </div>
                     <input
@@ -482,13 +483,13 @@ export default function DomainProfileWizard({
                       style={{
                         width: "100%", padding: "9px 12px", borderRadius: 8,
                         border: `1px solid ${theme.border}`, background: theme.bg,
-                        color: theme.text, fontSize: 13, outline: "none",
+                        color: theme.text, fontSize: ts(13), outline: "none",
                         boxSizing: "border-box",
                       }}
                     />
                   </div>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>
+                    <div style={{ fontSize: ts(12), fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>
                       Broad role family or category
                     </div>
                     <input
@@ -498,7 +499,7 @@ export default function DomainProfileWizard({
                       style={{
                         width: "100%", padding: "9px 12px", borderRadius: 8,
                         border: `1px solid ${theme.border}`, background: theme.bg,
-                        color: theme.text, fontSize: 13, outline: "none",
+                        color: theme.text, fontSize: ts(13), outline: "none",
                         boxSizing: "border-box",
                       }}
                     />
@@ -521,10 +522,10 @@ export default function DomainProfileWizard({
           {step === 4 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: theme.text }}>
+                <div style={{ fontWeight: 700, fontSize: ts(16), marginBottom: 6, color: theme.text }}>
                   Select your skills and keywords
                 </div>
-                <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 16 }}>
+                <div style={{ fontSize: ts(12), color: theme.textMuted, marginBottom: 16 }}>
                   These drive your job search and resume generation. All pre-selected.
                 </div>
               </div>
@@ -540,7 +541,7 @@ export default function DomainProfileWizard({
                   placeholder: "Add a verb…" },
               ].map(({ label, set, setter, base, ai, placeholder }) => (
                 <div key={label}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: theme.textMuted,
+                  <div style={{ fontSize: ts(12), fontWeight: 700, color: theme.textMuted,
                                 textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
                     {label}
                   </div>
@@ -556,7 +557,7 @@ export default function DomainProfileWizard({
               {isOtherProfile && (
                 <>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: theme.textMuted,
+                    <div style={{ fontSize: ts(12), fontWeight: 700, color: theme.textMuted,
                                   textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
                       Preferred Industries / Domains
                     </div>
@@ -570,7 +571,7 @@ export default function DomainProfileWizard({
                   </div>
                   <div style={{ display: "grid", gap: 12 }}>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>
+                      <div style={{ fontSize: ts(12), fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>
                         Location / work preference
                       </div>
                       <input
@@ -580,13 +581,13 @@ export default function DomainProfileWizard({
                         style={{
                           width: "100%", padding: "9px 12px", borderRadius: 8,
                           border: `1px solid ${theme.border}`, background: theme.bg,
-                          color: theme.text, fontSize: 13, outline: "none",
+                          color: theme.text, fontSize: ts(13), outline: "none",
                           boxSizing: "border-box",
                         }}
                       />
                     </div>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>
+                      <div style={{ fontSize: ts(12), fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>
                         Notes for support
                       </div>
                       <textarea
@@ -597,7 +598,7 @@ export default function DomainProfileWizard({
                         style={{
                           width: "100%", padding: "9px 12px", borderRadius: 8,
                           border: `1px solid ${theme.border}`, background: theme.bg,
-                          color: theme.text, fontSize: 13, outline: "none",
+                          color: theme.text, fontSize: ts(13), outline: "none",
                           boxSizing: "border-box", resize: "vertical",
                         }}
                       />
@@ -612,7 +613,7 @@ export default function DomainProfileWizard({
                 style={{
                   alignSelf: "flex-start", padding: "6px 16px", borderRadius: 6,
                   border: `1px solid ${theme.border}`, background: theme.bg,
-                  color: theme.text, fontSize: 12, fontWeight: 600,
+                  color: theme.text, fontSize: ts(12), fontWeight: 600,
                   cursor: loadingAi ? "default" : "pointer", opacity: loadingAi ? 0.6 : 1,
                 }}
               >
@@ -624,10 +625,10 @@ export default function DomainProfileWizard({
           {/* ── STEP 5: Name + save ── */}
           {step === 5 && (
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: theme.text }}>
+              <div style={{ fontWeight: 700, fontSize: ts(16), marginBottom: 6, color: theme.text }}>
                 Name this profile
               </div>
-              <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 20 }}>
+              <div style={{ fontSize: ts(12), color: theme.textMuted, marginBottom: 20 }}>
                 {isOtherProfile
                   ? "This creates a search profile and sends your role details for support review."
                   : isEditMode
@@ -642,7 +643,7 @@ export default function DomainProfileWizard({
                 style={{
                   width: "100%", padding: "10px 14px", borderRadius: 8,
                   border: `1.5px solid ${theme.border}`, background: theme.bg,
-                  color: theme.text, fontSize: 15, fontWeight: 600,
+                  color: theme.text, fontSize: ts(15), fontWeight: 600,
                   outline: "none", boxSizing: "border-box",
                 }}
               />
@@ -651,32 +652,32 @@ export default function DomainProfileWizard({
                 background: theme.bg, border: `1px solid ${theme.border}`,
                 display: "flex", flexDirection: "column", gap: 6,
               }}>
-                <div style={{ fontSize: 12, color: theme.textMuted }}>
+                <div style={{ fontSize: ts(12), color: theme.textMuted }}>
                   <strong style={{ color: theme.text }}>Domain:</strong> {domainMeta?.label || domainKey}
                 </div>
                 {isOtherProfile && (
-                  <div style={{ fontSize: 12, color: theme.textMuted }}>
+                  <div style={{ fontSize: ts(12), color: theme.textMuted }}>
                     <strong style={{ color: theme.text }}>Requested role:</strong> {otherRoleTitle || "Not set"}
                   </div>
                 )}
-                <div style={{ fontSize: 12, color: theme.textMuted }}>
+                <div style={{ fontSize: ts(12), color: theme.textMuted }}>
                   <strong style={{ color: theme.text }}>Seniority:</strong>{" "}
                   {/* The SECOND copy of the vocabulary in this file: a membership list and a
                       label map, both literal. Derived from the registry now, so a value added
                       there cannot fall through to showing the raw column value here. */}
                   {SENIORITY_OPTIONS.find(o => o.id === seniority)?.label ?? seniority}
                 </div>
-                <div style={{ fontSize: 12, color: theme.textMuted }}>
+                <div style={{ fontSize: ts(12), color: theme.textMuted }}>
                   <strong style={{ color: theme.text }}>Titles:</strong>{" "}
                   {[...titles].slice(0,5).join(", ")}{titles.size > 5 ? ` +${titles.size-5} more` : ""}
                 </div>
-                <div style={{ fontSize: 12, color: theme.textMuted }}>
+                <div style={{ fontSize: ts(12), color: theme.textMuted }}>
                   <strong style={{ color: theme.text }}>Keywords selected:</strong>{" "}
                   {keywords.size} · Tools: {tools.size} · Verbs: {verbs.size}
                 </div>
               </div>
               {error && (
-                <div style={{ marginTop: 12, fontSize: 12, color: C.DANGER, fontWeight: 600 }}>{error}</div>
+                <div style={{ marginTop: 12, fontSize: ts(12), color: C.DANGER, fontWeight: 600 }}>{error}</div>
               )}
             </div>
           )}
@@ -699,14 +700,14 @@ export default function DomainProfileWizard({
             style={{
               padding: "8px 20px", borderRadius: 6, border: `1px solid ${theme.border}`,
               background: "transparent", color: step === 1 ? theme.textMuted : theme.text,
-              fontSize: 13, fontWeight: 600, cursor: step === 1 ? "default" : "pointer",
+              fontSize: ts(13), fontWeight: 600, cursor: step === 1 ? "default" : "pointer",
               opacity: step === 1 ? 0.4 : 1,
             }}
           >
             Back
           </button>
 
-          <span style={{ fontSize: 12, color: theme.textMuted }}>
+          <span style={{ fontSize: ts(12), color: theme.textMuted }}>
             {step} of {STEPS.length}
           </span>
 
@@ -719,7 +720,7 @@ export default function DomainProfileWizard({
                 padding: "8px 28px", borderRadius: 6, border: "none",
                 background: canNext() ? theme.accent : theme.surfaceHigh,
                 color: canNext() ? C.ON_ACCENT : theme.textMuted,
-                fontSize: 13, fontWeight: 700,
+                fontSize: ts(13), fontWeight: 700,
                 cursor: canNext() ? "pointer" : "default",
               }}
             >
@@ -734,7 +735,7 @@ export default function DomainProfileWizard({
                 padding: "8px 28px", borderRadius: 6, border: "none",
                 background: (saving || !profileName.trim() || (isOtherProfile && !otherRoleTitle.trim())) ? theme.surfaceHigh : theme.accent,
                 color: (saving || !profileName.trim() || (isOtherProfile && !otherRoleTitle.trim())) ? theme.textMuted : C.ON_ACCENT,
-                fontSize: 13, fontWeight: 700,
+                fontSize: ts(13), fontWeight: 700,
                 cursor: (saving || !profileName.trim() || (isOtherProfile && !otherRoleTitle.trim())) ? "default" : "pointer",
               }}
             >

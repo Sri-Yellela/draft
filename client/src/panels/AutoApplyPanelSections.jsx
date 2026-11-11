@@ -18,6 +18,7 @@ import { markStyle, bandMarkStyle, dotCue } from "../styles/mark.js";
 import { C } from "../styles/colorTokens.js";
 import { postingClick } from "../lib/openPosting.js";
 import AttemptResume from "../components/AttemptResume.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 // AD1: OUTCOME_LABELS moved to AutoApplyPanel with the groups themselves — they name the SUB-TABS
 // now, and nothing in this module reads them. The partition still lives in shared/ because
 // routes/apply.js groups rows with it; a copy on each side is how the two come to disagree.
@@ -40,7 +41,7 @@ export { SectionHeading } from "../components/SectionHeading.jsx";
 export function CompanyHeading({ company, count, theme }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-      <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: "0.04em",
+      <span style={{ fontSize: ts(11.5), fontWeight: 800, letterSpacing: "0.04em",
                      textTransform: "uppercase", color: theme.textMuted }}>
         {/* A posting removed by the cleanup leaves an application with no employer, and so does a
             row whose only identifying data is an ATS host. Both are said plainly — companyLabel is
@@ -110,31 +111,31 @@ export function ApplicationObstacleCard({
                   display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 220 }}>
-          <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.08em",
+          <div style={{ fontSize: ts(9), fontWeight: 800, letterSpacing: "0.08em",
                         textTransform: "uppercase", color: tone, marginBottom: 3 }}>
             {app.postingGone ? "the posting is gone"
               : stale ? "prepared too long ago"
               : app.protective ? "held on purpose" : "did not complete"}
           </div>
           {/* THE APPLICATION, named. */}
-          <div style={{ fontSize: 14, fontWeight: 800, color: theme.text, lineHeight: 1.35 }}>
+          <div style={{ fontSize: ts(14), fontWeight: 800, color: theme.text, lineHeight: 1.35 }}>
             {companyLabel(app.company)}
             {app.title && <span style={{ color: theme.textMuted, fontWeight: 600 }}> — {app.title}</span>}
             {!app.title && app.jobId && (
-              <span style={{ fontSize: 10, color: theme.textDim, fontWeight: 600 }}> · {app.jobId}</span>
+              <span style={{ fontSize: ts(10), color: theme.textDim, fontWeight: 600 }}> · {app.jobId}</span>
             )}
           </div>
           {/* D182 (45n): no "One application · N things to resolve" — the card is the one application and the big
               N "to resolve" beside it is the count. Only the attempts and the date are said here. */}
-          {sub && <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>{sub}</div>}
+          {sub && <div style={{ fontSize: ts(11), color: theme.textMuted, marginTop: 2 }}>{sub}</div>}
         </div>
         {/* The count is of OBSTACLES here, not applications: this card IS one application, and a
             big "1" beside it was the number that made three cards look like three jobs. */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
                       minWidth: 46, flexShrink: 0 }}>
           <span style={{ fontFamily: "var(--font-display)", fontWeight: 400,
-                         fontSize: 36, lineHeight: 1, color: tone }}>{app.reasons.length}</span>
-          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
+                         fontSize: ts(36), lineHeight: 1, color: tone }}>{app.reasons.length}</span>
+          <span style={{ fontSize: ts(9), fontWeight: 700, letterSpacing: "0.06em",
                          textTransform: "uppercase", color: theme.textDim, textAlign: "center" }}>
             to resolve
           </span>
@@ -159,16 +160,16 @@ export function ApplicationObstacleCard({
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
                             minWidth: 34, flexShrink: 0 }}>
                 <span style={{ fontFamily: "var(--font-display)", fontWeight: 400,
-                               fontSize: 26, lineHeight: 1, color: C.INFO }}>{item.unblocks}</span>
-                <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.06em",
+                               fontSize: ts(26), lineHeight: 1, color: C.INFO }}>{item.unblocks}</span>
+                <span style={{ fontSize: ts(8), fontWeight: 700, letterSpacing: "0.06em",
                                textTransform: "uppercase", color: theme.textDim }}>unblocked</span>
               </div>
               <div style={{ flex: 1, minWidth: 160 }}>
-                <div style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.45 }}>
+                <div style={{ fontSize: ts(11.5), color: theme.text, lineHeight: 1.45 }}>
                   {item.headline}
                 </div>
                 {item.detail && (
-                  <div style={{ fontSize: 10.5, color: theme.textMuted, lineHeight: 1.45 }}>
+                  <div style={{ fontSize: ts(10.5), color: theme.textMuted, lineHeight: 1.45 }}>
                     {item.detail}
                   </div>
                 )}
@@ -176,7 +177,7 @@ export function ApplicationObstacleCard({
               {item.action && onGroupAction && (
                 <button onClick={() => onGroupAction(item)}
                   style={{ border: "none", borderRadius: 6, padding: "6px 11px", background: C.INFO,
-                           color: C.SURFACE_SOLID, fontWeight: 800, fontSize: 11, cursor: "pointer",
+                           color: C.SURFACE_SOLID, fontWeight: 800, fontSize: ts(11), cursor: "pointer",
                            whiteSpace: "nowrap", flexShrink: 0 }}>
                   {item.action}
                 </button>
@@ -190,12 +191,12 @@ export function ApplicationObstacleCard({
               <span style={{ width: 5, height: 5, borderRadius: "50%", marginTop: 6, flexShrink: 0,
                              background: item.protective ? C.WARNING : C.DANGER, ...dotCue(item.protective ? "warn" : "bad") }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.45 }}>
+                <div style={{ fontSize: ts(11.5), color: theme.text, lineHeight: 1.45 }}>
                   {item.headline}
                   {item.detail && <span style={{ color: theme.textMuted }}> — {item.detail}</span>}
                 </div>
                 {item.action && (
-                  <div style={{ fontSize: 10.5, color: theme.textMuted }}>→ {item.action}</div>
+                  <div style={{ fontSize: ts(10.5), color: theme.textMuted }}>→ {item.action}</div>
                 )}
               </div>
             </div>
@@ -205,14 +206,14 @@ export function ApplicationObstacleCard({
               <span style={{ width: 5, height: 5, borderRadius: "50%", marginTop: 6, flexShrink: 0,
                              background: r.protective ? C.WARNING : C.DANGER, ...dotCue(r.protective ? "warn" : "bad") }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.45 }}>
+                <div style={{ fontSize: ts(11.5), color: theme.text, lineHeight: 1.45 }}>
                   {r.obstacle}
                   {r.detail && r.detail !== r.obstacle && (
                     <span style={{ color: theme.textMuted }}> — {r.detail}</span>
                   )}
                 </div>
                 {r.action && (
-                  <div style={{ fontSize: 10.5, color: theme.textMuted }}>→ {r.action}</div>
+                  <div style={{ fontSize: ts(10.5), color: theme.textMuted }}>→ {r.action}</div>
                 )}
               </div>
             </div>
@@ -223,7 +224,7 @@ export function ApplicationObstacleCard({
         {app.primary?.row?.resumeAvailable ? (
           // ⭐ D171 FIX 4: the résumé opens in draft (the embedded editor); only "PDF" downloads.
           <AttemptResume runJobId={app.primary.row.id} artifactUrl={artifactUrl} className="dbx-depth"
-            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
+            style={{ fontSize: ts(10), fontWeight: 700, padding: "2px 8px",
                      border: `1px solid ${theme.border}`, background: theme.surface,
                      color: theme.text, whiteSpace: "nowrap", cursor: "pointer" }} />
         ) : onGenerateResume && !app.postingGone
@@ -234,7 +235,7 @@ export function ApplicationObstacleCard({
           // the posting is gone: there would be nothing to tailor a resume to.
           <button className="dbx-depth" onClick={() => onGenerateResume(app)}
             title="Drafts this job again — the new run generates a tailored resume for it before it applies."
-            style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px",
+            style={{ fontSize: ts(10), fontWeight: 800, padding: "2px 8px",
                      border: "none", background: C.INFO, color: C.SURFACE_SOLID, cursor: "pointer",
                      whiteSpace: "nowrap" }}>
             Generate a resume
@@ -266,7 +267,7 @@ export function ApplicationObstacleCard({
         })()}
         {app.applyUrl && (
           <a className="dbx-depth" href={app.applyUrl} target="_blank" rel="noreferrer" onClick={(e) => postingClick(app, e)}
-            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
+            style={{ fontSize: ts(10), fontWeight: 700, padding: "2px 8px",
                      border: `1px solid ${theme.border}`, background: theme.surface,
                      color: theme.text, textDecoration: "none", whiteSpace: "nowrap" }}>
             The posting ↗
@@ -278,21 +279,21 @@ export function ApplicationObstacleCard({
         {/* A posting that no longer exists gets no action, and says why. There is no form to open
             and no run that would find one. */}
         {app.postingGone ? (
-          <span style={{ fontSize: 10, color: theme.textDim }}>
+          <span style={{ fontSize: ts(10), color: theme.textDim }}>
             posting gone — cannot be resumed
           </span>
         ) : stale && onRerun ? (
           <button onClick={() => onRerun(app)}
             title="These answers were prepared too long ago to fill safely. A fresh run prepares new ones."
             style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "6px 12px",
-                     background: theme.surface, color: theme.text, fontWeight: 700, fontSize: 11.5,
+                     background: theme.surface, color: theme.text, fontWeight: 700, fontSize: ts(11.5),
                      cursor: "pointer", whiteSpace: "nowrap" }}>
             Run it again
           </button>
         ) : onResolve ? (
           <button onClick={() => onResolve(app)} title={resolveTitle}
             style={{ border: "none", borderRadius: 6, padding: "7px 13px", background: tone,
-                     color: C.SURFACE_SOLID, fontWeight: 800, fontSize: 11.5, cursor: "pointer",
+                     color: C.SURFACE_SOLID, fontWeight: 800, fontSize: ts(11.5), cursor: "pointer",
                      whiteSpace: "nowrap" }}>
             {resolveLabel || "Open"}
           </button>
@@ -300,7 +301,7 @@ export function ApplicationObstacleCard({
         {onDetails && (
           <button onClick={() => onDetails(app)}
             style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "6px 11px",
-                     background: theme.surface, color: theme.text, fontWeight: 700, fontSize: 11.5,
+                     background: theme.surface, color: theme.text, fontWeight: 700, fontSize: ts(11.5),
                      cursor: "pointer", whiteSpace: "nowrap" }}>
             {/* In the panel this opens the scoped popup and reads "Details". In the modal there is
                 nothing further to open, so it toggles the per-ATTEMPT rows and says so — the label
@@ -338,7 +339,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
   // posting: the job whose posting this is (D99 J11 — handed to the extension); artifacts pass none
   const link = (href, text, posting = null) => (
     <a className="dbx-depth" href={href} target="_blank" rel="noreferrer" onClick={posting ? (e) => postingClick(posting, e) : undefined}
-      style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
+      style={{ fontSize: ts(10), fontWeight: 700, padding: "2px 8px",
                border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text,
                textDecoration: "none", whiteSpace: "nowrap" }}>{text}</a>
   );
@@ -354,14 +355,14 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
                   borderRadius: 6, padding: "9px 12px", background: theme.surfaceHigh,
                   display: "flex", flexDirection: "column", gap: 5 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: theme.text }}>
+        <span style={{ fontSize: ts(12.5), fontWeight: 700, color: theme.text }}>
           {companyLabel(job.company)}
         </span>
-        <span data-vt-title={job.jobId || undefined} style={{ fontSize: 11.5, color: theme.textMuted, flex: 1, minWidth: 120 }}>
+        <span data-vt-title={job.jobId || undefined} style={{ fontSize: ts(11.5), color: theme.textMuted, flex: 1, minWidth: 120 }}>
           {job.title || job.jobId || "—"}
         </span>
         {when && (
-          <span style={{ fontSize: 10, color: theme.textDim, whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: ts(10), color: theme.textDim, whiteSpace: "nowrap" }}>
             {new Date(when).toLocaleDateString()} {new Date(when).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
         )}
@@ -369,7 +370,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
 
       {/* THE OBSTACLE, as a sentence. This replaces the status pill that used to say "Failed". */}
       {variant !== "submitted" && (
-        <div style={{ fontSize: 11.5, color: theme.text, lineHeight: 1.5 }}>
+        <div style={{ fontSize: ts(11.5), color: theme.text, lineHeight: 1.5 }}>
           {/* A DEAD POSTING IS ITS OWN STATE, and it is WHY this row is filed as aborted rather than
               pending — said, rather than left for the reader to infer from which tab they are on.
               This sentence used to live on HistoryRow, which AD1 removed; a held row whose posting
@@ -388,7 +389,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
         </div>
       )}
       {variant !== "submitted" && d.action && (
-        <div style={{ fontSize: 11, color: theme.textMuted }}>→ {d.action}</div>
+        <div style={{ fontSize: ts(11), color: theme.textMuted }}>→ {d.action}</div>
       )}
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
@@ -415,7 +416,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
               ? (
                 <button className="dbx-depth" onClick={() => onGenerateResume(job)}
                   title="Drafts this job again — the new run generates a tailored resume for it before it applies."
-                  style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px",
+                  style={{ fontSize: ts(10), fontWeight: 800, padding: "2px 8px",
                            border: "none", background: C.INFO, color: C.SURFACE_SOLID, cursor: "pointer",
                            whiteSpace: "nowrap" }}>
                   Generate a resume
@@ -443,18 +444,18 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
         {variant === "stopped" && d.retryable && onRetry && (
           <button onClick={() => onRetry(job)}
             style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "4px 10px",
-                     background: theme.surface, color: theme.text, fontWeight: 700, fontSize: 11,
+                     background: theme.surface, color: theme.text, fontWeight: 700, fontSize: ts(11),
                      cursor: "pointer" }}>
             Retry
           </button>
         )}
         {variant === "stopped" && !d.retryable && (
-          <span style={{ fontSize: 10, color: theme.textDim }}>retrying will not change this</span>
+          <span style={{ fontSize: ts(10), color: theme.textDim }}>retrying will not change this</span>
         )}
         {onOpenRun && job.runId && (
           <button onClick={() => onOpenRun(job.runId)}
             style={{ border: "none", background: "transparent", color: theme.textDim,
-                     fontSize: 10, cursor: "pointer", textDecoration: "underline" }}>
+                     fontSize: ts(10), cursor: "pointer", textDecoration: "underline" }}>
             details
           </button>
         )}
@@ -472,7 +473,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
           <button onClick={() => onAbort(job)} disabled={busy}
             title="Stops this application. If it is filling a form right now, the browser is closed, nothing is submitted, and the prepared answers are voided."
             style={{ border: `1px solid ${C.DANGER}55`, borderRadius: 6, padding: "4px 10px",
-                     background: theme.surface, color: C.DANGER, fontWeight: 700, fontSize: 11,
+                     background: theme.surface, color: C.DANGER, fontWeight: 700, fontSize: ts(11),
                      cursor: busy ? "wait" : "pointer", opacity: busy ? 0.5 : 1 }}>
             Abort
           </button>
@@ -483,7 +484,7 @@ export function ApplicationRow({ job, theme, variant, artifactUrl, onRetry, onOp
               ? "Removes this from your history. The record is KEPT — an application that reached an employer is never erased, and an operator can restore it."
               : "Removes this from your history. It is hidden, not deleted, and can be restored."}
             style={{ border: `1px solid ${theme.border}`, borderRadius: 6, padding: "4px 10px",
-                     background: theme.surface, color: theme.text, fontWeight: 700, fontSize: 11,
+                     background: theme.surface, color: theme.text, fontWeight: 700, fontSize: ts(11),
                      cursor: busy ? "wait" : "pointer", opacity: busy ? 0.5 : 1 }}>
             Remove
           </button>
@@ -523,7 +524,7 @@ function FillLog({ runJobId, theme }) {
     return (
       <button className="dbx-depth" onClick={e => { e.stopPropagation(); load(); }}
         title="Every field this run filled, where each answer came from, and every field left blank with the reason."
-        style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
+        style={{ fontSize: ts(10), fontWeight: 700, padding: "2px 8px",
                  border: `1px solid ${theme.border}`, background: theme.surfaceHigh,
                  color: theme.text, cursor: "pointer", whiteSpace: "nowrap" }}>
         What was filled
@@ -531,10 +532,10 @@ function FillLog({ runJobId, theme }) {
     );
   }
   if (state.status === "loading") {
-    return <span style={{ fontSize: 10, color: theme.textMuted }}>reading the record…</span>;
+    return <span style={{ fontSize: ts(10), color: theme.textMuted }}>reading the record…</span>;
   }
   if (state.status === "error") {
-    return <span style={{ fontSize: 10, color: C.DANGER }}>{state.error}</span>;
+    return <span style={{ fontSize: ts(10), color: C.DANGER }}>{state.error}</span>;
   }
 
   const d = state.data;
@@ -550,7 +551,7 @@ function FillLog({ runJobId, theme }) {
     <div data-rm-fill-log={runJobId} onClick={e => e.stopPropagation()} style={{
       width: "100%", border: `1px solid ${theme.border}`, borderRadius: 6,
       background: theme.surfaceHigh, padding: "8px 10px", display: "flex",
-      flexDirection: "column", gap: 6, fontSize: 10.5,
+      flexDirection: "column", gap: 6, fontSize: ts(10.5),
     }}>
       {/* Whether anything was regenerated. This is the answer to "I already generated a resume for
           this job — did queueing it do that work again?" and it is stated rather than implied. */}
@@ -630,7 +631,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
     }}>
       {/* which attempt, and how it ended */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ fontSize: 10.5, color: theme.textMuted }}>
+        <div style={{ fontSize: ts(10.5), color: theme.textMuted }}>
           {/* D171 FIX 1: who started it, when recorded (migration 224) — "Started by the daily run at 6:00 AM" */}
           {job.startedAt && (job.startedBy
             ? startedByPhrase({ startedBy: job.startedBy, at: job.startedAt })
@@ -654,7 +655,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
           {job.reasonCode && (() => {
             const d = describeApplication(job);
             return (
-              <span style={{ fontSize: 11, color: statusColor, fontWeight: 600 }}>
+              <span style={{ fontSize: ts(11), color: statusColor, fontWeight: 600 }}>
                 {d.obstacle}
                 {d.detail && d.detail !== d.obstacle ? ` — ${d.detail}` : ""}
               </span>
@@ -673,7 +674,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
       {/* ⛔ D165 R1: the résumé and cover-letter slots are draft's to fill, never the person's — they are not listed here
           (a run without one says "The résumé couldn't be made" with its retry instead). */}
       {personQuestions(job.missingRequired).length > 0 && (
-        <div data-rm-missing-required={job.id} style={{ fontSize: 10.5, color: C.WARNING }}>
+        <div data-rm-missing-required={job.id} style={{ fontSize: ts(10.5), color: C.WARNING }}>
           Still yours to answer: <span style={{ fontWeight: 700 }}>{personQuestions(job.missingRequired).join(", ")}</span>
         </div>
       )}
@@ -685,7 +686,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
         {job.resumeAvailable ? (
           // ⭐ D171 FIX 4: what this attempt sent opens in draft (read-only once sent); "PDF" downloads it.
           <AttemptResume runJobId={job.id} artifactUrl={artifactUrl} className="dbx-depth"
-            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
+            style={{ fontSize: ts(10), fontWeight: 700, padding: "2px 8px",
                      border: `1px solid ${theme.border}`, background: theme.surfaceHigh,
                      color: theme.text, whiteSpace: "nowrap", cursor: "pointer" }} />
         ) : (
@@ -703,7 +704,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
           <a className="dbx-depth" href={artifactUrl(job.id, "screenshot")} target="_blank" rel="noreferrer"
             onClick={e => e.stopPropagation()}
             title="A picture of the form as it was submitted. This is the record of what went out."
-            style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px",
+            style={{ fontSize: ts(10), fontWeight: 700, padding: "2px 8px",
                      border: `1px solid ${theme.border}`, background: theme.surfaceHigh,
                      color: theme.textMuted, textDecoration: "none", whiteSpace: "nowrap" }}>
             Screenshot of the form ↗
@@ -733,7 +734,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
               title={stale
                 ? "These answers were prepared too long ago to fill safely. A fresh run prepares new ones."
                 : "Opens the real application in your own browser and fills it with the answers we prepared. You review and submit."}
-              style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px",
+              style={{ fontSize: ts(10), fontWeight: 800, padding: "2px 8px",
                        border: stale ? `1px solid ${theme.border}` : "none",
                        background: stale ? theme.surfaceHigh : C.INFO,
                        color: stale ? theme.text : C.SURFACE_SOLID, cursor: "pointer",
@@ -755,7 +756,7 @@ export function AttemptRow({ job, theme, artifactUrl, packetFor, onHandoff, onRe
       {job.applyUrl && (
         <a href={job.applyUrl} target="_blank" rel="noopener noreferrer"
           onClick={e => { e.stopPropagation(); postingClick(job, e); }}
-          style={{ fontSize: 10, color: theme.accentText, textDecoration: "none", wordBreak: "break-all" }}>
+          style={{ fontSize: ts(10), color: theme.accentText, textDecoration: "none", wordBreak: "break-all" }}>
           {job.applyUrl.length > 90 ? job.applyUrl.slice(0, 90) + "…" : job.applyUrl}
         </a>
       )}

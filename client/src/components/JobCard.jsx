@@ -22,6 +22,7 @@ import { api } from "../lib/api.js";
 import { openPosting } from "../lib/openPosting.js";
 import { useAtlasSlugs, atlasHref, useAtlasTerms } from "../lib/atlasLinks.js";
 import { AtlasText } from "./AtlasTerm.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // AH2: a job's title is a LINK to that job's own address.
 //
@@ -250,7 +251,7 @@ function LevelMark({ levelRead }) {
 function ApplyLineNote({ job, score }) {
   const line = applyLine({ score, eligibility: job?.eligibility, liveness: job?.liveness, level: job?.levelRead, sponsorship: job?.sponsorship, ghost: job?.ghost });
   if (!line) return null;
-  return <p data-apply-line={line.verdict} style={{ margin:"4px 0 0", fontSize:11, color:"var(--color-text-muted)" }}>{line.text}</p>;
+  return <p data-apply-line={line.verdict} style={{ margin:"4px 0 0", fontSize:ts(11), color:"var(--color-text-muted)" }}>{line.text}</p>;
 }
 
 // ── Closed pill — a saved job whose listing has expired ──────────
@@ -290,7 +291,7 @@ function SkillChips({ skills, max = 5 }) {
     <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
       {shown.map((s, i) => {
         const slug = slugs[String(s ?? "").trim()];
-        const chip = { fontSize:10, color:"var(--color-text-muted)",
+        const chip = { fontSize:ts(10), color:"var(--color-text-muted)",
                        background:"var(--color-surface-offset)", padding:"2px 7px",
                        borderRadius:4, border:"1px solid var(--border-glass)" };
         return slug
@@ -330,7 +331,7 @@ function AtsSlot({ score, onClick }) {
     <span title="Score this job against your resume and see which terms match" className="dbx-depth"
       onClick={e => { e.stopPropagation(); onClick(); }}
       style={{ background:"transparent", color:"var(--color-text-muted)",
-               padding:"3px 8px", fontSize:10, fontWeight:600,
+               padding:"3px 8px", fontSize:ts(10), fontWeight:600,
                cursor:"pointer", border:"1px dashed var(--color-border)",
                whiteSpace:"nowrap", flexShrink:0 }}>
       Check match
@@ -385,7 +386,7 @@ function DescriptionText({ text, theme, truncate = true, maxChars = 1200, jobId 
   const shouldTruncate = truncate && Number.isFinite(maxChars);
   const trimmed = shouldTruncate ? text.slice(0, maxChars) : text;
   return (
-    <p style={{ fontSize:11, color:"var(--color-text-muted)", lineHeight:1.7, margin:0, whiteSpace:"pre-wrap" }}>
+    <p style={{ fontSize:ts(11), color:"var(--color-text-muted)", lineHeight:1.7, margin:0, whiteSpace:"pre-wrap" }}>
       <AtlasText text={trimmed} terms={terms} used={new Set()} />
       {shouldTruncate && text.length > maxChars && <span style={{ color:"var(--color-text-faint)" }}> … (truncated)</span>}
     </p>
@@ -431,7 +432,7 @@ function IconBtn({
               : "var(--color-border)"}`,
         display:"flex", alignItems:"center", justifyContent:"center",
         cursor: disabled ? "not-allowed" : "pointer",
-        fontSize:12,
+        fontSize:ts(12),
         color: disabled
           ? "var(--color-text-muted)"
           : active
@@ -603,7 +604,7 @@ export default function JobCard({
             <CompanyLogo company={job.company} iconUrl={job.companyIconUrl} size={32}/>
           </div>
           {/* Company name */}
-          <span style={{ fontSize:10, fontWeight:700, color:"var(--color-text)", textAlign:"center",
+          <span style={{ fontSize:ts(10), fontWeight:700, color:"var(--color-text)", textAlign:"center",
                          overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
                          width:"100%", maxWidth:110,
                          opacity:1, transition:"opacity 0.15s ease 0.05s" }}>
@@ -628,11 +629,11 @@ export default function JobCard({
           <div style={{ flex:1, minWidth:0 }}>
             {/* Row 1: company + age + ATS + star + dislike */}
             <div style={{ display:"flex", alignItems:"center", gap:4, marginBottom:3 }}>
-              <span style={{ fontWeight:700, fontSize:12, color:"var(--color-text)",
+              <span style={{ fontWeight:700, fontSize:ts(12), color:"var(--color-text)",
                               overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, minWidth:0 }}>
                 {job.company}
               </span>
-              <span style={{ fontSize:10, color:C.SUCCESS, fontWeight:600, flexShrink:0 }}>{ago(job.postedAt, job.scrapedAt)}</span>
+              <span style={{ fontSize:ts(10), color:C.SUCCESS, fontWeight:600, flexShrink:0 }}>{ago(job.postedAt, job.scrapedAt)}</span>
               {/* The null guard that used to live here, then was removed, now lives INSIDE
                   the badge — one copy rather than one per call site, so the two rows on this card
                   cannot disagree about when a badge appears. See its note for why a card treats
@@ -648,7 +649,7 @@ export default function JobCard({
             </div>
             {/* Row 2: job title */}
             <JobTitleLink job={job} isLoggedOut={isLoggedOut}
-              style={{ fontSize:11, color:"var(--color-text-muted)",
+              style={{ fontSize:ts(11), color:"var(--color-text-muted)",
                        overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
               {job.title}
             </JobTitleLink>
@@ -680,17 +681,17 @@ export default function JobCard({
               {/* ⭐ A157 (owner 11-09): the name opens the company's page; the Apply link lives there now. */}
               <CompanyLink company={job.company} size="panel" jobId={job.jobId || job.id} inApp={!isLoggedOut} />
               {job.alreadyApplied && (
-                <span title="Applied" style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>✓APPLIED</span>
+                <span title="Applied" style={{ fontSize:ts(10), color:C.SUCCESS, fontWeight:700 }}>✓APPLIED</span>
               )}
               {!job.alreadyApplied && job.companyAppliedBefore && (
-                <span title="Applied to this company before" style={{ fontSize:10, color:C.WARNING }}>↩prev</span>
+                <span title="Applied to this company before" style={{ fontSize:ts(10), color:C.WARNING }}>↩prev</span>
               )}
               {job.visited && (
                 <span style={markStyle(C.INK_FAINT)}>visited</span>
               )}
             </div>
             <JobTitleLink job={job} isLoggedOut={isLoggedOut}
-              style={{ fontSize:12, color:"var(--color-text-muted)", marginBottom:6,
+              style={{ fontSize:ts(12), color:"var(--color-text-muted)", marginBottom:6,
                        overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
               {job.title}
             </JobTitleLink>
@@ -719,19 +720,19 @@ export default function JobCard({
                 <PlatformLogo platform={job.sourcePlatform || job.source} size={16} theme={theme}/>
               </span>
               {job.location && (
-                <span style={{ fontSize:10, color:"var(--color-text-faint)" }}>{job.location}</span>
+                <span style={{ fontSize:ts(10), color:"var(--color-text-faint)" }}>{job.location}</span>
               )}
               {yoeStr && (
-                <span style={{ fontSize:10, color:"var(--color-text-faint)" }}>{yoeStr} exp</span>
+                <span style={{ fontSize:ts(10), color:"var(--color-text-faint)" }}>{yoeStr} exp</span>
               )}
               {salaryStr && (
-                <span style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>{salaryStr}</span>
+                <span style={{ fontSize:ts(10), color:C.SUCCESS, fontWeight:700 }}>{salaryStr}</span>
               )}
               {!salaryStr && job.compensation && (
-                <span style={{ fontSize:10, color:C.SUCCESS, fontWeight:700 }}>{job.compensation}</span>
+                <span style={{ fontSize:ts(10), color:C.SUCCESS, fontWeight:700 }}>{job.compensation}</span>
               )}
               {job.applicantCount != null && (
-                <span style={{ fontSize:10, color:"var(--color-text-faint)" }}>
+                <span style={{ fontSize:ts(10), color:"var(--color-text-faint)" }}>
                   {job.applicantCount > 200 ? "200+ applicants" : `${job.applicantCount} applicants`}
                 </span>
               )}
@@ -752,9 +753,9 @@ export default function JobCard({
           {/* Right side */}
           <div style={{ display:"flex", alignItems:"center", gap:5, flexShrink:0, flexWrap:"wrap", justifyContent:"flex-end", marginLeft:"auto" }}>
             {isLoggedOut && hov && (
-              <span style={{ fontSize:13, color:"var(--color-primary-text)", fontWeight:700, opacity:0.85 }}>↗</span>
+              <span style={{ fontSize:ts(13), color:"var(--color-primary-text)", fontWeight:700, opacity:0.85 }}>↗</span>
             )}
-            <span style={{ fontSize:11, color:C.SUCCESS, fontWeight:600 }}>{ago(job.postedAt, job.scrapedAt)}</span>
+            <span style={{ fontSize:ts(11), color:C.SUCCESS, fontWeight:600 }}>{ago(job.postedAt, job.scrapedAt)}</span>
 
             {!isLoggedOut && (
               <AtsSlot score={g?.atsScore ?? job?.baseAtsScore ?? null} onClick={onAts}/>
@@ -762,7 +763,7 @@ export default function JobCard({
             {!isLoggedOut && done && (
               <span onClick={onResume ? e => { e.stopPropagation(); onResume(); } : undefined} className="dbx-depth"
                 style={{ background:C.INFO_QUIET, color:C.INFO, padding:"3px 8px",
-                         fontSize:10, fontWeight:700, cursor:"pointer",
+                         fontSize:ts(10), fontWeight:700, cursor:"pointer",
                          border:`1px solid ${C.INFO}44`, display:"inline-flex", alignItems:"center", gap:3 }}>
                 {st==="loading" ? "⏳" : "📄"} Resume
               </span>
@@ -832,19 +833,19 @@ export default function JobCard({
               </span>
             )}
             {salaryStr && (
-              <span style={{ fontSize:11, color:C.SUCCESS, fontWeight:700, background:C.SUCCESS_QUIET,
+              <span style={{ fontSize:ts(11), color:C.SUCCESS, fontWeight:700, background:C.SUCCESS_QUIET,
                               padding:"2px 8px", borderRadius:4 }}>
                 💰 {salaryStr}
               </span>
             )}
             {yoeStr && (
-              <span style={{ fontSize:11, color:"var(--color-text-muted)", background:"var(--color-surface-offset)",
+              <span style={{ fontSize:ts(11), color:"var(--color-text-muted)", background:"var(--color-surface-offset)",
                               padding:"2px 8px", borderRadius:4 }}>
                 🎓 {yoeStr} exp required
               </span>
             )}
             {job.applicantCount != null && (
-              <span style={{ fontSize:11, color:"var(--color-text-muted)", background:"var(--color-surface-offset)",
+              <span style={{ fontSize:ts(11), color:"var(--color-text-muted)", background:"var(--color-surface-offset)",
                               padding:"2px 8px", borderRadius:4 }}>
                 👥 {job.applicantCount > 200 ? "200+" : job.applicantCount} applicants
               </span>
@@ -859,7 +860,7 @@ export default function JobCard({
                   disabled={!!st}
                   style={{ border:"none", borderRadius:6, padding:"8px 12px",
                            background:"var(--color-primary)", color:C.ON_ACCENT, cursor:st ? "not-allowed" : "pointer",
-                           fontSize:12, fontWeight:800 }}>
+                           fontSize:ts(12), fontWeight:800 }}>
                   {generateLoading ? "Generating..." : done ? "Regenerate" : "Generate"}
                 </button>
               )}
@@ -875,14 +876,14 @@ export default function JobCard({
               paddingTop: 8, marginTop: 4,
               display: "flex", alignItems: "center", gap: 8,
             }}>
-              <span style={{ fontSize:10, color:"var(--color-text-faint)", fontWeight:700,
+              <span style={{ fontSize:ts(10), color:"var(--color-text-faint)", fontWeight:700,
                               textTransform:"uppercase", letterSpacing:"0.06em" }}>
                 Recruiter
               </span>
               <button className="dbx-depth"
                 onClick={e => { e.stopPropagation(); navigate(`/app/recruiter?company=${encodeURIComponent(job.company)}`); }}
                 title={`Open ${job.company}'s KB reference in Recruiter view`}
-                style={{ fontSize:10, padding:"1px 8px", fontWeight:700,
+                style={{ fontSize:ts(10), padding:"1px 8px", fontWeight:700,
                          background:"var(--color-surface-offset)", color:"var(--color-primary-text)",
                          border:"1px solid var(--color-primary)", cursor:"pointer",
                          whiteSpace:"nowrap", letterSpacing:"0.04em" }}>

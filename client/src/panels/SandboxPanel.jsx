@@ -18,6 +18,7 @@ import { useTheme } from "../styles/theme.jsx";
 import PanelShell from "../components/PanelShell.jsx";
 import { C } from "../styles/colorTokens.js";
 import DocToolbar from "../components/DocToolbar.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const RESUME_PAGE_WIDTH  = 794;  // A4 at 96dpi
 const RESUME_PAGE_HEIGHT = 1123; // A4 at 96dpi
@@ -325,7 +326,7 @@ export default function SandboxPanel({
     padding:"5px 14px", borderRadius:10,
     background:"transparent", color:"var(--color-text-muted)",
     border:`1px solid ${"var(--color-border)"}`,
-    fontSize:11, fontWeight:600, cursor:"pointer",
+    fontSize:ts(11), fontWeight:600, cursor:"pointer",
     transition:"all 0.15s",
   });
 
@@ -344,23 +345,23 @@ export default function SandboxPanel({
 
   const header = (
     <div style={{ minWidth:0 }}>
-      <div style={{ fontWeight:700, fontSize:14, color:"var(--color-text)", overflow:"hidden",
+      <div style={{ fontWeight:700, fontSize:ts(14), color:"var(--color-text)", overflow:"hidden",
                     textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
         {activeEntry?.company || "Sandbox"}
       </div>
-      <div style={{ fontSize:12, color:"var(--color-text-muted)", marginTop:2, overflow:"hidden",
+      <div style={{ fontSize:ts(12), color:"var(--color-text-muted)", marginTop:2, overflow:"hidden",
                     textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
         {activeEntry?.title || "Resume preview"}
       </div>
       <div style={{ display:"flex", alignItems:"center", flexWrap:"wrap", gap:5, marginTop:5 }}>
-        <span style={{ fontSize:10, fontWeight:700, color:"var(--color-primary-text)" }}>PDF SANDBOX</span>
+        <span style={{ fontSize:ts(10), fontWeight:700, color:"var(--color-primary-text)" }}>PDF SANDBOX</span>
         {viewMode === "page" && (
-          <span style={{ fontSize:10, color:"var(--color-text-faint)" }}>
+          <span style={{ fontSize:ts(10), color:"var(--color-text-faint)" }}>
             {pageCount} page{pageCount === 1 ? "" : "s"} · A4
           </span>
         )}
-        {dirty && <span style={{ fontSize:10, color:"var(--color-warning)", fontWeight:700 }}>● unsaved</span>}
-        {saveMsg && <span style={{ fontSize:10, fontWeight:700,
+        {dirty && <span style={{ fontSize:ts(10), color:"var(--color-warning)", fontWeight:700 }}>● unsaved</span>}
+        {saveMsg && <span style={{ fontSize:ts(10), fontWeight:700,
           color: saveMsg.startsWith("✓") ? C.SUCCESS : C.DANGER }}>{saveMsg}</span>}
       </div>
     </div>
@@ -398,7 +399,7 @@ export default function SandboxPanel({
       <button style={btnStyle()} onClick={exportPdf} disabled={!activeEntry?.html||exporting}>
         {exporting ? "Exporting…" : "PDF"}
       </button>
-      {exportError && <span style={{ fontSize:10, color:C.DANGER }}>{exportError}</span>}
+      {exportError && <span style={{ fontSize:ts(10), color:C.DANGER }}>{exportError}</span>}
     </>
   );
 
@@ -419,7 +420,7 @@ export default function SandboxPanel({
       {/* Generating skeleton */}
       {activeEntry?.generating && (
         <div style={{ flex:1, padding:"24px 20px", display:"flex", flexDirection:"column", gap:12 }}>
-          <div style={{ fontSize:11, fontWeight:700, color:"var(--color-primary-text)",
+          <div style={{ fontSize:ts(11), fontWeight:700, color:"var(--color-primary-text)",
                         display:"flex", alignItems:"center", gap:8 }}>
             <span style={{ display:"inline-block", animation:"spin 0.8s linear infinite" }}>↻</span>
             {activeEntry?.stage || "Generating…"}
@@ -440,15 +441,15 @@ export default function SandboxPanel({
       {activeEntry?.missing && !activeEntry?.generating && (
         <div style={{ flex:1, padding:24, display:"flex", flexDirection:"column",
                       alignItems:"center", justifyContent:"center", gap:12, textAlign:"center" }}>
-          <div style={{ fontSize:13, color:"var(--color-text)", fontWeight:700 }}>Resume artifact missing</div>
-          <div style={{ fontSize:12, color:"var(--color-text-muted)" }}>
+          <div style={{ fontSize:ts(13), color:"var(--color-text)", fontWeight:700 }}>Resume artifact missing</div>
+          <div style={{ fontSize:ts(12), color:"var(--color-text-muted)" }}>
             This resume was expected from a previous run, but the stored artifact could not be loaded.
           </div>
-          {activeEntry.error && <div style={{ fontSize:11, color:"var(--color-text-faint)" }}>{activeEntry.error}</div>}
+          {activeEntry.error && <div style={{ fontSize:ts(11), color:"var(--color-text-faint)" }}>{activeEntry.error}</div>}
           <button className="dbx-depth" onClick={onClose}
             style={{ marginTop:8, padding:"7px 20px",
                      background:"var(--color-surface-offset)", border:`1px solid ${"var(--color-border)"}`,
-                     cursor:"pointer", fontSize:12, color:"var(--color-text)" }}>
+                     cursor:"pointer", fontSize:ts(12), color:"var(--color-text)" }}>
             Dismiss
           </button>
         </div>
@@ -458,13 +459,13 @@ export default function SandboxPanel({
       {activeEntry?.error && !activeEntry?.missing && !activeEntry?.generating && (
         <div style={{ flex:1, padding:24, display:"flex", flexDirection:"column",
                       alignItems:"center", justifyContent:"center", gap:12, textAlign:"center" }}>
-          <div style={{ fontSize:32 }}>⚠</div>
-          <div style={{ fontSize:13, color:"var(--color-text)", fontWeight:700 }}>Generation failed</div>
-          <div style={{ fontSize:12, color:"var(--color-text-muted)" }}>{activeEntry.error}</div>
+          <div style={{ fontSize:ts(32) }}>⚠</div>
+          <div style={{ fontSize:ts(13), color:"var(--color-text)", fontWeight:700 }}>Generation failed</div>
+          <div style={{ fontSize:ts(12), color:"var(--color-text-muted)" }}>{activeEntry.error}</div>
           <button className="dbx-depth" onClick={onClose}
             style={{ marginTop:8, padding:"7px 20px",
                      background:"var(--color-surface-offset)", border:`1px solid ${"var(--color-border)"}`,
-                     cursor:"pointer", fontSize:12, color:"var(--color-text)" }}>
+                     cursor:"pointer", fontSize:ts(12), color:"var(--color-text)" }}>
             Dismiss
           </button>
         </div>
@@ -484,16 +485,16 @@ export default function SandboxPanel({
               background:"var(--color-surface)", borderBottom:`1px solid ${"var(--color-border)"}`,
               padding:"8px 14px", display:"flex", flexDirection:"column", gap:6, flexShrink:0,
             }}>
-              <div style={{ fontSize:11, fontWeight:700, color:"var(--color-text-muted)" }}>
+              <div style={{ fontSize:ts(11), fontWeight:700, color:"var(--color-text-muted)" }}>
                 ⚑ {activeEntry.kbFindings.length} KB finding{activeEntry.kbFindings.length > 1 ? "s" : ""} to review
               </div>
               {activeEntry.kbFindings.map((f, i) => {
                 const decision = findingDecisions[i];
                 const isFlag = f.type === "flag";
                 return (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, fontSize:11 }}>
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, fontSize:ts(11) }}>
                     <span style={{
-                      padding:"2px 6px", borderRadius:4, fontWeight:700, fontSize:9, flexShrink:0,
+                      padding:"2px 6px", borderRadius:4, fontWeight:700, fontSize:ts(9), flexShrink:0,
                       background: isFlag ? C.DANGER_QUIET : C.WARNING_QUIET,
                       color: isFlag ? C.DANGER : C.WARNING,
                     }}>
@@ -522,7 +523,7 @@ export default function SandboxPanel({
                       </button>
                     )}
                     {decision && (
-                      <span style={{ fontSize:10, color:"var(--color-text-faint)", flexShrink:0 }}>✓ {decision}</span>
+                      <span style={{ fontSize:ts(10), color:"var(--color-text-faint)", flexShrink:0 }}>✓ {decision}</span>
                     )}
                   </div>
                 );
@@ -534,8 +535,8 @@ export default function SandboxPanel({
             <div style={{ flex:1, display:"flex", flexDirection:"column",
                           alignItems:"center", justifyContent:"center", gap:12,
                           color:"var(--color-text-muted)" }}>
-              <div style={{ fontSize:48 }}>⚡</div>
-              <div style={{ fontWeight:700, fontSize:14 }}>Generate a resume to populate the sandbox.</div>
+              <div style={{ fontSize:ts(48) }}>⚡</div>
+              <div style={{ fontWeight:700, fontSize:ts(14) }}>Generate a resume to populate the sandbox.</div>
             </div>
           ) : (
             viewMode === "reading" ? (
@@ -550,11 +551,11 @@ export default function SandboxPanel({
               <div ref={readingHostRef} style={{ display:"flex", flexDirection:"column", minWidth:0 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 12px",
                               background:"var(--color-primary-muted)", color:"var(--color-primary-text)",
-                              fontSize:10, fontWeight:700, flexShrink:0 }}>
+                              fontSize:ts(10), fontWeight:700, flexShrink:0 }}>
                   <span>Reading view reflows to the panel width — page breaks are not shown. Switch to Page view to edit and format.</span>
                   <button onClick={() => setViewChoice("page")}
                     style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer",
-                             color:"inherit", fontSize:10, fontWeight:800, textDecoration:"underline" }}>
+                             color:"inherit", fontSize:ts(10), fontWeight:800, textDecoration:"underline" }}>
                     Page view
                   </button>
                 </div>

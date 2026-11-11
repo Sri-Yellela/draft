@@ -23,6 +23,7 @@ import { EEO_DECLINE } from "../../../shared/savedAnswers.js";
 import { durationLabel } from "../../../shared/durationLabel.js";   // A153: "2 yrs 4 mos"
 import { technologiesIn } from "../../../shared/techVocabulary.js";   // D184 B-6: the one technology vocabulary
 import { requestBoardSearch } from "../lib/boardSearch.js";            // D184 B-6: a technology opens the jobs asking for it
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const NOT_SET = "Not set — I'll answer on each form";
 // The words a self-ID question is usually answered in; the stored value is the text, so the fill matches the form's own.
@@ -43,7 +44,7 @@ export const ABOUT_ANCHOR = "profile-about";
 // ⭐ A153 (45o, the D183 sketch): a row you changed by hand says so (D183 P2 already keeps it through a résumé replace —
 // item source 'user'); nothing is drawn for a row from the résumé.
 function EditedMark({ source, theme }) {
-  return source === "user" ? <span data-edited-by-you="" style={{ fontSize: 11, color: theme.textDim }}> · edited by you</span> : null;
+  return source === "user" ? <span data-edited-by-you="" style={{ fontSize: ts(11), color: theme.textDim }}> · edited by you</span> : null;
 }
 // ⭐ A153: a project with its proof attached COUNTS as proof for the skills it names (the sketch's "counts as proof for Kafka").
 // Your own skills only, matched as whole words in the project's name or description; nothing when it has no proof link.
@@ -73,7 +74,7 @@ function LogoTile({ logo, initial, theme }) {
   return logo
     ? <img src={logo} alt="" style={{ ...box, objectFit: "contain", background: C.SURFACE_SOLID }} />
     : <span aria-hidden="true" style={{ ...box, display: "inline-flex", alignItems: "center", justifyContent: "center",
-        fontWeight: 800, fontSize: 14, color: theme.textMuted, background: theme.surfaceHigh }}>{initial || "?"}</span>;
+        fontWeight: 800, fontSize: ts(14), color: theme.textMuted, background: theme.surfaceHigh }}>{initial || "?"}</span>;
 }
 
 // ── D109 · evidence on a claim ────────────────────────────────────────────────────────────────────
@@ -92,7 +93,7 @@ function EvidenceLinks({ target, claim, links, onSaved, theme }) {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const input = { height: 30, padding: "0 8px", borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.surface,
-    color: theme.text, fontSize: 12, boxSizing: "border-box", width: "100%" };
+    color: theme.text, fontSize: ts(12), boxSizing: "border-box", width: "100%" };
   const save = async () => {
     setBusy(true); setErr("");
     try {
@@ -103,7 +104,7 @@ function EvidenceLinks({ target, claim, links, onSaved, theme }) {
   };
   if (!draft) {
     return (
-      <span data-evidence={target} style={{ display: "inline-flex", gap: 8, flexWrap: "wrap", alignItems: "baseline", fontSize: 12 }}>
+      <span data-evidence={target} style={{ display: "inline-flex", gap: 8, flexWrap: "wrap", alignItems: "baseline", fontSize: ts(12) }}>
         {links.map(l => (
           <a key={l.id ?? l.url} href={l.url} target="_blank" rel="noopener noreferrer" style={{ color: theme.text }}>
             <span style={{ color: theme.textMuted }}>{KIND_WORD[l.kind] || l.kind}:</span> {l.label}</a>
@@ -136,7 +137,7 @@ function EvidenceLinks({ target, claim, links, onSaved, theme }) {
         <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setDraft(null)} disabled={busy}>Cancel</button>
         <button className="rm-btn rm-btn-primary rm-btn-sm" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</button>
       </div>
-      {err && <span role="alert" style={{ fontSize: 12, color: C.DANGER }}>{err}</span>}
+      {err && <span role="alert" style={{ fontSize: ts(12), color: C.DANGER }}>{err}</span>}
     </div>
   );
 }
@@ -154,7 +155,7 @@ function ProofPageSetting({ theme }) {
     try { const r = await api("/api/profile/proof-page", { method: "PUT", body: JSON.stringify({ enabled, handle: handle.trim() || null, ...extra }) }); setS(r); setHandle(r.handle || ""); }
     catch (e) { setErr(e.message || "Not saved."); }
   };
-  const muted = { fontSize: 12, color: theme.textMuted };
+  const muted = { fontSize: ts(12), color: theme.textMuted };
   if (!s) return <span style={muted}>{err || "Loading…"}</span>;
   const url = s.handle ? `${window.location.origin}/p/${s.handle}` : null;
   return (
@@ -167,22 +168,22 @@ function ProofPageSetting({ theme }) {
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <span style={muted}>{window.location.host}/p/</span>
         <input value={handle} onChange={e => setHandle(e.target.value.toLowerCase())} placeholder="your-name" aria-label="Page address"
-          style={{ height: 32, padding: "0 8px", borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text, fontSize: 13 }} />
+          style={{ height: 32, padding: "0 8px", borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text, fontSize: ts(13) }} />
         <span style={markStyle(s.enabled ? C.SUCCESS : C.INK_MUTED)}>{s.enabled ? "On" : "Off"}</span>
         {s.enabled
           ? <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => send(false)}>Turn off</button>
           : <button className="rm-btn rm-btn-primary rm-btn-sm" onClick={() => send(true)} disabled={!handle.trim()}>Turn on</button>}
       </div>
-      {s.enabled && url && <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13 }}>{url}</a>}
+      {s.enabled && url && <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: ts(13) }}>{url}</a>}
       {/* ⭐ D178-4: what you proved in Atlas is its own yes — OFF until ticked, even with the page on. */}
       {s.enabled && (
-        <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13 }} data-proof-page-learning={s.showLearning ? "on" : "off"}>
+        <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: ts(13) }} data-proof-page-learning={s.showLearning ? "on" : "off"}>
           <input type="checkbox" checked={!!s.showLearning} onChange={e => send(true, { showLearning: e.target.checked })} />
           <span>Also show what you've proven in Atlas — the modules you finished, the skills you passed a quick check in or
             showed with a build, and your builds, each with its date. No points or levels.</span>
         </label>
       )}
-      {err && <span role="alert" style={{ fontSize: 12, color: C.DANGER }}>{err}</span>}
+      {err && <span role="alert" style={{ fontSize: ts(12), color: C.DANGER }}>{err}</span>}
     </div>
   );
 }
@@ -195,11 +196,11 @@ function ListEditor({ items, blank, fields, render, onSave, theme, addLabel }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const input = { height: 34, padding: "0 10px", borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.surface,
-    color: theme.text, fontSize: 13, boxSizing: "border-box", width: "100%" };
+    color: theme.text, fontSize: ts(13), boxSizing: "border-box", width: "100%" };
   if (!draft) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {items.length === 0 && <span style={{ fontSize: 12, color: theme.textMuted }}>Nothing here yet.</span>}
+        {items.length === 0 && <span style={{ fontSize: ts(12), color: theme.textMuted }}>Nothing here yet.</span>}
         {items.map((x, i) => <div key={x.id ?? i}>{render(x)}</div>)}
         <div><button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setDraft(items.map(x => ({ ...x })))}>
           {items.length ? "Edit" : addLabel}</button></div>
@@ -217,7 +218,7 @@ function ListEditor({ items, blank, fields, render, onSave, theme, addLabel }) {
         <div key={i} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8,
           paddingBottom: 12, borderBottom: `1px solid ${theme.border}` }}>
           {fields.map(f => (
-            <label key={f.k} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: theme.textMuted,
+            <label key={f.k} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: ts(11), color: theme.textMuted,
               gridColumn: f.wide ? "1 / -1" : undefined }}>
               {f.label}
               {f.type === "check" ? (
@@ -242,20 +243,20 @@ function ListEditor({ items, blank, fields, render, onSave, theme, addLabel }) {
         <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setDraft(null)} disabled={busy}>Cancel</button>
         <button className="rm-btn rm-btn-primary rm-btn-sm" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</button>
       </div>
-      {err && <span role="alert" style={{ fontSize: 12, color: C.DANGER }}>{err}</span>}
+      {err && <span role="alert" style={{ fontSize: ts(12), color: C.DANGER }}>{err}</span>}
     </div>
   );
 }
 
 function DefaultRow({ item, onSet, theme, busy }) {
   const sel = { height: 34, padding: "0 10px", borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.surface,
-    color: theme.text, fontSize: 13, width: "100%", boxSizing: "border-box" };
+    color: theme.text, fontSize: ts(13), width: "100%", boxSizing: "border-box" };
   const choices = item.values || (SELF_ID[item.key] ? [EEO_DECLINE, ...SELF_ID[item.key]] : null);
   const [text, setText] = useState(item.value || "");
   useEffect(() => { setText(item.value || ""); }, [item.value]);
   return (
     <label data-default={item.key} data-set={item.set ? "true" : "false"}
-      style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11, fontWeight: 600, color: theme.textMuted }}>
+      style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: ts(11), fontWeight: 600, color: theme.textMuted }}>
       <span>{item.label}{item.set && SOURCE[item.source] ? <span style={{ fontWeight: 400 }}> · {SOURCE[item.source]}</span> : null}</span>
       {choices ? (
         <select style={sel} value={item.value ?? ""} disabled={busy}
@@ -282,9 +283,9 @@ function HighestDegree({ education, onSaved, theme }) {
   const [draft, setDraft] = useState(null);
   const [err, setErr] = useState("");
   const e = education || {};
-  const muted = { fontSize: 12, color: theme.textMuted };
+  const muted = { fontSize: ts(12), color: theme.textMuted };
   const input = { height: 34, padding: "0 10px", borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.surface,
-    color: theme.text, fontSize: 13, boxSizing: "border-box", width: "100%" };
+    color: theme.text, fontSize: ts(13), boxSizing: "border-box", width: "100%" };
   const send = async (body) => {
     setErr("");
     try { onSaved(await api("/api/profile/education-override", { method: "PUT", body: JSON.stringify(body) })); setDraft(null); }
@@ -293,10 +294,10 @@ function HighestDegree({ education, onSaved, theme }) {
   const line = [e.degree, e.field].filter(Boolean).join(", ") || null;
   return (
     <div data-highest-degree={e.source || "none"} style={{ marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${theme.border}` }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>Highest degree — what forms are given</div>
+      <div style={{ fontSize: ts(11), fontWeight: 700, color: theme.textMuted, marginBottom: 4 }}>Highest degree — what forms are given</div>
       {!draft ? (
         <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, color: theme.text, fontWeight: 700 }}>
+          <span style={{ fontSize: ts(13), color: theme.text, fontWeight: 700 }}>
             {line || <span style={muted}>None yet — add a school below.</span>}
           </span>
           {(e.school || e.year) && <span style={muted}>{[e.school, e.year].filter(Boolean).join(" · ")}</span>}
@@ -309,7 +310,7 @@ function HighestDegree({ education, onSaved, theme }) {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
           {[["degree", "Degree"], ["field", "Field"], ["school", "School"], ["year", "Year (YYYY)"]].map(([k, label]) => (
-            <label key={k} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: theme.textMuted }}>
+            <label key={k} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: ts(11), color: theme.textMuted }}>
               {label}
               <input style={input} value={draft[k]} onChange={x => setDraft(d => ({ ...d, [k]: x.target.value }))} />
             </label>
@@ -322,7 +323,7 @@ function HighestDegree({ education, onSaved, theme }) {
           </div>
         </div>
       )}
-      {err && <span role="alert" style={{ fontSize: 12, color: C.DANGER }}>{err}</span>}
+      {err && <span role="alert" style={{ fontSize: ts(12), color: C.DANGER }}>{err}</span>}
     </div>
   );
 }
@@ -367,7 +368,7 @@ function CompanyStackLine({ company: r, theme }) {
   const used = r.used || [];
   const list = (xs) => xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
   return (
-    <div data-company-stack="" style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>
+    <div data-company-stack="" style={{ fontSize: ts(12), color: theme.textMuted, marginTop: 2 }}>
       {r.name} works with {r.stack.slice(0, 6).join(", ")}{r.stack.length > 6 ? " …" : ""}
       {used.length ? ` — you used ${list(used)} there` : ""}
     </div>
@@ -414,14 +415,14 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
     try { setP(await api("/api/profile/sections/use-resume", { method: "POST" })); onChanged?.(); } catch (e) { setMsg(e.message || "Could not use it."); }
   };
 
-  if (!p) return <p style={{ fontSize: 12, color: theme.textMuted }}>{msg || "Loading your profile…"}</p>;
+  if (!p) return <p style={{ fontSize: ts(12), color: theme.textMuted }}>{msg || "Loading your profile…"}</p>;
   const s = p.sections;
   // A140: the terms to bold — the Skills section's + the job profile's extracted skills and keywords.
   const allTerms = [...new Set([...(s.skills || []).map((x) => String(x?.name || "").trim()), ...highlight.map((x) => String(x || "").trim())].filter(Boolean))];
   const termRe = termsRegex(allTerms);
   const bulletText = (s.experience || []).flatMap((x) => [x.title || "", ...(x.bullets || [])]).join(" · ");
   const unsaid = allTerms.filter((term) => { const r = termsRegex([term]); return !(r && r.test(bulletText)); });
-  const muted = { fontSize: 12, color: theme.textMuted };
+  const muted = { fontSize: ts(12), color: theme.textMuted };
   return (
     <div data-profile-sections="">
       {part("status") && <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
@@ -439,13 +440,13 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
       {part("summary") && <Box id={ABOUT_ANCHOR} title={titles.summary || "Summary"} right={eye("about")} theme={theme}>
         {summary == null ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <span style={{ fontSize: 13, color: theme.text, whiteSpace: "pre-wrap" }}>{s.summary || <span style={muted}>No summary yet.</span>}</span>
+            <span style={{ fontSize: ts(13), color: theme.text, whiteSpace: "pre-wrap" }}>{s.summary || <span style={muted}>No summary yet.</span>}</span>
             <div><button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setSummary(s.summary || "")}>Edit</button></div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <textarea rows={5} value={summary} onChange={e => setSummary(e.target.value)}
-              style={{ padding: 10, borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text, fontSize: 13 }} />
+              style={{ padding: 10, borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text, fontSize: ts(13) }} />
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setSummary(null)}>Cancel</button>
               <button className="rm-btn rm-btn-primary rm-btn-sm" onClick={async () => {
@@ -467,7 +468,7 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
             <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
               <LogoTile logo={x.logo} initial={x.initial} theme={theme} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.title || "—"} · {x.companyRef?.href
+                <div style={{ fontSize: ts(13), fontWeight: 700, color: theme.text }}>{x.title || "—"} · {x.companyRef?.href
                   ? <a href={x.companyRef.href} data-company-link={x.companyRef.slug} style={{ color: "inherit" }}>{x.company}</a>
                   : x.company}<EditedMark source={x.source} theme={theme} /></div>
                 <CompanyStackLine company={x.companyRef} theme={theme} />
@@ -477,7 +478,7 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
                 {x.bullets.length > 0 && (
                   <ul style={{ margin: "6px 0 0", paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
                     {x.bullets.map((b, bi) => (
-                      <li key={bi} data-bullet="" style={{ fontSize: 13, color: theme.text }}>
+                      <li key={bi} data-bullet="" style={{ fontSize: ts(13), color: theme.text }}>
                         <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
                           <span><BoldTerms text={b} re={termRe} linkTech /></span><BackingMark backed={!!x.marks?.[bi]?.backed} />
                         </div>
@@ -506,7 +507,7 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
           render={(x) => (
             <div data-project="">
               <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.name}</span><BackingMark backed={!!x.backed} /><EditedMark source={x.source} theme={theme} />
+                <span style={{ fontSize: ts(13), fontWeight: 700, color: theme.text }}>{x.name}</span><BackingMark backed={!!x.backed} /><EditedMark source={x.source} theme={theme} />
               </div>
               {x.description && <div style={muted}>{x.description}</div>}
               {provesSkills(x, s.skills).length > 0 && <div data-counts-as-proof="" style={{ ...muted, color: theme.text }}>Counts as proof for {provesSkills(x, s.skills).join(", ")}</div>}
@@ -533,7 +534,7 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
               {/* A153 (45o, the D183 sketch): the school's logo, as an employer's (LogoTile; the initial when none). */}
               <LogoTile logo={x.logo} initial={x.initial || String(x.school || "?").charAt(0).toUpperCase()} theme={theme} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{x.school}<EditedMark source={x.source} theme={theme} /></div>
+                <div style={{ fontSize: ts(13), fontWeight: 700, color: theme.text }}>{x.school}<EditedMark source={x.source} theme={theme} /></div>
                 <div style={muted}>{[x.degree, x.field].filter(Boolean).join(", ")}{x.end ? ` · ${ymLabel(x.end)}` : ""}</div>
               </div>
             </div>
@@ -558,7 +559,7 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
           fields={[{ k: "kind", label: "Kind (LinkedIn, GitHub, website)" }, { k: "url", label: "Address (https://…)", type: "url" }]}
           onSave={(items) => saveSection("links", { items })}
           render={(x) => (renderLink ? renderLink(x)
-            : <span style={{ fontSize: 13, color: theme.text }}><a href={x.url} target="_blank" rel="noreferrer">{x.url}</a></span>)} />
+            : <span style={{ fontSize: ts(13), color: theme.text }}><a href={x.url} target="_blank" rel="noreferrer">{x.url}</a></span>)} />
       </Box>}
 
       {part("defaults") && <Box title="Application defaults" theme={theme}
@@ -569,7 +570,7 @@ export default function ProfileSections({ theme, highlight = [], parts = null, t
         </p>
         {p.defaults.map(g => (
           <div key={g.group} data-default-group={g.group} style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: theme.text, marginBottom: 8 }}>{g.label}</div>
+            <div style={{ fontSize: ts(12), fontWeight: 800, color: theme.text, marginBottom: 8 }}>{g.label}</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
               {g.items.map(it => <DefaultRow key={it.key} item={it} theme={theme} busy={busyKey === it.key} onSet={setDefault} />)}
             </div>
