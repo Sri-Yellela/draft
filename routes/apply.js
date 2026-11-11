@@ -3099,6 +3099,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       statusCounts,
       // ⭐ A181 (5d): the day's NEW-draft allowance, shown where it bites (counts only — no cost figures).
       draftSlots: (() => { try { const s = draftSlots(db, req.user.id); return { limit: s.limit, used: s.used, remaining: s.remaining }; } catch { return null; } })(),
+      // ⭐ A181 (5c): held drafts whose attempt ran BEFORE this server started — i.e. before draft's latest update — so Home
+      // can offer them once: "re-run them with the fixes (free)".
+      heldBeforeUpdate: (() => { const bootAt = Math.floor(Date.now() / 1000 - process.uptime()); return review.filter(r => Number(r.created_at) > 0 && Number(r.created_at) < bootAt).length; })(),
     });
   });
 
