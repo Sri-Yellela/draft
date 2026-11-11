@@ -136,7 +136,14 @@ try {
   }
   check("the board returns postings", jobIds.length > 0, `${jobIds.length} on page 1`);
   if (!jobIds.length) throw new Error("the board never filled — nothing to load");
-  const resumeText = "Synthetic Person\nEXPERIENCE\nSoftware Engineer (2021 - present)\n- Built Python, Go and PostgreSQL services on AWS.\nSKILLS\nPython, Go, TypeScript, React, Kubernetes, PostgreSQL, AWS";
+  // ⭐ 46f (A184's measurement): the résumé check posts each person's OWN base résumé, as the client does (ATSPanel →
+  // selectedJobMeta.resumeText). A fixed synthetic text scored a foreign basis on every check — a stored report, both kept
+  // caches dropped, a stale row for board-fit to re-score — so the suite measured a write storm production never makes.
+  const FALLBACK_RESUME = "Synthetic Person\nEXPERIENCE\nSoftware Engineer (2021 - present)\n- Built Python, Go and PostgreSQL services on AWS.\nSKILLS\nPython, Go, TypeScript, React, Kubernetes, PostgreSQL, AWS";
+  for (const s of sessions) {
+    try { s.resumeText = (await fetch(`${base}/api/base-resume`, { headers: s.headers }).then(r => r.json()))?.content || FALLBACK_RESUME; }
+    catch { s.resumeText = FALLBACK_RESUME; }
+  }
   const today = new Date().toISOString().slice(0, 10);
   const SCREENS = [
     ["deck", (h) => fetch(`${base}/api/draft/today?date=${today}&order=best`, { headers: h })],
@@ -146,7 +153,7 @@ try {
     ["tracker", (h) => fetch(`${base}/api/applications/history`, { headers: h })],
     ["tracker (held)", (h) => fetch(`${base}/api/apply/review`, { headers: h })],
     ["Your map", (h) => fetch(`${base}/api/your-skills/map`, { headers: h })],
-    ["résumé check", (h, k) => fetch(`${base}/api/jobs/${encodeURIComponent(jobIds[k % jobIds.length])}/keywords`, { method: "POST", headers: h, body: JSON.stringify({ resumeText }) })],
+    ["résumé check", (h, k, s) => fetch(`${base}/api/jobs/${encodeURIComponent(jobIds[k % jobIds.length])}/keywords`, { method: "POST", headers: h, body: JSON.stringify({ resumeText: s?.resumeText || FALLBACK_RESUME }) })],
   ];
   const times = Object.fromEntries([...SCREENS.map(s => s[0]), "Admin → Testers"].map(n => [n, []]));
   const statuses = {};
@@ -156,7 +163,7 @@ try {
   if (PROF_DIR) fs.writeFileSync(path.join(PROF_DIR, "start"), "1");
   const end = Date.now() + SECONDS * 1000;
   await Promise.all([
-    ...sessions.map(async (s, u) => { let k = u; while (Date.now() < end) for (const [name, f] of SCREENS) { if (Date.now() >= end) break; await time(name, () => f(s.headers, k++)); } }),
+    ...sessions.map(async (s, u) => { let k = u; while (Date.now() < end) for (const [name, f] of SCREENS) { if (Date.now() >= end) break; await time(name, () => f(s.headers, k++, s)); } }),
     (async () => { while (Date.now() < end) { await time("Admin → Testers", () => fetch(`${base}/api/admin/testers/people`, { headers: adminHeaders })); await wait(1000); } })(),
   ]);
   await wait(700);

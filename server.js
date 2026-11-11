@@ -10549,6 +10549,7 @@ function boardFitAutomationEnabled() {
  */
 const _boardFitBoardTriggerAt = new Map();   // "user:profile" -> ms of the last board-load trigger
 const BOARD_FIT_BOARD_TRIGGER_EVERY_MS = 60_000;
+const BOARD_FIT_BOARD_IDLE_BACKOFF_MS = 15 * 60_000;   // ⭐ A185: after a board-load pass with nothing to do
 function scheduleBoardFit(userId, reason, profile = null) {
   if (!boardFitAutomationEnabled() || !userId) return;
   try {
@@ -10563,6 +10564,16 @@ function scheduleBoardFit(userId, reason, profile = null) {
       _boardFitBoardTriggerAt.set(key, Date.now());
     }
     boardFit().schedule({ userId, profile: p, reason })
+      .then((r) => {
+        // ⭐ A185 (46f, measured at 100k / 20 users): a board-load pass that found NOTHING to do costs a whole-board walk
+        // (246 plan pages, ~30 s for 49k candidates under load) and ran once a minute per active person — 20 people = the
+        // server busy with checks that change nothing (event loop max 56 s). After a nothing_to_do the catch-all waits
+        // BOARD_FIT_BOARD_IDLE_BACKOFF_MS; every explicit trigger (crawl, feed, résumé saved, profile edited, enrichment)
+        // still runs at once, so nothing new waits on it.
+        if (reason === "board" && r?.status === "nothing_to_do") {
+          _boardFitBoardTriggerAt.set(`${userId}:${p.id}`, Date.now() + BOARD_FIT_BOARD_IDLE_BACKOFF_MS - BOARD_FIT_BOARD_TRIGGER_EVERY_MS);
+        }
+      })
       .catch(e => console.error(`[board-fit] ${reason} pass threw for user ${userId}:`, e.message));
   } catch (e) {
     console.error(`[board-fit] could not schedule (${reason}) for user ${userId}:`, e.message);
@@ -10788,6 +10799,8 @@ const BOARD_ORDER_KEEP = 1000;
 // stale answer is never one from before a scoring pass or a new résumé; only the board's own churn (a crawl's new or
 // expired postings) can be up to 10 minutes behind, and one refresh runs behind it.
 const boardOrderCache = createFacetsCache({ ttlMs: 5 * 60 * 1000, max: 300, staleMs: 15 * 60 * 1000 });   // A175: the key moves with the scores
+// ⭐ A184 (46f) · the Full House's include_facets counts, kept with the same rules (boardPageResponse; dropped with the order).
+const boardDimFacetsCache = createFacetsCache({ ttlMs: 5 * 60 * 1000, max: 300, staleMs: 15 * 60 * 1000 });
 // ⭐ A177 (46d) · a person's FIRST board load was always a miss (1.5–3 s of read-worker time at 100k; 20 users = 20 misses
 // queued on 2 workers). The order is now WARMED in the background — after their scoring lands (the match queue's
 // board_scored, whose refetch then hits) and on sign-in — for the default board and the deck's ATS order, on the read
@@ -10853,6 +10866,7 @@ app.use((req, _res, next) => {
   if (writes) facetsCache.clearUser(req.user.id);
   // ⭐ A175: …and their kept board order.
   if (writes) boardOrderCache.clearUser(req.user.id);
+  if (writes) boardDimFacetsCache.clearUser(req.user.id);   // ⭐ A184: …and the Full House's kept counts
   next();
 });
 // ⛔ D95: the admin's own session (the draft_admin cookie, Path=/api/admin) — and no admin credential anywhere else.
@@ -13284,6 +13298,21 @@ async function boardPageResponse(req, { measure = null, nowSec = null, warmOrder
       // of the person's drops it (the middleware beside facetsCache's). A cursor page resumes after its row's place in the
       // kept ids (best bets and the deal page by cursor); a page past the kept ids, or a cursor row no longer in them, reads
       // as before.
+      // ⭐ A184 (46f, measured) · the board's whole-board COUNTS kept like its order (boardDimFacetsCache): the A73
+      // unclassified count, the curation's demoted count and the Full House's include_facets GROUP BY each re-read the
+      // person's whole board on EVERY load (~400–700 ms of read-worker time each at 49k candidates; 20 people queued on
+      // them). Keyed on the board (paging / order / projection excluded), the person's score mark (the newest report id —
+      // the gate decides which rows are on the board whatever the order) and the gate's basis; dropped on their writes.
+      const boardScoreMark = (() => { try { return db.prepare(
+        "SELECT COALESCE(MAX(id), 0) AS e FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ?"
+      ).get(req.user.id, sessionActiveProfile.id)?.e ?? 0; } catch { return ""; } })();
+      const boardKeyOf = (kind, extra = {}) => facetsKey(req.user.id, sessionActiveProfile.id, {
+        ...req.query, page: "", pageSize: "", page_size: "", cursor: "", include_fields: "", include_facets: "", sort: "",
+        ...extra, "~kind": kind, "~score": boardScoreMark, "~gate": gateBasis ?? "", "~named": req.boardProfileId ?? "",
+        "~visit": ageFilter === "visit" ? (visitMark(db, req.user.id) ?? "first") : "",
+      });
+      const keptCount = async (kind, sql, args, extra = {}) => (await boardDimFacetsCache.get(boardKeyOf(kind, extra),
+        async () => ({ status: 200, n: (await readPool.get(sql, args))?.n || 0 }))).value?.n ?? 0;
       const keepOrder = rawCursor ? typeof cursorAfterId === "string" : offset + ps + 1 <= BOARD_ORDER_KEEP;
       let keptOrder = null;
       let keptOrderCache = "off";   // hit / shared / miss, or off (a page the kept order does not answer) — on the [jobs] line
@@ -13392,7 +13421,7 @@ async function boardPageResponse(req, { measure = null, nowSec = null, warmOrder
       // judge them (the column is not classified yet). They are ordered last; this says how many.
       const unclassifiedSql = richFilters.established.unclassifiedSql;
       const unclassified = unclassifiedSql
-        ? { count: (await readPool.get(`SELECT COUNT(*) as n ${joinClause} ${whereClause} AND ${unclassifiedSql}`, baseArgs))?.n || 0,
+        ? { count: await keptCount("unclassified", `SELECT COUNT(*) as n ${joinClause} ${whereClause} AND ${unclassifiedSql}`, baseArgs),   // A184: kept
             filters: richFilters.established.filters }
         : null;
 
@@ -13531,9 +13560,9 @@ async function boardPageResponse(req, { measure = null, nowSec = null, warmOrder
       // string list, so no client has to learn a field.
       if (rankApplied || fitApplied) {
         // ⛔ A126 · a whole-board count — in the worker pool, off the event loop (the 11-05 profile's largest stretch).
-        const demotedRows = rankApplied ? ((await readPool.get(
+        const demotedRows = rankApplied ? await keptCount("demoted",   // A184: kept (the sort in its key: it decides the rank)
           `SELECT COUNT(*) as n ${joinClause} ${whereClause} AND ${richFilters.rank.demotedSql}`,
-          [...baseArgs, ...richFilters.rank.demotedParams]))?.n || 0) : 0;
+          [...baseArgs, ...richFilters.rank.demotedParams], { sort: req.query.sort || "" }) : 0;
         if (demotedRows > 0 || fitApplied) {
           responseBody.curation = {
             applied:    true,
@@ -13558,6 +13587,12 @@ async function boardPageResponse(req, { measure = null, nowSec = null, warmOrder
       // include_facets (optional, default-off): facet counts over the SAME filtered result
       // set, using the identical joinClause/whereClause/baseArgs as the main query.
       if (facetDims.length) {
+        // ⭐ A184 (46f, measured) · KEPT like the order: this GROUP BY over the whole filtered board ran on EVERY Full House
+        // load (JobsPanel asks include_facets each time) — ~700 ms of read-worker time at 49k candidates, the board's
+        // largest cost once the order is kept. Kept per person + profile + board + dimensions under boardOrderCache's rules
+        // (fresh 5 min, stale-while-revalidate to 15, dropped on the person's writes); the key carries the person's score
+        // mark (the newest report id — the gate decides which rows are on the board whatever the order) and the gate's basis.
+        const kept = await boardDimFacetsCache.get(boardKeyOf("dims", { include_facets: facetDims.join(",") }), async () => {
         const facets = {};
         // ⭐ D151 (45k) · ONE GROUP BY over every asked dimension, not one statement each: the board's WHERE runs once and
         // each dimension's expression (tag-layer lookups for level / workplace / employment) is evaluated once per row.
@@ -13578,7 +13613,9 @@ async function boardPageResponse(req, { measure = null, nowSec = null, warmOrder
           const skillsRows = await readPool.all(`SELECT sj.skills_json as skills_json ${joinClause} ${whereClause}`, baseArgs);
           facets.skills = computeSkillsFacet(skillsRows.map(r => r.skills_json));
         }
-        responseBody.facets = facets;
+        return { status: 200, facets };   // (the cache keeps only a 200 answer)
+        });
+        responseBody.facets = kept.value?.facets ?? {};
       }
 
       return boardReply(200, responseBody);
@@ -13988,6 +14025,9 @@ if (process.env.NODE_ENV !== "test") {
     try {
       const r = await runHirebaseFeedHour(db, hirebaseClient());
       if (!r.skipped) console.log(`[hirebase] feed window ${r.window?.after} → ${JSON.stringify(Object.fromEntries(Object.entries(r.perFamily || {}).map(([k, v]) => [k, v.pulled])))}${r.stopped ? ` stopped: ${r.stopped}` : ""}`);
+      // ⭐ A185 (46f): a window that brought postings scores them for everyone now, like a crawl (scheduleBoardFitForAll —
+      // incremental, only the new rows) — the board-load catch-all backs off after a pass with nothing to do.
+      if (!r.skipped && Object.values(r.perFamily || {}).some(v => Number(v?.pulled) > 0)) scheduleBoardFitForAll("feed");
       const today = new Date().toISOString().slice(0, 10);
       if (hirebaseAgedDay !== today && hirebaseFeedSwitches(db).on) { hirebaseAgedDay = today; const n = ageOutHirebase(db); if (n) console.log(`[hirebase] aged out ${n} (30 days)`); }
     } catch (e) { console.warn("[hirebase] feed tick:", e.message); }
@@ -14756,7 +14796,7 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
     });
     // ⭐ A183 (46f): a stored score can move this person's board and its counts — drop both now (D156 (6)); the read-only
     // answer above (a kept report) leaves them, which is why the write-clearing middleware skips this route.
-    facetsCache.clearUser(userId); boardOrderCache.clearUser(userId);
+    facetsCache.clearUser(userId); boardOrderCache.clearUser(userId); boardDimFacetsCache.clearUser(userId);
 
     res.json(result);
   } catch (e) {
