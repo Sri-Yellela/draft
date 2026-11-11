@@ -136,6 +136,24 @@ try {
   }
   check("the board returns postings", jobIds.length > 0, `${jobIds.length} on page 1`);
   if (!jobIds.length) throw new Error("the board never filled — nothing to load");
+  // ⭐ 46g (A175, measured): until now EVERY person opened and checked user 0's page-1 postings — for the 19 people on other
+  // roles those are postings off their board, never scored for them, so each résumé check stored a NEW score and dropped all
+  // their kept counts (facets p95 7.4 s; 239 ms without the check). Production's person mostly checks postings on their own
+  // board. Each person now uses their OWN scored postings, read from the run's copy (read-only — no board is loaded, so the
+  // first round stays cold); --off-board keeps the old case, measured and reported as its own run.
+  const OFF_BOARD = process.argv.includes("--off-board");
+  if (!OFF_BOARD) {
+    const { default: Database } = await import("better-sqlite3");
+    const rdb = new Database(path.join(RUN, "resume_master.db"), { readonly: true, fileMustExist: true });
+    try {
+      for (const s of sessions) {
+        const u = rdb.prepare("SELECT id FROM users WHERE username = ?").get(s.name);
+        const own = u ? rdb.prepare("SELECT job_id FROM ats_only_reports WHERE user_id = ? AND ats_score IS NOT NULL ORDER BY ats_score DESC LIMIT 50").all(u.id).map(r => r.job_id) : [];
+        s.jobIds = own.length ? own : jobIds;
+      }
+    } finally { rdb.close(); }
+  }
+  console.log(`checks: ${OFF_BOARD ? "OFF-BOARD — every person opens and checks user 0's page-1 postings" : "each person's own scored postings"}`);
   // ⭐ 46f (A184's measurement): the résumé check posts each person's OWN base résumé, as the client does (ATSPanel →
   // selectedJobMeta.resumeText). A fixed synthetic text scored a foreign basis on every check — a stored report, both kept
   // caches dropped, a stale row for board-fit to re-score — so the suite measured a write storm production never makes.
@@ -149,21 +167,26 @@ try {
     ["deck", (h) => fetch(`${base}/api/draft/today?date=${today}&order=best`, { headers: h })],
     ["board (Full House)", (h) => fetch(`${base}/api/jobs?page=1&pageSize=50&include_facets=work_model,experience_level,employment_type,sources,automation_tier`, { headers: h })],
     ["board facets", (h) => fetch(`${base}/api/jobs/facets`, { headers: h })],
-    ["posting", (h, k) => fetch(`${base}/api/jobs/by-id/${encodeURIComponent(jobIds[k % jobIds.length])}`, { headers: h })],
+    ["posting", (h, k, s) => { const ids = s?.jobIds || jobIds; return fetch(`${base}/api/jobs/by-id/${encodeURIComponent(ids[k % ids.length])}`, { headers: h }); }],
     ["tracker", (h) => fetch(`${base}/api/applications/history`, { headers: h })],
     ["tracker (held)", (h) => fetch(`${base}/api/apply/review`, { headers: h })],
     ["Your map", (h) => fetch(`${base}/api/your-skills/map`, { headers: h })],
-    ["résumé check", (h, k, s) => fetch(`${base}/api/jobs/${encodeURIComponent(jobIds[k % jobIds.length])}/keywords`, { method: "POST", headers: h, body: JSON.stringify({ resumeText: s?.resumeText || FALLBACK_RESUME }) })],
+    ["résumé check", (h, k, s) => fetch(`${base}/api/jobs/${encodeURIComponent((s?.jobIds || jobIds)[k % (s?.jobIds || jobIds).length])}/keywords`, { method: "POST", headers: h, body: JSON.stringify({ resumeText: s?.resumeText || FALLBACK_RESUME }) })],
   ];
+  // ⭐ 46g: SCALE_SKIP="résumé check" leaves a screen out (an experiment: which screen's writes drop the others' kept caches).
+  const SKIP = new Set(String(process.env.SCALE_SKIP || "").split(",").map(x => x.trim()).filter(Boolean));
+  for (let i = SCREENS.length - 1; i >= 0; i--) if (SKIP.has(SCREENS[i][0])) SCREENS.splice(i, 1);
   const times = Object.fromEntries([...SCREENS.map(s => s[0]), "Admin → Testers"].map(n => [n, []]));
   const statuses = {};
-  const time = async (name, f) => { const a = performance.now(); const r = await f().catch(e => ({ status: 0, e })); const ms = performance.now() - a;
-    try { await r.arrayBuffer?.(); } catch {} times[name].push(ms); statuses[`${name} ${r.status}`] = (statuses[`${name} ${r.status}`] || 0) + 1; };
+  // ⭐ 46g: each request's round too — a person's FIRST round is their cold load; p95 over 20 users × ~12 rounds sits on it.
+  const rounds = Object.fromEntries(Object.keys(times).map(n => [n, { first: [], later: [] }]));
+  const time = async (name, f, round = 1) => { const a = performance.now(); const r = await f().catch(e => ({ status: 0, e })); const ms = performance.now() - a;
+    try { await r.arrayBuffer?.(); } catch {} times[name].push(ms); rounds[name][round === 0 ? "first" : "later"].push(ms); statuses[`${name} ${r.status}`] = (statuses[`${name} ${r.status}`] || 0) + 1; };
   fs.writeFileSync(`${LOOP}.reset`, "1"); await wait(800);
   if (PROF_DIR) fs.writeFileSync(path.join(PROF_DIR, "start"), "1");
   const end = Date.now() + SECONDS * 1000;
   await Promise.all([
-    ...sessions.map(async (s, u) => { let k = u; while (Date.now() < end) for (const [name, f] of SCREENS) { if (Date.now() >= end) break; await time(name, () => f(s.headers, k++, s)); } }),
+    ...sessions.map(async (s, u) => { let k = u, round = 0; while (Date.now() < end) { for (const [name, f] of SCREENS) { if (Date.now() >= end) break; await time(name, () => f(s.headers, k++, s), round); } round++; } }),
     (async () => { while (Date.now() < end) { await time("Admin → Testers", () => fetch(`${base}/api/admin/testers/people`, { headers: adminHeaders })); await wait(1000); } })(),
   ]);
   await wait(700);
@@ -179,6 +202,7 @@ try {
     table[name] = { n: a.length, p50: pct(a, 50), p95: pct(a, 95), max: a.length ? Math.round(Math.max(...a)) : null };
     check(`p95 ≤ 300 ms: ${name}`, a.length > 0 && table[name].p95 <= BUDGETS.p95Ms, `p95 ${table[name].p95} ms (p50 ${table[name].p50}, max ${table[name].max}, n ${a.length})`);
   }
+  for (const [name, r] of Object.entries(rounds)) if (r.first.length) console.log(`round  ${name}: first p50 ${pct(r.first, 50)} / p95 ${pct(r.first, 95)} (n ${r.first.length}) · later p50 ${pct(r.later, 50)} / p95 ${pct(r.later, 95)} (n ${r.later.length})`);
   const bad = Object.entries(statuses).filter(([k]) => !/ 200$/.test(k));
   check("every request answered 200", bad.length === 0, bad.length ? JSON.stringify(Object.fromEntries(bad)) : `${Object.values(statuses).reduce((a, b) => a + b, 0)} requests`);
   check(`event-loop p99 ≤ 100 ms under ${USERS} users`, loop.p99 <= BUDGETS.loopP99Ms, `p99 ${loop.p99} ms, p50 ${loop.p50}, max ${loop.max}`);
