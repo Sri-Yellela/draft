@@ -19,7 +19,7 @@ import crypto         from "crypto";
 import { fileURLToPath } from "url";
 import path           from "path";
 import fs             from "fs";
-import { createBackup, listBackups, restoreBackup } from "./scripts/backup.js";
+import { createBackup, createBackupAsync, listBackups, restoreBackup } from "./scripts/backup.js";   // 46g: Async = a running server's backups
 // The migration LOOP, shared with scripts/migration.js. Only the loop — the MIGRATIONS list below
 // is still this file's own copy on purpose; see the note at the top of scripts/migration.js.
 import { applyPendingMigrations } from "./scripts/applyMigrations.js";
@@ -9004,8 +9004,8 @@ cron.schedule('30 5 * * *', async () => {
 }, { timezone: 'America/New_York' });
 
 cron.schedule("0 2 * * *", () => {
-  try { createBackup("auto-daily"); }
-  catch(e) { console.error("[backup-cron]", e.message); }
+  // ⛔ 46g: SQLite's online backup, off the event loop — createBackup's copyFileSync held the whole site ~95 s at 6.2 GB.
+  createBackupAsync("auto-daily", { db }).catch((e) => console.error("[backup-cron]", e.message));
 });
 
 // The 07:00 daily re-scrape cron was removed here (§5.12). It picked what to re-crawl from the
@@ -11701,9 +11701,9 @@ app.post("/api/admin/board-fit/precompute", requireAdmin, async (req, res) => {
 app.get("/api/admin/backups", requireAdmin, (_req, res) => {
   try { res.json(listBackups()); } catch(e) { res.status(500).json({ error:e.message }); }
 });
-app.post("/api/admin/backups", requireAdmin, (req, res) => {
+app.post("/api/admin/backups", requireAdmin, async (req, res) => {
   try {
-    const result = createBackup(req.body.label||"manual");
+    const result = await createBackupAsync(req.body.label||"manual", { db });   // ⛔ 46g: never a 6 GB copy on the one thread
     res.json({ ok:true, ...result });
   } catch(e) { res.status(500).json({ error:e.message }); }
 });

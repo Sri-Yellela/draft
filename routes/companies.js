@@ -9,7 +9,7 @@ import express, { Router } from "express";
 import { listCompanies, harvestedSuggestions, validateBoard, addCompany, setCompanyActive, ATS_FETCHERS } from "../services/companyList.js";
 import { trancheGate } from "../services/diskGauge.js";
 import { harvestPairOf } from "../services/slugHarvest.js";
-import { createBackup } from "../scripts/backup.js";       // D82 C: an approved candidate batch is added only after a backup
+import { createBackupAsync } from "../scripts/backup.js";   // D82 C: an approved candidate batch is added only after a backup
 import { heatReport, boardCounts, boardCountsVia } from "../services/companyHeat.js";
 import { listCandidates, discoveryStatus, planApproval, approveCandidates, rejectCandidates, resetBreaker, runCandidateProbe, probeDue, PROBE_BATCH } from "../services/companyCandidates.js";
 
@@ -17,7 +17,7 @@ const DEFAULT_DATA_DIR = () => process.env.RM_DATA_DIR || "data";
 
 export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHERS, dataDir = DEFAULT_DATA_DIR(),
                                                             gate = (companies) => trancheGate(db, dataDir, { companies }),
-                                                            backup = (label) => createBackup(label), env = process.env, read = null } = {}) {
+                                                            backup = (label) => createBackupAsync(label, { db }), env = process.env, read = null } = {}) {
   const router = Router();
   router.use(requireAdmin);
   router.use(express.json({ limit: "64kb" }));
@@ -86,7 +86,7 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
     res.json({ ...listCandidates(db, { status }), discovery: discoveryStatus(db, env), probeRun, probeDue: probeDue(db) });
   });
 
-  router.post("/candidates/approve", (req, res) => {
+  router.post("/candidates/approve", async (req, res) => {
     const { ids = [], confirm = false, expectIds = null } = req.body || {};
     if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: "ids_required" });
     const plan = planApproval(db, ids);
@@ -105,7 +105,9 @@ export function createCompaniesRouter(db, requireAdmin, { fetchers = ATS_FETCHER
     if (!disk.ok) return res.status(507).json({ error: disk.reason, disk });              // ⛔ D77
     if (typeof backup !== "function") return res.status(503).json({ error: "backup_unavailable", message: "No backup could be taken; nothing was added." });
     let snapshot;
-    try { snapshot = backup("pre-d82-candidates"); }
+    // ⛔ 46g (owner 11-11, "the admin panel is currently stuck on loading"): this was createBackup's fs.copyFileSync — a
+    // 6.2 GB copy on the one thread held the WHOLE site 95 s (16:05Z). Now SQLite's online backup, a step at a time.
+    try { snapshot = await backup("pre-d82-candidates"); }
     catch (e) { return res.status(500).json({ error: "backup_failed", message: e.message }); }
     const out = approveCandidates(db, plan, { adminUserId: actorOf(req) });
     res.json({ ok: true, backup: snapshot?.filename ?? null, ...out, refused: plan.refused,
