@@ -60,7 +60,8 @@ test("owner 11-10 · d105SourceHeldStaysDraft — an entry naming a to-verify / 
   assert.deepEqual(r.held.map(h => h.slug).sort(), ["kafka", "redis", "terraform"]);
   assert.equal(node(db, "terraform").definition, null); assert.equal(node(db, "terraform").definition_by, "drafted");
   assert.equal(node(db, "helm").definition_by, "auto");
-  assert.equal(sourceHold("kaggle-learn"), "source is to-verify"); assert.equal(sourceHold(null), null);
+  // 46f (on purpose): D176-1 closed the register's last to-verify rows as link-only — kaggle-learn is held as link-only now.
+  assert.equal(sourceHold("kaggle-learn"), "source is link-only"); assert.equal(sourceHold(null), null);
   assert.deepEqual(draftedDefinitions(db).map(d => d.slug).sort(), ["kafka", "redis", "terraform"], "held drafts wait for the owner");
 });
 
