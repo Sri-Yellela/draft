@@ -61,3 +61,14 @@ test("A116 · the guard itself catches a bare size", () => {
     [".x → font-size: 14px", ".y → font: 600 13px/1 var(--f)"]);
   assert.deepEqual(unscaled(".x { font-size: calc(14px * var(--type-scale, 1)); }"), []);
 });
+
+// ⭐ A116 · 46g — the INLINE sizes, screen by screen (~1,340 `fontSize: <number>` in the client's JSX on 11-11). A screen is
+// listed here once every inline size in it goes through ts() (themes/shapes.js: calc(Npx * var(--type-scale, 1))).
+export const INLINE_SCALED = ["client/src/panels/JobsPanel.jsx", "client/src/panels/DeckView.jsx"];
+test("A116 · 46g — the board and the deck: no inline font size ignores the text size", () => {
+  for (const f of INLINE_SCALED) {
+    const bare = raw(f).split("\n").map((l, i) => [i + 1, l]).filter(([, l]) => /fontSize:\s?\d/.test(l)).map(([n, l]) => `${f}:${n} ${l.trim().slice(0, 80)}`);
+    assert.deepEqual(bare, [], `bare inline font sizes in ${f}`);
+  }
+  assert.match(raw("client/src/themes/shapes.js"), /export const ts = \(px\) => `calc\(\$\{px\}px \* var\(\$\{TYPE_SCALE_VAR\}, 1\)\)`;/);
+});
