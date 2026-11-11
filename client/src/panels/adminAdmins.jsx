@@ -10,6 +10,7 @@ import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, Mark, row, quiet, sub, callout, field } from "./adminKit.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const when = (s) => (s ? new Date(s * 1000).toLocaleString() : "never");
 
@@ -75,7 +76,7 @@ export function AdminsTab() {
           <input aria-label="The new admin account's email" placeholder="admin email (not a user account's)" value={email} type="email"
             onChange={(e) => setEmail(e.target.value)} style={{ ...field, flex: "1 1 260px" }} />
           {!d.bootstrap && (
-            <label style={{ fontSize: 12, display: "flex", gap: 6, alignItems: "center", color: C.INK }}>
+            <label style={{ fontSize: ts(12), display: "flex", gap: 6, alignItems: "center", color: C.INK }}>
               <input type="checkbox" checked={owner} onChange={(e) => setOwner(e.target.checked)} /> owner (can manage admins)
             </label>
           )}
@@ -89,7 +90,7 @@ export function AdminsTab() {
         <div style={{ display: "grid", gap: 6 }}>
           {d.admins.map((a) => (
             <div key={a.publicId} data-admin-row={a.publicId} style={{ ...sub, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <span style={{ flex: "1 1 220px", fontSize: 13, color: C.INK, overflowWrap: "anywhere" }}>
+              <span style={{ flex: "1 1 220px", fontSize: ts(13), color: C.INK, overflowWrap: "anywhere" }}>
                 {a.email} <span style={quiet}>· {a.publicId}{d.you === a.publicId ? " · you" : ""}</span>
               </span>
               {a.isOwner && <Mark tone={C.INFO}>owner</Mark>}

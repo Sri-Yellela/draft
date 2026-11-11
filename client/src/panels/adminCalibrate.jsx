@@ -15,12 +15,13 @@ import DepthButton from "../components/DepthButton.jsx";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import { Panel, row, quiet, sub, field } from "./adminKit.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const BASE = "/api/admin/ats-calibration";
 const send = (path, method, body) => api(`${BASE}${path}`, { method, body: JSON.stringify(body || {}) });
 const f3 = (x) => (x == null ? "—" : x.toFixed(2));
 const toggle = (on, tone = C.ACCENT_INK) => ({ border: `1px solid ${on ? tone : C.BORDER}`, background: on ? `color-mix(in srgb, ${tone} 14%, transparent)` : "transparent",
-  color: C.INK, borderRadius: 6, padding: "3px 8px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" });
+  color: C.INK, borderRadius: 6, padding: "3px 8px", fontSize: ts(12), cursor: "pointer", fontFamily: "inherit" });
 // punctuation, bullets and case set aside, so "- Design, build…" is the counted " - Design, build…"
 const norm = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const FEEL = [["too_low", "too low"], ["right", "right"], ["too_high", "too high"]];
@@ -31,10 +32,10 @@ function Terms({ title, terms, marks, onMark, tiers, onTier }) {
   if (!terms.length) return <div style={quiet}>{title}: none found.</div>;
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 6 }}>{title} <span style={quiet}>({terms.length})</span></div>
+      <div style={{ fontWeight: 800, fontSize: ts(13), marginBottom: 6 }}>{title} <span style={quiet}>({terms.length})</span></div>
       {terms.map(({ term, tier }) => (
         <div key={term} data-cal-term={term} style={{ ...row, gap: 6, margin: "3px 0" }}>
-          <span style={{ minWidth: 140, fontSize: 13 }}>{term}</span>
+          <span style={{ minWidth: 140, fontSize: ts(13) }}>{term}</span>
           <button type="button" style={toggle(marks[term] === "right", C.SUCCESS)} onClick={() => onMark(term, "right")} data-cal-right="">right</button>
           <button type="button" style={toggle(marks[term] === "wrong", C.DANGER)} onClick={() => onMark(term, "wrong")} data-cal-wrong="">wrong</button>
           {onTier && (
@@ -52,7 +53,7 @@ function AddTerms({ label, list, onChange }) {
   const add = () => { const t = v.trim(); if (t && !list.some(x => x.toLowerCase() === t.toLowerCase())) onChange([...list, t]); setV(""); };
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontWeight: 800, fontSize: ts(13), marginBottom: 6 }}>{label}</div>
       <div style={row}>
         <input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} style={{ ...field, flex: 1, minWidth: 160 }}
           placeholder="type a term draft missed, Enter to add" aria-label={label}/>
@@ -75,10 +76,10 @@ function Suggestions({ s, onAccept }) {
   if (!any) return null;
   return (
     <div style={{ ...sub, marginBottom: 12 }} data-cal-suggestions="">
-      <div style={{ fontWeight: 800, fontSize: 13 }}>The chat's suggestions — yours to accept</div>
+      <div style={{ fontWeight: 800, fontSize: ts(13) }}>The chat's suggestions — yours to accept</div>
       <div style={quiet}>Nothing here counts until you accept it.</div>
       {groups.map(([k, label]) => (s[k] || []).length ? (
-        <div key={k} style={{ marginTop: 6 }}><span style={{ fontSize: 12, fontWeight: 700 }}>{label}: </span>
+        <div key={k} style={{ marginTop: 6 }}><span style={{ fontSize: ts(12), fontWeight: 700 }}>{label}: </span>
           {(s[k] || []).map(t => <button key={t} type="button" style={{ ...toggle(false), margin: 2 }} onClick={() => onAccept(k, t)}>+ {t}</button>)}
         </div>
       ) : null)}
@@ -129,7 +130,7 @@ function Posting({ id, onOpen, onBack }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 14 }}>
         <Panel title={`${v.title}`} purpose={`${v.company} · ${v.category || "—"}${v.discipline ? ` · ${v.discipline}` : ""} · level ${v.level || "unread"}. Faded lines are what the board does not count: sections such as About us and About the role, and the company's boilerplate.`}>
-          <div style={{ maxHeight: 640, overflowY: "auto", fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }} data-cal-text="">
+          <div style={{ maxHeight: 640, overflowY: "auto", fontSize: ts(13), lineHeight: 1.5, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }} data-cal-text="">
             {lines.map((l, k) => {
               const lk = norm(l);
               const live = !lk || !counted.length || countedKeys.some(s => s.includes(lk) || lk.includes(s));
@@ -155,10 +156,10 @@ function Posting({ id, onOpen, onBack }) {
                 <div key={p.resumeId} style={{ ...sub, marginBottom: 8 }} data-cal-pair={p.resumeId}>
                   <div style={{ ...row, justifyContent: "space-between" }}>
                     <b>{p.label}</b>
-                    <span>{p.score == null ? "not scorable" : <><b style={{ fontSize: 18 }}>{p.score}</b> · {p.band}</>}</span>
+                    <span>{p.score == null ? "not scorable" : <><b style={{ fontSize: ts(18) }}>{p.score}</b> · {p.band}</>}</span>
                   </div>
                   {p.declined.length > 0 && <div style={quiet}>Declined: {p.declined.join("; ")}</div>}
-                  <div style={{ fontSize: 12, margin: "4px 0", color: C.INK_MUTED }}>
+                  <div style={{ fontSize: ts(12), margin: "4px 0", color: C.INK_MUTED }}>
                     <span style={{ color: C.SUCCESS }}>matched</span> {p.matched.slice(0, 12).join(", ") || "—"}<br/>
                     <span style={{ color: C.DANGER }}>missing</span> {p.missing.slice(0, 12).join(", ") || "—"}
                   </div>
@@ -213,7 +214,7 @@ function Results() {
   if (!d) return <Panel title="Results" purpose="Measuring today's scorer on the set…"/>;
   if (!d.reviewed) return <Panel title="Results" purpose="Nothing reviewed yet — mark a posting Done and its numbers appear here."/>;
   const box = (label, x, hint) => (
-    <div style={{ ...sub, minWidth: 120 }}><div style={{ fontSize: 22, fontWeight: 800 }}>{f3(x)}</div><div style={quiet}>{label}{hint ? ` · ${hint}` : ""}</div></div>
+    <div style={{ ...sub, minWidth: 120 }}><div style={{ fontSize: ts(22), fontWeight: 800 }}>{f3(x)}</div><div style={quiet}>{label}{hint ? ` · ${hint}` : ""}</div></div>
   );
   return (
     <Panel title="Results" purpose={`Today's scorer on the ${d.reviewed} postings you have marked Done (set v${d.version}). Terms the scorer finds that you never judged are counted apart: skills ${d.unjudged.skills}, verbs ${d.unjudged.verbs}.`} data-cal-results="">
@@ -222,23 +223,23 @@ function Results() {
         {box("verbs precision", d.verbs.precision)}{box("verbs recall", d.verbs.recall)}
         {box("must / nice right", d.tierAccuracy)}{box("ρ draft vs you", d.rho, `${d.rhoPairs} pairs; 0.72 to beat`)}
       </div>
-      <h3 style={{ fontSize: 14, margin: "14px 0 6px" }}>Skills by discipline</h3>
-      {Object.entries(d.byDiscipline).map(([k, x]) => <div key={k} style={{ fontSize: 13 }}>{k}: precision {f3(x.precision)} · recall {f3(x.recall)}</div>)}
-      <h3 style={{ fontSize: 14, margin: "14px 0 6px" }}>How the scores felt, by band</h3>
-      {Object.entries(d.bias).map(([b, x]) => <div key={b} style={{ fontSize: 13 }}>{b}: too low {x.too_low} · right {x.right} · too high {x.too_high}</div>)}
+      <h3 style={{ fontSize: ts(14), margin: "14px 0 6px" }}>Skills by discipline</h3>
+      {Object.entries(d.byDiscipline).map(([k, x]) => <div key={k} style={{ fontSize: ts(13) }}>{k}: precision {f3(x.precision)} · recall {f3(x.recall)}</div>)}
+      <h3 style={{ fontSize: ts(14), margin: "14px 0 6px" }}>How the scores felt, by band</h3>
+      {Object.entries(d.bias).map(([b, x]) => <div key={b} style={{ fontSize: ts(13) }}>{b}: too low {x.too_low} · right {x.right} · too high {x.too_high}</div>)}
       {d.worst.length > 0 && <>
-        <h3 style={{ fontSize: 14, margin: "14px 0 6px" }}>The 10 widest gaps</h3>
-        {d.worst.map((w, k) => <div key={k} style={{ fontSize: 13 }}>{w.company} — {w.title} · {w.resume}: draft {w.draft}, you {w.own} ({w.gap > 0 ? "+" : ""}{w.gap})</div>)}
+        <h3 style={{ fontSize: ts(14), margin: "14px 0 6px" }}>The 10 widest gaps</h3>
+        {d.worst.map((w, k) => <div key={k} style={{ fontSize: ts(13) }}>{w.company} — {w.title} · {w.resume}: draft {w.draft}, you {w.own} ({w.gap > 0 ? "+" : ""}{w.gap})</div>)}
       </>}
-      <h3 style={{ fontSize: 14, margin: "14px 0 6px" }}>The fixes this points to</h3>
+      <h3 style={{ fontSize: ts(14), margin: "14px 0 6px" }}>The fixes this points to</h3>
       {d.fixes.length ? d.fixes.map(fx => (
         <div key={`${fx.kind}:${fx.term}`} style={{ ...row, margin: "3px 0" }} data-cal-fix={fx.kind}>
-          <span style={markStyle(C.INFO)}>{fx.kind}</span><b style={{ fontSize: 13 }}>{fx.term}</b><span style={{ fontSize: 12, color: C.INK_MUTED }}>{fx.why}</span>
+          <span style={markStyle(C.INFO)}>{fx.kind}</span><b style={{ fontSize: ts(13) }}>{fx.term}</b><span style={{ fontSize: ts(12), color: C.INK_MUTED }}>{fx.why}</span>
           <DepthButton onClick={() => send("/fix", "POST", fx).then(load)}>Queue for the agent</DepthButton>
         </div>
       )) : <div style={quiet}>None yet.</div>}
-      <h3 style={{ fontSize: 14, margin: "14px 0 6px" }}>The gate</h3>
-      <div style={{ fontSize: 13, marginBottom: 6 }}>
+      <h3 style={{ fontSize: ts(14), margin: "14px 0 6px" }}>The gate</h3>
+      <div style={{ fontSize: ts(13), marginBottom: 6 }}>
         {d.baseline ? (d.gate?.ok ? "Nothing has fallen below the baseline." : `Below the baseline: ${d.gate.drops.map(x => `${x.metric} ${f3(x.was)} → ${f3(x.is)}`).join("; ")}`)
           : "No baseline yet. Record one once enough postings are reviewed; scripts/d125GoldGate.mjs then fails any change that lowers these numbers."}
       </div>
@@ -284,7 +285,7 @@ export function CalibrateTab() {
                 style={{ display: "flex", width: "100%", gap: 10, alignItems: "center", textAlign: "left", padding: "6px 8px", border: "none",
                          borderBottom: `1px solid ${C.BORDER}`, background: "transparent", color: C.INK, cursor: "pointer", fontFamily: "inherit" }}>
                 <span style={{ width: 24, ...quiet }}>{k + 1}</span>
-                <span style={{ flex: 1, fontSize: 13 }}><b>{i.title}</b> · {i.company}</span>
+                <span style={{ flex: 1, fontSize: ts(13) }}><b>{i.title}</b> · {i.company}</span>
                 <span style={quiet}>{i.discipline || i.category} · {i.level || "—"}</span>
                 <span style={markStyle(i.done ? C.SUCCESS : C.BAND_UNKNOWN)}>{i.done ? "done" : "to do"}</span>
               </button>
@@ -292,7 +293,7 @@ export function CalibrateTab() {
           </div>
         </Panel>
         <Panel title="The résumés each posting is scored against" purpose="The trial's samples, your own (copied from your user account — the admin account has no résumé) and any you paste. Add yours before making the set, so its reading includes it.">
-          {d.resumes.map(r => <div key={r.id} style={{ fontSize: 13 }}>{r.label} <span style={quiet}>· {r.source.split(":")[0]}</span></div>)}
+          {d.resumes.map(r => <div key={r.id} style={{ fontSize: ts(13) }}>{r.label} <span style={quiet}>· {r.source.split(":")[0]}</span></div>)}
           <div style={{ ...row, marginTop: 10 }}>
             <input value={who} onChange={(e) => setWho(e.target.value)} placeholder="Your username or email" style={{ ...field, minWidth: 220 }} aria-label="Your account"/>
             <DepthButton disabled={!who.trim()} data-cal-copy-own="" onClick={() => send("/resume", "POST", { who }).then(() => { setWho(""); setNote("Copied."); load(); }).catch(e => setNote(e.message))}>Copy my résumé</DepthButton>
@@ -307,7 +308,7 @@ export function CalibrateTab() {
         {d.version && <Assist items={d.items} onImported={load}/>}
         {d.fixes?.length > 0 && (
           <Panel title="Queued for the agent" purpose="Fixes you sent from Results.">
-            {d.fixes.map(fx => <div key={fx.id} style={{ fontSize: 13 }}>{fx.kind} · <b>{fx.term}</b> — {fx.why} <span style={quiet}>({fx.status})</span></div>)}
+            {d.fixes.map(fx => <div key={fx.id} style={{ fontSize: ts(13) }}>{fx.kind} · <b>{fx.term}</b> — {fx.why} <span style={quiet}>({fx.status})</span></div>)}
           </Panel>
         )}
       </>}

@@ -10,6 +10,7 @@ import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, Mark, row, quiet, sub, callout, field } from "./adminKit.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const usd = (n) => `$${(Number(n) || 0).toFixed(n >= 1 ? 2 : 4)}`;
 const num = (n) => (Number(n) || 0).toLocaleString();
@@ -63,7 +64,7 @@ export function ModelUsageTab() {
       {err && <div style={{ ...callout(C.DANGER), marginBottom: 10 }}>{err}</div>}
       {u.rows.length === 0 ? <p style={quiet}>No model call recorded in the last {hours} hours.</p> : (
         <div style={{ overflowX: "auto", marginBottom: 14 }}>
-          <table data-usage-table="" style={{ borderCollapse: "collapse", fontSize: 12, color: C.INK, minWidth: 720, width: "100%" }}>
+          <table data-usage-table="" style={{ borderCollapse: "collapse", fontSize: ts(12), color: C.INK, minWidth: 720, width: "100%" }}>
             <thead>
               <tr style={{ textAlign: "left", color: C.INK_MUTED }}>
                 {["Hour (UTC)", "Event", "Model", "Service", "Key", "Started by", "Calls", "Tokens", "Cost"].map((h) => (
@@ -90,7 +91,7 @@ export function ModelUsageTab() {
         </div>
       )}
       <div style={sub}>
-        <h3 style={{ fontSize: 14, color: C.INK, margin: "0 0 8px" }}>Daily cost alarm <span style={quiet}>— over it, Admin → Today raises it and the log says so once a day</span></h3>
+        <h3 style={{ fontSize: ts(14), color: C.INK, margin: "0 0 8px" }}>Daily cost alarm <span style={quiet}>— over it, Admin → Today raises it and the log says so once a day</span></h3>
         <div style={row}>
           <input aria-label="Daily alarm in dollars (empty turns it off)" placeholder="Dollars a day (empty = off)" inputMode="decimal"
             value={alarm.usd} onChange={(e) => setAlarm({ ...alarm, usd: e.target.value })} style={{ ...field, width: 200 }} />

@@ -8,6 +8,7 @@ import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, Mark, row, quiet, sub, callout, field } from "./adminKit.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const usd = (n) => `$${(Number(n) || 0).toFixed(4)}`;
 const ms = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString()} ms`);
@@ -63,10 +64,10 @@ function TaskCard({ task, telemetry, providers, onChanged }) {
           {!routed ? <Mark tone={C.INK_MUTED}>runs in the {task.runsIn}</Mark>
             : task.valid === false ? <Mark tone={C.DANGER}>not servable</Mark> : <Mark tone={C.SUCCESS}>{task.route?.layer || "default"}</Mark>}
           <div style={quiet}>{task.what}</div>
-          {routed && <div style={{ fontSize: 13 }}>Now: {routeWords(task.route)}{c ? ` · candidate ${routeWords(c)} at ${c.stage}${c.stage === "cohort" ? ` ${c.percent}%` : ""}` : ""}</div>}
+          {routed && <div style={{ fontSize: ts(13) }}>Now: {routeWords(task.route)}{c ? ` · candidate ${routeWords(c)} at ${c.stage}${c.stage === "cohort" ? ` ${c.percent}%` : ""}` : ""}</div>}
           {task.valid === false && task.invalid && <div style={{ ...callout(C.DANGER), marginTop: 6 }}>{task.invalid}</div>}
         </div>
-        <div style={{ textAlign: "right", fontSize: 13 }}>
+        <div style={{ textAlign: "right", fontSize: ts(13) }}>
           {(telemetry || []).length === 0 ? <span style={quiet}>no calls in 7 days</span> : telemetry.map(t => (
             <div key={`${t.provider}|${t.model}`} data-gateway-telemetry="">
               {t.model || "?"}: {t.calls.toLocaleString()} calls · p50 {ms(t.latencyP50Ms)} · p95 {ms(t.latencyP95Ms)} · {usd(t.costPerCallUsd)} a call
@@ -98,7 +99,7 @@ function TaskCard({ task, telemetry, providers, onChanged }) {
           <div style={{ marginTop: 10 }}>
             <div style={quiet}>History (newest first)</div>
             {!detail ? <div style={quiet}>Loading…</div> : (detail.history || []).length === 0 ? <div style={quiet}>No changes — the default route.</div> : (
-              <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 13 }} data-gateway-history="">
+              <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: ts(13) }} data-gateway-history="">
                 {detail.history.map(h => (
                   <li key={h.id}>{new Date(h.at * 1000).toLocaleString()} · {h.op} · {h.actor || "?"} — {h.reason || "no reason"}{h.undoneAt ? " (rolled back)" : ""}</li>
                 ))}
@@ -107,7 +108,7 @@ function TaskCard({ task, telemetry, providers, onChanged }) {
             {(detail?.evals || []).length > 0 && (
               <>
                 <div style={{ ...quiet, marginTop: 8 }}>Evaluations</div>
-                <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 13 }} data-gateway-evals="">
+                <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: ts(13) }} data-gateway-evals="">
                   {detail.evals.map((e, i) => <li key={e.id ?? i}>{e.provider} · {e.model} — {e.passed ? "passed" : "did not pass"}{e.reason ? ` · ${e.reason}` : ""}</li>)}
                 </ul>
               </>

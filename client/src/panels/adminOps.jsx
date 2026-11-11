@@ -15,6 +15,7 @@ import { Panel, Step, Help, Dialog, useConfirm, h2, what, row, quiet, field, cal
 // The second product is named by the one constant that holds its name (shared/brand.js).
 import { LEGACY_BRAND } from "../../../shared/brand.js";
 import { isAlarm } from "../../../shared/deployEvents.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // ── shared bits ───────────────────────────────────────────────────────────────────────────────
 const nowSec = () => Math.floor(Date.now() / 1000);
@@ -37,9 +38,9 @@ function Card({ theme, title, measured, children, tone }) {
     <div style={{ background: theme.surface, border: `1px solid ${tone || theme.border}`, borderRadius: 12,
                   padding: 16, marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: theme.text, textTransform: "uppercase",
+        <div style={{ fontSize: ts(12), fontWeight: 800, color: theme.text, textTransform: "uppercase",
                       letterSpacing: "0.06em" }}>{title}</div>
-        {measured && <div style={{ fontSize: 10, color: theme.textMuted }}>{measured}</div>}
+        {measured && <div style={{ fontSize: ts(10), color: theme.textMuted }}>{measured}</div>}
       </div>
       {children}
     </div>
@@ -48,7 +49,7 @@ function Card({ theme, title, measured, children, tone }) {
 
 export function KV({ theme, rows }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: "4px 12px", fontSize: 12 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: "4px 12px", fontSize: ts(12) }}>
       {rows.filter(Boolean).map(([k, v, color]) => (
         <div key={k} style={{ display: "contents" }}>
           <div style={{ color: theme.textMuted }}>{k}</div>
@@ -64,7 +65,7 @@ export function Btn({ theme, onClick, disabled, danger, primary, children, title
   const fg = disabled ? theme.textMuted : danger ? C.SURFACE_SOLID : primary ? C.ON_ACCENT : theme.text;
   return (
     <button type="button" onClick={onClick} disabled={disabled} title={title}
-      style={{ padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700,
+      style={{ padding: "6px 14px", borderRadius: 8, fontSize: ts(12), fontWeight: 700,
                border: `1px solid ${danger && !disabled ? C.DANGER : theme.border}`,
                background: bg, color: fg, cursor: disabled ? "not-allowed" : "pointer" }}>
       {children}
@@ -74,14 +75,14 @@ export function Btn({ theme, onClick, disabled, danger, primary, children, title
 
 export function Err({ msg }) {
   if (!msg) return null;
-  return <div style={{ color: C.DANGER, fontSize: 12, margin: "8px 0" }}>{msg}</div>;
+  return <div style={{ color: C.DANGER, fontSize: ts(12), margin: "8px 0" }}>{msg}</div>;
 }
 
 export function Table({ theme, cols, rows, empty = "Nothing recorded." }) {
-  if (!rows?.length) return <div style={{ fontSize: 12, color: theme.textMuted }}>{empty}</div>;
+  if (!rows?.length) return <div style={{ fontSize: ts(12), color: theme.textMuted }}>{empty}</div>;
   return (
     <div style={{ overflowX: "auto", border: `1px solid ${theme.border}`, borderRadius: 8 }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ts(11) }}>
         <thead>
           <tr style={{ background: theme.surfaceHigh }}>
             {cols.map(c => (
@@ -160,7 +161,7 @@ export function DeploymentsPanel({ theme }) {
           ["monetisation", v.monetisationEnabled ? "ON — plan gates enforced" : "off — every tool open"],
         ]}/>
       )}
-      <h3 style={{ ...h2, fontSize: 15, margin: "14px 0 6px" }}>Railway's last event, per service</h3>
+      <h3 style={{ ...h2, fontSize: ts(15), margin: "14px 0 6px" }}>Railway's last event, per service</h3>
       {d && (latest.length
         ? <KV theme={theme} rows={latest.map(e => [
             e.service_name || "?",
@@ -220,7 +221,7 @@ export function DiskPanel({ theme }) {
         g.tranche25 ? [`${g.tranche25.projectedPct}%`, `after 25 more companies (gate ${g.tranche25.limit}%)`, g.tranche25.projectedPct <= g.tranche25.limit] : null].filter(Boolean) : []}>
       {dialog}
       <Err msg={err}/>
-      {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 8 }}>{msg}</div>}
+      {msg && <div style={{ fontSize: ts(12), color: C.SUCCESS, marginBottom: 8 }}>{msg}</div>}
       {g && g.tone !== "green" && <div style={{ ...callout(DISK_TONE[g.tone] || C.WARNING), marginBottom: 10 }}>The volume is {g.tone} at {g.usedPct}% (amber {g.amberAt}%, red {g.redAt}%).</div>}
       <div style={{ ...row, marginBottom: 12 }}>
         <Btn theme={theme} primary disabled={!!busy} onClick={backupNow}>{busy === "backup" ? "Creating…" : "Back up now"}</Btn>
@@ -292,11 +293,11 @@ export function BoardPolicySection({ theme }) {
         [`${p.age_enforce ? "On" : "Off"} · ${p.scope_enforce ? "On" : "Off"}`, "retiring existing ones: age · scope"]] : []}>
       {dialog}
       <Err msg={err}/>
-      {note && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 8 }}>{note}</div>}
+      {note && <div style={{ fontSize: ts(12), color: C.SUCCESS, marginBottom: 8 }}>{note}</div>}
       {p && r && (
         <div style={sub} data-policy-age="">
-          <h3 style={{ ...h2, fontSize: 15, margin: "0 0 6px" }}>Age — {p.age_limit_days} days</h3>
-          <div style={{ fontSize: 12, marginBottom: 8, color: p.age_enforce ? C.WARNING : theme.text }}>
+          <h3 style={{ ...h2, fontSize: ts(15), margin: "0 0 6px" }}>Age — {p.age_limit_days} days</h3>
+          <div style={{ fontSize: ts(12), marginBottom: 8, color: p.age_enforce ? C.WARNING : theme.text }}>
             {p.age_enforce ? "Enforced — old postings are retired at the crawl and by the 03:30 sweep." : "Report only — nothing is retired until you enforce."}</div>
           <KV theme={theme} rows={[
             ["would retire", `${num(r.candidates)} (${Object.entries(r.byBasis).map(([k, v]) => `${v} by ${k}`).join(", ") || "—"})`],
@@ -311,8 +312,8 @@ export function BoardPolicySection({ theme }) {
       )}
       {p && q && (
         <div style={sub} data-policy-scope="">
-          <h3 style={{ ...h2, fontSize: 15, margin: "0 0 6px" }}>Computer science only<Help tip={`The scope rule, version ${q.version}.`}/></h3>
-          <div style={{ fontSize: 12, marginBottom: 8, color: p.scope_enforce ? C.WARNING : theme.text }}>
+          <h3 style={{ ...h2, fontSize: ts(15), margin: "0 0 6px" }}>Computer science only<Help tip={`The scope rule, version ${q.version}.`}/></h3>
+          <div style={{ fontSize: ts(12), marginBottom: 8, color: p.scope_enforce ? C.WARNING : theme.text }}>
             {p.scope_enforce ? "Enforced — out-of-scope postings are not written, and existing ones are retired at the crawl and by the 03:30 sweep." : "Report only — nothing is dropped until you enforce."}</div>
           <KV theme={theme} rows={[
             ["would retire", `${num(q.candidates)} of ${num(q.active)}${q.appliedKept ? ` · ${q.appliedKept} applied kept` : ""}`],
@@ -350,7 +351,7 @@ function BoardCategories({ theme, sub }) {
   const list = (o) => Object.entries(o).map(([k, n]) => `${k} ${num(n)}`).join(" · ") || "—";
   return (
     <div style={sub} data-board-categories="">
-      <h3 style={{ ...h2, fontSize: 15, margin: "0 0 6px" }}>Categories — every professional role, nothing from an unknown one</h3>
+      <h3 style={{ ...h2, fontSize: ts(15), margin: "0 0 6px" }}>Categories — every professional role, nothing from an unknown one</h3>
       <Err msg={err}/>
       <KV theme={theme} rows={[
         ["on the board", list(c.byCategory)],
@@ -379,7 +380,7 @@ export function DiskBanner() {
   useEffect(() => { api("/api/admin/disk").then(setG).catch(() => {}); }, []);
   if (!g || (g.tone !== "amber" && g.tone !== "red")) return null;
   return (
-    <div role="alert" data-disk-banner={g.tone} style={{ margin: "0 0 16px", padding: "10px 14px", borderLeft: `4px solid ${DISK_TONE[g.tone]}`, color: DISK_TONE[g.tone], fontWeight: 700, fontSize: 13 }}>
+    <div role="alert" data-disk-banner={g.tone} style={{ margin: "0 0 16px", padding: "10px 14px", borderLeft: `4px solid ${DISK_TONE[g.tone]}`, color: DISK_TONE[g.tone], fontWeight: 700, fontSize: ts(13) }}>
       The volume is {g.usedPct}% full ({mbOf(g.usedBytes)} of {mbOf(g.totalBytes)}) — {g.tone === "red" ? "free space now" : "plan for it"}. No company tranche is enabled above {g.tranche25?.limit ?? 70}%.
     </div>
   );
@@ -437,8 +438,8 @@ export function CrawlerTab({ theme }) {
   const st = d?.state, b = d?.budget, paused = d?.pause?.paused;
   const s = settings || (st ? { per_run_cap: st.per_run_cap, schedule_hhmm: st.schedule_hhmm, schedule_tasks: st.schedule_tasks } : null);
   const dirty = !!(settings && st && (Number(settings.per_run_cap) !== st.per_run_cap || settings.schedule_hhmm !== st.schedule_hhmm || Number(settings.schedule_tasks) !== st.schedule_tasks));
-  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 8px", fontSize: 12 };
-  const lbl = { fontSize: 12, color: theme.textMuted, display: "flex", flexDirection: "column", gap: 4 };
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 8px", fontSize: ts(12) };
+  const lbl = { fontSize: ts(12), color: theme.textMuted, display: "flex", flexDirection: "column", gap: 4 };
   return (
     <Panel title="Crawler" data-admin-crawler=""
       code="D75: the crawler worker. J1 finds a company's job board from its home page; J2 learns where Apply lands. The switches live in draft's database (STEP 0b), so no redeploy; CRAWLER_PAUSED on the server is a second, harder switch."
@@ -468,11 +469,11 @@ export function CrawlerTab({ theme }) {
             : <Btn theme={theme} onClick={goLive}>Live…</Btn>}
           <span style={quiet}>{d.pause.by === "env" ? "Paused by CRAWLER_PAUSED on the server — Resume here cannot override it." : st.updated_at ? `last changed ${ago(st.updated_at)}` : "never changed"}</span>
         </div>
-        <div style={{ fontSize: 12, marginBottom: 14, color: d.worker?.silent ? C.WARNING : theme.textMuted }}>
+        <div style={{ fontSize: ts(12), marginBottom: 14, color: d.worker?.silent ? C.WARNING : theme.textMuted }}>
           {d.worker?.lastSeen ? `The worker last called ${ago(d.worker.lastSeen)} (${d.worker.lastCall})${d.worker.silent ? " — silent since: is it running?" : "."}` : "The worker has never called draft."}
         </div>
 
-        <h3 style={{ ...h2, fontSize: 15, margin: "0 0 8px" }}>Settings</h3>
+        <h3 style={{ ...h2, fontSize: ts(15), margin: "0 0 8px" }}>Settings</h3>
         <div style={{ ...row, alignItems: "flex-end", marginBottom: 6 }}>
           <label style={lbl}>Tasks per enqueue (1–100)
             <input type="number" min={1} max={100} value={s.per_run_cap} onChange={e => setSettings({ ...s, per_run_cap: e.target.value })} style={{ ...input, width: 90 }}/></label>
@@ -487,18 +488,18 @@ export function CrawlerTab({ theme }) {
           {st.schedule_enabled ? `The daily run is on: ${st.schedule_tasks} tasks from the captured companies at ${st.schedule_hhmm} UTC${st.schedule_last_date ? `; last ran ${st.schedule_last_date}` : ""}.` : "The daily run is off."}
         </div>
 
-        <h3 style={{ ...h2, fontSize: 15, margin: "0 0 8px" }}>Queue tasks</h3>
+        <h3 style={{ ...h2, fontSize: ts(15), margin: "0 0 8px" }}>Queue tasks</h3>
         <div style={{ ...row, marginBottom: 6 }}>
           <Btn theme={theme} disabled={!d.candidates.length} onClick={() => enqueue("/api/admin/crawler/tasks/captures")}>Queue captured companies ({d.candidates.length})</Btn>
         </div>
         <textarea aria-label="Domains to queue" value={paste} onChange={e => setPaste(e.target.value)} rows={3} placeholder="https://company.com — one per line"
-          style={{ width: "100%", boxSizing: "border-box", fontFamily: "inherit", fontSize: 12, padding: 8, background: theme.bg, color: theme.text, border: `1px solid ${theme.border || C.INK_FAINT}`, borderRadius: 6 }}/>
+          style={{ width: "100%", boxSizing: "border-box", fontFamily: "inherit", fontSize: ts(12), padding: 8, background: theme.bg, color: theme.text, border: `1px solid ${theme.border || C.INK_FAINT}`, borderRadius: 6 }}/>
         <div style={{ ...row, marginTop: 6, marginBottom: 6 }}>
           <Btn theme={theme} disabled={!paste.trim()} onClick={() => enqueue("/api/admin/crawler/tasks", { type: "j1_find_board", urls: paste.split(/\s+/).filter(Boolean) })}>Queue pasted domains</Btn>
           {note && <span style={quiet}>{note}</span>}
         </div>
 
-        <h3 style={{ ...h2, fontSize: 15, margin: "16px 0 8px" }}>Queue and results</h3>
+        <h3 style={{ ...h2, fontSize: ts(15), margin: "16px 0 8px" }}>Queue and results</h3>
         <div style={{ ...quiet, marginBottom: 6 }}>{d.tally.map(t => `${t.type === "j1_find_board" ? "find a board" : "where Apply lands"}: ${t.outcome} ${t.n}`).join(" · ") || "Nothing has run yet."}</div>
         <Table theme={theme} rows={d.tasks} empty="No tasks yet." cols={[
           { key: "id", label: "#" }, { key: "target_host", label: "target" }, { key: "mode", label: "mode", render: t => t.mode || "—" },
@@ -508,7 +509,7 @@ export function CrawlerTab({ theme }) {
           { key: "flag", label: "", render: t => <Btn theme={theme} onClick={() => setFlagging({ task: t, note: "" })}>{t.flagged_wrong ? `wrong: ${t.flag_note || "flagged"} — clear…` : "Flag wrong…"}</Btn> },
         ]}/>
 
-        <h3 style={{ ...h2, fontSize: 15, margin: "16px 0 4px" }}>Deny-list</h3>
+        <h3 style={{ ...h2, fontSize: ts(15), margin: "16px 0 4px" }}>Deny-list</h3>
         <div style={{ ...quiet, marginBottom: 8 }}>Domains no task may request — this wins over every task. {d.denyList.length} listed{d.denyList.length ? `: ${d.denyList.join(" · ")}` : ""}.</div>
         <div style={row}>
           <input aria-label="Domain to deny" placeholder="example.com" value={deny.add} onChange={e => setDeny({ ...deny, add: e.target.value })} style={{ ...input, width: 200 }}/>
@@ -865,7 +866,7 @@ export function BoardFitSection({ theme }) {
   };
   const body = result || (planFresh ? dry.body : null);
   const sum = body?.summary || {};
-  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 8px", fontSize: 12 };
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 8px", fontSize: ts(12) };
   return (
     <Panel title="Board-fit scoring" data-admin-boardfit=""
       code="The board-fit precompute: the local ATS scorer (no model, D17) fills ats_only_reports for each active profile; the nightly pass does the same. A score is stale when the profile or the posting changed."
@@ -878,7 +879,7 @@ export function BoardFitSection({ theme }) {
           <option value="">every user's active profile</option>
           {users.map(u => <option key={u.id} value={u.id}>{u.username} (id {u.id})</option>)}
         </select>
-        <label style={{ fontSize: 12, display: "flex", gap: 6, alignItems: "center", color: force ? C.WARNING : theme.text }}>
+        <label style={{ fontSize: ts(12), display: "flex", gap: 6, alignItems: "center", color: force ? C.WARNING : theme.text }}>
           <input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)}/>
           also re-score postings that already have a fresh score (after a term-weight refresh)
         </label>
@@ -895,7 +896,7 @@ export function BoardFitSection({ theme }) {
       <Err msg={err}/>
       {body && (
         <div style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 6, color: result ? C.SUCCESS : theme.text }}>
+          <div style={{ fontSize: ts(11), fontWeight: 800, marginBottom: 6, color: result ? C.SUCCESS : theme.text }}>
             {result ? "RAN — " : "COUNTED — nothing was scored or written · "}
             {sum.profiles ?? 0} profile(s) ·{" "}
             {Object.entries(sum.byStatus || {}).map(([k, n]) => `${k} ${n}`).join(", ") || "no profiles"}
@@ -987,12 +988,12 @@ export function JobDataSection({ theme }) {
         [batches[0] ? ago(batches[0].created_at) : "never", "the last import"]]}>
       {dialog}
       <div style={{ ...row, marginBottom: 12 }}>
-        <a className="dbx-depth" href={exportHref()} style={{ fontSize: 12, fontWeight: 700, color: theme.text, padding: "6px 12px", textDecoration: "none" }}>Export the active board (NDJSON) ↓</a>
+        <a className="dbx-depth" href={exportHref()} style={{ fontSize: ts(12), fontWeight: 700, color: theme.text, padding: "6px 12px", textDecoration: "none" }}>Export the active board (NDJSON) ↓</a>
       </div>
       <Step n={1} state={text.trim() ? "done" : "active"} title="Paste postings — one JSON object per line">
         <div style={quiet}>title, company and url are required; source is one of the known sources (default: import).</div>
         <textarea aria-label="Postings to import" value={text} onChange={e => setText(e.target.value)} rows={5} placeholder='{"title":"…","company":"…","url":"https://…","location":"…","description":"…"}'
-          style={{ width: "100%", boxSizing: "border-box", fontFamily: "ui-monospace, monospace", fontSize: 11,
+          style={{ width: "100%", boxSizing: "border-box", fontFamily: "ui-monospace, monospace", fontSize: ts(11),
                    background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: 8 }}/>
       </Step>
       <Step n={2} state={!text.trim() ? "locked" : plan ? "done" : "active"} title="Check it — writes nothing">
@@ -1000,7 +1001,7 @@ export function JobDataSection({ theme }) {
           <Btn theme={theme} disabled={!!busy || !text.trim()} onClick={runDry}>{busy === "dry" ? "Checking…" : "Check the postings"}</Btn>
           {dry && !plan && <span style={quiet}>The text changed since the check — check it again.</span>}
         </div>
-        {plan && <div style={{ fontSize: 12 }}>{num(plan.valid)} valid of {num(plan.rows)} · {num(plan.plan.insert)} new · {num(plan.plan.replace)} replace ·
+        {plan && <div style={{ fontSize: ts(12) }}>{num(plan.valid)} valid of {num(plan.rows)} · {num(plan.plan.insert)} new · {num(plan.plan.replace)} replace ·
           {" "}{num(plan.plan.attach)} attach · {num(plan.plan.outOfMarket)} outside the US</div>}
         {shown?.refused?.length > 0 && <Err msg={`Refused: ${shown.refused.slice(0, 5).map(r => `line ${r.line}: ${r.reason}`).join(" · ")}${shown.refused.length > 5 ? " …" : ""}`}/>}
       </Step>
@@ -1011,13 +1012,13 @@ export function JobDataSection({ theme }) {
           </Btn>
           <span style={quiet}>Unlocks for exactly the text that was checked.</span>
         </div>
-        {result && <div style={{ fontSize: 12, color: C.SUCCESS }}>Batch {result.batchId}: {num(result.inserted)} inserted · {num(result.attached)} attached · {num(result.held)} held off the board.
+        {result && <div style={{ fontSize: ts(12), color: C.SUCCESS }}>Batch {result.batchId}: {num(result.inserted)} inserted · {num(result.attached)} attached · {num(result.held)} held off the board.
           {result.note ? ` ${result.note}` : ""}</div>}
       </Step>
       <Err msg={err}/>
       {batches.length > 0 && (
         <div style={{ marginTop: 12 }}>
-          <h3 style={{ ...h2, fontSize: 15, margin: "0 0 6px" }}>Past imports</h3>
+          <h3 style={{ ...h2, fontSize: ts(15), margin: "0 0 6px" }}>Past imports</h3>
           <Table theme={theme} rows={batches} cols={[
             { key: "id", label: "batch" },
             { key: "created_at", label: "when", render: r => stamp(r.created_at) },
@@ -1085,7 +1086,7 @@ export function CompaniesSection({ theme }) {
     try { await api(`/api/admin/companies/${c.id}`, { method: "PATCH", body: JSON.stringify({ active: !c.active }) }); load(); }
     catch (e) { setErr(e.message); }
   };
-  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 8px", fontSize: 12 };
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 8px", fontSize: ts(12) };
   const companies = d?.companies || [];
   const active = companies.filter(c => c.active);
   const heat = d?.heat;
@@ -1103,9 +1104,9 @@ export function CompaniesSection({ theme }) {
         [num(heat?.proposals?.length || 0), "proposed for deactivation"]] : []}>
       {dialog}
       <Err msg={err}/>
-      {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 8 }}>{msg}</div>}
+      {msg && <div style={{ fontSize: ts(12), color: C.SUCCESS, marginBottom: 8 }}>{msg}</div>}
 
-      <h3 style={{ ...h2, fontSize: 15, margin: "4px 0 10px" }}>Add a company</h3>
+      <h3 style={{ ...h2, fontSize: ts(15), margin: "4px 0 10px" }}>Add a company</h3>
       <Step n={1} state={stepState(1)} title="Name the board">
         <div style={row}>
           <input aria-label="Company" placeholder="Company" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} style={{ ...input, width: 170 }}/>
@@ -1134,7 +1135,7 @@ export function CompaniesSection({ theme }) {
           <Btn theme={theme} disabled={!!busy || !named} onClick={runProbe}>{busy === "probe" ? "Probing…" : "Probe the board"}</Btn>
           {!named && <span style={quiet}>Waits for a company and a slug.</span>}
         </div>
-        {seen && <div style={{ fontSize: 12, color: seen.ok ? (seen.state === "live" ? C.SUCCESS : theme.text) : C.DANGER }}>
+        {seen && <div style={{ fontSize: ts(12), color: seen.ok ? (seen.state === "live" ? C.SUCCESS : theme.text) : C.DANGER }}>
           {seen.state.toUpperCase()} — {seen.message}
           {seen.sample?.length > 0 && <span style={{ color: theme.textMuted }}> e.g. {seen.sample.map(s => s.title).join(" · ")}</span>}
         </div>}
@@ -1147,7 +1148,7 @@ export function CompaniesSection({ theme }) {
       </Step>
 
       {heat && (
-        <div data-company-heat style={{ fontSize: 12, margin: "14px 0 8px", color: heat.meetsTarget === false ? C.WARNING : theme.text }}>
+        <div data-company-heat style={{ fontSize: ts(12), margin: "14px 0 8px", color: heat.meetsTarget === false ? C.WARNING : theme.text }}>
           {heat.hot} hot · {heat.warm} warm · {heat.dormant} dormant · {heat.probation} on probation.
           {heat.proposals.length > 0 && <div style={{ color: C.WARNING, marginTop: 4 }}>
             Proposed for deactivation (no new in-scope posting in {heat.dormantDays} days, or every posting outside the US — press Disable to act): {heat.proposals.map(p => `${p.company} (${p.why})`).join(" · ")}
@@ -1214,7 +1215,7 @@ function DiscoveryCandidates({ theme, onAdded }) {
           <ul data-approve-eligible="" style={{ ...scroll, paddingLeft: 18 }}>{dry.eligible.map(e => <li key={e.id}>{e.company} — {e.cs} in scope (≤ 120 days) of {e.csOpen} open</li>)}</ul>
           {dry.refused.length > 0 && <details data-approve-refused="" style={{ margin: "0 0 8px" }}>
             <summary>{dry.refused.length} refused: {refusedLine}</summary>
-            <div style={{ ...scroll, fontSize: 12 }}>{Object.entries(byReason).map(([k, v]) => <div key={k}><b>{REASON_WORDS[k] || k}:</b> {v.join(", ")}</div>)}</div>
+            <div style={{ ...scroll, fontSize: ts(12) }}>{Object.entries(byReason).map(([k, v]) => <div key={k}><b>{REASON_WORDS[k] || k}:</b> {v.join(", ")}</div>)}</div>
           </details>}
           <div>A backup is taken first; each add carries its evidence, and Disable reverses it.</div>
         </> })) { setBusy(null); return; }
@@ -1255,14 +1256,14 @@ function DiscoveryCandidates({ theme, onAdded }) {
   return (
     <div data-discovery-candidates style={{ marginTop: 18 }}>
       {dialog}
-      <h3 style={{ ...h2, fontSize: 15, margin: "0 0 4px" }}>Candidates<Help tip="D82: found by the weekly Hacker News job and measured by the nightly read-only probe. Nothing is added without Approve."/></h3>
+      <h3 style={{ ...h2, fontSize: ts(15), margin: "0 0 4px" }}>Candidates<Help tip="D82: found by the weekly Hacker News job and measured by the nightly read-only probe. Nothing is added without Approve."/></h3>
       <p style={{ ...what, margin: "0 0 10px" }}>Companies found by discovery, not yet crawled, ranked by fresh in-scope roles. Tick the ones to add, then Approve — or Approve all for every probed one. Either shows exactly what would be added first.</p>
-      <div style={{ fontSize: 12, color: theme.text, marginBottom: 6 }}><b>{num(waiting)}</b> waiting for review
+      <div style={{ fontSize: ts(12), color: theme.text, marginBottom: 6 }}><b>{num(waiting)}</b> waiting for review
         <span style={{ color: theme.textMuted }}>{Object.entries(d?.counts || {}).map(([k, v]) => ` · ${v} ${k}`).join("")}
         {(disc?.lastRuns || []).map(r => ` · last ${r.source} run ${ago(r.started_at)}: ${r.status}${r.error_text ? ` (${r.error_text})` : ""}`).join("")}</span></div>
-      {disc?.paused && <div style={{ fontSize: 12, color: C.WARNING, marginBottom: 6 }}>Discovery is paused (DISCOVERY_PAUSED) — no job runs.</div>}
+      {disc?.paused && <div style={{ fontSize: ts(12), color: C.WARNING, marginBottom: 6 }}>Discovery is paused (DISCOVERY_PAUSED) — no job runs.</div>}
       {open.map(b => (
-        <div key={b.source} data-discovery-breaker style={{ fontSize: 12, color: C.DANGER, marginBottom: 6 }}>
+        <div key={b.source} data-discovery-breaker style={{ fontSize: ts(12), color: C.DANGER, marginBottom: 6 }}>
           The {b.source} job is stopped after {b.failures} failures in a row. Last error: {b.last_error || "—"}{" "}
           <Btn theme={theme} onClick={() => reset(b.source)}>Restart…</Btn>
         </div>
@@ -1275,14 +1276,14 @@ function DiscoveryCandidates({ theme, onAdded }) {
           {busy === "probe" ? "Starting…" : running ? "Re-probing…" : `Re-probe all ${d?.probeDue || ""} due`}</Btn>
       </div>
       {d?.probeRun && (
-        <div data-probe-progress="" style={{ fontSize: 12, color: d.probeRun.error ? C.WARNING : theme.textMuted, marginBottom: 6 }}>
+        <div data-probe-progress="" style={{ fontSize: ts(12), color: d.probeRun.error ? C.WARNING : theme.textMuted, marginBottom: 6 }}>
           {d.probeRun.running
             ? `Re-probing: ${d.probeRun.probed} of ${d.probeRun.due} done${d.probeRun.errored ? `, ${d.probeRun.errored} could not be read` : ""} — ${d.probeDue} still due. One board at a time; this list refreshes itself.`
             : `Last re-probe ${ago(d.probeRun.finishedAt)}: ${d.probeRun.probed} probed${d.probeRun.errored ? `, ${d.probeRun.errored} could not be read` : ""}${d.probeRun.error ? ` — stopped: ${d.probeRun.error}` : ""}.`}
         </div>
       )}
       <Err msg={err}/>
-      {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 6 }}>{msg}</div>}
+      {msg && <div style={{ fontSize: ts(12), color: C.SUCCESS, marginBottom: 6 }}>{msg}</div>}
       <Table theme={theme} rows={d?.candidates || []} empty="No candidates yet — the discovery job runs weekly." cols={[
         { key: "pick", label: "", render: r => ["probed", "new", "approved"].includes(r.status)
             ? <input type="checkbox" checked={picked.has(r.id)} onChange={() => flip(r.id)} aria-label={`select ${r.company}`}/> : "" },
@@ -1399,10 +1400,10 @@ export function SlugHarvestSection({ theme }) {
       {dialog}
       {d && !d.configured && <div style={{ ...callout(C.WARNING), marginBottom: 10 }}>SERPAPI_KEY is not set — no search can run.</div>}
       <Err msg={err}/>
-      {msg && <div style={{ fontSize: 12, color: C.SUCCESS, marginBottom: 8 }}>{msg}</div>}
+      {msg && <div style={{ fontSize: ts(12), color: C.SUCCESS, marginBottom: 8 }}>{msg}</div>}
       <Step n={1} state={stepState(1)} title="Plan today's sweep — reads the quota, spends nothing">
         <div style={row}><Btn theme={theme} disabled={!!busy || !!running || !d?.configured} onClick={planSweep}>{busy === "plan" ? "Reading the quota…" : "Plan today's sweep"}</Btn></div>
-        {dry && <div style={{ fontSize: 12 }}>
+        {dry && <div style={{ fontSize: ts(12) }}>
           {dry.note} {dry.quota && <span style={{ color: theme.textMuted }}>{dry.quota.left ?? "?"} searches left this month.</span>}
           {dry.quotaError && <span style={{ color: C.DANGER }}> {dry.quotaError}.</span>}
           {dry.plan.skipped.length > 0 && <div style={{ color: theme.textMuted }}>Not searched: {dry.plan.skipped.map(x => `${x.q} (${x.reason})`).join(" · ")}</div>}
@@ -1418,18 +1419,18 @@ export function SlugHarvestSection({ theme }) {
       <Step n={3} state={stepState(3)} title="Export the pool and mark each board add or skip">
         <div style={row}>
           <a className="dbx-depth" href={`/api/admin/slug-harvest/export${authContextQuery() ? `?${authContextQuery()}` : ""}`}
-            style={{ fontSize: 12, fontWeight: 700, color: theme.text, padding: "6px 12px", textDecoration: "none" }}>Export for review (JSONL)</a>
+            style={{ fontSize: ts(12), fontWeight: 700, color: theme.text, padding: "6px 12px", textDecoration: "none" }}>Export for review (JSONL)</a>
           <span style={quiet}>{num(toReview)} boards to review. Set each line's decision to "add" or "skip" in the file.</span>
         </div>
       </Step>
       <Step n={4} state={stepState(4)} title="Import your decisions — checked first, applied on your confirm">
         <div style={row}>
-          <label className="dbx-depth" style={{ fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "6px 12px" }}>
+          <label className="dbx-depth" style={{ fontSize: ts(12), fontWeight: 700, cursor: "pointer", padding: "6px 12px" }}>
             {busy === "import" ? "Checking the file…" : "Choose the file…"}
             <input type="file" accept=".jsonl,.ndjson,.txt" onChange={pickFile} style={{ display: "none" }}/>
           </label>
         </div>
-        {imp && <div style={{ fontSize: 12 }}>
+        {imp && <div style={{ fontSize: ts(12) }}>
           <div style={{ color: imp.body.plan.valid ? theme.text : C.DANGER }}>{imp.body.note}</div>
           {imp.body.plan.rejected.map((r, i) => <div key={i} style={{ color: C.DANGER }}>line {r.line} · {r.pair || "—"} · {r.kind}: {r.error}</div>)}
           {imp.body.plan.valid && imp.body.plan.expectWrites > 0 && <div style={{ marginTop: 6 }}>
@@ -1438,14 +1439,14 @@ export function SlugHarvestSection({ theme }) {
         </div>}
       </Step>
       {d?.imports?.length > 0 && <>
-        <h3 style={{ ...h2, fontSize: 15, margin: "14px 0 6px" }}>Past imports</h3>
+        <h3 style={{ ...h2, fontSize: ts(15), margin: "14px 0 6px" }}>Past imports</h3>
         <Table theme={theme} rows={d.imports} cols={[
           { key: "id", label: "#" }, { key: "imported_at", label: "when", render: r => ago(r.imported_at) },
           { key: "rows_written", label: "decisions", right: true }, { key: "companies_added", label: "added", right: true },
           { key: "reverted_at", label: "", render: r => r.reverted_at ? `reverted ${ago(r.reverted_at)}` : <Btn theme={theme} onClick={() => revert(r)}>Revert…</Btn> },
         ]}/>
       </>}
-      <h3 style={{ ...h2, fontSize: 15, margin: "14px 0 6px" }}>What the searches find</h3>
+      <h3 style={{ ...h2, fontSize: ts(15), margin: "14px 0 6px" }}>What the searches find</h3>
       <Table theme={theme} rows={d?.families || []} cols={[
         { key: "family", label: "role family", render: r => familyWords(r.family) }, { key: "searches", label: "searches", right: true },
         { key: "newPairs", label: "new boards", right: true }, { key: "rate", label: "per search", right: true, render: r => r.rate ?? "—" },
@@ -1507,7 +1508,7 @@ export function UserApplications({ userId, theme }) {
         ? <Btn theme={theme} onClick={load}>Show applications</Btn>
         : (
           <>
-            <div style={{ fontSize: 11, fontWeight: 700, color: theme.textMuted, marginBottom: 6 }}>
+            <div style={{ fontSize: ts(11), fontWeight: 700, color: theme.textMuted, marginBottom: 6 }}>
               Applications ({rows.length}) — job_applications, read-only
             </div>
             <Table theme={theme} rows={rows.slice(0, 50)} empty="No applications recorded." cols={[
@@ -1519,7 +1520,7 @@ export function UserApplications({ userId, theme }) {
               { key: "response_outcome", label: "outcome" },
               { key: "source", label: "source" },
             ]}/>
-            {rows.length > 50 && <div style={{ fontSize: 11, color: theme.textMuted }}>…{rows.length - 50} more</div>}
+            {rows.length > 50 && <div style={{ fontSize: ts(11), color: theme.textMuted }}>…{rows.length - 50} more</div>}
           </>
         )}
       <Err msg={err}/>
@@ -1563,7 +1564,7 @@ export function GlanceTab({ theme }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 12, color: theme.textMuted }}>
+        <div style={{ fontSize: ts(12), color: theme.textMuted }}>
           Computed {stamp(g.measuredAt)} — each box says what its numbers refer to.
         </div>
         <div style={{ flex: 1 }}/>
@@ -1572,7 +1573,7 @@ export function GlanceTab({ theme }) {
 
       {ing.alertCounts.critical + ing.alertCounts.warn > 0 && (
         <div style={{ border: `1px solid ${alertTone}`, background: ing.alertCounts.critical ? C.DANGER_QUIET : C.WARNING_QUIET,
-                      borderRadius: 10, padding: "8px 14px", marginBottom: 12, fontSize: 12, color: alertTone }}>
+                      borderRadius: 10, padding: "8px 14px", marginBottom: 12, fontSize: ts(12), color: alertTone }}>
           <b>{ing.alertCounts.critical} critical · {ing.alertCounts.warn} warning</b> (the same alerts the nightly
           mail reads — Pipeline Health in the DB Inspector has the full list)
           {ing.alerts.slice(0, 4).map((a, i) => (
@@ -1586,7 +1587,7 @@ export function GlanceTab({ theme }) {
           <Card theme={theme} title="Ingestion" measured={`last crawl run ${ago(ing.lastCrawlAt)} (${stamp(ing.lastCrawlAt)})`}
             tone={ing.sourcesNeedingAttention.length ? C.WARNING : undefined}>
             {ing.crawlAgeHours && (
-              <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 8 }}>
+              <div style={{ fontSize: ts(11), color: theme.textMuted, marginBottom: 8 }}>
                 Last ok crawl: amber past {ing.crawlAgeHours.amber}h, red past {ing.crawlAgeHours.red}h or never.
               </div>
             )}
@@ -1604,7 +1605,7 @@ export function GlanceTab({ theme }) {
             ]}/>
             {ing.sources.some(s => s.funnel?.fetched > 0) && (
               <>
-                <div style={{ fontSize: 11, color: theme.textMuted, margin: "10px 0 6px" }}>
+                <div style={{ fontSize: ts(11), color: theme.textMuted, margin: "10px 0 6px" }}>
                   Last run, per source: where every fetched posting went. {ing.funnelNote}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: 10 }}>
@@ -1637,7 +1638,7 @@ export function GlanceTab({ theme }) {
               ["enriched ÷ active", pct(sc.enrichedShare)],
               ["expected \"not enough signal\"", sc.expectedDeclineShare == null ? "—" : `≈ ${pct(sc.expectedDeclineShare)} of the board`],
             ]}/>
-            <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 8 }}>{sc.note}</div>
+            <div style={{ fontSize: ts(11), color: theme.textMuted, marginTop: 8 }}>{sc.note}</div>
           </Card>
         </div>
         <div style={cell}>
@@ -1672,7 +1673,7 @@ export function GlanceTab({ theme }) {
                 ["scoring weights", v.atsWeights?.weightedScoring ? `fresh, ${v.atsWeights.ageDays} days` : (v.atsWeights?.state || "—"),
                   v.atsWeights?.weightedScoring ? null : C.DANGER],
               ]}/>
-            ) : <div style={{ fontSize: 12, color: theme.textMuted }}>Loading…</div>}
+            ) : <div style={{ fontSize: ts(12), color: theme.textMuted }}>Loading…</div>}
           </Card>
         </div>
       </div>
@@ -1710,8 +1711,8 @@ export function PluginTab({ theme }) {
   const killed = !s.enabled;
   const stat = (label, value) => (
     <div style={{ background: theme.surfaceHigh, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "10px 13px" }}>
-      <div style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1, color: C.ACCENT_INK }}>{killed ? "—" : (value ?? "—")}</div>
-      <div style={{ fontSize: 11.5, color: theme.textMuted }}>{label}</div>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: ts(30), lineHeight: 1, color: C.ACCENT_INK }}>{killed ? "—" : (value ?? "—")}</div>
+      <div style={{ fontSize: ts(11.5), color: theme.textMuted }}>{label}</div>
     </div>
   );
   const resultMark = (r) => {
@@ -1723,7 +1724,7 @@ export function PluginTab({ theme }) {
   };
   const hostRow = (h, label) => (
     <div key={h} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: `1px solid ${theme.border}`, borderRadius: 6, marginBottom: 8 }}>
-      <span style={{ flex: 1, fontSize: 12.5 }}><b style={{ color: theme.text }}>Allow {label}</b> <span style={{ color: theme.textMuted, fontSize: 12 }}>· host allow-list</span></span>
+      <span style={{ flex: 1, fontSize: ts(12.5) }}><b style={{ color: theme.text }}>Allow {label}</b> <span style={{ color: theme.textMuted, fontSize: ts(12) }}>· host allow-list</span></span>
       <PluginSwitch theme={theme} on={s.hosts[h]} label={`Allow ${label}`} onChange={(on) => put({ hosts: { [h]: on } })}/>
     </div>
   );
@@ -1731,7 +1732,7 @@ export function PluginTab({ theme }) {
     <div data-admin-plugin="">
       <Err msg={err}/>
       <Card theme={theme} title="Plugin">
-        <div style={{ fontSize: 13, color: theme.textMuted, marginBottom: 12, maxWidth: 760 }}>
+        <div style={{ fontSize: ts(13), color: theme.textMuted, marginBottom: 12, maxWidth: 760 }}>
           The bring-your-own-model résumé feature. Turn it off here and every connection stops at once.
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 12 }}>
@@ -1743,8 +1744,8 @@ export function PluginTab({ theme }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: theme.surfaceHigh,
           border: `1px solid ${killed ? C.DANGER : theme.border}`, borderRadius: 6, marginBottom: 10 }}>
           <div style={{ flex: 1 }}>
-            <b style={{ fontSize: 14, color: theme.text }}>Feature switch</b>
-            <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>
+            <b style={{ fontSize: ts(14), color: theme.text }}>Feature switch</b>
+            <div style={{ fontSize: ts(12), color: theme.textMuted, marginTop: 2 }}>
               {killed
                 ? <><span style={markStyle(C.DANGER)}>Stopped</span> — every tool call is refused, the consent screen offers only “Not now”, and Settings shows “unavailable”.</>
                 : <><span style={markStyle(C.SUCCESS)}>Running</span> — apps can connect and write résumés.</>}
@@ -1756,15 +1757,15 @@ export function PluginTab({ theme }) {
           {hostRow("chatgpt", "ChatGPT")}
           {hostRow("claude", "Claude")}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "4px 0 14px" }}>
-            <label style={{ fontSize: 12, color: theme.textMuted }} htmlFor="byom-cap">Résumés per user per day</label>
+            <label style={{ fontSize: ts(12), color: theme.textMuted }} htmlFor="byom-cap">Résumés per user per day</label>
             <select id="byom-cap" value={String(s.dailyCap)} onChange={e => put({ dailyCap: Number(e.target.value) })}
               style={{ background: theme.surfaceHigh, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: 6, padding: "7px 10px" }}>
               {[...new Set([50, 25, 100, s.dailyCap])].map(v => <option key={v} value={v}>{v}</option>)}
             </select>
-            <span style={{ fontSize: 11, color: theme.textMuted }}>Stops abuse; users see this number.</span>
+            <span style={{ fontSize: ts(11), color: theme.textMuted }}>Stops abuse; users see this number.</span>
           </div>
           {/* ⭐ D86/D88 follow-up: who is connected — by the account's email, the host, and when it was last used. */}
-          <div style={{ fontSize: 11.5, fontWeight: 800, fontStyle: "italic", color: theme.textMuted, marginBottom: 6 }}>Connected accounts</div>
+          <div style={{ fontSize: ts(11.5), fontWeight: 800, fontStyle: "italic", color: theme.textMuted, marginBottom: 6 }}>Connected accounts</div>
           <div data-plugin-connections="" style={{ marginBottom: 14 }}>
             <Table theme={theme} rows={d.connections || []} empty="No account is connected." cols={[
               { key: "email", label: "Account", render: r => <>{r.email || <span style={{ color: theme.textMuted }}>no email — {r.username}</span>}
@@ -1774,7 +1775,7 @@ export function PluginTab({ theme }) {
               { key: "lastUsedAt", label: "Last used", render: r => (r.lastUsedAt ? ago(r.lastUsedAt) : "never") },
             ]}/>
           </div>
-          <div style={{ fontSize: 11.5, fontWeight: 800, fontStyle: "italic", color: theme.textMuted, marginBottom: 6 }}>Recent tool calls</div>
+          <div style={{ fontSize: ts(11.5), fontWeight: 800, fontStyle: "italic", color: theme.textMuted, marginBottom: 6 }}>Recent tool calls</div>
           <Table theme={theme} rows={d.recent} empty="No calls yet." cols={[
             { key: "at", label: "Time", render: r => ago(r.at) },
             { key: "username", label: "User" },
@@ -1813,7 +1814,7 @@ export function ReviewerAccount({ theme }) {
   return (
     <Card theme={theme} title="Reviewer account">
       {dialog}
-      <div style={{ fontSize: 13, color: theme.textMuted, marginBottom: 12, maxWidth: 760 }}>
+      <div style={{ fontSize: ts(13), color: theme.textMuted, marginBottom: 12, maxWidth: 760 }}>
         The account the connector directory's reviewers sign in with — a fictional candidate, sample postings with stable ids
         (<code>demo-job-001</code> … <code>demo-job-012</code>), no second factor. Its password goes only into the review portal.
       </div>
@@ -1850,36 +1851,36 @@ export function NoticesTab({ theme }) {
   };
   if (!d) return <Err msg={err}/>;
   const input = { width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 6, border: `1px solid ${theme.border}`,
-    background: theme.surface, color: theme.text, fontSize: 13, fontFamily: "inherit" };
+    background: theme.surface, color: theme.text, fontSize: ts(13), fontFamily: "inherit" };
   const ready = form.subject.trim() && form.body.trim() && form.why.trim();
   const needsRaise = dry && dry.overCeiling;
   return (
     <div data-admin-notices="">
       <Err msg={err}/>
       <Card theme={theme} title="Send a notice">
-        <div style={{ fontSize: 13, color: theme.textMuted, marginBottom: 12, maxWidth: 760 }}>
+        <div style={{ fontSize: ts(13), color: theme.textMuted, marginBottom: 12, maxWidth: 760 }}>
           A policy, terms or service notice to users' account email. It is not marketing: no opt-in is needed, and each one says
           why the user is receiving it. Suppressed addresses (hard bounces, spam complaints) are skipped. Count first — sending refuses
           above the ceiling of {d.defaultCeiling} unless you raise it to at least the count.
           {!d.configured && <span style={{ color: C.WARNING }}> Email is not configured on this server — nothing would be sent.</span>}
         </div>
         <div style={{ display: "grid", gap: 10, maxWidth: 720 }}>
-          <label style={{ fontSize: 12, color: theme.textMuted }}>Audience
+          <label style={{ fontSize: ts(12), color: theme.textMuted }}>Audience
             <select value={form.audience} onChange={set("audience")} style={{ ...input, marginTop: 4 }}>
               {Object.entries(d.audiences).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </label>
-          <label style={{ fontSize: 12, color: theme.textMuted }}>Subject
+          <label style={{ fontSize: ts(12), color: theme.textMuted }}>Subject
             <input value={form.subject} onChange={set("subject")} style={{ ...input, marginTop: 4 }} maxLength={140}/></label>
-          <label style={{ fontSize: 12, color: theme.textMuted }}>Message (plain text)
+          <label style={{ fontSize: ts(12), color: theme.textMuted }}>Message (plain text)
             <textarea value={form.body} onChange={set("body")} rows={8} style={{ ...input, marginTop: 4 }}/></label>
-          <label style={{ fontSize: 12, color: theme.textMuted }}>Why they receive it (printed at the end)
+          <label style={{ fontSize: ts(12), color: theme.textMuted }}>Why they receive it (printed at the end)
             <input value={form.why} onChange={set("why")} placeholder="our privacy policy is changing on 1 November" style={{ ...input, marginTop: 4 }}/></label>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <Btn theme={theme} disabled={busy} onClick={async () => setDry(await run("/api/admin/notices/dry-run", { audience: form.audience }))}>Count recipients (sends nothing)</Btn>
             <Btn theme={theme} disabled={busy || !ready} onClick={async () => setResult(await run("/api/admin/notices/send", { ...form, test: true }))}>Send a test to me</Btn>
             {dry && (
-              <span style={{ fontSize: 12, color: theme.text }} data-notice-dry="">
+              <span style={{ fontSize: ts(12), color: theme.text }} data-notice-dry="">
                 <b>{dry.recipients}</b> recipient{dry.recipients === 1 ? "" : "s"} · {dry.suppressed} suppressed
                 {needsRaise ? <span style={{ color: C.WARNING }}> — above the ceiling of {dry.ceiling}</span> : null}
               </span>
@@ -1888,7 +1889,7 @@ export function NoticesTab({ theme }) {
           {dry && (
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               {needsRaise && (
-                <label style={{ fontSize: 12, color: theme.textMuted }}>Raise the ceiling to
+                <label style={{ fontSize: ts(12), color: theme.textMuted }}>Raise the ceiling to
                   <input value={ceiling} onChange={e => setCeiling(e.target.value)} inputMode="numeric" style={{ ...input, width: 90, marginLeft: 6, display: "inline-block" }}/></label>
               )}
               <Btn theme={theme} danger disabled={busy || !ready || (needsRaise && Number(ceiling) < dry.recipients)}
@@ -1898,7 +1899,7 @@ export function NoticesTab({ theme }) {
               </Btn>
             </div>
           )}
-          {result && <div style={{ fontSize: 12, color: theme.text }} role="status">
+          {result && <div style={{ fontSize: ts(12), color: theme.text }} role="status">
             {result.test ? "Test" : "Sent"}: {result.sent} sent · {result.skipped} skipped · {result.failed} failed{result.reason ? ` (${result.reason})` : ""}</div>}
         </div>
       </Card>
@@ -1955,7 +1956,7 @@ export function CostsTab({ theme }) {
         </div>
       )}
       {d && <KV theme={theme} rows={[["Generate", cents(s.generate)], ["A+ résumé", cents(s.aPlus)]]}/>}
-      <h3 style={{ ...h2, fontSize: 15, margin: "14px 0 6px" }}>Recent generation calls</h3>
+      <h3 style={{ ...h2, fontSize: ts(15), margin: "14px 0 6px" }}>Recent generation calls</h3>
       <Table theme={theme} rows={d?.recent || []} cols={[
         { key: "at", label: "When", render: r => ago(r.at) },
         { key: "username", label: "User", render: r => r.username || `#${r.userId}` },
@@ -1985,10 +1986,10 @@ function SpendPart({ theme }) {
     api(`/api/admin/analytics/spend?from=${from}&to=${to}`).then(setD).catch(e => setErr(e.message));
   }, [days]);
   const cov = d?.coverage;
-  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 8px", fontSize: 12 };
+  const input = { background: theme.surfaceHigh, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 8px", fontSize: ts(12) };
   return (
     <div data-admin-spend="" style={{ marginTop: 18 }}>
-      <h3 style={{ ...h2, fontSize: 15, margin: "0 0 6px" }}>All spend in the ledger</h3>
+      <h3 style={{ ...h2, fontSize: ts(15), margin: "0 0 6px" }}>All spend in the ledger</h3>
       <div style={{ ...row, marginBottom: 10 }}>
         <select aria-label="Period" value={days} onChange={e => setDays(Number(e.target.value))} style={input}>
           {SPEND_PERIODS.map(([n, l]) => <option key={n} value={n}>{l}</option>)}
@@ -1998,7 +1999,7 @@ function SpendPart({ theme }) {
       <Err msg={err}/>
       {d && (
         <>
-          {d.empty && <div style={{ fontSize: 12, color: C.WARNING, marginBottom: 8 }}>{d.emptyReason}</div>}
+          {d.empty && <div style={{ fontSize: ts(12), color: C.WARNING, marginBottom: 8 }}>{d.emptyReason}</div>}
           <KV theme={theme} rows={[
             ["cost", usd(d.totals.cost_usd)],
             ["model calls", `${num(d.totals.calls)}${d.totals.failed_calls ? ` · ${num(d.totals.failed_calls)} FAILED` : ""}`,

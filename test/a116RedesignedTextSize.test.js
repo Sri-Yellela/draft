@@ -62,17 +62,14 @@ test("A116 · the guard itself catches a bare size", () => {
   assert.deepEqual(unscaled(".x { font-size: calc(14px * var(--type-scale, 1)); }"), []);
 });
 
-// ⭐ A116 · 46g — the INLINE sizes (~1,340 `fontSize: <number>` in the client's JSX on 11-11). Every screen a person sees now
-// sizes its inline text through ts() (themes/shapes.js: calc(Npx * var(--type-scale, 1))), so Settings → Text size reaches
-// it. Only the admin console is left (an internal tool, ~500 sizes in 25 files: Admin*.jsx / admin*.jsx, pages/admin/, DatabasePanel) —
-// listed as the exception, so a NEW person-facing file can't arrive with a bare size.
-export const INLINE_EXCEPT = /(^|\/)([aA]dmin\w*|DBInspector|DatabasePanel)\.jsx$|\/pages\/admin\//;
+// ⭐ A116 · 46g — the INLINE sizes (1,366 `fontSize: <number>` in 99 of the client's JSX files on 11-11). Every screen, the
+// admin console included, now sizes its inline text through ts() (themes/shapes.js: calc(Npx * var(--type-scale, 1))), so
+// Settings → Text size reaches it — and no file, old or new, may carry a bare inline size again.
 const jsxFiles = (d, out = []) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) {
   const f = `${d}/${e.name}`; if (e.isDirectory()) jsxFiles(f, out); else if (e.name.endsWith(".jsx")) out.push(f); } return out; };
-test("A116 · 46g — no inline font size outside the admin console ignores the text size", () => {
-  const files = jsxFiles("client/src").filter(f => !INLINE_EXCEPT.test(f));
-  assert.ok(files.length > 150 && files.includes("client/src/panels/JobsPanel.jsx"), `the scan found the client (${files.length})`);
-  assert.ok(jsxFiles("client/src").some(f => INLINE_EXCEPT.test(f) && /fontSize:\s?\d/.test(raw(f))), "the exception still names files that need it");
+test("A116 · 46g — no inline font size anywhere in the client ignores the text size", () => {
+  const files = jsxFiles("client/src");
+  assert.ok(files.length > 170 && files.includes("client/src/panels/JobsPanel.jsx") && files.includes("client/src/panels/AdminPanel.jsx"), `the scan found the client (${files.length})`);
   const bare = files.flatMap(f => raw(f).split("\n").map((l, i) => [i + 1, l]).filter(([, l]) => /fontSize:\s?\d/.test(l)).map(([n, l]) => `${f}:${n} ${l.trim().slice(0, 80)}`));
   assert.deepEqual(bare, [], "bare inline font sizes — wrap them in ts()");
   assert.match(raw("client/src/themes/shapes.js"), /export const ts = \(px\) => `calc\(\$\{px\}px \* var\(\$\{TYPE_SCALE_VAR\}, 1\)\)`;/);

@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { api, setAuthContext } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { StampLogo } from "../components/StampLogo.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 function useInputStyle() {
   const { theme } = useTheme();
@@ -18,7 +19,7 @@ function useInputStyle() {
     width:"100%", height:42, padding:"0 14px",
     borderRadius:10, border:`1px solid ${theme.border}`,
     background:theme.surface, color:theme.text,
-    fontFamily:"'DM Sans',system-ui", fontSize:13,
+    fontFamily:"'DM Sans',system-ui", fontSize:ts(13),
     outline:"none", boxSizing:"border-box",
     transition:"border-color 0.15s",
   };
@@ -40,9 +41,9 @@ function AdminCard({ subtitle, children }) {
         border:`1px solid ${theme.border}`,
       }}>
         <div style={{ textAlign:"center", marginBottom:28 }}>
-          <div style={{ fontSize:32, marginBottom:10 }}>🔒</div>
+          <div style={{ fontSize:ts(32), marginBottom:10 }}>🔒</div>
           <StampLogo size="md" />
-          <div style={{ fontSize:11, color:theme.textMuted, marginTop:4, fontWeight:700,
+          <div style={{ fontSize:ts(11), color:theme.textMuted, marginTop:4, fontWeight:700,
                         textTransform:"uppercase", letterSpacing:"0.1em" }}>
             {subtitle}
           </div>
@@ -50,7 +51,7 @@ function AdminCard({ subtitle, children }) {
         {children}
         <div style={{ textAlign:"center", marginTop:20 }}>
           <Link to="/login"
-            style={{ fontSize:12, color:theme.textMuted, textDecoration:"none",
+            style={{ fontSize:ts(12), color:theme.textMuted, textDecoration:"none",
                      transition:"color 0.15s" }}
             onMouseEnter={e => e.currentTarget.style.color = theme.text}
             onMouseLeave={e => e.currentTarget.style.color = theme.textMuted}>
@@ -65,7 +66,7 @@ function AdminCard({ subtitle, children }) {
 function Note({ tone = "danger", children }) {
   const { theme } = useTheme();
   return (
-    <div role={tone === "danger" ? "alert" : "status"} style={{ fontSize:12, color: tone === "danger" ? theme.danger : theme.text, padding:"8px 12px",
+    <div role={tone === "danger" ? "alert" : "status"} style={{ fontSize:ts(12), color: tone === "danger" ? theme.danger : theme.text, padding:"8px 12px",
                   background:theme.surfaceHigh, borderRadius:8,
                   border:`1px solid ${tone === "danger" ? theme.dangerMuted : theme.border}`,
                   lineHeight:1.5 }}>
@@ -80,7 +81,7 @@ function PrimaryButton({ loading, children, ...rest }) {
     <button className="dbx-depth" type="submit" disabled={loading} {...rest}
       style={{ width:"100%", padding:"12px 0", border:"none",
                background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
-               fontSize:14, cursor:"pointer", marginTop:4,
+               fontSize:ts(14), cursor:"pointer", marginTop:4,
                opacity:loading?0.7:1, transition:"opacity 0.2s" }}>
       {children}
     </button>
@@ -92,7 +93,7 @@ function QuietButton({ children, ...rest }) {
   return (
     <button className="dbx-depth" type="button" {...rest}
       style={{ background:"transparent", border:`1px solid ${theme.border}`, color:theme.textMuted,
-               padding:"8px 12px", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',system-ui" }}>
+               padding:"8px 12px", fontSize:ts(12), fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',system-ui" }}>
       {children}
     </button>
   );
@@ -188,7 +189,7 @@ export default function AdminLoginPage({ onAdminLogin, onLegacyLogin, session })
               </QuietButton>
             )}
           </div>
-          <div style={{ fontSize:11.5, color:theme.textMuted, lineHeight:1.5, textAlign:"center" }}>
+          <div style={{ fontSize:ts(11.5), color:theme.textMuted, lineHeight:1.5, textAlign:"center" }}>
             An admin account is not a user account. Signing in here never signs this browser in as a person.
           </div>
         </form>

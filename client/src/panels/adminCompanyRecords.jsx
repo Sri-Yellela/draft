@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, row, quiet, sub } from "./adminKit.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const n = (v) => (v == null ? "—" : Number(v).toLocaleString());
 
@@ -17,7 +18,7 @@ function Groups({ title, g, testid }) {
       <div style={{ fontWeight: 600 }}>{title}: {n(g.groups)} groups · {n(g.records)} records</div>
       {g.top.length === 0 && <div style={quiet}>None.</div>}
       {g.top.map(x => (
-        <div key={x.key} style={{ fontSize: 13, margin: "4px 0" }}>
+        <div key={x.key} style={{ fontSize: ts(13), margin: "4px 0" }}>
           <span style={quiet}>{x.key}</span> — {x.records.map((r, i) => (
             <span key={r.id}>{i ? " · " : ""}<a href={`/companies/${encodeURIComponent(r.slug)}`} target="_blank" rel="noreferrer">{r.name}</a> ({n(r.open)} open)</span>
           ))}
@@ -62,7 +63,7 @@ export function CompanyRecordsTab() {
       {d?.review?.length === 0 && <div style={quiet}>None waiting.</div>}
       {d?.review?.map(r => (
         <div key={r.id} style={{ ...sub, marginBottom: 8 }} data-company-review={r.id}>
-          <div style={{ fontSize: 13 }}>
+          <div style={{ fontSize: ts(13) }}>
             <a href={`/companies/${encodeURIComponent(r.a_slug)}`} target="_blank" rel="noreferrer">{r.a_name}</a>{r.a_domain ? ` (${r.a_domain})` : ""}
             {" "}and{" "}
             <a href={`/companies/${encodeURIComponent(r.b_slug)}`} target="_blank" rel="noreferrer">{r.b_name}</a>{r.b_domain ? ` (${r.b_domain})` : ""}

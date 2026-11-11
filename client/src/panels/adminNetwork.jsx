@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, row, quiet, sub, field } from "./adminKit.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const STATUS = [["open", "Open"], ["actioned", "Actioned"], ["dismissed", "Dismissed"]];
 const when = (s) => (s ? new Date(s * 1000).toLocaleString() : "—");
@@ -33,10 +34,10 @@ function ReportsQueue() {
         <div key={r.id} style={{ ...sub, marginBottom: 8 }} data-network-report={r.id}>
           <div style={quiet}>#{r.id} · {when(r.at)} · a {r.kind} · {r.reason} · {r.reportsOnThisPerson} report{r.reportsOnThisPerson === 1 ? "" : "s"} on this person in all</div>
           <div style={{ fontWeight: 600, margin: "4px 0" }}>{r.reported?.handle ? <a href={`/in/${encodeURIComponent(r.reported.handle)}`} target="_blank" rel="noreferrer">{r.reported.name}</a> : r.reported?.name}</div>
-          {r.target?.text && <div style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>“{r.target.text}”</div>}
+          {r.target?.text && <div style={{ whiteSpace: "pre-wrap", fontSize: ts(13) }}>“{r.target.text}”</div>}
           {r.target?.job && <div style={quiet}>A job: {r.target.job.title} · {r.target.job.company}</div>}
           {r.target?.removed && <div style={quiet}>The message was removed.</div>}
-          {r.details && <div style={{ fontSize: 13 }}>Reporter's note: {r.details}</div>}
+          {r.details && <div style={{ fontSize: ts(13) }}>Reporter's note: {r.details}</div>}
           {r.note && <div style={quiet}>Your note: {r.note}</div>}
           <div style={{ ...row, marginTop: 8 }}>
             <input style={{ ...field, flex: "1 1 220px" }} placeholder="Note — what you did (optional)" aria-label={`Note for report ${r.id}`}

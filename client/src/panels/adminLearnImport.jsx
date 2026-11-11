@@ -14,13 +14,14 @@ import { C } from "../styles/colorTokens.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { row, quiet, sub, callout } from "./adminKit.jsx";
 import { learnFileFromUpload } from "./adminLearnSandbox.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const KIND_WORDS = [["steps", "Steps"], ["items", "Items"], ["patterns", "Patterns"], ["concepts", "Concepts"], ["phases", "Phases"]];
 const ids = (list) => (list.length > 12 ? `${list.slice(0, 12).join(", ")} … +${list.length - 12}` : list.join(", "));
 
 function DiffView({ diff, progress }) {
   return (
-    <div data-learn-diff="" style={{ display: "grid", gap: 4, fontSize: 12, color: C.INK }}>
+    <div data-learn-diff="" style={{ display: "grid", gap: 4, fontSize: ts(12), color: C.INK }}>
       {diff.same && <span style={quiet}>Nothing changed — the file is what is live.</span>}
       {KIND_WORDS.map(([k, label]) => {
         const d = diff[k];
@@ -81,16 +82,16 @@ export function AtlasImportContent({ say }) {
   return (
     <div data-learn-import="" style={{ ...sub, marginBottom: 12, display: "grid", gap: 8 }}>
       <div style={{ ...row, justifyContent: "space-between" }}>
-        <b style={{ fontSize: 13, color: C.INK }}>Import content</b>
+        <b style={{ fontSize: ts(13), color: C.INK }}>Import content</b>
         {live && <span style={quiet} data-learn-live="">Live: version {live.version}{live.by ? ` · ${live.by}` : ""}{live.source?.counts ? ` · ${live.source.counts.steps} steps · ${live.source.counts.items} items · ${live.source.counts.patterns} patterns · ${live.source.counts.concepts} concepts` : ""}</span>}
       </div>
       <span style={quiet}>Pick the tracker page (.html) or its extracted JSON. A page is read here in your browser; only its data is sent. Nothing changes until you press Apply, and learners' progress is kept.</span>
       <input type="file" accept=".html,.htm,.json,text/html,application/json" disabled={busy} aria-label="Tracker page or JSON"
-        onChange={e => { pick(e.target.files?.[0]); e.target.value = ""; }} data-learn-file="" style={{ fontSize: 12, color: C.INK }} />
+        onChange={e => { pick(e.target.files?.[0]); e.target.value = ""; }} data-learn-file="" style={{ fontSize: ts(12), color: C.INK }} />
       {errors && <div style={callout(C.DANGER)} data-learn-errors="">Refused — nothing was saved: {errors.slice(0, 8).map(x => `${x.at}: ${x.reason}`).join(" · ")}{errors.length > 8 ? ` … +${errors.length - 8}` : ""}</div>}
       {preview && (
         <div style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontSize: 12, color: C.INK }}>{picked?.name}: {preview.counts.steps} steps · {preview.counts.items} items · {preview.counts.patterns} patterns · {preview.counts.concepts} concepts</span>
+          <span style={{ fontSize: ts(12), color: C.INK }}>{picked?.name}: {preview.counts.steps} steps · {preview.counts.items} items · {preview.counts.patterns} patterns · {preview.counts.concepts} concepts</span>
           <DiffView diff={preview.diff} progress={preview.progress} />
           <div style={row}>
             <DepthButton size="compact" primary disabled={busy || preview.diff.same} onClick={apply} data-learn-apply="">Apply</DepthButton>

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Panel, row, quiet, sub, field } from "./adminKit.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const STATUS = [["open", "Open"], ["actioned", "Actioned"], ["dismissed", "Dismissed"]];
 const when = (s) => (s ? new Date(s * 1000).toLocaleString() : "—");
@@ -44,7 +45,7 @@ export function ProfileReportsTab() {
           <div style={{ fontWeight: 600, margin: "4px 0" }}>
             <a href={`/in/${encodeURIComponent(r.handle)}`} target="_blank" rel="noreferrer">/in/{r.handle}</a> — {r.reason || "no reason given"}
           </div>
-          {r.details && <div style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>{r.details}</div>}
+          {r.details && <div style={{ whiteSpace: "pre-wrap", fontSize: ts(13) }}>{r.details}</div>}
           {r.resolved_note && <div style={quiet}>Note: {r.resolved_note}</div>}
           <div style={{ ...row, marginTop: 8 }}>
             <input style={{ ...field, flex: "1 1 240px" }} placeholder="Note — what you did (optional)" aria-label={`Note for report ${r.id}`}

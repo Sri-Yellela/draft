@@ -22,6 +22,7 @@ import { C } from "../styles/colorTokens.js";
 import { markStyle, LOGO_FACE } from "../styles/mark.js";
 import DepthButton from "../components/DepthButton.jsx";
 import { Help, Mark, NumberBox, Step, Dialog, panel, h2, what, row, quiet, sub, callout, field } from "./adminKit.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 import {
   enrichmentPrompt, buildPieces, checkPiece, redoPiece, mergeFilled, applyGate, refusalCounts, withoutRefused,
   PIECE_SIZES, DEFAULT_PIECE_SIZE, pieceFileName, matchReplies, notesCsv, zipStore, NOTE_CODES,
@@ -46,7 +47,7 @@ const COLUMN_WORDS = {
 function CoverageBar({ label, filled, total, gain = 0 }) {
   const p = pctOf(filled, total), add = pctOf(gain, total);
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "150px 1fr 96px", gap: 10, alignItems: "center", fontSize: 12, padding: "3px 0" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "150px 1fr 96px", gap: 10, alignItems: "center", fontSize: ts(12), padding: "3px 0" }}>
       <span>{label}</span>
       <div style={{ height: 8, borderRadius: 4, background: C.BORDER, overflow: "hidden", position: "relative" }}
         role="meter" aria-label={`${label}: ${p}% filled`} aria-valuenow={p} aria-valuemin={0} aria-valuemax={100}>
@@ -272,7 +273,7 @@ export function EnrichmentTab() {
 
       {/* ── the six steps ── */}
       <Step n={1} state={stateOf(1)} title="Count what needs enriching">
-        <p style={{ fontSize: 12.5, color: C.INK_MUTED, margin: 0 }}>
+        <p style={{ fontSize: ts(12.5), color: C.INK_MUTED, margin: 0 }}>
           Done automatically when the page opens. Counted above: <b>{num(backlog)}</b> postings have a description, were
           seen in the last {ov?.freshnessGateDays ?? "few"} days, and have never been enriched or have changed since.
         </p>
@@ -282,7 +283,7 @@ export function EnrichmentTab() {
         {exp ? (
           <>
             <div style={row}>
-              <p style={{ fontSize: 12.5, color: C.INK_MUTED, margin: 0 }}>
+              <p style={{ fontSize: ts(12.5), color: C.INK_MUTED, margin: 0 }}>
                 Saved as <b>{exp.name}</b> in your <b>Downloads folder</b> — {num(exp.rows)} postings, full text, cleaned.
               </p>
               <DepthButton size="compact" onClick={() => { setExp(null); setFile("", ""); setRedo(""); setMatchNote(null); }}>Start a different batch</DepthButton>
@@ -296,7 +297,7 @@ export function EnrichmentTab() {
           </>
         ) : (
           <>
-            <p style={{ fontSize: 12.5, margin: 0 }}><b>Start small.</b> Do a practice batch of <b>{PRACTICE_ROWS}</b> (one piece) to
+            <p style={{ fontSize: ts(12.5), margin: 0 }}><b>Start small.</b> Do a practice batch of <b>{PRACTICE_ROWS}</b> (one piece) to
               learn the path, then 60, then as many as {cap ?? "one import takes"} at once.</p>
             <div style={row}>
               <label style={quiet} htmlFor="enr-rows">How many</label>
@@ -336,7 +337,7 @@ export function EnrichmentTab() {
             </div>
             <div style={sub}>
               <h5 style={{ font: `800 italic 13px ${LOGO_FACE}`, color: C.INK, margin: "0 0 4px" }}>How it works</h5>
-              <ol style={{ listStyle: "decimal", paddingLeft: 20, fontSize: 12.5, color: C.INK_MUTED, margin: "0 0 6px" }}>
+              <ol style={{ listStyle: "decimal", paddingLeft: 20, fontSize: ts(12.5), color: C.INK_MUTED, margin: "0 0 6px" }}>
                 <li><b>Download all pieces</b> — one .zip in your Downloads folder.</li>
                 <li>For each piece, a <b>fresh chat</b> with a model (not inside draft): paste the instructions below, then <b>attach the piece</b>.</li>
                 <li><b>Save each reply as a file whose name keeps the piece number</b> — for example <code>piece-01.reply.jsonl</code>.</li>
@@ -347,7 +348,7 @@ export function EnrichmentTab() {
                 whiteSpace: "pre-wrap", margin: "6px 0" }}>{prompt}</pre>
               <div style={row}>
                 <DepthButton size="compact" onClick={copyPrompt}>{copied ? "Copied" : "Copy the instructions"}</DepthButton>
-                <span style={{ fontSize: 11.5, color: C.INK_FAINT }}>They include every allowed value — read from the importer, so they cannot go out of date.</span>
+                <span style={{ fontSize: ts(11.5), color: C.INK_FAINT }}>They include every allowed value — read from the importer, so they cannot go out of date.</span>
               </div>
             </div>
             <div style={sub}>
@@ -399,7 +400,7 @@ export function EnrichmentTab() {
                   </div>
                 </div>
               ))}
-              <p style={{ fontSize: 12, margin: "8px 0 0" }}>A reply with a bad row is <b>not</b> accepted silently: the page lists the rows and keeps the good ones for a second try.</p>
+              <p style={{ fontSize: ts(12), margin: "8px 0 0" }}>A reply with a bad row is <b>not</b> accepted silently: the page lists the rows and keeps the good ones for a second try.</p>
             </div>
             {notes.length > 0 && (
               <div style={sub}>
@@ -408,7 +409,7 @@ export function EnrichmentTab() {
                   {NOTE_CODES.filter((c) => noteCounts[c]).map((c) => <Mark key={c} tone={C.INFO}>{c} · {noteCounts[c]}</Mark>)}
                   <DepthButton size="compact" onClick={() => downloadBlob(new Blob([notesCsv(notes)], { type: "text/csv" }), `model-notes-${fileStamp()}.csv`)}>Download as CSV</DepthButton>
                 </div>
-                <ul style={{ listStyle: "disc", margin: 0, paddingLeft: 20, fontSize: 12, color: C.INK_MUTED }}>
+                <ul style={{ listStyle: "disc", margin: 0, paddingLeft: 20, fontSize: ts(12), color: C.INK_MUTED }}>
                   {notes.slice(0, 12).map((n, k) => <li key={k}><code>{n.jobId}</code> {n.code}{n.text ? ` — ${n.text}` : ""}</li>)}
                   {notes.length > 12 && <li>… and {notes.length - 12} more in the CSV</li>}
                 </ul>
@@ -430,7 +431,7 @@ export function EnrichmentTab() {
         </div>
         <div style={row}>
           <label style={quiet}>File</label>
-          <b style={{ fontSize: 12.5 }}>{importName || "—"}</b>
+          <b style={{ fontSize: ts(12.5) }}>{importName || "—"}</b>
           <DepthButton size="compact" onClick={() => fileInput.current?.click()}>Or choose an import file you already have</DepthButton>
           {importText && <DepthButton size="compact" onClick={() => downloadBlob(new Blob([importText], { type: "application/x-ndjson" }), importName)}>Save a copy</DepthButton>}
         </div>
@@ -440,7 +441,7 @@ export function EnrichmentTab() {
             : <Mark tone={C.DANGER}>A safety switch is OFF</Mark>}
           <Help tip="'Fill empty columns only' leaves a value already on the board alone. 'Refuse changed postings' refuses a row whose posting text changed since you exported. Both stay ON unless you turn one off below."/>
         </div>
-        <details style={{ fontSize: 12, color: C.INK_MUTED }}>
+        <details style={{ fontSize: ts(12), color: C.INK_MUTED }}>
           <summary style={{ cursor: "pointer" }}>Expert: turn a safety switch off</summary>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
             <label><input type="checkbox" checked={overwrite} onChange={(e) => { setOverwrite(e.target.checked); setDry(null); }}/> Replace values already on the board (overwrite)</label>
@@ -456,7 +457,7 @@ export function EnrichmentTab() {
         </div>
         {plan && (
           <>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ts(12) }}>
               <thead><tr><th style={th}>What the rehearsal found</th><th style={{ ...th, textAlign: "right" }}>Rows</th></tr></thead>
               <tbody>
                 <tr><td style={td}>Matched to postings on the board</td><td style={tdn}>{num(plan.matched)}</td></tr>
@@ -469,7 +470,7 @@ export function EnrichmentTab() {
             </table>
             {plan.columns && (
               // D84 F5: "Would be written 20" hid that three columns wrote 0 and three wrote 10 — so, per column.
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }} aria-label="Per column">
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ts(12) }} aria-label="Per column">
                 <thead><tr>
                   <th style={th}>Column</th><th style={{ ...th, textAlign: "right" }}>Already filled</th>
                   <th style={{ ...th, textAlign: "right" }}>In the file</th><th style={{ ...th, textAlign: "right" }}>Would be written</th>
@@ -529,7 +530,7 @@ export function EnrichmentTab() {
       </Step>
 
       <Step n={5} state={stateOf(5)} title="Apply">
-        <p style={{ fontSize: 12.5, color: C.INK_MUTED, margin: 0 }}>
+        <p style={{ fontSize: ts(12.5), color: C.INK_MUTED, margin: 0 }}>
           Writes <b>{num(plan?.wouldWrite)} postings</b>, all or nothing. You can undo it afterwards.
         </p>
         <div style={row}>
@@ -540,7 +541,7 @@ export function EnrichmentTab() {
 
       <Step n={6} state={stateOf(6)} title="Check — or undo">
         {applied && (
-          <p style={{ fontSize: 12.5, color: C.INK_MUTED, margin: 0 }}>
+          <p style={{ fontSize: ts(12.5), color: C.INK_MUTED, margin: 0 }}>
             <b>Applied — import #{applied.batchId}, {num(applied.written)} postings written.</b> About 30 seconds from now the
             fit scores refresh on their own. Check the numbers at the top; <b>Undo</b> is in Past imports below.
             {applied.warning && <span style={{ display: "block", color: C.DANGER, marginTop: 6 }}>{applied.warning}</span>}
@@ -550,11 +551,11 @@ export function EnrichmentTab() {
 
       {/* ── past imports, an Undo on every one ── */}
       <div style={{ ...panel, marginTop: 6 }}>
-        <h2 style={{ ...h2, fontSize: 16 }}>Past imports</h2>
+        <h2 style={{ ...h2, fontSize: ts(16) }}>Past imports</h2>
         <p style={{ ...what, marginBottom: 6 }}>Every import is a batch. <b>Undo</b> puts the columns back as they were before it.</p>
         {!batches.length ? <p style={quiet}>No imports yet.</p> : batches.map((b) => (
           <div key={b.id} style={{ display: "grid", gridTemplateColumns: "70px 1fr auto", gap: 12, alignItems: "center",
-            padding: "9px 0", borderTop: `1px dashed ${C.BORDER}`, fontSize: 12 }}>
+            padding: "9px 0", borderTop: `1px dashed ${C.BORDER}`, fontSize: ts(12) }}>
             <b style={{ font: `800 italic 13px ${LOGO_FACE}`, color: C.INK }}>#{b.id}</b>
             <span>{day(b.started_at)} — {num(b.rows_written)} postings written{b.reverted_at ? ` · undone ${day(b.reverted_at)}` : ""}</span>
             {b.reverted_at ? <Mark tone={C.INK_FAINT}>Undone</Mark>
@@ -583,7 +584,7 @@ export function EnrichmentTab() {
   );
 }
 
-const th = { fontWeight: 800, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: C.INK_FAINT, textAlign: "left",
+const th = { fontWeight: 800, fontSize: ts(11), letterSpacing: "0.08em", textTransform: "uppercase", color: C.INK_FAINT, textAlign: "left",
   padding: "5px 8px", borderBottom: `1px solid ${C.BORDER}` };
 const td = { padding: "6px 8px", borderBottom: `1px dashed ${C.BORDER}`, color: C.INK_MUTED };
 const tdn = { ...td, font: "600 12px ui-monospace, monospace", color: C.INK, textAlign: "right" };
