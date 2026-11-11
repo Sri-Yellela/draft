@@ -4,6 +4,7 @@ import { api, setAuthContext } from "../lib/api.js";
 // ⭐ A138: the provider buttons are the ONE shared block (Continue with Google first), returning here.
 import SignInProviders from "./SignInProviders.jsx";
 import { currentReturnPath } from "../lib/signInReturn.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export default function InlineLoginPopover({ trigger, onLogin, align = "end", sideOffset = 8 }) {
   const [open, setOpen] = useState(false);
@@ -44,10 +45,10 @@ export default function InlineLoginPopover({ trigger, onLogin, align = "end", si
         <Popover.Content align={align} sideOffset={sideOffset}
           className="liquid-panel"
           style={{ width: 320, padding: 20, borderRadius: 16, zIndex: 1000, color: "var(--color-text)" }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 20, marginBottom: 4 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: ts(20), marginBottom: 4 }}>
             Welcome back
           </div>
-          <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 16 }}>
+          <div style={{ fontSize: ts(12), color: "var(--color-text-muted)", marginBottom: 16 }}>
             Sign in to your account
           </div>
           <form onSubmit={handleSubmit}>
@@ -55,21 +56,21 @@ export default function InlineLoginPopover({ trigger, onLogin, align = "end", si
               placeholder="Username or email" autoComplete="username" required
               style={{ width: "100%", height: 38, padding: "0 12px", marginBottom: 8,
                 background: "var(--bg-input)", border: "1px solid var(--border-glass)",
-                borderRadius: 8, color: "var(--color-text)", fontSize: 13, outline: "none",
+                borderRadius: 8, color: "var(--color-text)", fontSize: ts(13), outline: "none",
                 boxSizing: "border-box" }}/>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
               placeholder="Password" autoComplete="current-password" required
               style={{ width: "100%", height: 38, padding: "0 12px", marginBottom: 8,
                 background: "var(--bg-input)", border: "1px solid var(--border-glass)",
-                borderRadius: 8, color: "var(--color-text)", fontSize: 13, outline: "none",
+                borderRadius: 8, color: "var(--color-text)", fontSize: ts(13), outline: "none",
                 boxSizing: "border-box" }}/>
             {error && (
-              <div style={{ color: "var(--color-warning)", fontSize: 11, marginBottom: 8 }}>
+              <div style={{ color: "var(--color-warning)", fontSize: ts(11), marginBottom: 8 }}>
                 {error}
               </div>
             )}
             <button type="submit" disabled={loading} className="liquid-glass dbx-depth"
-              style={{ width: "100%", height: 40, fontSize: 13, fontWeight: 600,
+              style={{ width: "100%", height: 40, fontSize: ts(13), fontWeight: 600,
                 cursor: "pointer", color: "var(--color-text)", opacity: loading ? 0.6 : 1,
                 marginBottom: 12, border: "none" }}>
               {loading ? "Signing in…" : "Sign in"}
@@ -77,9 +78,9 @@ export default function InlineLoginPopover({ trigger, onLogin, align = "end", si
           </form>
           {open && (
             <SignInProviders returnTo={currentReturnPath()}
-              buttonStyle={{ height: 36, fontSize: 12, marginBottom: 6 }}
+              buttonStyle={{ height: 36, fontSize: ts(12), marginBottom: 6 }}
               divider={
-                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10,
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: ts(10),
                   color: "var(--color-text-faint)", textTransform: "uppercase",
                   letterSpacing: "0.1em", marginBottom: 10 }}>
                   <div style={{ flex: 1, height: 1, background: "var(--border-glass)" }}/>
@@ -88,7 +89,7 @@ export default function InlineLoginPopover({ trigger, onLogin, align = "end", si
                 </div>
               }/>
           )}
-          <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 12, textAlign: "center" }}>
+          <div style={{ fontSize: ts(11), color: "var(--color-text-muted)", marginTop: 12, textAlign: "center" }}>
             No account?{" "}
             <a href="/register" style={{ color: "var(--color-primary-text)", textDecoration: "none" }}>
               Create one

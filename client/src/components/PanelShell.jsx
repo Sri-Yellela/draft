@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Z } from "../styles/zLayers.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 import {
   PANEL_MIN_WIDTH, PANEL_DEFAULT_WIDTH, PANEL_EDGE_GAP, PANEL_GAP, storedPanelWidth,
 } from "../lib/panelGeometry.js";
@@ -302,7 +303,7 @@ export default function PanelShell({
         <div style={{ flex: 1, minWidth: 0 }}>{header}</div>
         <button onClick={onClose}
           style={{ background: "none", border: "none", cursor: "pointer",
-                   color: "var(--color-text-muted)", fontSize: 16, padding: "0 2px",
+                   color: "var(--color-text-muted)", fontSize: ts(16), padding: "0 2px",
                    flexShrink: 0, lineHeight: 1 }}
           aria-label="Close panel">✕</button>
       </div>

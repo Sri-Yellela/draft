@@ -4,15 +4,16 @@
 // follow-ups only when they apply ("what would make it 5 stars?" below 5), the required ones asked for before sending.
 import { useState } from "react";
 import DepthButton from "./DepthButton.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const STAR_WORDS = ["", "Not useful", "Slightly useful", "Useful", "Very useful", "Exactly what I need"];
 const card = { boxSizing: "border-box", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 12,
   padding: "18px 20px", marginBottom: 12 };
 const fieldStyle = { boxSizing: "border-box", width: "100%", font: "inherit", color: "var(--color-text)", background: "var(--color-surface-offset)",
   border: "1px solid var(--color-border)", borderRadius: 8, padding: "11px 12px" };
-const hintStyle = { display: "block", color: "var(--color-text-muted)", fontSize: 14.5, margin: "0 0 12px", lineHeight: 1.5 };
+const hintStyle = { display: "block", color: "var(--color-text-muted)", fontSize: ts(14.5), margin: "0 0 12px", lineHeight: 1.5 };
 export const surveyPage = { boxSizing: "border-box", width: "min(680px, calc(100% - 32px))", margin: "24px auto 64px",
-  color: "var(--color-text)", fontSize: 16, lineHeight: 1.55 };
+  color: "var(--color-text)", fontSize: ts(16), lineHeight: 1.55 };
 export const surveyCard = card;
 
 function Stars({ q, value, onChange }) {
@@ -23,9 +24,9 @@ function Stars({ q, value, onChange }) {
       {[1, 2, 3, 4, 5].map(n => (
         <button key={n} type="button" role="radio" aria-checked={value === n} aria-label={`${n} star${n > 1 ? "s" : ""}, ${STAR_WORDS[n]}`}
           data-star={n} onClick={() => onChange(n)} onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
-          style={{ all: "unset", cursor: "pointer", fontSize: 34, lineHeight: 1, color: n <= shown ? "var(--color-warning)" : "var(--color-border)" }}>★</button>
+          style={{ all: "unset", cursor: "pointer", fontSize: ts(34), lineHeight: 1, color: n <= shown ? "var(--color-warning)" : "var(--color-border)" }}>★</button>
       ))}
-      <span style={{ marginLeft: 10, fontSize: 14, color: "var(--color-text-muted)", minWidth: 120 }}>{STAR_WORDS[shown] || ""}</span>
+      <span style={{ marginLeft: 10, fontSize: ts(14), color: "var(--color-text-muted)", minWidth: 120 }}>{STAR_WORDS[shown] || ""}</span>
     </div>
   );
 }
@@ -37,7 +38,7 @@ function Question({ q, answers, set, missing }) {
   const id = `sq-${q.key}`;
   return (
     <div style={{ ...card, ...(missing ? { borderColor: "var(--color-primary)" } : {}) }} data-survey-q={q.key}>
-      <label htmlFor={q.type === "stars" ? undefined : id} style={{ display: "block", fontWeight: 700, fontSize: 17, marginBottom: 4 }}>
+      <label htmlFor={q.type === "stars" ? undefined : id} style={{ display: "block", fontWeight: 700, fontSize: ts(17), marginBottom: 4 }}>
         {q.q}{q.required ? <span aria-hidden="true" style={{ color: "var(--color-primary)" }}> *</span> : null}
       </label>
       {q.hint && <span style={hintStyle}>{q.hint}</span>}
@@ -61,7 +62,7 @@ function Question({ q, answers, set, missing }) {
         <input type="text" maxLength={300} placeholder={f.placeholder} aria-label={f.placeholder} value={answers[f.key] || ""}
           onChange={(e) => set(f.key, e.target.value)} style={{ ...fieldStyle, marginTop: 12 }} data-survey-follow={f.key}/>
       )}
-      {missing && <span role="alert" style={{ display: "block", marginTop: 8, fontSize: 13, color: "var(--color-primary)" }}>Please answer this one.</span>}
+      {missing && <span role="alert" style={{ display: "block", marginTop: 8, fontSize: ts(13), color: "var(--color-primary)" }}>Please answer this one.</span>}
     </div>
   );
 }
@@ -99,7 +100,7 @@ export default function SurveyForm({ questions = [], initial = {}, title, intro,
   return (
     <div style={surveyPage} data-survey-form="">
       <div style={{ ...card, borderTop: "8px solid var(--color-primary)", padding: "20px 22px", marginBottom: 14 }}>
-        <h1 style={{ margin: "0 0 6px", fontSize: 26 }}>{title}</h1>
+        <h1 style={{ margin: "0 0 6px", fontSize: ts(26) }}>{title}</h1>
         <p style={{ margin: 0, color: "var(--color-text-muted)" }}>{intro}</p>
         <div style={{ height: 6, background: "var(--color-border)", borderRadius: 3, marginTop: 14, overflow: "hidden" }} aria-hidden="true">
           <i data-survey-progress={done} style={{ display: "block", height: "100%", width: `${counted.length ? Math.round(100 * done / counted.length) : 0}%`,
@@ -110,7 +111,7 @@ export default function SurveyForm({ questions = [], initial = {}, title, intro,
         const head = q.section && q.section !== section ? (section = q.section) : null;
         return (
           <div key={q.key}>
-            {head && <div style={{ margin: "22px 4px 8px", fontSize: 13, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase",
+            {head && <div style={{ margin: "22px 4px 8px", fontSize: ts(13), fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase",
               color: "var(--color-text-muted)" }}>{head}</div>}
             <Question q={q} answers={answers} set={set} missing={missing.includes(q.key)}/>
           </div>
@@ -125,7 +126,7 @@ export default function SurveyForm({ questions = [], initial = {}, title, intro,
       {missing.length > 0 && <p role="alert" style={{ color: "var(--color-primary)" }}>A few questions marked * still need an answer.</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
         <DepthButton primary disabled={busy} onClick={send} data-survey-send="">{busy ? "Sending…" : "Send my answers"}</DepthButton>
-        {footer && <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0 }}>{footer}</p>}
+        {footer && <p style={{ fontSize: ts(13), color: "var(--color-text-muted)", margin: 0 }}>{footer}</p>}
       </div>
     </div>
   );

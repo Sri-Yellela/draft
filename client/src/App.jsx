@@ -78,6 +78,7 @@ import { BOARD_SEARCH_EVENT, takePendingBoardSearch } from "./lib/boardSearch.js
 import SurveyPublicPage from "./pages/SurveyPublicPage.jsx";
 import { oauthNext }       from "./lib/oauthNext.js";
 import { loginHref, currentReturnPath, returnToFromSearch } from "./lib/signInReturn.js";
+import { ts } from "./themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const CONSOLE_ROUTE = "jobs";
 const LEGACY_CONSOLE_ROUTES = new Set(["simple-apply", "tailored", "custom-sampler"]);
@@ -93,7 +94,7 @@ function AuthBootstrapScreen({ theme }) {
                     border:`3px solid ${theme.border}`,
                     borderTop:`3px solid ${theme.accent}`,
                     borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>
-      <span style={{ color:theme.textMuted, fontSize:13 }}>Loading…</span>
+      <span style={{ color:theme.textMuted, fontSize:ts(13) }}>Loading…</span>
     </div>
   );
 }
@@ -140,7 +141,7 @@ function PublicLoginRoute({ authStatus, authUser, children, admin = false, admin
 export function SignedInElsewhere({ user, admin = false }) {
   return (
     <div role="status" data-signed-in-elsewhere="" style={{ position: "relative", zIndex: 5, boxSizing: "border-box",
-      width: "min(560px, calc(100% - 32px))", margin: "12px auto 0", padding: "10px 14px", borderRadius: 6, fontSize: 13, lineHeight: 1.5,
+      width: "min(560px, calc(100% - 32px))", margin: "12px auto 0", padding: "10px 14px", borderRadius: 6, fontSize: ts(13), lineHeight: 1.5,
       background: "var(--color-surface-offset)", color: "var(--color-text)", border: "1px solid var(--color-border)", borderLeft: "3px solid var(--color-primary)" }}>
       This browser is signed in as <strong>{user.username}</strong>{user.isAdmin ? " (admin)" : ""} in another tab.{" "}
       {admin ? "Sign in as an admin here" : "Sign in with your own account here"} — that tab stays signed in.
@@ -645,7 +646,7 @@ function AppDashboard({ authUser, setAuthUser }) {
             box-sizing is border-box globally (index.css), so the padding comes out of the 100vh
             rather than adding to it and the shell does not grow a scrollbar of its own. */}
         <div data-app-shell
-             style={{ fontFamily:"'DM Sans',system-ui,sans-serif", fontSize:13,
+             style={{ fontFamily:"'DM Sans',system-ui,sans-serif", fontSize:ts(13),
                       minHeight:"100vh", display:"flex", flexDirection:"column",
                       paddingTop: chromeHeight,
                       color:theme.text }}>
@@ -895,7 +896,7 @@ function AppRouter() {
                     border:`3px solid ${theme.border}`,
                     borderTop:`3px solid ${theme.accent}`,
                     borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>
-      <span style={{ color:theme.textMuted, fontSize:13 }}>Loading…</span>
+      <span style={{ color:theme.textMuted, fontSize:ts(13) }}>Loading…</span>
     </div>
   );
 

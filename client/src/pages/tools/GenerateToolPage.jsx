@@ -10,6 +10,7 @@ import ScrollDock from "../../components/ScrollDock.jsx";
 import { atsBandLabel } from "../../../../shared/atsBands.js";
 import { C } from "../../styles/colorTokens.js";
 import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const RESUME_PAGE_WIDTH  = 794;
 const RESUME_PAGE_HEIGHT = 1123;
@@ -61,7 +62,7 @@ export function GenerateToolPage() {
                      fontFamily: "var(--font-display)", marginBottom: 10, color: theme.text }}>
           Generate a focused resume for any job in 30 seconds
         </h1>
-        <p style={{ fontSize: 15, color: theme.textMuted, marginBottom: 36, lineHeight: 1.6 }}>
+        <p style={{ fontSize: ts(15), color: theme.textMuted, marginBottom: 36, lineHeight: 1.6 }}>
           Upload your resume and a job description. Our AI rewrites it to beat ATS filters.
           {" "}Generating a resume needs a free account; scoring one does not.
         </p>
@@ -74,10 +75,10 @@ export function GenerateToolPage() {
           }}>
             <input ref={fileRef} type="file" accept=".pdf" style={{ display:"none" }}
               onChange={e => setPdfFile(e.target.files?.[0] || null)}/>
-            <div style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>
+            <div style={{ fontSize: ts(13), fontWeight: 600, color: theme.text }}>
               {pdfFile ? `✓ ${pdfFile.name}` : "Click to upload your resume PDF"}
             </div>
-            <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 4 }}>PDF only · max 5 MB</div>
+            <div style={{ fontSize: ts(11), color: theme.textMuted, marginTop: 4 }}>PDF only · max 5 MB</div>
           </div>
 
           <textarea
@@ -86,17 +87,17 @@ export function GenerateToolPage() {
             rows={8}
             style={{ width: "100%", padding: "12px 14px", borderRadius: 8,
                      border: `1.5px solid ${theme.border}`, background: theme.surface,
-                     color: theme.text, fontSize: 13, resize: "vertical",
+                     color: theme.text, fontSize: ts(13), resize: "vertical",
                      outline: "none", boxSizing: "border-box", lineHeight: 1.6 }}
           />
 
-          {error && <div style={{ fontSize: 12, color: C.DANGER, fontWeight: 600 }}>{error}</div>}
+          {error && <div style={{ fontSize: ts(12), color: C.DANGER, fontWeight: 600 }}>{error}</div>}
 
           <button onClick={submit} disabled={loading} style={{
             padding: "12px", borderRadius: 8, border: "none",
             background: loading ? theme.surfaceHigh : theme.accent,
             color: loading ? theme.textMuted : C.ON_ACCENT,
-            fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
+            fontSize: ts(14), fontWeight: 700, cursor: loading ? "default" : "pointer",
           }}>
             {loading ? "Generating…" : "Generate My Resume"}
           </button>
@@ -111,7 +112,7 @@ export function GenerateToolPage() {
               <div>
                 <span style={{ fontWeight: 700, color: theme.text }}>Resume generated</span>
                 {result.ats?.band && (
-                  <span style={{ marginLeft: 12, fontSize: 12, color: theme.textMuted }}>
+                  <span style={{ marginLeft: 12, fontSize: ts(12), color: theme.textMuted }}>
                     Fit: <strong style={{ color: theme.accentText }}>{atsBandLabel(result.ats.band).label}</strong>
                   </span>
                 )}
@@ -119,13 +120,13 @@ export function GenerateToolPage() {
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={downloadHtml} style={{
                   padding: "5px 14px", borderRadius: 6, border: `1px solid ${theme.border}`,
-                  background: theme.bg, color: theme.text, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  background: theme.bg, color: theme.text, fontSize: ts(12), fontWeight: 600, cursor: "pointer",
                 }}>
                   Download HTML
                 </button>
                 <button onClick={() => window.print()} style={{
                   padding: "5px 14px", borderRadius: 6, border: "none",
-                  background: theme.accent, color: C.ON_ACCENT, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  background: theme.accent, color: C.ON_ACCENT, fontSize: ts(12), fontWeight: 600, cursor: "pointer",
                 }}>
                   Export PDF
                 </button>
@@ -156,7 +157,7 @@ export function GenerateToolPage() {
       {/* Upsell */}
       <section style={{ borderTop: `1px solid ${theme.border}`, padding: "48px 24px", background: theme.surface }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6, color: theme.text }}>
+          <h2 style={{ fontSize: ts(24), fontWeight: 800, marginBottom: 6, color: theme.text }}>
             This is one resume. You probably need more.
           </h2>
           <p style={{ color: theme.textMuted, marginBottom: 28 }}>
@@ -170,7 +171,7 @@ export function GenerateToolPage() {
             ].map(f => (
               <div key={f.title} style={{ padding: 20, borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.bg }}>
                 <div style={{ fontWeight: 700, marginBottom: 6, color: theme.text }}>{f.title}</div>
-                <div style={{ fontSize: 12, color: theme.textMuted }}>{f.desc}</div>
+                <div style={{ fontSize: ts(12), color: theme.textMuted }}>{f.desc}</div>
               </div>
             ))}
           </div>

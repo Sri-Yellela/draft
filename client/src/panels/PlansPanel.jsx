@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const PLAN_LABELS = {
   BASIC: "Basic",
@@ -48,7 +49,7 @@ export function PlansPanel({ user, onUserChange }) {
     <div style={{ flex:1, overflowY:"auto", padding:24, background:"var(--color-bg)" }}>
       <div style={{ maxWidth:760 }}>
         <div style={{ fontFamily: "var(--font-display)", fontWeight: 400,
-                      fontSize:24,
+                      fontSize:ts(24),
                       marginBottom:8 }}>
           Plans
         </div>
@@ -64,12 +65,12 @@ export function PlansPanel({ user, onUserChange }) {
               borderRadius:8,
               padding:16,
             }}>
-              <div style={{ fontWeight:800, fontSize:16 }}>{PLAN_LABELS[tier]}</div>
-              <div style={{ color:"var(--color-text-muted)", fontSize:12, lineHeight:1.5, marginTop:6 }}>
+              <div style={{ fontWeight:800, fontSize:ts(16) }}>{PLAN_LABELS[tier]}</div>
+              <div style={{ color:"var(--color-text-muted)", fontSize:ts(12), lineHeight:1.5, marginTop:6 }}>
                 {PLAN_COPY[tier]}
               </div>
               {tier === current && (
-                <div style={{ marginTop:12, fontSize:11, color:"var(--color-primary-text)", fontWeight:700 }}>
+                <div style={{ marginTop:12, fontSize:ts(11), color:"var(--color-primary-text)", fontWeight:700 }}>
                   Active
                 </div>
               )}
@@ -82,7 +83,7 @@ export function PlansPanel({ user, onUserChange }) {
                 </button>
               )}
               {tier !== current && plan?.pendingRequest?.requested_tier === tier && (
-                <div style={{ marginTop:12, fontSize:11, color:"var(--color-warning)", fontWeight:700 }}>
+                <div style={{ marginTop:12, fontSize:ts(11), color:"var(--color-warning)", fontWeight:700 }}>
                   Request pending
                 </div>
               )}

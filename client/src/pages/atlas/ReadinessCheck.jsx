@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { api } from "../../lib/api.js";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const MODES = [
   { id: "timed", label: "Timed", hint: "The real thing: the timer blocks the easy look-up." },
@@ -106,7 +107,7 @@ export default function ReadinessCheck({ signedIn = true }) {
           <div className="atl-nav__card" data-check-modes="">
             <h2 className="atl-nav__h">How you'd like it</h2>
             {MODES.map(m => (
-              <label key={m.id} style={{ display: "block", fontSize: 13.5, lineHeight: 1.5 }}>
+              <label key={m.id} style={{ display: "block", fontSize: ts(13.5), lineHeight: 1.5 }}>
                 <input type="radio" name="check-mode" checked={mode === m.id} onChange={() => setMode(m.id)} /> <strong>{m.label}</strong> — <span className="atl__quiet">{m.hint}</span>
               </label>
             ))}

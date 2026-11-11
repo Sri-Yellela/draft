@@ -23,6 +23,7 @@ import { AtsReport } from "./AtsReport.jsx";
 // ⭐ D169 P2: "That's true of me" on a SKILL opens its quick check (or its proof choice) in place — the same component
 // Your skills in Atlas opens. The claim itself behaves as before (counts toward the score); the résumé waits for the proof.
 import SkillCheck from "./SkillCheck.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // `band` (A40): a caller that holds the BAND and deliberately not the number — the deck — passes it here,
 // and the report is drawn from it. Everywhere else the band is derived from the report's own score.
@@ -160,8 +161,8 @@ export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeT
     return (
       <div style={{ padding:24, display:"flex", flexDirection:"column",
                     alignItems:"center", justifyContent:"center", gap:12,
-                    height:"100%", color:"var(--color-text-muted)", fontSize:13, textAlign:"center" }}>
-        <div style={{ fontSize:40 }}>📊</div>
+                    height:"100%", color:"var(--color-text-muted)", fontSize:ts(13), textAlign:"center" }}>
+        <div style={{ fontSize:ts(40) }}>📊</div>
         <div>Add a base resume to see keyword analysis for this role.</div>
       </div>
     );
@@ -172,10 +173,10 @@ export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeT
     return (
       <div style={{ padding:24, display:"flex", flexDirection:"column",
                     alignItems:"center", justifyContent:"center", gap:14,
-                    height:"100%", color:"var(--color-text-muted)", fontSize:13, textAlign:"center" }}>
-        <div style={{ fontSize:28, animation:"spin 1.2s linear infinite" }}>⚙️</div>
+                    height:"100%", color:"var(--color-text-muted)", fontSize:ts(13), textAlign:"center" }}>
+        <div style={{ fontSize:ts(28), animation:"spin 1.2s linear infinite" }}>⚙️</div>
         <div style={{ color:"var(--color-text)", fontWeight:600 }}>Analysing keywords...</div>
-        <div style={{ fontSize:11 }}>Checking your resume against the job description</div>
+        <div style={{ fontSize:ts(11) }}>Checking your resume against the job description</div>
         <div style={{ display:"flex", flexWrap:"wrap", gap:6, justifyContent:"center", marginTop:4 }}>
           {[80,60,100,75,55,90,65,85].map((w,i) => (
             <div key={i} style={{ height:22, width:w, borderRadius:4,
@@ -191,13 +192,13 @@ export function ATSPanel({ report, score, band: knownBand = null, jobId, resumeT
     return (
       <div style={{ padding:24, display:"flex", flexDirection:"column",
                     alignItems:"center", justifyContent:"center", gap:12,
-                    height:"100%", color:"var(--color-text-muted)", fontSize:13, textAlign:"center" }}>
-        <div style={{ fontSize:40 }}>⚠️</div>
+                    height:"100%", color:"var(--color-text-muted)", fontSize:ts(13), textAlign:"center" }}>
+        <div style={{ fontSize:ts(40) }}>⚠️</div>
         <div>Could not analyse keywords — retry</div>
         <button onClick={() => { setKwError(false); setLocalReport(null); }}
           style={{ marginTop:8, padding:"6px 16px", borderRadius:6, border:"none",
                    background:"var(--color-primary)", color:"var(--color-on-primary)", cursor:"pointer",
-                   fontWeight:600, fontSize:12 }}>
+                   fontWeight:600, fontSize:ts(12) }}>
           Retry
         </button>
       </div>

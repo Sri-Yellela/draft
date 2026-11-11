@@ -36,6 +36,7 @@ import YourProfile from "./YourProfile.jsx";
 import { EXTENSION_PAGE } from "../../../../shared/extension.js";
 import { PROFILE_GROUPS, profilePath } from "./profilePanels.js";
 import { api } from "../../lib/api.js";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 import "./ProfilePage.css";
 
 /** The cards of Account each panel draws (AccountPanel `only`). */
@@ -55,10 +56,10 @@ function CreditDraftChoice() {
   if (on === null) return null;
   const set = async (v) => { try { setOn((await api("/api/profile/credit-draft", { method: "PUT", body: JSON.stringify({ on: v }) })).on); } catch { /* left as it was */ } };
   return (
-    <label className="pp-credit" data-credit-draft={on ? "on" : "off"} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 16, fontSize: 13 }}>
+    <label className="pp-credit" data-credit-draft={on ? "on" : "off"} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 16, fontSize: ts(13) }}>
       <input type="checkbox" role="switch" checked={on} aria-checked={on} onChange={e => set(e.target.checked)} />
       <span>When an application asks <i>How did you hear about us?</i>, answer <b>draft</b>
-        <span style={{ display: "block", color: "var(--color-text-muted)", fontSize: 12 }}>Only for jobs you found on draft — never for a job you brought in yourself. Your own saved answer to that question always wins.</span>
+        <span style={{ display: "block", color: "var(--color-text-muted)", fontSize: ts(12) }}>Only for jobs you found on draft — never for a job you brought in yourself. Your own saved answer to that question always wins.</span>
       </span>
     </label>
   );

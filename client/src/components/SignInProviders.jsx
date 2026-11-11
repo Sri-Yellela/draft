@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { providerStartHref, currentReturnPath } from "../lib/signInReturn.js";
 import { C } from "../styles/colorTokens.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export const SIGN_IN_PROVIDERS = Object.freeze(["google", "linkedin", "github"]);
 const LABEL = { google: "Google", linkedin: "LinkedIn", github: "GitHub" };
@@ -46,7 +47,7 @@ export default function SignInProviders({ returnTo, divider = null, buttonStyle 
         <a key={p} className={className} href={providerStartHref(p, back)} data-sign-in-provider={p}
           title={`Continue with ${LABEL[p]}`}
           style={{ width: "100%", height: 40, display: "flex", alignItems: "center", justifyContent: "center",
-            gap: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", textDecoration: "none", border: "none",
+            gap: 8, fontSize: ts(13), fontWeight: 700, cursor: "pointer", textDecoration: "none", border: "none",
             boxSizing: "border-box", background: BRAND[p], color: C.ON_PROVIDER, ...buttonStyle }}>
           Continue with {LABEL[p]}
         </a>

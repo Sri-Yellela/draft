@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { BRAND } from "../../../shared/brand.js";
 import { StampLogo } from "./StampLogo.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export function Footer() {
   const monetisationEnabled = useMonetisationEnabled();
@@ -18,17 +19,17 @@ export function Footer() {
             <div style={{ marginBottom: 10 }}>
               <StampLogo size="md" />
             </div>
-            <p style={{ fontSize: 13, color: "var(--c-ink-muted)", lineHeight: 1.6, marginBottom: 16, maxWidth: 220 }}>
+            <p style={{ fontSize: ts(13), color: "var(--c-ink-muted)", lineHeight: 1.6, marginBottom: 16, maxWidth: 220 }}>
               Find the job. Fit the résumé. Apply.
             </p>
-            <p style={{ fontSize: 11, color: "var(--c-ink-faint)" }}>
+            <p style={{ fontSize: ts(11), color: "var(--c-ink-faint)" }}>
               © 2025 {BRAND}. All rights reserved.
             </p>
           </div>
 
           {/* Column 2 — Product */}
           <div style={{ flex: "1 1 120px" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--c-ink-faint)",
+            <div style={{ fontSize: ts(11), fontWeight: 700, color: "var(--c-ink-faint)",
                           textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>
               Product
             </div>
@@ -41,7 +42,7 @@ export function Footer() {
               { label: "FAQ",          to: "/faq" },
             ].map(({ label, to }) => (
               <Link key={to} to={to} style={{
-                display: "block", fontSize: 13, color: "var(--c-ink-muted)",
+                display: "block", fontSize: ts(13), color: "var(--c-ink-muted)",
                 textDecoration: "none", marginBottom: 10,
               }}
               onMouseEnter={e => e.target.style.color = "var(--c-ink)"}
@@ -53,7 +54,7 @@ export function Footer() {
 
           {/* Column 3 — Company */}
           <div style={{ flex: "1 1 120px" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--c-ink-faint)",
+            <div style={{ fontSize: ts(11), fontWeight: 700, color: "var(--c-ink-faint)",
                           textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>
               Company
             </div>
@@ -64,7 +65,7 @@ export function Footer() {
               { label: "Terms of Service", to: "/terms" },
             ].map(({ label, to }) => (
               <Link key={to} to={to} style={{
-                display: "block", fontSize: 13, color: "var(--c-ink-muted)",
+                display: "block", fontSize: ts(13), color: "var(--c-ink-muted)",
                 textDecoration: "none", marginBottom: 10,
               }}
               onMouseEnter={e => e.target.style.color = "var(--c-ink)"}

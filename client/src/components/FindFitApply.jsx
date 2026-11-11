@@ -23,6 +23,7 @@ import { Link } from "react-router-dom";
 import { useReducedMotion } from "framer-motion";
 import { C } from "../styles/colorTokens.js";
 import { glass } from "../styles/glass.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export const STATIONS = [
   {
@@ -83,7 +84,7 @@ export default function FindFitApply() {
                                     lineHeight: 1, letterSpacing: "-0.01em", margin: "0 0 14px", textAlign: "center" }}>
         find <span style={{ color: C.ACCENT_INK }}>/</span> fit <span style={{ color: C.ACCENT_INK }}>/</span> apply
       </h2>
-      <p style={{ fontSize: 17, color: C.INK_MUTED, textAlign: "center", maxWidth: 560, margin: "0 auto 56px", lineHeight: 1.55 }}>
+      <p style={{ fontSize: ts(17), color: C.INK_MUTED, textAlign: "center", maxWidth: 560, margin: "0 auto 56px", lineHeight: 1.55 }}>
         One line from a job you have not seen yet to an application you chose to send. Every tool here is a stop on it.
       </p>
 
@@ -106,15 +107,15 @@ export default function FindFitApply() {
               <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "clamp(34px, 4.4vw, 52px)", lineHeight: 1, margin: "0 0 8px" }}>
                 {st.verb}
               </h3>
-              <p style={{ fontSize: 16.5, color: C.INK_MUTED, margin: "0 0 16px", maxWidth: 620, lineHeight: 1.5 }}>{st.line}</p>
+              <p style={{ fontSize: ts(16.5), color: C.INK_MUTED, margin: "0 0 16px", maxWidth: 620, lineHeight: 1.5 }}>{st.line}</p>
               <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
                 {st.surfaces.map(sf => (
                   <div key={sf.name} style={{ ...glass({ radius: 18 }), padding: "16px 18px" }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: C.INK_FAINT, marginBottom: 6 }}>
+                    <div style={{ fontSize: ts(12), fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: C.INK_FAINT, marginBottom: 6 }}>
                       {sf.name}
                     </div>
-                    <div style={{ fontSize: 15, lineHeight: 1.5, color: C.INK }}>{sf.say}</div>
-                    {sf.to && <Link to={sf.to} style={{ display: "inline-block", marginTop: 10, fontSize: 14, fontWeight: 800, color: C.ACCENT_INK }}>{sf.cta} →</Link>}
+                    <div style={{ fontSize: ts(15), lineHeight: 1.5, color: C.INK }}>{sf.say}</div>
+                    {sf.to && <Link to={sf.to} style={{ display: "inline-block", marginTop: 10, fontSize: ts(14), fontWeight: 800, color: C.ACCENT_INK }}>{sf.cta} →</Link>}
                   </div>
                 ))}
               </div>
@@ -125,16 +126,16 @@ export default function FindFitApply() {
 
       <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginTop: 72 }}>
         <Link className="dbx-depth" to="/register" style={{ background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
-                                      padding: "13px 26px", fontWeight: 800, fontSize: 15, textDecoration: "none", boxShadow: C.SHADOW_GLASS }}>
+                                      padding: "13px 26px", fontWeight: 800, fontSize: ts(15), textDecoration: "none", boxShadow: C.SHADOW_GLASS }}>
           Get today's draft
         </Link>
-        <Link className="dbx-depth" to="/tools/ats" style={{ ...glass({ radius: 10 }), padding: "13px 26px", fontWeight: 800, fontSize: 15, color: C.INK, textDecoration: "none" }}>
+        <Link className="dbx-depth" to="/tools/ats" style={{ ...glass({ radius: 10 }), padding: "13px 26px", fontWeight: 800, fontSize: ts(15), color: C.INK, textDecoration: "none" }}>
           Check a résumé — no account
         </Link>
       </div>
 
       {/* The same line, reversed — the brand's best symmetry, stated honestly as not yet here. */}
-      <p style={{ textAlign: "center", fontSize: 13.5, color: C.INK_FAINT, margin: "40px auto 0", maxWidth: 560, lineHeight: 1.55 }}>
+      <p style={{ textAlign: "center", fontSize: ts(13.5), color: C.INK_FAINT, margin: "40px auto 0", maxWidth: 560, lineHeight: 1.55 }}>
         Hiring? The same line runs the other way — find candidates, see the fit, reach out — starting with a free
         grade of your own job posting. Soon.
       </p>

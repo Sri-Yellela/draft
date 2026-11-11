@@ -3,6 +3,7 @@
 // emailProof / phoneProof, POST /api/account/phone); the code itself never leaves this control.
 import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export default function OtpVerify({ channel, target, proven = false, onProof, onError, disabled = false, style = {} }) {
   const [sent, setSent] = useState(false);
@@ -12,7 +13,7 @@ export default function OtpVerify({ channel, target, proven = false, onProof, on
   // A changed address / number needs its own code.
   useEffect(() => { setSent(false); setCode(""); setMsg(""); }, [target]);
   const word = channel === "sms" ? "Text me a code" : "Email me a code";
-  if (proven) return <span data-otp-proven={channel} style={{ fontSize: 12, ...style }}>✓ Confirmed</span>;
+  if (proven) return <span data-otp-proven={channel} style={{ fontSize: ts(12), ...style }}>✓ Confirmed</span>;
   const send = async () => {
     setBusy(true); setMsg("");
     try { await api("/api/verify/start", { method: "POST", body: JSON.stringify({ channel, target }) }); setSent(true); setMsg("Code sent."); }
@@ -37,7 +38,7 @@ export default function OtpVerify({ channel, target, proven = false, onProof, on
           <button type="button" className="rm-btn rm-btn-ghost rm-btn-sm" disabled={busy} onClick={send}>Send again</button>
         </>
       )}
-      {msg && <span role="status" style={{ fontSize: 12 }}>{msg}</span>}
+      {msg && <span role="status" style={{ fontSize: ts(12) }}>{msg}</span>}
     </span>
   );
 }

@@ -12,6 +12,7 @@
 //     While the Google app is in Testing mode, a test user's grant lasts seven days — the note says so.
 import { useCallback, useEffect, useState } from "react";
 import { api, authContextQuery } from "../lib/api.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // D182 (45n): a message carries no category mark — its "File as [category]" select already says it.
 const LABEL = { applied: "Applied", verification: "Verification", interview: "Interview", assessment: "Assessment",
@@ -33,7 +34,7 @@ export function GmailConnection({ theme, onChange }) {
   const load = useCallback(async () => { try { setG(await api("/api/gmail/status")); } catch { setG(null); } }, []);
   useEffect(() => { load(); }, [load]);
   if (!g || !g.available) return null;
-  const muted = { fontSize: 12, color: theme.textMuted };
+  const muted = { fontSize: ts(12), color: theme.textMuted };
   const off = async () => {
     if (!window.confirm("Disconnect Gmail? draft stops reading at once and Google's permission is revoked. Messages already in your draft inbox stay until you delete them.")) return;
     setBusy(true);
@@ -55,7 +56,7 @@ export function GmailConnection({ theme, onChange }) {
     <div data-gmail-connection={g.status} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {g.connected ? (
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, color: theme.text }}>Gmail connected{g.email ? <> · <b>{g.email}</b></> : null}</span>
+          <span style={{ fontSize: ts(13), color: theme.text }}>Gmail connected{g.email ? <> · <b>{g.email}</b></> : null}</span>
           <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={off} disabled={busy}>Disconnect Gmail</button>
         </div>
       ) : (
@@ -103,7 +104,7 @@ export default function ApplicationInbox({ theme }) {
     act("all", () => api("/api/inbox", { method: "DELETE" }), "Deleted.");
   };
 
-  const muted = { fontSize: 12, color: theme.textMuted };
+  const muted = { fontSize: ts(12), color: theme.textMuted };
   const messages = data?.messages || [];
   return (
     <div data-table-inbox="" style={{ flex: 1, overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
@@ -116,7 +117,7 @@ export default function ApplicationInbox({ theme }) {
           </p>
         ) : addr ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 13, color: theme.text }}>Forward to <b data-inbox-address="">{addr.address}</b></span>
+            <span style={{ fontSize: ts(13), color: theme.text }}>Forward to <b data-inbox-address="">{addr.address}</b></span>
             <ol style={{ ...muted, margin: 0, paddingLeft: 18 }}>{(addr.steps || []).map(s => <li key={s}>{s}</li>)}</ol>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <a className="rm-btn rm-btn-ghost rm-btn-sm" href={`/api/inbox/gmail-filter.xml?${authContextQuery()}`}>Download the Gmail filter</a>
@@ -151,11 +152,11 @@ export default function ApplicationInbox({ theme }) {
           <li key={m.id} data-inbox-message={m.id} style={{ padding: "10px 12px", borderRadius: 12, background: theme.surface,
             border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: 6 }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <b style={{ fontSize: 13, color: theme.text, flex: "1 1 200px", minWidth: 0 }}>{m.subject || "(no subject)"}</b>
+              <b style={{ fontSize: ts(13), color: theme.text, flex: "1 1 200px", minWidth: 0 }}>{m.subject || "(no subject)"}</b>
               <span style={muted}>{when(m.receivedAt)}</span>
             </div>
             <span style={muted}>{m.from}{m.source === "gmail" ? " · via Gmail" : ""}{m.applicationId ? " · linked to an application" : ""}{m.code ? ` · code ${m.code}` : ""}</span>
-            {m.preview && <span style={{ fontSize: 12, color: theme.text }}>{m.preview}</span>}
+            {m.preview && <span style={{ fontSize: ts(12), color: theme.text }}>{m.preview}</span>}
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <label style={muted}>File as{" "}
                 <select value={m.category} disabled={busy === `f${m.id}`} onChange={(e) => refile(m, e.target.value)}>

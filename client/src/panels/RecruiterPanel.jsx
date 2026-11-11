@@ -7,6 +7,7 @@ import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import { glass } from "../styles/glass.js";
 import { TYPE } from "../styles/type.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const STATUS_COPY = {
   consistent: { label: "Consistent", color: C.SUCCESS, bg: C.SUCCESS_QUIET },
@@ -36,14 +37,14 @@ function CompanyKbCard({ company, theme }) {
       <div style={TYPE.CARD_TITLE}>
         {company} — KB Reference
       </div>
-      {loading && <div style={{ fontSize: 12, color: theme.textMuted }}>Loading…</div>}
+      {loading && <div style={{ fontSize: ts(12), color: theme.textMuted }}>Loading…</div>}
       {error && !loading && (
-        <div style={{ background: C.DANGER_QUIET, color: C.DANGER, borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
+        <div style={{ background: C.DANGER_QUIET, color: C.DANGER, borderRadius: 6, padding: "8px 12px", fontSize: ts(12) }}>
           {error}
         </div>
       )}
       {!loading && !error && profile && !profile.hasData && (
-        <div style={{ fontSize: 12, color: theme.textMuted }}>Not enough data on {company} yet.</div>
+        <div style={{ fontSize: ts(12), color: theme.textMuted }}>Not enough data on {company} yet.</div>
       )}
       {!loading && !error && profile?.hasData && (
         <>
@@ -86,10 +87,10 @@ function ConsistencyCheckCard({ company, theme }) {
     <section style={{ ...glass({ radius: 20 }), padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <div style={{ fontFamily: "var(--font-display)", fontWeight: 400,
-          fontSize: 21, color: theme.text }}>
+          fontSize: ts(21), color: theme.text }}>
           Candidate-Claim Consistency Check
         </div>
-        <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 4, lineHeight: 1.5 }}>
+        <div style={{ fontSize: ts(11), color: theme.textMuted, marginTop: 4, lineHeight: 1.5 }}>
           Paste a candidate's resume text below. This checks whether their {company} claims
           cohere with {company}'s public job-posting KB above — it is advisory evidence, not a
           verdict on the person, and nothing pasted here is stored.
@@ -101,7 +102,7 @@ function ConsistencyCheckCard({ company, theme }) {
         rows={8}
         placeholder={`Paste the candidate's resume text here (checked against ${company})...`}
         style={{ width: "100%", borderRadius: 12, border: `1px solid ${C.BORDER_CONTROL}`,
-                 background: C.SURFACE_INPUT, color: theme.text, fontSize: 13,
+                 background: C.SURFACE_INPUT, color: theme.text, fontSize: ts(13),
                  padding: "8px 10px", resize: "vertical", fontFamily: "inherit",
                  outline: "none", boxSizing: "border-box" }}
       />
@@ -110,7 +111,7 @@ function ConsistencyCheckCard({ company, theme }) {
         {checking ? "Checking…" : "Check consistency"}
       </button>
       {error && (
-        <div style={{ background: C.DANGER_QUIET, color: C.DANGER, borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
+        <div style={{ background: C.DANGER_QUIET, color: C.DANGER, borderRadius: 6, padding: "8px 12px", fontSize: ts(12) }}>
           {error}
         </div>
       )}
@@ -120,11 +121,11 @@ function ConsistencyCheckCard({ company, theme }) {
             {statusCopy.label}
           </span>
           {result.findings.map((f, i) => (
-            <div key={i} style={{ fontSize: 12, color: theme.text, background: theme.surfaceHigh,
+            <div key={i} style={{ fontSize: ts(12), color: theme.text, background: theme.surfaceHigh,
                                    border: `1px solid ${theme.border}`, borderRadius: 6, padding: "8px 10px" }}>
               {f.message}
               {f.evidence?.length > 0 && (
-                <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 4 }}>
+                <div style={{ fontSize: ts(11), color: theme.textMuted, marginTop: 4 }}>
                   {f.evidence.join(" ")}
                 </div>
               )}
@@ -173,7 +174,7 @@ export function RecruiterPanel() {
             placeholder="Company name (e.g. Figma)"
             // An input's edge is a UI boundary: BORDER_CONTROL reaches 3:1, BORDER does not.
             style={{ flex: 1, minWidth: 0, border: `1px solid ${C.BORDER_CONTROL}`, borderRadius: 12,
-                     background: C.SURFACE_INPUT, color: theme.text, fontSize: 13,
+                     background: C.SURFACE_INPUT, color: theme.text, fontSize: ts(13),
                      padding: "10px 16px", outline: "none" }}
           />
           <button onClick={load} disabled={!companyInput.trim()} className="rm-btn rm-btn-primary">
@@ -185,7 +186,7 @@ export function RecruiterPanel() {
         <ConsistencyCheckCard company={activeCompany} theme={theme} />
 
         {!activeCompany && (
-          <div style={{ fontSize: 12, color: theme.textMuted, textAlign: "center", padding: "40px 0" }}>
+          <div style={{ fontSize: ts(12), color: theme.textMuted, textAlign: "center", padding: "40px 0" }}>
             Enter a company to load its KB reference and run a consistency check.
           </div>
         )}

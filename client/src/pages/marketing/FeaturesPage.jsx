@@ -23,6 +23,7 @@ import { Footer } from "../../components/Footer.jsx";
 import { useMonetisationEnabled } from "../../lib/monetisation.jsx";
 import { C } from "../../styles/colorTokens.js";
 import { glass } from "../../styles/glass.js";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export const TOOLS = [
   {
@@ -73,7 +74,7 @@ export function FeaturesPage() {
                      letterSpacing: "-0.01em", margin: "0 0 16px" }}>
           What each tool is for
         </h1>
-        <p style={{ fontSize: 17, color: C.INK_MUTED, lineHeight: 1.55, margin: "0 0 56px", maxWidth: 620 }}>
+        <p style={{ fontSize: ts(17), color: C.INK_MUTED, lineHeight: 1.55, margin: "0 0 56px", maxWidth: 620 }}>
           Everything here is one line — <strong style={{ color: C.INK }}>find</strong>, <strong style={{ color: C.INK }}>fit</strong>,{" "}
           <strong style={{ color: C.INK }}>apply</strong> — and every tool is a stop on it. Each is described by what it
           does for you, and by the one thing it will not do.
@@ -85,22 +86,22 @@ export function FeaturesPage() {
                                                         lineHeight: 1, margin: "0 0 8px" }}>
               <span style={{ color: C.ACCENT_INK }}>/</span>{station.verb}
             </h2>
-            <p style={{ fontSize: 16, color: C.INK_MUTED, margin: "0 0 20px", lineHeight: 1.5 }}>{station.line}</p>
+            <p style={{ fontSize: ts(16), color: C.INK_MUTED, margin: "0 0 20px", lineHeight: 1.5 }}>{station.line}</p>
             <div style={{ display: "grid", gap: 14 }}>
               {station.tools.map(t => (
                 <article key={t.name} data-tool={t.name} style={{ ...glass({ radius: 18 }), padding: "20px 22px" }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-                    <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{t.name}</h3>
+                    <h3 style={{ fontSize: ts(18), fontWeight: 800, margin: 0 }}>{t.name}</h3>
                     {monetisationEnabled && t.tier && (
-                      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
+                      <span style={{ fontSize: ts(11), fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
                                      color: C.ACCENT_INK, background: C.ACCENT_QUIET, padding: "2px 8px", borderRadius: 6 }}>{t.tier}</span>
                     )}
                   </div>
-                  <p style={{ fontSize: 15, lineHeight: 1.6, margin: "0 0 8px" }}>{t.does}</p>
-                  <p style={{ fontSize: 14, lineHeight: 1.6, margin: 0, color: C.INK_MUTED }}>
+                  <p style={{ fontSize: ts(15), lineHeight: 1.6, margin: "0 0 8px" }}>{t.does}</p>
+                  <p style={{ fontSize: ts(14), lineHeight: 1.6, margin: 0, color: C.INK_MUTED }}>
                     <strong style={{ color: C.INK }}>It won't: </strong>{t.wont}
                   </p>
-                  <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginTop: 12, fontSize: 13.5 }}>
+                  <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginTop: 12, fontSize: ts(13.5) }}>
                     {t.to
                       ? <Link to={t.to} style={{ fontWeight: 800, color: C.ACCENT_INK }}>{t.cta} →</Link>
                       : <span style={{ color: C.INK_FAINT }}>{t.where}</span>}
@@ -114,7 +115,7 @@ export function FeaturesPage() {
 
         <div style={{ textAlign: "center", marginTop: 24 }}>
           <Link className="dbx-depth" to="/register" style={{ display: "inline-block", background: C.ACCENT, color: C.ON_ACCENT, border: `1px solid ${C.ACCENT_INK}`,
-                                        padding: "13px 26px", fontWeight: 800, fontSize: 15, textDecoration: "none",
+                                        padding: "13px 26px", fontWeight: 800, fontSize: ts(15), textDecoration: "none",
                                         boxShadow: C.SHADOW_GLASS }}>
             Get today's draft
           </Link>

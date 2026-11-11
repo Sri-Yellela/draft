@@ -4,13 +4,14 @@
 // is only their buttons. Every button acts on mousedown with preventDefault, so the page keeps its selection.
 // D60: rectangles (radius 6) — no capsule.
 import { useState } from "react";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 import { FONTS, SIZES_PT, LINE_SPACING, MARGINS, SELECTION, DOCUMENT, setSelectionSize, setSelectionLineSpacing,
   moveSection, insertSection } from "../lib/docFormat.js";
 
 const box = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 28, height: 28, padding: "0 7px",
   borderRadius: 6, border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)",
-  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+  fontSize: ts(12), fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
 };
 const sel = { ...box, padding: "0 4px", fontWeight: 600, cursor: "pointer" };
 const sep = { width: 1, alignSelf: "stretch", background: "var(--color-border)", margin: "0 2px" };
@@ -113,7 +114,7 @@ export default function DocToolbar({ getDoc, getAllDocs, onChanged }) {
         Fit to one page</button>
       <button type="button" style={box} data-cmd="reset" title="Back to the template's font, sizes and margins"
         {...press(() => { onDocument(DOCUMENT.reset); say("Font, sizes and margins reset."); })}>Reset</button>
-      {msg && <span role="status" style={{ fontSize: 11, color: "var(--color-text-muted)", marginLeft: 4 }}>{msg}</span>}
+      {msg && <span role="status" style={{ fontSize: ts(11), color: "var(--color-text-muted)", marginLeft: 4 }}>{msg}</span>}
     </div>
   );
 }

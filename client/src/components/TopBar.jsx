@@ -26,6 +26,7 @@ import { ABOUT_HREF } from "./AppNav.jsx";   // A151: the username opens the Abo
 import { C } from "../styles/colorTokens.js";
 import { ACTIVE_THEME, appearance, setAppearance } from "../themes/index.js";
 import AppNav from "./AppNav.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 import "./TopBar.css";
 
 // The slideDown keyframes and injectKeyframes() were removed with the pill (Y4).
@@ -129,20 +130,20 @@ function NotificationsSection({ theme, notifs, unread, markAll }) {
     <div style={{ borderBottom: `1px solid ${theme.border}` }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "10px 16px 8px" }}>
-        <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+        <span style={{ fontSize: ts(10), fontWeight: 700, textTransform: "uppercase",
                        letterSpacing: "0.08em", color: theme.textDim }}>
           Notifications{unread > 0 ? ` (${unread})` : ""}
         </span>
         {unread > 0 && (
           <button onClick={markAll}
             style={{ background: "none", border: "none", cursor: "pointer",
-                     fontSize: 10, color: theme.accentText, fontWeight: 700, padding: 0 }}>
+                     fontSize: ts(10), color: theme.accentText, fontWeight: 700, padding: 0 }}>
             Mark all read
           </button>
         )}
       </div>
       {notifs.length === 0 ? (
-        <div style={{ padding: "8px 16px 14px", fontSize: 12, color: theme.textDim }}>
+        <div style={{ padding: "8px 16px 14px", fontSize: ts(12), color: theme.textDim }}>
           No notifications yet
         </div>
       ) : (
@@ -152,12 +153,12 @@ function NotificationsSection({ theme, notifs, unread, markAll }) {
               padding: "8px 16px", display: "flex", alignItems: "flex-start", gap: 10,
               background: !n.read ? `${theme.accent}0d` : "transparent",
             }}>
-              <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>
+              <span style={{ fontSize: ts(14), flexShrink: 0, marginTop: 1 }}>
                 {NOTIF_TYPE_ICONS[n.type] || "ℹ"}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, color: theme.text, lineHeight: 1.4 }}>{n.message}</div>
-                <div style={{ fontSize: 10, color: theme.textDim, marginTop: 2 }}>{notifTimeAgo(n.created_at)}</div>
+                <div style={{ fontSize: ts(12), color: theme.text, lineHeight: 1.4 }}>{n.message}</div>
+                <div style={{ fontSize: ts(10), color: theme.textDim, marginTop: 2 }}>{notifTimeAgo(n.created_at)}</div>
               </div>
               {!n.read && (
                 <div style={{ width: 6, height: 6, borderRadius: "50%",
@@ -198,7 +199,7 @@ function QuickScheme() {
       style={{ display: "flex", gap: 4, marginTop: 6 }}>
       {SCHEMES.map(([id, label]) => (
         <button key={id} type="button" role="radio" aria-checked={on === id} onClick={() => pick(id)}
-          style={{ flex: 1, padding: "6px 8px", borderRadius: 8, cursor: on === id ? "default" : "pointer", fontSize: 12, fontWeight: 700,
+          style={{ flex: 1, padding: "6px 8px", borderRadius: 8, cursor: on === id ? "default" : "pointer", fontSize: ts(12), fontWeight: 700,
                    background: on === id ? "var(--c-accent)" : "transparent", color: on === id ? "var(--c-fh-on-accent)" : "var(--c-ink)",
                    border: on === id ? "1px solid var(--c-fh-accent-edge)" : "1px solid var(--c-border-strong)" }}>
           {label}
@@ -224,7 +225,7 @@ function ProfileMenuPanel({ open, onClose, theme, user, onLogout, onTabChange, p
     : planTier === "PLUS" ? "Generate"
     : "Baseline jobs console";
   const menuItemStyle = {
-    padding: "10px 16px", cursor: "pointer", fontSize: 13,
+    padding: "10px 16px", cursor: "pointer", fontSize: ts(13),
     color: theme.text, background: "transparent", border: "none",
     display: "block", width: "100%", textAlign: "left",
   };
@@ -250,7 +251,7 @@ function ProfileMenuPanel({ open, onClose, theme, user, onLogout, onTabChange, p
               style={{
                 background: "transparent", border: "none", padding: 0, cursor: "pointer",
                 fontFamily: "var(--font-display)",
-                fontWeight: 400, fontSize: 18, color: theme.text,
+                fontWeight: 400, fontSize: ts(18), color: theme.text,
                 display: "block", width: "100%", textAlign: "left",
               }}
               onMouseEnter={e => e.currentTarget.style.color = theme.accent}
@@ -261,7 +262,7 @@ function ProfileMenuPanel({ open, onClose, theme, user, onLogout, onTabChange, p
             <button type="button" data-username-about="" onClick={() => { onClose(); navigate(ABOUT_HREF); }}
               title="Your About section"
               style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", font: "inherit",
-                fontSize: 10, color: theme.textDim, marginTop: 2, textAlign: "left" }}>
+                fontSize: ts(10), color: theme.textDim, marginTop: 2, textAlign: "left" }}>
               {user?.username} - {user?.isAdmin ? "Administrator" : "Member"}
             </button>
           </div>
@@ -269,7 +270,7 @@ function ProfileMenuPanel({ open, onClose, theme, user, onLogout, onTabChange, p
           <NotificationsSection theme={theme} notifs={notifs} unread={unread} markAll={markAll}/>
 
           <div style={{ padding: "10px 16px 10px", borderBottom: `1px solid ${theme.border}` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+            <div style={{ fontSize: ts(10), fontWeight: 700, textTransform: "uppercase",
                            letterSpacing: "0.08em", color: theme.textDim, marginBottom: 8 }}>
               Job Profile
             </div>
@@ -287,7 +288,7 @@ function ProfileMenuPanel({ open, onClose, theme, user, onLogout, onTabChange, p
               <button onClick={() => { onClose(); onTabChange?.("job-profiles"); }}
                 style={{ width:"100%", border:`1px solid ${theme.border}`, borderRadius:6,
                          background:theme.surfaceHigh, color:theme.text, padding:"8px 10px",
-                         cursor:"pointer", textAlign:"left", fontSize:12, fontWeight:700 }}>
+                         cursor:"pointer", textAlign:"left", fontSize:ts(12), fontWeight:700 }}>
                 Add your first job profile
               </button>
             )}
@@ -308,12 +309,12 @@ function ProfileMenuPanel({ open, onClose, theme, user, onLogout, onTabChange, p
           <div style={{ padding: "8px 16px", borderBottom: `1px solid ${theme.border}` }}>
             {monetisationEnabled && (
               <>
-                <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+                <div style={{ fontSize: ts(10), fontWeight: 700, textTransform: "uppercase",
                                letterSpacing: "0.08em", color: theme.textDim, marginBottom: 6 }}>
                   Plan
                 </div>
-                <div style={{ fontSize: 13, color: theme.text, fontWeight: 700 }}>{planLabel}</div>
-                <div style={{ fontSize: 11, color: theme.textDim, marginTop: 2 }}>{toolLabel}</div>
+                <div style={{ fontSize: ts(13), color: theme.text, fontWeight: 700 }}>{planLabel}</div>
+                <div style={{ fontSize: ts(11), color: theme.textDim, marginTop: 2 }}>{toolLabel}</div>
                 <button onClick={() => { onClose(); onTabChange?.("plans"); }}
                   style={{ ...menuItemStyle, marginTop:4, color:theme.accentText, fontWeight:700 }}>
                   View Plans

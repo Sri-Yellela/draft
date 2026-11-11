@@ -10,6 +10,7 @@ import { useViewport } from "../hooks/useViewport.js";
 import { useScrollCollapsed } from "../hooks/useScrollCollapsed.js";
 import { useMonetisationEnabled } from "../lib/monetisation.jsx";
 import { StampLogo } from "./StampLogo.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // ── Logo ─────────────────────────────────────────────────────
 // One call, not a third copy of the mark. This file used to draw its own stamp — see the header of
@@ -57,14 +58,14 @@ function HamburgerOverlay({ open, onClose, theme, links, ctaLinks }) {
       <button onClick={onClose} style={{
         position: "absolute", top: 16, right: 16,
         background: "none", border: "none", cursor: "pointer",
-        fontSize: 22, color: theme.textMuted,
+        fontSize: ts(22), color: theme.textMuted,
       }}>✕</button>
 
       <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {links.map(({ label, to }) => (
           <Link key={to} to={to} onClick={onClose}
             style={{
-              fontSize: 22, fontWeight: 700, color: theme.text,
+              fontSize: ts(22), fontWeight: 700, color: theme.text,
               textDecoration: "none", padding: "12px 0",
               borderBottom: `1px solid ${theme.border}`,
               fontFamily: "var(--font-display)",
@@ -81,7 +82,7 @@ function HamburgerOverlay({ open, onClose, theme, links, ctaLinks }) {
               style={{
                 display: "block", textAlign: "center",
                 padding: "12px 24px", borderRadius: 8,
-                fontSize: 15, fontWeight: 700, textDecoration: "none",
+                fontSize: ts(15), fontWeight: 700, textDecoration: "none",
                 background: primary ? theme.accent : "transparent",
                 color: primary ? "var(--c-on-accent)" : theme.text,
                 border: primary ? "none" : `1px solid ${theme.border}`,
@@ -219,7 +220,7 @@ function MarketingToolsDock({ variant }) {
             {collapsed && <DockDivider theme={theme}/>}
             {ctaLinks.map(({ label, to, primary }) => (
               <Link className="dbx-depth" key={to} to={to} style={{
-                fontSize: 13, fontWeight: 700, textDecoration: "none",
+                fontSize: ts(13), fontWeight: 700, textDecoration: "none",
                 padding: collapsed ? "5px 14px" : "7px 18px",
                 background: primary ? theme.accent : "transparent",
                 color: primary ? "var(--c-on-accent)" : theme.accentText,
@@ -238,7 +239,7 @@ function MarketingToolsDock({ variant }) {
           <button onClick={() => setMobileMenuOpen(true)}
             style={{
               background: "none", border: "none", cursor: "pointer",
-              fontSize: 22, color: theme.textMuted, padding: "4px 8px", marginLeft: "auto",
+              fontSize: ts(22), color: theme.textMuted, padding: "4px 8px", marginLeft: "auto",
             }}>
             ☰
           </button>

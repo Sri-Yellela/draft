@@ -62,14 +62,18 @@ test("A116 · the guard itself catches a bare size", () => {
   assert.deepEqual(unscaled(".x { font-size: calc(14px * var(--type-scale, 1)); }"), []);
 });
 
-// ⭐ A116 · 46g — the INLINE sizes, screen by screen (~1,340 `fontSize: <number>` in the client's JSX on 11-11). A screen is
-// listed here once every inline size in it goes through ts() (themes/shapes.js: calc(Npx * var(--type-scale, 1))).
-export const INLINE_SCALED = ["client/src/panels/JobsPanel.jsx", "client/src/panels/DeckView.jsx",
-  "client/src/panels/ProfilePanel.jsx", "client/src/components/DomainProfileWizard.jsx", "client/src/panels/AutoApplyPanelSections.jsx", "client/src/panels/AutoApplyPanel.jsx", "client/src/components/ProfileSections.jsx", "client/src/panels/AccountPanel.jsx", "client/src/components/JobCard.jsx", "client/src/panels/SandboxPanel.jsx", "client/src/panels/IntegrationsPanel.jsx", "client/src/components/AuthScreen.jsx", "client/src/panels/JobWorkspacePanel.jsx", "client/src/pages/marketing/ExtensionPage.jsx", "client/src/components/CompanyKbSections.jsx", "client/src/panels/SavedAnswersPanel.jsx"];
-test("A116 · 46g — the board and the deck: no inline font size ignores the text size", () => {
-  for (const f of INLINE_SCALED) {
-    const bare = raw(f).split("\n").map((l, i) => [i + 1, l]).filter(([, l]) => /fontSize:\s?\d/.test(l)).map(([n, l]) => `${f}:${n} ${l.trim().slice(0, 80)}`);
-    assert.deepEqual(bare, [], `bare inline font sizes in ${f}`);
-  }
+// ⭐ A116 · 46g — the INLINE sizes (~1,340 `fontSize: <number>` in the client's JSX on 11-11). Every screen a person sees now
+// sizes its inline text through ts() (themes/shapes.js: calc(Npx * var(--type-scale, 1))), so Settings → Text size reaches
+// it. Only the admin console is left (an internal tool, ~500 sizes in 25 files: Admin*.jsx / admin*.jsx, pages/admin/, DatabasePanel) —
+// listed as the exception, so a NEW person-facing file can't arrive with a bare size.
+export const INLINE_EXCEPT = /(^|\/)([aA]dmin\w*|DBInspector|DatabasePanel)\.jsx$|\/pages\/admin\//;
+const jsxFiles = (d, out = []) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+  const f = `${d}/${e.name}`; if (e.isDirectory()) jsxFiles(f, out); else if (e.name.endsWith(".jsx")) out.push(f); } return out; };
+test("A116 · 46g — no inline font size outside the admin console ignores the text size", () => {
+  const files = jsxFiles("client/src").filter(f => !INLINE_EXCEPT.test(f));
+  assert.ok(files.length > 150 && files.includes("client/src/panels/JobsPanel.jsx"), `the scan found the client (${files.length})`);
+  assert.ok(jsxFiles("client/src").some(f => INLINE_EXCEPT.test(f) && /fontSize:\s?\d/.test(raw(f))), "the exception still names files that need it");
+  const bare = files.flatMap(f => raw(f).split("\n").map((l, i) => [i + 1, l]).filter(([, l]) => /fontSize:\s?\d/.test(l)).map(([n, l]) => `${f}:${n} ${l.trim().slice(0, 80)}`));
+  assert.deepEqual(bare, [], "bare inline font sizes — wrap them in ts()");
   assert.match(raw("client/src/themes/shapes.js"), /export const ts = \(px\) => `calc\(\$\{px\}px \* var\(\$\{TYPE_SCALE_VAR\}, 1\)\)`;/);
 });

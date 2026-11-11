@@ -22,6 +22,7 @@ import { draftButtonState, resumeControlState } from "../lib/jobDecisions.js";
 import ByomResumeChoice, { ByomStatus, useByomFlow } from "./ByomResumeChoice.jsx";
 import ExtensionPanel from "./ExtensionPanel.jsx";
 import { WhatWeChangedLink } from "./ResumeChangesPanel.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // Layout props (slot, width, focused, fullScreen, resizeMode and the three resize callbacks) come
 // from usePanelHost via JobsPanel — this panel is one peer in an ordered set now, not the only
@@ -553,11 +554,11 @@ export default function JobDetailPanel({
                 matchBox={<AtsNumberBox score={scores.shown} tailored={scores.tailoredShown} base={scores.base} caption="match"
                   open={matchOpen} onOpen={() => { setMatchMounted(true); setMatchOpen(o => !o); }} />}>
               {fetchState === "loading" ? (
-                <p style={{ fontSize:12, color:"var(--color-text-faint)", fontStyle:"italic" }}>
+                <p style={{ fontSize:ts(12), color:"var(--color-text-faint)", fontStyle:"italic" }}>
                   Loading the description from the source…
                 </p>
               ) : fetchState === "failed" ? (
-                <p style={{ fontSize:12, color:"var(--color-text-faint)", fontStyle:"italic" }}>
+                <p style={{ fontSize:ts(12), color:"var(--color-text-faint)", fontStyle:"italic" }}>
                   {fetchMessage || "Could not load the description from the source just now."}{" "}
                   <button
                     onClick={() => setRetry(r => r + 1)}
@@ -567,11 +568,11 @@ export default function JobDetailPanel({
                   </button>
                 </p>
               ) : fetchState === "unavailable" ? (
-                <p style={{ fontSize:12, color:"var(--color-text-faint)", fontStyle:"italic" }}>
+                <p style={{ fontSize:ts(12), color:"var(--color-text-faint)", fontStyle:"italic" }}>
                   {fetchMessage || "This source does not publish a description for this posting."}
                 </p>
               ) : (
-                <p style={{ fontSize:12, color:"var(--color-text-faint)", fontStyle:"italic" }}>No description available.</p>
+                <p style={{ fontSize:ts(12), color:"var(--color-text-faint)", fontStyle:"italic" }}>No description available.</p>
               )}
               </PostingPanel>
               {/* ⭐ D138 · who the user knows at this company — after the posting now (D147: nothing between the facts

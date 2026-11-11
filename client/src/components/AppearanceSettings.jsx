@@ -14,6 +14,7 @@ import RadioCards from "./RadioCards.jsx";
 import { api } from "../lib/api.js";
 import { useStudioForUsers } from "../lib/monetisation.jsx";
 import { THEME_LIST, STUDIO_IDS, DUSK_IDS, ACTIVE_THEME, appearance, layout, setAppearance, pairPreference, CONTRAST_OFFER, dismissContrastOffer } from "../themes/index.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 /** Save the whole appearance to the account (theme, cues and the layout options), then apply it (a reload). */
 export function saveAppearance(next) {
@@ -59,7 +60,7 @@ export function ThemeSection() {
             .filter((c) => studioOn || !STUDIO_IDS.includes(c.id))
             .filter((c) => duskOn || !DUSK_IDS.includes(c.id))} />
       </div>
-      <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: "var(--c-ink)" }}>
+      <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: ts(13), color: "var(--c-ink)" }}>
         <input type="checkbox" checked={follow} data-appearance-follow=""
           onChange={(e) => { const f = e.target.checked; setFollow(f);
             saveAppearance({ pref: f ? pairPreference(ACTIVE_THEME) : ACTIVE_THEME.id, cues: cur.cues }); }} />
@@ -74,11 +75,11 @@ export function AccessibilitySection() {
   const cur = appearance();
   return (
     <SettingsSection title="Accessibility">
-      <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, color: "var(--c-ink)" }}>
+      <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: ts(13), color: "var(--c-ink)" }}>
         <input type="checkbox" role="switch" checked={cur.cues} aria-checked={cur.cues} data-appearance-cues=""
           onChange={(e) => saveAppearance({ pref: cur.pref, cues: e.target.checked })} />
         <span>Shape cues<br />
-          <span style={{ fontSize: 11, color: "var(--c-ink-faint)" }}>
+          <span style={{ fontSize: ts(11), color: "var(--c-ink-faint)" }}>
             Adds a symbol and a line style to every status and fit band — ✓ solid, ! dashed, ✕ double, i dotted — so
             nothing depends on telling colours apart. Recommended if orange and amber, or red and green, look alike to you.
           </span>
@@ -96,7 +97,7 @@ export function ContrastOffer() {
   return (
     <div role="status" data-contrast-offer=""
       style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "center", flexWrap: "wrap", padding: "8px 16px",
-        background: "var(--c-surface-solid)", color: "var(--c-ink)", borderBottom: "1px solid var(--c-border-strong)", fontSize: 13 }}>
+        background: "var(--c-surface-solid)", color: "var(--c-ink)", borderBottom: "1px solid var(--c-border-strong)", fontSize: ts(13) }}>
       <span>Your system asks for more contrast. draft has high-contrast themes.</span>
       <DepthButton size="compact" primary onClick={() => saveAppearance({ pref: "contrast", cues: cur.cues })}>Use high contrast</DepthButton>
       <DepthButton size="compact" onClick={() => { dismissContrastOffer(); setGone(true); }}>Not now</DepthButton>
