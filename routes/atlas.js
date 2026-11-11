@@ -60,6 +60,10 @@
 //   POST   /api/admin/atlas/definitions/import           { text } — the chat's JSON answer; all or nothing; lands as drafts
 //   GET    /api/admin/atlas/definitions/drafts           the review list
 //   POST   /api/admin/atlas/definitions/:slug/accept     { definition? } (edited) · …/:slug/reject · …/accept-all { slugs }
+//          ⭐ OWNER 11-10: the import PUBLISHES (no accept loop); drafts remain only for entries a source holds (D176).
+//   GET    /api/admin/atlas/definitions/recent           the auto-published definitions, newest first
+//   GET    /api/admin/atlas/definitions/spot-check       this week's 10 to read
+//   POST   /api/admin/atlas/definitions/:slug/unpublish  one click: off the public page
 //
 // ⛔ `you` is computed only for a signed-in reader and only from THEIR profile's skills (D101 profile_skills) — never
 // stored, never shown to anyone else (d105YouOnlyWhenSignedIn).
@@ -83,7 +87,7 @@ import { atlasLinksFor } from "../services/jobs/publicJobPage.js";
 // ⭐ D179 P6 (45l): the subcategory readings read the taxonomy and the Atlas link lookup.
 setSubcategoryDeps({ taxonomy, atlasLinksFor });
 import { aimRoleFor } from "../services/navigator.js";
-import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts } from "../services/atlas/atlasDefinitions.js";
+import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts, recentlyPublished, unpublishDefinition, weeklySpotCheck } from "../services/atlas/atlasDefinitions.js";
 import { refreshWikiSummaries } from "../services/atlas/atlasWiki.js";
 import { computeAtlasStats } from "../services/atlas/atlasStats.js";
 import { readiness, READINESS_COLUMNS, runAtlasAutoPipeline, autoPublish, askWikipediaAgain } from "../services/atlas/atlasPublish.js";
@@ -381,12 +385,15 @@ export function createAtlasAdminRouter(db, { fetchImpl = globalThis.fetch, linkP
     res.status(r.ok ? 200 : 400).json(r);
   });
   router.get("/definitions/drafts", (_req, res) => res.json({ drafts: draftedDefinitions(db) }));
+  router.get("/definitions/recent", (req, res) => res.json({ recent: recentlyPublished(db, { limit: req.query.limit }) }));
+  router.get("/definitions/spot-check", (_req, res) => res.json(weeklySpotCheck(db)));
   router.post("/definitions/accept-all", (req, res) => res.json({ ok: true, ...acceptAllDrafts(db, req.body?.slugs, curator(req)) }));
   router.post("/definitions/:slug/accept", (req, res) => {
     const r = acceptDraft(db, req.params.slug, { definition: req.body?.definition }, curator(req));
     return r ? res.json({ ok: true, ...r }) : res.status(404).json({ error: "no_draft" });
   });
   router.post("/definitions/:slug/reject", (req, res) => res.status(rejectDraft(db, req.params.slug) ? 200 : 404).json({ ok: true }));
+  router.post("/definitions/:slug/unpublish", (req, res) => res.status(unpublishDefinition(db, req.params.slug) ? 200 : 404).json({ ok: true }));
   router.post("/node/:slug/wiki-pick", (req, res) => editing(res, () =>
     res.json({ ok: true, node: pickWikiTitle(db, req.params.slug, { title: req.body?.title, wikidataId: req.body?.wikidataId }, curator(req)) })));
   router.get("/wiki/probe", async (_req, res) => {

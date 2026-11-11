@@ -7,6 +7,10 @@
 // public shows it and the auto-publish bar (atlasPublish.js HAS_DEFINITION reads `definition`) does not count it.
 // The owner then Accepts (as is, or edited), Rejects, or Accepts all after reading; accepted = `definition`,
 // definition_by = 'owner', and the bar is re-checked at once.
+// ⭐ OWNER 11-10 (APPROVALS (3)): THE ACCEPT LOOP IS REMOVED. A definition that passes the import rules PUBLISHES at once
+// (definition, definition_by = 'auto'); Admin → Atlas keeps a "Recently published" list (newest first) with one-click
+// Unpublish, and a weekly spot-check sample of 10. ⛔ The one exception: an entry naming a `source` the register (D176) holds
+// as to-verify / link-only / gated, or AI-restricted, or unknown — that stays a DRAFT for the owner, as before.
 // ⛔ The import is ALL OR NOTHING: one bad row (an unknown slug, a node that already has a definition, too long,
 // more than two sentences, a link, a duplicate) refuses the file and names every problem.
 
@@ -14,6 +18,29 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { autoPublish } from "./atlasPublish.js";
+import { loadRegistry, mayAdapt, aiRestricted } from "./sourceRegistry.js";
+
+export const AUTO_BY = "auto";
+export const UNPUBLISHED_BY = "unpublished";
+export const SPOT_CHECK_SIZE = 10;
+
+/** Why an entry's source keeps it a draft, or null (no source named = the definition is draft's own words). */
+export function sourceHold(sourceId, reg = null) {
+  if (sourceId == null || String(sourceId).trim() === "") return null;
+  let r = reg;
+  try { r = r || loadRegistry(); } catch { return "the source register could not be read"; }
+  const src = (r.sources || []).find(x => x.id === String(sourceId));
+  if (!src) return "source not in the register";
+  if (aiRestricted(src)) return "source restricts AI use";
+  if (!mayAdapt(src)) return `source is ${src.licenceClass}`;
+  return null;
+}
+
+/** Publish one definition now (only on a node that has none). true when written. */
+function publishNow(db, slug, def) {
+  return db.prepare(`UPDATE atlas_nodes SET definition = ?, definition_by = '${AUTO_BY}', definition_draft = NULL, updated_at = unixepoch()
+    WHERE slug = ? AND TRIM(COALESCE(definition, '')) = ''`).run(def, slug).changes > 0;
+}
 
 export const DEFINITION_EXPORT_MAX = 30;
 export const DEFINITION_MAX_CHARS = 400;
@@ -68,18 +95,26 @@ export function importDrafted(db, pasted) {
   for (const e of list) {
     const slug = typeof e?.slug === "string" ? e.slug.trim() : null;
     const def = typeof e?.definition === "string" ? e.definition.replace(/\s+/g, " ").trim() : "";
+    const source = typeof e?.source === "string" ? e.source.trim() : null;
     const why = !slug ? "no slug"
       : seen.has(slug) ? "duplicate slug"
       : !node.get(slug) ? "unknown slug"
       : String(node.get(slug).definition ?? "").trim() ? "already has a definition"
       : textRefusal(def);
     if (slug) seen.add(slug);
-    if (why) errors.push({ slug, reason: why }); else ok.push({ slug, def });
+    if (why) errors.push({ slug, reason: why }); else ok.push({ slug, def, hold: sourceHold(source) });
   }
   if (errors.length) return { ok: false, errors };
   const put = db.prepare(`UPDATE atlas_nodes SET definition_draft = ?, definition_by = 'drafted', updated_at = unixepoch() WHERE slug = ?`);
-  db.transaction(() => { for (const r of ok) put.run(r.def, r.slug); })();
-  return { ok: true, drafted: ok.length };
+  const published = [], held = [];
+  db.transaction(() => {
+    for (const r of ok) {
+      if (r.hold) { put.run(r.def, r.slug); held.push({ slug: r.slug, reason: r.hold }); }
+      else if (publishNow(db, r.slug, r.def)) published.push(r.slug);
+    }
+  })();
+  const pages = published.length ? autoPublish(db).published : [];
+  return { ok: true, published: published.length, held, drafted: held.length, pagesPublished: pages };
 }
 
 // ⭐ A112/Atlas (11-03) · THE DRAFTED-DEFINITIONS FILE. content/atlas/definitions-drafted.json holds definitions the
@@ -119,7 +154,7 @@ export function textRefusal(def) {
 export function seedDraftedDefinitions(db, mapping = readDraftedFile()) {
   const offered = new Set(JSON.parse(db.prepare(`SELECT value FROM app_settings WHERE key = ?`).pluck().get(DRAFTED_SEEDED_KEY) || "[]"));
   const node = db.prepare(`SELECT id, definition, definition_draft FROM atlas_nodes WHERE slug = ?`);
-  const put = db.prepare(`UPDATE atlas_nodes SET definition_draft = ?, definition_by = 'drafted', updated_at = unixepoch()
+  const put = db.prepare(`UPDATE atlas_nodes SET definition = ?, definition_by = '${AUTO_BY}', updated_at = unixepoch()
     WHERE id = ? AND TRIM(COALESCE(definition, '')) = '' AND definition_draft IS NULL`);
   const drafted = [], missing = [], refused = [];
   db.transaction(() => {
@@ -135,7 +170,42 @@ export function seedDraftedDefinitions(db, mapping = readDraftedFile()) {
     db.prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, unixepoch())
       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`).run(DRAFTED_SEEDED_KEY, JSON.stringify([...offered].sort()));
   })();
-  return { drafted, missing, refused };
+  return { published: drafted, missing, refused };
+}
+
+/**
+ * OWNER 11-10: drafts that were waiting for an Accept when the loop was removed publish now (once, at boot) — except a
+ * draft a source keeps (none of today's carry a source; the import holds them with definition_by = 'drafted' + a source).
+ */
+export function publishWaitingDrafts(db) {
+  const rows = db.prepare(`SELECT slug, definition_draft AS def FROM atlas_nodes WHERE definition_draft IS NOT NULL AND definition_by = 'drafted'
+    AND TRIM(COALESCE(definition, '')) = ''`).all();
+  const published = [];
+  db.transaction(() => { for (const r of rows) if (!textRefusal(String(r.def)) && publishNow(db, r.slug, String(r.def))) published.push(r.slug); })();
+  return { published, pagesPublished: published.length ? autoPublish(db).published : [] };
+}
+
+/** Admin → Atlas → Recently published: the auto-published definitions, newest first. */
+export function recentlyPublished(db, { limit = 50 } = {}) {
+  const n = Math.max(1, Math.min(Number(limit) || 50, 500));
+  return db.prepare(`SELECT n.slug, n.name, n.kind, n.definition, n.updated_at AS at, COALESCE(s.postings, 0) AS postings
+    FROM atlas_nodes n LEFT JOIN atlas_node_stats s ON s.node_id = n.id
+    WHERE n.definition_by = '${AUTO_BY}' AND TRIM(COALESCE(n.definition, '')) != '' ORDER BY n.updated_at DESC, n.id DESC LIMIT ?`).all(n);
+}
+
+/** One click: the definition comes off the public page and is never auto-offered again (seed's offered list + this mark). */
+export function unpublishDefinition(db, slug) {
+  return db.prepare(`UPDATE atlas_nodes SET definition = NULL, definition_by = '${UNPUBLISHED_BY}', updated_at = unixepoch()
+    WHERE slug = ? AND definition_by = '${AUTO_BY}'`).run(String(slug)).changes > 0;
+}
+
+/** The weekly spot-check: 10 auto-published definitions, the same 10 all week (seeded by the ISO week), newest first. */
+export function weeklySpotCheck(db, { nowMs = Date.now(), size = SPOT_CHECK_SIZE } = {}) {
+  const d = new Date(nowMs);
+  const week = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86400000 + 3) / 7);
+  const all = recentlyPublished(db, { limit: 500 });
+  const hash = (s) => { let h = week >>> 0; for (const c of s) h = (Math.imul(h ^ c.charCodeAt(0), 2654435761) >>> 0); return h; };
+  return { week, items: [...all].sort((a, b) => hash(a.slug) - hash(b.slug)).slice(0, size) };
 }
 
 /** The review list. */

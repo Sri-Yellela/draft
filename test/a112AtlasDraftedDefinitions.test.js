@@ -5,7 +5,7 @@ import Database from "better-sqlite3";
 import { MIGRATIONS } from "../scripts/migrations.js";
 import { upsertNode, readNode } from "../services/atlas/atlasStore.js";
 import { autoPublish } from "../services/atlas/atlasPublish.js";
-import { seedDraftedDefinitions, readDraftedFile, textRefusal, rejectDraft, acceptDraft, draftedDefinitions,
+import { unpublishDefinition, seedDraftedDefinitions, readDraftedFile, textRefusal, rejectDraft, acceptDraft, draftedDefinitions,
   DRAFTED_FILE } from "../services/atlas/atlasDefinitions.js";
 import { readFamilyMapping } from "../services/atlas/atlasFamilies.js";
 import { isFamily } from "../shared/atlasFamilies.js";
@@ -39,18 +39,15 @@ test("A112/Atlas · draftedFileObeysImportRules — every definition in the file
   assert.deepEqual(misfiled, [], "a definition sits under the family families.json gives its node");
 });
 
-test("A112/Atlas · draftedSeedIsDraftOnly — the seed fills definition_draft, never the definition: nothing public, not the bar", () => {
+test("A112/Atlas + owner 11-10 · draftedSeedPublishes — the seed writes the definition (definition_by 'auto'); the bar then publishes the page", () => {
   const db = fixtureDb();
   upsertNode(db, { kind: "skill", name: "prospecting", source: "registry" });
   stats(db, "prospecting", 40);
   const r = seedDraftedDefinitions(db, new Map([["prospecting", PROSPECTING], ["no-such-node", PROSPECTING]]));
-  assert.deepEqual(r, { drafted: ["prospecting"], missing: ["no-such-node"], refused: [] });
-  assert.deepEqual(node(db, "prospecting"), { status: "draft", definition: null, definition_draft: PROSPECTING, definition_by: "drafted" });
-  assert.deepEqual(autoPublish(db).published, [], "a draft is not the bar");
-  assert.equal(readNode(db, "prospecting")?.definition ?? null, null);
-  assert.deepEqual(draftedDefinitions(db).map(d => d.slug), ["prospecting"], "it waits in the owner's review list");
-  const a = acceptDraft(db, "prospecting");
-  assert.deepEqual(a.published, ["prospecting"], "accepted by the owner → the definition → published on the bar");
+  assert.deepEqual(r, { published: ["prospecting"], missing: ["no-such-node"], refused: [] });
+  assert.deepEqual(node(db, "prospecting"), { status: "draft", definition: PROSPECTING, definition_draft: null, definition_by: "auto" });
+  assert.deepEqual(draftedDefinitions(db), [], "no accept loop");
+  assert.deepEqual(autoPublish(db).published, ["prospecting"], "40 postings + a definition is the bar");
 });
 
 test("A112/Atlas · draftedOfferedOnce — a rejected draft is not offered again; a node with its own words is never touched", () => {
@@ -59,11 +56,11 @@ test("A112/Atlas · draftedOfferedOnce — a rejected draft is not offered again
   upsertNode(db, { kind: "tool", name: "Salesforce", source: "registry" });
   db.prepare(`UPDATE atlas_nodes SET definition = 'The owner''s own words about Salesforce.', definition_by = 'owner' WHERE slug = 'salesforce'`).run();
   const map = new Map([["prospecting", PROSPECTING], ["salesforce", "A customer relationship management platform for sales teams."]]);
-  assert.deepEqual(seedDraftedDefinitions(db, map).drafted, ["prospecting"]);
-  assert.equal(node(db, "salesforce").definition_draft, null, "the owner's definition stands; no draft beside it");
-  assert.equal(rejectDraft(db, "prospecting"), true);
-  assert.deepEqual(seedDraftedDefinitions(db, map), { drafted: [], missing: [], refused: [] }, "the next boot offers nothing again");
-  assert.equal(node(db, "prospecting").definition_draft, null);
+  assert.deepEqual(seedDraftedDefinitions(db, map).published, ["prospecting"]);
+  assert.equal(node(db, "salesforce").definition, "The owner's own words about Salesforce.", "the owner's definition stands");
+  assert.equal(unpublishDefinition(db, "prospecting"), true);
+  assert.deepEqual(seedDraftedDefinitions(db, map), { published: [], missing: [], refused: [] }, "an unpublished one is never offered again");
+  assert.equal(node(db, "prospecting").definition, null);
 });
 
 test("A112/Atlas · draftedSeedRefusesBadText — a definition that breaks the rules is reported, not drafted, and offered again once fixed", () => {
@@ -72,7 +69,7 @@ test("A112/Atlas · draftedSeedRefusesBadText — a definition that breaks the r
   const r = seedDraftedDefinitions(db, new Map([["prospecting", "One. Two. Three sentences is too many here."]]));
   assert.deepEqual(r.refused, [{ slug: "prospecting", reason: "more than two sentences" }]);
   assert.equal(node(db, "prospecting").definition_draft, null);
-  assert.deepEqual(seedDraftedDefinitions(db, new Map([["prospecting", PROSPECTING]])).drafted, ["prospecting"]);
+  assert.deepEqual(seedDraftedDefinitions(db, new Map([["prospecting", PROSPECTING]])).published, ["prospecting"]);
 });
 
 test("A112/Atlas · draftedSeedAtBoot — server.js seeds the drafts after the families, inside its own try", () => {

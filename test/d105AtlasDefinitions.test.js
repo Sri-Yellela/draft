@@ -7,6 +7,7 @@ import { upsertNode, readNode } from "../services/atlas/atlasStore.js";
 import { updateNode } from "../services/atlas/atlasEditor.js";
 import { autoPublish } from "../services/atlas/atlasPublish.js";
 import { exportForDrafting, importDrafted, draftedDefinitions, acceptDraft, rejectDraft, acceptAllDrafts, DEFINITION_INSTRUCTIONS,
+  recentlyPublished, unpublishDefinition, weeklySpotCheck, publishWaitingDrafts, sourceHold,
   DEFINITION_EXPORT_MAX } from "../services/atlas/atlasDefinitions.js";
 
 // ⭐ D105 P11 (owner 10-31, "yes to all three") — model-drafted definitions the owner reviews, with no model call from
@@ -25,7 +26,7 @@ const stats = (db, slug, postings, top = []) => {
 const node = (db, slug) => db.prepare(`SELECT status, definition, definition_draft, definition_by FROM atlas_nodes WHERE slug = ?`).get(slug);
 const GOOD = "Terraform is an infrastructure-as-code tool. Teams use it to describe cloud resources in files and apply the changes safely.";
 
-test("D105 P11 · d105DraftedNeverPublishes — an imported definition waits as a draft: not public, not counted by the bar", () => {
+test("D105 P11 + owner 11-10 · d105ImportPublishes — an imported definition publishes at once (no accept loop); Unpublish takes it off", () => {
   const db = fixtureDb();
   upsertNode(db, { kind: "tool", name: "Terraform", source: "registry" });
   stats(db, "terraform", 40, [{ slug: "aws", name: "AWS", postings: 30 }, { slug: "k8s", name: "Kubernetes", postings: 20 }]);
@@ -34,25 +35,51 @@ test("D105 P11 · d105DraftedNeverPublishes — an imported definition waits as 
   assert.ok(ex.text.startsWith(DEFINITION_INSTRUCTIONS));
   for (const rule of [/One or two plain sentences: what it is, and what it is used for at work/, /No marketing, no claims about popularity/,
     /Do not copy text/, /No links/]) assert.match(DEFINITION_INSTRUCTIONS, rule);
-  assert.deepEqual(importDrafted(db, JSON.stringify({ definitions: [{ slug: "terraform", definition: GOOD }] })), { ok: true, drafted: 1 });
-  assert.deepEqual(node(db, "terraform"), { status: "draft", definition: null, definition_draft: GOOD, definition_by: "drafted" });
-  assert.deepEqual(autoPublish(db).published, [], "40 postings and a draft is NOT the bar");
-  db.prepare(`UPDATE atlas_nodes SET status = 'published' WHERE slug = 'terraform'`).run();
-  assert.equal(readNode(db, "terraform").definition, null, "the public page never shows a draft");
-  db.prepare(`UPDATE atlas_nodes SET status = 'draft' WHERE slug = 'terraform'`).run();
-  assert.equal(exportForDrafting(db).nodes.length, 0, "a node with a draft waiting is not exported again");
-  assert.deepEqual(draftedDefinitions(db).map(d => [d.slug, d.draft]), [["terraform", GOOD]]);
-  assert.equal(rejectDraft(db, "terraform"), true);
-  assert.deepEqual(node(db, "terraform"), { status: "draft", definition: null, definition_draft: null, definition_by: null });
-  assert.equal(exportForDrafting(db).nodes.length, 1, "rejected: exported again next time");
+  assert.deepEqual(importDrafted(db, JSON.stringify({ definitions: [{ slug: "terraform", definition: GOOD }] })),
+    { ok: true, published: 1, held: [], drafted: 0, pagesPublished: ["terraform"] });
+  assert.deepEqual(node(db, "terraform"), { status: "published", definition: GOOD, definition_draft: null, definition_by: "auto" });
+  assert.equal(readNode(db, "terraform").definition, GOOD, "public at once");
+  assert.deepEqual(draftedDefinitions(db), [], "nothing waits for an Accept");
+  assert.deepEqual(recentlyPublished(db).map(d => [d.slug, d.definition]), [["terraform", GOOD]]);
+  assert.equal(weeklySpotCheck(db).items.length, 1);
+  assert.equal(unpublishDefinition(db, "terraform"), true);
+  assert.deepEqual(node(db, "terraform"), { status: "published", definition: null, definition_draft: null, definition_by: "unpublished" });
+  assert.deepEqual(recentlyPublished(db), []);
+  assert.equal(unpublishDefinition(db, "terraform"), false, "only an auto-published definition is unpublished here");
 });
 
-test("D105 P11 · d105AcceptPublishesIfBar — accepting (as written or edited) makes it the definition, by the owner, and publishes when the bar is met", () => {
+test("owner 11-10 · d105SourceHeldStaysDraft — an entry naming a to-verify / link-only / unknown source never publishes; an open source does", () => {
+  const db = fixtureDb();
+  for (const n of ["Terraform", "Kafka", "Redis", "Helm"]) upsertNode(db, { kind: "tool", name: n, source: "registry" });
+  const r = importDrafted(db, { definitions: [
+    { slug: "terraform", definition: GOOD, source: "kaggle-learn" },
+    { slug: "kafka", definition: "Kafka is an event streaming platform. Teams use it to move data between services.", source: "redis-university" },
+    { slug: "redis", definition: "Redis is an in-memory data store. Teams use it for caching and queues.", source: "no-such-source" },
+    { slug: "helm", definition: "Helm packages Kubernetes applications. Teams use it to install and upgrade them.", source: "kubernetes-docs" } ] });
+  assert.equal(r.published, 1);
+  assert.deepEqual(r.held.map(h => h.slug).sort(), ["kafka", "redis", "terraform"]);
+  assert.equal(node(db, "terraform").definition, null); assert.equal(node(db, "terraform").definition_by, "drafted");
+  assert.equal(node(db, "helm").definition_by, "auto");
+  assert.equal(sourceHold("kaggle-learn"), "source is to-verify"); assert.equal(sourceHold(null), null);
+  assert.deepEqual(draftedDefinitions(db).map(d => d.slug).sort(), ["kafka", "redis", "terraform"], "held drafts wait for the owner");
+});
+
+test("owner 11-10 · d105WaitingDraftsPublishOnce — drafts left waiting when the loop was removed publish at boot", () => {
+  const db = fixtureDb();
+  upsertNode(db, { kind: "tool", name: "Terraform", source: "registry" });
+  stats(db, "terraform", 40);
+  db.prepare(`UPDATE atlas_nodes SET definition_draft = ?, definition_by = 'drafted' WHERE slug = 'terraform'`).run(GOOD);
+  assert.deepEqual(publishWaitingDrafts(db), { published: ["terraform"], pagesPublished: ["terraform"] });
+  assert.equal(node(db, "terraform").definition, GOOD);
+  assert.deepEqual(publishWaitingDrafts(db).published, []);
+});
+
+test("D105 P11 · d105AcceptPublishesIfBar — a source-held draft, accepted (as written or edited), is the owner's definition and publishes on the bar", () => {
   const db = fixtureDb();
   upsertNode(db, { kind: "tool", name: "Terraform", source: "registry" });
   upsertNode(db, { kind: "tool", name: "Nomad", source: "registry" });
   stats(db, "terraform", 40); stats(db, "nomad", 2);
-  importDrafted(db, { definitions: [{ slug: "terraform", definition: GOOD }, { slug: "nomad", definition: "Nomad is a workload scheduler. Teams use it to run jobs across machines." }] });
+  importDrafted(db, { definitions: [{ slug: "terraform", definition: GOOD, source: "kaggle-learn" }, { slug: "nomad", definition: "Nomad is a workload scheduler. Teams use it to run jobs across machines.", source: "kaggle-learn" }] });
   const r = acceptDraft(db, "terraform", { definition: "Terraform describes cloud infrastructure as code. Teams apply it to change resources safely." }, "curator@example.test");
   assert.deepEqual(r.published, ["terraform"]);
   assert.deepEqual(node(db, "terraform"), { status: "published", definition: "Terraform describes cloud infrastructure as code. Teams apply it to change resources safely.",
@@ -102,7 +129,8 @@ test("D105 P11 · d105NoModelCall — draft drafts nothing itself: no model clie
     assert.doesNotMatch(src, /@anthropic-ai\/sdk|callModel|anthropicModels|openai/i, p);
   }
   const panel = read("client/src/panels/adminAtlas.jsx");
-  assert.match(panel, /1\. Copy this into a Claude chat\. 2\. Paste its JSON answer below\. Nothing is public until you accept it\./);
+  assert.match(panel, /1\. Copy this into a Claude chat\. 2\. Paste its JSON answer below\. Definitions that pass the rules publish at once; unpublish any from the list below\./);
+  assert.match(panel, /data-atlas-def-unpublish=\{d\.slug\}>Unpublish<\/DepthButton>/);
   assert.match(panel, /data-atlas-def-accept-all="">Accept all as written<\/DepthButton>/);
   const route = read("routes/atlas.js");
   assert.match(route, /router\.post\("\/definitions\/import", \(req, res\) => \{/);
