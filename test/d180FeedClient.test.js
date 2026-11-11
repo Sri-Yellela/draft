@@ -7,12 +7,14 @@ import fs from "node:fs";
 
 const read = (f) => fs.readFileSync(new URL(`../client/src/${f}`, import.meta.url), "utf8");
 
-test("d180FeedClient: Network's tabs are Feed · Messages · People, and Feed draws FeedPane", () => {
+// ⭐ 46f (owner 11-11, on purpose): Feed and Messages left Network's tab row for their own places — Network is People, and
+// an old ?tab=feed / ?tab=messages address lands on the new page (test/d180OwnPages46f.test.js has the rest).
+test("d180FeedClient: Network is People; its old Feed / Messages tabs redirect to their own pages, and the Feed page draws FeedPane", () => {
   const src = read("pages/network/NetworkPage.jsx");
-  const order = [...src.matchAll(/onClick=\{\(\) => setTab\("(\w+)"\)\}/g)].map(m => m[1]);
-  assert.deepEqual(order, ["feed", "messages", "people"]);
-  assert.match(src, /\{tab === "feed" && <FeedPane \/>\}/);
-  assert.match(src, /t === "people" \? "\/app\/network"/, "People stays the default address");
+  assert.doesNotMatch(src, /setTab\(|role="tablist"/, "no tab row");
+  assert.match(src, /if \(oldTab === "feed"\) navigate\("\/app\/feed", \{ replace: true \}\)/);
+  assert.match(src, /else if \(oldTab === "messages"\) navigate\(params\.get\("thread"\) \? `\/app\/messages\?thread=/);
+  assert.match(read("pages/network/FeedPage.jsx"), /<FeedPane share=\{false\} \/>/);
 });
 
 test("d180FeedClient: a member's link is plain words, What you share is drawn, delete for own and report for others", () => {

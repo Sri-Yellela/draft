@@ -86,8 +86,8 @@ export const MODULES = Object.freeze({
   companies: { why: "D179 P4b / A157 — a page for every company, public at /<company> (its postings at /<company>/<id>) and inside the shell at /app/companies/<slug>",
     // ⛔ A157 (45q, owner 11-09): the Companies tab (CompaniesView) is removed — search and the company's name reach a page.
     css: ["pages/companies/CompanyPage.css"], members: ["App.jsx", "pages/companies/CompanyPage.jsx"] },
-  network: { why: "D180 P1 — the Network place (People: connections, requests, suggestions, blocked), behind the network switch",
-    css: ["pages/network/NetworkPage.css"], members: ["App.jsx", "pages/network/NetworkPage.jsx", "pages/network/MessagesPane.jsx", "pages/network/FeedPane.jsx"] },
+  network: { why: "D180 P1 — the Network place (People: connections, requests, suggestions, blocked), behind the network switch; 46f — Feed (/app/feed) and Messages (/app/messages) as their own places, under the same switch",
+    css: ["pages/network/NetworkPage.css"], members: ["App.jsx", "pages/network/NetworkPage.jsx", "pages/network/MessagesPane.jsx", "pages/network/FeedPane.jsx", "pages/network/FeedPage.jsx", "pages/network/MessagesPage.jsx", "pages/network/networkSwitch.js"] },
 });
 
 // ── SHARED: every file under components/, styles/, lib/, hooks/, contexts/, themes/, consoles/.

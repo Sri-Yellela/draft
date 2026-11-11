@@ -48,10 +48,12 @@ import "./AppNav.css";
 export const DOCK_ICON_PX = 30;
 // ⭐ D167: the names, and nothing under them. The jobs are "draft" (the mark draws out into /draft); the tracker is the
 // house, "Home"; Interview is the new page (/app/interview — the d167-profile lane builds the page and its route).
-export const DOCK_NAMES = Object.freeze({ today: "draft", "auto-apply" : "Home", atlas: "Atlas", interview: "Interview", network: "Network" });   // (the id, spaced for the D6 guard)
+export const DOCK_NAMES = Object.freeze({ today: "draft", "auto-apply" : "Home", atlas: "Atlas", interview: "Interview", network: "Network", feed: "Feed", messages: "Messages" });   // (the id, spaced for the D6 guard)
 // The six places, in the dock's order (D167). Profile and Ask draft are not tabs: they are drawn by ProfileItem and
 // AskItem after the tabs (and the divider).
 export const NETWORK_PATH = "/app/network";   // D180 P1
+export const FEED_PATH = "/app/feed";   // 46f: the feed's own page
+export const MESSAGES_PATH = "/app/messages";   // 46f: messages' own page
 export const DOCK_PLACES = Object.freeze(["today", "auto-apply", "atlas", "interview", "profile", "ask"]);
 export const INTERVIEW_PATH = "/app/interview";
 // ⭐ D167 · the open dock's width, the gaps and where the dock goes — one pure module (dockPlace.js), so the rule is
@@ -95,6 +97,21 @@ function PeopleIcon() {
   return (
     <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <circle cx="9" cy="8.5" r="3.2" /><path d="M3.5 19a5.5 5.5 0 0 1 11 0" /><circle cx="16.5" cy="9.5" r="2.6" /><path d="M15.5 14.2a4.6 4.6 0 0 1 5 4.8" />
+    </svg>
+  );
+}
+// ⭐ 46f (owner 11-11): Feed and Messages are their own places — a page of posts, an envelope.
+function FeedIcon() {
+  return (
+    <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <rect x="4" y="4" width="16" height="16" rx="2.5" /><path d="M8 9h8M8 12.5h8M8 16h5" />
+    </svg>
+  );
+}
+function EnvelopeIcon() {
+  return (
+    <svg className="appnav-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2.5" /><path d="M4 7l8 6 8-6" />
     </svg>
   );
 }
@@ -146,7 +163,7 @@ function BubbleIcon() {
     </svg>
   );
 }
-const ICONS = { atlas: () => <GlobeIcon />, "auto-apply" : () => <HouseIcon />, interview: () => <MicIcon />, network: () => <PeopleIcon /> };   // (the id, spaced for the D6 guard)
+const ICONS = { atlas: () => <GlobeIcon />, "auto-apply" : () => <HouseIcon />, interview: () => <MicIcon />, network: () => <PeopleIcon />, feed: () => <FeedIcon />, messages: () => <EnvelopeIcon /> };   // (the id, spaced for the D6 guard)
 // The jobs' entry is the mark itself — "/d" at rest, "/draft" open (the wordmark IS its name, so no separate word).
 const isJobs = (id) => id === "today" || id === "console";
 
@@ -168,9 +185,12 @@ function placesOf(tabs, network = false, netUnread = 0) {
   }
   // ⭐ D180 P1 (45o, the spec: "a new dock item, Network, between Interview and Profile"): ONLY while the network switch is
   // on — with it off (the default) the dock is exactly as before.
+  // ⭐ 46f (owner 11-11: "a page for feed and messaging into the menu with their own pages"): Feed and Messages follow
+  // Network as their own places, under the same switch; the unread count is Messages' now (it is where they are read).
   if (network && !list.some((t) => t.id === "network")) {
     const i = list.findIndex((t) => t.id === "interview");
-    list.splice(i < 0 ? list.length : i + 1, 0, { id: "network", label: "Network", badge: netUnread || 0, badgeLabel: netUnread ? `${netUnread} unread` : undefined });
+    list.splice(i < 0 ? list.length : i + 1, 0, { id: "network", label: "Network" }, { id: "feed", label: "Feed" },
+      { id: "messages", label: "Messages", badge: netUnread || 0, badgeLabel: netUnread ? `${netUnread} unread` : undefined });
   }
   return list;
 }
@@ -179,7 +199,8 @@ function NavItems({ tabs, activeTab, hrefForTab, onGo, dock = false, network = f
   return placesOf(tabs, network, netUnread).map((t) => {
     const Icon = ICONS[t.id];
     const name = DOCK_NAMES[t.id] || t.label;
-    const href = hrefForTab?.(t.id) || (t.id === "interview" ? INTERVIEW_PATH : t.id === "network" ? NETWORK_PATH : undefined);
+    const href = hrefForTab?.(t.id) || (t.id === "interview" ? INTERVIEW_PATH : t.id === "network" ? NETWORK_PATH
+      : t.id === "feed" ? FEED_PATH : t.id === "messages" ? MESSAGES_PATH : undefined);
     const jobs = isJobs(t.id);
     return (
       <a key={t.id} className="appnav-item" href={href} data-nav-item={t.id} {...(dock && jobs ? { "data-nav-brand": "" } : null)}
@@ -415,6 +436,7 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
     setWide(false); closePeek();
     if (id === "interview" && !hrefForTab?.(id)) { navigate(href || INTERVIEW_PATH); return; }
     if (id === "network") { navigate(href || NETWORK_PATH); return; }   // D180 P1
+    if (id === "feed" || id === "messages") { navigate(href || (id === "feed" ? FEED_PATH : MESSAGES_PATH)); return; }   // 46f
     onTabChange?.(id);
   }, [onTabChange, hrefForTab, navigate, closePeek]);
   const goPath = useCallback((path) => { setWide(false); closePeek(); navigate(path); }, [navigate, closePeek]);

@@ -1,14 +1,12 @@
 // ⭐ D180 P1 (45o) · NETWORK — People: requests to you, your connections, requests you sent, people you may know, people you
-// blocked. Behind the network switch (OFF by default; the server answers 404 not_available and this page says so). Messages
-// (P2, MessagesPane) and the feed (P3, FeedPane — 45r) are their own tabs.
+// blocked. Behind the network switch (OFF by default; the server answers 404 not_available and this page says so).
+// ⭐ 46f: Messages (/app/messages, MessagesPage) and the feed (/app/feed, FeedPage) are their own places in the dock now.
 // /app/network?connect=<handle> (from a person's public page) asks before sending — never a silent request.
 // ⛔ D60: no capsules. Colours from tokens only.
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import DepthButton from "../../components/DepthButton.jsx";
-import MessagesPane from "./MessagesPane.jsx";   // D180 P2
-import FeedPane from "./FeedPane.jsx";   // D180 P3 (45r)
 import "./NetworkPage.css";
 
 function Person({ p, children }) {
@@ -36,15 +34,20 @@ export default function NetworkPage() {
   const [note, setNote] = useState("");
   // ⭐ D180 P2 (45o): People · Messages (?tab=messages; ?thread=<id> opens one); Message a connection from People.
   const params = new URLSearchParams(location.search);
-  // ⭐ D180 P3 (45r): Feed · Messages · People (the spec's order); People stays the default address (/app/network).
-  const tab = ["messages", "feed"].includes(params.get("tab")) ? params.get("tab") : "people";
-  const setTab = (t) => navigate(t === "people" ? "/app/network" : `/app/network?tab=${t}`);
+  // ⭐ 46f (owner 11-11): Feed and Messages are their own places now (/app/feed, /app/messages); Network is People. An old
+  // address (?tab=feed, ?tab=messages[&thread=<id>] — notifications, bookmarks) lands on the new page.
+  const oldTab = params.get("tab");
+  useEffect(() => {
+    if (oldTab === "feed") navigate("/app/feed", { replace: true });
+    else if (oldTab === "messages") navigate(params.get("thread") ? `/app/messages?thread=${encodeURIComponent(params.get("thread"))}` : "/app/messages", { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oldTab]);
   const [writing, setWriting] = useState(null);   // a connection's handle
   const [draft, setDraft] = useState("");
   const writeTo = async (handle) => {
     try {
       const r = await api("/api/network/messages", { method: "POST", body: JSON.stringify({ to: handle, text: draft }) });
-      setWriting(null); setDraft(""); navigate(`/app/network?tab=messages&thread=${r.threadId}`);
+      setWriting(null); setDraft(""); navigate(`/app/messages?thread=${r.threadId}`);
     } catch (e) { setSaid(e.message || "The message didn't go through."); }
   };
 
@@ -94,14 +97,6 @@ export default function NetworkPage() {
         <p className="net__quiet">People you know on draft. A request stays a request until they accept; you can block anyone, any time.</p>
       </header>
       {said && <p className="net__said" role="status">{said}</p>}
-      <div className="net__tabs" role="tablist" aria-label="Network" data-net-tabs="">
-        <button type="button" role="tab" aria-selected={tab === "feed"} onClick={() => setTab("feed")}>Feed</button>
-        <button type="button" role="tab" aria-selected={tab === "messages"} onClick={() => setTab("messages")}>Messages</button>
-        <button type="button" role="tab" aria-selected={tab === "people"} onClick={() => setTab("people")}>People</button>
-      </div>
-      {tab === "feed" && <FeedPane />}
-      {tab === "messages" &&<MessagesPane key={params.get("thread") || "list"} initialThread={params.get("thread") ? Number(params.get("thread")) : null} />}
-      {tab === "people" && <>
 
       {asking && (
         <section className="net__sec net__ask" data-net-ask={asking.handle}>
@@ -179,7 +174,6 @@ export default function NetworkPage() {
             <Person key={p.handle} p={p}><DepthButton onClick={() => act(p.handle, "unblock", "Unblocked.")}>Unblock</DepthButton></Person>))}</ul>
         </section>
       )}
-      </>}
     </main>
   );
 }

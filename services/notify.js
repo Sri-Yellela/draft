@@ -56,7 +56,7 @@ export const NOTIFY_EVENTS = Object.freeze({
   // ⭐ D180 (3) (45s): "an email digest only if switched on" — once a day while a message waits in Network: how many, never
   // who or what. OFF on both channels; listed only while the network is on (routes/notify.js). services/network/unreadDigest.js.
   messages_unread: { label: "Unread messages", what: "Once a day, when a message is waiting for you in Network — how many, never who or what it says.",
-    url: "/app/network?tab=messages", defaults: { push: false, email: false }, throttle: 0, network: true },
+    url: "/app/messages", defaults: { push: false, email: false }, throttle: 0, network: true },
 });
 export const CHANNELS = Object.freeze(["push", "email"]);
 

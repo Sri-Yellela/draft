@@ -17,10 +17,8 @@
 .net__note { width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink); font: inherit; margin: 6px 0 10px; }
 .net__row { display: flex; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 600px) { .net { padding: 20px 16px 48px; } .net__sec { padding: 14px; } }
-/* ⭐ D180 P2 (45o): the tabs, the conversation list, a conversation, a job card, the report box. */
-.net__tabs { display: flex; gap: 6px; margin: 14px 0 4px; }
-.net__tabs button { font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-surface-solid); color: var(--c-ink-muted); cursor: pointer; }
-.net__tabs button[aria-selected="true"] { color: var(--c-ink); border-color: var(--c-accent); font-weight: 600; }
+/* ⭐ D180 P2 (45o): the conversation list, a conversation, a job card, the report box. (46f: the tab row is gone —
+   Feed and Messages are their own places.) */
 .net__back { background: none; border: 0; color: var(--c-accent-ink); font: inherit; font-size: 14px; cursor: pointer; padding: 0; }
 .msg-row { width: 100%; display: flex; gap: 12px; align-items: center; text-align: left; background: none; border: 0; padding: 6px 0; font: inherit; color: var(--c-ink); cursor: pointer; }
 .msg-row__meta { flex: none; font-size: 12px; color: var(--c-ink-muted); display: inline-flex; gap: 6px; align-items: center; }
@@ -55,3 +53,19 @@
 .feed-comment { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
 .feed-comment a { font-weight: 600; color: var(--c-ink); text-decoration: none; }
 .feed-share__row { display: flex; gap: 8px; align-items: center; font-size: 14px; padding: 4px 0; }
+/* ⭐ 46f (owner 11-11): Feed and Messages as their own pages — a wider page, two columns; one column on a phone. */
+.net--wide { max-width: 1160px; }
+.net-cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+.net-cols__side { position: sticky; top: 16px; }
+.msg-cols { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 20px; align-items: start; }
+.msg-cols__list .net__sec { margin-top: 0; }
+.msg-cols__thread .msg-thread { margin-top: 0; }
+.msg-cols__none { background: var(--c-surface-solid); border: 1px dashed var(--c-border); border-radius: 16px; padding: 32px 20px; text-align: center; margin: 0; }
+.msg-row[aria-current="true"] { background: var(--c-hover); border-radius: 10px; }
+.msg-row { padding-left: 6px; padding-right: 6px; }
+@media (max-width: 900px) {
+  .net-cols { grid-template-columns: minmax(0, 1fr); }
+  .net-cols__side { position: static; }
+  .msg-cols { grid-template-columns: minmax(0, 1fr); }
+  .msg-cols--open .msg-cols__list, .msg-cols:not(.msg-cols--open) .msg-cols__thread { display: none; }
+}
