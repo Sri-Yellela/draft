@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const TIERS = [
   {
@@ -66,7 +67,7 @@ export function PricingPage() {
                       fontFamily: "var(--font-display)" }}>
           Simple pricing. No surprises.
         </h1>
-        <p style={{ fontSize: 16, color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 48,
+        <p style={{ fontSize: ts(16), color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 48,
                      textAlign: "center" }}>
           Start in the shared jobs console. Request upgrades from Plans when you need more tools.
         </p>
@@ -91,24 +92,24 @@ export function PricingPage() {
                   // empty. --color-on-primary is the token that exists for exactly this pairing,
                   // and is what every other primary-filled control in the app already uses.
                   color: t.recommended ? "var(--color-on-primary)" : "var(--color-text-muted)",
-                  fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 6,
+                  fontSize: ts(11), fontWeight: 700, padding: "3px 12px", borderRadius: 6,
                   border: "1px solid var(--color-border)", whiteSpace: "nowrap",
                 }}>
                   {t.badge}
                 </div>
               )}
-              <div style={{ fontSize: 15, fontWeight: 800, color: "var(--color-text)", marginBottom: 8 }}>
+              <div style={{ fontSize: ts(15), fontWeight: 800, color: "var(--color-text)", marginBottom: 8 }}>
                 {t.name}
               </div>
               <div style={{ marginBottom: 20 }}>
-                <span style={{ fontSize: 36, fontWeight: 900, color: "var(--color-text)", letterSpacing: "-1px" }}>
+                <span style={{ fontSize: ts(36), fontWeight: 900, color: "var(--color-text)", letterSpacing: "-1px" }}>
                   {t.price}
                 </span>
-                <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>{t.period}</span>
+                <span style={{ fontSize: ts(13), color: "var(--color-text-muted)" }}>{t.period}</span>
               </div>
               <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px 0", flex: 1 }}>
                 {t.features.map((f, j) => (
-                  <li key={j} style={{ display: "flex", gap: 8, fontSize: 13, color: "var(--color-text-muted)",
+                  <li key={j} style={{ display: "flex", gap: 8, fontSize: ts(13), color: "var(--color-text-muted)",
                                         lineHeight: 1.6, marginBottom: 8 }}>
                     <span style={{ color: "var(--c-success)", flexShrink: 0 }}>✓</span>
                     {f}
@@ -116,14 +117,14 @@ export function PricingPage() {
                 ))}
               </ul>
               {t.comingSoon ? (
-                <div style={{ padding: "10px 0", textAlign: "center", fontSize: 13,
+                <div style={{ padding: "10px 0", textAlign: "center", fontSize: ts(13),
                                color: "var(--color-text-faint)", fontWeight: 600 }}>
                   Coming soon
                 </div>
               ) : (
                 <Link className="dbx-depth" to={t.ctaLink} style={{
                   display: "block", textAlign: "center", padding: "11px 0",
-                  textDecoration: "none", fontWeight: 700, fontSize: 14,
+                  textDecoration: "none", fontWeight: 700, fontSize: ts(14),
                   background: t.recommended ? "var(--color-primary)" : "transparent",
                   // Same defect, and worse here because it is the call to action on the card the
                   // page is steering people to. Unrecommended cards keep the accent-on-transparent
@@ -138,7 +139,7 @@ export function PricingPage() {
           ))}
         </div>
 
-        <p style={{ textAlign: "center", fontSize: 13, color: "var(--color-text-faint)",
+        <p style={{ textAlign: "center", fontSize: ts(13), color: "var(--color-text-faint)",
                      marginTop: 32, lineHeight: 1.6 }}>
           Upgrade requests are handled through Plans and granted by an admin while paid upgrades are being prepared.
         </p>

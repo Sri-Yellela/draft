@@ -27,6 +27,7 @@
 // existing job_applications.applied_at values; not worth fixing silently inside this task.
 
 import { useState } from "react";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const DAYS   = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 const MONTHS = ["January","February","March","April","May","June",
@@ -103,23 +104,23 @@ export function DateCalendar({ value, onChange, onClose, theme, markers = {}, on
           style={{ background:"transparent",
                    border:`1px solid ${theme.border}`,
                    color:theme.textMuted, width:28, height:28,
-                   cursor:"pointer", fontSize:16,
+                   cursor:"pointer", fontSize:ts(16),
                    display:"flex", alignItems:"center", justifyContent:"center" }}
           onClick={prev}>‹</button>
-        <span style={{ fontWeight:700, fontSize:13, color:theme.text }}>
+        <span style={{ fontWeight:700, fontSize:ts(13), color:theme.text }}>
           {MONTHS[view.month]} {view.year}
         </span>
         <button className="dbx-depth" aria-label="Next month"
           style={{ background:"transparent",
                    border:`1px solid ${theme.border}`,
                    color:theme.textMuted, width:28, height:28,
-                   cursor:"pointer", fontSize:16,
+                   cursor:"pointer", fontSize:ts(16),
                    display:"flex", alignItems:"center", justifyContent:"center" }}
           onClick={next}>›</button>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2 }}>
         {DAYS.map(d => (
-          <div key={d} style={{ textAlign:"center", fontSize:9, fontWeight:700,
+          <div key={d} style={{ textAlign:"center", fontSize:ts(9), fontWeight:700,
                                 color:theme.textMuted, padding:"4px 0",
                                 textTransform:"uppercase" }}>
             {d}
@@ -135,7 +136,7 @@ export function DateCalendar({ value, onChange, onClose, theme, markers = {}, on
               data-rm-marked={mark ? String(mark) : ""}
               title={mark ? `${mark} application${mark === 1 ? "" : "s"} on this date` : undefined}
               style={{
-                textAlign:"center", fontSize:11, padding:"6px 2px", borderRadius:6,
+                textAlign:"center", fontSize:ts(11), padding:"6px 2px", borderRadius:6,
                 cursor:day ? "pointer" : "default", userSelect:"none",
                 color:sel ? "var(--c-on-accent)" : tod ? theme.accentText : day ? theme.text : "transparent",
                 background:sel ? theme.accent : "transparent",
@@ -167,10 +168,10 @@ export function DateCalendar({ value, onChange, onClose, theme, markers = {}, on
       <div style={{ display:"flex", justifyContent:"space-between", marginTop:10,
                     paddingTop:10, borderTop:`1px solid ${theme.border}` }}>
         <button style={{ background:"transparent", border:"none",
-                         color:theme.textMuted, fontSize:10, cursor:"pointer", fontWeight:600 }}
+                         color:theme.textMuted, fontSize:ts(10), cursor:"pointer", fontWeight:600 }}
           onClick={() => { onChange(""); onClose(); }}>Clear date</button>
         <button style={{ background:"transparent", border:"none",
-                         color:theme.textMuted, fontSize:10, cursor:"pointer", fontWeight:600 }}
+                         color:theme.textMuted, fontSize:ts(10), cursor:"pointer", fontWeight:600 }}
           onClick={() => { onChange(new Date().toISOString().slice(0,10)); onClose(); }}>
           Today
         </button>

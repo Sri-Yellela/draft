@@ -3,6 +3,7 @@ import { useState } from "react";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import { api } from "../../lib/api.js";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
@@ -25,7 +26,7 @@ export function ContactPage() {
   const inputStyle = {
     width: "100%", padding: "10px 14px", borderRadius: 10,
     border: "1px solid var(--color-border)", background: "var(--color-surface)",
-    color: "var(--color-text)", fontSize: 14, fontFamily: "'DM Sans', system-ui",
+    color: "var(--color-text)", fontSize: ts(14), fontFamily: "'DM Sans', system-ui",
     outline: "none", boxSizing: "border-box",
   };
 
@@ -40,14 +41,14 @@ export function ContactPage() {
                       fontFamily: "var(--font-display)" }}>
           Get in touch
         </h1>
-        <p style={{ fontSize: 15, color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 40 }}>
+        <p style={{ fontSize: ts(15), color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 40 }}>
           We typically respond within 24 hours.
         </p>
 
         {status === "ok" ? (
           <div style={{ padding: "24px 28px", background: "var(--c-success-quiet)",
                          border: "1px solid var(--c-success)", borderRadius: 16,
-                         color: "var(--c-success)", fontSize: 15, fontWeight: 600 }}>
+                         color: "var(--c-success)", fontSize: ts(15), fontWeight: 600 }}>
             ✓ Message sent. We'll be in touch soon.
           </div>
         ) : (
@@ -69,14 +70,14 @@ export function ContactPage() {
               placeholder="Message *" value={form.message}
               onChange={e => set("message", e.target.value)} required/>
             {status === "error" && (
-              <div style={{ color: "var(--color-destructive)", fontSize: 13 }}>
+              <div style={{ color: "var(--color-destructive)", fontSize: ts(13) }}>
                 Something went wrong — please try again.
               </div>
             )}
             <button className="dbx-depth" type="submit" disabled={status === "sending"}
               style={{ padding: "12px 0", border: "none",
                         background: "var(--color-primary)", color: "var(--color-on-primary)",
-                        fontWeight: 800, fontSize: 14, cursor: "pointer",
+                        fontWeight: 800, fontSize: ts(14), cursor: "pointer",
                         opacity: status === "sending" ? 0.7 : 1 }}>
               {status === "sending" ? "Sending…" : "Send message"}
             </button>

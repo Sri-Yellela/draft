@@ -12,6 +12,7 @@ import ScrollDock from "../../components/ScrollDock.jsx";
 import { C } from "../../styles/colorTokens.js";
 import { AtsReport, fromStandaloneResult } from "../../components/AtsReport.jsx";
 import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // ⛔ NO SCORE DONUT (09-30). It printed a Haiku model's own 0–100 on a ≥75/≥50 ramp — a different
 // number, on a different scale, from the one the product ranks by. The route now runs the same v4
@@ -76,7 +77,7 @@ export function ATSToolPage() {
                      fontFamily: "var(--font-display)", marginBottom: 10, color: theme.text }}>
           See how well your resume matches any job
         </h1>
-        <p style={{ fontSize: 15, color: theme.textMuted, marginBottom: 36, lineHeight: 1.6 }}>
+        <p style={{ fontSize: ts(15), color: theme.textMuted, marginBottom: 36, lineHeight: 1.6 }}>
           Upload your resume and paste a job description. See how well they match — the same fit bands the job board ranks by — with the skills the posting asks for that your resume shows, and the ones it does not. Free, no account.
         </p>
 
@@ -94,10 +95,10 @@ export function ATSToolPage() {
           >
             <input ref={fileRef} type="file" accept=".pdf" style={{ display:"none" }}
               onChange={e => setPdfFile(e.target.files?.[0] || null)}/>
-            <div style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>
+            <div style={{ fontSize: ts(13), fontWeight: 600, color: theme.text }}>
               {pdfFile ? `✓ ${pdfFile.name}` : "Click to upload your resume PDF"}
             </div>
-            <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 4 }}>PDF only · max 5 MB</div>
+            <div style={{ fontSize: ts(11), color: theme.textMuted, marginTop: 4 }}>PDF only · max 5 MB</div>
           </div>
 
           {/* The title is optional: the scorer reads it (seniority, and which term weights apply), and
@@ -105,7 +106,7 @@ export function ATSToolPage() {
           <input value={jobTitle} onChange={e => setJobTitle(e.target.value)}
             placeholder="Job title (optional — e.g. Backend Engineer)"
             style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1.5px solid ${theme.border}`,
-                     background: theme.surface, color: theme.text, fontSize: 13, outline: "none", boxSizing: "border-box" }}/>
+                     background: theme.surface, color: theme.text, fontSize: ts(13), outline: "none", boxSizing: "border-box" }}/>
 
           {/* JD text area */}
           <textarea
@@ -115,18 +116,18 @@ export function ATSToolPage() {
             style={{
               width: "100%", padding: "12px 14px", borderRadius: 8,
               border: `1.5px solid ${theme.border}`, background: theme.surface,
-              color: theme.text, fontSize: 13, resize: "vertical",
+              color: theme.text, fontSize: ts(13), resize: "vertical",
               outline: "none", boxSizing: "border-box", lineHeight: 1.6,
             }}
           />
 
-          {error && <div style={{ fontSize: 12, color: C.DANGER, fontWeight: 600 }}>{error}</div>}
+          {error && <div style={{ fontSize: ts(12), color: C.DANGER, fontWeight: 600 }}>{error}</div>}
 
           <button onClick={submit} disabled={loading} style={{
             padding: "12px", borderRadius: 8, border: "none",
             background: loading ? theme.surfaceHigh : theme.accent,
             color: loading ? theme.textMuted : C.ON_ACCENT,
-            fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
+            fontSize: ts(14), fontWeight: 700, cursor: loading ? "default" : "pointer",
           }}>
             {loading ? "Matching…" : "Check my match"}
           </button>
@@ -141,7 +142,7 @@ export function ATSToolPage() {
 
             <div style={{
               padding: "16px 20px", borderRadius: 8,
-              background: theme.surfaceHigh, fontSize: 13, color: theme.text,
+              background: theme.surfaceHigh, fontSize: ts(13), color: theme.text,
               border: `1px solid ${theme.border}`,
             }}>
               Want a version of your resume written for this job?{" "}
@@ -156,7 +157,7 @@ export function ATSToolPage() {
       {/* Upsell */}
       <section style={{ borderTop: `1px solid ${theme.border}`, padding: "48px 24px", background: theme.surface }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6, color: theme.text }}>
+          <h2 style={{ fontSize: ts(24), fontWeight: 800, marginBottom: 6, color: theme.text }}>
             You know where you stand. Here is what else Draft does.
           </h2>
           <p style={{ color: theme.textMuted, marginBottom: 28 }}>
@@ -170,7 +171,7 @@ export function ATSToolPage() {
             ].map(f => (
               <div key={f.title} style={{ padding: 20, borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.bg }}>
                 <div style={{ fontWeight: 700, marginBottom: 6, color: theme.text }}>{f.title}</div>
-                <div style={{ fontSize: 12, color: theme.textMuted }}>{f.desc}</div>
+                <div style={{ fontSize: ts(12), color: theme.textMuted }}>{f.desc}</div>
               </div>
             ))}
           </div>

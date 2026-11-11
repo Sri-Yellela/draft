@@ -3,6 +3,7 @@ import { useState } from "react";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import { BRAND } from "../../../../shared/brand.js";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const FAQS = [
   { q: "Is my resume data private?", a: "Yes. Your resume and job data stay on your account and are never used to train AI models." },
@@ -23,14 +24,14 @@ function FAQItem({ q, a }) {
         style={{ width: "100%", padding: "16px 20px", background: "var(--color-surface)",
                   border: "none", cursor: "pointer", display: "flex",
                   justifyContent: "space-between", alignItems: "center",
-                  color: "var(--color-text)", fontWeight: 700, fontSize: 14, textAlign: "left",
+                  color: "var(--color-text)", fontWeight: 700, fontSize: ts(14), textAlign: "left",
                   fontFamily: "'DM Sans', system-ui" }}>
         {q}
-        <span style={{ fontSize: 18, color: "var(--color-primary-text)", transform: open ? "rotate(45deg)" : "none",
+        <span style={{ fontSize: ts(18), color: "var(--color-primary-text)", transform: open ? "rotate(45deg)" : "none",
                          transition: "transform 0.2s", flexShrink: 0, marginLeft: 12 }}>+</span>
       </button>
       {open && (
-        <div style={{ padding: "0 20px 18px", fontSize: 14, color: "var(--color-text-muted)",
+        <div style={{ padding: "0 20px 18px", fontSize: ts(14), color: "var(--color-text-muted)",
                        lineHeight: 1.7, background: "var(--color-surface)" }}>
           {a}
         </div>

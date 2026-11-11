@@ -2,6 +2,7 @@
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import { BRAND } from "../../../../shared/brand.js";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const SECTIONS = [
   {
@@ -33,11 +34,11 @@ export function AboutPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 40, marginTop: 48 }}>
           {SECTIONS.map((s, i) => (
             <div key={i}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-primary-text)",
+              <h2 style={{ fontSize: ts(20), fontWeight: 800, color: "var(--color-primary-text)",
                             marginBottom: 12, letterSpacing: "-0.3px" }}>
                 {s.title}
               </h2>
-              <p style={{ fontSize: 15, color: "var(--color-text-muted)", lineHeight: 1.8, margin: 0 }}>
+              <p style={{ fontSize: ts(15), color: "var(--color-text-muted)", lineHeight: 1.8, margin: 0 }}>
                 {s.body}
               </p>
             </div>

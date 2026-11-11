@@ -1,3 +1,4 @@
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 // client/src/components/PolicyProse.jsx — the prose parts of draft's public documents: a section with its
 // heading, paragraphs, lists, a sub-heading and emphasis. Moved out of PrivacyPage.jsx (A93: built once) when
 // the connector's documentation page (/docs/claude, D86 §6) needed the same parts. Styles unchanged.
@@ -7,7 +8,7 @@ export function PolicySection({ id, title, children }) {
   return (
     <section id={id} style={{ marginBottom: 40 }}>
       <h2 style={{
-        fontSize: 18, fontWeight: 400, color: "var(--color-text)",
+        fontSize: ts(18), fontWeight: 400, color: "var(--color-text)",
         marginBottom: 12, paddingBottom: 8,
         borderBottom: "1px solid var(--color-border)",
         fontFamily: "var(--font-display)",
@@ -22,7 +23,7 @@ export function PolicySection({ id, title, children }) {
 export function P({ children }) {
   return (
     <p style={{
-      fontSize: 14, color: "var(--color-text-muted)",
+      fontSize: ts(14), color: "var(--color-text-muted)",
       lineHeight: 1.8, margin: "0 0 12px",
       maxWidth: "66ch",
     }}>
@@ -45,7 +46,7 @@ export function UL({ children }) {
 export function LI({ children }) {
   return (
     <li style={{
-      fontSize: 14, color: "var(--color-text-muted)",
+      fontSize: ts(14), color: "var(--color-text-muted)",
       lineHeight: 1.75, maxWidth: "64ch",
     }}>
       {children}
@@ -56,7 +57,7 @@ export function LI({ children }) {
 export function H3({ children }) {
   return (
     <h3 style={{
-      fontSize: 15, fontWeight: 700, color: "var(--color-text)",
+      fontSize: ts(15), fontWeight: 700, color: "var(--color-text)",
       margin: "20px 0 8px",
     }}>
       {children}

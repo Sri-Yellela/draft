@@ -12,6 +12,7 @@ import { TileGrid, TileCard, TilePill } from "../components/ui/TileCard.jsx";
 import { C } from "../styles/colorTokens.js";
 import { TYPE } from "../styles/type.js";
 import { carriedResume, dropCarriedResume } from "../lib/signupCarry.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export function JobProfilesPanel() {
   const { theme } = useTheme();
@@ -155,7 +156,7 @@ export function JobProfilesPanel() {
         </div>
 
         {status && (
-          <div style={{ marginBottom:14, fontSize:12, color:"var(--color-text-muted)" }}>
+          <div style={{ marginBottom:14, fontSize:ts(12), color:"var(--color-text-muted)" }}>
             {status}
           </div>
         )}
@@ -164,7 +165,7 @@ export function JobProfilesPanel() {
             in memory into the new account. Offered once; it never touches browser storage. */}
         {carried && (
           <div data-carried-resume style={{ marginBottom:14, padding:"12px 14px", borderRadius:12, background:C.ACCENT_QUIET,
-                                            color:C.INK, fontSize:13, lineHeight:1.5, display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
+                                            color:C.INK, fontSize:ts(13), lineHeight:1.5, display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
             <span style={{ flex:1, minWidth:220 }}>
               <strong>{carried.file.name}</strong> — the résumé you checked before signing up.{" "}
               {profiles.some(p => !p.has_base_resume)
@@ -200,15 +201,15 @@ export function JobProfilesPanel() {
                   <>
                     <div style={{ display:"flex", justifyContent:"space-between", gap:10, alignItems:"center" }}>
                       <div>
-                        <div style={{ fontSize:11, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.06em", color:"var(--color-text)" }}>
+                        <div style={{ fontSize:ts(11), fontWeight:800, textTransform:"uppercase", letterSpacing:"0.06em", color:"var(--color-text)" }}>
                           Base Resume
                         </div>
-                        <div style={{ fontSize:11, color:profile.has_base_resume ? C.SUCCESS : C.WARNING, marginTop:3 }}>
+                        <div style={{ fontSize:ts(11), color:profile.has_base_resume ? C.SUCCESS : C.WARNING, marginTop:3 }}>
                           {profile.has_base_resume
                             ? `Ready${profile.base_resume_updated_at ? ` · ${formatTimestamp(profile.base_resume_updated_at)}` : ""}`
                             : "Required before search, ATS, and enhancement"}
                         </div>
-                        <div style={{ fontSize:10, color:"var(--color-text-muted)", marginTop:2 }}>
+                        <div style={{ fontSize:ts(10), color:"var(--color-text-muted)", marginTop:2 }}>
                           {profile.has_base_resume
                             ? "Extracted metadata ready for this profile only"
                             : "ATS scoring, new scrapes, and enhancement are blocked for this profile"}
@@ -234,7 +235,7 @@ export function JobProfilesPanel() {
                         />
                       </label>
                     </div>
-                    <div style={{ marginTop:7, fontSize:10, color:"var(--color-text-muted)", lineHeight:1.4 }}>
+                    <div style={{ marginTop:7, fontSize:ts(10), color:"var(--color-text-muted)", lineHeight:1.4 }}>
                       Stored and extracted only for this profile. Other profiles keep their own resume, signals, ATS basis, and search readiness.
                     </div>
                     {/* AI1. The copy says WHAT IT DOES, not why a summary might help — the
@@ -252,10 +253,10 @@ export function JobProfilesPanel() {
                           style={{ marginTop:2, flexShrink:0 }}
                         />
                         <span>
-                          <span style={{ fontSize:11, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.06em", color:"var(--color-text)" }}>
+                          <span style={{ fontSize:ts(11), fontWeight:800, textTransform:"uppercase", letterSpacing:"0.06em", color:"var(--color-text)" }}>
                             Include a summary section
                           </span>
-                          <span style={{ display:"block", fontSize:10, color:"var(--color-text-muted)", marginTop:2, lineHeight:1.4 }}>
+                          <span style={{ display:"block", fontSize:ts(10), color:"var(--color-text-muted)", marginTop:2, lineHeight:1.4 }}>
                             {profile.include_summary
                               ? "Generated resumes for this profile open with a summary."
                               : "Off. Generated resumes for this profile have no summary section — resumes generated before this setting existed did."}

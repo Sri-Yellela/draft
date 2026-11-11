@@ -6,6 +6,7 @@ import { useTheme } from "../styles/theme.jsx";
 import { StackSection, OrgSection, HiringSection, SponsorshipSection } from "./CompanyKbSections.jsx";
 import { C } from "../styles/colorTokens.js";
 import { companyPath } from "../lib/companySlug.js";   // A149: the company's own page
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export default function CompanyViewModal({ company, onClose }) {
   const { theme } = useTheme();
@@ -46,20 +47,20 @@ export default function CompanyViewModal({ company, onClose }) {
     <div style={overlay} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={modal}>
         <div style={hdr}>
-          <div style={{ fontWeight: 800, fontSize: 15, color: theme.text }}>{company}</div>
+          <div style={{ fontWeight: 800, fontSize: ts(15), color: theme.text }}>{company}</div>
           <button onClick={onClose}
             style={{ background: "none", border: "none", cursor: "pointer",
-                     color: theme.textMuted, fontSize: 18, lineHeight: 1 }}>✕</button>
+                     color: theme.textMuted, fontSize: ts(18), lineHeight: 1 }}>✕</button>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 18 }}>
-          {loading && <div style={{ fontSize: 12, color: theme.textMuted }}>Loading…</div>}
+          {loading && <div style={{ fontSize: ts(12), color: theme.textMuted }}>Loading…</div>}
           {error && !loading && (
-            <div style={{ background: C.DANGER_QUIET, color: C.DANGER, borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
+            <div style={{ background: C.DANGER_QUIET, color: C.DANGER, borderRadius: 6, padding: "8px 12px", fontSize: ts(12) }}>
               {error}
             </div>
           )}
           {!loading && !error && profile && !profile.hasData && (
-            <div style={{ fontSize: 12, color: theme.textMuted, textAlign: "center", padding: "20px 0" }}>
+            <div style={{ fontSize: ts(12), color: theme.textMuted, textAlign: "center", padding: "20px 0" }}>
               Not enough data on {company} yet.
             </div>
           )}
@@ -80,14 +81,14 @@ export default function CompanyViewModal({ company, onClose }) {
             <button type="button" data-open-company-page=""
               onClick={() => { onClose(); navigate(companyPath(company)); }}
               style={{ background: "none", border: "none", cursor: "pointer", padding: 0,
-                       color: theme.accentText, fontSize: 12, fontWeight: 700 }}>
+                       color: theme.accentText, fontSize: ts(12), fontWeight: 700 }}>
               Open {company}'s page →
             </button>
           )}
           <button
             onClick={() => { onClose(); navigate(`/app/recruiter?company=${encodeURIComponent(company)}`); }}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 0,
-                     color: theme.accentText, fontSize: 12, fontWeight: 700 }}>
+                     color: theme.accentText, fontSize: ts(12), fontWeight: 700 }}>
             Open in Recruiter view →
           </button>
         </div>

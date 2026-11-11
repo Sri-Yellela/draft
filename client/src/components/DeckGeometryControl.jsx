@@ -15,6 +15,7 @@ import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
 import { DECK_LIMITS, DECK_PRESET_NAMES, DECK_PRESET_COPY } from "../../../shared/deckGeometry.js";
 import { clampGeometry, geometryFor, reachBounds, spreadBounds } from "../lib/fanGeometry.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // The presets' words live in shared/deckGeometry.js (D93: the Customise page shows the same three).
 const PRESET_COPY = DECK_PRESET_COPY;
@@ -80,15 +81,15 @@ export default function DeckGeometryControl({ orientation, pref, onChoose, reduc
   return (
     <div ref={rootRef} style={{ position: "relative" }}>
       <button className="dbx-depth" type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} aria-controls={`${id}-panel`}
-        style={{ ...glass({ radius: 10 }), padding: "6px 12px", fontSize: 13, fontWeight: 800, color: C.INK, cursor: "pointer" }}>
+        style={{ ...glass({ radius: 10 }), padding: "6px 12px", fontSize: ts(13), fontWeight: 800, color: C.INK, cursor: "pointer" }}>
         {label}
       </button>
       {open && at && createPortal(
         <div ref={panelRef} id={`${id}-panel`} role="dialog" aria-label="Deck layout" data-deck-geometry
           style={{ ...glass({ radius: 18 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU, position: "fixed", top: at.top, left: at.left,
                    width: at.width, maxHeight: `calc(100vh - ${Math.round(at.top) + 16}px)`, overflowY: "auto",
-                   boxSizing: "border-box", padding: "16px 18px", zIndex: Z.NAV, color: C.INK, fontSize: 13.5 }}>
-          <div style={{ fontWeight: 800, fontSize: 14.5, marginBottom: 4 }}>Deck layout</div>
+                   boxSizing: "border-box", padding: "16px 18px", zIndex: Z.NAV, color: C.INK, fontSize: ts(13.5) }}>
+          <div style={{ fontWeight: 800, fontSize: ts(14.5), marginBottom: 4 }}>Deck layout</div>
           <p style={{ margin: "0 0 12px", color: C.INK_MUTED, lineHeight: 1.5 }}>
             How far the cards fan out — and so how much they move. Tight is the calmest and the easiest to follow.
           </p>
@@ -104,7 +105,7 @@ export default function DeckGeometryControl({ orientation, pref, onChoose, reduc
                 const on = preset === name;
                 return (
                   <button key={name} type="button" role="radio" aria-checked={on} onClick={() => pick(name)} title={PRESET_COPY[name][1]}
-                    style={{ flex: 1, padding: "8px 6px", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer",
+                    style={{ flex: 1, padding: "8px 6px", borderRadius: 12, fontWeight: 800, fontSize: ts(13), cursor: "pointer",
                              border: `1px solid ${on ? C.ACCENT_INK : C.BORDER_STRONG}`,
                              background: on ? C.ACCENT : "transparent", color: on ? C.ON_ACCENT : C.INK }}>
                     {PRESET_COPY[name][0]}
@@ -112,12 +113,12 @@ export default function DeckGeometryControl({ orientation, pref, onChoose, reduc
                 );
               })}
             </div>
-            <div style={{ fontSize: 12.5, color: C.INK_MUTED, minHeight: 36, lineHeight: 1.45 }}>
+            <div style={{ fontSize: ts(12.5), color: C.INK_MUTED, minHeight: 36, lineHeight: 1.45 }}>
               {preset === "custom" ? "Your own layout, from the three controls below." : PRESET_COPY[preset][1]}
             </div>
 
             <button type="button" onClick={() => setCustom(v => !v)} aria-expanded={custom} aria-controls={`${id}-custom`}
-              style={{ marginTop: 8, padding: 0, background: "transparent", border: "none", color: C.ACCENT_INK, fontWeight: 800, cursor: "pointer", fontSize: 13 }}>
+              style={{ marginTop: 8, padding: 0, background: "transparent", border: "none", color: C.ACCENT_INK, fontWeight: 800, cursor: "pointer", fontSize: ts(13) }}>
               Customise {custom ? "▴" : "▾"}
             </button>
             {custom && (
@@ -130,7 +131,7 @@ export default function DeckGeometryControl({ orientation, pref, onChoose, reduc
                       <span style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
                         {AXIS_COPY[axis][0]}
                       </span>
-                      <span style={{ fontSize: 12, color: C.INK_MUTED }}>
+                      <span style={{ fontSize: ts(12), color: C.INK_MUTED }}>
                         {lo === hi ? "Held where it is by the other two — at this size and spread, any other value would push cards out of view" : AXIS_COPY[axis][1]}
                       </span>
                       <input type="range" data-deck-axis={axis} min={lo} max={hi} step={step} value={current[axis]}
@@ -140,13 +141,13 @@ export default function DeckGeometryControl({ orientation, pref, onChoose, reduc
                   );
                 })}
                 <button type="button" onClick={() => pick("standard")} disabled={preset === "standard"}
-                  style={{ justifySelf: "start", padding: 0, background: "transparent", border: "none", color: C.ACCENT_INK, fontWeight: 800, cursor: "pointer", fontSize: 13 }}>
+                  style={{ justifySelf: "start", padding: 0, background: "transparent", border: "none", color: C.ACCENT_INK, fontWeight: 800, cursor: "pointer", fontSize: ts(13) }}>
                   Back to standard
                 </button>
               </div>
             )}
           </fieldset>
-          <div style={{ marginTop: 10, fontSize: 12, color: C.INK_FAINT }}>Saved to your account{orientation === "vertical" ? " — this is the phone-width deck" : ""}.</div>
+          <div style={{ marginTop: 10, fontSize: ts(12), color: C.INK_FAINT }}>Saved to your account{orientation === "vertical" ? " — this is the phone-width deck" : ""}.</div>
         </div>,
         document.body,
       )}

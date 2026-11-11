@@ -12,8 +12,9 @@ import { planWords } from "../lib/planWords.js";
 import SettingsSection from "./SettingsSection.jsx";
 import { ExtensionPanelBody, extensionLinksOf } from "./ExtensionPanel.jsx";
 import OtpVerify from "./OtpVerify.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
-const muted = { color: "var(--color-text-muted)", fontSize: 13, lineHeight: 1.5 };
+const muted = { color: "var(--color-text-muted)", fontSize: ts(13), lineHeight: 1.5 };
 const money = (cents) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 
 function PlanCard({ say }) {

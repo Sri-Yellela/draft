@@ -7,6 +7,7 @@ import ScrollDock from "../../components/ScrollDock.jsx";
 import { C } from "../../styles/colorTokens.js";
 import { markStyle } from "../../styles/mark.js";
 import { loginHref } from "../../lib/signInReturn.js";   // A138: back to this page after sign-in
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export function ApplyToolPage() {
   const { theme } = useTheme();
@@ -52,14 +53,14 @@ export function ApplyToolPage() {
         <ScrollDock variant="tools" />
         <div style={{ flex: 1, display: "flex", flexDirection: "column",
                       alignItems: "center", justifyContent: "center", gap: 16, padding: 24, textAlign: "center" }}>
-          <div style={{ fontSize: 48 }}>🔒</div>
-          <div style={{ fontWeight: 800, fontSize: 22, color: theme.text }}>Sign in to use Draft</div>
-          <div style={{ fontSize: 14, color: theme.textMuted, maxWidth: 360 }}>
+          <div style={{ fontSize: ts(48) }}>🔒</div>
+          <div style={{ fontWeight: 800, fontSize: ts(22), color: theme.text }}>Sign in to use Draft</div>
+          <div style={{ fontSize: ts(14), color: theme.textMuted, maxWidth: 360 }}>
             Drafting applications and generating résumés need a free account. ATS scoring does not.
           </div>
           <Link to={loginHref()}>
             <button style={{ padding: "10px 28px", borderRadius: 6, border: "none",
-                             background: theme.accent, color: C.ON_ACCENT, fontWeight: 700, cursor: "pointer", fontSize: 14 }}>
+                             background: theme.accent, color: C.ON_ACCENT, fontWeight: 700, cursor: "pointer", fontSize: ts(14) }}>
               Sign in or register free →
             </button>
           </Link>
@@ -80,7 +81,7 @@ export function ApplyToolPage() {
                      fontFamily: "var(--font-display)", marginBottom: 10, color: theme.text }}>
           Apply to multiple jobs in one click
         </h1>
-        <p style={{ fontSize: 15, color: theme.textMuted, marginBottom: 36, lineHeight: 1.6 }}>
+        <p style={{ fontSize: ts(15), color: theme.textMuted, marginBottom: 36, lineHeight: 1.6 }}>
           Upload your resume, add up to 20 job URLs, and we'll fill out every application for you.
         </p>
 
@@ -93,7 +94,7 @@ export function ApplyToolPage() {
           }}>
             <input ref={fileRef} type="file" accept=".pdf" style={{ display:"none" }}
               onChange={e => setPdfFile(e.target.files?.[0] || null)}/>
-            <div style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>
+            <div style={{ fontSize: ts(13), fontWeight: 600, color: theme.text }}>
               {pdfFile ? `✓ ${pdfFile.name}` : "Click to upload your resume PDF"}
             </div>
           </div>
@@ -101,7 +102,7 @@ export function ApplyToolPage() {
           {/* Profile mini-form */}
           <div style={{ padding: "16px 20px", borderRadius: 8, border: `1px solid ${theme.border}`,
                         background: theme.surface, display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: theme.textMuted,
+            <div style={{ fontSize: ts(12), fontWeight: 700, color: theme.textMuted,
                           textTransform: "uppercase", letterSpacing: "0.08em" }}>
               Your details (used to fill applications)
             </div>
@@ -111,7 +112,7 @@ export function ApplyToolPage() {
                 <input key={k} value={profile[k]} onChange={e => setField(k, e.target.value)}
                   placeholder={ph}
                   style={{ padding: "7px 10px", borderRadius: 6, border: `1px solid ${theme.border}`,
-                           background: theme.bg, color: theme.text, fontSize: 12, outline: "none" }}/>
+                           background: theme.bg, color: theme.text, fontSize: ts(12), outline: "none" }}/>
               ))}
             </div>
           </div>
@@ -123,18 +124,18 @@ export function ApplyToolPage() {
             rows={6}
             style={{ width: "100%", padding: "12px 14px", borderRadius: 8,
                      border: `1.5px solid ${theme.border}`, background: theme.surface,
-                     color: theme.text, fontSize: 13, resize: "vertical",
+                     color: theme.text, fontSize: ts(13), resize: "vertical",
                      outline: "none", boxSizing: "border-box", lineHeight: 1.6,
                      fontFamily: "monospace" }}
           />
 
-          {error && <div style={{ fontSize: 12, color: C.DANGER, fontWeight: 600 }}>{error}</div>}
+          {error && <div style={{ fontSize: ts(12), color: C.DANGER, fontWeight: 600 }}>{error}</div>}
 
           <button onClick={submit} disabled={loading} style={{
             padding: "12px", borderRadius: 8, border: "none",
             background: loading ? theme.surfaceHigh : theme.accent,
             color: loading ? theme.textMuted : C.ON_ACCENT,
-            fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
+            fontSize: ts(14), fontWeight: 700, cursor: loading ? "default" : "pointer",
           }}>
             {loading ? "Applying…" : "Apply to All"}
           </button>
@@ -154,11 +155,11 @@ export function ApplyToolPage() {
                   <span style={{ ...markStyle(STATUS_COLOR[r.status] || C.INK_FAINT), flexShrink: 0 }}>
                     {r.status}
                   </span>
-                  <span style={{ fontSize: 12, color: theme.text, flex: 1, overflow: "hidden",
+                  <span style={{ fontSize: ts(12), color: theme.text, flex: 1, overflow: "hidden",
                                  textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {r.company || r.url}
                   </span>
-                  {r.error && <span style={{ fontSize: 11, color: C.DANGER }}>{r.error}</span>}
+                  {r.error && <span style={{ fontSize: ts(11), color: C.DANGER }}>{r.error}</span>}
                 </div>
               ))}
             </div>
@@ -169,7 +170,7 @@ export function ApplyToolPage() {
       {/* Upsell */}
       <section style={{ borderTop: `1px solid ${theme.border}`, padding: "48px 24px", background: theme.surface }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6, color: theme.text }}>
+          <h2 style={{ fontSize: ts(24), fontWeight: 800, marginBottom: 6, color: theme.text }}>
             Imagine doing this for every job in your pipeline.
           </h2>
           <p style={{ color: theme.textMuted, marginBottom: 28 }}>
@@ -183,7 +184,7 @@ export function ApplyToolPage() {
             ].map(f => (
               <div key={f.title} style={{ padding: 20, borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.bg }}>
                 <div style={{ fontWeight: 700, marginBottom: 6, color: theme.text }}>{f.title}</div>
-                <div style={{ fontSize: 12, color: theme.textMuted }}>{f.desc}</div>
+                <div style={{ fontSize: ts(12), color: theme.textMuted }}>{f.desc}</div>
               </div>
             ))}
           </div>

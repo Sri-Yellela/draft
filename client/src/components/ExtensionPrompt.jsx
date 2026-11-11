@@ -20,6 +20,7 @@ import { Link } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { DraftMark } from "./DraftMark.jsx";
 import { EXTENSION_PAGE } from "../../../shared/extension.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const DISMISS_KEY = "draft:extension-prompt-dismissed";
 
@@ -83,9 +84,9 @@ export function ExtensionFirstRunPrompt() {
         maxWidth: 920, width: "calc(100% - 32px)", margin: "14px auto 0", padding: "12px 16px", boxSizing: "border-box",
         display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
         border: "1px solid var(--border-glass)", borderRadius: 14,
-        background: "var(--c-hover)", color: "var(--color-text)", fontSize: 13,
+        background: "var(--c-hover)", color: "var(--color-text)", fontSize: ts(13),
       }}>
-      <DraftMark style={{ fontSize: 18, color: "var(--color-primary)" }}/>
+      <DraftMark style={{ fontSize: ts(18), color: "var(--color-primary)" }}/>
       {status.state === "not_connected" ? (
         <div data-extension-state="not_connected" style={{ flex: "1 1 260px", minWidth: 0, lineHeight: 1.5 }}>
           <strong>Your draft extension isn't connected.</strong>{" "}
@@ -117,10 +118,10 @@ export function SavedEmptyState({ theme }) {
   return (
     <div data-saved-empty="" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
                   justifyContent: "center", gap: 14, padding: 40, color: theme?.textDim }}>
-      <div style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: 29, color: theme?.text, textAlign: "center" }}>
+      <div style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: ts(29), color: theme?.text, textAlign: "center" }}>
         Nothing saved yet
       </div>
-      <div style={{ fontSize: 13, textAlign: "center", color: theme?.textDim, maxWidth: 400, lineHeight: 1.7 }}>
+      <div style={{ fontSize: ts(13), textAlign: "center", color: theme?.textDim, maxWidth: 400, lineHeight: 1.7 }}>
         {connected
           ? <>Save a job on the board (★) to keep it here. Your extension is connected: on any job posting,
               click it or press Ctrl+Shift+K and the job lands on your board, under +.</>

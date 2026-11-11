@@ -7,6 +7,7 @@
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import { BRAND, SUPPORT_EMAIL } from "../../../../shared/brand.js";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const SECTIONS = [
   {
@@ -67,15 +68,15 @@ export function TermsPage() {
                       fontFamily: "var(--font-display)" }}>
           Terms of Service
         </h1>
-        <p style={{ fontSize: 13, color: "var(--color-text-faint)", marginBottom: 48 }}>
+        <p style={{ fontSize: ts(13), color: "var(--color-text-faint)", marginBottom: 48 }}>
           Last updated: October 9, 2026
         </p>
         {SECTIONS.map((s, i) => (
           <div key={i} style={{ marginBottom: 40 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--color-text)", marginBottom: 12 }}>
+            <h2 style={{ fontSize: ts(18), fontWeight: 800, color: "var(--color-text)", marginBottom: 12 }}>
               {s.title}
             </h2>
-            <p style={{ fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.8, margin: 0 }}>
+            <p style={{ fontSize: ts(14), color: "var(--color-text-muted)", lineHeight: 1.8, margin: 0 }}>
               {s.body}
             </p>
           </div>

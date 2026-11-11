@@ -13,8 +13,9 @@ import { C } from "../styles/colorTokens.js";
 import { Z } from "../styles/zLayers.js";
 import { glass } from "../styles/glass.js";
 import { DECISION_AFTER, DECISION_VERB, lineAfter } from "../lib/jobDecisions.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
-const kbd = { fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 5, border: `1px solid ${C.BORDER_STRONG}`,
+const kbd = { fontSize: ts(11), fontWeight: 700, padding: "1px 6px", borderRadius: 5, border: `1px solid ${C.BORDER_STRONG}`,
               color: C.INK_MUTED, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", lineHeight: "16px" };
 
 /**
@@ -32,7 +33,7 @@ export default function DecisionToast({ toast, onUndo, undoKey = null, bottom = 
           style={{ ...glass({ radius: 16 }), backgroundImage: "none", backgroundColor: C.SURFACE_MENU,
                    position: "fixed", left: 0, right: 0, margin: "0 auto", width: "fit-content", bottom, zIndex: Z.NAV,
                    padding: "12px 16px", display: "flex", alignItems: "center", gap: 14, maxWidth: "calc(100vw - 32px)",
-                   fontSize: 14, color: C.INK }}>
+                   fontSize: ts(14), color: C.INK }}>
           {/* ⛔ D51: a REFUSED decision said "Drafted Northwind — it waits for your review · Undo" — the
               board set `error` and this rendered the success sentence over it. A refusal says why, and
               offers no Undo: nothing was done. */}

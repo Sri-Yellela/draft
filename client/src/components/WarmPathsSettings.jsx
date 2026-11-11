@@ -4,10 +4,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../lib/api.js";
 import SettingsSection from "./SettingsSection.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
-const muted = { color: "var(--color-text-muted)", fontSize: 12, lineHeight: 1.5 };
+const muted = { color: "var(--color-text-muted)", fontSize: ts(12), lineHeight: 1.5 };
 const btn = { padding: "6px 12px", borderRadius: 6, border: "1px solid var(--color-border)", background: "transparent",
-  color: "var(--color-text)", cursor: "pointer", fontSize: 12 };
+  color: "var(--color-text)", cursor: "pointer", fontSize: ts(12) };
 
 export default function WarmPathsSettings({ say = () => {} }) {
   const [summary, setSummary] = useState(null);
@@ -54,12 +55,12 @@ export default function WarmPathsSettings({ say = () => {} }) {
         <div style={muted}><strong>Alumni:</strong> a list with Name and Company columns (a school's public alumni list, a club roster).</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <input value={school} onChange={e => setSchool(e.target.value)} placeholder="School (e.g. Northeastern)" aria-label="School"
-            style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid var(--color-border)", background: "transparent", color: "var(--color-text)", fontSize: 12 }} />
+            style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid var(--color-border)", background: "transparent", color: "var(--color-text)", fontSize: ts(12) }} />
           <button type="button" style={btn} disabled={busy || !school.trim()} onClick={() => alumni.current?.click()}>Upload alumni list</button>
           <input ref={alumni} type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={e => { upload("alumni", e.target.files?.[0]); e.target.value = ""; }} />
         </div>
         {summary?.sources?.length > 0 && (
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "var(--color-text)", display: "grid", gap: 4 }}>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: ts(13), color: "var(--color-text)", display: "grid", gap: 4 }}>
             {summary.sources.map(s => (
               <li key={`${s.source}-${s.school}`}>
                 {s.source === "linkedin" ? "LinkedIn connections" : `${s.school} alumni`}: {s.people} people at {s.companies} companies{" "}

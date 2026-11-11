@@ -11,6 +11,7 @@ import { Footer } from "../../components/Footer.jsx";
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { C } from "../../styles/colorTokens.js";
 import { markStyle } from "../../styles/mark.js";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const RISK = { high: { label: "High risk", colour: C.DANGER }, medium: { label: "Medium risk", colour: C.WARNING } };
 
@@ -32,17 +33,17 @@ async function addFile(fd, field, file, text) {
 function FileOrText({ label, hint, file, setFile, text, setText, theme }) {
   const ref = useRef();
   const box = { width: "100%", padding: "10px 14px", borderRadius: 8, border: `1.5px solid ${theme.border}`, background: theme.surface,
-    color: theme.text, fontSize: 13, outline: "none", boxSizing: "border-box", lineHeight: 1.5 };
+    color: theme.text, fontSize: ts(13), outline: "none", boxSizing: "border-box", lineHeight: 1.5 };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: theme.text }}>{label}</div>
-      <div style={{ fontSize: 11, color: theme.textMuted }}>{hint}</div>
+      <div style={{ fontSize: ts(13), fontWeight: 700, color: theme.text }}>{label}</div>
+      <div style={{ fontSize: ts(11), color: theme.textMuted }}>{hint}</div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <button type="button" onClick={() => ref.current?.click()}
-          style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${theme.border}`, background: "transparent", color: theme.text, cursor: "pointer", fontSize: 12 }}>
+          style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${theme.border}`, background: "transparent", color: theme.text, cursor: "pointer", fontSize: ts(12) }}>
           {file ? `✓ ${file.name}` : "Upload PDF, Word or text"}
         </button>
-        {file && <button type="button" onClick={() => setFile(null)} style={{ background: "none", border: "none", color: theme.textMuted, cursor: "pointer", fontSize: 12 }}>remove</button>}
+        {file && <button type="button" onClick={() => setFile(null)} style={{ background: "none", border: "none", color: theme.textMuted, cursor: "pointer", fontSize: ts(12) }}>remove</button>}
         <input ref={ref} type="file" accept=".pdf,.docx,.txt" style={{ display: "none" }} onChange={e => setFile(e.target.files?.[0] || null)} />
       </div>
       {!file && <textarea value={text} onChange={e => setText(e.target.value)} rows={5} placeholder="…or paste the text" style={{ ...box, resize: "vertical" }} />}
@@ -88,7 +89,7 @@ export function HonestyToolPage() {
         <h1 style={{ fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 400, fontFamily: "var(--font-display)", marginBottom: 10, color: theme.text }}>
           Will your AI résumé get you caught?
         </h1>
-        <p style={{ fontSize: 15, color: theme.textMuted, marginBottom: 28, lineHeight: 1.6 }}>
+        <p style={{ fontSize: ts(15), color: theme.textMuted, marginBottom: 28, lineHeight: 1.6 }}>
           Check any résumé — including one an AI tool rewrote — against the original it came from. See, line by line, what you
           can't back up in an interview, and how to make it true. Free, no account, and nothing you upload is kept.
         </p>
@@ -98,23 +99,23 @@ export function HonestyToolPage() {
           <FileOrText label="Your original (recommended)" hint="The résumé it was made from — what's true. Without it, every number and skill is simply a claim you'll be asked to back."
             theme={theme} file={original} setFile={setOriginal} text={originalText} setText={setOriginalText} />
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <div style={{ fontSize: 13, fontWeight: 700 }}>The job (optional)</div>
+            <div style={{ fontSize: ts(13), fontWeight: 700 }}>The job (optional)</div>
             <textarea value={jdText} onChange={e => setJdText(e.target.value)} rows={5} placeholder="Paste the job description to see which of its terms were added"
               style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1.5px solid ${theme.border}`, background: theme.surface, color: theme.text,
-                fontSize: 13, resize: "vertical", outline: "none", boxSizing: "border-box", lineHeight: 1.5 }} />
+                fontSize: ts(13), resize: "vertical", outline: "none", boxSizing: "border-box", lineHeight: 1.5 }} />
           </div>
-          {error && <div style={{ fontSize: 12, color: C.DANGER, fontWeight: 600 }}>{error}</div>}
+          {error && <div style={{ fontSize: ts(12), color: C.DANGER, fontWeight: 600 }}>{error}</div>}
           <button onClick={submit} disabled={loading} style={{ padding: 12, borderRadius: 8, border: "none",
             background: loading ? theme.surfaceHigh : theme.accent, color: loading ? theme.textMuted : C.ON_ACCENT,
-            fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer" }}>
+            fontSize: ts(14), fontWeight: 700, cursor: loading ? "default" : "pointer" }}>
             {loading ? "Checking…" : "Check my résumé"}
           </button>
         </div>
 
         {result && (
           <div ref={resultRef} data-honesty-result="" style={{ marginTop: 36, display: "flex", flexDirection: "column", gap: 16, scrollMarginTop: 80 }}>
-            <div style={{ padding: "16px 18px", borderRadius: 10, background: theme.surface, border: `1px solid ${theme.border}`, lineHeight: 1.6, fontSize: 14 }}>
-              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>
+            <div style={{ padding: "16px 18px", borderRadius: 10, background: theme.surface, border: `1px solid ${theme.border}`, lineHeight: 1.6, fontSize: ts(14) }}>
+              <div style={{ fontWeight: 800, fontSize: ts(16), marginBottom: 6 }}>
                 {result.flagged ? `${result.flagged} line${result.flagged === 1 ? "" : "s"} you may not be able to defend` : "Nothing stands out"}
                 {result.high ? ` · ${result.high} high risk` : ""}
               </div>
@@ -130,12 +131,12 @@ export function HonestyToolPage() {
                 </div>
               )}
             </div>
-            <label style={{ fontSize: 12, color: theme.textMuted, display: "flex", gap: 6, alignItems: "center" }}>
+            <label style={{ fontSize: ts(12), color: theme.textMuted, display: "flex", gap: 6, alignItems: "center" }}>
               <input type="checkbox" checked={onlyFlagged} onChange={e => setOnlyFlagged(e.target.checked)} /> Only the lines that need attention
             </label>
             <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
               {lines.map((l, i) => (
-                <li key={i} data-honesty-line={l.risk} style={{ padding: "12px 14px", borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.surface, fontSize: 13, lineHeight: 1.55 }}>
+                <li key={i} data-honesty-line={l.risk} style={{ padding: "12px 14px", borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.surface, fontSize: ts(13), lineHeight: 1.55 }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                     {RISK[l.risk] && <span style={markStyle(RISK[l.risk].colour)}>{RISK[l.risk].label}</span>}
                     <span style={{ fontWeight: 600 }}>{l.text}</span>
@@ -156,7 +157,7 @@ export function HonestyToolPage() {
                 </li>
               ))}
             </ol>
-            <div style={{ padding: "14px 18px", borderRadius: 8, background: theme.surfaceHigh, fontSize: 13, border: `1px solid ${theme.border}` }}>
+            <div style={{ padding: "14px 18px", borderRadius: 8, background: theme.surfaceHigh, fontSize: ts(13), border: `1px solid ${theme.border}` }}>
               Want a résumé tailored from what you've actually done?{" "}
               <Link to="/register" style={{ color: theme.accentText, fontWeight: 700, textDecoration: "none" }}>Try draft →</Link>
             </div>

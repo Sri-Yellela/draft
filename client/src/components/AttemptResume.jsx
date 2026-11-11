@@ -12,6 +12,7 @@
 import { useState } from "react";
 import { api, authHeaders } from "../lib/api.js";
 import { openResumeEditor } from "../lib/resumeEditor.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const SENT_NOTE = "Sent — this is the résumé that went out";
 
@@ -82,13 +83,13 @@ export default function AttemptResume({ runJobId = null, recordId = null, jobId 
           onClick={e => e.stopPropagation()} data-attempt-resume="pdf" title="Download the résumé as a PDF">PDF ↓</a>
       )}
       {missing && (
-        <span role="status" data-attempt-resume="missing" style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+        <span role="status" data-attempt-resume="missing" style={{ fontSize: ts(11), color: "var(--color-text-muted)" }}>
           No résumé was made for this one{missing.canGenerate ? " — " : "."}
           {missing.canGenerate && <button type="button" className={className} style={style} onClick={generate} disabled={busy} data-attempt-resume="generate">{busy ? "Making it…" : "Generate it"}</button>}
           {missing.reason && <span title={missing.reason}> ({String(missing.reason).replace(/^[a-z_]+: /, "").slice(0, 80)})</span>}
         </span>
       )}
-      {error && <span role="alert" style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>{error}</span>}
+      {error && <span role="alert" style={{ fontSize: ts(10.5), color: "var(--color-text-muted)" }}>{error}</span>}
     </>
   );
 }

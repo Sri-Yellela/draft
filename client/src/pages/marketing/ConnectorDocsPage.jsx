@@ -10,6 +10,7 @@ import { Footer } from "../../components/Footer.jsx";
 import { BRAND, SUPPORT_EMAIL, PRIVACY_CONTACT_EMAIL, SECURITY_EMAIL, CANONICAL_ORIGIN } from "../../../../shared/brand.js";
 import { BYO_DAILY_CAP_DEFAULT } from "../../../../shared/entitlements.js";
 import { PolicySection, P, UL, LI, Strong } from "../../components/PolicyProse.jsx";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export const CONNECTOR_URL = `${CANONICAL_ORIGIN}/mcp`;
 
@@ -24,7 +25,7 @@ export const CONNECTOR_TOOLS = [
   ["draft_list_my_drafts", "Lists the jobs you queued in draft.", "Your queued jobs' titles and companies", "Nothing"],
 ];
 
-const cell = { padding: "8px 10px", borderTop: "1px solid var(--color-border)", fontSize: 13, color: "var(--color-text-muted)", verticalAlign: "top", textAlign: "left" };
+const cell = { padding: "8px 10px", borderTop: "1px solid var(--color-border)", fontSize: ts(13), color: "var(--color-text-muted)", verticalAlign: "top", textAlign: "left" };
 
 export function ConnectorDocsPage() {
   return (
@@ -36,7 +37,7 @@ export function ConnectorDocsPage() {
                      fontFamily: "var(--font-display)" }}>
           {BRAND} for Claude
         </h1>
-        <p style={{ fontSize: 13, color: "var(--color-text-faint)", marginBottom: 48 }}>Last updated: October 9, 2026</p>
+        <p style={{ fontSize: ts(13), color: "var(--color-text-faint)", marginBottom: 48 }}>Last updated: October 9, 2026</p>
 
         <P>
           {BRAND} connects to Claude so you can tailor your résumé to a job on your {BRAND} board in a Claude

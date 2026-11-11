@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import { ApplyLink } from "./CompanyLink.jsx";   // A157: here re-opening the employer's form is the point
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const NO_TAG = () => {};   // this row IS the Pending list — opening the posting does not tag it again
 
@@ -35,12 +36,12 @@ export function NotAppliedList({ rows = [], theme, onRestore, busyId, moveDays =
   return (
     <div data-not-applied-list="" style={{ flex: 1, overflowY: "auto", padding: "10px 16px 16px", display: "flex",
                                            flexDirection: "column", gap: 8 }}>
-      <div style={{ fontSize: 12, color: theme.textMuted, lineHeight: 1.6 }}>
+      <div style={{ fontSize: ts(12), color: theme.textMuted, lineHeight: 1.6 }}>
         A Pending job with nothing recorded for {moveDays} days moves here, and so does one you said you did not
         apply to. Nothing is deleted — Restore puts it back in Pending for another {moveDays} days.
       </div>
       {!rows.length && (
-        <div style={{ textAlign: "center", padding: 32, color: theme.textMuted, fontSize: 13 }}>Nothing in Not applied.</div>
+        <div style={{ textAlign: "center", padding: 32, color: theme.textMuted, fontSize: ts(13) }}>Nothing in Not applied.</div>
       )}
       {rows.map(row => (
         <div key={row.jobId} data-not-applied-row={row.jobId}
@@ -48,7 +49,7 @@ export function NotAppliedList({ rows = [], theme, onRestore, busyId, moveDays =
                    display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 200 }}>
             <ApplyLink company={row.company || row.jobId} href={row.applyUrl || null} jobId={row.jobId} onOpen={NO_TAG} size="row">{row.company || row.jobId}</ApplyLink>
-            <span style={{ fontSize: 12, color: theme.textMuted }}> · {row.title || "Untitled role"}</span>
+            <span style={{ fontSize: ts(12), color: theme.textMuted }}> · {row.title || "Untitled role"}</span>
           </div>
           <span style={markStyle(C.INK_FAINT)}>
             {row.state === "not_applied" ? `Moved after ${moveDays} days` : "You said you did not apply"}
@@ -74,9 +75,9 @@ function RecordForm({ row, methods, theme, onRecord, busy }) {
     evidenceUrl: row.evidenceUrl || "", evidenceText: row.evidenceText || "", reference: row.reference || "",
   });
   const set = (k) => (e) => setF(p => ({ ...p, [k]: e.target.value }));
-  const field = { fontSize: 12, padding: "5px 8px", borderRadius: 6, border: `1px solid ${theme.border}`,
+  const field = { fontSize: ts(12), padding: "5px 8px", borderRadius: 6, border: `1px solid ${theme.border}`,
                   background: "transparent", color: theme.text, width: "100%", boxSizing: "border-box" };
-  const label = { fontSize: 11, color: theme.textMuted, display: "flex", flexDirection: "column", gap: 3 };
+  const label = { fontSize: ts(11), color: theme.textMuted, display: "flex", flexDirection: "column", gap: 3 };
   return (
     <form data-record-form onSubmit={e => { e.preventDefault(); onRecord(row.jobId, {
       ...f, submittedAt: new Date(f.submittedAt).toISOString() }); }}
@@ -139,7 +140,7 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
     <div data-pending-table style={{ flex: 1, overflowY: "auto", padding: "10px 16px 16px", display: "flex",
                                      flexDirection: "column", gap: 8 }}>
       {rule && (
-        <div style={{ fontSize: 12, color: theme.textMuted, lineHeight: 1.6, border: `1px solid ${theme.border}`,
+        <div style={{ fontSize: ts(12), color: theme.textMuted, lineHeight: 1.6, border: `1px solid ${theme.border}`,
                       borderRadius: 8, padding: "8px 12px" }}>
           <strong style={{ color: theme.text }}>Pending until verified.</strong> Record when and how you applied, with one of:{" "}
           {rule.evidence.join("; ")}. <br />
@@ -150,7 +151,7 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
         <div data-pending-bulk="" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search pending…" aria-label="Search pending"
             style={{ height: 30, padding: "0 10px", borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.surface,
-                     color: theme.text, fontSize: 12, minWidth: 180 }} />
+                     color: theme.text, fontSize: ts(12), minWidth: 180 }} />
           {openedOnly.length > 0 && (
             <button type="button" className="rm-btn rm-btn-ghost rm-btn-sm" data-dismiss-opened=""
               onClick={() => clearMany(openedOnly, openedOnly.length === 1 ? "posting you only opened" : "postings you only opened")}>
@@ -163,10 +164,10 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
         </div>
       )}
       {!rows.length && needle && all.length > 0 && (
-        <div style={{ textAlign: "center", padding: 16, color: theme.textMuted, fontSize: 13 }}>Nothing pending matches “{q}”.</div>
+        <div style={{ textAlign: "center", padding: 16, color: theme.textMuted, fontSize: ts(13) }}>Nothing pending matches “{q}”.</div>
       )}
       {!all.length && (
-        <div style={{ textAlign: "center", padding: 32, color: theme.textMuted, fontSize: 13 }}>
+        <div style={{ textAlign: "center", padding: 32, color: theme.textMuted, fontSize: ts(13) }}>
           Nothing pending. A job lands here when you generate a résumé for it, open its posting from the board,
           or export a résumé — and leaves when you record a verified submission, say you did not apply, or 14 days
           pass with nothing recorded (it moves to Not applied, never deleted).
@@ -188,12 +189,12 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
                 {/* D38: the ONE company link. No Pending tag here — this row IS the Pending list (onOpen does nothing);
                     the job id is for D99 J11 — the extension opens the posting bound to it. */}
                 <ApplyLink company={row.company || row.jobId} href={row.applyUrl || null} jobId={row.jobId} onOpen={NO_TAG} size="row">{row.company || row.jobId}</ApplyLink>
-                <span style={{ fontSize: 12, color: theme.textMuted }}> · {row.title || "Untitled role"}</span>
+                <span style={{ fontSize: ts(12), color: theme.textMuted }}> · {row.title || "Untitled role"}</span>
               </div>
-              <span style={{ fontSize: 11, color: theme.textMuted }}>{ORIGIN[row.origin] || row.origin}</span>
+              <span style={{ fontSize: ts(11), color: theme.textMuted }}>{ORIGIN[row.origin] || row.origin}</span>
               {/* D112 c2: a pending row nobody acts on moves to Not applied — say when, never delete it. */}
               {row.movesInDays != null && (
-                <span data-moves-in="" style={{ fontSize: 11, color: theme.textMuted }}
+                <span data-moves-in="" style={{ fontSize: ts(11), color: theme.textMuted }}
                   title="After 14 days with nothing recorded it moves to Not applied in The Table — kept, and you can Restore it.">
                   {movesLabel(row.movesInDays)}
                 </span>
@@ -203,13 +204,13 @@ export default function PendingApplications({ data, theme, onRecord, onWithdraw,
               </span>
             </div>
             {checks && (
-              <ul style={{ margin: "6px 0 0", padding: 0, listStyle: "none", fontSize: 12 }}>
+              <ul style={{ margin: "6px 0 0", padding: 0, listStyle: "none", fontSize: ts(12) }}>
                 {checks.map(c => (
                   <li key={c.key} style={{ color: c.ok ? C.SUCCESS : C.DANGER }}>{c.ok ? "✓" : "✗"} {c.detail}</li>
                 ))}
               </ul>
             )}
-            {msg?.text && <div role="status" style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>{msg.text}</div>}
+            {msg?.text && <div role="status" style={{ fontSize: ts(12), color: theme.textMuted, marginTop: 4 }}>{msg.text}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
               <button type="button" className="rm-btn rm-btn-secondary rm-btn-sm" disabled={busy}
                 onClick={() => setOpen(open === row.jobId ? null : row.jobId)}>

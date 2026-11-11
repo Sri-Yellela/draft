@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { DockPortal } from "./DockPortal.jsx";
 import { C } from "../styles/colorTokens.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 export default function ProfileSelectorDropdown({
   theme,
@@ -52,14 +53,14 @@ export default function ProfileSelectorDropdown({
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {active?.profile_name || "Profile"}
         </span>
-        <span aria-hidden="true" style={{ color: theme.textDim, fontSize: 10 }}>v</span>
+        <span aria-hidden="true" style={{ color: theme.textDim, fontSize: ts(10) }}>v</span>
       </button>
 
       {open && rect && (
         <DockPortal anchorRect={rect} theme={theme} onClose={() => setOpen(false)}
           style={{ minWidth: compact ? 230 : 270, maxWidth: "calc(100vw - 24px)" }}>
           <div style={{ padding: "6px 10px 8px", borderBottom: `1px solid ${theme.border}` }}>
-            <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase",
+            <div style={{ fontSize: ts(10), fontWeight: 800, textTransform: "uppercase",
                            letterSpacing: "0.08em", color: theme.textDim }}>
               Job Profile
             </div>
@@ -103,7 +104,7 @@ export default function ProfileSelectorDropdown({
                                  flexShrink: 0 }}/>
                   <span style={{ flex: 1, minWidth: 0, overflow: "hidden",
                                  textOverflow: "ellipsis", whiteSpace: "nowrap",
-                                 fontSize: 12, fontWeight: isActive ? 800 : 600 }}>
+                                 fontSize: ts(12), fontWeight: isActive ? 800 : 600 }}>
                     {profile.profile_name}
                   </span>
                   <span
@@ -134,7 +135,7 @@ export default function ProfileSelectorDropdown({
                       background: canDelete ? C.DANGER_QUIET : theme.surfaceHigh,
                       color: canDelete ? C.DANGER : theme.textDim,
                       cursor: canDelete ? "pointer" : "not-allowed",
-                      fontSize: 13,
+                      fontSize: ts(13),
                       fontWeight: 900,
                       flexShrink: 0,
                     }}>
@@ -146,14 +147,14 @@ export default function ProfileSelectorDropdown({
           </div>
           <div style={{ padding: "8px 10px 4px", borderTop: `1px solid ${theme.border}`,
                         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <span style={{ fontSize: 10, color: theme.textDim }}>{profiles.length}/4 profiles</span>
+            <span style={{ fontSize: ts(10), color: theme.textDim }}>{profiles.length}/4 profiles</span>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <a
                 href="/app/profile"
                 onClick={() => setOpen(false)}
                 style={{
                   color: theme.text,
-                  fontSize: 11,
+                  fontSize: ts(11),
                   fontWeight: 700,
                   textDecoration: "none",
                   border: `1px solid ${theme.border}`,
@@ -174,7 +175,7 @@ export default function ProfileSelectorDropdown({
                   borderRadius: 6,
                   padding: "6px 10px",
                   cursor: canAdd ? "pointer" : "not-allowed",
-                  fontSize: 12,
+                  fontSize: ts(12),
                   fontWeight: 800,
                 }}>
                 + Add Profile

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api.js";
 import { C } from "../styles/colorTokens.js";
 import SettingsSection from "./SettingsSection.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // ── Account → Notifications (⭐ D112 item 8) ──────────────────────────────────────────────────────
 // Which events reach the person outside draft, and how: a push to this browser (Web Push, VAPID — offered only when the
@@ -9,9 +10,9 @@ import SettingsSection from "./SettingsSection.jsx";
 // event per channel (D60: a native switch, no capsule). The bell in the top bar always gets every event; these are copies.
 // Every rule is the server's (routes/notify.js, services/notify.js); this card asks and shows the answer.
 
-const muted = { color: "var(--color-text-muted)", fontSize: 12, lineHeight: 1.5 };
+const muted = { color: "var(--color-text-muted)", fontSize: ts(12), lineHeight: 1.5 };
 const btnQuiet = { border: `1px solid ${C.BORDER_CONTROL}`, borderRadius: 8, background: "transparent", color: "var(--color-text)",
-  padding: "8px 14px", cursor: "pointer", fontWeight: 800, fontSize: 12 };
+  padding: "8px 14px", cursor: "pointer", fontWeight: 800, fontSize: ts(12) };
 
 const pushSupported = () => typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 
@@ -89,7 +90,7 @@ export default function NotificationSettings({ say }) {
   return (
     <SettingsSection title="Notifications" subtitle="The bell at the top of draft always shows these. Choose which also reach you outside draft.">
       {pushOffered && (
-        <label data-notify-here="" style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, cursor: busy ? "wait" : "pointer" }}>
+        <label data-notify-here="" style={{ display: "flex", gap: 10, alignItems: "center", fontSize: ts(13), cursor: busy ? "wait" : "pointer" }}>
           <input type="checkbox" role="switch" checked={here} aria-checked={here} disabled={busy} onChange={e => setHerePush(e.target.checked)} />
           <span>Push notifications on this browser
             <span style={{ ...muted, marginLeft: 8 }}>{state.push.devices ? `${state.push.devices} browser${state.push.devices === 1 ? "" : "s"} get them` : ""}</span>
@@ -101,7 +102,7 @@ export default function NotificationSettings({ say }) {
         {cols.map(c => <div key={c} role="columnheader" style={{ ...muted, textAlign: "center" }}>{c === "push" ? "Push" : "Email"}</div>)}
         {state.events.map(ev => (
           <div key={ev.key} role="row" style={{ display: "contents" }}>
-            <div role="cell" style={{ fontSize: 13, color: "var(--color-text)" }}>{ev.label}<div style={muted}>{ev.what}</div></div>
+            <div role="cell" style={{ fontSize: ts(13), color: "var(--color-text)" }}>{ev.label}<div style={muted}>{ev.what}</div></div>
             {cols.map(c => (
               <div key={c} role="cell" style={{ textAlign: "center" }}>
                 <input type="checkbox" role="switch" data-notify-pref={`${ev.key}:${c}`} checked={!!ev[c]} aria-checked={!!ev[c]}
@@ -138,8 +139,8 @@ function MatchAlertChoice({ say }) {
       body: JSON.stringify({ ...patch, tzOffsetMin: new Date().getTimezoneOffset() }) })); }
     catch (e) { say?.("error", e.message || "Could not save that."); }
   };
-  const label = { fontSize: 13, color: "var(--color-text)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" };
-  const sel = { border: `1px solid ${C.BORDER_CONTROL}`, borderRadius: 8, background: "transparent", color: "var(--color-text)", padding: "6px 8px", fontSize: 12 };
+  const label = { fontSize: ts(13), color: "var(--color-text)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" };
+  const sel = { border: `1px solid ${C.BORDER_CONTROL}`, borderRadius: 8, background: "transparent", color: "var(--color-text)", padding: "6px 8px", fontSize: ts(12) };
   return (
     <div data-match-alerts="" style={{ marginTop: 12, display: "grid", gap: 6 }}>
       <label style={label}>New jobs that fit you

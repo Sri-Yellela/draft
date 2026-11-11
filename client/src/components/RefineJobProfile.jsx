@@ -6,6 +6,7 @@
 import { useState } from "react";
 import DomainProfileWizard from "./DomainProfileWizard.jsx";
 import { C } from "../styles/colorTokens.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 /** The profile the prompt is for: the active one when it needs refining, else the first that does. */
 export function profileToRefine(profiles = [], activeId = null) {
@@ -21,7 +22,7 @@ export default function RefineJobProfile({ profiles, activeId = null, onRefined 
     <div data-refine-job-profile={profile.id}
       style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", padding: "10px 14px", margin: "0 0 12px",
         borderRadius: 6, background: "var(--color-surface)", border: "1px solid var(--color-border)", borderLeft: `3px solid ${C.ACCENT}` }}>
-      <span style={{ flex: 1, minWidth: 200, fontSize: 12.5, color: C.INK, lineHeight: 1.5 }}>
+      <span style={{ flex: 1, minWidth: 200, fontSize: ts(12.5), color: C.INK, lineHeight: 1.5 }}>
         <b>{profile.profile_name || "Your job profile"}</b> was set up from your résumé. Check the field, level, titles and
         keywords it read — everything is already filled in.
       </span>

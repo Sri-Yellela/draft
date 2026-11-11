@@ -23,6 +23,7 @@
 import { C } from "../../styles/colorTokens.js";
 import { glass } from "../../styles/glass.js";
 import { TYPE } from "../../styles/type.js";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 /**
  * The responsive grid the profile cards sit in.
@@ -107,9 +108,9 @@ export function TileCard({
       }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ ...TYPE.CARD_TITLE, fontSize: 22, wordBreak: "break-word" }}>{title}</div>
+          <div style={{ ...TYPE.CARD_TITLE, fontSize: ts(22), wordBreak: "break-word" }}>{title}</div>
           {meta && (
-            <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 4 }}>{meta}</div>
+            <div style={{ fontSize: ts(11), color: "var(--color-text-muted)", marginTop: 4 }}>{meta}</div>
           )}
         </div>
         {pill}
@@ -118,7 +119,7 @@ export function TileCard({
       {body != null && (
         // minHeight keeps a grid of tiles from ragging when one subject has less to say than
         // another. It is the profile card's own value.
-        <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 12,
+        <div style={{ fontSize: ts(12), color: "var(--color-text-muted)", marginTop: 12,
                       minHeight: 36, lineHeight: 1.45 }}>
           {body}
         </div>
@@ -151,7 +152,7 @@ export function TileCard({
 export function TilePill({ children, tone = null }) {
   return (
     <span style={{
-      fontSize: 10,
+      fontSize: ts(10),
       fontWeight: 800,
       textTransform: "uppercase",
       letterSpacing: "0.04em",

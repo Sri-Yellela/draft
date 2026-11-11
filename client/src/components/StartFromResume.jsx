@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { api } from "../lib/api.js";
 import { parseResumeFile } from "../lib/parseResumeFile.js";
 import { C } from "../styles/colorTokens.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const LEVEL = { junior: "entry level", mid: "mid level", senior: "senior", executive: "executive" };
 
@@ -40,15 +41,15 @@ export default function StartFromResume({ onDone, onManual, compact = false }) {
         style={{ border: "none", padding: "10px 16px", background: C.ACCENT, color: C.ON_ACCENT, fontWeight: 800, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
         {busy ? "Reading…" : "Upload your résumé"}
       </button>
-      <span style={{ fontSize: 12.5, color: C.INK_MUTED, lineHeight: 1.5 }}>
+      <span style={{ fontSize: ts(12.5), color: C.INK_MUTED, lineHeight: 1.5 }}>
         PDF or Word — or drop it here. draft reads your field, level, titles and skills from it and sets up your first job profile.
       </span>
-      {msg && <span role="status" style={{ fontSize: 12.5, color: C.INK }}>{msg}</span>}
+      {msg && <span role="status" style={{ fontSize: ts(12.5), color: C.INK }}>{msg}</span>}
       {/* ⭐ D150 T08: the first screen offers the 3-minute audit beside the résumé — either order leads to the map. */}
-      <a href="/audit" data-start-audit="" style={{ color: C.ACCENT_INK, fontWeight: 700, fontSize: 12.5 }}>Or take the 3-minute audit first</a>
+      <a href="/audit" data-start-audit="" style={{ color: C.ACCENT_INK, fontWeight: 700, fontSize: ts(12.5) }}>Or take the 3-minute audit first</a>
       {onManual && (
         <button type="button" onClick={onManual} style={{ border: 0, background: "none", padding: 0, color: C.ACCENT_INK,
-          fontWeight: 700, fontSize: 12.5, cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}>
+          fontWeight: 700, fontSize: ts(12.5), cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}>
           Set it up by hand instead
         </button>
       )}

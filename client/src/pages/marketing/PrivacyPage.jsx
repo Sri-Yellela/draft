@@ -4,6 +4,7 @@ import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import { BRAND, CANONICAL_HOST, LEGACY_HOST, PRIVACY_CONTACT_EMAIL, SUPPORT_EMAIL } from "../../../../shared/brand.js";
 import { PolicySection, P, UL, LI, H3, Strong } from "../../components/PolicyProse.jsx";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // Effective date, not just "last touched". The Chrome Web Store rules that took effect on
 // 2026-08-01 require a policy to state when it takes effect and to commit to telling users about
@@ -173,7 +174,7 @@ export function PrivacyPage() {
           }}>
             Privacy Policy
           </h1>
-          <p style={{ fontSize: 13, color: "var(--color-text-faint)" }}>
+          <p style={{ fontSize: ts(13), color: "var(--color-text-faint)" }}>
             Effective: {EFFECTIVE_DATE}
           </p>
         </header>
@@ -1121,7 +1122,7 @@ export function PrivacyPage() {
           marginBottom: 40,
         }}>
           <h2 style={{
-            fontSize: 18, fontWeight: 400, color: "var(--color-text)",
+            fontSize: ts(18), fontWeight: 400, color: "var(--color-text)",
             marginBottom: 12, fontFamily: "var(--font-display)",
           }}>
             Contact Us
@@ -1129,7 +1130,7 @@ export function PrivacyPage() {
           <P>Questions about this policy or your data:</P>
           <a href={`mailto:${CONTACT_EMAIL}`} style={{
             display: "inline-block",
-            fontSize: 14, fontWeight: 600,
+            fontSize: ts(14), fontWeight: 600,
             color: "var(--color-primary-text)", textDecoration: "none",
             borderBottom: "1px solid transparent",
             transition: "border-color 180ms ease",
@@ -1146,7 +1147,7 @@ export function PrivacyPage() {
         <div style={{
           display: "flex", alignItems: "center", gap: 16,
           paddingTop: 24, borderTop: "1px solid var(--color-border)",
-          fontSize: 13, color: "var(--color-text-faint)",
+          fontSize: ts(13), color: "var(--color-text-faint)",
         }}>
           <Link to="/" style={{ color: "var(--color-text-muted)", textDecoration: "none" }}
             onMouseEnter={e => e.currentTarget.style.color = "var(--color-primary)"}

@@ -2,6 +2,7 @@
 import ScrollDock from "../../components/ScrollDock.jsx";
 import { Footer } from "../../components/Footer.jsx";
 import { useMonetisationEnabled } from "../../lib/monetisation.jsx";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // Step 3 is the only tiered step; the other four describe the product identically either way.
 // Both wordings are kept so turning the lever on restores the tier copy exactly, rather than
@@ -35,7 +36,7 @@ export function HowItWorksPage() {
                       fontFamily: "var(--font-display)" }}>
           From job listing to submitted application in minutes
         </h1>
-        <p style={{ fontSize: 16, color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 56, maxWidth: 560 }}>
+        <p style={{ fontSize: ts(16), color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: 56, maxWidth: 560 }}>
           {monetisationEnabled
             ? "One jobs console. Simple Apply is built in, and upgrades add tools when you need them."
             : "One jobs console, with Simple Apply built in and every tool available."}
@@ -52,14 +53,14 @@ export function HowItWorksPage() {
               <div style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0,
                              background: "var(--color-primary-muted)", border: "2px solid var(--color-primary)",
                              display: "flex", alignItems: "center", justifyContent: "center",
-                             fontSize: 18, fontWeight: 900, color: "var(--color-primary-text)", zIndex: 1 }}>
+                             fontSize: ts(18), fontWeight: 900, color: "var(--color-primary-text)", zIndex: 1 }}>
                 {s.n}
               </div>
               <div style={{ paddingTop: 8 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--color-text)", marginBottom: 8 }}>
+                <h2 style={{ fontSize: ts(18), fontWeight: 800, color: "var(--color-text)", marginBottom: 8 }}>
                   {s.title}
                 </h2>
-                <p style={{ fontSize: 14, color: "var(--color-text-muted)", lineHeight: 1.7, margin: 0, maxWidth: 520 }}>
+                <p style={{ fontSize: ts(14), color: "var(--color-text-muted)", lineHeight: 1.7, margin: 0, maxWidth: 520 }}>
                   {s.body}
                 </p>
               </div>

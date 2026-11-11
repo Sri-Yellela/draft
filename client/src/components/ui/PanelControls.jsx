@@ -27,6 +27,7 @@ import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DockPortal } from "../DockPortal.jsx";
 import { DateCalendar } from "./DateCalendar.jsx";
+import { ts } from "../../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 /**
  * THE SUB-TAB ROW: underline-style tabs, each with a count pill.
@@ -60,7 +61,7 @@ export function PanelSubTabs({ tabs, active, onSelect, theme, layoutId, right = 
                      // glass and below AAA in the contrast themes; the matrix's contrast scan found it.
                      color: active === id ? theme.accentText : theme.textMuted,
                      border: "none", padding: "12px 16px",
-                     cursor: "pointer", fontSize: 13,
+                     cursor: "pointer", fontSize: ts(13),
                      fontWeight: active === id ? 700 : 500,
                      position: "relative", transition: "color 0.15s",
                      display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}
@@ -70,7 +71,7 @@ export function PanelSubTabs({ tabs, active, onSelect, theme, layoutId, right = 
               <span data-rm-subtab-count={id}
                 style={{ background: active === id ? theme.accentMuted : theme.surfaceHigh,
                          color: active === id ? theme.accentText : theme.textMuted,
-                         fontSize: 10, fontWeight: 700,
+                         fontSize: ts(10), fontWeight: 700,
                          padding: "1px 7px", borderRadius: 6 }}>
                 {count}
               </span>
@@ -94,7 +95,7 @@ export function PanelSearch({ value, onChange, placeholder, theme, width = 260 }
   return (
     <div style={{ position: "relative", display: "flex", alignItems: "center",
                   flex: `0 0 ${width}px` }}>
-      <span style={{ position: "absolute", left: 12, fontSize: 13,
+      <span style={{ position: "absolute", left: 12, fontSize: ts(13),
                      pointerEvents: "none", color: theme.textDim }}>🔍</span>
       <input value={value} onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === "Escape") onChange(""); }}
@@ -105,7 +106,7 @@ export function PanelSearch({ value, onChange, placeholder, theme, width = 260 }
       {value && (
         <button style={{ position: "absolute", right: 12, background: "transparent",
                          border: "none", color: theme.textMuted, cursor: "pointer",
-                         fontSize: 11 }}
+                         fontSize: ts(11) }}
           onClick={() => onChange("")}>✕</button>
       )}
     </div>
@@ -145,7 +146,7 @@ export function DateFilterButton({
                  background: value ? theme.accentMuted : theme.surfaceHigh,
                  color: value ? theme.accentText : theme.textMuted,
                  border: `1px solid ${value ? "color-mix(in srgb, var(--color-primary) 25%, transparent)" : theme.border}`,
-                 padding: "6px 14px", cursor: "pointer", fontSize: 12,
+                 padding: "6px 14px", cursor: "pointer", fontSize: ts(12),
                  fontWeight: 600, whiteSpace: "nowrap" }}
         onClick={() => {
           const opening = !open;
@@ -155,7 +156,7 @@ export function DateFilterButton({
         }}>
         📅 {value ? `Date: ${format(value)}` : label}
         {value && onClear && (
-          <span style={{ marginLeft: 4, color: theme.textMuted, fontWeight: 700, fontSize: 10 }}
+          <span style={{ marginLeft: 4, color: theme.textMuted, fontWeight: 700, fontSize: ts(10) }}
             onClick={e => { e.stopPropagation(); onClear(); }}>✕</span>
         )}
       </button>

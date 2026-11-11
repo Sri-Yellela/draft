@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const TONES = [
   { value: "professional",   label: "Professional" },
@@ -68,7 +69,7 @@ export default function CoverLetterModal({ resumeText, jobDescription, jobTitle,
   };
   const btn = (accent, secondary = false) => ({
     border: secondary ? `1px solid ${theme.border}` : "none",
-    borderRadius:6, padding:"8px 14px", fontWeight:700, fontSize:12,
+    borderRadius:6, padding:"8px 14px", fontWeight:700, fontSize:ts(12),
     cursor:"pointer", background: secondary ? theme.surfaceHigh : accent,
     color: secondary ? theme.text : C.ON_ACCENT,
   });
@@ -80,26 +81,26 @@ export default function CoverLetterModal({ resumeText, jobDescription, jobTitle,
         <div style={hdr}>
           <div>
             <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                          fontSize:26,
+                          fontSize:ts(26),
                           color:theme.text }}>
               Cover Letter
             </div>
             {(jobTitle || company) && (
-              <div style={{ fontSize:11, color:theme.textMuted, marginTop:2 }}>
+              <div style={{ fontSize:ts(11), color:theme.textMuted, marginTop:2 }}>
                 {[jobTitle, company].filter(Boolean).join(" · ")}
               </div>
             )}
           </div>
           <button onClick={onClose}
             style={{ background:"none", border:"none", cursor:"pointer",
-                     color:theme.textMuted, fontSize:18, lineHeight:1 }}>✕</button>
+                     color:theme.textMuted, fontSize:ts(18), lineHeight:1 }}>✕</button>
         </div>
 
         {/* Body */}
         <div style={{ flex:1, overflowY:"auto", padding:"16px 18px", display:"flex", flexDirection:"column", gap:14 }}>
           {/* Tone */}
           <div>
-            <div style={{ fontSize:11, fontWeight:700, color:theme.textMuted, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.06em" }}>Tone</div>
+            <div style={{ fontSize:ts(11), fontWeight:700, color:theme.textMuted, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.06em" }}>Tone</div>
             <div style={{ display:"flex", gap:8 }}>
               {TONES.map(t => (
                 <button key={t.value} onClick={() => setTone(t.value)}
@@ -115,7 +116,7 @@ export default function CoverLetterModal({ resumeText, jobDescription, jobTitle,
 
           {/* JD textarea (pre-filled, editable) */}
           <div>
-            <div style={{ fontSize:11, fontWeight:700, color:theme.textMuted, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.06em" }}>
+            <div style={{ fontSize:ts(11), fontWeight:700, color:theme.textMuted, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.06em" }}>
               Job Description (optional)
             </div>
             <textarea
@@ -124,7 +125,7 @@ export default function CoverLetterModal({ resumeText, jobDescription, jobTitle,
               rows={5}
               placeholder="Paste the job description here for a more tailored letter..."
               style={{ width:"100%", borderRadius:6, border:`1px solid ${theme.border}`,
-                       background:theme.bg, color:theme.text, fontSize:12,
+                       background:theme.bg, color:theme.text, fontSize:ts(12),
                        padding:"8px 10px", resize:"vertical", fontFamily:"inherit",
                        outline:"none", boxSizing:"border-box" }}
             />
@@ -132,17 +133,17 @@ export default function CoverLetterModal({ resumeText, jobDescription, jobTitle,
 
           {error && (
             <div style={{ background:C.DANGER_QUIET, color:C.DANGER, borderRadius:6,
-                          padding:"8px 12px", fontSize:12 }}>{error}</div>
+                          padding:"8px 12px", fontSize:ts(12) }}>{error}</div>
           )}
 
           {/* Result */}
           {result && (
             <div>
-              <div style={{ fontSize:11, fontWeight:700, color:theme.textMuted, marginBottom:6,
+              <div style={{ fontSize:ts(11), fontWeight:700, color:theme.textMuted, marginBottom:6,
                             textTransform:"uppercase", letterSpacing:"0.06em" }}>Your Cover Letter</div>
               {/* ⛔ D91: a DOCUMENT — black on white in every theme (DOC_PAPER / DOC_INK never change). */}
               <div data-doc-surface="" style={{ background:C.DOC_PAPER, border:`1px solid ${theme.border}`, borderRadius:6,
-                            padding:"12px 14px", fontSize:13, color:C.DOC_INK,
+                            padding:"12px 14px", fontSize:ts(13), color:C.DOC_INK,
                             lineHeight:1.7, whiteSpace:"pre-wrap", maxHeight:320, overflowY:"auto" }}>
                 {result}
               </div>
@@ -169,7 +170,7 @@ export default function CoverLetterModal({ resumeText, jobDescription, jobTitle,
               {loading ? "Writing your cover letter…" : "Generate Cover Letter"}
             </button>
             {!resumeText && (
-              <div style={{ fontSize:11, color:theme.textMuted, marginTop:6, textAlign:"center" }}>
+              <div style={{ fontSize:ts(11), color:theme.textMuted, marginTop:6, textAlign:"center" }}>
                 Upload your resume first to generate a cover letter.
               </div>
             )}
