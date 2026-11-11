@@ -425,8 +425,25 @@ function FamilyDecision({ line, onPage }) {
   );
 }
 
+// ⭐ B-2's last piece (46f): "— N picks today" on the Where-you-fit line. The count cannot be known when the line is written
+// (the deck deals again on its next read), so the card reads today's deal — the same call the deck makes, which deals it.
+const localDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function usePicksToday(wanted) {
+  const [n, setN] = useState(null);
+  useEffect(() => {
+    if (!wanted) return undefined;
+    let live = true;
+    api(`/api/draft/today?date=${encodeURIComponent(localDay())}&order=best`)
+      .then(d => { if (live && d?.reason !== "scoring" && Array.isArray(d?.cards)) setN(d.cards.length); })
+      .catch(() => { /* no count, no claim */ });
+    return () => { live = false; };
+  }, [wanted]);
+  return n;
+}
+
 function ReplaceWhatChanged({ r, onKeep, onUndo, busy, onPage }) {   // A93: SponsorshipSignal has its own WhatChanged
   const [review, setReview] = useState(false);
+  const picks = usePicksToday(r.lines.some(l => l.what === "fit" && l.detail));
   const shown = review ? r.lines : r.lines.slice(0, 6);
   return (
     <section className="yp__changed" data-what-changed="" aria-live="polite">
@@ -436,7 +453,7 @@ function ReplaceWhatChanged({ r, onKeep, onUndo, busy, onPage }) {   // A93: Spo
           <li key={i} data-change="decision"><FamilyDecision line={l} onPage={onPage} /></li>
         ) : (
           <li key={i} data-change={l.kind}><span className="yp__chmark" aria-hidden="true">{MARK[l.kind] || "·"}</span>
-            <span>{l.text}{l.was ? <span className="yp__muted"> · was: {l.was}</span> : null}{l.detail ? <span className="yp__muted"> · {l.detail}</span> : null}</span></li>
+            <span>{l.text}{l.what === "fit" && picks != null ? <span data-change-picks=""> — {picks} pick{picks === 1 ? "" : "s"} today</span> : null}{l.was ? <span className="yp__muted"> · was: {l.was}</span> : null}{l.detail ? <span className="yp__muted"> · {l.detail}</span> : null}</span></li>
         ))}</ul>
       ) : <p className="yp__muted">Nothing on your page changed — the new résumé reads the same.</p>}
       {r.kept?.length > 0 && <p data-change-kept=""><span className="yp__chmark" aria-hidden="true">✓</span> Kept: {r.kept.join(", ")}</p>}
