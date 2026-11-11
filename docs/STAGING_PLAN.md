@@ -81,7 +81,8 @@ The code reads 134 names (`grep env.X` over server.js, routes, services, shared,
 ## 9 · The owner's answers (11-11)
 
 1. `resume-master` IS deployed in staging, with its own volume.
-2. The staging model key: **$20 a month cap**, label `draft-staging` (the owner creates it in the Anthropic console).
+2. ~~The staging model key: $20 a month cap~~ → **NO model key for now** (owner, 11-11): `ANTHROPIC_KEY` blank on staging — the AI features show as unavailable and staging spends $0 on the model. A capped key (`draft-staging`, $20) only when an AI feature is tested there.
+4. ⛔ **The tools service (`resume-master`) is NOT covered by draft's guard** — staging's duplicate carries production's `tools-prod` model key and its own secrets. Before its staged deploy is approved: its model key BLANK, its signing secrets NEW, its URLs staging's; a matching boot guard in the resume-master repo is a separate change.
 3. `staging` → `main` merges only on the owner's word.
 
 ## 10 · Estimate (approximate — Railway's published per-minute rates as last known: ≈ $20 / vCPU-month, ≈ $10 / GB-RAM-month, ≈ $0.15 / GB-volume-month; check the Usage page)
