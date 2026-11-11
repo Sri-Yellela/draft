@@ -70,7 +70,7 @@ const jsxFiles = (d, out = []) => { for (const e of fs.readdirSync(d, { withFile
 test("A116 · 46g — no inline font size anywhere in the client ignores the text size", () => {
   const files = jsxFiles("client/src");
   assert.ok(files.length > 170 && files.includes("client/src/panels/JobsPanel.jsx") && files.includes("client/src/panels/AdminPanel.jsx"), `the scan found the client (${files.length})`);
-  const bare = files.flatMap(f => raw(f).split("\n").map((l, i) => [i + 1, l]).filter(([, l]) => /fontSize:\s?\d/.test(l)).map(([n, l]) => `${f}:${n} ${l.trim().slice(0, 80)}`));
+  const bare = files.flatMap(f => raw(f).split("\n").map((l, i) => [i + 1, l]).filter(([, l]) => /fontSize:\s?\d/.test(l) || /fontSize:\s*(?!\s|ts\()[^,}"'`]*\?\s*\d+(\.\d+)?\s*:\s*\d/.test(l)).map(([n, l]) => `${f}:${n} ${l.trim().slice(0, 80)}`));
   assert.deepEqual(bare, [], "bare inline font sizes — wrap them in ts()");
   assert.match(raw("client/src/themes/shapes.js"), /export const ts = \(px\) => `calc\(\$\{px\}px \* var\(\$\{TYPE_SCALE_VAR\}, 1\)\)`;/);
 });

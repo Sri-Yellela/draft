@@ -527,7 +527,7 @@ export default function AuthScreen({ onLogin, initialTab = "login" }) {
     <div style={{ display:"flex", flexDirection:"column", gap:16, maxWidth:560 }}>
       <StampLogo size={wide ? "lg" : "md"} />
       <SetOnceHeading size={wide ? "clamp(48px, 5.4vw, 76px)" : "clamp(38px, 10vw, 52px)"} />
-      <p style={{ fontSize: wide ? 17 : 15, color:C.INK_MUTED, lineHeight:1.55, margin:0, maxWidth:470 }}>
+      <p style={{ fontSize: ts(wide ? 17 : 15), color:C.INK_MUTED, lineHeight:1.55, margin:0, maxWidth:470 }}>
         Not a search box. Every job on the board is read against your résumé, and the best ten are
         dealt to you each morning.
       </p>

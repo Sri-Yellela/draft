@@ -41,7 +41,7 @@ export default function ProfileSelectorDropdown({
           border: `1px solid ${theme.border}`,
           background: theme.surface,
           color: theme.text,
-          fontSize: compact ? 11 : 12,
+          fontSize: ts(compact ? 11 : 12),
           fontWeight: 700,
           cursor: "pointer",
           display: "inline-flex",

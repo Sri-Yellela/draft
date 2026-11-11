@@ -48,8 +48,8 @@ export function ExtensionInstallButton({ compact = false }) {
     <a href={EXTENSION_STORE_URL} target="_blank" rel="noopener noreferrer" data-extension-install=""
        className="rm-btn rm-btn-primary"
        style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none",
-                padding: compact ? "8px 16px" : "12px 22px", fontSize: compact ? 13 : 15 }}>
-      <DraftMark style={{ fontSize: compact ? 14 : 17 }}/> Add to Chrome
+                padding: compact ? "8px 16px" : "12px 22px", fontSize: ts(compact ? 13 : 15) }}>
+      <DraftMark style={{ fontSize: ts(compact ? 14 : 17) }}/> Add to Chrome
     </a>
   );
 }
