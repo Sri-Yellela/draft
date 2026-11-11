@@ -10,6 +10,22 @@ import { BASIS_FN } from "./jobs/descriptionText.js";
 import { educationOf } from "./structuredProfile.js";
 import { sponsorshipFactFor } from "./kb/sponsorshipFacts.js";
 
+// ⭐ A175 (46g, measured on staging — 8 vCPU, 100k postings, 20 users): reading a posting's requirements from its full text
+// (normalizePosting + postingRequirements' sentence regexes) ran for every row of every board page — ≈ 10 % of the main
+// thread under load. The answer depends only on that text, and nothing writes to it (eligibilityOf pushes to its own
+// arrays), so it is kept per TEXT — exact for the same words, recomputed for any edit — most-recently-used, bounded.
+const REQ_MEMO_MAX = 5000;
+const reqMemo = new Map();
+export function requirementsOfText(text) {
+  const t = String(text);
+  const kept = reqMemo.get(t);
+  if (kept) { reqMemo.delete(t); reqMemo.set(t, kept); return kept; }
+  const req = postingRequirements(normalizePosting(t));
+  reqMemo.set(t, req);
+  if (reqMemo.size > REQ_MEMO_MAX) reqMemo.delete(reqMemo.keys().next().value);
+  return req;
+}
+
 export function userEligibilityInputs(db, userId) {
   let defaults = {};
   try { defaults = Object.fromEntries(db.prepare(`SELECT key, value FROM application_defaults WHERE user_id = ?`).all(userId).map(r => [r.key, r.value])); }
@@ -25,8 +41,7 @@ export function eligibilityForJob(db, userId, jobId, inputs = null) {
   let row = null;
   try { row = db.prepare(`SELECT * FROM scraped_jobs WHERE job_id = ?`).get(String(jobId)); } catch { row = null; }
   if (!row?.description) return { status: "eligible", reasons: [], missing: [], requirements: null };
-  const n = normalizePosting(row.description_full ?? row.description);
-  const req = postingRequirements(n);
+  const req = requirementsOfText(row.description_full ?? row.description);   // ⭐ A175 (46g)
   const { defaults, degrees } = inputs || userEligibilityInputs(db, userId);
   const verdict = eligibilityOf(req, defaults, degrees);
   const context = eligibilityContext(db, row.company, { defaults });
@@ -57,7 +72,7 @@ export function hasEligibilityInputs({ defaults = {}, degrees = [] } = {}) {
 export function eligibilityForRow(row, inputs) {
   const text = row?.description_full ?? row?.description;
   if (!text) return { status: "eligible", reasons: [], missing: [] };
-  return eligibilityOf(postingRequirements(normalizePosting(text)), inputs.defaults, inputs.degrees);
+  return eligibilityOf(requirementsOfText(text), inputs.defaults, inputs.degrees);   // ⭐ A175 (46g)
 }
 
 // ── D112 item 6 · THE DEMOTION ACROSS PAGES — the board's FIRST order key, read from the STORED requirement columns ──

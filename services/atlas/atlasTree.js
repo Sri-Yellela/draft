@@ -63,8 +63,25 @@ export function boardReadings(db, nodes) {
  * Closeness, from the readings: per node — its postings, how many of them also ask for ≥ CLOSE_MIN_MINE of the user's
  * skills (the node itself not counted), and how often it is asked with each of the user's skills.
  * @returns Map(nodeId → { postings, close, with: Map(mineId → together) })
+ *
+ * ⭐ A175 (46g, measured on staging — 8 vCPU, 100k postings, 20 users): this walk over every active posting's reading ran
+ * on EVERY Your map request and was 18.6 % of the main thread under load (the board waited behind it). It is a pure
+ * function of the readings ARRAY (boardReadings' cached rows — a rebuild is a new array) and the skill set, and its
+ * callers only read the result, so it is kept per readings array (WeakMap — dropped with it) and skill-set key.
  */
+const closenessMemo = new WeakMap();
 export function closenessCounts(readings, mineIds) {
+  const key = [...mineIds].map(String).sort().join(",");
+  let byKey = closenessMemo.get(readings);
+  if (!byKey) { byKey = new Map(); closenessMemo.set(readings, byKey); }
+  const kept = byKey.get(key);
+  if (kept) return kept;
+  const out = computeCloseness(readings, mineIds);
+  if (byKey.size >= 500) byKey.clear();
+  byKey.set(key, out);
+  return out;
+}
+function computeCloseness(readings, mineIds) {
   const out = new Map();
   for (const r of readings) {
     const mine = r.asked.filter(id => mineIds.has(id));
