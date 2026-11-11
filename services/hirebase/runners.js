@@ -7,12 +7,13 @@
 //   backfill     paged limit 100, posted ≥ today − days; stops cleanly at the cap (the guard refuses) and resumes
 //   incremental  ingested_after = the last incremental's start − 2 h (their advice), sort first_ingested asc, upsert by _id
 //   expired      the free expired feed since N days → Hirebase-only rows retired
-//   ageOut       Hirebase-only rows posted more than 90 days ago retired (no call)
+//   ageOut       Hirebase-only rows posted more than 30 days ago retired (no call; FEED-4)
 import { buildSearchBody, categoryMap } from "./filter.js";
 import { landHirebaseJob, retireExpiredHirebaseJob } from "./ingest.js";
 import { HirebaseRefusedError, HirebaseQuotaError } from "./client.js";
 
-export const MAX_AGE_DAYS = 90;
+// HB-FEED FEED-4 (owner 11-10): Hirebase-only rows leave the board at 30 days (was 90) — the feed is fresh-only.
+export const MAX_AGE_DAYS = 30;
 export const INCREMENTAL_OVERLAP_MS = 2 * 3600 * 1000;
 const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
 
@@ -84,7 +85,8 @@ export function runBackfill(db, client, { days = 60, maxPages = 10, nowMs = Date
 
 /** Hourly: everything first ingested since the last incremental's start, minus a 2-hour overlap, oldest first. */
 export function runIncremental(db, client, { maxPages = 20, nowMs = Date.now() } = {}) {
-  const lastStart = db.prepare(`SELECT started_at FROM hirebase_runs WHERE kind = 'incremental' AND status = 'done' AND dry_run = 0 ORDER BY id DESC LIMIT 1`).pluck().get();
+  const lastStart = db.prepare(`SELECT started_at FROM hirebase_runs WHERE kind = 'incremental' AND status = 'done' AND dry_run = 0
+    AND COALESCE(json_extract(cursor_json, '$.feed'), 0) != 1 ORDER BY id DESC LIMIT 1`).pluck().get();
   const since = lastStart ? Number(lastStart) * 1000 - INCREMENTAL_OVERLAP_MS : nowMs - 24 * 3600 * 1000;
   return searchPages(db, client, { kind: "incremental", maxPages,
     body: buildSearchBody({ ingestedAfter: iso(since), sortBy: "first_ingested", sortOrder: "asc", limit: 100 }) });
