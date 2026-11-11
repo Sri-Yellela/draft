@@ -52,7 +52,7 @@ import { applyAllowed, spendTrialDrafts } from "../services/billing/subscription
 import { verificationConfig } from "../services/billing/config.js";
 import { accountVerified } from "../services/billing/verification.js";
 import { userHeld, userHoldSince, setUserHold } from "../services/applyUserHold.js";
-import { draftSlots, slotsExhausted } from "../services/draftSlots.js";
+import { draftSlots, slotsExhausted, newJobsAmong } from "../services/draftSlots.js";
 import { atsJobInputHash, ATS_JOB_INPUT_FIELDS } from "../services/jobs/boardFitPrecompute.js";
 import { recordSubmissionFromPipeline, markPending, releaseDraftRecord, publicRecord } from "../services/applicationRecords.js";
 import { binRunJobs, listBin, restoreFromBin, purgeNow, BIN_DAYS } from "../services/draftBin.js";
@@ -2660,7 +2660,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // not move). Refused with the one sentence every surface shows.
     if (resolvedApproval !== "approved" && !retryOfHeld) {
       const slots = draftSlots(db, userId);
-      if (slots.used + filtered.length > slots.limit) return respond(429, slotsExhausted(slots, filtered.length));
+      // ⭐ A181 (5a): only NEW jobs are charged — Run again / Re-run selected on a job already drafted is free.
+      const charged = newJobsAmong(db, userId, filtered).length;
+      if (charged > 0 && slots.used + charged > slots.limit) return respond(429, slotsExhausted(slots, charged));
     }
 
     // ⭐ A167 (g)(c)(d) · THE ONE THING PHASE 1 GATES: applying through draft (SEMI and FULL AUTO). The whole site stays
@@ -3095,6 +3097,8 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // A59: the user's line, next first — the same payload as GET /api/apply/line.
       line: publicLine(req.user.id),
       statusCounts,
+      // ⭐ A181 (5d): the day's NEW-draft allowance, shown where it bites (counts only — no cost figures).
+      draftSlots: (() => { try { const s = draftSlots(db, req.user.id); return { limit: s.limit, used: s.used, remaining: s.remaining }; } catch { return null; } })(),
     });
   });
 

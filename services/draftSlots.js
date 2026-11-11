@@ -29,11 +29,19 @@ export function draftSlotLimit(env = process.env) {
 
 const WINDOW_SECONDS = 86400;
 
-/** Drafts the user started in the window. 0 on a database without the tables (a test fixture). */
-function draftsUsed(db, userId, since) {
-  try {
-    return db.prepare(`
-      SELECT COUNT(*) FROM apply_run_jobs rj
+// ⭐ A181 (5) (owner 11-10: "we should have options to cancel or rerun drafts cause my limit exhausted for the day"):
+//   (a) a RE-RUN of a job already drafted is FREE — the allowance counts NEW jobs drafted, once each, from the job's FIRST
+//       counted draft (a re-run tomorrow of yesterday's draft is free too);
+//   (b) a draft that failed because of DRAFT'S OWN fault (the browser, the worker, a restart, the résumé pipeline) is never
+//       counted — its credit comes back by itself, today's included (the count is computed, not debited).
+// ⛔ Every reader (the limit, the refusal, nextFreeAt) reads the same rows through COUNTED_JOBS.
+export const OUR_FAULT_CODES = Object.freeze(["browser_error", "browser_launch_failed", "browser_timeout", "browser_binary_not_found",
+  "browser_runtime_missing_dependency", "internal_error", "interrupted_by_restart", "worker_error", "no_fields_discovered",
+  "resume_unavailable", "resume_pdf_failed", "resume_artifact_missing", "resume_claim_violation", "resume_generate", "resume_store_failed"]);
+const OUR_FAULT_SQL = OUR_FAULT_CODES.map(c => `'${c}'`).join(", ");
+const COUNTED_JOBS = `
+      SELECT rj.job_id, MIN(COALESCE(rj.created_at, 0)) AS first_at
+      FROM apply_run_jobs rj
       JOIN apply_runs r ON r.id = rj.run_id
       WHERE rj.user_id = ?
         AND COALESCE(r.approval_mode, '') != 'approved'
@@ -42,9 +50,28 @@ function draftsUsed(db, userId, since) {
         -- APPROVAL is — the approved run is excluded above, so not counting this as well gave the slot
         -- back on every Approve and the 10-a-day bound held only for drafts never approved.
         AND NOT (rj.status = 'superseded' AND rj.approved_at IS NULL)
-        AND COALESCE(rj.created_at, 0) >= ?
-    `).pluck().get(userId, since);
+        AND COALESCE(rj.reason_code, '') NOT IN (${OUR_FAULT_SQL})
+        -- A181 (5b): a draft the person CANCELLED (cleared into the bin, restorable) gives its credit back if nothing was sent;
+        -- Restore counts it again.
+        AND NOT (rj.hidden_at IS NOT NULL AND rj.status <> 'submitted')
+      GROUP BY rj.job_id`;
+
+/** NEW jobs the user drafted in the window (each once; re-runs and our-fault failures free). 0 without the tables. */
+function draftsUsed(db, userId, since) {
+  try {
+    return db.prepare(`SELECT COUNT(*) FROM (${COUNTED_JOBS}) WHERE first_at >= ?`).pluck().get(userId, since);
   } catch { return 0; }
+}
+
+/** ⭐ A181 (5a): of these job ids, the ones a Draft would charge for — never drafted (counted) before. */
+export function newJobsAmong(db, userId, jobIds) {
+  const ids = [...new Set((jobIds || []).map(String))];
+  if (!ids.length) return [];
+  try {
+    const seen = new Set(db.prepare(`SELECT job_id FROM (${COUNTED_JOBS}) WHERE job_id IN (${ids.map(() => "?").join(",")})`)
+      .pluck().all(userId, ...ids).map(String));
+    return ids.filter(id => !seen.has(id));
+  } catch { return ids; }
 }
 
 function generationsUsed(db, userId, since) {
@@ -58,9 +85,7 @@ function generationsUsed(db, userId, since) {
 /** The oldest use still inside the window (seconds), or null. Same rows the two counts above count. */
 function oldestUse(db, userId, since) {
   const one = (sql) => { try { return db.prepare(sql).pluck().get(userId, since) ?? null; } catch { return null; } };
-  const d = one(`SELECT MIN(rj.created_at) FROM apply_run_jobs rj JOIN apply_runs r ON r.id = rj.run_id
-    WHERE rj.user_id = ? AND COALESCE(r.approval_mode, '') != 'approved' AND rj.status <> 'cancelled'
-      AND NOT (rj.status = 'superseded' AND rj.approved_at IS NULL) AND COALESCE(rj.created_at, 0) >= ?`);
+  const d = one(`SELECT MIN(first_at) FROM (${COUNTED_JOBS}) WHERE first_at >= ?`);
   const g = one(`SELECT MIN(created_at) FROM draft_slot_uses WHERE user_id = ? AND kind = 'generate' AND created_at >= ?`);
   const v = [d, g].filter(x => x != null).map(Number);
   return v.length ? Math.min(...v) : null;
@@ -88,8 +113,8 @@ export function draftSlots(db, userId, { now = Math.floor(Date.now() / 1000), en
 export function slotsExhausted(slots, requested = 1) {
   return {
     error: "draft_slots_exhausted",
-    message: `You have used ${slots.used} of your ${slots.limit} drafts in the last 24 hours ` +
-      `(a Draft and a generated résumé each use one)` +
+    message: `You have used ${slots.used} of your ${slots.limit} new drafts in the last 24 hours ` +
+      `(a new job's Draft and a generated résumé each use one; running a draft again is free)` +
       (requested > 1 ? `, and ${requested} were requested.` : ".") +
       " The next one frees up 24 hours after the oldest.",
     slots,

@@ -111,7 +111,12 @@ export function resumeWord(node, hist) {
 /** The Answers column: "12 filled" · "1 needs you" · "—". */
 export function answersWord(node) {
   const ref = node?.ref || {};
-  if (node?.kind === "held" && node.why === "question") return "1 needs you";
+  // ⭐ A181 (4): the row and the panel read ONE count — the questions really waiting (the panel said 7, the row said 1).
+  if (node?.kind === "held" && node.why === "question") {
+    const row = ref.primary?.row || ref;
+    const n = Array.isArray(row?.heldQuestions) && row.heldQuestions.length ? row.heldQuestions.length : 1;
+    return `${n} need${n === 1 ? "s" : ""} you`;
+  }
   if (node?.kind === "held" && node.why === "empty") {
     const n = (ref.primary?.row?.missingRequired || []).length;
     return n ? `${n} need${n === 1 ? "s" : ""} you` : "—";

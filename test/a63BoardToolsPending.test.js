@@ -206,8 +206,8 @@ test("the allowance is the deck's 10, shared by Drafts and new résumés; Undo a
     assert.equal(refused.status, 429);
     const body = await refused.json();
     assert.equal(body.error, "draft_slots_exhausted");
-    assert.match(body.message, /used 3 of your 3 drafts in the last 24 hours/);
-    assert.match(body.message, /a Draft and a generated résumé each use one/);
+    assert.match(body.message, /used 3 of your 3 new drafts in the last 24 hours/);   // A181: "new" drafts — a re-run is free
+    assert.match(body.message, /a new job's Draft and a generated résumé each use one; running a draft again is free/);
 
     // A slot older than 24 hours is free again.
     db.prepare("UPDATE draft_slot_uses SET created_at = unixepoch() - 90000").run();

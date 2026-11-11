@@ -35,7 +35,30 @@ export function heldQuestionsFor(node) {
   if (!node) return [];
   const row = latestRow(node) || {};
   const list = Array.isArray(row.heldQuestions) ? row.heldQuestions : [];
-  return list.filter(q => q && s(q.question)).map(q => ({ question: s(q.question), required: !!q.required, from: s(q.from) }));
+  return list.filter(q => q && s(q.question)).map(q => ({ question: s(q.question), required: !!q.required, from: s(q.from),
+    eligibility: q.eligibility || null, type: q.type ? s(q.type) : null, options: Array.isArray(q.options) ? q.options.map(s) : null,
+    kind: questionKind(q) }));
+}
+
+// ⭐ A181 (3) / (4): what each held question IS — a Yes / No statement (work authorisation, sponsorship: the person's own,
+// saved once), a choice from the form's options, a free-text question draft writes for the person to check, or a short text.
+const YES_NO = /\b(authori[sz]ed|authori[sz]ation|eligible|sponsor|sponsorship|visa|legally|relocat\w*|over (the age of )?18|background check|non-compete)\b/i;
+const FREE_TEXT = /\b(why|describe|tell us|explain|what (interests|excites|motivates)|cover letter|proficien\w*|experience with|additional information|anything else)\b/i;
+export function questionKind(q) {
+  const t = s(q?.type).toLowerCase(), text = s(q?.question);
+  const opts = Array.isArray(q?.options) ? q.options : [];
+  if (opts.length && opts.length <= 3 && opts.every(o => /^(yes|no|n\/a|prefer not)/i.test(s(o?.label ?? o)))) return "yesno";
+  if (opts.length) return "choice";
+  if (q?.eligibility || t === "checkbox" || t === "toggle" || YES_NO.test(text)) return "yesno";
+  if (t === "text_area" || t === "textarea" || FREE_TEXT.test(text) || text.length > 70) return "draft";
+  return "text";
+}
+
+/** ⭐ A181 (4): ONE count for the row and the panel — the questions really waiting, split into yours and draft's drafts. */
+export function heldCounts(node) {
+  const qs = heldQuestionsFor(node);
+  const drafts = qs.filter(q => q.kind === "draft").length;
+  return { total: qs.length, yours: qs.length - drafts, drafts };
 }
 
 export function heldHeadline(node) {
@@ -47,8 +70,12 @@ export function heldHeadline(node) {
       // ⭐ A179 F1 (owner 11-10: "One answer only you can give" over 24 fields, "Everything else is done" when nothing was):
       // the heading counts the questions really waiting, and "everything else is done" is said only when the run filled the rest.
       const n = heldQuestionsFor(node).length;
+      const { yours, drafts } = heldCounts(node);
       const fill = fillOf(latestRow(node));
-      const title = n > 1 ? `${n} answers only you can give` : q ? s(q).replace(/\s*\??$/, "?") : "One answer only you can give";
+      // ⭐ A181 (4): "2 answers only you can give · 2 drafts to check" — the free-text ones are draft's to write, the person checks.
+      const title = drafts > 0 && n > 1
+        ? [yours ? `${yours} answer${yours === 1 ? "" : "s"} only you can give` : null, `${drafts} draft${drafts === 1 ? "" : "s"} to check`].filter(Boolean).join(" · ")
+        : n > 1 ? `${n} answers only you can give` : q ? s(q).replace(/\s*\??$/, "?") : "One answer only you can give";
       const rest = fill && fill.filled === 0 ? "Nothing was filled on the form yet — draft had no answers to type."
         : fill && fill.filled > 0 ? `draft filled ${fill.filled}${fill.discovered ? ` of ${fill.discovered}` : ""} fields; the rest are yours.`
         : "Everything else is done.";
