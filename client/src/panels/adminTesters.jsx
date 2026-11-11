@@ -182,6 +182,8 @@ export function TestersTab() {
         {opts.exclude ? `Left out: ${d.excluded.accounts} account${d.excluded.accounts === 1 ? "" : "s"} and ${d.excluded.surveys} survey answer${d.excluded.surveys === 1 ? "" : "s"} — admins and accounts tagged "test" or "internal" in People.` : "Including every account."}
         {said && <span role="status" style={{ marginLeft: 8, color: C.INK }}>{said}</span>}
       </p>
+      {/* ⭐ 46f (45f's "not done"): the report says what the 90-day sweep removed, as People & questions does. */}
+      {d.retention && <p data-testing-retention="" style={{ ...muted, margin: "0 0 10px" }}>{d.retention.text}</p>}
       <div role="note" data-testers-banner="" style={{ border: `1px solid ${d.small ? C.WARNING : C.BORDER}`, background: d.small ? C.WARNING_QUIET : "transparent",
         borderRadius: 10, padding: "10px 14px", margin: "6px 0 16px", fontSize: 14 }}>
         {d.small
