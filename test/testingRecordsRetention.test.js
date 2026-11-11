@@ -42,3 +42,10 @@ test("testingRecordsSweptDaily: the nightly job, the admin's note, and the polic
   assert.match(policy, /They are kept with your account for 90 days and then\n\s+deleted automatically; survey answers are kept\./);
   assert.doesNotMatch(policy, /\btrial\b|guided tour/i);
 });
+
+// ⭐ 46f · 45f's "not done": the Testers REPORT panel shows the retention line too (the JSON always carried it).
+test("testingRecordsRetention: the Testers report panel says what the 90-day sweep removed", async () => {
+  const fsm = await import("node:fs");
+  const src = fsm.readFileSync("client/src/panels/adminTesters.jsx", "utf8");
+  if (!/\{d\.retention && <p data-testing-retention="" style=\{\{ \.\.\.muted, margin: "0 0 10px" \}\}>\{d\.retention\.text\}<\/p>\}/.test(src)) throw new Error("the report panel draws d.retention.text");
+});
