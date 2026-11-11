@@ -152,10 +152,11 @@ test("d156DockIconsSameSizeThemeAccent / d156ShortLogoInDock (pure): 30 px icons
   // ⭐ (1c): swapped — the jobs page is "/d · draft", the tracker is the house, "Home".
   // ⭐ D167 (owner 11-06, changed on purpose): + Interview (the microphone); the jobs' icon is the drawing-out wordmark (<DraftMark drawOut />); names only.
   // D180 P1 (45o, on purpose): + network (drawn only while the network switch is on).
-  assert.match(NAV, /const ICONS = \{ atlas: \(\) => <GlobeIcon \/>, "auto-apply" ?: \(\) => <HouseIcon \/>, interview: \(\) => <MicIcon \/>, network: \(\) => <PeopleIcon \/> \};/);
+  // 46f (on purpose): + Feed and Messages' icons, their own places under the network switch.
+  assert.match(NAV, /const ICONS = \{ atlas: \(\) => <GlobeIcon \/>, "auto-apply" ?: \(\) => <HouseIcon \/>, interview: \(\) => <MicIcon \/>, network: \(\) => <PeopleIcon \/>, feed: \(\) => <FeedIcon \/>, messages: \(\) => <EnvelopeIcon \/> \};/);
   assert.match(NAV, /<DraftMark drawOut \/>/);
-  // D180 P1 (45o, on purpose): + network.
-  assert.match(NAV, /export const DOCK_NAMES = Object\.freeze\(\{ today: "draft", "auto-apply" ?: "Home", atlas: "Atlas", interview: "Interview", network: "Network" \}\);/, "slash for short, draft for long — the jobs");
+  // D180 P1 (45o, on purpose): + network. 46f (on purpose): + feed, messages.
+  assert.match(NAV, /export const DOCK_NAMES = Object\.freeze\(\{ today: "draft", "auto-apply" ?: "Home", atlas: "Atlas", interview: "Interview", network: "Network", feed: "Feed", messages: "Messages" \}\);/, "slash for short, draft for long — the jobs");
   assert.match(NAV, /\{url \? <img src=\{url\} alt="" \/> : <span className="appnav-initials" aria-hidden="true">\{initialsOf\(profile\.name\)\}<\/span>\}/);
   assert.doesNotMatch(NAV, /appnav-emboss|appnav-handle|DOCK_REVEAL_PX/, "D152 (4)'s embossed logo, edge handle and edge reveal are gone");
 });
