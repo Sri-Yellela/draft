@@ -108,11 +108,47 @@ const SITES_46G = [
   ["Tufts University", "https://www.tufts.edu", "education"], ["Brigham and Women's Hospital", "https://www.brighamandwomens.org", "healthcare"],
   ["Dana-Farber Cancer Institute", "https://www.dana-farber.org", "healthcare"], ["Hartford HealthCare", "https://hartfordhealthcare.org", "healthcare"],
 ];
+// 46g pass 4 · pass 3 showed the big pharma / medtech / services employers run Workday or Oracle (both read) — more of those:
+// banks, defense, energy, consumer goods, industrial manufacturing, health systems, universities. ⛔ SAP-HOSTED
+// SuccessFactors (career4 / performancemanager4.successfactors.com — Aflac, Union Pacific) is NOT a lever: its robots.txt
+// is `Disallow: /` for every agent (read 11-11).
+const SITES_46G2 = [
+  ["PNC", "https://www.pnc.com", "finance"], ["U.S. Bank", "https://www.usbank.com", "finance"],
+  ["Truist", "https://www.truist.com", "finance"], ["Charles Schwab", "https://www.aboutschwab.com", "finance"],
+  ["American Express", "https://www.americanexpress.com", "finance"], ["BNY", "https://www.bny.com", "finance"],
+  ["Northern Trust", "https://www.northerntrust.com", "finance"], ["T. Rowe Price", "https://www.troweprice.com", "finance"],
+  ["L3Harris", "https://www.l3harris.com", "manufacturing"], ["BAE Systems Inc.", "https://www.baesystems.com/en-us", "manufacturing"],
+  ["Textron", "https://www.textron.com", "manufacturing"], ["Huntington Ingalls Industries", "https://hii.com", "manufacturing"],
+  ["Chevron", "https://www.chevron.com", "energy"], ["ExxonMobil", "https://corporate.exxonmobil.com", "energy"],
+  ["ConocoPhillips", "https://www.conocophillips.com", "energy"], ["AES", "https://www.aes.com", "energy"],
+  ["American Electric Power", "https://www.aep.com", "energy"], ["Avangrid", "https://www.avangrid.com", "energy"],
+  ["Procter & Gamble", "https://us.pg.com", "consumer goods"], ["PepsiCo", "https://www.pepsico.com", "consumer goods"],
+  ["Coca-Cola Company", "https://www.coca-colacompany.com", "consumer goods"], ["Nike", "https://about.nike.com", "consumer goods"],
+  ["Starbucks", "https://about.starbucks.com", "consumer goods"], ["General Mills", "https://www.generalmills.com", "consumer goods"],
+  ["Kraft Heinz", "https://www.kraftheinzcompany.com", "consumer goods"], ["Colgate-Palmolive", "https://www.colgatepalmolive.com", "consumer goods"],
+  ["Emerson", "https://www.emerson.com", "manufacturing"], ["Rockwell Automation", "https://www.rockwellautomation.com", "manufacturing"],
+  ["Cummins", "https://www.cummins.com", "manufacturing"], ["Eaton", "https://www.eaton.com", "manufacturing"],
+  ["Parker Hannifin", "https://www.parker.com", "manufacturing"], ["Danaher", "https://www.danaher.com", "manufacturing"],
+  ["Otis", "https://www.otis.com", "manufacturing"], ["Carrier", "https://www.corporate.carrier.com", "manufacturing"],
+  ["Trane Technologies", "https://www.tranetechnologies.com", "manufacturing"], ["Johnson Controls", "https://www.johnsoncontrols.com", "manufacturing"],
+  ["Novartis", "https://www.novartis.com/us-en", "pharma"], ["Sanofi", "https://www.sanofi.com/en/united-states", "pharma"],
+  ["AstraZeneca", "https://www.astrazeneca-us.com", "pharma"], ["Takeda", "https://www.takeda.com/en-us", "pharma"],
+  ["Ascension", "https://healthcare.ascension.org", "healthcare"], ["Trinity Health", "https://www.trinity-health.org", "healthcare"],
+  ["Banner Health", "https://www.bannerhealth.com", "healthcare"], ["Mount Sinai Health System", "https://www.mountsinai.org", "healthcare"],
+  ["Cedars-Sinai", "https://www.cedars-sinai.org", "healthcare"], ["Atrium Health", "https://atriumhealth.org", "healthcare"],
+  ["Yale University", "https://www.yale.edu", "education"], ["Stanford University", "https://www.stanford.edu", "education"],
+  ["Columbia University", "https://www.columbia.edu", "education"], ["University of Pennsylvania", "https://www.upenn.edu", "education"],
+  ["Brown University", "https://www.brown.edu", "education"], ["Duke University", "https://www.duke.edu", "education"],
+  ["McKinsey & Company", "https://www.mckinsey.com", "consulting"], ["Boston Consulting Group", "https://www.bcg.com", "consulting"],
+  ["Bain & Company", "https://www.bain.com", "consulting"], ["Gartner", "https://www.gartner.com", "consulting"],
+  ["Waste Management", "https://www.wm.com", "logistics"], ["Ryder", "https://www.ryder.com", "logistics"],
+  ["Southwest Airlines", "https://www.southwest.com", "transport"], ["Amtrak", "https://www.amtrak.com", "transport"],
+];
 const prior = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, "utf8")) : { tried: {}, found: [] };
 prior.unsupported ??= [];
 prior.j1 ??= {};
 const have = new Set(prior.found.map(f => `${f.atsType}:${f.slug}`.toLowerCase()));
-for (const [company, site, industry] of [...SITES, ...SITES_46A, ...SITES_46G]) {
+for (const [company, site, industry] of [...SITES, ...SITES_46A, ...SITES_46G, ...SITES_46G2]) {
   // 46b: RETRY_ERRORS=1 re-tries only the sites a run recorded as "error" (46a: Lockheed, Caterpillar, Morgan Stanley).
   if (prior.j1[company] && !(process.env.RETRY_ERRORS === "1" && prior.j1[company] === "error")) continue;
   const fetcher = createFetcher({ budget: { pages: 25, bytes: 5_000_000, ms: 120_000 }, rateMs: 2000 });
