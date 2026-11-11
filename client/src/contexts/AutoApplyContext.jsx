@@ -114,7 +114,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       setApplyInFlight(Array.isArray(data.inFlight) ? data.inFlight : []);
       setApplySubmitted(Array.isArray(data.submitted) ? data.submitted : []);
       setApplyStopped(Array.isArray(data.stopped) ? data.stopped : []);
-      setApplySlots(data.draftSlots || null);   // ⭐ A181 (5d)
+      setApplySlots(data.draftSlots ? { ...data.draftSlots, heldBeforeUpdate: Number(data.heldBeforeUpdate) || 0 } : null);   // ⭐ A181 (5c)(5d)
       setApplyLine(data.line && Array.isArray(data.line.waiting) ? data.line : { waiting: [], held: null });
     } catch {}
     // Prerequisites, so "add your email address -> unblocks N applications" can be shown BEFORE the

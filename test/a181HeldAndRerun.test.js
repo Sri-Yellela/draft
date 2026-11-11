@@ -113,6 +113,8 @@ test("a181OurFaultRefunds + a181CancelToStoppedRestorable: our-fault failures an
 test("a181BulkRerunCancel + a181LimitVisibleAndExplained + a181RerunUsesCurrentCode (source)", () => {
   const panel = read("client/src/panels/AutoApplyPanel.jsx");
   assert.match(panel, /data-rerun-held=""/); assert.match(panel, /data-cancel-held=""/);
+  assert.match(panel, /data-held-before-update=""/, "the once-after-an-update offer");
+  assert.match(read("routes/apply.js"), /heldBeforeUpdate: \(\(\) => \{ const bootAt = Math\.floor\(Date\.now\(\) \/ 1000 - process\.uptime\(\)\);/);
   assert.match(panel, /new drafts left in the last 24 hours · running a draft again is free/);
   assert.match(panel, /label: "Run again", title: "Draft this job again now with draft's current fixes — free/);
   assert.match(read("services/draftSlots.js"), /running a draft again is free/, "the refusal says so too");

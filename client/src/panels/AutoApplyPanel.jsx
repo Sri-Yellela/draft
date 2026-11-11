@@ -500,6 +500,7 @@ export function AutoApplyPanel({ user = null } = {}) {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMsg, setBulkMsg] = useState("");
   const slots = applySlots;
+  const [bannerGone, setBannerGone] = useState(false);
   const heldRerunnableFrom = (ns) => (ns || []).filter(n => n && n.kind === "held" && n.jobId != null && !n.ref?.postingGone)
     .map(n => ({ jobId: n.jobId, company: n.company, title: n.title, runJobId: (n.ref?.primary?.row || n.ref)?.id }));
   const slotLine = slots && Number.isFinite(Number(slots.remaining))
@@ -1256,6 +1257,14 @@ export function AutoApplyPanel({ user = null } = {}) {
           <button type="button" className="dh-btn" data-cancel-held="" disabled={bulkBusy || binBusy}
             title="Cancel every held draft — they move to Cleared (restore for 7 days); nothing was sent, so their drafts come back."
             onClick={() => { const hs = heldRerunnableFrom(nodes); if (window.confirm(`Cancel ${hs.length} held drafts? They stay in Cleared for 7 days.`)) clearRunJobs({ runJobIds: hs.map(h => h.runJobId).filter(Boolean) }); }}>Cancel {heldRerunnableFrom(nodes).length} held</button>
+        )}
+        {/* ⭐ A181 (5c): once after an update — the drafts held before it, offered a free re-run with the fixes. */}
+        {applySlots?.heldBeforeUpdate > 0 && heldRerunnableFrom(nodes).length > 0 && !bannerGone && (
+          <p className="dh-fold__quiet" data-held-before-update="">
+            {applySlots.heldBeforeUpdate} draft{applySlots.heldBeforeUpdate === 1 ? " was" : "s were"} held before draft's latest update — re-run {applySlots.heldBeforeUpdate === 1 ? "it" : "them"} with the fixes (free).{" "}
+            <button type="button" className="dht-step__link" onClick={() => { rerunHeld(heldRerunnableFrom(nodes)); setBannerGone(true); }}>Re-run</button>{" · "}
+            <button type="button" className="dht-step__link" onClick={() => setBannerGone(true)}>Not now</button>
+          </p>
         )}
         {/* ⭐ A181 (5d): the limit, where it bites. */}
         {slotLine && <p className="dh-fold__quiet" data-draft-slots-line="">{slotLine}</p>}
