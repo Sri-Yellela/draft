@@ -135,3 +135,16 @@ test("a181RerunSelected: the bulk acts on the ticked held drafts, all by default
   assert.match(panel, /data-held-pick=""/); assert.match(panel, /data-choose-held=""/);
   assert.doesNotMatch(read("client/src/components/DraftHouseTree.jsx"), /type="checkbox"/, "D113 U9: the tree has no select mode");
 });
+
+// ⭐ 46f · D165's "not done": a FAILED (or otherwise stopped) earlier attempt joins the held application's earlier-attempts
+// line — the held rows come from held_review only. The held row stays first; only the quiet line reads the extra rows.
+test("a181EarlierFailedAttemptJoinsTheHeld: the stopped attempts of the same job are the held view's earlier attempts", async () => {
+  const panel = read("client/src/panels/AutoApplyPanel.jsx");
+  assert.match(panel, /earlier: earlierAttempts\(attemptsOf\(node\)\)/);
+  assert.match(panel, /const failed = \(applyStopped \|\| \[\]\)\.filter\(j => String\(j\?\.jobId\) === String\(node\.jobId\) && !ids\.has\(j\.id\)\);/);
+  assert.match(panel, /return \[own\[0\], \.\.\.\[\.\.\.own\.slice\(1\), \.\.\.failed\]\.sort\(\(a, b\) => when\(b\) - when\(a\)\)\];/, "the held row stays first");
+  const { earlierAttempts } = await import("../client/src/lib/heldApplication.js");
+  const e = earlierAttempts([{ id: 2, status: "held_review" }, { id: 1, status: "failed", reasonCode: "browser_crashed", finishedAt: 1_800_000_000 }]);
+  assert.equal(e.count, 1);
+  assert.match(e.line, /^1 earlier attempt · .* · stopped$/);
+});

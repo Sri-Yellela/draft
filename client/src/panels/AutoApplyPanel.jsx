@@ -1050,12 +1050,23 @@ export function AutoApplyPanel({ user = null } = {}) {
 
   // ⭐ D165 (5) · the held application (held-application-sketch.html): its state's words, the steps the run took, one
   // quiet line for an earlier attempt. The answers' count comes from the approval packet when there is one.
+  // ⭐ 46f (D165's "not done"): a FAILED earlier attempt joins the held application's earlier-attempts line — the held rows
+  // come from /api/apply/review (held_review only), the failed ones from the stopped list. The held row stays first (it is
+  // the application now); the earlier ones follow, newest first. Only the quiet line reads them — the reasons are untouched.
+  const attemptsOf = (node) => {
+    const own = rowsOf(node);
+    if (node?.kind !== "held" || node.jobId == null || !own.length) return own;
+    const ids = new Set(own.map(r => r.id));
+    const when = (j) => j.finishedAt || j.startedAt || j.createdAt || 0;
+    const failed = (applyStopped || []).filter(j => String(j?.jobId) === String(node.jobId) && !ids.has(j.id));   // every stopped attempt of this job (failed, skipped, cancelled …)
+    return [own[0], ...[...own.slice(1), ...failed].sort((a, b) => when(b) - when(a))];
+  };
   const heldFor = (node) => {
     const h = node ? heldHeadline(node) : null;
     if (!h) return null;
     const counts = node.kind === "approval" && Number.isFinite(node.ref?.answerCount)
       ? { filled: node.ref.answerCount, total: node.ref.answerCount + (node.ref.openCount || 0) } : null;
-    return { ...h, steps: runSteps(node, { counts }), earlier: earlierAttempts(rowsOf(node)), questions: heldQuestionsFor(node) };
+    return { ...h, steps: runSteps(node, { counts }), earlier: earlierAttempts(attemptsOf(node)), questions: heldQuestionsFor(node) };
   };
   const renderRow = (row) => {
     const node = row.node;
