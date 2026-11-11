@@ -296,13 +296,12 @@ test("D118 P2 (b) · d118CuratorToolsLive — the curator's tools act on the nex
     // Find on Wikipedia: the pick is stored at once (the summary itself is read by Refresh Wikipedia / the nightly run).
     assert.equal((await s.call("POST", "/api/admin/atlas/node/zorblex/wiki-pick", { title: "Zorblex (software)", wikidataId: "Q42" })).status, 200);
     assert.deepEqual(db.prepare(`SELECT wiki_title, wikidata_id FROM atlas_nodes WHERE slug = 'zorblex'`).get(), { wiki_title: "Zorblex_(software)", wikidata_id: "Q42" });
-    // Draft definitions: imported as a draft (not public), accepted → on the page.
+    // Draft definitions: ⭐ 46f (on purpose) — owner 11-10 approval (3), 5d426f57: an imported definition that passes the
+    // rules PUBLISHES on the next read (no Accept loop; Recently published + Unpublish is the net — d105AtlasDefinitions).
     assert.equal((await s.call("POST", "/api/admin/atlas/quuxdb/status", { status: "published" })).status, 200);
     const imp = await s.call("POST", "/api/admin/atlas/definitions/import", { text: JSON.stringify({ definitions: [{ slug: "quuxdb", definition: "A synthetic database used only in tests." }] }) });
     assert.equal(imp.status, 200, JSON.stringify(imp.json));
-    assert.equal((await s.call("GET", "/api/atlas/node/quuxdb")).json.definition ?? null, null, "a draft definition is not public");
-    assert.equal((await s.call("POST", "/api/admin/atlas/definitions/quuxdb/accept", {})).status, 200);
-    assert.equal((await s.call("GET", "/api/atlas/node/quuxdb")).json.definition, "A synthetic database used only in tests.");
+    assert.equal((await s.call("GET", "/api/atlas/node/quuxdb")).json.definition, "A synthetic database used only in tests.", "imported → public on the next read");
     // Unpublish: gone on the next read, from the page, the links and the search.
     assert.equal((await s.call("POST", "/api/admin/atlas/zorblex/status", { status: "draft" })).status, 200);
     assert.equal((await s.call("GET", "/api/atlas/node/zorblex")).status, 404);
