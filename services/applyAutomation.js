@@ -128,6 +128,10 @@ export const PROVENANCE = {
   SPONSORSHIP_ASSUMED_FUTURE:'sponsorship_assumed_future',
   // ⭐ 10-30: a terms / privacy box ticked because the USER switched on Auto settings' agreeToTerms.
   USER_CONSENT_SETTING:      'user_consent_setting',
+  // ⭐ A182 (owner 11-11: "all these questions can be automated from the resume, this is what we are trying to sell"):
+  // a free-text employer question ("why this role", "your proficiency") answered by a draft WRITTEN DURING THE RUN from
+  // the person's own résumé + the posting (answers.routine, claim-checked). Never an eligibility / EEO / opt-in answer.
+  DRAFTED_FROM_RESUME:       'drafted_from_resume',
 };
 
 export const CONFIDENCE_BY_PROVENANCE = {
@@ -144,6 +148,9 @@ export const CONFIDENCE_BY_PROVENANCE = {
   // handler signal, which is what field_map_exact rests on.
   label_exact:     0.85,
   custom_answer:   0.85,
+  // A182: clears the auto-submit floor (the owner chose both modes, 11-11) — written from the person's own résumé,
+  // checked for links / contacts / injected phrases before it was handed to the run.
+  drafted_from_resume: 0.85,
   label_fuzzy:     0.3,
   default:         0.1,
   // Derived from an explicitly stated fact and an explicitly tensed question — not a guess about
@@ -1259,7 +1266,7 @@ export function isEeoField(field) {
 
 // -- buildAnswers --------------------------------------------------------------
 export function buildAnswers(fields, profilePayload) {
-  const { field_map = {}, handler_map = {}, custom_answers = {} } = profilePayload || {};
+  const { field_map = {}, handler_map = {}, custom_answers = {}, drafted_answers = {} } = profilePayload || {};
   const SKIP_TYPES = new Set(['file','hidden','password','static','unknown','complex']);
   // The tri-state, not an answer. A stored yes/no cannot answer both tenses of the sponsorship
   // question — see the sponsorship tense section and docs/auto-apply-a5-live-run.md §4.1.
@@ -1391,6 +1398,18 @@ export function buildAnswers(fields, profilePayload) {
         matched_on = q;
         customExact = exact;
         break;
+      }
+    }
+
+    // ⭐ A182 · 3b. the run's DRAFTED answer to this exact free-text question (after the person's own answers, so a
+    // saved answer always wins). Exact question only; refused for anything refuseReason guards (eligibility, EEO …).
+    if (value === null && label && drafted_answers && typeof drafted_answers === 'object') {
+      const lblQ = normaliseQuestion(label);
+      const hit = Object.entries(drafted_answers).find(([q, a]) => a && normaliseQuestion(q) === lblQ);
+      if (hit && !optInSubject) {
+        const reason = refuseReason({ ...guardCtx, key: hit[0], allowEligibilityExactAnswer: false });
+        if (reason) refusals.push(`drafted:${reason}`);
+        else { value = String(hit[1]); provenance = PROVENANCE.DRAFTED_FROM_RESUME; matched_on = hit[0]; }
       }
     }
 

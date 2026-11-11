@@ -19,14 +19,17 @@ export function FourThingsCard({ onChanged = null }) {
   };
   const left = s.items.filter(i => !i.set && !i.skipped);
   return (
-    <section className="rs-four" data-four-things={left.length} aria-label="Four things your résumé can't tell us">
+    <section className="rs-four" data-four-things={left.length} aria-label="What your résumé can't tell us">
       <h2 className="rs-four__h">{left.length === 1 ? "One thing your résumé can't tell us" : `${left.length} things your résumé can't tell us`}</h2>
       <p className="rs-four__lead">Everything else came from your résumé. These stay unset until you answer — skip any of them.</p>
       <ul className="rs-four__list">
         {left.map(i => (
           <li key={i.key} data-four-thing={i.key}>
             <label className="rs-four__label">{i.label}{i.why ? <span className="rs-four__why"> — {i.why}</span> : null}
-              {i.key === "willing_to_relocate"
+              {Array.isArray(i.choices) && i.choices.length
+                ? <select value={vals[i.key] ?? ""} onChange={(e) => setVals({ ...vals, [i.key]: e.target.value })} data-four-choices={i.key}>
+                    <option value="">Choose…</option>{i.choices.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select>
+                : i.key === "willing_to_relocate"
                 ? <select value={vals[i.key] ?? ""} onChange={(e) => setVals({ ...vals, [i.key]: e.target.value })}><option value="">Choose…</option><option value="yes">Yes</option><option value="no">No</option></select>
                 : <input value={vals[i.key] ?? ""} onChange={(e) => setVals({ ...vals, [i.key]: e.target.value })} maxLength={120}
                     type={i.key === "available_start_date" ? "date" : "text"} placeholder={i.key === "desired_salary" ? "e.g. 140000" : ""} />}
