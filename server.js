@@ -10844,10 +10844,15 @@ app.use((req, res, next) => {
 });
 app.use(bindAuthContext);
 // ⭐ D156 (6): any write by a signed-in user (session or auth-context token) drops their kept facets counts.
+// ⭐ A183 (46f, measured): EXCEPT the keywords panel (POST /api/jobs/:id/keywords) — a POST that usually only READS a kept
+// report; it clears both itself, and only when it stores one (storeAtsReportForProfile below). 20 users at 100k: 40 of
+// 101 board loads missed their kept order because the panel's read-only POST had dropped it.
+const KEYWORDS_PANEL = /^\/api\/jobs\/[^/]+\/keywords$/;
 app.use((req, _res, next) => {
-  if (req.method !== "GET" && req.method !== "HEAD" && req.user?.id != null) facetsCache.clearUser(req.user.id);
+  const writes = req.method !== "GET" && req.method !== "HEAD" && req.user?.id != null && !(req.method === "POST" && KEYWORDS_PANEL.test(req.path));
+  if (writes) facetsCache.clearUser(req.user.id);
   // ⭐ A175: …and their kept board order.
-  if (req.method !== "GET" && req.method !== "HEAD" && req.user?.id != null) boardOrderCache.clearUser(req.user.id);
+  if (writes) boardOrderCache.clearUser(req.user.id);
   next();
 });
 // ⛔ D95: the admin's own session (the draft_admin cookie, Path=/api/admin) — and no admin credential anywhere else.
@@ -14749,6 +14754,9 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
       userId, profileId: keywordsProfileId, jobId, report: result, basisHash: panelBasis.basisHash,
       jobHash: panelJobHash,
     });
+    // ⭐ A183 (46f): a stored score can move this person's board and its counts — drop both now (D156 (6)); the read-only
+    // answer above (a kept report) leaves them, which is why the write-clearing middleware skips this route.
+    facetsCache.clearUser(userId); boardOrderCache.clearUser(userId);
 
     res.json(result);
   } catch (e) {
