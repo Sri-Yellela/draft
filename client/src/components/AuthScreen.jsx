@@ -15,6 +15,7 @@ import SignInProviders from "./SignInProviders.jsx";
 import { returnToFromSearch } from "../lib/signInReturn.js";
 import { usePhase1 } from "../lib/monetisation.jsx";
 import OtpVerify from "./OtpVerify.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // ── AtomEmblem — keep this exported, TopBar imports it ────────
 function tiltedEllipsePath(cx, cy, rx, ry, angleDeg) {
@@ -90,7 +91,7 @@ function SlashSteps({ step, of }) {
         <line x1="8" y1="26" x2={8 + 14 * p} y2={26 - 22 * p} stroke={C.ACCENT_INK} strokeWidth="5" strokeLinecap="round"
           style={{ transition:"all 320ms cubic-bezier(.2,.8,.2,1)" }}/>
       </svg>
-      <span style={{ fontSize:11, color:C.INK_FAINT, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em" }}>
+      <span style={{ fontSize:ts(11), color:C.INK_FAINT, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em" }}>
         Step {step} of {of}
       </span>
     </div>
@@ -242,7 +243,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
     width:"100%", height:42, padding:"0 14px",
     borderRadius:10, border:"1px solid var(--border-glass)",
     background:"var(--bg-input)", color:theme.text,
-    fontFamily:"'DM Sans',system-ui", fontSize:13,
+    fontFamily:"'DM Sans',system-ui", fontSize:ts(13),
     outline:"none", boxSizing:"border-box",
     transition:"border-color 0.15s",
   };
@@ -250,7 +251,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
   const providerButtonStyle = {
     width:"100%", height:40, border:"1px solid var(--border-glass)",
     background:"var(--bg-input)", color:theme.text, fontWeight:800, cursor:"pointer",
-    fontSize:13, display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+    fontSize:ts(13), display:"flex", alignItems:"center", justifyContent:"center", gap:8,
   };
 
   return (
@@ -267,7 +268,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
         {["login","register"].map(t => (
           <button className="dbx-depth" key={t} onClick={() => { setTab(t); setRegStep(1); setError(""); setNotice(""); }}
             style={{ flex:1, padding:"7px 0", border:"none",
-                     fontWeight:700, fontSize:12, cursor:"pointer",
+                     fontWeight:700, fontSize:ts(12), cursor:"pointer",
                      background: tab===t ? theme.accent : "transparent",
                      color: tab===t ? "var(--c-on-accent)" : theme.textMuted,
                      transition:"all 0.2s" }}>
@@ -282,22 +283,22 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
             onChange={e=>setL("username",e.target.value)} autoFocus/>
           <input style={inputStyle} placeholder="Password" type="password" value={login.password}
             onChange={e=>setL("password",e.target.value)}/>
-          {error && <div style={{ color:theme.danger, fontSize:12 }}>{error}</div>}
-          {notice && <div style={{ color:theme.success, fontSize:12 }}>{notice}</div>}
+          {error && <div style={{ color:theme.danger, fontSize:ts(12) }}>{error}</div>}
+          {notice && <div style={{ color:theme.success, fontSize:ts(12) }}>{notice}</div>}
           <button className="dbx-depth" type="submit" disabled={loading}
             style={{ width:"100%", padding:"12px 0", border:"none",
                      background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
-                     fontSize:14, cursor:"pointer", marginTop:4,
+                     fontSize:ts(14), cursor:"pointer", marginTop:4,
                      opacity:loading?0.7:1, transition:"opacity 0.2s" }}>
             {loading ? "Signing in…" : "Sign In →"}
           </button>
           <button type="button"
             onClick={() => { setTab("forgot"); setError(""); setNotice(""); }}
             style={{ background:"none", border:"none", color:theme.accentText,
-                     fontSize:12, fontWeight:700, cursor:"pointer", padding:4 }}>
+                     fontSize:ts(12), fontWeight:700, cursor:"pointer", padding:4 }}>
             Forgot password?
           </button>
-          <div style={{ display:"flex", alignItems:"center", gap:8, color:theme.textDim, fontSize:11 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, color:theme.textDim, fontSize:ts(11) }}>
             <span style={{ flex:1, height:1, background:theme.border }}/><span>or</span><span style={{ flex:1, height:1, background:theme.border }}/>
           </div>
           {providers()}
@@ -306,7 +307,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
       ) : tab === "forgot" ? (
         <form onSubmit={reset.token ? handlePasswordResetConfirm : handlePasswordResetRequest}
           style={{ display:"flex", flexDirection:"column", gap:12 }}>
-          <div style={{ fontSize:11, color:theme.textDim, fontWeight:600,
+          <div style={{ fontSize:ts(11), color:theme.textDim, fontWeight:600,
                         textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:2 }}>
             Password reset
           </div>
@@ -315,7 +316,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
               onChange={e=>setR("email",e.target.value)} autoFocus/>
           )}
           {resetSent && !reset.token && (
-            <div style={{ fontSize:11, color:theme.textMuted, lineHeight:1.6,
+            <div style={{ fontSize:ts(11), color:theme.textMuted, lineHeight:1.6,
                           padding:"10px 12px", background:theme.surfaceHigh,
                           borderRadius:10, border:`1px solid ${theme.border}` }}>
               Check your email for the reset link and OTP. This page will finish the reset after you open the link.
@@ -323,7 +324,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
           )}
           {reset.token && (
             <>
-              <div style={{ fontSize:11, color:theme.textMuted, lineHeight:1.6,
+              <div style={{ fontSize:ts(11), color:theme.textMuted, lineHeight:1.6,
                             padding:"10px 12px", background:theme.surfaceHigh,
                             borderRadius:10, border:`1px solid ${theme.border}` }}>
                 Enter the OTP from your email and choose a new password.
@@ -336,13 +337,13 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
                 onChange={e=>setR("confirmPassword",e.target.value)}/>
             </>
           )}
-          {error && <div style={{ color:theme.danger, fontSize:12 }}>{error}</div>}
-          {notice && <div style={{ color:theme.success, fontSize:12 }}>{notice}</div>}
+          {error && <div style={{ color:theme.danger, fontSize:ts(12) }}>{error}</div>}
+          {notice && <div style={{ color:theme.success, fontSize:ts(12) }}>{notice}</div>}
           {(!resetSent || reset.token) && (
             <button className="dbx-depth" type="submit" disabled={loading}
               style={{ width:"100%", padding:"12px 0", border:"none",
                        background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
-                       fontSize:14, cursor:"pointer", marginTop:4,
+                       fontSize:ts(14), cursor:"pointer", marginTop:4,
                        opacity:loading?0.7:1, transition:"opacity 0.2s" }}>
               {loading ? "Working..." : (reset.token ? "Reset Password" : "Send Reset Email")}
             </button>
@@ -350,7 +351,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
           <button type="button"
             onClick={() => { setTab("login"); setError(""); setNotice(""); }}
             style={{ background:"none", border:"none", color:theme.textMuted,
-                     fontSize:12, fontWeight:700, cursor:"pointer", padding:4 }}>
+                     fontSize:ts(12), fontWeight:700, cursor:"pointer", padding:4 }}>
             Back to sign in
           </button>
         </form>
@@ -365,14 +366,14 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
             onChange={e=>setS1("password",e.target.value)}/>
           <input style={inputStyle} placeholder="Confirm password" type="password" value={step1.confirmPassword}
             onChange={e=>setS1("confirmPassword",e.target.value)}/>
-          {error && <div style={{ color:theme.danger, fontSize:12 }}>{error}</div>}
+          {error && <div style={{ color:theme.danger, fontSize:ts(12) }}>{error}</div>}
           <button className="dbx-depth" type="submit"
             style={{ width:"100%", padding:"12px 0", border:"none",
                      background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
-                     fontSize:14, cursor:"pointer", marginTop:4 }}>
+                     fontSize:ts(14), cursor:"pointer", marginTop:4 }}>
             Continue →
           </button>
-          <div style={{ display:"flex", alignItems:"center", gap:8, color:theme.textDim, fontSize:11 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, color:theme.textDim, fontSize:ts(11) }}>
             <span style={{ flex:1, height:1, background:theme.border }}/><span>or</span><span style={{ flex:1, height:1, background:theme.border }}/>
           </div>
           {providers()}
@@ -400,22 +401,22 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
           <input style={inputStyle} placeholder={signupVerification ? "Phone *" : "Phone (optional)"} type="tel" value={step2.phone}
             onChange={e=>{ setS2("phone",e.target.value); setProofs(p => ({ ...p, sms: null })); }}/>
           {signupVerification && <OtpVerify channel="sms" target={step2.phone} proven={!!proofs.sms} onProof={(p) => setProofs(x => ({ ...x, sms: p }))} />}
-          <label data-marketing-opt-in="" style={{ display:"flex", gap:8, alignItems:"flex-start", fontSize:12, color:theme.textMuted, lineHeight:1.5, cursor:"pointer" }}>
+          <label data-marketing-opt-in="" style={{ display:"flex", gap:8, alignItems:"flex-start", fontSize:ts(12), color:theme.textMuted, lineHeight:1.5, cursor:"pointer" }}>
             <input type="checkbox" checked={marketingOptIn} onChange={e => setMarketingOptIn(e.target.checked)} style={{ marginTop:2 }}/>
             <span>Email me product news (optional). Account emails, like a password reset, come either way. You can switch this off at any time.</span>
           </label>
-          {error && <div style={{ color:theme.danger, fontSize:12 }}>{error}</div>}
+          {error && <div style={{ color:theme.danger, fontSize:ts(12) }}>{error}</div>}
           <div style={{ display:"flex", gap:8, marginTop:4 }}>
             <button className="dbx-depth" type="button" onClick={() => { setRegStep(1); setError(""); }}
               style={{ padding:"12px 20px", border:`1px solid ${theme.border}`,
                        background:"transparent", color:theme.textMuted, fontWeight:700,
-                       fontSize:13, cursor:"pointer" }}>
+                       fontSize:ts(13), cursor:"pointer" }}>
               ← Back
             </button>
             <button className="dbx-depth" type="submit" disabled={loading}
               style={{ flex:1, padding:"12px 0", border:"none",
                        background:theme.gradAccent, color:"var(--c-on-accent)", fontWeight:800,
-                       fontSize:14, cursor:"pointer",
+                       fontSize:ts(14), cursor:"pointer",
                        opacity:loading?0.7:1, transition:"opacity 0.2s" }}>
               {loading ? "Creating account…" : "Create Account →"}
             </button>
@@ -427,7 +428,7 @@ function AuthModal({ onLogin, initialTab = "login", registerRequest = 0 }) {
       {tab === "login" && (
         <div style={{ textAlign:"center", marginTop:20 }}>
           <Link to="/admin/login"
-            style={{ fontSize:12, color:theme.textDim, textDecoration:"none",
+            style={{ fontSize:ts(12), color:theme.textDim, textDecoration:"none",
                      transition:"color 0.15s" }}
             onMouseEnter={e => e.currentTarget.style.color = theme.textMuted}
             onMouseLeave={e => e.currentTarget.style.color = theme.textDim}>

@@ -8,6 +8,7 @@ import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import { COMPANY_TOKEN } from "../../../shared/savedAnswers.js";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const KIND_TAGS = [
   ["eligibility", "Attestation"], ["eeo", "EEO"], ["optIn", "Opt-in"],
@@ -111,17 +112,17 @@ export function SavedAnswersPanel() {
 
   const box = { border: `1px solid ${theme.border}`, borderRadius: 8, padding: "14px 16px", background: theme.surface,
                 display: "flex", flexDirection: "column", gap: 10 };
-  const input = { width: "100%", padding: "6px 8px", fontSize: 12, borderRadius: 4, border: `1px solid ${theme.border}`,
+  const input = { width: "100%", padding: "6px 8px", fontSize: ts(12), borderRadius: 4, border: `1px solid ${theme.border}`,
                   background: theme.surface, color: theme.text, boxSizing: "border-box" };
   const btn = { border: `1px solid ${theme.border}`, borderRadius: 6, padding: "5px 10px", background: theme.surface,
-                color: theme.text, fontWeight: 700, fontSize: 12, cursor: busy ? "wait" : "pointer" };
-  const h = { fontWeight: 800, fontSize: 14, color: theme.text };
-  const sub = { fontSize: 12, color: theme.textMuted, lineHeight: 1.5 };
+                color: theme.text, fontWeight: 700, fontSize: ts(12), cursor: busy ? "wait" : "pointer" };
+  const h = { fontWeight: 800, fontSize: ts(14), color: theme.text };
+  const sub = { fontSize: ts(12), color: theme.textMuted, lineHeight: 1.5 };
 
   return (
     <div data-saved-answers-panel="" style={{ maxWidth: 860, margin: "0 auto", padding: "0 16px 40px", display: "flex", flexDirection: "column", gap: 16 }}>
       <div>
-        <div style={{ fontWeight: 800, fontSize: 20, color: theme.text }}>Saved answers</div>
+        <div style={{ fontWeight: 800, fontSize: ts(20), color: theme.text }}>Saved answers</div>
         <div style={sub}>
           Your own answers, reused when a form asks the same question in the same words. Write {COMPANY_TOKEN} where
           the employer's name goes. Work authorisation, EEO and opt-in questions are only ever answered by your answer
@@ -150,7 +151,7 @@ export function SavedAnswersPanel() {
           <div key={row.id} data-lifecycle-row={row.state} style={{ borderTop: `1px solid ${theme.border}`, paddingTop: 8,
                                                                     display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 240 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: theme.text }}>{row.question}</div>
+              <div style={{ fontSize: ts(12), fontWeight: 700, color: theme.text }}>{row.question}</div>
               {editingKeyed?.id === row.id ? (
                 <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
                   <input value={editingKeyed.answer} onChange={e => setEditingKeyed({ ...editingKeyed, answer: e.target.value })} style={{ ...input, maxWidth: 320 }} placeholder="Your answer"/>
@@ -158,7 +159,7 @@ export function SavedAnswersPanel() {
                   <button style={btn} disabled={busy} onClick={() => setEditingKeyed(null)}>Cancel</button>
                 </div>
               ) : (
-                <div style={{ fontSize: 12, color: theme.textMuted, wordBreak: "break-word" }}>
+                <div style={{ fontSize: ts(12), color: theme.textMuted, wordBreak: "break-word" }}>
                   {row.state === "acknowledged" ? row.answer : <em>changed on a page — you will be asked again</em>}
                 </div>
               )}
@@ -167,7 +168,7 @@ export function SavedAnswersPanel() {
                   {row.state === "acknowledged" ? "Acknowledged" : "Changed"}
                 </span>
                 {row.attesting && <span style={markStyle(theme.textDim)}>You are attesting to this</span>}
-                <span style={{ fontSize: 11, color: theme.textDim }}>
+                <span style={{ fontSize: ts(11), color: theme.textDim }}>
                   {row.state === "acknowledged"
                     ? `${SOURCE_WORDS[row.source] || "saved"} · acknowledged ${answerDate(row.acknowledgedAt)}`
                     : `changed ${answerDate(row.changedAt)}`}
@@ -175,9 +176,9 @@ export function SavedAnswersPanel() {
               </div>
               {row.history?.length > 0 && (
                 <details style={{ marginTop: 4 }}>
-                  <summary style={{ fontSize: 11, color: theme.textMuted, cursor: "pointer" }}>History ({row.history.length})</summary>
+                  <summary style={{ fontSize: ts(11), color: theme.textMuted, cursor: "pointer" }}>History ({row.history.length})</summary>
                   {row.history.map((ev, i) => (
-                    <div key={i} style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>
+                    <div key={i} style={{ fontSize: ts(11), color: theme.textMuted, marginTop: 2 }}>
                       {answerDate(ev.at)} · {EVENT_WORDS[ev.event] || ev.event}: {ev.from ?? "—"} → {ev.to ?? "—"}{ev.jobId ? ` · job ${ev.jobId}` : ""}
                     </div>
                   ))}
@@ -202,7 +203,7 @@ export function SavedAnswersPanel() {
           <button style={btn} disabled={busy || !testQ.trim()} onClick={test}>Test</button>
         </div>
         {testResult && (
-          <div data-test-outcome={testResult.outcome} style={{ fontSize: 12, color: theme.text, display: "flex", flexDirection: "column", gap: 4 }}>
+          <div data-test-outcome={testResult.outcome} style={{ fontSize: ts(12), color: theme.text, display: "flex", flexDirection: "column", gap: 4 }}>
             <div style={{ fontWeight: 800, color: testResult.outcome === "fills" ? C.SUCCESS : testResult.outcome === "guess" ? C.WARNING : C.DANGER }}>
               {testResult.outcome === "fills" ? `Fills: ${testResult.value}` : testResult.outcome === "guess" ? `A guess: ${testResult.value} — it would hold for you` : "No match: it would stop"}
             </div>
@@ -234,14 +235,14 @@ export function SavedAnswersPanel() {
           <div key={`${e.company || ""}::${e.question}`} style={{ borderTop: `1px solid ${theme.border}`, paddingTop: 8,
                                                                   display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 240 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: theme.text }}>{e.question}</div>
-              <div style={{ fontSize: 12, color: theme.textMuted, wordBreak: "break-word" }}>{e.answer || <em>no answer yet</em>}</div>
+              <div style={{ fontSize: ts(12), fontWeight: 700, color: theme.text }}>{e.question}</div>
+              <div style={{ fontSize: ts(12), color: theme.textMuted, wordBreak: "break-word" }}>{e.answer || <em>no answer yet</em>}</div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 3 }}>
-                {e.company && <span style={{ fontSize: 9, fontWeight: 800, color: theme.textDim }}>ONLY FOR {e.company.toUpperCase()}</span>}
+                {e.company && <span style={{ fontSize: ts(9), fontWeight: 800, color: theme.textDim }}>ONLY FOR {e.company.toUpperCase()}</span>}
                 {KIND_TAGS.filter(([k]) => e.kind?.[k]).map(([k, label]) => (
                   <span key={k} style={markStyle(theme.textDim)}>{label}</span>
                 ))}
-                {e.acknowledgedAt && <span style={{ fontSize: 11, color: theme.textDim }}>acknowledged {answerDate(e.acknowledgedAt)}</span>}
+                {e.acknowledgedAt && <span style={{ fontSize: ts(11), color: theme.textDim }}>acknowledged {answerDate(e.acknowledgedAt)}</span>}
               </div>
             </div>
             <button style={btn} disabled={busy} onClick={() => setEditing({ question: e.question, answer: e.answer, company: e.company, previousQuestion: e.question })}>Edit</button>

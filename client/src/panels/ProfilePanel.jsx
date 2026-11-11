@@ -11,6 +11,7 @@ import {
 import { prefillFromResumeText, prefillDiff } from "../../../shared/resumePrefill.js";
 import ProfileSections from "../components/ProfileSections.jsx";
 import RefineJobProfile from "../components/RefineJobProfile.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // D55 (f) / D101: the EEO answers ("Not set" vs "Choose not to disclose") live in Application defaults —
 // components/ProfileSections.jsx.
@@ -111,7 +112,7 @@ function PSec({ title, children, theme }) {
 }
 
 const labelStyle = {
-  fontSize:11, fontWeight:600, textTransform:"uppercase",
+  fontSize:ts(11), fontWeight:600, textTransform:"uppercase",
   letterSpacing:"0.05em", display:"block", marginBottom:4,
 };
 
@@ -133,7 +134,7 @@ const PRow = ({ label, children, theme }) => {
 };
 
 const PHint = ({ children, theme }) => (
-  <span style={{ fontSize:10, color:theme.textDim, marginTop:3, lineHeight:1.4, display:"block" }}>
+  <span style={{ fontSize:ts(10), color:theme.textDim, marginTop:3, lineHeight:1.4, display:"block" }}>
     {children}
   </span>
 );
@@ -146,7 +147,7 @@ function CustomAnswerAdder({ onAdd, theme }) {
     return (
       <button type="button" className="rm-btn"
         onClick={() => setOpen(true)}
-        style={{ fontSize:12, border:`1px dashed ${theme.border}`,
+        style={{ fontSize:ts(12), border:`1px dashed ${theme.border}`,
                  background:theme.bg, color:theme.textMuted, cursor:"pointer",
                  borderRadius:8, padding:"6px 12px" }}>
         + Add Question
@@ -156,7 +157,7 @@ function CustomAnswerAdder({ onAdd, theme }) {
   return (
     <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"flex-end", marginTop:8 }}>
       <div style={{ flex:"1 1 200px" }}>
-        <span style={{ fontSize:11, fontWeight:600, textTransform:"uppercase",
+        <span style={{ fontSize:ts(11), fontWeight:600, textTransform:"uppercase",
                        letterSpacing:"0.05em", color:theme.textMuted,
                        display:"block", marginBottom:4 }}>Question</span>
         <input className="rm-input" value={q}
@@ -164,7 +165,7 @@ function CustomAnswerAdder({ onAdd, theme }) {
           placeholder="How did you hear about us?"/>
       </div>
       <div style={{ flex:"1 1 200px" }}>
-        <span style={{ fontSize:11, fontWeight:600, textTransform:"uppercase",
+        <span style={{ fontSize:ts(11), fontWeight:600, textTransform:"uppercase",
                        letterSpacing:"0.05em", color:theme.textMuted,
                        display:"block", marginBottom:4 }}>Answer</span>
         <input className="rm-input" value={a}
@@ -174,12 +175,12 @@ function CustomAnswerAdder({ onAdd, theme }) {
       <div style={{ display:"flex", gap:6 }}>
         <button type="button" className="rm-btn rm-btn-primary"
           onClick={() => { onAdd(q, a); setQ(""); setA(""); setOpen(false); }}
-          style={{ fontSize:12 }}>
+          style={{ fontSize:ts(12) }}>
           Add
         </button>
         <button type="button" className="rm-btn"
           onClick={() => setOpen(false)}
-          style={{ fontSize:12, border:`1px solid ${theme.border}`,
+          style={{ fontSize:ts(12), border:`1px solid ${theme.border}`,
                    background:theme.surface, color:theme.text }}>
           Cancel
         </button>
@@ -189,7 +190,7 @@ function CustomAnswerAdder({ onAdd, theme }) {
 }
 
 const CA_CHIP = {
-  fontSize:9, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em",
+  fontSize:ts(9), fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em",
   borderRadius:5, padding:"2px 6px", whiteSpace:"nowrap",
 };
 
@@ -225,7 +226,7 @@ function CompanyOverrides({ question, overrides, onChange, theme, needsOwnWords 
 
   return (
     <div style={{ marginTop:10, paddingTop:10, borderTop:`1px dashed ${theme.border}` }}>
-      <span style={{ fontSize:10, fontWeight:700, textTransform:"uppercase",
+      <span style={{ fontSize:ts(10), fontWeight:700, textTransform:"uppercase",
                      letterSpacing:"0.06em", color:theme.textMuted }}>
         Per-company answers
       </span>
@@ -238,18 +239,18 @@ function CompanyOverrides({ question, overrides, onChange, theme, needsOwnWords 
         <div style={{ display:"flex", flexDirection:"column", gap:6, marginTop:8 }}>
           {mine.map(([ck, a]) => (
             <div key={ck} style={{ display:"flex", gap:8, alignItems:"flex-start" }}>
-              <div style={{ flex:"0 0 110px", fontSize:11, fontWeight:600, color:theme.text,
+              <div style={{ flex:"0 0 110px", fontSize:ts(11), fontWeight:600, color:theme.text,
                             paddingTop:7, textTransform:"capitalize", overflowWrap:"anywhere" }}>
                 {ck}
               </div>
               <textarea className="rm-input" rows={2} value={a}
                 onChange={e => write(ck, e.target.value)}
-                style={{ flex:1, fontSize:12, resize:"vertical", fontFamily:"inherit" }}
+                style={{ flex:1, fontSize:ts(12), resize:"vertical", fontFamily:"inherit" }}
                 placeholder={expandCompanyText(question, ck)}/>
               <button type="button" onClick={() => write(ck, null)}
                 title={`Remove the ${ck} answer`}
                 style={{ border:"none", background:"transparent", color:theme.danger,
-                         cursor:"pointer", fontSize:16, lineHeight:1, padding:"6px 4px" }}>
+                         cursor:"pointer", fontSize:ts(16), lineHeight:1, padding:"6px 4px" }}>
                 &times;
               </button>
             </div>
@@ -260,11 +261,11 @@ function CompanyOverrides({ question, overrides, onChange, theme, needsOwnWords 
         <input className="rm-input" value={company}
           onChange={e => setCompany(e.target.value)}
           placeholder="Company name (e.g. Figma)"
-          style={{ flex:"0 0 190px", fontSize:12 }}/>
+          style={{ flex:"0 0 190px", fontSize:ts(12) }}/>
         <button type="button" className="rm-btn"
           disabled={!companyKeyOf(company) || !!overrides[companyKeyOf(company)]?.[question]}
           onClick={() => { write(companyKeyOf(company), ""); setCompany(""); }}
-          style={{ fontSize:12, border:`1px dashed ${theme.border}`,
+          style={{ fontSize:ts(12), border:`1px dashed ${theme.border}`,
                    background:theme.bg, color:theme.textMuted, cursor:"pointer",
                    borderRadius:8, padding:"6px 12px" }}>
           + Add company
@@ -293,10 +294,10 @@ function CustomAnswerRow({ question, answer, overrides, onRename, onAnswer, onDe
       <div style={{ display:"flex", gap:8, alignItems:"flex-start" }}>
         <input className="rm-input" value={question}
           onChange={e => onRename(e.target.value)}
-          style={{ flex:1, fontSize:12, fontWeight:600 }}/>
+          style={{ flex:1, fontSize:ts(12), fontWeight:600 }}/>
         <button type="button" onClick={onDelete} title="Delete this answer"
           style={{ border:"none", background:"transparent", color:theme.danger,
-                   cursor:"pointer", fontSize:16, lineHeight:1, padding:"7px 4px" }}>
+                   cursor:"pointer", fontSize:ts(16), lineHeight:1, padding:"7px 4px" }}>
           &times;
         </button>
       </div>
@@ -324,7 +325,7 @@ function CustomAnswerRow({ question, answer, overrides, onRename, onAnswer, onDe
       <textarea className="rm-input" rows={2} value={answer}
         onChange={e => onAnswer(e.target.value)}
         placeholder={ownWords ? "A starting point you edit per company — never submitted as-is" : "Your answer"}
-        style={{ width:"100%", marginTop:8, fontSize:12, resize:"vertical", fontFamily:"inherit" }}/>
+        style={{ width:"100%", marginTop:8, fontSize:ts(12), resize:"vertical", fontFamily:"inherit" }}/>
 
       {ownWords ? (
         <PHint theme={theme}>
@@ -347,7 +348,7 @@ function CustomAnswerRow({ question, answer, overrides, onRename, onAnswer, onDe
         ) : (
           <button type="button" onClick={() => setOpen(true)}
             style={{ marginTop:8, border:"none", background:"transparent", color:theme.accentText,
-                     cursor:"pointer", fontSize:11, fontWeight:600, padding:0 }}>
+                     cursor:"pointer", fontSize:ts(11), fontWeight:600, padding:0 }}>
             + Per-company answer
           </button>
         )
@@ -826,14 +827,14 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
   const selStyle = {
     width:"100%", height:40, padding:"0 12px", borderRadius:10,
     border:`1px solid ${theme.border}`, background:theme.surface,
-    color:theme.text, fontSize:13, outline:"none", boxSizing:"border-box",
+    color:theme.text, fontSize:ts(13), outline:"none", boxSizing:"border-box",
   };
 
   return (
     <div style={{ maxWidth:680, margin:"0 auto", padding:"32px 24px",
                   overflowY:"auto", height:"100%", boxSizing:"border-box" }}>
       {!section && (
-      <div style={{ fontWeight:900, fontSize:22, color:theme.text,
+      <div style={{ fontWeight:900, fontSize:ts(22), color:theme.text,
                     letterSpacing:"-0.5px", marginBottom:24 }}>
         Profile
       </div>
@@ -870,19 +871,19 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
                 </button>
               ) : (
                 <div style={{ border: `1px solid ${theme.border}`, borderRadius: 10, padding: 12 }}>
-                  <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 8 }}>
+                  <div style={{ fontSize: ts(12), color: theme.textMuted, marginBottom: 8 }}>
                     {prefillRows.length
                       ? "Read from your résumé. Tick what is right — nothing is saved until you press Save. Work authorisation, sponsorship, clearance and the voluntary questions are never filled from a résumé."
                       : "Nothing in your résumé differs from what is already here."}
                   </div>
                   {prefillRows.map(r => (
-                    <label key={r.field} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, padding: "4px 0" }}>
+                    <label key={r.field} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: ts(12), padding: "4px 0" }}>
                       <input type="checkbox" checked={!!prefillPicked[r.field]}
                         onChange={e => setPrefillPicked(p => ({ ...p, [r.field]: e.target.checked }))}/>
                       <span>
                         <strong>{PREFILL_LABELS[r.field] || r.field}:</strong> {r.value}
                         {String(r.current || "").trim() && <span style={{ color: theme.textMuted }}> (replaces “{r.current}”)</span>}
-                        <span style={{ display: "block", color: theme.textMuted, fontSize: 11 }}>from: {r.from}</span>
+                        <span style={{ display: "block", color: theme.textMuted, fontSize: ts(11) }}>from: {r.from}</span>
                       </span>
                     </label>
                   ))}
@@ -1047,7 +1048,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
           </PRow>
           <label style={{ display:"flex", alignItems:"center", gap:8,
                           marginBottom:10, cursor:"pointer",
-                          fontSize:13, color:theme.text }}>
+                          fontSize:ts(13), color:theme.text }}>
             <input type="checkbox" checked={!!form.willing_to_relocate}
               onChange={e => set("willing_to_relocate", e.target.checked)}
               style={{ accentColor:theme.accent, width:16, height:16 }}/>
@@ -1063,19 +1064,19 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
         {on("answers") && <>
         {/* ── Custom Answers ── */}
         <PSec title="Custom Answers" theme={theme}>
-          <p style={{ fontSize:12, color:theme.textMuted, lineHeight:1.5, marginBottom:6 }}>
+          <p style={{ fontSize:ts(12), color:theme.textMuted, lineHeight:1.5, marginBottom:6 }}>
             The answers only you can write. Each one is keyed to the question's exact wording, so
             "Have you worked for us before?" and "Are you a former employee?" are separate entries —
             store both if both get asked.
           </p>
-          <p style={{ fontSize:12, color:theme.textMuted, lineHeight:1.5, marginBottom:14 }}>
+          <p style={{ fontSize:ts(12), color:theme.textMuted, lineHeight:1.5, marginBottom:14 }}>
             Write <code>{COMPANY_TOKEN}</code> where the employer's name goes and one entry covers
             every company that asks it. Answers are matched exactly and never guessed at; a question
             worded differently is left for you rather than answered from a near-miss.
           </p>
 
           {Object.keys(form.custom_answers || {}).length === 0 ? (
-            <div style={{ fontSize:12, color:theme.textDim, marginBottom:12 }}>
+            <div style={{ fontSize:ts(12), color:theme.textDim, marginBottom:12 }}>
               Nothing stored yet. Held runs offer to save the answers you write, so this fills itself
               as you apply — or seed the five questions below and answer them once.
             </div>
@@ -1138,7 +1139,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
                   }
                   set("custom_answers", next);
                 }}
-                style={{ fontSize:12, border:`1px dashed ${theme.border}`,
+                style={{ fontSize:ts(12), border:`1px dashed ${theme.border}`,
                          background:theme.bg, color:theme.textMuted, cursor:"pointer",
                          borderRadius:8, padding:"6px 12px" }}>
                 + Add the 5 commonly-asked questions
@@ -1155,19 +1156,19 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
           <RefineJobProfile profiles={profiles} activeId={activeProfileId} onRefined={() => loadProfiles()} />
           {/* ⭐ D186-3 (owner 11-09): the dead end ("Active profile: None selected · Open Job Profiles") is gone — the pipeline
               makes the job profile from the first résumé; here is its name, a switch between profiles and the manual section. */}
-          <div data-active-job-profile={activeProfile ? activeProfile.id : "none"} style={{ fontSize:12, color:theme.textMuted, marginBottom:16, display:"flex", flexWrap:"wrap", gap:10, alignItems:"center" }}>
+          <div data-active-job-profile={activeProfile ? activeProfile.id : "none"} style={{ fontSize:ts(12), color:theme.textMuted, marginBottom:16, display:"flex", flexWrap:"wrap", gap:10, alignItems:"center" }}>
             {activeProfile
               ? <>Active job profile: <strong style={{ color:theme.text }}>{activeProfile.profile_name}</strong>
                   {profiles.length > 1 && (
                     <select aria-label="Switch job profile" value={activeProfileId || ""} onChange={(e) => activateProfile(Number(e.target.value))}
-                      data-switch-job-profile="" style={{ font:"inherit", fontSize:12, padding:"3px 6px", borderRadius:6, border:`1px solid ${theme.border}`, background:theme.bg, color:theme.text }}>
+                      data-switch-job-profile="" style={{ font:"inherit", fontSize:ts(12), padding:"3px 6px", borderRadius:6, border:`1px solid ${theme.border}`, background:theme.bg, color:theme.text }}>
                       {profiles.map(p => <option key={p.id} value={p.id}>{p.profile_name}</option>)}
                     </select>
                   )}
                   <button type="button" onClick={onOpenJobProfiles} data-manage-job-profiles=""
-                    style={{ font:"inherit", fontSize:12, padding:"3px 8px", borderRadius:6, border:`1px solid ${theme.border}`, background:"transparent", color:theme.text, cursor:"pointer" }}>Manage</button></>
+                    style={{ font:"inherit", fontSize:ts(12), padding:"3px 8px", borderRadius:6, border:`1px solid ${theme.border}`, background:"transparent", color:theme.text, cursor:"pointer" }}>Manage</button></>
               : <>No job profile yet — upload your résumé on Your profile and one is made for you. Or <button type="button" onClick={onOpenJobProfiles}
-                  style={{ font:"inherit", fontSize:12, padding:0, border:"none", background:"transparent", color:theme.text, textDecoration:"underline", cursor:"pointer" }}>make one by hand</button>.</>}
+                  style={{ font:"inherit", fontSize:ts(12), padding:0, border:"none", background:"transparent", color:theme.text, textDecoration:"underline", cursor:"pointer" }}>make one by hand</button>.</>}
           </div>
           <div style={{ display:"none", flexWrap:"wrap", gap:10, marginBottom:16 }}>
             {profiles.map(profile => (
@@ -1186,8 +1187,8 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
                   textAlign:"left",
                 }}
               >
-                <div style={{ fontSize:13, fontWeight:700 }}>{profile.profile_name}</div>
-                <div style={{ fontSize:11, color:theme.textMuted, marginTop:4 }}>
+                <div style={{ fontSize:ts(13), fontWeight:700 }}>{profile.profile_name}</div>
+                <div style={{ fontSize:ts(11), color:theme.textMuted, marginTop:4 }}>
                   {profile.seniority} · {profile.has_base_resume ? "resume linked" : "resume missing"}
                 </div>
               </button>
@@ -1215,7 +1216,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
           </button>
 
           {!activeProfile && (
-            <div style={{ fontSize:12, color:theme.textMuted }}>
+            <div style={{ fontSize:ts(12), color:theme.textMuted }}>
               Create a job profile to connect a profile-specific base resume, extracted signals, titles, and search settings.
             </div>
           )}
@@ -1269,7 +1270,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
                   placeholder="Node.js, React, PostgreSQL, AWS"/>
               </PRow>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
-                <span style={{ fontSize:12, color:profileStatus ? theme.text : theme.textMuted }}>
+                <span style={{ fontSize:ts(12), color:profileStatus ? theme.text : theme.textMuted }}>
                   {profileStatus || "Edit this profile any time. Changes affect only this profile."}
                 </span>
                 <button type="button" className="rm-btn rm-btn-primary" onClick={saveProfileSettings}>
@@ -1317,7 +1318,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
               <PHint theme={theme}>This base resume belongs only to the selected profile and drives profile-specific ATS/search behavior.</PHint>
             </PRow>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, marginBottom:16, flexWrap:"wrap" }}>
-              <div style={{ fontSize:12, color:theme.textMuted }}>
+              <div style={{ fontSize:ts(12), color:theme.textMuted }}>
                 {enhancementStatus.eligible
                   ? `Enhancement ready: ${enhancementStatus.selectedCount}/${enhancementStatus.threshold} ATS-backed additions selected.`
                   : `Select at least ${enhancementStatus.threshold} broadly useful ATS suggestions before enhancing this profile resume.`}
@@ -1333,7 +1334,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
                 </button>
               )}
             </div>
-            <div style={{ fontSize:12, color:resumeStatus ? theme.text : theme.textMuted, marginBottom:16 }}>
+            <div style={{ fontSize:ts(12), color:resumeStatus ? theme.text : theme.textMuted, marginBottom:16 }}>
               {loadingProfileAssets ? "Loading profile resume..." : (resumeStatus || "Each profile keeps its own stored resume and extracted signal set.")}
             </div>
 
@@ -1346,14 +1347,14 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
                 background:theme.surfaceHigh,
               }}>
                 <div style={{ display:"flex", justifyContent:"space-between", gap:12, alignItems:"center", marginBottom:10, flexWrap:"wrap" }}>
-                  <div style={{ fontSize:13, fontWeight:700, color:theme.text }}>
+                  <div style={{ fontSize:ts(13), fontWeight:700, color:theme.text }}>
                     Enhanced draft ready
                   </div>
-                  <div style={{ fontSize:12, color:theme.textMuted }}>
+                  <div style={{ fontSize:ts(12), color:theme.textMuted }}>
                     ATS delta: {enhancePreview.delta > 0 ? "+" : ""}{enhancePreview.delta ?? 0}
                   </div>
                 </div>
-                <div style={{ fontSize:11, color:theme.textMuted, marginBottom:10 }}>
+                <div style={{ fontSize:ts(11), color:theme.textMuted, marginBottom:10 }}>
                   Selected additions: {(enhancePreview.selectedSkills || []).join(", ") || "No new additions"}
                 </div>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
@@ -1385,12 +1386,12 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
               </PRow>
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-              <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontSize:13, color:theme.text }}>
+              <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontSize:ts(13), color:theme.text }}>
                 <input type="checkbox" checked={!!structuredFactsForm.requiresSponsorship}
                   onChange={e => setStructuredFactsForm(f => ({ ...f, requiresSponsorship: e.target.checked }))}/>
                 Requires sponsorship
               </label>
-              <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontSize:13, color:theme.text }}>
+              <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontSize:ts(13), color:theme.text }}>
                 <input type="checkbox" checked={!!structuredFactsForm.hasClearance}
                   onChange={e => setStructuredFactsForm(f => ({ ...f, hasClearance: e.target.checked }))}/>
                 Active clearance
@@ -1422,7 +1423,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
             {/* ⭐ A140 (owner 11-08): no separate Keywords / Skills sections — both are drawn bold in "Your experience" above
                 (or listed under it). They still rank the board's jobs, so they stay editable here, folded. */}
             <details data-signal-terms-edit="" style={{ marginBottom: 16 }}>
-              <summary style={{ fontSize: 12, color: theme.textMuted, cursor: "pointer", marginBottom: 10 }}>
+              <summary style={{ fontSize: ts(12), color: theme.textMuted, cursor: "pointer", marginBottom: 10 }}>
                 Edit the skills and keywords read from your résumé</summary>
             <PRow label="Keywords — from your résumé" theme={theme}>
               <textarea className="rm-input" rows={4} value={signalsForm.keywords}
@@ -1437,7 +1438,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
               <div style={{ ...labelStyle, color:theme.textMuted, marginBottom:8 }}>Inactive ATS-Suggested Skills</div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                 {(suggestedSignals.inactiveSkills || []).length === 0 && (
-                  <span style={{ fontSize:12, color:theme.textMuted }}>
+                  <span style={{ fontSize:ts(12), color:theme.textMuted }}>
                     ATS suggestions will appear here after enough scraped jobs surface recurring missing skills.
                   </span>
                 )}
@@ -1452,7 +1453,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
                       color:theme.text,
                       padding:"6px 10px",
                       cursor:"pointer",
-                      fontSize:12,
+                      fontSize:ts(12),
                     }}
                   >
                     + {skill.label} ({skill.frequency})
@@ -1464,7 +1465,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
               <div style={{ ...labelStyle, color:theme.textMuted, marginBottom:8 }}>Inactive ATS-Suggested Action Verbs</div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                 {(suggestedSignals.inactiveActionVerbs || []).length === 0 && (
-                  <span style={{ fontSize:12, color:theme.textMuted }}>
+                  <span style={{ fontSize:ts(12), color:theme.textMuted }}>
                     Missing action verbs clicked from ATS cards will appear here as inactive profile suggestions.
                   </span>
                 )}
@@ -1477,7 +1478,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
                       color:theme.text,
                       borderRadius:6,
                       padding:"6px 10px",
-                      fontSize:12,
+                      fontSize:ts(12),
                     }}
                   >
                     {verb.label} ({verb.frequency})
@@ -1489,7 +1490,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
               <div style={{ ...labelStyle, color:theme.textMuted, marginBottom:8 }}>Selected For Enhancement</div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                 {(suggestedSignals.selectedSkills || []).length === 0 && (
-                  <span style={{ fontSize:12, color:theme.textMuted }}>
+                  <span style={{ fontSize:ts(12), color:theme.textMuted }}>
                     Pick broadly useful ATS suggestions here. Enhancement unlocks when you reach the threshold.
                   </span>
                 )}
@@ -1504,7 +1505,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
                       color:theme.text,
                       padding:"6px 10px",
                       cursor:"pointer",
-                      fontSize:12,
+                      fontSize:ts(12),
                     }}
                   >
                     ✓ {skill.label}
@@ -1524,7 +1525,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
                       border:`1px solid ${theme.border}`,
                       borderRadius:6,
                       padding:"6px 10px",
-                      fontSize:12,
+                      fontSize:ts(12),
                       color:theme.textMuted,
                       background:theme.surface,
                     }}>
@@ -1540,7 +1541,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
               <PHint theme={theme}>These terms are used for profile-scoped search shaping and ATS basis signals.</PHint>
             </PRow>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
-              <span style={{ fontSize:12, color:signalStatus ? theme.text : theme.textMuted }}>
+              <span style={{ fontSize:ts(12), color:signalStatus ? theme.text : theme.textMuted }}>
                 {signalStatus || suggestionStatus || "Edit extracted values when needed. They persist per profile and do not leak across profiles."}
               </span>
               <button type="button" className="rm-btn rm-btn-primary" onClick={saveSignals}>
@@ -1548,7 +1549,7 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
               </button>
             </div>
             {enhancementHistory.length > 0 && (
-              <div style={{ marginTop:16, fontSize:12, color:theme.textMuted }}>
+              <div style={{ marginTop:16, fontSize:ts(12), color:theme.textMuted }}>
                 {enhancementHistory.length} enhancement version{enhancementHistory.length === 1 ? "" : "s"} stored for this profile.
               </div>
             )}
@@ -1560,15 +1561,15 @@ export function ProfilePanel({ onOpenJobProfiles = () => {}, section = null, res
         <div data-profile-savebar="" style={{ display:"flex", justifyContent:"flex-end", alignItems:"center",
                       gap:14, marginTop:8, position:"sticky", bottom:0, zIndex:1, padding:"10px 0",
                       background:theme.bg }}>
-          {unsaved && !status && <span style={{ fontSize:12, color:theme.textMuted }}>Unsaved changes</span>}
+          {unsaved && !status && <span style={{ fontSize:ts(12), color:theme.textMuted }}>Unsaved changes</span>}
           {status && (
-            <span style={{ fontSize:12,
+            <span style={{ fontSize:ts(12),
               color:status.startsWith("✓") ? theme.success : theme.danger }}>
               {status}
             </span>
           )}
           <button type="submit" className="rm-btn rm-btn-primary"
-            style={{ padding:"10px 28px", fontSize:14 }}>
+            style={{ padding:"10px 28px", fontSize:ts(14) }}>
             Save Profile
           </button>
         </div>

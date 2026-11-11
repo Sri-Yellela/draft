@@ -64,7 +64,8 @@ test("A116 · the guard itself catches a bare size", () => {
 
 // ⭐ A116 · 46g — the INLINE sizes, screen by screen (~1,340 `fontSize: <number>` in the client's JSX on 11-11). A screen is
 // listed here once every inline size in it goes through ts() (themes/shapes.js: calc(Npx * var(--type-scale, 1))).
-export const INLINE_SCALED = ["client/src/panels/JobsPanel.jsx", "client/src/panels/DeckView.jsx"];
+export const INLINE_SCALED = ["client/src/panels/JobsPanel.jsx", "client/src/panels/DeckView.jsx",
+  "client/src/panels/ProfilePanel.jsx", "client/src/components/DomainProfileWizard.jsx", "client/src/panels/AutoApplyPanelSections.jsx", "client/src/panels/AutoApplyPanel.jsx", "client/src/components/ProfileSections.jsx", "client/src/panels/AccountPanel.jsx", "client/src/components/JobCard.jsx", "client/src/panels/SandboxPanel.jsx", "client/src/panels/IntegrationsPanel.jsx", "client/src/components/AuthScreen.jsx", "client/src/panels/JobWorkspacePanel.jsx", "client/src/pages/marketing/ExtensionPage.jsx", "client/src/components/CompanyKbSections.jsx", "client/src/panels/SavedAnswersPanel.jsx"];
 test("A116 · 46g — the board and the deck: no inline font size ignores the text size", () => {
   for (const f of INLINE_SCALED) {
     const bare = raw(f).split("\n").map((l, i) => [i + 1, l]).filter(([, l]) => /fontSize:\s?\d/.test(l)).map(([n, l]) => `${f}:${n} ${l.trim().slice(0, 80)}`);

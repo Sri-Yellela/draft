@@ -18,6 +18,7 @@ import { C } from "../styles/colorTokens.js";
 import { markStyle } from "../styles/mark.js";
 import { useAtlasTerms } from "../lib/atlasLinks.js";
 import { AtlasText } from "../components/AtlasTerm.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 const TABS = [["checklist", "Checklist"], ["resume", "Résumé"], ["form", "Form"], ["job", "Job"], ["emails", "Emails"]];
 const STEP_COLOUR = { done: C.SUCCESS, current: C.WARNING, waiting: C.INK_FAINT, skipped: C.INK_FAINT };
@@ -66,7 +67,7 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
     if (want === "prep" && d?.prep?.active) setTab("prep");
   }, [d?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const muted = { fontSize: 12.5, color: theme.textMuted };
+  const muted = { fontSize: ts(12.5), color: theme.textMuted };
   const card = { background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 12, padding: "14px 16px" };
   const back = () => (window.history.length > 1 ? navigate(-1) : navigate("/app/auto-apply"));
 
@@ -85,7 +86,7 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
       <header style={{ display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
         {!embedded && <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={back} aria-label="Back">←</button>}
         <div style={{ flex: 1, minWidth: 220 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: theme.text }}>{d.title || "Untitled role"}</div>
+          <div style={{ fontSize: ts(20), fontWeight: 800, color: theme.text }}>{d.title || "Untitled role"}</div>
           <div style={muted}>{d.company || "Unknown company"}{d.job?.location ? ` · ${d.job.location}` : ""}{d.updatedAt ? ` · updated ${when(d.updatedAt)}` : ""}</div>
         </div>
         <span data-job-status={d.status} style={markStyle(STATUS_COLOUR[d.status] || C.INK_MUTED)}>{d.statusLabel || d.status}</span>
@@ -109,7 +110,7 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
       {tab === "checklist" && (
         <ol data-job-checklist="" style={{ ...card, margin: 0, paddingLeft: 34, display: "flex", flexDirection: "column", gap: 8 }}>
           {(d.checklist || []).map(s => (
-            <li key={s.step} style={{ fontSize: 13.5, color: theme.text }}>
+            <li key={s.step} style={{ fontSize: ts(13.5), color: theme.text }}>
               <span style={{ ...markStyle(STEP_COLOUR[s.state] || C.INK_FAINT), marginRight: 8 }}>{s.state}</span>
               {s.label}
               {s.step === "form_filled" && s.total ? <span style={muted}> · {s.filled} of {s.total}</span> : null}
@@ -126,7 +127,7 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
         <div style={card} data-job-resume="">
           {d.resume?.artifactId ? (
             <>
-              <p style={{ margin: "0 0 8px", fontSize: 13.5, color: theme.text }}>A tailored résumé was made for this application.
+              <p style={{ margin: "0 0 8px", fontSize: ts(13.5), color: theme.text }}>A tailored résumé was made for this application.
                 {d.resume.atsScore != null ? ` ATS ${d.resume.atsScore}${d.resume.baseAtsScore != null ? ` (your base: ${d.resume.baseAtsScore})` : ""}.` : ""}</p>
               {d.runJobId && artifactUrl && <a className="rm-btn rm-btn-ghost rm-btn-sm" href={artifactUrl(d.runJobId, "resume")} target="_blank" rel="noreferrer">Open the résumé</a>}
             </>
@@ -138,8 +139,8 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }} data-job-form="">
           {(needs.length > 0 || open.length > 0) && (
             <div style={{ ...card, borderColor: C.WARNING }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: theme.text, marginBottom: 6 }}>Needs you · {needs.length + open.length}</div>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: theme.text }}>
+              <div style={{ fontSize: ts(13), fontWeight: 800, color: theme.text, marginBottom: 6 }}>Needs you · {needs.length + open.length}</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: ts(13), color: theme.text }}>
                 {open.map((q, i) => <li key={`q${i}`}>{q}</li>)}
                 {needs.map((f, i) => <li key={`f${i}`}>{f.name || "A field"}</li>)}
               </ul>
@@ -148,7 +149,7 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
           )}
           <div style={card}>
             {filled.length === 0 ? <p style={{ ...muted, margin: 0 }}>No values filled yet.</p> : (
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ts(13) }}>
                 <tbody>
                   {filled.map((f, i) => (
                     <tr key={i} style={{ borderTop: i ? `1px solid ${theme.border}` : "none" }}>
@@ -173,7 +174,7 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
       {tab === "job" && (
         <div style={card} data-job-posting="">
           {d.job?.description
-            ? <div style={{ fontSize: 13, color: theme.text, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+            ? <div style={{ fontSize: ts(13), color: theme.text, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
                 {/* ⭐ D114: the posting's published Atlas terms are quiet links; the text is unchanged. */}
                 <AtlasText text={d.job.description} terms={atlasTerms} used={new Set()} />
               </div>
@@ -188,7 +189,7 @@ export function JobWorkspacePanel({ applicationId = null, jobId = null, embedded
               <div key={m.id} style={card}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                   <span style={markStyle(C.INK_MUTED)}>{m.category}</span>
-                  <b style={{ fontSize: 13, color: theme.text, flex: 1 }}>{m.subject || "(no subject)"}</b>
+                  <b style={{ fontSize: ts(13), color: theme.text, flex: 1 }}>{m.subject || "(no subject)"}</b>
                   <span style={muted}>{when(m.receivedAt)}</span>
                 </div>
                 {m.preview && <div style={{ ...muted, marginTop: 4 }}>{m.preview}</div>}
@@ -221,8 +222,8 @@ function PrepTab({ applicationId, theme, card, muted, onDate }) {
 
   if (err && !p) return <p style={muted}>{err}</p>;
   if (!p) return <p style={muted}>Loading…</p>;
-  const h = { fontSize: 13, fontWeight: 800, color: theme.text, margin: "0 0 8px" };
-  const input = { font: "inherit", fontSize: 13, padding: "6px 8px", borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text, boxSizing: "border-box" };
+  const h = { fontSize: ts(13), fontWeight: 800, color: theme.text, margin: "0 0 8px" };
+  const input = { font: "inherit", fontSize: ts(13), padding: "6px 8px", borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text, boxSizing: "border-box" };
 
   return (
     <div data-job-prep="" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -230,7 +231,7 @@ function PrepTab({ applicationId, theme, card, muted, onDate }) {
       <section style={card} data-prep-date="">
         <div style={h}>{p.kind === "assessment" ? "The assessment" : "The interview"}</div>
         {p.date ? (
-          <p style={{ margin: "0 0 8px", fontSize: 13.5, color: theme.text }}>
+          <p style={{ margin: "0 0 8px", fontSize: ts(13.5), color: theme.text }}>
             {p.date.ymd}{p.date.time ? ` at ${p.date.time}` : ""} — <b>{countdownWords(p.daysLeft)}</b>
             <span style={muted}> · {p.date.source === "you" ? "the date you entered" : `read from the email (“${p.date.text}”)`}</span>
           </p>
@@ -250,7 +251,7 @@ function PrepTab({ applicationId, theme, card, muted, onDate }) {
         {!p.skills?.length ? <p style={{ ...muted, margin: 0 }}>No skills could be read from this posting.</p> : (
           <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
             {p.skills.map(s => (
-              <li key={s.name} data-skill-status={s.status} style={{ fontSize: 13, color: theme.text }}>
+              <li key={s.name} data-skill-status={s.status} style={{ fontSize: ts(13), color: theme.text }}>
                 <span style={{ ...markStyle(SKILL_COLOUR[s.status] || C.INK_MUTED), marginRight: 8 }}>{s.status}</span>
                 {s.atlas ? <a href={s.atlas.path} data-atlas-link={s.atlas.slug}>{s.name}</a> : <b>{s.name}</b>}
                 <span style={muted}> · {SKILL_WORDS[s.status]}</span>
@@ -268,11 +269,11 @@ function PrepTab({ applicationId, theme, card, muted, onDate }) {
       <section style={card} data-prep-rounds="">
         <div style={h}>Likely rounds</div>
         {p.rounds?.length ? (
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: theme.text }}>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: ts(13), color: theme.text }}>
             {p.rounds.map(r => <li key={r.round}>{r.label} <span style={muted}>· read from {r.evidence.map(e => `the ${e.from} (“${e.phrase}”)`).join(" and ")}</span></li>)}
           </ul>
         ) : <p style={{ ...muted, margin: 0 }}>Neither the posting nor the emails name a round.</p>}
-        {p.platform && <p style={{ margin: "8px 0 0", fontSize: 13, color: theme.text }}><b>{p.platform.name}:</b> {p.platform.format}</p>}
+        {p.platform && <p style={{ margin: "8px 0 0", fontSize: ts(13), color: theme.text }}><b>{p.platform.name}:</b> {p.platform.format}</p>}
       </section>
 
       <section style={card} data-prep-stories="">
@@ -286,9 +287,9 @@ function PrepTab({ applicationId, theme, card, muted, onDate }) {
           onSave={(s) => act(async () => { if (s.id) await post(`/api/interview/stories/${s.id}`, "PUT", s); else await post("/api/interview/stories", "POST", s); setEditing(null); })}/>}
         {p.stories.map(s => (
           <details key={s.id} style={{ borderTop: `1px solid ${theme.border}`, padding: "8px 0" }}>
-            <summary style={{ fontSize: 13, color: theme.text, cursor: "pointer" }}>{s.title} {s.themes.map(t => <span key={t} style={{ ...markStyle(C.INK_MUTED), marginLeft: 6 }}>{t}</span>)}</summary>
+            <summary style={{ fontSize: ts(13), color: theme.text, cursor: "pointer" }}>{s.title} {s.themes.map(t => <span key={t} style={{ ...markStyle(C.INK_MUTED), marginLeft: 6 }}>{t}</span>)}</summary>
             {[["Situation", s.situation], ["Task", s.task], ["Action", s.action], ["Result", s.result]].map(([k, v]) => (
-              <p key={k} style={{ margin: "4px 0", fontSize: 13, color: theme.text }}><b>{k}:</b> {v || <span style={muted}>—</span>}</p>))}
+              <p key={k} style={{ margin: "4px 0", fontSize: ts(13), color: theme.text }}><b>{k}:</b> {v || <span style={muted}>—</span>}</p>))}
             <div style={{ display: "flex", gap: 8 }}>
               <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={() => setEditing(s)}>Edit</button>
               <button className="rm-btn rm-btn-ghost rm-btn-sm" disabled={busy} onClick={() => act(() => post(`/api/interview/stories/${s.id}`, "DELETE"))}>Delete</button>
@@ -323,7 +324,7 @@ function PrepTab({ applicationId, theme, card, muted, onDate }) {
           </div>
         )}
         {p.debriefs.map(x => (
-          <div key={x.id} style={{ borderTop: `1px solid ${theme.border}`, padding: "8px 0", fontSize: 13, color: theme.text }}>
+          <div key={x.id} style={{ borderTop: `1px solid ${theme.border}`, padding: "8px 0", fontSize: ts(13), color: theme.text }}>
             <b>{(ROUND_OPTIONS.find(([v]) => v === x.round) || [null, x.round])[1]}</b>{x.heldOn ? <span style={muted}> · {x.heldOn}</span> : null}{x.went ? <span style={muted}> · went {x.went}</span> : null}
             {x.questions.length > 0 && <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>{x.questions.map(q => <li key={q.id}>{q.question}</li>)}</ul>}
             {x.notes && <div style={muted}>{x.notes}</div>}
@@ -350,7 +351,7 @@ function StoryForm({ story, theme, input, busy, onSave, onCancel }) {
         <button className="rm-btn rm-btn-primary rm-btn-sm" disabled={busy || !s.title.trim()} onClick={() => onSave(s)}>Save the story</button>
         <button className="rm-btn rm-btn-ghost rm-btn-sm" onClick={onCancel}>Cancel</button>
       </div>
-      <span style={{ fontSize: 12, color: theme.textMuted }}>Only what you did — never a result you did not get.</span>
+      <span style={{ fontSize: ts(12), color: theme.textMuted }}>Only what you did — never a result you did not get.</span>
     </div>
   );
 }

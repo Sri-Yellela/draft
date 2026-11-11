@@ -8,6 +8,7 @@ import SettingsSection from "../components/SettingsSection.jsx";
 import NotificationSettings from "../components/NotificationSettings.jsx";
 import WarmPathsSettings from "../components/WarmPathsSettings.jsx";
 import PlanSettings from "../components/PlanSettings.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // ── Account (/app/account) ──────────────────────────────────────────────────────────────────────
 // Profile and picture, sign-in and security (password, sign-in methods, where you're signed in),
@@ -30,20 +31,20 @@ const oauthUrl = (provider, mode) => {
 };
 
 const btn = { border: "none", borderRadius: 8, background: "var(--color-primary)", color: C.ON_ACCENT,
-  padding: "8px 14px", cursor: "pointer", fontWeight: 800, fontSize: 12 };
+  padding: "8px 14px", cursor: "pointer", fontWeight: 800, fontSize: ts(12) };
 const btnQuiet = { ...btn, background: "transparent", color: "var(--color-text)", border: `1px solid ${C.BORDER_CONTROL}` };
 const btnDanger = { ...btn, background: C.DANGER, color: C.ON_ACCENT };
 const input = { border: `1px solid ${C.BORDER_CONTROL}`, background: C.SURFACE_INPUT, color: "var(--color-text)",
-  borderRadius: 8, padding: "8px 10px", fontSize: 13, minWidth: 0, flex: "1 1 200px" };
+  borderRadius: 8, padding: "8px 10px", fontSize: ts(13), minWidth: 0, flex: "1 1 200px" };
 const row = { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" };
-const muted = { color: "var(--color-text-muted)", fontSize: 12, lineHeight: 1.5 };
+const muted = { color: "var(--color-text-muted)", fontSize: ts(12), lineHeight: 1.5 };
 
 /** D73 §B: the user's own marketing consent — the same record the sign-up box and the unsubscribe link write. */
 function MarketingSwitch({ say }) {
   const [state, setState] = useState(null);
   useEffect(() => { api("/api/account/marketing").then(setState).catch(() => setState({ error: true })); }, []);
   if (!state) return null;
-  if (state.error) return <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>This setting is unavailable right now.</div>;
+  if (state.error) return <div style={{ fontSize: ts(13), color: "var(--color-text-muted)" }}>This setting is unavailable right now.</div>;
   const set = async (optIn) => {
     try {
       setState(await api("/api/account/marketing", { method: "PUT", body: JSON.stringify({ optIn }) }));
@@ -52,7 +53,7 @@ function MarketingSwitch({ say }) {
   };
   const since = state.optedIn && state.since ? ` — on since ${new Date(state.since * 1000).toLocaleDateString()}` : "";
   return (
-    <label data-marketing-switch="" style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, cursor: "pointer" }}>
+    <label data-marketing-switch="" style={{ display: "flex", gap: 10, alignItems: "center", fontSize: ts(13), cursor: "pointer" }}>
       <input type="checkbox" checked={state.optedIn} onChange={e => set(e.target.checked)} />
       <span>Email me product news{since}</span>
     </label>
@@ -66,7 +67,7 @@ function Notice({ kind, children, onClose }) {
   const color = kind === "error" ? C.DANGER : kind === "ok" ? C.SUCCESS : C.INFO;
   return (
     <div role={kind === "error" ? "alert" : "status"} style={{ border: `1px solid ${color}55`, background: `${color}14`,
-      color: "var(--color-text)", borderRadius: 8, padding: "9px 12px", fontSize: 12, display: "flex", gap: 8 }}>
+      color: "var(--color-text)", borderRadius: 8, padding: "9px 12px", fontSize: ts(12), display: "flex", gap: 8 }}>
       <span style={{ flex: 1 }}>{children}</span>
       {onClose && <button onClick={onClose} aria-label="Dismiss" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)" }}>×</button>}
     </div>
@@ -132,7 +133,7 @@ export function AccountPanel({ onSignedOut, only = null }) {
       <div style={{ maxWidth: 820, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
         {!only && (
         <div>
-          <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 400, color: "var(--color-text)" }}>Account</h1>
+          <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: ts(28), fontWeight: 400, color: "var(--color-text)" }}>Account</h1>
           <div style={muted}>Your profile, how you sign in, and your data.</div>
         </div>
         )}
@@ -167,10 +168,10 @@ export function AccountPanel({ onSignedOut, only = null }) {
           {!account.recentAuth && <ReauthBox account={account} busy={busy} run={run} post={post} methods={methods} />}
           <PasswordEditor account={account} busy={busy} run={run} post={post} />
           <div style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>Sign-in methods</div>
+            <div style={{ fontWeight: 700, fontSize: ts(13), color: "var(--color-text)" }}>Sign-in methods</div>
             {["google", "linkedin", "github"].map(p => (
               <div key={p} style={{ ...row, justifyContent: "space-between" }}>
-                <span style={{ fontSize: 13, color: "var(--color-text)" }}>{PROVIDER_LABEL[p]}
+                <span style={{ fontSize: ts(13), color: "var(--color-text)" }}>{PROVIDER_LABEL[p]}
                   <span style={{ ...muted, marginLeft: 8 }}>{methods[p] ? "Connected" : "Not connected"}</span></span>
                 {methods[p]
                   ? <button style={btnQuiet} disabled={!!busy || methodCount <= 1}
@@ -271,14 +272,14 @@ function TailoringSection() {
   return (
     <SettingsSection title="How your résumés are tailored" subtitle="The model that rewrites your bullets for each job, and what it may say about your work.">
       <div data-tailoring-model="" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <div style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>Model</div>
+        <div style={{ fontWeight: 700, fontSize: ts(13), color: "var(--color-text)" }}>Model</div>
         {m && !m.error && (
           <div style={row}>
-            <label style={{ ...row, fontSize: 13, color: "var(--color-text)" }}>
+            <label style={{ ...row, fontSize: ts(13), color: "var(--color-text)" }}>
               <input type="radio" name="tailoring-model" checked={!m.choice} onChange={() => pick(null)} />Default ({m.defaultLabel})
             </label>
             {m.offered.map(o => (
-              <label key={o.id} style={{ ...row, fontSize: 13, color: "var(--color-text)" }}>
+              <label key={o.id} style={{ ...row, fontSize: ts(13), color: "var(--color-text)" }}>
                 <input type="radio" name="tailoring-model" checked={m.choice === o.id} onChange={() => pick(o.id)} />{o.label}
               </label>
             ))}
@@ -288,10 +289,10 @@ function TailoringSection() {
       </div>
       {g && !g.error && g.gists.length > 0 && (
         <div data-tailoring-gists="" style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>How we describe your work</div>
+          <div style={{ fontWeight: 700, fontSize: ts(13), color: "var(--color-text)" }}>How we describe your work</div>
           <div style={muted}>A new bullet for a job is written only inside these lines. Change anything that isn't right.</div>
           {draft.map((x, i) => (
-            <label key={x.employer} style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--color-text-muted)" }}>
+            <label key={x.employer} style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: ts(12), color: "var(--color-text-muted)" }}>
               At {x.employer}
               <textarea style={{ ...input, minHeight: 56 }} maxLength={400} value={x.text}
                 onChange={(e) => setDraft(draft.map((y, j) => (j === i ? { ...y, text: e.target.value } : y)))} />
@@ -302,15 +303,15 @@ function TailoringSection() {
       )}
       {g && !g.error && g.numberless.length > 0 && (
         <div data-tailoring-numbers="" style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>Add a real number if you have one</div>
+          <div style={{ fontWeight: 700, fontSize: ts(13), color: "var(--color-text)" }}>Add a real number if you have one</div>
           <div style={muted}>Optional. Users, %, time saved, scale — add it to these bullets in your base résumé and it becomes yours to use. We never make one up.</div>
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "var(--color-text)" }}>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: ts(12), color: "var(--color-text)" }}>
             {g.numberless.slice(0, 12).map((n, i) => <li key={i}>{n.bullet}</li>)}
           </ul>
         </div>
       )}
       <div data-tailoring-coursework="" style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-        <div style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>Courses you took</div>
+        <div style={{ fontWeight: 700, fontSize: ts(13), color: "var(--color-text)" }}>Courses you took</div>
         <div style={muted}>Separated by commas. The ones a job asks about go in a Relevant Coursework line.</div>
         <div style={row}>
           <input style={{ ...input, flex: 1, minWidth: 220 }} value={courses} onChange={(e) => setCourses(e.target.value)} placeholder="Data Structures, Operating Systems" />
@@ -336,7 +337,7 @@ function BaseResumeOnly() {
   const forced = s?.source === "plan";
   return (
     <div data-base-resume-only="" style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-      <label style={{ ...row, fontWeight: 700, fontSize: 13, color: "var(--color-text)", cursor: forced ? "default" : "pointer" }}>
+      <label style={{ ...row, fontWeight: 700, fontSize: ts(13), color: "var(--color-text)", cursor: forced ? "default" : "pointer" }}>
         <input type="checkbox" checked={!!s?.on} disabled={!s || s.error || saving || forced}
           onChange={(e) => toggle(e.target.checked)} />
         Use my base résumé for applications
@@ -360,7 +361,7 @@ function GeneratedResumes({ busy, run }) {
   return (
     <div data-generated-resumes="" style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ ...row, justifyContent: "space-between" }}>
-        <span style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>Generated résumés</span>
+        <span style={{ fontWeight: 700, fontSize: ts(13), color: "var(--color-text)" }}>Generated résumés</span>
         <span style={muted} data-generated-count="">{data ? `${list.length} kept` : "Loading…"}</span>
       </div>
       {data && <div style={muted}>A résumé for a job you have not drafted or applied to is kept {data.retentionDays ?? 90} days from when it was generated; once the job is drafted or applied, it is kept for good.</div>}
@@ -409,7 +410,7 @@ function ProfileSection({ account, avatarUrl, fileRef, busy, run, post }) {
       <div style={{ ...row, gap: 16, alignItems: "flex-start" }}>
         <div style={{ width: 84, height: 84, borderRadius: "50%", overflow: "hidden", flex: "none",
           background: C.ACCENT, color: C.ON_ACCENT, display: "flex", alignItems: "center", justifyContent: "center",
-          fontWeight: 800, fontSize: 32, boxShadow: C.SHADOW_SM }}>
+          fontWeight: 800, fontSize: ts(32), boxShadow: C.SHADOW_SM }}>
           {avatarUrl ? <img src={avatarUrl} alt="Your picture" referrerPolicy="no-referrer"
             style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initial}
         </div>
@@ -441,7 +442,7 @@ function EmailEditor({ account, busy, run, post }) {
   const [code, setCode] = useState("");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ fontSize: 13, color: "var(--color-text)" }}>{account.email || "No email yet"}
+      <div style={{ fontSize: ts(13), color: "var(--color-text)" }}>{account.email || "No email yet"}
         {account.email && <span style={{ ...muted, marginLeft: 8, color: account.emailVerified ? C.SUCCESS : "var(--color-text-muted)" }}>
           {account.emailVerified ? "Verified" : "Not verified"}</span>}</div>
       {!account.emailConfigured
@@ -472,7 +473,7 @@ function ReauthBox({ account, busy, run, post, methods }) {
   const provider = ["google", "linkedin", "github"].find(p => methods[p]);
   return (
     <div style={{ border: `1px dashed ${C.BORDER_STRONG}`, borderRadius: 10, padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ fontSize: 13, color: "var(--color-text)", fontWeight: 700 }}>Confirm it's you</div>
+      <div style={{ fontSize: ts(13), color: "var(--color-text)", fontWeight: 700 }}>Confirm it's you</div>
       {account.signInMethods?.password && (
         <form style={row} onSubmit={async e => { e.preventDefault();
           if (await run("reauth", () => post("/api/account/reauth", { password: pw }), "Confirmed — changes are unlocked for 15 minutes.")) setPw(""); }}>
@@ -497,7 +498,7 @@ function PasswordEditor({ account, busy, run, post }) {
   if (!open) {
     return (
       <div style={{ ...row, justifyContent: "space-between" }}>
-        <span style={{ fontSize: 13, color: "var(--color-text)" }}>Password
+        <span style={{ fontSize: ts(13), color: "var(--color-text)" }}>Password
           <span style={{ ...muted, marginLeft: 8 }}>{has ? "Set" : "Not set — you sign in with " + (["google", "linkedin", "github"].filter(p => account.signInMethods?.[p]).map(p => PROVIDER_LABEL[p]).join(", ") || "a provider")}</span></span>
         <button style={btnQuiet} onClick={() => setOpen(true)}>{has ? "Change password" : "Set a password"}</button>
       </div>
@@ -530,7 +531,7 @@ function SessionsList({ sessions, busy, run, post, reload }) {
   const others = sessions.sessions.filter(s => !s.current).length;
   const line = (key, label, sub, action) => (
     <div key={key} style={{ ...row, justifyContent: "space-between", borderTop: `1px solid ${C.BORDER}`, paddingTop: 8 }}>
-      <div><div style={{ fontSize: 13, color: "var(--color-text)" }}>{label}</div><div style={muted}>{sub}</div></div>
+      <div><div style={{ fontSize: ts(13), color: "var(--color-text)" }}>{label}</div><div style={muted}>{sub}</div></div>
       {action}
     </div>
   );
@@ -582,7 +583,7 @@ function MergeSection({ account, busy, run, post, say }) {
         </>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontSize: 13, color: "var(--color-text)" }}>
+          <div style={{ fontSize: ts(13), color: "var(--color-text)" }}>
             Merging <strong>{preview.from.username}</strong> (created {new Date(preview.from.createdAt * 1000).toLocaleDateString()})
             into <strong>{account.username}</strong>.</div>
           <div style={muted}>{counts.length
@@ -685,11 +686,11 @@ function HelpSection({ say }) {
         )}
         {d?.tickets?.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text)" }}>Your requests</div>
+            <div style={{ fontWeight: 700, fontSize: ts(13), color: "var(--color-text)" }}>Your requests</div>
             {d.tickets.map(t => (
               <div key={t.id} style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 8 }}>
                 <div style={{ ...row, justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13, color: "var(--color-text)" }}><b>{t.subject}</b>
+                  <span style={{ fontSize: ts(13), color: "var(--color-text)" }}><b>{t.subject}</b>
                     <span style={{ ...muted, marginLeft: 8 }}>{HELP_STATUS[t.status] || t.status} · {ago(t.updated_at)}</span></span>
                   <button style={btnQuiet} onClick={() => (openId === t.id ? setOpenId(null) : openThread(t.id))}>{openId === t.id ? "Close" : "Open"}</button>
                 </div>
@@ -698,7 +699,7 @@ function HelpSection({ say }) {
                     {thread.messages.map(m => (
                       <div key={m.id} style={{ border: `1px solid ${C.BORDER}`, borderRadius: 10, padding: "8px 11px", marginLeft: m.author_type === "user" ? 32 : 0 }}>
                         <div style={muted}>{m.author_type === "user" ? "You" : "draft support"} · {ago(m.created_at)}</div>
-                        <div style={{ whiteSpace: "pre-wrap", fontSize: 13, color: "var(--color-text)" }}>{m.body}</div>
+                        <div style={{ whiteSpace: "pre-wrap", fontSize: ts(13), color: "var(--color-text)" }}>{m.body}</div>
                       </div>
                     ))}
                     <textarea rows={3} aria-label="Your reply" value={reply} onChange={e => setReply(e.target.value)} placeholder="Reply…" style={{ ...input, width: "100%", boxSizing: "border-box" }}/>
@@ -728,13 +729,13 @@ function AllowanceSection() {
   return (
     <SettingsSection title="Your plan and allowance" subtitle="What you can use and how much of it is left. Need more? Ask in Help below.">
       <div data-allowance-section="" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <div style={{ fontSize: 13, color: "var(--color-text)" }}>Plan: <b>{d.plan}</b></div>
-        {d.drafts && <div style={{ fontSize: 13, color: "var(--color-text)" }}>
+        <div style={{ fontSize: ts(13), color: "var(--color-text)" }}>Plan: <b>{d.plan}</b></div>
+        {d.drafts && <div style={{ fontSize: ts(13), color: "var(--color-text)" }}>
           <b>{d.drafts.remaining} of {d.drafts.limit}</b> drafts left in the last 24 hours{freeAt ? ` — the next frees up at ${freeAt}` : ""}.</div>}
         <div style={muted}>{d.resumesToday} résumé{d.resumesToday === 1 ? "" : "s"} today · {d.resumesMonth} in the last 30 days</div>
         <div style={{ borderTop: `1px solid ${C.BORDER}`, paddingTop: 8, display: "grid", gridTemplateColumns: "1fr auto", gap: "4px 12px" }}>
-          {d.features.map(f => <Fragment key={f.key}><span style={{ fontSize: 13, color: "var(--color-text)" }}>{f.label}</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)" }}>{f.value}</span></Fragment>)}
+          {d.features.map(f => <Fragment key={f.key}><span style={{ fontSize: ts(13), color: "var(--color-text)" }}>{f.label}</span>
+            <span style={{ fontSize: ts(13), fontWeight: 700, color: "var(--color-text)" }}>{f.value}</span></Fragment>)}
         </div>
       </div>
     </SettingsSection>

@@ -50,6 +50,7 @@ import { ChangesSummaryLine, WhatWeSentLink } from "../components/ResumeChangesP
 import { postingClick } from "../lib/openPosting.js";
 import AttemptResume from "../components/AttemptResume.jsx";
 import AttemptPosting from "../components/AttemptPosting.jsx";
+import { ts } from "../themes/shapes.js";   // A116 (46g): inline sizes follow Settings → Text size
 
 // ============================================================
 // AutoApplyPanel — DRAFT HOUSE, THE ONE APPLICATION TRACKER (D146, owner 11-03; D113 UI before it)
@@ -1535,7 +1536,7 @@ export function AutoApplyPanel({ user = null } = {}) {
               display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0, gap:12,
             }}>
               <div style={{ fontFamily:"var(--font-display)", fontWeight:400,
-                             fontSize:23}}>
+                             fontSize:ts(23)}}>
                 {/* The popup SAYS what it is about. It used to be titled "Jobs Needing Review"
                     whichever row you opened it from, which is the honest name for a popup that was
                     always showing all of them. */}
@@ -1545,7 +1546,7 @@ export function AutoApplyPanel({ user = null } = {}) {
                   : "Every application needing review"}
               </div>
               {applyRunDetail?.run && (
-                <div style={{ display:"flex", gap:10, fontSize:11, flexWrap:"wrap", alignItems:"center" }}>
+                <div style={{ display:"flex", gap:10, fontSize:ts(11), flexWrap:"wrap", alignItems:"center" }}>
                   {/* THE RUN'S OWN STATUS. It used to live on the dot of the run-history chip that
                       AC4's dated view replaced — and the chip was the only place a run said whether
                       it had finished, so removing the list would have quietly dropped that. It
@@ -1575,7 +1576,7 @@ export function AutoApplyPanel({ user = null } = {}) {
               <button
                 onClick={() => closeReview()}
                 style={{ background:"transparent", border:"none", cursor:"pointer",
-                          color:theme.textMuted, fontSize:20, lineHeight:1, padding:"0 4px",
+                          color:theme.textMuted, fontSize:ts(20), lineHeight:1, padding:"0 4px",
                           marginLeft:"auto", flexShrink:0 }}>
                 ×
               </button>
@@ -1594,10 +1595,10 @@ export function AutoApplyPanel({ user = null } = {}) {
                 <div style={{ border:`1px solid ${C.INFO}`, borderRadius:6, padding:"12px 14px",
                               background:theme.surfaceHigh, display:"flex", flexDirection:"column", gap:10 }}>
                   <div>
-                    <div style={{ fontWeight:800, fontSize:13, color:theme.text }}>
+                    <div style={{ fontWeight:800, fontSize:ts(13), color:theme.text }}>
                       {scopedPending.length} application{scopedPending.length === 1 ? "" : "s"} waiting on you
                     </div>
-                    <div style={{ fontSize:11, color:theme.textMuted, marginTop:2 }}>
+                    <div style={{ fontSize:ts(11), color:theme.textMuted, marginTop:2 }}>
                       Filled and checked, but nothing has been sent. Read one before you approve it —
                       approving submits it to the employer and cannot be undone.
                     </div>
@@ -1607,14 +1608,14 @@ export function AutoApplyPanel({ user = null } = {}) {
                     const open = pendingDetail?.runJobId === p.runJobId;
                     const btn  = (bg, fg, bd) => ({
                       border:`1px solid ${bd}`, borderRadius:6, padding:"5px 10px", background:bg,
-                      color:fg, fontWeight:800, fontSize:11.5,
+                      color:fg, fontWeight:800, fontSize:ts(11.5),
                       cursor: pendingBusy ? "wait" : "pointer", opacity: pendingBusy ? 0.6 : 1,
                     });
                     return (
                       <div key={p.runJobId} style={{ borderTop:`1px solid ${theme.border}`, paddingTop:10,
                                                      display:"flex", flexDirection:"column", gap:6 }}>
                         <div style={{ display:"flex", alignItems:"flex-start", gap:8, flexWrap:"wrap" }}>
-                          <span style={{ fontSize:12, fontWeight:700, color:theme.text, flex:1, minWidth:200 }}>
+                          <span style={{ fontSize:ts(12), fontWeight:700, color:theme.text, flex:1, minWidth:200 }}>
                             {companyLabel(p.company)}
                             {p.title ? <span style={{ color:theme.textMuted, fontWeight:600 }}> — {p.title}</span> : null}
                           </span>
@@ -1634,7 +1635,7 @@ export function AutoApplyPanel({ user = null } = {}) {
                               So: the BASE resume's band, labelled as the base, which is what the
                               user is actually deciding on. It is an honest floor — tailoring at
                               approval can only raise it. */}
-                          <span style={{ fontSize:10, color:theme.textDim, whiteSpace:"nowrap" }}>
+                          <span style={{ fontSize:ts(10), color:theme.textDim, whiteSpace:"nowrap" }}>
                             {p.answerCount} answer{p.answerCount === 1 ? "" : "s"}
                             {p.generationDeferred
                               ? ` · ${atsBandLabel(p.baseAts?.band ?? null).short} (base resume)`
@@ -1648,7 +1649,7 @@ export function AutoApplyPanel({ user = null } = {}) {
                             The terms are shown because a band nobody can check is a number to be
                             trusted rather than read. */}
                         {p.generationDeferred && (
-                          <div style={{ fontSize:10.5, color:theme.textMuted, lineHeight:1.5 }}>
+                          <div style={{ fontSize:ts(10.5), color:theme.textMuted, lineHeight:1.5 }}>
                             No resume has been written for this application yet — approving is what
                             generates the tailored one. The band above is your base resume against
                             this posting, so tailoring can only improve it.
@@ -1702,10 +1703,10 @@ export function AutoApplyPanel({ user = null } = {}) {
                           <div style={{ border:`1px solid ${theme.border}`, borderRadius:6, padding:"8px 10px",
                                         background:theme.surface, display:"flex", flexDirection:"column", gap:4 }}>
                             {pendingDetail.loading ? (
-                              <span style={{ fontSize:11, color:theme.textMuted }}>Loading…</span>
+                              <span style={{ fontSize:ts(11), color:theme.textMuted }}>Loading…</span>
                             ) : (
                               <>
-                                <div style={{ fontSize:10, color:theme.textMuted }}>
+                                <div style={{ fontSize:ts(10), color:theme.textMuted }}>
                                   This is exactly what will be sent. Anything marked GUESS was matched by label,
                                   not by an exact mapping.
                                 </div>
@@ -1715,7 +1716,7 @@ export function AutoApplyPanel({ user = null } = {}) {
                                     const guess = a.provenance === "label_fuzzy";
                                     return (
                                       <div key={i} style={{ display:"flex", gap:8, alignItems:"baseline",
-                                                            flexWrap:"wrap", fontSize:11,
+                                                            flexWrap:"wrap", fontSize:ts(11),
                                                             borderTop: i ? `1px solid ${theme.border}` : "none",
                                                             paddingTop: i ? 4 : 0 }}>
                                         <span style={{ color:theme.textMuted, minWidth:150, flex:"0 1 auto" }}>
@@ -1732,7 +1733,7 @@ export function AutoApplyPanel({ user = null } = {}) {
                                     );
                                   })}
                                 {(pendingDetail.answers || []).filter(a => !a.skipped && !a.policy_rejected).length === 0 && (
-                                  <span style={{ fontSize:11, color:theme.textMuted }}>No answers recorded.</span>
+                                  <span style={{ fontSize:ts(11), color:theme.textMuted }}>No answers recorded.</span>
                                 )}
                               </>
                             )}
@@ -1748,19 +1749,19 @@ export function AutoApplyPanel({ user = null } = {}) {
                     {scopedPending.length > 1 && (
                       confirmApproveAll ? (
                         <>
-                          <span style={{ fontSize:11, color:C.DANGER, fontWeight:700 }}>
+                          <span style={{ fontSize:ts(11), color:C.DANGER, fontWeight:700 }}>
                             Send all {scopedPending.length} to their employers?
                           </span>
                           <button onClick={() => decidePending(scopedPending.map(p => p.runJobId), true)}
                             disabled={pendingBusy}
                             style={{ border:"none", borderRadius:6, padding:"6px 12px", background:C.DANGER,
-                                     color:C.SURFACE_SOLID, fontWeight:800, fontSize:12,
+                                     color:C.SURFACE_SOLID, fontWeight:800, fontSize:ts(12),
                                      cursor: pendingBusy ? "wait" : "pointer" }}>
                             Yes, send all
                           </button>
                           <button onClick={() => setConfirmApproveAll(false)} disabled={pendingBusy}
                             style={{ border:`1px solid ${theme.border}`, borderRadius:6, padding:"6px 12px",
-                                     background:theme.surface, color:theme.text, fontWeight:700, fontSize:12,
+                                     background:theme.surface, color:theme.text, fontWeight:700, fontSize:ts(12),
                                      cursor:"pointer" }}>
                             Cancel
                           </button>
@@ -1768,14 +1769,14 @@ export function AutoApplyPanel({ user = null } = {}) {
                       ) : (
                         <button onClick={() => setConfirmApproveAll(true)} disabled={pendingBusy}
                           style={{ border:`1px solid ${theme.border}`, borderRadius:6, padding:"6px 12px",
-                                   background:theme.surface, color:theme.text, fontWeight:700, fontSize:12,
+                                   background:theme.surface, color:theme.text, fontWeight:700, fontSize:ts(12),
                                    cursor: pendingBusy ? "wait" : "pointer" }}>
                           Approve all {scopedPending.length}
                         </button>
                       )
                     )}
                     {pendingMsg && (
-                      <span style={{ fontSize:11, color:theme.accentText }}>{pendingMsg}</span>
+                      <span style={{ fontSize:ts(11), color:theme.accentText }}>{pendingMsg}</span>
                     )}
                   </div>
                 </div>
@@ -1790,12 +1791,12 @@ export function AutoApplyPanel({ user = null } = {}) {
                 <div style={{ border:`1px solid ${theme.accent}`, borderRadius:6, padding:"12px 14px",
                               background:theme.surfaceHigh, display:"flex", flexDirection:"column", gap:10 }}>
                   <div>
-                    <div style={{ fontWeight:800, fontSize:13, color:theme.text }}>
+                    <div style={{ fontWeight:800, fontSize:ts(13), color:theme.text }}>
                       Answer {scopedQuestions.length} question{scopedQuestions.length === 1 ? "" : "s"}
                       {applyQuestionMeta.blockedJobs > 0 &&
                         ` to unblock ${applyQuestionMeta.blockedJobs} application${applyQuestionMeta.blockedJobs === 1 ? "" : "s"}`}
                     </div>
-                    <div style={{ fontSize:11, color:theme.textMuted, marginTop:2 }}>
+                    <div style={{ fontSize:ts(11), color:theme.textMuted, marginTop:2 }}>
                       Nothing here was guessed on your behalf — these are the fields we would not fill without you.
                       {applyQuestionMeta.eligibilityCount > 0 &&
                         ` ${applyQuestionMeta.eligibilityCount} of them are attestations to the employer.`}
@@ -1807,14 +1808,14 @@ export function AutoApplyPanel({ user = null } = {}) {
                     const isConfirm     = q.reason === "low_confidence";
                     const value         = questionDrafts[q.question] ?? "";
                     const setValue      = v => setQuestionDrafts(prev => ({ ...prev, [q.question]: v }));
-                    const inputStyle    = { width:"100%", padding:"6px 8px", fontSize:12, borderRadius:4,
+                    const inputStyle    = { width:"100%", padding:"6px 8px", fontSize:ts(12), borderRadius:4,
                                             border:`1px solid ${theme.border}`, background:theme.surface,
                                             color:theme.text, boxSizing:"border-box" };
                     return (
                       <div key={q.question} style={{ borderTop:`1px solid ${theme.border}`, paddingTop:10,
                                                      display:"flex", flexDirection:"column", gap:5 }}>
                         <div style={{ display:"flex", alignItems:"flex-start", gap:8, flexWrap:"wrap" }}>
-                          <span style={{ fontSize:12, fontWeight:700, color:theme.text, flex:1, minWidth:220 }}>
+                          <span style={{ fontSize:ts(12), fontWeight:700, color:theme.text, flex:1, minWidth:220 }}>
                             {q.question}
                           </span>
                           {isEligibility && (
@@ -1831,12 +1832,12 @@ export function AutoApplyPanel({ user = null } = {}) {
                         </div>
 
                         {isEligibility && (
-                          <div style={{ fontSize:10, color:C.DANGER }}>
+                          <div style={{ fontSize:ts(10), color:C.DANGER }}>
                             You are stating this to the employer yourself. We never answer it from your profile.
                           </div>
                         )}
                         {isConfirm && (
-                          <div style={{ fontSize:10, color:theme.textMuted }}>
+                          <div style={{ fontSize:ts(10), color:theme.textMuted }}>
                             We had a guess{q.proposed ? ` — "${q.proposed}"` : ""} but were not confident enough to send it.
                             Confirm or correct it.
                           </div>
@@ -1865,7 +1866,7 @@ export function AutoApplyPanel({ user = null } = {}) {
                             employer (the company's name becomes {company}); unticked keeps it for
                             the blocked employer only, so this retry still fills. */}
                         <label data-save-for-next-time="" style={{ display:"flex", alignItems:"center", gap:6,
-                                        fontSize:11, color:theme.textMuted, cursor:"pointer" }}>
+                                        fontSize:ts(11), color:theme.textMuted, cursor:"pointer" }}>
                           <input type="checkbox"
                             checked={questionRemember[q.question] !== false}
                             onChange={e => setQuestionRemember?.(prev => ({ ...prev, [q.question]: e.target.checked }))}/>
@@ -1878,7 +1879,7 @@ export function AutoApplyPanel({ user = null } = {}) {
                         </label>
 
                         {(q.blocking || []).length > 0 && (
-                          <div style={{ fontSize:10, color:theme.textDim }}>
+                          <div style={{ fontSize:ts(10), color:theme.textDim }}>
                             Blocks:{q.blocking.slice(0, 3).map(b => b.company || b.title || b.jobId).join(", ")}
                             {q.blocking.length > 3 ? ` +${q.blocking.length - 3} more` : ""}
                           </div>
@@ -1890,18 +1891,18 @@ export function AutoApplyPanel({ user = null } = {}) {
                   <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", paddingTop:4 }}>
                     <button onClick={() => submitApplyAnswers(true)} disabled={answersSaving}
                       style={{ border:"none", borderRadius:6, padding:"6px 12px", background:theme.accent,
-                               color:C.ON_ACCENT, fontWeight:800, fontSize:12,
+                               color:C.ON_ACCENT, fontWeight:800, fontSize:ts(12),
                                cursor: answersSaving ? "wait" : "pointer", opacity: answersSaving ? 0.6 : 1 }}>
                       {answersSaving ? "Saving…" : "Save & retry"}
                     </button>
                     <button onClick={() => submitApplyAnswers(false)} disabled={answersSaving}
                       style={{ border:`1px solid ${theme.border}`, borderRadius:6, padding:"6px 12px",
-                               background:theme.surface, color:theme.text, fontWeight:700, fontSize:12,
+                               background:theme.surface, color:theme.text, fontWeight:700, fontSize:ts(12),
                                cursor: answersSaving ? "wait" : "pointer", opacity: answersSaving ? 0.6 : 1 }}>
                       Save only
                     </button>
                     {answersMsg && (
-                      <span style={{ fontSize:11, color:theme.accentText }}>{answersMsg}</span>
+                      <span style={{ fontSize:ts(11), color:theme.accentText }}>{answersMsg}</span>
                     )}
                   </div>
                 </div>
@@ -1923,15 +1924,15 @@ export function AutoApplyPanel({ user = null } = {}) {
                         {p.gateReasons?.includes("captcha_required") ? "verify" : "sign in"}
                       </span>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:12.5, fontWeight:700, color:theme.text,
+                        <div style={{ fontSize:ts(12.5), fontWeight:700, color:theme.text,
                                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                           Sign in to {p.host} once
                         </div>
-                        <div style={{ fontSize:11, color:theme.textMuted }}>
+                        <div style={{ fontSize:ts(11), color:theme.textMuted }}>
                           {p.count} application{p.count === 1 ? "" : "s"} ready · reviewed one at a time
                         </div>
                       </div>
-                      <span style={{ fontSize:18, fontWeight:800, color:theme.text }}>{p.count}</span>
+                      <span style={{ fontSize:ts(18), fontWeight:800, color:theme.text }}>{p.count}</span>
                     </div>
                   ))}
                 </div>
@@ -1942,7 +1943,7 @@ export function AutoApplyPanel({ user = null } = {}) {
                   render nothing at all and say nothing about it. */}
               {modalApplications.length === 0 &&
                (applyRunDetail || (scopedQuestions.length === 0 && scopedPending.length === 0)) && (
-                <div style={{ padding:"24px 0", textAlign:"center", color:theme.textMuted, fontSize:12 }}>
+                <div style={{ padding:"24px 0", textAlign:"center", color:theme.textMuted, fontSize:ts(12) }}>
                   {applyRunDetail ? "No jobs in this run yet."
                     : scope ? `Nothing left to resolve on ${scope.label}.`
                     : "Nothing is waiting on you."}
@@ -2018,7 +2019,7 @@ export function AutoApplyPanel({ user = null } = {}) {
             {applyRunDetail?.logs?.length > 0 && (
               <details style={{ flexShrink:0, borderTop:`1px solid ${theme.border}` }}>
                 <summary style={{
-                  padding:"10px 20px", fontSize:11, fontWeight:700, cursor:"pointer",
+                  padding:"10px 20px", fontSize:ts(11), fontWeight:700, cursor:"pointer",
                   color:theme.textMuted, textTransform:"uppercase", letterSpacing:"0.06em",
                   userSelect:"none", listStyle:"none",
                 }}>
@@ -2026,7 +2027,7 @@ export function AutoApplyPanel({ user = null } = {}) {
                 </summary>
                 <div style={{
                   maxHeight:200, overflowY:"auto", padding:"8px 20px 12px",
-                  fontFamily:"monospace", fontSize:10, display:"flex", flexDirection:"column", gap:3,
+                  fontFamily:"monospace", fontSize:ts(10), display:"flex", flexDirection:"column", gap:3,
                 }}>
                   {applyRunDetail.logs.map(log => (
                     <div key={log.id} style={{
@@ -2066,7 +2067,7 @@ export function AutoApplyPanel({ user = null } = {}) {
               <button className="dbx-depth"
                 onClick={() => closeReview()}
                 style={{
-                  padding:"8px 20px", fontWeight:700, fontSize:12,
+                  padding:"8px 20px", fontWeight:700, fontSize:ts(12),
                   background:"transparent", color:theme.textMuted,
                   border:`1px solid ${theme.border}`, cursor:"pointer",
                   fontFamily:"inherit",
