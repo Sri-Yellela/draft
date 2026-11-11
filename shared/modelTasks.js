@@ -83,7 +83,7 @@ export const TASKS = Object.freeze({
     defaultRoute: route(MODEL_HAIKU, { max_tokens: 600 }, { b: budget(0.005, 6_000, 15_000) }) }),
 
   // ── the assistant (T5) ──
-  "assistant.chat": task({ runsIn: "draft", status: "planned", evalSet: "assistant.retrieval-and-safety",
+  "assistant.chat": task({ runsIn: "draft", status: "live", evalSet: "assistant.retrieval-and-safety",
     purposes: ["assistant_chat"], dataClass: "candidate", untrusted: ["question", "retrieved"], what: "the in-platform assistant's answer, from retrieval",
     defaultRoute: route(MODEL_HAIKU, { max_tokens: 1000 }, { fallback: MODEL_SONNET, b: budget(0.01, 4_000, 12_000) }) }),
   "assistant.plan_action": task({ runsIn: "draft", status: "planned", evalSet: "assistant.retrieval-and-safety",

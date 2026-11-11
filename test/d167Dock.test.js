@@ -92,7 +92,9 @@ test("d167DockSideOnlyWhenMarginFitsOpen (pure) / d167AskDraftPushesNeverOverlay
   assert.doesNotMatch(CSS + NAV, /data-dock-push|--appnav-rail-w/, "the push is gone");
   assert.match(NAV, /window\.addEventListener\("resize", schedule\);/, "re-placed on every resize");
   assert.match(CSS, /:root\[data-ask-open="true"\] \[data-app-shell\] \{ padding-right: var\(--appnav-ask-w\); \}/);
-  assert.match(NAV, /data-ask-draft-stub=""/, "the assistant is not built: the panel says so");
+  // ⭐ T5 v1 (owner 11-10): the stub became the assistant; until it is open to everyone the panel says so plainly.
+  assert.match(NAV, /data-ask-draft-closed=""/, "not open yet: the panel says so");
+  assert.match(NAV, /data-ask-confirm=""/, "a proposed action waits for the person's Confirm");
 });
 
 test("d167ProfilePeekBasics (pure): the peek's items link to Profile's panels; the switch is the auto-apply mode", () => {

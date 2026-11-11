@@ -7315,4 +7315,40 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_scraped_jobs_platform_job ON scraped_jobs(platform_job_id) WHERE platform_job_id IS NOT NULL;
       `,
     },
+    {
+      // ⭐ T5 · THE ASSISTANT v1 (owner 11-10: "OK ship it"; docs/ASSISTANT.md). assistant_asks = the DE-IDENTIFIED ask log
+      // (D177-3: no user id, the question with emails / links / numbers / the person's name stripped, covered / partial /
+      // gap) — written only while the person's improve_atlas is on; assistant_actions = every action the assistant
+      // PROPOSED and what the person decided (the audit log they see in Profile → Privacy); assistant_prefs = the person's
+      // "Use my questions to improve Atlas" switch. Three new small tables — no rewrite of an existing one. After 270.
+      id: "271_assistant",
+      sql: `
+        CREATE TABLE IF NOT EXISTS assistant_asks (
+          id           INTEGER PRIMARY KEY AUTOINCREMENT,
+          question     TEXT    NOT NULL,
+          coverage     TEXT    NOT NULL CHECK (coverage IN ('covered', 'partial', 'gap')),
+          lessons_json TEXT,
+          terms_json   TEXT,
+          at           INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_assistant_asks_at ON assistant_asks(at);
+        CREATE TABLE IF NOT EXISTS assistant_actions (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          tool        TEXT    NOT NULL,
+          args_json   TEXT    NOT NULL,
+          summary     TEXT,
+          status      TEXT    NOT NULL DEFAULT 'proposed' CHECK (status IN ('proposed', 'done', 'failed', 'cancelled', 'expired')),
+          result_json TEXT,
+          proposed_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          decided_at  INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_assistant_actions_user ON assistant_actions(user_id, id);
+        CREATE TABLE IF NOT EXISTS assistant_prefs (
+          user_id       INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          improve_atlas INTEGER NOT NULL DEFAULT 1,
+          updated_at    INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+      `,
+    },
   ];

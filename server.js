@@ -159,6 +159,8 @@ import { createAtlasRouter, createAtlasAdminRouter } from "./routes/atlas.js";
 import { createLearnRouter } from "./routes/learn.js";
 // ⭐ D169: Your skills in Atlas — and the gate: a skill not on the résumé goes into a tailored one only once proven.
 import { createYourSkillsRouter, createYourSkillsAdminRouter } from "./routes/yourSkills.js";
+import { ask as assistantAsk, decideAction as decideAssistantAction, actionLog as assistantActionLog, setImproveAtlas, improveAtlasOn,
+  assistantAvailable, asksSummary as assistantAsksSummary, gapToBacklog as assistantGapToBacklog, ENABLED_KEY as ASSISTANT_ENABLED_KEY } from "./services/assistant/assistant.js";
 import { gateClaimsForResume, gatedDomainProfile, yourSkillStates } from "./services/yourSkills.js";
 import { createThumbsRouter, createThumbsAdminRouter, resourceItems } from "./routes/thumbs.js";
 import surveyRoutes from "./routes/survey.js";
@@ -7964,6 +7966,42 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         ALTER TABLE scraped_jobs ADD COLUMN first_ingested TEXT;
         CREATE INDEX IF NOT EXISTS idx_scraped_jobs_source_id ON scraped_jobs(source, source_id) WHERE source_id IS NOT NULL;
         CREATE INDEX IF NOT EXISTS idx_scraped_jobs_platform_job ON scraped_jobs(platform_job_id) WHERE platform_job_id IS NOT NULL;
+      `,
+    },
+    {
+      // ⭐ T5 · THE ASSISTANT v1 (owner 11-10: "OK ship it"; docs/ASSISTANT.md). assistant_asks = the DE-IDENTIFIED ask log
+      // (D177-3: no user id, the question with emails / links / numbers / the person's name stripped, covered / partial /
+      // gap) — written only while the person's improve_atlas is on; assistant_actions = every action the assistant
+      // PROPOSED and what the person decided (the audit log they see in Profile → Privacy); assistant_prefs = the person's
+      // "Use my questions to improve Atlas" switch. Three new small tables — no rewrite of an existing one. After 270.
+      id: "271_assistant",
+      sql: `
+        CREATE TABLE IF NOT EXISTS assistant_asks (
+          id           INTEGER PRIMARY KEY AUTOINCREMENT,
+          question     TEXT    NOT NULL,
+          coverage     TEXT    NOT NULL CHECK (coverage IN ('covered', 'partial', 'gap')),
+          lessons_json TEXT,
+          terms_json   TEXT,
+          at           INTEGER NOT NULL DEFAULT (unixepoch())
+        );
+        CREATE INDEX IF NOT EXISTS idx_assistant_asks_at ON assistant_asks(at);
+        CREATE TABLE IF NOT EXISTS assistant_actions (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          tool        TEXT    NOT NULL,
+          args_json   TEXT    NOT NULL,
+          summary     TEXT,
+          status      TEXT    NOT NULL DEFAULT 'proposed' CHECK (status IN ('proposed', 'done', 'failed', 'cancelled', 'expired')),
+          result_json TEXT,
+          proposed_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          decided_at  INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_assistant_actions_user ON assistant_actions(user_id, id);
+        CREATE TABLE IF NOT EXISTS assistant_prefs (
+          user_id       INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          improve_atlas INTEGER NOT NULL DEFAULT 1,
+          updated_at    INTEGER NOT NULL DEFAULT (unixepoch())
+        );
       `,
     },
   ];
@@ -16952,6 +16990,54 @@ app.post("/api/apply/questions/:jobId/draft", requireAuth, async (req, res) => {
     console.error("[answer-draft]", e.message);
     res.status(e.status || 500).json({ error: e.code || "draft_failed", message: "The draft could not be written. Try again." });
   }
+});
+
+// ⭐ T5 · THE ASSISTANT v1 (services/assistant/assistant.js; docs/ASSISTANT.md). Available to admins always and to everyone
+// once Admin → Atlas → Asks turns it on (app_settings assistant_enabled). Every action it proposes runs only on the person's
+// Confirm, with THIS session's user id. Questions are logged de-identified, unless the person switched that off.
+const assistantAdmin = (req) => { try { return !!mayActAsAdmin(req); } catch { return false; } };
+app.get("/api/assistant/status", requireAuth, (req, res) => {
+  res.set("Cache-Control", "private, no-store").json({ available: assistantAvailable(db, { isAdmin: assistantAdmin(req) }), improveAtlas: improveAtlasOn(db, req.user.id) });
+});
+app.post("/api/assistant/ask", requireAuth, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  if (!assistantAvailable(db, { isAdmin: assistantAdmin(req) })) return res.status(404).json({ error: "not_available", message: "Ask draft isn't open yet." });
+  try { res.json(await assistantAsk(db, { userId: req.user.id, question: req.body?.question, callTask, anthropic, dataClass: DATA_CLASS.CANDIDATE })); }
+  catch (e) {
+    if (!e.status) console.error("[assistant]", e.message);
+    res.status(e.status || 500).json({ error: e.code || "ask_failed", message: e.status ? e.message : "Ask draft couldn't answer just now. Try again." });
+  }
+});
+app.post("/api/assistant/actions/:id/confirm", requireAuth, (req, res) => {
+  try { res.json(decideAssistantAction(db, req.user.id, req.params.id, { confirm: true })); }
+  catch (e) { res.status(e.status || 500).json({ error: e.code || "action_failed", message: e.message }); }
+});
+app.post("/api/assistant/actions/:id/cancel", requireAuth, (req, res) => {
+  try { res.json(decideAssistantAction(db, req.user.id, req.params.id, { confirm: false })); }
+  catch (e) { res.status(e.status || 500).json({ error: e.code || "action_failed", message: e.message }); }
+});
+app.get("/api/assistant/actions", requireAuth, (req, res) => {
+  res.set("Cache-Control", "private, no-store").json({ actions: assistantActionLog(db, req.user.id) });
+});
+app.put("/api/assistant/settings", requireAuth, (req, res) => {
+  if (typeof req.body?.improveAtlas !== "boolean") return res.status(400).json({ error: "bad_setting", message: "improveAtlas must be true or false" });
+  res.json(setImproveAtlas(db, req.user.id, req.body.improveAtlas));
+});
+app.get("/api/admin/assistant/asks", requireAdmin, (req, res) => {
+  try { res.set("Cache-Control", "no-store").json({ ...assistantAsksSummary(db, { days: Number(req.query.days) || 30 }), enabled: assistantAvailable(db, {}) }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post("/api/admin/assistant/asks/backlog", requireAdmin, (req, res) => {
+  try { res.json(assistantGapToBacklog(db, req.body?.term, { by: actorRef(req) })); }
+  catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+app.put("/api/admin/assistant/enabled", requireAdmin, (req, res) => {
+  if (typeof req.body?.enabled !== "boolean") return res.status(400).json({ error: "enabled must be true or false" });
+  const before = assistantAvailable(db, {});
+  setSetting(db, ASSISTANT_ENABLED_KEY, req.body.enabled ? "1" : "0");
+  try { writeAudit(db, { actor: actorOf(req), action: "assistant_enabled", target: ASSISTANT_ENABLED_KEY, before: { on: before }, after: { on: req.body.enabled } }); }
+  catch (e) { console.warn("[assistant] the audit row was not written:", e.message); }
+  res.json({ enabled: req.body.enabled });
 });
 
 // HEALTH + SPA

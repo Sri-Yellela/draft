@@ -206,6 +206,22 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
 .appnav-ask__head h2 { margin: 0; font-size: calc(20px * var(--type-scale, 1)); font-weight: 600; color: var(--c-ink); }
 .appnav-ask .appnav-ask__close { position: static; }
 .appnav-ask__say { margin: 0; color: var(--c-ink-muted); font-size: calc(14px * var(--type-scale, 1)); line-height: 1.5; }
+/* T5 v1 — the conversation, the lesson links, the Confirm / Cancel of a proposed action. No pills (D60): plain boxes. */
+.appnav-ask__turns { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.appnav-ask__turn { display: flex; flex-direction: column; gap: 6px; }
+.appnav-ask__turn[data-ask-turn="you"] { color: var(--c-ink-muted); }
+.appnav-ask__text, .appnav-ask__next { margin: 0; color: var(--c-ink); font-size: calc(14px * var(--type-scale, 1)); line-height: 1.5; }
+.appnav-ask__lessons { margin: 0; padding-left: 18px; font-size: calc(13px * var(--type-scale, 1)); }
+.appnav-ask__lessons a { color: var(--c-ink); text-decoration: underline; }
+.appnav-ask__kind { color: var(--c-ink-muted); font-size: calc(12px * var(--type-scale, 1)); }
+.appnav-ask__action { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--c-border); border-radius: 6px; }
+.appnav-ask__form { display: flex; flex-direction: column; gap: 8px; }
+.appnav-ask__input { width: 100%; box-sizing: border-box; resize: vertical; padding: 8px; border: 1px solid var(--c-border); border-radius: 6px;
+  background: var(--c-surface-solid); color: var(--c-ink); font: inherit; font-size: calc(14px * var(--type-scale, 1)); }
+.appnav-ask__btn { align-self: flex-start; padding: 6px 12px; border: 1px solid var(--c-border); border-radius: 6px; background: var(--c-surface-solid);
+  color: var(--c-ink); font: inherit; font-size: calc(13px * var(--type-scale, 1)); cursor: pointer; }
+.appnav-ask__btn:disabled { opacity: .5; cursor: default; }
+.appnav-ask__opt { display: flex; gap: 8px; align-items: flex-start; color: var(--c-ink-muted); font-size: calc(12px * var(--type-scale, 1)); }
 :root[data-ask-open="true"] [data-app-shell] { padding-right: var(--appnav-ask-w); }
 :root[data-ask-open="true"] [data-app-chrome] { padding-right: calc(20px + var(--appnav-ask-w)) !important; }
 

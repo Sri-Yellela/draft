@@ -27,7 +27,21 @@ change is reviewed against this page. Where a rule is already enforced in code, 
 A recalled conversation is never treated as fact over the Profile: when they disagree, the Profile wins and the
 assistant says so.
 
-## 3 · What waits on whom
+## 3 · What is built (v1, 11-11 46e — owner 11-10: "OK ship it")
+
+- `services/assistant/assistant.js`: retrieval (published Atlas lessons, `content/assistant/help.json`, the person's own
+  skills and application counts), ONE fenced `assistant.chat` call, the answer checked (`checkModelOutput`; lessons only
+  from what was retrieved), at most one PROPOSED action from `ACT_TOOLS` (v1: `act.skills.add`) stored in
+  `assistant_actions` and run only on `POST /api/assistant/actions/:id/confirm` with the session's user id.
+- The ask log (`assistant_asks`, migration 271): de-identified, no user id, only while the person's *Use my questions to
+  improve Atlas* is on (Ask draft's panel and Profile → Privacy). The privacy page carries a PLACEHOLDER line until counsel's.
+- Admin → Atlas → Asks: coverage, the top gap terms → the content backlog, and the switch that opens Ask draft to everyone
+  (admins always have it; `app_settings.assistant_enabled`, default off).
+- Long-term memory (recalling past conversations): NOT built — off, as §2 requires by default.
+- The eval set `content/assistant/eval-v1.json` (50 cases) and `scripts/assistantEval.mjs` (spends; `--spend`). The
+  incumbent route (Haiku) needs no record to serve; the run is the evidence for opening it to everyone.
+
+## 3b · What waits on whom (as written before v1)
 
 - The panel's design and Admin → Atlas → Asks: **the owner's sketch** (D177: "sketch first").
 - The ask log (D177-3): **one privacy-page line** and the *Don't use my questions to improve Atlas* switch, before any
