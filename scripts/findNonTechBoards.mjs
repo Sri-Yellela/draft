@@ -73,11 +73,46 @@ const SITES_46A = [
   ["The Home Depot", "https://corporate.homedepot.com", "retail"], ["UPS", "https://about.ups.com", "logistics"],
   ["FedEx", "https://www.fedex.com", "logistics"],
 ];
+// 46g (owner 11-11, "if full suite is done you can start boosting crawlers") · the third pass — industries the first two
+// lists barely touched: pharma, medtech, consulting / government services, health insurers, retail, transport, telecom,
+// auto, hospitality and universities. Same rules: the employer's own public site, read once, robots.txt honoured.
+const SITES_46G = [
+  ["Pfizer", "https://www.pfizer.com", "pharma"], ["Merck", "https://www.merck.com", "pharma"],
+  ["Johnson & Johnson", "https://www.jnj.com", "pharma"], ["AbbVie", "https://www.abbvie.com", "pharma"],
+  ["Bristol Myers Squibb", "https://www.bms.com", "pharma"], ["Eli Lilly", "https://www.lilly.com", "pharma"],
+  ["Amgen", "https://www.amgen.com", "pharma"], ["Regeneron", "https://www.regeneron.com", "pharma"],
+  ["Biogen", "https://www.biogen.com", "pharma"], ["Gilead Sciences", "https://www.gilead.com", "pharma"],
+  ["Medtronic", "https://www.medtronic.com", "medtech"], ["Stryker", "https://www.stryker.com", "medtech"],
+  ["Abbott", "https://www.abbott.com", "medtech"], ["BD", "https://www.bd.com", "medtech"],
+  ["Deloitte", "https://www2.deloitte.com", "consulting"], ["PwC", "https://www.pwc.com", "consulting"],
+  ["EY", "https://www.ey.com", "consulting"], ["KPMG", "https://kpmg.com", "consulting"],
+  ["Accenture", "https://www.accenture.com", "consulting"], ["Booz Allen Hamilton", "https://www.boozallen.com", "government services"],
+  ["Leidos", "https://www.leidos.com", "government services"], ["SAIC", "https://www.saic.com", "government services"],
+  ["CACI", "https://www.caci.com", "government services"], ["ManTech", "https://www.mantech.com", "government services"],
+  ["UnitedHealth Group", "https://www.unitedhealthgroup.com", "health insurance"], ["Elevance Health", "https://www.elevancehealth.com", "health insurance"],
+  ["Cigna Group", "https://www.thecignagroup.com", "health insurance"], ["Humana", "https://www.humana.com", "health insurance"],
+  ["Allstate", "https://www.allstate.com", "insurance"], ["State Farm", "https://www.statefarm.com", "insurance"],
+  ["Aflac", "https://www.aflac.com", "insurance"], ["Walmart", "https://corporate.walmart.com", "retail"],
+  ["Costco", "https://www.costco.com", "retail"], ["Lowe's", "https://corporate.lowes.com", "retail"],
+  ["Best Buy", "https://corporate.bestbuy.com", "retail"], ["Kroger", "https://www.thekrogerco.com", "retail"],
+  ["TJX Companies", "https://www.tjx.com", "retail"], ["Union Pacific", "https://www.up.com", "transport"],
+  ["BNSF Railway", "https://www.bnsf.com", "transport"], ["Delta Air Lines", "https://www.delta.com", "transport"],
+  ["United Airlines", "https://www.united.com", "transport"], ["J.B. Hunt", "https://www.jbhunt.com", "logistics"],
+  ["C.H. Robinson", "https://www.chrobinson.com", "logistics"], ["XPO", "https://www.xpo.com", "logistics"],
+  ["Verizon", "https://www.verizon.com", "telecom"], ["AT&T", "https://www.att.com", "telecom"],
+  ["Comcast", "https://corporate.comcast.com", "telecom"], ["T-Mobile", "https://www.t-mobile.com", "telecom"],
+  ["General Motors", "https://www.gm.com", "auto"], ["Ford Motor Company", "https://corporate.ford.com", "auto"],
+  ["Marriott International", "https://www.marriott.com", "hospitality"], ["Hilton", "https://www.hilton.com", "hospitality"],
+  ["Harvard University", "https://www.harvard.edu", "education"], ["MIT", "https://www.mit.edu", "education"],
+  ["Boston University", "https://www.bu.edu", "education"], ["Northeastern University", "https://www.northeastern.edu", "education"],
+  ["Tufts University", "https://www.tufts.edu", "education"], ["Brigham and Women's Hospital", "https://www.brighamandwomens.org", "healthcare"],
+  ["Dana-Farber Cancer Institute", "https://www.dana-farber.org", "healthcare"], ["Hartford HealthCare", "https://hartfordhealthcare.org", "healthcare"],
+];
 const prior = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, "utf8")) : { tried: {}, found: [] };
 prior.unsupported ??= [];
 prior.j1 ??= {};
 const have = new Set(prior.found.map(f => `${f.atsType}:${f.slug}`.toLowerCase()));
-for (const [company, site, industry] of [...SITES, ...SITES_46A]) {
+for (const [company, site, industry] of [...SITES, ...SITES_46A, ...SITES_46G]) {
   // 46b: RETRY_ERRORS=1 re-tries only the sites a run recorded as "error" (46a: Lockheed, Caterpillar, Morgan Stanley).
   if (prior.j1[company] && !(process.env.RETRY_ERRORS === "1" && prior.j1[company] === "error")) continue;
   const fetcher = createFetcher({ budget: { pages: 25, bytes: 5_000_000, ms: 120_000 }, rateMs: 2000 });

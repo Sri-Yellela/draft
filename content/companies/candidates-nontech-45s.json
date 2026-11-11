@@ -1354,6 +1354,244 @@
     "medianAge": 17,
     "probedAt": "2026-11-10T06:48:20.150Z"
    }
+  },
+  {
+   "company": "Pfizer",
+   "atsType": "workday",
+   "slug": "1|pfizer|PfizerCareers",
+   "industry": "pharma",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 42,
+    "fresh": 42,
+    "inScope": 4,
+    "cs30": 4,
+    "usPct": 14,
+    "medianAge": 1,
+    "probedAt": "2026-11-11T15:26:27.908Z"
+   }
+  },
+  {
+   "company": "Merck",
+   "atsType": "workday",
+   "slug": "5|msd|SearchJobs",
+   "industry": "pharma",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 81,
+    "fresh": 81,
+    "inScope": 24,
+    "cs30": 24,
+    "usPct": 27,
+    "medianAge": 1,
+    "probedAt": "2026-11-11T15:26:47.897Z"
+   }
+  },
+  {
+   "company": "Amgen",
+   "atsType": "workday",
+   "slug": "1|amgen|Careers",
+   "industry": "pharma",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 136,
+    "fresh": 136,
+    "inScope": 46,
+    "cs30": 46,
+    "usPct": 45,
+    "medianAge": 5,
+    "probedAt": "2026-11-11T15:27:49.106Z"
+   }
+  },
+  {
+   "company": "Biogen",
+   "atsType": "workday",
+   "slug": "3|biibhr|external",
+   "industry": "pharma",
+   "via": "j1",
+   "evidence": {
+    "fetched": 267,
+    "us": 132,
+    "fresh": 132,
+    "inScope": 37,
+    "cs30": 37,
+    "usPct": 49,
+    "medianAge": 29,
+    "probedAt": "2026-11-11T15:28:07.233Z"
+   }
+  },
+  {
+   "company": "Gilead Sciences",
+   "atsType": "workday",
+   "slug": "1|gilead|gileadcareers",
+   "industry": "pharma",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 182,
+    "fresh": 182,
+    "inScope": 46,
+    "cs30": 46,
+    "usPct": 61,
+    "medianAge": 11,
+    "probedAt": "2026-11-11T15:28:25.633Z"
+   }
+  },
+  {
+   "company": "Medtronic",
+   "atsType": "workday",
+   "slug": "1|medtronic|MedtronicCareers",
+   "industry": "medtech",
+   "via": "j1",
+   "evidence": {
+    "fetched": 299,
+    "us": 123,
+    "fresh": 123,
+    "inScope": 41,
+    "cs30": 41,
+    "usPct": 41,
+    "medianAge": 1,
+    "probedAt": "2026-11-11T15:28:50.390Z"
+   }
+  },
+  {
+   "company": "Stryker",
+   "atsType": "workday",
+   "slug": "1|stryker|StrykerCareers",
+   "industry": "medtech",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 119,
+    "fresh": 119,
+    "inScope": 27,
+    "cs30": 27,
+    "usPct": 40,
+    "medianAge": 5,
+    "probedAt": "2026-11-11T15:29:14.917Z"
+   }
+  },
+  {
+   "company": "Abbott",
+   "atsType": "workday",
+   "slug": "5|abbott|abbottcareers",
+   "industry": "medtech",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 156,
+    "fresh": 156,
+    "inScope": 48,
+    "cs30": 48,
+    "usPct": 52,
+    "medianAge": 1,
+    "probedAt": "2026-11-11T15:29:43.679Z"
+   }
+  },
+  {
+   "company": "BD",
+   "atsType": "workday",
+   "slug": "1|bdx|EXTERNAL_CAREER_SITE_USA",
+   "industry": "medtech",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 231,
+    "fresh": 231,
+    "inScope": 55,
+    "cs30": 55,
+    "usPct": 77,
+    "medianAge": 14,
+    "probedAt": "2026-11-11T15:30:09.047Z"
+   }
+  },
+  {
+   "company": "Booz Allen Hamilton",
+   "atsType": "workday",
+   "slug": "1|bah|BAH_Jobs",
+   "industry": "government services",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 229,
+    "fresh": 229,
+    "inScope": 133,
+    "cs30": 133,
+    "usPct": 76,
+    "medianAge": 1,
+    "probedAt": "2026-11-11T15:32:23.023Z"
+   }
+  },
+  {
+   "company": "Elevance Health",
+   "atsType": "workday",
+   "slug": "1|elevancehealth|ANT",
+   "industry": "health insurance",
+   "via": "j1",
+   "evidence": {
+    "fetched": 270,
+    "us": 43,
+    "fresh": 43,
+    "inScope": 5,
+    "cs30": 5,
+    "usPct": 16,
+    "medianAge": 8,
+    "probedAt": "2026-11-11T15:33:26.607Z"
+   }
+  },
+  {
+   "company": "J.B. Hunt",
+   "atsType": "workday",
+   "slug": "501|jbhunt|Careers",
+   "industry": "logistics",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 275,
+    "fresh": 275,
+    "inScope": 14,
+    "cs30": 14,
+    "usPct": 92,
+    "medianAge": 6,
+    "probedAt": "2026-11-11T15:43:21.861Z"
+   }
+  },
+  {
+   "company": "Marriott International",
+   "atsType": "oracle",
+   "slug": "ejwl.fa.us2.oraclecloud.com|CX",
+   "industry": "hospitality",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 150,
+    "inScope": 13,
+    "cs30": 13,
+    "usPct": 100,
+    "medianAge": 1,
+    "probedAt": "2026-11-11T15:51:41.300Z"
+   }
+  },
+  {
+   "company": "Hilton",
+   "atsType": "oracle",
+   "slug": "efet.fa.us2.oraclecloud.com|CX_1",
+   "industry": "hospitality",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 150,
+    "inScope": 9,
+    "cs30": 9,
+    "usPct": 100,
+    "medianAge": 0,
+    "probedAt": "2026-11-11T15:53:01.215Z"
+   }
   }
  ],
  "dropped": [
@@ -1453,6 +1691,54 @@
     "https://jobs-brasfieldgorrie.icims.com/jobs/10596/login",
     "https://jobs-brasfieldgorrie.icims.com/jobs/10277/login",
     "https://jobs-brasfieldgorrie.icims.com/jobs/10728/login"
+   ]
+  },
+  {
+   "company": "Aflac",
+   "industry": "insurance",
+   "vendors": [
+    "successfactors"
+   ],
+   "hosts": [
+    "performancemanager4.successfactors.com",
+    "rmkcdn.successfactors.com",
+    "career4.successfactors.com"
+   ],
+   "urls": [
+    "https://performancemanager4.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery.js",
+    "https://performancemanager4.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery-migrate.js",
+    "https://rmkcdn.successfactors.com/3e8c77f3/57381026-8bb4-487e-aad3-b.css",
+    "https://career4.successfactors.com/career"
+   ]
+  },
+  {
+   "company": "Kroger",
+   "industry": "retail",
+   "vendors": [
+    "oracle"
+   ],
+   "hosts": [
+    "eluq.fa.us2.oraclecloud.com"
+   ],
+   "urls": [
+    "https://eluq.fa.us2.oraclecloud.com/hcmRestApi/CandidateExperience/siteFavicon/favicon-16x16.png",
+    "https://eluq.fa.us2.oraclecloud.com/hcmRestApi/CandidateExperience/siteFavicon/favicon-144x144.png",
+    "https://eluq.fa.us2.oraclecloud.com/hcmRestApi/CandidateExperience/siteFavicon/favicon-152x152.png",
+    "https://eluq.fa.us2.oraclecloud.com/hcmUI/CandExpStatic/css/ce-custom.css",
+    "https://eluq.fa.us2.oraclecloud.com/hcmUI/CandExpStatic/js/ce-custom.js"
+   ]
+  },
+  {
+   "company": "Union Pacific",
+   "industry": "transport",
+   "vendors": [
+    "successfactors"
+   ],
+   "hosts": [
+    "performancemanager4.successfactors.com"
+   ],
+   "urls": [
+    "https://performancemanager4.successfactors.com/sf/"
    ]
   }
  ],
@@ -1559,6 +1845,66 @@
   "The Home Depot": "none",
   "UPS": "none",
   "FedEx": "none",
-  "CommonSpirit Health": "icims:careers-commonspirit"
+  "CommonSpirit Health": "icims:careers-commonspirit",
+  "Pfizer": "workday:1|pfizer|PfizerCareers",
+  "Merck": "workday:5|msd|SearchJobs",
+  "Johnson & Johnson": "none",
+  "AbbVie": "blocked",
+  "Bristol Myers Squibb": "none",
+  "Eli Lilly": "blocked",
+  "Amgen": "workday:1|amgen|Careers",
+  "Regeneron": "blocked",
+  "Biogen": "workday:3|biibhr|external",
+  "Gilead Sciences": "workday:1|gilead|gileadcareers",
+  "Medtronic": "workday:1|medtronic|MedtronicCareers",
+  "Stryker": "workday:1|stryker|StrykerCareers",
+  "Abbott": "workday:5|abbott|abbottcareers",
+  "BD": "workday:1|bdx|EXTERNAL_CAREER_SITE_USA",
+  "Deloitte": "none",
+  "PwC": "none",
+  "EY": "error",
+  "KPMG": "none",
+  "Accenture": "pairs workday:103|accenture|AccentureCareers (not live / thin)",
+  "Booz Allen Hamilton": "workday:1|bah|BAH_Jobs",
+  "Leidos": "none",
+  "SAIC": "none",
+  "CACI": "none",
+  "ManTech": "error",
+  "UnitedHealth Group": "pairs taleo:uhg|10000 (not live / thin)",
+  "Elevance Health": "workday:1|elevancehealth|ANT",
+  "Cigna Group": "none",
+  "Humana": "none",
+  "Allstate": "error",
+  "State Farm": "pairs icims:events-statefarm,icims:careers-statefarm,icims:statefarm (not live / thin)",
+  "Aflac": "unsupported successfactors (performancemanager4.successfactors.com,rmkcdn.successfactors.com,career4.successfactors.com)",
+  "Walmart": "none",
+  "Costco": "error",
+  "Lowe's": "none",
+  "Best Buy": "none",
+  "Kroger": "unsupported oracle (eluq.fa.us2.oraclecloud.com)",
+  "TJX Companies": "none",
+  "Union Pacific": "unsupported successfactors (performancemanager4.successfactors.com)",
+  "BNSF Railway": "none",
+  "Delta Air Lines": "error",
+  "United Airlines": "error",
+  "J.B. Hunt": "workday:501|jbhunt|Careers",
+  "C.H. Robinson": "none",
+  "XPO": "none",
+  "Verizon": "blocked",
+  "AT&T": "error",
+  "Comcast": "error",
+  "T-Mobile": "none",
+  "General Motors": "none",
+  "Ford Motor Company": "none",
+  "Marriott International": "oracle:ejwl.fa.us2.oraclecloud.com|CX",
+  "Hilton": "oracle:efet.fa.us2.oraclecloud.com|CX_1",
+  "Harvard University": "none",
+  "MIT": "none",
+  "Boston University": "error",
+  "Northeastern University": "none",
+  "Tufts University": "error",
+  "Brigham and Women's Hospital": "none",
+  "Dana-Farber Cancer Institute": "workday:1|massgeneralbrigham|MGBExternal",
+  "Hartford HealthCare": "none"
  }
 }
