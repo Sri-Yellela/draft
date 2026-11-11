@@ -22,11 +22,15 @@ const norm = (q) => s(q).toLowerCase().replace(/[\s*:?.]+$/g, "").replace(/\s+/g
 export function heldQuestionsOf({ openQuestionsJson = null, blanksJson = null, packetJson = null } = {}) {
   const out = [];
   const seen = new Set();
-  const push = (question, required, from, eligibility) => {
+  // ⭐ A181 (3): the form's own control type and options travel with the question, so the held panel draws ONE typed input
+  // per question (Yes / No, a choice, a text area for a free-text draft) instead of one box for all of them.
+  const push = (question, required, from, eligibility, type = null, options = null) => {
     const k = norm(question);
     if (!k || seen.has(k)) return;
     seen.add(k);
-    out.push({ question: s(question), required: !!required, from, ...(eligibility ? { eligibility } : {}) });
+    const opts = Array.isArray(options) ? options.map(o => (o && typeof o === "object" ? s(o.label ?? o.value) : s(o))).filter(Boolean).slice(0, 40) : null;
+    out.push({ question: s(question), required: !!required, from, ...(eligibility ? { eligibility } : {}),
+      ...(type ? { type: s(type) } : {}), ...(opts && opts.length ? { options: opts } : {}) });
   };
   const open = parse(openQuestionsJson), blanks = parse(blanksJson);
   // ⭐ A179 F3 (owner 11-10: 24 fields listed — First Name, Email … — and optional ones "as if needed"): when the run READ
@@ -37,11 +41,11 @@ export function heldQuestionsOf({ openQuestionsJson = null, blanksJson = null, p
   for (const q of open || []) {
     if (q?.type === "file") continue;   // D165 R1: the résumé is draft's to make, never a question
     if (q?.required === false && !q?.eligibility) continue;
-    push(q?.question || q?.label, q?.required, "form", q?.eligibility);
+    push(q?.question || q?.label, q?.required, "form", q?.eligibility, q?.type, q?.options);
   }
   for (const b of blanks || []) {
     if (!b?.required || b?.type === "file") continue;
-    push(b.label || b.field, true, "empty");
+    push(b.label || b.field, true, "empty", null, b.type, b.options);
   }
   const packet = parse(packetJson);
   for (const u of packet?.unresolved || []) {

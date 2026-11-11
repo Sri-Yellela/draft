@@ -93,6 +93,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
   const [applyInFlight, setApplyInFlight] = useState([]);
   const [applySubmitted, setApplySubmitted] = useState([]);
   const [applyStopped, setApplyStopped] = useState([]);
+  const [applySlots, setApplySlots] = useState(null);   // ⭐ A181 (5d): the day's new-draft allowance
   const [applyGatedJobs, setApplyGatedJobs] = useState([]);
   // A59: the user's line — Drafts waiting behind the running one, next first, each editable until it
   // starts. `held` says why it is not moving (the kill switch), or null.
@@ -113,6 +114,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       setApplyInFlight(Array.isArray(data.inFlight) ? data.inFlight : []);
       setApplySubmitted(Array.isArray(data.submitted) ? data.submitted : []);
       setApplyStopped(Array.isArray(data.stopped) ? data.stopped : []);
+      setApplySlots(data.draftSlots || null);   // ⭐ A181 (5d)
       setApplyLine(data.line && Array.isArray(data.line.waiting) ? data.line : { waiting: [], held: null });
     } catch {}
     // Prerequisites, so "add your email address -> unblocks N applications" can be shown BEFORE the
@@ -178,11 +180,17 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
    * and reports the rest as `skipped`. Sending the union rather than guessing keeps that authority
    * in one place.
    */
-  const submitApplyAnswers = useCallback(async (retry) => {
+  const submitApplyAnswers = useCallback(async (retry, scope = null) => {
     const answers = {};
     for (const q of applyQuestions) {
       const v = questionDrafts[q.question];
       if (v !== undefined && String(v).trim() !== "") answers[q.question] = String(v).trim();
+    }
+    // ⭐ A181 (3b): the held row's stepper names its own questions (the form's free-text ones may not be in the cross-run
+    // list) and its own job, so Finish saves exactly those and re-runs that job.
+    for (const q of scope?.questions || []) {
+      const v = questionDrafts[q];
+      if (v !== undefined && String(v).trim() !== "") answers[q] = String(v).trim();
     }
     if (Object.keys(answers).length === 0) {
       setAnswersMsg("Answer at least one question first.");
@@ -190,11 +198,12 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
     }
     const remember = {};
     for (const q of Object.keys(answers)) remember[q] = questionRemember[q] !== false;
-    const blocked = [...new Set(
-      applyQuestions
+    const blocked = [...new Set([
+      ...applyQuestions
         .filter(q => answers[q.question] !== undefined)
-        .flatMap(q => (q.blocking || []).map(b => b.jobId))
-    )];
+        .flatMap(q => (q.blocking || []).map(b => b.jobId)),
+      ...(scope?.jobIds || []).filter(x => x != null).map(String),
+    ])];
 
     setAnswersSaving(true);
     setAnswersMsg("");
@@ -759,7 +768,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
     <AutoApplyContext.Provider value={{
       applyRuns, applyReviewJobs, applyGatePortals, applyGateTruncated, applyGateTotal,
       applyHandoffPackets, handoffPacketFor, openHandoff, handoffMsg, setHandoffMsg,
-      applyInFlight, applySubmitted, applyStopped, applyGatedJobs,
+      applyInFlight, applySubmitted, applyStopped, applyGatedJobs, applySlots,
       applyPrereqMissing,
       applyLine, lineMsg, lineBusyId, setLineTool, moveInLine, removeFromLine,
       // D25: the run bar — mode, caps, Stop everything.

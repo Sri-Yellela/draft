@@ -88,7 +88,7 @@ test("d165SaveScopeLabel: GET /api/apply/questions names a salary question's sco
 
 test("d165SaveScopeLabel: both question boxes read the label; a held row follows the sketch's order (source pin)", () => {
   const panel = read("client/src/panels/AutoApplyPanel.jsx");
-  assert.equal(panel.split("{saveForNextTimeLabel(").length - 1, 2, "the inline box and the review list");
+  assert.equal(panel.split("{saveForNextTimeLabel(").length - 1, 3, "the inline box, the review list and A181's one-at-a-time stepper");
   assert.doesNotMatch(panel, /^\s*Save this answer for next time\s*$/m, "no hard-coded label left");
   const tracker = read("client/src/components/ApplicationTracker.jsx");
   const body = tracker.slice(at(tracker, "export function RowOpen("));

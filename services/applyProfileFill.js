@@ -20,7 +20,7 @@ import { sampleIdForText } from "./sampleResumes.js";
 const has = (v) => String(v ?? "").trim() !== "";
 /** The fields a run cannot do without, and the ones a résumé usually holds (an empty one triggers the backfill). */
 export const CONTACT_REQUIRED = Object.freeze(["full_name", "email"]);
-const BACKFILL_TRIGGER = Object.freeze(["full_name", "first_name", "email", "phone", "city", "linkedin_url", "current_job_title", "university"]);
+const BACKFILL_TRIGGER = Object.freeze(["full_name", "first_name", "email", "phone", "city", "linkedin_url", "current_job_title", "current_company", "university"]);
 
 const tried = new Map();   // userId → the base résumé text length + head it was last backfilled from (one attempt per résumé)
 const stamp = (text) => `${text.length}:${text.slice(0, 64)}`;
@@ -51,6 +51,22 @@ export function completeProfileForApply(db, profile) {
       }
     }
   } catch (e) { console.warn(`[apply] A179 backfill: ${e.message}`); }
+  // ⭐ A181 (1) (owner 11-10: the re-run still asked Current Company / Current Role / Alma Mater). The backfill above never
+  // fired for a profile whose title was set but company empty (current_company was not a trigger), and the résumé parse
+  // can miss a school; the person's own Profile SECTIONS (D101: experience, education) hold them. Read them for the
+  // payload — the person's own rows, nothing written.
+  try {
+    if (!has(row?.current_company) || !has(row?.current_job_title)) {
+      const cur = db.prepare(`SELECT company, title FROM profile_experience WHERE user_id = ? ORDER BY is_current DESC, position, id LIMIT 1`).get(userId);
+      if (cur) row = { ...row, current_company: has(row?.current_company) ? row.current_company : (cur.company || row?.current_company || null),
+        current_job_title: has(row?.current_job_title) ? row.current_job_title : (cur.title || row?.current_job_title || null) };
+    }
+    if (!has(row?.university)) {
+      const ed = db.prepare(`SELECT school, degree, field FROM profile_education WHERE user_id = ? AND TRIM(COALESCE(school, '')) != '' ORDER BY position, id LIMIT 1`).get(userId);
+      if (ed) row = { ...row, university: ed.school, highest_degree: has(row?.highest_degree) ? row.highest_degree : (ed.degree || null),
+        field_of_study: has(row?.field_of_study) ? row.field_of_study : (ed.field || null) };
+    }
+  } catch { /* no sections table — the row as it was */ }
   if (!has(row?.email)) {
     try {
       // The sign-in identity is users.username — an email address for an email / Google account.

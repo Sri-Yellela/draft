@@ -89,6 +89,108 @@ import AttemptPosting from "../components/AttemptPosting.jsx";
 // ⭐ D149 (11-03) · tracker-options.html's `.ph3 h1`: the deck's page-title type at the sketch's fixed 44 px, no tracking.
 const DH_TITLE = Object.freeze({ fontSize: "calc(44px * var(--type-scale, 1))", letterSpacing: "normal" });
 
+// ⭐ A181 (3b) (owner 11-10: "let them come in big font one qs disappearing after one is answered to keep the screen
+// lighter"): the held questions ONE AT A TIME — the current question as a large heading, its own typed input under it
+// (Yes / No as two big buttons for a statement like work authorisation; a choice from the form's options; a free-text
+// question arrives as draft's DRAFT with Use this · Edit — A181 (2)), a quiet "2 of 4", Back, and "See all 4" for the full
+// list. Answering slides it away (a short fade; none under Reduce motion — DraftHouse.css). After the last one: one line,
+// "All answered", and Finish. Nothing is sent from here: Finish saves the answers and re-runs THIS job (free — A181 (5a)),
+// which ends Ready to approve.
+function HeldQuestionStepper({ jobId, questions, values, setValue, remember, setRemember, onFinish, busy, message }) {
+  const [i, setI] = useState(0);
+  const [all, setAll] = useState(false);
+  const [drafts, setDrafts] = useState({});      // question → { text, state: loading | ready | off | failed }
+  const [editing, setEditing] = useState({});
+  const total = questions.length;
+  const q = questions[Math.min(i, total - 1)];
+  useEffect(() => { setI(0); setAll(false); }, [jobId]);
+  // A181 (2): a free-text question arrives as a draft to check — asked for once, from the résumé (D185-1's route; when
+  // answer drafts are switched off it answers 404 and the box stays empty for the person's own words).
+  useEffect(() => {
+    if (!q || q.kind !== "draft" || drafts[q.question] || jobId == null) return;
+    setDrafts(d => ({ ...d, [q.question]: { state: "loading" } }));
+    api(`/api/apply/questions/${encodeURIComponent(jobId)}/draft`, { method: "POST", body: JSON.stringify({ question: q.question }) })
+      .then(r => { setDrafts(d => ({ ...d, [q.question]: { state: "ready", text: r.draft } })); if (!String(values[q.question] ?? "").trim()) setValue(q.question, r.draft); })
+      .catch(e => setDrafts(d => ({ ...d, [q.question]: { state: e?.status === 404 ? "off" : "error" } })));
+  }, [q, jobId]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!total) return null;
+  const answered = (x) => String(values[x.question] ?? "").trim() !== "";
+  const next = () => setI(n => Math.min(total, n + 1));
+  const done = i >= total;
+  return (
+    <div className="dht-step" data-held-stepper="" data-step-index={done ? "done" : i}>
+      {done ? (
+        <div className="dht-step__done" data-held-all-answered="">
+          <p className="dht-step__q">All answered</p>
+          <p className="dht-step__meta">draft finishes the form with your answers, then it waits for your approval. Nothing is sent until you approve it.</p>
+          <div className="dht-acts">
+            <button type="button" className="dh-btn" data-kind="primary" data-action="finish-answers" disabled={busy} onClick={onFinish}>{busy ? "Saving…" : "Finish the form"}</button>
+            <button type="button" className="dh-btn" data-action="review-answers" onClick={() => { setAll(true); setI(0); }}>Review</button>
+          </div>
+        </div>
+      ) : (
+        <div className="dht-step__card" key={q.question} data-held-current={q.kind}>
+          <p className="dht-step__meta" data-held-progress="">{i + 1} of {total}{q.required ? " · required" : ""}</p>
+          <p className="dht-step__q" data-held-question="">{q.question}</p>
+          {q.kind === "yesno" ? (
+            <div className="dht-step__yn" role="group" aria-label={q.question}>
+              {(q.options?.length ? q.options : ["Yes", "No"]).map(o => (
+                <button key={o} type="button" className="dh-btn dht-step__big" data-yes-no={o} aria-pressed={values[q.question] === o}
+                  onClick={() => { setValue(q.question, o); next(); }}>{o}</button>
+              ))}
+            </div>
+          ) : q.kind === "choice" ? (
+            <select className="dht-step__in" aria-label={q.question} value={values[q.question] ?? ""} onChange={e => setValue(q.question, e.target.value)}>
+              <option value="">Choose…</option>
+              {q.options.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          ) : q.kind === "draft" ? (
+            <div className="dht-step__draft" data-held-draft={drafts[q.question]?.state || "none"}>
+              {drafts[q.question]?.state === "loading" && <span className="dht-step__meta">Writing a draft from your résumé…</span>}
+              {drafts[q.question]?.state === "ready" && !editing[q.question] ? (
+                <p className="dht-step__drafttext">{values[q.question]}</p>
+              ) : (
+                <textarea className="dht-step__in" rows={5} aria-label={q.question} value={values[q.question] ?? ""}
+                  placeholder={drafts[q.question]?.state === "off" ? "In your own words…" : ""} onChange={e => setValue(q.question, e.target.value)} />
+              )}
+            </div>
+          ) : (
+            <input className="dht-step__in" aria-label={q.question} value={values[q.question] ?? ""} onChange={e => setValue(q.question, e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && answered(q)) next(); }} />
+          )}
+          {q.kind !== "draft" && (
+            <label className="dht-step__save" data-save-for-next-time="">
+              <input type="checkbox" checked={remember[q.question] !== false} onChange={e => setRemember(q.question, e.target.checked)} />
+              {saveForNextTimeLabel(q)}
+            </label>
+          )}
+          <div className="dht-acts">
+            {q.kind === "draft" && drafts[q.question]?.state === "ready" && !editing[q.question] ? <>
+              <button type="button" className="dh-btn" data-kind="primary" data-action="use-draft" onClick={() => { setRemember(q.question, false); next(); }}>Use this</button>
+              <button type="button" className="dh-btn" data-action="edit-draft" onClick={() => setEditing(x => ({ ...x, [q.question]: true }))}>Edit</button>
+            </> : q.kind !== "yesno" && (
+              <button type="button" className="dh-btn" data-kind="primary" data-action="next-question" disabled={!answered(q)}
+                onClick={() => { if (q.kind === "draft") setRemember(q.question, false); next(); }}>{i + 1 === total ? "Done" : "Next"}</button>
+            )}
+            {i > 0 && <button type="button" className="dh-btn" data-action="back-question" onClick={() => setI(n => Math.max(0, n - 1))}>Back</button>}
+            <button type="button" className="dh-btn dht-step__link" data-action="see-all" aria-expanded={all} onClick={() => setAll(v => !v)}>{all ? "Hide the list" : `See all ${total}`}</button>
+          </div>
+        </div>
+      )}
+      {all && (
+        <ol className="dht-step__all" data-held-all="">
+          {questions.map((x, k) => (
+            <li key={x.question} data-answered={answered(x) ? "true" : "false"}>
+              <button type="button" className="dht-step__link" onClick={() => setI(k)}>{x.question}</button>{answered(x) ? ` — ${String(values[x.question]).slice(0, 60)}` : ""}
+            </li>
+          ))}
+        </ol>
+      )}
+      {message && <span className="dh-fold__quiet" role="status">{message}</span>}
+    </div>
+  );
+}
+
 export function AutoApplyPanel({ user = null } = {}) {
   const { theme } = useTheme();
   const { w: viewportWidth } = useViewport();
@@ -100,7 +202,7 @@ export function AutoApplyPanel({ user = null } = {}) {
     applyRuns = [], applyReviewJobs = [], applyGatePortals = [],
     applyGateTruncated = false, applyGateTotal = null,
     applyHandoffPackets = [], handoffPacketFor, openHandoff, handoffMsg, setHandoffMsg,
-    applyInFlight = [], applySubmitted = [], applyStopped = [], applyGatedJobs = [],
+    applyInFlight = [], applySubmitted = [], applyStopped = [], applyGatedJobs = [], applySlots = null,
     applyPrereqMissing = [],
     // A59: Drafts waiting in line behind the running one, editable until they start.
     applyLine = { waiting: [], held: null }, lineMsg, lineBusyId, setLineTool, moveInLine, removeFromLine,
@@ -394,6 +496,21 @@ export function AutoApplyPanel({ user = null } = {}) {
   // again, at once, with the deck's and the board's own call, and says what it did rather than
   // implying the old attempt resumed.
   const retryJob = (job) => { draftJob?.(job, companyLabel(job.company)); };
+  // ⭐ A181 (5c)(5d): the held drafts that can run again, the bulk re-run (free), and the day's new-draft allowance in words.
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkMsg, setBulkMsg] = useState("");
+  const slots = applySlots;
+  const heldRerunnableFrom = (ns) => (ns || []).filter(n => n && n.kind === "held" && n.jobId != null && !n.ref?.postingGone)
+    .map(n => ({ jobId: n.jobId, company: n.company, title: n.title, runJobId: (n.ref?.primary?.row || n.ref)?.id }));
+  const slotLine = slots && Number.isFinite(Number(slots.remaining))
+    ? `${slots.remaining} of ${slots.limit} new drafts left in the last 24 hours · running a draft again is free` : "";
+  const rerunHeld = async (list) => {
+    setBulkBusy(true); setBulkMsg("");
+    let started = 0, refused = 0;
+    for (const h of list) { try { const r = await draftJob?.({ jobId: h.jobId, company: h.company, title: h.title }, companyLabel(h.company)); if (r?.ok === false) refused++; else started++; } catch { refused++; } }
+    setBulkBusy(false);
+    setBulkMsg(`Started ${started} again${refused ? ` · ${refused} could not start (they say why on their rows)` : ""}. Re-runs are free.`);
+  };
 
   // The remedy for a STALE or unpreparable handoff (AB1 requirement 5): a fresh run, which produces
   // a fresh packet. There is no per-job re-dispatch endpoint, so it says what it actually did rather
@@ -564,11 +681,14 @@ export function AutoApplyPanel({ user = null } = {}) {
         const row = r.primary?.row || r;
         // ⭐ A179 F5: every held run can be RUN AGAIN from its own row — a new Draft of the same job (after a profile fix,
         // a saved answer) — not only from the board.
-        const runAgain = !r.postingGone ? [{ id: "rerun", label: "Run again", title: "Draft this job again now — it uses one of your drafts.",
+        // ⭐ A181 (5a): a re-run is FREE (draftSlots counts new jobs only) and always uses the current code (a new run).
+        const runAgain = !r.postingGone ? [{ id: "rerun", label: "Run again", title: "Draft this job again now with draft's current fixes — free: running a draft again never uses a new one.",
           onClick: () => retryJob(row) }] : [];
         if (node.why === "question") return [
           { id: "answer", label: answersSaving ? "Saving…" : "Answer", kind: "primary", disabled: answersSaving, onClick: () => submitApplyAnswers(true) },
-          ...runAgain, { ...clearIt(r), label: "Stop this one" },
+          // ⭐ A181 (5b): "Cancel this draft" — out of Needs you, into Cleared (Restore for 7 days); nothing was sent, so its draft comes back.
+          ...runAgain, { ...clearIt(r), id: "cancel", label: "Cancel this draft",
+            title: "Cancel it — it moves to Cleared, where you can restore it for 7 days. Nothing was sent, so its draft comes back to you." },
         ];
         // D53: one word for one act — a posting that is gone is CLEARED like anything else (Restore is in the bin).
         if (node.why === "gone") return [clearIt(r)];
@@ -935,8 +1055,17 @@ export function AutoApplyPanel({ user = null } = {}) {
         {node && (<>
             {/* D90 P3: the CHANGES, read before Approve & send — nothing to show until the résumé is written. */}
             {node.kind === "approval" && !node.ref.generationDeferred && <ChangesSummaryLine jobId={node.ref.jobId} jobLabel={companyLabel(node.ref.company)} />}
+            {/* ⭐ A181 (3b): the held questions ONE AT A TIME, typed (the old single inline box remains for a row whose
+                questions were not named). ⛔ The user's own statement never starts filled. */}
+            {heldQuestionsFor(node).length > 0 && (
+              <HeldQuestionStepper jobId={node.jobId} questions={heldQuestionsFor(node)} values={questionDrafts || {}}
+                setValue={(k, v) => setQuestionDrafts(prev => ({ ...prev, [k]: v }))}
+                remember={questionRemember || {}} setRemember={(k, v) => setQuestionRemember?.(prev => ({ ...prev, [k]: v }))}
+                busy={answersSaving} message={answersMsg}
+                onFinish={() => submitApplyAnswers(true, { jobIds: [node.jobId], questions: heldQuestionsFor(node).map(x => x.question) })} />
+            )}
             {/* U5 · a question is answered INLINE. ⛔ The user's own statement never starts filled. */}
-            {ask && (
+            {ask && heldQuestionsFor(node).length === 0 && (
               <div className="dht-ask" data-inline-question="">
                 <input aria-label={ask.question} value={inlineAnswerStart(ask, questionDrafts?.[ask.question])}
                   onChange={(e) => setQuestionDrafts(prev => ({ ...prev, [ask.question]: e.target.value }))} />
@@ -1117,6 +1246,20 @@ export function AutoApplyPanel({ user = null } = {}) {
             Open does. ⛔ Approve all lives INSIDE it, with its second confirm (the modal below). */}
         <button onClick={openEverything} type="button" className="dh-btn" data-kind="primary" data-review-all=""
           title="Every application needing review, in one list.">Review all {needsYouCount} →</button>
+        {/* ⭐ A181 (5c): bulk — every held draft run again with draft's current fixes (free), or cancelled (credits back). */}
+        {heldRerunnableFrom(nodes).length > 0 && (
+          <button type="button" className="dh-btn" data-rerun-held="" disabled={bulkBusy}
+            title="Run every held draft again with draft's current fixes. Re-runs are free."
+            onClick={() => rerunHeld(heldRerunnableFrom(nodes))}>{bulkBusy ? "Starting…" : `Re-run ${heldRerunnableFrom(nodes).length} held (free)`}</button>
+        )}
+        {heldRerunnableFrom(nodes).length > 0 && (
+          <button type="button" className="dh-btn" data-cancel-held="" disabled={bulkBusy || binBusy}
+            title="Cancel every held draft — they move to Cleared (restore for 7 days); nothing was sent, so their drafts come back."
+            onClick={() => { const hs = heldRerunnableFrom(nodes); if (window.confirm(`Cancel ${hs.length} held drafts? They stay in Cleared for 7 days.`)) clearRunJobs({ runJobIds: hs.map(h => h.runJobId).filter(Boolean) }); }}>Cancel {heldRerunnableFrom(nodes).length} held</button>
+        )}
+        {/* ⭐ A181 (5d): the limit, where it bites. */}
+        {slotLine && <p className="dh-fold__quiet" data-draft-slots-line="">{slotLine}</p>}
+        {bulkMsg && <p className="dh-fold__quiet" role="status" data-bulk-msg="">{bulkMsg}</p>}
         {approvalBudgetLine && (
           <p data-approval-budget="" className="dh-fold__quiet" style={{ color: approvalCap.remaining === 0 ? C.DANGER : undefined }}>{approvalBudgetLine}</p>
         )}

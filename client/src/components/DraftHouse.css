@@ -61,6 +61,21 @@
 }
 .dh-btn[data-kind="primary"] { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--c-depth-accent); }
 .dh-btn[data-kind="danger"] { color: var(--c-danger); }
+/* ⭐ A181 (3b): one held question at a time, large; a short fade between them (none under Reduce motion). No pills (D60). */
+.dht-step { display: flex; flex-direction: column; gap: 10px; }
+.dht-step__card, .dht-step__done { display: flex; flex-direction: column; gap: 10px; animation: dht-step-in .22s ease-out; }
+@keyframes dht-step-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.dht-step__q { margin: 0; font-size: calc(24px * var(--type-scale, 1)); line-height: 1.25; font-weight: 600; color: var(--c-ink); }
+.dht-step__meta { margin: 0; font-size: calc(12px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+.dht-step__yn { display: flex; gap: 12px; flex-wrap: wrap; }
+.dht-step__big { min-width: 120px; min-height: 48px; font-size: calc(17px * var(--type-scale, 1)); }
+.dht-step__in { width: 100%; box-sizing: border-box; padding: 10px; font: inherit; font-size: calc(15px * var(--type-scale, 1));
+  border: 1px solid var(--c-border); border-radius: 6px; background: var(--c-surface-solid); color: var(--c-ink); }
+.dht-step__drafttext { margin: 0; padding: 10px; border: 1px solid var(--c-border); border-radius: 6px; white-space: pre-wrap; color: var(--c-ink); }
+.dht-step__save { display: flex; gap: 6px; align-items: center; font-size: calc(12px * var(--type-scale, 1)); color: var(--c-ink-muted); }
+.dht-step__link { background: none; border: 0; box-shadow: none; padding: 0; color: var(--c-ink-muted); text-decoration: underline; cursor: pointer; font: inherit; }
+.dht-step__all { margin: 0; padding-left: 18px; font-size: calc(13px * var(--type-scale, 1)); color: var(--c-ink); }
+@media (prefers-reduced-motion: reduce) { .dht-step__card, .dht-step__done { animation: none; } }
 .dh-btn:hover:not(:disabled), .dh-btn:focus-visible { box-shadow: var(--c-depth-hover); transform: translateY(-2px); }
 .dh-btn:active { transform: translateY(0); box-shadow: var(--c-depth-press); }
 .dh-btn:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
