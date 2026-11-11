@@ -10,7 +10,7 @@ import {
   configureBackups, createBackup, listBackups, verifyBackups, restoreBackup, mb,
 } from "../packages/sqlite-backup/src/index.js";
 export {
-  configureBackups, createBackup, listBackups, verifyBackups, restoreBackup,
+  configureBackups, createBackup, createBackupAsync, listBackups, verifyBackups, restoreBackup,
   backupLimits, selectRetained, BackupRefused,
 } from "../packages/sqlite-backup/src/index.js";
 
