@@ -119,7 +119,9 @@ import { contentBacklog, draftOutline, reviewOutline, readBacklogItem } from "./
 import { enqueue as enqueueJob, registerHandler as registerJob, startWorker as startJobWorker, pruneJobs, queueStats } from "./services/ops/jobQueue.js";
 import { fillPostingInputHashes } from "./services/jobs/postingInputHashes.js";
 import { createHirebaseClient } from "./services/hirebase/client.js";
-import { runSizing, runSample } from "./services/hirebase/runners.js";
+import { runSizing, runSample, ageOut as ageOutHirebase } from "./services/hirebase/runners.js";
+import { runFeedHour as runHirebaseFeedHour, feedState as hirebaseFeedState, setShares as setHirebaseFeedShares, setFeedSwitch as setHirebaseFeedSwitch, feedSwitches as hirebaseFeedSwitches } from "./services/hirebase/feed.js";
+import { sampleReport as hirebaseSampleReport } from "./services/hirebase/sampleReport.js";
 import { hirebaseState, sizingQueries, setCaps as setCapsHirebase } from "./services/hirebase/admin.js";
 import { completeProfileForApply, contactGaps } from "./services/applyProfileFill.js";
 import { archiveSlice, archiveEnabled, archiveState, ARCHIVE_SETTING } from "./services/jobs/postingArchive.js";   // D151 Rule 4 (45s)
@@ -13909,6 +13911,43 @@ app.post("/api/admin/hirebase/sample", requireAdmin, async (_req, res) => {
   try { const r = await runSample(db, hirebaseClient()); res.json({ ...r, state: hirebaseState(db) }); }
   catch (e) { res.status(502).json({ error: e.message, code: e.code || null }); }
 });
+// ⭐ HB-FEED (owner 11-10): FEED-0's report on the sample's jobs (read-only, ≤ one run's rows) and FEED-5's feed panel — the
+// paced daily budget, the split by role family (editable shares, must total 100 %), the feed switch (OFF until FEED-0 is
+// clean — FEED-6) and Pause. The hourly pull runs only with the switch on AND the client's HIREBASE_ENABLED / DRY_RUN.
+app.get("/api/admin/hirebase/sample-report", requireAdmin, (req, res) => {
+  try { res.json(hirebaseSampleReport(db, { runId: req.query.run ? Number(req.query.run) : null })); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get("/api/admin/hirebase/feed", requireAdmin, (_req, res) => {
+  try { res.json(hirebaseFeedState(db)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put("/api/admin/hirebase/feed", requireAdmin, (req, res) => {
+  try {
+    const before = hirebaseFeedState(db);
+    if (req.body?.shares) setHirebaseFeedShares(db, req.body.shares);
+    if (typeof req.body?.on === "boolean" || typeof req.body?.paused === "boolean") setHirebaseFeedSwitch(db, { on: req.body.on ?? null, paused: req.body.paused ?? null });
+    const after = hirebaseFeedState(db);
+    try { writeAudit(db, { actor: actorOf(req), action: "hirebase_feed", target: "hirebase_feed_shares/hirebase_feed_on/hirebase_feed_paused",
+      before: { shares: before.families.map(f => [f.key, f.share]), switches: before.switches }, after: { shares: after.families.map(f => [f.key, f.share]), switches: after.switches } }); }
+    catch (e) { console.warn("[hirebase] the audit row was not written:", e.message); }
+    res.json(after);
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+if (process.env.NODE_ENV !== "test") {
+  // FEED-2: once a minute is checked, one pull per hour window (a done window is never re-run); FEED-4's age-out daily.
+  let hirebaseFeedBusy = false, hirebaseAgedDay = null;
+  setInterval(async () => {
+    if (hirebaseFeedBusy) return;
+    hirebaseFeedBusy = true;
+    try {
+      const r = await runHirebaseFeedHour(db, hirebaseClient());
+      if (!r.skipped) console.log(`[hirebase] feed window ${r.window?.after} → ${JSON.stringify(Object.fromEntries(Object.entries(r.perFamily || {}).map(([k, v]) => [k, v.pulled])))}${r.stopped ? ` stopped: ${r.stopped}` : ""}`);
+      const today = new Date().toISOString().slice(0, 10);
+      if (hirebaseAgedDay !== today && hirebaseFeedSwitches(db).on) { hirebaseAgedDay = today; const n = ageOutHirebase(db); if (n) console.log(`[hirebase] aged out ${n} (30 days)`); }
+    } catch (e) { console.warn("[hirebase] feed tick:", e.message); }
+    finally { hirebaseFeedBusy = false; }
+  }, 60_000).unref();
+}
 app.get("/api/admin/jobs", requireAdmin, (req, res) => {
   try { res.json({ kinds: queueStats(db) }); } catch (e) { res.status(500).json({ error: e.message }); }
 });

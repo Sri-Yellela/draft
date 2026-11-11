@@ -151,3 +151,61 @@ export function HirebaseSection() {
     </Panel>
   );
 }
+
+// ⭐ HB-FEED (owner 11-10) · FEED-5: the daily fresh feed — plan, today's paced budget and what is left, the month's pace,
+// the split by role family as a table (share · today's slice · pulled · new · merged · held · visa-flagged), the shares
+// editable (must total 100 %), the feed switch (OFF until FEED-0's report is clean) and Pause; FEED-0's sample report.
+export function HirebaseFeedSection() {
+  const [s, setS] = useState(null);
+  const [edit, setEdit] = useState({});
+  const [rep, setRep] = useState(null);
+  const [err, setErr] = useState("");
+  const load = useCallback(() => api("/api/admin/hirebase/feed").then(r => { setS(r); setEdit(Object.fromEntries(r.families.map(f => [f.key, String(f.share)]))); setErr(""); })
+    .catch(e => setErr(e.message)), []);
+  useEffect(() => { load(); }, [load]);
+  const put = async (body) => { try { setS(await api("/api/admin/hirebase/feed", { method: "PUT", body: JSON.stringify(body) })); setErr(""); } catch (e) { setErr(e.message); } };
+  const total = Object.values(edit).reduce((a, v) => a + (Number(v) || 0), 0);
+  const saveShares = () => put({ shares: Object.fromEntries(Object.entries(edit).map(([k, v]) => [k, Number(v) || 0])) });
+  const report = async () => { try { setRep(await api("/api/admin/hirebase/sample-report")); } catch (e) { setErr(e.message); } };
+  const b = s?.budget;
+  return (
+    <Panel title="Hirebase daily feed" data-admin-hirebase-feed=""
+      purpose="Fresh jobs only (posted in the past 24 h), pulled once an hour over a window that ends 2 hours back, so no job is paid for twice. Today's budget is the month's allowance less a 5 % reserve, spread over the days left; each family gets its share, visa-sponsored jobs first.">
+      {err && <div style={quiet} role="alert">{err}</div>}
+      {s && <>
+        <div style={row} data-hirebase-feed={s.switches.on ? (s.switches.paused ? "paused" : "on") : "off"}>
+          <b>{!s.switches.on ? "Off" : s.switches.paused ? "Paused" : "On"}</b>
+          <DepthButton primary={!s.switches.on} onClick={() => put({ on: !s.switches.on })}>{s.switches.on ? "Turn feed off" : "Turn feed on"}</DepthButton>
+          {s.switches.on && <DepthButton onClick={() => put({ paused: !s.switches.paused })}>{s.switches.paused ? "Resume" : "Pause feed"}</DepthButton>}
+          <span style={quiet}>Plan {s.plan.name} {s.plan.monthJobs.toLocaleString()} · the month cap above must match</span>
+        </div>
+        <div style={{ ...sub, marginTop: 8 }}>
+          <b>Today</b> <span style={quiet}>budget {b.today} · used {b.usedToday} · left {b.leftToday} · this hour {b.hour} · next window {s.window.after.slice(11, 16)}–{s.window.before.slice(11, 16)} UTC</span>
+          <div style={quiet}>Month: used {b.usedMonth.toLocaleString()} of {b.usable.toLocaleString()} usable (reserve {b.reserve.toLocaleString()}) · on track would be {b.onTrackBy.toLocaleString()} · {b.daysLeft} days left</div>
+        </div>
+        <table style={{ width: "100%", fontSize: 12, marginTop: 8 }}>
+          <thead><tr><th align="left">Family</th><th>Share %</th><th>Today's slice</th><th>Pulled</th><th>New</th><th>Merged</th><th>Held</th><th>Visa</th></tr></thead>
+          <tbody>{s.families.map(f => <tr key={f.key} data-feed-family={f.key}><td>{f.label}</td>
+            <td align="center"><input aria-label={`${f.label} share`} style={{ width: 44 }} value={edit[f.key] ?? ""} onChange={e => setEdit({ ...edit, [f.key]: e.target.value })}/></td>
+            <td align="center">{f.todaySlice}</td><td align="center">{f.pulled}</td><td align="center">{f.new}</td><td align="center">{f.merged}</td><td align="center">{f.held}</td><td align="center">{f.visa}</td></tr>)}</tbody>
+        </table>
+        <div style={{ ...row, marginTop: 8 }}>
+          <DepthButton disabled={total !== 100} onClick={saveShares}>Save shares</DepthButton>
+          <span style={quiet}>{total === 100 ? "Totals 100 %" : `Totals ${total} % — must be 100 %`}</span>
+          <DepthButton onClick={load}>Refresh</DepthButton>
+          <DepthButton onClick={report}>Sample report</DepthButton>
+        </div>
+        {rep && <div style={{ ...sub, marginTop: 8 }} data-hirebase-sample-report="">
+          {!rep.run ? <div style={quiet}>{rep.note}</div> : <>
+            <b>Sample run {rep.run.id}</b> <span style={quiet}>{rep.summary.landed} landed · {rep.summary.new} new · {rep.summary.merged} merged · {rep.summary.notFound} not found · {rep.summary.onBoard} on the board · {rep.summary.unclassified} without a subcategory</span>
+            <div style={quiet}>ATS: {Object.entries(rep.summary.ats).map(([k, v]) => `${k} ${v}`).join(" · ")} ({rep.summary.atsWeCrawl} on boards we crawl)</div>
+            <div style={quiet}>Levels: {Object.entries(rep.summary.levels).map(([k, v]) => `${k} ${v}`).join(" · ")} · ghost levels: {Object.entries(rep.summary.ghostLevels).map(([k, v]) => `${k} ${v}`).join(" · ")}</div>
+            <div style={quiet}>Companies with a record {rep.summary.companyRecords} · technologies {rep.summary.withTechnologies} · team {rep.summary.withTeam} · company data {rep.summary.withCompanyData} · visa-flagged {rep.summary.visaFlagged}</div>
+            {rep.summary.ingestLagHours && <div style={quiet}>Hirebase saw them {rep.summary.ingestLagHours.min}–{rep.summary.ingestLagHours.max} h after the posting date (median {rep.summary.ingestLagHours.median} h)</div>}
+            <div style={quiet}>{rep.summary.mergedGainNote}</div>
+          </>}
+        </div>}
+      </>}
+    </Panel>
+  );
+}

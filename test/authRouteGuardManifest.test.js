@@ -132,6 +132,7 @@ const ADMIN = new Set([
   "GET /api/admin/posting-archive", "PUT /api/admin/posting-archive",   // D151 Rule 4 (45s): the archive's switch + numbers   // A154 (45s): the league / challenges / live count switches
   // D187 HB-10: Admin → System → Hirebase — the state, the caps, the free sizing and the one-page sample
   "GET /api/admin/hirebase", "PUT /api/admin/hirebase", "POST /api/admin/hirebase/sizing", "POST /api/admin/hirebase/sample",
+  "GET /api/admin/hirebase/sample-report", "GET /api/admin/hirebase/feed", "PUT /api/admin/hirebase/feed",
   "PUT /api/admin/network",
   "GET /api/admin/network/reports",   // D180 P2: the moderation queue
   "POST /api/admin/network/reports/:id",

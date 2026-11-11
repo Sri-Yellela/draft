@@ -108,7 +108,7 @@ test("hbIncrementalOverlap: ingested_after = the last incremental's start − 2 
   assert.equal(body.sort_by, "first_ingested"); assert.equal(body.sort_order, "asc");
 });
 
-test("hbExpiredRemoves + aging: the free expired feed retires Hirebase-only rows; 90 days old retires too; a crawled row is the crawl's", async () => {
+test("hbExpiredRemoves + aging: the free expired feed retires Hirebase-only rows; 30 days old retires too (FEED-4); a crawled row is the crawl's", async () => {
   const db = db0();
   landHirebaseJob(db, job());
   landHirebaseJob(db, job({ _id: "old", platform_job_id: "R-old", application_link: "https://jobs.example.com/old", date_posted: "2026-06-01", job_title: "Old Role" }));
