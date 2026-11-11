@@ -20,9 +20,11 @@ const SCHEMA = { status: "ok", ats: "greenhouse", fields: [
 ] };
 const RESUME = "Ada Example\nData engineer. Northwind Labs 2022–present: built a streaming pipeline in Kafka and Spark; cut costs 30%.\nada@example.invalid";
 
-test("Drafted answers: OFF by default; only the posting's own free-text questions; the question fenced as untrusted", () => {
+test("Drafted answers: ON by default (A182, owner 11-11); only the posting's own free-text questions; the question fenced as untrusted", () => {
   const db = new Database(":memory:");
   for (const m of MIGRATIONS) db.exec(m.sql);
+  assert.equal(answerDraftsEnabled(db), true, "A182: on unless an admin turns it off");
+  setSetting(db, ANSWER_DRAFTS_SETTING, false);
   assert.equal(answerDraftsEnabled(db), false);
   setSetting(db, ANSWER_DRAFTS_SETTING, true);
   assert.equal(answerDraftsEnabled(db), true);

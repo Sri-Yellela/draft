@@ -26,6 +26,7 @@ export const CONFIDENCE_BY_PROVENANCE = {
   field_map_exact: 0.9,
   label_exact:     0.85,
   custom_answer:   0.85,
+  drafted_from_resume: 0.85,
   label_fuzzy:     0.3,
   default:         0.1,
   // Sponsorship answers are computed for the tense the question asks about, never read off a
@@ -50,6 +51,7 @@ export const TIER_LABEL = {
   field_map_exact: 'exact',
   label_exact:     'label',
   custom_answer:   'your answer',
+  drafted_from_resume: 'written from your résumé',
   label_fuzzy:     'guess',
   default:         'guess',
   sponsorship_derived:        'derived',

@@ -79,12 +79,18 @@ test("d186TypedValueNeverOverwritten: a value the person typed survives the firs
 test("d186FourThingsSkippable: only the four are asked, each answerable or skippable; the card closes when none is left", () => {
   const w = world();
   try {
-    assert.deepEqual(fourThings(w.db, 1).items.map(i => i.key), ["visa_type", "desired_salary", "available_start_date", "willing_to_relocate"]);
+    // ⭐ A182 (owner 11-11): the two eligibility answers are asked here too, once, as choices.
+    assert.deepEqual(fourThings(w.db, 1).items.map(i => i.key), ["work_auth", "sponsorship_need", "visa_type", "desired_salary", "available_start_date", "willing_to_relocate"]);
     setFourThing(w.db, 1, { key: "visa_type", skip: true });
     setFourThing(w.db, 1, { key: "desired_salary", value: "150000" });
     setFourThing(w.db, 1, { key: "available_start_date", skip: true });
     assert.equal(fourThings(w.db, 1).open, true);
     setFourThing(w.db, 1, { key: "willing_to_relocate", value: "yes" });
+    assert.equal(fourThings(w.db, 1).open, true, "the eligibility pair is still unanswered");
+    assert.throws(() => setFourThing(w.db, 1, { key: "sponsorship_need", value: "maybe" }), /Pick one of the choices/);
+    setFourThing(w.db, 1, { key: "work_auth", value: "Authorized to work in the United States" });
+    setFourThing(w.db, 1, { key: "sponsorship_need", value: "future" });
+    assert.equal(profileRow(w.db).sponsorship_need, "future");
     const f = fourThings(w.db, 1);
     assert.equal(f.open, false); assert.equal(String(profileRow(w.db).desired_salary), "150000"); assert.equal(profileRow(w.db).visa_type, null, "skipped stays unset");
     assert.throws(() => setFourThing(w.db, 1, { key: "email", value: "x" }), /Not one of the four/);

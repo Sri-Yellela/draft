@@ -31,7 +31,7 @@ import {
 } from "../services/kb/formSchemaLayer.js";
 import { probeBrowserAvailability } from "../services/browserLauncher.js";
 import { cachedApplicationSchema, schemaFieldsForFill, warmApplicationSchema, schemaQuestionsForTailoring } from "../services/jobs/applicationSchema.js";
-import { answerDraftsEnabled } from "../services/applicationAnswerDraft.js";   // D185-1 (45s): the drafted answers' switch
+import { answerDraftsEnabled, runDraftQuestions } from "../services/applicationAnswerDraft.js";   // D185-1 (45s): the drafted answers' switch
 import { attributeApplyUrl, attributionFamily, tokenFor, howHeardAnswers } from "../shared/sourceAttribution.js";
 import { getSetting } from "../services/appSettings.js";
 // AH5: the one definition of "is this stored resume still the right one". Shared with server.js's
@@ -286,7 +286,7 @@ export function coverLetterOnDemand(make) {
 }
 
 export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,
-                                    scoreBaseResumeForApply, { applyOriginFamilies = APPLY_ORIGIN_FAMILIES } = {}) {
+                                    scoreBaseResumeForApply, { applyOriginFamilies = APPLY_ORIGIN_FAMILIES, draftRunAnswers = null } = {}) {
   // D55 (f) · every payload this module builds — for a run's resolver AND for a packet — carries the
   // work history "have you worked here before?" is answered from: the profile's current_company plus
   // the base résumé's EXPERIENCE companies, the same `entries.work` the packet fills Work Experience
@@ -1750,6 +1750,26 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           `Your contact details are empty (${gaps.map(g => g === "full_name" ? "name" : g).join(", ")}) — upload a résumé or fill them in Profile`);
         db.prepare(`UPDATE apply_runs SET held_count=held_count+1 WHERE id=?`).run(runId);
         return;
+      }
+
+      // ⭐ A182 (owner 11-11: "all these questions can be automated from the resume"): the job's free-text questions —
+      // its cached schema's, and the ones its last attempt held on — are DRAFTED NOW from the résumé (answers.routine,
+      // claim-checked) and handed to the fill as drafted_answers. A question the person already answered (custom
+      // answers) is not drafted. A failed draft just leaves the field to hold as before.
+      if (typeof draftRunAnswers === "function") {
+        try {
+          const last = db.prepare(`SELECT open_questions_json FROM apply_run_jobs WHERE user_id = ? AND job_id = ? AND id <> ? AND open_questions_json IS NOT NULL
+            ORDER BY id DESC LIMIT 1`).pluck().get(userId, jobId, runJobId);
+          const own = Object.keys(autofillPayload?.custom_answers || {}).map(normaliseQuestion);
+          const questions = runDraftQuestions({ schemaQuestions: schemaQuestionsForTailoring(cachedApplicationSchema(db, jobId)),
+            lastOpenQuestions: parseJson(last, []) }).filter(q => !own.includes(normaliseQuestion(q)));
+          if (questions.length) {
+            const drafted = await draftRunAnswers({ userId, jobId, questions, title: job?.title || "", company: job?.company || "" });
+            if (drafted && Object.keys(drafted).length) autofillPayload.drafted_answers = drafted;
+            logEvent(runId, runJobId, userId, jobId, "answers_drafted",
+              `Drafted ${Object.keys(drafted || {}).length} of ${questions.length} free-text answer(s) from the résumé`, { questions, drafted: Object.keys(drafted || {}) });
+          }
+        } catch (e) { logEvent(runId, runJobId, userId, jobId, "answers_draft_failed", `Free-text drafts skipped: ${e.message}`, {}); }
       }
 
       /**

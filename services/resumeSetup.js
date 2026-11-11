@@ -27,7 +27,21 @@ const safe = (fn, d) => { try { return fn(); } catch { return d; } };
 const lower = (s) => String(s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
 const US_STATES = new Set("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split(" "));
 export const EXTRA_FIELDS = Object.freeze(["current_job_title", "current_company", "years_of_experience", "country", "portfolio_url"]);
+// ⭐ A182 (owner 11-11: "ask once at résumé upload"): the two eligibility answers every application form asks — asked HERE,
+// once, as two choices, so no application ever holds on them again. Stored where the fill reads them: work_auth (a phrase
+// workAuthAffirmative reads as yes / no) and sponsorship_need (the D36 tri-state none / future / now). Never inferred.
+export const WORK_AUTH_CHOICES = Object.freeze([
+  { value: "Authorized to work in the United States", label: "Yes, I'm authorised to work in the US" },
+  { value: "Not authorized to work in the United States", label: "No" },
+]);
+export const SPONSORSHIP_CHOICES = Object.freeze([
+  { value: "none", label: "No, never" },
+  { value: "future", label: "Not now, but in the future" },
+  { value: "now", label: "Yes, now" },
+]);
 export const FOUR_THINGS = Object.freeze([
+  { key: "work_auth", label: "Are you legally authorised to work in the United States?", why: "every form asks — answered once, here", choices: WORK_AUTH_CHOICES },
+  { key: "sponsorship_need", label: "Will you need visa sponsorship, now or in the future?", why: "every form asks — answered once, here", choices: SPONSORSHIP_CHOICES },
   { key: "visa_type", label: "Your visa or work-authorisation status", why: "a legal status — never guessed from a résumé" },
   { key: "desired_salary", label: "Desired salary", why: "your number, not ours" },
   { key: "available_start_date", label: "When you can start", why: "" },
@@ -177,6 +191,8 @@ export function setFourThing(db, userId, { key, value = null, skip = false } = {
   } else {
     const v = key === "willing_to_relocate" ? (value === true || value === "yes" || value === 1 || value === "1" ? 1 : 0) : String(value ?? "").trim().slice(0, 120);
     if (v === "") throw Object.assign(new Error("Type an answer, or skip it."), { status: 400, code: "empty" });
+    const choices = FOUR_THINGS.find(t => t.key === key)?.choices;
+    if (choices && !choices.some(c => c.value === v)) throw Object.assign(new Error("Pick one of the choices."), { status: 400, code: "bad_choice" });
     db.prepare(`UPDATE user_profile SET ${key} = ? WHERE user_id = ?`).run(v, userId);
     saveAsked(db, userId, { skipped: a.skipped.filter(k => k !== key), answered: [...new Set([...a.answered, key])] });
     clearFilled(db, userId, [key]);

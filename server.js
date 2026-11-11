@@ -215,7 +215,7 @@ import { buildCoverLetterRequest, checkCoverLetter } from "./services/coverLette
 import { describeViolations } from "./services/untrustedText.js";
 import { extractPdfText } from "./services/pdfText.js";   // 45s: PDF text with a current pdf.js fallback
 import { rankTerms, removedTerms } from "./services/keywordTerms.js";   // D186-4
-import { answerDraftsEnabled, ANSWER_DRAFTS_SETTING, draftableQuestion, buildAnswerDraftRequest, checkAnswerDraft } from "./services/applicationAnswerDraft.js";   // D185-1 (45s)
+import { answerDraftsEnabled, ANSWER_DRAFTS_SETTING, draftableQuestion, buildAnswerDraftRequest, checkAnswerDraft, draftAnswersForRun } from "./services/applicationAnswerDraft.js";   // D185-1 (45s)
 import { cachedApplicationSchema as cachedSchemaForDraft } from "./services/jobs/applicationSchema.js";
 import { activeBaseResume as baseResumeForDraft } from "./services/baseResumeOnly.js";
 import { createModelGatewayAdminRouter } from "./routes/modelGateway.js";
@@ -16444,7 +16444,14 @@ app.get("/api/export/excel", requireAuth, async (req, res) => {
 // APPLY AUTOMATION (Playwright)
 // ═══════════════════════════════════════════════════════════════
 const applyLine = applyRoutes(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,
-            scoreBaseResumeForApply);
+            scoreBaseResumeForApply, {
+              // ⭐ A182 (owner 11-11): a run drafts the posting's free-text questions from the résumé (answers.routine through
+              // the gateway, claim-checked) — behind answer_drafts_enabled (ON unless an admin turns it off).
+              draftRunAnswers: ({ userId, jobId, questions, title, company }) => answerDraftsEnabled(db)
+                ? draftAnswersForRun({ db, userId, resumeText: String(baseResumeForDraft(db, userId)?.content || ""), questions, title, company,
+                    callTask, anthropic, dataClass: DATA_CLASS.CANDIDATE })
+                : Promise.resolve({}),
+            });
 // A59: a run left 'running' by the last process is reset before anything can start a new one, or
 // that user's line never moves; then the ticker keeps every line moving (kill switch released, a
 // lost dispatch).

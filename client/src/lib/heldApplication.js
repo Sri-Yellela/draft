@@ -124,7 +124,10 @@ export function resumeStepOf(row) {
   const baseRaw = row?.baseAtsScore ?? row?.baseAts?.score ?? null, gotRaw = row?.atsScore ?? row?.resume?.atsScore ?? null;
   const base = Number(baseRaw), got = Number(gotRaw);
   if (baseRaw == null || gotRaw == null || !Number.isFinite(base) || !Number.isFinite(got)) {
-    return { label: "Tailored your résumé", state: "done", meta: "" };
+    // ⭐ A182 (owner 11-11: "the run still shows resume and form filled as green"): no score = no tailored résumé to show —
+    // a held run defers the résumé to approval (generationDeferred), so it is WAITING, never a green "Tailored".
+    if (row?.resumeAvailable || row?.resume?.atsScore != null) return { label: "Tailored your résumé", state: "done", meta: "" };
+    return { label: row?.generationDeferred ? "Your résumé is tailored when you approve" : "Tailored your résumé — not reported", state: "", meta: "waiting" };
   }
   const meta = `ATS ${base} → ${got}`;
   if (got > base) return { label: "Tailored your résumé", state: "done", meta };
@@ -146,11 +149,14 @@ export function runSteps(node, { counts = null, resumeName = "" } = {}) {
   const fillState = fail ? "" : state === "sent" && !reported ? "done" : !reported ? "" : reported.filled === 0 ? "fail" : "done";
   const fillLabel = !fail && reported && reported.filled === 0 ? "Filled the form — nothing was filled"
     : !fail && !reported && state !== "sent" ? "Filled the form — not reported" : "Filled the form";
-  const resumeStep = fail ? { label: "Tailored your résumé — it couldn't be made", state: "fail", meta: "" } : resumeStepOf(row);
+  const resumeStep = fail ? { label: "Tailored your résumé — it couldn't be made", state: "fail", meta: "" }
+    : state === "sent" ? { label: "Tailored your résumé", state: "done", meta: resumeStepOf(row).meta === "waiting" ? "" : resumeStepOf(row).meta }   // sent = it was attached
+    : resumeStepOf(row);
   return [
     { id: "posting", label: "Read the posting", state: "done", meta: "" },
     { id: "resume", label: resumeStep.label, state: resumeStep.state, meta: resumeStep.meta },
-    { id: "attached", label: "Attached the résumé", state: fail ? "" : "done", meta: fail ? "waiting" : s(resumeName) },
+    // A182: "Attached" is green only when a résumé exists (or the application was sent) — never for a deferred one.
+    { id: "attached", label: "Attached the résumé", state: fail ? "" : (resumeStep.state === "done" || state === "sent") ? "done" : "", meta: fail || resumeStep.state !== "done" ? "waiting" : s(resumeName) },
     { id: "filled", label: fillLabel, state: fillState, meta: fail ? "waiting" : filledMeta },
     { id: "you", label: state === "needs" ? "Waiting for you" : "Your answers", state: fail ? "" : state === "needs" ? "now" : "done", meta: "" },
     { id: "ready", label: "Ready for you to submit", state: fail ? "" : state === "ready" ? "now" : after("sent") ? "done" : "", meta: "" },
@@ -163,7 +169,7 @@ export function runSteps(node, { counts = null, resumeName = "" } = {}) {
 const SOURCE_WORDS = Object.freeze({
   handler_exact: "your Profile", field_map_exact: "your Profile", label_exact: "your Profile", label_fuzzy: "your Profile · matched loosely",
   sponsorship_derived: "your Profile", sponsorship_assumed_future: "your Profile",
-  saved_answer: "you · saved", custom_answer: "you · saved",
+  saved_answer: "you · saved", custom_answer: "you · saved", drafted_from_resume: "written by draft from your résumé",
   work_history: "your résumé", education: "your résumé",
   user_consent_setting: "your Auto settings",
   default: "draft's default",
