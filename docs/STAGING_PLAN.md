@@ -1,4 +1,4 @@
-# Staging — the plan (DRAFT, for the owner's approval; nothing is created yet)
+# Staging — the plan (APPROVED by the owner 11-11; the guard is BUILT `47d3bcd8`; nothing created on Railway yet)
 
 46g, 2026-11-11 (WORKLOG A188). The owner: *"we would soon need to separate deploys for users and testing and also A/B"* — then *"start with staging, draft it first"*.
 
@@ -47,7 +47,7 @@ The code reads 134 names (`grep env.X` over server.js, routes, services, shared,
 | **Reaches other sites** | `DISCOVERY_PAUSED` `PIPELINE_PAUSED_SOURCES` `BOARD_FIT_PRECOMPUTE` | `DISCOVERY_PAUSED=1`; the posting feeds paused (staging never crawls employers — production already does, and a second crawler doubles their load) |
 | **Everything else** | `DRAFT_READ_WORKERS_SIZE`, `BG_JOBS`, `READ_SLOW_MS`, the `DRAFT_*` switches … | copied as production has them — staging must behave like production; `READ_SLOW_MS` may be set for measurement |
 
-**A guard in code (proposed, agent builds it):** `DRAFT_ENV=staging` makes the server **refuse to start** if any live-looking credential is present (a `sk_live_` Stripe key, the production model-key label or fingerprint, a Resend / Twilio / VAPID / Hirebase key, a `COOKIE_DOMAIN`) and forces the kill switches on (`DISCOVERY_PAUSED`, billing off, marketing sends off). A mistake in the variable table then stops the boot instead of emailing real people. `/api/version` reports `env: staging`; every page shows a small "staging" mark.
+**The guard in code (BUILT `47d3bcd8`, `services/stagingGuard.js`, test `a188StagingGuard`; staging sets `DRAFT_ENV=staging`):** `DRAFT_ENV=staging` makes the server **refuse to start** if any live-looking credential is present (a `sk_live_` Stripe key, the production model-key label or fingerprint, a Resend / Twilio / VAPID / Hirebase key, a `COOKIE_DOMAIN`) and forces the kill switches on (`DISCOVERY_PAUSED`, billing off, marketing sends off). A mistake in the variable table then stops the boot instead of emailing real people. `/api/version` reports `env: staging`; every page shows a small "staging" mark.
 
 ## 5 · Data — synthetic only
 
@@ -78,8 +78,20 @@ The code reads 134 names (`grep env.X` over server.js, routes, services, shared,
 - Cost: Railway bills compute by use and volumes per GB-minute. Staging idles most of the day (low CPU), with a 10 GB volume for draft and a small one for the tools service; runs of the scale suite are short bursts. The agent reads the current rates and states the month's estimate before anything is created.
 - It buys: the A187 measurements on production-class hardware (read workers, warm-on-boot, score-only storage), real-browser walks against a deployed build, a place to rehearse migrations (the 6 GB VACUUM for score-only storage) and, later, A/B rollouts — none of it against real people.
 
-## 9 · Questions for the owner
+## 9 · The owner's answers (11-11)
 
-1. Deploy the `resume-master` service in staging (recommended — isolates accounts / credits), or run staging's draft with the tools service off?
-2. A separate staging model key with a monthly cap — what cap?
-3. Branch flow: `staging` → `main` merges only on your word (recommended), or deploy `main` to both?
+1. `resume-master` IS deployed in staging, with its own volume.
+2. The staging model key: **$20 a month cap**, label `draft-staging` (the owner creates it in the Anthropic console).
+3. `staging` → `main` merges only on the owner's word.
+
+## 10 · Estimate (approximate — Railway's published per-minute rates as last known: ≈ $20 / vCPU-month, ≈ $10 / GB-RAM-month, ≈ $0.15 / GB-volume-month; check the Usage page)
+
+| | Assumed | ≈ / month |
+|---|---|---|
+| draft (idle most of the day; 100k fixture in memory) | ~0.05 vCPU, ~1.5 GB RAM | ~$16 |
+| resume-master | ~0.02 vCPU, ~0.3 GB | ~$3.5 |
+| volumes | 10 GB + 5 GB | ~$2.3 |
+| scale-suite runs | 10 min × 8 vCPU a run | ~$0.05 a run |
+| **total** | | **≈ $20–25 + the $20 model cap** |
+
+RAM dominates; a memory limit on staging's services caps it.
