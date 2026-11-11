@@ -40,7 +40,8 @@ test("every nav tab is a real link, not a button", () => {
   const NAV = fs.readFileSync("client/src/components/AppNav.jsx", "utf8");
   // ⭐ D167 (owner 11-06, changed on purpose): the href is the section's own, or Interview's page (the dock's sixth place).
   // 45o D180 P1 (b007d429): Network's place gets its own page the same way (pin moved on purpose).
-  assert.match(NAV, /const href = hrefForTab\?\.\(t\.id\) \|\| \(t\.id === "interview" \? INTERVIEW_PATH : t\.id === "network" \? NETWORK_PATH : undefined\);/);
+  // 46f: Feed and Messages' places get their own pages the same way (pin moved on purpose).
+  assert.match(NAV, /const href = hrefForTab\?\.\(t\.id\) \|\| \(t\.id === "interview" \? INTERVIEW_PATH : t\.id === "network" \? NETWORK_PATH\s*: t\.id === "feed" \? FEED_PATH : t\.id === "messages" \? MESSAGES_PATH : undefined\);/);
   assert.match(NAV, /<a key=\{t\.id\} className="appnav-item" href=\{href\}/);
   assert.doesNotMatch(NAV, /<button key=\{t\.id\}/);
   assert.doesNotMatch(TOPBAR, /<button key=\{t\.id\} onClick=\{\(\) => onTabChange/);
