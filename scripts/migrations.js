@@ -7351,4 +7351,12 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ A189 (sweeper): the stuck-submit sweeper's one read — `status = 'running' AND started_at < ?` LIMIT 25, every
+      // 2 minutes — answered by a partial index of the handful of rows in flight, never a pass over apply_run_jobs.
+      id: "273_apply_run_jobs_running",
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_apply_run_jobs_running ON apply_run_jobs(started_at) WHERE status = 'running';
+      `,
+    },
   ];

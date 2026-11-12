@@ -2768,7 +2768,13 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
     // ⭐ A186-CAPTCHA (1): ({ page }) => Promise<live|null> — the route opens a live session when a VISIBLE check appears
     // after Submit (services/liveChallenge.js); the person solves it in draft and this run continues. null = as before.
     onChallenge       = null,
+    // ⭐ A189 (retry): () => void|Promise — called (awaited) immediately BEFORE the Submit click, so the route can write a
+    // durable "Submit pressed" mark first; a crash between the mark and the click errs towards "pressed" (never re-sent).
+    onSubmitPress     = null,
   } = options;
+  // ⭐ A189 (retry): true from the moment the Submit click is attempted. Returned on an error, so a failure AFTER the press
+  // is never retried (services/submitRetry.js — it may already have reached the employer).
+  let submitPressed = false;
 
   // 'preview' is full-auto in every respect EXCEPT the submit click: same headless browser, same
   // strict answer policy, same gates, browser closed at the end. It exists so a batch can be
@@ -3332,6 +3338,8 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
         console.log(`[autoApply] submit button: ${JSON.stringify(best.txt)} (score ${best.score}` +
           `${scored.length > 1 ? `, ${scored.length} candidates` : ""})`);
         const ctx = best.ctx;
+        if (typeof onSubmitPress === "function") { try { await onSubmitPress(); } catch {} }
+        submitPressed = true;
         try {
           await best.btn.click();
           // Give a navigation the chance to happen instead of assuming it did. An iframe-hosted
@@ -3556,6 +3564,8 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
       // Null when unknown. A permanent failure must never be retried — a 404 on a model name
       // fails identically every time.
       permanent: attributed.permanent,
+      // A189 (retry): whether the Submit click was attempted before the failure — such a failure is never retried.
+      submitPressed,
       screenshotBase64: ss.base64,
       screenshotPath: ss.path,
     };

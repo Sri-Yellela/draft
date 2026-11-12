@@ -51,6 +51,8 @@ import { heldQuestionsOf, heldReasonWords, waitsOnPerson } from "../services/hel
 import { fullReport, isSlimReport } from "../services/atsReportRead.js";   // A187 Stage 0 (46i)
 import { registerChallenge, liveSessionFor, liveSessionsOf } from "../services/liveChallenge.js";   // A186-CAPTCHA (1)
 import { applyAllowed, spendTrialDrafts } from "../services/billing/subscriptions.js";
+import { runSubmitWithRetry, stuckSubmitDecision, backoffSchedule, stuckAfterSec, SUBMIT_MAX_ATTEMPTS, SUBMIT_EVENTS,
+  SUBMIT_INTERRUPTED, STUCK_SWEEP_INTERVAL_MS, STUCK_SWEEP_LIMIT } from "../services/submitRetry.js";   // A189 retry + sweeper
 import { verificationConfig } from "../services/billing/config.js";
 import { accountVerified } from "../services/billing/verification.js";
 import { userHeld, userHoldSince, setUserHold } from "../services/applyUserHold.js";
@@ -686,6 +688,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   // processor's own record — when it last started / finished an application and its last error — so "is it running?" is
   // answered by GET /api/apply/health (and the panel's banner), never guessed from a held row.
   const runnerHealth = { lastStartedAt: null, lastFinishedAt: null, lastError: null, lastErrorAt: null, done: 0 };
+  // ⭐ A189 (sweeper): what THIS process is working on right now. A run-job `running` that is not in liveRunJobs has no
+  // worker (one process owns the database — Railway never overlaps deploys), so the stuck-submit sweeper may act on it.
+  const liveRunJobs = new Set();
+  const liveRuns = new Set();
+  // A189 (retry): ONE attempt — the imported engine, named here because processRunJob shadows `autoApply` with its retry.
+  const autoApplyOnce = autoApply;
 
   /**
    * KILL SWITCH (requirement 4). Blocks all full-auto submission; semi mode keeps working.
@@ -951,6 +959,100 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     }, intervalMs);
     lineTicker.unref?.();
     return lineTicker;
+  }
+
+  /**
+   * ⭐ A189 (sweeper) · AN APPLICATION STUCK IN `running` OF A RUN THAT SENDS (approved, or FULL AUTO).
+   *
+   * The worker died under it (a deploy restart, a lost promise). Decided per row by services/submitRetry.js
+   * stuckSubmitDecision from its own log: press tracking on (`submit_attempt`) and Submit never pressed → REQUEUE (counts
+   * as an attempt; the queued row re-fills from the stored payload); pressed, untracked, or out of attempts → HELD
+   * (`held_review` / `submit_interrupted`) with a sentence that says whether anything could have been sent.
+   *
+   *   boot: true   every such row is an orphan (no worker survives a restart). Rows only — recoverInterruptedRuns, called
+   *                next, resumes the requeued rows' runs. ⚠ An UNTRACKED row is left to recoverInterruptedRuns' own rule
+   *                at boot (failed / interrupted_by_restart, "may or may not have reached the employer"), unchanged.
+   *   boot: false  the interval: rows older than stuckAfterSec() that no worker in THIS process holds (liveRunJobs).
+   *
+   * ⛔ Cheap and off the request path: one LIMITed read on migration 273's partial index (`status='running'`, started_at),
+   * then per-row reads on idx_apply_logs_run. Never a whole-table pass (memory: sync SQL on the one thread froze prod).
+   */
+  function sweepStuckSubmits({ boot = false, nowSec = Math.floor(Date.now() / 1000) } = {}) {
+    const out = { looked: 0, requeued: 0, held: 0, skipped: 0 };
+    const cutoff = boot ? nowSec + 1 : nowSec - stuckAfterSec();
+    let rows;
+    try {
+      rows = db.prepare(`
+        SELECT rj.id, rj.run_id, rj.user_id, rj.job_id, r.mode, r.approval_mode
+        FROM apply_run_jobs rj JOIN apply_runs r ON r.id = rj.run_id
+        WHERE rj.status = 'running' AND rj.started_at < ?
+        ORDER BY rj.started_at LIMIT ?
+      `).all(cutoff, STUCK_SWEEP_LIMIT);
+    } catch (e) {
+      console.error(`[applyRoutes] stuck-submit sweep could not read: ${e.message}`);
+      return out;
+    }
+    const countEvent = db.prepare(`SELECT COUNT(*) FROM apply_job_logs WHERE run_id=? AND run_job_id=? AND event=?`).pluck();
+    const touchedRuns = new Map();
+    for (const rj of rows) {
+      out.looked++;
+      const sends = (rj.mode || "auto") === "auto" && (rj.approval_mode || "auto") !== "required";
+      if (!sends || liveRunJobs.has(Number(rj.id))) { out.skipped++; continue; }
+      const attempts = countEvent.get(rj.run_id, rj.id, SUBMIT_EVENTS.attempt) || 0;
+      const pressed = (countEvent.get(rj.run_id, rj.id, SUBMIT_EVENTS.pressed) || 0) > 0;
+      const tracked = attempts > 0;
+      if (boot && !tracked) { out.skipped++; continue; }
+      const decision = stuckSubmitDecision({ tracked, pressed, attempts, maxAttempts: SUBMIT_MAX_ATTEMPTS });
+      // A requeue at the interval needs the run idle in this process; a run still live keeps its own snapshot of rows.
+      if (decision.action === "requeue" && !boot && liveRuns.has(Number(rj.run_id))) { out.skipped++; continue; }   // next sweep
+      if (decision.action === "requeue") {
+        const n = db.prepare(`UPDATE apply_run_jobs SET status='queued', started_at=NULL, finished_at=NULL
+                              WHERE id=? AND status='running'`).run(rj.id).changes;
+        if (!n) continue;
+        out.requeued++;
+        logEvent(rj.run_id, rj.id, rj.user_id, rj.job_id, SUBMIT_EVENTS.requeued,
+          `The server stopped while this application was being filled, before Submit was pressed — nothing was sent. ` +
+          `It is back in the queue (attempt ${attempts + 1} of ${SUBMIT_MAX_ATTEMPTS} next).`, { attempts, boot });
+        touchedRuns.set(rj.run_id, rj.user_id);
+        continue;
+      }
+      const detail = decision.reasonDetail;
+      const n = db.prepare(`UPDATE apply_run_jobs SET status='held_review', reason_code=?, reason_detail=?, finished_at=unixepoch()
+                            WHERE id=? AND status='running'`).run(SUBMIT_INTERRUPTED, detail, rj.id).changes;
+      if (!n) continue;
+      out.held++;
+      try { db.prepare(`UPDATE apply_runs SET held_count=held_count+1 WHERE id=?`).run(rj.run_id); } catch {}
+      logEvent(rj.run_id, rj.id, rj.user_id, rj.job_id, SUBMIT_EVENTS.swept, detail, { attempts, pressed, tracked, boot });
+    }
+    // The interval's requeues: the run goes back to the HEAD of its user's line (the A59 line — it respects the user's
+    // stop, the kill switch and the concurrency limit), then the line moves. At boot, recoverInterruptedRuns does this.
+    if (!boot) {
+      for (const [runId, userId] of touchedRuns) {
+        try {
+          db.prepare(`
+            UPDATE apply_runs SET status='waiting', finished_at=NULL, line_position =
+              (SELECT COALESCE(MIN(line_position), 1) - 1 FROM apply_runs WHERE user_id=? AND status='waiting')
+            WHERE id=? AND status != 'waiting'
+          `).run(userId, runId);
+          dispatchLine(userId);
+        } catch (e) { console.error(`[applyRoutes] stuck-submit requeue run=${runId}: ${e.message}`); }
+      }
+    }
+    if (out.requeued || out.held) {
+      console.log(`[applyRoutes] stuck-submit sweep${boot ? " (boot)" : ""}: ${out.requeued} requeued, ${out.held} held, ` +
+        `${out.skipped} left (${out.looked} looked at)`);
+    }
+    return out;
+  }
+
+  let stuckSweeper = null;
+  function startStuckSubmitSweeper(intervalMs = STUCK_SWEEP_INTERVAL_MS) {
+    if (stuckSweeper) return stuckSweeper;
+    stuckSweeper = setInterval(() => {
+      try { sweepStuckSubmits(); } catch (e) { console.error(`[applyRoutes] stuck-submit sweep: ${e.message}`); }
+    }, intervalMs);
+    stuckSweeper.unref?.();
+    return stuckSweeper;
   }
 
   // ── Idempotency (requirement 1) ──────────────────────────────────────────────
@@ -1566,6 +1668,46 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           return live;
         }
       : null;
+    // ⭐ A189 (retry) · THE SUBMIT THAT SURVIVES A BAD MINUTE (services/submitRetry.js). For the mode that clicks Submit only
+    // (an approved or FULL AUTO run), a browser / network failure is tried again — bounded (SUBMIT_MAX_ATTEMPTS, counting
+    // a sweeper requeue), with backoff, each attempt a fresh browser re-filling from the same stored payload. ⛔ Never
+    // twice: an attempt that pressed Submit is never retried (the `submit_pressed` mark is written BEFORE the click), and
+    // before each re-try the row must still be this run's and no other attempt may have sent the posting. A refusal, a
+    // gate, a hold, a CAPTCHA (`captcha_required` — the person's, never retried) all return at once.
+    // ⚠ Shadows the imported autoApply for the rest of processRunJob on purpose, so all four launch sites (CASE A–D) get the
+    // same rule without four edits; preview and semi get the imported function unchanged.
+    const priorAttempts = () => {
+      try {
+        return db.prepare(`SELECT COUNT(*) FROM apply_job_logs WHERE run_id=? AND run_job_id=? AND event=?`)
+          .pluck().get(runId, runJobId, SUBMIT_EVENTS.attempt) || 0;
+      } catch { return 0; }
+    };
+    // eslint-disable-next-line no-shadow
+    const autoApply = applyMode !== "full" ? autoApplyOnce : async (url, payload, opts = {}) => {
+      const out = await runSubmitWithRetry({
+        firstAttempt: priorAttempts() + 1,
+        maxAttempts: SUBMIT_MAX_ATTEMPTS,
+        schedule: backoffSchedule(),
+        attemptFn: () => autoApplyOnce(url, payload, {
+          ...opts,
+          onSubmitPress: () => logEvent(runId, runJobId, userId, jobId, SUBMIT_EVENTS.pressed,
+            "Pressing Submit on the employer's form."),
+        }),
+        onAttempt: (n) => logEvent(runId, runJobId, userId, jobId, SUBMIT_EVENTS.attempt,
+          n === 1 ? "Opening the employer's form to send it." : `Opening the employer's form again (attempt ${n} of ${SUBMIT_MAX_ATTEMPTS}).`,
+          { attempt: n }),
+        onRetry: ({ attempt, waitMs, result }) => logEvent(runId, runJobId, userId, jobId, SUBMIT_EVENTS.retry,
+          `The employer's site failed to load or respond (${result.reasonCode}) before Submit was pressed — nothing was sent. ` +
+          `Trying again in ${Math.round(waitMs / 1000)} s.`, { attempt, waitMs, reasonCode: result.reasonCode, error: String(result.error || "").slice(0, 300) }),
+        stillOurs: () => !isAbortRequested(jobId) && !fullAutoDisabled() && !userHeld(db, userId)
+          && db.prepare("SELECT status FROM apply_run_jobs WHERE id=?").pluck().get(runJobId) === "running",
+        alreadySent: () => !!db.prepare(`SELECT 1 FROM apply_run_jobs WHERE user_id=? AND job_id=? AND status='submitted' AND id != ? LIMIT 1`)
+          .get(userId, String(jobId), runJobId),
+      });
+      if (out.stoppedBy === "already_sent") logEvent(runId, runJobId, userId, jobId, "submit_retry_stopped",
+        "Not tried again — another attempt already sent this application.");
+      return out.result;
+    };
     // What the human approved, if this run exists because of an approval. autoApply refuses to
     // submit anything that differs from it.
     const approvedAnswers = runJob.approved_from_run_job_id
@@ -1614,6 +1756,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       `).run(status, reasonCode, reasonDetail, runJobId);
     };
 
+    liveRunJobs.add(Number(runJobId));   // A189 (sweeper): this process is working on it
     try {
       // Aborted between being queued and being picked up. processRun snapshots the queued rows
       // before it starts launching them, so a job cancelled in that window is still in its list —
@@ -2373,6 +2516,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // clearing is safe — and it must be cleared, because the key is the POSTING and the same
       // posting is routinely re-queued. A flag left set would silently cancel the next attempt.
       clearAbort(jobId);
+      liveRunJobs.delete(Number(runJobId));
     }
   }
 
@@ -2435,6 +2579,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // dispatch would start the run, this would park it, and the two would ping-pong it forever (an
     // injected-violation check found exactly that loop). Resume dispatches the line itself.
     let parked = false;
+    liveRuns.add(Number(run.id));   // A189 (sweeper)
     try {
       // D25: THE USER'S HOLD, CHECKED BEFORE THE RUN STARTS. startRun and dispatchLine already
       // decline to start a held user's run; this is the door they both lead to, and boot recovery
@@ -2494,6 +2639,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       console.error(`[applyRoutes] processRun error run=${run.id}: ${e.message}`);
       db.prepare(`UPDATE apply_runs SET status='failed', finished_at=unixepoch() WHERE id=?`).run(run.id);
     } finally {
+      liveRuns.delete(Number(run.id));
       // A59: a slot just freed — start the next run in this user's line, if there is one. Not after
       // a D25 park: the user stopped everything, and Resume is what moves the line again.
       if (!parked) {
@@ -5784,6 +5930,6 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     answersCore({ user: { id: userId, planTier }, body }, out);
     return { status: sent.code, body: sent.body };
   };
-  return { recoverInterruptedRuns, startLineTicker, dispatchAllLines, prepareManualPacket, resumeForApply: generateResumeForApply,
+  return { recoverInterruptedRuns, startLineTicker, sweepStuckSubmits, startStuckSubmitSweeper, dispatchAllLines, prepareManualPacket, resumeForApply: generateResumeForApply,
            draftForExtension, draftStateOf, runBar, startAutoRun, startPickRun, saveAnswers, workerPayload, workerResumePdf };
 }
