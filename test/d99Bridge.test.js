@@ -295,7 +295,8 @@ test("⛔ no posting is opened with a bare window.open — every one goes throug
     "client/src/components/ByomResumeChoice.jsx": "a model host's own page (D86 BYOM)",
     "client/src/panels/IntegrationsPanel.jsx": "a model host's own page (D86 BYOM)",
     "client/src/components/AttemptResume.jsx": "the attempt's résumé PDF, when the editor cannot open (D171 FIX 4) — a file, not a posting",
-    "client/src/contexts/AutoApplyContext.jsx": "the PREPARED packet's form address — the fill matches by the packet's origins, not the board posting",
+    // 46i: AutoApplyContext's Open & fill now goes through openPosting (intent "apply") — the extension's lookup opens
+    // apply_url || url, the same address the packet was built from, so the packet's origins still match; it left the list.
   };
   const found = FILES.filter(([, s]) => /window\.open\(/.test(s)).map(([f]) => f);
   for (const f of found) assert.ok(ALLOWED[f], `${f} opens a window directly — a posting must go through openPosting()`);

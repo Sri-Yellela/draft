@@ -362,7 +362,9 @@ test("the held card's action is the HANDOFF, not the review modal", () => {
   assert.match(panel, /const resumable = !!packet && !packet\.postingGone && !packet\.stale && !app\.postingGone/);
   assert.match(panel, /onRerun=\{rerunJob\}/);
   // The handoff lands the user on the REAL apply URL, in their own browser.
-  assert.match(ctx, /window\.open\(packet\.applyUrl, "_blank", "noopener,noreferrer"\)/);
+  // 46i: through the board's bridge (lib/openPosting.js) with intent "apply", so the extension's tab is BOUND to the job
+  // (window.open alone left it unbound - "nothing is filled", owner 11-12); openPosting falls back to the same link.
+  assert.match(ctx, /await openPosting\(\{ jobId: packet\.jobId \?\? job\?\.jobId, applyUrl: packet\.applyUrl \}, \{ url: packet\.applyUrl, intent: "apply" \}\)/);
   // And says what happens next, because the fill happens in another tab by another process.
   assert.match(ctx, /Click the \$\{BRAND\} extension there/);
   assert.match(panel, /handoffMsg/);

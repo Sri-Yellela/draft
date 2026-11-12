@@ -335,7 +335,14 @@ export function autoStep(a) {
   const sc = scopeFor(settings, url, a.frameUrl || null);
   if (sc.skip) return { skip: sc.skip };
   if (!granted) return { skip: 'not_granted' };
-  const on = (b) => !!sc.sw[b] && (sc.kind !== 'site' || consentCovers(settings, sc.site, b));
+  // ⭐ 46i (owner 11-12: "the switch should always be flipped open … for redirections from draft to target site, … its
+  // implied that i want the form filled"): a tab draft opened for an APPLICATION (Open & fill / Apply — bound via the
+  // board's bridge with intent 'apply') reads, prepares and fills whatever the per-site switches say — the click was the
+  // consent. Still: only where Chrome granted the site, never on the never-hosts, never past Review, never a submit,
+  // never a consent box, and the person's Stop (fillStopped) and the kill switch win.
+  const applyTab = !!a.applyIntent && !!a.bound;
+  const on = (b) => (applyTab && (b === 'read' || b === 'prepare' || b === 'fill'))
+    || (!!sc.sw[b] && (sc.kind !== 'site' || consentCovers(settings, sc.site, b)));
   if (!BEHAVIOURS.some(on)) return { skip: 'site_off' };
   const id = sc.kind === 'site' ? { site: sc.site } : { site: sc.site, origin: sc.origin };
   const page = sc.pageUrl;
@@ -1026,6 +1033,7 @@ export async function runAutoPass(tab, { signature = null, serverUrl = SERVER_UR
   const batch = await loadBatchForTab(tab.id).catch(() => null);
   const plan = autoStep({
     settings, url: tab.url, granted, facts, bound: !!bound, packet: !!packet, batch: !!batch,
+    applyIntent: !!(bound && bound.via === 'board' && bound.board?.intent === 'apply'),   // 46i: opened by draft to apply
     prepared: !!(bound && st.prepared.has(String(bound.jobId))), fillStopped: st.fillStopped,
     signature, lastFillSig: st.lastFillSig, frameUrl: inFrame ? frameUrl : null, formInFrame,
   });

@@ -138,6 +138,26 @@ test("⛔ D97 · autoStep — the switch, the consent, Chrome's grant, the kill 
   assert.equal(consentCovers(d64, "workday", "capture"), false);
 });
 
+test("⭐ 46i · a tab draft OPENED TO APPLY (Open & fill / Apply, bound with intent apply) fills with the switches off — and nothing else changes", () => {
+  // Owner 11-12: "the switch should always be flipped open … for redirections from draft to target site … its implied
+  // that i want the form filled, and then I only click submit after captcha."
+  const off = settingsWith({}, { consent: null });   // no site on, no consent — the defaults
+  const f = { fieldCount: 18 };
+  const tab = { settings: off, url: APPLY, granted: true, facts: FACTS(f), bound: true, applyIntent: true };
+  assert.deepEqual(autoStep(tab).actions, ["read", "prepare", "fill"]);
+  assert.deepEqual(autoStep({ ...tab, prepared: true }).actions, ["read", "fill"]);
+  // still: Chrome's grant, the kill switch, the person's Stop, Review, a sign-in page, the never-hosts, and BOUND
+  assert.equal(autoStep({ ...tab, granted: false }).skip, "not_granted");
+  assert.equal(autoStep({ ...tab, settings: { ...off, kill: true } }).skip, "kill_switch");
+  assert.deepEqual(autoStep({ ...tab, prepared: true, fillStopped: true }).actions, ["read"]);
+  assert.deepEqual(autoStep({ ...tab, facts: FACTS({ ...f, isReview: true }) }).actions, ["read"]);
+  assert.equal(autoStep({ ...tab, facts: FACTS({ ...f, hasPassword: true }) }).skip, "sign_in_page");
+  assert.equal(autoStep({ ...tab, url: "https://www.linkedin.com/jobs/view/1/apply" }).skip, "never_host");
+  assert.equal(autoStep({ ...tab, bound: false }).skip, "site_off", "intent without a binding is nothing");
+  // a tab the board opened only to VIEW a posting is not an application: the switches decide, as before
+  assert.equal(autoStep({ ...tab, applyIntent: false }).skip, "site_off");
+});
+
 test("⛔ D97 · THE KILL SWITCH stops all four — and the handler turns every switch off, gives every access back, unregisters", async () => {
   const all = settingsWith(Object.fromEntries(SITES.map(s => [s.id, { read: true, prepare: true, capture: true, fill: true }])));
   for (const url of [APPLY, POSTING, "https://boards.greenhouse.io/x/jobs/1"]) {
