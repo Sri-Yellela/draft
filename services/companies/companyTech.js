@@ -24,6 +24,11 @@ export const MIN_PAGE_ROWS = 25;
 export const READ_BUDGET_MS = 200;
 export const WRITE_CHUNK = 50;
 export const COMPANY_RANGE = 200;
+// A193 (46j, production d8a5b7cd boot: one 200-company range wrote ~1,500 stack rows in 879 ms on a cold volume): the range
+// ADAPTS like the page reads — halved while a write takes longer than WRITE_BUDGET_MS (never below MIN_COMPANY_RANGE), grown back
+// toward COMPANY_RANGE while writes stay under a quarter of it. The FIRST range is the small one.
+export const WRITE_BUDGET_MS = 100;
+export const MIN_COMPANY_RANGE = 10;
 
 const EXTRACT_SQL = `
   SELECT sj.job_id, sj.title, COALESCE(sj.description_text, sj.description) AS text, COALESCE(sj.content_hash, '') AS hash
@@ -151,16 +156,19 @@ export function createCompanyTech(db, { pageRows = PAGE_ROWS, writeChunk = WRITE
         resolve(self.status());
       };
       // ── 2 · aggregate, a range of company ids per slice ──
-      let cFrom = 0, cMax = 0;
+      let cFrom = 0, cMax = 0, cRange = MIN_COMPANY_RANGE;
       const aggregate = () => {
-        const to = cFrom + COMPANY_RANGE, nowSec = Math.floor(Date.now() / 1000);
+        const to = cFrom + cRange, nowSec = Math.floor(Date.now() / 1000);
         const read = offloadAgg
           ? offloadAgg({ from: cFrom, to, nowSec }).catch(() => readAggregate(db, cFrom, to, nowSec))
           : Promise.resolve().then(() => readAggregate(db, cFrom, to, nowSec));
         read.then((rows) => {
           const tw = Date.now();
           const n = writeAggregate(db, cFrom, to, rows);
-          status = { ...status, companies: status.companies + 1, stackRows: status.stackRows + n, maxWriteMs: Math.max(status.maxWriteMs, Date.now() - tw) };
+          const wMs = Date.now() - tw;
+          if (wMs > WRITE_BUDGET_MS && cRange > MIN_COMPANY_RANGE) cRange = Math.max(MIN_COMPANY_RANGE, Math.floor(cRange / 2));
+          else if (wMs < WRITE_BUDGET_MS / 4 && cRange < COMPANY_RANGE) cRange = Math.min(COMPANY_RANGE, cRange * 2);
+          status = { ...status, companies: status.companies + 1, stackRows: status.stackRows + n, maxWriteMs: Math.max(status.maxWriteMs, wMs) };
           cFrom = to;
           if (cFrom >= cMax) return finish(null);
           schedule(aggregate);
