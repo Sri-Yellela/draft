@@ -543,6 +543,8 @@ const AUTHENTICATED = new Set([
   "GET /api/apply/applications",
   // A186-CAPTCHA (1): the live check — requireAuth, and each answers only the run job's OWNER (liveSessionFor checks the user)
   "GET /api/apply/live", "GET /api/apply/live/:runJobId/stream", "POST /api/apply/live/:runJobId/input",
+  // 46j: the viewer's frame poll (replaces the app's held-open stream) — requireAuth + liveSessionFor's owner check
+  "GET /api/apply/live/:runJobId/frame",
   // A186-CAPTCHA (1b): Solve it here on a held check, and the batch queue — requireAuth; storedPieces reads the row
   // WHERE user_id = the caller, so another person's run job answers 404
   "POST /api/apply/run-jobs/:runJobId/solve-check", "POST /api/apply/solve-checks",

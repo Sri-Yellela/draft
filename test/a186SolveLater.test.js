@@ -326,3 +326,15 @@ test("a186RerunToCheckUnder30s: real Chrome — click Solve it here → the live
     assert.equal(JSON.parse(done).kind, "recaptcha", "counted by kind");
   } finally { ctx.server.close(); form.close(); _resetLiveChallenges(); try { fs.unlinkSync(tmpPdf); } catch {} }
 });
+
+// 46j: the combined suite's boardSecondLoadParity found LiveCheck holding a second EventSource open (the app may own one).
+test("a186LiveViewPollsFrames: the viewer polls /frame (no EventSource); the route answers the owner's newest frame, 204 when nothing newer, 404 once gone", async () => {
+  const live = read("client/src/components/LiveCheck.jsx");
+  assert.doesNotMatch(live.replace(/^\s*\/\/.*$/gm, ""), /new\s+EventSource\s*\(/);
+  assert.match(live, /\/frame\?after=\$\{after\}/);
+  const src = read("routes/apply.js");
+  const route = src.slice(at(src, 'app.get("/api/apply/live/:runJobId/frame", requireAuth'), at(src, 'app.post("/api/apply/live/:runJobId/input"'));
+  assert.match(route, /liveSessionFor\(req\.params\.runJobId, req\.user\.id\)/, "owner only");
+  assert.match(route, /status\(404\)/);
+  assert.match(route, /f\.at <= Number\(req\.query\.after \|\| 0\)\) return res\.status\(204\)/);
+});
