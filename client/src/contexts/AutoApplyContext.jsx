@@ -6,6 +6,7 @@ import { DECISIONS, commitDecision } from "../lib/jobDecisions.js";
 // group the server files a row under cannot disagree.
 import { OUTCOME } from "../../../shared/applyOutcomeGroups.js";
 import { BRAND } from "../../../shared/brand.js";
+import { openPosting, extensionNonce } from "../lib/openPosting.js";   // 46i: Open & fill goes through the bridge
 
 // ============================================================
 // AutoApplyContext — the auto-apply pipeline's whole state, lifted out of JobsPanel
@@ -343,7 +344,7 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
    *   stale        the answers have gone off. The server refuses the mint too (410 packet_stale);
    *                this is the same refusal said before the user has walked to another tab for it.
    */
-  const openHandoff = useCallback((packet, job) => {
+  const openHandoff = useCallback(async (packet, job) => {
     const label = [job?.company, job?.title].filter(Boolean).join(" — ") || "This application";
     if (!packet) {
       setHandoffMsg({ kind: "no_packet", text:
@@ -363,11 +364,23 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
     }
     let host = packet.expectedOrigin;
     try { host = new URL(packet.expectedOrigin).host; } catch {}
-    window.open(packet.applyUrl, "_blank", "noopener,noreferrer");
-    setHandoffMsg({ kind: "open", text:
-      `Opened ${host} in a new tab. Click the ${BRAND} extension there and the form fills with the ` +
-      `${packet.answerCount} answer${packet.answerCount === 1 ? "" : "s"} we prepared, each labelled with where it came from. ` +
-      `You review it and you submit it — we never submit on that page.` });
+    const n = `${packet.answerCount} answer${packet.answerCount === 1 ? "" : "s"}`;
+    // ⛔ 46i (owner 11-12: "when i click open and fill, ntg is filled, so its a whole manual application"): this opened the
+    // page with window.open, so the extension never knew the tab was this job — nothing filled until the person found
+    // and clicked the extension. It now goes through the board's bridge (lib/openPosting.js, D99 J11) with intent
+    // "apply", exactly like the board's Apply: the extension opens the tab BOUND to the job and prepares the answers
+    // there. Without the extension (or when it declines) the page opens its own link, and says what is needed.
+    const via = await openPosting({ jobId: packet.jobId ?? job?.jobId, applyUrl: packet.applyUrl }, { url: packet.applyUrl, intent: "apply" })
+      .then(r => r.via).catch(() => "link");
+    setHandoffMsg({ kind: "open", text: via === "extension"
+      ? `Opened ${host} in a tab linked to this job. The ${BRAND} extension prepares the ${n} we resolved there — ` +
+        `press Fill in its panel (or turn on "Fill automatically" for this site in the extension's settings and it fills by itself). ` +
+        `You review it and you submit it — we never submit on that page.`
+      : !extensionNonce()
+        ? `Opened ${host} in a new tab — but nothing can fill it without the ${BRAND} browser extension, which is not on this browser. ` +
+          `Install it, then press Open & fill again: the form fills with the ${n} we prepared.`
+        : `Opened ${host} in a new tab. Click the ${BRAND} extension there and the form fills with the ${n} we prepared, ` +
+          `each labelled with where it came from. You review it and you submit it — we never submit on that page.` });
   }, []);
 
 
