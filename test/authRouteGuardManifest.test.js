@@ -454,6 +454,8 @@ const AUTHENTICATED = new Set([
   "POST /api/admin/apply-origins/:id/revoke",
   // D75: the owner promotes a pair the crawler OBSERVED (the crawler never promotes) — admin only.
   "POST /api/admin/apply-origins/:id/promote",
+  // A186-CAPTCHA (4): the checks after Submit counted by kind — admin only.
+  "GET /api/admin/quick-checks",
   // D76: the Railway deploy events — admin only. (The hook itself, POST /api/hooks/railway, is a mounted
   // router authenticated by its own Bearer header; it is not a session route.)
   "GET /api/admin/deploy-events",
@@ -541,6 +543,9 @@ const AUTHENTICATED = new Set([
   "GET /api/apply/applications",
   // A186-CAPTCHA (1): the live check — requireAuth, and each answers only the run job's OWNER (liveSessionFor checks the user)
   "GET /api/apply/live", "GET /api/apply/live/:runJobId/stream", "POST /api/apply/live/:runJobId/input",
+  // A186-CAPTCHA (1b): Solve it here on a held check, and the batch queue — requireAuth; storedPieces reads the row
+  // WHERE user_id = the caller, so another person's run job answers 404
+  "POST /api/apply/run-jobs/:runJobId/solve-check", "POST /api/apply/solve-checks",
   // AK1. Both are per-user history: one records what an employer did with YOUR application, the
   // other correlates YOUR scores against YOUR outcomes. Each is scoped by user_id in its query and
   // the PATCH 404s on a job the caller has not applied to, so neither can be used to read another

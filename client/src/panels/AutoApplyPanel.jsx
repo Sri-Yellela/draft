@@ -733,6 +733,13 @@ export function AutoApplyPanel({ user = null } = {}) {
         ];
       }
       case "gated": {
+        // ⭐ A186-CAPTCHA (1b): a held CHECK (not a sign-in) — Solve it here re-runs it from what was made and shows the
+        // check live (components/LiveCheck.jsx starts it; one way to start a re-run). No deadline.
+        if (r.reasonCode === "captcha_required") return [
+          { id: "solve", label: "Solve it here", kind: "primary",
+            title: "Opens the form again with your saved answers and the same résumé, presses Submit, and shows you the check — no new draft is used.",
+            onClick: () => window.dispatchEvent(new CustomEvent("draft:solve-check", { detail: { runJobId: r.id } })) },
+          ...yourself(r)];
         const portal = portalFor(node);
         return [{ id: "signin", label: "Sign in again", kind: "primary",
           onClick: portal ? () => openPortalReview(portal) : () => openApplicationReview({ jobId: r.jobId, rows: [r], company: r.company, title: r.title }) },
