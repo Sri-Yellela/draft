@@ -539,6 +539,8 @@ const AUTHENTICATED = new Set([
   "POST /api/apply",
   "GET /api/apply/status/:jobId",
   "GET /api/apply/applications",
+  // A186-CAPTCHA (1): the live check — requireAuth, and each answers only the run job's OWNER (liveSessionFor checks the user)
+  "GET /api/apply/live", "GET /api/apply/live/:runJobId/stream", "POST /api/apply/live/:runJobId/input",
   // AK1. Both are per-user history: one records what an employer did with YOUR application, the
   // other correlates YOUR scores against YOUR outcomes. Each is scoped by user_id in its query and
   // the PATCH 404s on a job the caller has not applied to, so neither can be used to read another

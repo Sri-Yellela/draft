@@ -2765,6 +2765,9 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
     // job STARTED — so a job already in flight submitted after the switch was thrown. Returns a reason
     // code (or null to proceed); see submitBlockedReason for why a throw blocks.
     submitBlocker     = null,
+    // ⭐ A186-CAPTCHA (1): ({ page }) => Promise<live|null> — the route opens a live session when a VISIBLE check appears
+    // after Submit (services/liveChallenge.js); the person solves it in draft and this run continues. null = as before.
+    onChallenge       = null,
   } = options;
 
   // 'preview' is full-auto in every respect EXCEPT the submit click: same headless browser, same
@@ -3283,6 +3286,7 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
       // simply removing the anchor would have been unsafe.
       let clicked = false;
       let clickedFrame = null;
+      let lastSubmitBtn = null;   // A186-CAPTCHA: pressed again once if a solved check left the form unsent
       const urlBefore = page.url();
 
       // CROSS-FRAME SUBMIT. Previously main-frame-only, so a form hosted in an iframe was filled
@@ -3341,6 +3345,7 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
           ]);
           clicked = true;
           clickedFrame = ctx;
+          lastSubmitBtn = best.btn;
         } catch {}
       }
 
@@ -3372,6 +3377,28 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
       }
       if (urlAfter !== urlBefore && !evidence.includes("url_changed")) evidence.push("url_changed");
 
+      // ⭐ A186-CAPTCHA (1) · SOLVE IT HERE. A VISIBLE check appeared after Submit and nothing was sent: instead of closing
+      // the browser, the route opens a live session — the page is shown in draft and the PERSON solves the check (this
+      // code never does). The run waits (a few minutes at most), presses Submit once more if the check cleared without a
+      // confirmation, and records submitted only on a confirmation page — N1's rule, unchanged.
+      let challengeOutcome = null;
+      if (clicked && evidence.length === 0 && postFlow === "captcha_required" && typeof onChallenge === "function") {
+        const live = await Promise.resolve(onChallenge({ page })).catch(() => null);
+        if (live) {
+          challengeOutcome = await live.waitForOutcome(async () => {
+            const st = await classifyFlowState(page, originalDomain).catch(() => null);
+            if (st === "submitted") return "submitted";
+            if (clickedFrame && clickedFrame !== page.mainFrame()) {
+              const fs = await classifyFlowState(clickedFrame, null).catch(() => null);
+              if (fs === "submitted") return "submitted";
+            }
+            return st === "captcha_required" ? "challenge" : "other";
+          }, { onCleared: async () => { if (lastSubmitBtn) await lastSubmitBtn.click().catch(() => {}); } });
+          console.log(`[autoApply] live check: ${challengeOutcome}`);
+          if (challengeOutcome === "submitted") { evidence.push("confirmation_page_after_person_check"); postFlow = "submitted"; }
+        }
+      }
+
       if (flowState === "submitted") {
         // Already on a confirmation page before we clicked anything.
         status = "submitted";
@@ -3384,6 +3411,14 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
         // submission and an embedded one, and it is what makes a cross-frame claim checkable.
         submitEvidence = [...new Set(evidence)].join(",") +
           (clickedFrame && clickedFrame !== page.mainFrame() ? "|frame" : "");
+      } else if (clicked && postFlow === "captcha_required") {
+        // A186-CAPTCHA: a visible check stopped it (not solved here — live session timed out, or none could open). The
+        // hold names the check, so the held view offers Open & fill instead of an unexplained failure. held_gate: the
+        // GATE path (captcha_required is a GATE_CROSSING_REASON) — the packet is built and the extension fills after it.
+        status = "held_gate";
+        submitVerified = false;
+        submitEvidence = challengeOutcome ? `captcha_${challengeOutcome}` : "captcha_after_submit";
+        submitReasonCode = "captcha_required";
       } else if (clicked) {
         // The dangerous case: a submit-shaped button was clicked and nothing changed.
         status = "filled_not_submitted";

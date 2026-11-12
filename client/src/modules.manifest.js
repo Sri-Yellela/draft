@@ -124,6 +124,7 @@ export const SHARED = Object.freeze({
   "components/SponsorshipSignal.jsx":   { what: "D121 · the ONE sponsorship block (the expanded posting panel) and chip (the Atlas role page's sponsors; A109 took it off each post), drawn from the server's signal" },
   "components/SponsorshipSignal.css":   { what: "their look", owner: "components/SponsorshipSignal.jsx" },
   "components/DepthButton.jsx":         { what: "THE depth box (D1/D48)" },
+  "components/LiveCheck.jsx":           { what: "A186-CAPTCHA (1): a run held on a visible check, shown live — the person solves it, the run continues" },
   "components/SendJobPicker.jsx":       { what: "D180 P2 — Send a job: connections + a note, or Copy public link (only while the network is on)" },
   "components/SendJobPicker.css":       { what: "the Send-a-job picker's look", owner: "components/SendJobPicker.jsx" },
   "components/WorksHere.jsx":           { what: "D180 P4 — \"1 connection works here\" → Ask for a referral: the company page, the posting panel and the deck (45s: one component)" },
