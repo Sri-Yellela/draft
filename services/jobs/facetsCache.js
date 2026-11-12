@@ -61,6 +61,19 @@ export function createFacetsCache({ ttlMs = FACETS_TTL_MS, max = FACETS_MAX_ENTR
         if (flying.get(key) === p) flying.delete(key);
       }
     },
+    /**
+     * ⭐ A195 (46j) · SOFT invalidation for a write that moves a count by its own small, known contribution (a stored
+     * score: one posting leaves "unscored"). The user's kept entries are aged past ttlMs, so the next ask is answered AT
+     * ONCE from the kept answer (cache "stale") while ONE recount runs behind it — instead of a full recount on the
+     * request (staging 100k × 20: facets p95 ≈ 600 ms, all of it these recounts). A count started before the write is
+     * not kept (as clearUser). Without staleMs this is clearUser. A decision / a star / any other write still clears.
+     */
+    markStale(userId) {
+      if (!(staleMs > ttlMs)) return this.clearUser(userId);
+      const u = String(userId), aged = now() - ttlMs;
+      for (const [k, v] of done) if (userOf(k) === u && v.at > aged) done.set(k, { ...v, at: aged });
+      for (const k of [...flying.keys()]) if (userOf(k) === u) flying.delete(k);
+    },
     /** Drop every entry (kept or in flight) of one user — called on each of their writes. */
     clearUser(userId) {
       const u = String(userId);

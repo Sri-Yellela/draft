@@ -30,3 +30,28 @@ test("a195FacetsParallel: boardFacetsResponse answers the same body at parallel 
   assert.deepEqual(b, a);
   assert.deepEqual(Object.keys(b.body.clauses), Object.keys(a.body.clauses), "clause order kept");
 });
+
+// ⭐ A195 (46j): the keywords panel's stored score MARKS a user's kept counts stale instead of dropping them — the next ask
+// is answered at once from the kept counts while one recount runs behind it; any other write still clears.
+import { createFacetsCache } from "../services/jobs/facetsCache.js";
+test("a195MarkStaleServesKeptCounts: after markStale the next ask is 'stale' (kept body, one recount behind); clearUser still forces a miss", async () => {
+  let t = 1_000_000, computes = 0;
+  const cache = createFacetsCache({ ttlMs: 300_000, staleMs: 900_000, now: () => t });
+  const compute = (v) => async () => { computes++; return { status: 200, body: { v } }; };
+  assert.equal((await cache.get("7|1|q", compute("A"))).cache, "miss");
+  await cache.get("8|1|q", compute("other"));
+  t += 1000;
+  cache.markStale(7);
+  const r = await cache.get("7|1|q", compute("B"));
+  assert.equal(r.cache, "stale");
+  assert.equal(r.value.body.v, "A", "answered at once from the kept counts");
+  await new Promise((res) => setImmediate(res));
+  assert.equal((await cache.get("7|1|q", compute("C"))).value.body.v, "B", "the recount behind it replaced the answer");
+  assert.equal((await cache.get("8|1|q", compute("x"))).cache, "hit", "another user's entries untouched");
+  cache.clearUser(7);
+  assert.equal((await cache.get("7|1|q", compute("D"))).cache, "miss", "a real write still forces a recount");
+  const noStale = createFacetsCache({ ttlMs: 300_000, now: () => t });
+  await noStale.get("7|1|q", compute("E"));
+  noStale.markStale(7);
+  assert.equal((await noStale.get("7|1|q", compute("F"))).cache, "miss", "without staleMs markStale = clearUser");
+});
