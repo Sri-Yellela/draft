@@ -8,7 +8,7 @@ const read = (f) => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
 const CARD = read("client/src/panels/adminGateway.jsx");
 
 test("d162G4GatewayCard: mounted on Admin → System → Usage, beside the usage table, and in the admin module", () => {
-  assert.match(read("client/src/panels/AdminPanel.jsx"), /\{at\("system", "usage"\) && <><ModelUsageTab\/><ModelGatewaySection\/><\/>\}/);
+  assert.match(read("client/src/panels/AdminPanel.jsx"), /\{at\("system", "usage"\) && <><ModelUsageTab\/><ModelGatewaySection\/><FlagsSection\/><\/>\}/);   // A187 (46i): + the runtime flags card
   assert.ok(read("client/src/modules.manifest.js").includes('"panels/adminGateway.jsx"'));
 });
 

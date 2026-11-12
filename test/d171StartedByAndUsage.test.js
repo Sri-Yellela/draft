@@ -140,7 +140,7 @@ test("d171UsageTableByHourEventModelKey: the spend grouped per hour × event × 
   assert.match(read("routes/modelGateway.js"), /router\.get\("\/usage",/);
   assert.match(read("client/src/panels/adminMap.js"), /\["usage", "Model usage"\]/);
   // 46f (on purpose): D162 G4's gateway card sits beside the usage table on the same tab.
-  assert.match(read("client/src/panels/AdminPanel.jsx"), /\{at\("system", "usage"\) && <><ModelUsageTab\/><ModelGatewaySection\/><\/>\}/);
+  assert.match(read("client/src/panels/AdminPanel.jsx"), /\{at\("system", "usage"\) && <><ModelUsageTab\/><ModelGatewaySection\/><FlagsSection\/><\/>\}/);   // A187 (46i): + the runtime flags card
 });
 
 test("d171CostAlarm: the admin's threshold › the env var › off; over it — pipeline health, the panel, one log line a day; set with an audit row", () => {

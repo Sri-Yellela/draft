@@ -77,7 +77,7 @@ under its company, the board id keeps two same-titled jobs apart; the old `/comp
 
 `/admin/login` · `/admin/set-password` · `/admin` (`AdminPanel` and its tabs: `adminAdmins` · `adminAppearance` ·
 `adminAtlas` · `adminCalibrate` · `adminEmail` · `adminEnrichment` · `adminLearnCircle` · `adminLearnImport` ·
-`adminOps` · `adminPeople` · `adminQuestions` · `adminReadiness` · `adminTesterDetails` · `adminTesters` · `adminUsage` · `adminReports` (D183 profile reports) · `adminCompanyRecords` (A142) · `adminNetwork` (D180 P1) · `adminRuns` ((A)-2) · `adminDiagnostics` (D151 Rule 6) · `adminPhase1` (D150 T16) · `adminGateway` (D162 G4, the model gateway's card under System → Usage);
+`adminOps` · `adminPeople` · `adminQuestions` · `adminReadiness` · `adminTesterDetails` · `adminTesters` · `adminUsage` · `adminReports` (D183 profile reports) · `adminCompanyRecords` (A142) · `adminNetwork` (D180 P1) · `adminRuns` ((A)-2) · `adminDiagnostics` (D151 Rule 6) · `adminPhase1` (D150 T16) · `adminGateway` (D162 G4, the model gateway's card under System → Usage) · `adminFlags` (A187 Stage 0, runtime flags under System → Usage);
 shared `adminKit`, `adminMap`, `adminLearnSandbox`) · `/admin/db` (`DBInspector`). The admin look is its own; only
 L10's dialogs are listed as legacy.
 

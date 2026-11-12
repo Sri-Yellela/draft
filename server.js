@@ -222,6 +222,8 @@ import { heldQuestionsOf as heldQuestionsOfForDraft } from "./services/heldQuest
 import { cachedApplicationSchema as cachedSchemaForDraft } from "./services/jobs/applicationSchema.js";
 import { activeBaseResume as baseResumeForDraft } from "./services/baseResumeOnly.js";
 import { createModelGatewayAdminRouter } from "./routes/modelGateway.js";
+import { createFlagsAdminRouter } from "./routes/flags.js";   // A187 Stage 0 (46i): runtime flags
+import { flagOn } from "./services/flags.js";
 // AK1: the ONE exception to "server.js does not touch the tracker directly", and it is not a
 // second recording path — recordAtsOutcome only fills ats_score_before/after on a row callModel
 // has already written. It cannot create a usage_events row, so the reason the note above exists
@@ -307,7 +309,7 @@ import {
 } from "./services/atsTermWeights.js";
 // The band, not the number, is what a user is shown — see the header of shared/atsBands.js.
 import { atsBandFor } from "./shared/atsBands.js";
-import { fullReport, isSlimReport, setSlimReportExpander, slimOf, slimStoreEnabled } from "./services/atsReportRead.js";   // A187 Stage 0 (46i)
+import { fullReport, isSlimReport, setSlimReportExpander, slimOf } from "./services/atsReportRead.js";   // A187 Stage 0 (46i)
 import { standaloneAtsResult } from "./services/standaloneAts.js";
 import { todaysDeck, validDraftDate, DECK_ORDERS, deckSizeOf } from "./services/dailyDraft.js";
 import { roleFamilyForTitle, roleAliasCount } from "./services/searchQueryBuilder.js";
@@ -10510,7 +10512,7 @@ function storeAtsReportForProfile({ userId, profileId = null, jobId, report, bas
     });
   }
   _storeAtsReportTxn({ userId, profileId: profileId ?? null, jobId: String(jobId), report,
-                       basisHash: basisHash ?? null, jobHash: jobHash ?? null, slim: !!slim && slimStoreEnabled() });
+                       basisHash: basisHash ?? null, jobHash: jobHash ?? null, slim: !!slim && flagOn(db, "ats_store_slim") });   // A187: the flag (registry → ATS_STORE_SLIM → Admin's switch)
 }
 
 // ⭐ A187 Stage 0 (46i) · a SLIM row's report, made when a reader needs its detail: the same basis + scorer the board
@@ -12392,6 +12394,7 @@ app.use("/api/admin/atlas", requireAdmin, createAtlasAdminRouter(db));
 app.use("/api/admin/learn", requireAdmin, createLearnAdminRouter(db));
 // ⭐ D162 G2–G4 · the model gateway: each task's route, the switch / rollback (no deploy, audited), evals, telemetry.
 app.use("/api/admin/model-gateway", requireAdmin, createModelGatewayAdminRouter(db));
+app.use("/api/admin/flags", requireAdmin, createFlagsAdminRouter(db));   // A187 Stage 0 (46i): a switch with no deploy
 // ⭐ D108 P2 · "What changed": facts with official source links only; public to read, the curator's to write.
 app.use("/api/what-changed", createWhatChangedRouter(db));
 app.use("/api/admin/what-changed", requireAdmin, createWhatChangedAdminRouter(db));

@@ -1,6 +1,6 @@
 // services/atsReportRead.js — ⭐ A187 Stage 0 (46i) · SCORE-ONLY STORAGE: the one way to read a stored ATS report.
 //
-// With ATS_STORE_SLIM=on, the board's bulk scoring (the fit precompute, the match queue) stores a SLIM row — the score
+// With the flag ats_store_slim on, the board's bulk scoring (the fit precompute, the match queue) stores a SLIM row — the score
 // and what it rested on, `{ slim: 1, score, source, scorable }` — instead of the ~0.65–1 KB report, because almost none
 // of a person's ~25k scored postings is ever opened. A reader that needs the report's DETAIL (the deck's card, best
 // bets' must-haves, the apply record, interview prep, the daily question, the keywords panel) reads through here: a slim
@@ -14,8 +14,8 @@ let expander = null;
 /** server.js registers ({ userId, profileId, jobId }) => full report | null. */
 export function setSlimReportExpander(fn) { expander = typeof fn === "function" ? fn : null; }
 
-/** The switch the WRITERS read (readers handle slim rows whatever it says — rows written while it was on stay slim). */
-export const slimStoreEnabled = () => String(process.env.ATS_STORE_SLIM || "off").toLowerCase() === "on";
+// The switch the writer reads is the flag `ats_store_slim` (services/flags.js: registry → ATS_STORE_SLIM → Admin's switch).
+// Readers handle slim rows whatever it says — rows written while it was on stay slim.
 
 export const isSlimReport = (r) => !!(r && typeof r === "object" && r.slim === 1);
 
