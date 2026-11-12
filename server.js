@@ -95,7 +95,7 @@ import { createCrawlerWorkerRouter, createCrawlerAdminRouter } from "./routes/cr
 import { runSchedule as runCrawlerSchedule } from "./services/crawlerQueue.js";
 import { readPolicy as readBoardPolicy, setPolicy as setBoardPolicy, sweepAged } from "./services/jobs/boardAge.js";
 import { sweepScope } from "./services/jobs/boardScope.js";
-import { createClassifyBacklog } from "./services/jobs/classifyBacklog.js";
+import { createClassifyBacklog, BOOT_SKIP_WITHIN_MS } from "./services/jobs/classifyBacklog.js";
 import { createCompanyLinker, companyReviewQueue, decideCompanyReview, companyRecordStats } from "./services/companies/companyRecords.js";
 import { stripSampleProfiles } from "./services/sampleProfileStrip.js";
 import { createCompanyTech, stackFor, techForJobs } from "./services/companies/companyTech.js";
@@ -17522,7 +17522,8 @@ app.listen(PORT, () => {
     // ⛔ A140 (1): the removed trial's fictional sample details out of every profile — small (one row per account),
     // idempotent, once per boot on ready.
     try { stripSampleProfiles(db, { registry: getDomainRegistry() }); } catch (e) { console.warn("[a140] sample strip:", e.message); }
-    const classified = classifyBacklog.run("boot");
+    // ⛔ A193 (46j): skipped when a walk finished within 6 h (production's boot walk read 82,936 cold rows for 46 s after ready).
+    const classified = classifyBacklog.run("boot", { skipWithinMs: process.env.CLASSIFY_BOOT_WALK === "always" ? 0 : BOOT_SKIP_WITHIN_MS });
     // ⛔ A158 (45r): the sitemaps' narrow table, copied once (off the loop; it is done after the first boot).
     try { publicOpenBackfill?.run("boot"); } catch (e) { console.warn("[public-open]", e.message); }
     // ⭐ D179 P4a: the company records walk after the classify walk (one background walk on the loop at a time).

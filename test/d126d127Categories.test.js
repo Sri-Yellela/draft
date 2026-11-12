@@ -184,7 +184,7 @@ test("d127 migration 207: the category columns, byte-identical in both migration
   // 45b (bc95eec, changed on purpose): the walk starts on the SAME ready as the board-fit pass — the warm-up is started once.
   // 45l A140 (1) (c94cf593) put the sample-profile strip first in the same ready callback, so the walk sits further
   // in — still on that one ready (window widened on purpose).
-  assert.match(read("server.js"), /BOOT\.run\(\)\.then\(\(\) => setTimeout\([\s\S]{0,600}?\)\.then\(\(\) => \{[\s\S]{0,900}?classifyBacklog\.run\("boot"\);/);
+  assert.match(read("server.js"), /BOOT\.run\(\)\.then\(\(\) => setTimeout\([\s\S]{0,600}?\)\.then\(\(\) => \{[\s\S]{0,1100}?classifyBacklog\.run\("boot", \{ skipWithinMs:/);   // A193 (46j, changed on purpose): the boot walk skips when one finished within 6 h
 });
 
 test("d127 report: counts by category, discipline and held reason", () => {

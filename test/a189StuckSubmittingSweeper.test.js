@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { at, lastAt } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 import express from "express";
 import Database from "better-sqlite3";
@@ -141,7 +142,7 @@ test("a189StuckSubmittingSweeper: the interval's read is index-backed (migration
   assert.match(plan, /idx_apply_run_jobs_running/, plan);
   assert.doesNotMatch(plan, /SCAN rj\b(?! USING)/, plan);
   const src = fs.readFileSync("routes/apply.js", "utf8");
-  const body = src.slice(src.indexOf("function sweepStuckSubmits("), src.indexOf("function startStuckSubmitSweeper("));
+  const body = src.slice(at(src, "function sweepStuckSubmits("), at(src, "function startStuckSubmitSweeper("));
   assert.match(body, /WHERE rj\.status = 'running' AND rj\.started_at < \?/);
   assert.match(body, /LIMIT \?/);
 });
@@ -152,7 +153,7 @@ test("a189StuckSubmittingSweeper: server.js sweeps at boot BEFORE recovery, then
   const recover = server.indexOf("applyLine.recoverInterruptedRuns();");
   assert.ok(sweep > 0 && recover > sweep, "the boot sweep runs before recoverInterruptedRuns");
   assert.ok(server.indexOf("applyLine.startStuckSubmitSweeper();") > recover);
-  const block = (s) => { const i = s.indexOf('id: "273_apply_run_jobs_running"'); return s.slice(s.lastIndexOf("    {", i), s.indexOf("    },", i) + 6); };
+  const block = (s) => { const i = at(s, 'id: "273_apply_run_jobs_running"'); return s.slice(lastAt(s, "    {", i), at(s, "    },", i) + 6); };
   assert.equal(block(server), block(fs.readFileSync("scripts/migrations.js", "utf8")));
 });
 
