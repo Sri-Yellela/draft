@@ -375,7 +375,8 @@ test("⛔ d112bNotNowNoPrompt · Not now raises NO Chrome prompt — it says 'la
 // ── the new version ─────────────────────────────────────────────────────────────────────────────────────────────
 test("D112 · a NEW extension version (1.6.0) — no new required permission, the broad pattern only optional, the new files shipped", async () => {
   const manifest = JSON.parse(read("extension/manifest.json"));
-  assert.equal(manifest.version, "1.6.0");
+  // the new version was 1.6.0; later versions (1.6.1, 46j) keep its permission set
+  assert.ok(manifest.version.split(".").map(Number).reduce((a, n, i) => a || (n !== [1, 6, 0][i] ? (n > [1, 6, 0][i] ? 1 : -1) : 0), 0) >= 0, `manifest v${manifest.version} is below 1.6.0`);
   assert.deepEqual(manifest.host_permissions, ["https://jobsviadraft.com/*"]);
   assert.deepEqual([...manifest.permissions].sort(), ["activeTab", "contextMenus", "scripting", "storage"]);
   assert.ok(manifest.optional_host_permissions.includes(ANY));

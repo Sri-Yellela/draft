@@ -350,7 +350,8 @@ test("d112ApplyAway · background wires the two dock presses to the TAB, the win
   assert.match(bg, /'apply-away-disconnect': async \(tab\) => disconnectAway\(tab\),/);
   assert.match(bg, /const handle = APPLY_AWAY_HANDLERS\[msg\?\.type\];/);
   assert.match(bg, /fetcher: \(path, init\) => authedFetch\(RESUME_MASTER_URL, path, init\),/, "the extension's own token to draft's server");
-  assert.equal(manifest.version, "1.6.0");
+  // shipped first in 1.6.0; later versions (1.6.1, 46j) still carry it
+  assert.ok(manifest.version.split(".").map(Number).reduce((a, n, i) => a || (n !== [1, 6, 0][i] ? (n > [1, 6, 0][i] ? 1 : -1) : 0), 0) >= 0, `manifest v${manifest.version} is below 1.6.0`);
   const files = collectRequiredFiles(manifest);
   for (const f of ["applyAway.js", "apply-away.html", "apply-away.js"]) assert.ok(files.includes(f), f);
   const why = read("extension/MANIFEST_RATIONALE.md");

@@ -1,4 +1,10 @@
-# Chrome Web Store listing — draft v1.6.0
+# Chrome Web Store listing — draft v1.6.1
+
+> **v1.6.1 (2026-11-12, 46j — the owner's "bump up the extension to latest requirements").** 1.6.0 plus 46i's
+> `3889f77c` (Open & fill fills by itself on a tab draft opened to apply). No new permission, no new host, no new
+> data collected — the listing text and the privacy disclosures below are unchanged. Checked against the Chrome Web
+> Store's 2026 policy update (enforced 2026-08-01: every data collection prominently disclosed, changes in data
+> handling disclosed to users): this version changes no data handling.
 
 > **v1.6.0 (2026-10-30, D112 — NOT yet uploaded; released on the owner's word).** The manifest is 1.6.0 since D112
 > item 4 (global read, `d43550f` — its listing changes are that commit's). ⭐⭐ **D112 item 7 adds ONE optional API
