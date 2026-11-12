@@ -10,6 +10,7 @@ import { _resetLiveChallenges } from "../services/liveChallenge.js";
 import { draftedFromAnswers, challengeKindCounts, heldChecksOf } from "../services/challengeRerun.js";
 import { configureNotify, notifyRunJobOutcome, eventText, NOTIFY_EVENTS } from "../services/notify.js";
 import { buildNodes } from "../client/src/lib/draftHouseTree.js";
+import { solvableHere } from "../client/src/lib/applyObstacles.js";
 
 // ⭐ A186-CAPTCHA (1b) · NO TIME LIMIT (owner 11-12). A held check (held_gate / captcha_required) stays solvable whenever
 // the person comes back: Solve it here re-runs it FAST from what the first run made — its typed answers (also the approved
@@ -188,7 +189,7 @@ test("a186SolveLaterRerunsFromPayload: the batch queue runs several held checks 
 
 test("a186HeldRowOffersSolveItHere: the held row says what happened, offers Solve it here, and the nudge links it", async () => {
   // the Draft House node for a held check is not a sign-in
-  const nodes = buildNodes({ gatedJobs: [{ id: 41, jobId: "gh::x", company: "Acme", title: "Engineer", reasonCode: "captcha_required", createdAt: 1 },
+  const nodes = buildNodes({ gatedJobs: [{ id: 41, jobId: "gh::x", company: "Acme", title: "Engineer", reasonCode: "captcha_required", fill: { filled: 2, discovered: 2 }, createdAt: 1 },
     { id: 42, jobId: "gh::y", company: "Beta", title: "Engineer", reasonCode: "login_required", createdAt: 1 }] });
   const chk = nodes.find(n => n.jobId === "gh::x"), login = nodes.find(n => n.jobId === "gh::y");
   assert.match(chk.say, /quick check.*Solve it here/);
@@ -197,7 +198,12 @@ test("a186HeldRowOffersSolveItHere: the held row says what happened, offers Solv
   // the panel's held row: Solve it here for a check, one way to start it (LiveCheck owns the POST)
   const panel = read("client/src/panels/AutoApplyPanel.jsx");
   const gated = panel.slice(panel.indexOf('case "gated": {'), panel.indexOf('case "inflight":'));
-  assert.match(gated, /r\.reasonCode === "captcha_required"[\s\S]*label: "Solve it here", kind: "primary"[\s\S]*draft:solve-check/);
+  assert.match(gated, /solvableHere\(r\)[\s\S]*label: "Solve it here", kind: "primary"[\s\S]*draft:solve-check/);
+  assert.equal(solvableHere({ status: "held_gate", reasonCode: "captcha_required" }), true);
+  assert.equal(solvableHere({ status: "held_gate", reasonCode: "login_required" }), false);
+  assert.equal(solvableHere({ status: "held_review", reasonCode: "captcha_required" }), false, "a sign-in-style hold is not this");
+  assert.equal(solvableHere({ status: "held_gate", reasonCode: "captcha_required", fill: null }), false, "a check BEFORE the form (no answers made) is not re-run");
+  assert.equal(solvableHere({ status: "held_gate", reasonCode: "captcha_required", fill: { filled: 3, discovered: 3 } }), true);
   const live = read("client/src/components/LiveCheck.jsx");
   assert.match(live, /addEventListener\("draft:solve-check"/);
   assert.match(live, /\/api\/apply\/run-jobs\/\$\{encodeURIComponent\(runJobId\)\}\/solve-check/);

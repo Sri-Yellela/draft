@@ -128,8 +128,9 @@ const BY_REASON = {
   },
   captcha_required: {
     obstacle: "The portal is behind a CAPTCHA or identity check",
-    action: "Complete it yourself — this one cannot be automated",
-    protective: true, retryable: false,
+    // ⭐ A186-CAPTCHA (1b): a check met AFTER Submit (a held_gate row) is solved in draft — Solve it here, no deadline.
+    action: "Solve it here — draft fills the form again and shows you the check; or complete it yourself",
+    protective: true, retryable: false, solvesHere: true,
   },
   no_submit_button: {
     obstacle: "The form was filled but had no submit button we could find",
@@ -263,6 +264,15 @@ const IN_FLIGHT_STATUSES = new Set(["queued", "running"]);
 const NEEDS_YOU_STATUSES = new Set(["held_review", "held_gate"]);
 
 /** Which of the four sections a row belongs to. Total by exclusion — mirrors the server. */
+/**
+ * ⭐ A186-CAPTCHA (1b): a held row the person can solve in draft — a check after Submit (held_gate) whose reason the
+ * vocabulary marks `solvesHere`. Solve it here re-runs it from what was made (services/challengeRerun.js).
+ */
+export function solvableHere(row = {}) {
+  // A check met BEFORE the form (no answers were made) has nothing to re-fill from: `fill` (publicRunJob) says.
+  return row?.status === "held_gate" && !!BY_REASON[row?.reasonCode]?.solvesHere && (!("fill" in row) || (row.fill?.filled || 0) > 0);
+}
+
 export function sectionFor(status) {
   if (IN_FLIGHT_STATUSES.has(status)) return SECTION.IN_FLIGHT;
   if (NEEDS_YOU_STATUSES.has(status)) return SECTION.NEEDS_YOU;

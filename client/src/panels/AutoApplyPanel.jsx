@@ -6,7 +6,7 @@ import { useTheme } from "../styles/theme.jsx";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
 import { Z } from "../styles/zLayers.js";
 import {
-  groupByApplication, groupByCompany, splitByFault, resolutionPlan, PREREQUISITE_LABELS,
+  groupByApplication, groupByCompany, splitByFault, resolutionPlan, PREREQUISITE_LABELS, solvableHere,
 } from "../lib/applyObstacles.js";
 import {
   ApplicationRow, ApplicationObstacleCard, CompanyHeading, AttemptRow,
@@ -735,7 +735,7 @@ export function AutoApplyPanel({ user = null } = {}) {
       case "gated": {
         // ⭐ A186-CAPTCHA (1b): a held CHECK (not a sign-in) — Solve it here re-runs it from what was made and shows the
         // check live (components/LiveCheck.jsx starts it; one way to start a re-run). No deadline.
-        if (r.reasonCode === "captcha_required") return [
+        if (solvableHere(r)) return [
           { id: "solve", label: "Solve it here", kind: "primary",
             title: "Opens the form again with your saved answers and the same résumé, presses Submit, and shows you the check — no new draft is used.",
             onClick: () => window.dispatchEvent(new CustomEvent("draft:solve-check", { detail: { runJobId: r.id } })) },
