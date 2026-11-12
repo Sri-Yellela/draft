@@ -5436,6 +5436,17 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const off = s.subscribe(send);
     req.on("close", () => off());
   });
+  // 46j: the app's viewer POLLS the newest frame instead of holding the stream open — the client may own only one
+  // long-lived connection per origin (useSyncEvents; boardSecondLoadParity's tripwire: a second one starves /api/jobs
+  // of a socket). ?after=<at> → 204 when nothing newer; 404 once the session is gone (the run moved on). Owner only.
+  app.get("/api/apply/live/:runJobId/frame", requireAuth, (req, res) => {
+    const s = liveSessionFor(req.params.runJobId, req.user.id);
+    if (!s) return res.status(404).json({ error: "no_live_check", message: "This check is no longer waiting — the run has moved on." });
+    res.set("Cache-Control", "no-store");
+    const f = s.lastFrame;
+    if (!f || f.at <= Number(req.query.after || 0)) return res.status(204).end();
+    res.json({ w: f.w, h: f.h, jpeg: f.data, at: f.at });
+  });
   app.post("/api/apply/live/:runJobId/input", requireAuth, async (req, res) => {
     const s = liveSessionFor(req.params.runJobId, req.user.id);
     if (!s) return res.status(404).json({ error: "no_live_check", message: "This check is no longer waiting." });

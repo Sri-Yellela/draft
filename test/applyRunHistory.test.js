@@ -678,7 +678,9 @@ test("AC4: the abort flag outlives browser.close(), so the run's own catch can s
 test("AC4: the flag is retired by the RUN, not by the endpoint that raised it", () => {
   // processRunJob's `finally` is the point at which the run has genuinely finished unwinding and
   // recorded itself. The endpoint must not clear, or it loses the race above.
-  assert.match(applySource, /clearAbort\(jobId\);\s*\n\s*\}/,
+  // 46j (changed on purpose): A189's sweeper also releases the run's live-worker mark in the same `finally`
+  // (liveRunJobs.delete) — the flag is still retired there, by the run.
+  assert.match(applySource, /clearAbort\(jobId\);\s*\n(?:[^\n{}]*;\s*\n)*\s*\}/,
     "processRunJob no longer retires the abort flag — it will cancel the job's NEXT run too");
   assert.ok(!/requestAbort\([^)]*\)\s*\n?\s*\.then\(\(\) => clearAbort/.test(applySource),
     "the endpoint clears the flag off requestAbort again — that is the race");

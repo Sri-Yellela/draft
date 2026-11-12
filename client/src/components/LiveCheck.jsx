@@ -17,16 +17,24 @@ function Viewer({ session, onClose }) {
   const [ended, setEnded] = useState(null);
   const [said, setSaid] = useState("");
   const imgRef = useRef(null);
+  // 46j: short polls for the newest frame, never a held-open stream — the app owns ONE long-lived connection per origin
+  // (useSyncEvents); a second one starves the board's requests of a socket (boardSecondLoadParity).
   useEffect(() => {
-    const qs = authContextQuery();
-    const es = new EventSource(`/api/apply/live/${encodeURIComponent(session.runJobId)}/stream${qs ? `?${qs}` : ""}`, { withCredentials: true });
-    es.onmessage = (e) => {
-      let d = null; try { d = JSON.parse(e.data); } catch { return; }
-      if (d.ended) { setEnded(d.ended); es.close(); return; }
-      setFrame(d);
+    let stop = false, after = 0, timer = null, misses = 0;
+    const tick = async () => {
+      if (stop) return;
+      try {
+        const qs = authContextQuery();
+        const r = await fetch(`/api/apply/live/${encodeURIComponent(session.runJobId)}/frame?after=${after}${qs ? `&${qs}` : ""}`,
+          { credentials: "include", cache: "no-store" });
+        if (r.status === 404) { setEnded("done"); return; }
+        if (r.status === 200) { const d = await r.json(); after = d.at; setFrame(d); }
+        misses = 0;
+      } catch { if (++misses >= 10) { setEnded((x) => x || "closed"); return; } }
+      if (!stop) timer = setTimeout(tick, 350);
     };
-    es.onerror = () => { es.close(); setEnded((x) => x || "closed"); };
-    return () => es.close();
+    tick();
+    return () => { stop = true; clearTimeout(timer); };
   }, [session.runJobId]);
   const send = useCallback(async (body) => {
     try { await api(`/api/apply/live/${encodeURIComponent(session.runJobId)}/input`, { method: "POST", body: JSON.stringify(body) }); setSaid(""); }
