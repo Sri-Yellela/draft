@@ -29,6 +29,7 @@ import {
   trackerRows, trackerView, trackerCounts, sortRows, stageActions, readyToSend, sendAllConfirmText, TRACKER_PERIODS,
 } from "../lib/trackerRows.js";
 import { DatabasePanel } from "./DatabasePanel.jsx";
+import LiveCheck from "../components/LiveCheck.jsx";   // A186-CAPTCHA (1)
 import { ImportPanel } from "../components/ApplicationHistory.jsx";
 import { saveText, csvName, downloadExcel } from "../lib/tableExport.js";
 import { historyToCsv } from "../../../shared/applicationCsv.js";
@@ -1429,6 +1430,7 @@ export function AutoApplyPanel({ user = null } = {}) {
         <span className="dh-note">Showing the {applyHandoffPackets.length} most recent of <strong>{applyGateTotal ?? "many"}</strong> queued handoffs. Clear some of these to see the rest.</span>
       )}
       {/* The handoff happens in ANOTHER TAB, so the panel says what to expect there. */}
+      <LiveCheck />{/* ⭐ A186-CAPTCHA (1): a run waiting on a visible check — solve it here, live */}
       {handoffMsg && (
         <div className="dh-handoff" data-kind={handoffMsg.kind}>
           <span>{handoffMsg.text}</span>

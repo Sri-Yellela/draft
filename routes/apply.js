@@ -49,6 +49,7 @@ import { fullAutoDisabled as sharedFullAutoDisabled } from "../services/appSetti
 import { fullAutoBlocked, HOLD_REASON as FULL_AUTO_PREREQ_HOLD } from "../services/fullAutoGate.js";
 import { heldQuestionsOf, heldReasonWords, waitsOnPerson } from "../services/heldQuestions.js";
 import { fullReport, isSlimReport } from "../services/atsReportRead.js";   // A187 Stage 0 (46i)
+import { registerChallenge, liveSessionFor, liveSessionsOf } from "../services/liveChallenge.js";   // A186-CAPTCHA (1)
 import { applyAllowed, spendTrialDrafts } from "../services/billing/subscriptions.js";
 import { verificationConfig } from "../services/billing/config.js";
 import { accountVerified } from "../services/billing/verification.js";
@@ -1553,6 +1554,18 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     const submitBlocker = applyMode === "full"
       ? () => (fullAutoDisabled() ? "full_auto_disabled" : null)
       : null;
+    // ⭐ A186-CAPTCHA (1): a VISIBLE check after Submit opens a live session (services/liveChallenge.js) — the person solves
+    // it in draft, this run continues. Only for the mode that clicks Submit.
+    const onChallenge = applyMode === "full"
+      ? async ({ page }) => {
+          const live = await registerChallenge({ runJobId, userId, jobId, page,
+            log: (m) => console.log(`[live-check] ${m}`) });
+          logEvent(runId, runJobId, userId, jobId, live ? "challenge_live" : "challenge_no_live",
+            live ? "The employer's site showed a check after Submit — waiting for you to solve it in draft (a few minutes)."
+                 : "The employer's site showed a check after Submit, and no live view could open — finish it in your own browser.");
+          return live;
+        }
+      : null;
     // What the human approved, if this run exists because of an approval. autoApply refuses to
     // submit anything that differs from it.
     const approvedAnswers = runJob.approved_from_run_job_id
@@ -1885,6 +1898,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           approvedAnswers,
           onCorrections: recordCorrections,
           submitBlocker,
+          onChallenge,
         });
 
       } else if (mode === "semi") {
@@ -2140,6 +2154,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           coverLetterOnDemand: coverLetterOnDemandCaseC,
           approvedAnswers,
           submitBlocker,
+          onChallenge,
         });
         const [, applySettled] = await Promise.allSettled([resumePathPromise, applyPromise]);
         result = applySettled.status === "fulfilled" ? applySettled.value : { status: "error", fieldsFilled: 0 };
@@ -5174,6 +5189,35 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    * separates a human-approved submission from a full-auto one — the thing that was missing when
    * mode was being coerced at INSERT.
    */
+  // ⭐ A186-CAPTCHA (1) · SOLVE IT HERE — the owner's live view of a run held on a VISIBLE check (services/liveChallenge.js).
+  //   GET  /api/apply/live                       → { sessions: [{ runJobId, jobId, startedAt, expiresAt }] } (this person's)
+  //   GET  /api/apply/live/:runJobId/stream      → text/event-stream: { w, h, jpeg } frames, then { ended } — owner only
+  //   POST /api/apply/live/:runJobId/input       { type: click | scroll | key, x, y, dy, key } — owner only
+  // ⛔ Pixels out, the person's own clicks in. Nothing here answers a check.
+  app.get("/api/apply/live", requireAuth, (req, res) => res.json({ sessions: liveSessionsOf(req.user.id) }));
+  app.get("/api/apply/live/:runJobId/stream", requireAuth, (req, res) => {
+    const s = liveSessionFor(req.params.runJobId, req.user.id);
+    if (!s) return res.status(404).json({ error: "no_live_check", message: "This check is no longer waiting — the run has moved on." });
+    res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive", "X-Accel-Buffering": "no" });
+    res.flushHeaders?.();
+    const send = (frame, why) => {
+      if (!frame) { res.write(`data: ${JSON.stringify({ ended: why || "done" })}
+
+`); res.end(); return; }
+      res.write(`data: ${JSON.stringify({ w: frame.w, h: frame.h, jpeg: frame.data })}
+
+`);
+    };
+    const off = s.subscribe(send);
+    req.on("close", () => off());
+  });
+  app.post("/api/apply/live/:runJobId/input", requireAuth, async (req, res) => {
+    const s = liveSessionFor(req.params.runJobId, req.user.id);
+    if (!s) return res.status(404).json({ error: "no_live_check", message: "This check is no longer waiting." });
+    const r = await s.input(req.body || {});
+    res.status(r.ok ? 200 : 400).json(r);
+  });
+
   app.post("/api/apply/approve", requireAuth, (req, res) =>
     withIdempotency("/api/apply/approve", req, res, (out) => {
       let rows = pendingRows(req.user.id, req.body?.runJobIds);
