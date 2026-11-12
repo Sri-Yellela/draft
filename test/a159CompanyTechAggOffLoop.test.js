@@ -55,3 +55,13 @@ test("a159CompanyTechAggOffLoop: server.js gives the walk the offload worker", (
   const src = fs.readFileSync(new URL("../server.js", import.meta.url), "utf8");
   assert.match(src, /createCompanyTech\(db, \{ offloadAgg: \(args\) => offload\.run\("companyTechAgg", args\) \}\)/);
 });
+
+// A193 (46j): production's boot wrote one 200-company range in 879 ms — the aggregate range now starts small and adapts.
+test("a193CompanyTechRangeAdapts: the aggregate's company range starts at MIN_COMPANY_RANGE and halves / grows on the write's time", async () => {
+  const { COMPANY_RANGE, MIN_COMPANY_RANGE, WRITE_BUDGET_MS } = await import("../services/companies/companyTech.js");
+  assert.ok(MIN_COMPANY_RANGE < COMPANY_RANGE && WRITE_BUDGET_MS <= 100);
+  const src = fs.readFileSync("services/companies/companyTech.js", "utf8");
+  assert.match(src, /let cFrom = 0, cMax = 0, cRange = MIN_COMPANY_RANGE;/);
+  assert.match(src, /const to = cFrom \+ cRange,/);
+  assert.match(src, /if \(wMs > WRITE_BUDGET_MS && cRange > MIN_COMPANY_RANGE\) cRange = Math\.max\(MIN_COMPANY_RANGE, Math\.floor\(cRange \/ 2\)\);/);
+});
