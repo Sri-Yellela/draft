@@ -127,7 +127,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<"
  * the engine never guesses one, and a fictional person has none saved. The page says plainly that it is draft's
  * practice copy and that nothing reaches the employer.
  */
-export function renderPracticeForm({ job, action }) {
+export function renderPracticeForm({ job, action, requireWhy = process.env.DRAFT_PRACTICE_REQUIRE_WHY === "1" }) {
   const title = esc(job?.title || "Software Engineer"), company = esc(job?.company || "the employer");
   const real = job?.apply_url || job?.url;
   const field = (lab, input, req = false) => `<div class="field"><label${req ? ' class="req"' : ""}>${lab}${req ? " *" : ""}${input}</label></div>`;
@@ -151,7 +151,7 @@ ${field("LinkedIn Profile", `<input id="linkedin" type="url" name="job_applicati
 ${field("Website", `<input id="website" type="url" name="job_application[website]">`)}
 ${field("Are you legally authorized to work in the United States?", `<select id="authorized" name="job_application[legally_authorized]"><option value="">Select...</option><option>Yes</option><option>No</option></select>`)}
 ${field("Will you now or in the future require sponsorship for employment visa status?", `<select id="sponsorship" name="job_application[requires_sponsorship]"><option value="">Select...</option><option>Yes</option><option>No</option></select>`)}
-${field("Why are you interested in this role?", `<textarea id="why" name="job_application[why_interested]" rows="3"></textarea>`)}
+${field("Why are you interested in this role?", `<textarea id="why" name="job_application[why_interested]" rows="3"${requireWhy ? " required" : ""}></textarea>`, requireWhy)}
 <button type="submit" id="submit_app">Submit Application</button>
 </form></div></body></html>`;
 }

@@ -2,7 +2,7 @@
 // question → the job unblocks → Approve → Sent"). The real server from this checkout on a THROWAWAY copy of
 // data/resume_master.db, keys blanked, a synthetic TEST account whose base résumé is a SAMPLE (a fictional person) — so every
 // Draft is routed to draft's OWN practice form (/try/practice/:jobId, services/sampleResumes.js), never to an employer.
-// ⛔ Nothing here reaches a real employer form; nothing answers a CAPTCHA.
+// ⛔ Nothing here reaches a real employer form; nothing answers a bot check.
 //
 //   Draft → held for approval (the practice form filled by the server's headless Chrome)
 //   → every held question answered (POST /api/apply/answers, retryJobIds) → the re-run holds with NO open question
@@ -39,6 +39,9 @@ pre.prepare(`UPDATE scraped_jobs SET is_active = 1, retired_at = NULL, scraped_a
 pre.close();
 
 const env = { ...process.env, RM_DATA_DIR: DIR, PORT: String(PORT), NODE_ENV: "development", SESSION_SECRET: "walkA189-secret-not-real",
+  // 46j: the practice form's "Why are you interested" becomes REQUIRED for this walk — with no model key draft cannot
+  // write it confidently, so the run HOLDS on a question and the answer → unblock leg is exercised (it raised none before).
+  DRAFT_PRACTICE_REQUIRE_WHY: "1",
   APP_BASE_URL: BASE, DRAFT_DEFER_PREVIEW_GENERATION: "1", DRAFT_SUBMIT_RETRY_BACKOFF_MS: "500,1000",
   DRAFT_SCHEMA_READER: "off", MATCH_ALERTS: "off", NETWORK_DIGEST: "off", DAILY_REMINDERS: "off", TAXONOMY_BACKFILL: "off",
   RESEND_API_KEY: "", ANTHROPIC_API_KEY: "", ANTHROPIC_KEY: "", DOTENV_CONFIG_PATH: "./.no-dotenv-for-local-harness" };
