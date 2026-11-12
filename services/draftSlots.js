@@ -37,7 +37,9 @@ const WINDOW_SECONDS = 86400;
 // ⛔ Every reader (the limit, the refusal, nextFreeAt) reads the same rows through COUNTED_JOBS.
 export const OUR_FAULT_CODES = Object.freeze(["browser_error", "browser_launch_failed", "browser_timeout", "browser_binary_not_found",
   "browser_runtime_missing_dependency", "internal_error", "interrupted_by_restart", "worker_error", "no_fields_discovered",
-  "resume_unavailable", "resume_pdf_failed", "resume_artifact_missing", "resume_claim_violation", "resume_generate", "resume_store_failed"]);
+  "resume_unavailable", "resume_pdf_failed", "resume_artifact_missing", "resume_claim_violation", "resume_generate", "resume_store_failed",
+  // A189 (46j): the stuck-submit sweeper's hold for a run our worker lost mid-run (a restart / a dead worker) — our fault
+  "submit_interrupted"]);
 const OUR_FAULT_SQL = OUR_FAULT_CODES.map(c => `'${c}'`).join(", ");
 const COUNTED_JOBS = `
       SELECT rj.job_id, MIN(COALESCE(rj.created_at, 0)) AS first_at
