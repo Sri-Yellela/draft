@@ -143,34 +143,50 @@ export function createClassifyBacklog(db, { pageRows = CLASSIFY_PAGE_ROWS, write
       return v ? JSON.parse(v) : null;
     } catch { return null; }
   }
-  function remember() {
+  // ⛔ A193 (2) (46j, staging): the fixture builder's EMPTY boot finished a walk over 0 rows; the warm server's boot 15 s
+  // later skipped as "recent" — and 100,000 postings stayed without a category (each user's board became the whole
+  // board). The walk now remembers the highest rowid it reached (maxRowid): a recent walk is skipped only when no row was
+  // added since, otherwise only the rows after maxRowid are walked (an INCREMENTAL walk); a remembered walk with no
+  // maxRowid (A193's first form) is not trusted — the boot walks in full once.
+  function remember(maxRowid) {
     try {
       const { finishedAt, active, shown, held, withFunction, unknownByCategory } = status;
       db.prepare("INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, unixepoch()) "
         + "ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
-        .run(LAST_WALK_KEY, JSON.stringify({ finishedAt, active, shown, held, withFunction, unknownByCategory }));
+        .run(LAST_WALK_KEY, JSON.stringify({ finishedAt, active, shown, held, withFunction, unknownByCategory, maxRowid }));
     } catch (e) { log.warn?.("[classify] could not remember the walk:", e.message); }
   }
 
   function run(trigger = "manual", { skipWithinMs = 0, now = Date.now() } = {}) {
     if (running) return running;
+    let startFrom = 0, carried = null;
     if (skipWithinMs > 0) {
       const last = lastWalk();
       const at = last?.finishedAt ? Date.parse(last.finishedAt) : NaN;
-      if (Number.isFinite(at) && now - at >= 0 && now - at < skipWithinMs) {
-        status = { ...status, ...emptyCounts(), ...last, state: "skipped", trigger, skipReason: `a walk finished ${Math.round((now - at) / 60000)} min ago` };
-        log.log?.(`[classify] (${trigger}) backlog walk skipped — ${status.skipReason} (A193)`);
-        return Promise.resolve(self.status());
+      if (Number.isFinite(at) && now - at >= 0 && now - at < skipWithinMs && Number.isFinite(last.maxRowid)) {
+        let cur = Infinity;
+        try { cur = Number(db.prepare("SELECT MAX(rowid) FROM scraped_jobs").pluck().get()) || 0; } catch { /* walk in full */ }
+        if (cur <= last.maxRowid) {
+          status = { ...status, ...emptyCounts(), ...last, state: "skipped", trigger, skipReason: `a walk finished ${Math.round((now - at) / 60000)} min ago` };
+          log.log?.(`[classify] (${trigger}) backlog walk skipped — ${status.skipReason} (A193)`);
+          return Promise.resolve(self.status());
+        }
+        if (Number.isFinite(cur)) {
+          startFrom = last.maxRowid;   // only the rows added since the last walk
+          const { finishedAt: _f, maxRowid: _m, ...counts } = last;
+          carried = { ...emptyCounts(), ...counts };
+        }
       }
     }
-    status = { ...status, state: "running", trigger, runs: status.runs + 1, pages: 0, ...emptyCounts(),
+    status = { ...status, state: "running", trigger, runs: status.runs + 1, pages: 0, ...emptyCounts(), ...(carried || {}),
+               incrementalFrom: carried ? startFrom : null,
                startedAt: new Date().toISOString(), finishedAt: null, error: null, lastPageMs: 0, maxPageMs: 0, maxWriteMs: 0, maxReadMs: 0, pageRows };
     running = new Promise((resolve) => {
-      let from = 0;
+      let from = startFrom;
       const finish = (error) => {
         status = { ...status, state: error ? "failed" : "done", finishedAt: new Date().toISOString(), error: error ? error.message : null };
         running = null;
-        if (!error) remember();
+        if (!error) remember(from);
         if (error) log.error?.(`[classify] backlog walk failed at rowid ${from} (the next boot resumes; nothing half-written):`, error.message);
         else if (status.categorised || status.functioned) {
           log.log?.(`[classify] (${trigger}) backlog: ${status.categorised} categorised, ${status.functioned} given a kind of work; `

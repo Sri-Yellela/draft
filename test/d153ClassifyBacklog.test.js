@@ -276,3 +276,31 @@ test("a193BootWalkSkippedWhenRecent: a finished walk is remembered; a boot withi
   const s4 = await second.run("interval");
   assert.equal(s4.state, "done");
 });
+
+// ⛔ A193 (2) (46j, staging): the fixture builder's EMPTY boot remembered a walk over 0 rows; the next boot skipped it
+// and 100,000 postings stayed uncategorised. A recent walk is skipped only when no row was added since.
+test("a193BootSkipKnowsNewRows: an empty walk does not cover rows added later; a recent walk walks only the new rows; an old record without maxRowid walks in full", async () => {
+  const db = db0();
+  const empty = await createClassifyBacklog(db, { pageRows: 5, log: quiet }).run("boot", { skipWithinMs: 6 * 3600e3 });
+  assert.equal(empty.state, "done");
+  assert.equal(JSON.parse(db.prepare("SELECT value FROM app_settings WHERE key = 'classify_backlog_last_walk'").get().value).maxRowid, 0);
+  PROFESSIONAL_GENERAL.slice(0, 6).forEach(([t], i) => insert(db, `n${i}`, t, "general"));
+  const t1 = Date.parse(empty.finishedAt) + 60e3;
+  const s1 = await createClassifyBacklog(db, { pageRows: 5, log: quiet }).run("boot", { skipWithinMs: 6 * 3600e3, now: t1 });
+  assert.equal(s1.state, "done", "new rows since the empty walk → walked, not skipped");
+  assert.ok(s1.categorised >= 6);
+  for (let i = 0; i < 6; i++) assert.notEqual(row(db, `n${i}`).board_category, null);
+  const s2 = await createClassifyBacklog(db, { pageRows: 5, log: quiet }).run("boot", { skipWithinMs: 6 * 3600e3, now: t1 + 60e3 });
+  assert.equal(s2.state, "skipped", "nothing added since → skipped");
+  insert(db, "late", "Senior Accountant", "general");
+  const s3 = await createClassifyBacklog(db, { pageRows: 5, log: quiet }).run("boot", { skipWithinMs: 6 * 3600e3, now: t1 + 120e3 });
+  assert.equal(s3.state, "done");
+  assert.ok(s3.incrementalFrom > 0, "only the rows after the last walk");
+  assert.equal(s3.categorised, 1);
+  assert.notEqual(row(db, "late").board_category, null);
+  // A193's first form (no maxRowid) is not trusted: a full walk.
+  db.prepare("UPDATE app_settings SET value = ? WHERE key = 'classify_backlog_last_walk'").run(JSON.stringify({ finishedAt: new Date(t1).toISOString(), active: 0 }));
+  const s4 = await createClassifyBacklog(db, { pageRows: 5, log: quiet }).run("boot", { skipWithinMs: 6 * 3600e3, now: t1 + 180e3 });
+  assert.equal(s4.state, "done");
+  assert.equal(s4.incrementalFrom, null);
+});
