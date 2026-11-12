@@ -5323,10 +5323,20 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       .map(Number).filter(n => Number.isInteger(n) && n > 0);
     if (ids.length === 0) return [];
     const q = ids.map(() => "?").join(",");
+    // A194 (46j): the preview run's tool comes with each row — Approve makes the résumé with the SAME tool, so the
+    // artifact the preview made is reused instead of regenerated (production 11-12 02:16Z: preview a_plus_resume →
+    // CUSTOM_SAMPLER, Approve 'generate' → "stored CUSTOM_SAMPLER; this run wants TAILORED" → a second generation 19 s later).
     return db.prepare(`
-      SELECT id, job_id FROM apply_run_jobs
-      WHERE user_id=? AND status='held_review' AND reason_code=? AND id IN (${q})
+      SELECT rj.id, rj.job_id, r.tool_type FROM apply_run_jobs rj JOIN apply_runs r ON r.id = rj.run_id
+      WHERE rj.user_id=? AND rj.status='held_review' AND rj.reason_code=? AND rj.id IN (${q})
     `).all(userId, AWAITING, ...ids);
+  };
+  /** A194: the tool an approved run makes résumés with — the previews' one tool (mixed or unknown → generate, as before). */
+  const approvedTool = (rows, planTier) => {
+    const tools = new Set(rows.map(r => (r.tool_type === "a_plus_resume" ? "a_plus_resume" : "generate")));
+    const tool = tools.size === 1 ? [...tools][0] : "generate";
+    // A plan that no longer allows A+ (a downgrade since the preview) sends with generate rather than refusing the approval.
+    return tool === "a_plus_resume" && monetisationEnabled() && !canUseAPlusResume(planTier) ? "generate" : tool;
   };
 
   /**
@@ -5482,8 +5492,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         for (const r of rows) mark.run(r.id, req.user.id);
       })();
 
-      const started = startRun(req.user.id, normalisePlanTier(req.user?.planTier),
-        rows.map(r => String(r.job_id)), { mode: "auto", approvalMode: "approved", approvedFrom });
+      const planTierA = normalisePlanTier(req.user?.planTier);
+      const started = startRun(req.user.id, planTierA,
+        rows.map(r => String(r.job_id)), { mode: "auto", tool: approvedTool(rows, planTierA), approvalMode: "approved", approvedFrom });
 
       if (started.status !== 202) {
         // The run was refused (cap, kill switch, concurrency). Put the approvals back so the user
