@@ -268,7 +268,9 @@ const optionsFrom = (clause, row, prefix = "") => clause.options.map((o, i) => (
  * `canon`), so the same SQL. A clause the request does narrow keeps its own base set and statement, as before.
  */
 export async function boardFacetsResponse({ query, measureBoard, nowSec, countPending = null, visitSinceSec = null, breathe = yieldToLoop,
-                                            parallel = Math.max(1, Math.min(8, Number(process.env.DRAFT_READ_WORKERS_SIZE) || 2)) }) {
+                                            // A195 (measured 46j at 100k × 20: parallel 2 on a pool of 2 → facets p95 645 → 594 ms, board p95
+                                            // 325 → 372): the recount leaves one worker for everyone else — pool 2 → 1 (sequential), pool 4 → 3.
+                                            parallel = Math.max(1, Math.min(8, Number(process.env.DRAFT_READ_WORKERS_SIZE) || 2) - 1) }) {
   const clauses = facetClauses({ nowSec, visitSinceSec });
   const headQuery = withoutKeys(query, []);
   const headKey = canon(headQuery);
