@@ -280,10 +280,25 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
     setPendingBusy(true);
     setPendingMsg("");
     try {
-      const data = await api(`/api/apply/${approve ? "approve" : "reject"}`, {
+      // ⛔ A189 (production 11-11 21:04:04Z): an Approve sent while draft was redeploying answered 502 after 15 s
+      // ("connection dial timeout" — the request never reached the server). A gateway error (502 / 503 / 504) is
+      // retried here, twice, with a pause: safe, because the route only ever acts on rows still held_review, so a
+      // repeat can never send an application twice (a repeat after a success answers 409 "none awaiting").
+      const send = () => api(`/api/apply/${approve ? "approve" : "reject"}`, {
         method: "POST",
         body: JSON.stringify({ runJobIds }),
       });
+      let data;
+      for (let attempt = 0; ; attempt++) {
+        try { data = await send(); break; }
+        catch (e) {
+          // A 504 can mean the first one DID land: then the repeat finds nothing held — report it as sent, not failed.
+          if (attempt > 0 && approve && e?.status === 409 && e?.payload?.error === "no_approvable_jobs") { data = { approved: runJobIds }; break; }
+          if (attempt >= 2 || ![502, 503, 504].includes(e?.status)) throw e;
+          setPendingMsg("draft is restarting — trying again in a few seconds…");
+          await new Promise(r => setTimeout(r, attempt === 0 ? 4000 : 10000));
+        }
+      }
       const n = (approve ? data.approved : data.rejected)?.length || 0;
       setPendingMsg(approve
         ? `Submitting ${n} application${n === 1 ? "" : "s"}.`
