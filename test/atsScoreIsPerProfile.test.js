@@ -74,14 +74,16 @@ test("every scoring path writes through the one per-profile writer", () => {
   // (deleted 10-02, 18 — A58 had removed its last entry point).
   // `basisHash` (migration 110) records which candidate basis produced the report; `jobHash`
   // (migration 118, A52) which version of the posting.
-  assert.match(SERVER, /function storeAtsReportForProfile\(\{ userId, profileId = null, jobId, report, basisHash = null, jobHash = null \}\)/);
+  assert.match(SERVER, /function storeAtsReportForProfile\(\{ userId, profileId = null, jobId, report, basisHash = null, jobHash = null, slim = false \}\)/);   // A187 (46i): + slim
   // The board's fit precompute is a fourth scoring path, and it stores through the SAME writer —
   // by reference, injected, so it adds no call site of its own below.
-  assert.match(SERVER, /createBoardFitPrecompute\(\{\s*db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: storeAtsReportForProfile,/);
+  assert.match(SERVER, /createBoardFitPrecompute\(\{\s*db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: \(a\) => storeAtsReportForProfile\(\{ \.\.\.a, slim: true \}\),/);   // A187 (46i): the same writer, slim when ATS_STORE_SLIM=on
   // Minus the declaration the previous line just matched: two call sites, no more and no fewer.
   // A third would mean a new scoring path nobody reviewed; one would mean the other went back to
   // writing its own SQL, which is the shape the defect had.
-  assert.equal((SERVER.match(/storeAtsReportForProfile\(\{/g) || []).length - 1, 2,
+  // ⭐ A187 (46i): 2 → 4 — the precompute's store is now a wrapper call (slim when ATS_STORE_SLIM=on), and the slim
+  // expander (expandSlimReport) and the deck's page expansion (expandSlimPage) write a re-scored report back. 2 → 5; each reviewed; each through this writer.
+  assert.equal((SERVER.match(/storeAtsReportForProfile\(\{/g) || []).length - 1, 5,
     "every path that computes a score must store it through the same writer");
 });
 

@@ -25,6 +25,7 @@ import { getSetting, setSetting } from "./appSettings.js";
 import { aimRoleFor } from "./navigator.js";
 import { warmCounts } from "./warmPaths.js";
 
+import { fullReport } from "./atsReportRead.js";   // A187 Stage 0 (46i)
 const DAY = 86400;
 const safe = (fn, fallback) => { try { return fn(); } catch { return fallback; } };
 export const MAX_BOARD_PAGES = 4;
@@ -101,8 +102,8 @@ export function bestBetSignalsFor(db, { userId, profileId = null, job, userLevel
     : safe(() => db.prepare(`SELECT * FROM scraped_jobs WHERE job_id = ?`).get(jobId), null) ?? {};
   const eligInputs = inputs ?? safe(() => userEligibilityInputs(db, userId), { defaults: {}, degrees: [] });
   const elig = safe(() => eligibilityForJob(db, userId, jobId, eligInputs), null);
-  const report = safe(() => JSON.parse(db.prepare(`SELECT ats_report FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?
-      ORDER BY id DESC LIMIT 1`).get(userId, profileId, jobId)?.ats_report || "null"), null);
+  const report = safe(() => fullReport(db.prepare(`SELECT ats_report FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?
+      ORDER BY id DESC LIMIT 1`).get(userId, profileId, jobId)?.ats_report || "null", { userId, profileId, jobId }), null);   // A187: a slim row expanded
   const score = safe(() => db.prepare(`SELECT ats_score FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?
       ORDER BY id DESC LIMIT 1`).get(userId, profileId, jobId)?.ats_score, null);
   let mustHaves = null;

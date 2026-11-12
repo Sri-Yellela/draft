@@ -307,6 +307,7 @@ import {
 } from "./services/atsTermWeights.js";
 // The band, not the number, is what a user is shown — see the header of shared/atsBands.js.
 import { atsBandFor } from "./shared/atsBands.js";
+import { fullReport, isSlimReport, setSlimReportExpander, slimOf, slimStoreEnabled } from "./services/atsReportRead.js";   // A187 Stage 0 (46i)
 import { standaloneAtsResult } from "./services/standaloneAts.js";
 import { todaysDeck, validDraftDate, DECK_ORDERS, deckSizeOf } from "./services/dailyDraft.js";
 import { roleFamilyForTitle, roleAliasCount } from "./services/searchQueryBuilder.js";
@@ -10478,7 +10479,9 @@ let _storeAtsReportTxn = null;
 // `jobHash` (migration 118, A52) records WHICH VERSION OF THE POSTING was scored — atsJobInputHash
 // over the columns the scorer reads. Omitted (NULL) reads as stale exactly like a NULL basis_hash:
 // the precompute re-scores it and the board never presents it as a verdict.
-function storeAtsReportForProfile({ userId, profileId = null, jobId, report, basisHash = null, jobHash = null }) {
+// A187 Stage 0 (46i): `slim` (the board's bulk scoring) stores slimOf(report) when ATS_STORE_SLIM=on — the score and what
+// it rested on; a reader that needs the detail goes through services/atsReportRead.js fullReport (re-scored once).
+function storeAtsReportForProfile({ userId, profileId = null, jobId, report, basisHash = null, jobHash = null, slim = false }) {
   if (!userId || !jobId || !report) return;
   // A declaration rather than a `const` holding db.transaction(...), because the scrape scorer 1,500
   // lines above calls this: a const would sit in its temporal dead zone for any caller that ran
@@ -10500,14 +10503,72 @@ function storeAtsReportForProfile({ userId, profileId = null, jobId, report, bas
       del.run(args.userId, args.jobId, args.profileId);
       ins.run(
         args.userId, args.profileId, args.jobId,
-        JSON.stringify(args.report), args.report.score ?? null,
+        JSON.stringify(args.slim ? slimOf(args.report) : args.report), args.report.score ?? null,
         args.report.source || LOCAL_ATS_SOURCE,
         args.basisHash, args.jobHash,
       );
     });
   }
   _storeAtsReportTxn({ userId, profileId: profileId ?? null, jobId: String(jobId), report,
-                       basisHash: basisHash ?? null, jobHash: jobHash ?? null });
+                       basisHash: basisHash ?? null, jobHash: jobHash ?? null, slim: !!slim && slimStoreEnabled() });
+}
+
+// ⭐ A187 Stage 0 (46i) · a SLIM row's report, made when a reader needs its detail: the same basis + scorer the board
+// used (atsBasisForProfile / scoreJobForBasis — local, no model call). Written back in full ONLY when the row's
+// basis_hash and job_hash still match today's inputs — then the score is the same number (the scorer is deterministic),
+// so no kept board order or count can be wrong. A row whose inputs moved is answered fresh and left for the precompute.
+const _slimBasisCache = new Map();   // `${userId}:${profileId}` -> { at, basis }, 60 s
+function expandSlimReport({ userId, profileId, jobId }) {
+  const row = db.prepare("SELECT ats_report, basis_hash, job_hash FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ? ORDER BY id DESC LIMIT 1")
+    .get(userId, profileId ?? null, jobId);
+  const job = db.prepare("SELECT * FROM scraped_jobs WHERE job_id = ?").get(jobId);
+  if (!job) return null;
+  const k = `${userId}:${profileId ?? ""}`;
+  let hit = _slimBasisCache.get(k);
+  if (!hit || Date.now() - hit.at > 60_000) {
+    const profile = profileId != null ? db.prepare("SELECT * FROM domain_profiles WHERE id = ? AND user_id = ?").get(profileId, userId) : null;
+    hit = { at: Date.now(), basis: atsBasisForProfile(userId, profile) };
+    _slimBasisCache.set(k, hit);
+    if (_slimBasisCache.size > 500) _slimBasisCache.delete(_slimBasisCache.keys().next().value);
+  }
+  if (!hit.basis) return null;
+  const report = scoreJobForBasis(job, hit.basis.runtimeBasis);
+  const jobHash = atsJobInputHash(job);
+  if (row && isSlimReport(fullReportRaw(row.ats_report)) && row.basis_hash === hit.basis.basisHash && row.job_hash === jobHash) {
+    storeAtsReportForProfile({ userId, profileId: profileId ?? null, jobId, report, basisHash: hit.basis.basisHash, jobHash });
+  }
+  return report;
+}
+const fullReportRaw = (s) => { try { return JSON.parse(s); } catch { return null; } };
+setSlimReportExpander(expandSlimReport);
+
+// ⭐ A187 (46i, measured): the deck reads ~50 candidates' reports; expanding them one by one on the main thread cost the
+// FIRST deck of a person's day 361–434 ms (55 ms with full rows — a 3k local fixture). This expands a page of postings'
+// slim rows in the SCORE WORKER (scoreBatchForBasis) and writes them back first, so the deck's reads find full rows.
+// Same write-back rule as expandSlimReport (inputs unchanged). Any failure leaves the rows slim — the synchronous
+// expander still answers.
+async function expandSlimPage(userId, profileId, jobIds) {
+  if (!jobIds?.length) return 0;
+  const ids = jobIds.map(String);
+  const rows = db.prepare(`SELECT job_id, basis_hash, job_hash FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ?
+      AND job_id IN (${ids.map(() => "?").join(",")}) AND ats_report LIKE '{"slim":1,%'`).all(userId, profileId ?? null, ...ids);
+  if (!rows.length) return 0;
+  const profile = profileId != null ? db.prepare("SELECT * FROM domain_profiles WHERE id = ? AND user_id = ?").get(profileId, userId) : null;
+  const basis = atsBasisForProfile(userId, profile);
+  if (!basis) return 0;
+  const byId = new Map(rows.filter(r => r.basis_hash === basis.basisHash).map(r => [r.job_id, r]));
+  const jobs = byId.size ? db.prepare(`SELECT * FROM scraped_jobs WHERE job_id IN (${[...byId.keys()].map(() => "?").join(",")})`).all(...byId.keys())
+    .filter(j => byId.get(j.job_id)?.job_hash === atsJobInputHash(j)) : [];
+  if (!jobs.length) return 0;
+  const out = await scoreBatchForBasis(jobs, basis.runtimeBasis);
+  if (!Array.isArray(out) || out.length !== jobs.length) return 0;
+  let n = 0;
+  for (let i = 0; i < jobs.length; i++) {
+    if (!out[i]?.report) continue;
+    storeAtsReportForProfile({ userId, profileId: profileId ?? null, jobId: jobs[i].job_id, report: out[i].report, basisHash: basis.basisHash, jobHash: atsJobInputHash(jobs[i]) });
+    n++;
+  }
+  return n;
 }
 
 // ── THE BOARD'S FIT PRECOMPUTE ──────────────────────────────────────────────────────────────────
@@ -10529,7 +10590,7 @@ let _boardFit = null;
 function boardFit() {
   if (!_boardFit) {
     _boardFit = createBoardFitPrecompute({
-      db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: storeAtsReportForProfile,
+      db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: (a) => storeAtsReportForProfile({ ...a, slim: true }),
       // D151 Rule 3: the batches go to the score worker; scoreJob stays the fallback (and the panel's path).
       scoreBatch: scoreBatchForBasis,
       // ⭐ D151 (45k): the plan's keyset pages are read AND judged in the A126 read workers (15.2 s of the 100k suite's
@@ -13694,6 +13755,7 @@ app.get("/api/best-bets", requireAuth, async (req, res) => {
     const size = req.query.size != null ? Number(req.query.size) : settings.bestBets;
     const fetchBoardPage = async (cursor) => {
       const { status, body } = await boardPageResponse({ ...req, query: { pageSize: "50", ...(cursor ? { cursor } : {}) } });
+      if (status === 200 && body?.jobs?.length) { try { await expandSlimPage(req.user.id, profile.id, body.jobs.map(j => j.id)); } catch { /* the sync expander still answers */ } }   // A187 (46i)
       return { ok: status === 200 && body?.success !== false, jobs: body?.jobs || [], nextCursor: body?.nextCursor || null, total: body?.total };
     };
     // ⛔ D151 · the board pages read through boardPageResponse (its list and counts in the read-worker pool, A126); the
@@ -14105,12 +14167,14 @@ app.get("/api/draft/today", requireAuth, async (req, res) => {
     // earlier days' undecided cards rotated down).
     const fetchBoardPage = async (cursor) => {
       const { status, body } = await boardPageResponse({ ...req, query: { pageSize: "50", sort: "atsScore", ...(cursor ? { cursor } : {}) } });
+      // A187 (46i): this page's slim reports, expanded in the score worker before the deal reads them (never on the main thread).
+      if (status === 200 && body?.jobs?.length) { try { await expandSlimPage(req.user.id, profile.id, body.jobs.map(j => j.id)); } catch { /* the sync expander still answers */ } }
       return { ok: status === 200 && body?.success !== false, jobs: body?.jobs || [], nextCursor: body?.nextCursor || null, error: body?.error };
     };
     const reportStmt = db.prepare(
       "SELECT ats_report FROM ats_only_reports WHERE user_id = ? AND domain_profile_id IS ? AND job_id = ?");
     const reportFor = (jobId) => {
-      try { return JSON.parse(reportStmt.get(req.user.id, profile.id, jobId)?.ats_report || "null"); }
+      try { return fullReport(reportStmt.get(req.user.id, profile.id, jobId)?.ats_report || "null", { userId: req.user.id, profileId: profile.id, jobId }); }   // A187: a slim row expanded once
       catch { return null; }
     };
     const scoreStmt = db.prepare(
@@ -14778,7 +14842,7 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
   if (cached?.ats_report) {
     try {
       const parsed = JSON.parse(cached.ats_report);
-      if (parsed?.source === LOCAL_ATS_SOURCE) return res.json(parsed);
+      if (parsed?.source === LOCAL_ATS_SOURCE && !isSlimReport(parsed)) return res.json(parsed);   // A187: a slim row is not a kept report — score it now (stored full below)
     } catch {}
   }
 

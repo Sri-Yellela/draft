@@ -24,6 +24,7 @@ import { untrustedText } from "./byom/untrusted.js";
 import { listMessages } from "./inbox.js";
 import { companyOfApplication, rebuildCompanyGuide } from "./interview/companyGuides.js";
 
+import { fullReport } from "./atsReportRead.js";   // A187 Stage 0 (46i)
 const now = () => Math.floor(Date.now() / 1000);
 const parse = (s, fb) => { if (s == null) return fb; try { return JSON.parse(s); } catch { return fb; } };
 const err = (status, code, message) => Object.assign(new Error(message), { status, code });
@@ -228,8 +229,8 @@ function postingOf(db, rec) {
 /** The ATS report the board stored for this user and job (the newest), or null. */
 function storedReport(db, userId, jobId) {
   try {
-    const r = db.prepare(`SELECT ats_report FROM ats_only_reports WHERE user_id = ? AND job_id = ? ORDER BY COALESCE(scored_at, created_at) DESC, id DESC LIMIT 1`).get(userId, String(jobId));
-    return parse(r?.ats_report, null);
+    const r = db.prepare(`SELECT ats_report, domain_profile_id FROM ats_only_reports WHERE user_id = ? AND job_id = ? ORDER BY COALESCE(scored_at, created_at) DESC, id DESC LIMIT 1`).get(userId, String(jobId));
+    return r?.ats_report ? fullReport(r.ats_report, { userId, profileId: r.domain_profile_id, jobId }) : null;   // A187: a slim row expanded
   } catch { return null; }
 }
 

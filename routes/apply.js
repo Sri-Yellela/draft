@@ -48,6 +48,7 @@ import { monetisationEnabledFromEnv } from "../shared/monetisation.js";
 import { fullAutoDisabled as sharedFullAutoDisabled } from "../services/appSettings.js";
 import { fullAutoBlocked, HOLD_REASON as FULL_AUTO_PREREQ_HOLD } from "../services/fullAutoGate.js";
 import { heldQuestionsOf, heldReasonWords, waitsOnPerson } from "../services/heldQuestions.js";
+import { fullReport, isSlimReport } from "../services/atsReportRead.js";   // A187 Stage 0 (46i)
 import { applyAllowed, spendTrialDrafts } from "../services/billing/subscriptions.js";
 import { verificationConfig } from "../services/billing/config.js";
 import { accountVerified } from "../services/billing/verification.js";
@@ -202,7 +203,9 @@ export function capturedAtsAtApply(db, userId, jobId) {
       const posting = db.prepare(`SELECT ${ATS_JOB_INPUT_FIELDS.join(", ")} FROM scraped_jobs WHERE job_id = ?`).get(jobId);
       // No posting row (expired, pruned): nothing newer exists for the score to be stale against.
       if (posting && row.job_hash !== atsJobInputHash(posting)) return null;
-      return pick(row);
+      // A187 Stage 0 (46i): a slim board row is expanded to its full report before it is recorded with the application.
+      const full = fullReport(row.ats_report, { userId, profileId, jobId });
+      return pick(full && typeof full === "object" && !isSlimReport(full) ? { ats_report: JSON.stringify(full) } : row);
     };
     return pick(forProfile("resumes"))
       || boardReport()
