@@ -116,7 +116,7 @@ test("D88 · a suspended account cannot sign in, call the API or use its connect
   assert.throws(() => setStatus(db, { userId: 0, status: "suspended", reason: REASON, actorId: 1 }), /system account/);
   assert.throws(() => setStatus(db, { userId: 3, status: "suspended", reason: REASON, actorId: 3 }), /your own account/);
   // sign-in, every authenticated request, and the plugin's token check
-  const strategy = SERVER.slice(at(SERVER, "passport.use(new LocalStrategy("), at(SERVER, "passport.serializeUser("));
+  const strategy = SERVER.slice(at(SERVER, "async function localSignInVerify("), at(SERVER, "passport.serializeUser("));
   assert.ok(at(strategy, 'if (user.status === "suspended") return done(null, false') > at(strategy, "if (!user || !passwordOk)"));
   const auth = SERVER.slice(at(SERVER, "function requireAuth(req, res, next) {"), at(SERVER, "function requireAdmin(req, res, next) {"));
   assert.match(auth, /if \(req\.user\?\.id != null && isSuspended\(db, req\.user\.id\)\) return res\.status\(403\)/);
