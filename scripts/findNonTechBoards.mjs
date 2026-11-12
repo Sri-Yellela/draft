@@ -144,11 +144,72 @@ const SITES_46G2 = [
   ["Waste Management", "https://www.wm.com", "logistics"], ["Ryder", "https://www.ryder.com", "logistics"],
   ["Southwest Airlines", "https://www.southwest.com", "transport"], ["Amtrak", "https://www.amtrak.com", "transport"],
 ];
+// 46i (owner 11-12, "keep going through the log") · crawler boost pass 5: insurance, media, real estate, chemicals, food, retail, regional banks.
+const SITES_46I = [
+  ["Nationwide", "https://www.nationwide.com", "insurance"],
+  ["Chubb", "https://www.chubb.com/us-en", "insurance"],
+  ["USAA", "https://www.usaa.com", "insurance"],
+  ["Principal Financial Group", "https://www.principal.com", "insurance"],
+  ["Lincoln Financial", "https://www.lincolnfinancial.com", "insurance"],
+  ["Unum", "https://www.unum.com", "insurance"],
+  ["Erie Insurance", "https://www.erieinsurance.com", "insurance"],
+  ["Paramount", "https://www.paramount.com", "media"],
+  ["Warner Bros. Discovery", "https://wbd.com", "media"],
+  ["Fox Corporation", "https://www.foxcorporation.com", "media"],
+  ["iHeartMedia", "https://www.iheartmedia.com", "media"],
+  ["The New York Times", "https://www.nytco.com", "media"],
+  ["Nielsen", "https://www.nielsen.com", "media"],
+  ["The Walt Disney Company", "https://thewaltdisneycompany.com", "media"],
+  ["SiriusXM", "https://www.siriusxm.com", "media"],
+  ["CBRE", "https://www.cbre.com", "real estate"],
+  ["JLL", "https://www.us.jll.com", "real estate"],
+  ["Cushman & Wakefield", "https://www.cushmanwakefield.com", "real estate"],
+  ["Prologis", "https://www.prologis.com", "real estate"],
+  ["Simon Property Group", "https://www.simon.com", "real estate"],
+  ["Equity Residential", "https://www.equityapartments.com", "real estate"],
+  ["Dow", "https://corporate.dow.com", "chemicals"],
+  ["DuPont", "https://www.dupont.com", "chemicals"],
+  ["PPG", "https://www.ppg.com", "chemicals"],
+  ["Sherwin-Williams", "https://www.sherwin-williams.com", "chemicals"],
+  ["Corning", "https://www.corning.com", "chemicals"],
+  ["Eastman Chemical", "https://www.eastman.com", "chemicals"],
+  ["Air Products", "https://www.airproducts.com", "chemicals"],
+  ["Linde", "https://www.linde.com", "chemicals"],
+  ["Ecolab", "https://www.ecolab.com", "chemicals"],
+  ["International Paper", "https://www.internationalpaper.com", "manufacturing"],
+  ["Cargill", "https://www.cargill.com", "food"],
+  ["ADM", "https://www.adm.com", "food"],
+  ["Tyson Foods", "https://www.tysonfoods.com", "food"],
+  ["Mondelez International", "https://www.mondelezinternational.com", "food"],
+  ["Kellanova", "https://www.kellanova.com", "food"],
+  ["Hershey", "https://www.thehersheycompany.com", "food"],
+  ["Conagra Brands", "https://www.conagrabrands.com", "food"],
+  ["Campbell's", "https://www.thecampbellscompany.com", "food"],
+  ["McCormick", "https://www.mccormickcorporation.com", "food"],
+  ["J.M. Smucker", "https://www.jmsmucker.com", "food"],
+  ["The Home Depot", "https://corporate.homedepot.com", "retail"],
+  ["Macy's", "https://www.macysinc.com", "retail"],
+  ["Dollar General", "https://www.dollargeneral.com", "retail"],
+  ["Kohl's", "https://corporate.kohls.com", "retail"],
+  ["Gap Inc.", "https://www.gapinc.com", "retail"],
+  ["Ulta Beauty", "https://www.ulta.com", "retail"],
+  ["Nordstrom", "https://press.nordstrom.com", "retail"],
+  ["Peraton", "https://www.peraton.com", "government services"],
+  ["KBR", "https://www.kbr.com", "government services"],
+  ["Citizens Financial Group", "https://www.citizensbank.com", "finance"],
+  ["KeyCorp", "https://www.key.com", "finance"],
+  ["Fifth Third", "https://www.53.com", "finance"],
+  ["Regions Financial", "https://www.regions.com", "finance"],
+  ["M&T Bank", "https://www.mtb.com", "finance"],
+  ["Ally Financial", "https://www.ally.com", "finance"],
+  ["Synchrony", "https://www.synchrony.com", "finance"],
+  ["Walgreens", "https://www.walgreensbootsalliance.com", "healthcare"],
+];
 const prior = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, "utf8")) : { tried: {}, found: [] };
 prior.unsupported ??= [];
 prior.j1 ??= {};
 const have = new Set(prior.found.map(f => `${f.atsType}:${f.slug}`.toLowerCase()));
-for (const [company, site, industry] of [...SITES, ...SITES_46A, ...SITES_46G, ...SITES_46G2]) {
+for (const [company, site, industry] of [...SITES, ...SITES_46A, ...SITES_46G, ...SITES_46G2, ...SITES_46I]) {
   // 46b: RETRY_ERRORS=1 re-tries only the sites a run recorded as "error" (46a: Lockheed, Caterpillar, Morgan Stanley).
   if (prior.j1[company] && !(process.env.RETRY_ERRORS === "1" && prior.j1[company] === "error")) continue;
   const fetcher = createFetcher({ budget: { pages: 25, bytes: 5_000_000, ms: 120_000 }, rateMs: 2000 });
