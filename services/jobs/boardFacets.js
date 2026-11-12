@@ -267,7 +267,8 @@ const optionsFrom = (clause, row, prefix = "") => clause.options.map((o, i) => (
  * headline's total when no view param is set. Equality is by construction: the same measureBoard query (compared by
  * `canon`), so the same SQL. A clause the request does narrow keeps its own base set and statement, as before.
  */
-export async function boardFacetsResponse({ query, measureBoard, nowSec, countPending = null, visitSinceSec = null, breathe = yieldToLoop }) {
+export async function boardFacetsResponse({ query, measureBoard, nowSec, countPending = null, visitSinceSec = null, breathe = yieldToLoop,
+                                            parallel = Math.max(1, Math.min(8, Number(process.env.DRAFT_READ_WORKERS_SIZE) || 2)) }) {
   const clauses = facetClauses({ nowSec, visitSinceSec });
   const headQuery = withoutKeys(query, []);
   const headKey = canon(headQuery);
@@ -335,26 +336,43 @@ export async function boardFacetsResponse({ query, measureBoard, nowSec, countPe
       (await readerOf(ctx).get(`SELECT COUNT(*) AS n ${ctx.joinClause} ${ctx.whereClause}`, ctx.baseArgs)).n);
     return r.status === 200 && r.body?.measured ? r.body.value : (r.status === 200 ? 0 : null);
   };
-  let pending = await viewTotal(false, false, true);
+  // ⭐ A195 (46j, staging 100k × 20 users: facets p95 625–645 ms, p50 ≈ 85 — the p95 is the full recount after a user's
+  // own write clears their entries): the view counts and the unfolded clauses are independent reads, and each goes to
+  // the read pool — they ran one after another. They now run `parallel` at a time (default the pool's size, 2), in the
+  // same order, with the same answers; the body is assembled in clause order.
+  const views0 = await inBatches([() => viewTotal(false, false, true), () => viewTotal(false), () => viewTotal(true), () => viewTotal(false, true)], parallel);
+  let pending = views0[0];
   if (!Number.isFinite(pending)) {
     try { pending = typeof countPending === "function" ? countPending() : null; } catch { pending = null; }
   }
-  const views = { all: await viewTotal(false), saved: await viewTotal(true), pending: Number.isFinite(pending) ? pending : null,
-                  imported: await viewTotal(false, true) };
+  const views = { all: views0[1], saved: views0[2], pending: Number.isFinite(pending) ? pending : null, imported: views0[3] };
 
   const body = { ...headValue, views, clauses: {} };
-  for (const clause of clauses) {
-    if (folded.has(clause.key)) { body.clauses[clause.key] = optionsFrom(clause, foldedRows[clause.key]); continue; }
+  const measured = await inBatches(clauses.map((clause) => async () => {
+    if (folded.has(clause.key)) return null;
     await breathe();
-    const r = await measureBoard(baseQueryOf(clause), async (ctx) => {
+    return measureBoard(baseQueryOf(clause), async (ctx) => {
       if (clause.compute) return clause.compute(ctx);
       const { joinClause, whereClause, baseArgs } = ctx;
       const { cols, params } = optionColumns(clause, ctx);
       // PARAMETER ORDER IS SQL TEXT ORDER: the SELECT's option params, then the board's own.
       return readerOf(ctx).get(`SELECT ${cols.join(", ")} ${joinClause} ${whereClause}`, [...params, ...baseArgs]);
     });
+  }), parallel);
+  for (const [i, clause] of clauses.entries()) {
+    if (folded.has(clause.key)) { body.clauses[clause.key] = optionsFrom(clause, foldedRows[clause.key]); continue; }
+    const r = measured[i];
     if (r.status !== 200 || !r.body?.measured) return r.status !== 200 ? r : { status: 200, body: EMPTY(clauses) };
     body.clauses[clause.key] = optionsFrom(clause, r.body.value);
   }
   return { status: 200, body };
+}
+
+/** A195 · run `tasks` (functions returning promises) at most `n` at a time; results in the tasks' order. */
+export async function inBatches(tasks, n = 2) {
+  const out = new Array(tasks.length);
+  let next = 0;
+  const lane = async () => { while (next < tasks.length) { const i = next++; out[i] = await tasks[i](); } };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(n, tasks.length)) }, lane));
+  return out;
 }
