@@ -355,6 +355,7 @@ import { backfillDescriptionText, withPostingText, refreshDescriptionText, posti
 import { backfillProvenanceSlice } from "./services/jobs/enrichmentProvenance.js";
 import { nextRowidRange, ACTIVE_JOB_INDEX } from "./services/jobs/rowidWalk.js";
 import { listPairs as listLearnedPairs, setPairRevoked, setPairPromoted, PROMOTE_AT_USERS } from "./services/learnedOrigins.js";
+import { challengeKindCounts } from "./services/challengeRerun.js";   // A186-CAPTCHA (4)
 import { CRAWLER_PAGE_HTML } from "./services/crawlerPage.js";
 import { resolvePlaceText, roleScopeExtra } from "./shared/jobTagVocabulary.js";
 import { userReferencedSql } from "./services/jobs/userReferences.js";
@@ -12198,6 +12199,13 @@ app.use("/api/admin/job-data", requireAdmin, createJobDataRouter(db, requireAdmi
 app.use("/api/admin/companies", requireAdmin, createCompaniesRouter(db, requireAdmin, { dataDir: DATA_DIR, read: readPool }));   // A162: the counts off the loop
 // ⭐ D67 (2): the learned origin pairs — hostnames and counts only — and the revoke switch, logged.
 app.get("/api/admin/apply-origins", requireAdmin, (_req, res) => res.json({ pairs: listLearnedPairs(db), promoteAtUsers: PROMOTE_AT_USERS }));
+// ⭐ A186-CAPTCHA (4): the checks applications met after Submit, counted by kind (recaptcha / hcaptcha / turnstile / other) over
+// the last ?days= (default 30) — seen, solved by the person, timed out, no live view — and how many held checks wait now.
+// Reads apply_job_logs' challenge events (one indexed-by-time pass; a handful of rows a day).
+app.get("/api/admin/quick-checks", requireAdmin, (req, res) => {
+  try { res.json(challengeKindCounts(db, { days: Number(req.query.days) || 30 })); }
+  catch (e) { res.status(500).json({ error: "quick_checks_failed", message: e.message }); }
+});
 app.post("/api/admin/apply-origins/:id/revoke", requireAdmin, (req, res) => {
   const id = Number(req.params.id);
   const revoked = req.body?.revoked !== false;

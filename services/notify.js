@@ -31,6 +31,11 @@ const now = () => Math.floor(Date.now() / 1000);
 export const NOTIFY_EVENTS = Object.freeze({
   needs_you: { label: "Needs you", what: "An application stopped and is waiting for you — a question only you can answer, or values to approve.",
     url: "/app/auto-apply", defaults: { push: true, email: false }, throttle: 15 * 60 },
+  // ⭐ A186-CAPTCHA (1b) (46j): a run met a visible check after Submit and nobody solved it in time — held, solvable whenever
+  // the person comes back (Solve it here re-runs it from what was made). The link opens THAT held row (`data.url`); no
+  // deadline is stated, because there is none. Push and email on by default (the owner's "push / email nudge").
+  quick_check: { label: "A quick check", what: "An application stopped at a check (a CAPTCHA) after Submit — solve it in draft whenever you're back.",
+    url: "/app/auto-apply", defaults: { push: true, email: true }, throttle: 15 * 60 },
   inbox_reply: { label: "Interview or offer", what: "Your inbox filed a reply from an employer as an interview or an offer.",
     url: "/app/database?sheet=inbox", defaults: { push: true, email: false }, throttle: 0 },
   apply_complete: { label: "Application sent", what: "An application was sent to an employer.",
@@ -68,6 +73,8 @@ export function eventText(event, data = {}) {
     case "needs_you":
       return data.ready ? { title: "Ready for your approval", body: "A job is ready for your approval." }
         : { title: "Needs you", body: "An application is waiting for you in Home." };
+    case "quick_check":
+      return { title: "A quick check", body: "An application needs a quick check." };
     case "inbox_reply":
       return data.category === "offer" ? { title: "An offer", body: "A reply from an employer was filed as an offer." }
         : { title: "An interview", body: "A reply from an employer was filed as an interview." };
@@ -252,7 +259,9 @@ export async function notifyEvent(userId, event, data = {}, { config = CONFIG } 
 async function dispatch(userId, event, data, config) {
   if (!config || !NOTIFY_EVENTS[event] || !Number.isInteger(Number(userId))) return { skipped: "unconfigured" };
   const { db, emitToUser, fetchImpl, env, appUrl, log } = config;
-  const def = NOTIFY_EVENTS[event];
+  const baseDef = NOTIFY_EVENTS[event];
+  // A186-CAPTCHA (1b): an event may link a deeper page of draft (the held row) — a same-site path only, never a full URL.
+  const def = typeof data.url === "string" && /^\/app\/[A-Za-z0-9/_?=&.-]*$/.test(data.url) ? { ...baseDef, url: data.url } : baseDef;
   const text = eventText(event, data);
   const out = { id: null, push: null, email: null };
   try {
@@ -302,6 +311,10 @@ export function notifyRunJobOutcome(db, runJobId, { config = CONFIG } = {}) {
     if (rj.status === "held_review" || rj.status === "held_gate") {
       const remote = db.prepare(`SELECT 1 FROM apply_remote_runs WHERE run_job_id = ? AND state IN ('queued', 'leased')`).get(rj.id);
       if (remote) return null;
+      // ⭐ A186-CAPTCHA (1b): a check after Submit nobody solved in time — its own nudge, linking the held row.
+      if (rj.status === "held_gate" && rj.reason_code === "captcha_required") {
+        return notifyEvent(rj.user_id, "quick_check", { url: `/app/auto-apply?check=${Number(rj.id)}` }, { config });
+      }
       return notifyEvent(rj.user_id, "needs_you", { ready: rj.reason_code === "awaiting_approval" }, { config });
     }
   } catch (e) { config.log?.warn?.(`[notify] run job ${runJobId}: ${e.message}`); }

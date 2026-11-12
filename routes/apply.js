@@ -50,6 +50,7 @@ import { fullAutoBlocked, HOLD_REASON as FULL_AUTO_PREREQ_HOLD } from "../servic
 import { heldQuestionsOf, heldReasonWords, waitsOnPerson } from "../services/heldQuestions.js";
 import { fullReport, isSlimReport } from "../services/atsReportRead.js";   // A187 Stage 0 (46i)
 import { registerChallenge, liveSessionFor, liveSessionsOf } from "../services/liveChallenge.js";   // A186-CAPTCHA (1)
+import { createChallengeRerun, challengeKindOf, withChallengeLog } from "../services/challengeRerun.js";   // A186-CAPTCHA (1b)
 import { applyAllowed, spendTrialDrafts } from "../services/billing/subscriptions.js";
 import { runSubmitWithRetry, stuckSubmitDecision, backoffSchedule, stuckAfterSec, SUBMIT_MAX_ATTEMPTS, SUBMIT_EVENTS,
   SUBMIT_INTERRUPTED, STUCK_SWEEP_INTERVAL_MS, STUCK_SWEEP_LIMIT } from "../services/submitRetry.js";   // A189 retry + sweeper
@@ -292,7 +293,7 @@ export function coverLetterOnDemand(make) {
 }
 
 export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,
-                                    scoreBaseResumeForApply, { applyOriginFamilies = APPLY_ORIGIN_FAMILIES, draftRunAnswers = null } = {}) {
+                                    scoreBaseResumeForApply, { applyOriginFamilies = APPLY_ORIGIN_FAMILIES, draftRunAnswers = null, challengeAutoApply = null } = {}) {
   // D55 (f) · every payload this module builds — for a run's resolver AND for a packet — carries the
   // work history "have you worked here before?" is answered from: the profile's current_company plus
   // the base résumé's EXPERIENCE companies, the same `entries.work` the packet fills Work Experience
@@ -1660,12 +1661,14 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // it in draft, this run continues. Only for the mode that clicks Submit.
     const onChallenge = applyMode === "full"
       ? async ({ page }) => {
+          const kind = await challengeKindOf(page);   // A186-CAPTCHA (4): counted by kind in Admin
           const live = await registerChallenge({ runJobId, userId, jobId, page,
             log: (m) => console.log(`[live-check] ${m}`) });
           logEvent(runId, runJobId, userId, jobId, live ? "challenge_live" : "challenge_no_live",
             live ? "The employer's site showed a check after Submit — waiting for you to solve it in draft (a few minutes)."
-                 : "The employer's site showed a check after Submit, and no live view could open — finish it in your own browser.");
-          return live;
+                 : "The employer's site showed a check after Submit, and no live view could open — finish it in your own browser.",
+            { kind });
+          return withChallengeLog(live, { kind, log: (ev, d) => logEvent(runId, runJobId, userId, jobId, ev, `The check ended: ${d.outcome}`, d) });
         }
       : null;
     // ⭐ A189 (retry) · THE SUBMIT THAT SURVIVES A BAD MINUTE (services/submitRetry.js). For the mode that clicks Submit only
@@ -5340,7 +5343,73 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   //   GET  /api/apply/live/:runJobId/stream      → text/event-stream: { w, h, jpeg } frames, then { ended } — owner only
   //   POST /api/apply/live/:runJobId/input       { type: click | scroll | key, x, y, dy, key } — owner only
   // ⛔ Pixels out, the person's own clicks in. Nothing here answers a check.
-  app.get("/api/apply/live", requireAuth, (req, res) => res.json({ sessions: liveSessionsOf(req.user.id) }));
+  // ⭐ A186-CAPTCHA (1b) · NO TIME LIMIT: a held check (held_gate / captcha_required) is solvable whenever the person comes
+  // back — Solve it here re-runs it FAST from what the first run made (services/challengeRerun.js): its typed answers (also
+  // the approved set — the drift gate) and its résumé file. ⛔ Handed no generator, no drafter, no cover-letter writer;
+  // no run is started, so no draft is counted. The live session opens when the check comes up — the person is watching.
+  const challengeRerun = createChallengeRerun({
+    db,
+    autoApply: challengeAutoApply || autoApply,
+    htmlToPdf,
+    payloadFor: ({ userId, jobId, job }) => {
+      db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
+      const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
+      return withHowHeard(userId, jobId, buildAutofillPayload(profile, "APPLY", job?.company, jobId));
+    },
+    // The address the first run opened — the same rule processRunJob uses (practice form first, then the hosted embed).
+    jobUrlFor: ({ userId, jobId, job }) => {
+      if (!job) return null;
+      const practiceUrl = practiceSendUrl(db, { userId, jobId: String(jobId), baseUrl: practiceBaseUrl(), secret: practiceSecret() });
+      const storedUrl = job.apply_url || job.url;
+      let hostedUrl = null;
+      try { hostedUrl = storedUrl && detectPlatformFromUrl(storedUrl) === "generic" ? hostedFormUrl(db, job) : null; } catch { hostedUrl = null; }
+      return practiceUrl || attributedUrl(job, hostedUrl || storedUrl);
+    },
+    registerChallenge: (opts) => registerChallenge({ ...opts, log: (m) => console.log(`[live-check] ${m}`) }),
+    submitBlocker: () => (fullAutoDisabled() ? "full_auto_disabled" : null),
+    refuse: (userId) => {
+      const used = submittedLast24h(userId);
+      return used >= APPLY_DAILY_CAP ? { error: "daily_cap_reached", message: `Today's limit of ${APPLY_DAILY_CAP} applications is reached — it stays here for tomorrow.` } : null;
+    },
+    derivedLabelMaps: () => { try { return loadAllConfirmedMappings(db); } catch { return undefined; } },
+    tmpPath: (userId, jobId) => tmpPdfPath("resume_check", userId, jobId),
+    logEvent,
+    onSubmitted: ({ userId, runJobId, jobId, runId, result }) => {
+      const moved = db.prepare(`
+        UPDATE apply_run_jobs SET status='submitted', reason_code=NULL, reason_detail=NULL, submit_verified=?, submit_evidence=?,
+          finished_at=unixepoch()
+        WHERE id=? AND user_id=? AND status='held_gate'
+      `).run(result.submitVerified === true ? 1 : result.submitVerified === false ? 0 : null, result.submitEvidence || null, runJobId, userId).changes;
+      if (!moved) return;
+      try { if (result.screenshotPath) db.prepare(`UPDATE apply_run_jobs SET screenshot_path=? WHERE id=?`).run(result.screenshotPath, runJobId); } catch {}
+      // The person solved the check and pressed Solve it here: their submit.
+      try { db.prepare(`UPDATE apply_run_jobs SET submitted_by='user' WHERE id=?`).run(runJobId); } catch {}
+      try { db.prepare(`UPDATE apply_runs SET submitted_count=submitted_count+1, held_count=MAX(0, held_count-1) WHERE id=?`).run(runId); } catch {}
+      logEvent(runId, runJobId, userId, jobId, "submitted", "Application submitted after you solved the check (Solve it here)");
+      try { recordSubmissionFromPipeline(db, { userId, jobId, runJobId, capturedAtsAtApply }); }
+      catch (e) { console.warn(`[applyRoutes] application record job=${jobId}: ${e.message}`); }
+      try { notifyRunJobOutcome(db, runJobId); } catch {}
+    },
+  });
+
+  // GET /api/apply/live → this person's live sessions, plus (1b) their held checks, the re-runs in progress / just ended,
+  // and the batch queue. Additive: `sessions` is unchanged.
+  app.get("/api/apply/live", requireAuth, (req, res) => {
+    let held = [];
+    try { held = challengeRerun.heldChecks(req.user.id); } catch { held = []; }
+    res.json({ sessions: liveSessionsOf(req.user.id), held, ...challengeRerun.statusOf(req.user.id) });
+  });
+  // POST /api/apply/run-jobs/:runJobId/solve-check → 202 { rerun } | { queued } — re-run one held check from its stored pieces.
+  app.post("/api/apply/run-jobs/:runJobId/solve-check", requireAuth, (req, res) => {
+    const r = challengeRerun.start(req.user.id, req.params.runJobId);
+    res.status(r.status).json(r.body);
+  });
+  // POST /api/apply/solve-checks { runJobIds? , stop? } → (2) the batch queue: the held checks one after another.
+  app.post("/api/apply/solve-checks", requireAuth, (req, res) => {
+    if (req.body?.stop) return res.json({ ok: true, removed: challengeRerun.stop(req.user.id) });
+    const r = challengeRerun.enqueue(req.user.id, Array.isArray(req.body?.runJobIds) ? req.body.runJobIds : null);
+    res.status(r.status).json(r.body);
+  });
   app.get("/api/apply/live/:runJobId/stream", requireAuth, (req, res) => {
     const s = liveSessionFor(req.params.runJobId, req.user.id);
     if (!s) return res.status(404).json({ error: "no_live_check", message: "This check is no longer waiting — the run has moved on." });

@@ -642,6 +642,27 @@ export function FullAutoPrerequisitesSection({ theme }) {
 // The north star (D185): interviews per application and per active user, by the week the applications were sent. Counts
 // only — "6 of 40", never a bare percent (D111). One series (interviews per week, bars on one axis), a hover title on each
 // bar, and the same numbers as a table beneath — the chart is never the only way to read it.
+// ── ⭐ A186-CAPTCHA (4) · the checks applications met after Submit, by kind — GET /api/admin/quick-checks ──────────
+// Seen (a visible check after Submit), solved by the person (live, in draft), timed out, no live view, and how many held
+// checks wait now (no deadline — the person re-runs them with Solve it here). services/challengeRerun.js.
+export function QuickChecksSection({ theme }) {
+  const [s, setS] = useState(null);
+  const [err, setErr] = useState(null);
+  useEffect(() => { api("/api/admin/quick-checks").then(setS).catch(e => setErr(e.message)); }, []);
+  const seen = s ? s.kinds.reduce((n, k) => n + k.seen, 0) : 0;
+  return (
+    <Panel title="Quick checks after Submit" data-admin-quick-checks=""
+      code="A186-CAPTCHA (4): apply_job_logs' challenge_live / challenge_no_live / challenge_outcome events, grouped by the check's kind (from the frames' addresses only). The person solves every check — draft never does."
+      purpose="How often applications meet a CAPTCHA after Submit, which kind, and how many the person finished. A rising 'timed out' means people aren't there when it comes up."
+      numbers={s ? [[seen, `checks in the last ${s.days} days`], [s.waiting, "held now, waiting for the person", s.waiting > 0]] : []}>
+      <Err msg={err}/>
+      {s && <Table theme={theme} rows={s.kinds} empty="No checks recorded."
+        cols={[{ key: "kind", label: "Kind" }, { key: "seen", label: "Seen", right: true }, { key: "solved", label: "Solved", right: true },
+          { key: "timedOut", label: "Timed out", right: true }, { key: "noLive", label: "No live view", right: true }, { key: "reruns", label: "Re-runs", right: true }]} />}
+    </Panel>
+  );
+}
+
 function OutcomeBars({ theme, weeks }) {
   const W = 560, H = 120, pad = 18, n = weeks.length || 1;
   const max = Math.max(1, ...weeks.map(w => w.all.interviews));

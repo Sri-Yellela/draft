@@ -110,7 +110,10 @@ export function buildNodes({
     const st = ladderStatus({ runJobStatus: "held_gate" }).status;
     put({ key: `gated-${j.id}`, kind: "gated", jobId: j.jobId ?? null, company: companyLabel(j.company), title: s(j.title),
       status: st, ring: ringFor(st), at: ms(j.createdAt), ref: j,
-      say: "The company's site wants you signed in." });
+      // ⭐ A186-CAPTCHA (1b): a check after Submit is not a sign-in — and it waits with no deadline.
+      say: j.reasonCode === "captcha_required"
+        ? "Filled and sent to Submit — the site asked for a quick check. Solve it here whenever you're back."
+        : "The company's site wants you signed in." });
   }
   for (const j of inFlight) {
     const st = ladderStatus({ runJobStatus: j.status === "queued" ? "queued" : "running" }).status;
