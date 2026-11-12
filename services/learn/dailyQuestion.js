@@ -20,6 +20,7 @@ import { learnStepInfo, learnStepPath } from "./learnLinks.js";
 import { forgivingStreak } from "./practiceProgress.js";
 import { approvedDecks } from "./learnDecks.js";
 import { atlasStreak } from "../atlas/points.js";   // A155: the ONE streak
+import { fullReport } from "../atsReportRead.js";   // A187 Stage 0 (46i)
 const oneStreak = (db, userId) => { try { return atlasStreak(db, userId); } catch { return null; } };
 
 export const REVIEW_DAYS = Object.freeze([1, 3, 7, 21]);
@@ -52,12 +53,12 @@ export const ATS_JOBS_READ = 50;
 export function atsMissingTerms(db, userId) {
   const count = new Map();
   try {
-    const rows = db.prepare(`SELECT r.ats_report FROM ats_only_reports r
+    const rows = db.prepare(`SELECT r.ats_report, r.domain_profile_id, r.job_id FROM ats_only_reports r
         JOIN (SELECT job_id, MAX(updated_at) AS at FROM user_jobs WHERE user_id = ? AND (starred = 1 OR applied = 1) GROUP BY job_id
               ORDER BY at DESC LIMIT ?) j ON j.job_id = r.job_id
       WHERE r.user_id = ?`).all(userId, ATS_JOBS_READ, userId);
     for (const r of rows) {
-      let rep = null; try { rep = JSON.parse(r.ats_report); } catch { rep = null; }
+      let rep = null; try { rep = fullReport(r.ats_report, { userId, profileId: r.domain_profile_id, jobId: r.job_id }); } catch { rep = null; }   // A187
       for (const t of new Set((rep?.tier1_missing || []).map(skillWords).filter(Boolean))) count.set(t, (count.get(t) || 0) + 1);
     }
   } catch { return []; }

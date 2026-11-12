@@ -529,7 +529,7 @@ test("⛔ ZERO MODEL CALLS: nothing on the precompute's import graph can reach a
 test("the precompute is wired to the SAME basis builder and scorer call the ATS panel uses", () => {
   // Shape 1. If the board's order and the report a user opens came from two copies of the scoring
   // call, they could disagree — a card sorted as Strong whose report reads Weak.
-  assert.match(SERVER, /createBoardFitPrecompute\(\{\s*db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: storeAtsReportForProfile,/);
+  assert.match(SERVER, /createBoardFitPrecompute\(\{\s*db, basisFor: atsBasisForProfile, scoreJob: scoreJobForBasis, store: \(a\) => storeAtsReportForProfile\(\{ \.\.\.a, slim: true \}\),/);   // A187 (46i): the same writer, slim when ATS_STORE_SLIM=on
   const panel = SERVER.slice(at(SERVER, 'app.post("/api/jobs/:id/keywords"'), at(SERVER, 'app.get("/api/jobs/by-id/:jobId"'));
   assert.match(panel, /atsBasisForProfile\(userId, keywordsProfile, \{ resumeText \}\)/);
   assert.match(panel, /scoreJobForBasis\(job, runtimeBasis\)/);
