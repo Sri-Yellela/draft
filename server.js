@@ -260,6 +260,7 @@ import { profileTitleSql, parseProfileArray } from "./services/profileTitleFilte
 import { resolveSponsorshipNeed } from "./services/applyAutomation.js";
 import { readAnswerStore, effectiveCustomAnswers } from "./services/customAnswers.js";
 import { hashPassword, verifyPassword, validatePassword } from "./services/authSecurity.js";
+import { verifyPasswordOffThread } from "./services/passwordCheck.js";   // A190
 import { createPasswordReset, consumePasswordReset, findUserForPasswordReset } from "./services/passwordResetService.js";
 import { sendPasswordResetEmail, sendVerificationCodeEmail, emailConfigured, sendEmail } from "./services/emailService.js";
 import { EncryptedSessionStore } from "./services/encryptedSessionStore.js";
@@ -9280,7 +9281,9 @@ function buildAutofillPayloadFromProfile(profile, mode, company = null) {
 // from COOKIE_ENCRYPTION_KEY. Plain rows written before this still read, and are resealed on write.
 const SStore = new EncryptedSessionStore(new SqliteSessionStore({ db:"sessions.db", dir:DATA_DIR }), SECRET_KEY);
 
-passport.use(new LocalStrategy((username, password, done) => {
+// ⛔ A190 (46i): the password check runs OFF the main thread (services/passwordCheck.js) - ~55 ms of bcryptjs a check froze
+// every page for everyone during a burst of sign-ins. The strategy answers through `done` once the worker replies.
+async function localSignInVerify(username, password, done) {
   const login = String(username || "").trim();
   const user = db.prepare(`
     SELECT u.*
@@ -9290,7 +9293,7 @@ passport.use(new LocalStrategy((username, password, done) => {
        OR LOWER(up.email) = LOWER(?)
     LIMIT 1
   `).get(login, login);
-  const passwordOk = user ? verifyPassword(password, user.password_hash) : false;
+  const passwordOk = user ? await verifyPasswordOffThread(password, user.password_hash) : false;
   if (!user || !passwordOk) {
     // TEMPORARY DIAGNOSTIC: remove after production login is confirmed stable.
     console.warn("[auth-login-debug] local login rejected", {
@@ -9313,7 +9316,9 @@ passport.use(new LocalStrategy((username, password, done) => {
     planTier:normalisePlanTier(user.plan_tier),
     domainProfileComplete:!!user.domain_profile_complete,
   });
-}));
+}
+// A190: a throw after the await reaches passport as an error (as a synchronous throw did), never an unhandled rejection.
+passport.use(new LocalStrategy((username, password, done) => { localSignInVerify(username, password, done).catch(done); }));
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser((id, done) => {
   try {

@@ -265,7 +265,7 @@ test("⛔ D95: the admin sign-in gives ONE answer for unknown, disabled, unset a
   assert.deepEqual(wrong, [401, { error: "Invalid credentials." }]);
   // the USER sign-in: an admin's email is not in users at all, and the legacy row under the switch answers like a wrong password
   const server = read("server.js");
-  const strategy = server.slice(at(server, "passport.use(new LocalStrategy"), at(server, "passport.serializeUser"));
+  const strategy = server.slice(at(server, "async function localSignInVerify("), at(server, "passport.serializeUser"));
   assert.match(strategy, /return done\(null, false, \{ message:"Invalid credentials\." \}\);\n\s*\}/, "the wrong-password answer");
   assert.match(strategy, /if \(user\.is_admin && adminEnforced\(\)\) return done\(null, false, \{ message:"Invalid credentials\." \}\);/, "the same words for the admin row");
   assert.equal(verifyAdminSignIn(d, "AVERY@example.com", "x"), null, "a person's email is no admin");
