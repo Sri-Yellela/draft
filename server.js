@@ -14904,7 +14904,10 @@ app.post("/api/jobs/:id/keywords", requireAuth, async (req, res) => {
     });
     // ⭐ A183 (46f): a stored score can move this person's board and its counts — drop both now (D156 (6)); the read-only
     // answer above (a kept report) leaves them, which is why the write-clearing middleware skips this route.
-    facetsCache.clearUser(userId); boardOrderCache.clearUser(userId); boardDimFacetsCache.clearUser(userId);
+    // ⭐ A195 (46j): the COUNTS are marked stale, not dropped — one posting leaving "unscored" is not worth a full recount
+    // on the next request (staging 100k × 20: facets p95 ≈ 600 ms, all of it these recounts); the next ask answers the kept
+    // counts at once and recounts behind it. The board ORDER is still dropped (its key moves with the scores).
+    facetsCache.markStale(userId); boardOrderCache.clearUser(userId); boardDimFacetsCache.markStale(userId);
 
     res.json(result);
   } catch (e) {

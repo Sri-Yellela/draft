@@ -23,7 +23,8 @@ test("a183: the write-clearing middleware skips only the keywords panel's POST, 
 
 test("a183: the keywords route clears both caches right after it STORES a report — and not on the kept-report answer", () => {
   const route = SRC.slice(at(SRC, 'app.post("/api/jobs/:id/keywords"'), at(SRC, "// ── Pending jobs (resume generated but not yet applied or disliked) ──"));
-  const kept = at(route, "if (cached?.ats_report) {"), store = at(route, "storeAtsReportForProfile({"), clear = at(route, "facetsCache.clearUser(userId); boardOrderCache.clearUser(userId);");
+  // A195 (46j, changed on purpose): the counts are MARKED STALE after a store (served at once, recounted behind); the order is dropped.
+  const kept = at(route, "if (cached?.ats_report) {"), store = at(route, "storeAtsReportForProfile({"), clear = at(route, "facetsCache.markStale(userId); boardOrderCache.clearUser(userId); boardDimFacetsCache.markStale(userId);");
   assert.ok(kept < store && store < clear, "the kept answer returns before any clear; the clear follows the store");
-  assert.doesNotMatch(route.slice(kept, store), /clearUser/, "the read-only answer drops nothing");
+  assert.doesNotMatch(route.slice(kept, store), /clearUser|markStale/, "the read-only answer drops nothing");
 });
