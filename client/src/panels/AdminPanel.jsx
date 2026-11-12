@@ -15,6 +15,7 @@ import { EnrichmentTab } from "./adminEnrichment.jsx";
 import { EmailHealthTab } from "./adminEmail.jsx";
 import { ModelUsageTab } from "./adminUsage.jsx";
 import { ModelGatewaySection } from "./adminGateway.jsx";   // ⭐ D162 G4 (46f): the gateway's card
+import { FlagsSection } from "./adminFlags.jsx";   // ⭐ A187 Stage 0 (46i): runtime flags
 import { AdminsTab } from "./adminAdmins.jsx";
 import { AtlasTab, AtlasBacklogSection, AtlasCompeteSection } from "./adminAtlas.jsx";
 import { TesterDetails } from "./adminTesterDetails.jsx";
@@ -770,7 +771,7 @@ export function AdminPanel() {
       {/* System — is it set up right? */}
       {at("system", "switches") && <><KillSwitchSection theme={theme}/><FullAutoPrerequisitesSection theme={theme}/><TailoringAdminSection theme={theme}/><PluginTab theme={theme}/></>}
       {at("system", "tools") && <ToolsServiceSection theme={theme}/>}
-      {at("system", "usage") && <><ModelUsageTab/><ModelGatewaySection/></>}
+      {at("system", "usage") && <><ModelUsageTab/><ModelGatewaySection/><FlagsSection/></>}
 
           <AnimatePresence mode="wait">
             {at("people", "users") && (

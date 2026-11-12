@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { fullReport, isSlimReport, setSlimReportExpander, slimOf, slimStoreEnabled } from "../services/atsReportRead.js";
+import { fullReport, isSlimReport, setSlimReportExpander, slimOf } from "../services/atsReportRead.js";
 
 // ⭐ A187 Stage 0 (46i) · SCORE-ONLY STORAGE. With ATS_STORE_SLIM=on the board's bulk scoring stores { slim, score, source,
 // scorable }; every reader of a stored report goes through fullReport, which re-scores a slim row once (server.js
@@ -40,20 +40,11 @@ test("a187: a slim row that cannot be expanded comes back slim (detail absent), 
   finally { setSlimReportExpander(null); }
 });
 
-test("a187: the switch is OFF unless ATS_STORE_SLIM=on", () => {
-  const was = process.env.ATS_STORE_SLIM;
-  try {
-    delete process.env.ATS_STORE_SLIM; assert.equal(slimStoreEnabled(), false);
-    process.env.ATS_STORE_SLIM = "on"; assert.equal(slimStoreEnabled(), true);
-    process.env.ATS_STORE_SLIM = "1"; assert.equal(slimStoreEnabled(), false);
-  } finally { if (was === undefined) delete process.env.ATS_STORE_SLIM; else process.env.ATS_STORE_SLIM = was; }
-});
-
 test("a187: wiring — only the bulk writer goes slim; every reader of a stored report goes through fullReport", () => {
   const src = (p) => fs.readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
   const server = src("server.js");
   assert.match(server, /JSON\.stringify\(args\.slim \? slimOf\(args\.report\) : args\.report\)/);
-  assert.match(server, /slim: !!slim && slimStoreEnabled\(\)/);
+  assert.match(server, /slim: !!slim && flagOn\(db, "ats_store_slim"\)/, "the flag decides (services/flags.js)");
   assert.match(server, /store: \(a\) => storeAtsReportForProfile\(\{ \.\.\.a, slim: true \}\)/, "the board-fit precompute");
   assert.equal((server.match(/slim: true/g) || []).length, 1, "nothing else writes slim");
   assert.match(server, /if \(parsed\?\.source === LOCAL_ATS_SOURCE && !isSlimReport\(parsed\)\) return res\.json\(parsed\);/, "the keywords panel");
