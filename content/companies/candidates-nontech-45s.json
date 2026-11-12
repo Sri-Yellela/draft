@@ -1796,6 +1796,210 @@
     "medianAge": 13,
     "probedAt": "2026-11-11T16:27:06.751Z"
    }
+  },
+  {
+   "company": "Nationwide",
+   "atsType": "workday",
+   "slug": "1|nationwide|Nationwide_Career",
+   "industry": "insurance",
+   "via": "j1",
+   "evidence": {
+    "fetched": 165,
+    "us": 135,
+    "fresh": 135,
+    "inScope": 75,
+    "cs30": 75,
+    "usPct": 82,
+    "medianAge": 0,
+    "probedAt": "2026-11-12T00:43:41.101Z"
+   }
+  },
+  {
+   "company": "Chubb",
+   "atsType": "oracle",
+   "slug": "fa-ewgu-saasfaprod1.fa.ocs.oraclecloud.com|CX_2001",
+   "industry": "insurance",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 119,
+    "inScope": 44,
+    "cs30": 21,
+    "usPct": 100,
+    "medianAge": 42,
+    "probedAt": "2026-11-12T00:44:35.929Z"
+   }
+  },
+  {
+   "company": "Unum",
+   "atsType": "workday",
+   "slug": "1|unum|External",
+   "industry": "insurance",
+   "via": "j1",
+   "evidence": {
+    "fetched": 74,
+    "us": 22,
+    "fresh": 22,
+    "inScope": 3,
+    "cs30": 3,
+    "usPct": 30,
+    "medianAge": 4,
+    "probedAt": "2026-11-12T00:47:33.551Z"
+   }
+  },
+  {
+   "company": "iHeartMedia",
+   "atsType": "workday",
+   "slug": "5|iheartmedia|External_iHM",
+   "industry": "media",
+   "via": "j1",
+   "evidence": {
+    "fetched": 295,
+    "us": 268,
+    "fresh": 268,
+    "inScope": 130,
+    "cs30": 130,
+    "usPct": 91,
+    "medianAge": 29,
+    "probedAt": "2026-11-12T00:48:23.349Z"
+   }
+  },
+  {
+   "company": "The New York Times",
+   "atsType": "greenhouse",
+   "slug": "thenewyorktimes",
+   "industry": "media",
+   "via": "j1",
+   "evidence": {
+    "fetched": 173,
+    "us": 168,
+    "fresh": 146,
+    "inScope": 54,
+    "cs30": 34,
+    "usPct": 97,
+    "medianAge": 19,
+    "probedAt": "2026-11-12T00:48:40.585Z"
+   }
+  },
+  {
+   "company": "JLL",
+   "atsType": "workday",
+   "slug": "1|jll|jllcareers",
+   "industry": "real estate",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 129,
+    "fresh": 129,
+    "inScope": 33,
+    "cs30": 33,
+    "usPct": 43,
+    "medianAge": 0,
+    "probedAt": "2026-11-12T00:49:34.285Z"
+   }
+  },
+  {
+   "company": "Sherwin-Williams",
+   "atsType": "oracle",
+   "slug": "ejhp.fa.us6.oraclecloud.com|CX_2",
+   "industry": "chemicals",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 150,
+    "inScope": 5,
+    "cs30": 5,
+    "usPct": 100,
+    "medianAge": 2,
+    "probedAt": "2026-11-12T00:51:30.123Z"
+   }
+  },
+  {
+   "company": "International Paper",
+   "atsType": "oracle",
+   "slug": "iazbqy.fa.ocs.oraclecloud.com|CX_1",
+   "industry": "manufacturing",
+   "via": "j1",
+   "evidence": {
+    "fetched": 150,
+    "us": 150,
+    "fresh": 150,
+    "inScope": 17,
+    "cs30": 17,
+    "usPct": 100,
+    "medianAge": 6,
+    "probedAt": "2026-11-12T00:53:04.249Z"
+   }
+  },
+  {
+   "company": "Tyson Foods",
+   "atsType": "workday",
+   "slug": "5|tysonfoods|TSN",
+   "industry": "food",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 296,
+    "fresh": 296,
+    "inScope": 9,
+    "cs30": 9,
+    "usPct": 99,
+    "medianAge": 1,
+    "probedAt": "2026-11-12T00:54:01.461Z"
+   }
+  },
+  {
+   "company": "J.M. Smucker",
+   "atsType": "workday",
+   "slug": "5|smucker|US_External_Careers",
+   "industry": "food",
+   "via": "j1",
+   "evidence": {
+    "fetched": 113,
+    "us": 99,
+    "fresh": 99,
+    "inScope": 10,
+    "cs30": 10,
+    "usPct": 88,
+    "medianAge": 18,
+    "probedAt": "2026-11-12T00:54:54.838Z"
+   }
+  },
+  {
+   "company": "Peraton",
+   "atsType": "icims",
+   "slug": "careers-peraton",
+   "industry": "government services",
+   "via": "j1",
+   "evidence": {
+    "fetched": 148,
+    "us": 122,
+    "fresh": 120,
+    "inScope": 74,
+    "cs30": 65,
+    "usPct": 82,
+    "medianAge": 2,
+    "probedAt": "2026-11-12T00:58:40.503Z"
+   }
+  },
+  {
+   "company": "M&T Bank",
+   "atsType": "workday",
+   "slug": "5|mtb|MTB",
+   "industry": "finance",
+   "via": "j1",
+   "evidence": {
+    "fetched": 300,
+    "us": 290,
+    "fresh": 290,
+    "inScope": 63,
+    "cs30": 63,
+    "usPct": 97,
+    "medianAge": 8,
+    "probedAt": "2026-11-12T00:59:27.388Z"
+   }
   }
  ],
  "dropped": [
@@ -1986,6 +2190,58 @@
     "https://performancemanager4.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery-migrate.js",
     "https://rmkcdn.successfactors.com/4dcf7274/02d513ba-0e47-4f05-824d-2.css",
     "https://rmkcdn.successfactors.com/4dcf7274/1894a80f-7c85-490f-9210-7.png"
+   ]
+  },
+  {
+   "company": "Hershey",
+   "industry": "food",
+   "vendors": [
+    "successfactors"
+   ],
+   "hosts": [
+    "performancemanager4.successfactors.com",
+    "rmkcdn.successfactors.com",
+    "career4.successfactors.com",
+    "dmscdn.successfactors.com"
+   ],
+   "urls": [
+    "https://performancemanager4.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery.js",
+    "https://performancemanager4.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery-migrate.js",
+    "https://rmkcdn.successfactors.com/3e5f9a5a/9e034697-4c7d-4915-83f5-3.css",
+    "https://rmkcdn.successfactors.com/3e5f9a5a/e73df006-f735-4df3-a571-8.png",
+    "https://career4.successfactors.com/career"
+   ]
+  },
+  {
+   "company": "McCormick",
+   "industry": "food",
+   "vendors": [
+    "successfactors"
+   ],
+   "hosts": [
+    "performancemanager4.successfactors.com",
+    "rmkcdn.successfactors.com",
+    "career4.successfactors.com"
+   ],
+   "urls": [
+    "https://performancemanager4.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery.js",
+    "https://performancemanager4.successfactors.com/verp/vmod_v1/ui/extlib/jquery_3.5.1/jquery-migrate.js",
+    "https://rmkcdn.successfactors.com/5c76e050/342e18a5-d4df-49f3-8bce-e.css",
+    "https://rmkcdn.successfactors.com/5c76e050/6d9d38e9-b875-48c9-a2d2-4.jpg",
+    "https://career4.successfactors.com/career"
+   ]
+  },
+  {
+   "company": "Dollar General",
+   "industry": "retail",
+   "vendors": [],
+   "hosts": [
+    "ibxwjb.fa.ocs.oraclecloud.com"
+   ],
+   "urls": [
+    "https://ibxwjb.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/my-profile/sign-in",
+    "https://ibxwjb.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/jobs",
+    "https://ibxwjb.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs"
    ]
   }
  ],
@@ -2212,6 +2468,63 @@
   "Waste Management": "oracle:emcm.fa.us2.oraclecloud.com|CX",
   "Ryder": "workday:5|ryder|RyderCareers",
   "Southwest Airlines": "none",
-  "Amtrak": "unsupported successfactors (performancemanager4.successfactors.com,rmkcdn.successfactors.com)"
+  "Amtrak": "unsupported successfactors (performancemanager4.successfactors.com,rmkcdn.successfactors.com)",
+  "Nationwide": "workday:1|nationwide|Nationwide_Career",
+  "Chubb": "oracle:fa-ewgu-saasfaprod1.fa.ocs.oraclecloud.com|CX_2001",
+  "USAA": "error",
+  "Principal Financial Group": "none",
+  "Lincoln Financial": "blocked",
+  "Unum": "workday:1|unum|External",
+  "Erie Insurance": "none",
+  "Paramount": "none",
+  "Warner Bros. Discovery": "none",
+  "Fox Corporation": "none",
+  "iHeartMedia": "workday:5|iheartmedia|External_iHM",
+  "The New York Times": "greenhouse:thenewyorktimes",
+  "Nielsen": "error",
+  "The Walt Disney Company": "none",
+  "SiriusXM": "pairs icims:uscareers-siriusxmradio,icims:international-siriusxmradio,icims:employees-siriusxmradio (not live / thin)",
+  "CBRE": "none",
+  "JLL": "workday:1|jll|jllcareers",
+  "Cushman & Wakefield": "none",
+  "Prologis": "blocked",
+  "Simon Property Group": "blocked",
+  "Equity Residential": "none",
+  "Dow": "none",
+  "DuPont": "none",
+  "PPG": "none",
+  "Sherwin-Williams": "oracle:ejhp.fa.us6.oraclecloud.com|CX_2",
+  "Corning": "none",
+  "Eastman Chemical": "none",
+  "Air Products": "none",
+  "Linde": "none",
+  "Ecolab": "none",
+  "International Paper": "oracle:iazbqy.fa.ocs.oraclecloud.com|CX_1",
+  "Cargill": "none",
+  "ADM": "error",
+  "Tyson Foods": "workday:5|tysonfoods|TSN",
+  "Mondelez International": "error",
+  "Kellanova": "none",
+  "Hershey": "unsupported successfactors (performancemanager4.successfactors.com,rmkcdn.successfactors.com,career4.successfactors.com,dmscdn.successfactors.com)",
+  "Conagra Brands": "none",
+  "Campbell's": "none",
+  "McCormick": "unsupported successfactors (performancemanager4.successfactors.com,rmkcdn.successfactors.com,career4.successfactors.com)",
+  "J.M. Smucker": "workday:5|smucker|US_External_Careers",
+  "Macy's": "blocked",
+  "Dollar General": "pairs oracle:ibxwjb.fa.ocs.oraclecloud.com|CX_1,oracle:ibxwjb.fa.ocs.oraclecloud.com|CX_1001 (not live / thin)",
+  "Kohl's": "none",
+  "Gap Inc.": "error",
+  "Ulta Beauty": "pairs icims:fdcnmcareers-ulta,icims:ulta (not live / thin)",
+  "Nordstrom": "none",
+  "Peraton": "icims:careers-peraton",
+  "KBR": "none",
+  "Citizens Financial Group": "none",
+  "KeyCorp": "none",
+  "Fifth Third": "none",
+  "Regions Financial": "none",
+  "M&T Bank": "workday:5|mtb|MTB",
+  "Ally Financial": "none",
+  "Synchrony": "error",
+  "Walgreens": "none"
  }
 }
