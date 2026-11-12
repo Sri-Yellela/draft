@@ -462,8 +462,12 @@ test("D36·3 · a held or failed attempt never blocks the next Draft, and only a
     assert.equal(t.db.prepare("SELECT COUNT(*) FROM application_records WHERE NOT (state = 'pending' AND origin = 'drafted')").pluck().get(), 0);
     // The one writer, and the one condition under which it runs.
     const src = read("routes/apply.js");
-    assert.equal((src.match(/recordSubmissionFromPipeline\(db,/g) || []).length, 1);
+    // 46j: + A186-CAPTCHA (1b)'s Solve it here re-run — the second writer, and it too runs only on a SUBMITTED result:
+    // after the row moved held_gate → submitted (autoApply's status 'submitted'), never otherwise.
+    assert.equal((src.match(/recordSubmissionFromPipeline\(db,/g) || []).length, 2);
     assert.match(src, /if \(submitted\) \{\n\s*logEvent\(runId, runJobId, userId, jobId, "submitted"[\s\S]{0,900}?recordSubmissionFromPipeline\(db,/);
+    assert.match(src, /onSubmitted: \(\{ userId, runJobId, jobId, runId, result \}\) => \{\n\s*const moved = db\.prepare\(`\n\s*UPDATE apply_run_jobs SET status='submitted'[\s\S]{0,400}?WHERE id=\? AND user_id=\? AND status='held_gate'[\s\S]{0,200}?if \(!moved\) return;[\s\S]{0,900}?recordSubmissionFromPipeline\(db,/);
+    assert.match(read("services/challengeRerun.js"), /if \(result\?\.status === "submitted"\) \{[\s\S]{0,200}?onSubmitted\(/);
   } finally { t.stop(); }
 });
 

@@ -119,13 +119,13 @@ export function challengeKindCounts(db, { days = 30, nowSec = Math.floor(Date.no
   const at = (k) => { if (!kinds.has(k)) kinds.set(k, { kind: k, seen: 0, solved: 0, timedOut: 0, noLive: 0, reruns: 0 }); return kinds.get(k); };
   const rows = db.prepare(`
     SELECT event, details_json FROM apply_job_logs
-    WHERE created_at >= ? AND event IN ('challenge_live', 'challenge_no_live', 'challenge_outcome', 'challenge_rerun_started')
+    WHERE created_at >= ? AND event IN ('challenge_live', 'challenge_no_live', 'challenge_outcome')
   `).all(since);
   for (const r of rows) {
     const d = parse(r.details_json, {}) || {};
     const k = typeof d.kind === "string" && d.kind ? d.kind : "other";
-    if (r.event === "challenge_rerun_started") { at(d.kind || "unknown").reruns++; continue; }
     const c = at(k);
+    if (r.event !== "challenge_outcome" && d.rerun) c.reruns++;   // met again by a Solve it here re-run
     if (r.event === "challenge_live") c.seen++;
     else if (r.event === "challenge_no_live") { c.seen++; c.noLive++; }
     else if (d.outcome === "submitted") c.solved++;

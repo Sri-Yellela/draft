@@ -241,11 +241,12 @@ test("a186 (4): Admin counts the checks by kind; draftedFromAnswers keeps only t
   ins.run("challenge_live", JSON.stringify({ kind: "recaptcha" }));
   ins.run("challenge_live", JSON.stringify({ kind: "recaptcha" }));
   ins.run("challenge_no_live", JSON.stringify({ kind: "hcaptcha" }));
+  ins.run("challenge_live", JSON.stringify({ kind: "recaptcha", rerun: true }));   // met again by Solve it here
   ins.run("challenge_outcome", JSON.stringify({ kind: "recaptcha", outcome: "submitted" }));
   ins.run("challenge_outcome", JSON.stringify({ kind: "recaptcha", outcome: "timeout" }));
   const c = challengeKindCounts(db);
   assert.equal(c.waiting, 1);
-  assert.deepEqual(c.kinds.find(k => k.kind === "recaptcha"), { kind: "recaptcha", seen: 2, solved: 1, timedOut: 1, noLive: 0, reruns: 0 });
+  assert.deepEqual(c.kinds.find(k => k.kind === "recaptcha"), { kind: "recaptcha", seen: 3, solved: 1, timedOut: 1, noLive: 0, reruns: 1 });
   assert.deepEqual(c.kinds.find(k => k.kind === "hcaptcha"), { kind: "hcaptcha", seen: 1, solved: 0, timedOut: 0, noLive: 1, reruns: 0 });
   assert.match(read("server.js"), /app\.get\("\/api\/admin\/quick-checks", requireAdmin/);
   assert.match(read("client/src/panels/AdminPanel.jsx"), /<QuickChecksSection theme=\{theme\}\/>/);
