@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { at } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 import http from "node:http";
 import express from "express";
@@ -197,7 +198,7 @@ test("a186HeldRowOffersSolveItHere: the held row says what happened, offers Solv
   assert.match(login.say, /signed in/);
   // the panel's held row: Solve it here for a check, one way to start it (LiveCheck owns the POST)
   const panel = read("client/src/panels/AutoApplyPanel.jsx");
-  const gated = panel.slice(panel.indexOf('case "gated": {'), panel.indexOf('case "inflight":'));
+  const gated = panel.slice(at(panel, 'case "gated": {'), at(panel, 'case "inflight":'));
   assert.match(gated, /solvableHere\(r\)[\s\S]*label: "Solve it here", kind: "primary"[\s\S]*draft:solve-check/);
   assert.equal(solvableHere({ status: "held_gate", reasonCode: "captcha_required" }), true);
   assert.equal(solvableHere({ status: "held_gate", reasonCode: "login_required" }), false);
@@ -209,7 +210,7 @@ test("a186HeldRowOffersSolveItHere: the held row says what happened, offers Solv
   assert.match(live, /\/api\/apply\/run-jobs\/\$\{encodeURIComponent\(runJobId\)\}\/solve-check/);
   assert.match(live, /\/api\/apply\/solve-checks/, "the batch queue");
   assert.match(live, /get\("check"\)/, "the nudge's link points at its row");
-  assert.doesNotMatch(live.slice(live.indexOf("export default function LiveCheck")), /expires in|hurry|before it's gone/i, "no deadline on a held check");
+  assert.doesNotMatch(live.slice(at(live, "export default function LiveCheck")), /expires in|hurry|before it's gone/i, "no deadline on a held check");
   // the nudge: push / email "An application needs a quick check", linking the held row
   assert.equal(eventText("quick_check").body, "An application needs a quick check.");
   assert.deepEqual(NOTIFY_EVENTS.quick_check.defaults, { push: true, email: true });

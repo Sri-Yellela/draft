@@ -32,6 +32,9 @@ export const CLASSIFY_WRITE_CHUNK = 50;
 // A132 · the page read's budget on the loop, and the smallest page the walk shrinks to (see createClassifyBacklog's step).
 export const READ_BUDGET_MS = 200;
 export const MIN_PAGE_ROWS = 50;
+// A193 · the last finished walk (its finishedAt + coverage), and how recent it must be for a boot to skip a new one.
+export const LAST_WALK_KEY = "classify_backlog_last_walk";
+export const BOOT_SKIP_WITHIN_MS = 6 * 60 * 60 * 1000;
 
 const PAGE_SQL = `
   SELECT sj.job_id, sj.title, sj.company, sj.board_category, sj.tag_function, sj.tag_owner_json,
@@ -129,8 +132,37 @@ export function createClassifyBacklog(db, { pageRows = CLASSIFY_PAGE_ROWS, write
     functionOfShown: status.shown ? Math.round(1000 * status.withFunction / status.shown) / 10 : null,
   });
 
-  function run(trigger = "manual") {
+  // ⛔ A193 (46j, production d8a5b7cd 11-12): the BOOT walk re-read all 82,936 rows on a cold volume for 46 s
+  // (maxReadMs 1,804, categorised 0, functioned 0) right after ready — every request in the first ~12 s after
+  // Railway routed traffic waited behind it (PetalBot 4,037 ms). A finished walk is remembered (app_settings
+  // LAST_WALK_KEY, with its coverage); a boot within `skipWithinMs` of it skips the walk — ingest classifies new
+  // rows and the 6-hourly interval walk catches the rest. Only "boot" passes skipWithinMs.
+  function lastWalk() {
+    try {
+      const v = db.prepare("SELECT value FROM app_settings WHERE key = ?").get(LAST_WALK_KEY)?.value;
+      return v ? JSON.parse(v) : null;
+    } catch { return null; }
+  }
+  function remember() {
+    try {
+      const { finishedAt, active, shown, held, withFunction, unknownByCategory } = status;
+      db.prepare("INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, unixepoch()) "
+        + "ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
+        .run(LAST_WALK_KEY, JSON.stringify({ finishedAt, active, shown, held, withFunction, unknownByCategory }));
+    } catch (e) { log.warn?.("[classify] could not remember the walk:", e.message); }
+  }
+
+  function run(trigger = "manual", { skipWithinMs = 0, now = Date.now() } = {}) {
     if (running) return running;
+    if (skipWithinMs > 0) {
+      const last = lastWalk();
+      const at = last?.finishedAt ? Date.parse(last.finishedAt) : NaN;
+      if (Number.isFinite(at) && now - at >= 0 && now - at < skipWithinMs) {
+        status = { ...status, ...emptyCounts(), ...last, state: "skipped", trigger, skipReason: `a walk finished ${Math.round((now - at) / 60000)} min ago` };
+        log.log?.(`[classify] (${trigger}) backlog walk skipped — ${status.skipReason} (A193)`);
+        return Promise.resolve(self.status());
+      }
+    }
     status = { ...status, state: "running", trigger, runs: status.runs + 1, pages: 0, ...emptyCounts(),
                startedAt: new Date().toISOString(), finishedAt: null, error: null, lastPageMs: 0, maxPageMs: 0, maxWriteMs: 0, maxReadMs: 0, pageRows };
     running = new Promise((resolve) => {
@@ -138,6 +170,7 @@ export function createClassifyBacklog(db, { pageRows = CLASSIFY_PAGE_ROWS, write
       const finish = (error) => {
         status = { ...status, state: error ? "failed" : "done", finishedAt: new Date().toISOString(), error: error ? error.message : null };
         running = null;
+        if (!error) remember();
         if (error) log.error?.(`[classify] backlog walk failed at rowid ${from} (the next boot resumes; nothing half-written):`, error.message);
         else if (status.categorised || status.functioned) {
           log.log?.(`[classify] (${trigger}) backlog: ${status.categorised} categorised, ${status.functioned} given a kind of work; `

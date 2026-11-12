@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { at } from "../test-support/sourceAnchors.js";
 import fs from "node:fs";
 import http from "node:http";
 import {
@@ -116,7 +117,7 @@ test("a189SubmitRetryBackoff: wiring — the route wraps only the mode that clic
   assert.ok(shadow > 0, "processRunJob shadows autoApply with the retry for applyMode 'full' only");
   const launch = src.indexOf("await autoApply(jobUrl, autofillPayload", shadow);
   assert.ok(launch > shadow, "the launch sites come after (and so use) the retrying autoApply");
-  const body = src.slice(shadow, src.indexOf("// What the human approved", shadow));
+  const body = src.slice(shadow, at(src, "// What the human approved", shadow));
   for (const piece of ["SUBMIT_EVENTS.pressed", "SUBMIT_EVENTS.attempt", "SUBMIT_EVENTS.retry", "isAbortRequested(jobId)",
     "fullAutoDisabled()", "userHeld(db, userId)", "status='submitted' AND id != ?"]) assert.ok(body.includes(piece), piece);
   const engine = fs.readFileSync("services/applyAutomation.js", "utf8").replace(/\r\n/g, "\n");

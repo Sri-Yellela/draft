@@ -168,14 +168,15 @@ test("d153 the job and the tagger agree: postingFunction is jobTags' rule", () =
 
 test("d153 wiring: started from READY in the listen callback, every 6 h, reported in /api/version; no whole-board warm-up step", () => {
   const server = read("server.js");
-  assert.match(server, /import \{ createClassifyBacklog \} from "\.\/services\/jobs\/classifyBacklog\.js";/);
+  // A193 (46j, changed on purpose): the boot skip's window is imported with the factory.
+  assert.match(server, /import \{ createClassifyBacklog, BOOT_SKIP_WITHIN_MS \} from "\.\/services\/jobs\/classifyBacklog\.js";/);
   assert.doesNotMatch(server, /backfillCategories\(db\)/, "the one-transaction category backfill is gone from the boot");
   const listen = server.indexOf("app.listen(PORT, () => {");
   // 45b (changed on purpose): chained on the board-fit pass's BOOT.run() — the warm-up is started once (A123 (7)).
   const ready = server.indexOf("BOOT.run().then(() => setTimeout(() => {", listen);
-  const start = server.indexOf('classifyBacklog.run("boot");', ready);
-  assert.ok(listen > 0 && ready > listen && start > ready && start - ready < 900, "the walk starts on ready, inside the listen callback");
-  assert.equal(server.split('classifyBacklog.run("boot")').length, 2, "started once");
+  const start = server.indexOf('classifyBacklog.run("boot", { skipWithinMs:', ready);
+  assert.ok(listen > 0 && ready > listen && start > ready && start - ready < 1100, "the walk starts on ready, inside the listen callback");
+  assert.equal(server.split('classifyBacklog.run("boot"').length, 2, "started once");
   assert.match(server, /setInterval\(\(\) => classifyBacklog\.run\("interval"\), 6 \* 60 \* 60 \* 1000\)\.unref\(\);/);
   assert.match(server, /classify: classifyBacklog\.status\(\),/);
   const src = read("services/jobs/classifyBacklog.js");
@@ -249,4 +250,29 @@ test("a132ClassifyStartsAtFloor: the first page is MIN_PAGE_ROWS and the page at
   for (let k = 1; k < sizes.length; k++) assert.ok(sizes[k] <= 2 * sizes[k - 1], `never more than doubles: ${sizes}`);
   assert.equal(Math.max(...sizes), 400, `reaches pageRows: ${sizes}`);
   assert.equal(s.active, db.prepare("SELECT COUNT(*) FROM scraped_jobs WHERE is_active = 1").pluck().get());
+});
+
+// ⛔ A193 (46j, production d8a5b7cd 11-12): the boot walk re-read 82,936 cold rows for 46 s after ready and wrote nothing.
+test("a193BootWalkSkippedWhenRecent: a finished walk is remembered; a boot within the window skips (keeping the coverage), outside it walks", async () => {
+  const db = board();
+  const first = createClassifyBacklog(db, { pageRows: 5, log: quiet });
+  const s1 = await first.run("boot", { skipWithinMs: 6 * 3600e3 });   // nothing remembered yet → walks
+  assert.equal(s1.state, "done");
+  assert.ok(s1.categorised > 0);
+  const kept = JSON.parse(db.prepare("SELECT value FROM app_settings WHERE key = 'classify_backlog_last_walk'").get().value);
+  assert.equal(kept.finishedAt, s1.finishedAt);
+  assert.equal(kept.shown, s1.shown);
+  // A new process (a deploy) an hour later: skipped, and /api/version still shows the last walk's coverage.
+  const second = createClassifyBacklog(db, { pageRows: 5, log: quiet });
+  const s2 = await second.run("boot", { skipWithinMs: 6 * 3600e3, now: Date.parse(s1.finishedAt) + 3600e3 });
+  assert.equal(s2.state, "skipped");
+  assert.equal(s2.pages, 0, "no page read");
+  assert.equal(s2.shown, s1.shown);
+  assert.equal(s2.coverage.functionOfShown, s1.coverage.functionOfShown);
+  // Seven hours later: walks again. The interval / manual walk never skips.
+  const s3 = await second.run("boot", { skipWithinMs: 6 * 3600e3, now: Date.parse(s1.finishedAt) + 7 * 3600e3 });
+  assert.equal(s3.state, "done");
+  assert.ok(s3.pages > 0);
+  const s4 = await second.run("interval");
+  assert.equal(s4.state, "done");
 });
