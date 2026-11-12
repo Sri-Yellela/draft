@@ -8013,6 +8013,14 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // ⭐ A189 (sweeper): the stuck-submit sweeper's one read — `status = 'running' AND started_at < ?` LIMIT 25, every
+      // 2 minutes — answered by a partial index of the handful of rows in flight, never a pass over apply_run_jobs.
+      id: "273_apply_run_jobs_running",
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_apply_run_jobs_running ON apply_run_jobs(started_at) WHERE status = 'running';
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -16595,8 +16603,13 @@ const applyLine = applyRoutes(app, db, requireAuth, buildAutofillPayload, genera
 // A59: a run left 'running' by the last process is reset before anything can start a new one, or
 // that user's line never moves; then the ticker keeps every line moving (kill switch released, a
 // lost dispatch).
+// ⭐ A189 (sweeper): first, an approved / FULL AUTO application the restart caught mid-fill that provably never pressed
+// Submit goes back in the queue (recoverInterruptedRuns then resumes its run); one that may have pressed it is held with
+// a sentence. Then every 2 minutes, a row `running` with no worker in this process (index-backed, LIMITed).
+applyLine.sweepStuckSubmits({ boot: true });
 applyLine.recoverInterruptedRuns();
 applyLine.startLineTicker();
+applyLine.startStuckSubmitSweeper();
 // ⭐ D100 P7 / D102 P4 · FULL AUTO's scheduler (services/autoScheduler.js): every 5 minutes, each FULL AUTO user whose run
 // time has come gets ONE run of jobs from THEIR board — boardPageResponse, the board's own query, with the filters saved in
 // Auto settings — after their drafted jobs, the per-company rules and the daily cap. startAutoRun is startRun: the same

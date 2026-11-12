@@ -141,6 +141,19 @@ const BY_REASON = {
     action: "Open the form and check whether it went through",
     protective: true, retryable: false,
   },
+  // ⭐ A189 (services/submitRetry.js): the worker stopped under an approved application (a restart). The row's own
+  // sentence says whether Submit could have been pressed; this is the short form.
+  submit_interrupted: {
+    obstacle: "The server stopped while this application was being sent",
+    action: "Read the note — if Submit was pressed, check your email before sending it again",
+    protective: false, retryable: false,
+  },
+  // ⭐ A189: Submit was pressed, then the employer's page broke before a confirmation — never retried automatically.
+  submit_outcome_unknown: {
+    obstacle: "Submit was pressed, then the employer's site stopped responding",
+    action: "Check your email for a confirmation before sending it again",
+    protective: true, retryable: false,
+  },
   no_fields_discovered: {
     obstacle: "No form fields were found on the page",
     action: "Open the posting and apply yourself",
