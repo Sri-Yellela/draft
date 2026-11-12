@@ -8694,6 +8694,18 @@ function runExpiredJobsCleanup() {
 async function runExpiredJobsCleanupPass() {
   const cutoff = Math.floor(Date.now()/1000) - 7*24*60*60;
   const startup = cleanupRunsThisProcess++ === 0;
+  // ⛔ 46i (production 11-12 00:33:48Z, measured): the boot pass's synchronous statements (retire-starred + the expiry count
+  // over 83k postings, user-reference subqueries, a cold page cache after the deploy) took 9,007 ms — every deploy's outage
+  // 9 s longer, since ready waits for it. The boot pass exists to catch a MISSED nightly run; when a cleanup finished in the
+  // last 20 h (the 03:00 cron, or the previous boot), nothing was missed — skip it, as the rollups below already do.
+  if (startup) {
+    let last = null;
+    try { last = db.prepare("SELECT MAX(run_at) AS t FROM cleanup_log").get()?.t ?? null; } catch { last = null; }
+    if (Number.isFinite(last) && last >= Math.floor(Date.now() / 1000) - 20 * 3600) {
+      console.log(`[cleanup] boot pass skipped — a cleanup ran ${Math.round((Date.now() / 1000 - last) / 3600)} h ago (the 03:00 run catches the rest)`);
+      return { skipped: "ran_within_20h" };
+    }
+  }
   if (startup && rollupsRanWithin(20 * 3600)) {
     console.log("[job-history] cleanup (boot): history + ghost score skipped — they ran in the last 20 h");
   } else {
