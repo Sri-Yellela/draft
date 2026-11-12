@@ -63,7 +63,8 @@ test("nothing in the codebase still reads the table", () => {
       const p = `${dir}/${e.name}`.replace(/^\.\//, "");
       if (e.isDirectory()) {
         // .claude: agent git worktrees are full copies of the repo, not code that ships.
-        if (["node_modules", ".git", ".claude", "dist", "data"].includes(e.name)) continue;
+        // tmp: local scratch (46g kept a backed-out server.js copy there) — untracked, never shipped, absent on a clone.
+        if (["node_modules", ".git", ".claude", "dist", "data", "tmp"].includes(e.name)) continue;
         walk(p);
       } else if (/\.(js|jsx|mjs)$/.test(e.name)) {
         const rel = p.replace(/\//g, "\\");
