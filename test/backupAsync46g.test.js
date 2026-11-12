@@ -50,7 +50,9 @@ test("46g · createBackupAsync: a consistent, complete copy while the same conne
 
     const m = listBackups();
     assert.equal(m[0].filename, out.filename);
-    assert.deepEqual([m[0].label, m[0].method, m[0].walCheckpointed], ["t46g", "online-backup", true]);
+    // A196 (46j, changed on purpose): the running server's copy is VACUUM INTO in a worker thread (the online backup's
+    // final fsync froze production for ~57 s); the step-wise online backup stays behind { worker: false }.
+    assert.deepEqual([m[0].label, m[0].method, m[0].walCheckpointed], ["t46g", "vacuum-into-worker", true]);
     assert.ok(m[0].size > 30 * 1024 * 1024, `its size is recorded (${m[0].size})`);
   } finally {
     clearInterval(tick); try { db?.close(); } catch {}
@@ -69,4 +71,39 @@ test("46g · the running server's three backups are the async one; only the pre-
   assert.match(server, /app\.post\("\/api\/admin\/backups", requireAdmin, async \(req, res\) => \{\n  try \{\n    const result = await createBackupAsync\(req\.body\.label\|\|"manual", \{ db \}\);/);
   // the one synchronous call left is the pre-migration backup, before the listener binds
   assert.deepEqual([...server.matchAll(/\bcreateBackup\(([^)]*)\)/g)].map(m => m[1]), ["label"]);
+});
+
+// ⛔ A196 (46j): production 11-12 05:05–05:07Z — Approve's online backup froze every request ~57 s at its end (the
+// destination's commit + fsync on the one thread). The copy now runs as VACUUM INTO in a worker thread.
+test("a196BackupOffTheThread: the worker copy is consistent while the server writes; the loop never waits on it; worker:false keeps the step-wise path", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bak196-"));
+  let db = null, tick = null;
+  try {
+    configureBackups({ dataDir: dir, dbFile: "live.db", filePrefix: "live" });
+    db = new Database(path.join(dir, "live.db"));
+    db.pragma("journal_mode = WAL");
+    db.exec("CREATE TABLE t (id INTEGER PRIMARY KEY, body TEXT)");
+    const ins = db.prepare("INSERT INTO t (body) VALUES (?)");
+    const pad = "y".repeat(900);
+    db.transaction(() => { for (let i = 0; i < 60000; i++) ins.run(pad + i); })();
+    const before = db.prepare("SELECT COUNT(*) AS n FROM t").get().n;
+    let last = Date.now(), maxGap = 0, wrote = 0;
+    tick = setInterval(() => { const now = Date.now(); maxGap = Math.max(maxGap, now - last); last = now; ins.run("during"); wrote++; }, 5);
+    const out = await createBackupAsync("t196", { db });
+    clearInterval(tick);
+    assert.ok(wrote > 0, "the server kept writing during the copy");
+    assert.ok(maxGap < 150, `the event loop never waited on the copy (longest pause ${maxGap} ms)`);
+    assert.equal(fs.existsSync(out.path + "-wal"), false, "one plain file");
+    const copy = new Database(out.path, { readonly: true });
+    assert.equal(copy.pragma("integrity_check", { simple: true }), "ok");
+    assert.ok(copy.prepare("SELECT COUNT(*) AS n FROM t").get().n >= before, "every row committed before the copy is in it");
+    copy.close();
+    assert.equal(listBackups()[0].method, "vacuum-into-worker");
+    const stepwise = await createBackupAsync("t196-stepwise", { db, worker: false });
+    assert.ok(fs.existsSync(stepwise.path));
+    assert.equal(listBackups()[0].method, "online-backup");
+  } finally {
+    clearInterval(tick); try { db?.close(); } catch {}
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* Windows may hold the file a moment */ }
+  }
 });
