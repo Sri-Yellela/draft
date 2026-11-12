@@ -221,6 +221,9 @@ try {
   for (const [n, ms] of Object.entries(slices)) if (ms != null) check(`background slice ≤ 100 ms: ${n}`, ms <= BUDGETS.sliceMs, `${ms} ms`);
   const longest = [...log.matchAll(/"longest(?:Slice|PlanPage|Commit)Ms":(\d+)/g)].map(m => Number(m[1]));
   if (longest.length) check("background slice ≤ 100 ms: board-fit (slice / plan page / commit)", Math.max(...longest) <= BUDGETS.sliceMs, `max ${Math.max(...longest)} ms over ${longest.length} readings`);
+  // A175 (46i): a plan page on the read pool — the wait for a worker (queue + its SQL), off the main thread; information, not a slice.
+  const waits = [...log.matchAll(/"longestPlanWaitMs":(\d+)/g)].map(m => Number(m[1]));
+  if (waits.length) console.log(`info board-fit plan page on the read pool (wall, off the loop): max ${Math.max(...waits)} ms over ${waits.length} readings`);
   if (JSON_OUT) fs.writeFileSync(JSON_OUT, JSON.stringify({ fixture: FIXTURE, users: USERS, seconds: SECONDS, listenMs, readyMs, boot: v0.boot, table, loop, statuses, readPool: v1.readPool, classify: v1.classify, failures }, null, 2));
 } catch (e) {
   failures.push(`error: ${e.message}`); console.error(e.message);

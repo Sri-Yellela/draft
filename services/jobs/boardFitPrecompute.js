@@ -342,7 +342,7 @@ export function createBoardFitPrecompute({
   async function planSliced({ userId, profileId, basisHash, force = false, category = null }) {
     const scope = SCOPE_SQL ? [category, category] : [];
     const acc = { missing: 0, stale: 0, postingChanged: 0, jobIds: [] };
-    let pages = 0, longestPageMs = 0;
+    let pages = 0, longestPageMs = 0, longestWaitMs = 0;
     for (let after = ""; ;) {
       const t0 = now();
       // D151: off the loop when there is a read pool (longestPlanPageMs is then the page's wall time, mostly the
@@ -350,15 +350,21 @@ export function createBoardFitPrecompute({
       const rows = read
         ? await read.all(PLAN_OFF_LOOP_SQL, [basisHash, force ? 1 : 0, userId, profileId ?? null, ...scope, after, planPage])
         : planPageRows({ userId, profileId, basisHash, force, scope, after });
+      // ⛔ A175 (46i, staging): with the pool, the await above is a WORKER's time plus its queue — 360–417 ms at a boot burst
+      // of 20 cold loads on 2 workers while the event loop's p99 read 23.8 ms. longestPlanPageMs is the MAIN THREAD's share
+      // (the 100 ms slice budget); the wall time goes to longestPlanWaitMs.
+      const t1 = now();
       tally(acc, rows);
-      pages++; longestPageMs = Math.max(longestPageMs, now() - t0);
+      pages++;
+      if (read) { longestWaitMs = Math.max(longestWaitMs, t1 - t0); longestPageMs = Math.max(longestPageMs, now() - t1); }
+      else longestPageMs = Math.max(longestPageMs, now() - t0);
       if (rows.length < planPage) break;
       after = rows[rows.length - 1].job_id;
       // Kept with the pool too: a pool that fell back answered synchronously, and the loop is still handed back.
       await yieldToEventLoop();
     }
     const done = read ? finishPlan(acc, scope, (await read.get(ACTIVE_COUNT_SQL, scope)).n) : finishPlan(acc, scope);
-    return { ...done, planPages: pages, longestPlanPageMs: Math.round(longestPageMs), offLoop: !!read };
+    return { ...done, planPages: pages, longestPlanPageMs: Math.round(longestPageMs), longestPlanWaitMs: Math.round(longestWaitMs), offLoop: !!read };
   }
 
   const saidNoBaseResume = new Set();
@@ -394,7 +400,8 @@ export function createBoardFitPrecompute({
     const p = await planSliced({ userId, profileId: profile.id, basisHash: basis.basisHash, force, category });
     const counts = { active: p.active, fresh: p.fresh, missing: p.missing, stale: p.stale,
                      postingChanged: p.postingChanged, todo: p.jobIds.length,
-                     planPages: p.planPages, longestPlanPageMs: p.longestPlanPageMs };
+                     planPages: p.planPages, longestPlanPageMs: p.longestPlanPageMs,
+                     ...(p.offLoop ? { longestPlanWaitMs: p.longestPlanWaitMs } : {}) };
     if (dryRun) {
       const r = { ...base, status: "dry_run", ...counts, basisHash: basis.basisHash, ms: Math.round(now() - started) };
       emit("log", r); return r;
