@@ -31,7 +31,7 @@ test("d185SourceParamDocumentedOnly: Lever's job-board parameters by default; Gr
   assert.equal(tokenFor({ acme: { greenhouse: "tok" } }, "Acme", "greenhouse"), "tok");
   assert.equal(tokenFor(null, "Acme", "greenhouse"), null);
   const routes = fs.readFileSync(new URL("../routes/apply.js", import.meta.url), "utf8");
-  assert.ok(routes.includes("practiceUrl || attributedUrl(job, job.apply_url || job.url)"), "the run's link, never a practice form");
+  assert.ok(routes.includes("practiceUrl || attributedUrl(job, hostedUrl || storedUrl)")   /* A189 P4: the hosted Greenhouse form is attributed too */, "the run's link, never a practice form");
 });
 
 test("d185HowHeardOnlyIfTrue: 'draft' only when the person agreed AND found the job on draft; their own answer wins", () => {

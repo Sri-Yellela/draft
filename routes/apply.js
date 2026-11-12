@@ -30,7 +30,7 @@ import {
   recordFormSchema, formSchemaSummary, hostOf,
 } from "../services/kb/formSchemaLayer.js";
 import { probeBrowserAvailability } from "../services/browserLauncher.js";
-import { cachedApplicationSchema, schemaFieldsForFill, warmApplicationSchema, schemaQuestionsForTailoring } from "../services/jobs/applicationSchema.js";
+import { cachedApplicationSchema, schemaFieldsForFill, warmApplicationSchema, schemaQuestionsForTailoring, hostedFormUrl } from "../services/jobs/applicationSchema.js";
 import { answerDraftsEnabled, runDraftQuestions } from "../services/applicationAnswerDraft.js";   // D185-1 (45s): the drafted answers' switch
 import { attributeApplyUrl, attributionFamily, tokenFor, howHeardAnswers } from "../shared/sourceAttribution.js";
 import { getSetting } from "../services/appSettings.js";
@@ -1619,7 +1619,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const practiceUrl = practiceSendUrl(db, { userId, jobId: String(jobId), baseUrl: practiceBaseUrl(), secret: practiceSecret() });
       // ⭐ D185-7: draft's credit on the link, only the way the posting's ATS documents it (Lever's job-board parameters; a
       // Greenhouse / Ashby token only when the employer issued one). A practice form is never touched.
-      const jobUrl = practiceUrl || attributedUrl(job, job.apply_url || job.url);
+      // ⛔ A189 P4: an employer-hosted Greenhouse page (?gh_jid=) is opened at Greenhouse's own embed form, which the fill
+      // knows — it was held "can't fill this" as an unknown site before any browser ran.
+      const storedUrl = job ? (job.apply_url || job.url) : null;
+      const hostedUrl = job && storedUrl && detectPlatformFromUrl(storedUrl) === "generic" ? hostedFormUrl(db, job) : null;
+      const jobUrl = practiceUrl || attributedUrl(job, hostedUrl || storedUrl);
+      if (hostedUrl && !practiceUrl) logEvent(runId, runJobId, userId, jobId, "hosted_form", `The employer's page embeds Greenhouse's form — opening it at ${hostedUrl}`);
       if (!jobUrl) { setJobStatus("failed", "no_job_url", "Job has no apply URL"); return; }
       if (practiceUrl) logEvent(runId, runJobId, userId, jobId, "practice_form", "A sample résumé: this Draft goes to draft's practice form, never to the employer.");
 

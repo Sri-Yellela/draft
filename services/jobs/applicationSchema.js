@@ -79,6 +79,22 @@ export function postingRef(db, job) {
   return { ats, board, externalId };
 }
 
+/**
+ * ⛔ A189 P4 (owner 11-11, "one wasn't attempted saying draft can't fill this"; production 20:02:41Z greenhouse::8036943 —
+ * the résumé was made, no browser ever launched): a Greenhouse posting whose stored link is the EMPLOYER'S careers page
+ * (`…?gh_jid=<id>`, Greenhouse's own absolute_url for an embedded board) read as provider "generic" and was held
+ * provider_review_only before the browser. The form on that page is Greenhouse's embed — the same form Greenhouse serves
+ * at its own documented embed address — so the run opens that instead. Only with a board token from the crawler's own
+ * record (postingRef) and a numeric id; otherwise null and nothing changes.
+ * @returns {string|null}
+ */
+export function hostedFormUrl(db, job) {
+  const ref = postingRef(db, job);
+  if (!ref || ref.ats !== 'greenhouse') return null;
+  if (!ref.board || !SLUG_RE.test(ref.board) || !ref.externalId || !ID_RE.test(String(ref.externalId))) return null;
+  return `https://job-boards.greenhouse.io/embed/job_app?for=${encodeURIComponent(ref.board)}&token=${encodeURIComponent(ref.externalId)}`;
+}
+
 /** Greenhouse's documented `questions` (+ location / compliance) → discoverFields()-shaped fields. Pure. */
 export function normalizeGreenhouseQuestions(body) {
   const fields = [];
