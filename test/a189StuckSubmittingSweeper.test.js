@@ -116,7 +116,7 @@ test("a189StuckSubmittingSweeper: interval — only rows past the timeout, only 
   const preview = seed(db, { jobId: "preview", approval: "required", events: [SUBMIT_EVENTS.attempt] });
   const old = seed(db, { jobId: "old", events: [SUBMIT_EVENTS.attempt], runStatus: "completed" });
   const untracked = seed(db, { jobId: "old-untracked", events: [] });
-  // Hold the line so dispatch does not start the run (no browser in a unit test): the user's own stop.
+  // No scraped_jobs rows: a run the line starts again fails fast (job_not_found) — no browser in a unit test.
   const out = hooks.sweepStuckSubmits({ boot: false });
   assert.equal(row(db, fresh.rjId).status, "running", "inside the timeout — a worker may still be on it");
   assert.equal(row(db, preview.rjId).status, "running", "a preview never sends — not this sweeper's");
