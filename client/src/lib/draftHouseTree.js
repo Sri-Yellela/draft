@@ -111,7 +111,7 @@ export function buildNodes({
     put({ key: `gated-${j.id}`, kind: "gated", jobId: j.jobId ?? null, company: companyLabel(j.company), title: s(j.title),
       status: st, ring: ringFor(st), at: ms(j.createdAt), ref: j,
       // ⭐ A186-CAPTCHA (1b): a check after Submit is not a sign-in — and it waits with no deadline.
-      say: j.reasonCode === "captcha_required"
+      say: j.reasonCode === "captcha_required" && (j.fill?.filled || 0) > 0
         ? "Filled and sent to Submit — the site asked for a quick check. Solve it here whenever you're back."
         : "The company's site wants you signed in." });
   }

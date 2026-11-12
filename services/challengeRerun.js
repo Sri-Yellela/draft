@@ -37,6 +37,7 @@ export function heldChecksOf(db, userId) {
     SELECT rj.id, rj.job_id, rj.finished_at, rj.created_at, sj.title, sj.company
     FROM apply_run_jobs rj LEFT JOIN scraped_jobs sj ON sj.job_id = rj.job_id
     WHERE rj.user_id = ? AND rj.status = ? AND rj.reason_code = ? AND rj.hidden_at IS NULL
+      AND rj.answers_json IS NOT NULL   -- a check met before the form has nothing to re-fill from
     ORDER BY rj.id DESC LIMIT 25
   `).all(userId, HELD_CHECK.status, HELD_CHECK.reasonCode).map(r => ({
     runJobId: r.id, jobId: String(r.job_id), title: r.title ?? null, company: r.company ?? null,
