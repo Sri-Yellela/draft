@@ -16,6 +16,21 @@ const parse = (json) => {
 const norm = (q) => s(q).toLowerCase().replace(/[\s*:?.]+$/g, "").replace(/\s+/g, " ");
 
 /**
+ * ⛔ A189 (written as A185, owner 11-11: "none of them could be submitted even after answering the questions"): ONE rule for
+ * which of a run's open questions wait on the person — the held stepper LISTS exactly these, and the answers route
+ * (routes/apply.js answersCore) UNBLOCKS a job when exactly these are answered. Before, the stepper hid every
+ * `required: false` question while the unblock check required all of them — and `buildOpenQuestions` writes each
+ * LOW-CONFIDENCE answer (draft would not send a guess) as `required: false`, so those jobs could never unblock: every
+ * Finish answered 409 no_retryable_jobs. A low-confidence question is a real blocker (the next run holds on it again), so
+ * it is listed; an optional field and a file are not, and neither blocks.
+ */
+export function waitsOnPerson(q) {
+  if (!q || q.type === "file") return false;   // D165 R1: the résumé is draft's to make, never a question
+  if (q.required === false && !q.eligibility && q.reason !== "low_confidence") return false;
+  return !!s(q.question || q.label);
+}
+
+/**
  * The questions waiting on the person, required first, each once.
  * @returns {Array<{ question: string, required: boolean, from: "form" | "empty" | "profile" | "employer", eligibility?: string|boolean }>}
  */
@@ -39,8 +54,7 @@ export function heldQuestionsOf({ openQuestionsJson = null, blanksJson = null, p
   // stay. An optional field is never listed: left blank, as the person would.
   const readTheForm = Array.isArray(open) || Array.isArray(blanks);
   for (const q of open || []) {
-    if (q?.type === "file") continue;   // D165 R1: the résumé is draft's to make, never a question
-    if (q?.required === false && !q?.eligibility) continue;
+    if (!waitsOnPerson(q)) continue;   // A189: the same rule the unblock check uses
     push(q?.question || q?.label, q?.required, "form", q?.eligibility, q?.type, q?.options);
   }
   for (const b of blanks || []) {

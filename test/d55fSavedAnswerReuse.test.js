@@ -11,7 +11,7 @@ import Database from "better-sqlite3";
 import { buildAnswers, PROVENANCE } from "../services/applyAutomation.js";
 import { rememberAnswer, resolveForCompany, resolvesQuestion, readAnswerStore } from "../services/customAnswers.js";
 import {
-  normaliseQuestion, templateQuestion, questionKey, isOptInQuestion, isNegativeAnswer, companyNameVariants,
+  normaliseQuestion, templateQuestion, questionKey, isOptInQuestion, isNegativeAnswer, companyNameVariants, SAVED_ANSWER_LIMITS,
 } from "../shared/savedAnswers.js";
 import { createSavedAnswersRouter } from "../routes/savedAnswers.js";
 
@@ -118,7 +118,7 @@ test("remember 'company' — and a motivation question is ALWAYS narrowed to the
   assert.deepEqual(why.store.overrides, { figma: { "Why do you want to join Figma?": "Because…" } });
   assert.throws(() => rememberAnswer(store, { question: "Q", answer: "A", scope: "company" }), { code: "company_required" });
   assert.throws(() => rememberAnswer(store, { question: "Q", answer: " " }), { code: "answer_required" });
-  assert.throws(() => rememberAnswer(store, { question: "Q".repeat(501), answer: "A" }), { code: "too_long" });
+  assert.throws(() => rememberAnswer(store, { question: "Q".repeat(SAVED_ANSWER_LIMITS.maxQuestionChars + 1), answer: "A" }), { code: "too_long" });   // A189: 500 -> 2000
 });
 
 test("Draft House asks 'Save this answer for next time?' per question, and sends the choice", async () => {

@@ -217,7 +217,8 @@ import { buildCoverLetterRequest, checkCoverLetter } from "./services/coverLette
 import { describeViolations } from "./services/untrustedText.js";
 import { extractPdfText } from "./services/pdfText.js";   // 45s: PDF text with a current pdf.js fallback
 import { rankTerms, removedTerms } from "./services/keywordTerms.js";   // D186-4
-import { answerDraftsEnabled, ANSWER_DRAFTS_SETTING, draftableQuestion, buildAnswerDraftRequest, checkAnswerDraft, draftAnswersForRun } from "./services/applicationAnswerDraft.js";   // D185-1 (45s)
+import { answerDraftsEnabled, ANSWER_DRAFTS_SETTING, draftableQuestion, heldDraftQuestion, buildAnswerDraftRequest, checkAnswerDraft, draftAnswersForRun } from "./services/applicationAnswerDraft.js";   // D185-1 (45s)
+import { heldQuestionsOf as heldQuestionsOfForDraft } from "./services/heldQuestions.js";   // A189
 import { cachedApplicationSchema as cachedSchemaForDraft } from "./services/jobs/applicationSchema.js";
 import { activeBaseResume as baseResumeForDraft } from "./services/baseResumeOnly.js";
 import { createModelGatewayAdminRouter } from "./routes/modelGateway.js";
@@ -17030,8 +17031,10 @@ app.post("/api/apply/questions/:jobId/draft", requireAuth, async (req, res) => {
   const jobId = String(req.params.jobId);
   const job = db.prepare("SELECT job_id, title, company FROM scraped_jobs WHERE job_id=?").get(jobId);
   if (!job) return res.status(404).json({ error: "job_not_found", message: "draft no longer has this posting." });
-  const q = draftableQuestion(cachedSchemaForDraft(db, jobId), req.body?.question);
-  if (!q) return res.status(400).json({ error: "not_a_question", message: "That isn't one of this posting's questions." });
+  // A189: else a question this person's held run for this posting is waiting on (read off the employer's own form).
+  const q = draftableQuestion(cachedSchemaForDraft(db, jobId), req.body?.question)
+    || heldDraftQuestion(db.prepare("SELECT open_questions_json, blanks_json FROM apply_run_jobs WHERE user_id=? AND job_id=? AND status='held_review' ORDER BY id DESC LIMIT 5").all(req.user.id, jobId), req.body?.question, heldQuestionsOfForDraft);
+  if (!q) return res.status(400).json({ error: "not_a_question", message: "draft can only draft this posting's own written questions — type your answer in the box." });
   const resumeText = String(baseResumeForDraft(db, req.user.id)?.content || "").trim();
   if (resumeText.length < 50) return res.status(409).json({ error: "no_resume", message: "Add your résumé first — the draft is written only from it." });
   const r = buildAnswerDraftRequest({ resumeText, question: q, title: job.title, company: job.company });

@@ -262,7 +262,9 @@ export const WORKED_HERE_REASONS = Object.freeze({
 
 export const SAVED_ANSWER_LIMITS = Object.freeze({
   maxEntries: 500,
-  maxQuestionChars: 500,
+  // A189 (11-11): 500 -> 2000. The question is the EMPLOYER'S wording, kept as asked so it matches the form again; a
+  // Greenhouse question with its explanation runs past 500, and the whole save (every answer with it) was refused too_long.
+  maxQuestionChars: 2000,
   maxAnswerChars: 5000,
   maxImportBytes: 256 * 1024,
 });

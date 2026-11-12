@@ -229,7 +229,8 @@ export function AutoApplyProvider({ user, canUseAPlusResume = false, children })
       // The answers are saved even when a retry is refused (cap spent, kill switch, run in flight),
       // so say so rather than implying the input was lost. api.js now surfaces the server's sentence.
       const stillSaved = e.payload?.saved?.length || 0;
-      setAnswersMsg(
+      // ⛔ A189: a 409 no_retryable_jobs now carries its own sentence (what is saved + what is still to answer).
+      setAnswersMsg(e.payload?.error === "no_retryable_jobs" && e.payload?.waiting ? e.message :
         (stillSaved ? `Saved ${stillSaved} answer${stillSaved === 1 ? "" : "s"}, but the retry did not start: ` : "") +
         (e.message || "Could not save answers.")
       );

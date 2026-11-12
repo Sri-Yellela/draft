@@ -29,7 +29,29 @@ export const ANSWER_DRAFT_SYSTEM =
 /** The posting's question this label names, when it is one of its draftable free-text questions; else null. */
 export function draftableQuestion(schema, label) {
   const want = String(label || "").trim();
-  return schemaQuestionsForTailoring(schema).find(q => q.label === want) || null;
+  const list = schemaQuestionsForTailoring(schema);
+  // A189: the held stepper sends the label as the run READ it off the live form ("Why Dropzone? *"), which need not be
+  // byte-equal to the board API's label — compare normalised (case, spacing, a trailing * : ? .).
+  return list.find(q => q.label === want) || list.find(q => normDraftLabel(q.label) === normDraftLabel(want) && normDraftLabel(want)) || null;
+}
+const normDraftLabel = (v) => String(v || "").toLowerCase().replace(/[\s*:?.]+$/g, "").replace(/\s+/g, " ").trim();
+
+/**
+ * ⛔ A189 (owner 11-11: every "draft it" on the held Greenhouse job answered 400 not_a_question): a question this person's
+ * HELD run for this posting is waiting on (services/heldQuestions.js — read off the employer's own form by the run, so it
+ * is the posting's question, not text a caller made up). Used when the cached schema has no match (no schema cached, a
+ * label worded differently on the live form, a question the board API does not list).
+ * @returns {{ label: string, description: null } | null}
+ */
+export function heldDraftQuestion(rows, label, heldQuestionsOf) {
+  const want = normDraftLabel(label);
+  if (!want) return null;
+  for (const r of rows || []) {
+    const qs = heldQuestionsOf({ openQuestionsJson: r.open_questions_json, blanksJson: r.blanks_json, packetJson: r.packet_json ?? null });
+    const hit = qs.find(q => normDraftLabel(q.question) === want && !(Array.isArray(q.options) && q.options.length));
+    if (hit) return { label: hit.question, description: null };
+  }
+  return null;
 }
 
 /** @returns {{ system, messages, untrusted }} — `untrusted` is what was sent from the employer (for the check). */
