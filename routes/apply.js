@@ -11,7 +11,7 @@ import {
   readAnswerStore, resolveForCompany, effectiveCustomAnswers, companyKey,
   resolvesQuestion, rememberAnswer,
 } from "../services/customAnswers.js";
-import { normaliseQuestion, workHistoryCompanies } from "../shared/savedAnswers.js";
+import { normaliseQuestion, workHistoryCompanies, SAVED_ANSWER_LIMITS } from "../shared/savedAnswers.js";
 import { lifecycleInputs } from "../services/answerLifecycle.js";
 import { isSalaryQuestion, jobAnswerScope, readScoped, rememberScoped, resolveScoped, scopedResolves, scopePhrase, withScopedAnswers } from "../services/scopedAnswers.js";
 import { atsScorePair } from "../shared/resumeScores.js";
@@ -47,7 +47,7 @@ import { canUseAPlusResume, normalisePlanTier } from "../services/entitlements.j
 import { monetisationEnabledFromEnv } from "../shared/monetisation.js";
 import { fullAutoDisabled as sharedFullAutoDisabled } from "../services/appSettings.js";
 import { fullAutoBlocked, HOLD_REASON as FULL_AUTO_PREREQ_HOLD } from "../services/fullAutoGate.js";
-import { heldQuestionsOf, heldReasonWords } from "../services/heldQuestions.js";
+import { heldQuestionsOf, heldReasonWords, waitsOnPerson } from "../services/heldQuestions.js";
 import { applyAllowed, spendTrialDrafts } from "../services/billing/subscriptions.js";
 import { verificationConfig } from "../services/billing/config.js";
 import { accountVerified } from "../services/billing/verification.js";
@@ -5380,6 +5380,18 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
    */
   // ⭐ D113 P4: the route's body is answersCore, so a question that came back by message and is answered on the confirm
   // page (routes/picksConfirm.js) takes exactly this path — saveAnswers below. Behaviour of the route is unchanged.
+  // ⛔ A189 (owner 11-11: "one error read too long"): the saved-answer refusals in words — the page showed the bare code.
+  function answerSaveWords(code, question) {
+    const q = `"${String(question || "").slice(0, 80)}${String(question || "").length > 80 ? "…" : ""}"`;
+    switch (code) {
+      case "too_long": return `The answer to ${q} is longer than draft can save (${SAVED_ANSWER_LIMITS.maxAnswerChars.toLocaleString()} characters at most). Shorten it and try again.`;
+      case "too_many": return `You have ${SAVED_ANSWER_LIMITS.maxEntries} saved answers, the most draft keeps. Remove some in Profile → Saved answers, then try again.`;
+      case "answer_required": return `${q} has no answer yet.`;
+      case "company_required": return `${q} needs the company it is for.`;
+      default: return `The answer to ${q} could not be saved. Try again.`;
+    }
+  }
+
   function answersCore(req, out) {
     {
       // The retry goes through startRun, so it inherits the approval default too: answering the
@@ -5479,7 +5491,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
             }
           } catch (e) {
             if (!e.code) throw e;
-            return out.status(400).json({ error: e.code, question: q });
+            return out.status(400).json({ error: e.code, question: q, message: answerSaveWords(e.code, q) });
           }
           continue;
         }
@@ -5503,7 +5515,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           }
         } catch (e) {
           if (!e.code) throw e;
-          return out.status(400).json({ error: e.code, question: q });
+          return out.status(400).json({ error: e.code, question: q, message: answerSaveWords(e.code, q) });
         }
       }
       for (const [c, q, a] of overrideEntries) {
@@ -5554,8 +5566,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       `).all(req.user.id);
       const unblocked = held
         .filter(row => {
-          const qs = parseJson(row.open_questions_json, []);
-          if (qs.length === 0) return false;
+          const all = parseJson(row.open_questions_json, []);
+          if (all.length === 0) return false;
+          // ⛔ A189: only the questions the person was SHOWN block the job (services/heldQuestions.js waitsOnPerson — the
+          // held stepper's own rule). An optional field or a file they could never see no longer holds it forever.
+          const qs = all.filter(waitsOnPerson);
           const resolved = effectiveCustomAnswers(store, row.company);
           // D165 (3): a held job's salary question is answered by a scoped salary answer that matches ITS role + location.
           const scopedPick = scopedNow.length ? resolveScoped(scopedNow, jobAnswerScope(db, row.job_id)) : null;
@@ -5583,7 +5598,22 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
         const toRetry = requested.filter(id => unblocked.includes(id));
         const skipped = requested.filter(id => !unblocked.includes(id));
         if (toRetry.length === 0) {
-          return out.status(409).json({ ...body, error: "no_retryable_jobs", skipped });
+          // ⛔ A189: say WHAT is still waiting, in words — the bare code read as "nothing happens" on every re-click.
+          const waiting = [];
+          for (const row of held) {
+            if (!skipped.includes(String(row.job_id))) continue;
+            const resolved = effectiveCustomAnswers(store, row.company);
+            const scopedPick = scopedNow.length ? resolveScoped(scopedNow, jobAnswerScope(db, row.job_id)) : null;
+            for (const q of parseJson(row.open_questions_json, []).filter(waitsOnPerson)) {
+              if (!resolvesQuestion(resolved, q.question) && !scopedResolves(scopedPick, q.question) && !waiting.includes(q.question)) waiting.push(q.question);
+            }
+          }
+          const n = body.saved.length;
+          const savedWords = n ? `Saved ${n} answer${n === 1 ? "" : "s"}. ` : "";
+          const message = waiting.length
+            ? `${savedWords}Still to answer before draft can finish the form: ${waiting.slice(0, 3).map(q => `"${String(q).slice(0, 80)}"`).join(", ")}${waiting.length > 3 ? ` and ${waiting.length - 3} more` : ""}.`
+            : `${savedWords}This application isn't waiting on answers any more — open it to see where it stands.`;
+          return out.status(409).json({ ...body, error: "no_retryable_jobs", skipped, waiting, message });
         }
         // The held rows are dismissed first: leaving them held_review would keep re-offering
         // questions that have since been answered. (And startRun's duplicate check counts a row
