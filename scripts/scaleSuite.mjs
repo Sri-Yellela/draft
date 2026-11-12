@@ -77,7 +77,9 @@ const check = (name, ok, detail) => { if (!ok) failures.push(name); console.log(
 const env = { ...process.env, RM_DATA_DIR: RUN, PORT: String(PORT), ANTHROPIC_KEY: "", DOTENV_CONFIG_PATH: "./.no-dotenv-for-local-harness", NODE_ENV: "development",
   COOKIE_ENCRYPTION_KEY: crypto.randomBytes(32).toString("hex"), SCALE_LOOP_FILE: LOOP };
 const t0 = Date.now();
-if (PROF_DIR) { fs.mkdirSync(PROF_DIR, { recursive: true }); for (const f of ["start", "stop", "stopped", "main.cpuprofile"]) fs.rmSync(path.join(PROF_DIR, f), { force: true }); env.SCALE_PROF_DIR = PROF_DIR; }
+if (PROF_DIR) { fs.mkdirSync(PROF_DIR, { recursive: true }); for (const f of ["start", "stop", "stopped", "main.cpuprofile"]) fs.rmSync(path.join(PROF_DIR, f), { force: true }); env.SCALE_PROF_DIR = PROF_DIR;
+  // 46i: --cpu-prof-from-boot -> the profile starts at import (test-support/scaleCpuProf.mjs) (the 7 s main-thread stall at t ~ 2-9 s after every boot).
+  if (has("--cpu-prof-from-boot")) env.SCALE_PROF_FROM_BOOT = "1"; }
 const child = spawn(process.execPath, ["--import", "./test-support/scaleLoopProbe.mjs", ...(PROF_DIR ? ["--import", "./test-support/scaleCpuProf.mjs"] : []), "server.js"], { env, stdio: ["ignore", "pipe", "pipe"] });
 let log = ""; const keep = (d) => { log += d; if (log.length > 4e6) log = log.slice(-2e6); };
 child.stdout.on("data", keep); child.stderr.on("data", keep);

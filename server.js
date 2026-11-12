@@ -616,7 +616,9 @@ console.log(`[boot] database ready: ${DB_PATH}`);
 const readPool = createReadPool({
   dbPath: DB_PATH, fallbackDb: db,
   enabled: String(process.env.DRAFT_READ_WORKERS || "on").toLowerCase() !== "off",
-  size: Math.max(1, Math.min(4, Number(process.env.DRAFT_READ_WORKERS_SIZE) || 2)),
+  // A187 Stage 0 (46i): the cap 4 -> 8 so read workers can be measured up to the box's cores (staging 8 vCPU, production 24);
+  // the default stays 2 - production changes only when DRAFT_READ_WORKERS_SIZE is set.
+  size: Math.max(1, Math.min(8, Number(process.env.DRAFT_READ_WORKERS_SIZE) || 2)),
 });
 // ⭐ A175 (46d, measured with READ_SLOW_MS's round-trip log, 20 users at 100k): the people's reads WAITED behind the
 // board-fit precompute's plan pages — 349 of them in one minute, each ~4.6 s in the queue — because background passes and

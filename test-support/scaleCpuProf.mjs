@@ -12,6 +12,9 @@ if (DIR && isMainThread) {
   const s = new inspector.Session();
   s.connect();
   let on = false;
+  // 46i: SCALE_PROF_FROM_BOOT=1 starts the profiler NOW, at import — a timer tick can't fire while the loop is blocked, so
+  // the 200 ms start missed the 7 s boot stall it was meant to catch (in-process session calls answer synchronously).
+  if (process.env.SCALE_PROF_FROM_BOOT === "1") s.post("Profiler.enable", () => s.post("Profiler.setSamplingInterval", { interval: 1000 }, () => s.post("Profiler.start", () => { on = true; })));
   const t = setInterval(() => {
     try {
       if (!on && fs.existsSync(path.join(DIR, "start"))) {
