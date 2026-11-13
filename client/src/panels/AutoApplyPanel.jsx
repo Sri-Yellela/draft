@@ -543,7 +543,8 @@ export function AutoApplyPanel({ user = null } = {}) {
   const [answerHere, setAnswerHere] = useState({});   // jobId → true
   const threadOpened = useRef(new Set());
   const openQuestionsThread = (node) => window.dispatchEvent(new CustomEvent("draft:open-questions",
-    { detail: { jobId: node.jobId, company: companyLabel(node.company), questions: heldQuestionsFor(node) } }));
+    // ⭐ A210 (46l, the A199 (2) walk): + the held RUN — a Run again that comes back with questions is a new thread, not the old one
+    { detail: { jobId: node.jobId, runKey: node.ref?.primary?.row?.id ?? node.ref?.id ?? null, company: companyLabel(node.company), questions: heldQuestionsFor(node) } }));
   const rerunKey = (job) => `${job?.jobId}:${job?.id ?? job?.runJobId ?? ""}`;
   const retryJob = async (job) => {
     const k = rerunKey(job);

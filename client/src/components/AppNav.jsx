@@ -342,7 +342,10 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
     const onOpen = (e) => {
       const d = e.detail || {};
       if (d.jobId == null || !Array.isArray(d.questions) || !d.questions.length) return;
-      setThread(t => (t && String(t.jobId) === String(d.jobId) ? t : { jobId: d.jobId, company: d.company || "", questions: d.questions }));
+      // ⭐ A210 (46l, the A199 (2) walk): the same job's NEXT held run (a Run again that came back with questions) is a new
+      // thread — compared by job AND run, so it never stays on the last run's "Saved".
+      const same = (t) => t && String(t.jobId) === String(d.jobId) && String(t.runKey ?? "") === String(d.runKey ?? "");
+      setThread(t => (same(t) ? t : { jobId: d.jobId, runKey: d.runKey ?? null, company: d.company || "", questions: d.questions }));
     };
     window.addEventListener("draft:open-questions", onOpen);
     return () => window.removeEventListener("draft:open-questions", onOpen);
@@ -422,7 +425,7 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
         </p>
       )}
       {thread && (
-        <AskDraftThread thread={thread} onClose={() => setThread(null)}
+        <AskDraftThread key={`${thread.jobId}:${thread.runKey ?? ""}`} thread={thread} onClose={() => setThread(null)}
           onSaved={() => { loadApplyRuns?.(); loadApplyPending?.(); window.dispatchEvent(new CustomEvent("draft:answers-saved", { detail: { jobId: thread.jobId } })); }} />
       )}
       {app && (

@@ -41,7 +41,7 @@ test("a199QuestionsThread: a held application's questions open as a thread in As
   const nav = read("client/src/components/AppNav.jsx");
   assert.match(nav, /window\.addEventListener\("draft:open-questions", onOpen\)/);
   assert.match(nav, /window\.addEventListener\("draft:open-questions", open\)/, "Ask draft opens beside Home");
-  assert.match(nav, /<AskDraftThread thread=\{thread\}/);
+  assert.match(nav, /<AskDraftThread key=\{`[^`]*`\} thread=\{thread\}/);   // ⛔ A210 (46l) changed it on purpose: keyed by job + held run
   const panel = read("client/src/panels/AutoApplyPanel.jsx");
   assert.match(panel, /<QuestionsInAskDraft node=\{node\}/, "the row points at Ask draft");
   assert.match(panel, /new CustomEvent\("draft:open-questions",/);
