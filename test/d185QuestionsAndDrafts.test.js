@@ -58,7 +58,7 @@ test("Wiring: the questions route reads the cache only and uses the manual packe
   assert.match(d, /if \(!answerDraftsEnabled\(db\)\) return res\.status\(404\)/);
   assert.match(d, /draftableQuestion\(cachedSchemaForDraft\(db, jobId\), req\.body\?\.question\)/);
   assert.match(d, /callTask\(\{ task: "answers\.routine"/);
-  assert.match(d, /checkAnswerDraft\(text, \{ resumeText, untrusted: r\.untrusted \}\)/);
+  assert.match(d, /checkAnswerDraft\(text, \{ resumeText: note \? `\$\{resumeText\}\n\$\{note\}` : resumeText, untrusted: r\.untrusted \}\)/);
   assert.doesNotMatch(d, /rememberAnswer|saved-answers|INSERT/, "the server never saves a draft");
   const ui = read("client/src/components/ApplicationQuestions.jsx");
   assert.match(ui, /\/api\/saved-answers\/remember", \{ method: "POST", body: JSON\.stringify\(\{ question, answer: state\.text, company, scope: "company" \}\)/,

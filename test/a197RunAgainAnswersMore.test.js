@@ -115,6 +115,6 @@ test("a197DraftButtonNeverAdvice: the Draft button follows the run's rule (UNKNO
   assert.equal(isMetaReply("I integrated Splunk and Datadog alerts into the payments on-call rotation at a fintech."), false);
   const fs = await import("node:fs");
   const server = fs.readFileSync("server.js", "utf8");
-  assert.match(server, /buildAnswerDraftRequest\(\{ resumeText, question: q, title: job\.title, company: job\.company, forRun: true \}\)/);
+  assert.match(server, /buildAnswerDraftRequest\(\{ resumeText, question: q, title: job\.title, company: job\.company, forRun: true, note \}\)/);
   assert.match(server, /if \(isUnknownReply\(text\)\) return res\.status\(422\)\.json\(\{ error: "no_answer"/);
 });

@@ -327,13 +327,46 @@ export function ProfilePeek({ open, profile, pos = { top: 0, left: 80 }, onGo, o
 // presses Confirm (POST /api/assistant/actions/:id/confirm — the server uses this session's user, never the model's say).
 // The conversation lives here only (short-term memory, docs/ASSISTANT.md §2): closing the panel forgets it. Until the
 // assistant is open to everyone (Admin → Atlas → Asks), the panel says so plainly instead of pretending to answer.
+// ⭐ A199 (46j, owner 11-13: "the ask draft can be opened beside the answers section in home as a companion chat … the agent
+// would write into the ask draft chat for each question, which appear in the ask draft chat instead of the home section"):
+// a held question's draft is written HERE (the window event draft:ask-question from Home's stepper), never into the
+// person's answer box. Each draft offers "Use as my answer" (draft:use-answer fills the stepper's box); when the résumé
+// doesn't cover it, the person tells draft about it here and the answer is written from their own words (POST …/draft
+// with `note`). Works whether or not the general assistant is open.
 export function AskDraftPanel({ open, onClose, panelRef }) {
   const [status, setStatus] = useState(null);
   const [turns, setTurns] = useState([]);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
+  const [app, setApp] = useState(null);   // { jobId, question } — the application question being answered here
+  const draftFor = useCallback(async (target, note = "") => {
+    setBusy(true);
+    try {
+      const r = await api(`/api/apply/questions/${encodeURIComponent(target.jobId)}/draft`, { method: "POST", body: JSON.stringify({ question: target.question, ...(note ? { note } : {}) }) });
+      setTurns(t => [...t, { who: "draft", app: target, text: r.draft, usable: true }]);
+    } catch (err) {
+      setTurns(t => [...t, { who: "draft", app: target, failed: true,
+        text: err.message || "draft couldn't write this one — type your own answer in Home." }]);
+    } finally { setBusy(false); }
+  }, []);
   useEffect(() => {
-    if (!open) { setTurns([]); setQ(""); return; }
+    const onAsk = (e) => {
+      const d = e.detail || {};
+      if (d.jobId == null || !d.question) return;
+      const target = { jobId: d.jobId, question: String(d.question) };
+      setApp(target);
+      setTurns(t => [...t, { who: "question", app: target, text: target.question }]);
+      draftFor(target);
+    };
+    window.addEventListener("draft:ask-question", onAsk);
+    return () => window.removeEventListener("draft:ask-question", onAsk);
+  }, [draftFor]);
+  const useAnswer = (t) => {
+    window.dispatchEvent(new CustomEvent("draft:use-answer", { detail: { jobId: t.app.jobId, question: t.app.question, text: t.text } }));
+    setTurns(x => x.map(y => (y === t ? { ...y, used: true } : y)));
+  };
+  useEffect(() => {
+    if (!open) { setTurns([]); setQ(""); setApp(null); return; }
     let live = true;
     api("/api/assistant/status").then(s => { if (live) setStatus(s); }).catch(() => { if (live) setStatus({ available: false }); });
     return () => { live = false; };
@@ -342,6 +375,8 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
     e?.preventDefault?.();
     const question = q.trim();
     if (!question || busy) return;
+    // A199: while an application question is open here, what the person types is THEIR words for it — draft writes the answer.
+    if (app) { setQ(""); setTurns(t => [...t, { who: "you", text: question }]); return draftFor(app, question); }
     setBusy(true); setQ("");
     setTurns(t => [...t, { who: "you", text: question }]);
     try {
@@ -373,12 +408,21 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
           with you before it does anything.
         </p>
       )}
-      {status?.available && <>
-        <p className="appnav-ask__say">Ask about a skill, a role or how draft works. It checks with you before it does anything.</p>
+      {app && (
+        <p className="appnav-ask__say" data-ask-app-question="">
+          Answering <b>{app.question}</b> — tell draft about it in your own words and it writes the answer.{" "}
+          <button type="button" className="appnav-ask__btn" data-ask-app-done="" onClick={() => setApp(null)}>Done</button>
+        </p>
+      )}
+      {(status?.available || app || turns.some(t => t.app)) && <>
+        {!app && status?.available && <p className="appnav-ask__say">Ask about a skill, a role or how draft works. It checks with you before it does anything.</p>}
         <div className="appnav-ask__turns" data-ask-turns="" aria-live="polite">
           {turns.map((t, i) => (
             <div key={i} className="appnav-ask__turn" data-ask-turn={t.who}>
-              <p className="appnav-ask__text">{t.who === "you" ? <b>You: </b> : null}{t.answer || t.text}</p>
+              <p className="appnav-ask__text">{t.who === "you" ? <b>You: </b> : t.who === "question" ? <b>Question: </b> : null}{t.answer || t.text}</p>
+              {t.usable && (t.used
+                ? <span className="appnav-ask__kind" data-ask-used="">In your answer — edit it there.</span>
+                : <button type="button" className="appnav-ask__btn" data-ask-use-answer="" onClick={() => useAnswer(t)}>Use as my answer</button>)}
               {t.lessons?.length > 0 && (
                 <ul className="appnav-ask__lessons" data-ask-lessons="">
                   {t.lessons.map(l => <li key={l.slug}><a href={l.href} data-ask-lesson={l.slug}>{l.name}</a> <span className="appnav-ask__kind">{l.kind}</span></li>)}
@@ -401,13 +445,13 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
         <form className="appnav-ask__form" onSubmit={send}>
           <textarea className="appnav-ask__input" aria-label="Your question" rows={3} maxLength={600} value={q}
             onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(e); }}
-            placeholder="What should I learn for a data analyst role?" data-ask-input="" />
+            placeholder={app ? "e.g. I set up Splunk alerts for the payments team…" : "What should I learn for a data analyst role?"} data-ask-input="" />
           <button type="submit" className="appnav-ask__btn" disabled={busy || !q.trim()} data-ask-send="">Ask</button>
         </form>
-        <label className="appnav-ask__opt" data-ask-improve="">
+        {status?.available && <label className="appnav-ask__opt" data-ask-improve="">
           <input type="checkbox" checked={!!status.improveAtlas} onChange={toggleImprove} />
           Use my questions to improve Atlas (stored without your name or contact details)
-        </label>
+        </label>}
       </>}
     </aside>
   );
@@ -419,6 +463,12 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
   const [peekOpen, setPeekOpen] = useState(false);
   const [peekPos, setPeekPos] = useState({ top: 0, left: 80 });
   const [askOpen, setAskOpen] = useState(false);
+  // A199: Home's held stepper asks for a draft → Ask draft opens beside it (the panel itself takes the question).
+  useEffect(() => {
+    const open = () => setAskOpen(true);
+    window.addEventListener("draft:ask-question", open);
+    return () => window.removeEventListener("draft:ask-question", open);
+  }, []);
   const [searching, setSearching] = useState(false);   // ⭐ 45n: the dock is the search bar
   // ⭐ D180 P1 (45o): is the network on? (GET /api/network/status — false on any failure: the dock stays as it was.)
   const [network, setNetwork] = useState(false);
