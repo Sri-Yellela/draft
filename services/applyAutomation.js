@@ -2099,7 +2099,43 @@ export function driftFromApproved(approved, current) {
 }
 
 // -- applyTypeaheadAnswer ------------------------------------------------------
-async function applyTypeaheadAnswer(page, answer) {
+/** A yes / no answer's polarity: true, false, or null when the value is not a plain yes / no. */
+export function answerPolarity(value) {
+  const v = normaliseText(value);
+  if (!v) return null;
+  if (coerceAffirmative(v)) return true;
+  if (['no', 'n', 'false', '0', 'off', 'i do not', 'i am not', 'decline', 'disagree'].includes(v)) return false;
+  return null;
+}
+const NEGATED_OPTION_RE = /\b(?:not|no|never|don'?t|disagree|decline|declined|refuse|reject)\b/;
+/**
+ * ⛔ A208: the index of the option a yes / no answer means in a TWO-option pair where exactly one option is the
+ * negation ("I Agree" / "I Do Not Agree"), or -1. Anything else (three options, both or neither negated, a value that
+ * is not yes / no) is -1 — the fill then leaves the field and the run names it fill_failed rather than guessing.
+ */
+export function polarityOption(value, optionTexts = []) {
+  const want = answerPolarity(value);
+  if (want === null) return -1;
+  const opts = (optionTexts || []).map((t, i) => ({ t: normaliseText(t), i })).filter(o => o.t && !/^select\b/.test(o.t));
+  if (opts.length !== 2) return -1;
+  const neg = opts.filter(o => NEGATED_OPTION_RE.test(o.t));
+  if (neg.length !== 1) return -1;
+  return want ? opts.find(o => o !== neg[0]).i : neg[0].i;
+}
+async function visibleOptions(page) {
+  const out = [];
+  for (const opt of await page.$$('[role=option],[role=listitem],[class*=option],[class*=suggestion]')) {
+    try {
+      const t = await opt.evaluate(el => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 ? (el.textContent || '').trim() : null;
+      });
+      if (t) out.push([opt, t.toLowerCase()]);
+    } catch {}
+  }
+  return out;
+}
+export async function applyTypeaheadAnswer(page, answer) {
   try {
     const el = answer.field_id
       ? (await page.$('#' + answer.field_id) || await page.$('[name="' + answer.field_id + '"]'))
@@ -2139,6 +2175,22 @@ async function applyTypeaheadAnswer(page, answer) {
     }
     const pick = texts.find(([, t]) => t === want) || texts.find(([, t]) => t.startsWith(want)) || texts.find(([, t]) => t.includes(want));
     if (pick) { try { await pick[0].click(); return; } catch {} }
+    // ⛔ A208 (46l, Dropzone 11-13 21:01Z / 21:07Z, two required pickers fill_failed): a consent picker offers
+    // "I Agree / I Do Not Agree" or "I Acknowledge / I Do Not Acknowledge". Draft's answer is "Yes"; typing it filtered
+    // BOTH options away, so nothing was picked and the form read back blank. A yes / no answer against a two-option pair
+    // where exactly one option is the negation picks by polarity: clear the query, open the full list, pick.
+    if (answerPolarity(sel) !== null) {
+      await el.evaluate(e => {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+        if (setter) setter.call(e, ''); else e.value = '';
+        e.dispatchEvent(new Event('input', { bubbles: true }));
+      }).catch(() => {});
+      await new Promise(r => setTimeout(r, 300));
+      let full = await visibleOptions(page);
+      if (!full.length) { await el.press('ArrowDown').catch(() => {}); await new Promise(r => setTimeout(r, 300)); full = await visibleOptions(page); }
+      const i = polarityOption(sel, full.map(([, t]) => t));
+      if (i >= 0) { try { await full[i][0].click(); return; } catch {} }
+    }
     // Fallback: arrow down + enter
     await el.press('ArrowDown');
     await el.press('Enter');

@@ -75,7 +75,7 @@ export const STANDARD_FIELD_IDS = Object.freeze(['first_name', 'last_name', 'ema
   'cover_letter', 'question_30001', 'question_30002', 'school--0', 'degree--0', 'discipline--0', 'start-month--0', 'start-year--0',
   'end-month--0', 'end-year--0']);
 
-export function greenhouseStandardForm({ nameless = false } = {}) {
+export function greenhouseStandardForm({ nameless = false, consent = false } = {}) {
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><title>Job Application for Software Engineer at Example Robotics</title>
 <style>
@@ -123,6 +123,8 @@ export function greenhouseStandardForm({ nameless = false } = {}) {
   <div class="field-wrapper"><div class="input-wrapper">${label('question_30004', 'Why do you want to work at Example Robotics?', false)}<textarea id="question_30004" class="input" aria-label="Why do you want to work at Example Robotics?" rows="3"></textarea></div></div>
   <div class="field-wrapper">${picker('question_30005', 'Are you legally authorized to work in the United States?', ['Yes', 'No'], { req: true })}</div>
   <div class="field-wrapper">${picker('question_30006', 'Will you now or in the future require sponsorship for employment visa status?', ['Yes', 'No'], { req: true })}</div>
+  ${consent ? `<div class="field-wrapper">${picker('question_30007', 'Policy on the Use of AI: we require authentic responses from every applicant.', ['I Agree', 'I Do Not Agree'], { req: true })}</div>
+  <div class="field-wrapper">${picker('question_30008', 'I acknowledge that falsifying information may result in exclusion from hire.', ['I Acknowledge', 'I Do Not Acknowledge'], { req: true })}</div>` : ''}
  </div>
  <div class="eeoc__container body"><div class="divider" role="separator"></div><div><h2 class="section-header">Voluntary Self-Identification</h2>
   <p>For government reporting purposes, we ask candidates to respond to the below self-identification survey. Completion of the form is entirely voluntary.</p></div>
