@@ -10,6 +10,7 @@
 // nothing is sent until the person approves it. Draft House's row opens this thread (window event draft:open-questions).
 import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api.js";
+import DepthButton from "./DepthButton.jsx";
 
 const ask = (jobId, question, note) => api(`/api/apply/questions/${encodeURIComponent(jobId)}/draft`,
   { method: "POST", body: JSON.stringify({ question, ...(note ? { note } : {}) }) });
@@ -34,7 +35,8 @@ export default function AskDraftThread({ thread, onSaved, onClose }) {
     if (!q || q.kind !== "draft" || sugg[q.question]) return;
     setSugg(s => ({ ...s, [q.question]: { state: "loading" } }));
     ask(jobId, q.question)
-      .then(r => setSugg(s => ({ ...s, [q.question]: { state: "ready", text: r.draft } })))
+      // A200: an answer with no draft in it is "none" (write it yourself), never an empty suggestion box with "Use this"
+      .then(r => setSugg(s => ({ ...s, [q.question]: String(r?.draft || "").trim() ? { state: "ready", text: r.draft } : { state: "none", message: "draft couldn't write this one from your résumé." } })))
       .catch(e => setSugg(s => ({ ...s, [q.question]: { state: "none", message: e?.message || "draft couldn't write this one from your résumé." } })));
   }, [q, jobId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -48,7 +50,11 @@ export default function AskDraftThread({ thread, onSaved, onClose }) {
     const note = typed.trim();
     if (!q || !note) return;
     setSugg(s => ({ ...s, [q.question]: { state: "loading", note } }));
-    try { const r = await ask(jobId, q.question, note); setSugg(s => ({ ...s, [q.question]: { state: "ready", text: r.draft, note } })); setTyped(""); }
+    try {
+      const r = await ask(jobId, q.question, note);
+      if (!String(r?.draft || "").trim()) throw new Error("draft couldn't write it from that.");
+      setSugg(s => ({ ...s, [q.question]: { state: "ready", text: r.draft, note } })); setTyped("");
+    }
     catch (e) { setSugg(s => ({ ...s, [q.question]: { state: "none", message: e?.message || "draft couldn't write it from that.", note } })); }
   };
   const finish = async () => {
@@ -64,58 +70,71 @@ export default function AskDraftThread({ thread, onSaved, onClose }) {
   };
 
   const s = q ? sugg[q.question] : null;
+  const send = () => { if (q && typed.trim()) answer(q.question, typed.trim(), q.kind !== "draft"); };
+  // ⭐ A200 (46k, owner 11-13: "format it and also use the former font and styling … design the chat panel inline with design
+  // plan"): the thread wears the held stepper's look (Draft House's dht-step — redrawn here as .appnav-ask__q / __big / __draft,
+  // since a page's classes stay in its page): the question large, Yes / No as big depth boxes, one primary action, the
+  // answered ones a quiet transcript above. Depth boxes for every control, no pills (D60).
   return (
     <section className="appnav-ask__thread" data-ask-thread={String(jobId)} aria-label={`${company || "This application"} — its questions`}>
-      <p className="appnav-ask__say" data-ask-thread-head="">
-        <b>{company || "This application"}</b> · {total} question{total === 1 ? "" : "s"} only you can settle. Answer them here; draft fills the form.{" "}
-        <button type="button" className="appnav-ask__btn" data-ask-thread-close="" onClick={onClose}>Close</button>
-      </p>
+      <header className="appnav-ask__threadhead" data-ask-thread-head="">
+        <p className="appnav-ask__meta"><b>{company || "This application"}</b> · {total} question{total === 1 ? "" : "s"} only you can settle</p>
+        <DepthButton size="compact" data-ask-thread-close="" onClick={onClose}>Close</DepthButton>
+      </header>
       <div className="appnav-ask__turns" aria-live="polite">
         {questions.slice(0, i).map(x => (
           <div key={x.question} className="appnav-ask__turn" data-ask-turn="answered">
-            <p className="appnav-ask__text"><b>Question: </b>{x.question}</p>
-            <p className="appnav-ask__text"><b>You: </b>{String(answers[x.question] ?? "").slice(0, 400)}</p>
+            <p className="appnav-ask__asked">{x.question}</p>
+            <p className="appnav-ask__said">{String(answers[x.question] ?? "").slice(0, 400)}</p>
           </div>
         ))}
         {q && (
-          <div className="appnav-ask__turn" data-ask-turn="current" data-ask-kind={q.kind}>
-            <p className="appnav-ask__kind">{i + 1} of {total}{q.required ? " · required" : ""}</p>
-            <p className="appnav-ask__text"><b>Question: </b>{q.question}</p>
+          <div className="appnav-ask__turn appnav-ask__card" key={q.question} data-ask-turn="current" data-ask-kind={q.kind}>
+            <p className="appnav-ask__meta">{i + 1} of {total}{q.required ? " · required" : ""}</p>
+            <p className="appnav-ask__q" data-ask-question="">{q.question}</p>
             {q.kind === "yesno" || q.kind === "choice" ? (
-              <div className="appnav-ask__choices" role="group" aria-label={q.question}>
+              <div className="appnav-ask__choices" data-many={(q.options?.length || 2) > 3 ? "true" : "false"} role="group" aria-label={q.question}>
                 {(q.options?.length ? q.options : ["Yes", "No"]).map(o => (
-                  <button key={o} type="button" className="appnav-ask__btn" data-ask-choice={o} onClick={() => answer(q.question, o)}>{o}</button>
+                  <DepthButton key={o} wrap className="appnav-ask__big" data-ask-choice={o} pressed={answers[q.question] === o} onClick={() => answer(q.question, o)}>{o}</DepthButton>
                 ))}
               </div>
             ) : q.kind === "draft" ? (
               <>
-                {s?.state === "loading" && <p className="appnav-ask__kind" data-ask-busy="">Writing it from {s.note ? "what you said" : "your résumé"}…</p>}
+                {s?.state === "loading" && <p className="appnav-ask__meta" data-ask-busy="">Writing it from {s.note ? "what you said" : "your résumé"}…</p>}
                 {s?.state === "ready" && (
                   <>
-                    <p className="appnav-ask__text" data-ask-suggestion=""><b>draft: </b>{s.text}</p>
-                    <button type="button" className="appnav-ask__btn" data-ask-use="" onClick={() => answer(q.question, s.text, false)}>Use this</button>
+                    <p className="appnav-ask__draft" data-ask-suggestion="">{s.text}</p>
+                    <div className="appnav-ask__acts">
+                      <DepthButton primary data-ask-use="" onClick={() => answer(q.question, s.text, false)}>Use this</DepthButton>
+                    </div>
                   </>
                 )}
                 {s?.state === "none" && <p className="appnav-ask__text" data-ask-no-draft="">{s.message} Tell draft about it below, or type your answer as you want it sent.</p>}
               </>
             ) : null}
             {q.kind !== "yesno" && q.kind !== "choice" && (
-              <form className="appnav-ask__form" onSubmit={(e) => { e.preventDefault(); if (typed.trim()) answer(q.question, typed.trim(), q.kind !== "draft"); }}>
-                <textarea className="appnav-ask__input" rows={q.kind === "draft" ? 3 : 1} aria-label={q.question} value={typed} maxLength={2000}
+              <div className="appnav-ask__form">
+                <textarea className="appnav-ask__input" rows={q.kind === "draft" ? 4 : 2} aria-label={q.question} value={typed} maxLength={2000}
                   onChange={e => setTyped(e.target.value)} data-ask-thread-input=""
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && q.kind !== "draft") { e.preventDefault(); send(); } }}
                   placeholder={q.kind === "draft" ? "Your answer, or what draft should know (e.g. I set up Splunk alerts for payments)…" : "Your answer…"} />
-                <button type="submit" className="appnav-ask__btn" disabled={!typed.trim()} data-ask-send-answer="">Use as written</button>
-                {q.kind === "draft" && <button type="button" className="appnav-ask__btn" disabled={!typed.trim() || s?.state === "loading"} onClick={redraft} data-ask-redraft="">Write it from this</button>}
-              </form>
+                <div className="appnav-ask__acts">
+                  <DepthButton primary={q.kind !== "draft" || s?.state !== "ready"} disabled={!typed.trim()} data-ask-send-answer="" onClick={send}>Use as written</DepthButton>
+                  {q.kind === "draft" && <DepthButton disabled={!typed.trim() || s?.state === "loading"} onClick={redraft} data-ask-redraft="">Write it from this</DepthButton>}
+                </div>
+              </div>
             )}
-            {i > 0 && <button type="button" className="appnav-ask__btn" data-ask-back="" onClick={() => setI(n => Math.max(0, n - 1))}>Back</button>}
+            {i > 0 && <button type="button" className="appnav-ask__link" data-ask-back="" onClick={() => setI(n => Math.max(0, n - 1))}>Back</button>}
           </div>
         )}
         {!q && !saved && (
-          <div className="appnav-ask__turn" data-ask-turn="done">
-            <p className="appnav-ask__text">All {total} answered. draft finishes the form with them, then it waits for your approval.</p>
-            <button type="button" className="appnav-ask__btn" disabled={busy} onClick={finish} data-ask-finish="">{busy ? "Saving…" : "Finish the form"}</button>
-            <button type="button" className="appnav-ask__btn" onClick={() => setI(0)} data-ask-review="">Review</button>
+          <div className="appnav-ask__turn appnav-ask__card" data-ask-turn="done">
+            <p className="appnav-ask__q">All answered</p>
+            <p className="appnav-ask__meta">draft finishes the form with your {total} answer{total === 1 ? "" : "s"}, then it waits for your approval. Nothing is sent until you approve it.</p>
+            <div className="appnav-ask__acts">
+              <DepthButton primary disabled={busy} onClick={finish} data-ask-finish="">{busy ? "Saving…" : "Finish the form"}</DepthButton>
+              <DepthButton onClick={() => setI(0)} data-ask-review="">Review</DepthButton>
+            </div>
           </div>
         )}
         {saved && <p className="appnav-ask__text" role="status" data-ask-saved={saved.ok ? "true" : "false"}>{saved.text}</p>}

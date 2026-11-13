@@ -267,6 +267,54 @@ const SCREENS = {
   home163: { sketch: null, app: "/app", fixtures: HOME156, ready: "[data-home-board]", shoot: true,
     sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], "2560": [2560, 1440], phone: [390, 844] },
     appPrep: async () => { await sleep(1200); } },
+  // ⭐ A200 (46k) · ASK DRAFT'S QUESTIONS THREAD — measured, not compared (`--styles ask200`): at each width, with a held
+  // application's three questions open in Ask draft (synthetic: Yes / No, a choice, a written answer), nothing of the panel
+  // sits under the dock, the question is in the stepper's large type, the timeline column is folded away, no sideways scroll.
+  ask200: { sketch: null, app: "/app/auto-apply", fixtures: { ...TRK,
+      "/api/apply/questions/greenhouse%3A%3A4000001/draft": { draft: "I built the alerting for a payments service and kept its on-call quiet for a year." } },
+    ready: "[data-nav-dock]", shoot: true,
+    sizes: { "1280": [1280, 800], "1440": [1440, 900], "1920": [1920, 1080], phone: [390, 844] },
+    appPrep: async (page) => {
+      await sleep(1200);
+      await page.evaluate(() => window.dispatchEvent(new CustomEvent("draft:open-questions", { detail: { jobId: "greenhouse::4000001", company: "Example Robotics",
+        questions: [
+          { question: "Are you legally authorized to work in the United States without restriction now and in the future?", kind: "yesno", required: true, options: ["Yes", "No"] },
+          { question: "Which office would you work from?", kind: "choice", required: true, options: ["San Francisco, CA", "New York, NY", "Remote — United States", "Toronto, ON"] },
+          { question: "Tell us about a production system you were responsible for.", kind: "draft", required: true },
+        ] } })));
+      await sleep(900);
+    },
+    nodeProbe: async (page, size) => {
+      const read = () => page.evaluate(() => {
+        const r = (e) => { const b = e.getBoundingClientRect(); return { left: b.left, right: b.right, top: b.top, bottom: b.bottom }; };
+        const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+        const dock = document.querySelector("[data-nav-dock]"), d = r(dock);
+        const panel = document.querySelector("[data-ask-draft]");
+        const thread = document.querySelector("[data-ask-thread]");
+        const leaves = thread ? [...thread.querySelectorAll("p, button, textarea, h2")].filter(e => e.getBoundingClientRect().width > 0) : [];
+        const q = document.querySelector("[data-ask-question]");
+        const tl = document.querySelector(".dh-main > .dht");
+        return { place: document.documentElement.getAttribute("data-dock-place"), vw: document.documentElement.clientWidth,
+          askOpen: panel?.getAttribute("data-open"), threadShown: !!thread, dock: d, panel: panel && r(panel),
+          underDock: leaves.filter(e => hit(r(e), d)).map(e => `${e.tagName.toLowerCase()} ${(e.textContent || "").trim().slice(0, 30)}`),
+          qSize: q ? parseFloat(getComputedStyle(q).fontSize) : null, qWeight: q ? getComputedStyle(q).fontWeight : null,
+          choices: [...document.querySelectorAll("[data-ask-choice]")].map(b => ({ cls: b.className, h: Math.round(b.getBoundingClientRect().height), radius: getComputedStyle(b).borderTopLeftRadius })),
+          timelineShown: !!tl && getComputedStyle(tl).display !== "none",
+          sideScroll: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+      });
+      const out = { first: await read() };
+      // the written answer: answer the two choices, then the draft's suggestion shows in the panel's own box
+      await page.evaluate(() => document.querySelector('[data-ask-choice="Yes"]')?.click()); await sleep(300);
+      await page.evaluate(() => document.querySelector("[data-ask-choice]")?.click()); await sleep(900);
+      out.draft = await read();
+      out.draft.suggestion = await page.evaluate(() => (document.querySelector("[data-ask-suggestion]")?.textContent || "").trim());
+      fs.mkdirSync(OUT, { recursive: true });
+      fs.writeFileSync(path.join(OUT, `ask200-draft-${size}.png`), await page.screenshot({ type: "png" }));
+      // closing Ask draft brings the timeline back
+      await page.evaluate(() => document.querySelector("[data-ask-close]")?.click()); await sleep(700);
+      out.closed = await page.evaluate(() => { const tl = document.querySelector(".dh-main > .dht"); return { timelineShown: !!tl && getComputedStyle(tl).display !== "none", askOpen: document.querySelector("[data-ask-draft]")?.getAttribute("data-open") }; });
+      return { node: out };
+    } },
   // ⭐ D167 · THE DOCK GOES WHERE THE SPACE IS (owner 11-06) — `--styles dock167place`: at each width, where the dock is
   // (side / top / phone), its box, the page's content box and the gaps between them; a resize across the threshold
   // re-places it; the peek's place beside a side dock / below a top one.
@@ -871,6 +919,7 @@ const STYLE_PROBES = {
   // ⭐ D167: the dock is measured by its nodeProbe (a real pointer); the page-side probe only says where it ran.
   dock167: () => ({ vw: window.innerWidth, vh: window.innerHeight }),
   dock167place: () => ({ vw: window.innerWidth, vh: window.innerHeight }),
+  ask200: () => ({ vw: window.innerWidth, vh: window.innerHeight }),
   home163: async () => {
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     const q = (s, root = document) => root.querySelector(s);

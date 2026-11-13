@@ -222,6 +222,39 @@ button.appnav-item { border: 0; background: transparent; font-family: inherit; }
   color: var(--c-ink); font: inherit; font-size: calc(13px * var(--type-scale, 1)); cursor: pointer; }
 .appnav-ask__btn:disabled { opacity: .5; cursor: default; }
 .appnav-ask__opt { display: flex; gap: 8px; align-items: flex-start; color: var(--c-ink-muted); font-size: calc(12px * var(--type-scale, 1)); }
+/* ⭐ A200 (46k, owner 11-13: "the content of the questions is going behind the dock, format it and also use the former font
+   and styling. design the chat panel inline with design plan"). THE THREAD — the held stepper's look (DraftHouse.css dht-step,
+   redrawn here: a page's classes stay in its page): the question large (24 px, 600), Yes / No as big depth boxes (DepthButton,
+   no pills — D60), one primary action, the answered ones a quiet transcript. */
+.appnav-ask__thread { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.appnav-ask__threadhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.appnav-ask__meta { margin: 0; font-size: calc(12px * var(--type-scale, 1)); line-height: 1.45; color: var(--c-ink-muted); overflow-wrap: anywhere; }
+.appnav-ask__meta b { color: var(--c-ink); font-weight: 600; }
+.appnav-ask__card { gap: 12px; padding-top: 4px; animation: appnav-ask-in .22s ease-out; }
+@keyframes appnav-ask-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.appnav-ask__q { margin: 0; font-size: calc(24px * var(--type-scale, 1)); line-height: 1.25; font-weight: 600; color: var(--c-ink); overflow-wrap: anywhere; }
+.appnav-ask__asked { margin: 0; font-size: calc(13px * var(--type-scale, 1)); line-height: 1.4; color: var(--c-ink-muted); overflow-wrap: anywhere; }
+.appnav-ask__said { margin: 0; font-size: calc(14px * var(--type-scale, 1)); line-height: 1.45; color: var(--c-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.appnav-ask__turn[data-ask-turn="answered"] { gap: 2px; padding-bottom: 10px; border-bottom: 1px solid var(--c-border); }
+.appnav-ask__choices { display: flex; flex-wrap: wrap; gap: 12px; }
+.appnav-ask__choices[data-many="true"] { flex-direction: column; align-items: stretch; }
+.appnav-ask__choices .appnav-ask__big { min-width: 120px; min-height: 48px; font-size: calc(17px * var(--type-scale, 1)); }
+.appnav-ask__choices[data-many="true"] .appnav-ask__big { justify-content: flex-start; text-align: left; font-size: calc(15px * var(--type-scale, 1)); }
+.appnav-ask__draft { margin: 0; padding: 10px; border: 1px solid var(--c-border); border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere;
+  color: var(--c-ink); font-size: calc(15px * var(--type-scale, 1)); line-height: 1.5; background: var(--c-surface-solid); }
+.appnav-ask__acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.appnav-ask__link { align-self: flex-start; background: none; border: 0; padding: 0; color: var(--c-ink-muted); text-decoration: underline; cursor: pointer; font: inherit;
+  font-size: calc(13px * var(--type-scale, 1)); }
+.appnav-ask__link:focus-visible { outline: 2px solid var(--c-accent-ink); outline-offset: 2px; }
+.appnav-ask__thread .appnav-ask__input { font-size: calc(15px * var(--type-scale, 1)); padding: 10px; }
+@media (prefers-reduced-motion: reduce) { .appnav-ask__card { animation: none; } }
+/* ⭐ A200 (a): NOTHING OF THE THREAD UNDER THE DOCK. The dock is above the panel (Z.NAV > 240). A top dock is centred on the
+   page — so while Ask draft is open it centres in the page's part LEFT of the panel and never reaches into it; a phone
+   panel (88vw) leaves no room beside it, so there the panel's content starts below the dock. */
+:root[data-ask-open="true"][data-dock-place="top"] .appnav-dock[data-nav-dock] {
+  left: calc((100vw - var(--appnav-ask-w)) / 2); max-width: calc(100vw - var(--appnav-ask-w) - 24px);
+}
+:root[data-ask-open="true"][data-dock-place="phone"] .appnav-ask { padding-top: calc(var(--appnav-top-y, 10px) + 62px); }   /* the phone dock: its offset + its 44 px row + a gap */
 :root[data-ask-open="true"] [data-app-shell] { padding-right: var(--appnav-ask-w); }
 :root[data-ask-open="true"] [data-app-chrome] { padding-right: calc(20px + var(--appnav-ask-w)) !important; }
 

@@ -97,6 +97,13 @@
 .dh-banner b { font-weight: 600; }
 .dh-banner span { color: var(--c-ink-muted); }
 .dh-banner .dh-btn { margin-left: auto; }
+/* ⭐ A200 (46k, owner 11-13: "also collapse the timeline panel when chat is open to make space"): while Ask draft is open
+   (AppNav sets data-ask-open on <html>) the auto-apply timeline column folds away and the table takes the row; it returns
+   when Ask draft closes. An opened application's own page (data-detail) keeps its column. Phones show one column anyway. */
+@media (min-width: 900px) {
+  :root[data-ask-open="true"] .dh-main:not([data-detail="true"]) { grid-template-columns: minmax(0, 1fr); }
+  :root[data-ask-open="true"] .dh-main:not([data-detail="true"]) > .dht { display: none; }
+}
 /* phones: ONE column and a switch — Applications · Auto-apply timeline (D146 layout 3). */
 @media (max-width: 899px) {
   .dh-main, .dh-main[data-detail="true"] { grid-template-columns: minmax(0, 1fr); }
