@@ -36,6 +36,11 @@ export const NOTIFY_EVENTS = Object.freeze({
   // deadline is stated, because there is none. Push and email on by default (the owner's "push / email nudge").
   quick_check: { label: "A quick check", what: "An application stopped at a check (a CAPTCHA) after Submit — solve it in draft whenever you're back.",
     url: "/app/auto-apply", defaults: { push: true, email: true }, throttle: 15 * 60 },
+  // ⭐ A207 (c) (46l, owner 11-13: "the retry should not re-submit into the same rejection; it should switch to the extension
+  // path and tell you"): draft's server submit was flagged as spam → the application moved to the extension, one press sends it.
+  // The push / in-app line names no company (D100 P4 — a lock screen); the email to the person's own inbox does (as D113).
+  switched_to_extension: { label: "Ready in your extension", what: "An employer's site flagged a submit from draft's servers — the application is ready in your extension, and one press sends it from your browser.",
+    url: "/app/auto-apply", defaults: { push: true, email: true }, throttle: 15 * 60 },
   inbox_reply: { label: "Interview or offer", what: "Your inbox filed a reply from an employer as an interview or an offer.",
     url: "/app/database?sheet=inbox", defaults: { push: true, email: false }, throttle: 0 },
   apply_complete: { label: "Application sent", what: "An application was sent to an employer.",
@@ -75,6 +80,8 @@ export function eventText(event, data = {}) {
         : { title: "Needs you", body: "An application is waiting for you in Home." };
     case "quick_check":
       return { title: "A quick check", body: "An application needs a quick check." };
+    case "switched_to_extension":
+      return { title: "Ready in your extension", body: "The site flagged draft's submit — it's ready in your extension, one press sends it." };
     case "inbox_reply":
       return data.category === "offer" ? { title: "An offer", body: "A reply from an employer was filed as an offer." }
         : { title: "An interview", body: "A reply from an employer was filed as an interview." };
@@ -146,6 +153,13 @@ export function eventEmail(event, data = {}, appUrl = "") {
     if (items.some(it => it.sponsor)) lines.push("A filing record is history, not a promise — confirm with the employer. Not legal advice.", "");
     lines.push("Daily digest, or as they arrive: draft → Account → Notifications.");
     return { subject: `draft · ${items.length === 1 ? "1 new job fits you" : `${items.length} new jobs fit you`}`, text: [...lines, ...foot].join("\n") };
+  }
+  if (event === "switched_to_extension") {
+    const who = data.company ? `${data.company}: the` : "The";
+    return { subject: `draft · ${data.company ? `${data.company} — ` : ""}ready in your extension`,
+      text: [`${who} site flagged draft's submit — it's ready in your extension, one press sends it.`,
+        "", "Nothing was sent. Open it in draft (Open & fill) or from the extension's queue: the form is filled in your own browser, and Submit application in the extension sends it.",
+        "", `Open draft: ${appUrl}${typeof data.url === "string" ? data.url : "/app/auto-apply"}`, ...foot].join("\n") };
   }
   if (event === "picks_summary") {
     const t = eventText(event, data);
@@ -315,9 +329,23 @@ export function notifyRunJobOutcome(db, runJobId, { config = CONFIG } = {}) {
       if (rj.status === "held_gate" && rj.reason_code === "captcha_required") {
         return notifyEvent(rj.user_id, "quick_check", { url: `/app/auto-apply?check=${Number(rj.id)}` }, { config });
       }
+      // ⭐ A207 (c): the server's submit was flagged as spam — switched to the extension, and said so.
+      if (rj.reason_code === "flagged_spam") return notifySwitchedToExtension(db, { userId: rj.user_id, runJobId: rj.id }, { config });
       return notifyEvent(rj.user_id, "needs_you", { ready: rj.reason_code === "awaiting_approval" }, { config });
     }
   } catch (e) { config.log?.warn?.(`[notify] run job ${runJobId}: ${e.message}`); }
   return null;
 }
 
+
+/** ⭐ A207 (c): one application moved from draft's server to the extension after a spam flag. The company is read here for the
+ *  email only (the person's own inbox); the push and the in-app line stay count-free. */
+export function notifySwitchedToExtension(db, { userId, runJobId = null, jobId = null } = {}, { config = CONFIG } = {}) {
+  if (!config) return null;
+  let company = null;
+  try {
+    const jid = jobId ?? db.prepare(`SELECT job_id FROM apply_run_jobs WHERE id = ?`).pluck().get(runJobId);
+    company = jid != null ? db.prepare(`SELECT company FROM scraped_jobs WHERE job_id = ?`).pluck().get(String(jid)) || null : null;
+  } catch {}
+  return notifyEvent(userId, "switched_to_extension", { company }, { config });
+}

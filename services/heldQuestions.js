@@ -96,8 +96,8 @@ const WORDS = Object.freeze({
   captcha_required: "The company's site is behind a CAPTCHA or an identity check.",
   answers_changed_since_approval: "The form changed after you approved it.",
   // ⭐ A187: sent from the person's own browser — the extension fills it from what draft prepared; they press Submit.
-  server_submit_paused: "Filled and ready. This company's application site flags applications sent from draft's servers, so you send it from your own browser — draft fills it in, you press Submit.",
-  flagged_spam: "The company's site flagged the submit from draft's servers as possible spam, so nothing was sent. Send it from your own browser — draft fills it in, you press Submit.",
+  server_submit_paused: "Filled and ready. This company's application site flags applications sent from draft's servers, so it's sent from your own browser — draft fills it in, and one press of Submit application in the extension sends it.",
+  flagged_spam: "The company's site flagged the submit from draft's servers as possible spam, so nothing was sent. It's ready in your extension — draft fills it in your own browser, and one press of Submit application sends it.",
   // ⭐ A179 F2: caught before the run — nothing was opened, typed or sent
   profile_contact_empty: "Your contact details are empty, so nothing was filled or sent. Upload a résumé or fill your name and email in Profile, then Run now.",
 });

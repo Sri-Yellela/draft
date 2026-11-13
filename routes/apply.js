@@ -71,7 +71,7 @@ import { packetAddressing, resolvePageJob, pageNotice, copySheetRows, handoffMes
 import { recordSubmission } from "../services/applicationRecords.js";
 // D100 P2: a gated run-job with a connected portal session goes to the apply worker (services/applyWorker.js).
 import { enqueueRemoteRun, sessionForHost, accountForHost } from "../services/applyWorker.js";
-import { notifyRunJobOutcome } from "../services/notify.js";
+import { notifyRunJobOutcome, notifySwitchedToExtension } from "../services/notify.js";
 // D104 P1: Approve all leaves out a posting the candidate's own defaults rule out.
 import { eligibilityForJob, userEligibilityInputs } from "../services/jobEligibility.js";
 // D107 P3: Approve all also leaves out a posting past the user's staleness thresholds (Auto settings).
@@ -2358,7 +2358,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
       // Record final result for CASE A and CASE C (CASE B returns early above)
       // ⭐ A187 S3: every submit-step outcome counted by ATS (sent · flagged as spam · check · failed · paused).
-      try { recordSubmitOutcome(db, { ats: result.platform || detectPlatformFromUrl(jobUrl), result,
+      try { recordSubmitOutcome(db, { ats: result.platform || detectPlatformFromUrl(jobUrl), result, runJobId, jobId,
         log: (e, m, d) => logEvent(runId, runJobId, userId, jobId, e, m, d) }); } catch {}
       const submitted = result.status === "submitted";
       const atsHeld   = result.status === "ats_held";
@@ -5447,8 +5447,12 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     submitBlocker: (platform, ctx = {}) => (fullAutoDisabled() ? "full_auto_disabled"
       : serverSubmitBlock(db, { ats: platform || (ctx.url ? detectPlatformFromUrl(ctx.url) : null), userId: ctx.userId, jobId: ctx.jobId })),
     onOutcome: ({ userId, jobId, runJobId, runId, url, result }) => {
-      try { recordSubmitOutcome(db, { ats: result?.platform || detectPlatformFromUrl(url), result,
+      try { recordSubmitOutcome(db, { ats: result?.platform || detectPlatformFromUrl(url), result, runJobId, jobId,
         log: (e, m, d) => logEvent(runId, runJobId, userId, jobId, e, m, d) }); } catch {}
+      // ⭐ A207 (c): the re-run's submit was flagged — it moves to the extension, and the person is told.
+      if (result?.reasonCode === "flagged_spam") {
+        try { notifySwitchedToExtension(db, { userId, runJobId, jobId }); } catch {}
+      }
     },
     refuse: (userId) => {
       const used = submittedLast24h(userId);

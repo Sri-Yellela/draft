@@ -711,7 +711,7 @@ export function renderOverlay(model, meta) {
           ${meta.waiting ? flag('waiting', 'wait', 'draft is waiting for you on this step.') : ''}
           ${meta.review?.showInPanel ? flag('review', 'info', meta.review.text || 'Time to review your eligibility and disclosure answers — in draft Settings → Saved answers.') : ''}
           ${meta.resolverBug ? flag('resolver-bug', 'need', `Resolver bug. An eligibility answer was matched by a guess: ${meta.resolverBug.map(b => b.field).join(', ')}. This should be unreachable — do not rubber-stamp it. Answer it yourself.`, 'need') : ''}
-          <span class="sr">Draft never submits for you.</span>
+          <span class="sr">${meta.extensionSubmit ? 'Draft submits only when you press Submit application.' : 'Draft never submits for you.'}</span>
         </div>
         <div class="rm-sc">${groups}</div>
         <div class="rm-ft">
@@ -726,8 +726,13 @@ export function renderOverlay(model, meta) {
             return `<span class="rm-n" data-role="portal" title="${esc(words)}">${sr(words)}<span aria-hidden="true">+${meta.portal.remaining}</span></span>${
               ib('next', 'open', 'Submit this one first, then go to the next')}`;
           })() : ''}
+          <!-- ⭐ A207 (a): where the ATS flags draft's server, the person's ONE press here sends it from their own browser. -->
+          ${meta.extensionSubmit ? ib('send', 'submitted', 'Submit application', { cls: ' primary', title: s.ready
+            ? 'Submit application — one press sends it from your browser; draft records it on the confirmation page'
+            : 'Submit application — once everything is filled', attrs: s.ready ? '' : ' disabled aria-disabled="true"' }) : ''}
           <!-- D56: once YOU have submitted, one click records it — from this page, which is the evidence. -->
-          ${ib('submitted', 'submitted', 'I submitted it', { title: 'I submitted it — draft never submits for you', attrs: s.ready ? '' : ' disabled aria-disabled="true"' })}
+          ${meta.extensionSubmit ? ib('submitted', 'check', 'I submitted it', { title: 'I submitted it — when you pressed Submit on the form itself', attrs: s.ready ? '' : ' disabled aria-disabled="true"' })
+            : ib('submitted', 'submitted', 'I submitted it', { title: 'I submitted it — draft never submits for you', attrs: s.ready ? '' : ' disabled aria-disabled="true"' })}
           <span class="sr" data-role="submitted-msg" role="status"></span>
         </div>`;
       // ⭐ T21: patched in place — an unchanged row is not touched, a changed one only where it changed.
@@ -782,6 +787,26 @@ export function renderOverlay(model, meta) {
         name(btn, 'Could not open the next one — try again');
         btn.dataset.error = reply?.reason || 'no_reply';
       }
+      return;
+    }
+
+    // ⭐ A207 (a) · Submit application — the person's ONE press. ⛔ A page script's click is not trusted and sends nothing;
+    // nor does anything before Ready. The service worker checks again (top frame, an extension-submit packet).
+    if (role === 'send') {
+      if (!ev.isTrusted || !meta.extensionSubmit || !panelSummary(rows).ready) return;
+      const msg = root.querySelector('[data-role="submitted-msg"]');
+      btn.disabled = true;
+      name(btn, 'sending…');
+      const reply = await send({ type: 'GATE_SEND', trigger: 'press', trusted: true });
+      const sent = reply?.outcome === 'sent';
+      name(btn, sent ? 'sent' : 'Submit application');
+      btn.className = sent ? 'rm-btn done' : 'rm-btn primary';
+      if (sent) btn.innerHTML = I('check');
+      btn.disabled = sent;
+      host.dataset.sent = String(sent);
+      if (msg) msg.textContent = reply?.message || (sent ? '' : 'Could not send it — try again.');
+      void globalThis.__draftPopups?.show?.({ id: 'rm-draft-sent', kind: 'toast', text: reply?.message || (sent ? 'Sent.' : 'Not sent.'),
+        icon: sent ? 'check' : 'need', tone: sent ? '' : 'need', theme });
       return;
     }
 

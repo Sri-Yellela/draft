@@ -1,4 +1,13 @@
-# Chrome Web Store listing — draft v1.6.1
+# Chrome Web Store listing — draft v1.7.0
+
+> **v1.7.0 (2026-11-13, 46l — A207, the owner's "make the extension path the primary submit for ATS boards that flag
+> server submissions").** Where an employer's application site flags submissions sent from draft's servers, the review
+> panel offers **Submit application**: the user's ONE press of it (a trusted click, after every required field is
+> filled) clicks that form's own submit button in the user's browser, and the extension reads the page it went to —
+> Sent is recorded only on the employer's confirmation. Nothing else ever sends (no timer, page script, fill or batch
+> step). **No new permission, no new host, no new data collected** — the press uses the `activeTab` / `scripting`
+> access the fill already has on that tab; the confirmation page's address is the one "I submitted it" already sends.
+> The single-purpose and "never submits" statements below now read "never submits on its own".
 
 > **v1.6.1 (2026-11-12, 46j — the owner's "bump up the extension to latest requirements").** 1.6.0 plus 46i's
 > `3889f77c` (Open & fill fills by itself on a tab draft opened to apply). No new permission, no new host, no new
@@ -126,7 +135,8 @@ received. Against v1.0.0:
    data — never an application step) is sent to the user's account, where our server decides whether it
    fits their board — and **discards an irrelevant posting without storing it**. A page that is not a
    posting sends **nothing** — not its address, not a hash. **Fill** may press the form's own Save and
-   Continue but **never submits**, never ticks a terms, consent, attestation or signature box, and never
+   Continue but **never submits on its own** (v1.7.0: where an employer's site flags submissions from draft's servers, the
+   review panel offers **Submit application** — the user's own press of it sends that one form from their browser), never ticks a terms, consent, attestation or signature box, and never
    saves the form's structure for other users. A kill switch turns all of it off and gives every host
    back. Never LinkedIn, Indeed or Glassdoor.
    ⭐ **Since 10-15:** a one-time consent turns Read and Prepare on for the preset hosts (SmartRecruiters'
@@ -433,8 +443,11 @@ In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploa
 
 ## Reviewer notes
 
-> The extension never submits an application. It fills the form and shows a review panel; the user
-> presses the employer's own submit button.
+> The extension never submits an application on its own. It fills the form and shows a review panel; the user
+> presses the employer's own submit button — or, where the employer's site flags submissions sent from draft's servers
+> (v1.7.0), the panel's **Submit application**: that one press by the user (a trusted click, after every required field is
+> filled) clicks the form's submit button in their own browser, and the confirmation page is the record. No timer, page
+> script or batch step ever sends.
 >
 > It never crosses a sign-in or a CAPTCHA. The user authenticates on a portal themselves; only then can
 > they invoke the extension there, and that invocation is what grants access to that one tab. The
@@ -449,7 +462,7 @@ In the order the developer dashboard asks. ⛔ The owner pastes, ticks and uploa
 > Chrome asks them to grant those hosts. Every permission prompt is asked from the settings page.
 > **Always read here** adds one company careers site at a time, from a click there (the
 > optional `https://*/*` exists only so that one origin can be requested; it is never requested itself). Four switches per site (Read · Prepare · Capture · Fill), each off. Capture
-> sends a page only when the page is a job posting; Fill may press Save and Continue but never submits;
+> sends a page only when the page is a job posting; Fill may press Save and Continue but never submits on its own (only the user's press of Submit application does);
 > a kill switch turns everything off.
 >
 > A résumé is generated on the page only when the user presses Generate in the résumé panel; the
@@ -500,7 +513,7 @@ dashboard's **Test instructions** field with the steps below. ⛔ Never commit t
 >
 > **Fill:** from the board, Draft a job and start the application. Sign in to the employer's site if
 > it asks, then press Ctrl+Shift+Y on the form. The answers appear with a review panel. **The extension
-> does not submit.**
+> does not submit on its own** — on a site that flags draft's servers, the panel's Submit application sends it when the user presses it.
 
 ---
 

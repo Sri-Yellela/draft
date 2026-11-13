@@ -146,7 +146,7 @@ The owner decided (10-07) that capture should happen when a posting is opened, w
 `activeTab` cannot do, because it is granted only by an invocation. D97 (10-13) extended that to four
 per-site switches, all off by default: **Read** (the form's labels and counts, kept on this computer),
 **Prepare** (only on a tab already linked to one of the user's jobs), **Capture to my account** (D64), and
-**Fill** (never submits). So the access is OPTIONAL, asked for at the moment the user opts in, per site.
+**Fill** (never submits on its own — v1.7.0's Submit application sends a form only on the user's own press, where the employer's site flags draft's servers). So the access is OPTIONAL, asked for at the moment the user opts in, per site.
 
 ⭐ **D97 REVERSES D64's "no gated portal" line for Workday only (owner, 10-13):** `*.myworkdayjobs.com`
 and `*.myworkdaysite.com` are offered, because Workday changes steps without changing the address and a

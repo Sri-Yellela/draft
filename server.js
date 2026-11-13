@@ -356,7 +356,7 @@ import { backfillProvenanceSlice } from "./services/jobs/enrichmentProvenance.js
 import { nextRowidRange, ACTIVE_JOB_INDEX } from "./services/jobs/rowidWalk.js";
 import { listPairs as listLearnedPairs, setPairRevoked, setPairPromoted, PROMOTE_AT_USERS } from "./services/learnedOrigins.js";
 import { challengeKindCounts } from "./services/challengeRerun.js";   // A186-CAPTCHA (4)
-import { submitOutcomeCounts } from "./services/submitFamilies.js";   // ⭐ A187 S3
+import { submitOutcomeCounts, submitShare, clearFamilyMark } from "./services/submitFamilies.js";   // ⭐ A187 S3
 import { CRAWLER_PAGE_HTML } from "./services/crawlerPage.js";
 import { resolvePlaceText, roleScopeExtra } from "./shared/jobTagVocabulary.js";
 import { userReferencedSql } from "./services/jobs/userReferences.js";
@@ -12243,6 +12243,19 @@ app.get("/api/admin/quick-checks", requireAdmin, (req, res) => {
 app.get("/api/admin/submit-outcomes", requireAdmin, (req, res) => {
   try { res.json(submitOutcomeCounts(db, { days: Number(req.query.days) || 30 })); }
   catch (e) { res.status(500).json({ error: "submit_outcomes_failed", message: e.message }); }
+});
+// ⭐ A207 (b) + (d) (46l): the share over 7 and 30 days (server submits rejected of tried; applications on extension-submit
+// families of all that reached the submit step) and the owner's clear of a family's durable "extension submit" mark, logged.
+app.get("/api/admin/submit-share", requireAdmin, (_req, res) => {
+  try { res.json(submitShare(db)); }
+  catch (e) { res.status(500).json({ error: "submit_share_failed", message: e.message }); }
+});
+app.post("/api/admin/submit-families/:ats/clear", requireAdmin, (req, res) => {
+  const ats = String(req.params.ats || "").toLowerCase();
+  const before = clearFamilyMark(db, ats);
+  if (!before) return res.status(404).json({ error: "no_mark", message: "That ATS is not marked extension submit." });
+  writeAudit(db, { actor: actorOf(req), action: "submit_family_clear", target: `submit_family:${ats}`, before, after: null });
+  res.json({ ok: true, cleared: ats });
 });
 app.post("/api/admin/apply-origins/:id/revoke", requireAdmin, (req, res) => {
   const id = Number(req.params.id);

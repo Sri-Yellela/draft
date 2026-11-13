@@ -32,8 +32,8 @@ import { isSpamFlagText } from "./submitFamilies.js";   // A187 S2
 // ⭐ A187: what a held row says when the server did not (or must not) press Submit — the person sends it from their own
 // browser, where the extension fills it from the stored payload.
 export const BLOCKED_DETAIL = Object.freeze({
-  server_submit_paused: "Filled and ready. This employer's application site flags applications sent from draft's servers, so you send this one from your own browser — draft fills it in, you press Submit.",
-  flagged_spam: "The employer's site flagged the submit from draft's servers as possible spam, so nothing was sent. Send it from your own browser — draft fills it in, you press Submit.",
+  server_submit_paused: "Filled and ready. This employer's application site flags applications sent from draft's servers, so this one is sent from your own browser — draft fills it in, and one press of Submit application in the extension sends it.",
+  flagged_spam: "The employer's site flagged the submit from draft's servers as possible spam, so nothing was sent. It's ready in your extension — draft fills it in your own browser, and one press of Submit application sends it.",
 });
 
 // -- Field-type catalogue ------------------------------------------------------
