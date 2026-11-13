@@ -427,7 +427,7 @@ test("Retry no longer throws before it reaches the queue", () => {
   assert.match(destructured, /draftJob/,
     "retryJob calls draftJob but the panel never takes it from the context");
   assert.match(destructured, /setHandoffMsg/);
-  assert.match(panel, /const retryJob = \(job\) => \{ draftJob\?\.\(job, companyLabel\(job\.company\)\); \};/);
+  assert.match(panel, /const retryJob = async \(job\) => \{[\s\S]{0,200}?const r = await draftJob\?\.\(job, companyLabel\(job\.company\)\);/);
   assert.match(ctx, /applyMsg, setApplyMsg,/);
   assert.match(ctx, /draftJob, draftTool,/);
 });

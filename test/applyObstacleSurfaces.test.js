@@ -523,7 +523,7 @@ test("the needs-review count is still reachable from the board", () => {
 test("every capability of the old strip survived the reorganisation", () => {
   for (const [what, needle] of [
     ["the readiness gate",      /applyReadiness && !applyReadiness\.available/],
-    ["retry drafts again",      /const retryJob = \(job\) => \{ draftJob/],
+    ["retry drafts again",      /const retryJob = async \(job\) => \{[\s\S]{0,200}?await draftJob/],
     // D25 REMOVED AD1's dated navigation and outcome tabs: Draft House shows what needs the user
     // now, and the dated record of what happened is The Table's (D15). What remains here is the
     // control over what is still live.

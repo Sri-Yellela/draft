@@ -115,7 +115,7 @@ test("a179RunNowVisible: Run now shows in both modes; every held row can be Run 
   const head = panel.slice(at(panel, "const timelineHead = ("), at(panel, "const chooseAsk = async"));
   assert.match(head, /\{!held && \(\s*<p className="dht-head__sub" data-run-now-row="">/);
   assert.doesNotMatch(head, /\(fullAuto \|\| picksOn\) && !held/, "no longer hidden in Ask me first");
-  assert.match(panel, /const runAgain = !r\.postingGone \? \[\{ id: "rerun", label: "Run again"/);
+  assert.match(panel, /const runAgain = !r\.postingGone \? \[\{ id: "rerun", label: rr === "busy" \? "Starting…" : rr === "started" \? "Running again…" : "Run again"/);
   assert.equal((panel.match(/\.\.\.runAgain/g) || []).length, 3, "on the question, empty and default held rows");
   assert.match(fs.readFileSync("server.js", "utf8"), /no_auto_mode: "Run now starts your daily picks/);
 });

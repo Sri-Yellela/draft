@@ -116,10 +116,10 @@ test("a181BulkRerunCancel + a181LimitVisibleAndExplained + a181RerunUsesCurrentC
   assert.match(panel, /data-held-before-update=""/, "the once-after-an-update offer");
   assert.match(read("routes/apply.js"), /heldBeforeUpdate: \(\(\) => \{ const bootAt = Math\.floor\(Date\.now\(\) \/ 1000 - process\.uptime\(\)\);/);
   assert.match(panel, /new drafts left in the last 24 hours · running a draft again is free/);
-  assert.match(panel, /label: "Run again", title: "Draft this job again now with draft's current fixes — free/);
+  assert.match(panel, /: "Draft this job again now with draft's current fixes — free: running a draft again never uses a new one\."/);
   assert.match(read("services/draftSlots.js"), /running a draft again is free/, "the refusal says so too");
   // a re-run is a NEW run through startRun (the current fill / matcher / tailoring), never a replay of the old result
-  assert.match(panel, /const retryJob = \(job\) => \{ draftJob\?\.\(job, companyLabel\(job\.company\)\); \};/);
+  assert.match(panel, /const retryJob = async \(job\) => \{[\s\S]{0,200}?const r = await draftJob\?\.\(job, companyLabel\(job\.company\)\);/);
 });
 
 // ⭐ 46f · A181 (5c) "Re-run selected" (the acceptance's "bulk Re-run selected on 3 held rows"): Choose which lists the held
