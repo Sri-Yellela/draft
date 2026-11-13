@@ -106,7 +106,9 @@ export function changesAsText(d, jobLabel = "") {
 }
 
 // `initialTo` opens on a given right-hand side — The Table's What we sent passes "sent:<application record id>".
-export default function ResumeChangesPanel({ jobId, jobLabel = "", onClose, initialTo = null }) {
+// ⭐ 46j (owner 11-13: "move the entire what we changed panel as a side panel beside the resume tailored for this job"):
+// `docked` draws it INLINE (no scrim, not a dialog) — ResumeEditorHost puts it beside the tailored résumé.
+export default function ResumeChangesPanel({ jobId, jobLabel = "", onClose, initialTo = null, docked = false }) {
   const [list, setList] = useState(null);
   const [from, setFrom] = useState("base");
   const [to, setTo] = useState(null);
@@ -116,7 +118,7 @@ export default function ResumeChangesPanel({ jobId, jobLabel = "", onClose, init
   const [copied, setCopied] = useState(false);
   const closeRef = useRef(null);
 
-  useEffect(() => { closeRef.current?.focus(); }, []);
+  useEffect(() => { if (!docked) closeRef.current?.focus(); }, [docked]);   // docked beside the editor: never steal focus
   useEffect(() => {
     const k = (e) => { if (e.key === "Escape") onClose?.(); };
     window.addEventListener("keydown", k);
@@ -158,9 +160,8 @@ export default function ResumeChangesPanel({ jobId, jobLabel = "", onClose, init
   const last = d?.to?.atsScore ?? null;
   const untraced = sum ? sum.termsGained.filter(t => t.source === "untraced") : [];
 
-  return createPortal(
-    <div className="rc__scrim" onClick={e => e.target === e.currentTarget && onClose?.()}>
-      <section className="rc" role="dialog" aria-modal="true" aria-label="What we changed" data-side={side} data-resume-changes="">
+  const panel = (
+      <section className="rc" {...(docked ? { role: "complementary", "data-docked": "true" } : { role: "dialog", "aria-modal": "true" })} aria-label="What we changed" data-side={side} data-resume-changes="">
         <div className="rc__head"><h2>What we changed</h2><button ref={closeRef} type="button" className="rc__link" onClick={onClose}>Close</button></div>
         <p className="rc__purpose">Every change we made to your résumé for this job — and why. Your résumé on the left, the tailored one on the right.</p>
         {err && <div className="rc__alarm" role="alert">{err}</div>}
@@ -216,7 +217,10 @@ export default function ResumeChangesPanel({ jobId, jobLabel = "", onClose, init
           </>}
         </>}
       </section>
-    </div>,
+  );
+  if (docked) return panel;
+  return createPortal(
+    <div className="rc__scrim" onClick={e => e.target === e.currentTarget && onClose?.()}>{panel}</div>,
     document.body,
   );
 }

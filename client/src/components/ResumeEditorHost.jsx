@@ -17,6 +17,7 @@ import { createPortal } from "react-dom";
 import { api, authHeaders, printResume } from "../lib/api.js";
 import { RESUME_EDITOR_EVENT, changedLines, themeTokens, editorPath, REOPEN_KEY, openResumeEditor } from "../lib/resumeEditor.js";
 import { Z } from "../styles/zLayers.js";
+import ResumeChangesPanel from "./ResumeChangesPanel.jsx";   // 46j: What we changed, docked beside a job's tailored résumé
 import "./ResumeEditorHost.css";
 
 const CONTRACT = "rm-editor/1";
@@ -46,6 +47,9 @@ export default function ResumeEditorHost() {
   const [cfg, setCfg] = useState(null);
   const [phase, setPhase] = useState("idle");       // idle · loading · ready · failed
   const [status, setStatus] = useState("");
+  // ⭐ 46j (owner 11-13: "move the entire what we changed panel as a side panel beside the resume tailored for this job. so
+  // opening the resume is much more transparent"): open by default for a job's résumé; the bar's button hides / shows it.
+  const [changesOpen, setChangesOpen] = useState(true);
   const [inset, setInset] = useState({ top: 0, left: 0 });
   const frameRef = useRef(null);
   const reqRef = useRef(null);
@@ -240,7 +244,12 @@ export default function ResumeEditorHost() {
         <button type="button" ref={backRef} className="rmeh__back dbx-depth" onClick={() => close()} data-resume-editor-back="">← Back</button>
         <span className="rmeh__title">{request.company ? `Résumé · ${request.company}` : "Résumé"}{request.readOnly ? " · as sent" : ""}</span>
         <span className="rmeh__status" role="status">{phase === "loading" ? "Opening the editor…" : status}</span>
+        {request.jobId != null && (
+          <button type="button" className="rmeh__back dbx-depth" aria-pressed={changesOpen} data-resume-editor-changes=""
+            onClick={() => setChangesOpen(v => !v)}>{changesOpen ? "Hide what we changed" : "What we changed"}</button>
+        )}
       </div>
+      <div className="rmeh__body">
       {phase === "failed" ? (
         <div className="rmeh__failed">
           <p>{status || "The résumé editor couldn't be opened."}</p>
@@ -254,6 +263,12 @@ export default function ResumeEditorHost() {
           sandbox="allow-scripts allow-same-origin allow-modals allow-downloads" allow="clipboard-write"
           referrerPolicy="no-referrer" data-ready={phase === "ready" ? "true" : "false"} />
       )}
+      {request.jobId != null && changesOpen && (
+        <aside className="rmeh__changes" data-resume-editor-side="">
+          <ResumeChangesPanel docked jobId={request.jobId} jobLabel={request.company || ""} onClose={() => setChangesOpen(false)} />
+        </aside>
+      )}
+      </div>
     </section>,
     document.body,
   );
