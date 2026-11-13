@@ -727,8 +727,9 @@ export function AutoApplyPanel({ user = null } = {}) {
           title: rr === "started" ? "A new draft of this job is running with draft's current fixes — its result replaces this row."
             : "Draft this job again now with draft's current fixes — free: running a draft again never uses a new one.",
           onClick: () => retryJob(row) }] : [];
+        // 46j (owner 11-13: "dont know what answer means when the questions are right there"): no "Answer" button — the
+        // stepper (and Ask draft) take the answers and its own Finish saves them.
         if (node.why === "question") return [
-          { id: "answer", label: answersSaving ? "Saving…" : "Answer", kind: "primary", disabled: answersSaving, onClick: () => submitApplyAnswers(true) },
           // ⭐ A181 (5b): "Cancel this draft" — out of Needs you, into Cleared (Restore for 7 days); nothing was sent, so its draft comes back.
           ...runAgain, { ...clearIt(r), id: "cancel", label: "Cancel this draft",
             title: "Cancel it — it moves to Cleared, where you can restore it for 7 days. Nothing was sent, so its draft comes back to you." },
@@ -736,7 +737,8 @@ export function AutoApplyPanel({ user = null } = {}) {
         // D53: one word for one act — a posting that is gone is CLEARED like anything else (Restore is in the bin).
         if (node.why === "gone") return [clearIt(r)];
         if (node.why === "empty") return [
-          { id: "answer", label: "Answer them", kind: "primary", onClick: () => openApplicationReview(r) }, ...runAgain, ...yourself(row)];
+          ...(heldQuestionsFor(node).length ? [] : [{ id: "answer", label: "Answer them", kind: "primary", onClick: () => openApplicationReview(r) }]),
+          ...runAgain, ...yourself(row)];
         const packet = handoffPacketFor?.(r.primary?.row) || handoffPacketFor?.(r);
         const resumable = !!packet && !packet.postingGone && !packet.stale && !r.postingGone;
         // ⭐ D52: a stale (or never-built) packet is ONE click from fresh — a new Draft of the same job.
@@ -1082,7 +1084,9 @@ export function AutoApplyPanel({ user = null } = {}) {
     const extra = stageActions(row.stage).filter(id => !have.has(id)).flatMap(id => [extraAction(row, id)].flat()).filter(Boolean);
     const n = row.node;
     // The application's own page (JobWorkspacePanel) — what the lead card's "Full page" was.
-    const page = n ? (n.jobId != null && !sentAlready(n) ? [{ id: "page", label: "Full page", onClick: () => openFull(n.jobId) }] : [])
+    // 46j (owner 11-13: "full page is also kinda redundant when we want the user to stay within draft"): no "Full page" on an
+    // unsent application — everything it showed is in the opened row and its panes.
+    const page = n ? []
       : row.hist?.recordId != null ? [{ id: "page", label: "Its own page", onClick: () => navigate(`/app/job/${row.hist.recordId}`) }] : [];
     return [...base, ...extra, ...page];
   };

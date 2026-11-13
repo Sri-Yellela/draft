@@ -61,7 +61,7 @@ test("a181OneInputPerQuestionTyped: the server keeps each question's type / opti
 
 test("a181RowAndPanelCountsMatch + a181FreeTextArrivesAsDraft: one count; the heading splits yours from draft's drafts", () => {
   assert.deepEqual(heldCounts(SAILOR), { total: 4, yours: 2, drafts: 2 });
-  assert.equal(heldHeadline(SAILOR).title, "2 answers only you can give · 2 drafts to check");
+  assert.equal(heldHeadline(SAILOR).title, "2 answers only you can give · 2 written answers to check");
   assert.equal(answersWord(SAILOR), "4 need you", "the row says what the panel says (was a hard-coded 1)");
   assert.deepEqual(heldQuestionsFor(SAILOR).map(q => q.kind), ["draft", "draft", "yesno", "yesno"]);
 });

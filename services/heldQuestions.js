@@ -34,7 +34,11 @@ export function waitsOnPerson(q) {
  * The questions waiting on the person, required first, each once.
  * @returns {Array<{ question: string, required: boolean, from: "form" | "empty" | "profile" | "employer", eligibility?: string|boolean }>}
  */
-export function heldQuestionsOf({ openQuestionsJson = null, blanksJson = null, packetJson = null } = {}) {
+// ⭐ 46j (owner 11-13: "clera still asking for my first name lol"): a row held AFTER the run filled the form (a CAPTCHA at
+// Submit) carries no open questions / blanks, so the packet's CANONICAL profile fields (First Name …) were listed as if
+// unanswered. `formFilled` (the run typed answers — answers_json) counts as having read the form: only the employer's own
+// questions and eligibility answers from the packet stay.
+export function heldQuestionsOf({ openQuestionsJson = null, blanksJson = null, packetJson = null, formFilled = false } = {}) {
   const out = [];
   const seen = new Set();
   // ⭐ A181 (3): the form's own control type and options travel with the question, so the held panel draws ONE typed input
@@ -52,7 +56,7 @@ export function heldQuestionsOf({ openQuestionsJson = null, blanksJson = null, p
   // the form (its open questions / blanks were recorded), the form is the truth — the packet's CANONICAL contact fields
   // (which may not even be on this form) are not listed; only its eligibility answers and the employer's own questions
   // stay. An optional field is never listed: left blank, as the person would.
-  const readTheForm = Array.isArray(open) || Array.isArray(blanks);
+  const readTheForm = Array.isArray(open) || Array.isArray(blanks) || !!formFilled;
   for (const q of open || []) {
     if (!waitsOnPerson(q)) continue;   // A189: the same rule the unblock check uses
     push(q?.question || q?.label, q?.required, "form", q?.eligibility, q?.type, q?.options);

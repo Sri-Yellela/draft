@@ -32,7 +32,7 @@ import {
 import { probeBrowserAvailability } from "../services/browserLauncher.js";
 import { cachedApplicationSchema, schemaFieldsForFill, warmApplicationSchema, schemaQuestionsForTailoring, hostedFormUrl } from "../services/jobs/applicationSchema.js";
 import { answerDraftsEnabled, runDraftQuestions, runPickQuestions } from "../services/applicationAnswerDraft.js";
-import { keptAnswers, keepAnswers, partKeyOf, coverLetterOnce } from "../services/payloadParts.js";   // A198 (46j)   // D185-1 (45s): the drafted answers' switch
+import { keepAnswers, partKeyOf, coverLetterOnce, keepPersonAnswers, keptAnswersBySource } from "../services/payloadParts.js";   // A198 (46j)   // D185-1 (45s): the drafted answers' switch
 import { attributeApplyUrl, attributionFamily, tokenFor, howHeardAnswers } from "../shared/sourceAttribution.js";
 import { getSetting } from "../services/appSettings.js";
 // AH5: the one definition of "is this stored resume still the right one". Shared with server.js's
@@ -1933,10 +1933,15 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // answers) is not drafted. A failed draft just leaves the field to hold as before.
       // ⭐ A198 (46j): the answers an earlier run of THIS job already drafted or picked are reused as they were recorded —
       // never drafted again (services/payloadParts.js, first write wins); only the questions still without one are drafted.
-      const kept = keptAnswers(db, { userId, jobId });
+      // A198 (2): the person's own answers for THIS job go in as their answers (custom_answers — exact-question, so even an
+      // eligibility question takes them), ahead of the profile's; the drafted / picked ones as drafts.
+      const keptBy = keptAnswersBySource(db, { userId, jobId });
+      const kept = { ...keptBy.drafted, ...keptBy.person };
+      if (Object.keys(keptBy.person).length) autofillPayload.custom_answers = { ...(autofillPayload.custom_answers || {}), ...keptBy.person };
+      if (Object.keys(keptBy.drafted).length) autofillPayload.drafted_answers = { ...keptBy.drafted, ...(autofillPayload.drafted_answers || {}) };
       if (Object.keys(kept).length) {
-        autofillPayload.drafted_answers = { ...kept, ...(autofillPayload.drafted_answers || {}) };
-        logEvent(runId, runJobId, userId, jobId, "answers_reused", `Reused ${Object.keys(kept).length} answer(s) an earlier run of this job made`, { questions: Object.keys(kept) });
+        logEvent(runId, runJobId, userId, jobId, "answers_reused", `Reused ${Object.keys(kept).length} answer(s) kept for this job (${Object.keys(keptBy.person).length} yours, ${Object.keys(keptBy.drafted).length} drafted)`,
+          { yours: Object.keys(keptBy.person), drafted: Object.keys(keptBy.drafted) });
       }
       if (typeof draftRunAnswers === "function") {
         try {
@@ -3193,7 +3198,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
   };
   const heldFacts = (r) => (r.status === "held_review" || r.status === "held_gate") ? {
     heldReason: heldReasonWords(r.reason_code, r.reason_detail),
-    heldQuestions: heldQuestionsOf({ openQuestionsJson: r.open_questions_json, blanksJson: r.blanks_json, packetJson: latestPacketJson(r) }),
+    heldQuestions: heldQuestionsOf({ openQuestionsJson: r.open_questions_json, blanksJson: r.blanks_json, packetJson: latestPacketJson(r), formFilled: !!r.answers_json }),
   } : {};
   const publicRunJob = (r) => ({
     ...heldFacts(r),
@@ -5336,7 +5341,7 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           generationDeferred: r.resume_artifact_id == null && r.base_ats_json != null,
           screenshotAvailable: !!r.screenshot_path,
           // ⭐ A165: the questions still open on this filled application, named — not only counted.
-          heldQuestions: heldQuestionsOf({ openQuestionsJson: r.open_questions_json, blanksJson: r.blanks_json, packetJson: latestPacketJson(r) }),
+          heldQuestions: heldQuestionsOf({ openQuestionsJson: r.open_questions_json, blanksJson: r.blanks_json, packetJson: latestPacketJson(r), formFilled: !!r.answers_json }),
         };
       }),
     });
@@ -5391,8 +5396,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
       const p = withHowHeard(userId, jobId, buildAutofillPayload(profile, "APPLY", job?.company, jobId));
       // A198: + the answers kept for this job (drafted / picked by earlier runs) — the same ones, never re-made.
-      const kept = keptAnswers(db, { userId, jobId });
-      if (p && Object.keys(kept).length) p.drafted_answers = { ...kept, ...(p.drafted_answers || {}) };
+      const keptBy = keptAnswersBySource(db, { userId, jobId });
+      if (p && Object.keys(keptBy.drafted).length) p.drafted_answers = { ...keptBy.drafted, ...(p.drafted_answers || {}) };
+      if (p && Object.keys(keptBy.person).length) p.custom_answers = { ...(p.custom_answers || {}), ...keptBy.person };   // A198 (2)
       return p;
     },
     // The address the first run opened — the same rule processRunJob uses (practice form first, then the hosted embed).
@@ -5922,6 +5928,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
 
       if (retryJobIds !== null) {
         const requested = (Array.isArray(retryJobIds) ? retryJobIds : []).map(String);
+        // ⭐ A198 (2) (46j, owner: "its still asking these questions, i answered a short while ago"): every answer given here
+        // is KEPT for each job it was given for — whatever "Save for next time" says (unticked used to keep it only as a
+        // per-company override when the question sat in open_questions_json; a question listed from the blanks or the
+        // packet was kept nowhere) — and every later run of the job feeds it in as the person's own answer.
+        for (const jid of requested) keepPersonAnswers(db, { userId: req.user.id, jobId: jid, answers: Object.fromEntries(entries) });
         // Only retry jobs that are actually unblocked; anything else is reported back, not queued.
         const toRetry = requested.filter(id => unblocked.includes(id));
         const skipped = requested.filter(id => !unblocked.includes(id));
