@@ -7,7 +7,7 @@ import { api }      from "../lib/api.js";
 import { useTheme } from "../styles/theme.jsx";
 import { C } from "../styles/colorTokens.js";
 import { GlanceTab, UserApplications, DiskBanner, CrawlerTab, PluginTab, NoticesTab, CostsTab, DeploymentsPanel, DiskPanel, ReviewerAccount,
-         BoardPolicySection, KillSwitchSection, FullAutoPrerequisitesSection, QuickChecksSection, TailoringAdminSection, MatchAlertsSection, OutcomesSection, BoardFitSection, JobDataSection, CompaniesSection, SlugHarvestSection,
+         BoardPolicySection, KillSwitchSection, FullAutoPrerequisitesSection, QuickChecksSection, SubmitOutcomesSection, TailoringAdminSection, MatchAlertsSection, OutcomesSection, BoardFitSection, JobDataSection, CompaniesSection, SlugHarvestSection,
          ToolsServiceSection } from "./adminOps.jsx";
 import { ADMIN_GROUPS, readAdminPlace, writeAdminPlace } from "./adminMap.js";
 import { AdminSection } from "./adminKit.jsx";
@@ -769,7 +769,7 @@ export function AdminPanel() {
       {at("data", "atlas") && <><AtlasTab/><AtlasBacklogSection/><AtlasCompeteSection/></>}
 
       {/* System — is it set up right? */}
-      {at("system", "switches") && <><KillSwitchSection theme={theme}/><FullAutoPrerequisitesSection theme={theme}/><QuickChecksSection theme={theme}/><TailoringAdminSection theme={theme}/><PluginTab theme={theme}/></>}
+      {at("system", "switches") && <><KillSwitchSection theme={theme}/><FullAutoPrerequisitesSection theme={theme}/><QuickChecksSection theme={theme}/><SubmitOutcomesSection theme={theme}/><TailoringAdminSection theme={theme}/><PluginTab theme={theme}/></>}
       {at("system", "tools") && <ToolsServiceSection theme={theme}/>}
       {at("system", "usage") && <><ModelUsageTab/><ModelGatewaySection/><FlagsSection/></>}
 

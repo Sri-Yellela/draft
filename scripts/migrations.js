@@ -7379,4 +7379,14 @@ export const MIGRATIONS = [
         );
       `,
     },
+    {
+      // ⭐ A187 S1–S3 (46k): the submit-outcome reads — a family's flags in 24 h (before every server-side submit), a job's
+      // earlier flag, and Admin's counts by ATS — each answered by a partial index of the few submit_outcome rows, never a
+      // pass over apply_job_logs.
+      id: "275_apply_job_logs_submit_outcome",
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_apply_logs_submit_outcome_time ON apply_job_logs(created_at) WHERE event = 'submit_outcome';
+        CREATE INDEX IF NOT EXISTS idx_apply_logs_submit_outcome_job ON apply_job_logs(user_id, job_id) WHERE event = 'submit_outcome';
+      `,
+    },
   ];

@@ -663,6 +663,30 @@ export function QuickChecksSection({ theme }) {
   );
 }
 
+// ── ⭐ A187 S3 · submits by ATS × outcome — GET /api/admin/submit-outcomes ──────────────────────────────────────────
+// Where server-side submits land per ATS family, and which families are paused (Ashby always; any other after its spam
+// flags) — a paused family's runs are filled and handed to the person's own browser. services/submitFamilies.js.
+const PAUSED_WORDS = { always: "Paused — flags server submits", flags: "Paused — spam flags in 24 h" };
+export function SubmitOutcomesSection({ theme }) {
+  const [s, setS] = useState(null);
+  const [err, setErr] = useState(null);
+  useEffect(() => { api("/api/admin/submit-outcomes").then(setS).catch(e => setErr(e.message)); }, []);
+  const flagged = s ? s.families.reduce((n, f) => n + f.flagged_spam, 0) : 0;
+  const rows = s ? s.families.map(f => ({ ...f, state: f.pausedBy ? PAUSED_WORDS[f.pausedBy] : "Server submits on" })) : [];
+  return (
+    <Panel title="Submits by ATS" data-admin-submit-outcomes=""
+      code={`A187 S3: apply_job_logs' submit_outcome events by ATS. A family with ${s?.threshold ?? 2} spam flags in 24 h stops server-side submits on its own; Ashby is always paused. Paused runs are filled and sent from the person's own browser (the extension fills, the person presses Submit). No proxies, no evasion.`}
+      purpose="Which application sites accept draft's submits and which flag them. A new 'flagged as spam' count means that site is now handed to people's own browsers."
+      numbers={s ? [[flagged, `flagged as spam in the last ${s.days} days`, flagged > 0], [s.paused.length, `paused: ${s.paused.join(", ") || "none"}`]] : []}>
+      <Err msg={err}/>
+      {s && <Table theme={theme} rows={rows} empty="No submits recorded."
+        cols={[{ key: "ats", label: "ATS" }, { key: "sent", label: "Sent", right: true }, { key: "flagged_spam", label: "Flagged as spam", right: true },
+          { key: "challenge", label: "Check", right: true }, { key: "failed", label: "Failed", right: true }, { key: "paused", label: "Held (paused)", right: true },
+          { key: "state", label: "Server submit" }]} />}
+    </Panel>
+  );
+}
+
 function OutcomeBars({ theme, weeks }) {
   const W = 560, H = 120, pad = 18, n = weeks.length || 1;
   const max = Math.max(1, ...weeks.map(w => w.all.interviews));

@@ -90,6 +90,19 @@ const BY_REASON = {
     action: "Open the prepared application and send it yourself",
     protective: true, retryable: false,
   },
+  // ⭐ A187 (owner 11-12): an ATS that flags submits from draft's servers (Ashby always; any family after its flags) is
+  // sent from the person's own browser — the extension fills it from the stored payload and the person presses Submit.
+  // Not retryable from the server: pressing it again from the same address is what makes the flags worse.
+  server_submit_paused: {
+    obstacle: "Filled and ready — this site flags applications sent from draft's servers, so you send it from your own browser",
+    action: "Open & fill: draft fills it in your browser, you press Submit",
+    protective: true, retryable: false,
+  },
+  flagged_spam: {
+    obstacle: "The site flagged the submit from draft's servers as possible spam — nothing was sent",
+    action: "Open & fill: draft fills it in your browser, you press Submit",
+    protective: true, retryable: false,
+  },
   submit_check_failed: {
     obstacle: "We could not confirm it was safe to send, so it was not sent",
     action: "Draft it again",
