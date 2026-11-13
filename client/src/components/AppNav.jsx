@@ -40,6 +40,7 @@ import UsbSuggest from "./UsbSuggest.jsx";
 import { requestBoardSearch } from "../lib/boardSearch.js";
 import { useAccountAvatar } from "../lib/accountAvatar.js";
 import { useAutoApply } from "../contexts/AutoApplyContext.jsx";
+import AskDraftThread from "./AskDraftThread.jsx";   // A199 (2): a held application's questions as a thread
 import { autoToggle } from "../lib/draftHouseExceptions.js";
 import { ACTIVE_THEME } from "../themes/index.js";
 import "./AppNav.css";
@@ -334,6 +335,18 @@ export function ProfilePeek({ open, profile, pos = { top: 0, left: 80 }, onGo, o
 // doesn't cover it, the person tells draft about it here and the answer is written from their own words (POST …/draft
 // with `note`). Works whether or not the general assistant is open.
 export function AskDraftPanel({ open, onClose, panelRef }) {
+  // ⭐ A199 (2): one held application's questions as a thread here (components/AskDraftThread.jsx) — draft:open-questions.
+  const [thread, setThread] = useState(null);
+  const { loadApplyRuns, loadApplyPending } = useAutoApply();
+  useEffect(() => {
+    const onOpen = (e) => {
+      const d = e.detail || {};
+      if (d.jobId == null || !Array.isArray(d.questions) || !d.questions.length) return;
+      setThread(t => (t && String(t.jobId) === String(d.jobId) ? t : { jobId: d.jobId, company: d.company || "", questions: d.questions }));
+    };
+    window.addEventListener("draft:open-questions", onOpen);
+    return () => window.removeEventListener("draft:open-questions", onOpen);
+  }, []);
   const [status, setStatus] = useState(null);
   const [turns, setTurns] = useState([]);
   const [q, setQ] = useState("");
@@ -408,6 +421,10 @@ export function AskDraftPanel({ open, onClose, panelRef }) {
           with you before it does anything.
         </p>
       )}
+      {thread && (
+        <AskDraftThread thread={thread} onClose={() => setThread(null)}
+          onSaved={() => { loadApplyRuns?.(); loadApplyPending?.(); window.dispatchEvent(new CustomEvent("draft:answers-saved", { detail: { jobId: thread.jobId } })); }} />
+      )}
       {app && (
         <p className="appnav-ask__say" data-ask-app-question="">
           Answering <b>{app.question}</b> — tell draft about it in your own words and it writes the answer.{" "}
@@ -464,10 +481,12 @@ export default function AppNav({ tabs = [], activeTab, hrefForTab, onTabChange, 
   const [peekPos, setPeekPos] = useState({ top: 0, left: 80 });
   const [askOpen, setAskOpen] = useState(false);
   // A199: Home's held stepper asks for a draft → Ask draft opens beside it (the panel itself takes the question).
+  // A199 (2): …and a held application's questions open as a thread there (draft:open-questions).
   useEffect(() => {
     const open = () => setAskOpen(true);
     window.addEventListener("draft:ask-question", open);
-    return () => window.removeEventListener("draft:ask-question", open);
+    window.addEventListener("draft:open-questions", open);
+    return () => { window.removeEventListener("draft:ask-question", open); window.removeEventListener("draft:open-questions", open); };
   }, []);
   const [searching, setSearching] = useState(false);   // ⭐ 45n: the dock is the search bar
   // ⭐ D180 P1 (45o): is the network on? (GET /api/network/status — false on any failure: the dock stays as it was.)

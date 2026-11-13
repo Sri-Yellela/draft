@@ -21,7 +21,7 @@
 
 // ── MODULES: a page and the files that are its parts. A part (`module:` below) may be used ONLY by members.
 export const MODULES = Object.freeze({
-  shell: { why: "the app's chrome — App mounts it", members: ["App.jsx", "components/AppShell.jsx", "components/TopBar.jsx", "components/AppNav.jsx", "components/dockPlace.js",
+  shell: { why: "the app's chrome — App mounts it", members: ["App.jsx", "components/AppShell.jsx", "components/TopBar.jsx", "components/AppNav.jsx", "components/dockPlace.js", "components/AskDraftThread.jsx",
     "components/NavBar.jsx", "components/InlineLoginPopover.jsx", "components/AdminLayout.jsx", "consoles/PlanConsoles.jsx"] },
   auth: { why: "sign-in and sign-up", members: ["App.jsx", "components/AuthScreen.jsx", "components/SignupAtsHook.jsx", "components/DealBackdrop.jsx"] },
   deck: { why: "the Daily Deck",
@@ -139,7 +139,7 @@ export const SHARED = Object.freeze({
   "components/TopBar.css":              { what: "the top bar's mark group (the tab row it styled went with D145)", owner: "components/TopBar.jsx" },
   // ⭐ D145 Step 3 · the Dock / the Menu. The Customise preview draws them with these classes — a decided reuse (the
   // preview must be the real look, as with the sentence, D93).
-  "components/AppNav.css":              { what: "the Dock and the Menu's side panel (D145)", owner: "components/AppNav.jsx", alsoBy: ["components/CustomisePreview.jsx"] },
+  "components/AppNav.css":              { what: "the Dock and the Menu's side panel (D145)", owner: "components/AppNav.jsx", alsoBy: ["components/CustomisePreview.jsx", "components/AskDraftThread.jsx"] },   // 46j: the Ask draft thread wears the panel's look
   "components/SectionHeading.jsx":      { what: "THE section heading (A93: was inside AutoApplyPanel's file)" },
   // ⭐ D167 · a place with its own navigation — Profile and Interview (and the pattern Atlas's navigation follows).
   "components/PlaceNav.jsx":            { what: "a place's own navigation (D167) — the nav card beside the dock, groups of panels at their own addresses, and PlaceHead" },
@@ -199,6 +199,7 @@ export const SHARED = Object.freeze({
   "components/ExtensionPanel.css":      { what: "its look", owner: "components/ExtensionPanel.jsx" },
   // D90 P3: shared — the posting panel (board), Draft House's review line and The Table's What we sent all open it.
   "components/ResumeChangesPanel.jsx":  { what: "What we changed — any two résumés side by side, its summary line, and What we sent (D90)" },
+  "components/AskDraftThread.jsx":      { what: "One held application's questions as a thread in Ask draft — answered one at a time, Finish the form (A199 (2), 46j)", module: "shell" },
   "components/ResumeChangesPanel.css":  { what: "its look", owner: "components/ResumeChangesPanel.jsx" },
   "components/ResumeEditorHost.jsx":    { what: "THE résumé editor's full-screen view — resume-master's editor embedded through rm-editor/1, Back / Esc returns (D157 option A)" },
   "components/ResumeEditorHost.css":    { what: "its look", owner: "components/ResumeEditorHost.jsx" },

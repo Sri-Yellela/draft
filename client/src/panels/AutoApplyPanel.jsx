@@ -98,6 +98,27 @@ const DH_TITLE = Object.freeze({ fontSize: "calc(44px * var(--type-scale, 1))", 
 // list. Answering slides it away (a short fade; none under Reduce motion — DraftHouse.css). After the last one: one line,
 // "All answered", and Finish. Nothing is sent from here: Finish saves the answers and re-runs THIS job (free — A181 (5a)),
 // which ends Ready to approve.
+// ⭐ A199 (2): the opened row's line for a held application whose questions are answered in Ask draft — the thread opens by
+// itself the first time the row opens (once per job), the button opens it again, and "answer here instead" keeps the stepper.
+function QuestionsInAskDraft({ node, count, opened, onOpen, onHere }) {
+  // keyed by the held RUN, so a Run again that comes back with questions opens its thread again
+  const k = `${node.jobId}:${node.ref?.primary?.row?.id ?? node.ref?.id ?? ""}`;
+  useEffect(() => {
+    if (opened.has(k)) return;
+    opened.add(k);
+    onOpen();
+  }, [k]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="dht-step" data-held-in-ask-draft={String(node.jobId)}>
+      <p className="dht-step__meta">{count} question{count === 1 ? "" : "s"} — answered in Ask draft, beside this. draft fills the form when you finish.</p>
+      <div className="dht-acts">
+        <button type="button" className="dh-btn" data-kind="primary" data-action="open-questions-thread" onClick={onOpen}>Answer them in Ask draft</button>
+        <button type="button" className="dh-btn dht-step__link" data-action="answer-here" onClick={onHere}>answer here instead</button>
+      </div>
+    </div>
+  );
+}
+
 function HeldQuestionStepper({ jobId, questions, values, setValue, remember, setRemember, onFinish, busy, message }) {
   const [i, setI] = useState(0);
   const [all, setAll] = useState(false);
@@ -516,6 +537,13 @@ export function AutoApplyPanel({ user = null } = {}) {
   // 202 — and the next 13 clicks in 6 s were each refused 400 already_drafted, because nothing on the row changed): one
   // click per held row. Keyed by the row (job + run job), so the button comes back when the new draft's result replaces it.
   const [rerunning, setRerunning] = useState({});   // `${jobId}:${rowId}` → "busy" | "started"
+  // ⭐ A199 (2) (46j, owner 11-13: "these questions in general can move there as its own thread with the dropzone id"): a
+  // held application's questions are answered in ASK DRAFT, beside Home (components/AskDraftThread.jsx). Opening the row opens
+  // its thread once; "Answer them in Ask draft" opens it again; "answer here instead" keeps the stepper for this row.
+  const [answerHere, setAnswerHere] = useState({});   // jobId → true
+  const threadOpened = useRef(new Set());
+  const openQuestionsThread = (node) => window.dispatchEvent(new CustomEvent("draft:open-questions",
+    { detail: { jobId: node.jobId, company: companyLabel(node.company), questions: heldQuestionsFor(node) } }));
   const rerunKey = (job) => `${job?.jobId}:${job?.id ?? job?.runJobId ?? ""}`;
   const retryJob = async (job) => {
     const k = rerunKey(job);
@@ -1121,7 +1149,11 @@ export function AutoApplyPanel({ user = null } = {}) {
             {node.kind === "approval" && !node.ref.generationDeferred && <ChangesSummaryLine jobId={node.ref.jobId} jobLabel={companyLabel(node.ref.company)} />}
             {/* ⭐ A181 (3b): the held questions ONE AT A TIME, typed (the old single inline box remains for a row whose
                 questions were not named). ⛔ The user's own statement never starts filled. */}
-            {heldQuestionsFor(node).length > 0 && (
+            {heldQuestionsFor(node).length > 0 && !answerHere[node.jobId] && (
+              <QuestionsInAskDraft node={node} count={heldQuestionsFor(node).length} opened={threadOpened.current}
+                onOpen={() => openQuestionsThread(node)} onHere={() => setAnswerHere(m => ({ ...m, [node.jobId]: true }))} />
+            )}
+            {heldQuestionsFor(node).length > 0 && answerHere[node.jobId] && (
               <HeldQuestionStepper jobId={node.jobId} questions={heldQuestionsFor(node)} values={questionDrafts || {}}
                 setValue={(k, v) => setQuestionDrafts(prev => ({ ...prev, [k]: v }))}
                 remember={questionRemember || {}} setRemember={(k, v) => setQuestionRemember?.(prev => ({ ...prev, [k]: v }))}
