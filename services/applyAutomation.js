@@ -27,6 +27,14 @@ import {
   detectPlatformFromUrl, detectPlatformFromPage,
   getPlatformLabelMap,
 } from "./platformDetector.js";
+import { isSpamFlagText } from "./submitFamilies.js";   // A187 S2
+
+// ⭐ A187: what a held row says when the server did not (or must not) press Submit — the person sends it from their own
+// browser, where the extension fills it from the stored payload.
+export const BLOCKED_DETAIL = Object.freeze({
+  server_submit_paused: "Filled and ready. This employer's application site flags applications sent from draft's servers, so you send this one from your own browser — draft fills it in, you press Submit.",
+  flagged_spam: "The employer's site flagged the submit from draft's servers as possible spam, so nothing was sent. Send it from your own browser — draft fills it in, you press Submit.",
+});
 
 // -- Field-type catalogue ------------------------------------------------------
 export const FIELD_TYPES = [
@@ -2389,8 +2397,12 @@ export async function classifyFlowState(page, originalDomain) {
       if (currentHost !== originalDomain) return 'redirected';
     }
 
-    // 2. Submitted
     const bodyText = await page.evaluate(`document.body?.innerText || ''`).catch(() => '');
+    // ⭐ A187 S2 (46k): the ATS refused the submit as possible spam (Ashby: "Your application submission was flagged as
+    // possible spam"). Read FIRST — the refusal page can also say "thank you for your interest" — and never retried.
+    if (isSpamFlagText(bodyText)) return 'flagged_spam';
+
+    // 2. Submitted
     if (/thank you|application (received|submitted|complete)|successfully (applied|submitted)|we.{0,10}ll be in touch/i.test(bodyText)) {
       return 'submitted';
     }
@@ -3347,7 +3359,9 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
       }
       // D36: the run-wide stop (the operator's kill switch), checked at the same last moment as the
       // per-job abort. Held, not cancelled: the user did not stop it, and it is theirs to send again.
-      const blockedBy = await submitBlockedReason(submitBlocker);
+      // A187 S1 / S2: the blocker is told the ATS — a family that flags server-side submits (Ashby always) and a job flagged
+      // before are held here, filled, and handed to the person's own browser.
+      const blockedBy = await submitBlockedReason(submitBlocker, detected);
       if (blockedBy) {
         console.log(`[autoApply] submit blocked (${blockedBy}) — job=${jobId}, nothing clicked`);
         inProgress.set(String(jobId), { status: "held_review", browser: null });
@@ -3355,7 +3369,7 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
         return {
           status:       "held_review",
           reasonCode:   blockedBy,
-          reasonDetail: "Stopped immediately before the submit click. The form was filled and nothing was sent.",
+          reasonDetail: BLOCKED_DETAIL[blockedBy] || "Stopped immediately before the submit click. The form was filled and nothing was sent.",
           flowState,
           fieldsFilled: totalFilled,
           fieldsDiscovered: firstPassFieldCount ?? 0,
@@ -3468,21 +3482,29 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
       // the browser, the route opens a live session — the page is shown in draft and the PERSON solves the check (this
       // code never does). The run waits (a few minutes at most), presses Submit once more if the check cleared without a
       // confirmation, and records submitted only on a confirmation page — N1's rule, unchanged.
+      // ⭐ A187 S2: the ATS answered the submit with a spam refusal (in the page or the clicked frame). Recorded, never pressed
+      // again — not here, not by the live check, not by a re-run (serverSubmitBlock refuses a flagged job).
+      // A refusal outranks every other signal: the refusal page is usually a NEW address, and "url_changed" alone used to
+      // read as submitted (caught by a187's real-Chrome test).
+      if (clicked && postFlow !== "flagged_spam" && clickedFrame && clickedFrame !== page.mainFrame()
+          && await classifyFlowState(clickedFrame, null).catch(() => null) === "flagged_spam") postFlow = "flagged_spam";
+      if (postFlow === "flagged_spam") evidence.length = 0;
       let challengeOutcome = null;
       if (clicked && evidence.length === 0 && postFlow === "captcha_required" && typeof onChallenge === "function") {
         const live = await Promise.resolve(onChallenge({ page })).catch(() => null);
         if (live) {
           challengeOutcome = await live.waitForOutcome(async () => {
             const st = await classifyFlowState(page, originalDomain).catch(() => null);
-            if (st === "submitted") return "submitted";
+            if (st === "submitted" || st === "flagged_spam") return st;
             if (clickedFrame && clickedFrame !== page.mainFrame()) {
               const fs = await classifyFlowState(clickedFrame, null).catch(() => null);
-              if (fs === "submitted") return "submitted";
+              if (fs === "submitted" || fs === "flagged_spam") return fs;
             }
             return st === "captcha_required" ? "challenge" : "other";
           }, { onCleared: async () => { if (lastSubmitBtn) await lastSubmitBtn.click().catch(() => {}); } });
           console.log(`[autoApply] live check: ${challengeOutcome}`);
           if (challengeOutcome === "submitted") { evidence.push("confirmation_page_after_person_check"); postFlow = "submitted"; }
+          if (challengeOutcome === "flagged_spam") postFlow = "flagged_spam";   // A187: the owner's 11-12 case
         }
       }
 
@@ -3498,6 +3520,13 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
         // submission and an embedded one, and it is what makes a cross-frame claim checkable.
         submitEvidence = [...new Set(evidence)].join(",") +
           (clickedFrame && clickedFrame !== page.mainFrame() ? "|frame" : "");
+      } else if (clicked && postFlow === "flagged_spam") {
+        // ⭐ A187 S2: flagged as possible spam — nothing was sent. Held for the person's own browser (the extension fills it
+        // from the stored payload; they press Submit), never re-submitted from here.
+        status = "held_review";
+        submitVerified = false;
+        submitEvidence = challengeOutcome ? `flagged_spam_after_check` : "flagged_spam";
+        submitReasonCode = "flagged_spam";
       } else if (clicked && postFlow === "captcha_required") {
         // A186-CAPTCHA: a visible check stopped it (not solved here — live session timed out, or none could open). The
         // hold names the check, so the held view offers Open & fill instead of an unexplained failure. held_gate: the
@@ -3591,6 +3620,7 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
       submitVerified,
       submitEvidence,
       ...(submitReasonCode ? { reasonCode: submitReasonCode } : {}),
+      ...(submitReasonCode === "flagged_spam" ? { reasonDetail: BLOCKED_DETAIL.flagged_spam } : {}),
       // AE6: present on a semi run whether or not anything is missing. An EMPTY array is a real
       // answer — "we checked, nothing is outstanding" — and is not the same as the absent field
       // this used to return, which the review surface could only read as "no information".
@@ -3658,10 +3688,10 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
  * cost of being wrong that way is a held application the user sends again; the cost of being wrong
  * the other way is an application sent after someone said stop, which cannot be recalled.
  */
-export async function submitBlockedReason(submitBlocker) {
+export async function submitBlockedReason(submitBlocker, platform = null) {
   if (typeof submitBlocker !== "function") return null;
   try {
-    const r = await submitBlocker();
+    const r = await submitBlocker(platform);
     return r ? String(r) : null;
   } catch {
     return "submit_check_failed";

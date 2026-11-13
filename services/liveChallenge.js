@@ -103,6 +103,7 @@ export async function registerChallenge({ runJobId, userId, jobId, page, timeout
           let state = "other";
           try { state = await isDone(); } catch { state = "other"; }
           if (state === "submitted") return "submitted";
+          if (state === "flagged_spam") return "flagged_spam";   // A187: the ATS refused it as spam — never pressed again
           // The check is gone but no confirmation yet: the page may need its Submit pressed again (once).
           if (state === "other" && !clearedOnce && s.inputs > 0 && onCleared) { clearedOnce = true; try { await onCleared(); } catch {} }
         }

@@ -50,6 +50,7 @@ import { fullAutoDisabled as sharedFullAutoDisabled } from "../services/appSetti
 import { fullAutoBlocked, HOLD_REASON as FULL_AUTO_PREREQ_HOLD } from "../services/fullAutoGate.js";
 import { heldQuestionsOf, heldReasonWords, waitsOnPerson } from "../services/heldQuestions.js";
 import { fullReport, isSlimReport } from "../services/atsReportRead.js";   // A187 Stage 0 (46i)
+import { serverSubmitBlock, recordSubmitOutcome } from "../services/submitFamilies.js";   // ⭐ A187 S1–S3 (46k)
 import { registerChallenge, liveSessionFor, liveSessionsOf } from "../services/liveChallenge.js";   // A186-CAPTCHA (1)
 import { createChallengeRerun, challengeKindOf, withChallengeLog } from "../services/challengeRerun.js";   // A186-CAPTCHA (1b)
 import { applyAllowed, spendTrialDrafts } from "../services/billing/subscriptions.js";
@@ -1662,8 +1663,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     // (autoApply's submitBlocker), not only here at the job's start — a full or approved run fills
     // and waits on generation for up to ~90 s, and the switch thrown in that window used to be
     // ignored. Only for the mode that clicks: a preview never submits and semi leaves it to a human.
+    // ⭐ A187 S1 / S2: told the ATS autoApply detected — Ashby (always), a family paused by its spam flags, and a job whose
+    // submit was flagged before are not sent from the server; they are held and handed to the person's own browser.
     const submitBlocker = applyMode === "full"
-      ? () => (fullAutoDisabled() ? "full_auto_disabled" : null)
+      ? (platform) => (fullAutoDisabled() ? "full_auto_disabled"
+          : serverSubmitBlock(db, { ats: platform || detectPlatformFromUrl(jobUrl), userId, jobId }))
       : null;
     // ⭐ A186-CAPTCHA (1): a VISIBLE check after Submit opens a live session (services/liveChallenge.js) — the person solves
     // it in draft, this run continues. Only for the mode that clicks Submit.
@@ -2353,6 +2357,9 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       }
 
       // Record final result for CASE A and CASE C (CASE B returns early above)
+      // ⭐ A187 S3: every submit-step outcome counted by ATS (sent · flagged as spam · check · failed · paused).
+      try { recordSubmitOutcome(db, { ats: result.platform || detectPlatformFromUrl(jobUrl), result,
+        log: (e, m, d) => logEvent(runId, runJobId, userId, jobId, e, m, d) }); } catch {}
       const submitted = result.status === "submitted";
       const atsHeld   = result.status === "ats_held";
       // A preview holds like any other hold — the row carries the full answer set, so the review
@@ -5436,7 +5443,13 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       return practiceUrl || attributedUrl(job, hostedUrl || storedUrl);
     },
     registerChallenge: (opts) => registerChallenge({ ...opts, log: (m) => console.log(`[live-check] ${m}`) }),
-    submitBlocker: () => (fullAutoDisabled() ? "full_auto_disabled" : null),
+    // A187 S1 / S2: the re-run is a server-side submit too — the same family pause and the same never-again for a flagged job.
+    submitBlocker: (platform, ctx = {}) => (fullAutoDisabled() ? "full_auto_disabled"
+      : serverSubmitBlock(db, { ats: platform || (ctx.url ? detectPlatformFromUrl(ctx.url) : null), userId: ctx.userId, jobId: ctx.jobId })),
+    onOutcome: ({ userId, jobId, runJobId, runId, url, result }) => {
+      try { recordSubmitOutcome(db, { ats: result?.platform || detectPlatformFromUrl(url), result,
+        log: (e, m, d) => logEvent(runId, runJobId, userId, jobId, e, m, d) }); } catch {}
+    },
     refuse: (userId) => {
       const used = submittedLast24h(userId);
       return used >= APPLY_DAILY_CAP ? { error: "daily_cap_reached", message: `Today's limit of ${APPLY_DAILY_CAP} applications is reached — it stays here for tomorrow.` } : null;

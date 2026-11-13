@@ -148,10 +148,12 @@ export function challengeKindCounts(db, { days = 30, nowSec = Math.floor(Date.no
  *   onSubmitted({ userId, runJobId, jobId, runId, result }), logEvent(runId, runJobId, userId, jobId, event, msg, details),
  *   tmpPath(userId, jobId), derivedLabelMaps(), timeoutMs
  */
+const OWN_BROWSER_REASONS = new Set(["server_submit_paused", "flagged_spam"]);   // A187
+
 export function createChallengeRerun(deps) {
   const {
     db, autoApply, htmlToPdf, payloadFor, jobUrlFor, registerChallenge,
-    submitBlocker = () => null, refuse = () => null, onSubmitted = () => {}, onEnded = () => {},
+    submitBlocker = () => null, refuse = () => null, onSubmitted = () => {}, onEnded = () => {}, onOutcome = () => {},
     logEvent = () => {}, tmpPath, derivedLabelMaps = () => undefined, timeoutMs, coverLetterFor = null,
     now = () => Date.now(),
   } = deps;
@@ -193,7 +195,7 @@ export function createChallengeRerun(deps) {
         mode: "full", jobId, resumePath: tmp, coverLetterOnDemand,
         approvedAnswers: answers,          // the drift gate: nothing that differs from what the first run typed is sent
         derivedLabelMaps: derivedLabelMaps(),
-        submitBlocker,
+        submitBlocker: (platform) => submitBlocker(platform, { userId, jobId, url }),   // A187: the ATS + this job
         onChallenge: async ({ page }) => {
           const kind = await challengeKindOf(page);
           const live = await registerChallenge({ runJobId, userId, jobId, page, timeoutMs });
@@ -206,6 +208,7 @@ export function createChallengeRerun(deps) {
           return withChallengeLog(live, { kind, log: (ev, d) => logEvent(runId, runJobId, userId, jobId, ev, `The check ended: ${d.outcome}`, { ...d, rerun: true }) });
         },
       });
+      try { onOutcome({ userId, jobId, runJobId, runId, url, result }); } catch {}   // A187 S3: counted by ATS
       if (result?.status === "submitted") {
         entry.outcome = "submitted";
         entry.message = "Sent — it's in your Submitted applications.";
@@ -216,6 +219,12 @@ export function createChallengeRerun(deps) {
           ? "The check wasn't finished in time. Nothing was sent — Solve it here again whenever you're ready."
           : "The check came up and no live view could open. Nothing was sent — try again in a minute.";
         try { db.prepare(`UPDATE apply_run_jobs SET submit_evidence = ? WHERE id = ? AND status = ?`).run(result.submitEvidence || null, runJobId, HELD_CHECK.status); } catch {}
+      } else if (result?.reasonCode === "flagged_spam" || result?.reasonCode === "server_submit_paused") {
+        // ⭐ A187: the employer's site flags submits from draft's servers — send it from your own browser instead.
+        entry.outcome = "own_browser";
+        entry.message = result.reasonCode === "flagged_spam"
+          ? "The employer's site flagged the submit from draft's servers as possible spam, so nothing was sent. Use Open & fill — you press Submit in your own browser."
+          : "This employer's site flags applications sent from draft's servers, so nothing was sent from here. Use Open & fill — you press Submit in your own browser.";
       } else if (result?.reasonCode === "answers_changed_since_approval") {
         entry.outcome = "form_changed";
         entry.message = "The form asks something different now, so nothing was sent. Use Run again for a fresh draft of it.";
@@ -262,8 +271,13 @@ export function createChallengeRerun(deps) {
       return { status: 202, body: { ok: true, queued: true, position: q.length, message: "Queued — it opens as soon as the one before it is done." } };
     }
     if (active() >= MAX_RERUNS) return { status: 429, body: { error: "busy", message: "draft is opening other checks right now — try again in a minute." } };
-    const blocked = submitBlocker() || null;
-    if (blocked) return { status: 409, body: { error: blocked, message: "Automatic sending is paused right now, so the form can't be sent from here. Open & fill still works." } };
+    // A187 S1 / S2: told the ATS and the job, so an Ashby form or a flagged job is refused here, not after a browser opens.
+    let ctxUrl = null;
+    try { const j = db.prepare(`SELECT * FROM scraped_jobs WHERE job_id = ?`).get(String(pieces.row.job_id)) || null; ctxUrl = jobUrlFor({ userId, jobId: pieces.row.job_id, job: j }); } catch {}
+    const blocked = submitBlocker(null, { userId, jobId: String(pieces.row.job_id), url: ctxUrl }) || null;
+    if (blocked) return { status: 409, body: { error: blocked, message: OWN_BROWSER_REASONS.has(blocked)
+      ? "This employer's site flags applications sent from draft's servers, so it can't be sent from here. Use Open & fill — you press Submit in your own browser."
+      : "Automatic sending is paused right now, so the form can't be sent from here. Open & fill still works." } };
     const refused = refuse(userId);
     if (refused) return { status: 409, body: refused };
     const entry = { runJobId: Number(runJobId), userId, jobId: String(pieces.row.job_id), state: "opening", startedAt: now() };

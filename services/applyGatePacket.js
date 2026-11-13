@@ -655,6 +655,8 @@ export const RESUMABLE_HELD_REASONS = Object.freeze(new Set([
   "full_auto_disabled",             // policy held it; the human is the intended route
   "provider_review_only",           // this provider is never submitted unattended
   "daily_cap_reached",              // the cap is ours, not the employer's
+  "server_submit_paused",           // ⭐ A187 S1: this ATS flags server-side submits (Ashby always) — the person sends it
+  "flagged_spam",                   // ⭐ A187 S2: the ATS flagged the server's submit as spam — never retried from the server
 ]));
 
 /**

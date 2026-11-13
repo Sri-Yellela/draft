@@ -356,6 +356,7 @@ import { backfillProvenanceSlice } from "./services/jobs/enrichmentProvenance.js
 import { nextRowidRange, ACTIVE_JOB_INDEX } from "./services/jobs/rowidWalk.js";
 import { listPairs as listLearnedPairs, setPairRevoked, setPairPromoted, PROMOTE_AT_USERS } from "./services/learnedOrigins.js";
 import { challengeKindCounts } from "./services/challengeRerun.js";   // A186-CAPTCHA (4)
+import { submitOutcomeCounts } from "./services/submitFamilies.js";   // ⭐ A187 S3
 import { CRAWLER_PAGE_HTML } from "./services/crawlerPage.js";
 import { resolvePlaceText, roleScopeExtra } from "./shared/jobTagVocabulary.js";
 import { userReferencedSql } from "./services/jobs/userReferences.js";
@@ -8042,6 +8043,16 @@ let companyLinker = null;   // ⭐ D179 P4a (45l) — assigned in the migration 
         );
       `,
     },
+    {
+      // ⭐ A187 S1–S3 (46k): the submit-outcome reads — a family's flags in 24 h (before every server-side submit), a job's
+      // earlier flag, and Admin's counts by ATS — each answered by a partial index of the few submit_outcome rows, never a
+      // pass over apply_job_logs.
+      id: "275_apply_job_logs_submit_outcome",
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_apply_logs_submit_outcome_time ON apply_job_logs(created_at) WHERE event = 'submit_outcome';
+        CREATE INDEX IF NOT EXISTS idx_apply_logs_submit_outcome_job ON apply_job_logs(user_id, job_id) WHERE event = 'submit_outcome';
+      `,
+    },
   ];
 
   console.log("[boot] migrations: checking schema");
@@ -12225,6 +12236,13 @@ app.get("/api/admin/apply-origins", requireAdmin, (_req, res) => res.json({ pair
 app.get("/api/admin/quick-checks", requireAdmin, (req, res) => {
   try { res.json(challengeKindCounts(db, { days: Number(req.query.days) || 30 })); }
   catch (e) { res.status(500).json({ error: "quick_checks_failed", message: e.message }); }
+});
+// ⭐ A187 S3 · submits by ATS × outcome (sent · flagged as spam · check · failed · paused) over ?days= (default 30), and the
+// families whose server-side submit is paused now (Ashby always; any other after 2 spam flags in 24 h). apply_job_logs'
+// submit_outcome rows, through a partial index (migration 275).
+app.get("/api/admin/submit-outcomes", requireAdmin, (req, res) => {
+  try { res.json(submitOutcomeCounts(db, { days: Number(req.query.days) || 30 })); }
+  catch (e) { res.status(500).json({ error: "submit_outcomes_failed", message: e.message }); }
 });
 app.post("/api/admin/apply-origins/:id/revoke", requireAdmin, (req, res) => {
   const id = Number(req.params.id);
