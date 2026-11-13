@@ -456,6 +456,7 @@ const AUTHENTICATED = new Set([
   "POST /api/admin/apply-origins/:id/promote",
   // A186-CAPTCHA (4): the checks after Submit counted by kind — admin only.
   "GET /api/admin/quick-checks",
+  "GET /api/admin/submit-outcomes",   // A187 S3
   // D76: the Railway deploy events — admin only. (The hook itself, POST /api/hooks/railway, is a mounted
   // router authenticated by its own Bearer header; it is not a session route.)
   "GET /api/admin/deploy-events",

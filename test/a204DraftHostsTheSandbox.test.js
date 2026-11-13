@@ -1,5 +1,5 @@
-// ⭐ A204 (46k, owner 11-13: "bring it into resume master and apply the theme, styling and range of utility options to the
-// entire resume master site and draft would just host the sandbox"). draft keeps NO résumé editor of its own: the editor —
+// ⭐ A204 (46k, owner 11-13: "bring it into [resume-master] and apply the theme, styling and range of utility options to the
+// entire [resume-master] site and draft would just host the sandbox"). draft keeps NO résumé editor of its own: the editor —
 // its toolbar, its range of options (A203 (2) moved draft's sandbox options into it) — is resume-master's, embedded by
 // components/ResumeEditorHost.jsx. draft's panel shows only what the editor does not: generating, a failure, a missing
 // artifact, the company KB's findings (Accept applies the fix and saves), the A+ / Generate switch, and a read-only preview.
