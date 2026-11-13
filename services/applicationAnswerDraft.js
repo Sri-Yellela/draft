@@ -87,7 +87,9 @@ REQUIREMENTS:
 // ⛔ 46j (owner 11-13, Dropzone: an acknowledgement — "yes, agreed and understood" — got the reply "I don't see the actual
 // application question in your message … Please provide the question" as its draft): a reply that talks ABOUT the
 // request instead of answering it is never an answer — refused here, for the run and for the Draft button alike.
-const META_REPLY = /\b(i (don'?t|do not|can'?t|cannot) see (the|an|any)|please provide|you(?:'ve| have) (included|provided|not)|i'?d need (the|more)|could you (share|provide|clarify)|as an ai|i'?m (unable|not able) to|no (specific )?question (was|is) (provided|included)|the (specific )?question (is|was) (missing|not))\b/i;
+// 46j (owner 11-13, "What SIEMs have you integrated…": the box got "I don't see SIEM … listed on your résumé. To answer this
+// question authentically, you would need to add … Would you like to clarify …") — advice ABOUT the résumé is not an answer either.
+const META_REPLY = /\b(i (don'?t|do not|can'?t|cannot) see\b|please provide|you(?:'ve| have) (included|provided|not)|i'?d need (the|more)|could you (share|provide|clarify)|would you like (to|me to)|as an ai|i'?m (unable|not able) to|no (specific )?question (was|is) (provided|included)|the (specific )?question (is|was) (missing|not)|(not|isn'?t|aren'?t) (listed|mentioned|shown) (on|in) your r[ée]sum[ée]|your r[ée]sum[ée] (doesn'?t|does not) (mention|list|show|include)|you (would|will|might) need to add|to answer this (question )?(authentically|honestly|accurately)|consider (whether|adding|mentioning))\b/i;
 export const isMetaReply = (t) => META_REPLY.test(String(t || ""));
 export function checkAnswerDraft(text, { resumeText, untrusted }) {
   if (isMetaReply(text)) return { ok: false, violations: [{ kind: "meta_reply", value: "the reply did not answer the question" }] };

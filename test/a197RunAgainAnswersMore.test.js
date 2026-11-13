@@ -105,3 +105,16 @@ test("a194RetryKeepsTool + solve-check re-run: the answers retry uses the held r
   assert.match(src, /Nothing was sent — the form still needed: /);
   assert.match(src, /if \(clTmp\) \{ try \{ unlinkSync\(clTmp\); \} catch \{\} \}/);
 });
+
+// ⛔ 46j (owner 11-13, Dropzone "What SIEMs have you integrated…": the Draft button typed advice into the answer box).
+test("a197DraftButtonNeverAdvice: the Draft button follows the run's rule (UNKNOWN → empty box); advice about the résumé is refused", async () => {
+  const { isMetaReply } = await import("../services/applicationAnswerDraft.js");
+  const siem = "I don't see SIEM (Security Information and Event Management) tools listed on your résumé. To answer this question authentically, you would need to add any SIEM platforms you've actually worked with. Would you like to clarify what SIEM experience, if any, you have?";
+  assert.equal(isMetaReply(siem), true);
+  assert.equal(isMetaReply("Your résumé doesn't mention Splunk."), true);
+  assert.equal(isMetaReply("I integrated Splunk and Datadog alerts into the payments on-call rotation at a fintech."), false);
+  const fs = await import("node:fs");
+  const server = fs.readFileSync("server.js", "utf8");
+  assert.match(server, /buildAnswerDraftRequest\(\{ resumeText, question: q, title: job\.title, company: job\.company, forRun: true \}\)/);
+  assert.match(server, /if \(isUnknownReply\(text\)\) return res\.status\(422\)\.json\(\{ error: "no_answer"/);
+});
