@@ -31,7 +31,7 @@ import {
 } from "../services/kb/formSchemaLayer.js";
 import { probeBrowserAvailability } from "../services/browserLauncher.js";
 import { cachedApplicationSchema, schemaFieldsForFill, warmApplicationSchema, schemaQuestionsForTailoring, hostedFormUrl } from "../services/jobs/applicationSchema.js";
-import { answerDraftsEnabled, runDraftQuestions } from "../services/applicationAnswerDraft.js";   // D185-1 (45s): the drafted answers' switch
+import { answerDraftsEnabled, runDraftQuestions, runPickQuestions } from "../services/applicationAnswerDraft.js";   // D185-1 (45s): the drafted answers' switch
 import { attributeApplyUrl, attributionFamily, tokenFor, howHeardAnswers } from "../shared/sourceAttribution.js";
 import { getSetting } from "../services/appSettings.js";
 // AH5: the one definition of "is this stored resume still the right one". Shared with server.js's
@@ -1928,13 +1928,19 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
           const last = db.prepare(`SELECT open_questions_json FROM apply_run_jobs WHERE user_id = ? AND job_id = ? AND id <> ? AND open_questions_json IS NOT NULL
             ORDER BY id DESC LIMIT 1`).pluck().get(userId, jobId, runJobId);
           const own = Object.keys(autofillPayload?.custom_answers || {}).map(normaliseQuestion);
-          const questions = runDraftQuestions({ schemaQuestions: schemaQuestionsForTailoring(cachedApplicationSchema(db, jobId)),
-            lastOpenQuestions: parseJson(last, []) }).filter(q => !own.includes(normaliseQuestion(q)));
+          const lastOpen = parseJson(last, []);
+          // ⭐ 46j (owner 11-13: "run again means … answerable questions answered"): + the last attempt's MULTIPLE-CHOICE
+          // questions, answered from the résumé only when the reply IS one of the form's options (services/applicationAnswerDraft.js).
+          const questions = [
+            ...runDraftQuestions({ schemaQuestions: schemaQuestionsForTailoring(cachedApplicationSchema(db, jobId)), lastOpenQuestions: lastOpen }),
+            ...runPickQuestions({ lastOpenQuestions: lastOpen }),
+          ].filter(q => !own.includes(normaliseQuestion(typeof q === "string" ? q : q.question)));
           if (questions.length) {
             const drafted = await draftRunAnswers({ userId, jobId, questions, title: job?.title || "", company: job?.company || "" });
             if (drafted && Object.keys(drafted).length) autofillPayload.drafted_answers = drafted;
+            const asked = questions.map(q => (typeof q === "string" ? q : q.question));
             logEvent(runId, runJobId, userId, jobId, "answers_drafted",
-              `Drafted ${Object.keys(drafted || {}).length} of ${questions.length} free-text answer(s) from the résumé`, { questions, drafted: Object.keys(drafted || {}) });
+              `Drafted ${Object.keys(drafted || {}).length} of ${questions.length} answer(s) from the résumé`, { questions: asked, drafted: Object.keys(drafted || {}) });
           }
         } catch (e) { logEvent(runId, runJobId, userId, jobId, "answers_draft_failed", `Free-text drafts skipped: ${e.message}`, {}); }
       }
