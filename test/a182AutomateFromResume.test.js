@@ -43,7 +43,8 @@ test("a182DraftedAnswerFillsTheField: drafted_answers is read after the person's
   assert.match(block, /normaliseQuestion\(q\) === lblQ/); assert.match(block, /allowEligibilityExactAnswer: false/);
   assert.ok(i > at(src, "// 3. custom_answers — the user's own answer to this question."), "after the person's own answers");
   const apply = read("routes/apply.js");
-  assert.match(apply, /autofillPayload\.drafted_answers = drafted;/);
+  // A198 (46j, changed on purpose): the drafts are kept (payloadParts) and MERGED with the answers kept from earlier runs.
+  assert.match(apply, /autofillPayload\.drafted_answers = \{ \.\.\.\(autofillPayload\.drafted_answers \|\| \{\}\), \.\.\.drafted \};/);
   assert.match(read("server.js"), /draftRunAnswers: \(\{ userId, jobId, questions, title, company \}\) => answerDraftsEnabled\(db\)/);
   assert.match(read("client/src/lib/heldApplication.js"), /drafted_from_resume: "written by draft from your résumé"/);
 });

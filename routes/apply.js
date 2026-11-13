@@ -31,7 +31,8 @@ import {
 } from "../services/kb/formSchemaLayer.js";
 import { probeBrowserAvailability } from "../services/browserLauncher.js";
 import { cachedApplicationSchema, schemaFieldsForFill, warmApplicationSchema, schemaQuestionsForTailoring, hostedFormUrl } from "../services/jobs/applicationSchema.js";
-import { answerDraftsEnabled, runDraftQuestions, runPickQuestions } from "../services/applicationAnswerDraft.js";   // D185-1 (45s): the drafted answers' switch
+import { answerDraftsEnabled, runDraftQuestions, runPickQuestions } from "../services/applicationAnswerDraft.js";
+import { keptAnswers, keepAnswers, partKeyOf, coverLetterOnce } from "../services/payloadParts.js";   // A198 (46j)   // D185-1 (45s): the drafted answers' switch
 import { attributeApplyUrl, attributionFamily, tokenFor, howHeardAnswers } from "../shared/sourceAttribution.js";
 import { getSetting } from "../services/appSettings.js";
 // AH5: the one definition of "is this stored resume still the right one". Shared with server.js's
@@ -294,6 +295,13 @@ export function coverLetterOnDemand(make) {
 
 export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, generateResumeForApply, htmlToPdf, generateCoverLetterForApply,
                                     scoreBaseResumeForApply, { applyOriginFamilies = APPLY_ORIGIN_FAMILIES, draftRunAnswers = null, challengeAutoApply = null } = {}) {
+  // ⭐ A198 (46j, owner: "once any part of the payload is made its retained and recorded as such, like an idempotency key"):
+  // a job's cover letter is written ONCE and kept (services/payloadParts.js) — every run path below (CASE A / B / C and
+  // Solve it here) calls this same re-bound writer, so a later run of the job reuses the kept letter.
+  const writeCoverLetterOnce = generateCoverLetterForApply;
+  generateCoverLetterForApply = typeof writeCoverLetterOnce === "function"
+    ? (userId, jobId) => coverLetterOnce(db, { userId, jobId, write: () => writeCoverLetterOnce(userId, jobId) })
+    : writeCoverLetterOnce;
   // D55 (f) · every payload this module builds — for a run's resolver AND for a packet — carries the
   // work history "have you worked here before?" is answered from: the profile's current_company plus
   // the base résumé's EXPERIENCE companies, the same `entries.work` the packet fills Work Experience
@@ -1923,21 +1931,32 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
       // its cached schema's, and the ones its last attempt held on — are DRAFTED NOW from the résumé (answers.routine,
       // claim-checked) and handed to the fill as drafted_answers. A question the person already answered (custom
       // answers) is not drafted. A failed draft just leaves the field to hold as before.
+      // ⭐ A198 (46j): the answers an earlier run of THIS job already drafted or picked are reused as they were recorded —
+      // never drafted again (services/payloadParts.js, first write wins); only the questions still without one are drafted.
+      const kept = keptAnswers(db, { userId, jobId });
+      if (Object.keys(kept).length) {
+        autofillPayload.drafted_answers = { ...kept, ...(autofillPayload.drafted_answers || {}) };
+        logEvent(runId, runJobId, userId, jobId, "answers_reused", `Reused ${Object.keys(kept).length} answer(s) an earlier run of this job made`, { questions: Object.keys(kept) });
+      }
       if (typeof draftRunAnswers === "function") {
         try {
           const last = db.prepare(`SELECT open_questions_json FROM apply_run_jobs WHERE user_id = ? AND job_id = ? AND id <> ? AND open_questions_json IS NOT NULL
             ORDER BY id DESC LIMIT 1`).pluck().get(userId, jobId, runJobId);
           const own = Object.keys(autofillPayload?.custom_answers || {}).map(normaliseQuestion);
+          const keptKeys = new Set(Object.keys(kept).map(partKeyOf));
           const lastOpen = parseJson(last, []);
           // ⭐ 46j (owner 11-13: "run again means … answerable questions answered"): + the last attempt's MULTIPLE-CHOICE
           // questions, answered from the résumé only when the reply IS one of the form's options (services/applicationAnswerDraft.js).
           const questions = [
             ...runDraftQuestions({ schemaQuestions: schemaQuestionsForTailoring(cachedApplicationSchema(db, jobId)), lastOpenQuestions: lastOpen }),
             ...runPickQuestions({ lastOpenQuestions: lastOpen }),
-          ].filter(q => !own.includes(normaliseQuestion(typeof q === "string" ? q : q.question)));
+          ].filter(q => { const t = typeof q === "string" ? q : q.question; return !own.includes(normaliseQuestion(t)) && !keptKeys.has(partKeyOf(t)); });
           if (questions.length) {
             const drafted = await draftRunAnswers({ userId, jobId, questions, title: job?.title || "", company: job?.company || "" });
-            if (drafted && Object.keys(drafted).length) autofillPayload.drafted_answers = drafted;
+            if (drafted && Object.keys(drafted).length) {
+              keepAnswers(db, { userId, jobId, answers: drafted, source: "drafted", runJobId });   // A198: recorded once made
+              autofillPayload.drafted_answers = { ...(autofillPayload.drafted_answers || {}), ...drafted };
+            }
             const asked = questions.map(q => (typeof q === "string" ? q : q.question));
             logEvent(runId, runJobId, userId, jobId, "answers_drafted",
               `Drafted ${Object.keys(drafted || {}).length} of ${questions.length} answer(s) from the résumé`, { questions: asked, drafted: Object.keys(drafted || {}) });
@@ -5370,7 +5389,11 @@ export default function applyRoutes(app, db, requireAuth, buildAutofillPayload, 
     payloadFor: ({ userId, jobId, job }) => {
       db.prepare("INSERT OR IGNORE INTO user_profile (user_id) VALUES (?)").run(userId);
       const profile = db.prepare("SELECT * FROM user_profile WHERE user_id=?").get(userId);
-      return withHowHeard(userId, jobId, buildAutofillPayload(profile, "APPLY", job?.company, jobId));
+      const p = withHowHeard(userId, jobId, buildAutofillPayload(profile, "APPLY", job?.company, jobId));
+      // A198: + the answers kept for this job (drafted / picked by earlier runs) — the same ones, never re-made.
+      const kept = keptAnswers(db, { userId, jobId });
+      if (p && Object.keys(kept).length) p.drafted_answers = { ...kept, ...(p.drafted_answers || {}) };
+      return p;
     },
     // The address the first run opened — the same rule processRunJob uses (practice form first, then the hosted embed).
     jobUrlFor: ({ userId, jobId, job }) => {

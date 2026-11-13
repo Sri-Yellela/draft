@@ -7359,4 +7359,24 @@ export const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_apply_run_jobs_running ON apply_run_jobs(started_at) WHERE status = 'running';
       `,
     },
+    {
+      // ⭐ A198 (46j, owner 11-13: "make sure once any part of the payload is made its retained and recorded as such, like an
+      // idempotency key, so that the loop doesnt fail"): every piece a run MAKES for one person × one posting — a drafted
+      // free-text answer, a picked option, the cover letter — is kept under (user, job, kind, key) and reused by every later
+      // run of that job (Run again, the answers retry, Approve, Solve it here), never made again.
+      id: "274_apply_payload_parts",
+      sql: `
+        CREATE TABLE IF NOT EXISTS apply_payload_parts (
+          user_id     INTEGER NOT NULL,
+          job_id      TEXT    NOT NULL,
+          kind        TEXT    NOT NULL,
+          part_key    TEXT    NOT NULL,
+          value       TEXT    NOT NULL,
+          source      TEXT,
+          run_job_id  INTEGER,
+          created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+          PRIMARY KEY (user_id, job_id, kind, part_key)
+        );
+      `,
+    },
   ];

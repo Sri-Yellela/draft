@@ -281,6 +281,7 @@ export function deleteAccount(db, userId) {
 // résumés' lists are never interleaved into one.
 export const MERGE_PLAN = Object.freeze({
   apply_gate_packets: "move", apply_job_logs: "move", apply_run_jobs: "move", apply_runs: "move",
+  apply_payload_parts: "keepInto",   // A198 (46j): keyed (user, job, kind, part_key) — INTO's piece for the same question wins
   cache_events: "move", domain_profile_requests: "move", notifications: "move",
   profile_base_resumes: "move", profile_resume_enhancements: "move", profile_signal_suggestions: "move",
   profile_simple_apply_profiles: "move", resume_versions: "move", scrape_events: "move", usage_events: "move",

@@ -22,6 +22,7 @@ export const archiveEnabled = (db) => settingTruthy(getSetting(db, ARCHIVE_SETTI
 /** Tables whose rows are a PERSON's history — a posting any of them names is never archived. */
 export const USER_REF_TABLES = Object.freeze([
   "resumes", "resume_versions", "job_applications", "user_job_views", "user_jobs", "apply_run_jobs", "apply_job_logs", "rejected_jobs",
+  "apply_payload_parts",   // A198 (46j): the pieces a run made for this person × posting
   "apply_gate_packets", "ats_only_reports", "daily_drafts", "application_records", "draft_slot_uses", "job_captures", "ats_corpus_grades",
   "byom_briefs", "mcp_audit", "answer_history", "extension_resume_generations", "resume_pdf_artifacts", "picks",
   "picks_left_out", "practice_submissions", "trial_demo_tailoring", "ats_gold_items", "application_signals", "network_messages",
