@@ -1155,6 +1155,19 @@ function(handlerByAttr, profileKeyToHandler, labelMap) {
     } else {
       current_value = (el.value !== undefined ? el.value : (el.textContent || '')).trim();
     }
+    // ⛔ A202 (46k): a react-select combobox (Greenhouse's new job boards render every choice question this way) EMPTIES
+    // its <input role=combobox> once an option is picked — the choice lives in a sibling "single-value" / "multi-value"
+    // node. Read only the input and a picked answer looks blank: the run held incomplete_form and asked the person the
+    // question they had just answered, on every retry.
+    if (!current_value && fieldType === 'typeahead') {
+      // nearest of each in turn — select__input-container (the input's own wrapper) also ends "-container"
+      const box = ['[class*="select__control"]', '[class*="-control"]', '[class*="select-shell"]', '[class*="select__container"]']
+        .map(s => el.closest(s)).find(Boolean) || null;
+      // one control's own box only — a wider container could lend another field's choice and fake a filled field
+      const ownBox = box && box.querySelectorAll('[role="combobox"],select,textarea,input:not([type="hidden"])').length <= 1;
+      const picked = ownBox && box.querySelector('[class*="single-value"],[class*="singleValue"],[class*="multi-value__label"],[class*="multiValue"] [class*="label"]');
+      if (picked && (picked.textContent || '').trim()) current_value = picked.textContent.trim();
+    }
 
     // Reported, not decided, in the page: whether this control sits in a form that also holds a
     // password input. The DECISION is isCredentialField() in Node, where it is unit-testable — this
@@ -1398,6 +1411,20 @@ export function buildAnswers(fields, profilePayload) {
         matched_on = q;
         customExact = exact;
         break;
+      }
+    }
+    // ⛔ A202 (46k) · 3a. the person's answer to THIS posting's question, matched by the ATS's own field name
+    // (Greenhouse `question_<id>` — the same id the page's control carries) when the page words the question differently
+    // from the ATS's published label they answered. Exact by construction (one posting, one field), so it is treated as
+    // an exact custom answer — never a containment guess.
+    const byName = profilePayload?.custom_answers_by_field;
+    if (value === null && byName && typeof byName === 'object') {
+      const ids = [field.name, field.field_id].filter(v => v != null && v !== '').map(v => String(v).replace(/\[\]$/, ''));
+      const hit = ids.map(k => byName[k]).find(h => h && h.answer != null && h.answer !== '');
+      if (hit) {
+        const reason = refuseReason({ ...guardCtx, key: hit.question, allowEligibilityExactAnswer: true });
+        if (reason) refusals.push(`custom_by_field:${reason}`);
+        else { value = String(hit.answer); provenance = PROVENANCE.CUSTOM_ANSWER; matched_on = hit.question; customExact = true; }
       }
     }
 
@@ -1744,6 +1771,35 @@ export function normalisePolicyDecision(decision, fillable) {
  * it, and the field is STILL empty. That is our bug rather than the candidate's missing data, and
  * folding it into `no_answer` would hide it in the one record built to expose it.
  */
+/**
+ * ⛔ A202 (46k): mark each still-empty required field that the resolver DID answer (a value, not a refusal) as
+ * `fill_failed` — matched by field_id / name / label like buildBlanks. Returns the labels marked, for the hold's words.
+ */
+export function markFillFailed(missingFields = [], resolvedAnswers = []) {
+  const attempted = new Set();
+  for (const a of resolvedAnswers || []) {
+    if (!a || a.skipped || a.value == null || a.value === '') continue;
+    for (const k of [a.field_id, a.name, a.label].filter(v => v != null && v !== '')) attempted.add(String(k));
+  }
+  const labels = [];
+  for (const f of missingFields || []) {
+    if (f.type === 'file') continue;
+    if ([f.field_id, f.name].filter(v => v != null && v !== '').some(k => attempted.has(String(k)))) {
+      f.fill_failed = true;
+      labels.push(String(f.label || f.name || f.field_id));
+    }
+  }
+  return labels;
+}
+
+/** The hold's detail when the form refused answers draft had: named, so the person is told rather than asked again. */
+export function fillFailedDetail(labels = []) {
+  if (!labels.length) return null;
+  const named = labels.slice(0, 4).map(l => `"${l.replace(/\s*\*\s*$/, '').slice(0, 80)}"`).join(', ');
+  return `draft couldn't enter your answer to ${named}${labels.length > 4 ? ` and ${labels.length - 4} more` : ''} on this form — ` +
+    `your answers are kept; use Open & fill to finish ${labels.length === 1 ? 'it' : 'them'} on the page.`;
+}
+
 export function buildBlanks({ fields = [], resolvedAnswers = [], rejectedAnswers = [] } = {}) {
   const refusals = new Map();
   const attempted = new Set();
@@ -1838,7 +1894,8 @@ export function buildOpenQuestions({ missingFields = [], lowConfidence = [] } = 
       options: Array.isArray(f.options) ? f.options.filter(o => o && o.value !== '') : [],
       required: !!f.is_required,
       eligibility: eligibilityClassOf(`${f.label || ''} ${f.name || ''}`),
-      reason: 'unanswered',
+      // ⛔ A202: 'fill_failed' = draft had the answer and the form didn't take it (heldQuestions.waitsOnPerson skips it)
+      reason: f.fill_failed ? 'fill_failed' : 'unanswered',
       // What the resolver tried and refused, when it tried anything — this is why the field is
       // empty, and it is the difference between "we have no answer" and "we refused to guess".
       refusals: Array.isArray(f.refusals) ? f.refusals : undefined,
@@ -2054,15 +2111,22 @@ async function applyTypeaheadAnswer(page, answer) {
     await new Promise(r => setTimeout(r, 800));
     // Try to click a dropdown option matching typeahead_selection
     const sel = answer.typeahead_selection || answer.value;
+    // ⛔ A202 (46k): an EXACT option first, then one that starts with the answer, then containment — "No" used to pick
+    // the first option merely CONTAINING "no" ("I do not …", "Not applicable"), and only visible options count.
     const options = await page.$$('[role=option],[role=listitem],[class*=option],[class*=suggestion]');
+    const want = String(sel).trim().toLowerCase();
+    const texts = [];
     for (const opt of options) {
       try {
-        const txt = (await opt.evaluate(el => el.textContent || '')).trim();
-        if (txt.toLowerCase().includes(String(sel).toLowerCase())) {
-          await opt.click(); return;
-        }
+        const t = await opt.evaluate(el => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 ? (el.textContent || '').trim() : null;
+        });
+        if (t) texts.push([opt, t.toLowerCase()]);
       } catch {}
     }
+    const pick = texts.find(([, t]) => t === want) || texts.find(([, t]) => t.startsWith(want)) || texts.find(([, t]) => t.includes(want));
+    if (pick) { try { await pick[0].click(); return; } catch {} }
     // Fallback: arrow down + enter
     await el.press('ArrowDown');
     await el.press('Enter');
@@ -3146,6 +3210,14 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
           const r = refusalsByField.get(f.field_id) ?? refusalsByField.get(f.name);
           if (r) f.refusals = r;
         }
+        // ⛔ A202 (46k): a required field draft HAD an answer for (the person's, a draft, the profile's) and typed / picked,
+        // and the post-fill read still finds it empty, is draft failing to enter it — not a question for the person. It
+        // used to come back as the same open question, so a person who answered was asked again on every retry.
+        const fillFailedLabels = markFillFailed(missingFields, resolvedAnswers);
+        for (const f of missingFields) {
+          console.log(`[apply-held] job=${jobId} q=${JSON.stringify(String(f.label || f.name || f.field_id || '').slice(0, 120))} type=${f.type || '?'} ` +
+            `reason=${f.fill_failed ? 'fill_failed' : f.refusals ? 'refused' : 'no_answer'}${f.refusals ? ` refusals=${f.refusals.join('|').slice(0, 200)}` : ''}`);
+        }
         const pageTitle2 = await page.title().catch(() => '');
         const ss2 = await takeScreenshot(page, jobId);
         inProgress.set(String(jobId), { status: 'held_review', browser: null });
@@ -3153,6 +3225,7 @@ export async function autoApply(jobUrl, autofillData, options = {}) {
         return {
           status:           'held_review',
           reasonCode:       'incomplete_form',
+          reasonDetail:     fillFailedDetail(fillFailedLabels),
           flowState:        'form_ready',
           fieldsFilled:     totalFilled,
           missingRequired,

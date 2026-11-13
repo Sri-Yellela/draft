@@ -26,6 +26,7 @@ const norm = (q) => s(q).toLowerCase().replace(/[\s*:?.]+$/g, "").replace(/\s+/g
  */
 export function waitsOnPerson(q) {
   if (!q || q.type === "file") return false;   // D165 R1: the résumé is draft's to make, never a question
+  if (q.reason === "fill_failed") return false;   // ⛔ A202: draft had the answer and the form didn't take it — named in the hold, never asked again
   if (q.required === false && !q.eligibility && q.reason !== "low_confidence") return false;
   return !!s(q.question || q.label);
 }
@@ -101,6 +102,8 @@ const WORDS = Object.freeze({
 /** One sentence: why this application is held. `detail` names the specifics where the code alone can't (the checks). */
 export function heldReasonWords(code, detail = null) {
   const base = WORDS[s(code)] || (s(detail) ? s(detail) : "Held for you to look at.");
+  // ⛔ A202: "draft couldn't enter your answer to … on this form" — the fields the form refused, named after the sentence
+  if (s(code) === "incomplete_form" && /^draft couldn't enter/.test(s(detail))) return `${base} ${s(detail).charAt(0).toUpperCase()}${s(detail).slice(1)}`;
   if (s(code) === "full_auto_prerequisites") {
     const m = /\(([^)]+)\)/.exec(s(detail));
     if (m) return `${base} Still to pass: ${m[1]}.`;
