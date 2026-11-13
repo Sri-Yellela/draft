@@ -1,0 +1,402 @@
+[
+ {
+  "path": "/",
+  "label": "desktop",
+  "shot": "home-desktop.png",
+  "title": "Resume Master — résumé tools that show their work",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 61,
+  "tools": null
+ },
+ {
+  "path": "/",
+  "label": "phone",
+  "shot": "home-phone.png",
+  "title": "Resume Master — résumé tools that show their work",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 61,
+  "tools": null
+ },
+ {
+  "path": "/pdf/",
+  "label": "desktop",
+  "shot": "pdf-desktop.png",
+  "title": "Free PDF tools that never upload your file — Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 36,
+  "tools": null
+ },
+ {
+  "path": "/pdf/",
+  "label": "phone",
+  "shot": "pdf-phone.png",
+  "title": "Free PDF tools that never upload your file — Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 36,
+  "tools": null
+ },
+ {
+  "path": "/pdf/compress-pdf/",
+  "label": "desktop",
+  "shot": "pdf_compress-pdf-desktop.png",
+  "title": "Compress a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 55,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/compress-pdf/",
+  "label": "phone",
+  "shot": "pdf_compress-pdf-phone.png",
+  "title": "Compress a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 55,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/edit-pdf/",
+  "label": "desktop",
+  "shot": "pdf_edit-pdf-desktop.png",
+  "title": "Edit a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 65,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/edit-pdf/",
+  "label": "phone",
+  "shot": "pdf_edit-pdf-phone.png",
+  "title": "Edit a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 65,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/html-to-pdf/",
+  "label": "desktop",
+  "shot": "pdf_html-to-pdf-desktop.png",
+  "title": "HTML to PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 55,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/html-to-pdf/",
+  "label": "phone",
+  "shot": "pdf_html-to-pdf-phone.png",
+  "title": "HTML to PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 55,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/jpg-to-pdf/",
+  "label": "desktop",
+  "shot": "pdf_jpg-to-pdf-desktop.png",
+  "title": "JPG and PNG to PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/jpg-to-pdf/",
+  "label": "phone",
+  "shot": "pdf_jpg-to-pdf-phone.png",
+  "title": "JPG and PNG to PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/merge-pdf/",
+  "label": "desktop",
+  "shot": "pdf_merge-pdf-desktop.png",
+  "title": "Merge PDF files — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/merge-pdf/",
+  "label": "phone",
+  "shot": "pdf_merge-pdf-phone.png",
+  "title": "Merge PDF files — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/ocr-pdf/",
+  "label": "desktop",
+  "shot": "pdf_ocr-pdf-desktop.png",
+  "title": "OCR a scanned PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/ocr-pdf/",
+  "label": "phone",
+  "shot": "pdf_ocr-pdf-phone.png",
+  "title": "OCR a scanned PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/organize-pdf/",
+  "label": "desktop",
+  "shot": "pdf_organize-pdf-desktop.png",
+  "title": "Organize PDF pages — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/organize-pdf/",
+  "label": "phone",
+  "shot": "pdf_organize-pdf-phone.png",
+  "title": "Organize PDF pages — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/pdf-to-excel/",
+  "label": "desktop",
+  "shot": "pdf_pdf-to-excel-desktop.png",
+  "title": "PDF to Excel — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/pdf-to-excel/",
+  "label": "phone",
+  "shot": "pdf_pdf-to-excel-phone.png",
+  "title": "PDF to Excel — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/pdf-to-jpg/",
+  "label": "desktop",
+  "shot": "pdf_pdf-to-jpg-desktop.png",
+  "title": "PDF to JPG or PNG — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 55,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/pdf-to-jpg/",
+  "label": "phone",
+  "shot": "pdf_pdf-to-jpg-phone.png",
+  "title": "PDF to JPG or PNG — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 55,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/pdf-to-text/",
+  "label": "desktop",
+  "shot": "pdf_pdf-to-text-desktop.png",
+  "title": "PDF to text — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/pdf-to-text/",
+  "label": "phone",
+  "shot": "pdf_pdf-to-text-phone.png",
+  "title": "PDF to text — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/pdf-to-word/",
+  "label": "desktop",
+  "shot": "pdf_pdf-to-word-desktop.png",
+  "title": "PDF to Word — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/pdf-to-word/",
+  "label": "phone",
+  "shot": "pdf_pdf-to-word-phone.png",
+  "title": "PDF to Word — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 54,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/protect-pdf/",
+  "label": "desktop",
+  "shot": "pdf_protect-pdf-desktop.png",
+  "title": "Password-protect a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 56,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/protect-pdf/",
+  "label": "phone",
+  "shot": "pdf_protect-pdf-phone.png",
+  "title": "Password-protect a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 56,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/sign-pdf/",
+  "label": "desktop",
+  "shot": "pdf_sign-pdf-desktop.png",
+  "title": "Sign a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 64,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF · Draw · Type · Upload a photo"
+ },
+ {
+  "path": "/pdf/sign-pdf/",
+  "label": "phone",
+  "shot": "pdf_sign-pdf-phone.png",
+  "title": "Sign a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 64,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF · Draw · Type · Upload a photo"
+ },
+ {
+  "path": "/pdf/split-pdf/",
+  "label": "desktop",
+  "shot": "pdf_split-pdf-desktop.png",
+  "title": "Split a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 55,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/split-pdf/",
+  "label": "phone",
+  "shot": "pdf_split-pdf-phone.png",
+  "title": "Split a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 55,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/unlock-pdf/",
+  "label": "desktop",
+  "shot": "pdf_unlock-pdf-desktop.png",
+  "title": "Unlock a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 55,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/unlock-pdf/",
+  "label": "phone",
+  "shot": "pdf_unlock-pdf-phone.png",
+  "title": "Unlock a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 55,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/watermark-pdf/",
+  "label": "desktop",
+  "shot": "pdf_watermark-pdf-desktop.png",
+  "title": "Add a watermark to a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 55,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/pdf/watermark-pdf/",
+  "label": "phone",
+  "shot": "pdf_watermark-pdf-phone.png",
+  "title": "Add a watermark to a PDF — free, in your browser | Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 55,
+  "tools": "Merge · Split · Organize · Compress · Edit · Sign · Watermark · Protect · Unlock · Images → PDF · PDF → images · PDF → text · PDF → Word · PDF → Excel · OCR · HTML → PDF"
+ },
+ {
+  "path": "/editor/",
+  "label": "desktop",
+  "shot": "editor-desktop.png",
+  "title": "Résumé editor — Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 33,
+  "tools": null
+ },
+ {
+  "path": "/editor/",
+  "label": "phone",
+  "shot": "editor-phone.png",
+  "title": "Résumé editor — Resume Master",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 33,
+  "tools": null
+ },
+ {
+  "path": "/privacy.html",
+  "label": "desktop",
+  "shot": "privacy_html-desktop.png",
+  "title": "Resume Master — privacy",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 20,
+  "tools": null
+ },
+ {
+  "path": "/privacy.html",
+  "label": "phone",
+  "shot": "privacy_html-phone.png",
+  "title": "Resume Master — privacy",
+  "errs": [],
+  "sideScroll": false,
+  "controls": 20,
+  "tools": null
+ }
+]
